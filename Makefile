@@ -193,6 +193,13 @@ docs: $(DOCX)
 # git remote update BindGUI
 # git merge BindGUI/master
 
+# merge project-a to project-b
+# 1 cd path/to/project-b
+# 2 git remote add project-a path/to/project-a
+# 3 git fetch project-a
+# 4 git merge --allow-unrelated-histories project-a/master # or whichever branch you want to merge
+# 5 git remote remove project-a
+
 
 # Please follow the following steps to fix merge conflicts in git:
 # Check the git status: git status
