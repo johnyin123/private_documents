@@ -200,6 +200,9 @@ docs: $(DOCX)
 # 4 git merge --allow-unrelated-histories project-a/master # or whichever branch you want to merge
 # 5 git remote remove project-a
 
+# made an alias to do the push:
+# git config --add alias.bak "push --mirror github"
+# Then, I just run git bak whenever I want to do a backup.
 
 # Please follow the following steps to fix merge conflicts in git:
 # Check the git status: git status
