@@ -168,7 +168,7 @@ export GIT_PS1_SHOWDIRTYSTATE=1
 export readonly PROMPT_COMMAND='{ msg=\$(history 1 | { read x y; echo \$y; });user=\$(whoami); echo \$(date "+%Y-%m-%d%H:%M:%S"):\$user:\$(pwd):\$msg ---- \$(who am i); } >> \$HOME/.history.; __git_ps1 "\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]\\h:\\[\\033[33;1m\\]\\w\\[\\033[m\\]" "\\\\\\\$ "'
 set -o vi
 EOF
-
+echo "git config --global alias.lg "log --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --""
 echo "Chante mail sendto use claws-mail? Y/n"
 read YesNo
 if [ ${YesNo:-N} = "Y" ] || [ ${YesNo:-N} = "y" ]
