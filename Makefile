@@ -9,14 +9,6 @@ ifndef EXE
 	EXE=indb
 endif
 
-# If the first argument is "run"
-ifeq (run, $(firstword $(MAKECMDGOALS)))
-	# use the rest as arguments for "run"
-	RUN_ARGS = $(filter-out $@,$(MAKECMDGOALS))
-	# ...and turn them into do-nothing targets
-	$(eval $(RUN_ARGS):;@:)
-endif
-
 UUID:=$(shell cat /proc/sys/kernel/random/uuid | tr '-' '_')
 GIT_VERSION := $(shell git --no-pager describe --tags --always 2>/dev/null || echo "Not a git repository")
 GIT_COMMIT  := $(shell git rev-parse --verify HEAD 2>/dev/null || echo "Not a git repository")
@@ -72,8 +64,9 @@ clean:
 	-$(RM) $(OBJ) $(EXE) $(DOCX)
 
 run:
-	echo ./$(EXE) $(RUN_ARGS)
-	./$(EXE) $(RUN_ARGS)
+	@echo run $(filter-out $@,$(MAKECMDGOALS))
+%:
+	@:
 
 version:
 	$(shell if [ ! -f "version.h" ]; then {  \
