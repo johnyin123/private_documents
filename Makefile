@@ -11,9 +11,9 @@ endif
 
 # If the first argument is "run"
 ifeq (run, $(firstword $(MAKECMDGOALS)))
-   # use the rest as arguments for "run"
-	RUN_ARGS := $(wordlist 2, $(words $(MAKECMDGOALS)), $(MAKECMDGOALS))
-    # ...and turn them into do-nothing targets
+	# use the rest as arguments for "run"
+	RUN_ARGS = $(filter-out $@,$(MAKECMDGOALS))
+	# ...and turn them into do-nothing targets
 	$(eval $(RUN_ARGS):;@:)
 endif
 
@@ -72,9 +72,8 @@ clean:
 	-$(RM) $(OBJ) $(EXE) $(DOCX)
 
 run:
+	echo ./$(EXE) $(RUN_ARGS)
 	./$(EXE) $(RUN_ARGS)
-
-
 
 version:
 	$(shell if [ ! -f "version.h" ]; then {  \

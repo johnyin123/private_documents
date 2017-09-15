@@ -62,7 +62,7 @@ checkInst "${tools} ${xdesktop} ${editor} ${xtools} ${chineseinput} ${mediatools
 #date '+%Y %m %d %H'|xargs lunar --utf8 阴历 lunar --big5 $(date '+%Y %m %d') |iconv -f big5
 #desktopsearch="strigi-daemon strigi-utils strigi-client"
 othertools="minicom socat aoetools lunar sysstat"
-games="gnudoq pcsxr git subversion"
+games="gnudoq pcsxr git git-flow subversion"
 androidtool="usb-modeswitch usbip vblade jmtpfs android-tools-adb android-tools-fastboot"
 checkInst "${desktopsearch} ${androidtool} ${games} ${othertools}"
 
