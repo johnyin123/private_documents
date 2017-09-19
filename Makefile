@@ -208,6 +208,18 @@ docs: $(DOCX)
 # 	Commit the changes to the same commit id (this avoids a new separate patch set): git commit --amend
 # Push to the master branch: git push (to your git repository)
 
+
+
+
+# git flow init -d
+# git flow feature start xxx
+# git flow feature finish xxx
+# 
+# git flow release start 1.1.5
+# git flow release finish 1.1.5
+# 
+# git flow hotfix start xxxxxxx
+# git flow hotfix finish xxxxxxx
 git_all:
 	@git add -A :/
 	@git commit -a
