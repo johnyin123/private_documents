@@ -224,6 +224,9 @@ git_all:
 	@git add -A :/
 	@git commit -a
 
+git_show:
+	git log --graph --full-history --all --pretty=format:"%h%x09%d%x20%s"
+
 ### List boilerplate gitignore files and directories
 define BOILERPLATE_GIT_IGNORE
 # Compiled source #
@@ -280,7 +283,7 @@ echo:
 	@echo "build date:" $(BUILD_DATE)
 
 help:
-	@echo "clean/bz2/version/gprof/gcov/coverage/help/run/docs"
+	@echo "clean/bz2/version/gprof/gcov/coverage/help/run/docs/git_all/git_show"
 	@echo "export DEBUG=1;make"
 	@echo "make DEBUG=1"
 	@echo "     1. gprof $(EXE) gmon.out -p 得到每个函数占用的执行时间"
