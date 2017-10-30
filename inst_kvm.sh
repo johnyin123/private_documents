@@ -146,10 +146,10 @@ modprobe vhost_net
 
 cat > newvm.sh<<EOFI
 echo "vm name:"
-read VM_NAME
+read VMNAME
 echo "ceph_rbd disk name:"
-read DSK_NAME
-cat > 
+read DSKNAME
+cat > \\\${VMNAME}<<EOFA
 <domain type='kvm'>
   <name>\\\${VMNAME}</name>
   <memory unit='KiB'>2097152</memory>
@@ -167,9 +167,9 @@ cat >
   <devices>
     <disk type='network' device='disk'>
       <auth username='libvirt'>
-      <secret type='ceph' uuid='\\\$(virsh secret-list  | grep libvirt | awk '{ print $1}')'/>
+      <secret type='ceph' uuid='\\\$(virsh secret-list  | grep libvirt | awk '{ print \\\$1}')'/>
       </auth>
-      <source protocol='rbd' name='\\\${DSK_NAME}'>
+      <source protocol='rbd' name='\\\${DSKNAME}'>
         <host name='kvm2' port='6789'/>
       </source>
       <target dev='vda' bus='virtio'/>
@@ -202,6 +202,7 @@ cat >
     </memballoon>
   </devices>
 </domain>
+EOFA
 EOFI
 #virsh define xxx
 EOF
