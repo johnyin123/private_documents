@@ -227,6 +227,16 @@ git_all:
 git_show:
 	git log --graph --full-history --all --pretty=format:"%h%x09%d%x20%s"
 
+git:
+	if [ ! -d .git ]; then git init > /dev/null; fi
+	@git add -A :/
+	-git commit -m "foo" > /dev/null
+	echo "Files committed to local git repository."
+	git remote add origin git@github.com:$(GITHUB_USER)/$(PROJECT_NAME).git; echo "Built new GitHub remote repository."; fi
+	echo "Pushing to GitHub remote repository..."
+	git push -u origin master 2> /dev/null
+	echo "Done."
+
 ### List boilerplate gitignore files and directories
 define BOILERPLATE_GIT_IGNORE
 # Compiled source #
