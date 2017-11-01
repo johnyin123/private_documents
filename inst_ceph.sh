@@ -65,6 +65,36 @@ cat >>/home/$CEPH_USER/.bashrc<<EOFI
 #export CEPH_DEPLOY_GPG_URL=http://mirrors.163.com/ceph/keys/release.asc
 EOFI
 
+# #根据一些Ceph的公开分享，8192是比较理想的值
+# echo "8192" > /sys/block/sda/queue/read_ahead_kb
+# echo "vm.swappiness = 0" | tee -a /etc/sysctl.conf
+# echo "deadline" > /sys/block/sd[x]/queue/scheduler #for sata
+# echo "noop" > /sys/block/sd[x]/queue/scheduler  #for ssd
+# [osd] - filestore
+# 参数名	描述	默认值	建议值
+# filestore xattr use omap	为XATTRS使用object map，EXT4文件系统时使用，XFS或者btrfs也可以使用	false	true
+# filestore max sync interval	从日志到数据盘最大同步间隔(seconds)	5	15
+# filestore min sync interval	从日志到数据盘最小同步间隔(seconds)	0.1	10
+# filestore queue max ops	数据盘最大接受的操作数	500	25000
+# filestore queue max bytes	数据盘一次操作最大字节数(bytes)	100 << 20	10485760
+# filestore queue committing max ops	数据盘能够commit的操作数	500	5000
+# filestore queue committing max bytes	数据盘能够commit的最大字节数(bytes)	100 << 20	10485760000
+# filestore op threads	并发文件系统操作数	2	32
+# [osd] - journal
+# 参数名	描述	默认值	建议值
+# osd journal size	OSD日志大小(MB)	5120	20000
+# journal max write bytes	journal一次性写入的最大字节数(bytes)	10 << 20	1073714824
+# journal max write entries	journal一次性写入的最大记录数	100	10000
+# journal queue max ops	journal一次性最大在队列中的操作数	500	50000
+# journal queue max bytes	journal一次性最大在队列中的字节数(bytes)	10 << 20	10485760000
+# 
+# PG Number
+# PG和PGP数量一定要根据OSD的数量进行调整，计算公式如下，但是最后算出的结果一定要接近或者等于一个2的指数。
+# Total PGs = (Total_number_of_OSD * 100) / max_replication_count
+# 例如15个OSD，副本数为3的情况下，根据公式计算的结果应该为500，最接近512，所以需要设定该pool(volumes)的pg_num和pgp_num都为512.
+# ceph osd pool set volumes pg_num 512
+# ceph osd pool set volumes pgp_num 512
+
 EOF
 done
 rm -f hosts config
@@ -152,15 +182,28 @@ rm -f hosts config
 #        </disk>
 #    3.boot and startvm ..
 
-
+# ceph --admin-daemon /var/run/ceph/ceph-osd.0.asok config show
 # 安装Ceph环境
 # 1. ceph-deploy install kvm03
 # 
 # 清除Ceph环境
 # 1. ceph-deploy purge kvm1 kvm2 kvm3
-# 1. ceph-deploy purgedata kvm1 kvm2 kvm3 
-# 1. ceph-deploy forgetkeys
-# 
+# 2. ceph-deploy purgedata kvm1 kvm2 kvm3 
+# 3. ceph-deploy forgetkeys
+# ps aux|grep ceph |awk '{print $2}'|xargs kill -9
+#
+# ps -ef|grep ceph
+# #确保此时所有ceph进程都已经关闭！！！如果没有关闭，多执行几次。
+# umount /var/lib/ceph/osd/*
+# rm -rf /var/lib/ceph/osd/*
+# rm -rf /var/lib/ceph/mon/*
+# rm -rf /var/lib/ceph/mds/*
+# rm -rf /var/lib/ceph/bootstrap-mds/*
+# rm -rf /var/lib/ceph/bootstrap-osd/*
+# rm -rf /var/lib/ceph/bootstrap-mon/*
+# rm -rf /var/lib/ceph/tmp/*
+# rm -rf /etc/ceph/*
+# rm -rf /var/run/ceph/*
 # 
 # Mon添加
 # 0. ceph mon dump
@@ -217,6 +260,9 @@ RemainAfterExit=yes
 [Install]
 WantedBy=multi-user.target
 WantedBy=remote-fs-pre.target
+EOF
+cat > cephfs.fstab<<EOF
+KVM1:6789:/ /mount-point    ceph    name=cephfs,secretfile=/etc/ceph/client.cephfs,noatime  0   2    
 EOF
 # ceph.conf
 # [global]#全局设置
@@ -290,3 +336,60 @@ EOF
 #       #每个chunk对象抽象为一个Object；librbd中以Object为单位来管理缓存，增大该值可以提升性能
 # rbd cache target dirty = 235544320 #默认值16777216    #开始执行回写过程的脏数据大小，不能超过 rbd_cache_max_dirty
 
+
+
+
+
+# [global]
+# fsid = 059f27e8-a23f-4587-9033-3e3679d03b31
+# mon_host = 10.10.20.102, 10.10.20.101, 10.10.20.100
+# auth cluster required = cephx
+# auth service required = cephx
+# auth client required = cephx
+# osd pool default size = 3
+# osd pool default min size = 1
+# 
+# public network = 10.10.20.0/24
+# cluster network = 10.10.20.0/24
+# 
+# max open files = 131072
+# 
+# [mon]
+# mon data = /var/lib/ceph/mon/ceph-$id
+# 
+# [osd]
+# osd data = /var/lib/ceph/osd/ceph-$id
+# osd journal size = 20000
+# osd mkfs type = xfs
+# osd mkfs options xfs = -f
+# 
+# filestore xattr use omap = true
+# filestore min sync interval = 10
+# filestore max sync interval = 15
+# filestore queue max ops = 25000
+# filestore queue max bytes = 10485760
+# filestore queue committing max ops = 5000
+# filestore queue committing max bytes = 10485760000
+# 
+# journal max write bytes = 1073714824
+# journal max write entries = 10000
+# journal queue max ops = 50000
+# journal queue max bytes = 10485760000
+# 
+# osd max write size = 512
+# osd client message size cap = 2147483648
+# osd deep scrub stride = 131072
+# osd op threads = 8
+# osd disk threads = 4
+# osd map cache size = 1024
+# osd map cache bl size = 128
+# osd mount options xfs = "rw,noexec,nodev,noatime,nodiratime,nobarrier"
+# osd recovery op priority = 4
+# osd recovery max active = 10
+# osd max backfills = 4
+# 
+# [client]
+# rbd cache = true
+# rbd cache size = 268435456
+# rbd cache max dirty = 134217728
+# rbd cache max dirty age = 5
