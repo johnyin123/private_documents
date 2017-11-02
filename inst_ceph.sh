@@ -106,7 +106,9 @@ rm -f hosts config
 #    1. ceph-deploy new kvm1
 #    #最小副本数
 #    2. echo "osd pool default size = 2" >> ~/ceph/ceph.conf
-#       echo "rbd_default_features = 1" >> ~/ceph/ceph.conf
+#       ## echo "rbd_default_features = 1" >> ~/ceph/ceph.conf
+#       ## public network = 10.0.1.0/24     #公共网络(monitorIP段) 
+#       ## cluster network = 10.0.1.0/24    #集群网络
 #    3. ceph-deploy install kvm1 kvm2 kvm3 ...
 #    4. ceph-deploy mon create-initial 
 #    5. ceph-deploy disk list kvm1 ...
@@ -134,6 +136,7 @@ rm -f hosts config
 
 #    2. rbd
 #    su - ceph
+#      2.1:rbd
 #        sudo chmod 644 /etc/ceph/ceph.client.admin.keyring 
 #        rbd create disk01 --size 10G --image-feature layering
 #        rbd ls -l 
@@ -141,6 +144,9 @@ rm -f hosts config
 #        rbd showmapped 
 #        sudo mkfs.xfs /dev/rbd0
 #        sudo mount /dev/rbd0 /mnt
+#      2.2:RBD-NBD
+#        sudo rbd-nbd map disk01 
+#        sudo rbd-nbd list-mapped
 
 #    3. kvm pool rbd
 #    su - ceph
@@ -209,7 +215,7 @@ rm -f hosts config
 # 0. ceph mon dump
 # 1. ceph-deploy --overwrite-conf mon create kvm02
 # 
-# 1. echo "public network = 10.0.2.0/24">>ceph.conf
+# 1. ##echo "public network = 10.0.2.0/24">>ceph.conf
 # 2. ceph-deploy --overwrite-conf admin kvm01 kvm02
 # 3. sudo chmod 644 /etc/ceph/ceph.client.admin.keyring   
 # 

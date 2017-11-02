@@ -147,13 +147,21 @@ modprobe vhost_net
 cat > newvm.sh<<EOFI
 echo "vm name:"
 read VMNAME
-echo "ceph_rbd disk name:"
-read DSKNAME
+
+CEPH_KVM_POOL=kvm_os_pool
+TPL_IMG=CentOS7.4.tpl.raw
+
+VM_IMG=\\\${VMNAME}.raw
+
 cat > \\\${VMNAME}<<EOFA
 <domain type='kvm'>
   <name>\\\${VMNAME}</name>
+  <title>\\\${VMNAME}</title>
+  <description>desc
+xxx
+  </description>
   <memory unit='KiB'>2097152</memory>
-  <currentMemory unit='KiB'>2048000</currentMemory>
+  <currentMemory unit='KiB'>2097152</currentMemory>
   <vcpu>1</vcpu>
   <os>
     <type arch='x86_64'>hvm</type>
@@ -169,8 +177,10 @@ cat > \\\${VMNAME}<<EOFA
       <auth username='libvirt'>
       <secret type='ceph' uuid='\\\$(virsh secret-list  | grep libvirt | awk '{ print \\\$1}')'/>
       </auth>
-      <source protocol='rbd' name='\\\${DSKNAME}'>
+      <source protocol='rbd' name='\\\${CEPH_KVM_POOL}/\\\${VM_IMG}'>
+        <host name='kvm1' port='6789'/>
         <host name='kvm2' port='6789'/>
+        <host name='kvm3' port='6789'/>
       </source>
       <target dev='vda' bus='virtio'/>
     </disk>
@@ -203,6 +213,35 @@ cat > \\\${VMNAME}<<EOFA
   </devices>
 </domain>
 EOFA
+
+FOUND_IMG=\\\$(rbd -p \\\${CEPH_KVM_POOL} ls | grep "^\\\${VM_IMG}\\\$" >/dev/null 2>&1 && echo -n 1 || echo -n 0)
+if [ "\\\${FOUND_IMG}" == "1" ]; then
+    echo "image \\\${VM_IMG} exist in \\\${CEPH_KVM_POOL}"
+    exit 1
+else
+    rbd copy \\\${TPL_IMG} \\\${CEPH_KVM_POOL}/\\\${VM_IMG}
+    DEV_RBD=\\\$(rbd map \\\${CEPH_KVM_POOL}/\\\${VM_IMG})
+    mount \\\${DEV_RBD}p2 /mnt
+    sed -i / "s/^IPADDR=.*/IPADDR=\"\\\${IPADDR}\"/g"    /mnt/etc/sysconfig/network-scripts/ifcfg-eth0
+    sed -i / "s/^NETMASK=.*/NETMASK=\"\\\${NETMASK}\"/g" /mnt/etc/sysconfig/network-scripts/ifcfg-eth0
+    sed -i / "s/^GATEWAY=.*/GATEWAY=\"\\\${GATEWAY}\"/g" /mnt/etc/sysconfig/network-scripts/ifcfg-eth0
+    echo "\\\${GUEST_HOSTNAME}" > /etc/hostname
+    umount /mnt
+    rbd showmapped
+    rbd unmap \\\${DEV_RBD}
+    rbd showmapped
+    echo "copy vmimage, OK"
+fi
+read -p "Create VM \\\${VMNAME}[y|n]" yn
+case "\\\${yn}" in
+    y|Y|yes|YES)
+        virsh define \\\${VMNAME}
+        ;;
+    *)
+        rbd remove \\\${CEPH_KVM_POOL}/\\\${VM_IMG}
+        ;;
+esac
+
 EOFI
 #virsh define xxx
 EOF
