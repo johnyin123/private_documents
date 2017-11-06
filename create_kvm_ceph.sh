@@ -21,10 +21,16 @@ if [ "${FOUND_IMG}" == "1" ]; then
 else
     rbd copy ${tpl_img} ${ceph_pool}/${vm_img} || return 1
     local DEV_RBD=$(rbd map ${ceph_pool}/${vm_img})
-    mount ${DEV_RBD}p2 /mnt || return 2
-    sed -i "s/^IPADDR=.*/IPADDR=\"${guest_ipaddr}\"/g"    /mnt/etc/sysconfig/network-scripts/ifcfg-eth0 || return 3
-    sed -i "s/^NETMASK=.*/NETMASK=\"${guset_netmask}\"/g" /mnt/etc/sysconfig/network-scripts/ifcfg-eth0 || return 4
-    sed -i "s/^GATEWAY=.*/GATEWAY=\"${guest_gw}\"/g"      /mnt/etc/sysconfig/network-scripts/ifcfg-eth0 || return 5
+    mount -t xfs ${DEV_RBD}p2 /mnt || return 2
+    cat > /mnt/etc/sysconfig/network-scripts/ifcfg-eth0 <<EOF
+DEVICE="eth0"
+ONBOOT="yes"
+BOOTPROTO="none"
+DNS1=10.0.2.1
+IPADDR=${guest_ipaddr}
+NETMASK=${guest_netmask}
+GATEWAY=${guest_gw}
+EOF
     echo "${guest_hostname}" > /mnt/etc/hostname || return 6
     chattr +i /mnt/etc/hostname || return 7
     #sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"console=ttyS0\"" /etc/default/grub
