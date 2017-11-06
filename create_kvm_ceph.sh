@@ -10,7 +10,7 @@ local vm_img=$2
 local tpl_img=$3
 local guest_hostname=$4
 local guest_ipaddr=$5
-local guset_netmask=$6
+local guest_netmask=$6
 local guest_gw=$7
 
 local FOUND_IMG=$(rbd -p ${ceph_pool} ls | grep "^${vm_img}$" >/dev/null 2>&1 && echo -n 1 || echo -n 0)
