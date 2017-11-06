@@ -21,7 +21,7 @@ if [ "${FOUND_IMG}" == "1" ]; then
 else
     rbd copy ${tpl_img} ${ceph_pool}/${vm_img} || return 1
     local DEV_RBD=$(rbd map ${ceph_pool}/${vm_img})
-    mount -t xfs ${DEV_RBD}p2 /mnt || return 2
+    mount -t xfs ${DEV_RBD}p1 /mnt || return 2
     cat > /mnt/etc/sysconfig/network-scripts/ifcfg-eth0 <<EOF
 DEVICE="eth0"
 ONBOOT="yes"
