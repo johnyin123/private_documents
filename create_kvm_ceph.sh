@@ -1,6 +1,15 @@
 #!/bin/bash
 set -u
 
+# virsh start $VMNAME
+# ping -c1 -W2 ${ip} >/dev/null 2>&1 && echo OK || echo ERR
+
+# mount -o loop,offset=32256,uid=1000,gid=1000  fat32.dsk  /mnt
+# modprobe nbd max_part=63
+# qemu-nbd -c /dev/nbd0 fat32.dsk
+# mount /dev/nbd0p1 -o uid=1000,gid=1000 /mnt
+# qemu-nbd -d /dev/nbd0
+
 CEPH_KVM_POOL=kvm_os_pool
 TPL_IMG=CentOS7.4.tpl.raw
 
@@ -52,6 +61,7 @@ function genkvm_xml(){
     local title=$5
     local desc=$6
     local uuid=$7
+    local kvm_bridge=$8
 
     local memsize=$((1024*1024*1))
     local vcpus=1
@@ -84,7 +94,7 @@ function genkvm_xml(){
       <target dev='vda' bus='virtio'/>
     </disk>
     <interface type='bridge'>
-      <source bridge='kvm-bridge'/>
+      <source bridge='${kvm_bridge}'/>
       <model type='virtio'/>
       <driver name="vhost"/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
@@ -124,8 +134,8 @@ EOFA
 
 [[ -r "hosts.conf" ]] || {
 	cat >"hosts.conf" <<- EOF
-#IP          hostname-prefix(小写-)  netmask	    gateway   title         desc
-10.0.2.100   kvm                     255.255.255.0  10.0.2.1  熙康测试机器  描述灭有啊
+#IP          hostname-prefix(小写-)  netmask	    gateway   bridge_dev    title         desc
+10.0.2.100   kvm                     255.255.255.0  10.0.2.1  kvm-bridge    熙康测试机器  描述灭有啊
 
 EOF
 	echo "Created hosts.conf using defaults.  Please review it/configure before running again."
@@ -142,8 +152,13 @@ do
     NETMASK=$(eval $CONF | grep ${ip} | awk '{print $3}')
     GATEWAY=$(eval $CONF | grep ${ip} | awk '{print $4}')
     VM_IMG=${VMNAME}-${UUID}.raw
+    KVM_BRIDGE=$(eval $CONF | grep ${ip} | awk '{print $5}')
+    VM_TITLE=$(eval $CONF | grep ${ip} | awk '{print $6}')
+    VM_DESC=$(eval $CONF | grep ${ip} | awk '{print $7}')
 
     echo "Create vm:${VMNAME}-${UUID}"
+    echo "    title:${VM_TITLE}"
+    echo "     desc:${VM_DESC}"
     echo "     disk:${VM_IMG}"
     echo "       ip:${ip}"
     echo "       gw:${GATEWAY}"
@@ -153,10 +168,8 @@ do
         echo "   failed: $?"
         continue
     fi
-    VM_TITLE=$(eval $CONF | grep ${ip} | awk '{print $5}')
-    VM_DESC=$(eval $CONF | grep ${ip} | awk '{print $6}')
     ceph_secret_uuid=$(virsh secret-list  | grep libvirt | awk '{ print $1}')
-    genkvm_xml "${VMNAME}-${UUID}" ${ceph_secret_uuid} ${CEPH_KVM_POOL} ${VM_IMG} ${VM_TITLE} ${VM_DESC} ${UUID}
+    genkvm_xml "${VMNAME}-${UUID}" ${ceph_secret_uuid} ${CEPH_KVM_POOL} ${VM_IMG} ${VM_TITLE} ${VM_DESC} ${UUID} ${KVM_BRIDGE}
     virsh define ${VMNAME}-${UUID} > /dev/null 2>&1 
     virsh list --title --all | grep "${VMNAME}-${UUID}" > /dev/null 2>&1  && echo "    staus:OK" || echo "    staus:FAILED"
     rm ${VMNAME}-${UUID} -f
