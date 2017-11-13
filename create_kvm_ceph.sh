@@ -73,6 +73,7 @@ function genkvm_xml(){
   <description>${desc}</description>
   <memory unit='KiB'>${memsize}</memory>
   <currentMemory unit='KiB'>${memsize}</currentMemory>
+  <memoryBacking><hugepages/></memoryBacking>
   <vcpu>${vcpus}</vcpu>
   <os>
     <type arch='x86_64'>hvm</type>
