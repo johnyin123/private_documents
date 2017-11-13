@@ -1,4 +1,4 @@
-echo 2048>/proc/sys/vm/nr_hugepages
+echo "2048">/proc/sys/vm/nr_hugepages
 mkdir -p /hugetlbfs
 mount -t hugetlbfs hugetlbfs /hugetlbfs
 mkdir -p /hugetlbfs/libvirt/bin

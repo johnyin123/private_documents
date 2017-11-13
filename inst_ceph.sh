@@ -114,6 +114,7 @@ rm -f hosts config
 #    5. ceph-deploy disk list kvm1 ...
 #          A. ceph-deploy disk zap kvm1:/dev/sda #whole disk
 #          B. ceph-deploy osd prepare kvm1:/dev/sda3 #partition
+#          sudo parted -s /dev/sdd mkpart -a optimal primary 1 100%
 #    6. ceph-deploy osd activate kvm1:/dev/sda3 ...
 #    7. MUST:add mount point in fstab!
 #    8. ceph-deploy admin kvm1
