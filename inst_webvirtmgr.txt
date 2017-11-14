@@ -1,0 +1,109 @@
+yum -y install epel-release
+yum -y install git python-pip libvirt-python libxml2-python python-websockify supervisor nginx
+yum -y install gcc python-devel
+pip install numpy    
+
+
+mkdir /application/
+cd /application/
+git clone git://github.com/retspen/webvirtmgr.git  
+git clone https://github.com/retspen/webvirtmgr.git                                    
+  
+3、数据库安装
+cd /application/
+wget http://www.sqlite.org/sqlite-3.5.6.tar.gz
+cd sqlite-3.5.6/
+./configure --disable-tcl  
+make
+make install 
+
+4、webvirtmgr安装
+cd /application/webvirtmgr
+pip install -r requirements.txt
+
+./manage.py syncdb
+./manage.py collectstatic
+
+
+5、webvirtmgr配置
+mkdir -pv /var/www
+cp -Rv /application/webvirtmgr /var/www/webvirtmgr
+
+vim /etc/nginx/conf.d/webvirtmgr.conf
+
+server {
+	listen 80 default_server;
+#	server_name $hostname;
+#	access_log /var/log/nginx/webvirtmgr_access_log;
+	location /static/ {
+		root /var/www/webvirtmgr/webvirtmgr; # or /srv instead of /var
+		expires max;
+	}
+	location / {
+		proxy_pass http://127.0.0.1:8000;
+		proxy_set_header X-Real-IP $remote_addr;
+		proxy_set_header X-Forwarded-for $proxy_add_x_forwarded_for;
+		proxy_set_header Host $host:$server_port;
+		proxy_set_header X-Forwarded-Proto $remote_addr;
+		proxy_connect_timeout 600;
+		proxy_read_timeout 600;
+		proxy_send_timeout 600;
+		client_max_body_size 1024M; # Set higher depending on your needs
+	}
+}
+
+
+chown -R nginx:nginx /var/www/webvirtmgr
+
+vim /etc/supervisord.conf 
+
+[program:webvirtmgr]
+command=/usr/bin/python2 /var/www/webvirtmgr/manage.py run_gunicorn -c /var/www/webvirtmgr/conf/gunicorn.conf.py
+#启动8000端口
+directory=/var/www/webvirtmgr
+autostart=true
+autorestart=true
+logfile=/var/log/supervisor/webvirtmgr.log
+log_stderr=true
+user=nginx
+
+[program:webvirtmgr-console]
+command=/usr/bin/python2 /var/www/webvirtmgr/console/webvirtmgr-console
+#启动6080端口（这是控制台vnc端口）
+directory=/var/www/webvirtmgr
+autostart=true
+autorestart=true
+stdout_logfile=/var/log/supervisor/webvirtmgr-console.log
+redirect_stderr=true
+user=nginx
+
+确保下面bind绑定的是本机的8000端口，这个在nginx配置中定义了，被代理的端口
+grep '^bind =' /var/www/webvirtmgr/conf/gunicorn.conf.py
+bind = '127.0.0.1:8000'
+
+systemctl restart nginx.service
+systemctl start supervisord.service  
+
+
+
+
+
+
+
+SSH ACCESS
+
+su - nginx -s /bin/bash
+$ ssh-keygen
+$ touch ~/.ssh/config && echo -e "StrictHostKeyChecking=no\nUserKnownHostsFile=/dev/null" >> ~/.ssh/config
+$ chmod 0600 ~/.ssh/config
+
+Add webvirt user (on qemu-kvm/libvirt host server) and add it to the proper group :
+$ adduser webvirtmgr && echo "password" | passwd --stdin webvirtmgr && usermod -G libvirt -a webvirtmgr
+
+Back to webvirtmgr host and copy public key to qemu-kvm/libvirt host server:
+su - nginx -s /bin/bash
+$ ssh-copy-id webvirtmgr@qemu-kvm-libvirt-host
+$ ssh-copy-id -P YOUR_SSH_PORT webvirtmgr@qemu-kvm-libvirt-host
+
+Set up permissions to manage libvirt (on qemu-kvm/libvirt host server):
+
