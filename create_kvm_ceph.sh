@@ -1,6 +1,8 @@
 #!/bin/bash
 set -u
 
+
+# qemu-img convert -f qcow2 -O raw debian_squeeze.qcow2 rbd:data/squeeze
 # virsh start $VMNAME
 # ping -c1 -W2 ${ip} >/dev/null 2>&1 && echo OK || echo ERR
 
