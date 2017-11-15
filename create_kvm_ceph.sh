@@ -40,6 +40,9 @@ IPADDR=${guest_ipaddr}
 NETMASK=${guest_netmask}
 GATEWAY=${guest_gw}
 EOF
+    cat > /mnt/etc/sysconfig/network-scripts/route-eth0 <<EOF
+default via ${guest_gw} dev eth0
+EOF
     echo "${guest_hostname}" > /mnt/etc/hostname || return 6
     chattr +i /mnt/etc/hostname || return 7
     #sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"console=ttyS0\"" /etc/default/grub
