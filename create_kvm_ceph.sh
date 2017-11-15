@@ -31,18 +31,18 @@ else
     rbd copy --image-feature layering ${tpl_img} ${ceph_pool}/${vm_img} || return 1
     local DEV_RBD=$(rbd map ${ceph_pool}/${vm_img})
     mount -t xfs ${DEV_RBD}p1 /mnt || return 2
-    cat > /mnt/etc/sysconfig/network-scripts/ifcfg-eth0 <<EOF
-DEVICE="eth0"
-ONBOOT="yes"
-BOOTPROTO="none"
-DNS1=10.0.2.1
-IPADDR=${guest_ipaddr}
-NETMASK=${guest_netmask}
-GATEWAY=${guest_gw}
-EOF
-    cat > /mnt/etc/sysconfig/network-scripts/route-eth0 <<EOF
-default via ${guest_gw} dev eth0
-EOF
+    cat > /mnt/etc/sysconfig/network-scripts/ifcfg-eth0 <<- EOF
+        DEVICE="eth0"
+        ONBOOT="yes"
+        BOOTPROTO="none"
+        DNS1=10.0.2.1
+        IPADDR=${guest_ipaddr}
+        NETMASK=${guest_netmask}
+        GATEWAY=${guest_gw}
+    EOF
+    cat > /mnt/etc/sysconfig/network-scripts/route-eth0 <<- EOF
+        default via ${guest_gw} dev eth0
+    EOF
     echo "${guest_hostname}" > /mnt/etc/hostname || return 6
     chattr +i /mnt/etc/hostname || return 7
     #sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"console=ttyS0\"" /etc/default/grub
