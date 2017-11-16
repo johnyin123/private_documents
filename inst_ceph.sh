@@ -151,7 +151,7 @@ rm -f hosts config
 
 #    3. kvm pool rbd
 #    su - ceph
-#        ceph osd pool create libvirt-pool 100 100
+#        ceph osd pool create libvirt-pool 128
 #        ceph auth get-or-create client.libvirt mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=libvirt-pool'
 #      #all kvm nodes run: uuid 各个主机要使用一个
 #        echo -e "<secret ephemeral='no' private='no'>\n<uuid>$(cat /proc/sys/kernel/random/uuid)</uuid>\n<usage type='ceph'>\n<name>client.libvirt secret</name>\n</usage>\n</secret>" > secret.xml
