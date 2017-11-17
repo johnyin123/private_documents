@@ -1,3 +1,5 @@
+export CEPH_DEPLOY_REPO_URL=http://mirrors.163.com/ceph/debian-jewel
+export CEPH_DEPLOY_GPG_URL=http://mirrors.163.com/ceph/keys/release.asc
 
 1.0 准备
 
