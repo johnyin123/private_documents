@@ -140,8 +140,8 @@ modprobe vhost_net
 
 # virsh pool-define-as default --type logical --source-name libvirt_lvm --target /dev/libvirt_lvm --source-dev /dev/sda3
 # virsh pool-define-as default logical - - /dev/sda3 libvirt_lvm /dev/libvirt_lvm
-# virsh pool-build guest_images_lvm
-# virsh pool-start guest_images_lvm
+# virsh pool-build default 
+# virsh pool-start default 
 
 # echo "/kvm 10.0.0.0/16(rw,no_root_squash,no_all_squash,sync,anonuid=501,anongid=501)" >> /etc/exports
 # exportfs -r
