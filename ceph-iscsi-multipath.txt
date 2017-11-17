@@ -1,0 +1,9 @@
+使用tgt：github.com/fujita/tgt 开启rbd选项然后编译，配置iSCSI target：
+
+<target iqn.2015-05.rbd.xxxxxxx.com:iscsi-01>
+driver iscsi
+bs-type rbd
+backing-store pool2/image1
+</target>
+
+可以同时部署多个iSCSI节点（可部署到mon节点，也可以独立），这样可以识别同一个wwid，组成多路径
