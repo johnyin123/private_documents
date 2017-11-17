@@ -111,7 +111,7 @@ set autoindent               " 自动对齐
 set backspace=2              " 设置退格键可用
 set cindent shiftwidth=4     " 自动缩进4空格
 set smartindent              " 智能自动缩进
-set mouse=""
+set mouse-=a
 filetype plugin on
 "Paste toggle - when pasting something in, don't indent.
 set pastetoggle=<F7>
