@@ -1,5 +1,8 @@
 #!/bin/bash
 #http://docs.ceph.org.cn/
+CEPH_RELEASE=luminous
+#CEPH_RELEASE=jewel
+
 CEPH_USER=ceph
 CEPH_PASSWD=password
 [[ -r "hosts.conf" ]] || {
@@ -53,15 +56,15 @@ $(cat config)
 EOFC
 chown $CEPH_USER:$CEPH_USER /home/$CEPH_USER/.ssh/config 
 chmod 600 /home/$CEPH_USER/.ssh/config
-yum -y install epel-release yum-plugin-priorities https://download.ceph.com/rpm-jewel/el7/noarch/ceph-release-1-0.el7.noarch.rpm
+yum -y install epel-release yum-plugin-priorities https://download.ceph.com/rpm-${CEPH_RELEASE}/el7/noarch/ceph-release-1-1.el7.noarch.rpm
 #(rpm -q 'epel-release' || yum -y install epel-release) || true
 yum makecache && yum update -y
-#(rpm -q 'centos-release-ceph-jewel' || yum -y install centos-release-ceph-jewel) || true
+#(rpm -q 'centos-release-ceph-${CEPH_RELEASE}' || yum -y install centos-release-ceph-${CEPH_RELEASE}) || true
 # sed -i -e "s/enabled=1/enabled=1\\npriority=1/g" /etc/yum.repos.d/ceph.repo
 (rpm -q 'ceph-deploy' || yum -y install ceph-deploy) || true
 
 cat >>/home/$CEPH_USER/.bashrc<<EOFI
-#export CEPH_DEPLOY_REPO_URL=http://mirrors.163.com/ceph/rpm-jewel/el7
+#export CEPH_DEPLOY_REPO_URL=http://mirrors.163.com/ceph/rpm-${CEPH_RELEASE}/el7
 #export CEPH_DEPLOY_GPG_URL=http://mirrors.163.com/ceph/keys/release.asc
 EOFI
 
@@ -155,7 +158,7 @@ rm -f hosts config
 #        ceph auth get-or-create client.libvirt mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=libvirt-pool'
 #      #all kvm nodes run: uuid 各个主机要使用一个
 #        echo -e "<secret ephemeral='no' private='no'>\n<uuid>$(cat /proc/sys/kernel/random/uuid)</uuid>\n<usage type='ceph'>\n<name>client.libvirt secret</name>\n</usage>\n</secret>" > secret.xml
-#        sudo virsh secret-define --file secret.xml | awk '{print $3}' | tee uuid.txt
+#        sudo virsh secret-define --file secret.xml | awk '{print $2}' | tee uuid.txt
 #        ceph auth get-key client.libvirt | sudo tee client.libvirt.key
 #        sudo virsh secret-set-value --secret $(cat uuid.txt) --base64 $(cat client.libvirt.key) && rm -f client.libvirt.key secret.xml uuid.txt
 #        # echo "<pool type='rbd'>

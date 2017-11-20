@@ -13,7 +13,7 @@ set -u
 # qemu-nbd -d /dev/nbd0
 
 CEPH_KVM_POOL=kvm_os_pool
-TPL_IMG=CentOS7.4.tpl.raw
+TPL_IMG=CentOS7.4.tpl.raw.qcow2
 
 function genceph_img() {
 local ceph_pool=$1
@@ -30,7 +30,8 @@ if [ "${FOUND_IMG}" == "1" ]; then
     echo "${vm_img} create failed!!!"
     return 1
 else
-    rbd copy --image-feature layering ${tpl_img} ${ceph_pool}/${vm_img} || return 1
+    #rbd copy --image-feature layering ${tpl_img} ${ceph_pool}/${vm_img} || return 1
+    qemu-img convert -f qcow2 -O raw ${tpl_img} rbd:${ceph_pool}/${vm_img} || return 1
     local DEV_RBD=$(rbd map ${ceph_pool}/${vm_img})
     mount -t xfs ${DEV_RBD}p1 /mnt || return 2
     cat > /mnt/etc/sysconfig/network-scripts/ifcfg-eth0 <<- EOF
