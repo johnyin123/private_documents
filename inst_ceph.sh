@@ -141,7 +141,12 @@ rm -f hosts config
 #        ceph fs new <fsname> cephfs_metadata cephfs_data
 #        #ceph.client.admin.keyring 
 #        sudo mount -t ceph 10.0.2.100:/ /mnt -oname=admin,secret=AQCSQ+VZcc1aGRAAmi38hv51DUzwb9t/lpojBA==
-
+#    remove cephfs
+#        systemctl stop ceph-mds@kvm1.service
+#        ceph mds fail 0
+#        ceph fs rm <fsname> --yes-i-really-mean-it
+#        ceph -s
+        
 #    2. rbd
 #    su - ceph
 #      2.1:rbd
