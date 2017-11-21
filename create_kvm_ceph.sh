@@ -6,14 +6,22 @@ set -u
 # virsh start $VMNAME
 # ping -c1 -W2 ${ip} >/dev/null 2>&1 && echo OK || echo ERR
 
-# mount -o loop,offset=32256,uid=1000,gid=1000  fat32.dsk  /mnt
+# mount -o loop,offset=32256,uid=1000,gid=1000  fat32.dsk  ${mnt_point}
 # modprobe nbd max_part=63
 # qemu-nbd -c /dev/nbd0 fat32.dsk
-# mount /dev/nbd0p1 -o uid=1000,gid=1000 /mnt
+# mount /dev/nbd0p1 -o uid=1000,gid=1000 ${mnt_point}
 # qemu-nbd -d /dev/nbd0
 
-CEPH_KVM_POOL=kvm_os_pool
-TPL_IMG=CentOS7.4.tpl.raw.qcow2
+BASEDIR="$(readlink -f "$(dirname "$0")")"
+
+if test -f ${BASEDIR}/vm.cfg; then
+    . ${BASEDIR}/vm.cfg
+fi
+
+CEPH_KVM_POOL=${CEPH_KVM_POOL:-kvm_os_pool}
+TPL_IMG=${TPL_IMG:-CentOS7.4.tpl.raw.qcow2}
+MEMSIZE=${MEMSIZE:-$((1024*1024*1))}
+VCPUS=${VCPUS-:1}
 
 function genceph_img() {
 local ceph_pool=$1
@@ -23,7 +31,8 @@ local guest_hostname=$4
 local guest_ipaddr=$5
 local guest_netmask=$6
 local guest_gw=$7
-
+local mnt_point=/tmp/vm_mnt/
+mkdir -p ${mnt_point}
 local FOUND_IMG=$(rbd -p ${ceph_pool} ls | grep "^${vm_img}$" >/dev/null 2>&1 && echo -n 1 || echo -n 0)
 if [ "${FOUND_IMG}" == "1" ]; then
     echo "image ${vm_img} exist in ${ceph_pool}"
@@ -31,10 +40,11 @@ if [ "${FOUND_IMG}" == "1" ]; then
     return 1
 else
     #rbd copy --image-feature layering ${tpl_img} ${ceph_pool}/${vm_img} || return 1
-    qemu-img convert -f qcow2 -O raw ${tpl_img} rbd:${ceph_pool}/${vm_img} || return 1
+    rbd import --image-feature layering ${tpl_img} ${ceph_pool}/${vm_img} || return 1
+    #qemu-img convert -f qcow2 -O raw ${tpl_img} rbd:${ceph_pool}/${vm_img} || return 1
     local DEV_RBD=$(rbd map ${ceph_pool}/${vm_img})
-    mount -t xfs ${DEV_RBD}p1 /mnt || return 2
-    cat > /mnt/etc/sysconfig/network-scripts/ifcfg-eth0 <<- EOF
+    mount -t xfs ${DEV_RBD}p1 ${mnt_point} || { rbd unmap ${DEV_RBD}; return 2; }
+    cat > ${mnt_point}/etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
         DEVICE="eth0"
         ONBOOT="yes"
         BOOTPROTO="none"
@@ -42,17 +52,17 @@ else
         IPADDR=${guest_ipaddr}
         NETMASK=${guest_netmask}
         GATEWAY=${guest_gw}
-    EOF
-    cat > /mnt/etc/sysconfig/network-scripts/route-eth0 <<- EOF
+EOF
+    cat > ${mnt_point}/etc/sysconfig/network-scripts/route-eth0 <<-EOF
         default via ${guest_gw} dev eth0
-    EOF
-    echo "${guest_hostname}" > /mnt/etc/hostname || return 6
-    chattr +i /mnt/etc/hostname || return 7
-    #sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"console=ttyS0\"" /etc/default/grub
+EOF
+    echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { umount ${mnt_point}; rbd unmap ${DEV_RBD}; return 6; }
+    chattr +i ${mnt_point}/etc/hostname || { umount ${mnt_point}; rbd unmap ${DEV_RBD}; return 7; }
+    #sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"console=ttyS0\"/g" /etc/default/grub
     #grub2-mkconfig -o /boot/grub2/grub.cfg
-    rm -f /mnt/ssh/ssh_host_*
+    rm -f ${mnt_point}/ssh/ssh_host_*
     echo "set ip/gw/hostname/sshd_key OK"
-    umount /mnt || return 8
+    umount ${mnt_point} || { rbd unmap ${DEV_RBD}; return 8; }
     rbd unmap ${DEV_RBD} || return 9
     echo "     disk:OK"
     return 0
@@ -69,18 +79,16 @@ function genkvm_xml(){
     local uuid=$7
     local kvm_bridge=$8
 
-    local memsize=$((1024*1024*1))
-    local vcpus=1
     cat > ${vmname}<<EOFA
 <domain type='kvm'>
   <name>${vmname}</name>
   <uuid>${uuid}</uuid>
   <title>${title}</title>
   <description>${desc}</description>
-  <memory unit='KiB'>${memsize}</memory>
-  <currentMemory unit='KiB'>${memsize}</currentMemory>
+  <memory unit='KiB'>${MEMSIZE}</memory>
+  <currentMemory unit='KiB'>${MEMSIZE}</currentMemory>
   <memoryBacking><hugepages/></memoryBacking>
-  <vcpu>${vcpus}</vcpu>
+  <vcpu>${VCPUS}</vcpu>
   <os>
     <type arch='x86_64'>hvm</type>
   </os>
@@ -95,8 +103,6 @@ function genkvm_xml(){
       </auth>
       <source protocol='rbd' name='${ceph_pool}/${vm_img}'>
         <host name='kvm1' port='6789'/>
-        <host name='kvm2' port='6789'/>
-        <host name='kvm3' port='6789'/>
       </source>
       <target dev='vda' bus='virtio'/>
     </disk>
@@ -140,13 +146,12 @@ EOFA
 }
 
 [[ -r "hosts.conf" ]] || {
-	cat >"hosts.conf" <<- EOF
-#IP          hostname-prefix(小写-)  netmask	    gateway   bridge_dev    title         desc
+    cat >"hosts.conf" <<EOF
+#IP          hostname-prefix(小写-)  netmask        gateway   bridge_dev    title         desc
 10.0.2.100   kvm                     255.255.255.0  10.0.2.1  kvm-bridge    熙康测试机器  描述灭有啊
-
 EOF
-	echo "Created hosts.conf using defaults.  Please review it/configure before running again."
-	exit 1
+    echo "Created hosts.conf using defaults.  Please review it/configure before running again."
+    exit 1
 }
 
 CONF='cat hosts.conf | grep -v -e "^$" -e "^#"'
@@ -171,9 +176,10 @@ do
     echo "       gw:${GATEWAY}"
 
     genceph_img ${CEPH_KVM_POOL} ${VM_IMG} ${TPL_IMG} "${VMNAME}-${UUID}" ${ip} ${NETMASK} ${GATEWAY}
-    if [[ $? != 0  ]]; then
-        echo "   failed: $?"
-        continue
+    retval=$?
+    if [[ $retval != 0  ]]; then
+        echo "   failed: $retval"
+        exit 1 
     fi
     ceph_secret_uuid=$(virsh secret-list  | grep libvirt | awk '{ print $1}')
     genkvm_xml "${VMNAME}-${UUID}" ${ceph_secret_uuid} ${CEPH_KVM_POOL} ${VM_IMG} ${VM_TITLE} ${VM_DESC} ${UUID} ${KVM_BRIDGE}
