@@ -114,6 +114,11 @@ rm -f hosts config
 #       ## cluster network = 10.0.1.0/24    #集群网络
 #    3. ceph-deploy install kvm1 kvm2 kvm3 ...
 #    4. ceph-deploy mon create-initial 
+#       # Deploy a manager daemon. (Required only for luminous+ builds):
+#       # The Ceph Manager daemons operate in an active/standby pattern. 
+#       # Deploying additional manager daemons ensures that if one daemon or host fails,
+#       # another one can take over without interrupting service. ceph-deploy mgr create node2 node3
+#       4.1. ceph-deploy mgr create kvm1  *Required only for luminous+ builds, i.e >= 12.x builds*
 #    5. ceph-deploy disk list kvm1 ...
 #          A. ceph-deploy disk zap kvm1:/dev/sda #whole disk
 #          B. sudo parted -s /dev/sdd mkpart -a optimal primary 1 100%
@@ -126,15 +131,14 @@ rm -f hosts config
 # 时间一定同步
 #    chronyc sourcestats -v
 
-
 #    1. cephfs
 #    su - ceph
 #        echo "建立元数据服务,至少需要一个元数据服务器才能使用CephFS"
 #        ceph-deploy mds create kvm1
 #        echo "create pool(pg=256)"
-#        ceph osd pool create pool1 256
-#        ceph osd pool create pool2 256
-#        ceph fs new cephfs pool2 pool1
+#        ceph osd pool create cephfs_data <pg_num>
+#        ceph osd pool create cephfs_metadata <pg_num>
+#        ceph fs new <fsname> cephfs_metadata cephfs_data
 #        #ceph.client.admin.keyring 
 #        sudo mount -t ceph 10.0.2.100:/ /mnt -oname=admin,secret=AQCSQ+VZcc1aGRAAmi38hv51DUzwb9t/lpojBA==
 
@@ -155,6 +159,7 @@ rm -f hosts config
 #    3. kvm pool rbd
 #    su - ceph
 #        ceph osd pool create libvirt-pool 128
+#        rbd pool init libvirt-pool
 #        ceph auth get-or-create client.libvirt mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=libvirt-pool'
 #      #all kvm nodes run: uuid 各个主机要使用一个
 #        echo -e "<secret ephemeral='no' private='no'>\n<uuid>$(cat /proc/sys/kernel/random/uuid)</uuid>\n<usage type='ceph'>\n<name>client.libvirt secret</name>\n</usage>\n</secret>" > secret.xml
@@ -247,7 +252,11 @@ rm -f hosts config
 # 6. ceph osd crush remove kvm02
 # 7. MUST:remove mount point in fstab!
 
-
+# OSD删除pool
+# 1. ceph osd lspools
+# 2. echo "mon allow pool delete = true" >> /etc/ceph/ceph.conf
+# 3. systemctl restart ceph-mon@kvm1.service
+# 4. ceph osd pool rm <poolname> <poolname> --yes-i-really-really-mean-it
 
 cat >rbd.service<<EOF
 # rbd info foo
