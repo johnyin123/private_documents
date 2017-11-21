@@ -172,7 +172,7 @@ rm -f hosts config
 #      #all kvm nodes run: uuid 各个主机要使用一个
 #        echo -e "<secret ephemeral='no' private='no'>\n<uuid>$(cat /proc/sys/kernel/random/uuid)</uuid>\n<usage type='ceph'>\n<name>client.libvirt secret</name>\n</usage>\n</secret>" > secret.xml
 #        sudo virsh secret-define --file secret.xml | awk '{print $2}' | tee uuid.txt
-#        ceph auth get-key client.libvirt | sudo tee client.libvirt.key
+#        ceph auth get-key client.libvirt | tee client.libvirt.key
 #        sudo virsh secret-set-value --secret $(cat uuid.txt) --base64 $(cat client.libvirt.key) && rm -f client.libvirt.key secret.xml uuid.txt
 #        # echo "<pool type='rbd'>
 #        #   <name>libvirtpool</name>

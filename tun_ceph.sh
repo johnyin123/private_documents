@@ -4,7 +4,7 @@
 # xfs_growfs -d /mnt/ceph-disk1
 
 
-sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"numa=off\"" /etc/default/grub
+sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"numa=off\"/g" /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
 echo "8192" > /sys/block/sda/queue/read_ahead_kb
 echo "vm.swappiness = 0"/etc/sysctl.conf

@@ -149,6 +149,6 @@ modprobe vhost_net
 # systemctl start nfs
 # showmount -e ${BR_IPADDR}
 # mount -t nfs ${BR_IPADDR}:/kvm /mnt -o proto=tcp -o nolock
-
+EOF
 rm -f ifcfg-${DEF_DATA_IFACE} ifcfg-${DEF_BRIDGE_IFACE} ifcfg-${DEF_MGR_IFACE}
 
