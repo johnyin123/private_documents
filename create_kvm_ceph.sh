@@ -154,14 +154,14 @@ IPS=$(eval $CONF | awk '{print $1}')
 
 for ip in $IPS
 do
-    VMNAME=$(eval $CONF | grep ${ip} | awk '{print $2}')
+    VMNAME=$(eval $CONF | grep "${ip}[\t| ]" | awk '{print $2}')
     UUID=$(cat /proc/sys/kernel/random/uuid)
-    NETMASK=$(eval $CONF | grep ${ip} | awk '{print $3}')
-    GATEWAY=$(eval $CONF | grep ${ip} | awk '{print $4}')
+    NETMASK=$(eval $CONF | grep "${ip}[\t| ]" | awk '{print $3}')
+    GATEWAY=$(eval $CONF | grep "${ip}[\t| ]" | awk '{print $4}')
     VM_IMG=${VMNAME}-${UUID}.raw
-    KVM_BRIDGE=$(eval $CONF | grep ${ip} | awk '{print $5}')
-    VM_TITLE=$(eval $CONF | grep ${ip} | awk '{print $6}')
-    VM_DESC=$(eval $CONF | grep ${ip} | awk '{print $7}')
+    KVM_BRIDGE=$(eval $CONF | grep "${ip}[\t| ]" | awk '{print $5}')
+    VM_TITLE=$(eval $CONF | grep "${ip}[\t| ]" | awk '{print $6}')
+    VM_DESC=$(eval $CONF | grep "${ip}[\t| ]" | awk '{print $7}')
 
     echo "Create vm:${VMNAME}-${UUID}"
     echo "    title:${VM_TITLE}"

@@ -119,6 +119,8 @@ rm -f hosts config
 #       # Deploying additional manager daemons ensures that if one daemon or host fails,
 #       # another one can take over without interrupting service. ceph-deploy mgr create node2 node3
 #       4.1. ceph-deploy mgr create kvm1  *Required only for luminous+ builds, i.e >= 12.x builds*
+#       4.2. ceph mgr module enable dashboard
+#           #The dashboard module runs on port 7000 by default. http://<active mgr host>:7000/
 #    5. ceph-deploy disk list kvm1 ...
 #          A. ceph-deploy disk zap kvm1:/dev/sda #clear disk old info
 #              #. sudo parted -s /dev/sdd mkpart -a optimal primary 1 100%
