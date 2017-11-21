@@ -1,3 +1,9 @@
+# rbd resize --image rbd1 --size 20480 --name client.rbd
+# rbd info --image rbd1 --name client.rbd
+# dmesg | grep -i capacity
+# xfs_growfs -d /mnt/ceph-disk1
+
+
 sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"numa=off\"" /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
 echo "8192" > /sys/block/sda/queue/read_ahead_kb
