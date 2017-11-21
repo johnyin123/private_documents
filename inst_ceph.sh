@@ -120,10 +120,11 @@ rm -f hosts config
 #       # another one can take over without interrupting service. ceph-deploy mgr create node2 node3
 #       4.1. ceph-deploy mgr create kvm1  *Required only for luminous+ builds, i.e >= 12.x builds*
 #    5. ceph-deploy disk list kvm1 ...
-#          A. ceph-deploy disk zap kvm1:/dev/sda #whole disk
-#          B. sudo parted -s /dev/sdd mkpart -a optimal primary 1 100%
-#          C. ceph-deploy osd prepare kvm1:/dev/sda3 #partition
-#    6. ceph-deploy osd activate kvm1:/dev/sda3 ...
+#          A. ceph-deploy disk zap kvm1:/dev/sda #clear disk old info
+#              #. sudo parted -s /dev/sdd mkpart -a optimal primary 1 100%
+#          B. ceph-deploy osd prepare kvm1:/dev/sda3 #partition
+#          B. ceph-deploy osd prepare kvm1:/dev/sda  #disk
+#    6. ceph-deploy osd activate kvm1:/dev/sda1 ...
 #    7. MUST:add mount point in fstab!
 #    8. ceph-deploy admin kvm1
 #    9. sudo chmod 644 /etc/ceph/ceph.client.admin.keyring   
