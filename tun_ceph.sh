@@ -2,6 +2,7 @@
 # rbd info --image rbd1 --name client.rbd
 # dmesg | grep -i capacity
 # xfs_growfs -d /mnt/ceph-disk1
+# cat pxe.raw | pv | ssh -p60022 root@10.32.151.250 'rbd import - libvirt-pool/pxe.raw'
 
 
 sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"numa=off\"/g" /etc/default/grub
