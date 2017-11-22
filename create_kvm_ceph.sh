@@ -1,6 +1,14 @@
 #!/bin/bash
 set -u
 
+# rbd map libvirt-pool/template.raw
+# rbd resize libvirt-pool/template.raw --size 8G
+# growpart /dev/rbd0 1
+# mount /dev/rbd0p1 /mnt
+# xfs_growfs -d  -l  /mnt
+# umount /mnt
+# xfs_repair /dev/rbd0p1
+# rbd unmap /dev/rbd0
 
 # qemu-img convert -f qcow2 -O raw debian_squeeze.qcow2 rbd:data/squeeze
 # virsh start $VMNAME
@@ -40,7 +48,7 @@ if [ "${FOUND_IMG}" == "1" ]; then
     return 1
 else
     #rbd copy --image-feature layering ${tpl_img} ${ceph_pool}/${vm_img} || return 1
-    rbd import --image-feature layering ${tpl_img} ${ceph_pool}/${vm_img} || return 1
+    gunzip -c ${tpl_img} | pv | rbd import --image-feature layering - ${ceph_pool}/${vm_img} || return 1
     #qemu-img convert -f qcow2 -O raw ${tpl_img} rbd:${ceph_pool}/${vm_img} || return 1
     local DEV_RBD=$(rbd map ${ceph_pool}/${vm_img})
     mount -t xfs ${DEV_RBD}p1 ${mnt_point} || { rbd unmap ${DEV_RBD}; return 2; }
