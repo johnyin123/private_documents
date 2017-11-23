@@ -20,6 +20,15 @@ set -u
 # mount /dev/nbd0p1 -o uid=1000,gid=1000 ${mnt_point}
 # qemu-nbd -d /dev/nbd0
 
+
+# qemu-img resize -f raw demo.disk +1G
+# fdisk demo.disk #add new partitions
+# fdisk -l demo.disk
+# kpartx -av demo.disk 
+# ll /dev/mapper/loop0p1 
+# mkfs.xfs /dev/mapper/loop0p2 
+# kpartx -d demo.disk 
+
 BASEDIR="$(readlink -f "$(dirname "$0")")"
 
 if test -f ${BASEDIR}/vm.cfg; then
