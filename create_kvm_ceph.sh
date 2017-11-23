@@ -66,7 +66,7 @@ EOF
 EOF
     echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { umount ${mnt_point}; rbd unmap ${DEV_RBD}; return 6; }
     chattr +i ${mnt_point}/etc/hostname || { umount ${mnt_point}; rbd unmap ${DEV_RBD}; return 7; }
-    #sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"console=ttyS0\"/g" /etc/default/grub
+    #sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"console=ttyS0 net.ifnames=0 biosdevname=0\"/g" /etc/default/grub
     #grub2-mkconfig -o /boot/grub2/grub.cfg
     rm -f ${mnt_point}/ssh/ssh_host_*
     echo "set ip/gw/hostname/sshd_key OK"
