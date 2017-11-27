@@ -90,7 +90,7 @@ local guest_ipaddr=$5
 local guest_netmask=$6
 local guest_gw=$7
 local mnt_point=/tmp/vm_mnt/
-mkdir -p ${mnt_point}
+[ ! -d ${mnt_point} ] && mkdir -p ${mnt_point}
 local found_img=$(rbd -p ${ceph_pool} ls | grep "^${vm_img}$" >/dev/null 2>&1 && echo -n 1 || echo -n 0)
 if [ "${found_img}" == "1" ]; then
     echo "image ${vm_img} exist in ${ceph_pool}"
