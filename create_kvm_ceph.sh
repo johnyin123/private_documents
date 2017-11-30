@@ -60,25 +60,25 @@ parse_size() {(
 
 
 uppercase() {
-	echo "${*^^}"
+    echo "${*^^}"
 }
 
 lowercase() {
-	echo "${*,,}"
+    echo "${*,,}"
 }
 
 getinientry() {
-	local CONF=$1
-	grep "^\[" "${CONF}" | sed "s/\[//;s/\]//"
+    local CONF=$1
+    grep "^\[" "${CONF}" | sed "s/\[//;s/\]//"
 }
 
 readini()
 {
-	local ENTRY=$1
-	local CONF=$2
-	local INFO=$(grep -v ^$ "${CONF}"\
-		| sed -n "/\[${ENTRY}\]/,/^\[/p" \
-		| grep -v ^'\[') && eval "${INFO}"
+    local ENTRY=$1
+    local CONF=$2
+    local INFO=$(grep -v ^$ "${CONF}"\
+        | sed -n "/\[${ENTRY}\]/,/^\[/p" \
+        | grep -v ^'\[') && eval "${INFO}"
 }
 
 function genceph_img() {
@@ -90,7 +90,7 @@ local guest_ipaddr=$5
 local guest_netmask=$6
 local guest_gw=$7
 local mnt_point=/tmp/vm_mnt/
-[ ! -d ${mnt_point} ] && mkdir -p ${mnt_point}
+mkdir -p ${mnt_point}
 local found_img=$(rbd -p ${ceph_pool} ls | grep "^${vm_img}$" >/dev/null 2>&1 && echo -n 1 || echo -n 0)
 if [ "${found_img}" == "1" ]; then
     echo "image ${vm_img} exist in ${ceph_pool}"
@@ -113,6 +113,10 @@ else
 EOF
     cat > ${mnt_point}/etc/sysconfig/network-scripts/route-eth0 <<-EOF
         default via ${guest_gw} dev eth0
+EOF
+    cat > ${mnt_point}/etc/hosts <<-EOF
+        127.0.0.1   localhost
+        ${guest_ipaddr}    ${guest_hostname}
 EOF
     echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 6; }
     chattr +i ${mnt_point}/etc/hostname || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 7; }
@@ -228,9 +232,9 @@ EOF
 
 for i in $(getinientry "${CFG_INI}")
 do
-	readini "$i" "${CFG_INI}"
-	#[ ! -z "${IP}" ] && {
-	#}
+    readini "$i" "${CFG_INI}"
+    #[ ! -z "${IP}" ] && {
+    #}
     UUID=$(cat /proc/sys/kernel/random/uuid)
     VMNAME="$(lowercase $i)-${UUID}"
     VM_IMG=${VMNAME}.raw
