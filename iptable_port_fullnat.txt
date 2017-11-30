@@ -1,0 +1,28 @@
+情形一：跨网络、跨主机的映射Full-Nat
+我们想到达主机B的80端口，但是由于网络限制可能无法直接完成。但是我们可以到达主机A的8080端口，而主机A可以直接到达B的80端口。
+这时候可以使用iptables，将主机B的80端口映射到主机A的8080端口，通过访问A的8080相当于访问B的80。实现如下： 
+在主机A上直接如下命令，实现端口映射的Full-Nat
+
+#!/bin/bash
+pro='tcp'
+NAT_Host='Host_A'
+NAT_Port=8080
+Dst_Host='Host_B'
+Dst_Port=80
+iptables -t nat -A PREROUTING  -m $pro -p $pro --dport $NAT_Port -j DNAT --to-destination $Dst_Host:$Dst_Port
+iptables -t nat -A POSTROUTING -m $pro -p $pro --dport $Dst_Port -d $Dst_Host -j SNAT --to-source $NAT_Host
+说明：
+
+NAT_Pro表示NAT的协议，可以是tcp或udp
+NAT_Host表示中间做端口映射的主机。这里也就是主机A
+NAT_Port表示中间做端口映射的端口。这里也就是主机A的8080口
+Dst_Host表示被NAT的主机。这里也就是主机B
+Dst_Host表示被NAT的端口。这里也就是主机B的80口
+情形二：主机内部的端口重定向
+我们可能需要将访问主机的7979端口映射到8080端口。也可以iptables重定向完成
+
+iptables -t nat -A PREROUTING -p tcp --dport 7979 -j REDIRECT --to-ports 8080
+注意问题
+需要打开ip_forward功能。
+
+echo '1' > /proc/sys/net/ipv4/ip_forward
