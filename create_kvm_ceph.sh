@@ -106,7 +106,7 @@ else
 DEVICE="eth0"
 ONBOOT="yes"
 BOOTPROTO="none"
-DNS1=10.0.2.1
+#DNS1=10.0.2.1
 IPADDR=${guest_ipaddr}
 NETMASK=${guest_netmask}
 #GATEWAY=${guest_gw}
