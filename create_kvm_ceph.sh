@@ -173,7 +173,6 @@ function genkvm_xml(){
       <source bridge='${kvm_bridge}'/>
       <model type='virtio'/>
       <driver name="vhost"/>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
     </interface>
     <serial type='pty'>
       <source path='/dev/pts/1'/>
