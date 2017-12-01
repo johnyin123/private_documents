@@ -241,7 +241,7 @@ do
  
     log "info" "Create vm:${VMNAME}"
     log "info" "    vcpus:${VCPUS}"
-    log "info" "   memory:${VMEMSIZE}$(parse_size ${VMEMSIZE})"
+    log "info" "   memory:${VMEMSIZE}"
     log "info" "    title:${VM_TITLE}"
     log "info" "     desc:${VM_DESC}"
     log "info" "     disk:${VM_IMG}"
@@ -253,7 +253,7 @@ do
     log "info" " template:${TEMPLATE_IMG}"
 
     ceph_secret_uuid=$(virsh secret-list | grep libvirt | awk '{ print $1}')
-    genkvm_xml "${VMNAME}" ${ceph_secret_uuid} ${CEPH_KVM_POOL} ${VM_IMG} "${VM_TITLE}" "${VM_DESC}" ${UUID} ${KVM_BRIDGE} $(parse_size ${VMEMSIZE}) ${VCPUS}
+    genkvm_xml "${VMNAME}" ${ceph_secret_uuid} ${CEPH_KVM_POOL} ${VM_IMG} "${VM_TITLE}" "${VM_DESC}" ${UUID} ${KVM_BRIDGE} $(($(parse_size ${VMEMSIZE})/1024)) ${VCPUS}
     virsh define ${VMNAME} > /dev/null 2>&1 || {
         log "warn" "   define:FAILED";
         mv ${VMNAME} ${VMNAME}.err;
