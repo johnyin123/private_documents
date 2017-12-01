@@ -1,0 +1,64 @@
+server1:
+1. ipip.sh
+    #!/bin/sh
+    ip tunnel del ethn
+    ip tunnel add ethn mode ipip local 58.247.a.a remote 61.219.d.d
+    ifconfig ethn 10.0.0.1
+    route add -host 10.0.0.2 dev ethn
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+    ip rule add from 172.16.0.0/16 table ipip pref 1700
+    ip route add default dev ethn table ipip
+2. cat /etc/iproute2/rt_tables
+    240 ipip       #新增
+
+server2:
+1. ipip.sh
+    #!/bin/sh
+    ip tunnel del ethm
+    ip tunnel add ethm mode ipip local 61.152.b.b remote 61.219.e.e
+    ifconfig ethm 20.0.0.1
+    route add -host 20.0.0.2 dev ethm
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+    ip rule add from 172.16.0.0/16 table ipip pref 1700
+    ip route add default dev ethm table ipip
+2. cat /etc/iproute2/rt_tables
+    240 ipip       #新增
+
+server3:
+1. /etc/ipip.sh
+    #!/bin/sh
+    ip tunnel del ethp
+    ip tunnel add ethp mode ipip local 112.65.c.c remote 61.219.f.f
+    ifconfig ethp 30.0.0.1
+    route add -host 30.0.0.2 dev ethp
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+    ip rule add from 172.16.0.0/16 table ipip pref 1700
+    ip route add default dev ethp table ipip
+2. cat /etc/iproute2/rt_tables
+    240 ipip       #新增
+
+下面是在海外的server上配置
+    ip tunnel del ethn
+    ip tunnel add ethn mode ipip local 61.219.d.d remote 180.153.a.a
+    ifconfig ethn 10.0.0.2
+    route add -host 10.0.0.1 dev ethn
+    ip tunnel del ethm
+    ip tunnel add ethm mode ipip local 61.219.e.e remote 61.152.b.b
+    ifconfig ethm 20.0.0.2
+    route add -host 20.0.0.1 dev ethm
+    ip tunnel del ethp
+    ip tunnel add ethp mode ipip local 61.219.f.f remote 112.65.c.c
+    ifconfig ethp 30.0.0.2
+    route add -host 30.0.0.1 dev ethp
+    echo 1 > /proc/sys/net/ipv4/ip_forward
+    route add -net 172.16.0.0/24 dev ethn
+    route add -net 172.16.2.0/24 dev ethm
+    route add -net 172.16.3.0/24 dev ethp
+    iptables -t nat -A POSTROUTING -o eth0 -s 172.16.0.0/24 -j SNAT --to-source 61.219.d.d
+    iptables -t nat -A POSTROUTING -o eth0 -s 172.16.2.0/24 -j SNAT --to-source 61.219.e.e
+    iptables -t nat -A POSTROUTING -o eth0 -s 172.16.3.0/24 -j SNAT --to-source 61.219.f.f
+    iptables -t nat -A POSTROUTING -o eth0 -s 172.16.10.0/24 -j SNAT --to-source 61.219.d.d
+    iptables -t nat -A POSTROUTING -o eth0 -s 172.16.11.0/24 -j SNAT --to-source 61.219.e.e
+    iptables -t nat -A POSTROUTING -o eth0 -s 172.16.12.0/24 -j SNAT --to-source 61.219.f.f
+经过全部测试，前面三台拨号，对外ip是海外ip；后面一台拨号，也是海外ip；
+
