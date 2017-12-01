@@ -103,20 +103,20 @@ else
     local dev_rbd=$(rbd map ${ceph_pool}/${vm_img})
     mount -t xfs ${dev_rbd}p1 ${mnt_point} || { rbd unmap ${dev_rbd}; return 2; }
     cat > ${mnt_point}/etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
-        DEVICE="eth0"
-        ONBOOT="yes"
-        BOOTPROTO="none"
-        DNS1=10.0.2.1
-        IPADDR=${guest_ipaddr}
-        NETMASK=${guest_netmask}
-        GATEWAY=${guest_gw}
+DEVICE="eth0"
+ONBOOT="yes"
+BOOTPROTO="none"
+DNS1=10.0.2.1
+IPADDR=${guest_ipaddr}
+NETMASK=${guest_netmask}
+#GATEWAY=${guest_gw}
 EOF
     cat > ${mnt_point}/etc/sysconfig/network-scripts/route-eth0 <<-EOF
-        default via ${guest_gw} dev eth0
+default via ${guest_gw} dev eth0
 EOF
     cat > ${mnt_point}/etc/hosts <<-EOF
-        127.0.0.1   localhost
-        ${guest_ipaddr}    ${guest_hostname}
+127.0.0.1   localhost
+${guest_ipaddr}    ${guest_hostname}
 EOF
     echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 6; }
     chattr +i ${mnt_point}/etc/hostname || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 7; }
