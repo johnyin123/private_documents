@@ -1,3 +1,4 @@
+IPIP TUNNEL
 server1:
 1. ipip.sh
     #!/bin/sh
@@ -62,3 +63,23 @@ server3:
     iptables -t nat -A POSTROUTING -o eth0 -s 172.16.12.0/24 -j SNAT --to-source 61.219.f.f
 经过全部测试，前面三台拨号，对外ip是海外ip；后面一台拨号，也是海外ip；
 
+
+
+GRE TUNNEL
+HOST A: ${HOST_AIP}
+HOST B: ${HOST_BIP}
+
+HOST A：
+    ip tunnel add gre1 mode gre remote ${HOST_AIP} local ${HOST_BIP} ttl 255
+    ip link set gre1 up mtu 1400
+    ip addr add 10.11.2.2 peer 10.11.2.1 dev gre1
+
+HOST B：
+    ip tunnel add gre1 mode gre remote ${HOST_BIP} local ${HOST_AIP} ttl 255
+    ip link set gre1 up mtu 1400
+    ip addr add 10.11.2.1 peer 10.11.2.2/24 dev gre1
+
+撤销GRE隧道
+    ip link set gre1 down
+    ip tunnel del gre1
+    ip addr show
