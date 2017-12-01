@@ -1,7 +1,7 @@
 #!/bin/bash
 #kvm嵌套
 #1. echo "options kvm_intel nested=1" > /etc/modprobe.d/kvm-nested.conf
-#2. <cpu mode='host-passthrough'>
+#2. <cpu mode='host-passthrough'> ..vcpu.. </cpu>
 
 #KVM HOST 双网卡，用于管理面、数据面
 # demo:
