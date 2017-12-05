@@ -4,6 +4,8 @@ UUID=
 VMNAME=
 trap 'echo "you must manally remove vm image file define in ${VMNAME}.brk!!!";virsh undefine ${VMNAME}; mv ${VMNAME} ${VMNAME}.brk; exit 1;' INT
 
+[[ ! -x $(which pv) ]] && { echo "NO pv found!!"; exit 1; }
+
 QUIET=false
 output() {
     echo "${*}"
@@ -101,7 +103,7 @@ else
     gunzip -c ${tpl_img} | pv | rbd import --image-feature layering - ${ceph_pool}/${vm_img} || return 1
     #qemu-img convert -f qcow2 -O raw ${tpl_img} rbd:${ceph_pool}/${vm_img} || return 1
     local dev_rbd=$(rbd map ${ceph_pool}/${vm_img})
-    mount -t xfs ${dev_rbd}p1 ${mnt_point} || { rbd unmap ${dev_rbd}; return 2; }
+    mount -t xfs -o nouuid ${dev_rbd}p1 ${mnt_point} || { rbd unmap ${dev_rbd}; return 2; }
     cat > ${mnt_point}/etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
 DEVICE="eth0"
 ONBOOT="yes"
@@ -250,6 +252,11 @@ do
     log "info" "   bridge:${KVM_BRIDGE}"
     log "info" "     disk:rbd:${CEPH_KVM_POOL}/${VM_IMG}"
     log "info" " template:${TEMPLATE_IMG}"
+    if  [ ! -f "${TEMPLATE_IMG}" ]; then
+        log "error" " template:${TEMPLATE_IMG} no found"
+        log "info" "============================================================================";
+        continue
+    fi
 
     ceph_secret_uuid=$(virsh secret-list | grep libvirt | awk '{ print $1}')
     genkvm_xml "${VMNAME}" ${ceph_secret_uuid} ${CEPH_KVM_POOL} ${VM_IMG} "${VM_TITLE}" "${VM_DESC}" ${UUID} ${KVM_BRIDGE} $(($(parse_size ${VMEMSIZE})/1024)) ${VCPUS}
