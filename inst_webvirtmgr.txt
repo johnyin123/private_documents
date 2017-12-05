@@ -55,8 +55,7 @@ server {
 
 chown -R nginx:nginx /var/www/webvirtmgr
 
-vim /etc/supervisord.conf 
-
+cat > /etc/supervisord.d/webvirtmgr.ini <EOF
 [program:webvirtmgr]
 command=/usr/bin/python2 /var/www/webvirtmgr/manage.py run_gunicorn -c /var/www/webvirtmgr/conf/gunicorn.conf.py
 #启动8000端口
@@ -76,6 +75,8 @@ autorestart=true
 stdout_logfile=/var/log/supervisor/webvirtmgr-console.log
 redirect_stderr=true
 user=nginx
+
+EOF
 
 确保下面bind绑定的是本机的8000端口，这个在nginx配置中定义了，被代理的端口
 grep '^bind =' /var/www/webvirtmgr/conf/gunicorn.conf.py
@@ -107,3 +108,5 @@ $ ssh-copy-id -P YOUR_SSH_PORT webvirtmgr@qemu-kvm-libvirt-host
 
 Set up permissions to manage libvirt (on qemu-kvm/libvirt host server):
 
+
+yum install -y novnc

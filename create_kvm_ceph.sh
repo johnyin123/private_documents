@@ -1,5 +1,7 @@
 #!/bin/bash
-set -u -e -o pipefail
+# -e 表示一旦脚本中有命令的返回值为非0，则脚本立即退出，后续命令不再执行;
+# -o pipefail表示在管道连接的命令序列中，只要有任何一个命令返回非0值，则整个管道返回非0值，即使最后一个命令返回0.
+set -u -o pipefail
 UUID=
 VMNAME=
 trap 'echo "you must manally remove vm image file define in ${VMNAME}.brk!!!";virsh undefine ${VMNAME}; mv ${VMNAME} ${VMNAME}.brk; exit 1;' INT
