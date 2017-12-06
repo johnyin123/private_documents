@@ -4,6 +4,8 @@
 set -u -o pipefail
 UUID=
 VMNAME=
+CEPH_MON=${CEPH_MON:-"kvm01:6789 kvm02:6789 kvm03:56789"}
+
 trap 'echo "you must manally remove vm image file define in ${VMNAME}-${UUID}.brk!!!";virsh undefine ${VMNAME}-${UUID}; mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.brk; exit 1;' INT
 
 [[ ! -x $(which pv) ]] && { echo "NO pv found!!"; exit 1; }
@@ -93,6 +95,8 @@ local guest_hostname=$4
 local guest_ipaddr=$5
 local guest_netmask=$6
 local guest_gw=$7
+local guest_uuid=$8
+
 local mnt_point=/tmp/vm_mnt/
 mkdir -p ${mnt_point}
 local found_img=$(rbd -p ${ceph_pool} ls | grep "^${vm_img}$" >/dev/null 2>&1 && echo -n 1 || echo -n 0)
@@ -123,9 +127,11 @@ EOF
 ${guest_ipaddr}    ${guest_hostname}
 EOF
     echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 6; }
-    chattr +i ${mnt_point}/etc/hostname || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 7; }
+    echo "${guest_uuid}" > ${mnt_point}/etc/johnyin || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 6; }
+    chattr +i ${mnt_point}/etc/johnyin || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 7; }
     #sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"console=ttyS0 net.ifnames=0 biosdevname=0\"/g" /etc/default/grub
     #grub2-mkconfig -o /boot/grub2/grub.cfg
+    sed -i "s/#ListenAddress 0.0.0.0/ListenAddress ${guest_ipaddr}/g" ${mnt_point}/etc/ssh/sshd_config
     rm -f ${mnt_point}/ssh/ssh_host_*
     echo "set ip/gw/hostname/sshd_key OK"
     umount ${mnt_point} || { rbd unmap ${dev_rbd}; return 8; }
@@ -169,7 +175,10 @@ function genkvm_xml(){
       <secret type='ceph' uuid='${ceph_secret_uuid}'/>
       </auth>
       <source protocol='rbd' name='${ceph_pool}/${vm_img}'>
-        <host name='kvm1' port='6789'/>
+$(for mon in ${CEPH_MON}
+do
+echo "        <host name='${mon%%:*}' port='${mon##*:}'/>"
+done)
       </source>
       <target dev='vda' bus='virtio'/>
     </disk>
@@ -275,7 +284,7 @@ do
         continue;
     }
 
-    genceph_img ${CEPH_KVM_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY}
+    genceph_img ${CEPH_KVM_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY} ${UUID}
     retval=$?
     if [[ $retval != 0  ]]; then
         rbd rm ${CEPH_KVM_POOL}/${VM_IMG}
