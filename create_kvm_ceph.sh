@@ -127,7 +127,7 @@ EOF
 ${guest_ipaddr}    ${guest_hostname}
 EOF
     echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 6; }
-    echo "${guest_uuid}" > ${mnt_point}/etc/johnyin || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 6; }
+    echo "$(date +%Y%m%d_%H%M%S) ${guest_uuid}" > ${mnt_point}/etc/johnyin || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 6; }
     chattr +i ${mnt_point}/etc/johnyin || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 7; }
     #sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"console=ttyS0 net.ifnames=0 biosdevname=0\"/g" /etc/default/grub
     #grub2-mkconfig -o /boot/grub2/grub.cfg
