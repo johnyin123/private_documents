@@ -4,7 +4,7 @@
 set -u -o pipefail
 UUID=
 VMNAME=
-trap 'echo "you must manally remove vm image file define in ${VMNAME}.brk!!!";virsh undefine ${VMNAME}; mv ${VMNAME} ${VMNAME}.brk; exit 1;' INT
+trap 'echo "you must manally remove vm image file define in ${VMNAME}-${UUID}.brk!!!";virsh undefine ${VMNAME}-${UUID}; mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.brk; exit 1;' INT
 
 [[ ! -x $(which pv) ]] && { echo "NO pv found!!"; exit 1; }
 
@@ -239,8 +239,8 @@ do
     #[ ! -z "${IP}" ] && {
     #}
     UUID=$(cat /proc/sys/kernel/random/uuid)
-    VMNAME="$(lowercase $i)-${UUID}"
-    VM_IMG=${VMNAME}.raw
+    VMNAME="$(lowercase $i)"
+    VM_IMG=${VMNAME}-${UUID}.raw
  
     log "info" "Create vm:${VMNAME}"
     log "info" "    vcpus:${VCPUS}"
@@ -261,15 +261,15 @@ do
     fi
 
     ceph_secret_uuid=$(virsh secret-list | grep libvirt | awk '{ print $1}')
-    genkvm_xml "${VMNAME}" ${ceph_secret_uuid} ${CEPH_KVM_POOL} ${VM_IMG} "${VM_TITLE}" "${VM_DESC}" ${UUID} ${KVM_BRIDGE} $(($(parse_size ${VMEMSIZE})/1024)) ${VCPUS}
-    virsh define ${VMNAME} > /dev/null 2>&1 || {
+    genkvm_xml "${VMNAME}-${UUID}" ${ceph_secret_uuid} ${CEPH_KVM_POOL} ${VM_IMG} "${VM_TITLE}" "${VM_DESC}" ${UUID} ${KVM_BRIDGE} $(($(parse_size ${VMEMSIZE})/1024)) ${VCPUS}
+    virsh define ${VMNAME}-${UUID} > /dev/null 2>&1 || {
         log "warn" "   define:FAILED";
-        mv ${VMNAME} ${VMNAME}.err;
+        mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.err;
         log "info" "============================================================================";
         continue;
     } 
-    virsh domuuid ${VMNAME} > /dev/null 2>&1 || {
-        mv ${VMNAME} ${VMNAME}.err;
+    virsh domuuid ${VMNAME}-${UUID} > /dev/null 2>&1 || {
+        mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.err;
         log "warn" "   status:FAILED";
         log "info" "============================================================================";
         continue;
@@ -283,7 +283,6 @@ do
         log "info" "============================================================================"
         continue
     fi
-#    rm ${VMNAME} -f
     log "info" "   status:OK";
     log "info" "============================================================================"
 done
