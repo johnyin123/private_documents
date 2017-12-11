@@ -342,14 +342,25 @@ do
         log "info" "============================================================================";
         continue;
     }
-
-    genceph_img ${CEPH_KVM_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY} ${UUID}
-    retval=$?
-    if [[ $retval != 0  ]]; then
-        rbd rm ${CEPH_KVM_POOL}/${VM_IMG}
-        log "error" "ErrorCode :$retval"
-        log "info" "============================================================================"
-        continue
+    if [ "${STORE_TYPE}"X == "ceph"X ]; then
+        genceph_img ${CEPH_KVM_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY} ${UUID}
+        retval=$?
+        if [[ $retval != 0  ]]; then
+            rbd rm ${CEPH_KVM_POOL}/${VM_IMG}
+            log "error" "ErrorCode :$retval"
+            log "info" "============================================================================"
+            continue
+        fi
+    fi
+    if [ "${STORE_TYPE}"X == "lvm"X ]; then
+        genlvm_img ${CEPH_KVM_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY} ${UUID}
+        retval=$?
+        if [[ $retval != 0  ]]; then
+#lvremove -f /dev/${CEPH_KVM_POOL}/${VM_IMG}
+            log "error" "ErrorCode :$retval"
+            log "info" "============================================================================"
+            continue
+        fi
     fi
     log "info" "   status:OK";
     log "info" "============================================================================"
