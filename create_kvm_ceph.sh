@@ -5,8 +5,6 @@ set -u -o pipefail
 UUID=
 VMNAME=
 CEPH_MON=${CEPH_MON:-"kvm01:6789 kvm02:6789 kvm03:56789"}
-STORE_TYPE=${STORE_TYPE:-"ceph"}
-#STORE_TYPE=${STORE_TYPE:-"lvm"} #TODO:
 
 trap 'echo "you must manally remove vm image file define in ${VMNAME}-${UUID}.brk!!!";virsh undefine ${VMNAME}-${UUID}; mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.brk; exit 1;' INT
 
@@ -137,25 +135,24 @@ function genlvm_img() {
     
     local mnt_point=/tmp/vm_mnt/
     mkdir -p ${mnt_point}
-    local found_img=$(rbd -p ${ceph_pool} ls | grep "^${vm_img}$" >/dev/null 2>&1 && echo -n 1 || echo -n 0)
-    if [ "${found_img}" == "1" ]; then
-        log "error" "image ${vm_img} exist in ${ceph_pool}"
-        log "error"  "${vm_img} create failed!!!"
-        return 1
-    else
-        filesize=$(stat --format=%s ${tpl_img}) 
-        lvcreate -L ${filesize}b -n ${vm_img} ${kvm_pool} 
-        dd if=${tpl_img} of=/dev/${kvm_pool}/${vm_img}
-        #lvremove -f ....
-        kpartx -av /dev/${kvm_pool}/${vm_img}
-        mount /dev/mapper/$(kpartx -l /dev/${kvm_pool}/${vm_img} | awk '{print $1}') ${mnt_point}
-        change_vm_info ${mnt_point} ${guest_hostname} ${guest_ipaddr} ${guest_netmask} ${guest_gw} ${guest_uuid}
-        retval=$?
-        umount ${mnt_point}
-        kpartx -dv /dev/${kvm_pool}/${vm_img}
-        log "info" "     disk:OK ${retval}"
-        return ${retval}
-   fi
+    [[ -r "/dev/${kvm_pool}/${vm_img}" ]] && {
+        log "error" "image ${vm_img} exist in ${kvm_pool}";
+        log "error"  "${vm_img} create failed!!!";
+        return 1;
+    }
+    filesize=$(stat --format=%s ${tpl_img}) 
+    #lvcreate -L ${filesize}b -n ${vm_img} ${kvm_pool} || return 1
+    lvcreate -L 8G -n ${vm_img} ${kvm_pool} || return 1
+    gunzip -c ${tpl_img} | pv | dd of=/dev/${kvm_pool}/${vm_img} || return 2
+    #lvremove -f ....
+    kpartx -av /dev/${kvm_pool}/${vm_img} || return 3
+    mount /dev/mapper/$(kpartx -l /dev/${kvm_pool}/${vm_img} | awk '{print $1}') ${mnt_point}
+    change_vm_info ${mnt_point} ${guest_hostname} ${guest_ipaddr} ${guest_netmask} ${guest_gw} ${guest_uuid}
+    retval=$?
+    umount ${mnt_point}
+    kpartx -dv /dev/${kvm_pool}/${vm_img}
+    log "info" "     disk:OK ${retval}"
+    return ${retval}
 }
 
 function genceph_img() {
@@ -175,19 +172,18 @@ function genceph_img() {
         log "error" "image ${vm_img} exist in ${ceph_pool}"
         log "error"  "${vm_img} create failed!!!"
         return 1
-    else
-        #rbd copy --image-feature layering ${tpl_img} ${ceph_pool}/${vm_img} || return 1
-        gunzip -c ${tpl_img} | pv | rbd import --image-feature layering - ${ceph_pool}/${vm_img} || return 1
-        #qemu-img convert -f qcow2 -O raw ${tpl_img} rbd:${ceph_pool}/${vm_img} || return 1
-        local dev_rbd=$(rbd map ${ceph_pool}/${vm_img})
-        mount -t xfs -o nouuid ${dev_rbd}p1 ${mnt_point} || { rbd unmap ${dev_rbd}; return 2; }
-        change_vm_info ${mnt_point} ${guest_hostname} ${guest_ipaddr} ${guest_netmask} ${guest_gw} ${guest_uuid}
-        retval=$?
-        umount ${mnt_point} || { rbd unmap ${dev_rbd}; return 8; }
-        rbd unmap ${dev_rbd} || return 9
-        log "info" "     disk:OK ${retval}"
-        return ${retval}
-    fi
+    fi 
+    #rbd copy --image-feature layering ${tpl_img} ${ceph_pool}/${vm_img} || return 1
+    gunzip -c ${tpl_img} | pv | rbd import --image-feature layering - ${ceph_pool}/${vm_img} || return 1
+    #qemu-img convert -f qcow2 -O raw ${tpl_img} rbd:${ceph_pool}/${vm_img} || return 1
+    local dev_rbd=$(rbd map ${ceph_pool}/${vm_img})
+    mount -t xfs -o nouuid ${dev_rbd}p1 ${mnt_point} || { rbd unmap ${dev_rbd}; return 2; }
+    change_vm_info ${mnt_point} ${guest_hostname} ${guest_ipaddr} ${guest_netmask} ${guest_gw} ${guest_uuid}
+    retval=$?
+    umount ${mnt_point} || { rbd unmap ${dev_rbd}; return 8; }
+    rbd unmap ${dev_rbd} || return 9
+    log "info" "     disk:OK ${retval}"
+    return ${retval}
 }
 
 function genkvm_xml(){
@@ -227,7 +223,7 @@ echo "      <backingStore/>"
 echo "      <target dev='vda' bus='virtio'/>"
 echo "    </disk>"
 fi)
-$(if [ "${STORE_TYPE}"X == "ceph"X ]; then
+$(if [ "${STORE_TYPE}"X == "rbd"X ]; then
 echo "    <disk type='network' device='disk'>"
 echo "      <auth username='libvirt'>"
 echo "      <secret type='ceph' uuid='${ceph_secret_uuid}'/>"
@@ -283,13 +279,15 @@ CFG_INI="hosts.ini"
 
 [[ -r "${CFG_INI}" ]] || {
     cat >"${CFG_INI}" <<EOF
-[kvm001]
+[kvm]
 #name
-IP=10.0.2.101
+IP=10.0.2.2
 NETMASK=255.255.255.0
 GATEWAY=10.0.2.1
-KVM_BRIDGE=kvm-bridge
-CEPH_KVM_POOL=libvirt-pool
+KVM_BRIDGE=br-mgr
+STORE_TYPE=rbd
+#STORE_TYPE=lvm
+KVM_POOL=libvirt-pool
 TEMPLATE_IMG=CentOS7.4.tpl.gz
 VMEMSIZE=1G
 VCPUS=1
@@ -320,7 +318,12 @@ do
     log "info" "  netmask:${NETMASK}"
     log "info" "       gw:${GATEWAY}"
     log "info" "   bridge:${KVM_BRIDGE}"
-    log "info" "     disk:rbd:${CEPH_KVM_POOL}/${VM_IMG}"
+    if [ "${STORE_TYPE}"X == "rbd"X ]; then
+        log "info" "     disk:rbd:${KVM_POOL}/${VM_IMG}"
+    fi
+    if [ "${STORE_TYPE}"X == "lvm"X ]; then
+        log "info" "     disk:lvm:${KVM_POOL}/${VM_IMG}"
+    fi
     log "info" " template:${TEMPLATE_IMG}"
     if  [ ! -f "${TEMPLATE_IMG}" ]; then
         log "error" " template:${TEMPLATE_IMG} no found"
@@ -329,7 +332,7 @@ do
     fi
 
     ceph_secret_uuid=$(virsh secret-list | grep libvirt | awk '{ print $1}')
-    genkvm_xml "${VMNAME}-${UUID}" ${ceph_secret_uuid} ${CEPH_KVM_POOL} ${VM_IMG} "${VM_TITLE}" "${VM_DESC}" ${UUID} ${KVM_BRIDGE} $(($(parse_size ${VMEMSIZE})/1024)) ${VCPUS}
+    genkvm_xml "${VMNAME}-${UUID}" ${ceph_secret_uuid} ${KVM_POOL} ${VM_IMG} "${VM_TITLE}" "${VM_DESC}" ${UUID} ${KVM_BRIDGE} $(($(parse_size ${VMEMSIZE})/1024)) ${VCPUS}
     virsh define ${VMNAME}-${UUID} > /dev/null 2>&1 || {
         log "warn" "   define:FAILED";
         mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.err;
@@ -342,21 +345,25 @@ do
         log "info" "============================================================================";
         continue;
     }
-    if [ "${STORE_TYPE}"X == "ceph"X ]; then
-        genceph_img ${CEPH_KVM_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY} ${UUID}
+    if [ "${STORE_TYPE}"X == "rbd"X ]; then
+        genceph_img ${KVM_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY} ${UUID}
         retval=$?
         if [[ $retval != 0  ]]; then
-            rbd rm ${CEPH_KVM_POOL}/${VM_IMG}
+            rbd rm ${KVM_POOL}/${VM_IMG}
+            virsh undefine ${VMNAME}-${UUID}
+            mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.err
             log "error" "ErrorCode :$retval"
             log "info" "============================================================================"
             continue
         fi
     fi
     if [ "${STORE_TYPE}"X == "lvm"X ]; then
-        genlvm_img ${CEPH_KVM_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY} ${UUID}
+        genlvm_img ${KVM_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY} ${UUID}
         retval=$?
         if [[ $retval != 0  ]]; then
-#lvremove -f /dev/${CEPH_KVM_POOL}/${VM_IMG}
+            virsh undefine ${VMNAME}-${UUID}
+            mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.err
+#lvremove -f /dev/${KVM_POOL}/${VM_IMG}
             log "error" "ErrorCode :$retval"
             log "info" "============================================================================"
             continue
