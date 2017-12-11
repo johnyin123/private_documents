@@ -147,7 +147,15 @@ function genlvm_img() {
         lvcreate -L ${filesize}b -n ${vm_img} ${kvm_pool} 
         dd if=${tpl_img} of=/dev/${kvm_pool}/${vm_img}
         #lvremove -f ....
-    fi
+        kpartx -av /dev/${kvm_pool}/${vm_img}
+        mount /dev/mapper/$(kpartx -l /dev/${kvm_pool}/${vm_img} | awk '{print $1}') ${mnt_point}
+        change_vm_info ${mnt_point} ${guest_hostname} ${guest_ipaddr} ${guest_netmask} ${guest_gw} ${guest_uuid}
+        retval=$?
+        umount ${mnt_point}
+        kpartx -dv /dev/${kvm_pool}/${vm_img}
+        log "info" "     disk:OK ${retval}"
+        return ${retval}
+   fi
 }
 
 function genceph_img() {
