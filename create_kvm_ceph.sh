@@ -5,6 +5,8 @@ set -u -o pipefail
 UUID=
 VMNAME=
 CEPH_MON=${CEPH_MON:-"kvm01:6789 kvm02:6789 kvm03:56789"}
+STORE_TYPE=${STORE_TYPE:-"ceph"}
+#STORE_TYPE=${STORE_TYPE:-"lvm"} #TODO:
 
 trap 'echo "you must manally remove vm image file define in ${VMNAME}-${UUID}.brk!!!";virsh undefine ${VMNAME}-${UUID}; mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.brk; exit 1;' INT
 
@@ -87,29 +89,14 @@ readini()
         | grep -v ^'\[') && eval "${INFO}"
 }
 
-function genceph_img() {
-local ceph_pool=$1
-local vm_img=$2
-local tpl_img=$3
-local guest_hostname=$4
-local guest_ipaddr=$5
-local guest_netmask=$6
-local guest_gw=$7
-local guest_uuid=$8
+function change_vm_info() {
+    local mnt_point=$1
+    local guest_hostname=$2
+    local guest_ipaddr=$3
+    local guest_netmask=$4
+    local guest_gw=$5
+    local guest_uuid=$6
 
-local mnt_point=/tmp/vm_mnt/
-mkdir -p ${mnt_point}
-local found_img=$(rbd -p ${ceph_pool} ls | grep "^${vm_img}$" >/dev/null 2>&1 && echo -n 1 || echo -n 0)
-if [ "${found_img}" == "1" ]; then
-    echo "image ${vm_img} exist in ${ceph_pool}"
-    echo "${vm_img} create failed!!!"
-    return 1
-else
-    #rbd copy --image-feature layering ${tpl_img} ${ceph_pool}/${vm_img} || return 1
-    gunzip -c ${tpl_img} | pv | rbd import --image-feature layering - ${ceph_pool}/${vm_img} || return 1
-    #qemu-img convert -f qcow2 -O raw ${tpl_img} rbd:${ceph_pool}/${vm_img} || return 1
-    local dev_rbd=$(rbd map ${ceph_pool}/${vm_img})
-    mount -t xfs -o nouuid ${dev_rbd}p1 ${mnt_point} || { rbd unmap ${dev_rbd}; return 2; }
     cat > ${mnt_point}/etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
 DEVICE="eth0"
 ONBOOT="yes"
@@ -126,19 +113,73 @@ EOF
 127.0.0.1   localhost
 ${guest_ipaddr}    ${guest_hostname}
 EOF
-    echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 6; }
-    echo "$(date +%Y%m%d_%H%M%S) ${guest_uuid}" > ${mnt_point}/etc/johnyin || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 6; }
-    chattr +i ${mnt_point}/etc/johnyin || { umount ${mnt_point}; rbd unmap ${dev_rbd}; return 7; }
+    echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { return 1; }
+    [[ -r "${mnt_point}/etc/johnyin" ]] && chattr -i ${mnt_point}/etc/johnyin 
+    echo "$(date +%Y%m%d_%H%M%S) ${guest_uuid}" > ${mnt_point}/etc/johnyin || { return 2; }
+    chattr +i ${mnt_point}/etc/johnyin || { return 3; }
     #sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"console=ttyS0 net.ifnames=0 biosdevname=0\"/g" /etc/default/grub
     #grub2-mkconfig -o /boot/grub2/grub.cfg
     sed -i "s/#ListenAddress 0.0.0.0/ListenAddress ${guest_ipaddr}/g" ${mnt_point}/etc/ssh/sshd_config
     rm -f ${mnt_point}/ssh/ssh_host_*
-    echo "set ip/gw/hostname/sshd_key OK"
-    umount ${mnt_point} || { rbd unmap ${dev_rbd}; return 8; }
-    rbd unmap ${dev_rbd} || return 9
-    echo "     disk:OK"
+    log "info" "set ip/gw/hostname/sshd_key OK"
     return 0
-fi
+}
+
+function genlvm_img() {
+    local kvm_pool=$1
+    local vm_img=$2
+    local tpl_img=$3
+    local guest_hostname=$4
+    local guest_ipaddr=$5
+    local guest_netmask=$6
+    local guest_gw=$7
+    local guest_uuid=$8
+    
+    local mnt_point=/tmp/vm_mnt/
+    mkdir -p ${mnt_point}
+    local found_img=$(rbd -p ${ceph_pool} ls | grep "^${vm_img}$" >/dev/null 2>&1 && echo -n 1 || echo -n 0)
+    if [ "${found_img}" == "1" ]; then
+        log "error" "image ${vm_img} exist in ${ceph_pool}"
+        log "error"  "${vm_img} create failed!!!"
+        return 1
+    else
+        filesize=$(stat --format=%s ${tpl_img}) 
+        lvcreate -L ${filesize}b -n ${vm_img} ${kvm_pool} 
+        dd if=${tpl_img} of=/dev/${kvm_pool}/${vm_img}
+        #lvremove -f ....
+    fi
+}
+
+function genceph_img() {
+    local ceph_pool=$1
+    local vm_img=$2
+    local tpl_img=$3
+    local guest_hostname=$4
+    local guest_ipaddr=$5
+    local guest_netmask=$6
+    local guest_gw=$7
+    local guest_uuid=$8
+    
+    local mnt_point=/tmp/vm_mnt/
+    mkdir -p ${mnt_point}
+    local found_img=$(rbd -p ${ceph_pool} ls | grep "^${vm_img}$" >/dev/null 2>&1 && echo -n 1 || echo -n 0)
+    if [ "${found_img}" == "1" ]; then
+        log "error" "image ${vm_img} exist in ${ceph_pool}"
+        log "error"  "${vm_img} create failed!!!"
+        return 1
+    else
+        #rbd copy --image-feature layering ${tpl_img} ${ceph_pool}/${vm_img} || return 1
+        gunzip -c ${tpl_img} | pv | rbd import --image-feature layering - ${ceph_pool}/${vm_img} || return 1
+        #qemu-img convert -f qcow2 -O raw ${tpl_img} rbd:${ceph_pool}/${vm_img} || return 1
+        local dev_rbd=$(rbd map ${ceph_pool}/${vm_img})
+        mount -t xfs -o nouuid ${dev_rbd}p1 ${mnt_point} || { rbd unmap ${dev_rbd}; return 2; }
+        change_vm_info ${mnt_point} ${guest_hostname} ${guest_ipaddr} ${guest_netmask} ${guest_gw} ${guest_uuid}
+        retval=$?
+        umount ${mnt_point} || { rbd unmap ${dev_rbd}; return 8; }
+        rbd unmap ${dev_rbd} || return 9
+        log "info" "     disk:OK ${retval}"
+        return ${retval}
+    fi
 }
 
 function genkvm_xml(){
@@ -170,18 +211,28 @@ function genkvm_xml(){
   </features>
   <on_poweroff>preserve</on_poweroff>
   <devices>
-    <disk type='network' device='disk'>
-      <auth username='libvirt'>
-      <secret type='ceph' uuid='${ceph_secret_uuid}'/>
-      </auth>
-      <source protocol='rbd' name='${ceph_pool}/${vm_img}'>
-$(for mon in ${CEPH_MON}
+$(if [ "${STORE_TYPE}"X == "lvm"X ]; then
+echo "    <disk type='block' device='disk'>"
+echo "      <driver name='qemu' type='raw' cache='none' io='native'/>"
+echo "      <source dev='/dev/${ceph_pool}/${vm_img}'/>"
+echo "      <backingStore/>"
+echo "      <target dev='vda' bus='virtio'/>"
+echo "    </disk>"
+fi)
+$(if [ "${STORE_TYPE}"X == "ceph"X ]; then
+echo "    <disk type='network' device='disk'>"
+echo "      <auth username='libvirt'>"
+echo "      <secret type='ceph' uuid='${ceph_secret_uuid}'/>"
+echo "      </auth>"
+echo "      <source protocol='rbd' name='${ceph_pool}/${vm_img}'>"
+for mon in ${CEPH_MON}
 do
 echo "        <host name='${mon%%:*}' port='${mon##*:}'/>"
-done)
-      </source>
-      <target dev='vda' bus='virtio'/>
-    </disk>
+done
+echo "      </source>"
+echo "      <target dev='vda' bus='virtio'/>"
+echo "    </disk>"
+fi)
     <interface type='bridge'>
       <source bridge='${kvm_bridge}'/>
       <model type='virtio'/>
