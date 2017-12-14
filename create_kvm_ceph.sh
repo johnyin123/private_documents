@@ -332,7 +332,7 @@ do
     fi
 
     ceph_secret_uuid=$(virsh secret-list | grep libvirt | awk '{ print $1}')
-    genkvm_xml "${VMNAME}-${UUID}" ${ceph_secret_uuid} ${KVM_POOL} ${VM_IMG} "${VM_TITLE}" "${VM_DESC}" ${UUID} ${KVM_BRIDGE} $(($(parse_size ${VMEMSIZE})/1024)) ${VCPUS}
+    genkvm_xml "${VMNAME}-${UUID}" ${ceph_secret_uuid:-"n/a"} ${KVM_POOL} ${VM_IMG} "${VM_TITLE}" "${VM_DESC}" ${UUID} ${KVM_BRIDGE} $(($(parse_size ${VMEMSIZE})/1024)) ${VCPUS}
     virsh define ${VMNAME}-${UUID} > /dev/null 2>&1 || {
         log "warn" "   define:FAILED";
         mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.err;
