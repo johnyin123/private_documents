@@ -158,6 +158,8 @@ then
 fi
 
 cat << EOF >> /etc/bash.bashrc
+alias rscp='rsync -av --progress --stats'
+alias pp='python -mjson.tool'
 
 export HISTTIMEFORMAT='%F %T '
 export HISTSIZE="10000"
