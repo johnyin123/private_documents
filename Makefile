@@ -209,7 +209,10 @@ docs: $(DOCX)
 # 	Commit the changes to the same commit id (this avoids a new separate patch set): git commit --amend
 # Push to the master branch: git push (to your git repository)
 
-
+#改动过.gitignore文件之后，在repo的根目录下运行：
+#git rm -r --cached .
+#git add .
+#git commit -m "fixed untracked files"
 
 
 # git flow init -d
