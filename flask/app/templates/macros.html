@@ -3,7 +3,7 @@
 	<li{% if not pagination.has_prev %} class="disabled"{% endif %}>
 		<a href="{% if pagination.has_prev %}{{ url_for(endpoint, page=pagination.prev_num, **kwargs) }}{% else %}#{% endif %}">«</a>
 	</li>
-{%- for p in pagination.iter_pages() %}
+	{%- for p in pagination.iter_pages() %}
 	{%- if p %}
 		{%- if p == pagination.page %}
 			<li class="active"><a href="{{ url_for(endpoint, page = p, **kwargs) }}">{{ p }}</a></li>
@@ -13,9 +13,32 @@
 	{%- else %}
 		<li class="disabled"><a href="#">…</a></li>
 	{% endif %}
-{% endfor %}
+	{% endfor %}
 	<li{% if not pagination.has_next %} class="disabled"{% endif %}>
 		<a href="{% if pagination.has_next %}{{ url_for(endpoint, page=pagination.next_num, **kwargs) }}{% else %}#{% endif %}">»</a>
 	</li>
 	</ul>
+{%- endmacro %}
+
+{%- macro render_nav_menu(menu_list) %}
+		<ul class="nav navbar-nav">
+	{%- for it in menu_list %}
+	  {%- for title, val in it.items() %}
+		{%- if val is iterable and val is not string %}
+		{#- if val is mapping == check dict #}
+	<li class="dropdown"><a href="" class="dropdown-toggle" data-toggle="dropdown">{{title}}</a>
+		<ul class="dropdown-menu">
+			{%- for sub_menu in val %}
+				{%- for sub_title, uri in sub_menu.items() %}
+			<li><a href="{{ url_for(uri) | e }}">{{ sub_title }}</a></li>
+				{%- endfor %}
+			{%- endfor %}
+		</ul>
+	</li>
+		{%- else %}
+	<li><a href="{{ url_for(val) | e }}">{{title}}</a></li>
+		{%- endif %}
+	  {%- endfor %}
+	{%- endfor %}
+		</ul>
 {%- endmacro %}

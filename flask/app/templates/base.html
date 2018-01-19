@@ -1,33 +1,31 @@
-<!DOCTYPE HTML>
-<html lang="utf-8">
+<!DOCTYPE html>
+<html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1, user-scalable=no"/>
-<meta http-equiv="Cache-Control" content="no-siteapp">
-<meta name="renderer" content="webkit">
-<link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
-<script src="http://cdn.bootcss.com/jquery/3.1.1/jquery.min.js"></script>
-<script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<!-- 上述3个meta标签*必须*放在最前面，任何其他内容都*必须*跟随其后！ -->
+	<!-- Bootstrap -->
+	<link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+	<!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+	<!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+	<!--[if lt IE 9]>
+		<script src="//cdn.bootcss.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+		<script src="//cdn.bootcss.com/respond.js/1.4.2/respond.min.js"></script>
+	<![endif]-->
+	<style type="text/css">
+		body{ padding-top: 50px; } <!-- nav menu style -->
+	</style>
 {%- block custom_head_tags %}{% endblock %}
-<title>{%- block page_title %}{{ config.APP_NAME }}{%- endblock %}</title>
+	<title>{%- block page_title %}{{ config.APP_NAME }}{%- endblock %}</title>
 </head>
 <body>
 {%- if current_user.is_authenticated %}
 	{%- include "nav_top.html" %}
 {%- endif %}
-	<div class="container" id="maincontent">
-		<div id="body_content">
-			{%- block content %}{# main content area #}{%- endblock %}
-		</div>
-	</div>
-	<footer>
-		<div id="footer" class="container">
-			{%- block footer %}{%- endblock %}
-		</div>
-		<div class="pager">&copy; 2017 - All rights reserved.</div>
-	</footer>
+	{%- block content %}{# main content area #}{%- endblock %}
 	{%- block tail_script %}{%- endblock %}
+	<script src="http://cdn.bootcss.com/jquery/3.1.1/jquery.min.js"></script>
+	<script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 </body>
 </html>

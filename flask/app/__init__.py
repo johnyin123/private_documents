@@ -48,11 +48,18 @@ def register_commands(app):
     for command in [create_db, drop_db, populate_db, recreate_db]:
         app.cli.command()(command)
 
+def get_menu():
+    return current_app.config["MENU"]
+
+def register_jinjia2(app):
+    app.add_template_global(get_menu, "get_menu")
+
 def create_app(config_name):
     app = Flask(__name__)
     app.config.from_json(config_name)
     register_errorhandlers(app)
     register_commands(app)
+    register_jinjia2(app)
     db.init_app(app)
     login_manager.init_app(app)
     load_blueprints(app, app.config["BLUE_PRINT_DIR"])
