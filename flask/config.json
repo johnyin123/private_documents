@@ -10,6 +10,12 @@
     "favicon.py": "",
     "static_protect.py": ""
   },
+  "MENU": [
+    {"首页": "index.index"},
+    {"demo": [ {"auth": "flask_login.auth_index"},
+               {"demo": "demo_page.show"}]},
+    {"关于":"index.about"}
+  ],
   "SQLALCHEMY_DATABASE_URI": "sqlite:////home/johnyin/disk/python/flask/data-test.sqlite",
   "SQLALCHEMY_ECHO": true,
   "SQLALCHEMY_COMMIT_ON_TEARDOWN": false,
