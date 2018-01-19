@@ -1,0 +1,17 @@
+{
+  "DEBUG": true,
+  "APP_NAME": "系统",
+  "SECRET_KEY": "xxx",
+  "BLUE_PRINT_DIR": "blueprints",
+  "BLUE_PRINTS_MAPPING": {
+    "auth": "/auth",
+    "index": "",
+    "file_bp.py": "/demo",
+    "favicon.py": "",
+    "static_protect.py": ""
+  },
+  "SQLALCHEMY_DATABASE_URI": "sqlite:////home/johnyin/disk/python/flask/data-test.sqlite",
+  "SQLALCHEMY_ECHO": true,
+  "SQLALCHEMY_COMMIT_ON_TEARDOWN": false,
+  "SQLALCHEMY_TRACK_MODIFICATIONS": false
+}

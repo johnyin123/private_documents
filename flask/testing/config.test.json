@@ -1,0 +1,18 @@
+{
+  "TESTING": true,
+  "APP_NAME": "测试系统",
+  "SERVER_NAME": "127.0.0.1:5000",
+  "SECRET_KEY": "xxx",
+  "BLUE_PRINT_DIR": "blueprints",
+  "BLUE_PRINTS_MAPPING": {
+    "auth": "/auth",
+    "index": "",
+    "file_bp.py": "",
+    "favicon.py": "",
+    "static_protect.py": ""
+  },
+  "SQLALCHEMY_DATABASE_URI": "sqlite:////home/johnyin/disk/python/flask/data-test.sqlite",
+  "SQLALCHEMY_ECHO": false,
+  "SQLALCHEMY_COMMIT_ON_TEARDOWN": false,
+  "SQLALCHEMY_TRACK_MODIFICATIONS": true
+}

@@ -1,0 +1,28 @@
+{%- from "/macros.html" import render_pagination as render_pagination with context %}
+{%- extends "/base.html" %}
+{%- block custom_head_tags %}{% endblock %}
+{%- block page_title %}list users{%- endblock %}
+{%- block content %}
+{%- if pages %}
+<table class="table table-bordered table-hover" fixed-header>
+	<thead>
+		<tr>
+			<th>Name</th>
+			<th>Login</th>
+		</tr>
+	</thead>
+	<tbody>
+	{%- for user in pages.items %}
+		<tr>
+		<td>{{ user.NAME }}</td>
+		<td>{{ user.LOGIN }}</td>
+		</tr>
+	{%- endfor %}
+	</tbody>
+</table>
+	{{- render_pagination(pages, endpoint) }}
+{%- endif %}
+{%- endblock %}
+{%- block footer %}{%- endblock %}
+{%- block tail_script %}{%- endblock %}
+

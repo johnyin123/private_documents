@@ -1,0 +1,58 @@
+# Compiled source #
+###################
+*.com
+*.class
+*.dll
+*.exe
+*.o
+*.so
+*.8
+*.6
+*.out
+# Packages #
+############
+# it's better to unpack these files and commit the raw source
+# git has its own built in compression methods
+*.7z
+*.dmg
+*.gz
+*.iso
+*.jar
+*.rar
+*.tar
+*.zip
+# Logs and databases #
+######################
+*.log
+*.sql
+*.sqlite
+*.mo
+*.egg-info
+*.egg
+*.EGG
+*.EGG-INFO
+bin
+build
+develop-eggs
+downloads
+eggs
+fake-eggs
+parts
+dist
+.installed.cfg
+.mr.developer.cfg
+.hg
+.bzr
+.svn
+*.pyc
+*.pyo
+*.tmp*
+__pycache__
+# OS generated files #
+######################
+ehthumbs.db
+Icon?
+Thumbs.db
+# Temporary files #
+###################
+*.swp

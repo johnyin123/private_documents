@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<html lang="utf-8">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>login</title>
+<link rel="stylesheet" media="screen" href="{{ url_for("static", filename="auth/style.css") }}" />
+</head>
+<form id="msform" action="" method="POST">
+	<br />
+	<br />
+	<fieldset>
+		<h2 class="fs-title">登陆</h2>
+		<h3 class="fs-subtitle">Input username & password</h3>
+		<input type="text" id="uid" name="uid" placeholder="Username" />
+		<input type="password" id="passwd" name="passwd" placeholder="Password" />
+		<input type="submit" id="login_btn" value="Login" class="action-button"/>
+		<script type="text/javascript">document.getElementById("login_btn").focus();</script>
+	</fieldset>
+</form>
+</body>
+</html>

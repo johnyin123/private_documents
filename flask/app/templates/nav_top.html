@@ -1,0 +1,43 @@
+<nav class="navbar navbar-default" role="navigation">
+	<div class="container-fluid"> 
+	<div class="navbar-header">
+		<button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#top_menu">menu</button>
+		<a class="navbar-brand">MyWeb</a>
+	</div>
+	<div class="collapse navbar-collapse" id="top_menu">
+		<ul class="nav navbar-nav">
+			<li><a href="/">Dasboard</a></li>
+			<li><a href="/ngx_dyups">Nginx</a></li>
+			<li class="dropdown">
+				<a href="#" class="dropdown-toggle" data-toggle="dropdown">
+					test <b class="caret"></b>
+				</a>
+				<ul class="dropdown-menu">
+					<li><a href="#">jmeter</a></li>
+					<li><a href="#">EJB</a></li>
+					<li><a href="#">Jasper Report</a></li>
+					<li class="divider"></li>
+					<li><a href="#">分离的链接</a></li>
+					<li class="divider"></li>
+					<li><a href="#">另一个分离的链接</a></li>
+				</ul>
+			</li>
+		</ul>
+		<ul class="nav pull-right navbar-nav">
+			<li class="dropdown">
+					<a href="#" class="dropdown-toggle" data-toggle="dropdown">{{ current_user.NAME }}
+					<b class="caret"></b></a>
+					<ul class="dropdown-menu">
+						<li><a href="#">User Info</a></li>
+						<li><a href="#">Message</a></li>
+						<li><a href="#">Settings</a></li>
+						<li><a href="{{ url_for("flask_login.logout") }}">Logout</a></li>
+						<li class="divider"></li>
+						<li><a href="#">Help</a></li>
+						<li><a href="#">FAQ</a></li>
+					</ul>
+			</li>
+		</ul>
+	</div>
+	</div>
+</nav>
