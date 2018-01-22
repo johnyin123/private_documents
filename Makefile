@@ -221,7 +221,8 @@ docs: $(DOCX)
 # 
 # git flow release start 1.1.5
 # git flow release finish 1.1.5
-# 
+# git push origin --tags
+#
 # git flow hotfix start xxxxxxx
 # git flow hotfix finish xxxxxxx
 git_all:
