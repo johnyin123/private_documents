@@ -228,8 +228,8 @@ git_all:
 	@git add -A :/
 	@git commit -a
 
-git_show:
-	git log --graph --full-history --all --pretty=format:"%h%x09%d%x20%s"
+log:
+	@git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --
 
 git:
 	if [ ! -d .git ]; then git init > /dev/null; fi
