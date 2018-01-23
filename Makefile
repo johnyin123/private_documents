@@ -222,6 +222,11 @@ docs: $(DOCX)
 # git flow release start 1.1.5
 # git flow release finish 1.1.5
 # git push origin --tags
+
+# 删除tag这么用：
+# git push origin --delete tag <tagname>
+# git tag -d <tagname>
+
 #
 # git flow hotfix start xxxxxxx
 # git flow hotfix finish xxxxxxx
