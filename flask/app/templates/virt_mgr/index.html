@@ -1,0 +1,29 @@
+{#- 多个Templates目录时候，flask合并处理，
+    有相同子目录和名字的文件，会取第一个注册的bluepoint
+#}
+{%- extends "/base.html" %}
+{%- block custom_head_tags %}{%- endblock %}
+{%- block page_title %}virt_mgr-index page{%- endblock %}
+{%- block content %}
+  {%- if all_domains %}
+<table class="table table-bordered table-hover" fixed-header>
+	<thead>
+		<tr>
+			<th>NAME</th>
+			<th>UUID</th>
+			<th>STATE</th>
+		</tr>
+	</thead>
+	<tbody>
+    {%- for it in all_domains %}
+		<tr>
+		<td>{{ it["name"] }}</td>
+		<td>{{ it["uuid"] }}</td>
+		<td>{{ it["state"] }}</td>
+		</tr>
+    {%- endfor %}
+	</tbody>
+</table>
+  {%- endif %}
+{%- endblock %}
+{%- block tail_script %}{%- endblock %}

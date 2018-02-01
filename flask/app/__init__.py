@@ -51,12 +51,19 @@ def register_commands(app):
 def get_menu():
     return current_app.config["MENU"]
 
+def is_list(value):
+    return isinstance(value, list)
+
 def register_jinjia2(app):
     app.add_template_global(get_menu, "get_menu")
+    app.add_template_global(is_list, "is_list")
 
+import binascii
 def create_app(config_name):
     app = Flask(__name__)
     app.config.from_json(config_name)
+    if app.config["SECRET_KEY"] is None:
+        app.config["SECRET_KEY"] = binascii.hexlify(os.urandom(20)).decode()
     register_errorhandlers(app)
     register_commands(app)
     register_jinjia2(app)

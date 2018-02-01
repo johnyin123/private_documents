@@ -23,6 +23,16 @@
 {%- if current_user.is_authenticated %}
 	{%- include "nav_top.html" %}
 {%- endif %}
+<#-通知消息处#>
+{% with messages = get_flashed_messages(with_categories=true) %}
+ {% if messages %}
+  {% for category, message in messages %}
+   <div class="alert alert-{{ category }}" style="text-align: center">
+   <button aria-hidden="true" data-dismiss="alert" class="close" type="button">×</button>
+   <strong>{{ message }}</strong></div>
+  {% endfor %}
+ {% endif %}
+{% endwith %}
 	{%- block content %}{# main content area #}{%- endblock %}
 	{%- block tail_script %}{%- endblock %}
 	<script src="http://cdn.bootcss.com/jquery/3.1.1/jquery.min.js"></script>

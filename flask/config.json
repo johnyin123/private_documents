@@ -1,23 +1,25 @@
 {
   "DEBUG": true,
   "APP_NAME": "系统",
-  "SECRET_KEY": "xxx",
   "BLUE_PRINT_DIR": "blueprints",
+  "SQLALCHEMY_DATABASE_URI": "sqlite:////home/johnyin/disk/mygit/local/flask_frame/data-test.sqlite",
+  "SQLALCHEMY_ECHO": true,
+  "SQLALCHEMY_COMMIT_ON_TEARDOWN": false,
+  "SQLALCHEMY_TRACK_MODIFICATIONS": false,
   "BLUE_PRINTS_MAPPING": {
     "auth": "/auth",
     "index": "",
     "file_bp.py": "/demo",
     "favicon.py": "",
-    "static_protect.py": ""
+    "static_protect.py": "",
+    "virt_mgr" : "/vm"
   },
   "MENU": [
     {"首页": "index.index"},
+    {"KVM": "virt_mgr.index"},
     {"demo": [ {"auth": "flask_login.auth_index"},
-               {"demo": "demo_page.show"}]},
+               {"demo": "demo_page.show"},
+               {"列表用户": {"flask_login.pagination2":{"page":1}}}]},
     {"关于":"index.about"}
-  ],
-  "SQLALCHEMY_DATABASE_URI": "sqlite:////home/johnyin/disk/python/flask/data-test.sqlite",
-  "SQLALCHEMY_ECHO": true,
-  "SQLALCHEMY_COMMIT_ON_TEARDOWN": false,
-  "SQLALCHEMY_TRACK_MODIFICATIONS": false
+  ]
 }

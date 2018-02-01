@@ -4,7 +4,7 @@ set -u -o pipefail
 readonly BASEDIR="$(readlink -f "$(dirname "$0")")"
 BP_DIR=${BP_DIR:-${BASEDIR}/blueprints}
 BP_NAME=${BP_NAME:-"DEMO"}
-
+BP_NAME=${BP_NAME//-/_}
 function uppercase() {
     echo "${*^^}"
 }
@@ -43,7 +43,7 @@ function gen_viewpy() {
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-from flask import current_app, render_template, abort, request, flash, redirect, url_for, json
+from flask import current_app, render_template, abort, request, flash, redirect, url_for, json, make_response
 from flask_login import current_user, login_required
 from . import module
 
@@ -56,7 +56,6 @@ def index():
     return resp
 EOF
 }
-
 function gen_html() {
     local bp_dir=$1
     local bp_name=$2
@@ -65,7 +64,7 @@ function gen_html() {
     有相同子目录和名字的文件，会取第一个注册的bluepoint
 #}
 {%- extends "/base.html" %}
-{%- block custom_head_tags %}{% endblock %}
+{%- block custom_head_tags %}{%- endblock %}
 {%- block page_title %}${bp_name}-index page{%- endblock %}
 {%- block content %}
     {#- It's a security feature, use it on all untrusted variables #}
@@ -84,7 +83,6 @@ function gen_html() {
     <h1 class="ui header">${bp_name}</h1>
         <h3 class="ui header">index.app</h3>
 {%- endblock %}
-{%- block footer %}{%- endblock %}
 {%- block tail_script %}{%- endblock %}
 EOF
 }
