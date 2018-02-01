@@ -119,7 +119,7 @@ EOF
     #grub2-mkconfig -o /boot/grub2/grub.cfg
     sed -i "s/#ListenAddress 0.0.0.0/ListenAddress ${guest_ipaddr}/g" ${mnt_point}/etc/ssh/sshd_config
     echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> ${mnt_point}/etc/ssh/sshd_config
-    echo "MACs    hmac-sha1,hmac-sha1-96" >> ${mnt_point}/etc/ssh/sshd_config
+    echo "MACs    hmac-sha1" >> ${mnt_point}/etc/ssh/sshd_config
     rm -f ${mnt_point}/ssh/ssh_host_*
     log "info" "set ip/gw/hostname/sshd_key OK"
     return 0
