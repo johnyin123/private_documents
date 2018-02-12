@@ -5,7 +5,10 @@ set -u -o pipefail
 UUID=
 VMNAME=
 CEPH_MON=${CEPH_MON:-"kvm01:6789 kvm02:6789 kvm03:56789"}
-
+#使用libvirt管理的net pool(可直接使用系统Bridge/ovs, virsh net-list ）
+NET_TYPE=network
+#直接使用系统bridge
+#NET_TYPE=bridge
 trap 'echo "you must manally remove vm image file define in ${VMNAME}-${UUID}.brk!!!";virsh undefine ${VMNAME}-${UUID}; mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.brk; exit 1;' INT
 
 [[ ! -x $(which pv) ]] && { echo "NO pv found!!"; exit 1; }
@@ -239,8 +242,8 @@ echo "      </source>"
 echo "      <target dev='vda' bus='virtio'/>"
 echo "    </disk>"
 fi)
-    <interface type='bridge'>
-      <source bridge='${kvm_bridge}'/>
+    <interface type='${NET_TYPE}'>
+      <source ${NET_TYPE}='${kvm_bridge}'/>
       <model type='virtio'/>
       <driver name="vhost"/>
     </interface>
