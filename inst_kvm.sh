@@ -42,7 +42,13 @@ DEF_YUM_GROUP=${DEF_YUM_GROUP:-"Virtualization Host"}
 MGR_GATEWAY=$(ipcalc ${IP_MGR} -bn | grep HostMin | awk '{ print $2 }')
 MGR_IPADDR=$(ipcalc ${IP_MGR} -bn | grep Address | awk '{ print $2 }')
 MGR_NETMASK=$(ipcalc ${IP_MGR} -bn | grep Netmask | awk '{ print $2 }')
-
+cat > network.xml <<EOF
+<network>
+  <name>${DEF_BRIDGE_IFACE}</name>
+  <forward mode='bridge'/>
+  <bridge name='${DEF_BRIDGE_IFACE}'/>
+</network>
+EOF
 cat > ifcfg-${DEF_DATA_IFACE} <<EOF
 DEVICE="${DEF_DATA_IFACE}"
 ONBOOT="yes"
@@ -140,7 +146,9 @@ virsh net-destroy default
 #performance tweaks
 modprobe vhost_net
 
-
+virsh net-define network.xml
+virsh net-autostart ${DEF_BRIDGE_IFACE}
+virsh start ${DEF_BRIDGE_IFACE}
 # virsh pool-define-as default --type logical --source-name libvirt_lvm --target /dev/libvirt_lvm --source-dev /dev/sda3
 # virsh pool-define-as default logical - - /dev/sda3 libvirt_lvm /dev/libvirt_lvm
 # virsh pool-build default 
@@ -154,4 +162,23 @@ modprobe vhost_net
 # mount -t nfs ${BR_IPADDR}:/kvm /mnt -o proto=tcp -o nolock
 EOF
 rm -f ifcfg-${DEF_DATA_IFACE} ifcfg-${DEF_BRIDGE_IFACE} ifcfg-${DEF_MGR_IFACE}
+cat << EOF
+<network>
+  <name>ovs-net</name>
+  <forward mode='bridge'/>
+  <bridge name='ovsbr0'/>
+  <virtualport type='openvswitch'>
+    <parameters interfaceid='09b11c53-8b5c-4eeb-8f00-d84eaa0aaa4f'/>
+  </virtualport>
+  <vlan trunk='yes'>
+    <tag id='42' nativeMode='untagged'/>
+    <tag id='47'/>
+  </vlan>
+  <portgroup name='dontpanic'>
+    <vlan>
+      <tag id='42'/>
+    </vlan>
+  </portgroup>
+</network>
+EOF
 
