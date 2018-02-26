@@ -180,5 +180,18 @@ cat << EOF
     </vlan>
   </portgroup>
 </network>
+
+<network>
+  <name>nat_network</name>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='virbr0' stp='on' delay='0'/>
+  <domain name='nat_network'/>
+  <ip address='10.0.2.1' netmask='255.255.255.0'>
+  </ip>
+</network>
 EOF
 
