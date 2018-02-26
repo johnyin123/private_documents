@@ -252,7 +252,7 @@ echo "   <disk type='file' device='disk'>"
 echo "      <driver name='qemu' type='raw' cache='none' io='native'/>"
 echo "      <source file='${ceph_pool}/${vm_img}'/>"
 echo "      <backingStore/>"
-echo "      <target dev='hda' bus='ide'/>"
+echo "      <target dev='vda' bus='virtio'/>"
 echo "    </disk>"
 fi)
 $(if [ "${STORE_TYPE}"X == "lvm"X ]; then
