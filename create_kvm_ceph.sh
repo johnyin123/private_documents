@@ -128,6 +128,33 @@ EOF
     return 0
 }
 
+function genfile_img() {
+    local kvm_pool=$1
+    local vm_img=$2
+    local tpl_img=$3
+    local guest_hostname=$4
+    local guest_ipaddr=$5
+    local guest_netmask=$6
+    local guest_gw=$7
+    local guest_uuid=$8
+    
+    local mnt_point=/tmp/vm_mnt/
+    mkdir -p ${mnt_point}
+    [[ -r "${kvm_pool}/${vm_img}" ]] && {
+        log "error" "image ${vm_img} exist in ${kvm_pool}";
+        log "error"  "${vm_img} create failed!!!";
+        return 1;
+    }
+    gunzip -c ${tpl_img} | pv | dd of=${kvm_pool}/${vm_img} || return 2
+    # SectorSize * StartSector
+    mount -o loop,offset=1048576 ${kvm_pool}/${vm_img} ${mnt_point}
+    change_vm_info ${mnt_point} ${guest_hostname} ${guest_ipaddr} ${guest_netmask} ${guest_gw} ${guest_uuid}
+    retval=$?
+    umount ${mnt_point}
+    #kpartx -dv /dev/${kvm_pool}/${vm_img}
+    log "info" "     disk:OK ${retval}"
+    return ${retval}
+}
 function genlvm_img() {
     local kvm_pool=$1
     local vm_img=$2
@@ -220,6 +247,14 @@ function genkvm_xml(){
   </features>
   <on_poweroff>preserve</on_poweroff>
   <devices>
+$(if [ "${STORE_TYPE}"X == "file"X ]; then
+echo "   <disk type='file' device='disk'>"
+echo "      <driver name='qemu' type='raw' cache='none' io='native'/>"
+echo "      <source file='${ceph_pool}/${vm_img}'/>"
+echo "      <backingStore/>"
+echo "      <target dev='hda' bus='ide'/>"
+echo "    </disk>"
+fi)
 $(if [ "${STORE_TYPE}"X == "lvm"X ]; then
 echo "    <disk type='block' device='disk'>"
 echo "      <driver name='qemu' type='raw' cache='none' io='native'/>"
@@ -292,7 +327,8 @@ GATEWAY=10.0.2.1
 KVM_BRIDGE=br-mgr
 STORE_TYPE=rbd
 #STORE_TYPE=lvm
-KVM_POOL=libvirt-pool
+#STORE_TYPE=file
+STORE_POOL=libvirt-pool
 TEMPLATE_IMG=CentOS7.4.tpl.gz
 VMEMSIZE=1G
 VCPUS=1
@@ -324,10 +360,10 @@ do
     log "info" "       gw:${GATEWAY}"
     log "info" "   bridge:${KVM_BRIDGE}"
     if [ "${STORE_TYPE}"X == "rbd"X ]; then
-        log "info" "     disk:rbd:${KVM_POOL}/${VM_IMG}"
+        log "info" "     disk:rbd:${STORE_POOL}/${VM_IMG}"
     fi
     if [ "${STORE_TYPE}"X == "lvm"X ]; then
-        log "info" "     disk:lvm:${KVM_POOL}/${VM_IMG}"
+        log "info" "     disk:lvm:${STORE_POOL}/${VM_IMG}"
     fi
     log "info" " template:${TEMPLATE_IMG}"
     if  [ ! -f "${TEMPLATE_IMG}" ]; then
@@ -337,7 +373,7 @@ do
     fi
 
     ceph_secret_uuid=$(virsh secret-list | grep libvirt | awk '{ print $1}')
-    genkvm_xml "${VMNAME}-${UUID}" ${ceph_secret_uuid:-"n/a"} ${KVM_POOL} ${VM_IMG} "${VM_TITLE}" "${VM_DESC}" ${UUID} ${KVM_BRIDGE} $(($(parse_size ${VMEMSIZE})/1024)) ${VCPUS}
+    genkvm_xml "${VMNAME}-${UUID}" ${ceph_secret_uuid:-"n/a"} ${STORE_POOL} ${VM_IMG} "${VM_TITLE}" "${VM_DESC}" ${UUID} ${KVM_BRIDGE} $(($(parse_size ${VMEMSIZE})/1024)) ${VCPUS}
     virsh define ${VMNAME}-${UUID} > /dev/null 2>&1 || {
         log "warn" "   define:FAILED";
         mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.err;
@@ -351,10 +387,10 @@ do
         continue;
     }
     if [ "${STORE_TYPE}"X == "rbd"X ]; then
-        genceph_img ${KVM_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY} ${UUID}
+        genceph_img ${STORE_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY} ${UUID}
         retval=$?
         if [[ $retval != 0  ]]; then
-            rbd rm ${KVM_POOL}/${VM_IMG}
+            rbd rm ${STORE_POOL}/${VM_IMG}
             virsh undefine ${VMNAME}-${UUID}
             mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.err
             log "error" "ErrorCode :$retval"
@@ -363,12 +399,23 @@ do
         fi
     fi
     if [ "${STORE_TYPE}"X == "lvm"X ]; then
-        genlvm_img ${KVM_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY} ${UUID}
+        genlvm_img ${STORE_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY} ${UUID}
         retval=$?
         if [[ $retval != 0  ]]; then
             virsh undefine ${VMNAME}-${UUID}
             mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.err
-#lvremove -f /dev/${KVM_POOL}/${VM_IMG}
+#lvremove -f /dev/${STORE_POOL}/${VM_IMG}
+            log "error" "ErrorCode :$retval"
+            log "info" "============================================================================"
+            continue
+        fi
+    fi
+    if [ "${STORE_TYPE}"X == "file"X ]; then
+        genfile_img ${STORE_POOL} ${VM_IMG} ${TEMPLATE_IMG} "${VMNAME}" ${IP} ${NETMASK} ${GATEWAY} ${UUID}
+        retval=$?
+        if [[ $retval != 0  ]]; then
+            virsh undefine ${VMNAME}-${UUID}
+            mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.err
             log "error" "ErrorCode :$retval"
             log "info" "============================================================================"
             continue
