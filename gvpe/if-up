@@ -1,0 +1,6 @@
+#!/bin/sh
+ip link set $IFNAME address $MAC mtu $MTU up
+[ $NODENAME = first  ] && ip addr add 10.0.1.1 dev $IFNAME
+[ $NODENAME = second ] && ip addr add 10.0.1.2 dev $IFNAME
+[ $NODENAME = laptop ] && ip addr add 10.0.1.3 dev $IFNAME
+ip route add 10.0.1.0/24 dev $IFNAME
