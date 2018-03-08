@@ -5,10 +5,6 @@ set -u -o pipefail
 UUID=
 VMNAME=
 CEPH_MON=${CEPH_MON:-"kvm01:6789 kvm02:6789 kvm03:56789"}
-#使用libvirt管理的net pool(可直接使用系统Bridge/ovs, virsh net-list ）
-NET_TYPE=network
-#直接使用系统bridge
-#NET_TYPE=bridge
 trap 'echo "you must manally remove vm image file define in ${VMNAME}-${UUID}.brk!!!";virsh undefine ${VMNAME}-${UUID}; mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.brk; exit 1;' INT
 
 [[ ! -x $(which pv) ]] && { echo "NO pv found!!"; exit 1; }
@@ -324,6 +320,9 @@ CFG_INI="hosts.ini"
 IP=10.0.2.2
 NETMASK=255.255.255.0
 GATEWAY=10.0.2.1
+#使用libvirt管理的net pool(可直接使用系统Bridge/ovs, virsh net-list）直接使用系统bridge
+NET_TYPE=network
+#NET_TYPE=bridge
 KVM_BRIDGE=br-mgr
 STORE_TYPE=rbd
 #STORE_TYPE=lvm
@@ -332,8 +331,8 @@ STORE_POOL=libvirt-pool
 TEMPLATE_IMG=CentOS7.4.tpl.gz
 VMEMSIZE=1G
 VCPUS=1
-VM_TITLE="xx 熙康测试机器1"
-VM_DESC="描述灭有  啊1"
+VM_TITLE="xx测试机1"
+VM_DESC="描述灭有1"
 
 EOF
     abort "Created ${CFG_INI} using defaults.  Please review it/configure before running again."
@@ -342,13 +341,17 @@ EOF
 
 for i in $(getinientry "${CFG_INI}")
 do
+    unset IP NETMASK GATEWAY TEMPLATE_IMG VCPUS VMEMSIZE VM_TITLE VM_DESC 
+    unset NET_TYPE KVM_BRIDGE STORE_TYPE STORE_POOL
     readini "$i" "${CFG_INI}"
     #[ ! -z "${IP}" ] && {
     #}
     UUID=$(cat /proc/sys/kernel/random/uuid)
     VMNAME="$(lowercase $i)"
     VM_IMG=${VMNAME}-${UUID}.raw
- 
+    VM_TITLE=${VM_TITLE:-"n/a"}
+    VM_DESC=${VM_DESC:-"n/a"}
+
     log "info" "Create vm:${VMNAME}"
     log "info" "    vcpus:${VCPUS}"
     log "info" "   memory:${VMEMSIZE}"
@@ -358,7 +361,8 @@ do
     log "info" "       ip:${IP}"
     log "info" "  netmask:${NETMASK}"
     log "info" "       gw:${GATEWAY}"
-    log "info" "   bridge:${KVM_BRIDGE}"
+    log "info" "    kvmif:${KVM_BRIDGE}"
+    log "info" "  nettype:${NET_TYPE}"
     if [ "${STORE_TYPE}"X == "rbd"X ]; then
         log "info" "     disk:rbd:${STORE_POOL}/${VM_IMG}"
     fi
