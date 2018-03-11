@@ -68,8 +68,10 @@ checkInst "${desktopsearch} ${androidtool} ${games} ${othertools}"
 
 apt-get -y --force-yes install libc6-i386 rar google-chrome-stable qpdfview gpicview txt2regex shellcheck
 apt-get install w64codecs
-#markdown editor
+echo "markdown editor"
 apt install retext
+echo "install screen recoder"
+apt install vokoscreen
 #  PDFREADER=FoxitReader_1.1.0_i386.deb
 #  if [ -f "$PDFREADER" ]; then
 #  dpkg --add-architecture i386
