@@ -1,6 +1,30 @@
 #!/bin/bash
 # -e 表示一旦脚本中有命令的返回值为非0，则脚本立即退出，后续命令不再执行;
 # -o pipefail表示在管道连接的命令序列中，只要有任何一个命令返回非0值，则整个管道返回非0值，即使最后一个命令返回0.
+
+# #extract a single partition from image
+# dd if=image of=partitionN skip=offset_of_partition_N count=size_of_partition_N bs=512 conv=sparse
+# #put the partition back into image
+# dd if=partitionN of=image seek=offset_of_partition_N count=size_of_partition_N bs=512 conv=sparse,notrunc
+
+# #起始扇区  扇区个数  线性映射  目标设备 目标设备上的起始扇区
+# 0     2048     linear /dev/loop0  0
+# 2048  2095104  linear /dev/loop1  0
+# 
+# #dd if=dl-08eca7b8-11bf-4dc9-9b9c-b1d4640246c7.raw of=hdr bs=1M count=1
+# #dd if=/dev/zero of=data bs=1M count=1023
+# #mkfs.xfs data
+# #mount data /mnt ...... copy rootfs ....
+# #blkid get UUID --> modify /mnt/etc/fstab, /mnt/boot/grub2/grub.cfg
+# #
+# #kpartx -au hdr
+# #kpartx -au data
+# #dmsetup create linear_test linear.table
+# # parted -s /dev/mapper/linear_test -- mkpart primary xfs 1 -1 \
+# #  set 1 boot on
+# #
+#dmsetup remove_all
+#
 set -u -o pipefail
 UUID=
 VMNAME=
