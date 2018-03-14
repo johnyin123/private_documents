@@ -2,6 +2,7 @@
 set -o errexit -o nounset -o pipefail
 
 ADDITION_PKG="lvm2 wget rsync" #sysstat
+ADDITION_PKG="${ADDITION_PKG} bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp wget strace ltrace python-virtualenv"
 ROOTFS=${ROOTFS:-/root/rootfs}
 NEWPASSWORD=${NEWPASSWORD:-"password"}
 DISK_FILE=${DISK_FILE:-"/root/disk"}
