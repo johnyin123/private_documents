@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o errexit -o nounset -o pipefail
 
-ADDITION_PKG="" #sysstat
+ADDITION_PKG="lvm2" #sysstat
 ROOTFS=${ROOTFS:-/root/rootfs}
 NEWPASSWORD=${NEWPASSWORD:-"password"}
 DISK_FILE=${DISK_FILE:-"/root/disk"}
@@ -95,7 +95,6 @@ GRUB_TERMINAL_OUTPUT="console"
 GRUB_CMDLINE_LINUX="console=ttyS0 net.ifnames=0 biosdevname=0"
 GRUB_DISABLE_RECOVERY="true"
 EOF
-# console=ttyS0 / systemctl enable serial-getty@ttyS0"
 echo "UUID=${UUID} / xfs defaults 0 0" > ${ROOTFS}/etc/fstab
 
 # chroot ${ROOTFS} yum upgrade
@@ -103,6 +102,8 @@ echo "UUID=${UUID} / xfs defaults 0 0" > ${ROOTFS}/etc/fstab
 chroot ${ROOTFS} /bin/bash -x <<EOF
 rm -f /etc/locale.conf /etc/localtime /etc/hostname /etc/machine-id /etc/.pwd.lock
 systemd-firstboot --root=/ --locale=zh_CN.utf8 --locale-messages=zh_CN.utf8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id
+localectl set-keymap cn
+localectl set-x11-keymap cn
 grub2-mkconfig -o /boot/grub2/grub.cfg
 grub2-install --boot-directory=/boot --modules="xfs part_msdos" /dev/loop0
 echo "${NEWPASSWORD}" | passwd --stdin root
