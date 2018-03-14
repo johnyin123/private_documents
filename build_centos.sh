@@ -56,16 +56,18 @@ EOF
     chattr +i ${mnt_point}/etc/johnyin || { return 3; }
     #sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"console=ttyS0 net.ifnames=0 biosdevname=0\"/g" /etc/default/grub
     #grub2-mkconfig -o /boot/grub2/grub.cfg
-    sed -i "s/#ListenAddress.*/ListenAddress ${guest_ipaddr}/g" ${mnt_point}/etc/ssh/sshd_config
+	sed -i "s/#ListenAddress 0.0.0.0/ListenAddress ${guest_ipaddr}/g" ${mnt_point}/etc/ssh/sshd_config
     rm -f ${mnt_point}/ssh/ssh_host_*
     return 0
 }
 
+truncate -s ${DISK_SIZE}M ${DISK_FILE} 
+#dd if=/dev/zero of=${DISK_FILE} bs=1M count=${DISK_SIZE}
 
-dd if=/dev/zero of=${DISK_FILE} bs=1M count=${DISK_SIZE}
 parted -s ${DISK_FILE} -- mklabel msdos \
 	mkpart primary xfs 2048s -1s \
 	set 1 boot on
+
 fdisk -l ${DISK_FILE}
 DISK=$(losetup -fP --show ${DISK_FILE})
 MOUNTDEV=${DISK}p1
@@ -82,9 +84,34 @@ do
 done
 
 # can edit  /root/rootfs/etc/yum.repos.d/....
-yum ${YUM_OPT} -y --installroot=${ROOTFS} groupinstall "Minimal Install"
+yum ${YUM_OPT} -y --installroot=${ROOTFS} groupinstall core #"Minimal Install"
 yum ${YUM_OPT} -y --installroot=${ROOTFS} install grub2 net-tools chrony ${ADDITION_PKG}
-yum ${YUM_OPT} -y --installroot=${ROOTFS} -C -y remove NetworkManager firewalld --setopt="clean_requirements_on_remove=1"
+yum ${YUM_OPT} -y --installroot=${ROOTFS} -C -y remove --setopt="clean_requirements_on_remove=1" \
+	firewalld \
+	NetworkManager \
+	NetworkManager-team \
+	NetworkManager-tui \
+	NetworkManager-wifi \
+	aic94xx-firmware \
+	alsa-firmware \
+	ivtv-firmware \
+	iwl100-firmware \
+	iwl1000-firmware \
+	iwl105-firmware \
+	iwl135-firmware \
+	iwl2000-firmware \
+	iwl2030-firmware \
+	iwl3160-firmware \
+	iwl3945-firmware \
+	iwl4965-firmware \
+	iwl5000-firmware \
+	iwl5150-firmware \
+	iwl6000-firmware \
+	iwl6000g2a-firmware \
+	iwl6000g2b-firmware \
+	iwl6050-firmware \
+	iwl7260-firmware \
+	iwl7265-firmware
 
 cat > ${ROOTFS}/etc/default/grub <<EOF
 GRUB_TIMEOUT=5
@@ -102,6 +129,7 @@ echo "UUID=${UUID} / xfs defaults 0 0" > ${ROOTFS}/etc/fstab
 chroot ${ROOTFS} /bin/bash -x <<EOF
 rm -f /etc/locale.conf /etc/localtime /etc/hostname /etc/machine-id /etc/.pwd.lock
 systemd-firstboot --root=/ --locale=zh_CN.utf8 --locale-messages=zh_CN.utf8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id
+localectl set-locale LANG=zh_CN.UTF-8
 localectl set-keymap cn
 localectl set-x11-keymap cn
 grub2-mkconfig -o /boot/grub2/grub.cfg
