@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o errexit -o nounset -o pipefail
 
-ADDITION_PKG="lvm2" #sysstat
+ADDITION_PKG="lvm2 wget rsync" #sysstat
 ROOTFS=${ROOTFS:-/root/rootfs}
 NEWPASSWORD=${NEWPASSWORD:-"password"}
 DISK_FILE=${DISK_FILE:-"/root/disk"}
@@ -17,7 +17,7 @@ GW=${GW:-"10.0.2.1"}
 
 trap 'for mp in /dev /sys /proc; do umount ${ROOTFS}${mp}; done; umount ${ROOTFS}; losetup -D; rm -f /tmp/local.repo;echo "EXIT"' EXIT
 
-YUM_OPT="--config=/tmp/local.repo --disablerepo=* --enablerepo=centos" #--setopt=tsflags=nodocs"
+YUM_OPT="-q --nogpgcheck --config=/tmp/local.repo --disablerepo=* --enablerepo=centos" #--setopt=tsflags=nodocs"
 cat> /tmp/local.repo <<EOF
 [centos]
 name=centos
@@ -124,21 +124,33 @@ GRUB_DISABLE_RECOVERY="true"
 EOF
 echo "UUID=${UUID} / xfs defaults 0 0" > ${ROOTFS}/etc/fstab
 
-# chroot ${ROOTFS} yum upgrade
+cat > ${ROOTFS}/etc/X11/xorg.conf.d/00-keyboard.conf <<EOF
+Section "InputClass"
+        Identifier "system-keyboard"
+        MatchIsKeyboard "on"
+        Option "XkbLayout" "cn"
+EndSection
+EOF
+echo 'KEYMAP="cn"' > ${ROOTFS}/etc/vconsole.conf
 
 chroot ${ROOTFS} /bin/bash -x <<EOF
 rm -f /etc/locale.conf /etc/localtime /etc/hostname /etc/machine-id /etc/.pwd.lock
 systemd-firstboot --root=/ --locale=zh_CN.utf8 --locale-messages=zh_CN.utf8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id
-localectl set-locale LANG=zh_CN.UTF-8
-localectl set-keymap cn
-localectl set-x11-keymap cn
+#localectl set-locale LANG=zh_CN.UTF-8
+#localectl set-keymap cn
+#localectl set-x11-keymap cn
 grub2-mkconfig -o /boot/grub2/grub.cfg
 grub2-install --boot-directory=/boot --modules="xfs part_msdos" /dev/loop0
 echo "${NEWPASSWORD}" | passwd --stdin root
 sed -i "s/SELINUX=.*/SELINUX=disabled/g" /etc/selinux/config
 touch /etc/sysconfig/network
 systemctl enable getty@tty1
+touch /*
+touch /etc/*
+touch /boot/*
 EOF
+
+# chroot ${ROOTFS} yum upgrade
 
 echo "tuning system ....."
 
@@ -146,7 +158,7 @@ chroot ${ROOTFS} /bin/bash -x <<EOF
 systemctl set-default multi-user.target
 echo "disable services START"
 chkconfig 2>/dev/null | egrep -v "crond|sshd|network|rsyslog|sysstat"|awk '{print "chkconfig",\$1,"off"}' | bash
-systemctl list-unit-files | grep service | grep enabled | egrep -v "sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", \$1}' | bash
+systemctl list-unit-files | grep service | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", \$1}' | bash
 echo "disable services OK"
 EOF
 echo "nameserver 114.114.114.114" > ${ROOTFS}/etc/resolv.conf
@@ -200,6 +212,7 @@ done
 rm -f /tmp/local.repo
 umount ${ROOTFS}
 losetup -d ${DISK}
+exit 0
 # #extract a single partition from image
 # dd if=image of=partitionN skip=offset_of_partition_N count=size_of_partition_N bs=512 conv=sparse
 # #put the partition back into image
