@@ -95,6 +95,7 @@ GRUB_TERMINAL_OUTPUT="console"
 GRUB_CMDLINE_LINUX="console=ttyS0 net.ifnames=0 biosdevname=0"
 GRUB_DISABLE_RECOVERY="true"
 EOF
+# console=ttyS0 / systemctl enable serial-getty@ttyS0"
 echo "UUID=${UUID} / xfs defaults 0 0" > ${ROOTFS}/etc/fstab
 
 # chroot ${ROOTFS} yum upgrade
