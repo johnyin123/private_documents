@@ -1,7 +1,7 @@
 UUID:=$(shell cat /proc/sys/kernel/random/uuid | tr "-" "_")
 GIT_BRANCH  := $(shell git branch 2>/dev/null | sed -n -e "s/^\* \(.*\)/\1/p")
 #GIT_VERSION := $(shell git tag --sort=v:refname 2>/dev/null | tail -n 1)
-GIT_VERSION := $(shell git show origin/master:VERSION)
+GIT_VERSION := $(shell git show origin/master:VERSION 2>/dev/null)
 GIT_COMMIT  := $(shell git rev-parse --verify HEAD 2>/dev/null || echo "Not a git repository")
 GIT_DATE    := $(firstword $(shell git --no-pager show --date=iso-strict --format="%ad" --name-only 2>/dev/null || echo "1970-01-01T00:00:00+08:00"))
 BUILD_DATE  := $(shell date --iso=seconds)
@@ -17,32 +17,36 @@ MINVER:=$(word 2, $(subst ., ,$(GIT_VERSION)))
 PATCH :=$(word 3, $(subst ., ,$(GIT_VERSION)))
 NEW_MINVER:=$(shell echo "$$(($(MINVER)+1))" )
 NEW_PATCH :=$(shell echo "$$(($(PATCH)+1))" )
-CURRENT_VERSION := $(shell cat VERSION)
-.PHONY : default
+CURRENT_VERSION := $(shell cat VERSION 2>/dev/null)
+
+define USAGE
+    make default/make
+        pull master & develop
+    make release
+        git flow release start/finish which <bumped version>
+    make feature-start
+    make feature-finish
+        git flow feature start/finish
+    make hotfix-start
+    make hotfix-finish
+        git flow hotfix start/finish
+    make echo
+        echo git info, which log
+    make clean
+    make run
+    make sqlite
+    make freeze
+    make requirements
+    demo build rpm package: 1.make install DESTDIR=$$(pwd)/bin/
+    2. fpm -s dir -t rpm -C ~/nginx-1.13.0/bin/ --name nginx_xikang --version 1.13.0 --iteration 1 --depends pcre --depends zlib --description \"nginx with openssl,other modules\" .
+endef
+
+help:
+	@: $(info $(USAGE))
+
 default:
 	@git checkout master && git pull
 	@git checkout develop && git pull
-
-help:
-	@echo "make default/make"
-	@echo "    pull master & develop"
-	@echo "make release"
-	@echo "    git flow release start/finish which <bumped version>"
-	@echo "make feature-start"
-	@echo "make feature-finish"
-	@echo "    git flow feature start/finish"
-	@echo "make hotfix-start"
-	@echo "make hotfix-finish"
-	@echo "    git flow hotfix start/finish"
-	@echo "make echo"
-	@echo "    echo git info, which log"
-	@echo "make clean"
-	@echo "make run"
-	@echo "make sqlite"
-	@echo "make freeze"
-	@echo "make requirements"
-	@echo "demo build rpm package: 1.make install DESTDIR=$(pwd)/bin/"
-	@echo "2. fpm -s dir -t rpm -C ~/nginx-1.13.0/bin/ --name nginx_xikang --version 1.13.0 --iteration 1 --depends pcre --depends zlib --description \"nginx with openssl,other modules\" ."
 
 commit: clean
 	@-git add -A :/ > /dev/null 2>&1
