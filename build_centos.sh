@@ -174,6 +174,7 @@ install ipv6 /bin/true
 EOF
 #set ssh
 sed -i 's/#UseDNS.*/UseDNS no/g' ${ROOTFS}/etc/ssh/sshd_config
+sed -i 's/GSSAPIAuthentication.*/GSSAPIAuthentication no/g" ${ROOTFS}/etc/ssh/sshd_config
 sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' ${ROOTFS}/etc/ssh/sshd_config
 sed -i 's/#Port.*/Port 60022/g' ${ROOTFS}/etc/ssh/sshd_config
 echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> ${ROOTFS}/etc/ssh/sshd_config
