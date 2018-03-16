@@ -1,7 +1,9 @@
 #!/bin/bash
 set -o errexit -o nounset -o pipefail
 
-ADDITION_PKG="lvm2 wget rsync" #sysstat
+TOMCAT_USR=true
+
+ADDITION_PKG="lvm2 wget rsync"
 ADDITION_PKG="${ADDITION_PKG} bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp wget strace ltrace python-virtualenv"
 ROOTFS=${ROOTFS:-/root/rootfs}
 NEWPASSWORD=${NEWPASSWORD:-"password"}
@@ -87,7 +89,7 @@ done
 # can edit  /root/rootfs/etc/yum.repos.d/....
 yum ${YUM_OPT} -y --installroot=${ROOTFS} groupinstall core #"Minimal Install"
 yum ${YUM_OPT} -y --installroot=${ROOTFS} install grub2 net-tools chrony ${ADDITION_PKG}
-yum ${YUM_OPT} -y --installroot=${ROOTFS} -C -y remove --setopt="clean_requirements_on_remove=1" \
+yum ${YUM_OPT} -y --installroot=${ROOTFS} -C remove --setopt="clean_requirements_on_remove=1" \
 	firewalld \
 	NetworkManager \
 	NetworkManager-team \
@@ -173,10 +175,10 @@ cat > ${ROOTFS}/etc/modprobe.d/ipv6.conf << EOF
 install ipv6 /bin/true
 EOF
 #set ssh
-sed -i 's/#UseDNS.*/UseDNS no/g' ${ROOTFS}/etc/ssh/sshd_config
-sed -i 's/GSSAPIAuthentication.*/GSSAPIAuthentication no/g" ${ROOTFS}/etc/ssh/sshd_config
-sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' ${ROOTFS}/etc/ssh/sshd_config
-sed -i 's/#Port.*/Port 60022/g' ${ROOTFS}/etc/ssh/sshd_config
+sed -i "s/#UseDNS.*/UseDNS no/g" ${ROOTFS}/etc/ssh/sshd_config
+sed -i "s/GSSAPIAuthentication.*/GSSAPIAuthentication no/g" ${ROOTFS}/etc/ssh/sshd_config
+sed -i "s/#MaxAuthTries.*/MaxAuthTries 3/g" ${ROOTFS}/etc/ssh/sshd_config
+sed -i "s/#Port.*/Port 60022/g" ${ROOTFS}/etc/ssh/sshd_config
 echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> ${ROOTFS}/etc/ssh/sshd_config
 echo "MACs    hmac-sha1" >> ${ROOTFS}/etc/ssh/sshd_config
 #tune kernel parametres
@@ -265,6 +267,36 @@ echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 echo
 EOF
 chmod 755 ${ROOTFS}/etc/motd.sh
+
+if [ "${TOMCAT_USR:=false}" = "true" ]
+then
+    chroot ${ROOTFS} useradd tomcat -M -s /sbin/nologin
+    cat >> ${ROOTFS}/lib/systemd/system/tomcat@.service << EOF
+[Unit]
+Description=Apache Tomcat Web in /opt/%i
+After=syslog.target network.target
+
+[Service]
+Type=forking
+LimitNOFILE=102400
+EnvironmentFile=-/etc/default/tomcat
+EnvironmentFile=-/etc/default/tomcat@%I
+Environment='JAVA_HOME=/opt/jdk1.7'
+Environment='CATALINA_OPTS=-server -Xms512M -Xmx1024M -XX:MaxPermSize=256M -XX:+UseParallelGC'
+Environment='JAVA_OPTS=-Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom -Djava.net.preferIPv4Stack=true'
+Environment='TC_DIR=%i'
+ExecStart=/bin/bash /opt/\${TC_DIR}/bin/startup.sh
+ExecStop=/bin/bash /opt/\${TC_DIR}/bin/shutdown.sh
+SuccessExitStatus=0
+User=tomcat
+Group=tomcat
+# UMask=0007
+Restart=on-abort
+
+[Install]
+WantedBy=multi-user.target
+EOF
+fi
 
 cat >> ${ROOTFS}/etc/profile << EOF
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]\$"
