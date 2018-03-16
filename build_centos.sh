@@ -1,10 +1,11 @@
 #!/bin/bash
 set -o errexit -o nounset -o pipefail
 
+## start parms
 TOMCAT_USR=true
 
-ADDITION_PKG="lvm2 wget rsync"
-ADDITION_PKG="${ADDITION_PKG} bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp wget strace ltrace python-virtualenv"
+ADDITION_PKG=${ADDITION_PKG:-""}
+ADDITION_PKG="${ADDITION_PKG} lvm2 wget rsync bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp wget strace ltrace python-virtualenv"
 ROOTFS=${ROOTFS:-/root/rootfs}
 NEWPASSWORD=${NEWPASSWORD:-"password"}
 DISK_FILE=${DISK_FILE:-"/root/disk"}
@@ -14,13 +15,9 @@ NAME=${NAME:-"vmtemplate"}
 IP=${IP:-"10.0.2.100"}
 NETMASK=${NETMASK:-"255.255.255.0"}
 GW=${GW:-"10.0.2.1"}
+YUM_OPT="-q --noplugins --nogpgcheck --config=/tmp/local.repo --disablerepo=* --enablerepo=centos" #--setopt=tsflags=nodocs"
+## end parms
 
-#for demo
-: ${ROOTFS:?"ERROR: ROOTFS must be set"}
-
-trap 'for mp in /dev /sys /proc; do umount ${ROOTFS}${mp}; done; umount ${ROOTFS}; losetup -D; rm -f /tmp/local.repo;echo "EXIT"' EXIT
-
-YUM_OPT="-q --nogpgcheck --config=/tmp/local.repo --disablerepo=* --enablerepo=centos" #--setopt=tsflags=nodocs"
 cat> /tmp/local.repo <<EOF
 [centos]
 name=centos
@@ -28,6 +25,28 @@ baseurl=http://10.0.2.1:8080/
 failovermethod=priority
 gpgcheck=0
 EOF
+
+#for demo
+: ${ROOTFS:?"ERROR: ROOTFS must be set"}
+: ${DISK_FILE:?"ERROR: DISK_FILE must b set"}
+
+function cleanup
+{
+    mount | grep "${ROOTFS}/dev" && umount ${ROOTFS}/dev || echo "dev no mount" 
+    mount | grep "${ROOTFS}/sys" && umount ${ROOTFS}/sys || echo "sys no mount" 
+    mount | grep "${ROOTFS}/proc" && umount ${ROOTFS}/proc || echo "proc no mount" 
+    mount | grep "${ROOTFS}" && umount ${ROOTFS} || echo "rootfs no mount" 
+    rm -f /tmp/local.repo
+    losetup  | grep "${DISK_FILE}" | awk '{ print "losetup -d " $1}' | bash
+    losetup  | grep "${DISK_FILE}" && echo "loop device no cleanup!!" || echo "cleanup ok"
+}
+trap cleanup TERM
+trap cleanup INT
+
+function fake_yum {
+    echo "$(date +%Y%m%d_%H%M%S) :${*}"
+    eval yum ${YUM_OPT} -y --installroot=${ROOTFS} ${*} 2>/dev/null
+}
 
 function change_vm_info() {
     local mnt_point=$1
@@ -71,25 +90,25 @@ parted -s ${DISK_FILE} -- mklabel msdos \
 	mkpart primary xfs 2048s -1s \
 	set 1 boot on
 
-fdisk -l ${DISK_FILE}
 DISK=$(losetup -fP --show ${DISK_FILE})
 MOUNTDEV=${DISK}p1
-mkfs.xfs -L rootfs ${MOUNTDEV} >/dev/null
+mkfs.xfs -f -L rootfs ${MOUNTDEV} >/dev/null
 UUID=`blkid -s UUID -o value ${MOUNTDEV}`
 FSTYPE=`blkid -s TYPE -o value ${MOUNTDEV}`
 
 mkdir -p ${ROOTFS}
 mount ${MOUNTDEV} ${ROOTFS}
-yum ${YUM_OPT} -y --installroot=${ROOTFS} install filesystem
+
+fake_yum install filesystem
 for mp in /dev /sys /proc
 do
     mount -o bind ${mp} ${ROOTFS}${mp}
 done
 
 # can edit  /root/rootfs/etc/yum.repos.d/....
-yum ${YUM_OPT} -y --installroot=${ROOTFS} groupinstall core #"Minimal Install"
-yum ${YUM_OPT} -y --installroot=${ROOTFS} install grub2 net-tools chrony ${ADDITION_PKG}
-yum ${YUM_OPT} -y --installroot=${ROOTFS} -C remove --setopt="clean_requirements_on_remove=1" \
+fake_yum groupinstall core #"Minimal Install"
+fake_yum install grub2 net-tools chrony ${ADDITION_PKG}
+fake_yum remove -C --setopt="clean_requirements_on_remove=1" \
 	firewalld \
 	NetworkManager \
 	NetworkManager-team \
@@ -136,7 +155,8 @@ EndSection
 EOF
 echo 'KEYMAP="cn"' > ${ROOTFS}/etc/vconsole.conf
 
-chroot ${ROOTFS} /bin/bash -x <<EOF
+#chroot ${ROOTFS} /bin/bash -x <<EOF
+chroot ${ROOTFS} /bin/bash 2>/dev/nul <<EOF
 rm -f /etc/locale.conf /etc/localtime /etc/hostname /etc/machine-id /etc/.pwd.lock
 systemd-firstboot --root=/ --locale=zh_CN.utf8 --locale-messages=zh_CN.utf8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id
 #localectl set-locale LANG=zh_CN.UTF-8
@@ -154,15 +174,12 @@ touch /boot/*
 EOF
 
 # chroot ${ROOTFS} yum upgrade
+echo "$(date +%Y%m%d_%H%M%S) :tuning system ....."
 
-echo "tuning system ....."
-
-chroot ${ROOTFS} /bin/bash -x <<EOF
+chroot ${ROOTFS} /bin/bash 2>/dev/null <<EOF
 systemctl set-default multi-user.target
-echo "disable services START"
 chkconfig 2>/dev/null | egrep -v "crond|sshd|network|rsyslog|sysstat"|awk '{print "chkconfig",\$1,"off"}' | bash
 systemctl list-unit-files | grep service | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", \$1}' | bash
-echo "disable services OK"
 EOF
 echo "nameserver 114.114.114.114" > ${ROOTFS}/etc/resolv.conf
 #set the file limit
@@ -170,18 +187,18 @@ cat >> ${ROOTFS}/etc/security/limits.conf << EOF
 *           soft   nofile       102400
 *           hard   nofile       102400
 EOF
-echo "disable the ipv6"
+echo "$(date +%Y%m%d_%H%M%S) :disable the ipv6"
 cat > ${ROOTFS}/etc/modprobe.d/ipv6.conf << EOF
 install ipv6 /bin/true
 EOF
-#set ssh
+echo "$(date +%Y%m%d_%H%M%S) :setting sshd"
 sed -i "s/#UseDNS.*/UseDNS no/g" ${ROOTFS}/etc/ssh/sshd_config
 sed -i "s/GSSAPIAuthentication.*/GSSAPIAuthentication no/g" ${ROOTFS}/etc/ssh/sshd_config
 sed -i "s/#MaxAuthTries.*/MaxAuthTries 3/g" ${ROOTFS}/etc/ssh/sshd_config
 sed -i "s/#Port.*/Port 60022/g" ${ROOTFS}/etc/ssh/sshd_config
 echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> ${ROOTFS}/etc/ssh/sshd_config
 echo "MACs    hmac-sha1" >> ${ROOTFS}/etc/ssh/sshd_config
-#tune kernel parametres
+echo "$(date +%Y%m%d_%H%M%S) :tune kernel parametres"
 cat >> ${ROOTFS}/etc/sysctl.conf << EOF
 net.core.netdev_max_backlog = 30000
 net.core.rmem_max=16777216
@@ -270,6 +287,7 @@ chmod 755 ${ROOTFS}/etc/motd.sh
 
 if [ "${TOMCAT_USR:=false}" = "true" ]
 then
+    echo "$(date +%Y%m%d_%H%M%S) :add user<tomcat>, add tomcat@ service"
     chroot ${ROOTFS} useradd tomcat -M -s /sbin/nologin
     cat >> ${ROOTFS}/lib/systemd/system/tomcat@.service << EOF
 [Unit]
@@ -305,14 +323,8 @@ set -o vi
 sh /etc/motd.sh
 EOF
 change_vm_info "${ROOTFS}" "${NAME}" "${IP}" "${NETMASK}" "${GW}" "${UUID}"
-
-for mp in /dev /sys /proc
-do
-    umount ${ROOTFS}${mp}
-done
-rm -f /tmp/local.repo
-umount ${ROOTFS}
-losetup -d ${DISK}
+cleanup
+echo "$(date +%Y%m%d_%H%M%S) :OK"
 exit 0
 # #extract a single partition from image
 # dd if=image of=partitionN skip=offset_of_partition_N count=size_of_partition_N bs=512 conv=sparse
