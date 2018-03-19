@@ -15,16 +15,22 @@ NAME=${NAME:-"vmtemplate"}
 IP=${IP:-"10.0.2.100"}
 NETMASK=${NETMASK:-"255.255.255.0"}
 GW=${GW:-"10.0.2.1"}
-YUM_OPT="-q --noplugins --nogpgcheck --config=/tmp/local.repo --disablerepo=* --enablerepo=centos" #--setopt=tsflags=nodocs"
-## end parms
+
+YUM_OPT="--noplugins --nogpgcheck --config=/tmp/local.repo --disablerepo=* --enablerepo=centos,update" #--setopt=tsflags=nodocs"
 
 cat> /tmp/local.repo <<EOF
 [centos]
 name=centos
 baseurl=http://10.0.2.1:8080/
-failovermethod=priority
+gpgcheck=0
+
+[update]
+name=update
+baseurl=http://mirrors.163.com/centos/7.4.1708/updates/x86_64/
+#keepcache=1
 gpgcheck=0
 EOF
+## end parms
 
 #for demo
 : ${ROOTFS:?"ERROR: ROOTFS must be set"}
@@ -42,6 +48,7 @@ function cleanup
 }
 trap cleanup TERM
 trap cleanup INT
+trap cleanup EXIT
 
 function fake_yum {
     echo "$(date +%Y%m%d_%H%M%S) :${*}"
@@ -73,12 +80,8 @@ EOF
 ${guest_ipaddr}    ${guest_hostname}
 EOF
     echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { return 1; }
-    [[ -r "${mnt_point}/etc/johnyin" ]] && chattr -i ${mnt_point}/etc/johnyin 
-    echo "$(date +%Y%m%d_%H%M%S) ${guest_uuid}" > ${mnt_point}/etc/johnyin || { return 2; }
-    chattr +i ${mnt_point}/etc/johnyin || { return 3; }
-    #sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"console=ttyS0 net.ifnames=0 biosdevname=0\"/g" /etc/default/grub
-    #grub2-mkconfig -o /boot/grub2/grub.cfg
-	sed -i "s/#ListenAddress 0.0.0.0/ListenAddress ${guest_ipaddr}/g" ${mnt_point}/etc/ssh/sshd_config
+    sed -i "/^ListenAddress/d" ${mnt_point}/etc/ssh/sshd_config
+    sed -i "/^Port.*$/a\ListenAddress ${guest_ipaddr}" ${mnt_point}/etc/ssh/sshd_config
     rm -f ${mnt_point}/ssh/ssh_host_*
     return 0
 }
@@ -325,6 +328,7 @@ EOF
 change_vm_info "${ROOTFS}" "${NAME}" "${IP}" "${NETMASK}" "${GW}" "${UUID}"
 cleanup
 echo "$(date +%Y%m%d_%H%M%S) :OK"
+
 exit 0
 # #extract a single partition from image
 # dd if=image of=partitionN skip=offset_of_partition_N count=size_of_partition_N bs=512 conv=sparse
