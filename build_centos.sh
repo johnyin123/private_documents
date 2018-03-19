@@ -163,7 +163,7 @@ systemd-firstboot --root=/ --locale=zh_CN.utf8 --locale-messages=zh_CN.utf8 --ti
 #localectl set-keymap cn
 #localectl set-x11-keymap cn
 grub2-mkconfig -o /boot/grub2/grub.cfg
-grub2-install --boot-directory=/boot --modules="xfs part_msdos" /dev/loop0
+grub2-install --boot-directory=/boot --modules="xfs part_msdos" ${DISK}
 echo "${NEWPASSWORD}" | passwd --stdin root
 sed -i "s/SELINUX=.*/SELINUX=disabled/g" /etc/selinux/config
 touch /etc/sysconfig/network
