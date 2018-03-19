@@ -15,7 +15,7 @@ ADDITION_PKG="${ADDITION_PKG} lvm2 wget rsync bind-utils sysstat tcpdump nmap-nc
 ROOTFS=${ROOTFS:-/root/rootfs}
 NEWPASSWORD=${NEWPASSWORD:-"password"}
 DISK_FILE=${DISK_FILE:-"/root/disk"}
-DISK_SIZE=${DISK_SIZE:-"1500"}       #MB
+DISK_SIZE=${DISK_SIZE:-"1500M"}
 
 NAME=${NAME:-"vmtemplate"}
 IP=${IP:-"10.0.2.100"}
@@ -92,8 +92,8 @@ EOF
     return 0
 }
 
-truncate -s ${DISK_SIZE}M ${DISK_FILE} 
-#dd if=/dev/zero of=${DISK_FILE} bs=1M count=${DISK_SIZE}
+truncate -s ${DISK_SIZE} ${DISK_FILE} 
+#dd if=/dev/zero of=${DISK_FILE} bs=1 count=${DISK_SIZE}
 
 parted -s ${DISK_FILE} -- mklabel msdos \
 	mkpart primary xfs 2048s -1s \
@@ -114,7 +114,6 @@ do
     mount -o bind ${mp} ${ROOTFS}${mp}
 done
 
-# can edit  /root/rootfs/etc/yum.repos.d/....
 fake_yum groupinstall core #"Minimal Install"
 fake_yum install grub2 net-tools chrony ${ADDITION_PKG}
 fake_yum remove -C --setopt="clean_requirements_on_remove=1" \
