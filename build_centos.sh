@@ -1,6 +1,11 @@
 #!/bin/bash
 set -o errexit -o nounset -o pipefail
 
+if [[ -n "$TRACE" ]]; then
+    export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    set -o xtrace
+fi
+
 ## start parms
 TOMCAT_USR=true
 
