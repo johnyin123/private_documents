@@ -1,5 +1,6 @@
 #!/bin/bash
 set -o nounset -o pipefail
+dirname="$(dirname "$(readlink -e "$0")")"
 
 if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
@@ -7,13 +8,13 @@ if [ "${DEBUG:=false}" = "true" ]; then
 fi
 
 ## start parms
-TOMCAT_USR=${TOMCAT_USR:-true}
-REPO=${REPO:-/root/local.repo}
+TOMCAT_USR=${TOMCAT_USR:-false}
+REPO=${REPO:-${dirname}/local.repo}
 ADDITION_PKG=${ADDITION_PKG:-""}
 ADDITION_PKG="${ADDITION_PKG} lvm2 wget rsync bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp wget strace ltrace python-virtualenv"
-ROOTFS=${ROOTFS:-/root/rootfs}
+ROOTFS=${ROOTFS:-${dirname}/rootfs}
 NEWPASSWORD=${NEWPASSWORD:-"password"}
-DISK_FILE=${DISK_FILE:-"/root/disk"}
+DISK_FILE=${DISK_FILE:-"${dirname}/disk"}
 DISK_SIZE=${DISK_SIZE:-"1500M"}
 
 NAME=${NAME:-"vmtemplate"}
@@ -22,25 +23,8 @@ NETMASK=${NETMASK:-"255.255.255.0"}
 GW=${GW:-"10.0.2.1"}
 
 YUM_OPT="--noplugins --nogpgcheck --config=${REPO} --disablerepo=* --enablerepo=centos,update" #--setopt=tsflags=nodocs"
-
-[ -r ${REPO} ] || {
-cat> ${REPO} <<EOF
-[centos]
-name=centos
-baseurl=http://10.0.2.1:8080/
-gpgcheck=0
-
-[update]
-name=update
-baseurl=http://mirrors.163.com/centos/7.4.1708/updates/x86_64/
-#keepcache=1
-gpgcheck=0
-EOF
-}
 ## end parms
 
-#for demo
-: ${ROOTFS:?"ERROR: ROOTFS must be set"}
 : ${DISK_FILE:?"ERROR: DISK_FILE must b set"}
 
 QUIET=false
@@ -87,6 +71,24 @@ function cleanup
 }
 trap cleanup TERM
 trap cleanup INT
+
+[[ $UID = 0 ]] || log "warn" "recommended to run as root."
+
+[ -r ${REPO} ] || {
+    cat> ${REPO} <<EOF
+[centos]
+name=centos
+baseurl=http://10.0.2.1:8080/
+gpgcheck=0
+
+[update]
+name=update
+baseurl=http://mirrors.163.com/centos/7.4.1708/updates/x86_64/
+#keepcache=1
+gpgcheck=0
+EOF
+    abort "Created ${REPO} using defaults.  Please review it/configure before running again."
+}
 
 for i in losetup mkfs.xfs yum blkid parted
 do
