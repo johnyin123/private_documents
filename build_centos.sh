@@ -9,7 +9,6 @@ fi
 ## start parms
 TOMCAT_USR=${TOMCAT_USR:-true}
 
-echo "$TOMCAT_USR"
 ADDITION_PKG=${ADDITION_PKG:-""}
 ADDITION_PKG="${ADDITION_PKG} lvm2 wget rsync bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp wget strace ltrace python-virtualenv"
 ROOTFS=${ROOTFS:-/root/rootfs}
@@ -42,23 +41,58 @@ EOF
 : ${ROOTFS:?"ERROR: ROOTFS must be set"}
 : ${DISK_FILE:?"ERROR: DISK_FILE must b set"}
 
+QUIET=false
+output() {
+    echo -e "${*}"
+}
+
+log() {
+    level=${1}
+    shift
+    MSG="${*}"
+    timestamp=$(date +%Y%m%d_%H%M%S)
+    case ${level} in
+        "info")
+            if ! ${QUIET}; then
+                output "${timestamp} I: ${MSG}"
+            fi
+            ;;
+        "warn")
+            output "${timestamp} \e[1;33mW: ${MSG}\e[0m"
+            ;;
+        "error")
+            output "${timestamp} \e[1;31mE: ${MSG}\e[0m"
+            ;;
+        "debug")
+            output "${timestamp} \e[1;32mD: ${MSG}\e[0m"
+            ;;
+    esac
+}
+
 function cleanup
 {
-    mount | grep "${ROOTFS}/dev" && umount ${ROOTFS}/dev || echo "dev no mount" 
-    mount | grep "${ROOTFS}/sys" && umount ${ROOTFS}/sys || echo "sys no mount" 
-    mount | grep "${ROOTFS}/proc" && umount ${ROOTFS}/proc || echo "proc no mount" 
-    mount | grep "${ROOTFS}" && umount ${ROOTFS} || echo "rootfs no mount" 
+    mount | grep "${ROOTFS}/dev" > /dev/null 2>&1 && umount ${ROOTFS}/dev || log "warn" "dev no mount" 
+    mount | grep "${ROOTFS}/sys" > /dev/null 2>&1 && umount ${ROOTFS}/sys || log "warn" "sys no mount" 
+    mount | grep "${ROOTFS}/proc" > /dev/null 2>&1 && umount ${ROOTFS}/proc || log "warn" "proc no mount" 
+    mount | grep "${ROOTFS}" > /dev/null 2>&1 && umount ${ROOTFS} || log "warn" "rootfs no mount" 
     rm -f /tmp/local.repo
     losetup  | grep "${DISK_FILE}" | awk '{ print "losetup -d " $1}' | bash
-    losetup  | grep "${DISK_FILE}" && echo "loop device no cleanup!!" || echo "cleanup ok"
+    losetup  | grep "${DISK_FILE}" > /dev/null 2>&1 && log "error" "loop device no cleanup!!" || log "info" "cleanup ok"
 }
 trap cleanup TERM
 trap cleanup INT
-trap cleanup EXIT
+
+function execute () {
+    eval ${*} >/dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        log "error" "executing ${*} error"
+    fi
+    log "info" "executing ${*} ok"
+}
 
 function fake_yum {
-    echo "$(date +%Y%m%d_%H%M%S) :${*}"
-    eval yum ${YUM_OPT} -y --installroot=${ROOTFS} ${*} 2>/dev/null
+    log "info" "${*}"
+    yum ${YUM_OPT} -y --installroot=${ROOTFS} ${*} 2>/dev/null
 }
 
 function change_vm_info() {
@@ -76,10 +110,10 @@ BOOTPROTO="none"
 #DNS1=10.0.2.1
 IPADDR=${guest_ipaddr}
 NETMASK=${guest_netmask}
-#GATEWAY=${guest_gw}
+GATEWAY=${guest_gw}
 EOF
     cat > ${mnt_point}/etc/sysconfig/network-scripts/route-eth0 <<-EOF
-default via ${guest_gw} dev eth0
+#xx.xx.xx.xx via ${guest_gw} dev eth0
 EOF
     cat > ${mnt_point}/etc/hosts <<-EOF
 127.0.0.1   localhost
@@ -92,26 +126,26 @@ EOF
     return 0
 }
 
-truncate -s ${DISK_SIZE} ${DISK_FILE} 
+execute truncate -s ${DISK_SIZE} ${DISK_FILE} 
 #dd if=/dev/zero of=${DISK_FILE} bs=1 count=${DISK_SIZE}
 
-parted -s ${DISK_FILE} -- mklabel msdos \
+execute parted -s ${DISK_FILE} -- mklabel msdos \
 	mkpart primary xfs 2048s -1s \
 	set 1 boot on
 
 DISK=$(losetup -fP --show ${DISK_FILE})
 MOUNTDEV=${DISK}p1
-mkfs.xfs -f -L rootfs ${MOUNTDEV} >/dev/null
+execute mkfs.xfs -f -L rootfs ${MOUNTDEV}
 UUID=`blkid -s UUID -o value ${MOUNTDEV}`
 FSTYPE=`blkid -s TYPE -o value ${MOUNTDEV}`
 
-mkdir -p ${ROOTFS}
-mount ${MOUNTDEV} ${ROOTFS}
+execute mkdir -p ${ROOTFS}
+execute mount ${MOUNTDEV} ${ROOTFS}
 
 fake_yum install filesystem
 for mp in /dev /sys /proc
 do
-    mount -o bind ${mp} ${ROOTFS}${mp}
+    execute mount -o bind ${mp} ${ROOTFS}${mp}
 done
 
 fake_yum groupinstall core #"Minimal Install"
@@ -182,7 +216,7 @@ touch /boot/*
 EOF
 
 # chroot ${ROOTFS} yum upgrade
-echo "$(date +%Y%m%d_%H%M%S) :tuning system ....."
+log "info" "tuning system ....."
 
 chroot ${ROOTFS} /bin/bash 2>/dev/null <<EOF
 systemctl set-default multi-user.target
@@ -195,18 +229,18 @@ cat >> ${ROOTFS}/etc/security/limits.conf << EOF
 *           soft   nofile       102400
 *           hard   nofile       102400
 EOF
-echo "$(date +%Y%m%d_%H%M%S) :disable the ipv6"
+log "info" "disable the ipv6"
 cat > ${ROOTFS}/etc/modprobe.d/ipv6.conf << EOF
 install ipv6 /bin/true
 EOF
-echo "$(date +%Y%m%d_%H%M%S) :setting sshd"
-sed -i "s/#UseDNS.*/UseDNS no/g" ${ROOTFS}/etc/ssh/sshd_config
-sed -i "s/GSSAPIAuthentication.*/GSSAPIAuthentication no/g" ${ROOTFS}/etc/ssh/sshd_config
-sed -i "s/#MaxAuthTries.*/MaxAuthTries 3/g" ${ROOTFS}/etc/ssh/sshd_config
-sed -i "s/#Port.*/Port 60022/g" ${ROOTFS}/etc/ssh/sshd_config
+log "info" "setting sshd"
+execute sed -i \"s/#UseDNS.*/UseDNS no/g\" ${ROOTFS}/etc/sshd/sshd_config
+execute sed -i \"s/GSSAPIAuthentication.*/GSSAPIAuthentication no/g\" ${ROOTFS}/etc/ssh/sshd_config
+execute sed -i \"s/#MaxAuthTries.*/MaxAuthTries 3/g\" ${ROOTFS}/etc/ssh/sshd_config
+execute sed -i \"s/#Port.*/Port 60022/g\" ${ROOTFS}/etc/ssh/sshd_config
 echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> ${ROOTFS}/etc/ssh/sshd_config
 echo "MACs    hmac-sha1" >> ${ROOTFS}/etc/ssh/sshd_config
-echo "$(date +%Y%m%d_%H%M%S) :tune kernel parametres"
+log "info" "tune kernel parametres"
 cat >> ${ROOTFS}/etc/sysctl.conf << EOF
 net.core.netdev_max_backlog = 30000
 net.core.rmem_max=16777216
@@ -291,12 +325,12 @@ done
 echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 echo
 EOF
-chmod 755 ${ROOTFS}/etc/motd.sh
+execute chmod 755 ${ROOTFS}/etc/motd.sh
 
 if [ "${TOMCAT_USR:=false}" = "true" ]
 then
-    echo "$(date +%Y%m%d_%H%M%S) :add user<tomcat>, add tomcat@ service"
-    chroot ${ROOTFS} useradd tomcat -M -s /sbin/nologin
+    log "info" "add user<tomcat>, add tomcat@ service"
+    execute chroot ${ROOTFS} useradd tomcat -M -s /sbin/nologin
     cat >> ${ROOTFS}/lib/systemd/system/tomcat@.service << EOF
 [Unit]
 Description=Apache Tomcat Web in /opt/%i
@@ -332,7 +366,7 @@ sh /etc/motd.sh
 EOF
 change_vm_info "${ROOTFS}" "${NAME}" "${IP}" "${NETMASK}" "${GW}" "${UUID}"
 cleanup
-echo "$(date +%Y%m%d_%H%M%S) :OK"
+log "info" "${DISK_FILE} Create root/${NEWPASSWORD} OK "
 
 exit 0
 # #extract a single partition from image
