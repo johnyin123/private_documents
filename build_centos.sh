@@ -1,5 +1,5 @@
 #!/bin/bash
-set -o errexit -o nounset -o pipefail
+set -o nounset -o pipefail
 
 if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
@@ -69,6 +69,11 @@ log() {
     esac
 }
 
+abort() {
+    log "error" "${*}"
+    exit 1
+}
+
 function cleanup
 {
     mount | grep "${ROOTFS}/dev" > /dev/null 2>&1 && umount ${ROOTFS}/dev || log "warn" "dev no mount" 
@@ -82,6 +87,11 @@ function cleanup
 trap cleanup TERM
 trap cleanup INT
 
+for i in losetup mkfs.xfs yum blkid parted
+do
+    [[ ! -x $(which $i) ]] && { abort "$i no found"; }
+done
+#command use the '|"' must be escaped with '\' 
 function execute () {
     eval ${*} >/dev/null 2>&1
     if [ $? -ne 0 ]; then
@@ -234,7 +244,7 @@ cat > ${ROOTFS}/etc/modprobe.d/ipv6.conf << EOF
 install ipv6 /bin/true
 EOF
 log "info" "setting sshd"
-execute sed -i \"s/#UseDNS.*/UseDNS no/g\" ${ROOTFS}/etc/sshd/sshd_config
+execute sed -i \"s/#UseDNS.*/UseDNS no/g\" ${ROOTFS}/etc/ssh/sshd_config
 execute sed -i \"s/GSSAPIAuthentication.*/GSSAPIAuthentication no/g\" ${ROOTFS}/etc/ssh/sshd_config
 execute sed -i \"s/#MaxAuthTries.*/MaxAuthTries 3/g\" ${ROOTFS}/etc/ssh/sshd_config
 execute sed -i \"s/#Port.*/Port 60022/g\" ${ROOTFS}/etc/ssh/sshd_config

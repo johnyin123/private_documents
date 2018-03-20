@@ -108,7 +108,7 @@ NETMASK=${guest_netmask}
 GATEWAY=${guest_gw}
 EOF
     cat <<EOF | tee ${mnt_point}/etc/sysconfig/network-scripts/route-eth0
-$ROUTE
+${ROUTE:-""}
 EOF
     cat > ${mnt_point}/etc/hosts <<-EOF
 127.0.0.1   localhost
@@ -323,7 +323,6 @@ IP=10.0.2.2
 NETMASK=255.255.255.0
 #ROUTE="10.0.100.1 via 10.0.2.1
 #192.160.1.1 via 10.0.2.1"
-ROUTE="" 
 GATEWAY=10.0.2.1
 #使用libvirt管理的net pool(可直接使用系统Bridge/ovs, virsh net-list）直接使用系统bridge
 NET_TYPE=network
@@ -349,7 +348,7 @@ do
     UUID=$(cat /proc/sys/kernel/random/uuid)
     VMNAME="$(lowercase $i)"
     unset IP NETMASK GATEWAY TEMPLATE_IMG VCPUS VMEMSIZE VM_TITLE VM_DESC 
-    unset NET_TYPE KVM_BRIDGE STORE_TYPE STORE_POOL
+    unset NET_TYPE KVM_BRIDGE STORE_TYPE STORE_POOL ROUTE
     readini "$i" "${CFG_INI}"
     #[ ! -z "${IP}" ] && {
     #}
