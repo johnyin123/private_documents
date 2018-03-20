@@ -8,7 +8,7 @@ fi
 
 ## start parms
 TOMCAT_USR=${TOMCAT_USR:-true}
-
+REPO=${REPO:-/root/local.repo}
 ADDITION_PKG=${ADDITION_PKG:-""}
 ADDITION_PKG="${ADDITION_PKG} lvm2 wget rsync bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp wget strace ltrace python-virtualenv"
 ROOTFS=${ROOTFS:-/root/rootfs}
@@ -21,9 +21,10 @@ IP=${IP:-"10.0.2.100"}
 NETMASK=${NETMASK:-"255.255.255.0"}
 GW=${GW:-"10.0.2.1"}
 
-YUM_OPT="--noplugins --nogpgcheck --config=/tmp/local.repo --disablerepo=* --enablerepo=centos,update" #--setopt=tsflags=nodocs"
+YUM_OPT="--noplugins --nogpgcheck --config=${REPO} --disablerepo=* --enablerepo=centos,update" #--setopt=tsflags=nodocs"
 
-cat> /tmp/local.repo <<EOF
+[ -r ${REPO} ] || {
+cat> ${REPO} <<EOF
 [centos]
 name=centos
 baseurl=http://10.0.2.1:8080/
@@ -35,6 +36,7 @@ baseurl=http://mirrors.163.com/centos/7.4.1708/updates/x86_64/
 #keepcache=1
 gpgcheck=0
 EOF
+}
 ## end parms
 
 #for demo
@@ -80,7 +82,6 @@ function cleanup
     mount | grep "${ROOTFS}/sys" > /dev/null 2>&1 && umount ${ROOTFS}/sys || log "warn" "sys no mount" 
     mount | grep "${ROOTFS}/proc" > /dev/null 2>&1 && umount ${ROOTFS}/proc || log "warn" "proc no mount" 
     mount | grep "${ROOTFS}" > /dev/null 2>&1 && umount ${ROOTFS} || log "warn" "rootfs no mount" 
-    rm -f /tmp/local.repo
     losetup  | grep "${DISK_FILE}" | awk '{ print "losetup -d " $1}' | bash
     losetup  | grep "${DISK_FILE}" > /dev/null 2>&1 && log "error" "loop device no cleanup!!" || log "info" "cleanup ok"
 }
