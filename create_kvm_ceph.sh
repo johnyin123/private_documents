@@ -1,41 +1,15 @@
 #!/bin/bash
-# -e 表示一旦脚本中有命令的返回值为非0，则脚本立即退出，后续命令不再执行;
-# -o pipefail表示在管道连接的命令序列中，只要有任何一个命令返回非0值，则整个管道返回非0值，即使最后一个命令返回0.
+set -o errexit -o nounset -o pipefail
 
-# #extract a single partition from image
-# dd if=image of=partitionN skip=offset_of_partition_N count=size_of_partition_N bs=512 conv=sparse
-# #put the partition back into image
-# dd if=partitionN of=image seek=offset_of_partition_N count=size_of_partition_N bs=512 conv=sparse,notrunc
+if [ "${DEBUG:=false}" = "true" ]; then
+    export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    set -o xtrace
+fi
 
-# #起始扇区  扇区个数  线性映射  目标设备 目标设备上的起始扇区
-# 0     2048     linear /dev/loop0  0
-# 2048  2095104  linear /dev/loop1  0
-# 
-# #dd if=dl-08eca7b8-11bf-4dc9-9b9c-b1d4640246c7.raw of=hdr bs=1M count=1
-# #dd if=/dev/zero of=data bs=1M count=1023
-# #mkfs.xfs data
-# #mount data /mnt ...... copy rootfs ....
-# #blkid get UUID --> modify /mnt/etc/fstab, /mnt/boot/grub2/grub.cfg
-# #
-# #kpartx -au hdr
-# #kpartx -au data
-# #dmsetup create linear_test linear.table
-# # parted -s /dev/mapper/linear_test -- mkpart primary xfs 1 -1 \
-# #  set 1 boot on
-# #
-#dmsetup remove_all
-#
-set -u -o pipefail
-UUID=
-VMNAME=
-CEPH_MON=${CEPH_MON:-"kvm01:6789 kvm02:6789 kvm03:56789"}
-trap 'echo "you must manally remove vm image file define in ${VMNAME}-${UUID}.brk!!!";virsh undefine ${VMNAME}-${UUID}; mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.brk; exit 1;' INT
-
-[[ ! -x $(which pv) ]] && { echo "NO pv found!!"; exit 1; }
-
+CEPH_MON=${CEPH_MON:-"kvm01:6789 kvm02:6789 kvm03:6789"}
 QUIET=false
 output() {
-    echo "${*}"
+    echo -e "${*}"
 }
 
 log() {
@@ -50,10 +24,10 @@ log() {
             fi
             ;;
         "warn")
-            output "${timestamp} W: ${MSG}"
+            output "${timestamp} \e[0;34mW: ${MSG}\e[0m"
             ;;
         "error")
-            output "${timestamp} E: ${MSG}"
+            output "${timestamp} \e[1;31mE: ${MSG}\e[0m"
             ;;
         "debug")
             output "${timestamp} D: ${MSG}"
@@ -66,24 +40,30 @@ abort() {
     exit 1
 }
 
+function cleanup() {
+    virsh undefine ${VMNAME}-${UUID}
+    mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.brk
+    abort "you must manally remove vm image file define in ${VMNAME:="N/A"}-${UUID:="N/A"}.brk!!!"
+}
+trap cleanup TERM
+trap cleanup INT
+
+[[ ! -x $(which pv) ]] && { abort "NO pv found!!"; }
+
+
 parse_size() {(
     local SUFFIXES=('' K M G T P E Z Y)
     local MULTIPLIER=1
-
     shopt -s nocasematch
-
     for SUFFIX in "${SUFFIXES[@]}"; do
         local REGEX="^([0-9]+)(${SUFFIX}i?B?)?\$"
-
         if [[ $1 =~ $REGEX ]]; then
             echo $((${BASH_REMATCH[1]} * MULTIPLIER))
             return 0
         fi
-
         ((MULTIPLIER *= 1024))
     done
-
-    echo "$0: invalid size \`$1'" >&2
+    log "error" "$0: invalid size \`$1'" >&2
     return 1
 )}
 
@@ -125,25 +105,23 @@ BOOTPROTO="none"
 #DNS1=10.0.2.1
 IPADDR=${guest_ipaddr}
 NETMASK=${guest_netmask}
-#GATEWAY=${guest_gw}
+GATEWAY=${guest_gw}
 EOF
-    cat > ${mnt_point}/etc/sysconfig/network-scripts/route-eth0 <<-EOF
-default via ${guest_gw} dev eth0
+    cat <<EOF | tee ${mnt_point}/etc/sysconfig/network-scripts/route-eth0
+$ROUTE
 EOF
     cat > ${mnt_point}/etc/hosts <<-EOF
 127.0.0.1   localhost
 ${guest_ipaddr}    ${guest_hostname}
 EOF
     echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { return 1; }
-    [[ -r "${mnt_point}/etc/johnyin" ]] && chattr -i ${mnt_point}/etc/johnyin 
-    echo "$(date +%Y%m%d_%H%M%S) ${guest_uuid}" > ${mnt_point}/etc/johnyin || { return 2; }
-    chattr +i ${mnt_point}/etc/johnyin || { return 3; }
-    #sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"console=ttyS0 net.ifnames=0 biosdevname=0\"/g" /etc/default/grub
-    #grub2-mkconfig -o /boot/grub2/grub.cfg
-    sed -i "s/#ListenAddress 0.0.0.0/ListenAddress ${guest_ipaddr}/g" ${mnt_point}/etc/ssh/sshd_config
-    echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> ${mnt_point}/etc/ssh/sshd_config
-    echo "MACs    hmac-sha1" >> ${mnt_point}/etc/ssh/sshd_config
+    sed -i "/^ListenAddress/d" ${mnt_point}/etc/ssh/sshd_config
+    sed -i "/^Port.*$/a\ListenAddress ${guest_ipaddr}" ${mnt_point}/etc/ssh/sshd_config
     rm -f ${mnt_point}/ssh/ssh_host_*
+
+    [[ -r "${mnt_point}/etc/.johnyin" ]] && chattr -i ${mnt_point}/etc/.johnyin 
+    echo "$(date +%Y%m%d_%H%M%S) ${guest_uuid}" > ${mnt_point}/etc/.johnyin || { return 2; }
+    chattr +i ${mnt_point}/etc/.johnyin || { return 3; }
     log "info" "set ip/gw/hostname/sshd_key OK"
     return 0
 }
@@ -343,6 +321,9 @@ CFG_INI="hosts.ini"
 #name
 IP=10.0.2.2
 NETMASK=255.255.255.0
+#ROUTE="10.0.100.1 via 10.0.2.1
+#192.160.1.1 via 10.0.2.1"
+ROUTE="" 
 GATEWAY=10.0.2.1
 #使用libvirt管理的net pool(可直接使用系统Bridge/ovs, virsh net-list）直接使用系统bridge
 NET_TYPE=network
@@ -365,13 +346,13 @@ EOF
 
 for i in $(getinientry "${CFG_INI}")
 do
+    UUID=$(cat /proc/sys/kernel/random/uuid)
+    VMNAME="$(lowercase $i)"
     unset IP NETMASK GATEWAY TEMPLATE_IMG VCPUS VMEMSIZE VM_TITLE VM_DESC 
     unset NET_TYPE KVM_BRIDGE STORE_TYPE STORE_POOL
     readini "$i" "${CFG_INI}"
     #[ ! -z "${IP}" ] && {
     #}
-    UUID=$(cat /proc/sys/kernel/random/uuid)
-    VMNAME="$(lowercase $i)"
     VM_IMG=${VMNAME}-${UUID}.raw
     VM_TITLE=${VM_TITLE:-"n/a"}
     VM_DESC=${VM_DESC:-"n/a"}
