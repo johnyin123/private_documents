@@ -90,6 +90,16 @@ EOF
     abort "Created ${REPO} using defaults.  Please review it/configure before running again."
 }
 
+log "warn" "file      :${DISK_FILE}"
+log "warn" "size      :${DISK_SIZE}"
+log "warn" "tomcat    :${TOMCAT_USR}"
+log "warn" "hostname  :${NAME}"
+log "warn" "ip        :${IP}"
+log "warn" "netmask   :${NETMASK}"
+log "warn" "gateway   :${GW}"
+log "warn" "passwd    :${NEWPASSWORD}"
+log "warn" "pkg       :${ADDITION_PKG}"
+
 for i in losetup mkfs.xfs yum blkid parted
 do
     [[ ! -x $(which $i) ]] && { abort "$i no found"; }
