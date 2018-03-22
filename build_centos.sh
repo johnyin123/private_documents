@@ -200,7 +200,7 @@ fake_yum remove -C --setopt="clean_requirements_on_remove=1" \
 	iwl7260-firmware \
 	iwl7265-firmware
 
-execute cat > ${ROOTFS}/etc/default/grub <<EOF
+cat > ${ROOTFS}/etc/default/grub <<EOF
 GRUB_TIMEOUT=5
 GRUB_DISTRIBUTOR="\$(sed 's, release .*\$,,g' /etc/system-release)"
 GRUB_DEFAULT=saved
@@ -211,7 +211,7 @@ GRUB_DISABLE_RECOVERY="true"
 EOF
 echo "UUID=${UUID} / xfs defaults 0 0" > ${ROOTFS}/etc/fstab
 
-execute cat > ${ROOTFS}/etc/X11/xorg.conf.d/00-keyboard.conf <<EOF
+cat > ${ROOTFS}/etc/X11/xorg.conf.d/00-keyboard.conf <<EOF
 Section "InputClass"
         Identifier "system-keyboard"
         MatchIsKeyboard "on"
@@ -248,12 +248,12 @@ systemctl list-unit-files | grep service | grep enabled | egrep -v "getty|autovt
 EOF
 echo "nameserver 114.114.114.114" > ${ROOTFS}/etc/resolv.conf
 #set the file limit
-execute cat >> ${ROOTFS}/etc/security/limits.conf << EOF
+cat >> ${ROOTFS}/etc/security/limits.conf << EOF
 *           soft   nofile       102400
 *           hard   nofile       102400
 EOF
 log "info" "disable the ipv6"
-execute cat > ${ROOTFS}/etc/modprobe.d/ipv6.conf << EOF
+cat > ${ROOTFS}/etc/modprobe.d/ipv6.conf << EOF
 install ipv6 /bin/true
 EOF
 log "info" "setting sshd"
@@ -264,7 +264,7 @@ execute sed -i \"s/#Port.*/Port 60022/g\" ${ROOTFS}/etc/ssh/sshd_config
 echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> ${ROOTFS}/etc/ssh/sshd_config
 echo "MACs    hmac-sha1" >> ${ROOTFS}/etc/ssh/sshd_config
 log "info" "tune kernel parametres"
-execute cat >> ${ROOTFS}/etc/sysctl.conf << EOF
+cat >> ${ROOTFS}/etc/sysctl.conf << EOF
 net.core.netdev_max_backlog = 30000
 net.core.rmem_max=16777216
 net.core.somaxconn = 65535
@@ -284,7 +284,7 @@ net.ipv4.tcp_tw_recycle = 1
 net.ipv4.tcp_tw_reuse = 1
 net.ipv4.tcp_wmem=4096 65536 16777216
 EOF
-execute cat >${ROOTFS}/etc/motd.sh<<EOF
+cat >${ROOTFS}/etc/motd.sh<<EOF
 #!/bin/bash
 date=\$(date "+%F %T")
 head="System Time: \$date"
@@ -354,7 +354,7 @@ if [ "${TOMCAT_USR:=false}" = "true" ]
 then
     log "info" "add user<tomcat>, add tomcat@ service"
     execute chroot ${ROOTFS} useradd tomcat -M -s /sbin/nologin
-    execute cat >> ${ROOTFS}/lib/systemd/system/tomcat@.service << EOF
+    cat >> ${ROOTFS}/lib/systemd/system/tomcat@.service << EOF
 [Unit]
 Description=Apache Tomcat Web in /opt/%i
 After=syslog.target network.target
@@ -381,7 +381,7 @@ WantedBy=multi-user.target
 EOF
 fi
 
-execute cat >> ${ROOTFS}/etc/profile << EOF
+cat >> ${ROOTFS}/etc/profile << EOF
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]\$"
 export readonly PROMPT_COMMAND='{ msg=\$(history 1 | { read x y; echo \$y; });user=\$(whoami); echo \$(date "+%Y-%m-%d%H:%M:%S"):\$user:`pwd`/:\$msg ---- \$(who am i); } >> \$HOME/.history.'
 set -o vi
