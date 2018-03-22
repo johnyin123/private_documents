@@ -362,11 +362,7 @@ After=syslog.target network.target
 [Service]
 Type=forking
 LimitNOFILE=102400
-EnvironmentFile=-/etc/default/tomcat
 EnvironmentFile=-/etc/default/tomcat@%I
-Environment='JAVA_HOME=/opt/jdk1.7'
-Environment='CATALINA_OPTS=-server -Xms512M -Xmx1024M -XX:MaxPermSize=256M -XX:+UseParallelGC'
-Environment='JAVA_OPTS=-Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom -Djava.net.preferIPv4Stack=true'
 Environment='TC_DIR=%i'
 ExecStart=/bin/bash /opt/\${TC_DIR}/bin/startup.sh
 ExecStop=/bin/bash /opt/\${TC_DIR}/bin/shutdown.sh
