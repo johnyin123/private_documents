@@ -116,6 +116,8 @@ function change_vm_info() {
     local guest_uuid=$6
 
     cat > ${mnt_point}/etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
+NM_CONTROLLED=no
+IPV6INIT=no
 DEVICE="eth0"
 ONBOOT="yes"
 BOOTPROTO="none"

@@ -18,12 +18,14 @@ DISK_FILE=${DISK_FILE:-"${dirname}/disk"}
 DISK_SIZE=${DISK_SIZE:-"1500M"}
 
 NAME=${NAME:-"vmtemplate"}
-IP=${IP:-"10.0.2.100"}
-NETMASK=${NETMASK:-"255.255.255.0"}
+IP=${IP:-"10.0.2.100/24"}
 GW=${GW:-"10.0.2.1"}
 
 YUM_OPT="--noplugins --nogpgcheck --config=${REPO} --disablerepo=* --enablerepo=centos,update" #--setopt=tsflags=nodocs"
 ## end parms
+
+PREFIX=${IP##*/}
+IP=${IP%/*}
 
 : ${DISK_FILE:?"ERROR: DISK_FILE must b set"}
 
@@ -94,8 +96,7 @@ log "warn" "file      :${DISK_FILE}"
 log "warn" "size      :${DISK_SIZE}"
 log "warn" "tomcat    :${TOMCAT_USR}"
 log "warn" "hostname  :${NAME}"
-log "warn" "ip        :${IP}"
-log "warn" "netmask   :${NETMASK}"
+log "warn" "ip        :${IP}/${PREFIX}"
 log "warn" "gateway   :${GW}"
 log "warn" "passwd    :${NEWPASSWORD}"
 log "warn" "pkg       :${ADDITION_PKG}"
@@ -122,17 +123,19 @@ function change_vm_info() {
     local mnt_point=$1
     local guest_hostname=$2
     local guest_ipaddr=$3
-    local guest_netmask=$4
+    local guest_prefix=$4
     local guest_gw=$5
     local guest_uuid=$6
 
     cat > ${mnt_point}/etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
+NM_CONTROLLED=no
+IPV6INIT=no
 DEVICE="eth0"
 ONBOOT="yes"
 BOOTPROTO="none"
 #DNS1=10.0.2.1
 IPADDR=${guest_ipaddr}
-NETMASK=${guest_netmask}
+PREFIX=${guest_prefix}
 GATEWAY=${guest_gw}
 EOF
     cat > ${mnt_point}/etc/sysconfig/network-scripts/route-eth0 <<-EOF
@@ -383,7 +386,7 @@ export readonly PROMPT_COMMAND='{ msg=\$(history 1 | { read x y; echo \$y; });us
 set -o vi
 sh /etc/motd.sh
 EOF
-change_vm_info "${ROOTFS}" "${NAME}" "${IP}" "${NETMASK}" "${GW}" "${UUID}"
+change_vm_info "${ROOTFS}" "${NAME}" "${IP}" "${PREFIX}" "${GW}" "${UUID}"
 cleanup
 log "info" "${DISK_FILE} Create root/${NEWPASSWORD} OK "
 
