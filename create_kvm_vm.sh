@@ -111,7 +111,7 @@ function change_vm_info() {
     local mnt_point=$1
     local guest_hostname=$2
     local guest_ipaddr=$3
-    local guest_netmask=$4
+    local guest_prefix=$4
     local guest_route=$5
     local guest_uuid=$6
 
@@ -121,7 +121,7 @@ ONBOOT="yes"
 BOOTPROTO="none"
 #DNS1=10.0.2.1
 IPADDR=${guest_ipaddr}
-NETMASK=${guest_netmask}
+PREFIX=${guest_prefix}
 EOF
 #    cat <<EOF | tee ${mnt_point}/etc/sysconfig/network-scripts/route-eth0
     cat > ${mnt_point}/etc/sysconfig/network-scripts/route-eth0 <<-EOF
@@ -286,8 +286,7 @@ function main() {
         cat >"${CFG_INI}" <<-EOF
 [kvm]
 #name
-IP=10.0.2.2
-NETMASK=255.255.255.0
+IP=10.0.2.2/24
 ROUTE="default via 10.0.2.1
 192.160.1.1 via 10.0.2.1 dev eth0"
 #使用libvirt管理的net pool(可直接使用系统Bridge/ovs, virsh net-list）直接使用系统bridge
@@ -313,11 +312,13 @@ EOF
     do
         UUID=$(cat /proc/sys/kernel/random/uuid)
         VMNAME="$(lowercase $i)"
-        unset IP NETMASK  TEMPLATE_IMG VCPUS VMEMSIZE VM_TITLE VM_DESC 
+        unset IP TEMPLATE_IMG VCPUS VMEMSIZE VM_TITLE VM_DESC 
         unset NET_TYPE KVM_BRIDGE STORE_TYPE STORE_POOL ROUTE
         readini "$i" "${CFG_INI}"
         #[ ! -z "${IP}" ] && {
         #}
+        PREFIX=${IP##*/}
+        IP=${IP%/*}
         VM_IMG=${VMNAME}-${UUID}.raw
         VM_TITLE=${VM_TITLE:-"n/a"}
         VM_DESC=${VM_DESC:-"n/a"}
@@ -327,8 +328,7 @@ EOF
         log "info" "    title:${VM_TITLE}"
         log "info" "     desc:${VM_DESC}"
         log "info" "     disk:${VM_IMG}"
-        log "info" "       ip:${IP}"
-        log "info" "  netmask:${NETMASK}"
+        log "info" "       ip:${IP}/${PREFIX}"
         log "info" "    kvmif:${KVM_BRIDGE}"
         log "info" "  nettype:${NET_TYPE}"
         if [ "${STORE_TYPE}"X == "rbd"X ]; then
@@ -369,7 +369,7 @@ EOF
 	    StartSector=${sst:0:${#sst}-1}
 	    OffSet=$(($StartSector*$SectorSize))
         mount -o loop,offset=${OffSet} ${TEMPLATE_IMG} ${mnt_point}
-        change_vm_info ${mnt_point} ${VMNAME} ${IP} ${NETMASK} "${ROUTE}" ${UUID}
+        change_vm_info ${mnt_point} ${VMNAME} ${IP} ${PREFIX} "${ROUTE}" ${UUID}
         retval=$?
         umount ${mnt_point}
         if [[ ${retval} != 0  ]]; then
