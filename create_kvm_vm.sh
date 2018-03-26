@@ -344,6 +344,10 @@ EOF
         fi
         ceph_secret_uuid=$(fake_virsh secret-list | grep libvirt | awk '{ print $1}')
         store_path="$(getStorePath ${STORE_POOL})"
+        [[ -z ${store_path} ]] && {
+            log "warn" "null store_path in ${STORE_POOL}"
+            continue
+        }
         store_path=${store_path%/*}
         genkvm_xml "${VMNAME}-${UUID}" ${ceph_secret_uuid:-"n/a"} ${store_path} ${VM_IMG} "${VM_TITLE}" "${VM_DESC}" ${UUID} ${KVM_BRIDGE} $(($(parse_size ${VMEMSIZE})/1024)) ${VCPUS}
         fake_virsh define ${VMNAME}-${UUID} >/dev/null  || {
