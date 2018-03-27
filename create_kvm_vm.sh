@@ -333,17 +333,6 @@ EOF
         log "info" "       ip:${IP}/${PREFIX}"
         log "info" "    kvmif:${KVM_BRIDGE}"
         log "info" "  nettype:${NET_TYPE}"
-        if [ "${STORE_TYPE}"X == "rbd"X ]; then
-            log "info" "     disk:rbd:${STORE_POOL}/${VM_IMG}"
-        fi
-        if [ "${STORE_TYPE}"X == "lvm"X ]; then
-            log "info" "     disk:lvm:${STORE_POOL}/${VM_IMG}"
-        fi
-        log "info" " template:${TEMPLATE_IMG}"
-        if  [ ! -f "${TEMPLATE_IMG}" ]; then
-            log "error" " template:${TEMPLATE_IMG} no found"
-            continue
-        fi
         ceph_secret_uuid=$(fake_virsh secret-list | grep libvirt | awk '{ print $1}')
         store_path="$(getStorePath ${STORE_POOL})"
         [[ -z ${store_path} ]] && {
@@ -351,7 +340,13 @@ EOF
             continue;
         }
         store_path=${store_path%/*}
-        genkvm_xml "${VMNAME}-${UUID}" ${ceph_secret_uuid:-"n/a"} ${store_path} ${VM_IMG} "${VM_TITLE}" "${VM_DESC}" ${UUID} ${KVM_BRIDGE} $(($(parse_size ${VMEMSIZE})/1024)) ${VCPUS}
+        log "info" "     disk:${STORE_POOL}:${store_path}/${VM_IMG}"
+        log "info" " template:${TEMPLATE_IMG}"
+        if  [ ! -f "${TEMPLATE_IMG}" ]; then
+            log "error" " template:${TEMPLATE_IMG} no found"
+            continue
+        fi
+        genkvm_xml "${VMNAME}-${UUID}" ${ceph_secret_uuid:-"n/a"} "${store_path}" "${VM_IMG}" "${VM_TITLE}" "${VM_DESC}" "${UUID}" "${KVM_BRIDGE}" "$(($(parse_size ${VMEMSIZE})/1024))" "${VCPUS}"
         fake_virsh define ${VMNAME}-${UUID} >/dev/null  || {
             mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.err;
             log "warn" "   define:FAILED";
@@ -371,7 +366,7 @@ EOF
 	    StartSector=${sst:0:${#sst}-1}
 	    OffSet=$(($StartSector*$SectorSize))
         mount -o loop,offset=${OffSet} ${TEMPLATE_IMG} ${mnt_point}
-        change_vm_info ${mnt_point} ${VMNAME} ${IP} ${PREFIX} "${ROUTE}" ${UUID}
+        change_vm_info "${mnt_point}" "${VMNAME}" "${IP}" "${PREFIX}" "${ROUTE}" "${UUID}"
         retval=$?
         umount ${mnt_point}
         if [[ ${retval} != 0  ]]; then
@@ -382,7 +377,7 @@ EOF
         fi
         log "info" "     disk:OK ${retval}"
         log "info" "upload ${STORE_TYPE} image ${VM_IMG} in ${STORE_POOL} ..."
-        eval ${STORE_TYPE}_GenImg ${store_path} ${VM_IMG} ${TEMPLATE_IMG} ${STORE_POOL}
+        eval ${STORE_TYPE}_GenImg "${store_path}" "${VM_IMG}" "${TEMPLATE_IMG}" "${STORE_POOL}"
         retval=$?
         if [[ ${retval} != 0  ]]; then
             DelImg ${STORE_POOL} ${VM_IMG}
