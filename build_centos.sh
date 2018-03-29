@@ -182,6 +182,7 @@ fake_yum remove -C --setopt="clean_requirements_on_remove=1" \
 	NetworkManager-team \
 	NetworkManager-tui \
 	NetworkManager-wifi \
+    linux-firmware* \
 	aic94xx-firmware \
 	alsa-firmware \
 	ivtv-firmware \
@@ -387,6 +388,7 @@ set -o vi
 sh /etc/motd.sh
 EOF
 change_vm_info "${ROOTFS}" "${NAME}" "${IP}" "${PREFIX}" "${GW}" "${UUID}"
+rm -fr ${ROOTFS}/var/cache
 cleanup
 log "info" "${DISK_FILE} Create root/${NEWPASSWORD} OK "
 
