@@ -414,3 +414,20 @@ exit 0
 # #kpartx -au data
 # #dmsetup create linear_test linear.table
 # dmsetup remove_all
+
+# 
+# virsh vol-create-as --pool <pool> --name test.raw --capacity 8G --format raw
+# virt-install \
+#         --force \
+#         --name test \
+#         --ram 4096 \
+#         --vcpus 2 \
+#         --os-type linux \
+#         --location http://10.32.166.41:8080 \
+#         --disk vol=<pool>/test.raw \
+#         --accelerate \
+#         --clock offset=localtime \
+#         --network bridge=br-mgr,model=virtio \
+#         --extra-args 'ks=http://10.32.166.41:8081/ks.ks ksdevice=eth0 ip=10.3.60.100 netmask=255.255.255.128 gateway=10.3.60.1'
+# #注意--disk中使用的卷为libvirtpool/virt-1
+

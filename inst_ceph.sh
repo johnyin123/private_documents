@@ -109,6 +109,7 @@ rm -f hosts config
 #    1. ceph-deploy new kvm1
 #    #最小副本数
 #    2. echo "osd pool default size = 2" >> ~/ceph/ceph.conf
+#       ## echo "osd pool default min size = 1" >> ~/ceph/ceph.conf
 #       ## echo "rbd_default_features = 1" >> ~/ceph/ceph.conf
 #       ## public network = 10.0.1.0/24     #公共网络(monitorIP段) 
 #       ## cluster network = 10.0.1.0/24    #集群网络
