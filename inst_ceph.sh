@@ -175,19 +175,19 @@ rm -f hosts config
 #        sudo virsh secret-define --file secret.xml | awk '{print $2}' | tee uuid.txt
 #        ceph auth get-key client.libvirt | tee client.libvirt.key
 #        sudo virsh secret-set-value --secret $(cat uuid.txt) --base64 $(cat client.libvirt.key) && rm -f client.libvirt.key secret.xml uuid.txt
-#        # echo "<pool type='rbd'>
-#        #   <name>libvirtpool</name>
-#        #   <source>
-#        #     <host name='10.0.2.101' port='6789'/>
-#        #     <host name='10.0.2.102' port='6789'/>
-#        #     <name>libvirt-pool</name>
-#        #     <auth type='ceph' username='libvirt'>
-#        #       <secret uuid='{uuid of secret}'/>
-#        #     </auth>
-#        #   </source>
-#        # </pool>" > libvirt-pool.xml
-#        # virsh pool-define libvirt-pool.xml
-#        sudo virsh pool-define-as libvirtpool --type rbd --source-host kvm01:6789,kvm02:6789,kvm03:6789 --source-name libvirt-pool --auth-type ceph --auth-username libvirt --secret-usage "client.libvirt secret"
+#        echo "<pool type='rbd'>
+#          <name>libvirtpool</name>
+#          <source>
+#            <host name='10.0.2.101' port='6789'/>
+#            <host name='10.0.2.102' port='6789'/>
+#            <name>libvirt-pool</name>
+#            <auth type='ceph' username='libvirt'>
+#              <secret uuid='{uuid of secret}'/>
+#            </auth>
+#          </source>
+#        </pool>" > libvirt-pool.xml
+#        virsh pool-define libvirt-pool.xml
+#        # sudo virsh pool-define-as libvirtpool --type rbd --source-host kvm01:6789,kvm02:6789,kvm03:6789 --source-name libvirt-pool --auth-type ceph --auth-username libvirt --secret-usage "client.libvirt secret"
 #        sudo virsh pool-start libvirtpool
 #        sudo virsh pool-autostart libvirtpool
 
@@ -292,4 +292,37 @@ EOF
 cat > cephfs.fstab<<EOF
 KVM1:6789:/ /mount-point    ceph    name=cephfs,secretfile=/etc/ceph/client.cephfs,noatime  0   2    
 EOF
-
+cat > create_kvmpool.sh<<EOF
+#!/bin/bash
+POOLNAME=libvirtpool
+ceph osd pool create \${POOLNAME} 128
+rbd pool init \${POOLNAME}
+ceph auth get-or-create client.libvirt mon "allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=\${POOLNAME}"
+echo "all kvm nodes run: uuid 各个主机要使用一个"
+SECRET_UUID=\$(cat /proc/sys/kernel/random/uuid)
+echo -e "<secret ephemeral='no' private='no'>
+  <uuid>\${SECRET_UUID}</uuid>
+  <usage type='ceph'>
+  <name>client.libvirt secret</name>
+  </usage>
+</secret>" > secret.xml
+sudo virsh secret-define --file secret.xml
+ceph auth get-key client.libvirt | tee client.libvirt.key
+sudo virsh secret-set-value --secret \${SECRET_UUID} --base64 \$(cat client.libvirt.key)
+echo -e "<pool type='rbd'>
+  <name>\${POOLNAME}</name>
+  <source>
+    <host name='10.0.2.101' port='6789'/>
+    <host name='10.0.2.102' port='6789'/>
+    <name>\${POOLNAME}</name>
+    <auth type='ceph' username='libvirt'>
+      <secret uuid='\${SECRET_UUID}'/>
+    </auth>
+  </source>
+</pool>" > \${POOLNAME}.xml
+virsh pool-define \${POOLNAME}.xml
+#use secret-usage cannot list host by virt-install 1.5.1
+# sudo virsh pool-define-as \${POOLNAME} --type rbd --source-host kvm01:6789,kvm02:6789,kvm03:6789 --source-name \${POOLNAME} --auth-type ceph --auth-username libvirt --secret-usage "client.libvirt secret"
+sudo virsh pool-start \${POOLNAME}
+sudo virsh pool-autostart \${POOLNAME}
+EOF
