@@ -395,6 +395,15 @@ cleanup
 log "info" "${DISK_FILE} Create root/${NEWPASSWORD} OK "
 
 exit 0
+
+
+# echo "口令每 180 日便失效"
+# perl -npe 's/PASS_MAX_DAYS\s+99999/PASS_MAX_DAYS 180/' -i /etc/login.defs
+# echo "口令每日只可更改一次"
+# perl -npe 's/PASS_MIN_DAYS\s+0/PASS_MIN_DAYS 1/g' -i /etc/login.defs
+# 系统以 sha512 取代 md5 作口令的保护
+# authconfig --passalgo=sha512 --update
+
 # log "info" "Rebuild the initramfs."
 # chroot ${ROOTFS} /bin/bash 2>/dev/nul <<EOF
 # export LATEST_VERSION="$(cd /lib/modules; ls -1vr | head -1)"
@@ -417,19 +426,50 @@ exit 0
 # #dmsetup create linear_test linear.table
 # dmsetup remove_all
 
+
+# #!/bin/bash
+# set -o nounset -o pipefail -o errexit
+# dirname="$(dirname "$(readlink -e "$0")")"
+# UUID=$(cat /proc/sys/kernel/random/uuid)
 # 
-# virsh vol-create-as --pool <pool> --name test.raw --capacity 8G --format raw
+# KVM_USER=${KVM_USER:-root}
+# KVM_HOST=${KVM_HOST:-10.3.60.4}
+# KVM_PORT=${KVM_PORT:-60022}
+# STORE_POOL=${STORE_POOL:-"cephpool"}
+# SIZE=${SIZE:-8G}
+# 
+# if [ "${DEBUG:=false}" = "true" ]; then
+#     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+#     set -o xtrace
+# fi
+# CONNECTION="qemu+ssh://${KVM_USER}@${KVM_HOST}:${KVM_PORT}/system"
+# 
+# VER=$(virt-install --version)
+# 
+# function cleanup
+# {
+#     echo "ERROR"
+#     virsh -c ${CONNECTION} vol-remove --pool ${STORE_POOL} ${UUID}.raw
+# }
+# trap cleanup TERM
+# trap cleanup INT
+# 
+# function fake_virsh {
+#     virsh -c ${CONNECTION} ${*}
+# }
+# 
+# fake_virsh vol-create-as --pool ${STORE_POOL} --name ${UUID}.raw --capacity ${SIZE} --format raw
 # virt-install \
-#         --force \
-#         --name test \
-#         --ram 4096 \
-#         --vcpus 2 \
-#         --os-type linux \
-#         --location http://10.32.166.41:8080 \
-#         --disk vol=<pool>/test.raw \
-#         --accelerate \
-#         --clock offset=localtime \
-#         --network bridge=br-mgr,model=virtio \
-#         --extra-args 'ks=http://10.32.166.41:8081/ks.ks ksdevice=eth0 ip=10.3.60.100 netmask=255.255.255.128 gateway=10.3.60.1'
-# #注意--disk中使用的卷为libvirtpool/virt-1
+#    --connect ${CONNECTION} \
+#    --force \
+#    --name ${UUID} \
+#    --ram 4096 \
+#    --vcpus 2 --cpu host \
+#    --os-type linux \
+#    --location http://10.32.166.41:8080/dvdrom \
+#    --disk vol=${STORE_POOL}/${UUID}.raw,bus=virtio \
+#    --accelerate \
+#    --graphics none \
+#    --network bridge=br-mgr,model=virtio \
+#    --extra-args 'ks=http://10.32.166.41:8080/ks.ks ksdevice=eth0 ip=10.3.60.100 netmask=255.255.255.128 gateway=10.3.60.1 console=ttyS0'
 
