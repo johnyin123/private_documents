@@ -125,6 +125,7 @@ rm -f hosts config
 #    5. ceph-deploy disk list kvm1 ...
 #          A. ceph-deploy disk zap kvm1:/dev/sda #clear disk old info
 #              #. sudo parted -s /dev/sdd mkpart -a optimal primary 1 100%
+#          B. ceph-deploy osd create --bluestore --data /dev/vda2 radosgw
 #          B. ceph-deploy osd prepare kvm1:/dev/sda3 #partition
 #          B. ceph-deploy osd prepare kvm1:/dev/sda  #disk
 #    6. ceph-deploy osd activate kvm1:/dev/sda1 ...
@@ -333,71 +334,60 @@ EOF
 
 cat <<EOF
 #RadosGW S3 api
-ceph-deploy --rgw install {rgw-node-name}
-ceph auth get-or-create client.radosgw.gateway osd 'allow rwx' mon 'allow rwx' -o /etc/ceph/ceph.client.radosgw.keyring
-#存储池：
-.rgw.root
-.rgw.control
-.rgw.gc
-.rgw.buckets
-.rgw.buckets.index
-.rgw.buckets.extra
-.log
-.intent-log
-.usage
-.users
-.users.email
-.users.swift
-.users.uid
+ceph-deploy rgw create {rgw-node-name}
+ceph auth get-or-create client.radosgw.gateway osd 'allow rwx' mon 'allow rwx' -o ceph.client.radosgw.keyring
+ceph-deploy --overwrite-conf admin radosgw
+sudo cp ceph.client.radosgw.keyring /etc/ceph/
 #手动创建各个存储池：
-ceph osd pool create {poolname} {pg-num} {pgp-num} {replicated | erasure} [{erasure-code-profile}] {ruleset-name} {ruleset-number}
+#ceph osd pool create {poolname} {pg-num} {pgp-num} {replicated | erasure} [{erasure-code-profile}] {ruleset-name} {ruleset-number}
 #添加rgw配置
 #在ceph.conf中添加一个名为gateway的实例。
-[client.radosgw.gateway]
-rgw_frontends = fastcgi
-host = {hostname}
+[client.rgw.radosgw]
 keyring = /etc/ceph/ceph.client.radosgw.keyring
-rgw_socket_path = /var/run/ceph/ceph.radosgw.gateway.sock
-log_file = /var/log/ceph/radosgw.log
-rgw_print_continue = false
-rgw_content_length_compat = true
+rgw socket path = ""
+rgw frontends = civetweb port=127.0.0.1:9980
+rgw print continue = false
 
-#配置nginx服务
-http {
-    server {
-        listen 80 default;
-        server_name {hostname};
-        location / {
-            fastcgi_pass_header Authorization;
-            fastcgi_pass_request_headers on;
-            fastcgi_param QUERY_STRING $query_string;
-            fastcgi_param REQUEST_METHOD $request_method;
-            fastcgi_param CONTENT_LENGTH $content_length;
-            fastcgi_param CONTENT_LENGTH $content_length;
-            if ( $request_method = PUT ) {
-                    rewrite ^ /PUT $request_uri;
-            }
-            include fastcgi_params;
-            fastcgi_pass unix:/var/run/ceph/ceph.radosgw.gateway.sock;
-            #fastcgi_pass指向的路径需要与ceph.conf中配置的路径一致
-        }
-        location /PUT/ {
-            internal;
-            fastcgi_pass_header Authorization;
-            fastcgi_pass_request_headers on;
-            include fastcgi_params;
-            fastcgi_param QUERY_STRING $query_string;
-            fastcgi_param REQUEST_METHOD $request_method;
-            fastcgi_param CONTENT_LENGTH $content_length;
-            fastcgi_param  CONTENT_TYPE $content_type;
-            fastcgi_pass unix:/var/run/ceph/ceph.radosgw.gateway.sock;
-        }
-    }
-}
-#启动rgw实例
-radosgw -c /etc/ceph/ceph.conf -n client.radosgw.gateway
+#添加rgw用户
+radosgw-admin user create --uid=cephtest --display-name="ceph test" --email=a@a.com
+#radosgw-admin user create --uid=admin --display-name=admin --access_key=admin --secret=123456
 #测试
-s3cmd, cosbench,也可以通过Python库boto写程序。
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#最后一步生成的object url，通过wget访问时需要把一些特殊字符进行转义；
+from __future__ import print_function
+import boto3
+
+def main():
+    access_key = 'YZWPNTWAS69IP42NEQG2'
+    secret_key = 'pq4SQ8jz81VvHvdf1RBRdJY0QhQn8lQ1RYBv7rbZ'
+    s3_host = 'http://10.0.2.100'
+
+    bucket_name = 'bruins'
+    object_key = 'hello.txt'
+
+    s3client = boto3.client('s3',
+        aws_secret_access_key = secret_key,
+        aws_access_key_id = access_key,
+        endpoint_url = s3_host)
+    response = s3client.list_buckets()
+    for bucket in response['Buckets']:
+        print("Listing owned buckets returns => {0} was created on {1}\n".format(bucket['Name'], bucket['CreationDate']))
+
+    # creating a bucket
+    response = s3client.create_bucket(Bucket = bucket_name)
+    print("Creating bucket {0} returns => {1}\n".format(bucket_name, response))
+
+    # creating an object
+    response = s3client.put_object(Bucket = bucket_name, Key = object_key, Body = 'Hello World!')
+    print("Creating object {0} returns => {1}\n".format(object_key, response))
+
+    hello_url = s3client.generate_presigned_url('get_object', Params={'Bucket': bucket_name, 'Key': object_key}, ExpiresIn= 3600)
+    print(hello_url)
+
+if __name__ == '__main__':
+    main() 
+
 #rgw多实例
 多rgw实例：安装rgw包，ceph.conf，密钥文件，前端配置文件拷贝到相应的节点，启动实例。
 EOF
