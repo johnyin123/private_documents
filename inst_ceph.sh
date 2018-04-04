@@ -329,3 +329,75 @@ sudo virsh pool-define \${POOLNAME}.xml
 sudo virsh pool-start \${POOLNAME}
 sudo virsh pool-autostart \${POOLNAME}
 EOF
+
+
+cat <<EOF
+#RadosGW S3 api
+ceph-deploy --rgw install {rgw-node-name}
+ceph auth get-or-create client.radosgw.gateway osd 'allow rwx' mon 'allow rwx' -o /etc/ceph/ceph.client.radosgw.keyring
+#存储池：
+.rgw.root
+.rgw.control
+.rgw.gc
+.rgw.buckets
+.rgw.buckets.index
+.rgw.buckets.extra
+.log
+.intent-log
+.usage
+.users
+.users.email
+.users.swift
+.users.uid
+#手动创建各个存储池：
+ceph osd pool create {poolname} {pg-num} {pgp-num} {replicated | erasure} [{erasure-code-profile}] {ruleset-name} {ruleset-number}
+#添加rgw配置
+#在ceph.conf中添加一个名为gateway的实例。
+[client.radosgw.gateway]
+rgw_frontends = fastcgi
+host = {hostname}
+keyring = /etc/ceph/ceph.client.radosgw.keyring
+rgw_socket_path = /var/run/ceph/ceph.radosgw.gateway.sock
+log_file = /var/log/ceph/radosgw.log
+rgw_print_continue = false
+rgw_content_length_compat = true
+
+#配置nginx服务
+http {
+    server {
+        listen 80 default;
+        server_name {hostname};
+        location / {
+            fastcgi_pass_header Authorization;
+            fastcgi_pass_request_headers on;
+            fastcgi_param QUERY_STRING $query_string;
+            fastcgi_param REQUEST_METHOD $request_method;
+            fastcgi_param CONTENT_LENGTH $content_length;
+            fastcgi_param CONTENT_LENGTH $content_length;
+            if ( $request_method = PUT ) {
+                    rewrite ^ /PUT $request_uri;
+            }
+            include fastcgi_params;
+            fastcgi_pass unix:/var/run/ceph/ceph.radosgw.gateway.sock;
+            #fastcgi_pass指向的路径需要与ceph.conf中配置的路径一致
+        }
+        location /PUT/ {
+            internal;
+            fastcgi_pass_header Authorization;
+            fastcgi_pass_request_headers on;
+            include fastcgi_params;
+            fastcgi_param QUERY_STRING $query_string;
+            fastcgi_param REQUEST_METHOD $request_method;
+            fastcgi_param CONTENT_LENGTH $content_length;
+            fastcgi_param  CONTENT_TYPE $content_type;
+            fastcgi_pass unix:/var/run/ceph/ceph.radosgw.gateway.sock;
+        }
+    }
+}
+#启动rgw实例
+radosgw -c /etc/ceph/ceph.conf -n client.radosgw.gateway
+#测试
+s3cmd, cosbench,也可以通过Python库boto写程序。
+#rgw多实例
+多rgw实例：安装rgw包，ceph.conf，密钥文件，前端配置文件拷贝到相应的节点，启动实例。
+EOF
