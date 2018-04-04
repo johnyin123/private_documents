@@ -6,6 +6,7 @@ KVM_USER=${KVM_USER:-root}
 KVM_HOST=${KVM_HOST:-10.32.151.250}
 KVM_PORT=${KVM_PORT:-22}
 TIMESERVER=${TIMESERVER:-10.0.2.1}
+CFG_INI=${CFG_INI:-"hosts.ini"}
 
 VIRSH_OPT="-c qemu+ssh://${KVM_USER}@${KVM_HOST}:${KVM_PORT}/system"
 SSH_OPT="-o StrictHostKeyChecking=no -p ${KVM_PORT} ${KVM_USER}@${KVM_HOST}"
@@ -64,7 +65,7 @@ function cleanup() {
 trap cleanup TERM
 trap cleanup INT
 
-for i in pv stat ${ZIP} ${UNZIP} ssh dd mount umount
+for i in pv stat ${ZIP} ${UNZIP} ssh dd mount umount parted
 do
     [[ ! -x $(which $i) ]] && { abort "$i no found"; }
 done
@@ -282,7 +283,6 @@ function getStorePath() {
     { fake_virsh vol-delete --pool ${poolname} ${key}; } > /dev/null 2>&1
 }
 
-readonly CFG_INI="hosts.ini"
 function main() {
     [[ -r "${CFG_INI}" ]] || {
         cat >"${CFG_INI}" <<-EOF
