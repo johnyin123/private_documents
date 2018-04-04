@@ -335,18 +335,17 @@ EOF
 cat <<EOF
 #RadosGW S3 api
 ceph-deploy rgw create {rgw-node-name}
-ceph auth get-or-create client.radosgw.gateway osd 'allow rwx' mon 'allow rwx' -o ceph.client.radosgw.keyring
+ceph auth get-or-create client.radosgw.gateway osd 'allow rwx' mon 'allow rwx'
 ceph-deploy --overwrite-conf admin radosgw
 sudo cp ceph.client.radosgw.keyring /etc/ceph/
 #手动创建各个存储池：
 #ceph osd pool create {poolname} {pg-num} {pgp-num} {replicated | erasure} [{erasure-code-profile}] {ruleset-name} {ruleset-number}
 #添加rgw配置
 #在ceph.conf中添加一个名为gateway的实例。
-[client.rgw.radosgw]
-keyring = /etc/ceph/ceph.client.radosgw.keyring
-rgw socket path = ""
-rgw frontends = civetweb port=127.0.0.1:9980
-rgw print continue = false
+# [client.rgw.radosgw]
+# rgw socket path = ""
+# rgw frontends = civetweb port=127.0.0.1:9980
+# rgw print continue = false
 
 #添加rgw用户
 radosgw-admin user create --uid=cephtest --display-name="ceph test" --email=a@a.com
