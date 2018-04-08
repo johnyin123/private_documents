@@ -29,3 +29,36 @@ ip route add 192.168.1.0/24 dev office
 iptables -t nat -A POSTROUTING -s 192.192.192.2 -d 10.1.0.0/16 -j SNAT --to 10.1.1.1 #否则192.168.1.X等机器访问10.1.1.x网段不通
 iptables -A FORWARD -s 192.192.192.2 -m state --state NEW -m tcp -p tcp --dport 3306 -j DROP #禁止直接访问线上的3306，防止内网被破
 
+echo "/sbin/modprobe ip_gre > /dev/null 2>&1" > /etc/sysconfig/modules/ip_gre.modules
+cat >/etc/sysconfig/network-scripts/ifcfg-tun0<<EOF
+DEVICE=tun0
+BOOTPROTO=none
+#开机启动(这儿没启用)
+ONBOOT=no
+TYPE=GRE
+#对端外部(联网的)IP
+PEER_OUTER_IPADDR=1.2.3.4
+#对端隧道IP
+PEER_INNER_IPADDR=192.168.0.2
+#对端外部(联网的)IP
+MY_INNER_IPADDR=192.168.0.1
+EOF
+#启用隧道
+ifup tun0
+
+
+DEVICE=tun0
+BOOTPROTO=none
+#开机启动(这儿没启用)
+ONBOOT=no
+TYPE=IPIP
+#对端外部(联网的)IP
+PEER_OUTER_IPADDR=1.2.3.4
+#对端隧道IP
+PEER_INNER_IPADDR=192.168.0.2
+#对端外部(联网的)IP
+MY_INNER_IPADDR=192.168.0.1
+EOF
+ 
+#启用隧道
+ifup tun0
