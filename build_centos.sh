@@ -142,7 +142,7 @@ EOF
 #xx.xx.xx.xx via ${guest_gw} dev eth0
 EOF
     cat > ${mnt_point}/etc/hosts <<-EOF
-127.0.0.1   localhost
+127.0.0.1   localhost ${guest_hostname}
 ${guest_ipaddr}    ${guest_hostname}
 EOF
     echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { return 1; }
