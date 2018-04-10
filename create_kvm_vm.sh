@@ -140,6 +140,7 @@ EOF
     sed -i "s/#local stratum 10/local stratum 10/g" ${mnt_point}/etc/chrony.conf
     sed -i "/^server/d" ${mnt_point}/etc/chrony.conf
     sed -i "3 a server ${TIMESERVER} iburst" ${mnt_point}/etc/chrony.conf
+    chmod 755 ${mnt_point}/etc/rc.d/rc.local
     rm -f ${mnt_point}/ssh/ssh_host_*
     return 0
 }

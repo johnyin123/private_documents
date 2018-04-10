@@ -148,6 +148,7 @@ EOF
     echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { return 1; }
     sed -i "/^ListenAddress/d" ${mnt_point}/etc/ssh/sshd_config
     sed -i "/^Port.*$/a\ListenAddress ${guest_ipaddr}" ${mnt_point}/etc/ssh/sshd_config
+    chmod 755 ${mnt_point}/etc/rc.d/rc.local
     rm -f ${mnt_point}/ssh/ssh_host_*
     return 0
 }
