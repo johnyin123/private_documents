@@ -156,6 +156,8 @@ function genkvm_xml(){
     local kvm_bridge=$8
     local memsize=$9
     local vcpus=${10}
+#<cpu mode="host-passthrough"/>
+#<cpu mode='host-model'/>
     cat > ${vmname}<<EOF
 <domain type='kvm'>
   <name>${vmname}</name>
@@ -165,6 +167,7 @@ function genkvm_xml(){
   <memory unit='KiB'>${memsize}</memory>
   <currentMemory unit='KiB'>${memsize}</currentMemory>
   <vcpu>${vcpus}</vcpu>
+  <cpu mode='host-passthrough'/>
   <os>
     <type arch='x86_64'>hvm</type>
   </os>
