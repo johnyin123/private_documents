@@ -39,11 +39,11 @@ done
 for ip in $IPS
 do
     CUR_HOSTNAME=$(eval $CONF | grep ${ip} | awk '{print $2}')
-    cat > init_ceph.${ip}.sh << EOF
+    cat > init_ceph.${ip}.sh << 'EOF'
 hostnamectl set-hostname ${CUR_HOSTNAME}
 id $CEPH_USER || useradd -m $CEPH_USER
 echo $CEPH_PASSWD | passwd --stdin $CEPH_USER
-echo -e 'Defaults: $CEPH_USER !requiretty\\n$CEPH_USER ALL = (root) NOPASSWD:ALL' | tee /etc/sudoers.d/$CEPH_USER
+echo -e 'Defaults: $CEPH_USER !requiretty\n$CEPH_USER ALL = (root) NOPASSWD:ALL' | tee /etc/sudoers.d/$CEPH_USER
 chmod 440 /etc/sudoers.d/$CEPH_USER
 cat > /etc/hosts <<EOFI
 $(cat hosts)
@@ -60,7 +60,7 @@ yum -y install epel-release yum-plugin-priorities https://download.ceph.com/rpm-
 #(rpm -q 'epel-release' || yum -y install epel-release) || true
 yum makecache && yum update -y
 #(rpm -q 'centos-release-ceph-${CEPH_RELEASE}' || yum -y install centos-release-ceph-${CEPH_RELEASE}) || true
-# sed -i -e "s/enabled=1/enabled=1\\npriority=1/g" /etc/yum.repos.d/ceph.repo
+# sed -i -e "s/enabled=1/enabled=1\npriority=1/g" /etc/yum.repos.d/ceph.repo
 (rpm -q 'ceph-deploy' || yum -y install ceph-deploy) || true
 
 cat >>/home/$CEPH_USER/.bashrc<<EOFI
@@ -295,42 +295,42 @@ EOF
 cat > cephfs.fstab<<EOF
 KVM1:6789:/ /mount-point    ceph    name=cephfs,secretfile=/etc/ceph/client.cephfs,noatime  0   2    
 EOF
-cat > create_kvmpool.sh<<EOF
+cat > create_kvmpool.sh<<'EOF'
 #!/bin/bash
 POOLNAME=libvirtpool
-ceph osd pool create \${POOLNAME} 128
-rbd pool init \${POOLNAME}
-ceph auth get-or-create client.libvirt mon "allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=\${POOLNAME}"
-KEY=\$(ceph auth get-key client.libvirt)
+ceph osd pool create ${POOLNAME} 128
+rbd pool init ${POOLNAME}
+ceph auth get-or-create client.libvirt mon "allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=${POOLNAME}"
+KEY=$(ceph auth get-key client.libvirt)
 
 echo "all kvm nodes run: uuid 各个主机要使用一个"
-SECRET_UUID=\$(cat /proc/sys/kernel/random/uuid)
+SECRET_UUID=$(cat /proc/sys/kernel/random/uuid)
 echo -e "<secret ephemeral='no' private='no'>
-  <uuid>\${SECRET_UUID}</uuid>
+  <uuid>${SECRET_UUID}</uuid>
   <usage type='ceph'>
   <name>client.libvirt secret</name>
   </usage>
 </secret>" > secret.xml
 sudo virsh secret-define --file secret.xml
-sudo virsh secret-set-value --secret \${SECRET_UUID} --base64 \${KEY}
+sudo virsh secret-set-value --secret ${SECRET_UUID} --base64 ${KEY}
 echo -e "<pool type='rbd'>
-  <name>\${POOLNAME}</name>
+  <name>${POOLNAME}</name>
   <source>
     <host name='10.0.2.101' port='6789'/>
     <host name='10.0.2.102' port='6789'/>
-    <name>\${POOLNAME}</name>
+    <name>${POOLNAME}</name>
     <auth type='ceph' username='libvirt'>
-      <secret uuid='\${SECRET_UUID}'/>
+      <secret uuid='${SECRET_UUID}'/>
     </auth>
   </source>
-</pool>" > \${POOLNAME}.xml
+</pool>" > ${POOLNAME}.xml
 
 #use secret-usage cannot list host by virt-install 1.5.1
-#sudo virsh pool-define-as \${POOLNAME} --type rbd --source-host kvm01:6789,kvm02:6789,kvm03:6789 --source-name \${POOLNAME} --auth-type ceph --auth-username libvirt --secret-usage "client.libvirt secret"
+#sudo virsh pool-define-as ${POOLNAME} --type rbd --source-host kvm01:6789,kvm02:6789,kvm03:6789 --source-name ${POOLNAME} --auth-type ceph --auth-username libvirt --secret-usage "client.libvirt secret"
 
-sudo virsh pool-define \${POOLNAME}.xml
-sudo virsh pool-start \${POOLNAME}
-sudo virsh pool-autostart \${POOLNAME}
+sudo virsh pool-define ${POOLNAME}.xml
+sudo virsh pool-start ${POOLNAME}
+sudo virsh pool-autostart ${POOLNAME}
 EOF
 
 
