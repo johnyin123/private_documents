@@ -11,7 +11,7 @@ fi
 TOMCAT_USR=${TOMCAT_USR:-false}
 REPO=${REPO:-${dirname}/local.repo}
 ADDITION_PKG=${ADDITION_PKG:-""}
-ADDITION_PKG="${ADDITION_PKG} lvm2 wget rsync bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp wget strace ltrace python-virtualenv"
+ADDITION_PKG="${ADDITION_PKG} bridge-utils lvm2 wget rsync bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp wget strace ltrace python-virtualenv"
 ROOTFS=${ROOTFS:-${dirname}/rootfs}
 NEWPASSWORD=${NEWPASSWORD:-"password"}
 DISK_FILE=${DISK_FILE:-"${dirname}/disk"}
