@@ -3,11 +3,8 @@ yum clean all
 yum makecache
 yum repolist
 
-releasever=7
-basearch=x86_64
-PREFIX=/opt
-
-cat <<'EOF'>local.repo
+#!/bin/bash
+cat <<'EOF'>Centos-7.repo
 [base]
 name=CentOS-$releasever - Base - xikang
 baseurl=http://10.3.60.99/centos/$releasever/base/$basearch/
@@ -23,6 +20,7 @@ gpgcheck=0
 [extras]
 name=CentOS-$releasever - Extras - xikang
 baseurl=http://10.3.60.99/centos/$releasever/extras/$basearch/
+enabled=0
 gpgcheck=0
 
 [epel]
@@ -46,43 +44,33 @@ name=CentOS-$releasever - Ceph Luminous
 baseurl=http://10.3.60.99/centos/$releasever/storage/$basearch/ceph-luminous/
 gpgcheck=0
 EOF
-reposync --norepopath -nr base                    -p ${PREFIX}/centos/$releasever/base/$basearch/Packages
-reposync --norepopath -nr updates                 -p ${PREFIX}/centos/$releasever/updates/$basearch/Packages
-reposync --norepopath -nr extras                  -p ${PREFIX}/centos/$releasever/extras/$basearch/Packages
-reposync --norepopath -nr epel                    -p ${PREFIX}/centos/$releasever/epel/$basearch
+
+PREFIX=/opt
+releasever=7
+basearch=x86_64
+
+reposync --norepopath -nr base -p ${PREFIX}/centos/$releasever/base/$basearch/
+createrepo -d ${PREFIX}/centos/$releasever/base/$basearch/
+
+reposync --norepopath -nr updates -p ${PREFIX}/centos/$releasever/updates/$basearch/
+createrepo -d ${PREFIX}/centos/$releasever/updates/$basearch/
+
+reposync --norepopath -nr extras -p ${PREFIX}/centos/$releasever/extras/$basearch/
+createrepo -d ${PREFIX}/centos/$releasever/extras/$basearch/
+
+reposync --norepopath -nr epel -p ${PREFIX}/centos/$releasever/epel/$basearch
+createrepo -d ${PREFIX}/centos/$releasever/epel/$basearch/
+
 reposync --norepopath -nr centos-openstack-queens -p ${PREFIX}/centos/$releasever/openstack-queens/$basearch/Packages
-reposync --norepopath -nr centos-qemu-ev          -p ${PREFIX}/centos/$releasever/virt/$basearch/kvm-common/Packages
-reposync --norepopath -nr centos-ceph-luminous    -p ${PREFIX}/centos/$releasever/storage/$basearch/ceph-luminous/Packages
-createrepo -d ${PREFIX}/centos/$releasever
+createrepo -d ${PREFIX}/centos/$releasever/openstack-queens/$basearch/
 
-#createrepo -d x86_64/7/centos-openstack-queens ....
+reposync --norepopath -nr centos-qemu-ev -p ${PREFIX}/centos/$releasever/virt/$basearch/kvm-common/Packages
+createrepo -d ${PREFIX}/centos/$releasever/virt/$basearch/kvm-common/
 
-
+reposync --norepopath -nr centos-ceph-luminous -p ${PREFIX}/centos/$releasever/storage/$basearch/ceph-luminous/Packages
+createrepo -d ${PREFIX}/centos/$releasever/storage/$basearch/ceph-luminous/
 
 可上传自有rpm包到仓库，上传后使用createrepo -u 仓库目录，更新仓库索引即可。
-cat /etc/yum.repo.d/yum.repo
-[Base]
-name=CentOS-Base
-baseurl=http://192.168.100.10/centos/7/os/$basearch/
-enabled=1
-gpgcheck=1
-[Updates]
-name=CentOS-Updates
-baseurl=http://192.168.100.10/centos/7/updates/$basearch/
-enabled=1
-gpgcheck=1
-[Extras]
-name=CentOS-Extras
-baseurl=http://192.168.100.10/centos/7/extras/$basearch/
-enabled=1
-gpgcheck=1
-[Epel]
-name=CentOS-Epel
-baseurl=http://192.168.100.10/centos/7/epel/$basearch/
-enabled=1
-gpgcheck=0
-
-
 # Minimal deployment for Queens
 #    Identity service      – keystone installation for Queens
 #    Image service         – glance installation for Queens
@@ -404,8 +392,6 @@ yum -y install openstack-neutron openstack-neutron-ml2 openstack-neutron-linuxbr
 openstack-config --set /etc/neutron/neutron.conf database connection mysql+pymysql://neutron:${NEUTRON_DBPASS}@${CTRL_IP}/neutron
 openstack-config --set /etc/neutron/neutron.conf DEFAULT core_plugin ml2
 openstack-config --set /etc/neutron/neutron.conf DEFAULT service_plugins
-#router
-#TODO:openstack-config --set /etc/neutron/neutron.conf DEFAULT allow_overlapping_ips true
 openstack-config --set /etc/neutron/neutron.conf DEFAULT transport_url rabbit://openstack:${RABBIT_PASS}@${CTRL_IP}
 openstack-config --set /etc/neutron/neutron.conf DEFAULT auth_strategy keystone
 openstack-config --set /etc/neutron/neutron.conf DEFAULT notify_nova_on_port_status_changes true
@@ -444,12 +430,14 @@ openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini securitygroup enabl
 # openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2_type_flat flat_networks provider
 # openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini ml2_type_vxlan vni_ranges 1:1000 
 # openstack-config --set /etc/neutron/plugins/ml2/ml2_conf.ini securitygroup enable_ipset True
-
-echo "Linux bridge agent"
+echo "Linux bridge agent, controller node"
 openstack-config --set /etc/neutron/plugins/ml2/linuxbridge_agent.ini linux_bridge physical_interface_mappings ${FLAT_NETWORKS}:${PROVIDER_INTERFACE_NAME}
 openstack-config --set /etc/neutron/plugins/ml2/linuxbridge_agent.ini vxlan enable_vxlan false
 openstack-config --set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup enable_security_group true
 openstack-config --set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup firewall_driver neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
+#disable iptable firewall
+# enable_security_group false
+# firewall_driver neutron.agent.firewall.NoopFirewall
 #maybe need reboot
 echo "将下面参数的值确保为1"
 sysctl net.bridge.bridge-nf-call-iptables
@@ -469,7 +457,6 @@ echo "metadata agent"
 openstack-config --set /etc/neutron/metadata_agent.ini DEFAULT nova_metadata_host ${CTRL_IP} 
 openstack-config --set /etc/neutron/metadata_agent.ini DEFAULT metadata_proxy_shared_secret ${METADATA_SECRET}
 openstack-config --set /etc/neutron/metadata_agent.ini cache memcache_servers ${CTRL_IP}:11211
-#TODO: memcache_servers = 10.0.0.30:11211
 ln -s /etc/neutron/plugins/ml2/ml2_conf.ini /etc/neutron/plugin.ini
 su -s /bin/sh -c "neutron-db-manage --config-file /etc/neutron/neutron.conf --config-file /etc/neutron/plugins/ml2/ml2_conf.ini upgrade head" neutron
 
@@ -603,12 +590,14 @@ openstack-config --set /etc/neutron/neutron.conf keystone_authtoken project_name
 openstack-config --set /etc/neutron/neutron.conf keystone_authtoken username neutron
 openstack-config --set /etc/neutron/neutron.conf keystone_authtoken password ${NEUTRON_PASS}
 openstack-config --set /etc/neutron/neutron.conf oslo_concurrency lock_path /var/lib/neutron/tmp
-echo "Linux bridge agent"
+echo "Linux bridge agent compute node"
 openstack-config --set /etc/neutron/plugins/ml2/linuxbridge_agent.ini linux_bridge physical_interface_mappings ${FLAT_NETWORKS}:${PROVIDER_INTERFACE_NAME}
-#TODO bridge_mappings <physical_network>:<physical_bridge> ${FLAT_NETWORKS}:br-xxxx
 openstack-config --set /etc/neutron/plugins/ml2/linuxbridge_agent.ini vxlan enable_vxlan false
 openstack-config --set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup enable_security_group true
 openstack-config --set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup firewall_driver neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
+#disable iptable firewall
+# enable_security_group false
+# firewall_driver neutron.agent.firewall.NoopFirewall
 #maybe need reboot
 echo "将下面参数的值确保为1"
 sysctl net.bridge.bridge-nf-call-iptables
