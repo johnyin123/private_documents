@@ -286,9 +286,10 @@ net.ipv4.tcp_rmem=4096 87380 16777216
 net.ipv4.tcp_syn_retries = 1
 net.ipv4.tcp_synack_retries = 1
 net.ipv4.tcp_syncookies = 1
-net.ipv4.tcp_timestamps = 1
-net.ipv4.tcp_tw_recycle = 1
-net.ipv4.tcp_tw_reuse = 1
+
+net.ipv4.tcp_timestamps = 0
+net.ipv4.tcp_tw_recycle = 0
+net.ipv4.tcp_tw_reuse = 0
 net.ipv4.tcp_wmem=4096 65536 16777216
 EOF
 cat >${ROOTFS}/etc/motd.sh<<EOF
