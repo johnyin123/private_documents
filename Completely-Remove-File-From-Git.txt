@@ -1,0 +1,14 @@
+# Make a small repo
+mkdir test
+cd test
+git init
+echo hi > there
+git add there
+git commit -m 'Small repo'
+# Add a random 10M binary file
+dd if=/dev/urandom of=testme.txt count=10 bs=1M
+git add testme.txt
+git commit -m 'Add big binary file'
+# Remove the 10M binary file
+git rm testme.txt
+git commit -m 'Remove big binary file'
