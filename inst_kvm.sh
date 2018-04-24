@@ -60,7 +60,7 @@ DEVICE="${DEF_BRIDGE_IFACE}"
 ONBOOT="yes"
 TYPE="Bridge"
 BOOTPROTO="none"
-STP="on"
+STP="off"
 #DELAY="0.0"
 EOF
 
@@ -188,7 +188,7 @@ cat << EOF
       <port start='1024' end='65535'/>
     </nat>
   </forward>
-  <bridge name='virbr0' stp='on' delay='0'/>
+  <bridge name='virbr0' stp='off' delay='0'/>
   <domain name='nat_network'/>
   <ip address='10.0.2.1' netmask='255.255.255.0'>
   </ip>
