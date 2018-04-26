@@ -56,7 +56,7 @@ basearch=x86_64
 #-m选项指明需下载软件分组信息文件——comps.xml,
 
 reposync --norepopath -mnr base -p ${PREFIX}/centos/$releasever/base/$basearch/
-createrepo -d ${PREFIX}/centos/$releasever/base/$basearch/
+createrepo -g ${PREFIX}/centos/7/base/x86_64/comps.xml -d ${PREFIX}/centos/$releasever/base/$basearch/
 
 reposync --norepopath -mnr updates -p ${PREFIX}/centos/$releasever/updates/$basearch/
 createrepo -d ${PREFIX}/centos/$releasever/updates/$basearch/
@@ -65,7 +65,7 @@ reposync --norepopath -mnr extras -p ${PREFIX}/centos/$releasever/extras/$basear
 createrepo -d ${PREFIX}/centos/$releasever/extras/$basearch/
 
 reposync --norepopath -mnr epel -p ${PREFIX}/centos/$releasever/epel/$basearch
-createrepo -d ${PREFIX}/centos/$releasever/epel/$basearch/
+createrepo -g ${PREFIX}/centos/7/epel/x86_64/comps.xml  -d ${PREFIX}/centos/$releasever/epel/$basearch/
 
 reposync --norepopath -mnr centos-openstack-queens -p ${PREFIX}/centos/$releasever/openstack-queens/$basearch/Packages
 createrepo -d ${PREFIX}/centos/$releasever/openstack-queens/$basearch/
