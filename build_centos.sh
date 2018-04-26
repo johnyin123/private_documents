@@ -21,7 +21,7 @@ NAME=${NAME:-"vmtemplate"}
 IP=${IP:-"10.0.2.100/24"}
 GW=${GW:-"10.0.2.1"}
 
-YUM_OPT="--noplugins --nogpgcheck --config=${REPO} --disablerepo=* --enablerepo=centos,update" #--setopt=tsflags=nodocs"
+YUM_OPT="--noplugins --nogpgcheck --config=${REPO}" #--setopt=tsflags=nodocs"
 ## end parms
 
 PREFIX=${IP##*/}
