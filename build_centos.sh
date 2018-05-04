@@ -214,7 +214,13 @@ GRUB_TERMINAL_OUTPUT="console"
 GRUB_CMDLINE_LINUX="console=ttyS0 net.ifnames=0 biosdevname=0"
 GRUB_DISABLE_RECOVERY="true"
 EOF
+
+log "info" "add rootfs ....."
 echo "UUID=${UUID} / xfs defaults 0 0" > ${ROOTFS}/etc/fstab
+
+log "info" "add 512M swap ....."
+dd if=/dev/zero of=${ROOTFS}/swapfile bs=1M count=512 && chmod 600 ${ROOTFS}/swapfile && mkswap ${ROOTFS}/swapfile
+sed -i '$a\/swapfile swap swap defaults 0 0' ${ROOTFS}/etc/fstab
 
 cat > ${ROOTFS}/etc/X11/xorg.conf.d/00-keyboard.conf <<EOF
 Section "InputClass"
