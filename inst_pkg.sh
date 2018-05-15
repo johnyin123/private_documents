@@ -308,3 +308,37 @@ cd /usr/share/man && find ./ -maxdepth 1 -type d | tail -n +2 | grep -E -v '(en|
 cd /usr/share/vim/vim80/lang && ln -s menu_zh_cn.utf-8.vim menu_zh_cn.utf8.vim
 
 apt install pandoc
+
+cat <<EOF >/etc/network/interfaces.d/wifi
+auto wlan0
+allow-hotplug wlan0
+
+iface wlan0 inet dhcp
+    wireless_mode managed
+    wireless_essid any
+    #wpa-driver wext
+    wpa-conf /etc/wpa.conf
+EOF
+cat <<EOF>/etc/wpa.conf
+ap_scan=1
+network={
+	ssid="xk-admin"
+	scan_ssid=1
+	#key_mgmt=WPA-PSK
+	psk="2016xikang.YW"
+}
+EOF
+cat <<EOF
+allow-hotplug eth0
+iface eth0 inet manual
+
+auto br-ext
+iface br-ext inet static
+    bridge_ports eth0
+    address 10.32.166.33
+    netmask 255.255.255.128
+    up (ip route add 10.0.0.0/8 via 10.32.166.1 || true)
+    up (ip route add 202.107.117.11/32 via 10.32.166.1 dev br-ext || true)
+    up (ip r a 59.46.220.174/32 via 10.32.166.1 dev br-ext || true)
+    up (ip r a 218.24.180.63/32 via 10.32.166.1 dev br-ext || true)
+EOF
