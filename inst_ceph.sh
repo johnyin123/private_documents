@@ -1,10 +1,20 @@
 #!/bin/bash
+cat <<EOF
+Total PGs = (Total_number_of_OSD * 100) / max_replication_count
+ceph osd pool get cephpool pg_num
+ceph osd pool get cephpool pgp_num
+ceph osd dump |grep size|grep cephpool
+根据OSD数量、复制size、pool的数量，计算出新的PG数量,取跟它接近的2的N次方
+ceph osd pool set cephpool pg_num 1024
+ceph osd pool set cephpool pgp_num 1024
+
+EOF
 #http://docs.ceph.org.cn/
 CEPH_RELEASE=luminous
 #CEPH_RELEASE=jewel
 
 CEPH_USER=ceph
-CEPH_PASSWD=password
+CEPH_PASSWD=xikang@2018
 [[ -r "hosts.conf" ]] || {
 	cat >"hosts.conf" <<- EOF
 #IP          hostname(小写)  ssh_port   type
@@ -39,7 +49,7 @@ done
 for ip in $IPS
 do
     CUR_HOSTNAME=$(eval $CONF | grep ${ip} | awk '{print $2}')
-    cat > init_ceph.${ip}.sh << 'EOF'
+    cat > init_ceph.${ip}.sh << EOF
 hostnamectl set-hostname ${CUR_HOSTNAME}
 id $CEPH_USER || useradd -m $CEPH_USER
 echo $CEPH_PASSWD | passwd --stdin $CEPH_USER
@@ -125,12 +135,13 @@ rm -f hosts config
 #       4.2. ceph mgr module enable dashboard
 #           #The dashboard module runs on port 7000 by default. http://<active mgr host>:7000/
 #    5. ceph-deploy disk list kvm1 ...
+#    5. ceph-deploy osd create node01 --bluestore --data /dev/sdb
 #          A. ceph-deploy disk zap kvm1:/dev/sda #clear disk old info
 #              #. sudo parted -s /dev/sdd mkpart -a optimal primary 1 100%
 #          B. ceph-deploy osd create --bluestore --data /dev/vda2 radosgw
 #          B. ceph-deploy osd prepare kvm1:/dev/sda3 #partition
 #          B. ceph-deploy osd prepare kvm1:/dev/sda  #disk
-#    6. ceph-deploy osd activate kvm1:/dev/sda1 ...
+#    #6. ceph-deploy osd activate kvm1:/dev/sda1 ...
 #    7. MUST:add mount point in fstab!
 #    8. ceph-deploy admin kvm1
 #    9. sudo chmod 644 /etc/ceph/ceph.client.admin.keyring   
