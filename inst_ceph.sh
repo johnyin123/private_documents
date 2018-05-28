@@ -1,5 +1,18 @@
 #!/bin/bash
 cat <<EOF
+If attempting to install behind a firewall or through a proxy you can use the --no-adjust-repos
+that will tell ceph-deploy to skip any changes to the distro’s repository in order to install
+the packages and it will go straight to package installation.
+That will allow an environment without internet access to point to its own repositories. 
+This means that those repositories will need to be properly setup
+(and mirrored with all the necessary dependencies) before attempting an install.
+
+Another alternative is to set the wget env variables to point to the right hosts, for example:
+http_proxy=http://host:port
+ftp_proxy=http://host:port
+https_proxy=http://host:port
+EOF
+cat <<EOF
 Total PGs = (Total_number_of_OSD * 100) / max_replication_count
 ceph osd pool get cephpool pg_num
 ceph osd pool get cephpool pgp_num
