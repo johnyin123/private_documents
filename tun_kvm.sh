@@ -4,6 +4,12 @@ mount -t hugetlbfs hugetlbfs /hugetlbfs
 mkdir -p /hugetlbfs/libvirt/bin
 systemctl restart libvirtd
 
+
+systemctl enable tuned.service
+systemctl start tuned.service
+tuned-adm profile latency-performance
+tuned-adm active
+
 cat /proc/meminfo | grep HugePages_
 
 Add below codes after the line "<currentMemory ..."
