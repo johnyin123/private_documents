@@ -144,7 +144,8 @@ EOF
     rm -f ${mnt_point}/ssh/ssh_host_*
     return 0
 }
-
+# add dynamic vcpus
+# <vcpu placement='static' current='1'>2</vcpu>
 function genkvm_xml(){
     local vmname=$1
     local ceph_secret_uuid=$2
