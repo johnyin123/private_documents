@@ -110,6 +110,40 @@ readini()
 
 function change_vm_info() {
     local mnt_point=$1
+    unset VERSION_ID ID
+    retval=250
+    eval "$(cat ${mnt_point}/etc/*-release | grep "^VERSION_ID")"
+    eval "$(cat ${mnt_point}/etc/*-release | grep  "^ID=")"
+    TARGET_FUNC="change_vm_info_${ID}${VERSION_ID}"
+    if [ "$(type -t ${TARGET_FUNC})" = "function" ] ; then
+        eval ${TARGET_FUNC} $*
+        retval=$?
+    else
+        log "error" "can not change vm info,[${ID} ${VERSION_ID}]"
+    fi
+    unset VERSION_ID ID
+    return ${retval}
+}
+
+function change_vm_info_debian9() {
+    local mnt_point=$1
+    local guest_hostname=$2
+    local guest_ipaddr=$3
+    local guest_prefix=$4
+    local guest_route=$5
+    local guest_uuid=$6
+    log "warn" "TODO:"
+    echo $mnt_point
+    echo $guest_hostname
+    echo $guest_ipaddr
+    echo $guest_prefix
+    echo $guest_route
+    echo $guest_uuid
+    log "warn" "TODO:"
+    return 0
+}
+function change_vm_info_centos7() {
+    local mnt_point=$1
     local guest_hostname=$2
     local guest_ipaddr=$3
     local guest_prefix=$4
@@ -369,9 +403,9 @@ EOF
         mkdir -p ${mnt_point}
         # SectorSize * StartSector
         SectorSize=$(parted ${TEMPLATE_IMG} unit s print | awk '/Sector size/{print $4}' | awk -F "B" '{print $1}')
-	    sst=$(parted ${TEMPLATE_IMG} unit s print | awk '/ 1  /{print $2}')
-	    StartSector=${sst:0:${#sst}-1}
-	    OffSet=$(($StartSector*$SectorSize))
+        sst=$(parted ${TEMPLATE_IMG} unit s print | awk '/ 1  /{print $2}')
+        StartSector=${sst:0:${#sst}-1}
+        OffSet=$(($StartSector*$SectorSize))
         mount -o loop,offset=${OffSet} ${TEMPLATE_IMG} ${mnt_point}
         change_vm_info "${mnt_point}" "${VMNAME}" "${IP}" "${PREFIX}" "${ROUTE}" "${UUID}"
         retval=$?
