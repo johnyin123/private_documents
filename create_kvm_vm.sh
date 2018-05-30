@@ -110,13 +110,18 @@ readini()
 
 function change_vm_info() {
     local mnt_point=$1
+    local guest_hostname=$2
+    local guest_ipaddr=$3
+    local guest_prefix=$4
+    local guest_route=$5
+    local guest_uuid=$6
     unset VERSION_ID ID
     retval=250
     eval "$(cat ${mnt_point}/etc/*-release | grep "^VERSION_ID")"
     eval "$(cat ${mnt_point}/etc/*-release | grep  "^ID=")"
     TARGET_FUNC="change_vm_info_${ID}${VERSION_ID}"
     if [ "$(type -t ${TARGET_FUNC})" = "function" ] ; then
-        eval ${TARGET_FUNC} $*
+        eval "${TARGET_FUNC} '$1' '$2' '$3' '$4' '$5' \"$6\""
         retval=$?
     else
         log "error" "can not change vm info,[${ID} ${VERSION_ID}]"
@@ -132,10 +137,10 @@ function change_vm_info_debian9() {
     local guest_prefix=$4
     local guest_route=$5
     local guest_uuid=$6
-    cat > ${mnt_point}/etc/network/interfaces.d/eth0 <<-EOF
+    cat > ${mnt_point}/etc/network/interfaces.d/eth0 <<EOF
 allow-hotplug eth0
 iface eth0 inet static
-	address ${guest_ipaddr}/${guest_prefix}
+    address ${guest_ipaddr}/${guest_prefix}
     ${guest_route}
 EOF
     cat > ${mnt_point}/etc/hosts <<-EOF
@@ -340,7 +345,9 @@ function main() {
 #name
 IP=10.0.2.2/24
 ROUTE="default via 10.0.2.1
-192.160.1.1 via 10.0.2.1 dev eth0"
+192.160.1.0/24 via 10.0.2.1 dev eth0"
+#ROUTE="up ip r a default via 10.0.2.1 dev eth0
+#    up ip r a 192.160.1.0/24 via 10.0.2.1 dev eth0"
 #使用libvirt管理的net pool(可直接使用系统Bridge/ovs, virsh net-list）直接使用系统bridge
 NET_TYPE=bridge
 #NET_TYPE=network
