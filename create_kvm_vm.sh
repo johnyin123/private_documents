@@ -143,7 +143,11 @@ EOF
 ${guest_ipaddr}    ${guest_hostname}
 EOF
     echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { return 1; }
-    chmod 755 ${mnt_point}/etc/rc.d/rc.local
+    cat > ${mnt_point}/etc/rc.local <<-EOF
+#!/bin/sh -e
+exit 0
+EOF
+    chmod 755 ${mnt_point}/etc/rc.local
     rm -f ${mnt_point}/ssh/ssh_host_*
     return 0
 }
