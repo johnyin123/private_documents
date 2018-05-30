@@ -132,14 +132,19 @@ function change_vm_info_debian9() {
     local guest_prefix=$4
     local guest_route=$5
     local guest_uuid=$6
-    log "warn" "TODO:"
-    echo $mnt_point
-    echo $guest_hostname
-    echo $guest_ipaddr
-    echo $guest_prefix
-    echo $guest_route
-    echo $guest_uuid
-    log "warn" "TODO:"
+    cat > ${mnt_point}/etc/network/interfaces.d/eth0 <<-EOF
+allow-hotplug eth0
+iface eth0 inet static
+	address ${guest_ipaddr}/${guest_prefix}
+    ${guest_route}
+EOF
+    cat > ${mnt_point}/etc/hosts <<-EOF
+127.0.0.1   localhost ${guest_hostname}
+${guest_ipaddr}    ${guest_hostname}
+EOF
+    echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { return 1; }
+    chmod 755 ${mnt_point}/etc/rc.d/rc.local
+    rm -f ${mnt_point}/ssh/ssh_host_*
     return 0
 }
 function change_vm_info_centos7() {
