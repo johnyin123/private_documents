@@ -1,3 +1,17 @@
+网卡多队列
+centos 7开始支持virtio网卡多队列，可以大大提高虚拟机网络性能，配置方法如下：
+<interface type='network'>
+<source network='default'/>
+<model type='virtio'/>
+<driver name='vhost' queues='N'/>
+</interface>
+ N 1 – 8 最多支持8个队列
+在虚拟机上执行以下命令开启多队列网卡
+#ethtool -L eth0 combined M
+     M 1 – N M小于等于N
+
+
+
 echo "2048">/proc/sys/vm/nr_hugepages
 mkdir -p /hugetlbfs
 mount -t hugetlbfs hugetlbfs /hugetlbfs
