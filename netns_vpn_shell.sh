@@ -1,14 +1,29 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail
 
+NS_NAME=${NS_NAME:-"vpnet"}
+IP_PREFIX=${IP_PREFIX:-"192.168.100"}
+OUT_INTERFACE=${OUT_INTERFACE:-"vpn0"}
+ROUTE_TBL_ID=${ROUTE_TBL_ID:-10}
+ROUTE_IP=${ROUTE_IP:-"10.0.1.4"}
+DNS=${DNS:-"114.114.114.114"}
+
+netns_exists() {
+    local ns_name="$1"
+    # Check if a namespace named $ns_name exists.
+    # Note: Namespaces with a veth pair are listed with '(id: 0)' (or something). We need to remove this before lookin
+    ip netns list | sed 's/ *(id: [0-9]\+)$//' | grep --quiet --fixed-string --line-regexp "${ns_name}"
+    return $?
+}
+#netns_exists "${ns_name}" && return 0
+
 setup_ns() {
     ns_name="$1"
     ip="$2"
     ns_name0="${ns_name}0"
     ns_name1="${ns_name}1"
 
-    ip netns del $ns_name 2> /dev/null
-
+    #ip netns del $ns_name 2> /dev/null
     ip netns add $ns_name
     ip netns exec $ns_name ip addr add 127.0.0.1/8 dev lo
     ip netns exec $ns_name ip link set lo up
@@ -90,15 +105,13 @@ ns_run() {
 # trap cleanup INT
 
 main() {
-    NS_NAME="vpnet"
-    IP_PREFIX="192.168.100"
-    OUT_INTERFACE="vpn0"
-    ROUTE_TBL_ID=10
-    ROUTE_IP="10.0.1.4"
-    DNS="8.8.8.8"
     [[ $UID = 0 ]] || {
         echo "recommended to run as root.";
         exit 1;
+    }
+    netns_exists "${NS_NAME}" && {
+        ns_run "${NS_NAME}" /bin/bash
+        exit 0
     }
     setup_ns "${NS_NAME}" "${IP_PREFIX}"
     setup_traffic "${NS_NAME}" "${IP_PREFIX}" "${OUT_INTERFACE}"
@@ -114,6 +127,5 @@ main() {
     cleanup_ns "${NS_NAME}" "${IP_PREFIX}"
     exit 0
 }
-
 [[ ${BASH_SOURCE[0]} = $0 ]] && main "$@"
 
