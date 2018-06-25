@@ -391,8 +391,8 @@ WantedBy=multi-user.target
 EOF
 fi
 
-cat >> ${ROOTFS}/etc/profile << EOF
-export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]\$"
+cat >> ${ROOTFS}/etc/profile << 'EOF'
+export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]\\$"
 export readonly PROMPT_COMMAND='{ msg=\$(history 1 | { read x y; echo \$y; });user=\$(whoami); echo \$(date "+%Y-%m-%d%H:%M:%S"):\$user:`pwd`/:\$msg ---- \$(who am i); } >> \$HOME/.history.'
 set -o vi
 sh /etc/motd.sh
