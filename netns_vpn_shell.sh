@@ -86,7 +86,7 @@ setup_nameserver() {
      cat > /etc/netns/$ns_name/bash.bashrc <<EOF
 export PROMPT_COMMAND=""
 alias ll='ls -lh'
-export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\](${ns_name}):\[\033[33;1m\]\w\[\033[m\]\$"
+export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\](${ns_name}:${ROUTE_IP}):\[\033[33;1m\]\w\[\033[m\]\$"
 EOF
 }
 
@@ -118,7 +118,7 @@ main() {
     setup_nameserver "${NS_NAME}" "${DNS}"
     setup_strategy_route "${IP_PREFIX}" "${ROUTE_IP}" "${ROUTE_TBL_ID}"
 
-    ns_run "${NS_NAME}" curl cip.cc
+    #ns_run "${NS_NAME}" curl cip.cc
     ns_run "${NS_NAME}" /bin/bash
 
     cleanup_strategy_route "${ROUTE_TBL_ID}"
