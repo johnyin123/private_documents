@@ -87,7 +87,8 @@ apt-get upgrade -y --force-yes
 removepkg="tango-icon-theme fonts-liberation"
 apt-get remove ${removepkg} --purge
 apt-get autoremove --purge -y --force-yes
-
+echo "install ocr engine"
+apt-get install -y tesseract-ocr
 
 touch /etc/apt-fast.conf
 
