@@ -21,7 +21,7 @@ class VMInfo(Base):
     gentm = Column(DateTime, nullable=False, index=True, primary_key=True)
     vmname = Column(String(50), nullable=False, index=True, primary_key=True)
     ifname = Column(String(10), nullable=False, index=True, primary_key=True)
-    ipaddr = Column(String(15), nullable=False, index=True)
+    ipaddr = Column(String(15), nullable=False, index=True, primary_key=True) #vip/alias...
     hwaddr = Column(String(17), nullable=False)
     rx = Column(Integer, nullable=False)
     tx = Column(Integer, nullable=False)
@@ -140,9 +140,13 @@ class VirtHost(object):
 #                                print('    write errors:  '+str(stats[6]))
 #                                print('    write drops:   '+str(stats[7]))
 
-if __name__ == '__main__':
+import click
+
+@click.command()
+@click.option('--url', default="qemu:///system", help='libvirt url: qemu+ssh://root@10.4.38.8:60022/system')
+def vminfo2db(url):
+    print(url)
     db_init()
-    url="qemu+ssh://root@10.4.38.8:60022/system"
     vhost = VirtHost(url)
     domains = vhost.GetDomains(1)
     if domains is not None:
@@ -150,4 +154,10 @@ if __name__ == '__main__':
             vhost.Domifstats(d["name"])
     db_commit()
     db_close()
+
+"""
+for i in `seq 2 8`; do ./virt_report.py --url qemu+ssh://root@10.4.38.$i:60022/system; done
+"""
+if __name__ == '__main__':
+    vminfo2db() 
     exit(0)
