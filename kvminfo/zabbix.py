@@ -5,12 +5,13 @@ from __future__ import print_function
 
 import json
 from urllib2 import Request, urlopen, URLError, HTTPError
+import time
 
 class zabbixrpc:
-    def __init__(self):
+    def __init__(self, user, passwd):
         self.url = "http://10.4.30.250/zabbix/api_jsonrpc.php"
         self.headers = {"Content-Type": "application/json"}
-        self.authID = self._login("Admin", "zabbix")
+        self.authID = self._login(user, passwd)
 
     def zbxapi(self, data):
         request = Request(self.url, data)
@@ -138,8 +139,7 @@ def dicdump(dic):
     print(json.dumps(dic, indent=4, ensure_ascii=False))
 
 def main():
-    rpc = zabbixrpc()
-    hostID = rpc.host_get("10.4.30.2")
+    rpc = zabbixrpc("Admin", "zabbix")
     groups = rpc.group_list()
     for group in groups["result"]:
         hosts = rpc.host_list(group["groupid"]) 
@@ -150,9 +150,24 @@ def main():
                 itemname = item["key_"]
                 historys = rpc.history_get(itemid)
                 for history in historys["result"]:
-                    print(host["name"], itemname, history["value"], history["clock"])
+                    tm = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(float(history["clock"])))
+                    print("{} \033[31m{}\033[0m :{},{}".format(tm, host["name"], itemname, history["value"]))
         #dicdump(hosts)
 
 if __name__ == "__main__":
-    main()
+#main()
+    rpc = zabbixrpc("Admin", "zabbix")
+    for h in rpc.history_get(35986, 100)["result"]:
+        print("{}    {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(float(h["clock"]))), h["value"]))
+"""    hostid = rpc.host_get("10.4.30.4")
+    items = rpc.item_list(hostid)
+    for item in items["result"]:
+        itemid = item["itemid"]
+        itemname = item["key_"]
+        historys = rpc.history_get(itemid)
+        for history in historys["result"]:
+            tm = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(float(history["clock"])))
+            print("\033[31m{}\033[0m :{}[{}],{}".format(tm, itemname, itemid, history["value"]))
+"""
 
+#dicdump(response)
