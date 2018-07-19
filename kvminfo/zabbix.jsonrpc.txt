@@ -1,0 +1,300 @@
+1,认证并取得加密字段
+curl -i -X POST -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method":"user.login","params":{"user":"admin","password":"zabbix"},"auth": null,"id":0}' http://10.4.30.250/zabbix/api_jsonrpc.php;
+2,获取指定或所有监控主机的hostids
+curl -i -X POST -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method":"host.get","params":{"output":["hostid"],"filter": {"host":"192.168.1.223"}},"auth": "b61b7168931be1065cd722ab44e32d2a","id": 0}' http://10.4.30.250/zabbix/api_jsonrpc.php;
+zabbix下所有监控主机hostids
+curl -i -X POST -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method":"host.get","params":{"output":["hostid"]},"auth": "b61b7168931be1065cd722ab44e32d2a","id": 0}' http://10.4.30.250/zabbix/api_jsonrpc.php;
+3,获得指定主机下指定监控项或是所有监控项itemids
+curl -i -X POST -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method":"item.get","params":{"output":"itemids","hostids":"10119","search":{"key_":"system.cpu.util[,idle]"}},"auth": "91aca8c1fe89c89c2e457ab18a28e79b","id": 0}' http://10.4.30.250/zabbix/api_jsonrpc.php;
+ zabbix下指定主机的所有itemids
+curl -i -X POST -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method":"item.get","params":{"output":["itemids"],"hostids":"10119"},"auth": "91aca8c1fe89c89c2e457ab18a28e79b","id": 0}' http://10.4.30.250/zabbix/api_jsonrpc.php
+ 4,获取指定监控项在指定时间段的值
+获取指定itemids的所有历史数据;
+curl -i -X POST -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method":"history.get","params":{"history":0,"itemids":["23902"],"output":"extend"},"auth": "91aca8c1fe89c89c2e457ab18a28e79b","id": 0}' http://10.4.30.250/zabbix/api_jsonrpc.php
+获取指定监控项itemids的指定时间段历史数据;
+我们获取下2014-05-01到2014-05-03期间的数据语句如下
+curl -i -X POST -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method":"history.get","params":{"history":0,"itemids":["23902"],"time_from":"1398873600","time_till":"1399046400","output":"extend"},"auth": "91aca8c1fe89c89c2e457ab18a28e79b","id": 0}' http://10.4.30.250/zabbix/api_jsonrpc.php
+数据比较多,其凌乱,value就是我们要的值了;
+此种使用的是秒数需将字符串时间值(2014/05/01 --转换为自1970/1/1以来的秒数值)换算一下我在这里用shell简单搞下
+5,抓指定时间点的值
+curl -i -X POST -H 'Content-Type: application/json' -d '{"jsonrpc": "2.0","method":"history.get","params":{"history":0,"itemids":["23902"],"time_from":"1398873600","time_till":"1399046400","output":"extend","filter":{"clock":"1399026180"}},"auth": "91aca8c1fe89c89c2e457ab18a28e79b","id": 0}' http://10.4.30.250/zabbix/api_jsonrpc.php
+看抓取的数据结构完全可以给他导到xml中;
+zabbix API Object specifications without the 'draft' mark are stable and can be used for production purposes
+curl模拟调用zabbix JSON-RPC格式
+curl -i -X POST -H 'Content-Type: application/json' -d ‘api json语句’ zabbix-server--即我的测试机http://10.4.30.250/zabbix/api_jsonrpc.php;
+来个模板吧,你copy此处到你的终端吧数据语句放到''中要是没问题的话即可返回你所要的数据
+curl -i -X POST -H 'Content-Type: application/json' -d
+'
+ 
+你的json语句拷贝与此处;
+' 　你的zabbix服务器api  的url
+Examples,都是Ruiy根据官网及相关文档改写亲测成功的,你仅需的就是修改下你的zabbix服务器API的URL即可;
+1,获取监控主机信息
+curl -i -X POST -H 'Content-Type:application/json' -d '{"jsonrpc":"2.0","method":"host.get","params":{"output":"extend"},"auth":"91aca8c1fe89c89c2e457ab18a28e79b","id":4 }' http://10.4.30.250/zabbix/api_jsonrpc.php
+2,zabbix版本
+curl -i -X POST -H 'Content-Type:application/json' -d '{"jsonrpc":"2.0","method":"apiinfo.version","params":{"output":"extend"},"auth":"91aca8c1fe89c89c2e457ab18a28e79b","id":1 }' http://10.4.30.250/zabbix/api_jsonrpc.php
+3,获取auth加密字段
+curl -i -X POST -H 'Content-Type:application/json' -d '{"jsonrpc":"2.0","method":"user.authenticate","params":{"user":"admin","password":"zabbix"},"auth":null,"id":0}' http://10.4.30.250/zabbix/api_jsonrpc.php
+将"method":"user.authenticate"改成"method":"user.login";
+4,获取web scenario信息
+curl -i -X POST -H 'Content-Type:application/json' -d '{"jsonrpc":"2.0","method":"httptest.get","params":{"output":"extend"},"auth":"91aca8c1fe89c89c2e457ab18a28e79b","id":1 }' http://10.4.30.250/zabbix/api_jsonrpc.php;
+ 
+5,获取zabbix系统中以定义了的macro
+curl -i -X POST -H 'Content-Type:application/json' -d '{"jsonrpc":"2.0","method":"usermacro.get","params":{"output":"extend"},"auth":"91aca8c1fe89c89c2e457ab18a28e79b","id":1 }' http://10.4.30.250/zabbix/api_jsonrpc.php
+6,告警介质
+curl -i -X POST -H 'Content-Type:application/json' -d '{"jsonrpc":"2.0","method":"usermedia.get","params":{"output":"extend"},"auth":"91aca8c1fe89c89c2e457ab18a28e79b","id":1 }' http://10.4.30.250/zabbix/api_jsonrpc.php
+ 关于json的相关格式语法本人没接触也不懂,需要的同仁自己查阅;
+相关的测试我也就不一一列举了,下面我把zabbix-API所以的method reference给各位同仁罗列下,参考自zabbix Official manual
+我仅仅罗列method,关于每个method的动作操作(.get,.create,.delete,.update,.exists,...不足或不限制于此处罗列)省
+1,　　action.get
+2,　　alter.get
+3,　　apiinfo.version
+4,　　application
+5,　　configuration.import/export
+6,　　discovered host dhost/service/check/rule.get
+7,　　event.get
+8,　　graph.get
+9,　　graphitem.get
+10,　　prototype.get
+11,　　history.get
+12,　　host/group/interface/prototype/.get
+13,　　icon.get
+14,　　image.get
+15,　　item
+16,　　.....
+ 进入正题
+1.     user.login方法获取zabbix server的认证结果官方地址：https://www.zabbix.com/documentation/2.2/manual/api/reference/user/login
+python脚本：
+
+#!/usr/bin/env python2.7
+#coding=utf-8
+import json
+import urllib2
+# based url and required header
+url = "http://1.1.1.1/zabbix/api_jsonrpc.php"
+header = {"Content-Type":"application/json"}
+# auth user and password
+data = json.dumps(
+{
+   "jsonrpc": "2.0",
+   "method": "user.login",
+   "params": {
+   "user": "Admin",
+   "password": "zabbix"
+},
+"id": 0
+})
+# create request object
+request = urllib2.Request(url,data)
+for key in header:
+   request.add_header(key,header[key])
+# auth and get authid
+try:
+   result = urllib2.urlopen(request)
+except URLError as e:
+   print "Auth Failed, Please Check Your Name AndPassword:",e.code
+else:
+   response = json.loads(result.read())
+   result.close()
+print"Auth Successful. The Auth ID Is:",response['result']
+
+
+
+curl命令：
+curl -i -X POST -H 'Content-Type:application/json' -d '{"jsonrpc":
+"2.0","method":"user.login","params":{"user":"admin","password":"zabbix"},"auth":
+null,"id":0}' http://1.1.1.1/zabbix/api_jsonrpc.php
+
+
+2.     hostgroup.get方法获取所有主机组ID把认证密钥放到脚本中，每次获取数据时都需要认证。此处是获取zabbix server上的所有主机组名称与ID号。
+python脚本：
+#!/usr/bin/env python2.7
+#coding=utf-8
+import json
+import urllib2
+# based url and required header
+url = "http://1.1.1.1/zabbix/api_jsonrpc.php"
+header = {"Content-Type":"application/json"}
+# request json
+data = json.dumps(
+{
+   "jsonrpc":"2.0",
+   "method":"hostgroup.get",
+   "params":{
+       "output":["groupid","name"],
+   },
+   "auth":"3c0e88885a8cf8af9502b5c850b992bd", # theauth id is what auth script returns, remeber it is string
+   "id":1,
+})
+# create request object
+request = urllib2.Request(url,data)
+for key in header:
+   request.add_header(key,header[key])
+# get host list
+try:
+   result = urllib2.urlopen(request)
+except URLError as e:
+   if hasattr(e, 'reason'):
+       print 'We failed to reach a server.'
+       print 'Reason: ', e.reason
+   elif hasattr(e, 'code'):
+       print 'The server could not fulfill the request.'
+       print 'Error code: ', e.code
+else:
+   response = json.loads(result.read())
+   result.close()
+   print "Number Of Hosts: ", len(response['result'])
+   #print response
+   for group in response['result']:
+       print "Group ID:",group['groupid'],"\tGroupName:",group['name']
+
+
+curl命令：
+curl -i -X POST -H 'Content-Type:application/json' -d '{"jsonrpc": "2.0","method":"hostgroup.get","params":{"output":["groupid","name"]},"auth":"11d2b45415d5de6770ce196879dbfcf1","id": 0}' http://1.1.1.1/zabbix/api_jsonrpc.php
+
+
+3. host.get方法获取单个主机组下所有的主机ID。根据标题2中获取到的主机组id，把主机组id填入到下边脚本中，就可以获得该主机组下所有的主机id。
+python脚本：
+#!/usr/bin/env python2.7
+#coding=utf-8
+import json
+import urllib2
+# based url and required header
+url = "http://1.1.1.1/zabbix/api_jsonrpc.php"
+header = {"Content-Type":"application/json"}
+# request json
+data = json.dumps(
+{
+   "jsonrpc":"2.0",
+   "method":"host.get",
+   "params":{
+       "output":["hostid","name"],
+       "groupids":"14",
+   },
+   "auth":"3c0e88885a8cf8af9502b5c850b992bd", # theauth id is what auth script returns, remeber it is string
+   "id":1,
+})
+# create request object
+request = urllib2.Request(url,data)
+for key in header:
+   request.add_header(key,header[key])
+# get host list
+try:
+   result = urllib2.urlopen(request)
+except URLError as e:
+   if hasattr(e, 'reason'):
+       print 'We failed to reach a server.'
+       print 'Reason: ', e.reason
+   elif hasattr(e, 'code'):
+       print 'The server could not fulfill the request.'
+       print 'Error code: ', e.code
+else:
+   response = json.loads(result.read())
+   result.close()
+   print "Number Of Hosts: ", len(response['result'])
+   for host in response['result']:
+       print "Host ID:",host['hostid'],"HostName:",host['name']
+
+
+curl命令：
+curl -i -X POST -H'Content-Type: application/json' -d '{"jsonrpc":"2.0","method":"host.get","params":{"output":["hostid","name"],"groupids":"14"},"auth":"11d2b45415d5de6770ce196879dbfcf1","id": 0}' http://1.1.1.1/zabbix/api_jsonrpc.php
+
+4. itemsid.get方法获取单个主机下所有的监控项ID根据标题3中获取到的所有主机id与名称，找到你想要获取的主机id，获取它下面的所有items。
+python脚本：
+[iyunv@yang python]# cat get_items.py
+#!/usr/bin/env python2.7
+#coding=utf-8
+import json
+import urllib2
+# based url and required header
+url = "http://1.1.1.1/zabbix/api_jsonrpc.php"
+header = {"Content-Type":"application/json"}
+# request json
+data = json.dumps(
+{
+   "jsonrpc":"2.0",
+   "method":"item.get",
+   "params":{
+       "output":["itemids","key_"],
+       "hostids":"10146",
+   },
+   "auth":"3c0e88885a8cf8af9502b5c850b992bd", # theauth id is what auth script returns, remeber it is string
+   "id":1,
+})
+# create request object
+request = urllib2.Request(url,data)
+for key in header:
+   request.add_header(key,header[key])
+# get host list
+try:
+   result = urllib2.urlopen(request)
+except URLError as e:
+   if hasattr(e, 'reason'):
+       print 'We failed to reach a server.'
+       print 'Reason: ', e.reason
+   elif hasattr(e, 'code'):
+       print 'The server could not fulfill the request.'
+       print 'Error code: ', e.code
+else:
+   response = json.loads(result.read())
+   result.close()
+   print "Number Of Hosts: ", len(response['result'])
+   for host in response['result']:
+       print host
+       #print "Host ID:",host['hostid'],"HostName:",host['name']
+
+curl命令：
+curl -i -X POST -H 'Content-Type:application/json' -d '{"jsonrpc":"2.0","method":"item.get","params":{"output":"itemids","hostids":"10146","search":{"key_":"net.if.out[eth2]"}},"auth":"11d2b45415d5de6770ce196879dbfcf1","id": 0}' http://1.1.1.1/zabbix/api_jsonrpc.php
+
+
+5. history.get方法获取单个监控项的历史数据根据第4项的获取到的所有items id的值，找到想要监控的那项，获取它的历史数据。
+python脚本：
+#!/usr/bin/env python2.7
+#coding=utf-8
+import json
+import urllib2
+# based url and required header
+url = "http://1.1.1.1/zabbix/api_jsonrpc.php"
+header = {"Content-Type":"application/json"}
+# request json
+data = json.dumps(
+{
+   "jsonrpc":"2.0",
+   "method":"history.get",
+   "params":{
+       "output":"extend",
+       "history":3,
+       "itemids":"25159",
+       "limit":10
+   },
+   "auth":"3c0e88885a8cf8af9502b5c850b992bd", # theauth id is what auth script returns, remeber it is string
+   "id":1,
+})
+# create request object
+request = urllib2.Request(url,data)
+for key in header:
+   request.add_header(key,header[key])
+# get host list
+try:
+   result = urllib2.urlopen(request)
+except URLError as e:
+   if hasattr(e, 'reason'):
+       print 'We failed to reach a server.'
+       print 'Reason: ', e.reason
+   elif hasattr(e, 'code'):
+       print 'The server could not fulfill the request.'
+       print 'Error code: ', e.code
+else:
+   response = json.loads(result.read())
+   result.close()
+   print "Number Of Hosts: ", len(response['result'])
+   for host in response['result']:
+       print host
+       #print "Host ID:",host['hostid'],"HostName:",host['name']
+
+
+curl命令：
+curl -i -X POST -H 'Content-Type:application/json' -d '{"jsonrpc":"2.0","method":"history.get","params":{"history":3,"itemids":"25154","output":"extend","limit":10},"auth":"11d2b45415d5de6770ce196879dbfcf1","id": 0}' http://1.1.1.1/zabbix/api_jsonrpc.php
+
+6. history.get方法获取单个监控项最后的值只需把上个脚本中或curl中的limit参数改为1就可。
+此时监控项的数据已拿到了，接下来的把它传给前台展示就行了。
