@@ -157,9 +157,9 @@ def main():
 if __name__ == "__main__":
 #main()
     rpc = zabbixrpc("Admin", "zabbix")
-    for h in rpc.history_get(35986, 100)["result"]:
-        print("{}    {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(float(h["clock"]))), h["value"]))
-"""    hostid = rpc.host_get("10.4.30.4")
+#    for h in rpc.history_get(35986, 1440)["result"]:
+#        print("{}    {}".format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(float(h["clock"]))), h["value"]))
+    hostid = rpc.host_get("10.4.38.7")
     items = rpc.item_list(hostid)
     for item in items["result"]:
         itemid = item["itemid"]
@@ -168,6 +168,3 @@ if __name__ == "__main__":
         for history in historys["result"]:
             tm = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(float(history["clock"])))
             print("\033[31m{}\033[0m :{}[{}],{}".format(tm, itemname, itemid, history["value"]))
-"""
-
-#dicdump(response)
