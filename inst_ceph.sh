@@ -5,6 +5,7 @@ Health check failed: 5 slow requests are blocked > 32 sec (REQUEST_SLOW)
 ethtool -k eth0 #查看LRO/GRO当前是否打开
 ethtool -K eth0 lro off #关闭LRO
 ethtool -K eth0 gro off #关闭GRO
+ethtool -K eth0 tso off gso off gro off lro off
 EOF
 cat <<EOF
 If attempting to install behind a firewall or through a proxy you can use the --no-adjust-repos
