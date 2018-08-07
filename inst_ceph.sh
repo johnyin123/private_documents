@@ -1,5 +1,12 @@
 #!/bin/bash
 cat <<EOF
+Health check failed: 5 slow requests are blocked > 32 sec (REQUEST_SLOW)
+......can try blow
+ethtool -k eth0 #查看LRO/GRO当前是否打开
+ethtool -K eth0 lro off #关闭LRO
+ethtool -K eth0 gro off #关闭GRO
+EOF
+cat <<EOF
 If attempting to install behind a firewall or through a proxy you can use the --no-adjust-repos
 that will tell ceph-deploy to skip any changes to the distro’s repository in order to install
 the packages and it will go straight to package installation.
