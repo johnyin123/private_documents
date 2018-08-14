@@ -22,13 +22,25 @@
       msg: "hosts = {{ env }}"
       verbosity: "{{ log }}"
 
-  - name: Command run line 
+  - name: Command run line  yum
     shell: id
     register: result 
+    when: ansible_pkg_mgr == "yum"
 
   - debug:
       var: result.stdout
       verbosity: "{{ log }}" 
+    when: ansible_pkg_mgr == "yum"
+
+  - name: Command run line apt
+    shell: id
+    register: result 
+    when: ansible_pkg_mgr == "apt"
+
+  - debug:
+      var: result.stdout
+      verbosity: "{{ log }}" 
+    when: ansible_pkg_mgr == "apt"
 
   - name: Run as root
     become_user: root
@@ -38,6 +50,10 @@
     register: result2
     notify:
       - do your notify
+
+  - fail:
+      msg: "fail test"
+    when: ansible_pkg_mgr != "apt"
 
   - debug:
       var=result2.stdout verbosity="{{ log }}"
