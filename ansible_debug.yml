@@ -1,0 +1,78 @@
+# [local] 
+# 10.0.2.10 ansible_user=johnyin ansible_ssh_pass=password ansible_port=60022 ansible_become_pass=xikang@2018
+# 
+# [host2] 
+# 10.0.2.10:60022 ansible_become_pass=xikang@2018
+# 
+# 
+# [bj]
+# 10.4.30.[2:149]
+
+# ansible-playbook debug.yml -i hosts --user=root -e '{ "env": "local" }' -k
+# ansible-playbook debug.yml -i hosts -e '{ "env": "local", log: 0 }'
+---
+- name: Print debug infomation eg1 
+  hosts: "{{ env }}"
+  gather_facts: yes
+  vars:
+    log: 4
+  tasks: 
+  - name: Display all variables/facts known for a host
+    debug:
+      msg: "hosts = {{ env }}"
+      verbosity: "{{ log }}"
+
+  - name: Command run line 
+    shell: id
+    register: result 
+
+  - debug:
+      var: result.stdout
+      verbosity: "{{ log }}" 
+
+  - name: Run as root
+    become_user: root
+    become_method: su
+    become: yes
+    shell: id
+    register: result2
+    notify:
+      - do your notify
+
+  - debug:
+      var=result2.stdout verbosity="{{ log }}"
+
+  - shell: /usr/bin/uptime
+    register: uptime
+
+  - debug:
+      var: uptime
+      verbosity: "{{ log }}" 
+
+  handlers:  
+    - name: do your notify
+      become_user: root
+      become_method: su
+      become: yes
+      service: name=crond enabled=yes state=restarted
+      register: service
+...
+# Playbook的核心元素：
+#     hosts：主机
+#     tasks：任务列表
+#     variables   变量
+#     templates：包含了模板语法的文本文件；
+#     handlers：由特定条件触发的任务；
+#     playbooks配置文件的基础组件：
+#     hosts：运行指定任务的目标主机；
+#     remoute_user: 在远程主机上执行任务的用户；
+#     sudo_user：sudo权限的用户
+#     tasks：任务列表
+
+#  ansible_user # ssh用户
+#  ansible_ssh_pass # 密码
+#  ansible_port # ssh端口
+#  ansible_become # true or false，是否切换用户
+#  ansible_become_method # 切换用户使用的方法，如sudo、su
+#  ansible_become_user # 要切换的用户
+#  ansible_become_pass # 切换用户是需要的密码
