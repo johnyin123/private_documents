@@ -24,6 +24,19 @@
       verbosity: "{{ log }}"
   - debug: var=ansible_all_ipv4_addresses
   - debug: var=ansible_default_ipv4.address
+  - debug: msg="System {{ inventory_hostname }} has gateway {{ ansible_default_ipv4.gateway }}"
+    when: ansible_default_ipv4.gateway is defined
+
+  - name: multiple commands
+    shell: |
+      cd /etc
+      ls -lh
+      cat hosts
+    register: rst_msg 
+
+  - debug:
+      var: rst_msg.stdout
+      verbosity: "{{ log }}" 
 
   - name: Command run line  yum
     shell: id
