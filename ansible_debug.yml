@@ -16,6 +16,7 @@
   gather_facts: yes
   vars:
     log: 4
+    listen_port: 8080
   tasks: 
   - name: Display all variables/facts known for a host
     debug:
@@ -53,7 +54,7 @@
 
   - fail:
       msg: "fail test"
-    when: ansible_pkg_mgr != "apt"
+    when: ansible_pkg_mgr == "apt"
 
   - debug:
       var=result2.stdout verbosity="{{ log }}"
@@ -64,6 +65,15 @@
   - debug:
       var: uptime
       verbosity: "{{ log }}" 
+
+  - name: 验证服务是否关闭
+    wait_for: port={{ listen_port }} delay=3 state=stopped timeout=10
+
+  - name: 等待服务启动
+    wait_for: host=0.0.0.0  port=10050 delay=5 timeout=30
+
+  - name: tags 测试正常
+    shell: echo "hello"
 
   handlers:  
     - name: do your notify
