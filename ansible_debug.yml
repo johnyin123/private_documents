@@ -22,6 +22,8 @@
     debug:
       msg: "hosts = {{ env }}"
       verbosity: "{{ log }}"
+  - debug: var=ansible_all_ipv4_addresses
+  - debug: var=ansible_default_ipv4.address
 
   - name: Command run line  yum
     shell: id
