@@ -26,7 +26,7 @@ service sshd restart
 #tune kernel parametres
 cat >> /etc/sysctl.conf << EOF
 net.core.netdev_max_backlog = 30000
-net.core.rmem_max = 16777216
+net.core.rmem_max = 26214400
 net.core.somaxconn = 65535
 net.core.wmem_max = 16777216
 net.core.wmem_default = 16777216
