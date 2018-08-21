@@ -278,10 +278,10 @@ echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> ${ROOTFS}/etc/ssh/sshd_config
 echo "MACs    hmac-sha1" >> ${ROOTFS}/etc/ssh/sshd_config
 log "info" "tune kernel parametres"
 cat >> ${ROOTFS}/etc/sysctl.conf << EOF
-net.core.netdev_max_backlog = 30000
-net.core.rmem_max = 26214400
+net.core.rmem_max = 134217728 
+net.core.wmem_max = 134217728 
+net.core.netdev_max_backlog = 250000
 net.core.somaxconn = 65535
-net.core.wmem_max = 16777216
 net.core.wmem_default = 16777216
 net.ipv4.ip_local_port_range = 1024 65530
 net.ipv4.tcp_fin_timeout = 10
