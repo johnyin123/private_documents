@@ -1,7 +1,7 @@
 #/bin/bash
 
 #set the file limit
-cat >> /etc/security/limits.conf << EOF
+cat > /etc/security/limits.d/tun.conf << EOF
 *           soft   nofile       102400
 *           hard   nofile       102400
 EOF
