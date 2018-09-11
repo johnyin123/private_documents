@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail
+SCRIPTNAME=${0##*/}
+dirname="$(dirname "$(readlink -e "$0")")"
 
 NS_NAME=${NS_NAME:-"vpnet"}
 IP_PREFIX=${IP_PREFIX:-"192.168.100"}

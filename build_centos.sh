@@ -1,6 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail
 dirname="$(dirname "$(readlink -e "$0")")"
+SCRIPTNAME=${0##*/}
 
 if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
