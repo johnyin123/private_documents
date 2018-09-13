@@ -1,0 +1,158 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+from __future__ import print_function
+
+import logging
+import sys
+
+try:
+    import urlparse
+except ImportError:
+    import urllib.parse as urlparse
+
+# ======================
+# log_format parsing
+# ======================
+import re
+
+REGEX_SPECIAL_CHARS = r'([\.\*\+\?\|\(\)\{\}\[\]])'
+REGEX_LOG_FORMAT_VARIABLE = r'\$([a-zA-Z0-9\_]+)'
+
+def build_pattern(log_format):
+    """
+    Build regular expression to parse given format.
+    :param log_format: format string to parse
+    :return: regular expression to parse given format
+    """
+    pattern = re.sub(REGEX_SPECIAL_CHARS, r'\\\1', log_format)
+    pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
+    return re.compile(pattern)
+
+def extract_variables(log_format):
+    """
+    Extract all variables from a log format string.
+    :param log_format: format string to extract
+    :return: iterator over all variables in given format string
+    """
+    for match in re.findall(REGEX_LOG_FORMAT_VARIABLE, log_format):
+        yield match
+
+# =================================
+# Records processor
+# =================================
+class SimpleProcessor(object):
+    def __init__(self):
+        pass
+
+    def process(self, records):
+        for r in records:
+            for key, val in r.items():
+                print(key, "=", val, type(val))
+
+    def report(self):
+        return "OK"
+
+def error_exit(msg, status=1):
+    sys.stderr.write('Error: %s\n' % msg)
+    sys.exit(status)
+
+def map_field(field, func, dict_sequence):
+    """
+    Apply given function to value of given key in every dictionary in sequence and
+    set the result as new value for that key.
+    """
+    for item in dict_sequence:
+        try:
+            item[field] = func(item.get(field, None))
+            yield item
+        except ValueError:
+            pass
+
+def add_field(field, func, dict_sequence):
+    """
+    Apply given function to the record and store result in given field of current record.
+    Do nothing if record already contains given field.
+    """
+    for item in dict_sequence:
+        if field not in item:
+            item[field] = func(item)
+        yield item
+
+# ======================
+# Access log parsing
+# ======================
+def parse_request_path(record):
+    if 'request_uri' in record:
+        uri = record['request_uri']
+    elif 'request' in record:
+        uri = ' '.join(record['request'].split(' ')[1:-1])
+    else:
+        uri = None
+    return urlparse.urlparse(uri).path if uri else None
+
+def to_int(value):
+    return int(value) if value and value != '-' else 0
+
+def to_float(value):
+    return float(value) if value and value != '-' else 0.0
+
+import dateutil.parser
+def iso8601_to_datetime(value):
+    return dateutil.parser.parse(value) if value and value != '-' else dateutil.parser.parse("1970-01-01T00:00:00+00:00")
+
+def parse_log(lines, pattern):
+    matches = (pattern.match(l) for l in lines)
+    records = (m.groupdict() for m in matches if m is not None)
+    records = map_field('status', to_int, records)
+    records = map_field('body_bytes_sent', to_int, records)
+    records = map_field('request_time', to_float, records)
+    records = map_field('gzip_ratio', to_float, records)
+    records = map_field('upstream_response_time', to_float, records)
+    records = map_field('time_iso8601', iso8601_to_datetime, records)
+    records = add_field('request_path', parse_request_path, records)
+    return records
+
+# ===============
+# Log processing
+# ===============
+def process_log(lines, pattern, processor, arguments):
+    records = parse_log(lines, pattern)
+    processor.process(records)
+    print(processor.report())
+
+def process(arguments):
+    log_format = arguments['log-format']
+    if sys.stdin.isatty():
+        error_exit("need access.log stream", 1)
+    logging.debug('log_format: %s', log_format)
+    if arguments['debug']:
+        print('available variables:\n ', ', '.join(sorted(extract_variables(log_format))))
+    access_log = sys.stdin
+    pattern = build_pattern(log_format)
+    processor = SimpleProcessor()
+    process_log(access_log, pattern, processor, arguments)
+
+def main():
+    args = {
+            "debug":True,
+            "log-format": '"$time_iso8601" $scheme $http_host [$request_time|$upstream_response_time] $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $gzip_ratio',
+           }
+    log_level = logging.WARNING
+    if args['debug']:
+        log_level = logging.DEBUG
+    logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
+    logging.debug('arguments:\n%s', args)
+
+    try:
+        process(args)
+    except KeyboardInterrupt:
+        sys.exit(0)
+
+def test():
+    value = "2018-08-29T03:39:57+08:00"
+    yourdate = dateutil.parser.parse(value)
+    print(yourdate.strftime("%Y-%m-%d %H:%M:%S")) 
+
+if __name__ == '__main__':
+    main()
