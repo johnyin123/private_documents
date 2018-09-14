@@ -3,13 +3,7 @@
 
 from __future__ import print_function
 
-import logging
-import sys
-
-try:
-    import urlparse
-except ImportError:
-    import urllib.parse as urlparse
+import logging, sys
 
 # ======================
 # log_format parsing
@@ -39,22 +33,83 @@ def extract_variables(log_format):
         yield match
 
 # =================================
-# Records processor
+# Simple Records processor
 # =================================
 class SimpleProcessor(object):
-    def __init__(self):
+    def __init__(self, fields):
+        self.fields = fields if fields is not None else []
+        print(fields)
         pass
 
     def process(self, records):
         for r in records:
             for key, val in r.items():
-                print(key, "=", val, type(val))
+                print(key, "=", val)
 
     def report(self):
         return "OK"
 
+# =================================
+# SQL Records processor
+# =================================
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import  String,Column,Integer,DateTime
+import time
+
+DATABASE_URI="sqlite:////home/johnyin/access.sqlite"
+
+engine = create_engine(DATABASE_URI)
+Session = sessionmaker(bind=engine)
+Base = declarative_base()
+
+DEFAULT_QUERIES = [
+    ('Summary:',
+     '''SELECT count(1) AS count FROM {}''')
+]
+
+class SQLProcessor(object):
+    def __init__(self, tabname, fields):
+        self.begin = False
+        self.fields = fields if fields is not None else []
+        self.tabname = tabname if tabname is not None else "log"
+        #ret=session.execute('desc user')
+        #print ret print ret.fetchall() print ret.first()
+        self.conn = Session()
+        if not engine.dialect.has_table(engine, self.tabname, schema = None):  # If table don't exist, Create.
+            logging.debug('create table :%s\n', self.tabname)
+            create_table = 'create table {} ({})'.format(self.tabname, ','.join(self.fields))
+            self.conn.execute(create_table)
+
+    def process(self, records):
+        self.begin = time.time()
+        sql = "insert into {} ({}) values ({}) ".format(self.tabname, ','.join(self.fields), ','.join(':%s' % var for var in self.fields))
+        for r in records:
+            self.conn.execute(sql, r)
+        self.conn.commit()
+
+    def report(self):
+        if not self.begin:
+            return ''
+        duration = time.time() - self.begin
+        output = [ 'running for {} seconds'.format(duration) ]
+        for query in DEFAULT_QUERIES:
+            if isinstance(query, tuple):
+                label, query = query
+            else:
+                label = ''
+            ret = self.conn.execute(query.format(self.tabname))
+            output.append('{}\n{}'.format(label, ret.fetchall()))
+        return '\n\n'.join(output)
+
+    def count(self):
+        ret = self.conn.execute('select count(1) from {}'.format(self.tabname))
+        return ret.first()
+
+
 def error_exit(msg, status=1):
-    sys.stderr.write('Error: %s\n' % msg)
+    sys.stderr.write('Error: {}\n'.format(msg))
     sys.exit(status)
 
 def map_field(field, func, dict_sequence):
@@ -82,6 +137,11 @@ def add_field(field, func, dict_sequence):
 # ======================
 # Access log parsing
 # ======================
+try:
+    import urlparse
+except ImportError:
+    import urllib.parse as urlparse
+
 def parse_request_path(record):
     if 'request_uri' in record:
         uri = record['request_uri']
@@ -126,12 +186,13 @@ def process(arguments):
     if sys.stdin.isatty():
         error_exit("need access.log stream", 1)
     logging.debug('log_format: %s', log_format)
-    if arguments['debug']:
-        print('available variables:\n ', ', '.join(sorted(extract_variables(log_format))))
     access_log = sys.stdin
     pattern = build_pattern(log_format)
-    processor = SimpleProcessor()
-    process_log(access_log, pattern, processor, arguments)
+    fields = [r for r in extract_variables(log_format)]
+    fields.append("request_path")
+    processor = SimpleProcessor(fields)
+    sqlprocessor = SQLProcessor("logtable", fields)
+    process_log(access_log, pattern, sqlprocessor, arguments)
 
 def main():
     args = {
