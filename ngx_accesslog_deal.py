@@ -58,10 +58,10 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import  String,Column,Integer,DateTime
 import time
 
-DATABASE_URI="sqlite:////home/johnyin/access.sqlite"
+DATABASE_URI="sqlite:///./access.sqlite"
 
 engine = create_engine(DATABASE_URI)
-Session = sessionmaker(bind=engine)
+Session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 Base = declarative_base()
 
 DEFAULT_QUERIES = [
