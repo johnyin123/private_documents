@@ -59,6 +59,7 @@ from sqlalchemy import  String,Column,Integer,DateTime
 import time
 
 DATABASE_URI="sqlite:///./access.sqlite"
+#DATABASE_URI="sqlite:///:memory:"
 
 engine = create_engine(DATABASE_URI)
 Session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)

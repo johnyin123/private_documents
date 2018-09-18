@@ -216,7 +216,7 @@ function genkvm_xml(){
   <memory unit='KiB'>${memsize}</memory>
   <currentMemory unit='KiB'>${memsize}</currentMemory>
   <vcpu>${vcpus}</vcpu>
-  <cpu mode='host-passthrough'/>
+  <cpu mode='host-model'/>
   <os>
     <type arch='x86_64'>hvm</type>
   </os>
