@@ -53,17 +53,18 @@ class SimpleProcessor(object):
 # SQL Records processor
 # =================================
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import  String,Column,Integer,DateTime
 import time
 
 DATABASE_URI="sqlite:///./access.sqlite"
 #DATABASE_URI="sqlite:///:memory:"
-
-engine = create_engine(DATABASE_URI)
-Session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+#DATABASE_URI="mysql+pymysql://admin:password@10.0.2.10:3306/log?charset=utf8"
+engine = create_engine(DATABASE_URI)#, pool_size=1, max_overflow=0)
+#Session = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 Base = declarative_base()
+Session = scoped_session(sessionmaker(bind=engine, autoflush=False, expire_on_commit=False))
 
 DEFAULT_QUERIES = [
     ('Summary:',
@@ -209,7 +210,10 @@ def main():
     try:
         process(args)
     except KeyboardInterrupt:
+        logging.info('interrupt signal received')
         sys.exit(0)
+    except Exception, e:
+        raise e
 
 def test():
     value = "2018-08-29T03:39:57+08:00"
