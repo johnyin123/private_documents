@@ -144,6 +144,18 @@ try:
 except ImportError:
     import urllib.parse as urlparse
 
+#pip install ua-parser
+from ua_parser import user_agent_parser
+
+def parse_useragent(record):
+    if 'http_user_agent' in record:
+        ua = record['http_user_agent']
+    else:
+        ua = None
+    parsed_string = user_agent_parser.Parse(ua)
+    pprint(parsed_string)
+    # TODO
+
 def parse_request_path(record):
     if 'request_uri' in record:
         uri = record['request_uri']
