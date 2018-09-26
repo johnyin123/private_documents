@@ -136,6 +136,23 @@ def add_field(field, func, dict_sequence):
             item[field] = func(item)
         yield item
 
+from httpagentparser import detect, simple_detect
+def parse_useragent(records):
+    for record in records:
+        if 'http_user_agent' in record:
+            ua = record['http_user_agent']
+        else:
+            ua = None
+        dua = detect(ua)
+        record['platform_version'] = dua.get('platform', {}).get('version', None) 
+        record['platform_name']    = dua.get('platform', {}).get('name', None)
+        record['os_version']       = dua.get('os', {}).get('version', None)
+        record['os_name']          = dua.get('os', {}).get('name', None)
+        record['browser_version']  = dua.get('browser', {}).get('version', None)
+        record['browser_name']     = dua.get('browser', {}).get('name', None)
+        record['robot']            = dua.get('bot', False)
+        yield record
+
 # ======================
 # Access log parsing
 # ======================
@@ -143,18 +160,6 @@ try:
     import urlparse
 except ImportError:
     import urllib.parse as urlparse
-
-#pip install ua-parser
-from ua_parser import user_agent_parser
-
-def parse_useragent(record):
-    if 'http_user_agent' in record:
-        ua = record['http_user_agent']
-    else:
-        ua = None
-    parsed_string = user_agent_parser.Parse(ua)
-    pprint(parsed_string)
-    # TODO
 
 def parse_request_path(record):
     if 'request_uri' in record:
@@ -185,6 +190,7 @@ def parse_log(lines, pattern):
     records = map_field('upstream_response_time', to_float, records)
     records = map_field('time_iso8601', iso8601_to_datetime, records)
     records = add_field('request_path', parse_request_path, records)
+    records = parse_useragent(records)
     return records
 
 # ===============
@@ -196,14 +202,22 @@ def process_log(lines, pattern, processor, arguments):
     print(processor.report())
 
 def process(arguments):
-    log_format = arguments['log-format']
+    log_format = arguments["log-format"]
     if sys.stdin.isatty():
         error_exit("need access.log stream", 1)
-    logging.debug('log_format: %s', log_format)
+    logging.debug("log_format: %s", log_format)
     access_log = sys.stdin
     pattern = build_pattern(log_format)
     fields = [r for r in extract_variables(log_format)]
     fields.append("request_path")
+    fields.append("platform_version")
+    fields.append("platform_name")
+    fields.append("os_version")
+    fields.append("os_name")
+    fields.append("browser_version")
+    fields.append("browser_name")
+    fields.append("robot")
+
     processor = SimpleProcessor(fields)
     sqlprocessor = SQLProcessor("logtable", fields)
     process_log(access_log, pattern, sqlprocessor, arguments)
@@ -214,18 +228,16 @@ def main():
             "log-format": '"$time_iso8601" $scheme $http_host [$request_time|$upstream_response_time] $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $gzip_ratio',
            }
     log_level = logging.WARNING
-    if args['debug']:
+    if args["debug"]:
         log_level = logging.DEBUG
-    logging.basicConfig(level=log_level, format='%(levelname)s: %(message)s')
-    logging.debug('arguments:\n%s', args)
+    logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s")
+    logging.debug("arguments:\n%s", args)
 
     try:
         process(args)
     except KeyboardInterrupt:
-        logging.info('interrupt signal received')
+        logging.info("interrupt signal received")
         sys.exit(0)
-    except Exception, e:
-        raise e
 
 def test():
     value = "2018-08-29T03:39:57+08:00"
