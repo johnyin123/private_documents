@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 
-import logging, sys
+import logging, sys, os
 
 # ======================
 # log_format parsing
@@ -137,13 +137,10 @@ def add_field(field, func, dict_sequence):
         yield item
 
 from httpagentparser import detect, simple_detect
-def parse_useragent(records):
+from ip2Region import Ip2Region
+def parse_useragent(records, searcher):
     for record in records:
-        if 'http_user_agent' in record:
-            ua = record['http_user_agent']
-        else:
-            ua = None
-        dua = detect(ua)
+        dua = detect(record.get("http_user_agent", None))
         record['platform_version'] = dua.get('platform', {}).get('version', None) 
         record['platform_name']    = dua.get('platform', {}).get('name', None)
         record['os_version']       = dua.get('os', {}).get('version', None)
@@ -151,6 +148,14 @@ def parse_useragent(records):
         record['browser_version']  = dua.get('browser', {}).get('version', None)
         record['browser_name']     = dua.get('browser', {}).get('name', None)
         record['robot']            = dua.get('bot', False)
+        value = record.get("remote_addr", None)
+        remoteip = value if value else record.get("http_x_forwarded_for", None)
+        if not searcher.isip(remoteip):
+            logging.error("Invalid ip address", remoteip)
+            data = {}
+        else:
+            data = searcher.btreeSearch(remoteip)
+        record['region'] = data.get("region", None).decode('utf-8')
         yield record
 
 # ======================
@@ -180,7 +185,7 @@ import dateutil.parser
 def iso8601_to_datetime(value):
     return dateutil.parser.parse(value) if value and value != '-' else dateutil.parser.parse("1970-01-01T00:00:00+00:00")
 
-def parse_log(lines, pattern):
+def parse_log(lines, pattern, searcher):
     matches = (pattern.match(l) for l in lines)
     records = (m.groupdict() for m in matches if m is not None)
     records = map_field('status', to_int, records)
@@ -190,14 +195,15 @@ def parse_log(lines, pattern):
     records = map_field('upstream_response_time', to_float, records)
     records = map_field('time_iso8601', iso8601_to_datetime, records)
     records = add_field('request_path', parse_request_path, records)
-    records = parse_useragent(records)
+    records = parse_useragent(records, searcher)
     return records
 
 # ===============
 # Log processing
 # ===============
 def process_log(lines, pattern, processor, arguments):
-    records = parse_log(lines, pattern)
+    searcher = Ip2Region(arguments["Ip2RegionFile"])
+    records = parse_log(lines, pattern, searcher)
     processor.process(records)
     print(processor.report())
 
@@ -217,7 +223,7 @@ def process(arguments):
     fields.append("browser_version")
     fields.append("browser_name")
     fields.append("robot")
-
+    fields.append("region")
     processor = SimpleProcessor(fields)
     sqlprocessor = SQLProcessor("logtable", fields)
     process_log(access_log, pattern, sqlprocessor, arguments)
@@ -226,13 +232,18 @@ def main():
     args = {
             "debug":True,
             "log-format": '"$time_iso8601" $scheme $http_host [$request_time|$upstream_response_time] $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $gzip_ratio',
+            "algorithm": "b-tree",
+            "Ip2RegionFile": "ip2region.db",
            }
     log_level = logging.WARNING
     if args["debug"]:
         log_level = logging.DEBUG
     logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s")
     logging.debug("arguments:\n%s", args)
-
+    
+    if (not os.path.isfile(args["Ip2RegionFile"])) or (not os.path.exists(args["Ip2RegionFile"])):
+        logging.error("Specified db file is not exists.", args["Ip2RegionFile"])
+        sys.exit(1)
     try:
         process(args)
     except KeyboardInterrupt:
