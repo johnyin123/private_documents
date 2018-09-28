@@ -176,10 +176,13 @@ def parse_request_path(record):
     return urlparse.urlparse(uri).path if uri else None
 
 def to_int(value):
-    return int(value) if value and value != '-' else 0
+    return int(value) if value and value.isdigit() else 0
 
 def to_float(value):
-    return float(value) if value and value != '-' else 0.0
+    try:
+        return float(value) if value and value != '-' else 0.0
+    except ValueError, e:
+        return 0.0
 
 import dateutil.parser
 def iso8601_to_datetime(value):
