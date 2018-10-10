@@ -23,18 +23,18 @@ FILES_REMOVE="files_remove"
 #ip-full  blkid block-mount kmod-fs-ext4 kmod-usb2 kmod-usb-uhci kmod-usb-ohci kmod-usb-storage
 #kmod-zram zram-swap swap-utils
 cat << 'EOF'
-uci set fstab.@swap[0]=swap
+uci add fstab swap
 uci set fstab.@swap[0].device='/swapfile'
 uci set fstab.@swap[0].enabled='1'
 uci commit fstab
 block detect > /etc/config/fstab
 
-fstab.@mount[0]=mount
-fstab.@mount[0].target='/overlay'
-fstab.@mount[0].uuid='uuid'
-fstab.@mount[0].fstype='ext4'
-fstab.@mount[0].options='rw,noatime'
-fstab.@mount[0].enabled='1'
+uci add fstab mount
+uci set fstab.@mount[0].target='/overlay'
+uci set fstab.@mount[0].uuid='uuid'
+uci set fstab.@mount[0].fstype='ext4'
+uci set fstab.@mount[0].options='rw,noatime'
+uci set fstab.@mount[0].enabled='1'
 uci commit fstab
 
 #banner
@@ -71,6 +71,11 @@ uci commit wireless
 uci set network.wwan=interface
 uci set network.wwan.proto=dhcp
 uci commit network
+
+#disable dhcp on wwan
+uci set dhcp.wwan=dhcp
+uci set dhcp.wwan.interface='wwan'
+uci set dhcp.wwan.ignore=1
 
 #连接上级路由
 uci set wireless.@wifi-iface[0].network=wwan
