@@ -10,7 +10,7 @@
 #kmod-usb-uhci kmod-usb-ohci PACKAGES="kmod-tun kmod-zram zram-swap block-mount kmod-fs-ext4 e2fsprogs kmod-usb2 kmod-usb-storage firewall -ip6tables -kmod-ip6tables -kmod-ipv6 -odhcp6c -swconfig " 
 
 rm ./out/* -f
-PKG_8M_ROM="libopenssl libstdcpp ip-full e2fsprogs aria2 python-light python-logging rsync "  #squid"
+PKG_8M_ROM="libopenssl libstdcpp ip-full ipset e2fsprogs aria2 python-light python-logging rsync "  #squid"
 PACKAGES="${PKG_8M_ROM} kmod-macvlan kmod-tun kmod-iptunnel kmod-gre kmod-vxlan kmod-pptp kmod-l2tp kmod-fs-vfat kmod-zram zram-swap block-mount kmod-fs-ext4 kmod-usb2 kmod-usb-storage firewall -swconfig " 
 
 echo "${PACKAGES}" > $(pwd)/mydir/etc/banner
@@ -78,6 +78,7 @@ uci commit network
 uci set dhcp.wwan=dhcp
 uci set dhcp.wwan.interface='wwan'
 uci set dhcp.wwan.ignore=1
+uci commit dhcp
 
 #连接上级路由
 uci set wireless.toxkadmin='wifi-iface'
