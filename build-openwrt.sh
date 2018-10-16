@@ -10,7 +10,8 @@
 #kmod-usb-uhci kmod-usb-ohci PACKAGES="kmod-tun kmod-zram zram-swap block-mount kmod-fs-ext4 e2fsprogs kmod-usb2 kmod-usb-storage firewall -ip6tables -kmod-ip6tables -kmod-ipv6 -odhcp6c -swconfig " 
 
 rm ./out/* -f
-PACKAGES="kmod-macvlan kmod-tun kmod-iptunnel kmod-gre kmod-vxlan kmod-pptp kmod-l2tp kmod-fs-vfat kmod-zram zram-swap block-mount kmod-fs-ext4 kmod-usb2 kmod-usb-storage firewall -swconfig " 
+PKG_8M_ROM="libopenssl libstdcpp ip-full e2fsprogs aria2 python-light python-logging rsync "  #squid"
+PACKAGES="${PKG_8M_ROM} kmod-macvlan kmod-tun kmod-iptunnel kmod-gre kmod-vxlan kmod-pptp kmod-l2tp kmod-fs-vfat kmod-zram zram-swap block-mount kmod-fs-ext4 kmod-usb2 kmod-usb-storage firewall -swconfig " 
 
 echo "${PACKAGES}" > $(pwd)/mydir/etc/banner
 
@@ -65,6 +66,7 @@ config timeserver 'ntp'
 #uci-defaults/setup
 
 uci set wireless.@wifi-device[0].disabled=0
+uci delete wireless.default_radio0
 uci commit wireless
 
 #创建wwan接口
@@ -78,11 +80,22 @@ uci set dhcp.wwan.interface='wwan'
 uci set dhcp.wwan.ignore=1
 
 #连接上级路由
-uci set wireless.@wifi-iface[0].network=wwan
-uci set wireless.@wifi-iface[0].mode=sta
-uci set wireless.@wifi-iface[0].ssid=xk-admin
-uci set wireless.@wifi-iface[0].encryption=psk2
-uci set wireless.@wifi-iface[0].key='Admin@123'
+uci set wireless.toxkadmin='wifi-iface'
+uci set wireless.toxkadmin.device='radio0'
+uci set wireless.toxkadmin.network=wwan
+uci set wireless.toxkadmin.mode=sta
+uci set wireless.toxkadmin.ssid=xk-admin
+uci set wireless.toxkadmin.encryption=psk2
+uci set wireless.toxkadmin.key='Admin@123'
+uci commit wireless
+#做AP
+uci set wireless.mywifi='wifi-iface'
+uci set wireless.mywifi.device='radio0'
+uci set wireless.mywifi.network='lan'
+uci set wireless.mywifi.mode='ap'
+uci set wireless.mywifi.ssid='johnap'
+uci set wireless.mywifi.encryption='psk2'
+uci set wireless.mywifi.key='Admin@123'
 uci commit wireless
 
 opkg update
