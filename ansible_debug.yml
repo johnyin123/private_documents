@@ -102,6 +102,18 @@
   - name: "Disable SELinux"
     selinux: state=disabled
 
+  - name: Set nofile and nproc limits
+    blockinfile:
+      dest: /etc/security/limits.d/99-tunning.conf
+      create: yes
+      mode: 0644
+      block: |
+        * soft nofile 1024000
+        * hard nofile 1024000
+        * soft nproc 32768
+        * hard nproc 32768
+      marker: "# {mark} ANSIBLE MANAGED BLOCK"
+
   - name: Set nofile limits
     lineinfile: dest=/etc/security/limits.conf
                 line="{{ item }}"
@@ -122,6 +134,12 @@
   - name:      reload sshd service
     become:    yes
     service:   name=sshd state=reloaded 
+
+  - name: Disable the firewalld service
+    service:
+      name: "firewalld"
+      enabled: no
+    ignore_errors: true
 
   - name:    Package install /  curl
     become:  yes
