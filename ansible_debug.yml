@@ -90,6 +90,43 @@
   - name: tags 测试正常
     shell: echo "hello"
 
+  - name: set openfile limit
+    become: yes
+    blockinfile:
+      path: /etc/security/limits.conf
+      insertbefore: "# End of file"
+      content: |
+        * soft nofile 1024000 
+        * hard nofile 1024000 
+
+  - name: "Disable SELinux"
+    selinux: state=disabled
+
+  - name: Set nofile limits
+    lineinfile: dest=/etc/security/limits.conf
+                line="{{ item }}"
+    with_items:
+      - "* soft nofile 1024000"
+      - "* hard nofile 1024000"
+
+  - name: change soft /etc/security/limits.conf
+    lineinfile:
+      dest: /etc/security/limits.conf
+      regexp: '^\* soft nofile'
+      line: "* soft nofile {{ ulimit_num | default('65536') }}"
+
+  - name:      set PasswordAuthentication yes 
+    become:    yes
+    replace:   dest=/etc/ssh/sshd_config regexp="^PasswordAuthentication no" replace="PasswordAuthentication yes"
+
+  - name:      reload sshd service
+    become:    yes
+    service:   name=sshd state=reloaded 
+
+  - name:    Package install /  curl
+    become:  yes
+    package: name=curl state={{ package_state }}
+
   handlers:  
     - name: do your notify
       become_user: root
