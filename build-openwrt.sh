@@ -24,6 +24,18 @@ FILES_REMOVE="files_remove"
 #ip-full  blkid block-mount kmod-fs-ext4 kmod-usb2 kmod-usb-uhci kmod-usb-ohci kmod-usb-storage
 #kmod-zram zram-swap swap-utils
 cat << 'EOF'
+
+# 域名劫持
+# uci add dhcp domain
+# uci set dhcp.@domain[-1].name='www.facebook.com'
+# uci set dhcp.@domain[-1].ip='1.2.3.4'
+# uci commit dhcp
+
+# 更改dhcp DNS(6=DNS, 3=Default Gateway, 44=WINS)
+# uci set dhcp.@dnsmasq[0].dhcp_option='6,192.168.1.1,8.8.8.8'
+# uci commit dhcp
+# uci set dhcp.@dnsmasq[0].rebind_protection=0
+
 uci add fstab swap
 uci set fstab.@swap[0].device='/swapfile'
 uci set fstab.@swap[0].enabled='1'
