@@ -125,6 +125,14 @@
       enabled: no
     ignore_errors: true
 
+  - name: "Updating selinux for Magento -- tags: bootstrap, selinux"
+    lineinfile:
+      dest: /etc/selinux/config
+      regexp: "^SELINUX="
+      line: 'SELINUX=disabled'
+      backrefs: yes
+      state: present
+
   - name: install packages
     package: name={{ item }} state=present
     with_items:
