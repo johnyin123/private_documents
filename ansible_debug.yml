@@ -15,7 +15,6 @@
   hosts: "{{ env }}"
   gather_facts: yes
   vars:
-    log: 4
     listen_port: 8080
   tasks: 
   - name: Display all variables/facts known for a host
@@ -81,27 +80,6 @@
       var: uptime
       verbosity: "{{ log }}" 
 
-  - name: 验证服务是否关闭
-    wait_for: port={{ listen_port }} delay=3 state=stopped timeout=10
-
-  - name: 等待服务启动
-    wait_for: host=0.0.0.0  port=10050 delay=5 timeout=30
-
-  - name: tags 测试正常
-    shell: echo "hello"
-
-  - name: set openfile limit
-    become: yes
-    blockinfile:
-      path: /etc/security/limits.conf
-      insertbefore: "# End of file"
-      content: |
-        * soft nofile 1024000 
-        * hard nofile 1024000 
-
-  - name: "Disable SELinux"
-    selinux: state=disabled
-
   - name: Set nofile and nproc limits
     blockinfile:
       dest: /etc/security/limits.d/99-tunning.conf
@@ -114,18 +92,24 @@
         * hard nproc 32768
       marker: "# {mark} ANSIBLE MANAGED BLOCK"
 
-  - name: Set nofile limits
-    lineinfile: dest=/etc/security/limits.conf
-                line="{{ item }}"
-    with_items:
-      - "* soft nofile 1024000"
-      - "* hard nofile 1024000"
-
   - name: change soft /etc/security/limits.conf
     lineinfile:
       dest: /etc/security/limits.conf
       regexp: '^\* soft nofile'
       line: "* soft nofile {{ ulimit_num | default('65536') }}"
+
+  - name: Disable UseDNS in ssh config
+    lineinfile:
+      dest=/etc/ssh/sshd_config
+      line='UseDNS no'
+      regexp='(#|)\s*UseDNS\s*'
+      state=present
+
+  - name: Configuring ssh to allow root logins
+    lineinfile:
+      dest: "/etc/ssh/sshd_config"
+      regexp: "^PermitRootLogin"
+      line: "PermitRootLogin yes"
 
   - name:      set PasswordAuthentication yes 
     become:    yes
@@ -141,9 +125,24 @@
       enabled: no
     ignore_errors: true
 
-  - name:    Package install /  curl
-    become:  yes
-    package: name=curl state={{ package_state }}
+  - name: install packages
+    package: name={{ item }} state=present
+    with_items:
+    - rsync
+    - telnet
+    - lsof
+    - strace
+    - ltrace
+    - python-virtualenv
+
+  - name: 验证服务是否关闭
+    wait_for: port={{ listen_port }} delay=3 state=stopped timeout=10
+
+  - name: 等待服务启动
+    wait_for: host=0.0.0.0  port=10050 delay=5 timeout=30
+
+  - name: tags 测试正常
+    shell: echo "hello"
 
   handlers:  
     - name: do your notify
