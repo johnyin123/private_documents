@@ -9,20 +9,23 @@ if [ "${DEBUG:=false}" = "true" ]; then
 fi
 
 ## start parms
+SWAP_FILE=${SWAP_FILE:-false}
 TOMCAT_USR=${TOMCAT_USR:-false}
 REPO=${REPO:-${dirname}/local.repo}
 ADDITION_PKG=${ADDITION_PKG:-""}
-ADDITION_PKG="${ADDITION_PKG} lvm2 wget rsync bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp wget strace ltrace python-virtualenv qemu-guest-agent traceroute rsync pciutils lrzsz"
+ADDITION_PKG="${ADDITION_PKG} wget rsync bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp wget strace ltrace python-virtualenv qemu-guest-agent traceroute rsync pciutils lrzsz"
 ROOTFS=${ROOTFS:-${dirname}/rootfs}
 NEWPASSWORD=${NEWPASSWORD:-"password"}
 DISK_FILE=${DISK_FILE:-"${dirname}/disk"}
 DISK_SIZE=${DISK_SIZE:-"1500M"}
-
+DISK_LVM=${DISK_LVM:-true}
+ROOTVG=${ROOTVG:-"centos"}
+ROOTLV=${ROOTLV:-"root"}
 NAME=${NAME:-"vmtemplate"}
 IP=${IP:-"10.0.2.100/24"}
 GW=${GW:-"10.0.2.1"}
 
-YUM_OPT="--noplugins --nogpgcheck --config=${REPO}" #--setopt=tsflags=nodocs"
+YUM_OPT="-q --noplugins --nogpgcheck --config=${REPO}" #--setopt=tsflags=nodocs"
 ## end parms
 
 PREFIX=${IP##*/}
@@ -31,11 +34,11 @@ IP=${IP%/*}
 : ${DISK_FILE:?"ERROR: DISK_FILE must b set"}
 
 QUIET=false
-output() {
+function output() {
     echo -e "${*}"
 }
 
-log() {
+function log() {
     level=${1}
     shift
     MSG="${*}"
@@ -58,67 +61,46 @@ log() {
     esac
 }
 
-abort() {
+function abort() {
     log "error" "${*}"
     exit 1
 }
 
-function cleanup
-{
-    mount | grep "${ROOTFS}/dev" > /dev/null 2>&1 && umount ${ROOTFS}/dev || log "warn" "dev no mount" 
-    mount | grep "${ROOTFS}/sys" > /dev/null 2>&1 && umount ${ROOTFS}/sys || log "warn" "sys no mount" 
-    mount | grep "${ROOTFS}/proc" > /dev/null 2>&1 && umount ${ROOTFS}/proc || log "warn" "proc no mount" 
-    mount | grep "${ROOTFS}" > /dev/null 2>&1 && umount ${ROOTFS} || log "warn" "rootfs no mount" 
-    losetup  | grep "${DISK_FILE}" | awk '{ print "losetup -d " $1}' | bash
-    losetup  | grep "${DISK_FILE}" > /dev/null 2>&1 && log "error" "loop device no cleanup!!" || log "info" "cleanup ok"
-}
-trap cleanup TERM
-trap cleanup INT
-
-[[ $UID = 0 ]] || log "warn" "recommended to run as root."
-
-[ -r ${REPO} ] || {
-    cat> ${REPO} <<EOF
-[centos]
-name=centos
-baseurl=http://10.0.2.1:8080/
-gpgcheck=0
-
-[update]
-name=update
-baseurl=http://mirrors.163.com/centos/7.4.1708/updates/x86_64/
-#keepcache=1
-gpgcheck=0
-EOF
-    abort "Created ${REPO} using defaults.  Please review it/configure before running again."
-}
-
-log "warn" "file      :${DISK_FILE}"
-log "warn" "size      :${DISK_SIZE}"
-log "warn" "tomcat    :${TOMCAT_USR}"
-log "warn" "hostname  :${NAME}"
-log "warn" "ip        :${IP}/${PREFIX}"
-log "warn" "gateway   :${GW}"
-log "warn" "passwd    :${NEWPASSWORD}"
-log "warn" "pkg       :${ADDITION_PKG}"
-
-for i in losetup mkfs.xfs yum blkid parted
-do
-    [[ ! -x $(which $i) ]] && { abort "$i no found"; }
-done
 #command use the '|"' must be escaped with '\' 
 function execute () {
-    eval ${*} >/dev/null 2>&1
+    eval "${*}" >/dev/null 2>&1
     if [ $? -ne 0 ]; then
         log "error" "executing ${*} error"
+    else
+        log "info" "executing ${*} ok"
     fi
-    log "info" "executing ${*} ok"
 }
 
 function fake_yum {
-    log "info" "${*}"
+    log "info" "yum ${YUM_OPT} -y --installroot=${ROOTFS} ${*}"
     yum ${YUM_OPT} -y --installroot=${ROOTFS} ${*} 2>/dev/null
 }
+
+function cleanup
+{
+    sync;sync;sync
+    mount | grep "${ROOTFS}" > /dev/null 2>&1 && execute umount -R ${ROOTFS}
+    [[ "${DISK_LVM}" = "true" ]] && {
+        execute vgchange -an ${ROOTVG};
+        # FIX ,need twice ~~
+        while pvs 2>/dev/null | awk '{print $2}' | grep "${ROOTVG}"
+        do
+            execute kpartx -dsv ${DISK_FILE}
+            execute kpartx -asv ${DISK_FILE}
+            execute vgchange -an ${ROOTVG}
+            execute sleep 1
+            execute kpartx -dsv ${DISK_FILE}
+        done
+    }
+    execute kpartx -dsv ${DISK_FILE}
+}
+trap cleanup TERM
+trap cleanup INT
 
 function change_vm_info() {
     local mnt_point=$1
@@ -126,7 +108,6 @@ function change_vm_info() {
     local guest_ipaddr=$3
     local guest_prefix=$4
     local guest_gw=$5
-    local guest_uuid=$6
 
     cat > ${mnt_point}/etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
 NM_CONTROLLED=no
@@ -147,37 +128,97 @@ EOF
 ${guest_ipaddr}    ${guest_hostname}
 EOF
     echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { return 1; }
-    sed -i "/^ListenAddress/d" ${mnt_point}/etc/ssh/sshd_config
-    sed -i "/^Port.*$/a\ListenAddress ${guest_ipaddr}" ${mnt_point}/etc/ssh/sshd_config
     chmod 755 ${mnt_point}/etc/rc.d/rc.local
     rm -f ${mnt_point}/ssh/ssh_host_*
+    touch ${mnt_point}/etc/motd.sh
+    cat >> ${mnt_point}/etc/profile << 'EOF'
+export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
+export readonly PROMPT_COMMAND='{ msg=$(history 1 | { read x y; echo $y; });user=$(whoami); logger "$(date +%Y%m%d%H%M%S):$user:$(pwd):$msg:$(who am i)"; }'
+sh /etc/motd.sh
+set -o vi
+EOF
     return 0
 }
+
+[[ $UID = 0 ]] || log "warn" "recommended to run as root."
+
+[ -r ${REPO} ] || {
+    cat> ${REPO} <<EOF
+[centos]
+name=centos
+baseurl=http://10.0.2.1:8080/
+gpgcheck=0
+
+# [update]
+# name=update
+# baseurl=http://mirrors.163.com/centos/7.4.1708/updates/x86_64/
+# #keepcache=1
+# gpgcheck=0
+EOF
+    abort "Created ${REPO} using defaults.  Please review it/configure before running again."
+}
+
+log "warn" "file      :${DISK_FILE}"
+log "warn" "size      :${DISK_SIZE}"
+log "warn" "tomcat    :${TOMCAT_USR}"
+log "warn" "hostname  :${NAME}"
+log "warn" "ip        :${IP}/${PREFIX}"
+log "warn" "gateway   :${GW}"
+log "warn" "passwd    :${NEWPASSWORD}"
+log "warn" "pkg       :${ADDITION_PKG}"
+
+for i in kpartx mkfs.xfs yum blkid parted
+do
+    [[ ! -x $(which $i) ]] && { abort "$i no found"; }
+done
 
 execute truncate -s ${DISK_SIZE} ${DISK_FILE} 
 #dd if=/dev/zero of=${DISK_FILE} bs=1 count=${DISK_SIZE}
 
-execute parted -s ${DISK_FILE} -- mklabel msdos \
-	mkpart primary xfs 2048s -1s \
-	set 1 boot on
+if [ "${DISK_LVM}" = "true" ]; then
+    execute parted -s ${DISK_FILE} -- mklabel msdos \
+    	mkpart primary xfs 1m 200m \
+    	mkpart primary xfs 201m -1s \
+    	set 1 boot on \
+    	set 2 lvm on
+else
+    execute parted -s ${DISK_FILE} -- mklabel msdos \
+	    mkpart primary xfs 2048s -1s \
+	    set 1 boot on
+fi
 
-DISK=$(losetup -fP --show ${DISK_FILE})
-MOUNTDEV=${DISK}p1
-execute mkfs.xfs -f -L rootfs ${MOUNTDEV}
-UUID=`blkid -s UUID -o value ${MOUNTDEV}`
-FSTYPE=`blkid -s TYPE -o value ${MOUNTDEV}`
+DISK=$(kpartx -avs ${DISK_FILE} | grep -o "/dev/loop[1234567890]*" | tail -1)
+MOUNTDEV="/dev/mapper/${DISK##*/}p1"
+ROOTPV="/dev/mapper/${DISK##*/}p2"
+ROOTDEV="/dev/mapper/${ROOTVG}-${ROOTLV}"
 
-execute mkdir -p ${ROOTFS}
-execute mount ${MOUNTDEV} ${ROOTFS}
+if [ "${DISK_LVM}" = "true" ]; then
+    execute mkfs.xfs -f -L bootfs ${MOUNTDEV}
+    execute pvcreate ${ROOTPV}
+    execute vgcreate ${ROOTVG} ${ROOTPV}
+    #lvcreate -L 1536M
+    execute lvcreate -l 100%FREE -n ${ROOTLV} ${ROOTVG}
+    execute mkfs.xfs -f -L rootfs /dev/mapper/${ROOTVG}-${ROOTLV}
+    execute mkdir -p ${ROOTFS}
+    execute mount /dev/mapper/${ROOTVG}-${ROOTLV} ${ROOTFS}
+    execute mkdir -p ${ROOTFS}/boot
+    execute mount ${MOUNTDEV} ${ROOTFS}/boot
+else
+    execute mkfs.xfs -f -L rootfs ${MOUNTDEV}
+    execute mkdir -p ${ROOTFS}
+    execute mount ${MOUNTDEV} ${ROOTFS}
+    ROOTDEV="UUID=$(blkid -s UUID -o value ${MOUNTDEV})"
+fi
 
 fake_yum install filesystem
+log "info" "disable new system yum repo"
+execute rm -f ${ROOTFS}/etc/yum.repos.d/*
 for mp in /dev /sys /proc
 do
     execute mount -o bind ${mp} ${ROOTFS}${mp}
 done
-
 fake_yum groupinstall core #"Minimal Install"
-fake_yum install grub2 net-tools chrony ${ADDITION_PKG}
+fake_yum install grub2 net-tools chrony lvm2 ${ADDITION_PKG}
 fake_yum remove -C --setopt="clean_requirements_on_remove=1" \
 	firewalld \
 	NetworkManager \
@@ -206,9 +247,9 @@ fake_yum remove -C --setopt="clean_requirements_on_remove=1" \
 	iwl7260-firmware \
 	iwl7265-firmware
 
-cat > ${ROOTFS}/etc/default/grub <<EOF
+cat > ${ROOTFS}/etc/default/grub <<'EOF'
 GRUB_TIMEOUT=5
-GRUB_DISTRIBUTOR="\$(sed 's, release .*\$,,g' /etc/system-release)"
+GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
 GRUB_DEFAULT=saved
 GRUB_DISABLE_SUBMENU=true
 GRUB_TERMINAL_OUTPUT="console"
@@ -217,11 +258,16 @@ GRUB_DISABLE_RECOVERY="true"
 EOF
 
 log "info" "add rootfs ....."
-echo "UUID=${UUID} / xfs defaults 0 0" > ${ROOTFS}/etc/fstab
+echo "${ROOTDEV} / xfs defaults 0 0" > ${ROOTFS}/etc/fstab
+if [ "${DISK_LVM}" = "true" ]; then
+    echo "UUID=$(blkid -s UUID -o value ${MOUNTDEV}) /boot xfs defaults 0 0" >> ${ROOTFS}/etc/fstab
+fi
 
-log "info" "add 512M swap ....."
-dd if=/dev/zero of=${ROOTFS}/swapfile bs=1M count=512 && chmod 600 ${ROOTFS}/swapfile && mkswap ${ROOTFS}/swapfile
-sed -i '$a\/swapfile swap swap defaults 0 0' ${ROOTFS}/etc/fstab
+if [ "${SWAP_FILE}" = "true" ]; then
+    log "info" "add 512M swap ....."
+    dd if=/dev/zero of=${ROOTFS}/swapfile bs=1M count=512 && chmod 600 ${ROOTFS}/swapfile && mkswap ${ROOTFS}/swapfile
+    sed -i '$a\/swapfile swap swap defaults 0 0' ${ROOTFS}/etc/fstab
+fi
 
 cat > ${ROOTFS}/etc/X11/xorg.conf.d/00-keyboard.conf <<EOF
 Section "InputClass"
@@ -232,15 +278,12 @@ EndSection
 EOF
 echo 'KEYMAP="cn"' > ${ROOTFS}/etc/vconsole.conf
 
-#chroot ${ROOTFS} /bin/bash -x <<EOF
 execute chroot ${ROOTFS} /bin/bash 2>/dev/nul <<EOF
 rm -f /etc/locale.conf /etc/localtime /etc/hostname /etc/machine-id /etc/.pwd.lock
 systemd-firstboot --root=/ --locale=zh_CN.utf8 --locale-messages=zh_CN.utf8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id
 #localectl set-locale LANG=zh_CN.UTF-8
 #localectl set-keymap cn
 #localectl set-x11-keymap cn
-grub2-mkconfig -o /boot/grub2/grub.cfg
-grub2-install --boot-directory=/boot --modules="xfs part_msdos" ${DISK}
 echo "${NEWPASSWORD}" | passwd --stdin root
 sed -i "s/SELINUX=.*/SELINUX=disabled/g" /etc/selinux/config
 touch /etc/sysconfig/network
@@ -248,15 +291,26 @@ systemctl enable getty@tty1
 touch /*
 touch /etc/*
 touch /boot/*
+grub2-install --boot-directory=/boot --modules="xfs part_msdos" ${DISK}
 EOF
 
-# chroot ${ROOTFS} yum upgrade
-log "info" "tuning system ....."
+log "info" "Rebuild the initramfs."
+chroot ${ROOTFS} /bin/bash 2>/dev/nul <<'EOF'
+export LATEST_VERSION="$(cd /lib/modules; ls -1vr | head -1)"
+rm /boot/initramfs* /boot/vmlinuz-0-rescue-* -f
+dracut -H -f --kver ${LATEST_VERSION} --show-modules -m "lvm qemu qemu-net bash nss-softokn i18n network ifcfg drm plymouth dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown"
+/etc/kernel/postinst.d/51-dracut-rescue-postinst.sh ${LATEST_VERSION} /boot/vmlinuz-${LATEST_VERSION}
+grub2-mkconfig -o /boot/grub2/grub.cfg
+EOF
+change_vm_info "${ROOTFS}" "${NAME}" "${IP}" "${PREFIX}" "${GW}" 
+rm -fr ${ROOTFS}/var/cache
 
-execute chroot ${ROOTFS} /bin/bash 2>/dev/null <<EOF
+
+log "info" "tuning system ....."
+execute chroot ${ROOTFS} /bin/bash 2>/dev/null <<'EOF'
 systemctl set-default multi-user.target
-chkconfig 2>/dev/null | egrep -v "crond|sshd|network|rsyslog|sysstat"|awk '{print "chkconfig",\$1,"off"}' | bash
-systemctl list-unit-files | grep service | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", \$1}' | bash
+chkconfig 2>/dev/null | egrep -v "crond|sshd|network|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
+systemctl list-unit-files | grep service | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
 EOF
 echo "nameserver 114.114.114.114" > ${ROOTFS}/etc/resolv.conf
 #set the file limit
@@ -268,15 +322,16 @@ log "info" "disable the ipv6"
 cat > ${ROOTFS}/etc/modprobe.d/ipv6.conf << EOF
 install ipv6 /bin/true
 EOF
+
 log "info" "setting sshd"
 execute sed -i \"s/#UseDNS.*/UseDNS no/g\" ${ROOTFS}/etc/ssh/sshd_config
 execute sed -i \"s/GSSAPIAuthentication.*/GSSAPIAuthentication no/g\" ${ROOTFS}/etc/ssh/sshd_config
 execute sed -i \"s/#MaxAuthTries.*/MaxAuthTries 3/g\" ${ROOTFS}/etc/ssh/sshd_config
 execute sed -i \"s/#Port.*/Port 60022/g\" ${ROOTFS}/etc/ssh/sshd_config
 execute sed -i \"s/#Protocol 2/Protocol 2/g\" ${ROOTFS}/etc/ssh/sshd_config
-
 echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> ${ROOTFS}/etc/ssh/sshd_config
 echo "MACs    hmac-sha1" >> ${ROOTFS}/etc/ssh/sshd_config
+
 log "info" "tune kernel parametres"
 cat >> ${ROOTFS}/etc/sysctl.conf << EOF
 net.core.rmem_max = 134217728 
@@ -299,77 +354,81 @@ net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_tw_recycle = 0
 net.ipv4.tcp_tw_reuse = 0
 EOF
-cat >${ROOTFS}/etc/motd.sh<<EOF
+cat >${ROOTFS}/etc/motd.sh<<'EOF'
 #!/bin/bash
-date=\$(date "+%F %T")
-head="System Time: \$date"
-kernel=\$(uname -r)
-hostname=\$(echo \$HOSTNAME)
+
+date=$(date "+%F %T")
+head="System Time: $date"
+
+kernel=$(uname -r)
+hostname=$(echo $HOSTNAME)
+
 #Cpu load
-load1=\$(cat /proc/loadavg | awk '{print \$1}')
-load5=\$(cat /proc/loadavg | awk '{print \$2}')
-load15=\$(cat /proc/loadavg | awk '{print \$3}')
+load1=$(cat /proc/loadavg | awk '{print $1}')
+load5=$(cat /proc/loadavg | awk '{print $2}')
+load15=$(cat /proc/loadavg | awk '{print $3}')
+
 #System uptime
-uptime=\$(cat /proc/uptime | cut -f1 -d.)
-upDays=\$((uptime/60/60/24))
-upHours=\$((uptime/60/60%24))
-upMins=\$((uptime/60%60))
-upSecs=\$((uptime%60))
-up_lastime=\$(date -d "\$(awk -F. '{print \$1}' /proc/uptime) second ago" +"%Y-%m-%d %H:%M:%S")
+uptime=$(cat /proc/uptime | cut -f1 -d.)
+upDays=$((uptime/60/60/24))
+upHours=$((uptime/60/60%24))
+upMins=$((uptime/60%60))
+upSecs=$((uptime%60))
+up_lastime=$(date -d "$(awk -F. '{print $1}' /proc/uptime) second ago" +"%Y-%m-%d %H:%M:%S")
 
 #Memory Usage
-mem_usage=\$(free -m | grep Mem | awk '{ printf("%3.2f%%", \$3*100/\$2) }')
-swap_usage=\$(free -m | awk '/Swap/{printf "%.2f%",\$3/(\$2+1)*100}')
+mem_usage=$(free -m | grep Mem | awk '{ printf("%3.2f%%", $3*100/$2) }')
+swap_usage=$(free -m | awk '/Swap/{printf "%.2f%",$3/($2+1)*100}')
 
 #Processes
-processes=\$(ps aux | wc -l)
+processes=$(ps aux | wc -l)
 
 #User
-users=\$(users | wc -w)
-USER=\$(whoami)
+users=$(users | wc -w)
+USER=$(whoami)
 
 #System fs usage
-Filesystem=\$(df -h | awk '/^\/dev/{print \$6}')
+Filesystem=$(df -h | awk '/^\/dev/{print $6}')
 
-uuid=\$(dmidecode | grep UUID | awk '{print \$2}')
+uuid=$(dmidecode | grep UUID | awk '{print $2}')
 #Interfaces
-INTERFACES=\$(ip -4 ad | grep 'state ' | awk -F":" '!/^[0-9]*: ?lo/ {print \$2}')
+INTERFACES=$(ip -4 ad | grep 'state ' | awk -F":" '!/^[0-9]*: ?lo/ {print $2}')
 echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-echo "\$head"
+echo "$head"
 echo "----------------------------------------------"
-printf "Kernel Version:\t%s\n" \$kernel
-printf "HostName:\t%s\n" \$hostname
-printf "UUID\t\t%s\n" \${uuid}
-printf "System Load:\t%s %s %s\n" \$load1, \$load5, \$load15
-printf "System Uptime:\t%s "days" %s "hours" %s "min" %s "sec"\n" \$upDays \$upHours \$upMins \$upSecs
-printf "Memory Usage:\t%s\t\t\tSwap Usage:\t%s\n" \$mem_usage \$swap_usage
-printf "Login Users:\t%s\nUser:\t\t%s\n" \$users \$USER
-printf "Processes:\t%s\n" \$processes
+printf "Kernel Version:\t%s\n" $kernel
+printf "HostName:\t%s\n" $hostname
+printf "UUID\t\t%s\n" ${uuid}
+printf "System Load:\t%s %s %s\n" $load1, $load5, $load15
+printf "System Uptime:\t%s "days" %s "hours" %s "min" %s "sec"\n" $upDays $upHours $upMins $upSecs
+printf "Memory Usage:\t%s\t\t\tSwap Usage:\t%s\n" $mem_usage $swap_usage
+printf "Login Users:\t%s\nUser:\t\t%s\n" $users $USER
+printf "Processes:\t%s\n" $processes
 echo  "---------------------------------------------"
 printf "Filesystem\tUsage\n"
-for f in \$Filesystem
+for f in $Filesystem
 do
-    Usage=\$(df -h | awk '{if(\$NF=="'''\$f'''") print \$5}')
-    echo -e "\$f\t\t\$Usage"
+    Usage=$(df -h | awk '{if($NF=="'''$f'''") print $5}')
+    echo -e "$f\t\t$Usage"
 done
 echo  "---------------------------------------------"
 printf "Interface\tMAC Address\t\tIP Address\n"
-for i in \$INTERFACES
+for i in $INTERFACES
 do
-    MAC=\$(ip ad show dev \$i | grep "link/ether" | awk '{print \$2}')
-    IP=\$(ip ad show dev \$i | awk '/inet / {print \$2}')
-    printf \$i"\t\t"\$MAC"\t\$IP\n"
+    MAC=$(ip ad show dev $i | grep "link/ether" | awk '{print $2}')
+    IP=$(ip ad show dev $i | awk '/inet / {print $2}')
+    printf $i"\t\t"$MAC"\t$IP\n"
 done
 echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 echo
 EOF
-execute chmod 755 ${ROOTFS}/etc/motd.sh
+execute chmod 644 ${ROOTFS}/etc/motd.sh
 
 if [ "${TOMCAT_USR:=false}" = "true" ]
 then
     log "info" "add user<tomcat>, add tomcat@ service"
     execute chroot ${ROOTFS} useradd tomcat -M -s /sbin/nologin
-    cat >> ${ROOTFS}/lib/systemd/system/tomcat@.service << EOF
+    cat >> ${ROOTFS}/lib/systemd/system/tomcat@.service << 'EOF'
 [Unit]
 Description=Apache Tomcat Web in /opt/%i
 After=syslog.target network.target
@@ -379,8 +438,8 @@ Type=forking
 LimitNOFILE=102400
 EnvironmentFile=-/etc/default/tomcat@%I
 Environment='TC_DIR=%i'
-ExecStart=/bin/bash /opt/\${TC_DIR}/bin/startup.sh
-ExecStop=/bin/bash /opt/\${TC_DIR}/bin/shutdown.sh
+ExecStart=/bin/bash /opt/${TC_DIR}/bin/startup.sh
+ExecStop=/bin/bash /opt/${TC_DIR}/bin/shutdown.sh
 SuccessExitStatus=0
 User=tomcat
 Group=tomcat
@@ -392,17 +451,8 @@ WantedBy=multi-user.target
 EOF
 fi
 
-cat >> ${ROOTFS}/etc/profile << 'EOF'
-export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]\\$"
-export readonly PROMPT_COMMAND='{ msg=\$(history 1 | { read x y; echo \$y; });user=\$(whoami); echo \$(date "+%Y-%m-%d%H:%M:%S"):\$user:`pwd`/:\$msg ---- \$(who am i); } >> \$HOME/.history.'
-set -o vi
-sh /etc/motd.sh
-EOF
-change_vm_info "${ROOTFS}" "${NAME}" "${IP}" "${PREFIX}" "${GW}" "${UUID}"
-rm -fr ${ROOTFS}/var/cache
 cleanup
 log "info" "${DISK_FILE} Create root/${NEWPASSWORD} OK "
-
 exit 0
 
 
@@ -412,14 +462,6 @@ exit 0
 # perl -npe 's/PASS_MIN_DAYS\s+0/PASS_MIN_DAYS 1/g' -i /etc/login.defs
 # 系统以 sha512 取代 md5 作口令的保护
 # authconfig --passalgo=sha512 --update
-
-# log "info" "Rebuild the initramfs."
-# chroot ${ROOTFS} /bin/bash 2>/dev/nul <<EOF
-# export LATEST_VERSION="$(cd /lib/modules; ls -1vr | head -1)"
-# rm /boot/initramfs* -f
-# dracut -H -f --kver ${LATEST_VERSION} #dracut -N -f --kver ${LATEST_VERSION} 
-# /etc/kernel/postinst.d/51-dracut-rescue-postinst.sh ${LATEST_VERSION} /boot/vmlinuz-${LATEST_VERSION}
-# EOF
 
 # #extract a single partition from image
 # dd if=image of=partitionN skip=offset_of_partition_N count=size_of_partition_N bs=512 conv=sparse
