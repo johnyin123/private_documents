@@ -17,3 +17,7 @@ ceph osd pool set rbd pgp_num 256
 
 ceph -s
 
+wget -q -O- 'http://mirrors.163.com/ceph/keys/release.asc' | apt-key add -
+echo deb http://mirrors.163.com/ceph/debian-luminous/ $(lsb_release -sc) main | tee /etc/apt/sources.list.d/ceph.list
+apt update
+
