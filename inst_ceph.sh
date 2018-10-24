@@ -1,4 +1,16 @@
 #!/bin/bash
+cat << "EOF"
+export IP=10.4.37.8
+export DEV=em1
+ip route add 10.4.37.0/24 dev ${DEV} src ${IP} table 10
+ip route add default via 10.4.37.254 dev ${DEV} table 10
+ip rule add from ${IP}/32 table 10
+ip rule add to ${IP}/32 table 10
+ip route list table 10
+
+ip route delete default table 10
+ip rule delete table 10
+EOF
 cat <<EOF
 Health check failed: 5 slow requests are blocked > 32 sec (REQUEST_SLOW)
 ......can try blow
