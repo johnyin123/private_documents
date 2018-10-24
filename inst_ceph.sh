@@ -8,8 +8,13 @@ ip rule add from ${IP}/32 table 10
 ip rule add to ${IP}/32 table 10
 ip route list table 10
 
+ip route list table 10
+ip rule del from ${IP}/32 table 10
+ip rule del to ${IP}/32 table 10
+ip route delete 10.4.37.0/24 table 10
 ip route delete default table 10
 ip rule delete table 10
+ip route list table 10
 EOF
 cat <<EOF
 Health check failed: 5 slow requests are blocked > 32 sec (REQUEST_SLOW)
