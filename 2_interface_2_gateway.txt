@@ -1,0 +1,58 @@
+To configure two interfaces say eth0 and eth1 to use two networks 192.168.0.0/24 and 10.10.0.0/24
+
+a tool iproute2 can be used to achieve this.
+Steps:
+Edit your /etc/network/interfaces:
+
+# The primary network interface
+allow-hotplug eth0
+iface eth0 inet static
+    address 192.168.0.10
+    netmask 255.255.255.0
+    gateway 192.168.0.1
+# The secondary network interface
+allow-hotplug eth1
+    iface eth1 inet static
+    address 10.10.0.10
+    netmask 255.255.255.0
+
+Add second routing table by editing `/etc/iproute2/rt_tables:
+#
+255     local
+254     main
+253     default
+0       unspec
+# local
+#1      inr.ruhep
+1 rt2
+
+Populate new routing table:
+
+ip route add 10.10.0.0/24 dev eth1 src 10.10.0.10 table rt2
+ip route add default via 10.10.0.1 dev eth1 table rt2
+
+# The first command says that the network, 10.10.0.0/24, can be reached through the eth1 interface.
+# The second command sets the default gateway.
+Add routing rules:
+
+ip rule add from 10.10.0.10/32 table rt2
+ip rule add to 10.10.0.10/32 table rt2
+
+# These rules say that both traffic from the IP address, 10.10.0.10, as well as traffic directed to 
+
+
+# or through this IP address, should use the rt2 routing table
+
+Making the Configuration permanent by adding it to /etc/network/interfaces:
+
+iface eth1 inet static
+    address 10.10.0.10
+    netmask 255.255.255.0
+    post-up ip route add 10.10.0.0/24 dev eth1 src 10.10.0.10 table rt2
+    post-up ip route add default via 10.10.0.1 dev eth1 table rt2
+    post-up ip rule add from 10.10.0.10/32 table rt2
+    post-up ip rule add to 10.10.0.10/32 table rt2
+Source:
+
+https://www.thomas-krenn.com/en/wiki/Two_Default_Gateways_on_One_System
+
