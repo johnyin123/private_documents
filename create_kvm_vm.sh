@@ -216,7 +216,16 @@ function genkvm_xml(){
   <memory unit='KiB'>${memsize}</memory>
   <currentMemory unit='KiB'>${memsize}</currentMemory>
   <vcpu>${vcpus}</vcpu>
-  <cpu mode='host-model'/>
+  <cpu mode='host-model' check='none'>
+  <model fallback='allow'/>
+  <feature policy='disable' name='ssbd'/>
+  <feature policy='disable' name='hle'/>
+  <feature policy='disable' name='rtm'/>
+  <feature policy='disable' name='rdseed'/>
+  <feature policy='disable' name='adx'/>
+  <feature policy='disable' name='smap'/>
+  <feature policy='disable' name='3dnowprefetch'/>
+  </cpu>
   <os>
     <type arch='x86_64'>hvm</type>
   </os>
