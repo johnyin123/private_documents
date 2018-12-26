@@ -207,6 +207,8 @@ function genkvm_xml(){
     local vcpus=${10}
 #<cpu mode="host-passthrough"/>
 #<cpu mode='host-model'/>
+#<cpu match='exact'><model fallback='allow'>Westmere</model></cpu>
+
     cat > ${vmname}<<EOF
 <domain type='kvm'>
   <name>${vmname}</name>
