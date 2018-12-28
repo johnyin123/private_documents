@@ -217,7 +217,7 @@ function genkvm_xml(){
   <description>${desc}</description>
   <memory unit='KiB'>${memsize}</memory>
   <currentMemory unit='KiB'>${memsize}</currentMemory>
-  <vcpu>${vcpus}</vcpu>
+  <vcpu placement='static' current='1'>${vcpus}</vcpu>
   <cpu mode='host-model' check='none'>
   <model fallback='allow'/>
   <feature policy='disable' name='ssbd'/>
