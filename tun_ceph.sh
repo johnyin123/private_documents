@@ -29,6 +29,15 @@ ceph osd pool set <poolname> min_size 1
 ceph osd pool set <poolname> max_size 1
 
 升级Ceph
+    设置sortbitwis
+        如果未设置，升级过程中可能会出现数据丢失的情况
+        # ceph osd set sortbitwise
+    设置noout
+    为了防止升级过程中出现数据重平衡，升级完成后取消设置即可
+        # ceph osd set noout
+设置完成后集群状态ceph -s,
+
+
 ceph osd set noout #避免在异常情况下不可控
 ceph osd down x #提前mark down， 减少slow request
 service ceph restart osd.x
