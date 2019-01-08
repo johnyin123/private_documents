@@ -345,6 +345,7 @@ function main() {
         cat >"${CFG_INI}" <<-EOF
 [kvm]
 #name
+OSLINUX=true
 IP=10.0.2.2/24
 ROUTE="default via 10.0.2.1
 192.160.1.0/24 via 10.0.2.1 dev eth0"
@@ -374,7 +375,7 @@ EOF
         UUID=$(cat /proc/sys/kernel/random/uuid)
         VMNAME="$(lowercase $i)"
         unset IP TEMPLATE_IMG VCPUS VMEMSIZE VM_TITLE VM_DESC 
-        unset NET_TYPE KVM_BRIDGE STORE_TYPE STORE_POOL ROUTE
+        unset NET_TYPE KVM_BRIDGE STORE_TYPE STORE_POOL ROUTE OSLINUX
         readini "$i" "${CFG_INI}"
         #[ ! -z "${IP}" ] && {
         #}
@@ -416,23 +417,24 @@ EOF
             log "warn" "   status:FAILED";
             continue;
         }
-
-        local mnt_point=/tmp/vm_mnt/
-        mkdir -p ${mnt_point}
-        # SectorSize * StartSector
-        SectorSize=$(parted ${TEMPLATE_IMG} unit s print | awk '/Sector size/{print $4}' | awk -F "B" '{print $1}')
-        sst=$(parted ${TEMPLATE_IMG} unit s print | awk '/ 1  /{print $2}')
-        StartSector=${sst:0:${#sst}-1}
-        OffSet=$(($StartSector*$SectorSize))
-        mount -o loop,offset=${OffSet} ${TEMPLATE_IMG} ${mnt_point}
-        change_vm_info "${mnt_point}" "${VMNAME}" "${IP}" "${PREFIX}" "${ROUTE}" "${UUID}"
-        retval=$?
-        umount ${mnt_point}
-        if [[ ${retval} != 0  ]]; then
-            fake_virsh undefine ${VMNAME}-${UUID}
-            mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.err
-            log "error" "ErrorCode :${retval}"
-            continue
+        if [ "${OSLINUX:=true}" = "true" ]; then
+            local mnt_point=/tmp/vm_mnt/
+            mkdir -p ${mnt_point}
+            # SectorSize * StartSector
+            SectorSize=$(parted ${TEMPLATE_IMG} unit s print | awk '/Sector size/{print $4}' | awk -F "B" '{print $1}')
+            sst=$(parted ${TEMPLATE_IMG} unit s print | awk '/ 1  /{print $2}')
+            StartSector=${sst:0:${#sst}-1}
+            OffSet=$(($StartSector*$SectorSize))
+            mount -o loop,offset=${OffSet} ${TEMPLATE_IMG} ${mnt_point}
+            change_vm_info "${mnt_point}" "${VMNAME}" "${IP}" "${PREFIX}" "${ROUTE}" "${UUID}"
+            retval=$?
+            umount ${mnt_point}
+            if [[ ${retval} != 0  ]]; then
+                fake_virsh undefine ${VMNAME}-${UUID}
+                mv ${VMNAME}-${UUID} ${VMNAME}-${UUID}.err
+                log "error" "ErrorCode :${retval}"
+                continue
+            fi
         fi
         log "info" "     disk:OK ${retval}"
         log "info" "upload ${STORE_TYPE} image ${VM_IMG} in ${STORE_POOL} ..."
