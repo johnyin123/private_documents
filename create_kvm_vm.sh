@@ -313,7 +313,7 @@ function file_GenImg() {
     local tpl_img=$3
     local s_pool=$4
     filesize=$(stat --format=%s ${tpl_img})
-    dd if=${tpl_img} 2>/dev/null | pv -s ${filesize} | ${ZIP} -c | ssh ${SSH_OPT} "${UNZIP} -c | dd of=${s_path}/${vm_img} 2>/dev/null"
+    dd if=${tpl_img} bs=4096 2>/dev/null | pv -s ${filesize} | ${ZIP} -c | ssh ${SSH_OPT} "${UNZIP} -c | dd of=${s_path}/${vm_img} bs=4096 2>/dev/null"
 }
 function lvm_GenImg() {
     local s_path=$1
@@ -436,7 +436,7 @@ EOF
                 continue
             fi
         fi
-        log "info" "     disk:OK ${retval}"
+        log "info" "     disk:OK ${retval:-0}"
         log "info" "upload ${STORE_TYPE} image ${VM_IMG} in ${STORE_POOL} ..."
         eval ${STORE_TYPE}_GenImg "${store_path}" "${VM_IMG}" "${TEMPLATE_IMG}" "${STORE_POOL}"
         retval=$?
