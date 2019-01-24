@@ -3,3 +3,8 @@ DISK=$(virsh dumpxml domname | xmllint --xpath 'string(/domain/devices/disk/alia
 virsh qemu-monitor-command domname block_resize drive-${DISK} 30G --hmp
 
 test on rbd storage for kvm
+
+
+virsh qemu-monitor-command domname balloon 1024 --hmp
+virsh qemu-monitor-command domname info balloon --hmp
+
