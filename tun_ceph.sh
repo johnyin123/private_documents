@@ -48,6 +48,8 @@ ceph osd set noout
 ceph osd down x #把这个机器上的OSD都设置为down状态
 service ceph stop osd.x
 重启机器
+最后，务必取消集群的noout状态。
+ceph osd unset noout
 
 扩展集群的时候需要非常小心，因为它会触发数据迁移：
 设置crush map
