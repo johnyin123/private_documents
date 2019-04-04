@@ -37,18 +37,11 @@ ceph osd pool set <poolname> max_size 1
         # ceph osd set noout
 设置完成后集群状态ceph -s,
 
-
+ceph osd set sortbitwise
 ceph osd set noout #避免在异常情况下不可控
-ceph osd down x #提前mark down， 减少slow request
-service ceph restart osd.x
-
-更换硬件或者升级内核时需要对机器进行重启
-把这台机器上的虚拟机迁移到其他机器上
-ceph osd set noout
-ceph osd down x #把这个机器上的OSD都设置为down状态
-service ceph stop osd.x
-重启机器
-最后，务必取消集群的noout状态。
+ceph osd down osd.x #提前mark down， 减少slow request
+systemctl stop ceph-osd@X #service ceph restart osd.x
+#here you work or reboot.....
 ceph osd unset noout
 
 扩展集群的时候需要非常小心，因为它会触发数据迁移：
