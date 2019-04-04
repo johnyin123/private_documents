@@ -40,8 +40,11 @@ ceph osd pool set <poolname> max_size 1
 ceph osd set sortbitwise
 ceph osd set noout #避免在异常情况下不可控
 ceph osd down osd.x #提前mark down， 减少slow request
-systemctl stop ceph-osd@X #service ceph restart osd.x
+
+ceph osd stop osd.x
+    systemctl stop ceph-osd@X #service ceph restart osd.x
 #here you work or reboot.....
+ceph osd start osd.x
 ceph osd unset noout
 
 扩展集群的时候需要非常小心，因为它会触发数据迁移：
