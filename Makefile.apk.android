@@ -1,0 +1,77 @@
+PROJECT_NAME=prj_name
+ANDROID_JAR=${ANDROID_SDK_HOME}/platforms/android-17/android.jar
+GEN_DIR=gen
+BIN_DIR=bin
+SRC_DIR=src:json:codec:compress:io:support/v4
+RES_DIR=res
+EXTEND_LIBS_DIR=libs
+ASSETS_DIR=assets
+MAIN_XML=AndroidManifest.xml
+CLASSES_DIR=${BIN_DIR}/classes
+CLASSES_ZIP_NAME=classes.jar
+DEX_NAME=classes.dex
+RES_ZIP_NAME=res.jar
+
+#sign
+KEY_STORE=sign.keystore
+KEY_ALISE=test
+KEY_STORE_PASS=12345678
+ALISE_PASS=12345678
+UNSIGNED_APK_NAME=${PROJECT_NAME}.apk
+SIGNED_APK_NAME=${PROJECT_NAME}-singed.apk
+
+#build class
+BUILD_CLASSPATH=./sdk/classes-8.jar:${ANDROID_JAR}:./${GEN_DIR}:${SRC_DIR}:./libs/android-support-v4.jar:./libs/umeng_sdk.jar
+
+#proguard
+PROGUARD_INJARS=${BIN_DIR}/${CLASSES_ZIP_NAME}:libs/umeng_sdk.jar:libs/android-support-v4.jar
+PROGUARD_OUTJAR=${BIN_DIR}/classes_proguard.jar
+PROGUARD_SCRIPT=proguard-project.txt
+PROGUARD_LIB_JARS=${ANDROID_JAR}:sdk/classes-8.jar
+PROGUARD_LOG_DIR=proguard
+
+#build tools
+AAPT=aapt
+DX=dx
+APKBUILDER=apkbuilder
+JAR_SINGER=jarsigner
+PROGUARD=proguard.sh
+ZIP=zip
+JAVAC=javac -target 1.6 -J-Dfile.encoding=UTF-8
+
+signed-apk:apk
+	${JAR_SINGER} -verbose -keystore ${KEY_STORE} -keypass ${KEY_STORE_PASS} -storepass ${ALISE_PASS} -signedjar ${BIN_DIR}/${SIGNED_APK_NAME} ${BIN_DIR}/${UNSIGNED_APK_NAME} ${KEY_ALISE}
+
+apk:res_zip dex
+	${APKBUILDER} ${BIN_DIR}/${UNSIGNED_APK_NAME} -u -z ${BIN_DIR}/${RES_ZIP_NAME} -f ${BIN_DIR}/${DEX_NAME} -rf ${SRC_DIR} -nf ${EXTEND_LIBS_DIR}
+
+res_zip:
+	${AAPT} package -f -M ${MAIN_XML} -S ${RES_DIR} -A ${ASSETS_DIR} -I ${ANDROID_JAR} -F ${BIN_DIR}/${RES_ZIP_NAME} --auto-add-overlay
+
+
+dex:proguard_jar
+	${DX} --dex --output=${BIN_DIR}/${DEX_NAME}  ${PROGUARD_OUTJAR}
+
+proguard_jar:classes_jar
+	${PROGUARD} -printmapping ${PROGUARD_LOG_DIR}/mapping.txt -printseeds ${PROGUARD_LOG_DIR}/seeds.txt -printusage ${PROGUARD_LOG_DIR}/usage.txt -dump ${PROGUARD_LOG_DIR}/dump.txt -libraryjars ${PROGUARD_LIB_JARS} -injars ${PROGUARD_INJARS} -outjar ${PROGUARD_OUTJAR} @${PROGUARD_SCRIPT}
+
+#Makefile 中， cd 只对当前行有用
+classes_jar:classes
+	cd ${CLASSES_DIR};${ZIP} -r ../${CLASSES_ZIP_NAME} *
+
+classes:aidl R
+	find . -name *.java | xargs -t -I {} ${JAVAC} -cp ${BUILD_CLASSPATH} -d ${CLASSES_DIR} {}
+	find ${CLASSES_DIR} -name *.aidl | xargs -t -I {} rm {}
+
+aidl:
+	find . -name *.aidl | xargs ls -lta | xargs -t -I {} aidl -I${SRC_DIR} -o${GEN_DIR} {}
+
+R:
+	${AAPT} p -f -m -J ${GEN_DIR} -S ${RES_DIR} -I ${ANDROID_JAR} -M ${MAIN_XML}
+
+clean:
+	@rm -rf ${GEN_DIR}/*
+	@rm -rf ${BIN_DIR}/*
+	@rm -rf ${PROGUARD_LOG_DIR}/*
+	@mkdir -p ${CLASSES_DIR}
+	@mkdir -p ${PROGUARD_LOG_DIR}
