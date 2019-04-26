@@ -153,7 +153,7 @@ EOF
 exit 0
 EOF
     chmod 755 ${mnt_point}/etc/rc.local
-    rm -f ${mnt_point}/ssh/ssh_host_*
+    rm -f ${mnt_point}/etc/ssh/ssh_host_*
     return 0
 }
 function change_vm_info_centos7() {
@@ -189,7 +189,7 @@ EOF
     sed -i "/^server/d" ${mnt_point}/etc/chrony.conf
     sed -i "3 a server ${TIMESERVER} iburst" ${mnt_point}/etc/chrony.conf
     chmod 755 ${mnt_point}/etc/rc.d/rc.local
-    rm -f ${mnt_point}/ssh/ssh_host_*
+    rm -f ${mnt_point}/etc/ssh/ssh_host_*
     return 0
 }
 # add dynamic vcpus
