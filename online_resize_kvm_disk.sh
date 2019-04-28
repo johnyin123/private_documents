@@ -8,7 +8,8 @@ test on rbd storage for kvm
 virsh qemu-monitor-command domname balloon 1024 --hmp
 virsh qemu-monitor-command domname info balloon --hmp
 
-
+XFS
+xfs_growfs /share
 
 #    qemu-img resize -f rbd rbd:sata/disk3 40G
 #    virsh domblklist rbd-test
