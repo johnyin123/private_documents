@@ -181,6 +181,12 @@
       service: name=crond enabled=yes state=restarted
       register: service
 ...
+---
+# - name: install router packages
+#   yum:
+#    name: [ 'quagga.x86_64', 'ipset.x86_64', 'ipset-service.noarch', 'tcpdump', 'nmap', 'iptraf-ng' ]
+#    state: installed
+
 # Playbook的核心元素：
 #     hosts：主机
 #     tasks：任务列表
