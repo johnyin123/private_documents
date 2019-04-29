@@ -105,6 +105,14 @@
       regexp: '^\* soft nofile'
       line: "* soft nofile {{ ulimit_num | default('65536') }}"
 
+  - name: Disable TCP timestamps
+    sysctl:
+      name="net.ipv4.tcp_timestamps"
+      value=0
+      sysctl_set=yes
+      state=present
+      reload=yes
+
   - name: Disable UseDNS in ssh config
     lineinfile:
       dest=/etc/ssh/sshd_config
