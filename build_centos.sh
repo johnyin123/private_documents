@@ -423,6 +423,12 @@ echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 echo
 EOF
 execute chmod 644 ${ROOTFS}/etc/motd.sh
+execute /usr/sbin/userdel shutdown
+execute /usr/sbin/userdel halt
+execute /usr/sbin/userdel games
+execute /usr/sbin/userdel operator
+execute /usr/sbin/userdel ftp
+execute /usr/sbin/userdel gopher
 
 if [ "${TOMCAT_USR:=false}" = "true" ]
 then
