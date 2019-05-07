@@ -10,6 +10,9 @@
 
 # ansible-playbook debug.yml -i hosts --user=root -e '{ "env": "local" }' -k
 # ansible-playbook debug.yml -i hosts -e '{ "env": "local", log: 0 }'
+
+# ansible-playbook example.yml – tags "configuration,packages"
+# ansible-playbook example.yml – skip-tags "configuration"
 ---
 - name: Print debug infomation eg1 
   hosts: "{{ env }}"
@@ -173,6 +176,17 @@
       state: present
       reload: yes
 
+  - name: add host record to center server 
+    local_action: shell 'echo "192.168.1.100 test.xyz.com " >> /etc/hosts'
+
+  - name: add host record to center server 
+    shell: 'echo "192.168.1.100 test.xyz.com " >> /etc/hosts'
+    delegate_to: 192.168.1.1
+
+  - name: this will not be counted as a failure 
+    command: /bin/false 
+    ignore_errors: yes
+
   handlers:  
     - name: do your notify
       become_user: root
@@ -206,3 +220,16 @@
 #  ansible_become_method # 切换用户使用的方法，如sudo、su
 #  ansible_become_user # 要切换的用户
 #  ansible_become_pass # 切换用户是需要的密码
+
+# ansible-playbook 执行每一个任务所花费的时间
+#  cd /etc/ansible 
+#  mkdir callback_plugins 
+#  cd callback_plugins 
+#  wget https://raw.githubusercontent.com/jlafon/ansible-profile/master/callback_plugins/profile_tasks.py
+#
+#
+# SSH pipelining 是一个加速 Ansible 执行速度的简单方法。
+# ssh pipelining 默认是关闭，之所以默认关闭是为了兼容不同的sudo配置，
+# 主要是 requiretty 选项。如果不使用 sudo，建议开启。
+# 打开此选项可以减少 ansible 执行没有传输时 ssh 在被控机器上执行任务的连接数。
+# 不过，如果使用 sudo，必须关闭 requiretty 选项。修改 /etc/ansible/ansible.cfg 文件可以开启pipelining=True
