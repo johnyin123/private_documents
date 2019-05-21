@@ -37,6 +37,8 @@ def extract_variables(log_format):
 # =================================
 # Simple Records processor
 # =================================
+import pathlib
+
 class SimpleProcessor(object):
     def __init__(self, fields):
         self.fields = fields if fields is not None else []
@@ -50,9 +52,9 @@ class SimpleProcessor(object):
                 status = r['status']
                 if up_status.startswith('2') or up_status.startswith('3') or status.startswith('2') or status.startswith('3'):
                     continue
-                path = r['request_path']
-                while os.path.dirname(path) != '/' and os.path.dirname(path) != '':
-                    path = os.path.dirname(path)
+                parts = pathlib.PurePosixPath(r['request_path']).parts
+                path = (parts[0] if len(parts)>0 else '/') + (parts[1] if len(parts)>1 else '')
+
                 host = r['http_host']
                 if host in access_stats.keys():
                     if path in access_stats[host].keys():
@@ -165,15 +167,16 @@ def main():
         }
     try:
         fn = "access.log"
-        if os.path.isfile(fn):
-            fp = open(fn, 'r')
-            args["access_log"] = fp #tail(fp, 50000)
-        #if sys.stdin.isatty():
-        #    sys.stderr.write('Error: need access.log stream')
-        #    sys.exit(1)
-        #args["access_log"] = sys.stdin
-            process(args)
-            fp.close()
+        #if os.path.isfile(fn):
+        #    fp = open(fn, 'r')
+        #    args["access_log"] = fp #tail(fp, 50000)
+        if sys.stdin.isatty():
+            sys.stderr.write('Error: need access.log stream')
+            sys.exit(1)
+        args["access_log"] = sys.stdin
+
+        process(args)
+        #fp.close()
 
         print(json.dumps(access_stats, indent=4, ensure_ascii=False))
     except KeyboardInterrupt:
