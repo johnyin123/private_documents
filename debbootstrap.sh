@@ -57,7 +57,8 @@ mount -t sysfs none /sys
 /debootstrap/debootstrap --second-stage
 
 echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
-echo 'APT::Install-Suggests "0";'>> /etc/apt/apt.conf
+echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
+echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
 
 #echo "dhd" >> /etc/modules
 
