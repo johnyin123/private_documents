@@ -1,22 +1,42 @@
 #!/bin/bash
-set -o nounset -o pipefail
-DIRNAME="$(dirname "$0")"
-SCRIPTNAME=${0##*/}
+set -o errexit -o nounset -o pipefail
 
 if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
 
+REPO=http://mirrors.163.com/debian
+PASSWORD=password
+export DIRNAME="$(pwd)"
+#DIRNAME="$(dirname "$(realpath "$0")")"
+#DIRNAME="$(dirname "$(readlink -e "$0")")"
+export SCRIPTNAME=${0##*/}
+export DEBIAN_VERSION=${DEBIAN_VERSION:-buster}
+export FS_TYPE=${FS_TYPE:-jfs}
 
-DEBIAN_VERSION=${DEBIAN_VERSION:-stretch}
-FS_TYPE=${FS_TYPE:-jfs}
+PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv"
+PKG="${PKG},rsyslog,udev,isc-dhcp-client,binutils,netbase,console-setup,ifupdown,openssh-server,initramfs-tools,jfsutils,u-boot-tools,fake-hwclock,pkg-config"
+PKG="${PKG},openssh-client,iputils-ping,wget,net-tools,ntpdate,vim,less,wireless-tools,wpasupplicant,file,fonts-droid-fallback,lsof,strace"
 
 if [ "$UID" -ne "0" ]
 then 
 	echo "Must be root to run this script." 
 	exit 1
 fi
+
+cleanup() {
+    trap '' INT TERM EXIT
+    umount ${DIRNAME}/buildroot/dev
+    umount ${DIRNAME}/buildroot/run
+    umount ${DIRNAME}/buildroot/proc
+    umount ${DIRNAME}/buildroot/sys
+}
+
+final_disk() {
+    umount ${DIRNAME}/buildroot/
+    losetup -d ${DIRNAME}/DISK.IMG
+}
 
 prepair_disk() {
     # DISK="/dev/sdb"
@@ -41,41 +61,56 @@ prepair_disk() {
     echo "done."
     mount ${PART_ROOT} ${DIRNAME}/buildroot/
 }
+mkdir -p ${DIRNAME}/buildroot
 
-mkdir -p ${DIRNAME}/buildroot/
+if [ -d "${DIRNAME}/deb-cache" ]; then
+    mkdir -p ${DIRNAME}/buildroot/var/cache/apt/archives/
+    cp ${DIRNAME}/deb-cache/* ${DIRNAME}/buildroot/var/cache/apt/archives/
+    sync;sync
+fi
 
-debootstrap --verbose --arch arm64 --variant=minbase --include=tzdata,locales,dialog,apt-utils --foreign ${DEBIAN_VERSION} ${DIRNAME}/buildroot http://mirrors.163.com/debian 
+trap cleanup EXIT
+trap cleanup TERM
+trap cleanup INT
 
-unset PROMPT_COMMAND
+debootstrap --verbose --no-check-gpg --arch arm64 --variant=minbase --include=${PKG} --foreign ${DEBIAN_VERSION} ${DIRNAME}/buildroot ${REPO} 
+
 cp /usr/bin/qemu-aarch64-static ${DIRNAME}/buildroot/usr/bin/
 
-mount --bind /dev  ${DIRNAME}/buildroot/dev
-chroot ${DIRNAME}/buildroot /bin/bash <<EOSHELL
-mount -t proc none /proc
-mount -t sysfs none /sys
+#mount --bind /dev  ${DIRNAME}/buildroot/dev
+mount -t proc /proc ${DIRNAME}/buildroot/proc && \
+mount --rbind --make-rslave /dev ${DIRNAME}/buildroot/dev && \
+mount --rbind --make-rslave /sys ${DIRNAME}/buildroot/sys && \
+mount --rbind --make-rslave /run ${DIRNAME}/buildroot/run
 
-/debootstrap/debootstrap --second-stage
+unset PROMPT_COMMAND
+LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /debootstrap/debootstrap --second-stage
 
-echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
-echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
-echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
+LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /bin/bash <<EOSHELL
 
-#echo "dhd" >> /etc/modules
+echo usb950d > /etc/hostname
 
 cat > /etc/fstab << EOF
 LABEL=ROOTFS	/	${FS_TYPE}	defaults,errors=remount-ro,noatime	0	1
 LABEL=BOOT	/boot	vfat	ro	0	2
 EOF
 
+
+echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
+#echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
+#echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
+
+#echo "dhd" >> /etc/modules
+
 cat > /etc/apt/sources.list << EOF
 deb http://mirrors.163.com/debian ${DEBIAN_VERSION} main non-free contrib
 deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-proposed-updates main non-free contrib
 deb http://mirrors.163.com/debian-security ${DEBIAN_VERSION}/updates main contrib non-free
+deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-backports main contrib non-free
 EOF
-echo usb950d > /etc/hostname
 
-apt update
-apt -y upgrade
+#apt update
+#apt -y upgrade
 
 #dpkg-reconfigure locales
 sed -i "s/^# *zh_CN.UTF-8/zh_CN.UTF-8/g" /etc/locale.gen
@@ -86,9 +121,6 @@ echo -e 'LANG="zh_CN.UTF-8"\nLANGUAGE="zh_CN:zh"\nLC_ALL="zh_CN.UTF-8"\n' > /etc
 ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 dpkg-reconfigure -f noninteractive tzdata
 
-DEBIAN_FRONTEND=noninteractive apt -y install systemd-sysv rsyslog udev isc-dhcp-client binutils netbase console-setup ifupdown iproute openssh-server initramfs-tools jfsutils u-boot-tools fake-hwclock
-apt -y install openssh-client iputils-ping wget net-tools ntpdate vim less wireless-tools wpasupplicant file blueman pulseaudio pulseaudio-module-bluetooth pavucontrol bluez-firmware mpg123 sysvinit-core 
-apt -y install lightdm fonts-droid-fallback xserver-xorg xfce4 xfce4-terminal mpv smplayer qt4-qtconfig libqt4-opengl 
 cat << EOF > /etc/network/interfaces
 source /etc/network/interfaces.d/*
 # The loopback network interface
@@ -138,6 +170,11 @@ cat >/etc/fw_env.config <<EOF
 /dev/mmcblk1            0x27400000      0x10000
 EOF
 
+cat >>/etc/initramfs-tools/modules <<EOF
+jfs
+brcmfmac
+EOF
+
 systemctl enable getty@tty1
 systemctl enable getty@tty2
 systemctl set-default multi-user.target
@@ -147,8 +184,8 @@ mkdir -p /etc/initramfs/post-update.d/
 cat>/etc/initramfs/post-update.d/99-uboot<<"EOF"
 #!/bin/sh
 echo "update-initramfs: Converting to u-boot format" >&2
-tempname="/boot/uInitrd-$1"
-mkimage -A arm64 -O linux -T ramdisk -C gzip -n uInitrd -d $2 $tempname > /dev/null
+tempname="/boot/uInitrd-\$1"
+mkimage -A arm64 -O linux -T ramdisk -C gzip -n uInitrd -d \$2 \$tempname > /dev/null
 exit 0
 EOF
 chmod 755 /etc/initramfs/post-update.d/99-uboot
@@ -158,14 +195,88 @@ echo "修改systemd journald日志存放目录为内存，也就是/run/log目�
 sed -i 's/#Storage=auto/Storage=volatile/' /etc/systemd/journald.conf
 sed -i 's/#RuntimeMaxUse=/RuntimeMaxUse=64M/' /etc/systemd/journald.conf
 
-cat >/etc/profile.d/johnyin.sh<<'EOF'
+cat >/etc/profile.d/johnyin.sh<<"EOF"
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
 set -o vi
 EOF
 
+sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
+sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
+sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config
+echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> /etc/ssh/sshd_config
+echo "MACs    hmac-sha1" >> /etc/ssh/sshd_config
+echo "PermitRootLogin yes">> /etc/ssh/sshd_config
+
+#set the file limit
+cat > /etc/security/limits.d/tun.conf << EOF
+*           soft   nofile       102400
+*           hard   nofile       102400
+EOF
+
+cat >> /root/inst.sh <<EOF
+#bluetooth
+apt install --no-install-recommends blueman pulseaudio pulseaudio-module-bluetooth pavucontrol mpg123
+#Xfce
+apt install --no-install-recommends lightdm xserver-xorg xfce4 xfce4-terminal mpv smplayer qt4-qtconfig libqt4-opengl
+EOF
+
+cat >> /etc/sysctl.conf << EOF
+net.core.rmem_max = 134217728 
+net.core.wmem_max = 134217728 
+net.core.netdev_max_backlog = 250000
+net.core.somaxconn = 65535
+net.core.wmem_default = 16777216
+net.ipv4.ip_local_port_range = 1024 65530
+net.ipv4.tcp_fin_timeout = 10
+net.ipv4.tcp_keepalive_time = 1200
+net.ipv4.tcp_max_orphans = 3276800
+net.ipv4.tcp_max_syn_backlog = 262144
+net.ipv4.tcp_no_metrics_save=1
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 65536 16777216
+net.ipv4.tcp_syn_retries = 1
+net.ipv4.tcp_synack_retries = 1
+net.ipv4.tcp_syncookies = 0
+net.ipv4.tcp_timestamps = 0
+net.ipv4.tcp_tw_recycle = 0
+net.ipv4.tcp_tw_reuse = 0
+EOF
+
+cat >> /etc/vim/vim.local <<EOF
+syntax on
+" color evening
+set number
+set nowrap
+set fileencodings=utf-8,gb2312,gbk,gb18030
+" set termencoding=utf-8
+let &termencoding=&encoding
+set fileformats=unix
+set hlsearch                 " highlight the last used search pattern
+set noswapfile
+set tabstop=4                " 设置tab键的宽度
+set shiftwidth=4             " 换行时行间交错使用4个空格
+set expandtab				 " 用space替代tab的输入
+set autoindent               " 自动对齐
+set backspace=2              " 设置退格键可用
+set cindent shiftwidth=4     " 自动缩进4空格
+set smartindent              " 智能自动缩进
+"Paste toggle - when pasting something in, don't indent.
+set pastetoggle=<F7>
+set mouse=r
+EOF
+sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
+
+usermod -p $(echo ${PASSWORD} | openssl passwd -1 -stdin) root
+
 exit
 
 EOSHELL
+
+# autologin-guest=false
+# autologin-user=user(not root)
+# autologin-user-timeout=0
+# groupadd -r autologin
+# gpasswd -a root autologin
 
 chroot ${DIRNAME}/buildroot/ /bin/bash
 
@@ -174,12 +285,7 @@ umount /proc
 umount /sys
 EOSHELL
 
-umount ${DIRNAME}/buildroot/dev
-
-final_disk() {
-    umount ${DIRNAME}/buildroot/
-    losetup -d ${DIRNAME}/DISK.IMG
-}
+exit 0
 
 gen_uEnv_ini() {
     cat > /boot/uEnv.ini <<'EOF'
@@ -222,3 +328,15 @@ install_bootloader() {
     mkimage -A arm64 -O linux -T ramdisk -C gzip -n uInitrd -d initramfs-linux.img uInitrd
 }
 
+build_mesa_19_10() {
+apt -y install build-essential cmake python3-mako meson pkg-config bison flex gettext zlib1g-dev
+apt -y install libexpat1-dev libxrandr-dev
+apt -y install wayland-protocols libwayland-egl-backend-dev
+
+mkdir build
+meson configure build/ -Dprefix=/usr/ 
+ninja -C build/
+ninja -C build/ install
+
+meson build -Dvulkan-drivers=[] -Dplatforms=drm,x11 -Ddri-drivers=[] -Dgallium-drivers=lima,kmsro
+}
