@@ -226,6 +226,8 @@ cat > /etc/security/limits.d/tun.conf << EOF
 EOF
 
 cat >> /root/inst.sh <<EOF
+#get temp
+awk '{print \$1/1000}' /sys/class/hwmon/hwmon0/temp1_input
 journalctl -alb
 apt install --no-install-recommends  rsyslog
 systemctl enable getty@tty1
