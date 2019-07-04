@@ -15,9 +15,9 @@ export SCRIPTNAME=${0##*/}
 export DEBIAN_VERSION=${DEBIAN_VERSION:-buster}
 export FS_TYPE=${FS_TYPE:-jfs}
 
-PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv"
-PKG="${PKG},rsyslog,udev,isc-dhcp-client,binutils,netbase,console-setup,ifupdown,openssh-server,initramfs-tools,jfsutils,u-boot-tools,fake-hwclock,pkg-config"
-PKG="${PKG},openssh-client,iputils-ping,wget,net-tools,ntpdate,vim,less,wireless-tools,wpasupplicant,file,fonts-droid-fallback,lsof,strace"
+PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,jfsutils,u-boot-tools,fake-hwclock,openssh-server"
+PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool"
+PKG="${PKG},openssh-client,wget,ntpdate,less,wireless-tools,file,fonts-droid-fallback,lsof,strace,rsync"
 
 if [ "$UID" -ne "0" ]
 then 
@@ -65,7 +65,7 @@ mkdir -p ${DIRNAME}/buildroot
 
 if [ -d "${DIRNAME}/deb-cache" ]; then
     mkdir -p ${DIRNAME}/buildroot/var/cache/apt/archives/
-    cp ${DIRNAME}/deb-cache/* ${DIRNAME}/buildroot/var/cache/apt/archives/
+    cp ${DIRNAME}/deb-cache/* ${DIRNAME}/buildroot/var/cache/apt/archives/ || true
     sync;sync
 fi
 
@@ -77,11 +77,11 @@ debootstrap --verbose --no-check-gpg --arch arm64 --variant=minbase --include=${
 
 cp /usr/bin/qemu-aarch64-static ${DIRNAME}/buildroot/usr/bin/
 
-#mount --bind /dev  ${DIRNAME}/buildroot/dev
-mount -t proc /proc ${DIRNAME}/buildroot/proc && \
-mount --rbind --make-rslave /dev ${DIRNAME}/buildroot/dev && \
-mount --rbind --make-rslave /sys ${DIRNAME}/buildroot/sys && \
-mount --rbind --make-rslave /run ${DIRNAME}/buildroot/run
+# mount --bind /dev  ${DIRNAME}/buildroot/dev
+# mount -t proc /proc ${DIRNAME}/buildroot/proc && \
+# mount --rbind --make-rslave /dev ${DIRNAME}/buildroot/dev && \
+# mount --rbind --make-rslave /sys ${DIRNAME}/buildroot/sys && \
+# mount --rbind --make-rslave /run ${DIRNAME}/buildroot/run
 
 unset PROMPT_COMMAND
 LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /debootstrap/debootstrap --second-stage
@@ -89,6 +89,10 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /debootstrap/debootstrap 
 LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /bin/bash <<EOSHELL
 
 echo usb950d > /etc/hostname
+
+cat << EOF > /etc/hosts
+127.0.0.1       localhost usb950d
+EOF
 
 cat > /etc/fstab << EOF
 LABEL=ROOTFS	/	${FS_TYPE}	defaults,errors=remount-ro,noatime	0	1
@@ -109,6 +113,18 @@ deb http://mirrors.163.com/debian-security ${DEBIAN_VERSION}/updates main contri
 deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-backports main contrib non-free
 EOF
 
+#Installing packages without docs
+cat >  /etc/dpkg/dpkg.cfg.d/01_nodoc <<EOF
+path-exclude /usr/share/doc/*
+# we need to keep copyright files for legal reasons
+path-include /usr/share/doc/*/copyright
+path-exclude /usr/share/man/*
+path-exclude /usr/share/groff/*
+path-exclude /usr/share/info/*
+# lintian stuff is small, but really unnecessary
+path-exclude /usr/share/lintian/*
+path-exclude /usr/share/linda/*
+EOF
 #apt update
 #apt -y upgrade
 
@@ -175,10 +191,6 @@ jfs
 brcmfmac
 EOF
 
-systemctl enable getty@tty1
-systemctl enable getty@tty2
-systemctl set-default multi-user.target
-
 mkdir -p /etc/initramfs/post-update.d/
 
 cat>/etc/initramfs/post-update.d/99-uboot<<"EOF"
@@ -214,6 +226,17 @@ cat > /etc/security/limits.d/tun.conf << EOF
 EOF
 
 cat >> /root/inst.sh <<EOF
+journalctl -alb
+apt install --no-install-recommends  rsyslog
+systemctl enable getty@tty1
+systemctl enable getty@tty2
+#systemctl set-default multi-user.target
+#ln -s /lib/systemd/system/multi-user.target /etc/systemd/system/default.target
+
+#multimedia
+echo "deb http://www.deb-multimedia.org ${DEBIAN_VERSION} main non-free" > /etc/apt/sources.list.d/multimedia.conf
+apt-get update -oAcquire::AllowInsecureRepositories=true
+apt-get install deb-multimedia-keyring
 #bluetooth
 apt install --no-install-recommends blueman pulseaudio pulseaudio-module-bluetooth pavucontrol mpg123
 #Xfce
@@ -266,7 +289,7 @@ set mouse=r
 EOF
 sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
 
-usermod -p $(echo ${PASSWORD} | openssl passwd -1 -stdin) root
+usermod -p '$(echo ${PASSWORD} | openssl passwd -1 -stdin)' root
 
 exit
 
@@ -278,12 +301,11 @@ EOSHELL
 # groupadd -r autologin
 # gpasswd -a root autologin
 
-chroot ${DIRNAME}/buildroot/ /bin/bash
+if [ -d "${DIRNAME}/kernel" ]; then
+    rsync -avzP ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
+fi
 
-chroot ${DIRNAME}/buildroot/ /bin/bash <<EOSHELL
-umount /proc
-umount /sys
-EOSHELL
+chroot ${DIRNAME}/buildroot/ /bin/bash
 
 exit 0
 
@@ -333,7 +355,10 @@ apt -y install build-essential cmake python3-mako meson pkg-config bison flex ge
 apt -y install libexpat1-dev libxrandr-dev
 apt -y install wayland-protocols libwayland-egl-backend-dev
 
+tar xvf ...
+cd mesa
 mkdir build
+meson build/ -Dprefix=/usr/ 
 meson configure build/ -Dprefix=/usr/ 
 ninja -C build/
 ninja -C build/ install
