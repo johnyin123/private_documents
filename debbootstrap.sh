@@ -365,3 +365,95 @@ ninja -C build/ install
 
 meson build -Dvulkan-drivers=[] -Dplatforms=drm,x11 -Ddri-drivers=[] -Dgallium-drivers=lima,kmsro
 }
+
+net_demo() {
+cat > interfaces.hostapd << EOF
+auto lo br0
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet manual
+
+auto wlan0
+iface wlan0 inet manual
+
+iface br0 inet dhcp
+bridge_ports eth0 wlan0
+#hwaddress ether # will be added at first boot
+EOF
+cat > interfaces.bonding << EOF
+auto eth0
+iface eth0 inet manual
+    bond-master bond0
+    bond-primary eth0
+    bond-mode active-backup
+   
+auto wlan0
+iface wlan0 inet manual
+    wpa-ssid your_SSID
+    wpa-psk xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    # to generate proper encrypted key: wpa_passphrase your_SSID your_password
+    bond-master bond0
+    bond-primary eth0
+    bond-mode active-backup
+   
+# Define master
+auto bond0
+iface bond0 inet dhcp
+    bond-slaves none
+    bond-primary eth0
+    bond-mode active-backup
+    bond-miimon 100
+EOF
+
+cat > interfaces.router << EOF
+
+auto lo
+iface lo inet loopback
+
+auto eth0.101
+iface eth0.101 inet manual
+    pre-up swconfig dev eth0 set reset 1
+    pre-up swconfig dev eth0 set enable_vlan 1
+    pre-up swconfig dev eth0 vlan 101 set ports '3 8t'
+    pre-up swconfig dev eth0 set apply 1
+
+auto eth0.102
+iface eth0.102 inet manual
+    pre-up swconfig dev eth0 vlan 102 set ports '0 1 2 4 8t'
+    pre-up swconfig dev eth0 set apply 1
+
+allow-hotplug wlan0
+iface wlan0 inet manual
+
+# WAN
+auto eth0.101
+iface eth0.101 inet dhcp
+
+# LAN
+auto br0
+iface br0 inet static
+bridge_ports eth0.102 wlan0
+    address 192.168.2.254
+    netmask 255.255.255.0
+EOF
+cat > interfaces.switch << EOF
+auto lo
+iface lo inet loopback
+
+auto eth0.101
+iface eth0.101 inet manual
+    pre-up swconfig dev eth0 set reset 1
+    pre-up swconfig dev eth0 set enable_vlan 1
+    pre-up swconfig dev eth0 vlan 101 set ports '0 1 2 3 4 8t'
+    pre-up swconfig dev eth0 set apply 1
+
+auto wlan0
+iface wlan0 inet manual
+
+auto br0
+iface br0 inet dhcp
+bridge_ports eth0.101 wlan0
+EOF
+
+}
