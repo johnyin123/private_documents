@@ -174,6 +174,10 @@ network={
 }
 EOF
 
+cat << EOF > /etc/modprobe.d/brcmfmac.conf 
+options brcmfmac roamoff=1
+EOF
+
 cat << EOF > /etc/rc.local
 #!/bin/sh -e
 exit 0
