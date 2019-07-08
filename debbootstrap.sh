@@ -271,7 +271,7 @@ net.ipv4.tcp_tw_recycle = 0
 net.ipv4.tcp_tw_reuse = 0
 EOF
 
-cat >> /etc/vim/vim.local <<EOF
+cat >> /etc/vim/vimrc.local <<EOF
 syntax on
 " color evening
 set number
