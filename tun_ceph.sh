@@ -3,7 +3,12 @@
 # dmesg | grep -i capacity
 # xfs_growfs -d /mnt/ceph-disk1
 # cat pxe.raw | pv | ssh -p60022 root@10.32.151.250 'rbd import - libvirt-pool/pxe.raw'
-
+$ceph health detail
+HEALTH_ERR 1 scrub errors; Possible data damage: 1 pg inconsistent
+OSD_SCRUB_ERRORS 1 scrub errors
+PG_DAMAGED Possible data damage: 1 pg inconsistent
+    pg 1.5 is active+clean+inconsistent, acting [10,29,20]
+$ceph pg repair 1.5
 
 sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"numa=off\"/g" /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg

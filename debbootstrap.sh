@@ -17,7 +17,7 @@ export FS_TYPE=${FS_TYPE:-jfs}
 
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,jfsutils,u-boot-tools,fake-hwclock,openssh-server"
 PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool"
-PKG="${PKG},openssh-client,wget,ntpdate,less,wireless-tools,file,fonts-droid-fallback,lsof,strace,rsync"
+PKG="${PKG},openssh-client,wget,ntpdate,less,wireless-tools,file,fonts-droid-fallback,lsof,strace,rsync,udisks2,bridge-utils"
 
 if [ "$UID" -ne "0" ]
 then 
@@ -90,6 +90,16 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /bin/bash <<EOSHELL
 
 echo usb950d > /etc/hostname
 
+echo "Enable udisk2 zram swap"
+mkdir -p /usr/local/lib/zram.conf.d/
+echo "zram" >> /etc/modules
+cat << EOF > /usr/local/lib/zram.conf.d/zram0-env
+ZRAM_NUM_STR=lzo
+#512
+ZRAM_DEV_SIZE=536870912
+SWAP=y
+EOF
+
 cat << EOF > /etc/hosts
 127.0.0.1       localhost usb950d
 EOF
@@ -99,12 +109,10 @@ LABEL=ROOTFS	/	${FS_TYPE}	defaults,errors=remount-ro,noatime	0	1
 LABEL=BOOT	/boot	vfat	ro	0	2
 EOF
 
-
 echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
 #echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
 #echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
 
-#echo "dhd" >> /etc/modules
 
 cat > /etc/apt/sources.list << EOF
 deb http://mirrors.163.com/debian ${DEBIAN_VERSION} main non-free contrib
@@ -246,7 +254,9 @@ apt-get install deb-multimedia-keyring
 #bluetooth
 apt install --no-install-recommends blueman pulseaudio pulseaudio-module-bluetooth pavucontrol mpg123
 #Xfce
-apt install --no-install-recommends lightdm xserver-xorg xfce4 xfce4-terminal mpv smplayer qt4-qtconfig libqt4-opengl
+apt install --no-install-recommends lightdm xserver-xorg-core xinit xserver-xorg-video-fbdev xfce4 xfce4-terminal
+apt install --no-install-recommends mpv smplayer qt4-qtconfig libqt4-opengl
+ldconfig
 EOF
 
 cat >> /etc/sysctl.conf << EOF
