@@ -15,9 +15,9 @@ export SCRIPTNAME=${0##*/}
 export DEBIAN_VERSION=${DEBIAN_VERSION:-buster}
 export FS_TYPE=${FS_TYPE:-jfs}
 
-PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,jfsutils,u-boot-tools,fake-hwclock,openssh-server"
+PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,jfsutils,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool"
-PKG="${PKG},openssh-client,wget,ntpdate,less,wireless-tools,file,fonts-droid-fallback,lsof,strace,rsync,udisks2,bridge-utils"
+PKG="${PKG},openssh-client,wget,ntpdate,less,wireless-tools,file,fonts-droid-fallback,lsof,strace,rsync,udisks2,bridge-utils,rsyslog"
 
 if [ "$UID" -ne "0" ]
 then 
@@ -27,10 +27,7 @@ fi
 
 cleanup() {
     trap '' INT TERM EXIT
-    umount ${DIRNAME}/buildroot/dev
-    umount ${DIRNAME}/buildroot/run
-    umount ${DIRNAME}/buildroot/proc
-    umount ${DIRNAME}/buildroot/sys
+    echo "EXIT!!!"
 }
 
 final_disk() {
@@ -76,12 +73,6 @@ trap cleanup INT
 debootstrap --verbose --no-check-gpg --arch arm64 --variant=minbase --include=${PKG} --foreign ${DEBIAN_VERSION} ${DIRNAME}/buildroot ${REPO} 
 
 cp /usr/bin/qemu-aarch64-static ${DIRNAME}/buildroot/usr/bin/
-
-# mount --bind /dev  ${DIRNAME}/buildroot/dev
-# mount -t proc /proc ${DIRNAME}/buildroot/proc && \
-# mount --rbind --make-rslave /dev ${DIRNAME}/buildroot/dev && \
-# mount --rbind --make-rslave /sys ${DIRNAME}/buildroot/sys && \
-# mount --rbind --make-rslave /run ${DIRNAME}/buildroot/run
 
 unset PROMPT_COMMAND
 LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /debootstrap/debootstrap --second-stage
@@ -277,7 +268,7 @@ net.ipv4.tcp_syn_retries = 1
 net.ipv4.tcp_synack_retries = 1
 net.ipv4.tcp_syncookies = 0
 net.ipv4.tcp_timestamps = 0
-net.ipv4.tcp_tw_recycle = 0
+#net.ipv4.tcp_tw_recycle = 0
 net.ipv4.tcp_tw_reuse = 0
 EOF
 
@@ -310,18 +301,114 @@ usermod -p '$(echo ${PASSWORD} | openssl passwd -1 -stdin)' root
 exit
 
 EOSHELL
+echo "start install you kernel&patchs"
+if [ -d "${DIRNAME}/kernel" ]; then
+    rsync -avzP ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
+fi
+echo "end install you kernel&patchs"
 
+echo "start install overlay_rootfs"
+cat <<EOF
+kernel parm "skipoverlay"
+overlayfs lable "OVERLAY"
+/overlay/reformatoverlay exist will format it!
+EOF
+
+if ! grep -q "^overlay" ${DIRNAME}/buildroot/etc/initramfs-tools/modules; then
+    echo overlay >> ${DIRNAME}/buildroot/etc/initramfs-tools/modules
+fi
+
+cat > ${DIRNAME}/buildroot/etc/initramfs-tools/hooks/hooks-overlay <<EOF
+#!/bin/sh
+
+. /usr/share/initramfs-tools/scripts/functions
+. /usr/share/initramfs-tools/hook-functions
+
+copy_exec /sbin/blkid
+copy_exec /sbin/fsck
+copy_exec /sbin/fsck.${FS_TYPE}
+copy_exec /sbin/logsave
+EOF
+
+cat > ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
+#!/bin/sh
+
+PREREQ=""
+prereqs()
+{
+   echo "$PREREQ"
+}
+
+case $1 in
+prereqs)
+   prereqs
+   exit 0
+   ;;
+esac
+
+. /scripts/functions
+
+if grep -q -E '(^|\s)skipoverlay(\s|$)' /proc/cmdline; then
+	log_begin_msg "Skipping overlay, found 'skipoverlay' in cmdline"
+	log_end_msg
+	exit 0
+fi
+
+log_begin_msg "Starting overlay"
+log_end_msg
+
+mkdir -p /overlay
+
+# if we have a filesystem label of OVERLAY
+# use that as the overlay, otherwise use tmpfs.
+OLDEV=`blkid -L OVERLAY`
+if [ -z "${OLDEV}" ]; then
+	mount -t tmpfs tmpfs /overlay
+else
+	_checkfs_once ${OLDEV} /overlay >> /log.txt 2>&1 ||  \
+    mkfs -t jfs -q -L OVERLAY ${OLDEV}
+	mount ${OLDEV} /overlay
+fi
+
+# if you sudo touch /overlay/reformatoverlay
+# next reboot will give you a fresh /overlay
+if [ -f /overlay/reformatoverlay ]; then
+	umount /overlay
+	mkfs -t jfs -q -L OVERLAY ${OLDEV}
+	mount ${OLDEV} /overlay
+fi
+
+mkdir -p /overlay/upper
+mkdir -p /overlay/work
+mkdir -p /overlay/lower
+
+# make the readonly root available
+mount -n -o move ${rootmnt} /overlay/lower
+mount -t overlay overlay -olowerdir=/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work ${rootmnt}
+
+mkdir -p ${rootmnt}/overlay
+mount -n -o rbind /overlay ${rootmnt}/overlay
+
+# fix up fstab
+cp ${rootmnt}/etc/fstab ${rootmnt}/etc/fstab.orig
+awk '$2 != "/" {print $0}' ${rootmnt}/etc/fstab.orig > ${rootmnt}/etc/fstab
+awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab >> ${rootmnt}/etc/fstab
+
+exit 0
+EOF
+chmod 755 ${DIRNAME}/buildroot/etc/initramfs-tools/hooks/hooks-overlay
+chmod 755 ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay
+echo "end install overlay_rootfs"
+echo "you need run 'apt -y install busybox && update-initramfs -c -k KERNEL_VERSION'"
 # autologin-guest=false
 # autologin-user=user(not root)
 # autologin-user-timeout=0
 # groupadd -r autologin
 # gpasswd -a root autologin
 
-if [ -d "${DIRNAME}/kernel" ]; then
-    rsync -avzP ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
-fi
-
 chroot ${DIRNAME}/buildroot/ /bin/bash
+chroot ${DIRNAME}/buildroot/ apt clean
+rm ${DIRNAME}/buildroot/dev/* ${DIRNAME}/buildroot/var/log/* -fr
 
 exit 0
 
