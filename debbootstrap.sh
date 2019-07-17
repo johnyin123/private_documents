@@ -245,7 +245,7 @@ apt-get install deb-multimedia-keyring
 #bluetooth
 apt install --no-install-recommends blueman pulseaudio pulseaudio-module-bluetooth pavucontrol mpg123
 #Xfce
-apt install --no-install-recommends lightdm xserver-xorg-core xinit xserver-xorg-video-fbdev xfce4 xfce4-terminal
+apt install --no-install-recommends lightdm xserver-xorg-core xinit xserver-xorg-video-fbdev xfce4 xfce4-terminal xserver-xorg-input-all
 apt install --no-install-recommends mpv smplayer qt4-qtconfig libqt4-opengl
 ldconfig
 EOF
@@ -318,7 +318,7 @@ if ! grep -q "^overlay" ${DIRNAME}/buildroot/etc/initramfs-tools/modules; then
     echo overlay >> ${DIRNAME}/buildroot/etc/initramfs-tools/modules
 fi
 
-cat > ${DIRNAME}/buildroot/etc/initramfs-tools/hooks/hooks-overlay <<EOF
+cat > ${DIRNAME}/buildroot//usr/share/initramfs-tools/hooks/overlay <<EOF
 #!/bin/sh
 
 . /usr/share/initramfs-tools/scripts/functions
@@ -326,7 +326,11 @@ cat > ${DIRNAME}/buildroot/etc/initramfs-tools/hooks/hooks-overlay <<EOF
 
 copy_exec /sbin/blkid
 copy_exec /sbin/fsck
-copy_exec /sbin/fsck.${FS_TYPE}
+copy_exec /sbin/fsck.f2fs
+copy_exec /sbin/fsck.ext2
+copy_exec /sbin/fsck.ext3
+copy_exec /sbin/fsck.ext4
+copy_exec /bin/fsck.jfs
 copy_exec /sbin/logsave
 EOF
 
@@ -366,7 +370,7 @@ if [ -z "${OLDEV}" ]; then
 	mount -t tmpfs tmpfs /overlay
 else
 	_checkfs_once ${OLDEV} /overlay >> /log.txt 2>&1 ||  \
-    mkfs -t jfs -q -L OVERLAY ${OLDEV}
+    mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
 	mount ${OLDEV} /overlay
 fi
 
@@ -374,7 +378,7 @@ fi
 # next reboot will give you a fresh /overlay
 if [ -f /overlay/reformatoverlay ]; then
 	umount /overlay
-	mkfs -t jfs -q -L OVERLAY ${OLDEV}
+	mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
 	mount ${OLDEV} /overlay
 fi
 
