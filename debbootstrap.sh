@@ -16,8 +16,7 @@ export DEBIAN_VERSION=${DEBIAN_VERSION:-buster}
 export FS_TYPE=${FS_TYPE:-jfs}
 
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,jfsutils,u-boot-tools,fake-hwclock,openssh-server,busybox"
-PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool"
-PKG="${PKG},openssh-client,wget,ntpdate,less,wireless-tools,file,fonts-droid-fallback,lsof,strace,rsync,udisks2,bridge-utils,rsyslog"
+PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool,udisks2,bridge-utils"
 
 if [ "$UID" -ne "0" ]
 then 
@@ -297,6 +296,8 @@ EOF
 sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
 
 usermod -p '$(echo ${PASSWORD} | openssl passwd -1 -stdin)' root
+# echo "root:${PASSWORD}" |chpasswd 
+apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync"
 
 exit
 
