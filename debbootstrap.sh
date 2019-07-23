@@ -322,7 +322,7 @@ if ! grep -q "^overlay" ${DIRNAME}/buildroot/etc/initramfs-tools/modules; then
     echo overlay >> ${DIRNAME}/buildroot/etc/initramfs-tools/modules
 fi
 
-cat > ${DIRNAME}/buildroot//usr/share/initramfs-tools/hooks/overlay <<EOF
+cat > ${DIRNAME}/buildroot/usr/share/initramfs-tools/hooks/overlay <<EOF
 #!/bin/sh
 
 . /usr/share/initramfs-tools/scripts/functions
@@ -404,8 +404,9 @@ awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab >> ${rootmnt}/etc/fs
 
 exit 0
 EOF
-chmod 755 ${DIRNAME}/buildroot/etc/initramfs-tools/hooks/hooks-overlay
+chmod 755 ${DIRNAME}/buildroot/usr/share/initramfs-tools/hooks/overlay
 chmod 755 ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay
+
 echo "end install overlay_rootfs"
 echo "you need run 'apt -y install busybox && update-initramfs -c -k KERNEL_VERSION'"
 # autologin-guest=false
