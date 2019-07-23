@@ -228,6 +228,9 @@ cat > /etc/security/limits.d/tun.conf << EOF
 EOF
 
 cat >> /root/inst.sh <<EOF
+#led
+echo 0 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
+echo 255 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
 #get temp
 awk '{print \$1/1000}' /sys/class/hwmon/hwmon0/temp1_input
 journalctl -alb
@@ -298,7 +301,7 @@ sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
 usermod -p '$(echo ${PASSWORD} | openssl passwd -1 -stdin)' root
 # echo "root:${PASSWORD}" |chpasswd 
 apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync"
-
+apt -y install --no-install-recommends xz-utils zip
 exit
 
 EOSHELL

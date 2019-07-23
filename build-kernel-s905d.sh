@@ -18,7 +18,7 @@ make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig
 make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j4 LOCALVERSION="-johnyin-s905d" Image dtbs modules
 
 make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- install INSTALL_PATH=/media/johnyin/ROOTFS/boot
-make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- modules_install INSTALL_MOD_PATH=/media/johnyin/ROOTFS/
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH=/media/johnyin/ROOTFS/
 echo "if you user compress module(xz,gz), you should execute depmod command!!(depmod  5.1.0-johnyin-s905d)"
 echo "need copy dtb/firmware"
 
