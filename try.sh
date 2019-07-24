@@ -2,6 +2,8 @@
 set -o nounset -o pipefail
 set -o errexit
 
+export LANG=C
+
 readonly DIRNAME="$(dirname "$(readlink -e "$0")")"
 readonly SCRIPTNAME=${0##*/}
 
