@@ -10,6 +10,19 @@ if [ "${DEBUG:=false}" = "true" ]; then
     set -o xtrace
 fi
 ##################################################
+# print "$(convertsecs $TOTALTIME)"
+# To compute the time it takes a script to run use tag the start and end times with
+#   STARTTIME=$(date +"%s")
+#   ENDTIME=$(date +"%s")
+#   TOTALTIME=$(($ENDTIME-$STARTTIME))
+# ------------------------------------------------------
+convertsecs() {
+  ((h=${1}/3600))
+  ((m=(${1}%3600)/60))
+  ((s=${1}%60))
+  printf "%02d:%02d:%02d\n" $h $m $s
+}
+##################################################
 readonly RED="\033[1;31m"
 readonly GREEN="\033[1;32m"
 readonly YELLOW="\033[1;33m"
