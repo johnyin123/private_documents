@@ -122,6 +122,9 @@ path-exclude /usr/share/info/*
 # lintian stuff is small, but really unnecessary
 path-exclude /usr/share/lintian/*
 path-exclude /usr/share/linda/*
+path-exclude=/usr/share/locale/*
+path-include=/usr/share/locale/en*
+path-include=/usr/share/locale/zh_CN*
 EOF
 #apt update
 #apt -y upgrade
@@ -418,6 +421,13 @@ echo "you need run 'apt -y install busybox && update-initramfs -c -k KERNEL_VERS
 chroot ${DIRNAME}/buildroot/ /bin/bash
 chroot ${DIRNAME}/buildroot/ apt clean
 rm ${DIRNAME}/buildroot/dev/* ${DIRNAME}/buildroot/var/log/* -fr
+# Remove all doc files
+find "${DIRNAME}/usr/share/doc" -depth -type f ! -name copyright -print0 | xargs -0 rm || true
+find "${DIRNAME}/usr/share/doc" -empty -print0 | xargs -0 rm -rf || true
+# Remove all man pages and info files
+rm -rf "${DIRNAME}/usr/share/man" "${DIRNAME}/usr/share/groff" "${DIRNAME}/usr/share/info" "${DIRNAME}/usr/share/lintian" "${DIRNAME}/usr/share/linda" "${DIRNAME}/var/cache/man"
+# Remove all locale translation files
+find "${DIRNAME}/usr/share/locale" -name "en" -o -name  "zh_CN" -type f | xargs -0 rm -rf
 
 exit 0
 
