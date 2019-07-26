@@ -422,12 +422,12 @@ chroot ${DIRNAME}/buildroot/ /bin/bash
 chroot ${DIRNAME}/buildroot/ apt clean
 rm ${DIRNAME}/buildroot/dev/* ${DIRNAME}/buildroot/var/log/* -fr
 # Remove all doc files
-find "${DIRNAME}/usr/share/doc" -depth -type f ! -name copyright -print0 | xargs -0 rm || true
-find "${DIRNAME}/usr/share/doc" -empty -print0 | xargs -0 rm -rf || true
+find "${DIRNAME}/buildroot/usr/share/doc" -depth -type f ! -name copyright -print0 | xargs -0 rm || true
+find "${DIRNAME}/buildroot/usr/share/doc" -empty -print0 | xargs -0 rm -rf || true
 # Remove all man pages and info files
-rm -rf "${DIRNAME}/usr/share/man" "${DIRNAME}/usr/share/groff" "${DIRNAME}/usr/share/info" "${DIRNAME}/usr/share/lintian" "${DIRNAME}/usr/share/linda" "${DIRNAME}/var/cache/man"
+rm -rf "${DIRNAME}/buildroot/usr/share/man" "${DIRNAME}/buildroot/usr/share/groff" "${DIRNAME}/buildroot/usr/share/info" "${DIRNAME}/buildroot/usr/share/lintian" "${DIRNAME}/buildroot/usr/share/linda" "${DIRNAME}/buildroot/var/cache/man"
 # Remove all locale translation files
-find "${DIRNAME}/usr/share/locale" -name "en" -o -name  "zh_CN" -type f | xargs -0 rm -rf
+find "${DIRNAME}/buildroot/usr/share/locale" -maxdepth 1 -mindepth 1 -and -not -name "en*" -and -not -name "zh_CN*" | xargs rm -rf
 
 exit 0
 
