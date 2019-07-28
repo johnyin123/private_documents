@@ -194,6 +194,8 @@ EOF
 cat >>/etc/initramfs-tools/modules <<EOF
 jfs
 brcmfmac
+dwmac_meson8b
+overlay
 EOF
 
 mkdir -p /etc/initramfs/post-update.d/
