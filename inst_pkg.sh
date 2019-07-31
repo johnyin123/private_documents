@@ -344,3 +344,30 @@ iface br-ext inet static
     up (ip r a 59.46.220.174/32 via 10.32.166.1 dev br-ext || true)
     up (ip r a 218.24.180.63/32 via 10.32.166.1 dev br-ext || true)
 EOF
+cat <<EOF
+auto eth1
+iface eth1 inet manual
+  bond-master uplink
+  # Required for Vagrant
+  post-up ip link set promisc on dev eth1
+
+auto eth2
+iface eth2 inet manual
+  bond-master uplink
+  # Required for Vagrant
+  post-up ip link set promisc on dev eth2
+
+auto uplink
+iface uplink inet static
+  mtu 9000
+  bond-slaves none
+  bond-mode 802.3ad
+  bond-miimon 100
+  bond-lacp-rate 1
+  bond-min-links 1
+  bond-xmit-hash-policy layer3+4
+  address 10.2.4.104
+  netmask 255.255.255.0
+  post-up ip route add 10.1.3.0/24 via 10.2.4.1
+  post-up ip route add 172.16.1.0/24 via 10.2.4.1
+EOF
