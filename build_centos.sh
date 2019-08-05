@@ -400,7 +400,7 @@ USER=$(whoami)
 #System fs usage
 Filesystem=$(df -h | awk '/^\/dev/{print $6}')
 
-uuid=$(dmidecode | grep UUID | awk '{print $2}')
+uuid=$(dmidecode -s system-uuid)
 #Interfaces
 INTERFACES=$(ip -4 ad | grep 'state ' | awk -F":" '!/^[0-9]*: ?lo/ {print $2}')
 echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
