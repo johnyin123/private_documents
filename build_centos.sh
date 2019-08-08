@@ -551,4 +551,18 @@ exit 0
 #     --disk /var/lib/libvirt/boot/virtio-win-drivers-20120712-1.iso,device=cdrom,bus=ide \
 #     --network bridge=br0 \
 #     --graphics vnc,listen=0.0.0.0
-
+#  virt-install \
+#  --name $IMGNAME \
+#  --ram 1024 \
+#  --cpu host \
+#  --vcpus 1 \
+#  --nographics \
+#  --os-type=linux \
+#  --os-variant=rhel6 \
+#  --location=http://mirror.catn.com/pub/centos/6/os/x86_64 \
+#  --initrd-inject=../kickstarts/$KICKSTART \
+#  --extra-args="ks=file:/$KICKSTART text console=tty0 utf8 console=ttyS0,115200" \
+#  --network bridge=virbr0 \
+#  --disk path=/var/lib/libvirt/images/$IMGNAME.$EXT,size=10,bus=virtio,format=qcow2 \
+#  --force \
+#  --noreboot
