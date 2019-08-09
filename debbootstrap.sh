@@ -78,7 +78,7 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /debootstrap/debootstrap 
 
 LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /bin/bash <<EOSHELL
 
-echo usb950d > /etc/hostname
+echo usb905d > /etc/hostname
 
 echo "Enable udisk2 zram swap"
 mkdir -p /usr/local/lib/zram.conf.d/
@@ -91,7 +91,7 @@ SWAP=y
 EOF
 
 cat << EOF > /etc/hosts
-127.0.0.1       localhost usb950d
+127.0.0.1       localhost usb905d
 EOF
 
 cat > /etc/fstab << EOF
@@ -305,7 +305,7 @@ sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
 
 usermod -p '$(echo ${PASSWORD} | openssl passwd -1 -stdin)' root
 # echo "root:${PASSWORD}" |chpasswd 
-apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync"
+apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync
 apt -y install --no-install-recommends xz-utils zip
 exit
 
