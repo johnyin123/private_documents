@@ -1,6 +1,15 @@
 #!/bin/bash
+set -o nounset -o pipefail
+set -o errexit
+
+export LANG=C
 
 BASEDIR="$(readlink -f "$(dirname "$0")")"
+
+if [ "${DEBUG:=false}" = "true" ]; then
+    export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    set -o xtrace
+fi
 
 PXE_NS=pxe
 PXE_IP=192.168.1.1

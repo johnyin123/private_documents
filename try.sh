@@ -4,7 +4,8 @@ set -o errexit
 
 export LANG=C
 
-readonly DIRNAME="$(dirname "$(readlink -e "$0")")"
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+#readonly DIRNAME="$(dirname "$(readlink -e "$0")")"
 readonly SCRIPTNAME=${0##*/}
 
 if [ "${DEBUG:=false}" = "true" ]; then
