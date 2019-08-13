@@ -50,35 +50,38 @@ EOF
 }
 [ -e ${BASEDIR}/etc/udhcpd.conf ] || {
     cat > ${BASEDIR}/etc/udhcpd.conf << EOF
-start           192.168.1.20
-end             192.168.1.254
+start           ${PXE_IP%.*}.20
+end             ${PXE_IP%.*}.254
 interface       eth0
-siaddr          192.168.1.1
+siaddr          ${PXE_IP} 
 boot_file       pxelinux.0
-opt     dns     192.168.1.1 192.168.10.10
+opt     dns     ${PXE_IP} 114.114.114.114
 option  subnet  255.255.255.0
-opt     router  192.168.1.1
-opt     wins    192.168.1.1
+opt     router  ${PXE_IP}
+opt     wins    ${PXE_IP} 
 option  domain  local
 option  lease   864000
 EOF
 }
 
 [ -e ${BASEDIR}/tftpd/ks.cfg ] || {
-    cat > ${BASEDIR}/tftpd/ks.cfg <<'KSEOF'
+    cat > ${BASEDIR}/tftpd/ks.cfg <<KSEOF
 firewall --disabled
 install
 
 text
 firstboot --enable
 
+url --url="http://${PXE_IP}/dvdrom/"
+KSEOF
+
+    cat >> ${BASEDIR}/tftpd/ks.cfg <<'KSEOF'
 lang zh_CN.UTF-8
 keyboard us
 network --onboot yes --bootproto dhcp --noipv6
 network --hostname=server1
 rootpw  --iscrypted $6$Tevn5ihz1h7MHhMV$Zt7r1ocJqZXhNfVntdsDuGWU42BkQKdpqp0EosOhaYS46zzOEcYALmH5mkDWoYmRvFBs0lBNM/LUiGJAmmx7Q.
 #password
-url --url="http://192.168.1.1/dvdrom/"
 
 firewall --disabled
 authconfig --enableshadow --passalgo=sha512
@@ -211,8 +214,8 @@ KSEOF
     cat > ${BASEDIR}/tftpd/pxelinux.cfg/default <<EOF
 default menu.c32
 prompt 0
-timeout 300
-ONTIMEOUT local
+timeout 60
+ONTIMEOUT 1
 menu title ########## PXE Boot Menu ##########
 label 1
 menu label ^1) Install CentOS 7 x64 with Local Repo
