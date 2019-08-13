@@ -11,6 +11,10 @@ BASEDIR="$(readlink -f "$(dirname "$0")")"
 
 mkdir -p ${BASEDIR}/var/lib/misc/ ${BASEDIR}/var/run ${BASEDIR}/etc ${BASEDIR}/lib ${BASEDIR}/tftpd
 
+for cmd in tftpd httpd ftpd udhcpd
+do
+./busybox $cmd && echo "check $cmd ok" || { echo "check $cmd error"; exit 1; }
+done
 
 [ -e ${BASEDIR}/bin/tftpd   ] || ln -s /bin/busybox ${BASEDIR}/bin/tftpd
 [ -e ${BASEDIR}/bin/httpd   ] || ln -s /bin/busybox ${BASEDIR}/bin/httpd
