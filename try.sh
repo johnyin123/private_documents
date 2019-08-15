@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -o nounset -o pipefail
 set -o errexit
 
@@ -110,7 +110,7 @@ trap cleanup TERM
 trap cleanup INT
 ##################################################
 
-function main {
+main() {
     echo "MAIN!!!"
     return 0
 }
