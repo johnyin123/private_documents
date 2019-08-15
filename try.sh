@@ -2,7 +2,9 @@
 set -o nounset -o pipefail
 set -o errexit
 
-export LANG=C
+# Disable unicode.
+LC_ALL=C
+LANG=C
 
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 #readonly DIRNAME="$(dirname "$(readlink -e "$0")")"
