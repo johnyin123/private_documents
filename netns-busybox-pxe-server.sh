@@ -142,6 +142,7 @@ lsof
 unzip
 ftp
 wget
+curl
 strace
 ltrace
 python-virtualenv
@@ -152,17 +153,28 @@ lrzsz
 iotop
 
 %end
+KSEOF
+
+    cat >> ${BASEDIR}/tftpd/ks.cfg <<KSEOF
 %post
+curl http://${PXE_IP}/init.sh 2>/dev/null | bash
+%end
+KSEOF
+}
+
+[ -e ${BASEDIR}/tftpd/init.sh ] || {
+    cat > ${BASEDIR}/tftpd/init.sh <<'INITEOF'
 #!/bin/bash
 # echo "闲置用户在 15 分钟后会被删除"
 echo "export readonly TMOUT=900" >> /etc/profile.d/os-security.sh
 echo "export readonly HISTFILE" >> /etc/profile.d/os-security.sh
-chmod +x /etc/profile.d/os-security.sh
+chmod 755 /etc/profile.d/os-security.sh
 
 cat >/etc/profile.d/johnyin.sh<<"EOF"
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
 set -o vi
 EOF
+chmod 755 /etc/profile.d/johnyin.sh
 
 cat >> /etc/security/limits.conf << EOF
 *           soft   nofile       102400
@@ -211,14 +223,27 @@ GRUB_CMDLINE_LINUX="console=ttyS0 net.ifnames=0 biosdevname=0"
 GRUB_DISABLE_RECOVERY="true"
 EOF
 
+cat > /etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
+NM_CONTROLLED=no
+IPV6INIT=no
+DEVICE="eth0"
+ONBOOT="yes"
+BOOTPROTO="none"
+#DNS1=10.0.2.1
+IPADDR=10.0.2.168
+PREFIX=24
+GATEWAY=10.0.2.1
+EOF
+cat > /etc/sysconfig/network-scripts/route-eth0 <<-EOF
+#xx.xx.xx.xx via xxx dev eth0
+EOF
+
 systemctl set-default multi-user.target
 systemctl enable getty@tty1
 chkconfig 2>/dev/null | egrep -v "crond|sshd|network|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
 systemctl list-unit-files | grep service | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
-%end
-KSEOF
+INITEOF
 }
-
 [ -e ${BASEDIR}/tftpd/pxelinux.cfg/default ] || {
     cat > ${BASEDIR}/tftpd/pxelinux.cfg/default <<EOF
 default menu.c32
