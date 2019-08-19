@@ -121,7 +121,8 @@ add_vxlan() {
     log_warning_msg "nolearning -> need add fdb manual"
     log_warning_msg "proxy      -> need add arp manual"
     try ip link add ${dev} type vxlan id ${id} dstport ${dstport} nolearning proxy 
-    try ifconfig ${dev} hw ether ${mac}
+    try ip link set ${dev} address ${mac}
+    #try ifconfig ${dev} hw ether ${mac}
     try ip addr add ${ip_mask} dev ${dev}
     try ip link set ${dev} up
 }
@@ -155,6 +156,8 @@ main() {
             add_vxlan ${dev} ${id} ${port} "9e:08:90:00:00:01" "172.16.16.2/24"
             add_fdb ${dev} "9e:08:90:00:00:02" "59.46.22.56"
             add_arp ${dev} "9e:08:90:00:00:02" "172.16.16.3"
+            #log_warning_msg "append ${dev} default forwarding table entry: 00:00:00:00:00:00 -> 59.46.22.56"
+            #add_fdb ${dev} "00:00:00:00:00:00" "59.46.22.56"
             ;;
 
         "usb950d" | "yinzh")
