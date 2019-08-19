@@ -276,6 +276,10 @@ ip netns exec ${PXE_NS} ip address add ${PXE_IP}/24 dev eth0
 # ip netns exec ${PXE_NS} ip route add default via 10.32.166.1 dev eth0
 
 mount ${DVD} ${BASEDIR}/tftpd/dvdrom/
+# mount -t proc none /proc
+# mount -t devtmpfs none /dev
+# mount -t devpts none /dev/pts
+# mount -t tmpfs none /run
 
 # ip netns exec ${PXE_NS} chroot ${BASEDIR} /usr/sbin/dnsmasq --user=root --group=root
 ip netns exec ${PXE_NS} chroot ${BASEDIR} /bin/busybox udhcpd 
