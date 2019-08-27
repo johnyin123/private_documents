@@ -335,6 +335,7 @@ cat > ${DIRNAME}/buildroot/usr/share/initramfs-tools/hooks/overlay <<EOF
 
 copy_exec /sbin/blkid
 copy_exec /sbin/fsck
+copy_exec /sbin/mke2fs
 copy_exec /sbin/fsck.f2fs
 copy_exec /sbin/fsck.ext2
 copy_exec /sbin/fsck.ext3
