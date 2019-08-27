@@ -1,3 +1,7 @@
+#Live migrate a libvirt/kvm virtual machine with both local and shared storage
+virsh migrate ${VM} qemu+ssh://user@server:port/system --copy-storage-all --persistent --undefinesource 
+
+
 DISK=$(virsh dumpxml domname | xmllint --xpath 'string(/domain/devices/disk/alias/@name)' -)
 #--<alias name="virtio-disk0"/>
 virsh qemu-monitor-command domname block_resize drive-${DISK} 30G --hmp
