@@ -6,8 +6,10 @@ DISK=$(virsh dumpxml domname | xmllint --xpath 'string(/domain/devices/disk/alia
 #--<alias name="virtio-disk0"/>
 virsh qemu-monitor-command domname block_resize drive-${DISK} 30G --hmp
 
-test on rbd storage for kvm
+#test on rbd storage for kvm
 
+virsh attach-disk ${vmname} --source /storage/${image} --target vdb --cache none --io native --persistent
+#test on file store for kvm
 
 virsh qemu-monitor-command domname balloon 1024 --hmp
 virsh qemu-monitor-command domname info balloon --hmp
