@@ -37,4 +37,18 @@ virsh qemu-monitor-command domname info balloon --hmp
 #    >        parent:  (pool -1)
 #    Make sure you can see the change from dmesg (Guest should see the new size change).
 
+echo "
+    <disk type='network' device='disk'>
+      <driver name='qemu' type='raw'/>
+      <auth username='vmimages'>
+        <secret type='ceph' uuid='xxx'/>
+      </auth>
+      <source protocol='rbd' name='vmimages/ubuntu-newdrive'>
+        <host name='192.168.0.102' port='6789'/>
+      </source>
+      <target dev='vdz' bus='virtio'/>
+    </disk>
+" > device.xml
+
+virsh attach-device ubuntu device.xml --persistent 
 
