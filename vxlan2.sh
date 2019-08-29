@@ -25,6 +25,6 @@ do
 done
 # ip r a 10.4.30.0/23 via ${VXIP}.2 dev vxlan100
 sysctl net.ipv4.ip_forward=1
-iptables -t nat -D POSTROUTING  -j MASQUERADE || true
-iptables -t nat -A POSTROUTING  -j MASQUERADE || true
+# iptables -t nat -D POSTROUTING  -j MASQUERADE || true
+# iptables -t nat -A POSTROUTING  -j MASQUERADE || true
 
