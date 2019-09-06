@@ -111,6 +111,16 @@ trap cleanup INT
 ##################################################
 
 main() {
+    case "$1" in
+        --wait)
+          WAIT=1
+          ;;
+        --V)
+          quiet=y
+          shift
+          ;;
+      esac
+    PARM=$1
     echo "MAIN!!!"
     return 0
 }
