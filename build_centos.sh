@@ -95,6 +95,7 @@ function cleanup
             execute vgchange -an ${ROOTVG}
             execute sleep 1
             execute kpartx -dsv ${DISK_FILE}
+            #dmsetup remove /dev/.....
         done
     }
     execute kpartx -dsv ${DISK_FILE}
