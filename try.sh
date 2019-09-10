@@ -57,7 +57,7 @@ log_warning_msg()
 
 log_begin_msg()
 {
-	_log_msg "${BLUE}Begin:${ENDCLR} %s ... " "$*"
+	_log_msg "${BLUE}Begin:${ENDCLR} %-24s " "$*"
 }
 
 log_end_msg()
@@ -85,21 +85,25 @@ try ()
 {
 	# Execute the command and fail if it does not return zero.
     log_begin_msg "${*}"
-	eval ${*} || failure && success
+    if [ "${quiet:-n}" = "y" ] ; then
+        eval ${*} >/dev/null 2>&1 || failure && success
+    else
+        eval ${*} || failure && success
+    fi
     log_end_msg
 }
 
 success()
 {
-    log_success_msg "OK"
     return 0
 }
 
 failure ()
 {
-    log_failure_msg "ERR"
+    _log_msg "\033[5;49;39m"
     return 1
 }
+
 ##################################################
 cleanup() {
     echo "EXIT!!!"
@@ -111,16 +115,18 @@ trap cleanup INT
 ##################################################
 
 main() {
-    case "$1" in
-        --wait)
-          WAIT=1
-          ;;
-        --V)
-          quiet=y
-          shift
-          ;;
-      esac
-    PARM=$1
+    case "${1:---start}" in
+        --start)
+            ;;
+        -q)
+            quiet=y
+            shift
+            ;;
+        *)
+            echo "$0 --start/-q"
+            exit 1
+            ;;
+    esac
     echo "MAIN!!!"
     return 0
 }
