@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/echo Warnning, this library must only be sourced! 
 # Bash multi-threading library
 # 
 # This library has 3 main functions:
