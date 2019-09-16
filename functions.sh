@@ -4,8 +4,7 @@ getinientry() {
     local CONF=$1
     grep "^\[" "${CONF}" | sed "s/\[//;s/\]//"
 }
-readini()
-{
+readini() {
     local ENTRY=$1
     local CONF=$2
     local INFO=$(grep -v ^$ "${CONF}"\
@@ -41,8 +40,7 @@ support_colors='red yellow blue white cyan gray purple green'
 # $1: Log level
 # $2: C style printf fmt
 # $3: C style printf arguments
-do_log()
-{
+do_log() {
 	local level=$1
 	local msg="$2"
 	local fmt="${log_fmt}"
@@ -58,33 +56,28 @@ do_log()
 	shift 2 && ${log_color[level]:-printf} "$fmt" "$@"
 }
 
-debug_msg()
-{
+debug_msg() {
     local fmt=$1
     shift && do_log $LOG_DEBUG "$fmt" "$@"
 }
 
-info_msg()
-{
+info_msg() {
     local fmt=$1
     shift && do_log $LOG_INFO "$fmt" "$@"
 }
 
-warn_msg()
-{
+warn_msg() {
     local fmt=$1
     shift && do_log $LOG_WARNING "$fmt" "$@"
 }
 
-error_msg()
-{
+error_msg() {
     local fmt=$1
     shift && do_log $LOG_ERROR "$fmt" "$@"
     return 1
 }
 
-exit_msg()
-{
+exit_msg() {
     error_msg "$@"
     exit 1
 }
@@ -93,50 +86,42 @@ exit_msg()
 
 # Colorful print start {{
 
-red()
-{
+red() {
     local fmt=$1
     shift && printf "\033[1;31m${fmt}\033[0m" "$@"
 }
 
-green()
-{
+green() {
     local fmt=$1
     shift && printf "\033[1;32m${fmt}\033[0m" "$@"
 }
 
-gray()
-{
+gray() {
     local fmt=$1
     shift && printf "\033[1;37m${fmt}\033[0m" "$@"
 }
 
-yellow()
-{
+yellow() {
     local fmt=$1
     shift && printf "\033[1;33m${fmt}\033[0m" "$@"
 }
 
-blue()
-{
+blue() {
     local fmt=$1
     shift && printf "\033[1;34m${fmt}\033[0m" "$@"
 }
 
-cyan()
-{
+cyan() {
     local fmt=$1
     shift && printf "\033[1;36m${fmt}\033[0m" "$@"
 }
 
-purple()
-{
+purple() {
     local fmt=$1
     shift && printf "\033[1;35m${fmt}\033[0m" "$@"
 }
 
-white()
-{
+white() {
     local fmt=$1
     shift && printf "\033[1;38m${fmt}\033[0m" "$@"
 }
@@ -146,32 +131,28 @@ white()
 # {{ Log set functions 
 
 # Set default log level
-set_loglevel()
-{
+set_loglevel() {
     if echo "$1" | grep -qE "^[0-9]+$"; then
         log_level="$1"
     fi
 }
 
 # Set log format
-set_logfmt()
-{
+set_logfmt() {
     if [ -n "$1" ]; then
         log_fmt="$1"
     fi
 }
 
 # Set date format, see 'man date'
-set_datefmt()
-{
+set_datefmt() {
     if [ -n "$1" ]; then
         date_fmt="$1"
     fi
 }
 
 # Set log colors
-set_logcolor()
-{
+set_logcolor() {
     local len=$#
 
     for (( i=0; i<$len; i++ )); do
@@ -186,15 +167,13 @@ set_logcolor()
 }
 
 # Disable colorful log
-disable_color()
-{
+disable_color() {
     set_logcolor '' '' '' ''
 }
 
 # Log set functions }}
 ##################################################
-run_scripts()
-{
+run_scripts() {
 	initdir=${1}
 	[ ! -d "${initdir}" ] && return
 
@@ -209,8 +188,7 @@ run_scripts()
 # command is used, the '|' must be escaped with '\' when calling try (i.e.
 # "try ls \| less").
 #******************************************************************************
-try ()
-{
+try () {
     CMD="${*}"
 	# Execute the command and fail if it does not return zero.
     blue "Begin: %-35s " "${CMD:0:29}..."
