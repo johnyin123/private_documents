@@ -52,3 +52,16 @@ echo "
 
 virsh attach-device ubuntu device.xml --persistent 
 
+
+
+# mkdir /root/.ssh
+virsh qemu-agent-command ${DOMAIN} '{"execute":"guest-exec","arguments":{"path":"mkdir","arg":["-p","/root/.ssh"],"capture-output":true}}'
+
+# 假设上一步返回{"return":{"pid":911}}，接下来查看结果（通常可忽略）
+virsh qemu-agent-command ${DOMAIN} '{"execute":"guest-exec-status","arguments":{"pid":911}}'
+
+# chmod 700 /root/.ssh，此行其实可不执行，因为上面创建目录后就是700，但为了防止权限不正确导致无法使用，这里还是再刷一次700比较稳妥
+virsh qemu-agent-command ${DOMAIN} '{"execute":"guest-exec","arguments":{"path":"chmod","arg":["700","/root/.ssh"],"capture-output":true}}'
+
+# 假设上一步返回{"return":{"pid":912}}，接下来查看结果（通常可忽略）
+virsh qemu-agent-command ${DOMAIN} '{"execute":"guest-exec-status","arguments":{"pid":912}}'
