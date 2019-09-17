@@ -1,9 +1,19 @@
 #!/bin/echo Warnning, this library must only be sourced! 
 
+dummy() { :; }
+
+list_func() {
+    #function_name startwith _ is private usage!
+    typeset -f | awk '/ \(\) $/ && !/^main / {print $1}' | grep -v "^_"
+#    local fncs=$(declare -F -p | cut -d " " -f 3 | grep -v "^_")
+#    echo $fncs
+}
+##################################################
 getinientry() {
     local CONF=$1
     grep "^\[" "${CONF}" | sed "s/\[//;s/\]//"
 }
+
 readini() {
     local ENTRY=$1
     local CONF=$2
@@ -410,3 +420,4 @@ cidr2mask() {
 
     echo $mask
 }
+

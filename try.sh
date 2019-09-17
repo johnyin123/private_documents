@@ -25,7 +25,9 @@ trap cleanup EXIT
 trap cleanup TERM
 trap cleanup INT
 ##################################################
-
+dummy() {
+    echo "MY DUMMY"
+}
 main() {
     case "${1:---start}" in
         --start)
@@ -39,6 +41,8 @@ main() {
             exit 1
             ;;
     esac
+    list_func
+    dummy
     echo "MAIN!!!"
     return 0
 }
