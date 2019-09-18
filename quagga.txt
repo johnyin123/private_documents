@@ -1,0 +1,21 @@
+# telnet 0 2604
+ospfd> enable
+Password:
+ospfd# configure terminal
+ospfd(config)# router ospf
+ospfd(config-router)# network 192.168.66.0/24 area 0
+ospfd(config-router)# passive-interface eth0
+ospfd(config-router)# end
+ospfd# write file
+Configuration saved to /etc/zebra/ospfd.conf
+
+# telnet 0 2605
+bgpd> enable
+Password:
+bgpd# configure terminal
+bgpd(config)# router bgp 65530
+bgpd(config-router)# network 192.168.66.0/24
+bgpd(config-router)# neighbor 10.0.0.5 remote-as 65531
+bgpd(config-router)# end
+bgpd# write file
+Configuration saved to /etc/zebra/bgpd.conf
