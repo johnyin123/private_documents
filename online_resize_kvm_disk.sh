@@ -36,21 +36,42 @@ virsh qemu-monitor-command domname info balloon --hmp
 #    >        block_name_prefix: rb.0.13fb.23353e97
 #    >        parent:  (pool -1)
 #    Make sure you can see the change from dmesg (Guest should see the new size change).
+echo "
+<volume type='network'>
+  <name>data-8059d256-b575-414f-bedf-ea91914e4bb7.raw</name>
+  <key>cephpool/data-8059d256-b575-414f-bedf-ea91914e4bb7.raw</key>
+  <source>
+  </source>
+  <capacity unit='GiB'>500</capacity>
+  <allocation unit='GiB'>500</allocation>
+  <target>
+    <path>cephpool/data-8059d256-b575-414f-bedf-ea91914e4bb7.raw</path>
+    <format type='raw'/>
+  </target>
+</volume>
+" > disk.xml
+virsh vol-create cephpool disk.xml
 
 echo "
     <disk type='network' device='disk'>
       <driver name='qemu' type='raw'/>
-      <auth username='vmimages'>
-        <secret type='ceph' uuid='xxx'/>
+      <auth username='libvirt'>
+        <secret type='ceph' uuid='2dfb5a49-a4e9-493a-a56f-4bd1bf26a149'/>
       </auth>
-      <source protocol='rbd' name='vmimages/ubuntu-newdrive'>
-        <host name='192.168.0.102' port='6789'/>
+      <source protocol='rbd' name='cephpool/data-8059d256-b575-414f-bedf-ea91914e4bb7.raw'>
+        <host name='node01' port='6789'/>
+        <host name='node02' port='6789'/>
+        <host name='node03' port='6789'/>
+        <host name='node04' port='6789'/>
+        <host name='node05' port='6789'/>
+        <host name='node06' port='6789'/>
+        <host name='node07' port='6789'/>
       </source>
-      <target dev='vdz' bus='virtio'/>
+      <target dev='vdb' bus='virtio'/>
     </disk>
 " > device.xml
 
-virsh attach-device ubuntu device.xml --persistent 
+virsh attach-device dom_name device.xml --persistent 
 
 
 
