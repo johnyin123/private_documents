@@ -1,3 +1,70 @@
+cat <<'EOF'
+       .----{ Intranet }----.
+      /    192.168.1.0/24    \
+     /                        \
+.10 /                          \.20
+.--'---. .1  GRE Tunnel  .2 .---`--.
+|      |====================|      |
+|  R1  |   172.16.16.0/30   |  R2  |
+|      |                    |      |
+'--.---'                    '------'
+   | .1                        | .1 
+   |    10.0.1.0/24            |    10.0.2.0/24
+   | .2                        | .2 
+.--'---.                    .--'---.
+|      |                    |      |
+|  C1  |                    |  C2  |
+|      |                    |      |
+'------'                    '------'
+In this post we are using the home WiFi network, 192.168.1.0/24, to hook up the GRE tunnel. 
+It is just as easy to extend this to a big corporate Intranet with more routers between R1 and R2. As long as that IT department takes care of the unicast routing between R1 and R2 so that the GRE tunnel can be established.
+
+Now, on router R1 we set up the first GRE tunnel endpoint:
+
+ip tunnel add gre0 mode gre remote 192.168.1.20 local 192.168.1.10 ttl 64
+ip link set gre0 multicast on
+ip link set gre0 up
+ip addr add 172.16.16.1/30 dev gre0
+We do not add any static route for R1 to reach the LAN on R2 that C2 is connected to, that is for OSPF to add dynamically for us later. Notice, hower, that we must explicitly enable the multicast flag on the GRE interface, it is not enabled by default in Linux.
+
+On router R2 we can now set up the other side of the GRE tunnel:
+
+ip tunnel add gre0 mode gre remote 192.168.1.10 local 192.168.1.20 ttl 64
+ip link set gre0 multicast on
+ip link set gre0 up
+ip addr add 172.16.16.2/30 dev gre0
+Setup of OSPF in Debian or Ubuntu distributions is only an apt-get away followed by enabling the zebra and ospf daemons:
+
+sudo apt-get install quagga
+sudo editor /etc/quagga/daemons
+The idea is to set up an OSPF backbone, area 0, for our routers without wrecking havoc in the big corporate intranet, which may already run OSPF … so OSPF should only talk on the gre0 interface, and maybe even the LAN interfaces towards C1 and C2 (in case we want to expand on this example later). In our setup the routers use wlan0 to connect to the intranet. We can use the sample configuration files to start from:
+
+sudo cp /usr/share/doc/quagga/examples/zebra.conf.sample /etc/quagga/zebra.conf
+sudo cp /usr/share/doc/quagga/examples/ospfd.conf.sample /etc/quagga/ospfd.conf
+The zebra.conf can be left as-is, just edit the ospfd.conf to look like this:
+
+hostname ospfd
+password zebra
+router ospf
+    passive-interface wlan0
+    redistribute connected
+    network 172.16.16.0/30 area 0
+When the routers have peered, the two clients C1 and C2 should be able to (unicast) ping each other. Telnet into the OSPF daemon using telnet localhost ospfd and type show ip ospf neigh to see all OSPF neighbors and their status, should be Full/... when done exchanging routes. Use show ip ospf route to see the exchanged routes, also inspect the kernel routing table with route -n. Use traceroute to confirm the traffic between clients do traverse the GRE tunnel and not over the Intranet.
+EOF
+
+
+cat >"ospf md5 auth"<<'EOF'
+interface eth0
+ ip ospf authentication message-digest
+ ip ospf message-digest-key 1 md5 ABCDEFGHIJK
+ 
+router ospf
+ network 192.168.0.0/16 area 0.0.0.1
+ area 0.0.0.1 authentication message-digest
+EOF
+
+
+
 # telnet 0 2604
 ospfd> enable
 Password:
