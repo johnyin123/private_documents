@@ -51,6 +51,8 @@ echo "
 </volume>
 " > disk.xml
 virsh vol-create cephpool disk.xml
+virsh vol-create-as cephpool test.raw 5G
+# virsh vol-delete test.raw --pool cephpool
 
 echo "
     <disk type='network' device='disk'>
