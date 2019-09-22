@@ -88,3 +88,15 @@ virsh qemu-agent-command ${DOMAIN} '{"execute":"guest-exec","arguments":{"path":
 
 # 假设上一步返回{"return":{"pid":912}}，接下来查看结果（通常可忽略）
 virsh qemu-agent-command ${DOMAIN} '{"execute":"guest-exec-status","arguments":{"pid":912}}'
+
+
+
+#snapshot
+qemu-img snapshot -c sp0 rbd:rbd/fedora -f raw
+#rollback
+qemu-img snapshot -a sp0 rbd:rbd/fedora
+#del snapshot
+qemu-img snapshot -d sp0 rbd:rbd/fedora
+#list snapshot
+rbd snap ls rbd/fedora
+qemu-img snapshot -l rbd:rbd/fedora
