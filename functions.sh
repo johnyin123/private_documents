@@ -51,19 +51,19 @@ support_colors='red yellow blue white cyan gray purple green'
 # $2: C style printf fmt
 # $3: C style printf arguments
 do_log() {
-	local level=$1
-	local msg="$2"
-	local fmt="${log_fmt}"
+    local level=$1
+    local msg="$2"
+    local fmt="${log_fmt}"
 
-	if [ $level -gt $log_level ]; then
-		return
-	fi
+    if [ $level -gt $log_level ]; then
+        return
+    fi
 
-	fmt="${fmt//<levelname>/${LOG_LEVELNAMES[$level]}}"
-	fmt="${fmt//<asctime>/$(date +"$date_fmt")}"
-	fmt="${fmt//<message>/$msg}"
+    fmt="${fmt//<levelname>/${LOG_LEVELNAMES[$level]}}"
+    fmt="${fmt//<asctime>/$(date +"$date_fmt")}"
+    fmt="${fmt//<message>/$msg}"
 
-	shift 2 && ${log_color[level]:-printf} "$fmt" "$@"
+    shift 2 && ${log_color[level]:-printf} "$fmt" "$@"
 }
 
 debug_msg() {
@@ -184,12 +184,12 @@ disable_color() {
 # Log set functions }}
 ##################################################
 run_scripts() {
-	initdir=${1}
-	[ ! -d "${initdir}" ] && return
+    initdir=${1}
+    [ ! -d "${initdir}" ] && return
 
-	shift
+    shift
     for i in ${initdir}/*; do
-	    . "${initdir}/$i"
+        . "${initdir}/$i"
     done
 }
 ##################################################
@@ -200,13 +200,17 @@ run_scripts() {
 #******************************************************************************
 try () {
     CMD="${*}"
-	# Execute the command and fail if it does not return zero.
+    if [ "${DRYRUN:-0}" -eq 1 ] ; then
+        echo $CMD
+        return 0
+    fi
+    # Execute the command and fail if it does not return zero.
     blue "Begin: %-35s " "${CMD:0:29}..."
     RESULT=$(eval "${CMD}" 2>&1)
     ERROR="$?"
     #tput cuu1
     if [ "$ERROR" == "0" ]; then
-    	green "done.\\n"
+        green "done.\\n"
     else
         red "failed($ERROR).\\n"
         white "${RESULT}\\n"
