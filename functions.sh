@@ -267,6 +267,12 @@ string_contains() {
     [[ "${1}" == *${2}* ]]
 }
 
+split() {
+	# Usage: split "string" "delimiter"
+	IFS=$'\n' read -d "" -ra arr <<< "${1//$2/$'\n'}"
+	printf '%s\n' "${arr[@]}"
+}
+
 __array_append() {
     echo -n 'eval '
     echo -n "$1" # array name
