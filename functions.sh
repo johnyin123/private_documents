@@ -296,6 +296,7 @@ __array_len() {
     echo -n "$2" # array name
     echo -n '[@]}'
 }
+
 array_append() {
     local array=$1; shift 1
     local len
@@ -312,15 +313,26 @@ array_append() {
         $(__array_append "$array" "$i")
     done
 }
+
 array_size() {
     local size
 
     $(__array_len size "$1")
     echo "$size"
 }
+
 array_print() {
     eval "printf '%s\n' \"\${$1[@]}\""
 }
+
+array_print_label() {
+    eval "printf '%s\n' \"\${!$1[@]}\""
+}
+
+array_get() {
+    eval "printf '%s' \"\${$1[$2]}\""
+}
+
 str_replace() {
     local ORIG="$1"
     local DEST="$2"
