@@ -341,6 +341,38 @@ str_replace() {
     echo "${DATA//$ORIG/$DEST}"
 }
 
+# Performs POST onto specified URL with content formatted as json
+#$1 uri
+#$2 json file (if input is to be read from stdin use: -)
+#$3 user in case of https
+#$4 password in case of https
+rest_json_post() {
+    if [ -z $3 ]; then
+        #without -s curl could display some debug info
+        curl -s -H "Accept:application/json" -H "Content-Type:application/json" -X POST -k -d @$2 $1
+    else
+        curl -s -H "Accept:application/json" -H "Content-Type:application/json" -X POST -u "$3":"$4" -k -d @$2 $1
+    fi
+}
+
+# Performs GET
+#$1 uri
+#$2 user in case of https
+#$3 password in case of https
+rest_json_get() {
+    if [ -z $2 ]; then
+        curl -k -i -H "Accept: application/json" $1
+    else
+        curl -k -i -H "Accept: application/json" -u "$2":"$3" $1
+    fi
+}
+
+# parse simple json loaded from standard input
+# $1 json field
+json_parse() {
+    python -c "import sys, json; print json.load(sys.stdin)[\"$1\"]"
+}
+
 ip2int() {
     local a b c d
     { IFS=. read a b c d; } <<< $1
