@@ -29,20 +29,39 @@ dummy() {
     echo "MY DUMMY"
 }
 main() {
-    case "${1:---start}" in
-        --start)
-            ;;
-        -q)
-            quiet=y
-            shift
-            ;;
-        *)
-            echo "$0 --start/-q"
-            exit 1
-            ;;
-    esac
+    while test -n "${1:-}"
+    do
+        case "$1" in
+            -V | --version)
+                echo ${SCRIPTNAME}
+                exit 0
+                ;;
+
+            -h | --help)
+                echo "help page"
+                exit 0
+                ;;
+
+            -d | --dryrun)
+                DRYRUN=1
+                ;;
+
+            -n | --node)
+                shift
+                NODE_NAME="$1"
+                ;;
+
+            *)
+                exit_msg "$0 --start/--clean filename\n"
+                break
+                ;;
+        esac
+        shift
+    done
+
     list_func
     dummy
+    exit_msg "$0 --start/--clean filename\n"
     echo "MAIN!!!"
     return 0
 }
