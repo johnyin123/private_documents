@@ -60,6 +60,7 @@ declare -A MAP_LINES=(
     )
 
 declare -A NODES_ROUTES=(
+    "
     [h1]="default via 10.0.2.1 
           1.1.1.0/24 via 10.0.2.2 
           "
