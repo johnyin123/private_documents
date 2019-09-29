@@ -205,15 +205,15 @@ try () {
         return 0
     fi
     # Execute the command and fail if it does not return zero.
-    blue "Begin: %-35s " "${CMD:0:29}..."
+    [[ ${QUIET:-0} = 0 ]] && blue "Begin: %-35s " "${CMD:0:29}..."
     RESULT=$(eval "${CMD}" 2>&1)
     ERROR="$?"
     #tput cuu1
     if [ "$ERROR" == "0" ]; then
-        green "done.\\n"
+        [[ ${QUIET:-0} = 0 ]] && green "done.\\n"
     else
-        red "failed($ERROR).\\n"
-        white "${RESULT}\\n"
+        [[ ${QUIET:-0} = 0 ]] && red "failed($ERROR).\\n"
+        error_msg "%s\n" "${RESULT}"
     fi
     return "$ERROR"
 }

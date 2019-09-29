@@ -28,32 +28,37 @@ trap cleanup INT
 dummy() {
     echo "MY DUMMY"
 }
+
+usage() {
+    cat <<EOF
+${SCRIPTNAME} 
+        -q|--quiet
+        -l|--log <int> log level
+        -V|--version
+        -d|--dryrun dryrun
+        -h|--help help
+EOF
+    exit 1
+}
+
 main() {
     while test -n "${1:-}"
     do
-        case "$1" in
+        case "${1:--h}" in
+            -q | --quiet)
+                QUIET=1
+                ;;
+            -l | --log)
+                set_loglevel ${1}; shift
+                ;;
             -V | --version)
-                echo ${SCRIPTNAME}
-                exit 0
+                exit_msg "${SCRIPTNAME} version\n"
                 ;;
-
-            -h | --help)
-                echo "help page"
-                exit 0
-                ;;
-
             -d | --dryrun)
                 DRYRUN=1
                 ;;
-
-            -n | --node)
-                shift
-                NODE_NAME="$1"
-                ;;
-
-            *)
-                exit_msg "$0 --start/--clean filename\n"
-                break
+            -h | --help | *)
+                usage
                 ;;
         esac
         shift
