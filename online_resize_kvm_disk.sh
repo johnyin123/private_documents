@@ -1,3 +1,9 @@
+# xmllint --xpath '//element/@attribute' file.xml
+# xmlstarlet sel -t -v "//element/@attribute" file.xml
+# xpath -q -e '//element/@attribute' file.xml
+# xidel -se '//element/@attribute' file.xml
+# saxon-lint --xpath '//element/@attribute' file.xml
+
 #Live migrate a libvirt/kvm virtual machine with both local and shared storage
 virsh migrate ${VM} qemu+ssh://user@server:port/system --copy-storage-all --persistent --undefinesource 
 
