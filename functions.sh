@@ -1,7 +1,7 @@
 #!/bin/echo Warnning, this library must only be sourced! 
 # TO BE SOURCED ONLY ONCE:
-if [ -z ${__myfunclib_inc+x} ]; then
-    __myfunclib_inc=1
+if [ -z ${__functions_inc+x} ]; then
+    __functions_inc=1
 else
     return 0
 fi

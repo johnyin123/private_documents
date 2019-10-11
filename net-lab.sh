@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-set -o nounset -o pipefail
-#set -o errexit
-
-# Disable unicode.
-LC_ALL=C
-LANG=C
-
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 #readonly DIRNAME="$(dirname "$(readlink -e "$0")")"
 readonly SCRIPTNAME=${0##*/}
@@ -14,10 +7,9 @@ if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-
+[ -e ${DIRNAME}/trap.sh ] && . ${DIRNAME}/trap.sh || true
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
-################################################################################
-################################################################################
+
 ################################################################################
 check_cfg() {
     local cfg_file=$1
