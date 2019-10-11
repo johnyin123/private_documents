@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-set -o nounset -o pipefail
-set -o errexit
-
-# Disable unicode.
-LC_ALL=C
-LANG=C
-
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 #readonly DIRNAME="$(dirname "$(readlink -e "$0")")"
 readonly SCRIPTNAME=${0##*/}
@@ -21,12 +14,15 @@ cleanup() {
     echo "EXIT!!!"
 }
 
-trap cleanup EXIT
+#trap cleanup EXIT
 trap cleanup TERM
 trap cleanup INT
 ##################################################
 dummy() {
     echo "MY DUMMY"
+    source 'trap.sh'
+    echo "doing something wrong now .."
+    echo "$foo"
 }
 
 usage() {
@@ -68,6 +64,7 @@ main() {
     dummy
     exit_msg "$0 --start/--clean filename\n"
     echo "MAIN!!!"
+
     return 0
 }
 key_val_file() {
@@ -76,5 +73,6 @@ key_val_file() {
         keyvals["${line%%=*}"]=${line#*=}
     done < "$KVP_FILE"
 }
+
 main "$@"
 
