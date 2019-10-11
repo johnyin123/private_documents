@@ -253,6 +253,16 @@ device_exists() {
     return 1
 }
 
+is_integer() {
+  local exit_code=1
+  if [ $# -ge 1 ]; then
+    local param="${1}"
+    grep --color=never -E -x -q '\-?[1-9]{1}[0-9]*' <<< "${param}" 1>/dev/null 2>/dev/null
+    exit_code=$?
+  fi
+  return $exit_code
+}
+
 to_lower() {
     echo "$1" | tr '[:upper:]' '[:lower:]'
 }
