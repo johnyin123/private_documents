@@ -232,6 +232,14 @@ try () {
     return "$ERROR"
 }
 
+## Tests if a variable is defined.
+## @param variable Variable to test.
+## @retval 0 if the variable is defined.
+## @retval 1 in others cases.
+defined() {
+    [[ "${!1-X}" == "${!1-Y}" ]]
+}
+
 directory_exists() {
     if [[ -d "$1" ]]; then
         return 0
