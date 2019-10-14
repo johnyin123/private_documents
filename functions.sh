@@ -22,6 +22,21 @@ list_func() {
 #    local fncs=$(declare -F -p | cut -d " " -f 3 | grep -v "^_")
 #    echo $fncs
 }
+
+# choices=("1xx" "choine 1" "2" "choice 2")
+# id=$(dialog "title xxa" "menu xxx" choices[@])
+# echo $id
+dialog() {
+    local title="${1}"
+    local menu="${2}"
+    declare -a items=("${!3}")
+    local item=$(eval $(resize) && whiptail --notags \
+		--title "${title}" \
+		--menu "${menu}" \
+		$LINES $COLUMNS $(( $LINES - 12 )) \
+       	"${items[@]}" 3>&1 1>&2 2>&3)
+    echo -n "${item}"
+}
 ##################################################
 getinientry() {
     local CONF=$1
