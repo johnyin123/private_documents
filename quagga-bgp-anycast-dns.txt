@@ -1,0 +1,34 @@
+                    +------------+
+                    |            |
+                +---+  Router 1  +---+
+                |   |            |   |
+                |   +------------+   |
+                |                    |
+          +-----+----+          +----+-----+
+          |          |          |          |
+          |  DNS 1   |          |  DNS 2   |
+          |          |          |          |
+          +----------+          +----------+
+
+(primary) 10.100.0.1          10.100.0.1
+          10.100.0.2          10.100.0.2 (primary)
+
+router bgp 65002
+    bgp router-id 10.0.0.1
+    bgp confederation identifier 42xxx
+    bgp confederation peers 65001 65002
+
+    network 10.100.0.1/32 route-map localpref150
+    network 10.100.0.2/32
+
+    neighbor 10.0.0.10 remote-as 65001
+    neighbor 10.0.0.10 route-map only-local-ASes out
+!
+ip as-path access-list only-local-ASes permit ^$
+!
+route-map only-local-ASes permit 10
+match as-path only-local-ASes
+!
+route-map localpref150 permit 10
+set local-preference 150
+!
