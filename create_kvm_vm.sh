@@ -9,7 +9,7 @@ TIMESERVER=${TIMESERVER:-10.0.2.1}
 CFG_INI=${CFG_INI:-"hosts.ini"}
 
 VIRSH_OPT="-c qemu+ssh://${KVM_USER}@${KVM_HOST}:${KVM_PORT}/system"
-SSH_OPT="-o StrictHostKeyChecking=no -p ${KVM_PORT} ${KVM_USER}@${KVM_HOST}"
+SSH_OPT="-o StrictHostKeyChecking=no -o ServerAliveInterval=60 -p ${KVM_PORT} ${KVM_USER}@${KVM_HOST}"
 
 readonly ZIP=gzip
 readonly UNZIP=gunzip
