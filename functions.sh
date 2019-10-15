@@ -29,7 +29,7 @@ list_func() {
 # array_print abc
 read_kv() {
     local kv_file=${1}
-    declare -n __ref=$2
+    declare -n __ref=${2}
     while IFS= read -r line; do
         __ref["${line%%=*}"]=${line#*=}
     done < ${kv_file}
