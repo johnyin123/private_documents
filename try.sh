@@ -67,12 +67,5 @@ main() {
 
     return 0
 }
-key_val_file() {
-    declare -A keyvals
-    while IFS= read -r line; do
-        keyvals["${line%%=*}"]=${line#*=}
-    done < "$KVP_FILE"
-}
-
 main "$@"
 

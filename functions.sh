@@ -23,6 +23,18 @@ list_func() {
 #    echo $fncs
 }
 
+# declare -A abc;
+# read_kv a.txt abc
+# array_print_label abc
+# array_print abc
+read_kv() {
+    local kv_file=${1}
+    declare -n __ref=$2
+    while IFS= read -r line; do
+        __ref["${line%%=*}"]=${line#*=}
+    done < ${kv_file}
+}
+
 # choices=("1xx" "choine 1" "2" "choice 2")
 # id=$(dialog "title xxa" "menu xxx" choices[@])
 # echo $id
