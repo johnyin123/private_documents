@@ -117,7 +117,8 @@ set smartindent              " 智能自动缩进
 "Paste toggle - when pasting something in, don't indent.
 set pastetoggle=<F7>
 set mouse=r
-"新建.py,.c,.sh文件，自动插入文件头"
+
+"新建.py,.c,.sh,.h文件，自动插入文件头"
 autocmd BufNewFile *.py,*.c,*.sh,*.h exec ":call SetTitle()"
 "定义函数SetTitle，自动插入文件头"
 func SetTitle()
@@ -130,6 +131,11 @@ func SetTitle()
         call setline(6, "    set -o xtrace")
         call setline(7, "fi")
         call setline(8, "[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true")
+        call setline(9, "################################################################################")
+        call setline(10, "main() {")
+        call setline(11, "    return 0")
+        call setline(12, "}")
+        call setline(13, "main \"$@\"")
     endif
 endfunc
 EOF
