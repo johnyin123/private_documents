@@ -96,7 +96,7 @@ echo "install vimrc.local? Y/n"
 read YesNo
 if [ ${YesNo:-N} = "Y" ] || [ ${YesNo:-N} = "y" ]
 then
-cat << EOF > /etc/vim/vimrc.local
+cat <<'EOF' > /etc/vim/vimrc.local
 syntax on
 " color evening
 set number
@@ -105,21 +105,33 @@ set fileencodings=utf-8,gb2312,gbk,gb18030
 " set termencoding=utf-8
 let &termencoding=&encoding
 set fileformats=unix
-set hlsearch                    " highlight the last used search pattern
+set hlsearch                 " highlight the last used search pattern
 set noswapfile
 set tabstop=4                " 设置tab键的宽度
 set shiftwidth=4             " 换行时行间交错使用4个空格
-set expandtab                " 用space替代tab的输入
+set expandtab				 " 用space替代tab的输入
 set autoindent               " 自动对齐
 set backspace=2              " 设置退格键可用
 set cindent shiftwidth=4     " 自动缩进4空格
 set smartindent              " 智能自动缩进
-set mouse-=r
-filetype plugin on
 "Paste toggle - when pasting something in, don't indent.
 set pastetoggle=<F7>
-"python help "H"
-nnoremap <buffer> H :<C-u>execute "!pydoc3 " . expand("<cword>")<CR>
+set mouse=r
+"新建.py,.c,.sh文件，自动插入文件头"
+autocmd BufNewFile *.py,*.c,*.sh,*.h exec ":call SetTitle()"
+"定义函数SetTitle，自动插入文件头"
+func SetTitle()
+    if expand ("%:e") == 'sh'
+        call setline(1, "#!/usr/bin/env bash")
+        call setline(2, "readonly DIRNAME=\"$(readlink -f \"$(dirname \"$0\")\")\"")
+        call setline(3, "readonly SCRIPTNAME=${0##*/}")
+        call setline(4, "if [ \"${DEBUG:=false}\" = \"true\" ]; then")
+        call setline(5, "    export PS4=\'[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }\'")
+        call setline(6, "    set -o xtrace")
+        call setline(7, "fi")
+        call setline(8, "[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true")
+    endif
+endfunc
 EOF
 fi
 
