@@ -8,7 +8,7 @@
 virsh migrate ${VM} qemu+ssh://user@server:port/system --copy-storage-all --persistent --undefinesource 
 
 
-DISK=$(virsh dumpxml domname | xmllint --xpath 'string(/domain/devices/disk/alias/@name)' -)
+DISK=$(virsh dumpxml domname | xmllint --xpath 'string(/domain/devices/disk[1]/alias/@name)' -)
 #--<alias name="virtio-disk0"/>
 virsh qemu-monitor-command domname block_resize drive-${DISK} 30G --hmp
 
