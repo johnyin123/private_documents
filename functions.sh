@@ -43,10 +43,10 @@ dialog() {
     local menu="${2}"
     declare -a items=("${!3}")
     local item=$(eval $(resize) && whiptail --notags \
-		--title "${title}" \
-		--menu "${menu}" \
-		$LINES $COLUMNS $(( $LINES - 12 )) \
-       	"${items[@]}" 3>&1 1>&2 2>&3)
+        --title "${title}" \
+        --menu "${menu}" \
+        $LINES $COLUMNS $(( $LINES - 12 )) \
+        "${items[@]}" 3>&1 1>&2 2>&3 || true)
     echo -n "${item}"
 }
 ##################################################
@@ -327,9 +327,9 @@ string_contains() {
 }
 
 split() {
-	# Usage: split "string" "delimiter"
-	IFS=$'\n' read -d "" -ra arr <<< "${1//$2/$'\n'}"
-	printf '%s\n' "${arr[@]}"
+    # Usage: split "string" "delimiter"
+    IFS=$'\n' read -d "" -ra arr <<< "${1//$2/$'\n'}"
+    printf '%s\n' "${arr[@]}"
 }
 
 __array_append() {
