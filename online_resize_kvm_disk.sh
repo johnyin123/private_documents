@@ -7,8 +7,12 @@
 #Live migrate a libvirt/kvm virtual machine with both local and shared storage
 virsh migrate ${VM} qemu+ssh://user@server:port/system --copy-storage-all --persistent --undefinesource 
 
+#DISK=$(virsh dumpxml domname | xmllint --xpath 'string(/domain/devices/disk[1]/alias/@name)' -)
 
-DISK=$(virsh dumpxml domname | xmllint --xpath 'string(/domain/devices/disk[1]/alias/@name)' -)
+DOMNAME=
+virsh domblklist ${DOMNAME}
+TARGET=vda
+DISK=$(virsh dumpxml ${DOMNAME} | xmllint --xpath "string(/domain/devices/disk/target[@dev=\"${TARGET}\"]/following-sibling::alias/@name)" -)
 #--<alias name="virtio-disk0"/>
 virsh qemu-monitor-command domname block_resize drive-${DISK} 30G --hmp
 
@@ -19,6 +23,7 @@ virsh attach-disk ${vmname} --source /storage/${image} --target vdb --cache none
 
 virsh qemu-monitor-command domname balloon 1024 --hmp
 virsh qemu-monitor-command domname info balloon --hmp
+virsh setvcpu ...
 
 #XFS
 # simple flat partition just fdisk del partition,and create OK
