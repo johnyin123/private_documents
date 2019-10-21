@@ -111,3 +111,90 @@ qemu-img snapshot -d sp0 rbd:rbd/fedora
 #list snapshot
 rbd snap ls rbd/fedora
 qemu-img snapshot -l rbd:rbd/fedora
+
+
+echo "New add_vm.sh"
+cat <<EOFF
+vmname=xxx
+uuid=$(cat /proc/sys/kernel/random/uuid)
+title=title
+desc="desc desc"
+memsize=$((2*1024*1024))
+vcpus=4
+
+cat <<EOVM | virsh define --file /dev/stdin
+<domain type='kvm'>
+  <name>${vmname}</name>
+  <uuid>${uuid}</uuid>
+  <title>${title}</title>
+  <description>${desc}</description>
+  <memory unit='KiB'>$((${memsize}*2))</memory>
+  <currentMemory unit='KiB'>${memsize}</currentMemory>
+  <vcpu placement='static' current='2'>${vcpus}</vcpu>
+  <cpu match='exact'><model fallback='allow'>Westmere</model></cpu>
+  <os>
+    <type arch='x86_64'>hvm</type>
+  </os>
+  <features>
+    <acpi/><apic/><pae/>
+  </features>
+  <on_poweroff>preserve</on_poweroff>
+  <devices>
+    <serial type='pty'>
+      <source path='/dev/pts/1'/>
+      <target port='0'/>
+      <alias name='serial0'/>
+    </serial>
+    <console type='pty' tty='/dev/pts/1'>
+      <source path='/dev/pts/1'/>
+      <target type='serial' port='0'/>
+      <alias name='serial0'/>
+    </console>
+    <input type='mouse' bus='ps2'/>
+    <input type='keyboard' bus='ps2'/>
+    <graphics type='spice' autoport='yes'>
+      <listen type='address'/>
+    </graphics>
+    <video>
+      <model type='qxl' ram='65536' vram='65536' vgamem='16384' heads='1' primary='yes'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
+    </video>
+    <channel type='unix'>
+      <target type='virtio' name='org.qemu.guest_agent.0'/>
+    </channel>
+    <controller type='usb' index='0' model='ich9-ehci1'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x05' function='0x7'/>
+    </controller>
+    <redirdev bus='usb' type='spicevmc'>
+      <address type='usb' bus='0' port='3'/>
+    </redirdev>
+    <memballoon model='virtio'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x08' function='0x0'/>
+    </memballoon>
+  </devices>
+</domain>
+EOVM
+
+#qemu-img convert -f raw -O raw tpl.raw rbd:data/squeeze
+pool=default
+virsh -q vol-create-as --pool ${pool} --name sys_${uuid}.raw --capacity 1M  --format raw
+virsh -q vol-resize  --pool ${pool} --vol sys_${uuid}.raw --capacity 5G
+virsh -q vol-upload --pool ${pool} --vol sys_${uuid}.raw --file tpl.raw
+
+cat <<EODISK | virsh attach-device ${uuid} --file /dev/stdin --persistent
+<disk type='file' device='disk'>
+   <driver name='qemu' type='raw' cache='none' io='native'/>
+   <source file='/home/johnyin/disk/myvm/sys_${uuid}.raw'/>
+   <backingStore/>
+   <target dev='vda' bus='virtio'/>
+</disk>
+EODISK
+
+cat <<EONET | virsh attach-device ${uuid} --file /dev/stdin --persistent
+<interface type='network'>
+  <source network='br-ext'/>
+  <model type='virtio'/>
+  <driver name="vhost"/>
+</interface>
+EONET
+EOFF
