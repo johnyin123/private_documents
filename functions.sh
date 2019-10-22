@@ -27,10 +27,18 @@ list_func() {
 # read_kv a.txt abc
 # array_print_label abc
 # array_print abc
+
+empty_kv() {
+    declare -n __ref=${1}
+    local keys=("${!__ref[@]}")
+    for j in "${keys[@]}"; do unset "__ref[$j]"; done
+}
+
 read_kv() {
     local kv_file=${1}
     declare -n __ref=${2}
     while IFS= read -r line; do
+        [[ ${line} =~ ^\ *#.*$ ]] || continue #skip comment line
         __ref["${line%%=*}"]=${line#*=}
     done < ${kv_file}
 }
