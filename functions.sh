@@ -125,7 +125,6 @@ warn_msg() {
 error_msg() {
     local fmt=$1
     shift && do_log $LOG_ERROR "$fmt" "$@"
-    return 1
 }
 
 exit_msg() {
@@ -299,11 +298,13 @@ is_integer() {
 }
 
 to_lower() {
-    echo "$1" | tr '[:upper:]' '[:lower:]'
+    echo "${*,,}"
+    #echo "$1" | tr '[:upper:]' '[:lower:]'
 }
 
 to_upper() {
-    echo "$1" | tr '[:lower:]' '[:upper:]'
+    echo "${*^^}"
+    #echo "$1" | tr '[:lower:]' '[:upper:]'
 }
 
 trim() {
