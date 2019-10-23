@@ -38,7 +38,8 @@ read_kv() {
     local kv_file=${1}
     declare -n __ref=${2}
     while IFS= read -r line; do
-        [[ ${line} =~ ^\ *#.*$ ]] || continue #skip comment line
+        [[ ${line} =~ ^\ *#.*$ ]] && continue #skip comment line
+        [[ ${line} =~ ^\ *$ ]] && continue #skip blank
         __ref["${line%%=*}"]=${line#*=}
     done < ${kv_file}
 }
@@ -395,6 +396,10 @@ array_print() {
 
 array_print_label() {
     eval "printf '%s\n' \"\${!$1[@]}\""
+}
+
+array_idx_exist() {
+    eval "[ \${$1[$2]+t} ]"
 }
 
 array_get() {
