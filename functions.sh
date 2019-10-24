@@ -23,10 +23,33 @@ list_func() {
 #    echo $fncs
 }
 
+# declare -A vm=([DISK_DEV]=vdc [VAL]=2)
+# echo "hello '\${DISK_DEV}' \$((\${VAL}*2))" | render_tpl vm
+render_tpl() {
+    declare -n __ref=${1}
+    local keys=("${!__ref[@]}")
+    for j in "${keys[@]}"; do eval "local $j=\"${__ref[$j]}\""; done
+    while IFS= read -r line ; do
+        while [[ "$line" =~ (\$\{[a-zA-Z_][a-zA-Z_0-9]*\}) ]] ; do
+            LHS=${BASH_REMATCH[1]}
+            RHS="$(eval echo "\"$LHS\"")"
+            line=${line//$LHS/$RHS}
+        done
+        echo "$line"
+        #eval echo "$line" #risk
+    done
+    return 0
+}
+
 # declare -A abc;
 # read_kv a.txt abc
 # array_print_label abc
 # array_print abc
+print_kv() {
+    declare -n __ref=${1}
+    local keys=("${!__ref[@]}")
+    for j in "${keys[@]}"; do echo "$j=${__ref[$j]}"; done
+}
 
 empty_kv() {
     declare -n __ref=${1}
@@ -400,6 +423,10 @@ array_print_label() {
 
 array_idx_exist() {
     eval "[ \${$1[$2]+t} ]"
+}
+
+array_set() {
+    eval "$1[$2]=\"$3\""
 }
 
 array_get() {
