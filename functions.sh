@@ -285,7 +285,7 @@ try () {
         [[ ${QUIET:-0} = 0 ]] && green "done.\\n"
     else
         [[ ${QUIET:-0} = 0 ]] && red "failed($ERROR).\\n"
-        error_msg "%s\n" "${RESULT}"
+        error_msg "%s\\n%s\\n" "${CMD}" "${RESULT}"
     fi
     return "$ERROR"
 }
