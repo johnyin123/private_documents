@@ -23,6 +23,9 @@ list_func() {
 #    echo $fncs
 }
 
+min() { [ "$1" -le "$2" ] && echo "$1" || echo "$2"; }
+max() { [ "$1" -ge "$2" ] && echo "$1" || echo "$2"; }
+
 # declare -A vm=([DISK_DEV]=vdc [VAL]=2)
 # echo "hello '\${DISK_DEV}' \$((\${VAL}*2))" | render_tpl vm
 render_tpl() {
@@ -36,7 +39,7 @@ render_tpl() {
             line=${line//$LHS/$RHS}
         done
         echo "$line"
-        #eval echo "$line" #risk
+        eval "echo \"$line\"" #risk
     done
     return 0
 }
@@ -157,7 +160,7 @@ warn_msg() {
 error_msg() {
     local fmt=$1
     shift && do_log $LOG_ERROR "$fmt" "$@"
-}
+} >&2
 
 exit_msg() {
     error_msg "$@"
@@ -271,23 +274,19 @@ run_scripts() {
 # "try ls \| less").
 #******************************************************************************
 try () {
-    CMD="${*}"
-    if [ "${DRYRUN:-0}" -eq 1 ] ; then
-        echo $CMD
-        return 0
-    fi
+    local cmd="${*}"
     # Execute the command and fail if it does not return zero.
-    [[ ${QUIET:-0} = 0 ]] && blue "Begin: %-35s " "${CMD:0:29}..."
-    RESULT=$(eval "${CMD}" 2>&1)
-    ERROR="$?"
+    [[ ${QUIET:-0} = 0 ]] && blue "Begin: %35s " "${cmd:0:32} .."
+    local out=$(eval "${DRYRUN:+echo }${cmd}" 2>&1)
+    local ret="$?"
     #tput cuu1
-    if [ "$ERROR" == "0" ]; then
-        [[ ${QUIET:-0} = 0 ]] && green "done.\\n"
+    if [ "$ret" == "0" ]; then
+        [[ ${QUIET:-0} = 0 ]] && green "${DRYRUN:+${cmd}} done.\\n"
     else
-        [[ ${QUIET:-0} = 0 ]] && red "failed($ERROR).\\n"
-        error_msg "%s\\n%s\\n" "${CMD}" "${RESULT}"
+        [[ ${QUIET:-0} = 0 ]] && red " failed($ret).\\n"
+        error_msg "%s\\n%s\\n" "${cmd}" "${out}"
     fi
-    return "$ERROR"
+    return "$ret"
 }
 
 ## Tests if a variable is defined.

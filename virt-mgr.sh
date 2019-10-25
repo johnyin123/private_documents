@@ -99,6 +99,7 @@ _domain_live() {
 
 _get_pool_type() {
     local pool=$1
+    #${VIRSH} pool-dumpxml "${pool}" | xmlstarlet sel -t -v "/pool/@type"
     ${VIRSH} pool-dumpxml "${pool}" | xmllint --xpath "string(/pool/@type)" -
 }
 
