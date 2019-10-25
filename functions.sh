@@ -39,7 +39,7 @@ render_tpl() {
             line=${line//$LHS/$RHS}
         done
         echo "$line"
-        eval "echo \"$line\"" #risk
+        # eval "echo \"$line\"" #risk
     done
     return 0
 }
