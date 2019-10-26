@@ -119,31 +119,24 @@ _get_disk_dev() {
 
 usage() {
     cat <<EOF
-${SCRIPTNAME} 
+${SCRIPTNAME} [domain_template]
+        -u|--uuid <uuid>                         domain uuid
+        -c|--create <pool> <size> [template]     create domain with sys_disk_template if exists
+                                                 <size> GB/GiB/MB/MiB/KB/KiB
+        -a|--attach <tpl>                        attach device (can multi)
+        -D|--disk <pool> <size>                  attach addtition disk with disk_template (can multi)
         -q|--quiet
-        -l|--log <int> log level
+        -l|--log <int>                           log level
         -V|--version
-        -d|--dryrun dryrun
-        -h|--help help
-VM_UUID=xxxxxxxxxxxxxxxxxxxxxxx
-# VM_NAME=
-# VM_CPUS=
-# VM_MEM=
-# VM_TITLE=
-# VM_DESC=
-############################################
-#SYS_POOL=default
-#SYS_SIZE=4G
-#SYS_TPL=/home/johnyin/disk/myvm/tpl.raw
-############################################
-SYS_NET=br-mgr
+        -d|--dryrun                              dryrun
+        -h|--help                                display this help and exit
 EOF
     exit 1
 }
 
 device_is_disk() {
     local type=$1
-	printf "${DEVICE_TPL[${type}]}" | xmlstarlet sel -t -v "/*/@device" >/dev/null 2>&1 && return 0 || return 1
+    printf "${DEVICE_TPL[${type}]}" | xmlstarlet sel -t -v "/*/@device" >/dev/null 2>&1 && return 0 || return 1
 }
 
 attach_device() {
@@ -226,6 +219,19 @@ create() {
     return 0
 }
 test() {
+    args="$(sed -r 's/(-[A-Za-z]+ )([^-]*)( |$)/\1"\2"\3/g' <<< $@)"
+    # create an array from prepared string
+    declare -a a="($args)"
+    # prepare positional arguments for getopts
+    set - "${a[@]}"
+
+    # rest of the getopts script follows
+    while getopts "e:d:c:ab" optionName; do
+           echo "-$optionName is present [$OPTARG]"
+    done
+
+
+
 	for t in $(array_print_label DEVICE_TPL)
 	do
 		info_msg "%s\n" "$(device_is_disk $t) $?"
@@ -238,20 +244,36 @@ main() {
     local TEMPLATE="domain.tpl"
     local TARGET="host.kv"
 test
+
+    local UUID=
+    local POOL=
+    local SIZE=
+    local DISK_TEMPLATE=
+    local TPL=
+    declare -A DISKS=()
     while test $# -gt 0
     do
         opt="$1"
         shift
         case "${opt}" in
-            -a | --attach)
-                ATTACH=true
+            -u|--uuid)
+                UUID=${1:?uuid must input};shift 1
                 ;;
-            -c | --create)
-                CREATE=true
+            -c|--create)
+                POOL=${1:?create disk pool must input}
+                SIZE=${2:?size must input}
+                shift 2
+                DISK_TEMPLATE=${3:-}
                 ;;
-            -t | --template)
-                TEMPLATE=${1}; shift
+            -a|--attach)
+                TPL=${1:?attach device template must input}
+                shift 1
                 ;;
+            -D|--disk)
+                array_set DISKS "${1:?disk pool must input}" "${2:?size must input}"
+                shift 2
+                ;;
+
             -q | --quiet)
                 QUIET=1
                 ;;
