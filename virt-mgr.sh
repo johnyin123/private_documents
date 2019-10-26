@@ -41,23 +41,24 @@ declare -A APP_ERRORS=(
     [8]="define"
     [9]="Domain Not Exists"
 )
-
+# xmlstarlet ed -s '/disk' -t elem -n target --var target '$prev' -i '$target' -t attr -n dev -v 'vda' -i '$target' -t attr -n bus -v virtio dev.xml
+# [POOL]=xml
 declare -A DEVICE_TPL=(
-    [dir]="
+    [default]="
 <disk type='file' device='disk'>
    <driver name='qemu' type='raw' cache='none' io='native'/>
-   <source file='\${STORE_PATH}'/>
+   <source file='/storage/vda-\${UUID}.raw'/>
    <backingStore/>
    <target dev='\${LAST_DISK}' bus='virtio'/>
 </disk>"
-    [logical]="
+    [lvm]="
 <disk type='block' device='disk'>
   <driver name='qemu' type='raw' cache='none' io='native'/>
-  <source dev='\${STORE_PATH}'/>
+  <source dev='TH}'/>
   <backingStore/>
   <target dev='\${LAST_DISK}' bus='virtio'/>
 </disk>"
-    [rbd]="
+    [cephpool]="
 <disk type='network' device='disk'>
   <auth username='libvirt'>
   <secret type='ceph' uuid='2dfb5a49-a4e9-493a-a56f-4bd1bf26a149'/>
@@ -73,9 +74,9 @@ declare -A DEVICE_TPL=(
   </source>
   <target dev='\${LAST_DISK}' bus='virtio'/>
 </disk>"
-    [network_device]="
+    [br_mgmt.2430]="
 <interface type='network'>
-  <source network='\${SYS_NET}'/>
+  <source network='br_mgmt.2430'/>
   <model type='virtio'/>
   <driver name='vhost'/>
 </interface>"
@@ -138,6 +139,11 @@ VM_UUID=xxxxxxxxxxxxxxxxxxxxxxx
 SYS_NET=br-mgr
 EOF
     exit 1
+}
+
+device_is_disk() {
+    local type=$1
+	printf "${DEVICE_TPL[${type}]}" | xmlstarlet sel -t -v "/*/@device" >/dev/null 2>&1 && return 0 || return 1
 }
 
 attach_device() {
@@ -219,13 +225,19 @@ create() {
     }
     return 0
 }
-
+test() {
+	for t in $(array_print_label DEVICE_TPL)
+	do
+		info_msg "%s\n" "$(device_is_disk $t) $?"
+	done
+	exit 21
+}
 main() {
     local CREATE=false
     local ATTACH=false
     local TEMPLATE="domain.tpl"
     local TARGET="host.kv"
-
+test
     while test $# -gt 0
     do
         opt="$1"
