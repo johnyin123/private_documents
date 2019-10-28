@@ -29,9 +29,8 @@ max() { [ "$1" -ge "$2" ] && echo "$1" || echo "$2"; }
 # declare -A vm=([DISK_DEV]=vdc [VAL]=2)
 # echo "hello '\${DISK_DEV}' \$((\${VAL}*2))" | render_tpl vm
 render_tpl() {
-    declare -n __ref=${1}
-    local keys=("${!__ref[@]}")
-    for j in "${keys[@]}"; do eval "local $j=\"${__ref[$j]}\""; done
+    local arr=$1
+    for j in $(array_print_label ${arr}) ; do eval "local $j=\"$(array_get ${arr} $j)\""; done
     while IFS= read -r line ; do
         while [[ "$line" =~ (\$\{[a-zA-Z_][a-zA-Z_0-9]*\}) ]] ; do
             LHS=${BASH_REMATCH[1]}
@@ -49,24 +48,20 @@ render_tpl() {
 # array_print_label abc
 # array_print abc
 print_kv() {
-    declare -n __ref=${1}
-    local keys=("${!__ref[@]}")
-    for j in "${keys[@]}"; do echo "$j=${__ref[$j]}"; done
+    for j in $(array_print_label $1) ; do echo "$j=$(array_get $1 $j)"; done
 }
 
 empty_kv() {
-    declare -n __ref=${1}
-    local keys=("${!__ref[@]}")
-    for j in "${keys[@]}"; do unset "__ref[$j]"; done
+    for j in $(array_print_label $1) ; do unset "$j"; done
 }
 
 read_kv() {
     local kv_file=${1}
-    declare -n __ref=${2}
+    local arr=${2}
     while IFS= read -r line; do
         [[ ${line} =~ ^\ *#.*$ ]] && continue #skip comment line
         [[ ${line} =~ ^\ *$ ]] && continue #skip blank
-        __ref["${line%%=*}"]=${line#*=}
+        eval "\${arr}[\"${line%%=*}\"]=${line#*=}"
     done < ${kv_file}
 }
 
@@ -276,15 +271,15 @@ run_scripts() {
 try () {
     local cmd="${*}"
     # Execute the command and fail if it does not return zero.
-    [[ ${QUIET:-0} = 0 ]] && blue "Begin: %35s " "${cmd:0:32} .."
+    [[ ${QUIET:-0} = 0 ]] && blue "Begin: %35s " "${cmd:0:32} .." >&2
     local out=$(eval "${DRYRUN:+echo }${cmd}" 2>&1)
     local ret="$?"
     #tput cuu1
     if [ "$ret" == "0" ]; then
-        [[ ${QUIET:-0} = 0 ]] && green "${DRYRUN:+${cmd}} done.\\n"
+        [[ ${QUIET:-0} = 0 ]] && green "${DRYRUN:+${cmd}} done.\\n" >&2
     else
-        [[ ${QUIET:-0} = 0 ]] && red " failed($ret).\\n"
-        error_msg "%s\\n%s\\n" "${cmd}" "${out}"
+        [[ ${QUIET:-0} = 0 ]] && red " failed($ret).\\n" >&2
+        error_msg "%s\\n%s\\n" "${cmd}" "${out}" >&2
     fi
     return "$ret"
 }
