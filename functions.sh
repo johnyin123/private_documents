@@ -415,7 +415,7 @@ array_print_label() {
     eval "printf '%s\n' \"\${!$1[@]}\""
 }
 
-array_idx_exist() {
+array_label_exist() {
     eval "[ \${$1[$2]+t} ]"
 }
 

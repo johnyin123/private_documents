@@ -15,34 +15,37 @@ VIRSH_OPT="-q -c qemu+ssh://${KVM_USER}@${KVM_HOST}:${KVM_PORT}/system"
 VIRSH="virsh ${VIRSH_OPT}"
 
 declare -A APP_ERRORS=(
-    [0]="Success"
+    [0]="success"
     [1]="vol-create-as"
     [2]="vol-path"
     [3]="vol-resize"
     [4]="vol-upload"
     [5]="attach-device"
-    [6]="UUID/NET must set parm is null"
-
-    [8]="define"
-    [9]="Domain Not Exists"
+    [6]="uuid/net must set parm is null"
+    [7]="set last disk dev(too many disk)"
+    [8]="domain define"
+    [9]="domain exists/not exists"
+    [10]="template not exists"
 )
 # xmlstarlet ed -s '/disk' -t elem -n target --var target '$prev' -i '$target' -t attr -n dev -v 'vda' -i '$target' -t attr -n bus -v virtio dev.xml
 
-domain_disk_dev() {
-    local disks=("vda" "vdb" "vdc" "vdd" "vde" "vdf" "vdg" "vdh" "vdi" "vdj")
-    local uuid=$1
+set_last_disk() {
+    local disks=("vda" "vdb" "vdc" "vdd" "vde" "vdf" "vdg" "vdh" "vdi" "vdj" "vdk" "vdl" "vdm" "vdn" "vdo")
+    local arr=$1
+    local uuid="$(array_get ${arr} 'UUID')"
     local last_disk=
-    local xml=$(${VIRSH} dumpxml ${uuid})
+    local xml=$(${VIRSH} dumpxml ${uuid} 2>/dev/null)
+    [[ -z "${xml}" ]] && return 9
     for ((i=1;i<10;i++))
     do
         #last_disk=$(printf "$xml" | xmllint --xpath "string(/domain/devices/disk[$i]/target/@dev)" -)
         last_disk=$(printf "$xml" | xmlstarlet sel -t -v "/domain/devices/disk[$i]/target/@dev")
-        [[ -z "${last_disk}" ]] && { echo ${disks[((i-1))]} ; return 0; }
+        [[ -z "${last_disk}" ]] && { array_set ${arr} "LAST_DISK" "${disks[((i-1))]}" ; return 0; }
     done
-    return 0
+    return 7
 }
 
-domain_live() {
+domain_live_arg() {
     local uuid=$1
     ${VIRSH} list --state-running --uuid | grep ${uuid} && echo "--live" || echo ""
 }
@@ -51,42 +54,36 @@ attach_device() {
     local arr=$1
     local type=$2
     local uuid="$(array_get ${arr} 'UUID')"
-    local live=$(_domain_live "${uuid}")
-    info_msg "${uuid} attach ${type} device ${live}\n"
+    local live=$(domain_live_arg "${uuid}")
+    info_msg "${uuid}(${live:-shut off}) attach ${type} device\n"
+    array_label_exist DEVICE_TPL ${type} || return 10
     printf "${DEVICE_TPL[${type}]}\n" | render_tpl ${arr} | try ${VIRSH} attach-device ${uuid} --file /dev/stdin --persistent ${live} || return 5;
-    return 0
+    return 0;
 }
 
 create_vol() {
     local arr=$1
     local pool="$(array_get ${arr} 'POOL')"
     local name="$(array_get ${arr} 'LAST_DISK')-$(array_get ${arr} 'UUID').raw"
-    info_msg "${name} create\n"
     local size="$(array_get ${arr} 'SIZE')"
     local disk_tpl="$(array_get ${arr} 'DISK_TPL')"
+    info_msg "create vol ${name} on ${pool} size ${size} ${disk_tpl:-no template}\n"
     try ${VIRSH} vol-create-as --pool ${pool} --name ${name} --capacity 1M --format raw || return 1
     try ${VIRSH} vol-resize --pool ${pool} --vol ${name} --capacity ${size} || return 3
     [[ -z "${disk_tpl}" ]] || { try ${VIRSH} vol-upload --pool ${pool} --vol ${name} --file ${disk_tpl} || return 4; }
+    local val=$(${VIRSH} vol-path --pool "${pool}" "${name}") || return 2
+    array_set ${arr} "STORE_PATH" "${val}"
     return 0
-}
-
-get_storepath() {
-    local pool=$1
-    local name=$2
-    ${VIRSH} vol-path --pool "${pool}" "${name}" 
 }
 
 create_domain() {
     local arr=$1
     local uuid="$(array_get ${arr} 'UUID')"
     local tpl="$(array_get ${arr} 'DOMAIN_TPL')"
+    array_label_exist DOMAIN_TPL "${tpl}" || return 10
     printf "${DOMAIN_TPL[${tpl}]}\n" | render_tpl ${arr} | try ${VIRSH} define --file /dev/stdin || return 8;
-    array_set vm "LAST_DISK" "$(domain_disk_dev $uuid)"
+    set_last_disk ${arr} || return $?
     create_vol ${arr} || return $?
-    #name must same as create_vol()
-    local name="$(array_get ${arr} 'LAST_DISK')-${uuid}.raw"
-    local store_path="$(get_storepath $(array_get ${arr} 'POOL') ${name})" || return 2
-    array_set vm "STORE_PATH" "${store_path}"
     attach_device ${arr} "$(array_get ${arr} 'POOL')" || return $?
     attach_device ${arr} "$(array_get ${arr} 'NET')" || return $?
     return 0
@@ -112,7 +109,7 @@ set_vm_defaults() {
     declare -n _org=${1}
     for name in $(array_print_label VM_DEFAULTS)
     do
-        array_idx_exist _org ${name} || array_set _org "${name}" "$(array_get VM_DEFAULTS '${name}')"
+        array_label_exist _org ${name} || array_set _org "${name}" "$(array_get VM_DEFAULTS '${name}')"
         [[ "$(array_get _org ${name})" = "${MUST_SET_VAL}" ]] && return 6
     done
     return 0
@@ -125,11 +122,10 @@ failed_destroy_vm() {
     local pool="$(array_get __ref 'POOL')"
     local disk="$(array_get __ref 'LAST_DISK')-${uuid}.raw"
     local tpl="$(array_get __ref 'DOMAIN_TPL')"
-    error_msg "create ${uuid} with tpl(${tpl}): $(array_get APP_ERRORS $err $err) error\n"
-    print_kv vm
-    try ${VIRSH} vol-delete "${disk}" --pool "${pool}" || error_msg "vol-delete ${disl} in ${pool} error\n"
+    error_msg "create ${uuid} with tpl(${tpl}): $(array_get APP_ERRORS $err $err)\n$(print_kv vm)\n"
+    try ${VIRSH} vol-delete "${disk}" --pool "${pool}" || error_msg "vol-delete ${disl} in ${pool}\n"
     try ${VIRSH} pool-refresh "${pool}"
-    try ${VIRSH} undefine "${uuid}" --remove-all-storage || error_msg "undefine ${uuid} with --remove-all-storage error\n"
+    try ${VIRSH} undefine "${uuid}" --remove-all-storage || error_msg "undefine ${uuid} with --remove-all-storage\n"
     return 0
 }
 
@@ -177,8 +173,6 @@ create() {
                 val=${1:?name(title) must input};shift 1
                 array_set vm "NAME" "${val}"
                 ;;
-
-
             -q | --quiet)
                 QUIET=1
                 ;;
@@ -198,17 +192,14 @@ create() {
     done
     set_vm_defaults vm || return $?
     local uuid="$(array_get vm 'UUID')"
-    info_msg "create vm ${uuid} as:\n$(print_kv vm)\n"
-
-    local exists="$(${VIRSH} list --all --uuid | grep ${uuid})"
-    [[ -z "${exists}" ]] || { error_msg "Domain ${uuid} exists!!\n"; return 0; }
+    info_msg "${uuid} create as:\n$(print_kv vm)\n"
+    set_last_disk vm && { error_msg "create ${uuid}: domain exists!!"; return 9; }
     create_domain vm || { err=$?; failed_destroy_vm vm $err; return $err; }
-    info_msg "==========================\n"
+    info_msg "${uuid} create success ====================\n"
     return 0
 }
 
 attach() {
-    exit_msg "NEED impl\n"
     local val=
     declare -A vm
     while test $# -gt 0
@@ -232,7 +223,6 @@ attach() {
                 val=${1:?disk size need input};shift 1
                 array_set vm "SIZE" "${val}"
                 ;;
-
             -q | --quiet)
                 QUIET=1
                 ;;
@@ -242,28 +232,55 @@ attach() {
             -d | --dryrun)
                 DRYRUN=1
                 ;;
-            -h | --help)
+            -h | --help | *)
                 usage
-                ;;
-            *)
-                array_set vm "DOMAIN_TPL" "${opt}"
                 ;;
         esac
     done
-    set_vm_defaults vm || return $?
+    array_label_exist vm 'UUID' || usage
     local uuid="$(array_get vm 'UUID')"
-    info_msg "create vm ${uuid} as:\n$(print_kv vm)\n"
-
-    local exists="$(${VIRSH} list --all --uuid | grep ${uuid})"
-    [[ -z "${exists}" ]] || { error_msg "Domain ${uuid} exists!!\n"; return 0; }
-    create_domain vm || { err=$?; failed_destroy_vm vm $err; return $err; }
-    info_msg "==========================\n"
+    info_msg "vm ${uuid} add device as:\n$(print_kv vm)\n"
+    set_last_disk vm || { err=$?; error_msg "attach ${uuid}: $(array_get APP_ERRORS $err $err)\n"; return $err; }
+    array_label_exist vm 'POOL' && {
+        array_label_exist vm 'SIZE' || usage
+        local pool="$(array_get vm 'POOL')"
+        local size="$(array_get vm 'SIZE')"
+        array_set vm "DISK_TPL" "";
+        local disk="$(array_get vm 'LAST_DISK')-${uuid}.raw"
+        create_vol vm || { err=$?; error_msg "attach ${uuid}: $(array_get APP_ERRORS $err $err)\n"; return $err; }
+        attach_device vm "$(array_get vm 'POOL')" || {
+                err=$?;
+                error_msg "attach disk ${uuid}: $(array_get APP_ERRORS $err $err)\n$(print_kv vm)\n"; 
+                info_msg "remove ${disk} on ${pool} ${size}\n";
+                try ${VIRSH} vol-delete "${disk}" --pool "${pool}" || error_msg "vol-delete ${disk} in ${pool}\n";
+                try ${VIRSH} pool-refresh "${pool}";
+                return $err;
+        }
+        info_msg "add ${disk} ${size} in ${pool}\n";
+    }
+    array_label_exist vm 'NET' && {
+        attach_device vm "$(array_get vm 'NET')" || {
+            err=$?;
+            error_msg "attach device ${uuid}: $(array_get APP_ERRORS $err $err) error\n$(print_kv vm)\n";
+            return $err;
+        } && {
+            info_msg "add device $(array_get vm 'NET')\n";
+        }
+    }
+    info_msg "${uuid} attach success ====================\n"
     return 0
 }
 usage() {
 cat <<EOF
 ${SCRIPTNAME} <cmd> arg [domain_template]
+    -q|--quiet
+    -l|--log <int>                           log level
+    -V|--version
+    -d|--dryrun                              dryrun
+    -h|--help                                display this help and exit
+
 cmd:create
+        create domain with configurations
     -u|--uuid <uuid>           *             domain uuid
     -c|--cpus <cpu>
     -m|--mem <mem KB>
@@ -275,14 +292,11 @@ cmd:create
     -N|--name <title>                        name(title)
 
 cmd:attach
-    -u|--uuid <uuid>                         domain uuid
-    -a|--attach <tpl>                        attach device (can multi)
-    -D|--disk <pool> <size>                  attach addtition disk with disk_template (can multi)
-    -q|--quiet
-    -l|--log <int>                           log level
-    -V|--version
-    -d|--dryrun                              dryrun
-    -h|--help                                display this help and exit
+        attach device(net/disk/etc)
+    -u|--uuid <uuid>           *             domain uuid
+    -n|--net <tpl-name>        *             network template name in cfg
+    -p|--pool <pool>           *             kvm storage pool
+    -s|--size <size>           *             <size> GB/MB/KB
 EOF
 exit 1
 }
@@ -372,6 +386,12 @@ declare -A DEVICE_TPL=(
   </source>
   <target dev='\${LAST_DISK}' bus='virtio'/>
 </disk>"
+    [br-ext]="
+<interface type='network'>
+  <source network='br_mgmt.2430'/>
+  <model type='virtio'/>
+  <driver name='vhost'/>
+</interface>"
     [br_mgmt.2430]="
 <interface type='network'>
   <source network='br_mgmt.2430'/>
@@ -384,7 +404,7 @@ EOF
     }
     source "${CFG_INI}"
 
-    local opt="${1:?at least one parm}"
+    local opt="${1:?atleast one parm}"
     shift 1
     case "${opt}" in
         create)
