@@ -100,6 +100,7 @@ cat > /etc/sysconfig/network-scripts/ifcfg-${DEF_BRIDGE_IFACE}<<EOFI
 $(cat ifcfg-${DEF_BRIDGE_IFACE})
 EOFI
 
+yum -y install epel-release centos-release-qemu-ev
 yum -y group install "${DEF_YUM_GROUP}"
 hostnamectl set-hostname ${DEF_HOSTNAME}
 echo "disable Automated Bug Reporting Tool"
