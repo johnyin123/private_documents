@@ -22,6 +22,9 @@ list_func() {
 #    local fncs=$(declare -F -p | cut -d " " -f 3 | grep -v "^_")
 #    echo $fncs
 }
+is_user_root() {
+    [ "$(id -u)" -eq 0 ]
+}
 
 min() { [ "$1" -le "$2" ] && echo "$1" || echo "$2"; }
 max() { [ "$1" -ge "$2" ] && echo "$1" || echo "$2"; }
@@ -359,52 +362,17 @@ split() {
     printf '%s\n' "${arr[@]}"
 }
 
-__array_append() {
-    echo -n 'eval '
-    echo -n "$1" # array name
-    echo -n '=( "${'
-    echo -n "$1"
-    echo -n '[@]}" "'
-    echo -n "$2" # item to append
-    echo -n '" )'
-}
-__array_append_first() {
-    echo -n 'eval '
-    echo -n "$1" # array name
-    echo -n '=( '
-    echo -n "$2" # item to append
-    echo -n ' )'
-}
-__array_len() {
-    echo -n 'eval local '
-    echo -n "$1" # variable name
-    echo -n '=${#'
-    echo -n "$2" # array name
-    echo -n '[@]}'
-}
-
 array_append() {
     local array=$1; shift 1
-    local len
-
-    $(__array_len len "$array")
-
-    if (( len == 0 )); then
-        $(__array_append_first "$array" "$1" )
-        shift 1
-    fi
-
-    local i
+    local len=$(array_size "$array")
     for i in "$@"; do
-        $(__array_append "$array" "$i")
+        eval "$array[$len]=\"$i\""
+        let len=len+1
     done
 }
 
 array_size() {
-    local size
-
-    $(__array_len size "$1")
-    echo "$size"
+    eval "echo \"\${#$1[@]}\""
 }
 
 array_print() {
@@ -507,7 +475,7 @@ is_ipv4_netmask() {
     local -r list_msb='0 128 192 224 240 248 252 254'
 
     for i in {1,2,3,4}; do
-        if [[ $rest_to_zero ]]; then
+        if [[ ${rest_to_zero:-0} = 1 ]]; then
             [[ ${ipb[i]} -eq 0 ]] || return 1
         else
             if [[ $list_msb =~ (^|[[:space:]])${ipb[i]}($|[[:space:]]) ]]; then
