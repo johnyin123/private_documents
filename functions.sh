@@ -22,6 +22,19 @@ list_func() {
 #    local fncs=$(declare -F -p | cut -d " " -f 3 | grep -v "^_")
 #    echo $fncs
 }
+
+human_readable_disk_size() {
+    local M=$((1000000))
+    local G=$((1000*M))
+    local T=$((1000*G))
+    local P=$((1000*T))
+    local bytes=$1
+    if [ $bytes -ge $P ]; then echo $((bytes/P))P; return; fi
+    if [ $bytes -ge $T ]; then echo $((bytes/T))T; return; fi
+    if [ $bytes -ge $G ]; then echo $((bytes/G))G; return; fi
+    echo $((bytes/M))M
+}
+
 is_user_root() {
     [ "$(id -u)" -eq 0 ]
 }
