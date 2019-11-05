@@ -37,6 +37,15 @@ EOF
     exit 1
 }
 
+#    echo='echo'
+#    echo='printf %s\n'
+#    echo_func () {
+#        cat <<EOT
+#$*
+#EOT
+#    }
+#    echo='echo_func'
+
 main() {
     while test -n "${1:-}"
     do
