@@ -66,11 +66,9 @@ create_vol() {
     local pool="$(array_get ${arr} 'POOL')"
     local name="$(array_get ${arr} 'LAST_DISK')-$(array_get ${arr} 'UUID').raw"
     local size="$(array_get ${arr} 'SIZE')"
-    local disk_tpl="$(array_get ${arr} 'DISK_TPL')"
-    info_msg "create vol ${name} on ${pool} size ${size} ${disk_tpl:-no template}\n"
+    info_msg "create vol ${name} on ${pool} size ${size}\n"
     try ${VIRSH} vol-create-as --pool ${pool} --name ${name} --capacity 1M --format raw || return 1
     try ${VIRSH} vol-resize --pool ${pool} --vol ${name} --capacity ${size} || return 3
-    [[ -z "${disk_tpl}" ]] || { try ${VIRSH} vol-upload --pool ${pool} --vol ${name} --file ${disk_tpl} || return 4; }
     local val=$(${VIRSH} vol-path --pool "${pool}" "${name}") || return 2
     array_set ${arr} "STORE_PATH" "${val}"
     return 0
@@ -99,7 +97,6 @@ set_vm_defaults() {
         [MEM]="2097152"
         [POOL]="default"
         [SIZE]="4G"
-        [DISK_TPL]=""
         [DESC]="no desc"
         [NAME]="vm"
         [DOMAIN_TPL]="default"
@@ -160,10 +157,6 @@ create() {
             -s|--size)
                 val=${1:?disk size need input};shift 1
                 array_set vm "SIZE" "${val}"
-                ;;
-            -t|--template)
-                val=${1:?disk template must input};shift 1
-                array_set vm "DISK_TPL" "${val}"
                 ;;
             -D|--desc)
                 val=${1:?desc must input};shift 1
@@ -245,7 +238,6 @@ attach() {
         array_label_exist vm 'SIZE' || usage
         local pool="$(array_get vm 'POOL')"
         local size="$(array_get vm 'SIZE')"
-        array_set vm "DISK_TPL" "";
         local disk="$(array_get vm 'LAST_DISK')-${uuid}.raw"
         create_vol vm || { err=$?; error_msg "attach ${uuid}: $(array_get APP_ERRORS $err $err)\n"; return $err; }
         attach_device vm "$(array_get vm 'POOL')" || {
@@ -275,7 +267,6 @@ cat <<EOF
 ${SCRIPTNAME} <cmd> arg [domain_template]
     -q|--quiet
     -l|--log <int>                           log level
-    -V|--version
     -d|--dryrun                              dryrun
     -h|--help                                display this help and exit
 
@@ -287,7 +278,6 @@ cmd:create
     -n|--net <tpl-name>        *             network template name in cfg
     -p|--pool <pool>                         kvm storage pool
     -s|--size <size>                         <size> GB/MB/KB
-    -t|--template <tpl>                      disk_template for upload if exists 
     -D|--desc <desc>                         desc
     -N|--name <title>                        name(title)
 
@@ -404,7 +394,7 @@ EOF
     }
     source "${CFG_INI}"
 
-    local opt="${1:?atleast one parm}"
+    local opt="${1:?create/attach cmd need!}"
     shift 1
     case "${opt}" in
         create)
