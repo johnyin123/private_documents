@@ -60,7 +60,7 @@ render_tpl() {
 }
 
 # declare -A abc;
-# read_kv a.txt abc
+# cat kv.txt | read_kv abc
 # array_print_label abc
 # array_print abc
 print_kv() {
@@ -72,13 +72,12 @@ empty_kv() {
 }
 
 read_kv() {
-    local kv_file=${1}
-    local arr=${2}
+    local arr=${1}
     while IFS= read -r line; do
         [[ ${line} =~ ^\ *#.*$ ]] && continue #skip comment line
         [[ ${line} =~ ^\ *$ ]] && continue #skip blank
         eval "\${arr}[\"${line%%=*}\"]=${line#*=}"
-    done < ${kv_file}
+    done
 }
 
 # choices=("1xx" "choine 1" "2" "choice 2")
