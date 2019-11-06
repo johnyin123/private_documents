@@ -9,7 +9,7 @@ fi
 LC_ALL=C
 LANG=C
 
-set -o pipefail  # trace ERR through pipes
+#set -o pipefail  # trace ERR through pipes,only available on Bash
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -149,24 +149,23 @@ do_log() {
     fmt="${fmt//<levelname>/${LOG_LEVELNAMES[$level]}}"
     fmt="${fmt//<asctime>/$(date +"$date_fmt")}"
     fmt="${fmt//<message>/$msg}"
-
     shift 2 && ${log_color[level]:-printf} "$fmt" "$@"
-}
+} >&2
 
 debug_msg() {
     local fmt=$1
     shift && do_log $LOG_DEBUG "$fmt" "$@"
-}
+} >&2
 
 info_msg() {
     local fmt=$1
     shift && do_log $LOG_INFO "$fmt" "$@"
-}
+} >&2
 
 warn_msg() {
     local fmt=$1
     shift && do_log $LOG_WARNING "$fmt" "$@"
-}
+} >&2
 
 error_msg() {
     local fmt=$1
@@ -184,43 +183,51 @@ exit_msg() {
 
 red() {
     local fmt=$1
-    shift && printf "\033[1;31m${fmt}\033[0m" "$@"
-}
+    [[ -t 2 ]] && fmt="\033[1;31m${fmt}\033[0m"
+    shift && printf "${fmt}" "$@"
+} >&2
 
 green() {
     local fmt=$1
-    shift && printf "\033[1;32m${fmt}\033[0m" "$@"
-}
+    [[ -t 2 ]] && fmt="\033[1;32m${fmt}\033[0m"
+    shift && printf "${fmt}" "$@"
+} >&2
 
 gray() {
     local fmt=$1
-    shift && printf "\033[1;37m${fmt}\033[0m" "$@"
-}
+    [[ -t 2 ]] && fmt="\033[1;37m${fmt}\033[0m"
+    shift && printf "${fmt}" "$@"
+} >&2
 
 yellow() {
     local fmt=$1
-    shift && printf "\033[1;33m${fmt}\033[0m" "$@"
-}
+    [[ -t 2 ]] && fmt="\033[1;33m${fmt}\033[0m"
+    shift && printf "${fmt}" "$@"
+} >&2
 
 blue() {
     local fmt=$1
-    shift && printf "\033[1;34m${fmt}\033[0m" "$@"
-}
+    [[ -t 2 ]] && fmt="\033[1;34m${fmt}\033[0m"
+    shift && printf "${fmt}" "$@"
+} >&2
 
 cyan() {
     local fmt=$1
-    shift && printf "\033[1;36m${fmt}\033[0m" "$@"
-}
+    [[ -t 2 ]] && fmt="\033[1;36m${fmt}\033[0m"
+    shift && printf "${fmt}" "$@"
+} >&2
 
 purple() {
     local fmt=$1
-    shift && printf "\033[1;35m${fmt}\033[0m" "$@"
-}
+    [[ -t 2 ]] && fmt="\033[1;35m${fmt}\033[0m"
+    shift && printf "${fmt}" "$@"
+} >&2
 
 white() {
     local fmt=$1
-    shift && printf "\033[1;38m${fmt}\033[0m" "$@"
-}
+    [[ -t 2 ]] && fmt="\033[1;38m${fmt}\033[0m"
+    shift && printf "${fmt}" "$@"
+} >&2
 
 # Colorful print end }}
 
@@ -286,13 +293,16 @@ run_scripts() {
 #******************************************************************************
 try () {
     local cmd="${*}"
+    local cmd_size=-60.60
     # Execute the command and fail if it does not return zero.
-    [[ ${QUIET:-0} = 0 ]] && blue "Begin: %35s " "${cmd:0:32} .." >&2
+    [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
+    [[ ${QUIET:-0} = 0 ]] && blue "Begin: %${cmd_size}s." "${cmd}" >&2
     local out=$(eval "${DRYRUN:+echo }${cmd}" 2>&1)
     local ret="$?"
     #tput cuu1
     if [ "$ret" == "0" ]; then
         [[ ${QUIET:-0} = 0 ]] && green "${DRYRUN:+${cmd}} done.\\n" >&2
+        [[ -z "${out}" ]] || printf "${out}\n"
     else
         [[ ${QUIET:-0} = 0 ]] && red " failed($ret).\\n" >&2
         error_msg "%s\\n%s\\n" "${cmd}" "${out}" >&2
