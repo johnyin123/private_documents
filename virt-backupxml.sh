@@ -7,9 +7,88 @@ if [ "${DEBUG:=false}" = "true" ]; then
 fi
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
+VIRSH_OPT="-k 300 -K 5 -q"
+#ControlMaster auto
+#ControlPath  ~/.ssh/sockets/%r@%h-%p
+
+fake_virsh() {
+    local usr_srv_port=$1;shift 1
+    try virsh -c qemu+ssh://${usr_srv_port}/system ${VIRSH_OPT} ${*}
+}
+
+speedup_ssh_begin() {
+    local user=$1
+    local host=$2
+    local port=$3
+    exec 5> >(ssh -tt -o StrictHostKeyChecking=no -p${port} ${user}@${host} > /dev/null 2>&1)
+    info_msg "START ..$$.......\n"
+}
+cleanup() {
+    speedup_ssh_end "" "" ""
+    echo "EXIT!!!"
+}
+
+trap cleanup EXIT
+trap cleanup TERM
+trap cleanup INT
+
+speedup_ssh_end() {
+    local user=$1
+    local host=$2
+    local port=$3
+    echo "exit" >&5 || true
+    exec 5<&-
+    wait
+    info_msg "END ............\n"
+}
+declare -A MSG=(
+    [CPU(s)]="cpu"
+    [Max memory]="maxmem"
+    [Used memory]="mem"
+)
+
+get_vmip() {
+    local user=$1
+    local host=$2
+    local port=$3
+    local dom
+    local nic
+    local name
+    local mac
+    local protocol
+    local address
+    declare -A stats
+    for dom in $(fake_virsh "${user}@${host}:${port}" list --uuid --all --state-running)
+    do
+        empty_kv stats
+        fake_virsh "${user}@${host}:${port}" domstats ${dom} | grep -v "Domain:" | sed "s/^ *//g" | read_kv stats
+        local cpu=$(array_get stats 'vcpu.maximum')
+        local maxcpu=$(array_get stats 'vcpu.current')
+        local mem=$(array_get stats 'balloon.maximum')
+        local maxmem=$(array_get stats 'balloon.current')
+        local storage=0
+        for ((i=0;i<$(array_get stats "block.count");i++))
+        do
+            let storage=storage+$(array_get stats "block.$i.capacity")
+        done
+        mem=$(human_readable_disk_size $mem)
+        maxmem=$(human_readable_disk_size $maxmem)
+        storage=$(human_readable_disk_size $storage)
+        echo -n "${dom},${cpu},${mem},${maxcpu},${maxmem},${storage},"
+        fake_virsh "${user}@${host}:${port}" domifaddr --source agent --full ${dom} \
+            | grep -e "ipv4" \
+            | grep -v -e "00:00:00:00:00:00" -e "127.0.0.1" \
+            | while read name mac protocol address; do
+                    echo -n "$name=$address[$mac]," | sed "s/ *//g"
+              done
+        echo ""
+    done
+    return 0
+}
+
 main() {
     #BJ PROD
-    node="10.4.38.2 10.4.38.3 10.4.38.4 10.4.38.5 10.4.38.6 10.4.38.7 10.4.38.8 10.4.38.9 10.4.38.10 10.4.38.11 10.4.38.12 10.4.38.13  10.4.38.14 10.4.38.15"
+    local node="10.4.38.2 10.4.38.3 10.4.38.4 10.4.38.5 10.4.38.6 10.4.38.7 10.4.38.8 10.4.38.9 10.4.38.10 10.4.38.11 10.4.38.12 10.4.38.13  10.4.38.14 10.4.38.15"
     #DL XK/ZB
     node="$node 10.5.38.100 10.5.38.101 10.5.38.102 10.5.38.103 10.5.38.104 10.5.38.105 10.5.38.106 10.5.38.107"
     #BJ BIGDATA
@@ -18,23 +97,30 @@ main() {
     do
         rm -rf ${n}
         mkdir -p ${n}
-        rsync -avzP -e "ssh -p60022" root@${n}:/etc/libvirt/qemu ${n} > /dev/null 2>&1
-        echo "========================================================================"
-        xml=$(virsh -c qemu+ssh://root@${n}:60022/system sysinfo)
-        manufacturer=$(printf "%s" "$xml" | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='manufacturer']")
-        prod=$(printf "%s" "$xml" | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='product']")
-        serial=$(printf "%s" "$xml"  | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='serial']")
-        echo "${n} serial=${serial} ${manufacturer} ${prod}"
-        virsh -c qemu+ssh://root@${n}:60022/system nodeinfo
+        speedup_ssh_begin root "${n}" 60022
+        try "rsync -avzP -e \"ssh -p60022\" root@${n}:/etc/libvirt/qemu ${n} > /dev/null 2>&1"
+        local xml=$(fake_virsh "root@${n}:60022" sysinfo)
+        local out=$(fake_virsh "root@${n}:60022" nodeinfo)
+        local manufacturer=$(printf "%s" "$xml" | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='manufacturer']")
+        local prod=$(printf "%s" "$xml" | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='product']")
+        local serial=$(printf "%s" "$xml"  | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='serial']")
+        local cpus=$(printf "$out" | grep "CPU(s):" | awk '{print $2}')
+        local mems=$(printf "$out" | grep "Memory size:" | awk '{print $3}')
+        let mems=mems*1024
+        mems=$(human_readable_disk_size $mems)
+        # for it in $(fake_virsh "root@${n}:60022" pool-list --all --name)
+        # do
+        #     echo "${n}  pool  $it"
+        # done
+        # for it in $(fake_virsh "root@${n}:60022" net-list --all --name)
+        # do
+        #     echo "${n}  net   $it"
+        # done
+        get_vmip root "${n}" 60022 | while read -r line; do
+            echo "${n},serial=${serial},${manufacturer} ${prod} ${cpus}C ${mems},$line"
+        done 
 
-        for it in $(virsh -c qemu+ssh://root@${n}:60022/system pool-list --all --name)
-        do
-            echo "${n}  pool  $it"
-        done
-        for it in $(virsh -c qemu+ssh://root@${n}:60022/system net-list --all --name)
-        do
-            echo "${n}  net   $it"
-        done
+        speedup_ssh_end root "${n}" 60022
     done
     find . -type d -name networks | xargs -i@ rm -rf @
     find . -type d -name autostart| xargs -i@ rm -rf @
