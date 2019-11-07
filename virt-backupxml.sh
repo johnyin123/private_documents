@@ -21,14 +21,13 @@ speedup_ssh_begin() {
     local host=$2
     local port=$3
     exec 5> >(ssh -tt -o StrictHostKeyChecking=no -p${port} ${user}@${host} > /dev/null 2>&1)
-    info_msg "START ..$$.......\n"
+    info_msg "START .........\n"
 }
 cleanup() {
     speedup_ssh_end "" "" ""
     echo "EXIT!!!"
 }
 
-trap cleanup EXIT
 trap cleanup TERM
 trap cleanup INT
 
@@ -36,16 +35,11 @@ speedup_ssh_end() {
     local user=$1
     local host=$2
     local port=$3
-    echo "exit" >&5 || true
+    echo "exit" >&5
     exec 5<&-
     wait
-    info_msg "END ............\n"
+    info_msg "END .........\n"
 }
-declare -A MSG=(
-    [CPU(s)]="cpu"
-    [Max memory]="maxmem"
-    [Used memory]="mem"
-)
 
 get_vmip() {
     local user=$1
@@ -61,25 +55,25 @@ get_vmip() {
     for dom in $(fake_virsh "${user}@${host}:${port}" list --uuid --all --state-running)
     do
         empty_kv stats
-        fake_virsh "${user}@${host}:${port}" domstats ${dom} | grep -v "Domain:" | sed "s/^ *//g" | read_kv stats
-        local cpu=$(array_get stats 'vcpu.maximum')
-        local maxcpu=$(array_get stats 'vcpu.current')
-        local mem=$(array_get stats 'balloon.maximum')
-        local maxmem=$(array_get stats 'balloon.current')
+        read_kv stats <<< $(fake_virsh "${user}@${host}:${port}" domstats ${dom} | grep -v "Domain:" | sed "s/^ *//g")
+        local maxcpu=$(array_get stats 'vcpu.maximum')
+        local cpu=$(array_get stats 'vcpu.current')
+        local maxmem=$(array_get stats 'balloon.maximum')
+        local mem=$(array_get stats 'balloon.current')
         local storage=0
         for ((i=0;i<$(array_get stats "block.count");i++))
         do
             let storage=storage+$(array_get stats "block.$i.capacity")
         done
-        mem=$(human_readable_disk_size $mem)
-        maxmem=$(human_readable_disk_size $maxmem)
+        mem=$(human_readable_disk_size $(($mem*1024)))
+        maxmem=$(human_readable_disk_size $(($maxmem*1024)))
         storage=$(human_readable_disk_size $storage)
-        echo -n "${dom},${cpu},${mem},${maxcpu},${maxmem},${storage},"
+        echo -n "${dom},${cpu}C,${mem},${maxcpu}C,${maxmem},${storage}|$(array_get stats "block.count"),"
         fake_virsh "${user}@${host}:${port}" domifaddr --source agent --full ${dom} \
             | grep -e "ipv4" \
             | grep -v -e "00:00:00:00:00:00" -e "127.0.0.1" \
             | while read name mac protocol address; do
-                    echo -n "$name=$address[$mac]," | sed "s/ *//g"
+                    echo -n "$name|$address|$mac,"  # | sed "s/ *//g"
               done
         echo ""
     done
@@ -104,6 +98,7 @@ main() {
         local manufacturer=$(printf "%s" "$xml" | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='manufacturer']")
         local prod=$(printf "%s" "$xml" | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='product']")
         local serial=$(printf "%s" "$xml"  | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='serial']")
+        local dt=$(printf "%s" "$xml"  | xmlstarlet sel -t -v "/sysinfo/bios/entry[@name='date']")
         local cpus=$(printf "$out" | grep "CPU(s):" | awk '{print $2}')
         local mems=$(printf "$out" | grep "Memory size:" | awk '{print $3}')
         let mems=mems*1024
@@ -117,7 +112,7 @@ main() {
         #     echo "${n}  net   $it"
         # done
         get_vmip root "${n}" 60022 | while read -r line; do
-            echo "${n},serial=${serial},${manufacturer} ${prod} ${cpus}C ${mems},$line"
+            echo "${n},${serial},${manufacturer} ${prod}|${dt}|${cpus}C|${mems},$line"
         done 
 
         speedup_ssh_end root "${n}" 60022
