@@ -300,7 +300,7 @@ try () {
     #tput cuu1
     if [ "$ret" == "0" ]; then
         [[ ${QUIET:-0} = 0 ]] && green "${DRYRUN:+${cmd}} done.\\n" >&2
-        [[ -z "${out}" ]] || printf "${out}\n"
+        [[ -z "${out}" ]] || printf "%s\n" "${out}"
     else
         [[ ${QUIET:-0} = 0 ]] && red " failed($ret).\\n" >&2
         error_msg "%s\\n%s\\n" "${cmd}" "${out}" >&2
