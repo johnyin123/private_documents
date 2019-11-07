@@ -13,7 +13,7 @@ export DIRNAME="$(pwd)"
 #DIRNAME="$(dirname "$(readlink -e "$0")")"
 export SCRIPTNAME=${0##*/}
 export DEBIAN_VERSION=${DEBIAN_VERSION:-buster}
-export FS_TYPE=${FS_TYPE:-jfs}
+export FS_TYPE=${FS_TYPE:-ext4}
 
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,jfsutils,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool,udisks2,bridge-utils"
@@ -234,6 +234,25 @@ EOF
 
 cat >> /root/inst.sh <<EOF
 #led
+
+echo "Start script create MBR and filesystem"
+DEV_EMMC=/dev/mmcblk1
+echo "Start backup u-boot default"
+dd if="\${DEV_EMMC}" of=/boot/u-boot-default.img bs=1M count=4
+echo "Start create MBR and partittion"
+parted -s "\${DEV_EMMC}" mklabel msdos
+parted -s "\${DEV_EMMC}" mkpart primary fat32 4M 132M
+parted -s "\${DEV_EMMC}" mkpart primary ext4 133M 1G
+parted -s "\${DEV_EMMC}" mkpart primary ext4 1G 100%
+echo "Start restore u-boot"
+dd if=/boot/uboot.img of="\${DEV_EMMC}" bs=1 count=442
+dd if=/boot/uboot.img of="\${DEV_EMMC}" bs=512 skip=1 seek=1
+sync
+mkfs.vfat -n BOOT /dev/mmcblk1p1
+mkfs -t ext4 -q -L ROOTFS /dev/mmcblk1p2
+mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init /dev/mmcblk1p3
+echo "Done"
+
 echo 0 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
 echo 255 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
 #get temp
@@ -438,6 +457,16 @@ gen_uEnv_ini() {
     cat > /boot/uEnv.ini <<'EOF'
 dtb_name=/dtb/meson-gxl-s905d-phicomm-n1.dtb
 bootargs=root=LABEL=ROOTFS rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty0 no_console_suspend consoleblank=0 
+EOF
+}
+gen_s905_emmc_autoscript() {
+    cat > /boot/emmc_autoscript <<'EOF'
+setenv env_addr "0x10400000"
+setenv kernel_addr "0x11000000"
+setenv initrd_addr "0x13000000"
+setenv dtb_mem_addr "0x1000000"
+setenv boot_start booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr}
+if fatload mmc 1 ${kernel_addr} zImage; then if fatload mmc 1 ${initrd_addr} uInitrd; then if fatload mmc 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; fi; if fatload mmc 1 ${dtb_mem_addr} ${dtb_name}; then run boot_start;fi;fi;fi;
 EOF
 }
 
