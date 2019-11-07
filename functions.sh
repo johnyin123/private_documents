@@ -60,7 +60,7 @@ render_tpl() {
 }
 
 # declare -A abc;
-# cat kv.txt | read_kv abc
+# read_kv abc <<< $(cat kv.txt)
 # array_print_label abc
 # array_print abc
 print_kv() {
@@ -68,15 +68,14 @@ print_kv() {
 }
 
 empty_kv() {
-    for j in $(array_print_label $1) ; do unset "$j"; done
+    for j in $(array_print_label $1) ; do unset "$1[$j]"; done
 }
 
 read_kv() {
-    local arr=${1}
     while IFS= read -r line; do
         [[ ${line} =~ ^\ *#.*$ ]] && continue #skip comment line
         [[ ${line} =~ ^\ *$ ]] && continue #skip blank
-        eval "\${arr}[\"${line%%=*}\"]=${line#*=}"
+        eval "$1[${line%%=*}]=${line#*=}"
     done
 }
 
