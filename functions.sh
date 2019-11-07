@@ -23,10 +23,10 @@ list_func() {
 #    echo $fncs
 }
 
-__M=$((1000000))
-__G=$((1000*__M))
-__T=$((1000*__G))
-__P=$((1000*__T))
+__M=$((1048576))
+__G=$((1024*__M))
+__T=$((1024*__G))
+__P=$((1024*__T))
 human_readable_disk_size() {
     local bytes=$1
     if [ $bytes -ge $__P ]; then echo $((bytes/__P))P; return; fi
