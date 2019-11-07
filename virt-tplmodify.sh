@@ -61,7 +61,7 @@ mount_tpl() {
     local tpl_img=$2
     mkdir -p ${mnt_point}
     # SectorSize * StartSector
-    SectorSize=$(parted ${tpl_img} unit s print | awk '/Sector size/{print $4}' | awk -F "B" '{print $1}'
+    SectorSize=$(parted ${tpl_img} unit s print | awk '/Sector size/{print $4}' | awk -F "B" '{print $1}')
     sst=$(parted ${tpl_img} unit s print | awk '/ 1  /{print $2}')
     StartSector=${sst:0:${#sst}-1}
     OffSet=$(($StartSector*$SectorSize))
@@ -74,11 +74,6 @@ main() {
     local guest_ipaddr=
     local guest_prefix=24
     declare -a guest_route=()
-    is_user_root || exit_msg "root need!\n"
-    for i in mount umount parted
-    do
-        [[ ! -x $(which $i) ]] && { exit_msg "$i no found"; }
-    done
 
     while test $# -gt 0
     do
@@ -117,6 +112,13 @@ main() {
     done
     [[ -z "${disk_tpl}" ]] && usage
     [[ -z "${guest_ipaddr}" ]] && usage
+
+    is_user_root || exit_msg "root need!\n"
+    for i in mount umount parted
+    do
+        [[ ! -x $(which $i) ]] && { exit_msg "$i no found"; }
+    done
+
     info_msg "chage ${disk_tpl}:"
     info_msg "       ip: ${guest_ipaddr}/${guest_prefix}"
     info_msg " hostname: ${guest_hostname}"
