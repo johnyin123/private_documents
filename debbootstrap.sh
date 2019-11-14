@@ -198,7 +198,7 @@ cat >/etc/fw_env.config <<EOF
 /dev/mmcblk1            0x27400000      0x10000
 EOF
 for ((i=0;i<128;i++)); do echo $((658505728+i)); done > /root/badblocks.txt
-echo "e2fsck -l ~/badblock.txt /dev/mmcblk1p2"
+echo "e2fsck -l ~/badblocks.txt /dev/mmcblk1p2"
 
 cat >>/etc/initramfs-tools/modules <<EOF
 jfs
@@ -251,8 +251,7 @@ dd if="\${DEV_EMMC}" of=/boot/u-boot-default.img bs=1M count=4
 echo "Start create MBR and partittion"
 parted -s "\${DEV_EMMC}" mklabel msdos
 parted -s "\${DEV_EMMC}" mkpart primary fat32 4M 132M
-parted -s "\${DEV_EMMC}" mkpart primary ext4 133M 1G
-
+parted -s "\${DEV_EMMC}" mkpart primary ext4 132M 1G
 parted -s "\${DEV_EMMC}" mkpart primary ext4 1G 100%
 echo "Start restore u-boot"
 dd if=/boot/uboot.img of="\${DEV_EMMC}" bs=1 count=442
@@ -263,7 +262,7 @@ mkfs -t ext4 -q -L ${ROOT_LABEL} /dev/mmcblk1p2
 
 #see fw_printenv!!
 for ((i=0;i<128;i++)); do echo $((658505728+i)); done > /root/badblocks.txt
-echo "e2fsck -l ~/badblock.txt /dev/mmcblk1p2"
+echo "e2fsck -l ~/badblocks.txt /dev/mmcblk1p2"
 
 mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init /dev/mmcblk1p3
 echo "Done"
