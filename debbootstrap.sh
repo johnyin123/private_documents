@@ -14,9 +14,12 @@ export DIRNAME="$(pwd)"
 export SCRIPTNAME=${0##*/}
 export DEBIAN_VERSION=${DEBIAN_VERSION:-buster}
 export FS_TYPE=${FS_TYPE:-ext4}
+BOOT_LABEL="BOOT" #must label "BOOT"
+ROOT_LABEL="MMCROOT"
+OVERLAY_LABEL="MMCOVERLAY"
 
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,jfsutils,u-boot-tools,fake-hwclock,openssh-server,busybox"
-PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool,udisks2,bridge-utils"
+PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool,udisks2,bridge-utils,dosfstools"
 
 if [ "$UID" -ne "0" ]
 then 
@@ -46,16 +49,19 @@ prepair_disk() {
 
     parted -s "${DISK}" "mklabel msdos"
     parted -s "${DISK}" "mkpart primary fat32 1M 128M"
-    parted -s "${DISK}" "mkpart primary ${FS_TYPE} 129M 100%"
+    parted -s "${DISK}" "mkpart primary ${FS_TYPE} 128M 1G"
+    parted -s "${DISK}" "mkpart primary ext4 1G 100%"
 
     echo -n "Formatting BOOT partition..."
-    mkfs.vfat -n "BOOT" ${PART_BOOT}
+    mkfs.vfat -n "${BOOT_LABEL}" ${PART_BOOT}
     echo "done."
 
     echo "Formatting ROOT partition..."
-    mkfs -t ${FS_TYPE} -q -L "ROOTFS" ${PART_ROOT}
+    mkfs -t ${FS_TYPE} -q -L "${ROOT_LABEL}" ${PART_ROOT}
     echo "done."
     mount ${PART_ROOT} ${DIRNAME}/buildroot/
+    mke2fs -FL "${OVERLAY_LABEL}" -t ext4 -E lazy_itable_init,lazy_journal_init /dev/mmcblk1p3
+
 }
 mkdir -p ${DIRNAME}/buildroot
 
@@ -95,7 +101,7 @@ cat << EOF > /etc/hosts
 EOF
 
 cat > /etc/fstab << EOF
-LABEL=ROOTFS	/	${FS_TYPE}	defaults,errors=remount-ro,noatime	0	1
+LABEL=${ROOT_LABEL}	/	${FS_TYPE}	defaults,errors=remount-ro,noatime	0	1
 LABEL=BOOT	/boot	vfat	ro	0	2
 EOF
 
@@ -190,6 +196,8 @@ cat >/etc/fw_env.config <<EOF
 # Device to access      offset          env size
 /dev/mmcblk1            0x27400000      0x10000
 EOF
+for ((i=0;i<128;i++)); do echo $((658505728+i)); done > /root/badblocks.txt
+echo "e2fsck -l ~/badblock.txt /dev/mmcblk1p2"
 
 cat >>/etc/initramfs-tools/modules <<EOF
 jfs
@@ -243,14 +251,20 @@ echo "Start create MBR and partittion"
 parted -s "\${DEV_EMMC}" mklabel msdos
 parted -s "\${DEV_EMMC}" mkpart primary fat32 4M 132M
 parted -s "\${DEV_EMMC}" mkpart primary ext4 133M 1G
+
 parted -s "\${DEV_EMMC}" mkpart primary ext4 1G 100%
 echo "Start restore u-boot"
 dd if=/boot/uboot.img of="\${DEV_EMMC}" bs=1 count=442
 dd if=/boot/uboot.img of="\${DEV_EMMC}" bs=512 skip=1 seek=1
 sync
-mkfs.vfat -n BOOT /dev/mmcblk1p1
-mkfs -t ext4 -q -L ROOTFS /dev/mmcblk1p2
-mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init /dev/mmcblk1p3
+mkfs.vfat -n EMMCBOOT /dev/mmcblk1p1
+mkfs -t ext4 -q -L EMMCROOT /dev/mmcblk1p2
+
+#see fw_printenv!!
+for ((i=0;i<128;i++)); do echo $((658505728+i)); done > /root/badblocks.txt
+echo "e2fsck -l ~/badblock.txt /dev/mmcblk1p2"
+
+mke2fs -FL EMMCOVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init /dev/mmcblk1p3
 echo "Done"
 
 echo 0 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
@@ -338,7 +352,7 @@ echo "end install you kernel&patchs"
 echo "start install overlay_rootfs"
 cat <<EOF
 kernel parm "skipoverlay"
-overlayfs lable "OVERLAY"
+overlayfs lable "${OVERLAY_LABEL}"
 /overlay/reformatoverlay exist will format it!
 EOF
 
@@ -456,7 +470,7 @@ exit 0
 gen_uEnv_ini() {
     cat > /boot/uEnv.ini <<'EOF'
 dtb_name=/dtb/meson-gxl-s905d-phicomm-n1.dtb
-bootargs=root=LABEL=ROOTFS rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty0 no_console_suspend consoleblank=0 
+bootargs=root=LABEL=${EMMCROOT} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty0 no_console_suspend consoleblank=0 
 EOF
 }
 gen_s905_emmc_autoscript() {
