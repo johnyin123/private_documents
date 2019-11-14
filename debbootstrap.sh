@@ -14,9 +14,9 @@ export DIRNAME="$(pwd)"
 export SCRIPTNAME=${0##*/}
 export DEBIAN_VERSION=${DEBIAN_VERSION:-buster}
 export FS_TYPE=${FS_TYPE:-ext4}
-BOOT_LABEL="BOOT" #must label "BOOT"
-ROOT_LABEL="MMCROOT"
-OVERLAY_LABEL="MMCOVERLAY"
+BOOT_LABEL="EMMCBOOT"
+ROOT_LABEL="EMMCROOT"
+OVERLAY_LABEL="EMMCOVERLAY"
 
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,jfsutils,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool,udisks2,bridge-utils,dosfstools"
@@ -46,6 +46,7 @@ prepair_disk() {
     DISK=$(losetup -fP --show ${DIRNAME}/DISK.IMG)
     PART_BOOT="${DISK}p1"
     PART_ROOT="${DISK}p2"
+    PART_OVERLAY="${DISK}p3"
 
     parted -s "${DISK}" "mklabel msdos"
     parted -s "${DISK}" "mkpart primary fat32 1M 128M"
@@ -60,8 +61,8 @@ prepair_disk() {
     mkfs -t ${FS_TYPE} -q -L "${ROOT_LABEL}" ${PART_ROOT}
     echo "done."
     mount ${PART_ROOT} ${DIRNAME}/buildroot/
-    mke2fs -FL "${OVERLAY_LABEL}" -t ext4 -E lazy_itable_init,lazy_journal_init /dev/mmcblk1p3
 
+    mke2fs -FL "${OVERLAY_LABEL}" -t ext4 -E lazy_itable_init,lazy_journal_init ${PART_OVERLAY}
 }
 mkdir -p ${DIRNAME}/buildroot
 
@@ -102,7 +103,7 @@ EOF
 
 cat > /etc/fstab << EOF
 LABEL=${ROOT_LABEL}	/	${FS_TYPE}	defaults,errors=remount-ro,noatime	0	1
-LABEL=BOOT	/boot	vfat	ro	0	2
+LABEL=${BOOT_LABEL}	/boot	vfat	ro	0	2
 EOF
 
 echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
@@ -257,14 +258,14 @@ echo "Start restore u-boot"
 dd if=/boot/uboot.img of="\${DEV_EMMC}" bs=1 count=442
 dd if=/boot/uboot.img of="\${DEV_EMMC}" bs=512 skip=1 seek=1
 sync
-mkfs.vfat -n EMMCBOOT /dev/mmcblk1p1
-mkfs -t ext4 -q -L EMMCROOT /dev/mmcblk1p2
+mkfs.vfat -n ${BOOT_LABEL} /dev/mmcblk1p1
+mkfs -t ext4 -q -L ${ROOT_LABEL} /dev/mmcblk1p2
 
 #see fw_printenv!!
 for ((i=0;i<128;i++)); do echo $((658505728+i)); done > /root/badblocks.txt
 echo "e2fsck -l ~/badblock.txt /dev/mmcblk1p2"
 
-mke2fs -FL EMMCOVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init /dev/mmcblk1p3
+mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init /dev/mmcblk1p3
 echo "Done"
 
 echo 0 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
@@ -406,24 +407,28 @@ log_end_msg
 
 mkdir -p /overlay
 
+EOF
+cat >> ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<EOF
 # if we have a filesystem label of OVERLAY
 # use that as the overlay, otherwise use tmpfs.
-OLDEV=`blkid -L OVERLAY`
-if [ -z "${OLDEV}" ]; then
-	mount -t tmpfs tmpfs /overlay
+OLDEV=\`blkid -L ${OVERLAY_LABEL}\`
+if [ -z "\${OLDEV}" ]; then
+    mount -t tmpfs tmpfs /overlay
 else
-	_checkfs_once ${OLDEV} /overlay >> /log.txt 2>&1 ||  \
-    mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
-	mount ${OLDEV} /overlay
+    _checkfs_once \${OLDEV} /overlay >> /log.txt 2>&1 ||  \
+    mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init \${OLDEV}
+    mount \${OLDEV} /overlay
 fi
 
 # if you sudo touch /overlay/reformatoverlay
 # next reboot will give you a fresh /overlay
 if [ -f /overlay/reformatoverlay ]; then
-	umount /overlay
-	mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
-	mount ${OLDEV} /overlay
+    umount /overlay
+    mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init \${OLDEV}
+    mount \${OLDEV} /overlay
 fi
+EOF
+cat > ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
 
 mkdir -p /overlay/upper
 mkdir -p /overlay/work
@@ -468,9 +473,9 @@ find "${DIRNAME}/buildroot/usr/share/locale" -maxdepth 1 -mindepth 1 -and -not -
 exit 0
 
 gen_uEnv_ini() {
-    cat > /boot/uEnv.ini <<'EOF'
+    cat > /boot/uEnv.ini <<EOF
 dtb_name=/dtb/meson-gxl-s905d-phicomm-n1.dtb
-bootargs=root=LABEL=${EMMCROOT} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty0 no_console_suspend consoleblank=0 
+bootargs=root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty0 no_console_suspend consoleblank=0 
 EOF
 }
 gen_s905_emmc_autoscript() {
