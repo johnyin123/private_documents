@@ -680,3 +680,13 @@ bridge_ports eth0.101 wlan0
 EOF
 
 }
+cat <<'EOF'
+#ext4 boot disk
+fw_setenv start_emmc_autoscript 'if ext4load mmc 1 ${env_addr} /boot/boot.ini; then env import -t ${env_addr} ${filesize}; if ext4load mmc 1 ${kernel_addr} ${image}; then if ext4load mmc 1 ${initrd_addr} ${initrd}; then if ext4load mmc 1 ${dtb_mem_addr} ${dtb}; then run boot_start;fi;fi;fi;fi;'
+
+#boot.ini
+image=/boot/vmlinuz-5.1.7
+initrd=/boot/uInitrd
+dtb=/boot/meson-gxl-s905d-phicomm-n1.dtb
+bootargs=root=/dev/mmcblk1p1 rootflags=data=writeback rw console=ttyAML0,115200n8 console=tty0 no_console_suspend consoleblank=0 fsck.fix=yes fsck.repair=yes net.ifnames=0
+EOF
