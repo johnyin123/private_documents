@@ -168,21 +168,24 @@ EOF
 cat << EOF > /etc/network/interfaces.d/wifi
 auto wlan0
 allow-hotplug wlan0
-iface wlan0 inet dhcp
-    wireless_mode managed
-    wireless_essid any
-    #wpa-driver wext
-    wpa-conf /etc/wpa.conf
-    up (ip r a default via 10.32.166.129||true)
+iface wlan0 inet manual
+    wpa-roam /etc/wpa.conf
+    pre-up (iw dev wlan0 set power_save off || true)
+iface xkadmin inet dhcp
+#    post-up (ip r a default via 10.32.166.129||true)
 EOF
 
 cat << EOF > /etc/wpa.conf
+#mulit ap support!
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
 ap_scan=1
 network={
 	ssid="xk-admin"
 	scan_ssid=1
 	#key_mgmt=wpa-psk
 	psk="ADMIN@123"
+    id_str="xkadmin"
 }
 EOF
 
