@@ -297,4 +297,52 @@ ip link set dev ${PXE_NS}-eth1 nomaster
 
 ip netns del ${PXE_NS}
 ip link delete ${PXE_NS}-eth1
+
+echo "for dnsmasq version support UEFI and more"
+cat << 'EOF'
+########################################
+## mod_install_server
+log-dhcp
+log-queries
+# interface selection
+interface=$INTERFACE_ETH0
+#bridge#interface=$INTERFACE_BR0
+# NTP Server
+dhcp-option=$INTERFACE_ETH0, option:ntp-server, 0.0.0.0
+#bridge#dhcp-option=$INTERFACE_BR0, option:ntp-server, 0.0.0.0
+# TFTP_ETH0 (enabled)
+enable-tftp
+#tftp-lowercase
+tftp-root=$DST_TFTP_ETH0/, $INTERFACE_ETH0
+#bridge#tftp-root=$DST_TFTP_ETH0_BR0/, $INTERFACE_BR0
+# DHCP
+# do not give IPs that are in pool of DSL routers DHCP
+dhcp-range=$INTERFACE_ETH0, $IP_ETH0_START, $IP_ETH0_END, 24h
+#bridge#dhcp-range=$INTERFACE_BR0, $IP_BR0_START, $IP_BR0_END, 24h
+dhcp-option=$INTERFACE_ETH0, option:tftp-server, $IP_ETH0
+#bridge#dhcp-option=$INTERFACE_BR0, option:tftp-server, $IP_BR0
+# DNS (enabled)
+port=53
+dns-loop-detect
+# PXE (enabled)
+# warning: unfortunately, a RPi3 identifies itself as of architecture x86PC (x86PC=0)
+# luckily the RPi3 seems to use always the same UUID 44444444-4444-4444-4444-444444444444
+dhcp-match=set:UUID_RPI3, option:client-machine-id, 00:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44:44
+dhcp-match=set:ARCH_0, option:client-arch, 0
+dhcp-match=set:x86_UEFI, option:client-arch, 6
+dhcp-match=set:x64_UEFI, option:client-arch, 7
+dhcp-match=set:x64_UEFI, option:client-arch, 9
+# test if it is a RPi3 or a regular x86PC
+tag-if=set:ARM_RPI3, tag:ARCH_0, tag:UUID_RPI3
+tag-if=set:x86_BIOS, tag:ARCH_0, tag:!UUID_RPI3
+pxe-service=tag:ARM_RPI3,0, \"Raspberry Pi Boot   \", bootcode.bin
+pxe-service=tag:x86_BIOS,x86PC, \"PXE Boot Menu (BIOS 00:00)\", $DST_PXE_BIOS/lpxelinux
+pxe-service=6, \"PXE Boot Menu (UEFI 00:06)\", $DST_PXE_EFI32/bootia32.efi
+pxe-service=x86-64_EFI, \"PXE Boot Menu (UEFI 00:07)\", $DST_PXE_EFI64/bootx64.efi
+pxe-service=9, \"PXE Boot Menu (UEFI 00:09)\", $DST_PXE_EFI64/bootx64.efi
+dhcp-boot=tag:ARM_RPI3, bootcode.bin
+dhcp-boot=tag:x86_BIOS, $DST_PXE_BIOS/lpxelinux.0
+dhcp-boot=tag:x86_UEFI, $DST_PXE_EFI32/bootia32.efi
+dhcp-boot=tag:x64_UEFI, $DST_PXE_EFI64/bootx64.efi
+EOF
 exit 0
