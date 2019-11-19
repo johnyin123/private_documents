@@ -16,6 +16,9 @@ WIFI_OUT_INF=${WIFI_OUT_INF:-"eth0"}
 function gen_conf() {
     cat > /tmp/wifi_dhcp.conf <<EOF
 ####dhcp
+# Bind to only one interface
+bind-interfaces
+
 strict-order
 expand-hosts
 except-interface=lo

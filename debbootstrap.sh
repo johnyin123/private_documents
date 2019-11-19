@@ -171,11 +171,12 @@ allow-hotplug wlan0
 iface wlan0 inet manual
     wpa-roam /etc/wpa.conf
     pre-up (iw dev wlan0 set power_save off || true)
+    pre-up (iw phy phy0 interface add adminap type __ap)
 iface xkadmin inet dhcp
 #    post-up (ip r a default via 10.32.166.129||true)
 
-# iface adminap inet static
-#     address 192.168.167.1/24
+iface adminap inet static
+    address 192.168.167.1/24
 
 EOF
 
@@ -193,14 +194,14 @@ network={
     priority=1
 }
 #host ap mod
-# network={
-#     #frequency=60480
-#     ssid="s905d2"
-#     mode=2
-#     key_mgmt=NONE
-#     id_str="adminap"
-#     priority=2
-# }
+network={
+    #frequency=60480
+    ssid="s905d2"
+    mode=2
+    key_mgmt=NONE
+    id_str="adminap"
+    priority=2
+}
 
 EOF
 
@@ -263,6 +264,21 @@ cat > /etc/security/limits.d/tun.conf << EOF
 EOF
 
 cat >> /root/inst.sh <<EOF
+#create AP intreface
+iw phy phy0 interface add ap0 type __ap
+ifconfig ap0 down
+ifconfig ap0 hw ether 18:3F:47:95:DF:0B
+ifconfig ap0 up
+# Configure IP address for WLAN
+ifconfig ap0 192.168.150.1
+# Start DHCP/DNS server
+# Enable routing
+# sysctl net.ipv4.ip_forward=1
+# Enable NAT
+# iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
+# Run access point daemon
+# hostapd /etc/hostapd.conf
+
 #led
 echo 0 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
 echo 255 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
