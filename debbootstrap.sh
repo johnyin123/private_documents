@@ -190,6 +190,7 @@ network={
     #key_mgmt=wpa-psk
     psk="ADMIN@123"
     id_str="xkadmin"
+    priority=1
 }
 #host ap mod
 # network={
@@ -198,10 +199,12 @@ network={
 #     mode=2
 #     key_mgmt=NONE
 #     id_str="adminap"
+#     priority=2
 # }
 
 EOF
 
+#漫游
 cat << EOF > /etc/modprobe.d/brcmfmac.conf 
 options brcmfmac roamoff=1
 EOF
