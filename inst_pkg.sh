@@ -38,7 +38,7 @@ function checkInst()
 #desk3d="compiz compiz-fusion-plugins-extra compiz-fusion-plugins-main compiz-fusion-bcop compizconfig-settings-manager cairo-dock-compiz-icon-plugin"
 #others="qbittorrent"
 
-tools="p7zip-full arj zip mscompress unar eject bc less vim ftp telnet nmap tftp ntpdate screen lsof strace ltrace parallel lftp"
+tools="iw p7zip-full arj zip mscompress unar eject bc less vim ftp telnet nmap tftp ntpdate screen lsof strace ltrace parallel lftp"
 
 # xdesktop="lxde-core lxappearance lxrandr lxmusic fonts-droid-fallback xserver-xorg gnome-icon-theme lightdm va-driver-all vdpau-va-driver wpasupplicant xarchiver xdg-utils"
 xdesktop="xarchiver fonts-droid-fallback xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xfburn xdm gnome-icon-theme isomaster"
@@ -331,20 +331,23 @@ apt install pandoc
 cat <<EOF >/etc/network/interfaces.d/wifi
 auto wlan0
 allow-hotplug wlan0
-
-iface wlan0 inet dhcp
-    wireless_mode managed
-    wireless_essid any
-    #wpa-driver wext
-    wpa-conf /etc/wpa.conf
+iface wlan0 inet manual
+    wpa-roam /etc/wpa.conf
+#    pre-up (iw dev wlan0 set power_save off || true)
+iface xkadmin inet dhcp
+#    post-up (ip r a default via 10.32.166.129||true)
 EOF
 cat <<EOF>/etc/wpa.conf
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+
 ap_scan=1
 network={
-	ssid="xk-admin"
-	scan_ssid=1
-	#key_mgmt=WPA-PSK
-	psk="2016xikang.YW"
+    ssid="xk-admin"
+    scan_ssid=1
+    #key_mgmt=wpa-psk
+    psk="ADMIN@123"
+    id_str="xkadmin"
 }
 EOF
 cat <<EOF
