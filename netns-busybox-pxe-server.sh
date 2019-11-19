@@ -345,4 +345,22 @@ dhcp-boot=tag:x86_BIOS, $DST_PXE_BIOS/lpxelinux.0
 dhcp-boot=tag:x86_UEFI, $DST_PXE_EFI32/bootia32.efi
 dhcp-boot=tag:x64_UEFI, $DST_PXE_EFI64/bootx64.efi
 EOF
+cat <<EOF
+# Don't function as a DNS server
+port=0
+enable-tftp
+tftp-root=/srv/tftpboot/
+# Boot file
+dhcp-boot=/srv/tftpboot/pxelinux.0
+# Kill multicast
+dhcp-option=vendor:PXECleint,6,2b
+# Disable re-use of DHCP servername and filename fields as extra options space
+dhcp-no-override
+#
+pxe-service=X86PC, "Boot from network...", /srv/tftpboot/pxelinux
+pxe-service=X86PC, "Boot from local hard drive", 0
+pxe-service=X86-64_EFI, "Boot from network...", /srv/tftpboot/EFIx64/syslinux.efi
+pxe-service=IA64_EFI, "Boot from network...", /srv/tftpboot/EFIia64/syslinux.efi
+dhcp-range=10.10.10.2,proxy,255.255.255.0
+EOF
 exit 0
