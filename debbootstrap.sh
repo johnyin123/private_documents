@@ -173,6 +173,10 @@ iface wlan0 inet manual
     pre-up (iw dev wlan0 set power_save off || true)
 iface xkadmin inet dhcp
 #    post-up (ip r a default via 10.32.166.129||true)
+
+# iface adminap inet static
+#     address 192.168.167.1/24
+
 EOF
 
 cat << EOF > /etc/wpa.conf
@@ -181,12 +185,21 @@ ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
 ap_scan=1
 network={
-	ssid="xk-admin"
-	scan_ssid=1
-	#key_mgmt=wpa-psk
-	psk="ADMIN@123"
+    ssid="xk-admin"
+    scan_ssid=1
+    #key_mgmt=wpa-psk
+    psk="ADMIN@123"
     id_str="xkadmin"
 }
+#host ap mod
+# network={
+#     #frequency=60480
+#     ssid="s905d2"
+#     mode=2
+#     key_mgmt=NONE
+#     id_str="adminap"
+# }
+
 EOF
 
 cat << EOF > /etc/modprobe.d/brcmfmac.conf 
