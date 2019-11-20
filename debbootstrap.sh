@@ -376,6 +376,9 @@ sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
 
 usermod -p '$(echo ${PASSWORD} | openssl passwd -1 -stdin)' root
 # echo "root:${PASSWORD}" |chpasswd 
+echo "Force Users To Change Their Passwords Upon First Login"
+chage -d 0 root
+
 apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync
 apt -y install --no-install-recommends xz-utils zip
 
