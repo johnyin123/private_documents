@@ -263,8 +263,13 @@ if [ ${YesNo:-N} = "Y" ] || [ ${YesNo:-N} = "y" ]
 then
 	cat << EOF >> /etc/ssh/ssh_config
 #多条连接共享
-ControlMaster auto
-ControlPath /tmp/ssh_mux_%h_%p_%r
+StrictHostKeyChecking=no
+UserKnownHostsFile=/dev/null
+Host *
+    Port=60022
+    ControlMaster auto
+    ControlPath  ~/.ssh/sockets/%r@%h-%p
+    ControlPersist 600
 EOF
 cat <<EOF >> /etc/ssh/sshd_config
 MaxAuthTries 3
