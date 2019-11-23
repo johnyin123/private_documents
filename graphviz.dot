@@ -1,0 +1,114 @@
+// graph graphname {
+// 	     a -- b -- c;
+// 		      b -- d;
+// 			   }
+
+/*
+graph graphname {
+	     // label属性可以改变节点的显示名称
+	a [label="Foo"];
+	// 节点形状被改变了
+	b [shape=box];
+	// a-b边和b-c边有相同的属性
+	a -- b -- c [color=blue];
+	b -- d [style=dotted];
+}
+*/
+/*
+graph G {
+	run -- intr;
+	intr -- runbl;
+	runbl -- run;
+	run -- kernel;
+	kernel -- zombie;
+	kernel -- sleep;
+	kernel -- runmem;
+	sleep -- swap;
+	swap -- runswap;
+	runswap -- new;
+	runswap -- runmem;
+	new -- runmem;
+	sleep -- runmem;
+}
+*/
+/*
+graph G {
+	中文    --   英文
+}
+ */
+/*
+digraph G {
+	size="4,4";
+	main [shape=box]; 
+	main -> parse [weight=8];
+	parse -> execute;
+	main -> init [style=dotted];
+	main -> cleanup;
+	execute -> {make_string; printf}
+	init -> make_string;
+	edge [color=red];
+	main -> printf [style=bold,label="100 times"];
+	make_string [label="make a\nstring"];
+	node [shape=box, style=filled, color=".7 .3 1.0"];
+	execute -> compare;
+}
+digraph idp_modules{
+
+	rankdir = TB;
+	fontsize = 12;
+
+	node [ fontsize = 12, shape = "record" ]; 
+	edge [ fontsize = 12 ];
+
+	subgraph cluster_sl{
+		label="IDP支持层";
+		bgcolor="mintcream";
+		node [shape="Mrecord", color="skyblue", style="filled"];
+		network_mgr [label="网络管理器"];
+		log_mgr [label="日志管理器"];
+		module_mgr [label="模块管理器"];
+		conf_mgr [label="配置管理器"];
+		db_mgr [label="数据库管理器"];
+	};
+
+	subgraph cluster_md{
+		label="可插拔模块集";
+		bgcolor="lightcyan";
+		node [color="chartreuse2", style="filled"];
+		mod_dev [label="开发支持模块"];
+		mod_dm [label="数据建模模块"];
+		mod_dp [label="部署发布模块"];
+	};
+
+	mod_dp -> mod_dev [label="依赖..."];
+	mod_dp -> mod_dm [label="依赖..."];
+	mod_dp -> module_mgr [label="安装...", color="yellowgreen", arrowhead="none"];
+	mod_dev -> mod_dm [label="依赖..."];
+	mod_dev -> module_mgr [label="安装...", color="yellowgreen", arrowhead="none"];
+	mod_dm -> module_mgr [label="安装...", color="yellowgreen", arrowhead="none"];
+
+}
+*/
+
+//dot a.dot -Tjpg -o bb.jpg
+digraph G {
+compound=true;
+ranksep=0.5;
+nodesep=0.5;
+rankdir=LR;
+graph [penwidth=0, labelloc="b", fontname=simsun, fontcolor=dodgerblue3, fontsize=10]
+node [shape=plaintext, label=""]
+edge [color=brown, fontname=simsun, fontcolor=brown1, fontsize=10, weight=1.2];
+subgraph cluster_app1 {label=应用系统1 app1[image="a.jpg"];}
+subgraph cluster_vm1 {label=虚拟机1 vm1[image="a.jpg"];}
+subgraph cluster_vm2 {label=虚拟机2 vm2[image="a.jpg"];}
+subgraph cluster_svr1 {label=服务器1 svr1[image="a.jpg"];}
+subgraph cluster_sw1 {label=交换机1 sw1[image="a.jpg"];}
+subgraph cluster_tap1 {label=磁带机1 tap1[image="a.jpg"];}
+app1 -> vm1:n [label=安装于]
+app1 -> vm2:n [label=安装于]
+vm1 -> svr1:n [label=承载于]
+vm2 -> svr1:n [label=承载于]
+svr1 -> sw1:n [label=连接]
+svr1 -> tap1:n [label=连接]
+}
