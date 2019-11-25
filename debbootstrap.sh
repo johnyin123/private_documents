@@ -19,7 +19,7 @@ ROOT_LABEL="EMMCROOT"
 OVERLAY_LABEL="EMMCOVERLAY"
 
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,jfsutils,u-boot-tools,fake-hwclock,openssh-server,busybox"
-PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool,udisks2,bridge-utils,dosfstools,iw"
+PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool,udisks2,bridge-utils,dosfstools,iw,ipset"
 
 if [ "$UID" -ne "0" ]
 then 
@@ -262,7 +262,32 @@ cat > /etc/security/limits.d/tun.conf << EOF
 *           soft   nofile       102400
 *           hard   nofile       102400
 EOF
+cat > /root/aptrom.sh <<EOF
+#!/usr/bin/env bash
 
+mount -o remount,rw /overlay/lower
+cp /overlay/lower/etc/apt/sources.list ~/sources.list.bak
+
+mount -o remount,rw /overlay/lower
+
+cat >/overlay/lower/etc/apt/sources.list<<EOF
+deb http://mirrors.163.com/debian buster main non-free contrib
+deb http://mirrors.163.com/debian buster-proposed-updates main non-free contrib
+deb http://mirrors.163.com/debian-security buster/updates main contrib non-free
+deb http://mirrors.163.com/debian buster-backports main contrib non-free
+EOF
+
+chroot /overlay/lower apt update
+chroot /overlay/lower apt install \$*
+
+rm -rf /overlay/lower/var/cache/apt/* /overlay/lower/var/lib/apt/lists/* /overlay/lower/var/log/*
+rm -rf /overlay/lower/root/.bash_history /overlay/lower/root/.viminfo /overlay/lower/root/.vim/
+cat ~/sources.list.bak > /overlay/lower/etc/apt/sources.list
+rm -f ~/sources.list.bak
+sync
+mount -o remount,ro /overlay/lower
+
+EOF
 cat >> /root/inst.sh <<EOF
 if [ -d "/etc/ssh/" ] ; then
   # Remove ssh host keys
