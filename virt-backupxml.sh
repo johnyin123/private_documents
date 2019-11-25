@@ -87,6 +87,7 @@ main() {
     node="$node 10.5.38.100 10.5.38.101 10.5.38.102 10.5.38.103 10.5.38.104 10.5.38.105 10.5.38.106 10.5.38.107"
     #BJ BIGDATA
     node="$node 10.3.60.2 10.3.60.3 10.3.60.4 10.3.60.5 10.3.60.6 10.3.60.7 10.3.60.8"
+    echo "HOSTIP,serial,prod|prd_time|cpus|mems,dom,cpu,mem,maxcpu,maxmem,storage|block_count,(name|address|mac,)*"
     for n in ${node}
     do
         rm -rf ${n}
