@@ -347,6 +347,44 @@ apt-get update -oAcquire::AllowInsecureRepositories=true
 apt-get install deb-multimedia-keyring
 #bluetooth
 apt install --no-install-recommends blueman pulseaudio pulseaudio-module-bluetooth pavucontrol mpg123
+
+apt install --no-install-recommends bluez pulseaudio-module-bluetooth
+
+#pulseaudio --start
+systemctl enable pulseaudio.service --user
+systemctl start pulseaudio.service --user
+
+bluetoothctl
+    power on
+    agent on
+    default-agent
+    scan on
+    pair xx:xx:xx:xx:xx:xx
+    trust xx:xx:xx:xx:xx:xx
+    connect xx:xx:xx:xx:xx:xx
+    scan off
+    exit
+
+If you're pairing a keyboard, you will need to enter a six-digit string of numbers. 
+You will see that the device has been paired, but it may not have connected. To connect the device, 
+type connect XX:XX:XX:XX:XX:XX.
+
+
+apt-get install --no-install-recommends pulseaudio-module-bluetooth bluez-tools
+    Add users to groups. This is very important. If using any other distro, replace ‘johnyin’ with your username.
+gpasswd -a johnyin pulse
+gpasswd -a johnyin lp
+gpasswd -a pulse lp
+gpasswd -a johnyin audio
+gpasswd -a pulse audio
+    Set up PulseAudio, Bluetooth Device Class
+echo 'extra-arguments = --exit-idle-time=-1 --log-target=syslog' >> /etc/pulse/client.conf
+hciconfig hci0 up
+hciconfig hci0 class 0x200420
+reboot
+The Bluetooth service/device class 0x200420 mean the device is set up for Car Audio. 
+See http://bluetooth-pentest.narod.ru/software/bluetooth_class_of_device-service_generator.html to explore more Bluetooth Class options.
+
 #Xfce
 apt install --no-install-recommends lightdm xserver-xorg-core xinit xserver-xorg-video-fbdev xfce4 xfce4-terminal xserver-xorg-input-all
 apt install --no-install-recommends mpv smplayer qt4-qtconfig libqt4-opengl
