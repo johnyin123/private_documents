@@ -19,7 +19,7 @@ ROOT_LABEL="EMMCROOT"
 OVERLAY_LABEL="EMMCOVERLAY"
 
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,jfsutils,u-boot-tools,fake-hwclock,openssh-server,busybox"
-PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool,udisks2,bridge-utils,dosfstools,iw,ipset"
+PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool,udisks2,bridge-utils,dosfstools,iw,ipset,nmap,ipvsadm"
 
 if [ "$UID" -ne "0" ]
 then 
