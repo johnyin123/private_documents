@@ -351,6 +351,9 @@ apt install --no-install-recommends blueman pulseaudio pulseaudio-module-bluetoo
 apt install --no-install-recommends bluez pulseaudio-module-bluetooth
 
 #pulseaudio --start
+sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.service
+sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.socket
+
 systemctl enable pulseaudio.service --user
 systemctl start pulseaudio.service --user
 
