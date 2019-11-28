@@ -555,8 +555,9 @@ copy_exec /sbin/fsck.f2fs
 copy_exec /sbin/fsck.ext2
 copy_exec /sbin/fsck.ext3
 copy_exec /sbin/fsck.ext4
-copy_exec /bin/fsck.jfs
 copy_exec /sbin/logsave
+cp -p /lib/firmware/regulatory.db \$DESTDIR/lib/firmware/
+cp -p /lib/firmware/regulatory.db.p7s \$DESTDIR/lib/firmware/
 EOF
 
 cat > ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
