@@ -23,8 +23,8 @@ PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpas
 
 if [ "$UID" -ne "0" ]
 then 
-	echo "Must be root to run this script." 
-	exit 1
+    echo "Must be root to run this script." 
+    exit 1
 fi
 
 cleanup() {
@@ -102,8 +102,8 @@ cat << EOF > /etc/hosts
 EOF
 
 cat > /etc/fstab << EOF
-LABEL=${ROOT_LABEL}	/	${FS_TYPE}	defaults,errors=remount-ro,noatime	0	1
-LABEL=${BOOT_LABEL}	/boot	vfat	ro	0	2
+LABEL=${ROOT_LABEL}    /    ${FS_TYPE}    defaults,errors=remount-ro,noatime    0    1
+LABEL=${BOOT_LABEL}    /boot    vfat    ro    0    2
 EOF
 
 echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
@@ -348,9 +348,8 @@ apt-get install deb-multimedia-keyring
 #bluetooth
 apt install --no-install-recommends blueman pulseaudio pulseaudio-module-bluetooth pavucontrol mpg123
 
-apt install --no-install-recommends bluez pulseaudio-module-bluetooth
-
-#pulseaudio --start
+apt install --no-install-recommends bluez pulseaudio-module-bluetooth alsa-utils mpg123
+#pulseaudio --start for root
 sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.service
 sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.socket
 
@@ -429,7 +428,7 @@ set hlsearch                 " highlight the last used search pattern
 set noswapfile
 set tabstop=4                " 设置tab键的宽度
 set shiftwidth=4             " 换行时行间交错使用4个空格
-set expandtab				 " 用space替代tab的输入
+set expandtab                " 用space替代tab的输入
 set autoindent               " 自动对齐
 set backspace=2              " 设置退格键可用
 set cindent shiftwidth=4     " 自动缩进4空格
@@ -579,9 +578,9 @@ esac
 . /scripts/functions
 
 if grep -q -E '(^|\s)skipoverlay(\s|$)' /proc/cmdline; then
-	log_begin_msg "Skipping overlay, found 'skipoverlay' in cmdline"
-	log_end_msg
-	exit 0
+    log_begin_msg "Skipping overlay, found 'skipoverlay' in cmdline"
+    log_end_msg
+    exit 0
 fi
 
 log_begin_msg "Starting overlay"
@@ -597,9 +596,11 @@ OLDEV=\`blkid -L ${OVERLAY_LABEL}\`
 if [ -z "\${OLDEV}" ]; then
     mount -t tmpfs tmpfs /overlay
 else
-    _checkfs_once \${OLDEV} /overlay >> /log.txt 2>&1 ||  \
+    _checkfs_once \${OLDEV} /overlay ext4 >> /log.txt 2>&1 ||  \
     mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init \${OLDEV}
-    mount \${OLDEV} /overlay
+    if ! mount \${OLDEV} /overlay; then
+        mount -t tmpfs tmpfs /overlay
+    fi
 fi
 
 # if you sudo touch /overlay/reformatoverlay
@@ -607,7 +608,9 @@ fi
 if [ -f /overlay/reformatoverlay ]; then
     umount /overlay
     mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init \${OLDEV}
-    mount \${OLDEV} /overlay
+    if ! mount \${OLDEV} /overlay; then
+        mount -t tmpfs tmpfs /overlay
+    fi
 fi
 EOF
 cat > ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
