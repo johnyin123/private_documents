@@ -339,7 +339,7 @@ sed -i "s/^PASS_MIN_DAYS.*$/PASS_MIN_DAYS 2/g" ${ROOTFS}/etc/login.defs
 sed -i "s/^PASS_MIN_LEN.*$/PASS_MIN_LEN 8/g" ${ROOTFS}/etc/login.defs
 sed -i "s/^PASS_WARN_AGE.*$/PASS_WARN_AGE 7/g" ${ROOTFS}/etc/login.defs
 sed -i "1 a auth       required     pam_tally2.so   onerr=fail  deny=6  unlock_time=1800" ${ROOTFS}/etc/pam.d/sshd
-sed -i "/password/ipassword    required      pam_cracklib.so lcredit=-1 ucredit=-1 dcredit=-1 ocredit=-1" ${ROOTFS}/etc/pam.d/s    ystem-auth
+sed -i "/password/ipassword    required      pam_cracklib.so lcredit=-1 ucredit=-1 dcredit=-1 ocredit=-1" ${ROOTFS}/etc/pam.d/system-auth
 execute chroot ${ROOTFS} userdel shutdown
 execute chroot ${ROOTFS} userdel halt
 
