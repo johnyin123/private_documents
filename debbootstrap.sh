@@ -104,6 +104,7 @@ EOF
 cat > /etc/fstab << EOF
 LABEL=${ROOT_LABEL}    /    ${FS_TYPE}    defaults,errors=remount-ro,noatime    0    1
 LABEL=${BOOT_LABEL}    /boot    vfat    ro    0    2
+tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
 EOF
 
 echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
