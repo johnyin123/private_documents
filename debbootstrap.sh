@@ -112,8 +112,8 @@ tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
 EOF
 
 echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
-#echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
-#echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
+echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
+echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
 
 
 cat > /etc/apt/sources.list << EOF
@@ -228,7 +228,6 @@ cat >/etc/fw_env.config <<EOF
 EOF
 
 cat >>/etc/initramfs-tools/modules <<EOF
-jfs
 brcmfmac
 dwmac_meson8b
 overlay
@@ -404,7 +403,7 @@ net.core.wmem_max = 134217728
 net.core.netdev_max_backlog = 250000
 net.core.somaxconn = 65535
 net.core.wmem_default = 16777216
-net.ipv4.ip_local_port_range = 1024 65530
+net.ipv4.ip_local_port_range = 1024 65531
 net.ipv4.tcp_fin_timeout = 10
 net.ipv4.tcp_keepalive_time = 1200
 net.ipv4.tcp_max_orphans = 3276800
