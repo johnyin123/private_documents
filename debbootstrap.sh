@@ -1,4 +1,6 @@
 #!/bin/bash
+#fw_setenv bootcmd "run update"; reboot
+#之后PC端的刷机程序就会检测到设备进入刷机模式，按软件的刷机提示刷机即可。
 set -o errexit -o nounset -o pipefail
 
 if [ "${DEBUG:=false}" = "true" ]; then
