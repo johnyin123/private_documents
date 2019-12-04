@@ -293,6 +293,8 @@ mount -o remount,ro /overlay/lower
 
 EOF
 cat >> /root/inst.sh <<EOF
+# change eth0 mac address!
+fw_setenv ethaddr 5a:57:57:00:df:4a
 if [ -d "/etc/ssh/" ] ; then
   # Remove ssh host keys
   rm -f /etc/ssh/ssh_host_*
