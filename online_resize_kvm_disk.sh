@@ -15,6 +15,7 @@ TARGET=vda
 DISK=$(virsh dumpxml ${DOMNAME} | xmllint --xpath "string(/domain/devices/disk/target[@dev=\"${TARGET}\"]/following-sibling::alias/@name)" -)
 #--<alias name="virtio-disk0"/>
 virsh qemu-monitor-command ${DOMNAME} block_resize drive-${DISK} 30G --hmp
+#pvscan; pvresize /dev/vdb ; lvextend -l +100%FREE /dev/mapper/vg_data-lv_data
 
 #test on rbd storage for kvm
 
