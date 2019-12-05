@@ -137,6 +137,16 @@ func SetTitle()
         call setline(12, "}")
         call setline(13, "main \"$@\"")
     endif
+    if expand ("%:e") == 'py'
+        call setline(1, "#!/usr/bin/env python3")
+        call setline(2, "# -*- coding: utf-8 -*- ")
+        call setline(3, "")
+        call setline(4, "def main():")
+        call setline(5, "    return 0")
+        call setline(6, "")
+        call setline(7, "if __name__ == '__main__':")
+        call setline(8, "    main()")
+    endif
 endfunc
 EOF
 fi
