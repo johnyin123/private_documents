@@ -115,6 +115,11 @@ echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
 echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
 echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
 
+# auto reformatoverlay plug usb ttl
+cat > /etc/udev/rules.d/99-reformatoverlay.rules << EOF
+SUBSYSTEM=="tty", ACTION=="add", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'touch /overlay/reformatoverlay; echo heartbeat > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
+SUBSYSTEM=="tty", ACTION=="remove", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'rm /overlay/reformatoverlay; echo none > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
+EOF
 
 cat > /etc/apt/sources.list << EOF
 deb http://mirrors.163.com/debian ${DEBIAN_VERSION} main non-free contrib
