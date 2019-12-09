@@ -46,6 +46,10 @@ EOF
 #    }
 #    echo='echo_func'
 
+exec 2> >(tee "error_log_$(date -Iseconds).txt")
+board=$1; shift || (echo "ERROR: Board must be specified"; exit 1;)
+uboot=$1; shift || (echo "ERROR: u-boot.bin must be specified"; exit 1;)
+
 main() {
     while test -n "${1:-}"
     do

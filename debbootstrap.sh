@@ -127,6 +127,8 @@ deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-proposed-updates main non-fr
 deb http://mirrors.163.com/debian-security ${DEBIAN_VERSION}/updates main contrib non-free
 deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-backports main contrib non-free
 EOF
+# enable ttyAML0 login
+echo "ttyAML0" >> /etc/securetty
 
 #Installing packages without docs
 cat >  /etc/dpkg/dpkg.cfg.d/01_nodoc <<EOF
