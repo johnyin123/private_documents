@@ -295,7 +295,8 @@ try () {
     # Execute the command and fail if it does not return zero.
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
     [[ ${QUIET:-0} = 0 ]] && blue "Begin: %${cmd_size}s." "${cmd}" >&2
-    local out=$(eval "${DRYRUN:+echo }${cmd}" 2>&1)
+    local out=$(${DRYRUN:+echo }${cmd} 2>&1)
+    #local out=$(eval "${DRYRUN:+echo }${cmd}" 2>&1)
     local ret="$?"
     #tput cuu1
     if [ "$ret" == "0" ]; then
