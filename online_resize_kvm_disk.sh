@@ -199,3 +199,12 @@ cat <<EONET | virsh attach-device ${uuid} --file /dev/stdin --persistent
 </interface>
 EONET
 EOFF
+
+echo "9p: mount -t 9p diskshare /mnt"
+cat <<EOF
+    <filesystem type='mount' accessmode='mapped'>
+      <source dir='/home/johnyin'/>
+      <target dir='diskshare'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x09' function='0x0'/>
+    </filesystem>
+EOF
