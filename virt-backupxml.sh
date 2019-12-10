@@ -82,21 +82,24 @@ get_vmip() {
 }
 
 main() {
-    #BJ PROD
-    local node="10.4.38.2 10.4.38.3 10.4.38.4 10.4.38.5 10.4.38.6 10.4.38.7 10.4.38.8 10.4.38.9 10.4.38.10 10.4.38.11 10.4.38.12 10.4.38.13  10.4.38.14 10.4.38.15"
-    #DL XK/ZB
-    node="$node 10.5.38.100 10.5.38.101 10.5.38.102 10.5.38.103 10.5.38.104 10.5.38.105 10.5.38.106 10.5.38.107"
-    #BJ BIGDATA
-    node="$node 10.3.60.2 10.3.60.3 10.3.60.4 10.3.60.5 10.3.60.6 10.3.60.7 10.3.60.8"
+#    exec 2> >(tee "error_log_$(date -Iseconds).txt")
+    CFG_INI=${1:-}; shift || (exit_msg "conf must input\n";)
+    [[ -r "${CFG_INI}" ]] || {
+        cat >"${CFG_INI}" <<-EOF
+#ip  sshport
+10.4.38.2 60022
+10.4.38.3 60022
+EOF
+        exit_msg "Created ${CFG_INI} using defaults.  Please review it/configure before running again.\n"
+    }
     echo "HOSTIP,serial,prod|prd_time|cpus|mems,dom,desc,cpu,mem,maxcpu,maxmem,storage|block_count,(address|mac,)*"
-    for n in ${node}
-    do
-        rm -rf ${n}
-        mkdir -p ${n}
-        speedup_ssh_begin root "${n}" 60022
-        try "rsync -avzP -e \"ssh -p60022\" root@${n}:/etc/libvirt/qemu ${n} > /dev/null 2>&1"
-        local xml=$(fake_virsh "root@${n}:60022" sysinfo)
-        local out=$(fake_virsh "root@${n}:60022" nodeinfo)
+    cat "${CFG_INI}" | grep -v -e "^\ *#.*$" -e  "^\ *$" | while read ip port; do
+        rm -rf ${ip}
+        mkdir -p ${ip}
+        speedup_ssh_begin root "${ip}" ${port}
+        try "rsync -avzP -e \"ssh -p${port}\" root@${ip}:/etc/libvirt/qemu ${ip} > /dev/null 2>&1"
+        local xml=$(fake_virsh "root@${ip}:${port}" sysinfo)
+        local out=$(fake_virsh "root@${ip}:${port}" nodeinfo)
         local manufacturer=$(printf "%s" "$xml" | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='manufacturer']")
         local prod=$(printf "%s" "$xml" | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='product']")
         local serial=$(printf "%s" "$xml"  | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='serial']")
@@ -105,22 +108,22 @@ main() {
         local mems=$(printf "$out" | grep "Memory size:" | awk '{print $3}')
         let mems=mems*1024
         mems=$(human_readable_disk_size $mems)
-        # for it in $(fake_virsh "root@${n}:60022" pool-list --all --name)
+        # for it in $(fake_virsh "root@${ip}:${port}" pool-list --all --name)
         # do
-        #     echo "${n}  pool  $it"
+        #     echo "${ip}  pool  $it"
         # done
-        # for it in $(fake_virsh "root@${n}:60022" net-list --all --name)
+        # for it in $(fake_virsh "root@${ip}:${port}" net-list --all --name)
         # do
-        #     echo "${n}  net   $it"
+        #     echo "${ip}  net   $it"
         # done
-        get_vmip root "${n}" 60022 | while read -r line; do
-            echo "${n},${serial},${manufacturer} ${prod}|${dt}|${cpus}C|${mems},$line"
+        get_vmip root "${ip}" ${port} | while read -r line; do
+            echo "${ip},${serial},${manufacturer} ${prod}|${dt}|${cpus}C|${mems},$line"
         done 
 
-        speedup_ssh_end root "${n}" 60022
+        speedup_ssh_end root "${ip}" ${port}
     done
-    find . -type d -name networks | xargs -i@ rm -rf @
-    find . -type d -name autostart| xargs -i@ rm -rf @
+    #find . -type d -name networks | xargs -i@ rm -rf @
+    #find . -type d -name autostart| xargs -i@ rm -rf @
     return 0
 }
 main "$@"
