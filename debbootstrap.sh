@@ -22,7 +22,7 @@ OVERLAY_LABEL="EMMCOVERLAY"
 
 ZRAMSWAP="udisks2"
 #ZRAMSWAP="zram-tools"
-PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,jfsutils,u-boot-tools,fake-hwclock,openssh-server,busybox"
+PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool,${ZRAMSWAP},bridge-utils,dosfstools,iw,ipset,nmap,ipvsadm"
 
 if [ "$UID" -ne "0" ]
@@ -141,6 +141,9 @@ path-exclude /usr/share/info/*
 # lintian stuff is small, but really unnecessary
 path-exclude /usr/share/lintian/*
 path-exclude /usr/share/linda/*
+# remove noused locale
+path-include /usr/share/locale/zh_CN/*
+path-exclude /usr/share/locale/*
 EOF
 #apt update
 #apt -y upgrade
@@ -449,6 +452,37 @@ set smartindent              " 智能自动缩进
 "Paste toggle - when pasting something in, don't indent.
 set pastetoggle=<F7>
 set mouse=r
+"新建.py,.c,.sh,.h文件，自动插入文件头"
+autocmd BufNewFile *.py,*.c,*.sh,*.h exec ":call SetTitle()"
+"定义函数SetTitle，自动插入文件头"
+func SetTitle()
+    if expand ("%:e") == 'sh'
+        call setline(1, "#!/usr/bin/env bash")
+        call setline(2, "readonly DIRNAME=\"$(readlink -f \"$(dirname \"$0\")\")\"")
+        call setline(3, "readonly SCRIPTNAME=${0##*/}")
+        call setline(4, "if [ \"${DEBUG:=false}\" = \"true\" ]; then")
+        call setline(5, "    export PS4=\'[\\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }\'")
+        call setline(6, "    set -o xtrace")
+        call setline(7, "fi")
+        call setline(8, "[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true")
+        call setline(9, "################################################################################")
+        call setline(10, "main() {")
+        call setline(11, "    return 0")
+        call setline(12, "}")
+        call setline(13, "main \"$@\"")
+    endif
+    if expand ("%:e") == 'py'
+        call setline(1, "#!/usr/bin/env python3")
+        call setline(2, "# -*- coding: utf-8 -*- ")
+        call setline(3, "")
+        call setline(4, "def main():")
+        call setline(5, "    return 0")
+        call setline(6, "")
+        call setline(7, "if __name__ == '__main__':")
+        call setline(8, "    main()")
+    endif
+endfunc
+
 EOF
 sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
 
@@ -459,7 +493,8 @@ chage -d 0 root
 
 apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync
 apt -y install --no-install-recommends xz-utils zip
-
+apt -y remove ca-certificates wireless-regdb crda --purge
+apt -y autoremove --purge
 
 exit
 
