@@ -183,15 +183,26 @@ EOF
 cat << EOF > /etc/network/interfaces.d/wifi
 auto wlan0
 allow-hotplug wlan0
+
 iface wlan0 inet manual
     wpa-roam /etc/wpa.conf
     pre-up (iw dev wlan0 set power_save off || true)
-    pre-up (iw phy phy0 interface add adminap type __ap)
+
 iface xkadmin inet dhcp
 #    post-up (ip r a default via 10.32.166.129||true)
 
+iface johnap inet dhcp
+#    post-up (ip r a default via 10.32.166.129||true)
+
 iface adminap inet static
-    address 192.168.167.1/24
+     address 192.168.1.1/24
+
+iface adhoc inet static
+    wireless-mode ad-hoc
+    wireless-channel 4
+    wireless-essid s905d
+    wireless-key 9050123456
+    address 192.168.0.3/24
 
 EOF
 
@@ -208,6 +219,15 @@ network={
     id_str="xkadmin"
     priority=1
 }
+network={
+    ssid="johnap"
+    scan_ssid=1
+    #key_mgmt=wpa-psk
+    psk="Admin@123"
+    id_str="johnap"
+    priority=2
+}
+
 #host ap mod
 network={
     #frequency=60480
@@ -215,9 +235,8 @@ network={
     mode=2
     key_mgmt=NONE
     id_str="adminap"
-    priority=2
+    priority=3
 }
-
 EOF
 
 #漫游
