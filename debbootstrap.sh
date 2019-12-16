@@ -372,6 +372,11 @@ mount -o remount,ro /overlay/lower
 
 EOF
 cat >> /root/inst.sh <<EOF
+#batman-adv
+$ ip link add name bat0 type batadv
+$ ip link set dev eth0 master bat0
+to deactivate an interface you have to detach it from the “bat0” interface:
+$ ip link set dev eth0 nomaster
 # change eth0 mac address!
 fw_setenv ethaddr 5a:57:57:00:df:4a
 if [ -d "/etc/ssh/" ] ; then
