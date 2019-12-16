@@ -23,7 +23,7 @@ OVERLAY_LABEL="EMMCOVERLAY"
 ZRAMSWAP="udisks2"
 #ZRAMSWAP="zram-tools"
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
-PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool,${ZRAMSWAP},bridge-utils,dosfstools,iw,ipset,nmap,ipvsadm"
+PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool,${ZRAMSWAP},bridge-utils,dosfstools,iw,ipset,nmap,ipvsadm,batctl"
 
 if [ "$UID" -ne "0" ]
 then 
