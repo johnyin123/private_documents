@@ -94,6 +94,7 @@ echo usb905d > /etc/hostname
 echo "Enable udisk2 zram swap"
 mkdir -p /usr/local/lib/zram.conf.d/
 echo "zram" >> /etc/modules
+echo "batman-adv" >> /etc/modules
 cat << EOF > /usr/local/lib/zram.conf.d/zram0-env
 ZRAM_NUM_STR=lzo
 #512
@@ -201,10 +202,16 @@ iface ap inet static
     pre-down (/usr/bin/pkill -9 busybox || true)
     address 192.168.1.2/24
 
-iface adhoc inet static
+iface adhoc inet manual
     wpa_driver wext
     wpa_conf /etc/wpa_supplicant/adhoc.conf
+    post-up (ifup wifi0-bat || true)
+    pre-down (ifdown wifi0-bat || true)
+
+iface wifi0-bat inet static
     address 192.168.1.2/24
+    pre-up (/usr/sbin/batctl -m wifi0-bat if add wlan0 || true)
+    post-down (/usr/sbin/batctl -m wifi0-bat if del wlan0 || true)
 EOF
 
 cat << EOF > /etc/wpa_supplicant/wpa.conf
