@@ -185,58 +185,101 @@ auto wlan0
 allow-hotplug wlan0
 
 iface wlan0 inet manual
-    wpa-roam /etc/wpa.conf
+    wpa-roam /etc/wpa_supplicant/wpa.conf
     pre-up (iw dev wlan0 set power_save off || true)
 
-iface xkadmin inet dhcp
+iface work inet dhcp
 #    post-up (ip r a default via 10.32.166.129||true)
 
-iface johnap inet dhcp
+iface home inet dhcp
 #    post-up (ip r a default via 10.32.166.129||true)
 
-iface adminap inet static
-     address 192.168.1.1/24
+iface ap inet static
+    wpa_conf /etc/wpa_supplicant/ap.conf
+    pre-up (touch /var/lib/misc/udhcpd.leases || true)
+    post-up (/usr/bin/busybox udhcpd -S || true)
+    pre-down (/usr/bin/pkill -9 busybox || true)
+    address 192.168.1.2/24
 
 iface adhoc inet static
-    wireless-mode ad-hoc
-    wireless-channel 4
-    wireless-essid s905d
-    wireless-key 9050123456
-    address 192.168.0.3/24
-
+    wpa_driver wext
+    wpa_conf /etc/wpa_supplicant/adhoc.conf
+    address 192.168.1.2/24
 EOF
 
-cat << EOF > /etc/wpa.conf
+cat << EOF > /etc/wpa_supplicant/wpa.conf
 #mulit ap support!
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
-ap_scan=1
+#ap_scan=1
+
 network={
-    ssid="xk-admin"
+    id_str="work"
+    priority=100
     scan_ssid=1
+    ssid="xk-admin"
     #key_mgmt=wpa-psk
     psk="ADMIN@123"
-    id_str="xkadmin"
-    priority=1
-}
-network={
-    ssid="johnap"
-    scan_ssid=1
-    #key_mgmt=wpa-psk
-    psk="Admin@123"
-    id_str="johnap"
-    priority=2
 }
 
-#host ap mod
 network={
+    id_str="home"
+    priority=90
+    scan_ssid=1
+    ssid="johnap"
+    #key_mgmt=wpa-psk
+    psk="Admin@123"
+    #disabled=1
+}
+EOF
+
+cat << EOF > /etc/wpa_supplicant/ap.conf
+#mulit ap support!
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+#ap_scan=1
+
+network={
+    id_str="ap"
+    priority=70
     #frequency=60480
     ssid="s905d2"
     mode=2
     key_mgmt=NONE
-    id_str="adminap"
-    priority=3
 }
+EOF
+
+cat << EOF > /etc/wpa_supplicant/adhoc.conf
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+ap_scan=2
+
+#adhoc/IBSS
+# wpa_supplicant -cwpa-adhoc.conf -iwlan0 -Dwext
+# iw wlan0 set type ibss
+# ifconfig wlan0 up
+# iw wlan0 ibss join johnyin 2427
+network={
+    id_str="adhoc"
+    priority=90
+    ssid="johnyin"
+    frequency=2412
+    mode=1
+    key_mgmt=NONE
+}
+EOF
+
+cat << EOF > /etc/udhcpd.conf
+start           192.168.1.100
+end             192.168.1.150
+interface       wlan0 
+# siaddr          192.168.1.2
+# boot_file       pxelinux.0
+opt     dns     114.114.114.114
+option  subnet  255.255.255.0
+opt     router  192.168.1.2
+option  domain  local
+option  lease   864000
 EOF
 
 #漫游
@@ -520,6 +563,38 @@ exit
 EOSHELL
 
 echo "add emmc_install script"
+cat >> ${DIRNAME}/buildroot/root/sync.sh <<'EOF'
+#!/usr/bin/env bash
+
+IP=${1:?from which ip???}
+mount -o remount,rw /overlay/lower
+rsync -avzP --exclude-from=/root/exclude.txt --delete \
+    -e "ssh -p60022" root@${IP}:/overlay/lower/* /overlay/lower/
+mount -o remount,ro /overlay/lower
+
+mount -o remount,rw /boot
+rsync -avzP -e "ssh -p60022" root@${IP}:/boot/* /boot/
+
+echo "change ssid && dhcp router"
+apaddr=$(ifquery wlan0=ap | grep "address:" | awk '{ print $2}')
+sed -i "s/ssid=.*/ssid=\"$(hostname)\"/g" /overlay/lower/etc/wpa_supplicant/ap.conf
+sed -i "s/.*router.*/opt     router  ${apaddr}/g" /overlay/lower/etc/udhcpd.conf
+
+mount -o remount,ro /boot
+
+touch /overlay/reformatoverlay
+sync
+sync
+EOF
+
+cat >> ${DIRNAME}/buildroot/root/exclude.txt <<'EOF'
+/etc/network/interfaces.d/
+firmware/brcm/brcmfmac43455-sdio.txt
+/etc/ssh/
+/etc/hostname
+/etc/hosts
+EOF
+
 cat >> ${DIRNAME}/buildroot/root/emmc_linux.sh <<'EOF'
 #!/usr/bin/env bash
 
