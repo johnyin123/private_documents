@@ -178,43 +178,42 @@ iface br-ext inet static
     #hwaddress 11:22:33:44:55:66
     #netmask 255.255.255.0
     #gateway 192.168.168.1
-    #up (ip route add 10.0.0.0/8 via 10.32.166.1 || true)
 EOF
 
 cat << EOF > /etc/network/interfaces.d/wifi
 auto wlan0
 allow-hotplug wlan0
 
-iface wlan0 inet manual
-    wpa-roam /etc/wpa_supplicant/wpa.conf
-    pre-up (iw dev wlan0 set power_save off || true)
-
 iface work inet dhcp
-#    post-up (ip r a default via 10.32.166.129||true)
+    wpa_conf /etc/wpa_supplicant/work.conf
 
 iface home inet dhcp
-#    post-up (ip r a default via 10.32.166.129||true)
+    wpa_conf /etc/wpa_supplicant/home.conf
 
-iface ap inet static
+iface wlan0 inet static
     wpa_conf /etc/wpa_supplicant/ap.conf
     pre-up (touch /var/lib/misc/udhcpd.leases || true)
+    up(/usr/sbin/sysctl net.ipv4.ip_forward=1 || true)
+    up(/usr/sbin/iptables -t nat -A POSTROUTING -s 192.168.1.0/24 -j MASQUERADE || true)
     post-up (/usr/bin/busybox udhcpd -S || true)
+    down(/usr/sbin/iptables -t nat -D POSTROUTING -s 192.168.1.0/24 -j MASQUERADE || true)
     pre-down (/usr/bin/pkill -9 busybox || true)
-    address 192.168.1.2/24
+    address 192.168.1.1/24
 
 iface adhoc inet manual
     wpa_driver wext
     wpa_conf /etc/wpa_supplicant/adhoc.conf
-    post-up (ifup wifi0-bat || true)
-    pre-down (ifdown wifi0-bat || true)
+    # /usr/sbin/batctl -m wifi-mesh0 if add $IFACE
+    post-up (/usr/sbin/ip link add name wifi-mesh0 type batadv || true)
+    post-up (/usr/sbin/ip link set dev $IFACE master wifi-mesh0 || true) 
+    post-up (/usr/sbin/ip link set dev wifi-mesh0 master br-ext || true)
+    pre-down (/usr/sbin/ip link set dev $IFACE nomaster || true)
+    pre-down (/usr/sbin/ip link del wifi-mesh0 || true)
+    #batctl -m wifi-mesh0 if del $IFACE
 
-iface wifi0-bat inet static
-    address 192.168.1.2/24
-    pre-up (/usr/sbin/batctl -m wifi0-bat if add wlan0 || true)
-    post-down (/usr/sbin/batctl -m wifi0-bat if del wlan0 || true)
 EOF
 
-cat << EOF > /etc/wpa_supplicant/wpa.conf
+cat << EOF > /etc/wpa_supplicant/work.conf
 #mulit ap support!
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
@@ -228,6 +227,12 @@ network={
     #key_mgmt=wpa-psk
     psk="ADMIN@123"
 }
+EOF
+cat << EOF > /etc/wpa_supplicant/home.conf
+#mulit ap support!
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+#ap_scan=1
 
 network={
     id_str="home"
@@ -252,7 +257,12 @@ network={
     #frequency=60480
     ssid="s905d2"
     mode=2
-    key_mgmt=NONE
+    #key_mgmt=NONE
+    key_mgmt=WPA-PSK
+    proto=WPA
+    pairwise=TKIP
+    group=TKIP
+    psk="password"
 }
 EOF
 
@@ -284,15 +294,15 @@ interface       wlan0
 # boot_file       pxelinux.0
 opt     dns     114.114.114.114
 option  subnet  255.255.255.0
-opt     router  192.168.1.2
+opt     router  192.168.1.1
 option  domain  local
 option  lease   864000
 EOF
 
 #漫游
-cat << EOF > /etc/modprobe.d/brcmfmac.conf 
-options brcmfmac roamoff=1
-EOF
+# cat << EOF > /etc/modprobe.d/brcmfmac.conf 
+# options brcmfmac roamoff=1
+# EOF
 
 cat << EOF > /etc/rc.local
 #!/bin/sh -e
@@ -372,6 +382,11 @@ mount -o remount,ro /overlay/lower
 
 EOF
 cat >> /root/inst.sh <<EOF
+ifdown wlan0
+ifup wlan0=work    #
+ifup wlan0=home    #
+ifup wlan0=ap      #
+ifup wlan0=adhoc   # add wlan0(adhoc johnyin) to batman-adv wifi-mesh0 and add wifi-mesh0 to br-ext!
 #batman-adv
 $ ip link add name bat0 type batadv
 $ ip link set dev eth0 master bat0
@@ -418,6 +433,13 @@ ifconfig ap0 192.168.150.1
 # iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
 # Run access point daemon
 # hostapd /etc/hostapd.conf
+
+iw wlan0 set type managed
+ip link set wlan0 up
+iw wlan0 scan
+iwconfig wlan0 essid s905d3
+iw wlan0 info
+ifconfig wlan0 192.168.168.100
 
 #led
 echo 0 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
@@ -582,15 +604,15 @@ IP=${1:?from which ip???}
 mount -o remount,rw /overlay/lower
 rsync -avzP --exclude-from=/root/exclude.txt --delete \
     -e "ssh -p60022" root@${IP}:/overlay/lower/* /overlay/lower/
-mount -o remount,ro /overlay/lower
-
-mount -o remount,rw /boot
-rsync -avzP -e "ssh -p60022" root@${IP}:/boot/* /boot/
 
 echo "change ssid && dhcp router"
 apaddr=$(ifquery wlan0=ap | grep "address:" | awk '{ print $2}')
 sed -i "s/ssid=.*/ssid=\"$(hostname)\"/g" /overlay/lower/etc/wpa_supplicant/ap.conf
-sed -i "s/.*router.*/opt     router  ${apaddr}/g" /overlay/lower/etc/udhcpd.conf
+
+mount -o remount,ro /overlay/lower
+
+mount -o remount,rw /boot
+rsync -avzP -e "ssh -p60022" root@${IP}:/boot/* /boot/
 
 mount -o remount,ro /boot
 
@@ -967,37 +989,6 @@ bridge_ports eth0.101 wlan0
 EOF
 
 }
-cat <<EOF
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-
-network={
-    ssid="SCHOOLS NETWORK NAME"
-    psk="SCHOOLS PASSWORD"
-    id_str="school"
-}
-
-network={
-    ssid="HOME NETWORK NAME"
-    psk="HOME PASSWORD"
-    id_str="home"
-}
-
-#interface.d/wifi.conf
-allow-hotplug wlan0
-iface wlan0 inet manual
-wpa-roam /etc/wpa_supplicant/wpa_supplicant.conf
-
-iface school inet static
-address <school address>
-gateway <school gateway>
-netmask <school netmask>
-
-iface home inet static
-address <home address>
-gateway <home gateway>
-netmask <home netmask>
-EOF
 cat <<'EOF'
 #ext4 boot disk
 fw_setenv start_emmc_autoscript 'if ext4load mmc 1 ${env_addr} /boot/boot.ini; then env import -t ${env_addr} ${filesize}; if ext4load mmc 1 ${kernel_addr} ${image}; then if ext4load mmc 1 ${initrd_addr} ${initrd}; then if ext4load mmc 1 ${dtb_mem_addr} ${dtb}; then run boot_start;fi;fi;fi;fi;'
