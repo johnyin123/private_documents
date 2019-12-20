@@ -23,7 +23,7 @@ OVERLAY_LABEL="EMMCOVERLAY"
 ZRAMSWAP="udisks2"
 #ZRAMSWAP="zram-tools"
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
-PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,iputils-ping,telnet,vim,ethtool,${ZRAMSWAP},bridge-utils,dosfstools,iw,ipset,nmap,ipvsadm,batctl"
+PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,${ZRAMSWAP},bridge-utils,dosfstools,iw,ipset,nmap,ipvsadm,batctl"
 
 if [ "$UID" -ne "0" ]
 then 
@@ -174,15 +174,16 @@ auto br-ext
 iface br-ext inet static
     bridge_ports eth0
     address 192.168.168.168/24
-    #mtu 1500
-    #hwaddress 11:22:33:44:55:66
-    #netmask 255.255.255.0
     #gateway 192.168.168.1
 EOF
 
-cat << EOF > /etc/network/interfaces.d/wifi
+cat << "EOF" > /etc/network/interfaces.d/wifi
 auto wlan0
 allow-hotplug wlan0
+
+iface wlan0 inet static
+    wpa_conf /etc/wpa_supplicant/ap.conf
+    address 192.168.1.1/24
 
 iface work inet dhcp
     wpa_conf /etc/wpa_supplicant/work.conf
@@ -190,15 +191,12 @@ iface work inet dhcp
 iface home inet dhcp
     wpa_conf /etc/wpa_supplicant/home.conf
 
-iface wlan0 inet static
-    wpa_conf /etc/wpa_supplicant/ap.conf
+iface ap inet manual
+    hostapd /etc/hostapd/ap.conf
     pre-up (touch /var/lib/misc/udhcpd.leases || true)
-    up(/usr/sbin/sysctl net.ipv4.ip_forward=1 || true)
-    up(/usr/sbin/iptables -t nat -A POSTROUTING -s 192.168.1.0/24 -j MASQUERADE || true)
+    post-up (iptables-restore < /etc/iptables.rules || true)
     post-up (/usr/bin/busybox udhcpd -S || true)
-    down(/usr/sbin/iptables -t nat -D POSTROUTING -s 192.168.1.0/24 -j MASQUERADE || true)
-    pre-down (/usr/bin/pkill -9 busybox || true)
-    address 192.168.1.1/24
+    pre-down (/usr/bin/kill -9 $(cat /var/run/udhcpd-wlan0.pid) || true)
 
 iface adhoc inet manual
     wpa_driver wext
@@ -207,10 +205,43 @@ iface adhoc inet manual
     post-up (/usr/sbin/ip link add name wifi-mesh0 type batadv || true)
     post-up (/usr/sbin/ip link set dev $IFACE master wifi-mesh0 || true) 
     post-up (/usr/sbin/ip link set dev wifi-mesh0 master br-ext || true)
+    post-up (/usr/sbin/ip link set dev wifi-mesh0 up || true)
     pre-down (/usr/sbin/ip link set dev $IFACE nomaster || true)
     pre-down (/usr/sbin/ip link del wifi-mesh0 || true)
     #batctl -m wifi-mesh0 if del $IFACE
+EOF
 
+cat << EOF > /etc/hostapd/ap.conf
+interface=wlan0
+bridge=br-ext
+logger_syslog=-1
+logger_syslog_level=2
+logger_stdout=-1
+logger_stdout_level=2
+ctrl_interface=/var/run/hostapd
+ctrl_interface_group=0
+
+ssid=s905d2
+macaddr_acl=0
+#accept_mac_file=/etc/hostapd.accept
+#deny_mac_file=/etc/hostapd.deny
+auth_algs=1
+# 采用 OSA 认证算法 
+ignore_broadcast_ssid=0 
+wpa=3
+# 指定 WPA 类型 
+wpa_key_mgmt=WPA-PSK             
+wpa_pairwise=TKIP 
+rsn_pairwise=CCMP 
+wpa_passphrase=password123
+# 连接 ap 的密码 
+
+driver=nl80211
+# 设定无线驱动 
+hw_mode=g
+# 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g 
+channel=9
+# 指定无线频道 
 EOF
 
 cat << EOF > /etc/wpa_supplicant/work.conf
@@ -257,12 +288,12 @@ network={
     #frequency=60480
     ssid="s905d2"
     mode=2
-    #key_mgmt=NONE
-    key_mgmt=WPA-PSK
-    proto=WPA
-    pairwise=TKIP
-    group=TKIP
-    psk="password"
+    key_mgmt=NONE
+    #key_mgmt=WPA-PSK
+    #proto=WPA
+    #pairwise=TKIP
+    #group=TKIP
+    #psk="password"
 }
 EOF
 
@@ -287,16 +318,40 @@ network={
 EOF
 
 cat << EOF > /etc/udhcpd.conf
-start           192.168.1.100
-end             192.168.1.150
-interface       wlan0 
-# siaddr          192.168.1.2
-# boot_file       pxelinux.0
-opt     dns     114.114.114.114
-option  subnet  255.255.255.0
-opt     router  192.168.1.1
+start           192.168.168.100
+end             192.168.168.150
+interface       br-ext
+max_leases      45
+lease_file      /var/lib/misc/udhcpd.leases
+pidfile         /var/run/udhcpd-wlan0.pid
 option  domain  local
 option  lease   864000
+option  subnet  255.255.255.0
+# Currently supported options, for more info, see options.c
+opt     dns     114.114.114.114
+opt     router  192.168.168.2
+#opt subnet
+#opt timezone
+#opt timesvr
+#opt namesvr
+#opt logsvr
+#opt cookiesvr
+#opt lprsvr
+#opt bootsize
+#opt domain
+#opt swapsvr
+#opt rootpath
+#opt ipttl
+#opt mtu
+#opt broadcast
+#opt wins
+#opt lease
+#opt ntpsrv
+#opt tftp
+#opt bootfile
+# static_lease 00:60:08:11:CE:4E 192.168.0.54
+# siaddr          192.168.1.2
+# boot_file       pxelinux.0
 EOF
 
 #漫游
