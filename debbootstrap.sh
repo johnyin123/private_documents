@@ -508,6 +508,16 @@ systemctl enable getty@tty2
 #systemctl set-default multi-user.target
 #ln -s /lib/systemd/system/multi-user.target /etc/systemd/system/default.target
 
+Human Interface Device
+/etc/default/bluetooth - Default HID bluez setting - enable for mice and keyboards
+HID2HCI_ENABLED=1
+/etc/bluetooth/hcid.conf - HCI bluez settings - configure static device information
+
+device 00:1E:52:FB:68:55 {
+    name "Apple Wireless Keyboard";
+    auth enable;
+    encrypt enable;}
+
 #multimedia
 echo "deb http://www.deb-multimedia.org ${DEBIAN_VERSION} main non-free" > /etc/apt/sources.list.d/multimedia.conf
 apt-get update -oAcquire::AllowInsecureRepositories=true
