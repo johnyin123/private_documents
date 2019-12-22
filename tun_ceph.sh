@@ -9,6 +9,27 @@ OSD_SCRUB_ERRORS 1 scrub errors
 PG_DAMAGED Possible data damage: 1 pg inconsistent
     pg 1.5 is active+clean+inconsistent, acting [10,29,20]
 $ceph pg repair 1.5
+wait heath ok.
+
+for ip in $(seq 2 11)
+do
+	host=10.4.38.${ip}
+    port=60022
+    ssh -p60022 root@${host} "grep -Hn 'ERR' /var/log/ceph/ceph-osd.*.log"
+done
+
+/var/log/ceph/ceph-osd.29.log:280:2019-12-23 07:28:05.803229 7fc8c3146700 -1 log_channel(cluster) log [ERR] : 1.29d shard 29 soid 1:b9788255:::rbd_data.e59106b8b4567.0000000000000687:head : candidate had a read error
+/var/log/ceph/ceph-osd.29.log:281:2019-12-23 07:28:13.207279 7fc8c3146700 -1 log_channel(cluster) log [ERR] : 1.29d repair 0 missing, 1 inconsistent objects
+/var/log/ceph/ceph-osd.29.log:282:2019-12-23 07:28:13.207310 7fc8c3146700 -1 log_channel(cluster) log [ERR] : 1.29d repair 1 errors, 1 fixed
+
+ then find which OSD error. and then sudo find the object
+
+    /var/lib/ceph/osd/ceph-21/current/17.1c1_head/ -name 'rb.0.90213.238e1f29.00000001232d*' -ls
+671193536 4096 -rw-r--r-- 1 root root 4194304 Feb 14 01:05 /var/lib/ceph/osd/ceph-21/current/17.1c1_head/DIR_1/DIR_C/DIR_1/DIR_C/rb.0.90213.238e1f29.00000001232d__head_58BCC1C1__11
+
+
+
+
 
 sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"numa=off\"/g" /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
