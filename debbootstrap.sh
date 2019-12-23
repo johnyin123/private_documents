@@ -220,6 +220,13 @@ logger_stdout=-1
 logger_stdout_level=2
 ctrl_interface=/var/run/hostapd
 ctrl_interface_group=0
+# hw_mode=a             # a simply means 5GHz
+# channel=0             # the channel to use, 0 means the AP will search for the channel with the least interferences 
+# ieee80211d=1          # limit the frequencies used to those allowed in the country
+# country_code=FR       # the country code
+# ieee80211n=1          # 802.11n support
+# ieee80211ac=1         # 802.11ac support
+# wmm_enabled=1         # QoS support
 
 ssid=s905d2
 macaddr_acl=0
