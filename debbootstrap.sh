@@ -361,6 +361,11 @@ opt     router  192.168.168.2
 # boot_file       pxelinux.0
 EOF
 
+# cat << EOF > /etc/modprobe.d/brcmfmac.conf 
+# options brcmfmac p2pon=1
+# EOF
+# if start p2p device so can not start ap & sta same time
+
 #漫游
 # cat << EOF > /etc/modprobe.d/brcmfmac.conf 
 # options brcmfmac roamoff=1
@@ -379,8 +384,8 @@ cat >/etc/fw_env.config <<EOF
 EOF
 
 cat >>/etc/initramfs-tools/modules <<EOF
-brcmfmac
-dwmac_meson8b
+#brcmfmac
+#dwmac_meson8b
 overlay
 EOF
 
@@ -444,6 +449,91 @@ mount -o remount,ro /overlay/lower
 
 EOF
 cat >> /root/inst.sh <<EOF
+
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+#update_config=1
+#wpa_cli p2p_group_add persistent=0
+#wpa_cli p2p_group_add persistent=1
+network={
+    id_str="p2p-client"
+    ssid="DIRECT-S905D"
+    bssid=ca:ff:ee:ba:be:d0
+    psk="hqZ532yoxxoo"
+    proto=RSN
+    key_mgmt=WPA-PSK
+    pairwise=CCMP
+    auth_alg=OPEN
+    disabled=2
+}
+
+network={
+    id_str="p2p-go"
+    ssid="DIRECT-S905D"
+    bssid=ca:ff:ee:ba:be:d0
+    psk="hqZ532yoxxoo"
+    proto=RSN
+    key_mgmt=WPA-PSK
+    pairwise=CCMP
+    auth_alg=OPEN
+    disabled=2
+    mode=3
+#p2p_client_list=76:2f:4e:ee:3f:dc
+}
+
+ip link set dev wlan0 address b8:be:ef:90:5d:02
+P2P 
+iw list | grep -A10 "valid interface combinations:"
+
+ wpa_cli -ip2p-dev-wlan0 p2p_group_add persistent
+ wpa_cli -i p2p-wlan0-0 p2p_find        wpa_cli -i p2p-dev-wlan0 p2p_find
+ wpa_cli -i p2p-wlan0-0 p2p_peers       wpa_cli -i p2p-dev-wlan0 p2p_peers
+     wps_pbc                            p2p_connect EVM#1_MAC_ADDRESS pbc persistent join
+ OR  
+     wps_pin any (<mac> 11111111)       p2p_connect <mac> 11111111 persistent join
+                                        
+ ifconfig p2p-wlan0-0 172.16.16.1/24        ifconfig p2p-wlan0-0 172.16.16.2/24
+                                        
+                                        
+ wpa_cli -ip2p-wlan0-0 p2p_group_remove p2p-wlan0-0
+
+To setup your autonomous group owner, started with p2p_group_add, with a custom ssid and password you have to make it persistent and have a network block inserted in /etc/wpa_supplicant/wpa_supplicant.conf. The easiest way to get the network block in wpa_supplicant.conf is to let it do wpa_supplicant itself. Just start the p2p group with p2p_group_add as usual but persistent and remove it just after that again:
+
+rpi ~$ wpa_cli -ip2p-dev-wlan0
+> p2p_group_add persistent
+> p2p_group_remove p2p-wlan0-0
+> quit
+rpi ~$
+Now you should find the persistent network block in /etc/wpa_supplicant/wpa_supplicant.conf. From my test it looks like this:
+
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+device_name=DIRECT-RasPi1
+p2p_go_ht40=1
+country=DE
+
+network={
+        ssid="DIRECT-Ca"
+        bssid=56:1d:c5:95:c2:e9
+        psk="yfmyjT8o"
+        proto=RSN
+        key_mgmt=WPA-PSK
+        pairwise=CCMP
+        auth_alg=OPEN
+        mode=3
+        disabled=2
+}
+Now just edit this and set ssid and psk as you like. When ready then restart your wpa_supplicant to make the change available.
+
+The first network block has number 0 and so on. Now start the persistent autonomous group owner by addressing this network block with:
+
+rpi ~$ wpa_cli -ip2p-dev-wlan0
+> p2p_group_add persistent=0 IFNAME=wlan2
+
+
+
+  BR -------> ap(dhcpd) <------- BR
+ap  eth0                     eth0  ap
+
 ifdown wlan0
 ifup wlan0=work    #
 ifup wlan0=home    #
@@ -680,7 +770,7 @@ rsync -avzP --exclude-from=/root/exclude.txt --delete \
 echo "change ssid && dhcp router"
 apaddr=$(ifquery wlan0=ap | grep "address:" | awk '{ print $2}')
 sed -i "s/ssid=.*/ssid=\"$(hostname)\"/g" /overlay/lower/etc/wpa_supplicant/ap.conf
-
+sed -n 's|^ssid=\(.*\)$|\1|p' /overlay/lower/etc/wpa_supplicant/ap.conf
 mount -o remount,ro /overlay/lower
 
 mount -o remount,rw /boot
@@ -799,13 +889,13 @@ cat > ${DIRNAME}/buildroot/usr/share/initramfs-tools/hooks/overlay <<EOF
 copy_exec /sbin/blkid
 copy_exec /sbin/fsck
 copy_exec /sbin/mke2fs
-copy_exec /sbin/fsck.f2fs
 copy_exec /sbin/fsck.ext2
 copy_exec /sbin/fsck.ext3
 copy_exec /sbin/fsck.ext4
 copy_exec /sbin/logsave
-cp -p /lib/firmware/regulatory.db \$DESTDIR/lib/firmware/
-cp -p /lib/firmware/regulatory.db.p7s \$DESTDIR/lib/firmware/
+# mkdir -p \$DESTDIR/lib/firmware/
+# cp -p /lib/firmware/regulatory.db \$DESTDIR/lib/firmware/
+# cp -p /lib/firmware/regulatory.db.p7s \$DESTDIR/lib/firmware/
 EOF
 
 cat > ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
