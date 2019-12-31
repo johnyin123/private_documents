@@ -50,6 +50,18 @@ exec 2> >(tee "error_log_$(date -Iseconds).txt")
 board=$1; shift || (echo "ERROR: Board must be specified"; exit 1;)
 uboot=$1; shift || (echo "ERROR: u-boot.bin must be specified"; exit 1;)
 
+test_lowercase()
+{
+	# Grab input.
+	declare input=${1:-$(</dev/stdin)};
+
+	# Use that input to do anything.
+	echo "$input" | tr '[:upper:]' '[:lower:]'
+}
+
+echo "$(test_lowercase 'HELLO xx')"
+echo "HELLO there, FRIEND!" | test_lowercase
+
 main() {
     while test -n "${1:-}"
     do
