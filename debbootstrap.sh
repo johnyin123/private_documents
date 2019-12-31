@@ -24,6 +24,7 @@ ZRAMSWAP="udisks2"
 #ZRAMSWAP="zram-tools"
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,${ZRAMSWAP},dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,ifenslave,vlan"
+PKG="${PKG},parprouted,dhcp-helper"
 
 if [ "$UID" -ne "0" ]
 then 
@@ -448,8 +449,59 @@ sync
 mount -o remount,ro /overlay/lower
 
 EOF
-cat >> /root/inst.sh <<EOF
 
+cat >> /root/brige_wlan_eth.sh <<'SCRIPT_EOF'
+# bridge eth0 & wlan0 Same Subnet!!
+
+# parprouted  - Proxy ARP IP bridging daemon
+# dhcp-helper - A DHCP/BOOTP relay agent
+
+cat > /etc/default/dhcp-helper <<EOF
+DHCPHELPER_OPTS="-b wlan0"
+EOF
+
+# Create a helper script to get an adapter's IP address
+cat <<'EOF' >/usr/bin/get-adapter-ip
+#!/usr/bin/env bash
+
+/sbin/ip -4 -br addr show ${1} | /bin/grep -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
+EOF
+chmod +x /usr/bin/get-adapter-ip
+
+# I have to admit, I do not understand ARP and IP forwarding enough to explain
+# exactly what is happening here. I am building off the work of others. In short
+# this is a service to forward traffic from wlan0 to eth0
+cat <<'EOF' >/etc/systemd/system/parprouted.service
+[Unit]
+Description=proxy arp routing service
+Documentation=https://raspberrypi.stackexchange.com/q/88954/79866
+
+[Service]
+Type=forking
+# Restart until wlan0 gained carrier
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=30
+ExecStartPre=/lib/systemd/systemd-networkd-wait-online --interface=wlan0 --timeout=6 --quiet
+ExecStartPre=/bin/echo 'systemd-networkd-wait-online: wlan0 is online'
+# clone the dhcp-allocated IP to eth0 so dhcp-helper will relay for the correct subnet
+ExecStartPre=/bin/bash -c '/sbin/ip addr add $(/usr/bin/get-adapter-ip wlan0)/32 dev eth0'
+ExecStartPre=/sbin/ip link set dev eth0 up
+ExecStartPre=/sbin/ip link set wlan0 promisc on
+ExecStart=-/usr/sbin/parprouted eth0 wlan0
+ExecStopPost=/sbin/ip link set wlan0 promisc off
+ExecStopPost=/sbin/ip link set dev eth0 down
+ExecStopPost=/bin/bash -c '/sbin/ip addr del $(/usr/bin/get-adapter-ip eth0)/32 dev eth0'
+
+[Install]
+WantedBy=wpa_supplicant@wlan0.service
+EOF
+
+systemctl daemon-reload
+systemctl enable parprouted.service
+SCRIPT_EOF
+
+cat >> /root/inst.sh <<EOF
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 #update_config=1
 #wpa_cli p2p_group_add persistent=0

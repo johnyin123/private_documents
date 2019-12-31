@@ -35,6 +35,10 @@ human_readable_disk_size() {
     echo $((bytes/__M))M
 }
 
+get_ipaddr() {
+    /sbin/ip -4 -br addr show ${1} | /bin/grep -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
+}
+
 is_user_root() {
     [ "$(id -u)" -eq 0 ]
 }
