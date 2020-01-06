@@ -39,6 +39,11 @@ get_ipaddr() {
     /sbin/ip -4 -br addr show ${1} | /bin/grep -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
 }
 
+# $1 - key in the json file
+json_config() {
+    cat ${config_file} | jq -r ".${1}"
+}
+
 is_user_root() {
     [ "$(id -u)" -eq 0 ]
 }
