@@ -208,3 +208,21 @@ cat <<EOF
       <address type='pci' domain='0x0000' bus='0x00' slot='0x09' function='0x0'/>
     </filesystem>
 EOF
+
+
+echo"Calculating CPU usage of guestos(kvm) use cgroup"
+cat <<'EOF'
+KVM_PID=47238
+cgroup=$(grep cpuacct /proc/${KVM_PID}/cgroup | awk -F: '{ print $3 }')
+tstart=$(date +%s%N)
+cstart=$(cat /sys/fs/cgroup/cpu/$cgroup/cpuacct.usage)
+
+sleep 5
+
+tstop=$(date +%s%N)
+cstop=$(cat /sys/fs/cgroup/cpu/$cgroup/cpuacct.usage)
+
+bc -l <<BCEOF
+($cstop - $cstart) / ($tstop - $tstart) * 100
+BCEOF
+EOF
