@@ -197,19 +197,19 @@ iface ap inet manual
     pre-up (touch /var/lib/misc/udhcpd.leases || true)
     post-up (iptables-restore < /etc/iptables.rules || true)
     post-up (/usr/bin/busybox udhcpd -S || true)
-    pre-down (/usr/bin/kill -9 $(cat /var/run/udhcpd-wlan0.pid) || true)
+    pre-down (/usr/bin/kill -9 \$(cat /var/run/udhcpd-wlan0.pid) || true)
 
 iface adhoc inet manual
     wpa_driver wext
     wpa_conf /etc/wpa_supplicant/adhoc.conf
-    # /usr/sbin/batctl -m wifi-mesh0 if add $IFACE
+    # /usr/sbin/batctl -m wifi-mesh0 if add \$IFACE
     post-up (/usr/sbin/ip link add name wifi-mesh0 type batadv || true)
-    post-up (/usr/sbin/ip link set dev $IFACE master wifi-mesh0 || true) 
+    post-up (/usr/sbin/ip link set dev \$IFACE master wifi-mesh0 || true) 
     post-up (/usr/sbin/ip link set dev wifi-mesh0 master br-ext || true)
     post-up (/usr/sbin/ip link set dev wifi-mesh0 up || true)
-    pre-down (/usr/sbin/ip link set dev $IFACE nomaster || true)
+    pre-down (/usr/sbin/ip link set dev \$IFACE nomaster || true)
     pre-down (/usr/sbin/ip link del wifi-mesh0 || true)
-    #batctl -m wifi-mesh0 if del $IFACE
+    #batctl -m wifi-mesh0 if del \$IFACE
 EOF
 
 cat << EOF > /etc/hostapd/ap.conf
@@ -464,7 +464,7 @@ EOF
 cat <<'EOF' >/usr/bin/get-adapter-ip
 #!/usr/bin/env bash
 
-/sbin/ip -4 -br addr show ${1} | /bin/grep -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
+/sbin/ip -4 -br addr show \${1} | /bin/grep -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
 EOF
 chmod +x /usr/bin/get-adapter-ip
 
@@ -485,13 +485,13 @@ TimeoutStartSec=30
 ExecStartPre=/lib/systemd/systemd-networkd-wait-online --interface=wlan0 --timeout=6 --quiet
 ExecStartPre=/bin/echo 'systemd-networkd-wait-online: wlan0 is online'
 # clone the dhcp-allocated IP to eth0 so dhcp-helper will relay for the correct subnet
-ExecStartPre=/bin/bash -c '/sbin/ip addr add $(/usr/bin/get-adapter-ip wlan0)/32 dev eth0'
+ExecStartPre=/bin/bash -c '/sbin/ip addr add \$(/usr/bin/get-adapter-ip wlan0)/32 dev eth0'
 ExecStartPre=/sbin/ip link set dev eth0 up
 ExecStartPre=/sbin/ip link set wlan0 promisc on
 ExecStart=-/usr/sbin/parprouted eth0 wlan0
 ExecStopPost=/sbin/ip link set wlan0 promisc off
 ExecStopPost=/sbin/ip link set dev eth0 down
-ExecStopPost=/bin/bash -c '/sbin/ip addr del $(/usr/bin/get-adapter-ip eth0)/32 dev eth0'
+ExecStopPost=/bin/bash -c '/sbin/ip addr del \$(/usr/bin/get-adapter-ip eth0)/32 dev eth0'
 
 [Install]
 WantedBy=wpa_supplicant@wlan0.service
