@@ -1,5 +1,6 @@
 #!/bin/bash
 set -u -e -o pipefail
+# iptables -A INPUT -m string --algo bm --string "test" -j DROP
 
 NAT_SRV=10.32.151.250
 NAT_PORT=60100
