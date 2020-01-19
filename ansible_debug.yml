@@ -25,6 +25,8 @@
     distro: ${ansible_distribution}
     pkg_mgr: ${ansible_pkg_mgr}
     pbname: ${inventory_hostname}
+    parent:
+      child1: true
 
   tasks: 
   - name: Display all variables/facts known for a host
@@ -186,6 +188,18 @@
   - name: this will not be counted as a failure 
     command: /bin/false 
     ignore_errors: yes
+
+  - name: show variable
+    debug:
+      var: parent
+  - name: "Check if variable is defined"
+    fail:
+      msg: "mandatory variable item not passed as extra args when invoking playbook"
+    when: "{{item}} is not defined"
+    loop:
+    - parent
+    - parent.child1
+    - parent.child2
 
   handlers:  
     - name: do your notify
