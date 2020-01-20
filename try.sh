@@ -72,11 +72,6 @@ cat >>'EOF'
     }
 }
 EOF
-# $1 - key in the json file
-#
-config() {
-    cat ${config_file} | jq -r ".${1}"
-}
 
 while read package ; do
     echo ${package}
