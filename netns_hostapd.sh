@@ -32,6 +32,8 @@ server=/cn/114.114.114.114
 server=/google.com/223.5.5.5
 #屏蔽网页广告
 address=/ad.youku.com/127.0.0.1
+# 劫持所有域名
+# address=/#/10.0.3.1
 ####log
 log-queries
 log-facility=/tmp/dnsmasq.log
