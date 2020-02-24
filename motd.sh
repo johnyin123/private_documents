@@ -14,8 +14,7 @@ upHours=$((uptime/60/60%24))
 upMins=$((uptime/60%60))
 upSecs=$((uptime%60))
 up_lastime=$(date -d "$(awk -F. '{print $1}' /proc/uptime) second ago" +"%Y-%m-%d %H:%M:%S")
-#mountpoint=$(lsblk -n -o MOUNTPOINT "$(blkid --label EMMCOVERLAY)" 2>/dev/null)
-mountpoint="OK"
+mountpoint=$(lsblk -n -o MOUNTPOINT "$(blkid --label EMMCOVERLAY)" 2>/dev/null)
 #Memory Usage
 mem_usage=$(free -m | grep Mem | awk '{ printf("%3.2f%%", $3*100/$2) }')
 swap_usage=$(free -m | awk '/Swap/{printf "%.2f%%",$3/($2+1)*100}')
@@ -70,7 +69,10 @@ exec 6</etc/logo.txt
 
 } | while IFS= read -r line; do 
     IFS= read -r line2 <&6
-    printf "%-60s%s\033[m\n" "$line" "$line2"
+    str="$(printf "%s" "${line}" | sed -r 's/\x1B\[([0-9];)?([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g')"
+    slen=${#str}
+    len=${#line}
+    printf "%-$((60+len-slen))s%s\033[m\n" "$line" "$line2"
 done
 exec 6<&-
 echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
