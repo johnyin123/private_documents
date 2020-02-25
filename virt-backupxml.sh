@@ -110,8 +110,8 @@ EOF
     }
     echo "HOSTIP,serial,prod|prd_time|cpus|mems,dom,desc,cpu,mem,maxcpu,maxmem,storage|block_count,(address|mac,)*"
     cat "${CFG_INI}" | grep -v -e "^\ *#.*$" -e  "^\ *$" | while read ip port; do
-        rm -rf ${ip}
-        mkdir -p ${ip}
+        try rm -rf ${ip}
+        try mkdir -p ${ip}
         speedup_ssh_begin root "${ip}" ${port}
         try "rsync -avzP -e \"ssh -p${port}\" root@${ip}:/etc/libvirt/qemu ${ip} > /dev/null 2>&1"
         local xml=$(fake_virsh "root@${ip}:${port}" sysinfo)
