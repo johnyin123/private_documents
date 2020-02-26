@@ -145,9 +145,10 @@ EOF
 [[ $UID = 0 ]] || log "warn" "recommended to run as root."
 
 [ -r ${REPO} ] || {
-    cat> ${REPO} <<EOF
+    cat> ${REPO} <<'EOF'
 [centos]
 name=centos
+# mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=os
 baseurl=http://10.0.2.1:8080/
 gpgcheck=0
 
