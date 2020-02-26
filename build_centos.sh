@@ -68,9 +68,11 @@ function abort() {
 
 #command use the '|"' must be escaped with '\' 
 function execute () {
-    eval "${*}" >/dev/null 2>&1
+    eval "${*}"
+# >/dev/null 2>&1
     if [ $? -ne 0 ]; then
         log "error" "executing ${*} error"
+	bash
     else
         log "info" "executing ${*} ok"
     fi
@@ -221,7 +223,7 @@ do
     execute mount -o bind ${mp} ${ROOTFS}${mp}
 done
 fake_yum groupinstall core #"Minimal Install"
-fake_yum install grub2 net-tools chrony lvm2 ${ADDITION_PKG}
+fake_yum install initscripts iproute openssh-server openssh-clients passwd yum grub2 net-tools chrony lvm2 ${ADDITION_PKG}
 fake_yum remove -C --setopt="clean_requirements_on_remove=1" \
 	firewalld \
 	NetworkManager \
@@ -294,7 +296,7 @@ systemctl enable getty@tty1
 touch /*
 touch /etc/*
 touch /boot/*
-grub2-install --boot-directory=/boot --modules="xfs part_msdos" ${DISK}
+grub2-install --target=i386-pc --boot-directory=/boot --modules="xfs part_msdos" ${DISK}
 EOF
 
 log "info" "Rebuild the initramfs."
@@ -341,8 +343,7 @@ sed -i "s/^PASS_MIN_LEN.*$/PASS_MIN_LEN 8/g" ${ROOTFS}/etc/login.defs
 sed -i "s/^PASS_WARN_AGE.*$/PASS_WARN_AGE 7/g" ${ROOTFS}/etc/login.defs
 sed -i "1 a auth       required     pam_tally2.so   onerr=fail  deny=6  unlock_time=1800" ${ROOTFS}/etc/pam.d/sshd
 sed -i "/password/ipassword    required      pam_cracklib.so lcredit=-1 ucredit=-1 dcredit=-1 ocredit=-1" ${ROOTFS}/etc/pam.d/system-auth
-execute chroot ${ROOTFS} userdel shutdown
-execute chroot ${ROOTFS} userdel halt
+execute chroot ${ROOTFS} userdel shutdown \|\| true
 
 log "info" "tune kernel parametres"
 cat >> ${ROOTFS}/etc/sysctl.conf << EOF
@@ -435,12 +436,6 @@ echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 echo
 EOF
 execute chmod 644 ${ROOTFS}/etc/motd.sh
-execute /usr/sbin/userdel shutdown
-execute /usr/sbin/userdel halt
-execute /usr/sbin/userdel games
-execute /usr/sbin/userdel operator
-execute /usr/sbin/userdel ftp
-execute /usr/sbin/userdel gopher
 
 if [ "${TOMCAT_USR:=false}" = "true" ]
 then
