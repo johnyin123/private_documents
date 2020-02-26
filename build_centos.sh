@@ -25,7 +25,7 @@ NAME=${NAME:-"vmtemplate"}
 IP=${IP:-"10.0.2.100/24"}
 GW=${GW:-"10.0.2.1"}
 
-YUM_OPT="-q --noplugins --nogpgcheck --config=${REPO}" #--setopt=tsflags=nodocs"
+YUM_OPT="--disablerepo=* --enablerepo=centos -q --noplugins --nogpgcheck --config=${REPO}" #--setopt=tsflags=nodocs"
 ## end parms
 
 PREFIX=${IP##*/}
@@ -148,7 +148,7 @@ EOF
     cat> ${REPO} <<'EOF'
 [centos]
 name=centos
-# mirrorlist=http://mirrorlist.centos.org/?release=$releasever&arch=$basearch&repo=os
+# baseurl=http://mirrors.163.com/centos/7.7.1908/os/x86_64/
 baseurl=http://10.0.2.1:8080/
 gpgcheck=0
 
