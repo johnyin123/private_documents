@@ -41,7 +41,7 @@ get_ipaddr() {
 
 # $1 - key in the json file
 json_config() {
-    cat ${config_file} | jq -r ".${1}"
+    jq -r ".${1}"
 }
 
 is_user_root() {
@@ -156,7 +156,7 @@ do_log() {
     fmt="${fmt//<levelname>/${LOG_LEVELNAMES[$level]}}"
     fmt="${fmt//<asctime>/$(date +"$date_fmt")}"
     fmt="${fmt//<message>/$msg}"
-    shift 2 && ${log_color[level]:-printf} "$fmt" "$@"
+    shift 2 && ${log_color[level]:-printf} "☠️ $fmt" "$@"
 } >&2
 
 debug_msg() {

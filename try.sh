@@ -61,21 +61,21 @@ test_lowercase()
 
 echo "$(test_lowercase 'HELLO xx')"
 echo "HELLO there, FRIEND!" | test_lowercase
-cat >>'EOF'
-{
-    "partitions": {
-        "boot_size": "67108864"
-    },
-    "debian": {
-        "release": "wheezy",
-        "packages": [ "openssh-server1", "openssh-server2", "openssh-server3" ]
-    }
-}
-EOF
+# cat >>'EOF'
+# {
+#     "partitions": {
+#         "boot_size": "67108864"
+#     },
+#     "debian": {
+#         "release": "wheezy",
+#         "packages": [ "openssh-server1", "openssh-server2", "openssh-server3" ]
+#     }
+# }
+# EOF
 
-while read package ; do
-    echo ${package}
-done < <(config "debian.packages[]")
+# while read package ; do
+#     echo ${package}
+# done < <(json_config "debian.packages[]")
 
 main() {
     while test -n "${1:-}"
