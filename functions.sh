@@ -179,6 +179,13 @@ error_msg() {
     shift && do_log $LOG_ERROR "$fmt" "$@"
 } >&2
 
+# echo "$_out"|vinfo
+vinfo() {
+    while read line || [ -n "$line" ]; do
+        info_msg $line;
+    done
+}
+
 exit_msg() {
     error_msg "$@"
     exit 1
