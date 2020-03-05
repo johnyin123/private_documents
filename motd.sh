@@ -1,6 +1,5 @@
 #!/bin/bash
 date=$(date "+%F %T")
-head="System Time:        $date"
 kernel=$(uname -r)
 hostname=$(echo $HOSTNAME)
 #Cpu load
@@ -14,7 +13,6 @@ upHours=$((uptime/60/60%24))
 upMins=$((uptime/60%60))
 upSecs=$((uptime%60))
 up_lastime=$(date -d "$(awk -F. '{print $1}' /proc/uptime) second ago" +"%Y-%m-%d %H:%M:%S")
-mountpoint=$(lsblk -n -o MOUNTPOINT "$(blkid --label EMMCOVERLAY)" 2>/dev/null)
 #Memory Usage
 mem_usage=$(free -m | grep Mem | awk '{ printf("%3.2f%%", $3*100/$2) }')
 swap_usage=$(free -m | awk '/Swap/{printf "%.2f%%",$3/($2+1)*100}')
@@ -31,12 +29,17 @@ Filesystem=$(df -h | awk '/^\/dev/{print $6}')
 
 #Interfaces
 INTERFACES=$(ip -4 ad | grep 'state ' | awk -F":" '!/^[0-9]*: ?lo/ {print $2}')
+uuid=$(dmidecode -s system-uuid)
+[[ -r /etc/os-release ]] && source /etc/os-release
+head="$PRETTY_NAME ($date)"
+
 echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 exec 6</etc/logo.txt
 {
     printf "$head\n"
     printf "%s\n" "----------------------------------------------"
     printf "Kernel Version:     %s\n" $kernel
+    printf "UUID:               %s\n" $uuid
     printf "HostName:           %s\n" $hostname
     printf "System Load:        %s %s %s\n" $load1, $load5, $load15
     printf "System Uptime:      %s "days" %s "hours" %s "min" %s "sec"\n" $upDays $upHours $upMins $upSecs
@@ -59,11 +62,7 @@ exec 6</etc/logo.txt
         IP=$(ip ad show dev $i | awk '/inet / {print $2}')
         for j in ${IP}
         do
-            if [[ -n $mountpoint ]]; then
-                printf "%-20s%-20s%s\n" $i $MAC $j
-            else
-                printf "\033[5;41;92m%-20s%-20s%s\033[m\n" $i $MAC $j
-            fi
+            printf "%-20s%-20s%s\n" $i $MAC $j
         done
     done
 
