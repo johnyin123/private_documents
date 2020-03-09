@@ -80,7 +80,7 @@ get_vmip() {
         local storage=0
         for ((i=0;i<$(array_get stats "block.count");i++))
         do
-            let storage=storage+$(array_get stats "block.$i.capacity")
+            let storage=storage+$(array_get stats "block.$i.physical")
         done
         mem=$(human_readable_disk_size $(($mem*1024)))
         maxmem=$(human_readable_disk_size $(($maxmem*1024)))
