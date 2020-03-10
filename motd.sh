@@ -28,7 +28,7 @@ USER=$(whoami)
 Filesystem=$(df -h | awk '/^\/dev/{print $6}')
 
 #Interfaces
-INTERFACES=$(ip -4 ad | grep 'state ' | awk -F":" '!/^[0-9]*: ?lo/ {print $2}')
+INTERFACES=$(ls /sys/class/net/)
 uuid=$(dmidecode -s system-uuid)
 [[ -r /etc/os-release ]] && source /etc/os-release
 head="$PRETTY_NAME ($date)"
@@ -58,6 +58,7 @@ exec 6</etc/logo.txt
     printf "Interface           MAC Address         IP Address\n"
     for i in $INTERFACES
     do
+        [ "$i" = "lo" ] && continue
         MAC=$(ip ad show dev $i | grep "link/ether" | awk '{print $2}')
         IP=$(ip ad show dev $i | awk '/inet / {print $2}')
         for j in ${IP}
