@@ -1,6 +1,16 @@
 #!/bin/bash
 set -o nounset -o pipefail
 
+#    <disk type='file' device='disk'>
+#      <driver name='qemu' type='raw' cache='none' io='native'/>
+#      <source file='/storage/vm159.raw'/>
+#      <target dev='hda' bus='ide'/>
+#    </disk>
+#    <interface type='network'>
+#      <source network='br-data.144'/>
+#      <model type='rtl8139'/>
+#    </interface>
+
 CEPH_MON=${CEPH_MON:-"kvm1:6789 kvm02:6789 kvm03:6789"}
 KVM_USER=${KVM_USER:-root}
 KVM_HOST=${KVM_HOST:-10.32.151.250}
