@@ -458,6 +458,11 @@ EOF
             continue
         fi
         fake_virsh pool-refresh ${STORE_POOL} > /dev/null
+        # if [[ ${DATA_DISK:-0} -gt 0 ]]
+        # then
+        #     fake_virsh vol-create-as --pool ${STORE_POOL} --name data-${UUID}.raw --format raw --capacity ${DATA_DISK}G >/dev/null
+        #     fake_virsh attach-disk ${VMNAME}-${UUID} --source /storage/data-${UUID}.raw --target vdb --cache none --io native --persistent
+        # fi
         log "info" "   status:OK";
         log "info" "============================================================================"
     done
