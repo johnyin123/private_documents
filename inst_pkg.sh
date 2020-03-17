@@ -38,7 +38,7 @@ function checkInst()
 #desk3d="compiz compiz-fusion-plugins-extra compiz-fusion-plugins-main compiz-fusion-bcop compizconfig-settings-manager cairo-dock-compiz-icon-plugin"
 #others="qbittorrent"
 
-tools="iw p7zip-full arj zip mscompress unar eject bc less vim ftp telnet nmap tftp ntpdate screen lsof strace ltrace parallel lftp"
+tools="pbzip2 iw p7zip-full arj zip mscompress unar eject bc less vim ftp telnet nmap tftp ntpdate screen lsof strace ltrace parallel lftp"
 
 # xdesktop="lxde-core lxappearance lxrandr lxmusic fonts-droid-fallback xserver-xorg gnome-icon-theme lightdm va-driver-all vdpau-va-driver wpasupplicant xarchiver xdg-utils"
 xdesktop="xarchiver fonts-droid-fallback xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xfburn xdm gnome-icon-theme isomaster"
