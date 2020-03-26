@@ -1004,7 +1004,7 @@ if [ -f /overlay/reformatoverlay ]; then
     fi
 fi
 EOF
-cat > ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
+cat >> ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
 
 mkdir -p /overlay/upper
 mkdir -p /overlay/work
