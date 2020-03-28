@@ -131,6 +131,7 @@ logvol / --vgname=vg_root --size=1500 --name=lv_root
 %packages
 @core
 lvm2
+bridge-utils
 wget
 rsync
 bind-utils
@@ -197,7 +198,7 @@ net.core.wmem_max = 134217728
 net.core.netdev_max_backlog = 250000
 net.core.somaxconn = 65535
 net.core.wmem_default = 16777216
-net.ipv4.ip_local_port_range = 1024 65530
+net.ipv4.ip_local_port_range = 1024 65531
 net.ipv4.tcp_fin_timeout = 10
 net.ipv4.tcp_keepalive_time = 1200
 net.ipv4.tcp_max_orphans = 3276800
@@ -212,7 +213,7 @@ net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_tw_recycle = 0
 net.ipv4.tcp_tw_reuse = 0
 EOF
-
+cp /etc/default/grub /root/grub.default
 cat > /etc/default/grub <<'EOF'
 GRUB_TIMEOUT=5
 GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
