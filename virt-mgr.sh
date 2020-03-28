@@ -8,7 +8,7 @@ fi
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 KVM_USER=${KVM_USER:-root}
-KVM_HOST=${KVM_HOST:-10.32.166.33}
+KVM_HOST=${KVM_HOST:-127.0.0.1}
 KVM_PORT=${KVM_PORT:-60022}
 
 VIRSH_OPT="-q -c qemu+ssh://${KVM_USER}@${KVM_HOST}:${KVM_PORT}/system"
@@ -306,7 +306,10 @@ declare -A DOMAIN_TPL=(
   <currentMemory unit='KiB'>\${MEM}</currentMemory>
   <vcpu placement='static' current='\${CPUS}'>8</vcpu>
   <cpu match='exact'><model fallback='allow'>Westmere</model></cpu>
-  <os><type arch='x86_64'>hvm</type></os>
+  <os><type arch='x86_64'>hvm</type>
+    <loader readonly='yes' type='pflash'>/usr/share/OVMF/OVMF_CODE.fd</loader>
+    <nvram>/var/lib/libvirt/qemu/nvram/rhel8-unknown_VARS.fd</nvram>
+  </os>
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>preserve</on_poweroff>
   <devices>
