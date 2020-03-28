@@ -364,4 +364,38 @@ pxe-service=X86-64_EFI, "Boot from network...", /srv/tftpboot/EFIx64/syslinux.ef
 pxe-service=IA64_EFI, "Boot from network...", /srv/tftpboot/EFIia64/syslinux.efi
 dhcp-range=10.10.10.2,proxy,255.255.255.0
 EOF
+cat <<EOF
+---/etc/dnsmasq.conf
+filterwin2k
+interface=eth0
+dhcp-range=192.168.100.172,192.168.100.180,12h
+#dhcp-host=52:54:00:ed:00:f7,192.168.100.178
+#dhcp-boot=pxelinux.0
+dhcp-boot=grldr
+enable-tftp
+tftp-root=/root/tftpd
+dhcp-authoritative
+
+---/root/tftpd/menu.lst/default
+timeout 30
+title Install Linux
+kernel /www/dvdrom/images/pxeboot/vmlinuz ks=http://10.0.2.12/ks/ks.cfg
+initrd /www/dvdrom/images/pxeboot/initrd.img
+boot
+
+title WinPE plus v2
+map --mem /www/WinPE_U.iso (0xff)
+map --hook
+chainloader (0xff)
+boot
+
+title ar5
+map --mem /www/ar5.img (fd0)
+map --hook
+chainloader (fd0)+1
+rootnoverify (fd0)
+
+title reboot
+reboot
+EOF
 exit 0
