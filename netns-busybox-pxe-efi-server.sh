@@ -195,7 +195,8 @@ network --hostname=server1
 KSEOF
 
     cat >> ${kscfg} <<'KSEOF'
-rootpw  --iscrypted $6$Tevn5ihz1h7MHhMV$Zt7r1ocJqZXhNfVntdsDuGWU42BkQKdpqp0EosOhaYS46zzOEcYALmH5mkDWoYmRvFBs0lBNM/LUiGJAmmx7Q.
+#rootpw --plaintext password
+rootpw --iscrypted $6$Tevn5ihz1h7MHhMV$Zt7r1ocJqZXhNfVntdsDuGWU42BkQKdpqp0EosOhaYS46zzOEcYALmH5mkDWoYmRvFBs0lBNM/LUiGJAmmx7Q.
 #password
 
 firewall --disabled
@@ -205,7 +206,7 @@ selinux --disabled
 reboot
 timezone  Asia/Shanghai
 
-#user --groups=wheel --name=admin --password=password
+#user --groups=wheel --name=admin --plaintext --password=password
 KSEOF
 
     cat >> ${kscfg} <<KSEOF
@@ -235,6 +236,9 @@ KSEOF
 lvm2
 net-tools
 chrony
+-alsa-*
+-iwl*firmware
+-ivtv*
 %end
 KSEOF
     cat >> ${kscfg} <<KSEOF
