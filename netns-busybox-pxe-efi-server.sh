@@ -237,7 +237,10 @@ net-tools
 chrony
 %end
 KSEOF
-
+    cat >> ${kscfg} <<KSEOF
+%addon com_redhat_kdump --disable --reserve-mb='auto'
+%end
+KSEOF
     cat >> ${kscfg} <<KSEOF
 %post
 echo "tuning sysytem!!"
