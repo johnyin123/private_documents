@@ -7,11 +7,16 @@ if [ "${DEBUG:=false}" = "true" ]; then
 fi
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-declare -A APP_ERRORS=(
-    [0]="success"
-    [1]=""
-)
 readonly DVD_DIR="centos_dvd"
+#readonly DHCP_BOOTFILE="BOOTX64.efi" #centos 6
+readonly DHCP_BOOTFILE="shim.efi"
+#soft link here !
+readonly BUSYBOX="${DIRNAME}/busybox"
+readonly DVD_IMG="${DIRNAME}/CentOS-7-x86_64-Minimal.iso"
+readonly ROOTFS="${DIRNAME}/pxeroot"
+readonly PXE_DIR="/tftp" #abs path in chroot env
+readonly KS_URI="uefi.ks.cfg"
+
 mk_busybox_fs() {
     info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local busybox_bin="$1"
@@ -131,7 +136,7 @@ extract_efi_grub() {
     local dvdroot="$1"
     local dest="$2"
     local tmpdir=${dest}/tmp_efi
-    local efipkg="grub2-efi-x64-2.02-0.64.el7.centos.x86_64.rpm shim-x64-12-1.el7.centos.x86_64.rpm"
+    local efipkg="grub2-efi-x64*.x86_64.rpm shim-x64*.x86_64.rpm"
     try mkdir -p "${tmpdir}"
     for pkg in ${efipkg}; do
         try rpm2cpio ${dvdroot}/Packages/${pkg} \| cpio -id -D ${tmpdir}
@@ -168,6 +173,12 @@ gen_kickstart() {
     local boot_driver="$3"
     local ks_uri="$4"
     local lvm=$5
+    local ipaddr=$6
+    local prefix=${ipaddr##*/}
+    ipaddr=${ipaddr%/*}
+    info_msg "os ipaddress: ${ipaddr}/${prefix}\n"
+    info_msg "   boot disk: ${boot_driver}\n"
+    info_msg "         lvm: ${lvm}\n"
     cat > ${kscfg} <<KSEOF
 firewall --disabled
 install
@@ -206,7 +217,7 @@ bootloader --location=mbr --driveorder=${boot_driver} --append=" console=ttyS0 n
 
 part     /boot/efi  --fstype="vfat" --size=50
 part     /boot      --fstype="xfs"  --size=200
-$(if [ "${lvm:=false}" = "true" ]; then  
+$(if [ "${lvm:=false}" = "true" ]; then
     echo "part     pv.01                      --size=1500 --grow"
     echo "volgroup vg_root pv.01"
     echo "logvol   /          --fstype="xfs"  --size=1500 --name=lv_root --vgname=vg_root"
@@ -293,20 +304,23 @@ GRUB_DISABLE_RECOVERY="true"
 EOF
 
 cat > /etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
+INITEOF
+    cat >> ${kscfg}.init.sh <<INITEOF
 NM_CONTROLLED=no
 IPV6INIT=no
 DEVICE="eth0"
 ONBOOT="yes"
 BOOTPROTO="none"
 #DNS1=10.0.2.1
-IPADDR=172.16.16.100
-PREFIX=24
-GATEWAY=172.16.16.1
+IPADDR=${ipaddr}
+PREFIX=${prefix}
+#GATEWAY=172.16.16.1
 EOF
 cat > /etc/sysconfig/network-scripts/route-eth0 <<-EOF
 #xx.xx.xx.xx via xxx dev eth0
 EOF
-
+INITEOF
+    cat >> ${kscfg}.init.sh <<'INITEOF'
 ### Add SSH public key cloudkey.pub for Ansible login after reboot
 if [ ! -d /root/.ssh ]; then
     mkdir -m0700 /root/.ssh
@@ -335,44 +349,30 @@ error_clean() {
     exit_msg "$* error";
 }
 
-start() {
-    return 0
-}
-
-stop() {
-    return 0
-}
-
 main() {
-    local rootfs="${DIRNAME}/rootfs"
-    local ns_ipaddr="172.16.16.2"
-    local ns_name="pxe_ns"
-    local host_br="br-ext"
-    local pxe_dir="/pxe_dir" #abs path in chroot env
-    local LVM=false
-    local KS_URI="ks.cfg"
-    local BOOT_DRIVER="vda"
-    #readonly local DHCP_BOOTFILE="BOOTX64.efi" #centos 6
-    readonly local DHCP_BOOTFILE="shim.efi"
-    readonly local BUSYBOX="${DIRNAME}/busybox"
-    readonly local DVD_IMG="/home/johnyin/disk/CentOS-7-x86_64-Minimal-1708.iso"
-    mkdir -p ${rootfs}
-    mk_busybox_fs "${BUSYBOX}" "${rootfs}"
-    gen_busybox_inetd "${DHCP_BOOTFILE}" "${rootfs}" "${ns_ipaddr}" "${pxe_dir}"
-    try mkdir -p "${rootfs}/${pxe_dir}/"
-    gen_grub_cfg "${rootfs}/${pxe_dir}/grub.cfg" "${ns_ipaddr}" "${KS_URI}"
-    gen_kickstart "${rootfs}/${pxe_dir}/${KS_URI}" "${ns_ipaddr}" "${BOOT_DRIVER}" "${KS_URI}" ${LVM}
-    try mkdir -p ${rootfs}/${pxe_dir}/${DVD_DIR}/ && try mount ${DVD_IMG} ${rootfs}/${pxe_dir}/${DVD_DIR}/
-    extract_efi_grub "${rootfs}/${pxe_dir}/${DVD_DIR}/" "${rootfs}/${pxe_dir}/"
+    local HOST_BR=${1:-"br-ext"}
+    local IPADDR=${IPADDR:-"192.168.168.101/24"}
+    local LVM=${LVM:-false}
+    local DISK=${DISK:-"vda"}
+    local NS_IPADDR=${NS_IPADDR:-"172.16.16.2"}
+    local NS_NAME=${NS_NAME:-"pxe_ns"}
+    mkdir -p ${ROOTFS}
+    mk_busybox_fs "${BUSYBOX}" "${ROOTFS}"
+    gen_busybox_inetd "${DHCP_BOOTFILE}" "${ROOTFS}" "${NS_IPADDR}" "${PXE_DIR}"
+    try mkdir -p "${ROOTFS}/${PXE_DIR}/"
+    gen_grub_cfg "${ROOTFS}/${PXE_DIR}/grub.cfg" "${NS_IPADDR}" "${KS_URI}"
+    gen_kickstart "${ROOTFS}/${PXE_DIR}/${KS_URI}" "${NS_IPADDR}" "${DISK}" "${KS_URI}" ${LVM} "${IPADDR}"
+    try mkdir -p ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ && try mount ${DVD_IMG} ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/
+    extract_efi_grub "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/"
 
-    add_ns ${ns_name} ${host_br} "${ns_ipaddr}" || error_clean "${rootfs}" ${ns_name} "add netns $?"
-    start_ns_inetd ${ns_name} "${rootfs}" || error_clean "${rootfs}" ${ns_name} "start inetd $?"
+    add_ns ${NS_NAME} ${HOST_BR} "${NS_IPADDR}" || error_clean "${ROOTFS}" ${NS_NAME} "add netns $?"
+    start_ns_inetd ${NS_NAME} "${ROOTFS}" || error_clean "${ROOTFS}" ${NS_NAME} "start inetd $?"
 
-    ip netns exec ${ns_name} chroot "${rootfs}" /bin/busybox sh -l || true
+    ip netns exec ${NS_NAME} chroot "${ROOTFS}" /bin/busybox sh -l || true
 
-    try umount ${rootfs}/${pxe_dir}/${DVD_DIR}/ || error_clean "${rootfs}" ${ns_name} "${pxe_dir}" "umount $?"
-    kill_ns_inetd "${rootfs}"|| error_clean "${rootfs}" ${ns_name} "kill inetd $?"
-    del_ns ${ns_name}
+    try umount ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ || error_clean "${ROOTFS}" ${NS_NAME} "${PXE_DIR}" "umount $?"
+    kill_ns_inetd "${ROOTFS}"|| error_clean "${ROOTFS}" ${NS_NAME} "kill inetd $?"
+    del_ns ${NS_NAME}
     return 0
 }
 main "$@"
