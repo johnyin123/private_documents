@@ -8,8 +8,8 @@ fi
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
-#readonly DHCP_BOOTFILE="BOOTX64.efi" #centos 6
-readonly DHCP_BOOTFILE="shim.efi"
+#readonly DHCP_EFI_BOOTFILE="BOOTX64.efi" #centos 6
+readonly DHCP_EFI_BOOTFILE="shim.efi"
 #soft link here !
 readonly BUSYBOX="${DIRNAME}/busybox"
 readonly DVD_IMG="${DIRNAME}/CentOS-7-x86_64-Minimal.iso"
@@ -139,6 +139,7 @@ extract_efi_grub() {
     local efipkg="grub2-efi-x64*.x86_64.rpm shim-x64*.x86_64.rpm"
     try mkdir -p "${tmpdir}"
     for pkg in ${efipkg}; do
+        [[ -r "$(ls ${dvdroot}/Packages/${pkg})" ]] || return 5
         try rpm2cpio ${dvdroot}/Packages/${pkg} \| cpio -id -D ${tmpdir}
     done
     try find ${tmpdir} -name grubx64.efi \| xargs -I@ cp @  "${dest}"
@@ -349,11 +350,11 @@ INITEOF
 error_clean() {
     local rootfs="$1";shift 1
     local ns_name="$1";shift 1
-    local pxe_dir="$1";shift
-    umount ${rootfs}/${pxe_dir}/${DVD_DIR}/
-    kill_ns_inetd "${rootfs}"
-    del_ns ${ns_name}
-    exit_msg "$* error";
+    local pxe_dir="$1";shift 1
+    umount ${rootfs}/${pxe_dir}/${DVD_DIR}/ 1>/dev/null 2>&1 || true
+    kill_ns_inetd "${rootfs}" 1>/dev/null 2>&1 || true
+    del_ns ${ns_name} 1>/dev/null 2>&1 || true
+    exit_msg "clean over! $* error\n";
 }
 
 main() {
@@ -365,20 +366,20 @@ main() {
     local NS_NAME=${NS_NAME:-"pxe_ns"}
     mkdir -p ${ROOTFS}
     mk_busybox_fs "${BUSYBOX}" "${ROOTFS}"
-    gen_busybox_inetd "${DHCP_BOOTFILE}" "${ROOTFS}" "${NS_IPADDR}" "${PXE_DIR}"
+    gen_busybox_inetd "${DHCP_EFI_BOOTFILE}" "${ROOTFS}" "${NS_IPADDR}" "${PXE_DIR}"
     try mkdir -p "${ROOTFS}/${PXE_DIR}/"
     gen_grub_cfg "${ROOTFS}/${PXE_DIR}/grub.cfg" "${NS_IPADDR}" "${KS_URI}"
     gen_kickstart "${ROOTFS}/${PXE_DIR}/${KS_URI}" "${NS_IPADDR}" "${DISK}" "${KS_URI}" ${LVM} "${IPADDR}"
-    try mkdir -p ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ && try mount ${DVD_IMG} ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/
-    extract_efi_grub "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/"
+    try mkdir -p ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ && try mount ${DVD_IMG} ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ 1>/dev/null 2>&1
+    extract_efi_grub "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "extract_efi_grub $?"
 
-    add_ns ${NS_NAME} ${HOST_BR} "${NS_IPADDR}" || error_clean "${ROOTFS}" ${NS_NAME} "add netns $?"
-    start_ns_inetd ${NS_NAME} "${ROOTFS}" || error_clean "${ROOTFS}" ${NS_NAME} "start inetd $?"
+    add_ns ${NS_NAME} ${HOST_BR} "${NS_IPADDR}" || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "add netns $?"
+    start_ns_inetd ${NS_NAME} "${ROOTFS}" || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "start inetd $?"
 
     ip netns exec ${NS_NAME} chroot "${ROOTFS}" /bin/busybox sh -l || true
 
-    try umount ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ || error_clean "${ROOTFS}" ${NS_NAME} "${PXE_DIR}" "umount $?"
-    kill_ns_inetd "${ROOTFS}"|| error_clean "${ROOTFS}" ${NS_NAME} "kill inetd $?"
+    try umount ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ 1>/dev/null 2>&1 || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "umount $?"
+    kill_ns_inetd "${ROOTFS}"|| error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "kill inetd $?"
     del_ns ${NS_NAME}
     return 0
 }
