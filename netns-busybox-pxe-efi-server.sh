@@ -8,14 +8,20 @@ fi
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
-#readonly DHCP_EFI_BOOTFILE="BOOTX64.efi" #centos 6
-readonly DHCP_EFI_BOOTFILE="shim.efi"
+#readonly DHCP_UEFI_BOOTFILE="BOOTX64.efi" #centos 6
+readonly DHCP_UEFI_BOOTFILE="shim.efi"
+readonly DHCP_BIOS_BOOTFILE="pxelinux.0"
+readonly DHCP_BOOTFILE="booter"
+
 #soft link here !
-readonly BUSYBOX="${DIRNAME}/busybox"
-readonly DVD_IMG="${DIRNAME}/CentOS-7-x86_64-Minimal.iso"
+readonly BUSYBOX="busybox"
+readonly DVD_IMG="CentOS-7-x86_64-Minimal.iso"
+readonly PXELINUX="ldlinux.c32 menu.c32 pxelinux.0"
+
 readonly ROOTFS="${DIRNAME}/pxeroot"
 readonly PXE_DIR="/tftp" #abs path in chroot env
-readonly KS_URI="uefi.ks.cfg"
+readonly UEFI_KS_URI="uefi.ks.cfg"
+readonly BIOS_KS_URI="bios.ks.cfg"
 
 mk_busybox_fs() {
     info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
@@ -32,8 +38,11 @@ mk_busybox_fs() {
         cat > ${rootfs}/etc/profile << EOF
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
 export PATH
-export PS1="\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]**busybox**:\\[\\033[33;1m\\]\\w\\[\\033[m\\]\\$"
+export PS1="\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]**bios/uefi**:\\[\\033[33;1m\\]\\w\\[\\033[m\\]\\$"
+alias bios='/bin/busybox cp -f ${PXE_DIR}/${DHCP_BIOS_BOOTFILE}  ${PXE_DIR}/${DHCP_BOOTFILE}'
+alias uefi='/bin/busybox cp -f ${PXE_DIR}/${DHCP_UEFI_BOOTFILE}  ${PXE_DIR}/${DHCP_BOOTFILE}'
 alias ll='/bin/busybox ls -lh'
+echo "cmd : bios/uefi change mode"
 EOF
         cat > ${rootfs}/etc/passwd << EOF
 root:x:0:0:root:/root:/bin/sh
@@ -131,6 +140,16 @@ add_ns() {
     return 0
 }
 
+extract_bios_pxelinux() {
+    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    local dvdroot="$1"
+    local dest="$2"
+    for fn in ${PXELINUX}; do 
+        try cp "${DIRNAME}/$fn" "${dest}"
+    done
+    return 0
+}
+
 extract_efi_grub() {
     info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local dvdroot="$1"
@@ -148,12 +167,34 @@ extract_efi_grub() {
     return 0
 }
 
+gen_pxelinux_cfg() {
+    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    local pxelinux_cfg="$1"
+    local ns_ipaddr="$2"
+    local ks_uri="$3"
+    cat > ${pxelinux_cfg} <<EOF
+default menu.c32
+prompt 0
+timeout 300
+ONTIMEOUT 2
+menu title ########## PXE Boot Menu ##########
+label 1
+menu label ^1) Install Centos [BIOS] PXE+Kickstart
+kernel ${DVD_DIR}/images/pxeboot/vmlinuz
+append initrd=${DVD_DIR}/images/pxeboot/initrd.img ks=http://${ns_ipaddr}/${ks_uri} net.ifnames=0 biosdevname=0
+label 2
+menu label ^2) Boot from local drive
+localboot 0xffff
+EOF
+    return 0
+}
+
 gen_grub_cfg() {
     info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local menulst="$1"
     local ns_ipaddr="$2"
     local ks_uri="$3"
-        cat > ${menulst} <<EOF
+    cat > ${menulst} <<EOF
 set timeout=30
 set default="0"
 menuentry 'Install Centos [UEFI] PXE+Kickstart' {
@@ -174,7 +215,8 @@ gen_kickstart() {
     local boot_driver="$3"
     local ks_uri="$4"
     local lvm=$5
-    local ipaddr=$6
+    local efi=$6
+    local ipaddr=$7
     local prefix=${ipaddr##*/}
     ipaddr=${ipaddr%/*}
     info_msg "os ipaddress: ${ipaddr}/${prefix}\n"
@@ -217,14 +259,14 @@ clearpart --all --initlabel
 zerombr
 bootloader --location=mbr --driveorder=${boot_driver} --append=" console=ttyS0 net.ifnames=0 biosdevname=0"
 
-part     /boot/efi  --fstype="vfat" --size=50
+$( [[ efi = "true" ]] && echo 'part     /boot/efi  --fstype="vfat" --size=50')
 part     /boot      --fstype="xfs"  --size=200
 $(if [ "${lvm:=false}" = "true" ]; then
-    echo "part     pv.01                      --size=1500 --grow"
-    echo "volgroup vg_root pv.01"
-    echo "logvol   /          --fstype="xfs"  --size=1500 --name=lv_root --vgname=vg_root"
+    echo 'part     pv.01                      --size=1500 --grow'
+    echo 'volgroup vg_root pv.01'
+    echo 'logvol   /          --fstype="xfs"  --size=1500 --name=lv_root --vgname=vg_root'
 else
-    echo "part     /          --fstype="xfs"  --size=1500 --grow"
+    echo 'part     /          --fstype="xfs"  --size=1500 --grow'
 fi)
 # part pv.02 --size=2048
 # volgroup vg_swap pv.02
@@ -319,10 +361,10 @@ IPV6INIT=no
 DEVICE="eth0"
 ONBOOT="yes"
 BOOTPROTO="none"
-#DNS1=10.0.2.1
 IPADDR=${ipaddr}
 PREFIX=${prefix}
 #GATEWAY=172.16.16.1
+#DNS1=10.0.2.1
 EOF
 cat > /etc/sysconfig/network-scripts/route-eth0 <<-EOF
 #xx.xx.xx.xx via xxx dev eth0
@@ -357,21 +399,38 @@ error_clean() {
     exit_msg "clean over! $* error\n";
 }
 
+check_depend() {
+    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    local host_br=$1
+    ip netns || exit_msg "ip not support netns!!\n"
+    [[ -r "/sys/class/net/$host_br" ]] || exit_msg "$host_br bridge no found!!\n"
+    for fn in $PXELINUX $BUSYBOX $DVD_IMG; do
+        [[ -r "${DIRNAME}/$fn" ]] || exit_msg "${DIRNAME}/$fn no found!!\n"
+    done
+    return 0
+}
+
 main() {
-    local HOST_BR=${1:-"br-ext"}
     local IPADDR=${IPADDR:-"192.168.168.101/24"}
     local LVM=${LVM:-false}
     local DISK=${DISK:-"vda"}
     local NS_IPADDR=${NS_IPADDR:-"172.16.16.2"}
     local NS_NAME=${NS_NAME:-"pxe_ns"}
-    mkdir -p ${ROOTFS}
-    mk_busybox_fs "${BUSYBOX}" "${ROOTFS}"
-    gen_busybox_inetd "${DHCP_EFI_BOOTFILE}" "${ROOTFS}" "${NS_IPADDR}" "${PXE_DIR}"
+    local HOST_BR=${1:-br-ext}; shift || exit_msg "IPADDR=$IPADDR LVM=$LVM DISK=$DISK $0 <bridge>\n"
+    check_depend ${HOST_BR}
+    try mkdir -p ${ROOTFS}
+    mk_busybox_fs "${DIRNAME}/${BUSYBOX}" "${ROOTFS}"
+    gen_busybox_inetd "${DHCP_BOOTFILE}" "${ROOTFS}" "${NS_IPADDR}" "${PXE_DIR}"
+    try mkdir -p ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ && try mount "${DIRNAME}/${DVD_IMG}" ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ 1>/dev/null
     try mkdir -p "${ROOTFS}/${PXE_DIR}/"
-    gen_grub_cfg "${ROOTFS}/${PXE_DIR}/grub.cfg" "${NS_IPADDR}" "${KS_URI}"
-    gen_kickstart "${ROOTFS}/${PXE_DIR}/${KS_URI}" "${NS_IPADDR}" "${DISK}" "${KS_URI}" ${LVM} "${IPADDR}"
-    try mkdir -p ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ && try mount ${DVD_IMG} ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ 1>/dev/null 2>&1
+    gen_grub_cfg "${ROOTFS}/${PXE_DIR}/grub.cfg" "${NS_IPADDR}" "${UEFI_KS_URI}"
+    gen_kickstart "${ROOTFS}/${PXE_DIR}/${UEFI_KS_URI}" "${NS_IPADDR}" "${DISK}" "${UEFI_KS_URI}" ${LVM} true "${IPADDR}"
     extract_efi_grub "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "extract_efi_grub $?"
+
+    try mkdir -p "${ROOTFS}/${PXE_DIR}/pxelinux.cfg/" 
+    gen_pxelinux_cfg "${ROOTFS}/${PXE_DIR}/pxelinux.cfg/default" "${NS_IPADDR}" "${BIOS_KS_URI}"
+    gen_kickstart "${ROOTFS}/${PXE_DIR}/${BIOS_KS_URI}" "${NS_IPADDR}" "${DISK}" "${BIOS_KS_URI}" ${LVM} false "${IPADDR}"
+    extract_bios_pxelinux "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "extract_bios_pxelinux $?"
 
     add_ns ${NS_NAME} ${HOST_BR} "${NS_IPADDR}" || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "add netns $?"
     start_ns_inetd ${NS_NAME} "${ROOTFS}" || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "start inetd $?"
@@ -381,6 +440,7 @@ main() {
     try umount ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ 1>/dev/null 2>&1 || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "umount $?"
     kill_ns_inetd "${ROOTFS}"|| error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "kill inetd $?"
     del_ns ${NS_NAME}
+    info_msg "Exit success\n"
     return 0
 }
 main "$@"
