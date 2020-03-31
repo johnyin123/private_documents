@@ -167,18 +167,25 @@ gen_pxelinux_cfg() {
     local pxelinux_cfg="$1"
     local ns_ipaddr="$2"
     local ks_uri="$3"
+    #http://mirrors.163.com/debian/dists/Debian10.3/main/installer-amd64/current/images/netboot/netboot.tar.gz
     cat > ${pxelinux_cfg} <<EOF
 default menu.c32
 prompt 0
 timeout 300
-ONTIMEOUT 2
+ONTIMEOUT 3
 menu title ########## PXE Boot Menu ##########
 label 1
 menu label ^1) Install Centos [BIOS] PXE+Kickstart
 kernel ${DVD_DIR}/images/pxeboot/vmlinuz
 append initrd=${DVD_DIR}/images/pxeboot/initrd.img ks=http://${ns_ipaddr}/${ks_uri} net.ifnames=0 biosdevname=0
+
 label 2
-menu label ^2) Boot from local drive
+menu label ^2) Install Debian [BIOS] PXE
+kernel /debian/linux
+append initrd=/debian/initrd.gz vga=788 --- quiet
+
+label 3
+menu label ^3) Boot from local drive
 localboot 0xffff
 EOF
     return 0
@@ -195,6 +202,10 @@ set default="0"
 menuentry 'Install Centos [UEFI] PXE+Kickstart' {
     linuxefi ${DVD_DIR}/images/pxeboot/vmlinuz ks=http://${ns_ipaddr}/${ks_uri} net.ifnames=0 biosdevname=0
     initrdefi ${DVD_DIR}/images/pxeboot/initrd.img
+}
+menuentry 'Install Debian [UEFI] PXE' {
+    linuxefi /debian/linux vga=788 --- quiet
+    initrdefi /debian/initrd.gz
 }
 menuentry 'Start' {
     boot
@@ -254,14 +265,14 @@ clearpart --all --initlabel
 zerombr
 bootloader --location=mbr --driveorder=${boot_driver} --append=" console=ttyS0 net.ifnames=0 biosdevname=0"
 
-$( [[ efi = "true" ]] && echo 'part     /boot/efi  --fstype="vfat" --size=50')
-part     /boot      --fstype="xfs"  --size=200
+$( [[ ${efi} = "true" ]] && echo "part     /boot/efi  --fstype=vfat --size=50 --ondisk=${boot_driver}")
+part     /boot      --fstype="xfs"  --size=200 --ondisk=${boot_driver}
 $(if [ "${lvm:=false}" = "true" ]; then
-    echo 'part     pv.01                      --size=1500 --grow'
-    echo 'volgroup vg_root pv.01'
-    echo 'logvol   /          --fstype="xfs"  --size=1500 --name=lv_root --vgname=vg_root'
+    echo "part     pv.01                      --size=1500 --ondisk=${boot_driver}"
+    echo "volgroup vg_root pv.01"
+    echo "logvol   /          --fstype=xfs  --size=1500 --name=lv_root --vgname=vg_root"
 else
-    echo 'part     /          --fstype="xfs"  --size=1500 --grow'
+    echo "part     /          --fstype=xfs  --size=1500 --ondisk=${boot_driver}"
 fi)
 # part pv.02 --size=2048
 # volgroup vg_swap pv.02
