@@ -16,7 +16,8 @@ readonly DHCP_BOOTFILE="booter"
 #soft link here !
 readonly BUSYBOX="busybox"
 readonly DVD_IMG="CentOS-7-x86_64-Minimal.iso"
-readonly PXELINUX="ldlinux.c32 menu.c32 pxelinux.0"
+readonly PXELINUX="ldlinux.c32 menu.c32 libutil.c32 pxelinux.0 "
+readonly EFILINUX="grubx64.efi shim.efi"
 
 readonly ROOTFS="${DIRNAME}/pxeroot"
 readonly PXE_DIR="/tftp" #abs path in chroot env
@@ -150,20 +151,14 @@ extract_bios_pxelinux() {
     return 0
 }
 
+#grub2-efi-x64*.x86_64.rpm shim-x64*.x86_64.rpm 
 extract_efi_grub() {
     info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local dvdroot="$1"
     local dest="$2"
-    local tmpdir=${dest}/tmp_efi
-    local efipkg="grub2-efi-x64*.x86_64.rpm shim-x64*.x86_64.rpm"
-    try mkdir -p "${tmpdir}"
-    for pkg in ${efipkg}; do
-        [[ -r "$(ls ${dvdroot}/Packages/${pkg})" ]] || return 5
-        try rpm2cpio ${dvdroot}/Packages/${pkg} \| cpio -id -D ${tmpdir}
+    for fn in ${EFILINUX}; do 
+        try cp "${DIRNAME}/$fn" "${dest}"
     done
-    try find ${tmpdir} -name grubx64.efi \| xargs -I@ cp @  "${dest}"
-    try find ${tmpdir} -name shim.efi \| xargs -I@ cp @  "${dest}"/shim.efi
-    try rm -rf "${tmpdir}"
     return 0
 }
 
@@ -404,7 +399,7 @@ check_depend() {
     local host_br=$1
     ip netns || exit_msg "ip not support netns!!\n"
     [[ -r "/sys/class/net/$host_br" ]] || exit_msg "$host_br bridge no found!!\n"
-    for fn in $PXELINUX $BUSYBOX $DVD_IMG; do
+    for fn in $PXELINUX $EFILINUX $BUSYBOX $DVD_IMG; do
         [[ -r "${DIRNAME}/$fn" ]] || exit_msg "${DIRNAME}/$fn no found!!\n"
     done
     return 0
