@@ -136,8 +136,8 @@ add_ns() {
     try ip link set dev ${ns_name}-eth1 up || return 4
     try ip link set dev ${ns_name}-eth1 master ${host_br} || return 4
     try ip link set ${ns_name}-eth0 netns ${ns_name} || return 4
-    ip netns exec ${ns_name} ip link set dev ${ns_name}-eth0 name eth0 up || return 4
-    ip netns exec ${ns_name} ip address add ${ns_ipaddr}/24 dev eth0 || return 4
+    try ip netns exec ${ns_name} ip link set dev ${ns_name}-eth0 name eth0 up || return 4
+    try ip netns exec ${ns_name} ip address add ${ns_ipaddr}/24 dev eth0 || return 4
     return 0
 }
 
@@ -399,7 +399,7 @@ error_clean() {
     local rootfs="$1";shift 1
     local ns_name="$1";shift 1
     local pxe_dir="$1";shift 1
-    umount ${rootfs}/${pxe_dir}/${DVD_DIR}/ 1>/dev/null 2>&1 || true
+    try umount ${rootfs}/${pxe_dir}/${DVD_DIR}/ || true
     kill_ns_inetd "${rootfs}" 1>/dev/null 2>&1 || true
     del_ns ${ns_name} 1>/dev/null 2>&1 || true
     exit_msg "clean over! $* error\n";
@@ -408,7 +408,7 @@ error_clean() {
 check_depend() {
     info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local host_br=$1
-    ip netns || exit_msg "ip not support netns!!\n"
+    try ip netns || exit_msg "ip not support netns!!\n"
     [[ -r "/sys/class/net/$host_br" ]] || exit_msg "$host_br bridge no found!!\n"
     for fn in $PXELINUX $EFILINUX $BUSYBOX $DVD_IMG; do
         [[ -r "${DIRNAME}/$fn" ]] || exit_msg "${DIRNAME}/$fn no found!!\n"
@@ -443,7 +443,7 @@ main() {
 
     ip netns exec ${NS_NAME} chroot "${ROOTFS}" /bin/busybox sh -l || true
 
-    try umount ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ 1>/dev/null 2>&1 || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "umount $?"
+    try umount ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "umount $?"
     kill_ns_inetd "${ROOTFS}"|| error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "kill inetd $?"
     del_ns ${NS_NAME}
     info_msg "Exit success\n"
