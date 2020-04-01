@@ -311,16 +311,16 @@ try () {
     # Execute the command and fail if it does not return zero.
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
     [[ ${QUIET:-0} = 0 ]] && blue "Begin: %${cmd_size}s." "${cmd}" >&2
-    #local out=$(${DRYRUN:+echo }${cmd} 2>&1)
-    local out=$(eval "${DRYRUN:+echo }${cmd}" 2>&1)
+    #__try_out=$(${DRYRUN:+echo }${cmd} 2>&1)
+    __try_out=$(eval "${DRYRUN:+echo }${cmd}" 2>&1)
     local ret="$?"
     #tput cuu1
     if [ "$ret" == "0" ]; then
         [[ ${QUIET:-0} = 0 ]] && green "${DRYRUN:+${cmd}} done.\\n" >&2
-        [[ -z "${out}" ]] || printf "%s\n" "${out}"
+        [[ -z "${__try_out}" ]] || printf "%s\n" "${__try_out}"
     else
         [[ ${QUIET:-0} = 0 ]] && red " failed($ret).\\n" >&2
-        error_msg "%s\\n%s\\n" "${cmd}" "${out}" >&2
+        error_msg "%s\\n%s\\n" "${cmd}" "${__try_out}" >&2
     fi
     return "$ret"
 }
