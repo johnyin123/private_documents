@@ -181,8 +181,8 @@ error_msg() {
 
 # echo "$_out"|vinfo
 vinfo() {
-    while read line || [ -n "$line" ]; do
-        info_msg $line;
+    while IFS='\n' read line || [ -n "$line" ]; do
+        info_msg "$line\n"
     done
 }
 

@@ -25,7 +25,7 @@ readonly UEFI_KS_URI="uefi.ks.cfg"
 readonly BIOS_KS_URI="bios.ks.cfg"
 
 mk_busybox_fs() {
-    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local busybox_bin="$1"
     local rootfs="$2"
     for d in /var/lib/misc /var/run /etc /lib /bin /dev /root; do
@@ -36,7 +36,7 @@ mk_busybox_fs() {
     [ -e ${rootfs}/dev/urandom ] || try mknod -m 0644 ${rootfs}/dev/urandom c 1 9
     [ -e ${rootfs}/dev/null    ] || try mknod -m 0666 ${rootfs}/dev/null c 1 3
 
-        cat > ${rootfs}/etc/profile << EOF
+    cat > ${rootfs}/etc/profile << EOF
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
 export PATH
 export PS1="\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]**bios/uefi**:\\[\\033[33;1m\\]\\w\\[\\033[m\\]\\$"
@@ -45,7 +45,7 @@ alias uefi='/bin/busybox cp -f ${PXE_DIR}/${DHCP_UEFI_BOOTFILE}  ${PXE_DIR}/${DH
 alias ll='/bin/busybox ls -lh'
 echo "cmd : bios/uefi change mode"
 EOF
-        cat > ${rootfs}/etc/passwd << EOF
+    cat > ${rootfs}/etc/passwd << EOF
 root:x:0:0:root:/root:/bin/sh
 EOF
     try chroot ${rootfs} /bin/busybox --install -s /bin
@@ -53,7 +53,7 @@ EOF
 }
 
 gen_busybox_inetd() {
-    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local dhcp_bootfile="$1"
     local rootfs="$2"
     local ns_ipaddr="$3"
@@ -61,20 +61,20 @@ gen_busybox_inetd() {
 
     mkdir -p ${rootfs}/${pxe_dir}/
     for cmd in tftpd httpd ftpd udhcpd; do
-        ${rootfs}/bin/busybox --list | grep $cmd > /dev/null && info_msg "check $cmd ok\n" || exit_msg "check $cmd error"
+        ${rootfs}/bin/busybox --list | grep $cmd > /dev/null && debug_msg "check $cmd ok\n" || exit_msg "check $cmd error"
     done
     [ -e ${rootfs}/bin/tftpd   ] || try ln -s /bin/busybox ${rootfs}/bin/tftpd
     [ -e ${rootfs}/bin/httpd   ] || try ln -s /bin/busybox ${rootfs}/bin/httpd
     [ -e ${rootfs}/bin/ftpd    ] || try ln -s /bin/busybox ${rootfs}/bin/ftpd
     [ -e ${rootfs}/bin/udhcpd  ] || try ln -s /bin/busybox ${rootfs}/bin/udhcpd
 
-        cat > ${rootfs}/etc/inetd.conf << INETEOF
+    cat > ${rootfs}/etc/inetd.conf << INETEOF
 69 dgram udp nowait root tftpd tftpd -l ${pxe_dir}
 80 stream tcp nowait root httpd httpd -i -h ${pxe_dir}
 21 stream tcp nowait root ftpd ftpd ${pxe_dir}
 INETEOF
 
-        cat > ${rootfs}/etc/udhcpd.conf << DHCPEOF
+    cat > ${rootfs}/etc/udhcpd.conf << DHCPEOF
 start           ${ns_ipaddr%.*}.201
 end             ${ns_ipaddr%.*}.221
 interface       eth0
@@ -92,7 +92,7 @@ DHCPEOF
 }
 
 kill_ns_inetd() {
-    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local rootfs="$1"
     [ -e "${rootfs}/var/run/inetd.pid" ] && try kill -9 $(cat ${rootfs}/var/run/inetd.pid)
     [ -e "${rootfs}/var/run/udhcpd.pid" ] && try kill -9 $(cat ${rootfs}/var/run/udhcpd.pid)
@@ -100,7 +100,7 @@ kill_ns_inetd() {
 }
 
 start_ns_inetd() {
-    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local ns_name="$1"
     local rootfs="$2"
     # ip netns exec ${ns_name} chroot ${rootfs} /usr/sbin/dnsmasq --user=root --group=root
@@ -110,7 +110,7 @@ start_ns_inetd() {
 }
 
 del_ns() {
-    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local ns_name="$1"
     #try brctl delif br-ext ${ns_name}-eth1
     try ip link set ${ns_name}-eth1 promisc off || true
@@ -123,7 +123,7 @@ del_ns() {
 }
 
 add_ns() {
-    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local ns_name="$1"
     local host_br="$2"
     local ns_ipaddr="$3"
@@ -142,7 +142,7 @@ add_ns() {
 }
 
 extract_bios_pxelinux() {
-    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local dvdroot="$1"
     local dest="$2"
     for fn in ${PXELINUX}; do 
@@ -153,7 +153,7 @@ extract_bios_pxelinux() {
 
 #grub2-efi-x64*.x86_64.rpm shim-x64*.x86_64.rpm 
 extract_efi_grub() {
-    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local dvdroot="$1"
     local dest="$2"
     for fn in ${EFILINUX}; do 
@@ -163,7 +163,7 @@ extract_efi_grub() {
 }
 
 gen_pxelinux_cfg() {
-    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local pxelinux_cfg="$1"
     local ns_ipaddr="$2"
     local ks_uri="$3"
@@ -192,7 +192,7 @@ EOF
 }
 
 gen_grub_cfg() {
-    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local menulst="$1"
     local ns_ipaddr="$2"
     local ks_uri="$3"
@@ -215,7 +215,7 @@ EOF
 }
 
 gen_kickstart() {
-    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local kscfg="$1"
     local ns_ipaddr="$2"
     local boot_driver="$3"
@@ -225,9 +225,13 @@ gen_kickstart() {
     local ipaddr=$7
     local prefix=${ipaddr##*/}
     ipaddr=${ipaddr%/*}
-    info_msg "os ipaddress: ${ipaddr}/${prefix}\n"
-    info_msg "   boot disk: ${boot_driver}\n"
-    info_msg "         lvm: ${lvm}\n"
+    cat <<EOF | vinfo
+ipaddress: ${ipaddr}/${prefix}
+boot disk: ${boot_driver}
+      efi: ${efi}
+      lvm: ${lvm}
+EOF
+
     cat > ${kscfg} <<KSEOF
 firewall --disabled
 install
@@ -406,7 +410,7 @@ error_clean() {
 }
 
 check_depend() {
-    info_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
+    debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local host_br=$1
     try ip netns || exit_msg "ip not support netns!!\n"
     [[ -r "/sys/class/net/$host_br" ]] || exit_msg "$host_br bridge no found!!\n"
@@ -417,6 +421,8 @@ check_depend() {
 }
 
 main() {
+    #QUIET=1
+    set_loglevel ${2:-2}
     local IPADDR=${IPADDR:-"192.168.168.101/24"}
     local LVM=${LVM:-false}
     local DISK=${DISK:-"vda"}
@@ -427,7 +433,7 @@ main() {
     try mkdir -p ${ROOTFS}
     mk_busybox_fs "${DIRNAME}/${BUSYBOX}" "${ROOTFS}"
     gen_busybox_inetd "${DHCP_BOOTFILE}" "${ROOTFS}" "${NS_IPADDR}" "${PXE_DIR}"
-    try mkdir -p ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ && try mount "${DIRNAME}/${DVD_IMG}" ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ 1>/dev/null
+    try mkdir -p ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ && try mount "${DIRNAME}/${DVD_IMG}" "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" 2\>/dev/null
     try mkdir -p "${ROOTFS}/${PXE_DIR}/"
     gen_grub_cfg "${ROOTFS}/${PXE_DIR}/grub.cfg" "${NS_IPADDR}" "${UEFI_KS_URI}"
     gen_kickstart "${ROOTFS}/${PXE_DIR}/${UEFI_KS_URI}" "${NS_IPADDR}" "${DISK}" "${UEFI_KS_URI}" ${LVM} true "${IPADDR}"
