@@ -93,7 +93,7 @@ DHCPEOF
 #!/bin/sh
 # CGI output must start with at least empty line (or headers)
 printf '\r\n'
-ipaddr=$(head -1 ipaddr.txt 2>/dev/null) || exit 1
+ipaddr=$(head -1 ipaddr.txt 2>/dev/null)
 sed -i '1d' ipaddr.txt > /dev/null 2>&1
 prefix=${ipaddr##*/}
 ipaddr=${ipaddr%/*}
