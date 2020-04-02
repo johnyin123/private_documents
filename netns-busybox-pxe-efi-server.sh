@@ -410,20 +410,25 @@ EOF
 cat > /etc/sysconfig/network-scripts/route-eth0 <<-EOF
 #xx.xx.xx.xx via xxx dev eth0
 EOF
-### Add SSH public key cloudkey.pub for Ansible login after reboot
+### Add SSH public key
 if [ ! -d /root/.ssh ]; then
     mkdir -m0700 /root/.ssh
 fi
 cat <<EOF >/root/.ssh/authorized_keys
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
 EOF
-# set permissions
 chmod 0600 /root/.ssh/authorized_keys
 
 systemctl set-default multi-user.target
 systemctl enable getty@tty1
-chkconfig 2>/dev/null | egrep -v "crond|sshd|network|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
-systemctl list-unit-files | grep service | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
+
+netsvc=network
+[[ -r /etc/os-release ]] && source /etc/os-release
+[[ VERSION_ID = 8 ]] && sed -i "/NM_CONTROLLED=/d" /etc/sysconfig/network-scripts/ifcfg-eth0
+[[ VERSION_ID = 8 ]] && netsvc=NetworkManager
+
+chkconfig 2>/dev/null | egrep -v "crond|sshd|${netsvc}|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
+systemctl list-unit-files | grep enabled | egrep -v "${netsvc}|getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
 INITEOF
     return 0
 }
