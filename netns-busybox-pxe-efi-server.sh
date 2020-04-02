@@ -43,6 +43,7 @@ export PS1="\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]**bios/uefi**:\\[
 alias bios='/bin/busybox cp -f ${PXE_DIR}/${DHCP_BIOS_BOOTFILE}  ${PXE_DIR}/${DHCP_BOOTFILE}'
 alias uefi='/bin/busybox cp -f ${PXE_DIR}/${DHCP_UEFI_BOOTFILE}  ${PXE_DIR}/${DHCP_BOOTFILE}'
 alias ll='/bin/busybox ls -lh'
+echo "add ${PXE_DIR}/cgi-bin/ipaddr.txt for ipaddr: 192.168.168.2/24 line by line"
 echo "cmd : bios/uefi change mode"
 EOF
     cat > ${rootfs}/etc/passwd << EOF
@@ -87,6 +88,24 @@ opt     wins    ${ns_ipaddr}
 option  domain  local
 option  lease   864000
 DHCPEOF
+    mkdir -p ${rootfs}/${pxe_dir}/cgi-bin/
+    cat <<'CGIEOF' > ${rootfs}/${pxe_dir}/cgi-bin/reg.cgi
+#!/bin/sh
+# CGI output must start with at least empty line (or headers)
+printf '\r\n'
+#$REQUEST_METHOD
+cat <<EOF >> req.txt
+$QUERY_STRING
+EOF
+ipaddr=$(head -1 ipaddr.txt 2>/dev/null) || exit 1
+sed -i '1d' ipaddr.txt > /dev/null 2>&1
+prefix=${ipaddr##*/}
+ipaddr=${ipaddr%/*}
+printf "IPADDR=${ipaddr:-192.168.168.100}\n"
+printf "PREFIX=${prefix:-24}\n"
+printf "GATEWAY=\${IPADDR%%.*}.1\n"
+CGIEOF
+    chmod 755 ${rootfs}/${pxe_dir}/cgi-bin/reg.cgi
 
     return 0
 }
@@ -307,6 +326,20 @@ KSEOF
 
     cat > ${kscfg}.init.sh <<'INITEOF'
 #!/bin/bash
+
+UUID="$(dmidecode -s system-uuid)"
+SN="$(dmidecode -s system-serial-number | sed 's/[ &?]/-/g')"
+PROD="$(dmidecode -s system-product-name | sed 's/[ &?]/-/g')"
+
+INITEOF
+    cat >> ${kscfg}.init.sh <<INITEOF
+IPADDR=${ipaddr}
+PREFIX=${prefix}
+GATEWAY=
+curl -o /tmp/inst_info "http://${ns_ipaddr}/cgi-bin/reg.cgi?UUID=\${UUID}&SN=\${SN}&PROD=\${PROD}"
+source /tmp/inst_info
+INITEOF
+    cat >> ${kscfg}.init.sh <<'INITEOF'
 echo "export readonly TMOUT=900" >> /etc/profile.d/os-security.sh
 echo "export readonly HISTFILE" >> /etc/profile.d/os-security.sh
 chmod 755 /etc/profile.d/os-security.sh
@@ -364,23 +397,19 @@ GRUB_DISABLE_RECOVERY="true"
 EOF
 
 cat > /etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
-INITEOF
-    cat >> ${kscfg}.init.sh <<INITEOF
 NM_CONTROLLED=no
 IPV6INIT=no
 DEVICE="eth0"
 ONBOOT="yes"
 BOOTPROTO="none"
-IPADDR=${ipaddr}
-PREFIX=${prefix}
-#GATEWAY=172.16.16.1
+IPADDR=${IPADDR}
+PREFIX=${PREFIX}
+GATEWAY=${GATEWAY}
 #DNS1=10.0.2.1
 EOF
 cat > /etc/sysconfig/network-scripts/route-eth0 <<-EOF
 #xx.xx.xx.xx via xxx dev eth0
 EOF
-INITEOF
-    cat >> ${kscfg}.init.sh <<'INITEOF'
 ### Add SSH public key cloudkey.pub for Ansible login after reboot
 if [ ! -d /root/.ssh ]; then
     mkdir -m0700 /root/.ssh
