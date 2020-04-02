@@ -93,14 +93,14 @@ DHCPEOF
 #!/bin/sh
 # CGI output must start with at least empty line (or headers)
 printf '\r\n'
-#$REQUEST_METHOD
-cat <<EOF >> req.txt
-$QUERY_STRING
-EOF
 ipaddr=$(head -1 ipaddr.txt 2>/dev/null) || exit 1
 sed -i '1d' ipaddr.txt > /dev/null 2>&1
 prefix=${ipaddr##*/}
 ipaddr=${ipaddr%/*}
+#$REQUEST_METHOD
+cat <<EOF >> req.txt
+$QUERY_STRING === ${ipaddr:-192.168.168.100}/${prefix:-24}
+EOF
 printf "IPADDR=${ipaddr:-192.168.168.100}\n"
 printf "PREFIX=${prefix:-24}\n"
 printf "GATEWAY=\${IPADDR%%.*}.1\n"
