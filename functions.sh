@@ -179,8 +179,8 @@ error_msg() {
     shift && do_log $LOG_ERROR "$fmt" "$@"
 } >&2
 
-# echo "$_out"|vinfo
-vinfo() {
+# echo "$_out"|vinfo_msg
+vinfo_msg() {
     while IFS='\n' read line || [ -n "$line" ]; do
         info_msg "$line\n"
     done
@@ -300,6 +300,11 @@ run_scripts() {
     done
 }
 ##################################################
+debugshell () {
+    echo "This is a debug shell (${1:-})."
+    sh || true
+}
+
 #******************************************************************************
 # try: Execute a command with error checking.  Note that when using this, if a piped
 # command is used, the '|' must be escaped with '\' when calling try (i.e.

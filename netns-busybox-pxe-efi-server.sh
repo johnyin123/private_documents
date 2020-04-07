@@ -244,7 +244,7 @@ gen_kickstart() {
     local ipaddr=$7
     local prefix=${ipaddr##*/}
     ipaddr=${ipaddr%/*}
-    cat <<EOF | vinfo
+    cat <<EOF | vinfo_msg
 ipaddress: ${ipaddr}/${prefix}
 boot disk: ${boot_driver}
       efi: ${efi}
