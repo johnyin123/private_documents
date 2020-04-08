@@ -341,24 +341,23 @@ defined() {
 }
 
 directory_exists() {
-    if [[ -d "$1" ]]; then
-        return 0
-    fi
-    return 1
+    [ -d "$1" ]
+}
+
+link_exists() {
+    [ -h "$1" ]
 }
 
 file_exists() {
-    if [[ -f "$1" ]]; then
-        return 0
-    fi
-    return 1
+    [ -e "$1" ]
+}
+
+regular_file_exists() {
+    [ -f "$1" ]
 }
 
 device_exists() {
-    if [[ -b "$1" ]]; then
-        return 0
-    fi
-    return 1
+    [ -b "$1" ]
 }
 
 is_integer() {

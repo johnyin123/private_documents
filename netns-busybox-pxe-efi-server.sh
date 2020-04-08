@@ -32,9 +32,9 @@ mk_busybox_fs() {
         try mkdir -p ${rootfs}/$d
     done
     try cp ${busybox_bin} ${rootfs}/bin/busybox && try chmod 755 ${rootfs}/bin/busybox
-    [ -e ${rootfs}/dev/random  ] || try mknod -m 0644 ${rootfs}/dev/random c 1 8
-    [ -e ${rootfs}/dev/urandom ] || try mknod -m 0644 ${rootfs}/dev/urandom c 1 9
-    [ -e ${rootfs}/dev/null    ] || try mknod -m 0666 ${rootfs}/dev/null c 1 3
+    file_exists ${rootfs}/dev/random  || try mknod -m 0644 ${rootfs}/dev/random c 1 8
+    file_exists ${rootfs}/dev/urandom || try mknod -m 0644 ${rootfs}/dev/urandom c 1 9
+    file_exists ${rootfs}/dev/null    || try mknod -m 0666 ${rootfs}/dev/null c 1 3
 
     cat > ${rootfs}/etc/profile << EOF
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
@@ -64,10 +64,10 @@ gen_busybox_inetd() {
     for cmd in tftpd httpd ftpd udhcpd; do
         ${rootfs}/bin/busybox --list | grep $cmd > /dev/null && debug_msg "check $cmd ok\n" || exit_msg "check $cmd error"
     done
-    [ -e ${rootfs}/bin/tftpd   ] || try ln -s /bin/busybox ${rootfs}/bin/tftpd
-    [ -e ${rootfs}/bin/httpd   ] || try ln -s /bin/busybox ${rootfs}/bin/httpd
-    [ -e ${rootfs}/bin/ftpd    ] || try ln -s /bin/busybox ${rootfs}/bin/ftpd
-    [ -e ${rootfs}/bin/udhcpd  ] || try ln -s /bin/busybox ${rootfs}/bin/udhcpd
+    link_exists ${rootfs}/bin/tftpd  || try ln -s /bin/busybox ${rootfs}/bin/tftpd
+    link_exists ${rootfs}/bin/httpd  || try ln -s /bin/busybox ${rootfs}/bin/httpd
+    link_exists ${rootfs}/bin/ftpd   || try ln -s /bin/busybox ${rootfs}/bin/ftpd
+    link_exists ${rootfs}/bin/udhcpd || try ln -s /bin/busybox ${rootfs}/bin/udhcpd
 
     cat > ${rootfs}/etc/inetd.conf << INETEOF
 69 dgram udp nowait root tftpd tftpd -l ${pxe_dir}
@@ -113,8 +113,8 @@ CGIEOF
 kill_ns_inetd() {
     debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local rootfs="$1"
-    [ -e "${rootfs}/var/run/inetd.pid" ] && try kill -9 $(cat ${rootfs}/var/run/inetd.pid)
-    [ -e "${rootfs}/var/run/udhcpd.pid" ] && try kill -9 $(cat ${rootfs}/var/run/udhcpd.pid)
+    file_exists "${rootfs}/var/run/inetd.pid"  && try kill -9 $(cat ${rootfs}/var/run/inetd.pid)
+    file_exists "${rootfs}/var/run/udhcpd.pid" && try kill -9 $(cat ${rootfs}/var/run/udhcpd.pid)
     return 0
 }
 
@@ -447,9 +447,9 @@ check_depend() {
     debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local host_br=$1
     try ip netns || exit_msg "ip not support netns!!\n"
-    [[ -r "/sys/class/net/$host_br" ]] || exit_msg "$host_br bridge no found!!\n"
+    file_exists "/sys/class/net/$host_br" || exit_msg "$host_br bridge no found!!\n"
     for fn in $PXELINUX $EFILINUX $BUSYBOX $DVD_IMG; do
-        [[ -r "${DIRNAME}/$fn" ]] || exit_msg "${DIRNAME}/$fn no found!!\n"
+        file_exists "${DIRNAME}/$fn" || exit_msg "${DIRNAME}/$fn no found!!\n"
     done
     return 0
 }
