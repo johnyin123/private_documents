@@ -1,3 +1,10 @@
+# change partition
+#   sfdisk --unit=S --dump disk.raw > dump.out
+#   truncate
+#   sfdisk --no-reread disk.raw --backup-file my.save < dump.out
+#   mount && xfs_growfs
+
+
 # xmllint --xpath '//element/@attribute' file.xml
 # xmlstarlet sel -t -v "//element/@attribute" file.xml
 # xpath -q -e '//element/@attribute' file.xml
