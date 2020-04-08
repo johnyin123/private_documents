@@ -19,7 +19,7 @@ cat <<EOF
 ${SCRIPTNAME} 
     -p|--pool              *                 pool
     -v|--vol               *                 vol
-    -t|--template          *                 telplate disk for upload
+    -t|--template                            telplate disk for upload(or stdin)
     -q|--quiet
     -l|--log <int>                           log level
     -d|--dryrun                              dryrun
@@ -61,11 +61,16 @@ main() {
                 ;;
         esac
     done
+    local upload_cmd=${VIRSH}
+    #stdin is redirect
+    [[ -t 0 ]] || { disk_tpl=/dev/stdin; upload_cmd="cat | ${VIRSH}"; } 
     [[ -z "${disk_tpl}" ]] && usage
     [[ -z "${vol_name}" ]] && usage
     [[ -z "${pool}"     ]] && usage
-    file_exists ${disk_tpl} || exit_msg "template file ${disk_tpl} no found\n"
-    try ${VIRSH} vol-upload --pool ${pool} --vol ${vol_name} --file ${disk_tpl} || exit_msg "upload template file ${disk_tpl} error\n" 
+    [ -r ${disk_tpl} ] || exit_msg "template file ${disk_tpl} no found\n"
+    [[ -t 0 ]] || disk_tpl=/dev/stdin    #stdin is redirect
+    info_msg "upload ${disk_tpl} start\n" 
+    try ${upload_cmd} vol-upload --pool ${pool} --vol ${vol_name} --file ${disk_tpl} || exit_msg "upload template file ${disk_tpl} error\n" 
     info_msg "upload template file ${disk_tpl} ok\n" 
     return 0
 }
