@@ -300,6 +300,12 @@ run_scripts() {
     done
 }
 ##################################################
+require () {
+    for cmd in $@ ; do
+        [ "$(command -v "$cmd")" ] || exit_msg "require $cmd\n"
+    done
+}
+
 debugshell () {
     echo "This is a debug shell (${1:-})."
     sh || true
