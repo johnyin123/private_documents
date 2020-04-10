@@ -155,6 +155,7 @@ virsh start ${DEF_BRIDGE_IFACE}
 # virsh pool-build default 
 # virsh pool-start default 
 
+# yum install nfs-utils -y
 # echo "/kvm 10.0.0.0/16(rw,no_root_squash,no_all_squash,sync,anonuid=501,anongid=501)" >> /etc/exports
 # exportfs -r
 # systemctl enable nfs
