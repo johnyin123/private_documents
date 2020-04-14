@@ -50,6 +50,47 @@ is_user_root() {
 
 min() { [ "$1" -le "$2" ] && echo "$1" || echo "$2"; }
 max() { [ "$1" -ge "$2" ] && echo "$1" || echo "$2"; }
+#cursor op
+erase_line() {
+    printf '%b' $'\e[1K\r'
+}
+cursor_onoff () {
+  local op="$1"
+  case "${op}" in
+    hide)   printf "\e[?25l" ;;
+    show)   printf "\e[?25h" ;;
+    *) return 1 ;;
+  esac
+  return 0
+}
+cursor_moveto () {
+  local let x="${1}"
+  local let y="${2}"
+  ## write
+  printf "\e[%d;%d;f" ${y} ${x}
+  return 0
+}
+cursor_pos() {
+    local CURPOS
+    read -sdR -p $'\E[6n' CURPOS
+    CURPOS=${CURPOS#*[} # Strip decoration characters <ESC>[
+    echo "${CURPOS}"    # Return position in "row;col" format
+}
+cursor_row() {
+    local COL
+    local ROW
+    IFS=';' read -sdR -p $'\E[6n' ROW COL
+    echo "${ROW#*[}"
+}
+cursor_col() {
+    local COL
+    local ROW
+    IFS=';' read -sdR -p $'\E[6n' ROW COL
+    echo "${COL}"
+}
+safe_echo() {
+  printf -- '%b\n' "$*"
+}
 
 # declare -A vm=([DISK_DEV]=vdc [VAL]=2)
 # echo "hello '\${DISK_DEV}' \$((\${VAL}*2))" | render_tpl vm
