@@ -63,6 +63,25 @@ test_lowercase()
 
 echo "$(test_lowercase 'HELLO xx')"
 echo "HELLO there, FRIEND!" | test_lowercase
+
+cat <<EOF
+	'append STDOUT and STDERR'            : ' &>> <CURSOR>',
+	'close input from file descr n'       : ' <CURSOR><&- ',
+	'close output from file descr n'      : ' <CURSOR>>&- ',
+	'close STDIN'                         : ' <&- <CURSOR>',
+	'close STDOUT'                        : ' >&- <CURSOR>',
+	'direct file descr n to file, append' : ' <CURSOR>>> ',
+	'direct file descr n to file'         : ' <CURSOR>> ',
+	'direct STDERR to STDOUT'             : ' 2>&1<CURSOR>',
+	'direct STDOUT and STDERR to file'    : ' &> <CURSOR>',
+	'direct STDOUT to file, append'       : ' >> <CURSOR>',
+	'direct STDOUT to file'               : ' > <CURSOR>',
+	'direct STDOUT to STDERR'             : ' >&2<CURSOR>',
+	'duplicate STDIN from file descr n'   : ' <CURSOR><& ',
+	'duplicate STDOUT to file descr n'    : ' <CURSOR>>& ',
+	'take file descr n from file'         : ' <CURSOR>< ',
+	'take STDIN from file'                : ' < <CURSOR>',
+EOF
 # cat >>'EOF'
 # {
 #     "partitions": {
