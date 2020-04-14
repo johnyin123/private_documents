@@ -291,6 +291,8 @@ rm -f hosts config
 # 
 # Mon删除
 # 0. ceph mon dump
+# systemctl stop ceph-mon@node07
+# ceph mon remove node07
 # 1. ceph-deploy mon destroy kvm02
 # 2. ceph-deploy --overwrite-conf admin kvm01 kvm02
 # 3. sudo chmod 644 /etc/ceph/ceph.client.admin.keyring   
@@ -304,6 +306,10 @@ rm -f hosts config
 # 4. MUST:add mount point in fstab!
 # 
 # OSD删除
+# ceph --admin-daemon /var/run/ceph/ceph-osd.XXX.asok config show
+#    "osd_pool_default_min_size": "1",
+#    "osd_pool_default_size": "3",
+#  osd pool set <poolname> size|min_size
 # 0. ceph osd tree #查看目前cluster 状态
 # 1. ceph osd out osd.3
 # 2. service ceph stop osd.3 / systemctl stop ceph-osd@3
