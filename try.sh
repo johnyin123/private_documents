@@ -125,7 +125,8 @@ main() {
     dummy
     exit_msg "$0 --start/--clean filename\n"
     echo "MAIN!!!"
-
+    # echo > aa.txt
+    # ${EDITOR:-${VISUAL:-vi}}  aa.txt
     return 0
 }
 main "$@"
