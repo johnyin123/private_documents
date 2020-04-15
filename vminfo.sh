@@ -45,6 +45,7 @@ function main() {
     for dom in $(LANG=C virsh ${VIRSH_OPT} list  --all | grep running | awk '{print $2}')
     do
         echo "domain:${dom}"
+        virsh ${VIRSH_OPT} ${VIRSH_OPT} desc ${dom}
         Get_Vcpuvmems ${dom}
         Get_Vmblk ${dom}
         Get_Vmip ${dom}
