@@ -1,3 +1,7 @@
+#BONDING_OPTS="mode=4 miimon=100 xmit_hash_policy=layer3+4" mode=802.3ad
+#BONDING_OPTS="mode=802.3ad miimon=100 lacp_rate=fast xmit_hash_policy=layer2+3"
+#BONDING_OPTS='mode=6 miimon=100
+
 # change partition
 #   sfdisk --unit=S --dump disk.raw > dump.out
 #   truncate
