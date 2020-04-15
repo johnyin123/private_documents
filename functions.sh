@@ -357,17 +357,29 @@ debugshell () {
 # try: Execute a command with error checking.  Note that when using this, if a piped
 # command is used, the '|' must be escaped with '\' when calling try (i.e.
 # "try ls \| less").
+# Examples:
+#  try my_command ${args} || return ${?}
+#  try --run my_command ${args} || return ${?}
 #******************************************************************************
 try () {
-    local cmd="${*}"
+    local cmd
+    local __try_out
+    local ret
     local cmd_size=-60.60
     # Execute the command and fail if it does not return zero.
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
-    [[ ${QUIET:-0} = 0 ]] && blue "Begin: %${cmd_size}s." "${cmd}" >&2
-    #__try_out=$(${DRYRUN:+echo }${cmd} 2>&1)
     set +o errexit
-    __try_out=$(eval "${DRYRUN:+echo }${cmd}" 2>&1)
-    local ret="$?"
+    [[ "${1}" == "--run" ]] && {
+        shift
+        cmd="${*}"
+        [[ ${QUIET:-0} = 0 ]] && blue "Begin: %${cmd_size}s." "${cmd}" >&2
+        __try_out=$(${DRYRUN:+echo }${} 2>&1)
+    } || {
+        cmd="${*}"
+        [[ ${QUIET:-0} = 0 ]] && blue "Begin: %${cmd_size}s." "${cmd}" >&2
+        __try_out=$(eval "${DRYRUN:+echo }${cmd}" 2>&1)
+    }
+    ret="$?"
     #tput cuu1
     if [ "$ret" == "0" ]; then
         [[ ${QUIET:-0} = 0 ]] && green "${DRYRUN:+${cmd}} done.\\n" >&2
