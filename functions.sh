@@ -369,7 +369,7 @@ try () {
     # Execute the command and fail if it does not return zero.
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
     set +o errexit
-    [[ "${1}" == "--run" ]] && {
+    [[ "${1:-}" == "--run" ]] && {
         shift
         cmd="${*}"
         [[ ${QUIET:-0} = 0 ]] && blue "Begin: %${cmd_size}s." "${cmd}" >&2
