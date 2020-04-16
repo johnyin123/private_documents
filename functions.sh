@@ -373,7 +373,7 @@ try () {
         shift
         cmd="${*}"
         [[ ${QUIET:-0} = 0 ]] && blue "Begin: %${cmd_size}s." "${cmd}" >&2
-        __try_out=$(${DRYRUN:+echo }${} 2>&1)
+        __try_out=$(${DRYRUN:+echo }${cmd} 2>&1)
     } || {
         cmd="${*}"
         [[ ${QUIET:-0} = 0 ]] && blue "Begin: %${cmd_size}s." "${cmd}" >&2
@@ -392,6 +392,26 @@ try () {
     return "$ret"
 }
 
+# undo command
+# add_undo ls /home \> /root/cat
+# add_undo "cat /etc/rc.local > /root/333aa"
+# run_undo
+rollback_cmds=()
+run_undo() {
+    local cmd
+    [ ${#rollback_cmds[@]} -gt 0 ] || return 0
+    # Run all "undo" commands if any.
+    for cmd in "${rollback_cmds[@]}"; do
+        purple "UNDO -> " && ${DRYRUN:+echo } try "$(eval printf '%s' "$cmd")" || true 
+    done
+    rollback_cmds=()
+    return 0
+}
+add_undo() {
+    local cmd="$(printf '%q ' "$*")"
+    array_append rollback_cmds "$cmd"
+    return 0
+}
 ## Tests if a variable is defined.
 ## @param variable Variable to test.
 ## @retval 0 if the variable is defined.
