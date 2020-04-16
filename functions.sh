@@ -401,8 +401,10 @@ run_undo() {
     local cmd
     [ ${#rollback_cmds[@]} -gt 0 ] || return 0
     # Run all "undo" commands if any.
-    for cmd in "${rollback_cmds[@]}"; do
-        purple "UNDO -> " && ${DRYRUN:+echo } try "$(eval printf '%s' "$cmd")" || true 
+    for (( idx=${#rollback_cmds[@]}-1 ; idx>=0 ; idx-- )) ; do
+        cmd="${rollback_cmds[idx]}"
+        [[ ${QUIET:-0} = 0 ]] && purple "UNDO -> " >&2
+        ${DRYRUN:+echo } try "$(eval printf '%s' "$cmd")" || true
     done
     rollback_cmds=()
     return 0
