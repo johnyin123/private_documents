@@ -20,6 +20,7 @@ readonly PXELINUX="ldlinux.c32 menu.c32 libutil.c32 pxelinux.0 "
 readonly EFILINUX="grubx64.efi shim.efi"
 
 readonly ROOTFS="${DIRNAME}/pxeroot"
+#ROOTFS=$(mktemp -d --tmpdir=/${DIRNAME})
 readonly PXE_DIR="/tftp" #abs path in chroot env
 readonly UEFI_KS_URI="uefi.ks.cfg"
 readonly BIOS_KS_URI="bios.ks.cfg"
@@ -482,6 +483,7 @@ main() {
     start_ns_inetd ${NS_NAME} "${ROOTFS}" || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "start inetd $?"
 
     ip netns exec ${NS_NAME} chroot "${ROOTFS}" /bin/busybox sh -l || true
+    #nsenter --net=/var/run/netns/${NS_NAME} /bin/sh -l||  true
 
     try umount ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "umount $?"
     kill_ns_inetd "${ROOTFS}"|| error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "kill inetd $?"
