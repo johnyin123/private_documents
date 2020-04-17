@@ -45,4 +45,5 @@ cat <<EOF
 IPADDR=""
 PREFIX=""
 GATEWAY=
+# echo layer2+3 > /sys/class/net/bond0/bonding/xmit_hash_policy
 EOF
