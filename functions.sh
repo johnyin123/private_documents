@@ -361,39 +361,47 @@ debugshell () {
 #  try my_command ${args} || return ${?}
 #  try --run my_command ${args} || return ${?}
 #******************************************************************************
-# try() {
-#     "$@" || (e=$?; echo "$@" > /dev/stderr; exit $e)
-# }
-try () {
-    local cmd
-    local __try_out
-    local ret
+try() {
+    local rc=0
     local cmd_size=-60.60
-    # Execute the command and fail if it does not return zero.
+    [ ${DRYRUN:-0} = 0 ] || { safe_echo "EXECUTE $*"; return 0; }
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
-    set +o errexit
-    [[ "${1:-}" == "--run" ]] && {
-        shift
-        cmd="${*}"
-        [[ ${QUIET:-0} = 0 ]] && blue "Begin: %${cmd_size}s." "${cmd}" >&2
-        __try_out=$(${DRYRUN:+echo }${cmd} 2>&1)
-    } || {
-        cmd="${*}"
-        [[ ${QUIET:-0} = 0 ]] && blue "Begin: %${cmd_size}s." "${cmd}" >&2
-        __try_out=$(eval "${DRYRUN:+echo }${cmd}" 2>&1)
-    }
-    ret="$?"
-    #tput cuu1
-    if [ "$ret" == "0" ]; then
-        [[ ${QUIET:-0} = 0 ]] && green "${DRYRUN:+${cmd}} done.\\n" >&2
-        [[ -z "${__try_out}" ]] || printf "%s\n" "${__try_out}"
-    else
-        [[ ${QUIET:-0} = 0 ]] && red " failed($ret).\\n" >&2
-        error_msg "%s\\n%s\\n" "${cmd}" "${__try_out}" >&2
-    fi
-    set -o errexit
-    return "$ret"
+    [ ${QUIET:-0} = 0 ] && blue "Begin: %${cmd_size}s." "$*" >&2
+    eval $@ || rc=$?
+    [ $rc = 0 ] && { [ ${QUIET:-0} = 0 ] && green " done.\n" >&2; }
+    [ $rc = 0 ] || { [ ${QUIET:-0} = 0 ] && red " failed($rc).\n" >&2; }
+    return $rc
 }
+# try () {
+#     local cmd
+#     local __try_out
+#     local ret
+#     local cmd_size=-60.60
+#     # Execute the command and fail if it does not return zero.
+#     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
+#     set +o errexit
+#     [[ "${1:-}" == "--run" ]] && {
+#         shift
+#         cmd="${*}"
+#         [[ ${QUIET:-0} = 0 ]] && blue "Begin: %${cmd_size}s." "${cmd}" >&2
+#         __try_out=$(${DRYRUN:+echo }${cmd} 2>&1)
+#     } || {
+#         cmd="${*}"
+#         [[ ${QUIET:-0} = 0 ]] && blue "Begin: %${cmd_size}s." "${cmd}" >&2
+#         __try_out=$(eval "${DRYRUN:+echo }${cmd}" 2>&1)
+#     }
+#     ret="$?"
+#     #tput cuu1
+#     if [ "$ret" == "0" ]; then
+#         [[ ${QUIET:-0} = 0 ]] && green "${DRYRUN:+${cmd}} done.\\n" >&2
+#         [[ -z "${__try_out}" ]] || printf "%s\n" "${__try_out}"
+#     else
+#         [[ ${QUIET:-0} = 0 ]] && red " failed($ret).\\n" >&2
+#         error_msg "%s\\n%s\\n" "${cmd}" "${__try_out}" >&2
+#     fi
+#     set -o errexit
+#     return "$ret"
+# }
 
 # undo command
 # add_undo ls /home \> /root/cat
