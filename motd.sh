@@ -59,6 +59,7 @@ exec 6</etc/logo.txt
     for i in $INTERFACES
     do
         [ "$i" = "lo" ] && continue
+        [ "$i" = "bonding_masters" ] && continue
         MAC=$(ip ad show dev $i | grep "link/ether" | awk '{print $2}')
         IP=$(ip ad show dev $i | awk '/inet / {print $2}')
         for j in ${IP}
