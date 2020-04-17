@@ -361,6 +361,9 @@ debugshell () {
 #  try my_command ${args} || return ${?}
 #  try --run my_command ${args} || return ${?}
 #******************************************************************************
+# try() {
+#     "$@" || (e=$?; echo "$@" > /dev/stderr; exit $e)
+# }
 try () {
     local cmd
     local __try_out
@@ -403,7 +406,7 @@ run_undo() {
     # Run all "undo" commands if any.
     for (( idx=${#rollback_cmds[@]}-1 ; idx>=0 ; idx-- )) ; do
         cmd="${rollback_cmds[idx]}"
-        [[ ${QUIET:-0} = 0 ]] && purple "UNDO -> " >&2
+        [[ ${QUIET:-0} = 0 ]] && purple "UNDO -> "
         ${DRYRUN:+echo } try "$(eval printf '%s' "$cmd")" || true
     done
     rollback_cmds=()
