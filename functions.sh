@@ -35,6 +35,30 @@ human_readable_disk_size() {
     echo $((bytes/__M))M
 }
 
+human_readable_format_size()
+{
+    size=$1
+    if [[ $size -ge 1073741824 ]]; then
+        fs=$(echo - | awk "{print $size/1073741824}")
+        fs=${fs/./,}
+        printf "%.2f GiB" $fs
+    else
+        if [[ $size -ge 1048576 ]]; then
+            fs=$(echo - | awk "{print $size/1048576}")
+            fs=${fs/./,}
+            printf "%.2f MiB" $fs
+        else
+            if [[ $size -ge 1024 ]]; then
+                fs=$(echo - | awk "{print $size/1024}")
+                fs=${fs/./,}
+                printf "%.2f KiB" $fs
+            else
+                printf "%d Bytes" $size
+            fi
+        fi
+    fi
+}
+
 get_ipaddr() {
     /sbin/ip -4 -br addr show ${1} | /bin/grep -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
 }
