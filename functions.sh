@@ -117,7 +117,8 @@ safe_echo() {
 }
 
 # echo "hello {{DISK_DEV}} \$(({{VAL}}*2))" | fill DISK_DEV=vdc VAL=2
-# REPS default two {{  }}
+# REPS default two LHS/RHS like {{ }}
+# LHS='%' RHS='%'
 SEQN="$(seq 1 ${REPS:-2})"
 render_tpl2() {
     local str="$(cat)"
