@@ -116,6 +116,19 @@ safe_echo() {
   printf -- '%b\n' "$*"
 }
 
+# echo "hello {{DISK_DEV}} \$(({{VAL}}*2))" | fill DISK_DEV=vdc VAL=2
+# REPS default two {{  }}
+SEQN="$(seq 1 ${REPS:-2})"
+render_tpl2() {
+    local str="$(cat)"
+    for arg in "$@"; do
+        local sub="${LHS:=$(printf '{%.0s' $SEQN)}${arg%%=*}${RHS:=$(printf '}%.0s' $SEQN)}"
+        local val="${arg#*=}"
+        str="${str//"$sub"/$val}"
+    done
+    cat <<< "$str"
+}
+
 # declare -A vm=([DISK_DEV]=vdc [VAL]=2)
 # echo "hello '\${DISK_DEV}' \$((\${VAL}*2))" | render_tpl vm
 render_tpl() {
