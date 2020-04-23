@@ -40,23 +40,6 @@ speedup_ssh_end() {
     wait
     info_msg "END .........\n"
 }
-
-agent_command() {
-    local usr_srv_port=$1;shift 1
-    local domain=$1;shift 1
-    local cmd=$1;shift 1
-    local args="\"${1:-}\"";shift 1 || true
-    for it in ${*}; do
-        args="${args},\"$it\""
-    done
-    local out=$(fake_virsh "${usr_srv_port}" qemu-agent-command ${domain} "{\"execute\":\"guest-exec\",\"arguments\":{\"path\":\"${cmd}\",\"arg\":[${args}],\"capture-output\":true}}" | jq ".return.pid")
-    out=$(fake_virsh "${user}@${host}:${port}" qemu-agent-command ${domain} "{\"execute\":\"guest-exec-status\",\"arguments\":{\"pid\":${out}}}")
-    local exitcode=$(printf "%s" $out | jq -c ".return.exitcode")
-    local exited=$(printf "%s" $out | jq -c ".return.exited")
-    printf "%s" $out | jq -cr '.return."out-data"' | base64 -d
-    return $exitcode 
-}
-
 get_vmip() {
     local user=$1
     local host=$2
