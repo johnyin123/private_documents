@@ -72,7 +72,8 @@ get_vmip() {
         fake_virsh "${user}@${host}:${port}" domifaddr --source agent --full ${dom} \
             | grep -e "ipv4" \
             | grep -v -e "00:00:00:00:00:00" -e "127.0.0.1" \
-            | while read name mac protocol address; do
+            | grep -o "..:..:..:..:..:...*$" \
+            | while read mac protocol address; do
                     echo -n "$address|$mac,"  # | sed "s/ *//g"
               done
         echo ""
