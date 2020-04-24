@@ -48,4 +48,18 @@ IPADDR=""
 PREFIX=""
 GATEWAY=
 # echo layer2+3 > /sys/class/net/bond0/bonding/xmit_hash_policy
+
+ip link add name lag1 type bond
+ip link set down dev eth0
+ip link set down dev eth1
+ethtool -s eth0 speed 10000 duplex full
+ethtool -s eth1 speed 10000 duplex full
+>/sys/class/net/lag1/bonding/mode      echo active-backup
+>/sys/class/net/lag1/bonding/miimon    echo 100
+>/sys/class/net/lag1/bonding/min_links echo 1
+>/sys/class/net/lag1/bonding/slaves    echo +eth1
+>/sys/class/net/lag1/bonding/slaves    echo +eth0
+ip link set up dev lag1
+ip link set up dev eth0
+ip link set up dev eth1
 EOF
