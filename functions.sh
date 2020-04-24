@@ -265,6 +265,12 @@ vinfo_msg() {
     done
 }
 
+verror_msg() {
+    while IFS='\n' read line || [ -n "$line" ]; do
+        error_msg "$line\n"
+    done
+}
+
 exit_msg() {
     error_msg "$@"
     exit 1
@@ -402,12 +408,12 @@ debugshell () {
 try() {
     local rc=0
     local cmd_size=-60.60
-    [ ${DRYRUN:-0} = 0 ] || { safe_echo "EXECUTE $*"; return 0; }
+    [ ${DRYRUN:-0} = 0 ] || { safe_echo "EXECUTE $*" >&2; return 0; }
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
     [ ${QUIET:-0} = 0 ] && blue "Begin: %${cmd_size}s." "$*" >&2
-    eval $@ || rc=$?
-    [ $rc = 0 ] && { [ ${QUIET:-0} = 0 ] && green " done.\n" >&2; }
-    [ $rc = 0 ] || { [ ${QUIET:-0} = 0 ] && red " failed($rc).\n" >&2; }
+    result=$(eval $@ 2>&1) || rc=$?
+    [ $rc = 0 ] && { [ ${QUIET:-0} = 0 ] && green " done.\n" >&2; printf "%s" "$result"; }
+    [ $rc = 0 ] || { [ ${QUIET:-0} = 0 ] && red " failed($rc).\n" >&2; printf "%s\n" "$result" | verror_msg; }
     return $rc
 }
 # try () {
