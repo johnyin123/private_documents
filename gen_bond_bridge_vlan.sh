@@ -62,4 +62,35 @@ ethtool -s eth1 speed 10000 duplex full
 ip link set up dev lag1
 ip link set up dev eth0
 ip link set up dev eth1
+
+====================
+
+# Executed on each VM
+ip link set down dev eth0
+ip link set down dev eth1
+ethtool -s eth0 speed 1000 duplex full
+ethtool -s eth1 speed 1000 duplex full
+modprobe bonding
+[ -d /sys/class/net/bond0 ] || \
+    ip link add name bond0 type bond
+ip link set down dev bond0
+echo active-backup > /sys/class/net/bond0/bonding/mode
+echo 100 > /sys/class/net/bond0/bonding/miimon
+echo 1 > /sys/class/net/bond0/bonding/fail_over_mac
+echo 0 > /sys/class/net/bond0/bonding/primary_reselect
+echo +eth0 > /sys/class/net/bond0/bonding/slaves
+echo +eth1 > /sys/class/net/bond0/bonding/slaves
+echo eth0 > /sys/class/net/bond0/bonding/primary
+echo 5 > /sys/class/net/bond0/bonding/num_grat_arp
+echo 500 > /sys/class/net/bond0/bonding/peer_notif_delay
+ip link set up dev bond0
+case \$uts in
+    H1)
+
+        ip addr add 203.0.113.10/24 dev bond0
+        ;;
+    H2)
+        ip addr add 203.0.113.11/24 dev bond0
+        ;;
+esac
 EOF
