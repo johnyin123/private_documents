@@ -393,7 +393,8 @@ declare -A DEVICE_TPL=(
 </interface>"
 )
 EOF
-        exit_msg "Created ${CFG_INI} using defaults.  Please review it/configure before running again."
+        ${EDITOR:-vi} ${CFG_INI} || true
+        exit_msg "Created ${CFG_INI} using defaults.  Please review it/configure before running again.\n"
     }
     source "${CFG_INI}"
     info_msg "DOMAIN TEMPLATE:\n"
