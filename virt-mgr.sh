@@ -289,7 +289,7 @@ cmd:attach
     -s|--size <size>           *             <size> GB/MB/KB
 EOF
 exit 1
-}
+} >&2
 
 main() {
     local CFG_INI=${CFG_INI:-"mgr.conf"}
@@ -396,8 +396,11 @@ EOF
         exit_msg "Created ${CFG_INI} using defaults.  Please review it/configure before running again."
     }
     source "${CFG_INI}"
-
-    local opt="${1:?create/attach cmd need!}"
+    info_msg "DOMAIN TEMPLATE:\n"
+    array_print_label DOMAIN_TPL | sed "s/\(.*\)/    [\1]/g" | vinfo_msg
+    info_msg "DEVICE TEMPLATE:\n"
+    array_print_label DEVICE_TPL | sed "s/\(.*\)/    [\1]/g" | vinfo_msg
+    local opt="${1:?$(usage)}"
     shift 1
     case "${opt}" in
         create)
