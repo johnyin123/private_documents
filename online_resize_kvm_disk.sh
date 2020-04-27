@@ -27,7 +27,18 @@ DISK=$(virsh dumpxml ${DOMNAME} | xmllint --xpath "string(/domain/devices/disk/t
 #--<alias name="virtio-disk0"/>
 virsh qemu-monitor-command ${DOMNAME} block_resize drive-${DISK} 30G --hmp
 #pvscan; pvresize /dev/vdb ; lvextend -l +100%FREE /dev/mapper/vg_data-lv_data
-
+#        echo "[] linux-rootfs-resize ..."
+#        lvm vgchange -an
+#        lvm_pv_path=$(lvm pvs --noheadings |awk '{print $1}')
+#        lvm_pv_temp=$(echo ${lvm_pv_path}|sed "s/dev//g")
+#        lvm_pv_dev=$(echo ${lvm_pv_temp}| sed "s/[^a-z]//g")
+#        lvm_pv_part=$(echo ${lvm_pv_temp}| sed "s/[^0-9]//g")
+#        echo "${lvm_pv_dev} ${lvm_pv_part}"
+#        growpart -v /dev/${lvm_pv_dev} ${lvm_pv_part}
+#        lvm pvresize -v ${lvm_pv_path}
+#        lvm vgchange --sysinit -ay
+#        lvm lvresize -v -l +100%FREE ${ROOT}
+ 
 #test on rbd storage for kvm
 
 virsh attach-disk ${vmname} --source /storage/${image} --target vdb --cache none --io native --persistent --live
