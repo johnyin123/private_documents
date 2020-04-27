@@ -55,6 +55,8 @@ get_vmip() {
     do
         empty_kv stats
         read_kv stats <<< $(fake_virsh "${user}@${host}:${port}" domstats ${dom} | grep -v "Domain:" | sed "s/^ *//g")
+        local os="WINDOW"
+        fake_virsh ${user}@${host}:${port} domfsinfo ${dom} | grep --color=never -E -q "ext|jfs|xfs|nfs" && os="LINUX"
         local desc="$(fake_virsh ${user}@${host}:${port} desc ${dom})"
         local maxcpu=$(array_get stats 'vcpu.maximum')
         local cpu=$(array_get stats 'vcpu.current')
@@ -68,7 +70,7 @@ get_vmip() {
         mem=$(human_readable_disk_size $(($mem*1024)))
         maxmem=$(human_readable_disk_size $(($maxmem*1024)))
         storage=$(human_readable_disk_size $storage)
-        echo -n "${dom},${desc:-NA},${cpu}C,${mem},${maxcpu}C,${maxmem},${storage}|$(array_get stats "block.count"),"
+        echo -n "${dom},${os},${desc:-NA},${cpu}C,${mem},${maxcpu}C,${maxmem},${storage}|$(array_get stats "block.count"),"
         fake_virsh "${user}@${host}:${port}" domifaddr --source agent --full ${dom} \
             | grep -e "ipv4" \
             | grep -v -e "00:00:00:00:00:00" -e "127.0.0.1" \
@@ -92,7 +94,7 @@ main() {
 EOF
         exit_msg "Created ${CFG_INI} using defaults.  Please review it/configure before running again.\n"
     }
-    echo "HOSTIP,serial,prod|prd_time|cpus|mems,dom,desc,cpu,mem,maxcpu,maxmem,storage|block_count,(address|mac,)*"
+    echo "HOSTIP,serial,prod|prd_time|cpus|mems,dom,os,desc,cpu,mem,maxcpu,maxmem,storage|block_count,(address|mac,)*"
     cat "${CFG_INI}" | grep -v -e "^\ *#.*$" -e  "^\ *$" | while read ip port; do
         try rm -rf ${ip}
         try mkdir -p ${ip}
