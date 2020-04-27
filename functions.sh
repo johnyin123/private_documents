@@ -141,7 +141,7 @@ render_tpl() {
             RHS="$(eval echo "\"$LHS\"")"
             line=${line//$LHS/$RHS}
         done
-        echo "$line"
+        printf "$line\n"
         # eval "echo \"$line\"" #risk
     done
     return 0
@@ -152,7 +152,7 @@ render_tpl() {
 # array_print_label abc
 # array_print abc
 print_kv() {
-    for j in $(array_print_label $1) ; do echo "$j=$(array_get $1 $j)"; done
+    for j in $(array_print_label $1) ; do safe_echo "$j=$(array_get $1 $j)"; done
 }
 
 empty_kv() {
@@ -179,7 +179,7 @@ dialog() {
         --menu "${menu}" \
         $LINES $COLUMNS $(( $LINES - 12 )) \
         "${items[@]}" 3>&1 1>&2 2>&3 || true)
-    echo -n "${item}"
+    safe_echo -n "${item}"
 }
 ##################################################
 getinientry() {
@@ -393,7 +393,7 @@ require () {
 }
 
 debugshell () {
-    echo "This is a debug shell (${1:-})."
+    safe_echo "This is a debug shell (${1:-})."
     sh || true
 }
 
@@ -581,7 +581,7 @@ str_replace() {
     local DEST="$2"
     local DATA="$3"
 
-    echo "${DATA//$ORIG/$DEST}"
+    safe_echo "${DATA//$ORIG/$DEST}"
 }
 
 # Performs POST onto specified URL with content formatted as json
@@ -619,7 +619,7 @@ json_parse() {
 ip2int() {
     local a b c d
     { IFS=. read a b c d; } <<< $1
-    echo $(((((((a << 8) | b) << 8) | c) << 8) | d))
+    safe_echo $(((((((a << 8) | b) << 8) | c) << 8) | d))
 }
 
 int2ip() {
@@ -629,7 +629,7 @@ int2ip() {
         ip=$((ui32 & 0xff))${ip:+.}$ip
         ui32=$((ui32 >> 8))
     done
-    echo $ip
+    safe_echo $ip
 }
 
 netmask() {
@@ -639,22 +639,17 @@ netmask() {
 
 is_ipv4() {
     local -r regex='^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
-
     [[ $1 =~ $regex ]]
     return $?
 }
 is_fqdn() {
-    echo "$1" | grep -Pq '(?=^.{4,255}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}\.?$)'
-
+    safe_echo "$1" | grep -Pq '(?=^.{4,255}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}\.?$)'
     return $?
 }
 is_ipv4_netmask() {
     is_ipv4 "$1" || return 1
-
     IFS='.' read -r ipb[1] ipb[2] ipb[3] ipb[4] <<< "$1"
-
     local -r list_msb='0 128 192 224 240 248 252 254'
-
     for i in {1,2,3,4}; do
         if [[ ${rest_to_zero:-0} = 1 ]]; then
             [[ ${ipb[i]} -eq 0 ]] || return 1
@@ -668,63 +663,50 @@ is_ipv4_netmask() {
             fi
         fi
     done
-
     return 0
 }
 is_ipv4_cidr() {
     local -r regex='^[[:digit:]]{1,2}$'
-
     [[ $1 =~ $regex ]] || return 1
     [ "$1" -gt 32 ] || [ "$1" -lt 0 ] && return 1
-
     return 0
 }
 is_ipv4_subnet() {
     IFS='/' read -r tip tmask <<< "$1"
-
     is_ipv4_cidr "$tmask" || return 1
     is_ipv4 "$tip" || return 1
-
     return 0
 }
 get_ipv4_network() {
     is_ipv4 "$1" || return 1
     is_ipv4_netmask "$2" || return 1
-
     IFS='.' read -r ipb1 ipb2 ipb3 ipb4 <<< "$1"
     IFS='.' read -r mb1 mb2 mb3 mb4 <<< "$2"
-
-    echo "$((ipb1 & mb1)).$((ipb2 & mb2)).$((ipb3 & mb3)).$((ipb4 & mb4))"
+    safe_echo "$((ipb1 & mb1)).$((ipb2 & mb2)).$((ipb3 & mb3)).$((ipb4 & mb4))"
 }
 get_ipv4_broadcast() {
     is_ipv4 "$1" || return 1
     is_ipv4_netmask "$2" || return 1
-
     IFS='.' read -r ipb1 ipb2 ipb3 ipb4 <<< "$1"
     IFS='.' read -r mb1 mb2 mb3 mb4 <<< "$2"
-
     nmb1=$((mb1 ^ 255))
     nmb2=$((mb2 ^ 255))
     nmb3=$((mb3 ^ 255))
     nmb4=$((mb4 ^ 255))
-
-    echo "$((ipb1 | nmb1)).$((ipb2 | nmb2)).$((ipb3 | nmb3)).$((ipb4 | nmb4))"
+    safe_echo "$((ipb1 | nmb1)).$((ipb2 | nmb2)).$((ipb3 | nmb3)).$((ipb4 | nmb4))"
 }
 mask2cidr() {
     is_ipv4_netmask "$1" || return 1
-
     local x=${1##*255.}
     set -- 0^^^128^192^224^240^248^252^254^ $(( (${#1} - ${#x})*2 )) "${x%%.*}"
     x=${1%%$3*}
-    echo $(( $2 + (${#x}/4) ))
+    safe_echo $(( $2 + (${#x}/4) ))
 }
 cidr2mask() {
     is_ipv4_cidr "$1" || return 1
-
     local i mask=""
     local full_octets=$(($1/8))
     local partial_octet=$(($1%8))
-
     for ((i=0;i<4;i+=1)); do
         if [ $i -lt $full_octets ]; then
             mask+=255
@@ -736,8 +718,7 @@ cidr2mask() {
 
         test $i -lt 3 && mask+=.
     done
-
-    echo $mask
+    safe_echo $mask
 }
 
 return 0
