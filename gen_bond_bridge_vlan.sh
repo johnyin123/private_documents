@@ -43,54 +43,22 @@ TYPE="Bridge"
 BOOTPROTO="none"
 #STP="on"
 EOF
-cat <<EOF
+cat <<'EOF'
 IPADDR=""
 PREFIX=""
 GATEWAY=
-# echo layer2+3 > /sys/class/net/bond0/bonding/xmit_hash_policy
+# echo layer2+3 > /sys/class/net/bond0/bonding/xmit_hash_policy 
+# root@sykvm16:~$ethtool bond0
+	Speed: 2000Mb/s
+	Duplex: Full
 
-ip link add name lag1 type bond
-ip link set down dev eth0
-ip link set down dev eth1
-ethtool -s eth0 speed 10000 duplex full
-ethtool -s eth1 speed 10000 duplex full
->/sys/class/net/lag1/bonding/mode      echo active-backup
->/sys/class/net/lag1/bonding/miimon    echo 100
->/sys/class/net/lag1/bonding/min_links echo 1
->/sys/class/net/lag1/bonding/slaves    echo +eth1
->/sys/class/net/lag1/bonding/slaves    echo +eth0
-ip link set up dev lag1
-ip link set up dev eth0
-ip link set up dev eth1
-
-====================
-
-# Executed on each VM
-ip link set down dev eth0
-ip link set down dev eth1
-ethtool -s eth0 speed 1000 duplex full
-ethtool -s eth1 speed 1000 duplex full
-modprobe bonding
-[ -d /sys/class/net/bond0 ] || \
-    ip link add name bond0 type bond
-ip link set down dev bond0
-echo active-backup > /sys/class/net/bond0/bonding/mode
-echo 100 > /sys/class/net/bond0/bonding/miimon
-echo 1 > /sys/class/net/bond0/bonding/fail_over_mac
-echo 0 > /sys/class/net/bond0/bonding/primary_reselect
-echo +eth0 > /sys/class/net/bond0/bonding/slaves
-echo +eth1 > /sys/class/net/bond0/bonding/slaves
-echo eth0 > /sys/class/net/bond0/bonding/primary
-echo 5 > /sys/class/net/bond0/bonding/num_grat_arp
-echo 500 > /sys/class/net/bond0/bonding/peer_notif_delay
-ip link set up dev bond0
-case \$uts in
-    H1)
-
-        ip addr add 203.0.113.10/24 dev bond0
-        ;;
-    H2)
-        ip addr add 203.0.113.11/24 dev bond0
-        ;;
-esac
+# socat TCP-LISTEN:6666,fork TCP:192.168.1.1:6666,sourceport=srcport
+# google-chrome --explicitly-allowed-ports=6666
+# juniper EX4200 802.3ad  xmit_hash_policy=layer3+4
+EX4200T-VC-01-133.10> show configuration | display set | grep ge-2/0/44
+set interfaces ge-2/0/44 ether-options 802.3ad ae5
+set interfaces ge-3/0/44 ether-options 802.3ad ae5
+set interfaces ae5 aggregated-ether-options lacp active
+set interfaces ae5 unit 0 family ethernet-switching port-mode trunk
+set interfaces ae5 unit 0 family ethernet-switching vlan members all
 EOF
