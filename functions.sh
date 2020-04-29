@@ -620,6 +620,39 @@ str_replace() {
     safe_echo "${DATA//$ORIG/$DEST}"
 }
 
+urlencode() {
+  local string="${1}"
+  local strlen=${#string}
+  local encoded=""
+  local pos c o
+
+  for (( pos=0 ; pos<strlen ; pos++ )); do
+    c=${string:$pos:1}
+    case "$c" in
+      [-_.~a-zA-Z0-9] ) o="${c}" ;;
+      * ) printf -v o '%%%02x' "'$c" ;;
+    esac
+    encoded+="${o}"
+  done
+  safe_echo "${encoded}"
+}
+
+urldecode() {
+  local string="${1}"
+  local strlen=${#string}
+  local decoded=""
+  local pos c o
+
+  for (( pos=0 ; pos<strlen ; pos++ )); do
+    c=${string:$pos:1}
+    case "$c" in
+      % ) o=$(echo "0x${string:$(($pos+1)):2}" | xxd -r); pos=$(($pos + 2)) ;;
+      * ) o="${c}" ;;
+    esac
+    decoded+="${o}"
+  done
+  safe_echo "${decoded}"
+}
 # Performs POST onto specified URL with content formatted as json
 #$1 uri
 #$2 json file (if input is to be read from stdin use: -)
