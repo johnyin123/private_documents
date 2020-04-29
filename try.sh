@@ -117,8 +117,10 @@ main() {
         esac
         shift
     done
-
+# ./xtrace.sh ./try.sh 
+__trace_ON__
     list_func
+__trace_OFF__
     dummy
     exit_msg "$0 --start/--clean filename\n"
     echo "MAIN!!!"
@@ -127,4 +129,3 @@ main() {
     return 0
 }
 main "$@"
-
