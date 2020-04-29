@@ -182,6 +182,23 @@ dialog() {
     safe_echo -n "${item}"
 }
 ##################################################
+# item=(ERR SUM)
+# safe_read_cfg demo.cfg item
+# echo "OK =${OK:-oo},ERR=$ERR"
+safe_read_cfg()
+{
+    local cfg=${1};shift 1
+    local allow_array=$1; shift 1
+    [ -f "$cfg" ] || return 1
+    local i=0
+    local len=$(array_size "${allow_array}")
+    local pattern=$(array_get $allow_array 0)
+    for (( i=1; i<len; ++i )); do
+        pattern="$pattern|$(array_get $allow_array $i)"
+    done
+    source <(grep -E "^\s*($pattern)=" $cfg)
+}
+
 getinientry() {
     local CONF=$1
     grep "^\[" "${CONF}" | sed "s/\[//;s/\]//"
