@@ -182,6 +182,25 @@ dialog() {
     safe_echo -n "${item}"
 }
 ##################################################
+# Assign variable one scope above the caller
+# Usage: local "$1" && upvar $1 "value(s)"
+# Param: $1  Variable name to assign value to
+# Param: $*  Value(s) to assign.  If multiple values, an array is
+#            assigned, otherwise a single value is assigned.
+# Example:
+#    f() { local b; g b; echo $b; }
+#    g() { local "$1" && upvar $1 bar; }
+#    f  # Ok: b=bar
+upvar() {
+    if unset -v "$1"; then           # Unset & validate varname
+        if (( $# == 2 )); then
+            eval $1=\"\$2\"          # Return single value
+        else
+            eval $1=\(\"\${@:2}\"\)  # Return array
+        fi
+    fi
+}
+
 # item=(ERR SUM)
 # safe_read_cfg demo.cfg item
 # echo "OK =${OK:-oo},ERR=$ERR"
