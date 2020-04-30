@@ -61,9 +61,20 @@ set web-management http port 8888
 commit
 
 EX4200T-VC-01-133.10> show configuration | display set | grep ge-2/0/44
+set interfaces ge-2/0/44 disable
 set interfaces ge-2/0/44 ether-options 802.3ad ae5
+set interfaces ge-3/0/44 disable
 set interfaces ge-3/0/44 ether-options 802.3ad ae5
 set interfaces ae5 aggregated-ether-options lacp active
 set interfaces ae5 unit 0 family ethernet-switching port-mode trunk
 set interfaces ae5 unit 0 family ethernet-switching vlan members all
+#set interfaces ae0 unit 0 family inet address 172.16.16.1/30 (三层)
+
+#ospf
+set routing-options router-id 1.1.1.1
+set protocols ospf area 0.0.0.0 area-range 192.168.167.0/24
+set protocols ospf area 0.0.0.0 interface ae0.0
+set protocols ospf area 0.0.0.0 interface ae0.0 authentication md5 1 key keypassword
 EOF
+
+
