@@ -75,6 +75,16 @@ set routing-options router-id 1.1.1.1
 set protocols ospf area 0.0.0.0 area-range 192.168.167.0/24
 set protocols ospf area 0.0.0.0 interface ae0.0
 set protocols ospf area 0.0.0.0 interface ae0.0 authentication md5 1 key keypassword
+lab# show protocols ospf
+area 0.0.0.0 {
+    area-range 192.168.167.0/24;
+    interface ae0.0 {
+        authentication {
+            md5 1 key "$9$YUoZjmPQF/t.P5F/9B1Ndb2Zj6/t01hk."; ## SECRET-DATA
+        }
+    }
+}
+
 EOF
 
 
