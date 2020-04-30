@@ -117,6 +117,7 @@ safe_echo() {
 }
 
 # echo "hello {{DISK_DEV}} \$(({{VAL}}*2))" | render_tpl2 vm
+# same as render_tpl  #LHS='${' RHS='}'
 # REPS default two LHS/RHS like {{ }}
 # LHS='%' RHS='%'
 SEQN="$(seq 1 ${REPS:-2})"
