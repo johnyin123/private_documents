@@ -55,6 +55,11 @@ GATEWAY=
 # socat TCP-LISTEN:6666,fork TCP:192.168.1.1:6666,sourceport=srcport
 # google-chrome --explicitly-allowed-ports=6666
 # juniper EX4200 802.3ad  xmit_hash_policy=layer3+4
+configure
+edit system services
+set web-management http port 8888
+commit
+
 EX4200T-VC-01-133.10> show configuration | display set | grep ge-2/0/44
 set interfaces ge-2/0/44 ether-options 802.3ad ae5
 set interfaces ge-3/0/44 ether-options 802.3ad ae5
