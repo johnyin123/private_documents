@@ -444,8 +444,6 @@ debugshell () {
 #  try --run my_command ${args} || return ${?}
 #******************************************************************************
 try() {
-    local cmd_func="${FUNCNAME[1]}"
-    local cmd_line="${BASH_LINENO[1]}"
     local rc=0
     local cmd_size=-60.60
     [ ${DRYRUN:-0} = 0 ] || { safe_echo "EXECUTE $*" >&2; return 0; }
@@ -453,7 +451,15 @@ try() {
     [ ${QUIET:-0} = 0 ] && blue "Begin: %${cmd_size}s." "$*" >&2
     result=$(eval $@ 2>&1) || rc=$?
     [ $rc = 0 ] && { [ ${QUIET:-0} = 0 ] && green " done.\n" >&2; printf "%s" "$result"; }
-    [ $rc = 0 ] || { [ ${QUIET:-0} = 0 ] && red " failed(${cmd_func}:${cmd_line} [$rc]).\n" >&2; printf "%s\n" "$result" | verror_msg; }
+    [ $rc = 0 ] || {
+        local cmd_func="" #"${FUNCNAME[1]}"
+        for (( idx=${#FUNCNAME[@]}-1 ; idx>=1 ; idx-- )) ; do
+            cmd_func+="${FUNCNAME[idx]} "
+        done
+        local cmd_line="${BASH_LINENO[1]}"
+        [ ${QUIET:-0} = 0 ] && red " failed(${cmd_func}:${cmd_line} [$rc]).\n" >&2
+        printf "%s\n" "$result" | verror_msg
+    }
     return $rc
 }
 # try () {
