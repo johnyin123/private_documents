@@ -85,6 +85,25 @@ area 0.0.0.0 {
     }
 }
 
+H3C:
+# 创建二层聚合接口1，并配置该接口为动态聚合模式。
+interface bridge-aggregation 1
+link-aggregation mode dynamic
+# 分别将端口GigabitEthernet1/0/1,GigabitEthernet1/0/2加入到聚合组1中。
+interface gigabitethernet 1/0/1
+port link-aggregation group 1
+quit
+interface gigabitethernet 1/0/2
+port link-aggregation group 1
+quit
+# 配置二层聚合接口1为Trunk端口，并允许VLAN 10和20的报文通过。
+interface bridge-aggregation 1
+port link-type trunk
+port trunk permit vlan 10 20
+quit
+# 配置全局按照报文的源MAC地址和目的MAC地址进行聚合负载分担。
+link-aggregation load-sharing mode source-mac destination-mac
+display link-aggregation summary
+display link-aggregation load-sharing mode
 EOF
-
 
