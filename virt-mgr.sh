@@ -264,13 +264,13 @@ attach() {
 }
 usage() {
 cat <<EOF
-${SCRIPTNAME} <cmd> arg [domain_template]
+${SCRIPTNAME} <cmd> <arg>
     -q|--quiet
     -l|--log <int>                           log level
     -d|--dryrun                              dryrun
     -h|--help                                display this help and exit
 
-cmd:create
+cmd:create <arg> [domain_template in cfg]
         create domain with configurations
     -u|--uuid <uuid>           *             domain uuid
     -c|--cpus <cpu>
@@ -281,7 +281,7 @@ cmd:create
     -D|--desc <desc>                         desc
     -N|--name <title>                        name(title)
 
-cmd:attach
+cmd:attach <arg>
         attach device(net/disk/etc)
     -u|--uuid <uuid>           *             domain uuid
     -n|--net <tpl-name>        *             network template name in cfg
