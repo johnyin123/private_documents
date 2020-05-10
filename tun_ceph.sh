@@ -11,6 +11,18 @@ PG_DAMAGED Possible data damage: 1 pg inconsistent
 $ceph pg repair 1.5
 wait heath ok.
 
+
+$ceph health detail
+# HEALTH_WARN 1/784075 objects unfound (0.000%); Degraded data redundancy: 1/2352225 objects degraded (0.000%), 1 pg degrade
+# OBJECT_UNFOUND 1/784075 objects unfound (0.000%)
+#     pg 1.ac has 1 unfound objects
+# PG_DEGRADED Degraded data redundancy: 1/2352225 objects degraded (0.000%), 1 pg degraded
+#     pg 1.ac is active+recovery_wait+degraded, acting [29,32,7], 1 unfound
+1. For a new object without a previous version:
+# ceph pg {pg.num} mark_unfound_lost delete
+2. For an object which is likely to have a previous version:
+# ceph pg {pg.num} mark_unfound_lost revert
+
 for ip in $(seq 2 11)
 do
 	host=10.4.38.${ip}
