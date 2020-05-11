@@ -63,8 +63,8 @@ main() {
     done
     local upload_cmd=${VIRSH}
     #stdin is redirect 
-    [ -p /dev/stdin ] || { disk_tpl=/dev/stdin; upload_cmd="cat | ${VIRSH}"; } 
-    #[[ -t 0 ]] || { disk_tpl=/dev/stdin; upload_cmd="cat | ${VIRSH}"; } 
+    #[ -p /dev/stdin ] || { disk_tpl=/dev/stdin; upload_cmd="cat | ${VIRSH}"; }
+    [[ -t 0 ]] || { disk_tpl=/dev/stdin; upload_cmd="cat | ${VIRSH}"; }
     [[ -z "${disk_tpl}" ]] && usage
     [[ -z "${vol_name}" ]] && usage
     [[ -z "${pool}"     ]] && usage

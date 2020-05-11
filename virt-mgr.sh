@@ -57,7 +57,7 @@ attach_device() {
     local live=$(domain_live_arg "${uuid}")
     info_msg "${uuid}(${live:-shut off}) attach ${type} device\n"
     array_label_exist DEVICE_TPL ${type} || return 10
-    printf "${DEVICE_TPL[${type}]}\n" | render_tpl ${arr} | try ${VIRSH} attach-device ${uuid} --file /dev/stdin --persistent ${live} || return 5;
+    printf "${DEVICE_TPL[${type}]}\n" | render_tpl2 ${arr} | try ${VIRSH} attach-device ${uuid} --file /dev/stdin --persistent ${live} || return 5;
     return 0;
 }
 
@@ -79,7 +79,7 @@ create_domain() {
     local uuid="$(array_get ${arr} 'UUID')"
     local tpl="$(array_get ${arr} 'DOMAIN_TPL')"
     array_label_exist DOMAIN_TPL "${tpl}" || return 10
-    printf "${DOMAIN_TPL[${tpl}]}\n" | render_tpl ${arr} | try ${VIRSH} define --file /dev/stdin || return 8;
+    printf "${DOMAIN_TPL[${tpl}]}\n" | render_tpl2 ${arr} | try ${VIRSH} define --file /dev/stdin || return 8;
     set_last_disk ${arr} || return $?
     create_vol ${arr} || return $?
     attach_device ${arr} "$(array_get ${arr} 'POOL')" || return $?
@@ -298,13 +298,13 @@ main() {
 declare -A DOMAIN_TPL=(
     [default]="
 <domain type='kvm'>
-  <name>\${NAME}-\${UUID}</name>
-  <uuid>\${UUID}</uuid>
-  <title>\${NAME}</title>
-  <description>\${DESC}</description>
+  <name>{{NAME}}-{{UUID}}</name>
+  <uuid>{{UUID}}</uuid>
+  <title>{{NAME}}</title>
+  <description>{{DESC}}</description>
   <memory unit='KiB'>8388608</memory>
-  <currentMemory unit='KiB'>\${MEM}</currentMemory>
-  <vcpu placement='static' current='\${CPUS}'>8</vcpu>
+  <currentMemory unit='KiB'>{{MEM}}</currentMemory>
+  <vcpu placement='static' current='{{CPUS}}'>8</vcpu>
   <cpu match='exact'><model fallback='allow'>Westmere</model></cpu>
   <os><type arch='x86_64'>hvm</type>
     <loader readonly='yes' type='pflash'>/usr/share/OVMF/OVMF_CODE.fd</loader>
@@ -352,23 +352,23 @@ declare -A DEVICE_TPL=(
     [default]="
 <disk type='file' device='disk'>
    <driver name='qemu' type='raw' cache='none' io='native'/>
-   <source file='\${STORE_PATH}'/>
+   <source file='{{STORE_PATH}}'/>
    <backingStore/>
-   <target dev='\${LAST_DISK}' bus='virtio'/>
+   <target dev='{{LAST_DISK}}' bus='virtio'/>
 </disk>"
     [lvm]="
 <disk type='block' device='disk'>
   <driver name='qemu' type='raw' cache='none' io='native'/>
-  <source dev='TH}'/>
+  <source dev='{{STORE_PATH}}'/>
   <backingStore/>
-  <target dev='\${LAST_DISK}' bus='virtio'/>
+  <target dev='{{LAST_DISK}}' bus='virtio'/>
 </disk>"
     [cephpool]="
 <disk type='network' device='disk'>
   <auth username='libvirt'>
   <secret type='ceph' uuid='2dfb5a49-a4e9-493a-a56f-4bd1bf26a149'/>
   </auth>
-  <source protocol='rbd' name='\${STORE_PATH}'>
+  <source protocol='rbd' name='{{STORE_PATH}}'>
     <host name='node01' port='6789'/>
     <host name='node02' port='6789'/>
     <host name='node03' port='6789'/>
@@ -377,7 +377,7 @@ declare -A DEVICE_TPL=(
     <host name='node06' port='6789'/>
     <host name='node07' port='6789'/>
   </source>
-  <target dev='\${LAST_DISK}' bus='virtio'/>
+  <target dev='{{LAST_DISK}}' bus='virtio'/>
 </disk>"
     [br-ext]="
 <interface type='network'>
