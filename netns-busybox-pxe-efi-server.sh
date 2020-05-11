@@ -425,8 +425,8 @@ systemctl enable getty@tty1
 
 netsvc=network
 [[ -r /etc/os-release ]] && source /etc/os-release
-[[ VERSION_ID = 8 ]] && sed -i "/NM_CONTROLLED=/d" /etc/sysconfig/network-scripts/ifcfg-eth0
-[[ VERSION_ID = 8 ]] && netsvc=NetworkManager
+[[ ${VERSION_ID:-} = 8 ]] && sed -i "/NM_CONTROLLED=/d" /etc/sysconfig/network-scripts/ifcfg-eth0
+[[ ${VERSION_ID:-} = 8 ]] && netsvc=NetworkManager
 
 chkconfig 2>/dev/null | egrep -v "crond|sshd|${netsvc}|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
 systemctl list-unit-files | grep enabled | egrep -v "${netsvc}|getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
