@@ -61,7 +61,7 @@ test_lowercase()
 echo "$(test_lowercase 'HELLO xx')"
 echo "HELLO there, FRIEND!" | test_lowercase
 
-cat <<EOF
+cat <<EOF | sudo tee /dev/null
 	'append STDOUT and STDERR'            : ' &>> <CURSOR>',
 	'close input from file descr n'       : ' <CURSOR><&- ',
 	'close output from file descr n'      : ' <CURSOR>>&- ',
