@@ -431,12 +431,12 @@ cp /overlay/lower/etc/apt/sources.list ~/sources.list.bak
 
 mount -o remount,rw /overlay/lower
 
-cat >/overlay/lower/etc/apt/sources.list<<EOF
+cat >/overlay/lower/etc/apt/sources.list<<DEBEOF
 deb http://mirrors.163.com/debian buster main non-free contrib
 deb http://mirrors.163.com/debian buster-proposed-updates main non-free contrib
 deb http://mirrors.163.com/debian-security buster/updates main contrib non-free
 deb http://mirrors.163.com/debian buster-backports main contrib non-free
-EOF
+DEBEOF
 
 chroot /overlay/lower apt update
 chroot /overlay/lower apt install \$*
