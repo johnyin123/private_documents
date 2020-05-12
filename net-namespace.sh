@@ -16,6 +16,7 @@ ip netns exec ${NS} /bin/bash --rcfile <(echo "PS1=\"namespace ${NS}> \"")
 ip netns delete ${NS}
 ip netns pids ${NS} 2>/dev/null && echo "pid run!!!" || echo "clean up"
 
+# ip link add link br0 name br0.147 type vlan id 147
 
 
 # echo 1 > /proc/sys/net/ipv4/conf/veth1/accept_local
