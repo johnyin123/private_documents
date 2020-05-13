@@ -64,10 +64,11 @@ attach_device() {
 create_vol() {
     local arr=$1
     local pool="$(array_get ${arr} 'POOL')"
-    local name="$(array_get ${arr} 'LAST_DISK')-$(array_get ${arr} 'UUID').raw"
+    local fmt="$(array_get ${arr} 'FORMAT')"
+    local name="$(array_get ${arr} 'LAST_DISK')-$(array_get ${arr} 'UUID').${fmt}"
     local size="$(array_get ${arr} 'SIZE')"
     info_msg "create vol ${name} on ${pool} size ${size}\n"
-    try ${VIRSH} vol-create-as --pool ${pool} --name ${name} --capacity 1M --format raw || return 1
+    try ${VIRSH} vol-create-as --pool ${pool} --name ${name} --capacity 1M --format ${fmt} || return 1
     try ${VIRSH} vol-resize --pool ${pool} --vol ${name} --capacity ${size} || return 3
     local val=$(${VIRSH} vol-path --pool "${pool}" "${name}") || return 2
     array_set ${arr} "STORE_PATH" "${val}"
@@ -96,6 +97,7 @@ set_vm_defaults() {
         [CPUS]="2"
         [MEM]="2097152"
         [POOL]="default"
+        [FORMAT]="raw"
         [SIZE]="4G"
         [DESC]="no desc"
         [NAME]="vm"
@@ -117,7 +119,8 @@ failed_destroy_vm() {
     local err=$2
     local uuid="$(array_get __ref 'UUID')"
     local pool="$(array_get __ref 'POOL')"
-    local disk="$(array_get __ref 'LAST_DISK')-${uuid}.raw"
+    local fmt="$(array_get ${arr} 'FORMAT')"
+    local disk="$(array_get __ref 'LAST_DISK')-${uuid}.${fmt}"
     local tpl="$(array_get __ref 'DOMAIN_TPL')"
     error_msg "create ${uuid} with tpl(${tpl}): $(array_get APP_ERRORS $err $err)\n$(print_kv vm)\n"
     try ${VIRSH} vol-delete "${disk}" --pool "${pool}" || error_msg "vol-delete ${disk} in ${pool}\n"
@@ -153,6 +156,10 @@ create() {
             -p|--pool)
                 val=${1:?disk pool need input};shift 1
                 array_set vm "POOL" "${val}"
+                ;;
+            -f|--format)
+                val=${1:?disk format need input};shift 1
+                array_set vm "FORMAT" "${val}"
                 ;;
             -s|--size)
                 val=${1:?disk size need input};shift 1
@@ -237,8 +244,9 @@ attach() {
     array_label_exist vm 'POOL' && {
         array_label_exist vm 'SIZE' || usage
         local pool="$(array_get vm 'POOL')"
+        local fmt="$(array_get ${arr} 'FORMAT')"
         local size="$(array_get vm 'SIZE')"
-        local disk="$(array_get vm 'LAST_DISK')-${uuid}.raw"
+        local disk="$(array_get vm 'LAST_DISK')-${uuid}.${fmt}"
         create_vol vm || { err=$?; error_msg "attach ${uuid}: $(array_get APP_ERRORS $err $err)\n"; return $err; }
         attach_device vm "$(array_get vm 'POOL')" || {
                 err=$?;
@@ -277,6 +285,7 @@ cmd:create <arg> [domain_template in cfg]
     -m|--mem <mem KB>
     -n|--net <tpl-name>        *             network template name in cfg
     -p|--pool <pool>                         kvm storage pool
+    -f|--format <fmt>                        disk format,default raw
     -s|--size <size>                         <size> GB/MB/KB
     -D|--desc <desc>                         desc
     -N|--name <title>                        name(title)
@@ -287,6 +296,7 @@ cmd:attach <arg>
     -n|--net <tpl-name>        *             network template name in cfg
     -p|--pool <pool>           *             kvm storage pool
     -s|--size <size>           *             <size> GB/MB/KB
+    -f|--format <fmt>                        disk format,default raw
 EOF
 exit 1
 } >&2
@@ -351,20 +361,21 @@ declare -A DOMAIN_TPL=(
 declare -A DEVICE_TPL=(
     [default]="
 <disk type='file' device='disk'>
-   <driver name='qemu' type='raw' cache='none' io='native'/>
+   <driver name='qemu' type='{{FORMAT}}' cache='none' io='native'/>
    <source file='{{STORE_PATH}}'/>
    <backingStore/>
    <target dev='{{LAST_DISK}}' bus='virtio'/>
 </disk>"
     [lvm]="
 <disk type='block' device='disk'>
-  <driver name='qemu' type='raw' cache='none' io='native'/>
+  <driver name='qemu' type='{{FORMAT}}' cache='none' io='native'/>
   <source dev='{{STORE_PATH}}'/>
   <backingStore/>
   <target dev='{{LAST_DISK}}' bus='virtio'/>
 </disk>"
     [cephpool]="
 <disk type='network' device='disk'>
+  <driver name='qemu' type='{{FORMAT}}'/>
   <auth username='libvirt'>
   <secret type='ceph' uuid='2dfb5a49-a4e9-493a-a56f-4bd1bf26a149'/>
   </auth>
