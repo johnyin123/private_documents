@@ -40,11 +40,11 @@ exec 6</etc/logo.txt
 {
     printf "$head\n"
     printf "%s\n" "----------------------------------------------"
-    printf "Product name:       %s\n" $product
-    printf "Serial number:      %s\n" $serial
-    printf "Kernel Version:     %s\n" $kernel
-    printf "UUID:               %s\n" $uuid
-    printf "HostName:           %s\n" $hostname
+    printf "Product name:       %s\n" "$product"
+    printf "Serial number:      %s\n" "$serial"
+    printf "Kernel Version:     %s\n" "$kernel"
+    printf "UUID:               %s\n" "$uuid"
+    printf "HostName:           %s\n" "$hostname"
     printf "System Load:        %s %s %s\n" $load1, $load5, $load15
     printf "System Uptime:      %s "days" %s "hours" %s "min" %s "sec"\n" $upDays $upHours $upMins $upSecs
     printf "Memory Usage:       %s  Swap Usage:      %s\n" $mem_usage $swap_usage
