@@ -120,8 +120,8 @@ failed_destroy_vm() {
     local disk="$(array_get __ref 'LAST_DISK')-${uuid}.raw"
     local tpl="$(array_get __ref 'DOMAIN_TPL')"
     error_msg "create ${uuid} with tpl(${tpl}): $(array_get APP_ERRORS $err $err)\n$(print_kv vm)\n"
-    try ${VIRSH} vol-delete "${disk}" --pool "${pool}" || error_msg "vol-delete ${disl} in ${pool}\n"
-    try ${VIRSH} pool-refresh "${pool}"
+    try ${VIRSH} vol-delete "${disk}" --pool "${pool}" || error_msg "vol-delete ${disk} in ${pool}\n"
+    try ${VIRSH} pool-refresh "${pool}" || true
     try ${VIRSH} undefine "${uuid}" --remove-all-storage || error_msg "undefine ${uuid} with --remove-all-storage\n"
     return 0
 }
