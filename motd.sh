@@ -30,6 +30,8 @@ Filesystem=$(df -h | awk '/^\/dev/{print $6}')
 #Interfaces
 INTERFACES=$(ls /sys/class/net/)
 uuid=$(dmidecode -s system-uuid)
+serial="$(dmidecode -s system-serial-number)"
+product="$(dmidecode -s system-product-name)"
 [[ -r /etc/os-release ]] && source /etc/os-release
 head="$PRETTY_NAME ($date)"
 
@@ -38,6 +40,8 @@ exec 6</etc/logo.txt
 {
     printf "$head\n"
     printf "%s\n" "----------------------------------------------"
+    printf "Product name:       %s\n" $product
+    printf "Serial number:      %s\n" $serial
     printf "Kernel Version:     %s\n" $kernel
     printf "UUID:               %s\n" $uuid
     printf "HostName:           %s\n" $hostname
