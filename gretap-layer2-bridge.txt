@@ -12,7 +12,7 @@ BRIDGE=br-data.149
 echo "when the gretap interface is created, it has a default MTU of 1462, which is correct: 1500 (underlying physical interface) - 20 (outer IP header added by GRE) - 4 (GRE header) - 14 (ethernet header of the encapsulated frame) = 1462."
 echo "add disable Path MTU Discovery on this tunnel (nopmtudisc)"
 #sysctl net.ipv4.ip_no_pmtu_disc=1
-ip link add ${GRETAP_DEV} type gretap remote ${REMOTE} local ${LOCAL} key ${KEY} nopmtudisc dev ${PHY_DEV}
+ip link add ${GRETAP_DEV} type gretap remote ${REMOTE} local ${LOCAL} ${KEY:+key "$KEY"} nopmtudisc dev ${PHY_DEV}
 ip link set ${GRETAP_DEV} up
 ip link set ${GRETAP_DEV} master ${BRIDGE}
 
