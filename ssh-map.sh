@@ -42,3 +42,28 @@ iptables -t nat -A PREROUTING -p ${TYPE} -d ${NAT_SRV} --dport ${NAT_PORT} -j DN
 iptables -t nat -A POSTROUTING -p ${TYPE} -d ${DEST_SRV} --dport ${DEST_PORT} -j SNAT --to-source ${NAT_SRV}
 
 
+====================================================================================================
+echo 1:1 NAT, also known as full cone NAT
+# 
+# src:192.168.10.44        SNAT      src:192.168.100.44        DNAT     src:192.168.100.44
+# dst:192.168.200.211--------------->dst:192.168.200.211--------------->dst:192.168.10.211
+# 
+# src:192.168.200.211      DNAT      src:192.168.100.211       SNAT     src:192.168.10.211
+# dst:192.168.10.44  <---------------dst:192.168.200.44 <---------------dst:192.168.100.44
+# 
+# gwa# ip route
+# 10.0.0.0/24 dev tun0 proto kernel scope link src 10.0.0.2
+# 192.168.200.0/24 via 10.0.0.1 dev tun0
+# 192.168.10.0/24 dev eth0 proto kernel scope link src 192.168.10.254
+# # rewrite destination address on incoming traffic
+iptables -t nat -A PREROUTING -s 192.168.200.0/24 -d 192.168.100.0/24 -i tun0 -j NETMAP --to 192.168.10.0/24
+# rewrite source address on outgoing traffic
+iptables -t nat -A POSTROUTING -s 192.168.10.0/24 -d 192.168.200.0/24 -o tun0 -j NETMAP --to 192.168.100.0/24
+
+# gwb# ip route
+# 10.0.0.0/24 dev tun0 proto kernel scope link src 10.0.0.1
+# 192.168.100.0/24 via 10.0.0.2 dev tun0
+# 192.168.10.0/24 dev eth0 proto kernel scope link src 192.168.10.254
+# # same things, on gwb
+iptables -t nat -A PREROUTING -s 192.168.100.0/24 -d 192.168.200.0/24 -i tun0 -j NETMAP --to 192.168.10.0/24
+iptables -t nat -A POSTROUTING -s 192.168.10.0/24 -d 192.168.100.0/24 -o tun0 -j NETMAP --to 192.168.200.0/24
