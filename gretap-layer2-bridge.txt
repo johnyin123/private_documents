@@ -17,3 +17,6 @@ ip link set ${GRETAP_DEV} up
 ip link set ${GRETAP_DEV} master ${BRIDGE}
 
 kvm guest use the bridge. and guest os mtu set 1300
+
+
+also can bridge trunk vlan to peer!!!!! great
