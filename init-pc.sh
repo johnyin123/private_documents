@@ -8,6 +8,25 @@ ZRAM_SIZE=512
 ZRAMSWAP="udisks2"
 #ZRAMSWAP="zram-tools"
 
+echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
+echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
+echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
+
+# auto reformatoverlay plug usb ttl
+#cat > /etc/udev/rules.d/99-reformatoverlay.rules << EOF
+#SUBSYSTEM=="tty", ACTION=="add", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'touch /overlay/reformatoverlay; echo heartbeat > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
+#SUBSYSTEM=="tty", ACTION=="remove", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'rm /overlay/reformatoverlay; echo none > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
+#EOF
+
+cat > /etc/apt/sources.list << EOF
+deb http://mirrors.163.com/debian ${DEBIAN_VERSION} main non-free contrib
+deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-proposed-updates main non-free contrib
+deb http://mirrors.163.com/debian-security ${DEBIAN_VERSION}/updates main contrib non-free
+deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-backports main contrib non-free
+EOF
+
+apt update
+
 echo "add user[johnyin] to sudoers"
 apt -y install sudo
 if ! grep -q "^johnyin" /etc//sudoers; then
@@ -36,23 +55,6 @@ LABEL=${ROOT_LABEL}    /    jfs    defaults,errors=remount-ro,noatime    0    1
 #tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
 EOF
 
-echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
-echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
-echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
-
-# auto reformatoverlay plug usb ttl
-#cat > /etc/udev/rules.d/99-reformatoverlay.rules << EOF
-#SUBSYSTEM=="tty", ACTION=="add", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'touch /overlay/reformatoverlay; echo heartbeat > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
-#SUBSYSTEM=="tty", ACTION=="remove", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'rm /overlay/reformatoverlay; echo none > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
-#EOF
-
-cat > /etc/apt/sources.list << EOF
-deb http://mirrors.163.com/debian ${DEBIAN_VERSION} main non-free contrib
-deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-proposed-updates main non-free contrib
-deb http://mirrors.163.com/debian-security ${DEBIAN_VERSION}/updates main contrib non-free
-deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-backports main contrib non-free
-EOF
-
 #Installing packages without docs
 cat >  /etc/dpkg/dpkg.cfg.d/01_nodoc <<EOF
 # lintian stuff is small, but really unnecessary
@@ -70,7 +72,15 @@ echo -e 'LANG="zh_CN.UTF-8"\nLANGUAGE="zh_CN:zh"\nLC_ALL="zh_CN.UTF-8"\n' > /etc
 #echo "Asia/Shanghai" > /etc/timezone
 ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 dpkg-reconfigure -f noninteractive tzdata
+
+apt -y install openssh-server
 dpkg-reconfigure -f noninteractive openssh-server
+sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
+sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
+sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config
+echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> /etc/ssh/sshd_config
+echo "MACs    hmac-sha1" >> /etc/ssh/sshd_config
+echo "PermitRootLogin yes">> /etc/ssh/sshd_config
 
 cat << EOF > /etc/network/interfaces
 source /etc/network/interfaces.d/*
@@ -134,13 +144,6 @@ export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m
 }
 set -o vi
 EOF
-
-sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
-sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
-sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config
-echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> /etc/ssh/sshd_config
-echo "MACs    hmac-sha1" >> /etc/ssh/sshd_config
-echo "PermitRootLogin yes">> /etc/ssh/sshd_config
 
 #set the file limit
 cat > /etc/security/limits.d/tun.conf << EOF
@@ -245,13 +248,6 @@ endfunc
 EOF
 
 sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
-
-usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" root
-usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" johnyin
-# echo "root:${PASSWORD}" |chpasswd 
-echo "Force Users To Change Passwords Upon First Login"
-chage -d 0 root
-chage -d 0 johnyin
 
 echo "start install overlay_rootfs ====================="
 cat <<EOF
@@ -449,6 +445,13 @@ chmod 0600 /root/.ssh/authorized_keys
 echo "install packages!"
 apt -y install bzip2 pigz p7zip-full arj zip mscompress unar eject bc less vim ftp telnet nmap tftp ntpdate screen lsof strace
 apt -y install manpages tcpdump ethtool aria2 axel curl mpg123 nmon sysstat arping dnsutils minicom socat git git-flow
+
+usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" root
+usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" johnyin
+# echo "root:${PASSWORD}" |chpasswd 
+echo "Force Users To Change Passwords Upon First Login"
+chage -d 0 root
+chage -d 0 johnyin
 
 apt clean
 find /var/log/ -type f | xargs rm
