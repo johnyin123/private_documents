@@ -1,3 +1,9 @@
+virsh attach-interface --domain pxe --type bridge --source br1 --model virtio --config --live
+
+nmcli con add type bridge con-name br0 ifname br0 autoconnect yes
+nmcli connection modify br0 ipv4.addresses 192.168.10.5/24 ipv4.method manual ipv4.gateway 192.168.10.1  ipv4.dns  8.8.8.8
+nmcli con up br0
+
 #BONDING_OPTS="mode=4 miimon=100 xmit_hash_policy=layer3+4" mode=802.3ad
 #BONDING_OPTS="mode=802.3ad miimon=100 lacp_rate=fast xmit_hash_policy=layer2+3"
 #BONDING_OPTS='mode=6 miimon=100
