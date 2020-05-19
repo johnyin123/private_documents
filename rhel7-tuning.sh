@@ -14,10 +14,12 @@ EOF
 #disable selinux
 sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
  
-#set ssh
-sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
+#set sshd
+sed -i 's/#UseDNS.*/UseDNS no/' /etc/ssh/sshd_config
+sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/' /etc/ssh/sshd_config
+sed -i 's/#Port.*/Port 60022/' /etc/ssh/sshd_config
+sed -i 's/GSSAPIAuthentication.*/GSSAPIAuthentication no/g' /etc/ssh/sshd_config
 sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
-sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config
 echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> /etc/ssh/sshd_config
 echo "MACs    hmac-sha1" >> /etc/ssh/sshd_config
 
@@ -47,98 +49,36 @@ net.ipv4.tcp_tw_reuse = 0
 EOF
 /sbin/sysctl -p
 
-cat >/etc/motd.sh<<"EOF"
-#!/bin/bash
-date=$(date "+%F %T")
-kernel=$(uname -r)
-hostname=$(echo $HOSTNAME)
-#Cpu load
-load1=$(cat /proc/loadavg | awk '{print $1}')
-load5=$(cat /proc/loadavg | awk '{print $2}')
-load15=$(cat /proc/loadavg | awk '{print $3}')
-#System uptime
-uptime=$(cat /proc/uptime | cut -f1 -d.)
-upDays=$((uptime/60/60/24))
-upHours=$((uptime/60/60%24))
-upMins=$((uptime/60%60))
-upSecs=$((uptime%60))
-up_lastime=$(date -d "$(awk -F. '{print $1}' /proc/uptime) second ago" +"%Y-%m-%d %H:%M:%S")
-#Memory Usage
-mem_usage=$(free -m | grep Mem | awk '{ printf("%3.2f%%", $3*100/$2) }')
-swap_usage=$(free -m | awk '/Swap/{printf "%.2f%%",$3/($2+1)*100}')
-
-#Processes
-processes=$(ps aux | wc -l)
-
-#User
-users=$(users | wc -w)
-USER=$(whoami)
-
-#System fs usage
-Filesystem=$(df -h | awk '/^\/dev/{print $6}')
-
-#Interfaces
-INTERFACES=$(ls /sys/class/net/)
-uuid=$(dmidecode -s system-uuid)
-[[ -r /etc/os-release ]] && source /etc/os-release
-head="$PRETTY_NAME ($date)"
-
-echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-exec 6</etc/logo.txt
-{
-    printf "$head\n"
-    printf "%s\n" "----------------------------------------------"
-    printf "Kernel Version:     %s\n" $kernel
-    printf "UUID:               %s\n" $uuid
-    printf "HostName:           %s\n" $hostname
-    printf "System Load:        %s %s %s\n" $load1, $load5, $load15
-    printf "System Uptime:      %s "days" %s "hours" %s "min" %s "sec"\n" $upDays $upHours $upMins $upSecs
-    printf "Memory Usage:       %s  Swap Usage:      %s\n" $mem_usage $swap_usage
-    printf "Login Users:        %s\n" $users
-    printf "User:               %s\n" $USER
-    printf "Processes:          %s\n" $processes
-    printf "%s\n" "---------------------------------------------"
-    printf "Filesystem          Usage\n"
-    for f in $Filesystem
-    do
-        Usage=$(df -h | awk '{if($NF=="'''$f'''") print $5}')
-        printf "%-20s%s\n" $f $Usage
-    done
-    printf "%s\n" "---------------------------------------------"
-    printf "Interface           MAC Address         IP Address\n"
-    for i in $INTERFACES
-    do
-        [ "$i" = "lo" ] && continue
-        MAC=$(ip ad show dev $i | grep "link/ether" | awk '{print $2}')
-        IP=$(ip ad show dev $i | awk '/inet / {print $2}')
-        for j in ${IP}
-        do
-            printf "%-20s%-20s%s\n" $i $MAC $j
-        done
-    done
-
-} | while IFS= read -r line; do 
-    IFS= read -r line2 <&6
-    str="$(printf "%s" "${line}" | sed -r 's/\x1B\[([0-9];)?([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g')"
-    slen=${#str}
-    len=${#line}
-    printf "%-$((60+len-slen))s%s\033[m\n" "$line" "$line2"
-done
-exec 6<&-
-echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-EOF
-chmod 755 /etc/motd.sh
-cat >> /etc/profile << EOF
+[ -r "motd.sh" ] && {
+    cat motd.sh >/etc/motd.sh
+    touch /etc/logo.txt
+    chmod 644 /etc/motd.sh
+    cat >> /etc/profile << EOF
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]\$"
 export readonly PROMPT_COMMAND='{ msg=\$(history 1 | { read x y; echo \$y; });user=\$(whoami); echo \$(date "+%Y-%m-%d%H:%M:%S"):\$user:`pwd`/:\$msg ---- \$(who am i); } >> \$HOME/.history'
 set -o vi
 sh /etc/motd.sh
 EOF
+}
+
+### Add SSH public key
+if [ ! -d /root/.ssh ]; then
+    mkdir -m0700 /root/.ssh
+fi
+cat <<EOF >/root/.ssh/authorized_keys
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
+EOF
+chmod 0600 /root/.ssh/authorized_keys
 
 systemctl set-default multi-user.target
+systemctl enable getty@tty1
 
-chkconfig 2>/dev/null | egrep -v "crond|sshd|network|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
-systemctl list-unit-files | grep service | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
+netsvc=network
+[[ -r /etc/os-release ]] && source /etc/os-release
+[[ ${VERSION_ID:-} = 8 ]] && netsvc=NetworkManager
+
+chkconfig 2>/dev/null | egrep -v "crond|sshd|${netsvc}|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
+systemctl list-unit-files | grep enabled | egrep -v "${netsvc}|getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
 
 #define the backspace button can erase the last character typed
 #echo 'stty erase ^H' >> /etc/profile
