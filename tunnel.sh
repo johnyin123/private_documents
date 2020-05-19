@@ -51,14 +51,15 @@ error_clean() {
 main() {
     local NS_CIDR=${NS_CIDR:-"10.32.149.223/24"}
     local NS_NAME=${NS_NAME:-"web_ns"}
-    local HOST_BR=${1:-br-srvzone}; shift || exit_msg "IPADDR=$NS_CIDR <bridge>\n"
+    local HOST_BR=${1:-br-srvzone}
+    info_msg "IPADDR=$NS_CIDR ${SCRIPTNAME} ${HOST_BR}\n"
 
     add_ns ${NS_NAME} ${HOST_BR} "${NS_CIDR}" || error_clean "${NS_NAME}" "add netns $?"
     #ip netns exec ${NS_NAME} /bin/bash || true
     #su johnyin /opt/google/chrome/google-chrome
     try ip netns exec ${NS_NAME} "ip link set eth0 mtu 1300" || true
     try ip netns exec ${NS_NAME} "ip route add default via 10.32.149.1" || true
-    ( nsenter --net=/var/run/netns/${NS_NAME} su johnyin /opt/google/chrome/google-chrome || true )&
+    ( nsenter --net=/var/run/netns/${NS_NAME} su johnyin /opt/google/chrome/google-chrome || true ) &>/dev/null &
     unset PROMPT_COMMAND
     ip netns exec ${NS_NAME} /bin/bash --rcfile <(echo "PS1=\"namespace ${NS_NAME}> \"") || true
     del_ns ${NS_NAME}
