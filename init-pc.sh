@@ -30,9 +30,9 @@ apt update
 echo "add user[johnyin] to sudoers"
 apt -y install sudo
 if ! grep -q "^johnyin" /etc//sudoers; then
-	echo "johnyin ALL = NOPASSWD: ALL" >> /etc/sudoers
-	echo "Defaults       logfile=/var/log/sudo.log">>/etc/sudoers
-	visudo -c
+    echo "johnyin ALL = NOPASSWD: ALL" >> /etc/sudoers
+    echo "Defaults       logfile=/var/log/sudo.log">>/etc/sudoers
+    visudo -c
 fi
 
 echo "xk-yinzh" > /etc/hostname
@@ -99,8 +99,24 @@ iface eth0 inet manual
 auto br-ext
 iface br-ext inet static
     bridge_ports eth0
+    #bridge_ports none
     address 10.32.166.33/25
     gateway 10.32.166.1
+
+# auto bond0
+# iface bond0 inet manual
+#         up ifconfig bond0 0.0.0.0 up
+#         slaves eth4 eth5
+#         # bond-mode 4 = 802.3ad
+#         bond-mode 4
+#         bond-miimon 100
+#         bond-downdelay 200
+#         bond-updelay 200
+#         bond-lacp-rate 1
+#         bond-xmit-hash-policy layer2+3
+# auto vlan1023
+# iface vlan1023 inet static
+#         vlan-raw-device bond0
 EOF
 
 cat << "EOF" > /etc/network/interfaces.d/wifi
@@ -204,7 +220,7 @@ set hlsearch                 " highlight the last used search pattern
 set noswapfile
 set tabstop=4                " 设置tab键的宽度
 set shiftwidth=4             " 换行时行间交错使用4个空格
-set expandtab				 " 用space替代tab的输入
+set expandtab                " 用space替代tab的输入
 set autoindent               " 自动对齐
 set backspace=2              " 设置退格键可用
 set cindent shiftwidth=4     " 自动缩进4空格
