@@ -29,3 +29,19 @@ also can bridge trunk vlan to peer!!!!! great
 # ip link set eve1 master br-data.149
 # ip link del eve1
 
+
+Tunnel/Link    Outer-Header    Encapsulate-Header    Inner-Header
+ipip           IPv4            None                  IPv4
+sit            IPv4            None                  IPv4/IPv6
+ip6tnl         IPv6            None                  IPv4/IPv6
+vti            IPv4            IPsec                 IPv4
+vti6           IPv6            IPsec                 IPv6
+gre            IPv4            GRE                   IPv4/IPv6
+gretap         IPv4            GRE                   Ether+IPv4/IPv6
+ip6gre         IPv6            GRE                   IPv4/IPv6
+ip6gretap      IPv6            GRE                   Ether+IPv4/IPv6
+fou            IPv4/IPv6       UDP                   IPv4/IPv6/GRE
+gue            IPv4/IPv6       UDP+GUE               IPv4/IPv6/GRE
+geneve         IPv4/IPv6       UDP+Geneve            Ether+IPv4/IPv6
+erspan         IPv4            GRE+ERSPAN            IPv4/IPv6
+ip6erspan      IPv6            GRE+ERSPAN            IPv4/IPv6
