@@ -43,7 +43,7 @@ iptables -t nat -A POSTROUTING -p ${TYPE} -d ${DEST_SRV} --dport ${DEST_PORT} -j
 
 
 ====================================================================================================
-echo 1:1 NAT, also known as full cone NAT
+echo 1:1 NAT, also known as full clone NAT
 # 
 # src:192.168.10.44        SNAT      src:192.168.100.44        DNAT     src:192.168.100.44
 # dst:192.168.200.211--------------->dst:192.168.200.211--------------->dst:192.168.10.211
