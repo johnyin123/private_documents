@@ -4,3 +4,10 @@
 ssh -o Tunnel=ethernet -w 5:5 -p60022 root@host
 ip link set dev tap5 master br-ext
 ...........
+
+
+ssh \
+-o PermitLocalCommand=yes \
+-o LocalCommand="echo 'run localhost'" \
+-o Tunnel=ethernet -w 5:5 \
+-p60022 root@host "echo 'run remote'; echo tap ready"
