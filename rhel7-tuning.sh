@@ -13,20 +13,19 @@ EOF
 
 #disable selinux
 sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
- 
+
 #set sshd
 sed -i 's/#UseDNS.*/UseDNS no/' /etc/ssh/sshd_config
 sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/' /etc/ssh/sshd_config
 sed -i 's/#Port.*/Port 60022/' /etc/ssh/sshd_config
 sed -i 's/GSSAPIAuthentication.*/GSSAPIAuthentication no/g' /etc/ssh/sshd_config
 sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
-echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> /etc/ssh/sshd_config
-echo "MACs    hmac-sha1" >> /etc/ssh/sshd_config
+(grep -v -E "^Ciphers|^MACs" /etc/ssh/sshd_config ; echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr"; echo "MACs    hmac-sha1"; ) | tee /etc/ssh/sshd_config
 
 service sshd restart
 
 #tune kernel parametres
-cat >> /etc/sysctl.conf << EOF
+cat > /etc/sysctl.conf << EOF
 net.core.rmem_max = 134217728 
 net.core.wmem_max = 134217728 
 net.core.netdev_max_backlog = 250000
