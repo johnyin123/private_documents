@@ -63,11 +63,6 @@ get_ipaddr() {
     /sbin/ip -4 -br addr show ${1} | /bin/grep -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
 }
 
-# $1 - key in the json file
-json_config() {
-    jq -r ".${1}"
-}
-
 is_user_root() {
     [ "$(id -u)" -eq 0 ]
 }
@@ -663,6 +658,36 @@ urldecode() {
   done
   safe_echo "${decoded}"
 }
+# {
+#     "partitions": {
+#         "boot_size": "67108864"
+#     },
+#     "debian": {
+#         "release": "wheezy",
+#         "packages": [ "openssh-server1", "openssh-server2", "openssh-server3" ]
+#     }
+# }
+# json_config ".debian.packages[]" conf.json
+# cat conf.json | json_config ".debian.packages[]"
+# json_config ".debian.packages[]" <<< "$(cat conf.json)"
+# get all keys
+# json_config "keys[]" <<< "$(cat conf.json)"
+# while IFS='' read -r line; do
+#     echo $line
+# done < <(json_config "keys[]" conf.json)
+# mapfile -t arr < <(json_config "keys[]" conf.json) # bash 4+
+# json_config "keys_unsorted | @sh" conf.json
+json_config() {
+    local key=${1}
+    local str=""
+    [ $# = 1 ] && {
+        str="$(cat)"
+    } || {
+        str="$(cat ${2:?json_config input err})"
+    }
+    jq -r "${key}" <<< ${str}
+}
+
 # Performs POST onto specified URL with content formatted as json
 #$1 uri
 #$2 json file (if input is to be read from stdin use: -)
