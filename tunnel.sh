@@ -48,6 +48,24 @@ error_clean() {
     exit_msg "clean over! $* error\n";
 }
 
+setup_nameserver() {
+    ns_name=$1
+    nameserver=$2
+
+    mkdir -p "/etc/netns/$ns_name"
+    echo "nameserver ${nameserver}" > "/etc/netns/$ns_name/resolv.conf"
+     cat > /etc/netns/$ns_name/bash.bashrc <<EOF
+export PROMPT_COMMAND=""
+alias ll='ls -lh'
+export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\](\033[5;41;92m${ns_name}\033[m):\[\033[33;1m\]\w\[\033[m\]\$"
+EOF
+}
+
+cleanup_nameserver() {
+    ns_name=$1
+    rm -rf /etc/netns/$ns_name
+}
+
 main() {
     local NS_CIDR=${NS_CIDR:-"10.32.149.223/24"}
     local NS_NAME=${NS_NAME:-"web_ns"}
@@ -60,9 +78,10 @@ main() {
     try ip netns exec ${NS_NAME} "ip link set eth0 mtu 1300" || true
     try ip netns exec ${NS_NAME} "ip route add default via 10.32.149.1" || true
     ( nsenter --net=/var/run/netns/${NS_NAME} su johnyin /opt/google/chrome/google-chrome || true ) &>/dev/null &
-    unset PROMPT_COMMAND
+    setup_nameserver "${NS_NAME}" "202.107.117.11"
     ip netns exec ${NS_NAME} /bin/bash --rcfile <(echo "PS1=\"namespace ${NS_NAME}> \"") || true
     del_ns ${NS_NAME}
+    cleanup_nameserver "${NS_NAME}"
     info_msg "Exit success\n"
     return 0
 }
