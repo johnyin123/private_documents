@@ -685,7 +685,19 @@ json_config() {
     } || {
         str="$(cat ${2:?json_config input err})"
     }
-    jq -r "${key}" <<< ${str}
+    jq -r "(${key})? // empty" <<< ${str}
+}
+# get second argument if first one not found
+json_config_default() {
+    local key=${1}
+    local default=${2}
+    local str=""
+    [ $# = 2 ] && {
+        str="$(cat)"
+    } || {
+        str="$(cat ${3:?json_config input err})"
+    }
+    jq -r '('${key}') // "'${default}'"' <<< ${str}
 }
 
 # Performs POST onto specified URL with content formatted as json
