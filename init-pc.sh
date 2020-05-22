@@ -153,7 +153,7 @@ chmod 755 /etc/rc.local
 cat >/etc/profile.d/johnyin.sh<<"EOF"
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
 
-[ -e ${DIRNAME}/functions.sh ] && {
+[ -e /usr/lib/git-core/git-sh-prompt ] && {
     source /usr/lib/git-core/git-sh-prompt
     export GIT_PS1_SHOWDIRTYSTATE=1
     export readonly PROMPT_COMMAND='__git_ps1 "\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]\\h:\\[\\033[33;1m\\]\\w\\[\\033[m\\]"  "\\\\\$ "'

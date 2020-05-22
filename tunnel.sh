@@ -57,8 +57,6 @@ setup_nameserver() {
      cat > /etc/netns/$ns_name/bash.bashrc <<EOF
 export PROMPT_COMMAND=""
 alias ll='ls -lh'
-export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\](\033[5;41;92m${ns_name}\033[m):\[\033[33;1m\]\w\[\033[m\]\$"
-
 export LANG=zh_CN.UTF-8
 export LANGUAGE=zh_CN:zh
 export LC_CTYPE="zh_CN.UTF-8"
