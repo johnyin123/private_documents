@@ -174,7 +174,7 @@
 
   - sysctl: 
       name: net.ipv4.ip_local_port_range
-      value: "1024 65500" 
+      value: "1024 65531" 
       state: present
       reload: yes
 
