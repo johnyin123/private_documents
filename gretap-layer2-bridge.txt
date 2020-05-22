@@ -24,7 +24,6 @@ also can bridge trunk vlan to peer!!!!! great
 
 
 # ip link add eve1 mtu 1500 type geneve id 9999 remote 10.32.166.32
-# ip link dev eve1 up
 # ip link set dev eve1 up
 # ip link set eve1 master br-data.149
 # ip link del eve1
