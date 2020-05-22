@@ -58,6 +58,21 @@ setup_nameserver() {
 export PROMPT_COMMAND=""
 alias ll='ls -lh'
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\](\033[5;41;92m${ns_name}\033[m):\[\033[33;1m\]\w\[\033[m\]\$"
+
+export LANG=zh_CN.UTF-8
+export LANGUAGE=zh_CN:zh
+export LC_CTYPE="zh_CN.UTF-8"
+export LC_NUMERIC="zh_CN.UTF-8"
+export LC_TIME="zh_CN.UTF-8"
+export LC_COLLATE="zh_CN.UTF-8"
+export LC_MONETARY="zh_CN.UTF-8"
+export LC_MESSAGES="zh_CN.UTF-8"
+export LC_PAPER="zh_CN.UTF-8"
+export LC_NAME="zh_CN.UTF-8"
+export LC_ADDRESS="zh_CN.UTF-8"
+export LC_TELEPHONE="zh_CN.UTF-8"
+export LC_MEASUREMENT="zh_CN.UTF-8"
+export LC_IDENTIFICATION="zh_CN.UTF-8"
 EOF
 }
 
