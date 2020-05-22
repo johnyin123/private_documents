@@ -14,7 +14,7 @@ TAPDEV_NUM=9
 mk_support() {
     local ssh_connection=${1}
     local ssh_port=${2}
-    try ssh -tt -p${ssh_port} ${ssh_connection} "(grep -v PermitTunnel /etc/sshd/sshd_config ;echo PermitTunnel yes) | tee /etc/sshd/sshd_config" || true
+    try ssh -tt -p${ssh_port} ${ssh_connection} "(grep -v PermitTunnel /etc/ssh/sshd_config ;echo PermitTunnel yes) | tee /etc/ssh/sshd_config" || true
     return 0
 }
 
