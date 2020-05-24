@@ -24,6 +24,7 @@ ssh_tunnel() {
     local ssh_connection=${3}
     local ssh_port=${4}
     #exec 5> >(ssh -tt -o StrictHostKeyChecking=no -p${port} ${user}@${host} > /dev/null 2>&1)
+    #Tunnel=ethernet must before -w 5:5 :)~~
     ssh \
         -o PermitLocalCommand=yes \
         -o LocalCommand="ip link set dev tap${TAPDEV_NUM} up;ip link set dev tap${TAPDEV_NUM} master ${local_br}" \
