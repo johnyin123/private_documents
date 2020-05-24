@@ -96,26 +96,32 @@ EOF
 # done < <(json_config "debian.packages[]")
 
 main() {
-    while test -n "${1:-}"
-    do
-        case "${1:--h}" in
+    readonly local ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ql:Vdh -l quite,log:version,dryrun,help -- "$@") || usage 1
+    eval set -- "${ARGS}"
+    while true; do
+        case "$1" in
             -q | --quiet)
-                QUIET=1
+                echo QUIET=1; shift 1
                 ;;
             -l | --log)
-                set_loglevel ${1}; shift
+                echo set_loglevel ${2}; shift 2
                 ;;
             -V | --version)
+                shift 1
                 exit_msg "${SCRIPTNAME} version\n"
                 ;;
             -d | --dryrun)
-                DRYRUN=1
+                echo DRYRUN=1; shift 1
                 ;;
-            -h | --help | *)
+            -h | --help)
+                shift 1
                 usage
                 ;;
+            --)
+                shift
+                break
+                ;;
         esac
-        shift
     done
 # ./xtrace.sh ./try.sh 
 __trace_ON__
