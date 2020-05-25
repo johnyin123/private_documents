@@ -96,18 +96,20 @@ EOF
 # done < <(json_config "debian.packages[]")
 
 main() {
-    readonly local ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ql:Vdh -l quite,log:version,dryrun,help -- "$@") || usage 1
-    eval set -- "${ARGS}"
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ql:dVh -l quite,log:,dryrun,version,help -- "$@") || usage 1
+    eval set -- "${__ARGS}"
     while true; do
         case "$1" in
             -q | --quiet) QUIET=1; shift 1 ;;
             -l | --log) set_loglevel ${2}; shift 2 ;;
-            -V | --version) exit_msg "${SCRIPTNAME} version\n" ;;
             -d | --dryrun) DRYRUN=1; shift 1 ;;
+            -V | --version) exit_msg "${SCRIPTNAME} version\n" ;;
             -h | --help) shift 1; usage ;;
-            --) shift break ;;
+            --) shift 1; break ;;
+            *) echo "Unexpected option: $1 - this should not happen."; usage ;;
         esac
     done
+
 # ./xtrace.sh ./try.sh 
 __trace_ON__
     list_func
