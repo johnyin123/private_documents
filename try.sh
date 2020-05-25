@@ -100,27 +100,12 @@ main() {
     eval set -- "${ARGS}"
     while true; do
         case "$1" in
-            -q | --quiet)
-                echo QUIET=1; shift 1
-                ;;
-            -l | --log)
-                echo set_loglevel ${2}; shift 2
-                ;;
-            -V | --version)
-                shift 1
-                exit_msg "${SCRIPTNAME} version\n"
-                ;;
-            -d | --dryrun)
-                echo DRYRUN=1; shift 1
-                ;;
-            -h | --help)
-                shift 1
-                usage
-                ;;
-            --)
-                shift
-                break
-                ;;
+            -q | --quiet) QUIET=1; shift 1 ;;
+            -l | --log) set_loglevel ${2}; shift 2 ;;
+            -V | --version) exit_msg "${SCRIPTNAME} version\n" ;;
+            -d | --dryrun) DRYRUN=1; shift 1 ;;
+            -h | --help) shift 1; usage ;;
+            --) shift break ;;
         esac
     done
 # ./xtrace.sh ./try.sh 
