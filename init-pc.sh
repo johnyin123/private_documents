@@ -27,13 +27,12 @@ EOF
 
 apt update
 
-echo "add user[johnyin] to sudoers"
+echo "add group[johnyin] to sudoers"
 apt -y install sudo
-if ! grep -q "^johnyin" /etc//sudoers; then
-    echo "johnyin ALL = NOPASSWD: ALL" >> /etc/sudoers
-    echo "Defaults       logfile=/var/log/sudo.log">>/etc/sudoers
-    visudo -c
-fi
+echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
+chmod 0440 /etc/sudoers.d/johnyin
+cp /etc/sudoers /etc/sudoers.orig
+sed -i "s/^\(.*requiretty\)$/#\1/" /etc/sudoers
 
 echo "xk-yinzh" > /etc/hostname
 apt -y install ${ZRAMSWAP}
