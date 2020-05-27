@@ -47,7 +47,7 @@ set_last_disk() {
 
 domain_live_arg() {
     local uuid=$1
-    ${VIRSH} list --state-running --uuid | grep ${uuid} && echo "--live" || echo ""
+    ${VIRSH} list --state-running --uuid | grep -q ${uuid} && echo "--live" || echo ""
 }
 
 attach_device() {
@@ -57,7 +57,7 @@ attach_device() {
     local live=$(domain_live_arg "${uuid}")
     info_msg "${uuid}(${live:-shut off}) attach ${type} device\n"
     array_label_exist DEVICE_TPL ${type} || return 10
-    printf "${DEVICE_TPL[${type}]}\n" | render_tpl2 ${arr} | try ${VIRSH} attach-device ${uuid} --file /dev/stdin --persistent ${live} || return 5;
+    printf "${DEVICE_TPL[${type}]}\n" | render_tpl2 ${arr} | try ${VIRSH} attach-device --domain ${uuid} --file /dev/stdin --persistent ${live} || return 5;
     return 0;
 }
 
@@ -223,6 +223,10 @@ attach() {
                 val=${1:?disk size need input};shift 1
                 array_set vm "SIZE" "${val}"
                 ;;
+            -f|--format)
+                val=${1:?disk format need input};shift 1
+                array_set vm "FORMAT" "${val}"
+                ;;
             -q | --quiet)
                 QUIET=1
                 ;;
@@ -244,7 +248,7 @@ attach() {
     array_label_exist vm 'POOL' && {
         array_label_exist vm 'SIZE' || usage
         local pool="$(array_get vm 'POOL')"
-        local fmt="$(array_get ${arr} 'FORMAT')"
+        local fmt="$(array_get vm 'FORMAT')"
         local size="$(array_get vm 'SIZE')"
         local disk="$(array_get vm 'LAST_DISK')-${uuid}.${fmt}"
         create_vol vm || { err=$?; error_msg "attach ${uuid}: $(array_get APP_ERRORS $err $err)\n"; return $err; }
