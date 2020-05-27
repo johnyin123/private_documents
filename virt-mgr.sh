@@ -243,7 +243,8 @@ attach() {
     done
     array_label_exist vm 'UUID' || usage
     local uuid="$(array_get vm 'UUID')"
-    info_msg "vm ${uuid} add device as:\n$(print_kv vm)\n"
+    info_msg "vm ${uuid} add device as:\n"
+    print_kv vm | vinfo_msg
     set_last_disk vm || { err=$?; error_msg "attach ${uuid}: $(array_get APP_ERRORS $err $err)\n"; return $err; }
     array_label_exist vm 'POOL' && {
         array_label_exist vm 'SIZE' || usage
