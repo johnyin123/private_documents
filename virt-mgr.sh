@@ -329,14 +329,10 @@ declare -A DOMAIN_TPL=(
   <on_poweroff>preserve</on_poweroff>
   <devices>
     <serial type='pty'>
-      <source path='/dev/pts/1'/>
       <target port='0'/>
-      <alias name='serial0'/>
     </serial>
-    <console type='pty' tty='/dev/pts/1'>
-      <source path='/dev/pts/1'/>
+    <console type='pty'>
       <target type='serial' port='0'/>
-      <alias name='serial0'/>
     </console>
     <input type='mouse' bus='ps2'/>
     <input type='keyboard' bus='ps2'/>
