@@ -90,8 +90,8 @@ main() {
     #su johnyin /opt/google/chrome/google-chrome
     try ip netns exec ${NS_NAME} "ip link set eth0 mtu 1300" || true
     try ip netns exec ${NS_NAME} "ip route add default via 10.32.149.1" || true
-    ( nsenter --net=/var/run/netns/${NS_NAME} su johnyin /opt/google/chrome/google-chrome || true ) &>/dev/null &
     setup_nameserver "${NS_NAME}" "202.107.117.11"
+    ( nsenter --net=/var/run/netns/${NS_NAME} su johnyin /opt/google/chrome/google-chrome || true ) &>/dev/null &
     ip netns exec ${NS_NAME} /bin/bash --rcfile <(echo "PS1=\"namespace ${NS_NAME}> \"") || true
     del_ns ${NS_NAME}
     cleanup_nameserver "${NS_NAME}"
