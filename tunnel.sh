@@ -79,20 +79,61 @@ cleanup_nameserver() {
     rm -rf /etc/netns/$ns_name
 }
 
-main() {
-    local NS_CIDR=${NS_CIDR:-"10.32.149.223/24"}
-    local NS_NAME=${NS_NAME:-"web_ns"}
-    local HOST_BR=${1:-br-srvzone}
-    info_msg "IPADDR=$NS_CIDR ${SCRIPTNAME} ${HOST_BR}\n"
+usage() {
+    cat <<EOF
+${SCRIPTNAME}
+        -q|--quiet
+        -l|--log <int> log level
+        -V|--version
+        -d|--dryrun dryrun
+        -h|--help help
+        -i|--ipaddr <cidr> ipaddress for netns eth0
+        -n|--nsname <name> netns name
+        -b|--bridge <br>   host bridge for connect
+        -g|--gw <gateway>  ns gateway, default .1
+        -r|--dns <ipaddr>  dns server
+EOF
+    exit 1
+}
 
+main() {
+    local NS_CIDR="10.32.149.223/24"
+    local NS_NAME="web_ns"
+    local HOST_BR="br-srvzone"
+    local DNS=
+    local GATEWAY=
+    local opt_short="ql:dVhi:n:b:g:r:"
+    local opt_long="quite,log:,dryrun,version,help,ipaddr:,nsname:,bridge:,gw:,dns:"
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage 1
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            -i | --ipaddr) NS_CIDR=${2}; shift 2;;
+            -n | --nsname) NS_NAME=${2}; shift 2;;
+            -b | --bridge) HOST_BR=${2}; shift 2;;
+            -g | --gw) GATEWAY=${2}; shift 2;;
+            -r | --dns) DNS=${2}; shift 2;;
+            -q | --quiet) QUIET=1; shift 1 ;;
+            -l | --log) set_loglevel ${2}; shift 2 ;;
+            -d | --dryrun) DRYRUN=1; shift 1 ;;
+            -V | --version) exit_msg "${SCRIPTNAME} version\n" ;;
+            -h | --help) shift 1; usage ;;
+            --) shift 1; break ;;
+            *)  error_msg "Unexpected option: $1.\n"; usage ;;
+        esac
+    done
+    is_user_root || { error_msg "root need!!\n"; usage; }
+    [ -z ${GATEWAY+x} ] && GATEWAY="${IPADDR%%.*}.1"
+    [ -z ${DNS+x} ] && DNS="202.107.117.11"
+    info_msg "IPADDR=${NS_CIDR}\n"
     add_ns ${NS_NAME} ${HOST_BR} "${NS_CIDR}" || error_clean "${NS_NAME}" "add netns $?"
     #ip netns exec ${NS_NAME} /bin/bash || true
     #su johnyin /opt/google/chrome/google-chrome
-    try ip netns exec ${NS_NAME} "ip link set eth0 mtu 1300" || true
-    try ip netns exec ${NS_NAME} "ip route add default via 10.32.149.1" || true
-    setup_nameserver "${NS_NAME}" "202.107.117.11"
+    # try ip netns exec ${NS_NAME} "ip link set eth0 mtu 1300" || true
+    try ip netns exec ${NS_NAME} "ip route add default via ${GATEWAY}" || true
+    setup_nameserver "${NS_NAME}" "${DNS}"
     ( nsenter --net=/var/run/netns/${NS_NAME} su johnyin /opt/google/chrome/google-chrome || true ) &>/dev/null &
-    ip netns exec ${NS_NAME} /bin/bash --rcfile <(echo "PS1=\"namespace ${NS_NAME}> \"") || true
+    ip netns exec ${NS_NAME} /bin/bash --rcfile <(echo "unset PROMPT_COMMAND;PS1=\"namespace ${NS_NAME}> \"") || true
     del_ns ${NS_NAME}
     cleanup_nameserver "${NS_NAME}"
     info_msg "Exit success\n"
