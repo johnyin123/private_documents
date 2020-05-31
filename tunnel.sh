@@ -97,11 +97,6 @@ EOF
 }
 
 main() {
-    local NS_CIDR="10.32.149.223/24"
-    local NS_NAME="web_ns"
-    local HOST_BR="br-srvzone"
-    local DNS=
-    local GATEWAY=
     local opt_short="ql:dVhi:n:b:g:r:"
     local opt_long="quite,log:,dryrun,version,help,ipaddr:,nsname:,bridge:,gw:,dns:"
     readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage 1
@@ -123,8 +118,11 @@ main() {
         esac
     done
     is_user_root || { error_msg "root need!!\n"; usage; }
-    [ -z ${GATEWAY+x} ] && GATEWAY="${IPADDR%%.*}.1"
-    [ -z ${DNS+x} ] && DNS="202.107.117.11"
+    local NS_CIDR=${NS_CIDR:-"10.32.149.223/24"}
+    local NS_NAME=${NS_NAME:-"web_ns"}
+    local HOST_BR=${HOST_BR:-"br-srvzone"}
+    local GATEWAY=${GATEWAY:-"${NS_CIDR%.*}.1"}
+    local DNS=${DNS:-"202.107.117.11"}
     info_msg "IPADDR=${NS_CIDR}\n"
     add_ns ${NS_NAME} ${HOST_BR} "${NS_CIDR}" || error_clean "${NS_NAME}" "add netns $?"
     #ip netns exec ${NS_NAME} /bin/bash || true
