@@ -32,33 +32,22 @@ main() {
     local disk_tpl=
     local vol_name=
     local pool=
-
-    while test $# -gt 0
-    do
-        local opt="$1"
-        shift
-        case "${opt}" in
-            -p|--pool)
-                pool=${1:?disk pool need input};shift 1
-                ;;
-            -v|--vol)
-                vol_name=${1:?vol name need input};shift 1
-                ;;
-            -t|--template)
-                disk_tpl=${1:?disk template need input};shift 1
-                ;;
-            -q | --quiet)
-                QUIET=1
-                ;;
-            -l | --log)
-                set_loglevel ${1}; shift
-                ;;
-            -d | --dryrun)
-                DRYRUN=1
-                ;;
-            -h | --help | *)
-                usage
-                ;;
+    local opt_short="ql:dVhp:v:t:"
+    local opt_long="quite,log:,dryrun,version,help,pool:,vol:,template:"
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage 1
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            -p | --pool) pool=${2}; shift 2 ;;
+            -v | --vol) vol_name=${2}; shift 2 ;;
+            -t | --template) disk_tpl=${2}; shift 2 ;;
+            -q | --quiet) QUIET=1; shift 1 ;;
+            -l | --log) set_loglevel ${2}; shift 2 ;;
+            -d | --dryrun) DRYRUN=1; shift 1 ;;
+            -V | --version) exit_msg "${SCRIPTNAME} version\n" ;;
+            -h | --help) shift 1; usage ;;
+            --) shift 1; break ;;
+            *)  error_msg "Unexpected option: $1.\n"; usage ;;
         esac
     done
     local upload_cmd=${VIRSH}
