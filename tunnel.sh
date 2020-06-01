@@ -132,7 +132,7 @@ main() {
     try ip netns exec ${NS_NAME} "ip route add default via ${GATEWAY}" || true
     setup_nameserver "${NS_NAME}" "${DNS}"
     ( nsenter --net=/var/run/netns/${NS_NAME} su johnyin /opt/google/chrome/google-chrome || true ) &>/dev/null &
-    ip netns exec ${NS_NAME} /bin/bash --rcfile <(echo "PS1=\"(ns:${NS_NAME})$PS1\"") || true
+    ip netns exec ${NS_NAME} /bin/bash --rcfile <(echo "PS1=\"(ns:${NS_NAME})\$PS1\"") || true
     del_ns ${NS_NAME}
     cleanup_nameserver "${NS_NAME}"
     info_msg "Exit success\n"

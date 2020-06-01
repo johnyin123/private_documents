@@ -74,7 +74,7 @@ main() {
     done
     is_user_root || exit_msg "root need!!\n"
     pid="$(ssh_tunnel $(array_get PARMS "LOCAL_BR") $(array_get PARMS "REMOTE_BR") $(array_get PARMS "SSH_CONN") $(array_get PARMS "SSH_PORT"))"
-    /bin/bash --rcfile <(echo "PS1=\"(ssh_tunnel:$(array_get PARMS 'SSH_CONN'))$PS1\"") || true
+    /bin/bash --rcfile <(echo "PS1=\"(ssh_tunnel:$(array_get PARMS 'SSH_CONN'))\$PS1\"") || true
     try "kill -9 ${pid:-} &> /dev/null"
     info_msg "Exit!!\n"
     return 0
