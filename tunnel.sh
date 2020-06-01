@@ -89,7 +89,7 @@ ${SCRIPTNAME}
         -h|--help help
         -i|--ipaddr <cidr> ipaddress for netns eth0
         -n|--nsname <name> netns name
-        -b|--bridge <br>   host bridge for connect
+        -b|--bridge <br>   * host bridge for connect
         -g|--gw <gateway>  ns gateway, default .1
         -r|--dns <ipaddr>  dns server
 EOF
@@ -120,7 +120,8 @@ main() {
     is_user_root || { error_msg "root need!!\n"; usage; }
     local NS_CIDR=${NS_CIDR:-"10.32.149.223/24"}
     local NS_NAME=${NS_NAME:-"web_ns"}
-    local HOST_BR=${HOST_BR:-"br-srvzone"}
+    local HOST_BR=${HOST_BR:-}
+    [ -z ${HOST_BR} ] && usage
     local GATEWAY=${GATEWAY:-"${NS_CIDR%.*}.1"}
     local DNS=${DNS:-"202.107.117.11"}
     info_msg "IPADDR=${NS_CIDR}\n"
