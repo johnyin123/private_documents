@@ -96,17 +96,19 @@ EOF
 # done < <(json_config "debian.packages[]")
 
 main() {
-    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ql:dVh -l quite,log:,dryrun,version,help -- "$@") || usage 1
+    local opt_short="ql:dVh"
+    local opt_long="quite,log:,dryrun,version,help"
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage 1
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -q | --quiet) QUIET=1; shift 1 ;;
-            -l | --log) set_loglevel ${2}; shift 2 ;;
-            -d | --dryrun) DRYRUN=1; shift 1 ;;
-            -V | --version) exit_msg "${SCRIPTNAME} version\n" ;;
-            -h | --help) shift 1; usage ;;
-            --) shift 1; break ;;
-            *) echo "Unexpected option: $1 - this should not happen."; usage ;;
+            -q | --quiet) QUIET=1; shift 1;;
+            -l | --log) set_loglevel ${2}; shift 2;;
+            -d | --dryrun) DRYRUN=1; shift 1;;
+            -V | --version) exit_msg "${SCRIPTNAME} version\n";;
+            -h | --help) shift 1; usage;;
+            --) shift 1; break;;
+            *) echo "Unexpected option: $1 - this should not happen."; usage;;
         esac
     done
 
