@@ -130,64 +130,29 @@ failed_destroy_vm() {
 }
 
 create() {
-    local val=
     declare -A vm
-    while test $# -gt 0
-    do
-        local opt="$1"
-        shift
-        case "${opt}" in
-            -u|--uuid)
-                val=${1:?uuid must input};shift 1
-                array_set vm "UUID" "${val}"
-                ;;
-            -c|--cpus)
-                val=${1:?cpu must input};shift 1
-                array_set vm "CPUS" "${val}"
-                ;;
-            -m|--mem)
-                val=${1:?mem must input};shift 1
-                array_set vm "MEM" "${val}"
-                ;;
-            -n|--net)
-                val=${1:?net tpl need input};shift 1
-                array_set vm "NET" "${val}"
-                ;;
-            -p|--pool)
-                val=${1:?disk pool need input};shift 1
-                array_set vm "POOL" "${val}"
-                ;;
-            -f|--format)
-                val=${1:?disk format need input};shift 1
-                array_set vm "FORMAT" "${val}"
-                ;;
-            -s|--size)
-                val=${1:?disk size need input};shift 1
-                array_set vm "SIZE" "${val}"
-                ;;
-            -D|--desc)
-                val=${1:?desc must input};shift 1
-                array_set vm "DESC" "${val}"
-                ;;
-            -N|--name)
-                val=${1:?name(title) must input};shift 1
-                array_set vm "NAME" "${val}"
-                ;;
-            -q | --quiet)
-                QUIET=1
-                ;;
-            -l | --log)
-                set_loglevel ${1}; shift
-                ;;
-            -d | --dryrun)
-                DRYRUN=1
-                ;;
-            -h | --help)
-                usage
-                ;;
-            *)
-                array_set vm "DOMAIN_TPL" "${opt}"
-                ;;
+    local opt_short="ql:dVhu:c:m:n:p:f:s:D:N:"
+    local opt_long="quite,log:,dryrun,version,help,uuid:,cpus:,mem:,net:,pool:,format:,size:,desc:,name:"
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage 1
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            -u | --uuid)   array_set vm "UUID" "${2}"; shift 2;;
+            -c | --cpus)   array_set vm "CPUS" "${2}"; shift 2;;
+            -m | --mem)    array_set vm "MEM" "${2}"; shift 2;;
+            -n | --net)    array_set vm "NET" "${2}"; shift 2;;
+            -p | --pool)   array_set vm "POOL" "${2}"; shift 2;;
+            -f | --format) array_set vm "FORMAT" "${2}"; shift 2;;
+            -s | --size)   array_set vm "SIZE" "${2}"; shift 2;;
+            -D | --desc)   array_set vm "DESC" "${2}"; shift 2;;
+            -N | --name)   array_set vm "NAME" "${2}"; shift 2;;
+            *)             array_set vm "DOMAIN_TPL" "${1}"; shift 1;;
+            -q | --quiet) QUIET=1; shift 1;;
+            -l | --log) set_loglevel ${2}; shift 2;;
+            -d | --dryrun) DRYRUN=1; shift 1;;
+            -V | --version) exit_msg "${SCRIPTNAME} version\n";;
+            -h | --help) shift 1; usage;;
+            --) shift 1; break;;
         esac
     done
     set_vm_defaults vm || return $?
@@ -200,45 +165,25 @@ create() {
 }
 
 attach() {
-    local val=
     declare -A vm
-    while test $# -gt 0
-    do
-        local opt="$1"
-        shift
-        case "${opt}" in
-            -u|--uuid)
-                val=${1:?uuid must input};shift 1
-                array_set vm "UUID" "${val}"
-                ;;
-            -n|--net)
-                val=${1:?net tpl need input};shift 1
-                array_set vm "NET" "${val}"
-                ;;
-            -p|--pool)
-                val=${1:?disk pool need input};shift 1
-                array_set vm "POOL" "${val}"
-                ;;
-            -s|--size)
-                val=${1:?disk size need input};shift 1
-                array_set vm "SIZE" "${val}"
-                ;;
-            -f|--format)
-                val=${1:?disk format need input};shift 1
-                array_set vm "FORMAT" "${val}"
-                ;;
-            -q | --quiet)
-                QUIET=1
-                ;;
-            -l | --log)
-                set_loglevel ${1}; shift
-                ;;
-            -d | --dryrun)
-                DRYRUN=1
-                ;;
-            -h | --help | *)
-                usage
-                ;;
+    local opt_short="ql:dVhu:n:p:s:f:"
+    local opt_long="quite,log:,dryrun,version,help,uuid:,net:,pool:,size:,format:"
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage 1
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            -u | --uuid)   array_set vm "UUID" "${2}"; shift 2;;
+            -n | --net)    array_set vm "NET" "${2}"; shift 2;;
+            -p | --pool)   array_set vm "POOL" "${2}"; shift 2;;
+            -s | --size)   array_set vm "SIZE" "${2}"; shift 2;;
+            -f | --format) array_set vm "FORMAT" "${2}"; shift 2;;
+            -q | --quiet) QUIET=1; shift 1;;
+            -l | --log) set_loglevel ${2}; shift 2;;
+            -d | --dryrun) DRYRUN=1; shift 1;;
+            -V | --version) exit_msg "${SCRIPTNAME} version\n";;
+            -h | --help) shift 1; usage;;
+            --) shift 1; break;;
+            *)  error_msg "Unexpected option: $1.\n"; usage;;
         esac
     done
     array_label_exist vm 'UUID' || usage
