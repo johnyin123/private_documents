@@ -133,7 +133,7 @@ create() {
     declare -A vm
     local opt_short="ql:dVhu:c:m:n:p:f:s:D:N:"
     local opt_long="quite,log:,dryrun,version,help,uuid:,cpus:,mem:,net:,pool:,format:,size:,desc:,name:"
-    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage 1
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
@@ -168,7 +168,7 @@ attach() {
     declare -A vm
     local opt_short="ql:dVhu:n:p:s:f:"
     local opt_long="quite,log:,dryrun,version,help,uuid:,net:,pool:,size:,format:"
-    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage 1
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in

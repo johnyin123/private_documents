@@ -55,7 +55,7 @@ main() {
         [SSH_CONN]="root@10.32.147.16"
         [SSH_PORT]="60022"
     )
-    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ql:dVhL:R:s:p: -l quite,log:,dryrun,version,help,local:,remote:,ssh:,port: -- "$@") || usage 1
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ql:dVhL:R:s:p: -l quite,log:,dryrun,version,help,local:,remote:,ssh:,port: -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in

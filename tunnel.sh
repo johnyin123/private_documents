@@ -99,7 +99,7 @@ EOF
 main() {
     local opt_short="ql:dVhi:n:b:g:r:"
     local opt_long="quite,log:,dryrun,version,help,ipaddr:,nsname:,bridge:,gw:,dns:"
-    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage 1
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
