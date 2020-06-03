@@ -95,6 +95,37 @@ EOF
 #     echo ${package}
 # done < <(json_config "debian.packages[]")
 
+
+
+# Level, Level Name, Level Format, Before Log Entry, After Log Entry
+KMAP=(
+  'key1'  'DEBUG   ' "<D> " "\e[1;34m"    "\e[0m"
+  'key2'  'INFO    ' "<I> " "\e[1;32m"    "\e[0m"
+  'key3'  'WARNING ' "<W> " "\e[1;33m"    "\e[0m"
+  'key4'  'ERROR   ' "<E> " "\e[1;31m"    "\e[0m"
+  'key5'  'CRITICAL' "<C> " "\e[1;37;41m" "\e[0m"
+)
+ITEM_STR=
+ITEM_FMT=
+ITEM_PRE=
+ITEM_END=
+
+fill_predefine() {
+  local key="${1}"
+  local i
+  for ((i=0; i<${#KMAP[@]}; i+=5)); do
+    if [[ "${key}" == "${KMAP[i]}" ]]; then
+      ITEM_STR="${KMAP[i+1]}"
+      ITEM_FMT="${KMAP[i+2]}"
+      ITEM_PRE="${KMAP[i+3]}"
+      ITEM_END="${KMAP[i+4]}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+
 main() {
     local opt_short+="u:n:"
     local opt_long+="uuid:,name:"
