@@ -1,5 +1,7 @@
 #/bin/bash
 
+#ssh remoteuser@ip.address.of.server 'bash -s' < scriptfile.sh
+
 #set the file limit
 cat > /etc/security/limits.d/tun.conf << EOF
 *           soft   nofile       102400
