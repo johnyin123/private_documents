@@ -96,19 +96,24 @@ EOF
 # done < <(json_config "debian.packages[]")
 
 main() {
-    local opt_short="ql:dVh"
-    local opt_long="quite,log:,dryrun,version,help"
-    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    local opt_short+="u:n:"
+    local opt_long+="uuid:,name:"
+    opt_short+="ql:dVh"
+    opt_long+="quite,log:,dryrun,version,help"
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -q | --quiet) QUIET=1; shift 1;;
-            -l | --log) set_loglevel ${2}; shift 2;;
-            -d | --dryrun) DRYRUN=1; shift 1;;
-            -V | --version) exit_msg "${SCRIPTNAME} version\n";;
-            -h | --help) shift 1; usage;;
-            --) shift 1; break;;
-            *) echo "Unexpected option: $1 - this should not happen."; usage;;
+            -u | --uuid)    shift; uuid=${1}; shift;;
+            -n | --name)    shift; name=${1}; shift;;
+            ########################################
+            -q | --quiet)   shift; QUIET=1;;
+            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
+            -V | --version) shift; exit_msg "${SCRIPTNAME} version\n";;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              error_msg "Unexpected option: $1.\n"; usage;;
         esac
     done
 
