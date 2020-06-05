@@ -119,11 +119,12 @@ function hostap_main() {
     setup_traffic "${NS_NAME}" "${IP_PREFIX}" "${WIFI_OUT_INF}"
     setup_nameserver "${NS_NAME}" "${DNS}"
     setup_strategy_route "${IP_PREFIX}" "${ROUTE_IP}" "${ROUTE_TBL_ID}"
-    setup_ap "${NS_NAME}" phy0
+    local phy="$(printf '%s\n' /sys/class/ieee80211/*/device/net/${WIFI_INTERFACE} | awk -F'/' '{ print $5 }')"
+    setup_ap "${NS_NAME}" ${phy}
     setup_ap_iptable "${NS_NAME}"
     #ns_run "${NS_NAME}" curl cip.cc
     ns_run "${NS_NAME}" /bin/bash
-    cleanup_ns_wifi "${NS_NAME}" phy0
+    cleanup_ns_wifi "${NS_NAME}" ${phy}
     cleanup_strategy_route "${ROUTE_TBL_ID}"
     cleanup_nameserver "${NS_NAME}"
     cleanup_traffic "${NS_NAME}" "${IP_PREFIX}" "${WIFI_OUT_INF}"
