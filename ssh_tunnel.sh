@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
 fi
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-TAPDEV_NUM=9
+TAPDEV_NUM=${TAPDEV_NUM:-9}
 
 mk_support() {
     local ssh_connection=${1}
