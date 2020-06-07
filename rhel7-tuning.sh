@@ -18,10 +18,9 @@ sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
 
 #set sshd
 sed -i 's/#UseDNS.*/UseDNS no/' /etc/ssh/sshd_config
-sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/' /etc/ssh/sshd_config
+sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
 sed -i 's/#Port.*/Port 60022/' /etc/ssh/sshd_config
 sed -i 's/GSSAPIAuthentication.*/GSSAPIAuthentication no/g' /etc/ssh/sshd_config
-sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
 (grep -v -E "^Ciphers|^MACs" /etc/ssh/sshd_config ; echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr"; echo "MACs    hmac-sha1"; ) | tee /etc/ssh/sshd_config
 
 service sshd restart

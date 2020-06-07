@@ -77,9 +77,8 @@ dpkg-reconfigure -f noninteractive openssh-server
 sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
 sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
 sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config
-echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> /etc/ssh/sshd_config
-echo "MACs    hmac-sha1" >> /etc/ssh/sshd_config
-echo "PermitRootLogin yes">> /etc/ssh/sshd_config
+sed -i 's/GSSAPIAuthentication.*/GSSAPIAuthentication no/g' /etc/ssh/sshd_config
+(grep -v -E "^Ciphers|^MACs" /etc/ssh/sshd_config ; echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr"; echo "MACs    hmac-sha1"; ) | tee /etc/ssh/sshd_config
 
 cat << EOF > /etc/network/interfaces
 source /etc/network/interfaces.d/*
@@ -99,7 +98,7 @@ auto br-ext
 iface br-ext inet static
     bridge_ports eth0
     #bridge_ports none
-    address 10.32.166.33/25
+    address 10.32.166.31/25
     gateway 10.32.166.1
 
 # auto bond0
