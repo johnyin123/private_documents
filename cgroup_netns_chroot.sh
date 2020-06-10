@@ -113,6 +113,7 @@ main() {
             *)              error_msg "Unexpected option: $1.\n"; usage;;
         esac
     done
+    is_user_root || exit_msg "root user need!!\n"
     local random="$(shuf -i 168201-168254 -n 1)"
     local ns_name="NS_${random}"
     local ipv4_cidr=192.168.168.169/24
