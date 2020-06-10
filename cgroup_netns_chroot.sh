@@ -72,6 +72,17 @@ ns_cg_run() {
         chroot "${rootfs}" \
         /bin/bash -s <<EOSHELL 2>&1 | tee "${ns_name}.log" || true
 /bin/mount -t proc proc /proc
+/bin/mount -n -t tmpfs none /dev
+/bin/mknod -m 622 /dev/console c 5 1
+/bin/mknod -m 666 /dev/null c 1 3
+/bin/mknod -m 666 /dev/zero c 1 5
+/bin/mknod -m 666 /dev/ptmx c 5 2
+/bin/mknod -m 666 /dev/tty c 5 0
+/bin/mknod -m 444 /dev/random c 1 8
+/bin/mknod -m 444 /dev/urandom c 1 9
+/bin/chown root:tty /dev/{console,ptmx,tty}
+/bin/mkdir /dev/pts
+/bin/mount -t devpts -o gid=4,mode=620 none /dev/pts
 /bin/mkdir -p /run/sshd
 ${cmd}
 EOSHELL
