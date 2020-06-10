@@ -127,8 +127,8 @@ fill_predefine() {
 
 
 main() {
-    local opt_short+="u:n:"
-    local opt_long+="uuid:,name:"
+    local opt_short="u:n:"
+    local opt_long="uuid:,name:"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
     readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -147,7 +147,7 @@ main() {
             *)              error_msg "Unexpected option: $1.\n"; usage;;
         esac
     done
-
+    echo "random = $(shuf -i 42002-42254 -n 1)"
 # ./xtrace.sh ./try.sh 
 __trace_ON__
     list_func
