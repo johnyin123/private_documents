@@ -88,7 +88,8 @@ ns_cg_enter() {
 
 usage() {
     cat <<EOF
-${SCRIPTNAME} 
+${SCRIPTNAME} <options> cmda
+    default cmd "/sbin/sshd -D -e"
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -117,6 +118,7 @@ main() {
             *)              error_msg "Unexpected option: $1.\n"; usage;;
         esac
     done
+    local cmd=${*:-"/sbin/sshd -D -e"}
     is_user_root || exit_msg "root user need!!\n"
     local random="$(shuf -i 168201-168254 -n 1)"
     local ns_name="NS_${random}"
@@ -127,7 +129,6 @@ main() {
     local overlay="/root/cg_${random}"
     local cpu_share=512
     local mem_limit=512
-    local cmd="/sbin/sshd -D -e"
     try mkdir -p "${overlay}"
     #btrfs subvolume snapshot "$btrfs_path/$1" "$btrfs_path/${cg_id}" > /dev/null
     #echo 'nameserver 202.107.117.11' > "$btrfs_path/${cg_id}"/etc/resolv.conf
