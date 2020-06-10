@@ -65,12 +65,16 @@ ns_cg_run() {
     try cgcreate -g "${CGROUPS}:/${ns_name}"
     try cgset -r cpu.shares="${cpu_share}" "${ns_name}"
     try cgset -r memory.limit_in_bytes="$((mem_limit * 1000000))" "${ns_name}"
+    info_msg "cgexec -g ${CGROUPS}:${ns_name} ${cmd}\n"
     cgexec -g "${CGROUPS}:${ns_name}" \
         ip netns exec "${ns_name}" \
         unshare -fmuip --mount-proc \
         chroot "${rootfs}" \
-        /bin/sh -c "mkdir -p /run/sshd;/bin/mount -t proc proc /proc && ${cmd}" \
-        2>&1 | tee "${ns_name}.log" || true
+        /bin/bash -s <<EOSHELL 2>&1 | tee "${ns_name}.log" || true
+/bin/mount -t proc proc /proc
+/bin/mkdir -p /run/sshd
+${cmd}
+EOSHELL
 }
 
 ns_cg_enter() {
@@ -123,7 +127,7 @@ main() {
     local overlay="/root/cg_${random}"
     local cpu_share=512
     local mem_limit=512
-    local cmd="/bin/bash"
+    local cmd="/sbin/sshd -D -e"
     try mkdir -p "${overlay}"
     #btrfs subvolume snapshot "$btrfs_path/$1" "$btrfs_path/${cg_id}" > /dev/null
     #echo 'nameserver 202.107.117.11' > "$btrfs_path/${cg_id}"/etc/resolv.conf
