@@ -69,7 +69,7 @@ ns_cg_run() {
         ip netns exec "${ns_name}" \
         unshare -fmuip --mount-proc \
         chroot "${rootfs}" \
-        /bin/sh -c "/bin/mount -t proc proc /proc && ${cmd}" \
+        /bin/sh -c "mkdir -p /run/sshd;/bin/mount -t proc proc /proc && ${cmd}" \
         2>&1 | tee "${ns_name}.log" || true
 }
 
