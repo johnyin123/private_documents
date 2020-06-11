@@ -141,10 +141,12 @@ main() {
     local cpu_share=512
     local mem_limit=512
     try mkdir -p "${overlay}"
-    #btrfs subvolume snapshot "$btrfs_path/$1" "$btrfs_path/${cg_id}" > /dev/null
-    #echo 'nameserver 202.107.117.11' > "$btrfs_path/${cg_id}"/etc/resolv.conf
-    #echo "$cmd" > "$btrfs_path/${cg_id}/${cg_id}.cmd"
-
+    {
+        echo "cgroup    : ${ns_name}"
+        echo "ipaddress : ${ipv4_cidr}"
+        echo "bridge    : ${out_br}"
+        echo "root base : ${lower}"
+    } | vinfo_msg
     netns_exists "${ns_name}" && exit_msg "${ns_name} exist!!\n"
     setup_ns "${ns_name}" "${ipv4_cidr}" "${out_br}" "${gateway}" || { cleanup_ns "${ns_name}"||true; exit_msg "${ns_name} setup error!\n"; }
     setup_overlayfs "${lower}" "${overlay}" && {
