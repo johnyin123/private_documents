@@ -99,8 +99,16 @@ ns_cg_enter() {
 
 usage() {
     cat <<EOF
-${SCRIPTNAME} <options> cmda
+${SCRIPTNAME} <options> cmd
     default cmd "/sbin/sshd -D -e"
+        -n|--ns     * namespace
+        -i|--ip       ipve cidr <default 192.168.168.169/24>
+        -g|--gw       gateway   <default 192.168.168.1>
+        -b|--bridge * bridge
+        -r|--rootfs   orig rootfs <default />
+        -o|--overlay  overlay directory
+        -c|--cpu      cpu share <default 512>
+        -m|--mem      mem limit <default 512>
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -111,14 +119,25 @@ EOF
 }
 
 main() {
-    local opt_short=""
-    local opt_long=""
+    is_user_root || exit_msg "root user need!!\n"
+    local ns_name= ipv4_cidr="192.168.168.169/24" gateway= out_br= lower="/" overlay= cpu_share=512 mem_limit=512
+
+    local opt_short="n:i:g:b:r:o:c:m:"
+    local opt_long="ns:,ip:,gw:,bridge:,rootfs:,overlay:,cpu:,mem:,"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
     readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
+            -n | --ns)      shift; ns_name=${1}; shift;;
+            -i | --ip)      shift; ipvs_cidr=${1}; shift;;
+            -g | --gw)      shift; gateway=${1}; shift;;
+            -b | --bridge)  shift; out_br=${1}; shift;;
+            -r | --rootfs)  shift; lower=${1}; shift;;
+            -o | --overlay) shift; overlay=${1}; shift;;
+            -c | --cpu)     shift; cpu_share=${1}; shift;;
+            -m | --mem)     shift; mem_limit=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -130,23 +149,23 @@ main() {
         esac
     done
     local cmd=${*:-"/sbin/sshd -D -e"}
-    is_user_root || exit_msg "root user need!!\n"
-    local random="$(shuf -i 168201-168254 -n 1)"
-    local ns_name="NS_${random}"
-    local ipv4_cidr=192.168.168.169/24
-    local gateway="${ipv4_cidr%.*}.1"
-    local out_br="br-ext"
-    local lower="/"
-    local overlay="/root/cg_${random}"
-    local cpu_share=512
-    local mem_limit=512
-    try mkdir -p "${overlay}"
+    gateway=${gateway:-"${ipv4_cidr%.*}.1"}
+    #ns_name=${ns_name:-"ns_$(shuf -i 168201-168254 -n 1)"}
+    overlay=${overlay:-"${DIRNAME}/${ns_name}"}
+    [[ -z "${ns_name}" ]] && usage
+    [[ -z "${out_br}" ]] && usage
     {
-        echo "cgroup    : ${ns_name}"
-        echo "ipaddress : ${ipv4_cidr}"
-        echo "bridge    : ${out_br}"
-        echo "root base : ${lower}"
+        echo "cmd       = $cmd"
+        echo "ns_name   = $ns_name"
+        echo "ipv4_cidr = $ipv4_cidr"
+        echo "gateway   = $gateway"
+        echo "out_br    = $out_br"
+        echo "lower     = $lower"
+        echo "overlay   = $overlay"
+        echo "cpu_share = $cpu_share"
+        echo "mem_limit = $mem_limit"
     } | vinfo_msg
+    try mkdir -p "${overlay}"
     netns_exists "${ns_name}" && exit_msg "${ns_name} exist!!\n"
     setup_ns "${ns_name}" "${ipv4_cidr}" "${out_br}" "${gateway}" || { cleanup_ns "${ns_name}"||true; exit_msg "${ns_name} setup error!\n"; }
     setup_overlayfs "${lower}" "${overlay}" && {
