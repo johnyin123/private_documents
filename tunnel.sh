@@ -131,7 +131,7 @@ main() {
     local GATEWAY=${GATEWAY:-"${NS_CIDR%.*}.1"}
     local DNS=${DNS:-"202.107.117.11"}
     info_msg "IPADDR=${NS_CIDR}\n"
-    netns_exists "${ns_name}" && exit_msg "${ns_name} exist!!\n"
+    netns_exists "${NS_NAME}" && exit_msg "${ns_name} exist!!\n"
     add_ns ${NS_NAME} ${HOST_BR} "${NS_CIDR}" || error_clean "${NS_NAME}" "add netns $?"
     #ip netns exec ${NS_NAME} /bin/bash || true
     #su johnyin /opt/google/chrome/google-chrome
