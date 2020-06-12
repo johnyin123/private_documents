@@ -9,6 +9,12 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
 fi
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
+netns_exists() {
+    local ns_name="$1"
+    # Check if a namespace named $ns_name exists.
+    # Note: Namespaces with a veth pair are listed with '(id: 0)' (or something). We need to remove this before lookin
+    ip netns list | sed 's/ *(id: [0-9]\+)$//' | grep --quiet --fixed-string --line-regexp "${ns_name}"
+}
 
 del_ns() {
     debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
@@ -125,6 +131,7 @@ main() {
     local GATEWAY=${GATEWAY:-"${NS_CIDR%.*}.1"}
     local DNS=${DNS:-"202.107.117.11"}
     info_msg "IPADDR=${NS_CIDR}\n"
+    netns_exists "${ns_name}" && exit_msg "${ns_name} exist!!\n"
     add_ns ${NS_NAME} ${HOST_BR} "${NS_CIDR}" || error_clean "${NS_NAME}" "add netns $?"
     #ip netns exec ${NS_NAME} /bin/bash || true
     #su johnyin /opt/google/chrome/google-chrome
