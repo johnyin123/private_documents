@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
 fi
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-TAPDEV_NUM=${TAPDEV_NUM:-9}
+readonly MAX_TAPDEV_NUM=10
 
 mk_support() {
     local ssh_connection=${1}
@@ -23,13 +23,20 @@ ssh_tunnel() {
     local remote_br=${2}
     local ssh_connection=${3}
     local ssh_port=${4}
+    local l_tap= r_tap=
+    for ((l_tap=0;l_tap<MAX_TAPDEV_NUM;l_tap++)); do
+        file_exists /sys/class/net/tap${l_tap}/tun_flags || break
+    done
+    [[ ${l_tap} = ${MAX_TAPDEV_NUM} ]] && return -1
+    r_tap=$(ssh -p${ssh_port} ${ssh_connection} "bash -s" <<< "for ((i=0;i<$MAX_TAPDEV_NUM;i++)); do [[ -e /sys/class/net/tap\${i}/tun_flags ]] || break; done; echo \$i")
+    [[ ${r_tap} = ${MAX_TAPDEV_NUM} ]] && return -2
     #exec 5> >(ssh -tt -o StrictHostKeyChecking=no -p${port} ${user}@${host} > /dev/null 2>&1)
     #Tunnel=ethernet must before -w 5:5 :)~~
     ssh \
         -o PermitLocalCommand=yes \
-        -o LocalCommand="ip link set dev tap${TAPDEV_NUM} up;ip link set dev tap${TAPDEV_NUM} master ${local_br}" \
-        -o Tunnel=ethernet -w ${TAPDEV_NUM}:${TAPDEV_NUM} \
-        -p${ssh_port} ${ssh_connection} "ip link set dev tap${TAPDEV_NUM} up;ip link set dev tap${TAPDEV_NUM} master ${remote_br}" &
+        -o LocalCommand="ip link set dev tap${l_tap} up;ip link set dev tap${l_tap} master ${local_br}" \
+        -o Tunnel=ethernet -w ${l_tap}:${r_tap} \
+        -p${ssh_port} ${ssh_connection} "ip link set dev tap${r_tap} up;ip link set dev tap${r_tap} master ${remote_br}" &
     echo "$!"
 }
 
@@ -73,7 +80,7 @@ main() {
         esac
     done
     is_user_root || exit_msg "root need!!\n"
-    pid="$(ssh_tunnel $(array_get PARMS "LOCAL_BR") $(array_get PARMS "REMOTE_BR") $(array_get PARMS "SSH_CONN") $(array_get PARMS "SSH_PORT"))"
+    pid="$(ssh_tunnel $(array_get PARMS "LOCAL_BR") $(array_get PARMS "REMOTE_BR") $(array_get PARMS "SSH_CONN") $(array_get PARMS "SSH_PORT"))" || error_msg "error $?\n"
     /bin/bash --rcfile <(echo "PS1=\"(ssh_tunnel:$(array_get PARMS 'SSH_CONN'))\$PS1\"") || true
     try "kill -9 ${pid:-} &> /dev/null"
     info_msg "Exit!!\n"
