@@ -76,7 +76,7 @@ main() {
     local bridge=
 
     local opt_short+="s:b:"
-    local opt_long+="start:,bridge:"
+    local opt_long+="start:,bridge:,"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
     readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
