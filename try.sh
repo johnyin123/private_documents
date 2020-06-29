@@ -124,7 +124,60 @@ fill_predefine() {
   done
   return 1
 }
-
+# ==================================================
+# # Redirect ALL output/error automatically to a file 
+# # AND print to console too
+# LOG_OUTPUT=output_error.log
+#  
+# exec 1> >(tee -i ${LOG_OUTPUT}) 2>&1
+#  
+# ==================================================
+# # *ALL* redirected to the log files: NO console output at all
+# LOG_OUTPUT=output.log
+#  
+# exec 1>>${LOG_OUTPUT} 2>&1
+#  
+# ==================================================
+# # All redirected to 2 different log files
+# LOG_OUTPUT=etup_output.log
+# LOG_ERROR=setup_error.log
+#  
+# exec 3>&1 1>>${LOG_OUTPUT}
+# exec 2>>${LOG_ERROR}
+#  
+# # use 'P "my message"' instead of echo
+# P () {
+# # Print on console AND file
+# echo -e "\n$1" | tee /dev/fd/3
+#  
+# # Print ONLY on console
+# #echo -e "\n$1" 1>&3
+# }
+#  
+# ==================================================
+# # ALL stdout and stderr to $LOG_OUTPUT
+# # Also stderr to $LOG_ERROR (for extra checks)
+# # P function to print to the console AND logged into $LOG_OUTPUT
+# LOG_OUTPUT=output.log
+# LOG_ERROR=error.log
+#  
+# exec 3>&1 1>>${LOG_OUTPUT}
+# exec 2> >(tee -i ${LOG_ERROR}) >> ${LOG_OUTPUT}
+#  
+# # use 'P "my message"' instead of echo
+# P () {
+# # Print on console AND file
+# echo -e "$1" | tee /dev/fd/3
+# # Print ONLY on console
+# #echo -e "\n$1" 1>&3
+# }
+#  
+# # use 'P "my message"' instead of echo to print in BLUE
+# P () {
+# BLUE='\033[1;34m'
+# NC='\033[0m' # No Color
+# echo -e "\n${BLUE}${1}${NC}" | tee /dev/fd/3
+# }
 
 main() {
     local opt_short="u:n:"
