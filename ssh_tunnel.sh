@@ -88,6 +88,7 @@ main() {
     [[ -z "${remote_br}" ]] && usage
     file_exists /sys/class/net/${local_br}/bridge/bridge_id || exit_msg "bridge ${local_br} nofound!!\n"
     pid="$(ssh_tunnel ${local_br} ${remote_br} ${ssh_conn} ${ssh_port})" || error_msg "error $?\n"
+    info_msg "backend ssh($pid) ${ssh_conn}:${ssh_port} ok\n"
     /bin/bash --rcfile <(echo "PS1=\"(ssh_tunnel:${ssh_conn}[${local_br}<=>${remote_br}])\$PS1\"") || true
     try "kill -9 ${pid:-} &> /dev/null"
     info_msg "Exit!!\n"
