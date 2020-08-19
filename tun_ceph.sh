@@ -12,6 +12,41 @@ $ceph pg repair 1.5
 wait heath ok.
 
 
+#更换故障硬盘过程
+ceph-volume lvm list
+#pvs | grep sdd
+/dev/sdd   ceph-9fbe38b2-69a5-4e46-bb0c-c4d50546b369 lvm2 a--  1.09t    0
+#ll /var/lib/ceph/osd/*/block | grep ceph-9fbe38b2-69a5-4e46-bb0c-c4d50546b369
+lrwxrwxrwx 1 ceph ceph 93 4月  17 2019 /var/lib/ceph/osd/ceph-24/block -> /dev/ceph-9fbe38b2-69a5-4e46-bb0c-c4d50546b369/osd-block-265e3a5d-81d2-4e72-bbd9-1617cd8da3eb
+#ceph osd tree
+ -7        3.27480     host node03
+ 14   hdd  1.09160         osd.14      up  1.00000 1.00000
+ 19   hdd  1.09160         osd.19      up  1.00000 1.00000
+ 24   hdd  1.09160         osd.24      up  1.00000 1.00000
+
+ceph osd out 24
+ceph osd stat
+systemctl stop ceph-osd@24
+ceph osd tree
+#将删除的OSD从crush map中删除
+ceph osd crush remove osd.24
+#此时使用ceph osd tree 已经看不到 osd.3
+#清除到OSD的认证密钥
+ceph auth del osd.24
+#在OSD Map中清除OSD
+ceph osd rm 24
+#查看sdd是否还挂载系统中.....
+ceph-volume lvm zap /dev/sdd --destroy
+
+
+watch -n 1 "ceph -s"
+#wait HEALTH OK!
+
+其他：
+ceph osd set noout
+ceph osd unset noout
+
+
 $ceph health detail
 # HEALTH_WARN 1/784075 objects unfound (0.000%); Degraded data redundancy: 1/2352225 objects degraded (0.000%), 1 pg degrade
 # OBJECT_UNFOUND 1/784075 objects unfound (0.000%)
