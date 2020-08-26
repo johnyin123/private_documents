@@ -1,3 +1,8 @@
+iptables -t nat -A PREROUTING -p tcp -d 203.0.113.1 --dport 25 -j DNAT --to 192.168.0.2
+iptables -t nat -A PREROUTING -p tcp -d 203.0.113.1 --dport 80 -j DNAT --to 192.168.0.3
+
+
+
 情形一：跨网络、跨主机的映射Full-Nat
 我们想到达主机B的80端口，但是由于网络限制可能无法直接完成。但是我们可以到达主机A的8080端口，而主机A可以直接到达B的80端口。
 这时候可以使用iptables，将主机B的80端口映射到主机A的8080端口，通过访问A的8080相当于访问B的80。实现如下： 
