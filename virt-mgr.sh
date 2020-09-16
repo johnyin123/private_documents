@@ -146,7 +146,6 @@ create() {
             -s | --size)   array_set vm "SIZE" "${2}"; shift 2;;
             -D | --desc)   array_set vm "DESC" "${2}"; shift 2;;
             -N | --name)   array_set vm "NAME" "${2}"; shift 2;;
-            *)             array_set vm "DOMAIN_TPL" "${1}"; shift 1;;
             -q | --quiet) QUIET=1; shift 1;;
             -l | --log) set_loglevel ${2}; shift 2;;
             -d | --dryrun) DRYRUN=1; shift 1;;
@@ -155,6 +154,7 @@ create() {
             --) shift 1; break;;
         esac
     done
+    array_set vm "DOMAIN_TPL" "${1:?$(usage)}"
     set_vm_defaults vm || return $?
     local uuid="$(array_get vm 'UUID')"
     info_msg "${uuid} create as:\n$(print_kv vm)\n"
