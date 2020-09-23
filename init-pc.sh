@@ -50,7 +50,6 @@ cat << EOF > /etc/hosts
 EOF
 
 cat > /etc/fstab << EOF
-LABEL=${ROOT_LABEL}    /    jfs    defaults,errors=remount-ro,noatime    0    1
 #tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
 EOF
 
@@ -534,8 +533,8 @@ OLDEV=`blkid -L OVERLAY`
 if [ -z "${OLDEV}" ]; then
     mount -t tmpfs tmpfs /overlay
 else
-    _checkfs_once ${OLDEV} /overlay >> /log.txt 2>&1 ||  \
-    mkfs.jfs -L OVERLAY ${OLDEV}
+    _checkfs_once ${OLDEV} /overlay jfs >> /log.txt 2>&1 ||  \
+    mkfs.jfs -f -L OVERLAY ${OLDEV}
     if ! mount ${OLDEV} /overlay; then
         mount -t tmpfs tmpfs /overlay
     fi
@@ -545,7 +544,7 @@ fi
 # next reboot will give you a fresh /overlay
 if [ -f /overlay/reformatoverlay ]; then
     umount /overlay
-    mkfs.jfs -L OVERLAY ${OLDEV}
+    mkfs.jfs -f -L OVERLAY ${OLDEV}
     if ! mount ${OLDEV} /overlay; then
         mount -t tmpfs tmpfs /overlay
     fi
