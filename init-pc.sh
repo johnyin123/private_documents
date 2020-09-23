@@ -120,27 +120,240 @@ EOF
 cat << "EOF" > /etc/network/interfaces.d/wifi
 auto wlan0
 allow-hotplug wlan0
-iface wlan0 inet manual
-    wpa-roam /etc/wpa.conf
-#    pre-up (iw dev wlan0 set power_save off || true)
-iface xkadmin inet dhcp
-#    post-up (ip r a default via 10.32.166.129||true)
+
+mapping wlan0
+    script /etc/johnyin/wifi_mode.sh
+    map work
+    map home
+    map adhoc
+    map initmode
+
+iface work inet dhcp
+    #pre-up (/usr/sbin/ifup ap0 || true)
+    wpa_iface wlan0
+    wpa_conf /etc/johnyin/work.conf
+
+iface home inet dhcp
+    pre-up (/usr/sbin/ifup ap0 || true)
+    wpa_iface wlan0
+    wpa_conf /etc/johnyin/home.conf
+
+iface adhoc inet manual
+    wpa_driver wext
+    wpa_conf /etc/johnyin/adhoc.conf
+    post-up (/usr/sbin/ip link add name wifi-mesh0 type batadv || true)
+    post-up (/usr/sbin/ip link set dev $IFACE master wifi-mesh0 || true) 
+    post-up (/usr/sbin/ip link set dev wifi-mesh0 master br-ext || true)
+    post-up (/usr/sbin/ip link set dev wifi-mesh0 up || true)
+    pre-down (/usr/sbin/ip link set dev $IFACE nomaster || true)
+    pre-down (/usr/sbin/ip link del wifi-mesh0 || true)
+
+iface initmode inet static
+    wpa_iface wlan0
+    wpa_conf /etc/johnyin/adminap.conf
+    address 192.168.1.1/24
+
+iface ap0 inet manual
+    hostapd /etc/johnyin/hostap.conf
+    pre-up (/usr/sbin/iw phy `/usr/bin/ls /sys/class/ieee80211/` interface add ap0 type __ap)
+    pre-up (touch /var/lib/misc/udhcpd.leases || true)
+    post-up (iptables-restore < /etc/iptables.rules || true)
+    post-up (/usr/bin/busybox udhcpd -S /etc/johnyin/udhcpd.conf || true)
+    pre-down (/usr/bin/kill -9 $(cat /var/run/udhcpd-wlan0.pid) || true)
+    post-down (/usr/sbin/iw dev ap0 del)
 EOF
 
-cat << EOF > /etc/wpa.conf
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-#update_config=1
+mkdir -p /etc/johnyin/
+cat << 'EOF_WIFI' > /etc/johnyin/wifi_mode.sh
+#!/bin/sh
+set -e
+export LANG=C
+MODE_CONF=/etc/wifi_mode.conf
+if [ `id -u` -ne 0 ] || [ "$1" = "" ]; then exit 1; fi
+#no config wifi_mode.conf default use "initmode"
+[ -r "${MODE_CONF}" ] || {
+    cat >"${MODE_CONF}" <<-EOF
+# wifi mode select
+# station=work
+# station=home
 
-ap_scan=1
+# adhoc create adhoc mesh network and bridge it.
+# station=adhoc
+
+# initmode no dhcpd no secret ap 192.168.1.1/24
+station=initmode
+EOF
+}
+. ${MODE_CONF}
+iw wlan0 set power_save off || true
+echo ${station:-initmode}
+exit 0
+EOF_WIFI
+chmod 755 /etc/johnyin/wifi_mode.sh
+
+cat << 'EOF_WIFI' > /etc/johnyin/work.conf
+#mulit ap support!
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+#ap_scan=1
+scan_cur_freq=1
+#Whether to scan only the current frequency
+# 0:  Scan all available frequencies. (Default)
+# 1:  Scan current operating frequency if another VIF on the same radio is already associated.
+
 network={
-    ssid="xk-admin"
+    id_str="work"
+    priority=100
     scan_ssid=1
+    ssid="xk-admin"
     #key_mgmt=wpa-psk
     psk="ADMIN@123"
-    id_str="xkadmin"
-    #frequency=2412 use in adhoc
 }
-EOF
+EOF_WIFI
+cat << 'EOF_WIFI' > /etc/johnyin/home.conf
+#mulit ap support!
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+#update_config=1
+#ap_scan=1
+
+network={
+    id_str="home"
+    priority=100
+    scan_ssid=1
+    ssid="johnap"
+    #key_mgmt=wpa-psk
+    psk="Admin@123"
+    #disabled=1
+}
+EOF_WIFI
+cat << 'EOF_WIFI' > /etc/johnyin/adhoc.conf
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+#update_config=1
+ap_scan=2
+
+#adhoc/IBSS
+# wpa_supplicant -cwpa-adhoc.conf -iwlan0 -Dwext
+# iw wlan0 set type ibss
+# ifconfig wlan0 up
+# iw wlan0 ibss join johnyin 2427
+network={
+    id_str="adhoc"
+    priority=90
+    ssid="johnyin"
+    frequency=2412
+    mode=1
+    key_mgmt=NONE
+}
+EOF_WIFI
+cat << 'EOF_WIFI' > /etc/johnyin/adminap.conf
+#mulit ap support!
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+#update_config=1
+#ap_scan=1
+
+network={
+    id_str="admin"
+    priority=70
+    #frequency=60480
+    ssid="s905d2-admin"
+    mode=2
+    key_mgmt=NONE
+}
+EOF_WIFI
+cat << 'EOF_WIFI' > /etc/johnyin/hostap.conf
+interface=ap0
+bridge=br-ext
+logger_syslog=-1
+logger_syslog_level=2
+logger_stdout=-1
+logger_stdout_level=2
+ctrl_interface=/var/run/hostapd
+ctrl_interface_group=0
+
+ssid=s905d2
+macaddr_acl=0
+#accept_mac_file=/etc/hostapd.accept
+#deny_mac_file=/etc/hostapd.deny
+auth_algs=1
+# 采用 OSA 认证算法 
+ignore_broadcast_ssid=0 
+wpa=2
+# 指定 WPA 类型 
+wpa_key_mgmt=WPA-PSK             
+wpa_pairwise=TKIP 
+rsn_pairwise=CCMP 
+wpa_passphrase=password123
+# 连接 ap 的密码 
+
+driver=nl80211
+# 设定无线驱动 
+hw_mode=g
+# 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g 
+channel=3
+# 指定无线频道 
+
+
+# DHCP server for FILS HLP
+# If configured, hostapd will act as a DHCP relay for all FILS HLP requests
+# that include a DHCPDISCOVER message and send them to the specific DHCP
+# server for processing. hostapd will then wait for a response from that server
+# before replying with (Re)Association Response frame that encapsulates this
+# DHCP response. own_ip_addr is used as the local address for the communication
+# with the DHCP server.
+#dhcp_server=127.0.0.1
+#dhcp_server_port=67
+#dhcp_relay_port=67
+# DHCP rapid commit proxy
+# If set to 1, this enables hostapd to act as a DHCP rapid commit proxy to
+# allow the rapid commit options (two message DHCP exchange) to be used with a
+# server that supports only the four message DHCP exchange. This is disabled by
+# default (= 0) and can be enabled by setting this to 1.
+#dhcp_rapid_commit_proxy=0
+
+# Wait time for FILS HLP (dot11HLPWaitTime) in TUs
+# default: 30 TUs (= 30.72 milliseconds)
+#fils_hlp_wait_time=30
+
+# Proxy ARP
+# 0 = disabled (default)
+# 1 = enabled
+#proxy_arp=1
+EOF_WIFI
+cat << 'EOF_WIFI' > /etc/johnyin/udhcp.conf
+start           192.168.168.100
+end             192.168.168.150
+interface       br-ext
+max_leases      45
+lease_file      /var/lib/misc/udhcpd.leases
+pidfile         /var/run/udhcpd-wlan0.pid
+option  domain  local
+option  lease   86400
+option  subnet  255.255.255.0
+# Currently supported options, for more info, see options.c
+opt     dns     114.114.114.114
+opt     router  192.168.168.1
+#opt subnet
+#opt timezone
+#opt timesvr
+#opt namesvr
+#opt logsvr
+#opt cookiesvr
+#opt lprsvr
+#opt bootsize
+#opt domain
+#opt swapsvr
+#opt rootpath
+#opt ipttl
+#opt mtu
+#opt broadcast
+#opt wins
+#opt lease
+#opt ntpsrv
+#opt tftp
+#opt bootfile
+# static_lease 00:60:08:11:CE:4E 192.168.0.54
+# siaddr          192.168.1.2
+# boot_file       pxelinux.0
+EOF_WIFI
 
 cat << EOF > /etc/rc.local
 #!/bin/sh -e
