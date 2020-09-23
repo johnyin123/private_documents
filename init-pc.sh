@@ -38,7 +38,7 @@ echo "xk-yinzh" > /etc/hostname
 apt -y install ${ZRAMSWAP}
 echo "Enable udisk2 ${ZRAM_SIZE}M zram swap"
 mkdir -p /usr/local/lib/zram.conf.d/
-echo "zram" >> /etc/modules
+(grep -v -E "zram" /etc/modules; echo "zram"; ) | tee /etc/modules
 cat << EOF > /usr/local/lib/zram.conf.d/zram0-env
 ZRAM_NUM_STR=lzo
 ZRAM_DEV_SIZE=$((${ZRAM_SIZE}*1024*1024))
@@ -376,7 +376,7 @@ cat > /etc/security/limits.d/tun.conf << EOF
 *           soft   nofile       102400
 *           hard   nofile       102400
 EOF
-cat > /root/aptrom.sh <<EOF
+cat << EOF > /root/aptrom.sh <<EOF
 #!/usr/bin/env bash
 
 mount -o remount,rw /overlay/lower
@@ -393,7 +393,7 @@ sync
 mount -o remount,ro /overlay/lower
 EOF
 
-cat >> /etc/sysctl.conf << EOF
+cat << EOF > /etc/sysctl.conf
 net.core.rmem_max = 134217728 
 net.core.wmem_max = 134217728 
 net.core.netdev_max_backlog = 250000
@@ -480,11 +480,12 @@ cat <<EOF
 kernel parm "skipoverlay"
 overlayfs lable "OVERLAY"
 /overlay/reformatoverlay exist will format it!
+overlayfs: upper fs needs to support d_type.
+overlayfs: upper fs does not support tmpfile.
+# mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init DEVICE
 EOF
 
-if ! grep -q "^overlay" /etc/initramfs-tools/modules; then
-    echo overlay >> /etc/initramfs-tools/modules
-fi
+(grep -v -E "^overlay" /etc/initramfs-tools/modules; echo "overlay"; ) | tee /etc/initramfs-tools/modules
 
 cat > /usr/share/initramfs-tools/hooks/overlay <<'EOF'
 #!/bin/sh
@@ -494,8 +495,10 @@ cat > /usr/share/initramfs-tools/hooks/overlay <<'EOF'
 
 copy_exec /sbin/blkid
 copy_exec /sbin/fsck
-copy_exec /sbin/fsck.jfs
-copy_exec /sbin/mkfs.jfs
+copy_exec /sbin/mke2fs
+copy_exec /sbin/fsck.ext2
+copy_exec /sbin/fsck.ext3
+copy_exec /sbin/fsck.ext4
 copy_exec /sbin/logsave
 EOF
 cat > /etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
@@ -533,8 +536,8 @@ OLDEV=`blkid -L OVERLAY`
 if [ -z "${OLDEV}" ]; then
     mount -t tmpfs tmpfs /overlay
 else
-    _checkfs_once ${OLDEV} /overlay jfs >> /log.txt 2>&1 ||  \
-    mkfs.jfs -f -L OVERLAY ${OLDEV}
+    _checkfs_once ${OLDEV} /overlay ext4 >> /log.txt 2>&1 ||  \
+    mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
     if ! mount ${OLDEV} /overlay; then
         mount -t tmpfs tmpfs /overlay
     fi
@@ -544,7 +547,7 @@ fi
 # next reboot will give you a fresh /overlay
 if [ -f /overlay/reformatoverlay ]; then
     umount /overlay
-    mkfs.jfs -f -L OVERLAY ${OLDEV}
+    mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
     if ! mount ${OLDEV} /overlay; then
         mount -t tmpfs tmpfs /overlay
     fi
@@ -603,4 +606,6 @@ chage -d 0 johnyin
 
 apt clean
 find /var/log/ -type f | xargs rm
+rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /root/.viminfo /root/.vim/
+
 exit 0
