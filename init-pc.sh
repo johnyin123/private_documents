@@ -73,11 +73,13 @@ dpkg-reconfigure -f noninteractive tzdata
 
 apt -y install openssh-server
 dpkg-reconfigure -f noninteractive openssh-server
+cp /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
 sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
 sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
 sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config
 sed -i 's/GSSAPIAuthentication.*/GSSAPIAuthentication no/g' /etc/ssh/sshd_config
-(grep -v -E "^Ciphers|^MACs" /etc/ssh/sshd_config ; echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr"; echo "MACs    hmac-sha1"; ) | tee /etc/ssh/sshd_config
+(grep -v -E "^Ciphers|^MACs" /etc/ssh/sshd_config ; echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr"; echo "MACs    hmac-sha1"; ) | tee /etc/ssh/sshd_config.bak
+mv /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
 
 cat << EOF > /etc/network/interfaces
 source /etc/network/interfaces.d/*
@@ -376,7 +378,7 @@ cat > /etc/security/limits.d/tun.conf << EOF
 *           soft   nofile       102400
 *           hard   nofile       102400
 EOF
-cat << EOF > /root/aptrom.sh <<EOF
+cat << EOF > /root/aptrom.sh
 #!/usr/bin/env bash
 
 mount -o remount,rw /overlay/lower
@@ -536,7 +538,7 @@ OLDEV=`blkid -L OVERLAY`
 if [ -z "${OLDEV}" ]; then
     mount -t tmpfs tmpfs /overlay
 else
-    _checkfs_once ${OLDEV} /overlay ext4 >> /log.txt 2>&1 ||  \
+    _checkfs_once ${OLDEV} /overlay ext4 >> /log.txt 2>&1 || \
     mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
     if ! mount ${OLDEV} /overlay; then
         mount -t tmpfs tmpfs /overlay
@@ -595,7 +597,7 @@ chmod 0600 /root/.ssh/authorized_keys
 
 echo "install packages!"
 apt -y install bzip2 pigz p7zip-full arj zip mscompress unar eject bc less vim ftp telnet nmap tftp ntpdate screen lsof strace
-apt -y install manpages tcpdump ethtool aria2 axel curl mpg123 nmon sysstat arping dnsutils minicom socat git git-flow
+apt -y install manpages tcpdump ethtool aria2 axel curl mpg123 nmon sysstat arping dnsutils minicom socat git git-flow net-tools
 
 usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" root
 usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" johnyin
@@ -605,7 +607,7 @@ chage -d 0 root
 chage -d 0 johnyin
 
 apt clean
-find /var/log/ -type f | xargs rm
+find /var/log/ -type f | xargs rm -f
 rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /root/.viminfo /root/.vim/
 
 exit 0
