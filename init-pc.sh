@@ -2,7 +2,6 @@
 
 DEBIAN_VERSION=buster
 PASSWORD=password
-ROOT_LABEL=ROOTFS
 #512 M
 ZRAM_SIZE=512
 ZRAMSWAP="udisks2"
@@ -49,12 +48,13 @@ cat << EOF > /etc/hosts
 127.0.0.1       localhost $(cat /etc/hostname)
 EOF
 
-cat > /etc/fstab << EOF
+echo "maybe need modify fstab"
+cat << EOF >> /etc/fstab
 #tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
 EOF
 
 #Installing packages without docs
-cat >  /etc/dpkg/dpkg.cfg.d/01_nodoc <<EOF
+cat > /etc/dpkg/dpkg.cfg.d/01_nodoc <<EOF
 # lintian stuff is small, but really unnecessary
 path-exclude /usr/share/lintian/*
 path-exclude /usr/share/linda/*
@@ -81,7 +81,7 @@ sed -i 's/GSSAPIAuthentication.*/GSSAPIAuthentication no/g' /etc/ssh/sshd_config
 (grep -v -E "^Ciphers|^MACs" /etc/ssh/sshd_config ; echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr"; echo "MACs    hmac-sha1"; ) | tee /etc/ssh/sshd_config.bak
 mv /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
 
-cat << EOF > /etc/network/interfaces
+cat << EOF | tee /etc/network/interfaces
 source /etc/network/interfaces.d/*
 # The loopback network interface
 auto lo
@@ -90,7 +90,7 @@ EOF
 
 echo "install network bridge"
 apt -y install bridge-utils
-cat << EOF > /etc/network/interfaces.d/br-ext
+cat << EOF | tee /etc/network/interfaces.d/br-ext
 auto eth0
 allow-hotplug eth0
 iface eth0 inet manual
@@ -118,7 +118,7 @@ iface br-ext inet static
 #         vlan-raw-device bond0
 EOF
 
-cat << "EOF" > /etc/network/interfaces.d/wifi
+cat << "EOF" | tee /etc/network/interfaces.d/wifi
 auto wlan0
 allow-hotplug wlan0
 
@@ -378,7 +378,7 @@ cat > /etc/security/limits.d/tun.conf << EOF
 *           soft   nofile       102400
 *           hard   nofile       102400
 EOF
-cat << EOF > /root/aptrom.sh
+cat << "EOF" > /root/aptrom.sh
 #!/usr/bin/env bash
 
 mount -o remount,rw /overlay/lower
@@ -387,7 +387,7 @@ cp /overlay/lower/etc/apt/sources.list ~/sources.list.bak
 mount -o remount,rw /overlay/lower
 
 chroot /overlay/lower apt update
-chroot /overlay/lower apt install \$*
+chroot /overlay/lower apt install $*
 
 rm -rf /overlay/lower/var/cache/apt/* /overlay/lower/var/lib/apt/lists/* /overlay/lower/var/log/*
 rm -rf /overlay/lower/root/.bash_history /overlay/lower/root/.viminfo /overlay/lower/root/.vim/
@@ -530,7 +530,7 @@ fi
 log_begin_msg "Starting overlay"
 log_end_msg
 
-mkdir -p /overlay
+logsave -a -s overlay mkdir -p /overlay
 
 # if we have a filesystem label of OVERLAY
 # use that as the overlay, otherwise use tmpfs.
@@ -538,7 +538,7 @@ OLDEV=`blkid -L OVERLAY`
 if [ -z "${OLDEV}" ]; then
     mount -t tmpfs tmpfs /overlay
 else
-    _checkfs_once ${OLDEV} /overlay ext4 >> /log.txt 2>&1 || \
+    _checkfs_once ${OLDEV} /overlay ext4 || \
     mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
     if ! mount ${OLDEV} /overlay; then
         mount -t tmpfs tmpfs /overlay
@@ -549,7 +549,7 @@ fi
 # next reboot will give you a fresh /overlay
 if [ -f /overlay/reformatoverlay ]; then
     umount /overlay
-    mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
+    logsave -a -s overlay mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
     if ! mount ${OLDEV} /overlay; then
         mount -t tmpfs tmpfs /overlay
     fi
