@@ -521,6 +521,8 @@ esac
 
 . /scripts/functions
 
+[ -f ${rootmnt}/etc/overlayroot.conf ] && . ${rootmnt}/etc/overlayroot.conf
+
 if grep -q -E '(^|\s)skipoverlay(\s|$)' /proc/cmdline; then
     log_begin_msg "Skipping overlay, found 'skipoverlay' in cmdline"
     log_end_msg
