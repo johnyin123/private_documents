@@ -428,6 +428,7 @@ require () {
 debugshell () {
     safe_echo "This is a debug shell (${1:-})."
     sh || true
+    #PS1='(initramfs) ' sh -i </dev/console >/dev/console 2>&1
 }
 
 #******************************************************************************
