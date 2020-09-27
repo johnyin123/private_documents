@@ -479,8 +479,10 @@ sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
 
 echo "start install overlay_rootfs ====================="
 cat <<EOF
-kernel parm "skipoverlay"
-overlayfs lable "OVERLAY"
+kernel parm "skipoverlay" / lowerfs /etc/overlayroot.conf
+OVERLAY= overlayfs lable default "OVERLAY"
+SKIP_OVERLAY=
+
 /overlay/reformatoverlay exist will format it!
 overlayfs: upper fs needs to support d_type.
 overlayfs: upper fs does not support tmpfile.
@@ -522,8 +524,11 @@ esac
 . /scripts/functions
 
 [ -f ${rootmnt}/etc/overlayroot.conf ] && . ${rootmnt}/etc/overlayroot.conf
+OVERLAY_LABEL=${OVERLAY:-OVERLAY}
+SKIP_OVERLAY=${SKIP_OVERLAY:-0}
+grep -q -E '(^|\s)skipoverlay(\s|$)' /proc/cmdline && SKIP_OVERLAY=1
 
-if grep -q -E '(^|\s)skipoverlay(\s|$)' /proc/cmdline; then
+if [[ ${SKIP_OVERLAY-} =~ ^1|yes|true$ ]]; then
     log_begin_msg "Skipping overlay, found 'skipoverlay' in cmdline"
     log_end_msg
     exit 0
@@ -532,17 +537,17 @@ fi
 log_begin_msg "Starting overlay"
 log_end_msg
 
-logsave -a -s overlay mkdir -p /overlay
+mkdir -p /overlay
 
-# if we have a filesystem label of OVERLAY
+# if we have a filesystem label of ${OVERLAY_LABEL}
 # use that as the overlay, otherwise use tmpfs.
-OLDEV=`blkid -L OVERLAY`
+OLDEV=$(blkid -L ${OVERLAY_LABEL})
 if [ -z "${OLDEV}" ]; then
     mount -t tmpfs tmpfs /overlay
 else
     _checkfs_once ${OLDEV} /overlay ext4 || \
-    mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
-    if ! mount ${OLDEV} /overlay; then
+    mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
+    if ! mount -t ext4 ${OLDEV} /overlay; then
         mount -t tmpfs tmpfs /overlay
     fi
 fi
@@ -551,8 +556,8 @@ fi
 # next reboot will give you a fresh /overlay
 if [ -f /overlay/reformatoverlay ]; then
     umount /overlay
-    logsave -a -s overlay mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
-    if ! mount ${OLDEV} /overlay; then
+    mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
+    if ! mount -t ext4 ${OLDEV} /overlay; then
         mount -t tmpfs tmpfs /overlay
     fi
 fi
