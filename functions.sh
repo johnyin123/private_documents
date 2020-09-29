@@ -659,6 +659,21 @@ urldecode() {
   done
   safe_echo "${decoded}"
 }
+
+# Use this to set the new config value, needs 2 parameters.
+# echo "key=abc" | del_config "key" | add_config "test" "testval" | set_config "test" "abc"
+set_config() {
+    sed "s/^\($1\s*=\s*\).*\$/\1$2/"
+}
+
+del_config() {
+    sed "/^\($1\s*=\s*\).*\$/d"
+}
+
+add_config() {
+    echo "$1=$2"
+}
+
 # {
 #     "partitions": {
 #         "boot_size": "67108864"
