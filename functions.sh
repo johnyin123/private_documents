@@ -672,7 +672,7 @@ del_config() {
 }
 
 add_config() {
-    cat
+    del_config "$1"
     echo "$1${CONF_DELM}$2"
 }
 
