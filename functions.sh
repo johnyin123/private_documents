@@ -63,6 +63,10 @@ get_ipaddr() {
     /sbin/ip -4 -br addr show ${1} | /bin/grep -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
 }
 
+stdout_is_terminal() {
+  [ -t 1 ]
+}
+
 is_user_root() {
     [ "$(id -u)" -eq 0 ]
 }
