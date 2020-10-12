@@ -63,6 +63,13 @@ get_ipaddr() {
     /sbin/ip -4 -br addr show ${1} | /bin/grep -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
 }
 
+##Usage: check_http_status 'http://www.example.com'
+check_http_status() {
+    local url=$1
+    local status=$(curl -s -o /dev/null -w '%{http_code}' $url)
+    echo $status
+}
+
 stdout_is_terminal() {
   [ -t 1 ]
 }

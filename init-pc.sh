@@ -585,7 +585,7 @@ chmod 755 /usr/share/initramfs-tools/hooks/overlay
 chmod 755 /etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay
 
 echo "end install overlay_rootfs"
-sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=\"console=ttyS0 console=tty1 net.ifnames=0 biosdevname=0\"/g" /etc/default/grub
+sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=\"console=ttyS0 console=tty1 net.ifnames=0 biosdevname=0 ipv6.disable=1\"/g" /etc/default/grub
 update-initramfs -c -k $(uname -r)
 grub-mkconfig -o /boot/grub/grub.cfg
 
