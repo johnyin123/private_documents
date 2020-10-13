@@ -209,6 +209,11 @@ fill_predefine() {
 # fi
 
 main() {
+    log_file=log.txt
+    # redirect stdout and stderr to $log_file and print
+    exec > >(tee -ia $log_file)
+    exec 2> >(tee -ia $log_file >&2)
+
     local opt_short="u:n:"
     local opt_long="uuid:,name:,"
     opt_short+="ql:dVh"
