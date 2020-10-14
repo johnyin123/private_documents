@@ -37,7 +37,8 @@ ceph auth del osd.24
 ceph osd rm 24
 #查看sdd是否还挂载系统中.....
 ceph-volume lvm zap /dev/sdd --destroy
-
+cat /sys/block/sdb/device/state
+#echo "1" > /sys/block/sdc/device/delete
 
 watch -n 1 "ceph -s"
 #wait HEALTH OK!
