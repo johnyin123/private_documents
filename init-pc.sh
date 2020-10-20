@@ -602,6 +602,9 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zs
 EOF
 chmod 0600 /root/.ssh/authorized_keys
 
+echo "use tcp dns query"
+echo 'options use-vc' >> /etc/resolv.conf
+
 echo "install packages!"
 apt -y install bzip2 pigz p7zip-full arj zip mscompress unar eject bc less vim ftp telnet nmap tftp ntpdate screen lsof strace
 apt -y install manpages tcpdump ethtool aria2 axel curl mpg123 nmon sysstat arping dnsutils minicom socat git git-flow net-tools
