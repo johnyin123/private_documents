@@ -603,7 +603,11 @@ EOF
 chmod 0600 /root/.ssh/authorized_keys
 
 echo "use tcp dns query"
+cat <<EOF
+single-request-reopen (glibc>=2.9) 发送 A 类型请求和 AAAA 类型请求使用不同的源端口。
+single-request (glibc>=2.10) 避免并发，改为串行发送 A 类型和 AAAA 类型请求，没有了并发，从而也避免了冲突。
 echo 'options use-vc' >> /etc/resolv.conf
+EOF
 
 echo "install packages!"
 apt -y install bzip2 pigz p7zip-full arj zip mscompress unar eject bc less vim ftp telnet nmap tftp ntpdate screen lsof strace
