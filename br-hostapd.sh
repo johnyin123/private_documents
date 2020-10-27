@@ -38,7 +38,7 @@ macaddr_acl=0
 #deny_mac_file=/etc/hostapd.deny
 auth_algs=1
 # 采用 OSA 认证算法 
-ignore_broadcast_ssid=0 
+ignore_broadcast_ssid=1
 wpa=3
 # 指定 WPA 类型 
 wpa_key_mgmt=WPA-PSK             
