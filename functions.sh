@@ -1,4 +1,6 @@
 #!/bin/echo Warnning, this library must only be sourced! 
+# shellcheck disable=SC2086 disable=SC2155
+
 # TO BE SOURCED ONLY ONCE:
 if [ -z ${__functions_inc+x} ]; then
     __functions_inc=1
@@ -149,7 +151,7 @@ render_tpl() {
             RHS="$(eval echo "\"$LHS\"")"
             line=${line//$LHS/$RHS}
         done
-        printf "$line\n"
+        printf "%s\n" "$line"
         # eval "echo \"$line\"" #risk
     done
     return 0
