@@ -87,15 +87,15 @@ erase_line() {
 cursor_onoff () {
   local op="$1"
   case "${op}" in
-    hide)   printf "\e[?25l" ;;
-    show)   printf "\e[?25h" ;;
+    hide) printf "\e[?25l" ;;
+    show) printf "\e[?25h" ;;
     *) return 1 ;;
   esac
   return 0
 }
 cursor_moveto () {
-  local let x="${1}"
-  local let y="${2}"
+  local x="${1}"
+  local y="${2}"
   ## write
   printf "\e[%d;%d;f" ${y} ${x}
   return 0
