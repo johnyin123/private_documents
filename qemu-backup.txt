@@ -1,0 +1,413 @@
+virsh qemu-monitor-command b916ba47-89fb-4890-8e59-0a6bedf4cb12 --pretty '{ "execute": "query-commands" }' 
+4. 常用命令一览
+获取磁盘设备名
+
+# 通过qmp查看
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "query-block" }'
+
+# 通过hmp查看
+virsh qemu-monitor-command DOMAIN --hmp 'info block'
+--pretty表示将输出的json进行换行格式化展示，否则只有一行，该参数和--hmp互斥
+
+备份命令
+
+# 完整备份（包含backing file）：“full”
+virsh qemu-monitor-command DOMAIN '{ "execute" : "drive-backup" , "arguments" : { "device" : "drive-virtio-disk0" , "sync" : "full" , "target" : "/opt/backup/full.img" } }'
+
+# 完整备份（不包含backing file，仅备份当前文件）：“top”
+virsh qemu-monitor-command DOMAIN '{ "execute" : "drive-backup" , "arguments" : { "device" : "drive-virtio-disk0" , "sync" : "top" , "target" : "/opt/backup/top.img" } }'
+
+# 实时导出新IO：“none”
+virsh qemu-monitor-command DOMAIN '{ "execute" : "drive-backup" , "arguments" : { "device" : "drive-virtio-disk0" , "sync" : "none" , "target" : "/opt/backup/none.img" } }'
+
+# 增量备份：“bitmap”
+virsh qemu-monitor-command DOMAIN '{ "execute" : "drive-backup" , "arguments" : { "device" : "drive-virtio-disk0" , "sync" : "incremental" , "bitmap" : "bitmap0" , "target" : "/opt/backup/inc.0.qcow2" } }'
+
+# 增量备份：“bitmap”，通过iscsi远程导出
+virsh qemu-monitor-command DOMAIN '{ "execute" : "drive-backup" , "arguments" : { "device" : "drive-virtio-disk0" , "sync" : "incremental" , "bitmap" : "bitmap0" , "target" : "iscsi://192.168.1.100:3260/iqn.2019-01.com.iaas/0" } }'
+bitmap操作
+
+# 创建非持久bitmap（qemu >= 2.4）
+virsh qemu-monitor-command DOMAIN '{ "execute": "block-dirty-bitmap-add", "arguments": {"node": "drive-virtio-disk0","name": "bitmap0"}}'
+
+# 创建持久bitmap（qemu >= 2.10）
+virsh qemu-monitor-command DOMAIN '{ "execute": "block-dirty-bitmap-add", "arguments": {"node": "drive-virtio-disk0","name": "bitmapY", "persistent": true}}'
+
+# 删除bitmap
+virsh qemu-monitor-command DOMAIN '{ "execute" : "block-dirty-bitmap-remove", "arguments" : { "node" : "drive-virtio-disk0", "name" : "bitmap0" } }'
+
+# 重置bitmap
+virsh qemu-monitor-command DOMAIN '{ "execute": "block-dirty-bitmap-clear", "arguments": {"node": "drive-virtio-disk0","name": "bitmap0"}}'
+
+# 查询虚拟机所有磁盘的块信息，含bitmap
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "query-block" }'
+
+# 查询虚拟机指定磁盘的bitmap（查询第一块磁盘使用[0]，第二块用[1]，以此类推）
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "query-block" }' | jq .return[0] | sed -n '/dirty\-bitmaps/,/]/p'
+事件监听
+
+# 始终监听事件
+virsh qemu-monitor-event DOMAIN --timestamp --loop
+
+# 当收到特定事件后停止监听
+virsh qemu-monitor-event DOMAIN --event BLOCK_JOB_COMPLETED
+备份任务管理
+
+# 通过qmp查看运行中的任务
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "query-block-jobs" }'
+
+# 通过hmp查看运行中的任务
+virsh qemu-monitor-command DOMAIN --hmp 'info block-jobs'
+
+# 停止备份任务
+virsh qemu-monitor-command DOMAIN '{ "execute": "block-job-cancel", "arguments": { "device": "drive-virtio-disk0", "force": true } }'
+
+# 暂停备份任务
+virsh qemu-monitor-command DOMAIN '{ "execute" : "block-job-pause", "arguments" : { "device" : "drive-virtio-disk0" } }'
+
+# 恢复已暂停的备份任务
+virsh qemu-monitor-command DOMAIN '{ "execute" : "block-job-resume", "arguments" : { "device" : "drive-virtio-disk0" } }'
+5. 磁盘在线备份的4种方式
+▷ full：完整备份，会将指定磁盘及其链上的所有母盘（backing file），合并输出到本地
+▷ top：仅备份当前磁盘，而不包含backing file。此项仅对本地盘有效，对于ceph rbd，top和full的效果一样都是完整备份
+▷ none：new I/O，即从执行备份命令起，一旦有IO变化，就会实时导出有变化的数据，直到虚拟机关机或者手工停止job才会停止。仅支持qcow2格式的块设备，不支持raw格式（注意，这里指的是qcow2格式，而并非要求qcow2本地盘）
+▷ incremental：指定dirty bitmap进行备份，目前qemu的增量备份就是指基于dirty bitmap的备份
+
+上述4种备份是互斥的：任意一种备份job运行中，都无法执行其他类型的备份，也无法再开启同种备份的新job
+
+full、top、none这三种备份的操作方法非常简单，在前面“常用命令一览”中已经提到，不再赘述，而增量备份会稍微复杂点，本文的重点将放在增量备份上
+
+6. 查询磁盘对应的设备名
+由于qemu不支持一键备份所有磁盘，因此无论有几块盘，必须先找到要备份的磁盘设备名
+
+可通过qmp或者hmp查找设备名，qmp是qemu原生方法，hmp是为了简化qmp的使用而增加的一层翻译器（其中的h就是human，表示友好可读），hmp虽然好用，但不确定其能否支持所有qmp功能，因此这里只是简单演示下hmp的使用，之后主要还是通过qmp进行操作
+
+# 通过qmp查看
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "query-block" }'
+
+# 通过hmp查看
+virsh qemu-monitor-command DOMAIN --hmp 'info block'
+输出中的drive-virtio-disk0、drive-virtio-disk1就是设备名
+
+关于qmp和hmp的详细使用，详见笔者的另一篇文章《基于QMP实现对qemu虚拟机进行交互》
+
+7. 什么是bitmap
+本文将重点讲解bitmap备份
+
+在qemu里，“增量备份”指的就是基于dirty bitmap的incremental备份方式。请注意，这里提到了2个词，dirty bitmap和incremental，接下来，要详细讲解：什么是bitmap、bitmap怎么用、有哪些特性与注意事项，只有了解清楚bitmap，才能做好增量备份
+
+什么是bitmap
+
+通过dirty bitmap可以实现qemu磁盘的在线增量备份，而无需创建一长串的快照
+
+qemu的增量备份通常来说就是指通过dirty bitmap实现的备份
+
+dirty bitmap是qemu实现的，跟踪需要在下次进行增量备份的数据
+
+▷ v2.4开始，支持dirty bitmap，但这时的bitmap只是记录在qemu的仿真器内存中，并没有记录在底层块设备中（底层块设备指ceph rbd、本地盘qcow2等），这种bitmap称为in-memory bitmap，笔者习惯叫做非持久bitmap
+▷ v2.10开始，qemu开始支持persistent dirty bitmap，笔者习惯叫做持久bitmap
+
+bitmap、dirty bitmap、persistent dirty bitmap区别
+
+▷ bitmap：是qemu支持的一个高级功能，直到本文编写完成时（v3.1.0），bitmap只有一种类型，就是dirty bitmap
+▷ dirty bitmap：是bitmap的一种类型，也是唯一的类型，因此dirty bitmap和bitmap是一回事。由于dirty bitmap是记录在内存中而非磁盘上，因此可以支持任意类型的底层磁盘，比如本地盘、ceph rbd，也支持任意格式的磁盘格式，比如qcow2、raw等等。
+▷ persistent dirty bitmap：是dirty bitmap的改进版，因为dirty bitmap是记录在内存中的，当qemu虚拟机关机后，dirty bitmap就消失了，就会导致需要重新做一次完整备份。persistent dirty bitmap是v2.10开始才支持
+
+持久bitmap仅支持qcow2，不支持raw格式（例如本地盘raw文件或者ceph-rbd）
+
+bitmap的名称
+
+▷ 对于节点是唯一的，但附加到不同节点的bitmap可以共享相同的名称。对于同一节点，持久bitmap和非持久bitmap的名称也不能冲突）
+▷ 为qemu内部使用而创建的bitmap可能是匿名的，没有名称。但用户创建的bitmap肯定不是匿名的。每个节点可以有任意数量的bitmap
+▷ 用户创建的bitmap名称不能是空（即""）
+
+基于bitmap做增量备份的工作原理
+
+▷ 首先，在虚拟机启动状态下，针对虚拟机某个磁盘（称为node），打上bitmap，此时bitmap存在qemu内存中，并且bitmap的count属性为0
+▷ 其次，当磁盘数据有变化的时候，bitmap会将变化记录下来，可以看到count不断递增（不会超过磁盘virtual size）
+▷ 最后，指定bitmap做备份时候，qemu会根据bitmap记录，导出对应的增量数据到本地或远程
+
+8. 创建与查询bitmap
+# 创建非持久bitmap（qemu >= 2.4）
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "block-dirty-bitmap-add", "arguments": {"node": "drive-virtio-disk0","name": "bitmap0"}}'
+
+# 创建持久bitmap（qemu >= 2.10）
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "block-dirty-bitmap-add", "arguments": {"node": "drive-virtio-disk0","name": "bitmap1", "persistent": true}}'
+
+# 查询虚拟机的所有磁盘的bitmap
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "query-block" }'
+
+# 查询虚拟机第一块磁盘的bitmap
+virsh qemu-monitor-command DOMAIN--pretty '{ "execute": "query-block" }' | jq .return[0] | sed -n '/dirty\-bitmaps/,/]/p'
+
+# 查询虚拟机第二块磁盘的bitmap
+virsh qemu-monitor-command DOMAIN--pretty '{ "execute": "query-block" }' | jq .return[1] | sed -n '/dirty\-bitmaps/,/]/p'
+9. 基于bitmap做增量备份
+# 备份
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute" : "drive-backup" , "arguments" : { "device" : "drive-virtio-disk0" , "sync" : "incremental" , "bitmap" : "bitmap0" , "target" : "/opt/backup/inc.0.qcow2" } }'
+
+# 在备份过程中，可以查看任务
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "query-block-jobs" }'
+10. 删除bitmap
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute" : "block-dirty-bitmap-remove", "arguments" : { "node" : "drive-virtio-disk0", "name" : "bitmap0" } }'
+11. 重置bitmap
+重置bitmap就是将bitmap的count值置为0，重新跟踪磁盘变化
+
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "block-dirty-bitmap-clear", "arguments": {"node": "drive-virtio-disk0","name": "bitmap0"}}'
+12. 备份逻辑
+到这里，已经知道如何做完整备份和增量备份了，但如何把二者结合起来呢？
+
+“等下，结合什么，先做完整备份，然后创建bitmap，过段时间后做增量备份，不行吗”
+
+“真要这么简单就好了，但你漏了一个关键点，在开机状态下，磁盘的数据可能实时变化，当你还在做完整备份的过程中，磁盘数据可能已经变化了，然后你再创建bitmap，已经太迟了”
+
+“那我就先创建bitmap，然后再做完整备份，这样就不会缺少数据了吧”
+
+“看起来可以，但从理论上来说，也是不行的，你看，分别执行2条QMP命令，先执行bitmap的创建，再执行完整备份，虽然创建bitmap是毫秒级完成的，但若磁盘IO变化很快，毫厘之间，也有可能产生数据的变化”
+
+“那怎么办”
+
+“接着往下看就知道了”
+
+虚拟机启动前就确定要备份
+
+若虚拟机第一次启动之前，就确定要备份磁盘，那么可以paused状态启动虚拟机，这样可以保证磁盘IO不会变化，就没有上面的那么多担心了，具体操作如下：
+
+1️⃣ 以paused状态启动虚拟机（virsh start DOMAIN --paused）
+2️⃣ 对磁盘进行完整备份（"sync":"top"）
+3️⃣ 对磁盘创建bitmap（block-dirty-bitmap-add）
+4️⃣ 恢复虚拟机状态（virsh resume DOMAIN）
+5️⃣ 接下来可以做incremental备份（"sync":"incremental"）
+
+范例如下
+
+virsh start DOMAIN --paused
+virsh qemu-monitor-command DOMAIN '{ "execute" : "drive-backup" , "arguments" : { "device" : "drive-virtio-disk0" , "sync" : "top" , "target" : "/opt/backup/top.img" } }'
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "block-dirty-bitmap-add", "arguments": {"node": "drive-virtio-disk0","name": "bitmap0"}}'
+virsh resume DOMAIN
+
+# ...运行一段时间...
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute" : "drive-backup" , "arguments" : { "device" : "drive-virtio-disk0" , "sync" : "incremental" , "bitmap" : "bitmap0" , "target" : "/opt/backup/inc.0.qcow2" } }'
+
+# ...又运行一段时间...
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute" : "drive-backup" , "arguments" : { "device" : "drive-virtio-disk0" , "sync" : "incremental" , "bitmap" : "bitmap0" , "target" : "/opt/backup/inc.1.qcow2" } }'
+虚拟机运行过程中确定要备份
+
+如果是虚拟机已经运行一段时间了，才决定做备份，就需要用到QMP的“事务”
+
+1️⃣ 以事务方式对磁盘创建bitmap（block-dirty-bitmap-add）及对磁盘做完整备份（"sync":"top"）
+2️⃣ 接下来可以做incremental备份（"sync":"incremental"）
+
+QMP部分功能支持事务性（事务的目的是当其中一件事失败后，会自动回滚，保证数据一致性，但这里也可用于保证创建bitmap和开始备份之间没有缺少数据），因此上述1️⃣通过事务操作
+
+{ "execute": "transaction",
+  "arguments": {
+    "actions": [
+      {"type": "block-dirty-bitmap-add",
+       "data": {"node": "drive-virtio-disk0", "name": "bitmap0"} },
+      {"type": "drive-backup",
+       "data": {"device": "drive-virtio-disk0", "target": "/path/to/full_backup.img", "sync": "top"} }
+    ]
+  }
+}
+范例如下
+
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "transaction", "arguments": { "actions": [ { "type": "block-dirty-bitmap-add", "data": {"node":"drive-virtio-disk0", "name":"bitmap0"}}, { "type": "drive-backup", "data": {"device": "drive-virtio-disk0", "target": "/opt/backup/top.img","sync":"top" }} ]} }'
+
+# ...运行一段时间...
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute" : "drive-backup" , "arguments" : { "device" : "drive-virtio-disk0" , "sync" : "incremental" , "bitmap" : "bitmap0" , "target" : "/opt/backup/inc.0.qcow2" } }'
+
+# ...又运行一段时间...
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute" : "drive-backup" , "arguments" : { "device" : "drive-virtio-disk0" , "sync" : "incremental" , "bitmap" : "bitmap0" , "target" : "/opt/backup/inc.1.qcow2" } }'
+如果之前已经创建过bitmap，此刻想忽略bitmap，重新做一次完整备份，并重置bitmap（用于接下来的增量备份），则可以
+
+{ "execute": "transaction",
+  "arguments": {
+    "actions": [
+      {"type": "block-dirty-bitmap-clear",
+       "data": {"node": "drive-virtio-disk0", "name": "bitmap0"} },
+      {"type": "drive-backup",
+       "data": {"device": "drive-virtio-disk0", "target": "/path/to/new_full_backup.img", "sync": "top"} }
+    ]
+  }
+}
+13. 远程备份
+经测试，qemu仅支持一种远程备份方法：iscsi，方法就是在drive-backup的target里使用iscsi的格式即可：
+
+# target内容
+格式 iscsi://[<username>[%<password>]@]<host>[:<port>]/<target-iqn-name>/<lun>
+例子 iscsi://192.168.1.100:3260/iqn.2019-01.com.iaas/0
+
+virsh qemu-monitor-command DOMAIN '{ "execute" : "drive-backup" , "arguments" : { "device" : "drive-virtio-disk0" , "sync" : "incremental" , "bitmap" : "bitmap0" , "target" : "iscsi://192.168.1.100:3260/iqn.2019-01.com.iaas/0" } }'
+14. 备份任务管理
+如果迟迟没有收到事件，要如何查看备份任务是否还在进行中呢，或者想中断备份，又如何操作呢
+
+查看备份任务
+
+# 通过qmp查看
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "query-block-jobs" }'
+
+# 通过hmp查看
+virsh qemu-monitor-command DOMAIN --hmp 'info block-jobs'
+输出
+
+# 通过qmp查看，有任务时候的输出
+{
+  "return": [
+    {
+      "auto-finalize": true,
+      "io-status": "ok",
+      "device": "drive-virtio-disk1",
+      "auto-dismiss": true,
+      "busy": true,
+      "len": 1073741824,
+      "offset": 2424832,
+      "status": "running",
+      "paused": false,
+      "speed": 0,
+      "ready": false,
+      "type": "backup"
+    },
+    {
+      "auto-finalize": true,
+      "io-status": "ok",
+      "device": "drive-virtio-disk0",
+      "auto-dismiss": true,
+      "busy": true,
+      "len": 21474836480,
+      "offset": 163840000,
+      "status": "running",
+      "paused": false,
+      "speed": 0,
+      "ready": false,
+      "type": "backup"
+    }
+  ],
+  "id": "libvirt-45"
+}
+
+# 通过qmp查看，无任务时候的输出
+{
+  "return": [
+
+  ],
+  "id": "libvirt-360"
+}
+
+# 通过hmp查看，有任务时候的输出
+Type backup, device drive-virtio-disk1: Completed 20185088 of 1073741824 bytes, speed limit 0 bytes/s
+Type backup, device drive-virtio-disk0: Completed 181403648 of 21474836480 bytes, speed limit 0 bytes/s
+
+# 通过hmp查看，无任务时候的输出
+No active jobs
+停止备份任务
+
+virsh qemu-monitor-command DOMAIN --pretty '{ "execute": "block-job-cancel", "arguments": { "device": "drive-virtio-disk1", "force": true } }'
+如果不带force参数，则默认为false，在false情况下当任务处于暂停状态时无法停止
+
+输出
+
+{"return":{},"id":"libvirt-5880"}
+同时收到事件
+
+2019-02-03 13:02:58.535+0000: event JOB_STATUS_CHANGE for domain DOMAIN: {"status":"aborting","id":"drive-virtio-disk1"}
+2019-02-03 13:02:58.541+0000: event BLOCK_JOB_CANCELLED for domain DOMAIN: {"device":"drive-virtio-disk1","len":2147483648,"offset":29687808,"speed":0,"type":"backup"}
+2019-02-03 13:02:58.541+0000: event JOB_STATUS_CHANGE for domain DOMAIN: {"status":"concluded","id":"drive-virtio-disk1"}
+2019-02-03 13:02:58.541+0000: event JOB_STATUS_CHANGE for domain DOMAIN: {"status":"null","id":"drive-virtio-disk1"}
+▷ 根据官方文档，JOB_STATUS_CHANGE事件是从qemu-3.0才出现的，但在qemu-2.12时就能看到了（2.9看不到），尚未深究
+▷ 因此，若qemu是2.12，当收到JOB_STATUS_CHANGE事件，应当不予理会，后面不再赘述
+
+暂停备份任务
+
+virsh qemu-monitor-command DOMAIN '{ "execute" : "block-job-pause", "arguments" : { "device" : "drive-virtio-disk0" } }'
+输出
+
+{"return":{},"id":"libvirt-5882"}
+同时收到事件（假设之前任务处于running状态）
+
+2019-01-22 02:42:55.503+0000: event JOB_STATUS_CHANGE for domain DOMAIN: {"status":"paused","id":"drive-virtio-disk0"}
+恢复已暂停的备份任务
+
+virsh qemu-monitor-command DOMAIN '{ "execute" : "block-job-resume", "arguments" : { "device" : "drive-virtio-disk0" } }'
+输出
+
+{"return":{},"id":"libvirt-5999"}
+同时收到事件
+
+2019-01-22 02:46:04.928+0000: event JOB_STATUS_CHANGE for domain DOMAIN: {"status":"running","id":"drive-virtio-disk0"}
+15. 事件查看
+监听事件
+
+在备份操作前，可以另外再开一个shell窗口，实时监听qmp的事件
+
+# 始终监听事件
+virsh qemu-monitor-event DOMAIN --timestamp --loop
+
+# 当收到特定事件后停止监听
+virsh qemu-monitor-event DOMAIN --event BLOCK_JOB_COMPLETED
+开始备份时会收到的事件
+
+2019-01-29 03:14:54.516+0000: event JOB_STATUS_CHANGE for domain DOMAIN: {"status":"created","id":"drive-virtio-disk0"}
+2019-01-29 03:14:54.516+0000: event JOB_STATUS_CHANGE for domain DOMAIN: {"status":"running","id":"drive-virtio-disk0"}
+备份完成时收到的事件
+
+2019-01-24 06:25:21.629+0000: event JOB_STATUS_CHANGE for domain DOMAIN: {"status":"created","id":"drive-virtio-disk0"}
+2019-01-24 06:25:21.629+0000: event JOB_STATUS_CHANGE for domain DOMAIN: {"status":"running","id":"drive-virtio-disk0"}
+2019-01-24 06:26:34.935+0000: event JOB_STATUS_CHANGE for domain DOMAIN: {"status":"waiting","id":"drive-virtio-disk0"}
+2019-01-24 06:26:34.935+0000: event JOB_STATUS_CHANGE for domain DOMAIN: {"status":"pending","id":"drive-virtio-disk0"}
+2019-01-24 06:26:34.935+0000: event BLOCK_JOB_COMPLETED for domain DOMAIN: {"device":"drive-virtio-disk0","len":21474836480,"offset":21474836480,"speed":0,"type":"backup"}
+2019-01-24 06:26:34.935+0000: event JOB_STATUS_CHANGE for domain DOMAIN: {"status":"concluded","id":"drive-virtio-disk0"}
+2019-01-24 06:26:34.935+0000: event JOB_STATUS_CHANGE for domain DOMAIN: {"status":"null","id":"drive-virtio-disk0"}
+▷ 重点看上面的BLOCK_JOB_COMPLETED事件，该事件从qemu-1.1就已经出现的
+▷ 遗憾的是，事件内容并不详细，无法识别出是full、top、none还是bitmap，也看不到备份产生的文件路径
+
+16. 备份链、数据恢复、合并
+其实，本章节应该放到本文最后面，但本文篇幅较多，放后面担心容易被遗漏
+
+备份链
+
+经过增量备份后，会形成一条备份链：full.qcow2 <- inc.0.qcow2 <- inc.1.qcow2 <- inc.2.qcow2
+
+数据恢复
+
+当需要使用备份进行数据恢复时候，就可以使用该链上的文件进行恢复，比如要恢复到inc.1.qcow2的末尾，那么有2种方案：保持链、合并
+
+▷ 保持链
+
+1️⃣ 将full.qcow2、inc.0.qcow2、inc.1.qcow2拷贝到目标宿主机上
+2️⃣ 通过qemu-img rebase -u来确保链的顺序
+3️⃣ 虚拟机xml里指定inc.1.qcow2
+
+▷ 合并
+
+1️⃣ 将full.qcow2、inc.0.qcow2、inc.1.qcow2合并成为一个qcow2
+
+# 将inc.1.qcow2合并到inc.0.qcow2
+qemu-img commit inc.1.qcow2
+
+# 将inc.0.qcow2合并到full.qcow2
+qemu-img commit inc.0.qcow2
+2️⃣ 然后xml里指定这个合并好的qcow2（即full.qcow2）就行
+
+17. 参考文档
+# 作者最初的想法
+http://lists.gnu.org/archive/html/qemu-devel/2013-11/msg03035.html
+
+# 官方文章
+qcow2介绍：https://chromium.googlesource.com/external/qemu/+/v2.12.0/docs/interop/qcow2.txt
+bitmap介绍：https://chromium.googlesource.com/external/qemu/+/v2.12.0/docs/interop/bitmaps.rst
+qmp使用：https://qemu.weilnetz.de/doc/qemu-qmp-ref.html
+qemu使用：https://qemu.weilnetz.de/doc/qemu-doc.html
+
+# 关于qemu磁盘备份的文章
+2011年：https://www.linux-kvm.org/images/b/b6/2011-forum-LiveBackup.pdf
+2015年：http://events17.linuxfoundation.org/sites/events/files/slides/kvm2015_rh_light_44_vfinal.pdf
+2016年：https://www.linux-kvm.org/images/6/65/02x08B-Max_Reitz-Backups_with_QEMU.pdf
+2017年：https://www.linux-kvm.org/images/e/e6/Kvm-forum2017_backup.pdf
+2018年：https://events.linuxfoundation.org/wp-content/uploads/2017/12/2018-libvirt-incremental-backup-expanded._Eric-Blake.pdf
+2018年：https://archive.fosdem.org/2018/schedule/event/vai_qemu_live_dev_operations/attachments/slides/2391/export/events/attachments/vai_qemu_live_dev_operations/slides/2391/Live_Block_Device_Operations_in_QEMU_FOSDEM2018.pdf
+
+# iscsi
+http://atodorov.org/blog/2015/04/07/how-to-configure-iscsi-target-on-red-hat-enterprise-linux-7/
+http://linux-iscsi.org/wiki/Targetcli
+QEMU磁盘的在线备份，是“打包”方案的一种具体实现，可实现基于时间点的备份，同时支持本地与远程2种备份方式，并可指定备份文件进行恢复

@@ -24,6 +24,9 @@ nmcli con up br0
 #Live migrate a libvirt/kvm virtual machine with both local and shared storage
 virsh migrate ${VM} qemu+ssh://user@server:port/system --copy-storage-all --persistent --undefinesource 
 
+
+virsh qemu-monitor-command ${VM} --pretty '{ "execute": "query-commands"}'
+
 #DISK=$(virsh dumpxml domname | xmllint --xpath 'string(/domain/devices/disk[1]/alias/@name)' -)
 
 DOMNAME=
