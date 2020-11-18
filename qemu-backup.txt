@@ -1,3 +1,21 @@
+$ virsh domblklist vm1
+    vda        /export/images/base.img 
+
+# Create an external disk snapshot:
+$ virsh snapshot-create-as --domain vm1 guest-state1 \
+    --diskspec vda,file=/export/images/overlay1.qcow2 \
+    --disk-only --atomic 
+# Now, the disk image chain is:
+# [base.img] <-- [overlay1.qcow2] (live QEMU)
+cp /export/images/base.img /backup/backup.raw
+
+$ virsh domblklist vm1
+# backup is finished, perform active blockcommit by live merging contents of 'overlay1.qcow2' into 'base.img':
+$ virsh blockcommit vm1 vda --active --verbose --pivot
+$ virsh domblklist vm1
+# finish
+
+
 virsh qemu-monitor-command b916ba47-89fb-4890-8e59-0a6bedf4cb12 --pretty '{ "execute": "query-commands" }' 
 4. 常用命令一览
 获取磁盘设备名
