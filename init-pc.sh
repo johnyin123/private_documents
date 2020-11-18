@@ -395,6 +395,12 @@ sync
 mount -o remount,ro /overlay/lower
 EOF
 
+cat <<EOF
+net.ipv4.ip_local_port_range = 1024 65531
+net.ipv4.tcp_fin_timeout = 10
+# (65531-1024)/10 = 6450 sockets per second.
+EOF
+
 cat << EOF > /etc/sysctl.conf
 net.core.rmem_max = 134217728 
 net.core.wmem_max = 134217728 
