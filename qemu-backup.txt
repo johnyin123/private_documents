@@ -4,10 +4,14 @@ $ virsh domblklist vm1
 # Create an external disk snapshot:
 $ virsh snapshot-create-as --domain vm1 guest-state1 \
     --diskspec vda,file=/export/images/overlay1.qcow2 \
-    --disk-only --atomic 
+    --disk-only --atomic
+# virsh snapshot-create-as --domain vm1 --name backup \
+#   --no-metadata --atomic --disk-only \
+#   --diskspec vda,snapshot=external
 # Now, the disk image chain is:
 # [base.img] <-- [overlay1.qcow2] (live QEMU)
 cp /export/images/base.img /backup/backup.raw
+# rsync -av --inplace -e ssh $t $RSYNCDEST --progress
 
 $ virsh domblklist vm1
 # backup is finished, perform active blockcommit by live merging contents of 'overlay1.qcow2' into 'base.img':
