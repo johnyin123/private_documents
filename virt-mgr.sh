@@ -7,11 +7,10 @@ if [ "${DEBUG:=false}" = "true" ]; then
 fi
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-KVM_USER=${KVM_USER:-root}
-KVM_HOST=${KVM_HOST:-127.0.0.1}
-KVM_PORT=${KVM_PORT:-60022}
-
-VIRSH_OPT="-q -c qemu+ssh://${KVM_USER}@${KVM_HOST}:${KVM_PORT}/system"
+# KVM_USER=${KVM_USER:-root}
+# KVM_HOST=${KVM_HOST:-127.0.0.1}
+# KVM_PORT=${KVM_PORT:-60022}
+VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
 VIRSH="virsh ${VIRSH_OPT}"
 
 declare -A APP_ERRORS=(
@@ -166,6 +165,8 @@ create() {
 
 attach() {
     declare -A vm
+    # set default disk format
+    array_set vm "FORMAT" "raw"
     local opt_short="ql:dVhu:n:p:s:f:"
     local opt_long="quite,log:,dryrun,version,help,uuid:,net:,pool:,size:,format:"
     readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
