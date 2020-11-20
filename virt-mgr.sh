@@ -66,8 +66,11 @@ create_vol() {
     local fmt="$(array_get ${arr} 'FORMAT')"
     local name="$(array_get ${arr} 'LAST_DISK')-$(array_get ${arr} 'UUID').${fmt}"
     local size="$(array_get ${arr} 'SIZE')"
+    local backing_vol="$(array_get ${arr} 'BACKING_VOL')"
+    local backing_fmt="$(array_get ${arr} 'BACKING_FMT')"
     info_msg "create vol ${name} on ${pool} size ${size}\n"
-    try ${VIRSH} vol-create-as --pool ${pool} --name ${name} --capacity 1M --format ${fmt} || return 1
+    try ${VIRSH} vol-create-as --pool ${pool} --name ${name} --capacity 1M --format ${fmt} \
+        ${backing_vol:+--backing-vol ${backing_vol} --backing-vol-format ${backing_fmt} } || return 1
     try ${VIRSH} vol-resize --pool ${pool} --vol ${name} --capacity ${size} || return 3
     local val=$(${VIRSH} vol-path --pool "${pool}" "${name}") || return 2
     array_set ${arr} "STORE_PATH" "${val}"
@@ -103,6 +106,8 @@ set_vm_defaults() {
         [DOMAIN_TPL]="default"
         [LAST_DISK]="runtime set"
         [STORE_PATH]="runtime set"
+        [BACKING_VOL]=""
+        [BACKING_FMT]=""
     )
     declare -n _org=${1}
     for name in $(array_print_label VM_DEFAULTS)
@@ -130,8 +135,8 @@ failed_destroy_vm() {
 
 create() {
     declare -A vm
-    local opt_short="ql:dVhu:c:m:n:p:f:s:D:N:"
-    local opt_long="quite,log:,dryrun,version,help,uuid:,cpus:,mem:,net:,pool:,format:,size:,desc:,name:"
+    local opt_short="ql:dVhu:c:m:n:p:f:s:b:F:D:N:"
+    local opt_long="quite,log:,dryrun,version,help,uuid:,cpus:,mem:,net:,pool:,format:,size:,back:,bfmt:,desc:,name:"
     readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
@@ -143,6 +148,8 @@ create() {
             -p | --pool)   array_set vm "POOL" "${2}"; shift 2;;
             -f | --format) array_set vm "FORMAT" "${2}"; shift 2;;
             -s | --size)   array_set vm "SIZE" "${2}"; shift 2;;
+            -b | --back)   array_set vm "BACKING_VOL" "${2}"; shift 2;;
+            -F | --bfmt)   array_set vm "BACKING_FMT" "${2}"; shift 2;;
             -D | --desc)   array_set vm "DESC" "${2}"; shift 2;;
             -N | --name)   array_set vm "NAME" "${2}"; shift 2;;
             -q | --quiet) QUIET=1; shift 1;;
@@ -167,8 +174,10 @@ attach() {
     declare -A vm
     # set default disk format
     array_set vm "FORMAT" "raw"
-    local opt_short="ql:dVhu:n:p:s:f:"
-    local opt_long="quite,log:,dryrun,version,help,uuid:,net:,pool:,size:,format:"
+    array_set vm "BACKING_VOL" ""
+    array_set vm "BACKING_FMT" ""
+    local opt_short="ql:dVhu:n:p:s:b:F:f:"
+    local opt_long="quite,log:,dryrun,version,help,uuid:,net:,pool:,size:,format:,back:,bfmt:"
     readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
@@ -178,6 +187,8 @@ attach() {
             -p | --pool)   array_set vm "POOL" "${2}"; shift 2;;
             -s | --size)   array_set vm "SIZE" "${2}"; shift 2;;
             -f | --format) array_set vm "FORMAT" "${2}"; shift 2;;
+            -b | --back)   array_set vm "BACKING_VOL" "${2}"; shift 2;;
+            -F | --bfmt)   array_set vm "BACKING_FMT" "${2}"; shift 2;;
             -q | --quiet) QUIET=1; shift 1;;
             -l | --log) set_loglevel ${2}; shift 2;;
             -d | --dryrun) DRYRUN=1; shift 1;;
@@ -238,6 +249,8 @@ cmd:create <arg> [domain_template in cfg]
     -p|--pool <pool>                         kvm storage pool
     -f|--format <fmt>                        disk format,default raw
     -s|--size <size>                         <size> GB/MB/KB
+    -b|--back <backing vol>                  disk backing vol file
+    -F|--bfmt <backing format>               disk backing vol format
     -D|--desc <desc>                         desc
     -N|--name <title>                        name(title)
 
@@ -248,6 +261,8 @@ cmd:attach <arg>
     -p|--pool <pool>           *             kvm storage pool
     -s|--size <size>           *             <size> GB/MB/KB
     -f|--format <fmt>                        disk format,default raw
+    -b|--back <backing vol>                  disk backing vol file
+    -F|--bfmt <backing format>               disk backing vol format
 EOF
 exit 1
 } >&2

@@ -5,6 +5,10 @@ $ virsh domblklist vm1
 $ virsh snapshot-create-as --domain vm1 guest-state1 \
     --diskspec vda,file=/export/images/overlay1.qcow2 \
     --disk-only --atomic
+
+# qemu-img create -f qcow2 -b /vm/vda-571028ab-1444-41ac-b95a-e45cebc468dd.raw -F raw new.disk
+
+
 # virsh snapshot-create-as --domain vm1 --name backup \
 #   --no-metadata --atomic --disk-only \
 #   --diskspec vda,snapshot=external
