@@ -123,7 +123,7 @@ failed_destroy_vm() {
     local err=$2
     local uuid="$(array_get __ref 'UUID')"
     local pool="$(array_get __ref 'POOL')"
-    local fmt="$(array_get ${arr} 'FORMAT')"
+    local fmt="$(array_get __ref 'FORMAT')"
     local disk="$(array_get __ref 'LAST_DISK')-${uuid}.${fmt}"
     local tpl="$(array_get __ref 'DOMAIN_TPL')"
     error_msg "create ${uuid} with tpl(${tpl}): $(array_get APP_ERRORS $err $err)\n$(print_kv vm)\n"
