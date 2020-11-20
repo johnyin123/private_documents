@@ -35,7 +35,12 @@ snapshot() {
     #local diskimg=$(awk '$2 ~ /disk/ && $1 !~ /file/ {print $4}' <<< $val)
     # add --no-metadata  virsh snapshot-list can not list the snapshot
     [[ -z ${diskspec+x} ]] || try ${VIRSH} snapshot-create-as --domain ${uuid} \
-        --name backup-$(date +"%Y%m%d%H%M%S") --atomic --disk-only ${2:+--no-metadatar} ${diskspec}
+        --name backup-$(date +"%Y%m%d%H%M%S") --atomic --disk-only --no-metadata ${diskspec}
+    #
+    # virsh snapshot-create-as --domain xp-571028ab-1444-41ac-b95a-e45cebc468dd --name state1
+    # virsh snapshot-list xp-571028ab-1444-41ac-b95a-e45cebc468dd
+    # virsh snapshot-revert xp-571028ab-1444-41ac-b95a-e45cebc468dd state1
+
 }
 usage() {
 cat <<EOF
