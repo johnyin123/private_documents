@@ -1,5 +1,8 @@
 1.tar cv --exclude={"/dev/*","/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"}  / | gzip > /mnt/system.backup/10.4.38.2-20201123.tar.gz
-2.grub2-install --target=i386-pc --boot-directory=/boot --modules="xfs part_msdos" ${DISK}
+2.mount -o bind /sys ${ROOTFS}/sys; mount -o bind /proc ${ROOTFS}/proc; mount -o bind /dev ${ROOTFS}/dev;
+  chroot ${ROOTFS}
+  grub2-install --target=i386-pc --boot-directory=/boot --modules="xfs part_msdos" ${DISK}
+  grub2-mkconfig -o /boot/grub2/grub.cfg
 3.modify fstab
 
 $ virsh domblklist vm1
