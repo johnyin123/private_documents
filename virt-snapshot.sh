@@ -20,6 +20,13 @@ declare -A APP_ERRORS=(
     [1]="domain not exist or not running"
 )
 
+snapshot_commit() {
+    # blockcommit live merging snapshot into base image
+    local uuid=${1}
+    local target=${2}  # vda/vdb/vdc
+    try ${VIRSH} blockcommit ${uuid} ${target} --active --verbose --pivot
+}
+
 snapshot() {
     local uuid=${1}
     local val=$(try ${VIRSH} list --uuid --all --state-running)
@@ -35,7 +42,7 @@ snapshot() {
     #local diskimg=$(awk '$2 ~ /disk/ && $1 !~ /file/ {print $4}' <<< $val)
     # add --no-metadata  virsh snapshot-list can not list the snapshot
     [[ -z ${diskspec+x} ]] || try ${VIRSH} snapshot-create-as --domain ${uuid} \
-        --name backup-$(date +"%Y%m%d%H%M%S") --atomic --disk-only --no-metadata ${diskspec}
+        --name snap-$(date +"%Y%m%d%H%M%S") --atomic --disk-only --no-metadata ${diskspec}
     #
     # virsh snapshot-create-as --domain xp-571028ab-1444-41ac-b95a-e45cebc468dd --name state1
     # virsh snapshot-list xp-571028ab-1444-41ac-b95a-e45cebc468dd
