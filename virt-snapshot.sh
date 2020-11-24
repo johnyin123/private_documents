@@ -23,8 +23,15 @@ declare -A APP_ERRORS=(
 snapshot_commit() {
     # blockcommit live merging snapshot into base image
     local uuid=${1}
-    local target=${2}  # vda/vdb/vdc
-    try ${VIRSH} blockcommit ${uuid} ${target} --active --verbose --pivot
+    local target="$(try ${VIRSH} domblklist ${uuid} --details | awk '$2 ~ /disk/ {print $3}')"
+    for t in $targets; do
+        try ${VIRSH} blockcommit ${uuid} ${target} --active --verbose --pivot
+        if [ $? -ne 0 ]; then
+            error_msg "Could not merge changes for disk $t of ${uuid}. VM may be in invalid state."
+            return 1
+        fi
+    done
+    return 0
 }
 
 snapshot() {
