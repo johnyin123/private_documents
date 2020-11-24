@@ -7,12 +7,11 @@ if [ "${DEBUG:=false}" = "true" ]; then
 fi
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-KVM_USER=${KVM_USER:-root}
-KVM_HOST=${KVM_HOST:-10.32.166.33}
-KVM_PORT=${KVM_PORT:-60022}
-VIRSH_OPT=${VIRSH_OPT:-"-c qemu+ssh://${KVM_USER}@${KVM_HOST}:${KVM_PORT}/system"}
-
-VIRSH="virsh -q ${VIRSH_OPT}"
+# KVM_USER=${KVM_USER:-root}
+# KVM_HOST=${KVM_HOST:-127.0.0.1}
+# KVM_PORT=${KVM_PORT:-60022}
+VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
+VIRSH="virsh ${VIRSH_OPT}"
 
 usage() {
 cat <<EOF
@@ -24,6 +23,8 @@ ${SCRIPTNAME}
     -l|--log <int>                           log level
     -d|--dryrun                              dryrun
     -h|--help                                display this help and exit
+    Example:
+       KVM_HOST=127.0.0.1 ${SCRIPTNAME} -p default -v disk.raw -t tpl/linux.raw
 EOF
 exit 1
 }
