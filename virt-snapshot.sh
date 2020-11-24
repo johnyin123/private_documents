@@ -20,12 +20,13 @@ declare -A APP_ERRORS=(
     [1]="domain not exist or not running"
 )
 
-snapshot_commit() {
+block_commit() {
     # blockcommit live merging snapshot into base image
     local uuid=${1}
     local target="$(try ${VIRSH} domblklist ${uuid} --details | awk '$2 ~ /disk/ {print $3}')"
     for t in $targets; do
-        try ${VIRSH} blockcommit ${uuid} ${target} --active --verbose --pivot
+        try ${VIRSH} blockcommit ${uuid} ${target} --active --verbose --pivot --shallow
+        # use backing file of top as base
         if [ $? -ne 0 ]; then
             error_msg "Could not merge changes for disk $t of ${uuid}. VM may be in invalid state."
             return 1
@@ -34,8 +35,9 @@ snapshot_commit() {
     return 0
 }
 
-snapshot() {
+snapshot_disk() {
     local uuid=${1}
+    local metadata=${2:-} #default has metadata
     local val=$(try ${VIRSH} list --uuid --all --state-running)
     [[ -z $val ]] && return 1
     val="$(try ${VIRSH} domblklist ${uuid} --details)"
@@ -49,13 +51,20 @@ snapshot() {
     #local diskimg=$(awk '$2 ~ /disk/ && $1 !~ /file/ {print $4}' <<< $val)
     # add --no-metadata  virsh snapshot-list can not list the snapshot
     [[ -z ${diskspec+x} ]] || try ${VIRSH} snapshot-create-as --domain ${uuid} \
-        --name snap-$(date +"%Y%m%d%H%M%S") --atomic --disk-only --no-metadata ${diskspec}
-    #
+        --name snap${metadata:+-nometadata}-$(date +"%Y%m%d%H%M%S") --atomic --disk-only ${metadata:+--no-metadata} ${diskspec}
+}
+
+snapshot() {
     # virsh snapshot-create-as --domain xp-571028ab-1444-41ac-b95a-e45cebc468dd --name state1
     # virsh snapshot-list xp-571028ab-1444-41ac-b95a-e45cebc468dd
-    # virsh snapshot-revert xp-571028ab-1444-41ac-b95a-e45cebc468dd state1
-
+    return 0
 }
+
+snapshot_revert() {
+    # virsh snapshot-revert xp-571028ab-1444-41ac-b95a-e45cebc468dd state1
+    return 0
+}
+
 usage() {
 cat <<EOF
 ${SCRIPTNAME} <arg>
@@ -90,7 +99,7 @@ main() {
         esac
     done
     [[ -z ${uuid+x} ]] && usage
-    snapshot "${uuid}"
+    snapshot_disk "${uuid}" false || { err=$?; error_msg "snapshot ${uuid}: $(array_get APP_ERRORS $err $err)\n"; return $err; }
     return 0
 }
 main "$@"
