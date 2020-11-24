@@ -253,6 +253,10 @@ cmd:create <arg> [domain_template in cfg]
     -F|--bfmt <backing format>               disk backing vol format
     -D|--desc <desc>                         desc
     -N|--name <title>                        name(title)
+    Example:
+       CFG_INI=samp.conf KVM_HOST=10.0.0.1 ${SCRIPTNAME} create -u $(cat /proc/sys/kernel/random/uuid) -c 1 -m $((2*1024*1024)) -n br-ext -p default -f qcow2 -s 50GB -D "vm test" -N "vm1" -b /storage/linux.tpl -F raw bios
+       ${SCRIPTNAME} create --uuid $(cat /proc/sys/kernel/random/uuid) --cpus 1 --mem $((2*1024*1024)) --net br-ext --pool default --format raw --size 4GB --desc "vm1" --name vm1 bios
+
 
 cmd:attach <arg>
         attach device(net/disk/etc)
