@@ -59,6 +59,14 @@ mount_tpl() {
     StartSector=${sst:0:${#sst}-1}
     OffSet=$(($StartSector*$SectorSize))
     try mount -o loop,offset=${OffSet} ${tpl_img} ${mnt_point}
+    #  server:
+    #  # qemu-nbd  -v -x tpl -f raw linux.tpl
+    #
+    #  client:
+    #  # modprobe nbd max_part=8
+    #  # nbd-client -N tpl 10.32.147.16
+    #  # mount /dev/nbd0p1
+    #  # nbd-client -d /dev/nbd0
 }
 
 main() {

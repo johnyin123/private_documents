@@ -60,6 +60,14 @@ Add below codes after the line "<currentMemory ..."
 # mount /dev/nbd0p1 -o uid=1000,gid=1000 ${mnt_point}
 # qemu-nbd -d /dev/nbd0
 
+server:
+# qemu-nbd  -v -x tpl -f raw linux.tpl
+
+client:
+# modprobe nbd max_part=63
+# nbd-client -N tpl 10.32.147.16
+# mount /dev/nbd0p1
+# nbd-client -d /dev/nbd0
 
 # qemu-img resize -f raw demo.disk +1G
 # fdisk demo.disk #add new partitions
