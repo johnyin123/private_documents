@@ -3,6 +3,7 @@
 # dmesg | grep -i capacity
 # xfs_growfs -d /mnt/ceph-disk1
 # cat pxe.raw | pv | ssh -p60022 root@10.32.151.250 'rbd import - libvirt-pool/pxe.raw'
+############################################################
 $ceph health detail
 HEALTH_ERR 1 scrub errors; Possible data damage: 1 pg inconsistent
 OSD_SCRUB_ERRORS 1 scrub errors
@@ -10,7 +11,21 @@ PG_DAMAGED Possible data damage: 1 pg inconsistent
     pg 1.5 is active+clean+inconsistent, acting [10,29,20]
 $ceph pg repair 1.5
 wait heath ok.
-
+############################################################
+#To reboot the Ceph Storage nodes
+1.Disable Ceph Storage cluster rebalancing temporarily:
+    $ ceph osd set noout
+    $ ceph osd set nobackfill
+    $ ceph osd set norecover
+    $ reboot
+2.Log into the node and check the cluster status:
+    $ ceph -s
+3.When complete, enable cluster rebalancing again:
+    $ ceph osd unset noout
+    $ ceph osd unset nobackfill
+    $ ceph osd unset norecover
+    $ ceph -s
+############################################################
 
 #更换故障硬盘过程
 ceph-volume lvm list
@@ -42,6 +57,7 @@ cat /sys/block/sdb/device/state
 
 watch -n 1 "ceph -s"
 #wait HEALTH OK!
+############################################################
 
 其他：
 ceph osd set noout
