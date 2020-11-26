@@ -74,8 +74,8 @@ create_vol() {
     try ${VIRSH} vol-resize --pool ${pool} --vol ${name} --capacity ${size} || return 3
     local val=$(${VIRSH} vol-path --pool "${pool}" "${name}") || return 2
     array_set ${arr} "STORE_PATH" "${val}"
-    ${backing_vol:+$(info_msg "use: virsh blockpull --domain $(array_get ${arr} 'UUID') --path ${val}, unlink the backing-vol on the fly!")}
-    ${backing_vol:+$(info_msg "use: virsh blockcommit --domain $(array_get ${arr} 'UUID') $(array_get ${arr} 'LAST_DISK') --active --verbose --pivot, commit changes to backing-vol on the fly!")}
+    ${backing_vol:+$(info_msg "use: virsh blockpull --domain $(array_get ${arr} 'UUID') --path ${val}, unlink the backing-vol on the fly!\n")}
+    ${backing_vol:+$(info_msg "use: virsh blockcommit --domain $(array_get ${arr} 'UUID') $(array_get ${arr} 'LAST_DISK') --active --verbose --pivot, commit changes to backing-vol on the fly!\n")}
     return 0
 }
 
