@@ -319,7 +319,7 @@ channel=3
 # 1 = enabled
 #proxy_arp=1
 EOF_WIFI
-cat << 'EOF_WIFI' > /etc/johnyin/udhcp.conf
+cat << 'EOF_WIFI' > /etc/johnyin/udhcpd.conf
 start           192.168.168.100
 end             192.168.168.150
 interface       br-ext
