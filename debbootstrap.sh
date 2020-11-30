@@ -954,6 +954,11 @@ copy_exec /sbin/fsck.ext4
 copy_exec /sbin/logsave
 EOF
 
+cat > ${DIRNAME}/etc/overlayroot.conf<<EOF
+OVERLAY=${OVERLAY_LABEL}
+SKIP_OVERLAY=0
+EOF
+
 cat > ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
 #!/bin/sh
 
