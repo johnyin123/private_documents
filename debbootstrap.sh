@@ -337,7 +337,7 @@ option  lease   864000
 option  subnet  255.255.255.0
 # Currently supported options, for more info, see options.c
 opt     dns     114.114.114.114
-opt     router  192.168.168.2
+opt     router  192.168.168.1
 #opt subnet
 #opt timezone
 #opt timesvr
@@ -925,16 +925,21 @@ echo "end install you kernel&patchs"
 
 echo "start install overlay_rootfs"
 cat <<EOF
-kernel parm "skipoverlay"
-overlayfs lable "${OVERLAY_LABEL}"
+kernel parm "skipoverlay" / lowerfs /etc/overlayroot.conf
+OVERLAY= overlayfs lable default "OVERLAY"
+SKIP_OVERLAY=
+
 /overlay/reformatoverlay exist will format it!
+overlayfs: upper fs needs to support d_type.
+overlayfs: upper fs does not support tmpfile.
+# mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init DEVICE
 EOF
 
 if ! grep -q "^overlay" ${DIRNAME}/buildroot/etc/initramfs-tools/modules; then
     echo overlay >> ${DIRNAME}/buildroot/etc/initramfs-tools/modules
 fi
 
-cat > ${DIRNAME}/buildroot/usr/share/initramfs-tools/hooks/overlay <<EOF
+cat > /usr/share/initramfs-tools/hooks/overlay <<'EOF'
 #!/bin/sh
 
 . /usr/share/initramfs-tools/scripts/functions
@@ -947,9 +952,6 @@ copy_exec /sbin/fsck.ext2
 copy_exec /sbin/fsck.ext3
 copy_exec /sbin/fsck.ext4
 copy_exec /sbin/logsave
-# mkdir -p \$DESTDIR/lib/firmware/
-# cp -p /lib/firmware/regulatory.db \$DESTDIR/lib/firmware/
-# cp -p /lib/firmware/regulatory.db.p7s \$DESTDIR/lib/firmware/
 EOF
 
 cat > ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
@@ -970,7 +972,12 @@ esac
 
 . /scripts/functions
 
-if grep -q -E '(^|\s)skipoverlay(\s|$)' /proc/cmdline; then
+[ -f ${rootmnt}/etc/overlayroot.conf ] && . ${rootmnt}/etc/overlayroot.conf
+OVERLAY_LABEL=${OVERLAY:-OVERLAY}
+SKIP_OVERLAY=${SKIP_OVERLAY:-0}
+grep -q -E '(^|\s)skipoverlay(\s|$)' /proc/cmdline && SKIP_OVERLAY=1
+
+if [[ ${SKIP_OVERLAY-} =~ ^1|yes|true$ ]]; then
     log_begin_msg "Skipping overlay, found 'skipoverlay' in cmdline"
     log_end_msg
     exit 0
@@ -981,17 +988,15 @@ log_end_msg
 
 mkdir -p /overlay
 
-EOF
-cat >> ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<EOF
-# if we have a filesystem label of OVERLAY
+# if we have a filesystem label of ${OVERLAY_LABEL}
 # use that as the overlay, otherwise use tmpfs.
-OLDEV=\`blkid -L ${OVERLAY_LABEL}\`
-if [ -z "\${OLDEV}" ]; then
+OLDEV=$(blkid -L ${OVERLAY_LABEL})
+if [ -z "${OLDEV}" ]; then
     mount -t tmpfs tmpfs /overlay
 else
-    _checkfs_once \${OLDEV} /overlay ext4 >> /log.txt 2>&1 ||  \
-    mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init \${OLDEV}
-    if ! mount \${OLDEV} /overlay; then
+    _checkfs_once ${OLDEV} /overlay ext4 || \
+    mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
+    if ! mount -t ext4 ${OLDEV} /overlay; then
         mount -t tmpfs tmpfs /overlay
     fi
 fi
@@ -1000,13 +1005,11 @@ fi
 # next reboot will give you a fresh /overlay
 if [ -f /overlay/reformatoverlay ]; then
     umount /overlay
-    mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init \${OLDEV}
-    if ! mount \${OLDEV} /overlay; then
+    mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
+    if ! mount -t ext4 ${OLDEV} /overlay; then
         mount -t tmpfs tmpfs /overlay
     fi
 fi
-EOF
-cat >> ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
 
 mkdir -p /overlay/upper
 mkdir -p /overlay/work
@@ -1026,6 +1029,7 @@ awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab >> ${rootmnt}/etc/fs
 
 exit 0
 EOF
+
 chmod 755 ${DIRNAME}/buildroot/usr/share/initramfs-tools/hooks/overlay
 chmod 755 ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay
 
