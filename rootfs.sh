@@ -12,6 +12,7 @@ NET_NETMASK=255.255.255.0
 NET_GATEWAY=
 TOOLS="busybox"
 
+#eval $(blkid -o udev ${DEVICE} | grep -i -e "ID_FS_LABEL" -e "ID_FS_TYPE")
 
 ROOTDEV=UUID=`blkid -s UUID -o value ${MOUNTDEV}`
 FSTYPE=`blkid -s TYPE -o value ${MOUNTDEV}`
