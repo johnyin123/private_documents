@@ -123,6 +123,22 @@ SUBSYSTEM=="tty", ACTION=="add", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7
 SUBSYSTEM=="tty", ACTION=="remove", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'rm /overlay/reformatoverlay; echo none > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
 EOF
 
+# auto mount usb storage (readonly)
+cat > /etc/udev/rules.d/98-usbmount.rules << EOF
+# udevadm control --reload-rules
+SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="add", RUN+="/bin/systemctl start usb-mount@%k.service"
+SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/bin/systemctl stop usb-mount@%k.servic"
+EOF
+cat > /usr/lib/systemd/system/usb-mount@.service <<EOF
+[Unit]
+Description=auto mount block %i
+
+[Service]
+Type=oneshot
+ExecStart=-/bin/sh -c '/bin/udisksctl mount -o ro -b /dev/%i'
+EOF
+# end auto mount usb storage (readonly)
+
 cat > /etc/apt/sources.list << EOF
 deb http://mirrors.163.com/debian ${DEBIAN_VERSION} main non-free contrib
 deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-proposed-updates main non-free contrib
