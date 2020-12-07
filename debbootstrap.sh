@@ -24,7 +24,7 @@ ZRAMSWAP="udisks2"
 #ZRAMSWAP="zram-tools"
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,${ZRAMSWAP},dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,ifenslave,vlan"
-PKG="${PKG},parprouted,dhcp-helper nbd-client iftop pigz nfs-common"
+PKG="${PKG},parprouted,dhcp-helper nbd-client iftop pigz nfs-common nfs-kernel-server"
 
 if [ "$UID" -ne "0" ]
 then 
@@ -111,6 +111,8 @@ cat > /etc/fstab << EOF
 LABEL=${ROOT_LABEL}    /    ${FS_TYPE}    defaults,errors=remount-ro,noatime    0    1
 LABEL=${BOOT_LABEL}    /boot    vfat    ro    0    2
 tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
+# overlayfs can not nfs exports, so use tmpfs
+tmpfs /media  tmpfs   defaults,size=1M  0  0
 EOF
 
 echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
@@ -127,15 +129,16 @@ EOF
 cat > /etc/udev/rules.d/98-usbmount.rules << EOF
 # udevadm control --reload-rules
 SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="add", RUN+="/bin/systemctl start usb-mount@%k.service"
-SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/bin/systemctl stop usb-mount@%k.servic"
+SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/bin/systemctl stop usb-mount@%k.service"
 EOF
 cat > /usr/lib/systemd/system/usb-mount@.service <<EOF
 [Unit]
 Description=auto mount block %i
 
 [Service]
-Type=oneshot
-ExecStart=-/bin/sh -c '/bin/udisksctl mount -o ro -b /dev/%i'
+RemainAfterExit=true
+ExecStart=/bin/sh -c '/bin/udisksctl mount -o ro -b /dev/%i || exit 0'
+ExecStop=/bin/sh -c '/bin/udisksctl unmount -f -b /dev/%i || exit 0'
 EOF
 # end auto mount usb storage (readonly)
 
@@ -146,6 +149,13 @@ deb http://mirrors.163.com/debian-security ${DEBIAN_VERSION}/updates main contri
 deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-backports main contrib non-free
 EOF
 # enable ttyAML0 login
+
+# export nfs
+# no_root_squash(enable root access nfs)
+cat > /etc/exports << EOF
+/media/       192.168.168.0/24(ro,sync,no_subtree_check,crossmnt,nohide,no_root_squash,no_all_squash,fsid=0)
+EOF
+
 echo "ttyAML0" >> /etc/securetty
 
 #Installing packages without docs
