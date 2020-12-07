@@ -111,8 +111,10 @@ cat > /etc/fstab << EOF
 LABEL=${ROOT_LABEL}    /    ${FS_TYPE}    defaults,errors=remount-ro,noatime    0    1
 LABEL=${BOOT_LABEL}    /boot    vfat    ro    0    2
 tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
+tmpfs /run      tmpfs   rw,nosuid,noexec,relatime,size=8192k,mode=755  0  0
+tmpfs /tmp      tmpfs   rw,nosuid,noexec,relatime,mode=777  0  0
 # overlayfs can not nfs exports, so use tmpfs
-tmpfs /media  tmpfs   defaults,size=1M  0  0
+tmpfs /media    tmpfs   defaults,size=1M  0  0
 EOF
 
 echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
