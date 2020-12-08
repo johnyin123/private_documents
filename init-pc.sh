@@ -70,6 +70,8 @@ echo -e 'LANG="zh_CN.UTF-8"\nLANGUAGE="zh_CN:zh"\nLC_ALL="zh_CN.UTF-8"\n' > /etc
 #echo "Asia/Shanghai" > /etc/timezone
 ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 dpkg-reconfigure -f noninteractive tzdata
+# confing console fonts
+# dpkg-reconfigure console-setup
 
 apt -y install openssh-server
 dpkg-reconfigure -f noninteractive openssh-server
