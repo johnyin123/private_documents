@@ -76,7 +76,7 @@ get_vmip() {
             | grep -v -e "00:00:00:00:00:00" -e "127.0.0.1" \
             | grep -o "..:..:..:..:..:...*$" \
             | while read mac protocol address; do
-                    echo -n "$address|$mac,"  # | sed "s/ *//g"
+                    echo -n "$address,"  # | sed "s/ *//g"
               done
         echo ""
     done
@@ -89,13 +89,13 @@ main() {
     [[ -r "${CFG_INI}" ]] || {
         cat >"${CFG_INI}" <<-EOF
 #ip  sshport
-10.4.38.2 60022
-10.4.38.3 60022
+10.4.38.2 60022 BJ
+10.4.38.3 60022 DL
 EOF
         exit_msg "Created ${CFG_INI} using defaults.  Please review it/configure before running again.\n"
     }
-    echo "HOSTIP,serial,prod|prd_time|cpus|mems,dom,os,desc,cpu,mem,maxcpu,maxmem,storage|block_count,(address|mac,)*"
-    cat "${CFG_INI}" | grep -v -e "^\ *#.*$" -e  "^\ *$" | while read ip port; do
+    echo "tag,HOSTIP,serial,prod|prd_time|cpus|mems,dom,os,desc,cpu,mem,maxcpu,maxmem,storage|block_count,(address,)*"
+    cat "${CFG_INI}" | grep -v -e "^\ *#.*$" -e  "^\ *$" | while read ip port tag; do
         try rm -rf ${ip}.bak
         try mv ${ip} ${ip}.bak
         try mkdir -p ${ip}
@@ -120,7 +120,7 @@ EOF
         #     echo "${ip}  net   $it"
         # done
         get_vmip root "${ip}" ${port} | while read -r line; do
-            echo "${ip},${serial},${manufacturer} ${prod}|${dt}|${cpus}C|${mems},$line"
+            echo "${tag},${ip},${serial},${manufacturer} ${prod}|${dt}|${cpus}C|${mems},$line"
         done 
 
         speedup_ssh_end root "${ip}" ${port}
