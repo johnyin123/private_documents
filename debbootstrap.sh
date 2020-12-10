@@ -748,17 +748,19 @@ ldconfig
 
 
   1 bluetooth
+    hciconfig hci1 name "test"
   2 ServerSide:
   3   #make us discoverable
   4   hciconfig hci1 piscan
   5   hciconfig hci1 -a
   6   #listen
   7   rfcomm -r -i hci1 listen /dev/rfcomm0 4
+  8   or: rfcomm watch hci1 1 getty rfcomm0 115200 vt100 -a root
   9 ClientSide:
  10   hcitool info 43:45:C0:00:1F:AC
  11   rfcomm -r connect /dev/rfcomm0 43:45:C0:00:1F:AC 4
  12   echo "Hello" > /dev/rfcomm0 # test it!
-
+      minicom -D /dev/rfcomm0
 EOF
 
 cat >> /etc/sysctl.conf << EOF
