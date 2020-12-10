@@ -745,6 +745,20 @@ See http://bluetooth-pentest.narod.ru/software/bluetooth_class_of_device-service
 apt install --no-install-recommends lightdm xserver-xorg-core xinit xserver-xorg-video-fbdev xfce4 xfce4-terminal xserver-xorg-input-all
 apt install --no-install-recommends mpv smplayer qt4-qtconfig libqt4-opengl
 ldconfig
+
+
+  1 bluetooth
+  2 ServerSide:
+  3   #make us discoverable
+  4   hciconfig hci1 piscan
+  5   hciconfig hci1 -a
+  6   #listen
+  7   rfcomm -r -i hci1 listen /dev/rfcomm0 4
+  9 ClientSide:
+ 10   hcitool info 43:45:C0:00:1F:AC
+ 11   rfcomm -r connect /dev/rfcomm0 43:45:C0:00:1F:AC 4
+ 12   echo "Hello" > /dev/rfcomm0 # test it!
+
 EOF
 
 cat >> /etc/sysctl.conf << EOF
