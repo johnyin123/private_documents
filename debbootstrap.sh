@@ -761,6 +761,34 @@ ldconfig
  11   rfcomm -r connect /dev/rfcomm0 43:45:C0:00:1F:AC 4
  12   echo "Hello" > /dev/rfcomm0 # test it!
       minicom -D /dev/rfcomm0
+
+
+# Edit /lib/systemd/system/bluetooth.service to enable BT services
+sed -i: 's|^Exec.*toothd$| \
+ExecStart=/usr/lib/bluetooth/bluetoothd -C \
+ExecStartPost=/usr/bin/sdptool add SP \
+ExecStartPost=/bin/hciconfig hci0 piscan \
+|g' /lib/systemd/system/bluetooth.service
+
+# create /etc/systemd/system/rfcomm.service to enable 
+# the Bluetooth serial port from systemctl
+cat >/etc/systemd/system/rfcomm.service <<EOF1
+[Unit]
+Description=RFCOMM service
+After=bluetooth.service
+Requires=bluetooth.service
+
+[Service]
+ExecStart=/usr/bin/rfcomm watch hci0 1 getty rfcomm0 115200 vt100 -a pi
+
+[Install]
+WantedBy=multi-user.target
+EOF1
+
+# enable the new rfcomm service
+sudo systemctl enable rfcomm
+# start the rfcomm service
+sudo systemctl restart rfcomm
 EOF
 
 cat >> /etc/sysctl.conf << EOF
