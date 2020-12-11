@@ -102,7 +102,7 @@ usage() {
 ${SCRIPTNAME} <options> cmd
     default cmd "/sbin/sshd -D -e"
         -n|--ns     * namespace
-        -i|--ip       ipve cidr <default 192.168.168.169/24>
+        -i|--ip       ipv4 cidr <default 192.168.168.169/24>
         -g|--gw       gateway   <default 192.168.168.1>
         -b|--bridge * bridge
         -r|--rootfs   orig rootfs <default />
@@ -131,7 +131,7 @@ main() {
     while true; do
         case "$1" in
             -n | --ns)      shift; ns_name=${1}; shift;;
-            -i | --ip)      shift; ipvs_cidr=${1}; shift;;
+            -i | --ip)      shift; ipv4_cidr=${1}; shift;;
             -g | --gw)      shift; gateway=${1}; shift;;
             -b | --bridge)  shift; out_br=${1}; shift;;
             -r | --rootfs)  shift; lower=${1}; shift;;
