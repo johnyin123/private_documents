@@ -760,7 +760,8 @@ ldconfig
  10   hcitool info 43:45:C0:00:1F:AC
  11   rfcomm -r connect /dev/rfcomm0 43:45:C0:00:1F:AC 4
  12   echo "Hello" > /dev/rfcomm0 # test it!
-      minicom -D /dev/rfcomm0
+      minicom -D /dev/rfcomm0 
+      screen /dev/rfcomm0 115200
 
 
 # Edit /lib/systemd/system/bluetooth.service to enable BT services
