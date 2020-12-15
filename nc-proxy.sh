@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# socat TCP-LISTEN:8899,bind=10.0.1.1,reuseaddr,fork TCP:127.0.0.1:60021
+
 if [ $# != 3 ]
 then
     echo "usage: $0 <src-port> <dst-host> <dst-port>"
