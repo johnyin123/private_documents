@@ -7,13 +7,14 @@ if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-
-REPO=http://mirrors.163.com/debian
-PASSWORD=password
 export DIRNAME="$(pwd)"
 #DIRNAME="$(dirname "$(realpath "$0")")"
 #DIRNAME="$(dirname "$(readlink -e "$0")")"
 export SCRIPTNAME=${0##*/}
+
+INST_ARCH=${INST_ARCH:-arm64}
+REPO=http://mirrors.163.com/debian
+PASSWORD=password
 export DEBIAN_VERSION=${DEBIAN_VERSION:-buster}
 export FS_TYPE=${FS_TYPE:-ext4}
 BOOT_LABEL="EMMCBOOT"
@@ -24,7 +25,9 @@ ZRAMSWAP="udisks2"
 #ZRAMSWAP="zram-tools"
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,${ZRAMSWAP},dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,ifenslave,vlan"
-PKG="${PKG},parprouted,dhcp-helper nbd-client iftop pigz nfs-common nfs-kernel-server"
+PKG="${PKG},parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server"
+
+[[ ${INST_ARCH} = "amd64" ]] && PKG="${PKG},linux-image-amd64"
 
 if [ "$UID" -ne "0" ]
 then 
@@ -37,38 +40,6 @@ cleanup() {
     echo "EXIT!!!"
 }
 
-final_disk() {
-    umount ${DIRNAME}/buildroot/
-    losetup -d ${DIRNAME}/DISK.IMG
-}
-
-prepair_disk() {
-    # DISK="/dev/sdb"
-    # PART_BOOT="/dev/sdb1"
-    # PART_ROOT="/dev/sdb2"
-
-    truncate -s 8G ${DIRNAME}/DISK.IMG
-    DISK=$(losetup -fP --show ${DIRNAME}/DISK.IMG)
-    PART_BOOT="${DISK}p1"
-    PART_ROOT="${DISK}p2"
-    PART_OVERLAY="${DISK}p3"
-
-    parted -s "${DISK}" "mklabel msdos"
-    parted -s "${DISK}" "mkpart primary fat32 1M 128M"
-    parted -s "${DISK}" "mkpart primary ${FS_TYPE} 128M 1G"
-    parted -s "${DISK}" "mkpart primary ext4 1G 100%"
-
-    echo -n "Formatting BOOT partition..."
-    mkfs.vfat -n "${BOOT_LABEL}" ${PART_BOOT}
-    echo "done."
-
-    echo "Formatting ROOT partition..."
-    mkfs -t ${FS_TYPE} -q -L "${ROOT_LABEL}" ${PART_ROOT}
-    echo "done."
-    mount ${PART_ROOT} ${DIRNAME}/buildroot/
-
-    mke2fs -FL "${OVERLAY_LABEL}" -t ext4 -E lazy_itable_init,lazy_journal_init ${PART_OVERLAY}
-}
 mkdir -p ${DIRNAME}/buildroot
 
 if [ -d "${DIRNAME}/deb-cache" ]; then
@@ -81,9 +52,9 @@ trap cleanup EXIT
 trap cleanup TERM
 trap cleanup INT
 
-debootstrap --verbose --no-check-gpg --arch arm64 --variant=minbase --include=${PKG} --foreign ${DEBIAN_VERSION} ${DIRNAME}/buildroot ${REPO} 
+debootstrap --verbose --no-check-gpg --arch ${INST_ARCH} --variant=minbase --include=${PKG} --foreign ${DEBIAN_VERSION} ${DIRNAME}/buildroot ${REPO}
 
-cp /usr/bin/qemu-aarch64-static ${DIRNAME}/buildroot/usr/bin/
+[[ ${INST_ARCH} = "arm64" ]] && cp /usr/bin/qemu-aarch64-static ${DIRNAME}/buildroot/usr/bin/
 
 unset PROMPT_COMMAND
 LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /debootstrap/debootstrap --second-stage
@@ -150,15 +121,15 @@ deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-proposed-updates main non-fr
 deb http://mirrors.163.com/debian-security ${DEBIAN_VERSION}/updates main contrib non-free
 deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-backports main contrib non-free
 EOF
+
 # enable ttyAML0 login
+echo "ttyAML0" >> /etc/securetty
 
 # export nfs
 # no_root_squash(enable root access nfs)
 cat > /etc/exports << EOF
 /media/       192.168.168.0/24(ro,sync,no_subtree_check,crossmnt,nohide,no_root_squash,no_all_squash,fsid=0)
 EOF
-
-echo "ttyAML0" >> /etc/securetty
 
 #Installing packages without docs
 cat >  /etc/dpkg/dpkg.cfg.d/01_nodoc <<EOF
@@ -1012,7 +983,7 @@ if ! grep -q "^overlay" ${DIRNAME}/buildroot/etc/initramfs-tools/modules; then
     echo overlay >> ${DIRNAME}/buildroot/etc/initramfs-tools/modules
 fi
 
-cat > /usr/share/initramfs-tools/hooks/overlay <<'EOF'
+cat > ${DIRNAME}/buildroot/usr/share/initramfs-tools/hooks/overlay <<'EOF'
 #!/bin/sh
 
 . /usr/share/initramfs-tools/scripts/functions
@@ -1027,7 +998,7 @@ copy_exec /sbin/fsck.ext4
 copy_exec /sbin/logsave
 EOF
 
-cat > ${DIRNAME}/etc/overlayroot.conf<<EOF
+cat > ${DIRNAME}/buildroot/etc/overlayroot.conf<<EOF
 OVERLAY=${OVERLAY_LABEL}
 SKIP_OVERLAY=0
 EOF
@@ -1128,6 +1099,39 @@ find "${DIRNAME}/buildroot/usr/share/doc" -empty -print0 | xargs -0 rm -rf || tr
 # Remove all man pages and info files
 rm -rf "${DIRNAME}/buildroot/usr/share/man" "${DIRNAME}/buildroot/usr/share/groff" "${DIRNAME}/buildroot/usr/share/info" "${DIRNAME}/buildroot/usr/share/lintian" "${DIRNAME}/buildroot/usr/share/linda" "${DIRNAME}/buildroot/var/cache/man"
 exit 0
+
+final_disk() {
+    umount ${DIRNAME}/buildroot/
+    losetup -d ${DIRNAME}/DISK.IMG
+}
+
+prepair_disk() {
+    # DISK="/dev/sdb"
+    # PART_BOOT="/dev/sdb1"
+    # PART_ROOT="/dev/sdb2"
+
+    truncate -s 8G ${DIRNAME}/DISK.IMG
+    DISK=$(losetup -fP --show ${DIRNAME}/DISK.IMG)
+    PART_BOOT="${DISK}p1"
+    PART_ROOT="${DISK}p2"
+    PART_OVERLAY="${DISK}p3"
+
+    parted -s "${DISK}" "mklabel msdos"
+    parted -s "${DISK}" "mkpart primary fat32 1M 128M"
+    parted -s "${DISK}" "mkpart primary ${FS_TYPE} 128M 1G"
+    parted -s "${DISK}" "mkpart primary ext4 1G 100%"
+
+    echo -n "Formatting BOOT partition..."
+    mkfs.vfat -n "${BOOT_LABEL}" ${PART_BOOT}
+    echo "done."
+
+    echo "Formatting ROOT partition..."
+    mkfs -t ${FS_TYPE} -q -L "${ROOT_LABEL}" ${PART_ROOT}
+    echo "done."
+    mount ${PART_ROOT} ${DIRNAME}/buildroot/
+
+    mke2fs -FL "${OVERLAY_LABEL}" -t ext4 -E lazy_itable_init,lazy_journal_init ${PART_OVERLAY}
+}
 
 gen_uEnv_ini() {
     cat > /boot/uEnv.ini <<EOF
