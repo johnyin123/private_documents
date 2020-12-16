@@ -1,5 +1,7 @@
 #!/bin/bash
 set -u -e -o pipefail
+# mirror eth0 stream to xx.xx.xx.xx (mirror/stream copy)
+# iptables -t mangle -A PREROUTING -i eth0 -j TEE --gateway xx.xx.xx.xx
 # iptables -A INPUT -m string --algo bm --string "test" -j DROP
 
 NAT_SRV=10.32.151.250
