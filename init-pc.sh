@@ -582,9 +582,13 @@ mkdir -p ${rootmnt}/overlay
 mount -n -o rbind /overlay ${rootmnt}/overlay
 
 # fix up fstab
-cp ${rootmnt}/etc/fstab ${rootmnt}/etc/fstab.orig
-awk '$2 != "/" {print $0}' ${rootmnt}/etc/fstab.orig > ${rootmnt}/etc/fstab
-awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab >> ${rootmnt}/etc/fstab
+# cp ${rootmnt}/etc/fstab ${rootmnt}/etc/fstab.orig
+# awk '$2 != "/" {print $0}' ${rootmnt}/etc/fstab.orig > ${rootmnt}/etc/fstab
+# awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab >> ${rootmnt}/etc/fstab
+FSTAB=$(awk '$2 != "/" {print $0}' ${rootmnt}/etc/fstab && awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab)
+cat>${rootmnt}/etc/fstab<<EO_FSTAB
+$FSTAB
+EO_FSTAB
 
 exit 0
 EOF
