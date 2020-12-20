@@ -433,7 +433,7 @@ run_scripts() {
 ##################################################
 require () {
     for cmd in $@ ; do
-        command -v "${1}" &> /dev/null || exit_msg "require $cmd\n"
+        command -v "${cmd}" &> /dev/null || exit_msg "require $cmd\n"
         #[ "$(command -v "$cmd")" ] || exit_msg "require $cmd\n"
     done
 }
