@@ -165,6 +165,7 @@ main() {
         echo "cpu_share = $cpu_share"
         echo "mem_limit = $mem_limit"
     } | vinfo_msg
+    require cgcreate cgset cgexec unshare chroot ip
     try mkdir -p "${overlay}"
     netns_exists "${ns_name}" && exit_msg "${ns_name} exist!!\n"
     setup_ns "${ns_name}" "${ipv4_cidr}" "${out_br}" "${gateway}" || { cleanup_ns "${ns_name}"||true; exit_msg "${ns_name} setup error!\n"; }
