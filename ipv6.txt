@@ -1,0 +1,26 @@
+6to4
+The first tunneling method we’ll look at is 6to4. Using this method we set up a tunnel to an endpoint with the IPv4 special address 192.88.99.1. This address is a “anycast” address (as opposed to a unicast address), which means it is assigned to several hosts on the Internet. Thus, 6to4 does not require setting up an explicit tunnel, but relies on the routing infrastructure to forward packets to the nearest host with this address, which functions as a 6to4 relay. 6to4 requires a public IPv4 address to work.
+Here’s how to set up your host to use 6to4:
+
+First we define a network interface for the tunnel.
+
+% sudo /sbin/ip tunnel add tun0 mode sit remote any local 198.51.100.23
+% sudo /sbin/ip link set dev tun0 up
+The address 198.51.100.23 is just an example; replace it with your public IPv4 address. The name of the interface is tun0. You can choose another name for this, as long as it is not in use already.
+
+Next we need to assign an IPv6 address for the tunnel interface. This address must start with 2002:YOUR-V4-ADDR::, where YOUR-V4-ADDR is your IPv4 address in hexadecimal format. Use the following command to calculate a suitable IPv6 address for your tunnel interface (remember to use your own address instead of 198.51.100.23):
+
+% ipv4="198.51.100.23"; printf "2002:%02x%02x:%02x%02x::1" `echo $ipv4 | tr "." " "`
+The result (2002:c633:6417::1) is added to the tunnel interface:
+
+% sudo /sbin/ip -6 addr add 2002:c633:6417::1/16 dev tun0 metric 1
+Finally, we need to add a route for IPv6. This command uses an IPv4-compatible IPv6 address to specify the special anycast address:
+
+% sudo /sbin/ip -6 route add 2000::/3 via ::192.88.99.1 dev tun0 metric 1
+Test by pinging an IPv6 host:
+
+% ping6 -n google.com
+PING google.com(2a00:1450:4001:c01::8a) 56 data bytes
+64 bytes from 2a00:1450:4001:c01::8a: icmp_seq=1 ttl=49 time=45.2 ms
+64 bytes from 2a00:1450:4001:c01::8a: icmp_seq=2 ttl=49 time=45.7 ms
+
