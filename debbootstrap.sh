@@ -1045,7 +1045,7 @@ if [ -z "${OLDEV}" ]; then
 else
     _checkfs_once ${OLDEV} /overlay ext4 || \
     mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
-    if ! mount -t ext4 ${OLDEV} /overlay; then
+    if ! mount -t ext4 -onoatime ${OLDEV} /overlay; then
         mount -t tmpfs tmpfs /overlay
     fi
 fi
@@ -1055,7 +1055,7 @@ fi
 if [ -f /overlay/reformatoverlay ]; then
     umount /overlay
     mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
-    if ! mount -t ext4 ${OLDEV} /overlay; then
+    if ! mount -t ext4 -onoatime ${OLDEV} /overlay; then
         mount -t tmpfs tmpfs /overlay
     fi
 fi
