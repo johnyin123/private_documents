@@ -1066,7 +1066,7 @@ mkdir -p /overlay/lower
 
 # make the readonly root available
 mount -n -o move ${rootmnt} /overlay/lower
-mount -t overlay overlay -olowerdir=/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work ${rootmnt}
+mount -t overlay overlay -onoatime,lowerdir=/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work ${rootmnt}
 
 mkdir -p ${rootmnt}/overlay
 mount -n -o rbind /overlay ${rootmnt}/overlay
