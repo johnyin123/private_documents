@@ -1076,9 +1076,9 @@ mount -n -o rbind /overlay ${rootmnt}/overlay
 # awk '$2 != "/" {print $0}' ${rootmnt}/etc/fstab.orig > ${rootmnt}/etc/fstab
 # awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab >> ${rootmnt}/etc/fstab
 # Already there?
-# if [ -e ${rootmnt}/etc/fstab ] && grep -qE '^overlay[[:space:]]+/etc[[:space:]]' ${rootmnt}/etc/fstab; then
-# 	exit 0 # Do nothing
-# fi
+if [ -e ${rootmnt}/etc/fstab ] && grep -qE ''^overlay[[:space:]]+/[[:space:]]+overlay'' ${rootmnt}/etc/fstab; then
+    exit 0 # Do nothing
+fi
 
 FSTAB=$(awk '$2 != "/" {print $0}' ${rootmnt}/etc/fstab && awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab)
 cat>${rootmnt}/etc/fstab<<EO_FSTAB
