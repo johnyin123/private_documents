@@ -3,6 +3,21 @@ set -o nounset -o pipefail
 DIRNAME="$(dirname "$(readlink -e "$0")")"
 SCRIPTNAME=${0##*/}
 
+#  64-bit SoCs (GXBB / S905 or newer)
+#  Download recent cross-toolchain Linaro Latest aarch64-linux-gnu binaries
+#
+#  To compile the 64-bit mainline kernel:
+#
+#  # make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig
+#  # make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- Image dtbs
+#  # mkimage -A arm64 -O linux -T kernel -C none -a 0x1080000 -e 0x1080000 -n linux-next -d arch/arm64/boot/Image ../uImage
+#  To boot the 64-bit kernel using the shipped U-Boot:
+#
+#  # fatload mmc 0:1 0x01080000 uImage
+#  # fatload mmc 0:1 $dtb_mem_addr meson-gxbb-vega-s95-telos.dtb
+#  # setenv bootargs "console=ttyAML0,115200"
+#  # bootm 0x1080000 - $dtb_mem_addr
+
 if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
