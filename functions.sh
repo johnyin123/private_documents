@@ -783,13 +783,7 @@ ip2int() {
 }
 
 int2ip() {
-    local ui32=$1; shift
-    local ip n
-    for n in 1 2 3 4; do
-        ip=$((ui32 & 0xff))${ip:+.}$ip
-        ui32=$((ui32 >> 8))
-    done
-    safe_echo $ip
+    safe_echo "$((${1}>>24&255)).$((${1}>>16&255)).$((${1}>>8&255)).$((${1}&255))"
 }
 
 netmask() {
