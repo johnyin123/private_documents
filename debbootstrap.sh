@@ -1,6 +1,8 @@
 #!/bin/bash
 #fw_setenv bootcmd "run update"; reboot
 #之后PC端的刷机程序就会检测到设备进入刷机模式，按软件的刷机提示刷机即可。
+
+# USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
 set -o errexit -o nounset -o pipefail
 
 if [ "${DEBUG:=false}" = "true" ]; then
@@ -1007,7 +1009,7 @@ SKIP_OVERLAY=0
 EOF
 
 cat > ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
-#!/bin/sh
+#!/bin/sh -e
 
 PREREQ=""
 prereqs()
