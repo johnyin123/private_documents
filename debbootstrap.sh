@@ -950,7 +950,10 @@ PART_OVERLAY="${DISK}p3"
 
 echo "Format the partitions."
 mkfs.vfat -n ${BOOT_LABEL} ${PART_BOOT}
-mkfs -t ext4 -m 0 -b4096 -l /tmp/reservedblks -q -L ${ROOT_LABEL} ${PART_ROOT}
+# add num_backup_sb=0 avoid warning below
+# Warning: the backup superblock/group descriptors at block 131072 contain
+#	bad blocks.
+mkfs -t ext4 -m 0 -b4096 -l /tmp/reservedblks  -E num_backup_sb=0  -q -L ${ROOT_LABEL} ${PART_ROOT}
 mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${PART_OVERLAY}
 
 echo "Flush changes (in case they were cached.)."
@@ -1026,7 +1029,7 @@ OVERLAY_LABEL=${OVERLAY:-OVERLAY}
 SKIP_OVERLAY=${SKIP_OVERLAY:-0}
 grep -q -E '(^|\s)skipoverlay(\s|$)' /proc/cmdline && SKIP_OVERLAY=1
 
-if [[ ${SKIP_OVERLAY-} =~ ^1|yes|true$ ]]; then
+if [ "${SKIP_OVERLAY-}" = 1 ]; then
     log_begin_msg "Skipping overlay, found 'skipoverlay' in cmdline"
     log_end_msg
     exit 0
