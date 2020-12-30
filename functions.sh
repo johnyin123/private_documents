@@ -80,6 +80,13 @@ is_user_root() {
     [ "$(id -u)" -eq 0 ]
 }
 
+# auto_su() {
+#     self="$1"
+#     # self="$(readlink -f "${BASH_SOURCE[0]}")"
+#     # ARGS=( "$@" )
+#     is_user_root() || exec sudo -p "Must be run as root. Please enter the password for %u to continue: " -- "$BASH" -- "$self" "${ARGS[@]}"
+# }
+
 min() { [ "$1" -le "$2" ] && echo "$1" || echo "$2"; }
 max() { [ "$1" -ge "$2" ] && echo "$1" || echo "$2"; }
 #cursor op
