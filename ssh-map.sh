@@ -1,8 +1,19 @@
 #!/bin/bash
 set -u -e -o pipefail
-# mirror eth0 stream to xx.xx.xx.xx (mirror/stream copy)
+# # mirror eth0 stream to xx.xx.xx.xx (mirror/stream copy)
 # iptables -t mangle -A PREROUTING -i eth0 -j TEE --gateway xx.xx.xx.xx
 # iptables -A INPUT -m string --algo bm --string "test" -j DROP
+# # deny port
+# iptables -A FORWARD -p tcp -m multiport --dports 158,209,218,220,465,587,993,995,1109,60177,60179 -j REJECT --reject-with tcp-reset
+# iptables -A FORWARD -p udp -m multiport --dports 158,209,218,220,465,587,993,995,1109,60177,60179 -j DROP
+# # allow port
+# iptables -A INPUT -p tcp -m tcp --dport ${start_port}:${stop_port} -j ACCEPT
+# iptables -A INPUT -p udp -m udp --dport ${start_port}:${stop_port} -j ACCEPT
+# # speed limit
+# iptables -I FORWARD -d 10.0.0.$i/32 -j DROP
+# iptables -I FORWARD -d 10.0.0.$i/32 -m limit --limit 100/sec -j ACCEPT
+# # deny keyworks
+# iptables -A FORWARD -m string --string "youtube.com" --algo bm -j DROP
 
 NAT_SRV=10.32.151.250
 NAT_PORT=60100

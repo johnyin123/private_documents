@@ -51,33 +51,33 @@ uboot=$1; shift || (echo "ERROR: u-boot.bin must be specified"; exit 1;)
 
 test_lowercase()
 {
-	# Grab input.
-	declare input=${1:-$(</dev/stdin)};
+    # Grab input.
+    declare input=${1:-$(</dev/stdin)};
 
-	# Use that input to do anything.
-	echo "$input" | tr '[:upper:]' '[:lower:]'
+    # Use that input to do anything.
+    echo "$input" | tr '[:upper:]' '[:lower:]'
 }
 
 echo "$(test_lowercase 'HELLO xx')"
 echo "HELLO there, FRIEND!" | test_lowercase
 
 cat <<EOF | sudo tee /dev/null
-	'append STDOUT and STDERR'            : ' &>> <CURSOR>',
-	'close input from file descr n'       : ' <CURSOR><&- ',
-	'close output from file descr n'      : ' <CURSOR>>&- ',
-	'close STDIN'                         : ' <&- <CURSOR>',
-	'close STDOUT'                        : ' >&- <CURSOR>',
-	'direct file descr n to file, append' : ' <CURSOR>>> ',
-	'direct file descr n to file'         : ' <CURSOR>> ',
-	'direct STDERR to STDOUT'             : ' 2>&1<CURSOR>',
-	'direct STDOUT and STDERR to file'    : ' &> <CURSOR>',
-	'direct STDOUT to file, append'       : ' >> <CURSOR>',
-	'direct STDOUT to file'               : ' > <CURSOR>',
-	'direct STDOUT to STDERR'             : ' >&2<CURSOR>',
-	'duplicate STDIN from file descr n'   : ' <CURSOR><& ',
-	'duplicate STDOUT to file descr n'    : ' <CURSOR>>& ',
-	'take file descr n from file'         : ' <CURSOR>< ',
-	'take STDIN from file'                : ' < <CURSOR>',
+    'append STDOUT and STDERR'            : ' &>> <CURSOR>',
+    'close input from file descr n'       : ' <CURSOR><&- ',
+    'close output from file descr n'      : ' <CURSOR>>&- ',
+    'close STDIN'                         : ' <&- <CURSOR>',
+    'close STDOUT'                        : ' >&- <CURSOR>',
+    'direct file descr n to file, append' : ' <CURSOR>>> ',
+    'direct file descr n to file'         : ' <CURSOR>> ',
+    'direct STDERR to STDOUT'             : ' 2>&1<CURSOR>',
+    'direct STDOUT and STDERR to file'    : ' &> <CURSOR>',
+    'direct STDOUT to file, append'       : ' >> <CURSOR>',
+    'direct STDOUT to file'               : ' > <CURSOR>',
+    'direct STDOUT to STDERR'             : ' >&2<CURSOR>',
+    'duplicate STDIN from file descr n'   : ' <CURSOR><& ',
+    'duplicate STDOUT to file descr n'    : ' <CURSOR>>& ',
+    'take file descr n from file'         : ' <CURSOR>< ',
+    'take STDIN from file'                : ' < <CURSOR>',
 EOF
 # cat >>'EOF'
 # {
@@ -210,30 +210,30 @@ fill_predefine() {
 
 # unit tests for is_ipv4
 test_is_ipv4(){
-	tests=" \
-		4.2.2.2          0 \
-		192.168.1.1      0 \
-		0.0.0.0          0 \
-		255.255.255.255  0 \
-		192.168.0.1      0 \
-		a.b.c.d          1 \
-		255.255.255.256  1 \
-		192.168.0        1 \
-		1234.123.123.123 1 \
-	"
-	set $tests
-	status=0
-	while [ "$#" != 0 ]; do
-		printf "."
-		is_ipv4 $1
-		res=$?
-		if [ "$res" != "$2" ]; then
-			echo "is_ipv4 $1: expected $2, got $res"
-			status=1
-		fi
-		shift 2
-	done
-	return $status
+    tests=" \
+        4.2.2.2          0 \
+        192.168.1.1      0 \
+        0.0.0.0          0 \
+        255.255.255.255  0 \
+        192.168.0.1      0 \
+        a.b.c.d          1 \
+        255.255.255.256  1 \
+        192.168.0        1 \
+        1234.123.123.123 1 \
+    "
+    set $tests
+    status=0
+    while [ "$#" != 0 ]; do
+        printf "."
+        is_ipv4 $1
+        res=$?
+        if [ "$res" != "$2" ]; then
+            echo "is_ipv4 $1: expected $2, got $res"
+            status=1
+        fi
+        shift 2
+    done
+    return $status
 }
 
 main() {
