@@ -29,7 +29,8 @@ gen_wireguard() {
     i=0
     while [ "$#" != 0 ]; do
         is_ipv4 $1 || { echo "$i => $1: not ipv4"; exit 1; }
-        eval "IP${i}=$1/$2"
+        eval "IP${i}=$1"
+        eval "MASK${i}=$2"
         is_ipv4 $3 && eval "PUB_IP${i}=$3"
         eval "PUB_PORT${i}=$4"
         shift 4
@@ -53,13 +54,13 @@ ${PUB_PORT0:+ListenPort = ${PUB_PORT0}}
 [Peer]
 PublicKey = ${PUB_KEY1}
 # ${PUB_IP1:+Endpoint = ${PUB_IP1}:${PUB_PORT1}}
-AllowedIPs = ${IP1}
+AllowedIPs = ${IP1}/32
 PersistentKeepalive = 5
 
 [Peer]
 PublicKey = ${PUB_KEY2}
 # ${PUB_IP2:+Endpoint = ${PUB_IP2}:${PUB_PORT2}}
-AllowedIPs = ${IP2}
+AllowedIPs = ${IP2}/32
 PersistentKeepalive = 5
 EOF
 
@@ -71,7 +72,7 @@ ${PUB_PORT1:+ListenPort = ${PUB_PORT1}}
 
 [Peer]
 PublicKey = ${PUB_KEY0}
-AllowedIPs = ${IP0}
+AllowedIPs = ${IP0}/${MASK0}
 # ${PUB_IP0:+Endpoint = ${PUB_IP0}:${PUB_PORT0}}
 PersistentKeepalive = 5
 EOF
@@ -84,7 +85,7 @@ ${PUB_PORT2:+ListenPort = ${PUB_PORT2}}
 
 [Peer]
 PublicKey = ${PUB_KEY0}
-AllowedIPs = ${IP0}
+AllowedIPs = ${IP0}/${MASK0}
 # ${PUB_IP0:+Endpoint = ${PUB_IP0}:${PUB_PORT0}}
 PersistentKeepalive = 5
 EOF
