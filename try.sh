@@ -208,6 +208,34 @@ fill_predefine() {
 #     RESET="\033[m"
 # fi
 
+# unit tests for is_ipv4
+test_is_ipv4(){
+	tests=" \
+		4.2.2.2          0 \
+		192.168.1.1      0 \
+		0.0.0.0          0 \
+		255.255.255.255  0 \
+		192.168.0.1      0 \
+		a.b.c.d          1 \
+		255.255.255.256  1 \
+		192.168.0        1 \
+		1234.123.123.123 1 \
+	"
+	set $tests
+	status=0
+	while [ "$#" != 0 ]; do
+		printf "."
+		is_ipv4 $1
+		res=$?
+		if [ "$res" != "$2" ]; then
+			echo "is_ipv4 $1: expected $2, got $res"
+			status=1
+		fi
+		shift 2
+	done
+	return $status
+}
+
 main() {
     log_file=log.txt
     # redirect stdout and stderr to $log_file and print
