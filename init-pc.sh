@@ -536,7 +536,7 @@ OVERLAY_LABEL=${OVERLAY:-OVERLAY}
 SKIP_OVERLAY=${SKIP_OVERLAY:-0}
 grep -q -E '(^|\s)skipoverlay(\s|$)' /proc/cmdline && SKIP_OVERLAY=1
 
-if [[ ${SKIP_OVERLAY-} =~ ^1|yes|true$ ]]; then
+if [ "${SKIP_OVERLAY-}" = 1 ]; then
     log_begin_msg "Skipping overlay, found 'skipoverlay' in cmdline"
     log_end_msg
     exit 0
@@ -585,6 +585,11 @@ mount -n -o rbind /overlay ${rootmnt}/overlay
 # cp ${rootmnt}/etc/fstab ${rootmnt}/etc/fstab.orig
 # awk '$2 != "/" {print $0}' ${rootmnt}/etc/fstab.orig > ${rootmnt}/etc/fstab
 # awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab >> ${rootmnt}/etc/fstab
+# Already there?
+if [ -e ${rootmnt}/etc/fstab ] && grep -qE ''^overlay[[:space:]]+/[[:space:]]+overlay'' ${rootmnt}/etc/fstab; then
+    exit 0 # Do nothing
+fi
+
 FSTAB=$(awk '$2 != "/" {print $0}' ${rootmnt}/etc/fstab && awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab)
 cat>${rootmnt}/etc/fstab<<EO_FSTAB
 $FSTAB
@@ -626,12 +631,12 @@ apt -y install bzip2 pigz p7zip-full arj zip mscompress unar eject bc less vim f
 apt -y install manpages tcpdump ethtool aria2 axel curl mpg123 nmon sysstat arping dnsutils minicom socat git git-flow net-tools
 apt -y install nscd nbd-client iftop
 
-usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" root
-usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" johnyin
+id root &>/dev/null && { usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" root; }
+id johnyin &>/dev/null && {usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" johnyin; }
 # echo "root:${PASSWORD}" |chpasswd 
 echo "Force Users To Change Passwords Upon First Login"
-chage -d 0 root
-chage -d 0 johnyin
+chage -d 0 root || true
+chage -d 0 johnyin || true
 
 apt clean
 find /var/log/ -type f | xargs rm -f

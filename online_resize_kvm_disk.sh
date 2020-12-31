@@ -47,7 +47,7 @@ virsh qemu-monitor-command ${DOMNAME} block_resize drive-${DISK} 30G --hmp
 #        lvm pvresize -v ${lvm_pv_path}
 #        lvm vgchange --sysinit -ay
 #        lvm lvresize -v -l +100%FREE ${ROOT}
- 
+# resize2fs/xfs_growfs/
 #test on rbd storage for kvm
 
 virsh attach-disk ${vmname} --source /storage/${image} --target vdb --cache none --io native --persistent --live
