@@ -858,6 +858,25 @@ exit
 
 EOSHELL
 
+cat << 'EOF'
+# baudrate=115200
+# ethaddr=5a:57:57:90:5d:03
+# bootcmd=run start_autoscript; run storeboot;
+# start_autoscript=if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;
+# start_usb_autoscript=if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;
+# start_mmc_autoscript=if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;
+# start_emmc_autoscript=if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;
+# bootdelay=0
+
+fw_setenv bootcmd "run start_autoscript; run storeboot;"
+fw_setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;"
+fw_setenv start_usb_autoscript "if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;"
+fw_setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;"
+fw_setenv start_emmc_autoscript "if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;"
+fw_setenv bootdelay 0
+fw_setenv ethaddr 5a:57:57:90:5d:03
+EOF
+
 echo "add emmc_install script"
 cat >> ${DIRNAME}/buildroot/root/sync.sh <<'EOF'
 #!/usr/bin/env bash
@@ -901,23 +920,23 @@ OVERLAY_LABEL="EMMCOVERLAY"
 ####################################################################################################
 echo "Start script create MBR and filesystem"
 ENV_LOGO_PART_START=288768  #sectors
-DEV_EMMC=${DEV_EMMC:=/dev/mmcblk1}
+DEV_EMMC=${DEV_EMMC:=/dev/mmcblk2}
 echo "So as to not overwrite U-boot, we backup the first 1M."
 dd if=${DEV_EMMC} of=/tmp/boot-bak bs=1M count=4
 echo "(Re-)initialize the eMMC and create partition."
 echo "bootloader & reserved occupies [0, 100M]. Since sector size is 512B, byte offset would be 204800."
 echo "Start create MBR and partittion"
-echo "mmcblk0p04  env   offset 0x000027400000  size 0x000000800000"
-echo "mmcblk0p05  logo  offset 0x000028400000  size 0x000002000000"
+echo "${DEV_EMMC}p04  env   offset 0x000027400000  size 0x000000800000"
+echo "${DEV_EMMC}p05  logo  offset 0x000028400000  size 0x000002000000"
 parted -s "${DEV_EMMC}" mklabel msdos
 parted -s "${DEV_EMMC}" mkpart primary fat32 204800s $((ENV_LOGO_PART_START-1))s
-parted -s "${DEV_EMMC}" mkpart primary ext4 ${ENV_LOGO_PART_START}s 1G
-parted -s "${DEV_EMMC}" mkpart primary ext4 1G 100%
+parted -s "${DEV_EMMC}" mkpart primary ext4 ${ENV_LOGO_PART_START}s 3G
+parted -s "${DEV_EMMC}" mkpart primary ext4 3G 100%
 echo "Start restore u-boot"
 # Restore U-boot (except the first 442 bytes, where partition table is stored.)
 dd if=/tmp/boot-bak of=${DEV_EMMC} conv=fsync bs=1 count=442
 dd if=/tmp/boot-bak of=${DEV_EMMC} conv=fsync bs=512 skip=1 seek=1
-# This method is used to convert byte offset in `/dev/mmcblk1` to block offset in `/dev/mmcblk1p2`.
+# This method is used to convert byte offset in `/dev/mmcblkX` to block offset in `/dev/mmcblkXp2`.
 as_block_number() {
     # Block numbers are offseted by ${ENV_LOGO_PART_START} sectors
     # Because we're using 4K blocks, the byte offsets are divided by 4K.
@@ -941,7 +960,7 @@ gen_blocks() {
 # `system`, `data` should be safe to overwrite.)
 gen_blocks 0x27400000 0x800000 > /tmp/reservedblks
 echo "Marked blocks used by env partition start=0x28400000 size=0x800000 as bad."
-echo "dd if=/boot/n1-logo.img of=/dev/mmcblk1 bs=1M seek=644 can install new logo"
+echo "dd if=/boot/n1-logo.img of=${DEV_EMMC} bs=1M seek=644 can install new logo"
 gen_blocks 0x28400000 0x2000000 >> /tmp/reservedblks
 echo "Marked blocks used by /dev/logo start=0x28400000 size=0x2000000 as bad."
 
@@ -952,9 +971,6 @@ PART_OVERLAY="${DISK}p3"
 
 echo "Format the partitions."
 mkfs.vfat -n ${BOOT_LABEL} ${PART_BOOT}
-# add num_backup_sb=0 avoid warning below
-# Warning: the backup superblock/group descriptors at block 131072 contain
-#	bad blocks.
 mkfs -t ext4 -m 0 -b4096 -l /tmp/reservedblks  -E num_backup_sb=0  -q -L ${ROOT_LABEL} ${PART_ROOT}
 mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${PART_OVERLAY}
 
@@ -963,7 +979,6 @@ sync
 echo "show reserved!!"
 false && dumpe2fs -b ${PART_ROOT}
 echo "Partition table (re-)initialized."
-
 EOF
 
 echo "start install you kernel&patchs"
