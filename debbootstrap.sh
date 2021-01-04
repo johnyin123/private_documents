@@ -916,7 +916,21 @@ cat >> ${DIRNAME}/buildroot/root/emmc_linux.sh <<'EOF'
 BOOT_LABEL="EMMCBOOT"
 ROOT_LABEL="EMMCROOT"
 OVERLAY_LABEL="EMMCOVERLAY"
-
+cat <<EOPART
+[mmcblk0p01]  bootloader  offset 0x000000000000  size 0x000000400000
+[mmcblk0p02]    reserved  offset 0x000002400000  size 0x000004000000
+[mmcblk0p03]       cache  offset 0x000006c00000  size 0x000020000000
+[mmcblk0p04]         env  offset 0x000027400000  size 0x000000800000
+[mmcblk0p05]        logo  offset 0x000028400000  size 0x000002000000
+[mmcblk0p06]    recovery  offset 0x00002ac00000  size 0x000002000000
+[mmcblk0p07]         rsv  offset 0x00002d400000  size 0x000000800000
+[mmcblk0p08]         tee  offset 0x00002e400000  size 0x000000800000
+[mmcblk0p09]       crypt  offset 0x00002f400000  size 0x000002000000
+[mmcblk0p10]        misc  offset 0x000031c00000  size 0x000002000000
+[mmcblk0p11]        boot  offset 0x000034400000  size 0x000002000000
+[mmcblk0p12]      system  offset 0x000036c00000  size 0x000050000000
+[mmcblk0p13]        data  offset 0x000087400000  size 0x00014ac00000
+EOPART
 ####################################################################################################
 echo "Start script create MBR and filesystem"
 ENV_LOGO_PART_START=288768  #sectors
