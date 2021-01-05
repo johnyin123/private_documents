@@ -25,6 +25,7 @@ dummy() {
 }
 
 usage() {
+    [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME} 
         -q|--quiet
@@ -259,7 +260,7 @@ main() {
             -V | --version) shift; exit_msg "${SCRIPTNAME} version\n";;
             -h | --help)    shift; usage;;
             --)             shift; break;;
-            *)              error_msg "Unexpected option: $1.\n"; usage;;
+            *)              usage "Unexpected option: $1";;
         esac
     done
     echo "random = $(shuf -i 42002-42254 -n 1)"

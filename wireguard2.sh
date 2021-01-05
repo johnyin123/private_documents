@@ -9,50 +9,130 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
 fi
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-append() {
-    local var="$1"
-    local value="$2"
-    local sep="${3:- }"
-    eval "export ${NO_EXPORT:+-n} -- \"$var=\${$var:+\${$var}\${value:+\$sep}}\$value\""
+
+gen_wg_server() {
+    local srv_addr=$1
+    local srv_pubport=$2
+    local srv_prikey=$3
+    echo "[Interface]"
+    echo "Address = ${srv_addr}"
+    echo "ListenPort = ${srv_pubport}"
+    echo "PrivateKey = ${srv_prikey}"
 }
 
-gen_wireguard() {
-    #    name      WG_IP          MASK  PUBLIC_IP         PUBLIC_PORT
-    nodes=" \
-        node1    172.16.16.1    24    202.111.11.111    50055 \
-        node2    172.16.16.2    24    ''                '' \
-        node3    172.16.16.3    24    ''                '' \
-        "
-    set $nodes
-    local i=0
-    while [ "$#" != 0 ]; do
-        NAME=${1}
-        IP=${2}
-        MASK=${3}
-        PUB_IP=${4}
-        PUB_PORT=${5}
-        PRI_KEY=$(wg genkey)
-        PUB_KEY=$(echo -n "${PRI_KEY}" | wg pubkey)
-        shift 5
-        let i=i+1
-        echo "[Interface]"
-        echo "# $NAME interface info"
-        echo "Address = ${IP}/${MASK}"
-        [ "${PUB_PORT}" = "''" ] || echo "ListenPort = ${PUB_PORT}"
-        echo "PrivateKey = ${PRI_KEY}"
-        echo "##################################################"
-        echo "[Peer]"
-        echo "# $NAME peer info"
-        echo "PublicKey = ${PUB_KEY}"
-        echo "AllowedIPs = ${IP}/32"
-        [ "${PUB_IP}" = "''" ] || echo "Endpoint = ${PUB_IP}:${PUB_PORT}"
-        echo "PersistentKeepalive = 10"
-        echo "##################################################"
-    done
+server_add_peer() {
+    local cli_pubkey=$1
+    local cli_addr=$2
+    echo "[Peer]"
+    echo "PublicKey = ${cli_pubkey}"
+    echo "AllowedIPs = ${cli_addr%/*}/32"
+    echo "PersistentKeepalive = 10"
 }
+
+gen_wg_client() {
+    local srv_pubkey=$1
+    local srv_pubaddr=$2
+    local srv_pubport=$3
+    local cli_prikey=$4
+    local cli_addr=$5
+    local cli_allow=$6
+    echo "[Interface]"
+    echo "Address = ${cli_addr}"
+    echo "PrivateKey = ${cli_prikey}"
+    echo "[Peer]"
+    echo "PublicKey = ${srv_pubkey}"
+    echo "AllowedIPs = ${cli_allow}"
+    echo "Endpoint = ${srv_pubaddr}:${srv_pubport}"
+    echo "PersistentKeepalive = 10"
+    #cli-${cli_addr%/*}.conf
+}
+
+usage() {
+    [ "$#" != 0 ] && echo "$*"
+    cat <<EOF
+${SCRIPTNAME} [server/client]
+                      s/c
+        -p|--pkey       *  <key>      server prikey
+        -a|--addr     * *  <address>  exam: 192.168.1.1/24
+        -P|--pubport  * *  <int>      server public port
+        -A|--pubaddr    *  <ipaddr>   server public ipaddress
+        -c|--callow        <allow>    client allow network forward
+                                    exam: 1.1.1.0/23,2.2.2.0/23
+
+        -q|--quiet
+        -l|--log <int> log level
+        -V|--version
+        -d|--dryrun dryrun
+        -h|--help help
+  ${SCRIPTNAME} s -a 10.1.1.1/16 -P9988 -p\$(wg genkey) > srv.conf
+  ${SCRIPTNAME} c -a 10.1.1.2/16 -P9988 -A1.2.3.4 -p<server prikey> >> srv.conf
+EOF
+    exit 1
+} >&2
 
 main() {
-    gen_wireguard
+    local prikey=
+    local srv_pubport=
+    local srv_pubaddr=
+    local addr=
+    local cli_allow=
+
+    local action="${1:-}"
+    [[ ${action-} =~ ^c|client|s|server$ ]] || usage "check moude <server/client>"
+    shift 1
+    local opt_short="p:a:P:A:c:"
+    local opt_long="pkey:,addr:,pubport:,pubaddr:,callow:,"
+    opt_short+="ql:dVh"
+    opt_long+="quite,log:,dryrun,version,help"
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            -p | --pkey)    shift; prikey=${1}; shift;;
+            -a | --addr)    shift; addr=${1}; shift;;
+            -P | --pubport) shift; srv_pubport=${1}; shift;;
+            -A | --pubaddr) shift; srv_pubaddr=${1}; shift;;
+            -c | --callow)  shift; cli_allow=${1}; shift;;
+
+            ########################################
+            -q | --quiet)   shift; QUIET=1;;
+            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
+            -V | --version) shift; exit_msg "${SCRIPTNAME} version\n";;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              error_msg "Unexpected option: $1.\n"; usage;;
+        esac
+    done
+    require wg
+    [ -z ${addr} ] && usage "<addr> must input"
+    is_ipv4_subnet ${addr} || usage "addr not ipv4/mask"
+    [ -z ${srv_pubport} ] && usage "port must input"
+    is_integer ${srv_pubport} || usage "port wrong"
+    [ -z ${prikey} ] && prikey=$(try wg genkey)
+    local pubkey="$(echo -n ${prikey} | try wg pubkey)"
+    echo "action      :${action}
+PRI         :${prikey}
+PUB         :${pubkey}
+srv_pubport :${srv_pubport}
+srv_pubaddr :${srv_pubaddr}
+addr        :${addr}
+cli_allow   :${cli_allow}" | vinfo_msg
+    case "${action}" in
+        c | client)
+            local cli_prikey=$(try wg genkey)
+            local cli_pubkey="$(echo -n ${cli_prikey} | try wg pubkey)"
+            [ -z ${srv_pubaddr} ] && usage "srv_pubaddr must input"
+            IFS='/' read -r tip tmask <<< "${addr}"
+            cli_allow=$(get_ipv4_network ${tip} $(netmask ${tmask}))/${tmask}${cli_allow:+,${cli_allow}}
+            info_msg "gen client conf: ${DIRNAME}/cli_${tip}.conf\n"
+            gen_wg_client "${pubkey}" "${srv_pubaddr}" "${srv_pubport}" "${cli_prikey}" "${addr}" "${cli_allow}" > ${DIRNAME}/cli_${tip}.conf
+            server_add_peer "${cli_pubkey}" "${addr}"
+            ;;
+        s | server)
+            gen_wg_server "${addr}" "${srv_pubport}" "${prikey}"
+            ;;
+    esac
     return 0
 }
 main "$@"
