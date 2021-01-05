@@ -849,6 +849,8 @@ usermod -p '$(echo ${PASSWORD} | openssl passwd -1 -stdin)' root
 echo "Force Users To Change Their Passwords Upon First Login"
 chage -d 0 root
 
+systemctl mask systemd-machine-id-commit.service
+
 apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync
 apt -y install --no-install-recommends xz-utils zip
 apt -y remove ca-certificates wireless-regdb crda --purge
