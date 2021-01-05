@@ -1179,7 +1179,7 @@ prepair_disk() {
 gen_uEnv_ini() {
     cat > /boot/uEnv.ini <<EOF
 dtb_name=/dtb/meson-gxl-s905d-phicomm-n1.dtb
-bootargs=root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty0 no_console_suspend consoleblank=0 
+bootargs=root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
 EOF
 }
 gen_s905_emmc_autoscript() {
@@ -1200,7 +1200,7 @@ setenv initrd_addr  "0x13000000"
 setenv dtb_mem_addr "0x1000000"
 setenv serverip 192.168.168.2
 setenv ipaddr 192.168.168.168
-setenv bootargs "root=/dev/nfs nfsroot=${serverip}:/nfsshare/root rw net.ifnames=0 console=ttyAML0,115200n8 console=tty0 no_console_suspend consoleblank=0 rootwait"
+setenv bootargs "root=/dev/nfs nfsroot=${serverip}:/nfsshare/root rw net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 rootwait"
 setenv bootcmd_pxe "tftp ${kernel_addr} zImage; tftp ${initrd_addr} uInitrd; tftp ${dtb_mem_addr} dtb.img; booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr} "
 run bootcmd_pxe
 EOF
@@ -1342,5 +1342,5 @@ fw_setenv start_emmc_autoscript 'if ext4load mmc 1 ${env_addr} /boot/boot.ini; t
 image=/boot/vmlinuz-5.1.7
 initrd=/boot/uInitrd
 dtb=/boot/meson-gxl-s905d-phicomm-n1.dtb
-bootargs=root=/dev/mmcblk1p1 rootflags=data=writeback rw console=ttyAML0,115200n8 console=tty0 no_console_suspend consoleblank=0 fsck.fix=yes fsck.repair=yes net.ifnames=0
+bootargs=root=/dev/mmcblk1p1 rootflags=data=writeback rw console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 fsck.fix=yes fsck.repair=yes net.ifnames=0
 EOF
