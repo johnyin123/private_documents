@@ -43,6 +43,36 @@ ip link add dev wg0 type wireguard
 ip address add dev wg0 <ip>/<mask>
 wg setconf wg0 /etc/wireguard/wg0.conf
 ip link set up dev wg0
+
+#wg0.conf example
+#[Interface]
+#PrivateKey = <prikey>
+#[Peer]
+#PublicKey = <peer_pubkey>
+#Endpoint = <peerip>:<peerport>
+#AllowedIPs = <ip>/<mask>;....
+#PersistentKeepalive = 5
+
+#add route table for wireguard
+echo "200 tbl" >> /etc/iproute2/rt_tables
+#create ipset table
+#ipset create tbl hash:net
+#保存规则ipset save tbl -f tbl.txt
+#从文件创建
+#ipset restore -f tbl.txt
+
+#enable iptables rule，mark ip packages equal ipset table
+iptables -t mangle -A PREROUTING -m set --match-set tbl dst -j MARK --set-mark 8
+iptables -t mangle -A OUTPUT -m set --match-set tbl dst -j MARK --set-mark 8
+iptables -t nat -A POSTROUTING -m mark --mark 8 -j MASQUERADE
+iptables -I FORWARD -o wg0 -j ACCEPT
+
+#config route table tbl:default route,lan
+ip route add default dev wg0 table tbl
+ip route add 192.168.3.0/24 dev br-lan table tbl
+
+#enable ip rule
+ip rule add fwmark 8 table tbl
 EOF
 
     echo "-------------------------------"
