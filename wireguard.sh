@@ -9,6 +9,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
 fi
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
+cat <<EOF
+Enable WireGuard kernel debug logging:
+echo 'module wireguard +p' | sudo tee /sys/kernel/debug/dynamic_debug/control
+
+Disable WireGuard kernel debug logging:
+echo 'module wireguard -p' | sudo tee /sys/kernel/debug/dynamic_debug/control
+
+EOF
 gen_wireguard() {
     #wg genkey | tee server_privatekey | wg pubkey > server_publickey
     PRI_KEY0=$(wg genkey)
