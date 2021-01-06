@@ -93,7 +93,7 @@ max() { [ "$1" -ge "$2" ] && echo "$1" || echo "$2"; }
 erase_line() {
     printf '%b' $'\e[1K\r'
 }
-cursor_onoff () {
+cursor_onoff() {
   local op="$1"
   case "${op}" in
     hide) printf "\e[?25l" ;;
@@ -102,7 +102,7 @@ cursor_onoff () {
   esac
   return 0
 }
-cursor_moveto () {
+cursor_moveto() {
   local x="${1}"
   local y="${2}"
   ## write
@@ -438,14 +438,18 @@ run_scripts() {
     done
 }
 ##################################################
-require () {
+truecmd() {
+    type -P $1
+}
+
+require() {
     for cmd in $@ ; do
         command -v "${cmd}" &> /dev/null || exit_msg "require $cmd\n"
         #[ "$(command -v "$cmd")" ] || exit_msg "require $cmd\n"
     done
 }
 
-debugshell () {
+debugshell() {
     safe_echo "This is a debug shell (${1:-})."
     sh || true
     #PS1='(initramfs) ' sh -i </dev/console >/dev/console 2>&1
@@ -478,7 +482,7 @@ try() {
     }
     return $rc
 }
-# try () {
+# try() {
 #     local cmd
 #     local __try_out
 #     local ret
