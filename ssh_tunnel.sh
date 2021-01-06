@@ -19,10 +19,12 @@ mk_support() {
 }
 
 ssh_tunnel() {
-    local local_br=${1}
-    local remote_br=${2}
-    local ssh_connection=${3}
-    local ssh_port=${4}
+    local remote_br=${1}
+    local ssh_connection=${2}
+    local ssh_port=${3}
+    local tapname=${4}
+    local sshpid=${5}
+    local local_br=${6}
     local l_tap= r_tap=
     for ((l_tap=0;l_tap<MAX_TAPDEV_NUM;l_tap++)); do
         file_exists /sys/class/net/tap${l_tap}/tun_flags || break
@@ -30,28 +32,32 @@ ssh_tunnel() {
     [[ ${l_tap} = ${MAX_TAPDEV_NUM} ]] && return -1
     r_tap=$(ssh -p${ssh_port} ${ssh_connection} "bash -s" <<< "for ((i=0;i<$MAX_TAPDEV_NUM;i++)); do [[ -e /sys/class/net/tap\${i}/tun_flags ]] || break; done; echo \$i")
     [[ ${r_tap} = ${MAX_TAPDEV_NUM} ]] && return -2
+    local localcmd="ip link set dev tap${l_tap} up${local_br:+;ip link set dev tap${l_tap} master ${local_br}}"
+    local remotecmd="ip link set dev tap${r_tap} up;ip link set dev tap${r_tap} master ${remote_br}"
     #exec 5> >(ssh -tt -o StrictHostKeyChecking=no -p${port} ${user}@${host} > /dev/null 2>&1)
     #Tunnel=ethernet must before -w 5:5 :)~~
-    ssh \
+    nohup ssh \
         -o PermitLocalCommand=yes \
-        -o LocalCommand="ip link set dev tap${l_tap} up;ip link set dev tap${l_tap} master ${local_br}" \
+        -o LocalCommand="${localcmd}" \
         -o Tunnel=ethernet -w ${l_tap}:${r_tap} \
-        -p${ssh_port} ${ssh_connection} "ip link set dev tap${r_tap} up;ip link set dev tap${r_tap} master ${remote_br}" &
-    echo "$!"
+        -p${ssh_port} ${ssh_connection} "${remotecmd}" &>/dev/null &
+    upvar "${sshpid}" "$!"
+    upvar "${tapname}" "tap${l_tap}"
 }
 
 usage() {
+    [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME} 
+        -L|--local    LOCAL_BRIDGE
+        -R|--remote * REMOTE_BRIDGE
+        -s|--ssh    * SSH_CONNECTION
+        -p|--port     SSH_PORT, default 60022
         -q|--quiet
         -l|--log <int> log level
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
-        -L|--local  * LOCAL_BRIDGE
-        -R|--remote * REMOTE_BRIDGE
-        -s|--ssh    * SSH_CONNECTION
-        -p|--port   SSH_PORT, default 60022
 EOF
     exit 1
 }
@@ -79,19 +85,20 @@ main() {
             -V | --version) shift; exit_msg "${SCRIPTNAME} version\n";;
             -h | --help)    shift; usage;;
             --)             shift; break;;
-            *)              error_msg "Unexpected option: $1.\n"; usage;;
+            *)              usage "Unexpected option: $1";;
         esac
     done
     is_user_root || exit_msg "root need!!\n"
-    [[ -z "${ssh_conn}" ]] && usage
-    [[ -z "${local_br}" ]] && usage
-    [[ -z "${remote_br}" ]] && usage
-    file_exists /sys/class/net/${local_br}/bridge/bridge_id || exit_msg "bridge ${local_br} nofound!!\n"
-    pid="$(ssh_tunnel ${local_br} ${remote_br} ${ssh_conn} ${ssh_port})" || error_msg "error $?\n"
-    ps --pid=$pid &> /dev/null || exit_msg "backend ssh($pid) ${ssh_conn}:${ssh_port} failed\n"
-    info_msg "backend ssh($pid) ${ssh_conn}:${ssh_port} ok\n"
-    /bin/bash --rcfile <(echo "PS1=\"(ssh_tunnel:${ssh_conn}[${local_br}<=>${remote_br}])\$PS1\"") || true
-    try "kill -9 ${pid:-} &> /dev/null"
+    [[ -z "${ssh_conn}" ]] && usage "SSH_CONNECTION Must input"
+    [[ -z "${remote_br}" ]] && usage "REMOTE_BRIDGE Must input"
+    [[ -z "${local_br}" ]] || file_exists /sys/class/net/${local_br}/bridge/bridge_id || exit_msg "local bridge ${local_br} nofound!!\n"
+    local tapname=
+    local sshpid=
+    ssh_tunnel "${remote_br}" "${ssh_conn}" "${ssh_port}" "tapname" "sshpid" "${local_br}" || exit_msg "error ssh_tunnel $?\n"
+    ps --pid=$sshpid &> /dev/null || exit_msg "backend ssh($sshpid) ${ssh_conn}:${ssh_port} failed\n"
+    info_msg "backend ssh($sshpid) localdev ${tapname} ${ssh_conn}:${ssh_port} ok\n"
+    /bin/bash --rcfile <(echo "PS1=\"(ssh_tunnel:${ssh_conn}[${local_br:-${tapname}}<=>${remote_br}])\$PS1\"") || true
+    try "kill -9 ${sshpid:-} &> /dev/null"
     info_msg "Exit!!\n"
     return 0
 }
