@@ -628,7 +628,7 @@ EOF
 
 echo "install packages!"
 apt -y install bzip2 pigz p7zip-full arj zip mscompress unar eject bc less vim ftp telnet nmap tftp ntpdate screen lsof strace
-apt -y install manpages tcpdump ethtool aria2 axel curl mpg123 nmon sysstat arping dnsutils minicom socat git git-flow net-tools
+apt -y install man-db manpages tcpdump ethtool aria2 axel curl mpg123 nmon sysstat arping dnsutils minicom socat git git-flow net-tools
 apt -y install nscd nbd-client iftop
 
 id root &>/dev/null && { usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" root; }
