@@ -11,7 +11,7 @@
 
 rm ./out/* -f
 PKG_8M_ROM="libopenssl libstdcpp ip-full ipset e2fsprogs aria2 python-light python-logging rsync "  #squid"
-PACKAGES="${PKG_8M_ROM} kmod-macvlan kmod-tun kmod-iptunnel kmod-gre kmod-vxlan kmod-pptp kmod-l2tp kmod-fs-vfat kmod-zram zram-swap block-mount kmod-fs-ext4 kmod-usb2 kmod-usb-storage firewall -swconfig " 
+PACKAGES="${PKG_8M_ROM} kmod-macvlan kmod-tun kmod-iptunnel kmod-gre kmod-vxlan kmod-pptp kmod-l2tp kmod-fs-vfat kmod-zram zram-swap block-mount kmod-fs-ext4 kmod-usb2 kmod-usb-storage kmod-wireguard wireguard firewall -swconfig " 
 
 echo "${PACKAGES}" > $(pwd)/mydir/etc/banner
 
