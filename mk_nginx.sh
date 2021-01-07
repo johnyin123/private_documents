@@ -234,8 +234,8 @@ log_format basic '$remote_addr $protocol $server_port [$time_local] '
                  '$status $bytes_sent $bytes_received '
                  '$session_time';
 
-access_log /var/log/nginx/stream-access.log basic buffer=32k;
-error_log /var/log/nginx/stream-error.log;
+access_log /var/log/nginx/stream_access.log basic buffer=32k;
+error_log /var/log/nginx/stream_error.log;
 EOF
 
 cat <<'EOF' > ${OUTDIR}/etc/nginx/nginx.conf
