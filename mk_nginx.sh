@@ -244,8 +244,8 @@ worker_processes auto;
 worker_rlimit_nofile 102400;
 pid /run/nginx.pid;
 
-# load_module modules/ngx_http_geoip_module.so
-# load_module modules/ngx_stream_geoip_module.so
+# load_module modules/ngx_http_geoip_module.so;
+# load_module modules/ngx_stream_geoip_module.so;
 
 events {
     use epoll;
