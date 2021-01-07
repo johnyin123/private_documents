@@ -177,6 +177,7 @@ EOF
 
 cat <<'EOF' >${OUTDIR}/etc/nginx/http-available/traffic_status.conf
 # /{status_uri}/control?cmd=*`{command}`*&group=*`{group}`*&zone=*`{name}`*
+# /control?cmd=reset&group=server&zone=*
 server {
     listen 80;
     # listen 443 ssl;
