@@ -225,6 +225,8 @@ map $status $log_err {
 }
 access_log /var/log/nginx/access_err.log main if=$log_err;
 access_log /var/log/nginx/access.log main if=$log_ip;
+# separate access logs from requests of two different domains
+# access_log /var/log/nginx/$http_host-access.log;
 EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/stream-conf.d/streamlog.conf
 log_format basic '$remote_addr $protocol $server_port [$time_local] '
