@@ -236,7 +236,12 @@ test_is_ipv4(){
     done
     return $status
 }
-
+ssh_quick_demo() {
+eval $(timeout 3h ssh-agent)
+ssh-add ~/pri.key
+# ssh .........
+ssh-agent -k
+}
 main() {
     log_file=log.txt
     # redirect stdout and stderr to $log_file and print
