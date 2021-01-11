@@ -171,6 +171,7 @@ main() {
     netns_exists "${ns_name}" && exit_msg "netns ${ns_name} exist!!\n"
     setup_ns "${ns_name}" "${ipv4_cidr}" "${out_br}" "${gateway}" || { cleanup_ns "${ns_name}"||true; exit_msg "${ns_name} setup error!\n"; }
     setup_overlayfs "${lower}" "${overlay}" && {
+        trap "echo 'CTRL+C!!!!'" SIGINT
         ns_cg_run "${overlay}/rootfs" "${ns_name}" "${cpu_share}" "${mem_limit}" "${cmd}" || true
     }
     cleanup_overlayfs "${overlay}"
