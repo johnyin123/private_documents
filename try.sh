@@ -286,6 +286,12 @@ __trace_OFF__
     echo "The exit status of first command ${PIPESTATUS[0]}, and the second command ${PIPESTATUS[1]}"
     false | false | true
     echo "The exit status of first command ${PIPESTATUS[0]}, second command ${PIPESTATUS[1]}, and third command ${PIPESTATUS[2]}"
+
+    echo "start: get all pipe exit code"
+    false | true | (exit 50)
+    echo ${PIPESTATUS[@]}
+    echo "end: get all pipe exit code"
+
     return 0
 }
 main "$@"
