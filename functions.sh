@@ -39,7 +39,8 @@ human_readable_disk_size() {
 
 human_readable_format_size()
 {
-    size=$1
+    local size=$1
+    local fs=
     if [[ $size -ge 1073741824 ]]; then
         fs=$(echo - | awk "{print $size/1073741824}")
         #fs=${fs/./,}
@@ -151,6 +152,7 @@ render_tpl2() {
 # echo "hello '\${DISK_DEV}' \$((\${VAL}*2))" | render_tpl vm
 render_tpl() {
     local arr=$1
+    local j= LHS= RHS= line=
     for j in $(array_print_label ${arr}) ; do eval "local $j=\"$(array_get ${arr} $j)\""; done
     while IFS= read -r line ; do
         while [[ "$line" =~ (\$\{[a-zA-Z_][a-zA-Z_0-9]*\}) ]] ; do
@@ -169,14 +171,17 @@ render_tpl() {
 # array_print_label abc
 # array_print abc
 print_kv() {
+    local j=
     for j in $(array_print_label $1) ; do safe_echo "$j=$(array_get $1 $j)"; done
 }
 
 empty_kv() {
+    local j=
     for j in $(array_print_label $1) ; do unset "$1[$j]"; done
 }
 
 read_kv() {
+    local line=
     while IFS= read -r line; do
         [[ ${line} =~ ^\ *#.*$ ]] && continue #skip comment line
         [[ ${line} =~ ^\ *$ ]] && continue #skip blank
@@ -429,7 +434,7 @@ disable_color() {
 # Log set functions }}
 ##################################################
 run_scripts() {
-    initdir=${1}
+    local i= initdir=${1}
     [ ! -d "${initdir}" ] && return
 
     shift
@@ -470,7 +475,7 @@ try() {
     [ ${DRYRUN:-0} = 0 ] || { safe_echo "EXECUTE $*" >&2; return 0; }
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
     [ ${QUIET:-0} = 0 ] && blue "Begin: %${cmd_size}s." "$*" >&2
-    result=$(eval $@ 2>&1) || rc=$?
+    local result=$(eval $@ 2>&1) || rc=$?
     [ $rc = 0 ] && { [ ${QUIET:-0} = 0 ] && green " done.\n" >&2; printf "%s" "$result"; }
     [ $rc = 0 ] || {
         local cmd_func="" #"${FUNCNAME[1]}"
@@ -520,7 +525,7 @@ try() {
 # run_undo
 rollback_cmds=()
 run_undo() {
-    local cmd
+    local cmd= idx=
     [ ${#rollback_cmds[@]} -gt 0 ] || return 0
     # Run all "undo" commands if any.
     for (( idx=${#rollback_cmds[@]}-1 ; idx>=0 ; idx-- )) ; do
