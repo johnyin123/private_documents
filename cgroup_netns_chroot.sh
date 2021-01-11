@@ -98,6 +98,7 @@ ns_cg_enter() {
 }
 
 usage() {
+    [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME} <options> cmd
     default cmd "/sbin/sshd -D -e"
@@ -145,15 +146,15 @@ main() {
             -V | --version) shift; exit_msg "${SCRIPTNAME} version\n";;
             -h | --help)    shift; usage;;
             --)             shift; break;;
-            *)              error_msg "Unexpected option: $1.\n"; usage;;
+            *)              usage "Unexpected option: $1";;
         esac
     done
     local cmd=${*:-"/sbin/sshd -D -e"}
     gateway=${gateway:-"${ipv4_cidr%.*}.1"}
     #ns_name=${ns_name:-"ns_$(shuf -i 168201-168254 -n 1)"}
     overlay=${overlay:-"${DIRNAME}/${ns_name}"}
-    [[ -z "${ns_name}" ]] && usage
-    [[ -z "${out_br}" ]] && usage
+    [[ -z "${ns_name}" ]] && usage "ns_name must input"
+    [[ -z "${out_br}" ]] && usage "bridge must input"
     {
         echo "cmd       = $cmd"
         echo "ns_name   = $ns_name"
@@ -167,7 +168,7 @@ main() {
     } | vinfo_msg
     require cgcreate cgset cgexec unshare chroot ip
     try mkdir -p "${overlay}"
-    netns_exists "${ns_name}" && exit_msg "${ns_name} exist!!\n"
+    netns_exists "${ns_name}" && exit_msg "netns ${ns_name} exist!!\n"
     setup_ns "${ns_name}" "${ipv4_cidr}" "${out_br}" "${gateway}" || { cleanup_ns "${ns_name}"||true; exit_msg "${ns_name} setup error!\n"; }
     setup_overlayfs "${lower}" "${overlay}" && {
         ns_cg_run "${overlay}/rootfs" "${ns_name}" "${cpu_share}" "${mem_limit}" "${cmd}" || true

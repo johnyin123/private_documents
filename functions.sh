@@ -443,6 +443,7 @@ truecmd() {
 }
 
 require() {
+    local cmd=
     for cmd in $@ ; do
         command -v "${cmd}" &> /dev/null || exit_msg "require $cmd\n"
         #[ "$(command -v "$cmd")" ] || exit_msg "require $cmd\n"
