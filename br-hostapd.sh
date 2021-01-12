@@ -57,9 +57,10 @@ EOF
 }
 
 usage() {
+    [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME} 
-        -s|--start <wifi>    start hostapd @ wifi
+        -s|--start <wifi>  * start hostapd @ wifi
         -b|--bridge <br>     bridge wifi
 
         -q|--quiet
@@ -92,12 +93,12 @@ main() {
             -V | --version) shift; exit_msg "${SCRIPTNAME} version\n";;
             -h | --help)    shift; usage;;
             --)             shift; break;;
-            *)              error_msg "Unexpected option: $1.\n"; usage;;
+            *)              usage "Unexpected option: $1";;
         esac
     done
     is_user_root || exit_msg "root user need!!\n"
     require ip hostapd
-    [[ -z "${wifi}" ]] && usage
+    [[ -z "${wifi}" ]] && usage "wifi interface must input"
     directory_exists /sys/class/net/${wifi}/wireless || exit_msg "wireless ${wifi} nofound!!\n"
     [[ -z "${bridge}" ]] || { file_exists /sys/class/net/${bridge}/bridge/bridge_id || exit_msg "bridge ${bridge} nofound!!\n"; }
     gen_hostapd "${wifi}" "/tmp/hostapd.conf" "${bridge}"
