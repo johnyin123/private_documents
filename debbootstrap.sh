@@ -22,6 +22,9 @@ export FS_TYPE=${FS_TYPE:-ext4}
 BOOT_LABEL="EMMCBOOT"
 ROOT_LABEL="EMMCROOT"
 OVERLAY_LABEL="EMMCOVERLAY"
+HOSTNAME="s905d2"
+#HOSTNAME="s905d3"
+#HOSTNAME="usbpc"
 
 ZRAMSWAP="udisks2"
 #ZRAMSWAP="zram-tools"
@@ -63,7 +66,7 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /debootstrap/debootstrap 
 
 LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /bin/bash <<EOSHELL
 
-echo usb905d > /etc/hostname
+echo ${HOSTNAME} > /etc/hostname
 
 echo "Enable udisk2 zram swap"
 mkdir -p /usr/local/lib/zram.conf.d/
@@ -77,7 +80,7 @@ SWAP=y
 EOF
 
 cat << EOF > /etc/hosts
-127.0.0.1       localhost usb905d
+127.0.0.1       localhost ${HOSTNAME} 
 EOF
 
 cat > /etc/fstab << EOF
