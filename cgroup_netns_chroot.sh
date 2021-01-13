@@ -62,6 +62,22 @@ ns_cg_run() {
     local cpu_share="$3"
     local mem_limit="$4"
     local cmd="$5"
+    local precmd="
+    /bin/mount -t proc proc /proc
+    /bin/mount -n -t tmpfs none /dev
+    /bin/mknod -m 622 /dev/console c 5 1
+    /bin/mknod -m 666 /dev/null c 1 3
+    /bin/mknod -m 666 /dev/zero c 1 5
+    /bin/mknod -m 666 /dev/ptmx c 5 2
+    /bin/mknod -m 666 /dev/tty c 5 0
+    /bin/mknod -m 444 /dev/random c 1 8
+    /bin/mknod -m 444 /dev/urandom c 1 9
+    /bin/chown root:tty /dev/{console,ptmx,tty}
+    /bin/mkdir /dev/pts
+    /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts
+    /bin/mkdir -p /run/sshd
+    /bin/hostname chroot-${ns_name}
+"
     try cgcreate -g "${CGROUPS}:/${ns_name}"
     try cgset -r cpu.shares="${cpu_share}" "${ns_name}"
     try cgset -r memory.limit_in_bytes="$((mem_limit * 1000000))" "${ns_name}"
@@ -70,24 +86,15 @@ ns_cg_run() {
         ip netns exec "${ns_name}" \
         unshare -fmuip --mount-proc \
         chroot "${rootfs}" \
-        /bin/bash -s <<EOSHELL 2>&1 | tee "${ns_name}.log" || true
-/bin/mount -t proc proc /proc
-/bin/mount -n -t tmpfs none /dev
-/bin/mknod -m 622 /dev/console c 5 1
-/bin/mknod -m 666 /dev/null c 1 3
-/bin/mknod -m 666 /dev/zero c 1 5
-/bin/mknod -m 666 /dev/ptmx c 5 2
-/bin/mknod -m 666 /dev/tty c 5 0
-/bin/mknod -m 444 /dev/random c 1 8
-/bin/mknod -m 444 /dev/urandom c 1 9
-/bin/chown root:tty /dev/{console,ptmx,tty}
-/bin/mkdir /dev/pts
-/bin/mount -t devpts -o gid=4,mode=620 none /dev/pts
-/bin/mkdir -p /run/sshd
+            /usr/bin/env -i \
+            SHELL=/bin/bash \
+            HOME=/root \
+            TERM=${TERM} \
+            /bin/bash -s <<EOSHELL
+${precmd}
 ${cmd}
 EOSHELL
 }
-
 ns_cg_enter() {
     local rootfs="$1"
     local ns_name="$2"
