@@ -790,7 +790,7 @@ net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_tw_reuse = 0
 EOF
 
-cat >> /etc/vim/vimrc.local <<EOF
+cat <<'EOF' > /etc/vim/vimrc.local
 syntax on
 " color evening
 set number
@@ -811,7 +811,10 @@ set smartindent              " 智能自动缩进
 "Paste toggle - when pasting something in, don't indent.
 set pastetoggle=<F7>
 set mouse=r
-"新建.py,.c,.sh,.h文件，自动插入文件头"
+"disable .viminfo file
+set viminfo=
+
+"新建.py,.sh文件，自动插入文件头"
 autocmd BufNewFile *.py,*.c,*.sh,*.h exec ":call SetTitle()"
 "定义函数SetTitle，自动插入文件头"
 func SetTitle()
@@ -820,7 +823,7 @@ func SetTitle()
         call setline(2, "readonly DIRNAME=\"$(readlink -f \"$(dirname \"$0\")\")\"")
         call setline(3, "readonly SCRIPTNAME=${0##*/}")
         call setline(4, "if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then")
-        call setline(5, "    exec 5> ${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log")
+        call setline(5, "    exec 5> \"${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log\"")
         call setline(6, "    BASH_XTRACEFD=\"5\"")
         call setline(7, "    export PS4='[\\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'")
         call setline(8, "    set -o xtrace")
@@ -843,7 +846,6 @@ func SetTitle()
         call setline(8, "    main()")
     endif
 endfunc
-
 EOF
 sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
 

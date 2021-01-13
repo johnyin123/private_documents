@@ -448,8 +448,10 @@ set smartindent              " 智能自动缩进
 "Paste toggle - when pasting something in, don't indent.
 set pastetoggle=<F7>
 set mouse=r
+"disable .viminfo file
+set viminfo=
 
-"新建.py,.cc,.sh,.javp文件，自动插入文件头"
+"新建.py,.sh文件，自动插入文件头"
 autocmd BufNewFile *.py,*.c,*.sh,*.h exec ":call SetTitle()"
 "定义函数SetTitle，自动插入文件头"
 func SetTitle()
