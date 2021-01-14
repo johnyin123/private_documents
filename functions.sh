@@ -475,8 +475,8 @@ try() {
     [ ${DRYRUN:-0} = 0 ] || { safe_echo "EXECUTE $*" >&2; return 0; }
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
     [ ${QUIET:-0} = 0 ] && blue "Begin: %${cmd_size}s." "$*" >&2
-    local result=$(eval $@ 2>&1) || rc=$?
-    [ $rc = 0 ] && { [ ${QUIET:-0} = 0 ] && green " done.\n" >&2; printf "%s" "$result"; }
+    __result_msg=$(eval $@ 2>&1) || rc=$?
+    [ $rc = 0 ] && { [ ${QUIET:-0} = 0 ] && green " done.\n" >&2; printf "%s" "$__result_msg"; }
     [ $rc = 0 ] || {
         local cmd_func="" #"${FUNCNAME[1]}"
         for (( idx=${#FUNCNAME[@]}-1 ; idx>=1 ; idx-- )) ; do
@@ -484,7 +484,7 @@ try() {
         done
         local cmd_line="${BASH_LINENO[1]}"
         [ ${QUIET:-0} = 0 ] && red " failed(${cmd_func}:${cmd_line} [$rc]).\n" >&2
-        printf "%s\n" "$result" | verror_msg
+        printf "%s\n" "$__result_msg" | verror_msg
     }
     return $rc
 }
