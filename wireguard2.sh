@@ -78,7 +78,7 @@ main() {
     local cli_allow=
 
     local action="${1:-}"
-    [[ ${action-} =~ ^c|client|s|server$ ]] || usage "check moude <server/client>"
+    [[ ${action-} =~ ^c|client|s|server$ ]] || usage "select mode <server/client>"
     shift 1
     local opt_short="p:a:P:A:c:"
     local opt_long="pkey:,addr:,pubport:,pubaddr:,callow:,"
