@@ -53,12 +53,9 @@ setup_wg() {
     done
     try ${ns_name:+ip netns exec "${ns_name}"} ip link set mtu "${MTU}" up dev "${wg_if}"
     # deal routes
-    local OIFS=$IFS
-    IFS=','
-    for x in ${routes}; do
-        try "${ns_name:+ip netns exec ${ns_name}} ip route add $x dev ${wg_if}" || { IFS=$OIFS; return 2; }
-    done
-    IFS=$OIFS
+    while read -rd "," -r x; do
+        try ${ns_name:+ip netns exec ${ns_name}} ip route add $x dev ${wg_if} || return 2
+    done <<< "${routes},"
     return 0
 }
 
@@ -134,6 +131,7 @@ main() {
     [[ -z "${wg_if}" ]] && usage "wireguard ifname must input"
     [[ ${wg_if} =~ ^[a-zA-Z0-9_=+.-]{1,15}$ ]] || usage "wireguard ifname wrong"
     [[ -z "${wg_conf}" ]] && usage "wireguard config file must input"
+    file_exists "${wg_conf}" || exit_msg "file ${wg_conf} no found!!\n"
     require env bash ip wg
     [[ -z "${ns_name}" ]] || {
         netns_exists "${ns_name}" && exit_msg "netns ${ns_name} exist!!\n"
