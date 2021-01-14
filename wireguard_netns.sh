@@ -107,6 +107,7 @@ EOF
 }
 
 main() {
+    is_user_root || exit_msg "root user need!!\n"
     local wg_if= wg_conf= ns_name= gateway=
     local opt_short="w:c:n:i:g:"
     local opt_long="wg:,conf:,ns:,ip:,gw:,"
@@ -133,6 +134,7 @@ main() {
     [[ -z "${wg_if}" ]] && usage "wireguard ifname must input"
     [[ ${wg_if} =~ ^[a-zA-Z0-9_=+.-]{1,15}$ ]] || usage "wireguard ifname wrong"
     [[ -z "${wg_conf}" ]] && usage "wireguard config file must input"
+    require env bash ip wg
     [[ -z "${ns_name}" ]] || {
         netns_exists "${ns_name}" && exit_msg "netns ${ns_name} exist!!\n"
         setup_ns "${ns_name}" || { cleanup_ns "${ns_name}"||true; exit_msg "netns ${ns_name} setup error!\n"; }
