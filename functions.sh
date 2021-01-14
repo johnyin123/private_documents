@@ -475,6 +475,7 @@ try() {
     [ ${DRYRUN:-0} = 0 ] || { safe_echo "EXECUTE $*" >&2; return 0; }
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
     [ ${QUIET:-0} = 0 ] && blue "Begin: %${cmd_size}s." "$*" >&2
+    # __result_msg not be local !!!
     __result_msg=$(eval $@ 2>&1) || rc=$?
     [ $rc = 0 ] && { [ ${QUIET:-0} = 0 ] && green " done.\n" >&2; printf "%s" "$__result_msg"; }
     [ $rc = 0 ] || {
