@@ -13,7 +13,7 @@ setup_wg() {
     local wg_if="$1"
     local CONFIG_FILE="$2"
     local routes="$3" #0.0.0.0/0 via 1.1.1.1,192.168.0.0/16 via 1.1.1.2
-    local ns_name="$4"
+    local ns_name="${4:-}"
     # fork from wg-quick begin
     local line= stripped= key= value= interface_section=0
     local ADDRESSES=() MTU=1420 WG_CONFIG=""
@@ -49,40 +49,21 @@ setup_wg() {
     [[ -z "${ns_name}" ]] || try ip link set "${wg_if}" netns "${ns_name}"
     local x=
     for x in "${ADDRESSES[@]}"; do
-        try ${ns_name:+ip netns exec "${ns_name}"} ip addr add "${x}" dev "${wg_if}" || return 1
+        maybe_netns_run "ip addr add ${x} dev ${wg_if}" "${ns_name}" || return 1
     done
-    try ${ns_name:+ip netns exec "${ns_name}"} ip link set mtu "${MTU}" up dev "${wg_if}"
+    maybe_netns_run "ip link set mtu ${MTU} up dev ${wg_if}" "${ns_name}" || return 2
     # deal routes
     while read -rd "," -r x; do
-        try ${ns_name:+ip netns exec ${ns_name}} ip route add $x dev ${wg_if} || return 2
+        maybe_netns_run "ip route add $x dev ${wg_if}" "${ns_name}" || return 3
     done <<< "${routes},"
     return 0
 }
 
 cleanup_wg() {
     local wg_if="$1"
-    local ns_name="$2"
-    try ${ns_name:+ip netns exec "${ns_name}"} ip link set "${wg_if}" down
-    try ${ns_name:+ip netns exec "${ns_name}"} ip link del "${wg_if}"
-}
-
-setup_ns() {
-    local ns_name="$1"
-    try ip netns add ${ns_name}
-    try ip netns exec ${ns_name} ip addr add 127.0.0.1/8 dev lo
-    try ip netns exec ${ns_name} ip link set lo up
-}
-
-netns_exists() {
-    local ns_name="$1"
-    # Check if a namespace named $ns_name exists.
-    # Note: Namespaces with a veth pair are listed with '(id: 0)' (or something). We need to remove this before lookin
-    ip netns list | sed 's/ *(id: [0-9]\+)$//' | grep --quiet --fixed-string --line-regexp "${ns_name}"
-}
-
-cleanup_ns() {
-    local ns_name="$1"
-    try ip netns del ${ns_name} || true
+    local ns_name="${2:-}"
+    maybe_netns_run "ip link set ${wg_if} down" "${ns_name}"
+    maybe_netns_run "ip link del ${wg_if}" "${ns_name}"
 }
 
 usage() {

@@ -62,6 +62,71 @@ human_readable_format_size()
     fi
 }
 
+setup_ns() {
+    local ns_name="$1"
+    try ip netns add ${ns_name}
+    maybe_netns_run "ip addr add 127.0.0.1/8 dev lo" "${ns_name}"
+    maybe_netns_run "ip link set lo up" "${ns_name}"
+}
+
+maybe_netns_run() {
+    local cmd="$1"
+    local ns_name="${2:-}"
+    try ${ns_name:+ip netns exec "${ns_name}"} "${cmd}"
+}
+
+netns_exists() {
+    local ns_name="$1"
+    # Check if a namespace named $ns_name exists.
+    # Note: Namespaces with a veth pair are listed with '(id: 0)' (or something). We need to remove this before lookin
+    ip netns list | sed 's/ *(id: [0-9]\+)$//' | grep --quiet --fixed-string --line-regexp "${ns_name}"
+}
+
+cleanup_ns() {
+    local ns_name="$1"
+    try ip netns del ${ns_name} || true
+}
+
+bridge_exists() {
+    local bridge="$1"
+    local ns_name="${2:-}"
+    maybe_netns_run "[ -e \"/sys/class/net/${bridge}/bridge/bridge_id\" ]" "${ns_name}"
+}
+
+setup_bridge() {
+    local bridge="$1"
+    local ns_name="${2:-}"
+    maybe_netns_run "ip link add ${OUTBRIDGE} type bridge" "${ns_name}"
+    maybe_netns_run "ip link set ${OUTBRIDGE} up" "${ns_name}"
+}
+
+setup_veth() {
+    local veth_left="$1"
+    local veth_right="$2"
+    local ns_name="${3:-}"
+    maybe_netns_run "ip link add ${veth_left} type veth peer name ${veth_right}" "${ns_name}"
+}
+
+cleanup_link() {
+    local link="$1"
+    local ns_name="${2:-}"
+    maybe_netns_run "ip link delete ${link}" "${ns_name}" || true
+}
+
+setup_overlayfs() {
+    local lower="$1"
+    local rootmnt="$2"
+    try mount -t tmpfs tmpfs -o size=1M ${rootmnt}
+    try mkdir -p ${rootmnt}/upper ${rootmnt}/work ${rootmnt}/rootfs
+    try mount -t overlay overlay -o lowerdir=${lower},upperdir=${rootmnt}/upper,workdir=${rootmnt}/work ${rootmnt}/rootfs
+}
+
+cleanup_overlayfs() {
+    local rootmnt="$1"
+    try umount ${rootmnt}/rootfs || true
+    try umount ${rootmnt} || true
+}
+
 get_ipaddr() {
     /sbin/ip -4 -br addr show ${1} | /bin/grep -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
 }
