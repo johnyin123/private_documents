@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
-set -o nounset -o pipefail
-SCRIPTNAME=${0##*/}
-dirname="$(dirname "$(readlink -e "$0")")"
-
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly SCRIPTNAME=${0##*/}
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
+    BASH_XTRACEFD="5"
+    export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    set -o xtrace
+fi
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+################################################################################
 NS_NAME=${NS_NAME:-"vpnet"}
 IP_PREFIX=${IP_PREFIX:-"192.168.100"}
 OUT_INTERFACE=${OUT_INTERFACE:-"vpn0"}
@@ -10,39 +16,25 @@ ROUTE_TBL_ID=${ROUTE_TBL_ID:-10}
 ROUTE_IP=${ROUTE_IP:-"10.0.1.4"}
 DNS=${DNS:-"114.114.114.114"}
 
-netns_exists() {
-    local ns_name="$1"
-    # Check if a namespace named $ns_name exists.
-    # Note: Namespaces with a veth pair are listed with '(id: 0)' (or something). We need to remove this before lookin
-    ip netns list | sed 's/ *(id: [0-9]\+)$//' | grep --quiet --fixed-string --line-regexp "${ns_name}"
-    return $?
-}
-#netns_exists "${ns_name}" && return 0
-
-setup_ns() {
+init_ns_env() {
     ns_name="$1"
     ip="$2"
     ns_name0="${ns_name}0"
     ns_name1="${ns_name}1"
-
-    #ip netns del $ns_name 2> /dev/null
-    ip netns add $ns_name
-    ip netns exec $ns_name ip addr add 127.0.0.1/8 dev lo
-    ip netns exec $ns_name ip link set lo up
-
-    ip link add $ns_name0 type veth peer name $ns_name1
-    ip link set $ns_name0 up
-    ip link set $ns_name1 netns $ns_name name eth0 up
-    ip addr add $ip.1/24 dev $ns_name0
-    ip netns exec $ns_name ip addr add $ip.2/24 dev eth0
-    ip netns exec $ns_name ip route add default via $ip.1 dev eth0
+    setup_ns $ns_name
+    setup_veth ${ns_name}0 ${ns_name}1 $ns_name
+    netns_add_link "${ns_name}1" "${ns_name}" "eth0"
+    try ip link set ${ns_name}0 up
+    try ip addr add $ip.1/24 dev ${ns_name}0
+    maybe_netns_run "ip addr add $ip.2/24 dev eth0" "${ns_name}"
+    maybe_netns_run "ip route add default via $ip.1 dev eth0" "${ns_name}"
 }
 
-cleanup_ns() {
+deinit_ns_env() {
     ns_name="$1"
     ip="$2"
-    ip netns del $ns_name
-    ip link delete $ns_name0
+    cleanup_ns $ns_name
+    cleanup_link "ip link delete ${ns_name}0"
 }
 
 setup_traffic() {
@@ -85,11 +77,6 @@ setup_nameserver() {
 
     mkdir -p "/etc/netns/$ns_name"
     echo "nameserver ${nameserver}" > "/etc/netns/$ns_name/resolv.conf"
-     cat > /etc/netns/$ns_name/bash.bashrc <<EOF
-export PROMPT_COMMAND=""
-alias ll='ls -lh'
-export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\](${ns_name}:${ROUTE_IP}):\[\033[33;1m\]\w\[\033[m\]\$"
-EOF
 }
 
 cleanup_nameserver() {
@@ -97,37 +84,53 @@ cleanup_nameserver() {
     rm -rf /etc/netns/$ns_name
 }
 
-ns_run() {
-    ns_name=$1
-    shift
-    ip netns exec $ns_name "$@"
+usage() {
+    [ "$#" != 0 ] && echo "$*"
+    cat <<EOF
+${SCRIPTNAME}
+        -q|--quiet
+        -l|--log <int> log level
+        -V|--version
+        -d|--dryrun dryrun
+        -h|--help help
+EOF
+    exit 1
 }
-
-# trap cleanup TERM
-# trap cleanup INT
-
 main() {
-    [[ $UID = 0 ]] || {
-        echo "recommended to run as root.";
-        exit 1;
-    }
+    is_user_root || exit_msg "root user need!!\n"
+    local opt_short=""
+    local opt_long=""
+    opt_short+="ql:dVh"
+    opt_long+="quite,log:,dryrun,version,help"
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            ########################################
+            -q | --quiet)   shift; QUIET=1;;
+            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
+            -V | --version) shift; exit_msg "${SCRIPTNAME} version\n";;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              usage "Unexpected option: $1";;
+        esac
+    done
     netns_exists "${NS_NAME}" && {
-        ns_run "${NS_NAME}" /bin/bash
+        netns_shell "${NS_NAME}"
         exit 0
     }
-    setup_ns "${NS_NAME}" "${IP_PREFIX}"
+    init_ns_env "${NS_NAME}" "${IP_PREFIX}"
     setup_traffic "${NS_NAME}" "${IP_PREFIX}" "${OUT_INTERFACE}"
     setup_nameserver "${NS_NAME}" "${DNS}"
     setup_strategy_route "${IP_PREFIX}" "${ROUTE_IP}" "${ROUTE_TBL_ID}"
 
-    #ns_run "${NS_NAME}" curl cip.cc
-    ns_run "${NS_NAME}" /bin/bash
+    netns_shell "${NS_NAME}"
 
     cleanup_strategy_route "${ROUTE_TBL_ID}"
     cleanup_nameserver "${NS_NAME}"
     cleanup_traffic "${NS_NAME}" "${IP_PREFIX}" "${OUT_INTERFACE}"
-    cleanup_ns "${NS_NAME}" "${IP_PREFIX}"
-    exit 0
+    deinit_ns_env "${NS_NAME}" "${IP_PREFIX}"
+    return 0
 }
-[[ ${BASH_SOURCE[0]} = $0 ]] && main "$@"
-
+main "$@"

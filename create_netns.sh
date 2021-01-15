@@ -22,7 +22,7 @@ EOF
     exit 1
 }
 
-setup_ns() {
+init_ns_env() {
     ns_name="$1"
     ip="$2"
     out_br=$3
@@ -41,7 +41,7 @@ setup_ns() {
     try ip netns exec ${ns_name} ip addr add ${ip} dev eth0
 }
 
-cleanup_ns() {
+deinit_ns_env() {
     ns_name="$1"
     try ip netns del ${ns_name}
     try ip link delete ${ns_name}0
@@ -81,7 +81,7 @@ main() {
         clean)
             for peer in ${!PEERS[@]}
             do
-                cleanup_ns ${peer}
+                deinit_ns_env ${peer}
             done             
             try ip link del ${OUTBRIDGE}
             try sysctl -q -w net.ipv4.ip_forward=0
@@ -97,7 +97,7 @@ main() {
     for peer in ${!PEERS[@]}
     do
         printf "%-18s%s\n" ${peer}  ${PEERS[$peer]}
-        setup_ns ${peer} ${PEERS[$peer]} ${OUTBRIDGE}
+        init_ns_env ${peer} ${PEERS[$peer]} ${OUTBRIDGE}
         info_msg "ip netns exec ${peer} /bin/bash"
     done
     return 0

@@ -46,7 +46,7 @@ setup_wg() {
     try ip link add ${wg_if} type wireguard
     [ ${DRYRUN:-0} = 0 ] || vinfo_msg <<< "$WG_CONFIG"
     try wg setconf "${wg_if}" <(echo "$WG_CONFIG")
-    [[ -z "${ns_name}" ]] || try ip link set "${wg_if}" netns "${ns_name}"
+    [[ -z "${ns_name}" ]] || netns_add_link "${wg_if}" "${ns_name}"
     local x=
     for x in "${ADDRESSES[@]}"; do
         maybe_netns_run "ip addr add ${x} dev ${wg_if}" "${ns_name}" || return 1

@@ -9,50 +9,25 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
 fi
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-netns_exists() {
-    local ns_name="$1"
-    # Check if a namespace named $ns_name exists.
-    # Note: Namespaces with a veth pair are listed with '(id: 0)' (or something). We need to remove this before lookin
-    ip netns list | sed 's/ *(id: [0-9]\+)$//' | grep --quiet --fixed-string --line-regexp "${ns_name}"
-}
-
-setup_ns() {
+init_ns_env() {
     local ns_name="$1"
     local ipv4_cidr="$2"
     local out_br="$3"
     local gateway=${4:-}
-    try ip netns add ${ns_name}
-    try ip netns exec ${ns_name} ip addr add 127.0.0.1/8 dev lo
-    try ip netns exec ${ns_name} ip link set lo up
+    setup_ns "${ns_name}"
+    setup_veth "${ns_name}0" "${ns_name}1" "${ns_name}"
 
-    try ip link add ${ns_name}0 type veth peer name ${ns_name}1
-    try ip link set ${ns_name}0 master ${out_br}
-    try ip link set ${ns_name}0 up
+    bridge_add_link ${out_br} ${ns_name}0
 
-    try ip link set ${ns_name}1 netns ${ns_name}
-    try ip netns exec ${ns_name} ip link set ${ns_name}1 name eth0 up
-    try ip netns exec ${ns_name} ip addr add ${ipv4_cidr} dev eth0
-    [[ -z ${gateway} ]] || try ip netns exec ${ns_name} ip route add default via ${gateway} 
+    netns_add_link "${ns_name}1" "${ns_name}" "eth0"
+    maybe_netns_run "ip addr add ${ipv4_cidr} dev eth0" "${ns_name}"
+    [[ -z ${gateway} ]] || maybe_netns_run "ip route add default via ${gateway}" "${ns_name}"
 }
 
-cleanup_ns() {
+deinit_ns_env() {
     local ns_name="$1"
-    try ip netns del ${ns_name} || true
-    try ip link delete ${ns_name}0 || true
-}
-
-setup_overlayfs() {
-    local lower="$1"
-    local rootmnt="$2"
-    try mount -t tmpfs tmpfs -o size=1M ${rootmnt}
-    try mkdir -p ${rootmnt}/upper ${rootmnt}/work ${rootmnt}/rootfs
-    try mount -t overlay overlay -o lowerdir=${lower},upperdir=${rootmnt}/upper,workdir=${rootmnt}/work ${rootmnt}/rootfs
-}
-
-cleanup_overlayfs() {
-    local rootmnt="$1"
-    try umount ${rootmnt}/rootfs || true
-    try umount ${rootmnt} || true
+    cleanup_ns ${ns_name}
+    cleanup_link ${ns_name}0
 }
 
 readonly CGROUPS='cpu,cpuacct,memory'
@@ -95,6 +70,7 @@ ${precmd}
 ${cmd}
 EOSHELL
 }
+
 ns_cg_enter() {
     local rootfs="$1"
     local ns_name="$2"
@@ -176,13 +152,13 @@ main() {
     require cgcreate cgset cgexec unshare chroot ip
     try mkdir -p "${overlay}"
     netns_exists "${ns_name}" && exit_msg "netns ${ns_name} exist!!\n"
-    setup_ns "${ns_name}" "${ipv4_cidr}" "${out_br}" "${gateway}" || { cleanup_ns "${ns_name}"||true; exit_msg "${ns_name} setup error!\n"; }
+    init_ns_env "${ns_name}" "${ipv4_cidr}" "${out_br}" "${gateway}" || { deinit_ns_env "${ns_name}"||true; exit_msg "${ns_name} setup error!\n"; }
     setup_overlayfs "${lower}" "${overlay}" && {
         trap "echo 'CTRL+C!!!!'" SIGINT
         ns_cg_run "${overlay}/rootfs" "${ns_name}" "${cpu_share}" "${mem_limit}" "${cmd}" || true
     }
     cleanup_overlayfs "${overlay}"
-    cleanup_ns "${ns_name}"
+    deinit_ns_env "${ns_name}"
     try rm -fr "${overlay}"
     return 0
 }

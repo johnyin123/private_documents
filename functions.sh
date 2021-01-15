@@ -69,6 +69,25 @@ setup_ns() {
     maybe_netns_run "ip link set lo up" "${ns_name}"
 }
 
+netns_add_link() {
+    local link="$1"
+    local ns_name="$2"
+    local newname="${3:-}"
+    try ip link set "${link}" netns "${ns_name}" ${newname:+name ${newname}} up
+}
+
+netns_shell() {
+    local ns_name="$1"
+    trap "echo 'CTRL+C!!!!'" SIGINT
+    ${DRYRUN:+echo }$(truecmd env) -i \
+        SHELL=$(truecmd bash) \
+        HOME=/root \
+        TERM=${TERM} \
+        $(truecmd ip) netns exec "${ns_name}" \
+        $(truecmd bash) --rcfile <(echo "PS1=\"(netns:${ns_name})\$PS1\"") || true
+    trap - SIGINT
+}
+
 maybe_netns_run() {
     local cmd="$1"
     local ns_name="${2:-}"
@@ -93,11 +112,18 @@ bridge_exists() {
     maybe_netns_run "[ -e \"/sys/class/net/${bridge}/bridge/bridge_id\" ]" "${ns_name}"
 }
 
+bridge_add_link() {
+    local bridge="$1"
+    local link="$2"
+    local ns_name="${3:-}"
+    maybe_netns_run "ip link set ${link} master ${bridge}" "${ns_name}"
+}
+
 setup_bridge() {
     local bridge="$1"
     local ns_name="${2:-}"
-    maybe_netns_run "ip link add ${OUTBRIDGE} type bridge" "${ns_name}"
-    maybe_netns_run "ip link set ${OUTBRIDGE} up" "${ns_name}"
+    maybe_netns_run "ip link add ${bridge} type bridge" "${ns_name}"
+    maybe_netns_run "ip link set ${bridge} up" "${ns_name}"
 }
 
 setup_veth() {

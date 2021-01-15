@@ -1,19 +1,21 @@
-#!/bin/bash
-set -o nounset -o pipefail
-dirname="$(dirname "$(readlink -e "$0")")"
-
-if [ "${DEBUG:=false}" = "true" ]; then
+#!/usr/bin/env bash
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly SCRIPTNAME=${0##*/}
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
+    BASH_XTRACEFD="5"
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+################################################################################
 source ${dirname}/netns_vpn_shell.sh
 
 ROUTE_IP="10.0.1.1"
 DNS="114.114.114.114"
 WIFI_INTERFACE=${WIFI_INTERFACE:-"wlan0"}
 WIFI_OUT_INF=${WIFI_OUT_INF:-"eth0"}
-function gen_conf() {
+gen_conf() {
     cat > /tmp/wifi_dhcp.conf <<EOF
 ####dhcp
 # Bind to only one interface
@@ -72,63 +74,60 @@ channel=9
 EOF
 }
 
-function setup_ap() {
+setup_ap() {
     ns_name="$1"
     wifi_phy="$2"
     iw phy ${wifi_phy} set netns name ${ns_name}
     #Initial wifi interface configuration
-    ip netns exec ${ns_name} ip addr add 10.0.3.1/24 dev ${WIFI_INTERFACE}
-    ip netns exec ${ns_name} ip link set ${WIFI_INTERFACE} up
+    maybe_netns_run "ip addr add 10.0.3.1/24 dev ${WIFI_INTERFACE}" "${ns_name}"
+    maybe_netns_run "ip link set ${WIFI_INTERFACE} up" "${ns_name}"
     #Doesn’t try to run dhcpd when already running
     if [ "$(ps -ef | grep wifi_dhcp.conf | grep -v grep)" == "" ]
     then
-        ip netns exec ${ns_name} dnsmasq --conf-file=/tmp/wifi_dhcp.conf
+        maybe_netns_run "dnsmasq --conf-file=/tmp/wifi_dhcp.conf" "${ns_name}"
     fi
     #start hostapd
-    ip netns exec ${ns_name} hostapd -B /tmp/hostapd.conf
+    maybe_netns_run "hostapd -B /tmp/hostapd.conf" "${ns_name}"
 }
 
-function setup_ap_iptable() {
+setup_ap_iptable() {
     ns_name="$1"
-    ip netns exec ${ns_name} iptables -t nat -A POSTROUTING -o ${WIFI_OUT_INF} -j MASQUERADE
-    ip netns exec ${ns_name} iptables -I FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
-    ip netns exec ${ns_name} sysctl -w net.ipv4.ip_forward=1
+    maybe_netns_run "iptables -t nat -A POSTROUTING -o ${WIFI_OUT_INF} -j MASQUERADE" "${ns_name}"
+    maybe_netns_run "iptables -I FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu" "${ns_name}"
+    maybe_netns_run "sysctl -w net.ipv4.ip_forward=1" "${ns_name}"
 }
 
-function cleanup_ns_wifi() {
+cleanup_ns_wifi() {
     ns_name="$1"
     wifi_phy="$2"
     # TODO
     pkill -9 dnsmasq
     pkill -9 hostapd
     #To move it back to the root namespace:
-    ip netns exec ${ns_name} iw phy ${wifi_phy} set netns 1
+    maybe_netns_run "iw phy ${wifi_phy} set netns 1" "${ns_name}"
 }
 
-function hostap_main() {
-    [[ $UID = 0 ]] || {
-        echo "recommended to run as root.";
-        exit 1;
-    }
+hostap_main() {
+    is_user_root || exit_msg "root user need!!\n"
     gen_conf
     netns_exists "${NS_NAME}" && {
-        ns_run "${NS_NAME}" /bin/bash
+        netns_shell "${NS_NAME}"
         exit 0
     }
-    setup_ns "${NS_NAME}" "${IP_PREFIX}"
+    init_ns_env "${NS_NAME}" "${IP_PREFIX}"
     setup_traffic "${NS_NAME}" "${IP_PREFIX}" "${WIFI_OUT_INF}"
     setup_nameserver "${NS_NAME}" "${DNS}"
     setup_strategy_route "${IP_PREFIX}" "${ROUTE_IP}" "${ROUTE_TBL_ID}"
     local phy="$(printf '%s\n' /sys/class/ieee80211/*/device/net/${WIFI_INTERFACE} | awk -F'/' '{ print $5 }')"
     setup_ap "${NS_NAME}" ${phy}
     setup_ap_iptable "${NS_NAME}"
+    netns_shell "${NS_NAME}"
     #ns_run "${NS_NAME}" curl cip.cc
-    ns_run "${NS_NAME}" /bin/bash
     cleanup_ns_wifi "${NS_NAME}" ${phy}
     cleanup_strategy_route "${ROUTE_TBL_ID}"
     cleanup_nameserver "${NS_NAME}"
     cleanup_traffic "${NS_NAME}" "${IP_PREFIX}" "${WIFI_OUT_INF}"
-    cleanup_ns "${NS_NAME}" "${IP_PREFIX}"
+    deinit_ns_env "${NS_NAME}" "${IP_PREFIX}"
     exit 0
 }
 [[ ${BASH_SOURCE[0]} = $0 ]] && hostap_main "$@"
