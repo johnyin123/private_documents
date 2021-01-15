@@ -15,7 +15,7 @@ init_ns_env() {
     local out_br="$3"
     local gateway=${4:-}
     setup_ns "${ns_name}"
-    setup_veth "${ns_name}0" "${ns_name}1" "${ns_name}"
+    setup_veth "${ns_name}0" "${ns_name}1"
 
     bridge_add_link ${out_br} ${ns_name}0
 
@@ -57,7 +57,7 @@ ns_cg_run() {
     try cgset -r cpu.shares="${cpu_share}" "${ns_name}"
     try cgset -r memory.limit_in_bytes="$((mem_limit * 1000000))" "${ns_name}"
     info_msg "cgexec -g ${CGROUPS}:${ns_name} ${cmd}\n"
-    cgexec -g "${CGROUPS}:${ns_name}" \
+    maybe_dryrun cgexec -g "${CGROUPS}:${ns_name}" \
         ip netns exec "${ns_name}" \
         unshare -fmuip --mount-proc \
         chroot "${rootfs}" \
@@ -152,6 +152,7 @@ main() {
     require cgcreate cgset cgexec unshare chroot ip
     try mkdir -p "${overlay}"
     netns_exists "${ns_name}" && exit_msg "netns ${ns_name} exist!!\n"
+    bridge_exists "${out_br}" || exit_msg "bridge ${out_br} not exist!!\n"
     init_ns_env "${ns_name}" "${ipv4_cidr}" "${out_br}" "${gateway}" || { deinit_ns_env "${ns_name}"||true; exit_msg "${ns_name} setup error!\n"; }
     setup_overlayfs "${lower}" "${overlay}" && {
         trap "echo 'CTRL+C!!!!'" SIGINT

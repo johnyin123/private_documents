@@ -79,7 +79,7 @@ netns_add_link() {
 netns_shell() {
     local ns_name="$1"
     trap "echo 'CTRL+C!!!!'" SIGINT
-    ${DRYRUN:+echo }$(truecmd env) -i \
+    maybe_dryrun $(truecmd env) -i \
         SHELL=$(truecmd bash) \
         HOME=/root \
         TERM=${TERM} \
@@ -165,7 +165,7 @@ check_http_status() {
 }
 
 stdout_is_terminal() {
-  [ -t 1 ]
+    [ -t 1 ]
 }
 
 is_user_root() {
@@ -186,20 +186,20 @@ erase_line() {
     printf '%b' $'\e[1K\r'
 }
 cursor_onoff() {
-  local op="$1"
-  case "${op}" in
-    hide) printf "\e[?25l" ;;
-    show) printf "\e[?25h" ;;
-    *) return 1 ;;
-  esac
-  return 0
+    local op="$1"
+    case "${op}" in
+        hide) printf "\e[?25l" ;;
+        show) printf "\e[?25h" ;;
+        *) return 1 ;;
+    esac
+    return 0
 }
 cursor_moveto() {
-  local x="${1}"
-  local y="${2}"
-  ## write
-  printf "\e[%d;%d;f" ${y} ${x}
-  return 0
+    local x="${1}"
+    local y="${2}"
+    ## write
+    printf "\e[%d;%d;f" ${y} ${x}
+    return 0
 }
 cursor_pos() {
     local CURPOS
@@ -220,7 +220,7 @@ cursor_col() {
     echo "${COL}"
 }
 safe_echo() {
-  printf -- '%b\n' "$*"
+    printf -- '%b\n' "$*"
 }
 
 # echo "hello {{DISK_DEV}} \$(({{VAL}}*2))" | render_tpl2 vm
@@ -560,6 +560,8 @@ debugshell() {
 #  try my_command ${args} || return ${?}
 #  try --run my_command ${args} || return ${?}
 #******************************************************************************
+shopt -s expand_aliases
+alias maybe_dryrun="eval \${DRYRUN:+echo }"
 try() {
     local rc=0
     local cmd_size=-60.60
@@ -576,7 +578,7 @@ try() {
         done
         local cmd_line="${BASH_LINENO[1]}"
         [ ${QUIET:-0} = 0 ] && red " failed(${cmd_func}:${cmd_line} [$rc]).\n" >&2
-        printf "%s\n" "$__result_msg" | verror_msg
+        [[ -z "${__result_msg}" ]] || printf "%s\n" "$__result_msg" | verror_msg
     }
     return $rc
 }
@@ -623,7 +625,7 @@ run_undo() {
     for (( idx=${#rollback_cmds[@]}-1 ; idx>=0 ; idx-- )) ; do
         cmd="${rollback_cmds[idx]}"
         [[ ${QUIET:-0} = 0 ]] && purple "UNDO -> "
-        ${DRYRUN:+echo } try "$(eval printf '%s' "$cmd")" || true
+        try "$(eval printf '%s' "$cmd")" || true
     done
     rollback_cmds=()
     return 0
