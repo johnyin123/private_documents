@@ -1,113 +1,27 @@
 #!/usr/bin/env bash
-set -o nounset -o pipefail
-set -o errexit
-
-# Disable unicode.
-LC_ALL=C
-LANG=C
-
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-#readonly DIRNAME="$(dirname "$(readlink -e "$0")")"
 readonly SCRIPTNAME=${0##*/}
-
-if [ "${DEBUG:=false}" = "true" ]; then
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
+    BASH_XTRACEFD="5"
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-##################################################
-# print "$(convertsecs $TOTALTIME)"
-# To compute the time it takes a script to run use tag the start and end times with
-#   STARTTIME=$(date +"%s")
-#   ENDTIME=$(date +"%s")
-#   TOTALTIME=$(($ENDTIME-$STARTTIME))
-# ------------------------------------------------------
-convertsecs() {
-  ((h=${1}/3600))
-  ((m=(${1}%3600)/60))
-  ((s=${1}%60))
-  printf "%02d:%02d:%02d\n" $h $m $s
-}
-##################################################
-readonly RED="\033[1;31m"
-readonly GREEN="\033[1;32m"
-readonly YELLOW="\033[1;33m"
-readonly BLUE="\033[1;34m"
-readonly ENDCLR="\033[0m"
-_log_msg()
-{
-	if [ "${quiet:-n}" = "y" ]; then return; fi
-	# shellcheck disable=SC2059
-	printf "$@"
-}
-
-log_success_msg()
-{
-	_log_msg "${GREEN}Success:${ENDCLR} %s\\n" "$*"
-}
-
-log_failure_msg()
-{
-	_log_msg "${RED}Failure:${ENDCLR} %s\\n" "$*"
-}
-
-log_warning_msg()
-{
-	_log_msg "${YELLOW}Warning:${ENDCLR} %s\\n" "$*"
-}
-
-log_begin_msg()
-{
-	_log_msg "${BLUE}Begin:${ENDCLR} %-24s " "$*"
-}
-
-log_end_msg()
-{
-	_log_msg "${BLUE}done.${ENDCLR}\\n"
-}
-##################################################
-run_scripts()
-{
-	initdir=${1}
-	[ ! -d "${initdir}" ] && return
-
-	shift
-    for i in ${initdir}/*; do
-	    . "${initdir}/$i"
-    done
-}
-##################################################
-#******************************************************************************
-# try: Execute a command with error checking.  Note that when using this, if a piped
-# command is used, the '|' must be escaped with '\' when calling try (i.e.
-# "try ls \| less").
-#******************************************************************************
-try ()
-{
-	# Execute the command and fail if it does not return zero.
-    log_begin_msg "${*}"
-    if [ "${quiet:-n}" = "y" ] ; then
-        eval ${*} >/dev/null 2>&1 || failure && success
-    else
-        eval ${*} || failure && success
-    fi
-    log_end_msg
-}
-
-success()
-{
-    return 0
-}
-
-failure ()
-{
-    _log_msg "\033[5;49;39m"
-    return 1
-}
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-################################################################################
-################################################################################
-################################################################################
-################################################################################
+usage() {
+    [ "$#" != 0 ] && echo "$*"
+    cat <<EOF
+${SCRIPTNAME} start/clean
+        -q|--quiet
+        -l|--log <int> log level
+        -V|--version
+        -d|--dryrun dryrun
+        -h|--help help
+EOF
+    exit 1
+}
+
 setup_ns() {
     ns_name="$1"
     ip="$2"
@@ -142,8 +56,27 @@ PEERS=( \
 OUTBRIDGE=br-test
 
 main() {
-    case "${1:---start}" in
-        --start)
+    is_user_root || exit_msg "root user need!!\n"
+    local opt_short=""
+    local opt_long=""
+    opt_short+="ql:dVh"
+    opt_long+="quite,log:,dryrun,version,help"
+    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            ########################################
+            -q | --quiet)   shift; QUIET=1;;
+            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
+            -V | --version) shift; exit_msg "${SCRIPTNAME} version\n";;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              usage "Unexpected option: $1";;
+        esac
+    done
+    case "${1:-}" in
+        start)
             ;;
         clean)
             for peer in ${!PEERS[@]}
@@ -152,15 +85,10 @@ main() {
             done             
             try ip link del ${OUTBRIDGE}
             try sysctl -q -w net.ipv4.ip_forward=0
-            exit 0
-            ;;
-        -q)
-            quiet=y
-            shift
+            return 0
             ;;
         *)
-            echo "$0 --start/clean/-q"
-            exit 1
+            usage "action <start/clean> must input"
             ;;
     esac
     try sysctl -q -w net.ipv4.ip_forward=1
@@ -170,9 +98,8 @@ main() {
     do
         printf "%-18s%s\n" ${peer}  ${PEERS[$peer]}
         setup_ns ${peer} ${PEERS[$peer]} ${OUTBRIDGE}
-        log_warning_msg 'ip netns exec ' ${peer} ' /bin/bash --rcfile <(echo "PS1=\"' ${peer} '$ \"")'
+        info_msg "ip netns exec ${peer} /bin/bash"
     done
-    exit 0
+    return 0
 }
-[[ ${BASH_SOURCE[0]} = $0 ]] && main "$@"
-
+main "$@"
