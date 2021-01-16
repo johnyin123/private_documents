@@ -2,11 +2,12 @@
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
 if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
-    exec 5> ${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
     BASH_XTRACEFD="5"
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
+VERSION+=("wireguard2.sh - fb59c58 - 2021-01-14T17:25:56+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
@@ -98,7 +99,7 @@ main() {
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
             -d | --dryrun)  shift; DRYRUN=1;;
-            -V | --version) shift; exit_msg "${SCRIPTNAME} version\n";;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
             -h | --help)    shift; usage;;
             --)             shift; break;;
             *)              error_msg "Unexpected option: $1.\n"; usage;;

@@ -7,6 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
+VERSION+=("cgroup_netns_chroot.sh - 2740e36 - 2021-01-16T17:39:57+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 init_ns_env() {
@@ -126,7 +127,7 @@ main() {
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
             -d | --dryrun)  shift; DRYRUN=1;;
-            -V | --version) shift; exit_msg "${SCRIPTNAME} version\n";;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
             -h | --help)    shift; usage;;
             --)             shift; break;;
             *)              usage "Unexpected option: $1";;

@@ -7,6 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
+VERSION+=("br-hostapd.sh - cb9838d - 2021-01-12T09:28:25+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
@@ -90,7 +91,7 @@ main() {
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
             -d | --dryrun)  shift; DRYRUN=1;;
-            -V | --version) shift; exit_msg "${SCRIPTNAME} version\n";;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
             -h | --help)    shift; usage;;
             --)             shift; break;;
             *)              usage "Unexpected option: $1";;

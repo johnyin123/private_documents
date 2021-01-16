@@ -2,11 +2,12 @@
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
 if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
-    exec 5> ${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
     BASH_XTRACEFD="5"
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
+VERSION+=("ssh_tunnel.sh - 1dece77 - 2021-01-06T12:01:07+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
@@ -82,7 +83,7 @@ main() {
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
             -d | --dryrun)  shift; DRYRUN=1;;
-            -V | --version) shift; exit_msg "${SCRIPTNAME} version\n";;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
             -h | --help)    shift; usage;;
             --)             shift; break;;
             *)              usage "Unexpected option: $1";;
