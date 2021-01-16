@@ -16,6 +16,11 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
+VERSION+=("functions.sh - 1464f53 - 2021-01-15T20:02:23+08:00")
+shopt -s expand_aliases
+alias maybe_dryrun="eval \${DRYRUN:+echo }"
+alias try="try1"
+
 dummy() { :; }
 
 list_func() {
@@ -79,7 +84,7 @@ netns_add_link() {
 netns_shell() {
     local ns_name="$1"
     trap "echo 'CTRL+C!!!!'" SIGINT
-    ${DRYRUN:+echo }$(truecmd env) -i \
+    maybe_dryrun $(truecmd env) -i \
         SHELL=$(truecmd bash) \
         HOME=/root \
         TERM=${TERM} \
@@ -165,7 +170,7 @@ check_http_status() {
 }
 
 stdout_is_terminal() {
-  [ -t 1 ]
+    [ -t 1 ]
 }
 
 is_user_root() {
@@ -186,20 +191,20 @@ erase_line() {
     printf '%b' $'\e[1K\r'
 }
 cursor_onoff() {
-  local op="$1"
-  case "${op}" in
-    hide) printf "\e[?25l" ;;
-    show) printf "\e[?25h" ;;
-    *) return 1 ;;
-  esac
-  return 0
+    local op="$1"
+    case "${op}" in
+        hide) printf "\e[?25l" ;;
+        show) printf "\e[?25h" ;;
+        *) return 1 ;;
+    esac
+    return 0
 }
 cursor_moveto() {
-  local x="${1}"
-  local y="${2}"
-  ## write
-  printf "\e[%d;%d;f" ${y} ${x}
-  return 0
+    local x="${1}"
+    local y="${2}"
+    ## write
+    printf "\e[%d;%d;f" ${y} ${x}
+    return 0
 }
 cursor_pos() {
     local CURPOS
@@ -220,7 +225,7 @@ cursor_col() {
     echo "${COL}"
 }
 safe_echo() {
-  printf -- '%b\n' "$*"
+    printf -- '%b\n' "$*"
 }
 
 # echo "hello {{DISK_DEV}} \$(({{VAL}}*2))" | render_tpl2 vm
@@ -560,7 +565,30 @@ debugshell() {
 #  try my_command ${args} || return ${?}
 #  try --run my_command ${args} || return ${?}
 #******************************************************************************
-try() {
+try1() {
+    local cmd_size=-60.60
+    [ ${DRYRUN:-0} = 0 ] || { safe_echo "EXECUTE $*" >&2; return 0; }
+    [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
+    [ ${QUIET:-0} = 0 ] && blue "Begin: %${cmd_size}s." "$*" >&2
+    __ret_out= __ret_err= __ret_rc=0
+    eval $@ 2> >(__ret_err=$(cat)) 1> >(__ret_out=$(cat)) | __ret_rc=$?
+    #eval "$( ($@ ; exit $?) \
+    #    2> >(__ret_err=$(cat); typeset -p __ret_err) \
+    #    > >(__ret_out=$(cat); typeset -p __ret_out); __ret_rc=$?; typeset -p __ret_rc )"
+    [ ${__ret_rc} = 0 ] && { [ ${QUIET:-0} = 0 ] && green " done.\n" >&2; printf "%s" "${__ret_out}"; }
+    [ ${__ret_rc} = 0 ] || {
+        local cmd_func="" #"${FUNCNAME[1]}"
+        for (( idx=${#FUNCNAME[@]}-1 ; idx>=1 ; idx-- )) ; do
+            cmd_func+="${FUNCNAME[idx]} "
+        done
+        local cmd_line="${BASH_LINENO[1]}"
+        [ ${QUIET:-0} = 0 ] && red " failed(${cmd_func}:${cmd_line} [${__ret_rc}]).\n" >&2
+        [[ -z "${__ret_err}" ]] || printf "%s\n" "${__ret_err}" | verror_msg
+    }
+    return ${__ret_rc}
+}
+
+try2() {
     local rc=0
     local cmd_size=-60.60
     [ ${DRYRUN:-0} = 0 ] || { safe_echo "EXECUTE $*" >&2; return 0; }
@@ -576,10 +604,11 @@ try() {
         done
         local cmd_line="${BASH_LINENO[1]}"
         [ ${QUIET:-0} = 0 ] && red " failed(${cmd_func}:${cmd_line} [$rc]).\n" >&2
-        printf "%s\n" "$__result_msg" | verror_msg
+        [[ -z "${__result_msg}" ]] || printf "%s\n" "$__result_msg" | verror_msg
     }
     return $rc
 }
+
 # try() {
 #     local cmd
 #     local __try_out
@@ -623,7 +652,7 @@ run_undo() {
     for (( idx=${#rollback_cmds[@]}-1 ; idx>=0 ; idx-- )) ; do
         cmd="${rollback_cmds[idx]}"
         [[ ${QUIET:-0} = 0 ]] && purple "UNDO -> "
-        ${DRYRUN:+echo } try "$(eval printf '%s' "$cmd")" || true
+        try "$(eval printf '%s' "$cmd")" || true
     done
     rollback_cmds=()
     return 0
@@ -985,4 +1014,3 @@ cidr2mask() {
 }
 
 return 0
-

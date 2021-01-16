@@ -5,6 +5,7 @@
 # USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
 set -o errexit -o nounset -o pipefail
 
+VERSION+=("debbootstrap.sh - 5d19715 - 2021-01-15T18:50:59+08:00")
 if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
@@ -828,21 +829,21 @@ func SetTitle()
         call setline(7, "    export PS4='[\\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'")
         call setline(8, "    set -o xtrace")
         call setline(9, "fi")
-        call setline(10, "[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true")
-        call setline(11, "################################################################################")
-        call setline(12, "usage() {")
-        call setline(13, "    [ \"$#\" != 0 ] && echo \"$*\"")
-        call setline(14, "    cat <<EOF")
-        call setline(15, "${SCRIPTNAME}")
-        call setline(16, "        -q|--quiet")
-        call setline(17, "        -l|--log <int> log level")
-        call setline(18, "        -V|--version")
-        call setline(19, "        -d|--dryrun dryrun")
-        call setline(20, "        -h|--help help")
-        call setline(21, "EOF")
-        call setline(22, "    exit 1")
-        call setline(23, "}")
-        call setline(24, "")
+        call setline(10, "VERSION+=()")
+        call setline(11, "[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true")
+        call setline(12, "################################################################################")
+        call setline(13, "usage() {")
+        call setline(14, "    [ \"$#\" != 0 ] && echo \"$*\"")
+        call setline(15, "    cat <<EOF")
+        call setline(16, "${SCRIPTNAME}")
+        call setline(17, "        -q|--quiet")
+        call setline(18, "        -l|--log <int> log level")
+        call setline(19, "        -V|--version")
+        call setline(20, "        -d|--dryrun dryrun")
+        call setline(21, "        -h|--help help")
+        call setline(22, "EOF")
+        call setline(23, "    exit 1")
+        call setline(24, "}")
         call setline(25, "main() {")
         call setline(26, "    local opt_short=\"\"")
         call setline(27, "    local opt_long=\"\"")
@@ -856,7 +857,7 @@ func SetTitle()
         call setline(35, "            -q | --quiet)   shift; QUIET=1;;")
         call setline(36, "            -l | --log)     shift; set_loglevel ${1}; shift;;")
         call setline(37, "            -d | --dryrun)  shift; DRYRUN=1;;")
-        call setline(38, "            -V | --version) shift; exit_msg \"${SCRIPTNAME} version\\n\";;")
+        call setline(38, "            -V | --version) shift; for _v in \"${VERSION[@]}\"; do echo \"$_v\"; done; exit 0;;")
         call setline(39, "            -h | --help)    shift; usage;;")
         call setline(40, "            --)             shift; break;;")
         call setline(41, "            *)              usage \"Unexpected option: $1\";;")
@@ -878,6 +879,7 @@ func SetTitle()
     endif
 endfunc
 EOF
+
 sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
 
 usermod -p '$(echo ${PASSWORD} | openssl passwd -1 -stdin)' root
