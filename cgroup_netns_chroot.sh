@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cgroup_netns_chroot.sh - 2740e36 - 2021-01-16T17:39:57+08:00")
+VERSION+=("cgroup_netns_chroot.sh - 74c6148 - 2021-01-16T18:07:57+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 init_ns_env() {
@@ -111,7 +111,7 @@ main() {
     local opt_long="ns:,ip:,gw:,bridge:,rootfs:,overlay:,cpu:,mem:,"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
-    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in

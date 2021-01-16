@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-mgr.sh - 134c863 - 2020-11-26T12:57:53+08:00")
+VERSION+=("virt-mgr.sh - 65733ca - 2021-01-17T04:30:24+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -142,7 +142,7 @@ create() {
     declare -A vm
     local opt_short="ql:dVhu:c:m:n:p:f:s:b:F:D:N:"
     local opt_long="quite,log:,dryrun,version,help,uuid:,cpus:,mem:,net:,pool:,format:,size:,back:,bfmt:,desc:,name:"
-    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
@@ -183,7 +183,7 @@ attach() {
     array_set vm "BACKING_FMT" ""
     local opt_short="ql:dVhu:n:p:s:b:F:f:"
     local opt_long="quite,log:,dryrun,version,help,uuid:,net:,pool:,size:,format:,back:,bfmt:"
-    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("tunnel.sh - 90046b6 - 2020-06-13T15:35:28+08:00")
+VERSION+=("tunnel.sh - 65733ca - 2021-01-17T04:30:24+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 del_ns() {
@@ -99,7 +99,7 @@ EOF
 main() {
     local opt_short="ql:dVhi:n:b:g:r:"
     local opt_long="quite,log:,dryrun,version,help,ipaddr:,nsname:,bridge:,gw:,dns:"
-    readonly local __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in

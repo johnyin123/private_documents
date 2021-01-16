@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION+=("init-pc.sh - 5d19715 - 2021-01-15T18:50:59+08:00")
+VERSION+=("init-pc.sh - 2740e36 - 2021-01-16T17:39:57+08:00")
 
 DEBIAN_VERSION=buster
 PASSWORD=password
@@ -487,7 +487,7 @@ func SetTitle()
         call setline(27, "    local opt_long=\"\"")
         call setline(28, "    opt_short+=\"ql:dVh\"")
         call setline(29, "    opt_long+=\"quite,log:,dryrun,version,help\"")
-        call setline(30, "    readonly local __ARGS=$(getopt -n \"${SCRIPTNAME}\" -o ${opt_short} -l ${opt_long} -- \"$@\") || usage")
+        call setline(30, "    __ARGS=$(getopt -n \"${SCRIPTNAME}\" -o ${opt_short} -l ${opt_long} -- \"$@\") || usage")
         call setline(31, "    eval set -- \"${__ARGS}\"")
         call setline(32, "    while true; do")
         call setline(33, "        case \"$1\" in")
