@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-if [ "${DEBUG:=false}" = "true" ]; then
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
+    BASH_XTRACEFD="5"
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
+VERSION+=("virt-mgr.sh - 134c863 - 2020-11-26T12:57:53+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -157,7 +160,7 @@ create() {
             -q | --quiet) QUIET=1; shift 1;;
             -l | --log) set_loglevel ${2}; shift 2;;
             -d | --dryrun) DRYRUN=1; shift 1;;
-            -V | --version) exit_msg "${SCRIPTNAME} version\n";;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
             -h | --help) shift 1; usage;;
             --) shift 1; break;;
         esac
@@ -194,7 +197,7 @@ attach() {
             -q | --quiet) QUIET=1; shift 1;;
             -l | --log) set_loglevel ${2}; shift 2;;
             -d | --dryrun) DRYRUN=1; shift 1;;
-            -V | --version) exit_msg "${SCRIPTNAME} version\n";;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
             -h | --help) shift 1; usage;;
             --) shift 1; break;;
             *)  error_msg "Unexpected option: $1.\n"; usage;;

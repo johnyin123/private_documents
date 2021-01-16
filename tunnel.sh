@@ -2,20 +2,14 @@
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
 if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
-    exec 5> ${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
     BASH_XTRACEFD="5"
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
+VERSION+=("tunnel.sh - 90046b6 - 2020-06-13T15:35:28+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-netns_exists() {
-    local ns_name="$1"
-    # Check if a namespace named $ns_name exists.
-    # Note: Namespaces with a veth pair are listed with '(id: 0)' (or something). We need to remove this before lookin
-    ip netns list | sed 's/ *(id: [0-9]\+)$//' | grep --quiet --fixed-string --line-regexp "${ns_name}"
-}
-
 del_ns() {
     debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local ns_name="$1"
@@ -117,7 +111,7 @@ main() {
             -q | --quiet) QUIET=1; shift 1 ;;
             -l | --log) set_loglevel ${2}; shift 2 ;;
             -d | --dryrun) DRYRUN=1; shift 1 ;;
-            -V | --version) exit_msg "${SCRIPTNAME} version\n" ;;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0 ;;
             -h | --help) shift 1; usage ;;
             --) shift 1; break ;;
             *)  error_msg "Unexpected option: $1.\n"; usage ;;

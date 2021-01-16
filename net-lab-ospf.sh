@@ -1,20 +1,13 @@
 #!/usr/bin/env bash
-set -o nounset -o pipefail
-#set -o errexit
-
-# Disable unicode.
-LC_ALL=C
-LANG=C
-
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-#readonly DIRNAME="$(dirname "$(readlink -e "$0")")"
 readonly SCRIPTNAME=${0##*/}
-
-if [ "${DEBUG:=false}" = "true" ]; then
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
+    BASH_XTRACEFD="5"
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-
+VERSION+=("net-lab-ospf.sh - f92467a - 2019-09-29T14:01:35+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
@@ -90,21 +83,11 @@ main() {
         opt="$1"
         shift
         case "${opt}" in
-            -q | --quiet)
-                QUIET=1
-                ;;
-            -l | --log)
-                set_loglevel ${1}; shift
-                ;;
-            -V | --version)
-                exit_msg "${SCRIPTNAME} version\n"
-                ;;
-            -d | --dryrun)
-                DRYRUN=1
-                ;;
-            -h | --help | *)
-                usage
-                ;;
+            -q | --quiet) QUIET=1 ;;
+            -l | --log) set_loglevel ${1}; shift ;;
+            -V | --version) for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0 ;;
+            -d | --dryrun) DRYRUN=1 ;;
+            -h | --help | *) usage ;;
         esac
     done
     gen_zebra "g1" "1.1.1.1/32"
