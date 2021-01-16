@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 1464f53 - 2021-01-15T20:02:23+08:00")
+VERSION+=("functions.sh - 2740e36 - 2021-01-16T17:39:57+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+echo }"
 alias try="try1"
@@ -82,21 +82,22 @@ netns_add_link() {
 }
 
 netns_shell() {
-    local ns_name="$1"
+    local info="$1"
+    local ns_name="${2:-}"
     trap "echo 'CTRL+C!!!!'" SIGINT
     maybe_dryrun $(truecmd env) -i \
         SHELL=$(truecmd bash) \
         HOME=/root \
         TERM=${TERM} \
-        $(truecmd ip) netns exec "${ns_name}" \
-        $(truecmd bash) --rcfile <(echo "PS1=\"(netns:${ns_name})\$PS1\"") || true
+        ${ns_name:+$(truecmd ip) netns exec "${ns_name}"} \
+        $(truecmd bash) --rcfile <(echo "PS1=\"(${info}$@${ns_name})\$PS1\"") || true
     trap - SIGINT
 }
 
 maybe_netns_run() {
     local cmd="$1"
     local ns_name="${2:-}"
-    try ${ns_name:+ip netns exec "${ns_name}"} "${cmd}"
+    try ${ns_name:+$(truecmd ip) netns exec "${ns_name}"} "${cmd}"
 }
 
 netns_exists() {

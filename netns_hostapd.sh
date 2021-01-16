@@ -111,7 +111,7 @@ hostap_main() {
     is_user_root || exit_msg "root user need!!\n"
     gen_conf
     netns_exists "${NS_NAME}" && {
-        netns_shell "${NS_NAME}"
+        netns_shell "hostap" "${NS_NAME}"
         exit 0
     }
     init_ns_env "${NS_NAME}" "${IP_PREFIX}"
@@ -121,7 +121,7 @@ hostap_main() {
     local phy="$(printf '%s\n' /sys/class/ieee80211/*/device/net/${WIFI_INTERFACE} | awk -F'/' '{ print $5 }')"
     setup_ap "${NS_NAME}" ${phy}
     setup_ap_iptable "${NS_NAME}"
-    netns_shell "${NS_NAME}"
+    netns_shell "hostap" "${NS_NAME}"
     #ns_run "${NS_NAME}" curl cip.cc
     cleanup_ns_wifi "${NS_NAME}" ${phy}
     cleanup_strategy_route "${ROUTE_TBL_ID}"
