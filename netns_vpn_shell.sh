@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns_vpn_shell.sh - 74c6148 - 2021-01-16T18:07:57+08:00")
+VERSION+=("netns_vpn_shell.sh - 1bd328d - 2021-01-17T03:39:50+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 NS_NAME=${NS_NAME:-"vpnet"}
@@ -118,7 +118,7 @@ main() {
         esac
     done
     netns_exists "${NS_NAME}" && {
-        netns_shell "vpn" "${NS_NAME}"
+        maybe_netns_shell "vpn" "${NS_NAME}"
         exit 0
     }
     init_ns_env "${NS_NAME}" "${IP_PREFIX}"
@@ -126,7 +126,7 @@ main() {
     setup_nameserver "${NS_NAME}" "${DNS}"
     setup_strategy_route "${IP_PREFIX}" "${ROUTE_IP}" "${ROUTE_TBL_ID}"
 
-    netns_shell "vpn" "${NS_NAME}"
+    maybe_netns_shell "vpn" "${NS_NAME}"
 
     cleanup_strategy_route "${ROUTE_TBL_ID}"
     cleanup_nameserver "${NS_NAME}"
