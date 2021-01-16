@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("wireguard_netns.sh - 1bd328d - 2021-01-17T03:39:50+08:00")
+VERSION+=("wireguard_netns.sh - 813ea7b - 2021-01-17T03:45:28+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_wg() {
@@ -47,7 +47,7 @@ setup_wg() {
     try ip link add ${wg_if} type wireguard
     vinfo_msg <<< "$WG_CONFIG"
     try wg setconf "${wg_if}" <(echo "$WG_CONFIG")
-    [[ -z "${ns_name}" ]] || netns_add_link "${wg_if}" "${ns_name}"
+    netns_add_link "${wg_if}" "${ns_name}"
     local x=
     for x in "${ADDRESSES[@]}"; do
         maybe_netns_run "ip addr add ${x} dev ${wg_if}" "${ns_name}" || return 1
@@ -126,7 +126,7 @@ main() {
     }
     info_msg "wireguard ${wg_if}${ns_name:+@"${ns_name}"} OK\n"
     trap "echo 'CTRL+C!!!!'" SIGINT
-    maybe_netns_shell "${wg_if}" "${NS_NAME}"
+    maybe_netns_shell "${wg_if}" "${ns_name}"
     cleanup_wg "${wg_if}" "${ns_name}" || true
     [[ -z "${ns_name}" ]] || cleanup_ns "${ns_name}" || true
     return 0

@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 1bd328d - 2021-01-17T03:39:50+08:00")
+VERSION+=("functions.sh - 813ea7b - 2021-01-17T03:45:28+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+echo }"
 alias try="try1"
@@ -362,7 +362,7 @@ LOG_LEVELNAMES=('ERROR' 'WARNING' 'INFO' 'DEBUG')
 # Global constants definition end }}
 
 # Show log whose level less than this
-log_level=3
+log_level=2
 # Default date fmt
 date_fmt='%Y-%m-%d %H:%M:%S'
 # Default log fmt
