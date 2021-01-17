@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-volupload.sh - 65733ca - 2021-01-17T04:30:24+08:00")
+VERSION+=("virt-volupload.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -17,6 +17,7 @@ VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT
 VIRSH="virsh ${VIRSH_OPT}"
 
 usage() {
+    [ "$#" != 0 ] && echo "$*"
 cat <<EOF
 ${SCRIPTNAME} 
     -p|--pool              *                 pool
@@ -36,31 +37,34 @@ main() {
     local disk_tpl=
     local vol_name=
     local pool=
-    local opt_short="ql:dVhp:v:t:"
-    local opt_long="quite,log:,dryrun,version,help,pool:,vol:,template:"
+    local opt_short="p:v:t:"
+    local opt_long="pool:,vol:,template:,"
+    opt_short+="ql:dVh"
+    opt_long+="quite,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -p | --pool) pool=${2}; shift 2 ;;
-            -v | --vol) vol_name=${2}; shift 2 ;;
-            -t | --template) disk_tpl=${2}; shift 2 ;;
-            -q | --quiet) QUIET=1; shift 1 ;;
-            -l | --log) set_loglevel ${2}; shift 2 ;;
-            -d | --dryrun) DRYRUN=1; shift 1 ;;
-            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0 ;;
-            -h | --help) shift 1; usage ;;
-            --) shift 1; break ;;
-            *)  error_msg "Unexpected option: $1.\n"; usage ;;
+            -p | --pool)     shift; pool=${1}; shift ;;
+            -v | --vol)      shift; vol_name=${1}; shift ;;
+            -t | --template) shift; disk_tpl=${1}; shift ;;
+            ########################################
+            -q | --quiet)   shift; QUIET=1;;
+            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              usage "Unexpected option: $1";;
         esac
     done
     local upload_cmd=${VIRSH}
     #stdin is redirect 
     #[ -p /dev/stdin ] || { disk_tpl=/dev/stdin; upload_cmd="cat | ${VIRSH}"; }
     [[ -t 0 ]] || { disk_tpl=/dev/stdin; upload_cmd="cat | ${VIRSH}"; }
-    [[ -z "${disk_tpl}" ]] && usage
-    [[ -z "${vol_name}" ]] && usage
-    [[ -z "${pool}"     ]] && usage
+    [[ -z "${disk_tpl}" ]] && usage "template must input"
+    [[ -z "${vol_name}" ]] && usage "vol name must input"
+    [[ -z "${pool}"     ]] && usage "pool must input"
     [ -r ${disk_tpl} ] || exit_msg "template file ${disk_tpl} no found\n"
     [[ -t 0 ]] || disk_tpl=/dev/stdin    #stdin is redirect
     info_msg "upload ${disk_tpl} start\n" 

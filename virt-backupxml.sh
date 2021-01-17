@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-if [ "${DEBUG:=false}" = "true" ]; then
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
+    BASH_XTRACEFD="5"
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
+VERSION+=("virt-backupxml.sh - 69b3b0c - 2020-12-09T11:04:49+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 VIRSH_OPT="-k 300 -K 5 -q"

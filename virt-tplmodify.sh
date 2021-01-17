@@ -1,26 +1,30 @@
-#!/usr/bin/env bash
+##!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-if [ "${DEBUG:=false}" = "true" ]; then
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
+    BASH_XTRACEFD="5"
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
+VERSION+=("virt-tplmodify.sh - 8951d9c - 2020-11-25T09:05:37+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-
 usage() {
+    [ "$#" != 0 ] && echo "$*"
 cat <<EOF
 ${SCRIPTNAME} 
-    -n|--interface                           interface name(eth0/eth1)
-    -r|--route                               routes -r "default via xxx" -r "10.0.0.0/24 via xxx"
-    -m|--mask                                netmask or prefix
-    -i|--ipaddr            *                 ipv4 address
-    -H|--hostname                            guest os hostname
-    -t|--template          *                 telplate disk for upload
-    -q|--quiet
-    -l|--log <int>                           log level
-    -d|--dryrun                              dryrun
-    -h|--help                                display this help and exit
+        -n|--interface          interface name(eth0/eth1)
+        -r|--route              routes -r "default via xxx" -r "10.0.0.0/24 via xxx"
+        -m|--mask               netmask or prefix
+        -i|--ipaddr        *    ipv4 address
+        -H|--hostname           guest os hostname
+        -t|--template      *    telplate disk for upload
+        -q|--quiet
+        -l|--log <int> log level
+        -V|--version
+        -d|--dryrun dryrun
+        -h|--help help
 EOF
 exit 1
 }
@@ -76,47 +80,34 @@ main() {
     local guest_prefix=24
     local iface="eth0"
     declare -a guest_route=()
-
-    while test $# -gt 0
-    do
-        local opt="$1"
-        shift
-        case "${opt}" in
-            -r|--route)
-                array_append guest_route "${1:?guest route need input}";shift 1
-                ;;
-            -n|--interface)
-                iface=${1:?interface name need input};shift 1
-                ;;
-            -m|--mask)
-                guest_prefix=${1:?guest net mask need input};shift 1
+    local opt_short="r:n:m:i:H:t:"
+    local opt_long="route:,interface:,mask:,ipaddr:,hostname:,template:,"
+    opt_short+="ql:dVh"
+    opt_long+="quite,log:,dryrun,version,help"
+    __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            -r|--route)     shift; array_append guest_route "${1:?guest route need input}";shift ;;
+            -n|--interface) shift; iface=${1:?interface name need input};shift ;;
+            -m|--mask)      shift; guest_prefix=${1:?guest net mask need input};shift;
                 is_ipv4_netmask "${guest_prefix}" && guest_prefix=$(mask2cidr ${guest_prefix})
                 ;;
-            -i|--ipaddr)
-                guest_ipaddr=${1:?guest ip address need input};shift 1
-                ;;
-            -H|--hostname)
-                guest_hostname=${1:?guest hostname need input};shift 1
-                ;;
-            -t|--template)
-                disk_tpl=${1:?disk template need input};shift 1
-                ;;
-            -q | --quiet)
-                QUIET=1
-                ;;
-            -l | --log)
-                set_loglevel ${1}; shift
-                ;;
-            -d | --dryrun)
-                DRYRUN=1
-                ;;
-            -h | --help | *)
-                usage
-                ;;
+            -i|--ipaddr)    shift; guest_ipaddr=${1:?guest ip address need input};shift ;;
+            -H|--hostname)  shift; guest_hostname=${1:?guest hostname need input};shift ;;
+            -t|--template)  shift; disk_tpl=${1:?disk template need input};shift ;;
+            ########################################
+            -q | --quiet)   shift; QUIET=1;;
+            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              usage "Unexpected option: $1";;
         esac
     done
-    [[ -z "${disk_tpl}" ]] && usage
-    [[ -z "${guest_ipaddr}" ]] && usage
+    [[ -z "${disk_tpl}" ]] && usage "template must input"
+    [[ -z "${guest_ipaddr}" ]] && usage "ipaddr must input"
 
     is_user_root || exit_msg "root need!\n"
     for i in mount umount parted
