@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("wireguard_netns.sh - fa5898d - 2021-01-17T03:59:54+08:00")
+VERSION+=("wireguard_netns.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_wg() {
@@ -86,7 +86,6 @@ EOF
 }
 
 main() {
-    is_user_root || exit_msg "root user need!!\n"
     local wg_if= wg_conf= ns_name= gateway=
     local opt_short="w:c:n:i:g:"
     local opt_long="wg:,conf:,ns:,ip:,gw:,"
@@ -113,6 +112,7 @@ main() {
     [[ -z "${wg_if}" ]] && usage "wireguard ifname must input"
     [[ ${wg_if} =~ ^[a-zA-Z0-9_=+.-]{1,15}$ ]] || usage "wireguard ifname wrong"
     [[ -z "${wg_conf}" ]] && usage "wireguard config file must input"
+    is_user_root || exit_msg "root user need!!\n"
     file_exists "${wg_conf}" || exit_msg "file ${wg_conf} no found!!\n"
     require env bash ip wg
     [[ -z "${ns_name}" ]] || {
