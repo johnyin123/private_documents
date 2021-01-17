@@ -2,11 +2,12 @@
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
 if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
-    exec 5> ${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
     BASH_XTRACEFD="5"
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
+VERSION+=("qemu-agent.sh - 892d33b - 2020-04-23T13:49:59+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 VIRSH_OPT="-k 300 -K 5 -q"
@@ -48,12 +49,14 @@ agent_command() {
 }
 
 usage() {
+    [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME} -q -l <int> -d -h passwd/exec <args>
-               exec <usr_srv_port> <domain> <cmd> <arg>
-               passwd <usr_srv_port> <domain> <username> <password>
+        exec <usr_srv_port> <domain> <cmd> <arg>
+        passwd <usr_srv_port> <domain> <username> <password>
         -q|--quiet
         -l|--log <int> log level
+        -V|--version
         -d|--dryrun dryrun
         -h|--help help
 EOF
@@ -61,26 +64,23 @@ EOF
 }
 
 main() {
-    while test -n "${1:-}"
-    do
-        case "${1:--h}" in
-            -q | --quiet)
-                QUIET=1
-                ;;
-            -l | --log)
-                set_loglevel ${1}; shift
-                ;;
-            -d | --dryrun)
-                DRYRUN=1
-                ;;
-            -h | --help)
-                usage
-                ;;
-            *)
-                break
-                ;;
+    local opt_short=""
+    local opt_long=""
+    opt_short+="ql:dVh"
+    opt_long+="quite,log:,dryrun,version,help"
+    __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            ########################################
+            -q | --quiet)   shift; QUIET=1;;
+            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              usage "Unexpected option: $1";;
         esac
-        shift
     done
     case "${1:-}" in
         passwd)
@@ -92,7 +92,7 @@ main() {
             agent_command ${*}
             ;;
         *)
-            usage
+            usage "passwd/exec"
             ;;
     esac
 }
