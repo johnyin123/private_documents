@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cgroup_netns_chroot.sh - 74c6148 - 2021-01-16T18:07:57+08:00")
+VERSION+=("cgroup_netns_chroot.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 init_ns_env() {
@@ -104,7 +104,6 @@ EOF
 }
 
 main() {
-    is_user_root || exit_msg "root user need!!\n"
     local ns_name= ipv4_cidr="192.168.168.169/24" gateway= out_br= lower="/" overlay= cpu_share=512 mem_limit=512
 
     local opt_short="n:i:g:b:r:o:c:m:"
@@ -150,6 +149,7 @@ main() {
         echo "cpu_share = $cpu_share"
         echo "mem_limit = $mem_limit"
     } | vinfo_msg
+    is_user_root || exit_msg "root user need!!\n"
     require cgcreate cgset cgexec unshare chroot ip
     try mkdir -p "${overlay}"
     netns_exists "${ns_name}" && exit_msg "netns ${ns_name} exist!!\n"

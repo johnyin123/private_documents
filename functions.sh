@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 40fd848 - 2021-01-17T08:40:42+08:00")
+VERSION+=("functions.sh - cf10358 - 2021-01-17T10:50:22+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+safe_echo >&2 EXECUTE }"
 alias try="try1"
@@ -37,10 +37,10 @@ __T=$((1024*__G))
 __P=$((1024*__T))
 human_readable_disk_size() {
     local bytes=$1
-    if [ $bytes -ge $__P ]; then echo $((bytes/__P))P; return; fi
-    if [ $bytes -ge $__T ]; then echo $((bytes/__T))T; return; fi
-    if [ $bytes -ge $__G ]; then echo $((bytes/__G))G; return; fi
-    echo $((bytes/__M))M
+    if [ $bytes -ge $__P ]; then safe_echo $((bytes/__P))P; return; fi
+    if [ $bytes -ge $__T ]; then safe_echo $((bytes/__T))T; return; fi
+    if [ $bytes -ge $__G ]; then safe_echo $((bytes/__G))G; return; fi
+    safe_echo $((bytes/__M))M
 }
 
 human_readable_format_size()
@@ -168,7 +168,7 @@ get_ipaddr() {
 check_http_status() {
     local url=$1
     local status=$(curl -s -o /dev/null -w '%{http_code}' $url)
-    echo $status
+    safe_echo $status
 }
 
 stdout_is_terminal() {
@@ -244,8 +244,9 @@ render_tpl2() {
         str="${str//"$sub"/$val}"
     done
     cat <<< "$str"
+    # ${[ dummy
 }
-
+#  
 # declare -A vm=([DISK_DEV]=vdc [VAL]=2)
 # echo "hello '\${DISK_DEV}' \$((\${VAL}*2))" | render_tpl vm
 render_tpl() {
@@ -299,7 +300,7 @@ dialog() {
         --menu "${menu}" \
         $LINES $COLUMNS $(( $LINES - 12 )) \
         "${items[@]}" 3>&1 1>&2 2>&3 || true)
-    safe_echo -n "${item}"
+    safe_echo "${item}"
 }
 ##################################################
 # Assign variable one scope above the caller
@@ -576,6 +577,7 @@ try1() {
         2> >(__ret_err=$(cat); typeset -p __ret_err) \
         1> >(__ret_out=$(cat); typeset -p __ret_out); __ret_rc=$?; typeset -p __ret_rc )"
     [ ${__ret_rc} = 0 ] && { defined QUIET || green " done.\n" >&2; cat <<< "${__ret_out}"; }
+    # ${[ dummy
     [ ${__ret_rc} = 0 ] || {
         local cmd_func="" #"${FUNCNAME[1]}"
         for (( idx=${#FUNCNAME[@]}-1 ; idx>=1 ; idx-- )) ; do
@@ -584,6 +586,7 @@ try1() {
         local cmd_line="${BASH_LINENO[1]}"
         defined QUIET ||red " failed(${cmd_func}:${cmd_line} [${__ret_rc}]).\n" >&2
         [[ -z "${__ret_err}" ]] || cat >&2 <<< "${__ret_err}"
+        # ${[ dummy
     }
     return ${__ret_rc}
 }
@@ -597,6 +600,7 @@ try2() {
     # __result_msg not be local !!!
     __result_msg=$(eval $@ 2>&1) || __ret_rc=$?
     [ ${__ret_rc} = 0 ] && { defined QUIET || green " done.\n" >&2; cat <<< "${__ret_out}"; }
+    # ${[ dummy
     [ ${__ret_rc} = 0 ] || {
         local cmd_func="" #"${FUNCNAME[1]}"
         for (( idx=${#FUNCNAME[@]}-1 ; idx>=1 ; idx-- )) ; do
@@ -605,6 +609,7 @@ try2() {
         local cmd_line="${BASH_LINENO[1]}"
         defined QUIET ||red " failed(${cmd_func}:${cmd_line} [${__ret_rc}]).\n" >&2
         [[ -z "${__ret_err}" ]] || cat >&2 <<< "${__ret_err}"
+        # ${[ dummy
     }
     return ${__ret_rc}
 }
@@ -664,6 +669,7 @@ is_integer() {
   if [ $# -ge 1 ]; then
     local param="${1}"
     grep --color=never -E -x -q '\-?[1-9]{1}[0-9]*' <<< "${param}" 1>/dev/null 2>/dev/null
+    # ${[ dummy
     exit_code=$?
   fi
   return $exit_code
@@ -702,7 +708,8 @@ string_contains() {
 split() {
     # Usage: split "string" "delimiter"
     IFS=$'\n' read -d "" -ra arr <<< "${1//$2/$'\n'}"
-    printf '%s\n' "${arr[@]}"
+    # ${[ dummy
+    safe_echo '%s' "${arr[@]}"
 }
 
 array_append() {
@@ -824,6 +831,7 @@ json_config() {
         str="$(cat ${2:?json_config input err})"
     }
     jq -r "(${key})? // empty" <<< ${str}
+    # ${[ dummy
 }
 # get second argument if first one not found
 json_config_default() {
@@ -836,6 +844,7 @@ json_config_default() {
         str="$(cat ${3:?json_config input err})"
     }
     jq -r '('${key}') // "'${default}'"' <<< ${str}
+    # ${[ dummy
 }
 
 # Performs POST onto specified URL with content formatted as json
@@ -887,6 +896,7 @@ ip2int() {
     local a b c d
     { IFS=. read a b c d; } <<< $1
     safe_echo $(((((((a << 8) | b) << 8) | c) << 8) | d))
+    # ${[ dummy
 }
 
 int2ip() {
@@ -910,6 +920,7 @@ is_fqdn() {
 is_ipv4_netmask() {
     is_ipv4 "$1" || return 1
     IFS='.' read -r ipb[1] ipb[2] ipb[3] ipb[4] <<< "$1"
+    # ${[ dummy
     local -r list_msb='0 128 192 224 240 248 252 254'
     for i in {1,2,3,4}; do
         if [[ ${rest_to_zero:-0} = 1 ]]; then
@@ -934,6 +945,7 @@ is_ipv4_cidr() {
 }
 is_ipv4_subnet() {
     IFS='/' read -r tip tmask <<< "$1"
+    # ${[ dummy
     is_ipv4_cidr "$tmask" || return 1
     is_ipv4 "$tip" || return 1
     return 0
@@ -942,14 +954,18 @@ get_ipv4_network() {
     is_ipv4 "$1" || return 1
     is_ipv4_netmask "$2" || return 1
     IFS='.' read -r ipb1 ipb2 ipb3 ipb4 <<< "$1"
+    # ${[ dummy
     IFS='.' read -r mb1 mb2 mb3 mb4 <<< "$2"
+    # ${[ dummy
     safe_echo "$((ipb1 & mb1)).$((ipb2 & mb2)).$((ipb3 & mb3)).$((ipb4 & mb4))"
 }
 get_ipv4_broadcast() {
     is_ipv4 "$1" || return 1
     is_ipv4_netmask "$2" || return 1
     IFS='.' read -r ipb1 ipb2 ipb3 ipb4 <<< "$1"
+    # ${[ dummy
     IFS='.' read -r mb1 mb2 mb3 mb4 <<< "$2"
+    # ${[ dummy
     nmb1=$((mb1 ^ 255))
     nmb2=$((mb2 ^ 255))
     nmb3=$((mb3 ^ 255))
