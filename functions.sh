@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 541f545 - 2021-01-18T08:29:28+08:00")
+VERSION+=("functions.sh - 5106568 - 2021-01-18T10:50:55+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+safe_echo >&2 EXECUTE }"
 
@@ -573,14 +573,28 @@ debugshell() {
 # "try ls \| less").
 # Examples:
 #  try my_command ${args} || return ${?}
+#  try echo "log" \> log
+#  cmds="
+#    touch log
+#    exit 0
+#  "
+#  try <<< $cmds
+#  echo "$cmds" | try
+#  cat <<EOF | try
+#    echo hello >> log
+#    exit 1
+#  EOF
 #******************************************************************************
 try() {
+    local cmds="$@"
+    [[ -t 0 ]] || cmds="$(cat)"
     local cmd_size=-60.60
-    defined DRYRUN && { safe_echo >&2 EXECUTE $*; return 0; }
+    defined DRYRUN && { safe_echo >&2 "EXECUTE $cmds"; return 0; }
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
-    defined QUIET || blue "Begin: %${cmd_size}s." "$*" >&2
+    defined QUIET || blue "Begin: %${cmd_size}s." "$cmds" >&2
     __ret_out= __ret_err= __ret_rc=0
-    eval -- "$( ($@ ; exit $?) \
+    # eval -- "$( ($@ ; exit $?) \
+    eval -- "$( (eval "$cmds") \
         2> >(__ret_err=$(cat); typeset -p __ret_err) \
         1> >(__ret_out=$(cat); typeset -p __ret_out); __ret_rc=$?; typeset -p __ret_rc )"
     [ ${__ret_rc} = 0 ] && { defined QUIET || green " done.\n" >&2; [[ -z "${__ret_out}" ]] ||cat <<< "${__ret_out}"; }
