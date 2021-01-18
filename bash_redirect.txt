@@ -1,3 +1,10 @@
+eval "$(cat file.txt)"
+# or easier, in ksh/bash/zsh
+eval "$(<file.txt)"
+# usually you cannot be sure that a command ends at the end of line 5
+eval "$(head -n 5 file.txt)"
+source <(head -n 5 file.txt)
+
 +-----------------------------.---------------------------------------------+
 | Redirection                 | Description                                 |
 '-----------------------------'---------------------------------------------'
