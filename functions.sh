@@ -16,10 +16,9 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - cf10358 - 2021-01-17T10:50:22+08:00")
+VERSION+=("functions.sh - 28e7a8c - 2021-01-17T13:52:59+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+safe_echo >&2 EXECUTE }"
-alias try="try1"
 
 dummy() { :; }
 
@@ -79,7 +78,7 @@ netns_add_link() {
     local link="$1"
     local ns_name="$2"
     local newname="${3:-}"
-    try ip link set "${link}" netns "${ns_name}" ${newname:+name ${newname}} up
+    try ip link set "${link}" ${ns_name:+netns ${ns_name}} ${newname:+name ${newname}} up
 }
 
 maybe_netns_shell() {
@@ -91,7 +90,7 @@ maybe_netns_shell() {
         HOME=/root \
         TERM=${TERM} \
         ${ns_name:+$(truecmd ip) netns exec "${ns_name}"} \
-        $(truecmd bash) --rcfile <(echo "PS1=\"(${info}$@${ns_name})\$PS1\"") || true
+        $(truecmd bash) --rcfile <(echo "PS1=\"(${info}${ns_name:+@${ns_name}})\$PS1\"") || true
     trap - SIGINT
 }
 
@@ -359,7 +358,7 @@ LOG_INFO=2        # Level info
 LOG_DEBUG=3       # Level debug
 
 # Log level names
-LOG_LEVELNAMES=('ERROR' 'WARNING' 'INFO' 'DEBUG')
+LOG_LEVELNAMES=('ERROR' 'WARN ' 'INFO ' 'DEBUG')
 
 # Global constants definition end }}
 
@@ -567,7 +566,7 @@ debugshell() {
 # Examples:
 #  try my_command ${args} || return ${?}
 #******************************************************************************
-try1() {
+try() {
     local cmd_size=-60.60
     defined DRYRUN && { safe_echo >&2 EXECUTE $*; return 0; }
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
@@ -576,30 +575,7 @@ try1() {
     eval "$( ($@ ; exit $?) \
         2> >(__ret_err=$(cat); typeset -p __ret_err) \
         1> >(__ret_out=$(cat); typeset -p __ret_out); __ret_rc=$?; typeset -p __ret_rc )"
-    [ ${__ret_rc} = 0 ] && { defined QUIET || green " done.\n" >&2; cat <<< "${__ret_out}"; }
-    # ${[ dummy
-    [ ${__ret_rc} = 0 ] || {
-        local cmd_func="" #"${FUNCNAME[1]}"
-        for (( idx=${#FUNCNAME[@]}-1 ; idx>=1 ; idx-- )) ; do
-            cmd_func+="${FUNCNAME[idx]} "
-        done
-        local cmd_line="${BASH_LINENO[1]}"
-        defined QUIET ||red " failed(${cmd_func}:${cmd_line} [${__ret_rc}]).\n" >&2
-        [[ -z "${__ret_err}" ]] || cat >&2 <<< "${__ret_err}"
-        # ${[ dummy
-    }
-    return ${__ret_rc}
-}
-
-try2() {
-    local __ret_rc=0
-    local cmd_size=-60.60
-    defined DRYRUN && { safe_echo >&2 EXECUTE $*; return 0; }
-    [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
-    defined QUIET || blue "Begin: %${cmd_size}s." "$*" >&2
-    # __result_msg not be local !!!
-    __result_msg=$(eval $@ 2>&1) || __ret_rc=$?
-    [ ${__ret_rc} = 0 ] && { defined QUIET || green " done.\n" >&2; cat <<< "${__ret_out}"; }
+    [ ${__ret_rc} = 0 ] && { defined QUIET || green " done.\n" >&2; [[ -z "${__ret_out}" ]] ||cat <<< "${__ret_out}"; }
     # ${[ dummy
     [ ${__ret_rc} = 0 ] || {
         local cmd_func="" #"${FUNCNAME[1]}"

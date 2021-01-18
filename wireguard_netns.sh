@@ -7,14 +7,13 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("wireguard_netns.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
+VERSION+=("wireguard_netns.sh - c907c7d - 2021-01-17T08:42:20+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_wg() {
     local wg_if="$1"
     local CONFIG_FILE="$2"
-    local routes="$3" #0.0.0.0/0 via 1.1.1.1,192.168.0.0/16 via 1.1.1.2
-    local ns_name="${4:-}"
+    local ns_name="${3:-}"
     # fork from wg-quick begin
     local line= stripped= key= value= interface_section=0
     local ADDRESSES=() MTU=1420 WG_CONFIG=""
@@ -54,9 +53,16 @@ setup_wg() {
     done
     maybe_netns_run "ip link set mtu ${MTU} up dev ${wg_if}" "${ns_name}" || return 2
     # deal routes
-    while read -rd "," -r x; do
+    for x in $(while read -r _ x; do for x in $x; do [[ $x =~ ^[0-9a-z:.]+/[0-9]+$ ]] && echo "$x"; done; done < <(wg show "${wg_if}" allowed-ips) | sort -nr -k 2 -t /); do
+        [[ -n $(ip route show match "$x" 2>/dev/null) ]] && {
+            warn_msg "${wg_if} route skip: $(ip route show match $x)($x)\n"
+            continue
+        }
         maybe_netns_run "ip route add $x dev ${wg_if}" "${ns_name}" || return 3
-    done <<< "${routes},"
+    done
+#    while read -rd "," -r x; do
+#        maybe_netns_run "ip route add $x dev ${wg_if}" "${ns_name}" || return 3
+#    done <<< "${routes},"
     return 0
 }
 
@@ -74,8 +80,6 @@ ${SCRIPTNAME}
         -w|--wg    *  wireguard ifname
         -c|--conf  *  wireguard conf file
         -n|--ns       net namespace
-        -g|--gw       gateway 
-                      example: "0.0.0.0/0 via 1.1.1.1,192.168.0.0/26,192.167.0.0/16 via 1.1.1.2"
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -86,7 +90,7 @@ EOF
 }
 
 main() {
-    local wg_if= wg_conf= ns_name= gateway=
+    local wg_if= wg_conf= ns_name=
     local opt_short="w:c:n:i:g:"
     local opt_long="wg:,conf:,ns:,ip:,gw:,"
     opt_short+="ql:dVh"
@@ -98,7 +102,6 @@ main() {
             -w | --wg)      shift; wg_if=${1}; shift;;
             -c | --conf)    shift; wg_conf=${1}; shift;;
             -n | --ns)      shift; ns_name=${1}; shift;;
-            -g | --gw)      shift; gateway=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -119,7 +122,7 @@ main() {
         netns_exists "${ns_name}" && exit_msg "netns ${ns_name} exist!!\n"
         setup_ns "${ns_name}" || { cleanup_ns "${ns_name}"||true; exit_msg "netns ${ns_name} setup error!\n"; }
     }
-    setup_wg "${wg_if}" "${wg_conf}" "${gateway}" "${ns_name}" || {
+    setup_wg "${wg_if}" "${wg_conf}" "${ns_name}" || {
         cleanup_wg "${wg_if}" "${ns_name}" || true
         [[ -z "${ns_name}" ]] || cleanup_ns "${ns_name}" || true
         exit_msg "wireguard ${wg_if} setup error!\n"
