@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("wireguard_netns.sh - ac583e7 - 2021-01-18T08:13:21+08:00")
+VERSION+=("wireguard_netns.sh - 77d8e82 - 2021-01-18T08:20:58+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_wg() {
@@ -53,8 +53,8 @@ setup_wg() {
     done
     maybe_netns_run "ip link set mtu ${MTU} up dev ${wg_if}" "${ns_name}" || return 2
     # deal routes
-    for x in $(while read -r _ x; do for x in $x; do [[ $x =~ ^[0-9a-z:.]+/[0-9]+$ ]] && echo "$x"; done; done < <(wg show "${wg_if}" allowed-ips) | sort -nr -k 2 -t /); do
-        [[ -n $(ip route show match "$x" 2>/dev/null) ]] && {
+    for x in $(while read -r _ x; do for x in $x; do [[ $x =~ ^[0-9a-z:.]+/[0-9]+$ ]] && echo "$x"; done; done < <(maybe_netns_run "wg show ${wg_if} allowed-ips" "${ns_name}") | sort -nr -k 2 -t /); do
+        [[ -n $(maybe_netns_run "ip route show match $x" "${ns_name}" 2>/dev/null) ]] && {
             warn_msg "${wg_if} route skip: $(ip route show match $x)($x)\n"
             continue
         }

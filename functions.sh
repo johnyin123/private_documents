@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 77d8e82 - 2021-01-18T08:20:58+08:00")
+VERSION+=("functions.sh - 541f545 - 2021-01-18T08:29:28+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+safe_echo >&2 EXECUTE }"
 
@@ -115,7 +115,7 @@ cleanup_ns() {
 bridge_exists() {
     local bridge="$1"
     local ns_name="${2:-}"
-    maybe_netns_run "[ -e \"/sys/class/net/${bridge}/bridge/bridge_id\" ]" "${ns_name}"
+    maybe_netns_run "[ -e /sys/class/net/${bridge}/bridge/bridge_id ]" "${ns_name}"
 }
 
 maybe_netns_bridge_addlink() {
@@ -123,6 +123,14 @@ maybe_netns_bridge_addlink() {
     local link="$2"
     local ns_name="${3:-}"
     maybe_netns_run "ip link set ${link} master ${bridge}" "${ns_name}"
+}
+
+maybe_netns_bridge_dellink() {
+    local link="$1"
+    local ns_name="${2:-}"
+    maybe_netns_run "ip link set ${link} promisc off" "${ns_name}" || true
+    maybe_netns_run "ip link set ${link} down" "${ns_name}" || true
+    maybe_netns_run "ip link set dev ${link} nomaster" "${ns_name}" || true
 }
 
 maybe_netns_setup_bridge() {
@@ -572,7 +580,7 @@ try() {
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
     defined QUIET || blue "Begin: %${cmd_size}s." "$*" >&2
     __ret_out= __ret_err= __ret_rc=0
-    eval "$( ($@ ; exit $?) \
+    eval -- "$( ($@ ; exit $?) \
         2> >(__ret_err=$(cat); typeset -p __ret_err) \
         1> >(__ret_out=$(cat); typeset -p __ret_out); __ret_rc=$?; typeset -p __ret_rc )"
     [ ${__ret_rc} = 0 ] && { defined QUIET || green " done.\n" >&2; [[ -z "${__ret_out}" ]] ||cat <<< "${__ret_out}"; }
