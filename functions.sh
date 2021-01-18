@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - ac583e7 - 2021-01-18T08:13:21+08:00")
+VERSION+=("functions.sh - 77d8e82 - 2021-01-18T08:20:58+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+safe_echo >&2 EXECUTE }"
 
@@ -118,21 +118,21 @@ bridge_exists() {
     maybe_netns_run "[ -e \"/sys/class/net/${bridge}/bridge/bridge_id\" ]" "${ns_name}"
 }
 
-bridge_add_link() {
+maybe_netns_bridge_addlink() {
     local bridge="$1"
     local link="$2"
     local ns_name="${3:-}"
     maybe_netns_run "ip link set ${link} master ${bridge}" "${ns_name}"
 }
 
-setup_bridge() {
+maybe_netns_setup_bridge() {
     local bridge="$1"
     local ns_name="${2:-}"
     maybe_netns_run "ip link add ${bridge} type bridge" "${ns_name}"
     maybe_netns_run "ip link set ${bridge} up" "${ns_name}"
 }
 
-setup_veth() {
+maybe_netns_setup_veth() {
     local veth_left="$1"
     local veth_right="$2"
     local ns_name="${3:-}"

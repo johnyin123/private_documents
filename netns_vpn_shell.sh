@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns_vpn_shell.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
+VERSION+=("netns_vpn_shell.sh - 77d8e82 - 2021-01-18T08:20:58+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 NS_NAME=${NS_NAME:-"vpnet"}
@@ -23,7 +23,7 @@ init_ns_env() {
     ns_name0="${ns_name}0"
     ns_name1="${ns_name}1"
     setup_ns $ns_name
-    setup_veth ${ns_name}0 ${ns_name}1 $ns_name
+    maybe_netns_setup_veth ${ns_name}0 ${ns_name}1 $ns_name
     maybe_netns_addlink "${ns_name}1" "${ns_name}" "eth0"
     try ip link set ${ns_name}0 up
     try ip addr add $ip.1/24 dev ${ns_name}0
