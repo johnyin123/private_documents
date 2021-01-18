@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 28e7a8c - 2021-01-17T13:52:59+08:00")
+VERSION+=("functions.sh - ac583e7 - 2021-01-18T08:13:21+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+safe_echo >&2 EXECUTE }"
 
@@ -74,9 +74,9 @@ setup_ns() {
     maybe_netns_run "ip link set lo up" "${ns_name}"
 }
 
-netns_add_link() {
+maybe_netns_addlink() {
     local link="$1"
-    local ns_name="$2"
+    local ns_name="${2:-}"
     local newname="${3:-}"
     try ip link set "${link}" ${ns_name:+netns ${ns_name}} ${newname:+name ${newname}} up
 }

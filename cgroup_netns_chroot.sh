@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cgroup_netns_chroot.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
+VERSION+=("cgroup_netns_chroot.sh - 28e7a8c - 2021-01-17T13:52:59+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 init_ns_env() {
@@ -20,7 +20,7 @@ init_ns_env() {
 
     bridge_add_link ${out_br} ${ns_name}0
 
-    netns_add_link "${ns_name}1" "${ns_name}" "eth0"
+    maybe_netns_addlink "${ns_name}1" "${ns_name}" "eth0"
     maybe_netns_run "ip addr add ${ipv4_cidr} dev eth0" "${ns_name}"
     [[ -z ${gateway} ]] || maybe_netns_run "ip route add default via ${gateway}" "${ns_name}"
 }
