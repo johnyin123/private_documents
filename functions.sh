@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 076d2ea - 2021-01-18T20:53:22+08:00")
+VERSION+=("functions.sh - 9664a8d - 2021-01-19T08:10:16+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+safe_echo >&2 EXECUTE }"
 
@@ -582,10 +582,11 @@ debugshell() {
 #    echo hello >> log
 #    exit 1
 #  EOF
+#  echo -n ${cli_prikey} | try wg pubkey
 #******************************************************************************
 try() {
-    local cmds="$@"
-    [[ -t 0 ]] || cmds="$(cat)"
+    # stdin is redirect and has parm, so stdin is not cmd stream!!
+    local cmds="${@:-$(cat)}"
     local cmd_size=-60.60
     defined DRYRUN && { safe_echo >&2 "EXECUTE $cmds"; return 0; }
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
