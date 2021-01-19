@@ -16,9 +16,10 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 9664a8d - 2021-01-19T08:10:16+08:00")
+VERSION+=("functions.sh - 34288d3 - 2021-01-19T09:28:29+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+safe_echo >&2 EXECUTE }"
+alias maybe_quiet="defined QUIET || "
 
 dummy() { :; }
 
@@ -590,13 +591,13 @@ try() {
     local cmd_size=-60.60
     defined DRYRUN && { safe_echo >&2 "EXECUTE $cmds"; return 0; }
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
-    defined QUIET || blue "Begin: %${cmd_size}s." "$cmds" >&2
+    maybe_quiet blue "Begin: %${cmd_size}s." "$cmds" >&2
     __ret_out= __ret_err= __ret_rc=0
     # eval -- "$( ($@ ; exit $?) \
     eval -- "$( (eval "$cmds") \
         2> >(__ret_err=$(cat); typeset -p __ret_err) \
         1> >(__ret_out=$(cat); typeset -p __ret_out); __ret_rc=$?; typeset -p __ret_rc )"
-    [ ${__ret_rc} = 0 ] && { defined QUIET || green " done.\n" >&2; [[ -z "${__ret_out}" ]] ||cat <<< "${__ret_out}"; }
+    [ ${__ret_rc} = 0 ] && { maybe_quiet green " done.\n" >&2; [[ -z "${__ret_out}" ]] ||cat <<< "${__ret_out}"; }
     # ${[ dummy
     [ ${__ret_rc} = 0 ] || {
         local cmd_func="" #"${FUNCNAME[1]}"
@@ -604,7 +605,7 @@ try() {
             cmd_func+="${FUNCNAME[idx]} "
         done
         local cmd_line="${BASH_LINENO[1]}"
-        defined QUIET ||red " failed(${cmd_func}:${cmd_line} [${__ret_rc}]).\n" >&2
+        maybe_quiet red " failed(${cmd_func}:${cmd_line} [${__ret_rc}]).\n" >&2
         [[ -z "${__ret_err}" ]] || cat >&2 <<< "${__ret_err}"
         # ${[ dummy
     }
@@ -622,7 +623,7 @@ run_undo() {
     # Run all "undo" commands if any.
     for (( idx=${#rollback_cmds[@]}-1 ; idx>=0 ; idx-- )) ; do
         cmd="${rollback_cmds[idx]}"
-        defined QUIET || purple "UNDO -> "
+        maybe_quiet purple "UNDO -> "
         try "$(eval printf '%s' "$cmd")" || true
     done
     rollback_cmds=()
