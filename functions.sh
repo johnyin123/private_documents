@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 5106568 - 2021-01-18T10:50:55+08:00")
+VERSION+=("functions.sh - 076d2ea - 2021-01-18T20:53:22+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+safe_echo >&2 EXECUTE }"
 
@@ -90,7 +90,7 @@ maybe_netns_shell() {
         HOME=/root \
         TERM=${TERM} \
         ${ns_name:+$(truecmd ip) netns exec "${ns_name}"} \
-        $(truecmd bash) --rcfile <(echo "PS1=\"(${info}${ns_name:+@${ns_name}})\$PS1\"") || true
+        $(truecmd bash) --noprofile --rcfile <(echo "PS1=\"(${info}${ns_name:+@${ns_name}})\$PS1\"") || true
     trap - SIGINT
 }
 
@@ -187,10 +187,8 @@ is_user_root() {
 }
 
 # auto_su() {
-#     self="$1"
-#     # self="$(readlink -f "${BASH_SOURCE[0]}")"
-#     # ARGS=( "$@" )
-#     is_user_root() || exec sudo -p "Must be run as root. Please enter the password for %u to continue: " -- "$BASH" -- "$self" "${ARGS[@]}"
+#   ARGS=( "$@" )
+# 	[[ $UID == 0 ]] || exec sudo -p "$SCRIPTNAME  must be run as root. Please enter the password for %u to continue: " -- "$BASH" -- "$DIRNAME/$SCRIPTNAME" "${ARGS[@]}"
 # }
 
 min() { [ "$1" -le "$2" ] && echo "$1" || echo "$2"; }
