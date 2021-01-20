@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - 1c245b9 - 2020-05-31T07:48:35+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - cf10358 - 2021-01-17T10:50:22+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -40,7 +40,7 @@ mk_busybox_fs() {
     file_exists ${rootfs}/dev/urandom || try mknod -m 0644 ${rootfs}/dev/urandom c 1 9
     file_exists ${rootfs}/dev/null    || try mknod -m 0666 ${rootfs}/dev/null c 1 3
 
-    cat > ${rootfs}/etc/profile << EOF
+    try cat \> ${rootfs}/etc/profile << EOF
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
 export PATH
 export PS1="\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]**bios/uefi**:\\[\\033[33;1m\\]\\w\\[\\033[m\\]\\$"
@@ -50,7 +50,7 @@ alias ll='/bin/busybox ls -lh'
 echo "add ${PXE_DIR}/cgi-bin/ipaddr.txt for ipaddr: 192.168.168.2/24 line by line"
 echo "cmd : bios/uefi change mode"
 EOF
-    cat > ${rootfs}/etc/passwd << EOF
+    try cat \> ${rootfs}/etc/passwd << EOF
 root:x:0:0:root:/root:/bin/sh
 EOF
     try chroot ${rootfs} /bin/busybox --install -s /bin
@@ -64,7 +64,7 @@ gen_busybox_inetd() {
     local ns_ipaddr="$3"
     local pxe_dir="$4"
 
-    mkdir -p ${rootfs}/${pxe_dir}/
+    try mkdir -p ${rootfs}/${pxe_dir}/
     for cmd in tftpd httpd ftpd udhcpd; do
         ${rootfs}/bin/busybox --list | grep $cmd > /dev/null && debug_msg "check $cmd ok\n" || exit_msg "check $cmd error"
     done
@@ -73,13 +73,13 @@ gen_busybox_inetd() {
     link_exists ${rootfs}/bin/ftpd   || try ln -s /bin/busybox ${rootfs}/bin/ftpd
     link_exists ${rootfs}/bin/udhcpd || try ln -s /bin/busybox ${rootfs}/bin/udhcpd
 
-    cat > ${rootfs}/etc/inetd.conf << INETEOF
+    try cat \> ${rootfs}/etc/inetd.conf << INETEOF
 69 dgram udp nowait root tftpd tftpd -l ${pxe_dir}
 80 stream tcp nowait root httpd httpd -i -h ${pxe_dir}
 21 stream tcp nowait root ftpd ftpd ${pxe_dir}
 INETEOF
 
-    cat > ${rootfs}/etc/udhcpd.conf << DHCPEOF
+    try cat \> ${rootfs}/etc/udhcpd.conf << DHCPEOF
 start           ${ns_ipaddr%.*}.201
 end             ${ns_ipaddr%.*}.221
 interface       eth0
@@ -92,8 +92,8 @@ opt     wins    ${ns_ipaddr}
 option  domain  local
 option  lease   864000
 DHCPEOF
-    mkdir -p ${rootfs}/${pxe_dir}/cgi-bin/
-    cat <<'CGIEOF' > ${rootfs}/${pxe_dir}/cgi-bin/reg.cgi
+    try mkdir -p ${rootfs}/${pxe_dir}/cgi-bin/
+    try cat <<'CGIEOF' \> ${rootfs}/${pxe_dir}/cgi-bin/reg.cgi
 #!/bin/sh
 # CGI output must start with at least empty line (or headers)
 printf '\r\n'
@@ -109,7 +109,7 @@ printf "IPADDR=${ipaddr:-192.168.168.100}\n"
 printf "PREFIX=${prefix:-24}\n"
 printf "GATEWAY=\${IPADDR%%.*}.1\n"
 CGIEOF
-    chmod 755 ${rootfs}/${pxe_dir}/cgi-bin/reg.cgi
+    try chmod 755 ${rootfs}/${pxe_dir}/cgi-bin/reg.cgi
 
     return 0
 }
@@ -127,8 +127,8 @@ start_ns_inetd() {
     local ns_name="$1"
     local rootfs="$2"
     # ip netns exec ${ns_name} chroot ${rootfs} /usr/sbin/dnsmasq --user=root --group=root
-    try ip netns exec ${ns_name} chroot ${rootfs} /bin/busybox udhcpd || return 1
-    try ip netns exec ${ns_name} chroot ${rootfs} /bin/busybox inetd || return 2
+    maybe_netns_run "chroot ${rootfs} /bin/busybox udhcpd" "${ns_name}" || return 1
+    maybe_netns_run "chroot ${rootfs} /bin/busybox inetd" "${ns_name}" || return 2
     return 0
 }
 
@@ -136,11 +136,8 @@ del_ns() {
     debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local ns_name="$1"
     #try brctl delif br-ext ${ns_name}-eth1
-    try ip link set ${ns_name}-eth1 promisc off || true
-    try ip link set ${ns_name}-eth1 down || true
-    try ip link set dev ${ns_name}-eth1 nomaster || true
-    try ip netns del ${ns_name} || true
-    ip link delete ${ns_name}-eth1 || true
+    maybe_netns_bridge_dellink ${ns_name}-eth1 "" || true
+    cleanup_ns "${ns_name}" || true
     try rm -rf "/etc/netns/${ns_name}" || true
     return 0
 }
@@ -150,17 +147,11 @@ add_ns() {
     local ns_name="$1"
     local host_br="$2"
     local ns_ipaddr="$3"
-    try ip netns add ${ns_name} || return 4
-    try ip netns exec ${ns_name} ip addr add 127.0.0.1/8 dev lo || return 4
-    try ip netns exec ${ns_name} ip link set lo up || return 4
-    try ip link add ${ns_name}-eth0 type veth peer name ${ns_name}-eth1 || return 4
-    #try brctl addif br-ext ${ns_name}-eth1
-    try ip link set dev ${ns_name}-eth1 promisc on || return 4
-    try ip link set dev ${ns_name}-eth1 up || return 4
-    try ip link set dev ${ns_name}-eth1 master ${host_br} || return 4
-    try ip link set ${ns_name}-eth0 netns ${ns_name} || return 4
-    try ip netns exec ${ns_name} ip link set dev ${ns_name}-eth0 name eth0 up || return 4
-    try ip netns exec ${ns_name} ip address add ${ns_ipaddr}/24 dev eth0 || return 4
+    setup_ns "${ns_name}" || return 4
+    maybe_netns_setup_veth ${ns_name}-eth0 ${ns_name}-eth1 "" || return 4
+    maybe_netns_bridge_addlink "${host_br}" "${ns_name}-eth1" "" || return 4
+    maybe_netns_addlink "${ns_name}-eth0" "${ns_name}" "eth0" || return 4
+    maybe_netns_run "ip address add ${ns_ipaddr}/24 dev eth0" "${ns_name}" || return 4
     return 0
 }
 
@@ -191,7 +182,7 @@ gen_pxelinux_cfg() {
     local ns_ipaddr="$2"
     local ks_uri="$3"
     #http://mirrors.163.com/debian/dists/Debian10.3/main/installer-amd64/current/images/netboot/netboot.tar.gz
-    cat > ${pxelinux_cfg} <<EOF
+    try cat \> ${pxelinux_cfg} <<EOF
 default menu.c32
 prompt 0
 timeout 300
@@ -219,7 +210,7 @@ gen_grub_cfg() {
     local menulst="$1"
     local ns_ipaddr="$2"
     local ks_uri="$3"
-    cat > ${menulst} <<EOF
+    try cat \> ${menulst} <<EOF
 set timeout=30
 set default="0"
 menuentry 'Install Centos [UEFI] PXE+Kickstart' {
@@ -248,14 +239,14 @@ gen_kickstart() {
     local ipaddr=$7
     local prefix=${ipaddr##*/}
     ipaddr=${ipaddr%/*}
-    cat <<EOF | vinfo_msg
+    vinfo_msg <<EOF
 ipaddress: ${ipaddr}/${prefix}
 boot disk: ${boot_driver}
       efi: ${efi}
       lvm: ${lvm}
 EOF
 
-    cat > ${kscfg} <<KSEOF
+    try cat \> ${kscfg} <<KSEOF
 firewall --disabled
 install
 
@@ -270,7 +261,7 @@ network --onboot yes --bootproto dhcp --noipv6
 network --hostname=server1
 KSEOF
 
-    cat >> ${kscfg} <<'KSEOF'
+    try cat \>\> ${kscfg} <<'KSEOF'
 #rootpw --plaintext password
 rootpw --iscrypted $6$Tevn5ihz1h7MHhMV$Zt7r1ocJqZXhNfVntdsDuGWU42BkQKdpqp0EosOhaYS46zzOEcYALmH5mkDWoYmRvFBs0lBNM/LUiGJAmmx7Q.
 #password
@@ -285,7 +276,7 @@ timezone  Asia/Shanghai
 #user --groups=wheel --name=admin --plaintext --password=password
 KSEOF
 
-    cat >> ${kscfg} <<KSEOF
+    try cat \>\> ${kscfg} <<KSEOF
 # Delete all partitions
 clearpart --all --initlabel
 # Delete MBR / GPT
@@ -306,7 +297,7 @@ fi)
 # logvol swap --vgname=vg_swap --size=1 --grow --name=lv_swap
 KSEOF
 
-    cat >> ${kscfg} <<KSEOF
+    try cat \>\> ${kscfg} <<KSEOF
 %packages
 @core
 lvm2
@@ -317,18 +308,18 @@ chrony
 -ivtv*
 %end
 KSEOF
-    cat >> ${kscfg} <<KSEOF
+    try cat \>\> ${kscfg} <<KSEOF
 %addon com_redhat_kdump --disable --reserve-mb='auto'
 %end
 KSEOF
-    cat >> ${kscfg} <<KSEOF
+    try cat \>\> ${kscfg} <<KSEOF
 %post
 echo "tuning sysytem!!"
 curl http://${ns_ipaddr}/${ks_uri}.init.sh 2>/dev/null | bash
 %end
 KSEOF
 
-    cat > ${kscfg}.init.sh <<'INITEOF'
+    try cat \> ${kscfg}.init.sh <<'INITEOF'
 #!/bin/bash
 
 UUID="$(dmidecode -s system-uuid)"
@@ -336,14 +327,14 @@ SN="$(dmidecode -s system-serial-number | sed 's/[ &?]/-/g')"
 PROD="$(dmidecode -s system-product-name | sed 's/[ &?]/-/g')"
 
 INITEOF
-    cat >> ${kscfg}.init.sh <<INITEOF
+    try cat \>\> ${kscfg}.init.sh <<INITEOF
 IPADDR=${ipaddr}
 PREFIX=${prefix}
 GATEWAY=
 curl -o /tmp/inst_info "http://${ns_ipaddr}/cgi-bin/reg.cgi?UUID=\${UUID}&SN=\${SN}&PROD=\${PROD}"
 source /tmp/inst_info
 INITEOF
-    cat >> ${kscfg}.init.sh <<'INITEOF'
+    try cat \>\> ${kscfg}.init.sh <<'INITEOF'
 echo "export readonly TMOUT=900" >> /etc/profile.d/os-security.sh
 echo "export readonly HISTFILE" >> /etc/profile.d/os-security.sh
 chmod 755 /etc/profile.d/os-security.sh
@@ -450,7 +441,6 @@ error_clean() {
 check_depend() {
     debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local host_br=$1
-    try ip netns || exit_msg "ip not support netns!!\n"
     file_exists "/sys/class/net/$host_br" || exit_msg "$host_br bridge no found!!\n"
     for fn in $PXELINUX $EFILINUX $BUSYBOX $DVD_IMG; do
         file_exists "${DIRNAME}/$fn" || exit_msg "${DIRNAME}/$fn no found!!\n"
@@ -458,39 +448,83 @@ check_depend() {
     return 0
 }
 
+usage() {
+    [ "$#" != 0 ] && echo "$*"
+    cat <<EOF
+${SCRIPTNAME}
+        -b|--bridge    *    <local bridge> local bridge
+        -n|--ns             <ns name>   default pxe_ns
+        -i|--ns_ip          <ns ipaddr> default 172.16.16.2
+        --disk              <disn name> default vda
+        --lvm               use lvm     default not use lvm
+        --guest_ipaddr      <guest ip>  default 192.168.168.101/24
+        -q|--quiet
+        -l|--log <int> log level
+        -V|--version
+        -d|--dryrun dryrun
+        -h|--help help
+EOF
+    exit 1
+}
+
 main() {
-    #QUIET=1
-    set_loglevel ${2:-2}
     local IPADDR=${IPADDR:-"192.168.168.101/24"}
     local LVM=${LVM:-false}
     local DISK=${DISK:-"vda"}
-    local NS_IPADDR=${NS_IPADDR:-"172.16.16.2"}
-    local NS_NAME=${NS_NAME:-"pxe_ns"}
-    local HOST_BR=${1:-br-ext}; shift || exit_msg "IPADDR=$IPADDR LVM=$LVM DISK=$DISK $0 <bridge>\n"
-    check_depend ${HOST_BR}
+    local ns_ipaddr=${NS_IPADDR:-"172.16.16.2"}
+    local ns_name=${NS_NAME:-"pxe_ns"}
+    local host_br=
+    local opt_short="b:n:i:"
+    local opt_long="bridge:,ns:,ns_ip:,disk:,lvm,guest_ipaddr:,"
+    opt_short+="ql:dVh"
+    opt_long+="quite,log:,dryrun,version,help"
+    __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            -b | --bridge)  shift; host_br=${1}; shift;;
+            -n | --ns)      shift; ns_name=${1}; shift;;
+            -i | --ns_ip)   shift; ns_ipaddr=${1}; shift;;
+            --disk)         shift; DISK=${1}; shift;;
+            --lvm)          shift; LVM=true;;
+            --guest_ipaddr) shift; IPADDR=${1}; shift;;
+            ########################################
+            -q | --quiet)   shift; QUIET=1;;
+            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              usage "Unexpected option: $1";;
+        esac
+    done
+    [[ -z "${host_br}" ]] && usage "bridge must input"
+    bridge_exists "${host_br}" || exit_msg "bridge no found\n"
+    check_depend ${host_br}
     try mkdir -p ${ROOTFS}
     mk_busybox_fs "${DIRNAME}/${BUSYBOX}" "${ROOTFS}"
-    gen_busybox_inetd "${DHCP_BOOTFILE}" "${ROOTFS}" "${NS_IPADDR}" "${PXE_DIR}"
+    gen_busybox_inetd "${DHCP_BOOTFILE}" "${ROOTFS}" "${ns_ipaddr}" "${PXE_DIR}"
     try mkdir -p ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ && try mount "${DIRNAME}/${DVD_IMG}" "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" 2\>/dev/null
     try mkdir -p "${ROOTFS}/${PXE_DIR}/"
-    gen_grub_cfg "${ROOTFS}/${PXE_DIR}/grub.cfg" "${NS_IPADDR}" "${UEFI_KS_URI}"
-    gen_kickstart "${ROOTFS}/${PXE_DIR}/${UEFI_KS_URI}" "${NS_IPADDR}" "${DISK}" "${UEFI_KS_URI}" ${LVM} true "${IPADDR}"
-    extract_efi_grub "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "extract_efi_grub $?"
+    gen_grub_cfg "${ROOTFS}/${PXE_DIR}/grub.cfg" "${ns_ipaddr}" "${UEFI_KS_URI}"
+    gen_kickstart "${ROOTFS}/${PXE_DIR}/${UEFI_KS_URI}" "${ns_ipaddr}" "${DISK}" "${UEFI_KS_URI}" ${LVM} true "${IPADDR}"
+    extract_efi_grub "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "extract_efi_grub $?"
 
     try mkdir -p "${ROOTFS}/${PXE_DIR}/pxelinux.cfg/" 
-    gen_pxelinux_cfg "${ROOTFS}/${PXE_DIR}/pxelinux.cfg/default" "${NS_IPADDR}" "${BIOS_KS_URI}"
-    gen_kickstart "${ROOTFS}/${PXE_DIR}/${BIOS_KS_URI}" "${NS_IPADDR}" "${DISK}" "${BIOS_KS_URI}" ${LVM} false "${IPADDR}"
-    extract_bios_pxelinux "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "extract_bios_pxelinux $?"
+    gen_pxelinux_cfg "${ROOTFS}/${PXE_DIR}/pxelinux.cfg/default" "${ns_ipaddr}" "${BIOS_KS_URI}"
+    gen_kickstart "${ROOTFS}/${PXE_DIR}/${BIOS_KS_URI}" "${ns_ipaddr}" "${DISK}" "${BIOS_KS_URI}" ${LVM} false "${IPADDR}"
+    extract_bios_pxelinux "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "extract_bios_pxelinux $?"
 
-    add_ns ${NS_NAME} ${HOST_BR} "${NS_IPADDR}" || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "add netns $?"
-    start_ns_inetd ${NS_NAME} "${ROOTFS}" || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "start inetd $?"
-
-    ip netns exec ${NS_NAME} chroot "${ROOTFS}" /bin/busybox sh -l || true
-    #nsenter --net=/var/run/netns/${NS_NAME} /bin/sh -l||  true
-
-    try umount ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ || error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "umount $?"
-    kill_ns_inetd "${ROOTFS}"|| error_clean "${ROOTFS}" "${NS_NAME}" "${PXE_DIR}" "kill inetd $?"
-    del_ns ${NS_NAME}
+    add_ns ${ns_name} ${host_br} "${ns_ipaddr}" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "add netns $?"
+    start_ns_inetd ${ns_name} "${ROOTFS}" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "start inetd $?"
+    defined DRYRUN && {
+        maybe_dryrun "ip netns exec ${ns_name} chroot "${ROOTFS}" /bin/busybox sh -l"
+    } || {
+        ip netns exec ${ns_name} chroot "${ROOTFS}" /bin/busybox sh -l || true
+    }
+    try umount ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "umount $?"
+    kill_ns_inetd "${ROOTFS}"|| error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "kill inetd $?"
+    del_ns ${ns_name}
     info_msg "Exit success\n"
     return 0
 }

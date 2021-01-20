@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - cec5235 - 2021-01-20T12:31:13+08:00")
+VERSION+=("functions.sh - 6d0af2c - 2021-01-20T13:46:46+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
 
@@ -602,7 +602,7 @@ try() {
     # stdin is redirect and has parm, so stdin is not cmd stream!!
     local cmds="${@:-$(cat)}"
     local cmd_size=-60.60
-    defined DRYRUN && { safe_echo >&2 "DRYRUN: $cmds"; return 0; }
+    defined DRYRUN && { safe_echo >&2 "DRYRUN: $cmds"; [ -t 0 ] || cat >&2; return 0; }
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
     blue "Begin: %${cmd_size}s." "$cmds" >&2
     __ret_out= __ret_err= __ret_rc=0
