@@ -7,16 +7,16 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("tunnel.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
+VERSION+=("tunnel.sh - 5106568 - 2021-01-18T10:50:55+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_nameserver() {
     ns_name=$1
     nameserver=$2
 
-    mkdir -p "/etc/netns/$ns_name"
-    echo "nameserver ${nameserver}" > "/etc/netns/$ns_name/resolv.conf"
-     cat > /etc/netns/$ns_name/bash.bashrc <<EOF
+    try mkdir -p "/etc/netns/$ns_name"
+    try echo "nameserver ${nameserver}" \> "/etc/netns/$ns_name/resolv.conf"
+    try cat \> /etc/netns/$ns_name/bash.bashrc <<EOF
 export PROMPT_COMMAND=""
 alias ll='ls -lh'
 export LANG=zh_CN.UTF-8
@@ -38,7 +38,7 @@ EOF
 
 cleanup_nameserver() {
     ns_name=$1
-    rm -rf /etc/netns/$ns_name
+    try rm -rf /etc/netns/$ns_name
 }
 
 usage() {
