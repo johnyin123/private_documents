@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 6d0af2c - 2021-01-20T13:46:46+08:00")
+VERSION+=("functions.sh - 99bb60a - 2021-01-20T14:41:56+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
 
@@ -25,7 +25,7 @@ dummy() { :; }
 dryrun() {
     printf -v cmd_str '%q ' "$@"
     safe_echo >&2 "DRYRUN: $cmd_str"
-    [ -t 0 ] || cat >&2
+    stdin_is_terminal || cat >&2
 }
 
 list_func() {
@@ -184,8 +184,16 @@ check_http_status() {
     safe_echo $status
 }
 
+stdin_is_terminal() {
+    [ -t 0 ]
+}
+
 stdout_is_terminal() {
     [ -t 1 ]
+}
+
+stderr_is_terminal() {
+    [ -t 2 ]
 }
 
 is_user_root() {
@@ -451,56 +459,56 @@ exit_msg() {
 red() {
     defined QUIET && return
     local fmt=$1
-    [[ -t 2 ]] && fmt="\033[1;31m${fmt}\033[0m"
+    stderr_is_terminal && fmt="\033[1;31m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
 } >&2
 
 green() {
     defined QUIET && return
     local fmt=$1
-    [[ -t 2 ]] && fmt="\033[1;32m${fmt}\033[0m"
+    stderr_is_terminal && fmt="\033[1;32m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
 } >&2
 
 gray() {
     defined QUIET && return
     local fmt=$1
-    [[ -t 2 ]] && fmt="\033[1;37m${fmt}\033[0m"
+    stderr_is_terminal && fmt="\033[1;37m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
 } >&2
 
 yellow() {
     defined QUIET && return
     local fmt=$1
-    [[ -t 2 ]] && fmt="\033[1;33m${fmt}\033[0m"
+    stderr_is_terminal && fmt="\033[1;33m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
 } >&2
 
 blue() {
     defined QUIET && return
     local fmt=$1
-    [[ -t 2 ]] && fmt="\033[1;34m${fmt}\033[0m"
+    stderr_is_terminal && fmt="\033[1;34m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
 } >&2
 
 cyan() {
     defined QUIET && return
     local fmt=$1
-    [[ -t 2 ]] && fmt="\033[1;36m${fmt}\033[0m"
+    stderr_is_terminal && fmt="\033[1;36m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
 } >&2
 
 purple() {
     defined QUIET && return
     local fmt=$1
-    [[ -t 2 ]] && fmt="\033[1;35m${fmt}\033[0m"
+    stderr_is_terminal && fmt="\033[1;35m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
 } >&2
 
 white() {
     defined QUIET && return
     local fmt=$1
-    [[ -t 2 ]] && fmt="\033[1;38m${fmt}\033[0m"
+    stderr_is_terminal && fmt="\033[1;38m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
 } >&2
 
@@ -602,8 +610,8 @@ try() {
     # stdin is redirect and has parm, so stdin is not cmd stream!!
     local cmds="${@:-$(cat)}"
     local cmd_size=-60.60
-    defined DRYRUN && { safe_echo >&2 "DRYRUN: $cmds"; [ -t 0 ] || cat >&2; return 0; }
-    [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
+    defined DRYRUN && { safe_echo >&2 "DRYRUN: $cmds"; stdin_is_terminal || cat >&2; return 0; }
+    stderr_is_terminal || cmd_size=    #stderr is redirect show all cmd
     blue "Begin: %${cmd_size}s." "$cmds" >&2
     __ret_out= __ret_err= __ret_rc=0
     # eval -- "$( ($@ ; exit $?) \
@@ -676,14 +684,7 @@ device_exists() {
 }
 
 is_integer() {
-  local exit_code=1
-  if [ $# -ge 1 ]; then
-    local param="${1}"
-    grep --color=never -E -x -q '\-?[1-9]{1}[0-9]*' <<< "${param}" 1>/dev/null 2>/dev/null
-    # ${[ dummy
-    exit_code=$?
-  fi
-  return $exit_code
+    [[ "$1" =~ ^[0-9]+$ ]]
 }
 
 to_lower() {
@@ -714,6 +715,12 @@ string_starts_with() {
 string_contains() {
     # Usage: string_contains hello he
     [[ "${1}" == *${2}* ]]
+}
+string_replace() {
+    local ORIG="$1"
+    local DEST="$2"
+    local DATA="$3"
+    safe_echo "${DATA//$ORIG/$DEST}"
 }
 
 split() {
@@ -756,46 +763,36 @@ array_get() {
     eval "printf '%s' \"\${$1[$2]}\""
 }
 
-str_replace() {
-    local ORIG="$1"
-    local DEST="$2"
-    local DATA="$3"
-
-    safe_echo "${DATA//$ORIG/$DEST}"
-}
-
 urlencode() {
-  local string="${1}"
-  local strlen=${#string}
-  local encoded=""
-  local pos c o
-
-  for (( pos=0 ; pos<strlen ; pos++ )); do
-    c=${string:$pos:1}
-    case "$c" in
-      [-_.~a-zA-Z0-9] ) o="${c}" ;;
-      * ) printf -v o '%%%02x' "'$c" ;;
-    esac
-    encoded+="${o}"
-  done
-  safe_echo "${encoded}"
+    local string="${1}"
+    local strlen=${#string}
+    local encoded=""
+    local pos c o
+    for (( pos=0 ; pos<strlen ; pos++ )); do
+        c=${string:$pos:1}
+        case "$c" in
+            [-_.~a-zA-Z0-9] ) o="${c}" ;;
+            * ) printf -v o '%%%02x' "'$c" ;;
+        esac
+        encoded+="${o}"
+    done
+    safe_echo "${encoded}"
 }
 
 urldecode() {
-  local string="${1}"
-  local strlen=${#string}
-  local decoded=""
-  local pos c o
-
-  for (( pos=0 ; pos<strlen ; pos++ )); do
-    c=${string:$pos:1}
-    case "$c" in
-      % ) o=$(echo "0x${string:$(($pos+1)):2}" | xxd -r); pos=$(($pos + 2)) ;;
-      * ) o="${c}" ;;
-    esac
-    decoded+="${o}"
-  done
-  safe_echo "${decoded}"
+    local string="${1}"
+    local strlen=${#string}
+    local decoded=""
+    local pos c o
+    for (( pos=0 ; pos<strlen ; pos++ )); do
+        c=${string:$pos:1}
+        case "$c" in
+            % ) o=$(echo "0x${string:$(($pos+1)):2}" | xxd -r); pos=$(($pos + 2)) ;;
+            * ) o="${c}" ;;
+        esac
+        decoded+="${o}"
+    done
+    safe_echo "${decoded}"
 }
 
 # Use this to set the new config value, needs 2 parameters.
