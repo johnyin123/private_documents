@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ssh_tunnel.sh - 74c6148 - 2021-01-16T18:07:57+08:00")
+VERSION+=("ssh_tunnel.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
@@ -92,13 +92,12 @@ main() {
     is_user_root || exit_msg "root need!!\n"
     [[ -z "${ssh_conn}" ]] && usage "SSH_CONNECTION Must input"
     [[ -z "${remote_br}" ]] && usage "REMOTE_BRIDGE Must input"
-    [[ -z "${local_br}" ]] || file_exists /sys/class/net/${local_br}/bridge/bridge_id || exit_msg "local bridge ${local_br} nofound!!\n"
-    local tapname=
-    local sshpid=
+    [[ -z "${local_br}" ]] || bridge_exists "${local_br}" || exit_msg "local bridge ${local_br} nofound!!\n"
+    local tapname= sshpid=
     ssh_tunnel "${remote_br}" "${ssh_conn}" "${ssh_port}" "tapname" "sshpid" "${local_br}" || exit_msg "error ssh_tunnel $?\n"
     ps --pid=$sshpid &> /dev/null || exit_msg "backend ssh($sshpid) ${ssh_conn}:${ssh_port} failed\n"
     info_msg "backend ssh($sshpid) localdev ${tapname} ${ssh_conn}:${ssh_port} ok\n"
-    /bin/bash --rcfile <(echo "PS1=\"(ssh_tunnel:${ssh_conn}[${local_br:-${tapname}}<=>${remote_br}])\$PS1\"") || true
+    maybe_netns_shell "(ssh_tunnel:${ssh_conn}[${local_br:-${tapname}}<=>${remote_br}])" ""
     try "kill -9 ${sshpid:-} &> /dev/null"
     info_msg "Exit!!\n"
     return 0
