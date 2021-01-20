@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 34288d3 - 2021-01-19T09:28:29+08:00")
+VERSION+=("functions.sh - 02d394a - 2021-01-19T10:24:58+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+safe_echo >&2 EXECUTE }"
 alias maybe_quiet="defined QUIET || "
@@ -537,17 +537,7 @@ disable_color() {
 }
 
 # Log set functions }}
-##################################################
-run_scripts() {
-    local i= initdir=${1}
-    [ ! -d "${initdir}" ] && return
 
-    shift
-    for i in ${initdir}/*; do
-        . "${initdir}/$i"
-    done
-}
-##################################################
 truecmd() {
     type -P $1
 }
@@ -564,6 +554,16 @@ debugshell() {
     safe_echo "This is a debug shell (${1:-})."
     sh || true
     #PS1='(initramfs) ' sh -i </dev/console >/dev/console 2>&1
+}
+
+run_scripts() {
+    local i= initdir=${1}
+    [ ! -d "${initdir}" ] && return
+    shift
+    for i in ${initdir}/*; do
+       # . "${initdir}/$i"
+       cat "${initdir}/$i" | try
+    done
 }
 
 #******************************************************************************
