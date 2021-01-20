@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ssh_tunnel.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
+VERSION+=("ssh_tunnel.sh - 576bc7f - 2021-01-20T12:32:51+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
@@ -31,19 +31,23 @@ ssh_tunnel() {
         file_exists /sys/class/net/tap${l_tap}/tun_flags || break
     done
     [[ ${l_tap} = ${MAX_TAPDEV_NUM} ]] && return -1
-    r_tap=$(ssh -p${ssh_port} ${ssh_connection} "bash -s" <<< "for ((i=0;i<$MAX_TAPDEV_NUM;i++)); do [[ -e /sys/class/net/tap\${i}/tun_flags ]] || break; done; echo \$i")
+    r_tap=$(try "ssh -p${ssh_port} ${ssh_connection} 'for ((i=0;i<$MAX_TAPDEV_NUM;i++)); do [ -e /sys/class/net/tap\${i}/tun_flags ] || break; done; echo \$i'")
     [[ ${r_tap} = ${MAX_TAPDEV_NUM} ]] && return -2
     local localcmd="ip link set dev tap${l_tap} up${local_br:+;ip link set dev tap${l_tap} master ${local_br}}"
     local remotecmd="ip link set dev tap${r_tap} up;ip link set dev tap${r_tap} master ${remote_br}"
     #exec 5> >(ssh -tt -o StrictHostKeyChecking=no -p${port} ${user}@${host} > /dev/null 2>&1)
     #Tunnel=ethernet must before -w 5:5 :)~~
-    nohup ssh \
-        -o PermitLocalCommand=yes \
-        -o LocalCommand="${localcmd}" \
-        -o Tunnel=ethernet -w ${l_tap}:${r_tap} \
-        -p${ssh_port} ${ssh_connection} "${remotecmd}" &>/dev/null &
-    upvar "${sshpid}" "$!"
-    upvar "${tapname}" "tap${l_tap}"
+    defined DRYRUN && {
+        maybe_dryrun "ssh -p${ssh_port} ${ssh_connection} ......" 
+    } || {
+        nohup ssh \
+            -o PermitLocalCommand=yes \
+            -o LocalCommand="${localcmd}" \
+            -o Tunnel=ethernet -w ${l_tap}:${r_tap} \
+            -p${ssh_port} ${ssh_connection} "${remotecmd}" &>/dev/null &
+        upvar "${sshpid}" "${!}"
+        upvar "${tapname}" "tap${l_tap}"
+    }
 }
 
 usage() {
@@ -95,9 +99,9 @@ main() {
     [[ -z "${local_br}" ]] || bridge_exists "${local_br}" || exit_msg "local bridge ${local_br} nofound!!\n"
     local tapname= sshpid=
     ssh_tunnel "${remote_br}" "${ssh_conn}" "${ssh_port}" "tapname" "sshpid" "${local_br}" || exit_msg "error ssh_tunnel $?\n"
-    ps --pid=$sshpid &> /dev/null || exit_msg "backend ssh($sshpid) ${ssh_conn}:${ssh_port} failed\n"
+    maybe_dryrun ps --pid=$sshpid &> /dev/null || exit_msg "backend ssh($sshpid) ${ssh_conn}:${ssh_port} failed\n"
     info_msg "backend ssh($sshpid) localdev ${tapname} ${ssh_conn}:${ssh_port} ok\n"
-    maybe_netns_shell "(ssh_tunnel:${ssh_conn}[${local_br:-${tapname}}<=>${remote_br}])" ""
+    maybe_netns_shell "ssh_tunnel:${ssh_conn}[${local_br:-${tapname}}<=>${remote_br}]" ""
     try "kill -9 ${sshpid:-} &> /dev/null"
     info_msg "Exit!!\n"
     return 0

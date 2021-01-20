@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - d573002 - 2021-01-20T08:08:47+08:00")
+VERSION+=("functions.sh - cec5235 - 2021-01-20T12:31:13+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
 
@@ -381,7 +381,7 @@ date_fmt='%Y-%m-%d %H:%M:%S'
 # Default log fmt
 log_fmt="[<levelname>] [<asctime>] <message>"
 # Default log color
-log_color=('red' 'yellow' 'green' '')
+log_color=('red' 'yellow' 'green' 'cyan')
 # Support colors
 support_colors='red yellow blue white cyan gray purple green'
 
@@ -602,7 +602,7 @@ try() {
     # stdin is redirect and has parm, so stdin is not cmd stream!!
     local cmds="${@:-$(cat)}"
     local cmd_size=-60.60
-    defined DRYRUN && { safe_echo >&2 "EXECUTE $cmds"; return 0; }
+    defined DRYRUN && { safe_echo >&2 "DRYRUN: $cmds"; return 0; }
     [[ -t 2 ]] || cmd_size=    #stderr is redirect show all cmd
     blue "Begin: %${cmd_size}s." "$cmds" >&2
     __ret_out= __ret_err= __ret_rc=0
