@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 3c9ebef - 2021-01-21T07:38:22+08:00")
+VERSION+=("functions.sh - 1d6ed62 - 2021-01-21T10:37:42+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
 
@@ -391,6 +391,8 @@ log_fmt="[<levelname>] [<asctime>] <message>"
 log_color=('red' 'yellow' 'green' 'cyan')
 # Support colors
 support_colors='red yellow blue white cyan gray purple green'
+# log_syslog defined, syslog enabled and log_syslog value as  syslog tag
+# log_syslog="mysyslog"
 
 # {{ LOG functions start
 
@@ -410,7 +412,11 @@ do_log() {
     fmt="${fmt//<levelname>/${LOG_LEVELNAMES[$level]}}"
     fmt="${fmt//<asctime>/$(date +"$date_fmt")}"
     fmt="${fmt//<message>/$msg}"
-    shift 2 && ${log_color[level]:-printf} "☠️ $fmt" "$@" >&2
+    defined log_syslog && {
+        shift 2 && ${log_color[level]:-printf} "☠️ $fmt" "$@" | logger -t "${log_syslog:-shell_log}"
+    } || {
+        shift 2 && ${log_color[level]:-printf} "☠️ $fmt" "$@" >&2
+    }
 }
 
 debug_msg() {
