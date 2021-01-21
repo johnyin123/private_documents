@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 1d6ed62 - 2021-01-21T10:37:42+08:00")
+VERSION+=("functions.sh - cb270c0 - 2021-01-21T10:55:36+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
 
@@ -887,14 +887,14 @@ json_parse() {
     python -c "import sys, json; print json.load(sys.stdin)[\"$1\"]"
 }
 
-addr4() {
+gen_addrv4() {
     local mac=$(cat "/sys/class/net/$1/address")
     IFS=':'; set $mac; unset IFS
     [ "$6" = "ff" -o "$6" = "00" ] && set $1 $2 $3 $4 $5 "01"
     printf "10.%d.%d.%d" 0x$4 0x$5 0x$6
 }
 
-addr6() {
+gen_addrv6() {
     local mac=$(cat "/sys/class/net/$1/address")
     IFS=':'; set $mac; unset IFS
     printf fdef:17a0:ffb1:300:$(printf %02x $((0x$1 ^ 2)))$2:${3}ff:fe$4:$5$6
