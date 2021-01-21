@@ -1,3 +1,9 @@
+( cat; echo ---; cat <&3 ) <<EOF 3<<EOF2
+hi
+EOF
+there
+EOF2
+
 eval "$(cat file.txt)"
 # or easier, in ksh/bash/zsh
 eval "$(<file.txt)"
