@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION+=("init-pc.sh - 2740e36 - 2021-01-16T17:39:57+08:00")
+VERSION+=("init-pc.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
 
 DEBIAN_VERSION=buster
 PASSWORD=password
@@ -452,6 +452,7 @@ set pastetoggle=<F7>
 set mouse=r
 "disable .viminfo file
 set viminfo=
+let g:is_bash=1
 
 "新建.py,.sh文件，自动插入文件头"
 autocmd BufNewFile *.py,*.c,*.sh,*.h exec ":call SetTitle()"

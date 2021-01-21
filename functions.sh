@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 99bb60a - 2021-01-20T14:41:56+08:00")
+VERSION+=("functions.sh - 3c9ebef - 2021-01-21T07:38:22+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
 
@@ -24,7 +24,7 @@ dummy() { :; }
 
 dryrun() {
     printf -v cmd_str '%q ' "$@"
-    safe_echo >&2 "DRYRUN: $cmd_str"
+    blue>&2 "DRYRUN: ";purple>&2 "$cmd_str\n"
     stdin_is_terminal || cat >&2
 }
 
@@ -174,7 +174,7 @@ cleanup_overlayfs() {
 }
 
 get_ipaddr() {
-    /sbin/ip -4 -br addr show ${1} | /bin/grep -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
+    $(truecmd ip) -4 -br addr show ${1} | $(truecmd grep) -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
 }
 
 ##Usage: check_http_status 'http://www.example.com'
@@ -263,7 +263,6 @@ render_tpl2() {
         str="${str//"$sub"/$val}"
     done
     cat <<< "$str"
-    # ${[ dummy
 }
 #
 # declare -A vm=([DISK_DEV]=vdc [VAL]=2)
@@ -411,28 +410,28 @@ do_log() {
     fmt="${fmt//<levelname>/${LOG_LEVELNAMES[$level]}}"
     fmt="${fmt//<asctime>/$(date +"$date_fmt")}"
     fmt="${fmt//<message>/$msg}"
-    shift 2 && ${log_color[level]:-printf} "☠️ $fmt" "$@"
-} >&2
+    shift 2 && ${log_color[level]:-printf} "☠️ $fmt" "$@" >&2
+}
 
 debug_msg() {
     local fmt=$1
     shift && do_log $LOG_DEBUG "$fmt" "$@"
-} >&2
+}
 
 info_msg() {
     local fmt=$1
     shift && do_log $LOG_INFO "$fmt" "$@"
-} >&2
+}
 
 warn_msg() {
     local fmt=$1
     shift && do_log $LOG_WARNING "$fmt" "$@"
-} >&2
+}
 
 error_msg() {
     local fmt=$1
     shift && do_log $LOG_ERROR "$fmt" "$@"
-} >&2
+}
 
 # echo "$_out"|vinfo_msg
 vinfo_msg() {
@@ -461,56 +460,56 @@ red() {
     local fmt=$1
     stderr_is_terminal && fmt="\033[1;31m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
-} >&2
+}
 
 green() {
     defined QUIET && return
     local fmt=$1
     stderr_is_terminal && fmt="\033[1;32m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
-} >&2
+}
 
 gray() {
     defined QUIET && return
     local fmt=$1
     stderr_is_terminal && fmt="\033[1;37m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
-} >&2
+}
 
 yellow() {
     defined QUIET && return
     local fmt=$1
     stderr_is_terminal && fmt="\033[1;33m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
-} >&2
+}
 
 blue() {
     defined QUIET && return
     local fmt=$1
     stderr_is_terminal && fmt="\033[1;34m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
-} >&2
+}
 
 cyan() {
     defined QUIET && return
     local fmt=$1
     stderr_is_terminal && fmt="\033[1;36m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
-} >&2
+}
 
 purple() {
     defined QUIET && return
     local fmt=$1
     stderr_is_terminal && fmt="\033[1;35m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
-} >&2
+}
 
 white() {
     defined QUIET && return
     local fmt=$1
     stderr_is_terminal && fmt="\033[1;38m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
-} >&2
+}
 
 # Colorful print end }}
 
@@ -610,25 +609,23 @@ try() {
     # stdin is redirect and has parm, so stdin is not cmd stream!!
     local cmds="${@:-$(cat)}"
     local cmd_size=-60.60
-    defined DRYRUN && { safe_echo >&2 "DRYRUN: $cmds"; stdin_is_terminal || cat >&2; return 0; }
+    defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "$cmds\n"; stdin_is_terminal || cat >&2; return 0; }
     stderr_is_terminal || cmd_size=    #stderr is redirect show all cmd
-    blue "Begin: %${cmd_size}s." "$cmds" >&2
+    blue>&2 "Begin: ";purple>&2 "%${cmd_size}s." "$cmds"
     __ret_out= __ret_err= __ret_rc=0
     # eval -- "$( ($@ ; exit $?) \
     eval -- "$( (eval "$cmds") \
         2> >(__ret_err=$(cat); typeset -p __ret_err) \
         1> >(__ret_out=$(cat); typeset -p __ret_out); __ret_rc=$?; typeset -p __ret_rc )"
-    [ ${__ret_rc} = 0 ] && { green " done.\n" >&2; [[ -z "${__ret_out}" ]] ||cat <<< "${__ret_out}"; }
-    # ${[ dummy
+    [ ${__ret_rc} = 0 ] && { green>&2 " done.\n"; [[ -z "${__ret_out}" ]] ||cat <<< "${__ret_out}"; }
     [ ${__ret_rc} = 0 ] || {
         local cmd_func="" #"${FUNCNAME[1]}"
         for (( idx=${#FUNCNAME[@]}-1 ; idx>=1 ; idx-- )) ; do
             cmd_func+="${FUNCNAME[idx]} "
         done
         local cmd_line="${BASH_LINENO[1]}"
-        red " failed(${cmd_func}:${cmd_line} [${__ret_rc}]).\n" >&2
+        red>&2 " failed(${cmd_func}:${cmd_line} [${__ret_rc}]).\n"
         [[ -z "${__ret_err}" ]] || cat >&2 <<< "${__ret_err}"
-        # ${[ dummy
     }
     return ${__ret_rc}
 }
@@ -726,7 +723,6 @@ string_replace() {
 split() {
     # Usage: split "string" "delimiter"
     IFS=$'\n' read -d "" -ra arr <<< "${1//$2/$'\n'}"
-    # ${[ dummy
     safe_echo '%s' "${arr[@]}"
 }
 
@@ -839,7 +835,6 @@ json_config() {
         str="$(cat ${2:?json_config input err})"
     }
     jq -r "(${key})? // empty" <<< ${str}
-    # ${[ dummy
 }
 # get second argument if first one not found
 json_config_default() {
@@ -852,7 +847,6 @@ json_config_default() {
         str="$(cat ${3:?json_config input err})"
     }
     jq -r '('${key}') // "'${default}'"' <<< ${str}
-    # ${[ dummy
 }
 
 # Performs POST onto specified URL with content formatted as json
@@ -904,16 +898,10 @@ ip2int() {
     local a b c d
     { IFS=. read a b c d; } <<< $1
     safe_echo $(((((((a << 8) | b) << 8) | c) << 8) | d))
-    # ${[ dummy
 }
 
 int2ip() {
     safe_echo "$((${1}>>24&255)).$((${1}>>16&255)).$((${1}>>8&255)).$((${1}&255))"
-}
-
-netmask() {
-    local mask=$((0xffffffff << (32 - $1))); shift
-    int2ip $mask
 }
 
 is_ipv4() {
@@ -928,7 +916,6 @@ is_fqdn() {
 is_ipv4_netmask() {
     is_ipv4 "$1" || return 1
     IFS='.' read -r ipb[1] ipb[2] ipb[3] ipb[4] <<< "$1"
-    # ${[ dummy
     local -r list_msb='0 128 192 224 240 248 252 254'
     for i in {1,2,3,4}; do
         if [[ ${rest_to_zero:-0} = 1 ]]; then
@@ -953,7 +940,6 @@ is_ipv4_cidr() {
 }
 is_ipv4_subnet() {
     IFS='/' read -r tip tmask <<< "$1"
-    # ${[ dummy
     is_ipv4_cidr "$tmask" || return 1
     is_ipv4 "$tip" || return 1
     return 0
@@ -962,18 +948,14 @@ get_ipv4_network() {
     is_ipv4 "$1" || return 1
     is_ipv4_netmask "$2" || return 1
     IFS='.' read -r ipb1 ipb2 ipb3 ipb4 <<< "$1"
-    # ${[ dummy
     IFS='.' read -r mb1 mb2 mb3 mb4 <<< "$2"
-    # ${[ dummy
     safe_echo "$((ipb1 & mb1)).$((ipb2 & mb2)).$((ipb3 & mb3)).$((ipb4 & mb4))"
 }
 get_ipv4_broadcast() {
     is_ipv4 "$1" || return 1
     is_ipv4_netmask "$2" || return 1
     IFS='.' read -r ipb1 ipb2 ipb3 ipb4 <<< "$1"
-    # ${[ dummy
     IFS='.' read -r mb1 mb2 mb3 mb4 <<< "$2"
-    # ${[ dummy
     nmb1=$((mb1 ^ 255))
     nmb2=$((mb2 ^ 255))
     nmb3=$((mb3 ^ 255))

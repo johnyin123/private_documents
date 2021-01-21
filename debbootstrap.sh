@@ -5,7 +5,7 @@
 # USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
 set -o errexit -o nounset -o pipefail
 
-VERSION+=("debbootstrap.sh - 2740e36 - 2021-01-16T17:39:57+08:00")
+VERSION+=("debbootstrap.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
 if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
@@ -814,6 +814,7 @@ set pastetoggle=<F7>
 set mouse=r
 "disable .viminfo file
 set viminfo=
+let g:is_bash=1
 
 "新建.py,.sh文件，自动插入文件头"
 autocmd BufNewFile *.py,*.c,*.sh,*.h exec ":call SetTitle()"
