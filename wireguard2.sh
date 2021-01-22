@@ -7,59 +7,45 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("wireguard2.sh - 7c9f7d7 - 2021-01-21T14:35:06+08:00")
+VERSION+=("wireguard2.sh - 5c57690 - 2021-01-22T13:44:02+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
-gen_wg_server() {
-    local srv_addr=$1
-    local srv_pubport=$2
-    local srv_prikey=$3
+gen_wg_interface() {
+    local prikey="${1}"
+    local pubport="${2:-}"
+    local addr="${3:-}"
     echo "[Interface]"
-    echo "Address = ${srv_addr}"
-    echo "ListenPort = ${srv_pubport}"
-    echo "PrivateKey = ${srv_prikey}"
-    echo "#Table = off #disable iptable&nft&ip rule"
+    echo "PrivateKey = ${prikey}"
+    ${addr:+echo "Address = ${addr}"}
+    ${pubport:+echo "ListenPort = ${pubport}"}
+    echo "#Table = off #disable wg-quick firewall rule"
 }
 
-server_add_peer() {
-    local cli_pubkey=$1
-    local cli_addr=$2
+gen_wg_peer() {
+    local peer_pubkey="${1}"
+    local allow_addr="${2}"
+    local endpoint="${3:-}"
     echo "[Peer]"
-    echo "PublicKey = ${cli_pubkey}"
-    echo "AllowedIPs = ${cli_addr%/*}/32"
+    echo "PublicKey = ${peer_pubkey}"
+    echo "AllowedIPs = ${allow_addr}"
+    ${endpoint:+echo "Endpoint = ${endpoint}"}
     echo "PersistentKeepalive = 10"
-}
-
-gen_wg_client() {
-    local srv_pubkey=$1
-    local srv_pubaddr=$2
-    local srv_pubport=$3
-    local cli_prikey=$4
-    local cli_addr=$5
-    local cli_allow=$6
-    echo "[Interface]"
-    echo "Address = ${cli_addr}"
-    echo "PrivateKey = ${cli_prikey}"
-    echo "[Peer]"
-    echo "PublicKey = ${srv_pubkey}"
-    echo "AllowedIPs = ${cli_allow}"
-    echo "Endpoint = ${srv_pubaddr}:${srv_pubport}"
-    echo "PersistentKeepalive = 10"
-    #cli-${cli_addr%/*}.conf
 }
 
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
-${SCRIPTNAME} [server/client]
-                      s/c
-        -p|--pkey       *  <key>      server prikey
-        -a|--addr     * *  <address>  exam: 192.168.1.1/24
-        -P|--pubport  * *  <int>      server public port
-        -A|--pubaddr    *  <ipaddr>   server public ipaddress
-        -c|--callow        <allow>    client allow network forward
-                                    exam: 1.1.1.0/23,2.2.2.0/23
+${SCRIPTNAME}
+        -k|--pkey          <key>          prikey, default auto generate.
+        -p|--pubport       <int>          public port
+        -a|--addr          <address>      exam: 192.168.1.1/24
+        --onlypeer                        only gen peer config
+        -P|--pubkey        <key>          peer public key
+        --endpoint         <ipaddr:port>  peer public ipaddress:port
+        --allows           <allow>        peer allows network, 
+                                          1:<allow> 2:<address> network 3:0.0.0.0/0
+                                          exam: 1.1.1.0/23,2.2.2.0/23
 
         -q|--quiet
         -l|--log <int> log level
@@ -73,29 +59,22 @@ EOF
 } >&2
 
 main() {
-    local prikey=
-    local srv_pubport=
-    local srv_pubaddr=
-    local addr=
-    local cli_allow=
-
-    local action="${1:-}"
-    [[ ${action-} =~ ^c|client|s|server$ ]] || usage "select mode <server/client>"
-    shift 1
-    local opt_short="p:a:P:A:c:"
-    local opt_long="pkey:,addr:,pubport:,pubaddr:,callow:,"
+    local prikey= pubport= addr= onlypeer= peer_pubkey= endpoint= allows=
+    local opt_short="k:p:a:P:"
+    local opt_long="pkey:,pubport:,addr:,onlypeer,pubkey:,endpoint:,allows:,"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -p | --pkey)    shift; prikey=${1}; shift;;
+            -k | --pkey)    shift; prikey=${1}; shift;;
+            -p | --pubport) shift; pubport=${1}; shift;;
             -a | --addr)    shift; addr=${1}; shift;;
-            -P | --pubport) shift; srv_pubport=${1}; shift;;
-            -A | --pubaddr) shift; srv_pubaddr=${1}; shift;;
-            -c | --callow)  shift; cli_allow=${1}; shift;;
-
+            --onlypeer)     shift; onlypeer=1;;
+            -P | --pubkey)  shift; peer_pubkey=${1}; shift;;
+            --endpoint)     shift; endpoint=${1}; shift;;
+            --allows)       shift; allows=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -107,35 +86,33 @@ main() {
         esac
     done
     require wg
-    [ -z ${addr} ] && usage "<addr> must input"
-    is_ipv4_subnet ${addr} || usage "addr not ipv4/mask"
-    [ -z ${srv_pubport} ] && usage "port must input"
-    is_integer ${srv_pubport} || usage "port wrong"
-    [ -z ${prikey} ] && prikey=$(try wg genkey)
-    local pubkey="$(echo -n ${prikey} | try wg pubkey)"
-    echo "action      :${action}
-PRI         :${prikey}
-PUB         :${pubkey}
-srv_pubport :${srv_pubport}
-srv_pubaddr :${srv_pubaddr}
+    [ -z ${addr} ] || is_ipv4_subnet ${addr} || usage "addr not ipv4/mask"
+
+    [ -z ${onlypeer} ] && {
+        [ -z ${prikey} ] && prikey=$(try wg genkey)
+        vinfo_msg<<EOF
+prikey      :${prikey}
+pubkey      :$(try echo -n ${prikey} \| wg pubkey)
+pubport     :${pubport}
 addr        :${addr}
-cli_allow   :${cli_allow}" | vinfo_msg
-    case "${action}" in
-        c | client)
-            local cli_prikey=$(try wg genkey)
-            local cli_pubkey="$(echo -n ${cli_prikey} | try wg pubkey)"
-            [ -z ${srv_pubaddr} ] && usage "srv_pubaddr must input"
+EOF
+        gen_wg_interface "${prikey}" "${pubport}" "${addr}"
+    }
+    [ -z ${peer_pubkey} ] || {
+        vinfo_msg<<EOF
+peer_pubkey :${peer_pubkey}
+endpoint    :${endpoint}
+allows      :${allows}
+EOF
+        [ -z ${addr} ] && {
+            allows=${allows:-0.0.0.0/0}
+        } || {
+            local tip= tmask=
             IFS='/' read -r tip tmask <<< "${addr}"
-            cli_allow=$(get_ipv4_network ${tip} $(cidr2mask ${tmask}))/${tmask}${cli_allow:+,${cli_allow}}
-            info_msg "gen client conf: ==============================================\n"
-            gen_wg_client "${pubkey}" "${srv_pubaddr}" "${srv_pubport}" "${cli_prikey}" "${addr}" "${cli_allow}" | vinfo_msg
-            info_msg "server conf add peer: =========================================\n"
-            server_add_peer "${cli_pubkey}" "${addr}" | vinfo_msg
-            ;;
-        s | server)
-            gen_wg_server "${addr}" "${srv_pubport}" "${prikey}" | vinfo_msg
-            ;;
-    esac
+            allows=${allows:-$(get_ipv4_network ${tip} $(cidr2mask ${tmask}))/${tmask}}
+        }
+        gen_wg_peer "${peer_pubkey}" "${allows}" "${endpoint}"
+    }
     return 0
 }
 main "$@"
