@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("create_netns.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
+VERSION+=("create_netns.sh - cdd562b - 2021-01-22T10:36:26+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -16,6 +16,7 @@ usage() {
 ${SCRIPTNAME} <-s/-c> conf
         -s|--start *  start all namespace
         -c|--clean  * cleanup all namespace
+        -t|--tmux     tmux shell(in netns)
         -q|--quiet
         -l|--log <int> log level
         -V|--version
