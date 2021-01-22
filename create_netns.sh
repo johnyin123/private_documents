@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("create_netns.sh - cdd562b - 2021-01-22T10:36:26+08:00")
+VERSION+=("create_netns.sh - 67ac080 - 2021-01-22T10:45:31+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -26,10 +26,10 @@ ${SCRIPTNAME} <-s/-c> conf
 config file example:
 cat <<EO_CFG > conf.conf
 OUTBRIDGE=br-test
-PEERS=( \\\\
-    ["M1"]=192.168.168.101/24 \\\\
-    ["M2"]=192.168.168.102/24 \\\\
-    ["M3"]=192.168.168.103/24 \\\\
+PEERS=(
+    ["M1"]=192.168.168.101/24
+    ["M2"]=192.168.168.102/24
+    ["M3"]=192.168.168.103/24
     )
 EO_CFG
 EOF
@@ -39,7 +39,6 @@ EOF
 startup() {
     local conf="$1" tmux="$2" OUTBRIDGE= ns_name=
     declare -A PEERS
-    file_exists "${conf}" || return 1
     source "${conf}"
     #try sysctl -q -w net.ipv4.ip_forward=1
     bridge_exists "${OUTBRIDGE}" "" &>/dev/null && { error_msg "${OUTBRIDGE} exists!\n"; return 1; } 
@@ -51,7 +50,7 @@ startup() {
         maybe_netns_setup_veth "${ns_name}0" "${ns_name}1" ""
         maybe_netns_bridge_addlink "${OUTBRIDGE}" "${ns_name}0" ""
         #try ip link set ${ns_name}0 up
-        maybe_netns_addlink "${ns_name}1" "${ns_name}" ""eth0
+        maybe_netns_addlink "${ns_name}1" "${ns_name}" "eth0"
         maybe_netns_run "ip addr add "${PEERS[$ns_name]}" dev eth0" "${ns_name}"
         debug_msg "ip netns exec ${ns_name} /bin/bash\n"
     done
@@ -62,7 +61,6 @@ startup() {
 cleanup() {
     local conf="$1" tmux="$2" OUTBRIDGE= ns_name=
     declare -A PEERS
-    file_exists "${conf}" || return 1
     source "${conf}"
 
     for ns_name in ${!PEERS[@]}
@@ -87,7 +85,7 @@ main() {
         case "$1" in
             -s | --start)   shift; action=startup; conf=${1}; shift;;
             -c | --clean)   shift; action=cleanup; conf=${1}; shift;;
-            -t | --tmux)    shift; tmux=1
+            -t | --tmux)    shift; tmux=1;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -100,6 +98,7 @@ main() {
     done
     is_user_root || exit_msg "root user need!!\n"
     [ -z "${conf}" ] && usage "start/clean <config file>"
+    file_exists "${conf}" || exit_msg "${conf} not exists\n"
     case "${action}" in
         startup)    info_msg "startup ${conf}\n";;
         cleanup)    info_msg "cleanup ${conf}\n";;
