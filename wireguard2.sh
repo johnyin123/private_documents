@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("wireguard2.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
+VERSION+=("wireguard2.sh - 7c9f7d7 - 2021-01-21T14:35:06+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
@@ -19,6 +19,7 @@ gen_wg_server() {
     echo "Address = ${srv_addr}"
     echo "ListenPort = ${srv_pubport}"
     echo "PrivateKey = ${srv_prikey}"
+    echo "#Table = off #disable iptable&nft&ip rule"
 }
 
 server_add_peer() {
