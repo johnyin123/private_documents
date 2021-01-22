@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlap.sh - initversion - 2021-01-22T22:21:52+08:00")
+VERSION+=("netlap.sh - bb43f23 - 2021-01-22T22:21:48+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 startup() {
@@ -39,7 +39,7 @@ startup() {
         lcidr=${_lval##*:}
         rnode=${_rval%:*}
         rcidr=${_rval##*:}
-        info_msg "${lnode}-${lcidr}|${rnode}-${rcidr}======= \n"
+        debug_msg "line: ${lnode}-${lcidr}|${rnode}-${rcidr}\n"
         maybe_netns_setup_veth "${lnode}-${rnode}" "${rnode}-${lnode}" "" || { error_msg "${lnode}-${rnode} line error\n"; return 5; }
         case "$(array_get MAP_NODES "${lnode}")" in
             R|N ) is_ipv4_subnet "${lcidr}" \
