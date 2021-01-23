@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly SCRIPTNAME=${0##*/}
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
+    BASH_XTRACEFD="5"
+    export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    set -o xtrace
+fi
+VERSION+=("netlab-wireguard.sh - initversion - 2021-01-23T08:28:28+08:00")
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+################################################################################
+usage() {
+    [ "$#" != 0 ] && echo "$*"
+    cat <<EOF
+${SCRIPTNAME}
+        -q|--quiet
+        -l|--log <int> log level
+        -V|--version
+        -d|--dryrun dryrun
+        -h|--help help
+EOF
+    exit 1
+}
+gen_network() {
+cat <<EOF >lab-wiregurad.conf
+#[name]="type" type:R/S/N (router,switch,node)
+MAP_NODES=(
+    [R1]=R
+    [R2]=R
+    [R3]=R
+    [SW1]=S
+    [SW2]=S
+    [SW3]=S
+    [h1]=N
+    [j1]=N
+    [h2]=N
+    [j2]=N
+    [h3]=N
+    [j3]=N
+    )
+#[node:ip/prefix]=node:ip/prefix
+MAP_LINES=(
+    [R1:172.16.16.1/30]=R2:172.16.16.2/30
+    [R1:172.16.16.5/30]=R3:172.16.16.6/30
+    [R2:172.16.16.9/30]=R3:172.16.16.10/30
+    [R1:10.0.1.1/24]=SW1:
+    [R2:10.0.2.1/24]=SW2:
+    [R3:10.0.3.1/24]=SW3:
+    [h1:10.0.1.100/24]=SW1:
+    [j1:10.0.1.101/24]=SW1:
+    [h2:10.0.2.100/24]=SW2:
+    [j2:10.0.2.101/24]=SW2:
+    [h3:10.0.3.100/24]=SW3:
+    [j3:10.0.3.101/24]=SW3:
+    )
+#routes delm ,
+NODES_ROUTES=(
+    [h1]="default via 10.0.1.1,1.1.1.0/24 via 10.0.1.1"
+    [j1]="default via 10.0.1.1"
+    [h2]="default via 10.0.2.1"
+    [j2]="default via 10.0.2.1"
+    [h3]="default via 10.0.3.1"
+    [j3]="default via 10.0.3.1"
+    )
+EOF
+}
+gen_wg() {
+    local prikey_R1=$(try wg genkey)
+    local pubkey_R1="$(echo -n ${prikey_R1} | try wg pubkey)"
+    local prikey_R2=$(try wg genkey)
+    local pubkey_R2="$(echo -n ${prikey_R2} | try wg pubkey)"
+    local prikey_R3=$(try wg genkey)
+    local pubkey_R3="$(echo -n ${prikey_R3} | try wg pubkey)"
+    # [R1:172.16.16.1/30]=R2:172.16.16.2/30
+    # [R1:172.16.16.5/30]=R3:172.16.16.6/30
+    # [R2:172.16.16.9/30]=R3:172.16.16.10/30
+    # [R1:10.0.1.1/24]=SW1:
+    # [R2:10.0.2.1/24]=SW2:
+    # [R3:10.0.3.1/24]=SW3:
+    ${DIRNAME}/wireguard2.sh -q --pkey "${prikey_R1}" --addr 172.16.1.1/24 --pubport 9901        >wg_R1.conf
+    ${DIRNAME}/wireguard2.sh -q --onlypeer --pubkey "${pubkey_R2}" --endpoint 172.16.16.2:9901 --allows "10.0.2.0/24" >>wg_R1.conf
+    ${DIRNAME}/wireguard2.sh -q --onlypeer --pubkey "${pubkey_R3}" --endpoint 172.16.16.6:9901 --allows "10.0.3.0/24" >>wg_R1.conf
+    ${DIRNAME}/wireguard2.sh -q --pkey "${prikey_R2}" --addr 172.16.1.2/24 --pubport 9901        >wg_R2.conf
+    ${DIRNAME}/wireguard2.sh -q --onlypeer --pubkey "${pubkey_R1}" --endpoint 172.16.16.1:9901 --allows "10.0.1.0/24"  >>wg_R2.conf
+    ${DIRNAME}/wireguard2.sh -q --onlypeer --pubkey "${pubkey_R3}" --endpoint 172.16.16.10:9901 --allows "10.0.3.0/24" >>wg_R2.conf
+    ${DIRNAME}/wireguard2.sh -q --pkey "${prikey_R3}" --addr 172.16.1.3/24 --pubport 9901                   >wg_R3.conf
+    ${DIRNAME}/wireguard2.sh -q --onlypeer --pubkey "${pubkey_R1}" --endpoint 172.16.16.5:9901 --allows "10.0.1.0/24"  >>wg_R3.conf
+    ${DIRNAME}/wireguard2.sh -q --onlypeer --pubkey "${pubkey_R2}" --endpoint 172.16.16.9:9901 --allows "10.0.2.0/24"  >>wg_R3.conf
+}
+main() {
+    local opt_short=""
+    local opt_long=""
+    opt_short+="ql:dVh"
+    opt_long+="quite,log:,dryrun,version,help"
+    __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            ########################################
+            -q | --quiet)   shift; QUIET=1;;
+            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              usage "Unexpected option: $1";;
+        esac
+    done
+    gen_network
+    gen_wg
+    return 0
+}
+main "$@"
