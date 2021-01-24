@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("wireguard2.sh - e66e2f5 - 2021-01-23T07:46:37+08:00")
+VERSION+=("wireguard2.sh - 85ff77b - 2021-01-24T16:36:55+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
@@ -20,7 +20,7 @@ gen_wg_interface() {
     echo "PrivateKey = ${prikey}"
     ${addr:+echo "Address = ${addr}"}
     ${pubport:+echo "ListenPort = ${pubport}"}
-    [ -z "%{notable}" ] || {
+    [ -z "${notable}" ] || {
         echo "Table = off"
         echo "#disable wg-quick firewall rule"
     }

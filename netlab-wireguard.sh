@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlab-wireguard.sh - 3b8d952 - 2021-01-24T11:57:01+08:00")
+VERSION+=("netlab-wireguard.sh - d5e9c72 - 2021-01-24T14:25:58+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -155,15 +155,15 @@ main() {
     tmux_attach "$sess"
     gen_wg
     gen_network
-    maybe_netns_run "ping -c2 10.0.2.100" "h1"
-    maybe_netns_run "ping -c2 10.0.3.100" "h1"
+    maybe_netns_run "ping -c2 10.0.2.100" "h1" || true
+    maybe_netns_run "ping -c2 10.0.3.100" "h1" || true
 
     maybe_netns_run "wg-quick up ${DIRNAME}/wg_R1.conf" "R1"
     maybe_netns_run "wg-quick up ${DIRNAME}/wg_R2.conf" "R2"
     maybe_netns_run "wg-quick up ${DIRNAME}/wg_R3.conf" "R3"
 
-    maybe_netns_run "ping -c2 10.0.2.100" "h1"
-    maybe_netns_run "ping -c2 10.0.3.100" "h1"
+    maybe_netns_run "ping -c2 10.0.2.100" "h1" || true
+    maybe_netns_run "ping -c2 10.0.3.100" "h1" || true
 
     tmux_new "${sess}"
     tmux_window "${sess}" "R1" "shell"
