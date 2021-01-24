@@ -7,34 +7,34 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("tmux_test.sh - initversion - 2021-01-23T17:12:30+08:00")
+VERSION+=("tmux_test.sh - 3937623 - 2021-01-23T17:12:30+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 tmux_hsplit() {
     local sess="$1"
-    local name="$2"
+    local window="$2"
     local cmd="'$3'"
-    maybe_dryrun tmux split-window -t "${sess}:${name}" -h
-    maybe_dryrun tmux send-keys -t "${sess}:${name}" "${cmd}" Enter
+    maybe_dryrun tmux split-window -t "${sess}:${window}" -h
+    maybe_dryrun tmux send-keys -t "${sess}:${window}" "${cmd}" Enter
 }
 
 tmux_vsplit() {
     local sess="$1"
-    local name="$2"
+    local window="$2"
     local cmd="'$3'"
-    maybe_dryrun tmux split-window -t "${sess}:${name}" -v
-    maybe_dryrun tmux send-keys -t "${sess}:${name}" "${cmd}" Enter
+    maybe_dryrun tmux split-window -t "${sess}:${window}" -v
+    maybe_dryrun tmux send-keys -t "${sess}:${window}" "${cmd}" Enter
 }
 
 tmux_new() {
     local sess="$1"
-    local name="$2"
+    local window="$2"
     local cmd="'$3'"
-    maybe_dryrun tmux new-session -d -s "${sess}"
+    maybe_dryrun tmux new-session -d -s "${sess}";
     maybe_dryrun tmux set-option -t "${sess}" mouse on
     maybe_dryrun tmux set-window-option -t "${sess}" mode-keys vi
-    maybe_dryrun tmux new-window -d -t "${sess}" -n "${name}"
-    maybe_dryrun tmux send-keys -t "${sess}:${name}" "${cmd}" Enter
+    maybe_dryrun tmux new-window -t "${sess}" -n "${window}"
+    maybe_dryrun tmux send-keys -t "${sess}:${window}" "${cmd}" Enter
 }
 
 tmux_shell() {
@@ -53,6 +53,7 @@ main() {
     setup_ns "${ns_name}" || { error_msg "node ${ns_name} init netns error\n"; return 1; }
     tmux_new "${sess}" "G1" "exec ip netns exec ${ns_name} /bin/bash --noprofile --rcfile <(echo \"PS1='${ns_name} $ '\")"
     tmux_hsplit "${sess}" "G1" "exec ip netns exec ${ns_name} /bin/bash --noprofile --rcfile <(echo \"PS1='${ns_name} $ '\")"
+    tmux_vsplit "${sess}" "G1" "exec ip netns exec ${ns_name} /bin/bash --noprofile --rcfile <(echo \"PS1='${ns_name} $ '\")"
     #tmux kill-window -t "${sess}":$(tmux list-windows -t "${sess}" -F "1" | head -n 1)
     echo "FFF"
     return 0

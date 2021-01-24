@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlab-wireguard.sh - initversion - 2021-01-23T08:28:28+08:00")
+VERSION+=("netlab-wireguard.sh - a750650 - 2021-01-23T08:28:28+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -56,7 +56,7 @@ MAP_LINES=(
     )
 #routes delm ,
 NODES_ROUTES=(
-    [h1]="default via 10.0.1.1,1.1.1.0/24 via 10.0.1.1"
+    [h1]="default via 10.0.1.1"
     [j1]="default via 10.0.1.1"
     [h2]="default via 10.0.2.1"
     [j2]="default via 10.0.2.1"
@@ -64,6 +64,7 @@ NODES_ROUTES=(
     [j3]="default via 10.0.3.1"
     )
 EOF
+    ${DIRNAME}/netlab.sh -s lab-wiregurad.conf
 }
 gen_wg() {
     local prikey_R1=$(try wg genkey)
@@ -78,16 +79,17 @@ gen_wg() {
     # [R1:10.0.1.1/24]=SW1:
     # [R2:10.0.2.1/24]=SW2:
     # [R3:10.0.3.1/24]=SW3:
-    ${DIRNAME}/wireguard2.sh -q --pkey "${prikey_R1}" --addr 172.16.1.1/24 --pubport 9901        >wg_R1.conf
-    ${DIRNAME}/wireguard2.sh -q --onlypeer --pubkey "${pubkey_R2}" --endpoint 172.16.16.2:9901 --allows "10.0.2.0/24" >>wg_R1.conf
-    ${DIRNAME}/wireguard2.sh -q --onlypeer --pubkey "${pubkey_R3}" --endpoint 172.16.16.6:9901 --allows "10.0.3.0/24" >>wg_R1.conf
-    ${DIRNAME}/wireguard2.sh -q --pkey "${prikey_R2}" --addr 172.16.1.2/24 --pubport 9901        >wg_R2.conf
-    ${DIRNAME}/wireguard2.sh -q --onlypeer --pubkey "${pubkey_R1}" --endpoint 172.16.16.1:9901 --allows "10.0.1.0/24"  >>wg_R2.conf
-    ${DIRNAME}/wireguard2.sh -q --onlypeer --pubkey "${pubkey_R3}" --endpoint 172.16.16.10:9901 --allows "10.0.3.0/24" >>wg_R2.conf
-    ${DIRNAME}/wireguard2.sh -q --pkey "${prikey_R3}" --addr 172.16.1.3/24 --pubport 9901                   >wg_R3.conf
-    ${DIRNAME}/wireguard2.sh -q --onlypeer --pubkey "${pubkey_R1}" --endpoint 172.16.16.5:9901 --allows "10.0.1.0/24"  >>wg_R3.conf
-    ${DIRNAME}/wireguard2.sh -q --onlypeer --pubkey "${pubkey_R2}" --endpoint 172.16.16.9:9901 --allows "10.0.2.0/24"  >>wg_R3.conf
+    ${DIRNAME}/wireguard2.sh --pkey "${prikey_R1}" --addr 172.16.1.1/24 --pubport 9901        >wg_R1.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R2}" --endpoint 172.16.16.2:9901 --allows "10.0.2.0/24" >>wg_R1.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R3}" --endpoint 172.16.16.6:9901 --allows "10.0.3.0/24" >>wg_R1.conf
+    ${DIRNAME}/wireguard2.sh --pkey "${prikey_R2}" --addr 172.16.1.2/24 --pubport 9901        >wg_R2.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R1}" --endpoint 172.16.16.1:9901 --allows "10.0.1.0/24"  >>wg_R2.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R3}" --endpoint 172.16.16.10:9901 --allows "10.0.3.0/24" >>wg_R2.conf
+    ${DIRNAME}/wireguard2.sh --pkey "${prikey_R3}" --addr 172.16.1.3/24 --pubport 9901                   >wg_R3.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R1}" --endpoint 172.16.16.5:9901 --allows "10.0.1.0/24"  >>wg_R3.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R2}" --endpoint 172.16.16.9:9901 --allows "10.0.2.0/24"  >>wg_R3.conf
 }
+
 main() {
     local opt_short=""
     local opt_long=""
@@ -107,8 +109,10 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    gen_network
+    file_exists ${DIRNAME}/wireguard2.sh || exit_msg "need ${DIRNAME}/wireguard2.sh\n"
+    file_exists ${DIRNAME}/netlab.sh || exit_msg "need ${DIRNAME}/netlab.sh\n"
     gen_wg
+    gen_network
     return 0
 }
 main "$@"
