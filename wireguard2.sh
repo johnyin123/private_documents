@@ -7,19 +7,23 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("wireguard2.sh - 5c57690 - 2021-01-22T13:44:02+08:00")
+VERSION+=("wireguard2.sh - e66e2f5 - 2021-01-23T07:46:37+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
 gen_wg_interface() {
     local prikey="${1}"
-    local pubport="${2:-}"
-    local addr="${3:-}"
+    local notable="${2}"
+    local pubport="${3:-}"
+    local addr="${4:-}"
     echo "[Interface]"
     echo "PrivateKey = ${prikey}"
     ${addr:+echo "Address = ${addr}"}
     ${pubport:+echo "ListenPort = ${pubport}"}
-    echo "#Table = off #disable wg-quick firewall rule"
+    [ -z "%{notable}" ] || {
+        echo "Table = off"
+        echo "#disable wg-quick firewall rule"
+    }
 }
 
 gen_wg_peer() {
@@ -38,6 +42,7 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME}
         -k|--pkey          <key>          prikey, default auto generate.
+        -t|--notable                      no firewall and routes
         -p|--pubport       <int>          public port
         -a|--addr          <address>      exam: 192.168.1.1/24
         --onlypeer                        only gen peer config
@@ -59,9 +64,9 @@ EOF
 } >&2
 
 main() {
-    local prikey= pubport= addr= onlypeer= peer_pubkey= endpoint= allows=
-    local opt_short="k:p:a:P:"
-    local opt_long="pkey:,pubport:,addr:,onlypeer,pubkey:,endpoint:,allows:,"
+    local prikey= notable= pubport= addr= onlypeer= peer_pubkey= endpoint= allows=
+    local opt_short="k:tp:a:P:"
+    local opt_long="pkey:,notable,pubport:,addr:,onlypeer,pubkey:,endpoint:,allows:,"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -69,6 +74,7 @@ main() {
     while true; do
         case "$1" in
             -k | --pkey)    shift; prikey=${1}; shift;;
+            -t | --notable) shift; notable=1;;
             -p | --pubport) shift; pubport=${1}; shift;;
             -a | --addr)    shift; addr=${1}; shift;;
             --onlypeer)     shift; onlypeer=1;;
@@ -96,7 +102,7 @@ pubkey      :$(try echo -n ${prikey} \| wg pubkey)
 pubport     :${pubport}
 addr        :${addr}
 EOF
-        gen_wg_interface "${prikey}" "${pubport}" "${addr}"
+        gen_wg_interface "${prikey}" "${notable}" "${pubport}" "${addr}"
     }
     [ -z ${peer_pubkey} ] || {
         vinfo_msg<<EOF
