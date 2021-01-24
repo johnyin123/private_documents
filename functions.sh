@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - cdd562b - 2021-01-22T10:36:26+08:00")
+VERSION+=("functions.sh - fd5c4d5 - 2021-01-24T11:56:06+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
 
@@ -91,6 +91,7 @@ maybe_netns_shell() {
     local info="$1"
     local ns_name="${2:-}"
     trap "echo 'CTRL+C!!!!'" SIGINT
+    #PS1="[${info}${ns_name:+@${ns_name}}]\$PS1" \
     maybe_dryrun $(truecmd env) -i \
         SHELL=$(truecmd bash) \
         HOME=/root \
@@ -614,7 +615,7 @@ run_scripts() {
 try() {
     # stdin is redirect and has parm, so stdin is not cmd stream!!
     local cmds="${@:-$(cat)}"
-    local cmd_size=-60.60
+    local cmd_size=-60.60 retval=
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "$cmds\n"; stdin_is_terminal || cat >&2; return 0; }
     stderr_is_terminal || cmd_size=    #stderr is redirect show all cmd
     blue>&2 "Begin: ";purple>&2 "%${cmd_size}s." "$cmds"
@@ -633,8 +634,9 @@ try() {
         red>&2 " failed(${cmd_func}:${cmd_line} [${__ret_rc}]).\n"
         [[ -z "${__ret_err}" ]] || cat >&2 <<< "${__ret_err}"
     }
+    retval=${__ret_rc}
     unset __ret_out __ret_err __ret_rc
-    return ${__ret_rc}
+    return ${retval}
 }
 
 # undo command
