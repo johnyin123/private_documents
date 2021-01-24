@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - b59ab0c - 2021-01-21T11:02:22+08:00")
+VERSION+=("functions.sh - cdd562b - 2021-01-22T10:36:26+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
 
@@ -633,6 +633,7 @@ try() {
         red>&2 " failed(${cmd_func}:${cmd_line} [${__ret_rc}]).\n"
         [[ -z "${__ret_err}" ]] || cat >&2 <<< "${__ret_err}"
     }
+    unset __ret_out __ret_err __ret_rc
     return ${__ret_rc}
 }
 
