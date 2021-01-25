@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlab-wireguard.sh - initversion - 2021-01-25T07:29:48+08:00")
+VERSION+=("netlab-wireguard.sh - 9bf43e0 - 2021-01-25T07:29:47+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -80,14 +80,14 @@ gen_wg() {
     # [R2:10.0.2.1/24]=SW2:
     # [R3:10.0.3.1/24]=SW3:
     ${DIRNAME}/wireguard2.sh --pkey "${prikey_R1}" --addr 172.16.1.1/24 --pubport 9901        >wg_R1.conf
-    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R2}" --endpoint 172.16.16.2:9901 --allows "10.0.2.0/24" >>wg_R1.conf
-    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R3}" --endpoint 172.16.16.6:9901 --allows "10.0.3.0/24" >>wg_R1.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R2}" --endpoint 172.16.16.2:9901 --allows "10.0.2.0/24,172.16.1.2/32" >>wg_R1.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R3}" --endpoint 172.16.16.6:9901 --allows "10.0.3.0/24,172.16.1.3/32" >>wg_R1.conf
     ${DIRNAME}/wireguard2.sh --pkey "${prikey_R2}" --addr 172.16.1.2/24 --pubport 9901        >wg_R2.conf
-    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R1}" --endpoint 172.16.16.1:9901 --allows "10.0.1.0/24"  >>wg_R2.conf
-    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R3}" --endpoint 172.16.16.10:9901 --allows "10.0.3.0/24" >>wg_R2.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R1}" --endpoint 172.16.16.1:9901 --allows "10.0.1.0/24,172.16.1.1/32"  >>wg_R2.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R3}" --endpoint 172.16.16.10:9901 --allows "10.0.3.0/24,172.16.1.3/32" >>wg_R2.conf
     ${DIRNAME}/wireguard2.sh --pkey "${prikey_R3}" --addr 172.16.1.3/24 --pubport 9901                   >wg_R3.conf
-    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R1}" --endpoint 172.16.16.5:9901 --allows "10.0.1.0/24"  >>wg_R3.conf
-    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R2}" --endpoint 172.16.16.9:9901 --allows "10.0.2.0/24"  >>wg_R3.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R1}" --endpoint 172.16.16.5:9901 --allows "10.0.1.0/24,172.16.1.1/32"  >>wg_R3.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R2}" --endpoint 172.16.16.9:9901 --allows "10.0.2.0/24,172.16.1.2/32"  >>wg_R3.conf
 }
 
 tmux_new() {
