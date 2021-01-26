@@ -48,7 +48,7 @@ gen_zebra() {
 hostname ${ns}
 password ${password}
 enable password ${password}
-log file /tmp/${ns}_zebra.log
+log file /tmp/zebra.log
 service password-encryption
 EOF
 }
@@ -59,6 +59,7 @@ gen_ospfd() {
     local interfaces=$3
     local areas=$4
     local password="password"
+    # passive-interface lo (skip lo ospf)
 
     cat <<EOF
 password ${password}
@@ -66,11 +67,21 @@ enable password ${password}
 log file /tmp/ospf.log
 log stdout
 log syslog
+$(while read -rd "," -r x; do
+    echo "interface ${x}"
+    echo " ip ospf authentication message-digest"
+    echo " ip ospf message-digest-key 1 md5 pass4OSPF"
+done <<< "${interfaces},"
+)
 router ospf
+ ospf router-id ${route_id}
+ log-adjacency-changes
+ passive-interface lo
 $(while read -rd "," -r x; do
     echo " network ${x} area 0.0.0.0"
 done <<< "${areas},"
 )
+area 0.0.0.0 authentication message-digest
 EOF
 }
 
@@ -82,18 +93,18 @@ post_create() {
         setup_overlayfs "${lower}" "${overlay}"
     done
 
-    gen_zebra "R1"                                       > ${LAB_DIR}/R1/rootfs/etc/quagga/zebra.conf
     gen_ospfd "R1" "10.0.1.1" "R1-R2,R1-R3" "10.0.1.0/24,172.16.16.1/30,172.16.16.5/30" > ${LAB_DIR}/R1/rootfs/etc/quagga/ospfd.conf
+    gen_zebra "R1"                                       > ${LAB_DIR}/R1/rootfs/etc/quagga/zebra.conf
     chown quagga:quagga                                    ${LAB_DIR}/R1/rootfs/etc/quagga/*
     mkdir -p                                               ${LAB_DIR}/R1/rootfs/run/quagga
     chown -R quagga:quagga                                 ${LAB_DIR}/R1/rootfs/run/quagga
-    gen_zebra "R2"                                       > ${LAB_DIR}/R2/rootfs/etc/quagga/zebra.conf
     gen_ospfd "R2" "10.0.2.1" "R2-R1,R2-R3" "10.0.2.0/24,172.16.16.9/30,172.16.16.2/30" > ${LAB_DIR}/R2/rootfs/etc/quagga/ospfd.conf
+    gen_zebra "R2"                                       > ${LAB_DIR}/R2/rootfs/etc/quagga/zebra.conf
     chown quagga:quagga                                    ${LAB_DIR}/R2/rootfs/etc/quagga/*
     mkdir -p                                               ${LAB_DIR}/R2/rootfs/run/quagga
     chown -R quagga:quagga                                 ${LAB_DIR}/R2/rootfs/run/quagga
-    gen_zebra "R3"                                       > ${LAB_DIR}/R3/rootfs/etc/quagga/zebra.conf
     gen_ospfd "R3" "10.0.3.1" "R3-R1,R3-R2" "10.0.3.0/24,172.16.16.6/30,172.16.16.10/30" > ${LAB_DIR}/R3/rootfs/etc/quagga/ospfd.conf
+    gen_zebra "R3"                                       > ${LAB_DIR}/R3/rootfs/etc/quagga/zebra.conf
     chown quagga:quagga                                    ${LAB_DIR}/R3/rootfs/etc/quagga/*
     mkdir -p                                               ${LAB_DIR}/R3/rootfs/run/quagga
     chown -R quagga:quagga                                 ${LAB_DIR}/R3/rootfs/run/quagga
