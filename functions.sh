@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 0318c1c - 2021-01-25T08:24:57+08:00")
+VERSION+=("functions.sh - ed7e31a - 2021-01-26T13:29:03+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
 
@@ -122,7 +122,7 @@ maybe_netns_run() {
     local cmd="$1"
     local ns_name="${2:-}"
     local rootfs="${3:-}"
-    try ${ns_name:+$(truecmd ip) netns exec "${ns_name}"} ${rootfs:+$(truecmd chroot) ${rootfs}} "${cmd}"
+    maybe_dryrun "${ns_name:+$(truecmd ip) netns exec ${ns_name}} ${rootfs:+$(truecmd chroot) ${rootfs}} ${cmd}"
 }
 
 netns_exists() {
