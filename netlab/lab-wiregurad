@@ -1,0 +1,92 @@
+#[name]="type" type:R/S/N (router,switch,node)
+declare -A MAP_NODES=(
+    [R1]=R
+    [R2]=R
+    [R3]=R
+    [SW1]=S
+    [SW2]=S
+    [SW3]=S
+    [h1]=N
+    [j1]=N
+    [h2]=N
+    [j2]=N
+    [h3]=N
+    [j3]=N
+    )
+#[node:ip/prefix]=node:ip/prefix
+declare -A MAP_LINES=(
+    [R1:172.16.16.1/30]=R2:172.16.16.2/30
+    [R1:172.16.16.5/30]=R3:172.16.16.6/30
+    [R2:172.16.16.9/30]=R3:172.16.16.10/30
+    [R1:10.0.1.1/24]=SW1:
+    [R2:10.0.2.1/24]=SW2:
+    [R3:10.0.3.1/24]=SW3:
+    [h1:10.0.1.100/24]=SW1:
+    [j1:10.0.1.101/24]=SW1:
+    [h2:10.0.2.100/24]=SW2:
+    [j2:10.0.2.101/24]=SW2:
+    [h3:10.0.3.100/24]=SW3:
+    [j3:10.0.3.101/24]=SW3:
+    )
+#routes delm ,
+declare -A NODES_ROUTES=(
+    [h1]="default via 10.0.1.1"
+    [j1]="default via 10.0.1.1"
+    [h2]="default via 10.0.2.1"
+    [j2]="default via 10.0.2.1"
+    [h3]="default via 10.0.3.1"
+    [j3]="default via 10.0.3.1"
+    )
+
+maybe_tmux_ns_chroot() {
+    local sess="$1" window="$2"
+    local ns_name="${3:-}" rootfs="${4:-}"
+    tmux send-keys -t "${sess}:${window}" "exec \
+        ${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
+        ${rootfs:+$(truecmd chroot) ${rootfs}} \
+        $(truecmd env) -i \
+        SHELL=$(truecmd bash) \
+        HOME=/root \
+        TERM=${TERM} \
+        PS1=[${window}${rootfs:+:${rootfs}}@${ns_name:+@${ns_name}}] \
+        /bin/bash" Enter
+}
+
+SESS=wglab
+post_create() {
+    local prikey_R1=$(try wg genkey)
+    local pubkey_R1="$(echo -n ${prikey_R1} | try wg pubkey)"
+    local prikey_R2=$(try wg genkey)
+    local pubkey_R2="$(echo -n ${prikey_R2} | try wg pubkey)"
+    local prikey_R3=$(try wg genkey)
+    local pubkey_R3="$(echo -n ${prikey_R3} | try wg pubkey)"
+    ${DIRNAME}/wireguard2.sh --pkey "${prikey_R1}" --addr 172.16.1.1/24 --pubport 9901                                             >${DIRNAME}/wg_R1.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R2}" --endpoint 172.16.16.2:9901 --allows "10.0.2.0/24,172.16.1.2/32"  >>${DIRNAME}/wg_R1.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R3}" --endpoint 172.16.16.6:9901 --allows "10.0.3.0/24,172.16.1.3/32"  >>${DIRNAME}/wg_R1.conf
+    ${DIRNAME}/wireguard2.sh --pkey "${prikey_R2}" --addr 172.16.1.2/24 --pubport 9901                                             >${DIRNAME}/wg_R2.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R1}" --endpoint 172.16.16.1:9901 --allows "10.0.1.0/24,172.16.1.1/32"  >>${DIRNAME}/wg_R2.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R3}" --endpoint 172.16.16.10:9901 --allows "10.0.3.0/24,172.16.1.3/32" >>${DIRNAME}/wg_R2.conf
+    ${DIRNAME}/wireguard2.sh --pkey "${prikey_R3}" --addr 172.16.1.3/24 --pubport 9901                                             >${DIRNAME}/wg_R3.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R1}" --endpoint 172.16.16.5:9901 --allows "10.0.1.0/24,172.16.1.1/32"  >>${DIRNAME}/wg_R3.conf
+    ${DIRNAME}/wireguard2.sh --onlypeer --pubkey "${pubkey_R2}" --endpoint 172.16.16.9:9901 --allows "10.0.2.0/24,172.16.1.2/32"  >>${DIRNAME}/wg_R3.conf
+    maybe_netns_run "wg-quick up ${DIRNAME}/wg_R1.conf" "R1"
+    maybe_netns_run "wg-quick up ${DIRNAME}/wg_R2.conf" "R2"
+    maybe_netns_run "wg-quick up ${DIRNAME}/wg_R3.conf" "R3"
+    tmux new-session -d -s "${SESS}";
+    local node= window=
+    for node in R1 R2 R3 h1 j3; do
+        window=${node}
+        tmux new-window -t "${SESS}" -n "${window}"
+        maybe_tmux_ns_chroot "${SESS}" "${window}" "${node}"
+    done 
+    return 0;
+}
+
+pre_cleanup() {
+    maybe_netns_run "wg-quick down ${DIRNAME}/wg_R1.conf" "R1"
+    maybe_netns_run "wg-quick down ${DIRNAME}/wg_R2.conf" "R2"
+    maybe_netns_run "wg-quick down ${DIRNAME}/wg_R3.conf" "R3"
+    tmux kill-session -t "${SESS}"
+    return 0;
+}
+
