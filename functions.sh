@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - d5e9c72 - 2021-01-24T14:25:58+08:00")
+VERSION+=("functions.sh - 0318c1c - 2021-01-25T08:24:57+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
 
@@ -87,24 +87,42 @@ maybe_netns_addlink() {
     try ip link set "${link}" ${ns_name:+netns ${ns_name}} ${newname:+name ${newname}} up
 }
 
-maybe_netns_shell() {
-    local info="$1"
-    local ns_name="${2:-}"
-    trap "echo 'CTRL+C!!!!'" SIGINT
-    #PS1="[${info}${ns_name:+@${ns_name}}]\$PS1" \
-    maybe_dryrun $(truecmd env) -i \
+maybe_tmux_netns_chroot() {
+    local sess="$1" window="$2"
+    local ns_name="${3:-}" rootfs="${4:-}"
+    tmux send-keys -t "${sess}:${window}" "exec \
+        ${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
+        ${rootfs:+$(truecmd chroot) ${rootfs}} \
+        $(truecmd env) -i \
         SHELL=$(truecmd bash) \
         HOME=/root \
         TERM=${TERM} \
-        ${ns_name:+$(truecmd ip) netns exec "${ns_name}"} \
-        $(truecmd bash) --noprofile --rcfile <(echo "PS1=\"(${info}${ns_name:+@${ns_name}})\$PS1\"") || true
+        PS1=[${window}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}] \
+        /bin/bash" Enter
+}
+
+maybe_netns_shell() {
+    local info="$1"
+    local ns_name="${2:-}"
+    local rootfs="${3:-}"
+    trap "echo 'CTRL+C!!!!'" SIGINT
+    maybe_dryrun "\
+        ${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
+        ${rootfs:+$(truecmd chroot) ${rootfs}} \
+        $(truecmd env) -i \
+        SHELL=$(truecmd bash) \
+        HOME=/root \
+        TERM=${TERM} \
+        PS1=[${info}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}] \
+        $(truecmd bash)" || true
     trap - SIGINT
 }
 
 maybe_netns_run() {
     local cmd="$1"
     local ns_name="${2:-}"
-    try ${ns_name:+$(truecmd ip) netns exec "${ns_name}"} "${cmd}"
+    local rootfs="${3:-}"
+    try ${ns_name:+$(truecmd ip) netns exec "${ns_name}"} ${rootfs:+$(truecmd chroot) ${rootfs}} "${cmd}"
 }
 
 netns_exists() {
