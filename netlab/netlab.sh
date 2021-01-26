@@ -7,16 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlab.sh - initversion - 2021-01-25T07:29:49+08:00")
+VERSION+=("netlab.sh - 9bf43e0 - 2021-01-25T07:29:47+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-startup() {
-    local conf="$1" tmux="$2"
-    local ns_name= _lval= _rval= lnode= lcidr= rnode= rcidr=
-    declare -A MAP_NODES
-    declare -A MAP_LINES
-    declare -A NODES_ROUTES
+post_create() { return 0; } #all netns created!!
+pre_cleanup() { return 0; } #all netns exists!!
 
+startup() {
+    local conf="$1"
+    local ns_name= _lval= _rval= lnode= lcidr= rnode= rcidr=
     source "${conf}"
     #try sysctl -q -w net.ipv4.ip_forward=1
     for ns_name in $(array_print_label MAP_NODES)
@@ -29,7 +28,6 @@ startup() {
             N ) ;;
             *)  error_msg "node ${ns_name} unknow type ${_lval}\n"; return 4;;
         esac
-        debug_msg "ip netns exec ${ns_name} /bin/bash --rcfile <(echo \"PS1='${ns_name}[$(array_get MAP_NODES ${ns_name})] $ '\")\\n"
     done
 
     for _lval in $(array_print_label MAP_LINES)
@@ -65,7 +63,7 @@ startup() {
                 ;;
             * ) error_msg "rnode ${rnode} type error\n"; return 10;;
         esac
-    done
+   done
 
     for ns_name in $(array_print_label NODES_ROUTES)
     do
@@ -73,23 +71,22 @@ startup() {
             maybe_netns_run "ip route add $_lval" "${ns_name}"
         done <<< "$(array_get NODES_ROUTES ${ns_name}),"
     done
-    ${tumx:+info_msg"tmux not suppport\n"}
+    defined DRYRUN || ( post_create ) || error_msg "${rnode} post_create error\n"
+    return 0
 }
 
 cleanup() {
-    local conf="$1" tmux="$2" ns_name=
+    local conf="$1" ns_name=
     declare -A MAP_NODES
     declare -A MAP_LINES
     declare -A NODES_ROUTES
     source "${conf}"
-
+    defined DRYRUN || ( pre_cleanup ) || error_msg "${ns_name} pre_cleanup error\n"
     for ns_name in $(array_print_label MAP_NODES)
     do
         cleanup_ns "${ns_name}" || true
         debug_msg "destroy ${ns_name}[$(array_get MAP_NODES ${ns_name})]\n"
     done
-    ${tumx:+info_msg"tmux not suppport\n"}
-    #try sysctl -q -w net.ipv4.ip_forward=0
 }
 
 usage() {
@@ -98,70 +95,56 @@ usage() {
 ${SCRIPTNAME} <-s/-c> conf
         -s|--start *  start all namespace
         -c|--clean  * cleanup all namespace
-        -t|--tmux     tmux shell(in netns)
         -q|--quiet
         -l|--log <int> log level
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
 config file example:
-cat <<EO_CFG>lab.conf
-#                 --------
-#       ----------|router|-----------
-#       |         --------          |
-#       |             |             |
-#       |             |             |
-#     -----         -----         -----
-#     |sw1|         |sw2|         |sw3|
-#     -----         -----         -----
-#     /   \         /   \         /    \ 
-#    /     \       /     \       /      \ 
-#  ------ ------ ------ ------ ------ ------
-#  | h1 | | j1 | | h2 | | j2 | | h3 | | j3 |
-#  ------ ------ ------ ------ ------ ------
+cat <<'EO_CFG'>lab.conf
+#     ----
+#     |R1|
+#     ----
+#      |
+#      |
+#    -----
+#    |sw1|
+#    -----
+#    /   \
+#   /     \
+# ------ ------
+# | h1 | | j1 |
+# ------ ------
 #[name]="type" type:R/S/N (router,switch,node)
-MAP_NODES=(
+declare -A MAP_NODES=(
     [R1]=R
     [SW1]=S
-    [SW2]=S
-    [SW3]=S
     [h1]=N
     [j1]=N
-    [h2]=N
-    [j2]=N
-    [h3]=N
-    [j3]=N
     )
 #[node:ip/prefix]=node:ip/prefix
-MAP_LINES=(
+declare -A MAP_LINES=(
     [R1:10.0.1.1/24]=SW1:
-    [R1:10.0.2.1/24]=SW2:
-    [R1:10.0.3.1/24]=SW3:
     [h1:10.0.1.100/24]=SW1:
     [j1:10.0.1.101/24]=SW1:
-    [h2:10.0.2.100/24]=SW2:
-    [j2:10.0.2.101/24]=SW2:
-    [h3:10.0.3.100/24]=SW3:
-    [j3:10.0.3.101/24]=SW3:
     )
 #routes delm ,
-NODES_ROUTES=(
+declare -A NODES_ROUTES=(
     [h1]="default via 10.0.1.1,1.1.1.0/24 via 10.0.1.1"
     [j1]="default via 10.0.1.1"
-    [h2]="default via 10.0.2.1"
-    [j2]="default via 10.0.2.1"
-    [h3]="default via 10.0.3.1"
-    [j3]="default via 10.0.3.1"
     )
+
+post_create() { return 0; } #all netns created!!
+pre_cleanup() { return 0; } #all netns exists!!
 EO_CFG
 EOF
     exit 1
 }
 
 main() {
-    local action= conf= tmux=
-    local opt_short="s:c:t"
-    local opt_long="start:,clean:,tmux,"
+    local action= conf=
+    local opt_short="s:c:"
+    local opt_long="start:,clean:,"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -170,7 +153,6 @@ main() {
         case "$1" in
             -s | --start)   shift; action=startup; conf=${1}; shift;;
             -c | --clean)   shift; action=cleanup; conf=${1}; shift;;
-            -t | --tmux)    shift; tmux=1;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -189,7 +171,7 @@ main() {
         cleanup)  info_msg "cleanup ${conf}\n";;
         *)        usage "start/clean";;
     esac
-    ${action} "${conf}" "${tmux}"|| exit_msg "${action} ${conf} error $?\n"
+    ${action} "${conf}" || exit_msg "${action} ${conf} error $?\n"
     info_msg "Exit\n"
 }
 main "$@"
