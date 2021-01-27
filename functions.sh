@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - ed7e31a - 2021-01-26T13:29:03+08:00")
+VERSION+=("functions.sh - 49e604e - 2021-01-26T16:44:08+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
 
@@ -118,6 +118,9 @@ maybe_netns_shell() {
     trap - SIGINT
 }
 
+# maybe_netns_run "bash -s" "${ns_name}" "rootfs"  <<EOF
+#     ifconfig > /newlog3
+# EOF
 maybe_netns_run() {
     local cmd="$1"
     local ns_name="${2:-}"
@@ -630,6 +633,9 @@ run_scripts() {
 #    exit 1
 #  EOF
 #  echo -n ${cli_prikey} | try wg pubkey
+#  try "bash -s" <<EOF
+#      ifconfig
+#  EOF
 #******************************************************************************
 try() {
     # stdin is redirect and has parm, so stdin is not cmd stream!!
