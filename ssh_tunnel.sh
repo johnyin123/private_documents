@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ssh_tunnel.sh - 576bc7f - 2021-01-20T12:32:51+08:00")
+VERSION+=("ssh_tunnel.sh - 6d0af2c - 2021-01-20T13:46:46+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
@@ -38,7 +38,11 @@ ssh_tunnel() {
     #exec 5> >(ssh -tt -o StrictHostKeyChecking=no -p${port} ${user}@${host} > /dev/null 2>&1)
     #Tunnel=ethernet must before -w 5:5 :)~~
     defined DRYRUN && {
-        maybe_dryrun "ssh -p${ssh_port} ${ssh_connection} ......" 
+        dryrun ssh \
+            -o PermitLocalCommand=yes \
+            -o LocalCommand="${localcmd}" \
+            -o Tunnel=ethernet -w ${l_tap}:${r_tap} \
+            -p${ssh_port} ${ssh_connection} "${remotecmd}"
     } || {
         nohup ssh \
             -o PermitLocalCommand=yes \
@@ -101,7 +105,7 @@ main() {
     ssh_tunnel "${remote_br}" "${ssh_conn}" "${ssh_port}" "tapname" "sshpid" "${local_br}" || exit_msg "error ssh_tunnel $?\n"
     maybe_dryrun ps --pid=$sshpid &> /dev/null || exit_msg "backend ssh($sshpid) ${ssh_conn}:${ssh_port} failed\n"
     info_msg "backend ssh($sshpid) localdev ${tapname} ${ssh_conn}:${ssh_port} ok\n"
-    maybe_netns_shell "ssh_tunnel:${ssh_conn}[${local_br:-${tapname}}<=>${remote_br}]" ""
+    maybe_netns_shell "ssh_tunnel:${ssh_conn}[${local_br:-${tapname}}**${remote_br}]" ""
     try "kill -9 ${sshpid:-} &> /dev/null"
     info_msg "Exit!!\n"
     return 0
