@@ -109,6 +109,10 @@ post_create() {
     mkdir -p                                               ${LAB_DIR}/R3/rootfs/run/quagga
     chown -R quagga:quagga                                 ${LAB_DIR}/R3/rootfs/run/quagga
 
+    #maybe chroot env /dev/null not exist, zebra need it"
+    maybe_netns_run "mknod -m 666 /dev/null c 1 3"  "R1" "${LAB_DIR}/R1/rootfs/"
+    maybe_netns_run "mknod -m 666 /dev/null c 1 3"  "R2" "${LAB_DIR}/R2/rootfs/"
+    maybe_netns_run "mknod -m 666 /dev/null c 1 3"  "R3" "${LAB_DIR}/R3/rootfs/"
     maybe_netns_run "zebra -d"  "R1" "${LAB_DIR}/R1/rootfs/"
     maybe_netns_run "ospfd -d"  "R1" "${LAB_DIR}/R1/rootfs/"
     maybe_netns_run "zebra -d"  "R2" "${LAB_DIR}/R2/rootfs/"
