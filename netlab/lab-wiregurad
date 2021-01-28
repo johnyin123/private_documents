@@ -38,20 +38,6 @@ declare -A NODES_ROUTES=(
     [j3]="default via 10.0.3.1"
     )
 
-maybe_tmux_ns_chroot() {
-    local sess="$1" window="$2"
-    local ns_name="${3:-}" rootfs="${4:-}"
-    tmux send-keys -t "${sess}:${window}" "exec \
-        ${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
-        ${rootfs:+$(truecmd chroot) ${rootfs}} \
-        $(truecmd env) -i \
-        SHELL=$(truecmd bash) \
-        HOME=/root \
-        TERM=${TERM} \
-        PS1=[${window}${rootfs:+:${rootfs}}@${ns_name:+@${ns_name}}] \
-        /bin/bash" Enter
-}
-
 SESS=wglab
 post_create() {
     local prikey_R1=$(try wg genkey)
@@ -77,7 +63,7 @@ post_create() {
     for node in R1 R2 R3 h1 j3; do
         window=${node}
         tmux new-window -t "${SESS}" -n "${window}"
-        maybe_tmux_ns_chroot "${SESS}" "${window}" "${node}"
+        maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}"
     done 
     return 0;
 }
