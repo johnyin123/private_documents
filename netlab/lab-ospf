@@ -109,19 +109,15 @@ post_create() {
     mkdir -p                                               ${LAB_DIR}/R3/rootfs/run/quagga
     chown -R quagga:quagga                                 ${LAB_DIR}/R3/rootfs/run/quagga
 
-    #maybe chroot env /dev/null not exist, zebra need it"
-    maybe_netns_run "mknod -m 666 /dev/null c 1 3"  "R1" "${LAB_DIR}/R1/rootfs/"
-    maybe_netns_run "mknod -m 666 /dev/null c 1 3"  "R2" "${LAB_DIR}/R2/rootfs/"
-    maybe_netns_run "mknod -m 666 /dev/null c 1 3"  "R3" "${LAB_DIR}/R3/rootfs/"
-    maybe_netns_run "zebra -d"  "R1" "${LAB_DIR}/R1/rootfs/"
-    maybe_netns_run "ospfd -d"  "R1" "${LAB_DIR}/R1/rootfs/"
-    maybe_netns_run "zebra -d"  "R2" "${LAB_DIR}/R2/rootfs/"
-    maybe_netns_run "ospfd -d"  "R2" "${LAB_DIR}/R2/rootfs/"
-    maybe_netns_run "zebra -d"  "R3" "${LAB_DIR}/R3/rootfs/"
-    maybe_netns_run "ospfd -d"  "R3" "${LAB_DIR}/R3/rootfs/"
-
     tmux new-session -d -s "${SESS}";
     for node in R1 R2 R3; do
+        maybe_netns_run "bash -s" "${node}" "${LAB_DIR}/${node}/rootfs/" <<EOF
+            mount -t proc none /proc
+            #maybe chroot env /dev/null not exist, zebra need it"
+            [ -e "/dev/null" ] || mknod -m 666 /dev/null c 1 3
+            start-stop-daemon --start --quiet --background --exec /sbin/zebra
+            start-stop-daemon --start --quiet --background --exec /sbin/ospfd
+EOF
         window=${node}
         tmux new-window -t "${SESS}" -n "${window}"
         maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}" "${LAB_DIR}/${node}/rootfs/"

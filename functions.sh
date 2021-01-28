@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 05d7631 - 2021-01-27T14:13:03+08:00")
+VERSION+=("functions.sh - 5ed86da - 2021-01-28T08:30:07+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
 
@@ -118,14 +118,26 @@ maybe_netns_shell() {
     trap - SIGINT
 }
 
-# maybe_netns_run "bash -s" "${ns_name}" "rootfs"  <<EOF
-#     ifconfig > /newlog3
+#     cmds="
+#         touch log
+#         ls -l /
+#     "
+#     maybe_netns_run "" "${ns_name}" "" <<< $cmds
+#     echo "$cmds" | maybe_netns_run
+#     cat <<EOF | maybe_netns_run "" "${ns_name}" ""
+#         echo hello > log
+#         ip a
+# EOF
+#     echo -n "msg" | maybe_netns_run cat "${ns_name}" ""
+#     maybe_netns_run "bash -s" "${ns_name}" "" <<EOF
+#         ifconfig
+#         start-stop-daemon --start --quiet --background --exec '/sbin/zebra'
 # EOF
 maybe_netns_run() {
-    local cmd="$1"
+    local cmds="${1:-$(cat)}"
     local ns_name="${2:-}"
     local rootfs="${3:-}"
-    maybe_dryrun "${ns_name:+$(truecmd ip) netns exec ${ns_name}} ${rootfs:+$(truecmd chroot) ${rootfs}} ${cmd}"
+    try "${ns_name:+$(truecmd ip) netns exec ${ns_name}} ${rootfs:+$(truecmd chroot) ${rootfs}} ${cmds}"
 }
 
 netns_exists() {
@@ -635,6 +647,7 @@ run_scripts() {
 #  echo -n ${cli_prikey} | try wg pubkey
 #  try "bash -s" <<EOF
 #      ifconfig
+#      start-stop-daemon --start --quiet --background --exec '/sbin/zebra'
 #  EOF
 #******************************************************************************
 try() {
