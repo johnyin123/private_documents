@@ -73,6 +73,9 @@ pre_cleanup() {
     maybe_netns_run "wg-quick down ${DIRNAME}/wg_R2.conf" "R2"
     maybe_netns_run "wg-quick down ${DIRNAME}/wg_R3.conf" "R3"
     tmux kill-session -t "${SESS}"
+    try rm -f ${DIRNAME}/wg_R1.conf
+    try rm -f ${DIRNAME}/wg_R2.conf
+    try rm -f ${DIRNAME}/wg_R3.conf
     return 0;
 }
 
