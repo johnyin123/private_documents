@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 4fbe879 - 2021-01-28T11:05:19+08:00")
+VERSION+=("functions.sh - 22a194a - 2021-01-28T12:40:39+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -96,10 +96,10 @@ maybe_tmux_netns_chroot() {
 }
 # maybe_netns_shell "busybox" "${ns_name}" "rootfs" "busybox" "sh -l"
 maybe_netns_shell() {
-    local info="$1"
-    local ns_name="${2:-}"
-    local rootfs="${3:-}"
-    local shell="${4:-/bin/bash}"; shift 4 || true
+    local info="$1"; shift || true
+    local ns_name="${1:-}"; shift || true
+    local rootfs="${1:-}"; shift || true
+    local shell="${1:-/bin/bash}"; shift || true
     local args="${@:---noprofile --norc}"
 
     local cmds="${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
@@ -378,8 +378,8 @@ upvar() {
 # echo "OK =${OK:-oo},ERR=$ERR"
 safe_read_cfg()
 {
-    local cfg=${1};shift 1
-    local allow_array=$1; shift 1
+    local cfg="${1}"
+    local allow_array="${2}"
     [ -f "$cfg" ] || return 1
     local i=0
     local len=$(array_size "${allow_array}")
@@ -773,7 +773,7 @@ split() {
 }
 
 array_append() {
-    local array=$1; shift 1
+    local array=$1; shift
     local len=$(array_size "$array")
     for i in "$@"; do
         eval "$array[$len]=\"$i\""

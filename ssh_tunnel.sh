@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ssh_tunnel.sh - 6d0af2c - 2021-01-20T13:46:46+08:00")
+VERSION+=("ssh_tunnel.sh - f55be1c - 2021-01-27T15:21:52+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
@@ -24,8 +24,7 @@ ssh_tunnel() {
     local ssh_connection=${2}
     local ssh_port=${3}
     local tapname=${4}
-    local sshpid=${5}
-    local local_br=${6}
+    local local_br=${5}
     local l_tap= r_tap=
     for ((l_tap=0;l_tap<MAX_TAPDEV_NUM;l_tap++)); do
         file_exists /sys/class/net/tap${l_tap}/tun_flags || break
@@ -37,21 +36,15 @@ ssh_tunnel() {
     local remotecmd="ip link set dev tap${r_tap} up;ip link set dev tap${r_tap} master ${remote_br}"
     #exec 5> >(ssh -tt -o StrictHostKeyChecking=no -p${port} ${user}@${host} > /dev/null 2>&1)
     #Tunnel=ethernet must before -w 5:5 :)~~
-    defined DRYRUN && {
-        dryrun ssh \
+    maybe_netns_run "bash -s"<<EOF
+        start-stop-daemon --start --make-pidfile --pidfile "/run/tap${l_tap}.pid" --quiet --background --exec \
+        /bin/ssh -- \
             -o PermitLocalCommand=yes \
-            -o LocalCommand="${localcmd}" \
+            -o LocalCommand='${localcmd}' \
             -o Tunnel=ethernet -w ${l_tap}:${r_tap} \
-            -p${ssh_port} ${ssh_connection} "${remotecmd}"
-    } || {
-        nohup ssh \
-            -o PermitLocalCommand=yes \
-            -o LocalCommand="${localcmd}" \
-            -o Tunnel=ethernet -w ${l_tap}:${r_tap} \
-            -p${ssh_port} ${ssh_connection} "${remotecmd}" &>/dev/null &
-        upvar "${sshpid}" "${!}"
-        upvar "${tapname}" "tap${l_tap}"
-    }
+            -p${ssh_port} ${ssh_connection} '${remotecmd}'
+EOF
+    upvar "${tapname}" "tap${l_tap}"
 }
 
 usage() {
@@ -101,12 +94,12 @@ main() {
     [[ -z "${ssh_conn}" ]] && usage "SSH_CONNECTION Must input"
     [[ -z "${remote_br}" ]] && usage "REMOTE_BRIDGE Must input"
     [[ -z "${local_br}" ]] || bridge_exists "${local_br}" || exit_msg "local bridge ${local_br} nofound!!\n"
-    local tapname= sshpid=
-    ssh_tunnel "${remote_br}" "${ssh_conn}" "${ssh_port}" "tapname" "sshpid" "${local_br}" || exit_msg "error ssh_tunnel $?\n"
-    maybe_dryrun ps --pid=$sshpid &> /dev/null || exit_msg "backend ssh($sshpid) ${ssh_conn}:${ssh_port} failed\n"
-    info_msg "backend ssh($sshpid) localdev ${tapname} ${ssh_conn}:${ssh_port} ok\n"
-    maybe_netns_shell "ssh_tunnel:${ssh_conn}[${local_br:-${tapname}}**${remote_br}]" ""
-    try "kill -9 ${sshpid:-} &> /dev/null"
+    local tapname=
+    ssh_tunnel "${remote_br}" "${ssh_conn}" "${ssh_port}" "tapname" "${local_br}" || exit_msg "error ssh_tunnel $?\n"
+    try ps --pid=$(try cat /run/${tapname}.pid) > /dev/null || exit_msg "backend ssh ${ssh_conn}:${ssh_port} failed\n"
+    info_msg "backend ssh($(try cat /run/${tapname}.pid)) localdev ${tapname} ${ssh_conn}:${ssh_port} ok\n"
+    maybe_netns_shell "ssh_tunnel:${ssh_conn}[${local_br:-${tapname}}<=>${remote_br}]"
+    try "kill -9 $(try cat /run/${tapname}.pid)" &> /dev/null
     info_msg "Exit!!\n"
     return 0
 }
