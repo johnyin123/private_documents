@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 22a194a - 2021-01-28T12:40:39+08:00")
+VERSION+=("functions.sh - 95f8780 - 2021-01-28T15:08:25+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -84,6 +84,8 @@ maybe_netns_addlink() {
 maybe_tmux_netns_chroot() {
     local sess="$1" window="$2"
     local ns_name="${3:-}" rootfs="${4:-}"
+    defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "tmux ${sess}:${window}${rootfs:+rootfs=${rootfs}}${ns_name:+@${ns_name}}\n"; return 0; }
+    [ tmux has-session -t -t "${sess}" 2> /dev/null ] || tmux new-session -d -s "${sess}"
     tmux send-keys -t "${sess}:${window}" "exec \
         ${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
         ${rootfs:+$(truecmd chroot) ${rootfs}} \
@@ -95,6 +97,7 @@ maybe_tmux_netns_chroot() {
         /bin/bash" Enter
 }
 # maybe_netns_shell "busybox" "${ns_name}" "rootfs" "busybox" "sh -l"
+# maybe_netns_shell "busybox" "${ns_name}" "rootfs" "/bin/sh" "-l"
 maybe_netns_shell() {
     local info="$1"; shift || true
     local ns_name="${1:-}"; shift || true
@@ -235,7 +238,7 @@ is_user_root() {
 
 # auto_su() {
 #   ARGS=( "$@" )
-# 	[[ $UID == 0 ]] || exec sudo -p "$SCRIPTNAME  must be run as root. Please enter the password for %u to continue: " -- "$BASH" -- "$DIRNAME/$SCRIPTNAME" "${ARGS[@]}"
+#   [[ $UID == 0 ]] || exec sudo -p "$SCRIPTNAME  must be run as root. Please enter the password for %u to continue: " -- "$BASH" -- "$DIRNAME/$SCRIPTNAME" "${ARGS[@]}"
 # }
 
 min() { [ "$1" -le "$2" ] && echo "$1" || echo "$2"; }
