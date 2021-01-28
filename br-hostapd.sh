@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("br-hostapd.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
+VERSION+=("br-hostapd.sh - 0318c1c - 2021-01-25T08:24:57+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
@@ -104,7 +104,7 @@ main() {
     [[ -z "${bridge}" ]] || { file_exists /sys/class/net/${bridge}/bridge/bridge_id || exit_msg "bridge ${bridge} nofound!!\n"; }
     gen_hostapd "${wifi}" "/tmp/hostapd.conf" "${bridge}"
     info_msg "start: hostapd -B /tmp/hostapd.conf\n"
-    maybe_dryrun hostapd -B /tmp/hostapd.conf
+    try "start-stop-daemon --start --quiet --background --exec /sbin/hostapd -- -B /tmp/hostapd.conf"
     return 0
 }
 main "$@"
