@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 75996bd - 2021-01-28T09:27:07+08:00")
+VERSION+=("functions.sh - 4fbe879 - 2021-01-28T11:05:19+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -87,30 +87,32 @@ maybe_tmux_netns_chroot() {
     tmux send-keys -t "${sess}:${window}" "exec \
         ${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
         ${rootfs:+$(truecmd chroot) ${rootfs}} \
-        $(truecmd env) -i \
-        SHELL=$(truecmd bash) \
+        /bin/env -i \
+        SHELL=/bin/bash \
         HOME=/root \
         TERM=${TERM} \
         PS1=[${window}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}] \
         /bin/bash" Enter
 }
-
+# maybe_netns_shell "busybox" "${ns_name}" "rootfs" "busybox" "sh -l"
 maybe_netns_shell() {
     local info="$1"
     local ns_name="${2:-}"
     local rootfs="${3:-}"
-    local shell="${4:-/bin/bash}"
+    local shell="${4:-/bin/bash}"; shift 4 || true
+    local args="${@:---noprofile --norc}"
+
     local cmds="${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
         ${rootfs:+$(truecmd chroot) ${rootfs}} \
-        $(truecmd env) -i \
+        /bin/env -i \
         SHELL=${shell} \
         HOME=/root \
         TERM=${TERM} \
         PS1=[${info}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}] \
-        ${shell}"
+        ${shell} ${args}"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "$cmds\n"; stdin_is_terminal || cat >&2; return 0; }
     trap "echo 'CTRL+C!!!!'" SIGINT
-    eval "${cmds}" || true
+    env ${cmds} || true
     trap - SIGINT
 }
 

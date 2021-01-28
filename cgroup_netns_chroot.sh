@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cgroup_netns_chroot.sh - 77d8e82 - 2021-01-18T08:20:58+08:00")
+VERSION+=("cgroup_netns_chroot.sh - 541f545 - 2021-01-18T08:29:28+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 init_ns_env() {
@@ -58,7 +58,8 @@ ns_cg_run() {
     try cgset -r cpu.shares="${cpu_share}" "${ns_name}"
     try cgset -r memory.limit_in_bytes="$((mem_limit * 1000000))" "${ns_name}"
     info_msg "cgexec -g ${CGROUPS}:${ns_name} ${cmd}\n"
-    maybe_dryrun cgexec -g "${CGROUPS}:${ns_name}" \
+    defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "cgexec -g ${CGROUPS}:${ns_name} ${cmd}\n"; return 0; }
+    cgexec -g "${CGROUPS}:${ns_name}" \
         ip netns exec "${ns_name}" \
         unshare -fmuip --mount-proc \
         chroot "${rootfs}" \

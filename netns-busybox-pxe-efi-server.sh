@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - cf10358 - 2021-01-17T10:50:22+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - 99bb60a - 2021-01-20T14:41:56+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -32,7 +32,7 @@ mk_busybox_fs() {
     debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local busybox_bin="$1"
     local rootfs="$2"
-    for d in /var/lib/misc /var/run /etc /lib /bin /dev /root; do
+    for d in /var/lib/misc /var/run /etc /lib /bin /dev /root /proc; do
         try mkdir -p ${rootfs}/$d
     done
     try cp ${busybox_bin} ${rootfs}/bin/busybox && try chmod 755 ${rootfs}/bin/busybox
@@ -49,6 +49,7 @@ alias uefi='/bin/busybox cp -f ${PXE_DIR}/${DHCP_UEFI_BOOTFILE}  ${PXE_DIR}/${DH
 alias ll='/bin/busybox ls -lh'
 echo "add ${PXE_DIR}/cgi-bin/ipaddr.txt for ipaddr: 192.168.168.2/24 line by line"
 echo "cmd : bios/uefi change mode"
+/bin/sh /start.sh
 EOF
     try cat \> ${rootfs}/etc/passwd << EOF
 root:x:0:0:root:/root:/bin/sh
@@ -126,10 +127,12 @@ start_ns_inetd() {
     debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local ns_name="$1"
     local rootfs="$2"
-    # ip netns exec ${ns_name} chroot ${rootfs} /usr/sbin/dnsmasq --user=root --group=root
-    maybe_netns_run "chroot ${rootfs} /bin/busybox udhcpd" "${ns_name}" || return 1
-    maybe_netns_run "chroot ${rootfs} /bin/busybox inetd" "${ns_name}" || return 2
-    return 0
+    maybe_netns_run "mount -t proc none /proc" "${ns_name}" "${rootfs}" || return 3
+    cat<<EOF>"${rootfs}/start.sh"
+    start-stop-daemon -S -b -q -x /bin/udhcpd
+    start-stop-daemon -S -b -q -x  /bin/inetd
+EOF
+    try chmod 755 "${rootfs}/start.sh"
 }
 
 del_ns() {
@@ -517,11 +520,7 @@ main() {
 
     add_ns ${ns_name} ${host_br} "${ns_ipaddr}" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "add netns $?"
     start_ns_inetd ${ns_name} "${ROOTFS}" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "start inetd $?"
-    defined DRYRUN && {
-        maybe_dryrun "ip netns exec ${ns_name} chroot "${ROOTFS}" /bin/busybox sh -l"
-    } || {
-        ip netns exec ${ns_name} chroot "${ROOTFS}" /bin/busybox sh -l || true
-    }
+    maybe_netns_shell "busybox" "${ns_name}" "${ROOTFS}" "busybox" "sh -l"
     try umount ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "umount $?"
     kill_ns_inetd "${ROOTFS}"|| error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "kill inetd $?"
     del_ns ${ns_name}
