@@ -16,17 +16,11 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 5ed86da - 2021-01-28T08:30:07+08:00")
-shopt -s expand_aliases
-alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
+VERSION+=("functions.sh - 75996bd - 2021-01-28T09:27:07+08:00")
+#shopt -s expand_aliases
+#alias
 
 dummy() { :; }
-
-dryrun() {
-    printf -v cmd_str '%q ' "$@"
-    blue>&2 "DRYRUN: ";purple>&2 "$cmd_str\n"
-    stdin_is_terminal || cat >&2
-}
 
 list_func() {
     #function_name startwith _ is private usage!
@@ -105,16 +99,18 @@ maybe_netns_shell() {
     local info="$1"
     local ns_name="${2:-}"
     local rootfs="${3:-}"
-    trap "echo 'CTRL+C!!!!'" SIGINT
-    maybe_dryrun "\
-        ${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
+    local shell="${4:-/bin/bash}"
+    local cmds="${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
         ${rootfs:+$(truecmd chroot) ${rootfs}} \
         $(truecmd env) -i \
-        SHELL=$(truecmd bash) \
+        SHELL=${shell} \
         HOME=/root \
         TERM=${TERM} \
         PS1=[${info}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}] \
-        $(truecmd bash)" || true
+        ${shell}"
+    defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "$cmds\n"; stdin_is_terminal || cat >&2; return 0; }
+    trap "echo 'CTRL+C!!!!'" SIGINT
+    eval "${cmds}" || true
     trap - SIGINT
 }
 
