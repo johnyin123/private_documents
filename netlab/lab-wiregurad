@@ -58,11 +58,9 @@ post_create() {
     maybe_netns_run "wg-quick up ${DIRNAME}/wg_R1.conf" "R1"
     maybe_netns_run "wg-quick up ${DIRNAME}/wg_R2.conf" "R2"
     maybe_netns_run "wg-quick up ${DIRNAME}/wg_R3.conf" "R3"
-    tmux new-session -d -s "${SESS}";
     local node= window=
     for node in R1 R2 R3 h1 j3; do
         window=${node}
-        tmux new-window -t "${SESS}" -n "${window}"
         maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}"
     done 
     return 0;

@@ -109,7 +109,6 @@ post_create() {
     mkdir -p                                               ${LAB_DIR}/R3/rootfs/run/quagga
     chown -R quagga:quagga                                 ${LAB_DIR}/R3/rootfs/run/quagga
 
-    tmux new-session -d -s "${SESS}";
     for node in R1 R2 R3; do
         maybe_netns_run "bash -s" "${node}" "${LAB_DIR}/${node}/rootfs/" <<EOF
             mount -t proc none /proc
@@ -119,12 +118,10 @@ post_create() {
             start-stop-daemon --start --quiet --background --exec /sbin/ospfd
 EOF
         window=${node}
-        tmux new-window -t "${SESS}" -n "${window}"
         maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}" "${LAB_DIR}/${node}/rootfs/"
     done
     for node in h1 j3; do
         window=${node}
-        tmux new-window -t "${SESS}" -n "${window}"
         maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}"
     done
 
