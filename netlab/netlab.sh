@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlab.sh - 9bf43e0 - 2021-01-25T07:29:47+08:00")
+VERSION+=("netlab.sh - 39819b5 - 2021-01-26T11:13:02+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 post_create() { return 0; } #all netns created!!
@@ -102,37 +102,12 @@ ${SCRIPTNAME} <-s/-c> conf
         -h|--help help
 config file example:
 cat <<'EO_CFG'>lab.conf
-#     ----
-#     |R1|
-#     ----
-#      |
-#      |
-#    -----
-#    |sw1|
-#    -----
-#    /   \
-#   /     \
-# ------ ------
-# | h1 | | j1 |
-# ------ ------
 #[name]="type" type:R/S/N (router,switch,node)
-declare -A MAP_NODES=(
-    [R1]=R
-    [SW1]=S
-    [h1]=N
-    [j1]=N
-    )
+declare -A MAP_NODES=( )
 #[node:ip/prefix]=node:ip/prefix
-declare -A MAP_LINES=(
-    [R1:10.0.1.1/24]=SW1:
-    [h1:10.0.1.100/24]=SW1:
-    [j1:10.0.1.101/24]=SW1:
-    )
-#routes delm ,
-declare -A NODES_ROUTES=(
-    [h1]="default via 10.0.1.1,1.1.1.0/24 via 10.0.1.1"
-    [j1]="default via 10.0.1.1"
-    )
+declare -A MAP_LINES=( )
+#[name]="route" routes delm ,
+declare -A NODES_ROUTES=( )
 
 post_create() { return 0; } #all netns created!!
 pre_cleanup() { return 0; } #all netns exists!!
