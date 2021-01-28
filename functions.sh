@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 49e604e - 2021-01-26T16:44:08+08:00")
+VERSION+=("functions.sh - 05d7631 - 2021-01-27T14:13:03+08:00")
 shopt -s expand_aliases
 alias maybe_dryrun="eval \${DRYRUN:+dryrun }"
 
@@ -646,10 +646,10 @@ try() {
     blue>&2 "Begin: ";purple>&2 "%${cmd_size}s." "$cmds"
     __ret_out= __ret_err= __ret_rc=0
     # eval -- "$( ($@ ; exit $?) \
-    eval -- "$( (eval "$cmds") \
-        2> >(__ret_err=$(cat); typeset -p __ret_err) \
-        1> >(__ret_out=$(cat); typeset -p __ret_out); __ret_rc=$?; typeset -p __ret_rc )"
-    [ ${__ret_rc} = 0 ] && { green>&2 " done.\n"; [[ -z "${__ret_out}" ]] ||cat <<< "${__ret_out}"; }
+    eval -- "$( (eval "$cmds";exit $?;) \
+        2> >(__ret_err=$(cat); typeset -p __ret_err;) \
+        1> >(__ret_out=$(cat); typeset -p __ret_out;); __ret_rc=$?; typeset -p __ret_rc; )"
+    [ ${__ret_rc} = 0 ] && green>&2 " done.\n"
     [ ${__ret_rc} = 0 ] || {
         local cmd_func="" #"${FUNCNAME[1]}"
         for (( idx=${#FUNCNAME[@]}-1 ; idx>=1 ; idx-- )) ; do
@@ -657,8 +657,9 @@ try() {
         done
         local cmd_line="${BASH_LINENO[1]}"
         red>&2 " failed(${cmd_func}:${cmd_line} [${__ret_rc}]).\n"
-        [[ -z "${__ret_err}" ]] || cat >&2 <<< "${__ret_err}"
     }
+    [ -z "${__ret_out}" ] || cat <<< "${__ret_out}"
+    [ -z "${__ret_err}" ] || cat >&2 <<< "${__ret_err}"
     retval=${__ret_rc}
     unset __ret_out __ret_err __ret_rc
     return ${retval}
