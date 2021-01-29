@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("wireguard_netns.sh - 77d8e82 - 2021-01-18T08:20:58+08:00")
+VERSION+=("wireguard_netns.sh - 5106568 - 2021-01-18T10:50:55+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_wg() {
@@ -127,6 +127,8 @@ main() {
         [[ -z "${ns_name}" ]] || cleanup_ns "${ns_name}" || true
         exit_msg "wireguard ${wg_if} setup error!\n"
     }
+    try mkdir -p "/etc/netns/${ns_name}"
+    try echo "nameserver 114.114.114.114" \> "/etc/netns/${ns_name}/resolv.conf"
     info_msg "wireguard ${wg_if}${ns_name:+@"${ns_name}"} OK\n"
     trap "echo 'CTRL+C!!!!'" SIGINT
     maybe_netns_shell "${wg_if}" "${ns_name}"
