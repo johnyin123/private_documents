@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cgroup_netns_chroot.sh - 541f545 - 2021-01-18T08:29:28+08:00")
+VERSION+=("cgroup_netns_chroot.sh - 22a194a - 2021-01-28T12:40:39+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 init_ns_env() {
@@ -158,7 +158,7 @@ main() {
     init_ns_env "${ns_name}" "${ipv4_cidr}" "${out_br}" "${gateway}" || { deinit_ns_env "${ns_name}"||true; exit_msg "${ns_name} setup error!\n"; }
     setup_overlayfs "${lower}" "${overlay}" && {
         trap "echo 'CTRL+C!!!!'" SIGINT
-        ns_cg_run "${overlay}/rootfs" "${ns_name}" "${cpu_share}" "${mem_limit}" "${cmd}" || true
+        ns_cg_run "${overlay}" "${ns_name}" "${cpu_share}" "${mem_limit}" "${cmd}" || true
     }
     cleanup_overlayfs "${overlay}"
     deinit_ns_env "${ns_name}"

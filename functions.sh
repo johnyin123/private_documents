@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - a9775f5 - 2021-01-29T09:24:45+08:00")
+VERSION+=("functions.sh - 0cc7521 - 2021-01-29T09:32:55+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -199,15 +199,17 @@ cleanup_link() {
 setup_overlayfs() {
     local lower="$1"
     local rootmnt="$2"
-    try mount -t tmpfs tmpfs -o size=1M ${rootmnt}
-    try mkdir -p ${rootmnt}/upper ${rootmnt}/work ${rootmnt}/rootfs
-    try mount -t overlay overlay -o lowerdir=${lower},upperdir=${rootmnt}/upper,workdir=${rootmnt}/work ${rootmnt}/rootfs
+    try mkdir -p ${rootmnt}/tmpfs
+    try mount -t tmpfs tmpfs -o size=1M ${rootmnt}/tmpfs
+    try mkdir -p ${rootmnt}/tmpfs/upper ${rootmnt}/tmpfs/work
+    try mount -t overlay overlay -o lowerdir=${lower},upperdir=${rootmnt}/tmpfs/upper,workdir=${rootmnt}/tmpfs/work ${rootmnt}/
 }
 
 cleanup_overlayfs() {
     local rootmnt="$1"
-    try umount ${rootmnt}/rootfs || true
     try umount ${rootmnt} || true
+    try umount ${rootmnt}/tmpfs || true
+    try rm -rf ${rootmnt}/tmpfs || true
 }
 
 get_ipaddr() {
