@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - d359ec3 - 2021-01-29T09:20:12+08:00")
+VERSION+=("functions.sh - a9775f5 - 2021-01-29T09:24:45+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -95,7 +95,7 @@ maybe_tmux_netns_chroot() {
         HOME=/root \
         TERM=${TERM} \
         PS1=[${window}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}] \
-        /bin/bash" Enter
+        /bin/bash --noprofile --norc" Enter
 }
 # maybe_netns_shell "busybox" "${ns_name}" "rootfs" "busybox" "sh -l"
 # maybe_netns_shell "busybox" "${ns_name}" "rootfs" "/bin/sh" "-l"
