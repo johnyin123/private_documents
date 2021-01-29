@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 0cc7521 - 2021-01-29T09:32:55+08:00")
+VERSION+=("functions.sh - 7eebb98 - 2021-01-29T17:10:46+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -87,14 +87,21 @@ maybe_tmux_netns_chroot() {
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "tmux ${sess}:${window}${rootfs:+rootfs=${rootfs}}${ns_name:+@${ns_name}}\n"; return 0; }
     tmux has-session -t "${sess}" 2> /dev/null || tmux new-session -d -s "${sess}"
     tmux new-window -t "${SESS}" -n "${window}"
+    local ps1=[${info}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}]
+    local colors=$($(truecmd tput) colors 2> /dev/null)
+    if [ $? = 0 ] && [ ${colors} -gt 2 ]; then
+        ps1+="\033[1;31m\u\033[m@\033[1;32m\h:\033[33;1m\w\033[m$"
+    else
+        ps1+="\u@\h:\w$"
+    fi
     tmux send-keys -t "${sess}:${window}" "exec \
         ${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
         ${rootfs:+$(truecmd chroot) ${rootfs}} \
         /bin/env -i \
         SHELL=/bin/bash \
-        HOME=/root \
+        HOME=/ \
         TERM=${TERM} \
-        PS1=[${window}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}] \
+        PS1=${ps1} \
         /bin/bash --noprofile --norc" Enter
 }
 # maybe_netns_shell "busybox" "${ns_name}" "rootfs" "busybox" "sh -l"
@@ -105,14 +112,21 @@ maybe_netns_shell() {
     local rootfs="${1:-}"; shift || true
     local shell="${1:-/bin/bash}"; shift || true
     local args="${@:---noprofile --norc}"
+    local ps1=[${info}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}]
+    local colors=$($(truecmd tput) colors 2> /dev/null)
+    if [ $? = 0 ] && [ ${colors} -gt 2 ]; then
+        ps1+="\033[1;31m\u\033[m@\033[1;32m\h:\033[33;1m\w\033[m$"
+    else
+        ps1+="\u@\h:\w$"
+    fi
 
     local cmds="${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
         ${rootfs:+$(truecmd chroot) ${rootfs}} \
         /bin/env -i \
         SHELL=${shell} \
-        HOME=/root \
+        HOME=/ \
         TERM=${TERM} \
-        PS1=[${info}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}] \
+        PS1=${ps1} \
         ${shell} ${args}"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "$cmds\n"; stdin_is_terminal || cat >&2; return 0; }
     trap "echo 'CTRL+C!!!!'" SIGINT
