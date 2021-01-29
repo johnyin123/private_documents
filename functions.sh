@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - b280131 - 2021-01-28T17:50:10+08:00")
+VERSION+=("functions.sh - d359ec3 - 2021-01-29T09:20:12+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -85,7 +85,7 @@ maybe_tmux_netns_chroot() {
     local sess="$1" window="$2"
     local ns_name="${3:-}" rootfs="${4:-}"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "tmux ${sess}:${window}${rootfs:+rootfs=${rootfs}}${ns_name:+@${ns_name}}\n"; return 0; }
-    [ tmux has-session -t "${sess}" 2> /dev/null ] || tmux new-session -d -s "${sess}"
+    tmux has-session -t "${sess}" 2> /dev/null || tmux new-session -d -s "${sess}"
     tmux new-window -t "${SESS}" -n "${window}"
     tmux send-keys -t "${sess}:${window}" "exec \
         ${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
