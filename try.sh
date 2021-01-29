@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("try.sh - 74c6148 - 2021-01-16T18:07:57+08:00")
+VERSION+=("try.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -248,6 +248,9 @@ main() {
     # redirect stdout and stderr to $log_file and print
     exec > >(tee -ia $log_file)
     exec 2> >(tee -ia $log_file >&2)
+    exec {FD}>mylog.txt
+    echo "hello" >&${FD}
+    exec {FD}>&-
 
     local opt_short="u:n:"
     local opt_long="uuid:,name:,"
