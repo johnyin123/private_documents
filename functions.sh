@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 96774f9 - 2021-01-30T06:50:40+08:00")
+VERSION+=("functions.sh - a03a981 - 2021-01-31T10:29:28+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -101,7 +101,7 @@ maybe_tmux_netns_chroot() {
         SHELL=/bin/bash \
         HOME=/ \
         TERM=${TERM} \
-        PS1=${ps1} \
+        PS1='${ps1}' \
         /bin/bash --noprofile --norc" Enter
 }
 # maybe_netns_shell "busybox" "${ns_name}" "rootfs" "busybox" "sh -l"
@@ -126,7 +126,7 @@ maybe_netns_shell() {
         SHELL=${shell} \
         HOME=/ \
         TERM=${TERM} \
-        PS1=${ps1} \
+        PS1="${ps1}" \
         ${shell} ${args}"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "$cmds\n"; stdin_is_terminal || cat >&2; return 0; }
     trap "echo 'CTRL+C!!!!'" SIGINT
