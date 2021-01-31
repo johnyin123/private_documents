@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 7eebb98 - 2021-01-29T17:10:46+08:00")
+VERSION+=("functions.sh - 96774f9 - 2021-01-30T06:50:40+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -86,8 +86,8 @@ maybe_tmux_netns_chroot() {
     local ns_name="${3:-}" rootfs="${4:-}"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "tmux ${sess}:${window}${rootfs:+rootfs=${rootfs}}${ns_name:+@${ns_name}}\n"; return 0; }
     tmux has-session -t "${sess}" 2> /dev/null || tmux new-session -d -s "${sess}"
-    tmux new-window -t "${SESS}" -n "${window}"
-    local ps1=[${info}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}]
+    tmux new-window -t "${sess}" -n "${window}"
+    local ps1=[${window}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}]
     local colors=$($(truecmd tput) colors 2> /dev/null)
     if [ $? = 0 ] && [ ${colors} -gt 2 ]; then
         ps1+="\033[1;31m\u\033[m@\033[1;32m\h:\033[33;1m\w\033[m$"
@@ -130,7 +130,7 @@ maybe_netns_shell() {
         ${shell} ${args}"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "$cmds\n"; stdin_is_terminal || cat >&2; return 0; }
     trap "echo 'CTRL+C!!!!'" SIGINT
-    env ${cmds} || true
+    ${cmds} || true
     trap - SIGINT
 }
 
