@@ -95,6 +95,7 @@ EOF
 }
 
 post_create() {
+    require zebra ospfd start-stop-daemon tmux
     local lower="/" overlay= node= window=
     for node in R1 R2 R3; do
         overlay="${LAB_DIR}/${node}"

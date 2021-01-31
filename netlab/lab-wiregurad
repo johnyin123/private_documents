@@ -40,6 +40,8 @@ declare -A NODES_ROUTES=(
 
 SESS=wglab
 post_create() {
+    require wg wg-quick tmux
+
     local prikey_R1=$(try wg genkey)
     local pubkey_R1="$(echo -n ${prikey_R1} | try wg pubkey)"
     local prikey_R2=$(try wg genkey)
