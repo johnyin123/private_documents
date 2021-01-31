@@ -43,6 +43,7 @@ LAB_DIR=/tmp
 
 gen_zebra() {
     local ns=$1
+    local inf_addr_lst="${2:-}"
     local password="password"
     cat <<EOF
 hostname ${ns}
@@ -50,6 +51,14 @@ password ${password}
 enable password ${password}
 log file /tmp/zebra.log
 service password-encryption
+
+$(while read -rd "," -r x; do
+    inf=${x%:*}
+    addr=${x##*:}
+    echo "interface ${inf}"
+    echo " ip address ${addr}"
+done <<< "${inf_addr_lst:+${inf_addr_lst},}"
+)
 EOF
 }
 
