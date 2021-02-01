@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - df7920d - 2021-01-31T10:55:37+08:00")
+VERSION+=("functions.sh - 343981f - 2021-02-01T08:27:23+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -72,6 +72,7 @@ setup_ns() {
     try ip netns add ${ns_name}
     maybe_netns_run "ip addr add 127.0.0.1/8 dev lo" "${ns_name}"
     maybe_netns_run "ip link set lo up" "${ns_name}"
+    try mkdir -p "/etc/netns/$ns_name"
 }
 
 maybe_netns_addlink() {
@@ -167,6 +168,7 @@ netns_exists() {
 cleanup_ns() {
     local ns_name="$1"
     try ip netns del ${ns_name} || true
+    try rm -rf "/etc/netns/$ns_name" || true
 }
 
 bridge_exists() {
