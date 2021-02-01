@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION+=("init-pc.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
+VERSION+=("init-pc.sh - 1d6ed62 - 2021-01-21T10:37:42+08:00")
 
 DEBIAN_VERSION=buster
 PASSWORD=password
@@ -665,7 +665,7 @@ EOF
 echo "install packages!"
 apt -y install bzip2 pigz p7zip-full arj zip mscompress unar eject bc less vim ftp telnet nmap tftp ntpdate screen lsof strace
 apt -y install man-db manpages tcpdump ethtool aria2 axel curl mpg123 nmon sysstat arping dnsutils minicom socat git git-flow net-tools
-apt -y install nscd nbd-client iftop
+apt -y install nscd nbd-client iftop netcat-openbsd
 
 id root &>/dev/null && { usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" root; }
 id johnyin &>/dev/null && {usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" johnyin; }
