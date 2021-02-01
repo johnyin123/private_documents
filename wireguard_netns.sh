@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("wireguard_netns.sh - 5106568 - 2021-01-18T10:50:55+08:00")
+VERSION+=("wireguard_netns.sh - 7ef7607 - 2021-01-29T16:01:58+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_wg() {
@@ -117,6 +117,7 @@ main() {
     [[ -z "${wg_conf}" ]] && usage "wireguard config file must input"
     is_user_root || exit_msg "root user need!!\n"
     file_exists "${wg_conf}" || exit_msg "file ${wg_conf} no found!!\n"
+    directory_exists "/sys/class/net/${wg_if}" && exit_msg "interface ${wg_if} already exists!!\n"
     require env bash ip wg
     [[ -z "${ns_name}" ]] || {
         netns_exists "${ns_name}" && exit_msg "netns ${ns_name} exist!!\n"
