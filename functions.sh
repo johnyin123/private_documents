@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - a03a981 - 2021-01-31T10:29:28+08:00")
+VERSION+=("functions.sh - df7920d - 2021-01-31T10:55:37+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -160,6 +160,7 @@ netns_exists() {
     local ns_name="$1"
     # Check if a namespace named $ns_name exists.
     # Note: Namespaces with a veth pair are listed with '(id: 0)' (or something). We need to remove this before lookin
+    # /var/run/netns/${ns_name} ?? exists
     ip netns list | sed 's/ *(id: [0-9]\+)$//' | grep --quiet --fixed-string --line-regexp "${ns_name}"
 }
 
