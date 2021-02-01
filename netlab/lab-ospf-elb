@@ -38,8 +38,12 @@ setup_lvs() {
     local ns_name="${1}"
     local vip="${2}"
     local rip_lst="${3}"
+    mkdir -p /etc/netns${ns_name}/etc/modprobe.d/
+    cat <<EO_CFG >/etc/netns${ns_name}/etc/modprobe.d/ipvs.conf
+options ip_vs conn_tab_bits=15
+EO_CFG
     IFS='/' read -r tip tmask <<< "${vip}"
-    cat <<EOF
+    maybe_netns_run "bash -s" "${ns_name}" <<EOF
         ipvsadm -A -t ${tip}:0 -s sh -p 360
 $(while read -rd "," -r x; do
         echo "ipvsadm -a -t ${tip}:0 -r ${x}:0 -g -w 1"
