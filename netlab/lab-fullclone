@@ -1,0 +1,56 @@
+#[name]="type" type:R/S/N (router,switch,node)
+declare -A MAP_NODES=(
+    [R1]=R
+    [R2]=R
+    [SW]=S
+    [SW1]=S
+    [SW2]=S
+    [h1]=N
+    [j1]=N
+    [h2]=N
+    [j2]=N
+    )
+#[node:ip/prefix]=node:ip/prefix
+declare -A MAP_LINES=(
+    [R1:172.16.16.1/30]=SW:
+    [R2:172.16.16.2/30]=SW:
+    [R1:10.0.1.1/24]=SW1:
+    [R2:10.0.1.1/24]=SW2:
+    [h1:10.0.1.100/24]=SW1:
+    [j1:10.0.1.101/24]=SW1:
+    [h2:10.0.1.100/24]=SW2:
+    [j2:10.0.1.101/24]=SW2:
+    )
+#routes delm ,
+declare -A NODES_ROUTES=(
+    [h1]="default via 10.0.1.1"
+    [j1]="default via 10.0.1.1"
+    [h2]="default via 10.0.1.1"
+    [j2]="default via 10.0.1.1"
+    )
+
+SESS=fullclone
+post_create() {
+    local node= window=
+    echo "h1,j1 => 192.168.100.0/24"
+    maybe_netns_run "ip route add 192.168.200.0/24 via 172.16.16.2 dev R1-SW" "R1"
+    maybe_netns_run "iptables -t nat -A PREROUTING -s 192.168.200.0/24 -d 192.168.100.0/24 -i R1-SW -j NETMAP --to 10.0.1.0/24" "R1"
+    maybe_netns_run "iptables -t nat -A POSTROUTING -s 10.0.1.0/24 -d 192.168.200.0/24 -o R1-SW -j NETMAP --to 192.168.100.0/24" "R1"
+    echo "h2,j2 => 192.168.200.0/24"
+    maybe_netns_run "ip route add 192.168.100.0/24 via 172.16.16.1 dev R2-SW" "R2"
+    maybe_netns_run "iptables -t nat -A PREROUTING -s 192.168.100.0/24 -d 192.168.200.0/24 -i R2-SW -j NETMAP --to 10.0.1.0/24" "R2"
+    maybe_netns_run "iptables -t nat -A POSTROUTING -s 10.0.1.0/24 -d 192.168.100.0/24 -o R2-SW -j NETMAP --to 192.168.200.0/24" "R2"
+    for node in R1 R2 h1 j1 h2 j2; do
+        window=${node}
+        maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}"
+    done
+    maybe_netns_run "ping -c 3 192.168.200.100" "h1"
+    maybe_netns_run "ping -c 3 192.168.100.100" "h2"
+    return 0;
+}
+
+pre_cleanup() {
+    tmux kill-session -t "${SESS}"
+    return 0;
+}
+
