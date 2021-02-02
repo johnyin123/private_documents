@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlab.sh - 39819b5 - 2021-01-26T11:13:02+08:00")
+VERSION+=("netlab.sh - c0a9c4a - 2021-01-28T17:56:47+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 post_create() { return 0; } #all netns created!!
@@ -37,13 +37,15 @@ startup() {
         lcidr=${_lval##*:}
         rnode=${_rval%:*}
         rcidr=${_rval##*:}
-        debug_msg "line: ${lnode}-${lcidr}|${rnode}-${rcidr}\n"
+        debug_msg "line: ${_lval}|${_rval}\n"
         maybe_netns_setup_veth "${lnode}-${rnode}" "${rnode}-${lnode}" "" || { error_msg "${lnode}-${rnode} line error\n"; return 5; }
         case "$(array_get MAP_NODES "${lnode}")" in
-            R|N ) is_ipv4_subnet "${lcidr}" \
-                && maybe_netns_addlink "${lnode}-${rnode}" "${lnode}" \
-                && maybe_netns_run "ip addr add ${lcidr} dev ${lnode}-${rnode}" "${lnode}" \
-                || { error_msg "node ${lnode} error\n"; return 6; }
+            R|N ) maybe_netns_addlink "${lnode}-${rnode}" "${lnode}" && {
+                    while read -rd "," _lval && [ -n "${_lval}" ]; do
+                        debug_msg "${lnode} set dev [${lnode}-${rnode}] addr [$_lval]\n"
+                        maybe_netns_run "ip addr add ${_lval} dev ${lnode}-${rnode}" "${lnode}" || { error_msg "node ${lnode} error\n"; return 6; }
+                    done <<< "${lcidr},"
+                }
                 ;;
             S ) maybe_netns_addlink "${lnode}-${rnode}" "${lnode}" \
                 && maybe_netns_bridge_addlink "br0" "${lnode}-${rnode}" "${lnode}" \
@@ -52,10 +54,12 @@ startup() {
             * ) error_msg "lnode ${lnode} type error\n"; return 10;;
         esac
         case "$(array_get MAP_NODES "${rnode}")" in
-            R|N ) is_ipv4_subnet "${rcidr}" \
-                && maybe_netns_addlink "${rnode}-${lnode}" "${rnode}" \
-                && maybe_netns_run "ip addr add ${rcidr} dev ${rnode}-${lnode}" "${rnode}" \
-                || { error_msg "node ${rnode} error\n"; return 8; }
+            R|N ) maybe_netns_addlink "${rnode}-${lnode}" "${rnode}" && {
+                    while read -rd "," _lval && [ -n "${_lval}" ]; do
+                        debug_msg "${rnode} set dev [${rnode}-${lnode}] addr [$_lval]\n"
+                        maybe_netns_run "ip addr add ${_lval} dev ${rnode}-${lnode}" "${rnode}" || { error_msg "node ${rnode} error\n"; return 8; }
+                    done <<< "${rcidr},"
+                }
                 ;;
             S ) maybe_netns_addlink "${rnode}-${lnode}" "${rnode}" \
                 && maybe_netns_bridge_addlink "br0" "${rnode}-${lnode}" "${rnode}" \
@@ -67,8 +71,9 @@ startup() {
 
     for ns_name in $(array_print_label NODES_ROUTES)
     do
-        while read -rd "," _lval; do
-            maybe_netns_run "ip route add $_lval" "${ns_name}"
+        while read -rd "," _lval && [ -n "${_lval}" ]; do
+            debug_msg "${ns_name} add route [$_lval]\n"
+            maybe_netns_run "ip route add $_lval" "${ns_name}" || { error_msg "node ${ns_name} add route error\n"; return 11; }
         done <<< "$(array_get NODES_ROUTES ${ns_name}),"
     done
     defined DRYRUN || ( post_create ) || error_msg "${rnode} post_create error\n"
@@ -104,9 +109,9 @@ config file example:
 cat <<'EO_CFG'>lab.conf
 #[name]="type" type:R/S/N (router,switch,node)
 declare -A MAP_NODES=( )
-#[node:ip/prefix]=node:ip/prefix
+#[node:ip/prefix,ip/prefix]=node:ip/prefix,ip/prefix
 declare -A MAP_LINES=( )
-#[name]="route" routes delm ,
+#[name]="route1,route2"
 declare -A NODES_ROUTES=( )
 
 post_create() { return 0; } #all netns created!!
