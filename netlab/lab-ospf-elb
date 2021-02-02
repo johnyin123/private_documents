@@ -202,7 +202,7 @@ EOF
     setup_lvs "lvs2" "${VIP}" "10.0.1.100,10.0.1.101"
     setup_realsrv "srv1" "${VIP}"
     setup_realsrv "srv2" "${VIP}"
-    for node in cli1 cli2; do
+    for node in srv1 srv2 cli1 cli2; do
         window=${node}
         maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}"
     done
