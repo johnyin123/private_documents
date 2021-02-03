@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - d1b80fd - 2021-02-01T08:57:36+08:00")
+VERSION+=("functions.sh - 32cf61b - 2021-02-01T14:18:24+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -669,6 +669,14 @@ run_scripts() {
 #      ifconfig
 #      start-stop-daemon --start --quiet --background --exec '/sbin/zebra'
 #  EOF
+#  #########################
+#  BUG: when DRYRUN defined
+#  DRYRUN: echo 1.1.1.1/24 dev
+#  2.2.2.2/32,
+#  while read -rd "," _lval && [ -n "${_lval}" ]; do
+#      try "echo ${_lval} dev"
+#  done <<< "1.1.1.1/24,2.2.2.2/32,"
+#      0</dev/null try "echo ${_lval} dev" # can fix bug :(
 #******************************************************************************
 try() {
     # stdin is redirect and has parm, so stdin is not cmd stream!!

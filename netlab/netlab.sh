@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlab.sh - c0a9c4a - 2021-01-28T17:56:47+08:00")
+VERSION+=("netlab.sh - b2df025 - 2021-02-03T07:40:46+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 post_create() { return 0; } #all netns created!!
@@ -43,7 +43,7 @@ startup() {
             R|N ) maybe_netns_addlink "${lnode}-${rnode}" "${lnode}" && {
                     while read -rd "," _lval && [ -n "${_lval}" ]; do
                         debug_msg "${lnode} set dev [${lnode}-${rnode}] addr [$_lval]\n"
-                        maybe_netns_run "ip addr add ${_lval} dev ${lnode}-${rnode}" "${lnode}" || { error_msg "node ${lnode} error\n"; return 6; }
+                        0</dev/null maybe_netns_run "ip addr add ${_lval} dev ${lnode}-${rnode}" "${lnode}" || { error_msg "node ${lnode} error\n"; return 6; }
                     done <<< "${lcidr},"
                 }
                 ;;
@@ -57,7 +57,7 @@ startup() {
             R|N ) maybe_netns_addlink "${rnode}-${lnode}" "${rnode}" && {
                     while read -rd "," _lval && [ -n "${_lval}" ]; do
                         debug_msg "${rnode} set dev [${rnode}-${lnode}] addr [$_lval]\n"
-                        maybe_netns_run "ip addr add ${_lval} dev ${rnode}-${lnode}" "${rnode}" || { error_msg "node ${rnode} error\n"; return 8; }
+                        0</dev/null maybe_netns_run "ip addr add ${_lval} dev ${rnode}-${lnode}" "${rnode}" || { error_msg "node ${rnode} error\n"; return 8; }
                     done <<< "${rcidr},"
                 }
                 ;;
@@ -73,7 +73,7 @@ startup() {
     do
         while read -rd "," _lval && [ -n "${_lval}" ]; do
             debug_msg "${ns_name} add route [$_lval]\n"
-            maybe_netns_run "ip route add $_lval" "${ns_name}" || { error_msg "node ${ns_name} add route error\n"; return 11; }
+            0</dev/null maybe_netns_run "ip route add $_lval" "${ns_name}" || { error_msg "node ${ns_name} add route error\n"; return 11; }
         done <<< "$(array_get NODES_ROUTES ${ns_name}),"
     done
     defined DRYRUN || ( post_create ) || error_msg "${rnode} post_create error\n"
