@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - e4b9570 - 2021-02-03T08:45:12+08:00")
+VERSION+=("functions.sh - 236fd52 - 2021-02-04T16:05:27+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -69,7 +69,7 @@ human_readable_format_size()
 
 setup_ns() {
     local ns_name="$1"
-    try ip netns add ${ns_name}
+    try $(truecmd ip) netns add ${ns_name}
     maybe_netns_run "ip addr add 127.0.0.1/8 dev lo" "${ns_name}"
     maybe_netns_run "ip link set lo up" "${ns_name}"
     try mkdir -p "/etc/netns/$ns_name"
@@ -79,7 +79,7 @@ maybe_netns_addlink() {
     local link="$1"
     local ns_name="${2:-}"
     local newname="${3:-}"
-    try ip link set "${link}" ${ns_name:+netns ${ns_name}} ${newname:+name ${newname}} up
+    try $(truecmd ip) link set "${link}" ${ns_name:+netns ${ns_name} }${newname:+name ${newname} }up
 }
 
 maybe_tmux_netns_chroot() {
@@ -154,7 +154,7 @@ maybe_netns_run() {
     local cmds="${1:-$(cat)}"
     local ns_name="${2:-}"
     local rootfs="${3:-}"
-    try "${ns_name:+$(truecmd ip) netns exec ${ns_name}} ${rootfs:+$(truecmd chroot) ${rootfs}} ${cmds}"
+    try "${ns_name:+$(truecmd ip) netns exec ${ns_name} }${rootfs:+$(truecmd chroot) ${rootfs} }${cmds}"
 }
 
 netns_exists() {
@@ -167,14 +167,14 @@ netns_exists() {
 
 cleanup_ns() {
     local ns_name="$1"
-    try ip netns del ${ns_name} || true
+    try $(truecmd ip) netns del ${ns_name} || true
     try rm -rf "/etc/netns/$ns_name" || true
 }
 
 bridge_exists() {
     local bridge="$1"
     local ns_name="${2:-}"
-    ${ns_name:+$(truecmd ip) netns exec "${ns_name}"} [ -e /sys/class/net/${bridge}/bridge/bridge_id ]
+    ${ns_name:+$(truecmd ip) netns exec "${ns_name}" }[ -e /sys/class/net/${bridge}/bridge/bridge_id ]
 }
 
 maybe_netns_bridge_addlink() {
