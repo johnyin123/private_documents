@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - eba46c2 - 2021-02-04T16:19:27+08:00")
+VERSION+=("functions.sh - f736abe - 2021-02-04T16:50:11+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -86,7 +86,7 @@ maybe_tmux_netns_chroot() {
     local sess="$1" window="$2"
     local ns_name="${3:-}" rootfs="${4:-}"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "tmux ${sess}:${window}${rootfs:+rootfs=${rootfs}}${ns_name:+@${ns_name}}\n"; return 0; }
-    tmux has-session -t "${sess}" 2> /dev/null && tmux new-window -t "${sess}" -n "${window}" || tmux new-session -d -n "${window}" -s "${sess}"
+    tmux has-session -t "${sess}" 2> /dev/null && tmux new-window -t "${sess}" -n "${window}" || tmux set-option -g status off\; new-session -d -n "${window}" -s "${sess}"
     local ps1=[${window}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}]
     local colors=$($(truecmd tput) colors 2> /dev/null)
     if [ $? = 0 ] && [ ${colors} -gt 2 ]; then
