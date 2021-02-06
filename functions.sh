@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - f736abe - 2021-02-04T16:50:11+08:00")
+VERSION+=("functions.sh - 2638519 - 2021-02-05T13:10:29+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -100,10 +100,12 @@ maybe_tmux_netns_chroot() {
         /bin/env -i \
         SHELL=/bin/bash \
         HOME=/ \
-        TERM=${TERM} \
+        TERM=\${TERM} \
+        HISTFILE= \
+        BASH_ALIASES=( [df]='df -h' [ll]='ls -lh') \
+        COLORTERM=\${COLORTERM} \
         PS1='${ps1}' \
-        /bin/bash --noprofile --norc" Enter
-    tmux send-keys -t "${sess}:${window}" "stty columns 1000" Enter
+        /bin/bash --noprofile --norc -o vi" Enter
     tmux send-keys -t "${sess}:${window}" "reset" Enter
 }
 # maybe_netns_shell "busybox" "${ns_name}" "rootfs" "busybox" "sh -l"
@@ -113,7 +115,7 @@ maybe_netns_shell() {
     local ns_name="${1:-}"; shift || true
     local rootfs="${1:-}"; shift || true
     local shell="${1:-/bin/bash}"; shift || true
-    local args="${@:---noprofile --norc}"
+    local args="${@:---noprofile --norc -o vi}"
     local ps1=[${info}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}]
     local colors=$($(truecmd tput) colors 2> /dev/null)
     if [ $? = 0 ] && [ ${colors} -gt 2 ]; then
@@ -127,8 +129,12 @@ maybe_netns_shell() {
         /bin/env -i \
         SHELL=${shell} \
         HOME=/ \
-        TERM=${TERM} \
-        PS1="${ps1}" \
+        HISTFILE= \
+        TERM=\${TERM} \
+        HISTFILE= \
+        BASH_ALIASES=( [df]='df -h' [ll]='ls -lh') \
+        COLORTERM=\${COLORTERM} \
+        PS1='${ps1}' \
         ${shell} ${args}"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "$cmds\n"; stdin_is_terminal || cat >&2; return 0; }
     trap "echo 'CTRL+C!!!!'" SIGINT
