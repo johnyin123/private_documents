@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 3475221 - 2021-02-06T10:15:10+08:00")
+VERSION+=("functions.sh - 5aca834 - 2021-02-07T15:05:20+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -787,31 +787,38 @@ to_upper() {
     echo "${*^^}"
     #echo "$1" | tr '[:lower:]' '[:upper:]'
 }
-
 trim() {
-    echo "${1}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
+    local var="$*"
+    var="${var#"${var%%[![:space:]]*}"}"   # remove leading whitespace characters
+    var="${var%"${var##*[![:space:]]}"}"   # remove trailing whitespace characters
+    echo -n "$var"
 }
-string_ends_with() {
-    # Usage: string_ends_wit hello lo
-    [[ "${1}" == *${2} ]]
+# returns OK if $1 contains $2 at the beginning
+str_starts() {
+    [ "${1#$2*}" != "$1" ]
 }
-string_regex() {
-    # Usage: string_regex "string" "regex"
-    [[ $1 =~ $2 ]] && printf '%s\n' "${BASH_REMATCH[1]}"
+# returns OK if $1 contains $2 at the end
+str_ends() {
+    [ "${1%*$2}" != "$1" ]
 }
-string_starts_with() {
-    # Usage: string_starts_with hello he
-    [[ "${1}" == ${2}* ]]
+# returns OK if $1 contains $2
+strstr() {
+    [ "${1#*$2*}" != "$1" ]
 }
-string_contains() {
-    # Usage: string_contains hello he
-    [[ "${1}" == *${2}* ]]
-}
-string_replace() {
-    local ORIG="$1"
-    local DEST="$2"
-    local DATA="$3"
-    safe_echo "${DATA//$ORIG/$DEST}"
+# replaces all occurrences of 'search' in 'str' with 'replacement'
+# str_replace str search replacement
+# example:
+# str_replace '  one two  three  ' ' ' '_'
+str_replace() {
+    local in="$1"; local s="$2"; local r="$3"
+    local out=''
+
+    while strstr "${in}" "$s"; do
+        chop="${in%%$s*}"
+        out="${out}${chop}$r"
+        in="${in#*$s}"
+    done
+    echo "${out}${in}"
 }
 
 split() {
@@ -999,9 +1006,15 @@ int2ip() {
 }
 
 is_ipv4() {
-    local -r regex='^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$'
-    [[ $1 =~ $regex ]]
-    return $?
+    echo "$1" | {
+        IFS=. read a b c d
+        test "$a" -ge 0 -a "$a" -le 255 \
+             -a "$b" -ge 0 -a "$b" -le 255 \
+             -a "$c" -ge 0 -a "$c" -le 255 \
+             -a "$d" -ge 0 -a "$d" -le 255 \
+             2> /dev/null
+    } && return 0
+    return 1
 }
 is_fqdn() {
     safe_echo "$1" | grep -Pq '(?=^.{4,255}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}\.?$)'
