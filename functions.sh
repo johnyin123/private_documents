@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 69f17c8 - 2021-02-06T09:18:08+08:00")
+VERSION+=("functions.sh - 3475221 - 2021-02-06T10:15:10+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -310,6 +310,16 @@ cursor_col() {
 }
 safe_echo() {
     printf -- '%b\n' "$*"
+}
+
+readonly EC=$'\033'    # escape char
+readonly EE=$'\033[0m' # escape end
+cprintf() {
+    local color=$1
+    local fmt=$2
+    shift 2
+    # if stdout is console, turn on color output.
+    stdout_is_terminal && printf "${EC}[1;${color}m${fmt}${EE}" "$@" || printf "${fmt}" "$@"
 }
 
 # echo "hello {{DISK_DEV}} \$(({{VAL}}*2))" | render_tpl2 vm
