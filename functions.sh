@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 5aca834 - 2021-02-07T15:05:20+08:00")
+VERSION+=("functions.sh - 738c47f - 2021-02-07T15:41:22+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -102,7 +102,7 @@ maybe_tmux_netns_chroot() {
         HOME=/ \
         TERM=\${TERM} \
         HISTFILE= \
-        BASH_ALIASES=( [df]='df -h' [ll]='ls -lh') \
+        BASH_ALIASES=([df]='df -h' [ll]='ls -lh') \
         COLORTERM=\${COLORTERM} \
         PS1='${ps1}' \
         /bin/bash --noprofile --norc -o vi" Enter
@@ -130,11 +130,10 @@ maybe_netns_shell() {
         SHELL=${shell} \
         HOME=/ \
         HISTFILE= \
-        TERM=\${TERM} \
+        TERM=${TERM} \
         HISTFILE= \
-        BASH_ALIASES=( [df]='df -h' [ll]='ls -lh') \
-        COLORTERM=\${COLORTERM} \
-        PS1='${ps1}' \
+        COLORTERM=${COLORTERM} \
+        PS1=${ps1} \
         ${shell} ${args}"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "$cmds\n"; stdin_is_terminal || cat >&2; return 0; }
     trap "echo 'CTRL+C!!!!'" SIGINT
@@ -231,9 +230,10 @@ setup_overlayfs() {
 
 cleanup_overlayfs() {
     local rootmnt="$1"
+    local keep_tmpfs="${2:-}"
     try umount ${rootmnt} || true
-    try umount ${rootmnt}/tmpfs || true
-    try rm -rf ${rootmnt}/tmpfs || true
+    try "${keep_tmpfs:+echo need manul exec: }umount ${rootmnt}/tmpfs" || true
+    try "${keep_tmpfs:+echo need manul exec: }rm -rf ${rootmnt}/tmpfs" || true
 }
 
 get_ipaddr() {
