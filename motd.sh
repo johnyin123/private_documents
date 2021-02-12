@@ -1,14 +1,12 @@
 #!/bin/bash
-VERSION+=("motd.sh - fe1bdb5 - 2020-05-13T09:36:26+08:00")
+VERSION+=("motd.sh - ea29403 - 2021-02-12T10:29:18+08:00")
 date=$(date "+%F %T")
 kernel=$(uname -r)
-hostname=$(echo $HOSTNAME)
+hostname="$HOSTNAME"
 #Cpu load
-load1=$(cat /proc/loadavg | awk '{print $1}')
-load5=$(cat /proc/loadavg | awk '{print $2}')
-load15=$(cat /proc/loadavg | awk '{print $3}')
+load1_5_15=$(awk '{print $1 ", " $2 ", " $3}' /proc/loadavg)
 #System uptime
-uptime=$(cat /proc/uptime | cut -f1 -d.)
+uptime=$(cut -f1 -d. /proc/uptime)
 upDays=$((uptime/60/60/24))
 upHours=$((uptime/60/60%24))
 upMins=$((uptime/60%60))
@@ -47,7 +45,7 @@ exec {FD}</etc/logo.txt
     printf "Kernel Version:     %s\n" "$kernel"
     printf "UUID:               %s\n" "$uuid"
     printf "HostName:           %s\n" "$hostname"
-    printf "System Load:        %s %s %s\n" $load1, $load5, $load15
+    printf "System Load:        %s\n" "$load1_5_15"
     printf "System Uptime:      %s "days" %s "hours" %s "min" %s "sec"\n" $upDays $upHours $upMins $upSecs
     printf "Memory Usage:       %s  Swap Usage:      %s\n" $mem_usage $swap_usage
     printf "Login Users:        %s\n" $users
