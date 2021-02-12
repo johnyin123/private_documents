@@ -1,4 +1,5 @@
 #!/bin/bash
+VERSION+=("motd.sh - fe1bdb5 - 2020-05-13T09:36:26+08:00")
 date=$(date "+%F %T")
 kernel=$(uname -r)
 hostname=$(echo $HOSTNAME)
@@ -36,7 +37,8 @@ product="$(dmidecode -s system-product-name)"
 head="$PRETTY_NAME ($date)"
 
 echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-exec 6</etc/logo.txt
+
+exec {FD}</etc/logo.txt
 {
     printf "$head\n"
     printf "%s\n" "----------------------------------------------"
@@ -73,11 +75,11 @@ exec 6</etc/logo.txt
     done
 
 } | while IFS= read -r line; do 
-    IFS= read -r line2 <&6
+    IFS= read -r line2 <&${FD}
     str="$(printf "%s" "${line}" | sed -r 's/\x1B\[([0-9];)?([0-9]{1,2}(;[0-9]{1,2})?)?[mGK]//g')"
     slen=${#str}
     len=${#line}
     printf "%-$((60+len-slen))s%s\033[m\n" "$line" "$line2"
 done
-exec 6<&-
+exec {FD}>&-
 echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
