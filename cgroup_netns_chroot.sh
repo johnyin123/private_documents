@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cgroup_netns_chroot.sh - 22a194a - 2021-01-28T12:40:39+08:00")
+VERSION+=("cgroup_netns_chroot.sh - 7eebb98 - 2021-01-29T17:10:46+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 init_ns_env() {
@@ -71,6 +71,7 @@ ns_cg_run() {
 ${precmd}
 ${cmd}
 EOSHELL
+    # cgdelete -g "${CGROUPS}:/${ns_name}"
 }
 
 ns_cg_enter() {
