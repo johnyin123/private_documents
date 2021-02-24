@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 44c7bf4 - 2021-02-24T08:48:53+08:00")
+VERSION+=("functions.sh - f21b398 - 2021-02-24T12:37:47+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -85,6 +85,9 @@ maybe_netns_addlink() {
 # cat <<EOF >/a.sh
 # #!/usr/bin/env bash
 # mount -t proc proc /proc
+# mount -t sysfs /sys sys
+# hostname mydocer
+# /etc/init.d/ssh start
 # export PS1="mydocker##\033[1;31m\u\033[m@\033[1;32m\h:\033[33;1m\w\033[m$"
 # exec /bin/bash --noprofile --norc -o vi
 # EOF
