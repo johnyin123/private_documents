@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 783aa97 - 2021-02-24T08:39:22+08:00")
+VERSION+=("functions.sh - 44c7bf4 - 2021-02-24T08:48:53+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -85,8 +85,8 @@ maybe_netns_addlink() {
 # cat <<EOF >/a.sh
 # #!/usr/bin/env bash
 # mount -t proc proc /proc
-# /bin/bash --noprofile --norc -o vi
-# exit 0
+# export PS1="mydocker##\033[1;31m\u\033[m@\033[1;32m\h:\033[33;1m\w\033[m$"
+# exec /bin/bash --noprofile --norc -o vi
 # EOF
 # chmod 755 /a.sh
 # docker_shell "mydocker" "${ns_name}" "$rootfs" "/a.sh" "args"
@@ -94,8 +94,8 @@ docker_shell() {
     local info="$1"; shift || true
     local ns_name="${1:-}"; shift || true
     local rootfs="${1:-}"; shift || true
-    local shell="${1:-/bin/bash}"; shift || true
-    local args="${@:---noprofile --norc -o vi}"
+    local shell="${1:-/bin/bash --noprofile --norc -o vi}"; shift || true
+    local args="${@:-}"
     local ps1=[${info}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}]
     local colors=$($(truecmd tput) colors 2> /dev/null)
     if [ $? = 0 ] && [ ${colors} -gt 2 ]; then
@@ -106,14 +106,7 @@ docker_shell() {
 
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "docker: ${ns_name}${rootfs:+@rootfs:${rootfs}} ${shell} ${args}\n"; return 0; }
     ip netns exec "${ns_name}" \
-        unshare --mount \
-	        --ipc \
-	        --uts \
-	        --user \
-	        --map-root-user \
-	        --pid \
-	        --fork \
-	        --mount-proc \
+        unshare --mount --ipc --uts --pid --fork --mount-proc \
             ${rootfs:+$(truecmd chroot) ${rootfs}} \
             /usr/bin/env -i \
             SHELL=/bin/bash \
@@ -122,7 +115,7 @@ docker_shell() {
             HISTFILE= \
             COLORTERM=${COLORTERM} \
             PS1=${ps1} \
-            ${shell} ${args}
+            ${shell} ${args} || true
 }
 
 maybe_tmux_netns_chroot() {
