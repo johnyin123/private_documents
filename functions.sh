@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 4cd75c7 - 2021-02-22T14:03:49+08:00")
+VERSION+=("functions.sh - 332cdc6 - 2021-02-23T08:10:58+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -80,6 +80,40 @@ maybe_netns_addlink() {
     local ns_name="${2:-}"
     local newname="${3:-}"
     try $(truecmd ip) link set "${link}" ${ns_name:+netns ${ns_name} }${newname:+name ${newname} }up
+}
+
+docker_shell() {
+    local info="$1"; shift || true
+    local ns_name="${1:-}"; shift || true
+    local rootfs="${1:-}"; shift || true
+    local shell="${1:-/bin/bash}"; shift || true
+    local args="${@:---noprofile --norc -o vi}"
+    local ps1=[${info}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}]
+    local colors=$($(truecmd tput) colors 2> /dev/null)
+    if [ $? = 0 ] && [ ${colors} -gt 2 ]; then
+        ps1+="\033[1;31m\u\033[m@\033[1;32m\h:\033[33;1m\w\033[m$"
+    else
+        ps1+="\u@\h:\w$"
+    fi
+
+    ip netns exec "${ns_name}" \
+        unshare --mount \
+	        --ipc \
+	        --uts \
+	        --user \
+	        --map-root-user \
+	        --pid \
+	        --fork \
+	        --mount-proc \
+            ${rootfs:+$(truecmd chroot) ${rootfs}} \
+            /usr/bin/env -i \
+            SHELL=/bin/bash \
+            HOME=/ \
+            TERM=${TERM} \
+            HISTFILE= \
+            COLORTERM=${COLORTERM} \
+            PS1=${ps1} \
+            ${shell} ${args}
 }
 
 maybe_tmux_netns_chroot() {
