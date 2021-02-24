@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 784b6ba - 2021-02-24T08:17:33+08:00")
+VERSION+=("functions.sh - 783aa97 - 2021-02-24T08:39:22+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -89,7 +89,7 @@ maybe_netns_addlink() {
 # exit 0
 # EOF
 # chmod 755 /a.sh
-# docker_shell "mydocker" "${ns_name}" "$rootfs" "/a.sh" ""
+# docker_shell "mydocker" "${ns_name}" "$rootfs" "/a.sh" "args"
 docker_shell() {
     local info="$1"; shift || true
     local ns_name="${1:-}"; shift || true
@@ -104,6 +104,7 @@ docker_shell() {
         ps1+="\u@\h:\w$"
     fi
 
+    defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "docker: ${ns_name}${rootfs:+@rootfs:${rootfs}} ${shell} ${args}\n"; return 0; }
     ip netns exec "${ns_name}" \
         unshare --mount \
 	        --ipc \
@@ -136,6 +137,8 @@ maybe_tmux_netns_chroot() {
     else
         ps1+="\u@\h:\w$"
     fi
+
+    defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "tmux: ${sess}:${window}{rootfs:+@rootfs:${rootfs}} shell\n"; return 0; }
     tmux send-keys -t "${sess}:${window}" "exec \
         ${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
         ${rootfs:+$(truecmd chroot) ${rootfs}} \
