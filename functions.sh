@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 4ddaff7 - 2021-02-25T09:06:17+08:00")
+VERSION+=("functions.sh - 11d5839 - 2021-02-25T13:52:15+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -121,6 +121,8 @@ docker_shell() {
             ${shell} ${args} || true
 }
 
+# tmux select-window -t <session-name>:<windowID>
+# tmux send-keys -t "${sess}:${window}" "history -c;reset" Enter
 maybe_tmux_netns_chroot() {
     local sess="$1" window="$2"
     local ns_name="${3:-}" rootfs="${4:-}"
