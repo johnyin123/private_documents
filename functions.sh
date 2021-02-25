@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 8ca02f8 - 2021-02-24T13:24:06+08:00")
+VERSION+=("functions.sh - 4ddaff7 - 2021-02-25T09:06:17+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -124,6 +124,7 @@ docker_shell() {
 maybe_tmux_netns_chroot() {
     local sess="$1" window="$2"
     local ns_name="${3:-}" rootfs="${4:-}"
+    local unshared="${5:-}"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "tmux ${sess}:${window}${rootfs:+rootfs=${rootfs}}${ns_name:+@${ns_name}}\n"; return 0; }
     tmux has-session -t "${sess}" 2> /dev/null && tmux new-window -t "${sess}" -n "${window}" || tmux set-option -g status off\; new-session -d -n "${window}" -s "${sess}"
     local ps1=[${window}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}]
@@ -137,6 +138,7 @@ maybe_tmux_netns_chroot() {
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "tmux: ${sess}:${window}{rootfs:+@rootfs:${rootfs}} shell\n"; return 0; }
     tmux send-keys -t "${sess}:${window}" "exec \
         ${ns_name:+$(truecmd ip) netns exec ${ns_name}} \
+        ${unshared:+$(truecmd unshare) --mount --ipc --uts --pid --fork --mount-proc --} \
         ${rootfs:+$(truecmd chroot) ${rootfs}} \
         /bin/env -i \
         SHELL=/bin/bash \
