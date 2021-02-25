@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - f21b398 - 2021-02-24T12:37:47+08:00")
+VERSION+=("functions.sh - 8ca02f8 - 2021-02-24T13:24:06+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -82,7 +82,7 @@ maybe_netns_addlink() {
     try $(truecmd ip) link set "${link}" ${ns_name:+netns ${ns_name} }${newname:+name ${newname} }up
 }
 
-# cat <<EOF >/a.sh
+# cat <<EOF >${ovlerlay}/a.sh
 # #!/usr/bin/env bash
 # mount -t proc proc /proc
 # mount -t sysfs /sys sys
@@ -94,9 +94,9 @@ maybe_netns_addlink() {
 # chmod 755 /a.sh
 # docker_shell "mydocker" "${ns_name}" "$rootfs" "/a.sh" "args"
 docker_shell() {
-    local info="$1"; shift || true
-    local ns_name="${1:-}"; shift || true
-    local rootfs="${1:-}"; shift || true
+    local info="$1"
+    local ns_name="${2}"
+    local rootfs="${3}"; shift 3
     local shell="${1:-/bin/bash --noprofile --norc -o vi}"; shift || true
     local args="${@:-}"
     local ps1=[${info}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}]
@@ -109,7 +109,7 @@ docker_shell() {
 
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "docker: ${ns_name}${rootfs:+@rootfs:${rootfs}} ${shell} ${args}\n"; return 0; }
     ip netns exec "${ns_name}" \
-        unshare --mount --ipc --uts --pid --fork --mount-proc \
+        unshare --mount --ipc --uts --pid --fork --mount-proc -- \
             ${rootfs:+$(truecmd chroot) ${rootfs}} \
             /usr/bin/env -i \
             SHELL=/bin/bash \
