@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - be7c897 - 2021-02-26T08:19:44+08:00")
+VERSION+=("functions.sh - ace31e7 - 2021-02-26T09:58:42+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -269,17 +269,18 @@ cleanup_link() {
 }
 
 # /bin/mount -t proc proc /proc
-# /bin/mount -n -t tmpfs none /dev
-# /bin/mknod -m 622 /dev/console c 5 1
-# /bin/mknod -m 666 /dev/null c 1 3
-# /bin/mknod -m 666 /dev/zero c 1 5
-# /bin/mknod -m 666 /dev/ptmx c 5 2
-# /bin/mknod -m 666 /dev/tty c 5 0
-# /bin/mknod -m 444 /dev/random c 1 8
-# /bin/mknod -m 444 /dev/urandom c 1 9
-# /bin/chown root:tty /dev/{console,ptmx,tty}
-# /bin/mkdir /dev/pts
+# /bin/mount -t sysfs /sys sys
+# /bin/mount -t devtmpfs none /dev
+# [ -e /dev/console ] || /bin/mknod -m 622 /dev/console c 5 1
+# [ -e /dev/null ]    || /bin/mknod -m 666 /dev/null c 1 3
+# [ -e /dev/zero ]    || /bin/mknod -m 666 /dev/zero c 1 5
+# [ -e /dev/ptmx ]    || /bin/mknod -m 666 /dev/ptmx c 5 2
+# [ -e /dev/tty ]     || /bin/mknod -m 666 /dev/tty c 5 0
+# [ -e /dev/null ]    || /bin/mknod -m 444 /dev/random c 1 8
+# [ -e /dev/console ] || /bin/mknod -m 444 /dev/urandom c 1 9
+# /bin/mkdir -p /dev/pts
 # /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts
+# /bin/mkdir -p /dev/shm
 setup_overlayfs() {
     local lower="$1"
     local rootmnt="$2"
