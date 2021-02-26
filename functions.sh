@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 3433bc4 - 2021-02-25T14:02:40+08:00")
+VERSION+=("functions.sh - be7c897 - 2021-02-26T08:19:44+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -125,6 +125,7 @@ docker_shell() {
 # tmux send-keys -t "${sess}:${window}" "history -c;reset" Enter
 tmux_input() {
     local sess="$1" window="$2" input="$3"
+    defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "tmux ${sess}:${window} \"${input}\" Enter\n"; return 0; }
     tmux send-keys -t "${sess}:${window}" "${input}" Enter
 }
 
