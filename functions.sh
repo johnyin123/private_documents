@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 11d5839 - 2021-02-25T13:52:15+08:00")
+VERSION+=("functions.sh - 3433bc4 - 2021-02-25T14:02:40+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -123,6 +123,11 @@ docker_shell() {
 
 # tmux select-window -t <session-name>:<windowID>
 # tmux send-keys -t "${sess}:${window}" "history -c;reset" Enter
+tmux_input() {
+    local sess="$1" window="$2" input="$3"
+    tmux send-keys -t "${sess}:${window}" "${input}" Enter
+}
+
 maybe_tmux_netns_chroot() {
     local sess="$1" window="$2"
     local ns_name="${3:-}" rootfs="${4:-}"
@@ -262,11 +267,24 @@ cleanup_link() {
     maybe_netns_run "ip link delete ${link}" "${ns_name}" || true
 }
 
+# /bin/mount -t proc proc /proc
+# /bin/mount -n -t tmpfs none /dev
+# /bin/mknod -m 622 /dev/console c 5 1
+# /bin/mknod -m 666 /dev/null c 1 3
+# /bin/mknod -m 666 /dev/zero c 1 5
+# /bin/mknod -m 666 /dev/ptmx c 5 2
+# /bin/mknod -m 666 /dev/tty c 5 0
+# /bin/mknod -m 444 /dev/random c 1 8
+# /bin/mknod -m 444 /dev/urandom c 1 9
+# /bin/chown root:tty /dev/{console,ptmx,tty}
+# /bin/mkdir /dev/pts
+# /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts
 setup_overlayfs() {
     local lower="$1"
     local rootmnt="$2"
+    local overlay_size_mb="${3:-1}"
     try mkdir -p ${rootmnt}/tmpfs
-    try mount -t tmpfs tmpfs -o size=1M ${rootmnt}/tmpfs
+    try mount -t tmpfs tmpfs -o size=${overlay_size_mb}M ${rootmnt}/tmpfs
     try mkdir -p ${rootmnt}/tmpfs/upper ${rootmnt}/tmpfs/work
     try mount -t overlay overlay -o lowerdir=${lower},upperdir=${rootmnt}/tmpfs/upper,workdir=${rootmnt}/tmpfs/work ${rootmnt}/
 }
