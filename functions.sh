@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - ace31e7 - 2021-02-26T09:58:42+08:00")
+VERSION+=("functions.sh - 22c9e44 - 2021-02-26T12:37:31+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -127,6 +127,7 @@ tmux_input() {
     local sess="$1" window="$2" input="$3"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "tmux ${sess}:${window} \"${input}\" Enter\n"; return 0; }
     tmux send-keys -t "${sess}:${window}" "${input}" Enter
+    # tmux capture-pane -t "${sess}:${window}" -p
 }
 
 maybe_tmux_netns_chroot() {
