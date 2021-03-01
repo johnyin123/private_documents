@@ -1,0 +1,14 @@
+maybe_tmux_netns_chroot "mydocker" "win1" "${ns_name}" "$rootfs" "unshare"
+tmux_input "mydocker" "win1" "/bin/mount -t proc proc /proc"
+tmux_input "mydocker" "win1" "/bin/mkdir /dev/pts"
+tmux_input "mydocker" "win1" "/bin/mount -t devpts -o gid=4,mode=620 none /dev/pts"
+#  x11vnc xvfb firefox
+tmux_input "mydocker" "win1" "mkdir ~/.vnc"
+# Setup a password
+tmux_input "mydocker" "win1" "x11vnc -storepasswd 1234 ~/.vnc/passwd"
+tmux_input "mydocker" "win1" "x11vnc -display :10 &"
+tmux_input "mydocker" "win1" "Xvfb :10 -screen 0 1024x768x24+32 -ac -r -cc 4 -accessx -xinerama +extension Composite +extension GLX &"
+tmux_input "mydocker" "win1" "matchbox-window-manager -display :10 &"
+# xterm -display :10 &
+# firefox --display=:10 &
+

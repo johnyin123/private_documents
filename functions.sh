@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 22c9e44 - 2021-02-26T12:37:31+08:00")
+VERSION+=("functions.sh - d625d93 - 2021-03-01T14:24:30+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -113,7 +113,7 @@ docker_shell() {
             ${rootfs:+$(truecmd chroot) ${rootfs}} \
             /usr/bin/env -i \
             SHELL=/bin/bash \
-            HOME=/ \
+            HOME=${HOME:-/} \
             TERM=${TERM} \
             HISTFILE= \
             COLORTERM=${COLORTERM} \
@@ -151,7 +151,7 @@ maybe_tmux_netns_chroot() {
         ${rootfs:+$(truecmd chroot) ${rootfs}} \
         /bin/env -i \
         SHELL=/bin/bash \
-        HOME=/ \
+        HOME=${HOME:-/} \
         TERM=\${TERM} \
         HISTFILE= \
         COLORTERM=\${COLORTERM} \
@@ -179,7 +179,7 @@ maybe_netns_shell() {
         ${rootfs:+$(truecmd chroot) ${rootfs}} \
         /bin/env -i \
         SHELL=${shell} \
-        HOME=/ \
+        HOME=${HOME:-/} \
         TERM=${TERM} \
         HISTFILE= \
         COLORTERM=${COLORTERM} \
