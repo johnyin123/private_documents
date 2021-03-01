@@ -80,3 +80,14 @@ iptables -t nat -A POSTROUTING -s 192.168.10.0/24 -d 192.168.200.0/24 -o tun0 -j
 # # same things, on gwb
 iptables -t nat -A PREROUTING -s 192.168.100.0/24 -d 192.168.200.0/24 -i tun0 -j NETMAP --to 192.168.10.0/24
 iptables -t nat -A POSTROUTING -s 192.168.10.0/24 -d 192.168.100.0/24 -o tun0 -j NETMAP --to 192.168.200.0/24
+
+
+# Full Cone: 
+# A full cone NAT is one where all requests from the same internal IP address and port are mapped to the same external IP address and port.
+# Furthermore, any external host can send a packet to the internal host, by sending a packet to the mapped external address.
+(192.168.2.170 is my "public" address and 10.0.0.1 is my "private" address
+/-"Full Cone NAT", with the following rules:/
+iptables -t nat -A POSTROUTING -o eth0 -j SNAT --to-source 192.168.2.170
+iptables -t nat -A PREROUTING -i eth0 -j DNAT --to-destination 10.0.0.1
+/-"Port Restricted Cone NAT", with just a single rule:/
+iptables -t nat -A POSTROUTING -o eth0 -j SNAT --to-source 192.168.2.170/
