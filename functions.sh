@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - b2fdb23 - 2021-03-02T07:48:18+08:00")
+VERSION+=("functions.sh - 12d5f46 - 2021-03-03T10:20:57+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -302,6 +302,11 @@ cleanup_overlayfs() {
 
 get_ipaddr() {
     $(truecmd ip) -4 -br addr show ${1} | $(truecmd grep) -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
+}
+
+confirm() {
+    read -p "${1:-confirm} [y/N] " -n 1;
+    [[ $REPLY =~ ^[Yy]$ ]];
 }
 
 ##Usage: check_http_status 'http://www.example.com'
