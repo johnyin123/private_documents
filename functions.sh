@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 57f3f47 - 2021-03-04T15:41:34+08:00")
+VERSION+=("functions.sh - 7516061 - 2021-03-05T08:11:59+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -278,11 +278,17 @@ cleanup_link() {
 # [ -e /dev/zero ]    || /bin/mknod -m 666 /dev/zero c 1 5
 # [ -e /dev/ptmx ]    || /bin/mknod -m 666 /dev/ptmx c 5 2
 # [ -e /dev/tty ]     || /bin/mknod -m 666 /dev/tty c 5 0
-# [ -e /dev/null ]    || /bin/mknod -m 444 /dev/random c 1 8
-# [ -e /dev/console ] || /bin/mknod -m 444 /dev/urandom c 1 9
-# /bin/mkdir -p /dev/pts
+# [ -e /dev/random ]  || /bin/mknod -m 444 /dev/random c 1 8
+# [ -e /dev/urandom ] || /bin/mknod -m 444 /dev/urandom c 1 9
+# [ -d /dev/pts ]     || /bin/mkdir -p /dev/pts
 # /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts
-# /bin/mkdir -p /dev/shm
+# echo "start shm"
+# [ -d /dev/shm ]     || /bin/mkdir -p /dev/shm
+# /bin/mount -t tmpfs none /dev/shm/
+# echo "start dbus"
+# /bin/dbus-uuidgen > /var/lib/dbus/machine-id
+# [ -d /var/run/dbus ]|| /bin/mkdir -p /var/run/dbus
+# /bin/dbus-daemon --config-file=/usr/share/dbus-1/system.conf --print-address
 setup_overlayfs() {
     local lower="$1"
     local rootmnt="$2"

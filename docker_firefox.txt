@@ -1,14 +1,32 @@
 maybe_tmux_netns_chroot "mydocker" "win1" "${ns_name}" "$rootfs" "unshare"
 tmux_input "mydocker" "win1" "/bin/mount -t proc proc /proc"
-tmux_input "mydocker" "win1" "/bin/mkdir /dev/pts"
+tmux_input "mydocker" "win1" "/bin/mount -t sysfs /sys sys"
+tmux_input "mydocker" "win1" "/bin/mount -t devtmpfs none /dev"
+tmux_input "mydocker" "win1" "[ -e /dev/console ] || /bin/mknod -m 622 /dev/console c 5 1"
+tmux_input "mydocker" "win1" "[ -e /dev/null ]    || /bin/mknod -m 666 /dev/null c 1 3"
+tmux_input "mydocker" "win1" "[ -e /dev/zero ]    || /bin/mknod -m 666 /dev/zero c 1 5"
+tmux_input "mydocker" "win1" "[ -e /dev/ptmx ]    || /bin/mknod -m 666 /dev/ptmx c 5 2"
+tmux_input "mydocker" "win1" "[ -e /dev/tty ]     || /bin/mknod -m 666 /dev/tty c 5 0"
+tmux_input "mydocker" "win1" "[ -e /dev/random ]  || /bin/mknod -m 444 /dev/random c 1 8"
+tmux_input "mydocker" "win1" "[ -e /dev/urandom ] || /bin/mknod -m 444 /dev/urandom c 1 9"
+tmux_input "mydocker" "win1" "[ -d /dev/pts ]     || /bin/mkdir -p /dev/pts"
 tmux_input "mydocker" "win1" "/bin/mount -t devpts -o gid=4,mode=620 none /dev/pts"
-#  x11vnc xvfb firefox
-tmux_input "mydocker" "win1" "mkdir ~/.vnc"
-# Setup a password
-tmux_input "mydocker" "win1" "x11vnc -storepasswd 1234 ~/.vnc/passwd"
-tmux_input "mydocker" "win1" "x11vnc -display :10 &"
+tmux_input "mydocker" "win1" "echo "start shm""
+tmux_input "mydocker" "win1" "[ -d /dev/shm ]     || /bin/mkdir -p /dev/shm"
+tmux_input "mydocker" "win1" "/bin/mount -t tmpfs none /dev/shm/"
+tmux_input "mydocker" "win1" "echo "start dbus""
+tmux_input "mydocker" "win1" "/bin/dbus-uuidgen > /var/lib/dbus/machine-id"
+tmux_input "mydocker" "win1" "[ -d /var/run/dbus ]|| /bin/mkdir -p /var/run/dbus"
+tmux_input "mydocker" "win1" "/bin/dbus-daemon --config-file=/usr/share/dbus-1/system.conf --print-address"
+
 tmux_input "mydocker" "win1" "Xvfb :10 -screen 0 1024x768x24+32 -ac -r -cc 4 -accessx -xinerama +extension Composite +extension GLX &"
+#  x11vnc xvfb firefox
+tmux_input "mydocker" "win1" "mkdir -p ~/.vnc"
+tmux_input "mydocker" "win1" "x11vnc -storepasswd 1234 ~/.vnc/passwd"
+tmux_input "mydocker" "win1" "x11vnc -display :10 -usepw &"
 tmux_input "mydocker" "win1" "matchbox-window-manager -display :10 &"
+tmux_input "mydocker" "win1" "mkdir -p /home/johnyin && chown johnyin.johnyin /home/johnyin -R"
+# tmux_input "mydocker" "win1" "matchbox-window-manager -display :10 &"
+tmux_input "mydocker" "win1" "su johnyin sh -c 'DISPLAY=:10 /opt/google/chrome/google-chrome --user-data-dir=/tmp/' 2> /dev/null &"
 # xterm -display :10 &
 # firefox --display=:10 &
-
