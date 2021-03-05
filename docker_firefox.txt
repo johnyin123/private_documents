@@ -27,6 +27,6 @@ tmux_input "mydocker" "win1" "x11vnc -display :10 -usepw &"
 tmux_input "mydocker" "win1" "matchbox-window-manager -display :10 &"
 tmux_input "mydocker" "win1" "mkdir -p /home/johnyin && chown johnyin.johnyin /home/johnyin -R"
 # tmux_input "mydocker" "win1" "matchbox-window-manager -display :10 &"
-tmux_input "mydocker" "win1" "su johnyin sh -c 'DISPLAY=:10 /opt/google/chrome/google-chrome --user-data-dir=/tmp/' 2> /dev/null &"
+tmux_input "mydocker" "win1" "su johnyin sh -c 'DISPLAY=:10 /opt/google/chrome/google-chrome --user-data-dir=/tmp/ --no-first-run' 2> /dev/null &"
 # xterm -display :10 &
 # firefox --display=:10 &
