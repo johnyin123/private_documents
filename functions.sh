@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 7516061 - 2021-03-05T08:11:59+08:00")
+VERSION+=("functions.sh - c01a46a - 2021-03-05T09:06:27+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -289,6 +289,8 @@ cleanup_link() {
 # /bin/dbus-uuidgen > /var/lib/dbus/machine-id
 # [ -d /var/run/dbus ]|| /bin/mkdir -p /var/run/dbus
 # /bin/dbus-daemon --config-file=/usr/share/dbus-1/system.conf --print-address
+#
+#start process with special PID: echo 1 > /proc/sys/kernel/ns_last_pid;  .....
 setup_overlayfs() {
     local lower="$1"
     local rootmnt="$2"
