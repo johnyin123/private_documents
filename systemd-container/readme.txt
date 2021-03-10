@@ -36,6 +36,10 @@ iface host0 inet static
     gateway 10.32.166.1
 EOF
 
+systemctl -q -M "$MACHINE" enable systemd-networkd --now
+systemctl -q -M "$MACHINE" enable systemd-resolved --now
+systemctl -q -M "$MACHINE" enable ssh --now
+
 systemctl set-property systemd-nspawn@${MACHINE}.service MemoryMax=2G
 systemctl set-property systemd-nspawn@${MACHINE}.service CPUQuota=200%
 
