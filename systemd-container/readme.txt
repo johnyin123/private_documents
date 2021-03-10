@@ -38,6 +38,7 @@ EOF
 
 systemctl set-property systemd-nspawn@${MACHINE}.service MemoryMax=2G
 systemctl set-property systemd-nspawn@${MACHINE}.service CPUQuota=200%
+
 # This will create permanent files in /etc/systemd/system.control/systemd-nspawn@${MACHINE}.service.d/
 
 # Enable container to start at boot
@@ -54,6 +55,16 @@ systemd-nspawn -E DISPLAY="$DISPLAY" ...
 # audio
 $ systemd-nspawn -E PULSE_SERVER="unix:/pulse-guest.socket" --bind=/pulse-host.socket:/pulse-guest.socket ...
 
+systemd-nspawn -D "$DEST" \
+    --bind=/tmp/.X11-unix \
+    --bind=/run/user/1000/pulse \
+    --bind=/dev/snd \
+    --bind=/dev/video0 \
+    --bind=/etc/machine-id \
+    --bind=/dev/shm \
+    --share-system sudo \
+    -u skype \
+    env DISPLAY=:0 PULSE_SERVER=unix:/run/user/1000/pulse/native skype
 
 # boot into the container
 systemd-nspawn -b -D ~/MyContainer
