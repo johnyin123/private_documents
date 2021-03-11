@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 7d81b0e - 2021-03-05T09:29:50+08:00")
+VERSION+=("functions.sh - 060541a - 2021-03-05T12:25:54+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -42,6 +42,7 @@ human_readable_disk_size() {
     safe_echo $((bytes/__M))M
 }
 
+#SIZE=$(($(echo $SIZE | sed 's|[bB]||' | sed 's|[kK]|* 1024|' | sed 's|[mM]|* 1024 * 1024|' | sed 's|[gG]|* 1024 * 1024 * 1024|')))
 human_readable_format_size()
 {
     local size=$1

@@ -7,6 +7,7 @@ if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
+VERSION+=("build_centos.sh - 9bf43e0 - 2021-01-25T07:29:47+08:00")
 
 ## start parms
 SWAP_FILE=${SWAP_FILE:-false}

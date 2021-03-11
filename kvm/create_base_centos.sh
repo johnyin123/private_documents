@@ -17,7 +17,7 @@ parted -s "$DEVICE" -- \
   mklabel msdos \
   mkpart primary xfs 1 -1 \
   set 1 boot on
-
+# losetup -f --show "$IMAGE" --offset=$((2048 * 512))
 # Wait for device partition creation which happens asynchronously
 while [ ! -e "$PARTITION" ]; do sleep 1; done
 

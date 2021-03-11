@@ -13,13 +13,28 @@ $ systemctl restart systemd-sysctl.service
 
 DIR=/var/lib/machines
 MACHINE=debian
+
+# systemd-nspawn support raw image format, with parititon or not.
+# DISK_FILE=<you file image>
+# truncate -s 2G ${DISK_FILE}
+# # docker img can without partitions info. parted is not must need!!
+# parted -s ${DISK_FILE} -- mklabel msdos \
+# 	    mkpart primary xfs 2048s -1s \
+# 	    set 1 boot on
+# DEV=$(losetup -f --show "${DISK_FILE}" --offset=$((2048 * 512)))
+# mkfs.ext4 "$DEV" -q >/dev/null
+# mount -o offset=$((2048*512)) "${DISK_FILE}" ${DIR}/${MACHINE}
+
 REPO=http://mirrors.163.com/debian
 PKG+="systemd-container,ifupdown,iproute2,procps,busybox"
 debootstrap --verbose --no-check-gpg --variant=minbase --include=${PKG} stable ${DIR}/${MACHINE} ${REPO}
 
 #man systemd.nspawn
 #Use host networking
-cat<<EOF > /etc/systemd/nspawn/debian.nspawn
+# /etc/systemd/nspawn/${MACHINE}.nspawn
+# /run/systemd/nspawn/${MACHINE}.nspawn
+# /var/lib/machines/${MACHINE}.nspawn
+cat<<EOF > /etc/systemd/nspawn/${MACHINE}.nspawn
 [Exec]
 Boot=on
 
