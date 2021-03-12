@@ -2,6 +2,9 @@ echo "backup disk partition"
 sfdisk -d /dev/sda > sda.partition.bak
 echo "restore disk partition"
 sfdisk -f /dev/sda < sda.partition.bak
+partx --update --nr "$part" "$dev"
+
+
 
 lvcreate --snapshot "/dev/$vgroup/$volume" --name "$snapvol" -l '80%FREE'
 # fix bug: lvcreate snapshot mount by uuid as shown on url: http://www.zero-effort.net/tip-of-the-day-mounting-an-xfs-lvm-snapshot/
