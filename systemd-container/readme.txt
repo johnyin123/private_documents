@@ -113,7 +113,7 @@ $ systemd-cgtop
 
 
 # ra2/AOE2
-dpkg --add-architecture i386 && apt update  && apt install wine wine32 libgl1:i386 libgl1-mesa-dri:i386
+dpkg --add-architecture i386 && apt update  && apt install wine wine32 libgl1:i386 libgl1-mesa-dri:i386 libpulse0:i386
 
 systemd-nspawn -D "${DIRNAME}/game" useradd -s /bin/bash -m johnyin
 
