@@ -115,8 +115,8 @@ $ systemd-cgtop
 # ra2/AOE2
 dpkg --add-architecture i386 && apt update  && apt install wine wine32 libgl1:i386 libgl1-mesa-dri:i386
 
-# useradd -s /bin/bash -m johnyin
-#    --bind=/run/user/1000/pulse: \
+systemd-nspawn -D "${DIRNAME}/game" useradd -s /bin/bash -m johnyin
+
 #    --setenv=DISPLAY=${DISPLAY}
 systemd-nspawn -D "${DIRNAME}/game" \
         --bind-ro=/tmp/.X11-unix \
@@ -125,9 +125,7 @@ systemd-nspawn -D "${DIRNAME}/game" \
         --network-bridge=br-ext \
         --bind-ro=/home/johnyin/.config/pulse/cookie \
         --bind-ro=/run/user/1000/pulse:/run/user/host/pulse \
-        -u johnyin \
-        env DISPLAY=:0 wine /home/johnyin/ra2/ra2.exe
+        -u johnyin env DISPLAY=:0 PULSE_SERVER=unix:/run/user/host/pulse/native wine /home/johnyin/ra2/ra2.exe
         #--boot <winecfg/useradd......>
 
-systemd-nspawn -D "${DIRNAME}/game" useradd -s /bin/bash -m johnyin
 
