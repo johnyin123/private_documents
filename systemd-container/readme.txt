@@ -129,3 +129,20 @@ systemd-nspawn -D "${DIRNAME}/game" \
         #--boot <winecfg/useradd......>
 
 
+# cat<<EOF > /etc/systemd/nspawn/${MACHINE}.nspawn
+# [Exec]
+# Boot=on
+#
+# [Network]
+# VirtualEthernet=yes
+# Bridge=br-ext
+#
+# [Files]
+# BindReadOnly=/tmp/.X11-unix
+# BindReadOnly=/home/johnyin/.Xauthority:/home/johnyin/.Xauthority
+# BindReadOnly=/home/johnyin/.config/pulse/cookie
+# BindReadOnly=/run/user/1000/pulse:/run/user/host/pulse
+#
+# EOF
+# systemd-run -M game --uid=johnyin -E DISPLAY=:0 -E PULSE_SERVER=unix:/run/user/host/pulse/native /bin/google-chrome
+
