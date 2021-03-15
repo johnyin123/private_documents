@@ -5,7 +5,7 @@
 # USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
 set -o errexit -o nounset -o pipefail
 
-VERSION+=("debbootstrap.sh - 3729cea - 2021-03-15T09:45:34+08:00")
+VERSION+=("debbootstrap.sh - 225759c - 2021-03-15T09:51:01+08:00")
 if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
@@ -786,7 +786,44 @@ net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_tw_reuse = 0
 EOF
 
-cat <<'EOF' > /etc/vim/vimrc.local
+sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
+
+usermod -p '$(echo ${PASSWORD} | openssl passwd -1 -stdin)' root
+# echo "root:${PASSWORD}" |chpasswd
+echo "Force Users To Change Their Passwords Upon First Login"
+chage -d 0 root
+
+systemctl mask systemd-machine-id-commit.service
+
+apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync
+apt -y install --no-install-recommends xz-utils zip
+apt -y remove ca-certificates wireless-regdb crda --purge
+apt -y autoremove --purge
+
+exit
+
+EOSHELL
+
+cat << 'EOF'
+# baudrate=115200
+# ethaddr=5a:57:57:90:5d:03
+# bootcmd=run start_autoscript; run storeboot;
+# start_autoscript=if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;
+# start_usb_autoscript=if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;
+# start_mmc_autoscript=if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;
+# start_emmc_autoscript=if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;
+# bootdelay=0
+
+fw_setenv bootcmd "run start_autoscript; run storeboot;"
+fw_setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;"
+fw_setenv start_usb_autoscript "if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;"
+fw_setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;"
+fw_setenv start_emmc_autoscript "if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;"
+fw_setenv bootdelay 0
+fw_setenv ethaddr 5a:57:57:90:5d:03
+EOF
+
+cat <<'EOF' > /${DIRNAME}/buildroot/etc/vim/vimrc.local
 syntax on
 " color evening
 set number
@@ -874,43 +911,6 @@ func SetTitle()
         call setline(8, "    main()")
     endif
 endfunc
-EOF
-
-sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
-
-usermod -p '$(echo ${PASSWORD} | openssl passwd -1 -stdin)' root
-# echo "root:${PASSWORD}" |chpasswd 
-echo "Force Users To Change Their Passwords Upon First Login"
-chage -d 0 root
-
-systemctl mask systemd-machine-id-commit.service
-
-apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync
-apt -y install --no-install-recommends xz-utils zip
-apt -y remove ca-certificates wireless-regdb crda --purge
-apt -y autoremove --purge
-
-exit
-
-EOSHELL
-
-cat << 'EOF'
-# baudrate=115200
-# ethaddr=5a:57:57:90:5d:03
-# bootcmd=run start_autoscript; run storeboot;
-# start_autoscript=if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;
-# start_usb_autoscript=if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;
-# start_mmc_autoscript=if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;
-# start_emmc_autoscript=if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;
-# bootdelay=0
-
-fw_setenv bootcmd "run start_autoscript; run storeboot;"
-fw_setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;"
-fw_setenv start_usb_autoscript "if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;"
-fw_setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;"
-fw_setenv start_emmc_autoscript "if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;"
-fw_setenv bootdelay 0
-fw_setenv ethaddr 5a:57:57:90:5d:03
 EOF
 
 echo "add emmc_install script"
@@ -1177,6 +1177,8 @@ find "${DIRNAME}/buildroot/usr/share/doc" -depth -type f ! -name copyright -prin
 find "${DIRNAME}/buildroot/usr/share/doc" -empty -print0 | xargs -0 rm -rf || true
 # Remove all man pages and info files
 rm -rf "${DIRNAME}/buildroot/usr/share/man" "${DIRNAME}/buildroot/usr/share/groff" "${DIRNAME}/buildroot/usr/share/info" "${DIRNAME}/buildroot/usr/share/lintian" "${DIRNAME}/buildroot/usr/share/linda" "${DIRNAME}/buildroot/var/cache/man"
+
+echo "SUCCESS builde rootfs"
 exit 0
 
 final_disk() {
