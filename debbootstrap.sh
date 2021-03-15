@@ -5,7 +5,7 @@
 # USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
 set -o errexit -o nounset -o pipefail
 
-VERSION+=("debbootstrap.sh - 1d6ed62 - 2021-01-21T10:37:42+08:00")
+VERSION+=("debbootstrap.sh - fd9e840 - 2021-02-01T08:21:44+08:00")
 if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
@@ -47,18 +47,13 @@ cleanup() {
 }
 
 mkdir -p ${DIRNAME}/buildroot
-
-if [ -d "${DIRNAME}/deb-cache" ]; then
-    mkdir -p ${DIRNAME}/buildroot/var/cache/apt/archives/
-    cp ${DIRNAME}/deb-cache/* ${DIRNAME}/buildroot/var/cache/apt/archives/ || true
-    sync;sync
-fi
+mkdir -p ${DIRNAME}/cache
 
 trap cleanup EXIT
 trap cleanup TERM
 trap cleanup INT
 
-debootstrap --verbose --no-check-gpg --arch ${INST_ARCH} --variant=minbase --include=${PKG} --foreign ${DEBIAN_VERSION} ${DIRNAME}/buildroot ${REPO}
+debootstrap --verbose --cache-dir=${DIRNAME}/cache --no-check-gpg --arch ${INST_ARCH} --variant=minbase --include=${PKG} --foreign ${DEBIAN_VERSION} ${DIRNAME}/buildroot ${REPO}
 
 [[ ${INST_ARCH} = "arm64" ]] && cp /usr/bin/qemu-aarch64-static ${DIRNAME}/buildroot/usr/bin/
 
