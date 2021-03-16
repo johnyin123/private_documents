@@ -1,0 +1,36 @@
+lspci | grep -E "VGA|ATI"
+00:02.0 VGA compatible controller: Intel Corporation Haswell-ULT Integrated Graphics Controller (rev 0b)
+0a:00.0 Display controller: Advanced Micro Devices, Inc. [AMD/ATI] Sun LE [Radeon HD 8550M / R5 M230]
+
+
+Installation Open-source drivers
+Remove any closed-source graphic drivers and replace them with the open source equivalent:
+xf86-video-nouveau
+xf86-video-ati
+xf86-video-amdgpu
+xf86-video-intel
+Reboot and check the list of attached graphic drivers:
+
+
+$ xrandr --listproviders
+Providers: number : 2
+Provider 0: id: 0x65 cap: 0xf, Source Output, Sink Output, Source Offload, Sink Offload crtcs: 3 outputs: 3 associated providers: 1 name:modesetting
+Provider 1: id: 0x3f cap: 0xd, Source Output, Source Offload, Sink Offload crtcs: 0 outputs: 0 associated providers: 1 name:HAINAN @ pci:0000:0a:00.0
+two graphic cards: Intel, the integrated card,  and Radeon(Sometimes, the displayed provider is "HAINAN @ pci:.....", not radeon)
+
+By default the Intel card is always used:
+$ glxinfo | grep "OpenGL renderer"
+OpenGL renderer string: Mesa DRI Intel(R) Haswell Mobile 
+
+
+PRIME GPU offloading
+Example:
+#by name
+$ xrandr --setprovideroffloadsink radeon Intel
+#by index
+$ xrandr --setprovideroffloadsink 1 0
+
+$ DRI_PRIME=1 glxinfo | grep "OpenGL renderer"
+OpenGL renderer string: AMD HAINAN (DRM 2.50.0, 4.19.0-12-amd64, LLVM 7.0.1)
+
+echo "DRI_PRIME=1" >> /etc/environment
