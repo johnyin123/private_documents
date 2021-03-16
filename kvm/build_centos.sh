@@ -7,7 +7,7 @@ if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_centos.sh - 6a9e138 - 2021-03-11T09:17:28+08:00")
+VERSION+=("build_centos.sh - 0b01a97 - 2021-03-16T08:58:29+08:00")
 : <<'EOF'
 # Create a folder for our new root structure
 $ export centos_root='/centos_image/rootfs'
@@ -15,7 +15,8 @@ $ mkdir -p $centos_root
 # initialize rpm database
 $ rpm --root $centos_root --initdb
 # download and install the centos-release package, it contains our repository sources
-$ yum reinstall --downloadonly --downloaddir . centos-release
+$ yumdownloader --destdir=. centos-release
+# $ yum reinstall --downloadonly --downloaddir . centos-release
 $ rpm --root $centos_root -ivh --nodeps centos-release*.rpm
 $ rpm --root $centos_root --import  $centos_root/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
 # install yum without docs and install only the english language files during the process
@@ -27,7 +28,7 @@ $ cp /etc/resolv.conf $centos_root/etc
 # mount the device tree, as its required by some programms
 $ mount -o bind /dev $centos_root/dev
 $ chroot $centos_root /bin/bash <<EOF
-yum install -y procps-ng iputils
+yum install -y procps-ng iputils initscripts openssh-server rsync openssh-clients passwd
 yum clean all
 EOF
 $ rm -f $centos_root/etc/resolv.conf
@@ -311,7 +312,7 @@ echo 'KEYMAP="cn"' > ${ROOTFS}/etc/vconsole.conf
 
 execute chroot ${ROOTFS} /bin/bash 2>/dev/nul <<EOF
 rm -f /etc/locale.conf /etc/localtime /etc/hostname /etc/machine-id /etc/.pwd.lock
-systemd-firstboot --root=/ --locale=zh_CN.utf8 --locale-messages=zh_CN.utf8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id
+systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id
 #localectl set-locale LANG=zh_CN.UTF-8
 #localectl set-keymap cn
 #localectl set-x11-keymap cn
