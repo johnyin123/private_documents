@@ -26,11 +26,14 @@ cat <<EOF >/etc/systemd/network/enp2s0.network
 Name=enp2s0
 [Network]
 Address=192.168.250.21/24
-Gateway=192.168.250.1
 DNS=192.168.250.1
 DNS=8.8.8.8
 DNS=8.8.4.4
 IPForward=yes
+[Route]
+#for speedup reason move gateway here
+Gateway=192.168.250.1
+# Gateway=_dhcp4
 EOF
 
 echo "Management bridge"
