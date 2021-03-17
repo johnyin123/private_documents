@@ -127,17 +127,21 @@ systemd-nspawn -D "${DIRNAME}/game" \
         --bind-ro=/run/user/1000/pulse:/run/user/host/pulse \
         -u johnyin env DISPLAY=:0 PULSE_SERVER=unix:/run/user/host/pulse/native wine /home/johnyin/ra2/ra2.exe
         #--boot <winecfg/useradd......>
-
+        #--private-users=0 --private-users-chown --bind=/share_rw:/share/
 
 # cat<<EOF > /etc/systemd/nspawn/${MACHINE}.nspawn
 # [Exec]
 # Boot=on
+# PrivateUsers=0
 #
 # [Network]
 # VirtualEthernet=yes
 # Bridge=br-ext
 #
 # [Files]
+# PrivateUsersChown=yes
+# Bind=/home/johnyin/:/home/johnyin/disk/
+#
 # BindReadOnly=/tmp/.X11-unix
 # BindReadOnly=/home/johnyin/.Xauthority:/home/johnyin/.Xauthority
 # BindReadOnly=/home/johnyin/.config/pulse/cookie
