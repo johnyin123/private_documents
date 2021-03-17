@@ -129,24 +129,23 @@ systemd-nspawn -D "${DIRNAME}/game" \
         #--boot <winecfg/useradd......>
         #--private-users=0 --private-users-chown --bind=/share_rw:/share/
 
+# #SHARE_RW=/home/johnyin/disk/
 # cat<<EOF > /etc/systemd/nspawn/${MACHINE}.nspawn
 # [Exec]
 # Boot=on
-# PrivateUsers=0
+# ${SHARE_RW:+PrivateUsers=0}
 #
 # [Network]
 # VirtualEthernet=yes
 # Bridge=br-ext
 #
 # [Files]
-# PrivateUsersChown=yes
-# Bind=/home/johnyin/:/home/johnyin/disk/
-#
+# ${SHARE_RW:+PrivateUsersChown=yes}
+# ${SHARE_RW:+Bind=${SHARE_RW}}
 # BindReadOnly=/tmp/.X11-unix
 # BindReadOnly=/home/johnyin/.Xauthority:/home/johnyin/.Xauthority
 # BindReadOnly=/home/johnyin/.config/pulse/cookie
 # BindReadOnly=/run/user/1000/pulse:/run/user/host/pulse
-#
 # EOF
 # systemd-run -M game --uid=johnyin -E DISPLAY=:0 -E PULSE_SERVER=unix:/run/user/host/pulse/native /bin/google-chrome
 
