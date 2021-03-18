@@ -149,3 +149,15 @@ systemd-nspawn -D "${DIRNAME}/game" \
 # EOF
 # systemd-run -M game --uid=johnyin -E DISPLAY=:0 -E PULSE_SERVER=unix:/run/user/host/pulse/native /bin/google-chrome
 
+
+
+apt instsall xfvb x11vnc
+
+cat <<'EOF'>/root/run
+Xvfb :10 -screen 0 1024x768x24+32 -ac -r -cc 4 -accessx -xinerama +extension Composite +extension GLX &
+#x11vnc -storepasswd zlzlzl ~/.vnc/passwd
+x11vnc -reopen -listen 0.0.0.0 -forever -display :10 -usepw &
+su johnyin sh -c 'DISPLAY=:10 /opt/google/chrome/google-chrome --no-first-run --app=http://kq.neusoft.com' 2> /dev/null &
+EOF
+
+systemd-run -r -M kq --uid=root /bin/sh /root/run
