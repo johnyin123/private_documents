@@ -1,23 +1,17 @@
 #!/bin/bash
 
-VERSION+=("init-pc.sh - fd9e840 - 2021-02-01T08:21:44+08:00")
+VERSION+=("init-pc.sh - 98d1003 - 2021-03-19T11:16:25+08:00")
 
 DEBIAN_VERSION=buster
 PASSWORD=password
+IPADDR=192.168.168.124/24
+GATEWAY=192.168.168.1
 #512 M
 ZRAM_SIZE=512
-ZRAMSWAP="udisks2"
-#ZRAMSWAP="zram-tools"
 
 echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
 # echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
 # echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
-
-# auto reformatoverlay plug usb ttl
-#cat > /etc/udev/rules.d/99-reformatoverlay.rules << EOF
-#SUBSYSTEM=="tty", ACTION=="add", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="/bin/sh -c 'touch /overlay/reformatoverlay; echo heartbeat > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
-#SUBSYSTEM=="tty", ACTION=="remove", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="/bin/sh -c 'rm /overlay/reformatoverlay; echo none > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
-#EOF
 
 cat > /etc/apt/sources.list << EOF
 deb http://mirrors.163.com/debian ${DEBIAN_VERSION} main non-free contrib
@@ -27,20 +21,10 @@ deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-backports main contrib non-f
 EOF
 
 apt update
-
-echo "add libvirt"
-apt -y install libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
-    qemu-kvm qemu-utils xmlstarlet
-
-echo "add group[johnyin] to sudoers"
-apt -y install sudo
-echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
-chmod 0440 /etc/sudoers.d/johnyin
-cp /etc/sudoers /etc/sudoers.orig
-sed -i "s/^\(.*requiretty\)$/#\1/" /etc/sudoers
+apt -y upgrade
 
 echo "xk-yinzh" > /etc/hostname
-apt -y install ${ZRAMSWAP}
+apt -y install udisks2
 echo "Enable udisk2 ${ZRAM_SIZE}M zram swap"
 mkdir -p /usr/local/lib/zram.conf.d/
 (grep -v -E "zram" /etc/modules; echo "zram"; ) | tee /etc/modules
@@ -54,11 +38,6 @@ cat << EOF > /etc/hosts
 127.0.0.1       localhost $(cat /etc/hostname)
 EOF
 
-echo "maybe need modify fstab"
-cat << EOF >> /etc/fstab
-#tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
-EOF
-
 #Installing packages without docs
 # cat > /etc/dpkg/dpkg.cfg.d/01_nodoc <<EOF
 # # lintian stuff is small, but really unnecessary
@@ -69,18 +48,19 @@ EOF
 # path-exclude /usr/share/locale/*
 # EOF
 #dpkg-reconfigure locales
-sed -i "s/^# *zh_CN.UTF-8/zh_CN.UTF-8/g" /etc/locale.gen
-locale-gen
-echo -e 'LANG="zh_CN.UTF-8"\nLANGUAGE="zh_CN:zh"\nLC_ALL="zh_CN.UTF-8"\n' > /etc/default/locale
+
+# sed -i "s/^# *zh_CN.UTF-8/zh_CN.UTF-8/g" /etc/locale.gen
+# locale-gen
+# echo -e 'LANG="zh_CN.UTF-8"\nLANGUAGE="zh_CN:zh"\nLC_ALL="zh_CN.UTF-8"\n' > /etc/default/locale
 
 #echo "Asia/Shanghai" > /etc/timezone
-ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-dpkg-reconfigure -f noninteractive tzdata
+# ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+# dpkg-reconfigure -f noninteractive tzdata
 # confing console fonts
 # dpkg-reconfigure console-setup
 
 apt -y install openssh-server
-dpkg-reconfigure -f noninteractive openssh-server
+# dpkg-reconfigure -f noninteractive openssh-server
 cp /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
 sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
 sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
@@ -107,8 +87,8 @@ auto br-ext
 iface br-ext inet static
     bridge_ports eth0
     #bridge_ports none
-    address 10.32.166.31/25
-    gateway 10.32.166.1
+    address ${IPADDR:-10.32.166.31/25}
+    gateway ${GATEWAY:-10.32.166.1}
 
 # auto bond0
 # iface bond0 inet manual
@@ -130,77 +110,12 @@ cat << "EOF" | tee /etc/network/interfaces.d/wifi
 auto wlan0
 allow-hotplug wlan0
 
-mapping wlan0
-    script /etc/johnyin/wifi_mode.sh
-    map work
-    map home
-    map adhoc
-    map initmode
-
-iface work inet dhcp
-    #pre-up (/usr/sbin/ifup ap0 || true)
-    wpa_iface wlan0
-    wpa_conf /etc/johnyin/work.conf
-
-iface home inet dhcp
-    pre-up (/usr/sbin/ifup ap0 || true)
-    wpa_iface wlan0
-    wpa_conf /etc/johnyin/home.conf
-
-iface adhoc inet manual
-    wpa_driver wext
-    wpa_conf /etc/johnyin/adhoc.conf
-    post-up (/usr/sbin/ip link add name wifi-mesh0 type batadv || true)
-    post-up (/usr/sbin/ip link set dev $IFACE master wifi-mesh0 || true) 
-    post-up (/usr/sbin/ip link set dev wifi-mesh0 master br-ext || true)
-    post-up (/usr/sbin/ip link set dev wifi-mesh0 up || true)
-    pre-down (/usr/sbin/ip link set dev $IFACE nomaster || true)
-    pre-down (/usr/sbin/ip link del wifi-mesh0 || true)
-
-iface initmode inet static
-    wpa_iface wlan0
-    wpa_conf /etc/johnyin/adminap.conf
-    address 192.168.1.1/24
-
-iface ap0 inet manual
-    hostapd /etc/johnyin/hostap.conf
-    pre-up (/usr/sbin/iw phy `/usr/bin/ls /sys/class/ieee80211/` interface add ap0 type __ap)
-    pre-up (touch /var/lib/misc/udhcpd.leases || true)
-    post-up (iptables-restore < /etc/iptables.rules || true)
-    post-up (/usr/bin/busybox udhcpd -S /etc/johnyin/udhcpd.conf || true)
-    pre-down (/usr/bin/kill -9 $(cat /var/run/udhcpd-wlan0.pid) || true)
-    post-down (/usr/sbin/iw dev ap0 del)
+# iface wlan0 inet dhcp
+#     wpa_iface wlan0
+#     wpa_conf /etc/work.conf
 EOF
 
-mkdir -p /etc/johnyin/
-cat << 'EOF_WIFI' > /etc/johnyin/wifi_mode.sh
-#!/bin/sh
-set -e
-export LANG=C
-MODE_CONF=/etc/wifi_mode.conf
-if [ `id -u` -ne 0 ] || [ "$1" = "" ]; then exit 1; fi
-#no config wifi_mode.conf default use "initmode"
-[ -r "${MODE_CONF}" ] || {
-    cat >"${MODE_CONF}" <<-EOF
-# wifi mode select
-# station=work
-# station=home
-
-# adhoc create adhoc mesh network and bridge it.
-# station=adhoc
-
-# initmode no dhcpd no secret ap 192.168.1.1/24
-station=initmode
-EOF
-}
-. ${MODE_CONF}
-iw wlan0 set power_save off || true
-echo ${station:-initmode}
-exit 0
-EOF_WIFI
-chmod 755 /etc/johnyin/wifi_mode.sh
-
-cat << 'EOF_WIFI' > /etc/johnyin/work.conf
+cat << 'EOF_WIFI' > /etc/work.conf
 #mulit ap support!
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 #ap_scan=1
@@ -218,153 +133,7 @@ network={
     psk="ADMIN@123"
 }
 EOF_WIFI
-cat << 'EOF_WIFI' > /etc/johnyin/home.conf
-#mulit ap support!
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-#update_config=1
-#ap_scan=1
 
-network={
-    id_str="home"
-    priority=100
-    scan_ssid=1
-    ssid="johnap"
-    #key_mgmt=wpa-psk
-    psk="Admin@123"
-    #disabled=1
-}
-EOF_WIFI
-cat << 'EOF_WIFI' > /etc/johnyin/adhoc.conf
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-#update_config=1
-ap_scan=2
-
-#adhoc/IBSS
-# wpa_supplicant -cwpa-adhoc.conf -iwlan0 -Dwext
-# iw wlan0 set type ibss
-# ifconfig wlan0 up
-# iw wlan0 ibss join johnyin 2427
-network={
-    id_str="adhoc"
-    priority=90
-    ssid="johnyin"
-    frequency=2412
-    mode=1
-    key_mgmt=NONE
-}
-EOF_WIFI
-cat << 'EOF_WIFI' > /etc/johnyin/adminap.conf
-#mulit ap support!
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-#update_config=1
-#ap_scan=1
-
-network={
-    id_str="admin"
-    priority=70
-    #frequency=60480
-    ssid="s905d2-admin"
-    mode=2
-    key_mgmt=NONE
-}
-EOF_WIFI
-
-apt -y install hostapd wpasupplicant wireless-tools
-cat << 'EOF_WIFI' > /etc/johnyin/hostap.conf
-interface=ap0
-bridge=br-ext
-logger_syslog=-1
-logger_syslog_level=2
-logger_stdout=-1
-logger_stdout_level=2
-ctrl_interface=/var/run/hostapd
-ctrl_interface_group=0
-
-ssid=s905d2
-macaddr_acl=0
-#accept_mac_file=/etc/hostapd.accept
-#deny_mac_file=/etc/hostapd.deny
-auth_algs=1
-# 采用 OSA 认证算法 
-ignore_broadcast_ssid=0 
-wpa=2
-# 指定 WPA 类型 
-wpa_key_mgmt=WPA-PSK             
-wpa_pairwise=TKIP 
-rsn_pairwise=CCMP 
-wpa_passphrase=password123
-# 连接 ap 的密码 
-
-driver=nl80211
-# 设定无线驱动 
-hw_mode=g
-# 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g 
-channel=3
-# 指定无线频道 
-
-
-# DHCP server for FILS HLP
-# If configured, hostapd will act as a DHCP relay for all FILS HLP requests
-# that include a DHCPDISCOVER message and send them to the specific DHCP
-# server for processing. hostapd will then wait for a response from that server
-# before replying with (Re)Association Response frame that encapsulates this
-# DHCP response. own_ip_addr is used as the local address for the communication
-# with the DHCP server.
-#dhcp_server=127.0.0.1
-#dhcp_server_port=67
-#dhcp_relay_port=67
-# DHCP rapid commit proxy
-# If set to 1, this enables hostapd to act as a DHCP rapid commit proxy to
-# allow the rapid commit options (two message DHCP exchange) to be used with a
-# server that supports only the four message DHCP exchange. This is disabled by
-# default (= 0) and can be enabled by setting this to 1.
-#dhcp_rapid_commit_proxy=0
-
-# Wait time for FILS HLP (dot11HLPWaitTime) in TUs
-# default: 30 TUs (= 30.72 milliseconds)
-#fils_hlp_wait_time=30
-
-# Proxy ARP
-# 0 = disabled (default)
-# 1 = enabled
-#proxy_arp=1
-EOF_WIFI
-cat << 'EOF_WIFI' > /etc/johnyin/udhcpd.conf
-start           192.168.168.100
-end             192.168.168.150
-interface       br-ext
-max_leases      45
-lease_file      /var/lib/misc/udhcpd.leases
-pidfile         /var/run/udhcpd-wlan0.pid
-option  domain  local
-option  lease   86400
-option  subnet  255.255.255.0
-# Currently supported options, for more info, see options.c
-opt     dns     114.114.114.114
-opt     router  192.168.168.1
-#opt subnet
-#opt timezone
-#opt timesvr
-#opt namesvr
-#opt logsvr
-#opt cookiesvr
-#opt lprsvr
-#opt bootsize
-#opt domain
-#opt swapsvr
-#opt rootpath
-#opt ipttl
-#opt mtu
-#opt broadcast
-#opt wins
-#opt lease
-#opt ntpsrv
-#opt tftp
-#opt bootfile
-# static_lease 00:60:08:11:CE:4E 192.168.0.54
-# siaddr          192.168.1.2
-# boot_file       pxelinux.0
-EOF_WIFI
 
 cat << EOF > /etc/rc.local
 #!/bin/sh -e
@@ -391,7 +160,7 @@ sync
 mount -o remount,ro /overlay/lower
 EOF
 
-cat <<EOF
+: <<EOF
 net.ipv4.ip_local_port_range = 1024 65531
 net.ipv4.tcp_fin_timeout = 10
 # (65531-1024)/10 = 6450 sockets per second.
@@ -516,7 +285,7 @@ EOF
 sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
 
 echo "start install overlay_rootfs ====================="
-cat <<EOF
+: <<EOF
 kernel parm "skipoverlay" / lowerfs /etc/overlayroot.conf
 OVERLAY= overlayfs lable default "OVERLAY"
 SKIP_OVERLAY=
@@ -667,27 +436,52 @@ EOF
 
 
 echo "use tcp dns query"
-cat <<EOF
+: <<EOF
 single-request-reopen (glibc>=2.9) 发送 A 类型请求和 AAAA 类型请求使用不同的源端口。
 single-request (glibc>=2.10) 避免并发，改为串行发送 A 类型和 AAAA 类型请求，没有了并发，从而也避免了冲突。
 echo 'options use-vc' >> /etc/resolv.conf
 EOF
 
 echo "install packages!"
-apt -y install android-tools-adb android-tools-fastboot
-apt -y install bzip2 pigz p7zip-full arj zip mscompress unar eject bc less vim ftp telnet nmap tftp ntpdate screen lsof strace
-apt -y install tcpdump ethtool aria2 axel curl mpg123 nmon sysstat arping dnsutils minicom socat git git-flow net-tools
-apt -y install manpages-dev manpages-posix manpages-posix-dev manpages build-essential
-apt -y install nscd nbd-client iftop netcat-openbsd sshfs squashfs-tools graphviz
-
-apt -y install xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver qt4-qtconfig \
+apt -y install systemd-container \
+    hostapd wpasupplicant wireless-tools \
+    android-tools-adb android-tools-fastboot \
+    bzip2 pigz p7zip-full arj zip rar mscompress unar eject bc less vim \
+    ftp telnet nmap tftp ntpdate screen lsof strace \
+    tcpdump ethtool aria2 axel curl wget mpg123 nmon sysstat arping dnsutils \
+    minicom socat git git-flow net-tools \
+    manpages-dev manpages-posix manpages-posix-dev manpages build-essential \
+    nscd nbd-client iftop netcat-openbsd sshfs squashfs-tools graphviz nftables \
+    rsync tmux wireguard-tools \
+    xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver qt4-qtconfig \
     gnome-icon-theme lightdm \
-    galculator medit rdesktop xvnc4viewer wireshark \
-    fbreader alsa-utils vlc virt-manager
+    galculator medit gpicview qpdfview rdesktop xvnc4viewer wireshark \
+    fbreader alsa-utils pulseaudio pulseaudio-utils vlc \
+    virt-manager gir1.2-spiceclientgtk-3.0 \
+    fcitx-ui-classic fcitx-tools fcitx fcitx-sunpinyin fcitx-googlepinyin sunpinyin-utils fcitx-config-gtk \
+    libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
+    qemu-kvm qemu-utils xmlstarlet sudo debootstrap kpartx
+
+id johnyin &>/dev/null && {
+    echo "login johnyin and run 'systemctl enable pulseaudio.service --user' to enable pulse audio"
+    mkdir -p /home/johnyin/.config/libvirt
+    echo 'uri_default = "qemu:///system"' > /home/johnyin/.config/libvirt/libvirt.conf
+    chown -R johnyin.johnyin /home/johnyin/.config
+    usermod -G libvirt johnyin
+
+    echo "add group[johnyin] to sudoers"
+    echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
+    chmod 0440 /etc/sudoers.d/johnyin
+    cp /etc/sudoers /etc/sudoers.orig
+    sed -i "s/^\(.*requiretty\)$/#\1/" /etc/sudoers
+
+    echo "enable root user run X app"
+    ln -s /home/johnyin/.Xauthority /root/.Xauthority
+}
 
 
 id root &>/dev/null && { usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" root; }
-id johnyin &>/dev/null && {usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" johnyin; }
+id johnyin &>/dev/null && { usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" johnyin; }
 # echo "root:${PASSWORD}" |chpasswd 
 echo "Force Users To Change Passwords Upon First Login"
 chage -d 0 root || true
@@ -696,5 +490,12 @@ chage -d 0 johnyin || true
 apt clean
 find /var/log/ -type f | xargs rm -f
 rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /root/.viminfo /root/.vim/
+
+cat<<EOF
+# install new kernel
+apt -y install linux-image-5.10.0-0.bpo.3-amd64
+EOF
+
+echo "ALL DONE!!!!!!!!!!!!!!!!"
 
 exit 0
