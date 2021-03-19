@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION+=("init-pc.sh - 1d6ed62 - 2021-01-21T10:37:42+08:00")
+VERSION+=("init-pc.sh - fd9e840 - 2021-02-01T08:21:44+08:00")
 
 DEBIAN_VERSION=buster
 PASSWORD=password
@@ -10,8 +10,8 @@ ZRAMSWAP="udisks2"
 #ZRAMSWAP="zram-tools"
 
 echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
-echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
-echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
+# echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
+# echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
 
 # auto reformatoverlay plug usb ttl
 #cat > /etc/udev/rules.d/99-reformatoverlay.rules << EOF
@@ -27,6 +27,10 @@ deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-backports main contrib non-f
 EOF
 
 apt update
+
+echo "add libvirt"
+apt -y install libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
+    qemu-kvm qemu-utils xmlstarlet
 
 echo "add group[johnyin] to sudoers"
 apt -y install sudo
@@ -56,14 +60,14 @@ cat << EOF >> /etc/fstab
 EOF
 
 #Installing packages without docs
-cat > /etc/dpkg/dpkg.cfg.d/01_nodoc <<EOF
-# lintian stuff is small, but really unnecessary
-path-exclude /usr/share/lintian/*
-path-exclude /usr/share/linda/*
-# remove noused locale
-path-include /usr/share/locale/zh_CN/*
-path-exclude /usr/share/locale/*
-EOF
+# cat > /etc/dpkg/dpkg.cfg.d/01_nodoc <<EOF
+# # lintian stuff is small, but really unnecessary
+# path-exclude /usr/share/lintian/*
+# path-exclude /usr/share/linda/*
+# # remove noused locale
+# path-include /usr/share/locale/zh_CN/*
+# path-exclude /usr/share/locale/*
+# EOF
 #dpkg-reconfigure locales
 sed -i "s/^# *zh_CN.UTF-8/zh_CN.UTF-8/g" /etc/locale.gen
 locale-gen
@@ -264,6 +268,8 @@ network={
     key_mgmt=NONE
 }
 EOF_WIFI
+
+apt -y install hostapd wpasupplicant wireless-tools
 cat << 'EOF_WIFI' > /etc/johnyin/hostap.conf
 interface=ap0
 bridge=br-ext
@@ -366,17 +372,6 @@ exit 0
 EOF
 chmod 755 /etc/rc.local
 
-cat >/etc/profile.d/johnyin.sh<<"EOF"
-export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
-
-[ -e /usr/lib/git-core/git-sh-prompt ] && {
-    source /usr/lib/git-core/git-sh-prompt
-    export GIT_PS1_SHOWDIRTYSTATE=1
-    export readonly PROMPT_COMMAND='__git_ps1 "\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]\\h:\\[\\033[33;1m\\]\\w\\[\\033[m\\]"  "\\\\\$ "'
-}
-set -o vi
-EOF
-
 #set the file limit
 cat > /etc/security/limits.d/tun.conf << EOF
 *           soft   nofile       102400
@@ -384,9 +379,6 @@ cat > /etc/security/limits.d/tun.conf << EOF
 EOF
 cat << "EOF" > /root/aptrom.sh
 #!/usr/bin/env bash
-
-mount -o remount,rw /overlay/lower
-cp /overlay/lower/etc/apt/sources.list ~/sources.list.bak
 
 mount -o remount,rw /overlay/lower
 
@@ -405,6 +397,7 @@ net.ipv4.tcp_fin_timeout = 10
 # (65531-1024)/10 = 6450 sockets per second.
 EOF
 
+mv /etc/sysctl.conf /etc/sysctl.conf.bak
 cat << EOF > /etc/sysctl.conf
 net.core.rmem_max = 134217728 
 net.core.wmem_max = 134217728 
@@ -425,6 +418,7 @@ net.ipv4.tcp_syncookies = 0
 net.ipv4.tcp_timestamps = 0
 #net.ipv4.tcp_tw_recycle = 0
 net.ipv4.tcp_tw_reuse = 0
+net.ipv4.ip_forward = 1
 EOF
 
 echo "Install vim editor"
@@ -532,7 +526,10 @@ overlayfs: upper fs needs to support d_type.
 overlayfs: upper fs does not support tmpfile.
 # mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init DEVICE
 EOF
-
+cat > /etc/overlayroot.conf <<'EOF'
+OVERLAY_LABEL=OVERLAYFS
+SKIP_OVERLAY=1
+EOF
 (grep -v -E "^overlay" /etc/initramfs-tools/modules; echo "overlay"; ) | tee /etc/initramfs-tools/modules
 
 cat > /usr/share/initramfs-tools/hooks/overlay <<'EOF'
@@ -655,6 +652,20 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zs
 EOF
 chmod 0600 /root/.ssh/authorized_keys
 
+cat >>/root/.bashrc<<"EOF"
+export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
+
+[ -e /usr/lib/git-core/git-sh-prompt ] && {
+    source /usr/lib/git-core/git-sh-prompt
+    export GIT_PS1_SHOWDIRTYSTATE=1
+    export readonly PROMPT_COMMAND='__git_ps1 "\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]\\h:\\[\\033[33;1m\\]\\w\\[\\033[m\\]"  "\\\\\$ "'
+}
+
+alias df='df -h'
+set -o vi
+EOF
+
+
 echo "use tcp dns query"
 cat <<EOF
 single-request-reopen (glibc>=2.9) 发送 A 类型请求和 AAAA 类型请求使用不同的源端口。
@@ -663,9 +674,17 @@ echo 'options use-vc' >> /etc/resolv.conf
 EOF
 
 echo "install packages!"
+apt -y install android-tools-adb android-tools-fastboot
 apt -y install bzip2 pigz p7zip-full arj zip mscompress unar eject bc less vim ftp telnet nmap tftp ntpdate screen lsof strace
-apt -y install man-db manpages tcpdump ethtool aria2 axel curl mpg123 nmon sysstat arping dnsutils minicom socat git git-flow net-tools
-apt -y install nscd nbd-client iftop netcat-openbsd
+apt -y install tcpdump ethtool aria2 axel curl mpg123 nmon sysstat arping dnsutils minicom socat git git-flow net-tools
+apt -y install manpages-dev manpages-posix manpages-posix-dev manpages build-essential
+apt -y install nscd nbd-client iftop netcat-openbsd sshfs squashfs-tools graphviz
+
+apt -y install xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver qt4-qtconfig \
+    gnome-icon-theme lightdm \
+    galculator medit rdesktop xvnc4viewer wireshark \
+    fbreader alsa-utils vlc virt-manager
+
 
 id root &>/dev/null && { usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" root; }
 id johnyin &>/dev/null && {usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" johnyin; }

@@ -152,12 +152,18 @@ systemd-nspawn -D "${DIRNAME}/game" \
 
 
 apt instsall xfvb x11vnc
+  exam: x11vnc -wait 50 -noxdamage -passwd PASSWORD -display :0 -forever -o /var/log/x11vnc.log -bg
 
-cat <<'EOF'>/root/run
-Xvfb :10 -screen 0 1024x768x24+32 -ac -r -cc 4 -accessx -xinerama +extension Composite +extension GLX &
-#x11vnc -storepasswd zlzlzl ~/.vnc/passwd
-x11vnc -reopen -listen 0.0.0.0 -forever -display :10 -usepw &
-su johnyin sh -c 'DISPLAY=:10 /opt/google/chrome/google-chrome --no-first-run --app=http://kq.neusoft.com' 2> /dev/null &
-EOF
-
-systemd-run -r -M kq --uid=root /bin/sh /root/run
+1. # use -create, no X then call .xinitrc script(whith xvfb DISPLAY env, u can run you app,in .xinitrc)
+   /usr/bin/x11vnc -reopen -listen 0.0.0.0 -forever  -usepw -create
+2. # 
+   x11vnc -reopen -listen 0.0.0.0 -forever -usepw -display WAIT:cmd=/root/finddsp
+   x11vnc -reopen -listen 0.0.0.0 -loop -passwd password -display WAIT:cmd=/root/finddsp -o /root/x11vnc.log
+   cat <<EOF > finddsp
+        /usr/sbin/start-stop-daemon --start --quiet --background --exec /usr/bin/Xvfb -- :10 -screen 0 1024x768x24+32 -ac -r -cc 4 -accessx -xinerama +extension Composite +extension GLX
+        /usr/sbin/start-stop-daemon --start --quiet --background --chuid johnyin --exec /opt/google/chrome/google-chrome -- --display=:10 --no-first-run --app=http://kq.neusoft.com
+        echo "DISPLAY=:10"
+        sleep 5
+        exit 0
+   EOF
+   crontab add killall Xvfb chrome
