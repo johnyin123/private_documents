@@ -150,8 +150,7 @@ systemd-nspawn -D "${DIRNAME}/game" \
 # systemd-run -M game --uid=johnyin -E DISPLAY=:0 -E PULSE_SERVER=unix:/run/user/host/pulse/native /bin/google-chrome
 
 
-
-apt instsall xfvb x11vnc
+apt install xvfb x11vnc
   exam: x11vnc -wait 50 -noxdamage -passwd PASSWORD -display :0 -forever -o /var/log/x11vnc.log -bg
 
 1. # use -create, no X then call .xinitrc script(whith xvfb DISPLAY env, u can run you app,in .xinitrc)
@@ -167,3 +166,11 @@ apt instsall xfvb x11vnc
         exit 0
    EOF
    crontab add killall Xvfb chrome
+
+cat <<EOF > kq.nspawn
+[Exec]
+Boot=on
+
+[Network]
+Private=no
+EOF
