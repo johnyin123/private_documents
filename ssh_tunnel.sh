@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ssh_tunnel.sh - f55be1c - 2021-01-27T15:21:52+08:00")
+VERSION+=("ssh_tunnel.sh - 95f8780 - 2021-01-28T15:08:25+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
@@ -98,9 +98,9 @@ main() {
     ssh_tunnel "${remote_br}" "${ssh_conn}" "${ssh_port}" "tapname" "${local_br}" || exit_msg "error ssh_tunnel $?\n"
     try ps --pid=$(try cat /run/${tapname}.pid) > /dev/null || exit_msg "backend ssh ${ssh_conn}:${ssh_port} failed\n"
     info_msg "backend ssh($(try cat /run/${tapname}.pid)) localdev ${tapname} ${ssh_conn}:${ssh_port} ok\n"
-    maybe_netns_shell "ssh_tunnel:${ssh_conn}[${local_br:-${tapname}}<=>${remote_br}]"
-    try "kill -9 $(try cat /run/${tapname}.pid)" &> /dev/null
-    info_msg "Exit!!\n"
+    # maybe_netns_shell "ssh_tunnel:${ssh_conn}[${local_br:-${tapname}}<=>${remote_br}]"
+    # try "kill -9 $(try cat /run/${tapname}.pid)" &> /dev/null
+    # info_msg "Exit!!\n"
     return 0
 }
 main "$@"
