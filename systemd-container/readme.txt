@@ -174,3 +174,13 @@ Boot=on
 [Network]
 Private=no
 EOF
+apt install xrdp
+
+add xrdp1, and remove others
+[xrdp1]
+name=kq
+lib=libvnc.so
+username=theff
+password=ask
+ip=127.0.0.1
+port=5900
