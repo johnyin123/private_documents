@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION+=("init-pc.sh - c3a815c - 2021-03-19T16:16:02+08:00")
+VERSION+=("init-pc.sh - 93ee160 - 2021-03-22T15:06:23+08:00")
 
 DEBIAN_VERSION=buster
 PASSWORD=password
@@ -491,9 +491,17 @@ apt clean
 find /var/log/ -type f | xargs rm -f
 rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /root/.viminfo /root/.vim/
 
-cat<<EOF
+cat<<'EOF'
 # install new kernel
 apt -y install linux-image-5.10.0-0.bpo.3-amd64
+
+#new disk copy install
+grub-install --target=i386-pc --boot-directory=${mntpoint}/boot --modules="xfs part_msdos" ${DISK}
+
+NEW_UUID=$(blkid -s UUID -o value ${DISK_PART})
+sed -i "s/xxxxxxxxxxxxxxxxxxxx/${NEW_UUID}/g" ${mntpoint}/boot/grub/grub.cfg
+sed -i "s/xxxxxxxxxxxxxxxxxxxx/${NEW_UUID}/g" ${mntpoint}/etc/fstab
+# bootup run "update-initramfs -c -k $(uname -r)"
 EOF
 
 echo "ALL DONE!!!!!!!!!!!!!!!!"
