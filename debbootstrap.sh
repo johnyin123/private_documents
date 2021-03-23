@@ -5,7 +5,7 @@
 # USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
 set -o errexit -o nounset -o pipefail
 
-VERSION+=("debbootstrap.sh - ee58e5c - 2021-03-15T10:43:23+08:00")
+VERSION+=("debbootstrap.sh - b140077 - 2021-03-15T12:27:44+08:00")
 if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
@@ -416,7 +416,7 @@ sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
 sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config
 echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> /etc/ssh/sshd_config
 echo "MACs    hmac-sha1" >> /etc/ssh/sshd_config
-echo "PermitRootLogin yes">> /etc/ssh/sshd_config
+echo "PermitRootLogin without-password">> /etc/ssh/sshd_config
 
 #set the file limit
 cat > /etc/security/limits.d/tun.conf << EOF
