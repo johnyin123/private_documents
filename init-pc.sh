@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION+=("init-pc.sh - 93ee160 - 2021-03-22T15:06:23+08:00")
+VERSION+=("init-pc.sh - 5d8999e - 2021-03-23T10:06:29+08:00")
 
 DEBIAN_VERSION=buster
 PASSWORD=password
@@ -458,10 +458,10 @@ apt -y install systemd-container \
     galculator medit gpicview qpdfview rdesktop xvnc4viewer wireshark \
     fbreader alsa-utils pulseaudio pulseaudio-utils vlc \
     virt-manager gir1.2-spiceclientgtk-3.0 \
-    fcitx-ui-classic fcitx-tools fcitx ffcitx-googlepinyin fcitx-config-gtk \
+    fcitx-ui-classic fcitx-tools fcitx fcitx-sunpinyin fcitx-config-gtk \
     libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
     qemu-kvm qemu-utils xmlstarlet sudo debootstrap kpartx
-    # citx-sunpinyin sunpinyin-utils 
+
 id johnyin &>/dev/null && {
     echo "login johnyin and run 'systemctl enable pulseaudio.service --user' to enable pulse audio"
     mkdir -p /home/johnyin/.config/libvirt
