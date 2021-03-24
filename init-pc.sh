@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION+=("init-pc.sh - 5d8999e - 2021-03-23T10:06:29+08:00")
+VERSION+=("init-pc.sh - 0db0275 - 2021-03-23T14:54:58+08:00")
 
 DEBIAN_VERSION=buster
 PASSWORD=password
@@ -447,7 +447,7 @@ apt -y install systemd-container \
     hostapd wpasupplicant wireless-tools \
     android-tools-adb android-tools-fastboot \
     bzip2 pigz p7zip-full arj zip rar mscompress unar eject bc less vim rename \
-    ftp telnet nmap tftp ntpdate screen lsof strace \
+    ftp telnet nmap tftp ntpdate lsof strace \
     tcpdump ethtool aria2 axel curl wget mpg123 nmon sysstat arping dnsutils \
     minicom socat git git-flow net-tools \
     manpages-dev manpages-posix manpages-posix-dev manpages build-essential \
