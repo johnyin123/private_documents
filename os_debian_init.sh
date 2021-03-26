@@ -7,7 +7,7 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - ee31e9e - 2021-03-26T09:50:55+08:00")
+VERSION+=("os_debian_init.sh - 5779d49 - 2021-03-26T10:41:35+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -245,3 +245,116 @@ EOF
     systemctl enable getty@tty1.service
 }
 export -f autologin_root
+
+debain_overlay_init() {
+    cat > /etc/overlayroot.conf <<'EOF'
+OVERLAY_LABEL=OVERLAYFS
+SKIP_OVERLAY=1
+EOF
+
+(grep -v -E "^overlay" /etc/initramfs-tools/modules; echo "overlay"; ) | tee /etc/initramfs-tools/modules
+
+    cat > /usr/share/initramfs-tools/hooks/overlay <<'EOF'
+#!/bin/sh
+
+. /usr/share/initramfs-tools/scripts/functions
+. /usr/share/initramfs-tools/hook-functions
+
+copy_exec /sbin/blkid
+copy_exec /sbin/fsck
+copy_exec /sbin/mke2fs
+copy_exec /sbin/fsck.ext2
+copy_exec /sbin/fsck.ext3
+copy_exec /sbin/fsck.ext4
+copy_exec /sbin/logsave
+EOF
+
+    cat > /etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
+#!/bin/sh
+
+PREREQ=""
+prereqs()
+{
+   echo "$PREREQ"
+}
+
+case $1 in
+prereqs)
+   prereqs
+   exit 0
+   ;;
+esac
+
+. /scripts/functions
+
+[ -f ${rootmnt}/etc/overlayroot.conf ] && . ${rootmnt}/etc/overlayroot.conf
+OVERLAY_LABEL=${OVERLAY:-OVERLAY}
+SKIP_OVERLAY=${SKIP_OVERLAY:-0}
+grep -q -E '(^|\s)skipoverlay(\s|$)' /proc/cmdline && SKIP_OVERLAY=1
+
+if [ "${SKIP_OVERLAY-}" = 1 ]; then
+    log_begin_msg "Skipping overlay, found 'skipoverlay' in cmdline"
+    log_end_msg
+    exit 0
+fi
+
+log_begin_msg "Starting overlay"
+log_end_msg
+
+mkdir -p /overlay
+
+# if we have a filesystem label of ${OVERLAY_LABEL}
+# use that as the overlay, otherwise use tmpfs.
+OLDEV=$(blkid -L ${OVERLAY_LABEL})
+if [ -z "${OLDEV}" ]; then
+    mount -t tmpfs tmpfs /overlay
+else
+    _checkfs_once ${OLDEV} /overlay ext4 || \
+    mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
+    if ! mount -t ext4 ${OLDEV} /overlay; then
+        mount -t tmpfs tmpfs /overlay
+    fi
+fi
+
+# if you sudo touch /overlay/reformatoverlay
+# next reboot will give you a fresh /overlay
+if [ -f /overlay/reformatoverlay ]; then
+    umount /overlay
+    mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
+    if ! mount -t ext4 ${OLDEV} /overlay; then
+        mount -t tmpfs tmpfs /overlay
+    fi
+fi
+
+mkdir -p /overlay/upper
+mkdir -p /overlay/work
+mkdir -p /overlay/lower
+
+# make the readonly root available
+mount -n -o move ${rootmnt} /overlay/lower
+mount -t overlay overlay -olowerdir=/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work ${rootmnt}
+
+mkdir -p ${rootmnt}/overlay
+mount -n -o rbind /overlay ${rootmnt}/overlay
+
+# fix up fstab
+# cp ${rootmnt}/etc/fstab ${rootmnt}/etc/fstab.orig
+# awk '$2 != "/" {print $0}' ${rootmnt}/etc/fstab.orig > ${rootmnt}/etc/fstab
+# awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab >> ${rootmnt}/etc/fstab
+# Already there?
+if [ -e ${rootmnt}/etc/fstab ] && grep -qE ''^overlay[[:space:]]+/[[:space:]]+overlay'' ${rootmnt}/etc/fstab; then
+    exit 0 # Do nothing
+fi
+
+FSTAB=$(awk '$2 != "/" {print $0}' ${rootmnt}/etc/fstab && awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab)
+cat>${rootmnt}/etc/fstab<<EO_FSTAB
+$FSTAB
+EO_FSTAB
+
+exit 0
+EOF
+    chmod 755 /usr/share/initramfs-tools/hooks/overlay
+    chmod 755 /etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay
+}
+export -f debain_overlay_init
+
