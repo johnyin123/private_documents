@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - initversion - 2021-03-25T17:35:51+08:00")
+VERSION+=("build_debian_live_iso.sh - 8405f34 - 2021-03-25T17:35:43+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -17,6 +17,7 @@ ${SCRIPTNAME}
         -n|--new       *  new liveos
         --onlynew         only new, need run whith --rebuild next
         -r|--rebuild    * continue build liveos
+        -a|--addition  <pkg list>  addition package like "pkg1,pkg2,pkg3"
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -131,18 +132,32 @@ EOF
     return 0
 }
 
+autologin_root() {
+    # auto login as root
+    sed -i "s|#NAutoVTs=6|NAutoVTs=1|" /etc/systemd/logind.conf
+    mkdir -p /etc/systemd/system/getty@tty1.service.d
+    cat <<EOF | tee /etc/systemd/system/getty@tty1.service.d/override.conf
+    [Service]
+        ExecStart=
+        ExecStart=-/sbin/agetty --autologin root --noclear %I 38400 linux
+EOF
+    systemctl enable getty@tty1.service
+}
+
 new_build() {
     local root_dir=$1
     local cache_dir=$2
-    local include_pkg="whiptail,tzdata,locales,busybox,linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
+    local include_pkg="whiptail,tzdata,locales,busybox,linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv${3:+,${3}}"
+    info_msg "new build with package: ${include_pkg}\n"
     try rm -fr ${root_dir}
     try mkdir -p ${root_dir}
     defined DRYRUN ||debootstrap --verbose ${cache_dir:+--cache-dir=${cache_dir}} --no-check-gpg --arch ${INST_ARCH:-amd64} --variant=minbase --include=${include_pkg} --foreign ${DEBIAN_VERSION:-buster} ${root_dir} ${REPO:-http://mirrors.163.com/debian}
     info_msg "configure liveos linux...\n"
-    defined DRYRUN || { 
+    defined DRYRUN || {
+    export -f autologin_root
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
     /debootstrap/debootstrap --second-stage
-
+    autologin_root
     echo livecd > /etc/hostname
     cat << EOF > /etc/hosts
 127.0.0.1       localhost livecd
@@ -169,7 +184,7 @@ EOF
 
     usermod -p '$(echo ${PASSWORD:-password} | openssl passwd -1 -stdin)' root
 EOSHELL
-}
+    }
     clean_rootfs "${root_dir}"
     return 0
 }
@@ -212,8 +227,9 @@ save_bin() {
 
 main() {
     local action=""
-    local opt_short="nr"
-    local opt_long="new,onlynew,rebuild"
+    local addition_pkg=""
+    local opt_short="nra:"
+    local opt_long="new,onlynew,rebuild,addition:"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -221,8 +237,9 @@ main() {
     while true; do
         case "$1" in
             -n | --new)     shift; action=new;;
-            --onlynew)     shift; action=onlynew;;
+            --onlynew)      shift; action=onlynew;;
             -r | --rebuild) shift; action=rebuild;;
+            -a | --addition)shift; addition_pkg=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -234,7 +251,7 @@ main() {
         esac
     done
     is_user_root || exit_msg "root user need!!\n"
-    require xorriso mksquashfs
+    require xorriso mksquashfs debootstrap
     prepare_config ${DIRNAME}/config
     source ${DIRNAME}/config
     local root_dir=${DIRNAME}/rootfs
@@ -244,8 +261,8 @@ main() {
     prepare_syslinux ${syslinux_dir}
     try mkdir -p ${cache_dir} ${root_dir} ${iso_dir}
     case "${action}" in
-        new)      new_build "${root_dir}" "${cache_dir}";;
-        onlynew)  new_build "${root_dir}" "${cache_dir}"; info_msg "OK Bye\n"; exit 0;;
+        new)      new_build "${root_dir}" "${cache_dir}" "${addition_pkg}";;
+        onlynew)  new_build "${root_dir}" "${cache_dir}" "${addition_pkg}"; info_msg "OK Bye\n"; exit 0;;
         rebuild)  info_msg "rebuild ...\n";;
         *)        usage "--new/--rebuild";;
     esac
