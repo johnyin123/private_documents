@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 8405f34 - 2021-03-25T17:35:43+08:00")
+VERSION+=("build_debian_live_iso.sh - 116dbf5 - 2021-03-26T08:57:50+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -258,6 +258,7 @@ main() {
     local cache_dir=${DIRNAME}/cache
     local iso_dir=${DIRNAME}/iso
     local syslinux_dir=${DIRNAME}/syslinux
+    local iso_image=${DIRNAME}/debian-${DEBIAN_VERSION:-buster}-${INST_ARCH:-amd64}-live.iso
     prepare_syslinux ${syslinux_dir}
     try mkdir -p ${cache_dir} ${root_dir} ${iso_dir}
     case "${action}" in
@@ -273,7 +274,21 @@ main() {
 
     info_msg "gen squashfs ${iso_dir}/live/filesystem.squashfs\n"
     defined DRYRUN || mksquashfs ${root_dir} ${iso_dir}/live/filesystem.squashfs # -comp xz
-
+: << EOF
+    info_msg "prepre grublinux files\n"
+    try cp ${root_dir}/boot/* ${iso_dir}/live/
+    local vmlinuz=$(ls ${iso_dir}/live/vmlinuz*)
+    local initrd=$(ls ${iso_dir}/live/initrd*)
+    try mkdir -p ${iso_dir}/boot/grub
+    cat <<EOGRUB | try tee ${iso_dir}/boot/grub/grub.cfg
+menuentry "Debian GNU/Linux Live" {
+    linux  /live/${vmlinuz##*/} boot=live live-media-path=/live/ toram=filesystem.squashfs
+    initrd /live/${initrd##*/}
+}
+EOGRUB
+    defined DRYRUN || grub-mkrescue --output=${iso_image} ${iso_dir}
+    info_msg "OK Bye\n"
+EOF
     info_msg "prepre isolinux files\n"
     try mkdir -p ${iso_dir}/isolinux
     save_bin ${DIRNAME}/${SCRIPTNAME} ${iso_dir}/isolinux/splash.png
@@ -282,7 +297,6 @@ main() {
     gen_isolinux_conf  | try tee "${iso_dir}/isolinux/isolinux.cfg"
 
     info_msg "gen live iso image\n"
-    local iso_image=${DIRNAME}/debian-${DEBIAN_VERSION:-buster}-${INST_ARCH:-amd64}-live.iso
     try rm -f "${iso_image}"
 
     try cp $(ls ${root_dir}/boot/vmlinuz* 2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/vmlinuz
