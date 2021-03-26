@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("try.sh - 1c38edb - 2021-01-17T04:40:43+08:00")
+VERSION+=("try.sh - fe2f86a - 2021-01-29T08:27:45+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -243,6 +243,13 @@ ssh-add ~/pri.key
 # ssh .........
 ssh-agent -k
 }
+
+
+# ssh user@host << EOF
+#     $(typeset -f myfn)
+#     myfn
+# EOF
+
 main() {
     log_file=log.txt
     # redirect stdout and stderr to $log_file and print
