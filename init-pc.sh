@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION+=("init-pc.sh - 0db0275 - 2021-03-23T14:54:58+08:00")
+VERSION+=("init-pc.sh - 3ad7881 - 2021-03-24T09:03:10+08:00")
 
 DEBIAN_VERSION=buster
 PASSWORD=password
@@ -499,8 +499,8 @@ apt -y install linux-image-5.10.0-0.bpo.3-amd64
 grub-install --target=i386-pc --boot-directory=${mntpoint}/boot --modules="xfs part_msdos" ${DISK}
 
 NEW_UUID=$(blkid -s UUID -o value ${DISK_PART})
-sed -i "s/xxxxxxxxxxxxxxxxxxxx/${NEW_UUID}/g" ${mntpoint}/boot/grub/grub.cfg
-sed -i "s/xxxxxxxxxxxxxxxxxxxx/${NEW_UUID}/g" ${mntpoint}/etc/fstab
+sed -i "s/........-....-....-....-............/${NEW_UUID}/g" ${mntpoint}/boot/grub/grub.cfg
+sed -i "s/........-....-....-....-............/${NEW_UUID}/g" ${mntpoint}/etc/fstab
 # bootup run "update-initramfs -c -k $(uname -r)"
 EOF
 
