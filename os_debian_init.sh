@@ -2,11 +2,13 @@
 # shellcheck disable=SC2086 disable=SC2155
 
 # TO BE SOURCED ONLY ONCE:
-if [ -z ${__debina__inc+x} ]; then
-    __debina__inc=1
+if [ -z ${__debian__inc+x} ]; then
+    __debian__inc=1
 else
     return 0
 fi
+VERSION+=("os_debian_init.sh - ee31e9e - 2021-03-26T09:50:55+08:00")
+
 # Disable unicode.
 LC_ALL=C
 LANG=C
