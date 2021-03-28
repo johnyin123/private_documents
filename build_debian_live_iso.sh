@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 116dbf5 - 2021-03-26T08:57:50+08:00")
+VERSION+=("build_debian_live_iso.sh - ad934ef - 2021-03-26T13:31:27+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -17,7 +17,9 @@ ${SCRIPTNAME}
         -n|--new       *  new liveos
         --onlynew         only new, need run whith --rebuild next
         -r|--rebuild    * continue build liveos
-        -a|--addition  <pkg list>  addition package like "pkg1,pkg2,pkg3"
+        -a|--addition     <pkg list>  addition package like "pkg1,pkg2,pkg3"
+        -b|--bootldr      <type> type:grub/isolinux, bootloader type, default grub
+        -o|--isofile      <filename> iso image file name
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -225,11 +227,58 @@ save_bin() {
     tail -n +${bin_start} ${file} | base64 -d | cat > ${out}
 }
 
+gen_grublinuxiso() {
+    local root_dir=$1
+    local iso_dir=$2
+    local isoimage=$3
+
+    info_msg "prepre grublinux files\n"
+    local vmlinuz=$(ls ${iso_dir}/live/vmlinuz*)
+    local initrd=$(ls ${iso_dir}/live/initrd*)
+    try mkdir -p ${iso_dir}/boot/grub
+    cat <<EOGRUB | try tee ${iso_dir}/boot/grub/grub.cfg
+menuentry "Debian GNU/Linux Live" {
+    linux  /live/${vmlinuz##*/} boot=live live-media-path=/live/ toram=filesystem.squashfs
+    initrd /live/${initrd##*/}
+}
+EOGRUB
+    info_msg "gen live iso image\n"
+    try rm -f "${isoimage}"
+
+    defined DRYRUN || grub-mkrescue --output=${isoimage} ${iso_dir}
+}
+
+gen_syslinuxiso() {
+    local root_dir=$1
+    local iso_dir=$2
+    local isoimage=$3
+    local syslinux_dir=${DIRNAME}/syslinux
+
+    prepare_syslinux ${syslinux_dir}
+    info_msg "prepre isolinux files\n"
+    try mkdir -p ${iso_dir}/isolinux
+    save_bin ${DIRNAME}/${SCRIPTNAME} ${iso_dir}/isolinux/splash.png
+    try cp ${syslinux_dir}/*.c32 ${iso_dir}/isolinux
+    try cp ${syslinux_dir}/*.bin ${iso_dir}/isolinux
+    gen_isolinux_conf  | try tee "${iso_dir}/isolinux/isolinux.cfg"
+
+    info_msg "gen live iso image\n"
+    try rm -f "${isoimage}"
+
+    defined DRYRUN || xorriso -as mkisofs -r -J -joliet-long -l -cache-inodes \
+        -isohybrid-mbr ${syslinux_dir}/isohdpfx.bin \
+        -partition_offset 16 -A "johnyin"  -b isolinux/isolinux.bin \
+        -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 \
+        -boot-info-table -o "${isoimage}" ${iso_dir}
+}
+
 main() {
     local action=""
     local addition_pkg=""
-    local opt_short="nra:"
-    local opt_long="new,onlynew,rebuild,addition:"
+    local isoimage
+    local bootldr="grub"
+    local opt_short="nra:b:o:"
+    local opt_long="new,onlynew,rebuild,addition:bootldr:isoimage:"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -240,6 +289,8 @@ main() {
             --onlynew)      shift; action=onlynew;;
             -r | --rebuild) shift; action=rebuild;;
             -a | --addition)shift; addition_pkg=${1}; shift;;
+            -b | --bootldr) shift; bootldr=${1}; shift;;
+            -o | --isofile) shift; isoimage=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -256,10 +307,9 @@ main() {
     source ${DIRNAME}/config
     local root_dir=${DIRNAME}/rootfs
     local cache_dir=${DIRNAME}/cache
-    local iso_dir=${DIRNAME}/iso
-    local syslinux_dir=${DIRNAME}/syslinux
-    local iso_image=${DIRNAME}/debian-${DEBIAN_VERSION:-buster}-${INST_ARCH:-amd64}-live.iso
-    prepare_syslinux ${syslinux_dir}
+    local iso_dir=${DIRNAME}/iso_fs
+    isoimage=${isoimage:-${DIRNAME}/debian-${DEBIAN_VERSION:-buster}-${INST_ARCH:-amd64}-live.iso}
+
     try mkdir -p ${cache_dir} ${root_dir} ${iso_dir}
     case "${action}" in
         new)      new_build "${root_dir}" "${cache_dir}" "${addition_pkg}";;
@@ -274,40 +324,17 @@ main() {
 
     info_msg "gen squashfs ${iso_dir}/live/filesystem.squashfs\n"
     defined DRYRUN || mksquashfs ${root_dir} ${iso_dir}/live/filesystem.squashfs # -comp xz
-: << EOF
-    info_msg "prepre grublinux files\n"
-    try cp ${root_dir}/boot/* ${iso_dir}/live/
-    local vmlinuz=$(ls ${iso_dir}/live/vmlinuz*)
-    local initrd=$(ls ${iso_dir}/live/initrd*)
-    try mkdir -p ${iso_dir}/boot/grub
-    cat <<EOGRUB | try tee ${iso_dir}/boot/grub/grub.cfg
-menuentry "Debian GNU/Linux Live" {
-    linux  /live/${vmlinuz##*/} boot=live live-media-path=/live/ toram=filesystem.squashfs
-    initrd /live/${initrd##*/}
-}
-EOGRUB
-    defined DRYRUN || grub-mkrescue --output=${iso_image} ${iso_dir}
-    info_msg "OK Bye\n"
-EOF
-    info_msg "prepre isolinux files\n"
-    try mkdir -p ${iso_dir}/isolinux
-    save_bin ${DIRNAME}/${SCRIPTNAME} ${iso_dir}/isolinux/splash.png
-    try cp ${syslinux_dir}/*.c32 ${iso_dir}/isolinux
-    try cp ${syslinux_dir}/*.bin ${iso_dir}/isolinux
-    gen_isolinux_conf  | try tee "${iso_dir}/isolinux/isolinux.cfg"
-
-    info_msg "gen live iso image\n"
-    try rm -f "${iso_image}"
 
     try cp $(ls ${root_dir}/boot/vmlinuz* 2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/vmlinuz
     try cp $(ls ${root_dir}/boot/initrd*  2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/initrd
+    #try cp ${root_dir}/boot/* ${iso_dir}/live/
 
-    defined DRYRUN || xorriso -as mkisofs -r -J -joliet-long -l -cache-inodes \
-        -isohybrid-mbr ${syslinux_dir}/isohdpfx.bin \
-        -partition_offset 16 -A "johnyin"  -b isolinux/isolinux.bin \
-        -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 \
-        -boot-info-table -o "${iso_image}" ${iso_dir}
-    info_msg "OK Bye\n"
+    case "${bootldr}" in
+        grub)      gen_grublinuxiso "${root_dir}" "${iso_dir}" "${isoimage}" || exit_msg "gen_grublinuxiso error $?\n";;
+        isolinux)  gen_syslinuxiso "${root_dir}" "${iso_dir}" "${isoimage}" || exit_msg "gen_syslinuxiso error $?\n";;
+        *)         usage "bootldr <grub/isolinux>";;
+    esac
+    info_msg "${isoimage} OK Bye\n"
 }
 main "$@"
 exit $?
