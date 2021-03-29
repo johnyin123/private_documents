@@ -7,7 +7,7 @@ if [ -z ${__centos__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_centos_init.sh - initversion - 2021-03-26T10:41:35+08:00")
+VERSION+=("os_centos_init.sh - 5779d49 - 2021-03-26T10:41:35+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -20,7 +20,7 @@ centos_limits_init() {
 *           hard   nofile       102400
 EOF
 }
-export -f centos_limits_init() {
+export -f centos_limits_init
 
 centos_sysctl_init() {
     mv /etc/sysctl.conf /etc/sysctl.conf.bak
@@ -64,8 +64,6 @@ centos_sshd_regenkey() {
 export -f centos_sshd_regenkey
 
 centos_sshd_init() {
-    apt -y install openssh-server
-    # dpkg-reconfigure -f noninteractive openssh-server
     cp /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
     sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
     sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
