@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION+=("init-pc.sh - 3ad7881 - 2021-03-24T09:03:10+08:00")
+VERSION+=("init-pc.sh - 67454c4 - 2021-03-26T13:50:58+08:00")
 
 DEBIAN_VERSION=buster
 PASSWORD=password
@@ -502,6 +502,16 @@ NEW_UUID=$(blkid -s UUID -o value ${DISK_PART})
 sed -i "s/........-....-....-....-............/${NEW_UUID}/g" ${mntpoint}/boot/grub/grub.cfg
 sed -i "s/........-....-....-....-............/${NEW_UUID}/g" ${mntpoint}/etc/fstab
 # bootup run "update-initramfs -c -k $(uname -r)"
+
+# install debain multimedia
+
+cat <LST_EOF >> /etc/apt/sources.list
+deb http://www.deb-multimedia.org buster main non-free
+deb http://www.deb-multimedia.org buster-backports main
+LST_EOF
+
+apt-get update -oAcquire::AllowInsecureRepositories=true
+apt-get install deb-multimedia-keyring
 EOF
 
 echo "ALL DONE!!!!!!!!!!!!!!!!"
