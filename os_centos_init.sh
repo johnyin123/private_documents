@@ -7,7 +7,7 @@ if [ -z ${__centos__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_centos_init.sh - 5779d49 - 2021-03-26T10:41:35+08:00")
+VERSION+=("os_centos_init.sh - 79ee88c - 2021-03-29T13:52:18+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -108,3 +108,14 @@ centos_service_init() {
     systemctl list-unit-files | grep service | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
 }
 export -f centos_service_init
+
+centos_add_zram_swap() {
+    local size_mb=$1
+    ( grep -v -E "^/dev/zram0" /etc/fstab ; echo "/dev/zram0   none swap sw,pri=32767 0 0"; ) | tee /etc/fstab.bak
+    mv /etc/fstab.bak /etc/fstab
+    cat <<EOF > /etc/udev/rules.d/99-zswap.rules
+KERNEL=="zram0", ACTION=="add", ATTR{disksize}="$((${size_mb}*1024*1024))", RUN="/sbin/mkswap /\$root/\$name"
+EOF
+}
+export -f centos_add_zram_swap
+
