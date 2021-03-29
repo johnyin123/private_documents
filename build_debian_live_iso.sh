@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - ad934ef - 2021-03-26T13:31:27+08:00")
+VERSION+=("build_debian_live_iso.sh - c5ac991 - 2021-03-29T07:42:08+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -18,7 +18,7 @@ ${SCRIPTNAME}
         --onlynew         only new, need run whith --rebuild next
         -r|--rebuild    * continue build liveos
         -a|--addition     <pkg list>  addition package like "pkg1,pkg2,pkg3"
-        -b|--bootldr      <type> type:grub/isolinux, bootloader type, default grub
+        -b|--bootldr      <type> type:grub/syslinux, bootloader type, default grub
         -o|--isofile      <filename> iso image file name
         -q|--quiet
         -l|--log <int> log level
@@ -205,7 +205,7 @@ clean_rootfs() {
     defined DRYRUN || {
         find "${root_dir}/usr/share/doc" -depth -type f ! -name copyright -print0 | xargs -0 rm || true
         find "${root_dir}/usr/share/doc" -empty -print0 | xargs -0 rm -rf || true
-    }
+    } 2> /dev/null
     info_msg "rootfs remove all man pages and info files\n"
     try rm -rf "${root_dir}/usr/share/man" \
            "${root_dir}/usr/share/groff" \
@@ -331,7 +331,7 @@ main() {
 
     case "${bootldr}" in
         grub)      gen_grublinuxiso "${root_dir}" "${iso_dir}" "${isoimage}" || exit_msg "gen_grublinuxiso error $?\n";;
-        isolinux)  gen_syslinuxiso "${root_dir}" "${iso_dir}" "${isoimage}" || exit_msg "gen_syslinuxiso error $?\n";;
+        syslinux)  gen_syslinuxiso "${root_dir}" "${iso_dir}" "${isoimage}" || exit_msg "gen_syslinuxiso error $?\n";;
         *)         usage "bootldr <grub/isolinux>";;
     esac
     info_msg "${isoimage} OK Bye\n"
