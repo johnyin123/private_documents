@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION+=("init-pc.sh - 67454c4 - 2021-03-26T13:50:58+08:00")
+VERSION+=("init-pc.sh - 9baffee - 2021-03-29T10:29:15+08:00")
 
 DEBIAN_VERSION=buster
 PASSWORD=password
@@ -505,7 +505,7 @@ sed -i "s/........-....-....-....-............/${NEW_UUID}/g" ${mntpoint}/etc/fs
 
 # install debain multimedia
 
-cat <LST_EOF >> /etc/apt/sources.list
+cat <<LST_EOF >> /etc/apt/sources.list
 deb http://www.deb-multimedia.org buster main non-free
 deb http://www.deb-multimedia.org buster-backports main
 LST_EOF
