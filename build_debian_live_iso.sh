@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 304ec3d - 2021-03-30T13:56:06+08:00")
+VERSION+=("build_debian_live_iso.sh - 338d060 - 2021-03-30T15:55:57+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -127,9 +127,10 @@ prepare_syslinux() {
     local dir=$1
     file_exists ${dir}/ldlinux.c32 || {
         info_msg "Downloading syslinux...\n"
-        file_exists ${DIRNAME}/syslinux-6.03.tar.gz || try wget https://www.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.gz -O ${DIRNAME}/syslinux-6.03.tar.gz
+        local url=https://www.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.gz
+        file_exists ${DIRNAME}/syslinux-6.03.tar.gz || try wget "${url}" -O "${DIRNAME}/$(basename ${url})"
         local tmp_dir=$(try mktemp -d syslinux.XXXXXX)
-        try tar -C ${tmp_dir} -xzf ${DIRNAME}/syslinux-6.03.tar.gz
+        try tar -C ${tmp_dir} -xzf "${DIRNAME}/$(basename ${url})"
         try mkdir -p ${dir}
         # if you have efi, change bios to efi64 or efi32
         try cp ${tmp_dir}/syslinux-*/bios/com32/elflink/ldlinux/ldlinux.c32 ${dir} 
