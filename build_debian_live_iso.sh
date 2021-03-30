@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - c5ac991 - 2021-03-29T07:42:08+08:00")
+VERSION+=("build_debian_live_iso.sh - 07a82b1 - 2021-03-29T08:03:08+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -205,6 +205,7 @@ clean_rootfs() {
     defined DRYRUN || {
         find "${root_dir}/usr/share/doc" -depth -type f ! -name copyright -print0 | xargs -0 rm || true
         find "${root_dir}/usr/share/doc" -empty -print0 | xargs -0 rm -rf || true
+        #find ${root_dir}/usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh*' -execdir rm -rf '{}' \+
     } 2> /dev/null
     info_msg "rootfs remove all man pages and info files\n"
     try rm -rf "${root_dir}/usr/share/man" \
