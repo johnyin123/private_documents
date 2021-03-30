@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 060541a - 2021-03-05T12:25:54+08:00")
+VERSION+=("functions.sh - 6a9e138 - 2021-03-11T09:17:28+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -28,6 +28,13 @@ list_func() {
     alias
 #    local fncs=$(declare -F -p | cut -d " " -f 3 | grep -v "^_")
 #    echo $fncs
+}
+
+# divide %1/%2 rounding up
+ceil() {
+    divide=$1
+    by=$2
+    echo $(((divide+by-1)/by))
 }
 
 __M=$((1048576))
