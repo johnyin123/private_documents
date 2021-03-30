@@ -7,9 +7,29 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 07a82b1 - 2021-03-29T08:03:08+08:00")
+VERSION+=("build_debian_live_iso.sh - 61a44f1 - 2021-03-30T08:44:03+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
+:<<'EOF'
+# disable service startup at package installation
+if [ -e /usr/sbin/policy-rc.d ]
+then
+mv /usr/sbin/policy-rc.d /usr/sbin/policy-rc.d.saved
+fi
+echo exit 101 > /usr/sbin/policy-rc.d
+chmod +x /usr/sbin/policy-rc.d
+
+apt-get -qq --no-install-recommends -o=Dpkg::Use-Pty=0 \
+    install $packages 2>&1 >/dev/null
+
+# restore policy-rc.d conf
+if [ -e /usr/sbin/policy-rc.d.saved ]
+then
+mv /usr/sbin/policy-rc.d.saved /usr/sbin/policy-rc.d
+else
+    rm /usr/sbin/policy-rc.d
+fi
+EOF
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
