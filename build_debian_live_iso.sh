@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 189a48b - 2021-03-30T13:50:37+08:00")
+VERSION+=("build_debian_live_iso.sh - 304ec3d - 2021-03-30T13:56:06+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -40,6 +40,14 @@ ${SCRIPTNAME}
         --onlynew         only new, need run whith --rebuild next
         -r|--rebuild    * continue build liveos
         -a|--addition     <pkg list>  addition package like "pkg1,pkg2,pkg3"
+        --comp <comp>     select <comp> compression, default lzo
+                          Compressors available:
+                              gzip (default)
+                              lzma
+                              lzo
+                              lz4
+                              xz
+                              zstd
         -b|--bootldr      <type> type:grub/syslinux, bootloader type, default grub
         -o|--isofile      <filename> iso image file name
         -q|--quiet
@@ -244,7 +252,8 @@ gen_syslinuxiso() {
 main() {
     local action=""
     local addition_pkg=""
-    local isoimage
+    local isoimage=""
+    local comp="lzo"
     local bootldr="grub"
     local opt_short="nra:b:o:"
     local opt_long="new,onlynew,rebuild,addition:bootldr:isoimage:"
@@ -258,6 +267,7 @@ main() {
             --onlynew)      shift; action=onlynew;;
             -r | --rebuild) shift; action=rebuild;;
             -a | --addition)shift; addition_pkg=${1}; shift;;
+            --comp)         shift; comp=${1}; shift;;
             -b | --bootldr) shift; bootldr=${1}; shift;;
             -o | --isofile) shift; isoimage=${1}; shift;;
             ########################################
@@ -294,7 +304,7 @@ EOSHELL
     try mkdir -p ${iso_dir}/live
 
     info_msg "gen squashfs ${iso_dir}/live/filesystem.squashfs, exclude /boot/\n"
-    defined DRYRUN || mksquashfs ${root_dir} ${iso_dir}/live/filesystem.squashfs -comp xz -ef <(echo "${root_dir}/boot/")
+    defined DRYRUN || mksquashfs ${root_dir} ${iso_dir}/live/filesystem.squashfs -comp ${comp} -ef <(echo "${root_dir}/boot/")
     try cp $(ls ${root_dir}/boot/vmlinuz* 2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/vmlinuz
     try cp $(ls ${root_dir}/boot/initrd*  2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/initrd
     #try cp ${root_dir}/boot/* ${iso_dir}/live/
