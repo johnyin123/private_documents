@@ -7,7 +7,7 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - 5779d49 - 2021-03-26T10:41:35+08:00")
+VERSION+=("os_debian_init.sh - 5d2dc3e - 2021-03-26T16:39:39+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -357,4 +357,24 @@ EOF
     chmod 755 /etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay
 }
 export -f debain_overlay_init
+
+debian_minimum_init() {
+    rm -rf /var/cache/apt/* \
+           /var/lib/apt/lists/* \
+           /var/log/* \
+           /root/.bash_history \
+           /root/.viminfo \
+           /root/.vim/
+    find /usr/share/doc -depth -type f ! -name copyright -print0 | xargs -0 rm || true
+    find /usr/share/doc -empty -print0 | xargs -0 rm -rf || true
+    # remove on used locale
+    find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @
+    rm -rf /usr/share/man \
+           /usr/share/groff \
+           /usr/share/info \
+           /usr/share/lintian \
+           /usr/share/linda \
+           /var/cache/man
+}
+export -f debian_minimum_init
 
