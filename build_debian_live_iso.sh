@@ -7,9 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - adf97a9 - 2021-03-30T10:32:08+08:00")
+VERSION+=("build_debian_live_iso.sh - 4c802aa - 2021-03-30T10:33:06+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
+source ${DIRNAME}/os_debian_init.sh
+
 :<<'EOF'
 # disable service startup at package installation
 if [ -e /usr/sbin/policy-rc.d ]
@@ -154,18 +156,6 @@ EOF
     return 0
 }
 
-autologin_root() {
-    # auto login as root
-    sed -i "s|#NAutoVTs=6|NAutoVTs=1|" /etc/systemd/logind.conf
-    mkdir -p /etc/systemd/system/getty@tty1.service.d
-    cat <<EOF | tee /etc/systemd/system/getty@tty1.service.d/override.conf
-    [Service]
-        ExecStart=
-        ExecStart=-/sbin/agetty --autologin root --noclear %I 38400 linux
-EOF
-    systemctl enable getty@tty1.service
-}
-
 new_build() {
     local root_dir=$1
     local cache_dir=$2
@@ -176,66 +166,22 @@ new_build() {
     defined DRYRUN ||debootstrap --verbose ${cache_dir:+--cache-dir=${cache_dir}} --no-check-gpg --arch ${INST_ARCH:-amd64} --variant=minbase --include=${include_pkg} --foreign ${DEBIAN_VERSION:-buster} ${root_dir} ${REPO:-http://mirrors.163.com/debian}
     info_msg "configure liveos linux...\n"
     defined DRYRUN || {
-    export -f autologin_root
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
     /debootstrap/debootstrap --second-stage
-    autologin_root
+
     echo livecd > /etc/hostname
     cat << EOF > /etc/hosts
 127.0.0.1       localhost livecd
 EOF
-
     echo "nameserver 114.114.114.114" > /etc/resolv.conf
-    echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
-
-    cat > /etc/apt/sources.list << EOF
-deb http://mirrors.163.com/debian ${DEBIAN_VERSION:-buster} main non-free contrib
-deb http://mirrors.163.com/debian ${DEBIAN_VERSION:-buster}-proposed-updates main non-free contrib
-deb http://mirrors.163.com/debian-security ${DEBIAN_VERSION:-buster}/updates main contrib non-free
-deb http://mirrors.163.com/debian ${DEBIAN_VERSION:-buster}-backports main contrib non-free
-EOF
-
-    #dpkg-reconfigure locales
-    sed -i "s/^# *zh_CN.UTF-8/zh_CN.UTF-8/g" /etc/locale.gen
-    locale-gen
-    echo -e 'LANG="zh_CN.UTF-8"\nLANGUAGE="zh_CN:zh"\nLC_ALL="zh_CN.UTF-8"\n' > /etc/default/locale
-
-    #echo "Asia/Shanghai" > /etc/timezone
-    ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-    dpkg-reconfigure -f noninteractive tzdata
-
     usermod -p '$(echo ${PASSWORD:-password} | openssl passwd -1 -stdin)' root
+
+    debian_locale_init
+    autologin_root
+    debian_apt_init ${DEBIAN_VERSION:-buster}
+    debian_minimum_init
 EOSHELL
     }
-    clean_rootfs "${root_dir}"
-    return 0
-}
-
-clean_rootfs() {
-    local root_dir=$1
-    info_msg "create rootfs ok\n"
-    info_msg "rootfs clean...\n"
-    try rm -rf ${root_dir}/var/cache/apt/* \
-           ${root_dir}/var/lib/apt/lists/* \
-           ${root_dir}/var/log/* \
-           ${root_dir}/root/.bash_history \
-           ${root_dir}/root/.viminfo \
-           ${root_dir}/root/.vim/
-    info_msg "rootfs remove all doc files\n"
-    defined DRYRUN || {
-        find "${root_dir}/usr/share/doc" -depth -type f ! -name copyright -print0 | xargs -0 rm || true
-        find "${root_dir}/usr/share/doc" -empty -print0 | xargs -0 rm -rf || true
-        #find ${root_dir}/usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh*' -execdir rm -rf '{}' \+
-        # remove on used locale
-        find  "${root_dir}/usr/share/locale" -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @
-    } 2> /dev/null
-    info_msg "rootfs remove all man pages and info files\n"
-    try rm -rf "${root_dir}/usr/share/man" \
-           "${root_dir}/usr/share/groff" \
-           "${root_dir}/usr/share/info" \
-           "${root_dir}/usr/share/lintian" \
-           "${root_dir}/usr/share/linda" \
-           "${root_dir}/var/cache/man"
     return 0
 }
 
@@ -341,13 +287,15 @@ main() {
         *)        usage "--new/--rebuild";;
     esac
     clean_rootfs "${root_dir}"
+    defined DRYRUN || LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
+    debian_minimum_init
+EOSHELL
     info_msg "gen squashfs ... \n" 
     try rm -fr ${iso_dir}
     try mkdir -p ${iso_dir}/live
 
     info_msg "gen squashfs ${iso_dir}/live/filesystem.squashfs\n"
-    defined DRYRUN || mksquashfs ${root_dir} ${iso_dir}/live/filesystem.squashfs # -comp xz
-
+    defined DRYRUN || mksquashfs ${root_dir} ${iso_dir}/live/filesystem.squashfs -comp xz -ef <(echo "${root_dir}/boot/")
     try cp $(ls ${root_dir}/boot/vmlinuz* 2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/vmlinuz
     try cp $(ls ${root_dir}/boot/initrd*  2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/initrd
     #try cp ${root_dir}/boot/* ${iso_dir}/live/

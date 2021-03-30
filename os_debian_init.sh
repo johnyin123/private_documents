@@ -7,7 +7,7 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - 5d2dc3e - 2021-03-26T16:39:39+08:00")
+VERSION+=("os_debian_init.sh - 52123e8 - 2021-03-30T11:01:40+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -21,14 +21,15 @@ LANG=C
 #     autologin_root
 # EOF
 debian_apt_init() {
+    local ver=$1
     echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
     # echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
     # echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
     cat > /etc/apt/sources.list << EOF
-deb http://mirrors.163.com/debian ${DEBIAN_VERSION:-buster} main non-free contrib
-deb http://mirrors.163.com/debian ${DEBIAN_VERSION:-buster}-proposed-updates main non-free contrib
-deb http://mirrors.163.com/debian-security ${DEBIAN_VERSION:-buster}/updates main contrib non-free
-deb http://mirrors.163.com/debian ${DEBIAN_VERSION:-buster}-backports main contrib non-free
+deb http://mirrors.163.com/debian ${ver:-buster} main non-free contrib
+deb http://mirrors.163.com/debian ${ver:-buster}-proposed-updates main non-free contrib
+deb http://mirrors.163.com/debian-security ${ver:-buster}/updates main contrib non-free
+deb http://mirrors.163.com/debian ${ver:-buster}-backports main contrib non-free
 EOF
 }
 export -f debian_apt_init
@@ -364,17 +365,17 @@ debian_minimum_init() {
            /var/log/* \
            /root/.bash_history \
            /root/.viminfo \
-           /root/.vim/
+           /root/.vim/ || true
     find /usr/share/doc -depth -type f ! -name copyright -print0 | xargs -0 rm || true
     find /usr/share/doc -empty -print0 | xargs -0 rm -rf || true
     # remove on used locale
-    find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @
+    find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
     rm -rf /usr/share/man \
            /usr/share/groff \
            /usr/share/info \
            /usr/share/lintian \
            /usr/share/linda \
-           /var/cache/man
+           /var/cache/man || true
 }
 export -f debian_minimum_init
 
