@@ -7,7 +7,7 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - 52123e8 - 2021-03-30T11:01:40+08:00")
+VERSION+=("os_debian_init.sh - 189a48b - 2021-03-30T13:50:37+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -41,7 +41,7 @@ debian_limits_init() {
 *           hard   nofile       102400
 EOF
 }
-export -f debian_limits_init() {
+export -f debian_limits_init
 
 debian_sysctl_init() {
     mv /etc/sysctl.conf /etc/sysctl.conf.bak
@@ -376,6 +376,6 @@ debian_minimum_init() {
            /usr/share/lintian \
            /usr/share/linda \
            /var/cache/man || true
-}
+} >/dev/null 2>&1
 export -f debian_minimum_init
 

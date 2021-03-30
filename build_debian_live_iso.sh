@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 4c802aa - 2021-03-30T10:33:06+08:00")
+VERSION+=("build_debian_live_iso.sh - 189a48b - 2021-03-30T13:50:37+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -286,7 +286,6 @@ main() {
         rebuild)  info_msg "rebuild ...\n";;
         *)        usage "--new/--rebuild";;
     esac
-    clean_rootfs "${root_dir}"
     defined DRYRUN || LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
     debian_minimum_init
 EOSHELL
@@ -294,7 +293,7 @@ EOSHELL
     try rm -fr ${iso_dir}
     try mkdir -p ${iso_dir}/live
 
-    info_msg "gen squashfs ${iso_dir}/live/filesystem.squashfs\n"
+    info_msg "gen squashfs ${iso_dir}/live/filesystem.squashfs, exclude /boot/\n"
     defined DRYRUN || mksquashfs ${root_dir} ${iso_dir}/live/filesystem.squashfs -comp xz -ef <(echo "${root_dir}/boot/")
     try cp $(ls ${root_dir}/boot/vmlinuz* 2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/vmlinuz
     try cp $(ls ${root_dir}/boot/initrd*  2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/initrd
