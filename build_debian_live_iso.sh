@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 338d060 - 2021-03-30T15:55:57+08:00")
+VERSION+=("build_debian_live_iso.sh - e8e748e - 2021-03-31T07:11:50+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -168,27 +168,12 @@ EOF
 new_build() {
     local root_dir=$1
     local cache_dir=$2
-    local include_pkg="whiptail,tzdata,locales,busybox,linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv${3:+,${3}}"
+    local include_pkg="linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv${3:+,${3}}"
     info_msg "new build with package: ${include_pkg}\n"
-    try rm -fr ${root_dir}
-    try mkdir -p ${root_dir}
-    defined DRYRUN ||debootstrap --verbose ${cache_dir:+--cache-dir=${cache_dir}} --no-check-gpg --arch ${INST_ARCH:-amd64} --variant=minbase --include=${include_pkg} --foreign ${DEBIAN_VERSION:-buster} ${root_dir} ${REPO:-http://mirrors.163.com/debian}
-    info_msg "configure liveos linux...\n"
     defined DRYRUN || {
-    LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
-    /debootstrap/debootstrap --second-stage
-
-    echo livecd > /etc/hostname
-    cat << EOF > /etc/hosts
-127.0.0.1       localhost livecd
-EOF
-    echo "nameserver 114.114.114.114" > /etc/resolv.conf
-    usermod -p '$(echo ${PASSWORD:-password} | openssl passwd -1 -stdin)' root
-
-    debian_locale_init
-    autologin_root
-    debian_apt_init ${DEBIAN_VERSION:-buster}
-    debian_minimum_init
+        debian_build "${root_dir}" "${cache_dir}" "${include_pkg}"
+        LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
+        autologin_root
 EOSHELL
     }
     return 0
