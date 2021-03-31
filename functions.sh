@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 8e6e419 - 2021-03-30T09:05:38+08:00")
+VERSION+=("functions.sh - e8e748e - 2021-03-31T07:11:50+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -28,6 +28,17 @@ list_func() {
     alias
 #    local fncs=$(declare -F -p | cut -d " " -f 3 | grep -v "^_")
 #    echo $fncs
+}
+
+#fetch http://a.com/abc.zip aaa.zip
+fetch() {
+    if type wget > /dev/null 2>&1 ; then
+        try wget --no-check-certificate -O "${2}" "${1}" >/dev/null 2>&1
+    elif type curl > /dev/null 2>&1 ; then
+        try curl --insecure --remote-name -o "${2}" "${1}" >/dev/null 2>&1
+    else
+        exit_msg 'Warning: Neither wget nor curl is available. online updates unavailable'
+    fi
 }
 
 # divide %1/%2 rounding up
