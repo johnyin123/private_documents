@@ -7,7 +7,7 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - d9bbef9 - 2021-03-31T14:54:23+08:00")
+VERSION+=("os_debian_init.sh - 3882d52 - 2021-03-31T17:30:10+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -83,6 +83,9 @@ EOF
 export -f debian_limits_init
 
 debian_sysctl_init() {
+    # net.ipv4.ip_local_port_range = 1024 65531
+    # net.ipv4.tcp_fin_timeout = 10
+    # # (65531-1024)/10 = 6450 sockets per second.
     mv /etc/sysctl.conf /etc/sysctl.conf.bak
     cat << EOF > /etc/sysctl.conf
 net.core.rmem_max = 134217728 
