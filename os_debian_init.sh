@@ -7,7 +7,7 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - a337585 - 2021-03-31T14:19:19+08:00")
+VERSION+=("os_debian_init.sh - d9bbef9 - 2021-03-31T14:54:23+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -35,6 +35,11 @@ debian_build() {
     cat << EOF > /etc/hosts
 127.0.0.1       localhost ${HOSTNAME:-deb-tpl}
 EOF
+    cat << EOF > /etc/rc.local
+#!/bin/sh -e
+exit 0
+EOF
+    chmod 755 /etc/rc.local
 
     echo "nameserver ${NAME_SERVER:-114.114.114.114}" > /etc/resolv.conf
     debian_root_chpasswd ${PASSWORD:-password}
