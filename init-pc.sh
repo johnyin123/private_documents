@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION+=("init-pc.sh - 9baffee - 2021-03-29T10:29:15+08:00")
+VERSION+=("init-pc.sh - 5b7cbab - 2021-03-29T17:15:57+08:00")
 
 DEBIAN_VERSION=buster
 PASSWORD=password
@@ -461,6 +461,8 @@ apt -y install systemd-container \
     fcitx-ui-classic fcitx-tools fcitx fcitx-sunpinyin fcitx-config-gtk \
     libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
     qemu-kvm qemu-utils xmlstarlet sudo debootstrap kpartx
+
+apt -y install traceroute ipcalc
 
 id johnyin &>/dev/null && {
     echo "login johnyin and run 'systemctl enable pulseaudio.service --user' to enable pulse audio"
