@@ -7,7 +7,7 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - 304ec3d - 2021-03-30T13:56:06+08:00")
+VERSION+=("os_debian_init.sh - e7f35fa - 2021-03-31T13:20:32+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -27,24 +27,23 @@ debian_build() {
     local include_pkg="whiptail,tzdata,locales,busybox,${3:+,${3}}"
     rm -fr ${root_dir}
     mkdir -p ${root_dir}
-    defined DRYRUN || {
-        debootstrap --verbose ${cache_dir:+--cache-dir=${cache_dir}} --no-check-gpg --arch ${INST_ARCH:-amd64} --variant=minbase --include=${include_pkg} --foreign ${DEBIAN_VERSION:-buster} ${root_dir} ${REPO:-http://mirrors.163.com/debian}
-        LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
-        /debootstrap/debootstrap --second-stage
+    debootstrap --verbose ${cache_dir:+--cache-dir=${cache_dir}} --no-check-gpg --arch ${INST_ARCH:-amd64} --variant=minbase --include=${include_pkg} --foreign ${DEBIAN_VERSION:-buster} ${root_dir} ${REPO:-http://mirrors.163.com/debian}
+    LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
+    /debootstrap/debootstrap --second-stage
 
-        echo ${HOSTNAME:-deb-tpl} > /etc/hostname
-        cat << EOF > /etc/hosts
+    echo ${HOSTNAME:-deb-tpl} > /etc/hostname
+    cat << EOF > /etc/hosts
 127.0.0.1       localhost ${HOSTNAME:-deb-tpl}
 EOF
 
-        echo "nameserver ${NAME_SERVER:-114.114.114.114}" > /etc/resolv.conf
-        debian_root_chpasswd ${PASSWORD:-password}
-        debian_apt_init ${DEBIAN_VERSION:-buster}
-        debian_locale_init
-        debian_bashrc_init
-        debian_minimum_init
+    echo "nameserver ${NAME_SERVER:-114.114.114.114}" > /etc/resolv.conf
+    debian_root_chpasswd ${PASSWORD:-password}
+    debian_apt_init ${DEBIAN_VERSION:-buster}
+    debian_locale_init
+    debian_bashrc_init
+    debian_limits_init
+    debian_minimum_init
 EOSHELL
-    }
     return 0
 }
 
