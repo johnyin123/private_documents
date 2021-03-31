@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION+=("init-pc.sh - 5b7cbab - 2021-03-29T17:15:57+08:00")
+VERSION+=("init-pc.sh - 4b6d433 - 2021-03-31T16:36:33+08:00")
 
 DEBIAN_VERSION=buster
 PASSWORD=password
@@ -508,8 +508,10 @@ sed -i "s/........-....-....-....-............/${NEW_UUID}/g" ${mntpoint}/etc/fs
 # install debain multimedia
 
 cat <<LST_EOF >> /etc/apt/sources.list
-deb http://www.deb-multimedia.org buster main non-free
-deb http://www.deb-multimedia.org buster-backports main
+# deb http://www.deb-multimedia.org buster main non-free
+# deb http://www.deb-multimedia.org buster-backports main
+deb http://ftp.cn.debian.org/debian-multimedia buster main non-free
+deb http://ftp.cn.debian.org/debian-multimedia buster-backports main
 LST_EOF
 
 apt-get update -oAcquire::AllowInsecureRepositories=true
