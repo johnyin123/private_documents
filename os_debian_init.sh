@@ -7,11 +7,46 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - 189a48b - 2021-03-30T13:50:37+08:00")
+VERSION+=("os_debian_init.sh - 304ec3d - 2021-03-30T13:56:06+08:00")
 
 # Disable unicode.
 LC_ALL=C
 LANG=C
+
+# liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
+# docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
+# INST_ARCH=amd64
+# DEBIAN_VERSION=buster
+# REPO=http://mirrors.163.com/debian
+# HOSTNAME=deb-tpl
+# NAME_SERVER=114.114.114.114
+# PASSWORD=password
+debian_build() {
+    local root_dir=$1
+    local cache_dir=$2
+    local include_pkg="whiptail,tzdata,locales,busybox,${3:+,${3}}"
+    rm -fr ${root_dir}
+    mkdir -p ${root_dir}
+    defined DRYRUN || {
+        debootstrap --verbose ${cache_dir:+--cache-dir=${cache_dir}} --no-check-gpg --arch ${INST_ARCH:-amd64} --variant=minbase --include=${include_pkg} --foreign ${DEBIAN_VERSION:-buster} ${root_dir} ${REPO:-http://mirrors.163.com/debian}
+        LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
+        /debootstrap/debootstrap --second-stage
+
+        echo ${HOSTNAME:-deb-tpl} > /etc/hostname
+        cat << EOF > /etc/hosts
+127.0.0.1       localhost ${HOSTNAME:-deb-tpl}
+EOF
+
+        echo "nameserver ${NAME_SERVER:-114.114.114.114}" > /etc/resolv.conf
+        debian_root_chpasswd ${PASSWORD:-password}
+        debian_apt_init ${DEBIAN_VERSION:-buster}
+        debian_locale_init
+        debian_bashrc_init
+        debian_minimum_init
+EOSHELL
+    }
+    return 0
+}
 
 # LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
 #     autologin_root
@@ -230,7 +265,7 @@ debian_root_chpasswd() {
     usermod -p "$(echo ${password} | openssl passwd -1 -stdin)" root
     # echo "root:${password}" |chpasswd
     # Force Users To Change Their Passwords Upon First Login
-    chage -d 0 root
+    # chage -d 0 root
 }
 export -f debian_root_chpasswd
 
@@ -378,4 +413,26 @@ debian_minimum_init() {
            /var/cache/man || true
 } >/dev/null 2>&1
 export -f debian_minimum_init
+
+debian_bashrc_init() {
+    cat > /root/.bashrc<<"EOF"
+export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
+umask 022
+export LS_OPTIONS='--color=auto'
+eval "`dircolors`"
+alias ls='ls $LS_OPTIONS'
+alias ll='ls $LS_OPTIONS -lh'
+alias rm='rm -i'
+alias cp='cp -i'
+alias mv='mv -i'
+set -o vi
+alias ip="$(which ip || echo busybox ip)"
+alias ping="$(which ping || echo busybox ping)"
+alias ifconfig="$(which ifconfig || echo busybox ifconfig)"
+alias netstat="$(which netstat || echo busybox netstat)"
+alias vi="$(which vi || echo busybox vi)"
+alias df="$(which df || echo busybox df)"
+EOF
+}
+export -f debian_bashrc_init
 
