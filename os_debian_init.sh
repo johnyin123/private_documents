@@ -7,7 +7,7 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - e7f35fa - 2021-03-31T13:20:32+08:00")
+VERSION+=("os_debian_init.sh - 61b321a - 2021-03-31T13:42:14+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -425,12 +425,12 @@ alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
 set -o vi
-alias ip="$(which ip || echo busybox ip)"
-alias ping="$(which ping || echo busybox ping)"
-alias ifconfig="$(which ifconfig || echo busybox ifconfig)"
-alias netstat="$(which netstat || echo busybox netstat)"
-alias vi="$(which vi || echo busybox vi)"
-alias df="$(which df || echo busybox df)"
+bb_cmd() {
+    for i in $*; do
+        alias $i="$(which $i || echo busybox $i)"
+    done
+}
+bb_cmd ip ping ifconfig netstat vi df ps
 EOF
 }
 export -f debian_bashrc_init
