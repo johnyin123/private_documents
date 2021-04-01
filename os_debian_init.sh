@@ -7,12 +7,16 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - 9127792 - 2021-04-01T14:02:52+08:00")
-
 # Disable unicode.
 LC_ALL=C
 LANG=C
 
+#set -o pipefail  # trace ERR through pipes,only available on Bash
+set -o errtrace  # trace ERR through 'time command' and other functions
+set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
+set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
+
+VERSION+=("os_debian_init.sh - bf85f19 - 2021-04-01T15:09:07+08:00")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64

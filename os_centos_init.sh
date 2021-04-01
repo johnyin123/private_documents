@@ -7,12 +7,16 @@ if [ -z ${__centos__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_centos_init.sh - abe917b - 2021-04-01T09:41:59+08:00")
-
 # Disable unicode.
 LC_ALL=C
 LANG=C
 
+#set -o pipefail  # trace ERR through pipes,only available on Bash
+set -o errtrace  # trace ERR through 'time command' and other functions
+set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
+set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
+
+VERSION+=("os_centos_init.sh - 71e15f2 - 2021-04-01T10:37:58+08:00")
 centos_limits_init() {
     #set the file limit
     cat > /etc/security/limits.d/tun.conf << EOF
