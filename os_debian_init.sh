@@ -7,7 +7,7 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - abe917b - 2021-04-01T09:41:59+08:00")
+VERSION+=("os_debian_init.sh - 71e15f2 - 2021-04-01T10:37:58+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -28,6 +28,12 @@ debian_build() {
     rm -fr ${root_dir}
     mkdir -p ${root_dir}
     debootstrap --verbose ${cache_dir:+--cache-dir=${cache_dir}} --no-check-gpg --arch ${INST_ARCH:-amd64} --variant=minbase --include=${include_pkg} --foreign ${DEBIAN_VERSION:-buster} ${root_dir} ${REPO:-http://mirrors.163.com/debian}
+
+    [ ${INST_ARCH} = "arm64" ] && {
+        [ -e "/usr/bin/qemu-aarch64-static" ] || { echo "Need: apt install qemu-user-static"; return 1; }
+        cp /usr/bin/qemu-aarch64-static ${root_dir}/usr/bin/
+    }
+
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
     /debootstrap/debootstrap --second-stage
 
@@ -47,6 +53,7 @@ EOF
     debian_locale_init
     debian_bashrc_init
     debian_limits_init
+    debian_sysctl_init
     debian_minimum_init
 EOSHELL
     return 0

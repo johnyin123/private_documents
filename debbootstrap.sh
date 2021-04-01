@@ -5,7 +5,7 @@
 # USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
 set -o errexit -o nounset -o pipefail
 
-VERSION+=("debbootstrap.sh - e1bc926 - 2021-03-23T16:55:29+08:00")
+VERSION+=("debbootstrap.sh - abe917b - 2021-04-01T09:41:59+08:00")
 if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
@@ -18,7 +18,7 @@ export SCRIPTNAME=${0##*/}
 INST_ARCH=${INST_ARCH:-arm64}
 REPO=http://mirrors.163.com/debian
 PASSWORD=password
-export DEBIAN_VERSION=${DEBIAN_VERSION:-buster}
+DEBIAN_VERSION=${DEBIAN_VERSION:-buster}
 export FS_TYPE=${FS_TYPE:-ext4}
 BOOT_LABEL="EMMCBOOT"
 ROOT_LABEL="EMMCROOT"
@@ -41,45 +41,20 @@ then
     exit 1
 fi
 
-cleanup() {
-    trap '' INT TERM EXIT
-    echo "EXIT!!!"
-}
-
 mkdir -p ${DIRNAME}/buildroot
 mkdir -p ${DIRNAME}/cache
 
-trap cleanup EXIT
-trap cleanup TERM
-trap cleanup INT
-
-debootstrap --verbose --cache-dir=${DIRNAME}/cache --no-check-gpg --arch ${INST_ARCH} --variant=minbase --include=${PKG} --foreign ${DEBIAN_VERSION} ${DIRNAME}/buildroot ${REPO}
-
-[[ ${INST_ARCH} = "arm64" ]] && cp /usr/bin/qemu-aarch64-static ${DIRNAME}/buildroot/usr/bin/
-
-unset PROMPT_COMMAND
-LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /debootstrap/debootstrap --second-stage
+debian_build "${DIRNAME}/buildroot" "${DIRNAME}/cache" "${PKG}"
 
 LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /bin/bash <<EOSHELL
+    debian_zswap_init 512
+    debian_sshd_init
+    debian_sysctl_init
+    debian_vim_init
+    debian_chpasswd root ${PASSWORD}
+    debain_overlay_init
 
-echo ${HOSTNAME} > /etc/hostname
-
-echo "Enable udisk2 zram swap"
-mkdir -p /usr/local/lib/zram.conf.d/
-echo "zram" >> /etc/modules
-echo "batman-adv" >> /etc/modules
-cat << EOF > /usr/local/lib/zram.conf.d/zram0-env
-ZRAM_NUM_STR=lzo
-#512
-ZRAM_DEV_SIZE=536870912
-SWAP=y
-EOF
-
-cat << EOF > /etc/hosts
-127.0.0.1       localhost ${HOSTNAME} 
-EOF
-
-cat > /etc/fstab << EOF
+    cat > /etc/fstab << EOF
 LABEL=${ROOT_LABEL}    /    ${FS_TYPE}    defaults,errors=remount-ro,noatime    0    1
 LABEL=${BOOT_LABEL}    /boot    vfat    ro    0    2
 tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
@@ -89,23 +64,19 @@ tmpfs /tmp      tmpfs   rw,nosuid,noexec,relatime,mode=777  0  0
 tmpfs /media    tmpfs   defaults,size=1M  0  0
 EOF
 
-echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
-echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
-echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
-
-# auto reformatoverlay plug usb ttl
-cat > /etc/udev/rules.d/99-reformatoverlay.rules << EOF
+    # auto reformatoverlay plug usb ttl
+    cat > /etc/udev/rules.d/99-reformatoverlay.rules << EOF
 SUBSYSTEM=="tty", ACTION=="add", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'touch /overlay/reformatoverlay; echo heartbeat > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
 SUBSYSTEM=="tty", ACTION=="remove", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'rm /overlay/reformatoverlay; echo none > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
 EOF
 
-# auto mount usb storage (readonly)
-cat > /etc/udev/rules.d/98-usbmount.rules << EOF
+    # auto mount usb storage (readonly)
+    cat > /etc/udev/rules.d/98-usbmount.rules << EOF
 # udevadm control --reload-rules
 SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="add", RUN+="/bin/systemctl start usb-mount@%k.service"
 SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/bin/systemctl stop usb-mount@%k.service"
 EOF
-cat > /usr/lib/systemd/system/usb-mount@.service <<EOF
+    cat > /usr/lib/systemd/system/usb-mount@.service <<EOF
 [Unit]
 Description=auto mount block %i
 
@@ -116,13 +87,6 @@ ExecStop=/bin/sh -c '/bin/udisksctl unmount -f -b /dev/%i || exit 0'
 EOF
 # end auto mount usb storage (readonly)
 
-cat > /etc/apt/sources.list << EOF
-deb http://mirrors.163.com/debian ${DEBIAN_VERSION} main non-free contrib
-deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-proposed-updates main non-free contrib
-deb http://mirrors.163.com/debian-security ${DEBIAN_VERSION}/updates main contrib non-free
-deb http://mirrors.163.com/debian ${DEBIAN_VERSION}-backports main contrib non-free
-EOF
-
 # enable ttyAML0 login
 echo "ttyAML0" >> /etc/securetty
 
@@ -132,33 +96,6 @@ cat > /etc/exports << EOF
 /media/       192.168.168.0/24(ro,sync,no_subtree_check,crossmnt,nohide,no_root_squash,no_all_squash,fsid=0)
 EOF
 
-#Installing packages without docs
-cat >  /etc/dpkg/dpkg.cfg.d/01_nodoc <<EOF
-path-exclude /usr/share/doc/*
-# we need to keep copyright files for legal reasons
-path-include /usr/share/doc/*/copyright
-path-exclude /usr/share/man/*
-path-exclude /usr/share/groff/*
-path-exclude /usr/share/info/*
-# lintian stuff is small, but really unnecessary
-path-exclude /usr/share/lintian/*
-path-exclude /usr/share/linda/*
-# remove noused locale
-path-include /usr/share/locale/zh_CN/*
-path-exclude /usr/share/locale/*
-EOF
-#apt update
-#apt -y upgrade
-
-#dpkg-reconfigure locales
-sed -i "s/^# *zh_CN.UTF-8/zh_CN.UTF-8/g" /etc/locale.gen
-locale-gen
-echo -e 'LANG="zh_CN.UTF-8"\nLANGUAGE="zh_CN:zh"\nLC_ALL="zh_CN.UTF-8"\n' > /etc/default/locale
-
-#echo "Asia/Shanghai" > /etc/timezone
-ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-dpkg-reconfigure -f noninteractive tzdata
-dpkg-reconfigure -f noninteractive openssh-server
 cat << EOF > /etc/network/interfaces
 source /etc/network/interfaces.d/*
 # The loopback network interface
@@ -372,22 +309,10 @@ EOF
 # options brcmfmac roamoff=1
 # EOF
 
-cat << EOF > /etc/rc.local
-#!/bin/sh -e
-exit 0
-EOF
-chmod 755 /etc/rc.local
-
 echo "enable fw_printenv command"
 cat >/etc/fw_env.config <<EOF
 # Device to access      offset          env size
 /dev/mmcblk1            0x27400000      0x10000
-EOF
-
-cat >>/etc/initramfs-tools/modules <<EOF
-#brcmfmac
-#dwmac_meson8b
-overlay
 EOF
 
 mkdir -p /etc/initramfs/post-update.d/
@@ -411,32 +336,167 @@ export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m
 set -o vi
 EOF
 
-sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
-sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
-sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config
-echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> /etc/ssh/sshd_config
-echo "MACs    hmac-sha1" >> /etc/ssh/sshd_config
-echo "PermitRootLogin without-password">> /etc/ssh/sshd_config
+systemctl mask systemd-machine-id-commit.service
 
-#set the file limit
-cat > /etc/security/limits.d/tun.conf << EOF
-*           soft   nofile       102400
-*           hard   nofile       102400
+apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync
+apt -y install --no-install-recommends xz-utils zip
+apt -y remove ca-certificates wireless-regdb crda --purge
+apt -y autoremove --purge
+
+exit
+EOSHELL
+
+echo "start install you kernel&patchs"
+if [ -d "${DIRNAME}/kernel" ]; then
+    rsync -avzP ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
+fi
+echo "end install you kernel&patchs"
+chroot ${DIRNAME}/buildroot/ /bin/bash
+chroot ${DIRNAME}/buildroot/ /bin/bash -s <<EOF
+    debian_minimum_init
 EOF
-cat > /root/aptrom.sh <<EOF
+echo "SUCCESS build rootfs"
+
+cat << 'EOF'
+# baudrate=115200
+# ethaddr=5a:57:57:90:5d:03
+# bootcmd=run start_autoscript; run storeboot;
+# start_autoscript=if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;
+# start_usb_autoscript=if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;
+# start_mmc_autoscript=if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;
+# start_emmc_autoscript=if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;
+# bootdelay=0
+
+fw_setenv bootcmd "run start_autoscript; run storeboot;"
+fw_setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;"
+fw_setenv start_usb_autoscript "if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;"
+fw_setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;"
+fw_setenv start_emmc_autoscript "if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;"
+fw_setenv bootdelay 0
+fw_setenv ethaddr 5a:57:57:90:5d:03
+EOF
+
+echo "add emmc_install script"
+cat >> ${DIRNAME}/buildroot/root/sync.sh <<'EOF'
 #!/usr/bin/env bash
 
+IP=${1:?from which ip???}
 mount -o remount,rw /overlay/lower
-cp /overlay/lower/etc/apt/sources.list ~/sources.list.bak
+rsync -avzP --exclude-from=/root/exclude.txt --delete \
+    -e "ssh -p60022" root@${IP}:/overlay/lower/* /overlay/lower/
 
+echo "change ssid && dhcp router"
+apaddr=$(ifquery wlan0=ap | grep "address:" | awk '{ print $2}')
+sed -i "s/ssid=.*/ssid=\"$(hostname)\"/g" /overlay/lower/etc/wpa_supplicant/ap.conf
+sed -n 's|^ssid=\(.*\)$|\1|p' /overlay/lower/etc/wpa_supplicant/ap.conf
+mount -o remount,ro /overlay/lower
+
+mount -o remount,rw /boot
+rsync -avzP -e "ssh -p60022" root@${IP}:/boot/* /boot/
+
+mount -o remount,ro /boot
+
+touch /overlay/reformatoverlay
+sync
+sync
+EOF
+
+cat >> ${DIRNAME}/buildroot/root/exclude.txt <<'EOF'
+/etc/network/interfaces.d/
+firmware/brcm/brcmfmac43455-sdio.txt
+/etc/ssh/
+/etc/hostname
+/etc/hosts
+EOF
+
+cat >> ${DIRNAME}/buildroot/root/emmc_linux.sh <<'EOF'
+#!/usr/bin/env bash
+
+BOOT_LABEL="EMMCBOOT"
+ROOT_LABEL="EMMCROOT"
+OVERLAY_LABEL="EMMCOVERLAY"
+cat <<EOPART
+[mmcblk0p01]  bootloader  offset 0x000000000000  size 0x000000400000
+[mmcblk0p02]    reserved  offset 0x000002400000  size 0x000004000000
+[mmcblk0p03]       cache  offset 0x000006c00000  size 0x000020000000
+[mmcblk0p04]         env  offset 0x000027400000  size 0x000000800000
+[mmcblk0p05]        logo  offset 0x000028400000  size 0x000002000000
+[mmcblk0p06]    recovery  offset 0x00002ac00000  size 0x000002000000
+[mmcblk0p07]         rsv  offset 0x00002d400000  size 0x000000800000
+[mmcblk0p08]         tee  offset 0x00002e400000  size 0x000000800000
+[mmcblk0p09]       crypt  offset 0x00002f400000  size 0x000002000000
+[mmcblk0p10]        misc  offset 0x000031c00000  size 0x000002000000
+[mmcblk0p11]        boot  offset 0x000034400000  size 0x000002000000
+[mmcblk0p12]      system  offset 0x000036c00000  size 0x000050000000
+[mmcblk0p13]        data  offset 0x000087400000  size 0x00014ac00000
+EOPART
+####################################################################################################
+echo "Start script create MBR and filesystem"
+ENV_LOGO_PART_START=288768  #sectors
+DEV_EMMC=${DEV_EMMC:=/dev/mmcblk2}
+echo "So as to not overwrite U-boot, we backup the first 1M."
+dd if=${DEV_EMMC} of=/tmp/boot-bak bs=1M count=4
+echo "(Re-)initialize the eMMC and create partition."
+echo "bootloader & reserved occupies [0, 100M]. Since sector size is 512B, byte offset would be 204800."
+echo "Start create MBR and partittion"
+echo "${DEV_EMMC}p04  env   offset 0x000027400000  size 0x000000800000"
+echo "${DEV_EMMC}p05  logo  offset 0x000028400000  size 0x000002000000"
+parted -s "${DEV_EMMC}" mklabel msdos
+parted -s "${DEV_EMMC}" mkpart primary fat32 204800s $((ENV_LOGO_PART_START-1))s
+parted -s "${DEV_EMMC}" mkpart primary ext4 ${ENV_LOGO_PART_START}s 3G
+parted -s "${DEV_EMMC}" mkpart primary ext4 3G 100%
+echo "Start restore u-boot"
+# Restore U-boot (except the first 442 bytes, where partition table is stored.)
+dd if=/tmp/boot-bak of=${DEV_EMMC} conv=fsync bs=1 count=442
+dd if=/tmp/boot-bak of=${DEV_EMMC} conv=fsync bs=512 skip=1 seek=1
+# This method is used to convert byte offset in `/dev/mmcblkX` to block offset in `/dev/mmcblkXp2`.
+as_block_number() {
+    # Block numbers are offseted by ${ENV_LOGO_PART_START} sectors
+    # Because we're using 4K blocks, the byte offsets are divided by 4K.
+    expr $((($1 - $ENV_LOGO_PART_START*512) / 4096))
+}
+# This method generates a sequence of block number in range [$1, $1 + $2).
+# It's used for marking several reserved regions as bad blocks below.
+gen_blocks() {
+    seq $(as_block_number $1) $(($(as_block_number $(($1 + $2))) - 1))
+}
+
+# Mark reserved regions as bad block to prevent Linux from using them.
+# /dev/env: This "device" (present in Linux 3.x) uses 0x27400000 ~ +0x800000.
+#           It seems that they're overwritten each time system boots if value
+#           there is invalid. Therefore we must not touch these blocks.
+#
+# /dev/logo: This "device"  uses 0x28400000~ +0x800000. You may mark them as
+#            bad blocks if you want to preserve or replace the boot logo.
+#
+# All other "devices" (i.e., `recovery`, `rsv`, `tee`, `crypt`, `misc`, `boot`,
+# `system`, `data` should be safe to overwrite.)
+gen_blocks 0x27400000 0x800000 > /tmp/reservedblks
+echo "Marked blocks used by env partition start=0x28400000 size=0x800000 as bad."
+echo "dd if=/boot/n1-logo.img of=${DEV_EMMC} bs=1M seek=644 can install new logo"
+gen_blocks 0x28400000 0x2000000 >> /tmp/reservedblks
+echo "Marked blocks used by /dev/logo start=0x28400000 size=0x2000000 as bad."
+
+DISK=${DEV_EMMC}
+PART_BOOT="${DISK}p1"
+PART_ROOT="${DISK}p2"
+PART_OVERLAY="${DISK}p3"
+
+echo "Format the partitions."
+mkfs.vfat -n ${BOOT_LABEL} ${PART_BOOT}
+mkfs -t ext4 -m 0 -b4096 -l /tmp/reservedblks  -E num_backup_sb=0  -q -L ${ROOT_LABEL} ${PART_ROOT}
+mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${PART_OVERLAY}
+
+echo "Flush changes (in case they were cached.)."
+sync
+echo "show reserved!!"
+false && dumpe2fs -b ${PART_ROOT}
+echo "Partition table (re-)initialized."
+EOF
+
+cat > ${DIRNAME}/buildroot/root/aptrom.sh <<EOF
+#!/usr/bin/env bash
 mount -o remount,rw /overlay/lower
-
-cat >/overlay/lower/etc/apt/sources.list<<DEBEOF
-deb http://mirrors.163.com/debian buster main non-free contrib
-deb http://mirrors.163.com/debian buster-proposed-updates main non-free contrib
-deb http://mirrors.163.com/debian-security buster/updates main contrib non-free
-deb http://mirrors.163.com/debian buster-backports main contrib non-free
-DEBEOF
 
 chroot /overlay/lower apt update
 chroot /overlay/lower apt install \$*
@@ -450,7 +510,7 @@ mount -o remount,ro /overlay/lower
 
 EOF
 
-cat >> /root/brige_wlan_eth.sh <<'SCRIPT_EOF'
+cat >> ${DIRNAME}/buildroot/root/brige_wlan_eth.sh <<'SCRIPT_EOF'
 # bridge eth0 & wlan0 Same Subnet!!
 
 # parprouted  - Proxy ARP IP bridging daemon
@@ -501,7 +561,7 @@ systemctl daemon-reload
 systemctl enable parprouted.service
 SCRIPT_EOF
 
-cat >> /root/inst.sh <<EOF
+cat >> /root/inst.sh <<EOF_INSTSH
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 #update_config=1
 #wpa_cli p2p_group_add persistent=0
@@ -762,405 +822,8 @@ EOF1
 sudo systemctl enable rfcomm
 # start the rfcomm service
 sudo systemctl restart rfcomm
-EOF
+EOF_INSTSH
 
-cat >> /etc/sysctl.conf << EOF
-net.core.rmem_max = 134217728 
-net.core.wmem_max = 134217728 
-net.core.netdev_max_backlog = 250000
-net.core.somaxconn = 65535
-net.core.wmem_default = 16777216
-net.ipv4.ip_local_port_range = 1024 65531
-net.ipv4.tcp_fin_timeout = 10
-net.ipv4.tcp_keepalive_time = 1200
-net.ipv4.tcp_max_orphans = 3276800
-net.ipv4.tcp_max_syn_backlog = 262144
-net.ipv4.tcp_no_metrics_save=1
-net.ipv4.tcp_rmem = 4096 87380 16777216
-net.ipv4.tcp_wmem = 4096 65536 16777216
-net.ipv4.tcp_syn_retries = 1
-net.ipv4.tcp_synack_retries = 1
-net.ipv4.tcp_syncookies = 0
-net.ipv4.tcp_timestamps = 0
-#net.ipv4.tcp_tw_recycle = 0
-net.ipv4.tcp_tw_reuse = 0
-EOF
-
-sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
-
-usermod -p '$(echo ${PASSWORD} | openssl passwd -1 -stdin)' root
-echo "Force Users To Change Their Passwords Upon First Login"
-chage -d 0 root
-
-systemctl mask systemd-machine-id-commit.service
-
-apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync
-apt -y install --no-install-recommends xz-utils zip
-apt -y remove ca-certificates wireless-regdb crda --purge
-apt -y autoremove --purge
-
-exit
-
-EOSHELL
-
-cat << 'EOF'
-# baudrate=115200
-# ethaddr=5a:57:57:90:5d:03
-# bootcmd=run start_autoscript; run storeboot;
-# start_autoscript=if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;
-# start_usb_autoscript=if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;
-# start_mmc_autoscript=if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;
-# start_emmc_autoscript=if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;
-# bootdelay=0
-
-fw_setenv bootcmd "run start_autoscript; run storeboot;"
-fw_setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;"
-fw_setenv start_usb_autoscript "if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;"
-fw_setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;"
-fw_setenv start_emmc_autoscript "if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;"
-fw_setenv bootdelay 0
-fw_setenv ethaddr 5a:57:57:90:5d:03
-EOF
-
-cat <<'EOF' > /${DIRNAME}/buildroot/etc/vim/vimrc.local
-syntax on
-" color evening
-set number
-set nowrap
-set fileencodings=utf-8,gb2312,gbk,gb18030
-" set termencoding=utf-8
-let &termencoding=&encoding
-set fileformats=unix
-set hlsearch                 " highlight the last used search pattern
-set noswapfile
-set tabstop=4                " 设置tab键的宽度
-set shiftwidth=4             " 换行时行间交错使用4个空格
-set expandtab                " 用space替代tab的输入
-set autoindent               " 自动对齐
-set backspace=2              " 设置退格键可用
-set cindent shiftwidth=4     " 自动缩进4空格
-set smartindent              " 智能自动缩进
-"Paste toggle - when pasting something in, don't indent.
-set pastetoggle=<F7>
-set mouse=r
-"disable .viminfo file
-set viminfo=
-let g:is_bash=1
-
-"新建.py,.sh文件，自动插入文件头"
-autocmd BufNewFile *.py,*.c,*.sh,*.h exec ":call SetTitle()"
-"定义函数SetTitle，自动插入文件头"
-func SetTitle()
-    if expand ("%:e") == 'sh'
-        call setline(1, "#!/usr/bin/env bash")
-        call setline(2, "readonly DIRNAME=\"$(readlink -f \"$(dirname \"$0\")\")\"")
-        call setline(3, "readonly SCRIPTNAME=${0##*/}")
-        call setline(4, "if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then")
-        call setline(5, "    exec 5> \"${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log\"")
-        call setline(6, "    BASH_XTRACEFD=\"5\"")
-        call setline(7, "    export PS4='[\\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'")
-        call setline(8, "    set -o xtrace")
-        call setline(9, "fi")
-        call setline(10, "VERSION+=()")
-        call setline(11, "[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true")
-        call setline(12, "################################################################################")
-        call setline(13, "usage() {")
-        call setline(14, "    [ \"$#\" != 0 ] && echo \"$*\"")
-        call setline(15, "    cat <<EOF")
-        call setline(16, "${SCRIPTNAME}")
-        call setline(17, "        -q|--quiet")
-        call setline(18, "        -l|--log <int> log level")
-        call setline(19, "        -V|--version")
-        call setline(20, "        -d|--dryrun dryrun")
-        call setline(21, "        -h|--help help")
-        call setline(22, "EOF")
-        call setline(23, "    exit 1")
-        call setline(24, "}")
-        call setline(25, "main() {")
-        call setline(26, "    local opt_short=\"\"")
-        call setline(27, "    local opt_long=\"\"")
-        call setline(28, "    opt_short+=\"ql:dVh\"")
-        call setline(29, "    opt_long+=\"quite,log:,dryrun,version,help\"")
-        call setline(30, "    __ARGS=$(getopt -n \"${SCRIPTNAME}\" -o ${opt_short} -l ${opt_long} -- \"$@\") || usage")
-        call setline(31, "    eval set -- \"${__ARGS}\"")
-        call setline(32, "    while true; do")
-        call setline(33, "        case \"$1\" in")
-        call setline(34, "            ########################################")
-        call setline(35, "            -q | --quiet)   shift; QUIET=1;;")
-        call setline(36, "            -l | --log)     shift; set_loglevel ${1}; shift;;")
-        call setline(37, "            -d | --dryrun)  shift; DRYRUN=1;;")
-        call setline(38, "            -V | --version) shift; for _v in \"${VERSION[@]}\"; do echo \"$_v\"; done; exit 0;;")
-        call setline(39, "            -h | --help)    shift; usage;;")
-        call setline(40, "            --)             shift; break;;")
-        call setline(41, "            *)              usage \"Unexpected option: $1\";;")
-        call setline(42, "        esac")
-        call setline(43, "    done")
-        call setline(44, "    return 0")
-        call setline(45, "}")
-        call setline(46, "main \"$@\"")
-    endif
-    if expand ("%:e") == 'py'
-        call setline(1, "#!/usr/bin/env python3")
-        call setline(2, "# -*- coding: utf-8 -*- ")
-        call setline(3, "")
-        call setline(4, "def main():")
-        call setline(5, "    return 0")
-        call setline(6, "")
-        call setline(7, "if __name__ == '__main__':")
-        call setline(8, "    main()")
-    endif
-endfunc
-EOF
-
-echo "add emmc_install script"
-cat >> ${DIRNAME}/buildroot/root/sync.sh <<'EOF'
-#!/usr/bin/env bash
-
-IP=${1:?from which ip???}
-mount -o remount,rw /overlay/lower
-rsync -avzP --exclude-from=/root/exclude.txt --delete \
-    -e "ssh -p60022" root@${IP}:/overlay/lower/* /overlay/lower/
-
-echo "change ssid && dhcp router"
-apaddr=$(ifquery wlan0=ap | grep "address:" | awk '{ print $2}')
-sed -i "s/ssid=.*/ssid=\"$(hostname)\"/g" /overlay/lower/etc/wpa_supplicant/ap.conf
-sed -n 's|^ssid=\(.*\)$|\1|p' /overlay/lower/etc/wpa_supplicant/ap.conf
-mount -o remount,ro /overlay/lower
-
-mount -o remount,rw /boot
-rsync -avzP -e "ssh -p60022" root@${IP}:/boot/* /boot/
-
-mount -o remount,ro /boot
-
-touch /overlay/reformatoverlay
-sync
-sync
-EOF
-
-cat >> ${DIRNAME}/buildroot/root/exclude.txt <<'EOF'
-/etc/network/interfaces.d/
-firmware/brcm/brcmfmac43455-sdio.txt
-/etc/ssh/
-/etc/hostname
-/etc/hosts
-EOF
-
-cat >> ${DIRNAME}/buildroot/root/emmc_linux.sh <<'EOF'
-#!/usr/bin/env bash
-
-BOOT_LABEL="EMMCBOOT"
-ROOT_LABEL="EMMCROOT"
-OVERLAY_LABEL="EMMCOVERLAY"
-cat <<EOPART
-[mmcblk0p01]  bootloader  offset 0x000000000000  size 0x000000400000
-[mmcblk0p02]    reserved  offset 0x000002400000  size 0x000004000000
-[mmcblk0p03]       cache  offset 0x000006c00000  size 0x000020000000
-[mmcblk0p04]         env  offset 0x000027400000  size 0x000000800000
-[mmcblk0p05]        logo  offset 0x000028400000  size 0x000002000000
-[mmcblk0p06]    recovery  offset 0x00002ac00000  size 0x000002000000
-[mmcblk0p07]         rsv  offset 0x00002d400000  size 0x000000800000
-[mmcblk0p08]         tee  offset 0x00002e400000  size 0x000000800000
-[mmcblk0p09]       crypt  offset 0x00002f400000  size 0x000002000000
-[mmcblk0p10]        misc  offset 0x000031c00000  size 0x000002000000
-[mmcblk0p11]        boot  offset 0x000034400000  size 0x000002000000
-[mmcblk0p12]      system  offset 0x000036c00000  size 0x000050000000
-[mmcblk0p13]        data  offset 0x000087400000  size 0x00014ac00000
-EOPART
-####################################################################################################
-echo "Start script create MBR and filesystem"
-ENV_LOGO_PART_START=288768  #sectors
-DEV_EMMC=${DEV_EMMC:=/dev/mmcblk2}
-echo "So as to not overwrite U-boot, we backup the first 1M."
-dd if=${DEV_EMMC} of=/tmp/boot-bak bs=1M count=4
-echo "(Re-)initialize the eMMC and create partition."
-echo "bootloader & reserved occupies [0, 100M]. Since sector size is 512B, byte offset would be 204800."
-echo "Start create MBR and partittion"
-echo "${DEV_EMMC}p04  env   offset 0x000027400000  size 0x000000800000"
-echo "${DEV_EMMC}p05  logo  offset 0x000028400000  size 0x000002000000"
-parted -s "${DEV_EMMC}" mklabel msdos
-parted -s "${DEV_EMMC}" mkpart primary fat32 204800s $((ENV_LOGO_PART_START-1))s
-parted -s "${DEV_EMMC}" mkpart primary ext4 ${ENV_LOGO_PART_START}s 3G
-parted -s "${DEV_EMMC}" mkpart primary ext4 3G 100%
-echo "Start restore u-boot"
-# Restore U-boot (except the first 442 bytes, where partition table is stored.)
-dd if=/tmp/boot-bak of=${DEV_EMMC} conv=fsync bs=1 count=442
-dd if=/tmp/boot-bak of=${DEV_EMMC} conv=fsync bs=512 skip=1 seek=1
-# This method is used to convert byte offset in `/dev/mmcblkX` to block offset in `/dev/mmcblkXp2`.
-as_block_number() {
-    # Block numbers are offseted by ${ENV_LOGO_PART_START} sectors
-    # Because we're using 4K blocks, the byte offsets are divided by 4K.
-    expr $((($1 - $ENV_LOGO_PART_START*512) / 4096))
-}
-# This method generates a sequence of block number in range [$1, $1 + $2).
-# It's used for marking several reserved regions as bad blocks below.
-gen_blocks() {
-    seq $(as_block_number $1) $(($(as_block_number $(($1 + $2))) - 1))
-}
-
-# Mark reserved regions as bad block to prevent Linux from using them.
-# /dev/env: This "device" (present in Linux 3.x) uses 0x27400000 ~ +0x800000.
-#           It seems that they're overwritten each time system boots if value
-#           there is invalid. Therefore we must not touch these blocks.
-#
-# /dev/logo: This "device"  uses 0x28400000~ +0x800000. You may mark them as
-#            bad blocks if you want to preserve or replace the boot logo.
-#
-# All other "devices" (i.e., `recovery`, `rsv`, `tee`, `crypt`, `misc`, `boot`,
-# `system`, `data` should be safe to overwrite.)
-gen_blocks 0x27400000 0x800000 > /tmp/reservedblks
-echo "Marked blocks used by env partition start=0x28400000 size=0x800000 as bad."
-echo "dd if=/boot/n1-logo.img of=${DEV_EMMC} bs=1M seek=644 can install new logo"
-gen_blocks 0x28400000 0x2000000 >> /tmp/reservedblks
-echo "Marked blocks used by /dev/logo start=0x28400000 size=0x2000000 as bad."
-
-DISK=${DEV_EMMC}
-PART_BOOT="${DISK}p1"
-PART_ROOT="${DISK}p2"
-PART_OVERLAY="${DISK}p3"
-
-echo "Format the partitions."
-mkfs.vfat -n ${BOOT_LABEL} ${PART_BOOT}
-mkfs -t ext4 -m 0 -b4096 -l /tmp/reservedblks  -E num_backup_sb=0  -q -L ${ROOT_LABEL} ${PART_ROOT}
-mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${PART_OVERLAY}
-
-echo "Flush changes (in case they were cached.)."
-sync
-echo "show reserved!!"
-false && dumpe2fs -b ${PART_ROOT}
-echo "Partition table (re-)initialized."
-EOF
-
-echo "start install you kernel&patchs"
-if [ -d "${DIRNAME}/kernel" ]; then
-    rsync -avzP ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
-fi
-echo "end install you kernel&patchs"
-
-echo "start install overlay_rootfs"
-cat <<EOF
-kernel parm "skipoverlay" / lowerfs /etc/overlayroot.conf
-OVERLAY= overlayfs lable default "OVERLAY"
-SKIP_OVERLAY=
-
-/overlay/reformatoverlay exist will format it!
-overlayfs: upper fs needs to support d_type.
-overlayfs: upper fs does not support tmpfile.
-# mke2fs -FL OVERLAY -t ext4 -E lazy_itable_init,lazy_journal_init DEVICE
-EOF
-
-if ! grep -q "^overlay" ${DIRNAME}/buildroot/etc/initramfs-tools/modules; then
-    echo overlay >> ${DIRNAME}/buildroot/etc/initramfs-tools/modules
-fi
-
-cat > ${DIRNAME}/buildroot/usr/share/initramfs-tools/hooks/overlay <<'EOF'
-#!/bin/sh
-
-. /usr/share/initramfs-tools/scripts/functions
-. /usr/share/initramfs-tools/hook-functions
-
-copy_exec /sbin/blkid
-copy_exec /sbin/fsck
-copy_exec /sbin/mke2fs
-copy_exec /sbin/fsck.ext2
-copy_exec /sbin/fsck.ext3
-copy_exec /sbin/fsck.ext4
-copy_exec /sbin/logsave
-EOF
-
-cat > ${DIRNAME}/buildroot/etc/overlayroot.conf<<EOF
-OVERLAY=${OVERLAY_LABEL}
-SKIP_OVERLAY=0
-EOF
-
-cat > ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
-#!/bin/sh -e
-
-PREREQ=""
-prereqs()
-{
-   echo "$PREREQ"
-}
-
-case $1 in
-prereqs)
-   prereqs
-   exit 0
-   ;;
-esac
-
-. /scripts/functions
-
-[ -f ${rootmnt}/etc/overlayroot.conf ] && . ${rootmnt}/etc/overlayroot.conf
-OVERLAY_LABEL=${OVERLAY:-OVERLAY}
-SKIP_OVERLAY=${SKIP_OVERLAY:-0}
-grep -q -E '(^|\s)skipoverlay(\s|$)' /proc/cmdline && SKIP_OVERLAY=1
-
-if [ "${SKIP_OVERLAY-}" = 1 ]; then
-    log_begin_msg "Skipping overlay, found 'skipoverlay' in cmdline"
-    log_end_msg
-    exit 0
-fi
-
-log_begin_msg "Starting overlay"
-log_end_msg
-
-mkdir -p /overlay
-
-# if we have a filesystem label of ${OVERLAY_LABEL}
-# use that as the overlay, otherwise use tmpfs.
-OLDEV=$(blkid -L ${OVERLAY_LABEL})
-if [ -z "${OLDEV}" ]; then
-    mount -t tmpfs tmpfs /overlay
-else
-    _checkfs_once ${OLDEV} /overlay ext4 || \
-    mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
-    if ! mount -t ext4 -onoatime ${OLDEV} /overlay; then
-        mount -t tmpfs tmpfs /overlay
-    fi
-fi
-
-# if you sudo touch /overlay/reformatoverlay
-# next reboot will give you a fresh /overlay
-if [ -f /overlay/reformatoverlay ]; then
-    umount /overlay
-    mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${OLDEV}
-    if ! mount -t ext4 -onoatime ${OLDEV} /overlay; then
-        mount -t tmpfs tmpfs /overlay
-    fi
-fi
-
-mkdir -p /overlay/upper
-mkdir -p /overlay/work
-mkdir -p /overlay/lower
-
-# make the readonly root available
-mount -n -o move ${rootmnt} /overlay/lower
-mount -t overlay overlay -onoatime,lowerdir=/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work ${rootmnt}
-
-mkdir -p ${rootmnt}/overlay
-mount -n -o rbind /overlay ${rootmnt}/overlay
-
-# fix up fstab
-# cp ${rootmnt}/etc/fstab ${rootmnt}/etc/fstab.orig
-# awk '$2 != "/" {print $0}' ${rootmnt}/etc/fstab.orig > ${rootmnt}/etc/fstab
-# awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab >> ${rootmnt}/etc/fstab
-# Already there?
-if [ -e ${rootmnt}/etc/fstab ] && grep -qE ''^overlay[[:space:]]+/[[:space:]]+overlay'' ${rootmnt}/etc/fstab; then
-    exit 0 # Do nothing
-fi
-
-FSTAB=$(awk '$2 != "/" {print $0}' ${rootmnt}/etc/fstab && awk '$2 == "'${rootmnt}'" { $2 = "/" ; print $0}' /etc/mtab)
-cat>${rootmnt}/etc/fstab<<EO_FSTAB
-$FSTAB
-EO_FSTAB
-
-exit 0
-EOF
-
-chmod 755 ${DIRNAME}/buildroot/usr/share/initramfs-tools/hooks/overlay
-chmod 755 ${DIRNAME}/buildroot/etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay
-
-echo "end install overlay_rootfs"
 echo "you need run 'apt -y install busybox && update-initramfs -c -k KERNEL_VERSION'"
 # autologin-guest=false
 # autologin-user=user(not root)
@@ -1168,16 +831,7 @@ echo "you need run 'apt -y install busybox && update-initramfs -c -k KERNEL_VERS
 # groupadd -r autologin
 # gpasswd -a root autologin
 
-chroot ${DIRNAME}/buildroot/ /bin/bash
-chroot ${DIRNAME}/buildroot/ apt clean
-rm ${DIRNAME}/buildroot/dev/* ${DIRNAME}/buildroot/var/log/* -fr
-# Remove all doc files
-find "${DIRNAME}/buildroot/usr/share/doc" -depth -type f ! -name copyright -print0 | xargs -0 rm || true
-find "${DIRNAME}/buildroot/usr/share/doc" -empty -print0 | xargs -0 rm -rf || true
-# Remove all man pages and info files
-rm -rf "${DIRNAME}/buildroot/usr/share/man" "${DIRNAME}/buildroot/usr/share/groff" "${DIRNAME}/buildroot/usr/share/info" "${DIRNAME}/buildroot/usr/share/lintian" "${DIRNAME}/buildroot/usr/share/linda" "${DIRNAME}/buildroot/var/cache/man"
-
-echo "SUCCESS builde rootfs"
+echo "SUCCESS build rootfs, all!!!"
 exit 0
 
 final_disk() {
