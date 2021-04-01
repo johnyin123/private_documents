@@ -7,7 +7,7 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - e38e255 - 2021-04-01T07:41:14+08:00")
+VERSION+=("os_debian_init.sh - abe917b - 2021-04-01T09:41:59+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -134,10 +134,9 @@ debian_sshd_init() {
     sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
     sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config
     sed -i 's/GSSAPIAuthentication.*/GSSAPIAuthentication no/g' /etc/ssh/sshd_config
-    (grep -v -E "^Ciphers|^MACs" /etc/ssh/sshd_config ; echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr"; echo "MACs    hmac-sha1"; ) | tee /etc/ssh/sshd_config.bak
+    (grep -v -E "^Ciphers|^MACs|^PermitRootLogin" /etc/ssh/sshd_config ; echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr"; echo "MACs    hmac-sha1"; echo "PermitRootLogin without-password";) | tee /etc/ssh/sshd_config.bak
     mv /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
-    # root login only prikey
-    echo "PermitRootLogin without-password">> /etc/ssh/sshd_config
+    # root login only prikey "PermitRootLogin without-password"
 
     [ ! -d /root/.ssh ] && mkdir -m0700 /root/.ssh
     cat <<EOF >/root/.ssh/authorized_keys

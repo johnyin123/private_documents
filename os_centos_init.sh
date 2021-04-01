@@ -7,7 +7,7 @@ if [ -z ${__centos__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_centos_init.sh - 9db6cb1 - 2021-03-29T14:32:09+08:00")
+VERSION+=("os_centos_init.sh - abe917b - 2021-04-01T09:41:59+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -69,10 +69,9 @@ centos_sshd_init() {
     sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
     sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config
     sed -i 's/GSSAPIAuthentication.*/GSSAPIAuthentication no/g' /etc/ssh/sshd_config
-    (grep -v -E "^Ciphers|^MACs" /etc/ssh/sshd_config ; echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr"; echo "MACs    hmac-sha1"; ) | tee /etc/ssh/sshd_config.bak
+    (grep -v -E "^Ciphers|^MACs|^PermitRootLogin" /etc/ssh/sshd_config ; echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr"; echo "MACs    hmac-sha1"; echo "PermitRootLogin without-password";) | tee /etc/ssh/sshd_config.bak
     mv /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
-    # root login only prikey
-    echo "PermitRootLogin without-password">> /etc/ssh/sshd_config
+    # root login only prikey "PermitRootLogin without-password"
 
     [ ! -d /root/.ssh ] && mkdir -m0700 /root/.ssh
     cat <<EOF >/root/.ssh/authorized_keys
@@ -111,12 +110,13 @@ centos_service_init() {
 export -f centos_service_init
 
 centos_zswap_init() {
-    local size_mb=$1
+    local size_mb=$(($1*1024*1024))
     ( grep -v -E "^/dev/zram0" /etc/fstab ; echo "/dev/zram0   none swap sw,pri=32767 0 0"; ) | tee /etc/fstab.bak
     mv /etc/fstab.bak /etc/fstab
     cat <<EOF > /etc/udev/rules.d/99-zswap.rules
-KERNEL=="zram0", ACTION=="add", ATTR{disksize}="$((${size_mb}*1024*1024))", RUN="/sbin/mkswap /\$root/\$name"
+KERNEL=="zram0", ACTION=="add", ATTR{disksize}="${size_mb}", RUN="/sbin/mkswap /\$root/\$name"
 EOF
+    echo "zram" > /etc/modules-load.d/zram.conf 
 }
 export -f centos_zswap_init
 
