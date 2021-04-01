@@ -5,7 +5,7 @@
 # USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
 set -o errexit -o nounset -o pipefail
 
-VERSION+=("debbootstrap.sh - b140077 - 2021-03-15T12:27:44+08:00")
+VERSION+=("debbootstrap.sh - e1bc926 - 2021-03-23T16:55:29+08:00")
 if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
@@ -789,7 +789,6 @@ EOF
 sed -i "/mouse=a/d" /usr/share/vim/vim81/defaults.vim
 
 usermod -p '$(echo ${PASSWORD} | openssl passwd -1 -stdin)' root
-# echo "root:${PASSWORD}" |chpasswd
 echo "Force Users To Change Their Passwords Upon First Login"
 chage -d 0 root
 

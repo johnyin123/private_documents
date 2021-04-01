@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - b9cc78a - 2021-04-01T07:11:16+08:00")
+VERSION+=("init-pc.sh - e38e255 - 2021-04-01T07:41:14+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -199,9 +199,8 @@ id johnyin &>/dev/null && {
     ln -s /home/johnyin/.Xauthority /root/.Xauthority
 }
 
-id root &>/dev/null && { usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" root; }
-id johnyin &>/dev/null && { usermod -p "$(echo ${PASSWORD} | openssl passwd -1 -stdin)" johnyin; }
-# echo "root:${PASSWORD}" |chpasswd 
+id root &>/dev/null && debian_chpasswd root ${PASSWORD}
+id johnyin &>/dev/null && debian_chpasswd johnyin ${PASSWORD}
 echo "Force Users To Change Passwords Upon First Login"
 chage -d 0 root || true
 chage -d 0 johnyin || true

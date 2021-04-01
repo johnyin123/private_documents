@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("mkdeb.sh - 156bc19 - 2021-03-17T16:37:26+08:00")
+VERSION+=("mkdeb.sh - 61b321a - 2021-03-31T13:42:14+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -67,7 +67,7 @@ EOF
     chmod 755 /etc/rc.local
 
 useradd -m -s /bin/bash johnyin
-usermod -p '$(echo ${PASSWORD} | openssl passwd -1 -stdin)' johnyin
+debian_chpasswd johnyin ${PASSWORD}
 
 exit 0
 EOSHELL

@@ -7,7 +7,7 @@ if [ -z ${__centos__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_centos_init.sh - b422c43 - 2021-03-29T14:30:04+08:00")
+VERSION+=("os_centos_init.sh - 9db6cb1 - 2021-03-29T14:32:09+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -82,13 +82,14 @@ EOF
 }
 export -f centos_sshd_init
 
-centos_root_chpasswd() {
-    local password=$1
-    echo "${password}" | passwd --stdin root
+centos_chpasswd() {
+    local user=$1
+    local password=$2
+    echo "${password}" | passwd --stdin ${user}
     # Force Users To Change Their Passwords Upon First Login
-    chage -d 0 root
+    # chage -d 0 ${user}
 }
-export -f centos_root_chpasswd
+export -f centos_chpasswd
 
 centos_disable_selinux() {
     sed -i "s/SELINUX=.*/SELINUX=disabled/g" /etc/selinux/config

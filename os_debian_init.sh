@@ -7,7 +7,7 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - 3882d52 - 2021-03-31T17:30:10+08:00")
+VERSION+=("os_debian_init.sh - e38e255 - 2021-04-01T07:41:14+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -42,7 +42,7 @@ EOF
     chmod 755 /etc/rc.local
 
     echo "nameserver ${NAME_SERVER:-114.114.114.114}" > /etc/resolv.conf
-    debian_root_chpasswd ${PASSWORD:-password}
+    debian_chpasswd root ${PASSWORD:-password}
     debian_apt_init ${DEBIAN_VERSION:-buster}
     debian_locale_init
     debian_bashrc_init
@@ -267,14 +267,15 @@ debian_locale_init() {
 }
 export -f debian_locale_init
 
-debian_root_chpasswd() {
-    local password=$1
-    usermod -p "$(echo ${password} | openssl passwd -1 -stdin)" root
+debian_chpasswd() {
+    local user=$1
+    local password=$2
+    usermod -p "$(echo ${password} | openssl passwd -1 -stdin)" ${user}
     # echo "root:${password}" |chpasswd
     # Force Users To Change Their Passwords Upon First Login
-    # chage -d 0 root
+    # chage -d 0 ${user}
 }
-export -f debian_root_chpasswd
+export -f debian_chpasswd
 
 autologin_root() {
     # auto login as root
