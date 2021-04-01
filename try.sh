@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("try.sh - fe2f86a - 2021-01-29T08:27:45+08:00")
+VERSION+=("try.sh - 8aca591 - 2021-03-26T09:09:48+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -249,6 +249,9 @@ ssh-agent -k
 #     $(typeset -f myfn)
 #     myfn
 # EOF
+# DESTDIR="$(mktemp -d "${TMPDIR:-/var/tmp}/mkinitramfs_XXXXXX")" || exit 1
+# chmod 755 "${DESTDIR}"
+# __TMPCPIOGZ="$(mktemp "${TMPDIR:-/var/tmp}/mkinitramfs-OL_XXXXXX")" || exit 1
 
 main() {
     log_file=log.txt
