@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("centos_tuning.sh - initversion - 2021-03-29T13:52:27+08:00")
+VERSION+=("centos_tuning.sh - 79ee88c - 2021-03-29T13:52:18+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source os_centos_init.sh
@@ -49,8 +49,7 @@ main() {
         esac
     done
     [ -z ${ssh} ] && usage "ssh must input"
-   # ssh -p${port} ${ssh} 
-    cat << EOF
+    try ssh -p${port} ${ssh} /bin/bash -s << EOF
         $(typeset -f centos_limits_init)
         $(typeset -f centos_disable_selinux)
         $(typeset -f centos_sshd_init)
