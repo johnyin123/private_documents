@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("centos_tuning.sh - 4a3f126 - 2021-04-01T09:02:05+08:00")
+VERSION+=("centos_tuning.sh - 71e15f2 - 2021-04-01T10:37:58+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_centos_init.sh
@@ -50,7 +50,7 @@ main() {
     done
     [ -z ${ssh} ] && usage "ssh must input"
     [ -r "${DIRNAME}/motd.sh" ] && {
-        cat ${DIRNAME}/motd.sh | ssh -p${port} ${ssh} "cat >/etc/motd.sh"
+        try "cat ${DIRNAME}/motd.sh | ssh -p${port} ${ssh} 'cat >/etc/motd.sh'"
     }
     try ssh -p${port} ${ssh} /bin/bash -s << EOF
         $(typeset -f centos_limits_init)
