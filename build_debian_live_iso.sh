@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - e8e748e - 2021-03-31T07:11:50+08:00")
+VERSION+=("build_debian_live_iso.sh - 9da6f25 - 2021-03-31T14:04:15+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -200,6 +200,8 @@ gen_grublinuxiso() {
     local initrd=$(ls ${iso_dir}/live/initrd*)
     try mkdir -p ${iso_dir}/boot/grub
     cat <<EOGRUB | try tee ${iso_dir}/boot/grub/grub.cfg
+set timeout=30
+set default="0"
 menuentry "Debian GNU/Linux Live" {
     linux  /live/${vmlinuz##*/} boot=live live-media-path=/live/ toram=filesystem.squashfs
     initrd /live/${initrd##*/}
@@ -208,7 +210,7 @@ EOGRUB
     info_msg "gen live iso image\n"
     try rm -f "${isoimage}"
 
-    defined DRYRUN || grub-mkrescue --output=${isoimage} ${iso_dir}
+    defined DRYRUN || grub-mkrescue --product-name=johnyin --output=${isoimage} ${iso_dir}
 }
 
 gen_syslinuxiso() {
