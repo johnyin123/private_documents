@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - d31a213 - 2021-04-01T14:48:52+08:00")
+VERSION+=("build_debian_live_iso.sh - bf85f19 - 2021-04-01T15:09:07+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -115,7 +115,7 @@ prepare_syslinux() {
         info_msg "Downloading syslinux...\n"
         local url=https://www.kernel.org/pub/linux/utils/boot/syslinux/syslinux-6.03.tar.gz
         file_exists ${DIRNAME}/syslinux-6.03.tar.gz || try wget "${url}" -O "${DIRNAME}/$(basename ${url})"
-        local tmp_dir=$(try mktemp -d syslinux.XXXXXX)
+        local tmp_dir=$(try mktemp -d ${DIRNAME}/syslinux.XXXXXX)
         try tar -C ${tmp_dir} -xzf "${DIRNAME}/$(basename ${url})"
         try mkdir -p ${dir}
         # if you have efi, change bios to efi64 or efi32
