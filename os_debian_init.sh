@@ -7,7 +7,7 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - 71e15f2 - 2021-04-01T10:37:58+08:00")
+VERSION+=("os_debian_init.sh - 1bcc9a9 - 2021-04-01T13:39:07+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -317,6 +317,7 @@ copy_exec /sbin/fsck.ext2
 copy_exec /sbin/fsck.ext3
 copy_exec /sbin/fsck.ext4
 copy_exec /sbin/logsave
+manual_add_modules overlay
 EOF
 
     cat > /etc/initramfs-tools/scripts/init-bottom/init-bottom-overlay <<'EOF'
