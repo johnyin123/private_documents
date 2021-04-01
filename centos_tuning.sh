@@ -7,10 +7,10 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("centos_tuning.sh - 79ee88c - 2021-03-29T13:52:18+08:00")
+VERSION+=("centos_tuning.sh - 3561151 - 2021-04-01T08:57:13+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-source os_centos_init.sh
+source ${DIRNAME}/os_centos_init.sh
 
 usage() {
     [ "$#" != 0 ] && echo "$*"
