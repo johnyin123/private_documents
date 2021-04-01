@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("debbootstrap.sh - 1bcc9a9 - 2021-04-01T13:39:07+08:00")
+VERSION+=("debbootstrap.sh - d7b50ce - 2021-04-01T13:42:10+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -338,6 +338,7 @@ EOF
 
 systemctl mask systemd-machine-id-commit.service
 
+apt udate
 apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync
 apt -y install --no-install-recommends xz-utils zip
 apt -y remove ca-certificates wireless-regdb crda --purge
