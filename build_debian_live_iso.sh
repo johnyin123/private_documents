@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 9da6f25 - 2021-03-31T14:04:15+08:00")
+VERSION+=("build_debian_live_iso.sh - d31a213 - 2021-04-01T14:48:52+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -90,33 +90,19 @@ timeout 50
 
 label live-${INST_ARCH:-amd64}-ram
     menu label ^debian RAM (${INST_ARCH:-amd64})
-EOF
-
-    [ "${BOOT_DEFAULT:-ram}" == "ram" ] && echo "    menu default"
-
-    cat <<EOF
-    linux /live/vmlinuz apm=power-off boot=live live-media-path=/live/ toram=filesystem.squashfs
+    menu default
+    linux /live/vmlinuz apm=power-off boot=live live-media-path=/live/ toram=filesystem.squashfs net.ifnames=0 biosdevname=0
     append initrd=/live/initrd boot=live
 
 label live-${INST_ARCH:-amd64}
     menu label ^debian (${INST_ARCH:-amd64})
-EOF
-
-    [ "${BOOT_DEFAULT:-ram}" == "" ] && echo "    menu default"
-
-    cat <<EOF
     linux /live/vmlinuz
-    append initrd=/live/initrd boot=live
+    append initrd=/live/initrd boot=live net.ifnames=0 biosdevname=0
 
 label live-${INST_ARCH:-amd64}-failsafe
     menu label ^debian (${INST_ARCH:-amd64} failsafe)
-EOF
-
-    [ "${BOOT_DEFAULT:-ram}" == "failsafe" ] && echo "    menu default"
-
-    cat <<EOF
     linux /live/vmlinuz
-    append initrd=/live/initrd boot=live config memtest noapic noapm nodma nomce nolapic nomodeset nosmp nosplash vga=normal
+    append initrd=/live/initrd boot=live config memtest noapic noapm nodma nomce nolapic nomodeset nosmp nosplash vga=normal net.ifnames=0 biosdevname=0
 
 endtext
 EOF
@@ -152,9 +138,6 @@ prepare_config() {
         cat <<'EOF' >${DIRNAME}/config
 INST_ARCH="amd64"
 DEBIAN_VERSION="buster"
-BOOT_DEFAULT="ram"
-#BOOT_DEFAULT=""
-#BOOT_DEFAULT="failsafe"
 REPO="http://mirrors.163.com/debian"
 PASSWORD=password
 EOF
@@ -203,7 +186,7 @@ gen_grublinuxiso() {
 set timeout=30
 set default="0"
 menuentry "Debian GNU/Linux Live" {
-    linux  /live/${vmlinuz##*/} boot=live live-media-path=/live/ toram=filesystem.squashfs
+    linux  /live/${vmlinuz##*/} boot=live live-media-path=/live/ toram=filesystem.squashfs net.ifnames=0 biosdevname=0
     initrd /live/${initrd##*/}
 }
 EOGRUB

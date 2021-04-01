@@ -7,7 +7,7 @@ if [ -z ${__debian__inc+x} ]; then
 else
     return 0
 fi
-VERSION+=("os_debian_init.sh - 1bcc9a9 - 2021-04-01T13:39:07+08:00")
+VERSION+=("os_debian_init.sh - 9127792 - 2021-04-01T14:02:52+08:00")
 
 # Disable unicode.
 LC_ALL=C
@@ -93,7 +93,7 @@ debian_sysctl_init() {
     # net.ipv4.ip_local_port_range = 1024 65531
     # net.ipv4.tcp_fin_timeout = 10
     # # (65531-1024)/10 = 6450 sockets per second.
-    mv /etc/sysctl.conf /etc/sysctl.conf.bak
+    mv /etc/sysctl.conf /etc/sysctl.conf.bak 2>/dev/null || true
     cat << EOF > /etc/sysctl.conf
 net.core.rmem_max = 134217728 
 net.core.wmem_max = 134217728 
@@ -276,8 +276,8 @@ export -f debian_locale_init
 debian_chpasswd() {
     local user=$1
     local password=$2
-    usermod -p "$(echo ${password} | openssl passwd -1 -stdin)" ${user}
-    # echo "root:${password}" |chpasswd
+    # usermod -p "$(echo ${password} | openssl passwd -1 -stdin)" ${user}
+    echo "${user}:${password}" |chpasswd
     # Force Users To Change Their Passwords Upon First Login
     # chage -d 0 ${user}
 }
