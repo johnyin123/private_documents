@@ -1,19 +1,19 @@
-#!/bin/bash
-#fw_setenv bootcmd "run update"; reboot
-#之后PC端的刷机程序就会检测到设备进入刷机模式，按软件的刷机提示刷机即可。
-
-# USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
-set -o errexit -o nounset -o pipefail
-
-VERSION+=("debbootstrap.sh - abe917b - 2021-04-01T09:41:59+08:00")
-if [ "${DEBUG:=false}" = "true" ]; then
+#!/usr/bin/env bash
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly SCRIPTNAME=${0##*/}
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
+    BASH_XTRACEFD="5"
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-export DIRNAME="$(pwd)"
-#DIRNAME="$(dirname "$(realpath "$0")")"
-#DIRNAME="$(dirname "$(readlink -e "$0")")"
-export SCRIPTNAME=${0##*/}
+VERSION+=("debbootstrap.sh - 1bcc9a9 - 2021-04-01T13:39:07+08:00")
+################################################################################
+source ${DIRNAME}/os_debian_init.sh
+
+#fw_setenv bootcmd "run update"; reboot
+#之后PC端的刷机程序就会检测到设备进入刷机模式，按软件的刷机提示刷机即可。
+# USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
 
 INST_ARCH=${INST_ARCH:-arm64}
 REPO=http://mirrors.163.com/debian
