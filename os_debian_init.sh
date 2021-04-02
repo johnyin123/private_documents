@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_debian_init.sh - bf85f19 - 2021-04-01T15:09:07+08:00")
+VERSION+=("os_debian_init.sh - ab87ba4 - 2021-04-01T16:40:42+08:00")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -27,7 +27,7 @@ VERSION+=("os_debian_init.sh - bf85f19 - 2021-04-01T15:09:07+08:00")
 # PASSWORD=password
 debian_build() {
     local root_dir=$1
-    local cache_dir=$2
+    local cache_dir=${2:-}
     local include_pkg="whiptail,tzdata,locales,busybox,${3:+,${3}}"
     rm -fr ${root_dir}
     mkdir -p ${root_dir}
@@ -55,31 +55,31 @@ EOF
     debian_chpasswd root ${PASSWORD:-password}
     debian_apt_init ${DEBIAN_VERSION:-buster}
     debian_locale_init
-    debian_bashrc_init
     debian_limits_init
     debian_sysctl_init
+    debian_bash_init root
     debian_minimum_init
 EOSHELL
     return 0
 }
 
 # LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
-#     autologin_root
+#     debian_autologin_root
 # EOSHELL
 # ssh user@host << EOF
-#     $(typeset -f autologin_root)
-#     autologin_root
+#     $(typeset -f debian_autologin_root)
+#     debian_autologin_root
 # EOF
 debian_apt_init() {
-    local ver=$1
+    local ver=${1:-buster}
     echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
     # echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
     # echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
     cat > /etc/apt/sources.list << EOF
-deb http://mirrors.163.com/debian ${ver:-buster} main non-free contrib
-deb http://mirrors.163.com/debian ${ver:-buster}-proposed-updates main non-free contrib
-deb http://mirrors.163.com/debian-security ${ver:-buster}/updates main contrib non-free
-deb http://mirrors.163.com/debian ${ver:-buster}-backports main contrib non-free
+deb http://mirrors.163.com/debian ${ver} main non-free contrib
+deb http://mirrors.163.com/debian ${ver}-proposed-updates main non-free contrib
+deb http://mirrors.163.com/debian-security ${ver}/updates main contrib non-free
+deb http://mirrors.163.com/debian ${ver}-backports main contrib non-free
 EOF
 }
 export -f debian_apt_init
@@ -287,7 +287,7 @@ debian_chpasswd() {
 }
 export -f debian_chpasswd
 
-autologin_root() {
+debian_autologin_root() {
     # auto login as root
     sed -i "s|#NAutoVTs=6|NAutoVTs=1|" /etc/systemd/logind.conf
     mkdir -p /etc/systemd/system/getty@tty1.service.d
@@ -298,7 +298,7 @@ autologin_root() {
 EOF
     systemctl enable getty@tty1.service
 }
-export -f autologin_root
+export -f debian_autologin_root
 
 debain_overlay_init() {
     cat > /etc/overlayroot.conf <<'EOF'
@@ -433,18 +433,36 @@ debian_minimum_init() {
 } >/dev/null 2>&1
 export -f debian_minimum_init
 
-debian_bashrc_init() {
-    cat > /root/.bashrc<<"EOF"
-export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
+# root user save as .bashrc
+# other save as .bash_aliases
+# see: /etc/skel/.bashrc
+debian_bash_init() {
+    local user=$1
+    local busybox=${2:-}
+    local home=$(getent passwd ${user} | cut -d: -f6)
+    [ -z ${home} ] && return 1
+    [ ${user} = "root" ] && home+=/.bashrc || home+=/.bash_aliases
+  {
+    cat <<"EOF"
 umask 022
-export LS_OPTIONS='--color=auto'
-eval "`dircolors`"
-alias ls='ls $LS_OPTIONS'
-alias ll='ls $LS_OPTIONS -lh'
+
+alias ll='ls -lh'
 alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
+alias df='df -h'
+
+export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
+
+[ -e /usr/lib/git-core/git-sh-prompt ] && {
+    source /usr/lib/git-core/git-sh-prompt
+    export GIT_PS1_SHOWDIRTYSTATE=1
+    export readonly PROMPT_COMMAND='__git_ps1 "\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]\\h:\\[\\033[33;1m\\]\\w\\[\\033[m\\]"  "\\\\\$ "'
+}
+
 set -o vi
+EOF
+     [[ ${busybox} =~ ^1|yes|true$ ]] && cat <<'EOF'
 bb_cmd() {
     for i in $*; do
         alias $i="$(busybox which $i || echo busybox $i)"
@@ -455,6 +473,7 @@ do
     bb_cmd $c
 done
 EOF
+  } > ${home}
 }
-export -f debian_bashrc_init
+export -f debian_bash_init
 

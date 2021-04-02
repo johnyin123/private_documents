@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - bf85f19 - 2021-04-01T15:09:07+08:00")
+VERSION+=("build_debian_live_iso.sh - 7e612f4 - 2021-04-02T07:34:57+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -156,7 +156,8 @@ new_build() {
     defined DRYRUN || {
         debian_build "${root_dir}" "${cache_dir}" "${include_pkg}"
         LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
-        autologin_root
+        debian_autologin_root
+        debian_bash_init root true
 EOSHELL
     }
     return 0

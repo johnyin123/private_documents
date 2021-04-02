@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - e38e255 - 2021-04-01T07:41:14+08:00")
+VERSION+=("init-pc.sh - abe917b - 2021-04-01T09:41:59+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -131,27 +131,7 @@ grub-mkconfig -o /boot/grub/grub.cfg
     chmod 755 /etc/update-motd.d/11-motd
 }
 
-cat >>/root/.bashrc<<"EOF"
-export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
-
-[ -e /usr/lib/git-core/git-sh-prompt ] && {
-    source /usr/lib/git-core/git-sh-prompt
-    export GIT_PS1_SHOWDIRTYSTATE=1
-    export readonly PROMPT_COMMAND='__git_ps1 "\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]\\h:\\[\\033[33;1m\\]\\w\\[\\033[m\\]"  "\\\\\$ "'
-}
-
-umask 022
-export LS_OPTIONS='--color=auto'
-eval "`dircolors`"
-alias ls='ls $LS_OPTIONS'
-alias ll='ls $LS_OPTIONS -lh'
-alias rm='rm -i'
-alias cp='cp -i'
-alias mv='mv -i'
-alias df='df -h'
-set -o vi
-EOF
-
+debian_bash_init root
 
 echo "use tcp dns query"
 : <<EOF
@@ -197,6 +177,8 @@ id johnyin &>/dev/null && {
 
     echo "enable root user run X app"
     ln -s /home/johnyin/.Xauthority /root/.Xauthority
+
+    debian_bash_init johnyin
 }
 
 id root &>/dev/null && debian_chpasswd root ${PASSWORD}
