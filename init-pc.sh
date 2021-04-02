@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - abe917b - 2021-04-01T09:41:59+08:00")
+VERSION+=("init-pc.sh - 11ebade - 2021-04-02T09:31:33+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -15,6 +15,7 @@ DEBIAN_VERSION=buster
 PASSWORD=password
 IPADDR=192.168.168.124/24
 GATEWAY=192.168.168.1
+NAME_SERVER=114.114.114.114
 #512 M
 ZRAM_SIZE=512
 
@@ -23,17 +24,28 @@ apt update
 apt -y upgrade
 
 echo "xk-yinzh" > /etc/hostname
+
 cat << EOF > /etc/hosts
 127.0.0.1       localhost $(cat /etc/hostname)
 EOF
 
-echo "Enable udisk2 ${ZRAM_SIZE}M zram swap"
-debian_zswap_init ${ZRAM_SIZE}
-debian_sshd_init
+cat << EOF > /etc/rc.local
+#!/bin/sh -e
+exit 0
+EOF
+chmod 755 /etc/rc.local
+
+echo "nameserver ${NAME_SERVER:-114.114.114.114}" > /etc/resolv.conf
+debian_chpasswd root ${PASSWORD:-password}
+debian_locale_init
 debian_limits_init
 debian_sysctl_init
+debian_bash_init root
 debian_vim_init
+debian_zswap_init ${ZRAM_SIZE}
+debian_sshd_init
 debain_overlay_init
+debian_bash_init root
 
 cat << EOF | tee /etc/network/interfaces
 source /etc/network/interfaces.d/*
@@ -100,13 +112,6 @@ network={
 }
 EOF_WIFI
 
-
-cat << EOF > /etc/rc.local
-#!/bin/sh -e
-exit 0
-EOF
-chmod 755 /etc/rc.local
-
 cat << "EOF" > /root/aptrom.sh
 #!/usr/bin/env bash
 
@@ -131,7 +136,6 @@ grub-mkconfig -o /boot/grub/grub.cfg
     chmod 755 /etc/update-motd.d/11-motd
 }
 
-debian_bash_init root
 
 echo "use tcp dns query"
 : <<EOF
@@ -181,7 +185,6 @@ id johnyin &>/dev/null && {
     debian_bash_init johnyin
 }
 
-id root &>/dev/null && debian_chpasswd root ${PASSWORD}
 id johnyin &>/dev/null && debian_chpasswd johnyin ${PASSWORD}
 echo "Force Users To Change Passwords Upon First Login"
 chage -d 0 root || true
