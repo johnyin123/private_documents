@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 7e612f4 - 2021-04-02T07:34:57+08:00")
+VERSION+=("build_debian_live_iso.sh - 11ebade - 2021-04-02T09:31:33+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -269,6 +269,7 @@ main() {
         *)        usage "--new/--rebuild";;
     esac
     defined DRYRUN || LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
+    systemctl disable apt-daily-upgrade.timer apt-daily.timer
     debian_minimum_init
 EOSHELL
     info_msg "gen squashfs ... \n" 
