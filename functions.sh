@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - e8e748e - 2021-03-31T07:11:50+08:00")
+VERSION+=("functions.sh - b26ed6c - 2021-03-31T10:26:38+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -74,6 +74,14 @@ is_in_comma_sep_list ()
     shift
     is_in_list_separator_helper "," "${element}" "${*}"
 }
+
+
+# Usage:
+#   join , a "b c" d #a,b c,d
+#   join / var local tmp #var/local/tmp
+#   join , "${FOO[@]}" #a,b,c
+# ----------------------------------------------
+join() { local IFS="${1}"; shift; echo "${*}"; }
 
 __M=$((1048576))
 __G=$((1024*__M))
