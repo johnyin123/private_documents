@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - 16fc2b2 - 2021-04-02T09:47:41+08:00")
+VERSION+=("init-pc.sh - 1d8fb31 - 2021-04-02T13:41:11+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -164,7 +164,8 @@ apt -y install systemd-container \
     libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
     qemu-kvm qemu-utils xmlstarlet jq sudo debootstrap kpartx
 
-apt -y install traceroute ipcalc
+apt -y install traceroute ipcalc qrencode
+# qrencode -8  -o - -t UTF8 "massage"
 
 id johnyin &>/dev/null && {
     echo "login johnyin and run 'systemctl enable pulseaudio.service --user' to enable pulse audio"
