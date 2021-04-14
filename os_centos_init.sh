@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_centos_init.sh - 71e15f2 - 2021-04-01T10:37:58+08:00")
+VERSION+=("os_centos_init.sh - ab87ba4 - 2021-04-01T16:40:42+08:00")
 centos_limits_init() {
     #set the file limit
     cat > /etc/security/limits.d/tun.conf << EOF
@@ -71,7 +71,8 @@ centos_sshd_init() {
     cp /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
     sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
     sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
-    sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config
+    #sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config
+    sed -E -i "s/(Port|#\sPort|#Port)\s.{1,5}$/Port 60022/g" /etc/ssh/sshd_config
     sed -i 's/GSSAPIAuthentication.*/GSSAPIAuthentication no/g' /etc/ssh/sshd_config
     (grep -v -E "^Ciphers|^MACs|^PermitRootLogin" /etc/ssh/sshd_config ; echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr"; echo "MACs    hmac-sha1"; echo "PermitRootLogin without-password";) | tee /etc/ssh/sshd_config.bak
     mv /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
