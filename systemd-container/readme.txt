@@ -159,8 +159,8 @@ apt install xvfb x11vnc
    x11vnc -reopen -listen 0.0.0.0 -forever -usepw -display WAIT:cmd=/root/finddsp
    x11vnc -reopen -listen 0.0.0.0 -loop -passwd password -display WAIT:cmd=/root/finddsp -o /root/x11vnc.log
    cat <<EOF > finddsp
-        /usr/sbin/start-stop-daemon --start --quiet --background --exec /usr/bin/Xvfb -- :10 -screen 0 1024x768x24+32 -ac -r -cc 4 -accessx -xinerama +extension Composite +extension GLX
-        /usr/sbin/start-stop-daemon --start --quiet --background --chuid johnyin --exec /opt/google/chrome/google-chrome -- --display=:10 --no-first-run --app=http://kq.neusoft.com
+        /usr/bin/pidof Xvfb > /dev/null || /usr/sbin/start-stop-daemon --start --quiet --background --exec /usr/bin/Xvfb -- :10 -screen 0 1024x768x24+32 -ac -r -cc 4 -accessx -xinerama +extension Composite +extension GLX
+        /usr/bin/pidof google-chrome > /dev/null || /usr/sbin/start-stop-daemon --start --quiet --background --chuid johnyin --exec /opt/google/chrome/google-chrome -- --display=:10 --no-first-run --app=http://kq.neusoft.com
         echo "DISPLAY=:10"
         sleep 5
         exit 0
