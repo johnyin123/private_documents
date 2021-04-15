@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - 1d8fb31 - 2021-04-02T13:41:11+08:00")
+VERSION+=("init-pc.sh - ad40d5b - 2021-04-14T09:18:58+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -220,6 +220,62 @@ LST_EOF
 apt-get update -oAcquire::AllowInsecureRepositories=true
 apt-get install deb-multimedia-keyring
 EOF
+
+cat <<'EODOC'
+# systemctl disable networking.service NetworkManager
+# systemctl enable systemd-networkd.service
+
+BR_NAME=br-ext
+ETHER_DEV=eth0
+ADDRESS=192.168.168.124/24
+GATEWAY=192.168.168.1
+
+cat <<EOF >/etc/systemd/network/${ETHER_DEV}.network
+[Match]
+Name=${ETHER_DEV}
+
+[Network]
+Bridge=${BR_NAME}
+EOF
+
+cat <<EOF >/etc/systemd/network/${BR_NAME}.netdev
+[NetDev]
+Name=${BR_NAME}
+Kind=bridge
+EOF
+
+cat <<EOF >/etc/systemd/network/${BR_NAME}.network
+[Match]
+Name=${BR_NAME}
+
+[Network]
+Address=${ADDRESS}
+[Route]
+#for speedup reason move gateway here
+Gateway=${GATEWAY}
+EOF
+
+BR_NAME=br-sy
+cat <<EOF >/etc/systemd/network/${BR_NAME}.netdev
+[NetDev]
+Name=${BR_NAME}
+Kind=bridge
+EOF
+
+BR_NAME=br-dl
+cat <<EOF >/etc/systemd/network/${BR_NAME}.netdev
+[NetDev]
+Name=${BR_NAME}
+Kind=bridge
+EOF
+
+BR_NAME=br-bj
+cat <<EOF >/etc/systemd/network/${BR_NAME}.netdev
+[NetDev]
+Name=${BR_NAME}
+Kind=bridge
+EOF
+EODOC
 
 echo "ALL DONE!!!!!!!!!!!!!!!!"
 
