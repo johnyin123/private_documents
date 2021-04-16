@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION+=("motd.sh - 7313142 - 2021-02-12T10:42:49+08:00")
+VERSION+=("motd.sh - 1f56ddd - 2021-04-01T10:47:44+08:00")
 date=$(date "+%F %T")
 kernel=$(uname -r)
 hostname="$HOSTNAME"
@@ -68,7 +68,7 @@ exec {FD}</etc/logo.txt
         IP=$(ip ad show dev $i | awk '/inet / {print $2}')
         for j in ${IP}
         do
-            printf "%-20s%-20s%s\n" $i $MAC $j
+            printf "%-20s%-20s%s\n" "$i" "$MAC" "$j"
         done
     done
 
