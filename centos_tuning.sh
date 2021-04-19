@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("centos_tuning.sh - 2e70769 - 2021-04-01T10:45:12+08:00")
+VERSION+=("centos_tuning.sh - 6d55aa5 - 2021-04-01T13:02:29+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_centos_init.sh
@@ -63,6 +63,8 @@ main() {
         centos_sshd_init
         centos_disable_ipv6
         centos_service_init
+        $(typeset -f centos_sysctl_init)
+        centos_sysctl_init
         $(typeset -f centos_zswap_init)
         centos_zswap_init 2048
 
