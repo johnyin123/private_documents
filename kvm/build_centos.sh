@@ -7,7 +7,7 @@ if [ "${DEBUG:=false}" = "true" ]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_centos.sh - 0b01a97 - 2021-03-16T08:58:29+08:00")
+VERSION+=("build_centos.sh - e0584b7 - 2021-03-16T09:48:41+08:00")
 : <<'EOF'
 # Create a folder for our new root structure
 $ export centos_root='/centos_image/rootfs'
@@ -128,6 +128,7 @@ function cleanup
         done
     }
     execute kpartx -dsv ${DISK_FILE}
+    # blockdev --rereadpt /dev/sda
 }
 trap cleanup TERM
 trap cleanup INT
