@@ -16,7 +16,110 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_centos_init.sh - ab87ba4 - 2021-04-01T16:40:42+08:00")
+VERSION+=("os_centos_init.sh - 4d6de0d - 2021-04-14T14:05:03+08:00")
+centos_build() {
+    local root_dir=$1
+    local REPO=$(mktemp -d)/local.repo
+    local YUM_OPT="--disablerepo=* --enablerepo=centos -q --noplugins --nogpgcheck --config=${REPO}" #--setopt=tsflags=nodocs"
+    [ -r ${REPO} ] || {
+        cat> ${REPO} <<'EOF'
+[centos]
+name=centos
+# baseurl=http://mirrors.163.com/centos/7.7.1908/os/x86_64/
+baseurl=http://10.0.2.1:8080/
+gpgcheck=0
+EOF
+    ${EDITOR:-vi} ${REPO} || true
+}
+# $ mkdir -p $centos_root
+# # initialize rpm database
+# $ rpm --root $centos_root --initdb
+# # download and install the centos-release package, it contains our repository sources
+# $ yumdownloader --destdir=. centos-release
+# # $ yum reinstall --downloadonly --downloaddir . centos-release
+# $ rpm --root $centos_root -ivh --nodeps centos-release*.rpm
+# $ rpm --root $centos_root --import  $centos_root/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
+# # install yum without docs and install only the english language files during the process
+# $ yum -y --installroot=$centos_root --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install yum
+# # configure yum to avoid installing of docs and other language files than english generally
+# $ sed -i "/distroverpkg=centos-release/a override_install_langs=en_US.utf8\ntsflags=nodocs" $centos_root/etc/yum.conf
+# # chroot to the environment and install some additional tools
+# $ cp /etc/resolv.conf $centos_root/etc
+# # mount the device tree, as its required by some programms
+# $ mount -o bind /dev $centos_root/dev
+# $ chroot $centos_root /bin/bash <<EOF
+# yum install -y procps-ng iputils initscripts openssh-server rsync openssh-clients passwd
+# yum clean all
+# $ rm -f $centos_root/etc/resolv.conf
+# $ umount $centos_root/dev
+#     yum ${YUM_OPT} -y --installroot=${root_dir} remove -C --setopt="clean_requirements_on_remove=1" \
+# 	    firewalld \
+# 	    NetworkManager \
+# 	    NetworkManager-team \
+# 	    NetworkManager-tui \
+# 	    NetworkManager-wifi \
+#       linux-firmware* \
+# 	    aic94xx-firmware \
+# 	    alsa-firmware \
+# 	    ivtv-firmware \
+# 	    iwl100-firmware \
+# 	    iwl1000-firmware \
+# 	    iwl105-firmware \
+# 	    iwl135-firmware \
+# 	    iwl2000-firmware \
+# 	    iwl2030-firmware \
+# 	    iwl3160-firmware \
+# 	    iwl3945-firmware \
+# 	    iwl4965-firmware \
+# 	    iwl5000-firmware \
+# 	    iwl5150-firmware \
+# 	    iwl6000-firmware \
+# 	    iwl6000g2a-firmware \
+# 	    iwl6000g2b-firmware \
+# 	    iwl6050-firmware \
+# 	    iwl7260-firmware \
+# 	    iwl7265-firmware
+    cat > ${root_dir}/etc/default/grub <<'EOF'
+GRUB_TIMEOUT=5
+GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
+GRUB_DEFAULT=saved
+GRUB_DISABLE_SUBMENU=true
+GRUB_TERMINAL_OUTPUT="console"
+GRUB_CMDLINE_LINUX="console=ttyS0 net.ifnames=0 biosdevname=0"
+GRUB_DISABLE_RECOVERY="true"
+EOF
+    cat > ${root_dir}/etc/X11/xorg.conf.d/00-keyboard.conf <<EOF
+Section "InputClass"
+        Identifier "system-keyboard"
+        MatchIsKeyboard "on"
+        Option "XkbLayout" "cn"
+EndSection
+EOF
+    echo 'KEYMAP="cn"' > ${root_dir}/etc/vconsole.conf
+
+
+    chmod 755 ${root_dir}/etc/rc.d/rc.local
+    rm -f ${root_dir}/ssh/ssh_host_*
+    LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
+    rm -f /etc/locale.conf /etc/localtime /etc/hostname /etc/machine-id /etc/.pwd.lock
+    systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id
+    #localectl set-locale LANG=zh_CN.UTF-8
+    #localectl set-keymap cn
+    #localectl set-x11-keymap cn
+    echo "${PASSWORD:-password}" | passwd --stdin root
+    systemctl enable getty@tty1
+
+    centos_limits_init
+    centos_disable_selinux
+    centos_sshd_init
+    centos_disable_ipv6
+    centos_service_init
+    centos_sysctl_init
+    centos_zswap_init 512
+EOSHELL
+    return 0
+}
+
 centos_limits_init() {
     #set the file limit
     cat > /etc/security/limits.d/tun.conf << EOF

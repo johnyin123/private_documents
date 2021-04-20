@@ -1,13 +1,15 @@
-#!/bin/bash
-set -o nounset -o pipefail
-dirname="$(dirname "$(readlink -e "$0")")"
-SCRIPTNAME=${0##*/}
-
-if [ "${DEBUG:=false}" = "true" ]; then
+#!/usr/bin/env bash
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly SCRIPTNAME=${0##*/}
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
+    BASH_XTRACEFD="5"
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_centos.sh - e0584b7 - 2021-03-16T09:48:41+08:00")
+VERSION+=("build_centos.sh - 8896270 - 2021-04-19T10:16:38+08:00")
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+################################################################################
 : <<'EOF'
 # Create a folder for our new root structure
 $ export centos_root='/centos_image/rootfs'
@@ -30,20 +32,19 @@ $ mount -o bind /dev $centos_root/dev
 $ chroot $centos_root /bin/bash <<EOF
 yum install -y procps-ng iputils initscripts openssh-server rsync openssh-clients passwd
 yum clean all
-EOF
 $ rm -f $centos_root/etc/resolv.conf
 $ umount $centos_root/dev
 EOF
 ## start parms
 SWAP_FILE=${SWAP_FILE:-false}
 TOMCAT_USR=${TOMCAT_USR:-false}
-REPO=${REPO:-${dirname}/local.repo}
+REPO=${REPO:-${DIRNAME}/local.repo}
 ADDITION_PKG=${ADDITION_PKG:-""}
 ADDITION_PKG="${ADDITION_PKG} wget rsync bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp wget strace ltrace python-virtualenv qemu-guest-agent traceroute rsync pciutils lrzsz iotop iftop"
 ADDITION_PKG="${ADDITION_PKG} nscd" 
-ROOTFS=${ROOTFS:-${dirname}/rootfs}
+ROOTFS=${ROOTFS:-${DIRNAME}/rootfs}
 NEWPASSWORD=${NEWPASSWORD:-"password"}
-DISK_FILE=${DISK_FILE:-"${dirname}/disk"}
+DISK_FILE=${DISK_FILE:-"${DIRNAME}/disk"}
 DISK_SIZE=${DISK_SIZE:-"1500M"}
 DISK_LVM=${DISK_LVM:-true}
 ROOTVG=${ROOTVG:-"centos"}
@@ -60,80 +61,33 @@ IP=${IP%/*}
 
 : ${DISK_FILE:?"ERROR: DISK_FILE must b set"}
 
-QUIET=false
-function output() {
-    echo -e "${*}"
+fake_yum() {
+    try "yum ${YUM_OPT} -y --installroot=${ROOTFS} ${*} 2>/dev/null"
 }
 
-function log() {
-    level=${1}
-    shift
-    MSG="${*}"
-    timestamp=$(date +%Y%m%d_%H%M%S)
-    case ${level} in
-        "info")
-            if ! ${QUIET}; then
-                output "${timestamp} I: ${MSG}"
-            fi
-            ;;
-        "warn")
-            output "${timestamp} \e[1;33mW: ${MSG}\e[0m"
-            ;;
-        "error")
-            output "${timestamp} \e[1;31mE: ${MSG}\e[0m"
-            ;;
-        "debug")
-            output "${timestamp} \e[1;32mD: ${MSG}\e[0m"
-            ;;
-    esac
-}
-
-function abort() {
-    log "error" "${*}"
-    exit 1
-}
-
-#command use the '|"' must be escaped with '\' 
-function execute () {
-    eval "${*}"
-# >/dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        log "error" "executing ${*} error"
-	bash
-    else
-        log "info" "executing ${*} ok"
-    fi
-}
-
-function fake_yum {
-    log "info" "yum ${YUM_OPT} -y --installroot=${ROOTFS} ${*}"
-    yum ${YUM_OPT} -y --installroot=${ROOTFS} ${*} 2>/dev/null
-}
-
-function cleanup
-{
+cleanup() {
     sync;sync;sync
-    mount | grep "${ROOTFS}" > /dev/null 2>&1 && execute umount -R ${ROOTFS}
+    mount | grep "${ROOTFS}" > /dev/null 2>&1 && try umount -R ${ROOTFS}
     [[ "${DISK_LVM}" = "true" ]] && {
-        execute vgchange -an ${ROOTVG};
+        try vgchange -an ${ROOTVG};
         # FIX ,need twice ~~
         while pvs 2>/dev/null | awk '{print $2}' | grep "${ROOTVG}"
         do
-            execute kpartx -dsv ${DISK_FILE}
-            execute kpartx -asv ${DISK_FILE}
-            execute vgchange -an ${ROOTVG}
-            execute sleep 1
-            execute kpartx -dsv ${DISK_FILE}
+            try kpartx -dsv ${DISK_FILE}
+            try kpartx -asv ${DISK_FILE}
+            try vgchange -an ${ROOTVG}
+            try sleep 1
+            try kpartx -dsv ${DISK_FILE}
             #dmsetup remove /dev/.....
         done
     }
-    execute kpartx -dsv ${DISK_FILE}
+    try kpartx -dsv ${DISK_FILE}
     # blockdev --rereadpt /dev/sda
 }
 trap cleanup TERM
 trap cleanup INT
 
-function change_vm_info() {
+change_vm_info() {
     local mnt_point=$1
     local guest_hostname=$2
     local guest_ipaddr=$3
@@ -161,18 +115,11 @@ EOF
     echo "${guest_hostname}" > ${mnt_point}/etc/hostname || { return 1; }
     chmod 755 ${mnt_point}/etc/rc.d/rc.local
     rm -f ${mnt_point}/ssh/ssh_host_*
-    touch ${mnt_point}/etc/motd.sh
-    cat >> ${mnt_point}/etc/profile << 'EOF'
-export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
-export readonly PROMPT_COMMAND='{ msg=$(history 1 | { read x y; echo $y; });user=$(whoami); logger "$(date +%Y%m%d%H%M%S):$user:$(pwd):$msg:$(who am i)"; }'
-sh /etc/motd.sh
-export TMOUT=600
-set -o vi
-EOF
     return 0
 }
 
-[[ $UID = 0 ]] || log "warn" "recommended to run as root."
+is_user_root || exit_msg "recommended to run as root.\n"
+require kpartx mkfs.xfs yum blkid parted
 
 [ -r ${REPO} ] || {
     cat> ${REPO} <<'EOF'
@@ -188,34 +135,30 @@ gpgcheck=0
 # #keepcache=1
 # gpgcheck=0
 EOF
-    abort "Created ${REPO} using defaults.  Please review it/configure before running again."
+    exit_msg "Created ${REPO} using defaults.  Please review it/configure before running again.\n"
 }
 
-log "warn" "file      :${DISK_FILE}"
-log "warn" "size      :${DISK_SIZE}"
-log "warn" "tomcat    :${TOMCAT_USR}"
-log "warn" "hostname  :${NAME}"
-log "warn" "ip        :${IP}/${PREFIX}"
-log "warn" "gateway   :${GW}"
-log "warn" "passwd    :${NEWPASSWORD}"
-log "warn" "pkg       :${ADDITION_PKG}"
+info_msg "file      :${DISK_FILE}\n"
+info_msg "size      :${DISK_SIZE}\n"
+info_msg "tomcat    :${TOMCAT_USR}\n"
+info_msg "hostname  :${NAME}\n"
+info_msg "ip        :${IP}/${PREFIX}\n"
+info_msg "gateway   :${GW}\n"
+info_msg "passwd    :${NEWPASSWORD}\n"
+info_msg "pkg       :${ADDITION_PKG}\n"
 
-for i in kpartx mkfs.xfs yum blkid parted
-do
-    [[ ! -x $(which $i) ]] && { abort "$i no found"; }
-done
 
-execute truncate -s ${DISK_SIZE} ${DISK_FILE} 
+try truncate -s ${DISK_SIZE} ${DISK_FILE} 
 #dd if=/dev/zero of=${DISK_FILE} bs=1 count=${DISK_SIZE}
 
 if [ "${DISK_LVM}" = "true" ]; then
-    execute parted -s ${DISK_FILE} -- mklabel msdos \
+    try parted -s ${DISK_FILE} -- mklabel msdos \
     	mkpart primary xfs 1m 200m \
     	mkpart primary xfs 201m -1s \
     	set 1 boot on \
     	set 2 lvm on
 else
-    execute parted -s ${DISK_FILE} -- mklabel msdos \
+    try parted -s ${DISK_FILE} -- mklabel msdos \
 	    mkpart primary xfs 2048s -1s \
 	    set 1 boot on
 fi
@@ -226,29 +169,29 @@ ROOTPV="/dev/mapper/${DISK##*/}p2"
 ROOTDEV="/dev/mapper/${ROOTVG}-${ROOTLV}"
 
 if [ "${DISK_LVM}" = "true" ]; then
-    execute mkfs.xfs -f -L bootfs ${MOUNTDEV}
-    execute pvcreate ${ROOTPV}
-    execute vgcreate ${ROOTVG} ${ROOTPV}
+    try mkfs.xfs -f -L bootfs ${MOUNTDEV}
+    try pvcreate ${ROOTPV}
+    try vgcreate ${ROOTVG} ${ROOTPV}
     #lvcreate -L 1536M
-    execute lvcreate -l 100%FREE -n ${ROOTLV} ${ROOTVG}
-    execute mkfs.xfs -f -L rootfs /dev/mapper/${ROOTVG}-${ROOTLV}
-    execute mkdir -p ${ROOTFS}
-    execute mount /dev/mapper/${ROOTVG}-${ROOTLV} ${ROOTFS}
-    execute mkdir -p ${ROOTFS}/boot
-    execute mount ${MOUNTDEV} ${ROOTFS}/boot
+    try lvcreate -l 100%FREE -n ${ROOTLV} ${ROOTVG}
+    try mkfs.xfs -f -L rootfs /dev/mapper/${ROOTVG}-${ROOTLV}
+    try mkdir -p ${ROOTFS}
+    try mount /dev/mapper/${ROOTVG}-${ROOTLV} ${ROOTFS}
+    try mkdir -p ${ROOTFS}/boot
+    try mount ${MOUNTDEV} ${ROOTFS}/boot
 else
-    execute mkfs.xfs -f -L rootfs ${MOUNTDEV}
-    execute mkdir -p ${ROOTFS}
-    execute mount ${MOUNTDEV} ${ROOTFS}
+    try mkfs.xfs -f -L rootfs ${MOUNTDEV}
+    try mkdir -p ${ROOTFS}
+    try mount ${MOUNTDEV} ${ROOTFS}
     ROOTDEV="UUID=$(blkid -s UUID -o value ${MOUNTDEV})"
 fi
 
 fake_yum install filesystem
-log "info" "disable new system yum repo"
-execute rm -f ${ROOTFS}/etc/yum.repos.d/*
+info_msg "disable new system yum repo\n"
+try rm -f ${ROOTFS}/etc/yum.repos.d/*
 for mp in /dev /sys /proc
 do
-    execute mount -o bind ${mp} ${ROOTFS}${mp}
+    try mount -o bind ${mp} ${ROOTFS}${mp}
 done
 fake_yum groupinstall core #"Minimal Install"
 fake_yum install initscripts iproute openssh-server openssh-clients passwd yum grub2 net-tools chrony lvm2 ${ADDITION_PKG}
@@ -290,14 +233,14 @@ GRUB_CMDLINE_LINUX="console=ttyS0 net.ifnames=0 biosdevname=0"
 GRUB_DISABLE_RECOVERY="true"
 EOF
 
-log "info" "add rootfs ....."
+info_msg "add rootfs .....\n"
 echo "${ROOTDEV} / xfs defaults 0 0" > ${ROOTFS}/etc/fstab
 if [ "${DISK_LVM}" = "true" ]; then
     echo "UUID=$(blkid -s UUID -o value ${MOUNTDEV}) /boot xfs defaults 0 0" >> ${ROOTFS}/etc/fstab
 fi
 
 if [ "${SWAP_FILE}" = "true" ]; then
-    log "info" "add 512M swap ....."
+    info_msg "add 512M swap .....\n"
     dd if=/dev/zero of=${ROOTFS}/swapfile bs=1M count=512 && chmod 600 ${ROOTFS}/swapfile && mkswap ${ROOTFS}/swapfile
     sed -i '$a\/swapfile swap swap defaults 0 0' ${ROOTFS}/etc/fstab
 fi
@@ -311,7 +254,7 @@ EndSection
 EOF
 echo 'KEYMAP="cn"' > ${ROOTFS}/etc/vconsole.conf
 
-execute chroot ${ROOTFS} /bin/bash 2>/dev/nul <<EOF
+try chroot ${ROOTFS} /bin/bash 2>/dev/nul <<EOF
 rm -f /etc/locale.conf /etc/localtime /etc/hostname /etc/machine-id /etc/.pwd.lock
 systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id
 #localectl set-locale LANG=zh_CN.UTF-8
@@ -327,7 +270,7 @@ touch /boot/*
 grub2-install --target=i386-pc --boot-directory=/boot --modules="xfs part_msdos" ${DISK}
 EOF
 
-log "info" "Rebuild the initramfs."
+info_msg "Rebuild the initramfs.\n"
 chroot ${ROOTFS} /bin/bash 2>/dev/nul <<'EOF'
 export LATEST_VERSION="$(cd /lib/modules; ls -1vr | head -1)"
 rm /boot/initramfs* /boot/vmlinuz-0-rescue-* -f
@@ -339,8 +282,8 @@ change_vm_info "${ROOTFS}" "${NAME}" "${IP}" "${PREFIX}" "${GW}"
 rm -fr ${ROOTFS}/var/cache
 
 
-log "info" "tuning system ....."
-execute chroot ${ROOTFS} /bin/bash 2>/dev/null <<'EOF'
+info_msg "tuning system .....\n"
+try chroot ${ROOTFS} /bin/bash 2>/dev/null <<'EOF'
 systemctl set-default multi-user.target
 chkconfig 2>/dev/null | egrep -v "crond|sshd|network|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
 systemctl list-unit-files | grep service | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
@@ -351,17 +294,17 @@ cat >> ${ROOTFS}/etc/security/limits.conf << EOF
 *           soft   nofile       102400
 *           hard   nofile       102400
 EOF
-log "info" "disable the ipv6"
+info_msg "disable the ipv6\n"
 cat > ${ROOTFS}/etc/modprobe.d/ipv6.conf << EOF
 install ipv6 /bin/true
 EOF
 
-log "info" "setting sshd"
-execute sed -i \"s/#UseDNS.*/UseDNS no/g\" ${ROOTFS}/etc/ssh/sshd_config
-execute sed -i \"s/GSSAPIAuthentication.*/GSSAPIAuthentication no/g\" ${ROOTFS}/etc/ssh/sshd_config
-execute sed -i \"s/#MaxAuthTries.*/MaxAuthTries 3/g\" ${ROOTFS}/etc/ssh/sshd_config
-execute sed -i \"s/#Port.*/Port 60022/g\" ${ROOTFS}/etc/ssh/sshd_config
-execute sed -i \"s/#Protocol 2/Protocol 2/g\" ${ROOTFS}/etc/ssh/sshd_config
+info_msg "setting sshd\n"
+try sed -i \"s/#UseDNS.*/UseDNS no/g\" ${ROOTFS}/etc/ssh/sshd_config
+try sed -i \"s/GSSAPIAuthentication.*/GSSAPIAuthentication no/g\" ${ROOTFS}/etc/ssh/sshd_config
+try sed -i \"s/#MaxAuthTries.*/MaxAuthTries 3/g\" ${ROOTFS}/etc/ssh/sshd_config
+try sed -i \"s/#Port.*/Port 60022/g\" ${ROOTFS}/etc/ssh/sshd_config
+try sed -i \"s/#Protocol 2/Protocol 2/g\" ${ROOTFS}/etc/ssh/sshd_config
 echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> ${ROOTFS}/etc/ssh/sshd_config
 echo "MACs    hmac-sha1" >> ${ROOTFS}/etc/ssh/sshd_config
 
@@ -371,9 +314,9 @@ sed -i "s/^PASS_MIN_LEN.*$/PASS_MIN_LEN 8/g" ${ROOTFS}/etc/login.defs
 sed -i "s/^PASS_WARN_AGE.*$/PASS_WARN_AGE 7/g" ${ROOTFS}/etc/login.defs
 sed -i "1 a auth       required     pam_tally2.so   onerr=fail  deny=6  unlock_time=1800" ${ROOTFS}/etc/pam.d/sshd
 sed -i "/password/ipassword    required      pam_cracklib.so lcredit=-1 ucredit=-1 dcredit=-1 ocredit=-1" ${ROOTFS}/etc/pam.d/system-auth
-execute chroot ${ROOTFS} userdel shutdown \|\| true
+try chroot ${ROOTFS} userdel shutdown \|\| true
 
-log "info" "tune kernel parametres"
+info_msg "tune kernel parametres\n"
 cat >> ${ROOTFS}/etc/sysctl.conf << EOF
 net.core.rmem_max = 134217728 
 net.core.wmem_max = 134217728 
@@ -463,12 +406,12 @@ done
 echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
 echo
 EOF
-execute chmod 644 ${ROOTFS}/etc/motd.sh
+try chmod 644 ${ROOTFS}/etc/motd.sh
 
 if [ "${TOMCAT_USR:=false}" = "true" ]
 then
-    log "info" "add user<tomcat>, add tomcat@ service"
-    execute chroot ${ROOTFS} useradd tomcat -M -s /sbin/nologin
+    info_msg "add user<tomcat>, add tomcat@ service\n"
+    try chroot ${ROOTFS} useradd tomcat -M -s /sbin/nologin
     cat >> ${ROOTFS}/lib/systemd/system/tomcat@.service << 'EOF'
 [Unit]
 Description=Apache Tomcat Web in /opt/%i
@@ -493,7 +436,7 @@ EOF
 fi
 
 cleanup
-log "info" "${DISK_FILE} Create root/${NEWPASSWORD} OK "
+info_msg "${DISK_FILE} Create root/${NEWPASSWORD} OK \n"
 exit 0
 
 
@@ -521,7 +464,6 @@ exit 0
 
 # #!/bin/bash
 # set -o nounset -o pipefail -o errexit
-# dirname="$(dirname "$(readlink -e "$0")")"
 # UUID=$(cat /proc/sys/kernel/random/uuid)
 # 
 # KVM_USER=${KVM_USER:-root}
