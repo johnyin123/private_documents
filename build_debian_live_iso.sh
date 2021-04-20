@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 8489f48 - 2021-04-02T10:26:20+08:00")
+VERSION+=("build_debian_live_iso.sh - bd1090c - 2021-04-19T08:40:47+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -284,6 +284,9 @@ EOSHELL
     try cp $(ls ${root_dir}/boot/vmlinuz* 2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/vmlinuz
     try cp $(ls ${root_dir}/boot/initrd*  2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/initrd
     #try cp ${root_dir}/boot/* ${iso_dir}/live/
+    # KERNEL=$(ls -al $IMAGETMP/boot/vmlinuz-* | awk {'print $9'} | sort -V | grep -v rescue | head -1)
+    # INITRD=$(ls -al $IMAGETMP/boot/initramfs* | awk {'print $9'} | sort -V | grep -v rescue | head -1)
+    # KERNELVER=$(echo $KERNEL | sed "s/$IMAGETMP\/boot\/vmlinuz-//g")
 
     case "${bootldr}" in
         grub)      gen_grublinuxiso "${root_dir}" "${iso_dir}" "${isoimage}" || exit_msg "gen_grublinuxiso error $?\n";;
