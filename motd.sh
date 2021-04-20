@@ -1,8 +1,8 @@
 #!/bin/bash
-VERSION+=("motd.sh - 1f56ddd - 2021-04-01T10:47:44+08:00")
+VERSION+=("motd.sh - aa8f952 - 2021-04-16T10:56:58+08:00")
 date=$(date "+%F %T")
 kernel=$(uname -r)
-hostname="$HOSTNAME"
+hostname=${HOSTNAME:-$(hostname)}
 #Cpu load
 load1_5_15=$(awk '{print $1 ", " $2 ", " $3}' /proc/loadavg)
 #System uptime
