@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("os_install.sh - initversion - 2021-04-21T13:38:16+08:00")
+VERSION+=("os_install.sh - aa864c3 - 2021-04-21T13:38:16+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 CONNECTION=${KVM_HOST:+qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}
@@ -33,14 +33,14 @@ virt_inst() {
     local iso_img=$5
     local media="--location ${iso_img}"
     local fmt="qcow2"
-    try virsh ${CONNECTION:+-c ${CONNECTION}} vol-create-as --pool ${store_pool} --name ${vm_type}.${fmt} --capacity ${size} --format ${fmt}
+    try virsh ${CONNECTION:+-c ${CONNECTION}} -q vol-create-as --pool ${store_pool} --name ${vm_type}.${fmt} --capacity ${size} --format ${fmt} || return 1
     case "$(to_lower ${vm_type})" in
         debian*)
-            gen_debian_preseed   > /tmp/debian.cfg
+            gen_debian_preseed vda   > /tmp/debian.cfg
             media+=" --extra-args=\"console=tty0 console=ttyS0\" --initrd-inject=/tmp/debian.cfg"
             ;;
         centos*)
-            gen_centos_kickstart > /tmp/centos.ks
+            gen_centos_kickstart vda > /tmp/centos.ks
             media+=" --extra-args=\"ks=file:/centos.ks\" --initrd-inject=/tmp/centos.ks"
             # echo ks.cfg | cpio -c -o >> initrd.img
             ;;
@@ -49,8 +49,8 @@ virt_inst() {
     # --graphics none --video none  --os-variant=rhel8.0\
     # --controller type=scsi,model=virtio-scsi \
     try virt-install -q ${CONNECTION:+--connect ${CONNECTION}} \
-        --virt-type kvm --cpu host-passthrough --accelerate \
-        --vcpus 1 --memory 4096 \
+        --virt-type kvm --cpu kvm64 --accelerate \
+        --vcpus 1 --memory 2048 \
         --name=${vm_type} --metadata title="${vm_type}" \
         --disk vol=${store_pool}/${vm_type}.${fmt},format=${fmt},sparse=true,bus=virtio,discard=unmap \
         --network bridge=${net_br},model=virtio \
@@ -59,14 +59,16 @@ virt_inst() {
         --channel unix,target_type=virtio,name=org.qemu.guest_agent.0 \
         --graphics spice,listen=none --video qxl \
         --console pty,target_type=virtio \
-        ${media} --noreboot
+        ${media} --noreboot || true
+    try rm -f /tmp/debian.cfg /tmp/centos.ks || true
 }
 
 gen_centos_kickstart() {
+    local boot_disk=$1
     cat <<EOF
 cdrom
 text
-skipx
+
 firstboot --enable
 poweroff
 
@@ -74,6 +76,8 @@ poweroff
 lang zh_CN.UTF-8
 keyboard us
 timezone Asia/Shanghai
+firewall --disabled
+selinux --disabled
 
 # network
 network --onboot yes --bootproto dhcp --noipv6
@@ -88,26 +92,18 @@ rootpw password
 clearpart --all --initlabel
 # Delete MBR / GPT
 zerombr
-bootloader --location=mbr --driveorder=sda --append=" console=tty0 console=ttyS0 net.ifnames=0 biosdevname=0"
-part     /          --fstype=xfs  --size=5000 --ondisk=sda
+bootloader --location=mbr --driveorder=${boot_disk} --append=" console=tty0 console=ttyS0 net.ifnames=0 biosdevname=0"
+part     /          --fstype=xfs  --size=5000 --ondisk=${boot_disk}
 
 # packages
 %packages
 @core
 lvm2
-chrony
 net-tools
 -alsa-*
 -iwl*firmware
 -ivtv*
 %end
-
-# services
-services --enabled=chronyd
-services --disabled=postfix
-firewall --disabled
-selinux --disabled
-
 %addon com_redhat_kdump --disable --reserve-mb='auto'
 %end
 %post
@@ -117,6 +113,7 @@ EOF
 }
 
 gen_debian_preseed() {
+    local boot_disk=$1
     cat <<EOF
 d-i debian-installer/locale string en_GB.UTF-8
 d-i keyboard-configuration/xkb-keymap select uk
@@ -174,7 +171,7 @@ popularity-contest popularity-contest/participate boolean false
 
 d-i grub-installer/only_debian boolean true
 d-i grub-installer/with_other_os boolean true
-d-i grub-installer/bootdev  string /dev/sda
+d-i grub-installer/bootdev  string /dev/${boot_disk}
 
 d-i finish-install/reboot_in_progress note
 d-i debian-installer/exit/poweroff boolean true
@@ -202,13 +199,13 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    local vm_type=debian
-    # local vm_type=Centos
+    #local vm_type=debian
+    #local iso_img=/home/johnyin/disk/iso/debian-10.8.0-amd64-netinst.iso
+    local vm_type=Centos
+    local iso_img=/home/johnyin/disk/iso/CentOS-8-x86_64-1905-dvd1.iso
     local store_pool=default
     local size_gb=10G
     local net_br=br-ext
-    local iso_img=/home/johnyin/disk/iso/debian-10.8.0-amd64-netinst.iso
-    # local iso_img=/home/johnyin/disk/iso/CentOS-8-x86_64-1905-dvd1.iso
     virt_inst "${vm_type}" "${store_pool}" "${size_gb}" "${net_br}" "${iso_img}"
     return 0
 }
