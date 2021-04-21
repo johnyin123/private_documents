@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("os_install.sh - aa864c3 - 2021-04-21T13:38:16+08:00")
+VERSION+=("os_install.sh - 00db646 - 2021-04-21T14:34:54+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 CONNECTION=${KVM_HOST:+qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}
@@ -114,6 +114,10 @@ EOF
 
 gen_debian_preseed() {
     local boot_disk=$1
+    # debconf-get-selections --installer >> file
+    # debconf-get-selections >> file
+    # 为了在安装之前测试您的预置文件是否有效，您可以使用 debconf-set-selections -c preseed.cfg
+
     cat <<EOF
 d-i debian-installer/locale string en_GB.UTF-8
 d-i keyboard-configuration/xkb-keymap select uk
