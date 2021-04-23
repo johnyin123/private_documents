@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-mgr.sh - initversion - 2021-01-25T07:29:48+08:00")
+VERSION+=("virt-mgr.sh - 9bf43e0 - 2021-01-25T07:29:47+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -72,6 +72,7 @@ create_vol() {
     local backing_vol="$(array_get ${arr} 'BACKING_VOL')"
     local backing_fmt="$(array_get ${arr} 'BACKING_FMT')"
     info_msg "create vol ${name} on ${pool} size ${size}\n"
+    try ${VIRSH} pool-refresh ${pool}
     try ${VIRSH} vol-create-as --pool ${pool} --name ${name} --capacity 1M --format ${fmt} \
         ${backing_vol:+--backing-vol ${backing_vol} --backing-vol-format ${backing_fmt} } || return 1
     try ${VIRSH} vol-resize --pool ${pool} --vol ${name} --capacity ${size} || return 3
