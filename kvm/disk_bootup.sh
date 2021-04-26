@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("disk_bootup.sh - initversion - 2021-04-25T06:36:56+08:00")
+VERSION+=("disk_bootup.sh - c9fa17c - 2021-04-25T06:36:55+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -52,6 +52,7 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
+    is_user_root || exit_msg "root need\n"
     [ -z ${disk} ] && usage "disk image ?"
     [ -z ${bridge} ] &&  usage "bridge network ?"
     file_exists "${disk}" || usage "disk nofound"
