@@ -7,11 +7,22 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("playbook_init.sh - cf10358 - 2021-01-17T10:50:22+08:00")
+VERSION+=("playbook_init.sh - be6cd99 - 2021-04-27T14:31:08+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 main() {
     local pbm=${1:-demo}
+    [[ -r "${DIRNAME}/site.yml" ]] && {
+        echo "- import_playbook: ${pbm}.yml" >> ${DIRNAME}/site.yml
+    } || {
+        cat > ${DIRNAME}/site.yml <<EOF
+#!/usr/bin/env ansible-playbook
+---
+- import_playbook: ${pbm}.yml
+EOF
+    chmod 755 ${DIRNAME}/site.yml
+    }
+
     [[ -r "${DIRNAME}/hosts" ]] || {
         cat > ${DIRNAME}/hosts <<EOF
 [all:vars]
