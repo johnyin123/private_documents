@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("playbook_init.sh - f597809 - 2020-01-16T15:03:53+08:00")
+VERSION+=("playbook_init.sh - cf10358 - 2021-01-17T10:50:22+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 main() {
@@ -18,7 +18,7 @@ main() {
 ansible_connection=ssh
 #ssh or paramiko
 ansible_user=root
-#ansible_ssh_pass=iiwicd123
+#ansible_ssh_pass=password
 
 [local] 
 127.0.0.1:60022
