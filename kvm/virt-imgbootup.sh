@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - initversion - 2021-04-28T09:07:50+08:00")
+VERSION+=("virt-imgbootup.sh - 2f47b81 - 2021-04-28T09:07:41+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -17,6 +17,10 @@ ${SCRIPTNAME}
         -c|--cpu    <int>     number of cpus (default 1)
         -m|--mem    <int>     mem size MB (default 2048)
         -D|--disk   <file> *  disk image
+                    nbd:192.0.2.1:30000
+                    nbd:unix:/tmp/nbd-socket
+                    ssh://user@host/path/to/disk.img
+                    iscsi://192.0.2.1/iqn.2001-04.com.example/1
         -b|--bridge <br>   *  host net bridge
         -f|--fmt    <fmt>     disk image format(default raw)
         --cdrom     <iso>     iso file
@@ -25,6 +29,8 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+        demo nbd-server:
+           qemu-nbd -v -x tpl -f raw linux.tpl
 EOF
     exit 1
 }
@@ -57,7 +63,7 @@ main() {
     is_user_root || exit_msg "root need\n"
     [ -z ${disk} ] && usage "disk image ?"
     [ -z ${bridge} ] &&  usage "bridge network ?"
-    file_exists "${disk}" || usage "disk nofound"
+    #file_exists "${disk}" || usage "disk nofound"
     bridge_exists "${bridge}" || usage "bridge nofound"
 
     directory_exists /etc/qemu/ || try mkdir -p /etc/qemu/
@@ -70,6 +76,5 @@ main() {
         ${cdrom:+-cdrom ${cdrom} -boot menu=on} \
         -drive file=${disk},index=0,cache=none,aio=threads,if=virtio,format=${fmt} \
         -netdev bridge,br=${bridge},id=net0 -device virtio-net-pci,netdev=net0
-    return 0
 }
 main "$@"
