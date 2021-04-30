@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 2f47b81 - 2021-04-28T09:07:41+08:00")
+VERSION+=("virt-imgbootup.sh - 3a97444 - 2021-04-30T12:45:10+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -30,7 +30,8 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
         demo nbd-server:
-           qemu-nbd -v -x tpl -f raw linux.tpl
+           qemu-nbd -f raw /storage/linux.tpl
+           qemu-nbd rbd:cephpool/win2k12r2.raw:conf=/etc/ceph/ceph.conf
 EOF
     exit 1
 }
