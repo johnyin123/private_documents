@@ -55,4 +55,6 @@ certtool --generate-certificate --load-privkey clientkey.pem \
 cat <<"EOF"
 on client do:
 mkdir -p $HOME/.pki/libvirt/ && cp clientkey.pem clientcert.pem $HOME/.pki/libvirt/
+mkdir -p /etc/pki/CA/ && cp cacert.pem /etc/pki/CA/
+virsh -c qemu+tls://root@1.1.1.1/system net-list --all
 EOF
