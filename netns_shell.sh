@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns_shell.sh - initversion - 2021-04-28T10:58:56+08:00")
+VERSION+=("netns_shell.sh - ace0848 - 2021-04-28T10:58:55+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_nameserver() {
@@ -33,7 +33,7 @@ export LC_ADDRESS="zh_CN.UTF-8"
 export LC_TELEPHONE="zh_CN.UTF-8"
 export LC_MEASUREMENT="zh_CN.UTF-8"
 export LC_IDENTIFICATION="zh_CN.UTF-8"
-DISPLAY=:0.0 su johnyin -c /opt/google/chrome/google-chrome>/dev/null 2>&1 &
+# DISPLAY=:0.0 su johnyin -c /opt/google/chrome/google-chrome>/dev/null 2>&1 &
 EOF
 }
 
@@ -86,9 +86,10 @@ main() {
         esac
     done
     is_user_root || exit_msg "root need!!\n"
-    [[ -z "${ipaddr}" ]] && usage "ipaddr must input"
-    [[ -z "${ns_name}" ]] && usage "nsname must input"
-    [[ -z "${host_br}" ]] && usage "bridge must input"
+    [ -z "${ipaddr}"  ] && usage "ipaddr must input"
+    [ -z "${ns_name}" ] && usage "nsname must input"
+    [ -z "${host_br}" ] && usage "bridge must input"
+    is_ipv4_subnet "${ipaddr}" || usage "ipaddr ip/mask"
     gateway=${gateway:-"${ipaddr%.*}.1"}
     dns=${dns:-"202.107.117.11"}
     info_msg "IPADDR=${ipaddr}\n"
@@ -102,8 +103,8 @@ main() {
     maybe_netns_run "ip route add default via ${gateway}" "${ns_name}" || true
     setup_nameserver "${ns_name}" "${dns}" || true
     #( nsenter --net=/var/run/netns/${ns_name} su johnyin /opt/google/chrome/google-chrome || true ) &>/dev/null &
-
-    maybe_netns_shell "${host_br}" "${ns_name}" ""  "/bin/bash" "--noprofile" || true
+    info_msg "DISPLAY=:0.0 su johnyin -c /opt/google/chrome/google-chrome\n"
+    maybe_netns_shell "${host_br}" "${ns_name}" || true
 
     maybe_netns_bridge_dellink "${ns_name}-eth1" ""
     cleanup_ns "${ns_name}"
