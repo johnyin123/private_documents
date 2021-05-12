@@ -7,9 +7,21 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_centos.sh - 8896270 - 2021-04-19T10:16:38+08:00")
+VERSION+=("build_centos.sh - 368de7e - 2021-04-20T09:00:38+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
+cat <<"EOF"
+sed -e 's|^mirrorlist=|#mirrorlist=|g' \
+    -e 's|^#baseurl=http://dl.rockylinux.org/$contentdir|baseurl=https://mirrors.sjtug.sjtu.edu.cn/rocky|g' \
+    -i.bak \
+    /etc/yum.repos.d/Rocky-*.repo
+恢复官方源：
+sed -e 's|^#mirrorlist=|mirrorlist=|g' \
+    -e 's|^baseurl=https://mirrors.sjtug.sjtu.edu.cn/rocky|#baseurl=http://dl.rockylinux.org/$contentdir|g' \
+    -i.bak \
+    /etc/yum.repos.d/Rocky-*.repo
+EOF
+
 : <<'EOF'
 # Create a folder for our new root structure
 $ export centos_root='/centos_image/rootfs'
