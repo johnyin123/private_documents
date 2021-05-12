@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("try.sh - 8aca591 - 2021-03-26T09:09:48+08:00")
+VERSION+=("try.sh - ce52b7a - 2021-04-01T08:55:01+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -305,6 +305,16 @@ __trace_OFF__
     false | true | (exit 50)
     echo ${PIPESTATUS[@]}
     echo "end: get all pipe exit code"
+
+    read -r SED_EXPR <<-EOF
+s#^port .\+#port ${REDIS_PORT}#; \
+s#^logfile .\+#logfile ${REDIS_LOG_FILE}#; \
+s#^dir .\+#dir ${REDIS_DATA_DIR}#; \
+s#^pidfile .\+#pidfile ${PIDFILE}#; \
+s#^daemonize no#daemonize yes#;
+EOF
+    sed "$SED_EXPR" CONFIG >> tmp.file
+
 
     return 0
 }
