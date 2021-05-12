@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - ad40d5b - 2021-04-14T09:18:58+08:00")
+VERSION+=("init-pc.sh - 1e20133 - 2021-04-15T09:37:19+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -166,6 +166,10 @@ apt -y install systemd-container \
 
 apt -y install traceroute ipcalc qrencode
 # qrencode -8  -o - -t UTF8 "massage"
+
+wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
+apt update && apt -y install google-chrome-stable
 
 id johnyin &>/dev/null && {
     echo "login johnyin and run 'systemctl enable pulseaudio.service --user' to enable pulse audio"
