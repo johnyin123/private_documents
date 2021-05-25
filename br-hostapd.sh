@@ -7,15 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("br-hostapd.sh - 0318c1c - 2021-01-25T08:24:57+08:00")
+VERSION+=("br-hostapd.sh - c74ffe1 - 2021-01-28T09:40:15+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
 gen_hostapd() {
     local wifi_interface="${1}"
-    local cfg_file="${2}"
-    local bridge=
-    [[ -z {3:-} ]] || bridge="bridge=${3}"
+    local wifi_ssid=${2}
+    local cfg_file="${3}"
+    local bridge="${4:-}"
     cat <<EOF | tee "${cfg_file}"
 interface=${wifi_interface}
 ${bridge}
@@ -33,7 +33,7 @@ ctrl_interface_group=0
 # ieee80211ac=1         # 802.11ac support
 # wmm_enabled=1         # QoS support
 
-ssid=s905d100
+ssid=${wifi_ssid}
 macaddr_acl=0
 #accept_mac_file=/etc/hostapd.accept
 #deny_mac_file=/etc/hostapd.deny
@@ -63,7 +63,7 @@ usage() {
 ${SCRIPTNAME} 
         -s|--start <wifi>  * start hostapd @ wifi
         -b|--bridge <br>     bridge wifi
-
+        --ssid <ssid>        wifi ap ssid, default: s905d100
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -76,9 +76,9 @@ EOF
 main() {
     local wifi=
     local bridge=
-
+    local ssid="s905d100"
     local opt_short+="s:b:"
-    local opt_long+="start:,bridge:,"
+    local opt_long+="start:,bridge:,ssid:,"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -87,6 +87,7 @@ main() {
         case "$1" in
             -s | --start)   shift; wifi=${1}; shift;;
             -b | --bridge)  shift; bridge=${1}; shift;;
+            --ssid)         shift; ssid=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -99,10 +100,10 @@ main() {
     done
     is_user_root || exit_msg "root user need!!\n"
     require ip hostapd
-    [[ -z "${wifi}" ]] && usage "wifi interface must input"
+    [ -z "${wifi}" ] && usage "wifi interface must input"
     directory_exists /sys/class/net/${wifi}/wireless || exit_msg "wireless ${wifi} nofound!!\n"
-    [[ -z "${bridge}" ]] || { file_exists /sys/class/net/${bridge}/bridge/bridge_id || exit_msg "bridge ${bridge} nofound!!\n"; }
-    gen_hostapd "${wifi}" "/tmp/hostapd.conf" "${bridge}"
+    [ -z "${bridge}" ] || { file_exists /sys/class/net/${bridge}/bridge/bridge_id || exit_msg "bridge ${bridge} nofound!!\n"; }
+    gen_hostapd "${wifi}" "${ssid}" "/tmp/hostapd.conf" "${bridge}"
     info_msg "start: hostapd -B /tmp/hostapd.conf\n"
     try "start-stop-daemon --start --quiet --background --exec /sbin/hostapd -- -B /tmp/hostapd.conf"
     return 0
