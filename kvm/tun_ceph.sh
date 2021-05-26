@@ -45,7 +45,7 @@ systemctl stop ceph-osd@24
 ceph osd tree
 #将删除的OSD从crush map中删除
 ceph osd crush remove osd.24
-#此时使用ceph osd tree 已经看不到 osd.3
+#此时使用ceph osd tree 已经看不到 osd.24
 #清除到OSD的认证密钥
 ceph auth del osd.24
 #在OSD Map中清除OSD
