@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-mgr.sh - c4bad75 - 2021-04-23T14:19:41+08:00")
+VERSION+=("virt-mgr.sh - 0934bc8 - 2021-05-27T11:02:56+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -433,8 +433,8 @@ EOF
     array_print_label DOMAIN_TPL | sed "s/\(.*\)/    [\1]/g" | vinfo_msg
     info_msg "DEVICE TEMPLATE:\n"
     array_print_label DEVICE_TPL | sed "s/\(.*\)/    [\1]/g" | vinfo_msg
-    local opt="${1:?$(usage)}"
-    shift 1
+    local opt="${1:-}"
+    shift 1 || true
     case "${opt}" in
         create)
             create "$@"
