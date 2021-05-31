@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns_shell.sh - ace0848 - 2021-04-28T10:58:55+08:00")
+VERSION+=("netns_shell.sh - 66869db - 2021-05-12T10:33:45+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_nameserver() {
@@ -35,11 +35,6 @@ export LC_MEASUREMENT="zh_CN.UTF-8"
 export LC_IDENTIFICATION="zh_CN.UTF-8"
 # DISPLAY=:0.0 su johnyin -c /opt/google/chrome/google-chrome>/dev/null 2>&1 &
 EOF
-}
-
-cleanup_nameserver() {
-    ns_name=$1
-    try rm -rf /etc/netns/$ns_name
 }
 
 usage() {
@@ -107,10 +102,8 @@ main() {
     maybe_netns_shell "${host_br}" "${ns_name}" || true
 
     maybe_netns_bridge_dellink "${ns_name}-eth1" ""
-    cleanup_ns "${ns_name}"
     cleanup_link "${ns_name}-eth1"
-    try rm -rf "/etc/netns/${ns_name}" || true
-    cleanup_nameserver "${ns_name}"
+    cleanup_ns "${ns_name}"
     info_msg "Exit success\n"
     return 0
 }
