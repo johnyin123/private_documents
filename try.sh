@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("try.sh - ce52b7a - 2021-04-01T08:55:01+08:00")
+VERSION+=("try.sh - f5cc431 - 2021-05-12T14:23:07+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -314,8 +314,12 @@ s#^pidfile .\+#pidfile ${PIDFILE}#; \
 s#^daemonize no#daemonize yes#;
 EOF
     sed "$SED_EXPR" CONFIG >> tmp.file
-
-
+# virsh dumpxml test_domain > a.xml
+# xmlstarlet el a.xml
+# xmlstarlet el -a a.xml
+# xmlstarlet el -v a.xml
+# xmlstarlet ed -u "domain/currentMemory[@unit='KiB']" -v 1111 a.xml
+# cat a.xml | xmlstarlet ed -u "domain/currentMemory[@unit='KiB']" -v 1111
     return 0
 }
 main "$@"
