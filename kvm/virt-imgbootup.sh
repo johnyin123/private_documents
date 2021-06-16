@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - fac419e - 2021-04-30T13:24:06+08:00")
+VERSION+=("virt-imgbootup.sh - ee0a947 - 2021-06-16T08:34:28+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -21,7 +21,7 @@ ${SCRIPTNAME}
                     nbd:unix:/tmp/nbd-socket
                     ssh://user@host/path/to/disk.img
                     iscsi://192.0.2.1/iqn.2001-04.com.example/1
-        -b|--bridge <br>   *  host net bridge
+        -b|--bridge <br>      host net bridge
         -f|--fmt    <fmt>     disk image format(default raw)
         --cdrom     <iso>     iso file
         --fda       <file>    floppy disk file
@@ -75,10 +75,10 @@ main() {
         try chmod 640 /etc/qemu/bridge.conf
     }
 
-    try qemu-system-x86_64 -enable-kvm -cpu kvm64 -smp ${cpu} -m ${mem} \
+    try qemu-system-x86_64 -enable-kvm -cpu kvm64 -smp ${cpu} -m ${mem} -vga qxl \
         ${cdrom:+-cdrom ${cdrom} -boot menu=on} \
         ${floppy:+-fda ${floppy}} \
-        -drive file=${disk},index=0,cache=none,aio=threads,if=virtio,format=${fmt} \
-        -netdev bridge,br=${bridge},id=net0 -device virtio-net-pci,netdev=net0
+        ${bridge:+-netdev bridge,br=${bridge},id=net0 -device virtio-net-pci,netdev=net0} \
+        -drive file=${disk},index=0,cache=none,aio=native,if=virtio,format=${fmt}
 }
 main "$@"
