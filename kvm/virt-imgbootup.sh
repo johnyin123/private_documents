@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 3a97444 - 2021-04-30T12:45:10+08:00")
+VERSION+=("virt-imgbootup.sh - fac419e - 2021-04-30T13:24:06+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -24,6 +24,7 @@ ${SCRIPTNAME}
         -b|--bridge <br>   *  host net bridge
         -f|--fmt    <fmt>     disk image format(default raw)
         --cdrom     <iso>     iso file
+        --fda       <file>    floppy disk file
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -36,9 +37,9 @@ EOF
     exit 1
 }
 main() {
-    local cpu=1 mem=2048 disk= bridge= fmt=raw cdrom=
+    local cpu=1 mem=2048 disk= bridge= fmt=raw cdrom= floppy=
     local opt_short="c:m:D:b:f:"
-    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,"
+    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -51,6 +52,7 @@ main() {
             -b | --bridge)  shift; bridge=${1}; shift;;
             -f | --fmt)     shift; fmt=${1}; shift;;
             --cdrom)        shift; cdrom=${1}; shift;;
+            --fda)          shift; floppy=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -75,6 +77,7 @@ main() {
 
     try qemu-system-x86_64 -enable-kvm -cpu kvm64 -smp ${cpu} -m ${mem} \
         ${cdrom:+-cdrom ${cdrom} -boot menu=on} \
+        ${floppy:+-fda ${floppy}} \
         -drive file=${disk},index=0,cache=none,aio=threads,if=virtio,format=${fmt} \
         -netdev bridge,br=${bridge},id=net0 -device virtio-net-pci,netdev=net0
 }
