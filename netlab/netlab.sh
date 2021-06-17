@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlab.sh - b2df025 - 2021-02-03T07:40:46+08:00")
+VERSION+=("netlab.sh - e4b9570 - 2021-02-03T08:45:12+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 post_create() { return 0; } #all netns created!!
@@ -105,6 +105,12 @@ ${SCRIPTNAME} <-s/-c> conf
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+tmux tip:
+        tmux ls
+        tmux a -t <session>
+        C-b d     - Detach the lab
+        C-b w     - Select a window
+
 config file example:
 cat <<'EO_CFG'>lab.conf
 #[name]="type" type:R/S/N (router,switch,node)
