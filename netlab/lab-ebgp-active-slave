@@ -75,6 +75,8 @@ done <<< "${network},"
 $(while read -rd "," -r x; do
     echo " neighbor ${x%:*} remote-as ${x##*:}"
     echo " neighbor ${x%:*} password ${password}"
+    echo " neighbor ${x%:*} ebgp-multihop 255"
+    echo " neighbor ${x%:*} next-hop-self"
     echo " neighbor ${x%:*} description \"to neighbor ${x}\""
 done <<< "${neighbor_lst},"
 )
@@ -115,6 +117,7 @@ post_create() {
 EOF
         window=${node}
         maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}" "${LAB_DIR}/${node}"
+        tmux_input "${SESS}" "${window}" "mount -t proc none /proc"
     done
     for node in h3 j3; do
         window=${node}
