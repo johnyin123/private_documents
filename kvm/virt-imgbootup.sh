@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - f156e0f - 2021-06-16T13:43:58+08:00")
+VERSION+=("virt-imgbootup.sh - e037dee - 2021-06-17T07:54:24+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -33,6 +33,9 @@ ${SCRIPTNAME}
         demo nbd-server:
            qemu-nbd -f raw /storage/linux.tpl
            qemu-nbd rbd:cephpool/win2k12r2.raw:conf=/etc/ceph/ceph.conf
+        demo floppy image:
+           mkfs.vfat -C "floppy.img" 1440
+           mount -o loop -t vfat floppy.img /mnt/floppy
 EOF
     exit 1
 }
@@ -77,7 +80,7 @@ main() {
     try qemu-system-x86_64 -enable-kvm -cpu kvm64 -smp ${cpu} -m ${mem} -vga qxl \
         ${cdrom:+-cdrom ${cdrom} -boot menu=on} \
         ${floppy:+-fda ${floppy}} \
-        ${bridge:+-netdev bridge,br=${bridge},id=net0 -device virtio-net-pci,netdev=net0} \
+        ${bridge:+-netdev bridge,br=${bridge},id=net0 -device virtio-net-pci,netdev=net0,mac=${MAC:-52:54:00:11:22:33}} \
         -drive file=${disk},index=0,cache=none,aio=native,if=virtio,format=${fmt}
 }
 main "$@"
