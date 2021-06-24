@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - e037dee - 2021-06-17T07:54:24+08:00")
+VERSION+=("virt-imgbootup.sh - 6f9880f - 2021-06-18T16:21:59+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -36,6 +36,8 @@ ${SCRIPTNAME}
         demo floppy image:
            mkfs.vfat -C "floppy.img" 1440
            mount -o loop -t vfat floppy.img /mnt/floppy
+        demo backing file:
+           qemu-img create -f qcow2 -b /tpl/debian10.raw -F raw debian.qcow2 20G
 EOF
     exit 1
 }
