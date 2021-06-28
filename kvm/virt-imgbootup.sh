@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 754fae7 - 2021-06-24T13:02:02+08:00")
+VERSION+=("virt-imgbootup.sh - 1ed1699 - 2021-06-28T14:27:14+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -80,7 +80,7 @@ main() {
     }
 
     try qemu-system-x86_64 -enable-kvm -cpu kvm64 -smp ${cpu} -m ${mem} -vga qxl \
-        -usbdevice tablet \
+        -usbdevice tablet -global qxl-vga.vram_size=67108864 \
         ${cdrom:+-cdrom ${cdrom} -boot menu=on} \
         ${floppy:+-fda ${floppy}} \
         ${bridge:+-netdev bridge,br=${bridge},id=net0 -device virtio-net-pci,netdev=net0,mac=${MAC:-52:54:00:11:22:33}} \
