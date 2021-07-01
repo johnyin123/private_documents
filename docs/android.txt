@@ -1,0 +1,38 @@
+list package
+	pm list packages -f   
+
+pm disable-user --user 0 com.baidu.input_huawei
+pm disable-user --user 0 com.huawei.appmarket
+pm disable-user --user 0 com.huawei.himovie
+pm disable-user --user 0 com.android.mediacenter
+pm disable-user --user 0 com.huawei.android.thememanager
+pm disable-user --user 0 com.huawei.android.findmyphone
+pm disable-user --user 0 com.huawei.android.pushagent
+
+root
+	pm query-receivers --components -a android.intent.action.BOOT_COMPLETED
+	pm disable <package_name/component_name>
+    pm get-privapp-permissions
+non-root
+    appops set <package> BOOT_COMPLETED deny
+    appops set <package> RUN_IN_BACKGROUND deny
+
+
+
+
+brotli --decompress --input system.new.dat.br --output system.new.data
+sdat2img.py system.transfer.list vv system.img
+
+/system/bin/settings put global ntp_server ntp1.aliyun.com
+settings put global captive_portal_server connect.rom.miui.com
+settings put global captive_portal_https_url https://connect.rom.miui.com/generate_204
+
+captive_portal_detection_enabled
+captive_portal_fallback_url 
+captive_portal_http_url
+captive_portal_https_url
+captive_portal_other_fallback_urls
+captive_portal_server
+captive_portal_use_https
+
+adb shell settings put global captive_portal_detection_enabled 0
