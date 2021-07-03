@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("br-hostapd.sh - c74ffe1 - 2021-01-28T09:40:15+08:00")
+VERSION+=("br-hostapd.sh - 5b59e21 - 2021-05-25T09:17:48+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
@@ -18,7 +18,7 @@ gen_hostapd() {
     local bridge="${4:-}"
     cat <<EOF | tee "${cfg_file}"
 interface=${wifi_interface}
-${bridge}
+${bridge:+bridge=${bridge}}
 logger_syslog=-1
 logger_syslog_level=2
 logger_stdout=-1
