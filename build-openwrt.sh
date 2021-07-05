@@ -9,6 +9,66 @@
 # └── uci-defaults/
 #kmod-usb-uhci kmod-usb-ohci PACKAGES="kmod-tun kmod-zram zram-swap block-mount kmod-fs-ext4 e2fsprogs kmod-usb2 kmod-usb-storage firewall -ip6tables -kmod-ip6tables -kmod-ipv6 -odhcp6c -swconfig " 
 
+: <<'EOF'
+In case you want to skip all the Xiaomi download etc, here are some instructions to flash directly OpenWRT/PandoraBox on stock firmware via code injection bug.
+https://mirom.ezbox.idv.tw/en/miwifi/R1CM/roms-stable/
+NOTE
+This method has been successfully tested on
+-> Xiaomi Mini - Stock firmware v2.6.17
+-> Xiaomi Lite aka "Youth" or "Nano" - Stock firmware v2.2.8
+
+STEPS
+1) Power on and setup the Xiaomi router until it reboots and gets IP address 192.168.31.1
+2) Log-in into the router and grab the value of the stok URL parameter (for instance: "9c2428de4d17e2db7e5a6a337e6f57a3")
+3) Replace the <STOK> placeholder and load this URL in your browser or curl, this will start telnetd on the router:
+STOK=
+curl -vvv "http://192.168.31.1/cgi-bin/luci/;stok=${STOK}/api/xqnetwork/set_wifi_ap?ssid=whatever&encryption=NONE&enctype=NONE&channel=1%3B%2Fusr%2Fsbin%2Ftelnetd
+
+It should spit out some wifi error code, that is ok, don't worry.
+
+4) Replace the <STOK> placeholder, the current password and the desired root password and load this URL in your browser or curl, this will set the router root password
+PASSWD=
+NEW_PASSWD=password
+curl -vvv "http://192.168.31.1/cgi-bin/luci/;stok=${STOK}/api/xqsystem/set_name_password?oldPwd=${PASSWD}&newPwd=${NEW_PASSWD}"
+
+It should spit out: {"code":0}
+
+5) Telnet to the router, enter user root and NEWPASS chosen above.
+
+6) wget your favourite .bin and flash with mtd -r write firmware.bin OS1
+         mtd -r write /tmp/20140703.bin firmware
+
+7) Router reboots wink
+
+Hope it helps, just wanted to give back my two cents to the community.
+
+
+
+http://192.168.31.1/cgi-bin/luci/;stok=XX/api/xqsystem/init_info
+http://192.168.31.1/cgi-bin/luci/;stok=XX/api/xqsystem/usbservice
+
+
+# Linux dialog with timeout & default No button
+# 
+改SN 的方法如下
+nvram set SN=你路由上的SN号
+nvram set wl0_ssid=Xiaomi_XXXX_5G
+nvram set wl1_ssid=Xiaomi_XXXX
+保存
+nvram commit
+bdata set model=R1CM
+bdata set color=101
+bdata set CountryCode=CN
+bdata set SN=你路由上的SN号
+bdata set wl0_ssid=Xiaomi_XXXX_5G
+bdata set wl1_ssid=Xiaomi_XXXX
+保存
+bdata sync && bdata commit
+XXXX是你网卡的后四位，不知道的自己用手机下个WIFI软件看接入点去
+然后重启下路由器，用手机看看能不能绑定成功，如果绑定成功啦，用http://192.168.XX.XX/cgi-bin/luci/;stok=XX/api/xqsystem/init_info XX.XX是你路由器的管理地址stok=XX是登陆路由以后的加密字符串，看下SN是不是你自己的啦。注意刷啦这个固件ROOT密码只能用我提供的，官网提供的用不了
+EOF
+
+
 rm ./out/* -f
 PKG_8M_ROM="libopenssl libstdcpp ip-full ipset e2fsprogs aria2 python-light python-logging rsync "  #squid"
 PACKAGES="${PKG_8M_ROM} kmod-macvlan kmod-tun kmod-iptunnel kmod-gre kmod-vxlan kmod-pptp kmod-l2tp kmod-fs-vfat kmod-zram zram-swap block-mount kmod-fs-ext4 kmod-usb2 kmod-usb-storage kmod-wireguard wireguard firewall -swconfig " 
