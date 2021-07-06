@@ -201,6 +201,25 @@ uci set wireless.mywifi.encryption='psk2'
 uci set wireless.mywifi.key='Admin@123'
 uci commit wireless
 
+#wireguard
+uci set network.wg0=interface
+uci set network.wg0.proto='wireguard'
+uci set network.wg0.private_key="xxx"
+uci set network.wg0.listen_port="port"
+uci add_list network.wg0.addresses="IP/24"
+#uci set firewall.0.network="${firewall_zone} wg_${firewall_zone}"
+uci set network.wg0.mtu='1420'
+
+uci add network  wireguard_wg0
+uci set network.@wireguard_wg0[-1].public_key="key1"
+uci set network.@wireguard_wg0[-1].preshared_key="psk"
+uci set network.@wireguard_wg0[-1].description="desc"
+uci add_list network.@wireguard_wg0[-1].allowed_ips="1.1.1.2/32"
+uci set network.@wireguard_wg0[-1].route_allowed_ips='1'
+uci set network.@wireguard_wg0[-1].persistent_keepalive='25'
+
+uci commit
+
 opkg update
 opkg install libopenssl libstdcpp
 cp gvpe..
