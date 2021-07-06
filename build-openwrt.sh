@@ -10,6 +10,8 @@
 #kmod-usb-uhci kmod-usb-ohci PACKAGES="kmod-tun kmod-zram zram-swap block-mount kmod-fs-ext4 e2fsprogs kmod-usb2 kmod-usb-storage firewall -ip6tables -kmod-ip6tables -kmod-ipv6 -odhcp6c -swconfig " 
 
 : <<'EOF'
+breed web console : 按住reset键不放再插上电三秒松开->http://192.168.1.1
+
 In case you want to skip all the Xiaomi download etc, here are some instructions to flash directly OpenWRT/PandoraBox on stock firmware via code injection bug.
 https://mirom.ezbox.idv.tw/en/miwifi/R1CM/roms-stable/
 NOTE
@@ -70,12 +72,40 @@ EOF
 
 
 rm ./out/* -f
-PKG_8M_ROM="libopenssl libstdcpp ip-full ipset e2fsprogs aria2 python-light python-logging rsync "  #squid"
-PACKAGES="${PKG_8M_ROM} kmod-macvlan kmod-tun kmod-iptunnel kmod-gre kmod-vxlan kmod-pptp kmod-l2tp kmod-fs-vfat kmod-zram zram-swap block-mount kmod-fs-ext4 kmod-usb2 kmod-usb-storage kmod-wireguard wireguard firewall -swconfig " 
+# wr703 # PKG_8M_ROM="libopenssl libstdcpp ip-full ipset e2fsprogs aria2 python-light python-logging rsync "  #squid"
+# wr703 # PACKAGES="${PKG_8M_ROM} kmod-macvlan kmod-tun kmod-iptunnel kmod-gre kmod-vxlan kmod-pptp kmod-l2tp kmod-fs-vfat kmod-zram zram-swap block-mount kmod-fs-ext4 kmod-usb2 kmod-usb-storage kmod-wireguard wireguard firewall -swconfig " 
 
-echo "${PACKAGES}" > $(pwd)/mydir/etc/banner
+PACKAGES="kmod-macvlan kmod-tun kmod-iptunnel kmod-gre kmod-vxlan kmod-pptp kmod-l2tp kmod-fs-vfat kmod-zram zram-swap block-mount kmod-fs-ext4 kmod-usb2 kmod-usb-storage kmod-wireguard wireguard-tools swconfig "
+PACKAGES="${PACKAGES} kmod-fs-xfs kmod-fs-jfs kmod-geneve kmod-batman-adv ip-full ipset e2fsprogs aria2 rsync lsof tcpdump sshfs tmux jq eject socat procps-ng-ps"
+PACKAGES="${PACKAGES} nfs-kernel-server nfs-kernel-server-utils openssh-server openssh-sftp-server openssh-client -dropbear"
 
-make image PROFILE="tl-wr703n-v1" \
+# mydir/etc/shadow
+# mydir/etc/ssh/sshd_config
+# #change 192.168.1.1 => 192.168.31.1
+# mydir/lib/preinit/00_preinit.conf
+# mydir/bin/config_generate
+
+### Add SSH public key
+if [ ! -d $(pwd)/mydir/root/.ssh ]; then
+    mkdir -m0700 $(pwd)/mydir/root/.ssh
+fi
+cat <<EOF >$(pwd)/mydir/root/.ssh/authorized_keys
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
+EOF
+chmod 0600 $(pwd)/mydir/root/.ssh/authorized_keys
+
+### Add PS1
+if [ ! -d $(pwd)/mydir/etc/profile.d ]; then
+    mkdir -m0755 $(pwd)/mydir/etc/profile.d
+fi
+cat <<EOF >$(pwd)/mydir/etc/profile.d/johnyin.sh
+export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
+set -o vi
+EOF
+
+
+# wr703 # make image PROFILE="tl-wr703n-v1" \
+make image PROFILE="miwifi-mini" \
 PACKAGES="${PACKAGES}" \
 BIN_DIR="$(pwd)/out/" \
 FILES="$(pwd)/mydir" \
