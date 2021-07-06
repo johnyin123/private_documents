@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 46411a2 - 2021-04-08T14:06:40+08:00")
+VERSION+=("functions.sh - 274fe54 - 2021-07-05T17:24:48+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -372,7 +372,10 @@ confirm() {
     local msg=${1:-confirm}
     local tmout=${2:-}
     read ${tmout:+-t ${tmout}} -p "${msg} [y/N] " -n 1
-    [[ $REPLY =~ ^[Yy]$ ]]
+    if [ "${REPLY}" = "Y" ] || [ "${REPLY}" = "y" ]; then
+        return 0
+    fi
+    return 1
 }
 
 ##Usage: check_http_status 'http://www.example.com'
