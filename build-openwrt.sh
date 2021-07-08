@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build-openwrt.sh - 93b9a48 - 2021-07-06T16:04:25+08:00")
+VERSION+=("build-openwrt.sh - d33313a - 2021-07-08T14:57:28+08:00")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -203,6 +203,9 @@ add_demo() {
 firmware reset: firstboot
 
 sed -i 's_downloads.openwrt.org_mirrors.tuna.tsinghua.edu.cn/openwrt_' /etc/opkg/distfeeds.conf
+
+add luci web:
+    opkg install luci-nginx nginx luci-i18n-base-zh-cn luci-app-wireguard luci-i18n-wireguard-zh-cn luci-i18n-opkg-zh-cn luci-i18n-firewall-zh-cn
 
 # 域名劫持
 uci add dhcp domain
