@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build-openwrt.sh - d33313a - 2021-07-08T14:57:28+08:00")
+VERSION+=("build-openwrt.sh - eed04b1 - 2021-07-08T15:28:46+08:00")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -333,7 +333,8 @@ rm ./out/* -f
 make image PROFILE="${id}" \
 PACKAGES="${PACKAGES}" \
 BIN_DIR="${DIRNAME}/out/" \
-FILES="${DIRNAME}/mydir"
+FILES="${DIRNAME}/mydir" \
+DISABLED_SERVICES="${DISABLED_SERVICES:-}"
 
 #  Remove useless files from firmware
 #  
