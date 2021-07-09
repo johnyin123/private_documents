@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build-openwrt.sh - eed04b1 - 2021-07-08T15:28:46+08:00")
+VERSION+=("build-openwrt.sh - 05586be - 2021-07-08T17:11:45+08:00")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -156,6 +156,7 @@ XXXX是你网卡的后四位，不知道的自己用手机下个WIFI软件看接
 然后重启下路由器，用手机看看能不能绑定成功，如果绑定成功啦，用http://192.168.XX.XX/cgi-bin/luci/;stok=XX/api/xqsystem/init_info XX.XX是你路由器的管理地址stok=XX是登陆路由以后的加密字符串，看下SN是不是你自己的啦。注意刷啦这个固件ROOT密码只能用我提供的，官网提供的用不了
 EOF
 
+DISABLED_SERVICES="${DISABLED_SERVICES:-} odhcpd set-irq-affinity"
 PACKAGES_REMOVE=" "                                 #remove package
 PACKAGES=" kmod-batman-adv kmod-geneve kmod-gre kmod-iptunnel kmod-l2tp kmod-macvlan kmod-pptp kmod-tun kmod-vxlan ip-full ipset"
 PACKAGES+=" kmod-zram zram-swap"                    #zram swap
@@ -176,13 +177,45 @@ dialog() {
 add_openssh_key() {
     ### Add SSH public key
     local dir="${1}"
-    if [ ! -d "${dir}" ]; then
-        mkdir -p -m0700 "${dir}"
+    if [ ! -d "${dir}/root/.ssh" ]; then
+        mkdir -p -m0700 "${dir}/root/.ssh"
     fi
-    cat <<EOF >"${dir}/authorized_keys"
+    cat <<EOF >"${dir}/root/.ssh/authorized_keys"
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
 EOF
-    chmod 0600 "${dir}/authorized_keys"
+    chmod 0600 "${dir}/root/.ssh/authorized_keys"
+}
+
+add_uci_default_auotmount_media() {
+    local rootfs="${1}"
+    if [ ! -d "${rootfs}/etc/uci-defaults" ]; then
+        mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
+    fi
+    cat << 'EOF' > "${rootfs}/etc/uci-defaults/99-media_mount"
+uci set fstab.@global[0].auto_mount=1
+uci add fstab mount
+uci set fstab.@mount[0].target=/media
+uci set fstab.@mount[0].label=media
+uci set fstab.@mount[0].options=ro
+uci set fstab.@mount[0].enabled=1
+uci commit fstab
+exit 0
+EOF
+}
+
+add_uci_default_password() {
+    local rootfs="${1}"
+    local pass="${2:-password}"
+    if [ ! -d "${rootfs}/etc/uci-defaults" ]; then
+        mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
+    fi
+    cat << EOF > "${rootfs}/etc/uci-defaults/99-passwd"
+passwd << EOPWD
+${pass}
+${pass}
+EOPWD
+exit 0
+EOF
 }
 
 add_shell_ps1() {
@@ -211,7 +244,23 @@ add luci web:
 uci add dhcp domain
 uci set dhcp.@domain[-1].name='www.facebook.com'
 uci set dhcp.@domain[-1].ip='1.2.3.4'
+# Return 10.10.10.1 on query domain home and subdomain *.home
+uci add_list dhcp.@dnsmasq[0].address="/home/10.10.10.1"
+# Forward DNS queries for a specific domain and all its subdomains to a different server
+uci add_list dhcp.@dnsmasq[0].server="/example.com/192.168.2.1"
+# add dns server
+uci delete dhcp.@dnsmasq[0].server
+uci add_list dhcp.@dnsmasq[0].server="114.114.114.114"
+uci add_list dhcp.@dnsmasq[0].server="8.8.4.4"
+# if no dnsmasq. so : uci add_list network.wan.dns="8.8.4.4"
+# Blacklist maybe Ad block
+uci add_list dhcp.@dnsmasq[0].server="/example.com/"
+# Whitelist
+uci add_list dhcp.@dnsmasq[0].server="/example.com/#"
+uci add_list dhcp.@dnsmasq[0].server="/#/"
+
 uci commit dhcp
+/etc/init.d/dnsmasq restart
 
 # 更改dhcp DNS(6=DNS, 3=Default Gateway, 44=WINS)
 uci set dhcp.@dnsmasq[0].dhcp_option='6,192.168.1.1,8.8.8.8'
@@ -224,12 +273,16 @@ uci set fstab.@swap[0].enabled='1'
 uci commit fstab
 block detect > /etc/config/fstab
 
+uci set fstab.@global[0].auto_mount=1
 uci add fstab mount
-uci set fstab.@mount[0].target='/overlay'
-uci set fstab.@mount[0].uuid='uuid'
-uci set fstab.@mount[0].fstype='ext4'
-uci set fstab.@mount[0].options='rw,noatime'
-uci set fstab.@mount[0].enabled='1'
+uci set fstab.@mount[0].target=/media
+uci set fstab.@mount[0].label=media
+# uci set fstab.@mount[0].uuid=uuid
+# uci set fstab.@mount[0].fstype=ext4
+# uci set fstab.@mount[0].enabled_fsck=1
+uci set fstab.@mount[0].options=ro
+# ro,noatime...
+uci set fstab.@mount[0].enabled=1
 uci commit fstab
 
 #uci-defaults/setup
@@ -237,6 +290,16 @@ uci commit fstab
 uci set wireless.@wifi-device[0].disabled=0
 uci delete wireless.default_radio0
 uci commit wireless
+# add new wifi interface
+uci set wireless.wifinet0=wifi-iface
+uci set wireless.wifinet0.ifname='ap1'
+uci set wireless.wifinet0.ssid='OpenWrt'
+uci set wireless.wifinet0.encryption='none'
+uci set wireless.wifinet0.device='radio0'
+uci set wireless.wifinet0.mode='ap'
+
+# add wifinet0 to bridge br-lan
+uci set wireless.wifinet0.network='lan'
 
 #创建wwan接口
 uci set network.wwan=interface
@@ -252,15 +315,17 @@ uci commit dhcp
 #连接上级路由
 uci set wireless.toxkadmin='wifi-iface'
 uci set wireless.toxkadmin.device='radio0'
+# wwan can not bridge device!
 uci set wireless.toxkadmin.network=wwan
 uci set wireless.toxkadmin.mode=sta
 uci set wireless.toxkadmin.ssid=xk-admin
 uci set wireless.toxkadmin.encryption=psk2
-uci set wireless.toxkadmin.key='Admin@123'
+uci set wireless.toxkadmin.key='ADMIN@123'
 uci commit wireless
 #做AP
 uci set wireless.mywifi='wifi-iface'
 uci set wireless.mywifi.device='radio0'
+$ lan can be  bridge device
 uci set wireless.mywifi.network='lan'
 uci set wireless.mywifi.mode='ap'
 uci set wireless.mywifi.ssid='johnap'
@@ -285,6 +350,11 @@ uci add_list network.@wireguard_wg0[-1].allowed_ips="1.1.1.2/32"
 uci set network.@wireguard_wg0[-1].route_allowed_ips='1'
 uci set network.@wireguard_wg0[-1].persistent_keepalive='25'
 
+uci set network.lan.proto='static'
+uci set network.lan.ipaddr='192.168.168.222'
+uci set network.lan.netmask='255.255.255.0'
+uci set network.lan.gateway='192.168.168.1'
+
 uci commit
 EOF
 }
@@ -297,32 +367,34 @@ case "$id" in
         PACKAGES+=" block-mount kmod-usb-storage kmod-usb2" #usb storage
         PACKAGES+=" kmod-fs-ext4 kmod-fs-vfat e2fsprogs"    #vfat ext4 support
         PACKAGES+=" aria2 rsync"                            #other tools
+        add_uci_default_auotmount_media "${DIRNAME}/mydir"
         ;;
     miwifi-mini) # Mini
         PACKAGES+=" block-mount kmod-usb-storage kmod-usb2" #usb storage
         PACKAGES+=" kmod-fs-ext4 kmod-fs-vfat e2fsprogs"    #vfat ext4 support
         PACKAGES+=" aria2 rsync"                            #other tools
-
         PACKAGES+=" kmod-fs-jfs kmod-fs-xfs"                #xfs jfs support
         PACKAGES+=" nfs-kernel-server nfs-kernel-server-utils" #NFS
         PACKAGES+=" openssh-client openssh-server openssh-sftp-server" #openssh
         PACKAGES+=" eject jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils"
         PACKAGES_REMOVE+=" -dropbear -dnsmasq"              #remove packages
-        add_openssh_key "${DIRNAME}/mydir/root/.ssh"
+        add_openssh_key "${DIRNAME}/mydir"
+        add_uci_default_auotmount_media "${DIRNAME}/mydir"
+        add_uci_default_password "${DIRNAME}/mydir" "password"
         ;;
     xiaomi_mir4a-100m) # R4AC
         PACKAGES+=" aria2 rsync"                            #other tools
         PACKAGES+=" openssh-client openssh-server openssh-sftp-server" #openssh
         PACKAGES+=" jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils"
         PACKAGES_REMOVE+=" -dropbear -dnsmasq"              #remove packages
-        add_openssh_key "${DIRNAME}/mydir/root/.ssh"
+        add_openssh_key "${DIRNAME}/mydir"
+        add_uci_default_password "${DIRNAME}/mydir" "password"
         ;;
     *)  echo "Unexpected option $id"; exit 1;;
 esac
 
 PACKAGES+=${PACKAGES_REMOVE}
 
-# mydir/etc/shadow
 # mydir/etc/ssh/sshd_config
 # #change 192.168.1.1 => 192.168.31.1
 # mydir/bin/config_generate
@@ -330,6 +402,12 @@ add_demo "${DIRNAME}/mydir/root/demo"
 add_shell_ps1 "${DIRNAME}/mydir"
 
 rm ./out/* -f
+
+echo "DISABLED_SERVICES=${DISABLED_SERVICES:-}"
+echo "BIN_DIR=${DIRNAME}/out/"
+echo "PACKAGES=${PACKAGES}"
+find "${DIRNAME}/mydir" -type f 2>/dev/null  | sed "s|${DIRNAME}/||g" | xargs -I@ echo "Add File: [@]"
+
 make image PROFILE="${id}" \
 PACKAGES="${PACKAGES}" \
 BIN_DIR="${DIRNAME}/out/" \
