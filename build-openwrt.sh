@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build-openwrt.sh - 05586be - 2021-07-08T17:11:45+08:00")
+VERSION+=("build-openwrt.sh - af8a6b7 - 2021-07-09T13:27:42+08:00")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -355,7 +355,13 @@ uci set network.lan.ipaddr='192.168.168.222'
 uci set network.lan.netmask='255.255.255.0'
 uci set network.lan.gateway='192.168.168.1'
 
+# Configure pppoe connection
+uci set network.wan.proto=pppoe
+uci set network.wan.username='xx'
+uci set network.wan.password='****'
 uci commit
+ifup wan
+
 EOF
 }
 
