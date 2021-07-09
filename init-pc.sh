@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - 433070a - 2021-05-12T14:31:58+08:00")
+VERSION+=("init-pc.sh - 167c393 - 2021-05-28T09:01:02+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -162,7 +162,7 @@ apt -y install systemd-container \
     virt-manager gir1.2-spiceclientgtk-3.0 \
     fcitx-ui-classic fcitx-tools fcitx fcitx-sunpinyin fcitx-config-gtk \
     libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
-    qemu-kvm qemu-utils xmlstarlet jq sudo debootstrap kpartx
+    qemu-kvm qemu-utils xmlstarlet jq sudo debootstrap kpartx binwalk
 
 apt -y install traceroute ipcalc qrencode
 # qrencode -8  -o - -t UTF8 "massage"
