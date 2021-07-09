@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build-openwrt.sh - d619ae3 - 2021-07-09T14:03:19+08:00")
+VERSION+=("build-openwrt.sh - 12a61a1 - 2021-07-09T15:25:45+08:00")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -386,7 +386,7 @@ case "$id" in
         PACKAGES+=" kmod-fs-jfs kmod-fs-xfs"                #xfs jfs support
         PACKAGES+=" nfs-kernel-server nfs-kernel-server-utils" #NFS
         PACKAGES+=" openssh-client openssh-server openssh-sftp-server" #openssh
-        PACKAGES+=" eject jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils"
+        PACKAGES+=" eject jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils kmod-veth"
         PACKAGES_REMOVE+=" -dropbear -dnsmasq"              #remove packages
         add_openssh_key "${DIRNAME}/mydir"
         add_uci_default_auotmount_media "${DIRNAME}/mydir"
