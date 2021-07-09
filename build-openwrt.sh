@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build-openwrt.sh - af8a6b7 - 2021-07-09T13:27:42+08:00")
+VERSION+=("build-openwrt.sh - d619ae3 - 2021-07-09T14:03:19+08:00")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -312,6 +312,10 @@ uci set dhcp.wwan.interface='wwan'
 uci set dhcp.wwan.ignore=1
 uci commit dhcp
 
+# zone[1] is wan
+uci add_list firewall.@zone[1].network=wwan
+uci commit firewall
+
 #连接上级路由
 uci set wireless.toxkadmin='wifi-iface'
 uci set wireless.toxkadmin.device='radio0'
@@ -325,7 +329,7 @@ uci commit wireless
 #做AP
 uci set wireless.mywifi='wifi-iface'
 uci set wireless.mywifi.device='radio0'
-$ lan can be  bridge device
+# lan can be  bridge device
 uci set wireless.mywifi.network='lan'
 uci set wireless.mywifi.mode='ap'
 uci set wireless.mywifi.ssid='johnap'
