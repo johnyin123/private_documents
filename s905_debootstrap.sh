@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("debbootstrap.sh - d7b50ce - 2021-04-01T13:42:10+08:00")
+VERSION+=("s905_debootstrap.sh - initversion - 2021-07-12T06:55:17+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
