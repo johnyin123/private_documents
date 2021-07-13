@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build-openwrt.sh - 12a61a1 - 2021-07-09T15:25:45+08:00")
+VERSION+=("build-openwrt.sh - 4723919 - 2021-07-09T16:00:30+08:00")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -186,7 +186,7 @@ EOF
     chmod 0600 "${dir}/root/.ssh/authorized_keys"
 }
 
-add_uci_default_auotmount_media() {
+add_uci_default_automount_media() {
     local rootfs="${1}"
     if [ ! -d "${rootfs}/etc/uci-defaults" ]; then
         mkdir -p -m0755 "${rootfs}/etc/uci-defaults"
@@ -374,22 +374,22 @@ id=$(dialog "Openwrt Select" "select model" choices[@])
 case "$id" in
     ########################################
     tl-wr703n-v1) # 703N
-        PACKAGES+=" block-mount kmod-usb-storage kmod-usb2" #usb storage
+        PACKAGES+=" block-mount kmod-usb-storage kmod-usb-storage-uas kmod-usb3" #usb storage
         PACKAGES+=" kmod-fs-ext4 kmod-fs-vfat e2fsprogs"    #vfat ext4 support
         PACKAGES+=" aria2 rsync"                            #other tools
-        add_uci_default_auotmount_media "${DIRNAME}/mydir"
+        add_uci_default_automount_media "${DIRNAME}/mydir"
         ;;
     miwifi-mini) # Mini
-        PACKAGES+=" block-mount kmod-usb-storage kmod-usb2" #usb storage
+        PACKAGES+=" block-mount kmod-usb3 kmod-usb-storage-uas  kmod-usb-storage" #usb storage
         PACKAGES+=" kmod-fs-ext4 kmod-fs-vfat e2fsprogs"    #vfat ext4 support
         PACKAGES+=" aria2 rsync"                            #other tools
         PACKAGES+=" kmod-fs-jfs kmod-fs-xfs"                #xfs jfs support
         PACKAGES+=" nfs-kernel-server nfs-kernel-server-utils" #NFS
         PACKAGES+=" openssh-client openssh-server openssh-sftp-server" #openssh
-        PACKAGES+=" eject jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils kmod-veth"
+        PACKAGES+=" eject jq lsof procps-ng-ps socat sshfs tcpdump tmux dnsmasq-full nfs-utils kmod-veth relayd"
         PACKAGES_REMOVE+=" -dropbear -dnsmasq"              #remove packages
         add_openssh_key "${DIRNAME}/mydir"
-        add_uci_default_auotmount_media "${DIRNAME}/mydir"
+        add_uci_default_automount_media "${DIRNAME}/mydir"
         add_uci_default_password "${DIRNAME}/mydir" "password"
         ;;
     xiaomi_mir4a-100m) # R4AC
