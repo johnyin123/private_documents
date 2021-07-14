@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build-openwrt.sh - 0d734b0 - 2021-07-13T09:02:35+08:00")
+VERSION+=("build-openwrt.sh - 6b4658f - 2021-07-14T13:37:31+08:00")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -382,6 +382,15 @@ uci commit
 EOFDFT
 }
 
+add_sysctl() {
+    cat <<EOF
+net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv4.ip_local_port_range = 1024 65531
+net.ipv4.tcp_timestamps = 0
+net.ipv4.tcp_tw_reuse = 0
+EOF
+}
+
 choices=("tl-wr703n-v1" "WR703N" "miwifi-mini" "MiWIFI MINI" "xiaomi_mir4a-100m" "MiRouter 4A 100M")
 id=$(dialog "Openwrt Select" "select model" choices[@])
 case "$id" in
@@ -405,6 +414,7 @@ case "$id" in
         add_uci_default_automount_media "${DIRNAME}/mydir"
         add_uci_default_password "${DIRNAME}/mydir" "password"
         mkdir -p "${DIRNAME}/mydir/root" && add_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
+        mkdir -p "${DIRNAME}/mydir/etc/sysctl.d" && add_sysctl  > "${DIRNAME}/mydir/etc/sysctl.d/11-johnyin.conf"
         ;;
     xiaomi_mir4a-100m) # R4AC
         PACKAGES+=" aria2 rsync"                            #other tools
