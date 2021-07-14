@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build-openwrt.sh - cc16bac - 2021-07-14T13:59:51+08:00")
+VERSION+=("build-openwrt.sh - eea05b0 - 2021-07-14T17:11:16+08:00")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -334,6 +334,7 @@ set network.wgserver.persistent_keepalive='10'
 add_list network.wgserver.allowed_ips='10.0.2.0/24'
 EOF
 uci add_list firewall.lan.network='wg0'
+iptables -t nat -A POSTROUTING -s 192.168.31.0/24 -d 10.0.2.0/24 -o wg0 -j MASQUERADE
 uci commit
 
 uci -q batch <<-EOF
