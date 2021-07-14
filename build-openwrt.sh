@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build-openwrt.sh - 4723919 - 2021-07-09T16:00:30+08:00")
+VERSION+=("build-openwrt.sh - 0d734b0 - 2021-07-13T09:02:35+08:00")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -271,7 +271,6 @@ uci add fstab swap
 uci set fstab.@swap[0].device='/swapfile'
 uci set fstab.@swap[0].enabled='1'
 uci commit fstab
-block detect > /etc/config/fstab
 
 uci set fstab.@global[0].auto_mount=1
 uci add fstab mount
@@ -285,78 +284,12 @@ uci set fstab.@mount[0].options=ro
 uci set fstab.@mount[0].enabled=1
 uci commit fstab
 
-#uci-defaults/setup
-
-uci set wireless.@wifi-device[0].disabled=0
-uci delete wireless.default_radio0
-uci commit wireless
-# add new wifi interface
-uci set wireless.wifinet0=wifi-iface
-uci set wireless.wifinet0.ifname='ap1'
-uci set wireless.wifinet0.ssid='OpenWrt'
-uci set wireless.wifinet0.encryption='none'
-uci set wireless.wifinet0.device='radio0'
-uci set wireless.wifinet0.mode='ap'
-
-# add wifinet0 to bridge br-lan
-uci set wireless.wifinet0.network='lan'
-
-#创建wwan接口
-uci set network.wwan=interface
-uci set network.wwan.proto=dhcp
-uci commit network
-
 #disable dhcp on wwan
 uci set dhcp.wwan=dhcp
 uci set dhcp.wwan.interface='wwan'
 uci set dhcp.wwan.ignore=1
 uci commit dhcp
 
-# zone[1] is wan
-uci add_list firewall.@zone[1].network=wwan
-uci commit firewall
-
-#连接上级路由
-uci set wireless.toxkadmin='wifi-iface'
-uci set wireless.toxkadmin.device='radio0'
-# wwan can not bridge device!
-uci set wireless.toxkadmin.network=wwan
-uci set wireless.toxkadmin.mode=sta
-uci set wireless.toxkadmin.ssid=xk-admin
-uci set wireless.toxkadmin.encryption=psk2
-uci set wireless.toxkadmin.key='ADMIN@123'
-uci commit wireless
-#做AP
-uci set wireless.mywifi='wifi-iface'
-uci set wireless.mywifi.device='radio0'
-# lan can be  bridge device
-uci set wireless.mywifi.network='lan'
-uci set wireless.mywifi.mode='ap'
-uci set wireless.mywifi.ssid='johnap'
-uci set wireless.mywifi.encryption='psk2'
-uci set wireless.mywifi.key='Admin@123'
-uci commit wireless
-
-#wireguard
-uci set network.wg0=interface
-uci set network.wg0.proto='wireguard'
-uci set network.wg0.private_key="xxx"
-uci set network.wg0.listen_port="port"
-uci add_list network.wg0.addresses="IP/24"
-#uci set firewall.0.network="${firewall_zone} wg_${firewall_zone}"
-uci set network.wg0.mtu='1420'
-
-uci add network  wireguard_wg0
-uci set network.@wireguard_wg0[-1].public_key="key1"
-uci set network.@wireguard_wg0[-1].preshared_key="psk"
-uci set network.@wireguard_wg0[-1].description="desc"
-uci add_list network.@wireguard_wg0[-1].allowed_ips="1.1.1.2/32"
-uci set network.@wireguard_wg0[-1].route_allowed_ips='1'
-uci set network.@wireguard_wg0[-1].persistent_keepalive='25'
-
-uci set network.lan.proto='static'
-uci set network.lan.ipaddr='192.168.168.222'
-uci set network.lan.netmask='255.255.255.0'
 uci set network.lan.gateway='192.168.168.1'
 
 # Configure pppoe connection
@@ -365,8 +298,88 @@ uci set network.wan.username='xx'
 uci set network.wan.password='****'
 uci commit
 ifup wan
+EOF
+}
+
+add_home_ap_default() {
+    cat <<'EOFDFT'
+uci rename firewall.@zone[0]=lan
+uci rename firewall.@zone[1]=wan
+uci commit
+uci -q batch <<-EOF
+set network.wg0=interface
+set network.wg0.proto='wireguard'
+set network.wg0.private_key='yLubHN8S95ZJxM1cH51p44FWH4bg7uMAoD5aivJgK3E='
+add_list network.wg0.addresses='10.0.2.7/24'
+set network.wg0.mtu='1420'
+
+set network.wgserver=wireguard_wg0
+set network.wgserver.public_key='nuLghaY5Kt7v0+fEvdWR1cc2+eFg5TMBoskJYz8Bl10='
+set network.wgserver.endpoint_host='59.46.220.174'
+set network.wgserver.endpoint_port='50000'
+set network.wgserver.route_allowed_ips='1'
+set network.wgserver.persistent_keepalive='10'
+add_list network.wgserver.allowed_ips='10.0.2.0/24'
+EOF
+uci add_list firewall.lan.network='wg0'
+uci commit
+
+uci -q batch <<-EOF
+delete wireless.default_radio0
+delete wireless.default_radio1
+set wireless.radio0.disabled=0
+set wireless.radio1.disabled=0
+
+set network.wwan=interface
+set network.wwan.proto='static'
+set network.wwan.ipaddr='192.168.10.93'
+set network.wwan.netmask='255.255.255.0'
+set network.wwan.gateway='192.168.10.1'
+
+set wireless.toup=wifi-iface
+set wireless.toup.device='radio1'
+set wireless.toup.network='wwan'
+set wireless.toup.mode='sta'
+set wireless.toup.ssid='s905d03'
+set wireless.toup.encryption='psk'
+set wireless.toup.key='Admin@123'
+
+set wireless.mywifi5g=wifi-iface
+set wireless.mywifi5g.device='radio0'
+set wireless.mywifi5g.network='lan'
+set wireless.mywifi5g.mode='ap'
+set wireless.mywifi5g.encryption='psk2'
+set wireless.mywifi5g.key='Admin@123'
+set wireless.mywifi5g.ssid='johnap5g'
+
+set wireless.mywifi2g=wifi-iface
+set wireless.mywifi2g.device='radio1'
+set wireless.mywifi2g.network='lan'
+set wireless.mywifi2g.mode='ap'
+set wireless.mywifi2g.encryption='psk2'
+set wireless.mywifi2g.key='Admin@123'
+set wireless.mywifi2g.ssid='johnap2g'
 
 EOF
+uci add_list firewall.wan.network=wwan
+uci add_list dhcp.@dnsmasq[0].server='114.114.114.114'
+
+cat<<EOF
+# Configure firewall for if wg server mode
+uci del_list firewall.lan.network="${WG_IF}"
+uci add_list firewall.lan.network="${WG_IF}"
+uci -q delete firewall.wg
+uci set firewall.wg="rule"
+uci set firewall.wg.name="Allow-WireGuard"
+uci set firewall.wg.src="wan"
+uci set firewall.wg.dest_port="${WG_PORT}"
+uci set firewall.wg.proto="udp"
+uci set firewall.wg.target="ACCEPT"
+uci commit firewall
+/etc/init.d/firewall restart
+EOF
+uci commit
+EOFDFT
 }
 
 choices=("tl-wr703n-v1" "WR703N" "miwifi-mini" "MiWIFI MINI" "xiaomi_mir4a-100m" "MiRouter 4A 100M")
@@ -391,6 +404,7 @@ case "$id" in
         add_openssh_key "${DIRNAME}/mydir"
         add_uci_default_automount_media "${DIRNAME}/mydir"
         add_uci_default_password "${DIRNAME}/mydir" "password"
+        mkdir -p "${DIRNAME}/mydir/root" && add_home_ap_default > "${DIRNAME}/mydir/root/default.sh"
         ;;
     xiaomi_mir4a-100m) # R4AC
         PACKAGES+=" aria2 rsync"                            #other tools
