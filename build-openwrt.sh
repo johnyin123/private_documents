@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build-openwrt.sh - 6b4658f - 2021-07-14T13:37:31+08:00")
+VERSION+=("build-openwrt.sh - cc16bac - 2021-07-14T13:59:51+08:00")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -24,6 +24,18 @@ EOF
 #kmod-usb-uhci kmod-usb-ohci PACKAGES="kmod-tun kmod-zram zram-swap block-mount kmod-fs-ext4 e2fsprogs kmod-usb2 kmod-usb-storage firewall -ip6tables -kmod-ip6tables -kmod-ipv6 -odhcp6c -swconfig " 
 
 : <<'EOF'
+# mount jffs2 image!
+umount /dev/mtdblock0 &>/dev/null
+modprobe -r mtdram &>/dev/null
+modprobe -r mtdblock &>/dev/null
+modprobe mtdram total_size=32768 erase_size=$esize || exit 1
+modprobe mtdblock || exit 1
+dd if="$1" of=/dev/mtdblock0 || exit 1
+mount -t jffs2 /dev/mtdblock0 $2 || exit 1
+echo "Successfully mounted $1 on $2"
+exit 0
+
+
 firmware extrack user binwalk tools
 MIR4A 100M
     miwifi_r4ac_firmware_e9eec_2.18.58.bin
