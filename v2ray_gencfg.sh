@@ -7,13 +7,13 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("v2ray_gencfg.sh - initversion - 2021-07-16T10:16:10+08:00")
+VERSION+=("v2ray_gencfg.sh - d9da1a9 - 2021-07-16T10:16:09+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 HTTP_IP=${HTTP_IP:-127.0.0.1}
 HTTP_PORT=${HTTP_PORT:-8891}
 :<<EOF
-# 2ray@.service
+# /etc/systemd/system/v2ray@.service
 [Unit]
 Description=V2Ray Service
 Documentation=https://www.v2fly.org/
