@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 274fe54 - 2021-07-05T17:24:48+08:00")
+VERSION+=("functions.sh - 68ad8d8 - 2021-07-06T13:03:38+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -1237,5 +1237,7 @@ cidr2mask() {
     done
     safe_echo $mask
 }
-
-return 0
+if ([ "$0" = "$BASH_SOURCE" ] || ! [ -n "$BASH_SOURCE" ]);
+then
+    list_func
+fi
