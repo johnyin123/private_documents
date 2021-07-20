@@ -16,6 +16,12 @@ pm disable-user --user 0 com.huawei.android.hsf #华为框架
 pm disable-user --user 0 com.huawei.android.findmyphone
 pm disable-user --user 0 com.huawei.hwid #华为移动服务
 pm disable-user --user 0 com.huawei.vassistant #语音助手
+# google service!
+adb shell pm disable-user --user 0  com.google.android.gms
+adb shell pm disable-user --user 0  com.google.android.onetimeinitializer
+adb shell pm disable-user --user 0  com.android.vending
+adb shell pm disable-user --user 0  com.google.android.gsf
+adb shell pm disable-user --user 0  com.google.android.partnersetup
 root
 	pm query-receivers --components -a android.intent.action.BOOT_COMPLETED
 	pm disable <package_name/component_name>
