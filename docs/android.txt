@@ -8,7 +8,13 @@ pm disable-user --user 0 com.android.mediacenter
 pm disable-user --user 0 com.huawei.android.thememanager
 pm disable-user --user 0 com.huawei.android.findmyphone
 pm disable-user --user 0 com.huawei.android.pushagent
-
+pm disable-user --user 0 com.huawei.android.hwouc  #update
+pm disable-user --user 0 com.huawei.skytone #天际通数据
+pm disable-user --user 0 com.huawei.phoneservice #会员服务
+pm disable-user --user 0 com.huawei.android.pushagent #推送服务
+pm disable-user --user 0 com.huawei.android.hsf #华为框架
+pm disable-user --user 0 com.huawei.android.findmyphone
+pm disable-user --user 0 com.huawei.hwid #华为移动服务
 root
 	pm query-receivers --components -a android.intent.action.BOOT_COMPLETED
 	pm disable <package_name/component_name>
