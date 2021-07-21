@@ -24,8 +24,27 @@ In the configuration file of the gateway, add the inbound configuration of the d
   "routing": {...},
   "inbounds": [
     {
-      ...
-    },
+      "tag":"transparent",
+      "port": 12345,
+      "protocol": "dokodemo-door",
+      "settings": {
+        "network": "tcp,udp",
+        "followRedirect": true
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": [
+          "http",
+          "tls"
+        ]
+      },
+      "streamSettings": {
+        "sockopt": {
+          "tproxy": "tproxy" // 透明代理使用 TPROXY 方式
+        }
+      }
+    }
+    ,
     {
       "port": 12345, // The open port
       "protocol": "dokodemo-door",
