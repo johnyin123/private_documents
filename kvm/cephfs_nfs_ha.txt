@@ -1,0 +1,68 @@
+Keepalived, Cephfs & HA NFS as shared storage for vmware
+Recently I was in need of a robust HA NFS setup to share out to a lot of vmware hosts. These hosts would each run 3-5 VM with 10GB mem, 4 cores and 400GB storage. Each vm would need lots of bandwidth and high disk io - both iops and throughput. So a quick test was made with a standalone NFS server. With 20-25 VM it worked fine and we decided to move it to a ceph solution. We tried ceph+kvm (which would then share out via NFS), but it was too slow. Not sure exactly where the issue was, but after a lot of tweaking we gave up. Since these VMs are regularly re-instantiated via salt (every 2-3 week a new image is uploaded and started) we decided it wasn't super critical with storage, so we tested out cephfs. And now we had the performance we wanted. The last bit of testing involved having multiple cephfs (mds) servers (one master - at least one in hot-standby) and HA NFS. It was surprisingly easy:
+
+Install prereq
+Install keepalived
+Install NFS server
+aptitude install nfs-kernel-server
+aptitude install keepalived
+Setup keepalived
+A basic setup was required (we use this to switch the floating ip of the current NFS-master
+
+~# cat /etc/keepalived/keepalived.conf
+
+vrrp_script chk_nfsd {           # Requires keepalived-1.1.13
+        script "killall -0 nfsd"     # cheaper than pidof
+        interval 2                      # check every 2 seconds
+}
+vrrp_instance VI7 {
+        interface bond0
+        state MASTER
+        nopreempt
+        virtual_router_id 222
+        priority 101                    # 101 on master, 100 on backup
+        virtual_ipaddress {
+                10.45.8.191
+        }
+        track_script {
+                chk_nfsd
+        }
+	notify /usr/local/bin/nfs_statechange.sh
+}
+
+~# cat /usr/local/bin/nfs_statechange.sh
+#!/bin/bash
+
+TYPE=$1
+NAME=$2
+STATE=$3
+
+case $STATE in
+        "MASTER") /etc/init.d/nfs-kernel-server start
+                  exit 0
+                  ;;
+        "BACKUP") /etc/init.d/nfs-kernel-server status
+                  exit 0
+                  ;;
+        "FAULT")  /etc/init.d/nfs-kernel-server restart
+                  exit 0
+                  ;;
+        *)        echo "unknown state"
+                  exit 1
+                  ;;
+esac
+The statechange setup was altered quite a bit in testing and I am pretty sure it is no longer needed. Since we are in production I need to test on another system first to be sure though.
+
+Setup NFS to be HA
+Surprisingly, what took the most time was adding a tiny bit of into to the exports file. Without this change, one would get a "Stale NFS handle" when nfs switched.
+
+/share/esxi    10.0.0.0/8(rw,no_root_squash,insecure,async,no_subtree_check,fsid=42)
+Be sure to add a fsid=XXX on _both_ NFS-servers - otherwise they'll serve using different fsid and the client will be confused.
+
+Lastly, and here we will rely on cephfs, we need to share nfs-states between the hosts. Mount the cephfs somewhere and symlink /var/lib/nfs to it on both nodes. Now both NFS-servers will use this This is my setup:
+
+~# ls -l /var/lib/nfs
+lrwxrwxrwx 1 statd nogroup 15 Mar 16 18:26 /var/lib/nfs -> /share/esxi/nfs
+I have mounted /share/esxi as a cephfs filesystem and this is again shared out via NFS.
+
+With this relatively simple setup we have tested how it works in HA-mode. While writing to the system with 2gbit we could shutdown ceph-mds (cephfs) and it would automatically activate the hotstandby with no loss in performance. When shutting down the master nfs it would switch to the other one in ~3-4 sec. During this time no writes/reads are possible, but the vms using the storage are all just waiting and will resume as nothing happened. We tested this with 2gbit write/reads and well and beside the 3-4s gap of no disk io it was completely transparant to all the guests (had 20 vms running on it at the time)
