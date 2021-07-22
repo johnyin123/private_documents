@@ -1,0 +1,124 @@
+設定 GPU Passthrough（VFIO/IOMMU）
+若要讓 VM 可以使用 NVIDIA 的顯示卡，就不可以在實體機器的作業系統（Host OS）上安裝任何顯示卡的驅動程式，也就是說除了不可以安裝 NVIDIA 的顯示卡驅動程式之外，還要把開放原始碼的 Nouveau 驅動程式列入黑名單，禁止它被載入。
+
+在 /etc/modprobe.d/ 目錄下，新增一個 blacklist-nouveau.conf 設定檔，內容如下：
+
+blacklist nouveau
+options nouveau modeset=0
+編輯 /etc/default/grub 設定檔，修改 GRUB_CMDLINE_LINUX_DEFAULT 的設定值，增加 intel_iommu=on 選項：
+
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash intel_iommu=on"
+更新 GRUB 的設定：
+
+# 更新 GRUB 設定
+sudo update-grub
+使用 lspci 查詢顯示卡的 PCI 編號、vendor ID 與 device ID：
+
+# 查詢顯示卡的 PCI 編號、vendor ID 與 device ID
+lspci -nn | grep -i nvidia
+0e:00.0 VGA compatible controller [0300]: NVIDIA Corporation GP106 [GeForce GTX 1060 6GB] [10de:1c03] (rev a1)
+0e:00.1 Audio device [0403]: NVIDIA Corporation GP106 High Definition Audio Controller [10de:10f1] (rev a1)
+以這張 GeForce GTX 1060 6GB 顯示卡來說，VGA compatible controller 的 PCI ID 為 0e:00.0，而 vendor ID 與 device ID 則為 10de:1c03。
+
+設定 VFIO-PCI 核心模組選項，在 /etc/modprobe.d/ 目錄下，新增一個 vfio.conf 設定檔，將顯示卡的 vendor ID 與 device ID 填入：
+
+options vfio-pci ids=10de:1c03,10de:10f1
+設定啟用 vfio-pci 核心模組：
+
+# 啟用 vfio-pci 核心模組
+sudo echo 'vfio-pci' > /etc/modules-load.d/vfio-pci.conf
+允許不安全的中斷（unsafe interrupts）：
+
+# 允許不安全的中斷（unsafe interrupts）
+sudo echo "options vfio_iommu_type1 allow_unsafe_interrupts=1" > /etc/modprobe.d/iommu_unsafe_interrupts.conf
+重新產生核心的 initramfs：
+
+# 重新產生核心的 initramfs
+sudo update-initramfs -u
+重新開機：
+
+# 重新開機
+sudo reboot
+等待重新啟動之後，檢查 IOMMU 是否正常運作：
+
+# 檢查 IOMMU 是否正常運作
+dmesg | grep -E "DMAR|IOMMU"
+[    0.000000] ACPI: DMAR 0x00000000CBEA00C0 000138 (v01 AMI    OEMDMAR  00000001 MSFT 00000097)
+[    0.000000] DMAR: IOMMU enabled
+[    0.000000] DMAR-IR: This system BIOS has enabled interrupt remapping
+[    0.760517] DMAR: Host address width 39
+[    0.760518] DMAR: DRHD base: 0x000000fbfff000 flags: 0x0
+[    0.760535] DMAR: dmar0: reg_base_addr fbfff000 ver 1:0 cap c9008010e60262 ecap f020fa
+[    0.760536] DMAR: DRHD base: 0x000000fbffe000 flags: 0x1
+[    0.760542] DMAR: dmar1: reg_base_addr fbffe000 ver 1:0 cap c9078010ef0462 ecap f020fe
+[    0.760543] DMAR: RMRR base: 0x000000000e4000 end: 0x000000000e87ff
+[    0.760544] DMAR: RMRR base: 0x000000cbeeb800 end: 0x000000cbefffff
+[    0.760545] DMAR: ATSR flags: 0x0
+[    0.760663] DMAR: dmar0: Using Queued invalidation
+[    0.760671] DMAR: dmar1: Using Queued invalidation
+[    0.760687] Your BIOS is broken; DMA routed to ISOCH DMAR unit but no TLB space.
+[    0.760867] DMAR: Hardware identity mapping for device 0000:00:1b.0
+[    0.760875] DMAR: Setting RMRR:
+[    0.760954] DMAR: Setting identity map for device 0000:00:1a.0 [0xcbeeb800 - 0xcbefffff]
+[    0.761049] DMAR: Setting identity map for device 0000:00:1a.1 [0xcbeeb800 - 0xcbefffff]
+[    0.761136] DMAR: Setting identity map for device 0000:00:1a.2 [0xcbeeb800 - 0xcbefffff]
+[    0.761229] DMAR: Setting identity map for device 0000:00:1a.7 [0xcbeeb800 - 0xcbefffff]
+[    0.761317] DMAR: Setting identity map for device 0000:00:1d.0 [0xcbeeb800 - 0xcbefffff]
+[    0.761411] DMAR: Setting identity map for device 0000:00:1d.1 [0xcbeeb800 - 0xcbefffff]
+[    0.761501] DMAR: Setting identity map for device 0000:00:1d.2 [0xcbeeb800 - 0xcbefffff]
+[    0.761597] DMAR: Setting identity map for device 0000:00:1d.7 [0xcbeeb800 - 0xcbefffff]
+[    0.761611] DMAR: Setting identity map for device 0000:00:1a.0 [0xe4000 - 0xe87ff]
+[    0.761620] DMAR: Setting identity map for device 0000:00:1a.1 [0xe4000 - 0xe87ff]
+[    0.761629] DMAR: Setting identity map for device 0000:00:1a.2 [0xe4000 - 0xe87ff]
+[    0.761638] DMAR: Setting identity map for device 0000:00:1a.7 [0xe4000 - 0xe87ff]
+[    0.761647] DMAR: Setting identity map for device 0000:00:1d.0 [0xe4000 - 0xe87ff]
+[    0.761656] DMAR: Setting identity map for device 0000:00:1d.1 [0xe4000 - 0xe87ff]
+[    0.761665] DMAR: Setting identity map for device 0000:00:1d.2 [0xe4000 - 0xe87ff]
+[    0.761675] DMAR: Setting identity map for device 0000:00:1d.7 [0xe4000 - 0xe87ff]
+[    0.761685] DMAR: Prepare 0-16MiB unity mapping for LPC
+[    0.761766] DMAR: Setting identity map for device 0000:00:1f.0 [0x0 - 0xffffff]
+[    0.761908] DMAR: Intel(R) Virtualization Technology for Directed I/O
+檢查 VFIO 是否正常運作：
+
+# 檢查 VFIO 是否正常運作
+dmesg | grep -i vfio
+[    3.654698] VFIO - User Level meta-driver version: 0.3
+[    3.662792] vfio-pci 0000:0e:00.0: vgaarb: changed VGA decodes: olddecodes=io+mem,decodes=io+mem:owns=io+mem
+[    3.680043] vfio_pci: add [10de:1c03[ffff:ffff]] class 0x000000/00000000
+[    3.700189] vfio_pci: add [10de:10f1[ffff:ffff]] class 0x000000/00000000
+建立虛擬機器
+建立 VM 用的硬碟檔案：
+
+# 建立 VM 用的硬碟檔案（遠端主機）
+sudo qemu-img create -f qcow2 /home/seal/kvm/ubuntu1804.qcow2 20G
+接著再建立虛擬機器，並以 --host-device 指定要加入的 PCI 硬體 ID：
+
+# 在 VM 中安裝 Ubuntu Linux 18.04（遠端主機）
+sudo virt-install --virt-type kvm --name ubuntu1804 
+  --vcpu 2 --ram 4096 
+  --disk /home/seal/kvm/ubuntu1804.qcow2,format=qcow2 
+  --network network=default 
+  --graphics vnc,listen=0.0.0.0,password=YOUR_PASSWORD 
+  --noautoconsole 
+  --os-type=linux --os-variant=ubuntu17.10 
+  --cdrom=/home/seal/ubuntu-18.10-desktop-amd64.iso 
+  --host-device 0e:00.0 
+  --host-device 0e:00.1 
+  --features kvm_hidden=on
+在 VM 中就可以使用 lspci 看到 NVIDIA 的 GPU 顯示卡了：
+
+lspci | grep NVIDIA
+
+虛擬機器
+
+接著要想辦法讓 VM 中的這張顯示卡可以正常運作，但是我最近太忙了，剩下的以後再補。
+
+常見問題
+如果安裝虛擬機器時出現這樣的錯誤訊息：
+
+ERROR    internal error: qemu unexpectedly closed the monitor: 2018-12-28T05:40:04.939376Z qemu-system-x86_64: -device vfio-pci,host=0e:00.0,id=hostdev0,bus=pci.0,addr=0x6: vfio error: 0000:0e:00.0: failed to setup container for group 26: failed to set iommu for container: Operation not permitted
+請參考 Proxmox 的說明，檢查 IOMMU 中斷映射問題。
+
+# 使用 unsafe interrupts（僅供參考）
+echo "options vfio_iommu_type1 allow_unsafe_interrupts=1" > /etc/modprobe.d/iommu_unsafe_interrupts.conf
+

@@ -1,0 +1,246 @@
+nginx -V 2>&1 | grep -- 'http_auth_request_module'
+server {
+    #...
+
+    # 需要保護的網頁位置
+    location /private/ {
+        # 使用者認證用網址
+        auth_request /auth;
+
+        # 自行定義 401 網頁，導向至登入頁面
+        error_page 401 = @error401;
+
+        # 當認證結束後，從 subrequest 中取得資訊儲存於變數中（選用）
+        # auth_request_set $auth_status $upstream_status;
+        # auth_request_set $username $upstream_http_x_username;
+        # auth_request_set $sid $upstream_http_x_session;
+    }
+
+    # 認證用內部網址
+    location = /auth {
+        # 設定為內部使用
+        internal;
+
+        # 實際驗證用的伺服器
+        proxy_pass http://localhost:18000/auth;
+
+        # 丟棄請求的內容，僅保留標頭資訊
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+
+        # 傳遞認證用的標頭資訊（選用）
+        proxy_set_header X-Original-URI $request_uri;
+        # proxy_set_header Host $host;
+        # proxy_set_header X-Forwarded-Host $host;
+    }
+
+    # 將 401 導向至登入頁面
+    location @error401 {
+        return 302 https://$host/login/?url=https://$http_host$request_uri;
+    }
+
+    # 登入頁面
+    location /login/ {
+        # 實際登入頁面
+        proxy_pass http://localhost:18000/login/;
+
+        # 傳遞登入頁面所使用的標頭資訊（選用）
+        # proxy_set_header X-Client-IP $remote_addr;
+        # proxy_set_header X-Client-Port $remote_port;
+        # proxy_set_header X-Server-Port $server_port;
+    }
+}
+其中 /private/ 是需要保護的網頁（登入後才能觀看），而我們以 auth_request 設定使用者認證用的網址為 /auth，接著再設定 /auth 後方所對應到的實際認證伺服器。
+
+當使用者認證失敗時，認證伺服器會傳回 HTTP 401 的回應，這裡我們設定將 HTTP 401 重新導向至 /login/ 登入頁面，並且設定讓 /login/ 這個頁面導向至後方的認證伺服器，進行實際登入動作。
+
+撰寫認證伺服器
+上面敘述的只是 Nginx 網頁伺服器的設定，實際運作時還要搭配後方的認證伺服器，而認證伺服器就是普通的網頁伺服器，Nginx 會根據其回應的 HTTP 代碼來判斷認證是否成功，HTTP 2xx 代表認證成功，HTTP 401 或 403 則代表認證失敗。
+
+這裡我們使用 Python 自行撰寫一個認證伺服器指令稿，內容如下：
+
+#/usr/bin/env python
+from bottle import route, run, request, response, abort, redirect
+import sys
+import uuid
+
+SIGNATURE = uuid.uuid4().hex
+COOKIE = 'my-auth-sid'
+
+sessions = {}
+
+# 檢查帳號密碼
+def check_login(username, password):
+  # TODO: 請更換檢查方法
+  if username == password:
+    return True
+  return False
+
+# 檢查 Session 是否已存在
+def is_active_session():
+  sid = request.get_cookie(COOKIE, secret=SIGNATURE)
+  if not sid:
+    return None
+  if sid in sessions:
+    return sid
+  else:
+    return None
+
+# 登入頁面
+@route('/login/', method='GET')
+def user_login():
+  sid = is_active_session()
+  if sid:
+    return '已登入：%s' % sessions[sid]
+
+  return '''
+    <form method="post">
+     user：<input name="username" type="text" /><br/>
+     pass：<input name="password" type="password" /><br/>
+     <input value="登入" type="submit" />
+    </form>'''
+
+# 接收登入資訊，進行認證
+@route('/login/', method='POST')
+def do_login():
+  username = request.forms.get('username')
+  password = request.forms.get('password')
+  if 'url' in request.query:
+    url = request.query.url
+  else:
+    url = None
+
+  if check_login(username, password):
+    sid = uuid.uuid4().hex
+    sessions[sid] = username
+    response.set_cookie(COOKIE, sid, secret=SIGNATURE, path="/", httponly=True)
+    if url:
+      redirect(url)
+    else:
+      return "welcom %s login" % username
+  else:
+    return "login failed"
+
+def show_headers():
+  import pprint
+  hdrs = dict(request.headers)
+  pprint.pprint(hdrs)
+
+# 認證伺服器
+@route('/auth')
+def auth():
+  # 除錯用
+  show_headers()
+
+  # 檢查 Session 是否已經存在
+  sid = is_active_session()
+
+  if sid:
+    # 將使用者認證資訊放置於標頭傳回（選用）
+    # response.set_header('X-Username', sessions[sid])
+    # response.set_header('X-Session', str(sid))
+
+    # 傳回 HTTP 200 表示認證成功
+    return 'OK ' + str(sid)
+  else:
+    # 傳回 HTTP 401 表示認證失敗
+    abort(401, "Unathenticated")
+
+# 傾聽所有介面的 18000 埠
+run(host='0.0.0.0', port=18000)
+進行測試
+修改好 Nginx 伺服器設定檔，並準備好 Python 認證伺服器指令稿之後，就可以進行測試了。
+
+首先重新載入 Nginx 伺服器設定：
+
+# 重新載入 Nginx 伺服器設定
+systemctl restart nginx
+接著啟動 Python 認證伺服器：
+
+# 啟動 Python 認證伺服器
+python3 auth.py
+這樣就可以開啟瀏覽器瀏覽 /private/ 這個位置進行測試了。
+
+簡易 Token 認證實作方式
+對於某些給程式使用的 API 伺服器來說，並不需要提供輸入帳號與密碼的登入介面，只需要驗證 token 是否正確即可，這種狀況就可以使用以下的方式實作。
+
+Nginx 設定檔案的內容大致如下：
+
+server {
+    #...
+    location /private/ {
+        # 驗證用網址
+        auth_request /auth;
+
+        # 將合格之 Token 存入 Cookie
+        auth_request_set $token $upstream_http_x_auth_token;
+        add_header Set-Cookie auth-token=$token;
+    }
+    # 認證用內部網址
+    location = /auth {
+        # 設定為內部使用
+        internal;
+
+        # 實際驗證用的伺服器
+        proxy_pass http://localhost:18000/auth;
+
+        # 丟棄請求的內容，僅保留標頭資訊
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+
+        # 傳遞包含 Token 的 URI 給認證伺服器
+        proxy_set_header X-Request-URI $request_uri;
+        # proxy_set_header X-Request-METHOD $request_method;
+    }
+}
+以下是對應的 Python 認證伺服器：
+
+#/usr/bin/env python
+from bottle import route, run, request, response, abort, redirect
+from urllib.parse import urlparse, parse_qs
+
+# 正確的 Token 集合
+VALID_TOKENS = {'123abc'}
+
+# 檢查 Token 是否正確
+def has_valid_token():
+  uri = request.headers['X-Request-Uri']
+  parsed = urlparse(uri)
+  parameters = parse_qs(parsed.query)
+  if 'token' in parameters:
+    token = parameters['token'][0]
+    print("從網址取得 Token：", token)
+
+    # 將 Token 寫入標頭，傳回 Nginx 伺服器
+    response.set_header('X-Auth-Token', str(token))
+  else:
+    token = request.get_cookie('auth-token')
+    print("從 Cookie 取得 Token：", token)
+
+  if token in VALID_TOKENS:
+    print("Token 正確：", token)
+    return token
+  else:
+    print("Token 錯誤：", token)
+    return None
+
+# 認證伺服器
+@route('/auth')
+def auth():
+
+  # 檢查 Token
+  token = has_valid_token()
+
+  if token:
+    # 傳回 HTTP 200 表示認證成功
+    return 'OK ' + str(token)
+  else:
+    # 傳回 HTTP 401 表示認證失敗
+    abort(401, "Unathenticated")
+
+# 傾聽所有介面的 18000 埠
+run(host='0.0.0.0', port=18000)
+使用這種 token 認證方式時，只要將 token 放在網址當中，即可進行認證：
+
+https://192.168.0.1/private/?token=123abc
+這種方式對於自動化的程式來說非常好用，我們可以在 API 伺服器上面產生 token 之後，將 token 傳給外部的程式，這樣外部的程式就可以直接透過 token 存取 API 伺服器。
