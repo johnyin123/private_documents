@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("v2ray_gencfg.sh - 943207b - 2021-07-16T10:45:40+08:00")
+VERSION+=("v2ray_gencfg.sh - 2f58fe6 - 2021-07-16T11:14:30+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # https://github.com/UmeLabs/node.umelabs.dev
@@ -113,10 +113,18 @@ cat <<EOF
       },
       {
         "type": "field",
+        "ip": [
+          "192.168.0.0/16",
+          "fe80::/10"
+        ],
+        "outboundTag": "direct"
+      },
+      {
+        "type": "field",
         "outboundTag": "direct",
         "domain": [
-          "baidu.com",
-          "163.com"
+          "domain:baidu.com",
+          "domain:163.com"
         ]
       },
       {
