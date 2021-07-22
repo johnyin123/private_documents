@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - ddc5464 - 2021-06-28T14:47:35+08:00")
+VERSION+=("virt-imgbootup.sh - 8bf47ef - 2021-06-29T13:35:34+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -23,6 +23,12 @@ ${SCRIPTNAME}
                     iscsi://192.0.2.1/iqn.2001-04.com.example/1
         -b|--bridge <br>      host net bridge
         -f|--fmt    <fmt>     disk image format(default raw)
+        -u | --usb            passthrough host usb device
+                     lsusb:
+                        Bus 001 Device 003: ID 5986:0652 Acer, Inc
+                        Bus [hostbus] Device [hostaddr]:.....
+        --hostbus   <number>  passthrough device hostbus
+        --hostaddr  <number>  passthrough device hostaddr
         --cdrom     <iso>     iso file
         --fda       <file>    floppy disk file
         -q|--quiet
@@ -42,9 +48,9 @@ EOF
     exit 1
 }
 main() {
-    local cpu=1 mem=2048 disk= bridge= fmt=raw cdrom= floppy=
-    local opt_short="c:m:D:b:f:"
-    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,"
+    local cpu=1 mem=2048 disk= bridge= fmt=raw cdrom= floppy= usb= hostbus= hostaddr=
+    local opt_short="c:m:D:b:f:u"
+    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb,hostbus:,hostaddr:,"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -56,6 +62,9 @@ main() {
             -D | --disk)    shift; disk=${1}; shift;;
             -b | --bridge)  shift; bridge=${1}; shift;;
             -f | --fmt)     shift; fmt=${1}; shift;;
+            -u | --usb)     shift; usb=1;;
+            --hostbus)      shift; hostbus=${1}; shift;;
+            --hostaddr)     shift; hostaddr=${1}; shift;;
             --cdrom)        shift; cdrom=${1}; shift;;
             --fda)          shift; floppy=${1}; shift;;
             ########################################
@@ -72,18 +81,21 @@ main() {
     [ -z ${disk} ] && usage "disk image ?"
     #file_exists "${disk}" || usage "disk nofound"
     [ -z ${bridge} ] || bridge_exists "${bridge}" || usage "bridge nofound"
+    [ -z ${usb} ] || {
+        [ -z ${hostbus} ] && usage "usb host passthrough need bus & addr."
+        [ -z ${hostaddr} ] && usage "usb host passthrough need bus & addr."
+    }
 
     directory_exists /etc/qemu/ || try mkdir -p /etc/qemu/
     grep "\s*allow\s*all" /etc/qemu/bridge.conf || {
         try "echo 'allow all' >> /etc/qemu/bridge.conf"
         try chmod 640 /etc/qemu/bridge.conf
     }
-
     try qemu-system-x86_64 -enable-kvm -cpu kvm64 -smp ${cpu} -m ${mem} -vga qxl \
         -nodefaults -no-user-config -usb -device usb-tablet \
-        -global qxl-vga.vram_size=67108864 \
-        ${cdrom:+-cdrom ${cdrom} -boot menu=on} \
-        ${floppy:+-fda ${floppy}} \
+        -global qxl-vga.vram_size=67108864 -boot menu=on \
+        ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}} \
+        ${usb:+-usb -device usb-host,hostbus=${hostbus},hostaddr=${hostaddr}} \
         ${bridge:+-netdev bridge,br=${bridge},id=net0 -device virtio-net-pci,netdev=net0,mac=${MAC:-52:54:00:11:22:33}} \
         -drive file=${disk},index=0,cache=none,aio=native,if=virtio,format=${fmt}
 }
