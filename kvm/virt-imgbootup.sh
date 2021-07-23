@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 1f61ef4 - 2021-07-22T10:33:57+08:00")
+VERSION+=("virt-imgbootup.sh - f807e3f - 2021-07-23T10:55:41+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -23,10 +23,11 @@ ${SCRIPTNAME}
                     iscsi://192.0.2.1/iqn.2001-04.com.example/1
         -b|--bridge <br>      host net bridge
         -f|--fmt    <fmt>     disk image format(default raw)
-        -u | --usb  <key>     passthrough host usb device (support multi usb passthrough)
-                     lsusb:
+        -u | --usb  <VENDOR_ID:PRODUCT_ID>
+                    passthrough host usb device (support multi usb passthrough)
+                    lsusb:
                         Bus 001 Device 003: ID 5986:0652 Acer, Inc
-                        Bus [hostbus] Device [hostaddr]:.....
+                        Bus [hostbus] Device [hostaddr]: ID VENDOR_ID:PRODUCT_ID .....
         --cdrom     <iso>     iso file
         --fda       <file>    floppy disk file
         -q|--quiet
@@ -55,6 +56,7 @@ main() {
         "-no-user-config"
         "-usb" "-device usb-tablet"
         "-boot" "menu=on"
+        "-M" "q35"
     )
 
     local cpu=1 mem=2048 disk=() bridge= fmt=raw cdrom= floppy= usb=()
@@ -85,8 +87,8 @@ main() {
         esac
     done
     is_user_root || exit_msg "root need\n"
-    require lsusb qemu-system-x86_64 grep sed awk
-    [ -z ${disk} ] && usage "disk image ?"
+    require qemu-system-x86_64 grep sed awk
+    [ "$(array_size disk)" -gt "0" ] || usage "disk image ?"
     #file_exists "${disk}" || usage "disk nofound"
     options+=("-cpu" "kvm64")
     options+=("-monitor" "vc")
@@ -108,9 +110,18 @@ main() {
         let disk_id+=1
     done
     for _u in "${usb[@]}"; do
-        local _bus=$(lsusb | grep "${_u}" | awk '{ print $2 }' | sed 's/^0*//')
-        local _dev=$(lsusb | grep "${_u}" | awk '{ gsub(":","",$4); print $4 }' | sed 's/^0*//')
-        options+=("-device" "usb-host,hostbus=${_bus},hostaddr=${_dev}")
+        #local _bus=$(lsusb | grep "${_u}" | awk '{ print $2 }' | sed 's/^0*//')
+        #local _dev=$(lsusb | grep "${_u}" | awk '{ gsub(":","",$4); print $4 }' | sed 's/^0*//')
+        #local _port=$(lsusb -t \
+        #    | sed -n -e '/Bus 0*'"${_bus}"'/,/Bus/p' \
+        #    | sed -e '1d' -e '$d' \
+        #    | sed -n '/Dev 0*'"${_dev}"'/p' \
+        #    | sed -n '1p' \
+        #    | sed 's/^.*Port \([0-9]\).*$/\1/g')
+        ##options+=("-device" "usb-host,hostbus=${_bus},hostaddr=${_dev}")
+        #options+=("-device" "usb-host,hostbus=${_bus},hostport=${_port}")
+        # usb passthrough need -M q35
+        options+=("-device" "usb-host,vendorid=0x${usb%%:*},productid=0x${usb##*:}")
     done
     try qemu-system-x86_64 "${options[@]}" \
         ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}
