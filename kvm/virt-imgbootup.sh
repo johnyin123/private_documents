@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 8bf47ef - 2021-06-29T13:35:34+08:00")
+VERSION+=("virt-imgbootup.sh - 1f61ef4 - 2021-07-22T10:33:57+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -16,19 +16,17 @@ usage() {
 ${SCRIPTNAME}
         -c|--cpu    <int>     number of cpus (default 1)
         -m|--mem    <int>     mem size MB (default 2048)
-        -D|--disk   <file> *  disk image
+        -D|--disk   <file> *  disk image (multi disk must same format)
                     nbd:192.0.2.1:30000
                     nbd:unix:/tmp/nbd-socket
                     ssh://user@host/path/to/disk.img
                     iscsi://192.0.2.1/iqn.2001-04.com.example/1
         -b|--bridge <br>      host net bridge
         -f|--fmt    <fmt>     disk image format(default raw)
-        -u | --usb            passthrough host usb device
+        -u | --usb  <key>     passthrough host usb device (support multi usb passthrough)
                      lsusb:
                         Bus 001 Device 003: ID 5986:0652 Acer, Inc
                         Bus [hostbus] Device [hostaddr]:.....
-        --hostbus   <number>  passthrough device hostbus
-        --hostaddr  <number>  passthrough device hostaddr
         --cdrom     <iso>     iso file
         --fda       <file>    floppy disk file
         -q|--quiet
@@ -47,10 +45,21 @@ ${SCRIPTNAME}
 EOF
     exit 1
 }
+
 main() {
-    local cpu=1 mem=2048 disk= bridge= fmt=raw cdrom= floppy= usb= hostbus= hostaddr=
-    local opt_short="c:m:D:b:f:u"
-    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb,hostbus:,hostaddr:,"
+    local options=(
+        "-enable-kvm"
+        "-vga" "qxl"
+        "-global" "qxl-vga.vram_size=67108864" 
+        "-nodefaults"
+        "-no-user-config"
+        "-usb" "-device usb-tablet"
+        "-boot" "menu=on"
+    )
+
+    local cpu=1 mem=2048 disk=() bridge= fmt=raw cdrom= floppy= usb=()
+    local opt_short="c:m:D:b:f:u:"
+    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb:,"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -59,12 +68,10 @@ main() {
         case "$1" in
             -c | --cpu)     shift; cpu=${1}; shift;;
             -m | --mem)     shift; mem=${1}; shift;;
-            -D | --disk)    shift; disk=${1}; shift;;
+            -D | --disk)    shift; disk+=("${1}"); shift;;
             -b | --bridge)  shift; bridge=${1}; shift;;
             -f | --fmt)     shift; fmt=${1}; shift;;
-            -u | --usb)     shift; usb=1;;
-            --hostbus)      shift; hostbus=${1}; shift;;
-            --hostaddr)     shift; hostaddr=${1}; shift;;
+            -u | --usb)     shift; usb+=("${1}"); shift;;
             --cdrom)        shift; cdrom=${1}; shift;;
             --fda)          shift; floppy=${1}; shift;;
             ########################################
@@ -78,25 +85,34 @@ main() {
         esac
     done
     is_user_root || exit_msg "root need\n"
+    require lsusb qemu-system-x86_64 grep sed awk
     [ -z ${disk} ] && usage "disk image ?"
     #file_exists "${disk}" || usage "disk nofound"
-    [ -z ${bridge} ] || bridge_exists "${bridge}" || usage "bridge nofound"
-    [ -z ${usb} ] || {
-        [ -z ${hostbus} ] && usage "usb host passthrough need bus & addr."
-        [ -z ${hostaddr} ] && usage "usb host passthrough need bus & addr."
+    options+=("-cpu" "kvm64")
+    options+=("-monitor" "vc")
+    options+=("-smp" "${cpu}")
+    options+=("-m" "${mem}")
+    [ -z ${bridge} ] || {
+        bridge_exists "${bridge}" || usage "bridge nofound"
+        directory_exists /etc/qemu/ || try mkdir -p /etc/qemu/
+        grep "\s*allow\s*all" /etc/qemu/bridge.conf || {
+            try "echo 'allow all' >> /etc/qemu/bridge.conf"
+            try chmod 640 /etc/qemu/bridge.conf
+        }
+        options+=("-netdev" "bridge,br=${bridge},id=net0")
+        options+=("-device" "virtio-net-pci,netdev=net0,mac=${MAC:-52:54:00:11:22:33}")
     }
-
-    directory_exists /etc/qemu/ || try mkdir -p /etc/qemu/
-    grep "\s*allow\s*all" /etc/qemu/bridge.conf || {
-        try "echo 'allow all' >> /etc/qemu/bridge.conf"
-        try chmod 640 /etc/qemu/bridge.conf
-    }
-    try qemu-system-x86_64 -enable-kvm -cpu kvm64 -smp ${cpu} -m ${mem} -vga qxl \
-        -nodefaults -no-user-config -usb -device usb-tablet \
-        -global qxl-vga.vram_size=67108864 -boot menu=on \
-        ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}} \
-        ${usb:+-usb -device usb-host,hostbus=${hostbus},hostaddr=${hostaddr}} \
-        ${bridge:+-netdev bridge,br=${bridge},id=net0 -device virtio-net-pci,netdev=net0,mac=${MAC:-52:54:00:11:22:33}} \
-        -drive file=${disk},index=0,cache=none,aio=native,if=virtio,format=${fmt}
+    local disk_id=0
+    for _u in "${disk[@]}"; do
+        options+=("-drive" "file=${_u},index=${disk_id},cache=none,aio=native,if=virtio,format=${fmt}")
+        let disk_id+=1
+    done
+    for _u in "${usb[@]}"; do
+        local _bus=$(lsusb | grep "${_u}" | awk '{ print $2 }' | sed 's/^0*//')
+        local _dev=$(lsusb | grep "${_u}" | awk '{ gsub(":","",$4); print $4 }' | sed 's/^0*//')
+        options+=("-device" "usb-host,hostbus=${_bus},hostaddr=${_dev}")
+    done
+    try qemu-system-x86_64 "${options[@]}" \
+        ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}
 }
 main "$@"

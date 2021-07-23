@@ -7,12 +7,10 @@ blacklist nouveau
 options nouveau modeset=0
 編輯 /etc/default/grub 設定檔，修改 GRUB_CMDLINE_LINUX_DEFAULT 的設定值，增加 intel_iommu=on 選項：
 
-GRUB_CMDLINE_LINUX_DEFAULT="quiet splash intel_iommu=on"
-更新 GRUB 的設定：
-
-# 更新 GRUB 設定
+#amd_iommu=on  for amd cpu
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash intel_iommu=on iommu=pt"
+These are the two kernel flags required: intel_iommu=on (allows PCIe passthrough), and iommu=pt (speeds up the PCIe passthrough, optional - remove if something doesn't work)
 sudo update-grub
-使用 lspci 查詢顯示卡的 PCI 編號、vendor ID 與 device ID：
 
 # 查詢顯示卡的 PCI 編號、vendor ID 與 device ID
 lspci -nn | grep -i nvidia
