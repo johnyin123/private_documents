@@ -1,0 +1,12 @@
+# create xml
+<hostdev mode='subsystem' type='usb'>
+  <source>
+    <vendor id='0x${VENDOR}'/>
+    <product id='0x${PRODUCT}'/>
+  </source>
+</hostdev>
+
+# add udev rules
+ACTION=="add", ATTRS{idVendor}=="${VENDOR}", ATTRS{idProduct}=="${PRODUCT}", RUN+="/usr/bin/virsh attach-device Win10CleanTest xxx.xml"
+ACTION=="remove", ATTRS{idVendor}=="${VENDOR}", ATTRS{idProduct}=="${PRODUCT}", RUN+="/usr/bin/virsh detach-device Win10CleanTest xxx.xml"
+
