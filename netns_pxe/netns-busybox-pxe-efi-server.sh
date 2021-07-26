@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - 99bb60a - 2021-01-20T14:41:56+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - initversion - 2021-07-26T08:30:59+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -455,6 +455,7 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        ** all depends files: busybox-pxe-efi-server.depends.tar.gz **
         -b|--bridge    *    <local bridge> local bridge
         -n|--ns             <ns name>   default pxe_ns
         -i|--ns_ip          <ns ipaddr> default 172.16.16.2
@@ -502,7 +503,6 @@ main() {
         esac
     done
     [[ -z "${host_br}" ]] && usage "bridge must input"
-    bridge_exists "${host_br}" || exit_msg "bridge no found\n"
     check_depend ${host_br}
     try mkdir -p ${ROOTFS}
     mk_busybox_fs "${DIRNAME}/${BUSYBOX}" "${ROOTFS}"
