@@ -91,7 +91,7 @@ pciid2="$(lspci -nn  | grep -oP 'Audio.*NVIDIA.*\[\K[\w:]+')"
 
 cat << EOF > /etc/modprobe.d/vfio.conf
 options vfio-pci ids=$pciid1,$pciid2
-options vfio-pci disable_vga=1
+# options vfio-pci disable_vga=1
 EOF
 cat << EOF > /etc/modprobe.d/blacklist.conf
 blacklist nouveau
@@ -110,4 +110,10 @@ cat /etc/default/grub
 grub2-mkconfig -o /boot/grub2/grub.cfg
 dracut -f --kver `uname -r`
 
+
+
+virt-install ....... \
+--host-device 01:00.0 \
+--features kvm_hidden=on \
+--machine q35
 GPUEOF
