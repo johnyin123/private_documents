@@ -101,6 +101,10 @@ alias nouveau off
 alias lbm-nouveau off
 EOF
 
+cat <<EOF > /etc/modules-load.d/vfio-pci.conf
+vfio-pci
+EOF
+
 eval $(grep -E "^GRUB_CMDLINE_LINUX=.*" /etc/default/grub)
 GRUB_CMDLINE_LINUX+=" intel_iommu=on iommu=pt rd.driver.pre=vfio-pci video=efifb:off rd.driver.blacklist=nouveau"
 sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"$GRUB_CMDLINE_LINUX\"/g" /etc/default/grub
