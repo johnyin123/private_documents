@@ -116,6 +116,9 @@ dracut -f --kver `uname -r`
 
 
 
+# $lspci | grep VGP
+# 3b:00.0 VGA compatible controller: NVIDIA Corporation GP104GL [Quadro P5000] (rev a1)
+
 virt-install ....... \
 --host-device 3b:00.0 \
 --machine q35
