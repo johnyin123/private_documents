@@ -113,7 +113,16 @@ dracut -f --kver `uname -r`
 
 
 virt-install ....... \
---host-device 01:00.0 \
---features kvm_hidden=on \
+--host-device 3b:00.0 \
 --machine q35
+
+libvirtd:
+     <hostdev mode='subsystem' type='pci' managed='yes'>
+      <driver name='vfio'/>
+      <source>
+        <address domain='0x0000' bus='0x3b' slot='0x00' function='0x0'/>
+      </source>
+      <alias name='hostdev0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
+     </hostdev>
 GPUEOF
