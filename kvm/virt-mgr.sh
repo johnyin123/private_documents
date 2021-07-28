@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-mgr.sh - 0934bc8 - 2021-05-27T11:02:56+08:00")
+VERSION+=("virt-mgr.sh - 148faf3 - 2021-05-28T14:50:24+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -312,6 +312,58 @@ declare -A DOMAIN_TPL=(
     <graphics type='spice' autoport='yes'>
       <listen type='address'/>
     </graphics>
+    <video>
+      <model type='qxl' ram='65536' vram='65536' vgamem='16384' heads='1' primary='yes'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
+    </video>
+    <channel type='unix'>
+      <target type='virtio' name='org.qemu.guest_agent.0'/>
+    </channel>
+    <controller type='usb' index='0' model='ich9-ehci1'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x05' function='0x7'/>
+    </controller>
+    <redirdev bus='usb' type='spicevmc'>
+      <address type='usb' bus='0' port='3'/>
+    </redirdev>
+    <memballoon model='virtio'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x08' function='0x0'/>
+    </memballoon>
+  </devices>
+</domain>"
+    [gpu]="
+<domain type='kvm'>
+  <name>{{NAME}}-{{UUID}}</name>
+  <uuid>{{UUID}}</uuid>
+  <title>{{NAME}}</title>
+  <description>{{DESC}}</description>
+  <memory unit='KiB'>8388608</memory>
+  <currentMemory unit='KiB'>{{MEM}}</currentMemory>
+  <vcpu placement='static' current='{{CPUS}}'>8</vcpu>
+  <cpu match='exact'><model fallback='allow'>${CPU}</model></cpu>
+  <os><type arch='x86_64'>hvm</type>
+    <loader readonly='yes' type='pflash'>/usr/share/OVMF/OVMF_CODE.fd</loader>
+    <nvram>/var/lib/libvirt/qemu/nvram/rhel8-unknown_VARS.fd</nvram>
+  </os>
+  <features><acpi/><apic/><pae/></features>
+  <on_poweroff>preserve</on_poweroff>
+  <devices>
+    <serial type='pty'>
+      <target port='0'/>
+    </serial>
+    <console type='pty'>
+      <target type='serial' port='0'/>
+    </console>
+    <input type='mouse' bus='ps2'/>
+    <input type='keyboard' bus='ps2'/>
+    <graphics type='spice' autoport='yes'>
+      <listen type='address'/>
+    </graphics>
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+     <driver name='vfio'/>
+     <source>
+       <address domain='0x0000' bus='0x3b' slot='0x00' function='0x0'/>
+     </source>
+    </hostdev>
     <video>
       <model type='qxl' ram='65536' vram='65536' vgamem='16384' heads='1' primary='yes'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>

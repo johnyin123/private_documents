@@ -124,14 +124,12 @@ virt-install ....... \
 --machine q35
 
 libvirtd:
-     <hostdev mode='subsystem' type='pci' managed='yes'>
-      <driver name='vfio'/>
-      <source>
-        <address domain='0x0000' bus='0x3b' slot='0x00' function='0x0'/>
-      </source>
-      <alias name='hostdev0'/>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
-     </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+     <driver name='vfio'/>
+     <source>
+       <address domain='0x0000' bus='0x3b' slot='0x00' function='0x0'/>
+     </source>
+    </hostdev>
 
 CUDA Toolkit:
 wget https://developer.download.nvidia.com/compute/cuda/11.4.0/local_installers/cuda-repo-rhel7-11-4-local-11.4.0_470.42.01-1.x86_64.rpm
