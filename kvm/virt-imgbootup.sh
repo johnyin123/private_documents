@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - f807e3f - 2021-07-23T10:55:41+08:00")
+VERSION+=("virt-imgbootup.sh - 32dab86 - 2021-07-23T13:52:34+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -23,7 +23,8 @@ ${SCRIPTNAME}
                     iscsi://192.0.2.1/iqn.2001-04.com.example/1
         -b|--bridge <br>      host net bridge
         -f|--fmt    <fmt>     disk image format(default raw)
-        -u | --usb  <VENDOR_ID:PRODUCT_ID>
+        --simusb    <file>    simulation usb disk(raw format)
+        -u | --usb  <VENDOR_ID:PRODUCT_ID> support usb 3.0
                     passthrough host usb device (support multi usb passthrough)
                     lsusb:
                         Bus 001 Device 003: ID 5986:0652 Acer, Inc
@@ -54,14 +55,14 @@ main() {
         "-global" "qxl-vga.vram_size=67108864" 
         "-nodefaults"
         "-no-user-config"
-        "-usb" "-device usb-tablet"
+        "-usb" "-device usb-tablet,bus=usb-bus.0" "-device nec-usb-xhci,id=xhci"
         "-boot" "menu=on"
         "-M" "q35"
     )
 
-    local cpu=1 mem=2048 disk=() bridge= fmt=raw cdrom= floppy= usb=()
+    local cpu=1 mem=2048 disk=() bridge= fmt=raw cdrom= floppy= usb=() simusb=()
     local opt_short="c:m:D:b:f:u:"
-    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb:,"
+    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb:,simusb:,"
     opt_short+="ql:dVh"
     opt_long+="quite,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -74,6 +75,7 @@ main() {
             -b | --bridge)  shift; bridge=${1}; shift;;
             -f | --fmt)     shift; fmt=${1}; shift;;
             -u | --usb)     shift; usb+=("${1}"); shift;;
+            --simusb)       shift; simusb+=("${1}"); shift;;
             --cdrom)        shift; cdrom=${1}; shift;;
             --fda)          shift; floppy=${1}; shift;;
             ########################################
@@ -109,6 +111,10 @@ main() {
         options+=("-drive" "file=${_u},index=${disk_id},cache=none,aio=native,if=virtio,format=${fmt}")
         let disk_id+=1
     done
+    for _u in "${simusb[@]}"; do
+        options+=("-drive" "if=none,id=usbstick,file=${_u},format=raw")
+        options+=("-device usb-storage,bus=xhci.0,drive=usbstick")
+    done
     for _u in "${usb[@]}"; do
         #local _bus=$(lsusb | grep "${_u}" | awk '{ print $2 }' | sed 's/^0*//')
         #local _dev=$(lsusb | grep "${_u}" | awk '{ gsub(":","",$4); print $4 }' | sed 's/^0*//')
@@ -121,7 +127,7 @@ main() {
         ##options+=("-device" "usb-host,hostbus=${_bus},hostaddr=${_dev}")
         #options+=("-device" "usb-host,hostbus=${_bus},hostport=${_port}")
         # usb passthrough need -M q35
-        options+=("-device" "usb-host,vendorid=0x${usb%%:*},productid=0x${usb##*:}")
+        options+=("-device" "usb-host,bus=xhci.0,vendorid=0x${_u%%:*},productid=0x${_u##*:}")
     done
     try qemu-system-x86_64 "${options[@]}" \
         ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}
