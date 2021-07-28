@@ -137,4 +137,11 @@ rpm -i cuda-repo-rhel7-11-4-local-11.4.0_470.42.01-1.x86_64.rpm
 yum clean all
 yum -y install nvidia-driver-latest-dkms cuda
 yum -y install cuda-drivers
+
+
+virsh nodedev-detach pci_0000_09_00_0
+virsh nodedev-detach pci_0000_09_00_1
+..........
+virsh nodedev-reattach pci_0000_09_00_0
+virsh nodedev-reattach pci_0000_09_00_1
 GPUEOF
