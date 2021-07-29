@@ -7,13 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("v2ray_gencfg.sh - 1a7587d - 2021-07-23T07:26:35+08:00")
+VERSION+=("v2ray_gencfg.sh - 3f3f752 - 2021-07-29T09:44:05+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # https://github.com/UmeLabs/node.umelabs.dev
 # V2Ray:https://raw.githubusercontent.com/umelabs/node.umelabs.dev/master/Subscribe/v2ray.md
 
 :<<EOF
+  # 5IOeRnuWFuOaWr+W+t+WTpeWwlOaRqUFtYXpvbuaVsOaNruS4reW/gyAxOCIsDQogICJhZGQiOiAiMTMuNDkuMjQ2LjIwOCIsDQogICJwb3J0IjogIjQ0MyIsDQogICJpZCI6ICJkZjA1NWVhMi00ZDNhLTQ0NWUtOTc3ZC04ZTk1OGFiYWFkM2EiLA0KICAiYWlkIjogIjIiLA0KICAibmV0IjogIndzIiwNCiAgInR5cGUiOiAibm9uZSIsDQogICJob3N0IjogInYycmF5LXNlLTIueGFtanlzc3Zwbi54eXoiLA0KICAicGF0aCI6ICIveGFtanlzczE0My8iLA0KICAidGxzIjogInRscyIsDQogICJzbmkiOiAiIg0KfQ==
   "outbounds": [
     {
       "protocol": "vmess",
