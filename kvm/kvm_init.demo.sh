@@ -133,11 +133,17 @@ libvirtd:
 
 CUDA Toolkit:
 wget https://developer.download.nvidia.com/compute/cuda/11.4.0/local_installers/cuda-repo-rhel7-11-4-local-11.4.0_470.42.01-1.x86_64.rpm
-rpm -i cuda-repo-rhel7-11-4-local-11.4.0_470.42.01-1.x86_64.rpm
-yum clean all
-yum -y install nvidia-driver-latest-dkms cuda
-yum -y install cuda-drivers
+yum -y install gcc make epel-release.noarch kernel-devel.x86_64
+yum -y install cuda-repo-rhel7-11-4-local-11.4.0_470.42.01-1.x86_64.rpm
+yum -y install cuda
+dkms autoinstall --verbose --kernelver $(uname -r)
 
+export PATH=/usr/local/cuda/bin:$PATH
+export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
+cuda-install-samples-11.4.sh ~/demo/
+$ demo/NVIDIA_CUDA-11.4_Samples/bin/x86_64/linux/release/deviceQuery
+  ...........
+  Result = PASS
 
 virsh nodedev-detach pci_0000_09_00_0
 virsh nodedev-detach pci_0000_09_00_1
