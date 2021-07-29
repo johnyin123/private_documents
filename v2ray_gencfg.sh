@@ -7,11 +7,57 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("v2ray_gencfg.sh - 2f58fe6 - 2021-07-16T11:14:30+08:00")
+VERSION+=("v2ray_gencfg.sh - 1a7587d - 2021-07-23T07:26:35+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # https://github.com/UmeLabs/node.umelabs.dev
 # V2Ray:https://raw.githubusercontent.com/umelabs/node.umelabs.dev/master/Subscribe/v2ray.md
+
+:<<EOF
+  "outbounds": [
+    {
+      "protocol": "vmess",
+      "settings": {
+        "vnext": [
+          {
+            "address": "13.49.246.208",
+            "port": 443,
+            "users": [
+              {
+                "email": "user@v2ray.com",
+                "id": "df055ea2-4d3a-445e-977d-8e958abaad3a",
+                "alterId": 2,
+                "security": "auto"
+              }
+            ]
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "ws",
+        "security": "tls",
+        "tlsSettings": {
+          "allowInsecure": true
+        },
+        "wsSettings": {
+          "connectionReuse": true,
+          "path": "/xamjyss143/",
+          "headers": {
+            "Host": "v2ray-se-2.xamjyssvpn.xyz"
+          }
+        }
+      },
+      "mux": {
+        "enabled": true
+      },
+      "tag": "proxy"
+    },
+    {
+      "protocol": "freedom",
+      "tag": "direct"
+    }
+  ]
+EOF
 HTTP_IP=${HTTP_IP:-127.0.0.1}
 HTTP_PORT=${HTTP_PORT:-8891}
 :<<EOF
@@ -96,7 +142,7 @@ cat <<EOF
   ],
   "dns": {
     "servers": [
-      "1.0.0.1",
+      "8.8.8.8",
       "localhost"
     ]
   },
