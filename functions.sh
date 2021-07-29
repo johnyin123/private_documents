@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 94cfab7 - 2021-07-20T11:30:30+08:00")
+VERSION+=("functions.sh - 7927634 - 2021-07-29T09:18:56+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -87,12 +87,12 @@ is_in_comma_sep_list ()
 # ----------------------------------------------
 join() { local IFS="${1}"; shift; echo "${*}"; }
 
-__M=$((1048576))
-__G=$((1024*__M))
-__T=$((1024*__G))
-__P=$((1024*__T))
 human_readable_disk_size() {
     local bytes=$1
+    local __M=$((1048576))
+    local __G=$((1024*__M))
+    local __T=$((1024*__G))
+    local __P=$((1024*__T))
     if [ $bytes -ge $__P ]; then safe_echo $((bytes/__P))P; return; fi
     if [ $bytes -ge $__T ]; then safe_echo $((bytes/__T))T; return; fi
     if [ $bytes -ge $__G ]; then safe_echo $((bytes/__G))G; return; fi
@@ -454,12 +454,12 @@ safe_echo() {
     printf -- '%b\n' "$*"
 }
 
-readonly EC=$'\033'    # escape char
-readonly EE=$'\033[0m' # escape end
 cprintf() {
     local color=$1
     local fmt=$2
     shift 2
+    local  EC=$'\033'    # escape char
+    local  EE=$'\033[0m' # escape end
     # if stdout is console, turn on color output.
     stdout_is_terminal && printf "${EC}[1;${color}m${fmt}${EE}" "$@" || printf "${fmt}" "$@"
 }
@@ -468,10 +468,10 @@ cprintf() {
 # same as render_tpl  #LHS='${' RHS='}'
 # REPS default two LHS/RHS like {{ }}
 # LHS='%' RHS='%'
-SEQN="$(seq 1 ${REPS:-2})"
 render_tpl2() {
     local str="$(cat)"
     local arr=$1
+    local SEQN="$(seq 1 ${REPS:-2})"
     for arg in $(array_print_label ${arr}) ; do
         local sub="${LHS:=$(printf '{%.0s' $SEQN)}${arg}${RHS:=$(printf '}%.0s' $SEQN)}"
         local val="$(array_get ${arr} "$arg")"
@@ -1039,19 +1039,20 @@ urldecode() {
     safe_echo "${decoded}"
 }
 
-# Use this to set the new config value, needs 2 parameters.
-CONF_DELM='='
 # echo "key=abc" | del_config "key" | add_config "test" "testval" | set_config "test" "abc"
 set_config() {
+    local CONF_DELM=${3:-=}
     sed "s/^\($1\s*${CONF_DELM}\s*\).*\$/\1$2/"
 }
 
 del_config() {
+    local CONF_DELM=${2:-=}
     sed "/^\($1\s*${CONF_DELM}\s*\).*\$/d"
 }
 
 add_config() {
-    del_config "$1"
+    local CONF_DELM=${3:-=}
+    del_config "$1" "${CONF_DELM}"
     echo "$1${CONF_DELM}$2"
 }
 
