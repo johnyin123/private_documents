@@ -137,6 +137,9 @@ yum -y install gcc make epel-release.noarch kernel-devel.x86_64
 yum -y install cuda-repo-rhel7-11-4-local-11.4.0_470.42.01-1.x86_64.rpm
 yum -y install cuda
 dkms autoinstall --verbose --kernelver $(uname -r)
+$ cat /proc/driver/nvidia/version
+NVRM version: NVIDIA UNIX x86_64 Kernel Module  470.42.01  Tue Jun 15 21:26:37 UTC 2021
+GCC version:  gcc 版本 4.8.5 20150623 (Red Hat 4.8.5-44) (GCC)
 
 export PATH=/usr/local/cuda/bin:$PATH
 export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
