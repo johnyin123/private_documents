@@ -148,9 +148,34 @@ $ demo/NVIDIA_CUDA-11.4_Samples/bin/x86_64/linux/release/deviceQuery
   ...........
   Result = PASS
 
-virsh nodedev-detach pci_0000_09_00_0
-virsh nodedev-detach pci_0000_09_00_1
-..........
-virsh nodedev-reattach pci_0000_09_00_0
-virsh nodedev-reattach pci_0000_09_00_1
+# pci passthrough
+echo "check iommu=on"
+grep -qEi 'intel_iommu\s*=\s*on|amd_iommu\s*=\s*on' /proc/cmdline || {
+    eval $(grep -E "^GRUB_CMDLINE_LINUX=.*" /etc/default/grub)
+    # centos
+    GRUB_CMDLINE_LINUX+=" intel_iommu=on"
+    sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"$GRUB_CMDLINE_LINUX\"/g" /etc/default/grub
+    grub2-mkconfig -o /boot/grub2/grub.cfg
+    dracut -f --kver `uname -r`
+}
+
+lspci -nn
+# 08:00.0 Ethernet controller [0200]: Realtek Semiconductor Co., Ltd. RTL8111/8168/8411 PCI Express Gigabit Ethernet Controller [10ec:8168] (rev 10)
+# pci_bus_addr 08:00.0, vendor id: 10ec, product id:8168
+
+PCI_BUS_ADDR=02:00.0
+lspci -k -s ${PCI_BUS_ADDR}
+PCI_DEV=$(virsh nodedev-list | grep "$(echo ${PCI_BUS_ADDR} | tr ':.' '_')")
+#host的默认驱动
+virsh nodedev-dumpxml ${PCI_DEV} | xmlstarlet sel -t -v '//device/driver/name'
+#解绑
+virsh nodedev-detach ${PCI_DEV}
+#vfio-pci驱动
+[ "$(virsh nodedev-dumpxml ${PCI_DEV} | xmlstarlet sel -t -v '//device/driver/name')" = "vfio-pci" ] && echo "${PCI_BUS_ADDR} OK, passthrough it"
+
+.....................start vm
+
+virsh nodedev-reattach ${PCI_DEV}
+
+# systemctl restart libvirtd
 GPUEOF

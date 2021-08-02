@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - db018b7 - 2021-07-28T13:23:05+08:00")
+VERSION+=("virt-imgbootup.sh - 628ec09 - 2021-07-29T15:50:47+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -130,8 +130,7 @@ main() {
         options+=("-device" "usb-host,bus=xhci.0,vendorid=0x${_u%%:*},productid=0x${_u##*:}")
     done
     # TODO GPU passthrough: -device vfio-pci,host=3b:00.0,id=hostdev0,bus=pci.0,addr=0x7
-    # -device vfio-pci,host=3b:00.0,id=hostdev0,bus=pci.0,addr=0x8
-    # -device vfio-pci,host=3b:00.1,id=hostdev1,bus=pci.0,addr=0x9
+    # options+=("-device" "vfio-pci,host=02:00.0")
     try qemu-system-x86_64 "${options[@]}" \
         ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}
 }
