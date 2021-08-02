@@ -153,7 +153,7 @@ echo "check iommu=on"
 grep -qEi 'intel_iommu\s*=\s*on|amd_iommu\s*=\s*on' /proc/cmdline || {
     eval $(grep -E "^GRUB_CMDLINE_LINUX=.*" /etc/default/grub)
     # centos
-    GRUB_CMDLINE_LINUX+=" intel_iommu=on"
+    GRUB_CMDLINE_LINUX+=" intel_iommu=on iommu=pt"
     sed -i "s/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX=\"$GRUB_CMDLINE_LINUX\"/g" /etc/default/grub
     grub2-mkconfig -o /boot/grub2/grub.cfg
     dracut -f --kver `uname -r`
