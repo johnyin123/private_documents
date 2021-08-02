@@ -15,6 +15,9 @@ centos 7开始支持virtio网卡多队列，可以大大提高虚拟机网络性
 echo "2048">/proc/sys/vm/nr_hugepages
 mkdir -p /hugetlbfs
 mount -t hugetlbfs hugetlbfs /hugetlbfs
+# /etc/fstab
+# hugetlbfs       /dev/hugepages/2M     hugetlbfs     mode=1770,gid=994,pagesize=2M   0 0
+# hugetlbfs       /dev/hugepages/1G     hugetlbfs     mode=1770,gid=994,pagesize=1G   0 0
 mkdir -p /hugetlbfs/libvirt/bin
 systemctl restart libvirtd
 
