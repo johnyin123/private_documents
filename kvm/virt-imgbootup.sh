@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 3c370c6 - 2021-08-02T10:39:09+08:00")
+VERSION+=("virt-imgbootup.sh - 1490336 - 2021-08-03T10:10:42+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -158,6 +158,7 @@ main() {
         #   -device vfio-pci,host=00:00.0,multifunction=on,x-vga=on -display none -vga none
         options+=("-device" "vfio-pci,host=${_u}")
     done
+    # TODO: https://wiki.archlinux.org/title/Intel_GVT-g
     try qemu-system-x86_64 "${options[@]}" \
         ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}
 }
