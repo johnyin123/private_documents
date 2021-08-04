@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-mgr.sh - 148faf3 - 2021-05-28T14:50:24+08:00")
+VERSION+=("virt-mgr.sh - d564f00 - 2021-07-28T08:49:10+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -260,8 +260,8 @@ cmd:create <arg> [domain_template in cfg]
     -D|--desc <desc>                         desc
     -N|--name <title>                        name(title)
     Example:
-       CFG_INI=samp.conf KVM_HOST=10.0.0.1 ${SCRIPTNAME} create -u $(cat /proc/sys/kernel/random/uuid) -c 1 -m $((2*1024*1024)) -n br-ext -p default -f qcow2 -s 50GB -D "vm test" -N "vm1" -b /storage/linux.tpl -F raw bios
-       ${SCRIPTNAME} create --uuid $(cat /proc/sys/kernel/random/uuid) --cpus 1 --mem $((2*1024*1024)) --net br-ext --pool default --format raw --size 4GB --desc "vm1" --name vm1 bios
+       CFG_INI=samp.conf KVM_HOST=10.0.0.1 ${SCRIPTNAME} create -u \$(cat /proc/sys/kernel/random/uuid) -c 1 -m \$((2*1024*1024)) -n br-ext -p default -f qcow2 -s 50GB -D "vm test" -N "vm1" -b /storage/linux.tpl -F raw bios
+       ${SCRIPTNAME} create --uuid \$(cat /proc/sys/kernel/random/uuid) --cpus 1 --mem \$((2*1024*1024)) --net br-ext --pool default --format raw --size 4GB --desc "vm1" --name vm1 bios
 
 
 cmd:attach <arg>
