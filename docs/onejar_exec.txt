@@ -1,0 +1,13 @@
+# http://one-jar.sourceforge.net/
+# https://cfhcable.dl.sourceforge.net/project/one-jar/one-jar/one-jar-0.97/one-jar-example-0.97.jar
+:<<EOF
+Main-Class: kq.ReadImg
+Class-Path: lib/commons-httpclient-3.1.jar lib/commons-lang-2.6.jar lib/commons-logging-1.1.1.jar lib/commons-codec-1.
+EOF
+# javac -cp lib/commons-httpclient-3.1.jar:lib/commons-lang-2.6.jar:lib/commons-codec-1.13.jar kq/*.java
+# mkdir -p main && jar -cvmf kq.mf main/main.jar kq/
+:<<EOF
+Main-Class: com.simontuffs.onejar.Boot
+EOF
+# jar -cvmf onejar.mf onejar.jar com/ lib/ main/
+java -jar onejar.jar ....
