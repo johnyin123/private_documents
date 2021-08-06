@@ -4,6 +4,16 @@
 # xfs_growfs -d /mnt/ceph-disk1
 # cat pxe.raw | pv | ssh -p60022 root@10.32.151.250 'rbd import - libvirt-pool/pxe.raw'
 ############################################################
+Active           Ceph可正常处理此pg请求
+Clean            PG内所有的对象都被正确的复制了对应的份数
+Down             一个包含必备数据的副本离线，所以PG也离线了
+Degraded         PG中的一些对象还没有被复制到规定的份数
+Inconsistent     Ceph检测到PG中对象的一份或多份数据不一致
+Peering          PG正在互联过程中
+Recovering       Ceph正在迁移/同步对象和其副本
+Incomplete       Ceph探测到某一PG可能丢失了写入信息，或者没有健康的副本
+Stale            PG状态未知，从PG mapping更新后Monitor一直没有收到更新
+
 $ceph health detail
 HEALTH_ERR 1 scrub errors; Possible data damage: 1 pg inconsistent
 OSD_SCRUB_ERRORS 1 scrub errors
