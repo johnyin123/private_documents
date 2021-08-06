@@ -5,7 +5,16 @@ set -o nounset
 set -o errexit
 
 readonly CURPATH="$(readlink -f "$(dirname "$0")")"
+:<<"EOF"
+for SM2 ssl replace:
+--with-openssl=${CURPATH}/wotrus_ssl2.0
 
+auto/lib/openssl/conf
+ 39             CORE_INCS="$CORE_INCS $OPENSSL/include"
+ 40             CORE_DEPS="$CORE_DEPS $OPENSSL/include/openssl/ssl.h"
+ 41             CORE_LIBS="$CORE_LIBS $OPENSSL/lib/libssl.a"
+ 42             CORE_LIBS="$CORE_LIBS $OPENSSL/lib/libcrypto.a"
+EOF
 ./configure --prefix=/usr/share/nginx \
 --sbin-path=/usr/sbin/nginx \
 --conf-path=/etc/nginx/nginx.conf \
