@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 7927634 - 2021-07-29T09:18:56+08:00")
+VERSION+=("functions.sh - 628ec09 - 2021-07-29T15:50:47+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -32,6 +32,24 @@ list_func() {
 
 uuid() {
     cat /proc/sys/kernel/random/uuid
+}
+
+# save file data(base64) from __BIN_BEGINS__ to out.
+# out is null then output to stdout
+# echo "__BIN_BEGINS__" >> test.sh && base64 data.bin >> test.sh
+# save_bin ${DIRNAME}/${SCRIPTNAME} | tar -zpvx -C $WORK_DIR
+save_bin() {
+    local file=$1
+    local out=${2:-}
+    defined DRYRUN && {
+        info_msg "${file} bin-data to ${out:-stdout}\n"
+        return 0
+    }
+    local bin_start=$(awk '/^__BIN_BEGINS__/ { print NR + 1; exit 0; }' ${file})
+    # vim -e -s -c 'g/start_pattern/+1,/stop_pattern/-1 p' -cq file.txt
+    # awk '/start_pattern/,/stop_pattern/' file.txt
+    # sed -n /start_pattern/,/stop_pattern/p file.txt
+    tail -n +${bin_start} ${file} | eval "base64 -d ${out:+> ${out}}"
 }
 
 #fetch http://a.com/abc.zip aaa.zip

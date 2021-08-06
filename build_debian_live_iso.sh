@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - bd1090c - 2021-04-19T08:40:47+08:00")
+VERSION+=("build_debian_live_iso.sh - 6c066bc - 2021-04-20T09:29:07+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -161,20 +161,6 @@ new_build() {
 EOSHELL
     }
     return 0
-}
-
-save_bin() {
-    local file=$1
-    local out=$2
-    defined DRYRUN && {
-        info_msg "${file} save_bin to ${out}\n"
-        return 0
-    }
-    local bin_start=$(awk '/^__BIN_BEGINS__/ { print NR + 1; exit 0; }' ${file})
-    # vim -e -s -c 'g/start_pattern/+1,/stop_pattern/-1 p' -cq file.txt
-    # awk '/start_pattern/,/stop_pattern/' file.txt
-    # sed -n /start_pattern/,/stop_pattern/p file.txt
-    tail -n +${bin_start} ${file} | base64 -d | cat > ${out}
 }
 
 gen_grublinuxiso() {
