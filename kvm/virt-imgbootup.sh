@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 1490336 - 2021-08-03T10:10:42+08:00")
+VERSION+=("virt-imgbootup.sh - 47878a8 - 2021-08-04T07:37:12+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -159,6 +159,24 @@ main() {
         options+=("-device" "vfio-pci,host=${_u}")
     done
     # TODO: https://wiki.archlinux.org/title/Intel_GVT-g
+
+    # #Create a named pipe
+    # mkfifo /tmp/guest.in /tmp/guest.out
+    # # Start QEMU
+    # # redirects a guest's output to a /tmp/guest.out and allows to send input from host to guest via /tmp/guest.in.
+    # qemu-system-x86_64 -serial pipe:/tmp/guest
+    #
+    # # Take an output from the guest
+    # cat /tmp/guest.out
+    # # Send a command to the guest
+    # printf "root\n" > /tmp/guest.in
+    # # Wait until some string
+    # while read line; do
+    #   echo "${line}"
+    #   if [[ ${line} == *"Secure Shell server: sshd"* ]]; then
+    #     break;
+    #   fi
+    # done < /tmp/quest.out
     try qemu-system-x86_64 "${options[@]}" \
         ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}
 }
