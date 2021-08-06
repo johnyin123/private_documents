@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 628ec09 - 2021-07-29T15:50:47+08:00")
+VERSION+=("functions.sh - 0fdb5c9 - 2021-08-06T09:05:49+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -1072,6 +1072,13 @@ add_config() {
     local CONF_DELM=${3:-=}
     del_config "$1" "${CONF_DELM}"
     echo "$1${CONF_DELM}$2"
+}
+
+# echo "{}" | jq -c .keyint="111" | jq ".keystr"="\"abc\""
+json_add() {
+    local key=${1}
+    local val=${2}
+    jq -c .${key}="${val}"
 }
 
 # {
