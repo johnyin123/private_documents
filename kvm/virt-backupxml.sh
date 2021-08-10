@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-backupxml.sh - initversion - 2021-01-25T07:29:48+08:00")
+VERSION+=("virt-backupxml.sh - 9bf43e0 - 2021-01-25T07:29:47+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 VIRSH_OPT="-k 300 -K 5 -q"
@@ -99,11 +99,11 @@ EOF
     }
     echo "tag,HOSTIP,serial,prod|prd_time|cpus|mems,dom,os,desc,cpu,mem,maxcpu,maxmem,storage|block_count,(address,)*"
     cat "${CFG_INI}" | grep -v -e "^\ *#.*$" -e  "^\ *$" | while read ip port tag; do
-        try rm -rf ${ip}.bak
-        try mv ${ip} ${ip}.bak
-        try mkdir -p ${ip}
+        try rm -rf ${ip}.bak || true
+        try mv ${ip} ${ip}.bak || true
+        try mkdir -p ${ip} || true
         speedup_ssh_begin root "${ip}" ${port}
-        try "rsync -avzP -e \"ssh -p${port}\" root@${ip}:/etc/libvirt/qemu ${ip} > /dev/null 2>&1"
+        try "rsync -avzP -e \"ssh -p${port}\" root@${ip}:/etc/libvirt/qemu ${ip} > /dev/null 2>&1" || true
         local xml=$(fake_virsh "root@${ip}:${port}" sysinfo)
         local out=$(fake_virsh "root@${ip}:${port}" nodeinfo)
         local manufacturer=$(printf "%s" "$xml" | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='manufacturer']")
