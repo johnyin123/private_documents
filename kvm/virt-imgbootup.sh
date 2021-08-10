@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 9246093 - 2021-08-09T10:38:18+08:00")
+VERSION+=("virt-imgbootup.sh - 7200f3b - 2021-08-10T13:28:35+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -23,7 +23,7 @@ ${SCRIPTNAME}
                     iscsi://192.0.2.1/iqn.2001-04.com.example/1
                     /dev/sda2
         -b|--bridge <br>      host net bridge
-        -f|--fmt    <fmt>     disk image format(default raw)
+        -f|--fmt    <fmt>     disk image format(default auto detect!)
         --simusb    <file>    simulation usb disk(raw format)
         --pci       <pci_bus_addr> passthrough pci bus address(like: 00:1d.0)
         -usb        <VENDOR_ID:PRODUCT_ID> support usb 3.0
@@ -64,7 +64,7 @@ main() {
         "-M" "q35"
     )
 
-    local cpu=1 mem=2048 disk=() bridge= fmt=raw cdrom= floppy= usb=() simusb=() pci_bus_addr=()
+    local cpu=1 mem=2048 disk=() bridge= fmt= cdrom= floppy= usb=() simusb=() pci_bus_addr=()
     local opt_short="c:m:D:b:f:"
     local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb:,simusb:,pci:,sound,"
     opt_short+="ql:dVh"
@@ -114,7 +114,8 @@ main() {
     }
     local disk_id=0
     for _u in "${disk[@]}"; do
-        options+=("-drive" "file=${_u},index=${disk_id},cache=none,aio=native,if=virtio,format=${fmt}")
+        local _fmt=$(qemu-img info --output=json ${_u} | json_config_default ".format"  "raw")
+        options+=("-drive" "file=${_u},index=${disk_id},cache=none,aio=native,if=virtio,format=${fmt:-${_fmt}}")
         let disk_id+=1
     done
     for _u in "${simusb[@]}"; do
