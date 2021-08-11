@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - d3178f5 - 2021-08-11T08:42:27+08:00")
+VERSION+=("functions.sh - 9159d60 - 2021-08-11T08:57:28+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -1077,33 +1077,32 @@ add_config() {
 # ID=100
 # ARR=(a b c)
 # DIC=(key1=a key2=b key3=c)
-# json --arg id "$ID" '{"id": $id}'
+# json --arg id     "$ID" '{"id": $id}'
 # json --argjson id "$ID" '{"id": $id}'
-# json_dict driver="xx" id="$ID" "${DIC[@]}"
+# json_dict key="xx" id="$ID" "${DIC[@]}"
 # echo "msg" | json \
 #   --arg path "mypath" \
 #   --arg input "$(base64)" \
 #   --argjson arr "$(json_array ${ARR[@]})" \
-#   --argjson params "$(json_dict "${DIC[@]}")" \
-#   '{"path": $path, "input-data": $input, "arr": $arr, "props": $params}'
+#   --argjson dic "$(json_dict "${DIC[@]}")" \
+#   '{"path": $path, "input-data": $input, "arr": $arr, "dic": $dic}'
 json() {
-	jq -ncM "$@"
+    jq -ncM "$@"
 }
 
 json_array() {
-	for arg in "$@"; do
-		json --arg arg "$arg" '$arg'
-	done | jq -cMs .
+    for i in "$@"; do
+        json --arg arg "${i}" '$arg'
+    done | jq -cMs .
 }
 
 json_dict() {
-	local SEPARATOR="="
-	for arg in "$@"; do
-		local KEY=$(cut -d "$SEPARATOR" -f1 <<< $arg)
-		local VALUE=$(cut -d "$SEPARATOR" -f2- <<< $arg)
-
-		json --arg value "$VALUE" '{"'$KEY'": $value}'
-	done | jq -cMs 'add // {}'
+    local delm="="
+    for i in "$@"; do
+        local key=$(cut -d "${delm}" -f1 <<< ${i})
+        local value=$(cut -d "${delm}" -f2- <<< ${i})
+        json --arg val "${value}" '{"'${key}'": $val}'
+    done | jq -cMs 'add // {}'
 }
 
 # {
