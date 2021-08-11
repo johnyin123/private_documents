@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 804c272 - 2021-08-11T07:39:27+08:00")
+VERSION+=("virt-imgbootup.sh - d8eea01 - 2021-08-11T10:33:52+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -104,6 +104,7 @@ main() {
     options+=("-monitor" "vc")
     options+=("-smp" "${cpu}")
     options+=("-m" "${mem}")
+    options+=("-monitor" "stdio")
     [ -z ${bridge} ] || {
         bridge_exists "${bridge}" || usage "bridge nofound"
         directory_exists /etc/qemu/ || try mkdir -p /etc/qemu/
