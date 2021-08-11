@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 7200f3b - 2021-08-10T13:28:35+08:00")
+VERSION+=("virt-imgbootup.sh - 804c272 - 2021-08-11T07:39:27+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -59,7 +59,9 @@ main() {
         "-global" "qxl-vga.vram_size=67108864" 
         "-nodefaults"
         "-no-user-config"
-        "-usb" "-device usb-tablet,bus=usb-bus.0" "-device nec-usb-xhci,id=xhci"
+        "-usb"
+        "-device" "usb-tablet,bus=usb-bus.0"
+        "-device" "nec-usb-xhci,id=xhci"
         "-boot" "menu=on"
         "-M" "q35"
     )
@@ -120,7 +122,7 @@ main() {
     done
     for _u in "${simusb[@]}"; do
         options+=("-drive" "if=none,id=usbstick,file=${_u},format=raw")
-        options+=("-device usb-storage,bus=xhci.0,drive=usbstick")
+        options+=("-device" "usb-storage,bus=xhci.0,drive=usbstick")
     done
     for _u in "${usb[@]}"; do
         #local _bus=$(lsusb | grep "${_u}" | awk '{ print $2 }' | sed 's/^0*//')
@@ -181,7 +183,16 @@ main() {
     #     break;
     #   fi
     # done < /tmp/quest.out
-    try qemu-system-x86_64 "${options[@]}" \
-        ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}
+    # try qemu-system-x86_64 "${options[@]}" \
+    #     ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}
+
+    defined DRYRUN && {
+        blue>&2 "DRYRUN: "
+        purple>&2 "%s\n" "qemu-system-x86_64 ${options[*]} ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}"
+        return 0
+    }
+    info_msg "start vm ......\n"
+    set -- "${options[@]}" ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}
+    exec qemu-system-x86_64 "$@"
 }
 main "$@"
