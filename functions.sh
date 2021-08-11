@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - f9ead10 - 2021-08-06T09:31:23+08:00")
+VERSION+=("functions.sh - d3178f5 - 2021-08-11T08:42:27+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -1172,12 +1172,6 @@ rest_json_get() {
     else
         curl -k -i -H "Accept: application/json" -u "$2":"$3" $1
     fi
-}
-
-# parse simple json loaded from standard input
-# $1 json field
-json_parse() {
-    python -c "import sys, json; print json.load(sys.stdin)[\"$1\"]"
 }
 
 gen_addrv4() {
