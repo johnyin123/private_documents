@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 9159d60 - 2021-08-11T08:57:28+08:00")
+VERSION+=("functions.sh - 6bb4500 - 2021-08-11T09:34:13+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -1004,7 +1004,9 @@ array_append() {
 array_size() {
     eval "echo \"\${#$1[@]}\""
 }
-
+# when "${ids[@]}" give a space-separated string,
+# "${ids[*]}" (with a star * instead of the at sign @)
+# will render a string separated by the first character of $IFS.
 array_print() {
     eval "printf '%s\n' \"\${$1[@]}\""
 }
