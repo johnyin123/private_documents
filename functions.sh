@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - f59f1a3 - 2021-08-12T09:16:09+08:00")
+VERSION+=("functions.sh - a81c6b8 - 2021-08-12T09:56:42+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -1091,7 +1091,8 @@ add_config() {
 #      -n '{"path": $path, "input-data": $input, "arr": $arr, "props": $params}'
 # cat <<EOF | json .path=\"mypath\" | json .arr="$(json_array ${ARR[@]})" | json .props="$(json_dict "${DIC[@]}")" \
 #           | json ".props[\"mykey\"] = \"myval\"" \
-#           | json ".arr[.arr | length] = \"999\""
+#           | json ".arr[.arr | length] = \"999\"" \
+#           | json "del(.arr[0])"
 # {
 #     "foo" : "bar",
 #     "path": 1,
