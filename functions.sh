@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - a81c6b8 - 2021-08-12T09:56:42+08:00")
+VERSION+=("functions.sh - 23f426e - 2021-08-12T10:35:41+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -28,6 +28,12 @@ list_func() {
     alias
 #    local fncs=$(declare -F -p | cut -d " " -f 3 | grep -v "^_")
 #    echo $fncs
+}
+
+# rand=$(random)
+# rand=$(random 1 10)
+random() {
+    shuf -i ${1:-1}-${2:-65535} -n 1
 }
 
 uuid() {
