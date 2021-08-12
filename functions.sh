@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 885418d - 2021-08-11T10:38:43+08:00")
+VERSION+=("functions.sh - 9882be5 - 2021-08-11T13:58:12+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -1079,38 +1079,39 @@ add_config() {
 # ID=100
 # ARR=(a b c)
 # DIC=(key1=a key2=b key3=c)
-# json --arg id     "$ID" '{"id": $id}'
-# json --argjson id "$ID" '{"id": $id}'
-# json_dict key="xx" id="$ID" "${DIC[@]}"
-# echo "msg" | json \
-#   --arg path "mypath" \
-#   --arg input "$(base64)" \
-#   --argjson arr "$(json_array ${ARR[@]})" \
-#   --argjson dic "$(json_dict "${DIC[@]}")" \
-#   '{"path": $path, "input-data": $input, "arr": $arr, "dic": $dic}'
+# cat <<EOF | json --arg id "$ID"  --argjson val "$ID" '."id"=$id | ."val"=$val' | json ".dummy=\"mesg\""
+# {"foo":"bar" }
+# EOF
+# json --arg id "$ID" -n '{"id": $id}' | json --arg ssid abc --arg pass 12333 '.connections[$ssid] = $pass'
+# json_dict driver="xx" id="$ID" "${DIC[@]}" |  json ".fuck=111"
+# json --arg path "mypath" \
+#      --arg input "$(echo "$ID" | base64)" \
+#      --argjson arr "$(json_array ${ARR[@]})" \
+#      --argjson params "$(json_dict "${DIC[@]}")" \
+#      -n '{"path": $path, "input-data": $input, "arr": $arr, "props": $params}'
+# cat <<EOF | json .path=\"mypath\" | json .arr="$(json_array ${ARR[@]})" | json .props="$(json_dict "${DIC[@]}")"
+# {
+#     "foo" : "bar",
+#     "path": 1,
+#     "input-data": "$(echo $ID | base64)",
+#     "arr": 1,
+#     "props": 1
+# }
+# EOF
 json() {
-    jq -ncM "$@"
-}
-
-# echo "{}" | json_add .keyint="111"
-json_add() {
-    local key=${1}
-    local val=${2}
-    jq -cM .${key}="${val}"
+    jq -cM "$@"
 }
 
 json_array() {
     for i in "$@"; do
-        json --arg arg "${i}" '$arg'
+        jq -cMn --arg arg "${i}" '$arg'
     done | jq -cMs .
 }
 
 json_dict() {
     local delm="="
     for i in "$@"; do
-        local key=$(cut -d "${delm}" -f1 <<< ${i})
-        local value=$(cut -d "${delm}" -f2- <<< ${i})
-        json --arg val "${value}" '{"'${key}'": $val}'
+        jq -cMn --arg val "${i#*${delm}}" '{"'${i%%${delm}*}'": $val}'
     done | jq -cMs 'add // {}'
 }
 
