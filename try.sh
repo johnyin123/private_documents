@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("try.sh - f5cc431 - 2021-05-12T14:23:07+08:00")
+VERSION+=("try.sh - 720474d - 2021-06-08T09:03:35+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -282,7 +282,7 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    echo "random = $(shuf -i 42002-42254 -n 1)"
+    echo "random=$(shuf -i 42002-42254 -n 1)"
 # ./xtrace.sh ./try.sh 
 __trace_ON__
     list_func
