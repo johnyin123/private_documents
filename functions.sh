@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 158d663 - 2021-08-13T07:44:54+08:00")
+VERSION+=("functions.sh - 4715077 - 2021-08-13T08:38:14+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -1109,7 +1109,8 @@ add_config() {
 # EOF
 # str="$(json_array ${ARR[@]})"
 # len=$(echo ${str} |json ". | length")
-# for ((i=0;i<len;i++)); do
+# # for ((i=0;i<len;i++)); do
+# for i in $(echo ${str} | json "range(. | length)");do
 #     echo ${str} | json ".[$i]"
 # done
 json() {
