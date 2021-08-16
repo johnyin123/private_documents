@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_debian_init.sh - fd8861e - 2021-05-19T10:16:00+08:00")
+VERSION+=("os_debian_init.sh - 65fa7fc - 2021-08-16T16:10:22+08:00")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -78,9 +78,17 @@ debian_apt_init() {
     cat > /etc/apt/sources.list << EOF
 deb http://mirrors.163.com/debian ${ver} main non-free contrib
 deb http://mirrors.163.com/debian ${ver}-proposed-updates main non-free contrib
-deb http://mirrors.163.com/debian-security ${ver}/updates main contrib non-free
 deb http://mirrors.163.com/debian ${ver}-backports main contrib non-free
 EOF
+    # see bullseye release notes
+    case "${ver}" in
+        buster)
+            echo "deb http://mirrors.163.com/debian-security ${ver}/updates main contrib non-free"  >> /etc/apt/sources.list
+            ;;
+        bullseye)
+            echo "deb http://mirrors.163.com/debian-security ${ver}-security main contrib"  >> /etc/apt/sources.list
+            ;;
+    esac
 }
 export -f debian_apt_init
 
