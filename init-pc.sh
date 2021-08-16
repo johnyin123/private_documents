@@ -7,11 +7,12 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - 89c2464 - 2021-07-09T14:18:34+08:00")
+VERSION+=("init-pc.sh - b0f1989 - 2021-08-10T14:34:12+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
-DEBIAN_VERSION=buster
+source /etc/os-release
+VERSION_CODENAME=${VERSION_CODENAME:-bullseye}
 PASSWORD=password
 IPADDR=192.168.168.124/24
 GATEWAY=192.168.168.1
@@ -19,7 +20,7 @@ NAME_SERVER=114.114.114.114
 #512 M
 ZRAM_SIZE=512
 
-debian_apt_init ${DEBIAN_VERSION}
+debian_apt_init ${VERSION_CODENAME}
 apt update
 apt -y upgrade
 
@@ -40,7 +41,6 @@ debian_chpasswd root ${PASSWORD:-password}
 debian_locale_init
 debian_limits_init
 debian_sysctl_init
-debian_bash_init root
 debian_vim_init
 debian_zswap_init ${ZRAM_SIZE}
 debian_sshd_init
@@ -155,15 +155,25 @@ apt -y install systemd-container \
     manpages-dev manpages-posix manpages-posix-dev manpages build-essential \
     nscd nbd-client iftop netcat-openbsd sshfs squashfs-tools graphviz nftables \
     rsync tmux wireguard-tools \
-    xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver qt4-qtconfig \
+    xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver \
     gnome-icon-theme lightdm \
-    galculator medit gpicview qpdfview rdesktop xvnc4viewer wireshark \
-    fbreader alsa-utils pulseaudio pulseaudio-utils vlc \
+    galculator gpicview qpdfview rdesktop wireshark \
+    fbreader \
     virt-manager gir1.2-spiceclientgtk-3.0 \
     fcitx-ui-classic fcitx-tools fcitx fcitx-sunpinyin fcitx-config-gtk \
     libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
     qemu-kvm qemu-utils xmlstarlet jq sudo debootstrap kpartx binwalk
 
+apt -y install alsa-utils pulseaudio pulseaudio-utils 
+case "$VERSION_CODENAME" in
+    buster)
+        apt -y install qt4-qtconfig medit xvnc4viewer
+        ;;
+    bullseye)
+        apt -y install udisks2-zram
+        ;;
+esac
+apt -y install smplayer smplayer-l10n
 apt -y install traceroute ipcalc qrencode
 # qrencode -8  -o - -t UTF8 "massage"
 
@@ -187,7 +197,7 @@ id johnyin &>/dev/null && {
     sed -i "s/^\(.*requiretty\)$/#\1/" /etc/sudoers
 
     echo "enable root user run X app"
-    ln -s /home/johnyin/.Xauthority /root/.Xauthority
+    rm -f /root/.Xauthority && ln -s /home/johnyin/.Xauthority /root/.Xauthority
 
     debian_bash_init johnyin
 }
@@ -203,7 +213,29 @@ find /var/log/ -type f | xargs rm -f
 rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /root/.viminfo /root/.vim/
 
 echo "modify xfce4 default Panel layer"
-cat<<"EOF" > /etc/xdg/xfce4/panel/default.xml
+sed -i "s/enabled=.*/enabled=False/g" /etc/xdg/user-dirs.conf
+
+XFCE_TERM=
+XFCE_FILE=
+XFCE_WEB=
+XFCE_MAIL=
+
+case "$VERSION_CODENAME" in
+    buster)
+        XFCE_TERM=exo-terminal-emulator.desktop
+        XFCE_FILE=exo-file-manager.desktop
+        XFCE_WEB=exo-web-browser.desktop
+        XFCE_MAIL=exo-mail-reader.desktop
+        ;;
+    bullseye)
+        XFCE_TERM=xfce4-terminal-emulator.desktop
+        XFCE_FILE=xfce4-file-manager.desktop
+        XFCE_WEB=xfce4-web-browser.desktop
+        XFCE_MAIL=xfce4-mail-reader.desktop
+        ;;
+esac
+
+cat<<EOF > /etc/xdg/xfce4/panel/default.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-panel" version="1.0">
   <property name="configver" type="int" value="2"/>
@@ -263,22 +295,22 @@ cat<<"EOF" > /etc/xdg/xfce4/panel/default.xml
     <property name="plugin-7" type="string" value="showdesktop"/>
     <property name="plugin-9" type="string" value="launcher">
       <property name="items" type="array">
-        <value type="string" value="exo-terminal-emulator.desktop"/>
+        <value type="string" value="${XFCE_TERM}"/>
       </property>
     </property>
     <property name="plugin-10" type="string" value="launcher">
       <property name="items" type="array">
-        <value type="string" value="exo-file-manager.desktop"/>
+        <value type="string" value="${XFCE_FILE}"/>
       </property>
     </property>
     <property name="plugin-11" type="string" value="launcher">
       <property name="items" type="array">
-        <value type="string" value="exo-web-browser.desktop"/>
+        <value type="string" value="${XFCE_WEB}"/>
       </property>
     </property>
     <property name="plugin-12" type="string" value="launcher">
       <property name="items" type="array">
-        <value type="string" value="exo-mail-reader.desktop"/>
+        <value type="string" value="${XFCE_MAIL}"/>
       </property>
     </property>
     <property name="plugin-8" type="string" value="pulseaudio">
