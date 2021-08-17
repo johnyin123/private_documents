@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("s905_debootstrap.sh - initversion - 2021-07-12T06:55:17+08:00")
+VERSION+=("s905_debootstrap.sh - 2bdaa58 - 2021-07-12T06:55:16+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -18,7 +18,7 @@ source ${DIRNAME}/os_debian_init.sh
 INST_ARCH=${INST_ARCH:-arm64}
 REPO=http://mirrors.163.com/debian
 PASSWORD=password
-DEBIAN_VERSION=${DEBIAN_VERSION:-buster}
+DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye}
 export FS_TYPE=${FS_TYPE:-ext4}
 BOOT_LABEL="EMMCBOOT"
 ROOT_LABEL="EMMCROOT"
@@ -338,7 +338,7 @@ EOF
 
 systemctl mask systemd-machine-id-commit.service
 
-apt udate
+apt update
 apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync
 apt -y install --no-install-recommends xz-utils zip
 apt -y remove ca-certificates wireless-regdb crda --purge
