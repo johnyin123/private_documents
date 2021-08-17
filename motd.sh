@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION+=("motd.sh - aa8f952 - 2021-04-16T10:56:58+08:00")
+VERSION+=("motd.sh - 4de12e0 - 2021-04-20T14:01:28+08:00")
 date=$(date "+%F %T")
 kernel=$(uname -r)
 hostname=${HOSTNAME:-$(hostname)}
@@ -13,8 +13,8 @@ upMins=$((uptime/60%60))
 upSecs=$((uptime%60))
 up_lastime=$(date -d "$(awk -F. '{print $1}' /proc/uptime) second ago" +"%Y-%m-%d %H:%M:%S")
 #Memory Usage
-mem_usage=$(free -m | grep Mem | awk '{ printf("%3.2f%%", $3*100/$2) }')
-swap_usage=$(free -m | awk '/Swap/{printf "%.2f%%",$3/($2+1)*100}')
+mem_usage=$(LC_ALL=C LANG=C free -m | grep Mem | awk '{ printf("%3.2f%%", $3*100/$2) }')
+swap_usage=$(LC_ALL=C LANG=C free -m | awk '/Swap/{printf "%.2f%%",$3/($2+1)*100}')
 
 #Processes
 processes=$(ps aux | wc -l)
