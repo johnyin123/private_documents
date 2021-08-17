@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - b0f1989 - 2021-08-10T14:34:12+08:00")
+VERSION+=("init-pc.sh - 65fa7fc - 2021-08-16T16:10:22+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -155,64 +155,15 @@ apt -y install systemd-container \
     manpages-dev manpages-posix manpages-posix-dev manpages build-essential \
     nscd nbd-client iftop netcat-openbsd sshfs squashfs-tools graphviz nftables \
     rsync tmux wireguard-tools \
-    xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver \
-    gnome-icon-theme lightdm \
-    galculator gpicview qpdfview rdesktop wireshark \
-    fbreader \
-    virt-manager gir1.2-spiceclientgtk-3.0 \
-    fcitx-ui-classic fcitx-tools fcitx fcitx-sunpinyin fcitx-config-gtk \
     libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
     qemu-kvm qemu-utils xmlstarlet jq sudo debootstrap kpartx binwalk
 
-apt -y install alsa-utils pulseaudio pulseaudio-utils 
-case "$VERSION_CODENAME" in
-    buster)
-        apt -y install qt4-qtconfig medit xvnc4viewer
-        ;;
-    bullseye)
-        apt -y install udisks2-zram
-        ;;
-esac
-apt -y install smplayer smplayer-l10n
 apt -y install traceroute ipcalc qrencode
 # qrencode -8  -o - -t UTF8 "massage"
 
-wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - && \
-echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
-apt update && apt -y install google-chrome-stable
-# wget https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb
-# wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-
-id johnyin &>/dev/null && {
-    echo "login johnyin and run 'systemctl enable pulseaudio.service --user' to enable pulse audio"
-    mkdir -p /home/johnyin/.config/libvirt
-    echo 'uri_default = "qemu:///system"' > /home/johnyin/.config/libvirt/libvirt.conf
-    chown -R johnyin.johnyin /home/johnyin/.config
-    usermod -G libvirt johnyin
-
-    echo "add group[johnyin] to sudoers"
-    echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
-    chmod 0440 /etc/sudoers.d/johnyin
-    cp /etc/sudoers /etc/sudoers.orig
-    sed -i "s/^\(.*requiretty\)$/#\1/" /etc/sudoers
-
-    echo "enable root user run X app"
-    rm -f /root/.Xauthority && ln -s /home/johnyin/.Xauthority /root/.Xauthority
-
-    debian_bash_init johnyin
-}
-
-id johnyin &>/dev/null && debian_chpasswd johnyin ${PASSWORD}
-echo "Force Users To Change Passwords Upon First Login"
-chage -d 0 root || true
-chage -d 0 johnyin || true
-
-#debian_minimum_init => remove manpage doc
-apt clean
-find /var/log/ -type f | xargs rm -f
-rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /root/.viminfo /root/.vim/
-
 echo "modify xfce4 default Panel layer"
+apt -y install xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver \
+    lightdm gnome-icon-theme fcitx-ui-classic fcitx-tools fcitx fcitx-sunpinyin fcitx-config-gtk
 sed -i "s/enabled=.*/enabled=False/g" /etc/xdg/user-dirs.conf
 
 XFCE_TERM=
@@ -222,6 +173,7 @@ XFCE_MAIL=
 
 case "$VERSION_CODENAME" in
     buster)
+        apt -y install qt4-qtconfig medit xvnc4viewer
         XFCE_TERM=exo-terminal-emulator.desktop
         XFCE_FILE=exo-file-manager.desktop
         XFCE_WEB=exo-web-browser.desktop
@@ -258,6 +210,7 @@ cat<<EOF > /etc/xdg/xfce4/panel/default.xml
         <value type="int" value="4"/>
         <value type="int" value="5"/>
         <value type="int" value="6"/>
+        <value type="int" value="14"/>
         <value type="int" value="2"/>
         <value type="int" value="8"/>
       </property>
@@ -316,9 +269,54 @@ cat<<EOF > /etc/xdg/xfce4/panel/default.xml
     <property name="plugin-8" type="string" value="pulseaudio">
       <property name="enable-keyboard-shortcuts" type="bool" value="true"/>
     </property>
+    <property name="plugin-14" type="string" value="screenshooter"/>
   </property>
 </channel>
 EOF
+apt -y install galculator gpicview qpdfview rdesktop wireshark fbreader \
+    virt-manager gir1.2-spiceclientgtk-3.0
+
+apt -y install alsa-utils pulseaudio pulseaudio-utils
+
+apt -y install smplayer smplayer-l10n
+
+
+wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
+apt update && apt -y install google-chrome-stable
+rm -f /etc/apt/sources.list.d/google.list
+# wget https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb
+# wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+
+id johnyin &>/dev/null && {
+    echo "login johnyin and run 'systemctl enable pulseaudio.service --user' to enable pulse audio"
+    mkdir -p /home/johnyin/.config/libvirt
+    echo 'uri_default = "qemu:///system"' > /home/johnyin/.config/libvirt/libvirt.conf
+    chown -R johnyin.johnyin /home/johnyin/.config
+    usermod -a -G libvirt johnyin
+
+    echo "add group[johnyin] to sudoers"
+    echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
+    chmod 0440 /etc/sudoers.d/johnyin
+    cp /etc/sudoers /etc/sudoers.orig
+    sed -i "s/^\(.*requiretty\)$/#\1/" /etc/sudoers
+
+    echo "enable root user run X app"
+    rm -f /root/.Xauthority && ln -s /home/johnyin/.Xauthority /root/.Xauthority
+
+    debian_bash_init johnyin
+}
+
+id johnyin &>/dev/null && debian_chpasswd johnyin ${PASSWORD}
+echo "Force Users To Change Passwords Upon First Login"
+chage -d 0 root || true
+chage -d 0 johnyin || true
+
+#debian_minimum_init => remove manpage doc
+apt clean
+find /var/log/ -type f | xargs rm -f
+rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /root/.viminfo /root/.vim/
+
 
 cat<<'EOF'
 # install new kernel
