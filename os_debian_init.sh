@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_debian_init.sh - 02b3b42 - 2021-08-17T11:21:22+08:00")
+VERSION+=("os_debian_init.sh - c664a66 - 2021-08-18T08:19:57+08:00")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -270,7 +270,7 @@ func SetTitle()
         call setline(26, "    local opt_short=\"\"")
         call setline(27, "    local opt_long=\"\"")
         call setline(28, "    opt_short+=\"ql:dVh\"")
-        call setline(29, "    opt_long+=\"quite,log:,dryrun,version,help\"")
+        call setline(29, "    opt_long+=\"quiet,log:,dryrun,version,help\"")
         call setline(30, "    __ARGS=$(getopt -n \"${SCRIPTNAME}\" -o ${opt_short} -l ${opt_long} -- \"$@\") || usage")
         call setline(31, "    eval set -- \"${__ARGS}\"")
         call setline(32, "    while true; do")
