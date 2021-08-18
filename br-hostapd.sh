@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("br-hostapd.sh - 5b59e21 - 2021-05-25T09:17:48+08:00")
+VERSION+=("br-hostapd.sh - 9fbaad5 - 2021-07-03T09:36:48+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
@@ -80,7 +80,7 @@ main() {
     local opt_short+="s:b:"
     local opt_long+="start:,bridge:,ssid:,"
     opt_short+="ql:dVh"
-    opt_long+="quite,log:,dryrun,version,help"
+    opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do

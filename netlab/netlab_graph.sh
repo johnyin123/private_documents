@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlab_graph.sh - initversion - 2021-01-31T16:16:21+08:00")
+VERSION+=("netlab_graph.sh - a263b1d - 2021-01-31T16:16:09+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -59,7 +59,7 @@ main() {
     local opt_short="c:"
     local opt_long="conf:,"
     opt_short+="ql:dVh"
-    opt_long+="quite,log:,dryrun,version,help"
+    opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-qemu-agent.sh - initversion - 2021-04-28T09:07:50+08:00")
+VERSION+=("virt-qemu-agent.sh - 2f47b81 - 2021-04-28T09:07:41+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 VIRSH_OPT="-k 300 -K 5 -q"
@@ -67,7 +67,7 @@ main() {
     local opt_short=""
     local opt_long=""
     opt_short+="ql:dVh"
-    opt_long+="quite,log:,dryrun,version,help"
+    opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do

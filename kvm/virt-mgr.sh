@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-mgr.sh - d564f00 - 2021-07-28T08:49:10+08:00")
+VERSION+=("virt-mgr.sh - 01af9a8 - 2021-08-04T13:55:56+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -142,7 +142,7 @@ failed_destroy_vm() {
 create() {
     declare -A vm
     local opt_short="ql:dVhu:c:m:n:p:f:s:b:F:D:N:"
-    local opt_long="quite,log:,dryrun,version,help,uuid:,cpus:,mem:,net:,pool:,format:,size:,back:,bfmt:,desc:,name:"
+    local opt_long="quiet,log:,dryrun,version,help,uuid:,cpus:,mem:,net:,pool:,format:,size:,back:,bfmt:,desc:,name:"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
@@ -183,7 +183,7 @@ attach() {
     array_set vm "BACKING_VOL" ""
     array_set vm "BACKING_FMT" ""
     local opt_short="ql:dVhu:n:p:s:b:F:f:"
-    local opt_long="quite,log:,dryrun,version,help,uuid:,net:,pool:,size:,format:,back:,bfmt:"
+    local opt_long="quiet,log:,dryrun,version,help,uuid:,net:,pool:,size:,format:,back:,bfmt:"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do

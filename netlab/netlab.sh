@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlab.sh - e4b9570 - 2021-02-03T08:45:12+08:00")
+VERSION+=("netlab.sh - d7a2a89 - 2021-06-17T17:12:25+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 post_create() { return 0; } #all netns created!!
@@ -132,7 +132,7 @@ main() {
     local opt_short="s:c:"
     local opt_long="start:,clean:,"
     opt_short+="ql:dVh"
-    opt_long+="quite,log:,dryrun,version,help"
+    opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do

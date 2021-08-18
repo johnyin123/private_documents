@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("try.sh - 720474d - 2021-06-08T09:03:35+08:00")
+VERSION+=("try.sh - 3632237 - 2021-08-13T07:18:23+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -265,7 +265,7 @@ main() {
     local opt_short="u:n:"
     local opt_long="uuid:,name:,"
     opt_short+="ql:dVh"
-    opt_long+="quite,log:,dryrun,version,help"
+    opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - db245c7 - 2021-08-17T16:59:57+08:00")
+VERSION+=("virt-imgbootup.sh - 0d4204d - 2021-08-18T13:34:44+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -70,7 +70,7 @@ main() {
     local opt_short="c:m:D:b:f:"
     local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb:,simusb:,pci:,sound,"
     opt_short+="ql:dVh"
-    opt_long+="quite,log:,dryrun,version,help"
+    opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do

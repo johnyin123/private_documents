@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ssh_tunnel.sh - 866bc15 - 2021-03-22T09:56:17+08:00")
+VERSION+=("ssh_tunnel.sh - 335ec1f - 2021-07-09T07:21:43+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
@@ -71,7 +71,7 @@ main() {
     local opt_short="L:R:s:p:"
     local opt_long="local:,remote:,ssh:,port:,"
     opt_short+="ql:dVh"
-    opt_long+="quite,log:,dryrun,version,help"
+    opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do

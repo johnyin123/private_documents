@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("wireguard_gencfg.sh - d16016b - 2021-05-13T10:32:45+08:00")
+VERSION+=("wireguard_gencfg.sh - 6b4658f - 2021-07-14T13:37:31+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
@@ -68,7 +68,7 @@ main() {
     local opt_short="k:tp:a:P:"
     local opt_long="pkey:,notable,pubport:,addr:,onlypeer,pubkey:,endpoint:,allows:,"
     opt_short+="ql:dVh"
-    opt_long+="quite,log:,dryrun,version,help"
+    opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do

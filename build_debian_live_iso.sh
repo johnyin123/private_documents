@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 6c066bc - 2021-04-20T09:29:07+08:00")
+VERSION+=("build_debian_live_iso.sh - 0fdb5c9 - 2021-08-06T09:05:49+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -219,7 +219,7 @@ main() {
     local opt_short="nra:b:o:"
     local opt_long="new,onlynew,rebuild,addition:bootldr:isoimage:"
     opt_short+="ql:dVh"
-    opt_long+="quite,log:,dryrun,version,help"
+    opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do

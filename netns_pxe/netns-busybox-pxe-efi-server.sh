@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - initversion - 2021-07-26T08:30:59+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - a303d7f - 2021-07-26T08:30:58+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -481,7 +481,7 @@ main() {
     local opt_short="b:n:i:"
     local opt_long="bridge:,ns:,ns_ip:,disk:,lvm,guest_ipaddr:,"
     opt_short+="ql:dVh"
-    opt_long+="quite,log:,dryrun,version,help"
+    opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
