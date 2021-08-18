@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_debian_init.sh - 6d549b9 - 2021-08-16T17:09:25+08:00")
+VERSION+=("os_debian_init.sh - 02b3b42 - 2021-08-17T11:21:22+08:00")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -76,19 +76,23 @@ debian_apt_init() {
     # echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
     echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
     cat > /etc/apt/sources.list << EOF
-deb http://mirrors.163.com/debian ${ver} main non-free contrib
-deb http://mirrors.163.com/debian ${ver}-proposed-updates main non-free contrib
-deb http://mirrors.163.com/debian ${ver}-backports main contrib non-free
+deb http://ftp.cn.debian.org/debian ${ver} main non-free contrib
+deb http://ftp.cn.debian.org/debian ${ver}-proposed-updates main non-free contrib
+deb http://ftp.cn.debian.org/debian ${ver}-backports main contrib non-free
+deb http://ftp.cn.debian.org/debian-multimedia ${ver} main non-free
+deb http://ftp.cn.debian.org/debian-multimedia ${ver}-backports main
 EOF
     # see bullseye release notes
     case "${ver}" in
         buster)
-            echo "deb http://mirrors.163.com/debian-security ${ver}/updates main contrib non-free"  >> /etc/apt/sources.list
+            echo "deb http://ftp.cn.debian.org/debian-security ${ver}/updates main contrib non-free"  >> /etc/apt/sources.list
             ;;
         bullseye)
-            echo "deb http://mirrors.163.com/debian-security ${ver}-security main contrib"  >> /etc/apt/sources.list
+            echo "deb http://ftp.cn.debian.org/debian-security ${ver}-security main contrib"  >> /etc/apt/sources.list
             ;;
     esac
+    apt -y update -oAcquire::AllowInsecureRepositories=true || true
+    apt -y --allow-unauthenticated install install deb-multimedia-keyring || true
 }
 export -f debian_apt_init
 
