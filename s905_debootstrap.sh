@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("s905_debootstrap.sh - 2bdaa58 - 2021-07-12T06:55:16+08:00")
+VERSION+=("s905_debootstrap.sh - 4328ad8 - 2021-08-17T15:36:00+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -562,7 +562,7 @@ systemctl daemon-reload
 systemctl enable parprouted.service
 SCRIPT_EOF
 
-cat >> /root/inst.sh <<EOF_INSTSH
+cat >> ${DIRNAME}/buildroot/root/inst.sh <<EOF_INSTSH
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 #update_config=1
 #wpa_cli p2p_group_add persistent=0
