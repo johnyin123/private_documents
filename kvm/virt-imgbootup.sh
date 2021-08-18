@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 5803d78 - 2021-08-11T15:26:26+08:00")
+VERSION+=("virt-imgbootup.sh - db245c7 - 2021-08-17T16:59:57+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -86,8 +86,10 @@ main() {
             --cdrom)        shift; cdrom=${1}; shift;;
             --fda)          shift; floppy=${1}; shift;;
             --sound)        shift; options+=("-soundhw" "hda");;
-            # options+=("-audiodev" "pa,id=hda,server=/run/user/1000/pulse/native"
-            # cp /home/johnyin/.config/pulse/cookie  /root/.config/pulse
+            # ln -s /home/johnyin/.config/pulse/cookie
+            # options+=("-device" "intel-hda")
+            # options+=("-device" "hda-duplex,audiodev=snd0")
+            # options+=("-audiodev" "pa,id=snd0,server=/run/user/1000/pulse/native")
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
