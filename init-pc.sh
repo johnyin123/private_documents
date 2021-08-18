@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - 02b3b42 - 2021-08-17T11:21:22+08:00")
+VERSION+=("init-pc.sh - 565da14 - 2021-08-17T13:39:31+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -323,7 +323,14 @@ cat<<'EOF'
 # install new kernel
 apt -y install linux-image-5.10.0-0.bpo.3-amd64
 
-#new disk copy install
+#new disk copy install 1
+ROOTFS=
+mount -o bind /sys ${ROOTFS}/sys; mount -o bind /proc ${ROOTFS}/proc; mount -o bind /dev ${ROOTFS}/dev;
+chroot ${ROOTFS}
+grub2-install --target=i386-pc --boot-directory=/boot --modules="xfs part_msdos" ${DISK}
+grub2-mkconfig -o /boot/grub2/grub.cfg
+
+#new disk copy install 2
 grub-install --target=i386-pc --boot-directory=${mntpoint}/boot --modules="xfs part_msdos" ${DISK}
 
 NEW_UUID=$(blkid -s UUID -o value ${DISK_PART})
