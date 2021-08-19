@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 4715077 - 2021-08-13T08:38:14+08:00")
+VERSION+=("functions.sh - 6fb2f8c - 2021-08-13T08:40:32+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -617,6 +617,8 @@ LOG_DEBUG=3       # Level debug
 
 # Log level names
 LOG_LEVELNAMES=('ERROR' 'WARN ' 'INFO ' 'DEBUG')
+# Support colors
+SUPPORT_COLORS='red yellow blue white cyan gray purple green'
 
 # Global constants definition end }}
 
@@ -628,8 +630,6 @@ date_fmt='%Y-%m-%d %H:%M:%S'
 log_fmt="[<levelname>] [<asctime>] <message>"
 # Default log color
 log_color=('red' 'yellow' 'green' 'cyan')
-# Support colors
-support_colors='red yellow blue white cyan gray purple green'
 # log_syslog defined, syslog enabled and log_syslog value as  syslog tag
 # log_syslog="mysyslog"
 
@@ -786,7 +786,7 @@ set_logcolor() {
     local len=$#
 
     for (( i=0; i<$len; i++ )); do
-        if echo "$support_colors" | grep -wq "$1"
+        if echo "${SUPPORT_COLORS}" | grep -wq "$1"
         then
             log_color[$i]=$1
         else
