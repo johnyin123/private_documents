@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-mgr.sh - 01af9a8 - 2021-08-04T13:55:56+08:00")
+VERSION+=("virt-mgr.sh - 58cb44d - 2021-08-18T17:14:28+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -141,29 +141,33 @@ failed_destroy_vm() {
 
 create() {
     declare -A vm
-    local opt_short="ql:dVhu:c:m:n:p:f:s:b:F:D:N:"
-    local opt_long="quiet,log:,dryrun,version,help,uuid:,cpus:,mem:,net:,pool:,format:,size:,back:,bfmt:,desc:,name:"
-    __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    local opt_short="u:c:m:n:p:f:s:b:F:D:N:"
+    local opt_long="uuid:,cpus:,mem:,net:,pool:,format:,size:,back:,bfmt:,desc:,name:,"
+    opt_short+="ql:dVh"
+    opt_long+="quiet,log:,dryrun,version,help"
+    __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -u | --uuid)   array_set vm "UUID" "${2}"; shift 2;;
-            -c | --cpus)   array_set vm "CPUS" "${2}"; shift 2;;
-            -m | --mem)    array_set vm "MEM" "${2}"; shift 2;;
-            -n | --net)    array_set vm "NET" "${2}"; shift 2;;
-            -p | --pool)   array_set vm "POOL" "${2}"; shift 2;;
-            -f | --format) array_set vm "FORMAT" "${2}"; shift 2;;
-            -s | --size)   array_set vm "SIZE" "${2}"; shift 2;;
-            -b | --back)   array_set vm "BACKING_VOL" "${2}"; shift 2;;
-            -F | --bfmt)   array_set vm "BACKING_FMT" "${2}"; shift 2;;
-            -D | --desc)   array_set vm "DESC" "${2}"; shift 2;;
-            -N | --name)   array_set vm "NAME" "${2}"; shift 2;;
-            -q | --quiet) QUIET=1; shift 1;;
-            -l | --log) set_loglevel ${2}; shift 2;;
-            -d | --dryrun) DRYRUN=1; shift 1;;
+            -u | --uuid)    shift; array_set vm "UUID" "${1}"; shift;;
+            -c | --cpus)    shift; array_set vm "CPUS" "${1}"; shift;;
+            -m | --mem)     shift; array_set vm "MEM" "${1}"; shift;;
+            -n | --net)     shift; array_set vm "NET" "${1}"; shift;;
+            -p | --pool)    shift; array_set vm "POOL" "${1}"; shift;;
+            -f | --format)  shift; array_set vm "FORMAT" "${1}"; shift;;
+            -s | --size)    shift; array_set vm "SIZE" "${1}"; shift;;
+            -b | --back)    shift; array_set vm "BACKING_VOL" "${1}"; shift;;
+            -F | --bfmt)    shift; array_set vm "BACKING_FMT" "${1}"; shift;;
+            -D | --desc)    shift; array_set vm "DESC" "${1}"; shift;;
+            -N | --name)    shift; array_set vm "NAME" "${1}"; shift;;
+            ########################################
+            -q | --quiet)   shift; QUIET=1;;
+            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
             -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
-            -h | --help) shift 1; usage;;
-            --) shift 1; break;;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              usage "Unexpected option: $1";;
         esac
     done
     array_set vm "DOMAIN_TPL" "${1:?$(usage)}"
@@ -182,26 +186,29 @@ attach() {
     array_set vm "FORMAT" "raw"
     array_set vm "BACKING_VOL" ""
     array_set vm "BACKING_FMT" ""
-    local opt_short="ql:dVhu:n:p:s:b:F:f:"
-    local opt_long="quiet,log:,dryrun,version,help,uuid:,net:,pool:,size:,format:,back:,bfmt:"
-    __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    local opt_short="u:n:p:s:f:b:F:"
+    local opt_long="uuid:,net:,pool:,size:,format:,back:,bfmt:,"
+    opt_short+="ql:dVh"
+    opt_long+="quiet,log:,dryrun,version,help"
+    __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -u | --uuid)   array_set vm "UUID" "${2}"; shift 2;;
-            -n | --net)    array_set vm "NET" "${2}"; shift 2;;
-            -p | --pool)   array_set vm "POOL" "${2}"; shift 2;;
-            -s | --size)   array_set vm "SIZE" "${2}"; shift 2;;
-            -f | --format) array_set vm "FORMAT" "${2}"; shift 2;;
-            -b | --back)   array_set vm "BACKING_VOL" "${2}"; shift 2;;
-            -F | --bfmt)   array_set vm "BACKING_FMT" "${2}"; shift 2;;
-            -q | --quiet) QUIET=1; shift 1;;
-            -l | --log) set_loglevel ${2}; shift 2;;
-            -d | --dryrun) DRYRUN=1; shift 1;;
+            -u | --uuid)    shift; array_set vm "UUID" "${1}"; shift;;
+            -n | --net)     shift; array_set vm "NET" "${1}"; shift;;
+            -p | --pool)    shift; array_set vm "POOL" "${1}"; shift;;
+            -s | --size)    shift; array_set vm "SIZE" "${1}"; shift;;
+            -f | --format)  shift; array_set vm "FORMAT" "${1}"; shift;;
+            -b | --back)    shift; array_set vm "BACKING_VOL" "${1}"; shift;;
+            -F | --bfmt)    shift; array_set vm "BACKING_FMT" "${1}"; shift;;
+            ########################################
+            -q | --quiet)   shift; QUIET=1;;
+            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
             -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
-            -h | --help) shift 1; usage;;
-            --) shift 1; break;;
-            *)  error_msg "Unexpected option: $1.\n"; usage;;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              usage "Unexpected option: $1";;
         esac
     done
     array_label_exist vm 'UUID' || usage
@@ -239,40 +246,42 @@ attach() {
     return 0
 }
 usage() {
-cat <<EOF
+    [ "$#" != 0 ] && echo "$*"
+    cat <<EOF
 ${SCRIPTNAME} <cmd> <arg>
-    -q|--quiet
-    -l|--log <int>                           log level
-    -d|--dryrun                              dryrun
-    -h|--help                                display this help and exit
+        -q|--quiet
+        -l|--log <int> log level
+        -V|--version
+        -d|--dryrun dryrun
+        -h|--help help
 
 cmd:create <arg> [domain_template in cfg]
         create domain with configurations
-    -u|--uuid <uuid>           *             domain uuid
-    -c|--cpus <cpu>
-    -m|--mem <mem KB>
-    -n|--net <tpl-name>        *             network template name in cfg
-    -p|--pool <pool>                         kvm storage pool
-    -f|--format <fmt>                        disk format,default raw
-    -s|--size <size>                         <size> GB/MB/KB
-    -b|--back <backing vol>                  disk backing vol file
-    -F|--bfmt <backing format>               disk backing vol format
-    -D|--desc <desc>                         desc
-    -N|--name <title>                        name(title)
-    Example:
-       CFG_INI=samp.conf KVM_HOST=10.0.0.1 ${SCRIPTNAME} create -u \$(cat /proc/sys/kernel/random/uuid) -c 1 -m \$((2*1024*1024)) -n br-ext -p default -f qcow2 -s 50GB -D "vm test" -N "vm1" -b /storage/linux.tpl -F raw bios
-       ${SCRIPTNAME} create --uuid \$(cat /proc/sys/kernel/random/uuid) --cpus 1 --mem \$((2*1024*1024)) --net br-ext --pool default --format raw --size 4GB --desc "vm1" --name vm1 bios
+        -u|--uuid <uuid>           *             domain uuid
+        -c|--cpus <cpu>
+        -m|--mem <mem KB>
+        -n|--net <tpl-name>        *             network template name in cfg
+        -p|--pool <pool>                         kvm storage pool
+        -f|--format <fmt>                        disk format,default raw
+        -s|--size <size>                         <size> GB/MB/KB
+        -b|--back <backing vol>                  disk backing vol file
+        -F|--bfmt <backing format>               disk backing vol format
+        -D|--desc <desc>                         desc
+        -N|--name <title>                        name(title)
+        Example:
+           CFG_INI=samp.conf KVM_HOST=10.0.0.1 ${SCRIPTNAME} create -u \$(cat /proc/sys/kernel/random/uuid) -c 1 -m \$((2*1024*1024)) -n br-ext -p default -f qcow2 -s 50GB -D "vm test" -N "vm1" -b /storage/linux.tpl -F raw bios
+           ${SCRIPTNAME} create --uuid \$(cat /proc/sys/kernel/random/uuid) --cpus 1 --mem \$((2*1024*1024)) --net br-ext --pool default --format raw --size 4GB --desc "vm1" --name vm1 bios
 
 
 cmd:attach <arg>
         attach device(net/disk/etc)
-    -u|--uuid <uuid>           *             domain uuid
-    -n|--net <tpl-name>        *             network template name in cfg
-    -p|--pool <pool>           *             kvm storage pool
-    -s|--size <size>           *             <size> GB/MB/KB
-    -f|--format <fmt>                        disk format,default raw
-    -b|--back <backing vol>                  disk backing vol file
-    -F|--bfmt <backing format>               disk backing vol format
+        -u|--uuid <uuid>           *             domain uuid
+        -n|--net <tpl-name>        *             network template name in cfg
+        -p|--pool <pool>           *             kvm storage pool
+        -s|--size <size>           *             <size> GB/MB/KB
+        -f|--format <fmt>                        disk format,default raw
+        -b|--back <backing vol>                  disk backing vol file
+        -F|--bfmt <backing format>               disk backing vol format
 EOF
 exit 1
 } >&2
