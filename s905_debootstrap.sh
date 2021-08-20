@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("s905_debootstrap.sh - 375a5da - 2021-08-20T14:36:52+08:00")
+VERSION+=("s905_debootstrap.sh - 71eeaf1 - 2021-08-20T14:38:23+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -57,7 +57,7 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /bin/bash <<EOSHELL
 LABEL=${ROOT_LABEL}    /    ${FS_TYPE}    defaults,errors=remount-ro,noatime    0    1
 LABEL=${BOOT_LABEL}    /boot    vfat    ro    0    2
 tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
-tmpfs /run      tmpfs   rw,nosuid,noexec,relatime,size=8192k,mode=755  0  0
+tmpfs /run      tmpfs   rw,nosuid,noexec,relatime,mode=755  0  0
 tmpfs /tmp      tmpfs   rw,nosuid,noexec,relatime,mode=777  0  0
 # overlayfs can not nfs exports, so use tmpfs
 tmpfs /media    tmpfs   defaults,size=1M  0  0
