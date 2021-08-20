@@ -1,0 +1,51 @@
+  9 lvcreate --snapshot "/dev/$vgroup/$volume" --name "$snapvol" -l '80%FREE'
+ 10 # fix bug: lvcreate snapshot mount by uuid as shown on url: http://www.zero-effort.net/tip-of-the-day-mounting-an-xfs-
+ 11 xfs_repair -L "/dev/${vgroup}/${snapvol}" >/dev/null 2>&1
+ 12 # Mount the snapshot
+ 13 mountpoint=$(mktemp -t -d mount.mongolvmbackup_XXX)
+ 14 mount -v -o ro,nouuid "/dev/${vgroup}/${snapvol}" "${mountpoint}"
+ 15 echo "you job here"
+ 16 # Unmount & remove temp snapshot
+ 17 echo "Removing temporary volume..."
+ 18 umount -v "$mountpoint"
+ 19 rm -rvf "$mountpoint"
+ 20 lvremove -f "/dev/${vgroup}/${snapvol}"
+
+
+VG
+SNAPSIZE
+SNAPMNT
+create_snapshot() {
+  # Tries to make up a unique snapshot name for a VM.
+  local snapname="$1snap$(date +%s)"
+  local snapvol="/dev/$VG/$snapname"
+  local lvpath="$VG"/"$1"
+  local lvsize=$(echo "$(lvs --noheadings --units m -o lv_size "$lvpath" | sed 's/m$//') * $SNAPSIZE / 100" | bc -l)
+  lvcreate -s -n "$snapname" -L ${lvsize}m "$lvpath" >/dev/null &&
+  # Expose the partitions within the snapshot.
+  # Use "sync mode" so all udev processing is synced with
+  # kpartx as well, that is return only when partitions are created.
+  kpartx -s -a "$snapvol" &&
+  # Assume the first partition is the one to backup.
+  mount -t auto -o ro "/dev/mapper/$VG-${snapname}p1" "$SNAPMNT"
+}
+
+destroy_snapshot() {
+  umount "$SNAPMNT" &&
+  # For some reasons kpartx -d "$SNAPVOL" sometimes fails.
+  # This sequence of dmsetup remove commands always works.
+  dmsetup remove "$VG-${SNAPNAME}p1" &&
+  dmsetup remove "$VG-${SNAPNAME}" &&
+  dmsetup remove "$VG-${SNAPNAME}-cow" &&
+  lvremove -f "$SNAPVOL" >/dev/null
+}
+update_backup() {
+    local destdir="$BAKMNT/$1/"
+    mkdir -p "$destdir" && rsync -aq --delete "$SNAPMNT/" "$BAKMNT/$1/"
+}
+vm=xxxxxxxxx
+create_snapshot "$vm" && {
+    update_backup "$vm"
+    destroy_snapshot "$vm"
+}
+
