@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("s905_debootstrap.sh - 27fbd4f - 2021-08-18T11:02:24+08:00")
+VERSION+=("s905_debootstrap.sh - 375a5da - 2021-08-20T14:36:52+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -325,10 +325,10 @@ exit 0
 EOF
 chmod 755 /etc/initramfs/post-update.d/99-uboot
 
-echo "修改systemd journald日志存放目录为内存，也就是/run/log目录，限制最大使用内存空间64MB"
+#echo "修改systemd journald日志存放目录为内存，也就是/run/log目录，限制最大使用内存空间64MB"
 
-sed -i 's/#Storage=auto/Storage=volatile/' /etc/systemd/journald.conf
-sed -i 's/#RuntimeMaxUse=/RuntimeMaxUse=64M/' /etc/systemd/journald.conf
+#sed -i 's/#Storage=auto/Storage=volatile/' /etc/systemd/journald.conf
+#sed -i 's/#RuntimeMaxUse=/RuntimeMaxUse=64M/' /etc/systemd/journald.conf
 
 cat >/etc/profile.d/johnyin.sh<<"EOF"
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
