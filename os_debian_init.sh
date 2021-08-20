@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_debian_init.sh - c664a66 - 2021-08-18T08:19:57+08:00")
+VERSION+=("os_debian_init.sh - f94a4e8 - 2021-08-18T17:09:26+08:00")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -40,7 +40,6 @@ debian_build() {
 
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
     /debootstrap/debootstrap --second-stage
-
     echo ${HOSTNAME:-deb-tpl} > /etc/hostname
     cat << EOF > /etc/hosts
 127.0.0.1       localhost ${HOSTNAME:-deb-tpl}
@@ -92,7 +91,7 @@ EOF
             ;;
     esac
     apt -y update -oAcquire::AllowInsecureRepositories=true || true
-    apt -y --allow-unauthenticated install install deb-multimedia-keyring || true
+    apt -y --allow-unauthenticated install deb-multimedia-keyring || true
 }
 export -f debian_apt_init
 
@@ -191,12 +190,12 @@ EOF
     eval $(grep -E "^VERSION_CODENAME=" /etc/os-release)
     case "$VERSION_CODENAME" in
         buster)
-            apt -y install udisks2
+            apt -y update && apt -y install udisks2
             mkdir -p /usr/local/lib/zram.conf.d/
             cfg=/usr/local/lib/zram.conf.d/zram0-env
             ;;
         bullseye)
-            apt -y install udisks2-zram
+            apt -y update && apt -y install udisks2-zram
             mkdir -p /usr/lib/zram.conf.d/
             cfg=/usr/lib/zram.conf.d/zram0
             ;;
@@ -341,7 +340,7 @@ export -f debian_autologin_root
 
 debain_overlay_init() {
     cat > /etc/overlayroot.conf <<'EOF'
-OVERLAY_LABEL=OVERLAYFS
+OVERLAY=OVERLAYFS
 SKIP_OVERLAY=1
 EOF
 

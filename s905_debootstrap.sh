@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("s905_debootstrap.sh - 4328ad8 - 2021-08-17T15:36:00+08:00")
+VERSION+=("s905_debootstrap.sh - 27fbd4f - 2021-08-18T11:02:24+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -15,25 +15,15 @@ source ${DIRNAME}/os_debian_init.sh
 #之后PC端的刷机程序就会检测到设备进入刷机模式，按软件的刷机提示刷机即可。
 # USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
 
-INST_ARCH=${INST_ARCH:-arm64}
-REPO=http://mirrors.163.com/debian
-PASSWORD=password
-DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye}
-export FS_TYPE=${FS_TYPE:-ext4}
 BOOT_LABEL="EMMCBOOT"
 ROOT_LABEL="EMMCROOT"
-OVERLAY_LABEL="EMMCOVERLAY"
-HOSTNAME="s905d2"
-#HOSTNAME="s905d3"
-#HOSTNAME="usbpc"
+FS_TYPE=${FS_TYPE:-ext4}
 
-ZRAMSWAP="udisks2"
-#ZRAMSWAP="zram-tools"
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
-PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,${ZRAMSWAP},dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,babeld,ifenslave,vlan"
+PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,babeld,ifenslave,vlan"
 PKG="${PKG},parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server,netcat-openbsd"
-PKG+=",systemd-container"
-[[ ${INST_ARCH} = "amd64" ]] && PKG="${PKG},linux-image-amd64"
+PKG+=",systemd-container nftables"
+#[[ ${INST_ARCH} = "amd64" ]] && PKG="${PKG},linux-image-amd64"
 
 if [ "$UID" -ne "0" ]
 then 
@@ -44,14 +34,23 @@ fi
 mkdir -p ${DIRNAME}/buildroot
 mkdir -p ${DIRNAME}/cache
 
-debian_build "${DIRNAME}/buildroot" "${DIRNAME}/cache" "${PKG}"
+#HOSTNAME="s905d3"
+#HOSTNAME="usbpc"
+DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
+    INST_ARCH=${INST_ARCH:-arm64} \
+    REPO=${REPO:-http://mirrors.163.com/debian} \
+    HOSTNAME="s905d2" \
+    NAME_SERVER=114.114.114.114 \
+    PASSWORD=password \
+    debian_build "${DIRNAME}/buildroot" "${DIRNAME}/cache" "${PKG}"
 
 LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /bin/bash <<EOSHELL
+    /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts
+
     debian_zswap_init 512
     debian_sshd_init
     debian_sysctl_init
     debian_vim_init
-    debian_chpasswd root ${PASSWORD}
     debain_overlay_init
 
     cat > /etc/fstab << EOF
@@ -344,6 +343,7 @@ apt -y install --no-install-recommends xz-utils zip
 apt -y remove ca-certificates wireless-regdb crda --purge
 apt -y autoremove --purge
 
+/bin/umount /dev/pts
 exit
 EOSHELL
 
@@ -352,29 +352,10 @@ if [ -d "${DIRNAME}/kernel" ]; then
     rsync -avzP ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
 fi
 echo "end install you kernel&patchs"
-chroot ${DIRNAME}/buildroot/ /bin/bash
+echo "start chroot shell, disable service & do other work"
+chroot ${DIRNAME}/buildroot/ /bin/bash || true
 chroot ${DIRNAME}/buildroot/ /bin/bash -s <<EOF
     debian_minimum_init
-EOF
-echo "SUCCESS build rootfs"
-
-cat << 'EOF'
-# baudrate=115200
-# ethaddr=5a:57:57:90:5d:03
-# bootcmd=run start_autoscript; run storeboot;
-# start_autoscript=if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;
-# start_usb_autoscript=if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;
-# start_mmc_autoscript=if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;
-# start_emmc_autoscript=if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;
-# bootdelay=0
-
-fw_setenv bootcmd "run start_autoscript; run storeboot;"
-fw_setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;"
-fw_setenv start_usb_autoscript "if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;"
-fw_setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;"
-fw_setenv start_emmc_autoscript "if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;"
-fw_setenv bootdelay 0
-fw_setenv ethaddr 5a:57:57:90:5d:03
 EOF
 
 echo "add emmc_install script"
@@ -728,10 +709,6 @@ device 00:1E:52:FB:68:55 {
     auth enable;
     encrypt enable;}
 
-#multimedia
-echo "deb http://www.deb-multimedia.org ${DEBIAN_VERSION} main non-free" > /etc/apt/sources.list.d/multimedia.conf
-apt-get update -oAcquire::AllowInsecureRepositories=true
-apt-get install deb-multimedia-keyring
 #bluetooth
 apt install --no-install-recommends blueman pulseaudio pulseaudio-module-bluetooth pavucontrol mpg123
 
@@ -835,6 +812,25 @@ echo "you need run 'apt -y install busybox && update-initramfs -c -k KERNEL_VERS
 echo "SUCCESS build rootfs, all!!!"
 exit 0
 
+:<<"EOF_DEMO"
+
+# baudrate=115200
+# ethaddr=5a:57:57:90:5d:03
+# bootcmd=run start_autoscript; run storeboot;
+# start_autoscript=if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;
+# start_usb_autoscript=if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;
+# start_mmc_autoscript=if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;
+# start_emmc_autoscript=if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;
+# bootdelay=0
+
+fw_setenv bootcmd "run start_autoscript; run storeboot;"
+fw_setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;"
+fw_setenv start_usb_autoscript "if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;"
+fw_setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;"
+fw_setenv start_emmc_autoscript "if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;"
+fw_setenv bootdelay 0
+fw_setenv ethaddr 5a:57:57:90:5d:03
+
 final_disk() {
     umount ${DIRNAME}/buildroot/
     losetup -d ${DIRNAME}/DISK.IMG
@@ -867,7 +863,6 @@ prepair_disk() {
 
     mke2fs -FL "${OVERLAY_LABEL}" -t ext4 -E lazy_itable_init,lazy_journal_init ${PART_OVERLAY}
 }
-
 gen_uEnv_ini() {
     cat > /boot/uEnv.ini <<EOF
 dtb_name=/dtb/meson-gxl-s905d-phicomm-n1.dtb
@@ -1036,3 +1031,5 @@ initrd=/boot/uInitrd
 dtb=/boot/meson-gxl-s905d-phicomm-n1.dtb
 bootargs=root=/dev/mmcblk1p1 rootflags=data=writeback rw console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 fsck.fix=yes fsck.repair=yes net.ifnames=0
 EOF
+
+EOF_DEMO
