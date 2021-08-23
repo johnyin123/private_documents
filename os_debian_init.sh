@@ -16,7 +16,8 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_debian_init.sh - f94a4e8 - 2021-08-18T17:09:26+08:00")
+VERSION+=("os_debian_init.sh - 375a5da - 2021-08-20T14:36:52+08:00")
+FAKE_APT="apt -y -oAcquire::http::User-Agent=dler --no-install-recommends"
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -90,8 +91,8 @@ EOF
             echo "deb http://ftp.cn.debian.org/debian-security ${ver}-security main contrib"  >> /etc/apt/sources.list
             ;;
     esac
-    apt -y update -oAcquire::AllowInsecureRepositories=true || true
-    apt -y --allow-unauthenticated install deb-multimedia-keyring || true
+    ${FAKE_APT} -oAcquire::AllowInsecureRepositories=true update || true
+    ${FAKE_APT} --allow-unauthenticated install deb-multimedia-keyring || true
 }
 export -f debian_apt_init
 
@@ -149,7 +150,7 @@ debian_sshd_regenkey() {
 export -f debian_sshd_regenkey
 
 debian_sshd_init() {
-    apt -y install openssh-server
+    ${FAKE_APT} install openssh-server
     # dpkg-reconfigure -f noninteractive openssh-server
     cp /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
     sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
@@ -190,12 +191,12 @@ EOF
     eval $(grep -E "^VERSION_CODENAME=" /etc/os-release)
     case "$VERSION_CODENAME" in
         buster)
-            apt -y update && apt -y install udisks2
+            ${FAKE_APT} update && ${FAKE_APT} install udisks2
             mkdir -p /usr/local/lib/zram.conf.d/
             cfg=/usr/local/lib/zram.conf.d/zram0-env
             ;;
         bullseye)
-            apt -y update && apt -y install udisks2-zram
+            ${FAKE_APT} update && ${FAKE_APT} install udisks2-zram
             mkdir -p /usr/lib/zram.conf.d/
             cfg=/usr/lib/zram.conf.d/zram0
             ;;
@@ -210,7 +211,7 @@ EOF
 export -f debian_zswap_init
 
 debian_vim_init() {
-    apt -y install vim
+    ${FAKE_APT} install vim
     cat <<'EOF' > /etc/vim/vimrc.local
 syntax on
 " color evening
@@ -330,9 +331,9 @@ debian_autologin_root() {
     sed -i "s|#NAutoVTs=6|NAutoVTs=1|" /etc/systemd/logind.conf
     mkdir -p /etc/systemd/system/getty@tty1.service.d
     cat <<EOF | tee /etc/systemd/system/getty@tty1.service.d/override.conf
-    [Service]
-        ExecStart=
-        ExecStart=-/sbin/agetty --autologin root --noclear %I 38400 linux
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear %I 38400 linux
 EOF
     systemctl enable getty@tty1.service
 }
