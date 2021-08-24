@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("tgz_rootfs_inst.sh - de2cfc0 - 2021-08-24T13:33:03+08:00")
+VERSION+=("tgz_rootfs_inst.sh - d7fd194 - 2021-08-24T13:58:09+08:00")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -14,15 +14,16 @@ ${SCRIPTNAME}
         -d|--disk        *    disk, /dev/sdX
         -p|--part             install tgz in this <DISK> part as rootfs
                               default 1
+        -x | --xfsfix         disable xfs v5 feature!! for support kernel below 3.16
         -V|--version          version info
         -h|--help             help
 EOF
     exit 1
 }
 main() {
-    local root_tgz= disk= partition=1
-    local opt_short+="t:d:p:vh"
-    local opt_long+="tgz:,disk:,part:,version,help"
+    local root_tgz= disk= partition=1 xfsfix=
+    local opt_short+="t:d:p:xvh"
+    local opt_long+="tgz:,disk:,part:,xfsfix,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
@@ -31,6 +32,7 @@ main() {
             -t | --tgz)       shift; root_tgz=${1}; shift;;
             -d | --disk)      shift; disk=${1}; shift;;
             -p | --part)      shift; part=${1}; shift;;
+            -x | --xfsfix)    shift; xfsfix=1;;
             -V | --version)   shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
             -h | --help)      shift; usage;;
             --)               shift; break;;
@@ -41,7 +43,7 @@ main() {
     [ -z "${disk}" ] && usage "need disk and  partition?"
     echo "install ${root_tgz} => ${disk}${part}"
     local root_dir=$(mktemp -d /tmp/rootfs.XXXXXX)
-    mkfs.xfs -f -L rootfs "${disk}${part}"
+    mkfs.xfs -f -L rootfs ${xfsfix:+-m reflink=0} "${disk}${part}"
     mount "${disk}${part}" ${root_dir}
     tar -C ${root_dir} -xvf ${root_tgz}
     [ -d "${root_dir}/sys" ] && mount -o bind /sys ${root_dir}/sys
