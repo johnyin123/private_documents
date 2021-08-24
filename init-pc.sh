@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - e824b63 - 2021-08-18T16:05:57+08:00")
+VERSION+=("init-pc.sh - 375a5da - 2021-08-20T14:36:52+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -180,7 +180,7 @@ case "$VERSION_CODENAME" in
         XFCE_MAIL=exo-mail-reader.desktop
         ;;
     bullseye)
-        apt -y install bsdmainutils
+        apt -y install bsdmainutils fonts-noto-cjk
         XFCE_TERM=xfce4-terminal-emulator.desktop
         XFCE_FILE=xfce4-file-manager.desktop
         XFCE_WEB=xfce4-web-browser.desktop
