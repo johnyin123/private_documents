@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("tgz_rootfs_inst.sh - initversion - 2021-08-24T12:47:56+08:00")
+VERSION+=("tgz_rootfs_inst.sh - 060cbc4 - 2021-08-24T12:47:56+08:00")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -48,8 +48,17 @@ main() {
     [ -d "${root_dir}/proc" ] && mount -o bind /proc ${root_dir}/proc
     [ -d "${root_dir}/dev" ] && mount -o bind /dev ${root_dir}/dev
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
-grub-install --target=i386-pc --boot-directory=/boot --modules="xfs part_msdos" ${disk}
-grub-mkconfig -o /boot/grub/grub.cfg
+source /etc/os-release
+case "${ID}" in
+    debian)
+        grub-install --target=i386-pc --boot-directory=/boot --modules="xfs part_msdos" ${disk}
+        grub-mkconfig -o /boot/grub/grub.cfg
+        ;;
+    centos)
+        grub2-install --target=i386-pc --boot-directory=/boot --modules="xfs part_msdos" ${disk}
+        grub2-mkconfig -o /boot/grub2/grub.cfg
+        ;;
+esac
 EOSHELL
     local new_uuid=$(blkid -s UUID -o value ${disk$}${part})
     echo "UUID=${new_uuid} / xfs noatime 0 0" > ${root_dir}/etc/fstab
