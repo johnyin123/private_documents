@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 0fdb5c9 - 2021-08-06T09:05:49+08:00")
+VERSION+=("build_debian_live_iso.sh - 58cb44d - 2021-08-18T17:14:28+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -262,7 +262,7 @@ main() {
     debian_minimum_init
 EOSHELL
     info_msg "gen squashfs ... \n" 
-    try rm -fr ${iso_dir}
+    try rm -fr ${iso_dir}/live
     try mkdir -p ${iso_dir}/live
 
     info_msg "gen squashfs ${iso_dir}/live/filesystem.squashfs, exclude /boot/\n"
