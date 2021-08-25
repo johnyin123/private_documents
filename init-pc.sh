@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - 3e5862c - 2021-08-24T08:12:05+08:00")
+VERSION+=("init-pc.sh - d92b557 - 2021-08-25T09:33:58+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -156,14 +156,15 @@ apt -y install systemd-container \
     nscd nbd-client iftop netcat-openbsd sshfs squashfs-tools graphviz nftables \
     rsync tmux wireguard-tools \
     libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
-    qemu-kvm qemu-utils xmlstarlet jq sudo debootstrap kpartx binwalk
+    qemu-kvm qemu-utils xmlstarlet jq sudo debootstrap kpartx
+    #binwalk
 
 apt -y install traceroute ipcalc qrencode
 # qrencode -8  -o - -t UTF8 "massage"
 
 echo "modify xfce4 default Panel layer"
 apt -y install xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver \
-    lightdm gnome-icon-theme fcitx-ui-classic fcitx-tools fcitx fcitx-sunpinyin fcitx-config-gtk
+    lightdm fcitx-ui-classic fcitx-tools fcitx fcitx-sunpinyin fcitx-config-gtk
 sed -i "s/enabled=.*/enabled=False/g" /etc/xdg/user-dirs.conf
 
 XFCE_TERM=
