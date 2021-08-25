@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - 17f953e - 2021-08-26T07:28:44+08:00")
+VERSION+=("init-pc.sh - 795ef0f - 2021-08-26T07:31:03+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -321,8 +321,9 @@ systemctl status libvirtd >/dev/null && {
     dir=/storage
     net_name=br-ext
     mkir -p ${dir}
+    # ln -s .... ${dir}
     virsh pool-destroy default
-    virsh pool-delete default
+    #virsh pool-delete default
     virsh pool-undefine default
     virsh net-destroy default
     virsh net-undefine default
