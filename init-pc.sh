@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - d92b557 - 2021-08-25T09:33:58+08:00")
+VERSION+=("init-pc.sh - 60030c5 - 2021-08-25T12:55:16+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -313,6 +313,38 @@ id johnyin &>/dev/null && debian_chpasswd johnyin ${PASSWORD}
 echo "Force Users To Change Passwords Upon First Login"
 chage -d 0 root || true
 chage -d 0 johnyin || true
+
+echo "init libvirt env"
+pool_name=default
+dir=/storage
+net_name=br-ext
+mkir -p ${dir}
+virsh pool-destroy default
+virsh pool-delete default
+virsh pool-undefine default
+virsh net-destroy default
+virsh net-undefine default
+#virsh pool-define-as default --type dir --target /storage
+#virsh pool-build default
+cat <<EPOOL | tee | virsh pool-define /dev/stdin
+<pool type='dir'>
+  <name>${pool_name}</name>
+  <target>
+    <path>${dir}</path>
+  </target>
+</pool>
+EPOOL
+virsh pool-start ${pool_name}
+virsh pool-autostart ${pool_name}
+cat <<ENET | tee | virsh net-define /dev/stdin
+<network>
+  <name>${net_name}</name>
+  <forward mode='bridge'/>
+  <bridge name='${net_name}'/>
+</network>
+ENET
+virsh net-start ${net_name}
+virsh net-autostart ${net_name}
 
 #debian_minimum_init => remove manpage doc
 apt clean
