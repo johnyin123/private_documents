@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 6fb2f8c - 2021-08-13T08:40:32+08:00")
+VERSION+=("functions.sh - c080650 - 2021-08-19T10:26:34+08:00")
 #shopt -s expand_aliases
 #alias
 
@@ -38,6 +38,11 @@ random() {
 
 uuid() {
     cat /proc/sys/kernel/random/uuid
+}
+
+gen_passwd() {
+    local size=${1:-8}
+    cat /dev/urandom | tr -dc 'A-Za-z0-9' | head -c ${1}
 }
 
 # save file data(base64) from __BIN_BEGINS__ to out.
