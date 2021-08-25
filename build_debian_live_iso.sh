@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 58cb44d - 2021-08-18T17:14:28+08:00")
+VERSION+=("build_debian_live_iso.sh - 57f9750 - 2021-08-24T13:00:35+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -42,12 +42,7 @@ ${SCRIPTNAME}
         -a|--addition     <pkg list>  addition package like "pkg1,pkg2,pkg3"
         --comp <comp>     select <comp> compression, default lzo
                           Compressors available:
-                              gzip (default)
-                              lzma
-                              lzo
-                              lz4
-                              xz
-                              zstd
+                              gzip,lzma,lzo,lz4,xz,zstd
         -b|--bootldr      <type> type:grub/syslinux, bootloader type, default grub
         -o|--isofile      <filename> iso image file name
         -q|--quiet
@@ -217,7 +212,7 @@ main() {
     local comp="lzo"
     local bootldr="grub"
     local opt_short="nra:b:o:"
-    local opt_long="new,onlynew,rebuild,addition:bootldr:isoimage:"
+    local opt_long="new,onlynew,rebuild,addition:,comp:,bootldr:,isoimage:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
