@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 58cb44d - 2021-08-18T17:14:28+08:00")
+VERSION+=("virt-imgbootup.sh - fe9591e - 2021-08-25T08:42:39+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -43,6 +43,7 @@ ${SCRIPTNAME}
            qemu-nbd --port= --bind= -f raw /storage/linux.tpl
            qemu-nbd --socket=/tmp/nbd-socket -f raw /storage/linux.tpl
            qemu-nbd rbd:cephpool/win2k12r2.raw:conf=/etc/ceph/ceph.conf
+           qemu-nbd --persistent --fork --pid-file=/tmp/nbd-socket.pid --socket=/tmp/nbd-socket --format=raw tpl/debian.raw
         demo floppy image:
            mkfs.vfat -C "floppy.img" 1440
            mount -o loop -t vfat floppy.img /mnt/floppy
