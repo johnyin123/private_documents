@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - fe9591e - 2021-08-25T08:42:39+08:00")
+VERSION+=("virt-imgbootup.sh - 7c09d4d - 2021-08-25T09:00:07+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -123,8 +123,8 @@ main() {
     }
     local disk_id=0
     for _u in "${disk[@]}"; do
-        local _fmt=$(qemu-img info --output=json ${_u} | json_config_default ".format"  "raw")
-        options+=("-drive" "file=${_u},index=${disk_id},cache=none,aio=native,if=virtio,format=${fmt:-${_fmt}}")
+        local _fmt=${fmt:-$(qemu-img info --output=json ${_u} | json_config_default ".format"  "raw")}
+        options+=("-drive" "file=${_u},index=${disk_id},cache=none,aio=native,if=virtio,format=${_fmt}")
         let disk_id+=1
     done
     for _u in "${simusb[@]}"; do
