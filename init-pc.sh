@@ -7,10 +7,10 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - 375a5da - 2021-08-20T14:36:52+08:00")
+VERSION+=("init-pc.sh - 3e5862c - 2021-08-24T08:12:05+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
-
+# https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
 source /etc/os-release
 VERSION_CODENAME=${VERSION_CODENAME:-bullseye}
 PASSWORD=password
