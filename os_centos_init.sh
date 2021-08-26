@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_centos_init.sh - 4d6de0d - 2021-04-14T14:05:03+08:00")
+VERSION+=("os_centos_init.sh - 368de7e - 2021-04-20T09:00:38+08:00")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -132,6 +132,7 @@ export -f centos_limits_init
 centos_sysctl_init() {
     mv /etc/sysctl.conf /etc/sysctl.conf.bak
     cat << EOF > /etc/sysctl.conf
+net.ipv4.ping_group_range = 0	2147483647
 net.core.rmem_max = 134217728 
 net.core.wmem_max = 134217728 
 net.core.netdev_max_backlog = 250000
