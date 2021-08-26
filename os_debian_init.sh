@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_debian_init.sh - 375a5da - 2021-08-20T14:36:52+08:00")
+VERSION+=("os_debian_init.sh - 25c2a85 - 2021-08-23T09:35:54+08:00")
 FAKE_APT="apt -y -oAcquire::http::User-Agent=dler --no-install-recommends"
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
@@ -167,6 +167,19 @@ debian_sshd_init() {
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
 EOF
     chmod 0600 /root/.ssh/authorized_keys
+    cat <<EOF >/root/.ssh/config
+StrictHostKeyChecking=no
+UserKnownHostsFile=/dev/null
+Host github.com
+    Port=22
+Host *
+    Port=60022
+    ControlMaster auto
+    ControlPath  ~/.ssh/sockets/%r@%h-%p
+    ControlPersist 600
+EOF
+    mkdir -p /root/.ssh/sockets/
+    chmod 0600 /root/.ssh/config
 }
 export -f debian_sshd_init
 
