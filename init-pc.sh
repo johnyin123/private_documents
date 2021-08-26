@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - 048e41e - 2021-08-26T07:37:56+08:00")
+VERSION+=("init-pc.sh - 54b0a3c - 2021-08-26T10:19:52+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -148,11 +148,11 @@ single-request (glibc>=2.10) 避免并发，改为串行发送 A 类型和 AAAA 
 echo 'options use-vc' >> /etc/resolv.conf
 EOF
 
-echo "install packages!"
+echo "install packages! pbzip2 pigz pixz parallel version bzip2/gz/xz"
 apt -y install systemd-container \
     hostapd wpasupplicant wireless-tools \
     android-tools-adb android-tools-fastboot \
-    bzip2 pigz p7zip-full arj zip rar mscompress unar eject bc less vim rename \
+    pbzip2 pigz pixz p7zip-full arj zip rar mscompress unar eject bc less vim rename \
     ftp telnet nmap tftp ntpdate lsof strace \
     tcpdump ethtool aria2 axel curl wget mpg123 nmon sysstat arping dnsutils \
     minicom socat git git-flow net-tools \
