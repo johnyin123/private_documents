@@ -7,12 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - 795ef0f - 2021-08-26T07:31:03+08:00")
+VERSION+=("init-pc.sh - 048e41e - 2021-08-26T07:37:56+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
-source /etc/os-release
-VERSION_CODENAME=${VERSION_CODENAME:-bullseye}
+source <(grep -E "^\s*(VERSION_CODENAME|ID)=" /etc/os-release)
 PASSWORD=password
 IPADDR=192.168.168.124/24
 GATEWAY=192.168.168.1
@@ -56,6 +55,11 @@ EOF
 
 echo "install network bridge"
 apt -y install bridge-utils
+cat << EOF | tee /etc/network/interfaces.d/br-int
+auto br-int
+iface br-int inet manual
+    bridge_ports none
+EOF
 cat << EOF | tee /etc/network/interfaces.d/br-ext
 auto eth0
 allow-hotplug eth0
@@ -126,7 +130,7 @@ sync
 mount -o remount,ro /overlay/lower
 EOF
 
-sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=\"console=ttyS0 console=tty1 net.ifnames=0 biosdevname=0 ipv6.disable=1\"/g" /etc/default/grub
+sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=\"console=ttyS0 console=tty1 net.ifnames=0 biosdevname=0\"/g" /etc/default/grub
 update-initramfs -c -k $(uname -r)
 grub-mkconfig -o /boot/grub/grub.cfg
 
@@ -320,13 +324,12 @@ systemctl status libvirtd >/dev/null && {
     pool_name=default
     dir=/storage
     net_name=br-ext
-    mkir -p ${dir}
+    mkdir -p ${dir}
     # ln -s .... ${dir}
-    virsh pool-destroy default
-    #virsh pool-delete default
-    virsh pool-undefine default
-    virsh net-destroy default
-    virsh net-undefine default
+    virsh pool-destroy default || true
+    virsh pool-undefine default || true
+    virsh net-destroy default || true
+    virsh net-undefine default || true
     #virsh pool-define-as default --type dir --target /storage
     #virsh pool-build default
     cat <<EPOOL | tee | virsh pool-define /dev/stdin
