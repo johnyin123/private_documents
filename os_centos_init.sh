@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_centos_init.sh - 368de7e - 2021-04-20T09:00:38+08:00")
+VERSION+=("os_centos_init.sh - da1c631 - 2021-08-26T15:29:07+08:00")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -215,6 +215,7 @@ centos_service_init() {
     systemctl set-default multi-user.target
     chkconfig 2>/dev/null | egrep -v "crond|sshd|network|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
     systemctl list-unit-files | grep service | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
+    #systemctl list-unit-files | awk '$2 == "enabled" {printf "systemctl disable %s\n", $1}'
 }
 export -f centos_service_init
 
