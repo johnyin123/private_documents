@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - 54b0a3c - 2021-08-26T10:19:52+08:00")
+VERSION+=("init-pc.sh - f5e8982 - 2021-08-26T14:38:26+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -70,7 +70,7 @@ iface br-ext inet static
     bridge_ports eth0
     #bridge_ports none
     address ${IPADDR:-10.32.166.31/25}
-    gateway ${GATEWAY:-10.32.166.1}
+    ${GATEWAY:+    gateway ${GATEWAY}}
 
 # auto bond0
 # iface bond0 inet manual
@@ -351,44 +351,60 @@ EPOOL
 ENET
     virsh net-start ${net_name}
     virsh net-autostart ${net_name}
+    net_name=br-int
+    cat <<ENET | tee | virsh net-define /dev/stdin
+<network>
+  <name>${net_name}</name>
+  <forward mode='bridge'/>
+  <bridge name='${net_name}'/>
+</network>
+ENET
+    virsh net-start ${net_name}
+    virsh net-autostart ${net_name}
 }
+
+cat <<EOF>/etc/nftables.conf
+#!/usr/sbin/nft -f
+flush ruleset
+
+table ip nat {
+	chain PREROUTING {
+		type nat hook prerouting priority -100; policy accept;
+	}
+
+	chain INPUT {
+		type nat hook input priority 100; policy accept;
+	}
+
+	chain POSTROUTING {
+		type nat hook postrouting priority 100; policy accept;
+		ip saddr 192.168.168.0/24 ip daddr != 192.168.168.0/24 counter packets 0 bytes 0 masquerade 
+	}
+	chain OUTPUT {
+		type nat hook output priority -100; policy accept;
+	}
+}
+table ip filter {
+	chain INPUT {
+		type filter hook input priority 0; policy accept;
+	}
+
+	chain FORWARD {
+		type filter hook forward priority 0; policy accept;
+		meta l4proto tcp tcp flags & (syn|rst) == syn counter packets 0 bytes 0 tcp option maxseg size set rt mtu
+	}
+
+	chain OUTPUT {
+		type filter hook output priority 0; policy accept;
+	}
+}
+EOF
+chmod 755 /etc/nftables.conf
+
 #debian_minimum_init => remove manpage doc
 apt clean
 find /var/log/ -type f | xargs rm -f
 rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /root/.viminfo /root/.vim/
-
-
-cat<<'EOF'
-# install new kernel
-apt -y install linux-image-5.10.0-0.bpo.3-amd64
-
-#new disk copy install 1
-ROOTFS=
-mount -o bind /sys ${ROOTFS}/sys; mount -o bind /proc ${ROOTFS}/proc; mount -o bind /dev ${ROOTFS}/dev;
-chroot ${ROOTFS}
-grub-install --target=i386-pc --boot-directory=/boot --modules="xfs part_msdos" ${DISK}
-grub-mkconfig -o /boot/grub/grub.cfg
-
-#new disk copy install 2
-grub-install --target=i386-pc --boot-directory=${mntpoint}/boot --modules="xfs part_msdos" ${DISK}
-
-NEW_UUID=$(blkid -s UUID -o value ${DISK_PART})
-sed -i "s/........-....-....-....-............/${NEW_UUID}/g" ${mntpoint}/boot/grub/grub.cfg
-sed -i "s/........-....-....-....-............/${NEW_UUID}/g" ${mntpoint}/etc/fstab
-# bootup run "update-initramfs -c -k $(uname -r)"
-
-# install debain multimedia
-
-cat <<LST_EOF >> /etc/apt/sources.list
-# deb http://www.deb-multimedia.org buster main non-free
-# deb http://www.deb-multimedia.org buster-backports main
-deb http://ftp.cn.debian.org/debian-multimedia buster main non-free
-deb http://ftp.cn.debian.org/debian-multimedia buster-backports main
-LST_EOF
-
-apt-get update -oAcquire::AllowInsecureRepositories=true
-apt-get install deb-multimedia-keyring
-EOF
 
 cat <<'EODOC'
 # systemctl disable networking.service NetworkManager
