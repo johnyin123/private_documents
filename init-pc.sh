@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - f5e8982 - 2021-08-26T14:38:26+08:00")
+VERSION+=("init-pc.sh - c6cc6a7 - 2021-08-27T09:23:26+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -362,6 +362,43 @@ ENET
     virsh net-start ${net_name}
     virsh net-autostart ${net_name}
 }
+# ###Source NAT
+# #iptables -t nat -A POSTROUTING -s 192.168.1.1 -j SNAT --to-source 1.1.1.1
+# #iptables -t nat -A POSTROUTING -s 192.168.2.2 -j SNAT --to-source 2.2.2.2
+# #nft add rule nat postrouting snat to ip saddr map { 192.168.1.1 : 1.1.1.1, 192.168.2.2 : 2.2.2.2 }
+# #nft add rule nat postrouting ip saddr 192.168.168.0/24 oif br-ext snat to 10.32.166.33
+# nft flush ruleset
+# nft add table nat
+# nft 'add chain nat postrouting { type nat hook postrouting priority 100 ; }'
+# nft add rule nat postrouting ip saddr 192.168.168.0/24
+# nft add rule nat postrouting masquerade
+# nft list ruleset
+# table ip nat {
+# 	chain postrouting {
+# 		type nat hook postrouting priority srcnat; policy accept;
+# 		ip saddr 192.168.168.0/24
+# 		masquerade
+# 	}
+# }
+# ###NAT pooling
+# #It is possible to specify source NAT pooling:
+# nft add rule inet nat postrouting snat ip to 10.0.0.2/31
+# nft add rule inet nat postrouting snat ip to 10.0.0.4-10.0.0.127
+# # With transport protocol source port mapping:
+# nft add rule inet nat postrouting ip protocol tcp snat ip to 10.0.0.1-10.0.0.100:3000-4000
+# ###Destination NAT
+# #You need to add the following table and chain configuration:
+# nft 'add chain nat prerouting { type nat hook prerouting priority -100; }'
+# #Then, you can add the following rule:
+# nft 'add rule nat prerouting iif eth0 tcp dport { 80, 443 } dnat to 192.168.1.120'
+# ###Redirect
+# #NOTE: redirect is available starting with Linux Kernel 3.19.
+# #By using redirect, packets will be forwarded to local machine. Is a special case of DNAT where the destination is the current machine.
+# nft add rule nat prerouting redirect
+# #This example redirects 22/tcp traffic to 2222/tcp:
+# nft add rule nat prerouting tcp dport 22 redirect to 2222
+# #This example redirects outgoing 53/tcp traffic to a local proxy listening on port 10053/tcp:
+# nft add rule nat output tcp dport 853 redirect to 10053
 
 cat <<EOF>/etc/nftables.conf
 #!/usr/sbin/nft -f
