@@ -1,0 +1,23 @@
+##NFT Loadbalance
+###Round Robin
+nft add rule nat prerouting dnat to numgen inc mod 2 map { \
+               0 : 192.168.10.100, \
+               1 : 192.168.20.200 }
+###Consistent Hash-based Distribution
+nft add rule x y dnat to jhash ip saddr . tcp dport mod 2 map { \
+                0 : 192.168.20.100, \
+                1 : 192.168.30.100 }
+###Using Direct Server Return (DSR)
+nft add rule netdev t c udp dport 53 ether saddr set aa:bb:cc:dd:ff:ee ether daddr \
+        set numgen inc mod 2 map { 0 : xx:xx:xx:xx:xx:xx, 1: yy:yy:yy:yy:yy:yy } fwd to eth0
+
+nft add rule netdev t c tcp dport 80 ether saddr set aa:bb:cc:dd:ff:ee ether daddr \
+        set jhash ip saddr . tcp sport mod 2 map { 0 : xx:xx:xx:xx:xx:xx, 1: yy:yy:yy:yy:yy:yy } fwd to eth0
+
+# nat
+nft add table nat
+nft 'add chain nat postrouting { type nat hook postrouting priority 100 ; }'
+nft add rule nat postrouting ip saddr 192.168.168.0/24
+nft add rule nat postrouting masquerade
+nft list ruleset
+
