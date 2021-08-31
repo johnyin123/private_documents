@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_centos_init.sh - fcd9f8b - 2021-08-27T09:44:38+08:00")
+VERSION+=("os_centos_init.sh - 211478f - 2021-08-27T10:50:34+08:00")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -85,7 +85,7 @@ GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
 GRUB_DEFAULT=saved
 GRUB_DISABLE_SUBMENU=true
 GRUB_TERMINAL_OUTPUT="console"
-GRUB_CMDLINE_LINUX="console=ttyS0 net.ifnames=0 biosdevname=0"
+GRUB_CMDLINE_LINUX="console=ttyS0 console=tty1 net.ifnames=0 biosdevname=0"
 GRUB_DISABLE_RECOVERY="true"
 EOF
     cat > ${root_dir}/etc/X11/xorg.conf.d/00-keyboard.conf <<EOF
