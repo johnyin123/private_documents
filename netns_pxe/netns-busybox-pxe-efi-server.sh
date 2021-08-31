@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - a303d7f - 2021-07-26T08:30:58+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - 58cb44d - 2021-08-18T17:14:28+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -240,6 +240,7 @@ gen_kickstart() {
     local lvm=$5
     local efi=$6
     local ipaddr=$7
+    local root_size=${8:-1500}
     local prefix=${ipaddr##*/}
     ipaddr=${ipaddr%/*}
     vinfo_msg <<EOF
@@ -281,19 +282,19 @@ KSEOF
 
     try cat \>\> ${kscfg} <<KSEOF
 # Delete all partitions
-clearpart --all --initlabel
+clearpart --all --initlabel --drives=${boot_driver}
 # Delete MBR / GPT
 zerombr
-bootloader --location=mbr --driveorder=${boot_driver} --append=" console=ttyS0 net.ifnames=0 biosdevname=0"
+bootloader --location=mbr --driveorder=${boot_driver} --append=" console=ttyS0 console=tty1 net.ifnames=0 biosdevname=0"
 
 $( [[ ${efi} = "true" ]] && echo "part     /boot/efi  --fstype=vfat --size=50 --ondisk=${boot_driver}")
 part     /boot      --fstype="xfs"  --size=200 --ondisk=${boot_driver}
 $(if [ "${lvm:=false}" = "true" ]; then
-    echo "part     pv.01                      --size=1500 --ondisk=${boot_driver}"
+    echo "part     pv.01                      --size=${root_size} --ondisk=${boot_driver}"
     echo "volgroup vg_root pv.01"
-    echo "logvol   /          --fstype=xfs  --size=1500 --name=lv_root --vgname=vg_root"
+    echo "logvol   /          --fstype=xfs  --size=1 --grow --name=lv_root --vgname=vg_root"
 else
-    echo "part     /          --fstype=xfs  --size=1500 --ondisk=${boot_driver}"
+    echo "part     /          --fstype=xfs  --size=${root_size} --ondisk=${boot_driver}"
 fi)
 # part pv.02 --size=2048
 # volgroup vg_swap pv.02
@@ -460,6 +461,7 @@ ${SCRIPTNAME}
         -n|--ns             <ns name>   default pxe_ns
         -i|--ns_ip          <ns ipaddr> default 172.16.16.2
         --disk              <disn name> default vda
+        --size              rootfs size (MB) default 1500
         --lvm               use lvm     default not use lvm
         --guest_ipaddr      <guest ip>  default 192.168.168.101/24
         -q|--quiet
@@ -477,9 +479,9 @@ main() {
     local DISK=${DISK:-"vda"}
     local ns_ipaddr=${NS_IPADDR:-"172.16.16.2"}
     local ns_name=${NS_NAME:-"pxe_ns"}
-    local host_br=
+    local host_br= root_size=
     local opt_short="b:n:i:"
-    local opt_long="bridge:,ns:,ns_ip:,disk:,lvm,guest_ipaddr:,"
+    local opt_long="bridge:,ns:,ns_ip:,disk:,lvm,guest_ipaddr:,size:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -490,6 +492,7 @@ main() {
             -n | --ns)      shift; ns_name=${1}; shift;;
             -i | --ns_ip)   shift; ns_ipaddr=${1}; shift;;
             --disk)         shift; DISK=${1}; shift;;
+            --size)         shift; root_size=${1}; shift;;
             --lvm)          shift; LVM=true;;
             --guest_ipaddr) shift; IPADDR=${1}; shift;;
             ########################################
@@ -510,12 +513,12 @@ main() {
     try mkdir -p ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ && try mount "${DIRNAME}/${DVD_IMG}" "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" 2\>/dev/null
     try mkdir -p "${ROOTFS}/${PXE_DIR}/"
     gen_grub_cfg "${ROOTFS}/${PXE_DIR}/grub.cfg" "${ns_ipaddr}" "${UEFI_KS_URI}"
-    gen_kickstart "${ROOTFS}/${PXE_DIR}/${UEFI_KS_URI}" "${ns_ipaddr}" "${DISK}" "${UEFI_KS_URI}" ${LVM} true "${IPADDR}"
+    gen_kickstart "${ROOTFS}/${PXE_DIR}/${UEFI_KS_URI}" "${ns_ipaddr}" "${DISK}" "${UEFI_KS_URI}" ${LVM} true "${IPADDR}" "${root_size}"
     extract_efi_grub "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "extract_efi_grub $?"
 
     try mkdir -p "${ROOTFS}/${PXE_DIR}/pxelinux.cfg/" 
     gen_pxelinux_cfg "${ROOTFS}/${PXE_DIR}/pxelinux.cfg/default" "${ns_ipaddr}" "${BIOS_KS_URI}"
-    gen_kickstart "${ROOTFS}/${PXE_DIR}/${BIOS_KS_URI}" "${ns_ipaddr}" "${DISK}" "${BIOS_KS_URI}" ${LVM} false "${IPADDR}"
+    gen_kickstart "${ROOTFS}/${PXE_DIR}/${BIOS_KS_URI}" "${ns_ipaddr}" "${DISK}" "${BIOS_KS_URI}" ${LVM} false "${IPADDR}" "${root_size}"
     extract_bios_pxelinux "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "extract_bios_pxelinux $?"
 
     add_ns ${ns_name} ${host_br} "${ns_ipaddr}" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "add netns $?"
