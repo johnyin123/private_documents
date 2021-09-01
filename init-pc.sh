@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - c6cc6a7 - 2021-08-27T09:23:26+08:00")
+VERSION+=("init-pc.sh - 22b319b - 2021-08-31T07:27:59+08:00")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -168,7 +168,7 @@ apt -y install traceroute ipcalc qrencode
 
 echo "modify xfce4 default Panel layer"
 apt -y install xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver \
-    lightdm fcitx-ui-classic fcitx-tools fcitx fcitx-sunpinyin fcitx-config-gtk
+    lightdm
 sed -i "s/enabled=.*/enabled=False/g" /etc/xdg/user-dirs.conf
 
 XFCE_TERM=
@@ -179,6 +179,7 @@ XFCE_MAIL=
 case "$VERSION_CODENAME" in
     buster)
         apt -y install qt4-qtconfig medit xvnc4viewer
+        apt -y install fcitx-ui-classic fcitx-tools fcitx fcitx-sunpinyin fcitx-config-gtk
         XFCE_TERM=exo-terminal-emulator.desktop
         XFCE_FILE=exo-file-manager.desktop
         XFCE_WEB=exo-web-browser.desktop
@@ -186,6 +187,7 @@ case "$VERSION_CODENAME" in
         ;;
     bullseye)
         apt -y install bsdmainutils fonts-noto-cjk
+        apt -y install fcitx5 fcitx5-pinyin fcitx5-chinese-addons fcitx5-frontend-gtk2 fcitx5-frontend-gtk3 fcitx5-frontend-qt5
         XFCE_TERM=xfce4-terminal-emulator.desktop
         XFCE_FILE=xfce4-file-manager.desktop
         XFCE_WEB=xfce4-web-browser.desktop
