@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 LC_ALL=C
 LANG=C
-VERSION+=("xfs_backup.sh - initversion - 2021-09-01T13:40:40+08:00")
+VERSION+=("xfs_backup.sh - b4f2d9a - 2021-09-01T13:40:40+08:00")
 ################################################################################
 # number of backups copys(1-10), Max 0..9
 NUM=${NUM:-10}
@@ -21,7 +21,8 @@ for cmd in seq lvcreate lvremove xfsdump mount umount mkdir rm mv; do
 done
 # <level> 0 full backup, level 1-9 increase backup
 level=
-snapvol="backsnap$(date +%s)"
+timestamp=$(date +%s)
+snapvol="backsnap${timestamp}"
 label="mybackup"
 session="backup-session-${label}"
 for level in $(seq 0 ${NUM}); do
@@ -48,14 +49,14 @@ mount -v -o ro,nouuid "/dev/${VG}/${snapvol}" "/tmp/${snapvol}" || true
 }
 xfsdump -L "${session}" -M "${label}" -l ${level} -f ${BACKUP_DIR}/${label}_${level} /dev/${VG}/${snapvol} && {
     [ "${level}" = "0" ] && {
-        echo "##########OK##########FULL BACKUP"
+        echo "##########OK##########FULL BACKUP(${timestamp})"
         # remove all increase backup & full backup
         rm -fv ${BACKUP_DIR}/${label}_{1..9} ${BACKUP_DIR}/${label}_0.bak || true
     } || {
-        echo "##########OK##########INCREASE BACKUP"
+        echo "##########OK##########INCREASE BACKUP(${timestamp})"
     }
 } || {
-    echo "**********ERROR**********"
+    echo "**********ERROR**********(${timestamp})"
 }
 umount -v "/tmp/${snapvol}" || true
 rm -rfv "/tmp/${snapvol}" || true
@@ -65,7 +66,7 @@ rm -rfv "/tmp/${snapvol}" || true
 #xfsrestore  -f ${BACKUP_DIR}/${label}_1 restore/
 # remove snapshot
 lvremove -f "/dev/${VG}/${snapvol}" || true
-[ -b "/dev/${VG}/${snapvol}" ] && echo "snapshot remove error!"
+[ -b "/dev/${VG}/${snapvol}" ] && echo "snapshot remove error!(${timestamp})"
 echo "$(date '+%Y%m%d%H%M%S') end /dev/${VG}/${LV} --> ${BACKUP_DIR}/${label}_${level}"
 exit 0
 
