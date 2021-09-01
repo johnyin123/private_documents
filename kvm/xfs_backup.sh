@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 LC_ALL=C
 LANG=C
-VERSION+=("xfs_backup.sh - 92dad02 - 2021-09-01T14:05:58+08:00")
+VERSION+=("xfs_backup.sh - a65a33b - 2021-09-01T14:12:36+08:00")
 ################################################################################
 # number of backups copys(1-10), Max 0..9
 NUM=${NUM:-10}
@@ -26,13 +26,13 @@ timestamp=$(date +%s)
 snapvol="backsnap${timestamp}"
 session="backup-session-${LABEL}"
 for level in $(seq 0 ${NUM}); do
-    [ -e "${BACKUP_DIR}/${LABEL}_${level}" ] && continue
+    [ -e "${BACKUP_DIR}/${LABEL}_${level}${ZIP:+.gz}" ] && continue
     break
 done
-
 [ "${level}" = "${NUM}" ] && level=0
 
-echo "$(date '+%Y%m%d%H%M%S') begin /dev/${VG}/${LV} --> ${BACKUP_DIR}/${LABEL}_${level}"
+output_name=${BACKUP_DIR}/${LABEL}_${level}${ZIP:+.gz}
+echo "$(date '+%Y%m%d%H%M%S') begin /dev/${VG}/${LV} --> ${output_name}"
 # snapshot it
 lvcreate --snapshot "/dev/${VG}/${LV}" --name "${snapvol}" -l '80%FREE' || true
 # backup it, -f - to stdio
@@ -44,14 +44,14 @@ mkdir -p /tmp/${snapvol} || true
 mount -v -o ro,nouuid "/dev/${VG}/${snapvol}" "/tmp/${snapvol}" || true
 # full backup exist
 [ "${level}" = "0" ] && {
-    rm -fv ${BACKUP_DIR}/${LABEL}_0.bak || true
-    mv "${BACKUP_DIR}/${LABEL}_0" "${BACKUP_DIR}/${LABEL}_0.bak" 2>/dev/null || true
+    rm -fv ${output_name}.bak || true
+    mv "${output_name}" "${output_name}.bak" 2>/dev/null || true
 }
-xfsdump -L "${session}" -M "${LABEL}" -l ${level} -f ${BACKUP_DIR}/${LABEL}_${level} /dev/${VG}/${snapvol} && {
+eval -- xfsdump -L "${session}" -M "${LABEL}" -l ${level} - /dev/${VG}/${snapvol} ${ZIP:+| ${ZIP}} > ${output_name} && {
     [ "${level}" = "0" ] && {
         echo "##########OK##########FULL BACKUP(${timestamp})"
         # remove all increase backup & full backup
-        rm -fv ${BACKUP_DIR}/${LABEL}_{1..9} ${BACKUP_DIR}/${LABEL}_0.bak || true
+        rm -fv ${BACKUP_DIR}/${LABEL}_{1..9}${ZIP:+.gz} ${output_name}.bak || true
     } || {
         echo "##########OK##########INCREASE BACKUP(${timestamp})"
     }
@@ -67,7 +67,7 @@ rm -rfv "/tmp/${snapvol}" || true
 # remove snapshot
 lvremove -f "/dev/${VG}/${snapvol}" || true
 [ -b "/dev/${VG}/${snapvol}" ] && echo "snapshot remove error!(${timestamp})"
-echo "$(date '+%Y%m%d%H%M%S') end /dev/${VG}/${LV} --> ${BACKUP_DIR}/${LABEL}_${level}"
+echo "$(date '+%Y%m%d%H%M%S') end /dev/${VG}/${LV} --> ${output_name}"
 exit 0
 
 :<<"EOF"
