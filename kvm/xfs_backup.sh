@@ -4,8 +4,9 @@ set -o nounset
 set -o errexit
 LC_ALL=C
 LANG=C
-VERSION+=("xfs_backup.sh - a65a33b - 2021-09-01T14:12:36+08:00")
+VERSION+=("xfs_backup.sh - 383ff50 - 2021-09-01T16:08:50+08:00")
 ################################################################################
+ZIP=${ZIP:-}
 # number of backups copys(1-10), Max 0..9
 NUM=${NUM:-10}
 VG=${VG-:datavg}
@@ -22,52 +23,52 @@ for cmd in seq lvcreate lvremove xfsdump mount umount mkdir rm mv; do
 done
 # <level> 0 full backup, level 1-9 increase backup
 level=
-timestamp=$(date +%s)
-snapvol="backsnap${timestamp}"
-session="backup-session-${LABEL}"
 for level in $(seq 0 ${NUM}); do
     [ -e "${BACKUP_DIR}/${LABEL}_${level}${ZIP:+.gz}" ] && continue
     break
 done
 [ "${level}" = "${NUM}" ] && level=0
-
-output_name=${BACKUP_DIR}/${LABEL}_${level}${ZIP:+.gz}
-echo "$(date '+%Y%m%d%H%M%S') begin /dev/${VG}/${LV} --> ${output_name}"
+timestamp=$(date +%s)
+snapname="backsnap${timestamp}"
+session="backup-session-${LABEL}"
+out_name="${BACKUP_DIR}/${LABEL}_${level}${ZIP:+.gz}"
+orig_inc="${BACKUP_DIR}/${LABEL}_{1..9}${ZIP:+.gz}"
+orig_full="${out_name}.${timestamp}.orig"
+target_vol="/dev/${VG}/${LV}"
+snap_vol="/dev/${VG}/${snapname}"
+snap_mnt="/tmp/${snapname}"
+echo "$(date '+%Y%m%d%H%M%S') begin level(${level}) ${target_vol} --> ${out_name}"
 # snapshot it
-lvcreate --snapshot "/dev/${VG}/${LV}" --name "${snapvol}" -l '80%FREE' || true
+lvcreate --snapshot "${target_vol}" --name "${snapname}" -l "80%FREE" || true
 # backup it, -f - to stdio
-[ -b "/dev/${VG}/${snapvol}" ] || {
+[ -b "${snap_vol}" ] || {
     echo "snapshot create error!"
     exit 1
 }
-mkdir -p /tmp/${snapvol} || true
-mount -v -o ro,nouuid "/dev/${VG}/${snapvol}" "/tmp/${snapvol}" || true
+mkdir -p ${snap_mnt} && mount -v -o ro,nouuid "${snap_vol}" "${snap_mnt}" || true
 # full backup exist
-[ "${level}" = "0" ] && {
-    rm -fv ${output_name}.bak || true
-    mv "${output_name}" "${output_name}.bak" 2>/dev/null || true
-}
-eval -- xfsdump -L "${session}" -M "${LABEL}" -l ${level} - /dev/${VG}/${snapvol} ${ZIP:+| ${ZIP}} > ${output_name} && {
+[ "${level}" = "0" ] && mv "${out_name}" "${orig_full}" 2>/dev/null || true
+eval -- xfsdump -L "${session}" -M "${LABEL}" -l ${level} - ${snap_vol} ${ZIP:+| ${ZIP}} > ${out_name} && {
     [ "${level}" = "0" ] && {
         echo "##########OK##########FULL BACKUP(${timestamp})"
         # remove all increase backup & full backup
-        rm -fv ${BACKUP_DIR}/${LABEL}_{1..9}${ZIP:+.gz} ${output_name}.bak || true
+        rm -fv ${orig_inc} ${orig_full} || true
     } || {
         echo "##########OK##########INCREASE BACKUP(${timestamp})"
     }
 } || {
     echo "**********ERROR**********(${timestamp})"
 }
-umount -v "/tmp/${snapvol}" || true
-rm -rfv "/tmp/${snapvol}" || true
+umount -v "${snap_mnt}" || true
+rm -rfv "${snap_mnt}" || true
 # demo restore
 #xfsrestore -I 
 #xfsrestore  -f ${BACKUP_DIR}/${LABEL}_0 restore/
 #xfsrestore  -f ${BACKUP_DIR}/${LABEL}_1 restore/
 # remove snapshot
-lvremove -f "/dev/${VG}/${snapvol}" || true
-[ -b "/dev/${VG}/${snapvol}" ] && echo "snapshot remove error!(${timestamp})"
-echo "$(date '+%Y%m%d%H%M%S') end /dev/${VG}/${LV} --> ${output_name}"
+lvremove -f "${snap_vol}" || true
+[ -b "${snap_vol}" ] && echo "snapshot remove error!(${timestamp})"
+echo "$(date '+%Y%m%d%H%M%S') end ${target_vol} --> ${out_name}"
 exit 0
 
 :<<"EOF"
