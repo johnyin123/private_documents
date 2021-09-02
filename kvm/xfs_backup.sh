@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 LC_ALL=C
 LANG=C
-VERSION+=("xfs_backup.sh - 71a3366 - 2021-09-02T14:42:57+08:00")
+VERSION+=("xfs_backup.sh - 13641e1 - 2021-09-02T14:48:23+08:00")
 ################################################################################
 #KEEP_FULL=
 ZIP=${ZIP:-}
@@ -55,6 +55,7 @@ lvcreate --snapshot "${target_vol}" --name "${snapname}" -l "80%FREE" || true
 mkdir -p ${snap_mnt} && mount -v -o ro,nouuid "${snap_vol}" "${snap_mnt}" || true
 # full backup exist
 [ "${level}" = "0" ] && mv "${out_name}" "${orig_full}" 2>/dev/null || true
+# xfsdump ....  2> >(grep ... >&2) > gzip > bak.tgz
 eval -- xfsdump -L "${session}" -M "${LABEL}" -l ${level} - ${snap_vol} ${ZIP:+| ${ZIP}} > ${out_name} && {
     [ "${level}" = "0" ] && {
         echo "##########OK##########FULL BACKUP(${timestamp})"
