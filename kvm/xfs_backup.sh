@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 LC_ALL=C
 LANG=C
-VERSION+=("xfs_backup.sh - 7128a8a - 2021-09-02T14:04:19+08:00")
+VERSION+=("xfs_backup.sh - 8ef17d6 - 2021-09-02T14:05:13+08:00")
 ################################################################################
 #KEEP_FULL=
 ZIP=${ZIP:-}
@@ -50,6 +50,7 @@ lvcreate --snapshot "${target_vol}" --name "${snapname}" -l "80%FREE" || true
     echo "snapshot create error! exit"
     exit 1
 }
+# xfs_admin -U generate ${snap_vol} # gen a new uuid
 mkdir -p ${snap_mnt} && mount -v -o ro,nouuid "${snap_vol}" "${snap_mnt}" || true
 # full backup exist
 [ "${level}" = "0" ] && mv "${out_name}" "${orig_full}" 2>/dev/null || true
