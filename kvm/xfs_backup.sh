@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 LC_ALL=C
 LANG=C
-VERSION+=("xfs_backup.sh - 383ff50 - 2021-09-01T16:08:50+08:00")
+VERSION+=("xfs_backup.sh - 076126b - 2021-09-02T08:12:59+08:00")
 ################################################################################
 ZIP=${ZIP:-}
 # number of backups copys(1-10), Max 0..9
@@ -15,7 +15,7 @@ LV=${LV:-datalv}
 BACKUP_DIR=${BACKUP_DIR:-/storage}
 LABEL=${LABEL:-"mybackup"}
 
-for cmd in seq lvcreate lvremove xfsdump mount umount mkdir rm mv; do
+for cmd in seq lvcreate lvremove xfsdump mount umount findmnt mkdir rm mv; do
     command -v "${cmd}" &> /dev/null || {
         echo "require $cmd"
         exit 1
@@ -24,10 +24,9 @@ done
 # <level> 0 full backup, level 1-9 increase backup
 level=
 for level in $(seq 0 ${NUM}); do
-    [ -e "${BACKUP_DIR}/${LABEL}_${level}${ZIP:+.gz}" ] && continue
-    break
+    [ -e "${BACKUP_DIR}/${LABEL}_${level}${ZIP:+.gz}" ] || break
 done
-[ "${level}" = "${NUM}" ] && level=0
+level="$((level % NUM))"
 timestamp=$(date +%s)
 snapname="backsnap${timestamp}"
 session="backup-session-${LABEL}"
@@ -38,11 +37,16 @@ target_vol="/dev/${VG}/${LV}"
 snap_vol="/dev/${VG}/${snapname}"
 snap_mnt="/tmp/${snapname}"
 echo "$(date '+%Y%m%d%H%M%S') begin level(${level}) ${target_vol} --> ${out_name}"
+[ "$(findmnt --noheadings --output FSTYPE ${target_vol})" = "xfs" ] || {
+    lvremove -f "${snap_vol}" || true
+    echo "snapshot fstype error! exit"
+    exit 1
+}
 # snapshot it
 lvcreate --snapshot "${target_vol}" --name "${snapname}" -l "80%FREE" || true
 # backup it, -f - to stdio
 [ -b "${snap_vol}" ] || {
-    echo "snapshot create error!"
+    echo "snapshot create error! exit"
     exit 1
 }
 mkdir -p ${snap_mnt} && mount -v -o ro,nouuid "${snap_vol}" "${snap_mnt}" || true
@@ -52,12 +56,12 @@ eval -- xfsdump -L "${session}" -M "${LABEL}" -l ${level} - ${snap_vol} ${ZIP:+|
     [ "${level}" = "0" ] && {
         echo "##########OK##########FULL BACKUP(${timestamp})"
         # remove all increase backup & full backup
-        rm -fv ${orig_inc} ${orig_full} || true
+        eval -- rm -fv ${orig_inc} ${orig_full} || true
     } || {
         echo "##########OK##########INCREASE BACKUP(${timestamp})"
     }
 } || {
-    echo "**********ERROR**********(${timestamp})"
+    echo "**********ERROR**********(${timestamp}) $?"
 }
 umount -v "${snap_mnt}" || true
 rm -rfv "${snap_mnt}" || true
