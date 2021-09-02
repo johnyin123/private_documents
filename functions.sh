@@ -16,7 +16,14 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - c080650 - 2021-08-19T10:26:34+08:00")
+VERSION+=("functions.sh - 9d52e2f - 2021-08-26T07:09:16+08:00")
+
+# need bash version >= 4.2 for associative arrays and other features.
+if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
+    printf '%s\n' "bash >= 4.2 is required for this script." >&2
+    exit 1 
+fi
+
 #shopt -s expand_aliases
 #alias
 
