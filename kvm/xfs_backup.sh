@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 LC_ALL=C
 LANG=C
-VERSION+=("xfs_backup.sh - 8ef17d6 - 2021-09-02T14:05:13+08:00")
+VERSION+=("xfs_backup.sh - 71a3366 - 2021-09-02T14:42:57+08:00")
 ################################################################################
 #KEEP_FULL=
 ZIP=${ZIP:-}
@@ -44,6 +44,7 @@ echo "$(date '+%Y%m%d%H%M%S') begin level(${level}) ${target_vol} --> ${out_name
     exit 1
 }
 # snapshot it
+# You do not need to explicitly suspend write operations if you use the lvcreate command to take an LVM snapshot.
 lvcreate --snapshot "${target_vol}" --name "${snapname}" -l "80%FREE" || true
 # backup it, -f - to stdio
 [ -b "${snap_vol}" ] || {
