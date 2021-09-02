@@ -4,9 +4,9 @@ set -o nounset
 set -o errexit
 LC_ALL=C
 LANG=C
-VERSION+=("xfs_backup.sh - a7ded0f - 2021-09-02T09:18:37+08:00")
+VERSION+=("xfs_backup.sh - 7128a8a - 2021-09-02T14:04:19+08:00")
 ################################################################################
-KEEP_FULL=${KEEP_FULL:-}
+#KEEP_FULL=
 ZIP=${ZIP:-}
 # number of backups copys(1-10), Max 0..9
 NUM=${NUM:-10}
