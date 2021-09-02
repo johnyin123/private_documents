@@ -4,8 +4,9 @@ set -o nounset
 set -o errexit
 LC_ALL=C
 LANG=C
-VERSION+=("xfs_backup.sh - 076126b - 2021-09-02T08:12:59+08:00")
+VERSION+=("xfs_backup.sh - a7ded0f - 2021-09-02T09:18:37+08:00")
 ################################################################################
+KEEP_FULL=${KEEP_FULL:-}
 ZIP=${ZIP:-}
 # number of backups copys(1-10), Max 0..9
 NUM=${NUM:-10}
@@ -56,7 +57,8 @@ eval -- xfsdump -L "${session}" -M "${LABEL}" -l ${level} - ${snap_vol} ${ZIP:+|
     [ "${level}" = "0" ] && {
         echo "##########OK##########FULL BACKUP(${timestamp})"
         # remove all increase backup & full backup
-        eval -- rm -fv ${orig_inc} ${orig_full} || true
+        [[ "${!KEEP_FULL-X}" == "${!KEEP_FULL-Y}" ]] || rm -fv {orig_full} || true
+        eval -- rm -fv ${orig_inc} || true
     } || {
         echo "##########OK##########INCREASE BACKUP(${timestamp})"
     }
