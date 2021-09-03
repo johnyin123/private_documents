@@ -1,3 +1,23 @@
+# LVM normally allocates blocks when you create a volume.
+# LVM thin pools instead allocates blocks when they are written.
+# This behaviour is called thin-provisioning, because volumes can be much larger than physically available space.
+# lvcreate -l 80%FREE -n datalv datavg
+# lvconvert --type thin-pool datavg/datalv
+
+To create a thin volume, you perform the following tasks:
+1. Create a volume group with the vgcreate command.
+2. Create a thin pool with the lvcreate command.
+3. Create a thin volume in the thin pool with the lvcreate command.
+
+pvcreate /dev/vdb
+vgcreate datavg /dev/vdb
+lvcreate -L 20G --thinpool datalv datavg
+lvcreate -V 10G --thin -n test1 datavg/datalv
+lvcreate -V 10G -T     -n test2 datavg/datalv
+lvcreate -V 10G -T     -n test3 datavg/datalv
+# mkfs/mount/..
+lvextend -L +15G /dev/datavg/thinpool1
+
   9 lvcreate --snapshot "/dev/$vgroup/$volume" --name "$snapvol" -l '80%FREE'
  10 # fix bug: lvcreate snapshot mount by uuid as shown on url: http://www.zero-effort.net/tip-of-the-day-mounting-an-xfs-
  11 xfs_repair -L "/dev/${vgroup}/${snapvol}" >/dev/null 2>&1
