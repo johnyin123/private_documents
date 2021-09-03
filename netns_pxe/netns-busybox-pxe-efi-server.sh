@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - 047a118 - 2021-09-03T09:57:37+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - 020fa83 - 2021-09-03T13:05:13+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -39,7 +39,7 @@ mk_busybox_fs() {
     file_exists ${rootfs}/dev/random  || try mknod -m 0644 ${rootfs}/dev/random c 1 8
     file_exists ${rootfs}/dev/urandom || try mknod -m 0644 ${rootfs}/dev/urandom c 1 9
     file_exists ${rootfs}/dev/null    || try mknod -m 0666 ${rootfs}/dev/null c 1 3
-
+    touch ${rootfs}/tftp/cgi-bin/ipaddr.txt
     try cat \> ${rootfs}/etc/profile << EOF
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
 export PATH
@@ -47,7 +47,7 @@ export PS1="\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]**bios/uefi**:\\[
 alias bios='/bin/busybox cp -f ${PXE_DIR}/${DHCP_BIOS_BOOTFILE}  ${PXE_DIR}/${DHCP_BOOTFILE}'
 alias uefi='/bin/busybox cp -f ${PXE_DIR}/${DHCP_UEFI_BOOTFILE}  ${PXE_DIR}/${DHCP_BOOTFILE}'
 alias ll='/bin/busybox ls -lh'
-echo "add ${PXE_DIR}/cgi-bin/ipaddr.txt for ipaddr: 192.168.168.2/24 line by line"
+echo "add ${PXE_DIR}/cgi-bin/ipaddr.txt for ipaddr: 192.168.168.101/24 line by line"
 echo "cmd : bios/uefi change mode"
 /bin/sh /start.sh
 EOF
@@ -104,9 +104,9 @@ prefix=${ipaddr##*/}
 ipaddr=${ipaddr%/*}
 #$REQUEST_METHOD
 cat <<EOF >> req.txt
-$QUERY_STRING === ${ipaddr:-192.168.168.100}/${prefix:-24}
+$QUERY_STRING === ${ipaddr:-192.168.168.101}/${prefix:-24}
 EOF
-printf "IPADDR=${ipaddr:-192.168.168.100}\n"
+printf "IPADDR=${ipaddr:-192.168.168.101}\n"
 printf "PREFIX=${prefix:-24}\n"
 printf "GATEWAY=\${IPADDR%%.*}.1\n"
 CGIEOF
@@ -239,12 +239,8 @@ gen_kickstart() {
     local ks_uri="$4"
     local lvm=$5
     local efi=$6
-    local ipaddr=$7
-    local root_size=$8
-    local prefix=${ipaddr##*/}
-    ipaddr=${ipaddr%/*}
+    local root_size=$7
     vinfo_msg <<EOF
-ipaddress: ${ipaddr}/${prefix}
 boot disk: ${boot_driver}
       efi: ${efi}
       lvm: ${lvm}
@@ -324,15 +320,12 @@ KSEOF
     try cat \> ${kscfg}.init.sh <<'INITEOF'
 #!/bin/bash
 
-UUID="$(dmidecode -s system-uuid)"
+UUID="$(dmidecode -s system-uuid | sed 's/[ &?]/-/g')"
 SN="$(dmidecode -s system-serial-number | sed 's/[ &?]/-/g')"
 PROD="$(dmidecode -s system-product-name | sed 's/[ &?]/-/g')"
 
 INITEOF
     try cat \>\> ${kscfg}.init.sh <<INITEOF
-IPADDR=${ipaddr}
-PREFIX=${prefix}
-GATEWAY=
 curl -o /tmp/inst_info "http://${ns_ipaddr}/cgi-bin/reg.cgi?UUID=\${UUID}&SN=\${SN}&PROD=\${PROD}"
 source /tmp/inst_info
 INITEOF
@@ -365,9 +358,9 @@ IPV6INIT=no
 DEVICE="eth0"
 ONBOOT="yes"
 BOOTPROTO="none"
-IPADDR=${IPADDR}
-PREFIX=${PREFIX}
-GATEWAY=${GATEWAY}
+IPADDR=${IPADDR:-192.168.168.101}
+PREFIX=${PREFIX:-24}
+GATEWAY=${GATEWAY:-}
 #DNS1=10.0.2.1
 EOF
 ### Add SSH public key
@@ -424,7 +417,6 @@ ${SCRIPTNAME}
         --disk              <disn name> default vda
         --size              rootfs size (MB) default 2000
         --lvm               use lvm     default not use lvm
-        --guest_ipaddr      <guest ip>  default 192.168.168.101/24
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -435,7 +427,6 @@ EOF
 }
 
 main() {
-    local IPADDR=${IPADDR:-"192.168.168.101/24"}
     local LVM=${LVM:-false}
     local DISK=${DISK:-"vda"}
     local ns_ipaddr=${NS_IPADDR:-"172.16.16.2"}
@@ -443,7 +434,7 @@ main() {
     local host_br=
     local root_size=2000
     local opt_short="b:n:i:"
-    local opt_long="bridge:,ns:,ns_ip:,disk:,lvm,guest_ipaddr:,size:,"
+    local opt_long="bridge:,ns:,ns_ip:,disk:,lvm,size:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -456,7 +447,6 @@ main() {
             --disk)         shift; DISK=${1}; shift;;
             --size)         shift; root_size=${1}; shift;;
             --lvm)          shift; LVM=true;;
-            --guest_ipaddr) shift; IPADDR=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -475,12 +465,12 @@ main() {
     try mkdir -p ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ && try mount "${DIRNAME}/${DVD_IMG}" "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" 2\>/dev/null
     try mkdir -p "${ROOTFS}/${PXE_DIR}/"
     gen_grub_cfg "${ROOTFS}/${PXE_DIR}/grub.cfg" "${ns_ipaddr}" "${UEFI_KS_URI}"
-    gen_kickstart "${ROOTFS}/${PXE_DIR}/${UEFI_KS_URI}" "${ns_ipaddr}" "${DISK}" "${UEFI_KS_URI}" ${LVM} true "${IPADDR}" "${root_size}"
+    gen_kickstart "${ROOTFS}/${PXE_DIR}/${UEFI_KS_URI}" "${ns_ipaddr}" "${DISK}" "${UEFI_KS_URI}" ${LVM} true "${root_size}"
     extract_efi_grub "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "extract_efi_grub $?"
 
     try mkdir -p "${ROOTFS}/${PXE_DIR}/pxelinux.cfg/" 
     gen_pxelinux_cfg "${ROOTFS}/${PXE_DIR}/pxelinux.cfg/default" "${ns_ipaddr}" "${BIOS_KS_URI}"
-    gen_kickstart "${ROOTFS}/${PXE_DIR}/${BIOS_KS_URI}" "${ns_ipaddr}" "${DISK}" "${BIOS_KS_URI}" ${LVM} false "${IPADDR}" "${root_size}"
+    gen_kickstart "${ROOTFS}/${PXE_DIR}/${BIOS_KS_URI}" "${ns_ipaddr}" "${DISK}" "${BIOS_KS_URI}" ${LVM} false "${root_size}"
     extract_bios_pxelinux "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "extract_bios_pxelinux $?"
 
     add_ns ${ns_name} ${host_br} "${ns_ipaddr}" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "add netns $?"
