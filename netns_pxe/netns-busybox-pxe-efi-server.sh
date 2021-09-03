@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - 58cb44d - 2021-08-18T17:14:28+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - 65242de - 2021-08-31T09:56:47+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -240,7 +240,7 @@ gen_kickstart() {
     local lvm=$5
     local efi=$6
     local ipaddr=$7
-    local root_size=${8:-1500}
+    local root_size=$8
     local prefix=${ipaddr##*/}
     ipaddr=${ipaddr%/*}
     vinfo_msg <<EOF
@@ -286,21 +286,19 @@ clearpart --all --initlabel --drives=${boot_driver}
 # Delete MBR / GPT
 zerombr
 bootloader --location=mbr --driveorder=${boot_driver} --append=" console=ttyS0 console=tty1 net.ifnames=0 biosdevname=0"
-
-$( [[ ${efi} = "true" ]] && echo "part     /boot/efi  --fstype=vfat --size=50 --ondisk=${boot_driver}")
-part     /boot      --fstype="xfs"  --size=200 --ondisk=${boot_driver}
+$( [ "${efi}" = "true" ] && echo "part     /boot/efi  --fstype=vfat --size=50 --ondisk=${boot_driver}")
 $(if [ "${lvm:=false}" = "true" ]; then
-    echo "part     pv.01                      --size=${root_size} --ondisk=${boot_driver}"
+    echo "part     /boot      --fstype=xfs  --size=200 --ondisk=${boot_driver}"
+    echo "part     pv.01                    --size=${root_size} --ondisk=${boot_driver}"
     echo "volgroup vg_root pv.01"
     echo "logvol   /          --fstype=xfs  --size=1 --grow --name=lv_root --vgname=vg_root"
 else
     echo "part     /          --fstype=xfs  --size=${root_size} --ondisk=${boot_driver}"
 fi)
+KSEOF
 # part pv.02 --size=2048
 # volgroup vg_swap pv.02
 # logvol swap --vgname=vg_swap --size=1 --grow --name=lv_swap
-KSEOF
-
     try cat \>\> ${kscfg} <<KSEOF
 %packages
 @core
@@ -461,7 +459,7 @@ ${SCRIPTNAME}
         -n|--ns             <ns name>   default pxe_ns
         -i|--ns_ip          <ns ipaddr> default 172.16.16.2
         --disk              <disn name> default vda
-        --size              rootfs size (MB) default 1500
+        --size              rootfs size (MB) default 2000
         --lvm               use lvm     default not use lvm
         --guest_ipaddr      <guest ip>  default 192.168.168.101/24
         -q|--quiet
@@ -479,7 +477,8 @@ main() {
     local DISK=${DISK:-"vda"}
     local ns_ipaddr=${NS_IPADDR:-"172.16.16.2"}
     local ns_name=${NS_NAME:-"pxe_ns"}
-    local host_br= root_size=
+    local host_br=
+    local root_size=2000
     local opt_short="b:n:i:"
     local opt_long="bridge:,ns:,ns_ip:,disk:,lvm,guest_ipaddr:,size:,"
     opt_short+="ql:dVh"
