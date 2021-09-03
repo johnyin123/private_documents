@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - 65242de - 2021-08-31T09:56:47+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - 047a118 - 2021-09-03T09:57:37+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -347,10 +347,6 @@ set -o vi
 EOF
 chmod 755 /etc/profile.d/johnyin.sh
 
-cat >> /etc/security/limits.conf << EOF
-*           soft   nofile       102400
-*           hard   nofile       102400
-EOF
 #disable selinux
 sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
 #set sshd
@@ -362,36 +358,6 @@ sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
 echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> /etc/ssh/sshd_config
 echo "MACs    hmac-sha1" >> /etc/ssh/sshd_config
 #tune kernel parametres
-cat >> /etc/sysctl.conf << EOF
-net.core.rmem_max = 134217728
-net.core.wmem_max = 134217728
-net.core.netdev_max_backlog = 250000
-net.core.somaxconn = 65535
-net.core.wmem_default = 16777216
-net.ipv4.ip_local_port_range = 1024 65531
-net.ipv4.tcp_fin_timeout = 10
-net.ipv4.tcp_keepalive_time = 1200
-net.ipv4.tcp_max_orphans = 3276800
-net.ipv4.tcp_max_syn_backlog = 262144
-net.ipv4.tcp_no_metrics_save=1
-net.ipv4.tcp_rmem = 4096 87380 16777216
-net.ipv4.tcp_wmem = 4096 65536 16777216
-net.ipv4.tcp_syn_retries = 1
-net.ipv4.tcp_synack_retries = 1
-net.ipv4.tcp_syncookies = 0
-net.ipv4.tcp_timestamps = 0
-net.ipv4.tcp_tw_recycle = 0
-net.ipv4.tcp_tw_reuse = 0
-EOF
-cat > /etc/default/grub <<'EOF'
-GRUB_TIMEOUT=5
-GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
-GRUB_DEFAULT=saved
-GRUB_DISABLE_SUBMENU=true
-GRUB_TERMINAL_OUTPUT="console"
-GRUB_CMDLINE_LINUX="console=ttyS0 console=tty1 net.ifnames=0 biosdevname=0"
-GRUB_DISABLE_RECOVERY="true"
-EOF
 
 cat > /etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
 NM_CONTROLLED=no
@@ -403,9 +369,6 @@ IPADDR=${IPADDR}
 PREFIX=${PREFIX}
 GATEWAY=${GATEWAY}
 #DNS1=10.0.2.1
-EOF
-cat > /etc/sysconfig/network-scripts/route-eth0 <<-EOF
-#xx.xx.xx.xx via xxx dev eth0
 EOF
 ### Add SSH public key
 if [ ! -d /root/.ssh ]; then
