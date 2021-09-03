@@ -16,7 +16,7 @@ lvcreate -V 10G --thin -n test1 datavg/datalv
 lvcreate -V 10G -T     -n test2 datavg/datalv
 lvcreate -V 10G -T     -n test3 datavg/datalv
 # mkfs/mount/..
-lvextend -L +15G /dev/datavg/thinpool1
+lvextend -L +15G /dev/datavg/datalv
 
   9 lvcreate --snapshot "/dev/$vgroup/$volume" --name "$snapvol" -l '80%FREE'
  10 # fix bug: lvcreate snapshot mount by uuid as shown on url: http://www.zero-effort.net/tip-of-the-day-mounting-an-xfs-
