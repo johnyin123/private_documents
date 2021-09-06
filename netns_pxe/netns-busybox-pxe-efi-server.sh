@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - 020fa83 - 2021-09-03T13:05:13+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - 9ff2a1d - 2021-09-03T14:24:08+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -39,7 +39,6 @@ mk_busybox_fs() {
     file_exists ${rootfs}/dev/random  || try mknod -m 0644 ${rootfs}/dev/random c 1 8
     file_exists ${rootfs}/dev/urandom || try mknod -m 0644 ${rootfs}/dev/urandom c 1 9
     file_exists ${rootfs}/dev/null    || try mknod -m 0666 ${rootfs}/dev/null c 1 3
-    touch ${rootfs}/tftp/cgi-bin/ipaddr.txt
     try cat \> ${rootfs}/etc/profile << EOF
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
 export PATH
@@ -111,6 +110,7 @@ printf "PREFIX=${prefix:-24}\n"
 printf "GATEWAY=\${IPADDR%%.*}.1\n"
 CGIEOF
     try chmod 755 ${rootfs}/${pxe_dir}/cgi-bin/reg.cgi
+    touch ${rootfs}/${pxe_dir}/cgi-bin/ipaddr.txt
 
     return 0
 }
@@ -250,6 +250,7 @@ EOF
 firewall --disabled
 install
 
+# graphical
 text
 firstboot --enable
 
