@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - 7d716b0 - 2021-09-06T09:53:36+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - c8fa7a1 - 2021-09-06T14:20:23+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -312,27 +312,23 @@ curl -o /tmp/inst_info "http://${ns_ipaddr}/cgi-bin/reg.cgi?UUID=\${UUID}&SN=\${
 source /tmp/inst_info
 INITEOF
     try cat \>\> ${kscfg}.init.sh <<'INITEOF'
-echo "export readonly TMOUT=900" >> /etc/profile.d/os-security.sh
-echo "export readonly HISTFILE" >> /etc/profile.d/os-security.sh
-chmod 755 /etc/profile.d/os-security.sh
+cat <<EOF > /etc/profile.d/os-security.sh
+export readonly TMOUT=900
+export readonly HISTFILE
+EOF
 
 cat >/etc/profile.d/johnyin.sh<<"EOF"
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
 set -o vi
 EOF
-chmod 755 /etc/profile.d/johnyin.sh
 
 #disable selinux
 sed -i 's/SELINUX=.*/SELINUX=disabled/' /etc/selinux/config
+
 #set sshd
 sed -i 's/#UseDNS.*/UseDNS no/' /etc/ssh/sshd_config
-sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/' /etc/ssh/sshd_config
 sed -i 's/#Port.*/Port 60022/' /etc/ssh/sshd_config
 sed -i 's/GSSAPIAuthentication.*/GSSAPIAuthentication no/g' /etc/ssh/sshd_config
-sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
-echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> /etc/ssh/sshd_config
-echo "MACs    hmac-sha1" >> /etc/ssh/sshd_config
-#tune kernel parametres
 
 cat > /etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
 NM_CONTROLLED=no
@@ -359,7 +355,7 @@ systemctl enable getty@tty1
 
 netsvc=network
 [[ -r /etc/os-release ]] && source /etc/os-release
-[[ ${VERSION_ID:-} == "8*" ]] && {
+[[ ${VERSION_ID:-} == "8*" ]] || {
     sed -i "/NM_CONTROLLED=/d" /etc/sysconfig/network-scripts/ifcfg-eth0
     netsvc=NetworkManager
 }
