@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - 9ff2a1d - 2021-09-03T14:24:08+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - 7d716b0 - 2021-09-06T09:53:36+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -18,7 +18,7 @@ readonly DHCP_BOOTFILE="booter"
 
 #soft link here !
 readonly BUSYBOX="busybox"
-readonly DVD_IMG="CentOS-7-x86_64-Minimal.iso"
+readonly DVD_IMG="CentOS-x86_64.iso"
 readonly PXELINUX="ldlinux.c32 menu.c32 libutil.c32 pxelinux.0 "
 readonly EFILINUX="grubx64.efi shim.efi"
 
@@ -194,7 +194,7 @@ menu title ########## PXE Boot Menu ##########
 label 1
 menu label ^1) Install Centos [BIOS] PXE+Kickstart
 kernel ${DVD_DIR}/images/pxeboot/vmlinuz
-append initrd=${DVD_DIR}/images/pxeboot/initrd.img ks=http://${ns_ipaddr}/${ks_uri} net.ifnames=0 biosdevname=0
+append initrd=${DVD_DIR}/images/pxeboot/initrd.img inst.ks=http://${ns_ipaddr}/${ks_uri} inst.lang=en_US net.ifnames=0 biosdevname=0
 
 label 2
 menu label ^2) Install Debian [BIOS] PXE
@@ -217,7 +217,7 @@ gen_grub_cfg() {
 set timeout=30
 set default="0"
 menuentry 'Install Centos [UEFI] PXE+Kickstart' {
-    linuxefi ${DVD_DIR}/images/pxeboot/vmlinuz ks=http://${ns_ipaddr}/${ks_uri} net.ifnames=0 biosdevname=0
+    linuxefi ${DVD_DIR}/images/pxeboot/vmlinuz inst.ks=http://${ns_ipaddr}/${ks_uri} inst.lang=en_US net.ifnames=0 biosdevname=0
     initrdefi ${DVD_DIR}/images/pxeboot/initrd.img
 }
 menuentry 'Install Debian [UEFI] PXE' {
@@ -247,9 +247,6 @@ boot disk: ${boot_driver}
 EOF
 
     try cat \> ${kscfg} <<KSEOF
-firewall --disabled
-install
-
 # graphical
 text
 firstboot --enable
@@ -257,27 +254,18 @@ firstboot --enable
 url --url="http://${ns_ipaddr}/${DVD_DIR}/"
 
 lang zh_CN.UTF-8
-keyboard us
+keyboard --xlayouts='cn'
 network --onboot yes --bootproto dhcp --noipv6
 network --hostname=server1
-KSEOF
-
-    try cat \>\> ${kscfg} <<'KSEOF'
-#rootpw --plaintext password
-rootpw --iscrypted $6$Tevn5ihz1h7MHhMV$Zt7r1ocJqZXhNfVntdsDuGWU42BkQKdpqp0EosOhaYS46zzOEcYALmH5mkDWoYmRvFBs0lBNM/LUiGJAmmx7Q.
-#password
+rootpw --plaintext password
 
 firewall --disabled
-authconfig --enableshadow --passalgo=sha512
 selinux --disabled
 # services --enabled=NetworkManager,sshd
 reboot
 timezone  Asia/Shanghai
+# user --groups=wheel --name=admin --plaintext --password=password
 
-#user --groups=wheel --name=admin --plaintext --password=password
-KSEOF
-
-    try cat \>\> ${kscfg} <<KSEOF
 # Delete all partitions
 clearpart --all --initlabel --drives=${boot_driver}
 # Delete MBR / GPT
@@ -292,11 +280,7 @@ $(if [ "${lvm:=false}" = "true" ]; then
 else
     echo "part     /          --fstype=xfs  --size=${root_size} --ondisk=${boot_driver}"
 fi)
-KSEOF
-# part pv.02 --size=2048
-# volgroup vg_swap pv.02
-# logvol swap --vgname=vg_swap --size=1 --grow --name=lv_swap
-    try cat \>\> ${kscfg} <<KSEOF
+
 %packages
 @core
 lvm2
@@ -306,12 +290,9 @@ chrony
 -iwl*firmware
 -ivtv*
 %end
-KSEOF
-    try cat \>\> ${kscfg} <<KSEOF
 %addon com_redhat_kdump --disable --reserve-mb='auto'
 %end
-KSEOF
-    try cat \>\> ${kscfg} <<KSEOF
+
 %post
 echo "tuning sysytem!!"
 curl http://${ns_ipaddr}/${ks_uri}.init.sh 2>/dev/null | bash
@@ -378,8 +359,10 @@ systemctl enable getty@tty1
 
 netsvc=network
 [[ -r /etc/os-release ]] && source /etc/os-release
-[[ ${VERSION_ID:-} = 8 ]] && sed -i "/NM_CONTROLLED=/d" /etc/sysconfig/network-scripts/ifcfg-eth0
-[[ ${VERSION_ID:-} = 8 ]] && netsvc=NetworkManager
+[[ ${VERSION_ID:-} == "8*" ]] && {
+    sed -i "/NM_CONTROLLED=/d" /etc/sysconfig/network-scripts/ifcfg-eth0
+    netsvc=NetworkManager
+}
 
 chkconfig 2>/dev/null | egrep -v "crond|sshd|${netsvc}|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
 systemctl list-unit-files | grep enabled | egrep -v "${netsvc}|getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
@@ -412,11 +395,12 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME}
         ** all depends files: busybox-pxe-efi-server.depends.tar.gz **
+            Centos7,Centos8,Rocky 8
         -b|--bridge    *    <local bridge> local bridge
         -n|--ns             <ns name>   default pxe_ns
         -i|--ns_ip          <ns ipaddr> default 172.16.16.2
         --disk              <disn name> default vda
-        --size              rootfs size (MB) default 2000
+        --size              rootfs size (MB) default 4096
         --lvm               use lvm     default not use lvm
         -q|--quiet
         -l|--log <int> log level
@@ -428,12 +412,12 @@ EOF
 }
 
 main() {
-    local LVM=${LVM:-false}
-    local DISK=${DISK:-"vda"}
-    local ns_ipaddr=${NS_IPADDR:-"172.16.16.2"}
-    local ns_name=${NS_NAME:-"pxe_ns"}
+    local lvm=false
+    local disk="vda"
+    local ns_ipaddr="172.16.16.2"
+    local ns_name="pxe_ns"
     local host_br=
-    local root_size=2000
+    local root_size=4096
     local opt_short="b:n:i:"
     local opt_long="bridge:,ns:,ns_ip:,disk:,lvm,size:,"
     opt_short+="ql:dVh"
@@ -445,9 +429,9 @@ main() {
             -b | --bridge)  shift; host_br=${1}; shift;;
             -n | --ns)      shift; ns_name=${1}; shift;;
             -i | --ns_ip)   shift; ns_ipaddr=${1}; shift;;
-            --disk)         shift; DISK=${1}; shift;;
+            --disk)         shift; disk=${1}; shift;;
             --size)         shift; root_size=${1}; shift;;
-            --lvm)          shift; LVM=true;;
+            --lvm)          shift; lvm=true;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -466,12 +450,12 @@ main() {
     try mkdir -p ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ && try mount "${DIRNAME}/${DVD_IMG}" "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" 2\>/dev/null
     try mkdir -p "${ROOTFS}/${PXE_DIR}/"
     gen_grub_cfg "${ROOTFS}/${PXE_DIR}/grub.cfg" "${ns_ipaddr}" "${UEFI_KS_URI}"
-    gen_kickstart "${ROOTFS}/${PXE_DIR}/${UEFI_KS_URI}" "${ns_ipaddr}" "${DISK}" "${UEFI_KS_URI}" ${LVM} true "${root_size}"
+    gen_kickstart "${ROOTFS}/${PXE_DIR}/${UEFI_KS_URI}" "${ns_ipaddr}" "${disk}" "${UEFI_KS_URI}" ${lvm} true "${root_size}"
     extract_efi_grub "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "extract_efi_grub $?"
 
     try mkdir -p "${ROOTFS}/${PXE_DIR}/pxelinux.cfg/" 
     gen_pxelinux_cfg "${ROOTFS}/${PXE_DIR}/pxelinux.cfg/default" "${ns_ipaddr}" "${BIOS_KS_URI}"
-    gen_kickstart "${ROOTFS}/${PXE_DIR}/${BIOS_KS_URI}" "${ns_ipaddr}" "${DISK}" "${BIOS_KS_URI}" ${LVM} false "${root_size}"
+    gen_kickstart "${ROOTFS}/${PXE_DIR}/${BIOS_KS_URI}" "${ns_ipaddr}" "${disk}" "${BIOS_KS_URI}" ${lvm} false "${root_size}"
     extract_bios_pxelinux "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "extract_bios_pxelinux $?"
 
     add_ns ${ns_name} ${host_br} "${ns_ipaddr}" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "add netns $?"
