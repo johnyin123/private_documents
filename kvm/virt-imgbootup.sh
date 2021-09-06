@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 7c09d4d - 2021-08-25T09:00:07+08:00")
+VERSION+=("virt-imgbootup.sh - d7a593b - 2021-08-25T09:08:18+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -114,7 +114,7 @@ main() {
     [ -z ${bridge} ] || {
         bridge_exists "${bridge}" || usage "bridge nofound"
         directory_exists /etc/qemu/ || try mkdir -p /etc/qemu/
-        grep "\s*allow\s*all" /etc/qemu/bridge.conf || {
+        grep "\s*allow\s*all" /etc/qemu/bridge.conf 2>/dev/null || {
             try "echo 'allow all' >> /etc/qemu/bridge.conf"
             try chmod 640 /etc/qemu/bridge.conf
         }
