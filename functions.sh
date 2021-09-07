@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 9d52e2f - 2021-08-26T07:09:16+08:00")
+VERSION+=("functions.sh - 086a850 - 2021-09-03T07:44:55+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -50,6 +50,12 @@ uuid() {
 gen_passwd() {
     local size=${1:-8}
     cat /dev/urandom | tr -dc 'A-Za-z0-9' | head -c ${1}
+}
+
+temp_folder() {
+    local root=${1:-/tmp}
+    local prefix=${2:-}
+    mktemp -d "${root}/${prefix}$(date +'%Y%m%d%H%M%S')-XXXXXXXXXX"
 }
 
 # save file data(base64) from __BIN_BEGINS__ to out.
