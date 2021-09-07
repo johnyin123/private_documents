@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_centos.sh - 744bbfd - 2021-05-12T16:04:07+08:00")
+VERSION+=("build_centos.sh - ebe2cac - 2021-08-31T09:21:27+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 cat <<"EOF"
@@ -440,7 +440,8 @@ SuccessExitStatus=0
 User=tomcat
 Group=tomcat
 # UMask=0007
-Restart=on-abort
+Restart=always
+RestartSec=3
 
 [Install]
 WantedBy=multi-user.target
