@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - c8fa7a1 - 2021-09-06T14:20:23+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - 6ac0de2 - 2021-09-06T14:36:55+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -101,17 +101,19 @@ ipaddr=$(head -1 ipaddr.txt 2>/dev/null)
 sed -i '1d' ipaddr.txt > /dev/null 2>&1
 prefix=${ipaddr##*/}
 ipaddr=${ipaddr%/*}
+prefix=${prefix:-24}
+ipaddr=${ipaddr:-192.168.168.101}
 #$REQUEST_METHOD
 cat <<EOF >> req.txt
-$QUERY_STRING === ${ipaddr:-192.168.168.101}/${prefix:-24}
+$QUERY_STRING === ${ipaddr}/${prefix}
 EOF
-printf "IPADDR=${ipaddr:-192.168.168.101}\n"
-printf "PREFIX=${prefix:-24}\n"
-printf "GATEWAY=\${IPADDR%%.*}.1\n"
+printf "IPADDR=${ipaddr}\n"
+printf "PREFIX=${prefix}\n"
+printf "GATEWAY=${ipaddr%.*}.1\n"
 CGIEOF
     try chmod 755 ${rootfs}/${pxe_dir}/cgi-bin/reg.cgi
     touch ${rootfs}/${pxe_dir}/cgi-bin/ipaddr.txt
-
+    touch ${rootfs}/${pxe_dir}/cgi-bin/req.txt
     return 0
 }
 
