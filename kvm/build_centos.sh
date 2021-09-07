@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_centos.sh - ebe2cac - 2021-08-31T09:21:27+08:00")
+VERSION+=("build_centos.sh - 1f09bf2 - 2021-09-07T10:23:11+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 cat <<"EOF"
@@ -442,6 +442,11 @@ Group=tomcat
 # UMask=0007
 Restart=always
 RestartSec=3
+OOMScoreAdjust=
+
+#Sets the adjustment level for the Out-Of-Memory killer for executed processes.
+#Takes an integer between -1000 (to disable OOM killing for this process) and 1000 (to make killing of this process under memory pressure very likely). See proc.txt for details.
+#OOMScoreAdjust=1000
 
 [Install]
 WantedBy=multi-user.target
