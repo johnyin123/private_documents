@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 717245b - 2021-09-08T12:50:55+08:00")
+VERSION+=("virt-imgbootup.sh - 39566cc - 2021-09-08T13:23:33+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -104,7 +104,7 @@ main() {
         esac
     done
     is_user_root || exit_msg "root need\n"
-    require qemu-system-x86_64 grep sed awk modprobe lspci
+    require qemu-system-x86_64 grep sed awk modprobe lspci hexdump
     [ "$(array_size disk)" -gt "0" ] || usage "disk image ?"
     #file_exists "${disk}" || usage "disk nofound"
     options+=("-cpu" "${CPU:-host}")
@@ -112,6 +112,7 @@ main() {
     options+=("-smp" "${cpu}")
     options+=("-m" "${mem}")
     options+=("-monitor" "stdio")
+    local _id=0
     [ -z ${bridge} ] || {
         bridge_exists "${bridge}" || usage "bridge nofound"
         directory_exists /etc/qemu/ || try mkdir -p /etc/qemu/
@@ -119,14 +120,16 @@ main() {
             try "echo 'allow all' >> /etc/qemu/bridge.conf"
             try chmod 640 /etc/qemu/bridge.conf
         }
-        options+=("-netdev" "bridge,br=${bridge},id=net0")
-        options+=("-device" "virtio-net-pci,netdev=net0,mac=${MAC:-52:54:00:11:22:33}")
+        options+=("-netdev" "bridge,br=${bridge},id=net${_id}")
+        local _mac=52:54:${_id}$(hexdump -n3 -e '/1 ":%02X"' /dev/random)
+        options+=("-device" "virtio-net-pci,netdev=net${_id},mac=${_mac}")
+        let _id+=1
     }
-    local disk_id=0
+    _id=0
     for _u in "${disk[@]}"; do
         local _fmt=${fmt:-$(qemu-img info --output=json ${_u} | json_config_default ".format"  "raw")}
-        options+=("-drive" "file=${_u},index=${disk_id},cache=none,aio=native,if=virtio,format=${_fmt}")
-        let disk_id+=1
+        options+=("-drive" "file=${_u},index=${_id},cache=none,aio=native,if=virtio,format=${_fmt}")
+        let _id+=1
     done
     for _u in "${simusb[@]}"; do
         options+=("-drive" "if=none,id=usbstick,file=${_u},format=raw")
