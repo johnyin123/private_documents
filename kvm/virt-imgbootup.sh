@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 39566cc - 2021-09-08T13:23:33+08:00")
+VERSION+=("virt-imgbootup.sh - a7ec1ea - 2021-09-08T15:15:44+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -121,7 +121,7 @@ main() {
             try chmod 640 /etc/qemu/bridge.conf
         }
         options+=("-netdev" "bridge,br=${bridge},id=net${_id}")
-        local _mac=52:54:${_id}$(hexdump -n3 -e '/1 ":%02X"' /dev/random)
+        local _mac=52:54:$(printf "%02x" _id)$(hexdump -n3 -e '/1 ":%02X"' /dev/random)
         options+=("-device" "virtio-net-pci,netdev=net${_id},mac=${_mac}")
         let _id+=1
     }
