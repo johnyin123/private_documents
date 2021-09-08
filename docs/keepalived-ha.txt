@@ -10,21 +10,19 @@ vrrp_script check_srv_run {
   script "/etc/keepalived/check_srv.sh"
   interval 2
   weight 50
-  # timeout 3
-  # fall 5      # 连续判断3次失败
-  # raise 1     # 成功判断1次为正常    
 }
 
 vrrp_instance VI_1 {
   state MASTER
   interface eth0
-  #在切换到MASTER状态后，延迟进行gratuitous ARP 请求
-  garp_master_delay 10
+  garp_master_delay 1
   smtp_alert
   virtual_router_id 51
   priority 100
-  vrrp_unicast_bind 192.168.168.102
-  vrrp_unicast_peer 192.168.168.101
+  unicast_src_ip 192.168.168.102
+  unicast_peer {
+    192.168.168.101
+  }
   advert_int 1
 
   authentication {
@@ -57,8 +55,10 @@ vrrp_instance VI_1 {
   smtp_alert
   virtual_router_id 51
   priority 51
-  vrrp_unicast_bind 192.168.168.101
-  vrrp_unicast_peer 192.168.168.102
+  unicast_src_ip 192.168.168.101
+  unicast_peer {
+    192.168.168.102
+  }
   advert_int 1
 
   authentication {
@@ -76,8 +76,9 @@ vrrp_instance VI_1 {
 }
 ################################################################################
 #!/bin/bash
+#logger -i -t Keepalived_vrrp "check!"
 [ -e "/root/master" ]
 ################################################################################
 #!/bin/bash
-logger -i -t notify "notify start ($1)"
+[[ "x$1" == "xmaster" ]] && logger -i -t Keepalived_vrrp "notify start ($1)"
 exit 0
