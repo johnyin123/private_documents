@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 LC_ALL=C
 LANG=C
-VERSION+=("xfs_backup.sh - 13641e1 - 2021-09-02T14:48:23+08:00")
+VERSION+=("xfs_backup.sh - dbe41f9 - 2021-09-02T16:20:25+08:00")
 ################################################################################
 #KEEP_FULL=
 ZIP=${ZIP:-}
@@ -70,10 +70,6 @@ eval -- xfsdump -L "${session}" -M "${LABEL}" -l ${level} - ${snap_vol} ${ZIP:+|
 }
 umount -v "${snap_mnt}" || true
 rm -rfv "${snap_mnt}" || true
-# demo restore
-#xfsrestore -I 
-#xfsrestore  -f ${BACKUP_DIR}/${LABEL}_0 restore/
-#xfsrestore  -f ${BACKUP_DIR}/${LABEL}_1 restore/
 # remove snapshot
 lvremove -f "${snap_vol}" || true
 [ -b "${snap_vol}" ] && echo "snapshot remove error!(${timestamp})"
@@ -94,4 +90,8 @@ vgextend datavg /dev/vdb2
 lvcreate --snapshot /dev/datavg/datalv  --name "snap-$(date +%s)"  -l '80%FREE'
 
 lvremove -f "/dev/${VG}/${SNAPVOL}"
+# demo restore
+xfsrestore -I
+xfsrestore  -f ${BACKUP_DIR}/${LABEL}_0 restore/
+xfsrestore  -f ${BACKUP_DIR}/${LABEL}_1 restore/
 EOF
