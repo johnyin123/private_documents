@@ -7,13 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - b8d027d - 2021-09-06T18:46:05+08:00")
+VERSION+=("virt-imgbootup.sh - 717245b - 2021-09-08T12:50:55+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env CPU=kvm64 set cpu type
         -c|--cpu    <int>     number of cpus (default 1)
         -m|--mem    <int>     mem size MB (default 2048)
         -D|--disk   <file> *  disk image (multi disk must same format)
@@ -106,7 +107,7 @@ main() {
     require qemu-system-x86_64 grep sed awk modprobe lspci
     [ "$(array_size disk)" -gt "0" ] || usage "disk image ?"
     #file_exists "${disk}" || usage "disk nofound"
-    options+=("-cpu" "host")
+    options+=("-cpu" "${CPU:-host}")
     options+=("-monitor" "vc")
     options+=("-smp" "${cpu}")
     options+=("-m" "${mem}")
