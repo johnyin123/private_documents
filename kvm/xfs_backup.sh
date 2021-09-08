@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 LC_ALL=C
 LANG=C
-VERSION+=("xfs_backup.sh - dbe41f9 - 2021-09-02T16:20:25+08:00")
+VERSION+=("xfs_backup.sh - 7d7f553 - 2021-09-08T08:19:14+08:00")
 ################################################################################
 #KEEP_FULL=
 ZIP=${ZIP:-}
@@ -39,7 +39,6 @@ snap_vol="/dev/${VG}/${snapname}"
 snap_mnt="/tmp/${snapname}"
 echo "$(date '+%Y%m%d%H%M%S') begin level(${level}) ${target_vol} --> ${out_name}"
 [ "$(findmnt --noheadings --output FSTYPE ${target_vol})" = "xfs" ] || {
-    lvremove -f "${snap_vol}" || true
     echo "snapshot fstype error! exit"
     exit 1
 }
