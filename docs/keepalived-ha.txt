@@ -1,0 +1,79 @@
+interval, weight, priority, state, 
+SRV1=192.168.168.101
+SRV2=192.168.168.102
+VIP=192.168.168.100
+################################################################################
+global_defs {
+  router_id ha1
+}
+vrrp_script check_srv_run {
+  script "/etc/keepalived/check_srv.sh"
+  interval 2
+  weight 50
+}
+
+vrrp_instance VI_1 {
+  state MASTER
+  interface eth0
+  garp_master_delay 10
+  smtp_alert
+  virtual_router_id 51
+  priority 100
+  vrrp_unicast_bind 192.168.168.102
+  vrrp_unicast_peer 192.168.168.101
+  advert_int 1
+
+  authentication {
+    auth_type PASS
+    auth_pass testpass
+  }
+  virtual_ipaddress {
+    192.168.168.100/24
+  }
+  track_script {
+    check_srv_run
+  }
+  notify_master "/etc/keepalived/notify.sh master"
+  notify_backup "/etc/keepalived/notify.sh backup"
+}
+################################################################################
+global_defs {
+  router_id ha1
+}
+vrrp_script check_srv_run {
+  script "/etc/keepalived/check_srv.sh"
+  interval 2
+  weight 50
+}
+
+vrrp_instance VI_1 {
+  state BACKUP
+  interface eth0
+  garp_master_delay 10
+  smtp_alert
+  virtual_router_id 51
+  priority 51
+  vrrp_unicast_bind 192.168.168.101
+  vrrp_unicast_peer 192.168.168.102
+  advert_int 1
+
+  authentication {
+    auth_type PASS
+    auth_pass testpass
+  }
+  virtual_ipaddress {
+    192.168.168.100/24
+  }
+  track_script {
+    check_srv_run
+  }
+  notify_master "/etc/keepalived/notify.sh master"
+  notify_backup "/etc/keepalived/notify.sh backup"
+}
+################################################################################
+#!/bin/bash
+[ -e "/root/master" ]
+################################################################################
+#!/bin/bash
+logger -i -t notify "notify start ($1)"
+exit 0
