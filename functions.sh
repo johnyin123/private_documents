@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 086a850 - 2021-09-03T07:44:55+08:00")
+VERSION+=("functions.sh - 3bb5888 - 2021-09-07T08:22:27+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -993,6 +993,9 @@ str_ends() {
 # returns OK if $1 contains $2
 strstr() {
     [ "${1#*$2*}" != "$1" ]
+}
+str_equal() {
+    [ "${1:-x}" == "${2:-y}" ]
 }
 # replaces all occurrences of 'search' in 'str' with 'replacement'
 # str_replace str search replacement
