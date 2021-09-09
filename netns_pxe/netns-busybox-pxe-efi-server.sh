@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - 6ac0de2 - 2021-09-06T14:36:55+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - 59fb609 - 2021-09-07T08:05:44+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -364,6 +364,12 @@ netsvc=network
 
 chkconfig 2>/dev/null | egrep -v "crond|sshd|${netsvc}|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
 systemctl list-unit-files | grep enabled | egrep -v "${netsvc}|getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
+
+
+# service=(crond|sshd|NetworkManager|network|rsyslog|sysstat)
+# chkconfig --list | awk '{ print $1 }' | xargs -n1 -I@ chkconfig @ off
+# echo ${service[@]} | xargs -n1 | xargs -I@ chkconfig @ on
+# echo ${service[@]} | xargs -n1 | xargs -I@ systemctl enable @
 INITEOF
     return 0
 }
