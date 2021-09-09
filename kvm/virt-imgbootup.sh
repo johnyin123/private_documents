@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 1329bef - 2021-09-08T15:35:19+08:00")
+VERSION+=("virt-imgbootup.sh - 8088beb - 2021-09-09T09:50:24+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -35,6 +35,7 @@ ${SCRIPTNAME}
         --cdrom     <iso>     iso file
         --fda       <file>    floppy disk file
         --sound     Enable soundhw hda
+        --daemonize run as daemon, with display none
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -67,11 +68,12 @@ main() {
         "-device" "nec-usb-xhci,id=xhci"
         "-boot" "menu=on"
         "-M" "q35"
+        "-monitor" "vc"
     )
 
-    local cpu=1 mem=2048 disk=() bridge= fmt= cdrom= floppy= usb=() simusb=() pci_bus_addr=()
+    local cpu=1 mem=2048 disk=() bridge= fmt= cdrom= floppy= usb=() simusb=() pci_bus_addr=() daemonize=
     local opt_short="c:m:D:b:f:"
-    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb:,simusb:,pci:,sound,"
+    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb:,simusb:,pci:,sound,daemonize,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -89,6 +91,7 @@ main() {
             --cdrom)        shift; cdrom=${1}; shift;;
             --fda)          shift; floppy=${1}; shift;;
             --sound)        shift; options+=("-soundhw" "hda");;
+            --daemonize)    shift; daemonize=yes;;
             # ln -s /home/johnyin/.config/pulse/cookie
             # options+=("-device" "intel-hda")
             # options+=("-device" "hda-duplex,audiodev=snd0")
@@ -108,10 +111,9 @@ main() {
     [ "$(array_size disk)" -gt "0" ] || usage "disk image ?"
     #file_exists "${disk}" || usage "disk nofound"
     options+=("-cpu" "${CPU:-host}")
-    options+=("-monitor" "vc")
     options+=("-smp" "${cpu}")
     options+=("-m" "${mem}")
-    options+=("-monitor" "stdio")
+    [ ${daemonize:-no} == "yes" ] && options+=("-daemonize" "-display" "none") || options+=("-monitor" "stdio")
     local _id=0
     [ -z ${bridge} ] || {
         bridge_exists "${bridge}" || usage "bridge nofound"
