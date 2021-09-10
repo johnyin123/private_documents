@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 8088beb - 2021-09-09T09:50:24+08:00")
+VERSION+=("virt-imgbootup.sh - e19b9e0 - 2021-09-09T10:24:45+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -113,7 +113,7 @@ main() {
     options+=("-cpu" "${CPU:-host}")
     options+=("-smp" "${cpu}")
     options+=("-m" "${mem}")
-    [ ${daemonize:-no} == "yes" ] && options+=("-daemonize" "-display" "none") || options+=("-monitor" "stdio")
+    str_equal "${daemonize:-no}" "yes" && options+=("-daemonize" "-display" "none") || options+=("-monitor" "stdio")
     local _id=0
     [ -z ${bridge} ] || {
         bridge_exists "${bridge}" || usage "bridge nofound"
