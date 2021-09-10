@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_centos_init.sh - ebe2cac - 2021-08-31T09:21:27+08:00")
+VERSION+=("os_centos_init.sh - 68014e3 - 2021-09-06T15:18:26+08:00")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -213,14 +213,18 @@ export -f centos_disable_ipv6
 
 centos_service_init() {
     systemctl set-default multi-user.target
-    netsvc=network
+    local netsvc=network
     [[ -r /etc/os-release ]] && source /etc/os-release
-    [[ ${VERSION_ID:-} == "8*" ]] || {
+    VERSION_ID=${VERSION_ID:-}
+    [ "${VERSION_ID#8*}" != "${VERSION_ID}" ] && {
         sed -i "/NM_CONTROLLED=/d" /etc/sysconfig/network-scripts/ifcfg-eth0
-        netsvc=NetworkManager
+        netsvc=NetworkManager.service
     }
-    chkconfig 2>/dev/null | egrep -v "crond|sshd|${netsvc}|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
-    systemctl list-unit-files | grep enabled | egrep -v "${netsvc}|getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
+    {
+        chkconfig 2>/dev/null | egrep -v "crond|sshd|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}'
+        systemctl list-unit-files -t service  | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}'
+        echo "systemctl enable ${netsvc}"
+    } | bash -x
     #systemctl list-unit-files -t service | awk '$2 == "enabled" {printf "systemctl disable %s\n", $1}'
 }
 export -f centos_service_init

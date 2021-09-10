@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - 145e187 - 2021-09-09T08:25:35+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - 9562965 - 2021-09-09T08:33:57+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -358,13 +358,16 @@ systemctl enable getty@tty1
 
 netsvc=network
 [[ -r /etc/os-release ]] && source /etc/os-release
-[[ ${VERSION_ID:-} == "8*" ]] || {
+VERSION_ID=${VERSION_ID:-}
+[ "${VERSION_ID#8*}" != "${VERSION_ID}" ] && {
     sed -i "/NM_CONTROLLED=/d" /etc/sysconfig/network-scripts/ifcfg-eth0
-    netsvc=NetworkManager
+    netsvc=NetworkManager.service
 }
-
-chkconfig 2>/dev/null | egrep -v "crond|sshd|${netsvc}|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
-systemctl list-unit-files | grep enabled | egrep -v "${netsvc}|getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
+{
+    chkconfig 2>/dev/null | egrep -v "crond|sshd|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}'
+    systemctl list-unit-files -t service  | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}'
+    echo "systemctl enable ${netsvc}"
+} | bash -x
 
 echo "nameserver 114.114.114.114" > /etc/resolv.conf
 cat << EOF > /etc/hosts
