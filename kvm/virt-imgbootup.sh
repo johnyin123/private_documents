@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - e19b9e0 - 2021-09-09T10:24:45+08:00")
+VERSION+=("virt-imgbootup.sh - 4fd31cd - 2021-09-10T10:00:23+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -71,7 +71,7 @@ main() {
         "-monitor" "vc"
     )
 
-    local cpu=1 mem=2048 disk=() bridge= fmt= cdrom= floppy= usb=() simusb=() pci_bus_addr=() daemonize=
+    local cpu=1 mem=2048 disk=() bridge=() fmt= cdrom= floppy= usb=() simusb=() pci_bus_addr=() daemonize=
     local opt_short="c:m:D:b:f:"
     local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb:,simusb:,pci:,sound,daemonize,"
     opt_short+="ql:dVh"
@@ -83,7 +83,7 @@ main() {
             -c | --cpu)     shift; cpu=${1}; shift;;
             -m | --mem)     shift; mem=${1}; shift;;
             -D | --disk)    shift; disk+=("${1}"); shift;;
-            -b | --bridge)  shift; bridge=${1}; shift;;
+            -b | --bridge)  shift; bridge+=("${1}"); shift;;
             -f | --fmt)     shift; fmt=${1}; shift;;
             --usb)          shift; usb+=("${1}"); shift;;
             --simusb)       shift; simusb+=("${1}"); shift;;
@@ -114,19 +114,19 @@ main() {
     options+=("-smp" "${cpu}")
     options+=("-m" "${mem}")
     str_equal "${daemonize:-no}" "yes" && options+=("-daemonize" "-display" "none") || options+=("-monitor" "stdio")
-    local _id=0
-    [ -z ${bridge} ] || {
-        bridge_exists "${bridge}" || usage "bridge nofound"
+    local _u= _id=0
+    for _u in "${bridge[@]}"; do
+        bridge_exists "${_u}" || usage "bridge (${_u}) nofound"
         directory_exists /etc/qemu/ || try mkdir -p /etc/qemu/
-        grep "\s*allow\s*all" /etc/qemu/bridge.conf 2>/dev/null || {
+        grep -q "\s*allow\s*all" /etc/qemu/bridge.conf 2>/dev/null || {
             try "echo 'allow all' >> /etc/qemu/bridge.conf"
             try chmod 640 /etc/qemu/bridge.conf
         }
-        options+=("-netdev" "bridge,br=${bridge},id=net${_id}")
+        options+=("-netdev" "bridge,br=${_u},id=net${_id}")
         local _mac=52:54:$(printf "%02x" ${_id})$(hexdump -n3 -e '/1 ":%02X"' /dev/random)
         options+=("-device" "virtio-net-pci,netdev=net${_id},mac=${_mac}")
         let _id+=1
-    }
+    done
     _id=0
     for _u in "${disk[@]}"; do
         local _fmt=${fmt:-$(qemu-img info --output=json ${_u} | json_config_default ".format"  "raw")}
