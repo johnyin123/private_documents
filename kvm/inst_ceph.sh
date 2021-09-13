@@ -48,7 +48,8 @@ ceph osd pool set cephpool pgp_num 1024
 
 EOF
 #http://docs.ceph.org.cn/
-CEPH_RELEASE=luminous
+CEPH_RELEASE=15.2.9
+#CEPH_RELEASE=luminous
 #CEPH_RELEASE=jewel
 
 CEPH_USER=ceph
@@ -88,6 +89,7 @@ for ip in $IPS
 do
     CUR_HOSTNAME=$(eval $CONF | grep ${ip} | awk '{print $2}')
     cat > init_ceph.${ip}.sh << EOF
+echo "nameserver 114.114.114.114" > /etc/resolv.conf
 hostnamectl set-hostname ${CUR_HOSTNAME}
 id $CEPH_USER || useradd -m $CEPH_USER
 echo $CEPH_PASSWD | passwd --stdin $CEPH_USER
@@ -150,10 +152,35 @@ EOF
 done
 rm -f hosts config
 
+
+:<<EOF
+[global]
+fsid = ................
+mon_initial_members = node01, node02, node03, node04, node05, node06, node07
+mon_host = 1.1.1.8,1.1.1.7,1.1.1.6,1.1.1.5,1.1.1.4,1.1.1.3,1.1.1.2
+auth_cluster_required = cephx
+auth_service_required = cephx
+auth_client_required = cephx
+filestore_xattr_use_omap = true
+cluster network = 1.1.1.0/24
+osd pool default size = 3
+osd pool default min size = 1
+rbd_default_features = 1
+osd heartbeat grace = 20
+osd heartbeat interval = 5
+mon clock drift allowed = 2
+mon clock drift warn backoff = 30
+EOF
 # deploy机器可ssh无密码登陆到其他节点
+#    yum install python-setuptools
+#    # fix
+#    pip3 install pecan werkzeug
+#    ssh-copyid  ${IPS} .....
 #    su - ceph
 #    cd && mkdir -p ceph&&cd ceph
-
+#    #http://mirrors.ustc.edu.cn/
+#    export CEPH_DEPLOY_REPO_URL=http://mirrors.163.com/ceph/rpm-${CEPH_RELEASE}/el7
+#    export CEPH_DEPLOY_GPG_URL=http://mirrors.163.com/ceph/keys/release.asc
 #    1. ceph-deploy new kvm1
 #    #最小副本数
 #    2. echo "osd pool default size = 2" >> ~/ceph/ceph.conf
@@ -174,6 +201,7 @@ rm -f hosts config
 #           #The dashboard module runs on port 7000 by default. http://<active mgr host>:7000/
 #    5. ceph-deploy disk list kvm1 ...
 #    5. ceph-deploy osd create node01 --bluestore --data /dev/sdb
+#          # ceph-deploy osd create srv1 --bluestore --data vg/lv
 #          A. ceph-deploy disk zap kvm1:/dev/sda #clear disk old info
 #              #. sudo parted -s /dev/sdd mkpart -a optimal primary 1 100%
 #          B. ceph-deploy osd create --bluestore --data /dev/vda2 radosgw
@@ -181,7 +209,8 @@ rm -f hosts config
 #          B. ceph-deploy osd prepare kvm1:/dev/sda  #disk
 #    #6. ceph-deploy osd activate kvm1:/dev/sda1 ...
 #    7. MUST:add mount point in fstab!
-#    8. ceph-deploy admin kvm1
+#    #  sync configuration
+#    8. ceph-deploy admin kvm${n}
 #    9. sudo chmod 644 /etc/ceph/ceph.client.admin.keyring   
 #    0. ceph health
 # 时间一定同步
