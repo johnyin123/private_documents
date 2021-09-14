@@ -47,6 +47,8 @@ ceph osd pool set cephpool pg_num 1024
 ceph osd pool set cephpool pgp_num 1024
 
 EOF
+OS=el7
+#OS=el8
 #http://docs.ceph.org.cn/
 CEPH_RELEASE=15.2.9
 #CEPH_RELEASE=luminous
@@ -106,15 +108,16 @@ $(cat config)
 EOFC
 chown $CEPH_USER:$CEPH_USER /home/$CEPH_USER/.ssh/config 
 chmod 600 /home/$CEPH_USER/.ssh/config
-yum -y install epel-release yum-plugin-priorities https://download.ceph.com/rpm-${CEPH_RELEASE}/el7/noarch/ceph-release-1-1.el7.noarch.rpm
+yum -y install epel-release yum-plugin-priorities https://download.ceph.com/rpm-${CEPH_RELEASE}/${OS}/noarch/ceph-release-1-1.${OS}.noarch.rpm
 #(rpm -q 'epel-release' || yum -y install epel-release) || true
 yum makecache && yum update -y
 #(rpm -q 'centos-release-ceph-${CEPH_RELEASE}' || yum -y install centos-release-ceph-${CEPH_RELEASE}) || true
 # sed -i -e "s/enabled=1/enabled=1\npriority=1/g" /etc/yum.repos.d/ceph.repo
 (rpm -q 'ceph-deploy' || yum -y install ceph-deploy) || true
-
+# Important
+# ceph-deploy is no longer actively maintained. It is not tested on versions of Ceph newer than Nautilus. It does not support RHEL8, CentOS 8, or newer operating systems.
 cat >>/home/$CEPH_USER/.bashrc<<EOFI
-#export CEPH_DEPLOY_REPO_URL=http://mirrors.163.com/ceph/rpm-${CEPH_RELEASE}/el7
+#export CEPH_DEPLOY_REPO_URL=http://mirrors.163.com/ceph/rpm-${CEPH_RELEASE}/${OS}
 #export CEPH_DEPLOY_GPG_URL=http://mirrors.163.com/ceph/keys/release.asc
 EOFI
 

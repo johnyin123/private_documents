@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netns-busybox-pxe-efi-server.sh - 9562965 - 2021-09-09T08:33:57+08:00")
+VERSION+=("netns-busybox-pxe-efi-server.sh - f5ad3e4 - 2021-09-10T11:05:12+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -289,6 +289,8 @@ lvm2
 net-tools
 chrony
 xfsdump
+tar
+rsync
 -alsa-*
 -iwl*firmware
 -ivtv*
