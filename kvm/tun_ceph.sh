@@ -49,17 +49,24 @@ lrwxrwxrwx 1 ceph ceph 93 4月  17 2019 /var/lib/ceph/osd/ceph-24/block -> /dev/
  19   hdd  1.09160         osd.19      up  1.00000 1.00000
  24   hdd  1.09160         osd.24      up  1.00000 1.00000
 
-ceph osd out 24
+osd_id=24
+#reweight the osd
+ceph osd crush reweight osd.${osd_id} 0
+#waiting_for_active_clean
+ceph osd out osd.${osd_id}
+#waiting_for_active_clean
 ceph osd stat
-systemctl stop ceph-osd@24
+#down the osd
+systemctl stop ceph-osd@${osd_id}
 ceph osd tree
 #将删除的OSD从crush map中删除
-ceph osd crush remove osd.24
+ceph osd crush remove osd.${osd_id}
 #此时使用ceph osd tree 已经看不到 osd.24
 #清除到OSD的认证密钥
-ceph auth del osd.24
+ceph auth del osd.${osd_id}
 #在OSD Map中清除OSD
-ceph osd rm 24
+ceph osd rm ${osd_id}
+
 #查看sdd是否还挂载系统中.....
 ceph-volume lvm zap /dev/sdd --destroy
 cat /sys/block/sdb/device/state
