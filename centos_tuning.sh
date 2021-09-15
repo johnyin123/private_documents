@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("centos_tuning.sh - 58cb44d - 2021-08-18T17:14:28+08:00")
+VERSION+=("centos_tuning.sh - 5632da4 - 2021-08-25T08:41:01+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_centos_init.sh
@@ -18,6 +18,8 @@ usage() {
 ${SCRIPTNAME}
         -s|--ssh      *    ssh info (user@host)
         -p|--port          ssh port (default 60022)
+        -n|--hostname      new hostname
+        -z|--zswap         zswap size, default 512
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -27,9 +29,9 @@ EOF
     exit 1
 }
 main() {
-    local ssh= port=60022
-    local opt_short="s:p:"
-    local opt_long="ssh:,port:,"
+    local ssh= port=60022 name= zswap=512
+    local opt_short="s:p:n:z:"
+    local opt_long="ssh:,port:,hostname:,zswap:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -38,6 +40,8 @@ main() {
         case "$1" in
             -s | --ssh)     shift; ssh=${1}; shift;;
             -p | --port)    shift; port=${1}; shift;;
+            -n | --hostname)shift; name=${1}; shift;;
+            -z | --zswap)   shift; zswap=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -66,11 +70,11 @@ main() {
         $(typeset -f centos_sysctl_init)
         centos_sysctl_init
         $(typeset -f centos_zswap_init)
-        centos_zswap_init 2048
-
+        centos_zswap_init ${zswap}
         sed -i "/motd.sh/d" /etc/profile
         echo "sh /etc/motd.sh" >> /etc/profile
         touch /etc/logo.txt /etc/motd.sh
+        [ -z "${name}" ] && echo "${name}" > /etc/hostname
 EOF
     return 0
 }

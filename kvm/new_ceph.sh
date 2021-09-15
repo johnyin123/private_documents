@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - initversion - 2021-09-15T10:19:44+08:00")
+VERSION+=("new_ceph.sh - 1dc4937 - 2021-09-15T10:19:44+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 init_first_mon() {
@@ -15,7 +15,7 @@ init_first_mon() {
     local name=${HOSTNAME:-$(hostname)}
     local ipaddr=$(hostname -i)
     local fsid=$(cat /proc/sys/kernel/random/uuid)
-    local cluster_network=$(ip route | grep $(hostname -i) | awk '{print $1}')
+    local cluster_network=$(ip route | grep "${ipaddr}" | awk '{print $1}')
     cat <<EOF | tee /etc/ceph/${cname}.conf
 [global]
 fsid = ${fsid}
@@ -200,6 +200,11 @@ ${SCRIPTNAME}
         SSH_PORT default is 60022
         SSH_PORT=22 ${SCRIPTNAME} -c ceph -m 192.168.168.101 -m 192.168.168.102 -o 192.168.168.101:/dev/vda2 \
                -o 192.168.168.102:/dev/vda2 -o 192.168.168.103:/dev/sda
+        ceph node hosts:
+               127.0.0.1       localhost
+               192.168.168.101 server1
+               .....
+               192.168.168.... servern
 EOF
     exit 1
 }
@@ -230,6 +235,8 @@ main() {
     [ "$(array_size mon)" -gt "0" ] && inst_ceph_mon "${cluster}" "${mon[@]}"
     [ "$(array_size osd)" -gt "0" ] && inst_ceph_osd "${cluster}" "${osd[@]}"
     info_msg "ALL DONE\n"
+    echo "mon is allowing insecure global_id reclaim,"
+    echo "ceph config set mon auth_allow_insecure_global_id_reclaim false"
     return 0
 }
 main "$@"
