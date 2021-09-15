@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 2274cee - 2021-09-15T13:24:21+08:00")
+VERSION+=("new_ceph.sh - 2432631 - 2021-09-15T13:56:15+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -209,6 +209,10 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
     Example:
+            centos-release-ceph-nautilus/centos-release-ceph-octopus/centos-release-ceph-pacific
+        1. yum -y update && yum -y install centos-release-ceph-pacific
+        2. yum -y install ceph
+
         SSH_PORT default is 60022
         SSH_PORT=22 ${SCRIPTNAME} -c ceph -m 192.168.168.101 -m 192.168.168.102 -o 192.168.168.101:/dev/vda2 \
                -o 192.168.168.102:/dev/vda2 -o 192.168.168.103:/dev/sda
