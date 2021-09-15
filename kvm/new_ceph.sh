@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 9c20ed9 - 2021-09-15T14:04:03+08:00")
+VERSION+=("new_ceph.sh - ebc91bb - 2021-09-15T15:13:58+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -171,6 +171,8 @@ inst_ceph_mon() {
         remote_func ${ipaddr} ${SSH_PORT} "root" "chmod 644 /etc/ceph/ceph.client.admin.keyring"
         remote_func ${ipaddr} ${SSH_PORT} "root" "chown ceph:ceph /var/lib/ceph/bootstrap-osd/ceph.keyring"
         remote_func ${ipaddr} ${SSH_PORT} "root" add_new_mon "${cname}"
+        # standby ceph-mgr
+        remote_func ${ipaddr} ${SSH_PORT} "root" init_ceph_mgr "${cname}"
     done
 }
 

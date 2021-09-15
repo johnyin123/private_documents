@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("centos_tuning.sh - 5632da4 - 2021-08-25T08:41:01+08:00")
+VERSION+=("centos_tuning.sh - 2274cee - 2021-09-15T13:24:21+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_centos_init.sh
@@ -74,7 +74,7 @@ main() {
         sed -i "/motd.sh/d" /etc/profile
         echo "sh /etc/motd.sh" >> /etc/profile
         touch /etc/logo.txt /etc/motd.sh
-        [ -z "${name}" ] && echo "${name}" > /etc/hostname
+        [ -z "${name}" ] || echo "${name}" > /etc/hostname
 EOF
     return 0
 }
