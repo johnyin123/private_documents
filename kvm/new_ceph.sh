@@ -7,10 +7,10 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 1dc4937 - 2021-09-15T10:19:44+08:00")
+VERSION+=("new_ceph.sh - 2274cee - 2021-09-15T13:24:21+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-init_first_mon() {
+gen_ceph_conf() {
     local cname=${1:-ceph}
     local name=${HOSTNAME:-$(hostname)}
     local ipaddr=$(hostname -i)
@@ -22,6 +22,7 @@ fsid = ${fsid}
 mon_initial_members = ${name}
 mon_host = ${ipaddr}
 cluster network = ${cluster_network}
+##################################
 public network = ${cluster_network}
 osd pool default size = 2
 osd pool default min size = 1
@@ -29,6 +30,14 @@ mon allow pool delete = true
 mon clock drift allowed = 2
 mon clock drift warn backoff = 30
 EOF
+}
+
+init_first_mon() {
+    local cname=${1:-ceph}
+    local name=${HOSTNAME:-$(hostname)}
+    local ipaddr=$(hostname -i)
+    [ -e "/etc/ceph/${cname}.conf" ] || return 1
+    local fsid=$(grep  '^fsid\s*=' /etc/ceph/${cname}.conf  | awk '{print $NF}')
     ceph-authtool --create-keyring /etc/ceph/ceph.mon.keyring \
         --gen-key -n mon. --cap mon 'allow *'
     ceph-authtool --create-keyring /etc/ceph/ceph.client.admin.keyring \
@@ -144,9 +153,12 @@ inst_ceph_mon() {
     local ipaddr=${mon[0]}
     mon[0]=
     info_msg "${ipaddr} ceph mgr install the first mon node!\n"
+    remote_func ${ipaddr} ${SSH_PORT} "root" gen_ceph_conf "${cname}"
+    download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf" "${DIRNAME}/${cname}.conf"
+    ${EDITOR:-vi} "${DIRNAME}/${cname}.conf" || true
+    upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
     remote_func ${ipaddr} ${SSH_PORT} "root" init_first_mon "${cname}"
     remote_func ${ipaddr} ${SSH_PORT} "root" init_ceph_mgr "${cname}"
-    download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf" "${DIRNAME}/${cname}.conf"
     download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/ceph.client.admin.keyring" "${DIRNAME}/ceph.client.admin.keyring"
     download ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/ceph.keyring" "${DIRNAME}/ceph.keyring"
     #now add other mons
