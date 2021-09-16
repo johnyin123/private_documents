@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - b379cfd - 2021-09-16T13:37:33+08:00")
+VERSION+=("new_ceph.sh - 45413bd - 2021-09-16T15:03:04+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -92,6 +92,17 @@ add_osd_bluestore() {
     local disk=${1}
     # copy /var/lib/ceph/bootstrap-osd/ceph.keyring from monitor node to osd node
     [ -e "/var/lib/ceph/bootstrap-osd/ceph.keyring" ] && ceph-volume lvm create --data ${disk}
+}
+
+add_mds() {
+    # first is active, others standby
+    local cname=${1:-ceph}
+    local name=${HOSTNAME:-$(hostname)}
+    sudo -u ceph mkdir -p /var/lib/ceph/mds/${cname}-${name}
+    sudo -u ceph ceph-authtool --create-keyring /var/lib/ceph/mds/${cname}-${name}/keyring --gen-key -n mds.${name}
+    sudo -u ceph ceph auth add mds.${name} osd "allow rwx" mds "allow *" mon "allow profile mds" -i /var/lib/ceph/mds/${cname}-${name}/keyring
+    systemctl enable --now ceph-mds@${name}
+    ceph mds stat
 }
 
 teardown() {
@@ -216,13 +227,33 @@ inst_ceph_osd() {
     done
 }
 
+inst_ceph_mds() {
+    local cname=${1}
+    shift 1
+    local mds=("$@")
+    local ipaddr=
+    [ -e "${DIRNAME}/${cname}.conf" ] || exit_msg "nofound ${DIRNAME}/${cname}.conf\n"
+    [ -e "${DIRNAME}/ceph.client.admin.keyring" ] || exit_msg "nofound ${DIRNAME}/ceph.client.admin.keyring\n"
+    [ -e "${DIRNAME}/ceph.keyring" ] || exit_msg "nofound ${DIRNAME}/ceph.keyring\n"
+    for ipaddr in ${osd[@]}; do
+        info_msg "****** ${ipaddr}:${dev} init mds.\n"
+        upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
+        upload "${DIRNAME}/ceph.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/ceph.client.admin.keyring"
+        upload "${DIRNAME}/ceph.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/ceph.keyring"
+        remote_func ${ipaddr} ${SSH_PORT} "root" "chmod 644 /etc/ceph/ceph.client.admin.keyring"
+        remote_func ${ipaddr} ${SSH_PORT} "root" "chown ceph:ceph /var/lib/ceph/bootstrap-osd/ceph.keyring"
+        remote_func ${ipaddr} ${SSH_PORT} "root" add_mds
+     done
+}
+
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
         -c|--cluster   <cluster name> ceph cluster name, default "ceph"
-        -m|--mon       <ceph mon ip>  ceph mon node, (first mon is mon/mgr)
+        -m|--mon       <ceph mon ip>  ceph mon node, (first mon is mon/mgr(active), other mon/mgr(standby))
         -o|--osd       <ceph osd ip>  ceph osd node
+        --mds          <ceph mds ip>  ceph mds node, (first mds active, other standby)
         --teardown     <ip>           remove all ceph config
         -q|--quiet
         -l|--log <int> log level
@@ -246,7 +277,7 @@ EOF
     exit 1
 }
 main() {
-    local mon=() osd=() cluster=ceph
+    local mon=() osd=() mds=() cluster=ceph
     local opt_short="c:m:o:"
     local opt_long="cluster:,mon:,osd:,teardown:,"
     opt_short+="ql:dVh"
@@ -258,6 +289,7 @@ main() {
             -c | --cluster) shift; cluster=${1}; shift;;
             -m | --mon)     shift; mon+=(${1}); shift;;
             -o | --osd)     shift; osd+=(${1}); shift;;
+            --mds)          shift; mds+=(${1}); shift;;
             --teardown)     shift; remove_ceph_cfg ${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
@@ -271,6 +303,7 @@ main() {
     done
     [ "$(array_size mon)" -gt "0" ] && inst_ceph_mon "${cluster}" "${mon[@]}"
     [ "$(array_size osd)" -gt "0" ] && inst_ceph_osd "${cluster}" "${osd[@]}"
+    [ "$(array_size mds)" -gt "0" ] && inst_ceph_mds "${cluster}" "${mds[@]}"
     info_msg "ALL DONE\n"
     echo "mon is allowing insecure global_id reclaim,"
     echo "ceph config set mon auth_allow_insecure_global_id_reclaim false"
