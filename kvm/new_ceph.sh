@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 45413bd - 2021-09-16T15:03:04+08:00")
+VERSION+=("new_ceph.sh - d774508 - 2021-09-16T16:59:15+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -305,10 +305,18 @@ main() {
     [ "$(array_size osd)" -gt "0" ] && inst_ceph_osd "${cluster}" "${osd[@]}"
     [ "$(array_size mds)" -gt "0" ] && inst_ceph_mds "${cluster}" "${mds[@]}"
     info_msg "ALL DONE\n"
-    echo "mon is allowing insecure global_id reclaim,"
-    echo "ceph config set mon auth_allow_insecure_global_id_reclaim false"
-    echo "ceph 12 not support this module"
-    echo "ceph mgr module enable pg_autoscaler"
+    cat <<'EOF'
+# mon is allowing insecure global_id reclaim
+ceph config set mon auth_allow_insecure_global_id_reclaim false
+# ceph 12 not support this module
+ceph mgr module enable pg_autoscaler
+# cephfs init
+osd pool create cephfs_data
+ceph osd pool create cephfs_metadata
+ceph fs new myfs cephfs_metadata cephfs_data
+ceph fs ls
+mount -t ceph {IP}:/ /mnt -oname=admin,secret=AQBU50JhUFKMAhAACW2fH/gDvgCfFkb5VycRCQ==
+EOF
     return 0
 }
 main "$@"
