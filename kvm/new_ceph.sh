@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 39c6869 - 2021-09-16T10:17:42+08:00")
+VERSION+=("new_ceph.sh - b379cfd - 2021-09-16T13:37:33+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -64,7 +64,7 @@ init_ceph_mgr() {
     local name=${HOSTNAME:-$(hostname)}
     local ipaddr=$(hostname -i)
     ceph mon enable-msgr2
-    ceph mgr module enable pg_autoscaler
+    #ceph mgr module enable pg_autoscaler
     sudo -u ceph mkdir /var/lib/ceph/mgr/${cname}-${name}
     ceph auth get-or-create mgr.${name} mon 'allow profile mgr' osd 'allow *' mds 'allow *'
     ceph auth get-or-create mgr.${name} > /etc/ceph/ceph.mgr.admin.keyring
@@ -118,7 +118,7 @@ remote_func() {
     local args=("$@")
     debug_msg "run ${func_name}@${ipaddr}:${port} as ${user}\n"
     local ssh_opt="-o StrictHostKeyChecking=no -o ServerAliveInterval=60 -p${port} ${user}@${ipaddr}"
-    try ssh ${ssh_opt} /bin/bash -s << EOF
+    try ssh ${ssh_opt} /bin/bash -x -s << EOF
 $(typeset -f "${func_name}" 2>/dev/null)
 ${func_name} ${args[@]}
 EOF
@@ -274,6 +274,8 @@ main() {
     info_msg "ALL DONE\n"
     echo "mon is allowing insecure global_id reclaim,"
     echo "ceph config set mon auth_allow_insecure_global_id_reclaim false"
+    echo "ceph 12 not support this module"
+    echo "ceph mgr module enable pg_autoscaler"
     return 0
 }
 main "$@"
