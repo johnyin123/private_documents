@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 2acb244 - 2021-09-16T07:55:03+08:00")
+VERSION+=("new_ceph.sh - 39c6869 - 2021-09-16T10:17:42+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -152,9 +152,13 @@ inst_ceph_mon() {
     local cname=${1}
     shift 1
     local mon=("$@")
+    local allmon=("$@")
     local ipaddr=${mon[0]}
-    mon[0]=
+    local mon_initial_members=()
+    local mon_host=()
     info_msg "${ipaddr} ceph mgr install the first mon node!\n"
+    mon_initial_members+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname"))
+    mon_host+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname -i"))
     remote_func ${ipaddr} ${SSH_PORT} "root" gen_ceph_conf "${cname}"
     download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf" "${DIRNAME}/${cname}.conf"
     ${EDITOR:-vi} "${DIRNAME}/${cname}.conf" || true
@@ -164,8 +168,11 @@ inst_ceph_mon() {
     download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/ceph.client.admin.keyring" "${DIRNAME}/ceph.client.admin.keyring"
     download ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/ceph.keyring" "${DIRNAME}/ceph.keyring"
     #now add other mons
+    mon[0]=
     for ipaddr in ${mon[@]}; do
-        info_msg "****** $ipaddr init mon.\n" 
+        info_msg "****** $ipaddr init mon.\n"
+        mon_initial_members+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname"))
+        mon_host+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname -i"))
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
         upload "${DIRNAME}/ceph.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/ceph.client.admin.keyring"
         upload "${DIRNAME}/ceph.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/ceph.keyring"
@@ -174,6 +181,16 @@ inst_ceph_mon() {
         remote_func ${ipaddr} ${SSH_PORT} "root" add_new_mon "${cname}"
         # standby ceph-mgr
         remote_func ${ipaddr} ${SSH_PORT} "root" init_ceph_mgr "${cname}"
+    done
+    try cat "${DIRNAME}/${cname}.conf" | \
+        set_config mon_initial_members "$(OIFS="$IFS" IFS=,; echo "${mon_initial_members[*]}"; IFS="$OIFS")" | \
+        set_config mon_host "$(OIFS="$IFS" IFS=,; echo "${mon_host[*]}"; IFS="$OIFS")" \
+        > "${DIRNAME}/${cname}.conf.new"
+    try rm -f "${DIRNAME}/${cname}.conf"
+    try mv "${DIRNAME}/${cname}.conf.new" "${DIRNAME}/${cname}.conf"
+    for ipaddr in ${allmon[@]}; do
+        upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
+        remote_func ${ipaddr} ${SSH_PORT} "root" "systemctl restart ceph.target"
     done
 }
 
