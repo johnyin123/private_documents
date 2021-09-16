@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - ebc91bb - 2021-09-15T15:13:58+08:00")
+VERSION+=("new_ceph.sh - 2acb244 - 2021-09-16T07:55:03+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -71,6 +71,7 @@ init_ceph_mgr() {
     sudo -u ceph cp /etc/ceph/ceph.mgr.admin.keyring /var/lib/ceph/mgr/${cname}-${name}/keyring
     systemctl enable --now ceph-mgr@${name}
     ceph -s
+    # switch standby ceph-mgr: ceph mgr fail <node>
 }
 
 add_new_mon() {

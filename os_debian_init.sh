@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_debian_init.sh - 0a1dd0c - 2021-08-26T18:32:30+08:00")
+VERSION+=("os_debian_init.sh - 3aed15c - 2021-08-27T09:09:28+08:00")
 FAKE_APT="apt -y -oAcquire::http::User-Agent=dler --no-install-recommends"
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
@@ -501,8 +501,8 @@ debian_bash_init() {
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
     alias ls='ls --color=auto'
+    alias grep='grep --color=auto'
 fi
-
 EOF
         }
         cat <<"EOF"
@@ -513,6 +513,7 @@ alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
 alias df='df -h'
+alias grep='grep --color=auto'
 
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
 
