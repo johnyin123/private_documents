@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 3bb5888 - 2021-09-07T08:22:27+08:00")
+VERSION+=("functions.sh - c8c1f30 - 2021-09-09T10:40:34+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -1101,6 +1101,12 @@ add_config() {
     local CONF_DELM=${3:-=}
     del_config "$1" "${CONF_DELM}"
     echo "$1${CONF_DELM}$2"
+}
+
+# cat conf | get_config "cluster network"
+get_config() {
+    local CONF_DELM=${3:-=}
+    sed --quiet "s/$1\s*${CONF_DELM}\s*\(.*\)/\1/p"
 }
 
 # ID=100
