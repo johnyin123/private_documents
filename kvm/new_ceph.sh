@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 3a15bb3 - 2021-09-17T08:28:52+08:00")
+VERSION+=("new_ceph.sh - 96569de - 2021-09-17T10:11:14+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -270,7 +270,7 @@ ${SCRIPTNAME}
         SSH_PORT default is 60022
         SSH_PORT=22 ${SCRIPTNAME} -c ceph -m 192.168.168.101 -m 192.168.168.102 -o 192.168.168.101:/dev/vda2 \
                -o 192.168.168.102:/dev/vda2 -o 192.168.168.103:/dev/sda
-        ceph node hosts:
+        ceph node hosts: servern is public network(mon_host,mon_initial_members),osd in cluster network
                127.0.0.1       localhost
                192.168.168.101 server1
                .....
