@@ -7,11 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 61c6534 - 2021-09-16T17:08:40+08:00")
+VERSION+=("new_ceph.sh - 3a15bb3 - 2021-09-17T08:28:52+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
-    local cname=${1:-ceph}
+    local cname=${1}
     local name=${HOSTNAME:-$(hostname)}
     local ipaddr=$(hostname -i)
     local fsid=$(cat /proc/sys/kernel/random/uuid)
@@ -22,8 +22,8 @@ fsid = ${fsid}
 mon_initial_members = ${name}
 mon_host = ${ipaddr}
 cluster network = ${cluster_network}
-##################################
 public network = ${cluster_network}
+##################################
 osd pool default size = 2
 osd pool default min size = 1
 mon allow pool delete = true
@@ -33,7 +33,7 @@ EOF
 }
 
 init_first_mon() {
-    local cname=${1:-ceph}
+    local cname=${1}
     local name=${HOSTNAME:-$(hostname)}
     local ipaddr=$(hostname -i)
     [ -e "/etc/ceph/${cname}.conf" ] || return 1
@@ -62,7 +62,7 @@ init_first_mon() {
 init_ceph_mgr() {
     local cname=${1}
     local name=${HOSTNAME:-$(hostname)}
-    local ipaddr=$(hostname -i)
+    [ -e "/etc/ceph/${cname}.conf" ] || return 1
     ceph mon enable-msgr2
     #ceph mgr module enable pg_autoscaler
     sudo -u ceph mkdir /var/lib/ceph/mgr/${cname}-${name}
@@ -75,11 +75,11 @@ init_ceph_mgr() {
 }
 
 add_new_mon() {
-    local cname=${1:-ceph}
+    local cname=${1}
     local name=${HOSTNAME:-$(hostname)}
-    local ipaddr=$(hostname -i)
-    mon_key=/tmp/mon.key
-    mon_map=/tmp/mon.map
+    local mon_key=/tmp/mon.key
+    local mon_map=/tmp/mon.map
+    [ -e "/etc/ceph/${cname}.conf" ] || return 1
     sudo -u ceph ceph auth get mon. -o ${mon_key}
     sudo -u ceph ceph mon getmap -o ${mon_map}
     sudo -u ceph mkdir -p /var/lib/ceph/mon/${cname}-${name}
@@ -96,8 +96,9 @@ add_osd_bluestore() {
 
 add_mds() {
     # first is active, others standby
-    local cname=${1:-ceph}
+    local cname=${1}
     local name=${HOSTNAME:-$(hostname)}
+    [ -e "/etc/ceph/${cname}.conf" ] || return 1
     sudo -u ceph mkdir -p /var/lib/ceph/mds/${cname}-${name}
     sudo -u ceph ceph-authtool --create-keyring /var/lib/ceph/mds/${cname}-${name}/keyring --gen-key -n mds.${name}
     sudo -u ceph ceph auth add mds.${name} osd "allow rwx" mds "allow *" mon "allow profile mds" -i /var/lib/ceph/mds/${cname}-${name}/keyring
@@ -173,12 +174,12 @@ inst_ceph_mon() {
     mon_host+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname -i"))
     remote_func ${ipaddr} ${SSH_PORT} "root" gen_ceph_conf "${cname}"
     download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf" "${DIRNAME}/${cname}.conf"
+    download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/ceph.client.admin.keyring" "${DIRNAME}/ceph.client.admin.keyring"
+    download ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/ceph.keyring" "${DIRNAME}/ceph.keyring"
     ${EDITOR:-vi} "${DIRNAME}/${cname}.conf" || true
     upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
     remote_func ${ipaddr} ${SSH_PORT} "root" init_first_mon "${cname}"
     remote_func ${ipaddr} ${SSH_PORT} "root" init_ceph_mgr "${cname}"
-    download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/ceph.client.admin.keyring" "${DIRNAME}/ceph.client.admin.keyring"
-    download ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/ceph.keyring" "${DIRNAME}/ceph.keyring"
     #now add other mons
     mon[0]=
     for ipaddr in ${mon[@]}; do
@@ -236,14 +237,14 @@ inst_ceph_mds() {
     [ -e "${DIRNAME}/${cname}.conf" ] || exit_msg "nofound ${DIRNAME}/${cname}.conf\n"
     [ -e "${DIRNAME}/ceph.client.admin.keyring" ] || exit_msg "nofound ${DIRNAME}/ceph.client.admin.keyring\n"
     [ -e "${DIRNAME}/ceph.keyring" ] || exit_msg "nofound ${DIRNAME}/ceph.keyring\n"
-    for ipaddr in ${osd[@]}; do
-        info_msg "****** ${ipaddr}:${dev} init mds.\n"
+    for ipaddr in ${mds[@]}; do
+        info_msg "****** ${ipaddr} init mds.\n"
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
         upload "${DIRNAME}/ceph.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/ceph.client.admin.keyring"
         upload "${DIRNAME}/ceph.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/ceph.keyring"
         remote_func ${ipaddr} ${SSH_PORT} "root" "chmod 644 /etc/ceph/ceph.client.admin.keyring"
         remote_func ${ipaddr} ${SSH_PORT} "root" "chown ceph:ceph /var/lib/ceph/bootstrap-osd/ceph.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" add_mds
+        remote_func ${ipaddr} ${SSH_PORT} "root" add_mds "${cname}"
      done
 }
 
@@ -280,7 +281,7 @@ EOF
 main() {
     local mon=() osd=() mds=() cluster=ceph
     local opt_short="c:m:o:"
-    local opt_long="cluster:,mon:,osd:,teardown:,"
+    local opt_long="cluster:,mon:,osd:,mds:,teardown:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -312,11 +313,11 @@ ceph config set mon auth_allow_insecure_global_id_reclaim false
 # ceph 12 not support this module
 ceph mgr module enable pg_autoscaler
 # cephfs init
-osd pool create cephfs_data
+ceph osd pool create cephfs_data
 ceph osd pool create cephfs_metadata
 ceph fs new myfs cephfs_metadata cephfs_data
 ceph fs ls
-mount -t ceph {IP}:/ /mnt -oname=admin,secret=AQBU50JhUFKMAhAACW2fH/gDvgCfFkb5VycRCQ==
+mount -t ceph {IP}:/ /mnt -oname=admin,secret=AU50JhycRCQ==
 EOF
     return 0
 }
