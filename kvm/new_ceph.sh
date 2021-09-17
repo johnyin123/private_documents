@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 96569de - 2021-09-17T10:11:14+08:00")
+VERSION+=("new_ceph.sh - 6cde947 - 2021-09-17T10:16:14+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -174,11 +174,11 @@ inst_ceph_mon() {
     mon_host+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname -i"))
     remote_func ${ipaddr} ${SSH_PORT} "root" gen_ceph_conf "${cname}"
     download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf" "${DIRNAME}/${cname}.conf"
-    download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/ceph.client.admin.keyring" "${DIRNAME}/ceph.client.admin.keyring"
-    download ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/ceph.keyring" "${DIRNAME}/ceph.keyring"
     ${EDITOR:-vi} "${DIRNAME}/${cname}.conf" || true
     upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
     remote_func ${ipaddr} ${SSH_PORT} "root" init_first_mon "${cname}"
+    download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/ceph.client.admin.keyring" "${DIRNAME}/ceph.client.admin.keyring"
+    download ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/ceph.keyring" "${DIRNAME}/ceph.keyring"
     remote_func ${ipaddr} ${SSH_PORT} "root" init_ceph_mgr "${cname}"
     #now add other mons
     mon[0]=
