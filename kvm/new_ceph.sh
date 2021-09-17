@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 6cde947 - 2021-09-17T10:16:14+08:00")
+VERSION+=("new_ceph.sh - e7c9ea5 - 2021-09-17T10:46:04+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -16,6 +16,8 @@ gen_ceph_conf() {
     local ipaddr=$(hostname -i)
     local fsid=$(cat /proc/sys/kernel/random/uuid)
     local cluster_network=$(ip route | grep "${ipaddr}" | awk '{print $1}')
+    sed -i "/^CLUSTER\s*=/d" /etc/sysconfig/ceph
+    echo "CLUSTER=${cname}" >> /etc/sysconfig/ceph
     cat <<EOF | tee /etc/ceph/${cname}.conf
 [global]
 fsid = ${fsid}
@@ -38,39 +40,39 @@ init_first_mon() {
     local ipaddr=$(hostname -i)
     [ -e "/etc/ceph/${cname}.conf" ] || return 1
     local fsid=$(grep  '^fsid\s*=' /etc/ceph/${cname}.conf  | awk '{print $NF}')
-    ceph-authtool --create-keyring /etc/ceph/ceph.mon.keyring \
+    ceph-authtool --create-keyring /etc/ceph/${cname}.mon.keyring \
         --gen-key -n mon. --cap mon 'allow *'
-    ceph-authtool --create-keyring /etc/ceph/ceph.client.admin.keyring \
+    ceph-authtool --create-keyring /etc/ceph/${cname}.client.admin.keyring \
         --gen-key -n client.admin --cap mon 'allow *' --cap osd 'allow *' --cap mds 'allow *' --cap mgr 'allow *'
-    ceph-authtool --create-keyring /var/lib/ceph/bootstrap-osd/ceph.keyring \
+    ceph-authtool --create-keyring /var/lib/ceph/bootstrap-osd/${cname}.keyring \
         --gen-key -n client.bootstrap-osd --cap mon 'profile bootstrap-osd' --cap mgr 'allow r'
-    ceph-authtool /etc/ceph/ceph.mon.keyring --import-keyring /etc/ceph/ceph.client.admin.keyring
-    ceph-authtool /etc/ceph/ceph.mon.keyring --import-keyring /var/lib/ceph/bootstrap-osd/ceph.keyring
+    ceph-authtool /etc/ceph/${cname}.mon.keyring --import-keyring /etc/ceph/${cname}.client.admin.keyring
+    ceph-authtool /etc/ceph/${cname}.mon.keyring --import-keyring /var/lib/ceph/bootstrap-osd/${cname}.keyring
     chown ceph:ceph \
         /etc/ceph/${cname}.conf \
-        /etc/ceph/ceph.mon.keyring \
-        /etc/ceph/ceph.client.admin.keyring \
-        /var/lib/ceph/bootstrap-osd/ceph.keyring
+        /etc/ceph/${cname}.mon.keyring \
+        /etc/ceph/${cname}.client.admin.keyring \
+        /var/lib/ceph/bootstrap-osd/${cname}.keyring
 
     rm -rf /tmp/monmap && monmaptool --create --add ${name} ${ipaddr} --fsid ${fsid} /tmp/monmap
     sudo -u ceph mkdir -p /var/lib/ceph/mon/${cname}-${name}
-    sudo -u ceph ceph-mon --cluster ${cname} --mkfs -i ${name} --monmap /tmp/monmap --keyring /etc/ceph/ceph.mon.keyring
+    sudo -u ceph ceph-mon --cluster ${cname} --mkfs -i ${name} --monmap /tmp/monmap --keyring /etc/ceph/${cname}.mon.keyring
     systemctl enable --now ceph-mon@${name}
-    ceph -s
+    ceph --cluster ${cname} -s
 }
 
 init_ceph_mgr() {
     local cname=${1}
     local name=${HOSTNAME:-$(hostname)}
     [ -e "/etc/ceph/${cname}.conf" ] || return 1
-    ceph mon enable-msgr2
+    ceph --cluster ${cname} mon enable-msgr2
     #ceph mgr module enable pg_autoscaler
     sudo -u ceph mkdir /var/lib/ceph/mgr/${cname}-${name}
-    ceph auth get-or-create mgr.${name} mon 'allow profile mgr' osd 'allow *' mds 'allow *'
-    ceph auth get-or-create mgr.${name} > /etc/ceph/ceph.mgr.admin.keyring
-    sudo -u ceph cp /etc/ceph/ceph.mgr.admin.keyring /var/lib/ceph/mgr/${cname}-${name}/keyring
+    ceph --cluster ${cname} auth get-or-create mgr.${name} mon 'allow profile mgr' osd 'allow *' mds 'allow *'
+    ceph --cluster ${cname} auth get-or-create mgr.${name} > /etc/ceph/${cname}.mgr.admin.keyring
+    sudo -u ceph cp /etc/ceph/${cname}.mgr.admin.keyring /var/lib/ceph/mgr/${cname}-${name}/keyring
     systemctl enable --now ceph-mgr@${name}
-    ceph -s
+    ceph --cluster ${cname} -s
     # switch standby ceph-mgr: ceph mgr fail <node>
 }
 
@@ -80,18 +82,19 @@ add_new_mon() {
     local mon_key=/tmp/mon.key
     local mon_map=/tmp/mon.map
     [ -e "/etc/ceph/${cname}.conf" ] || return 1
-    sudo -u ceph ceph auth get mon. -o ${mon_key}
-    sudo -u ceph ceph mon getmap -o ${mon_map}
+    sudo -u ceph ceph --cluster ${cname} auth get mon. -o ${mon_key}
+    sudo -u ceph ceph --cluster ${cname} mon getmap -o ${mon_map}
     sudo -u ceph mkdir -p /var/lib/ceph/mon/${cname}-${name}
     sudo -u ceph ceph-mon --cluster ${cname} --mkfs -i ${name} --monmap ${mon_map} --keyring ${mon_key}
     systemctl enable --now ceph-mon@${name}
-    ceph -s
+    ceph --cluster ${cname} -s
 }
 
 add_osd_bluestore() {
-    local disk=${1}
-    # copy /var/lib/ceph/bootstrap-osd/ceph.keyring from monitor node to osd node
-    [ -e "/var/lib/ceph/bootstrap-osd/ceph.keyring" ] && ceph-volume lvm create --data ${disk}
+    local cname=${1}
+    local disk=${2}
+    # copy /var/lib/ceph/bootstrap-osd/${cname}.keyring from monitor node to osd node
+    [ -e "/var/lib/ceph/bootstrap-osd/${cname}.keyring" ] && ceph-volume --cluster ${cname} lvm create --data ${disk}
 }
 
 add_mds() {
@@ -100,10 +103,10 @@ add_mds() {
     local name=${HOSTNAME:-$(hostname)}
     [ -e "/etc/ceph/${cname}.conf" ] || return 1
     sudo -u ceph mkdir -p /var/lib/ceph/mds/${cname}-${name}
-    sudo -u ceph ceph-authtool --create-keyring /var/lib/ceph/mds/${cname}-${name}/keyring --gen-key -n mds.${name}
-    sudo -u ceph ceph auth add mds.${name} osd "allow rwx" mds "allow *" mon "allow profile mds" -i /var/lib/ceph/mds/${cname}-${name}/keyring
+    sudo -u ceph --cluster ${cname} ceph-authtool --create-keyring /var/lib/ceph/mds/${cname}-${name}/keyring --gen-key -n mds.${name}
+    sudo -u ceph --cluster ${cname} ceph auth add mds.${name} osd "allow rwx" mds "allow *" mon "allow profile mds" -i /var/lib/ceph/mds/${cname}-${name}/keyring
     systemctl enable --now ceph-mds@${name}
-    ceph mds stat
+    ceph --cluster ${cname} mds stat
 }
 
 teardown() {
@@ -115,7 +118,7 @@ teardown() {
     # kill -9 $(pidof ceph-osd)
     rm -fr \
     /etc/ceph/* \
-    /var/lib/ceph/bootstrap-osd/ceph.keyring \
+    /var/lib/ceph/bootstrap-osd/* \
     /var/lib/ceph/mon/* \
     /var/lib/ceph/mgr/*
 }
@@ -173,12 +176,13 @@ inst_ceph_mon() {
     mon_initial_members+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname"))
     mon_host+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname -i"))
     remote_func ${ipaddr} ${SSH_PORT} "root" gen_ceph_conf "${cname}"
+    download ${ipaddr} ${SSH_PORT} "root" "/etc/sysconfig/ceph" "${DIRNAME}/${cname}.ceph"
     download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf" "${DIRNAME}/${cname}.conf"
     ${EDITOR:-vi} "${DIRNAME}/${cname}.conf" || true
     upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
     remote_func ${ipaddr} ${SSH_PORT} "root" init_first_mon "${cname}"
-    download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/ceph.client.admin.keyring" "${DIRNAME}/ceph.client.admin.keyring"
-    download ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/ceph.keyring" "${DIRNAME}/ceph.keyring"
+    download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.client.admin.keyring" "${DIRNAME}/${cname}.client.admin.keyring"
+    download ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/${cname}.keyring" "${DIRNAME}/${cname}.keyring"
     remote_func ${ipaddr} ${SSH_PORT} "root" init_ceph_mgr "${cname}"
     #now add other mons
     mon[0]=
@@ -186,11 +190,12 @@ inst_ceph_mon() {
         info_msg "****** $ipaddr init mon.\n"
         mon_initial_members+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname"))
         mon_host+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname -i"))
+        upload "${DIRNAME}/${cname}.ceph" ${ipaddr} ${SSH_PORT} "root" "/etc/sysconfig/ceph"
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
-        upload "${DIRNAME}/ceph.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/ceph.client.admin.keyring"
-        upload "${DIRNAME}/ceph.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/ceph.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" "chmod 644 /etc/ceph/ceph.client.admin.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" "chown ceph:ceph /var/lib/ceph/bootstrap-osd/ceph.keyring"
+        upload "${DIRNAME}/${cname}.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.client.admin.keyring"
+        upload "${DIRNAME}/${cname}.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/${cname}.keyring"
+        remote_func ${ipaddr} ${SSH_PORT} "root" "chmod 644 /etc/ceph/${cname}.client.admin.keyring"
+        remote_func ${ipaddr} ${SSH_PORT} "root" "chown ceph:ceph /var/lib/ceph/bootstrap-osd/${cname}.keyring"
         remote_func ${ipaddr} ${SSH_PORT} "root" add_new_mon "${cname}"
         # standby ceph-mgr
         remote_func ${ipaddr} ${SSH_PORT} "root" init_ceph_mgr "${cname}"
@@ -212,20 +217,22 @@ inst_ceph_osd() {
     shift 1
     local osd=("$@")
     local ipaddr= dev=
+    [ -e "${DIRNAME}/${cname}.ceph" ] || exit_msg "nofound ${DIRNAME}/${cname}.ceph\n"
     [ -e "${DIRNAME}/${cname}.conf" ] || exit_msg "nofound ${DIRNAME}/${cname}.conf\n"
-    [ -e "${DIRNAME}/ceph.client.admin.keyring" ] || exit_msg "nofound ${DIRNAME}/ceph.client.admin.keyring\n"
-    [ -e "${DIRNAME}/ceph.keyring" ] || exit_msg "nofound ${DIRNAME}/ceph.keyring\n"
+    [ -e "${DIRNAME}/${cname}.client.admin.keyring" ] || exit_msg "nofound ${DIRNAME}/${cname}.client.admin.keyring\n"
+    [ -e "${DIRNAME}/${cname}.keyring" ] || exit_msg "nofound ${DIRNAME}/${cname}.keyring\n"
     for ipaddr in ${osd[@]}; do
         dev=${ipaddr##*:}
         [ -z "${dev}" ] && continue
         ipaddr=${ipaddr%:*}
         info_msg "****** ${ipaddr}:${dev} init osd.\n"
+        upload "${DIRNAME}/${cname}.ceph" ${ipaddr} ${SSH_PORT} "root" "/etc/sysconfig/ceph"
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
-        upload "${DIRNAME}/ceph.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/ceph.client.admin.keyring"
-        upload "${DIRNAME}/ceph.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/ceph.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" "chmod 644 /etc/ceph/ceph.client.admin.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" "chown ceph:ceph /var/lib/ceph/bootstrap-osd/ceph.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" add_osd_bluestore "${dev}"
+        upload "${DIRNAME}/${cname}.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.client.admin.keyring"
+        upload "${DIRNAME}/${cname}.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/${cname}.keyring"
+        remote_func ${ipaddr} ${SSH_PORT} "root" "chmod 644 /etc/ceph/${cname}.client.admin.keyring"
+        remote_func ${ipaddr} ${SSH_PORT} "root" "chown ceph:ceph /var/lib/ceph/bootstrap-osd/${cname}.keyring"
+        remote_func ${ipaddr} ${SSH_PORT} "root" add_osd_bluestore "${cname}" "${dev}"
     done
 }
 
@@ -234,16 +241,18 @@ inst_ceph_mds() {
     shift 1
     local mds=("$@")
     local ipaddr=
+    [ -e "${DIRNAME}/${cname}.ceph" ] || exit_msg "nofound ${DIRNAME}/${cname}.ceph\n"
     [ -e "${DIRNAME}/${cname}.conf" ] || exit_msg "nofound ${DIRNAME}/${cname}.conf\n"
-    [ -e "${DIRNAME}/ceph.client.admin.keyring" ] || exit_msg "nofound ${DIRNAME}/ceph.client.admin.keyring\n"
-    [ -e "${DIRNAME}/ceph.keyring" ] || exit_msg "nofound ${DIRNAME}/ceph.keyring\n"
+    [ -e "${DIRNAME}/${cname}.client.admin.keyring" ] || exit_msg "nofound ${DIRNAME}/${cname}.client.admin.keyring\n"
+    [ -e "${DIRNAME}/${cname}.keyring" ] || exit_msg "nofound ${DIRNAME}/${cname}.keyring\n"
     for ipaddr in ${mds[@]}; do
         info_msg "****** ${ipaddr} init mds.\n"
+        upload "${DIRNAME}/${cname}.ceph" ${ipaddr} ${SSH_PORT} "root" "/etc/sysconfig/ceph"
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
-        upload "${DIRNAME}/ceph.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/ceph.client.admin.keyring"
-        upload "${DIRNAME}/ceph.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/ceph.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" "chmod 644 /etc/ceph/ceph.client.admin.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" "chown ceph:ceph /var/lib/ceph/bootstrap-osd/ceph.keyring"
+        upload "${DIRNAME}/${cname}.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.client.admin.keyring"
+        upload "${DIRNAME}/${cname}.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/${cname}.keyring"
+        remote_func ${ipaddr} ${SSH_PORT} "root" "chmod 644 /etc/ceph/${cname}.client.admin.keyring"
+        remote_func ${ipaddr} ${SSH_PORT} "root" "chown ceph:ceph /var/lib/ceph/bootstrap-osd/${cname}.keyring"
         remote_func ${ipaddr} ${SSH_PORT} "root" add_mds "${cname}"
      done
 }
