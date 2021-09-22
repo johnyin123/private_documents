@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 7222e54 - 2021-09-17T16:33:10+08:00")
+VERSION+=("new_ceph.sh - 0562334 - 2021-09-17T17:12:43+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -109,19 +109,37 @@ add_mds() {
     ceph --cluster ${cname} mds stat
 }
 
+add_rgw() {
+    local cname=${1}
+    local name=${HOSTNAME:-$(hostname)}
+    ceph --cluster ${cname} auth get-or-create client.rgw.${name} mon 'allow rwx' osd 'allow rwx' -o /etc/ceph/${cname}.client.rgw.${name}.keyring
+    chown ceph.ceph /var/lib/ceph/radosgw
+    sudo -u ceph mkdir -p /var/lib/ceph/radosgw/${cname}-rgw.${name}
+    sudo -u ceph cp /etc/ceph/${cname}.client.rgw.${name}.keyring /var/lib/ceph/radosgw/${cname}-rgw.${name}/keyring
+    systemctl enable --now ceph-radosgw@rgw.${name}
+}
+
 teardown() {
     local name=${HOSTNAME:-$(hostname)}
     systemctl disable --now ceph-mon@${name}
     systemctl disable --now ceph-mgr@${name}
     systemctl disable --now ceph-mds@${name}
     systemctl disable --now ceph-volume@
-    pkill -9 ceph-osd
+    systemctl disable ceph-radosgw@rgw.${name}
+    kill -9 $(pidof radosgw)
+    kill -9 $(pidof ceph-osd)
     # kill -9 $(pidof ceph-osd)
+    for i in /var/lib/ceph/osd/*; do
+        umount $i
+    done
     rm -fr \
     /etc/ceph/* \
     /var/lib/ceph/bootstrap-osd/* \
     /var/lib/ceph/mon/* \
-    /var/lib/ceph/mgr/*
+    /var/lib/ceph/mgr/* \
+    /var/lib/ceph/osd/* \
+    /var/lib/ceph/mds/* \
+    /var/lib/ceph/radosgw/*
 }
 # remote execute function end!
 ################################################################################
@@ -258,14 +276,45 @@ inst_ceph_mds() {
      done
 }
 
+inst_ceph_rgw() {
+    local cname=${1}
+    shift 1
+    local rgw=("$@")
+    local ipaddr= port= name=
+    [ -e "${DIRNAME}/${cname}.conf" ] || exit_msg "nofound ${DIRNAME}/${cname}.conf\n"
+    for ipaddr in ${rgw[@]}; do
+        port=$(awk -F':' '{print $2}' <<< "$ipaddr")
+        #port=${ipaddr##*:}
+        ipaddr=${ipaddr%:*}
+        name=$(remote_func ${ipaddr} ${SSH_PORT} "root" hostname)
+        cat <<EOF >> ${DIRNAME}/${cname}.conf
+##################################
+[client.rgw.${name}]
+# ipaddr of the node
+host = ${ipaddr}
+rgw frontends = "beast port=${port:-80}"
+EOF
+    # rgw frontends = "civetweb port=80"
+    done
+    ${EDITOR:-vi} "${DIRNAME}/${cname}.conf" || true
+    for ipaddr in ${rgw[@]}; do
+        ipaddr=${ipaddr%:*}
+        info_msg "****** ${ipaddr} init rgw.\n"
+        upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
+        remote_func ${ipaddr} ${SSH_PORT} "root" add_rgw "${cname}"
+     done
+}
+
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
         -c|--cluster   <cluster name> ceph cluster name, default "ceph"
         -m|--mon       <ceph mon ip>  ceph mon node, (first mon is mon/mgr(active), other mon/mgr(standby))
-        -o|--osd       <ceph osd ip>  ceph osd node
+        -o|--osd       <ceph osd ip>:<device>  ceph osd node
         --mds          <ceph mds ip>  ceph mds node, (first mds active, other standby)
+        --rgw          <ceph rgw ip>:<port>  ceph rgw node, default port=80
+                       first: yum -y install ceph-radosgw
         --teardown     <ip>           remove all ceph config
         -q|--quiet
         -l|--log <int> log level
@@ -279,7 +328,8 @@ ${SCRIPTNAME}
 
         SSH_PORT default is 60022
         SSH_PORT=22 ${SCRIPTNAME} -c ceph -m 192.168.168.101 -m 192.168.168.102 -o 192.168.168.101:/dev/vda2 \
-               -o 192.168.168.102:/dev/vda2 -o 192.168.168.103:/dev/sda
+               -o 192.168.168.102:/dev/vda2 -o 192.168.168.103:/dev/sda \
+               --rgw 192.168.168.102:80 --rgw 192.168.168.103:80
         ceph node hosts: servern is public network(mon_host,mon_initial_members),osd in cluster network
                127.0.0.1       localhost
                192.168.168.101 server1
@@ -289,9 +339,9 @@ EOF
     exit 1
 }
 main() {
-    local mon=() osd=() mds=() cluster=ceph
+    local mon=() osd=() mds=() rgw=() cluster=ceph
     local opt_short="c:m:o:"
-    local opt_long="cluster:,mon:,osd:,mds:,teardown:,"
+    local opt_long="cluster:,mon:,osd:,mds:,rgw:,teardown:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -302,6 +352,7 @@ main() {
             -m | --mon)     shift; mon+=(${1}); shift;;
             -o | --osd)     shift; osd+=(${1}); shift;;
             --mds)          shift; mds+=(${1}); shift;;
+            --rgw)          shift; rgw+=(${1}); shift;;
             --teardown)     shift; remove_ceph_cfg ${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
@@ -316,10 +367,20 @@ main() {
     [ "$(array_size mon)" -gt "0" ] && inst_ceph_mon "${cluster}" "${mon[@]}"
     [ "$(array_size osd)" -gt "0" ] && inst_ceph_osd "${cluster}" "${osd[@]}"
     [ "$(array_size mds)" -gt "0" ] && inst_ceph_mds "${cluster}" "${mds[@]}"
+    [ "$(array_size rgw)" -gt "0" ] && inst_ceph_rgw "${cluster}" "${rgw[@]}"
     info_msg "ALL DONE\n"
     cat <<'EOF'
 # mon is allowing insecure global_id reclaim
 ceph config set mon auth_allow_insecure_global_id_reclaim false
+# dashboard
+ceph mgr module enable dashboard
+ceph mgr module ls | grep -A 5 enabled_modules
+ceph dashboard create-self-signed-cert
+ceph mgr services
+echo "password" > pwdfile
+ceph dashboard ac-user-create admin  administrator -i pwdfile
+ceph config set mgr mgr/dashboard/server_addr 192.168.168.201
+ceph mgr services
 # ceph 12 not support this module
 ceph mgr module enable pg_autoscaler
 # cephfs init
@@ -328,6 +389,14 @@ ceph osd pool create cephfs_metadata
 ceph fs new myfs cephfs_metadata cephfs_data
 ceph fs ls
 mount -t ceph {IP}:/ /mnt -oname=admin,secret=AU50JhycRCQ==
+# rgw
+# add rgw user
+radosgw-admin user create --uid=cephtest --display-name="ceph test" --email=test@demo.com
+radosgw-admin user create --uid=admin --display-name=admin --access_key=admin --secret=123456
+radosgw-admin user list
+radosgw-admin user info --uid=cephtest
+radosgw-admin user rm --uid=cephtest
+radosgw-admin key create --uid=cephtest --display-name="ceph test" --key-type=s3 --gen-access-key --gen-secret
 EOF
     return 0
 }
