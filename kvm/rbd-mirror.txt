@@ -1,0 +1,61 @@
+# source(ceph) --> target(south)
+# rbd-mirror MUST has ** diffent CLUSTER NAME **
+CNAME=ceph       #cluster name
+POOL=testpool    #pool name
+MODE=pool        #mirror mode pool/image
+ceph --cluster ${CNAME} osd pool create ${POOL} # 100 100 replicated
+rbd  --cluster ${CNAME} pool init ${POOL}
+rbd  --cluster ${CNAME} mirror pool enable ${POOL} ${MODE}
+rbd  --cluster ${CNAME} create ${POOL}/test.img --size 1G
+rbd  --cluster ${CNAME} -p ${POOL} info test.img
+rbd  --cluster ${CNAME} feature enable ${POOL}/test.img journaling
+rbd  --cluster ${CNAME} -p ${POOL} info test.img
+
+rbd  --cluster ${CNAME} create test2.img --size 1G --pool ${POOL} --image-feature exclusive-lock,journaling
+# You can enable journaling on all new images by default by adding 
+# echo "rbd default features = 125" >> /etc/ceph/${CNAME}.conf
+#
+rbd  --cluster ${CNAME} -p ${POOL} info test2.img
+# rbd --cluster ${CNAME} ls -l ${POOL}
+# ceph osd pool ls detail
+# ceph osd pool rm ${POOL}
+
+# On source cluster, called "ceph"
+ceph --cluster ${CNAME} auth get-or-create client.mirror${CNAME} mon 'profile rbd' osd 'profile rbd' -o /etc/ceph/${CNAME}.client.mirror${CNAME}.keyring
+#osd "allow class-read object_prefix rbd_children, allow pool ${POOL} rwx"
+
+# ceph auth rm client.mirrorct
+# ceph auth ls
+cp "/etc/ceph/${CNAME}.conf" "/etc/ceph/${CNAME}.client.mirror$(hostname).keyring" to TARGET
+
+
+
+# On target cluster, called "south"
+CNAME_PEER=ceph
+CNAME=backup
+POOL=testpool    #pool name
+MODE=pool        #mirror mode pool/image
+
+ceph --cluster ${CNAME} auth get-or-create client.mirror${CNAME} mon 'profile rbd' osd 'profile rbd' -o /etc/ceph/${CNAME}.client.mirror${CNAME}.keyring
+systemctl enable ceph-rbd-mirror.target
+systemctl enable ceph-rbd-mirror@mirror${CNAME}
+ceph --cluster ${CNAME} osd pool create ${POOL}
+rbd  --cluster ${CNAME} pool init ${POOL}
+rbd  --cluster ${CNAME} mirror pool enable ${POOL} ${MODE}
+
+rbd --id mirror${CNAME} --cluster ${CNAME} mirror pool peer add ${POOL} client.mirror${CNAME_PEER}@${CNAME_PEER}
+rbd --id mirror${CNAME} --cluster ${CNAME} mirror pool info ${POOL}
+rbd --cluster ${CNAME} ls -l ${POOL}
+rbd --cluster ${CNAME} mirror image status ${POOL}/test.img
+
+# 升级为主（单向时无影响）
+rbd --cluster ${CNAME} mirror pool promote ${POOL} --force
+rbd --cluster ${CNAME} snap create --snap mysnap  ${POOL}/test.img
+rbd --cluster ${CNAME} ls ${POOL} -l
+rbd --cluster ${CNAME} snap rm ${POOL}/test.img@mysnap
+# 重新降级
+rbd --cluster ${CNAME} mirror pool demote ${POOL}
+
+973  rbd  --cluster ${CNAME} mirror image resync ${POOL}/test2.img
+975  rbd  --cluster ${CNAME} mirror image resync ${POOL}/test.img
+
