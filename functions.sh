@@ -15,10 +15,12 @@ LANG=C
 set -o errtrace  # trace ERR through 'time command' and other functions
 # bash 4.2(centos 7) nounset arr[@]: unbound variable, when arr=().
 # need  set +u; echo arr[@]; set -u; avoid it
+if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] > 440 )); then
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
+fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 67c7e1d - 2021-09-17T09:40:38+08:00")
+VERSION+=("functions.sh - a20be83 - 2021-09-22T08:51:58+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
