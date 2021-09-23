@@ -230,6 +230,18 @@ ceph {daemon-type} tell {id or *} injectargs '--{name} {value} [--{name} {value}
 配置应用到一类进程的所有例程,例如增加名为 osd.0 的 ceph-osd 进程的调试级别的命令如下:
 ceph osd tell 0 injectargs '--debug-osd 20 --debug-ms 1'
 
+
+REMOVE OSD:
+    systemctl stop ceph-osd@$osdid.service
+    ceph osd down $osdid
+    ceph osd crush remove osd.$osdid
+    ceph auth del osd.$osdid
+    ceph osd rm $osdid
+    umount /var/lib/ceph/osd/ceph-$osdid
+REMOVE MON
+    systemctl stop ceph-mon@$monid.service
+    ceph mon remove $monid
+
 # ceph.conf
 # [global]#全局设置
 # fsid = 88caa60a-e6d1-4590-a2b5-bd4e703e46d9           #集群标识ID 
