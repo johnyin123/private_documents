@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - fc2d097 - 2021-09-22T15:22:03+08:00")
+VERSION+=("new_ceph.sh - eb86a8b - 2021-09-23T09:37:43+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -340,6 +340,39 @@ ${SCRIPTNAME}
                .....
                192.168.168.... servern
 EOF
+: <<'EOF'
+# mon is allowing insecure global_id reclaim
+ceph config set mon auth_allow_insecure_global_id_reclaim false
+# dashboard
+ceph mgr module enable dashboard
+ceph mgr module ls | grep -A 5 enabled_modules
+ceph dashboard create-self-signed-cert
+ceph mgr services
+echo "password" > pwdfile
+ceph dashboard ac-user-create admin  administrator -i pwdfile
+ceph config set mgr mgr/dashboard/server_addr 192.168.168.201
+ceph mgr services
+# ceph 12 not support this module
+ceph mgr module enable pg_autoscaler
+# cephfs init
+ceph osd pool create cephfs_data
+ceph osd pool create cephfs_metadata
+ceph fs new myfs cephfs_metadata cephfs_data
+ceph fs ls
+mount -t ceph {IP}:/ /mnt -oname=admin,secret=AU50JhycRCQ==
+# rgw
+# add rgw user
+radosgw-admin user create --uid=cephtest --display-name="ceph test" --email=test@demo.com
+# radosgw-admin subuser create --uid=cephtest --subuser=cephtest:swift --access=full
+# radosgw-admin key create --subuser=cephtest:swift --key-type=swift --gen-secret
+# radosgw-admin user create --uid=admin --display-name=admin --access_key=admin --secret=123456
+# radosgw-admin caps add --uid=admin --caps="users=read, write"
+# radosgw-admin caps add --uid=admin --caps="usage=read, write"
+radosgw-admin user list
+radosgw-admin user info --uid=cephtest
+radosgw-admin user rm --uid=cephtest
+radosgw-admin bucket list
+EOF
     exit 1
 }
 main() {
@@ -373,35 +406,6 @@ main() {
     [ "$(array_size mds)" -gt "0" ] && inst_ceph_mds "${cluster}" "${mds[@]}"
     [ "$(array_size rgw)" -gt "0" ] && inst_ceph_rgw "${cluster}" "${rgw[@]}"
     info_msg "ALL DONE\n"
-    cat <<'EOF'
-# mon is allowing insecure global_id reclaim
-ceph config set mon auth_allow_insecure_global_id_reclaim false
-# dashboard
-ceph mgr module enable dashboard
-ceph mgr module ls | grep -A 5 enabled_modules
-ceph dashboard create-self-signed-cert
-ceph mgr services
-echo "password" > pwdfile
-ceph dashboard ac-user-create admin  administrator -i pwdfile
-ceph config set mgr mgr/dashboard/server_addr 192.168.168.201
-ceph mgr services
-# ceph 12 not support this module
-ceph mgr module enable pg_autoscaler
-# cephfs init
-ceph osd pool create cephfs_data
-ceph osd pool create cephfs_metadata
-ceph fs new myfs cephfs_metadata cephfs_data
-ceph fs ls
-mount -t ceph {IP}:/ /mnt -oname=admin,secret=AU50JhycRCQ==
-# rgw
-# add rgw user
-radosgw-admin user create --uid=cephtest --display-name="ceph test" --email=test@demo.com
-radosgw-admin user create --uid=admin --display-name=admin --access_key=admin --secret=123456
-radosgw-admin user list
-radosgw-admin user info --uid=cephtest
-radosgw-admin user rm --uid=cephtest
-radosgw-admin key create --uid=cephtest --display-name="ceph test" --key-type=s3 --gen-access-key --gen-secret
-EOF
     return 0
 }
 main "$@"
