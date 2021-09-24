@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - ab65777 - 2021-09-23T15:51:34+08:00")
+VERSION+=("new_ceph.sh - 2577fce - 2021-09-24T10:11:31+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -368,6 +368,7 @@ radosgw-admin user create --uid=cephtest --display-name="ceph test" --email=test
 # radosgw-admin user create --uid=admin --display-name=admin --access_key=admin --secret=123456
 # radosgw-admin caps add --uid=admin --caps="users=read, write"
 # radosgw-admin caps add --uid=admin --caps="usage=read, write"
+# # radosgw-admin caps add --uid=admin --caps="users=read, write;usage=read, write;buckets=read, write"
 radosgw-admin user list
 radosgw-admin user info --uid=cephtest
 radosgw-admin user rm --uid=cephtest
