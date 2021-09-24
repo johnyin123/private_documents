@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 2577fce - 2021-09-24T10:11:31+08:00")
+VERSION+=("new_ceph.sh - 4233083 - 2021-09-24T13:00:59+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -319,6 +319,9 @@ ${SCRIPTNAME}
         --mds          <ceph mds ip>  ceph mds node, (first mds active, other standby)
         --rgw          <ceph rgw ip>:<port>  ceph rgw node, default port=80
                        first: yum -y install ceph-radosgw
+                       echo <access_key:secret_key> > ~/.passwd-s3fs
+                       chmod 600 ~/.passwd-s3fs
+                       s3fs bucket1 /mnt/ -o passwd_file=~/.passwd-s3fs -o url=http://<ip> -o use_path_request_style
         --teardown     <ip>           remove all ceph config
         -q|--quiet
         -l|--log <int> log level
