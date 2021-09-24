@@ -1,0 +1,7 @@
+# wildcard dns record demo(bind)
+@ IN NS gateway-node1.
+@ IN A 192.168.122.113
+* IN CNAME @
+# wildcard dns record demo(dnsmasq)
+address=/.gateway-node1/192.168.122.75
+
