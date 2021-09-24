@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - eb86a8b - 2021-09-23T09:37:43+08:00")
+VERSION+=("new_ceph.sh - ab65777 - 2021-09-23T15:51:34+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -130,7 +130,7 @@ teardown() {
     kill -9 $(pidof ceph-osd)
     # kill -9 $(pidof ceph-osd)
     for i in /var/lib/ceph/osd/*; do
-        umount $i
+        umount $i || true
     done
     rm -fr \
     /etc/ceph/* \
