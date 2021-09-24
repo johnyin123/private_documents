@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 4233083 - 2021-09-24T13:00:59+08:00")
+VERSION+=("new_ceph.sh - 5610e08 - 2021-09-24T13:36:53+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -143,7 +143,8 @@ teardown() {
     /var/lib/ceph/osd/* \
     /var/lib/ceph/mds/* \
     /var/run/ceph/* \
-    /var/lib/ceph/radosgw/*
+    /var/lib/ceph/radosgw/* \
+    || true
 }
 # remote execute function end!
 ################################################################################
