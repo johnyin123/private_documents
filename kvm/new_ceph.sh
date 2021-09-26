@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 5610e08 - 2021-09-24T13:36:53+08:00")
+VERSION+=("new_ceph.sh - 4c1825f - 2021-09-24T14:42:32+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -53,7 +53,6 @@ init_first_mon() {
         /etc/ceph/${cname}.mon.keyring \
         /etc/ceph/${cname}.client.admin.keyring \
         /var/lib/ceph/bootstrap-osd/${cname}.keyring
-
     rm -rf /tmp/monmap && monmaptool --create --add ${name} ${ipaddr} --fsid ${fsid} /tmp/monmap
     sudo -u ceph mkdir -p /var/lib/ceph/mon/${cname}-${name}
     sudo -u ceph ceph-mon --cluster ${cname} --mkfs -i ${name} --monmap /tmp/monmap --keyring /etc/ceph/${cname}.mon.keyring
@@ -109,6 +108,45 @@ add_mds() {
     ceph --cluster ${cname} mds stat
 }
 
+multi_site_rgw() {
+    local cname=${1}
+    local realm_name=${2}
+    local zonegroup_name=${3}
+    local zone_name=${4}
+    local endpoints=${5}
+    local access_key=${6}
+    local secret_key=${7}
+    radosgw-admin --cluster ${cname} realm create --rgw-realm=${realm_name} --default
+    radosgw-admin --cluster ${cname} zonegroup create \
+        --rgw-zonegroup=${zonegroup_name} \
+        --endpoints=${endpoints} \
+        --rgw-realm=${realm_name} \
+        --master --default
+    radosgw-admin --cluster ${cname} zone create \
+        --rgw-zonegroup=${zonegroup_name} \
+        --rgw-zone=${zone_name} \
+        --endpoints=${endpoints} \
+        --master --default
+    echo "remove default zonggroup, zone"
+    radosgw-admin --cluster ${cname} zonegroup remove --rgw-zonegroup=default --rgw-zone=default
+    radosgw-admin --cluster ${cname} period update --commit
+    radosgw-admin --cluster ${cname} zone delete --rgw-zone=default
+    radosgw-admin --cluster ${cname} period update --commit
+    radosgw-admin --cluster ${cname} zonegroup delete --rgw-zonegroup=default
+    radosgw-admin --cluster ${cname} period update --commit
+    echo "delete default rgw pool"
+    ceph --cluster ${cname} osd pool rm default.rgw.log default.rgw.log --yes-i-really-really-mean-it
+    ceph --cluster ${cname} osd pool rm default.rgw.control default.rgw.control --yes-i-really-really-mean-it
+    ceph --cluster ${cname} osd pool rm default.rgw.meta default.rgw.meta --yes-i-really-really-mean-it
+    ceph --cluster ${cname} osd pool rm default.rgw.data.root default.rgw.data.root --yes-i-really-really-mean-it
+    ceph --cluster ${cname} osd pool rm default.rgw.gc default.rgw.gc --yes-i-really-really-mean-it
+    ceph --cluster ${cname} osd pool rm default.rgw.users.uid default.rgw.users.uid --yes-i-really-really-mean-it
+    echo "Add the system user to the master zone"
+    # radosgw-admin --cluster ${cname} zone modify --rgw-zone=${zone_name} --access-key=${access_key} --secret=${secret_key}
+    radosgw-admin --cluster ${cname} zone modify --rgw-realm=${realm_name} --rgw-zonegroup=${zonegroup_name} --rgw-zone=${zone_name} --endpoints ${endpoints} --access-key=${access_key} --secret=${secret_key} --master --default
+    radosgw-admin --cluster ${cname} period update --commit
+}
+
 add_rgw() {
     local cname=${1}
     local name=${HOSTNAME:-$(hostname)}
@@ -130,7 +168,7 @@ teardown() {
     kill -9 $(pidof ceph-osd)
     # kill -9 $(pidof ceph-osd)
     for i in /var/lib/ceph/osd/*; do
-        umount $i || true
+        umount -fl $i || true
     done
     rm -fr \
     /etc/ceph/* \
@@ -246,7 +284,8 @@ inst_ceph_osd() {
     [ -e "${DIRNAME}/${cname}.client.admin.keyring" ] || exit_msg "nofound ${DIRNAME}/${cname}.client.admin.keyring\n"
     [ -e "${DIRNAME}/${cname}.keyring" ] || exit_msg "nofound ${DIRNAME}/${cname}.keyring\n"
     for ipaddr in ${osd[@]}; do
-        dev=${ipaddr##*:}
+        #dev=${ipaddr##*:}
+        dev=$(awk -F':' '{print $2}' <<< "$ipaddr")
         [ -z "${dev}" ] && continue
         ipaddr=${ipaddr%:*}
         info_msg "****** ${ipaddr}:${dev} init osd.\n"
@@ -281,6 +320,34 @@ inst_ceph_mds() {
      done
 }
 
+setup_rgw_multi_site() {
+    local cname=${1}
+    local realm_name=${2}
+    local zonegroup_name=${3}
+    local zone_name=${4}
+    # fully qualified domain name(s) in the zonegroup
+    local endpoints=${5}
+    shift 5
+    local rgw=("$@")
+    local ipaddr=${rgw[0]}
+    local username=${zonegroup_name}_sysuser
+    info_msg "****** ${ipaddr} multi site rgw.\n"
+    local msg=$(remote_func ${ipaddr} ${SSH_PORT} "root" "radosgw-admin --cluster ${cname} user create --uid=${username} --display-name='${zonegroup_name} system user multi site' --system")
+    local access_key=$(echo $msg | json_config_default ".keys[].access_key" "")
+    local secret_key=$(echo $msg | json_config_default ".keys[].secret_key" "")
+    info_msg "${ipaddr} $access_key $secret_key ............\n"
+    remote_func ${ipaddr} ${SSH_PORT} "root" multi_site_rgw "${cname}" "${realm_name}" "${zonegroup_name}" "${zone_name}" "${endpoints}" "${access_key}" "${secret_key}"
+    for ipaddr in ${rgw[@]}; do
+        remote_func ${ipaddr} ${SSH_PORT} "root" 'systemctl restart ceph-radosgw@rgw.$(hostname)'
+    done
+    # echo "check master/secondary zone sync status
+    # radosgw-admin sync status
+    # echo "设置secondary zone为master和default zone(故障转移)"
+    # radosgw-admin zone modify --rgw-zone= ${zone_name}--master --default
+    # radosgw-admin --cluster ${cname} period update --commit
+    # systemctl enable --now ceph-radosgw@rgw.${name}
+}
+
 inst_ceph_rgw() {
     local cname=${1}
     shift 1
@@ -298,6 +365,7 @@ inst_ceph_rgw() {
 # ipaddr of the node
 host = ${ipaddr}
 rgw frontends = "beast port=${port:-80}"
+# rgw_zone=<you zone if not default>
 EOF
     # rgw frontends = "civetweb port=80"
     done
@@ -323,7 +391,13 @@ ${SCRIPTNAME}
                        echo <access_key:secret_key> > ~/.passwd-s3fs
                        chmod 600 ~/.passwd-s3fs
                        s3fs bucket1 /mnt/ -o passwd_file=~/.passwd-s3fs -o url=http://<ip> -o use_path_request_style
-        --teardown     <ip>           remove all ceph config
+        --master_zone  <ip>   make rgw as default master zone
+                       !!! script delete all default rgw pool !!!
+        --rgw_realm    <name> rgw multi site realm
+        --rgw_grp      <name> rgw multi site zonegroup
+        --rgw_zone     <name> rgw multi site zone
+        --rgw_endpts   <str>  rgw multi site endpoints. exam: http://pic.sample.com:80
+        --teardown     <ip>   remove all ceph config
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -335,15 +409,65 @@ ${SCRIPTNAME}
         2. yum -y install ceph
 
         SSH_PORT default is 60022
-        SSH_PORT=22 ${SCRIPTNAME} -c ceph -m 192.168.168.101 -m 192.168.168.102 -o 192.168.168.101:/dev/vda2 \
-               -o 192.168.168.102:/dev/vda2 -o 192.168.168.103:/dev/sda \
-               --rgw 192.168.168.102:80 --rgw 192.168.168.103:80
+        SSH_PORT=22 ${SCRIPTNAME} -c ceph \\
+               -m 192.168.168.101 -m 192.168.168.102 -m 192.168.168.103 \\
+               -o 192.168.168.101:/dev/vdb -o 192.168.168.102:/dev/vdb -o 192.168.168.103:/dev/vdb \\
+               --rgw 192.168.168.101:80 --rgw 192.168.168.102:80 --rgw 192.168.168.103:80 \\
+               --master_zone 192.168.168.101 --master_zone 192.168.168.102 --master_zone 192.168.168.103 \\
+               --rgw_realm movie --rgw_grp movie --rgw_zone bjidc --rgw_endpts http://pic.sample.com:80
         ceph node hosts: servern is public network(mon_host,mon_initial_members),osd in cluster network
                127.0.0.1       localhost
                192.168.168.101 server1
                .....
                192.168.168.... servern
 EOF
+    exit 1
+}
+main() {
+    local mon=() osd=() mds=() rgw=() cluster=ceph master_zone=() rgw_realm rgw_grp rgw_zone rgw_endpts
+    local opt_short="c:m:o:"
+    local opt_long="cluster:,mon:,osd:,mds:,rgw:,master_zone:,rgw_realm:,rgw_grp:,rgw_zone:,rgw_endpts:,teardown:,"
+    opt_short+="ql:dVh"
+    opt_long+="quiet,log:,dryrun,version,help"
+    __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            -c | --cluster) shift; cluster=${1}; shift;;
+            -m | --mon)     shift; mon+=(${1}); shift;;
+            -o | --osd)     shift; osd+=(${1}); shift;;
+            --mds)          shift; mds+=(${1}); shift;;
+            --rgw)          shift; rgw+=(${1}); shift;;
+            --master_zone)  shift; master_zone+=(${1}); shift;;
+            --rgw_realm)    shift; rgw_realm=${1}; shift;;
+            --rgw_grp)shift; rgw_grp=${1}; shift;;
+            --rgw_zone)     shift; rgw_zone=${1}; shift;;
+            --rgw_endpts)shift; rgw_endpts=${1}; shift;;
+            --teardown)     shift; remove_ceph_cfg ${1}; shift;;
+            ########################################
+            -q | --quiet)   shift; QUIET=1;;
+            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              usage "Unexpected option: $1";;
+        esac
+    done
+    [ "$(array_size mon)" -gt "0" ] && inst_ceph_mon "${cluster}" "${mon[@]}"
+    [ "$(array_size osd)" -gt "0" ] && inst_ceph_osd "${cluster}" "${osd[@]}"
+    [ "$(array_size mds)" -gt "0" ] && inst_ceph_mds "${cluster}" "${mds[@]}"
+    [ "$(array_size rgw)" -gt "0" ] && inst_ceph_rgw "${cluster}" "${rgw[@]}"
+    [ "$(array_size master_zone)" -gt "0" ] && {
+        [ -z "${rgw_realm}" ] || [ -z "${rgw_grp}" ] || \
+        [ -z "${rgw_zone}" ] || [ -z "${rgw_endpts}" ] || \
+            setup_rgw_multi_site "${cluster}" "${rgw_realm}" "${rgw_grp}" "${rgw_zone}" "${rgw_endpts}" "${master_zone[@]}"
+    }
+    info_msg "ALL DONE\n"
+    return 0
+}
+main "$@"
+
 : <<'EOF'
 # mon is allowing insecure global_id reclaim
 ceph config set mon auth_allow_insecure_global_id_reclaim false
@@ -378,39 +502,3 @@ radosgw-admin user info --uid=cephtest
 radosgw-admin user rm --uid=cephtest
 radosgw-admin bucket list
 EOF
-    exit 1
-}
-main() {
-    local mon=() osd=() mds=() rgw=() cluster=ceph
-    local opt_short="c:m:o:"
-    local opt_long="cluster:,mon:,osd:,mds:,rgw:,teardown:,"
-    opt_short+="ql:dVh"
-    opt_long+="quiet,log:,dryrun,version,help"
-    __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
-    eval set -- "${__ARGS}"
-    while true; do
-        case "$1" in
-            -c | --cluster) shift; cluster=${1}; shift;;
-            -m | --mon)     shift; mon+=(${1}); shift;;
-            -o | --osd)     shift; osd+=(${1}); shift;;
-            --mds)          shift; mds+=(${1}); shift;;
-            --rgw)          shift; rgw+=(${1}); shift;;
-            --teardown)     shift; remove_ceph_cfg ${1}; shift;;
-            ########################################
-            -q | --quiet)   shift; QUIET=1;;
-            -l | --log)     shift; set_loglevel ${1}; shift;;
-            -d | --dryrun)  shift; DRYRUN=1;;
-            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
-            -h | --help)    shift; usage;;
-            --)             shift; break;;
-            *)              usage "Unexpected option: $1";;
-        esac
-    done
-    [ "$(array_size mon)" -gt "0" ] && inst_ceph_mon "${cluster}" "${mon[@]}"
-    [ "$(array_size osd)" -gt "0" ] && inst_ceph_osd "${cluster}" "${osd[@]}"
-    [ "$(array_size mds)" -gt "0" ] && inst_ceph_mds "${cluster}" "${mds[@]}"
-    [ "$(array_size rgw)" -gt "0" ] && inst_ceph_rgw "${cluster}" "${rgw[@]}"
-    info_msg "ALL DONE\n"
-    return 0
-}
-main "$@"
