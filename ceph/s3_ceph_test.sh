@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("s3_ceph_test.sh - initversion - 2021-09-28T13:05:07+08:00")
+VERSION+=("s3_ceph_test.sh - b3d4bf6 - 2021-09-28T13:05:07+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -94,6 +94,21 @@ get() {
     echo "return $status"
 }
 
+presigned_url() {
+    local host=$1
+    local bucket=$2
+    local source=$3
+    local expire=$4
+    local secret_key=$5
+    local access_key=$6
+    local uri="/${bucket}/${source}"
+    local date=$(date -d "+${expire} second" +%s)
+    local str="GET\n\n\n${date}\n${uri}"
+    local signature=$(echo -en "${str}" | openssl sha1 -hmac "${secret_key}" -binary | base64)
+    echo "${host}${uri}?AWSAccessKeyId=${access_key}&Expires=${date}&Signature=$(urlencode ${signature})"
+}
+
+
 main() {
     local access_key="" secret_key="" s3_host="" srcfile="" bucket="" tgtfile=""
     local opt_short="a:s:u:"
@@ -123,13 +138,17 @@ main() {
             srcfile=${BASH_REMATCH[1]}
             bucket=${BASH_REMATCH[2]}
             tgtfile=${BASH_REMATCH[3]}
-            get "${s3_host}" ${bucket} "${srcfile}" ${tgtfile} $secret_key $access_key
+            get "${s3_host}" ${bucket} "${srcfile}" ${tgtfile} ${secret_key} ${access_key}
         elif [[ " $@" =~ .*?[[:space:]]([^[:space:]]+)[[:space:]]+([^[:space:]]+)@([^[:space:]]*) ]] ; then
             # upload file to S3 Service
             srcfile=${BASH_REMATCH[1]}
             bucket=${BASH_REMATCH[3]}
             tgtfile=${BASH_REMATCH[2]}
-            put "${srcfile}" "${s3_host}" ${bucket} ${tgtfile} $secret_key $access_key
+            put "${srcfile}" "${s3_host}" ${bucket} ${tgtfile} ${secret_key} ${access_key}
+        elif [[ " $@" =~ .*?[[:space:]]([^[:space:]]+)@([^[:space:]]*)[[:space:]]* ]] ; then
+            srcfile=${BASH_REMATCH[1]}
+            bucket=${BASH_REMATCH[2]}
+            presigned_url "${s3_host}" ${bucket} "${srcfile}" 60 ${secret_key} ${access_key}
         else
             bucket=${1:-}
             [ -z ${bucket} ] && usage "bucket name"
