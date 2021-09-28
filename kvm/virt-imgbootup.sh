@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 6ba9a75 - 2021-09-23T16:27:48+08:00")
+VERSION+=("virt-imgbootup.sh - e69de99 - 2021-09-23T16:35:03+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -74,7 +74,7 @@ main() {
         "-monitor" "vc"
     )
 
-    local cpu=1 mem=2048 disk=() bridge=() fmt= cdrom= floppy= usb=() simusb=() pci_bus_addr=() daemonize=
+    local cpu=1 mem=2048 disk=() bridge=() fmt="" cdrom="" floppy="" usb=() simusb=() pci_bus_addr=() daemonize=no
     local opt_short="c:m:D:b:f:"
     local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb:,simusb:,pci:,sound,daemonize,"
     opt_short+="ql:dVh"
