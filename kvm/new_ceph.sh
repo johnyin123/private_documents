@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 9a4676a - 2021-09-28T09:05:17+08:00")
+VERSION+=("new_ceph.sh - 484938c - 2021-09-28T09:30:18+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -60,6 +60,20 @@ init_first_mon() {
     echo "fix mon is allowing insecure global_id reclaim WARN"
     ceph --cluster ${cname} config set mon auth_allow_insecure_global_id_reclaim false
     ceph --cluster ${cname} -s
+}
+
+init_dashboard() {
+    local cname=${1}
+    echo "enable dashboard module"
+    ceph --cluster ${cname} mgr module enable dashboard
+    echo "create self-signed-cert"
+    ceph --cluster ${cname} dashboard create-self-signed-cert
+    echo "add admin user & set password"
+    echo "password" > /tmp/pwdfile
+    ceph --cluster ${cname} dashboard ac-user-create admin administrator -i /tmp/pwdfile
+    rm -f /tmp/pwdfile
+    echo "show dashboard info"
+    ceph --cluster ${cname} mgr services
 }
 
 init_ceph_mgr() {
@@ -380,6 +394,13 @@ inst_ceph_osd() {
     done
 }
 
+inst_ceph_dashboard() {
+    local cname=${1}
+    local ipaddr=${2}
+    info_msg "****** ${ipaddr}init dashboard.\n"
+    remote_func ${ipaddr} ${SSH_PORT} "root" init_dashboard "${cname}"
+}
+
 inst_ceph_mds() {
     local cname=${1}
     shift 1
@@ -500,6 +521,7 @@ ${SCRIPTNAME}
         -c|--cluster   <cluster name> ceph cluster name, default "ceph"
         -m|--mon       <ceph mon ip>  ceph mon node, (first mon is mon/mgr(active), other mon/mgr(standby))
         -o|--osd       <ceph osd ip>:<device>  ceph osd node
+        --dashboard    <ip>  init dashboard
         --mds          <ceph mds ip>  ceph mds node, (first mds active, other standby)
         --rgw          <ceph rgw ip>:<port>  ceph rgw node, default port=80
                        first: yum -y install ceph-radosgw
@@ -560,8 +582,9 @@ main() {
     local mon=() osd=() mds=() rgw=() cluster=ceph
     local master_zone=() rgw_realm="" rgw_grp="" rgw_zone="" rgw_endpts=""
     local sec_zone=() master_url="" access_key="" secret_key=""
+    local dashboard=""
     local opt_short="c:m:o:"
-    local opt_long="cluster:,mon:,osd:,mds:,rgw:,master_zone:,rgw_realm:,rgw_grp:,rgw_zone:,rgw_endpts:,sec_zone:,master_url:,access_key:,secret_key:,teardown:,"
+    local opt_long="cluster:,dashboard:,mon:,osd:,mds:,rgw:,master_zone:,rgw_realm:,rgw_grp:,rgw_zone:,rgw_endpts:,sec_zone:,master_url:,access_key:,secret_key:,teardown:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -571,6 +594,7 @@ main() {
             -c | --cluster) shift; cluster=${1}; shift;;
             -m | --mon)     shift; mon+=(${1}); shift;;
             -o | --osd)     shift; osd+=(${1}); shift;;
+            --dashboard)    shift; dashboard=${1}; shift;;
             --mds)          shift; mds+=(${1}); shift;;
             --rgw)          shift; rgw+=(${1}); shift;;
             --master_zone)  shift; master_zone+=(${1}); shift;;
@@ -596,6 +620,7 @@ main() {
     [ "$(array_size master_zone)" -gt "0" ] && [ "$(array_size sec_zone)" -gt "0" ] && usage "sec_zone/master_zone?"
     [ "$(array_size mon)" -gt "0" ] && inst_ceph_mon "${cluster}" "${mon[@]}"
     [ "$(array_size osd)" -gt "0" ] && inst_ceph_osd "${cluster}" "${osd[@]}"
+    [ -z "${dashboard}" ] || inst_ceph_dashboard  "${cluster}" "${dashboard}"
     [ "$(array_size mds)" -gt "0" ] && inst_ceph_mds "${cluster}" "${mds[@]}"
     [ "$(array_size rgw)" -gt "0" ] && inst_ceph_rgw "${cluster}" "${rgw[@]}"
     [ "$(array_size master_zone)" -gt "0" ] && {
