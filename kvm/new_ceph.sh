@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 47a4172 - 2021-09-26T12:44:22+08:00")
+VERSION+=("new_ceph.sh - 9a4676a - 2021-09-28T09:05:17+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 gen_ceph_conf() {
@@ -558,8 +558,8 @@ EOF
 }
 main() {
     local mon=() osd=() mds=() rgw=() cluster=ceph
-    local master_zone=() rgw_realm rgw_grp rgw_zone rgw_endpts
-    local sec_zone=() master_url access_key secret_key
+    local master_zone=() rgw_realm="" rgw_grp="" rgw_zone="" rgw_endpts=""
+    local sec_zone=() master_url="" access_key="" secret_key=""
     local opt_short="c:m:o:"
     local opt_long="cluster:,mon:,osd:,mds:,rgw:,master_zone:,rgw_realm:,rgw_grp:,rgw_zone:,rgw_endpts:,sec_zone:,master_url:,access_key:,secret_key:,teardown:,"
     opt_short+="ql:dVh"
