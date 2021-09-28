@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("s3_ceph_test.sh - b3d4bf6 - 2021-09-28T13:05:07+08:00")
+VERSION+=("s3_ceph_test.sh - ead2b83 - 2021-09-28T15:16:02+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -17,6 +17,7 @@ ${SCRIPTNAME}
         -a|--access_key  *   access_key
         -s|--secret_key  *   secret_key
         -u|--url         *   s3 url
+        -e|--expire <int>    presigned url expire seconds, default 600
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -110,9 +111,9 @@ presigned_url() {
 
 
 main() {
-    local access_key="" secret_key="" s3_host="" srcfile="" bucket="" tgtfile=""
-    local opt_short="a:s:u:"
-    local opt_long="access_key:,secret_key:,url:,"
+    local access_key="" secret_key="" s3_host="" srcfile="" bucket="" tgtfile="" expire=600
+    local opt_short="a:s:u:e:"
+    local opt_long="access_key:,secret_key:,url:,expire:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -122,6 +123,7 @@ main() {
             -a | --access_key) shift;  access_key=${1}; shift;;
             -s | --secret_key) shift;  secret_key=${1}; shift;;
             -u | --url)        shift;  s3_host=${1}; shift;;
+            -e | --expire)     shift;  expire=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -148,7 +150,7 @@ main() {
         elif [[ " $@" =~ .*?[[:space:]]([^[:space:]]+)@([^[:space:]]*)[[:space:]]* ]] ; then
             srcfile=${BASH_REMATCH[1]}
             bucket=${BASH_REMATCH[2]}
-            presigned_url "${s3_host}" ${bucket} "${srcfile}" 60 ${secret_key} ${access_key}
+            presigned_url "${s3_host}" ${bucket} "${srcfile}" "${expire}" ${secret_key} ${access_key}
         else
             bucket=${1:-}
             [ -z ${bucket} ] && usage "bucket name"
