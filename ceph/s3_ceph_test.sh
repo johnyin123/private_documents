@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("s3_ceph_test.sh - c6d25c2 - 2021-09-28T15:19:57+08:00")
+VERSION+=("s3_ceph_test.sh - 7ae95d2 - 2021-09-29T08:55:46+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -62,6 +62,7 @@ put() {
 
     local content_type=$(file ${source} --mime-type | awk '{print $2}')
     local uri="/${bucket}/${target}"
+    str_starts "${target}" "/" && uri="/${bucket}${target}"
     local date=$(env LC_ALL=C date +"%a, %d %b %Y %T %z" -u)
     local str="PUT\n\n${content_type}\n${date}\n${uri}"
     local signature=$(echo -en "${str}" | openssl sha1 -hmac "${secret_key}" -binary | base64)
@@ -85,6 +86,7 @@ get() {
     local access_key=$6
 
     local uri="/${bucket}/${source}"
+    str_starts "${source}" "/" && uri="/${bucket}${source}"
     local date=$(env LC_ALL=C date +"%a, %d %b %Y %T %z" -u)
     local str="GET\n\n\n${date}\n${uri}"
     local signature=$(echo -en "${str}" | openssl sha1 -hmac "${secret_key}" -binary | base64)
