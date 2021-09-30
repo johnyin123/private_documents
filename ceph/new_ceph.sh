@@ -7,17 +7,32 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - initversion - 2021-09-28T13:05:07+08:00")
+VERSION+=("new_ceph.sh - b3d4bf6 - 2021-09-28T13:05:07+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
+fix_ceph_conf() {
+    local cname=${1}
+    echo "fix mon is allowing insecure global_id reclaim WARN"
+    ceph --cluster ${cname} config set mon auth_allow_insecure_global_id_reclaim false
+    echo "fix rgw multi site upload http 416"
+    ceph --cluster ${cname} config set global mon_max_pg_per_osd 300
+    ceph --cluster ${cname} -s
+}
+
+change_cluster_name() {
+    local cname=${1}
+    local env_file=/etc/sysconfig/ceph   #centos
+    [ -e "${env_file}" ] || env_file=/etc/default/ceph #debian
+    sed -i "/^CLUSTER\s*=/d" ${env_file}
+    echo "CLUSTER=${cname}" >> ${env_file}
+}
+
 gen_ceph_conf() {
     local cname=${1}
     local name=${HOSTNAME:-$(hostname)}
     local ipaddr=$(hostname -i)
     local fsid=$(cat /proc/sys/kernel/random/uuid)
     local cluster_network=$(ip route | grep "${ipaddr}" | awk '{print $1}')
-    sed -i "/^CLUSTER\s*=/d" /etc/sysconfig/ceph
-    echo "CLUSTER=${cname}" >> /etc/sysconfig/ceph
     cat <<EOF | tee /etc/ceph/${cname}.conf
 [global]
 fsid = ${fsid}
@@ -57,9 +72,6 @@ init_first_mon() {
     sudo -u ceph mkdir -p /var/lib/ceph/mon/${cname}-${name}
     sudo -u ceph ceph-mon --cluster ${cname} --mkfs -i ${name} --monmap /tmp/monmap --keyring /etc/ceph/${cname}.mon.keyring
     systemctl enable --now ceph-mon@${name}
-    echo "fix mon is allowing insecure global_id reclaim WARN"
-    ceph --cluster ${cname} config set mon auth_allow_insecure_global_id_reclaim false
-    ceph --cluster ${cname} -s
 }
 
 init_dashboard() {
@@ -87,7 +99,6 @@ init_ceph_mgr() {
     ceph --cluster ${cname} auth get-or-create mgr.${name} > /etc/ceph/${cname}.mgr.admin.keyring
     sudo -u ceph cp /etc/ceph/${cname}.mgr.admin.keyring /var/lib/ceph/mgr/${cname}-${name}/keyring
     systemctl enable --now ceph-mgr@${name}
-    ceph --cluster ${cname} -s
     # switch standby ceph-mgr: ceph mgr fail <node>
 }
 
@@ -102,7 +113,6 @@ add_new_mon() {
     sudo -u ceph mkdir -p /var/lib/ceph/mon/${cname}-${name}
     sudo -u ceph ceph-mon --cluster ${cname} --mkfs -i ${name} --monmap ${mon_map} --keyring ${mon_key}
     systemctl enable --now ceph-mon@${name}
-    ceph --cluster ${cname} -s
 }
 
 add_osd_bluestore() {
@@ -115,7 +125,6 @@ add_osd_bluestore() {
         echo "create ceph volumes"
         ceph-volume --cluster ${cname} lvm create --data ${disk}
     }
-    ceph --cluster ${cname} -s
 }
 
 add_mds() {
@@ -180,9 +189,6 @@ master_multi_site_rgw() {
     radosgw-admin --cluster ${cname} zone modify --rgw-realm=${realm_name} --rgw-zonegroup=${zonegroup_name} --rgw-zone=${zone_name} --endpoints ${endpoints} --access-key=${access_key} --secret=${secret_key} --master --default
     echo "period update"
     radosgw-admin --cluster ${cname} period update --commit
-    echo "fix rgw multi site upload http 416"
-    ceph --cluster ${cname} config set global mon_max_pg_per_osd 300
-    ceph --cluster ${cname} -s
 }
 
 secondary_multi_site_rgw() {
@@ -234,11 +240,12 @@ add_rgw() {
     sudo -u ceph mkdir -p /var/lib/ceph/radosgw/${cname}-rgw.${name}
     sudo -u ceph cp /etc/ceph/${cname}.client.rgw.${name}.keyring /var/lib/ceph/radosgw/${cname}-rgw.${name}/keyring
     systemctl enable --now ceph-radosgw@rgw.${name}
-    ceph --cluster ${cname} -s
 }
 
 teardown() {
     local name=${HOSTNAME:-$(hostname)}
+    local env_file=/etc/sysconfig/ceph   #centos
+    [ -e "${env_file}" ] || env_file=/etc/default/ceph #debian
     systemctl disable --now ceph-mon@${name} || true
     systemctl disable --now ceph-mgr@${name} || true
     systemctl disable --now ceph-mds@${name} || true
@@ -250,6 +257,7 @@ teardown() {
     for i in /var/lib/ceph/osd/*; do
         umount -fl $i || true
     done
+    sed -i "/^CLUSTER\s*=/d" ${env_file}
     rm -fr \
     /etc/ceph/* \
     /var/lib/ceph/bootstrap-osd/* \
@@ -332,10 +340,10 @@ inst_ceph_mon() {
     mon_initial_members+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname"))
     mon_host+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname -i"))
     remote_func ${ipaddr} ${SSH_PORT} "root" gen_ceph_conf "${cname}"
-    download ${ipaddr} ${SSH_PORT} "root" "/etc/sysconfig/ceph" "${DIRNAME}/${cname}.ceph"
     download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf" "${DIRNAME}/${cname}.conf"
     ${EDITOR:-vi} "${DIRNAME}/${cname}.conf" || true
     confirm "Confirm NEW init ceph env(timeout 10,default N)?" 10 || exit_msg "BYE!"
+    remote_func ${ipaddr} ${SSH_PORT} "root" change_cluster_name "${cname}"
     upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
     remote_func ${ipaddr} ${SSH_PORT} "root" init_first_mon "${cname}"
     download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.client.admin.keyring" "${DIRNAME}/${cname}.client.admin.keyring"
@@ -347,7 +355,7 @@ inst_ceph_mon() {
         info_msg "****** $ipaddr init mon.\n"
         mon_initial_members+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname"))
         mon_host+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname -i"))
-        upload "${DIRNAME}/${cname}.ceph" ${ipaddr} ${SSH_PORT} "root" "/etc/sysconfig/ceph"
+        remote_func ${ipaddr} ${SSH_PORT} "root" change_cluster_name "${cname}"
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
         upload "${DIRNAME}/${cname}.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.client.admin.keyring"
         upload "${DIRNAME}/${cname}.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/${cname}.keyring"
@@ -367,6 +375,7 @@ inst_ceph_mon() {
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
         remote_func ${ipaddr} ${SSH_PORT} "root" "systemctl restart ceph.target"
     done
+    remote_func ${allmon[0]} ${SSH_PORT} "root" fix_ceph_conf "${cname}"
 }
 
 inst_ceph_osd() {
@@ -374,7 +383,6 @@ inst_ceph_osd() {
     shift 1
     local osd=("$@")
     local ipaddr= dev=
-    [ -e "${DIRNAME}/${cname}.ceph" ] || exit_msg "nofound ${DIRNAME}/${cname}.ceph\n"
     [ -e "${DIRNAME}/${cname}.conf" ] || exit_msg "nofound ${DIRNAME}/${cname}.conf\n"
     [ -e "${DIRNAME}/${cname}.client.admin.keyring" ] || exit_msg "nofound ${DIRNAME}/${cname}.client.admin.keyring\n"
     [ -e "${DIRNAME}/${cname}.keyring" ] || exit_msg "nofound ${DIRNAME}/${cname}.keyring\n"
@@ -384,7 +392,7 @@ inst_ceph_osd() {
         [ -z "${dev}" ] && continue
         ipaddr=${ipaddr%:*}
         info_msg "****** ${ipaddr}:${dev} init osd.\n"
-        upload "${DIRNAME}/${cname}.ceph" ${ipaddr} ${SSH_PORT} "root" "/etc/sysconfig/ceph"
+        remote_func ${ipaddr} ${SSH_PORT} "root" change_cluster_name "${cname}"
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
         upload "${DIRNAME}/${cname}.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.client.admin.keyring"
         upload "${DIRNAME}/${cname}.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/${cname}.keyring"
@@ -406,13 +414,12 @@ inst_ceph_mds() {
     shift 1
     local mds=("$@")
     local ipaddr=
-    [ -e "${DIRNAME}/${cname}.ceph" ] || exit_msg "nofound ${DIRNAME}/${cname}.ceph\n"
     [ -e "${DIRNAME}/${cname}.conf" ] || exit_msg "nofound ${DIRNAME}/${cname}.conf\n"
     [ -e "${DIRNAME}/${cname}.client.admin.keyring" ] || exit_msg "nofound ${DIRNAME}/${cname}.client.admin.keyring\n"
     [ -e "${DIRNAME}/${cname}.keyring" ] || exit_msg "nofound ${DIRNAME}/${cname}.keyring\n"
     for ipaddr in ${mds[@]}; do
         info_msg "****** ${ipaddr} init mds.\n"
-        upload "${DIRNAME}/${cname}.ceph" ${ipaddr} ${SSH_PORT} "root" "/etc/sysconfig/ceph"
+        remote_func ${ipaddr} ${SSH_PORT} "root" change_cluster_name "${cname}"
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
         upload "${DIRNAME}/${cname}.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.client.admin.keyring"
         upload "${DIRNAME}/${cname}.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/${cname}.keyring"
@@ -524,7 +531,7 @@ ${SCRIPTNAME}
         --dashboard    <ip>  init dashboard
         --mds          <ceph mds ip>  ceph mds node, (first mds active, other standby)
         --rgw          <ceph rgw ip>:<port>  ceph rgw node, default port=80
-                       first: yum -y install ceph-radosgw
+                       first: yum -y install ceph-radosgw || apt -y install radosgw
                        echo <access_key:secret_key> > ~/.passwd-s3fs
                        chmod 600 ~/.passwd-s3fs
                        s3fs bucket1 /mnt/ -o passwd_file=~/.passwd-s3fs -o url=http://<ip> -o use_path_request_style
@@ -553,6 +560,10 @@ ${SCRIPTNAME}
             centos-release-ceph-nautilus/centos-release-ceph-octopus/centos-release-ceph-pacific
         1. yum -y update && yum -y install centos-release-ceph-pacific
         2. yum -y install ceph
+        OR.
+        1. wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add -
+        2. echo deb http://download.ceph.com/debian-VER/ DIST main | tee /etc/apt/sources.list.d/ceph.list
+        3. apt-get update && apt-get install ceph-deploy
         SSH_PORT default is 60022
          ${SCRIPTNAME} -c site1 \\
                -m 192.168.168.101 -m 192.168.168.102 -m 192.168.168.103 \\
