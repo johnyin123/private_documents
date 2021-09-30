@@ -1,7 +1,8 @@
 export CEPH_DEPLOY_REPO_URL=http://mirrors.163.com/ceph/debian-jewel
 export CEPH_DEPLOY_GPG_URL=http://mirrors.163.com/ceph/keys/release.asc
 apt-get update && apt-get -y upgrade
-wget -q -O- 'https://download.ceph.com/keys/autobuild.asc' | apt-key add -
+#wget -q -O- 'https://download.ceph.com/keys/autobuild.asc' | apt-key add -
+wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add -
 echo deb http://download.ceph.com/debian-jewel/ $(lsb_release -sc) main | tee /etc/apt/sources.list.d/ceph.list
 apt-get update && apt-get install ceph-deploy
 
