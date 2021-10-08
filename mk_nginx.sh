@@ -48,14 +48,15 @@ EOF
 --with-http_geoip_module=dynamic \
 --with-stream_geoip_module=dynamic \
  \
---with-openssl=${CURPATH}/openssl-1.1.0f \
+--with-openssl=${CURPATH}/openssl-1.1.1l \
 --with-pcre=${CURPATH}/pcre-8.39 \
 --with-zlib=${CURPATH}/zlib-1.2.11.dfsg \
 --add-module=nginx-goodies-nginx-sticky-module-ng-08a395c66e42 \
 --add-module=nginx_limit_speed_module-master \
 --add-module=nginx-module-vts-master \
 --add-module=ngx_http_redis-0.3.9 \
---add-module=nginx-eval-module-master
+--add-module=nginx-eval-module-master \
+--add-module=nginx-rtmp-module-1.2.2
 
 readonly OUTDIR=${CURPATH}/out
 rm -rf ${OUTDIR}
