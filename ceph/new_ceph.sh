@@ -7,15 +7,18 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - e1a31b2 - 2021-09-30T11:00:19+08:00")
+VERSION+=("new_ceph.sh - c020375 - 2021-10-08T09:22:04+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 fix_ceph_conf() {
     local cname=${1}
     echo "fix mon is allowing insecure global_id reclaim WARN"
-    ceph --cluster ${cname} config set mon auth_allow_insecure_global_id_reclaim false
+    ceph --cluster ${cname} config set mon auth_allow_insecure_global_id_reclaim false || true
     echo "fix rgw multi site upload http 416"
-    ceph --cluster ${cname} config set global mon_max_pg_per_osd 300
+    ceph --cluster ${cname} config set global mon_max_pg_per_osd 300 || true
+    echo "fix clock skew detected"
+    ceph --cluster ${cname} config set mon_clock_drift_allowed 2 || true
+    ceph --cluster ${cname} config set mon_clock_drift_warn_backoff 30 || true
     ceph --cluster ${cname} -s
 }
 
@@ -92,7 +95,7 @@ init_ceph_mgr() {
     local cname=${1}
     local name=${HOSTNAME:-$(hostname)}
     [ -e "/etc/ceph/${cname}.conf" ] || return 1
-    ceph --cluster ${cname} mon enable-msgr2
+    ceph --cluster ${cname} mon enable-msgr2 || true  #luminous not this command
     #ceph mgr module enable pg_autoscaler
     sudo -u ceph mkdir /var/lib/ceph/mgr/${cname}-${name}
     ceph --cluster ${cname} auth get-or-create mgr.${name} mon 'allow profile mgr' osd 'allow *' mds 'allow *'
