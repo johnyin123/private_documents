@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - b3d4bf6 - 2021-09-28T13:05:07+08:00")
+VERSION+=("new_ceph.sh - e1a31b2 - 2021-09-30T11:00:19+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 fix_ceph_conf() {
@@ -563,7 +563,7 @@ ${SCRIPTNAME}
         OR.
         1. wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add -
         2. echo deb http://download.ceph.com/debian-VER/ DIST main | tee /etc/apt/sources.list.d/ceph.list
-        3. apt-get update && apt-get install ceph-deploy
+        3. apt-get update && apt-get install ceph
         SSH_PORT default is 60022
          ${SCRIPTNAME} -c site1 \\
                -m 192.168.168.101 -m 192.168.168.102 -m 192.168.168.103 \\
