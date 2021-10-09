@@ -444,6 +444,7 @@ stream {
 }
 EOF
 
+# apt install rpm ruby-rubygems
 # gem install fpm
 # fpm -s dir -t rpm -C ~/nginx-1.13.0/bin/ --name nginx_xikang --version 1.13.0 --iteration 1 --depends pcre --depends zlib --description "xikang nginx with openssl,other modules" .
 
