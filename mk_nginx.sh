@@ -40,6 +40,10 @@ EOF
 --with-http_secure_link_module \
 --with-http_slice_module \
 --with-http_stub_status_module \
+ \
+--with-http_flv_module \
+--with-http_mp4_module \
+ \
 --with-stream \
 --with-stream_ssl_module \
 --with-stream_realip_module \
@@ -247,7 +251,110 @@ log_format basic '$remote_addr $protocol $server_port [$time_local] '
 access_log /var/log/nginx/stream_access.log basic buffer=32k;
 error_log /var/log/nginx/stream_error.log;
 EOF
+cat <<EOF
+<!DOCTYPE html>
+<html>
+<head>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+    <title>flv.js demo</title>
+    <style>
+        .mainContainer {
+    display: block;
+    width: 1024px;
+    margin-left: auto;
+    margin-right: auto;
+}
+.urlInput {
+    display: block;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
 
+.centeredVideo {
+    display: block;
+    width: 100%;
+    height: 576px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: auto;
+}
+
+.controls {
+    display: block;
+    width: 100%;
+    text-align: left;
+    margin-left: auto;
+    margin-right: auto;
+}
+    </style>
+</head>
+
+<body>
+    <div class="mainContainer">
+        <video id="videoElement" class="centeredVideo" controls autoplay width="1024" height="576">Your browser is too old which doesn't support HTML5 video.</video>
+    </div>
+    <br>
+    <div class="controls">
+        <!--<button onclick="flv_load()">加载</button>-->
+        <button onclick="flv_start()">开始</button>
+        <button onclick="flv_pause()">暂停</button>
+        <button onclick="flv_destroy()">停止</button>
+        <input style="width:100px" type="text" name="seekpoint" />
+        <button onclick="flv_seekto()">跳转</button>
+    </div>
+    <script src="flv.min.js"></script>
+    <script>
+        var player = document.getElementById('videoElement');
+        if (flvjs.isSupported()) {
+            var flvPlayer = flvjs.createPlayer({
+                type: 'flv',
+                // "isLive": true,
+                url: '你的视频.flv'
+            });
+            flvPlayer.attachMediaElement(videoElement);
+            flvPlayer.load(); //加载
+        }
+
+        function flv_start() {
+            player.play();
+        }
+
+        function flv_pause() {
+            player.pause();
+        }
+
+        function flv_destroy() {
+            player.pause();
+            player.unload();
+            player.detachMediaElement();
+            player.destroy();
+            player = null;
+        }
+
+        function flv_seekto() {
+            player.currentTime = parseFloat(document.getElementsByName('seekpoint')[0].value);
+        }
+    </script>
+</body>
+</html>
+EOF
+cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/flv_movie.conf
+# flv mp4流媒体服务器, https://github.com/Bilibili/flv.js
+# apt -y install yamdi
+server {
+    listen       80;
+    root    /movie/;
+    limit_rate_after 5m; #在flv视频文件下载了5M以后开始限速
+    limit_rate 100k;     #速度限制为100K
+    index index.html;
+    location ~ \.flv {
+        flv;
+    }
+}
+EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/nginx.conf
 user www-data;
 worker_processes auto;
