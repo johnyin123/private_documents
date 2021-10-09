@@ -359,7 +359,7 @@ server {
 }
 EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/nginx.conf
-user www-data;
+user nobody;
 worker_processes auto;
 worker_rlimit_nofile 102400;
 pid /run/nginx.pid;
@@ -389,7 +389,6 @@ http {
     proxy_intercept_errors on;
     proxy_redirect off;
     proxy_set_header Host $host:$server_port;
-    proxy_redirect http:// $scheme://;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-Proto $scheme;
