@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 07e2179 - 2021-09-22T09:49:01+08:00")
+VERSION+=("functions.sh - 26f78df - 2021-09-22T09:52:31+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -1111,7 +1111,7 @@ add_config() {
 # cat conf | get_config "cluster network"
 get_config() {
     local CONF_DELM=${3:-=}
-    sed --quiet "s/$1\s*${CONF_DELM}\s*\(.*\)/\1/p"
+    sed --quiet "s/^$1\s*${CONF_DELM}\s*\(.*\)/\1/p"
 }
 
 # ID=100
