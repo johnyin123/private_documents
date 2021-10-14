@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("centos_tuning.sh - 2acb244 - 2021-09-16T07:55:03+08:00")
+VERSION+=("centos_tuning.sh - 674e41d - 2021-10-14T09:43:08+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_centos_init.sh
@@ -29,7 +29,7 @@ EOF
     exit 1
 }
 main() {
-    local ssh= port=60022 name= zswap=512
+    local ssh="" port=60022 name="" zswap=512
     local opt_short="s:p:n:z:"
     local opt_long="ssh:,port:,hostname:,zswap:,"
     opt_short+="ql:dVh"
