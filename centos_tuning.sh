@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("centos_tuning.sh - 2274cee - 2021-09-15T13:24:21+08:00")
+VERSION+=("centos_tuning.sh - 2acb244 - 2021-09-16T07:55:03+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_centos_init.sh
@@ -56,26 +56,15 @@ main() {
     [ -r "${DIRNAME}/motd.sh" ] && {
         try "cat ${DIRNAME}/motd.sh | ssh -p${port} ${ssh} 'cat >/etc/motd.sh'"
     }
-    try ssh -p${port} ${ssh} /bin/bash -s << EOF
-        $(typeset -f centos_limits_init)
-        $(typeset -f centos_disable_selinux)
-        $(typeset -f centos_sshd_init)
-        $(typeset -f centos_disable_ipv6)
-        $(typeset -f centos_service_init)
-        centos_limits_init
-        centos_disable_selinux
-        centos_sshd_init
-        centos_disable_ipv6
-        centos_service_init
-        $(typeset -f centos_sysctl_init)
-        centos_sysctl_init
-        $(typeset -f centos_zswap_init)
-        centos_zswap_init ${zswap}
-        sed -i "/motd.sh/d" /etc/profile
-        echo "sh /etc/motd.sh" >> /etc/profile
-        touch /etc/logo.txt /etc/motd.sh
-        [ -z "${name}" ] || echo "${name}" > /etc/hostname
-EOF
+    ssh_func "${ssh}" "${port}" centos_limits_init
+    ssh_func "${ssh}" "${port}" centos_disable_selinux
+    ssh_func "${ssh}" "${port}" centos_sshd_init
+    ssh_func "${ssh}" "${port}" centos_disable_ipv6
+    ssh_func "${ssh}" "${port}" centos_service_init
+    ssh_func "${ssh}" "${port}" centos_sysctl_init
+    ssh_func "${ssh}" "${port}" centos_zswap_init ${zswap}
+    ssh_func "${ssh}" "${port}" "sed -i '/motd.sh/d' /etc/profile ; echo 'sh /etc/motd.sh' >> /etc/profile;touch /etc/logo.txt /etc/motd.sh"
+    ssh_func "${ssh}" "${port}" "[ -z '${name}' ] || echo '${name}' > /etc/hostname"
     return 0
 }
 main "$@"
