@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("openvpn.sh - initversion - 2021-10-13T14:13:12+08:00")
+VERSION+=("openvpn.sh - 3802d7f - 2021-10-13T14:13:12+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -30,7 +30,7 @@ EOF
 
 init_server() {
     local caroot=${1}
-    directory_exists ${caroot} && return 1
+    [ -d "${caroot}" ] && return 1
     mkdir -p ${caroot}
     echo "generate ca"
     cat << EOF > ${caroot}/ca.info
@@ -101,7 +101,7 @@ EOF
 gen_clent_cert() {
     local caroot=${1}
     local cid=${2}
-    file_exists ${caroot}/client_${cid}.info && return 1
+    [ -e "${caroot}/client_${cid}.info" ] && return 1
     cat << EOF > ${caroot}/client_${cid}.info
 organization = ${cid} 
 cn = ${cid}
@@ -145,27 +145,17 @@ main() {
     done
     [ -z "${init}" ] || {
         info_msg "install package\n"
-        try ssh -p${port} ${ssh} /bin/bash -s << EOF
-            yum -y install epel-release
-            yum -y install openvpn
-            echo "install certtool"
-            yum -y install gnutls-utils
-            # apt -y install gnutls-bin
-EOF
+        ssh_func "${ssh}" "${port}" "yum -y install epel-release"
+        ssh_func "${ssh}" "${port}" "yum -y install openvpn"
+        ssh_func "${ssh}" "${port}" "yum -y install gnutls-utils"
+        # apt -y install gnutls-bin
         info_msg "init openvpn server env\n"
-        try ssh -p${port} ${ssh} /bin/bash -s << EOF
-            $(typeset -f init_server)
-            init_server "${caroot}"
-            $(typeset -f modify_openvpn_cfg)
-            modify_openvpn_cfg
-EOF
+        ssh_func "${ssh}" "${port}" init_server "${caroot}"
+        ssh_func "${ssh}" "${port}" modify_openvpn_cfg
     }
     [ -z "${client}" ] || {
         info_msg "generate client [${client}] openvpn cert\n"
-        try ssh -p${port} ${ssh} /bin/bash -s << EOF
-            $(typeset -f gen_clent_cert)
-            gen_clent_cert "${caroot}" "${client}"
-EOF
+        ssh_func "${ssh}" "${port}" gen_clent_cert "${caroot}" "${client}"
     }
     info_msg "ALL DONE\n"
     return 0
