@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_centos_init.sh - 67410a2 - 2021-09-24T08:03:59+08:00")
+VERSION+=("os_centos_init.sh - 829112e - 2021-10-14T08:30:20+08:00")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -123,8 +123,8 @@ EOSHELL
 centos_limits_init() {
     #set the file limit
     cat > /etc/security/limits.d/tun.conf << EOF
-*           soft   nofile       unlimited
-*           hard   nofile       unlimited
+*           soft   nofile       102400
+*           hard   nofile       102400
 EOF
 }
 export -f centos_limits_init
