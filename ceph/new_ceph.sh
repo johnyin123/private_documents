@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - c020375 - 2021-10-08T09:22:04+08:00")
+VERSION+=("new_ceph.sh - c55434a - 2021-10-08T09:56:59+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 fix_ceph_conf() {
@@ -289,26 +289,11 @@ list_rgw_info() {
 # remote execute function end!
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
-remote_func() {
-    local ipaddr=${1}
-    local port=${2}
-    local user=${3}
-    local func_name=${4}
-    shift 4
-    local args=("$@")
-    warn_msg "${user}@${ipaddr}:${port} start ====> ${func_name}\n"
-    local ssh_opt="-o StrictHostKeyChecking=no -o ServerAliveInterval=60 -p${port} ${user}@${ipaddr}"
-    try ssh ${ssh_opt} /bin/bash -x -o errexit -s << EOF
-$(typeset -f "${func_name}" 2>/dev/null)
-${func_name} ${args[@]}
-EOF
-    warn_msg "${user}@${ipaddr}:${port} end ====> ${func_name}\n"
-}
 
 remove_ceph_cfg() {
     local ipaddr=${1}
     info_msg "${ipaddr} teardown all ceph config!\n"
-    remote_func ${ipaddr} ${SSH_PORT} "root" "teardown"
+    ssh_func "root@${ipaddr}" ${SSH_PORT} "teardown"
 }
 
 download() {
@@ -340,33 +325,33 @@ inst_ceph_mon() {
     local mon_initial_members=()
     local mon_host=()
     info_msg "${ipaddr} ceph mgr install the first mon node!\n"
-    mon_initial_members+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname"))
-    mon_host+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname -i"))
-    remote_func ${ipaddr} ${SSH_PORT} "root" gen_ceph_conf "${cname}"
+    mon_initial_members+=($(ssh_func "root@${ipaddr}" ${SSH_PORT} "hostname"))
+    mon_host+=($(ssh_func "root@${ipaddr}" ${SSH_PORT} "hostname -i"))
+    ssh_func "root@${ipaddr}" ${SSH_PORT} gen_ceph_conf "${cname}"
     download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf" "${DIRNAME}/${cname}.conf"
     ${EDITOR:-vi} "${DIRNAME}/${cname}.conf" || true
     confirm "Confirm NEW init ceph env(timeout 10,default N)?" 10 || exit_msg "BYE!"
-    remote_func ${ipaddr} ${SSH_PORT} "root" change_cluster_name "${cname}"
+    ssh_func "root@${ipaddr}" ${SSH_PORT} change_cluster_name "${cname}"
     upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
-    remote_func ${ipaddr} ${SSH_PORT} "root" init_first_mon "${cname}"
+    ssh_func "root@${ipaddr}" ${SSH_PORT} init_first_mon "${cname}"
     download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.client.admin.keyring" "${DIRNAME}/${cname}.client.admin.keyring"
     download ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/${cname}.keyring" "${DIRNAME}/${cname}.keyring"
-    remote_func ${ipaddr} ${SSH_PORT} "root" init_ceph_mgr "${cname}"
+    ssh_func "root@${ipaddr}" ${SSH_PORT} init_ceph_mgr "${cname}"
     #now add other mons
     mon[0]=
     for ipaddr in ${mon[@]}; do
         info_msg "****** $ipaddr init mon.\n"
-        mon_initial_members+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname"))
-        mon_host+=($(remote_func ${ipaddr} ${SSH_PORT} "root" "hostname -i"))
-        remote_func ${ipaddr} ${SSH_PORT} "root" change_cluster_name "${cname}"
+        mon_initial_members+=($(ssh_func "root@${ipaddr}" ${SSH_PORT} "hostname"))
+        mon_host+=($(ssh_func "root@${ipaddr}" ${SSH_PORT} "hostname -i"))
+        ssh_func "root@${ipaddr}" ${SSH_PORT} change_cluster_name "${cname}"
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
         upload "${DIRNAME}/${cname}.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.client.admin.keyring"
         upload "${DIRNAME}/${cname}.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/${cname}.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" "chmod 644 /etc/ceph/${cname}.client.admin.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" "chown ceph:ceph /var/lib/ceph/bootstrap-osd/${cname}.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" add_new_mon "${cname}"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} "chmod 644 /etc/ceph/${cname}.client.admin.keyring"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} "chown ceph:ceph /var/lib/ceph/bootstrap-osd/${cname}.keyring"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} add_new_mon "${cname}"
         # standby ceph-mgr
-        remote_func ${ipaddr} ${SSH_PORT} "root" init_ceph_mgr "${cname}"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} init_ceph_mgr "${cname}"
     done
     try cat "${DIRNAME}/${cname}.conf" | \
         set_config mon_initial_members "$(OIFS="$IFS" IFS=,; echo "${mon_initial_members[*]}"; IFS="$OIFS")" | \
@@ -376,7 +361,7 @@ inst_ceph_mon() {
     try mv "${DIRNAME}/${cname}.conf.new" "${DIRNAME}/${cname}.conf"
     for ipaddr in ${allmon[@]}; do
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
-        remote_func ${ipaddr} ${SSH_PORT} "root" "systemctl restart ceph.target"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} "systemctl restart ceph.target"
     done
     remote_func ${allmon[0]} ${SSH_PORT} "root" fix_ceph_conf "${cname}"
 }
@@ -395,13 +380,13 @@ inst_ceph_osd() {
         [ -z "${dev}" ] && continue
         ipaddr=${ipaddr%:*}
         info_msg "****** ${ipaddr}:${dev} init osd.\n"
-        remote_func ${ipaddr} ${SSH_PORT} "root" change_cluster_name "${cname}"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} change_cluster_name "${cname}"
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
         upload "${DIRNAME}/${cname}.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.client.admin.keyring"
         upload "${DIRNAME}/${cname}.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/${cname}.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" "chmod 644 /etc/ceph/${cname}.client.admin.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" "chown ceph:ceph /var/lib/ceph/bootstrap-osd/${cname}.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" add_osd_bluestore "${cname}" "${dev}"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} "chmod 644 /etc/ceph/${cname}.client.admin.keyring"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} "chown ceph:ceph /var/lib/ceph/bootstrap-osd/${cname}.keyring"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} add_osd_bluestore "${cname}" "${dev}"
     done
 }
 
@@ -409,7 +394,7 @@ inst_ceph_dashboard() {
     local cname=${1}
     local ipaddr=${2}
     info_msg "****** ${ipaddr}init dashboard.\n"
-    remote_func ${ipaddr} ${SSH_PORT} "root" init_dashboard "${cname}"
+    ssh_func "root@${ipaddr}" ${SSH_PORT} init_dashboard "${cname}"
 }
 
 inst_ceph_mds() {
@@ -422,13 +407,13 @@ inst_ceph_mds() {
     [ -e "${DIRNAME}/${cname}.keyring" ] || exit_msg "nofound ${DIRNAME}/${cname}.keyring\n"
     for ipaddr in ${mds[@]}; do
         info_msg "****** ${ipaddr} init mds.\n"
-        remote_func ${ipaddr} ${SSH_PORT} "root" change_cluster_name "${cname}"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} change_cluster_name "${cname}"
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
         upload "${DIRNAME}/${cname}.client.admin.keyring" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.client.admin.keyring"
         upload "${DIRNAME}/${cname}.keyring" ${ipaddr} ${SSH_PORT} "root" "/var/lib/ceph/bootstrap-osd/${cname}.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" "chmod 644 /etc/ceph/${cname}.client.admin.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" "chown ceph:ceph /var/lib/ceph/bootstrap-osd/${cname}.keyring"
-        remote_func ${ipaddr} ${SSH_PORT} "root" add_mds "${cname}"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} "chmod 644 /etc/ceph/${cname}.client.admin.keyring"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} "chown ceph:ceph /var/lib/ceph/bootstrap-osd/${cname}.keyring"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} add_mds "${cname}"
      done
 }
 
@@ -454,11 +439,11 @@ endpoints=${endpoints}
 access_key=${access_key}
 secret_key=${secret_key}
 EOF
-    remote_func ${ipaddr} ${SSH_PORT} "root" master_multi_site_rgw "${cname}" "${realm_name}" "${zonegroup_name}" "${zone_name}" "${endpoints}" "${access_key}" "${secret_key}"
+    ssh_func "root@${ipaddr}" ${SSH_PORT} master_multi_site_rgw "${cname}" "${realm_name}" "${zonegroup_name}" "${zone_name}" "${endpoints}" "${access_key}" "${secret_key}"
     for ipaddr in ${rgw[@]}; do
-        remote_func ${ipaddr} ${SSH_PORT} "root" 'systemctl restart ceph-radosgw@rgw.$(hostname)'
+        ssh_func "root@${ipaddr}" ${SSH_PORT} 'systemctl restart ceph-radosgw@rgw.$(hostname)'
     done
-    remote_func ${ipaddr} ${SSH_PORT} "root" list_rgw_info "${cname}"
+    ssh_func "root@${ipaddr}" ${SSH_PORT} list_rgw_info "${cname}"
 }
 
 setup_rgw_multi_site_slave() {
@@ -484,12 +469,12 @@ access_key=${access_key}
 secret_key=${secret_key}
 master_url=${master_url}
 EOF
-    remote_func ${ipaddr} ${SSH_PORT} "root" secondary_multi_site_rgw "${cname}" "${realm_name}" \
+    ssh_func "root@${ipaddr}" ${SSH_PORT} secondary_multi_site_rgw "${cname}" "${realm_name}" \
         "${zonegroup_name}" "${zone_name}" "${endpoints}" "${access_key}" "${secret_key}" "${master_url}"
     for ipaddr in ${rgw[@]}; do
-        remote_func ${ipaddr} ${SSH_PORT} "root" 'systemctl restart ceph-radosgw@rgw.$(hostname)'
+        ssh_func "root@${ipaddr}" ${SSH_PORT} 'systemctl restart ceph-radosgw@rgw.$(hostname)'
     done
-    remote_func ${ipaddr} ${SSH_PORT} "root" list_rgw_info "${cname}"
+    ssh_func "root@${ipaddr}" ${SSH_PORT} list_rgw_info "${cname}"
 }
 
 inst_ceph_rgw() {
@@ -502,7 +487,7 @@ inst_ceph_rgw() {
         port=$(awk -F':' '{print $2}' <<< "$ipaddr")
         #port=${ipaddr##*:}
         ipaddr=${ipaddr%:*}
-        name=$(remote_func ${ipaddr} ${SSH_PORT} "root" hostname)
+        name=$(ssh_func "root@${ipaddr}" ${SSH_PORT} hostname)
         # remove orig configurtions
         sed -i "/\[client.rgw.${name}]/,/^\[client.rgw.$/d" ${DIRNAME}/${cname}.conf
         cat <<EOF >> ${DIRNAME}/${cname}.conf
@@ -520,7 +505,7 @@ EOF
         ipaddr=${ipaddr%:*}
         info_msg "****** ${ipaddr} init rgw.\n"
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
-        remote_func ${ipaddr} ${SSH_PORT} "root" add_rgw "${cname}"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} add_rgw "${cname}"
      done
 }
 

@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 26f78df - 2021-09-22T09:52:31+08:00")
+VERSION+=("functions.sh - 124652c - 2021-10-13T12:45:14+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -40,6 +40,21 @@ list_func() {
     alias
 #    local fncs=$(declare -F -p | cut -d " " -f 3 | grep -v "^_")
 #    echo $fncs
+}
+
+# ssh_func user@host port func args....
+ssh_func() {
+    local ssh=${1}
+    local port=${2}
+    local func_name=${3}
+    shift 3
+    local args=("$@")
+    info_msg "ssh ${ssh}:${port} => ${func_name}\n"
+    local ssh_opt="-t -oLogLevel=error -o StrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -o ServerAliveInterval=60 -p${port} ${ssh}"
+    try ssh ${ssh_opt} /bin/bash -x -o errexit -s << EOF
+$(typeset -f "${func_name}" 2>/dev/null)
+${func_name} ${args[@]}
+EOF
 }
 
 # rand=$(random)
