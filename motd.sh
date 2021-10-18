@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION+=("motd.sh - 4de12e0 - 2021-04-20T14:01:28+08:00")
+VERSION+=("motd.sh - 2e0dc10 - 2021-08-17T17:15:18+08:00")
 date=$(date "+%F %T")
 kernel=$(uname -r)
 hostname=${HOSTNAME:-$(hostname)}
@@ -24,7 +24,7 @@ users=$(users | wc -w)
 USER=$(whoami)
 
 #System fs usage
-Filesystem=$(df -h | awk '/^\/dev/{print $6}')
+Filesystem=$(timeout 3 df -h | awk '/^\/dev/{print $6}')
 
 #Interfaces
 INTERFACES=$(ls /sys/class/net/)
@@ -55,7 +55,7 @@ exec {FD}</etc/logo.txt
     printf "Filesystem          Usage\n"
     for f in $Filesystem
     do
-        Usage=$(df -h | awk '{if($NF=="'''$f'''") print $5}')
+        Usage=$(timeout 3 df -h | awk '{if($NF=="'''$f'''") print $5}')
         printf "%-20s%s\n" $f $Usage
     done
     printf "%s\n" "---------------------------------------------"
