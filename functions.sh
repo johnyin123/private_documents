@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 69df85f - 2021-10-14T09:33:46+08:00")
+VERSION+=("functions.sh - 7e26349 - 2021-10-14T09:54:39+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -42,6 +42,23 @@ list_func() {
 #    echo $fncs
 }
 
+# #if ssh login with password, need set password first
+# set_sshpass "password"
+# ssh_func root@192.168.168.123 60022 "ls -l /;ip a"
+# rm -f ${SSH_ASKPASS}
+# unset SSH_ASKPASS
+set_sshpass() {
+    local pass=${1}
+    local SSH_ASKPASS_SCRIPT=$(mktemp)
+    try cat > ${SSH_ASKPASS_SCRIPT} <<EOF
+#!/bin/bash
+echo "${pass}"
+EOF
+    try chmod 744 ${SSH_ASKPASS_SCRIPT}
+    info_msg "set ssh askpass = ${SSH_ASKPASS_SCRIPT}\n"
+    export SSH_ASKPASS=${SSH_ASKPASS_SCRIPT}
+}
+
 # ssh_func user@host port func args....
 ssh_func() {
     local ssh=${1}
@@ -49,9 +66,9 @@ ssh_func() {
     local func_name=${3}
     shift 3
     local args=("$@")
-    info_msg "ssh ${ssh}:${port} => ${func_name}\n"
+    info_msg "ssh ${ssh}:${port}${SSH_ASKPASS:+(askpass:${SSH_ASKPASS})} => ${func_name}\n"
     local ssh_opt="-t -oLogLevel=error -o StrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -o ServerAliveInterval=60 -p${port} ${ssh}"
-    try ssh ${ssh_opt} /bin/bash -x -o errexit -s << EOF
+    try setsid ssh ${ssh_opt} /bin/bash -x -o errexit -s << EOF
 $(typeset -f "${func_name}" 2>/dev/null || true)
 ${func_name} ${args[@]}
 EOF
