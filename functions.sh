@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 7e26349 - 2021-10-14T09:54:39+08:00")
+VERSION+=("functions.sh - 86531d2 - 2021-10-18T09:17:25+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -60,6 +60,7 @@ EOF
 }
 
 # ssh_func user@host port func args....
+# msg=$(ssh_func user@ip port "cat /msg.txt")
 ssh_func() {
     local ssh=${1}
     local port=${2}
