@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - c55434a - 2021-10-08T09:56:59+08:00")
+VERSION+=("new_ceph.sh - 69df85f - 2021-10-14T09:33:46+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 fix_ceph_conf() {
@@ -330,7 +330,7 @@ inst_ceph_mon() {
     ssh_func "root@${ipaddr}" ${SSH_PORT} gen_ceph_conf "${cname}"
     download ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf" "${DIRNAME}/${cname}.conf"
     ${EDITOR:-vi} "${DIRNAME}/${cname}.conf" || true
-    confirm "Confirm NEW init ceph env(timeout 10,default N)?" 10 || exit_msg "BYE!"
+    confirm "Confirm NEW init ceph env(timeout 10,default N)?" 10 || exit_msg "BYE!\n"
     ssh_func "root@${ipaddr}" ${SSH_PORT} change_cluster_name "${cname}"
     upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
     ssh_func "root@${ipaddr}" ${SSH_PORT} init_first_mon "${cname}"

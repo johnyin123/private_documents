@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 86531d2 - 2021-10-18T09:17:25+08:00")
+VERSION+=("functions.sh - fb59e8c - 2021-10-18T09:43:53+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -451,12 +451,33 @@ get_ipaddr() {
     $(truecmd ip) -4 -br addr show ${1} | $(truecmd grep) -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
 }
 
+# local val=abc
+# prompt val "input" 2
+# echo $val
+prompt() {
+    local var="${1}"
+    local msg="${2}"
+    local tmout=${3:-}
+    local nchars=${4:-}
+    local value=""
+    {
+        trap "exit -1" SIGINT SIGTERM
+        read ${nchars:+-n ${nchars}} ${tmout:+-t ${tmout}} -p "${msg}" value || true
+        value="${value//\"/\'}";
+    } 2>&1
+    if [ ! -z "${value}" ]; then
+        eval "${var}"=\"${value}\"
+    fi
+    echo ""
+}
+
 #confirm default N,when timeout
 confirm() {
     local msg=${1:-confirm}
-    local tmout=${2:-}
-    read ${tmout:+-t ${tmout}} -p "${msg} [y/N] " -n 1
-    if [ "${REPLY}" = "Y" ] || [ "${REPLY}" = "y" ]; then
+    local tmout=${2:-5}
+    local ANSWER=""
+    prompt ANSWER "${msg} [y/N] " "${tmout}" "1" 
+    if [ "${ANSWER}" = "Y" ] || [ "${ANSWER}" = "y" ]; then
         return 0
     fi
     return 1
