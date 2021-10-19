@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_centos_init.sh - 829112e - 2021-10-14T08:30:20+08:00")
+VERSION+=("os_centos_init.sh - 373de58 - 2021-10-14T10:31:29+08:00")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -235,10 +235,12 @@ centos_zswap_init() {
     local size_mb=$(($1*1024*1024))
     ( grep -v -E "^/dev/zram0" /etc/fstab ; echo "/dev/zram0   none swap sw,pri=32767 0 0"; ) | tee /etc/fstab.bak
     mv /etc/fstab.bak /etc/fstab
-    cat <<EOF > /etc/udev/rules.d/99-zswap.rules
+    cat /usr/lib/udev/rules.d/95-late.rules >> /usr/lib/udev/rules.d/95-late.rules.bak || true
+    cat <<EOF > /usr/lib/udev/rules.d/95-late.rules
 KERNEL=="zram0", ACTION=="add", ATTR{disksize}="${size_mb}", RUN="/sbin/mkswap /\$root/\$name"
 EOF
     echo "zram" > /etc/modules-load.d/zram.conf 
+    dracut -fv
 }
 export -f centos_zswap_init
 
