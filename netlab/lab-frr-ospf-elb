@@ -162,7 +162,7 @@ EOF
 }
 
 post_create() {
-    require zebra ospfd start-stop-daemon tmux ipvsadm
+    require /usr/lib/frr/zebra /usr/lib/frr/ospfd tmux ipvsadm
     local lower="/" overlay= node= window=
     for node in R lvs1 lvs2; do
         overlay="${LAB_DIR}/${node}"
@@ -170,33 +170,31 @@ post_create() {
         setup_overlayfs "${lower}" "${overlay}"
     done
 
-    gen_ospfd "lvs1" "10.0.1.10" "lvs1-SW" "10.0.1.10/24,${VIP}" > ${LAB_DIR}/lvs1/etc/quagga/ospfd.conf
-    gen_zebra "lvs1" "lo:${VIP}"                   > ${LAB_DIR}/lvs1/etc/quagga/zebra.conf
-    chown quagga:quagga                                ${LAB_DIR}/lvs1/etc/quagga/*
-    mkdir -p                                           ${LAB_DIR}/lvs1/run/quagga
-    chown -R quagga:quagga                             ${LAB_DIR}/lvs1/run/quagga
-    gen_ospfd "lvs2" "10.0.1.11" "lvs2-SW" "10.0.1.11/24,${VIP}" > ${LAB_DIR}/lvs2/etc/quagga/ospfd.conf
-    gen_zebra "lvs2" "lo:${VIP}"                   > ${LAB_DIR}/lvs2/etc/quagga/zebra.conf
-    chown quagga:quagga                                ${LAB_DIR}/lvs2/etc/quagga/*
-    mkdir -p                                           ${LAB_DIR}/lvs2/run/quagga
-    chown -R quagga:quagga                             ${LAB_DIR}/lvs2/run/quagga
-    gen_ospfd "R" "10.0.1.1" "R-SW" "10.0.1.0/24" > ${LAB_DIR}/R/etc/quagga/ospfd.conf
-    gen_zebra "R"                                 > ${LAB_DIR}/R/etc/quagga/zebra.conf
-    chown quagga:quagga                              ${LAB_DIR}/R/etc/quagga/*
-    mkdir -p                                         ${LAB_DIR}/R/run/quagga
-    chown -R quagga:quagga                           ${LAB_DIR}/R/run/quagga
+    gen_ospfd "lvs1" "10.0.1.10" "lvs1-SW" "10.0.1.10/24,${VIP}" > ${LAB_DIR}/lvs1/etc/frr/ospfd.conf
+    gen_zebra "lvs1" "lo:${VIP}"                   > ${LAB_DIR}/lvs1/etc/frr/zebra.conf
+    chown frr:frr                                ${LAB_DIR}/lvs1/etc/frr/*
+    mkdir -p                                           ${LAB_DIR}/lvs1/run/frr
+    chown -R frr:frr                             ${LAB_DIR}/lvs1/run/frr
+    gen_ospfd "lvs2" "10.0.1.11" "lvs2-SW" "10.0.1.11/24,${VIP}" > ${LAB_DIR}/lvs2/etc/frr/ospfd.conf
+    gen_zebra "lvs2" "lo:${VIP}"                   > ${LAB_DIR}/lvs2/etc/frr/zebra.conf
+    chown frr:frr                                ${LAB_DIR}/lvs2/etc/frr/*
+    mkdir -p                                           ${LAB_DIR}/lvs2/run/frr
+    chown -R frr:frr                             ${LAB_DIR}/lvs2/run/frr
+    gen_ospfd "R" "10.0.1.1" "R-SW" "10.0.1.0/24" > ${LAB_DIR}/R/etc/frr/ospfd.conf
+    gen_zebra "R"                                 > ${LAB_DIR}/R/etc/frr/zebra.conf
+    chown frr:frr                              ${LAB_DIR}/R/etc/frr/*
+    mkdir -p                                         ${LAB_DIR}/R/run/frr
+    chown -R frr:frr                           ${LAB_DIR}/R/run/frr
 
     for node in R lvs1 lvs2; do
         overlay="${LAB_DIR}/${node}"
-        maybe_netns_run "bash -s" "${node}" "${overlay}" <<EOF
-            mount -t proc none /proc
-            #maybe chroot env /dev/null not exist, zebra need it"
-            [ -e "/dev/null" ] || mknod -m 666 /dev/null c 1 3
-            start-stop-daemon --start --quiet --background --exec /sbin/zebra
-            start-stop-daemon --start --quiet --background --exec /sbin/ospfd
-EOF
         window=${node}
         maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}" "${overlay}" || error_msg "maybe_tmux_netns_chroot error\n"
+        tmux_input "${SESS}" "${window}" "mount -t proc none /proc"
+        #maybe chroot env /dev/null not exist, zebra need it"
+        tmux_input "${SESS}" "${window}" "[ -e '/dev/null' ] || mknod -m 666 /dev/null c 1 3"
+        tmux_input "${SESS}" "${window}" "/usr/lib/frr/zebra --daemon"
+        tmux_input "${SESS}" "${window}" "/usr/lib/frr/ospfd --daemon"
     done
     setup_lvs "lvs1" "${VIP}" "10.0.1.100,10.0.1.101"
     setup_lvs "lvs2" "${VIP}" "10.0.1.100,10.0.1.101"
@@ -216,8 +214,8 @@ pre_cleanup() {
 
     for node in R lvs1 lvs2; do
         overlay="${LAB_DIR}/${node}"
-        kill -9 $(maybe_netns_run "cat /run/quagga/zebra.pid"  "${node}" "${overlay}/")
-        kill -9 $(maybe_netns_run "cat /run/quagga/ospfd.pid"  "${node}" "${overlay}/")
+        kill -9 $(maybe_netns_run "cat /run/frr/zebra.pid"  "${node}" "${overlay}/")
+        kill -9 $(maybe_netns_run "cat /run/frr/ospfd.pid"  "${node}" "${overlay}/")
         cleanup_overlayfs "${overlay}"
         rm -rf "${overlay}"
     done
