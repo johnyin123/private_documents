@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - aa5569b - 2021-10-19T10:30:46+08:00")
+VERSION+=("functions.sh - 164ef96 - 2021-10-19T14:04:10+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -694,31 +694,27 @@ readini() {
         | grep -v ^'\[') && eval "${INFO}"
 }
 ##################################################
-# Log level constants
+# {{ LOG functions start
 LOG_ERROR=0       # Level error
 LOG_WARNING=1     # Level warning
 LOG_INFO=2        # Level info
-LOG_DEBUG=3       # Level debug
+LOG_INFO1=3       # Level info
+LOG_INFO2=4       # Level info
+LOG_INFO3=5       # Level info
+LOG_DEBUG=6       # Level debug
 
 # Log level names
-LOG_LEVELNAMES=('ERROR' 'WARN ' 'INFO ' 'DEBUG')
-# Support colors
-SUPPORT_COLORS='red yellow blue white cyan gray purple green'
+LOG_LEVELNAMES=('E' 'W' 'I' 'I' 'I' 'I' 'D')
 
-# Global constants definition end }}
-
-# Show log whose level less than this
-log_level=2
+log_level=4
 # Default date fmt
 date_fmt='%Y-%m-%d %H:%M:%S'
 # Default log fmt
 log_fmt="[<levelname>] [<asctime>] <message>"
 # Default log color
-log_color=('red' 'yellow' 'green' 'cyan')
+log_color=('red' 'yellow' 'green' 'purple' 'blue' 'white' 'cyan')
 # log_syslog defined, syslog enabled and log_syslog value as  syslog tag
 # log_syslog="mysyslog"
-
-# {{ LOG functions start
 
 # Print log messages
 # $1: Log level
@@ -763,6 +759,39 @@ error_msg() {
     shift && do_log $LOG_ERROR "$fmt" "$@"
 }
 
+info1_msg() {
+    local fmt=$1
+    shift && do_log $LOG_INFO1 "$fmt" "$@"
+}
+
+vinfo1_msg() {
+    while IFS='\n' read line || [ -n "$line" ]; do
+        info1_msg "$line\n"
+    done
+}
+
+info2_msg() {
+    local fmt=$1
+    shift && do_log $LOG_INFO2 "$fmt" "$@"
+}
+
+vinfo2_msg() {
+    while IFS='\n' read line || [ -n "$line" ]; do
+        info2_msg "$line\n"
+    done
+}
+
+info3_msg() {
+    local fmt=$1
+    shift && do_log $LOG_INFO3 "$fmt" "$@"
+}
+
+vinfo3_msg() {
+    while IFS='\n' read line || [ -n "$line" ]; do
+        info3_msg "$line\n"
+    done
+}
+
 # echo "$_out"|vinfo_msg
 vinfo_msg() {
     while IFS='\n' read line || [ -n "$line" ]; do
@@ -781,10 +810,6 @@ exit_msg() {
     exit 1
 }
 
-# LOG functions end }}
-
-# Colorful print start {{
-
 red() {
     defined QUIET && return
     local fmt=$1
@@ -796,13 +821,6 @@ green() {
     defined QUIET && return
     local fmt=$1
     stderr_is_terminal && fmt="\033[1;32m${fmt}\033[0m"
-    shift && printf "${fmt}" "$@"
-}
-
-gray() {
-    defined QUIET && return
-    local fmt=$1
-    stderr_is_terminal && fmt="\033[1;37m${fmt}\033[0m"
     shift && printf "${fmt}" "$@"
 }
 
@@ -841,11 +859,7 @@ white() {
     shift && printf "${fmt}" "$@"
 }
 
-# Colorful print end }}
-
-# {{ Log set functions
-
-# Set default log level
+#set_loglevel ${LOG_DEBUG}
 set_loglevel() {
     if echo "$1" | grep -qE "^[0-9]+$"; then
         log_level="$1"
@@ -865,28 +879,7 @@ set_datefmt() {
         date_fmt="$1"
     fi
 }
-
-# Set log colors
-set_logcolor() {
-    local len=$#
-
-    for (( i=0; i<$len; i++ )); do
-        if echo "${SUPPORT_COLORS}" | grep -wq "$1"
-        then
-            log_color[$i]=$1
-        else
-            log_color[$i]=''
-        fi
-        shift
-    done
-}
-
-# Disable colorful log
-disable_color() {
-    set_logcolor '' '' '' ''
-}
-
-# Log set functions }}
+# LOG functions end }}
 
 truecmd() {
     type -P $1
