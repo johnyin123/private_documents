@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_centos.sh - 1f09bf2 - 2021-09-07T10:23:11+08:00")
+VERSION+=("build_centos.sh - 7433bd0 - 2021-09-07T10:25:59+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 cat <<"EOF"
@@ -52,7 +52,7 @@ SWAP_FILE=${SWAP_FILE:-false}
 TOMCAT_USR=${TOMCAT_USR:-false}
 REPO=${REPO:-${DIRNAME}/local.repo}
 ADDITION_PKG=${ADDITION_PKG:-""}
-ADDITION_PKG="${ADDITION_PKG} wget rsync bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp wget strace ltrace python-virtualenv qemu-guest-agent traceroute rsync pciutils lrzsz iotop iftop"
+ADDITION_PKG="${ADDITION_PKG} wget rsync bind-utils sysstat tcpdump nmap-ncat telnet lsof unzip ftp strace ltrace python-virtualenv qemu-guest-agent traceroute pciutils lrzsz iotop iftop"
 ADDITION_PKG="${ADDITION_PKG} nscd" 
 ROOTFS=${ROOTFS:-${DIRNAME}/rootfs}
 NEWPASSWORD=${NEWPASSWORD:-"password"}
