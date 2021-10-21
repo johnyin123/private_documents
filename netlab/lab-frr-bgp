@@ -107,8 +107,8 @@ post_create() {
         tmux_input "${SESS}" "${window}" "mount -t proc none /proc"
         #maybe chroot env /dev/null not exist, zebra need it"
         tmux_input "${SESS}" "${window}" "[ -e '/dev/null' ] || mknod -m 666 /dev/null c 1 3"
-        tmux_input "${SESS}" "${window}" "nohup /usr/lib/frr/zebra --ecmp 2 &"
-        tmux_input "${SESS}" "${window}" "nohup /usr/lib/frr/bgpd --ecmp 2 &"
+        tmux_input "${SESS}" "${window}" "nohup /usr/lib/frr/zebra &"
+        tmux_input "${SESS}" "${window}" "nohup /usr/lib/frr/bgpd &"
         tmux_input "${SESS}" "${window}" 'export PATH=$PATH:/sbin'
         tmux_input "${SESS}" "${window}" "alias ll='ls -lh'"
     done
