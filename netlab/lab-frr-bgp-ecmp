@@ -1,0 +1,152 @@
+# h1 ping j1/k1/VIP ok
+# j1 ping k1 err
+SESS=bgp
+LAB_DIR=/tmp
+VIP=10.0.100.100/32
+
+#[name]="type" type:R/S/N (router,switch,node)
+declare -A MAP_NODES=(
+    [R1]=R
+    [R2]=R
+    [R3]=R
+    [SW1]=S
+    [SW2]=S
+    [SW3]=S
+    [h1]=N
+    [j1]=N
+    [k1]=N
+    )
+#[node:ip/prefix]=node:ip/prefix
+declare -A MAP_LINES=(
+    [R1:172.16.16.1/30]=R2:172.16.16.2/30
+    [R1:172.16.16.5/30]=R3:172.16.16.6/30
+    [R1:10.0.1.1/24]=SW1:
+    [R2:10.0.2.1/24]=SW2:
+    [R3:10.0.3.1/24]=SW3:
+    [h1:10.0.1.101/24]=SW1:
+    [j1:10.0.2.101/24]=SW2:
+    [k1:10.0.3.101/24]=SW3:
+    )
+#routes delm ,
+declare -A NODES_ROUTES=(
+    [h1]="default via 10.0.1.1"
+    [j1]="default via 10.0.2.1"
+    [k1]="default via 10.0.3.1"
+    )
+
+gen_zebra() {
+    local ns=$1
+    local inf_addr_lst="${2:-}"
+    local password="password"
+    cat <<EOF
+hostname ${ns}
+password ${password}
+enable password ${password}
+log file /tmp/zebra.log
+service password-encryption
+
+$(while read -rd "," -r x; do
+    inf=${x%:*}
+    addr=${x##*:}
+    echo "interface ${inf}"
+    echo " ip address ${addr}"
+done <<< "${inf_addr_lst:+${inf_addr_lst},}"
+)
+EOF
+}
+
+gen_bgpd() {
+    local password="password"
+    local ns=$1
+    local route_id=$2
+    local bgp_no=$3
+    local network=$4
+    #neighbor:neighbor_id,neighbor:neighbor_id.....
+    local neighbor_lst=$5
+
+    cat <<EOF
+password ${password}
+enable password ${password}
+log file /tmp/bgp.log
+log stdout
+log syslog
+debug bgp keepalives
+debug bgp neighbor-events
+debug bgp nht
+debug bgp updates in
+debug bgp updates out
+debug bgp zebra
+
+router bgp ${bgp_no}
+ bgp router-id ${route_id}
+$(while read -rd "," -r x; do
+    echo " neighbor ${x%:*} remote-as ${x##*:}"
+    echo " no bgp ebgp-requires-policy"
+    echo " neighbor ${x%:*} password ${password}"
+    echo " neighbor ${x%:*} description \"to neighbor ${x}\""
+done <<< "${neighbor_lst},"
+)
+ address-family ipv4 unicast
+$(while read -rd "," -r x; do
+    [ -z ${x} ] || echo "  network $x"
+done <<< "${network},"
+)
+EOF
+}
+
+post_create() {
+    require /usr/lib/frr/zebra /usr/lib/frr/bgpd tmux
+    local lower="/" overlay= node= window=
+    for node in R1 R2 R3; do
+        overlay="${LAB_DIR}/${node}"
+        mkdir -p "${overlay}"
+        setup_overlayfs "${lower}" "${overlay}"
+    done
+    gen_bgpd  "R1" "172.16.16.1" "65530" "10.0.1.0/24" "172.16.16.2:65531,172.16.16.6:65531" > ${LAB_DIR}/R1/etc/frr/bgpd.conf
+    gen_zebra "R1"                                                         > ${LAB_DIR}/R1/etc/frr/zebra.conf
+    chown frr:frr ${LAB_DIR}/R1/etc/frr/*
+    mkdir -p ${LAB_DIR}/R1/run/frr && chown -R frr:frr ${LAB_DIR}/R1/run/frr
+    gen_bgpd  "R2" "172.16.16.2" "65531" "${VIP},10.0.2.0/24" "172.16.16.1:65530" > ${LAB_DIR}/R2/etc/frr/bgpd.conf
+    gen_zebra "R2" "lo:${VIP}"                                             > ${LAB_DIR}/R2/etc/frr/zebra.conf
+    chown frr:frr ${LAB_DIR}/R2/etc/frr/*
+    mkdir -p ${LAB_DIR}/R2/run/frr && chown -R frr:frr ${LAB_DIR}/R2/run/frr
+    gen_bgpd  "R3" "172.16.16.6" "65531" "${VIP},10.0.3.0/24" "172.16.16.5:65530" > ${LAB_DIR}/R3/etc/frr/bgpd.conf
+    gen_zebra "R3" "lo:${VIP}"                                             > ${LAB_DIR}/R3/etc/frr/zebra.conf
+    chown frr:frr ${LAB_DIR}/R3/etc/frr/*
+    mkdir -p ${LAB_DIR}/R3/run/frr && chown -R frr:frr ${LAB_DIR}/R3/run/frr
+
+    for node in R1 R2 R3; do
+        window=${node}
+        maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}" "${LAB_DIR}/${node}"
+        tmux_input "${SESS}" "${window}" "mount -t proc none /proc"
+        #maybe chroot env /dev/null not exist, zebra need it"
+        tmux_input "${SESS}" "${window}" "[ -e '/dev/null' ] || mknod -m 666 /dev/null c 1 3"
+        tmux_input "${SESS}" "${window}" "nohup /usr/lib/frr/zebra --ecmp 2 &"
+        tmux_input "${SESS}" "${window}" "nohup /usr/lib/frr/bgpd --ecmp 2 &"
+        tmux_input "${SESS}" "${window}" 'export PATH=$PATH:/sbin'
+        tmux_input "${SESS}" "${window}" "alias ll='ls -lh'"
+    done
+    for node in h1 j1 k1; do
+        window=${node}
+        maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}"
+        tmux_input "${SESS}" "${window}" 'export PATH=$PATH:/sbin'
+        tmux_input "${SESS}" "${window}" "alias ll='ls -lh'"
+    done
+    return 0;
+}
+
+pre_cleanup() {
+    local node=
+    tmux kill-session -t "${SESS}"
+
+    kill -9 $(maybe_netns_run "cat /run/frr/zebra.pid"  "R1" "${LAB_DIR}/R1/")
+    kill -9 $(maybe_netns_run "cat /run/frr/bgpd.pid"  "R1" "${LAB_DIR}/R1/")
+    kill -9 $(maybe_netns_run "cat /run/frr/zebra.pid"  "R2" "${LAB_DIR}/R2/")
+    kill -9 $(maybe_netns_run "cat /run/frr/bgpd.pid"  "R2" "${LAB_DIR}/R2/")
+
+    for node in R1 R2; do
+        overlay="${LAB_DIR}/${node}"
+        cleanup_overlayfs "${overlay}"
+    done
+    return 0;
+}
