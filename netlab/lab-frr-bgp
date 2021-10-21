@@ -124,15 +124,12 @@ post_create() {
 pre_cleanup() {
     local node=
     tmux kill-session -t "${SESS}"
-
-    kill -9 $(maybe_netns_run "cat /run/frr/zebra.pid"  "R1" "${LAB_DIR}/R1/")
-    kill -9 $(maybe_netns_run "cat /run/frr/bgpd.pid"  "R1" "${LAB_DIR}/R1/")
-    kill -9 $(maybe_netns_run "cat /run/frr/zebra.pid"  "R2" "${LAB_DIR}/R2/")
-    kill -9 $(maybe_netns_run "cat /run/frr/bgpd.pid"  "R2" "${LAB_DIR}/R2/")
-
     for node in R1 R2; do
+        kill -9 $(maybe_netns_run "cat /run/frr/zebra.pid" "${node}" "${LAB_DIR}/${node}/")
+        kill -9 $(maybe_netns_run "cat /run/frr/bgpd.pid"  "${node}" "${LAB_DIR}/${node}/")
         overlay="${LAB_DIR}/${node}"
         cleanup_overlayfs "${overlay}"
+        rm -rf "${LAB_DIR}/${node}" || true
     done
     return 0;
 }

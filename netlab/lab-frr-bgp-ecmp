@@ -1,3 +1,17 @@
+# # add RPM repository on CentOS 7
+# possible values for FRRVER: frr-6 frr-7 frr-8 frr-stable
+# FRRVER="frr-7"
+# # add RPM repository on CentOS 7
+# curl -O https://rpm.frrouting.org/repo/$FRRVER-repo-1-0.el7.noarch.rpm
+# yum install $FRRVER*
+# 
+# # add RPM repository on CentOS 8
+# curl -O https://rpm.frrouting.org/repo/$FRRVER-repo-1-0.el8.noarch.rpm
+# yum install $FRRVER*
+#
+# yum install frr frr-pythontools
+
+#check centos8 frr 7.5
 # h1 ping j1/k1/VIP ok
 # j1 ping k1 err
 SESS=bgpecmp
@@ -138,15 +152,12 @@ post_create() {
 pre_cleanup() {
     local node=
     tmux kill-session -t "${SESS}"
-
-    kill -9 $(maybe_netns_run "cat /run/frr/zebra.pid"  "R1" "${LAB_DIR}/R1/")
-    kill -9 $(maybe_netns_run "cat /run/frr/bgpd.pid"  "R1" "${LAB_DIR}/R1/")
-    kill -9 $(maybe_netns_run "cat /run/frr/zebra.pid"  "R2" "${LAB_DIR}/R2/")
-    kill -9 $(maybe_netns_run "cat /run/frr/bgpd.pid"  "R2" "${LAB_DIR}/R2/")
-
-    for node in R1 R2; do
+    for node in R1 R2 R3; do
+        kill -9 $(maybe_netns_run "cat /run/frr/zebra.pid" "${node}" "${LAB_DIR}/${node}/")
+        kill -9 $(maybe_netns_run "cat /run/frr/bgpd.pid"  "${node}" "${LAB_DIR}/${node}/")
         overlay="${LAB_DIR}/${node}"
         cleanup_overlayfs "${overlay}"
+        rm -rf "${LAB_DIR}/${node}" || true
     done
     return 0;
 }
