@@ -7,11 +7,17 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlab.sh - 58cb44d - 2021-08-18T17:14:28+08:00")
+VERSION+=("netlab.sh - 6e28a0b - 2021-10-22T10:50:39+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 post_create() { return 0; } #all netns created!!
 pre_cleanup() { return 0; } #all netns exists!!
+check() { return 0; }
+checkup() {
+    local conf="$1"
+    source "${conf}"
+    defined DRYRUN || ( check ) || error_msg "${conf} check error\n"
+}
 
 startup() {
     local conf="$1"
@@ -98,13 +104,17 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME} <-s/-c> conf
-        -s|--start *  start all namespace
-        -c|--clean  * cleanup all namespace
+        -s|--start    start all namespace
+        -c|--clean    cleanup all namespace
+        -f|--conf  *  config files
         -q|--quiet
         -l|--log <int> log level
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+    ${SCRIPTNAME} -s -f labfile # startup lab
+    ${SCRIPTNAME} -f labfile    # check lab
+    ${SCRIPTNAME} -c -f labfile # cleanup lab
 tmux tip:
         tmux ls
         tmux a -t <session>
@@ -122,23 +132,25 @@ declare -A NODES_ROUTES=( )
 
 post_create() { return 0; } #all netns created!!
 pre_cleanup() { return 0; } #all netns exists!!
+check() { return 0; } # check function
 EO_CFG
 EOF
     exit 1
 }
 
 main() {
-    local action="" conf=""
-    local opt_short="s:c:"
-    local opt_long="start:,clean:,"
+    local action="checkup" conf=""
+    local opt_short="scf:"
+    local opt_long="start,clean,conf:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -s | --start)   shift; action=startup; conf=${1}; shift;;
-            -c | --clean)   shift; action=cleanup; conf=${1}; shift;;
+            -s | --start)   shift; action=startup;;
+            -c | --clean)   shift; action=cleanup;;
+            -f | --conf)    shift; conf=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -150,14 +162,10 @@ main() {
         esac
     done
     is_user_root || exit_msg "root user need!!\n"
-    [ -z "${conf}" ] && usage "start/clean <config file>"
+    [ -z "${conf}" ] && usage "<start/clean> -f <config file>"
     file_exists "${conf}" || exit_msg "${conf} not exists\n"
-    case "${action}" in
-        startup)  info_msg "startup ${conf}\n";;
-        cleanup)  info_msg "cleanup ${conf}\n";;
-        *)        usage "start/clean";;
-    esac
-    ${action} "${conf}" || exit_msg "${action} ${conf} error $?\n"
-    info_msg "Exit\n"
+    info_msg "${action} ${conf}\n"
+    ${action} "${conf}" || exit_msg "${action} ${conf} error exit $?\n"
+    info_msg "${action} ${conf} success exit\n"
 }
 main "$@"

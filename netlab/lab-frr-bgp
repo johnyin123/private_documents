@@ -133,3 +133,16 @@ pre_cleanup() {
     done
     return 0;
 }
+
+check() {
+    tmux_input "${SESS}" "h1" "reset"
+    tmux_input "${SESS}" "h1" "ping -c1 10.0.2.101"
+    sleep 5
+    tmux capture-pane -t "${SESS}:h1" -e -p -S 2 -E 8
+    tmux_input "${SESS}" "j1" "reset"
+    tmux_input "${SESS}" "j1" "ping -c1 10.0.1.101"
+    sleep 5
+    tmux capture-pane -t "${SESS}:j1" -e -p -S 2 -E 8
+
+    return 0
+}
