@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlab.sh - d7a2a89 - 2021-06-17T17:12:25+08:00")
+VERSION+=("netlab.sh - 58cb44d - 2021-08-18T17:14:28+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 post_create() { return 0; } #all netns created!!
@@ -15,7 +15,7 @@ pre_cleanup() { return 0; } #all netns exists!!
 
 startup() {
     local conf="$1"
-    local ns_name= _lval= _rval= lnode= lcidr= rnode= rcidr=
+    local ns_name="" _lval="" _rval="" lnode="" lcidr="" rnode="" rcidr=""
     source "${conf}"
     #try sysctl -q -w net.ipv4.ip_forward=1
     for ns_name in $(array_print_label MAP_NODES)
@@ -128,7 +128,7 @@ EOF
 }
 
 main() {
-    local action= conf=
+    local action="" conf=""
     local opt_short="s:c:"
     local opt_long="start:,clean:,"
     opt_short+="ql:dVh"
