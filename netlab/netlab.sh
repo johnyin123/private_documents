@@ -7,16 +7,20 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("netlab.sh - 6e28a0b - 2021-10-22T10:50:39+08:00")
+VERSION+=("netlab.sh - b5bad3a - 2021-10-22T13:24:25+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 post_create() { return 0; } #all netns created!!
 pre_cleanup() { return 0; } #all netns exists!!
-check() { return 0; }
+check() {
+    error_msg "NO CHECK FUNC HERE\n"
+    return 1;
+}
+
 checkup() {
     local conf="$1"
     source "${conf}"
-    defined DRYRUN || ( check ) || error_msg "${conf} check error\n"
+    defined DRYRUN || ( check )
 }
 
 startup() {
@@ -82,8 +86,7 @@ startup() {
             0</dev/null maybe_netns_run "ip route add $_lval" "${ns_name}" || { error_msg "node ${ns_name} add route error\n"; return 11; }
         done <<< "$(array_get NODES_ROUTES ${ns_name}),"
     done
-    defined DRYRUN || ( post_create ) || error_msg "${rnode} post_create error\n"
-    return 0
+    defined DRYRUN || ( post_create )
 }
 
 cleanup() {
