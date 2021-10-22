@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 69488e4 - 2021-10-20T08:19:24+08:00")
+VERSION+=("functions.sh - 11c12bb - 2021-10-22T09:10:41+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -286,7 +286,9 @@ maybe_tmux_netns_chroot() {
     local unshared="${5:-}"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "tmux ${sess}:${window}${rootfs:+rootfs=${rootfs}}${ns_name:+@${ns_name}}\n"; return 0; }
     tmux has-session -t "${sess}" 2> /dev/null && tmux new-window -t "${sess}" -n "${window}" || tmux set-option -g status off\; new-session -d -n "${window}" -s "${sess}" &>/dev/null
+    local tmux_wname="\033k${window}\033[m" #fix tmux 1.8 Prefix+w window title list
     local ps1=[${window}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}]
+    ps1+=${tmux_wname}
     local colors=$($(truecmd tput) colors 2> /dev/null)
     if [ $? = 0 ] && [ ${colors} -gt 2 ]; then
         ps1+="\033[1;31m\u\033[m@\033[1;32m\h:\033[33;1m\w\033[m$"
