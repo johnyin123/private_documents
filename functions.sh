@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 164ef96 - 2021-10-19T14:04:10+08:00")
+VERSION+=("functions.sh - 69488e4 - 2021-10-20T08:19:24+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -272,6 +272,10 @@ docker_shell() {
 tmux_input() {
     local sess="$1" window="$2" input="$3"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "tmux send-keys -t ${sess}:${window} \"${input}\" Enter\n"; return 0; }
+    local cmd_size=-60.60
+    stderr_is_terminal || cmd_size=    #stderr is redirect show all cmd
+    blue>&2 "Begin: ";purple>&2 "%${cmd_size}s." "tmux(${sess}:${window})${input}"
+    green>&2 " done.\n"
     tmux send-keys -t "${sess}:${window}" "${input}" Enter
     # tmux capture-pane -t "${sess}:${window}" -p
 }
@@ -281,7 +285,7 @@ maybe_tmux_netns_chroot() {
     local ns_name="${3:-}" rootfs="${4:-}"
     local unshared="${5:-}"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "tmux ${sess}:${window}${rootfs:+rootfs=${rootfs}}${ns_name:+@${ns_name}}\n"; return 0; }
-    tmux has-session -t "${sess}" 2> /dev/null && tmux new-window -t "${sess}" -n "${window}" || tmux set-option -g status off\; new-session -d -n "${window}" -s "${sess}"
+    tmux has-session -t "${sess}" 2> /dev/null && tmux new-window -t "${sess}" -n "${window}" || tmux set-option -g status off\; new-session -d -n "${window}" -s "${sess}" &>/dev/null
     local ps1=[${window}${rootfs:+:${rootfs}}${ns_name:+@${ns_name}}]
     local colors=$($(truecmd tput) colors 2> /dev/null)
     if [ $? = 0 ] && [ ${colors} -gt 2 ]; then
@@ -303,7 +307,8 @@ maybe_tmux_netns_chroot() {
         COLORTERM=\${COLORTERM} \
         PS1='${ps1}' \
         /bin/bash --noprofile --norc -o vi" Enter
-    tmux send-keys -t "${sess}:${window}" "history -c;reset" Enter
+    tmux_input "${sess}" "${window}" "history -c;reset"
+    # tmux send-keys -t "${sess}:${window}" "history -c;reset" Enter
     # tmux send-keys -t "${sess}:${window}" "stty cols 1000" Enter
 }
 # maybe_netns_shell "busybox" "${ns_name}" "rootfs" "busybox" "sh -l"
