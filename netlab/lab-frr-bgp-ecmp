@@ -161,3 +161,10 @@ pre_cleanup() {
     done
     return 0;
 }
+
+check() {
+    tmux_input "${SESS}" "R1" "reset"
+    tmux_input "${SESS}" "R1" "/sbin/ip r"
+    sleep 5
+    tmux capture-pane -t "${SESS}:R1" -e -p -S 2 -E 8
+}
