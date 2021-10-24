@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_centos_init.sh - 373de58 - 2021-10-14T10:31:29+08:00")
+VERSION+=("os_centos_init.sh - c323582 - 2021-10-19T17:16:45+08:00")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -125,6 +125,15 @@ centos_limits_init() {
     cat > /etc/security/limits.d/tun.conf << EOF
 *           soft   nofile       102400
 *           hard   nofile       102400
+EOF
+    cat <<EOF > /etc/profile.d/os-security.sh
+export readonly TMOUT=900
+export readonly HISTFILE
+EOF
+
+    cat >/etc/profile.d/johnyin.sh<<"EOF"
+export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
+set -o vi
 EOF
 }
 export -f centos_limits_init
