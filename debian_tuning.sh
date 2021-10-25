@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("debian_tuning.sh - initversion - 2021-10-25T09:08:18+08:00")
+VERSION+=("debian_tuning.sh - 0a457b3 - 2021-10-25T09:08:18+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -69,6 +69,7 @@ main() {
         ssh_func "${ssh}" "${port}" "touch /etc/logo.txt;chmod 755 /etc/update-motd.d/11-motd"
     }
     ssh_func "${ssh}" "${port}" "[ -z '${name}' ] || echo '${name}' > /etc/hostname"
+    ssh_func "${ssh}" "${port}" debian_service_init
     ssh_func "${ssh}" "${port}" debian_minimum_init
     return 0
 }
