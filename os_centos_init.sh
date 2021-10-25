@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_centos_init.sh - c323582 - 2021-10-19T17:16:45+08:00")
+VERSION+=("os_centos_init.sh - 3e85177 - 2021-10-25T07:49:54+08:00")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -181,7 +181,7 @@ centos_sshd_regenkey() {
 export -f centos_sshd_regenkey
 
 centos_sshd_init() {
-    cp /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
+    cp -n /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
     sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
     sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
     #sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config

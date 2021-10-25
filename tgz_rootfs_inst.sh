@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("tgz_rootfs_inst.sh - 53748c7 - 2021-08-24T14:13:09+08:00")
+VERSION+=("tgz_rootfs_inst.sh - 3333890 - 2021-08-26T07:17:25+08:00")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -63,7 +63,11 @@ case "${ID}" in
 esac
 EOSHELL
     local new_uuid=$(blkid -s UUID -o value ${disk}${part})
-    echo "UUID=${new_uuid} / xfs noatime,relatime 0 0" > ${root_dir}/etc/fstab
+    cp -n ${root_dir}/etc/fstab ${root_dir}/etc/fstab.orig
+    {
+        echo "UUID=${new_uuid} / xfs noatime,relatime 0 0"
+        grep -v "\s/\s" ${root_dir}/etc/fstab.orig
+    } > ${root_dir}/etc/fstab
     umount ${root_dir}/sys ${root_dir}/proc ${root_dir}/dev || true
     umount ${root_dir} || true
 }
