@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_debian_init.sh - 829112e - 2021-10-14T08:30:20+08:00")
+VERSION+=("os_debian_init.sh - 0a457b3 - 2021-10-25T09:08:18+08:00")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -192,7 +192,10 @@ debian_zswap_init2() {
     cat <<EOF > /etc/udev/rules.d/99-zswap.rules
 KERNEL=="zram0", ACTION=="add", ATTR{disksize}="${size_mb}", RUN="/sbin/mkswap /\$root/\$name"
 EOF
-    echo "zram" > /etc/modules-load.d/zram.conf 
+    #echo "zram" > /etc/modules-load.d/zram.conf
+    #fix no swap after update-initramfs -c -k $(uname -r)
+    echo "zram" >> /etc/initramfs-tools/modules
+    update-initramfs -c -k $(uname -r)
 }
 export -f debian_zswap_init2
 
