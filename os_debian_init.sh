@@ -16,8 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_debian_init.sh - 09383b7 - 2021-10-12T07:24:27+08:00")
-FAKE_APT="apt -y -oAcquire::http::User-Agent=dler --no-install-recommends"
+VERSION+=("os_debian_init.sh - 829112e - 2021-10-14T08:30:20+08:00")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -91,8 +90,8 @@ EOF
             echo "deb http://ftp.cn.debian.org/debian-security ${ver}-security main contrib"  >> /etc/apt/sources.list
             ;;
     esac
-    ${FAKE_APT} -oAcquire::AllowInsecureRepositories=true update || true
-    ${FAKE_APT} --allow-unauthenticated install deb-multimedia-keyring || true
+    apt -y -oAcquire::http::User-Agent=dler --no-install-recommends -oAcquire::AllowInsecureRepositories=true update || true
+    apt -y -oAcquire::http::User-Agent=dler --no-install-recommends --allow-unauthenticated install deb-multimedia-keyring || true
 }
 export -f debian_apt_init
 
@@ -151,7 +150,7 @@ debian_sshd_regenkey() {
 export -f debian_sshd_regenkey
 
 debian_sshd_init() {
-    ${FAKE_APT} install openssh-server
+    apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install openssh-server
     # dpkg-reconfigure -f noninteractive openssh-server
     cp /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
     sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
@@ -207,12 +206,12 @@ EOF
     eval $(grep -E "^VERSION_CODENAME=" /etc/os-release)
     case "$VERSION_CODENAME" in
         buster)
-            ${FAKE_APT} update && ${FAKE_APT} install udisks2
+            apt -y -oAcquire::http::User-Agent=dler --no-install-recommends update && apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install udisks2
             mkdir -p /usr/local/lib/zram.conf.d/
             cfg=/usr/local/lib/zram.conf.d/zram0-env
             ;;
         bullseye)
-            ${FAKE_APT} update && ${FAKE_APT} install udisks2-zram
+            apt -y -oAcquire::http::User-Agent=dler --no-install-recommends update && apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install udisks2-zram
             mkdir -p /usr/lib/zram.conf.d/
             cfg=/usr/lib/zram.conf.d/zram0
             ;;
@@ -227,7 +226,7 @@ EOF
 export -f debian_zswap_init
 
 debian_vim_init() {
-    ${FAKE_APT} install vim
+    apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install vim
     cat <<'EOF' > /etc/vim/vimrc.local
 syntax on
 " color evening

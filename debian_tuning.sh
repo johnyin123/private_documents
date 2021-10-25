@@ -7,10 +7,10 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("centos_tuning.sh - f238473 - 2021-10-19T17:22:42+08:00")
+VERSION+=("debian_tuning.sh - initversion - 2021-10-25T09:08:18+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-source ${DIRNAME}/os_centos_init.sh
+source ${DIRNAME}/os_debian_init.sh
 
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -56,18 +56,20 @@ main() {
     done
     [ -z ${ssh} ] && usage "ssh must input"
     [ -z ${password} ]  || set_sshpass "${password}"
+    ssh_func "${ssh}" "${port}" debian_apt_init "bullseye"
+    ssh_func "${ssh}" "${port}" debian_limits_init
+    ssh_func "${ssh}" "${port}" debian_sysctl_init
+    ssh_func "${ssh}" "${port}" debian_sshd_regenkey
+    ssh_func "${ssh}" "${port}" debian_sshd_init
+    [ -z "${zswap}" ] || ssh_func "${ssh}" "${port}" debian_zswap_init2 ${zswap}
+    ssh_func "${ssh}" "${port}" debian_locale_init
+    ssh_func "${ssh}" "${port}" debian_bash_init root
     [ -r "${DIRNAME}/motd.sh" ] && {
-        try "cat ${DIRNAME}/motd.sh | ssh -p${port} ${ssh} 'cat >/etc/motd.sh'"
+        try "cat ${DIRNAME}/motd.sh | ssh -p${port} ${ssh} 'cat >/etc/update-motd.d/11-motd'"
+        ssh_func "${ssh}" "${port}" "touch /etc/logo.txt;chmod 755 /etc/update-motd.d/11-motd"
     }
-    ssh_func "${ssh}" "${port}" centos_limits_init
-    ssh_func "${ssh}" "${port}" centos_disable_selinux
-    ssh_func "${ssh}" "${port}" centos_sshd_init
-    ssh_func "${ssh}" "${port}" centos_disable_ipv6
-    ssh_func "${ssh}" "${port}" centos_service_init
-    ssh_func "${ssh}" "${port}" centos_sysctl_init
-    [ -z "${zswap}" ] || ssh_func "${ssh}" "${port}" centos_zswap_init ${zswap}
-    ssh_func "${ssh}" "${port}" "sed -i '/motd.sh/d' /etc/profile ; echo 'sh /etc/motd.sh' >> /etc/profile;touch /etc/logo.txt /etc/motd.sh"
     ssh_func "${ssh}" "${port}" "[ -z '${name}' ] || echo '${name}' > /etc/hostname"
+    ssh_func "${ssh}" "${port}" debian_minimum_init
     return 0
 }
 main "$@"
