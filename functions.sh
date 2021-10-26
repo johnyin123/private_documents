@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 11c12bb - 2021-10-22T09:10:41+08:00")
+VERSION+=("functions.sh - fb4dd75 - 2021-10-22T10:33:45+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -73,6 +73,19 @@ ssh_func() {
 $(typeset -f "${func_name}" 2>/dev/null || true)
 ${func_name} ${args[@]}
 EOF
+}
+# disply_func name [name...]
+disply_func() {
+    local retval=0
+    for f; do
+        if [ "$(builtin type -type $f)" != "function" ] ; then
+            # "func: $f: not a function" 1>&2
+            retval=1    # one failed
+            continue
+        fi
+        builtin type $f | sed 1d
+    done
+    return $retval
 }
 # reverse-shell
 # local<192.168.168.A>  run: nc -lp9999
