@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - fb4dd75 - 2021-10-22T10:33:45+08:00")
+VERSION+=("functions.sh - 580ca8c - 2021-10-26T13:34:08+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -40,6 +40,21 @@ list_func() {
     alias
 #    local fncs=$(declare -F -p | cut -d " " -f 3 | grep -v "^_")
 #    echo $fncs
+}
+
+# sed_e=(-E
+# -e "s|^[^\s#].*\s/\s.*$|UUID=${new_uuid} / xfs noatime,relatime 0 0|g"  #replace
+# )
+# sed_e+=(-e "$ a $(date)") #append
+# sed_e+=(-e "/^key=/d") #delete
+# cat fstab | safe_sed sed_e
+# safe_sed sed_e fstab
+safe_sed() {
+    local opts=${1}
+    local file=${2:-}
+    local cmd="sed ${file:+-i} \"\${${opts}[@]}\" ${file}"
+    [ -e "${file}" ] && try $(truecmd cp) ${file} ${file}.orig
+    try "${cmd}"
 }
 
 # #if ssh login with password, need set password first
