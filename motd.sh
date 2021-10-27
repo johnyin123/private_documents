@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION+=("motd.sh - 2e0dc10 - 2021-08-17T17:15:18+08:00")
+VERSION+=("motd.sh - b17c112 - 2021-10-18T15:34:22+08:00")
 date=$(date "+%F %T")
 kernel=$(uname -r)
 hostname=${HOSTNAME:-$(hostname)}
@@ -28,9 +28,9 @@ Filesystem=$(timeout 3 df -h | awk '/^\/dev/{print $6}')
 
 #Interfaces
 INTERFACES=$(ls /sys/class/net/)
-uuid=$(dmidecode -s system-uuid 2>/dev/null)
-serial="$(dmidecode -s system-serial-number 2>/dev/null)"
-product="$(dmidecode -s system-product-name 2>/dev/null)"
+uuid=$(cat /sys/class/dmi/id/product_uuid 2>/dev/null)
+serial="$(cat /sys/class/dmi/id/product_serial 2>/dev/null)"
+product="$(cat /sys/class/dmi/id/product_name 2>/dev/null)"
 [[ -r /etc/os-release ]] && source /etc/os-release
 head="$PRETTY_NAME ($date)"
 
