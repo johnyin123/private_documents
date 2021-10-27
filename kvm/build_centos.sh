@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_centos.sh - 7433bd0 - 2021-09-07T10:25:59+08:00")
+VERSION+=("build_centos.sh - ea5dd1f - 2021-10-21T11:04:52+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 cat <<"EOF"
@@ -440,8 +440,10 @@ SuccessExitStatus=0
 User=tomcat
 Group=tomcat
 # UMask=0007
-Restart=always
-RestartSec=3
+Restart=on-failure
+# service will be restarted when the process exits with a non-zero exit code,
+RestartSec=5s
+# time to sleep before restarting a service
 OOMScoreAdjust=
 
 #Sets the adjustment level for the Out-Of-Memory killer for executed processes.
