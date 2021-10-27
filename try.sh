@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("try.sh - d56cb10 - 2021-10-19T10:19:41+08:00")
+VERSION+=("try.sh - 164ef96 - 2021-10-19T14:04:10+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -321,6 +321,8 @@ EOF
 #     -e 's/tput cols/echo 80/'    # 80x24
 #     -e 's/tput lines/echo 24/'
 # )
+# SED_E+=(-e "$ a some text") #append at end
+# SED_E+=(-e "/^key/d") #delete
 # sed "${SED_E[@]}" tmpfile
 
 # virsh dumpxml test_domain > a.xml
