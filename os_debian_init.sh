@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_debian_init.sh - 56b1016 - 2021-10-25T12:42:03+08:00")
+VERSION+=("os_debian_init.sh - aede181 - 2021-10-29T06:48:31+08:00")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -69,25 +69,26 @@ EOSHELL
 #     $(typeset -f debian_autologin_root)
 #     debian_autologin_root
 # EOF
+# ftp.cn.debian.org/mirrors.163.com/mirrors.aliyun.com
 debian_apt_init() {
     local ver=${1:-buster}
     echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
     # echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
     echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
     cat > /etc/apt/sources.list << EOF
-deb http://ftp.cn.debian.org/debian ${ver} main non-free contrib
-deb http://ftp.cn.debian.org/debian ${ver}-proposed-updates main non-free contrib
-deb http://ftp.cn.debian.org/debian ${ver}-backports main contrib non-free
-deb http://ftp.cn.debian.org/debian-multimedia ${ver} main non-free
-deb http://ftp.cn.debian.org/debian-multimedia ${ver}-backports main
+deb http://mirrors.aliyun.com/debian ${ver} main non-free contrib
+deb http://mirrors.aliyun.com/debian ${ver}-proposed-updates main non-free contrib
+deb http://mirrors.aliyun.com/debian ${ver}-backports main contrib non-free
+deb http://mirrors.aliyun.com/debian-multimedia ${ver} main non-free
+deb http://mirrors.aliyun.com/debian-multimedia ${ver}-backports main
 EOF
     # see bullseye release notes
     case "${ver}" in
         buster)
-            echo "deb http://ftp.cn.debian.org/debian-security ${ver}/updates main contrib non-free"  >> /etc/apt/sources.list
+            echo "deb http://mirrors.aliyun.com/debian-security ${ver}/updates main contrib non-free"  >> /etc/apt/sources.list
             ;;
         bullseye)
-            echo "deb http://ftp.cn.debian.org/debian-security ${ver}-security main contrib"  >> /etc/apt/sources.list
+            echo "deb http://mirrors.aliyun.com/debian-security ${ver}-security main contrib"  >> /etc/apt/sources.list
             ;;
     esac
     apt -y -oAcquire::http::User-Agent=dler --no-install-recommends -oAcquire::AllowInsecureRepositories=true update || true
