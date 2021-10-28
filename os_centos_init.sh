@@ -16,12 +16,13 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_centos_init.sh - 56b1016 - 2021-10-25T12:42:03+08:00")
+VERSION+=("os_centos_init.sh - 2fe3beb - 2021-10-26T17:17:10+08:00")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
     local YUM_OPT="--disablerepo=* --enablerepo=centos -q --noplugins --nogpgcheck --config=${REPO}" #--setopt=tsflags=nodocs"
     [ -r ${REPO} ] || {
+        # yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
         cat> ${REPO} <<'EOF'
 [centos]
 name=centos
