@@ -7,14 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - a74aea0 - 2021-09-28T09:35:17+08:00")
+VERSION+=("virt-imgbootup.sh - 218d66c - 2021-10-08T09:44:41+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        env CPU=kvm64 set cpu type
+        env CPU=kvm64 set cpu type, default host
         -c|--cpu    <int>     number of cpus (default 1)
         -m|--mem    <int>     mem size MB (default 2048)
         -D|--disk   <file> *  disk image (multi disk must same format)
