@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_centos_init.sh - 2fe3beb - 2021-10-26T17:17:10+08:00")
+VERSION+=("os_centos_init.sh - d1c82a1 - 2021-10-28T15:48:03+08:00")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -130,6 +130,7 @@ EOF
     cat <<EOF > /etc/profile.d/os-security.sh
 export readonly TMOUT=900
 export readonly HISTFILE
+export readonly HISTCONTROL=erasedups
 EOF
 
     cat >/etc/profile.d/johnyin.sh<<"EOF"

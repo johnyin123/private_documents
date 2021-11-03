@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_debian_init.sh - 4c0a0f5 - 2021-10-29T07:23:52+08:00")
+VERSION+=("os_debian_init.sh - 6e432c8 - 2021-11-02T13:11:00+08:00")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -103,7 +103,8 @@ debian_limits_init() {
 *           hard   nofile       102400
 EOF
     echo "export TMOUT=900" > /etc/profile.d/tmout.sh
-    chmod 644 /etc/profile.d/tmout.sh
+    echo "export readonly HISTCONTROL=erasedups" > /etc/profile.d/hisfile.sh
+    chmod 644 /etc/profile.d/tmout.sh /etc/profile.d/hisfile.sh
 }
 export -f debian_limits_init
 
