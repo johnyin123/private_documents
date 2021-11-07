@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - initversion - 2021-11-06T12:21:07+08:00")
+VERSION+=("new_k8s.sh - fc170a5 - 2021-11-06T12:21:07+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 :<<EOF
@@ -81,7 +81,8 @@ EOF
 }
 
 pre_conf_k8s_host() {
-    echo "127.0.0.1       localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
+    # ${HOSTNAME:-$(hostname)}
+    echo "127.0.0.1       localhost" > /etc/hosts
     swapoff -a
     sed -iE "/\sswap\s/d" /etc/fstab
     cat <<EOF | tee /etc/modules-load.d/k8s.conf
@@ -96,7 +97,10 @@ EOF
     mkdir -p /etc/docker
     cat > /etc/docker/daemon.json <<EOF
 {
-  "registry-mirrors": ["https://docker.mirrors.ustc.edu.cn/"],
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "http://hub-mirror.c.163.com"
+  ],
   "exec-opts": ["native.cgroupdriver=systemd"],
   "log-driver": "json-file",
   "log-opts": {
@@ -124,6 +128,32 @@ gen_k8s_join_cmds() {
 kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash} --control-plane --certificate-key ${certs}
 kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash}
 EOF
+}
+
+init_k8s_dashboard() {
+    # 部署dashboard（在master上操作）
+    kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml
+    kubectl get pods --namespace=kubernetes-dashboard
+    # 修改service配置，将type: ClusterIP改成NodePort
+    # kubectl edit service kubernetes-dashboard --namespace=kubernetes-dashboard
+    kubectl get service kubernetes-dashboard --namespace=kubernetes-dashboard -o yaml | \
+    sed 's/type:\s*[^\s]*/type: NodePort/g' | \
+    kubectl apply -f -
+    kubectl get service --namespace=kubernetes-dashboard
+    kubectl create serviceaccount dashboard-admin -n kube-system
+    kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin
+    kubectl describe secrets -n kube-system $(kubectl -n kube-system get secret | awk '/dashboard-admin/{print $1}')
+}
+
+modify_kube_proxy_ipvs() {
+    export KUBECONFIG=/etc/kubernetes/admin.conf
+    kubectl -n kube-system get configmaps kube-proxy -o yaml | \
+    sed 's/mode:\s*"[^"]*"/mode: "ipvs"/g' | \
+    kubectl apply -f -
+    # kubectl -n kube-system edit configmaps kube-proxy -o yaml
+    # kube-proxy ConfigMap, [mode=""] changed to [ipvs]
+    kubectl -n kube-system delete pod -l k8s-app=kube-proxy
+    # kubectl -n kube-system logs  kube-proxy-tknk8
 }
 
 init_first_k8s_master() {
@@ -235,6 +265,8 @@ init_kube_cluster() {
     local hosts="${ipaddr} ${tname}"
     ssh_func "root@${ipaddr}" ${SSH_PORT} "echo ${hosts} >> /etc/hosts"
     ssh_func "root@${ipaddr}" ${SSH_PORT} init_first_k8s_master "${api_srv}"
+    ssh_func "root@${ipaddr}" ${SSH_PORT} modify_kube_proxy_ipvs
+    ssh_func "root@${ipaddr}" ${SSH_PORT} init_k8s_dashboard
     #kubeadm token list -o json
     local token=$(ssh_func "root@${ipaddr}" ${SSH_PORT} "kubeadm token create")
     # kubeadm token create --print-join-command
