@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - fc170a5 - 2021-11-06T12:21:07+08:00")
+VERSION+=("new_k8s.sh - a1bff25 - 2021-11-07T11:30:14+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 :<<EOF
@@ -95,6 +95,14 @@ net.bridge.bridge-nf-call-iptables = 1
 EOF
     sysctl --system
     mkdir -p /etc/docker
+    # Docker中国区官方镜像
+    # https://registry.docker-cn.com
+    # 网易
+    # http://hub-mirror.c.163.com
+    # ustc
+    # https://docker.mirrors.ustc.edu.cn
+    # 阿里云容器  服务
+    # https://cr.console.aliyun.com/
     cat > /etc/docker/daemon.json <<EOF
 {
   "registry-mirrors": [
@@ -128,6 +136,20 @@ gen_k8s_join_cmds() {
 kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash} --control-plane --certificate-key ${certs}
 kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash}
 EOF
+}
+
+init_k8s_ingress() {
+    # # Support Versions table
+    # https://github.com/kubernetes/ingress-nginx
+    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.0.4/deploy/static/provider/cloud/deploy.yaml
+    kubectl get pods -n ingress-nginx -o wide
+    # 通过创建的svc可以看到已经把ingress-nginx service在主机映射的端口为31199(http)，32759(https)
+    kubectl get svc -n ingress-nginx
+
+# # k8s.gcr.io/coredns:1.6.5 === >
+# docker pull registry.aliyuncs.com/google_containers/coredns:1.6.5
+# docker tag registry.aliyuncs.com/google_containers/coredns:1.6.5 k8s.gcr.io/coredns:1.6.5
+# docker rmi registry.aliyuncs.com/google_containers/coredns:1.6.5
 }
 
 init_k8s_dashboard() {
