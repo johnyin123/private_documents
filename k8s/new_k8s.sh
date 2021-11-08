@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - f2ac840 - 2021-11-08T10:36:38+08:00")
+VERSION+=("new_k8s.sh - 55f7251 - 2021-11-08T11:58:55+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 :<<EOF
@@ -159,7 +159,7 @@ init_k8s_dashboard() {
     # 修改service配置，将type: ClusterIP改成NodePort
     # kubectl edit service kubernetes-dashboard --namespace=kubernetes-dashboard
     kubectl get service kubernetes-dashboard --namespace=kubernetes-dashboard -o yaml | \
-    sed 's/type:\s*[^\s]*$/type: NodePort/g' | \
+    sed 's/type:\s*[^ ]*$/type: NodePort/g' | \
     kubectl apply -f -
     kubectl get service --namespace=kubernetes-dashboard
     kubectl create serviceaccount dashboard-admin -n kube-system
