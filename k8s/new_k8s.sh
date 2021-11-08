@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - 55f7251 - 2021-11-08T11:58:55+08:00")
+VERSION+=("new_k8s.sh - f5004dd - 2021-11-08T12:31:18+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 :<<EOF
@@ -80,9 +80,19 @@ EOF
     # ip netns del ${testns}
 }
 
+pre_get_gcr_images() {
+    local mirror="${1}"
+    local mirror_img="${2}"
+    local gcr_img="${3}"
+    #kubeadm config images list | sed "s|k8s.gcr.io\(.*\)|\1|g" | awk  -v mirror=${mirror} '{printf "docker pull %s%s\n", mirror, $1; printf "docker tag %s%s k8s.gcr.io%s\n", mirror, $1, $1; printf "docker rmi %s%s\n", mirror, $1}' | bash -x
+    # # 下载被墙的镜像 registry.aliyuncs.com/google_containers
+    docker pull "${mirror}/${mirror_img}"
+    docker tag  "${mirror}/${mirror_img}" "k8s.gcr.io/${gcr_img}"
+    docker rmi  "${mirror}/${mirror_img}"
+}
+
 pre_conf_k8s_host() {
-    # ${HOSTNAME:-$(hostname)}
-    echo "127.0.0.1       localhost" > /etc/hosts
+    echo "127.0.0.1       localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
     swapoff -a
     sed -iE "/\sswap\s/d" /etc/fstab
     cat <<EOF | tee /etc/modules-load.d/k8s.conf
@@ -146,10 +156,6 @@ init_k8s_ingress() {
     # 通过创建的svc可以看到已经把ingress-nginx service在主机映射的端口为31199(http)，32759(https)
     kubectl get svc -n ingress-nginx
 
-# # k8s.gcr.io/coredns:1.6.5 === >
-# docker pull registry.aliyuncs.com/google_containers/coredns:1.6.5
-# docker tag registry.aliyuncs.com/google_containers/coredns:1.6.5 k8s.gcr.io/coredns:1.6.5
-# docker rmi registry.aliyuncs.com/google_containers/coredns:1.6.5
 }
 
 init_k8s_dashboard() {
@@ -181,15 +187,20 @@ modify_kube_proxy_ipvs() {
 init_first_k8s_master() {
     local api_srv=${1} # apiserver dns-name:port
     # 初始kubeadm集群环境（仅master节点）
-    kubeadm config images list
-    kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version=$(kubelet --version | awk '{ print $2}')
-    kubeadm init --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version=$(kubelet --version | awk '{ print $2}') --control-plane-endpoint "${api_srv}" --upload-certs
+    # kubeadm config images list
+    # kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version=$(kubelet --version | awk '{ print $2}')
+    # kubeadm init --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version=$(kubelet --version | awk '{ print $2}') --control-plane-endpoint "${api_srv}" --upload-certs
+    kubeadm init --kubernetes-version=$(kubelet --version | awk '{ print $2}') --control-plane-endpoint "${api_srv}" --upload-certs
+    echo "FIX 'kubectl get cs' Unhealthy"
+    sed -i "/^\s*-\s*--\s*port\s*=\s*0/d" /etc/kubernetes/manifests/kube-controller-manager.yaml
+    sed -i "/^\s*-\s*--\s*port\s*=\s*0/d" /etc/kubernetes/manifests/kube-scheduler.yaml
+
     # # reupload certs
     # kubeadm init phase upload-certs --upload-certs
     #--apiserver-advertise-address=<ip-address-of-master-vm> #--service-cidr=10.1.0.0/16 --pod-network-cidr=172.16.0.0/16 
     # --control-plane-endpoint to set the shared endpoint for all control-plane nodes. Such an endpoint can be either a DNS name or an IP address of a load-balancer.
-    echo "export KUBECONFIG=/etc/kubernetes/admin.conf" > /etc/profile.d/k8s.conf
-    chmod 644 /etc/profile.d/k8s.conf
+    echo "export KUBECONFIG=/etc/kubernetes/admin.conf" > /etc/profile.d/k8s.sh
+    chmod 644 /etc/profile.d/k8s.sh
     # # 使Master Node参与工作负载
     # kubectl taint nodes --all node-role.kubernetes.io/master-
     # # 禁止master部署pod</p> 
@@ -217,8 +228,8 @@ add_k8s_master() {
     local sha_hash=${3}
     local certs=${4}
     kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash} --control-plane --certificate-key ${certs}
-    echo "export KUBECONFIG=/etc/kubernetes/admin.conf" > /etc/profile.d/k8s.conf
-    chmod 644 /etc/profile.d/k8s.conf
+    echo "export KUBECONFIG=/etc/kubernetes/admin.conf" > /etc/profile.d/k8s.sh
+    chmod 644 /etc/profile.d/k8s.sh
 }
 
 add_k8s_worker() {
@@ -245,6 +256,27 @@ teardown() {
 # remote execute function end!
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
+
+download() {
+    local ipaddr=${1}
+    local port=${2}
+    local user=${3}
+    local rfile=${4}
+    local lfile=${5}
+    warn_msg "download ${user}@${ipaddr}:${port}${rfile} ====> ${lfile}\n"
+    try scp -P${port} ${user}@${ipaddr}:${rfile} ${lfile}
+}
+
+upload() {
+    local lfile=${1}
+    local ipaddr=${2}
+    local port=${3}
+    local user=${4}
+    local rfile=${5}
+    warn_msg "upload ${lfile} ====> ${user}@${ipaddr}:${port}${rfile}\n"
+    try scp -P${port} ${lfile} ${user}@${ipaddr}:${rfile}
+}
+
 
 remove_k8s_cfg() {
     local ipaddr=${1}
@@ -275,6 +307,42 @@ init_kube_bridge_cni() {
 EOF
         ssh_func "root@${ipaddr}" ${SSH_PORT} pre_conf_k8s_host
         ssh_func "root@${ipaddr}" ${SSH_PORT} init_bridge_cni "${bridge}" "${subnet}" "${gw}" "${masq}" "${routes[@]}"
+    done
+}
+
+prepare_kube_images() {
+    local master=($(array_print ${1}))
+    local worker=($(array_print ${2}))
+    local ipaddr="" img="" imgid=""
+    local mirror="registry.aliyuncs.com/google_containers"
+    # [mirror-img]=gcr-img
+    declare -A img_map=(
+        [kube-apiserver:v1.22.3]=kube-apiserver:v1.22.3
+        [kube-controller-manager:v1.22.3]=kube-controller-manager:v1.22.3
+        [kube-scheduler:v1.22.3]=kube-scheduler:v1.22.3
+        [kube-proxy:v1.22.3]=kube-proxy:v1.22.3
+        [pause:3.5]=pause:3.5
+        [etcd:3.5.0-0]=etcd:3.5.0-0
+        [coredns:v1.8.4]=coredns/coredns:v1.8.4
+    )
+    #kubeadm config images list | sed "s|k8s.gcr.io\(.*\)|\1|g" | awk  -v mirror=${mirror} '{printf "docker pull %s%s\n", mirror, $1; printf "docker tag %s%s k8s.gcr.io%s\n", mirror, $1, $1; printf "docker rmi %s%s\n", mirror, $1}' | bash -x
+    for ipaddr in $(array_print worker) $(array_print master); do
+        for img in $(array_print_label img_map); do
+            [ -z "$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q k8s.gcr.io/$(array_get img_map ${img})")" ] || continue
+            file_exists "${DIRNAME}/${img}.tar.gz" && {
+                info_msg "Import kcr image for ${ipaddr}(${img})\n"
+                upload "${DIRNAME}/${img}.tar.gz" ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz"
+                ssh_func "root@${ipaddr}" ${SSH_PORT} "gunzip -c /tmp/${img}.tar.gz | docker import - k8s.gcr.io/$(array_get img_map ${img})"
+                ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
+                continue
+            }
+            info_msg "Prepare kcr image for ${ipaddr}(${img})\n"
+            ssh_func "root@${ipaddr}" ${SSH_PORT} pre_get_gcr_images "${mirror}" "${img}" "$(array_get img_map ${img})"
+            imgid=$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q k8s.gcr.io/$(array_get img_map ${img})")
+            ssh_func "root@${ipaddr}" ${SSH_PORT} "docker save ${imgid} | gzip > /tmp/${img}.tar.gz"
+            download ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
+            ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
+        done
     done
 }
 
@@ -321,7 +389,7 @@ ${SCRIPTNAME}
                             u should make a loadbalance to all masters later,
         -m|--master  <ip> * master nodes
         -w|--worker  <ip>   worker nodes 
-        -b|--bridge  <str>  k8s bridge, default "cn0"
+        -b|--bridge  <str>  k8s bridge_cni, bridge name
         --teardown   <ip>   remove all ceph config
         --password   <str>  ssh password(default use sshkey)
         --gen_join_cmds     only generate join commands
@@ -346,7 +414,7 @@ EOF
 }
 
 main() {
-    local password="" master=() worker=() teardown=() bridge="cni0" apiserver="k8sapi.local.com:6443" gen_join_cmds=""
+    local password="" master=() worker=() teardown=() bridge="" apiserver="k8sapi.local.com:6443" gen_join_cmds=""
     local opt_short="m:w:b:"
     local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,teardown:,"
     opt_short+="ql:dVh"
@@ -373,7 +441,7 @@ main() {
         esac
     done
     [ -z ${password} ]  || set_sshpass "${password}"
-    local ipaddr="" i=0 PREFIX=172.16
+    local ipaddr=""
     for ipaddr in "${teardown[@]}"; do
         remove_k8s_cfg ${ipaddr}
     done
@@ -384,14 +452,18 @@ main() {
         info_msg "GEN_CMDS OK\n"
         return 0
     }
-    declare -A srv_net_map=()
-    for ipaddr in ${master[@]} ${worker[@]}; do
-        srv_net_map[$ipaddr]="${PREFIX}.$i.0/22"
-        let i+=4
-    done
-    # print_kv srv_net_map
-    local masq=true
-    init_kube_bridge_cni "${bridge}" "${masq}" srv_net_map "${apiserver}"
+    prepare_kube_images master worker
+    [ -z "${bridge}" ] || {
+        info_msg "install bridge_cni begin(${bridge})\n"
+        declare -A srv_net_map=()
+        local i=0 PREFIX=172.16 masq=true
+        for ipaddr in ${master[@]} ${worker[@]}; do
+            srv_net_map[$ipaddr]="${PREFIX}.$i.0/22"
+            let i+=4
+        done
+        init_kube_bridge_cni "${bridge}" "${masq}" srv_net_map "${apiserver}"
+        info_msg " install bridge_cni end(${bridge})"
+    }
     init_kube_cluster master worker "${apiserver}"
     info_msg "ALL DONE\n"
     return 0
