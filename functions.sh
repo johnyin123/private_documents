@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - 580ca8c - 2021-10-26T13:34:08+08:00")
+VERSION+=("functions.sh - fadd1ac - 2021-10-27T09:10:45+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -303,8 +303,10 @@ tmux_input() {
     local cmd_size=-60.60
     stderr_is_terminal || cmd_size=    #stderr is redirect show all cmd
     blue>&2 "Begin: ";purple>&2 "%${cmd_size}s." "tmux(${sess}:${window})${input}"
-    green>&2 " done.\n"
+    local start_time=$(date +%s.%N)
     tmux send-keys -t "${sess}:${window}" "${input}" Enter
+    local elapsed_time=$(date +%s.%N --date="${start_time} seconds ago")
+    green>&2 " (%.4f)done.\n" ${elapsed_time}
     # tmux capture-pane -t "${sess}:${window}" -p
 }
 
@@ -984,17 +986,19 @@ try() {
     blue>&2 "Begin: ";purple>&2 "%${cmd_size}s." "$cmds"
     __ret_out= __ret_err= __ret_rc=0
     # eval -- "$( ($@ ; exit $?) \
+    local start_time=$(date +%s.%N)
     eval -- "$( (eval "$cmds";exit $?;) \
         2> >(__ret_err=$(cat); typeset -p __ret_err;) \
         1> >(__ret_out=$(cat); typeset -p __ret_out;); __ret_rc=$?; typeset -p __ret_rc; )"
-    [ ${__ret_rc} = 0 ] && green>&2 " done.\n"
+    local elapsed_time=$(date +%s.%N --date="${start_time} seconds ago")
+    [ ${__ret_rc} = 0 ] && green>&2 " (%.4f)done.\n" ${elapsed_time}
     [ ${__ret_rc} = 0 ] || {
         local cmd_func="" #"${FUNCNAME[1]}"
         for (( idx=${#FUNCNAME[@]}-1 ; idx>=1 ; idx-- )) ; do
             cmd_func+="${FUNCNAME[idx]} "
         done
         local cmd_line="${BASH_LINENO[1]}"
-        red>&2 " failed(${cmd_func}:${cmd_line} [${__ret_rc}]).\n"
+        red>&2 " (${elapsed_time})failed(${cmd_func}:${cmd_line} [${__ret_rc}]).\n"
     }
     [ -z "${__ret_out}" ] || cat <<< "${__ret_out}"
     [ -z "${__ret_err}" ] || cat >&2 <<< "${__ret_err}"
