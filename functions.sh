@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - fadd1ac - 2021-10-27T09:10:45+08:00")
+VERSION+=("functions.sh - dfe41a3 - 2021-11-08T12:24:41+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -84,7 +84,9 @@ ssh_func() {
     local args=("$@")
     info_msg "ssh ${ssh}:${port}${SSH_ASKPASS:+(askpass:${SSH_ASKPASS})} => ${func_name}\n"
     local ssh_opt="-t -oLogLevel=error -o StrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -o ServerAliveInterval=60 -p${port} ${ssh}"
-    try setsid ssh ${ssh_opt} /bin/bash -x -o errexit -s << EOF
+    local bash_opt="-o errexit -s"
+    defined QUIET || bash_opt="-x ${bash_opt}"
+    try setsid ssh ${ssh_opt} /bin/bash ${bash_opt} << EOF
 $(typeset -f "${func_name}" 2>/dev/null || true)
 ${func_name} ${args[@]}
 EOF
@@ -743,7 +745,7 @@ LOG_DEBUG=6       # Level debug
 # Log level names
 LOG_LEVELNAMES=('E' 'W' 'I' 'I' 'I' 'I' 'D')
 
-log_level=4
+log_level=5
 # Default date fmt
 date_fmt='%Y-%m-%d %H:%M:%S'
 # Default log fmt

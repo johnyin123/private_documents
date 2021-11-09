@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - f5004dd - 2021-11-08T12:31:18+08:00")
+VERSION+=("new_k8s.sh - 1c8257b - 2021-11-08T17:13:35+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 :<<EOF
@@ -168,9 +168,9 @@ init_k8s_dashboard() {
     sed 's/type:\s*[^ ]*$/type: NodePort/g' | \
     kubectl apply -f -
     kubectl get service --namespace=kubernetes-dashboard
-    kubectl create serviceaccount dashboard-admin -n kube-system
+    kubectl -n kube-system create serviceaccount dashboard-admin
     kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin
-    kubectl describe secrets -n kube-system $(kubectl -n kube-system get secret | awk '/dashboard-admin/{print $1}')
+    kubectl -n kube-system describe secrets $(kubectl -n kube-system get secret | awk '/dashboard-admin/{print $1}')
 }
 
 modify_kube_proxy_ipvs() {
@@ -313,32 +313,30 @@ EOF
 prepare_kube_images() {
     local master=($(array_print ${1}))
     local worker=($(array_print ${2}))
-    local ipaddr="" img="" imgid=""
+    local ipaddr="" img="" imgid="" x="" y=""
     local mirror="registry.aliyuncs.com/google_containers"
+    local orig="k8s.gcr.io"
     # [mirror-img]=gcr-img
-    declare -A img_map=(
-        [kube-apiserver:v1.22.3]=kube-apiserver:v1.22.3
-        [kube-controller-manager:v1.22.3]=kube-controller-manager:v1.22.3
-        [kube-scheduler:v1.22.3]=kube-scheduler:v1.22.3
-        [kube-proxy:v1.22.3]=kube-proxy:v1.22.3
-        [pause:3.5]=pause:3.5
-        [etcd:3.5.0-0]=etcd:3.5.0-0
-        [coredns:v1.8.4]=coredns/coredns:v1.8.4
-    )
-    #kubeadm config images list | sed "s|k8s.gcr.io\(.*\)|\1|g" | awk  -v mirror=${mirror} '{printf "docker pull %s%s\n", mirror, $1; printf "docker tag %s%s k8s.gcr.io%s\n", mirror, $1, $1; printf "docker rmi %s%s\n", mirror, $1}' | bash -x
+    declare -A img_map=()
+    for imgid in $(ssh_func "root@${master[0]}" ${SSH_PORT} "kubeadm config images list"); do
+        img_map[$(basename ${imgid})]="$(sed "s|${orig}/||g" <<< ${imgid})"
+    done
+    print_kv img_map | vinfo3_msg
+    #kubeadm config images list | sed "s|${orig}\(.*\)|\1|g" | awk  -v mirror=${mirror} '{printf "docker pull %s%s\n", mirror, $1; printf "docker tag %s%s ${orig}%s\n", mirror, $1, $1; printf "docker rmi %s%s\n", mirror, $1}' | bash -x
     for ipaddr in $(array_print worker) $(array_print master); do
         for img in $(array_print_label img_map); do
-            [ -z "$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q k8s.gcr.io/$(array_get img_map ${img})")" ] || continue
+            [ -z "$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q ${orig}/$(array_get img_map ${img})")" ] || continue
             file_exists "${DIRNAME}/${img}.tar.gz" && {
-                info_msg "Import kcr image for ${ipaddr}(${img})\n"
+                info_msg "Load kcr image for ${ipaddr}(${img})\n"
                 upload "${DIRNAME}/${img}.tar.gz" ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz"
-                ssh_func "root@${ipaddr}" ${SSH_PORT} "gunzip -c /tmp/${img}.tar.gz | docker import - k8s.gcr.io/$(array_get img_map ${img})"
+                IFS=':' read -r x y imgid <<< $(ssh_func "root@${ipaddr}" ${SSH_PORT} "gunzip -c /tmp/${img}.tar.gz | docker image load -q")
+                ssh_func "root@${ipaddr}" ${SSH_PORT} "docker tag ${imgid} ${orig}/$(array_get img_map ${img})"
                 ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
                 continue
             }
             info_msg "Prepare kcr image for ${ipaddr}(${img})\n"
             ssh_func "root@${ipaddr}" ${SSH_PORT} pre_get_gcr_images "${mirror}" "${img}" "$(array_get img_map ${img})"
-            imgid=$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q k8s.gcr.io/$(array_get img_map ${img})")
+            imgid=$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q ${orig}/$(array_get img_map ${img})")
             ssh_func "root@${ipaddr}" ${SSH_PORT} "docker save ${imgid} | gzip > /tmp/${img}.tar.gz"
             download ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
             ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
