@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - 3f955f1 - 2021-11-10T13:39:41+08:00")
+VERSION+=("new_k8s.sh - 243853f - 2021-11-10T14:48:39+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 :<<EOF
@@ -247,6 +247,9 @@ init_first_k8s_master() {
     # kubectl -n kube-system describe pod | grep IP
     echo "certificate expiration date"
     openssl x509 -in /etc/kubernetes/pki/apiserver.crt -noout -text |grep ' Not '
+    echo "coredns replicas"
+    kubectl -n kube-system get rs || true
+    echo "kubectl -n kube-system scale --replicas=3 rs/coredns-XXXXXXX"
 }
 
 add_k8s_master() {
@@ -569,8 +572,8 @@ main() {
     }
     init_kube_cluster master worker "${apiserver}" "${pod_cidr}"
     [ -z "${flannel_cidr}" ] || init_kube_flannel_cni master worker "${flannel_cidr}"
-    (${ipvs}) && ssh_func "root@${master[0]}" ${SSH_PORT} modify_kube_proxy_ipvs
-    (${dashboard}) && ssh_func "root@${master[0]}" ${SSH_PORT} init_k8s_dashboard
+    ${ipvs} && ssh_func "root@${master[0]}" ${SSH_PORT} modify_kube_proxy_ipvs
+    ${dashboard} && ssh_func "root@${master[0]}" ${SSH_PORT} init_k8s_dashboard
     info_msg "ALL DONE\n"
     return 0
 }
