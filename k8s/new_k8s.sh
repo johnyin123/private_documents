@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - 243853f - 2021-11-10T14:48:39+08:00")
+VERSION+=("new_k8s.sh - 65a3629 - 2021-11-10T14:57:11+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 :<<EOF
@@ -186,17 +186,20 @@ EOF
 
 init_k8s_dashboard() {
     # 部署dashboard（在master上操作）
-    kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml
+    #kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml
+    [ -e "/tmp/recommended.yaml" ] || return 1
+    kubectl create -f /tmp/recommended.yaml
+    rm -f /tmp/recommended.yaml
     kubectl get pods --namespace=kubernetes-dashboard
     # 修改service配置，将type: ClusterIP改成NodePort
     # kubectl edit service kubernetes-dashboard --namespace=kubernetes-dashboard
     kubectl get service kubernetes-dashboard --namespace=kubernetes-dashboard -o yaml | \
     sed 's/type:\s*[^ ]*$/type: NodePort/g' | \
     kubectl apply -f -
-    kubectl get service --namespace=kubernetes-dashboard
     kubectl -n kube-system create serviceaccount dashboard-admin
     kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin
     kubectl -n kube-system describe secrets $(kubectl -n kube-system get secret | awk '/dashboard-admin/{print $1}') || true
+    kubectl get service --namespace=kubernetes-dashboard
 }
 
 modify_kube_proxy_ipvs() {
@@ -349,6 +352,38 @@ init_kube_flannel_cni() {
 EOF
     prepare_flannel_images master worker
     ssh_func "root@${master[0]}" ${SSH_PORT} init_flannel_cni "${flannel_cidr}"
+}
+
+prepare_dashboard_images() {
+    local ipaddr=${1}
+    declare -A img_map=(
+        [dashboard:v2.0.0-beta1]=kubernetesui/dashboard:v2.0.0-beta1
+        [metrics-scraper:v1.0.0]=kubernetesui/metrics-scraper:v1.0.0
+    )
+    local img=""
+
+    [ -e "${DIRNAME}/recommended.yaml" ] && {
+        upload "${DIRNAME}/recommended.yaml" "${ipaddr}" "${SSH_PORT}" "root" "/tmp/recommended.yaml"
+    } || {
+        ssh_func "root@${ipaddr}" ${SSH_PORT} "wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml -O /tmp/recommended.yaml"
+        download ${ipaddr} ${SSH_PORT} "root" "/tmp/recommended.yaml" "${DIRNAME}/recommended.yaml"
+    }
+    for img in $(array_print_label img_map); do
+        [ -z "$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q $(array_get img_map ${img})")" ] || continue
+        file_exists "${DIRNAME}/${img}.tar.gz" && {
+            info_msg "Load dashboard image for ${ipaddr}(${img})\n"
+            upload "${DIRNAME}/${img}.tar.gz" ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz"
+            # IFS=':' read -r x y imgid <<< $(ssh_func "root@${ipaddr}" ${SSH_PORT} "gunzip -c /tmp/${img}.tar.gz | docker image load -q")
+            # ssh_func "root@${ipaddr}" ${SSH_PORT} "docker tag ${imgid} $(array_get img_map ${img})"
+            ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
+            continue
+        }
+        info_msg "Prepare dashboard image for ${ipaddr}(${img})\n"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} "docker pull $(array_get img_map ${img})"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} "docker save $(array_get img_map ${img}) | gzip > /tmp/${img}.tar.gz"
+        download ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
+    done
 }
 
 prepare_kube_images() {
@@ -573,7 +608,10 @@ main() {
     init_kube_cluster master worker "${apiserver}" "${pod_cidr}"
     [ -z "${flannel_cidr}" ] || init_kube_flannel_cni master worker "${flannel_cidr}"
     ${ipvs} && ssh_func "root@${master[0]}" ${SSH_PORT} modify_kube_proxy_ipvs
-    ${dashboard} && ssh_func "root@${master[0]}" ${SSH_PORT} init_k8s_dashboard
+    ${dashboard} && {
+        prepare_dashboard_images "{master[0]}"
+        ssh_func "root@${master[0]}" ${SSH_PORT} init_k8s_dashboard
+    }
     info_msg "ALL DONE\n"
     return 0
 }
