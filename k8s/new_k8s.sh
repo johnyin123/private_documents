@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - 7a7aa91 - 2021-11-10T13:36:00+08:00")
+VERSION+=("new_k8s.sh - 3f955f1 - 2021-11-10T13:39:41+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 :<<EOF
@@ -360,7 +360,7 @@ prepare_kube_images() {
     done
     print_kv img_map | vinfo3_msg
     #kubeadm config images list | sed "s|k8s.gcr.io\(.*\)|\1|g" | awk -v mirror=${mirror} '{printf "docker pull %s%s\n", mirror, $1; printf "docker tag %s%s k8s.gcr.io/%s\n", mirror, $1, $1; printf "docker rmi %s%s\n", mirror, $1}' | bash -x
-    for ipaddr in $(array_print worker) $(array_print master); do
+    for ipaddr in $(array_print master) $(array_print worker); do
         for img in $(array_print_label img_map); do
             [ -z "$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q $(array_get img_map ${img})")" ] || continue
             file_exists "${DIRNAME}/${img}.tar.gz" && {
@@ -403,8 +403,6 @@ init_kube_cluster() {
     local hosts="${ipaddr} ${tname}"
     ssh_func "root@${ipaddr}" ${SSH_PORT} "echo ${hosts} >> /etc/hosts"
     ssh_func "root@${ipaddr}" ${SSH_PORT} init_first_k8s_master "${api_srv}" "${pod_cidr}"
-    ssh_func "root@${ipaddr}" ${SSH_PORT} modify_kube_proxy_ipvs
-    ssh_func "root@${ipaddr}" ${SSH_PORT} init_k8s_dashboard
     #kubeadm token list -o json
     local token=$(ssh_func "root@${ipaddr}" ${SSH_PORT} "kubeadm token create")
     # kubeadm token create --print-join-command
@@ -472,6 +470,8 @@ ${SCRIPTNAME}
         -w|--worker  <ip>   worker nodes 
         --bridge     <str>  k8s bridge_cni, bridge name
         --flannel    <cidr> k8s flannel_cni, pod_cidr
+        --dashboard         install dashboard, default false
+        --ipvs              proxy mode ipvs, default false
         --teardown   <ip>   remove all k8s config
         --password   <str>  ssh password(default use sshkey)
         --gen_join_cmds     only generate join commands
@@ -510,9 +510,9 @@ EOF
 
 main() {
     local password="" master=() worker=() teardown=() bridge="" apiserver="k8sapi.local.com:6443" gen_join_cmds=""
-    local flannel_cidr="" pod_cidr=""
+    local flannel_cidr="" pod_cidr="" dashboard=false ipvs=false
     local opt_short="m:w:"
-    local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,teardown:,"
+    local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,dashboard,ipvs,teardown:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -525,6 +525,8 @@ main() {
             -w | --worker)  shift; worker+=(${1}); shift;;
             --bridge)       shift; bridge=${1}; shift;;
             --flannel)      shift; flannel_cidr=${1}; shift;;
+            --dashboard)    shift; dashboard=true; shift;;
+            --ipvs)         shift; ipvs=true; shift;;
             --teardown)     shift; teardown+=(${1}); shift;;
             --password)     shift; password="${1}"; shift;;
             ########################################
@@ -567,6 +569,8 @@ main() {
     }
     init_kube_cluster master worker "${apiserver}" "${pod_cidr}"
     [ -z "${flannel_cidr}" ] || init_kube_flannel_cni master worker "${flannel_cidr}"
+    (${ipvs}) && ssh_func "root@${master[0]}" ${SSH_PORT} modify_kube_proxy_ipvs
+    (${dashboard}) && ssh_func "root@${master[0]}" ${SSH_PORT} init_k8s_dashboard
     info_msg "ALL DONE\n"
     return 0
 }
