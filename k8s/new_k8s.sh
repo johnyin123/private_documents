@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - 12f3230 - 2021-11-09T16:10:20+08:00")
+VERSION+=("new_k8s.sh - e32a81c - 2021-11-10T11:16:22+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 :<<EOF
@@ -32,6 +32,8 @@ init_bridge_cni() {
     local masq=${4}
     shift 4
     local routes=("$@")
+    local env_file=/etc/sysconfig/kubelet #centos
+    #/etc/default/kubelet   #debian
     mkdir -p /etc/cni/net.d
     local tip="" tmask=""
     IFS='/' read -r tip tmask <<< "${subnet}"
@@ -56,7 +58,32 @@ init_bridge_cni() {
 }
 EOF
     [ -e /sys/class/net/${bridge}/bridge/bridge_id ] || {
-        cat <<EOF | tee /etc/network/interfaces.d/${bridge}
+        [ -e "${env_file}" ] && {
+            echo "Centos based system"
+            cat <<EOF | tee /etc/sysconfig/network-scripts/ifcfg-${bridge}
+DEVICE="${bridge}"
+ONBOOT="yes"
+TYPE="Bridge"
+BOOTPROTO="none"
+STP="on"
+$(
+                [ "${masq}" = true ] && {
+                    echo "IPADDR=${gw}"
+                    echo "PREFIX=${tmask}"
+                }
+)
+EOF
+            cat <<EOF | tee /etc/sysconfig/network-scripts/route-${bridge}
+$(
+                for i in "$@"; do
+                    IFS=',' read -r x y <<< "${i}"
+                    echo "$x via $y"
+                done
+)
+EOF
+        } || {
+            echo "Debian based system"
+            cat <<EOF | tee /etc/network/interfaces.d/${bridge}
 auto ${bridge}
 iface ${bridge} inet static
     bridge_ports none
@@ -68,6 +95,7 @@ iface ${bridge} inet static
     done
     )
 EOF
+        }
     }
     ifup ${bridge}
     ip address show dev ${bridge}
@@ -92,15 +120,15 @@ pre_get_gcr_images() {
     local mirror="${1}"
     local mirror_img="${2}"
     local gcr_img="${3}"
-    #kubeadm config images list | sed "s|k8s.gcr.io\(.*\)|\1|g" | awk  -v mirror=${mirror} '{printf "docker pull %s%s\n", mirror, $1; printf "docker tag %s%s k8s.gcr.io%s\n", mirror, $1, $1; printf "docker rmi %s%s\n", mirror, $1}' | bash -x
+    #kubeadm config images list | sed "s|k8s.gcr.io\(.*\)|\1|g" | awk -v mirror=${mirror} '{printf "docker pull %s%s\n", mirror, $1; printf "docker tag %s%s k8s.gcr.io%s\n", mirror, $1, $1; printf "docker rmi %s%s\n", mirror, $1}' | bash -x
     # # 下载被墙的镜像 registry.aliyuncs.com/google_containers
     docker pull "${mirror}/${mirror_img}"
-    docker tag  "${mirror}/${mirror_img}" "${gcr_img}"
-    docker rmi  "${mirror}/${mirror_img}"
+    docker tag "${mirror}/${mirror_img}" "${gcr_img}"
+    docker rmi "${mirror}/${mirror_img}"
 }
 
 pre_conf_k8s_host() {
-    echo "127.0.0.1       localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
+    echo "127.0.0.1 localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
     swapoff -a
     sed -iE "/\sswap\s/d" /etc/fstab
     cat <<EOF | tee /etc/modules-load.d/k8s.conf
@@ -119,7 +147,7 @@ EOF
     # http://hub-mirror.c.163.com
     # ustc
     # https://docker.mirrors.ustc.edu.cn
-    # 阿里云容器  服务
+    # 阿里云容器服务
     # https://cr.console.aliyun.com/
     cat > /etc/docker/daemon.json <<EOF
 {
@@ -179,7 +207,7 @@ modify_kube_proxy_ipvs() {
     # kubectl -n kube-system edit configmaps kube-proxy -o yaml
     # kube-proxy ConfigMap, [mode=""] changed to [ipvs]
     kubectl -n kube-system delete pod -l k8s-app=kube-proxy
-    # kubectl -n kube-system logs  kube-proxy-tknk8
+    # kubectl -n kube-system logs kube-proxy-tknk8
 }
 
 init_first_k8s_master() {
@@ -212,9 +240,9 @@ init_first_k8s_master() {
     # kubectl -n kube-system delete pod coredns-7f6cbbb7b8-lfvxb
     # kubectl -n kube-system logs coredns-7f6cbbb7b8-vkj2l
     # kubectl exec -it etcd-k8s-master sh
-    kubectl -n kube-system get pod    #看到所有的pod都处于running状态。
-    kubectl get nodes
-    kubeadm token list
+    # kubectl -n kube-system get pod || true
+    kubectl get nodes || true
+    kubeadm token list || true
     # kubectl delete nodes md2
     # kubectl -n kube-system describe pod | grep IP
     echo "certificate expiration date"
@@ -331,7 +359,7 @@ prepare_kube_images() {
         img_map[$(basename ${imgid})]="${imgid}"
     done
     print_kv img_map | vinfo3_msg
-    #kubeadm config images list | sed "s|k8s.gcr.io\(.*\)|\1|g" | awk  -v mirror=${mirror} '{printf "docker pull %s%s\n", mirror, $1; printf "docker tag %s%s k8s.gcr.io/%s\n", mirror, $1, $1; printf "docker rmi %s%s\n", mirror, $1}' | bash -x
+    #kubeadm config images list | sed "s|k8s.gcr.io\(.*\)|\1|g" | awk -v mirror=${mirror} '{printf "docker pull %s%s\n", mirror, $1; printf "docker tag %s%s k8s.gcr.io/%s\n", mirror, $1, $1; printf "docker rmi %s%s\n", mirror, $1}' | bash -x
     for ipaddr in $(array_print worker) $(array_print master); do
         for img in $(array_print_label img_map); do
             [ -z "$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q $(array_get img_map ${img})")" ] || continue
@@ -463,6 +491,19 @@ ${SCRIPTNAME}
             wget -q -O- https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
             echo "deb https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
             apt update && apt -y install kubelet kubectl kubeadm
+        Centos install docker & k8s
+            yum -y install wget curl ethtool socat bridge-utils
+            wget https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo -O /etc/yum.repos.d/docker-ce.repo
+            sed -i 's+download.docker.com+mirrors.aliyun.com/docker-ce+' /etc/yum.repos.d/docker-ce.repo
+            yum -y install docker-ce
+            cat > /etc/yum.repos.d/kubernetes.repo <<EOFREPO
+            [kubernetes]
+            name=Kubernetes
+            baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+            enabled=1
+            gpgcheck=0
+            EOFREPO
+            yum -y install kubelet kubeadm kubectl
 EOF
     exit 1
 }
@@ -496,7 +537,7 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    [ -z ${password} ]  || set_sshpass "${password}"
+    [ -z ${password} ] || set_sshpass "${password}"
     local ipaddr=""
     for ipaddr in "${teardown[@]}"; do
         remove_k8s_cfg ${ipaddr}
