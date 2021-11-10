@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - e32a81c - 2021-11-10T11:16:22+08:00")
+VERSION+=("new_k8s.sh - 7a7aa91 - 2021-11-10T13:36:00+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 :<<EOF
@@ -196,7 +196,7 @@ init_k8s_dashboard() {
     kubectl get service --namespace=kubernetes-dashboard
     kubectl -n kube-system create serviceaccount dashboard-admin
     kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin
-    kubectl -n kube-system describe secrets $(kubectl -n kube-system get secret | awk '/dashboard-admin/{print $1}')
+    kubectl -n kube-system describe secrets $(kubectl -n kube-system get secret | awk '/dashboard-admin/{print $1}') || true
 }
 
 modify_kube_proxy_ipvs() {
@@ -240,7 +240,7 @@ init_first_k8s_master() {
     # kubectl -n kube-system delete pod coredns-7f6cbbb7b8-lfvxb
     # kubectl -n kube-system logs coredns-7f6cbbb7b8-vkj2l
     # kubectl exec -it etcd-k8s-master sh
-    # kubectl -n kube-system get pod || true
+    kubectl -n kube-system get pod || true
     kubectl get nodes || true
     kubeadm token list || true
     # kubectl delete nodes md2
