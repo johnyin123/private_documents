@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - efe50c1 - 2021-11-09T13:31:17+08:00")
+VERSION+=("new_k8s.sh - 12f3230 - 2021-11-09T16:10:20+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 :<<EOF
@@ -82,9 +82,10 @@ EOF
 
 init_flannel_cni() {
     local pod_cidr=${1}
-    wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml -O /tmp/kube-flannel.yml
-    sed -i "s|\"Network\"\s*:\s*.*|\"Network\": \"${pod_cidr}\"|g" /tmp/kube-flannel.yml
+    [ -e "/tmp/kube-flannel.yml" ] || return 1
+    sed -i "s|\"Network\"\s*:\s*.*|\"Network\": \"${pod_cidr}\",|g" /tmp/kube-flannel.yml
     kubectl apply -f /tmp/kube-flannel.yml
+    rm -f /tmp/kube-flannel.yml
 }
 
 pre_get_gcr_images() {
@@ -155,16 +156,6 @@ kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:$
 EOF
 }
 
-init_k8s_ingress() {
-    # # Support Versions table
-    # https://github.com/kubernetes/ingress-nginx
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.0.4/deploy/static/provider/cloud/deploy.yaml
-    kubectl get pods -n ingress-nginx -o wide
-    # 通过创建的svc可以看到已经把ingress-nginx service在主机映射的端口为31199(http)，32759(https)
-    kubectl get svc -n ingress-nginx
-
-}
-
 init_k8s_dashboard() {
     # 部署dashboard（在master上操作）
     kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml
@@ -213,7 +204,7 @@ init_first_k8s_master() {
     # kubectl taint nodes --all node-role.kubernetes.io/master-
     # # 禁止master部署pod</p> 
     # kubectl taint nodes k8s node-role.kubernetes.io/master=true:NoSchedule
-    # Pending check
+    # # Pending check
     # kubectl -n kube-system describe pod coredns-7f6cbbb7b8-7phlt
     # kubectl describe node md1
     # kubectl get pods --all-namespaces
@@ -225,7 +216,7 @@ init_first_k8s_master() {
     kubectl get nodes
     kubeadm token list
     # kubectl delete nodes md2
-    kubectl -n kube-system describe pod | grep IP
+    # kubectl -n kube-system describe pod | grep IP
     echo "certificate expiration date"
     openssl x509 -in /etc/kubernetes/pki/apiserver.crt -noout -text |grep ' Not '
 }
@@ -288,7 +279,7 @@ upload() {
 
 remove_k8s_cfg() {
     local ipaddr=${1}
-    info_msg "${ipaddr} teardown all ceph config!\n"
+    info_msg "${ipaddr} teardown all k8s config!\n"
     ssh_func "root@${ipaddr}" ${SSH_PORT} "teardown"
 }
 
@@ -313,7 +304,6 @@ init_kube_bridge_cni() {
   MASQ=${masq}
   routes=${routes[@]}
 EOF
-        ssh_func "root@${ipaddr}" ${SSH_PORT} pre_conf_k8s_host
         ssh_func "root@${ipaddr}" ${SSH_PORT} init_bridge_cni "${bridge}" "${subnet}" "${gw}" "${masq}" "${routes[@]}"
     done
 }
@@ -322,9 +312,11 @@ init_kube_flannel_cni() {
     local master=($(array_print ${1}))
     local worker=($(array_print ${2}))
     local flannel_cidr=${3}
-    info_msg "prepare flannel_cni begin(${flannel_cidr})\n"
+    vinfo_msg <<EOF
+"****** ${ipaddr} init flannel(${flannel_cidr}) cni.
+  cidr=${flannel_cidr}
+EOF
     prepare_flannel_images master worker
-    info_msg "prepare flannel_cni end(${flannel_cidr})"
     ssh_func "root@${master[0]}" ${SSH_PORT} init_flannel_cni "${flannel_cidr}"
 }
 
@@ -358,6 +350,16 @@ prepare_kube_images() {
             download ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
             ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
         done
+    done
+}
+
+pre_valid_hosts() {
+    local master=($(array_print ${1}))
+    local worker=($(array_print ${2}))
+    local ipaddr=""
+    for ipaddr in $(array_print master) $(array_print worker); do
+        info_msg "****** ${ipaddr} pre valid host env\n"
+        ssh_func "root@${ipaddr}" ${SSH_PORT} pre_conf_k8s_host
     done
 }
 
@@ -405,13 +407,19 @@ prepare_flannel_images() {
     )
     print_kv img_map | vinfo3_msg
     for ipaddr in $(array_print master) $(array_print worker); do
+        [ -e "${DIRNAME}/kube-flannel.yml" ] && {
+            upload "${DIRNAME}/kube-flannel.yml" "${ipaddr}" "${SSH_PORT}" "root" "/tmp/kube-flannel.yml"
+        } || {
+            ssh_func "root@${ipaddr}" ${SSH_PORT} "wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml -O /tmp/kube-flannel.yml"
+            download ${ipaddr} ${SSH_PORT} "root" "/tmp/kube-flannel.yml" "${DIRNAME}/kube-flannel.yml"
+        }
         for img in $(array_print_label img_map); do
             [ -z "$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q $(array_get img_map ${img})")" ] || continue
             file_exists "${DIRNAME}/${img}.tar.gz" && {
                 info_msg "Load flannel image for ${ipaddr}(${img})\n"
                 upload "${DIRNAME}/${img}.tar.gz" ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz"
-                IFS=':' read -r x y imgid <<< $(ssh_func "root@${ipaddr}" ${SSH_PORT} "gunzip -c /tmp/${img}.tar.gz | docker image load -q")
-                ssh_func "root@${ipaddr}" ${SSH_PORT} "docker tag ${imgid} $(array_get img_map ${img})"
+                # IFS=':' read -r x y imgid <<< $(ssh_func "root@${ipaddr}" ${SSH_PORT} "gunzip -c /tmp/${img}.tar.gz | docker image load -q")
+                # ssh_func "root@${ipaddr}" ${SSH_PORT} "docker tag ${imgid} $(array_get img_map ${img})"
                 ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
                 continue
             }
@@ -435,8 +443,8 @@ ${SCRIPTNAME}
         -m|--master  <ip> * master nodes
         -w|--worker  <ip>   worker nodes 
         --bridge     <str>  k8s bridge_cni, bridge name
-        --flannel    <cidr> pod_cidr for flannel
-        --teardown   <ip>   remove all ceph config
+        --flannel    <cidr> k8s flannel_cni, pod_cidr
+        --teardown   <ip>   remove all k8s config
         --password   <str>  ssh password(default use sshkey)
         --gen_join_cmds     only generate join commands
         -q|--quiet
@@ -496,11 +504,12 @@ main() {
     [ "$(array_size teardown)" -gt "0" ] && { info_msg "TEARDOWN OK\n"; return 0; }
     [ "$(array_size master)" -gt "0" ] || usage "at least one master"
     [ -z "${gen_join_cmds}" ] || {
-        ssh_func "root@${master[0]}" ${SSH_PORT} gen_k8s_join_cmds 2>/dev/null
+        ssh_func "root@${master[0]}" "${SSH_PORT}" gen_k8s_join_cmds 2>/dev/null
         info_msg "GEN_CMDS OK\n"
         return 0
     }
     [ -z "${bridge}" ] || [ -z "${flannel_cidr}" ] || usage "network cni bridge/flannel"
+    pre_valid_hosts master worker
     prepare_kube_images master worker
     [ -z "${flannel_cidr}" ] || pod_cidr="${flannel_cidr}"
     [ -z "${bridge}" ] || {
