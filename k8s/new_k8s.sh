@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - b9cab83 - 2021-11-11T14:33:26+08:00")
+VERSION+=("new_k8s.sh - 5e0f58d - 2021-11-11T14:56:27+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -455,8 +455,10 @@ prepare_ingress_images() {
     local master=($(array_print ${1}))
     local worker=($(array_print ${2}))
     local ipaddr="${master[0]}"
-    # ingress yml should remove @sha254...... in image: sec!!
+    # ingress yml should remove @sha256...... in image: sec!!
     prepare_yml "${ipaddr}" "${L_INGRESS_YML}" "${R_INGRESS_YML}" "${INGRESS_YML}"
+    # docker pull k8s.gcr.io/ingress-nginx/controller:v1.0.4@sha256...
+    # docker pull k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1@sha256...
     for ipaddr in $(array_print master) $(array_print worker); do
         prepare_docker_images "${ipaddr}" INGRESS_MAP "${GCR_MIRROR}"
     done
@@ -620,6 +622,7 @@ main() {
         esac
     done
     print_predefine
+    confirm "Confirm NEW init k8s env(timeout 10,default N)?" 10 || exit_msg "BYE!\n"
     [ -z ${password} ] || set_sshpass "${password}"
     local ipaddr=""
     for ipaddr in "${teardown[@]}"; do
