@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - 24e596e - 2021-11-10T15:27:13+08:00")
+VERSION+=("new_k8s.sh - b9cab83 - 2021-11-11T14:33:26+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -311,7 +311,9 @@ init_first_k8s_master() {
     # kubectl delete nodes md2
     # kubectl -n kube-system describe pod | grep IP
     echo "certificate expiration date"
-    openssl x509 -in /etc/kubernetes/pki/apiserver.crt -noout -text |grep ' Not '
+    kubeadm certs check-expiration
+    echo "renew certs: kubeadm certs renew all"
+    # openssl x509 -in /etc/kubernetes/pki/apiserver.crt -noout -text |grep ' Not '
     echo "coredns replicas"
     kubectl -n kube-system get rs || true
     echo "kubectl -n kube-system scale --replicas=3 rs/coredns-XXXXXXX"
