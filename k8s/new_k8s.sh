@@ -7,8 +7,64 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - 65a3629 - 2021-11-10T14:57:11+08:00")
+VERSION+=("new_k8s.sh - 24e596e - 2021-11-10T15:27:13+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+################################################################################
+SSH_PORT=${SSH_PORT:-60022}
+# dashboard url
+declare -A DASHBOARD_MAP=(
+    [dashboard:v2.0.0-beta1]=kubernetesui/dashboard:v2.0.0-beta1
+    [metrics-scraper:v1.0.0]=kubernetesui/metrics-scraper:v1.0.0
+)
+DASHBOARD_YML="https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml"
+L_DASHBOARD_YML="${DIRNAME}/dashboard:v2.0.0-beta1.yml"
+R_DASHBOARD_YML="/tmp/dashboard.yml"
+# flannel_cni url
+declare -A FLANNEL_MAP=(
+    [flannel:v0.15.0]=quay.io/coreos/flannel:v0.15.0
+)
+FLANNEL_YML="https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
+L_FLANNEL_YML="${DIRNAME}/flannel:v0.15.0.yml"
+R_FLANNEL_YML="/tmp/flannel.yml"
+# ingress-nginx url
+declare -A INGRESS_MAP=(
+    [nginx-ingress-controller:v1.0.4]=k8s.gcr.io/ingress-nginx/controller:v1.0.4
+    [kube-webhook-certgen:v1.1.1]=k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1
+)
+INGRESS_YML="https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.0.4/deploy/static/provider/cloud/deploy.yaml"
+L_INGRESS_YML="${DIRNAME}/ingress-nginx:v1.0.4.yml"
+R_INGRESS_YML="/tmp/ingress-nginx.yml"
+# mirrors
+GCR_MIRROR="registry.aliyuncs.com/google_containers"
+QUAY_MIRROR="quay.io/coreos"
+RANCHER_MIRROR="rancher"
+
+print_predefine() {
+    cat<<EOF
+SSH_PORT        = ${SSH_PORT}
+========================================
+DASHBOARD_YML   = ${DASHBOARD_YML}
+L_DASHBOARD_YML = ${L_DASHBOARD_YML}
+R_DASHBOARD_YML = ${R_DASHBOARD_YML}
+$(print_kv DASHBOARD_MAP)
+========================================
+FLANNEL_YML     = ${FLANNEL_YML}
+L_FLANNEL_YML   = ${L_FLANNEL_YML}
+R_FLANNEL_YML   = ${R_FLANNEL_YML}
+$(print_kv FLANNEL_MAP)
+========================================
+INGRESS_YML     = ${INGRESS_YML}
+L_INGRESS_YML   = ${L_INGRESS_YML}
+R_INGRESS_YML   = ${R_INGRESS_YML}
+$(print_kv INGRESS_MAP)
+========================================
+GCR_MIRROR      = ${GCR_MIRROR}
+QUAY_MIRROR     = ${QUAY_MIRROR}
+RANCHER_MIRROR  = ${RANCHER_MIRROR}
+EOF
+    return 0
+}
+# pre defined ends
 ################################################################################
 :<<EOF
 ## https://www.cni.dev/plugins/current/main/bridge/
@@ -66,20 +122,20 @@ ONBOOT="yes"
 TYPE="Bridge"
 BOOTPROTO="none"
 STP="on"
-$(
+            $(
                 [ "${masq}" = true ] && {
                     echo "IPADDR=${gw}"
                     echo "PREFIX=${tmask}"
                 }
-)
+            )
 EOF
             cat <<EOF | tee /etc/sysconfig/network-scripts/route-${bridge}
-$(
+            $(
                 for i in "$@"; do
                     IFS=',' read -r x y <<< "${i}"
                     echo "$x via $y"
                 done
-)
+            )
 EOF
         } || {
             echo "Debian based system"
@@ -110,18 +166,48 @@ EOF
 
 init_flannel_cni() {
     local pod_cidr=${1}
-    [ -e "/tmp/kube-flannel.yml" ] || return 1
-    sed -i "s|\"Network\"\s*:\s*.*|\"Network\": \"${pod_cidr}\",|g" /tmp/kube-flannel.yml
-    kubectl apply -f /tmp/kube-flannel.yml
-    rm -f /tmp/kube-flannel.yml
+    local flannel_yml=${2}
+    [ -e "${flannel_yml}" ] || return 1
+    sed -i "s|\"Network\"\s*:\s*.*|\"Network\": \"${pod_cidr}\",|g" "${flannel_yml}"
+    kubectl apply -f "${flannel_yml}"
+    rm -f "${flannel_yml}"
 }
 
-pre_get_gcr_images() {
+init_ingress() {
+    local ingress_yml=${1}
+    [ -e "${ingress_yml}" ] || return 1
+    kubectl apply -f "${ingress_yml}"
+    echo "remove: kubectl delete -f ..."
+    rm -f "${ingress_yml}"
+    # # wait ingress running & ready
+    # kubectl wait --namespace ingress-nginx \
+    #     --for=condition=ready pod \
+    #     --selector=app.kubernetes.io/component=controller \
+    #     --timeout=120s
+}
+
+init_dashboard() {
+    local dashboard_yml=${1}
+    # dashboard on master
+    [ -e "${dashboard_yml}" ] || return 1
+    kubectl create -f "${dashboard_yml}"
+    rm -f "${dashboard_yml}"
+    kubectl get pods --namespace=kubernetes-dashboard
+    # 修改service配置，将type: ClusterIP改成NodePort
+    # kubectl edit service kubernetes-dashboard --namespace=kubernetes-dashboard
+    kubectl get service kubernetes-dashboard --namespace=kubernetes-dashboard -o yaml | \
+    sed 's/type:\s*[^ ]*$/type: NodePort/g' | \
+    kubectl apply -f -
+    kubectl -n kube-system create serviceaccount dashboard-admin
+    kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin
+    kubectl -n kube-system describe secrets $(kubectl -n kube-system get secret | awk '/dashboard-admin/{print $1}') || true
+    kubectl get service --namespace=kubernetes-dashboard
+}
+
+mirror_get_image() {
     local mirror="${1}"
     local mirror_img="${2}"
     local gcr_img="${3}"
-    #kubeadm config images list | sed "s|k8s.gcr.io\(.*\)|\1|g" | awk -v mirror=${mirror} '{printf "docker pull %s%s\n", mirror, $1; printf "docker tag %s%s k8s.gcr.io%s\n", mirror, $1, $1; printf "docker rmi %s%s\n", mirror, $1}' | bash -x
-    # # 下载被墙的镜像 registry.aliyuncs.com/google_containers
     docker pull "${mirror}/${mirror_img}"
     docker tag "${mirror}/${mirror_img}" "${gcr_img}"
     docker rmi "${mirror}/${mirror_img}"
@@ -139,16 +225,9 @@ EOF
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
 EOF
-    sysctl --system
+    sysctl --system &>/dev/null
     mkdir -p /etc/docker
-    # Docker中国区官方镜像
     # https://registry.docker-cn.com
-    # 网易
-    # http://hub-mirror.c.163.com
-    # ustc
-    # https://docker.mirrors.ustc.edu.cn
-    # 阿里云容器服务
-    # https://cr.console.aliyun.com/
     cat > /etc/docker/daemon.json <<EOF
 {
   "registry-mirrors": [
@@ -166,7 +245,9 @@ EOF
   "bridge": "none"
 }
 EOF
-    systemctl restart docker
+    systemctl restart docker.service
+    systemctl enable docker.service
+	systemctl enable kubelet.service
 }
 
 gen_k8s_join_cmds() {
@@ -176,30 +257,10 @@ gen_k8s_join_cmds() {
     local sha_hash=$(openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //')
     # reupload certs
     # kubeadm init phase upload-certs --upload-certs
-    local certs=$(kubeadm init phase upload-certs --upload-certs | tail -n 1)
+    local certs=$(kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -n 1)
     local api_srv=$(sed -n "s/\s*server:\s*\(.*\)/\1/p" /etc/kubernetes/kubelet.conf)
-    cat <<EOF
-kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash} --control-plane --certificate-key ${certs}
-kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash}
-EOF
-}
-
-init_k8s_dashboard() {
-    # 部署dashboard（在master上操作）
-    #kubectl create -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml
-    [ -e "/tmp/recommended.yaml" ] || return 1
-    kubectl create -f /tmp/recommended.yaml
-    rm -f /tmp/recommended.yaml
-    kubectl get pods --namespace=kubernetes-dashboard
-    # 修改service配置，将type: ClusterIP改成NodePort
-    # kubectl edit service kubernetes-dashboard --namespace=kubernetes-dashboard
-    kubectl get service kubernetes-dashboard --namespace=kubernetes-dashboard -o yaml | \
-    sed 's/type:\s*[^ ]*$/type: NodePort/g' | \
-    kubectl apply -f -
-    kubectl -n kube-system create serviceaccount dashboard-admin
-    kubectl create clusterrolebinding dashboard-admin --clusterrole=cluster-admin --serviceaccount=kube-system:dashboard-admin
-    kubectl -n kube-system describe secrets $(kubectl -n kube-system get secret | awk '/dashboard-admin/{print $1}') || true
-    kubectl get service --namespace=kubernetes-dashboard
+    echo kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash} --control-plane --certificate-key ${certs}
+    echo kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash}
 }
 
 modify_kube_proxy_ipvs() {
@@ -216,11 +277,12 @@ modify_kube_proxy_ipvs() {
 init_first_k8s_master() {
     local api_srv=${1} # apiserver dns-name:port
     local pod_cidr=${2}
-    # 初始kubeadm集群环境（仅master节点）
+    # init kubeadm cluster on master
     # kubeadm config images list
     # kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version=$(kubelet --version | awk '{ print $2}')
     # kubeadm init --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version=$(kubelet --version | awk '{ print $2}') --control-plane-endpoint "${api_srv}" --upload-certs
-    kubeadm init --kubernetes-version=$(kubelet --version | awk '{ print $2}') --control-plane-endpoint "${api_srv}" --upload-certs ${pod_cidr:+--pod-network-cidr=${pod_cidr}}
+    kubeadm init --kubernetes-version=$(kubelet --version | awk '{ print $2}') --control-plane-endpoint "${api_srv}" --upload-certs ${pod_cidr:+--pod-network-cidr=${pod_cidr}} --apiserver-advertise-address=0.0.0.0 
+    ##--apiserver-bind-port
     echo "FIX 'kubectl get cs' Unhealthy"
     sed -i "/^\s*-\s*--\s*port\s*=\s*0/d" /etc/kubernetes/manifests/kube-controller-manager.yaml
     sed -i "/^\s*-\s*--\s*port\s*=\s*0/d" /etc/kubernetes/manifests/kube-scheduler.yaml
@@ -276,20 +338,19 @@ add_k8s_worker() {
 teardown() {
     local name=${HOSTNAME:-$(hostname)}
     # 在Master节点上运行：
-    kubectl drain ${name} --delete-local-data --force --ignore-daemonsets || true
-    kubectl delete node ${name} || true
-    for b in $(jq -r .bridge /etc/cni/net.d/*); do
+    kubectl drain ${name} --delete-emptydir-data --force --ignore-daemonsets &>/dev/null || true
+    kubectl delete node ${name} &>/dev/null || true
+    for b in $(jq -r .bridge /etc/cni/net.d/* 2>/dev/null); do
         ifdown ${b} || true
         rm -f /etc/network/interfaces.d/${b} || true
+        rm -f /etc/sysconfig/network-scripts/ifcfg-${b} || true
     done
     # 移除的节点上，重置kubeadm的安装状态：
-    kubeadm reset -f || true
+    kubeadm reset -f &>/dev/null || true
     rm -fr /etc/cni/net.d/* || true
 }
 # remote execute function end!
 ################################################################################
-SSH_PORT=${SSH_PORT:-60022}
-
 download() {
     local ipaddr=${1}
     local port=${2}
@@ -310,11 +371,17 @@ upload() {
     try scp -P${port} ${lfile} ${user}@${ipaddr}:${rfile}
 }
 
-
-remove_k8s_cfg() {
+prepare_yml() {
     local ipaddr=${1}
-    info_msg "${ipaddr} teardown all k8s config!\n"
-    ssh_func "root@${ipaddr}" ${SSH_PORT} "teardown"
+    local local_yml=${2}
+    local remote_yml=${3}
+    local yml_url=${4}
+    [ -e "${local_yml}" ] && {
+        upload "${local_yml}" "${ipaddr}" "${SSH_PORT}" "root" "${remote_yml}"
+    } || {
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" "wget -q ${yml_url} -O ${remote_yml}"
+        download ${ipaddr} "${SSH_PORT}" "root" "${remote_yml}" "${local_yml}"
+    }
 }
 
 init_kube_bridge_cni() {
@@ -338,7 +405,7 @@ init_kube_bridge_cni() {
   MASQ=${masq}
   routes=${routes[@]}
 EOF
-        ssh_func "root@${ipaddr}" ${SSH_PORT} init_bridge_cni "${bridge}" "${subnet}" "${gw}" "${masq}" "${routes[@]}"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" init_bridge_cni "${bridge}" "${subnet}" "${gw}" "${masq}" "${routes[@]}"
     done
 }
 
@@ -351,81 +418,85 @@ init_kube_flannel_cni() {
   cidr=${flannel_cidr}
 EOF
     prepare_flannel_images master worker
-    ssh_func "root@${master[0]}" ${SSH_PORT} init_flannel_cni "${flannel_cidr}"
+    ssh_func "root@${master[0]}" "${SSH_PORT}" init_flannel_cni "${flannel_cidr}" "${R_FLANNEL_YML}"
+}
+
+prepare_docker_images() {
+    local ipaddr=${1}
+    local img_map=${2}
+    local mirror=${3}
+    local img="" x="" y="" imgid=""
+    cat <<EOF | vinfo3_msg
+IPADDR=${ipaddr}
+MIRROR=${mirror}
+$(print_kv ${img_map})
+EOF
+    for img in $(array_print_label "${img_map}"); do
+        [ -z "$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker image ls -q $(array_get ${img_map} ${img})")" ] || continue
+        file_exists "${DIRNAME}/${img}.tar.gz" && {
+            info_msg "Load ${img} for ${ipaddr}\n"
+            upload "${DIRNAME}/${img}.tar.gz" ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz"
+            imgid=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "gunzip -c /tmp/${img}.tar.gz | docker image load -q" | sed -E "s/Loaded image( ID:|:)\s//g")
+            ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker tag ${imgid} $(array_get ${img_map} ${img})"
+            ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
+            continue
+        }
+        info_msg "Pull ${img} for ${ipaddr}\n"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_get_image "${mirror}" "${img}" "$(array_get ${img_map} ${img})"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker save $(array_get ${img_map} ${img}) | gzip > /tmp/${img}.tar.gz"
+        download ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
+    done
+}
+
+prepare_ingress_images() {
+    local master=($(array_print ${1}))
+    local worker=($(array_print ${2}))
+    local ipaddr="${master[0]}"
+    # ingress yml should remove @sha254...... in image: sec!!
+    prepare_yml "${ipaddr}" "${L_INGRESS_YML}" "${R_INGRESS_YML}" "${INGRESS_YML}"
+    for ipaddr in $(array_print master) $(array_print worker); do
+        prepare_docker_images "${ipaddr}" INGRESS_MAP "${GCR_MIRROR}"
+    done
+}
+
+prepare_flannel_images() {
+    local master=($(array_print ${1}))
+    local worker=($(array_print ${2}))
+    local ipaddr="${master[0]}"
+    prepare_yml "${ipaddr}" "${L_FLANNEL_YML}" "${R_FLANNEL_YML}" "${FLANNEL_YML}"
+    for ipaddr in $(array_print master) $(array_print worker); do
+        prepare_docker_images "${ipaddr}" FLANNEL_MAP "${QUAY_MIRROR}"
+    done
+    declare -A flannel_cni_map=(
+        [mirrored-flannelcni-flannel-cni-plugin:v1.2]=rancher/mirrored-flannelcni-flannel-cni-plugin:v1.2
+    )
+    for ipaddr in $(array_print master) $(array_print worker); do
+        prepare_docker_images "${ipaddr}" flannel_cni_map "${RANCHER_MIRROR}"
+    done
 }
 
 prepare_dashboard_images() {
-    local ipaddr=${1}
-    declare -A img_map=(
-        [dashboard:v2.0.0-beta1]=kubernetesui/dashboard:v2.0.0-beta1
-        [metrics-scraper:v1.0.0]=kubernetesui/metrics-scraper:v1.0.0
-    )
-    local img=""
-
-    [ -e "${DIRNAME}/recommended.yaml" ] && {
-        upload "${DIRNAME}/recommended.yaml" "${ipaddr}" "${SSH_PORT}" "root" "/tmp/recommended.yaml"
-    } || {
-        ssh_func "root@${ipaddr}" ${SSH_PORT} "wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml -O /tmp/recommended.yaml"
-        download ${ipaddr} ${SSH_PORT} "root" "/tmp/recommended.yaml" "${DIRNAME}/recommended.yaml"
-    }
-    for img in $(array_print_label img_map); do
-        [ -z "$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q $(array_get img_map ${img})")" ] || continue
-        file_exists "${DIRNAME}/${img}.tar.gz" && {
-            info_msg "Load dashboard image for ${ipaddr}(${img})\n"
-            upload "${DIRNAME}/${img}.tar.gz" ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz"
-            # IFS=':' read -r x y imgid <<< $(ssh_func "root@${ipaddr}" ${SSH_PORT} "gunzip -c /tmp/${img}.tar.gz | docker image load -q")
-            # ssh_func "root@${ipaddr}" ${SSH_PORT} "docker tag ${imgid} $(array_get img_map ${img})"
-            ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
-            continue
-        }
-        info_msg "Prepare dashboard image for ${ipaddr}(${img})\n"
-        ssh_func "root@${ipaddr}" ${SSH_PORT} "docker pull $(array_get img_map ${img})"
-        ssh_func "root@${ipaddr}" ${SSH_PORT} "docker save $(array_get img_map ${img}) | gzip > /tmp/${img}.tar.gz"
-        download ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
-        ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
+    local master=($(array_print ${1}))
+    local worker=($(array_print ${2}))
+    local ipaddr="${master[0]}"
+    prepare_yml "${ipaddr}" "${L_DASHBOARD_YML}" "${R_DASHBOARD_YML}" "${DASHBOARD_YML}"
+    for ipaddr in $(array_print master) $(array_print worker); do
+        prepare_docker_images "${ipaddr}" DASHBOARD_MAP "${GCR_MIRROR}"
     done
 }
 
 prepare_kube_images() {
     local master=($(array_print ${1}))
     local worker=($(array_print ${2}))
-    local ipaddr="" img="" imgid="" x="" y=""
-    local mirror="registry.aliyuncs.com/google_containers"
+    local ipaddr="" imgid=""
     # [mirror-img]=gcr-img
-    declare -A img_map=()
-    for imgid in $(ssh_func "root@${master[0]}" ${SSH_PORT} "kubeadm config images list"); do
-        img_map[$(basename ${imgid})]="${imgid}"
+    declare -A gcr_map=()
+    for imgid in $(ssh_func "root@${master[0]}" "${SSH_PORT}" "kubeadm config images list 2>/dev/null"); do
+        gcr_map[$(basename ${imgid})]="${imgid}"
     done
-    print_kv img_map | vinfo3_msg
-    #kubeadm config images list | sed "s|k8s.gcr.io\(.*\)|\1|g" | awk -v mirror=${mirror} '{printf "docker pull %s%s\n", mirror, $1; printf "docker tag %s%s k8s.gcr.io/%s\n", mirror, $1, $1; printf "docker rmi %s%s\n", mirror, $1}' | bash -x
     for ipaddr in $(array_print master) $(array_print worker); do
-        for img in $(array_print_label img_map); do
-            [ -z "$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q $(array_get img_map ${img})")" ] || continue
-            file_exists "${DIRNAME}/${img}.tar.gz" && {
-                info_msg "Load kcr image for ${ipaddr}(${img})\n"
-                upload "${DIRNAME}/${img}.tar.gz" ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz"
-                IFS=':' read -r x y imgid <<< $(ssh_func "root@${ipaddr}" ${SSH_PORT} "gunzip -c /tmp/${img}.tar.gz | docker image load -q")
-                ssh_func "root@${ipaddr}" ${SSH_PORT} "docker tag ${imgid} $(array_get img_map ${img})"
-                ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
-                continue
-            }
-            info_msg "Prepare kcr image for ${ipaddr}(${img})\n"
-            ssh_func "root@${ipaddr}" ${SSH_PORT} pre_get_gcr_images "${mirror}" "${img}" "$(array_get img_map ${img})"
-            imgid=$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q $(array_get img_map ${img})")
-            ssh_func "root@${ipaddr}" ${SSH_PORT} "docker save ${imgid} | gzip > /tmp/${img}.tar.gz"
-            download ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
-            ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
-        done
-    done
-}
-
-pre_valid_hosts() {
-    local master=($(array_print ${1}))
-    local worker=($(array_print ${2}))
-    local ipaddr=""
-    for ipaddr in $(array_print master) $(array_print worker); do
-        info_msg "****** ${ipaddr} pre valid host env\n"
-        ssh_func "root@${ipaddr}" ${SSH_PORT} pre_conf_k8s_host
+        prepare_docker_images "${ipaddr}" gcr_map "${GCR_MIRROR}"
     done
 }
 
@@ -439,60 +510,25 @@ init_kube_cluster() {
     info_msg "****** ${ipaddr} init first master(${api_srv})\n"
     IFS=':' read -r tname tport <<< "${api_srv}"
     local hosts="${ipaddr} ${tname}"
-    ssh_func "root@${ipaddr}" ${SSH_PORT} "echo ${hosts} >> /etc/hosts"
-    ssh_func "root@${ipaddr}" ${SSH_PORT} init_first_k8s_master "${api_srv}" "${pod_cidr}"
+    ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo ${hosts} >> /etc/hosts"
+    ssh_func "root@${ipaddr}" "${SSH_PORT}" init_first_k8s_master "${api_srv}" "${pod_cidr}"
     #kubeadm token list -o json
-    local token=$(ssh_func "root@${ipaddr}" ${SSH_PORT} "kubeadm token create")
+    local token=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "kubeadm token create")
     # kubeadm token create --print-join-command
-    local sha_hash=$(ssh_func "root@${ipaddr}" ${SSH_PORT} "openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
+    local sha_hash=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
     # reupload certs
     # kubeadm init phase upload-certs --upload-certs
-    local certs=$(ssh_func "root@${ipaddr}" ${SSH_PORT} "kubeadm init phase upload-certs --upload-certs | tail -n 1")
+    local certs=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "kubeadm init phase upload-certs --upload-certs | tail -n 1")
     for ((i=1;i<$(array_size master);i++)); do
         ipaddr=$(array_get master ${i})
         info1_msg "****** ${ipaddr} add master(${api_srv})\n"
-        ssh_func "root@${ipaddr}" ${SSH_PORT} "echo ${hosts} >> /etc/hosts"
-        ssh_func "root@${ipaddr}" ${SSH_PORT} add_k8s_master "${api_srv}" "${token}" "${sha_hash}" "${certs}"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo ${hosts} >> /etc/hosts"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" add_k8s_master "${api_srv}" "${token}" "${sha_hash}" "${certs}"
     done
     for ipaddr in $(array_print worker); do
         info2_msg "****** ${ipaddr} add worker(${api_srv})\n"
-        ssh_func "root@${ipaddr}" ${SSH_PORT} "echo ${hosts} >> /etc/hosts"
-        ssh_func "root@${ipaddr}" ${SSH_PORT} add_k8s_worker "${api_srv}" "${token}" "${sha_hash}"
-    done
-}
-
-prepare_flannel_images() {
-    local master=($(array_print ${1}))
-    local worker=($(array_print ${2}))
-    local ipaddr="" img="" imgid="" x="" y=""
-    declare -A img_map=(
-        [flannel:v0.15.0]=quay.io/coreos/flannel:v0.15.0
-        [mirrored-flannelcni-flannel-cni-plugin:v1.2]=rancher/mirrored-flannelcni-flannel-cni-plugin:v1.2
-    )
-    print_kv img_map | vinfo3_msg
-    for ipaddr in $(array_print master) $(array_print worker); do
-        [ -e "${DIRNAME}/kube-flannel.yml" ] && {
-            upload "${DIRNAME}/kube-flannel.yml" "${ipaddr}" "${SSH_PORT}" "root" "/tmp/kube-flannel.yml"
-        } || {
-            ssh_func "root@${ipaddr}" ${SSH_PORT} "wget https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml -O /tmp/kube-flannel.yml"
-            download ${ipaddr} ${SSH_PORT} "root" "/tmp/kube-flannel.yml" "${DIRNAME}/kube-flannel.yml"
-        }
-        for img in $(array_print_label img_map); do
-            [ -z "$(ssh_func "root@${ipaddr}" ${SSH_PORT} "docker image ls -q $(array_get img_map ${img})")" ] || continue
-            file_exists "${DIRNAME}/${img}.tar.gz" && {
-                info_msg "Load flannel image for ${ipaddr}(${img})\n"
-                upload "${DIRNAME}/${img}.tar.gz" ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz"
-                # IFS=':' read -r x y imgid <<< $(ssh_func "root@${ipaddr}" ${SSH_PORT} "gunzip -c /tmp/${img}.tar.gz | docker image load -q")
-                # ssh_func "root@${ipaddr}" ${SSH_PORT} "docker tag ${imgid} $(array_get img_map ${img})"
-                ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
-                continue
-            }
-            info_msg "Prepare flannel image for ${ipaddr}(${img})\n"
-            ssh_func "root@${ipaddr}" ${SSH_PORT} "docker pull $(array_get img_map ${img})"
-            ssh_func "root@${ipaddr}" ${SSH_PORT} "docker save $(array_get img_map ${img}) | gzip > /tmp/${img}.tar.gz"
-            download ${ipaddr} ${SSH_PORT} "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
-            ssh_func "root@${ipaddr}" ${SSH_PORT} "rm -f /tmp/${img}.tar.gz"
-        done
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo ${hosts} >> /etc/hosts"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" add_k8s_worker "${api_srv}" "${token}" "${sha_hash}"
     done
 }
 
@@ -510,8 +546,10 @@ ${SCRIPTNAME}
         --flannel    <cidr> k8s flannel_cni, pod_cidr
         --dashboard         install dashboard, default false
         --ipvs              proxy mode ipvs, default false
+        --ingress           install ingress, default false
         --teardown   <ip>   remove all k8s config
         --password   <str>  ssh password(default use sshkey)
+        --define     <file> pre define file
         --gen_join_cmds     only generate join commands
         -q|--quiet
         -l|--log <int> log level
@@ -548,9 +586,9 @@ EOF
 
 main() {
     local password="" master=() worker=() teardown=() bridge="" apiserver="k8sapi.local.com:6443" gen_join_cmds=""
-    local flannel_cidr="" pod_cidr="" dashboard=false ipvs=false
+    local flannel_cidr="" pod_cidr="" dashboard=false ipvs=false ingress=false
     local opt_short="m:w:"
-    local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,dashboard,ipvs,teardown:,"
+    local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,dashboard,ipvs,ingress,teardown:,define:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -563,10 +601,12 @@ main() {
             -w | --worker)  shift; worker+=(${1}); shift;;
             --bridge)       shift; bridge=${1}; shift;;
             --flannel)      shift; flannel_cidr=${1}; shift;;
-            --dashboard)    shift; dashboard=true; shift;;
-            --ipvs)         shift; ipvs=true; shift;;
+            --dashboard)    shift; dashboard=true;;
+            --ingress)      shift; ingress=true;;
+            --ipvs)         shift; ipvs=true;;
             --teardown)     shift; teardown+=(${1}); shift;;
             --password)     shift; password="${1}"; shift;;
+            --define)       shift; source "${1}"; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -577,10 +617,12 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
+    print_predefine
     [ -z ${password} ] || set_sshpass "${password}"
     local ipaddr=""
     for ipaddr in "${teardown[@]}"; do
-        remove_k8s_cfg ${ipaddr}
+        info_msg "${ipaddr} teardown all k8s config!\n"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" "teardown"
     done
     [ "$(array_size teardown)" -gt "0" ] && { info_msg "TEARDOWN OK\n"; return 0; }
     [ "$(array_size master)" -gt "0" ] || usage "at least one master"
@@ -590,7 +632,10 @@ main() {
         return 0
     }
     [ -z "${bridge}" ] || [ -z "${flannel_cidr}" ] || usage "network cni bridge/flannel"
-    pre_valid_hosts master worker
+    for ipaddr in $(array_print master) $(array_print worker); do
+        info_msg "****** ${ipaddr} pre valid host env\n"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host
+    done
     prepare_kube_images master worker
     [ -z "${flannel_cidr}" ] || pod_cidr="${flannel_cidr}"
     [ -z "${bridge}" ] || {
@@ -607,10 +652,14 @@ main() {
     }
     init_kube_cluster master worker "${apiserver}" "${pod_cidr}"
     [ -z "${flannel_cidr}" ] || init_kube_flannel_cni master worker "${flannel_cidr}"
-    ${ipvs} && ssh_func "root@${master[0]}" ${SSH_PORT} modify_kube_proxy_ipvs
+    ${ipvs} && ssh_func "root@${master[0]}" "${SSH_PORT}" modify_kube_proxy_ipvs
+    ${ingress} && {
+        prepare_ingress_images master worker
+        ssh_func "root@${master[0]}" "${SSH_PORT}" init_ingress "${R_INGRESS_YML}"
+    }
     ${dashboard} && {
-        prepare_dashboard_images "{master[0]}"
-        ssh_func "root@${master[0]}" ${SSH_PORT} init_k8s_dashboard
+        prepare_dashboard_images master worker
+        ssh_func "root@${master[0]}" "${SSH_PORT}" init_dashboard "${R_DASHBOARD_YML}"
     }
     info_msg "ALL DONE\n"
     return 0
