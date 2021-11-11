@@ -1,0 +1,48 @@
+# https://docs.nginx.com/nginx-ingress-controller/installation/installation-with-manifests/
+git clone https://github.com/nginxinc/kubernetes-ingress/
+cd kubernetes-ingress/deployments
+git checkout v2.0.3
+kubectl apply -f common/ns-and-sa.yaml
+kubectl apply -f rbac/rbac.yaml
+kubectl apply -f rbac/ap-rbac.yaml
+# Create a secret with a TLS certificate and a key for the default server in NGINX:
+kubectl apply -f common/default-server-secret.yaml
+# Create a config map for customizing NGINX configuration:
+kubectl apply -f common/nginx-config.yaml
+# Create an IngressClass resource:
+kubectl apply -f common/ingress-class.yaml
+
+kubectl apply -f deployment/nginx-ingress.yaml
+kubectl apply -f daemon-set/nginx-ingress.yaml
+kubectl get pods --namespace=nginx-ingress
+kubectl create -f service/nodeport.yaml
+
+For GCP or Azure, run:
+$ kubectl apply -f service/loadbalancer.yaml
+For AWS, run:
+$ kubectl apply -f service/loadbalancer-aws-elb.yaml
+Add the following keys to the config map file nginx-config.yaml from the Step 2:
+proxy-protocol: "True"
+real-ip-header: "proxy_protocol"
+set-real-ip-from: "0.0.0.0/0"
+Update the config map:
+kubectl apply -f common/nginx-config.yaml
+
+kubectl get svc nginx-ingress --namespace=nginx-ingress
+kubectl describe svc nginx-ingress --namespace=nginx-ingress
+
+
+
+Uninstall the Ingress Controller
+Delete the nginx-ingress namespace to uninstall the Ingress controller along with all the auxiliary resources that were created:
+
+$ kubectl delete namespace nginx-ingress
+Delete the ClusterRole and ClusterRoleBinding:
+
+$ kubectl delete clusterrole nginx-ingress
+$ kubectl delete clusterrolebinding nginx-ingress
+Delete the Custom Resource Definitions:
+
+Note: This step will also remove all associated Custom Resources.
+
+$ kubectl delete -f common/crds/
