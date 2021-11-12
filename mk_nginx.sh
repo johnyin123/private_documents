@@ -363,8 +363,7 @@ cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/fcgiwrap.conf
 # mkdir -p /var/www/cgi-bin && chmod 755 /var/www/cgi-bin
 # cat <<CGIEOF > /var/www/cgi-bin/test.cgi
 # #!/bin/bash
-# echo "Content-type: text/html"
-# echo "" #must has blank link!!!
+# printf "Content-type: text/html\n\n"
 # cat << EDOC
 # <html><body>CGI Script Test Page</body></html>"
 # EDOC
