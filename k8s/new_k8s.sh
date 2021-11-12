@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - 5e0f58d - 2021-11-11T14:56:27+08:00")
+VERSION+=("new_k8s.sh - 1a564db - 2021-11-12T07:21:14+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -563,9 +563,11 @@ ${SCRIPTNAME}
     Example:
         MASQ=false, the gateway is outside, else gateway is bridge(cn0)
         Debian install docker:
-            apt -y install wget curl apt-transport-https ca-certificates ethtool socat bridge-utils gnupg
-            wget -q -O- 'https://mirrors.aliyun.com/docker-ce/linux/debian/gpg' | apt-key add -
-            echo "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/debian \$(sed -n "s/^\s*VERSION_CODENAME\s*=\s*\(.*\)/\1/p" /etc/os-release) stable" > /etc/apt/sources.list.d/docker.list
+            apt -y install wget curl apt-transport-https ca-certificates ethtool socat bridge-utils
+            repo=docker
+            apt -y install gnupg && wget -q -O- 'https://mirrors.aliyun.com/docker-ce/linux/debian/gpg' | \
+                gpg --dearmor > /etc/apt/trusted.gpg.d/\${repo}-archive-keyring.gpg
+            echo "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/debian \$(sed -n "s/^\s*VERSION_CODENAME\s*=\s*\(.*\)/\1/p" /etc/os-release) stable" > /etc/apt/sources.list.d/\${repo}.list
             apt update && apt -y install docker-ce
         Debian install k8s:
             wget -q -O- https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
