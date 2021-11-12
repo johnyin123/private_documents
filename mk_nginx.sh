@@ -358,8 +358,33 @@ server {
     }
 }
 EOF
+cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/fcgiwrap.conf
+# apt -y install fcgiwrap
+# mkdir -p /var/www/cgi-bin && chmod 755 /var/www/cgi-bin
+# cat <<CGIEOF > /var/www/cgi-bin/test.cgi
+# #!/bin/bash
+# echo "Content-type: text/html"
+# echo "" #must has blank link!!!
+# cat << EDOC
+# <html><body>CGI Script Test Page</body></html>"
+# EDOC
+# CGIEOF
+# chmod 755 /var/www/cgi-bin/test.cgi
+# systemctl enable fcgiwrap --now
+# curl localhost/cgi-bin/test.cgi
+server {
+    listen 80;
+    location /cgi-bin/ {
+        gzip off;
+        root /var/www;
+        fastcgi_pass unix:/var/run/fcgiwrap.socket;
+        include /etc/nginx/fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+}
+EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/nginx.conf
-user nobody;
+user nobody nogroup;
 worker_processes auto;
 worker_rlimit_nofile 102400;
 pid /run/nginx.pid;
