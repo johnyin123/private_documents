@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - 1a564db - 2021-11-12T07:21:14+08:00")
+VERSION+=("new_k8s.sh - b2949f4 - 2021-11-12T08:18:37+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -624,6 +624,7 @@ main() {
         esac
     done
     print_predefine
+    [ -e ${DIRNAME}/k8s.conf ] && . ${DIRNAME}/k8s.conf || true
     confirm "Confirm NEW init k8s env(timeout 10,default N)?" 10 || exit_msg "BYE!\n"
     [ -z ${password} ] || set_sshpass "${password}"
     local ipaddr=""
