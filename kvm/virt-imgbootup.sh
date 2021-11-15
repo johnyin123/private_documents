@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - 218d66c - 2021-10-08T09:44:41+08:00")
+VERSION+=("virt-imgbootup.sh - e112b64 - 2021-10-29T08:03:41+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -127,6 +127,7 @@ main() {
         }
         options+=("-netdev" "bridge,br=${_u},id=net${_id}")
         local _mac=52:54:$(printf "%02x" ${_id})$(hexdump -v -n3 -e '/1 ":%02X"' /dev/urandom)
+        # date | md5sum | sed -r 's/(..){3}/\1:/g;s/\s+-$//'
         #echo $FQDN|md5sum|sed 's/^\(..\)\(..\)\(..\)\(..\)\(..\).*$/02:\1:\2:\3:\4:\5/'
         options+=("-device" "virtio-net-pci,netdev=net${_id},mac=${_mac}")
         let _id+=1
