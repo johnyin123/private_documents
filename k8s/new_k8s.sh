@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - b2949f4 - 2021-11-12T08:18:37+08:00")
+VERSION+=("new_k8s.sh - 122b3b0 - 2021-11-12T09:15:59+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -623,9 +623,7 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    print_predefine
     [ -e ${DIRNAME}/k8s.conf ] && . ${DIRNAME}/k8s.conf || true
-    confirm "Confirm NEW init k8s env(timeout 10,default N)?" 10 || exit_msg "BYE!\n"
     [ -z ${password} ] || set_sshpass "${password}"
     local ipaddr=""
     for ipaddr in "${teardown[@]}"; do
@@ -640,6 +638,8 @@ main() {
         return 0
     }
     [ -z "${bridge}" ] || [ -z "${flannel_cidr}" ] || usage "network cni bridge/flannel"
+    print_predefine
+    confirm "Confirm NEW init k8s env(timeout 10,default N)?" 10 || exit_msg "BYE!\n"
     for ipaddr in $(array_print master) $(array_print worker); do
         info_msg "****** ${ipaddr} pre valid host env\n"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host
