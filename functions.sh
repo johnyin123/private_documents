@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - dfe41a3 - 2021-11-08T12:24:41+08:00")
+VERSION+=("functions.sh - efe50c1 - 2021-11-09T13:31:17+08:00")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -530,10 +530,60 @@ confirm() {
     return 1
 }
 
+http_code_description() {
+    local code=${1}
+    case "${code}" in
+       000) echo "Not responding within timeout seconds" ;;
+       100) echo "Informational: Continue" ;;
+       101) echo "Informational: Switching Protocols" ;;
+       200) echo "Successful: Http OK" ;;
+       201) echo "Successful: Created" ;;
+       202) echo "Successful: Accepted" ;;
+       203) echo "Successful: Non-Authoritative Information" ;;
+       204) echo "Successful: No Content" ;;
+       205) echo "Successful: Reset Content" ;;
+       206) echo "Successful: Partial Content" ;;
+       300) echo "Redirection: Multiple Choices" ;;
+       301) echo "Redirection: Moved Permanently" ;;
+       302) echo "Redirection: Found residing temporarily under different URI" ;;
+       303) echo "Redirection: See Other" ;;
+       304) echo "Redirection: Not Modified" ;;
+       305) echo "Redirection: Use Proxy" ;;
+       306) echo "Redirection: status not defined" ;;
+       307) echo "Redirection: Temporary Redirect" ;;
+       400) echo "Client Error: Bad Request" ;;
+       401) echo "Client Error: Unauthorized" ;;
+       402) echo "Client Error: Payment Required" ;;
+       403) echo "Client Error: Forbidden" ;;
+       404) echo "Client Error: Not Found" ;;
+       405) echo "Client Error: Method Not Allowed" ;;
+       406) echo "Client Error: Not Acceptable" ;;
+       407) echo "Client Error: Proxy Authentication Required" ;;
+       408) echo "Client Error: Request Timeout within ${timeout} seconds" ;;
+       409) echo "Client Error: Conflict" ;;
+       410) echo "Client Error: Gone" ;;
+       411) echo "Client Error: Length Required" ;;
+       412) echo "Client Error: Precondition Failed" ;;
+       413) echo "Client Error: Request Entity Too Large" ;;
+       414) echo "Client Error: Request-URI Too Long" ;;
+       415) echo "Client Error: Unsupported Media Type" ;;
+       416) echo "Client Error: Requested Range Not Satisfiable" ;;
+       417) echo "Client Error: Expectation Failed" ;;
+       500) echo "Server Error: Internal Server Error" ;;
+       501) echo "Server Error: Not Implemented" ;;
+       502) echo "Server Error: Bad Gateway" ;;
+       503) echo "Server Error: Service Unavailable" ;;
+       504) echo "Server Error: Gateway Timeout within ${timeout} seconds" ;;
+       505) echo "Server Error: HTTP Version Not Supported" ;;
+       *)   echo "${code} (unknown)"
+    esac
+}
+
+
 ##Usage: check_http_status 'http://www.example.com'
 check_http_status() {
     local url=$1
-    local status=$(curl -s -o /dev/null -w '%{http_code}' $url)
+    local status=$(curl -s -o /dev/null -w '%{http_code}' $url 2>/dev/null)
     safe_echo $status
 }
 
