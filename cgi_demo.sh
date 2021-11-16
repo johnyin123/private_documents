@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION+=("cgi_demo.sh - initversion - 2021-11-12T10:50:05+08:00")
+VERSION+=("cgi_demo.sh - e6842e1 - 2021-11-12T10:50:04+08:00")
 # HTTP POST and GET params in an associative array
 declare -A GET_PARAMS
 declare -A POST_PARAMS
@@ -51,3 +51,23 @@ parse_GET_params() {
 read_POST_vars
 parse_POST_params
 parse_GET_params
+
+do_post() {
+}
+
+do_get() {
+}
+
+printf "Content-type: text/html\n\n"
+case $REQUEST_METHOD in
+  POST)
+    do_post
+    ;;
+  GET)
+    do_get
+    ;;
+  *)
+    echo "No handle for $REQUEST_METHOD"
+    exit 0
+    ;;
+esac
