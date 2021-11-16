@@ -1,0 +1,76 @@
+kubectl get nodes -o json | jq .items[].spec.taints
+kubectl describe node k8s-master | grep Taints
+kubectl taint node k8s-master node.kubernetes.io/not-ready:NoSchedule-
+
+kubectl taint nodes k8s-master node-role.kubernetes.io/master-node/k8s-master untainted
+
+
+kubectl apply -f https://raw.githubusercontent.com/s-matyukevich/bash-cni-plugin/master/01_gcp/test-deployment.yml
+kubectl describe pod | grep IP
+
+kubectl describe node k8s-master | grep PodCIDR
+kubectl describe node k8s-worker | grep PodCIDR
+
+# This must be done on both master and worker nodes
+# with 10.244.0.0/24 for the master and 10.244.1.0./24 for the worker.
+cat <<EOF > /etc/cni/net.d/10-bash-cni-plugin.conf
+{
+    "cniVersion": "0.3.1",
+    "name": "mynet",
+    "type": "bash-cni",
+    "plugins": [
+          {
+          "name": "mynet",
+          "bridge": "br-ext",
+          "network": "10.244.0.0/16",
+          "subnet": "10.244.0.0/24"
+          }
+    ]
+}
+EOF
+# The plug-in’s executable file must be placed in the /opt/cni/bin/ folder
+
+cat <<'EOF' >/opt/cni/bin/bash-cni
+#!/usr/bin/env bash
+add() {
+    mkdir -p /var/run/netns/
+    ln -sfT $CNI_NETNS /var/run/netns/$CNI_CONTAINERID
+    # create a pair of network interfaces
+    rand=$(tr -dc 'A-F0-9' < /dev/urandom | head -c4)
+    host_if_name="veth${rand}"
+    ip link add $CNI_IFNAME type veth peer name $host_if_name
+    # The second interface remains in the host namespace and should be added to the bridge
+    ip link set $host_if_name up
+    ip link set $host_if_name master br-ext
+    # we need to configure the container interface.
+    ip link set $CNI_IFNAME netns $CNI_CONTAINERID
+    ip netns exec $CNI_CONTAINERID ip link set $CNI_IFNAME up
+    ip netns exec $CNI_CONTAINERID ip addr add 192.168.168.201/24 dev $CNI_IFNAME
+    ip netns exec $CNI_CONTAINERID ip route add default via $gw_ip dev $CNI_IFNAME
+}
+
+del() {
+    return 0
+}
+
+get() {
+    return 0
+}
+
+#exec 3>&1 # make stdout available as fd 3 for the result
+#exec &>> /var/log/bash-cni-plugin.log
+case $CNI_COMMAND in
+ADD)
+    add
+    ;;
+DEL)
+    del
+    ;;
+GET)
+    get
+    ;;
+VERSION)
+    echo '{"cniVersion":"0.4.0","supportedVersions":["0.1.0","0.2.0","0.3.0","0.3.1","0.4.0"]}'
+    ;;
+esac
+EOF
