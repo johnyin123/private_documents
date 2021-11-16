@@ -53,8 +53,6 @@ EOF
 --with-stream_realip_module \
 --with-stream_ssl_preread_module \
  \
-${STATIC:+--with-ld-opt=-static} \
- \
 --with-openssl=${CURPATH}/openssl-1.1.1l \
 --with-pcre=${CURPATH}/pcre-8.39 \
 --with-zlib=${CURPATH}/zlib-1.2.11.dfsg \
