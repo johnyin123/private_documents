@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - c1328df - 2021-11-18T07:36:21+08:00")
+VERSION+=("new_k8s.sh - af166ab - 2021-11-18T09:24:02+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -181,6 +181,9 @@ init_flannel_cni() {
     sed -i "s|\"Network\"\s*:\s*.*|\"Network\": \"${pod_cidr}\",|g" "${flannel_yml}"
     export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl apply -f "${flannel_yml}"
+    # kubectl delete -f flannel.yml
+    # kubectl -n kube-system exec -it etcd-node<xxxxx> -- /bin/sh
+    kubectl -n kube-system get configmaps kube-flannel-cfg -o yaml
     rm -f "${flannel_yml}"
 }
 
@@ -566,6 +569,7 @@ ${SCRIPTNAME}
         -w|--worker  <ip>   worker nodes 
         --bridge     <str>  k8s bridge_cni, bridge name
         --flannel    <cidr> k8s flannel_cni, pod_cidr
+                            skip_proxy flannel_cni no work. get info etcd with service_cluster_ip
         --dashboard         install dashboard, default false
         --skip_proxy        skip install kube-proxy, default false
         --ipvs              kube-proxy mode ipvs, default false
@@ -680,7 +684,11 @@ main() {
         info_msg "install bridge_cni end(${bridge})"
     }
     init_kube_cluster master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}"
-    [ -z "${flannel_cidr}" ] || init_kube_flannel_cni master worker "${flannel_cidr}"
+    [ -z "${flannel_cidr}" ] || {
+        info_msg "install flannel_cni begin(${pod_cidr})\n"
+        init_kube_flannel_cni master worker "${pod_cidr}"
+        info_msg "install flannel_cni end(${pod_cidr})"
+    }
     ${skip_proxy} || {
         ${ipvs} && ssh_func "root@${master[0]}" "${SSH_PORT}" modify_kube_proxy_ipvs
     }
