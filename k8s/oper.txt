@@ -1,0 +1,46 @@
+kubectl create namespace ingress
+kubectl create -f nginx-ingress-controller-deployment.yaml -n=ingress
+
+kubectl get svc -n kube-system
+
+// 1、找到容器ID，并打印它的NS ID
+docker inspect --format "{{.State.Pid}}"  16938de418ac
+// 2、进入此容器的网络Namespace
+nsenter -n -t  54438
+// 3、抓DNS包
+tcpdump -i eth0 udp dst port 53|grep youku.com
+
+test_ok() {
+    # 首先验证kube-apiserver, kube-controller-manager, kube-scheduler, pod network 是否正常
+    kubectl create deployment nginx --image=nginx:alpine
+    kubectl scale deployment nginx --replicas=2
+    # kubectl create deploy nginx --image=nginx --replicas=2
+    # kubectl expose deploy nginx --port 80
+    # 验证Nginx Pod是否正确运行，并且会分配192.168.开头的集群IP
+    kubectl get pods -l app=nginx -o wide
+    kubectl get ep nginx
+    # kubectl exec nginx-565785f75c-nrghw -- printenv
+    # 再验证一下kube-proxy是否正常：
+    # 以 NodePort 方式对外提供服务 https://kubernetes.io/docs/concepts/services-networking/connect-applications-service/
+    kubectl expose deployment nginx --port=80 --type=NodePort
+    # 查看集群外可访问的Port
+    kubectl get services nginx
+    # 可以通过任意 NodeIP:Port 在集群外部访问这个服务，本示例中部署的2台集群IP分别是172.17.20.210和172.17.20.211
+    # curl http://172.17.20.210:31899
+    # 最后验证一下dns, pod network是否正常：
+    # 运行Busybox并进入交互模式
+    kubectl run test --rm -it --image=radial/busyboxplus:curl /bin/sh
+    # 输入`nslookup nginx`查看是否可以正确解析出集群内的IP，已验证DNS是否正常
+    # nslookup nginx
+    # # 输出
+    # Server:    10.96.0.10
+    # Address 1: 10.96.0.10 kube-dns.kube-system.svc.cluster.local
+    # Name:      nginx
+    # Address 1: 10.110.49.49 nginx.default.svc.cluster.local
+    # 通过服务名进行访问，验证kube-proxy是否正常
+    # curl http://nginx/
+    # 分别访问一下2个Pod的内网IP，验证跨Node的网络通信是否正常
+    # curl http://192.168.168.2/
+    # curl http://192.168.168.3/
+    # 验证通过，集群搭建成功
+}

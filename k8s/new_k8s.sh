@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - af166ab - 2021-11-18T09:24:02+08:00")
+VERSION+=("new_k8s.sh - eea4168 - 2021-11-18T10:27:56+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -296,6 +296,7 @@ init_first_k8s_master() {
     local pod_cidr=${3}
     local opts="--kubernetes-version=$(kubelet --version | awk '{ print $2}') --control-plane-endpoint ${api_srv} --upload-certs ${pod_cidr:+--pod-network-cidr=${pod_cidr}} --apiserver-advertise-address=0.0.0.0"
     ${skip_proxy} && opts="--skip-phases=addon/kube-proxy ${opts}" 
+    # kubeadm init phase addon kube-proxy --kubernetes-version=$(kubelet --version | awk '{ print $2}')
     # init kubeadm cluster on master
     # kubeadm config images list
     # kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version=$(kubelet --version | awk '{ print $2}')
