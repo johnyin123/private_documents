@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - 3374602 - 2021-11-16T07:43:07+08:00")
+VERSION+=("new_k8s.sh - c1328df - 2021-11-18T07:36:21+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -35,6 +35,15 @@ INGRESS_YML="https://raw.githubusercontent.com/kubernetes/ingress-nginx/controll
 L_INGRESS_YML="${DIRNAME}/ingress-nginx:v1.0.4.yml"
 R_INGRESS_YML="/tmp/ingress-nginx.yml"
 # mirrors
+declare -A GCR_MAP=(
+    [coredns:v1.8.4]=k8s.gcr.io/coredns/coredns:v1.8.4
+    [kube-apiserver:v1.22.3]=k8s.gcr.io/kube-apiserver:v1.22.3
+    [kube-scheduler:v1.22.3]=k8s.gcr.io/kube-scheduler:v1.22.3
+    [etcd:3.5.0-0]=k8s.gcr.io/etcd:3.5.0-0
+    [pause:3.5]=k8s.gcr.io/pause:3.5
+    [kube-proxy:v1.22.3]=k8s.gcr.io/kube-proxy:v1.22.3
+    [kube-controller-manager:v1.22.3]=k8s.gcr.io/kube-controller-manager:v1.22.3
+)
 GCR_MIRROR="registry.aliyuncs.com/google_containers"
 QUAY_MIRROR="quay.io/coreos"
 RANCHER_MIRROR="rancher"
@@ -61,6 +70,7 @@ $(print_kv INGRESS_MAP)
 GCR_MIRROR      = ${GCR_MIRROR}
 QUAY_MIRROR     = ${QUAY_MIRROR}
 RANCHER_MIRROR  = ${RANCHER_MIRROR}
+$(print_kv GCR_MAP)
 EOF
     return 0
 }
@@ -169,6 +179,7 @@ init_flannel_cni() {
     local flannel_yml=${2}
     [ -e "${flannel_yml}" ] || return 1
     sed -i "s|\"Network\"\s*:\s*.*|\"Network\": \"${pod_cidr}\",|g" "${flannel_yml}"
+    export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl apply -f "${flannel_yml}"
     rm -f "${flannel_yml}"
 }
@@ -176,6 +187,7 @@ init_flannel_cni() {
 init_ingress() {
     local ingress_yml=${1}
     [ -e "${ingress_yml}" ] || return 1
+    export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl apply -f "${ingress_yml}"
     echo "remove: kubectl delete -f ..."
     rm -f "${ingress_yml}"
@@ -190,6 +202,7 @@ init_dashboard() {
     local dashboard_yml=${1}
     # dashboard on master
     [ -e "${dashboard_yml}" ] || return 1
+    export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl create -f "${dashboard_yml}"
     rm -f "${dashboard_yml}"
     kubectl get pods --namespace=kubernetes-dashboard
@@ -276,12 +289,15 @@ modify_kube_proxy_ipvs() {
 
 init_first_k8s_master() {
     local api_srv=${1} # apiserver dns-name:port
-    local pod_cidr=${2}
+    local skip_proxy=${2}
+    local pod_cidr=${3}
+    local opts="--kubernetes-version=$(kubelet --version | awk '{ print $2}') --control-plane-endpoint ${api_srv} --upload-certs ${pod_cidr:+--pod-network-cidr=${pod_cidr}} --apiserver-advertise-address=0.0.0.0"
+    ${skip_proxy} && opts="--skip-phases=addon/kube-proxy ${opts}" 
     # init kubeadm cluster on master
     # kubeadm config images list
     # kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version=$(kubelet --version | awk '{ print $2}')
     # kubeadm init --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version=$(kubelet --version | awk '{ print $2}') --control-plane-endpoint "${api_srv}" --upload-certs
-    kubeadm init --kubernetes-version=$(kubelet --version | awk '{ print $2}') --control-plane-endpoint "${api_srv}" --upload-certs ${pod_cidr:+--pod-network-cidr=${pod_cidr}} --apiserver-advertise-address=0.0.0.0 
+    kubeadm init ${opts}
     ##--apiserver-bind-port
     echo "FIX 'kubectl get cs' Unhealthy"
     sed -i "/^\s*-\s*--\s*port\s*=\s*0/d" /etc/kubernetes/manifests/kube-controller-manager.yaml
@@ -293,6 +309,7 @@ init_first_k8s_master() {
     # --control-plane-endpoint to set the shared endpoint for all control-plane nodes. Such an endpoint can be either a DNS name or an IP address of a load-balancer.
     echo "export KUBECONFIG=/etc/kubernetes/admin.conf" > /etc/profile.d/k8s.sh
     chmod 644 /etc/profile.d/k8s.sh
+    export KUBECONFIG=/etc/kubernetes/admin.conf
     # # 使Master Node参与工作负载
     # kubectl taint nodes --all node-role.kubernetes.io/master-
     # # 禁止master部署pod</p> 
@@ -340,16 +357,17 @@ add_k8s_worker() {
 teardown() {
     local name=${HOSTNAME:-$(hostname)}
     # 在Master节点上运行：
+    export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl drain ${name} --delete-emptydir-data --force --ignore-daemonsets &>/dev/null || true
     kubectl delete node ${name} &>/dev/null || true
     for b in $(jq -r .bridge /etc/cni/net.d/* 2>/dev/null); do
-        ifdown ${b} || true
+        ifdown ${b} 2>/dev/null || true
         rm -f /etc/network/interfaces.d/${b} || true
         rm -f /etc/sysconfig/network-scripts/ifcfg-${b} || true
     done
     # 移除的节点上，重置kubeadm的安装状态：
     kubeadm reset -f &>/dev/null || true
-    rm -fr /etc/cni/net.d/* || true
+    rm -fr /etc/cni/net.d/* /etc/profile.d/k8s.sh || true
 }
 # remote execute function end!
 ################################################################################
@@ -494,13 +512,12 @@ prepare_kube_images() {
     local master=($(array_print ${1}))
     local worker=($(array_print ${2}))
     local ipaddr="" imgid=""
-    # [mirror-img]=gcr-img
-    declare -A gcr_map=()
-    for imgid in $(ssh_func "root@${master[0]}" "${SSH_PORT}" "kubeadm config images list 2>/dev/null"); do
-        gcr_map[$(basename ${imgid})]="${imgid}"
-    done
+    # declare -A GCR_MAP=()
+    # for imgid in $(ssh_func "root@${master[0]}" "${SSH_PORT}" "kubeadm config images list 2>/dev/null"); do
+    #     GCR_MAP[$(basename ${imgid})]="${imgid}"
+    # done
     for ipaddr in $(array_print master) $(array_print worker); do
-        prepare_docker_images "${ipaddr}" gcr_map "${GCR_MIRROR}"
+        prepare_docker_images "${ipaddr}" GCR_MAP "${GCR_MIRROR}"
     done
 }
 
@@ -509,13 +526,14 @@ init_kube_cluster() {
     local worker=($(array_print ${2}))
     local api_srv=${3}
     local pod_cidr=${4}
+    local skip_proxy=${5}
     [ "$(array_size master)" -gt "0" ] || return 1
     local ipaddr=$(array_get master 0)
     info_msg "****** ${ipaddr} init first master(${api_srv})\n"
     IFS=':' read -r tname tport <<< "${api_srv}"
     local hosts="${ipaddr} ${tname}"
     ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo ${hosts} >> /etc/hosts"
-    ssh_func "root@${ipaddr}" "${SSH_PORT}" init_first_k8s_master "${api_srv}" "${pod_cidr}"
+    ssh_func "root@${ipaddr}" "${SSH_PORT}" init_first_k8s_master "${api_srv}" "${skip_proxy}" "${pod_cidr}"
     #kubeadm token list -o json
     local token=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "kubeadm token create")
     # kubeadm token create --print-join-command
@@ -549,7 +567,8 @@ ${SCRIPTNAME}
         --bridge     <str>  k8s bridge_cni, bridge name
         --flannel    <cidr> k8s flannel_cni, pod_cidr
         --dashboard         install dashboard, default false
-        --ipvs              proxy mode ipvs, default false
+        --skip_proxy        skip install kube-proxy, default false
+        --ipvs              kube-proxy mode ipvs, default false
         --ingress           install ingress, default false
         --teardown   <ip>   remove all k8s config
         --password   <str>  ssh password(default use sshkey)
@@ -563,7 +582,7 @@ ${SCRIPTNAME}
     Example:
         MASQ=false, the gateway is outside, else gateway is bridge(cn0)
         Debian install docker:
-            apt -y install wget curl apt-transport-https ca-certificates ethtool socat bridge-utils ipvsadm ipset
+            apt -y install wget curl apt-transport-https ca-certificates ethtool socat bridge-utils ipvsadm ipset jq
             repo=docker
             apt -y install gnupg && wget -q -O- 'https://mirrors.aliyun.com/docker-ce/linux/debian/gpg' | \
                 gpg --dearmor > /etc/apt/trusted.gpg.d/\${repo}-archive-keyring.gpg
@@ -592,9 +611,10 @@ EOF
 
 main() {
     local password="" master=() worker=() teardown=() bridge="" apiserver="k8sapi.local.com:6443" gen_join_cmds=""
-    local flannel_cidr="" pod_cidr="" dashboard=false ipvs=false ingress=false
+    local flannel_cidr="" pod_cidr="" dashboard=false ipvs=false ingress=false skip_proxy=false
     local opt_short="m:w:"
     local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,dashboard,ipvs,ingress,teardown:,define:,"
+    opt_long+="skip_proxy,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -609,6 +629,7 @@ main() {
             --flannel)      shift; flannel_cidr=${1}; shift;;
             --dashboard)    shift; dashboard=true;;
             --ingress)      shift; ingress=true;;
+            --skip_proxy)   shift; skip_proxy=true;;
             --ipvs)         shift; ipvs=true;;
             --teardown)     shift; teardown+=(${1}); shift;;
             --password)     shift; password="${1}"; shift;;
@@ -658,9 +679,11 @@ main() {
         init_kube_bridge_cni "${bridge}" "${masq}" srv_net_map "${apiserver}"
         info_msg "install bridge_cni end(${bridge})"
     }
-    init_kube_cluster master worker "${apiserver}" "${pod_cidr}"
+    init_kube_cluster master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}"
     [ -z "${flannel_cidr}" ] || init_kube_flannel_cni master worker "${flannel_cidr}"
-    ${ipvs} && ssh_func "root@${master[0]}" "${SSH_PORT}" modify_kube_proxy_ipvs
+    ${skip_proxy} || {
+        ${ipvs} && ssh_func "root@${master[0]}" "${SSH_PORT}" modify_kube_proxy_ipvs
+    }
     ${ingress} && {
         prepare_ingress_images master worker
         ssh_func "root@${master[0]}" "${SSH_PORT}" init_ingress "${R_INGRESS_YML}"
