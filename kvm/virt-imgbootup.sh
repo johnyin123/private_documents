@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-imgbootup.sh - e112b64 - 2021-10-29T08:03:41+08:00")
+VERSION+=("virt-imgbootup.sh - c0eedc7 - 2021-11-15T16:49:11+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -35,6 +35,9 @@ ${SCRIPTNAME}
         --cdrom     <iso>     iso file
         --fda       <file>    floppy disk file
         --sound     Enable soundhw hda
+        --uefi      <file>    uefi bios file
+                    /usr/share/qemu/OVMF.fd
+                    apt -y install ovmf
         --daemonize run as daemon, with display none
         -q|--quiet
         -l|--log <int> log level
@@ -76,7 +79,7 @@ main() {
 
     local cpu=1 mem=2048 disk=() bridge=() fmt="" cdrom="" floppy="" usb=() simusb=() pci_bus_addr=() daemonize=no
     local opt_short="c:m:D:b:f:"
-    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb:,simusb:,pci:,sound,daemonize,"
+    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb:,simusb:,pci:,sound,daemonize,uefi:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -94,6 +97,7 @@ main() {
             --cdrom)        shift; cdrom=${1}; shift;;
             --fda)          shift; floppy=${1}; shift;;
             --sound)        shift; options+=("-soundhw" "hda");;
+            --uefi)         shift; options+=("-bios" "${1}"); shift;;
             --daemonize)    shift; daemonize=yes;;
             # ln -s /home/johnyin/.config/pulse/cookie
             # options+=("-device" "intel-hda")
