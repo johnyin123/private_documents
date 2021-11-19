@@ -1,3 +1,21 @@
+# 导出配置文件
+kubeadm config print init-defaults --kubeconfig ClusterConfiguration > kubeadm.yml
+# 替换 imageRepository: k8s.gcr.io 为下面的内容
+imageRepository: registry.aliyuncs.com/google_containers
+# 查看所需镜像列表
+kubeadm config images list --config kubeadm.yml
+# 拉取k8s集群所需要的镜像
+kubeadm config images pull --config kubeadm.yml
+# 拉取完成之后查看本地镜像列表
+docker images | grep registry.aliyuncs.com
+
+kubeadm init --kubernetes-version=1.18.2  \
+--apiserver-advertise-address=192.168.x.130  \
+--image-repository=registry.aliyuncs.com/google_containers  \
+--pod-network-cidr=10.222.0.0/16
+--ignore-preflight-errors=NumCPU
+
+
 kubectl create namespace ingress
 kubectl create -f nginx-ingress-controller-deployment.yaml -n=ingress
 
