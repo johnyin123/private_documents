@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 57f9750 - 2021-08-24T13:00:35+08:00")
+VERSION+=("build_debian_live_iso.sh - 5632da4 - 2021-08-25T08:41:01+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -237,7 +237,8 @@ main() {
         esac
     done
     is_user_root || exit_msg "root user need!!\n"
-    require xorriso mksquashfs debootstrap
+    require xorriso mksquashfs debootstrap mformat
+    # apt -y install mtools
     prepare_config ${DIRNAME}/config
     source ${DIRNAME}/config
     local root_dir=${DIRNAME}/rootfs
