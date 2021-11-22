@@ -4,26 +4,31 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("tgz_rootfs_inst.sh - 3333890 - 2021-08-26T07:17:25+08:00")
+VERSION+=("tgz_rootfs_inst.sh - 56b1016 - 2021-10-25T12:42:03+08:00")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        -t|--tgz         *    root tar.gz(tgz) for install
-        -d|--disk        *    disk, /dev/sdX
-        -p|--part             install tgz in this <DISK> part as rootfs
+        -t|--tgz      <str>   root tar.gz(tgz) for install
+        --uefi        <str>   uefi partition(fat32), /dev/vda1
+                              uefi partition type fat32, boot flag on.
+        -d|--disk     <str>   disk, /dev/sdX
+        -p|--part     <int>   install tgz in this <DISK> part as rootfs
                               default 1
         -x | --xfsfix         disable xfs v5 feature!! for support kernel below 3.16
         -V|--version          version info
         -h|--help             help
+        Exam:
+           ${SCRIPTNAME} -t /mnt/bullseye.1122.tar.gz --uefi /dev/vda1 -d /dev/vda -p 2
+           ${SCRIPTNAME} -t /mnt/bullseye.1122.tar.gz -d /dev/vda -p 1
 EOF
     exit 1
 }
 main() {
-    local root_tgz= disk= partition=1 xfsfix=
+    local root_tgz="" disk="" partition=1 xfsfix="" uefi=""
     local opt_short+="t:d:p:xvh"
-    local opt_long+="tgz:,disk:,part:,xfsfix,version,help"
+    local opt_long+="tgz:,disk:,part:,xfsfix,uefi:,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
@@ -32,6 +37,7 @@ main() {
             -t | --tgz)       shift; root_tgz=${1}; shift;;
             -d | --disk)      shift; disk=${1}; shift;;
             -p | --part)      shift; part=${1}; shift;;
+            --uefi)           shift; uefi=${1}; shift;;
             -x | --xfsfix)    shift; xfsfix=1;;
             -V | --version)   shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
             -h | --help)      shift; usage;;
@@ -42,34 +48,52 @@ main() {
     [ -z "${root_tgz}" ] && usage "tgz rootfs package?"
     [ -z "${disk}" ] && usage "need disk and  partition?"
     echo "install ${root_tgz} => ${disk}${part}"
+    local target="i386-pc"
+    [ -d "/sys/firmware/efi" ] && {
+        target="x86_64-efi"
+        echo "UEFI MODE"
+        [ -z "${uefi}" ] && {
+            echo "NO UEFI PARTITION, exit!!!"
+            exit 1
+        } || {
+            echo "install UEFI ${uefi}"
+            mkfs.vfat -F 32 ${uefi}
+        }
+    }
     local root_dir=$(mktemp -d /tmp/rootfs.XXXXXX)
     mkfs.xfs -f -L rootfs ${xfsfix:+-m reflink=0} "${disk}${part}"
     mount "${disk}${part}" ${root_dir}
     tar -C ${root_dir} -xvf ${root_tgz}
-    [ -d "${root_dir}/sys" ] && mount -o bind /sys ${root_dir}/sys
-    [ -d "${root_dir}/proc" ] && mount -o bind /proc ${root_dir}/proc
-    [ -d "${root_dir}/dev" ] && mount -o bind /dev ${root_dir}/dev
+    for i in /dev /dev/pts /proc /sys /sys/firmware/efi/efivars /run; do
+        mount -o bind $i "${root_dir}${i}" && echo "mount $i ...." || true
+    done
+    [ -d "/sys/firmware/efi" ] && {
+        mkdir -p ${root_dir}/boot/efi
+        mount ${uefi} ${root_dir}/boot/efi
+    }
     source ${root_dir}/etc/os-release
-    LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
+    LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x -o errexit -s <<EOSHELL
 case "${ID}" in
     debian)
-        grub-install --target=i386-pc --boot-directory=/boot --modules="xfs part_msdos" ${disk}
+        grub-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk}
         grub-mkconfig -o /boot/grub/grub.cfg
         ;;
     centos)
-        grub2-install --target=i386-pc --boot-directory=/boot --modules="xfs part_msdos" ${disk}
+        grub2-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk}
         grub2-mkconfig -o /boot/grub2/grub.cfg
         ;;
 esac
+exit 0
 EOSHELL
     local new_uuid=$(blkid -s UUID -o value ${disk}${part})
     cp -n ${root_dir}/etc/fstab ${root_dir}/etc/fstab.orig
     {
+        echo "# $(date '+%Y-%m-%d %H:%M:%S')"
         echo "UUID=${new_uuid} / xfs noatime,relatime 0 0"
-        grep -v "\s/\s" ${root_dir}/etc/fstab.orig
-    } > ${root_dir}/etc/fstab
-    umount ${root_dir}/sys ${root_dir}/proc ${root_dir}/dev || true
-    umount ${root_dir} || true
+        grep -v "\s/\s" ${root_dir}/etc/fstab.orig || true
+    }  | tee ${root_dir}/etc/fstab
+    umount -R -v ${root_dir} || true
+    echo "ALL DONE OK"
 }
 main "$@"
 

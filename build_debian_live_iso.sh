@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 5304bae - 2021-11-19T11:22:19+08:00")
+VERSION+=("build_debian_live_iso.sh - 27ceb49 - 2021-11-22T09:16:41+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -148,7 +148,7 @@ EOF
 new_build() {
     local root_dir=$1
     local cache_dir=$2
-    local include_pkg="linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv${3:+,${3}}"
+    local include_pkg="linux-image-${INST_ARCH:-amd64},live-boot,grub-pc-bin,grub-efi-ia32-bin,grub-efi-amd64-bin,grub-efi-amd64-signed,dosfstools,fdisk,parted,xfsprogs,systemd-sysv${3:+,${3}}"
     info_msg "new build with package: ${include_pkg}\n"
     defined DRYRUN || {
         debian_build "${root_dir}" "${cache_dir}" "${include_pkg}"
