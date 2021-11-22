@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("tgz_rootfs_inst.sh - 56b1016 - 2021-10-25T12:42:03+08:00")
+VERSION+=("tgz_rootfs_inst.sh - 52ba0e6 - 2021-11-22T14:55:57+08:00")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -13,6 +13,10 @@ ${SCRIPTNAME}
         -t|--tgz      <str>   root tar.gz(tgz) for install
         --uefi        <str>   uefi partition(fat32), /dev/vda1
                               uefi partition type fat32, boot flag on.
+                        parted -s /dev/vda "mklabel gpt"
+                        parted -s /dev/vda "mkpart primary fat32 1M 128M"
+                        parted -s /dev/vda "mkpart primary xfs 128M 100%"
+                        parted -s /dev/vda "set 1 boot on"
         -d|--disk     <str>   disk, /dev/sdX
         -p|--part     <int>   install tgz in this <DISK> part as rootfs
                               default 1
