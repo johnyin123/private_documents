@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_debian_live_iso.sh - 5632da4 - 2021-08-25T08:41:01+08:00")
+VERSION+=("build_debian_live_iso.sh - 5304bae - 2021-11-19T11:22:19+08:00")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -50,6 +50,8 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+            # for support both bios/efi32/efi64
+            apt -y install grub-pc-bin grub-efi-ia32-bin grub-efi-amd64-bin grub-efi-amd64-signed dosfstools
 EOF
     exit 1
 }
