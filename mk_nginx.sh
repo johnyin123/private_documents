@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("1a1e7f3[2021-11-23T09:11:47+08:00]:mk_nginx.sh")
+VERSION+=("1076ad9[2021-11-23T09:30:08+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
@@ -385,6 +385,55 @@ server {
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
         include /etc/nginx/fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+}
+EOF
+cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/secure_link.conf
+map $uri $file_name {
+    default none;
+    "~*/s/(?<name>.*).txt" $name;
+    "~*/s/(?<name>.*).mp4" $name;
+}
+# mkdir -p /var/www/secure/hls/ && echo "HLS FILE" > /var/www/secure/hls/file.txt
+# mkdir -p /var/www/files/ && echo "FILES FILE" > /var/www/files/file.txt
+# mkdir -p /var/www/s/ && echo "S FILE" > /var/www/s/file.txt
+server {
+    listen 80;
+    ## Basic Secured URLs
+    # echo -n 'hls/file.txtprekey' | openssl md5 -hex
+    # curl http://${srv}/videos/071f5f362f9362f1d14a3ece3b0c37e6/hls/file.txt
+    location /videos {
+        secure_link_secret prekey;
+        if ($secure_link = "") { return 403; }
+        rewrite ^ /secure/$secure_link;
+    }
+    location /secure {
+        internal;
+        root /var/www;
+    }
+    ## Secured URLs that Expire
+    # sec=3600
+    # expire=$(date -d "+${sec} second" +%s)
+    # client_ip=192.168.168.1
+    # echo -n "${expire}/files/file.txt${client_ip} prekey" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =
+    # curl --interface "${client_ip}" "http://${srv}/files/file.txt?md5=XXXXXXXXXXXXXX&expires=${expire}"
+    location /files {
+        root /var/www;
+        secure_link $arg_md5,$arg_expires;
+        secure_link_md5 "$secure_link_expires$uri$remote_addr prekey";
+        if ($secure_link = "") { return 403; }
+        if ($secure_link = "0") { return 410; }
+    }
+    ## Securing Segment Files with an Expiration Date
+    # agent="curl/7.74.0"
+    # echo -n "prekey${expire}file${agent}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =
+    # curl "http://${srv}/s/file.txt?md5=XXXXXXXXXXXXXX&expires=${expire}"
+    location /s {
+        root /var/www;
+        secure_link $arg_md5,$arg_expires;
+        secure_link_md5 "prekey$secure_link_expires$file_name$http_user_agent";
+        if ($secure_link = "") { return 403; }
+        if ($secure_link = "0") { return 410; }
     }
 }
 EOF
