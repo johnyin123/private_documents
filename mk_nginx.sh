@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("af2a396[2021-11-23T15:17:26+08:00]:mk_nginx.sh")
+VERSION+=("fb99baa[2021-11-23T15:49:26+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
@@ -424,10 +424,10 @@ server {
     # expire=$(date -d "+${sec} second" +%s)
     # client_ip=192.168.168.1
     # echo -n "${expire}/files/file.txt${client_ip} prekey" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =
-    # curl --interface "${client_ip}" "http://${srv}/files/file.txt?md5=XXXXXXXXXXXXXX&expires=${expire}"
+    # curl --interface "${client_ip}" "http://${srv}/files/file.txt?k=XXXXXXXXXXXXXX&e=${expire}"
     location /files {
         root /var/www;
-        secure_link $arg_md5,$arg_expires;
+        secure_link $arg_k,$arg_e;
         secure_link_md5 "$secure_link_expires$uri$remote_addr prekey";
         if ($secure_link = "") { return 403; }
         if ($secure_link = "0") { return 410; }
@@ -445,7 +445,31 @@ server {
     }
 }
 EOF
-
+cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/memory_cached.conf
+server {
+    location / {
+        set            $memcached_key "$uri?$args";
+        memcached_pass host:11211;
+        error_page     404 502 504 = @fallback;
+    }
+    location @fallback {
+        proxy_pass     http://backend;
+    }
+}
+EOF
+cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/split_client.conf
+split_clients "${remote_addr}" $variant {
+    0.5%               .one;
+    2.0%               .two;
+    *                  "";
+}
+server {
+    location / {
+        index index${variant}.html;
+        root /var/www;
+    }
+}
+EOF
 cat <<'EOF'
 sub_filter '</body>' '<a href="http://www.xxxx.com"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://res.xxxx.com/_static_/demo.png" alt="bj idc"></a></body>';
 sub_filter_once on;
