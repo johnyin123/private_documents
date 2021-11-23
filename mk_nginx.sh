@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
+VERSION+=("1a1e7f3[2021-11-23T09:11:47+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
 set -o errexit
 
 readonly CURPATH="$(readlink -f "$(dirname "$0")")"
+readonly OUTDIR=${CURPATH}/out
+
 :<<"EOF"
 for SM2 ssl replace:
 --with-openssl=${CURPATH}/wotrus_ssl2.0
@@ -66,7 +69,9 @@ EOF
 --add-module=nginx-eval-module-master \
 --add-module=nginx-rtmp-module-1.2.2
 
-readonly OUTDIR=${CURPATH}/out
+
+echo "${VERSION[@]}**************************************************"
+sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${VERSION[@]} by johnyin\"/g" objs/ngx_auto_config.h
 rm -rf ${OUTDIR}
 mkdir -p ${OUTDIR}
 make install DESTDIR=${OUTDIR}
@@ -227,9 +232,9 @@ EOF
 
 cat <<'EOF' > ${OUTDIR}/etc/nginx/http-conf.d/httplog.conf
 log_format main '$scheme $http_host [$request_time|$upstream_response_time|$upstream_status] '
-              '$remote_addr - $remote_user [$time_local] "$request" '
-              '$status $body_bytes_sent "$http_referer" '
-              '"$http_user_agent" "$http_x_forwarded_for" $gzip_ratio';
+    '$remote_addr - $remote_user [$time_local] "$request" '
+    '$status $body_bytes_sent "$http_referer" '
+    '"$http_user_agent" "$http_x_forwarded_for" $gzip_ratio';
 
 geo $remote_addr $log_ip {
 #    10.3.0.0/16 0;
@@ -249,8 +254,8 @@ access_log /var/log/nginx/access.log main if=$log_ip;
 EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/stream-conf.d/streamlog.conf
 log_format basic '$remote_addr $protocol $server_port [$time_local] '
-                 '$status $bytes_sent $bytes_received '
-                 '$session_time';
+    '$status $bytes_sent $bytes_received '
+    '$session_time';
 
 access_log /var/log/nginx/stream_access.log basic buffer=32k;
 error_log /var/log/nginx/stream_error.log;
