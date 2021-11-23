@@ -34,6 +34,9 @@ EOF
 --with-pcre-jit \
 --with-threads \
 --with-file-aio \
+ \
+--with-compat \
+ \
 --with-http_ssl_module \
 --with-http_realip_module \
 --with-http_addition_module \
