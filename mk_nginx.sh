@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("7b5fb85[2021-11-23T13:36:06+08:00]:mk_nginx.sh")
+VERSION+=("7ed1e88[2021-11-23T13:47:18+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
@@ -439,6 +439,8 @@ server {
 EOF
 
 cat <<'EOF'
+sub_filter '</body>' '<a href="http://www.xxxx.com"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://res.xxxx.com/_static_/demo.png" alt="bj idc"></a></body>';
+sub_filter_once on;
 ...........................
 sub_filter '</body>' '<a href="http://xxxx"><img style="position: fixed; top: 0; right: 0; border: 0;" sr    c="http://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="xxxxxxxxxxxx"></a></body>';
 sub_filter '</head>' '<link rel="stylesheet" type="text/css" href="/fuck/gray.css"/></head>';
