@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("7ed1e88[2021-11-23T13:47:18+08:00]:mk_nginx.sh")
+VERSION+=("af2a396[2021-11-23T15:17:26+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
@@ -17,6 +17,14 @@ auto/lib/openssl/conf
  40             CORE_DEPS="$CORE_DEPS $OPENSSL/include/openssl/ssl.h"
  41             CORE_LIBS="$CORE_LIBS $OPENSSL/lib/libssl.a"
  42             CORE_LIBS="$CORE_LIBS $OPENSSL/lib/libcrypto.a"
+EOF
+
+:<<"EOF"
+=：精确匹配，优先级最高。如果找到了这个精确匹配，则停止查找。
+^~：URI 以某个常规字符串开头，不是正则匹配
+~：区分大小写的正则匹配
+~*：不区分大小写的正则匹配
+/：通用匹配, 优先级最低。任何请求都会匹配到这个规则
 EOF
 # geoip static error
 # --with-http_geoip_module=dynamic \
