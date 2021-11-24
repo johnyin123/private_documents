@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("991efc5[2021-11-24T09:15:05+08:00]:mk_nginx.sh")
+VERSION+=("3e119a9[2021-11-24T09:28:26+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
@@ -634,6 +634,8 @@ EOF
 
 # apt install rpm ruby-rubygems
 # gem install fpm
-# echo "adduser --home /var/lib/nginx --quiet --system --no-create-home --group nginx" > /tmp/inst.sh
-# echo "deluser --quiet nginx" > /tmp/uninst.sh
-# fpm -s dir -t rpm -C ~/nginx-1.13.0/bin/ --name nginx_xikang --version 1.13.0 --iteration 1 --depends pcre --depends zlib --description "xikang nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
+# echo "getent group nginx >/dev/null || groupadd --system nginx || :" > /tmp/inst.sh
+# echo "getent passwd nginx >/dev/null || useradd -g nginx --system -s /sbin/nologin -d /var/empty/nginx nginx 2> /dev/null || :" > /tmp/uninst.sh
+# fpm -s dir -t rpm -C ${OUTDIR} --name nginx_xikang --version 1.20.1 --iteration 1 --description "xikang nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
+
+#rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
