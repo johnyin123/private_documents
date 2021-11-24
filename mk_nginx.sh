@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("6dd81df[2021-11-24T12:54:49+08:00]:mk_nginx.sh")
+VERSION+=("cb70a91[2021-11-24T13:23:03+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
@@ -497,6 +497,7 @@ server {
     # curl --upload-file bigfile.iso "http://${srv}${uri}?k=XXXXXXXXXXXXXX&e=${secure_link_expires}"
     # curl http://${srv}${uri}?k=XXXXXXXXXXXXXX&e=${secure_link_expires}
     # location ~* /documents/(.*) { set $key $1; }
+    # location ~ ^/(?<port>123[0-9])(?:/|$) { rewrite "^/\d{4}(?:/(.*))?" /$1 break; proxy_pass http://127.0.0.1:$port; }
     location /store {
         set $mykey prekey;
         if ($request_method !~ ^(PUT|GET)$ ) {
