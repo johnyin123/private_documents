@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("4afa949[2021-11-24T11:13:01+08:00]:mk_nginx.sh")
+VERSION+=("6dd81df[2021-11-24T12:54:49+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
@@ -25,6 +25,16 @@ EOF
 ~：区分大小写的正则匹配
 ~*：不区分大小写的正则匹配
 /：通用匹配, 优先级最低。任何请求都会匹配到这个规则
+# -----------------------------------------------------------------------------------------------------------------------------------
+# Search-Order  Modifier   Description                                                        Match-Type        Stops-search-on-match
+# -----------------------------------------------------------------------------------------------------------------------------------
+#     1st          =       The URI must match the specified pattern exactly                  Simple-string              Yes
+#     2nd          ^~      The URI must begin with the specified pattern                     Simple-string              Yes
+#     3rd        (None)    The URI must begin with the specified pattern                     Simple-string               No
+#     4th          ~       The URI must be a case-sensitive match to the specified Rx      Perl-Compatible-Rx      Yes (first match)
+#     4th          ~*      The URI must be a case-insensitive match to the specified Rx    Perl-Compatible-Rx      Yes (first match)
+#     N/A          @       Defines a named location block.                                   Simple-string              Yes
+# -----------------------------------------------------------------------------------------------------------------------------------
 EOF
 # geoip static error
 # --with-http_geoip_module=dynamic \
