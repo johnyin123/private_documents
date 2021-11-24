@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("4764765[2021-11-24T10:54:14+08:00]:mk_nginx.sh")
+VERSION+=("4afa949[2021-11-24T11:13:01+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
@@ -486,6 +486,7 @@ server {
     # echo -n "${secure_link_md5}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =
     # curl --upload-file bigfile.iso "http://${srv}${uri}?k=XXXXXXXXXXXXXX&e=${secure_link_expires}"
     # curl http://${srv}${uri}?k=XXXXXXXXXXXXXX&e=${secure_link_expires}
+    # location ~* /documents/(.*) { set $key $1; }
     location /store {
         set $mykey prekey;
         if ($request_method !~ ^(PUT|GET)$ ) {
@@ -509,6 +510,18 @@ server {
         #     allow 192.168.168.0/24;
         #     deny all;
         # }
+    }
+}
+EOF
+cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/gateway_transparent_proxy.conf
+# iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j DNAT --to-destination ${gate_ip}:${gate_port}
+server {
+    listen 8000;
+    location / {
+        proxy_pass $scheme://$host$request_uri;
+        proxy_set_header Host $http_host;
+        proxy_buffers 256 4k;
+        proxy_max_temp_file_size 0k;
     }
 }
 EOF
