@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("ee501fc[2021-11-23T16:19:41+08:00]:mk_nginx.sh")
+VERSION+=("991efc5[2021-11-24T09:15:05+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
@@ -58,6 +58,7 @@ EOF
 --with-http_secure_link_module \
 --with-http_slice_module \
 --with-http_stub_status_module \
+--with-http_random_index_module \
 --with-http_dav_module \
  \
 --with-http_flv_module \
