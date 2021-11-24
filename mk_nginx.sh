@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("3e119a9[2021-11-24T09:28:26+08:00]:mk_nginx.sh")
+VERSION+=("cff2e9b[2021-11-24T10:10:50+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
@@ -465,12 +465,15 @@ server {
         #     deny all;
         # }
     }
+    # mykey=prekey
     # sec=3600
-    # expire=$(date -d "+${sec} second" +%s)
-    # method=GET/PUT
-    # echo -n "prekey${expire}/store/file.txt${method}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =
-    # curl --upload-file bigfile.iso "http://${srv}/store/file.txt?k=XXXXXXXXXXXXXX&e=${expire}"
-    # curl http://${srv}/store/file.txt?k=XXXXXXXXXXXXXX&e=${expire}
+    # secure_link_expires=$(date -d "+${sec} second" +%s)
+    # request_method=GET/PUT
+    # uri=/store/file.txt
+    # secure_link_md5="$mykey$secure_link_expires$uri$request_method";
+    # echo -n "${secure_link_md5}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =
+    # curl --upload-file bigfile.iso "http://${srv}${uri}?k=XXXXXXXXXXXXXX&e=${secure_link_expires}"
+    # curl http://${srv}${uri}?k=XXXXXXXXXXXXXX&e=${secure_link_expires}
     location /store {
         set $mykey prekey;
         if ($request_method !~ ^(PUT|GET)$ ) {
