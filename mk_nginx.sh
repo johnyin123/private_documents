@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("fb99baa[2021-11-23T15:49:26+08:00]:mk_nginx.sh")
+VERSION+=("ee501fc[2021-11-23T16:19:41+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
@@ -58,6 +58,7 @@ EOF
 --with-http_secure_link_module \
 --with-http_slice_module \
 --with-http_stub_status_module \
+--with-http_dav_module \
  \
 --with-http_flv_module \
 --with-http_mp4_module \
@@ -397,7 +398,7 @@ server {
 }
 EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/secure_link.conf
-map $uri $file_name {
+map $uri $allow_file {
     default none;
     "~*/s/(?<name>.*).txt" $name;
     "~*/s/(?<name>.*).mp4" $name;
@@ -439,9 +440,59 @@ server {
     location /s {
         root /var/www;
         secure_link $arg_md5,$arg_expires;
-        secure_link_md5 "prekey$secure_link_expires$file_name$http_user_agent";
+        secure_link_md5 "prekey$secure_link_expires$allow_file$http_user_agent";
         if ($secure_link = "") { return 403; }
         if ($secure_link = "0") { return 410; }
+    }
+}
+EOF
+cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/webdav.conf
+server {
+    listen 80;
+    # mkdir -p /var/www/tmp/client_temp && chown nobody:nobody /var/www -R
+    # curl --upload-file bigfile.iso http://localhost/upload/file1
+    location /upload {
+        client_max_body_size 10000m;
+        # root /var/www;
+        alias /var/www;
+        client_body_temp_path /var/www/tmp/client_temp;
+        dav_methods  PUT DELETE MKCOL COPY MOVE;
+        create_full_put_path   on;
+        dav_access             group:rw  all:r;
+        # limit_except GET {
+        #     allow 192.168.168.0/24;
+        #     deny all;
+        # }
+    }
+    # sec=3600
+    # expire=$(date -d "+${sec} second" +%s)
+    # method=GET/PUT
+    # echo -n "prekey${expire}/store/file.txt${method}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =
+    # curl --upload-file bigfile.iso "http://${srv}/store/file.txt?k=XXXXXXXXXXXXXX&e=${expire}"
+    # curl http://${srv}/store/file.txt?k=XXXXXXXXXXXXXX&e=${expire}
+    location /store {
+        set $mykey prekey;
+        if ($request_method !~ ^(PUT|GET)$ ) {
+            return 444 "444 METHOD(PUT/GET)";
+        }
+        if ($request_method = GET) {
+            set $mykey getkey;
+        }
+        alias /var/www;
+        secure_link $arg_k,$arg_e;
+        secure_link_md5 "$mykey$secure_link_expires$uri$request_method";
+        if ($secure_link = "") { return 403; }
+        if ($secure_link = "0") { return 410; }
+        client_max_body_size 10000m;
+        client_body_temp_path /var/www/tmp/client_temp;
+        # root /var/www;
+        dav_methods  PUT DELETE MKCOL COPY MOVE;
+        create_full_put_path   on;
+        dav_access             group:rw  all:r;
+        # limit_except GET {
+        #     allow 192.168.168.0/24;
+        #     deny all;
+        # }
     }
 }
 EOF
@@ -471,8 +522,12 @@ server {
 }
 EOF
 cat <<'EOF'
-sub_filter '</body>' '<a href="http://www.xxxx.com"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://res.xxxx.com/_static_/demo.png" alt="bj idc"></a></body>';
-sub_filter_once on;
+location / {
+    sub_filter '</body>' '<a href="http://www.xxxx.com"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://res.xxxx.com/_static_/demo.png" alt="bj idc"></a></body>';
+    proxy_set_header referer http://www.xxx.net; #如果网站有验证码，可以解决验证码不显示问题
+    sub_filter_once on;
+    sub_filter_types text/html;
+}
 ...........................
 sub_filter '</body>' '<a href="http://xxxx"><img style="position: fixed; top: 0; right: 0; border: 0;" sr    c="http://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="xxxxxxxxxxxx"></a></body>';
 sub_filter '</head>' '<link rel="stylesheet" type="text/css" href="/fuck/gray.css"/></head>';
@@ -492,7 +547,7 @@ filter:progid:DXImageTransform.Microsoft.BasicImage(grayscale=1);
 EOF
 
 cat <<'EOF' > ${OUTDIR}/etc/nginx/nginx.conf
-user nobody nogroup;
+user nginx nginx;
 worker_processes auto;
 worker_rlimit_nofile 102400;
 pid /run/nginx.pid;
@@ -578,5 +633,6 @@ EOF
 
 # apt install rpm ruby-rubygems
 # gem install fpm
-# fpm -s dir -t rpm -C ~/nginx-1.13.0/bin/ --name nginx_xikang --version 1.13.0 --iteration 1 --depends pcre --depends zlib --description "xikang nginx with openssl,other modules" .
-
+# echo "adduser --home /var/lib/nginx --quiet --system --no-create-home --group nginx" > /tmp/inst.sh
+# echo "deluser --quiet nginx" > /tmp/uninst.sh
+# fpm -s dir -t rpm -C ~/nginx-1.13.0/bin/ --name nginx_xikang --version 1.13.0 --iteration 1 --depends pcre --depends zlib --description "xikang nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
