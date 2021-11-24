@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("cff2e9b[2021-11-24T10:10:50+08:00]:mk_nginx.sh")
+VERSION+=("4764765[2021-11-24T10:54:14+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
@@ -398,6 +398,18 @@ server {
     }
 }
 EOF
+cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/auth_basic.conf
+server {
+    listen 80;
+    # username=user
+    # password=password
+    # printf "${username}:$(openssl passwd -apr1 ${password})\n" >> /etc/nginx/.htpasswd
+    location / {
+         auth_basic "Restricted Content";
+         auth_basic_user_file /etc/nginx/.htpasswd;
+    }
+}
+EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/secure_link.conf
 map $uri $allow_file {
     default none;
@@ -470,7 +482,7 @@ server {
     # secure_link_expires=$(date -d "+${sec} second" +%s)
     # request_method=GET/PUT
     # uri=/store/file.txt
-    # secure_link_md5="$mykey$secure_link_expires$uri$request_method";
+    # secure_link_md5="$mykey$secure_link_expires$uri$request_method"
     # echo -n "${secure_link_md5}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =
     # curl --upload-file bigfile.iso "http://${srv}${uri}?k=XXXXXXXXXXXXXX&e=${secure_link_expires}"
     # curl http://${srv}${uri}?k=XXXXXXXXXXXXXX&e=${secure_link_expires}
