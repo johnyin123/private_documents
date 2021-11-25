@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("cb70a91[2021-11-24T13:23:03+08:00]:mk_nginx.sh")
+VERSION+=("a3f4c12[2021-11-24T13:51:20+08:00]:mk_nginx.sh")
 
 set -o errtrace
 set -o nounset
@@ -399,8 +399,11 @@ cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/fcgiwrap.conf
 # curl localhost/cgi-bin/test.cgi
 server {
     listen 80;
+    location = /login {
+        rewrite ^ /cgi-bin/test.cgi;
+    }
     location /cgi-bin/ {
-        gzip off;
+        internal;
         root /var/www;
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
         include /etc/nginx/fastcgi_params;
@@ -417,6 +420,106 @@ server {
     location / {
          auth_basic "Restricted Content";
          auth_basic_user_file /etc/nginx/.htpasswd;
+    }
+}
+EOF
+cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/url_map.conf
+# http://example.com/?p=contact            /contact
+# http://example.com/?p=static&id=career   /career
+# http://example.com/?p=static&id=about    /about
+map $arg_p $url_p {
+    contact    /contact;
+    static     $url_id;
+    # default value will be an empty string
+}
+map $arg_id $url_id {
+    career     /career;
+    about      /about;
+    default    /about;
+}
+server {
+    listen 80;
+    if ($url_p) {
+        # if '$url_p' variable is not an empty string
+        return 301 $url_p;
+    }
+    location / {
+        root /var/www;
+    }
+}
+EOF
+cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/secure_link_demo.conf
+# mkdir -p /var/www/validate && echo "downfile" > /var/www/validate/file.txt
+# #!/bin/bash
+# write_header() {
+#     local code=${1:-200}
+#     printf "Status: %s\n", ${code}
+#     printf "Content-type: text/html\n\n"
+# }
+# do_get() {
+#     write_header
+#     cat << EDOC
+# <html><body>
+# <form id="loginForm" method="POST" action="">
+# <button type="submit">Login</button>
+# </form>
+# </body></html>"
+# EDOC
+# }
+# # # get_param $query key
+# # get_param() {
+# #     echo "$1" | tr '&' '\n' | grep "^$1=" | head -1 | sed "s/.*=//" | urldecode
+# # }
+# # $1 = name
+# # $2 = value
+# # $3 = expires seconds
+# # $4 = path
+# setcookie() {
+#     value=$( echo -n "$2" | urlencode )
+#     [ -z "$4" ] && path="" || { path="; Path=$4"; }
+#     echo -n "Set-Cookie: $1=$value$path; expires="
+#     date -u --date="$3 seconds" "+%a, %d-%b-%y %H:%M:%S GMT"
+# }
+# do_post() {
+#     mykey=prekey
+#     sec=360 #360 seconds
+#     query=$(head --bytes="$CONTENT_LENGTH")
+#     [ -z "$QUERY_STRING" ] && {
+#         write_header 403
+#         return
+#     }
+#     eval $QUERY_STRING
+#     local secure_link_expires=$(date -d "+${sec} second" +%s)
+#     local key=$(echo -n "${mykey}${secure_link_expires}${uri}" | /usr/bin/openssl md5 -binary | /usr/bin/openssl base64 | /usr/bin/tr '+ /' '-_' | /usr/bin/tr -d =)
+#     printf "Location: ${uri}?k=${key}&e=${secure_link_expires}\n"
+#     write_header 302
+# }
+# case "$REQUEST_METHOD" in
+#     GET)   do_get;;
+#     POST)  do_post;;
+#     *)     write_header 405;;
+# esac
+
+server {
+    listen 80;
+    location = /login {
+        rewrite ^ /cgi-bin/login;
+    }
+    location /cgi-bin/ {
+        internal;
+        root /var/www;
+        fastcgi_pass unix:/var/run/fcgiwrap.socket;
+        include /etc/nginx/fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+    location /validate {
+        set $mykey prekey;
+        secure_link $arg_k,$arg_e;
+        secure_link_md5 "$mykey$secure_link_expires$uri";
+        if ($secure_link = "") { return 302 /login?uri=$uri; }
+        #if ($secure_link = "") { return 403; }
+        if ($secure_link = "0") { return 410; }
+        alias /var/www;
     }
 }
 EOF
