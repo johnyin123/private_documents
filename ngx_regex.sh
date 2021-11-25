@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2021-11-25T10:01:29+08:00]:ngx_regex.sh")
+VERSION+=("e9d1951[2021-11-25T10:01:29+08:00]:ngx_regex.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -78,7 +78,6 @@ server {
     }
 }
 EOF
-
     # link_exists /etc/nginx/http-enabled/regex_tester.conf 
     rm -f /etc/nginx/http-enabled/map_regex_tester.conf && ln -s ${DIRNAME}/map_regex_tester.conf /etc/nginx/http-enabled/map_regex_tester.conf
     rm -f /etc/nginx/http-enabled/loc_regex_tester.conf && ln -s ${DIRNAME}/loc_regex_tester.conf /etc/nginx/http-enabled/loc_regex_tester.conf
