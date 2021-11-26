@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2f3c100[2021-11-26T09:31:52+08:00]:ngx_demo.sh")
+VERSION+=("c0adbfb[2021-11-26T10:26:27+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -286,7 +286,7 @@ cat <<'EOF' > secure_link_demo.conf
 # #!/bin/bash
 # write_header() {
 #     local code=${1:-200}
-#     printf "Status: %s\n", ${code}
+#     printf "Status: %s\n" ${code}
 #     printf "Content-type: text/html\n\n"
 # }
 # do_get() {
@@ -298,20 +298,6 @@ cat <<'EOF' > secure_link_demo.conf
 # </form>
 # </body></html>"
 # EDOC
-# }
-# # # get_param $query key
-# # get_param() {
-# #     echo "$1" | tr '&' '\n' | grep "^$1=" | head -1 | sed "s/.*=//" | urldecode
-# # }
-# # $1 = name
-# # $2 = value
-# # $3 = expires seconds
-# # $4 = path
-# setcookie() {
-#     value=$( echo -n "$2" | urlencode )
-#     [ -z "$4" ] && path="" || { path="; Path=$4"; }
-#     echo -n "Set-Cookie: $1=$value$path; expires="
-#     date -u --date="$3 seconds" "+%a, %d-%b-%y %H:%M:%S GMT"
 # }
 # do_post() {
 #     mykey=prekey
@@ -567,6 +553,147 @@ server {
     location / {
         index index${variant}.html;
         root /var/www;
+    }
+}
+EOF
+cat <<'EOF' > sub_filter.conf
+# # # login.cgi
+# #!/bin/bash
+# error_msg() {
+#     local fmt=$1
+#     shift || true
+#     printf "CGI: $fmt" "$@" >&2
+# }
+# # get_param $query key
+# get_param() {
+#     echo "$1" | tr '&' '\n' | grep "^$2=" | head -1 | sed "s/.*=//" # | urldecode
+# }
+# # $1 = name
+# # $2 = value
+# # $3 = expires seconds
+# # $4 = path
+# setcookie() {
+#     # value=$( echo -n "$2" | urlencode )
+#     value="$2"
+#     [ -z "$4" ] && path="" || { path="; Path=$4"; }
+#     echo -n "Set-Cookie: $1=$value$path; expires="
+#     date -u --date="$3 seconds" "+%a, %d-%b-%y %H:%M:%S GMT"
+# }
+# write_header() {
+#     local code=${1:-200}
+#     printf "Status: %s\n" ${code}
+#     printf "Content-type: text/html\n\n"
+# }
+# do_get() {
+#     [ -z "$QUERY_STRING" ] && {
+#         write_header 403
+#         echo "NEED <uri> back address "
+#         return
+#     }
+#     write_header
+#     cat << EDOC
+# <html><body>
+# <form id="loginForm" method="POST" action="">
+# <input type="text" id="uid" name="uid" value="">
+# <input type="password" id="passwd" name="passwd" value="">
+# <button type="submit">Login</button>
+# </form>
+# </body></html>
+# EDOC
+# }
+# do_post() {
+#     [ -z "$QUERY_STRING" ] && {
+#         write_header 403
+#         echo "NEED <uri> back address "
+#         return
+#     }
+#     local query=$(head --bytes="${CONTENT_LENGTH:-0}")
+#     local uid=$(get_param "${query}" "uid")
+#     local passwd=$(get_param "${query}" "passwd")
+#     local uri=get_param "$QUERY_STRING" "uri"
+#     error_msg "LOGIN POST: uid=%s,passwd=%s | ${query} | uri=${uri}\n" "$uid" "$passwd"
+#     [ -z "${uid}" ] && {
+#         printf "Location: /login?$QUERY_STRING\n"
+#         write_header 302
+#         return
+#     }
+#     setcookie "uid" "$uid" 360
+#     printf "Location: ${uri}\n"
+#     write_header 302
+# }
+# case "$REQUEST_METHOD" in
+#     GET)   do_get;;
+#     POST)  do_post;;
+#     *)     write_header 405;;
+# esac
+# # # auth.cgi
+# #!/bin/bash
+# write_header() {
+#     local code=${1:-200}
+#     printf "Status: %s\n" ${code}
+#     printf "Content-type: text/html\n\n"
+# }
+# # get_param $query key
+# get_param() {
+#     echo "$1" | tr '&' '\n' | grep "^$2=" | head -1 | sed "s/.*=//" # | urldecode
+# }
+# do_get() {
+#     {
+#         echo "***** auth get : *****"
+#         env | grep "X-MY"
+#     } >&2
+#     [ -z "${HTTP_COOKIE}" ] && {
+#         write_header 401
+#         return
+#     }
+#     local uid=get_param "${HTTP_COOKIE}" "uid"
+#     [ -z "$uid" ] && write_header 401 || write_header 200
+#     return
+# }
+# case "$REQUEST_METHOD" in
+#     GET)   do_get;;
+#     *)     write_header 405;;
+# esac
+#
+server {
+    listen 80;
+    error_page 401 = @error401;
+    location @error401 {
+        return 302 /login?uri=$request_uri;
+    }
+    error_page 500 @process_backend_error;
+    location @process_backend_error {
+        return 200 "backend: $backend_status";
+    }
+    location / {
+        auth_request /auth;
+        root /var/www;
+    }
+    location = /auth {
+        internal;
+        # # proxy_method      POST;
+        # # proxy_set_body    "token=$http_apikey&token_hint=access_token";
+        # proxy_pass_request_body off;                 # no data is being transferred
+        # proxy_set_header Content-Length '0';
+        # proxy_set_header X-MY-FUCK $cookie_uid;
+        # if ($http_cookie ~* "uid=([^&]+)") {
+        #     set $token "$1";
+        # }
+        # proxy_pass http://127.0.0.1/valid;
+        rewrite ^ /cgi-bin/auth.cgi;
+    }
+    location = /login {
+        rewrite ^ /cgi-bin/login.cgi;
+    }
+    location = /valid {
+        rewrite ^ /cgi-bin/auth.cgi;
+    }
+    location /cgi-bin/ {
+        internal;
+        root /var/www;
+        fastcgi_pass unix:/var/run/fcgiwrap.socket;
+        include /etc/nginx/fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
 }
 EOF
