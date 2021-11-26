@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2021-11-26T08:01:12+08:00]:mk_nginx.sh")
+VERSION+=("0a7e17d[2021-11-26T08:01:12+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -76,9 +76,9 @@ EOF
 --add-module=nginx-eval-module-master \
 --add-module=nginx-rtmp-module-1.2.2
 
-
 echo "${VERSION[@]}**************************************************"
 sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${VERSION[@]} by johnyin\"/g" objs/ngx_auto_config.h
+OUTDIR=${DIRNAME}/out
 rm -rf ${OUTDIR}
 mkdir -p ${OUTDIR}
 make install DESTDIR=${OUTDIR}
