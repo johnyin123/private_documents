@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c0adbfb[2021-11-26T10:26:27+08:00]:ngx_demo.sh")
+VERSION+=("ad0ecc5[2021-11-26T13:26:12+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -391,6 +391,24 @@ server {
     }
 }
 EOF
+cat <<'EOF' > secure_link_cookie.conf
+server {
+    listen 80;
+    # sec=3600
+    # secure_link_expires=$(date -d "+${sec} second" +%s)
+    # uri=/login.cgi
+    # secure_link_md5="prekey$secure_link_expires$uri"
+    # keys=$(echo -n "${secure_link_md5}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =)
+    # curl -H "Cookie: md5=${keys}" -H "Cookie: expires=${secure_link_expires}" "http://${srv}${uri}"
+    location / {
+        root /var/www;
+        secure_link $cookie_md5,$cookie_expires;
+        secure_link_md5 "prekey$secure_link_expires$uri";
+        if ($secure_link = "") { return 403; }
+        if ($secure_link = "0") { return 410; }
+    }
+}
+EOF
 cat <<'EOF' > webdav.conf
 server {
     listen 80;
@@ -556,7 +574,30 @@ server {
     }
 }
 EOF
-cat <<'EOF' > sub_filter.conf
+cat <<'EOF' > auth_request_by_secure_link.conf
+server {
+    listen 80;
+    location / {
+        auth_request /auth;
+        root /var/www;
+    }
+    # srv=127.0.0.1
+    # sec=3600
+    # secure_link_expires=$(date -d "+${sec} second" +%s)
+    # secure_link_md5="prekey$secure_link_expires"
+    # keys=$(echo -n "${secure_link_md5}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =)
+    # curl -H "Cookie: md5=${keys}" -H "Cookie: expires=${secure_link_expires}" "http://${srv}/files.txt"
+    location = /auth {
+        internal;
+        secure_link $cookie_md5,$cookie_expires;
+        secure_link_md5 "prekey$secure_link_expires";
+        if ($secure_link = "") { return 401; }
+        if ($secure_link = "0") { return 410; }
+        return 200 "$cookie_md5,$cookie_expires";
+    }
+}
+EOF
+cat <<'EOF' > auth_request.conf
 # # # login.cgi
 # #!/bin/bash
 # error_msg() {
