@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6e619c1[2021-11-26T08:01:51+08:00]:ngx_demo.sh")
+VERSION+=("2f3c100[2021-11-26T09:31:52+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -465,6 +465,8 @@ cat <<'EOF' > gateway_transparent_proxy.conf
 server {
     listen 8000;
     location / {
+        # proxy_method      POST;
+        # proxy_set_body    "token=$http_apikey&token_hint=access_token";
         proxy_pass $scheme://$host$request_uri;
         proxy_set_header Host $http_host;
         proxy_buffers 256 4k;
