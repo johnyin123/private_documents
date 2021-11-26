@@ -1,28 +1,36 @@
 #!/usr/bin/env bash
-VERSION+=("initver[2021-11-26T08:01:51+08:00]:ngx_demo.sh")
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly SCRIPTNAME=${0##*/}
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
+    BASH_XTRACEFD="5"
+    export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    set -o xtrace
+fi
+VERSION+=("6e619c1[2021-11-26T08:01:51+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
 set -o errexit
 
-:<<"EOF">${OUTDIR}/etc/nginx/http-available/location.txt
+:<<"EOF">location.txt
 =：精确匹配，优先级最高。如果找到了这个精确匹配，则停止查找。
 ^~：URI 以某个常规字符串开头，不是正则匹配
 ~：区分大小写的正则匹配
 ~*：不区分大小写的正则匹配
 /：通用匹配, 优先级最低。任何请求都会匹配到这个规则
 # -----------------------------------------------------------------------------------------------------------------------------------
-# Search-Order  Modifier   Description                                                        Match-Type        Stops-search-on-match
+# Search-Order  Modifier   Description                                                    Match-Type        Stops-search-on-match
 # -----------------------------------------------------------------------------------------------------------------------------------
-#     1st          =       The URI must match the specified pattern exactly                  Simple-string              Yes
-#     2nd          ^~      The URI must begin with the specified pattern                     Simple-string              Yes
-#     3rd        (None)    The URI must begin with the specified pattern                     Simple-string               No
-#     4th          ~       The URI must be a case-sensitive match to the specified Rx      Perl-Compatible-Rx      Yes (first match)
-#     4th          ~*      The URI must be a case-insensitive match to the specified Rx    Perl-Compatible-Rx      Yes (first match)
-#     N/A          @       Defines a named location block.                                   Simple-string              Yes
+#     1st      =       The URI must match the specified pattern exactly                  Simple-string              Yes
+#     2nd      ^~      The URI must begin with the specified pattern                     Simple-string              Yes
+#     3rd    (None)    The URI must begin with the specified pattern                     Simple-string               No
+#     4th      ~       The URI must be a case-sensitive match to the specified Rx      Perl-Compatible-Rx      Yes (first match)
+#     4th      ~*      The URI must be a case-insensitive match to the specified Rx    Perl-Compatible-Rx      Yes (first match)
+#     N/A      @       Defines a named location block.                                   Simple-string              Yes
 # -----------------------------------------------------------------------------------------------------------------------------------
 EOF
-cat <<EOF >${OUTDIR}/etc/nginx/http-available/speed_limit_demo.conf
+cat <<EOF >speed_limit_demo.conf
 server {
     listen 80;
     location / {
@@ -32,7 +40,7 @@ server {
 }
 EOF
 
-cat <<'EOF' >${OUTDIR}/etc/nginx/http-available/redis.conf
+cat <<'EOF' >redis.conf
 # redis-cli -x set curl/7.64.0 http://srv1
 # redis-cli -x set curl/7.61.1 http://www.xxx.com
 upstream srv1 {
@@ -45,18 +53,14 @@ upstream redis {
 }
 
 server {
-    listen 81;
+    listen 80;
     location / {
         # cache !!!!
         set $redis_key $uri;
         redis_pass     redis;
         default_type   text/html;
-        error_page     404 = /real_server;
+        error_page     404 = @fallback;
     }
-    location = /fallback {
-        proxy_pass real_server;
-    }
-
     location /redis-test {
         eval_escalate on;
         eval $answer {
@@ -88,7 +92,7 @@ server {
 }
 EOF
 
-cat <<'EOF' >${OUTDIR}/etc/nginx/http-available/traffic_status.conf
+cat <<'EOF' >traffic_status.conf
 # /{status_uri}/control?cmd=*`{command}`*&group=*`{group}`*&zone=*`{name}`*
 # /control?cmd=reset&group=server&zone=*
 server {
@@ -109,14 +113,14 @@ server {
     }
 }
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/flv_movie.html
+cat <<'EOF' > flv_movie.html
 <!DOCTYPE html>
 <html>
 <head>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
     <title>flv.js demo</title>
     <style>
-        .mainContainer {
+    .mainContainer {
     display: block;
     width: 1024px;
     margin-left: auto;
@@ -152,59 +156,59 @@ cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/flv_movie.html
 
 <body>
     <div class="mainContainer">
-        <video id="videoElement" class="centeredVideo" controls autoplay width="1024" height="576">Your browser is too old which doesn't support HTML5 video.</video>
+    <video id="videoElement" class="centeredVideo" controls autoplay width="1024" height="576">Your browser is too old which doesn't support HTML5 video.</video>
     </div>
     <br>
     <div class="controls">
-        <!--<button onclick="flv_load()">加载</button>-->
-        <button onclick="flv_start()">开始</button>
-        <button onclick="flv_pause()">暂停</button>
-        <button onclick="flv_destroy()">停止</button>
-        <input style="width:100px" type="text" name="seekpoint" />
-        <button onclick="flv_seekto()">跳转</button>
+    <!--<button onclick="flv_load()">加载</button>-->
+    <button onclick="flv_start()">开始</button>
+    <button onclick="flv_pause()">暂停</button>
+    <button onclick="flv_destroy()">停止</button>
+    <input style="width:100px" type="text" name="seekpoint" />
+    <button onclick="flv_seekto()">跳转</button>
     </div>
     <script src="flv.min.js"></script>
     <script>
-        var player = document.getElementById('videoElement');
-        if (flvjs.isSupported()) {
-            var flvPlayer = flvjs.createPlayer({
-                type: 'flv',
-                // "isLive": true,
-                url: '你的视频.flv'
-            });
-            flvPlayer.attachMediaElement(videoElement);
-            flvPlayer.load(); //加载
-        }
+    var player = document.getElementById('videoElement');
+    if (flvjs.isSupported()) {
+        var flvPlayer = flvjs.createPlayer({
+            type: 'flv',
+            // "isLive": true,
+            url: '你的视频.flv'
+        });
+        flvPlayer.attachMediaElement(videoElement);
+        flvPlayer.load(); //加载
+    }
 
-        function flv_start() {
-            player.play();
-        }
+    function flv_start() {
+        player.play();
+    }
 
-        function flv_pause() {
-            player.pause();
-        }
+    function flv_pause() {
+        player.pause();
+    }
 
-        function flv_destroy() {
-            player.pause();
-            player.unload();
-            player.detachMediaElement();
-            player.destroy();
-            player = null;
-        }
+    function flv_destroy() {
+        player.pause();
+        player.unload();
+        player.detachMediaElement();
+        player.destroy();
+        player = null;
+    }
 
-        function flv_seekto() {
-            player.currentTime = parseFloat(document.getElementsByName('seekpoint')[0].value);
-        }
+    function flv_seekto() {
+        player.currentTime = parseFloat(document.getElementsByName('seekpoint')[0].value);
+    }
     </script>
 </body>
 </html>
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/flv_movie.conf
+cat <<'EOF' > flv_movie.conf
 # flv mp4流媒体服务器, https://github.com/Bilibili/flv.js
 # apt -y install yamdi
 server {
-    listen       80;
-    root    /movie/;
+    listen 80;
+    root /movie/;
     limit_rate_after 5m; #在flv视频文件下载了5M以后开始限速
     limit_rate 100k;     #速度限制为100K
     index index.html;
@@ -213,7 +217,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/fcgiwrap.conf
+cat <<'EOF' > fcgiwrap.conf
 # apt -y install fcgiwrap
 # mkdir -p /var/www/cgi-bin && chmod 755 /var/www/cgi-bin
 # cat <<CGIEOF > /var/www/cgi-bin/test.cgi
@@ -240,20 +244,20 @@ server {
     }
 }
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/auth_basic.conf
+cat <<'EOF' > auth_basic.conf
 server {
     listen 80;
     # username=user
     # password=password
     # printf "${username}:$(openssl passwd -apr1 ${password})\n" >> /etc/nginx/.htpasswd
     location / {
-         auth_basic "Restricted Content";
-         auth_basic_user_file /etc/nginx/.htpasswd;
+        auth_basic "Restricted Content";
+        auth_basic_user_file /etc/nginx/.htpasswd;
     }
 }
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/url_map.conf
-# http://example.com/?p=contact            /contact
+cat <<'EOF' > url_map.conf
+# http://example.com/?p=contact        /contact
 # http://example.com/?p=static&id=career   /career
 # http://example.com/?p=static&id=about    /about
 map $arg_p $url_p {
@@ -277,7 +281,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/secure_link_demo.conf
+cat <<'EOF' > secure_link_demo.conf
 # mkdir -p /var/www/validate && echo "downfile" > /var/www/validate/file.txt
 # #!/bin/bash
 # write_header() {
@@ -314,8 +318,8 @@ cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/secure_link_demo.conf
 #     sec=360 #360 seconds
 #     query=$(head --bytes="$CONTENT_LENGTH")
 #     [ -z "$QUERY_STRING" ] && {
-#         write_header 403
-#         return
+#     write_header 403
+#     return
 #     }
 #     eval $QUERY_STRING
 #     local secure_link_expires=$(date -d "+${sec} second" +%s)
@@ -352,9 +356,9 @@ server {
     }
 }
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/secure_link.conf
+cat <<'EOF' > secure_link.conf
 map $uri $allow_file {
-    default none;
+    default                none;
     "~*/s/(?<name>.*).txt" $name;
     "~*/s/(?<name>.*).mp4" $name;
 }
@@ -401,7 +405,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/webdav.conf
+cat <<'EOF' > webdav.conf
 server {
     listen 80;
     # mkdir -p /var/www/tmp/client_temp && chown nobody:nobody /var/www -R
@@ -456,7 +460,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/gateway_transparent_proxy.conf
+cat <<'EOF' > gateway_transparent_proxy.conf
 # iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j DNAT --to-destination ${gate_ip}:${gate_port}
 server {
     listen 8000;
@@ -468,19 +472,21 @@ server {
     }
 }
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/memory_cached.conf
+cat <<'EOF' > memory_cached.conf
 server {
+    listen 80;
     location / {
         set            $memcached_key "$uri?$args";
-        memcached_pass host:11211;
+        memcached_pass 127.0.0.1:11211;
         error_page     404 502 504 = @fallback;
     }
     location @fallback {
-        proxy_pass     http://backend;
+        return 200 "@fallback 404 502 504";
+        #proxy_pass     http://backend;
     }
 }
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/ab_test.conf
+cat <<'EOF' > ab_test.conf
 upstream a {
     server 127.0.0.1:3001;
 }
@@ -506,46 +512,87 @@ split_clients "${arg_token}" $dynamic {
 server {
     listen 80;
     location / {
+        if ($http_cookie ~* "shopware_sso_token=([^;]+)(?:;|$)") {
+            set $token "$1";
+        }
+        proxy_set_header X-SHOPWARE-SSO-Token $token;
         proxy_set_header Host $host;
         proxy_pass http://$dynamic$uri$is_args$args;
     }
 }
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/split_client.conf
-split_clients "${remote_addr}" $variant {
-    0.5%     .one;
-    2.0%     .two;
-    *        "";
+cat <<'EOF' > split_client.conf
+server {
+    listen 8098;
+    return 200 "Results:
+Server Address:\t $server_addr:$server_port
+Network Remote Address:\t $remote_addr
+Current time:\t\t $time_local
+Request URI:\t\t $request_uri\n\n";
+}
+upstream backend {
+    server 172.16.239.200:8098;
 }
 server {
     listen 80;
     location / {
-    index index${variant}.html;
-    root /var/www;
+        proxy_pass http://backend;
+        proxy_bind $split_ip;
+        proxy_set_header X-Forwarded-For $remote_addr;
+    }
+}
+split_clients "$request_uri$remote_port" $split_ip {
+    10%    172.16.239.200;
+    10%    172.16.239.201;
+    10%    172.16.239.202;
+    10%    172.16.239.203;
+    10%    172.16.239.204;
+    10%    172.16.239.205;
+    10%    172.16.239.206;
+    10%    172.16.239.207;
+    10%    172.16.239.208;
+    *      172.16.239.209;
+}
+EOF
+cat <<'EOF' > split_client.conf
+split_clients "${remote_addr}" $variant {
+    0.5%     .one;
+    2.0%     .two;
+    *    "";
+}
+server {
+    listen 80;
+    location / {
+        index index${variant}.html;
+        root /var/www;
     }
 }
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/http-available/sub_filter.conf
-location / {
-    sub_filter '</body>' '<a href="http://www.xxxx.com"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://res.xxxx.com/_static_/demo.png" alt="bj idc"></a></body>';
-    proxy_set_header referer http://www.xxx.net; #如果网站有验证码，可以解决验证码不显示问题
-    sub_filter_once on;
-    sub_filter_types text/html;
+cat <<'EOF' > sub_filter.conf
+# ...........................
+# sub_filter '</body>' '<a href="http://xxxx"><img style="position: fixed; top: 0; right: 0; border: 0;" sr    c="http://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="xxxxxxxxxxxx"></a></body>';
+# sub_filter '</head>' '<link rel="stylesheet" type="text/css" href="/fuck/gray.css"/></head>';
+# sub_filter_once on;
+# ...........................
+# HTML {
+# filter: grayscale(100%);
+# -webkit-filter: grayscale(100%);
+# -moz-filter: grayscale(100%);
+# -ms-filter: grayscale(100%);
+# -o-filter: grayscale(100%);
+# filter: url(desaturate.svg#grayscale);
+# filter:progid:DXImageTransform.Microsoft.BasicImage(grayscale=1);
+# -webkit-filter: grayscale(1);
+# }
+# ............................
+server {
+    listen 80;
+    location / {
+        sub_filter '</body>' '<a href="http://www.xxxx.com"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://res.xxxx.com/_static_/demo.png" alt="bj idc"></a></body>';
+        proxy_set_header referer http://www.xxx.net; #如果网站有验证码，可以解决验证码不显示问题
+        sub_filter_once on;
+        # sub_filter_types text/html;
+        root /var/www;
+    }
 }
-...........................
-sub_filter '</body>' '<a href="http://xxxx"><img style="position: fixed; top: 0; right: 0; border: 0;" sr    c="http://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="xxxxxxxxxxxx"></a></body>';
-sub_filter '</head>' '<link rel="stylesheet" type="text/css" href="/fuck/gray.css"/></head>';
-sub_filter_once on;
-...........................
-HTML {
-filter: grayscale(100%);
--webkit-filter: grayscale(100%);
--moz-filter: grayscale(100%);
--ms-filter: grayscale(100%);
--o-filter: grayscale(100%);
-filter: url(desaturate.svg#grayscale);
-filter:progid:DXImageTransform.Microsoft.BasicImage(grayscale=1);
--webkit-filter: grayscale(1);
-}
-............................
 EOF
