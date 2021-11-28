@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ad0ecc5[2021-11-26T13:26:12+08:00]:ngx_demo.sh")
+VERSION+=("1b3e782[2021-11-26T15:01:23+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -708,6 +708,7 @@ server {
     }
     location / {
         auth_request /auth;
+        auth_request_set $backend_status $upstream_status;
         root /var/www;
     }
     location = /auth {
