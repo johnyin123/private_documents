@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3e5b812[2021-11-29T11:04:31+08:00]:mk_nginx.sh")
+VERSION+=("81f471f[2021-11-29T12:21:13+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -79,6 +79,7 @@ EOF
 
 echo "${VERSION[@]}**************************************************"
 sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${VERSION[@]} by johnyin\"/g" objs/ngx_auto_config.h
+make
 OUTDIR=${DIRNAME}/out
 rm -rf ${OUTDIR}
 mkdir -p ${OUTDIR}
@@ -265,11 +266,13 @@ stream {
     include /etc/nginx/stream-enabled/*;
 }
 EOF
+rm -f  ${OUTDIR}/etc/nginx/*.default
 
 # apt install rpm ruby-rubygems
 # gem install fpm
-# echo "getent group nginx >/dev/null || groupadd --system nginx || :" > /tmp/inst.sh
-# echo "getent passwd nginx >/dev/null || useradd -g nginx --system -s /sbin/nologin -d /var/empty/nginx nginx 2> /dev/null || :" > /tmp/uninst.sh
-# fpm -s dir -t rpm -C ${OUTDIR} --name nginx_xikang --version 1.20.1 --iteration 1 --description "xikang nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
+echo "getent group nginx >/dev/null || groupadd --system nginx || :" > /tmp/inst.sh
+echo "getent passwd nginx >/dev/null || useradd -g nginx --system -s /sbin/nologin -d /var/empty/nginx nginx 2> /dev/null || :" > /tmp/uninst.sh
+fpm -s dir -t deb -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration 1 --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
+fpm -s dir -t rpm -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration 1 --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
 
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
