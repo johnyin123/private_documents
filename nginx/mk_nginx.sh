@@ -7,14 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4e9bb88[2021-11-26T09:36:09+08:00]:mk_nginx.sh")
+VERSION+=("3e5b812[2021-11-29T11:04:31+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
 
 :<<"EOF"
 for SM2 ssl replace:
---with-openssl=${CURPATH}/wotrus_ssl2.0
+--with-openssl=${DIRNAME}/wotrus_ssl2.0
 
 auto/lib/openssl/conf
  39             CORE_INCS="$CORE_INCS $OPENSSL/include"
@@ -67,9 +67,9 @@ EOF
 --with-stream_realip_module \
 --with-stream_ssl_preread_module \
  \
---with-openssl=${CURPATH}/openssl-1.1.1l \
---with-pcre=${CURPATH}/pcre-8.39 \
---with-zlib=${CURPATH}/zlib-1.2.11.dfsg \
+--with-openssl=${DIRNAME}/openssl-1.1.1l \
+--with-pcre=${DIRNAME}/pcre-8.39 \
+--with-zlib=${DIRNAME}/zlib-1.2.11.dfsg \
 --add-module=nginx-goodies-nginx-sticky-module-ng-08a395c66e42 \
 --add-module=nginx_limit_speed_module-master \
 --add-module=nginx-module-vts-master \
