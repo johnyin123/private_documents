@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0a7e17d[2021-11-26T08:01:12+08:00]:mk_nginx.sh")
+VERSION+=("4e9bb88[2021-11-26T09:36:09+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -43,6 +43,7 @@ EOF
 --with-threads \
 --with-file-aio \
  \
+--with-debug \
 --with-compat \
  \
 --with-http_ssl_module \
