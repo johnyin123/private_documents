@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5f9e4da[2021-10-19T08:37:18+08:00]:new_ceph.sh")
+VERSION+=("35c566f[2021-11-29T17:17:07+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 fix_ceph_conf() {
@@ -545,13 +545,13 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
     Example:
+            VER:nautilus/octopus/pacific || 16.2.6/5.2.9/.....
             centos-release-ceph-nautilus/centos-release-ceph-octopus/centos-release-ceph-pacific
-        1. yum -y update && yum -y install centos-release-ceph-pacific
+        1. yum -y update && yum -y install centos-release-ceph-\${VER}
         2. yum -y install ceph
         OR.
-            VER:nautilus/octopus/pacific
         1. wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add -
-        2. echo deb http://download.ceph.com/debian-VER/ \$(sed -n "s/^\s*VERSION_CODENAME\s*=\s*\(.*\)/\1/p" /etc/os-release) main | tee /etc/apt/sources.list.d/ceph.list
+        2. echo deb http://download.ceph.com/debian-\${VER}/ \$(sed -n "s/^\s*VERSION_CODENAME\s*=\s*\(.*\)/\1/p" /etc/os-release) main | tee /etc/apt/sources.list.d/ceph.list
         3. apt-get update && apt-get install ceph
         SSH_PORT default is 60022
          ${SCRIPTNAME} -c site1 \\
