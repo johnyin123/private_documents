@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7193130[2021-11-29T07:06:10+08:00]:ngx_demo.sh")
+VERSION+=("e258299[2021-11-29T15:33:23+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -415,13 +415,24 @@ server {
     # mkdir -p /var/www/tmp/client_temp && chown nobody:nobody /var/www -R
     # curl --upload-file bigfile.iso http://localhost/upload/file1
     location /upload {
+        # Do not allow PUT to a file that already exists,
+        if (-f $request_filename) {
+            set $deny "A";
+        }
+        if ($request_method = PUT) {
+            set $deny "${deny}B";
+        }
+        # return a conflict error instead.
+        if ($deny = AB) {
+            return 409 "upload file exists!!";
+        }
         client_max_body_size 10000m;
         # root /var/www;
         alias /var/www;
         client_body_temp_path /var/www/tmp/client_temp;
-        dav_methods  PUT DELETE MKCOL COPY MOVE;
+        dav_methods  PUT;
         create_full_put_path   on;
-        dav_access             group:rw  all:r;
+        dav_access all:r;
         # limit_except GET {
         #     allow 192.168.168.0/24;
         #     deny all;
