@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1b3e782[2021-11-26T15:01:23+08:00]:ngx_demo.sh")
+VERSION+=("7193130[2021-11-29T07:06:10+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -736,6 +736,19 @@ server {
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
         include /etc/nginx/fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+}
+EOF
+cat <<'EOF' > aws_s3auth.conf
+server {
+    listen 80;
+    aws_access_key access_key;
+    aws_key_scope scope_of_generated_signing_key;
+    aws_signing_key signing_key_generated_using_script;
+    aws_s3_bucket your_s3_bucket;
+    location / {
+        aws_sign;
+        proxy_pass http://your_s3_bucket.s3.amazonaws.com;
     }
 }
 EOF
