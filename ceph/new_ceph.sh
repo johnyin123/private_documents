@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("35c566f[2021-11-29T17:17:07+08:00]:new_ceph.sh")
+VERSION+=("dc06422[2021-11-29T17:18:45+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 fix_ceph_conf() {
@@ -545,7 +545,7 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
     Example:
-            VER:nautilus/octopus/pacific || 16.2.6/5.2.9/.....
+            VER:nautilus/octopus/pacific || 16.2.6/15.2.9/.....
             centos-release-ceph-nautilus/centos-release-ceph-octopus/centos-release-ceph-pacific
         1. yum -y update && yum -y install centos-release-ceph-\${VER}
         2. yum -y install ceph
