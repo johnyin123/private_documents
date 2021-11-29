@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dc06422[2021-11-29T17:18:45+08:00]:new_ceph.sh")
+VERSION+=("5d41492[2021-11-30T06:39:41+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 fix_ceph_conf() {
@@ -363,7 +363,7 @@ inst_ceph_mon() {
         upload "${DIRNAME}/${cname}.conf" ${ipaddr} ${SSH_PORT} "root" "/etc/ceph/${cname}.conf"
         ssh_func "root@${ipaddr}" ${SSH_PORT} "systemctl restart ceph.target"
     done
-    remote_func ${allmon[0]} ${SSH_PORT} "root" fix_ceph_conf "${cname}"
+    ssh_func "root@${allmon[0]}" ${SSH_PORT} fix_ceph_conf "${cname}"
 }
 
 inst_ceph_osd() {
@@ -393,7 +393,7 @@ inst_ceph_osd() {
 inst_ceph_dashboard() {
     local cname=${1}
     local ipaddr=${2}
-    info_msg "****** ${ipaddr}init dashboard.\n"
+    info_msg "****** (admin/password) https://${ipaddr}:8443 init dashboard. ******\n"
     ssh_func "root@${ipaddr}" ${SSH_PORT} init_dashboard "${cname}"
 }
 
@@ -545,14 +545,22 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
     Example:
-            VER:nautilus/octopus/pacific || 16.2.6/15.2.9/.....
+        prepare node hosts file:
+            # servern is public network(mon_host,mon_initial_members),osd in cluster network
+            # <pub_network> name
+            cat <<EOF>/etc/hosts
+            127.0.0.1       localhost
+            192.168.168.101 server1
+            192.168.168.... servern
+            EOF
+        VER:nautilus/octopus/pacific || 16.2.6/15.2.9/.....
             centos-release-ceph-nautilus/centos-release-ceph-octopus/centos-release-ceph-pacific
         1. yum -y update && yum -y install centos-release-ceph-\${VER}
-        2. yum -y install ceph
+        2. yum -y install ceph radosgw rbd-mirror rbd-nbd
         OR.
         1. wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add -
         2. echo deb http://download.ceph.com/debian-\${VER}/ \$(sed -n "s/^\s*VERSION_CODENAME\s*=\s*\(.*\)/\1/p" /etc/os-release) main | tee /etc/apt/sources.list.d/ceph.list
-        3. apt-get update && apt-get install ceph
+        3. apt-get update && apt-get install ceph radosgw rbd-mirror rbd-nbd
         SSH_PORT default is 60022
          ${SCRIPTNAME} -c site1 \\
                -m 192.168.168.101 -m 192.168.168.102 -m 192.168.168.103 \\
@@ -570,11 +578,6 @@ ${SCRIPTNAME}
                --rgw_endpts http://192.168.168.201:80,http://192.168.168.202:80,http://192.168.168.203:80 \\
                --master_url http://192.168.168.101 --access_key <key> --secret_key <key> \\
                --rgw_realm movie --rgw_grp cn --rgw_zone idc02
-        ceph node hosts: servern is public network(mon_host,mon_initial_members),osd in cluster network
-               127.0.0.1       localhost
-               192.168.168.101 server1
-               .....
-               192.168.168.... servern
 EOF
     exit 1
 }
