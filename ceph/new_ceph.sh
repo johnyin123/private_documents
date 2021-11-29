@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_ceph.sh - 69df85f - 2021-10-14T09:33:46+08:00")
+VERSION+=("5f9e4da[2021-10-19T08:37:18+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 fix_ceph_conf() {
@@ -549,8 +549,9 @@ ${SCRIPTNAME}
         1. yum -y update && yum -y install centos-release-ceph-pacific
         2. yum -y install ceph
         OR.
+            VER:nautilus/octopus/pacific
         1. wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add -
-        2. echo deb http://download.ceph.com/debian-VER/ DIST main | tee /etc/apt/sources.list.d/ceph.list
+        2. echo deb http://download.ceph.com/debian-VER/ \$(sed -n "s/^\s*VERSION_CODENAME\s*=\s*\(.*\)/\1/p" /etc/os-release) main | tee /etc/apt/sources.list.d/ceph.list
         3. apt-get update && apt-get install ceph
         SSH_PORT default is 60022
          ${SCRIPTNAME} -c site1 \\
