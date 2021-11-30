@@ -7,13 +7,12 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c4ca39a[2021-11-29T12:57:01+08:00]:mk_nginx.sh")
+VERSION+=("89e5435[2021-11-29T15:23:59+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
 cat <<EOF
 nginx-eval-module-master https://github.com/anomalizer/ngx_aws_auth
-ngx_aws_auth-master      https://github.com/openresty/nginx-eval-module/
 EOF
 :<<"EOF"
 for SM2 ssl replace:
@@ -30,7 +29,6 @@ EOF
 # --with-http_geoip_module=dynamic \
 # --with-stream_geoip_module=dynamic \
 
-sed -i "s/ngx_module_libs=.*/ngx_module_libs=/g" ngx_aws_auth-master/config
 ./configure --prefix=/usr/share/nginx \
 --sbin-path=/usr/sbin/nginx \
 --conf-path=/etc/nginx/nginx.conf \
@@ -79,7 +77,6 @@ sed -i "s/ngx_module_libs=.*/ngx_module_libs=/g" ngx_aws_auth-master/config
 --add-module=nginx-module-vts-master \
 --add-module=ngx_http_redis-0.3.9 \
 --add-module=nginx-eval-module-master \
---add-module=ngx_aws_auth-master \
 --add-module=nginx-rtmp-module-1.2.2
 
 echo "${VERSION[@]}**************************************************"
