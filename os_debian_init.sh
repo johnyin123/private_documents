@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_debian_init.sh - 6ba109c - 2021-11-03T15:57:41+08:00")
+VERSION+=("542dde0[2021-11-19T10:40:18+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -275,7 +275,7 @@ func SetTitle()
         call setline(8, "    set -o xtrace")
         call setline(9, "fi")
         call setline(10, "VERSION+=()")
-        call setline(11, "[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true")
+        call setline(11, "[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }")
         call setline(12, "################################################################################")
         call setline(13, "usage() {")
         call setline(14, "    [ \"$#\" != 0 ] && echo \"$*\"")
