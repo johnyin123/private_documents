@@ -7,12 +7,13 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("89e5435[2021-11-29T15:23:59+08:00]:mk_nginx.sh")
+VERSION+=("4abf631[2021-11-30T10:17:29+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
 cat <<EOF
 nginx-eval-module-master https://github.com/anomalizer/ngx_aws_auth
+https://github.com/kaltura/nginx-aws-auth-module
 EOF
 :<<"EOF"
 for SM2 ssl replace:
