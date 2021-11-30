@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6a8bccd[2021-11-30T10:35:30+08:00]:ngx_demo.sh")
+VERSION+=("0d3955a[2021-11-30T12:12:16+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -782,6 +782,7 @@ server {
     # secure_link_md5="$mykey$secure_link_expires$uri$request_method"
     # keys=$(echo -n "${secure_link_md5}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =)
     # curl --upload-file bigfile.iso "http://${srv}${uri}?k=${keys}&e=${secure_link_expires}"
+    # curl curl -X PUT http://localhost:8080/hello.txt -d 'Hello there!'
     # curl "http://${srv}${uri}?k=${keys}&e=${secure_link_expires}"
     location / {
         set $mykey prekey;
