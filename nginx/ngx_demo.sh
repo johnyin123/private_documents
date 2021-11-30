@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5cb98bd[2021-11-29T15:57:52+08:00]:ngx_demo.sh")
+VERSION+=("6a8bccd[2021-11-30T10:35:30+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -757,6 +757,19 @@ upstream ceph_rgw_backend {
     server 192.168.168.132:80;
     server 192.168.168.133:80;
     keepalive 64;
+}
+server {
+    listen 81;
+    client_max_body_size 6000M;
+    location / {
+    proxy_redirect off;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://ceph_rgw_backend;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+    }
 }
 server {
     listen 80;
