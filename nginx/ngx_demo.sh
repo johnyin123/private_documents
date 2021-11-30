@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e258299[2021-11-29T15:33:23+08:00]:ngx_demo.sh")
+VERSION+=("5cb98bd[2021-11-29T15:57:52+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -751,15 +751,39 @@ server {
 }
 EOF
 cat <<'EOF' > aws_s3auth.conf
+# public-bucket MUST set bucket-policy.py to all read/write
+upstream ceph_rgw_backend {
+    server 192.168.168.131:80;
+    server 192.168.168.132:80;
+    server 192.168.168.133:80;
+    keepalive 64;
+}
 server {
     listen 80;
-    aws_access_key access_key;
-    aws_key_scope scope_of_generated_signing_key;
-    aws_signing_key signing_key_generated_using_script;
-    aws_s3_bucket your_s3_bucket;
+    # srv=192.168.168.1
+    # mykey=prekey
+    # sec=3600
+    # secure_link_expires=$(date -d "+${sec} second" +%s)
+    # request_method=GET/PUT
+    # uri=/file.txt
+    # secure_link_md5="$mykey$secure_link_expires$uri$request_method"
+    # keys=$(echo -n "${secure_link_md5}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =)
+    # curl --upload-file bigfile.iso "http://${srv}${uri}?k=${keys}&e=${secure_link_expires}"
+    # curl "http://${srv}${uri}?k=${keys}&e=${secure_link_expires}"
     location / {
-        aws_sign;
-        proxy_pass http://your_s3_bucket.s3.amazonaws.com;
+        set $mykey prekey;
+        if ($request_method !~ ^(PUT|GET)$ ) {
+            return 444 "444 METHOD(PUT/GET)";
+        }
+        if ($request_method = GET) {
+            set $mykey getkey;
+        }
+        secure_link $arg_k,$arg_e;
+        secure_link_md5 "$mykey$secure_link_expires$uri$request_method";
+        if ($secure_link = "") { return 403; }
+        if ($secure_link = "0") { return 410; }
+        client_max_body_size 10000m;
+        proxy_pass http://ceph_rgw_backend/public-bucket${uri};
     }
 }
 EOF
