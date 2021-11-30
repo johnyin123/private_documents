@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d310113[2021-11-30T12:15:44+08:00]:ngx_demo.sh")
+VERSION+=("130a910[2021-11-30T12:23:47+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -763,10 +763,12 @@ server {
     listen 81;
     client_max_body_size 6000M;
     location / {
-    proxy_redirect off;
-    proxy_set_header X-Forwarded-For $remote_addr;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
+        proxy_redirect off;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        # #Stops the local disk from being written to (just forwards data through)
+        # proxy_max_temp_file_size 0;
         proxy_pass http://ceph_rgw_backend;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
@@ -799,6 +801,34 @@ server {
         if ($secure_link = "0") { return 410; }
         client_max_body_size 10000m;
         proxy_pass http://ceph_rgw_backend/public-bucket${uri};
+    }
+}
+EOF
+cat <<'EOF' > x_accel.conf
+# # X-accel allows for internal redirection to a location determined
+# # by a header returned from a backend.
+# echo "protected res" > /var/www/file.txt
+# curl -vvv http://127.0.0.1/file.txt
+server {
+    listen 81;
+    location / {
+        add_header X-Accel-Redirect "/protected$uri" always;
+        add_header X-Accel-Buffering yes;
+        # speed limit Byte/s
+        add_header X-Accel-Limit-Rate 102400;
+        # single download only
+        add_header Accept-Ranges none;
+        return 200;
+    }
+}
+server {
+    listen 80;
+    location /protected {
+        internal;
+        alias /var/www;
+    }
+    location / {
+        proxy_pass http://127.0.0.1:81/;
     }
 }
 EOF
