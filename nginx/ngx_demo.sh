@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0d3955a[2021-11-30T12:12:16+08:00]:ngx_demo.sh")
+VERSION+=("d310113[2021-11-30T12:15:44+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -33,6 +33,7 @@ EOF
 cat <<EOF >speed_limit_demo.conf
 server {
     listen 80;
+    location = /favicon.ico { access_log off; log_not_found off; }
     location / {
         limit_speed one 100k;
         root /var/www;
