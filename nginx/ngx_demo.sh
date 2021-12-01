@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("abb878e[2021-11-30T14:15:54+08:00]:ngx_demo.sh")
+VERSION+=("c9ef716[2021-12-01T13:25:41+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -442,7 +442,7 @@ server {
     # mykey=prekey
     # sec=3600
     # secure_link_expires=$(date -d "+${sec} second" +%s)
-    # request_method=GET/PUT
+    # request_method=GET/PUT/DELETE
     # uri=/store/file.txt
     # secure_link_md5="$mykey$secure_link_expires$uri$request_method"
     # echo -n "${secure_link_md5}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =
@@ -452,12 +452,13 @@ server {
     # location ~ ^/(?<port>123[0-9])(?:/|$) { rewrite "^/\d{4}(?:/(.*))?" /$1 break; proxy_pass http://127.0.0.1:$port; }
     location /store {
         set $mykey prekey;
-        if ($request_method !~ ^(PUT|GET)$ ) {
-            return 444 "444 METHOD(PUT/GET)";
+        if ($request_method !~ ^(PUT|GET|DELETE)$ ) {
+            return 444 "444 METHOD(PUT/GET/DELETE)";
         }
         if ($request_method = GET) {
             set $mykey getkey;
         }
+        # chown nginx.nginx /var/www -R
         alias /var/www;
         secure_link $arg_k,$arg_e;
         secure_link_md5 "$mykey$secure_link_expires$uri$request_method";
@@ -780,7 +781,7 @@ server {
     # mykey=prekey
     # sec=3600
     # secure_link_expires=$(date -d "+${sec} second" +%s)
-    # request_method=GET/PUT
+    # request_method=GET/PUT/DELETE
     # uri=/file.txt
     # secure_link_md5="$mykey$secure_link_expires$uri$request_method"
     # keys=$(echo -n "${secure_link_md5}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =)
@@ -789,8 +790,8 @@ server {
     # curl "http://${srv}${uri}?k=${keys}&e=${secure_link_expires}"
     location / {
         set $mykey prekey;
-        if ($request_method !~ ^(PUT|GET)$ ) {
-            return 444 "444 METHOD(PUT/GET)";
+        if ($request_method !~ ^(PUT|GET|DELETE)$ ) {
+            return 444 "444 METHOD(PUT/GET/DELETE)";
         }
         if ($request_method = GET) {
             set $mykey getkey;
