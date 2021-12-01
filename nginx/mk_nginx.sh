@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("59cce53[2021-12-01T11:22:09+08:00]:mk_nginx.sh")
+VERSION+=("c9ef716[2021-12-01T13:25:41+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -32,14 +32,14 @@ ZLIB_DIR=${DIRNAME}/zlib-1.2.11.dfsg
 PCRE_DIR=${DIRNAME}/pcre-8.39
 
 cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
-    && make && make install_sw LIBDIR=lib
+    && make build_libs && make install_sw LIBDIR=lib
 
 cd ${PCRE_DIR} && CC="cc" CFLAGS="-O2 -fomit-frame-pointer -pipe "  \
     ./configure --disable-shared --enable-jit \
     --libdir=${PCRE_DIR}/.libs/ --includedir=${PCRE_DIR} && \
     make
-
-expect -v || sudo apt install expect
+# njs configure need expect
+# expect -v || sudo apt install expect
 
 # for njs pcre-config command!
 export PATH=$PATH:${PCRE_DIR}
