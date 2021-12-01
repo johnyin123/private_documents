@@ -7,13 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4abf631[2021-11-30T10:17:29+08:00]:mk_nginx.sh")
+VERSION+=("1c901c6[2021-11-30T10:56:51+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
 cat <<EOF
 nginx-eval-module-master https://github.com/anomalizer/ngx_aws_auth
 https://github.com/kaltura/nginx-aws-auth-module
+git clone https://github.com/nginx/njs-examples.git
 EOF
 :<<"EOF"
 for SM2 ssl replace:
@@ -26,11 +27,23 @@ auto/lib/openssl/conf
  42             CORE_LIBS="$CORE_LIBS $OPENSSL/lib/libcrypto.a"
 EOF
 
-# geoip static error
-# --with-http_geoip_module=dynamic \
-# --with-stream_geoip_module=dynamic \
+OPENSSL_DIR=${DIRNAME}/openssl-1.1.1l
+ZLIB_DIR=${DIRNAME}/zlib-1.2.11.dfsg
+PCRE_DIR=${DIRNAME}/pcre-8.39
 
-./configure --prefix=/usr/share/nginx \
+cd ${PCRE_DIR} && CC="cc" CFLAGS="-O2 -fomit-frame-pointer -pipe "  \
+./configure --disable-shared --enable-jit \
+--libdir=${PCRE_DIR}/.libs/ --includedir=${PCRE_DIR} && \
+make
+# for njs pcre-config command!
+export PATH=$PATH:${PCRE_DIR}
+echo "PCRE OK **************************************************"
+cd ${DIRNAME} && ./configure --prefix=/usr/share/nginx \
+--user=nginx \
+--group=nginx \
+--with-cc-opt="$(pcre-config --cflags)" \
+--with-ld-opt="$(pcre-config --libs)" \
+--with-pcre \
 --sbin-path=/usr/sbin/nginx \
 --conf-path=/etc/nginx/nginx.conf \
 --error-log-path=/var/log/nginx/error.log \
@@ -70,9 +83,13 @@ EOF
 --with-stream_realip_module \
 --with-stream_ssl_preread_module \
  \
---with-openssl=${DIRNAME}/openssl-1.1.1l \
---with-pcre=${DIRNAME}/pcre-8.39 \
---with-zlib=${DIRNAME}/zlib-1.2.11.dfsg \
+--with-openssl=${OPENSSL_DIR} \
+--with-zlib=${ZLIB_DIR} \
+ \
+--with-http_geoip_module=dynamic \
+--with-stream_geoip_module=dynamic \
+--add-dynamic-module=njs/nginx \
+ \
 --add-module=nginx-goodies-nginx-sticky-module-ng-08a395c66e42 \
 --add-module=nginx_limit_speed_module-master \
 --add-module=nginx-module-vts-master \
@@ -80,13 +97,14 @@ EOF
 --add-module=nginx-eval-module-master \
 --add-module=nginx-rtmp-module-1.2.2
 
-echo "${VERSION[@]}**************************************************"
-sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${VERSION[@]} by johnyin\"/g" objs/ngx_auto_config.h
-make
+TMP_VER=$(echo "${VERSION[@]}" | sed "s/${SCRIPTNAME}/by johnyin/g")
+echo "${TMP_VER}**************************************************"
+sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${TMP_VER}\"/g" ${DIRNAME}/objs/ngx_auto_config.h
+cd ${DIRNAME} && make
 OUTDIR=${DIRNAME}/out
 rm -rf ${OUTDIR}
 mkdir -p ${OUTDIR}
-make install DESTDIR=${OUTDIR}
+cd ${DIRNAME} && make install DESTDIR=${OUTDIR}
 
 echo "/usr/lib/tmpfiles.d/nginx.conf"
 mkdir -p ${OUTDIR}/usr/lib/tmpfiles.d/
@@ -192,8 +210,9 @@ worker_rlimit_nofile 102400;
 pid /run/nginx.pid;
 
 # load_module modules/ngx_http_geoip_module.so;
+# load_module modules/ngx_http_js_module.so;
 # load_module modules/ngx_stream_geoip_module.so;
-
+# load_module modules/ngx_stream_js_module.so;
 events {
     use epoll;
     worker_connections 10240;
@@ -270,12 +289,14 @@ stream {
 }
 EOF
 rm -f  ${OUTDIR}/etc/nginx/*.default
-
+mkdir -p ${OUTDIR}/usr/bin/
+cp ${DIRNAME}/njs/build/njs ${OUTDIR}/usr/bin/
 # apt install rpm ruby-rubygems
 # gem install fpm
 echo "getent group nginx >/dev/null || groupadd --system nginx || :" > /tmp/inst.sh
 echo "getent passwd nginx >/dev/null || useradd -g nginx --system -s /sbin/nologin -d /var/empty/nginx nginx 2> /dev/null || :" > /tmp/uninst.sh
-fpm -s dir -t deb -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration 1 --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
-fpm -s dir -t rpm -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration 1 --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
-
+rm -fr ${DIRNAME}/pkg && mkdir -p ${DIRNAME}/pkg
+fpm --package ${DIRNAME}/pkg -s dir -t deb -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration 1 --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
+fpm --package ${DIRNAME}/pkg -s dir -t rpm -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration 1 --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
+echo "ALL PACKAGE OUT: ${DIRNAME}/pkg"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
