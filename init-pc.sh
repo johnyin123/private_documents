@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("init-pc.sh - 09383b7 - 2021-10-12T07:24:27+08:00")
+VERSION+=("e32a81c[2021-11-10T11:16:22+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -166,6 +166,8 @@ apt -y install systemd-container \
 apt -y install traceroute ipcalc qrencode ncal
 # qrencode -8  -o - -t UTF8 "massage"
 
+# bat(batcat): cat(1) clone with syntax highlighting and git integration
+apt -y install bat
 echo "modify xfce4 default Panel layer"
 apt -y install xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver \
     lightdm
