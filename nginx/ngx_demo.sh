@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("130a910[2021-11-30T12:23:47+08:00]:ngx_demo.sh")
+VERSION+=("abb878e[2021-11-30T14:15:54+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -829,6 +829,42 @@ server {
     }
     location / {
         proxy_pass http://127.0.0.1:81/;
+    }
+}
+EOF
+cat <<'EOF' > secure_link_hash.js
+function secret_key(r) {
+    return process.env.SECRET_KEY;
+}
+function create_secure_link(r) {
+    return require('crypto').createHash('md5')
+                            .update(r.uri).update(process.env.SECRET_KEY)
+                            .digest('base64url');
+}
+export default {secret_key, create_secure_link}
+EOF
+cat <<'EOF' > secure_link_hash.conf
+# mkdir -p /etc/nginx/njs/
+# cp secure_link_hash.js /etc/nginx/njs/
+# sed -i "/env\s*SECRET_KEY/d" /etc/nginx/nginx.conf 
+# echo "env SECRET_KEY;" >> /etc/nginx/nginx.conf
+js_path "/etc/nginx/njs/";
+js_import main from secure_link_hash.js;
+js_set $new_foo main.create_secure_link;
+js_set $secret_key main.secret_key;
+server {
+    listen 80;
+    location /secure/ {
+        error_page 403 = @login;
+        secure_link $cookie_foo;
+        secure_link_md5 "$uri$secret_key";
+        if ($secure_link = "") { return 403; }
+        #if ($secure_link = "0") { return 410; }
+        return 200 "PASSED";
+    }
+    location @login {
+        add_header Set-Cookie "foo=$new_foo; Max-Age=60";
+        return 302 $request_uri;
     }
 }
 EOF

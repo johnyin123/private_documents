@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1c901c6[2021-11-30T10:56:51+08:00]:mk_nginx.sh")
+VERSION+=("59cce53[2021-12-01T11:22:09+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -31,18 +31,25 @@ OPENSSL_DIR=${DIRNAME}/openssl-1.1.1l
 ZLIB_DIR=${DIRNAME}/zlib-1.2.11.dfsg
 PCRE_DIR=${DIRNAME}/pcre-8.39
 
+cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
+    && make && make install_sw LIBDIR=lib
+
 cd ${PCRE_DIR} && CC="cc" CFLAGS="-O2 -fomit-frame-pointer -pipe "  \
-./configure --disable-shared --enable-jit \
---libdir=${PCRE_DIR}/.libs/ --includedir=${PCRE_DIR} && \
-make
+    ./configure --disable-shared --enable-jit \
+    --libdir=${PCRE_DIR}/.libs/ --includedir=${PCRE_DIR} && \
+    make
+
+expect -v || sudo apt install expect
+
 # for njs pcre-config command!
 export PATH=$PATH:${PCRE_DIR}
+export NJS_CC_OPT="-L${OPENSSL_DIR}/.openssl/lib"
 echo "PCRE OK **************************************************"
 cd ${DIRNAME} && ./configure --prefix=/usr/share/nginx \
 --user=nginx \
 --group=nginx \
---with-cc-opt="$(pcre-config --cflags)" \
---with-ld-opt="$(pcre-config --libs)" \
+--with-cc-opt="$(pcre-config --cflags) -I${OPENSSL_DIR}/.openssl/include" \
+--with-ld-opt="$(pcre-config --libs) -L${OPENSSL_DIR}/.openssl/lib" \
 --with-pcre \
 --sbin-path=/usr/sbin/nginx \
 --conf-path=/etc/nginx/nginx.conf \
@@ -83,7 +90,6 @@ cd ${DIRNAME} && ./configure --prefix=/usr/share/nginx \
 --with-stream_realip_module \
 --with-stream_ssl_preread_module \
  \
---with-openssl=${OPENSSL_DIR} \
 --with-zlib=${ZLIB_DIR} \
  \
 --with-http_geoip_module=dynamic \
@@ -289,8 +295,8 @@ stream {
 }
 EOF
 rm -f  ${OUTDIR}/etc/nginx/*.default
-mkdir -p ${OUTDIR}/usr/bin/
-cp ${DIRNAME}/njs/build/njs ${OUTDIR}/usr/bin/
+chmod 644 ${OUTDIR}/usr/share/nginx/modules/*
+
 # apt install rpm ruby-rubygems
 # gem install fpm
 echo "getent group nginx >/dev/null || groupadd --system nginx || :" > /tmp/inst.sh
