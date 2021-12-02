@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2f69bb0[2021-12-02T15:00:57+08:00]:ngx_demo.sh")
+VERSION+=("25d413d[2021-12-02T15:06:56+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -32,7 +32,7 @@ set -o errexit
 EOF
 cat <<EOF >speed_limit_demo.conf
 server {
-    listen 80;
+    listen 80 reuseport;
     location = /favicon.ico { access_log off; log_not_found off; }
     location / {
         limit_speed one 100k;
@@ -40,7 +40,9 @@ server {
     }
 }
 EOF
-
+cat <<'EOF' >check_nofiles.ngx.sh
+ps --ppid $(cat /var/run/nginx.pid) -o %p|sed '1d'|xargs -I{} cat /proc/{}/limits|grep open.files
+EOF
 cat <<'EOF' >redis.conf
 # redis-cli -x set curl/7.64.0 http://srv1
 # redis-cli -x set curl/7.61.1 http://www.xxx.com
@@ -54,7 +56,7 @@ upstream redis {
 }
 
 server {
-    listen 80;
+    listen 80 reuseport;
     location / {
         # cache !!!!
         set $redis_key $uri;
@@ -97,8 +99,8 @@ cat <<'EOF' >traffic_status.conf
 # /{status_uri}/control?cmd=*`{command}`*&group=*`{group}`*&zone=*`{name}`*
 # /control?cmd=reset&group=server&zone=*
 server {
-    listen 80;
-    # listen 443 ssl;
+    listen 80 reuseport;
+    # listen 443 ssl reuseport;
     # ssl_certificate /etc/nginx/SSL/ca.pem
     # ssl_certificate_key /etc/nginx/SSL/site.key;
     # server_name status.example.org;
@@ -208,7 +210,7 @@ cat <<'EOF' > flv_movie.conf
 # flv mp4流媒体服务器, https://github.com/Bilibili/flv.js
 # apt -y install yamdi
 server {
-    listen 80;
+    listen 80 reuseport;
     root /movie/;
     limit_rate_after 5m; #在flv视频文件下载了5M以后开始限速
     limit_rate 100k;     #速度限制为100K
@@ -232,7 +234,7 @@ cat <<'EOF' > fcgiwrap.conf
 # systemctl enable fcgiwrap --now
 # curl localhost/cgi-bin/test.cgi
 server {
-    listen 80;
+    listen 80 reuseport;
     location = /login {
         rewrite ^ /cgi-bin/test.cgi;
     }
@@ -247,7 +249,7 @@ server {
 EOF
 cat <<'EOF' > auth_basic.conf
 server {
-    listen 80;
+    listen 80 reuseport;
     # username=user
     # password=password
     # printf "${username}:$(openssl passwd -apr1 ${password})\n" >> /etc/nginx/.htpasswd
@@ -272,7 +274,7 @@ map $arg_id $url_id {
     default    /about;
 }
 server {
-    listen 80;
+    listen 80 reuseport;
     if ($url_p) {
         # if '$url_p' variable is not an empty string
         return 301 $url_p;
@@ -322,7 +324,7 @@ cat <<'EOF' > secure_link_demo.conf
 # esac
 
 server {
-    listen 80;
+    listen 80 reuseport;
     location = /login {
         rewrite ^ /cgi-bin/login;
     }
@@ -374,7 +376,7 @@ map $uri $allow_file {
 # mkdir -p /var/www/files/ && echo "FILES FILE" > /var/www/files/file.txt
 # mkdir -p /var/www/s/ && echo "S FILE" > /var/www/s/file.txt
 server {
-    listen 80;
+    listen 80 reuseport;
     ## Basic Secured URLs
     # echo -n 'hls/file.txtprekey' | openssl md5 -hex
     # curl http://${srv}/videos/071f5f362f9362f1d14a3ece3b0c37e6/hls/file.txt
@@ -415,7 +417,7 @@ server {
 EOF
 cat <<'EOF' > secure_link_cookie.conf
 server {
-    listen 80;
+    listen 80 reuseport;
     # sec=3600
     # secure_link_expires=$(date -d "+${sec} second" +%s)
     # uri=/login.cgi
@@ -433,7 +435,7 @@ server {
 EOF
 cat <<'EOF' > webdav.conf
 server {
-    listen 80;
+    listen 80 reuseport;
     # mkdir -p /var/www/tmp/client_temp && chown nobody:nobody /var/www -R
     # curl --upload-file bigfile.iso http://localhost/upload/file1
     location /upload {
@@ -502,7 +504,7 @@ EOF
 cat <<'EOF' > gateway_transparent_proxy.conf
 # iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j DNAT --to-destination ${gate_ip}:${gate_port}
 server {
-    listen 8000;
+    listen 8000 reuseport;
     location / {
         # proxy_method      POST;
         # proxy_set_body    "token=$http_apikey&token_hint=access_token";
@@ -515,7 +517,7 @@ server {
 EOF
 cat <<'EOF' > memory_cached.conf
 server {
-    listen 80;
+    listen 80 reuseport;
     location / {
         set            $memcached_key "$uri?$args";
         memcached_pass 127.0.0.1:11211;
@@ -535,13 +537,13 @@ upstream b {
     server 127.0.0.1:4001;
 }
 server {
-    listen 3001;
+    listen 3001 reuseport;
     location / {
         return 200 "Served from site A! \n\n";
     }
 }
 server {
-    listen 4001;
+    listen 4001 reuseport;
     location / {
         return 200 "Served from site B!! <<<<-------------------------- \n\n";
     }
@@ -551,7 +553,7 @@ split_clients "${arg_token}" $dynamic {
     *       b;
 }
 server {
-    listen 80;
+    listen 80 reuseport;
     location / {
         if ($http_cookie ~* "shopware_sso_token=([^;]+)(?:;|$)") {
             set $token "$1";
@@ -564,7 +566,7 @@ server {
 EOF
 cat <<'EOF' > split_client.conf
 server {
-    listen 8098;
+    listen 8098 reuseport;
     return 200 "Results:
 Server Address:\t $server_addr:$server_port
 Network Remote Address:\t $remote_addr
@@ -575,7 +577,7 @@ upstream backend {
     server 172.16.239.200:8098;
 }
 server {
-    listen 80;
+    listen 80 reuseport;
     location / {
         proxy_pass http://backend;
         proxy_bind $split_ip;
@@ -602,7 +604,7 @@ split_clients "${remote_addr}" $variant {
     *    "";
 }
 server {
-    listen 80;
+    listen 80 reuseport;
     location / {
         index index${variant}.html;
         root /var/www;
@@ -611,7 +613,7 @@ server {
 EOF
 cat <<'EOF' > auth_request_by_secure_link.conf
 server {
-    listen 80;
+    listen 80 reuseport;
     location / {
         auth_request /auth;
         root /var/www;
@@ -732,7 +734,7 @@ cat <<'EOF' > auth_request.conf
 # esac
 #
 server {
-    listen 80;
+    listen 80 reuseport;
     error_page 401 = @error401;
     location @error401 {
         return 302 /login?uri=$request_uri;
@@ -783,7 +785,7 @@ upstream ceph_rgw_backend {
     keepalive 64;
 }
 server {
-    listen 81;
+    listen 81 reuseport;
     client_max_body_size 6000M;
     location / {
         proxy_redirect off;
@@ -798,7 +800,7 @@ server {
     }
 }
 server {
-    listen 80;
+    listen 80 reuseport;
     # srv=192.168.168.1
     # mykey=prekey
     # sec=3600
@@ -833,7 +835,7 @@ cat <<'EOF' > x_accel.conf
 # echo "protected res" > /var/www/file.txt
 # curl -vvv http://127.0.0.1/file.txt
 server {
-    listen 81;
+    listen 81 reuseport;
     location / {
         # add_header X-Accel-Redirect "/protected$uri" always;
         add_header X-Accel-Redirect "/public-bucket$uri" always;
@@ -850,7 +852,7 @@ upstream ceph_rgw_backend {
     keepalive 64;
 }
 server {
-    listen 80;
+    listen 80 reuseport;
     location /protected {
         internal;
         alias /var/www;
@@ -866,6 +868,7 @@ server {
         proxy_method GET;
         proxy_pass_request_body off; # no data is being transferred
         proxy_set_header Content-Length '0';
+        # proxy_hide_header X-Powered-By;
         proxy_pass http://127.0.0.1:81/;
     }
 }
@@ -891,7 +894,7 @@ js_import main from secure_link_hash.js;
 js_set $new_foo main.create_secure_link;
 js_set $secret_key main.secret_key;
 server {
-    listen 80;
+    listen 80 reuseport;
     location /secure/ {
         error_page 403 = @login;
         secure_link $cookie_foo;
@@ -924,7 +927,7 @@ cat <<'EOF' > sub_filter.conf
 # }
 # ............................
 server {
-    listen 80;
+    listen 80 reuseport;
     location / {
         sub_filter '</body>' '<a href="http://www.xxxx.com"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://res.xxxx.com/_static_/demo.png" alt="bj idc"></a></body>';
         proxy_set_header referer http://www.xxx.net; #如果网站有验证码，可以解决验证码不显示问题
