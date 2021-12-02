@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c9ef716[2021-12-01T13:25:41+08:00]:ngx_demo.sh")
+VERSION+=("1e022fd[2021-12-02T07:37:13+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -459,6 +459,7 @@ server {
             set $mykey getkey;
         }
         # chown nginx.nginx /var/www -R
+        autoindex on;
         alias /var/www;
         secure_link $arg_k,$arg_e;
         secure_link_md5 "$mykey$secure_link_expires$uri$request_method";
@@ -801,7 +802,7 @@ server {
         if ($secure_link = "") { return 403; }
         if ($secure_link = "0") { return 410; }
         client_max_body_size 10000m;
-        proxy_pass http://ceph_rgw_backend/public-bucket${uri};
+        proxy_pass http://ceph_rgw_backend/public-bucket$uri;
     }
 }
 EOF
