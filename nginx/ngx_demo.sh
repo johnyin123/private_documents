@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5e44517[2021-12-02T08:52:15+08:00]:ngx_demo.sh")
+VERSION+=("f8afdee[2021-12-02T13:59:06+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -835,7 +835,8 @@ cat <<'EOF' > x_accel.conf
 server {
     listen 81;
     location / {
-        add_header X-Accel-Redirect "/protected$uri" always;
+        # add_header X-Accel-Redirect "/protected$uri" always;
+        add_header X-Accel-Redirect "/public-bucket$uri" always
         add_header X-Accel-Buffering yes;
         # speed limit Byte/s
         add_header X-Accel-Limit-Rate 102400;
@@ -844,13 +845,24 @@ server {
         return 200;
     }
 }
+upstream ceph_rgw_backend {
+    server 192.168.168.132;
+    keepalive 64;
+}
 server {
     listen 80;
     location /protected {
         internal;
         alias /var/www;
     }
+    location /public-bucket {
+        internal;
+        client_max_body_size 10000m;
+        proxy_method $m;
+        proxy_pass http://ceph_rgw_backend$uri;
+    }
     location / {
+        set $m $request_method;
         proxy_pass http://127.0.0.1:81/;
     }
 }
