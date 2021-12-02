@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4bd5bb8[2021-12-02T08:13:53+08:00]:ngx_demo.sh")
+VERSION+=("5e44517[2021-12-02T08:52:15+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -341,6 +341,26 @@ server {
         #if ($secure_link = "") { return 403; }
         if ($secure_link = "0") { return 410; }
         alias /var/www;
+    }
+}
+EOF
+cat <<'EOF' > secure_link.java
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+//Java8+
+//import java.util.Base64;
+//Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+public class test
+{
+    public static void main(String[] args) throws IOException, NoSuchAlgorithmException {
+        long ts = System.currentTimeMillis()/1000;
+        ts = ts+3600;
+        String value="prekey"+ts+"/myfile.txtGET";
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        md.update(value.getBytes());
+        byte[] digest = md.digest();
+        System.out.println(java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(digest));
     }
 }
 EOF
@@ -849,7 +869,7 @@ EOF
 cat <<'EOF' > secure_link_hash.conf
 # mkdir -p /etc/nginx/njs/
 # cp secure_link_hash.js /etc/nginx/njs/
-# sed -i "/env\s*SECRET_KEY/d" /etc/nginx/nginx.conf 
+# sed -i "/env\s*SECRET_KEY/d" /etc/nginx/nginx.conf
 # echo "env SECRET_KEY;" >> /etc/nginx/nginx.conf
 js_path "/etc/nginx/njs/";
 js_import main from secure_link_hash.js;
