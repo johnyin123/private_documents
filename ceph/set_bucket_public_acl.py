@@ -76,8 +76,8 @@ bucket_policy = {
       "Sid":"AddPerm",
       "Effect":"Allow",
       "Principal": "*",
-      "Action":["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
-      "Resource":["arn:aws:s3:::{0}/*".format(bucket_name)]
+      "Action":["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"],
+      "Resource":["arn:aws:s3:::{0}".format(bucket_name), "arn:aws:s3:::{0}/*".format(bucket_name)]
     }
   ]
 }
