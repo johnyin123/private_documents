@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1e022fd[2021-12-02T07:37:13+08:00]:ngx_demo.sh")
+VERSION+=("4bd5bb8[2021-12-02T08:13:53+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -305,11 +305,12 @@ cat <<'EOF' > secure_link_demo.conf
 #     sec=360 #360 seconds
 #     query=$(head --bytes="$CONTENT_LENGTH")
 #     [ -z "$QUERY_STRING" ] && {
-#     write_header 403
-#     return
+#         write_header 403
+#         return
 #     }
 #     eval $QUERY_STRING
 #     local secure_link_expires=$(date -d "+${sec} second" +%s)
+#     # RFC 4648 compliant, re-entrant, base64url codec
 #     local key=$(echo -n "${mykey}${secure_link_expires}${uri}" | /usr/bin/openssl md5 -binary | /usr/bin/openssl base64 | /usr/bin/tr '+ /' '-_' | /usr/bin/tr -d =)
 #     printf "Location: ${uri}?k=${key}&e=${secure_link_expires}\n"
 #     write_header 302
