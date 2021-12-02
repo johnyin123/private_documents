@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("39697f8[2021-11-15T09:27:26+08:00]:functions.sh")
+VERSION+=("cc134f8[2021-11-23T11:12:12+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -1225,19 +1225,8 @@ urlencode() {
 }
 
 urldecode() {
-    local string="${1}"
-    local strlen=${#string}
-    local decoded=""
-    local pos c o
-    for (( pos=0 ; pos<strlen ; pos++ )); do
-        c=${string:$pos:1}
-        case "$c" in
-            % ) o=$(echo "0x${string:$(($pos+1)):2}" | xxd -r); pos=$(($pos + 2)) ;;
-            * ) o="${c}" ;;
-        esac
-        decoded+="${o}"
-    done
-    safe_echo "${decoded}"
+    local data="${*//+/ }"
+    printf '%b' "${data//%/\\x}"
 }
 
 # echo "key=abc" | del_config "key" | add_config "test" "testval" | set_config "test" "abc"
