@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f8afdee[2021-12-02T13:59:06+08:00]:ngx_demo.sh")
+VERSION+=("33dbfdd[2021-12-02T14:45:30+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -836,7 +836,7 @@ server {
     listen 81;
     location / {
         # add_header X-Accel-Redirect "/protected$uri" always;
-        add_header X-Accel-Redirect "/public-bucket$uri" always
+        add_header X-Accel-Redirect "/public-bucket$uri" always;
         add_header X-Accel-Buffering yes;
         # speed limit Byte/s
         add_header X-Accel-Limit-Rate 102400;
