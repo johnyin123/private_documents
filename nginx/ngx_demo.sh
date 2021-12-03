@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b0d8043[2021-12-03T12:38:42+08:00]:ngx_demo.sh")
+VERSION+=("90ff0d0[2021-12-03T16:39:22+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -209,6 +209,17 @@ cat <<'EOF' > flv_movie.html
     </script>
 </body>
 </html>
+EOF
+cat <<'EOF' > limit_conn.conf
+limit_conn_zone $binary_remote_addr zone=connperip:10m;
+limit_conn_zone $server_name zone=connperserver:10m;
+server {
+    listen 80 reuseport;
+    location / {
+        limit_conn connperip 10;
+        limit_conn connperserver 100;
+    }
+}
 EOF
 cat <<'EOF' > limit_req.conf
 limit_req_zone $binary_remote_addr zone=perip:10m rate=1r/s;
@@ -527,6 +538,23 @@ server {
         proxy_set_header Host $http_host;
         proxy_buffers 256 4k;
         proxy_max_temp_file_size 0k;
+    }
+}
+EOF
+cat <<'EOF' > mirror.conf
+server {
+    listen 80 reuseport;
+    location / {
+        mirror /mirror;
+        mirror_request_body off;
+        proxy_pass http://127.0.0.1:82;
+    }
+    location = /mirror {
+        internal;
+        proxy_pass http://127.0.0.1:81;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Original-URI $request_uri;
     }
 }
 EOF
