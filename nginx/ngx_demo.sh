@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0ce948e[2021-12-03T08:33:50+08:00]:ngx_demo.sh")
+VERSION+=("179f904[2021-12-03T12:27:29+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -814,17 +814,16 @@ server {
     # curl "http://${srv}${uri}?k=${keys}&e=${secure_link_expires}"
     location / {
         set $mykey prekey;
-        if ($request_method !~ ^(PUT|GET|DELETE)$ ) {
-            return 444 "444 METHOD(PUT/GET/DELETE)";
-        }
-        if ($request_method = GET) {
-            set $mykey getkey;
-        }
+        if ($request_method !~ ^(PUT|GET|DELETE)$ ) { return 444 "444 METHOD(PUT/GET/DELETE)"; }
+        if ($request_method = GET) { set $mykey getkey; }
         secure_link $arg_k,$arg_e;
         secure_link_md5 "$mykey$secure_link_expires$uri$request_method";
         if ($secure_link = "") { return 403; }
         if ($secure_link = "0") { return 410; }
-        client_max_body_size 10000m;
+        client_max_body_size 2048m;
+        proxy_max_temp_file_size 0;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
         proxy_pass http://ceph_rgw_backend/public-bucket$uri;
     }
 }
@@ -888,13 +887,13 @@ cat <<'EOF' > post_redirect.conf
 server {
     listen 80 reuseport;
     location / {
-    # HTTP 307 only for POST requests:
-    if ($request_method = POST) {
-        return 307 https://api.example.com?request_uri;
-    }
-    # keep for non-POST requests:
-    rewrite ^ https://api.example.com?request_uri permanent;
-    client_max_body_size 10m;
+        # HTTP 307 only for POST requests:
+        if ($request_method = POST) {
+            return 307 https://api.example.com?request_uri;
+        }
+        # keep for non-POST requests:
+        rewrite ^ https://api.example.com?request_uri permanent;
+        client_max_body_size 10m;
     }
 }
 EOF
