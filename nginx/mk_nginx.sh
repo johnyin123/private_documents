@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3d896b9[2021-12-01T13:32:26+08:00]:mk_nginx.sh")
+VERSION+=("6c49d42[2021-12-02T16:14:53+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -40,6 +40,7 @@ cd ${PCRE_DIR} && CC="cc" CFLAGS="-O2 -fomit-frame-pointer -pipe "  \
     make
 # njs configure need expect
 # expect -v || sudo apt install expect
+echo "http_xslt_module needs libxml2-dev libxslt1-dev"
 
 # for njs pcre-config command!
 export PATH=$PATH:${PCRE_DIR}
@@ -94,6 +95,7 @@ cd ${DIRNAME} && ./configure --prefix=/usr/share/nginx \
  \
 --with-http_geoip_module=dynamic \
 --with-stream_geoip_module=dynamic \
+--with-http_xslt_module=dynamic \
 --add-dynamic-module=njs/nginx \
  \
 --add-module=nginx-goodies-nginx-sticky-module-ng-08a395c66e42 \

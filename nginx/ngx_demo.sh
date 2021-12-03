@@ -7,13 +7,13 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("25d413d[2021-12-02T15:06:56+08:00]:ngx_demo.sh")
+VERSION+=("a76448a[2021-12-02T16:11:21+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
 set -o errexit
 
-:<<"EOF">location.txt
+cat <<"EOF">location.txt
 =：精确匹配，优先级最高。如果找到了这个精确匹配，则停止查找。
 ^~：URI 以某个常规字符串开头，不是正则匹配
 ~：区分大小写的正则匹配
