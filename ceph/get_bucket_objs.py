@@ -20,3 +20,11 @@ conn = boto3.resource('s3',
 bucket = conn.Bucket('public-bucket')
 for obj in bucket.objects.all():
     print(obj.key)
+
+
+# Download File with Specific Version-ID
+bucket.download_file(
+    "somefile",
+    "/donwload/path/somefile.txt",
+    ExtraArgs={"VersionId": "my_version"}
+)
