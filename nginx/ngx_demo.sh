@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a76448a[2021-12-02T16:11:21+08:00]:ngx_demo.sh")
+VERSION+=("0ce948e[2021-12-03T08:33:50+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -883,6 +883,20 @@ function create_secure_link(r) {
                             .digest('base64url');
 }
 export default {secret_key, create_secure_link}
+EOF
+cat <<'EOF' > post_redirect.conf
+server {
+    listen 80 reuseport;
+    location / {
+    # HTTP 307 only for POST requests:
+    if ($request_method = POST) {
+        return 307 https://api.example.com?request_uri;
+    }
+    # keep for non-POST requests:
+    rewrite ^ https://api.example.com?request_uri permanent;
+    client_max_body_size 10m;
+    }
+}
 EOF
 cat <<'EOF' > secure_link_hash.conf
 # mkdir -p /etc/nginx/njs/
