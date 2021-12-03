@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0ce948e[2021-12-03T08:33:50+08:00]:mk_nginx.sh")
+VERSION+=("2cf6932[2021-12-03T12:01:12+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -214,22 +214,25 @@ access_log /var/log/nginx/stream_access.log basic buffer=32k;
 error_log /var/log/nginx/stream_error.log;
 EOF
 
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.conf
+# load_module modules/ngx_http_geoip_module.so;
+# load_module modules/ngx_http_js_module.so;
+# load_module modules/ngx_http_xslt_filter_module.so;
+# load_module modules/ngx_stream_geoip_module.so;
+# load_module modules/ngx_stream_js_module.so;
+EOF
+
 cat <<'EOF' > ${OUTDIR}/etc/nginx/nginx.conf
 user nginx nginx;
 worker_processes auto;
 worker_rlimit_nofile 102400;
 pid /run/nginx.pid;
-
-# load_module modules/ngx_http_geoip_module.so;
-# load_module modules/ngx_http_js_module.so;
-# load_module modules/ngx_stream_geoip_module.so;
-# load_module modules/ngx_stream_js_module.so;
+include /etc/nginx/modules.conf;
 events {
     use epoll;
     worker_connections 10240;
     multi_accept on;
 }
-
 http {
     sendfile on;
     tcp_nopush on;
