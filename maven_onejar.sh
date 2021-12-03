@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("8aac1b0[2021-12-02T12:12:11+08:00]:maven_onejar.sh")
+VERSION+=("ad44b25[2021-12-02T12:42:16+08:00]:maven_onejar.sh")
 main() {
     local app=${1:-myapp}
     echo "REPOSITORY: ~/.m2/repository/"
@@ -57,6 +57,8 @@ main() {
   </build>
 EOF
     mvn package
+    echo "build a sprintboot app"
+    echo "https://start.spring.io/"
     return 0
 }
 main "$@"
