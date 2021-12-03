@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("179f904[2021-12-03T12:27:29+08:00]:ngx_demo.sh")
+VERSION+=("b0d8043[2021-12-03T12:38:42+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -30,12 +30,13 @@ cat <<"EOF">location.txt
 #     N/A      @       Defines a named location block.                                   Simple-string              Yes
 # -----------------------------------------------------------------------------------------------------------------------------------
 EOF
-cat <<EOF >speed_limit_demo.conf
+cat <<'EOF' >speed_limit_demo.conf
+limit_speed_zone mylimitspeed $binary_remote_addr 10m;
 server {
     listen 80 reuseport;
     location = /favicon.ico { access_log off; log_not_found off; }
     location / {
-        limit_speed one 100k;
+        limit_speed mylimitspeed 100k;
         root /var/www;
     }
 }
@@ -94,10 +95,13 @@ server {
     # }
 }
 EOF
-
 cat <<'EOF' >traffic_status.conf
 # /{status_uri}/control?cmd=*`{command}`*&group=*`{group}`*&zone=*`{name}`*
 # /control?cmd=reset&group=server&zone=*
+
+# geoip_country                   /usr/share/GeoIP/GeoIP.dat;
+vhost_traffic_status_zone;
+# vhost_traffic_status_filter_by_set_key $geoip_country_code country::*;
 server {
     listen 80 reuseport;
     # listen 443 ssl reuseport;
@@ -205,6 +209,17 @@ cat <<'EOF' > flv_movie.html
     </script>
 </body>
 </html>
+EOF
+cat <<'EOF' > limit_req.conf
+limit_req_zone $binary_remote_addr zone=perip:10m rate=1r/s;
+# limit_req_zone $server_name zone=perserver:10m rate=600r/m;
+server {
+    listen 80 reuseport;
+    # limit_req zone=perserver burst=10;
+    location / {
+        limit_req zone=perip burst=5;
+    }
+}
 EOF
 cat <<'EOF' > flv_movie.conf
 # flv mp4流媒体服务器, https://github.com/Bilibili/flv.js

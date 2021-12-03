@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2cf6932[2021-12-03T12:01:12+08:00]:mk_nginx.sh")
+VERSION+=("b27277c[2021-12-03T12:04:38+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -281,16 +281,6 @@ http {
         font/opentype application/x-font-ttf application/vnd.ms-fontobject
         image/x-icon;
     gzip_disable "msie6";
-
-    # # geoip module
-    # geoip_country /usr/share/GeoIP/GeoIP.dat;
-
-    # # traffic_status module
-    vhost_traffic_status_zone;
-    # vhost_traffic_status_filter_by_set_key $geoip_country_code country::*;
-
-    # # limit speed module
-    limit_speed_zone one $binary_remote_addr 10m;
 
     # # vhost include
     include /etc/nginx/http-conf.d/*.conf;
