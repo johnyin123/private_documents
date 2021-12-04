@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5b01a4f[2021-12-03T17:14:46+08:00]:ngx_demo.sh")
+VERSION+=("6ab4ea2[2021-12-04T10:34:03+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -29,6 +29,60 @@ cat <<"EOF">location.txt
 #     4th      ~*      The URI must be a case-insensitive match to the specified Rx    Perl-Compatible-Rx      Yes (first match)
 #     N/A      @       Defines a named location block.                                   Simple-string              Yes
 # -----------------------------------------------------------------------------------------------------------------------------------
+EOF
+cat <<'EOF' >rtmp_live_modules.conf
+rtmp {
+    server {
+        listen 1935;
+        chunk_size 4000;
+        application hls {
+            live on;
+            hls on;
+            hls_path /var/www/temp;
+            hls_fragment 8s;
+            # publish only from localhost
+            # allow publish 127.0.0.1;
+            # deny publish all;
+            # allow play all;
+        }
+    }
+}
+EOF
+cat <<'EOF' >rtmp_live.conf
+# ffmpeg -re -stream_loop -1 -i demo.mp4 -c copy -f flv rtmp://localhost:1935/hls/demo
+# mpv http://localhost/hls/demo.m3u8
+# curl http://localhost/stat
+server {
+    listen 80 reuseport;
+    location /stat {
+        rtmp_stat all;
+        # Use this stylesheet to view XML as web page in browser
+        rtmp_stat_stylesheet stat.xsl;
+        allow 192.168.168.0/24;
+        deny all;
+    }
+    # copy rtmp stat.xsl to /var/www
+    location /stat.xsl {
+        root /var/www;
+    }
+    location /hls {
+        types{
+            application/vnd.apple.mpegurl m3u8;
+            video/mp2t ts;
+        }
+        alias /var/www/temp;
+        expires -1;
+        add_header Cache-Control no-cache;
+        add_header Access-Control-Allow-Origin *;
+        add_header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept";
+        add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
+    }
+    location /dash {
+        # Serve DASH fragments
+        alias /var/www/temp;
+        add_header Cache-Control no-cache;
+    }
+}
 EOF
 cat <<'EOF' >static_dynamic.conf
 server {
