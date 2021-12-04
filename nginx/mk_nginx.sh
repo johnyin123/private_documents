@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b27277c[2021-12-03T12:04:38+08:00]:mk_nginx.sh")
+VERSION+=("90ff0d0[2021-12-03T16:39:22+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -44,6 +44,7 @@ cd ${PCRE_DIR} && CC="cc" CFLAGS="-O2 -fomit-frame-pointer -pipe "  \
 # njs configure need expect
 # expect -v || sudo apt install expect
 echo "http_xslt_module needs libxml2-dev libxslt1-dev"
+echo "http_geoip_module needs libgeoip-dev"
 
 # for njs pcre-config command!
 export PATH=$PATH:${PCRE_DIR}
