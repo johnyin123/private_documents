@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6ab4ea2[2021-12-04T10:34:03+08:00]:ngx_demo.sh")
+VERSION+=("29fd811[2021-12-04T11:55:52+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -31,6 +31,7 @@ cat <<"EOF">location.txt
 # -----------------------------------------------------------------------------------------------------------------------------------
 EOF
 cat <<'EOF' >rtmp_live_modules.conf
+# # add blow to /etc/nginx/modules.conf
 rtmp {
     server {
         listen 1935;
@@ -38,20 +39,29 @@ rtmp {
         application hls {
             live on;
             hls on;
-            hls_path /var/www/temp;
+            hls_path /var/www/hls;
             hls_fragment 8s;
             # publish only from localhost
             # allow publish 127.0.0.1;
             # deny publish all;
             # allow play all;
         }
+        application dash {
+            live on;
+            dash on;
+            dash_path /var/www/dash;
+        }
     }
 }
 EOF
 cat <<'EOF' >rtmp_live.conf
+# stats: curl http://localhost/stat
+# # HLS test:
 # ffmpeg -re -stream_loop -1 -i demo.mp4 -c copy -f flv rtmp://localhost:1935/hls/demo
 # mpv http://localhost/hls/demo.m3u8
-# curl http://localhost/stat
+# # MPEG DASH test:
+# ffmpeg -re -i demo.mp4 -vcodec copy -acodec copy -f flv rtmp://localhost:1935/dash/demo
+# mpv http://localhost/dash/demo.mpd
 server {
     listen 80 reuseport;
     location /stat {
@@ -70,7 +80,7 @@ server {
             application/vnd.apple.mpegurl m3u8;
             video/mp2t ts;
         }
-        alias /var/www/temp;
+        alias /var/www/hls;
         expires -1;
         add_header Cache-Control no-cache;
         add_header Access-Control-Allow-Origin *;
@@ -79,7 +89,7 @@ server {
     }
     location /dash {
         # Serve DASH fragments
-        alias /var/www/temp;
+        alias /var/www/dash;
         add_header Cache-Control no-cache;
     }
 }
@@ -282,6 +292,21 @@ cat <<'EOF' > flv_movie.html
 </body>
 </html>
 EOF
+cat <<'EOF' > flv_movie.conf
+# flv mp4流媒体服务器, https://github.com/Bilibili/flv.js
+# apt -y install yamdi
+server {
+    listen 80 reuseport;
+    server_name _;
+    root /var/www/flv/;
+    limit_rate_after 5m; #在flv视频文件下载了5M以后开始限速
+    limit_rate 100k;     #速度限制为100K
+    index index.html;
+    location ~ \.flv {
+        flv;
+    }
+}
+EOF
 cat <<'EOF' > limit_conn.conf
 limit_conn_zone $binary_remote_addr zone=connperip:10m;
 limit_conn_zone $server_name zone=connperserver:10m;
@@ -303,21 +328,6 @@ server {
     # limit_req zone=perserver burst=10;
     location / {
         limit_req zone=perip burst=5;
-    }
-}
-EOF
-cat <<'EOF' > flv_movie.conf
-# flv mp4流媒体服务器, https://github.com/Bilibili/flv.js
-# apt -y install yamdi
-server {
-    listen 80 reuseport;
-    server_name _;
-    root /movie/;
-    limit_rate_after 5m; #在flv视频文件下载了5M以后开始限速
-    limit_rate 100k;     #速度限制为100K
-    index index.html;
-    location ~ \.flv {
-        flv;
     }
 }
 EOF
