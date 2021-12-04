@@ -7,10 +7,24 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("90ff0d0[2021-12-03T16:39:22+08:00]:mk_nginx.sh")
+VERSION+=("7b0a33c[2021-12-04T16:09:49+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
+declare -A stage=(
+    [doall]=100
+    [fpm]=10
+    [install]=20
+    [make]=30
+    [configure]=40
+    [pcre]=50
+    [openssl]=60
+    )
+set +o nounset
+stage_level=${stage[${1:-doall}]}
+set -o nounset
+stage_level=${stage_level:?"fpm/install/make/configure/pcre/openssl"}
+
 cat <<EOF
 ZLIB       git clone --depth 1 https://github.com/cloudflare/zlib
 PCRE       https://www.pcre.org
@@ -34,10 +48,10 @@ OPENSSL_DIR=${DIRNAME}/openssl-1.1.1l
 ZLIB_DIR=${DIRNAME}/zlib-1.2.11.dfsg
 PCRE_DIR=${DIRNAME}/pcre-8.39
 
-cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
+[ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
     && make build_libs && make install_sw LIBDIR=lib
 
-cd ${PCRE_DIR} && CC="cc" CFLAGS="-O2 -fomit-frame-pointer -pipe "  \
+[ ${stage_level} -ge ${stage[pcre]} ] && cd ${PCRE_DIR} && CC="cc" CFLAGS="-O2 -fomit-frame-pointer -pipe "  \
     ./configure --disable-shared --enable-jit \
     --libdir=${PCRE_DIR}/.libs/ --includedir=${PCRE_DIR} && \
     make
@@ -50,7 +64,7 @@ echo "http_geoip_module needs libgeoip-dev"
 export PATH=$PATH:${PCRE_DIR}
 export NJS_CC_OPT="-L${OPENSSL_DIR}/.openssl/lib"
 echo "PCRE OK **************************************************"
-cd ${DIRNAME} && ./configure --prefix=/usr/share/nginx \
+[ ${stage_level} -ge ${stage[configure]} ] && cd ${DIRNAME} && ./configure --prefix=/usr/share/nginx \
 --user=nginx \
 --group=nginx \
 --with-cc-opt="$(pcre-config --cflags) -I${OPENSSL_DIR}/.openssl/include" \
@@ -112,11 +126,10 @@ cd ${DIRNAME} && ./configure --prefix=/usr/share/nginx \
 TMP_VER=$(echo "${VERSION[@]}" | sed "s/${SCRIPTNAME}/by johnyin/g")
 echo "${TMP_VER}**************************************************"
 sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${TMP_VER}\"/g" ${DIRNAME}/objs/ngx_auto_config.h
-cd ${DIRNAME} && make
+[ ${stage_level} -ge ${stage[make]} ] && cd ${DIRNAME} && make
 OUTDIR=${DIRNAME}/out
-rm -rf ${OUTDIR}
 mkdir -p ${OUTDIR}
-cd ${DIRNAME} && make install DESTDIR=${OUTDIR}
+[ ${stage_level} -ge ${stage[install]} ] && rm -rf ${OUTDIR}/* && cd ${DIRNAME} && make install DESTDIR=${OUTDIR}
 
 echo "/usr/lib/tmpfiles.d/nginx.conf"
 mkdir -p ${OUTDIR}/usr/lib/tmpfiles.d/
@@ -299,9 +312,10 @@ chmod 644 ${OUTDIR}/usr/share/nginx/modules/*
 # apt install rpm ruby-rubygems
 # gem install fpm
 echo "getent group nginx >/dev/null || groupadd --system nginx || :" > /tmp/inst.sh
-echo "getent passwd nginx >/dev/null || useradd -g nginx --system -s /sbin/nologin -d /var/empty/nginx nginx 2> /dev/null || :" > /tmp/uninst.sh
+echo "getent passwd nginx >/dev/null || useradd -g nginx --system -s /sbin/nologin -d /var/empty/nginx nginx 2> /dev/null || :" >> /tmp/inst.sh
+echo "userdel nginx || :" > /tmp/uninst.sh
 rm -fr ${DIRNAME}/pkg && mkdir -p ${DIRNAME}/pkg
-fpm --package ${DIRNAME}/pkg -s dir -t deb -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration 1 --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
-fpm --package ${DIRNAME}/pkg -s dir -t rpm -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration 1 --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
+[ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t deb -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration 1 --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
+[ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t rpm -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration 1 --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
 echo "ALL PACKAGE OUT: ${DIRNAME}/pkg"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
