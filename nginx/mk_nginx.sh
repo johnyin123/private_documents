@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7b0a33c[2021-12-04T16:09:49+08:00]:mk_nginx.sh")
+VERSION+=("4526e34[2021-12-04T17:11:32+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -186,6 +186,11 @@ mkdir -p ${OUTDIR}/etc/nginx/http-enabled/
 mkdir -p ${OUTDIR}/etc/nginx/stream-enabled/
 mkdir -p ${OUTDIR}/etc/nginx/http-available/
 mkdir -p ${OUTDIR}/etc/nginx/stream-available/
+mkdir -p ${OUTDIR}/var/lib/nginx/body
+mkdir -p ${OUTDIR}/var/lib/nginx/proxy
+mkdir -p ${OUTDIR}/var/lib/nginx/fastcfg
+mkdir -p ${OUTDIR}/var/lib/nginx/uwsgi
+mkdir -p ${OUTDIR}/var/lib/nginx/scgi
 
 cat <<'EOF' > ${OUTDIR}/etc/nginx/http-conf.d/proxy.conf
 client_max_body_size 100M;
