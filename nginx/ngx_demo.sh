@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("90ff0d0[2021-12-03T16:39:22+08:00]:ngx_demo.sh")
+VERSION+=("5b01a4f[2021-12-03T17:14:46+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -30,10 +30,26 @@ cat <<"EOF">location.txt
 #     N/A      @       Defines a named location block.                                   Simple-string              Yes
 # -----------------------------------------------------------------------------------------------------------------------------------
 EOF
-cat <<'EOF' >speed_limit_demo.conf
+cat <<'EOF' >static_dynamic.conf
+server {
+    listen 80 reuseport;
+    server_name _;
+    # serve static files
+    location ~ ^/(images|javascript|js|css|flash|media|static)/ {
+        alias /var/www/;
+        expires 30d;
+    }
+    # pass dynamic content
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+    }
+}
+EOF
+cat <<'EOF' >limit_speed.conf
 limit_speed_zone mylimitspeed $binary_remote_addr 10m;
 server {
     listen 80 reuseport;
+    server_name _;
     location = /favicon.ico { access_log off; log_not_found off; }
     location / {
         limit_speed mylimitspeed 100k;
@@ -58,6 +74,7 @@ upstream redis {
 
 server {
     listen 80 reuseport;
+    server_name _;
     location / {
         # cache !!!!
         set $redis_key $uri;
@@ -104,6 +121,7 @@ vhost_traffic_status_zone;
 # vhost_traffic_status_filter_by_set_key $geoip_country_code country::*;
 server {
     listen 80 reuseport;
+    server_name _;
     # listen 443 ssl reuseport;
     # ssl_certificate /etc/nginx/SSL/ca.pem
     # ssl_certificate_key /etc/nginx/SSL/site.key;
@@ -215,6 +233,7 @@ limit_conn_zone $binary_remote_addr zone=connperip:10m;
 limit_conn_zone $server_name zone=connperserver:10m;
 server {
     listen 80 reuseport;
+    server_name _;
     location / {
         limit_conn connperip 10;
         limit_conn connperserver 100;
@@ -226,6 +245,7 @@ limit_req_zone $binary_remote_addr zone=perip:10m rate=1r/s;
 # limit_req_zone $server_name zone=perserver:10m rate=600r/m;
 server {
     listen 80 reuseport;
+    server_name _;
     # limit_req zone=perserver burst=10;
     location / {
         limit_req zone=perip burst=5;
@@ -237,6 +257,7 @@ cat <<'EOF' > flv_movie.conf
 # apt -y install yamdi
 server {
     listen 80 reuseport;
+    server_name _;
     root /movie/;
     limit_rate_after 5m; #在flv视频文件下载了5M以后开始限速
     limit_rate 100k;     #速度限制为100K
@@ -261,6 +282,7 @@ cat <<'EOF' > fcgiwrap.conf
 # curl localhost/cgi-bin/test.cgi
 server {
     listen 80 reuseport;
+    server_name _;
     location = /login {
         rewrite ^ /cgi-bin/test.cgi;
     }
@@ -276,6 +298,7 @@ EOF
 cat <<'EOF' > auth_basic.conf
 server {
     listen 80 reuseport;
+    server_name _;
     # username=user
     # password=password
     # printf "${username}:$(openssl passwd -apr1 ${password})\n" >> /etc/nginx/.htpasswd
@@ -301,6 +324,7 @@ map $arg_id $url_id {
 }
 server {
     listen 80 reuseport;
+    server_name _;
     if ($url_p) {
         # if '$url_p' variable is not an empty string
         return 301 $url_p;
@@ -351,6 +375,7 @@ cat <<'EOF' > secure_link_demo.conf
 
 server {
     listen 80 reuseport;
+    server_name _;
     location = /login {
         rewrite ^ /cgi-bin/login;
     }
@@ -403,6 +428,7 @@ map $uri $allow_file {
 # mkdir -p /var/www/s/ && echo "S FILE" > /var/www/s/file.txt
 server {
     listen 80 reuseport;
+    server_name _;
     ## Basic Secured URLs
     # echo -n 'hls/file.txtprekey' | openssl md5 -hex
     # curl http://${srv}/videos/071f5f362f9362f1d14a3ece3b0c37e6/hls/file.txt
@@ -444,6 +470,7 @@ EOF
 cat <<'EOF' > secure_link_cookie.conf
 server {
     listen 80 reuseport;
+    server_name _;
     # sec=3600
     # secure_link_expires=$(date -d "+${sec} second" +%s)
     # uri=/login.cgi
@@ -462,6 +489,7 @@ EOF
 cat <<'EOF' > webdav.conf
 server {
     listen 80 reuseport;
+    server_name _;
     # mkdir -p /var/www/tmp/client_temp && chown nobody:nobody /var/www -R
     # curl --upload-file bigfile.iso http://localhost/upload/file1
     location /upload {
@@ -531,6 +559,7 @@ cat <<'EOF' > gateway_transparent_proxy.conf
 # iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j DNAT --to-destination ${gate_ip}:${gate_port}
 server {
     listen 8000 reuseport;
+    server_name _;
     location / {
         # proxy_method      POST;
         # proxy_set_body    "token=$http_apikey&token_hint=access_token";
@@ -544,6 +573,7 @@ EOF
 cat <<'EOF' > mirror.conf
 server {
     listen 80 reuseport;
+    server_name _;
     location / {
         mirror /mirror;
         mirror_request_body off;
@@ -561,6 +591,7 @@ EOF
 cat <<'EOF' > memory_cached.conf
 server {
     listen 80 reuseport;
+    server_name _;
     location / {
         set            $memcached_key "$uri?$args";
         memcached_pass 127.0.0.1:11211;
@@ -581,12 +612,14 @@ upstream b {
 }
 server {
     listen 3001 reuseport;
+    server_name _;
     location / {
         return 200 "Served from site A! \n\n";
     }
 }
 server {
     listen 4001 reuseport;
+    server_name _;
     location / {
         return 200 "Served from site B!! <<<<-------------------------- \n\n";
     }
@@ -597,6 +630,7 @@ split_clients "${arg_token}" $dynamic {
 }
 server {
     listen 80 reuseport;
+    server_name _;
     location / {
         if ($http_cookie ~* "shopware_sso_token=([^;]+)(?:;|$)") {
             set $token "$1";
@@ -610,6 +644,7 @@ EOF
 cat <<'EOF' > split_client.conf
 server {
     listen 8098 reuseport;
+    server_name _;
     return 200 "Results:
 Server Address:\t $server_addr:$server_port
 Network Remote Address:\t $remote_addr
@@ -621,6 +656,7 @@ upstream backend {
 }
 server {
     listen 80 reuseport;
+    server_name _;
     location / {
         proxy_pass http://backend;
         proxy_bind $split_ip;
@@ -648,6 +684,7 @@ split_clients "${remote_addr}" $variant {
 }
 server {
     listen 80 reuseport;
+    server_name _;
     location / {
         index index${variant}.html;
         root /var/www;
@@ -657,6 +694,7 @@ EOF
 cat <<'EOF' > auth_request_by_secure_link.conf
 server {
     listen 80 reuseport;
+    server_name _;
     location / {
         auth_request /auth;
         root /var/www;
@@ -778,6 +816,7 @@ cat <<'EOF' > auth_request.conf
 #
 server {
     listen 80 reuseport;
+    server_name _;
     error_page 401 = @error401;
     location @error401 {
         return 302 /login?uri=$request_uri;
@@ -829,6 +868,7 @@ upstream ceph_rgw_backend {
 }
 server {
     listen 81 reuseport;
+    server_name _;
     client_max_body_size 6000M;
     location / {
         proxy_redirect off;
@@ -844,6 +884,7 @@ server {
 }
 server {
     listen 80 reuseport;
+    server_name _;
     # srv=192.168.168.1
     # mykey=prekey
     # sec=3600
@@ -878,6 +919,7 @@ cat <<'EOF' > x_accel.conf
 # curl -vvv http://127.0.0.1/file.txt
 server {
     listen 81 reuseport;
+    server_name _;
     location / {
         # add_header X-Accel-Redirect "/protected$uri" always;
         add_header X-Accel-Redirect "/public-bucket$uri" always;
@@ -895,6 +937,7 @@ upstream ceph_rgw_backend {
 }
 server {
     listen 80 reuseport;
+    server_name _;
     location /protected {
         internal;
         alias /var/www;
@@ -929,6 +972,7 @@ EOF
 cat <<'EOF' > post_redirect.conf
 server {
     listen 80 reuseport;
+    server_name _;
     location / {
         # HTTP 307 only for POST requests:
         if ($request_method = POST) {
@@ -951,6 +995,7 @@ js_set $new_foo main.create_secure_link;
 js_set $secret_key main.secret_key;
 server {
     listen 80 reuseport;
+    server_name _;
     location /secure/ {
         error_page 403 = @login;
         secure_link $cookie_foo;
@@ -984,6 +1029,7 @@ cat <<'EOF' > sub_filter.conf
 # ............................
 server {
     listen 80 reuseport;
+    server_name _;
     location / {
         sub_filter '</body>' '<a href="http://www.xxxx.com"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://res.xxxx.com/_static_/demo.png" alt="bj idc"></a></body>';
         proxy_set_header referer http://www.xxx.net; #如果网站有验证码，可以解决验证码不显示问题
