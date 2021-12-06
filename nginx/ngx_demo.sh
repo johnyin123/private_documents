@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3af3a56[2021-12-06T14:13:41+08:00]:ngx_demo.sh")
+VERSION+=("1887736[2021-12-06T14:22:30+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1164,6 +1164,22 @@ server {
         add_header Set-Cookie "foo=$new_foo; Max-Age=60";
         return 302 $request_uri;
     }
+}
+EOF
+cat <<'EOF' > error_page.conf
+# mkdir -p /etc/nginx/errors/
+# echo "401" > /etc/nginx/errors/401
+server {
+    listen 80 reuseport;
+    error_page 401 /error/401.html;
+    error_page 404 /error/404.html;
+    error_page 500 502 503 504 /error/generic.html;
+    location = /error/401.html { alias /etc/nginx/errors/401; }
+    location = /error/404.html { alias /etc/nginx/errors/404; }
+    location = /error/generic.html { alias /etc/nginx/errors/5xx; }
+    location /401 { return 401; }
+    location /404 { return 404; }
+    location /500 { return 502; }
 }
 EOF
 cat <<'EOF' > sub_filter.conf
