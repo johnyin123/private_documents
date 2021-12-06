@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("eafa133[2021-12-06T10:03:49+08:00]:ngx_demo.sh")
+VERSION+=("e79b50e[2021-12-06T10:16:55+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -48,7 +48,7 @@ cat <<'EOF' >dash.html
             var player = videojs('#player');
         </script>
         <div id="footer">
-              <font size="2"> Tareq-Alqutami - 2019</font>
+              <font size="2">footer</font>
         </div>
     </body>
 </html>
@@ -71,7 +71,7 @@ cat <<'EOF' >hls.html
             var player = videojs('#player');
         </script>
         <div id="footer">
-              <font size="2"> Tareq-Alqutami - 2019</font>
+              <font size="2">footer</font>
         </div>
     </body>
 </html>
@@ -94,7 +94,7 @@ cat <<'EOF' >rtmp.html
             <source src="rtmp://127.0.0.1:1935/live/test" type="rtmp/mp4">
         </video>
         <div id="footer">
-            <font size="2">Tareq Alqutami - 2019</font>
+            <font size="2">footer</font>
         </div>
     </body>
 </html>
