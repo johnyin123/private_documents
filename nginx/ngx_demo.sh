@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("29fd811[2021-12-04T11:55:52+08:00]:ngx_demo.sh")
+VERSION+=("8d2cd07[2021-12-04T12:21:55+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -41,6 +41,8 @@ rtmp {
             hls on;
             hls_path /var/www/hls;
             hls_fragment 8s;
+            on_publish http://localhost/auth;
+            on_play http://localhost/auth;
             # publish only from localhost
             # allow publish 127.0.0.1;
             # deny publish all;
@@ -64,6 +66,10 @@ cat <<'EOF' >rtmp_live.conf
 # mpv http://localhost/dash/demo.mpd
 server {
     listen 80 reuseport;
+    location /auth {
+        # rtmp on_publish/on_play POST here
+        return 200;
+    }
     location /stat {
         rtmp_stat all;
         # Use this stylesheet to view XML as web page in browser
