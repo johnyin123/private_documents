@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d227175[2021-12-06T13:51:12+08:00]:ngx_demo.sh")
+VERSION+=("3af3a56[2021-12-06T14:13:41+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -110,7 +110,9 @@ rtmp {
         application live {
             live on;
             drop_idle_publisher 5s;
-            exec_push ffmpeg -i rtmp://localhost:1935/live/$name -filter:v scale=-1:460 -c:a libfdk_aac -b:a 32k -c:v libx264 -b:v 128k -f flv /var/www/flv/$name.flv;
+            record_path /var/www/flv;
+            record_unique on;
+            # exec_push ffmpeg -i rtmp://localhost:1935/live/$name -filter:v scale=-1:460 -c:a libfdk_aac -b:a 32k -c:v libx264 -b:v 128k -f flv /var/www/flv/$name.flv;
             # ffmpeg  -hide_banner -f video4linux2 -list_formats all -i /dev/video0
             # ffmpeg | cat > test.avi
             # ffmpeg -re -i demo.ts -acodec copy -f flv -method PUT http://localhost:9999/aaa
