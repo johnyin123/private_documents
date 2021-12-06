@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c7daf07[2021-12-06T09:39:16+08:00]:ngx_demo.sh")
+VERSION+=("ffb94f8[2021-12-06T09:57:32+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -36,6 +36,7 @@ rtmp {
     server {
         listen 1935;
         chunk_size 4000;
+        notify_method get;
         #rtmp://ip/live/streamname
         application live {
             live on;
@@ -74,8 +75,8 @@ cat <<'EOF' >rtmp_live.conf
 server {
     listen 80 reuseport;
     location /auth {
-        # rtmp on_publish/on_play POST here
-        return 200;
+        if ($arg_pass = 'password') { return 200; }
+        return 404;
     }
     location /stat {
         rtmp_stat all;
