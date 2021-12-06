@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1887736[2021-12-06T14:22:30+08:00]:ngx_demo.sh")
+VERSION+=("f53e57c[2021-12-07T07:24:12+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -100,6 +100,7 @@ cat <<'EOF' >rtmp.html
 </html>
 EOF
 cat <<'EOF' >rtmp_live_modules.conf
+# # stream ssl -> rmtp -> rmtps
 # # add blow to /etc/nginx/modules.conf
 rtmp {
     server {
