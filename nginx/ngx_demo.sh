@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ffb94f8[2021-12-06T09:57:32+08:00]:ngx_demo.sh")
+VERSION+=("eafa133[2021-12-06T10:03:49+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -29,6 +29,75 @@ cat <<"EOF">location.txt
 #     4th      ~*      The URI must be a case-insensitive match to the specified Rx    Perl-Compatible-Rx      Yes (first match)
 #     N/A      @       Defines a named location block.                                   Simple-string              Yes
 # -----------------------------------------------------------------------------------------------------------------------------------
+EOF
+cat <<'EOF' >dash.html
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>DASH Live Streaming</title>
+        <link href="https://vjs.zencdn.net/7.5.5/video-js.css" rel="stylesheet">
+        <script src="https://vjs.zencdn.net/7.5.5/video.js"></script>
+    </head>
+    <body>
+        <h1>DASH Player</h1>
+        <video id="player" class="video-js vjs-default-skin" width="720" controls preload="auto">
+            <source src="/dash/test_src.mpd" type="application/dash+xml" />
+        </video>
+        <script>
+            var player = videojs('#player');
+        </script>
+        <div id="footer">
+              <font size="2"> Tareq-Alqutami - 2019</font>
+        </div>
+    </body>
+</html>
+EOF
+cat <<'EOF' >hls.html
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>HLS Live Streaming</title>
+        <link href="https://vjs.zencdn.net/7.5.5/video-js.css" rel="stylesheet">
+        <script src="https://vjs.zencdn.net/7.5.5/video.js"></script>
+    </head>
+    <body>
+        <h1>HLS Player</h1>
+        <video id="player" class="video-js vjs-default-skin" width="720" controls preload="auto">
+            <source src="/hls/test.m3u8" type="application/x-mpegURL" />
+        </video>
+        <script>
+            var player = videojs('#player');
+        </script>
+        <div id="footer">
+              <font size="2"> Tareq-Alqutami - 2019</font>
+        </div>
+    </body>
+</html>
+EOF
+cat <<'EOF' >rtmp.html
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>RTMP Live Streaming</title>
+        <title>Live Streaming</title>
+        <link href="https://unpkg.com/video.js/dist/video-js.css" rel="stylesheet">
+        <script src="https://unpkg.com/video.js/dist/video.js"></script>
+        <script src="https://unpkg.com/videojs-flash/dist/videojs-flash.min.js"></script>
+        <script src="https://unpkg.com/videojs-contrib-hls/dist/videojs-contrib-hls.js"></script>
+    </head>
+    <body>
+        <h1>RTMP Player</h1>
+        <video id="my_video_1" class="video-js vjs-default-skin" controls preload="auto" width="720" data-setup='{"techOrder": ["html5","flash"]}'>
+            <source src="rtmp://127.0.0.1:1935/live/test" type="rtmp/mp4">
+        </video>
+        <div id="footer">
+            <font size="2">Tareq Alqutami - 2019</font>
+        </div>
+    </body>
+</html>
 EOF
 cat <<'EOF' >rtmp_live_modules.conf
 # # add blow to /etc/nginx/modules.conf
