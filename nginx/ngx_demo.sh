@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f14ee65[2021-12-06T10:35:06+08:00]:ngx_demo.sh")
+VERSION+=("9f375f5[2021-12-06T10:53:46+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -113,6 +113,9 @@ rtmp {
             exec_push ffmpeg -i rtmp://localhost:1935/live/$name -filter:v scale=-1:460 -c:a libfdk_aac -b:a 32k -c:v libx264 -b:v 128k -f flv /var/www/flv/$name.flv;
             # ffmpeg | cat > test.avi
             # ffmpeg -re -i demo.ts -acodec copy -f flv -method PUT http://localhost:9999/aaa
+            # ffmpeg -f video4linux2 -i /dev/video0 -c:v libx264 -an -f flv rtmp://localhost:1935/live/mystream
+            # ffmpeg -f video4linux2 -s 640x480 -i /dev/video0 -vf drawtext="fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf:text='%{localtime\:%T}':x=20:y=20:fontcolor=white" -vframes 1 $(date +%Y-%m-%d-%H-%M-%S).jpg
+            # ffmpeg -framerate 5 -pattern_type glob -i '*.jpg' -c:v libx264 -r 30 -pix_fmt yuv420p out.mp4
         }
         application hls {
             live on;
