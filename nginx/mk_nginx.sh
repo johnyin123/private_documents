@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4526e34[2021-12-04T17:11:32+08:00]:mk_nginx.sh")
+VERSION+=("9ce4c44[2021-12-04T17:19:11+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -29,6 +29,8 @@ cat <<EOF
 ZLIB       git clone --depth 1 https://github.com/cloudflare/zlib
 PCRE       https://www.pcre.org
 OPENSSL    https://www.openssl.org/source/
+    debian:libpcre3-dev libssl-dev zlib1g-dev
+    centos:pcre-devel openssl-devel zlib-devel
 nginx-eval-module-master https://github.com/anomalizer/ngx_aws_auth
 https://github.com/kaltura/nginx-aws-auth-module
 git clone https://github.com/nginx/njs-examples.git
