@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8d2cd07[2021-12-04T12:21:55+08:00]:ngx_demo.sh")
+VERSION+=("fac9525[2021-12-06T09:10:20+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -36,6 +36,10 @@ rtmp {
     server {
         listen 1935;
         chunk_size 4000;
+        #rtmp://ip/live/streamname
+        application live {
+            live on;
+        }
         application hls {
             live on;
             hls on;
@@ -43,6 +47,7 @@ rtmp {
             hls_fragment 8s;
             on_publish http://localhost/auth;
             on_play http://localhost/auth;
+            hls_cleanup off;
             # publish only from localhost
             # allow publish 127.0.0.1;
             # deny publish all;
