@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2021-11-26T08:01:12+08:00]:ngx_regex.sh")
+VERSION+=("0a7e17d[2021-11-26T08:01:12+08:00]:ngx_regex.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -25,6 +25,7 @@ ${SCRIPTNAME}
         NGINX Regular Expression Tester
         Exam:
            ${SCRIPTNAME} -r '^/(?<port>123[0-9])(?:/|$)' -t '/1231/a/b/c'
+        rewrite_log on; rewrite information will be logged to error_log at notice level
 EOF
     exit 1
 }

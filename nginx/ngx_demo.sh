@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("af09884[2021-12-07T07:28:57+08:00]:ngx_demo.sh")
+VERSION+=("4c3c466[2021-12-07T08:27:13+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1171,6 +1171,7 @@ cat <<'EOF' > serve_static_rest_backend.conf
 # serve all existing static files, proxy the rest to a backend
 server {
     listen 80 reuseport;
+    server_name _;
     location / {
         root /var/www/;
         try_files $uri $uri/ @backend;
@@ -1188,11 +1189,80 @@ server {
     }
 }
 EOF
+cat <<'EOF' > resolver.conf
+server {
+    listen 80 reuseport;
+    server_name _;
+    location ~ /to/(.*) {
+        resolver 127.0.0.1;
+        proxy_set_header Host $1;
+        proxy_pass http://$1;
+    }
+    location /proxy {
+        resolver 127.0.0.1;
+        set $target http://proxytarget.example.com;
+        proxy_pass $target;
+    }
+}
+EOF
+cat <<'EOF' > cache_static.conf
+server {
+    listen 80 reuseport;
+    server_name _;
+    location ~* \.(?:ico|css|js|gif|jpe?g|png)$ {
+        expires 30d;
+        add_header Vary Accept-Encoding;
+        access_log off;
+    }
+    ## All static files will be served directly.
+    location ~* ^.+\.(?:css|cur|js|jpe?g|gif|htc|ico|png|html|xml|otf|ttf|eot|woff|woff2|svg)$ {
+        access_log off;
+        expires 30d;
+        add_header Cache-Control public;
+        ## No need to bleed constant updates. Send the all shebang in one
+        ## fell swoop.
+        tcp_nodelay off;
+        ## Set the OS file cache.
+        open_file_cache max=3000 inactive=120s;
+        open_file_cache_valid 45s;
+        open_file_cache_min_uses 2;
+        open_file_cache_errors off;
+    }
+}
+EOF
+cat <<'EOF' > cros.conf
+server {
+    listen 80 reuseport;
+    server_name api.localhost;
+    location / {
+        add_header 'Access-Control-Allow-Origin' 'http://api.localhost';
+        add_header 'Access-Control-Allow-Credentials' 'true';
+        add_header 'Access-Control-Allow-Headers' 'Authorization,Accept,Origin,DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Content-Range,Range';
+        add_header 'Access-Control-Allow-Methods' 'GET,POST,OPTIONS,PUT,DELETE,PATCH';
+        if ($request_method = 'OPTIONS') {
+            add_header 'Access-Control-Allow-Origin' 'http://api.localhost';
+            add_header 'Access-Control-Allow-Credentials' 'true';
+            add_header 'Access-Control-Allow-Headers' 'Authorization,Accept,Origin,DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Content-Range,Range';
+            add_header 'Access-Control-Allow-Methods' 'GET,POST,OPTIONS,PUT,DELETE,PATCH';
+            add_header 'Access-Control-Max-Age' 1728000;
+            add_header 'Content-Type' 'text/plain charset=UTF-8';
+            add_header 'Content-Length' 0;
+            return 204;
+        }
+        proxy_redirect off;
+        proxy_set_header host $host;
+        proxy_set_header X-real-ip $remote_addr;
+        proxy_set_header X-forward-for $proxy_add_x_forwarded_for;
+        proxy_pass http://127.0.0.1:3000;
+  }
+}
+EOF
 cat <<'EOF' > error_page.conf
 # mkdir -p /etc/nginx/errors/
 # echo "401" > /etc/nginx/errors/401
 server {
     listen 80 reuseport;
+    server_name _;
     error_page 401 /error/401.html;
     error_page 404 /error/404.html;
     error_page 500 502 503 504 /error/generic.html;
