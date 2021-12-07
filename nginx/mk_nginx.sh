@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("08bbae7[2021-12-06T08:00:33+08:00]:mk_nginx.sh")
+VERSION+=("00f1fe3[2021-12-06T08:06:17+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -119,13 +119,13 @@ echo "PCRE OK **************************************************"
 --with-stream_geoip_module=dynamic \
 --with-http_xslt_module=dynamic \
 --add-dynamic-module=njs/nginx \
+--add-dynamic-module=nginx-rtmp-module-1.2.2 \
+--add-dynamic-module=ngx_http_redis-1.3.9 \
+--add-dynamic-module=nginx-eval-module-master \
  \
 --add-module=nginx-goodies-nginx-sticky-module-ng-08a395c66e42 \
 --add-module=nginx_limit_speed_module-master \
---add-module=nginx-module-vts-master \
---add-module=ngx_http_redis-0.3.9 \
---add-module=nginx-eval-module-master \
---add-module=nginx-rtmp-module-1.2.2
+--add-module=nginx-module-vts-master
 
 TMP_VER=$(echo "${VERSION[@]}" | sed "s/${SCRIPTNAME}/by johnyin/g")
 echo "${TMP_VER}**************************************************"
