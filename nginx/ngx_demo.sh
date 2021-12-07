@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f53e57c[2021-12-07T07:24:12+08:00]:ngx_demo.sh")
+VERSION+=("af09884[2021-12-07T07:28:57+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1167,6 +1167,27 @@ server {
     }
 }
 EOF
+cat <<'EOF' > serve_static_rest_backend.conf
+# serve all existing static files, proxy the rest to a backend
+server {
+    listen 80 reuseport;
+    location / {
+        root /var/www/;
+        try_files $uri $uri/ @backend;
+        expires max;
+        access_log off;
+    }
+    location ~ /\.git {
+      deny all;
+    }
+    location @backend {
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_pass http://127.0.0.1:8080;
+    }
+}
+EOF
 cat <<'EOF' > error_page.conf
 # mkdir -p /etc/nginx/errors/
 # echo "401" > /etc/nginx/errors/401
@@ -1175,6 +1196,7 @@ server {
     error_page 401 /error/401.html;
     error_page 404 /error/404.html;
     error_page 500 502 503 504 /error/generic.html;
+    # location ~ ^/error/(.*)$ { alias /etc/nginx/errors/$1; }
     location = /error/401.html { alias /etc/nginx/errors/401; }
     location = /error/404.html { alias /etc/nginx/errors/404; }
     location = /error/generic.html { alias /etc/nginx/errors/5xx; }
@@ -1202,6 +1224,7 @@ cat <<'EOF' > sub_filter.conf
 # ............................
 server {
     listen 80 reuseport;
+    # listen unix:/var/run/nginx.sock;
     server_name _;
     location / {
         sub_filter '</body>' '<a href="http://www.xxxx.com"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://res.xxxx.com/_static_/demo.png" alt="bj idc"></a></body>';
