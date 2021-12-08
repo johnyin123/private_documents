@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f296cbc[2021-12-07T09:33:55+08:00]:mk_nginx.sh")
+VERSION+=("8f6993f[2021-12-07T14:15:29+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -31,11 +31,16 @@ PCRE       https://www.pcre.org
 OPENSSL    https://www.openssl.org/source/
     debian:libpcre3-dev libssl-dev zlib1g-dev libxml2-dev libxslt1-dev libgeoip-dev
     centos:pcre-devel openssl-devel zlib-devel
-nginx-eval-module-master https://github.com/anomalizer/ngx_aws_auth
-https://github.com/kaltura/nginx-aws-auth-module
+
 git clone https://github.com/nginx/nginx.git
+git clone https://github.com/nginx/njs.git
 git clone https://github.com/nginx/njs-examples.git
+git clone https://github.com/yaoweibin/nginx_limit_speed_module.git
+git clone https://github.com/vozlt/nginx-module-vts.git
 git clone https://github.com/arut/nginx-rtmp-module.git
+git clone https://github.com/osokin/ngx_http_redis.git
+git clone https://github.com/vkholodkov/nginx-eval-module.git
+git clone https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng
 EOF
 :<<"EOF"
 for SM2 ssl replace:
@@ -49,8 +54,15 @@ auto/lib/openssl/conf
 EOF
 
 OPENSSL_DIR=${DIRNAME}/openssl-1.1.1l
-ZLIB_DIR=${DIRNAME}/zlib-1.2.11.dfsg
-PCRE_DIR=${DIRNAME}/pcre-8.39
+PCRE_DIR=${DIRNAME}/pcre-8.45 #latest version pcre, no pcre2 support now
+ZLIB_DIR=${DIRNAME}/zlib
+STICKY_MODULE_DIR=${DIRNAME}/nginx-sticky-module-ng
+LIMIT_SPEED_MODULE_DIR=${DIRNAME}/nginx_limit_speed_module
+VTS_MODULE_DIR=${DIRNAME}/nginx-module-vts-master
+NJS_DIR=${DIRNAME}/njs
+RTMP_MODULE_DIR=${DIRNAME}/nginx-rtmp-module
+HTTP_REDIS_DIR=${DIRNAME}/ngx_http_redis
+EVAL_MODULE_DIR=${DIRNAME}/nginx-eval-module
 
 [ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
     && make build_libs && make install_sw LIBDIR=lib
@@ -118,14 +130,15 @@ echo "PCRE OK **************************************************"
 --with-http_geoip_module=dynamic \
 --with-stream_geoip_module=dynamic \
 --with-http_xslt_module=dynamic \
---add-dynamic-module=njs/nginx \
---add-dynamic-module=nginx-rtmp-module-1.2.2 \
---add-dynamic-module=ngx_http_redis-1.3.9 \
---add-dynamic-module=nginx-eval-module-master \
+--add-dynamic-module=${NJS_DIR}/nginx \
+--add-dynamic-module=${RTMP_MODULE_DIR} \
+--add-dynamic-module=${HTTP_REDIS_DIR} \
+--add-dynamic-module=${EVAL_MODULE_DIR} \
  \
---add-module=nginx-goodies-nginx-sticky-module-ng-08a395c66e42 \
---add-module=nginx_limit_speed_module-master \
---add-module=nginx-module-vts-master
+--add-module=${STICKY_MODULE_DIR} \
+--add-module=${LIMIT_SPEED_MODULE_DIR} \
+--add-module=${VTS_MODULE_DIR} \
+ \
 
 TMP_VER=$(echo "${VERSION[@]}" | sed "s/${SCRIPTNAME}/by johnyin/g")
 echo "${TMP_VER}**************************************************"
