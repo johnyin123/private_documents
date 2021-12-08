@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("371c07d[2021-12-08T14:56:38+08:00]:mk_nginx.sh")
+VERSION+=("fc4c774[2021-12-08T15:01:33+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -339,6 +339,9 @@ chmod 644 ${OUTDIR}/usr/share/nginx/modules/*
 
 # apt install rpm ruby-rubygems
 # yum install rubygems
+# gem source -l
+# gem sources -a http://mirrors.aliyun.com/rubygems/
+# gem sources --remove https://rubygems.org/
 # gem install fpm
 echo "getent group nginx >/dev/null || groupadd --system nginx || :" > /tmp/inst.sh
 echo "getent passwd nginx >/dev/null || useradd -g nginx --system -s /sbin/nologin -d /var/empty/nginx nginx 2> /dev/null || :" >> /tmp/inst.sh
