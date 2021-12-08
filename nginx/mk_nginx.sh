@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("39c00f9[2021-12-08T13:52:34+08:00]:mk_nginx.sh")
+VERSION+=("fed14ff[2021-12-08T14:49:21+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -83,7 +83,7 @@ echo "http_geoip_module needs libgeoip-dev"
 export PATH=$PATH:${PCRE_DIR}
 export NJS_CC_OPT="-L${OPENSSL_DIR}/.openssl/lib"
 echo "PCRE OK **************************************************"
-[ ${stage_level} -ge ${stage[configure]} ] && [ -e ${NGINX_DIR}/configure ] || cd ${NGINX_DIR} && ln -s auto/configure
+cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 [ ${stage_level} -ge ${stage[configure]} ] && cd ${NGINX_DIR} && ./configure --prefix=/usr/share/nginx \
 --user=nginx \
 --group=nginx \
