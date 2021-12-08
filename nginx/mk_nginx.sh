@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8946ab9[2021-12-08T13:31:15+08:00]:mk_nginx.sh")
+VERSION+=("39c00f9[2021-12-08T13:52:34+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -26,22 +26,22 @@ set -o nounset
 stage_level=${stage_level:?"PKG=deb ${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
 
 cat <<EOF
-ZLIB       git clone --depth 1 https://github.com/cloudflare/zlib
+ZLIB       https://zlib.net/
 PCRE       https://www.pcre.org
            https://sourceforge.net/projects/pcre/files/pcre/
 OPENSSL    https://www.openssl.org/source/
     debian:libpcre3-dev libssl-dev zlib1g-dev libxml2-dev libxslt1-dev libgeoip-dev
     centos:pcre-devel openssl-devel zlib-devel libxml2-devel libxslt-devel GeoIP-devel
 
-git clone https://github.com/nginx/nginx.git
-git clone https://github.com/nginx/njs.git
-git clone https://github.com/nginx/njs-examples.git
-git clone https://github.com/yaoweibin/nginx_limit_speed_module.git
-git clone https://github.com/vozlt/nginx-module-vts.git
-git clone https://github.com/arut/nginx-rtmp-module.git
-git clone https://github.com/osokin/ngx_http_redis.git
-git clone https://github.com/vkholodkov/nginx-eval-module.git
-git clone https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng
+git clone --depth 1 https://github.com/nginx/nginx.git
+git clone --depth 1 https://github.com/nginx/njs.git
+git clone --depth 1 https://github.com/nginx/njs-examples.git
+git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git
+git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git
+git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git
+git clone --depth 1 https://github.com/osokin/ngx_http_redis.git
+git clone --depth 1 https://github.com/vkholodkov/nginx-eval-module.git
+git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng
 EOF
 :<<"EOF"
 for SM2 ssl replace:
@@ -54,6 +54,7 @@ auto/lib/openssl/conf
  42             CORE_LIBS="$CORE_LIBS $OPENSSL/lib/libcrypto.a"
 EOF
 
+NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl-1.1.1l
 PCRE_DIR=${DIRNAME}/pcre-8.45 #latest version pcre, no pcre2 support now
 ZLIB_DIR=${DIRNAME}/zlib
@@ -82,7 +83,8 @@ echo "http_geoip_module needs libgeoip-dev"
 export PATH=$PATH:${PCRE_DIR}
 export NJS_CC_OPT="-L${OPENSSL_DIR}/.openssl/lib"
 echo "PCRE OK **************************************************"
-[ ${stage_level} -ge ${stage[configure]} ] && cd ${DIRNAME} && ./configure --prefix=/usr/share/nginx \
+[ ${stage_level} -ge ${stage[configure]} ] && [ -e ${NGINX_DIR}/configure ] || cd ${NGINX_DIR} && ln -s auto/configure
+[ ${stage_level} -ge ${stage[configure]} ] && cd ${NGINX_DIR} && ./configure --prefix=/usr/share/nginx \
 --user=nginx \
 --group=nginx \
 --with-cc-opt="$(pcre-config --cflags) -I${OPENSSL_DIR}/.openssl/include" \
@@ -144,11 +146,11 @@ echo "PCRE OK **************************************************"
 
 TMP_VER=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 echo "${TMP_VER}**************************************************"
-sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${TMP_VER}\"/g" ${DIRNAME}/objs/ngx_auto_config.h 2>/dev/null || true
-[ ${stage_level} -ge ${stage[make]} ] && cd ${DIRNAME} && make
+sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${TMP_VER}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
+[ ${stage_level} -ge ${stage[make]} ] && cd ${NGINX_DIR} && make
 OUTDIR=${DIRNAME}/out
 mkdir -p ${OUTDIR}
-[ ${stage_level} -ge ${stage[install]} ] && rm -rf ${OUTDIR}/* && cd ${DIRNAME} && make install DESTDIR=${OUTDIR}
+[ ${stage_level} -ge ${stage[install]} ] && rm -rf ${OUTDIR}/* && cd ${NGINX_DIR} && make install DESTDIR=${OUTDIR}
 
 echo "/usr/lib/tmpfiles.d/nginx.conf"
 mkdir -p ${OUTDIR}/usr/lib/tmpfiles.d/
