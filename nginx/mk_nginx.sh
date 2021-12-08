@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5b67cc4[2021-12-08T11:08:18+08:00]:mk_nginx.sh")
+VERSION+=("ed0c92e[2021-12-08T12:20:03+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -31,7 +31,7 @@ PCRE       https://www.pcre.org
            https://sourceforge.net/projects/pcre/files/pcre/
 OPENSSL    https://www.openssl.org/source/
     debian:libpcre3-dev libssl-dev zlib1g-dev libxml2-dev libxslt1-dev libgeoip-dev
-    centos:pcre-devel openssl-devel zlib-devel
+    centos:pcre-devel openssl-devel zlib-devel libxml2-devel libxslt-devel GeoIP-devel
 
 git clone https://github.com/nginx/nginx.git
 git clone https://github.com/nginx/njs.git
@@ -59,7 +59,7 @@ PCRE_DIR=${DIRNAME}/pcre-8.45 #latest version pcre, no pcre2 support now
 ZLIB_DIR=${DIRNAME}/zlib
 STICKY_MODULE_DIR=${DIRNAME}/nginx-sticky-module-ng
 LIMIT_SPEED_MODULE_DIR=${DIRNAME}/nginx_limit_speed_module
-VTS_MODULE_DIR=${DIRNAME}/nginx-module-vts-master
+VTS_MODULE_DIR=${DIRNAME}/nginx-module-vts
 NJS_DIR=${DIRNAME}/njs
 RTMP_MODULE_DIR=${DIRNAME}/nginx-rtmp-module
 HTTP_REDIS_DIR=${DIRNAME}/ngx_http_redis
