@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("94e8501[2021-12-08T10:10:01+08:00]:mk_nginx.sh")
+VERSION+=("520386b[2021-12-08T10:11:41+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -223,7 +223,7 @@ EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/http-conf.d/httplog.conf
 #log_format json escape=json '{ "time": "$time_iso8601", "remote_addr": "$remote_addr" }'
 log_format main '$scheme $http_host $server_port "$upstream_addr" '
-    '[$request_time|$upstream_response_time|$upstream_status] '
+    '[$request_time|"$upstream_response_time"|"$upstream_status"] '
     '$remote_addr - $remote_user [$time_local] "$request" '
     '$status $request_length $bytes_sent "$http_referer" '
     '"$http_user_agent" "$http_x_forwarded_for" $gzip_ratio';
