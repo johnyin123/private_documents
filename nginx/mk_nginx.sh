@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("51e09d4[2021-12-08T12:40:40+08:00]:mk_nginx.sh")
+VERSION+=("3702f98[2021-12-08T13:11:14+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -144,7 +144,7 @@ echo "PCRE OK **************************************************"
 
 TMP_VER=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 echo "${TMP_VER}**************************************************"
-sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${TMP_VER}\"/g" ${DIRNAME}/objs/ngx_auto_config.h
+sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${TMP_VER}\"/g" ${DIRNAME}/objs/ngx_auto_config.h 2>/dev/null || true
 [ ${stage_level} -ge ${stage[make]} ] && cd ${DIRNAME} && make
 OUTDIR=${DIRNAME}/out
 mkdir -p ${OUTDIR}
