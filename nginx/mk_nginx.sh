@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("520386b[2021-12-08T10:11:41+08:00]:mk_nginx.sh")
+VERSION+=("5b67cc4[2021-12-08T11:08:18+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -141,7 +141,7 @@ echo "PCRE OK **************************************************"
 --add-module=${VTS_MODULE_DIR} \
  \
 
-TMP_VER=$(echo "${VERSION[@]}" | sed "s/${SCRIPTNAME}/by johnyin/g")
+TMP_VER=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 echo "${TMP_VER}**************************************************"
 sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${TMP_VER}\"/g" ${DIRNAME}/objs/ngx_auto_config.h
 [ ${stage_level} -ge ${stage[make]} ] && cd ${DIRNAME} && make
@@ -340,7 +340,8 @@ echo "getent group nginx >/dev/null || groupadd --system nginx || :" > /tmp/inst
 echo "getent passwd nginx >/dev/null || useradd -g nginx --system -s /sbin/nologin -d /var/empty/nginx nginx 2> /dev/null || :" >> /tmp/inst.sh
 echo "userdel nginx || :" > /tmp/uninst.sh
 rm -fr ${DIRNAME}/pkg && mkdir -p ${DIRNAME}/pkg
-[ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t deb -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration 1 --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
-[ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t rpm -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration 1 --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
+
+[ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t deb -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration ${TMP_VER} --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
+[ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t rpm -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration ${TMP_VER} --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
 echo "ALL PACKAGE OUT: ${DIRNAME}/pkg"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
