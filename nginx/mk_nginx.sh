@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ed0c92e[2021-12-08T12:20:03+08:00]:mk_nginx.sh")
+VERSION+=("51e09d4[2021-12-08T12:40:40+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -70,6 +70,7 @@ EVAL_MODULE_DIR=${DIRNAME}/nginx-eval-module
 
 [ ${stage_level} -ge ${stage[pcre]} ] && cd ${PCRE_DIR} && CC="cc" CFLAGS="-O2 -fomit-frame-pointer -pipe "  \
     ./configure --disable-shared --enable-jit \
+    --disable-cpp \
     --libdir=${PCRE_DIR}/.libs/ --includedir=${PCRE_DIR} && \
     make
 # njs configure need expect
@@ -335,6 +336,7 @@ rm -f  ${OUTDIR}/etc/nginx/*.default
 chmod 644 ${OUTDIR}/usr/share/nginx/modules/*
 
 # apt install rpm ruby-rubygems
+# yum install rubygems
 # gem install fpm
 echo "getent group nginx >/dev/null || groupadd --system nginx || :" > /tmp/inst.sh
 echo "getent passwd nginx >/dev/null || useradd -g nginx --system -s /sbin/nologin -d /var/empty/nginx nginx 2> /dev/null || :" >> /tmp/inst.sh
