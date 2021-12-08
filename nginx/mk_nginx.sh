@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fed14ff[2021-12-08T14:49:21+08:00]:mk_nginx.sh")
+VERSION+=("371c07d[2021-12-08T14:56:38+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -25,15 +25,15 @@ stage_level=${stage[${1:-doall}]}
 set -o nounset
 stage_level=${stage_level:?"PKG=deb ${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
 
-cat <<EOF
+cat <<'EOF'
 ZLIB       https://zlib.net/
 PCRE       https://www.pcre.org
            https://sourceforge.net/projects/pcre/files/pcre/
 OPENSSL    https://www.openssl.org/source/
     debian:libpcre3-dev libssl-dev zlib1g-dev libxml2-dev libxslt1-dev libgeoip-dev
     centos:pcre-devel openssl-devel zlib-devel libxml2-devel libxslt-devel GeoIP-devel
-
-git clone --depth 1 https://github.com/nginx/nginx.git
+tag_name=release-1.20.2
+git clone --depth 1 --branch ${tag_name} https://github.com/nginx/nginx.git
 git clone --depth 1 https://github.com/nginx/njs.git
 git clone --depth 1 https://github.com/nginx/njs-examples.git
 git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git
