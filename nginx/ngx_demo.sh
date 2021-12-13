@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4c3c466[2021-12-07T08:27:13+08:00]:ngx_demo.sh")
+VERSION+=("49847b5[2021-12-07T09:15:20+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1016,6 +1016,7 @@ server {
 }
 EOF
 cat <<'EOF' > aws_s3auth.conf
+# njs s3: git clone https://github.com/nginxinc/nginx-s3-gateway.git
 # public-bucket MUST set bucket-policy.py to all read/write
 upstream ceph_rgw_backend {
     server 192.168.168.131:80;
