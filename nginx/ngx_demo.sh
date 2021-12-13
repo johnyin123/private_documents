@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c7e1f55[2021-12-13T10:36:26+08:00]:ngx_demo.sh")
+VERSION+=("8dee9b9[2021-12-13T12:24:28+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1022,7 +1022,7 @@ upstream ceph_rgw_backend {
     keepalive 64;
 }
 server {
-    listen 81 reuseport;
+    listen 80 reuseport;
     server_name _;
     location / {
         proxy_redirect off;
