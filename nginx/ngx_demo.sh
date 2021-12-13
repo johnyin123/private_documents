@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("49847b5[2021-12-07T09:15:20+08:00]:ngx_demo.sh")
+VERSION+=("3050e72[2021-12-13T09:13:18+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -849,6 +849,7 @@ server {
 }
 EOF
 cat <<'EOF' > auth_request_by_secure_link.conf
+# ldap demo: https://github.com/nginxinc/nginx-ldap-auth
 server {
     listen 80 reuseport;
     server_name _;
