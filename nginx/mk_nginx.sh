@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("78fdae5[2021-12-08T15:58:33+08:00]:mk_nginx.sh")
+VERSION+=("8dee9b9[2021-12-13T12:24:28+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -43,6 +43,7 @@ git clone --depth 1 https://github.com/osokin/ngx_http_redis.git
 git clone --depth 1 https://github.com/vkholodkov/nginx-eval-module.git
 git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng
 git clone https://github.com/openresty/headers-more-nginx-module.git
+git clone https://github.com/openresty/redis2-nginx-module.git
 EOF
 :<<"EOF"
 for SM2 ssl replace:
@@ -64,6 +65,7 @@ LIMIT_SPEED_MODULE_DIR=${DIRNAME}/nginx_limit_speed_module
 VTS_MODULE_DIR=${DIRNAME}/nginx-module-vts
 NJS_DIR=${DIRNAME}/njs
 RTMP_MODULE_DIR=${DIRNAME}/nginx-rtmp-module
+HTTP_REDIS2_DIR=${DIRNAME}/redis2-nginx-module
 HTTP_REDIS_DIR=${DIRNAME}/ngx_http_redis
 EVAL_MODULE_DIR=${DIRNAME}/nginx-eval-module
 HEADERS_MORE=${DIRNAME}/headers-more-nginx-module
@@ -140,6 +142,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 --add-dynamic-module=${RTMP_MODULE_DIR} \
 --add-dynamic-module=${HTTP_REDIS_DIR} \
 --add-dynamic-module=${EVAL_MODULE_DIR} \
+--add-dynamic-module=${HTTP_REDIS2_DIR} \
  \
 --add-module=${STICKY_MODULE_DIR} \
 --add-module=${LIMIT_SPEED_MODULE_DIR} \
