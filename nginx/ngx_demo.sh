@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d084ee2[2021-12-13T09:26:50+08:00]:ngx_demo.sh")
+VERSION+=("c7e1f55[2021-12-13T10:36:26+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1026,6 +1026,8 @@ server {
     server_name _;
     location / {
         proxy_redirect off;
+        # header_more module remove x-amz-request-id
+        more_clear_headers 'x-amz*';
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -1404,6 +1406,10 @@ server {
     location /404 { return 404; }
     location /500 { return 502; }
 }
+EOF
+cat <<'EOF' > header.conf
+# in http_conf.d, for hidden Server: nginx ...
+more_set_headers 'Server: my-server';
 EOF
 cat <<'EOF' > sub_filter.conf
 # ...........................

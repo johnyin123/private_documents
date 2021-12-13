@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fc4c774[2021-12-08T15:01:33+08:00]:mk_nginx.sh")
+VERSION+=("78fdae5[2021-12-08T15:58:33+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -42,6 +42,7 @@ git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git
 git clone --depth 1 https://github.com/osokin/ngx_http_redis.git
 git clone --depth 1 https://github.com/vkholodkov/nginx-eval-module.git
 git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng
+git clone https://github.com/openresty/headers-more-nginx-module.git
 EOF
 :<<"EOF"
 for SM2 ssl replace:
@@ -65,6 +66,7 @@ NJS_DIR=${DIRNAME}/njs
 RTMP_MODULE_DIR=${DIRNAME}/nginx-rtmp-module
 HTTP_REDIS_DIR=${DIRNAME}/ngx_http_redis
 EVAL_MODULE_DIR=${DIRNAME}/nginx-eval-module
+HEADERS_MORE=${DIRNAME}/headers-more-nginx-module
 
 [ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
     && make build_libs && make install_sw LIBDIR=lib
@@ -142,6 +144,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 --add-module=${STICKY_MODULE_DIR} \
 --add-module=${LIMIT_SPEED_MODULE_DIR} \
 --add-module=${VTS_MODULE_DIR} \
+--add-module=${HEADERS_MORE} \
  \
 
 TMP_VER=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
