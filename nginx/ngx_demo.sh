@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ecb9032[2021-12-13T12:25:08+08:00]:ngx_demo.sh")
+VERSION+=("555f2bb[2021-12-13T12:34:09+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1406,6 +1406,26 @@ server {
     location /401 { return 401; }
     location /404 { return 404; }
     location /500 { return 502; }
+}
+EOF
+cat <<'EOF' > websocket.conf
+upstream backend {
+    server 192.168.168.132;
+    keepalive 64;
+}
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+server {
+    listen 80 reuseport;
+    server_name _;
+    location /chat/ {
+        proxy_pass http://backend;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+    }
 }
 EOF
 cat <<'EOF' > header.conf
