@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8dee9b9[2021-12-13T12:24:28+08:00]:ngx_demo.sh")
+VERSION+=("ecb9032[2021-12-13T12:25:08+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -155,7 +155,8 @@ server {
     listen 80 reuseport;
     location /auth {
         if ($arg_pass = 'password') { return 200; }
-        return 404;
+        # DEMO:return HTTP HEADER User-Agent
+        return 404 "$http_user_agent";
     }
     location /stat {
         rtmp_stat all;
