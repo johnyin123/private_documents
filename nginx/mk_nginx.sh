@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d2a1045[2021-12-14T09:19:06+08:00]:mk_nginx.sh")
+VERSION+=("7c3faca[2021-12-14T12:25:57+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -179,6 +179,7 @@ Description=The nginx HTTP and reverse proxy server
 After=network.target remote-fs.target nss-lookup.target
 
 [Service]
+EnvironmentFile=-/etc/default/nginx
 Type=forking
 PIDFile=/run/nginx.pid
 # Nginx will fail to start if /run/nginx.pid already exists but has the wrong
