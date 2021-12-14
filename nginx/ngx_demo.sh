@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d2a1045[2021-12-14T09:19:06+08:00]:ngx_demo.sh")
+VERSION+=("0bbecb1[2021-12-14T09:32:15+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -219,6 +219,22 @@ cat <<'EOF' >check_nofiles.ngx.sh
 ps --ppid $(cat /var/run/nginx.pid) -o %p|sed '1d'|xargs -I{} cat /proc/{}/limits|grep open.files
 EOF
 cat <<'EOF' >redis2.conf
+# # 设置某个key的过期时间为120秒
+# EXPIRE [KEY] 120
+# # 重置某个KEY的过期时间
+# PERSIST [KEY]
+# # 查看某个KEY的过期时间
+# TTL [KEY]
+# # 从队列尾部插入数据
+# RPUSH [Queue_Key] [value]
+# # 从队列头部插入数据
+# LPUSH [Queue_Key] [value]
+# # 获取 队列的长度
+# LLEN [Queue_Key]
+# # LPOP 从队列头部出一个数据
+# LPOP [Queue_Key]
+# # RPOP 从队列尾部出一个数据
+# RPOP [Queue_Key]
 server {
     listen 80 reuseport;
     server_name _;
