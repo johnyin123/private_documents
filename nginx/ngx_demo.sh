@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5dff189[2021-12-14T15:55:48+08:00]:ngx_demo.sh")
+VERSION+=("601a0dc[2021-12-14T16:06:54+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -240,9 +240,9 @@ server {
     server_name _;
     # GET /get?key=key
     location = /get {
-         set_unescape_uri $key $arg_key;  # this requires ngx_set_misc
-         redis2_query get $key;
-         redis2_pass 127.0.0.1:6379;
+        set_unescape_uri $key $arg_key;  # this requires ngx_set_misc
+        redis2_query get $key;
+        redis2_pass 127.0.0.1:6379;
     }
     # GET /set?key=one&val=first%20value
     location = /set {
