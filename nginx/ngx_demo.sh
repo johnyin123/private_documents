@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c35a87d[2021-12-14T13:27:46+08:00]:ngx_demo.sh")
+VERSION+=("6f57aca[2021-12-14T14:09:31+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1357,7 +1357,8 @@ server {
         proxy_set_header Host $host;
         proxy_buffering on;
         proxy_cache STATIC;
-        proxy_cache_valid 200 1d;
+        proxy_cache_valid 200 302 1d;
+        proxy_cache_valid 404 1h;
         proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
     }
 }
