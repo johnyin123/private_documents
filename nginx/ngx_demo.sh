@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7dee81e[2021-12-14T15:04:41+08:00]:ngx_demo.sh")
+VERSION+=("5dff189[2021-12-14T15:55:48+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1289,6 +1289,12 @@ function file(r) {
     fs.readFile("/etc/nginx/a.json").then((json) => {
         r.return(200, json);
     });
+}
+//////////////////////////
+# env MYKEY;
+# js_set $mykey get_env;
+function get_env(r) {
+    return process.env.MYKEY;
 }
 //////////////////////////
 function fetch_url(r) {
