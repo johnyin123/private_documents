@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c9479b0[2021-12-13T13:58:23+08:00]:mk_nginx.sh")
+VERSION+=("eb3fa70[2021-12-14T08:00:59+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -261,17 +261,19 @@ cat <<'EOF' > ${OUTDIR}/etc/nginx/stream-conf.d/streamlog.conf
 log_format basic '$remote_addr $protocol $server_port [$time_local] '
     '$status $bytes_sent $bytes_received '
     '$session_time';
-
 access_log /var/log/nginx/stream_access.log basic buffer=32k;
 error_log /var/log/nginx/stream_error.log;
 EOF
-
 cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.conf
 # load_module modules/ngx_http_geoip_module.so;
 # load_module modules/ngx_http_js_module.so;
 # load_module modules/ngx_http_xslt_filter_module.so;
 # load_module modules/ngx_stream_geoip_module.so;
 # load_module modules/ngx_stream_js_module.so;
+# load_module modules/ngx_http_eval_module.so;
+# load_module modules/ngx_http_redis_module.so;
+# load_module modules/ngx_http_redis2_module.so;
+# load_module modules/ngx_rtmp_module.so;
 EOF
 
 cat <<'EOF' > ${OUTDIR}/etc/nginx/nginx.conf
