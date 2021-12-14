@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("065d3c6[2021-12-14T10:11:29+08:00]:ngx_demo.sh")
+VERSION+=("af9aba7[2021-12-14T12:53:48+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -257,68 +257,6 @@ server {
         redis2_query incr count;
         redis2_pass 127.0.0.1:6379;
     }
-}
-EOF
-cat <<'EOF' >redis.conf
-# redis-cli -x set curl/7.64.0 http://srv1
-# redis-cli -x set curl/7.61.1 http://www.xxx.com
-upstream srv1 {
-    sticky;
-    server 192.168.1.100:80;
-}
-
-upstream redis {
-    server 127.0.0.1:6379;
-}
-
-server {
-    listen 80 reuseport;
-    server_name _;
-    location / {
-        # cache !!!!
-        set $redis_key $uri;
-        redis_pass     redis;
-        default_type   text/html;
-        error_page     404 = @fallback;
-    }
-    location /redis-test {
-        eval_escalate on;
-        eval $answer {
-            set $redis_key "$http_user_agent";
-            redis_pass redis;
-        }
-        proxy_pass $answer;
-        error_page 404 502 504 = @fallback;
-    }
-    location @fallback {
-        proxy_pass https://www.xxx.com;
-    }
-    # gzip -c index.html | redis-cli -x set /index.html
-    # gzip -c index.html | redis-cli -x set /
-    location /test/ {
-        gunzip on;
-        redis_gzip_flag 1;
-        set $redis_key "$uri";
-        redis_pass redis;
-    }
-    # short url
-    location / {
-        eval_escalate on;
-        eval $answer {
-            set $redis_key "$uri";
-            redis_pass redis;
-        }
-        return 302 $answer;
-    }
-
-    # location /test2/ {
-    #     set $redis_key "$uri?$args";
-    #     redis_pass 127.0.0.1:6379;
-    #     error_page 404 502 504 = @fallback;
-    # }
-    # location @fallback {
-    #     proxy_pass backed;
-    # }
 }
 EOF
 cat <<'EOF' >traffic_status.conf

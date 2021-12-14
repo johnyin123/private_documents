@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7c3faca[2021-12-14T12:25:57+08:00]:mk_nginx.sh")
+VERSION+=("0557e56[2021-12-14T12:31:34+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -39,8 +39,6 @@ git clone --depth 1 https://github.com/nginx/njs-examples.git
 git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git
 git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git
 git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git
-git clone --depth 1 https://github.com/osokin/ngx_http_redis.git
-git clone --depth 1 https://github.com/vkholodkov/nginx-eval-module.git
 git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng
 git clone https://github.com/openresty/headers-more-nginx-module.git
 git clone https://github.com/openresty/redis2-nginx-module.git
@@ -69,8 +67,6 @@ VTS_MODULE_DIR=${DIRNAME}/nginx-module-vts
 NJS_DIR=${DIRNAME}/njs
 RTMP_MODULE_DIR=${DIRNAME}/nginx-rtmp-module
 HTTP_REDIS2_DIR=${DIRNAME}/redis2-nginx-module
-HTTP_REDIS_DIR=${DIRNAME}/ngx_http_redis
-EVAL_MODULE_DIR=${DIRNAME}/nginx-eval-module
 HEADERS_MORE_DIR=${DIRNAME}/headers-more-nginx-module
 NDK_DIR=${DIRNAME}/ngx_devel_kit
 SET_MISC_DIR=${DIRNAME}/set-misc-nginx-module
@@ -145,8 +141,6 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 --with-http_xslt_module=dynamic \
 --add-dynamic-module=${NJS_DIR}/nginx \
 --add-dynamic-module=${RTMP_MODULE_DIR} \
---add-dynamic-module=${HTTP_REDIS_DIR} \
---add-dynamic-module=${EVAL_MODULE_DIR} \
 --add-dynamic-module=${HTTP_REDIS2_DIR} \
  \
 --add-module=${STICKY_MODULE_DIR} \
@@ -278,8 +272,6 @@ cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.conf
 # load_module modules/ngx_http_xslt_filter_module.so;
 # load_module modules/ngx_stream_geoip_module.so;
 # load_module modules/ngx_stream_js_module.so;
-# load_module modules/ngx_http_eval_module.so;
-# load_module modules/ngx_http_redis_module.so;
 # load_module modules/ngx_http_redis2_module.so;
 # load_module modules/ngx_rtmp_module.so;
 EOF
