@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cc9a40d[2021-12-14T14:30:34+08:00]:ngx_demo.sh")
+VERSION+=("579d2ee[2021-12-14T14:48:58+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1253,13 +1253,17 @@ server {
 }
 EOF
 cat <<'EOF' > js_test.conf
-js_include js/test.js;
+js_include js/js_test.js;
 js_set $summary summary;
 server {
     listen 80 reuseport;
     server_name _;
     location /sub {
         js_content sub;
+    }
+    location /task {
+        internal;
+        return 200 "http://www.xxx.com/abc/de";
     }
     location /sum {
         return 200 $summary;
@@ -1308,8 +1312,10 @@ function sub(r) {
       }
       r.error(res.responseBody)
       r.return(200, res.responseBody);
+      // r.return(302, res.responseBody);
     }
   )
+}
 EOF
 
 cat <<'EOF' > secure_link_hash.js
