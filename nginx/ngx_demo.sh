@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6f57aca[2021-12-14T14:09:31+08:00]:ngx_demo.sh")
+VERSION+=("cc9a40d[2021-12-14T14:30:34+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1191,6 +1191,21 @@ server {
     }
 }
 EOF
+cat <<'EOF' > post_redirect.conf
+server {
+    listen 80 reuseport;
+    server_name _;
+    location / {
+        # HTTP 307 only for POST requests:
+        if ($request_method = POST) {
+            return 307 https://api.example.com?request_uri;
+        }
+        # keep for non-POST requests:
+        rewrite ^ https://api.example.com?request_uri permanent;
+        client_max_body_size 10m;
+    }
+}
+EOF
 cat <<'EOF' > x_accel.conf
 # # X-accel allows for internal redirection to a location determined
 # # by a header returned from a backend.
@@ -1237,6 +1252,66 @@ server {
     }
 }
 EOF
+cat <<'EOF' > js_test.conf
+js_include js/test.js;
+js_set $summary summary;
+server {
+    listen 80 reuseport;
+    server_name _;
+    location /sub {
+        js_content sub;
+    }
+    location /sum {
+        return 200 $summary;
+    }
+}
+EOF
+cat <<'EOF' > js_test.js
+function summary(r) {
+  var a, s, h
+  s = "JS summary\n\n"
+  s += "Method: " + r.method + "\n"
+  s += "HTTP version: " + r.httpVersion + "\n"
+  s += "Host: " + r.headersIn.host + "\n"
+  s += "Remote Address: " + r.remoteAddress + "\n"
+  s += "URI: " + r.uri + "\n"
+  s += "Headers:\n"
+  for (h in r.headersIn) {
+    s += "  header '" + h + "' is '" + r.headersIn[h] + "'\n"
+  }
+  s += "Args:\n"
+  for (a in r.args) {
+      s += "  arg '" + a + "' is '" + r.args[a] + "'\n"
+  }
+  s += r.requestBody
+  return s
+}
+function baz(r) {
+  r.status = 200
+  r.headersOut.foo = 1234
+  r.headersOut['Content-Type'] = "text/plain charset=utf-8"
+  r.headersOut['Content-Length'] = 16
+  r.sendHeader()
+  r.send("nginx ")
+  r.send("javascript")
+  r.finish()
+}
+function sub(r) {
+  r.subrequest(
+    '/task', {
+      method: 'GET',
+    },
+    function(res) {
+      if (res.status != 200) {
+          r.return(res.status);
+          return;
+      }
+      r.error(res.responseBody)
+      r.return(200, res.responseBody);
+    }
+  )
+EOF
+
 cat <<'EOF' > secure_link_hash.js
 function secret_key(r) {
     return process.env.SECRET_KEY;
@@ -1247,21 +1322,6 @@ function create_secure_link(r) {
                             .digest('base64url');
 }
 export default {secret_key, create_secure_link}
-EOF
-cat <<'EOF' > post_redirect.conf
-server {
-    listen 80 reuseport;
-    server_name _;
-    location / {
-        # HTTP 307 only for POST requests:
-        if ($request_method = POST) {
-            return 307 https://api.example.com?request_uri;
-        }
-        # keep for non-POST requests:
-        rewrite ^ https://api.example.com?request_uri permanent;
-        client_max_body_size 10m;
-    }
-}
 EOF
 cat <<'EOF' > secure_link_hash.conf
 # mkdir -p /etc/nginx/njs/
