@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("579d2ee[2021-12-14T14:48:58+08:00]:ngx_demo.sh")
+VERSION+=("7dee81e[2021-12-14T15:04:41+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1253,11 +1253,21 @@ server {
 }
 EOF
 cat <<'EOF' > js_test.conf
+# curl http://127.0.0.1/sum?asdbas=asdfads
+# curl http://127.0.0.1/?url=www.baidu.com
+# curl http://127.0.0.1/sub
+# curl http://127.0.0.1/json
 js_include js/js_test.js;
 js_set $summary summary;
 server {
     listen 80 reuseport;
     server_name _;
+    resolver 8.8.8.8;
+    resolver_timeout 5s;
+    subrequest_output_buffer_size 20k;
+    location / {
+        js_content fetch_url;
+    }
     location /sub {
         js_content sub;
     }
@@ -1268,56 +1278,78 @@ server {
     location /sum {
         return 200 $summary;
     }
+    location /json {
+        js_content file;
+    }
 }
 EOF
 cat <<'EOF' > js_test.js
+var fs = require('fs').promises;
+function file(r) {
+    fs.readFile("/etc/nginx/a.json").then((json) => {
+        r.return(200, json);
+    });
+}
+//////////////////////////
+function fetch_url(r) {
+    ngx.fetch(`http://${r.args.url}`)
+        .then(reply => reply.text())
+        .then(body => {
+            r.headersOut['Content-Type'] = "text/html; charset=utf-8";
+            r.return(200, body);
+        })
+        .catch(e => r.return(501, e.message));
+}
 function summary(r) {
-  var a, s, h
-  s = "JS summary\n\n"
-  s += "Method: " + r.method + "\n"
-  s += "HTTP version: " + r.httpVersion + "\n"
-  s += "Host: " + r.headersIn.host + "\n"
-  s += "Remote Address: " + r.remoteAddress + "\n"
-  s += "URI: " + r.uri + "\n"
-  s += "Headers:\n"
-  for (h in r.headersIn) {
-    s += "  header '" + h + "' is '" + r.headersIn[h] + "'\n"
-  }
-  s += "Args:\n"
-  for (a in r.args) {
-      s += "  arg '" + a + "' is '" + r.args[a] + "'\n"
-  }
-  s += r.requestBody
-  return s
+    var a, s, h
+    s = "JS summary\n\n"
+    s += "Method: " + r.method + "\n"
+    s += "HTTP version: " + r.httpVersion + "\n"
+    s += "Host: " + r.headersIn.host + "\n"
+    s += "Remote Address: " + r.remoteAddress + "\n"
+    s += "URI: " + r.uri + "\n"
+    s += "Headers:\n"
+    for (h in r.headersIn) {
+        s += "  header '" + h + "' is '" + r.headersIn[h] + "'\n"
+    }
+    s += "Args:\n"
+    for (a in r.args) {
+        s += "  arg '" + a + "' is '" + r.args[a] + "'\n"
+    }
+    s += r.requestBody
+    return s
 }
 function baz(r) {
-  r.status = 200
-  r.headersOut.foo = 1234
-  r.headersOut['Content-Type'] = "text/plain charset=utf-8"
-  r.headersOut['Content-Length'] = 16
-  r.sendHeader()
-  r.send("nginx ")
-  r.send("javascript")
-  r.finish()
+    r.status = 200
+    r.headersOut.foo = 1234
+    r.headersOut['Content-Type'] = "text/plain charset=utf-8"
+    r.headersOut['Content-Length'] = 16
+    r.sendHeader()
+    r.send("nginx ")
+    r.send("javascript")
+    r.finish()
 }
 function sub(r) {
-  r.subrequest(
-    '/task', {
-      method: 'GET',
-    },
-    function(res) {
-      if (res.status != 200) {
-          r.return(res.status);
-          return;
-      }
-      r.error(res.responseBody)
-      r.return(200, res.responseBody);
-      // r.return(302, res.responseBody);
-    }
-  )
+    r.subrequest(
+        '/task', {
+            method: 'GET',
+        },
+        function(res) {
+            if (res.status != 200) {
+                r.return(res.status);
+                return;
+            }
+            r.error(res.responseBody)
+            r.return(200, JSON.stringify({
+                njsModuleVersion: njs.version,
+                nginxVersion: r.variables.nginx_version
+            }));
+            //r.return(200, res.responseBody);
+            // r.return(302, res.responseBody);
+        }
+    )
 }
 EOF
-
 cat <<'EOF' > secure_link_hash.js
 function secret_key(r) {
     return process.env.SECRET_KEY;
