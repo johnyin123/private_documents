@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3f92c47[2021-12-14T08:58:30+08:00]:mk_nginx.sh")
+VERSION+=("ae37cc0[2021-12-14T09:10:46+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -44,6 +44,8 @@ git clone --depth 1 https://github.com/vkholodkov/nginx-eval-module.git
 git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng
 git clone https://github.com/openresty/headers-more-nginx-module.git
 git clone https://github.com/openresty/redis2-nginx-module.git
+git clone https://github.com/vision5/ngx_devel_kit.git
+# set-misc need ndk
 git clone https://github.com/openresty/set-misc-nginx-module.git
 EOF
 :<<"EOF"
@@ -70,6 +72,7 @@ HTTP_REDIS2_DIR=${DIRNAME}/redis2-nginx-module
 HTTP_REDIS_DIR=${DIRNAME}/ngx_http_redis
 EVAL_MODULE_DIR=${DIRNAME}/nginx-eval-module
 HEADERS_MORE_DIR=${DIRNAME}/headers-more-nginx-module
+NDK_DIR=${DIRNAME}/ngx_devel_kit
 SET_MISC_DIR=${DIRNAME}/set-misc-nginx-module
 
 [ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
@@ -150,6 +153,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 --add-module=${LIMIT_SPEED_MODULE_DIR} \
 --add-module=${VTS_MODULE_DIR} \
 --add-module=${HEADERS_MORE_DIR} \
+--add-module=${NDK_DIR} \
 --add-module=${SET_MISC_DIR} \
  \
 
