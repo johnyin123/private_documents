@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ae37cc0[2021-12-14T09:10:46+08:00]:mk_nginx.sh")
+VERSION+=("d2a1045[2021-12-14T09:19:06+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -368,13 +368,15 @@ echo "userdel nginx || :" > /tmp/uninst.sh
 rm -fr ${DIRNAME}/pkg && mkdir -p ${DIRNAME}/pkg
 
 source <(grep -E "^\s*(VERSION_ID|ID)=" /etc/os-release)
+eval NGX_VER=$(awk '/NGINX_VERSION / {print $3}' ${NGINX_DIR}/src/core/nginx.h)
 case "${ID}" in
     ########################################
     centos)  PKG=${PKG:-rpm};;
     debian)  PKG=${PKG:-deb};;
     *)       echo "ALL DONE, NO PACKAGE"; exit 0;;
 esac
-
-[ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin --version 1.20.1 --iteration ${TMP_VER} --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
+echo "NGINX:${NGX_VER}"
+echo "BUILD:${TMP_VER}"
+[ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin --version $(echo ${NGX_VER}) --iteration ${TMP_VER} --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
 echo "ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
