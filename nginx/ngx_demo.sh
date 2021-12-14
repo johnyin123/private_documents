@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("af9aba7[2021-12-14T12:53:48+08:00]:ngx_demo.sh")
+VERSION+=("c35a87d[2021-12-14T13:27:46+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1324,6 +1324,41 @@ server {
         resolver 127.0.0.1;
         set $target http://proxytarget.example.com;
         proxy_pass $target;
+    }
+}
+EOF
+cat <<'EOF' > reverse_proxy_cache_split.conf
+proxy_cache_path /usr/share/nginx/cache1 levels=1:2 keys_zone=my_cache_hdd1:10m max_size=10g inactive=60m use_temp_path=off;
+proxy_cache_path /usr/share/nginx/cache2 levels=1:2 keys_zone=my_cache_hdd2:10m max_size=10g inactive=60m use_temp_path=off;
+split_clients $request_uri $my_cache {
+    50% "my_cache_hdd1";
+    50% "my_cache_hdd2";
+}
+server {
+    listen 80 reuseport;
+    server_name _;
+    location / {
+        proxy_cache $my_cache;
+        proxy_ignore_headers Cache-Control;
+        proxy_cache_valid any 30m;
+        proxy_cache_methods GET HEAD POST;
+        # proxy_cache_bypass $cookie_nocache $arg_nocache;
+        proxy_pass http://127.0.0.1:9999;
+    }
+}
+EOF
+cat <<'EOF' > reverse_proxy_cache.conf
+proxy_cache_path /usr/share/nginx/cache levels=1:2 keys_zone=STATIC:10m inactive=24h max_size=1g;
+server {
+    listen 80 reuseport;
+    server_name _;
+    location / {
+        proxy_pass http://127.0.0.1:9999;
+        proxy_set_header Host $host;
+        proxy_buffering on;
+        proxy_cache STATIC;
+        proxy_cache_valid 200 1d;
+        proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
     }
 }
 EOF
