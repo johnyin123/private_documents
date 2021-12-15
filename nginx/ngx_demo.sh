@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c0726f7[2021-12-14T17:00:04+08:00]:ngx_demo.sh")
+VERSION+=("882f138[2021-12-15T08:37:31+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1380,6 +1380,42 @@ function sub(r) {
             }));
             //r.return(200, res.responseBody);
             // r.return(302, res.responseBody);
+        }
+    )
+}
+EOF
+cat <<'EOF' >shorturl.conf
+# http_js_module & http_redis_module
+# redis-cli -x set /abcdefg http://www.xxx.com [EX seconds]
+# curl http://127.0.0.1/abcdefg -redirect-> www.xxx.com
+js_include js/shorturl.js;
+server {
+    listen 80 reuseport;
+    server_name _;
+    subrequest_output_buffer_size 20k;
+    location / {
+        js_content shorturl;
+    }
+    location /redis {
+        internal;
+        set $redis_key "$arg_key";
+        redis_pass 127.0.0.1:6379;
+    }
+}
+EOF
+cat <<'EOF' >shorturl.js
+function shorturl(r) {
+    r.subrequest(
+        '/redis?key=bb', {
+            method: 'GET',
+            args: `key=${r.uri}`,
+        },
+        function(res) {
+            if (res.status != 200) {
+                r.return(res.status);
+                return;
+            }
+            r.return(302, res.responseBody);
         }
     )
 }
