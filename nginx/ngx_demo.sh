@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f9fb782[2021-12-15T15:03:16+08:00]:ngx_demo.sh")
+VERSION+=("d039e62[2021-12-15T15:39:22+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -519,6 +519,21 @@ server {
     }
 }
 EOF
+cat <<'EOF' > secure_link_demo.js
+function gen_url(r) {
+    var SECRET_KEY = 'prekey';
+    var uri = r.args['uri'];
+    var secs = r.args['secs'];
+    var d = new Date().valueOf();
+    var epoch = Math.floor(d / 1000);
+    var secure_link_expires = epoch + secs;
+    var key = require('crypto').createHash('md5')
+        .update(SECRET_KEY).update(secure_link_expires).update(uri)
+        .digest('base64url');
+    //r.return(302, `${uri}?k=${key}&e=${secure_link_expires}`);
+    r.return(200, `${uri}?k=${key}&e=${secure_link_expires}`);
+}
+EOF
 cat <<'EOF' > secure_link_demo.conf
 # mkdir -p /var/www/validate && echo "downfile" > /var/www/validate/file.txt
 # #!/bin/bash
@@ -557,7 +572,7 @@ cat <<'EOF' > secure_link_demo.conf
 #     POST)  do_post;;
 #     *)     write_header 405;;
 # esac
-
+js_include js/secure_link_demo.js;
 server {
     listen 80 reuseport;
     server_name _;
@@ -579,6 +594,10 @@ server {
         #if ($secure_link = "") { return 403; }
         if ($secure_link = "0") { return 410; }
         alias /var/www;
+    }
+    #curl "http://127.0.0.1/?uri=/validate/stat.js.gz&secs=1000"
+    location / {
+        js_content gen_url;
     }
 }
 EOF
@@ -1330,8 +1349,8 @@ function file(r) {
     });
 }
 //////////////////////////
-# env MYKEY;
-# js_set $mykey get_env;
+// env MYKEY;
+// js_set $mykey get_env;
 function get_env(r) {
     return process.env.MYKEY;
 }
