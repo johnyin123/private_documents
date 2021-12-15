@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("46cf918[2021-12-15T08:51:10+08:00]:ngx_demo.sh")
+VERSION+=("a846200[2021-12-15T08:58:41+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -200,6 +200,10 @@ server {
     }
     # pass dynamic content
     location / {
+        proxy_buffer_size 4k;
+        proxy_limit_rate 20000; #bytes per second
+        # proxy_pass_request_headers off;
+        # proxy_pass_request_body off;
         proxy_pass http://127.0.0.1:8080;
     }
 }
@@ -212,6 +216,8 @@ server {
     location = /favicon.ico { access_log off; log_not_found off; }
     location / {
         limit_speed mylimitspeed 100k;
+        # limit_rate_after 5m; #下载了5M以后开始限速
+        # limit_rate 100k;
         root /var/www;
     }
 }
@@ -428,6 +434,8 @@ server {
     location / {
         limit_conn connperip 10;
         limit_conn connperserver 100;
+        # limit_conn_log_level info;
+        # limit_conn_status 501;
     }
 }
 EOF
@@ -506,6 +514,7 @@ server {
         return 301 $url_p;
     }
     location / {
+        disable_symlinks off;
         root /var/www;
     }
 }
@@ -769,13 +778,14 @@ server {
     listen 80 reuseport;
     server_name _;
     location / {
-        set            $memcached_key "$uri?$args";
+        set $memcached_key "$uri?$args";
+        memcached_next_upstream  not_found;
         memcached_pass 127.0.0.1:11211;
-        error_page     404 502 504 = @fallback;
+        error_page 404 502 504 = @fallback;
     }
     location @fallback {
         return 200 "@fallback 404 502 504";
-        #proxy_pass     http://backend;
+        #proxy_pass http://backend;
     }
 }
 EOF
@@ -1406,8 +1416,9 @@ server {
 EOF
 cat <<'EOF' >shorturl.js
 function shorturl(r) {
+    //r.subrequest('/redis', 'a=b&b=c',
     r.subrequest(
-        '/redis?key=bb', {
+        '/redis', {
             method: 'GET',
             args: `key=${r.uri}`,
         },
@@ -1619,6 +1630,8 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
+        # proxy_read_timeout 2s;
+        # send_timeout 2s;
     }
 }
 EOF
@@ -1627,9 +1640,33 @@ cat <<'EOF' > header.conf
 # in http_conf.d, for hidden Server: nginx ...
 more_set_headers 'Server: my-server';
 EOF
+cat <<'EOF' >addition.conf
+server {
+    listen 80 reuseport;
+    server_name _;
+    location / {
+        empty_gif;
+    }
+    location /b.html {
+        add_before_body /add_before;
+        return 200 "body";
+    }
+    location /a.html {
+        add_after_body /add_after;
+        return 200 "body";
+    }
+    location /add_before {
+        return 200 "before";
+    }
+    location /add_after {
+        return 200 "after";
+    }
+}
+EOF
 cat <<'EOF' > sub_filter.conf
 # ...........................
-# <img src="data:image/png;base64,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" alt="Red dot"/>
+# NGX_CONF_BUFFER=4096
+# <img src="data:image/png;base64,${base64}" alt="Red dot"/>
 # sub_filter '</body>' '<a href="http://xxxx"><img style="position: fixed; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_gray_6d6d6d.png" alt="xxxxxxxxxxxx"></a></body>';
 # sub_filter '</head>' '<link rel="stylesheet" type="text/css" href="/fuck/gray.css"/></head>';
 # sub_filter_once on;
@@ -1647,7 +1684,7 @@ cat <<'EOF' > sub_filter.conf
 # ............................
 server {
     listen 80 reuseport;
-    # listen unix:/var/run/nginx.sock;
+    listen unix:/var/run/nginx.sock;
     server_name _;
     location / {
         sub_filter '</body>' '<a href="http://www.xxxx.com"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://res.xxxx.com/_static_/demo.png" alt="bj idc"></a></body>';
@@ -1656,5 +1693,17 @@ server {
         # sub_filter_types text/html;
         root /var/www;
     }
+    location /allow_unix {
+        allow unix:;
+    }
+    location /deny_unix {
+        deny unix:;
+    }
+    # location /xslt {
+    #     ssi on;
+    #     sub_filter_types *;
+    #     sub_filter root>foo bar;
+    #     xslt_stylesheet test.xslt;
+    # }
 }
 EOF
