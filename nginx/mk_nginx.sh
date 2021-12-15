@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5dff189[2021-12-14T15:55:48+08:00]:mk_nginx.sh")
+VERSION+=("882f138[2021-12-15T08:37:31+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -136,14 +136,15 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 --with-http_geoip_module=dynamic \
 --with-stream_geoip_module=dynamic \
 --with-http_xslt_module=dynamic \
+ \
 --add-dynamic-module=${NJS_DIR}/nginx \
 --add-dynamic-module=${RTMP_MODULE_DIR} \
 --add-dynamic-module=${HTTP_REDIS_DIR} \
+--add-dynamic-module=${VTS_MODULE_DIR} \
+--add-dynamic-module=${HEADERS_MORE_DIR} \
  \
 --add-module=${STICKY_MODULE_DIR} \
 --add-module=${LIMIT_SPEED_MODULE_DIR} \
---add-module=${VTS_MODULE_DIR} \
---add-module=${HEADERS_MORE_DIR} \
  \
 
 TMP_VER=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
@@ -273,6 +274,8 @@ cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.conf
 # load_module modules/ngx_stream_js_module.so;
 # load_module modules/ngx_rtmp_module.so;
 # load_module modules/ngx_http_redis_module.so;
+load_module modules/ngx_http_headers_more_filter_module.so
+load_module modules/ngx_http_vhost_traffic_status_module.so
 EOF
 
 cat <<'EOF' > ${OUTDIR}/etc/nginx/nginx.conf
