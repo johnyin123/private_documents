@@ -7,13 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("882f138[2021-12-15T08:37:31+08:00]:ngx_demo.sh")
+VERSION+=("46cf918[2021-12-15T08:51:10+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
 set -o errexit
 
 cat <<"EOF">location.txt
+git clone https://github.com/nginx/nginx-tests.git
 =：精确匹配，优先级最高。如果找到了这个精确匹配，则停止查找。
 ^~：URI 以某个常规字符串开头，不是正则匹配
 ~：区分大小写的正则匹配
