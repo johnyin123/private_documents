@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fe01adc[2021-12-15T13:01:23+08:00]:ngx_demo.sh")
+VERSION+=("f9fb782[2021-12-15T15:03:16+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1396,6 +1396,7 @@ function sub(r) {
 }
 EOF
 cat <<'EOF' >shorturl.conf
+# https://nginx.org/en/docs/njs/reference.html
 # http_js_module & http_redis_module
 # redis-cli -x set /abcdefg http://www.xxx.com [EX seconds]
 # curl http://127.0.0.1/abcdefg -redirect-> www.xxx.com
