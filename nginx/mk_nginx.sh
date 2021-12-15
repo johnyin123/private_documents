@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("578058f[2021-12-15T08:57:08+08:00]:mk_nginx.sh")
+VERSION+=("3f15694[2021-12-15T09:01:48+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -322,6 +322,7 @@ http {
 
     # # gzip
     gzip on;
+    gunzip on;
     gzip_static on;
     gzip_buffers 16 8k;
     gzip_comp_level 6;
