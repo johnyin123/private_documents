@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("415d5f1[2021-12-14T16:15:47+08:00]:ngx_demo.sh")
+VERSION+=("c0726f7[2021-12-14T17:00:04+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -218,7 +218,35 @@ EOF
 cat <<'EOF' >check_nofiles.ngx.sh
 ps --ppid $(cat /var/run/nginx.pid) -o %p|sed '1d'|xargs -I{} cat /proc/{}/limits|grep open.files
 EOF
-cat <<'EOF' >redis2.conf
+cat <<'EOF' >redis.conf
+# redis-cli -x set curl/7.61.1 http://www.xxx.com
+upstream redis {
+    server 127.0.0.1:6379;
+}
+server {
+    listen 80 reuseport;
+    server_name _;
+    location / {
+        # cache !!!!
+        set $redis_key $uri;
+        redis_pass     redis;
+        default_type   text/html;
+        error_page     404 = @fallback;
+    }
+    location @fallback {
+        proxy_pass https://www.xxx.com;
+    }
+    # gzip -c index.html | redis-cli -x set /index.html
+    # gzip -c index.html | redis-cli -x set /
+    location /test/ {
+        gunzip on;
+        redis_gzip_flag 1;
+        set $redis_key "$uri";
+        redis_pass redis;
+    }
+}
+EOF
+: <<'EOF'
 # # 设置某个key的过期时间为120秒
 # EXPIRE [KEY] 120
 # # 重置某个KEY的过期时间
