@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a846200[2021-12-15T08:58:41+08:00]:ngx_demo.sh")
+VERSION+=("fe01adc[2021-12-15T13:01:23+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1529,10 +1529,22 @@ server {
 EOF
 cat <<'EOF' > reverse_proxy_cache.conf
 proxy_cache_path /usr/share/nginx/cache levels=1:2 keys_zone=STATIC:10m inactive=24h max_size=1g;
+map $cache $control {
+    1 "public, no-transform";
+}
+map $cache $expires {
+    1 1d;
+    default off; # or some other default value
+}
+map $uri $cache {
+    ~*\.(js|css|png|jpe?g|gif|ico|html?)$ 1;
+}
 server {
     listen 80 reuseport;
     server_name _;
     location / {
+        expires $expires;
+        add_header Cache-Control $control;
         proxy_pass http://127.0.0.1:9999;
         proxy_set_header Host $host;
         proxy_buffering on;
