@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d039e62[2021-12-15T15:39:22+08:00]:ngx_demo.sh")
+VERSION+=("0d9f762[2021-12-15T16:45:43+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -527,9 +527,14 @@ function gen_url(r) {
     var d = new Date().valueOf();
     var epoch = Math.floor(d / 1000);
     var secure_link_expires = epoch + secs;
+    try {
     var key = require('crypto').createHash('md5')
         .update(SECRET_KEY).update(secure_link_expires).update(uri)
         .digest('base64url');
+     } catch (err) {
+        r.return(200, JSON.stringify({e:err.message}));
+        return;
+     }
     //r.return(302, `${uri}?k=${key}&e=${secure_link_expires}`);
     r.return(200, `${uri}?k=${key}&e=${secure_link_expires}`);
 }
