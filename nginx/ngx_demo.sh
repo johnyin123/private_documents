@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a6245b0[2021-12-16T08:32:18+08:00]:ngx_demo.sh")
+VERSION+=("c93cc72[2021-12-16T09:38:53+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1554,6 +1554,7 @@ server {
 }
 EOF
 cat <<'EOF' > reverse_proxy_cache.conf
+# ngx does not cache responses if proxy_buffering is set to off. It is on by default.
 # 1MB keys_zone can store data for about 8000 keys
 proxy_cache_path /usr/share/nginx/cache levels=1:2 keys_zone=STATIC:10m inactive=24h max_size=1g;
 map $cache $control {
@@ -1572,6 +1573,9 @@ server {
     location / {
         expires $expires;
         add_header Cache-Control $control;
+        # proxy_cache_bypass $cookie_nocache $arg_nocache $http_pragma;
+        # proxy_cache_methods GET HEAD POST;
+        # proxy_cache_key $proxy_host$request_uri$cookie_jessionid;
         proxy_pass http://127.0.0.1:9999;
         proxy_set_header Host $host;
         proxy_buffering on;
