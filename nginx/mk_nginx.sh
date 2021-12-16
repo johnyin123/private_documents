@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("50df757[2021-12-15T15:15:31+08:00]:mk_nginx.sh")
+VERSION+=("a2f2766[2021-12-16T11:10:48+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -303,11 +303,13 @@ http {
     proxy_next_upstream error timeout invalid_header;
     proxy_intercept_errors on;
     proxy_redirect off;
-    proxy_set_header Host $host:$server_port;
+    proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header Connection "";
+    proxy_pass_header Set-Cookie;
+    proxy_pass_header Server;
     proxy_http_version 1.1;
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
