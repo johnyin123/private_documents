@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cdfc8b6[2021-12-16T12:39:41+08:00]:ngx_demo.sh")
+VERSION+=("01c8b77[2021-12-16T12:40:29+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1318,7 +1318,7 @@ server {
         # proxy_hide_header X-Powered-By;
         # proxy_pass_header X-Powered-By;
         # #Disables processing of certain response header fields from the proxied server.
-        # proxy_ignore_headers Cache-Control Expires Vary;
+        # proxy_ignore_headers Cache-Control Expires Set-Cookie Vary;
         proxy_pass http://127.0.0.1:81/;
     }
 }
