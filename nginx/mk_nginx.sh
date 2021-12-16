@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a2f2766[2021-12-16T11:10:48+08:00]:mk_nginx.sh")
+VERSION+=("5ca2a72[2021-12-16T12:48:56+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -133,6 +133,8 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
  \
 --with-zlib=${ZLIB_DIR} \
  \
+--with-mail=dynamic \
+--with-mail_ssl_module \
 --with-http_geoip_module=dynamic \
 --with-stream_geoip_module=dynamic \
 --with-http_xslt_module=dynamic \
