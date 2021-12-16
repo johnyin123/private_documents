@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e14e51e[2021-12-16T12:38:25+08:00]:ngx_demo.sh")
+VERSION+=("cdfc8b6[2021-12-16T12:39:41+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1690,14 +1690,6 @@ server {
     }
 }
 EOF
-cat <<'EOF' > header.conf
-# copy this file to /etc/nginx/http-conf.d/
-# need headers-more-nginx-module
-# hidden Server: nginx ...
-more_set_headers 'Server: my-server';
-# # OR
-# proxy_pass_header Server;
-EOF
 cat <<'EOF' >addition.conf
 server {
     listen 80 reuseport;
@@ -1764,6 +1756,14 @@ server {
     #     xslt_stylesheet test.xslt;
     # }
 }
+EOF
+cat <<'EOF' > header.conf
+# copy this file to /etc/nginx/http-conf.d/
+# need headers-more-nginx-module
+# hidden Server: nginx ...
+more_set_headers 'Server: my-server';
+# # OR
+# proxy_pass_header Server;
 EOF
 cat <<'EOF'>diag_log_json.conf
 # copy this file to /etc/nginx/http-conf.d/
