@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cde5d5c[2021-12-16T12:53:13+08:00]:ngx_demo.sh")
+VERSION+=("b024d4e[2021-12-16T13:30:29+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1221,6 +1221,8 @@ server {
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        proxy_hide_header x-amz-request-id;
+        proxy_hide_header x-rgw-object-type;
         # #Stops the local disk from being written to (just forwards data through)
         # proxy_max_temp_file_size 0;
         proxy_pass http://ceph_rgw_backend;
