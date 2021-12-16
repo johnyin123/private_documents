@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1d7f3cd[2021-12-15T16:53:04+08:00]:ngx_demo.sh")
+VERSION+=("a6245b0[2021-12-16T08:32:18+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1554,6 +1554,7 @@ server {
 }
 EOF
 cat <<'EOF' > reverse_proxy_cache.conf
+# 1MB keys_zone can store data for about 8000 keys
 proxy_cache_path /usr/share/nginx/cache levels=1:2 keys_zone=STATIC:10m inactive=24h max_size=1g;
 map $cache $control {
     1 "public, no-transform";
