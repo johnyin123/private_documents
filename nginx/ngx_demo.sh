@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e811d61[2021-12-16T12:17:01+08:00]:ngx_demo.sh")
+VERSION+=("90968b5[2021-12-16T12:34:14+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1694,7 +1694,7 @@ cat <<'EOF' > header.conf
 # need headers-more-nginx-module
 # in http_conf.d, for hidden Server: nginx ...
 more_set_headers 'Server: my-server';
-or
+# OR
 proxy_pass_header Server;
 EOF
 cat <<'EOF' >addition.conf
