@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("01c8b77[2021-12-16T12:40:29+08:00]:ngx_demo.sh")
+VERSION+=("cde5d5c[2021-12-16T12:53:13+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1768,7 +1768,7 @@ EOF
 cat <<'EOF'>diag_log_json.conf
 # copy this file to /etc/nginx/http-conf.d/
 js_import diag_log_json.js;
-js_set $json_debug_log json_log.debugLog;
+js_set $json_debug_log diag_log_json.debugLog;
 map $status $is_error {
     # List of response codes that warrant a detailed log file
     400     1; # Bad request, including expired client cert
