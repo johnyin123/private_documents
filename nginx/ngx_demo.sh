@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b024d4e[2021-12-16T13:30:29+08:00]:ngx_demo.sh")
+VERSION+=("95064e0[2021-12-17T06:58:32+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -520,6 +520,7 @@ server {
 }
 EOF
 cat <<'EOF' > secure_link_demo.js
+export default {gen_url};
 function gen_url(r) {
     var SECRET_KEY = 'prekey';
     var uri = r.args['uri'];
@@ -578,7 +579,7 @@ cat <<'EOF' > secure_link_demo.conf
 #     POST)  do_post;;
 #     *)     write_header 405;;
 # esac
-js_include js/secure_link_demo.js;
+js_import secure from js/secure_link_demo.js;
 server {
     listen 80 reuseport;
     server_name _;
@@ -603,7 +604,7 @@ server {
     }
     #curl "http://127.0.0.1/?uri=/validate/stat.js.gz&secs=1000"
     location / {
-        js_content gen_url;
+        js_content secure.gen_url;
     }
 }
 EOF
@@ -1330,7 +1331,7 @@ cat <<'EOF' > js_test.conf
 # curl http://127.0.0.1/?url=www.baidu.com
 # curl http://127.0.0.1/sub
 # curl http://127.0.0.1/json
-js_include js/js_test.js;
+js_import test from js/js_test.js;
 js_set $summary summary;
 server {
     listen 80 reuseport;
@@ -1339,10 +1340,10 @@ server {
     resolver_timeout 5s;
     subrequest_output_buffer_size 20k;
     location / {
-        js_content fetch_url;
+        js_content test.fetch_url;
     }
     location /sub {
-        js_content sub;
+        js_content test.sub;
     }
     location /task {
         internal;
@@ -1352,11 +1353,12 @@ server {
         return 200 $summary;
     }
     location /json {
-        js_content file;
+        js_content test.file;
     }
 }
 EOF
 cat <<'EOF' > js_test.js
+export default {file, get_env, fetch_url, summary, sub};
 var fs = require('fs').promises;
 function file(r) {
     fs.readFile("/etc/nginx/a.json").then((json) => {
@@ -1434,13 +1436,13 @@ cat <<'EOF' >shorturl.conf
 # http_js_module & http_redis_module
 # redis-cli -x set /abcdefg http://www.xxx.com [EX seconds]
 # curl http://127.0.0.1/abcdefg -redirect-> www.xxx.com
-js_include js/shorturl.js;
+js_import short from js/shorturl.js;
 server {
     listen 80 reuseport;
     server_name _;
     subrequest_output_buffer_size 20k;
     location / {
-        js_content shorturl;
+        js_content short.shorturl;
     }
     location /redis {
         internal;
@@ -1450,8 +1452,8 @@ server {
 }
 EOF
 cat <<'EOF' >shorturl.js
+export default {shorturl};
 function shorturl(r) {
-    //r.subrequest('/redis', 'a=b&b=c',
     r.subrequest(
         '/redis', {
             method: 'GET',
@@ -1467,7 +1469,66 @@ function shorturl(r) {
     )
 }
 EOF
+cat <<'EOF' >download_code.js
+export default {check};
+function check(r) {
+    r.subrequest(
+        '/redis', {
+            method: 'GET',
+            args: `key=${r.uri}`,
+        },
+        function(res) {
+            if (res.status != 200) {
+                r.return(res.status);
+                return;
+            }
+            if (res.responseBody != r.variables.arg_code) {
+                r.return(403, "code error");
+                return;
+            }
+            r.internalRedirect('/download' + r.uri);
+        }
+    )
+}
+EOF
+cat <<'EOF' >download_code.conf
+# http_js_module & http_redis_module
+# redis-cli -x set /public-bucket/fu 9901 [EX seconds]
+# curl http//127.0.0.1/public-bucket/fu?code=xxxx
+upstream ceph_rgw_backend {
+    server 192.168.168.131:80;
+    keepalive 64;
+}
+js_path "/etc/nginx/js/";
+js_import download from download_code.js;
+server {
+    listen 80 reuseport;
+    server_name _;
+    subrequest_output_buffer_size 20k;
+    location / {
+        js_content download.check;
+    }
+    location /redis {
+        internal;
+        set $redis_key "$arg_key";
+        redis_pass 127.0.0.1:6379;
+    }
+    location ~ /download/(.*) {
+        internal;
+        proxy_redirect off;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_hide_header x-amz-request-id;
+        proxy_hide_header x-rgw-object-type;
+        proxy_pass http://ceph_rgw_backend/$1;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+    }
+}
+EOF
 cat <<'EOF' > secure_link_hash.js
+export default {secret_key, create_secure_link};
 function secret_key(r) {
     return process.env.SECRET_KEY;
 }
@@ -1476,15 +1537,13 @@ function create_secure_link(r) {
                             .update(r.uri).update(process.env.SECRET_KEY)
                             .digest('base64url');
 }
-export default {secret_key, create_secure_link}
 EOF
 cat <<'EOF' > secure_link_hash.conf
 # mkdir -p /etc/nginx/njs/
 # cp secure_link_hash.js /etc/nginx/njs/
 # sed -i "/env\s*SECRET_KEY/d" /etc/nginx/nginx.conf
 # echo "env SECRET_KEY;" >> /etc/nginx/nginx.conf
-js_path "/etc/nginx/njs/";
-js_import main from secure_link_hash.js;
+js_import main from js/secure_link_hash.js;
 js_set $new_foo main.create_secure_link;
 js_set $secret_key main.secret_key;
 server {
@@ -1769,7 +1828,7 @@ more_set_headers 'Server: my-server';
 EOF
 cat <<'EOF'>diag_log_json.conf
 # copy this file to /etc/nginx/http-conf.d/
-js_import diag_log_json.js;
+js_import js/diag_log_json.js;
 js_set $json_debug_log diag_log_json.debugLog;
 map $status $is_error {
     # List of response codes that warrant a detailed log file
