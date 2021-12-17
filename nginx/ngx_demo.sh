@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("95064e0[2021-12-17T06:58:32+08:00]:ngx_demo.sh")
+VERSION+=("d8b9937[2021-12-17T08:33:46+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1071,38 +1071,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > s3_list_xslt.conf
-upstream ceph_rgw_backend {
-    server 192.168.168.131:80;
-    keepalive 64;
-}
-server {
-    listen 80 reuseport;
-    server_name _;
-    location / {
-        proxy_redirect off;
-        # header_more module remove x-amz-request-id
-        more_clear_headers 'x-amz*';
-        # OR
-        # #remove x-amz-request-id
-        # proxy_hide_header x-amz-request-id;
-        proxy_set_header X-Forwarded-For $remote_addr;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        # #Stops the local disk from being written to (just forwards data through)
-        # proxy_max_temp_file_size 0;
-
-        # Apply XSL transformation to the XML returned from S3 directory listing
-        xslt_stylesheet /etc/nginx/http-available/s3_list.xsl;
-        xslt_types application/xml;
-
-        proxy_pass http://ceph_rgw_backend/public-bucket$uri;
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
-    }
-}
-EOF
-cat <<'EOF' > s3_list.xsl
+cat <<'EOF' > aws_s3_list.xslt
 <?xml version="1.0"?>
 <xsl:stylesheet version="1.1" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
     <xsl:output method="html" encoding="utf-8" indent="yes"/>
@@ -1207,6 +1176,7 @@ EOF
 cat <<'EOF' > aws_s3auth.conf
 # njs s3: git clone https://github.com/nginxinc/nginx-s3-gateway.git
 # public-bucket MUST set bucket-policy.py to all read/write
+# curl http://127.0.0.1:81/public-bucket OUTPUT html by xslt module
 upstream ceph_rgw_backend {
     server 192.168.168.131:80;
     server 192.168.168.132:80;
@@ -1224,8 +1194,13 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_hide_header x-amz-request-id;
         proxy_hide_header x-rgw-object-type;
+        # # header_more module remove x-amz-request-id
+        # more_clear_headers 'x-amz*';
         # #Stops the local disk from being written to (just forwards data through)
         # proxy_max_temp_file_size 0;
+        # Apply XSL transformation to the XML returned from S3 directory listing
+        xslt_stylesheet /etc/nginx/http-available/aws_s3_list.xslt;
+        xslt_types application/xml;
         proxy_pass http://ceph_rgw_backend;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
