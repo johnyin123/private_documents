@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d8b9937[2021-12-17T08:33:46+08:00]:ngx_demo.sh")
+VERSION+=("492e479[2021-12-17T08:46:43+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1454,10 +1454,12 @@ function check(r) {
         },
         function(res) {
             if (res.status != 200) {
+                r.headersOut['Content-Type'] = "text/html; charset=utf-8";
                 r.return(res.status);
                 return;
             }
             if (res.responseBody != r.variables.arg_code) {
+                r.headersOut['Content-Type'] = "text/html; charset=utf-8";
                 r.return(403, "code error");
                 return;
             }
@@ -1469,7 +1471,7 @@ EOF
 cat <<'EOF' >download_code.conf
 # http_js_module & http_redis_module
 # redis-cli -x set /public-bucket/fu 9901 [EX seconds]
-# curl http//127.0.0.1/public-bucket/fu?code=xxxx
+# curl http://127.0.0.1/public-bucket/fu?code=xxxx
 upstream ceph_rgw_backend {
     server 192.168.168.131:80;
     keepalive 64;
@@ -1480,7 +1482,19 @@ server {
     listen 80 reuseport;
     server_name _;
     subrequest_output_buffer_size 20k;
+    location = /favicon.ico { access_log off; log_not_found off; return 204; }
     location / {
+        error_page 403 = @error403;
+        if ($uri = '/') { return 200 "message"; }
+        if ($arg_code = '') {
+            add_header 'Content-Type' 'text/html charset=UTF-8';
+            return 200 '<html><head></head><body>
+<form method="GET" action="">
+<input type="text" name="code" />
+<button type="submit">Download</button>
+</form>
+</body></html>';
+        }
         js_content download.check;
     }
     location /redis {
