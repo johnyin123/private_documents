@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7bc6f76[2021-12-16T15:12:28+08:00]:mk_nginx.sh")
+VERSION+=("f0e3f2e[2021-12-17T13:27:24+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -40,8 +40,8 @@ git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git
 git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git
 git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git
 git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng
-git clone https://github.com/google/ngx_brotli.git
-cd ngx_brotli && git submodule update --init
+git clone https://github.com/google/ngx_brotli.git && cd ngx_brotli && git submodule update --init
+# git clone https://github.com/mdirolf/nginx-gridfs.git &&  cd nginx-gridfs && git submodule update --init
 git clone --depth 1 https://github.com/osokin/ngx_http_redis.git
 # eval coredump
 # git clone --depth 1 https://github.com/vkholodkov/nginx-eval-module.git
