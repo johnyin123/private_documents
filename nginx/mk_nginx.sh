@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ea352bb[2021-12-16T15:06:33+08:00]:mk_nginx.sh")
+VERSION+=("7bc6f76[2021-12-16T15:12:28+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -40,6 +40,8 @@ git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git
 git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git
 git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git
 git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng
+git clone https://github.com/google/ngx_brotli.git
+cd ngx_brotli && git submodule update --init
 git clone --depth 1 https://github.com/osokin/ngx_http_redis.git
 # eval coredump
 # git clone --depth 1 https://github.com/vkholodkov/nginx-eval-module.git
@@ -61,6 +63,7 @@ OPENSSL_DIR=${DIRNAME}/openssl-1.1.1l
 PCRE_DIR=${DIRNAME}/pcre-8.45 #latest version pcre, no pcre2 support now
 ZLIB_DIR=${DIRNAME}/zlib
 STICKY_MODULE_DIR=${DIRNAME}/nginx-sticky-module-ng
+BROTLI_DIR=${DIRNAME}/ngx_brotli
 LIMIT_SPEED_MODULE_DIR=${DIRNAME}/nginx_limit_speed_module
 VTS_MODULE_DIR=${DIRNAME}/nginx-module-vts
 NJS_DIR=${DIRNAME}/njs
@@ -144,6 +147,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 --add-dynamic-module=${HTTP_REDIS_DIR} \
 --add-dynamic-module=${VTS_MODULE_DIR} \
 --add-dynamic-module=${HEADERS_MORE_DIR} \
+--add-dynamic-module=${BROTLI_DIR} \
  \
 --add-module=${STICKY_MODULE_DIR} \
 --add-module=${LIMIT_SPEED_MODULE_DIR} \
