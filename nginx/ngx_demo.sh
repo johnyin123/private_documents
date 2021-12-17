@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("492e479[2021-12-17T08:46:43+08:00]:ngx_demo.sh")
+VERSION+=("6a5d6ed[2021-12-17T10:24:28+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -236,6 +236,8 @@ server {
     location / {
         # cache !!!!
         set $redis_key $uri;
+        set $redis_db 0;
+        set $redis_auth PASSWORD;
         redis_pass     redis;
         default_type   text/html;
         error_page     404 = @fallback;
@@ -1499,6 +1501,8 @@ server {
     }
     location /redis {
         internal;
+        set $redis_db 0;
+        set $redis_auth PASSWORD;
         set $redis_key "$arg_key";
         redis_pass 127.0.0.1:6379;
     }
