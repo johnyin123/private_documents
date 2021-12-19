@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8b6f0fd[2021-12-17T13:39:39+08:00]:mk_nginx.sh")
+VERSION+=("90fcc57[2021-12-17T14:01:36+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -19,12 +19,29 @@ declare -A stage=(
     [configure]=40
     [pcre]=50
     [openssl]=60
-    )
+)
 set +o nounset
 stage_level=${stage[${1:-doall}]}
 set -o nounset
 stage_level=${stage_level:?"PKG=deb ${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
 
+EXT_MODULES="${EXT_MODULES}"
+NGINX_DIR=${DIRNAME}/nginx
+OPENSSL_DIR=${DIRNAME}/openssl-1.1.1l
+PCRE_DIR=${DIRNAME}/pcre-8.45 #latest version pcre, no pcre2 support now
+ZLIB_DIR=${DIRNAME}/zlib
+declare -A STATIC_MODULES=(
+    [stick_module]=${DIRNAME}/nginx-sticky-module-ng
+    [limit_speed_module]=${DIRNAME}/nginx_limit_speed_module
+)
+declare -A DYNAMIC_MODULES=(
+    [njs_module]=${DIRNAME}/njs/nginx
+    [rtmp_module]=${DIRNAME}/nginx-rtmp-module
+    [redis_module]=${DIRNAME}/ngx_http_redis
+    [vts_module]=${DIRNAME}/nginx-module-vts
+    [headers_more_module]=${DIRNAME}/headers-more-nginx-module
+    [brotli_module]=${DIRNAME}/ngx_brotli
+)
 cat <<'EOF'
 ZLIB       https://zlib.net/
 PCRE       https://www.pcre.org
@@ -58,19 +75,14 @@ auto/lib/openssl/conf
  41             CORE_LIBS="$CORE_LIBS $OPENSSL/lib/libssl.a"
  42             CORE_LIBS="$CORE_LIBS $OPENSSL/lib/libcrypto.a"
 EOF
-
-NGINX_DIR=${DIRNAME}/nginx
-OPENSSL_DIR=${DIRNAME}/openssl-1.1.1l
-PCRE_DIR=${DIRNAME}/pcre-8.45 #latest version pcre, no pcre2 support now
-ZLIB_DIR=${DIRNAME}/zlib
-STICKY_MODULE_DIR=${DIRNAME}/nginx-sticky-module-ng
-BROTLI_DIR=${DIRNAME}/ngx_brotli
-LIMIT_SPEED_MODULE_DIR=${DIRNAME}/nginx_limit_speed_module
-VTS_MODULE_DIR=${DIRNAME}/nginx-module-vts
-NJS_DIR=${DIRNAME}/njs
-RTMP_MODULE_DIR=${DIRNAME}/nginx-rtmp-module
-HTTP_REDIS_DIR=${DIRNAME}/ngx_http_redis
-HEADERS_MORE_DIR=${DIRNAME}/headers-more-nginx-module
+check_requre_dirs() {
+    local dir=""
+    for dir in $@ ; do
+        [ -d "${dir}" ] || { echo "${dir} not exists!!"; exit 1; }
+        echo "${dir} OK"
+    done
+}
+check_requre_dirs "${NGINX_DIR}" "${OPENSSL_DIR}" "${PCRE_DIR}" "${ZLIB_DIR}" "${STATIC_MODULES[@]}" "${DYNAMIC_MODULES[@]}"
 
 [ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
     && make build_libs && make install_sw LIBDIR=lib
@@ -89,6 +101,13 @@ echo "http_geoip_module needs libgeoip-dev"
 export PATH=$PATH:${PCRE_DIR}
 export NJS_CC_OPT="-L${OPENSSL_DIR}/.openssl/lib"
 echo "PCRE OK **************************************************"
+for mod in "${STATIC_MODULES[@]}"; do
+    EXT_MODULES+=" --add-module=${mod}"
+done
+for mod in "${DYNAMIC_MODULES[@]}"; do
+    EXT_MODULES+=" --add-dynamic-module=${mod}"
+done
+
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 [ ${stage_level} -ge ${stage[configure]} ] && cd ${NGINX_DIR} && ./configure --prefix=/usr/share/nginx \
 --user=nginx \
@@ -142,17 +161,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 --with-http_geoip_module=dynamic \
 --with-stream_geoip_module=dynamic \
 --with-http_xslt_module=dynamic \
- \
---add-dynamic-module=${NJS_DIR}/nginx \
---add-dynamic-module=${RTMP_MODULE_DIR} \
---add-dynamic-module=${HTTP_REDIS_DIR} \
---add-dynamic-module=${VTS_MODULE_DIR} \
---add-dynamic-module=${HEADERS_MORE_DIR} \
---add-dynamic-module=${BROTLI_DIR} \
- \
---add-module=${STICKY_MODULE_DIR} \
---add-module=${LIMIT_SPEED_MODULE_DIR} \
- \
+${EXT_MODULES}
 
 TMP_VER=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 echo "${TMP_VER}**************************************************"
