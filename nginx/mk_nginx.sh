@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("90fcc57[2021-12-17T14:01:36+08:00]:mk_nginx.sh")
+VERSION+=("680e6fc[2021-12-19T08:21:13+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -64,6 +64,9 @@ git clone --depth 1 https://github.com/osokin/ngx_http_redis.git
 # eval coredump
 # git clone --depth 1 https://github.com/vkholodkov/nginx-eval-module.git
 git clone https://github.com/openresty/headers-more-nginx-module.git
+
+    "http_xslt_module needs libxml2-dev libxslt1-dev"
+    "http_geoip_module needs libgeoip-dev"
 EOF
 :<<"EOF"
 for SM2 ssl replace:
@@ -94,8 +97,6 @@ check_requre_dirs "${NGINX_DIR}" "${OPENSSL_DIR}" "${PCRE_DIR}" "${ZLIB_DIR}" "$
     make
 # njs configure need expect
 # expect -v || sudo apt install expect
-echo "http_xslt_module needs libxml2-dev libxslt1-dev"
-echo "http_geoip_module needs libgeoip-dev"
 
 # for njs pcre-config command!
 export PATH=$PATH:${PCRE_DIR}
