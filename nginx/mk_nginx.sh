@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("14f8e79[2021-12-19T08:24:48+08:00]:mk_nginx.sh")
+VERSION+=("154391c[2021-12-19T08:31:40+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -29,17 +29,23 @@ NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl-1.1.1l
 PCRE_DIR=${DIRNAME}/pcre-8.45 #latest version pcre, no pcre2 support now
 ZLIB_DIR=${DIRNAME}/zlib
+declare -A NGINX_BASE=(
+    [git clone --depth 1 --branch release-1.20.2 https://github.com/nginx/nginx.git]=${NGINX_DIR}
+    [https://www.openssl.org/source/]=${OPENSSL_DIR}
+    [https://sourceforge.net/projects/pcre/files/pcre/]=${PCRE_DIR}
+    [https://zlib.net/]=${ZLIB_DIR}
+)
 declare -A STATIC_MODULES=(
-    [stick_module]=${DIRNAME}/nginx-sticky-module-ng
-    [limit_speed_module]=${DIRNAME}/nginx_limit_speed_module
+    [git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng]=${DIRNAME}/nginx-sticky-module-ng
+    [git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git]=${DIRNAME}/nginx_limit_speed_module
 )
 declare -A DYNAMIC_MODULES=(
-    [njs_module]=${DIRNAME}/njs/nginx
-    [rtmp_module]=${DIRNAME}/nginx-rtmp-module
-    [redis_module]=${DIRNAME}/ngx_http_redis
-    [vts_module]=${DIRNAME}/nginx-module-vts
-    [headers_more_module]=${DIRNAME}/headers-more-nginx-module
-    [brotli_module]=${DIRNAME}/ngx_brotli
+    [git clone --depth 1 https://github.com/nginx/njs.git]=${DIRNAME}/njs/nginx
+    [git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git]=${DIRNAME}/nginx-rtmp-module
+    [git clone --depth 1 https://github.com/osokin/ngx_http_redis.git]=${DIRNAME}/ngx_http_redis
+    [git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git]=${DIRNAME}/nginx-module-vts
+    [git clone --depth 1 https://github.com/openresty/headers-more-nginx-module.git]=${DIRNAME}/headers-more-nginx-module
+    [git clone --recursive https://github.com/google/ngx_brotli.git]=${DIRNAME}/ngx_brotli
 )
 
 EXT_MODULES=(
@@ -68,31 +74,14 @@ EXT_MODULES=(
     "--with-http_xslt_module=dynamic"
 )
 
-cat <<'EOF'
-ZLIB       https://zlib.net/
-PCRE       https://www.pcre.org
-           https://sourceforge.net/projects/pcre/files/pcre/
-OPENSSL    https://www.openssl.org/source/
-    debian:libpcre3-dev libssl-dev zlib1g-dev libxml2-dev libxslt1-dev libgeoip-dev
-    centos:pcre-devel openssl-devel zlib-devel libxml2-devel libxslt-devel GeoIP-devel
-tag_name=release-1.20.2
-git clone --depth 1 --branch ${tag_name} https://github.com/nginx/nginx.git
-git clone --depth 1 https://github.com/nginx/njs.git
-git clone --depth 1 https://github.com/nginx/njs-examples.git
-git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git
-git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git
-git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git
-git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng
-git clone --recursive https://github.com/google/ngx_brotli.git
+:<<'EOF'
+# git clone --depth 1 https://github.com/nginx/njs-examples.git
 # git clone https://github.com/google/ngx_brotli.git && cd ngx_brotli && git submodule update --init
 # git clone https://github.com/mdirolf/nginx-gridfs.git && cd nginx-gridfs && git submodule update --init
-git clone --depth 1 https://github.com/osokin/ngx_http_redis.git
 # eval coredump
 # git clone --depth 1 https://github.com/vkholodkov/nginx-eval-module.git
-git clone https://github.com/openresty/headers-more-nginx-module.git
-
-    "http_xslt_module needs libxml2-dev libxslt1-dev"
-    "http_geoip_module needs libgeoip-dev"
+    "http_xslt_module needs libxml2-dev libxslt1-dev, http_geoip_module needs libgeoip-dev"
+    centos: libxml2-devel libxslt-devel GeoIP-devel
 EOF
 :<<"EOF"
 for SM2 ssl replace:
@@ -111,7 +100,8 @@ check_requre_dirs() {
         echo "${dir} OK"
     done
 }
-check_requre_dirs "${NGINX_DIR}" "${OPENSSL_DIR}" "${PCRE_DIR}" "${ZLIB_DIR}" "${STATIC_MODULES[@]}" "${DYNAMIC_MODULES[@]}"
+printf '%s\n' "${!NGINX_BASE[@]}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULES[@]}"
+check_requre_dirs "${NGINX_BASE[@]}" "${STATIC_MODULES[@]}" "${DYNAMIC_MODULES[@]}"
 
 [ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
     && make build_libs && make install_sw LIBDIR=lib
@@ -162,7 +152,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
  \
 --with-zlib=${ZLIB_DIR} \
  \
-${EXT_MODULES}
+${EXT_MODULES[@]}
 
 TMP_VER=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 echo "${TMP_VER}**************************************************"
