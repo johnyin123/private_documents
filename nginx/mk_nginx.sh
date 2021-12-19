@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("680e6fc[2021-12-19T08:21:13+08:00]:mk_nginx.sh")
+VERSION+=("14f8e79[2021-12-19T08:24:48+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -25,7 +25,6 @@ stage_level=${stage[${1:-doall}]}
 set -o nounset
 stage_level=${stage_level:?"PKG=deb ${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
 
-EXT_MODULES="${EXT_MODULES}"
 NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl-1.1.1l
 PCRE_DIR=${DIRNAME}/pcre-8.45 #latest version pcre, no pcre2 support now
@@ -42,6 +41,33 @@ declare -A DYNAMIC_MODULES=(
     [headers_more_module]=${DIRNAME}/headers-more-nginx-module
     [brotli_module]=${DIRNAME}/ngx_brotli
 )
+
+EXT_MODULES=(
+    "--with-http_ssl_module"
+    "--with-http_realip_module"
+    "--with-http_addition_module"
+    "--with-http_sub_module"
+    "--with-http_gunzip_module"
+    "--with-http_gzip_static_module"
+    "--with-http_auth_request_module"
+    "--with-http_secure_link_module"
+    "--with-http_slice_module"
+    "--with-http_stub_status_module"
+    "--with-http_random_index_module"
+    "--with-http_dav_module"
+    "--with-http_flv_module"
+    "--with-http_mp4_module"
+    "--with-stream"
+    "--with-stream_ssl_module"
+    "--with-stream_realip_module"
+    "--with-stream_ssl_preread_module"
+    "--with-mail=dynamic"
+    "--with-mail_ssl_module"
+    "--with-http_geoip_module=dynamic"
+    "--with-stream_geoip_module=dynamic"
+    "--with-http_xslt_module=dynamic"
+)
+
 cat <<'EOF'
 ZLIB       https://zlib.net/
 PCRE       https://www.pcre.org
@@ -103,10 +129,10 @@ export PATH=$PATH:${PCRE_DIR}
 export NJS_CC_OPT="-L${OPENSSL_DIR}/.openssl/lib"
 echo "PCRE OK **************************************************"
 for mod in "${STATIC_MODULES[@]}"; do
-    EXT_MODULES+=" --add-module=${mod}"
+    EXT_MODULES+=("--add-module=${mod}")
 done
 for mod in "${DYNAMIC_MODULES[@]}"; do
-    EXT_MODULES+=" --add-dynamic-module=${mod}"
+    EXT_MODULES+=("--add-dynamic-module=${mod}")
 done
 
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
@@ -134,34 +160,8 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 --with-debug \
 --with-compat \
  \
---with-http_ssl_module \
---with-http_realip_module \
---with-http_addition_module \
---with-http_sub_module \
---with-http_gunzip_module \
---with-http_gzip_static_module \
---with-http_auth_request_module \
---with-http_secure_link_module \
---with-http_slice_module \
---with-http_stub_status_module \
---with-http_random_index_module \
---with-http_dav_module \
- \
---with-http_flv_module \
---with-http_mp4_module \
- \
---with-stream \
---with-stream_ssl_module \
---with-stream_realip_module \
---with-stream_ssl_preread_module \
- \
 --with-zlib=${ZLIB_DIR} \
  \
---with-mail=dynamic \
---with-mail_ssl_module \
---with-http_geoip_module=dynamic \
---with-stream_geoip_module=dynamic \
---with-http_xslt_module=dynamic \
 ${EXT_MODULES}
 
 TMP_VER=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
