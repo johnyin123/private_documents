@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7e7e23e[2021-12-20T08:08:18+08:00]:mk_nginx.sh")
+VERSION+=("a43d5bd[2021-12-20T09:03:11+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -25,7 +25,7 @@ stage_level=${stage[${1:-doall}]}
 set -o nounset
 stage_level=${stage_level:?"NGINX_RELEASE=release-1.20.2 PKG=deb ${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
 NGINX_RELEASE=${NGINX_RELEASE:-release-1.20.2}
-
+CC_OPTS="-O3"
 NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl
 PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, no pcre2 support now
@@ -130,7 +130,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 [ ${stage_level} -ge ${stage[configure]} ] && cd ${NGINX_DIR} && ./configure --prefix=/usr/share/nginx \
 --user=nginx \
 --group=nginx \
---with-cc-opt="$(pcre-config --cflags) -I${OPENSSL_DIR}/.openssl/include" \
+--with-cc-opt="${CC_OPTS} $(pcre-config --cflags) -I${OPENSSL_DIR}/.openssl/include" \
 --with-ld-opt="$(pcre-config --libs) -L${OPENSSL_DIR}/.openssl/lib" \
 --with-pcre \
 --sbin-path=/usr/sbin/nginx \
