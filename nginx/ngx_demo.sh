@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1f245ad[2021-12-17T10:34:40+08:00]:ngx_demo.sh")
+VERSION+=("be22803[2021-12-20T09:16:31+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1816,6 +1816,44 @@ server {
     #     xslt_stylesheet test.xslt;
     # }
 }
+EOF
+cat <<'EOF' > brotli-compress.conf
+brotli on;
+brotli_comp_level 6;
+brotli_buffers 16 8k;
+brotli_min_length 1024;
+brotli_types
+  application/atom+xml
+  application/geo+json
+  application/javascript
+  application/x-javascript
+  application/json
+  application/ld+json
+  application/manifest+json
+  application/rdf+xml
+  application/rss+xml
+  application/vnd.ms-fontobject
+  application/wasm
+  application/x-web-app-manifest+json
+  application/xhtml+xml
+  application/xml
+  font/eot
+  font/otf
+  font/ttf
+  image/bmp
+  image/svg+xml
+  text/cache-manifest
+  text/calendar
+  text/css
+  text/javascript
+  text/markdown
+  text/plain
+  text/xml
+  text/vcard
+  text/vnd.rim.location.xloc
+  text/vtt
+  text/x-component
+  text/x-cross-domain-policy;
 EOF
 cat <<'EOF' > header.conf
 # copy this file to /etc/nginx/http-conf.d/
