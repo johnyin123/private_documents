@@ -16,6 +16,15 @@ def build_pattern(log_format):
     pattern = re.sub(REGEX_LOG_FORMAT_VARIABLE, '(?P<\\1>.*)', pattern)
     return re.compile(pattern)
 
+def extract_variables(log_format):
+    """
+    Extract all variables from a log format string.
+    :param log_format: format string to extract
+    :return: iterator over all variables in given format string
+    """
+    for match in re.findall(REGEX_LOG_FORMAT_VARIABLE, log_format):
+        yield match
+
 def map_field(field, func, dict_sequence):
     """
     Apply given function to value of given key in every dictionary in sequence and
@@ -79,6 +88,10 @@ def parse_log(lines, pattern):
     records = add_field('request_path', parse_request_path, records)
     return records
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import  String,Column,Integer,DateTime
 def main():
     args = {
             "log-format": '$scheme $http_host $server_port "$upstream_addr" [$request_time|"$upstream_response_time"|"$upstream_status"] $remote_addr - $remote_user [$time_local] "$request" $status $request_length $bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $gzip_ratio',
@@ -96,15 +109,28 @@ def main():
     pattern = build_pattern(args["log-format"])
     try:
         records = parse_log(access_log, pattern)
+
+        DATABASE_URI="sqlite:///./access.sqlite"
+        #DATABASE_URI="mysql+pymysql://admin:password@10.0.2.10:3306/log?charset=utf8"
+        engine = create_engine(DATABASE_URI)#, pool_size=1, max_overflow=0)
+        Session = scoped_session(sessionmaker(bind=engine, autoflush=False, expire_on_commit=False))
+        conn = Session()
+        tabname="access"
+        fields = [r for r in extract_variables(args["log-format"])]
+        if not engine.dialect.has_table(engine, tabname, schema = None):  # If table don't exist, Create.
+            logging.debug('create table :%s\n', tabname)
+            create_table = 'create table {} ({})'.format(tabname, ','.join(fields))
+            conn.execute(create_table)
+        sql = "insert into {} ({}) values ({}) ".format(tabname, ','.join(fields), ','.join(':%s' % var for var in fields))
         for r in records:
-            print(r["http_host"])
-            print(r["upstream_addr"])
-            print(r["bytes_sent"])
-            print(r["request_length"])
-            print(r["upstream_response_time"])
+            conn.execute(sql, r)
+        conn.commit()
     except KeyboardInterrupt:
+        conn.commit()
         logging.info("interrupt signal received")
         sys.exit(0)
 
 if __name__ == '__main__':
     main()
+# select sum(request_length) as recv ,sum(bytes_sent) as send from access;
+# select http_host, upstream_addr, sum(request_length) as recv ,sum(bytes_sent) as send, sum(request_length + bytes_sent) as total from access group by upstream_addr order by total desc;
