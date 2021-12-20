@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("154391c[2021-12-19T08:31:40+08:00]:mk_nginx.sh")
+VERSION+=("2577b9d[2021-12-19T08:58:42+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -23,29 +23,30 @@ declare -A stage=(
 set +o nounset
 stage_level=${stage[${1:-doall}]}
 set -o nounset
-stage_level=${stage_level:?"PKG=deb ${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
+stage_level=${stage_level:?"NGINX_RELEASE=release-1.20.2 PKG=deb ${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
+NGINX_RELEASE=${NGINX_RELEASE:-release-1.20.2}
 
 NGINX_DIR=${DIRNAME}/nginx
-OPENSSL_DIR=${DIRNAME}/openssl-1.1.1l
-PCRE_DIR=${DIRNAME}/pcre-8.45 #latest version pcre, no pcre2 support now
+OPENSSL_DIR=${DIRNAME}/openssl
+PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, no pcre2 support now
 ZLIB_DIR=${DIRNAME}/zlib
 declare -A NGINX_BASE=(
-    [git clone --depth 1 --branch release-1.20.2 https://github.com/nginx/nginx.git]=${NGINX_DIR}
-    [https://www.openssl.org/source/]=${OPENSSL_DIR}
-    [https://sourceforge.net/projects/pcre/files/pcre/]=${PCRE_DIR}
-    [https://zlib.net/]=${ZLIB_DIR}
+    [${NGINX_DIR}]="git clone --depth 1 --branch ${NGINX_RELEASE} https://github.com/nginx/nginx.git"
+    [${OPENSSL_DIR}]="wget --no-check-certificate -O openssl.tar.gz https://www.openssl.org/source/openssl-1.1.1m.tar.gz"
+    [${PCRE_DIR}]="wget --no-check-certificate -O pcre.tar.gz https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz/download"
+    [${ZLIB_DIR}]="wget --no-check-certificate -O zlib.tar.gz https://zlib.net/zlib-1.2.11.tar.gz"
 )
 declare -A STATIC_MODULES=(
-    [git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng]=${DIRNAME}/nginx-sticky-module-ng
-    [git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git]=${DIRNAME}/nginx_limit_speed_module
+    [${DIRNAME}/nginx-sticky-module-ng]="git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng"
+    [${DIRNAME}/nginx_limit_speed_module]="git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git"
 )
 declare -A DYNAMIC_MODULES=(
-    [git clone --depth 1 https://github.com/nginx/njs.git]=${DIRNAME}/njs/nginx
-    [git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git]=${DIRNAME}/nginx-rtmp-module
-    [git clone --depth 1 https://github.com/osokin/ngx_http_redis.git]=${DIRNAME}/ngx_http_redis
-    [git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git]=${DIRNAME}/nginx-module-vts
-    [git clone --depth 1 https://github.com/openresty/headers-more-nginx-module.git]=${DIRNAME}/headers-more-nginx-module
-    [git clone --recursive https://github.com/google/ngx_brotli.git]=${DIRNAME}/ngx_brotli
+    [${DIRNAME}/njs/nginx]="git clone --depth 1 https://github.com/nginx/njs.git"
+    [${DIRNAME}/nginx-rtmp-module]="git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git"
+    [${DIRNAME}/ngx_http_redis]="git clone --depth 1 https://github.com/osokin/ngx_http_redis.git"
+    [${DIRNAME}/nginx-module-vts]="git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git"
+    [${DIRNAME}/headers-more-nginx-module]="git clone --depth 1 https://github.com/openresty/headers-more-nginx-module.git"
+    [${DIRNAME}/ngx_brotli]="git clone --recursive https://github.com/google/ngx_brotli.git"
 )
 
 EXT_MODULES=(
@@ -96,12 +97,12 @@ EOF
 check_requre_dirs() {
     local dir=""
     for dir in $@ ; do
-        [ -d "${dir}" ] || { echo "${dir} not exists!!"; exit 1; }
-        echo "${dir} OK"
+        [ -d "${dir}" ] || { echo "[FAILED] ${dir} not exists!!"; exit 1; }
+        echo "[OK] ${dir}"
     done
 }
-printf '%s\n' "${!NGINX_BASE[@]}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULES[@]}"
-check_requre_dirs "${NGINX_BASE[@]}" "${STATIC_MODULES[@]}" "${DYNAMIC_MODULES[@]}"
+printf '%s\n' "${NGINX_BASE[@]}" "${STATIC_MODULES[@]}" "${DYNAMIC_MODULES[@]}"
+check_requre_dirs "${!NGINX_BASE[@]}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULES[@]}"
 
 [ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
     && make build_libs && make install_sw LIBDIR=lib
@@ -110,7 +111,7 @@ check_requre_dirs "${NGINX_BASE[@]}" "${STATIC_MODULES[@]}" "${DYNAMIC_MODULES[@
     ./configure --disable-shared --enable-jit \
     --disable-cpp \
     --libdir=${PCRE_DIR}/.libs/ --includedir=${PCRE_DIR} && \
-    make
+    make -j8
 # njs configure need expect
 # expect -v || sudo apt install expect
 
@@ -118,10 +119,10 @@ check_requre_dirs "${NGINX_BASE[@]}" "${STATIC_MODULES[@]}" "${DYNAMIC_MODULES[@
 export PATH=$PATH:${PCRE_DIR}
 export NJS_CC_OPT="-L${OPENSSL_DIR}/.openssl/lib"
 echo "PCRE OK **************************************************"
-for mod in "${STATIC_MODULES[@]}"; do
+for mod in "${!STATIC_MODULES[@]}"; do
     EXT_MODULES+=("--add-module=${mod}")
 done
-for mod in "${DYNAMIC_MODULES[@]}"; do
+for mod in "${!DYNAMIC_MODULES[@]}"; do
     EXT_MODULES+=("--add-dynamic-module=${mod}")
 done
 
@@ -157,7 +158,7 @@ ${EXT_MODULES[@]}
 TMP_VER=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 echo "${TMP_VER}**************************************************"
 sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${TMP_VER}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
-[ ${stage_level} -ge ${stage[make]} ] && cd ${NGINX_DIR} && make
+[ ${stage_level} -ge ${stage[make]} ] && cd ${NGINX_DIR} && make -j8
 OUTDIR=${DIRNAME}/out
 mkdir -p ${OUTDIR}
 [ ${stage_level} -ge ${stage[install]} ] && rm -rf ${OUTDIR}/* && cd ${NGINX_DIR} && make install DESTDIR=${OUTDIR}
