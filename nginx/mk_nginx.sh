@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2577b9d[2021-12-19T08:58:42+08:00]:mk_nginx.sh")
+VERSION+=("7e7e23e[2021-12-20T08:08:18+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -262,6 +262,8 @@ map $status $log_err {
 #    504 1;
     default 0;
 }
+
+# log_subrequest on;
 access_log /var/log/nginx/access_err.log main if=$log_err;
 access_log /var/log/nginx/access.log main if=$log_ip;
 # separate access logs from requests of two different domains
