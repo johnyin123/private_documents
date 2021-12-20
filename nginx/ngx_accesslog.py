@@ -134,3 +134,4 @@ if __name__ == '__main__':
     main()
 # select sum(request_length) as recv ,sum(bytes_sent) as send from access;
 # select http_host, upstream_addr, sum(request_length) as recv ,sum(bytes_sent) as send, sum(request_length + bytes_sent) as total from access group by upstream_addr order by total desc;
+# select remote_addr, sum(request_length) as recv, sum(bytes_sent) as send, sum(request_length+bytes_sent) as total  from access group by remote_addr order by total desc;
