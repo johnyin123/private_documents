@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6a5d6ed[2021-12-17T10:24:28+08:00]:ngx_demo.sh")
+VERSION+=("1f245ad[2021-12-17T10:34:40+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -190,9 +190,15 @@ server {
 }
 EOF
 cat <<'EOF' >static_dynamic.conf
+map $http_user_agent $badagent {
+    default    0;
+    ~*backdoor 1;
+    ~webbandit 1;
+}
 server {
     listen 80 reuseport;
     server_name _;
+    if ($badagent) { return 403; }
     # serve static files
     location ~ ^/(images|javascript|js|css|flash|media|static)/ {
         alias /var/www/;
