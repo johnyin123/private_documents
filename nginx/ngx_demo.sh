@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("be22803[2021-12-20T09:16:31+08:00]:ngx_demo.sh")
+VERSION+=("1c76a28[2021-12-20T16:56:34+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -448,6 +448,8 @@ server {
 }
 EOF
 cat <<'EOF' > limit_req.conf
+# error_log /var/log/nginx/error.log warn;
+limit_req_log_level warn;
 limit_req_zone $binary_remote_addr zone=perip:10m rate=1r/s;
 # limit_req_zone $server_name zone=perserver:10m rate=600r/m;
 server {
@@ -1862,6 +1864,7 @@ cat <<'EOF' > header.conf
 more_set_headers 'Server: my-server';
 # # OR
 # proxy_pass_header Server;
+add_header Set-Cookie "Path=/; HttpOnly; Secure";
 EOF
 cat <<'EOF'>diag_log_json.conf
 # copy this file to /etc/nginx/http-conf.d/
