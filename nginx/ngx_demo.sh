@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1c76a28[2021-12-20T16:56:34+08:00]:ngx_demo.sh")
+VERSION+=("6945695[2021-12-21T09:14:51+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1857,14 +1857,27 @@ brotli_types
   text/x-component
   text/x-cross-domain-policy;
 EOF
-cat <<'EOF' > header.conf
+cat <<'EOF' > more_tuning.conf
 # copy this file to /etc/nginx/http-conf.d/
 # need headers-more-nginx-module
 # hidden Server: nginx ...
 more_set_headers 'Server: my-server';
 # # OR
 # proxy_pass_header Server;
+
 add_header Set-Cookie "Path=/; HttpOnly; Secure";
+
+# cache informations about FDs
+open_file_cache max=200000 inactive=20s;
+open_file_cache_valid 30s;
+open_file_cache_min_uses 2;
+open_file_cache_errors on;
+
+# request timed out -- default 60
+client_body_timeout 10s;
+
+# if client stop responding, free up memory -- default 60
+send_timeout 2s;
 EOF
 cat <<'EOF'>diag_log_json.conf
 # copy this file to /etc/nginx/http-conf.d/
