@@ -149,3 +149,5 @@ if __name__ == '__main__':
 # select sum(bytes_sent) as sum_bytes_sent from access;
 # select round(avg(bytes_sent)) as avg_bytes_sent from access;
 # select request_path, count(*) as n, bytes_sent from access group by request_path order by n desc;
+# select count(*) as n, remote_addr, sum(bytes_sent) as total_bytes_sent, sum(request_length) as total_upload from access group by remote_addr order by n desc;
+# select count(*) as n, http_referer from access group by http_referer order by n desc;
