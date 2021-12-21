@@ -74,6 +74,10 @@ import dateutil.parser
 def iso8601_to_datetime(value):
     return dateutil.parser.parse(value) if value and value != '-' else dateutil.parser.parse("1970-01-01T00:00:00+00:00")
 
+from datetime import datetime
+def time_local_to_datetime(value):
+    return datetime.strptime(value, '%d/%b/%Y:%H:%M:%S %z') if value and value != '-' else dateutil.parser.parse("1970-01-01T00:00:00+00:00")
+
 def parse_log(lines, pattern):
     matches = (pattern.match(l) for l in lines)
     records = (m.groupdict() for m in matches if m is not None)
@@ -85,6 +89,7 @@ def parse_log(lines, pattern):
     # 0.881, 1.463, 0.454
     # records = map_field('upstream_response_time', to_float, records)
     records = map_field('time_iso8601', iso8601_to_datetime, records)
+    records = map_field('time_local', time_local_to_datetime, records)
     records = add_field('request_path', parse_request_path, records)
     return records
 
@@ -136,3 +141,10 @@ if __name__ == '__main__':
 # select sum(request_length) as recv ,sum(bytes_sent) as send from access;
 # select http_host, upstream_addr, sum(request_length) as recv ,sum(bytes_sent) as send, sum(request_length + bytes_sent) as total from access group by upstream_addr order by total desc;
 # select remote_addr, sum(request_length) as recv, sum(bytes_sent) as send, sum(request_length+bytes_sent) as total  from access group by remote_addr order by total desc;
+# select count(CASE WHEN status >= 200 AND status < 300 THEN 1 END) AS '2xx' from access;
+# select count(CASE WHEN status >= 300 AND status < 400 THEN 1 END) AS '3xx' from access;
+# select count(CASE WHEN status >= 400 AND status < 500 THEN 1 END) AS '4xx' from access;
+# select count(CASE WHEN status >= 500 AND status < 600 THEN 1 END) AS '5xx' from access;
+# select avg(request_time) as avg_request_time from access;
+# select sum(bytes_sent) as sum_bytes_sent from access;
+# select round(avg(bytes_sent)) as avg_bytes_sent from access;
