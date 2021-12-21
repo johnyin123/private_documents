@@ -117,6 +117,7 @@ def main():
         conn = Session()
         tabname="access"
         fields = [r for r in extract_variables(args["log-format"])]
+        fields.append("request_path")
         if not engine.dialect.has_table(engine, tabname, schema = None):  # If table don't exist, Create.
             logging.debug('create table :%s\n', tabname)
             create_table = 'create table {} ({})'.format(tabname, ','.join(fields))
