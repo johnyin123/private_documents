@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9748aa5[2021-12-20T12:51:27+08:00]:mk_nginx.sh")
+VERSION+=("cd1808e[2021-12-21T14:47:14+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -268,6 +268,8 @@ access_log /var/log/nginx/access_err.log main if=$log_err;
 access_log /var/log/nginx/access.log main if=$log_ip;
 # separate access logs from requests of two different domains
 # access_log /var/log/nginx/$http_host-access.log;
+# # error log
+error_log /var/log/nginx/error.log info;
 EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/stream-conf.d/streamlog.conf
 log_format basic '$protocol $server_port "$upstream_addr" [$time_iso8601] $remote_addr '
@@ -331,9 +333,6 @@ http {
     # # SSL
     ssl_protocols TLSv1 TLSv1.1 TLSv1.2; # Dropping SSLv3, ref: POODLE
     ssl_prefer_server_ciphers on;
-
-    # # error log
-    error_log /var/log/nginx/error.log;
 
     # # gzip
     gzip on;
