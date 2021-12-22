@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cd1808e[2021-12-21T14:47:14+08:00]:mk_nginx.sh")
+VERSION+=("360b3ee[2021-12-21T14:58:56+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -23,7 +23,8 @@ declare -A stage=(
 set +o nounset
 stage_level=${stage[${1:-doall}]}
 set -o nounset
-stage_level=${stage_level:?"NGINX_RELEASE=release-1.20.2 PKG=deb ${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
+stage_level=${stage_level:?"STRIP=whatever NGINX_RELEASE=release-1.20.2 PKG=deb ${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
+STRIP=${STRIP:-""}
 NGINX_RELEASE=${NGINX_RELEASE:-release-1.20.2}
 CC_OPTS="-O3"
 NGINX_DIR=${DIRNAME}/nginx
@@ -46,7 +47,11 @@ declare -A DYNAMIC_MODULES=(
     [${DIRNAME}/ngx_http_redis]="git clone --depth 1 https://github.com/osokin/ngx_http_redis.git"
     [${DIRNAME}/nginx-module-vts]="git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git"
     [${DIRNAME}/headers-more-nginx-module]="git clone --depth 1 https://github.com/openresty/headers-more-nginx-module.git"
-    [${DIRNAME}/ngx_brotli]="git clone --recursive https://github.com/google/ngx_brotli.git"
+    [${DIRNAME}/ngx_brotli]="git clone --depth 1 --recursive https://github.com/google/ngx_brotli.git"
+    [${DIRNAME}/incubator-pagespeed-ngx]="git clone --depth 1 --branch latest-stable https://github.com/apache/incubator-pagespeed-ngx.git"
+    # [${DIRNAME}/ngx_http_auth_pam_module]="git clone --depth 1 https://github.com/sto/ngx_http_auth_pam_module.git"
+    # [${DIRNAME}/NginxExecute]="git clone --depth 1 https://github.com/limithit/NginxExecute.git"
+    # [${DIRNAME}/Nginx-DOH-Module]="git clone --depth 1 https://github.com/dvershinin/Nginx-DOH-Module.git"
 )
 
 EXT_MODULES=(
@@ -82,6 +87,7 @@ EXT_MODULES=(
 # eval coredump
 # git clone --depth 1 https://github.com/vkholodkov/nginx-eval-module.git
     "http_xslt_module needs libxml2-dev libxslt1-dev, http_geoip_module needs libgeoip-dev"
+        pagespeed needs uuid-dev
     centos: libxml2-devel libxslt-devel GeoIP-devel
 EOF
 :<<"EOF"
@@ -148,7 +154,6 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 --with-threads \
 --with-file-aio \
  \
---with-debug \
 --with-compat \
  \
 --with-zlib=${ZLIB_DIR} \
@@ -387,6 +392,11 @@ case "${ID}" in
 esac
 echo "NGINX:${NGX_VER}"
 echo "BUILD:${TMP_VER}"
+[ -z "${STRIP}" ] || {
+    echo "strip binarys"
+    strip ${OUTDIR}/usr/sbin/nginx
+    strip ${OUTDIR}/usr/share/nginx/modules/*
+}
 [ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin --version $(echo ${NGX_VER}) --iteration ${TMP_VER} --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
 echo "ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
