@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("deef3ac[2021-12-22T08:49:37+08:00]:ngx_demo.sh")
+VERSION+=("88b9c4f[2021-12-22T09:53:37+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1922,14 +1922,14 @@ cat <<'EOF' > more_tuning.conf
 # copy this file to /etc/nginx/http-conf.d/
 # need headers-more-nginx-module
 # hidden Server: nginx ...
-more_set_headers 'Server: my-server';
+proxy_pass_header Server;
 # # OR
-# proxy_pass_header Server;
+# more_set_headers 'Server: my-server';
 
 add_header Set-Cookie "Path=/; HttpOnly; Secure";
 
 # sendfile on;
-sendfile_max_chunk 512k;
+sendfile_max_chunk 2048k;
 
 # # thread pool
 # thread_pool default threads=32 max_queue=65536;
