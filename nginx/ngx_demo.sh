@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ef809f4[2021-12-21T16:32:17+08:00]:ngx_demo.sh")
+VERSION+=("76bf4a7[2021-12-22T08:37:14+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -230,8 +230,8 @@ server {
 EOF
 cat <<'EOF' >dummy.conf
 server {
-    listen 80 default_server;
-    # listen 443 ssl default_server;
+    listen 80 default_server reuseport;
+    # listen 443 ssl default_server reuseport;
     # ssl_certificate /etc/nginx/site.pem;
     # ssl_certificate_key /etc/nginx/SSL/site.key;
     server_name _;
