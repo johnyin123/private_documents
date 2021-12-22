@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0b1b074[2021-12-21T10:54:19+08:00]:ngx_demo.sh")
+VERSION+=("ef809f4[2021-12-21T16:32:17+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1670,6 +1670,46 @@ server {
         proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
     }
 }
+EOF
+cat <<'EOF' > cache_expiration.conf
+# copy this file to /etc/nginx/http-conf.d/
+map $sent_http_content_type $expires {
+    default                                 1M;
+    ""                                      off;
+    ~*text/css                              1y;
+    ~*application/atom\+xml                 1h;
+    ~*application/rdf\+xml                  1h;
+    ~*application/rss\+xml                  1h;
+    ~*application/json                      0;
+    ~*application/ld\+json                  0;
+    ~*application/schema\+json              0;
+    ~*application/geo\+json                 0;
+    ~*application/xml                       0;
+    ~*text/calendar                         0;
+    ~*text/xml                              0;
+    ~*image/vnd.microsoft.icon              1w;
+    ~*image/x-icon                          1w;
+    ~*text/html                             0;
+    ~*application/javascript                1y;
+    ~*application/x-javascript              1y;
+    ~*text/javascript                       1y;
+    ~*application/manifest\+json            1w;
+    ~*application/x-web-app-manifest\+json  0;
+    ~*text/cache-manifest                   0;
+    ~*text/markdown                         0;
+    ~*audio/                                1M;
+    ~*image/                                1M;
+    ~*video/                                1M;
+    ~*application/wasm                      1y;
+    ~*font/                                 1M;
+    ~*application/vnd.ms-fontobject         1M;
+    ~*application/x-font-ttf                1M;
+    ~*application/x-font-woff               1M;
+    ~*application/font-woff                 1M;
+    ~*application/font-woff2                1M;
+    ~*text/x-cross-domain-policy            1w;
+}
+expires $expires;
 EOF
 cat <<'EOF' > cache_static.conf
 server {
