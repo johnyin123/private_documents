@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("76bf4a7[2021-12-22T08:37:14+08:00]:ngx_demo.sh")
+VERSION+=("deef3ac[2021-12-22T08:49:37+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -226,6 +226,16 @@ server {
         # limit_rate 100k;
         root /var/www;
     }
+}
+EOF
+cat <<'EOF' >valid_referer.conf
+# curl -vvv -e "https://a.abc.com" 127.0.0.1
+server {
+    listen 80 reuseport;
+    server_name _;
+    valid_referers none blocked server_names *.example.com ~\.abc\.;
+    if ($invalid_referer) { return 403; }
+    location / { return 200; }
 }
 EOF
 cat <<'EOF' >dummy.conf
