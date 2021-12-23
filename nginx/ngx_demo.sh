@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3d55eeb[2021-12-22T09:56:52+08:00]:ngx_demo.sh")
+VERSION+=("ee9010e[2021-12-23T08:34:41+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -344,6 +344,8 @@ server {
     # }
 
     location / {
+        access_log off;
+        proxy_cache off;
         vhost_traffic_status_display;
         vhost_traffic_status_display_format html;
     }
@@ -1720,6 +1722,15 @@ map $sent_http_content_type $expires {
     ~*text/x-cross-domain-policy            1w;
 }
 expires $expires;
+
+proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=24h max_size=512m;
+proxy_cache SHM_CACHE;
+# proxy_buffers 64 128k;
+# proxy_busy_buffers_size 256k;
+# proxy_buffer_size 64k;
+proxy_cache_valid 200 302 1d;
+proxy_cache_valid 404 1h;
+proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
 EOF
 cat <<'EOF' > cache_static.conf
 server {
