@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("88b9c4f[2021-12-22T09:53:37+08:00]:ngx_demo.sh")
+VERSION+=("3d55eeb[2021-12-22T09:56:52+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2100,5 +2100,65 @@ function upstreamArray(r) {
         }
     }
     return upstream;
+}
+EOF
+cat <<'EOF'>pagespeed.conf
+# # PageSpeed admin config
+# # sharemem statistics
+pagespeed Statistics on;
+# # vhost statistics
+pagespeed UsePerVhostStatistics on;
+pagespeed StatisticsLogging on;
+pagespeed StatisticsLoggingIntervalMs 60000;
+pagespeed StatisticsLoggingMaxFileSizeKb 1024;
+#buff size 0, no remain message
+pagespeed MessageBufferSize 100000;
+pagespeed LogDir /var/log/pagespeed;
+pagespeed StatisticsPath /ngx_pagespeed_statistics;
+pagespeed GlobalStatisticsPath /ngx_pagespeed_global_statistics;
+pagespeed MessagesPath /ngx_pagespeed_message;
+pagespeed ConsolePath /pagespeed_console;
+# curl http://127.0.0.1/pagespeed_admin
+pagespeed AdminPath /pagespeed_admin;
+pagespeed GlobalAdminPath /pagespeed_global_admin;
+
+# # page speed config
+# best tmpfs
+pagespeed FileCachePath /tmp/ngx_pagespeed_cache;
+pagespeed on;
+
+server {
+    listen 80 reuseport;
+    server_name _;
+    # pagespeed on;
+    location / {
+        # pagespeed on;
+        return 200;
+    }
+    # # page speed admin uri protecte
+    location /ngx_pagespeed_statistics {
+        auth_basic "PageSpeed Admin Dashboard";
+        auth_basic_user_file /etc/nginx/htpasswd;
+    }
+    location /ngx_pagespeed_global_statistics {
+        auth_basic "PageSpeed Admin Dashboard";
+        auth_basic_user_file /etc/nginx/htpasswd;
+    }
+    location /ngx_pagespeed_message {
+        auth_basic "PageSpeed Admin Dashboard";
+        auth_basic_user_file /etc/nginx/htpasswd;
+    }
+    location /pagespeed_console {
+        auth_basic "PageSpeed Admin Dashboard";
+        auth_basic_user_file /etc/nginx/htpasswd;
+    }
+    location ~ ^/pagespeed_admin {
+        auth_basic "PageSpeed Admin Dashboard";
+        auth_basic_user_file /etc/nginx/htpasswd;
+    }
+    location ~ ^/pagespeed_global_admin {
+        auth_basic "PageSpeed Admin Dashboard";
+        auth_basic_user_file /etc/nginx/htpasswd;
+    }
 }
 EOF

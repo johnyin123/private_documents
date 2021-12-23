@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("360b3ee[2021-12-21T14:58:56+08:00]:mk_nginx.sh")
+VERSION+=("732bcbf[2021-12-23T07:56:21+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -23,9 +23,10 @@ declare -A stage=(
 set +o nounset
 stage_level=${stage[${1:-doall}]}
 set -o nounset
-stage_level=${stage_level:?"STRIP=whatever NGINX_RELEASE=release-1.20.2 PKG=deb ${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
+stage_level=${stage_level:?"STRIP=whatever NJS_RELEASE=0.7.0 NGINX_RELEASE=release-1.20.2 PKG=deb ${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
 STRIP=${STRIP:-""}
 NGINX_RELEASE=${NGINX_RELEASE:-release-1.20.2}
+NJS_RELEASE=${NJS_RELEASE:-0.7.0}
 CC_OPTS="-O3"
 NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl
@@ -42,7 +43,7 @@ declare -A STATIC_MODULES=(
     [${DIRNAME}/nginx_limit_speed_module]="git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git"
 )
 declare -A DYNAMIC_MODULES=(
-    [${DIRNAME}/njs/nginx]="git clone --depth 1 https://github.com/nginx/njs.git"
+    [${DIRNAME}/njs/nginx]="git clone --depth 1 --branch ${NJS_RELEASE} https://github.com/nginx/njs.git"
     [${DIRNAME}/nginx-rtmp-module]="git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git"
     [${DIRNAME}/ngx_http_redis]="git clone --depth 1 https://github.com/osokin/ngx_http_redis.git"
     [${DIRNAME}/nginx-module-vts]="git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git"
