@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a37c788[2021-12-27T09:22:29+08:00]:ngx_demo.sh")
+VERSION+=("97de1e0[2021-12-27T10:10:30+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2456,6 +2456,7 @@ map $sent_http_content_type $expires {
 }
 expires $expires;
 
+# mount -t tmpfs -o size=100M none /mnt
 proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=24h max_size=512m;
 proxy_cache SHM_CACHE;
 # proxy_buffers 64 128k;
