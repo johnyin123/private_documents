@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9a7f6b5[2021-12-23T14:49:42+08:00]:ngx_demo.sh")
+VERSION+=("4fbd12f[2021-12-24T10:39:19+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1626,7 +1626,8 @@ server {
         proxy_pass http://$1;
     }
     location /proxy {
-        resolver 127.0.0.1;
+        resolver 127.0.0.1 ipv6=off;
+        # use proxy_pass with variables and the resolver directive to force nginx to resolve names at run-time;
         set $target http://proxytarget.example.com;
         proxy_pass $target;
     }
