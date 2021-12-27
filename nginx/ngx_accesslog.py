@@ -108,7 +108,7 @@ def main():
     logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s")
     logging.debug("arguments:\n%s", args)
     if sys.stdin.isatty():
-        logging.error("no input")
+        logging.error("no input, cat access.log | parallel --pipe ./ngx_accesslog.py")
         sys.exit(1)
     access_log = sys.stdin
     pattern = build_pattern(args["log-format"])
