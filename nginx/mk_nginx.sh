@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("732bcbf[2021-12-23T07:56:21+08:00]:mk_nginx.sh")
+VERSION+=("ee9010e[2021-12-23T08:34:41+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -247,10 +247,7 @@ log_format json escape=json '{ "scheme":"$scheme", "http_host": "$http_host", "s
     '"remote_addr": "$remote_addr", "remote_user": "$remote_user", "time_iso8601": "$time_iso8601", "request": "$request",'
     '"status": $status,"request_length": $request_length, "bytes_sent": $bytes_sent, "http_referer": "$http_referer",'
     '"http_user_agent": "$http_user_agent", "http_x_forwarded_for": "$http_x_forwarded_for", "gzip_ratio": "$gzip_ratio"}';
-# # go access define
-# time-format %T
-# date-format %d/%b/%Y
-# log_format %^ %v %^ "%^" [%T|%^|%^] %h - %^ [%d:%t %^] "%r" %s %^ %b "%R" "%u" "%^" %^
+
 log_format main '$scheme $http_host $server_port "$upstream_addr" '
     '[$request_time|"$upstream_response_time"|"$upstream_status"] '
     '$remote_addr - $remote_user [$time_iso8601] "$request" '
@@ -270,18 +267,21 @@ map $status $log_err {
 }
 
 # log_subrequest on;
-access_log /var/log/nginx/access_err.log main if=$log_err;
-access_log /var/log/nginx/access.log main if=$log_ip;
-# separate access logs from requests of two different domains
-# access_log /var/log/nginx/$http_host-access.log;
+
+# # access log
+# default buffer size is equal to 64K bytes
+access_log /var/log/nginx/access_err.log json buffer=512k flush=5m if=$log_err;
+access_log /var/log/nginx/access.log main buffer=512k flush=5m if=$log_ip;
+# access_log /var/log/nginx/$http_host-access.log buffer=512k flush=5m;
+
 # # error log
 error_log /var/log/nginx/error.log info;
 EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/stream-conf.d/streamlog.conf
 log_format basic '$protocol $server_port "$upstream_addr" [$time_iso8601] $remote_addr '
     '$status $bytes_sent $bytes_received $session_time';
-access_log /var/log/nginx/stream_access.log basic buffer=32k;
-error_log /var/log/nginx/stream_error.log;
+access_log /var/log/nginx/stream_access.log basic buffer=512k flush=5m;
+error_log /var/log/nginx/stream_error.log info;
 EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.conf
 # load_module modules/ngx_http_geoip_module.so;
