@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0962903[2021-12-27T10:17:38+08:00]:ngx_demo.sh")
+VERSION+=("1fa84d1[2021-12-28T12:24:17+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -246,6 +246,7 @@ server {
 }
 EOF
 cat <<'EOF' >dummy.conf
+# catch-all not matched server_name by default_server
 server {
     listen 80 default_server reuseport;
     # listen 443 ssl default_server reuseport;
@@ -1591,6 +1592,18 @@ server {
     location @login {
         add_header Set-Cookie "foo=$new_foo; Max-Age=60";
         return 302 $request_uri;
+    }
+}
+EOF
+cat <<'EOF' > single_page.conf
+# send all requests to a single html page
+# echo "base.html" > /var/www/base.html
+server {
+    listen 80 reuseport;
+    server_name _;
+    location / {
+        root /var/www;
+        try_files /base.html =404;
     }
 }
 EOF
