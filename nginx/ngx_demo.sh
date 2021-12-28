@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1fa84d1[2021-12-28T12:24:17+08:00]:ngx_demo.sh")
+VERSION+=("4f4d763[2021-12-28T13:02:48+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -737,6 +737,34 @@ server {
         if ($secure_link = "0") { return 410; }
     }
 }
+EOF
+cat <<'EOF' > upload.html
+<html><head></head><body>
+<input id="files" type="file" />
+</body></html>
+<script>
+document.getElementById('files').addEventListener('change', function(e) {
+    var file = this.files[0];
+    var xhr = new XMLHttpRequest();
+    if (! (crypto.randomUUID instanceof Function)) {
+        crypto.randomUUID = function uuidv4() {
+            return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+            );
+        }
+    }
+    (xhr.upload || xhr).addEventListener('progress', function(e) {
+        var done = e.position || e.loaded
+        var total = e.totalSize || e.total;
+        console.log('xhr progress: ' + Math.round(done/total*100) + '%');
+    });
+    xhr.addEventListener('load', function(e) {
+        console.log('xhr upload complete', e, this.responseText);
+    });
+    xhr.open('put', '/upload/'+ crypto.randomUUID(), true);
+    xhr.send(file);
+});
+</script>
 EOF
 cat <<'EOF' > webdav.conf
 server {
