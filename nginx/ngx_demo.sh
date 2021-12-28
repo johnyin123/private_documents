@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("97de1e0[2021-12-27T10:10:30+08:00]:ngx_demo.sh")
+VERSION+=("0962903[2021-12-27T10:17:38+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -252,7 +252,7 @@ server {
     # ssl_certificate /etc/nginx/site.pem;
     # ssl_certificate_key /etc/nginx/SSL/site.key;
     server_name _;
-    access_log /var/log/nginx/access_err_domain.log main;
+    access_log /var/log/nginx/access_err_domain.log buffer=512k flush=5m main;
     location / { return 204; }
 }
 EOF
@@ -2717,7 +2717,7 @@ map $upstream_status $multi_upstreams {
     default 0;
 }
 log_format access_debug escape=none $json_debug_log;
-access_log /var/log/nginx/access_debug.log access_debug if=$is_error;
+access_log /var/log/nginx/access_debug.log access_debug buffer=512k flush=5m if=$is_error;
 EOF
 cat <<'EOF'>diag_log_json.js
 export default { debugLog };
