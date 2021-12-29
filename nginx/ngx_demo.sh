@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4f4d763[2021-12-28T13:02:48+08:00]:ngx_demo.sh")
+VERSION+=("ed858cb[2021-12-28T13:43:55+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -845,6 +845,11 @@ server {
         # proxy_set_body    "token=$http_apikey&token_hint=access_token";
         proxy_pass $scheme://$host$request_uri;
         proxy_set_header Host $http_host;
+        # $http_host equals always the HTTP_HOST request header.
+        # $host equals $http_host, lowercase and without the port number (if present),
+        #    except when HTTP_HOST is absent or is an empty value.
+        #    In that case, $host equals the value of the server_name directive
+        #    of the server which processed the request.
         proxy_buffers 256 4k;
         proxy_max_temp_file_size 0k;
     }
