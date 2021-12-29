@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ed858cb[2021-12-28T13:43:55+08:00]:ngx_demo.sh")
+VERSION+=("1db6fdd[2021-12-29T10:59:29+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2601,6 +2601,9 @@ server {
         proxy_set_header Connection $connection_upgrade;
         # proxy_read_timeout 2s;
         # send_timeout 2s;
+        # By default, the connection will be closed if the proxied server does
+        # not transmit any data within 60 seconds. This timeout can be increased
+        # with the proxy_read_timeout
     }
 }
 EOF
