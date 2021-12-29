@@ -30,12 +30,13 @@ def map_field(field, func, dict_sequence):
     Apply given function to value of given key in every dictionary in sequence and
     set the result as new value for that key.
     """
-    for item in dict_sequence:
-        try:
-            item[field] = func(item.get(field, None))
+    try:
+        for item in dict_sequence:
+            if field in item.keys():
+                item[field] = func(item.get(field, None))
             yield item
-        except ValueError:
-            pass
+    except ValueError:
+        pass
 
 def add_field(field, func, dict_sequence):
     """
@@ -43,7 +44,7 @@ def add_field(field, func, dict_sequence):
     Do nothing if record already contains given field.
     """
     for item in dict_sequence:
-        if field not in item:
+        if field not in item.keys():
             item[field] = func(item)
         yield item
 
@@ -93,10 +94,46 @@ def parse_log(lines, pattern):
     records = add_field('request_path', parse_request_path, records)
     return records
 
-from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import  String,Column,Integer,DateTime
+from sqlalchemy import create_engine,MetaData,Table,Column,String,Integer,DateTime,Float
+from sqlalchemy.dialects.mysql import LONGTEXT
+
+def insert_db(records):
+    # DATABASE_URI="sqlite:///./access.sqlite"
+    DATABASE_URI="mysql+pymysql://admin:password@192.168.168.124:3306/ngxlog?charset=utf8"
+    engine = create_engine(DATABASE_URI)
+    Session = scoped_session(sessionmaker(bind=engine, autoflush=False, expire_on_commit=False))
+    conn = Session()
+
+    metadata_obj = MetaData()
+    Access = Table(
+        'access', metadata_obj,
+        Column('scheme', String(10)),
+        Column('http_host', String(64)),
+        Column('server_port', String(10)),
+        Column('upstream_addr', String(64)),
+        Column('request_time', Float),
+        Column('upstream_response_time', String(64)),
+        Column('upstream_status', String(64)),
+        Column('remote_addr', String(64)),
+        Column('remote_user', String(64)),
+        Column('time_local', DateTime),
+        Column('request', LONGTEXT),
+        Column('status', Integer),
+        Column('request_length', Integer),
+        Column('bytes_sent', Integer),
+        Column('http_referer', LONGTEXT),
+        Column('http_user_agent', String(1024)),
+        Column('http_x_forwarded_for', String(64)),
+        Column('gzip_ratio', Float),
+        Column('request_path', String(1024)),
+    )
+    metadata_obj.create_all(engine, checkfirst=True)
+    for r in records:
+        ins = Access.insert().values(r)
+        conn.execute(ins)
+    conn.commit()
+
 def main():
     args = {
             "log-format": '$scheme $http_host $server_port "$upstream_addr" [$request_time|"$upstream_response_time"|"$upstream_status"] $remote_addr - $remote_user [$time_local] "$request" $status $request_length $bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for" $gzip_ratio',
@@ -113,26 +150,8 @@ def main():
     access_log = sys.stdin
     pattern = build_pattern(args["log-format"])
     try:
-        records = parse_log(access_log, pattern)
-
-        DATABASE_URI="sqlite:///./access.sqlite"
-        #DATABASE_URI="mysql+pymysql://admin:password@10.0.2.10:3306/log?charset=utf8"
-        engine = create_engine(DATABASE_URI)#, pool_size=1, max_overflow=0)
-        Session = scoped_session(sessionmaker(bind=engine, autoflush=False, expire_on_commit=False))
-        conn = Session()
-        tabname="access"
-        fields = [r for r in extract_variables(args["log-format"])]
-        fields.append("request_path")
-        if not engine.dialect.has_table(engine, tabname, schema = None):  # If table don't exist, Create.
-            logging.debug('create table :%s\n', tabname)
-            create_table = 'create table {} ({})'.format(tabname, ','.join(fields))
-            conn.execute(create_table)
-        sql = "insert into {} ({}) values ({}) ".format(tabname, ','.join(fields), ','.join(':%s' % var for var in fields))
-        for r in records:
-            conn.execute(sql, r)
-        conn.commit()
+        insert_db(parse_log(access_log, pattern))
     except KeyboardInterrupt:
-        conn.commit()
         logging.info("interrupt signal received")
         sys.exit(0)
 
