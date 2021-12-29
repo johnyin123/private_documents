@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1db6fdd[2021-12-29T10:59:29+08:00]:ngx_demo.sh")
+VERSION+=("e80c207[2021-12-29T14:03:22+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -517,6 +517,23 @@ server {
         fastcgi_pass unix:/var/run/fcgiwrap.socket;
         include /etc/nginx/fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+}
+EOF
+cat <<'EOF' > auth_or_allow.conf
+server {
+    listen 80 reuseport;
+    server_name _;
+    location / {
+        satisfy any;
+        # Allows access if all (all)
+        # or at least one (any) of the
+        # ngx_http_access_module, ngx_http_auth_basic_module,
+        # ngx_http_auth_request_module, ngx_http_auth_jwt_module modules allow access.
+        allow 192.168.1.0/32;
+        deny  all;
+        auth_basic "Restricted Content";
+        auth_basic_user_file /etc/nginx/.htpasswd;
     }
 }
 EOF
