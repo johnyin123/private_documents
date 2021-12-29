@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e80c207[2021-12-29T14:03:22+08:00]:ngx_demo.sh")
+VERSION+=("c43acdb[2021-12-29T14:27:40+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -849,6 +849,32 @@ server {
         #     allow 192.168.168.0/24;
         #     deny all;
         # }
+    }
+}
+EOF
+cat <<'EOF' > stream_dns_proxy.conf
+upstream dns_upstreams {
+    server 172.16.0.11:53;
+}
+server {
+    listen 53 udp reuseport;
+    proxy_responses 1;
+    proxy_timeout 1s;
+    proxy_pass dns_upstreams;
+}
+EOF
+cat <<'EOF' > reverse_transparent_proxy.conf
+# modify nginx.conf add `user root;`
+# upstream `route add default gw 172.16.0.1`
+# ip rule add fwmark 1 lookup 100
+# ip route add local 0.0.0.0/0 dev lo table 100
+# iptables -t mangle -A PREROUTING -p tcp -s 172.16.1.0/24 --sport 80 -j MARK --set-xmark 0x1/0xffffffff
+server {
+    listen 172.16.0.1:80 reuseport;
+    server_name _;
+    location / {
+        proxy_bind $remote_addr transparent;
+        proxy_pass http://172.16.0.11:80;
     }
 }
 EOF
