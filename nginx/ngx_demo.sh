@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("69cb7c2[2021-12-29T14:59:55+08:00]:ngx_demo.sh")
+VERSION+=("d857134[2021-12-30T08:09:31+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -177,7 +177,7 @@ server {
         }
         alias /var/www/hls;
         expires -1;
-        add_header Cache-Control no-cache;
+        add_header Cache-Control no-cache always;
         add_header Access-Control-Allow-Origin *;
         add_header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept";
         add_header Access-Control-Allow-Methods "GET, POST, OPTIONS";
@@ -834,6 +834,7 @@ server {
         }
         # chown nginx.nginx /var/www -R
         autoindex on;
+        autoindex_format json; #xml
         alias /var/www;
         secure_link $arg_k,$arg_e;
         secure_link_md5 "$mykey$secure_link_expires$uri$request_method";
@@ -1747,6 +1748,12 @@ server {
     location / {
         proxy_cache $my_cache;
         proxy_ignore_headers Cache-Control;
+        # Make sure your backend does not return Set-Cookie header.
+        # If Nginx sees it, it disables caching.
+        # http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ignore_headers
+        proxy_ignore_headers "Set-Cookie";
+        proxy_hide_header "Set-Cookie";
+
         proxy_cache_valid any 30m;
         proxy_cache_methods GET HEAD POST;
         # proxy_cache_bypass $cookie_nocache $arg_nocache;
@@ -1785,6 +1792,12 @@ server {
         proxy_pass http://127.0.0.1:9999;
         proxy_set_header Host $host;
         proxy_buffering on;
+        # Make sure your backend does not return Set-Cookie header.
+        # If Nginx sees it, it disables caching.
+        # http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ignore_headers
+        proxy_ignore_headers "Set-Cookie";
+        proxy_hide_header "Set-Cookie";
+
         proxy_cache STATIC;
         proxy_cache_valid 200 302 1d;
         proxy_cache_valid 404 1h;
@@ -2512,6 +2525,12 @@ deny 150.70.0.0/16; # Trend Micro Bot
 EOF
 cat <<'EOF' > cache_expiration.conf
 # copy this file to /etc/nginx/http-conf.d/
+# # kill cache
+# add_header Last-Modified $date_gmt;
+# add_header Cache-Control 'no-store, no-cache';
+# if_modified_since off;
+# expires off;
+# etag off;
 map $sent_http_content_type $expires {
     default                                 1M;
     ""                                      off;
