@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8fc79ca[2021-12-30T10:19:29+08:00]:ngx_demo.sh")
+VERSION+=("ded70af[2021-12-30T11:46:52+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2542,6 +2542,18 @@ deny 223.254.0.0/16;
 deny 69.64.147.24; # domain name hijacker
 deny 150.70.0.0/16; # Trend Micro Bot
 EOF
+cat <<'EOF' > proxy_cache.conf
+# copy this file to /etc/nginx/http-conf.d/
+# mount -t tmpfs -o size=100M none /mnt
+proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=24h max_size=512m;
+proxy_cache SHM_CACHE;
+# proxy_buffers 64 128k;
+# proxy_busy_buffers_size 256k;
+# proxy_buffer_size 64k;
+proxy_cache_valid 200 302 1d;
+proxy_cache_valid 404 1h;
+proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
+EOF
 cat <<'EOF' > cache_expiration.conf
 # copy this file to /etc/nginx/http-conf.d/
 # # kill cache
@@ -2587,16 +2599,6 @@ map $sent_http_content_type $expires {
     ~*text/x-cross-domain-policy            1w;
 }
 expires $expires;
-
-# mount -t tmpfs -o size=100M none /mnt
-proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=24h max_size=512m;
-proxy_cache SHM_CACHE;
-# proxy_buffers 64 128k;
-# proxy_busy_buffers_size 256k;
-# proxy_buffer_size 64k;
-proxy_cache_valid 200 302 1d;
-proxy_cache_valid 404 1h;
-proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
 EOF
 cat <<'EOF' > cache_static.conf
 server {
