@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d857134[2021-12-30T08:09:31+08:00]:ngx_demo.sh")
+VERSION+=("97052c4[2021-12-30T09:17:38+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -177,6 +177,9 @@ server {
         }
         alias /var/www/hls;
         expires -1;
+        # Value -1 means these headers are set as:
+        # Expires:  current time minus 1 second
+        # Cache-Control: no-cache
         add_header Cache-Control no-cache always;
         add_header Access-Control-Allow-Origin *;
         add_header Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept";
@@ -1779,6 +1782,15 @@ server {
     listen 80 reuseport;
     server_name _;
     location / {
+        # disable nginx caching for certain file types
+        set $no_cache "";
+        if ($request_uri ~* \.gif$) {
+          set $no_cache "1";
+          set $expires off;
+        }
+        proxy_no_cache $no_cache;
+        proxy_cache_bypass $no_cache;
+
         expires $expires;
         add_header Cache-Control $control;
         # # Hidden / Pass X-Powered-By to client
@@ -1789,7 +1801,7 @@ server {
         # proxy_cache_bypass $cookie_nocache $arg_nocache $http_pragma;
         # proxy_cache_methods GET HEAD POST;
         # proxy_cache_key $proxy_host$request_uri$cookie_jessionid;
-        proxy_pass http://127.0.0.1:9999;
+        proxy_pass http://127.0.0.1:81;
         proxy_set_header Host $host;
         proxy_buffering on;
         # Make sure your backend does not return Set-Cookie header.
@@ -1802,6 +1814,13 @@ server {
         proxy_cache_valid 200 302 1d;
         proxy_cache_valid 404 1h;
         proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
+    }
+}
+server {
+    listen 81 reuseport;
+    server_name _;
+    location / {
+        alias /var/www/;
     }
 }
 EOF
