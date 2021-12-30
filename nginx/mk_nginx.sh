@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b7f5dcb[2021-12-28T12:18:56+08:00]:mk_nginx.sh")
+VERSION+=("26dad2b[2021-12-30T11:48:05+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -55,6 +55,10 @@ declare -A DYNAMIC_MODULES=(
     # [${DIRNAME}/Nginx-DOH-Module]="git clone --depth 1 https://github.com/dvershinin/Nginx-DOH-Module.git"
     # [${DIRNAME}/ModSecurity-nginx]="git clone --depth 1 https://github.com/SpiderLabs/ModSecurity-nginx.git"
 )
+# # ModSecurity Library
+# git clone https://github.com/SpiderLabs/ModSecurity.git
+# # ModSecurity core rules
+# git clone --depth 1 --branch v3.3.2 https://github.com/coreruleset/coreruleset.git
 
 EXT_MODULES=(
     "--with-http_ssl_module"
