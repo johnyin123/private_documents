@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d91173b[2021-12-28T10:40:46+08:00]:mk_nginx.sh")
+VERSION+=("b7f5dcb[2021-12-28T12:18:56+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -292,8 +292,10 @@ cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.conf
 # load_module modules/ngx_stream_js_module.so;
 # load_module modules/ngx_rtmp_module.so;
 # load_module modules/ngx_http_redis_module.so;
-load_module modules/ngx_http_headers_more_filter_module.so;
-load_module modules/ngx_http_vhost_traffic_status_module.so;
+# load_module modules/ngx_http_brotli_filter_module.so;
+# load_module modules/ngx_http_brotli_static_module.so;
+# load_module modules/ngx_http_headers_more_filter_module.so;
+# load_module modules/ngx_http_vhost_traffic_status_module.so;
 EOF
 
 cat <<'EOF' > ${OUTDIR}/etc/nginx/nginx.conf
