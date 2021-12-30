@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("97052c4[2021-12-30T09:17:38+08:00]:ngx_demo.sh")
+VERSION+=("8fc79ca[2021-12-30T10:19:29+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -256,7 +256,7 @@ server {
     # ssl_certificate /etc/nginx/site.pem;
     # ssl_certificate_key /etc/nginx/SSL/site.key;
     server_name _;
-    access_log /var/log/nginx/access_err_domain.log buffer=512k flush=5m main;
+    access_log /var/log/nginx/access_err_domain.log main buffer=512k flush=5m;
     location / { return 204; }
 }
 EOF
@@ -2834,6 +2834,8 @@ ssl_session_timeout 10m;
 keepalive_timeout 70;
 # Buffer size of 1400 bytes fits in one MTU.
 ssl_buffer_size 1400;
+
+variables_hash_bucket_size 256;
 EOF
 cat <<'EOF'>diag_log_json.conf
 # copy this file to /etc/nginx/http-conf.d/
