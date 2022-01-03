@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f40aa52[2021-12-31T11:03:01+08:00]:new_redis.sh")
+VERSION+=("a9fe0b1[2022-01-04T06:58:57+08:00]:new_redis.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -72,6 +72,18 @@ gen_redis_conf() {
     local port=${2}
     local password=${3}
     cat >${dir}/redis-${port}.conf << EOF
+# if virtual memory in Redis is disabled (the default)
+# and the maxmemory parameter is set (the default),
+# Redis will not use any more memory than maxmemory allows.
+# If you turn maxmemory off, Redis will start using virtual memory (i.e. swap),
+# and performance will drop tremendously.
+# Newer versions of Redis have various policies when maxmemory is reached:
+# volatile-lru - remove a key among the ones with an expire set, trying to remove keys not recently used.
+# volatile-ttl - remove a key among the ones with an expire set, trying to remove keys with short remaining time to live.
+# volatile-random - remove a random key among the ones with an expire set.
+# allkeys-lru - like volatile-lru, but will remove every kind of key, both normal keys or keys with an expire set.
+# allkeys-random - like volatile-random, but will remove every kind of keys, both normal keys and keys with an expire set.
+
 bind 0.0.0.0
 port ${port}
 tcp-backlog 511
