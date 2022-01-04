@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("48eeb7d[2022-01-04T07:22:02+08:00]:new_redis.sh")
+VERSION+=("7abfc39[2022-01-04T13:11:45+08:00]:new_redis.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -28,6 +28,7 @@ After=network.target
 [Service]
 Type=notify
 ExecStart=/usr/bin/redis-server /etc/redis/redis-%i.conf --supervised systemd --daemonize no
+# ExecStop=/usr/bin/redis-cli shutdown
 PIDFile=/run/redis-%i/redis-server.pid
 TimeoutStopSec=0
 Restart=always
@@ -98,6 +99,7 @@ dbfilename dump-${port}.rdb
 appendfilename "appendonly-${port}.aof"
 requirepass ${password}
 masterauth ${password}
+protected-mode no
 ###########################################
 appendonly yes
 loglevel notice
