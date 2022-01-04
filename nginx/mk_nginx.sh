@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("26dad2b[2021-12-30T11:48:05+08:00]:mk_nginx.sh")
+VERSION+=("aa159e3[2021-12-30T12:42:16+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -59,6 +59,21 @@ declare -A DYNAMIC_MODULES=(
 # git clone https://github.com/SpiderLabs/ModSecurity.git
 # # ModSecurity core rules
 # git clone --depth 1 --branch v3.3.2 https://github.com/coreruleset/coreruleset.git
+# git clone --depth 1 -b v3/master --single-branch https://github.com/SpiderLabs/ModSecurity
+# cd ModSecurity || exit 1
+# git submodule init
+# git submodule update
+# ./build.sh
+# ./configure
+# make -j "$(nproc)"
+# make install
+# mkdir /etc/nginx/modsec
+# wget -P /etc/nginx/modsec/ https://raw.githubusercontent.com/SpiderLabs/ModSecurity/v3/master/modsecurity.conf-recommended
+# mv /etc/nginx/modsec/modsecurity.conf-recommended /etc/nginx/modsec/modsecurity.conf
+# # Enable ModSecurity in Nginx
+# if [[ $MODSEC_ENABLE == 'y' ]]; then
+# 	sed -i 's/SecRuleEngine DetectionOnly/SecRuleEngine On/' /etc/nginx/modsec/modsecurity.conf
+# fi
 
 EXT_MODULES=(
     "--with-http_ssl_module"
