@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ded70af[2021-12-30T11:46:52+08:00]:ngx_demo.sh")
+VERSION+=("0cbb2f6[2021-12-30T13:35:06+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1735,6 +1735,28 @@ server {
         resolver 127.0.0.1 ipv6=off;
         set $target http://www.test.com:9999;
         proxy_pass $target;
+    }
+}
+EOF
+cat <<'EOF' > cnd.conf
+proxy_cache_path /data/cdn.test.com levels=1:2 keys_zone=testcdn:50m inactive=30m max_size=50m;
+server
+{
+    listen 80 reuseport;
+    server_name cdn.test.com;
+    location / {
+        proxy_set_header Accept-Encoding "";
+        proxy_pass https://www.test.com;
+        proxy_redirect off;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_cache testcdn;
+        proxy_cache_valid 200 304 30m;
+        proxy_cache_valid 301 24h;
+        proxy_cache_valid 500 502 503 504 0s;
+        proxy_cache_valid any 1s;
+        proxy_cache_min_uses 1;
+        expires 12h;
     }
 }
 EOF
