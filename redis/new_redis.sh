@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3b0086a[2022-01-04T13:38:13+08:00]:new_redis.sh")
+VERSION+=("adf90fe[2022-01-04T15:02:03+08:00]:new_redis.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -168,7 +168,7 @@ ${SCRIPTNAME}
         *** Redis Cluster requires at least 3 master nodes.
         *** At least 6 nodes are required.
         demo:
-            (node * num == master * (replicas+1))
+            (node * num == master * (replicas+1)) at least 3 master nodes
            ./new_redis.sh -n 192.168.168.124 -s ~/centos8 --num 3 --replicas 0
            ./new_redis.sh -n 192.168.168.124 -s ~/centos8 --num 6 --replicas 1
            ./new_redis.sh -s ~/centos8 --num 2 --replicas 1 -n 192.168.168.A -n 192.168.168.B -n 192.168.168.C
@@ -236,7 +236,7 @@ main() {
     done
     local ipaddr=""
     for ipaddr in "${teardown[@]}"; do
-        info_msg "${ipaddr} teardown all k8s config!\n"
+        info_msg "${ipaddr} teardown all redis binary & config!\n"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" "teardown"
     done
     [ "$(array_size teardown)" -gt "0" ] && { info_msg "TEARDOWN OK\n"; return 0; }
