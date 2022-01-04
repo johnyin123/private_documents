@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("007c6f9[2022-01-04T13:23:18+08:00]:new_redis.sh")
+VERSION+=("0c72583[2022-01-04T13:30:49+08:00]:new_redis.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -265,6 +265,19 @@ main() {
 }
 main "$@"
 
+:<<EOF
+redis1:
+  listen: 0.0.0.0:6666
+  hash: fnv1a_64
+  distribution: ketama
+  auto_eject_hosts: true
+  redis: true
+  server_retry_timeout: 2000
+  server_failure_limit: 1
+  servers:
+   - 192.168.168.111:6379:1
+   - 192.168.168.112:6379:1
+EOF
 # apt install libtool shtool autoconf
 # autoreconf -fvi
 # ./configure
