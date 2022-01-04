@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7abfc39[2022-01-04T13:11:45+08:00]:new_redis.sh")
+VERSION+=("007c6f9[2022-01-04T13:23:18+08:00]:new_redis.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -265,5 +265,8 @@ main() {
 }
 main "$@"
 
+# apt install libtool shtool autoconf
+# autoreconf -fvi
+# ./configure
 # https://github.com/twitter/twemproxy
 # https://github.com/RedisLabs/redis-cluster-proxy
