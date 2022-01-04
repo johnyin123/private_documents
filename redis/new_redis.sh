@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a9fe0b1[2022-01-04T06:58:57+08:00]:new_redis.sh")
+VERSION+=("48eeb7d[2022-01-04T07:22:02+08:00]:new_redis.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -88,6 +88,7 @@ bind 0.0.0.0
 port ${port}
 tcp-backlog 511
 cluster-enabled yes
+cluster-require-full-coverage no
 cluster-node-timeout 5000
 cluster-config-file node-${port}.conf
 dir /var/lib/redis/redis-server-${port}
@@ -96,6 +97,7 @@ pidfile /run/redis-${port}/redis-server.pid
 dbfilename dump-${port}.rdb
 appendfilename "appendonly-${port}.aof"
 requirepass ${password}
+masterauth ${password}
 ###########################################
 appendonly yes
 loglevel notice
@@ -256,11 +258,7 @@ main() {
     ipaddr=${node[0]}
     ssh_func "root@${ipaddr}" ${SSH_PORT} init_redis_cluster "${passwd}" ${port} ${replicas} "${peers_lst[@]}"
     ssh_func "root@${ipaddr}" ${SSH_PORT} "redis-cli --cluster check -a ${passwd}  ${peers_lst[0]}"
-            # redis-cli -c -p 7000
-            # redis 127.0.0.1:7000> set foo ba
-            # redis-cli -s /var/run/redis-myname/redis-server.sock info | grep config_file
-
-
+    # redis-cli -s /var/run/redis-myname/redis-server.sock info | grep config_file
     return 0
 }
 main "$@"
