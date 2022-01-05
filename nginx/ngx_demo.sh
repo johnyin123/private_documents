@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5da0128[2022-01-04T09:06:23+08:00]:ngx_demo.sh")
+VERSION+=("3562b7c[2022-01-05T08:26:58+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2784,51 +2784,6 @@ server {
     # }
 }
 EOF
-cat <<'EOF' > gzip-ompress.conf
-# copy this file to /etc/nginx/http-conf.d/
-gzip on;
-gunzip on;
-gzip_static on;
-gzip_buffers 16 8k;
-gzip_comp_level 6;
-gzip_http_version 1.1;
-gzip_min_length 256;
-gzip_proxied any;
-gzip_vary on;
-gzip_disable "msie6";
-gzip_types
-    application/atom+xml
-    application/geo+json
-    application/javascript
-    application/x-javascript
-    application/json
-    application/ld+json
-    application/manifest+json
-    application/rdf+xml
-    application/rss+xml
-    application/vnd.ms-fontobject
-    application/wasm
-    application/x-web-app-manifest+json
-    application/xhtml+xml
-    application/xml
-    font/eot
-    font/otf
-    font/ttf
-    image/bmp
-    image/svg+xml
-    text/cache-manifest
-    text/calendar
-    text/css
-    text/javascript
-    text/markdown
-    text/plain
-    text/xml
-    text/vcard
-    text/vnd.rim.location.xloc
-    text/vtt
-    text/x-component
-    text/x-cross-domain-policy;
-EOF
 cat <<'EOF' > brotli-compress.conf
 # copy this file to /etc/nginx/http-conf.d/
 # need brotli module
@@ -2879,9 +2834,6 @@ proxy_pass_header Server;
 # more_set_headers 'Server: my-server';
 
 add_header Set-Cookie "Path=/; HttpOnly; Secure";
-
-# sendfile on;
-sendfile_max_chunk 2048k;
 
 # # thread pool
 # thread_pool default threads=32 max_queue=65536;

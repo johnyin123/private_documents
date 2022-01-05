@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6e0e201[2022-01-04T08:53:36+08:00]:mk_nginx.sh")
+VERSION+=("3562b7c[2022-01-05T08:26:58+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -24,10 +24,13 @@ set +o nounset
 stage_level=${stage[${1:-doall}]}
 set -o nounset
 stage_level=${stage_level:?"STRIP=whatever NJS_RELEASE=0.7.0 NGINX_RELEASE=release-1.20.2 PKG=deb ${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
+ngx_user=${ngx_user:-nginx}
+ngx_group=${ngx_group:-nginx}
 STRIP=${STRIP:-""}
 NGINX_RELEASE=${NGINX_RELEASE:-release-1.20.2}
 NJS_RELEASE=${NJS_RELEASE:-0.7.0}
-CC_OPTS="-O3"
+CC_OPTS=${CC_OPTS:-"-O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC"}
+LD_OPTS=${LD_OPTS:-"-Wl,-z,relro -Wl,-z,now -fPIC"}
 NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl
 PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, no pcre2 support now
@@ -72,7 +75,7 @@ declare -A DYNAMIC_MODULES=(
 # mv /etc/nginx/modsec/modsecurity.conf-recommended /etc/nginx/modsec/modsecurity.conf
 # # Enable ModSecurity in Nginx
 # if [[ $MODSEC_ENABLE == 'y' ]]; then
-# 	sed -i 's/SecRuleEngine DetectionOnly/SecRuleEngine On/' /etc/nginx/modsec/modsecurity.conf
+#     sed -i 's/SecRuleEngine DetectionOnly/SecRuleEngine On/' /etc/nginx/modsec/modsecurity.conf
 # fi
 
 EXT_MODULES=(
@@ -132,13 +135,13 @@ printf '%s\n' "${NGINX_BASE[@]}" "${STATIC_MODULES[@]}" "${DYNAMIC_MODULES[@]}"
 check_requre_dirs "${!NGINX_BASE[@]}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULES[@]}"
 
 [ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
-    && make build_libs && make install_sw LIBDIR=lib
+    && make -j "$(nproc)" build_libs && make -j "$(nproc)" install_sw LIBDIR=lib
 
 [ ${stage_level} -ge ${stage[pcre]} ] && cd ${PCRE_DIR} && CC="cc" CFLAGS="-O2 -fomit-frame-pointer -pipe "  \
     ./configure --disable-shared --enable-jit \
     --disable-cpp \
     --libdir=${PCRE_DIR}/.libs/ --includedir=${PCRE_DIR} && \
-    make -j8
+    make -j "$(nproc)"
 # njs configure need expect
 # expect -v || sudo apt install expect
 
@@ -158,7 +161,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 --user=nginx \
 --group=nginx \
 --with-cc-opt="${CC_OPTS} $(pcre-config --cflags) -I${OPENSSL_DIR}/.openssl/include" \
---with-ld-opt="$(pcre-config --libs) -L${OPENSSL_DIR}/.openssl/lib" \
+--with-ld-opt="${LD_OPTS} $(pcre-config --libs) -L${OPENSSL_DIR}/.openssl/lib" \
 --with-pcre \
 --sbin-path=/usr/sbin/nginx \
 --conf-path=/etc/nginx/nginx.conf \
@@ -184,10 +187,10 @@ ${EXT_MODULES[@]}
 TMP_VER=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 echo "${TMP_VER}**************************************************"
 sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${TMP_VER}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
-[ ${stage_level} -ge ${stage[make]} ] && cd ${NGINX_DIR} && make -j8
+[ ${stage_level} -ge ${stage[make]} ] && cd ${NGINX_DIR} && make -j "$(nproc)"
 OUTDIR=${DIRNAME}/out
 mkdir -p ${OUTDIR}
-[ ${stage_level} -ge ${stage[install]} ] && rm -rf ${OUTDIR}/* && cd ${NGINX_DIR} && make install DESTDIR=${OUTDIR}
+[ ${stage_level} -ge ${stage[install]} ] && rm -rf ${OUTDIR}/* && cd ${NGINX_DIR} && make -j "$(nproc)" install DESTDIR=${OUTDIR}
 
 echo "/usr/lib/tmpfiles.d/nginx.conf"
 mkdir -p ${OUTDIR}/usr/lib/tmpfiles.d/
@@ -250,14 +253,72 @@ mkdir -p ${OUTDIR}/var/lib/nginx/proxy
 mkdir -p ${OUTDIR}/var/lib/nginx/fastcfg
 mkdir -p ${OUTDIR}/var/lib/nginx/uwsgi
 mkdir -p ${OUTDIR}/var/lib/nginx/scgi
+cat <<'EOF' > ${OUTDIR}/etc/nginx/http-conf.d/gzip-compress.conf
+gzip on;
+gunzip on;
+gzip_static on;
+gzip_buffers 16 8k;
+gzip_comp_level 6;
+gzip_http_version 1.1;
+gzip_min_length 256;
+gzip_proxied any;
+gzip_vary on;
+gzip_disable "msie6";
+gzip_types
+    application/atom+xml
+    application/geo+json
+    application/javascript
+    application/x-javascript
+    application/json
+    application/ld+json
+    application/manifest+json
+    application/rdf+xml
+    application/rss+xml
+    application/vnd.ms-fontobject
+    application/wasm
+    application/x-web-app-manifest+json
+    application/xhtml+xml
+    application/xml
+    font/eot
+    font/otf
+    font/ttf
+    image/bmp
+    image/svg+xml
+    text/cache-manifest
+    text/calendar
+    text/css
+    text/javascript
+    text/markdown
+    text/plain
+    text/xml
+    text/vcard
+    text/vnd.rim.location.xloc
+    text/vtt
+    text/x-component
+    text/x-cross-domain-policy;
+EOF
 
 cat <<'EOF' > ${OUTDIR}/etc/nginx/http-conf.d/proxy.conf
-client_max_body_size 100M;
-proxy_ignore_client_abort on;
 server_names_hash_max_size 1024;
-proxy_headers_hash_max_size 102400;
-proxy_headers_hash_bucket_size 10240;
+proxy_redirect off;
+proxy_pass_header Server;
+proxy_pass_header Set-Cookie;
+proxy_connect_timeout 3s;
+proxy_read_timeout 60s;
+proxy_send_timeout 60s;
+proxy_intercept_errors on;
+proxy_next_upstream error timeout invalid_header;
+proxy_set_header Host $host;
+proxy_set_header Connection "";
+proxy_http_version 1.1;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header X-Real-IP $remote_addr;
+client_max_body_size 100M;
 client_header_buffer_size 40k;
+proxy_headers_hash_bucket_size 10240;
+proxy_headers_hash_max_size 102400;
+proxy_ignore_client_abort on;
 large_client_header_buffers 4 80k;
 EOF
 
@@ -315,10 +376,12 @@ cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.conf
 # load_module modules/ngx_http_brotli_static_module.so;
 # load_module modules/ngx_http_headers_more_filter_module.so;
 # load_module modules/ngx_http_vhost_traffic_status_module.so;
+# load_module modules/ngx_mail_module.so;
+# load_module modules/ngx_pagespeed.so;
 EOF
 
-cat <<'EOF' > ${OUTDIR}/etc/nginx/nginx.conf
-user nginx nginx;
+cat <<EOF > ${OUTDIR}/etc/nginx/nginx.conf
+user ${ngx_user} ${ngx_group};
 worker_processes auto;
 worker_rlimit_nofile 102400;
 pcre_jit on;
@@ -331,30 +394,22 @@ events {
 }
 http {
     sendfile on;
+    sendfile_max_chunk 2048k;
+
     tcp_nopush on;
     tcp_nodelay on;
     types_hash_max_size 2048;
     server_tokens off;
+
+    # # thread pool
+    aio threads=default;
 
     # # allow the server to close connection on non responding client, this will free up memory
     reset_timedout_connection on;
 
     # # number of requests client can make over keep-alive -- for testing environment
     keepalive_requests 1000;
-    proxy_next_upstream error timeout invalid_header;
-    proxy_intercept_errors on;
-    proxy_redirect off;
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header Connection "";
-    proxy_pass_header Set-Cookie;
-    proxy_pass_header Server;
-    proxy_http_version 1.1;
-    proxy_read_timeout 60s;
-    proxy_send_timeout 60s;
-    proxy_connect_timeout 3s;
+
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
 
@@ -381,8 +436,8 @@ chmod 644 ${OUTDIR}/usr/share/nginx/modules/*
 # gem sources -a http://mirrors.aliyun.com/rubygems/
 # gem sources --remove https://rubygems.org/
 # gem install fpm
-echo "getent group nginx >/dev/null || groupadd --system nginx || :" > /tmp/inst.sh
-echo "getent passwd nginx >/dev/null || useradd -g nginx --system -s /sbin/nologin -d /var/empty/nginx nginx 2> /dev/null || :" >> /tmp/inst.sh
+echo "getent group ${ngx_group} >/dev/null || groupadd --system ${ngx_group} || :" > /tmp/inst.sh
+echo "getent passwd ${ngx_user} >/dev/null || useradd -g ${ngx_group} --system -s /sbin/nologin -d /var/empty/nginx ${ngx_user} 2> /dev/null || :" >> /tmp/inst.sh
 echo "userdel nginx || :" > /tmp/uninst.sh
 rm -fr ${DIRNAME}/pkg && mkdir -p ${DIRNAME}/pkg
 
