@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3562b7c[2022-01-05T08:26:58+08:00]:ngx_demo.sh")
+VERSION+=("35bfba6[2022-01-05T09:05:58+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2834,10 +2834,6 @@ proxy_pass_header Server;
 # more_set_headers 'Server: my-server';
 
 add_header Set-Cookie "Path=/; HttpOnly; Secure";
-
-# # thread pool
-# thread_pool default threads=32 max_queue=65536;
-aio threads=default;
 
 # cache informations about FDs
 open_file_cache max=200000 inactive=20s;
