@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("aa159e3[2021-12-30T12:42:16+08:00]:mk_nginx.sh")
+VERSION+=("6e0e201[2022-01-04T08:53:36+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -361,25 +361,6 @@ http {
     # # SSL
     ssl_protocols TLSv1 TLSv1.1 TLSv1.2; # Dropping SSLv3, ref: POODLE
     ssl_prefer_server_ciphers on;
-
-    # # gzip
-    gzip on;
-    gunzip on;
-    gzip_static on;
-    gzip_buffers 16 8k;
-    gzip_comp_level 6;
-    gzip_http_version 1.1;
-    gzip_min_length 256;
-    gzip_proxied any;
-    gzip_vary on;
-    gzip_types
-        text/xml application/xml application/atom+xml application/rss+xml application/xhtml+xml image/svg+xml
-        text/javascript application/javascript application/x-javascript
-        text/x-json application/json application/x-web-app-manifest+json
-        text/css text/plain text/x-component
-        font/opentype application/x-font-ttf application/vnd.ms-fontobject
-        image/x-icon;
-    gzip_disable "msie6";
 
     # # vhost include
     include /etc/nginx/http-conf.d/*.conf;
