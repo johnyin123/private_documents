@@ -7,12 +7,31 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("35bfba6[2022-01-05T09:05:58+08:00]:ngx_demo.sh")
+VERSION+=("273f325[2022-01-05T09:11:14+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
 set -o errexit
+cat <<'EOF'>check_conf.sh
+#!/usr/bin/env bash
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly SCRIPTNAME=${0##*/}
 
+conf=${1:-dummy.conf}
+echo "check config ${DIRNAME}/${conf}"
+target=/etc/nginx/http-enabled/${conf}
+head -n1 ${DIRNAME}/${conf} 2>/dev/null | grep -q "http-conf.d" && target=/etc/nginx/http-conf.d/${conf}
+head -n1 ${DIRNAME}/${conf} 2>/dev/null | grep -q "modules.d" && target=/etc/nginx/modules.d/${conf}
+rm -f ${target} && ln -s ${DIRNAME}/${conf} ${target}
+nginx -t 2>&1 && {
+    echo "[OK] check config ${DIRNAME}/${conf}"
+} || {
+    cat ${target}
+    echo "[FAILED] check config ${DIRNAME}/${conf}"
+}
+rm -f ${target}
+EOF
+chmod 755 check_conf.sh
 cat <<"EOF">location.txt
 git clone https://github.com/nginx/nginx-tests.git
 =：精确匹配，优先级最高。如果找到了这个精确匹配，则停止查找。
@@ -101,8 +120,9 @@ cat <<'EOF' >rtmp.html
 </html>
 EOF
 cat <<'EOF' >rtmp_live_modules.conf
+# # add blow to /etc/nginx/modules.d
+load_module modules/ngx_rtmp_module.so;
 # # stream ssl -> rmtp -> rmtps
-# # add blow to /etc/nginx/modules.conf
 rtmp {
     server {
         listen 1935;
@@ -857,6 +877,7 @@ server {
 }
 EOF
 cat <<'EOF' > stream_dns_proxy.conf
+# copy this file to /etc/nginx/stream-enabled/
 upstream dns_upstreams {
     server 172.16.0.11:53;
 }
@@ -1739,7 +1760,7 @@ server {
 }
 EOF
 cat <<'EOF' > cnd.conf
-proxy_cache_path /data/cdn.test.com levels=1:2 keys_zone=testcdn:50m inactive=30m max_size=50m;
+proxy_cache_path /usr/share/nginx/cdn.test.com levels=1:2 keys_zone=testcdn:50m inactive=30m max_size=50m;
 server
 {
     listen 80 reuseport;

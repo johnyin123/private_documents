@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3562b7c[2022-01-05T08:26:58+08:00]:mk_nginx.sh")
+VERSION+=("35bfba6[2022-01-05T09:05:58+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -248,6 +248,7 @@ mkdir -p ${OUTDIR}/etc/nginx/http-enabled/
 mkdir -p ${OUTDIR}/etc/nginx/stream-enabled/
 mkdir -p ${OUTDIR}/etc/nginx/http-available/
 mkdir -p ${OUTDIR}/etc/nginx/stream-available/
+mkdir -p ${OUTDIR}/etc/nginx/modules.d/
 mkdir -p ${OUTDIR}/var/lib/nginx/body
 mkdir -p ${OUTDIR}/var/lib/nginx/proxy
 mkdir -p ${OUTDIR}/var/lib/nginx/fastcfg
@@ -364,7 +365,7 @@ log_format basic '$protocol $server_port "$upstream_addr" [$time_iso8601] $remot
 access_log /var/log/nginx/stream_access.log basic buffer=512k flush=5m;
 error_log /var/log/nginx/stream_error.log info;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.conf
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/modules.conf
 # load_module modules/ngx_http_geoip_module.so;
 # load_module modules/ngx_http_js_module.so;
 # load_module modules/ngx_http_xslt_filter_module.so;
@@ -386,7 +387,7 @@ worker_processes auto;
 worker_rlimit_nofile 102400;
 pcre_jit on;
 pid /run/nginx.pid;
-include /etc/nginx/modules.conf;
+include /etc/nginx/modules.d/*.conf;
 events {
     use epoll;
     worker_connections 10240;
