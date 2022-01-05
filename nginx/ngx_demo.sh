@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("464873e[2022-01-05T10:11:02+08:00]:ngx_demo.sh")
+VERSION+=("c5a699d[2022-01-05T12:43:31+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2668,7 +2668,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > cros.conf
+cat <<'EOF' > cors.conf
 server {
     listen 80 reuseport;
     server_name api.localhost;
@@ -2878,6 +2878,11 @@ ssl_session_timeout 10m;
 keepalive_timeout 70;
 # Buffer size of 1400 bytes fits in one MTU.
 ssl_buffer_size 1400;
+# # Enabling Forward Secrecy
+# # openssl dhparam -out /etc/nginx/ssl/dh2048.pem 2048
+# ssl_dhparam /etc/nginx/dh2048.pem;
+# ssl_stapling on;
+# ssl_stapling_verify on;
 
 variables_hash_bucket_size 256;
 EOF
