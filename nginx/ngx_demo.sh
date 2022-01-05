@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("273f325[2022-01-05T09:11:14+08:00]:ngx_demo.sh")
+VERSION+=("464873e[2022-01-05T10:11:02+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2807,6 +2807,9 @@ server {
 EOF
 cat <<'EOF' > brotli-compress.conf
 # copy this file to /etc/nginx/http-conf.d/
+# curl -vvv -H "Accept-Encoding: gzip, deflate, br" http://localhost/test.html -o - | brotli -d -c
+# curl -vvv -H "Accept-Encoding: gzip, deflate" http://localhost/test.html -o - | gzip -d -c
+# curl -vvv -H "Accept-Encoding: deflate, br" http://localhost/test.html -o - | brotli -d -c
 # need brotli module
 brotli on;
 brotli_static on;
