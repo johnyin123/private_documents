@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-01-05T15:02:34+08:00]:ssl.sh")
+VERSION+=("3173cbf[2022-01-05T15:02:34+08:00]:ssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -43,9 +43,9 @@ EOF
     try certtool --generate-privkey --bits=2048 > ${caroot}/ca.key
     try certtool --generate-self-signed --load-privkey ${caroot}/ca.key \
         --template ${caroot}/ca.info \
-        --outfile ${caroot}/ca.crt
-    try certtool -i --infile=${caroot}/ca.crt || true
-    #openssl x509 -text -noout -in ${caroot}/ca.crt || true
+        --outfile ${caroot}/ca.pem
+    try certtool -i --infile=${caroot}/ca.pem || true
+    #openssl x509 -text -noout -in ${caroot}/ca.pem || true
     info_msg "gen ca server cert\n"
     try cat << EOF > ${caroot}/${dn}.info
 organization = silf sign server
@@ -55,10 +55,10 @@ expiration_days = $((365*5))
 EOF
     try certtool --generate-privkey --bits=2048 > ${caroot}/${dn}.key
     try certtool --generate-certificate --load-privkey ${caroot}/${dn}.key \
-        --load-ca-certificate ${caroot}/ca.crt \
+        --load-ca-certificate ${caroot}/ca.pem \
         --load-ca-privkey ${caroot}/ca.key \
         --template ${caroot}/${dn}.info \
-        --outfile ${caroot}/${dn}.crt
+        --outfile ${caroot}/${dn}.pem
     info_msg "generate dh 2048\n"
     try certtool --generate-dh-params --outfile ${caroot}/dh2048.pem --sec-param medium
 }
@@ -74,11 +74,11 @@ signing_key
 EOF
     try certtool --generate-privkey > ${caroot}/client_${cid}.key
     try certtool --generate-certificate --load-privkey ${caroot}/client_${cid}.key \
-        --load-ca-certificate ${caroot}/ca.crt \
+        --load-ca-certificate ${caroot}/ca.pem \
         --load-ca-privkey ${caroot}/ca.key \
         --template ${caroot}/client_${cid}.info \
-        --outfile ${caroot}/client_${cid}.crt
-    try "tar -C ${caroot} -cv ca.crt client_${cid}.key client_${cid}.crt | gzip > ${caroot}/${cid}.tar.gz"
+        --outfile ${caroot}/client_${cid}.pem
+    try "tar -C ${caroot} -cv ca.pem client_${cid}.key client_${cid}.pem | gzip > ${caroot}/${cid}.tar.gz"
     info_msg "${caroot}/${cid}.tar.gz --> TO CLIENT\n"
 }
 
