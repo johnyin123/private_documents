@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e7ac0f4[2022-01-05T13:31:51+08:00]:ngx_demo.sh")
+VERSION+=("ccddc77[2022-01-05T15:02:10+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -33,14 +33,14 @@ rm -f ${target}
 EOF
 chmod 755 check_conf.sh
 cat <<'EOF'>ssl_client_cert.conf
-# curl -k --key client_test.key --cert client_test.crt --cacert ca.crt  https://localhost/
+# curl -k --key client_test.key --cert client_test.pem --cacert ca.pem  https://localhost/
 server {
     listen 443 ssl reuseport;
     server_name _;
-    ssl_certificate /etc/nginx/www.test.com.crt;
+    ssl_certificate /etc/nginx/www.test.com.pem;
     ssl_certificate_key /etc/nginx/www.test.com.key;
     ssl_dhparam /etc/nginx/dh2048.pem;
-    ssl_client_certificate /etc/nginx/ca.crt;
+    ssl_client_certificate /etc/nginx/ca.pem;
     ssl_verify_client on;
     location / { return 200 "$ssl_client_s_dn"; }
 }
