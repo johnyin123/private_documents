@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("44d7851[2022-01-06T09:46:17+08:00]:ssl.sh")
+VERSION+=("b17c3d0[2022-01-06T09:54:34+08:00]:ssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -111,7 +111,10 @@ main() {
     }
     [ -z "${client}" ] || {
         info_msg "generate client [${client}] cert\n"
-        gen_clent_cert "${caroot}" "${client}"
+        gen_clent_cert "${caroot}" "${client}" || {
+            retval=$?
+            error_msg "generate client [${client}] cert error[${retval}]\n"
+        }
     }
     info_msg "ALL DONE\n"
     return 0
