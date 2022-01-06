@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("adf90fe[2022-01-04T15:02:03+08:00]:new_redis.sh")
+VERSION+=("45a4c2b[2022-01-05T07:28:47+08:00]:new_redis.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -175,24 +175,6 @@ ${SCRIPTNAME}
 
 EOF
     exit 1
-}
-
-new_redis_cluster() {
-    local ipaddr=${1}
-    local passwd=${2}
-    local port=${3}
-    local src=${4}
-    local replicas=${5}
-
-    upload "${src}/redis-server" ${ipaddr} ${SSH_PORT} "root" "/usr/bin/"
-    upload "${src}/redis-cli" ${ipaddr} ${SSH_PORT} "root" "/usr/bin/"
-
-    ssh_func "root@${ipaddr}" ${SSH_PORT} init_dir
-    ssh_func "root@${ipaddr}" ${SSH_PORT} gen_redis_service
-    for i in $(seq 0 ${replicas});do
-        ssh_func "root@${ipaddr}" ${SSH_PORT} gen_redis_conf "/etc/redis" "$((port + i))" "${passwd}"
-        ssh_func "root@${ipaddr}" ${SSH_PORT} "systemctl daemon-reload && systemctl enable --now redis-server@$((port + i)).service"
-    done
 }
 
 teardown() {
