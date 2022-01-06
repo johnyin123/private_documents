@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("45a4c2b[2022-01-05T07:28:47+08:00]:new_redis.sh")
+VERSION+=("9c25270[2022-01-06T12:49:25+08:00]:new_redis.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -241,7 +241,7 @@ main() {
     done
     ipaddr=${node[0]}
     ssh_func "root@${ipaddr}" ${SSH_PORT} init_redis_cluster "${passwd}" ${port} ${replicas} "${peers_lst[@]}"
-    ssh_func "root@${ipaddr}" ${SSH_PORT} "redis-cli --cluster check -a ${passwd}  ${peers_lst[0]}"
+    ssh_func "root@${ipaddr}" ${SSH_PORT} "redis-cli --cluster check -a ${passwd} ${peers_lst[0]}"
     # redis-cli -h 127.0.0.1 -p 9000 -a password cluster nodes
     # redis-cli -s /var/run/redis-myname/redis-server.sock info | grep config_file
     # redis-cli --cluster add-node 127.0.0.1:7006 127.0.0.1:7000 \
