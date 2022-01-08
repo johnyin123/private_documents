@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ccddc77[2022-01-05T15:02:10+08:00]:ngx_demo.sh")
+VERSION+=("7fd3efa[2022-01-06T09:50:43+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2869,6 +2869,11 @@ cat <<'EOF' > more_tuning.conf
 proxy_pass_header Server;
 # # OR
 # more_set_headers 'Server: my-server';
+#
+# map $http_x_forwarded_for $realipaddr {
+#     "" $remote_addr;
+#     ~^(?P<firstAddr>[0-9\.]+),?.*$ $firstAddr;
+# }
 
 add_header Set-Cookie "Path=/; HttpOnly; Secure";
 
