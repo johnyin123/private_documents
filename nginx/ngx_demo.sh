@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d0035f4[2022-01-10T14:56:17+08:00]:ngx_demo.sh")
+VERSION+=("6c09948[2022-01-10T15:14:21+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2733,6 +2733,29 @@ server {
         proxy_set_header X-forward-for $proxy_add_x_forwarded_for;
         proxy_pass http://127.0.0.1:3000;
   }
+}
+EOF
+cat <<'EOF' > error_page2.conf
+
+error_page 400 /error/400.html;
+error_page 401 /error/401.html;
+error_page 403 /error/403.html;
+error_page 404 /error/404.html;
+error_page 410 /error/410.html;
+error_page 500 /error/500.html;
+error_page 501 /error/501.html;
+error_page 502 /error/502.html;
+error_page 503 /error/503.html;
+error_page 504 /error/504.html;
+error_page 505 /error/505.html;
+server {
+    listen 80 reuseport;
+    server_name _;
+    location ^~ /error/ {
+        internal;
+        root /var/www;
+        allow all;
+    }
 }
 EOF
 cat <<'EOF' > error_page.conf
