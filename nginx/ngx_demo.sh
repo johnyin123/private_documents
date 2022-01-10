@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6c09948[2022-01-10T15:14:21+08:00]:ngx_demo.sh")
+VERSION+=("cfbdd20[2022-01-10T16:15:41+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -514,7 +514,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > limit_req2.conf
+cat <<'EOF' > limit_req_ddos.conf
 map $http_x_forwarded_for $clientRealIp {
     ""                              $remote_addr;
     ~^(?P<firstAddr>[0-9\.]+),?.*$  $firstAddr;
