@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a3fe6bd[2022-01-10T13:54:21+08:00]:ngx_demo.sh")
+VERSION+=("d0035f4[2022-01-10T14:56:17+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -988,6 +988,8 @@ server {
     server_name _;
     location / {
         set $memcached_key "$uri?$args";
+        # set $memcached_key $request_uri;
+        # default_type text/html;
         memcached_next_upstream  not_found;
         memcached_pass 127.0.0.1:11211;
         error_page 404 502 504 = @fallback;
