@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f29693a[2022-01-10T11:58:20+08:00]:ngx_demo.sh")
+VERSION+=("db20f1f[2022-01-10T12:56:36+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2908,6 +2908,7 @@ open_file_cache_errors on;
 
 # request timed out -- default 60
 client_body_timeout 10s;
+client_header_timeout 5s;
 
 # if client stop responding, free up memory -- default 60
 send_timeout 2s;
