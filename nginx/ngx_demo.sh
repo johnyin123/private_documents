@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1db7411[2022-01-08T16:25:58+08:00]:ngx_demo.sh")
+VERSION+=("f29693a[2022-01-10T11:58:20+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -515,22 +515,20 @@ server {
 }
 EOF
 cat <<'EOF' > limit_req2.conf
-#Get the original user's IP address here
 map $http_x_forwarded_for $clientRealIp {
     ""                              $remote_addr;
     ~^(?P<firstAddr>[0-9\.]+),?.*$  $firstAddr;
 }
 
-# limit single IP 50 concurrent control, where $binary_remote_addr becomes $clientRealIp, $clientRealIp is Key
+# limit single IP 50 concurrent control,
 limit_conn_zone $clientRealIp zone=TotalConnLimitZone:20m ;
 limit_conn TotalConnLimitZone 50;
 limit_conn_log_level notice;
 
-# limit single IP/s 20 Request, where $binary_remote_addr becomes $clientRealIp, $clientRealIp is Key
+# limit single IP/s 20 Request
 limit_req_zone $clientRealIp zone=ConnLimitZone:20m rate=20r/s;
 limit_req_log_level notice;
 
-# Specific server configuration
 server {
     listen 80 reuseport;
     server_name _;
