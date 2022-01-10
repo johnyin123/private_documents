@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-01-07T16:44:39+08:00]:new_zookeeper.sh")
+VERSION+=("aa6a422[2022-01-07T16:44:39+08:00]:new_zookeeper.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -47,6 +47,7 @@ gen_zk_conf() {
     cat >/opt/zookeeper/conf/zoo.cfg << EOF
 # the directory where the snapshot is stored.
 dataDir=/opt/zookeeper/var/zk/data
+# dataLogDir=
 # the port at which the clients will connect
 clientPort=${port}
 # the maximum number of client connections.
@@ -153,3 +154,33 @@ main() {
     return 0
 }
 main "$@"
+
+cat <<EOF
+# # kafka config
+# broker 编号，集群内必须唯一
+broker.id=1
+# host 地址
+host.name=127.0.0.1
+# 端口
+port=9092
+# 消息日志存放地址
+log.dirs=
+# ZooKeeper 地址，多个用,分隔
+zookeeper.connect=localhost:2181,localhost:2182,localhost:2183
+# # # start kafka
+# bin/kafka-server-start.sh config/server.properties
+# # # Create Kafka Topic
+# bin/kafka-topics.sh --create --zookeeper localhost:2181 \
+# --replication-factor 1 \
+# --partitions 1 \
+# --topic text_topic
+# # # List all Topics
+# bin/kafka-topics.sh --zookeeper localhost:2181 --list
+# # # Describe Topic
+# bin/kafka-topics.sh --zookeeper localhost:2181 --describe
+# # # Kafka Producer
+# bin/kafka-console-producer.sh --broker-list localhost:9092[,ip:port] --topic text_topic
+# # # Kafka Consumer
+# bin/kafka-console-consumer.sh --bootstrap-server localhost:9092[,ip:port] --topic text_topic --from-beginning
+EOF
+
