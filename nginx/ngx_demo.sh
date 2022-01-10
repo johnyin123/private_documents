@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("db20f1f[2022-01-10T12:56:36+08:00]:ngx_demo.sh")
+VERSION+=("a3fe6bd[2022-01-10T13:54:21+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2686,6 +2686,8 @@ server {
     location ~* \.(?:ico|css|js|gif|jpe?g|png)$ {
         expires 30d;
         add_header Vary Accept-Encoding;
+        limit_rate_after 100k;
+        limit_rate 100k;
         access_log off;
     }
     ## All static files will be served directly.
