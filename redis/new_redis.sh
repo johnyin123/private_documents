@@ -7,10 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9c25270[2022-01-06T12:49:25+08:00]:new_redis.sh")
+VERSION+=("deffc62[2022-01-06T14:39:22+08:00]:new_redis.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
+    echo "sudo -u redis /bin/bash"
     getent group redis >/dev/null || groupadd --system redis || :
     getent passwd redis >/dev/null || useradd -g redis --system -s /sbin/nologin -d /var/empty/redis redis 2> /dev/null || :
     mkdir -p /etc/redis && chown -R redis:redis /etc/redis
