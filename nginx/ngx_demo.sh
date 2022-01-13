@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cfbdd20[2022-01-10T16:15:41+08:00]:ngx_demo.sh")
+VERSION+=("9ed8a9e[2022-01-10T16:31:38+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -924,6 +924,29 @@ server {
     proxy_pass dns_upstreams;
 }
 EOF
+cat <<'EOF' > https_proxy.conf
+# load_module modules/ngx_http_proxy_connect_module.so;
+server {
+    listen 8000 reuseport;
+    server_name _;
+    resolver 114.114.114.114 ipv6=off;
+    # Enable "CONNECT" HTTP method support.
+    proxy_connect;
+    proxy_connect_connect_timeout 10s;
+    proxy_connect_read_timeout 10s;
+    proxy_connect_send_timeout 10s;
+    # all / port-range
+    proxy_connect_allow 443 563;
+    # proxy_connect_address <addr> | off
+    # forward proxy for non-CONNECT request
+    location / {
+        proxy_pass $scheme://$host$request_uri;
+        proxy_set_header Host $http_host;
+        proxy_buffers 256 4k;
+        proxy_max_temp_file_size 0k;
+    }
+}
+EOF
 cat <<'EOF' > reverse_transparent_proxy.conf
 # modify nginx.conf add `user root;`
 # upstream `route add default gw 172.16.0.1`
@@ -944,6 +967,7 @@ cat <<'EOF' > gateway_transparent_proxy.conf
 server {
     listen 8000 reuseport;
     server_name _;
+    resolver 114.114.114.114 ipv6=off;
     location / {
         # proxy_method      POST;
         # proxy_set_body    "token=$http_apikey&token_hint=access_token";
