@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("602be33[2022-01-05T10:27:26+08:00]:mk_nginx.sh")
+VERSION+=("95d01d8[2022-01-13T14:52:00+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -59,6 +59,8 @@ declare -A DYNAMIC_MODULES=(
     # [${DIRNAME}/ModSecurity-nginx]="git clone --depth 1 https://github.com/SpiderLabs/ModSecurity-nginx.git"
     # [${DIRNAME}/ngx_http_proxy_connect_module]="git clone --depth 1 https://github.com/chobits/ngx_http_proxy_connect_module.git"
 )
+# # proxy_connect_module
+# cd nginx && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch
 # # ModSecurity Library
 # git clone https://github.com/SpiderLabs/ModSecurity.git
 # # ModSecurity core rules
