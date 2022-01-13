@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("os_centos_init.sh - d1c82a1 - 2021-10-28T15:48:03+08:00")
+VERSION+=("6ba109c[2021-11-03T15:57:41+08:00]:os_centos_init.sh")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -116,7 +116,7 @@ EOF
     centos_disable_ipv6
     centos_service_init
     centos_sysctl_init
-    centos_zswap_init 512
+    centos_zramswap_init 512
 EOSHELL
     return 0
 }
@@ -243,7 +243,7 @@ centos_service_init() {
 }
 export -f centos_service_init
 
-centos_zswap_init() {
+centos_zramswap_init() {
     local size_mb=$(($1*1024*1024))
     ( grep -v -E "^/dev/zram0" /etc/fstab ; echo "/dev/zram0   none swap sw,pri=32767 0 0"; ) | tee /etc/fstab.bak
     mv /etc/fstab.bak /etc/fstab
@@ -254,5 +254,5 @@ EOF
     echo "zram" > /etc/modules-load.d/zram.conf 
     dracut -fv
 }
-export -f centos_zswap_init
+export -f centos_zramswap_init
 

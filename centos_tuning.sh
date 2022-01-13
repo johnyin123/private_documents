@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("centos_tuning.sh - 2b74989 - 2021-11-12T13:07:34+08:00")
+VERSION+=("ccd1625[2021-11-12T14:28:00+08:00]:centos_tuning.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_centos_init.sh
@@ -20,7 +20,7 @@ ${SCRIPTNAME}
         -p|--port          ssh port (default 60022)
         --password  <str>  ssh password(default use sshkey)
         -n|--hostname      new hostname
-        -z|--zswap         zswap size(MB, 128/255)
+        -z|--zramswap         zramswap size(MB, 128/255)
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -30,9 +30,9 @@ EOF
     exit 1
 }
 main() {
-    local ssh="" port=60022 name="" zswap="" password=""
+    local ssh="" port=60022 name="" zramswap="" password=""
     local opt_short="s:p:n:z:"
-    local opt_long="ssh:,port:,hostname:,zswap:,password:,"
+    local opt_long="ssh:,port:,hostname:,zramswap:,password:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -43,7 +43,7 @@ main() {
             -p | --port)    shift; port=${1}; shift;;
             --password)     shift; password="${1}"; shift;;
             -n | --hostname)shift; name=${1}; shift;;
-            -z | --zswap)   shift; zswap=${1}; shift;;
+            -z | --zramswap)   shift; zramswap=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -65,7 +65,7 @@ main() {
     ssh_func "${ssh}" "${port}" centos_disable_ipv6
     ssh_func "${ssh}" "${port}" centos_service_init
     ssh_func "${ssh}" "${port}" centos_sysctl_init
-    [ -z "${zswap}" ] || ssh_func "${ssh}" "${port}" centos_zswap_init ${zswap}
+    [ -z "${zramswap}" ] || ssh_func "${ssh}" "${port}" centos_zramswap_init ${zramswap}
     ssh_func "${ssh}" "${port}" "sed -i '/motd.sh/d' /etc/profile ; echo 'sh /etc/motd.sh' >> /etc/profile;touch /etc/logo.txt /etc/motd.sh"
     ssh_func "${ssh}" "${port}" "[ -z '${name}' ] || echo '${name}' > /etc/hostname"
     return 0
