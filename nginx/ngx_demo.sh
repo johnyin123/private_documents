@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("15259d3[2022-01-14T14:34:00+08:00]:ngx_demo.sh")
+VERSION+=("a58dc3d[2022-01-14T17:05:53+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -929,6 +929,7 @@ cat <<'EOF' > https_proxy.conf
 # load_module modules/ngx_http_proxy_connect_module.so;
 # curl -vvv -x http://localhost:8000 http://192.168.168.1:9999/img/bd_logo1.png -o /dev/null
 # dynamic proxy_pass + proxy_cache possible · Issue #316 ...
+# https://github.com/nginx/njs/issues/316
 server {
     listen 8000 reuseport;
     server_name _;
