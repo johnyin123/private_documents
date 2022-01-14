@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9c012b4[2022-01-13T15:10:05+08:00]:mk_nginx.sh")
+VERSION+=("396c60e[2022-01-14T09:42:29+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -35,6 +35,7 @@ LD_OPTS=${LD_OPTS:-"-Wl,-z,relro -Wl,-z,now -fPIC"}
 STRIP=${STRIP:-""}
 PKG=${PKG:-""}
 PROXY_CONNECT=${PROXY_CONNECT:-""}
+CACHE_PURGE=${CACHE_PURGE:-""}
 ##OPTION_END##
 NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl
@@ -50,6 +51,9 @@ declare -A STATIC_MODULES=(
     [${DIRNAME}/nginx-sticky-module-ng]="git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng"
     [${DIRNAME}/nginx_limit_speed_module]="git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git"
 )
+[ -z "${CACHE_PURGE}" ] || {
+    STATIC_MODULES[${DIRNAME}/ngx_cache_purge]="git clone --depth 1 https://github.com/FRiCKLE/ngx_cache_purge.git"
+}
 declare -A DYNAMIC_MODULES=(
     [${DIRNAME}/njs/nginx]="git clone --depth 1 --branch ${NJS_RELEASE} https://github.com/nginx/njs.git"
     [${DIRNAME}/nginx-rtmp-module]="git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git"
