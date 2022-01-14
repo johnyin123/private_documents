@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bc14b92[2022-01-14T13:29:34+08:00]:ngx_demo.sh")
+VERSION+=("15259d3[2022-01-14T14:34:00+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -927,6 +927,8 @@ server {
 EOF
 cat <<'EOF' > https_proxy.conf
 # load_module modules/ngx_http_proxy_connect_module.so;
+# curl -vvv -x http://localhost:8000 http://192.168.168.1:9999/img/bd_logo1.png -o /dev/null
+# dynamic proxy_pass + proxy_cache possible · Issue #316 ...
 server {
     listen 8000 reuseport;
     server_name _;
@@ -941,7 +943,7 @@ server {
     # proxy_connect_address <addr> | off
     # forward proxy for non-CONNECT request
     location / {
-        proxy_pass $scheme://$host$request_uri;
+        proxy_pass $scheme://$http_host
         proxy_set_header Host $http_host;
         proxy_buffers 256 4k;
         proxy_max_temp_file_size 0k;
