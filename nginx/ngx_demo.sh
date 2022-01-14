@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9ed8a9e[2022-01-10T16:31:38+08:00]:ngx_demo.sh")
+VERSION+=("57a52c9[2022-01-13T16:16:52+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -230,6 +230,7 @@ map $http_user_agent $badagent {
     default    0;
     ~*backdoor 1;
     ~webbandit 1;
+    ~*(?i)(80legs|360Spider) 1;
 }
 server {
     listen 80 reuseport;
