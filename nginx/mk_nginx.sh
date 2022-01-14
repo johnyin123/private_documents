@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("95d01d8[2022-01-13T14:52:00+08:00]:mk_nginx.sh")
+VERSION+=("9c012b4[2022-01-13T15:10:05+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -23,14 +23,19 @@ declare -A stage=(
 set +o nounset
 stage_level=${stage[${1:-doall}]}
 set -o nounset
-stage_level=${stage_level:?"STRIP=whatever NJS_RELEASE=0.7.0 NGINX_RELEASE=release-1.20.2 PKG=deb ${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
-ngx_user=${ngx_user:-nginx}
-ngx_group=${ngx_group:-nginx}
-STRIP=${STRIP:-""}
+sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${0}
+stage_level=${stage_level:?"${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
+##OPTION_START##
+NGX_USER=${NGX_USER:-nginx}
+NGX_GROUP=${NGX_GROUP:-nginx}
 NGINX_RELEASE=${NGINX_RELEASE:-release-1.20.2}
 NJS_RELEASE=${NJS_RELEASE:-0.7.0}
 CC_OPTS=${CC_OPTS:-"-O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC"}
 LD_OPTS=${LD_OPTS:-"-Wl,-z,relro -Wl,-z,now -fPIC"}
+STRIP=${STRIP:-""}
+PKG=${PKG:-""}
+PROXY_CONNECT=${PROXY_CONNECT:-""}
+##OPTION_END##
 NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl
 PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, no pcre2 support now
@@ -57,8 +62,11 @@ declare -A DYNAMIC_MODULES=(
     # [${DIRNAME}/NginxExecute]="git clone --depth 1 https://github.com/limithit/NginxExecute.git"
     # [${DIRNAME}/Nginx-DOH-Module]="git clone --depth 1 https://github.com/dvershinin/Nginx-DOH-Module.git"
     # [${DIRNAME}/ModSecurity-nginx]="git clone --depth 1 https://github.com/SpiderLabs/ModSecurity-nginx.git"
-    # [${DIRNAME}/ngx_http_proxy_connect_module]="git clone --depth 1 https://github.com/chobits/ngx_http_proxy_connect_module.git"
 )
+[ -z "${PROXY_CONNECT}" ] || {
+    echo "git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_XXX.patch"
+    DYNAMIC_MODULES[${DIRNAME}/ngx_http_proxy_connect_module]="git clone --depth 1 https://github.com/chobits/ngx_http_proxy_connect_module.git"
+}
 # # proxy_connect_module
 # cd nginx && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch
 # # ModSecurity Library
@@ -385,7 +393,7 @@ cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/modules.conf
 EOF
 
 cat <<EOF > ${OUTDIR}/etc/nginx/nginx.conf
-user ${ngx_user} ${ngx_group};
+user ${NGX_USER} ${NGX_GROUP};
 worker_processes auto;
 worker_rlimit_nofile 102400;
 pcre_jit on;
@@ -440,8 +448,8 @@ chmod 644 ${OUTDIR}/usr/share/nginx/modules/*
 # gem sources -a http://mirrors.aliyun.com/rubygems/
 # gem sources --remove https://rubygems.org/
 # gem install fpm
-echo "getent group ${ngx_group} >/dev/null || groupadd --system ${ngx_group} || :" > /tmp/inst.sh
-echo "getent passwd ${ngx_user} >/dev/null || useradd -g ${ngx_group} --system -s /sbin/nologin -d /var/empty/nginx ${ngx_user} 2> /dev/null || :" >> /tmp/inst.sh
+echo "getent group ${NGX_GROUP} >/dev/null || groupadd --system ${NGX_GROUP} || :" > /tmp/inst.sh
+echo "getent passwd ${NGX_USER} >/dev/null || useradd -g ${NGX_GROUP} --system -s /sbin/nologin -d /var/empty/nginx ${NGX_USER} 2> /dev/null || :" >> /tmp/inst.sh
 echo "userdel nginx || :" > /tmp/uninst.sh
 rm -fr ${DIRNAME}/pkg && mkdir -p ${DIRNAME}/pkg
 
