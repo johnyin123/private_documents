@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("57a52c9[2022-01-13T16:16:52+08:00]:ngx_demo.sh")
+VERSION+=("bc14b92[2022-01-14T13:29:34+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2657,8 +2657,8 @@ proxy_cache SHM_CACHE;
 # proxy_busy_buffers_size 256k;
 # proxy_buffer_size 64k;
 proxy_cache_valid 200 302 1d;
-proxy_cache_valid 404 1h;
-proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
+proxy_cache_valid 404 5m;
+# proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
 EOF
 cat <<'EOF' > cache_expiration.conf
 # copy this file to /etc/nginx/http-conf.d/
