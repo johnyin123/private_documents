@@ -55,7 +55,7 @@ CEPH_RELEASE=15.2.9
 #CEPH_RELEASE=jewel
 
 CEPH_USER=ceph
-CEPH_PASSWD=xikang@2018
+CEPH_PASSWD=xxxxx@2018
 [[ -r "hosts.conf" ]] || {
 	cat >"hosts.conf" <<- EOF
 #IP          hostname(小写)  ssh_port   type

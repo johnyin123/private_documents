@@ -6,19 +6,19 @@ yum repolist
 #!/bin/bash
 cat <<'EOF'>Centos-7.repo
 [base]
-name=CentOS-$releasever - Base - xikang
+name=CentOS-$releasever - Base - xxxxx
 baseurl=http://10.3.60.99/centos/$releasever/base/$basearch/
 gpgcheck=0
 
 #released updates
 [updates]
-name=CentOS-$releasever - Updates - xikang
+name=CentOS-$releasever - Updates - xxxxx
 baseurl=http://10.3.60.99/centos/$releasever/updates/$basearch/
 gpgcheck=0
 
 #additional packages that may be useful
 [extras]
-name=CentOS-$releasever - Extras - xikang
+name=CentOS-$releasever - Extras - xxxxx
 baseurl=http://10.3.60.99/centos/$releasever/extras/$basearch/
 enabled=0
 gpgcheck=0

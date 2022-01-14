@@ -45,7 +45,7 @@ help:
 	@echo "make freeze"
 	@echo "make requirements"
 	@echo "demo build rpm package: 1.make install DESTDIR=$(pwd)/bin/"
-	@echo "2. fpm -s dir -t rpm -C ~/nginx-1.13.0/bin/ --name nginx_xikang --version 1.13.0 --iteration 1 --depends pcre --depends zlib --description \"nginx with openssl,other modules\" ."
+	@echo "2. fpm -s dir -t rpm -C ~/nginx-1.13.0/bin/ --name nginx_xxxxx --version 1.13.0 --iteration 1 --depends pcre --depends zlib --description \"nginx with openssl,other modules\" ."
 
 commit: clean
 	@git add -A :/

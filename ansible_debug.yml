@@ -1,8 +1,8 @@
 # [local] 
-# 10.0.2.10 ansible_user=johnyin ansible_ssh_pass=password ansible_port=60022 ansible_become_pass=xikang@2018
+# 10.0.2.10 ansible_user=johnyin ansible_ssh_pass=password ansible_port=60022 ansible_become_pass=xxxxx@2018
 # 
 # [host2] 
-# 10.0.2.10:60022 ansible_become_pass=xikang@2018
+# 10.0.2.10:60022 ansible_become_pass=xxxxx@2018
 # 
 # 
 # [bj]

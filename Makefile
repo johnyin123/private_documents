@@ -310,6 +310,6 @@ help:
 	@echo "     2. gprof $(EXE) gmon.out -q 得到call graph"
 	@echo "     3. gprof $(EXE) gmon.out -A 得到一个带注释的“源代码清单”"
 	@echo "demo build rpm package: 1.make install DESTDIR=$(pwd)/bin/"
-	@echo "2. fpm -s dir -t rpm -C ~/nginx-1.13.0/bin/ --name nginx_xikang --version 1.13.0 --iteration 1 --depends pcre --depends zlib --description \"nginx with openssl,other modules\" ."
+	@echo "2. fpm -s dir -t rpm -C ~/nginx-1.13.0/bin/ --name nginx_xxxxx --version 1.13.0 --iteration 1 --depends pcre --depends zlib --description \"nginx with openssl,other modules\" ."
 
 

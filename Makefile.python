@@ -38,7 +38,7 @@ define USAGE
     make freeze
     make requirements
     demo build rpm package: 1.make install DESTDIR=$$(pwd)/bin/
-    2. fpm -s dir -t rpm -C ~/nginx-1.13.0/bin/ --name nginx_xikang --version 1.13.0 --iteration 1 --depends pcre --depends zlib --description \"nginx with openssl,other modules\" .
+    2. fpm -s dir -t rpm -C ~/nginx-1.13.0/bin/ --name nginx_xxxxx --version 1.13.0 --iteration 1 --depends pcre --depends zlib --description \"nginx with openssl,other modules\" .
 endef
 
 help:
