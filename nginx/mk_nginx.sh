@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ade3a9f[2022-01-14T10:25:22+08:00]:mk_nginx.sh")
+VERSION+=("6379d3f[2022-01-14T16:32:10+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -436,12 +436,12 @@ http {
 
     # # vhost include
     include /etc/nginx/http-conf.d/*.conf;
-    include /etc/nginx/http-enabled/*;
+    include /etc/nginx/http-enabled/*.conf;
 }
 
 stream {
     include /etc/nginx/stream-conf.d/*.conf;
-    include /etc/nginx/stream-enabled/*;
+    include /etc/nginx/stream-enabled/*.conf;
 }
 EOF
 rm -f  ${OUTDIR}/etc/nginx/*.default
