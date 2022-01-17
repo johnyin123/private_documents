@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2985591[2022-01-17T08:27:49+08:00]:ngx_demo.sh")
+VERSION+=("492c3f1[2022-01-17T09:45:54+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -174,6 +174,25 @@ rtmp {
             dash on;
             dash_path /var/www/dash;
         }
+    }
+}
+EOF
+cat <<'EOF' >http2.conf
+#curl -k --http2 https://localhost:8000 -vvv
+#curl -k --http1.1 https://localhost:8000 -vvv
+# # http2 must not be enabled on port 80 because it does not
+# # work with HTTP 1.1, it returns binary data for a HTTP1.1 request
+#curl --http2-prior-knowledge  http://localhost:8001
+server {
+    listen 8000 reuseport ssl http2;
+    listen 8001 reuseport http2;
+    server_name _;
+    ssl_certificate /etc/nginx/ssl/test.pem;
+    ssl_certificate_key /etc/nginx/ssl/test.key;
+    location / {
+        return 200 "value=$http2";
+        # proxy_http_version 1.1;
+        # proxy_pass http://test.com/;
     }
 }
 EOF

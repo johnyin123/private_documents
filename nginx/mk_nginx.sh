@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6379d3f[2022-01-14T16:32:10+08:00]:mk_nginx.sh")
+VERSION+=("ea2cf51[2022-01-17T07:59:12+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -35,6 +35,7 @@ LD_OPTS=${LD_OPTS:-"-Wl,-z,relro -Wl,-z,now -fPIC"}
 STRIP=${STRIP:-""}
 PKG=${PKG:-""}
 PROXY_CONNECT=${PROXY_CONNECT:-""}
+HTTP2=${HTTP2:-""}
 CACHE_PURGE=${CACHE_PURGE:-""}
 ##OPTION_END##
 NGINX_DIR=${DIRNAME}/nginx
@@ -68,7 +69,7 @@ declare -A DYNAMIC_MODULES=(
     # [${DIRNAME}/ModSecurity-nginx]="git clone --depth 1 https://github.com/SpiderLabs/ModSecurity-nginx.git"
 )
 [ -z "${PROXY_CONNECT}" ] || {
-    echo "git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_XXX.patch"
+    echo "pushd $(pwd) && cd ${NGINX_DIR} && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch && popd"
     DYNAMIC_MODULES[${DIRNAME}/ngx_http_proxy_connect_module]="git clone --depth 1 https://github.com/chobits/ngx_http_proxy_connect_module.git"
 }
 # # proxy_connect_module
@@ -119,6 +120,9 @@ EXT_MODULES=(
     "--with-http_xslt_module=dynamic"
 )
 
+[ -z "${HTTP2}" ] || {
+    EXT_MODULES+=("--with-http_v2_module")
+}
 :<<'EOF'
 # git clone --depth 1 https://github.com/nginx/njs-examples.git
 # git clone https://github.com/google/ngx_brotli.git && cd ngx_brotli && git submodule update --init
