@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b9f5705[2022-01-17T08:26:26+08:00]:ngx_demo.sh")
+VERSION+=("2985591[2022-01-17T08:27:49+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1826,7 +1826,7 @@ server {
 }
 EOF
 cat <<'EOF' > cnd.conf
-proxy_cache_path /usr/share/nginx/cdn.test.com levels=1:2 keys_zone=testcdn:50m inactive=30m max_size=50m;
+proxy_cache_path /usr/share/nginx/cdn.test.com levels=1:2 keys_zone=testcdn:50m inactive=30m max_size=50m use_temp_path=off;
 server
 {
     listen 80 reuseport;
@@ -1876,7 +1876,7 @@ EOF
 cat <<'EOF' > reverse_proxy_cache.conf
 # ngx does not cache responses if proxy_buffering is set to off. It is on by default.
 # 1MB keys_zone can store data for about 8000 keys
-proxy_cache_path /usr/share/nginx/cache levels=1:2 keys_zone=STATIC:10m inactive=24h max_size=1g;
+proxy_cache_path /usr/share/nginx/cache levels=1:2 keys_zone=STATIC:10m inactive=24h max_size=1g use_temp_path=off;
 map $cache $control {
     1 "public, no-transform";
 }
@@ -2654,7 +2654,7 @@ EOF
 cat <<'EOF' > proxy_cache.conf
 # copy this file to /etc/nginx/http-conf.d/
 # mount -t tmpfs -o size=100M none /mnt
-proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=24h max_size=512m;
+proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=24h max_size=512m use_temp_path=off;
 proxy_cache SHM_CACHE;
 # proxy_buffers 64 128k;
 # proxy_busy_buffers_size 256k;
