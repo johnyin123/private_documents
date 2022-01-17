@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f400473[2022-01-14T17:36:41+08:00]:ngx_demo.sh")
+VERSION+=("b9f5705[2022-01-17T08:26:26+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -944,7 +944,7 @@ server {
     # proxy_connect_address <addr> | off
     # forward proxy for non-CONNECT request
     location / {
-        proxy_pass $scheme://$http_host
+        proxy_pass $scheme://$http_host;
         proxy_set_header Host $http_host;
         proxy_buffers 256 4k;
         proxy_max_temp_file_size 0k;
