@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a58dc3d[2022-01-14T17:05:53+08:00]:ngx_demo.sh")
+VERSION+=("f400473[2022-01-14T17:36:41+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2662,6 +2662,10 @@ proxy_cache SHM_CACHE;
 proxy_cache_valid 200 302 1d;
 proxy_cache_valid 404 5m;
 # proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
+# If the header includes the “Set-Cookie” field, such a response will not be cached.
+# If the header includes the “Vary” field with the special value “*”, such a response will not be cached
+# http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ignore_headers
+proxy_ignore_headers "Set-Cookie" "X-Accel-Expires" "X-Accel-Limit-Rate" "X-Accel-Buffering";
 EOF
 cat <<'EOF' > cache_expiration.conf
 # copy this file to /etc/nginx/http-conf.d/
