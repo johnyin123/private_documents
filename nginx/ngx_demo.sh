@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6867cf5[2022-01-18T07:57:57+08:00]:ngx_demo.sh")
+VERSION+=("2fd8b21[2022-01-18T13:03:30+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -305,12 +305,12 @@ cat <<'EOF' >dummy.conf
 # catch-all not matched server_name by default_server
 server {
     listen 80 default_server reuseport;
-    # listen 443 ssl default_server reuseport;
+    # listen 443 ssl http2 default_server reuseport;
     # ssl_certificate /etc/nginx/site.pem;
     # ssl_certificate_key /etc/nginx/SSL/site.key;
     server_name _;
     access_log /var/log/nginx/access_err_domain.log main buffer=512k flush=5m;
-    location / { return 204; }
+    return 444;
 }
 EOF
 cat <<'EOF' >check_nofiles.ngx.sh
