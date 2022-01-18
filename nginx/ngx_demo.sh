@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("84b65de[2022-01-18T14:16:14+08:00]:ngx_demo.sh")
+VERSION+=("ace41ad[2022-01-18T15:18:37+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1478,7 +1478,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > x_accel.conf
+cat <<'EOF' > x_accel_redirect.conf
 # # X-accel allows for internal redirection to a location determined
 # # by a header returned from a backend.
 # echo "protected res" > /var/www/file.txt
