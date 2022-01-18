@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2fd8b21[2022-01-18T13:03:30+08:00]:ngx_demo.sh")
+VERSION+=("84b65de[2022-01-18T14:16:14+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -303,6 +303,7 @@ server {
 EOF
 cat <<'EOF' >dummy.conf
 # catch-all not matched server_name by default_server
+# If no default server is defined, Nginx will use the first found server.
 server {
     listen 80 default_server reuseport;
     # listen 443 ssl http2 default_server reuseport;
@@ -1838,10 +1839,9 @@ server {
     }
 }
 EOF
-cat <<'EOF' > cnd.conf
+cat <<'EOF' > cdn.conf
 proxy_cache_path /usr/share/nginx/cdn.test.com levels=1:2 keys_zone=testcdn:50m inactive=30m max_size=50m use_temp_path=off;
-server
-{
+server {
     listen 80 reuseport;
     server_name cdn.test.com;
     location / {
