@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("23b3b1d[2022-01-17T12:52:23+08:00]:ngx_demo.sh")
+VERSION+=("6867cf5[2022-01-18T07:57:57+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -535,6 +535,7 @@ server {
 }
 EOF
 cat <<'EOF' > limit_req_ddos.conf
+# copy this file to /etc/nginx/http-conf.d/
 map $http_x_forwarded_for $clientRealIp {
     ""                              $remote_addr;
     ~^(?P<firstAddr>[0-9\.]+),?.*$  $firstAddr;
@@ -545,17 +546,10 @@ limit_conn_zone $clientRealIp zone=TotalConnLimitZone:20m ;
 limit_conn TotalConnLimitZone 50;
 limit_conn_log_level notice;
 
-# limit single IP/s 20 Request
+# limit single IP/s 20 Request, with bursts not exceeding 50 requests.
 limit_req_zone $clientRealIp zone=ConnLimitZone:20m rate=20r/s;
 limit_req_log_level notice;
-
-server {
-    listen 80 reuseport;
-    server_name _;
-    location / {
-        limit_req zone=ConnLimitZone burst=5 nodelay;
-    }
-}
+limit_req zone=ConnLimitZone burst=50 nodelay;
 EOF
 cat <<'EOF' > limit_req.conf
 # error_log /var/log/nginx/error.log warn;
