@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b17c3d0[2022-01-06T09:54:34+08:00]:ssl.sh")
+VERSION+=("d5de188[2022-01-06T10:03:00+08:00]:ssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -61,6 +61,7 @@ EOF
         --outfile ${caroot}/${dn}.pem
     info_msg "generate dh 2048\n"
     try certtool --generate-dh-params --outfile ${caroot}/dh2048.pem --sec-param medium
+    try "tar -C ${caroot} -cv ca.pem ${dn}.key ${dn}.pem dh2048.pem | gzip > ${caroot}/${dn}.tar.gz"
 }
 
 gen_clent_cert() {
