@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c97a952[2022-01-19T12:54:26+08:00]:ngx_demo.sh")
+VERSION+=("64001a1[2022-01-19T12:57:03+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -192,6 +192,7 @@ server {
     server_name _;
     ssl_certificate /etc/nginx/ssl/test.pem;
     ssl_certificate_key /etc/nginx/ssl/test.key;
+    ssl_trusted_certificate /etc/nginx/ssl/ca.pem;
     location / {
         return 200 "value=$http2";
         # proxy_http_version 1.1;
@@ -3031,6 +3032,7 @@ ssl_buffer_size 1400;
 # # Enabling Forward Secrecy
 # # openssl dhparam -out /etc/nginx/ssl/dh2048.pem 2048
 # ssl_dhparam /etc/nginx/dh2048.pem;
+# # stapling, OCSP在线查询证书吊销情况
 # ssl_stapling on;
 # ssl_stapling_verify on;
 
