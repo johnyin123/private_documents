@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ad9af50[2022-01-19T08:47:29+08:00]:ngx_demo.sh")
+VERSION+=("3178158[2022-01-19T09:16:56+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -301,6 +301,10 @@ server {
     server_name _;
     valid_referers none blocked server_names *.example.com ~\.abc\.;
     if ($invalid_referer) { return 403; }
+    # location ~* \.(gif|jpg|jpeg|png)$ {
+    #     valid_referers none blocked ~.google. ~.bing. ~.yahoo. ~.facebook. ~.fbcdn. ~.ask. server_names ~($host);
+    #     if ($invalid_referer) { return 444; }
+    # }
     location / { return 200; }
 }
 EOF
