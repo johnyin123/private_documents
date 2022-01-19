@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("deffc62[2022-01-06T14:39:22+08:00]:new_redis.sh")
+VERSION+=("9e93bc6[2022-01-11T14:21:45+08:00]:new_redis.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -173,7 +173,9 @@ ${SCRIPTNAME}
            ./new_redis.sh -n 192.168.168.124 -s ~/centos8 --num 3 --replicas 0
            ./new_redis.sh -n 192.168.168.124 -s ~/centos8 --num 6 --replicas 1
            ./new_redis.sh -s ~/centos8 --num 2 --replicas 1 -n 192.168.168.A -n 192.168.168.B -n 192.168.168.C
-
+        no support command:
+           SELECT command
+           Multi-key operations may become unavailable when a resharding of the hash slot the keys belong to is in progress.
 EOF
     exit 1
 }
