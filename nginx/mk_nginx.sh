@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ad9af50[2022-01-19T08:47:29+08:00]:mk_nginx.sh")
+VERSION+=("4fb6a6a[2022-01-19T15:33:42+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -450,7 +450,7 @@ http {
     # # allow the server to close connection on non responding client, this will free up memory
     reset_timedout_connection on;
 
-    # # number of requests client can make over keep-alive -- for testing environment
+    # # number of requests client can make over keep-alive
     keepalive_requests 1000;
 
     include /etc/nginx/mime.types;
