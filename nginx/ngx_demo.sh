@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ef482bc[2022-01-19T12:27:29+08:00]:ngx_demo.sh")
+VERSION+=("2a592dd[2022-01-19T12:49:51+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -544,13 +544,14 @@ server {
 EOF
 cat <<'EOF' > limit_req_ddos.conf
 # copy this file to /etc/nginx/http-conf.d/
+# IP addresses (in the 192168.0.0/24 subnets) are not limited.
+# All other IP addresses are limited
 geo $limit{
     default 1;
     192.168.0.0/24 0;
 }
 map $limit $limit_key {
-    0 $msec; # nolimit
-    # 0 ""  # alimit group
+    0 "";
     1 $binary_remote_addr;
 }
 map $http_x_forwarded_for $clientRealIp {
