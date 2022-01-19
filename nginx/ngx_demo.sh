@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2a592dd[2022-01-19T12:49:51+08:00]:ngx_demo.sh")
+VERSION+=("c97a952[2022-01-19T12:54:26+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -563,11 +563,13 @@ map $http_x_forwarded_for $clientRealIp {
 # limit single IP 50 concurrent control,
 limit_conn_zone $clientRealIp zone=PerClientIPConnZone:10m ;
 limit_conn PerClientIPConnZone 50;
+limit_conn_status 503;
 limit_conn_log_level warn;
 
 # limit single IP/s 20 Request, with bursts not exceeding 50 requests.
 limit_req_zone $clientRealIp zone=PerClientIPReqZone:10m rate=20r/s;
 limit_req zone=PerClientIPReqZone burst=50 nodelay;
+limit_req_status 503;
 limit_req_log_level warn;
 
 limit_conn_zone $server_name zone=PerSrvNameConnZone:10m;
