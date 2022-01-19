@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("64001a1[2022-01-19T12:57:03+08:00]:ngx_demo.sh")
+VERSION+=("a4a224e[2022-01-19T15:13:49+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1043,7 +1043,7 @@ server {
     }
     location = /mirror {
         internal;
-        proxy_pass http://127.0.0.1:81$request_uri;
+        proxy_pass http://127.0.0.1:81;
         proxy_pass_request_body off;
         proxy_set_header Content-Length "";
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -1125,7 +1125,7 @@ server {
     location / {
         proxy_pass http://backend;
         proxy_bind $split_ip;
-        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
 split_clients "$request_uri$remote_port" $split_ip {
@@ -1442,7 +1442,7 @@ server {
     client_max_body_size 6000M;
     location / {
         proxy_redirect off;
-        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_hide_header x-amz-request-id;
@@ -1760,7 +1760,7 @@ server {
     location ~ /download/(.*) {
         internal;
         proxy_redirect off;
-        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_hide_header x-amz-request-id;
