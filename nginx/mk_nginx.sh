@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("23b3b1d[2022-01-17T12:52:23+08:00]:mk_nginx.sh")
+VERSION+=("4506ace[2022-01-19T07:59:25+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -385,40 +385,40 @@ access_log /var/log/nginx/stream_access.log basic buffer=512k flush=5m;
 error_log /var/log/nginx/stream_error.log info;
 EOF
 mkdir -p ${OUTDIR}/etc/nginx/modules.d/
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/brotli.module
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/brotli.conf
 load_module modules/ngx_http_brotli_filter_module.so;
 load_module modules/ngx_http_brotli_static_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/js.module
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/js.conf
 # load_module modules/ngx_http_js_module.so;
 # load_module modules/ngx_stream_js_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/geoip.module
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/geoip.conf
 # load_module modules/ngx_http_geoip_module.so;
 # load_module modules/ngx_stream_geoip_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/rtmp.module
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/rtmp.conf
 # load_module modules/ngx_rtmp_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/redis.module
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/redis.conf
 # load_module modules/ngx_http_redis_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/mail.module
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/mail.conf
 # load_module modules/ngx_mail_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/xslt.module
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/xslt.conf
 # load_module modules/ngx_http_xslt_filter_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/pagespeed.module
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/pagespeed.conf
 # load_module modules/ngx_pagespeed.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/traffic_status.module
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/traffic_status.conf
 # load_module modules/ngx_http_vhost_traffic_status_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/headers_more.module
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/headers_more.conf
 # load_module modules/ngx_http_headers_more_filter_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/proxy_connect.module
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/proxy_connect.conf
 # load_module modules/ngx_http_proxy_connect_module.so;
 EOF
 
@@ -428,7 +428,7 @@ worker_processes auto;
 worker_rlimit_nofile 102400;
 pcre_jit on;
 pid /run/nginx.pid;
-include /etc/nginx/modules.d/*.module;
+include /etc/nginx/modules.d/*.conf;
 events {
     use epoll;
     worker_connections 10240;

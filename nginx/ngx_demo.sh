@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ace41ad[2022-01-18T15:18:37+08:00]:ngx_demo.sh")
+VERSION+=("2337e71[2022-01-18T16:10:54+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -16,12 +16,15 @@ cat <<'EOF'>check_conf.sh
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-
-conf=${1:-dummy.conf}
+str_ends() {
+    [ "${1%*$2}" != "$1" ]
+}
+conf=${1:-dummy.http}
 echo "check config ${DIRNAME}/${conf}"
-target=/etc/nginx/http-enabled/${conf}
-head -n1 ${DIRNAME}/${conf} 2>/dev/null | grep -q "http-conf.d" && target=/etc/nginx/http-conf.d/${conf}
-head -n1 ${DIRNAME}/${conf} 2>/dev/null | grep -q "modules.d" && target=/etc/nginx/modules.d/${conf}
+target=/etc/nginx/http-enabled/${conf}.conf
+str_ends "${conf}" "conf" && target=/etc/nginx/http-conf.d/${conf}
+str_ends "${conf}" "module" && target=/etc/nginx/modules.d/${conf}.conf
+str_ends "${conf}" "stream" && target=/etc/nginx/stream-enabled/${conf}.conf
 rm -f ${target} && ln -s ${DIRNAME}/${conf} ${target}
 nginx -t 2>&1 && {
     echo "[OK] check config ${DIRNAME}/${conf}"
@@ -32,7 +35,7 @@ nginx -t 2>&1 && {
 rm -f ${target}
 EOF
 chmod 755 check_conf.sh
-cat <<'EOF'>ssl_client_cert.conf
+cat <<'EOF'>ssl_client_cert.http
 # curl -k --key client_test.key --cert client_test.pem --cacert ca.pem  https://localhost/
 server {
     listen 443 ssl reuseport;
@@ -132,7 +135,7 @@ cat <<'EOF' >rtmp.html
     </body>
 </html>
 EOF
-cat <<'EOF' >rtmp_live_modules.conf
+cat <<'EOF' >rtmp_live_modules.module
 # # add blow to /etc/nginx/modules.d
 load_module modules/ngx_rtmp_module.so;
 # # stream ssl -> rmtp -> rmtps
@@ -177,7 +180,7 @@ rtmp {
     }
 }
 EOF
-cat <<'EOF' >http2.conf
+cat <<'EOF' >http2.http
 #curl -k --http2 https://localhost:8000 -vvv
 #curl -k --http1.1 https://localhost:8000 -vvv
 # # http2 must not be enabled on port 80 because it does not
@@ -196,7 +199,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' >rtmp_live.conf
+cat <<'EOF' >rtmp_live.http
 # stats: curl http://localhost/stat
 # # HLS test:
 # ffmpeg -re -stream_loop -1 -i demo.mp4 -c copy -f flv rtmp://localhost:1935/hls/demo
@@ -244,7 +247,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' >static_dynamic.conf
+cat <<'EOF' >static_dynamic.http
 map $http_user_agent $badagent {
     default    0;
     ~*backdoor 1;
@@ -270,7 +273,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' >limit_speed.conf
+cat <<'EOF' >limit_speed.http
 limit_speed_zone mylimitspeed $binary_remote_addr 10m;
 server {
     listen 80 reuseport;
@@ -291,7 +294,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' >valid_referer.conf
+cat <<'EOF' >valid_referer.http
 # curl -vvv -e "https://a.abc.com" 127.0.0.1
 server {
     listen 80 reuseport;
@@ -301,7 +304,7 @@ server {
     location / { return 200; }
 }
 EOF
-cat <<'EOF' >dummy.conf
+cat <<'EOF' >dummy.http
 # catch-all not matched server_name by default_server
 # If no default server is defined, Nginx will use the first found server.
 server {
@@ -317,7 +320,7 @@ EOF
 cat <<'EOF' >check_nofiles.ngx.sh
 ps --ppid $(cat /var/run/nginx.pid) -o %p|sed '1d'|xargs -I{} cat /proc/{}/limits|grep open.files
 EOF
-cat <<'EOF' >redis.conf
+cat <<'EOF' >redis.http
 # redis-cli -x set curl/7.61.1 http://www.xxx.com
 upstream redis {
     server 127.0.0.1:6379;
@@ -388,7 +391,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' >traffic_status.conf
+cat <<'EOF' >traffic_status.http
 # /{status_uri}/control?cmd=*`{command}`*&group=*`{group}`*&zone=*`{name}`*
 # /control?cmd=reset&group=server&zone=*
 
@@ -506,7 +509,7 @@ cat <<'EOF' > flv_movie.html
 </body>
 </html>
 EOF
-cat <<'EOF' > flv_movie.conf
+cat <<'EOF' > flv_movie.http
 # flv mp4流媒体服务器, https://github.com/Bilibili/flv.js
 # apt -y install yamdi
 server {
@@ -521,7 +524,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > limit_conn.conf
+cat <<'EOF' > limit_conn.http
 limit_conn_zone $binary_remote_addr zone=connperip:10m;
 limit_conn_zone $server_name zone=connperserver:10m;
 server {
@@ -552,7 +555,7 @@ limit_req_zone $clientRealIp zone=ConnLimitZone:20m rate=20r/s;
 limit_req_log_level notice;
 limit_req zone=ConnLimitZone burst=50 nodelay;
 EOF
-cat <<'EOF' > limit_req.conf
+cat <<'EOF' > limit_req.http
 # error_log /var/log/nginx/error.log warn;
 limit_req_log_level warn;
 limit_req_zone $binary_remote_addr zone=perip:10m rate=1r/s;
@@ -566,7 +569,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > fcgiwrap.conf
+cat <<'EOF' > fcgiwrap.http
 # apt -y install fcgiwrap
 # mkdir -p /var/www/cgi-bin && chmod 755 /var/www/cgi-bin
 # cat <<CGIEOF > /var/www/cgi-bin/test.cgi
@@ -594,7 +597,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > auth_or_allow.conf
+cat <<'EOF' > auth_or_allow.http
 server {
     listen 80 reuseport;
     server_name _;
@@ -611,7 +614,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > auth_basic.conf
+cat <<'EOF' > auth_basic.http
 server {
     listen 80 reuseport;
     server_name _;
@@ -624,7 +627,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > url_map.conf
+cat <<'EOF' > url_map.http
 # http://example.com/?p=contact        /contact
 # http://example.com/?p=static&id=career   /career
 # http://example.com/?p=static&id=about    /about
@@ -673,7 +676,7 @@ function gen_url(r) {
     r.return(200, `${uri}?k=${key}&e=${secure_link_expires}`);
 }
 EOF
-cat <<'EOF' > secure_link_demo.conf
+cat <<'EOF' > secure_link_demo.http
 # mkdir -p /var/www/validate && echo "downfile" > /var/www/validate/file.txt
 # #!/bin/bash
 # write_header() {
@@ -760,7 +763,7 @@ public class test
     }
 }
 EOF
-cat <<'EOF' > secure_link.conf
+cat <<'EOF' > secure_link.http
 map $uri $allow_file {
     default                none;
     "~*/s/(?<name>.*).txt" $name;
@@ -810,7 +813,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > secure_link_cookie.conf
+cat <<'EOF' > secure_link_cookie.http
 server {
     listen 80 reuseport;
     server_name _;
@@ -857,7 +860,7 @@ document.getElementById('files').addEventListener('change', function(e) {
 });
 </script>
 EOF
-cat <<'EOF' > webdav.conf
+cat <<'EOF' > webdav.http
 server {
     listen 80 reuseport;
     server_name _;
@@ -927,7 +930,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > stream_dns_proxy.conf
+cat <<'EOF' > stream_dns_proxy.stream
 # copy this file to /etc/nginx/stream-enabled/
 upstream dns_upstreams {
     server 172.16.0.11:53;
@@ -939,7 +942,7 @@ server {
     proxy_pass dns_upstreams;
 }
 EOF
-cat <<'EOF' > https_proxy.conf
+cat <<'EOF' > https_proxy.http
 # load_module modules/ngx_http_proxy_connect_module.so;
 # curl -vvv -x http://localhost:8000 http://192.168.168.1:9999/img/bd_logo1.png -o /dev/null
 # dynamic proxy_pass + proxy_cache possible · Issue #316 ...
@@ -965,7 +968,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > reverse_transparent_proxy.conf
+cat <<'EOF' > reverse_transparent_proxy.http
 # modify nginx.conf add `user root;`
 # upstream `route add default gw 172.16.0.1`
 # ip rule add fwmark 1 lookup 100
@@ -980,7 +983,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > gateway_transparent_proxy.conf
+cat <<'EOF' > gateway_transparent_proxy.http
 # iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j DNAT --to-destination ${gate_ip}:${gate_port}
 server {
     listen 8000 reuseport;
@@ -1001,7 +1004,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > mirror.conf
+cat <<'EOF' > mirror.http
 server {
     listen 81 reuseport;
     access_log /var/log/nginx/mirror.log main;
@@ -1024,7 +1027,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > memory_cached.conf
+cat <<'EOF' > memory_cached.http
 server {
     listen 80 reuseport;
     server_name _;
@@ -1042,7 +1045,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > ab_test.conf
+cat <<'EOF' > ab_test.http
 upstream a {
     server 127.0.0.1:3001;
 }
@@ -1080,7 +1083,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > split_client.conf
+cat <<'EOF' > split_client.http
 server {
     listen 8098 reuseport;
     server_name _;
@@ -1115,7 +1118,7 @@ split_clients "$request_uri$remote_port" $split_ip {
     *      172.16.239.209;
 }
 EOF
-cat <<'EOF' > split_client.conf
+cat <<'EOF' > split_client.http
 split_clients "${remote_addr}" $variant {
     0.5%     .one;
     2.0%     .two;
@@ -1130,7 +1133,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > auth_request_by_secure_link.conf
+cat <<'EOF' > auth_request_by_secure_link.http
 # ldap demo: https://github.com/nginxinc/nginx-ldap-auth
 server {
     listen 80 reuseport;
@@ -1155,7 +1158,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > auth_request.conf
+cat <<'EOF' > auth_request.http
 # # # login.cgi
 # #!/bin/bash
 # error_msg() {
@@ -1400,7 +1403,7 @@ cat <<'EOF' > aws_s3_list.xslt
     </xsl:template>
 </xsl:stylesheet>
 EOF
-cat <<'EOF' > aws_s3auth.conf
+cat <<'EOF' > aws_s3auth.http
 # njs s3: git clone https://github.com/nginxinc/nginx-s3-gateway.git
 # public-bucket MUST set bucket-policy.py to all read/write
 # curl http://127.0.0.1:81/public-bucket OUTPUT html by xslt module
@@ -1463,7 +1466,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > post_redirect.conf
+cat <<'EOF' > post_redirect.http
 server {
     listen 80 reuseport;
     server_name _;
@@ -1478,7 +1481,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > x_accel_redirect.conf
+cat <<'EOF' > x_accel_redirect.http
 # # X-accel allows for internal redirection to a location determined
 # # by a header returned from a backend.
 # echo "protected res" > /var/www/file.txt
@@ -1528,7 +1531,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > js_test.conf
+cat <<'EOF' > js_test.http
 # curl http://127.0.0.1/sum?asdbas=asdfads
 # curl http://127.0.0.1/?url=www.baidu.com
 # curl http://127.0.0.1/sub
@@ -1633,7 +1636,7 @@ function sub(r) {
     )
 }
 EOF
-cat <<'EOF' >shorturl.conf
+cat <<'EOF' >shorturl.http
 # https://nginx.org/en/docs/njs/reference.html
 # http_js_module & http_redis_module
 # redis-cli -x set /abcdefg http://www.xxx.com [EX seconds]
@@ -1695,7 +1698,7 @@ function check(r) {
     )
 }
 EOF
-cat <<'EOF' >download_code.conf
+cat <<'EOF' >download_code.http
 # http_js_module & http_redis_module
 # redis-cli -x set /public-bucket/fu 9901 [EX seconds]
 # curl http://127.0.0.1/public-bucket/fu?code=xxxx
@@ -1756,7 +1759,7 @@ function create_secure_link(r) {
                             .digest('base64url');
 }
 EOF
-cat <<'EOF' > secure_link_hash.conf
+cat <<'EOF' > secure_link_hash.http
 # mkdir -p /etc/nginx/njs/
 # cp secure_link_hash.js /etc/nginx/njs/
 # sed -i "/env\s*SECRET_KEY/d" /etc/nginx/nginx.conf
@@ -1781,7 +1784,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > single_page.conf
+cat <<'EOF' > single_page.http
 # send all requests to a single html page
 # echo "base.html" > /var/www/base.html
 server {
@@ -1793,7 +1796,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > serve_static_rest_backend.conf
+cat <<'EOF' > serve_static_rest_backend.http
 # serve all existing static files, proxy the rest to a backend
 server {
     listen 80 reuseport;
@@ -1815,7 +1818,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > resolver.conf
+cat <<'EOF' > resolver.http
 server {
     listen 80 reuseport;
     server_name _;
@@ -1839,7 +1842,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > cdn.conf
+cat <<'EOF' > cdn.http
 proxy_cache_path /usr/share/nginx/cdn.test.com levels=1:2 keys_zone=testcdn:50m inactive=30m max_size=50m use_temp_path=off;
 server {
     listen 80 reuseport;
@@ -1860,7 +1863,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > reverse_proxy_cache_split.conf
+cat <<'EOF' > reverse_proxy_cache_split.http
 proxy_cache_path /usr/share/nginx/cache1 levels=1:2 keys_zone=my_cache_hdd1:10m max_size=10g inactive=60m use_temp_path=off;
 proxy_cache_path /usr/share/nginx/cache2 levels=1:2 keys_zone=my_cache_hdd2:10m max_size=10g inactive=60m use_temp_path=off;
 split_clients $request_uri $my_cache {
@@ -1886,7 +1889,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > reverse_proxy_cache.conf
+cat <<'EOF' > reverse_proxy_cache.http
 # ngx does not cache responses if proxy_buffering is set to off. It is on by default.
 # 1MB keys_zone can store data for about 8000 keys
 proxy_cache_path /usr/share/nginx/cache levels=1:2 keys_zone=STATIC:10m inactive=24h max_size=1g use_temp_path=off;
@@ -2679,6 +2682,8 @@ proxy_cache_valid 404 5m;
 # If the header includes the “Vary” field with the special value “*”, such a response will not be cached
 # http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ignore_headers
 proxy_ignore_headers "Set-Cookie" "X-Accel-Expires" "X-Accel-Limit-Rate" "X-Accel-Buffering";
+# ngx does not cache responses if proxy_buffering is set to off. It is on by default.
+proxy_buffering on;
 EOF
 cat <<'EOF' > cache_expiration.conf
 # copy this file to /etc/nginx/http-conf.d/
@@ -2726,7 +2731,7 @@ map $sent_http_content_type $expires {
 }
 expires $expires;
 EOF
-cat <<'EOF' > cache_static.conf
+cat <<'EOF' > cache_static.http
 server {
     listen 80 reuseport;
     server_name _;
@@ -2753,7 +2758,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > cors.conf
+cat <<'EOF' > cors.http
 server {
     listen 80 reuseport;
     server_name api.localhost;
@@ -2780,7 +2785,7 @@ server {
   }
 }
 EOF
-cat <<'EOF' > error_page2.conf
+cat <<'EOF' > error_page2.http
 
 error_page 400 /error/400.html;
 error_page 401 /error/401.html;
@@ -2803,7 +2808,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > error_page.conf
+cat <<'EOF' > error_pagehttp
 # mkdir -p /etc/nginx/errors/
 # echo "401" > /etc/nginx/errors/401
 server {
@@ -2821,7 +2826,7 @@ server {
     location /500 { return 502; }
 }
 EOF
-cat <<'EOF' > websocket.conf
+cat <<'EOF' > websocket.http
 upstream backend {
     server 192.168.168.132;
     keepalive 64;
@@ -2846,7 +2851,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' >addition.conf
+cat <<'EOF' >addition.http
 server {
     listen 80 reuseport;
     server_name _;
@@ -2869,7 +2874,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > sub_filter.conf
+cat <<'EOF' > sub_filter.http
 # ...........................
 # NGX_CONF_BUFFER=4096
 # <img src="data:image/png;base64,${base64}" alt="Red dot"/>
@@ -3156,7 +3161,7 @@ function upstreamArray(r) {
     return upstream;
 }
 EOF
-cat <<'EOF'>pagespeed.conf
+cat <<'EOF'>pagespeed.http
 # # PageSpeed admin config
 # # sharemem statistics
 pagespeed Statistics on;
