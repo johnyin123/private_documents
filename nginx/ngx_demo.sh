@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3178158[2022-01-19T09:16:56+08:00]:ngx_demo.sh")
+VERSION+=("c5be363[2022-01-19T10:05:47+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -544,20 +544,34 @@ server {
 EOF
 cat <<'EOF' > limit_req_ddos.conf
 # copy this file to /etc/nginx/http-conf.d/
+geo $limit{
+    default 1;
+    192.168.0.0/24 0;
+}
+map $limit $limit_key {
+    0 $msec; # nolimit
+    # 0 ""  # alimit group
+    1 $binary_remote_addr;
+}
 map $http_x_forwarded_for $clientRealIp {
-    ""                              $remote_addr;
+    ""                              $limit_key;
     ~^(?P<firstAddr>[0-9\.]+),?.*$  $firstAddr;
 }
 
 # limit single IP 50 concurrent control,
-limit_conn_zone $clientRealIp zone=TotalConnLimitZone:20m ;
-limit_conn TotalConnLimitZone 50;
-limit_conn_log_level notice;
+limit_conn_zone $clientRealIp zone=PerClientIPConnZone:20m ;
+limit_conn PerClientIPConnZone 50;
+limit_conn_log_level warn;
 
 # limit single IP/s 20 Request, with bursts not exceeding 50 requests.
-limit_req_zone $clientRealIp zone=ConnLimitZone:20m rate=20r/s;
-limit_req_log_level notice;
-limit_req zone=ConnLimitZone burst=50 nodelay;
+limit_req_zone $clientRealIp zone=PerClientIPReqZone:20m rate=20r/s;
+limit_req zone=PerClientIPReqZone burst=50 nodelay;
+limit_req_log_level warn;
+
+limit_conn_zone $server_name zone=PerSrvNameConnZone:20m;
+limit_conn PerSrvNameConnZone 800;
+limit_req_zone $server_name zone=PerSrvNameReqZone:20m rate=1000r/s;
+limit_req zone=PerSrvNameReqZone burst=2000 nodelay;
 EOF
 cat <<'EOF' > limit_req.http
 # error_log /var/log/nginx/error.log warn;
