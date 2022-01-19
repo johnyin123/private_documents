@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2337e71[2022-01-18T16:10:54+08:00]:ngx_demo.sh")
+VERSION+=("ad9af50[2022-01-19T08:47:29+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -557,7 +557,7 @@ limit_req zone=ConnLimitZone burst=50 nodelay;
 EOF
 cat <<'EOF' > limit_req.http
 # error_log /var/log/nginx/error.log warn;
-limit_req_log_level warn;
+# limit_req_log_level warn;
 limit_req_zone $binary_remote_addr zone=perip:10m rate=1r/s;
 # limit_req_zone $server_name zone=perserver:10m rate=600r/m;
 server {
