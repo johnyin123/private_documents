@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("695cb9c[2022-01-19T15:28:19+08:00]:ngx_demo.sh")
+VERSION+=("4ffc23b[2022-01-20T08:03:18+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1033,13 +1033,15 @@ server {
     listen 80 reuseport;
     server_name _;
     location / {
-        mirror /mirror;
+        mirror @mirror;
+        # whether the client request body is mirrored
         mirror_request_body off;
         alias /var/www/;
     }
-    location = /mirror {
+    location = @mirror {
         internal;
-        proxy_pass http://127.0.0.1:9999;
+        proxy_pass http://127.0.0.1:9999$request_uri;
+        # whether the original request body is passed to the proxied server
         proxy_pass_request_body off;
         proxy_set_header Content-Length "";
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
