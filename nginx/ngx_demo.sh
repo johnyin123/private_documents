@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0122a13[2022-01-20T08:33:52+08:00]:ngx_demo.sh")
+VERSION+=("3359efc[2022-01-20T08:50:02+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -40,10 +40,10 @@ cat <<'EOF'>ssl_client_cert.http
 server {
     listen 443 ssl reuseport;
     server_name _;
-    ssl_certificate /etc/nginx/www.test.com.pem;
-    ssl_certificate_key /etc/nginx/www.test.com.key;
+    ssl_certificate /etc/nginx/ssl/test.pem;
+    ssl_certificate_key /etc/nginx/ssl/test.key;
     ssl_dhparam /etc/nginx/dh2048.pem;
-    ssl_client_certificate /etc/nginx/ca.pem;
+    ssl_client_certificate /etc/nginx/ssl/ca.pem;
     ssl_verify_client on;
     location / { return 200 "$ssl_client_s_dn"; }
 }
@@ -315,8 +315,8 @@ cat <<'EOF' >dummy.http
 server {
     listen 80 default_server reuseport;
     # listen 443 ssl http2 default_server reuseport;
-    # ssl_certificate /etc/nginx/site.pem;
-    # ssl_certificate_key /etc/nginx/SSL/site.key;
+    # ssl_certificate /etc/nginx/ssl/test.pem;
+    # ssl_certificate_key /etc/nginx/ssl/test.key;
     server_name _;
     access_log /var/log/nginx/access_err_domain.log main buffer=512k flush=5m;
     return 444;
