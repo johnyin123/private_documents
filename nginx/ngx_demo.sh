@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4ffc23b[2022-01-20T08:03:18+08:00]:ngx_demo.sh")
+VERSION+=("0122a13[2022-01-20T08:33:52+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1040,6 +1040,33 @@ server {
     }
     location = @mirror {
         internal;
+        proxy_pass http://127.0.0.1:9999$request_uri;
+        # whether the original request body is passed to the proxied server
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+EOF
+cat <<'EOF' > mirror2.http
+# when mirror slow, orig server slow too!!
+# nc -klp9999
+split_clients "${remote_addr}AAA" $mirror_allowed {
+    30% 1;
+    * "";
+}
+server {
+    listen 80 reuseport;
+    server_name _;
+    location / {
+        mirror @mirror;
+        # whether the client request body is mirrored
+        mirror_request_body off;
+        alias /var/www/;
+    }
+    location = @mirror {
+        internal;
+        if ($mirror_allowed = "") { return 200; }
         proxy_pass http://127.0.0.1:9999$request_uri;
         # whether the original request body is passed to the proxied server
         proxy_pass_request_body off;
