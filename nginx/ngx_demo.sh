@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a4a224e[2022-01-19T15:13:49+08:00]:ngx_demo.sh")
+VERSION+=("695cb9c[2022-01-19T15:28:19+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1028,11 +1028,7 @@ server {
 }
 EOF
 cat <<'EOF' > mirror.http
-server {
-    listen 81 reuseport;
-    access_log /var/log/nginx/mirror.log main;
-    location / { return 200; }
-}
+# nc -klp9999
 server {
     listen 80 reuseport;
     server_name _;
@@ -1043,7 +1039,7 @@ server {
     }
     location = /mirror {
         internal;
-        proxy_pass http://127.0.0.1:81;
+        proxy_pass http://127.0.0.1:9999;
         proxy_pass_request_body off;
         proxy_set_header Content-Length "";
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
