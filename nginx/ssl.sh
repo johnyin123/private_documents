@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d5de188[2022-01-06T10:03:00+08:00]:ssl.sh")
+VERSION+=("0edc555[2022-01-18T09:33:57+08:00]:ssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -34,26 +34,26 @@ init_ca() {
     [ -d "${caroot}" ] && return 1
     try mkdir -p ${caroot}
     info_msg "generate ca\n"
-    try cat << EOF > ${caroot}/ca.info
+    cat << EOF | try tee ${caroot}/ca.info
 cn = self sign root ca
 ca
 cert_signing_key
 expiration_days = $((365*5))
 EOF
-    try certtool --generate-privkey --bits=2048 > ${caroot}/ca.key
+    try certtool --generate-privkey --bits=2048 --outfile ${caroot}/ca.key
     try certtool --generate-self-signed --load-privkey ${caroot}/ca.key \
         --template ${caroot}/ca.info \
         --outfile ${caroot}/ca.pem
     try certtool -i --infile=${caroot}/ca.pem || true
     #openssl x509 -text -noout -in ${caroot}/ca.pem || true
     info_msg "gen ca server cert\n"
-    try cat << EOF > ${caroot}/${dn}.info
+    cat << EOF | try tee ${caroot}/${dn}.info
 organization = silf sign server
 cn = ${dn}
 signing_key
 expiration_days = $((365*5))
 EOF
-    try certtool --generate-privkey --bits=2048 > ${caroot}/${dn}.key
+    try certtool --generate-privkey --bits=2048 --outfile ${caroot}/${dn}.key
     try certtool --generate-certificate --load-privkey ${caroot}/${dn}.key \
         --load-ca-certificate ${caroot}/ca.pem \
         --load-ca-privkey ${caroot}/ca.key \
@@ -68,12 +68,12 @@ gen_clent_cert() {
     local caroot=${1}
     local cid=${2}
     [ -e "${caroot}/client_${cid}.info" ] && return 1
-    try cat << EOF > ${caroot}/client_${cid}.info
+    cat << EOF | try tee ${caroot}/client_${cid}.info
 organization = ${cid} 
 cn = ${cid}
 signing_key
 EOF
-    try certtool --generate-privkey > ${caroot}/client_${cid}.key
+    try certtool --generate-privkey --outfile ${caroot}/client_${cid}.key
     try certtool --generate-certificate --load-privkey ${caroot}/client_${cid}.key \
         --load-ca-certificate ${caroot}/ca.pem \
         --load-ca-privkey ${caroot}/ca.key \
