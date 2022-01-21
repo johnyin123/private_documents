@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("ad44b25[2021-12-02T12:42:16+08:00]:maven_onejar.sh")
+VERSION+=("b61098e[2021-12-03T12:50:39+08:00]:maven_onejar.sh")
 main() {
     local app=${1:-myapp}
     echo "REPOSITORY: ~/.m2/repository/"
@@ -21,9 +21,9 @@ main() {
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>commons-httpclient</groupId>
-      <artifactId>commons-httpclient</artifactId>
-      <version>${httpclient.version}</version>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp</artifactId>
+      <version>4.9.3</version>
     </dependency>
   </dependencies>
   <!-- one jar -->
