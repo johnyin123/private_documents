@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3359efc[2022-01-20T08:50:02+08:00]:ngx_demo.sh")
+VERSION+=("eb0f638[2022-01-20T12:41:11+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1960,6 +1960,9 @@ server {
         if ($request_uri ~* \.gif$) {
           set $no_cache "1";
           set $expires off;
+        }
+        if ($args != "") {
+            set $no_cache 1;
         }
         proxy_no_cache $no_cache;
         proxy_cache_bypass $no_cache;
