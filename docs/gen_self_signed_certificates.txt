@@ -1,3 +1,39 @@
+1.生成自签根证书
+cd /etc/certs/test
+touch {serial,index.txt}
+echo 01 >serial
+openssl genrsa -out cakey.pem 2048
+openssl req -x509 -new -key cakey.pem -out newcacert.pem -days 3650
+
+2.生成客户端密钥和请求
+openssl genrsa -out http.key 2048
+openssl req -new -key http.key -out http.csr
+
+新建http.ext 内容如下（修改对应的域名或IP为自己的）
+授权为域名时：
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth, clientAuth
+subjectAltName=@SubjectAlternativeName
+[ SubjectAlternativeName ]
+DNS.1=test.com
+DNS.2=www.test.com
+授权为IP时：
+keyUsage = nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth, clientAuth
+subjectAltName=@SubjectAlternativeName
+[ SubjectAlternativeName ]
+IP.1=192.168.1.1
+IP.2=192.168.1.2
+
+3.签发证书
+openssl x509 -req -in http.csr -CA newcacert.pem -CAkey cakey.pem -CAcreateserial -out http.crt -days 3650 -sha256 -extfile http.ext
+
+4.导入根证书，客户端证书到浏览器可信任的颁发机构 （注意转换为浏览器支持的证书格式，这里以P12为例进行转换）
+openssl pkcs12 -export -in newcacert.pem -out newcacert.p12 -inkey cakey.pem
+openssl pkcs12 -export -clcerts -in http.crt -inkey http.key -out http.p12
+
+
+
 SERVER_KEY=server-key.pem
 
 # creating a key for our ca
