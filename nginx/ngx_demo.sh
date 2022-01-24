@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("428aa54[2022-01-21T09:47:40+08:00]:ngx_demo.sh")
+VERSION+=("37a84cb[2022-01-24T11:42:54+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -550,7 +550,8 @@ geo $remote_addr $log_name {
     default $log_err;
 }
 map $status $log_err {
-#    ~*20[*] access_ok.log;
+#    ~^[23]  access_2xx_3xx.log;
+#    ~^20[*]$ access_20x.log;
 #    502 1;
 #    503 1;
 #    504 1;
