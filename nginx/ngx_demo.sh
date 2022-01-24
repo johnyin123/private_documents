@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("eb0f638[2022-01-20T12:41:11+08:00]:ngx_demo.sh")
+VERSION+=("428aa54[2022-01-21T09:47:40+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -542,6 +542,22 @@ server {
         # limit_conn_status 501;
     }
 }
+EOF
+cat <<'EOF' > access_log.demo.conf
+# copy this file to /etc/nginx/http-conf.d/
+geo $remote_addr $log_name {
+    10.3.0.0/16 access.some.log;
+    default $log_err;
+}
+map $status $log_err {
+#    ~*20[*] access_ok.log;
+#    502 1;
+#    503 1;
+#    504 1;
+    default access.log;
+}
+access_log /var/log/nginx/$log_name main;
+error_log /var/log/nginx/error.log info;
 EOF
 cat <<'EOF' > limit_req_ddos.conf
 # copy this file to /etc/nginx/http-conf.d/
