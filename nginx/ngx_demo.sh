@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4bf294b[2022-01-25T09:21:22+08:00]:ngx_demo.sh")
+VERSION+=("337fd3c[2022-01-25T09:30:31+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -543,23 +543,6 @@ server {
         # limit_conn_status 501;
     }
 }
-EOF
-cat <<'EOF' > access_log.demo.conf
-# copy this file to /etc/nginx/http-conf.d/
-geo $remote_addr $log_name {
-    10.3.0.0/16 access.some.log;
-    default $log_err;
-}
-map $status $log_err {
-#    ~^[23]  access_2xx_3xx.log;
-#    ~^20[*]$ access_20x.log;
-#    502 1;
-#    503 1;
-#    504 1;
-    default access.log;
-}
-access_log /var/log/nginx/$log_name main;
-error_log /var/log/nginx/error.log info;
 EOF
 cat <<'EOF' > limit_req_ddos.conf
 # copy this file to /etc/nginx/http-conf.d/
@@ -2924,17 +2907,12 @@ cat <<'EOF' >addition.http
 server {
     listen 80 reuseport;
     server_name _;
-    addition_types text/html;
+    # addition_types text/html;
+    location /a.gif { empty_gif; }
     location / {
-        empty_gif;
-    }
-    location /b.html {
         add_before_body /add_before;
-        return 200 "body";
-    }
-    location /a.html {
         add_after_body /add_after;
-        return 200 "body";
+        alias /var/www/;
     }
     location /add_before {
         return 200 "before";
