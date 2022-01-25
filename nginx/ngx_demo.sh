@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bb3b55e[2022-01-24T12:41:54+08:00]:ngx_demo.sh")
+VERSION+=("4bf294b[2022-01-25T09:21:22+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2924,6 +2924,7 @@ cat <<'EOF' >addition.http
 server {
     listen 80 reuseport;
     server_name _;
+    addition_types text/html;
     location / {
         empty_gif;
     }
