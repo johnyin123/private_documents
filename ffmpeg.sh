@@ -7,11 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-01-26T09:45:25+08:00]:ffmpeg.sh")
+VERSION+=("71de54d[2022-01-26T09:45:24+08:00]:ffmpeg.sh")
 ################################################################################
 
 name=${1:?input err}
-scale=-1:720
+scale=${scale:-1:720}
 
 ffmpeg -i ${name} 2>&1 | grep Stream
 
