@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("337fd3c[2022-01-25T09:30:31+08:00]:ngx_demo.sh")
+VERSION+=("fa6c9b8[2022-01-25T10:03:48+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2860,7 +2860,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > error_pagehttp
+cat <<'EOF' > error_page.http
 # mkdir -p /etc/nginx/errors/
 # echo "401" > /etc/nginx/errors/401
 server {
