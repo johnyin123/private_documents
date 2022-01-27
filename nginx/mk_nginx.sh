@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("04f7473[2022-01-26T08:05:52+08:00]:mk_nginx.sh")
+VERSION+=("8707ef4[2022-01-26T10:19:08+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -40,7 +40,7 @@ CACHE_PURGE=${CACHE_PURGE:-""}
 ##OPTION_END##
 NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl
-PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, no pcre2 support now
+PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, pcre2 support nginx 1.21.5+
 ZLIB_DIR=${DIRNAME}/zlib
 declare -A NGINX_BASE=(
     [${NGINX_DIR}]="git clone --depth 1 --branch ${NGINX_RELEASE} https://github.com/nginx/nginx.git"
