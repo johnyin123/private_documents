@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fa6c9b8[2022-01-25T10:03:48+08:00]:ngx_demo.sh")
+VERSION+=("5081e91[2022-01-26T08:23:57+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2900,6 +2900,18 @@ server {
         # By default, the connection will be closed if the proxied server does
         # not transmit any data within 60 seconds. This timeout can be increased
         # with the proxy_read_timeout
+    }
+}
+EOF
+cat <<'EOF' >serve_static_if_not_found_proxypass.http
+server {
+    listen 80 reuseport;
+    server_name _;
+    location / {
+        try_files $uri @proxy;
+    }
+    location @proxy {
+        proxy_pass http://www.test.com;
     }
 }
 EOF
