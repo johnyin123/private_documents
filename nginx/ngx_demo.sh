@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5081e91[2022-01-26T08:23:57+08:00]:ngx_demo.sh")
+VERSION+=("bc43acd[2022-02-07T16:30:50+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2908,6 +2908,7 @@ server {
     listen 80 reuseport;
     server_name _;
     location / {
+        alias /var/www/;
         try_files $uri @proxy;
     }
     location @proxy {
