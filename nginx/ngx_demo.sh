@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bc43acd[2022-02-07T16:30:50+08:00]:ngx_demo.sh")
+VERSION+=("1e78bf0[2022-02-07T17:28:54+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1970,6 +1970,7 @@ server {
 
         expires $expires;
         add_header Cache-Control $control;
+        # add_header XXXX $upstream_http_xxxx;
         # # Hidden / Pass X-Powered-By to client
         # proxy_hide_header X-Powered-By;
         # proxy_pass_header X-Powered-By;
