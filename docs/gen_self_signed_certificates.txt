@@ -1,32 +1,42 @@
 1.生成自签根证书
-cd /etc/certs/test
-touch {serial,index.txt}
-echo 01 >serial
 openssl genrsa -out cakey.pem 2048
-openssl req -x509 -new -key cakey.pem -out newcacert.pem -days 3650
+
+# # Country Name 国家名
+# # State or Province Name 省份名
+# # City Name 城市名
+# # Company or Organization Name 公司或组织名
+# # Organizational Unit Name 小组名
+# # Common Name   你的名字
+# # Email Address 你的邮箱
+openssl req -x509 -new -key cakey.pem -out newcacert.pem -days 3650 << EOF
+CN
+LN
+SY
+UCompany CA
+.
+www.test.com
+.
+EOF
+openssl x509 -text -noout -in newcacert.pem
 
 2.生成客户端密钥和请求
 openssl genrsa -out http.key 2048
+# # 得到csr证书申请文件
 openssl req -new -key http.key -out http.csr
-
-新建http.ext 内容如下（修改对应的域名或IP为自己的）
-授权为域名时：
-keyUsage = nonRepudiation, digitalSignature, keyEncipherment
-extendedKeyUsage = serverAuth, clientAuth
-subjectAltName=@SubjectAlternativeName
-[ SubjectAlternativeName ]
-DNS.1=test.com
-DNS.2=www.test.com
-授权为IP时：
-keyUsage = nonRepudiation, digitalSignature, keyEncipherment
-extendedKeyUsage = serverAuth, clientAuth
-subjectAltName=@SubjectAlternativeName
-[ SubjectAlternativeName ]
-IP.1=192.168.1.1
-IP.2=192.168.1.2
+openssl req -new -key http.key -out http.csr -days 365 << EOF
+CN
+LN
+SY
+test company
+.
+www.test.com
+.
+password
+.
+EOF
 
 3.签发证书
-openssl x509 -req -in http.csr -CA newcacert.pem -CAkey cakey.pem -CAcreateserial -out http.crt -days 3650 -sha256 -extfile http.ext
+openssl x509 -req -in http.csr -CA newcacert.pem -CAkey cakey.pem -CAcreateserial -out http.crt -days 3650 -sha256
 
 4.导入根证书，客户端证书到浏览器可信任的颁发机构 （注意转换为浏览器支持的证书格式，这里以P12为例进行转换）
 openssl pkcs12 -export -in newcacert.pem -out newcacert.p12 -inkey cakey.pem
