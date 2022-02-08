@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1d8838c[2022-02-08T08:27:24+08:00]:ngx_demo.sh")
+VERSION+=("411648c[2022-02-08T09:28:44+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -293,6 +293,21 @@ server {
         # limit_rate_after 5m; #下载了5M以后开始限速
         # limit_rate 100k;
         root /var/www;
+    }
+}
+EOF
+cat <<'EOF' >redirect_all_except_localhost.http
+server {
+    listen 80 reuseport;
+    server_name _;
+    location / {
+        error_page 403 = @badip;
+        allow 127.0.0.1;
+        deny all;
+        alias /var/www;
+    }
+    location @badip {
+        return 301 $scheme://example.com/some-page;
     }
 }
 EOF
