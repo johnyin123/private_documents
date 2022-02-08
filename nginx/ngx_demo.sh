@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1e78bf0[2022-02-07T17:28:54+08:00]:ngx_demo.sh")
+VERSION+=("6bab929[2022-02-08T07:58:24+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2839,7 +2839,9 @@ server {
 }
 EOF
 cat <<'EOF' > error_page2.http
-
+# # When "The plain HTTP request was sent to HTTPS port" happens
+# # redirect it to https version of current hostname, port and URI.
+# error_page 497 https://$host:$server_port$request_uri;
 error_page 400 /error/400.html;
 error_page 401 /error/401.html;
 error_page 403 /error/403.html;
