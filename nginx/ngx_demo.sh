@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("95eb1e9[2022-02-08T08:02:37+08:00]:ngx_demo.sh")
+VERSION+=("1d8838c[2022-02-08T08:27:24+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1888,6 +1888,20 @@ server {
         resolver 127.0.0.1 ipv6=off;
         set $target http://www.test.com:9999;
         proxy_pass $target;
+    }
+}
+EOF
+cat <<'EOF' > redirect_to_cdn.http
+split_clients $remote_addr $cdn_host {
+    33% cdn1;
+    33% cdn2;
+    * cdn3;
+}
+server {
+    listen 80 reuseport;
+    server_name www.test.com;
+    location /images/ {
+        rewrite ^ http://$cdn_host.test.com$request_uri? permanent;
     }
 }
 EOF
