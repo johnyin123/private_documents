@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("411648c[2022-02-08T09:28:44+08:00]:ngx_demo.sh")
+VERSION+=("2153451[2022-02-08T13:58:36+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2949,6 +2949,28 @@ server {
     }
     location @proxy {
         proxy_pass http://www.test.com;
+    }
+}
+EOF
+cat <<'EOF' >change_upstream_errorpage.http
+server {
+    listen 80 reuseport;
+    server_name _;
+    location = /login {
+        default_type "text/html";
+        alias /var/www/login.html;
+    }
+    location / {
+        proxy_pass http://www.test.com;
+        proxy_intercept_errors on;
+        error_page 403 =503 /error.json;
+        error_page 504 =200 /504.json;
+    }
+    location /error.json {
+        return 200 "503 error";
+    }
+    location /504.json {
+        return 200 "503 error";
     }
 }
 EOF
