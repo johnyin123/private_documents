@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6bab929[2022-02-08T07:58:24+08:00]:ngx_demo.sh")
+VERSION+=("95eb1e9[2022-02-08T08:02:37+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2910,6 +2910,10 @@ cat <<'EOF' >serve_static_if_not_found_proxypass.http
 server {
     listen 80 reuseport;
     server_name _;
+    location = /login {
+        default_type "text/html";
+        alias /var/www/login.html;
+    }
     location / {
         alias /var/www/;
         try_files $uri @proxy;
