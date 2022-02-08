@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-02-08T13:15:20+08:00]:newssl.sh")
+VERSION+=("32a4aa7[2022-02-08T13:15:20+08:00]:newssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -39,6 +39,8 @@ init_ca() {
     try openssl req -new -x509 -days $((365*5)) -key ${caroot}/ca.key \
         -out ${caroot}/ca.pem -utf8 -subj \"/C=CN/L=LN/O=${dn}/CN=self sign root ca\"
     try openssl x509 -text -noout -in ${caroot}/ca.pem
+    info_msg "gen dh2048\n"
+    try openssl dhparam -out ${caroot}/dh2048.pem 2048
 }
 
 gen_clent_cert() {
