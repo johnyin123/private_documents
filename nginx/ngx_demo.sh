@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7ae1fbc[2022-02-09T08:01:08+08:00]:ngx_demo.sh")
+VERSION+=("c1d987b[2022-02-09T08:04:33+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2964,13 +2964,13 @@ server {
         proxy_pass http://www.test.com;
         # # whether proxied responses with codes greater than or equal to 300 should be passed to a client
         proxy_intercept_errors on;
-        error_page 403 =503 /error.json;
-        error_page 504 =200 /504.json;
+        error_page 403 =200 @503.html;
+        error_page 504 = @504;
     }
-    location /error.json {
+    location @503.html {
         return 200 "503 error";
     }
-    location /504.json {
+    location @504 {
         return 200 "$upstream_addr 504 error";
     }
 }
