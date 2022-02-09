@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c1d987b[2022-02-09T08:04:33+08:00]:ngx_demo.sh")
+VERSION+=("86c4f6a[2022-02-09T08:09:46+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2950,6 +2950,18 @@ server {
     location @proxy {
         proxy_pass http://www.test.com;
     }
+}
+EOF
+cat <<'EOF' >auto_subdomain_if_folder_exists.http
+# mkdir /var/www/sites/www/ && echo "www" > /var/www/sites/www/index.html
+# curl -vvv -H "Host: www.test.com" http://localhost
+server {
+    listen 80 reuseport;
+    server_name ~^(.*)\.test\.com$;
+    if (!-d /var/www/sites/$1) {
+        return 404 "not directory";
+    }
+    root /var/www/sites/$1;
 }
 EOF
 cat <<'EOF' >change_upstream_errorpage.http
