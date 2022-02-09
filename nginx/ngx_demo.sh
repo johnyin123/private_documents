@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("55ccd56[2022-02-09T11:17:37+08:00]:ngx_demo.sh")
+VERSION+=("8224512[2022-02-09T13:03:44+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3051,7 +3051,7 @@ server {
     # addition_types text/html;
     location /a.gif { empty_gif; }
     location / {
-        add_before_body /add_before;
+        # add_before_body /add_before;
         add_after_body /add_after;
         alias /var/www/;
     }
@@ -3059,7 +3059,12 @@ server {
         return 200 "before";
     }
     location /add_after {
-        return 200 "after";
+        return 200 "<script>
+var myDiv = document.createElement('div');
+myDiv.id = 'div_id';
+myDiv.innerHTML = '<h1>Hello World!</h1>';
+document.body.appendChild(myDiv);
+</script>";
     }
 }
 EOF
