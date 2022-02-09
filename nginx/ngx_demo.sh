@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("eba4435[2022-02-09T09:06:07+08:00]:ngx_demo.sh")
+VERSION+=("d71563c[2022-02-09T09:15:39+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1527,6 +1527,64 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Connection "";
         proxy_pass http://ceph_rgw_backend/public-bucket$uri;
+    }
+}
+EOF
+cat <<'EOF' >download_precheck.http
+server {
+    listen 127.0.0.1:81 reuseport;
+    server_name _;
+    location / {
+        # # you application here, if request valid add X-Accel-Redirect header!!!
+        add_header X-Accel-Redirect "/internal_redirect/https://www.baidu.com/$request_uri" always;
+        # # Down-VHOST for virt_host server
+        add_header Down-VHOST "www.baidu.com" always;
+        return 200;
+    }
+}
+limit_conn_zone $binary_remote_addr zone=addr:10m;
+server {
+    listen 80 reuseport;
+    server_name _;
+    location / {
+        proxy_pass http://127.0.0.1:81;
+    }
+    location ~* ^/internal_redirect/(.*?)/(.*) {
+        internal;
+        # Extract download url from the request
+        set $download_uri $2;
+        set $download_host $1;
+        set $download_vhost $upstream_http_down_vhost;
+        # Extract the arguments from request.
+        # That is the Signed URL part that you require to get the file from S3 servers
+        if ($download_uri ~* "([^/]*$)" ) {
+            set $filename $1;
+        }
+        # Compose download url
+        set $download_url $download_host/$download_uri$is_args$args;
+        # # Set download request headers
+        # proxy_hide_header x-amz-id-2;
+        # proxy_hide_header x-amz-request-id;
+        # proxy_hide_header Set-Cookie;
+        # proxy_ignore_headers Set-Cookie;
+        # proxy_hide_header Content-Disposition;
+        # add_header Content-Disposition 'attachment; filename="$filename"';
+        # Activate the proxy buffering, without it limiting bandwidth speed in proxy will not work!
+        proxy_buffering on;
+        # Buffer 512 KB data
+        proxy_buffers 32 16k;
+        # Do not touch local disks when proxying content to clients
+        proxy_max_temp_file_size 0;
+        # Limit the connection to one per IP address
+        limit_conn addr 1;
+        # Limit the bandwidth to 300k
+        proxy_limit_rate 300k;
+        limit_conn_log_level info;
+        proxy_set_header Host $download_vhost;
+        # return 200 "$download_url $download_vhost";
+        resolver 114.114.114.114 ipv6=off;
+        resolver_timeout 5s;
+        proxy_pass $download_url;
     }
 }
 EOF
