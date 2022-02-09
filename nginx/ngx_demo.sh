@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8224512[2022-02-09T13:03:44+08:00]:ngx_demo.sh")
+VERSION+=("d4a1e1c[2022-02-09T14:45:01+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3059,6 +3059,7 @@ server {
         return 200 "before";
     }
     location /add_after {
+        internal;
         return 200 "<script>
 var myDiv = document.createElement('div');
 myDiv.id = 'div_id';
