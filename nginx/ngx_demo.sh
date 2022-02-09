@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2153451[2022-02-08T13:58:36+08:00]:ngx_demo.sh")
+VERSION+=("e069715[2022-02-09T07:59:52+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2962,6 +2962,7 @@ server {
     }
     location / {
         proxy_pass http://www.test.com;
+        # # whether proxied responses with codes greater than or equal to 300 should be passed to a client
         proxy_intercept_errors on;
         error_page 403 =503 /error.json;
         error_page 504 =200 /504.json;
