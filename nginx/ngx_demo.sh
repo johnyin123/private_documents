@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("56eb439[2022-02-09T15:39:35+08:00]:ngx_demo.sh")
+VERSION+=("f9a2017[2022-02-10T08:04:20+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -177,6 +177,21 @@ rtmp {
             dash on;
             dash_path /var/www/dash;
         }
+    }
+}
+EOF
+cat <<'EOF'>change_request_uri.http
+# nc -lp9999
+server {
+    listen 80 reuseport;
+    server_name _;
+    location / {
+        alias /var/www/;
+        try_files $uri @proxy;
+    }
+    location @proxy {
+        rewrite ^ /demo$uri break;
+        proxy_pass http://127.0.0.1:9999;
     }
 }
 EOF
