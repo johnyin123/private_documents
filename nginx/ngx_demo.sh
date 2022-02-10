@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d4a1e1c[2022-02-09T14:45:01+08:00]:ngx_demo.sh")
+VERSION+=("56eb439[2022-02-09T15:39:35+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3041,6 +3041,17 @@ server {
     }
     location @504 {
         return 200 "$upstream_addr 504 error";
+    }
+}
+EOF
+cat <<'EOF' >ssi.http
+server {
+    listen 80 reuseport;
+    server_name _;
+    location = /test {
+        ssi on;
+        default_type text/html;
+        return 200 '<!--#config timefmt="%A, %H:%M:%S" --><!--#set var="v" value="$date_gmt" --><!--#echo var="v" -->';
     }
 }
 EOF
