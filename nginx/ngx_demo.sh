@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3759d9d[2022-02-14T11:16:15+08:00]:ngx_demo.sh")
+VERSION+=("3a107b7[2022-02-14T13:05:07+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -185,6 +185,10 @@ cat <<'EOF'>change_request_uri.http
 server {
     listen 80 reuseport;
     server_name _;
+    # # This should remove /foo/bar part from proxied URL.
+    # location /foo/bar/ {
+    #     proxy_pass http://myapp/;
+    # }
     location / {
         alias /var/www/;
         try_files $uri @proxy;
