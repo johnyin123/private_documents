@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f9a2017[2022-02-10T08:04:20+08:00]:ngx_demo.sh")
+VERSION+=("e1e3c48[2022-02-10T08:55:09+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -344,7 +344,7 @@ cat <<'EOF' >dummy.http
 # catch-all not matched server_name by default_server
 # If no default server is defined, Nginx will use the first found server.
 server {
-    listen 80 default_server reuseport;
+    listen *:80 default_server reuseport;
     # listen 443 ssl http2 default_server reuseport;
     # ssl_certificate /etc/nginx/ssl/test.pem;
     # ssl_certificate_key /etc/nginx/ssl/test.key;
