@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0fd7000[2022-02-14T10:40:36+08:00]:ngx_demo.sh")
+VERSION+=("3759d9d[2022-02-14T11:16:15+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1989,24 +1989,6 @@ server {
     server_name www.test.com;
     location /images/ {
         rewrite ^ http://$cdn_host.test.com$request_uri? permanent;
-    }
-}
-EOF
-cat <<'EOF' >proxy_cache.http
-proxy_cache_path /usr/share/nginx/cache levels=1:2 keys_zone=cache_one:50m inactive=30m max_size=50m use_temp_path=off;
-server {
-    listen 80 reuseport;
-    server_name _;
-    location / {
-        proxy_pass http://127.0.0.1:9999;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        location ~* \.html$ {
-            proxy_cache cache_one;
-            proxy_cache_key $host$uri$is_args$args;
-            proxy_cache_valid any 1m;
-            expires 1m;
-        }
     }
 }
 EOF
