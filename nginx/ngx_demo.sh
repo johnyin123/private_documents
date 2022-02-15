@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3a107b7[2022-02-14T13:05:07+08:00]:ngx_demo.sh")
+VERSION+=("938ef70[2022-02-14T13:23:54+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -142,7 +142,7 @@ load_module modules/ngx_rtmp_module.so;
 rtmp {
     server {
         listen 1935;
-        chunk_size 4000;
+        chunk_size 4096;
         notify_method get;
         #rtmp://ip/live/streamname
         application live {
@@ -234,6 +234,7 @@ server {
         # DEMO:return HTTP HEADER User-Agent
         return 404 "$http_user_agent";
     }
+    location /control { rtmp_control all; }
     location /stat {
         rtmp_stat all;
         # Use this stylesheet to view XML as web page in browser
@@ -241,10 +242,8 @@ server {
         allow 192.168.168.0/24;
         deny all;
     }
-    # copy rtmp stat.xsl to /var/www
-    location /stat.xsl {
-        root /var/www;
-    }
+    # copy rtmp stat.xsl to /etc/nginx
+    location /stat.xsl { alias /etc/nginx/stat.xsl; }
     location /hls {
         types{
             application/vnd.apple.mpegurl m3u8;
