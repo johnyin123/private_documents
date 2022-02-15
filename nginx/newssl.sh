@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("32a4aa7[2022-02-08T13:15:20+08:00]:newssl.sh")
+VERSION+=("e3c40c0[2022-02-08T17:28:13+08:00]:newssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -57,9 +57,28 @@ gen_clent_cert() {
         -CA ${caroot}/ca.pem -CAkey ${caroot}/ca.key -CAcreateserial -out ${caroot}/${cid}.pem
     try openssl x509 -text -noout -in ${caroot}/${cid}.pem
     # info_msg "conver to broswer support format(p12).\n"
+    convert_p12 ${caroot} ${cid}
     # try openssl pkcs12 -export -in ${caroot}/${cid}.pem -out ${caroot}/${cid}.p12 -inkey ${caroot}/${cid}.key
-    try "tar -C ${caroot} -cv ca.pem ${cid}.key ${cid}.pem | gzip > ${caroot}/${cid}.tar.gz"
+    try "tar -C ${caroot} -cv ca.pem ${cid}.key ${cid}.pem ${cid}.p12 | gzip > ${caroot}/${cid}.tar.gz"
     info_msg "${caroot}/${cid}.tar.gz --> TO CLIENT\n"
+}
+
+convert_p12() {
+    local caroot=${1}
+    local cid=${2}
+    local pass="password"
+    local username="$(openssl x509 -noout  -in ${caroot}/${cid}.pem -subject | sed -e 's;.*CN\s*=\s*;;' -e 's;/Em.*;;')"
+    local caname="$(openssl x509 -noout  -in ${caroot}/ca.pem -subject | sed -e 's;.*CN\s*=\s*;;' -e 's;/Em.*;;')"
+    try openssl pkcs12 \
+        -export \
+        -in "${caroot}/${cid}.pem" \
+        -inkey "${caroot}/${cid}.key" \
+        -certfile ${caroot}/ca.pem \
+        -name \"$username\" \
+        -caname \"$caname\" \
+        -password pass:${pass} \
+        -out ${caroot}/${cid}.p12
+    try openssl pkcs12 -info -in ${caroot}/${cid}.p12 -passin pass:${pass} -passout pass:${pass}
 }
 
 main() {
