@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8707ef4[2022-01-26T10:19:08+08:00]:mk_nginx.sh")
+VERSION+=("6b48897[2022-01-27T16:33:08+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -342,14 +342,14 @@ large_client_header_buffers 4 80k;
 EOF
 
 cat <<'EOF' > ${OUTDIR}/etc/nginx/http-conf.d/httplog.conf
-log_format json escape=json '{ "scheme":"$scheme", "http_host": "$http_host", "server_port": $server_port, "upstream_addr": "$upstream_addr",'
+log_format json escape=json '{ "node": "$hostname", "scheme":"$scheme", "http_host": "$http_host", "server_port": $server_port, "upstream_addr": "$upstream_addr",'
     '"request_time": $request_time, "upstream_response_time":"$upstream_response_time", "upstream_status": "$upstream_status",'
     '"remote_addr": "$remote_addr", "remote_user": "$remote_user", "time_iso8601": "$time_iso8601", "request": "$request",'
     '"status": $status,"request_length": $request_length, "bytes_sent": $bytes_sent, "http_referer": "$http_referer",'
     '"http_user_agent": "$http_user_agent", "http_x_forwarded_for": "$http_x_forwarded_for", "gzip_ratio": "$gzip_ratio",'
     '"upstream_cache_status":"$upstream_cache_status" }';
 
-log_format main '$scheme $http_host $server_port "$upstream_addr" '
+log_format main '$hostname $scheme $http_host $server_port "$upstream_addr" '
     '[$request_time|"$upstream_response_time"|"$upstream_status"] '
     '$remote_addr - $remote_user [$time_iso8601] "$request" '
     '$status $request_length $bytes_sent "$http_referer" '
