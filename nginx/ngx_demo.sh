@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b3aecef[2022-02-16T09:37:10+08:00]:ngx_demo.sh")
+VERSION+=("b61cea0[2022-02-16T09:50:46+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -176,6 +176,17 @@ rtmp {
             live on;
             dash on;
             dash_path /var/www/dash;
+        }
+    }
+}
+EOF
+cat <<'EOF'>tryfile_ignore_path.http
+server {
+    listen 80 reuseport;
+    server_name _;
+    location /images/ {
+        location ~ ^/images/(?<img_path>.+) {
+            try_files /var/www/$img_path /images?uri=$img_path;
         }
     }
 }
