@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2502e89[2022-02-15T08:51:51+08:00]:ngx_demo.sh")
+VERSION+=("b3aecef[2022-02-16T09:37:10+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2947,47 +2947,47 @@ server {
     listen 80 reuseport;
     server_name _;
 
-    error_page 400 /error/400.json;
-    error_page 401 /error/401.json;
-    error_page 402 /error/402.json;
-    error_page 403 /error/403.json;
-    error_page 404 /error/404.json;
-    error_page 405 /error/405.json;
-    error_page 406 /error/406.json;
-    error_page 407 /error/407.json;
-    error_page 408 /error/408.json;
-    error_page 409 /error/409.json;
-    error_page 410 /error/410.json;
-    error_page 411 /error/411.json;
-    error_page 412 /error/412.json;
-    error_page 413 /error/413.json;
-    error_page 414 /error/414.json;
-    error_page 415 /error/415.json;
-    error_page 416 /error/416.json;
-    error_page 417 /error/417.json;
-    error_page 418 /error/418.json;
-    error_page 421 /error/421.json;
-    error_page 422 /error/422.json;
-    error_page 423 /error/423.json;
-    error_page 424 /error/424.json;
-    error_page 425 /error/425.json;
-    error_page 426 /error/426.json;
-    error_page 428 /error/428.json;
-    error_page 429 /error/429.json;
-    error_page 431 /error/431.json;
-    error_page 451 /error/451.json;
-    error_page 500 /error/500.json;
-    error_page 501 /error/501.json;
-    error_page 502 /error/502.json;
-    error_page 503 /error/503.json;
-    error_page 504 /error/504.json;
-    error_page 505 /error/505.json;
-    error_page 506 /error/506.json;
-    error_page 507 /error/507.json;
-    error_page 508 /error/508.json;
-    error_page 510 /error/510.json;
-    error_page 511 /error/511.json;
-    location ~ /error/(10[0-3]|2[02][1-9]|30[1-8]|4[0125][0-9]|50[0-9])\.json {
+    error_page 400 /@error/400.json;
+    error_page 401 /@error/401.json;
+    error_page 402 /@error/402.json;
+    error_page 403 /@error/403.json;
+    error_page 404 /@error/404.json;
+    error_page 405 /@error/405.json;
+    error_page 406 /@error/406.json;
+    error_page 407 /@error/407.json;
+    error_page 408 /@error/408.json;
+    error_page 409 /@error/409.json;
+    error_page 410 /@error/410.json;
+    error_page 411 /@error/411.json;
+    error_page 412 /@error/412.json;
+    error_page 413 /@error/413.json;
+    error_page 414 /@error/414.json;
+    error_page 415 /@error/415.json;
+    error_page 416 /@error/416.json;
+    error_page 417 /@error/417.json;
+    error_page 418 /@error/418.json;
+    error_page 421 /@error/421.json;
+    error_page 422 /@error/422.json;
+    error_page 423 /@error/423.json;
+    error_page 424 /@error/424.json;
+    error_page 425 /@error/425.json;
+    error_page 426 /@error/426.json;
+    error_page 428 /@error/428.json;
+    error_page 429 /@error/429.json;
+    error_page 431 /@error/431.json;
+    error_page 451 /@error/451.json;
+    error_page 500 /@error/500.json;
+    error_page 501 /@error/501.json;
+    error_page 502 /@error/502.json;
+    error_page 503 /@error/503.json;
+    error_page 504 /@error/504.json;
+    error_page 505 /@error/505.json;
+    error_page 506 /@error/506.json;
+    error_page 507 /@error/507.json;
+    error_page 508 /@error/508.json;
+    error_page 510 /@error/510.json;
+    error_page 511 /@error/511.json;
+    location ~ /@error/(10[0-3]|2[02][1-9]|30[1-8]|4[0125][0-9]|50[0-9])\.json {
         internal;
         return 200 '{"scheme":"$scheme","http_host":"$http_host","server_port":$server_port,"upstream_addr":"$upstream_addr","request_time":$request_time,"upstream_response_time":"$upstream_response_time","upstream_status":"$upstream_status","remote_addr":"$remote_addr","remote_user":"$remote_user","time_iso8601":"$time_iso8601","request":"$request","status":$status,"request_length":$request_length,"bytes_sent":$bytes_sent,"http_referer":"$http_referer","http_user_agent":"$http_user_agent","http_x_forwarded_for":"$http_x_forwarded_for","gzip_ratio":"$gzip_ratio"}';
     }
