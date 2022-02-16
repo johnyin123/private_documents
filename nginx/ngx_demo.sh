@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b61cea0[2022-02-16T09:50:46+08:00]:ngx_demo.sh")
+VERSION+=("a186584[2022-02-16T10:01:41+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -45,7 +45,7 @@ server {
     ssl_dhparam /etc/nginx/dh2048.pem;
     ssl_client_certificate /etc/nginx/ssl/ca.pem;
     ssl_verify_client on;
-    location / { return 200 "$ssl_client_s_dn"; }
+    location / { default_type text/html; return 200 "$ssl_client_s_dn"; }
 }
 EOF
 cat <<"EOF">location.txt
