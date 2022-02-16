@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION+=("motd.sh - b17c112 - 2021-10-18T15:34:22+08:00")
+VERSION+=("b2ec86a[2021-10-27T10:03:51+08:00]:motd.sh")
 date=$(date "+%F %T")
 kernel=$(uname -r)
 hostname=${HOSTNAME:-$(hostname)}
@@ -35,8 +35,8 @@ product="$(cat /sys/class/dmi/id/product_name 2>/dev/null)"
 head="$PRETTY_NAME ($date)"
 
 echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-
-exec {FD}</etc/logo.txt
+[ -f "/etc/logo.txt" ] && logo=/etc/logo.txt || logo=/dev/null
+exec {FD}<${logo}
 {
     printf "$head\n"
     printf "%s\n" "----------------------------------------------"
