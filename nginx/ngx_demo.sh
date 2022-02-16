@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a186584[2022-02-16T10:01:41+08:00]:ngx_demo.sh")
+VERSION+=("d8960be[2022-02-16T12:47:15+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -38,7 +38,7 @@ chmod 755 check_conf.sh
 cat <<'EOF'>ssl_client_cert.http
 # curl -k --key client_test.key --cert client_test.pem --cacert ca.pem  https://localhost/
 server {
-    listen 443 ssl reuseport;
+    listen 443 ssl;
     server_name _;
     ssl_certificate /etc/nginx/ssl/test.pem;
     ssl_certificate_key /etc/nginx/ssl/test.key;
@@ -182,7 +182,7 @@ rtmp {
 EOF
 cat <<'EOF'>tryfile_ignore_path.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location /images/ {
         location ~ ^/images/(?<img_path>.+) {
@@ -194,7 +194,7 @@ EOF
 cat <<'EOF'>change_request_uri.http
 # nc -lp9999
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     # # This should remove /foo/bar part from proxied URL.
     # location /foo/bar/ {
@@ -217,8 +217,8 @@ cat <<'EOF' >http2.http
 # # work with HTTP 1.1, it returns binary data for a HTTP1.1 request
 #curl --http2-prior-knowledge  http://localhost:8001
 server {
-    listen 8000 reuseport ssl http2;
-    listen 8001 reuseport http2;
+    listen 8002 ssl http2;
+    listen 8001 http2;
     server_name _;
     ssl_certificate /etc/nginx/ssl/test.pem;
     ssl_certificate_key /etc/nginx/ssl/test.key;
@@ -239,7 +239,7 @@ cat <<'EOF' >rtmp_live.http
 # ffmpeg -re -i demo.mp4 -vcodec copy -acodec copy -f flv rtmp://localhost:1935/dash/demo
 # mpv http://localhost/dash/demo.mpd
 server {
-    listen 80 reuseport;
+    listen 80;
     location /auth {
         if ($arg_pass = 'password') { return 200; }
         # DEMO:return HTTP HEADER User-Agent
@@ -285,7 +285,7 @@ map $http_user_agent $badagent {
     ~*(?i)(80legs|360Spider) 1;
 }
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     if ($badagent) { return 403; }
     # serve static files
@@ -307,7 +307,7 @@ EOF
 cat <<'EOF' >limit_speed.http
 limit_speed_zone mylimitspeed $binary_remote_addr 10m;
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location = /favicon.ico { access_log off; log_not_found off; }
     location = /robots.txt  { access_log off; log_not_found off; }
@@ -327,7 +327,7 @@ server {
 EOF
 cat <<'EOF' >redirect_all_except_localhost.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         error_page 403 = @badip;
@@ -343,7 +343,7 @@ EOF
 cat <<'EOF' >valid_referer.http
 # curl -vvv -e "https://a.abc.com" 127.0.0.1
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     valid_referers none blocked server_names *.example.com ~\.abc\.;
     if ($invalid_referer) { return 403; }
@@ -355,6 +355,9 @@ server {
 }
 EOF
 cat <<'EOF' >dummy.http
+# # nginx: [emerg] duplicate listen options (vhost mode)
+# # # The network socket's listen options(like reuseport) only once in configuration
+# # # and they "apply" to all other configured servers which listen on the same socket(port). 
 # catch-all not matched server_name by default_server
 # If no default server is defined, Nginx will use the first found server.
 server {
@@ -376,7 +379,7 @@ upstream redis {
     server 127.0.0.1:6379;
 }
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         # cache !!!!
@@ -418,7 +421,7 @@ EOF
 # # RPOP 从队列尾部出一个数据
 # RPOP [Queue_Key]
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     # GET /get?key=key
     location = /get {
@@ -449,9 +452,9 @@ cat <<'EOF' >traffic_status.http
 vhost_traffic_status_zone;
 # vhost_traffic_status_filter_by_set_key $geoip_country_code country::*;
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
-    # listen 443 ssl reuseport;
+    # listen 443 ssl;
     # ssl_certificate /etc/nginx/SSL/ca.pem
     # ssl_certificate_key /etc/nginx/SSL/site.key;
     # server_name status.example.org;
@@ -563,7 +566,7 @@ cat <<'EOF' > flv_movie.http
 # flv mp4流媒体服务器, https://github.com/Bilibili/flv.js
 # apt -y install yamdi
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     root /var/www/flv/;
     limit_rate_after 5m; #在flv视频文件下载了5M以后开始限速
@@ -578,7 +581,7 @@ cat <<'EOF' > limit_conn.http
 limit_conn_zone $binary_remote_addr zone=connperip:10m;
 limit_conn_zone $server_name zone=connperserver:10m;
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         limit_conn connperip 10;
@@ -629,7 +632,7 @@ cat <<'EOF' > limit_req.http
 limit_req_zone $binary_remote_addr zone=perip:10m rate=1r/s;
 # limit_req_zone $server_name zone=perserver:10m rate=600r/m;
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     # limit_req zone=perserver burst=10;
     location / {
@@ -651,7 +654,7 @@ cat <<'EOF' > fcgiwrap.http
 # systemctl enable fcgiwrap --now
 # curl localhost/cgi-bin/test.cgi
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location = /login {
         rewrite ^ /cgi-bin/test.cgi;
@@ -667,7 +670,7 @@ server {
 EOF
 cat <<'EOF' > auth_or_allow.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         satisfy any;
@@ -684,7 +687,7 @@ server {
 EOF
 cat <<'EOF' > auth_basic.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     # username=user
     # password=password
@@ -710,7 +713,7 @@ map $arg_id $url_id {
     default    /about;
 }
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     if ($url_p) {
         # if '$url_p' variable is not an empty string
@@ -784,7 +787,7 @@ cat <<'EOF' > secure_link_demo.http
 # esac
 js_import secure from js/secure_link_demo.js;
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location = /login {
         rewrite ^ /cgi-bin/login;
@@ -841,7 +844,7 @@ map $uri $allow_file {
 # mkdir -p /var/www/files/ && echo "FILES FILE" > /var/www/files/file.txt
 # mkdir -p /var/www/s/ && echo "S FILE" > /var/www/s/file.txt
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     ## Basic Secured URLs
     # echo -n 'hls/file.txtprekey' | openssl md5 -hex
@@ -883,7 +886,7 @@ server {
 EOF
 cat <<'EOF' > secure_link_cookie.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     # sec=3600
     # secure_link_expires=$(date -d "+${sec} second" +%s)
@@ -930,7 +933,7 @@ document.getElementById('files').addEventListener('change', function(e) {
 EOF
 cat <<'EOF' > webdav.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     # mkdir -p /var/www/tmp/client_temp && chown nobody:nobody /var/www -R
     # curl --upload-file bigfile.iso http://localhost/upload/file1
@@ -1004,7 +1007,7 @@ upstream dns_upstreams {
     server 172.16.0.11:53;
 }
 server {
-    listen 53 udp reuseport;
+    listen 53 udp;
     proxy_responses 1;
     proxy_timeout 1s;
     proxy_pass dns_upstreams;
@@ -1016,7 +1019,7 @@ cat <<'EOF' > https_proxy.http
 # dynamic proxy_pass + proxy_cache possible · Issue #316 ...
 # https://github.com/nginx/njs/issues/316
 server {
-    listen 8000 reuseport;
+    listen 8080;
     server_name _;
     resolver 114.114.114.114 ipv6=off;
     # Enable "CONNECT" HTTP method support.
@@ -1043,7 +1046,7 @@ cat <<'EOF' > reverse_transparent_proxy.http
 # ip route add local 0.0.0.0/0 dev lo table 100
 # iptables -t mangle -A PREROUTING -p tcp -s 172.16.1.0/24 --sport 80 -j MARK --set-xmark 0x1/0xffffffff
 server {
-    listen 172.16.0.1:80 reuseport;
+    listen 172.16.0.1:80;
     server_name _;
     location / {
         proxy_bind $remote_addr transparent;
@@ -1054,7 +1057,7 @@ EOF
 cat <<'EOF' > gateway_transparent_proxy.http
 # iptables -t nat -A PREROUTING -p tcp -m tcp --dport 80 -j DNAT --to-destination ${gate_ip}:${gate_port}
 server {
-    listen 8000 reuseport;
+    listen 8000;
     server_name _;
     resolver 114.114.114.114 ipv6=off;
     location / {
@@ -1075,7 +1078,7 @@ EOF
 cat <<'EOF' > mirror.http
 # nc -klp9999
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         mirror @mirror;
@@ -1101,7 +1104,7 @@ split_clients "${remote_addr}AAA" $mirror_allowed {
     * "";
 }
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         mirror @mirror;
@@ -1122,7 +1125,7 @@ server {
 EOF
 cat <<'EOF' > memory_cached.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         set $memcached_key "$uri?$args";
@@ -1146,14 +1149,14 @@ upstream b {
     server 127.0.0.1:4001;
 }
 server {
-    listen 3001 reuseport;
+    listen 3001;
     server_name _;
     location / {
         return 200 "Served from site A! \n\n";
     }
 }
 server {
-    listen 4001 reuseport;
+    listen 4001;
     server_name _;
     location / {
         return 200 "Served from site B!! <<<<-------------------------- \n\n";
@@ -1164,7 +1167,7 @@ split_clients "${arg_token}" $dynamic {
     *       b;
 }
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         if ($http_cookie ~* "shopware_sso_token=([^;]+)(?:;|$)") {
@@ -1178,7 +1181,7 @@ server {
 EOF
 cat <<'EOF' > split_client.http
 server {
-    listen 8098 reuseport;
+    listen 8098;
     server_name _;
     return 200 "Results:
 Server Address:\t $server_addr:$server_port
@@ -1190,7 +1193,7 @@ upstream backend {
     server 172.16.239.200:8098;
 }
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         proxy_pass http://backend;
@@ -1218,7 +1221,7 @@ split_clients "${remote_addr}" $variant {
     *    "";
 }
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         index index${variant}.html;
@@ -1229,7 +1232,7 @@ EOF
 cat <<'EOF' > auth_request_by_secure_link.http
 # ldap demo: https://github.com/nginxinc/nginx-ldap-auth
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         auth_request /auth;
@@ -1351,7 +1354,7 @@ cat <<'EOF' > auth_request.http
 # esac
 #
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     error_page 401 = @error401;
     location @error401 {
@@ -1500,14 +1503,14 @@ cat <<'EOF' > aws_s3auth.http
 # njs s3: git clone https://github.com/nginxinc/nginx-s3-gateway.git
 # public-bucket MUST set bucket-policy.py to all read/write
 # curl http://127.0.0.1:81/public-bucket OUTPUT html by xslt module
-upstream ceph_rgw_backend {
+upstream ceph_backend {
     server 192.168.168.131:80;
     server 192.168.168.132:80;
     server 192.168.168.133:80;
     keepalive 64;
 }
 server {
-    listen 81 reuseport;
+    listen 81;
     server_name _;
     client_max_body_size 6000M;
     location / {
@@ -1524,13 +1527,13 @@ server {
         # Apply XSL transformation to the XML returned from S3 directory listing
         xslt_stylesheet /etc/nginx/http-available/aws_s3_list.xslt;
         xslt_types application/xml;
-        proxy_pass http://ceph_rgw_backend;
+        proxy_pass http://ceph_backend;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
     }
 }
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     # srv=192.168.168.1
     # mykey=prekey
@@ -1555,13 +1558,13 @@ server {
         proxy_max_temp_file_size 0;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
-        proxy_pass http://ceph_rgw_backend/public-bucket$uri;
+        proxy_pass http://ceph_backend/public-bucket$uri;
     }
 }
 EOF
 cat <<'EOF' >x_accel_redirect2.http
 server {
-    listen 127.0.0.1:81 reuseport;
+    listen 127.0.0.1:81;
     server_name _;
     location / {
         # # you application here, if request valid add X-Accel-Redirect header!!!
@@ -1571,7 +1574,7 @@ server {
 }
 limit_conn_zone $binary_remote_addr zone=addr:10m;
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         proxy_pass http://127.0.0.1:81;
@@ -1618,7 +1621,7 @@ server {
 EOF
 cat <<'EOF' > post_redirect.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         # HTTP 307 only for POST requests:
@@ -1637,7 +1640,7 @@ cat <<'EOF' > x_accel_redirect.http
 # echo "protected res" > /var/www/file.txt
 # curl -vvv http://127.0.0.1/file.txt
 server {
-    listen 81 reuseport;
+    listen 81;
     server_name _;
     location / {
         # add_header X-Accel-Redirect "/protected$uri" always;
@@ -1655,7 +1658,7 @@ upstream ceph_rgw_backend {
     keepalive 64;
 }
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location /protected {
         internal;
@@ -1689,7 +1692,7 @@ cat <<'EOF' > js_test.http
 js_import test from js/js_test.js;
 js_set $summary summary;
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     resolver 8.8.8.8;
     resolver_timeout 5s;
@@ -1793,7 +1796,7 @@ cat <<'EOF' >shorturl.http
 # curl http://127.0.0.1/abcdefg -redirect-> www.xxx.com
 js_import short from js/shorturl.js;
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     subrequest_output_buffer_size 20k;
     location / {
@@ -1852,14 +1855,14 @@ cat <<'EOF' >download_code.http
 # http_js_module & http_redis_module
 # redis-cli -x set /public-bucket/fu 9901 [EX seconds]
 # curl http://127.0.0.1/public-bucket/fu?code=xxxx
-upstream ceph_rgw_backend {
+upstream my_ceph_backend {
     server 192.168.168.131:80;
     keepalive 64;
 }
 js_path "/etc/nginx/js/";
 js_import download from download_code.js;
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     subrequest_output_buffer_size 20k;
     location = /favicon.ico { access_log off; log_not_found off; return 204; }
@@ -1892,7 +1895,7 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_hide_header x-amz-request-id;
         proxy_hide_header x-rgw-object-type;
-        proxy_pass http://ceph_rgw_backend/$1;
+        proxy_pass http://my_ceph_backend/$1;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
     }
@@ -1918,7 +1921,7 @@ js_import main from js/secure_link_hash.js;
 js_set $new_foo main.create_secure_link;
 js_set $secret_key main.secret_key;
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location /secure/ {
         error_page 403 = @login;
@@ -1938,7 +1941,7 @@ cat <<'EOF' > single_page.http
 # send all requests to a single html page
 # echo "base.html" > /var/www/base.html
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         root /var/www;
@@ -1949,7 +1952,7 @@ EOF
 cat <<'EOF' > serve_static_rest_backend.http
 # serve all existing static files, proxy the rest to a backend
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         root /var/www/;
@@ -1970,7 +1973,7 @@ server {
 EOF
 cat <<'EOF' > resolver.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location ~ /to/(.*) {
         resolver 127.0.0.1;
@@ -1999,7 +2002,7 @@ split_clients $remote_addr $cdn_host {
     * cdn3;
 }
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name www.test.com;
     location /images/ {
         rewrite ^ http://$cdn_host.test.com$request_uri? permanent;
@@ -2009,7 +2012,7 @@ EOF
 cat <<'EOF' > cdn.http
 proxy_cache_path /usr/share/nginx/cdn.test.com levels=1:2 keys_zone=testcdn:50m inactive=30m max_size=50m use_temp_path=off;
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name cdn.test.com;
     location / {
         proxy_set_header Accept-Encoding "";
@@ -2035,7 +2038,7 @@ split_clients $request_uri $my_cache {
     50% "my_cache_hdd2";
 }
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         proxy_cache $my_cache;
@@ -2068,7 +2071,7 @@ map $uri $cache {
     ~*\.(js|css|png|jpe?g|gif|ico|html?)$ 1;
 }
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location / {
         # disable nginx caching for certain file types
@@ -2110,7 +2113,7 @@ server {
     }
 }
 server {
-    listen 81 reuseport;
+    listen 81;
     server_name _;
     location / {
         alias /var/www/;
@@ -2901,7 +2904,7 @@ expires $expires;
 EOF
 cat <<'EOF' > cache_static.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location ~* \.(?:ico|css|js|gif|jpe?g|png)$ {
         expires 30d;
@@ -2928,7 +2931,7 @@ server {
 EOF
 cat <<'EOF' > cors.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name api.localhost;
     location / {
         add_header 'Access-Control-Allow-Origin' 'http://api.localhost';
@@ -2955,7 +2958,7 @@ server {
 EOF
 cat <<'EOF' > error_page_json.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
 
     error_page 400 /@error/400.json;
@@ -3020,7 +3023,7 @@ error_page 503 /error/503.html;
 error_page 504 /error/504.html;
 error_page 505 /error/505.html;
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location ^~ /error/ {
         internal;
@@ -3033,7 +3036,7 @@ cat <<'EOF' > error_page.http
 # mkdir -p /etc/nginx/errors/
 # echo "401" > /etc/nginx/errors/401
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     error_page 401 /error/401.html;
     error_page 404 /error/404.html;
@@ -3057,7 +3060,7 @@ map $http_upgrade $connection_upgrade {
     ''      close;
 }
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location /chat/ {
         proxy_pass http://backend;
@@ -3074,7 +3077,7 @@ server {
 EOF
 cat <<'EOF' >serve_static_if_not_found_proxypass.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location = /login {
         default_type "text/html";
@@ -3093,7 +3096,7 @@ cat <<'EOF' >auto_subdomain_if_folder_exists.http
 # mkdir /var/www/sites/www/ && echo "www" > /var/www/sites/www/index.html
 # curl -vvv -H "Host: www.test.com" http://localhost
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name ~^(?<project>.+)\.test\.com$;
     if (!-d /var/www/sites/$project) {
         return 404 "$project not directory";
@@ -3103,7 +3106,7 @@ server {
 EOF
 cat <<'EOF' >change_upstream_errorpage.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location = /login {
         default_type "text/html";
@@ -3126,7 +3129,7 @@ server {
 EOF
 cat <<'EOF' >ssi.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     location = /test {
         ssi on;
@@ -3137,7 +3140,7 @@ server {
 EOF
 cat <<'EOF' >addition.http
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     # addition_types text/html;
     location /a.gif { empty_gif; }
@@ -3180,7 +3183,7 @@ cat <<'EOF' > sub_filter.http
 # }
 # ............................
 server {
-    listen 80 reuseport;
+    listen 80;
     listen unix:/var/run/nginx.sock;
     server_name _;
     location / {
@@ -3474,7 +3477,7 @@ pagespeed FileCachePath /tmp/ngx_pagespeed_cache;
 pagespeed on;
 
 server {
-    listen 80 reuseport;
+    listen 80;
     server_name _;
     # pagespeed on;
     location / {
