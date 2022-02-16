@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d8960be[2022-02-16T12:47:15+08:00]:ngx_demo.sh")
+VERSION+=("47279b4[2022-02-16T14:17:41+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3001,7 +3001,7 @@ server {
     error_page 508 /@error/508.json;
     error_page 510 /@error/510.json;
     error_page 511 /@error/511.json;
-    location ~ /@error/(10[0-3]|2[02][1-9]|30[1-8]|4[0125][0-9]|50[0-9])\.json {
+    location ~ /@error/(4[01235][0-9]|5[0-1][0-9])\.json {
         internal;
         return 200 '{"scheme":"$scheme","http_host":"$http_host","server_port":$server_port,"upstream_addr":"$upstream_addr","request_time":$request_time,"upstream_response_time":"$upstream_response_time","upstream_status":"$upstream_status","remote_addr":"$remote_addr","remote_user":"$remote_user","time_iso8601":"$time_iso8601","request":"$request","status":$status,"request_length":$request_length,"bytes_sent":$bytes_sent,"http_referer":"$http_referer","http_user_agent":"$http_user_agent","http_x_forwarded_for":"$http_x_forwarded_for","gzip_ratio":"$gzip_ratio"}';
     }
