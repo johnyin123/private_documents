@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("27636cb[2022-02-17T08:59:01+08:00]:ngx_demo.sh")
+VERSION+=("239a7eb[2022-02-17T10:43:27+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2974,14 +2974,15 @@ map $status $error_msg {
     415 "C|Unsupported Media Type";
     416 "C|Requested Range Not Satisfiable";
     417 "C|Expectation Failed";
-    421 "S|Too many Connections";
-    422 "C|Unprocessable Entity";
+    421 "C|Misdirected Request";
+    429 "C|Too Many Requests";
     500 "S|Internal Server Error";
     501 "S|Not Implemented";
     502 "S|Bad Gateway";
     503 "S|Service Unavailable";
     504 "S|Gateway Timeout";
     505 "S|HTTP Version Not Supported";
+    507 "Insufficient Storage";
 }
 server {
     listen 80;
@@ -3005,29 +3006,16 @@ server {
     error_page 415 /@error/415.json;
     error_page 416 /@error/416.json;
     error_page 417 /@error/417.json;
-    error_page 418 /@error/418.json;
     error_page 421 /@error/421.json;
-    error_page 422 /@error/422.json;
-    error_page 423 /@error/423.json;
-    error_page 424 /@error/424.json;
-    error_page 425 /@error/425.json;
-    error_page 426 /@error/426.json;
-    error_page 428 /@error/428.json;
     error_page 429 /@error/429.json;
-    error_page 431 /@error/431.json;
-    error_page 451 /@error/451.json;
     error_page 500 /@error/500.json;
     error_page 501 /@error/501.json;
     error_page 502 /@error/502.json;
     error_page 503 /@error/503.json;
     error_page 504 /@error/504.json;
     error_page 505 /@error/505.json;
-    error_page 506 /@error/506.json;
     error_page 507 /@error/507.json;
-    error_page 508 /@error/508.json;
-    error_page 510 /@error/510.json;
-    error_page 511 /@error/511.json;
-    location ~ /@error/(4[01235][0-9]|5[0-1][0-9])\.json {
+    location ~ /@error/(4[012][0-9]|5[0-1][0-9])\.json {
         internal;
         return 200 '{"scheme":"$scheme","http_host":"$http_host","server_port":$server_port,"upstream_addr":"$upstream_addr","request_time":$request_time,"upstream_response_time":"$upstream_response_time","upstream_status":"$upstream_status","remote_addr":"$remote_addr","remote_user":"$remote_user","time_iso8601":"$time_iso8601","request":"$request","status":$status,"request_length":$request_length,"bytes_sent":$bytes_sent,"http_referer":"$http_referer","http_user_agent":"$http_user_agent","http_x_forwarded_for":"$http_x_forwarded_for","gzip_ratio":"$gzip_ratio", "desc":"$error_msg"}';
     }
