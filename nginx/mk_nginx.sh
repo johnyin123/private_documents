@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6b48897[2022-01-27T16:33:08+08:00]:mk_nginx.sh")
+VERSION+=("5db0f8d[2022-02-16T11:02:43+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -333,12 +333,19 @@ proxy_http_version 1.1;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $scheme;
 proxy_set_header X-Real-IP $remote_addr;
+# # limiting bandwidth speed in proxy and cache responses not work, if proxy_buffering is set to off.
+proxy_buffering on;
+proxy_buffer_size 8k;
+proxy_buffers 128 8k;
+proxy_busy_buffers_size 128k;
+# # zero value disables buffering of responses to temporary files.
+proxy_max_temp_file_size 0;
 client_max_body_size 100M;
-client_header_buffer_size 40k;
+client_header_buffer_size 32k;
 proxy_headers_hash_bucket_size 10240;
 proxy_headers_hash_max_size 102400;
 proxy_ignore_client_abort on;
-large_client_header_buffers 4 80k;
+large_client_header_buffers 4 64k;
 EOF
 
 cat <<'EOF' > ${OUTDIR}/etc/nginx/http-conf.d/httplog.conf

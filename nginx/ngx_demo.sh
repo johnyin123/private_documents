@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("47279b4[2022-02-16T14:17:41+08:00]:ngx_demo.sh")
+VERSION+=("cfea779[2022-02-16T15:23:38+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -211,14 +211,14 @@ server {
 }
 EOF
 cat <<'EOF' >http2.http
-#curl -k --http2 https://localhost:8000 -vvv
-#curl -k --http1.1 https://localhost:8000 -vvv
+#curl -k --http2 https://localhost -vvv
+#curl -k --http1.1 https://localhost -vvv
 # # http2 must not be enabled on port 80 because it does not
 # # work with HTTP 1.1, it returns binary data for a HTTP1.1 request
-#curl --http2-prior-knowledge  http://localhost:8001
+#curl --http2-prior-knowledge  http://localhost:80
 server {
-    listen 8002 ssl http2;
-    listen 8001 http2;
+    listen 443 ssl http2;
+    listen 80 http2;
     server_name _;
     ssl_certificate /etc/nginx/ssl/test.pem;
     ssl_certificate_key /etc/nginx/ssl/test.key;
@@ -240,6 +240,7 @@ cat <<'EOF' >rtmp_live.http
 # mpv http://localhost/dash/demo.mpd
 server {
     listen 80;
+    server_name _;
     location /auth {
         if ($arg_pass = 'password') { return 200; }
         # DEMO:return HTTP HEADER User-Agent
@@ -296,7 +297,6 @@ server {
     }
     # pass dynamic content
     location / {
-        proxy_buffer_size 4k;
         proxy_limit_rate 20000; #bytes per second
         # proxy_pass_request_headers off;
         # proxy_pass_request_body off;
@@ -1034,7 +1034,6 @@ server {
     location / {
         proxy_pass $scheme://$http_host;
         proxy_set_header Host $http_host;
-        proxy_buffers 256 4k;
         proxy_max_temp_file_size 0k;
     }
 }
@@ -1070,7 +1069,6 @@ server {
         #    except when HTTP_HOST is absent or is an empty value.
         #    In that case, $host equals the value of the server_name directive
         #    of the server which processed the request.
-        proxy_buffers 256 4k;
         proxy_max_temp_file_size 0k;
     }
 }
@@ -1572,6 +1570,8 @@ server {
         return 200;
     }
 }
+# # Activate the proxy buffering, without it limiting bandwidth speed in proxy will not work!
+# proxy_buffering on;
 limit_conn_zone $binary_remote_addr zone=addr:10m;
 server {
     listen 80;
@@ -1600,10 +1600,6 @@ server {
         # proxy_ignore_headers Set-Cookie;
         # proxy_hide_header Content-Disposition;
         # add_header Content-Disposition 'attachment; filename="$filename"';
-        # Activate the proxy buffering, without it limiting bandwidth speed in proxy will not work!
-        proxy_buffering on;
-        # Buffer 512 KB data
-        proxy_buffers 32 16k;
         # Do not touch local disks when proxying content to clients
         proxy_max_temp_file_size 0;
         # Limit the connection to one per IP address
@@ -2099,7 +2095,6 @@ server {
         # proxy_cache_key $proxy_host$request_uri$cookie_jessionid;
         proxy_pass http://127.0.0.1:81;
         proxy_set_header Host $host;
-        proxy_buffering on;
         # Make sure your backend does not return Set-Cookie header.
         # If Nginx sees it, it disables caching.
         # http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ignore_headers
@@ -2843,9 +2838,7 @@ cat <<'EOF' > proxy_cache.conf
 # mount -t tmpfs -o size=100M none /mnt
 proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=24h max_size=512m use_temp_path=off;
 proxy_cache SHM_CACHE;
-# proxy_buffers 64 128k;
 # proxy_busy_buffers_size 256k;
-# proxy_buffer_size 64k;
 proxy_cache_valid 200 302 1d;
 proxy_cache_valid 404 5m;
 # proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
@@ -2854,7 +2847,7 @@ proxy_cache_valid 404 5m;
 # http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ignore_headers
 proxy_ignore_headers "Set-Cookie" "X-Accel-Expires" "X-Accel-Limit-Rate" "X-Accel-Buffering";
 # ngx does not cache responses if proxy_buffering is set to off. It is on by default.
-proxy_buffering on;
+# proxy_buffering on;
 EOF
 cat <<'EOF' > cache_expiration.conf
 # copy this file to /etc/nginx/http-conf.d/
