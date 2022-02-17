@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cfea779[2022-02-16T15:23:38+08:00]:ngx_demo.sh")
+VERSION+=("6368699[2022-02-17T08:18:54+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2016,6 +2016,7 @@ server {
         proxy_redirect off;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        add_header X-Cache-Status $upstream_cache_status;
         proxy_cache testcdn;
         proxy_cache_valid 200 304 30m;
         proxy_cache_valid 301 24h;
@@ -2899,6 +2900,9 @@ cat <<'EOF' > cache_static.http
 server {
     listen 80;
     server_name _;
+    # if ( $request_filename ~ .*\.(jpe?g|gif|png|swf|wmv|flv|ico)$ ) {
+    #     expires 365d;
+    # }
     location ~* \.(?:ico|css|js|gif|jpe?g|png)$ {
         expires 30d;
         add_header Vary Accept-Encoding;
