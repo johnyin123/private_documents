@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5db0f8d[2022-02-16T11:02:43+08:00]:mk_nginx.sh")
+VERSION+=("6368699[2022-02-17T08:18:54+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -381,6 +381,8 @@ map $status $log_err {
 access_log /var/log/nginx/access_err.log json buffer=512k flush=5m if=$log_err;
 access_log /var/log/nginx/access.log main buffer=512k flush=5m if=$log_ip;
 # access_log /var/log/nginx/$http_host-access.log buffer=512k flush=5m;
+open_log_file_cache max=100 inactive=10m min_uses=1 valid=60s;
+# access_log /var/log/nginx/access_$status.log
 
 # # error log
 error_log /var/log/nginx/error.log info;
