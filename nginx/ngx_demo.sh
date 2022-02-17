@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6368699[2022-02-17T08:18:54+08:00]:ngx_demo.sh")
+VERSION+=("27636cb[2022-02-17T08:59:01+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2954,6 +2954,35 @@ server {
 }
 EOF
 cat <<'EOF' > error_page_json.http
+map $status $error_msg {
+    default "Unknown";
+    400 "C|Bad Request";
+    401 "C|Unauthorized";
+    402 "C|Payment Required";
+    403 "C|Forbidden";
+    404 "C|Not Found";
+    405 "C|Method Not Allowed";
+    406 "C|Not Acceptable";
+    407 "C|Proxy Authentication Required";
+    408 "C|Request Timeout";
+    409 "C|Conflict";
+    410 "C|Gone";
+    411 "C|Length Required";
+    412 "C|Precondition Failed";
+    413 "C|Request Entity Too Large";
+    414 "C|Request-URI Too Long";
+    415 "C|Unsupported Media Type";
+    416 "C|Requested Range Not Satisfiable";
+    417 "C|Expectation Failed";
+    421 "S|Too many Connections";
+    422 "C|Unprocessable Entity";
+    500 "S|Internal Server Error";
+    501 "S|Not Implemented";
+    502 "S|Bad Gateway";
+    503 "S|Service Unavailable";
+    504 "S|Gateway Timeout";
+    505 "S|HTTP Version Not Supported";
+}
 server {
     listen 80;
     server_name _;
@@ -3000,7 +3029,12 @@ server {
     error_page 511 /@error/511.json;
     location ~ /@error/(4[01235][0-9]|5[0-1][0-9])\.json {
         internal;
-        return 200 '{"scheme":"$scheme","http_host":"$http_host","server_port":$server_port,"upstream_addr":"$upstream_addr","request_time":$request_time,"upstream_response_time":"$upstream_response_time","upstream_status":"$upstream_status","remote_addr":"$remote_addr","remote_user":"$remote_user","time_iso8601":"$time_iso8601","request":"$request","status":$status,"request_length":$request_length,"bytes_sent":$bytes_sent,"http_referer":"$http_referer","http_user_agent":"$http_user_agent","http_x_forwarded_for":"$http_x_forwarded_for","gzip_ratio":"$gzip_ratio"}';
+        return 200 '{"scheme":"$scheme","http_host":"$http_host","server_port":$server_port,"upstream_addr":"$upstream_addr","request_time":$request_time,"upstream_response_time":"$upstream_response_time","upstream_status":"$upstream_status","remote_addr":"$remote_addr","remote_user":"$remote_user","time_iso8601":"$time_iso8601","request":"$request","status":$status,"request_length":$request_length,"bytes_sent":$bytes_sent,"http_referer":"$http_referer","http_user_agent":"$http_user_agent","http_x_forwarded_for":"$http_x_forwarded_for","gzip_ratio":"$gzip_ratio", "desc":"$error_msg"}';
+    }
+    location =/test {
+        # curl -q http://localhost/test?code=400 | jq .
+        if ($arg_code = 400) { return 400; }
+        return 200 "OK>>>>>";
     }
 }
 EOF
