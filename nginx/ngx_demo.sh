@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("239a7eb[2022-02-17T10:43:27+08:00]:ngx_demo.sh")
+VERSION+=("6bb7819[2022-02-17T11:08:50+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -362,12 +362,13 @@ cat <<'EOF' >dummy.http
 # If no default server is defined, Nginx will use the first found server.
 server {
     listen *:80 default_server reuseport;
-    # listen 443 ssl http2 default_server reuseport;
-    # ssl_certificate /etc/nginx/ssl/test.pem;
-    # ssl_certificate_key /etc/nginx/ssl/test.key;
+    listen 443 ssl http2 default_server reuseport;
+    ssl_certificate /etc/nginx/test.pem;
+    ssl_certificate_key /etc/nginx/test.key;
     server_name _;
     access_log /var/log/nginx/access_err_domain.log main buffer=512k flush=5m;
-    return 444;
+    location =/health { access_log off; default_type text/html; return 200 "$time_iso8601 $hostname alive."; }
+    location / { return 444; }
 }
 EOF
 cat <<'EOF' >check_nofiles.ngx.sh
