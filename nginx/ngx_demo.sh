@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6bb7819[2022-02-17T11:08:50+08:00]:ngx_demo.sh")
+VERSION+=("362b1ba[2022-02-18T13:37:00+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3211,6 +3211,9 @@ server {
         proxy_set_header referer http://www.xxx.net; #如果网站有验证码，可以解决验证码不显示问题
         sub_filter_once on;
         # sub_filter_types text/html;
+        # # needed for sub_filter to work with gzip enabled (https://stackoverflow.com/a/36274259/3375325)
+        # proxy_set_header Accept-Encoding "";
+        # proxy_pass ...
         root /var/www;
     }
     location /allow_unix {
