@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("362b1ba[2022-02-18T13:37:00+08:00]:ngx_demo.sh")
+VERSION+=("df2b663[2022-02-18T13:56:04+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -205,6 +205,8 @@ server {
         try_files $uri @proxy;
     }
     location @proxy {
+        rewrite_log on;
+        error_log /var/log/nginx/rewrite.log notice;
         rewrite ^ /demo$uri break;
         proxy_pass http://127.0.0.1:9999;
     }
