@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7a60ac1[2022-02-20T10:22:59+08:00]:mk_nginx.sh")
+VERSION+=("911bd4f[2022-02-21T07:15:34+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -124,7 +124,18 @@ EXT_MODULES=(
 [ -z "${HTTP2}" ] || {
     EXT_MODULES+=("--with-http_v2_module")
 }
-[ -z "${IMAGE_FILTER}" ] || { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); }
+[ -z "${IMAGE_FILTER}" ] || {
+    pkg-config --exists gdlib || { echo "[FAILED] libgd-dev not exists!!"; exit 1; }
+    EXT_MODULES+=("--with-http_image_filter_module=dynamic")
+}
+check_depends_lib() {
+    local dir=""
+    for dir in $@ ; do
+        pkg-config --exists ${dir} || { echo "[FAILED] ${dir} not exists!!"; exit 1; }
+        echo "[OK] ${dir}"
+    done
+}
+check_depends_lib libxml-2.0 libxslt geoip uuid
 :<<'EOF'
 # git clone --depth 1 https://github.com/nginx/njs-examples.git
 # git clone https://github.com/google/ngx_brotli.git && cd ngx_brotli && git submodule update --init
