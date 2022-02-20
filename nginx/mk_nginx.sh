@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6368699[2022-02-17T08:18:54+08:00]:mk_nginx.sh")
+VERSION+=("6f450fc[2022-02-17T13:21:30+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -341,6 +341,7 @@ proxy_busy_buffers_size 128k;
 # # zero value disables buffering of responses to temporary files.
 proxy_max_temp_file_size 0;
 client_max_body_size 100M;
+client_body_buffer_size 128k;
 client_header_buffer_size 32k;
 proxy_headers_hash_bucket_size 10240;
 proxy_headers_hash_max_size 102400;
