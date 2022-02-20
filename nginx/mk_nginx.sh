@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6f450fc[2022-02-17T13:21:30+08:00]:mk_nginx.sh")
+VERSION+=("7a60ac1[2022-02-20T10:22:59+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -36,6 +36,7 @@ STRIP=${STRIP:-""}
 PKG=${PKG:-""}
 PROXY_CONNECT=${PROXY_CONNECT:-""}
 HTTP2=${HTTP2:-""}
+IMAGE_FILTER=${IMAGE_FILTER:-""}
 CACHE_PURGE=${CACHE_PURGE:-""}
 ##OPTION_END##
 NGINX_DIR=${DIRNAME}/nginx
@@ -123,6 +124,7 @@ EXT_MODULES=(
 [ -z "${HTTP2}" ] || {
     EXT_MODULES+=("--with-http_v2_module")
 }
+[ -z "${IMAGE_FILTER}" ] || { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); }
 :<<'EOF'
 # git clone --depth 1 https://github.com/nginx/njs-examples.git
 # git clone https://github.com/google/ngx_brotli.git && cd ngx_brotli && git submodule update --init
@@ -132,6 +134,7 @@ EXT_MODULES=(
     "http_xslt_module needs libxml2-dev libxslt1-dev, http_geoip_module needs libgeoip-dev"
         pagespeed needs uuid-dev
     centos: libxml2-devel libxslt-devel GeoIP-devel
+    "http_image_filter needs libgd-dev
 EOF
 :<<"EOF"
 for SM2 ssl replace:
@@ -430,6 +433,9 @@ cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/headers_more.conf
 EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/proxy_connect.conf
 # load_module modules/ngx_http_proxy_connect_module.so;
+EOF
+cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/http_image_filter.conf
+# load_module modules/ngx_http_image_filter_module.so;
 EOF
 
 cat <<EOF > ${OUTDIR}/etc/nginx/nginx.conf
