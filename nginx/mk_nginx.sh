@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("911bd4f[2022-02-21T07:15:34+08:00]:mk_nginx.sh")
+VERSION+=("7ce0f41[2022-02-21T07:38:10+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -121,13 +121,14 @@ EXT_MODULES=(
     "--with-http_xslt_module=dynamic"
 )
 
-[ -z "${HTTP2}" ] || {
-    EXT_MODULES+=("--with-http_v2_module")
+check_requre_dirs() {
+    local dir=""
+    for dir in $@ ; do
+        [ -d "${dir}" ] || { echo "[FAILED] ${dir} not exists!!"; exit 1; }
+        echo "[OK] ${dir}"
+    done
 }
-[ -z "${IMAGE_FILTER}" ] || {
-    pkg-config --exists gdlib || { echo "[FAILED] libgd-dev not exists!!"; exit 1; }
-    EXT_MODULES+=("--with-http_image_filter_module=dynamic")
-}
+
 check_depends_lib() {
     local dir=""
     for dir in $@ ; do
@@ -135,7 +136,12 @@ check_depends_lib() {
         echo "[OK] ${dir}"
     done
 }
+
+[ -z "${HTTP2}" ] || { EXT_MODULES+=("--with-http_v2_module"); }
+[ -z "${IMAGE_FILTER}" ] || { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); check_depends_lib gdlib; }
+
 check_depends_lib libxml-2.0 libxslt geoip uuid
+
 :<<'EOF'
 # git clone --depth 1 https://github.com/nginx/njs-examples.git
 # git clone https://github.com/google/ngx_brotli.git && cd ngx_brotli && git submodule update --init
@@ -157,13 +163,7 @@ auto/lib/openssl/conf
  41             CORE_LIBS="$CORE_LIBS $OPENSSL/lib/libssl.a"
  42             CORE_LIBS="$CORE_LIBS $OPENSSL/lib/libcrypto.a"
 EOF
-check_requre_dirs() {
-    local dir=""
-    for dir in $@ ; do
-        [ -d "${dir}" ] || { echo "[FAILED] ${dir} not exists!!"; exit 1; }
-        echo "[OK] ${dir}"
-    done
-}
+
 printf '%s\n' "${NGINX_BASE[@]}" "${STATIC_MODULES[@]}" "${DYNAMIC_MODULES[@]}"
 check_requre_dirs "${!NGINX_BASE[@]}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULES[@]}"
 
