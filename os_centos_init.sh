@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("6ba109c[2021-11-03T15:57:41+08:00]:os_centos_init.sh")
+VERSION+=("39b34ce[2022-01-13T09:30:17+08:00]:os_centos_init.sh")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -241,6 +241,97 @@ centos_service_init() {
     } | bash -x
     #systemctl list-unit-files -t service | awk '$2 == "enabled" {printf "systemctl disable %s\n", $1}'
 }
+
+export -f centos_zswap_init2
+centos_zswap_init2() {
+    mkdir -p /usr/lib/systemd/scripts/
+    cat<<'EOF' > /usr/lib/systemd/scripts/zswap.sh
+#!/bin/bash
+
+## mem_size is total ram size in megabytes
+## size        : array   : accepts integer sizes in K,M,G
+## num_devices : integer : number of devices requested
+## threads     : array   : accepts integers for # threads to use
+## algo        : array   : accepts lzo or lz4
+mem_array=($(free -m))
+declare -r mem_size=${mem_array[7]}
+unset mem_array;
+declare -a size=($[mem_size/2]M)
+declare -a algo=(lzo)
+declare -a threads=($(nproc))
+declare -r num_devices=1
+
+makeSwap() {
+ mkswap "$1"
+ swapon --priority 100 "$1"
+}
+
+stopSwap() {
+ swapoff "$1";
+ zramctl -r "$1";
+}
+
+resetSwap() {
+ swapoff "$1";
+ swapon -f --priority 100 "$1";
+}
+
+## makeSwap function accepts integer as $1
+enableZmodule() {
+ makeSwap "$(zramctl -f -s ${size[$1]} -a ${algo[$1]} -t ${threads[$1]})"
+}
+
+case $1 in
+  start)
+    count() {
+      echo $#
+    }
+    ## if no zram devices. ensure there is 2 more than needed
+    if [ ! -b "/dev/zram0" ]; then
+       modprobe zram num_devices=$[num_devices+2];
+    fi;
+    ## check if there are enough devices; there are 7 lines per device in zramctl
+    if [[ $[$(count /dev/zram*)-$(count $(zramctl -n --raw))/7] -ge $num_devices ]]; then
+       for ((i=0;i<$num_devices;i++)); do
+           enableZmodule $i;
+       done;
+      else
+       echo "Not enough zram devices";
+    fi;;
+  stop)
+    for a in $(swapon --noheadings); do
+      if [[ "$a" == /dev/zram* ]]; then
+         stopSwap "$a";
+      fi;
+    done;;
+  restart)
+    for a in $(swapon --noheadings); do
+      if [[ "$a" == /dev/zram* ]]; then
+         resetSwap "$a";
+      fi;
+    done;;
+  *)
+    echo "Not a valid option";;
+esac;
+EOF
+    chmod 755 /usr/lib/systemd/scripts/zswap.sh
+    cat<<'EOF' > /usr/lib/systemd/system/zswap.service
+[Unit]
+Description=Zram-based swap (compressed RAM block devices)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/systemd/scripts/zswap.sh start
+ExecStop=/usr/lib/systemd/scripts/zswap.sh stop
+ExecReload=/usr/lib/systemd/scripts/zswap.sh restart
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    systemctl enable zswap
+}
+
 export -f centos_service_init
 
 centos_zramswap_init() {
