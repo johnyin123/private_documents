@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("df2b663[2022-02-18T13:56:04+08:00]:ngx_demo.sh")
+VERSION+=("d339bcc[2022-02-20T10:10:24+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2852,6 +2852,9 @@ proxy_cache_valid 404 5m;
 proxy_ignore_headers "Set-Cookie" "X-Accel-Expires" "X-Accel-Limit-Rate" "X-Accel-Buffering";
 # ngx does not cache responses if proxy_buffering is set to off. It is on by default.
 # proxy_buffering on;
+#
+# # Enables or disables the conversion of the “HEAD” method to “GET” for caching.
+proxy_cache_convert_head off;
 EOF
 cat <<'EOF' > cache_expiration.conf
 # copy this file to /etc/nginx/http-conf.d/
