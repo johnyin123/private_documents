@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d646d8c[2022-02-21T11:23:59+08:00]:ngx_demo.sh")
+VERSION+=("741b842[2022-02-21T13:09:58+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2010,12 +2010,15 @@ server {
 EOF
 cat <<'EOF' >cdn3.http
 # mkdir -p /var/www/cache_static && chown -R nginx.nginx /var/www/cache_static
+# curl http://localhost/a.jpg
+# curl http://localhost/a.jpg # access.log find cache it!
+# curl http://localhost/a.jpg?v=1 # no cache
 server {
     listen 80;
     server_name _;
     location ~* ^.+\.(?:css|cur|js|jpe?g|gif|htc|ico|png|html|xml|otf|ttf|eot|woff|woff2|svg)$ {
         root /var/www/cache_static;
-        error_page 404 = @real_res;
+        try_files $request_uri @real_res;
     }
     location @real_res {
         internal;
@@ -2041,6 +2044,7 @@ server {
     server_name _;
     location /_nuxt/img/ {
         root /var/www/cache_static;
+        # use error_page, so error.log can find a open error, use try_file will not!
         error_page 404 = /$request_uri;
     }
     location / {
