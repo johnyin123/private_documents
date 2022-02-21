@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b33e028[2022-02-21T10:30:17+08:00]:ngx_demo.sh")
+VERSION+=("d646d8c[2022-02-21T11:23:59+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2005,6 +2005,31 @@ server {
     server_name www.test.com;
     location /images/ {
         rewrite ^ http://$cdn_host.test.com$request_uri? permanent;
+    }
+}
+EOF
+cat <<'EOF' >cdn3.http
+# mkdir -p /var/www/cache_static && chown -R nginx.nginx /var/www/cache_static
+server {
+    listen 80;
+    server_name _;
+    location ~* ^.+\.(?:css|cur|js|jpe?g|gif|htc|ico|png|html|xml|otf|ttf|eot|woff|woff2|svg)$ {
+        root /var/www/cache_static;
+        error_page 404 = @real_res;
+    }
+    location @real_res {
+        internal;
+        proxy_set_header Host www.mytest.com;
+        proxy_pass https://www.mytest.com;
+        proxy_store on;
+        proxy_store_access user:rw group:rw all:r;
+        # proxy_temp_path /var/lib/nginx/proxy;
+        root /var/www/cache_static;
+        # alias /var/www/cache_static/;
+    }
+    location / {
+        proxy_set_header Host www.mytest.com;
+        proxy_pass https://www.mytest.com;
     }
 }
 EOF
