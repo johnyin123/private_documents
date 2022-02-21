@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d339bcc[2022-02-20T10:10:24+08:00]:ngx_demo.sh")
+VERSION+=("b33e028[2022-02-21T10:30:17+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2005,6 +2005,28 @@ server {
     server_name www.test.com;
     location /images/ {
         rewrite ^ http://$cdn_host.test.com$request_uri? permanent;
+    }
+}
+EOF
+cat <<'EOF' >cdn2.http
+# # create local copies of static unchangeable files, "Last-Modified" response header TTL
+# mkdir -p /var/www/cache_static && chown -R nginx.nginx /var/www/cache_static
+server {
+    listen 80;
+    server_name _;
+    location /_nuxt/img/ {
+        root /var/www/cache_static;
+        error_page 404 = /$request_uri;
+    }
+    location / {
+        proxy_set_header Host www.test.com;
+        proxy_pass https://www.test.com;
+        # # store /_nuxt/img/* to local
+        proxy_store on;
+        proxy_store_access user:rw group:rw all:r;
+        # proxy_temp_path /var/lib/nginx/proxy;
+        root /var/www/cache_static;
+        # alias /var/www/cache_static/;
     }
 }
 EOF
