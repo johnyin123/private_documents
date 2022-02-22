@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9db9eda[2022-02-21T13:47:31+08:00]:ngx_demo.sh")
+VERSION+=("0939b0b[2022-02-22T15:12:09+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2045,6 +2045,8 @@ server {
     location /_nuxt/img/ {
         root /var/www/cache_static;
         # use error_page, so error.log can find a open error, use try_file will not!
+        # # Enables or disables logging of errors about not found files into error_log.
+        # log_not_found off;
         error_page 404 = /$request_uri;
     }
     location / {
