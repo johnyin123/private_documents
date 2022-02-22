@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0939b0b[2022-02-22T15:12:09+08:00]:ngx_demo.sh")
+VERSION+=("3e00c65[2022-02-23T07:49:01+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3384,6 +3384,11 @@ ssl_buffer_size 1400;
 # ssl_stapling_verify on;
 
 variables_hash_bucket_size 256;
+
+# # Enables or disables logging of errors about not found files into error_log.
+log_not_found off;
+# # Enables or disables logging of subrequests into access_log
+log_subrequest o;
 EOF
 cat <<'EOF'>slow_req_log.js
 export default { slow_req_detect };
