@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("741b842[2022-02-21T13:09:58+08:00]:ngx_demo.sh")
+VERSION+=("9db9eda[2022-02-21T13:47:31+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3382,6 +3382,21 @@ ssl_buffer_size 1400;
 # ssl_stapling_verify on;
 
 variables_hash_bucket_size 256;
+EOF
+cat <<'EOF'>slow_req_log.js
+export default { slow_req_detect };
+function slow_req_detect(r) {
+    if (r.variables.request_time > 5.0) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+EOF
+cat <<'EOF'>slow_req_log.conf
+js_import js/slow_req_log.js;
+js_set $is_slow slow_req_log.slow_req_detect;
+access_log /var/log/nginx/access_slow.log main if=$is_slow;
 EOF
 cat <<'EOF'>diag_log_json.conf
 # copy this file to /etc/nginx/http-conf.d/
