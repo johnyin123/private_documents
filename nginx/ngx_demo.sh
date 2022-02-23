@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8884c09[2022-02-23T13:24:43+08:00]:ngx_demo.sh")
+VERSION+=("f9a6c7a[2022-02-23T13:36:36+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2020,6 +2020,8 @@ server {
     root /var/www/cache_static;
     # proxy_temp_path /var/lib/nginx/proxy;
     proxy_set_header Host www.test.com;
+    # # for no use gzip.
+    proxy_set_header Accept-Encoding "";
     location ~* \.(jpg|jpeg|gif|png)$ {
         image_filter resize 400 -;
         image_filter_buffer 20M; # Will return 415 if image is bigger than this
@@ -2067,6 +2069,8 @@ server {
     }
     location @real_res {
         internal;
+        # # for no use gzip.
+        proxy_set_header Accept-Encoding "";
         proxy_set_header Host www.mytest.com;
         proxy_pass https://www.mytest.com;
         proxy_store on;
@@ -2095,6 +2099,8 @@ server {
         error_page 404 = /$request_uri;
     }
     location / {
+        # # for no use gzip.
+        proxy_set_header Accept-Encoding "";
         proxy_set_header Host www.test.com;
         proxy_pass https://www.test.com;
         # # store /_nuxt/img/* to local
@@ -3312,7 +3318,7 @@ server {
         sub_filter_once on;
         # sub_filter_types text/html;
         # # needed for sub_filter to work with gzip enabled (https://stackoverflow.com/a/36274259/3375325)
-        # proxy_set_header Accept-Encoding "";
+        proxy_set_header Accept-Encoding "";
         # proxy_pass ...
         root /var/www;
     }
