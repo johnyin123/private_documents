@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("32ebb36[2022-02-23T08:24:17+08:00]:ngx_demo.sh")
+VERSION+=("e936c72[2022-02-23T09:34:37+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3076,7 +3076,7 @@ server {
     error_page 400 401 402 403 404 405 406 407 408 409 410 411 412 413 414 415 416 417 421 429 500 501 502 503 504 505 507 /@error/error.json;
     location ~ /@error/error.json {
         internal;
-        return 200 '{"scheme":"$scheme","http_host":"$http_host","server_port":$server_port,"upstream_addr":"$upstream_addr","request_time":$request_time,"upstream_response_time":"$upstream_response_time","upstream_status":"$upstream_status","remote_addr":"$remote_addr","remote_user":"$remote_user","time_iso8601":"$time_iso8601","request":"$request","status":$status,"request_length":$request_length,"bytes_sent":$bytes_sent,"http_referer":"$http_referer","http_user_agent":"$http_user_agent","http_x_forwarded_for":"$http_x_forwarded_for","gzip_ratio":"$gzip_ratio", "desc":"$error_msg"}';
+        return 200 '{"scheme":"$scheme","http_host":"$http_host","server_port":$server_port,"upstream_addr":"$upstream_addr","request_time":$request_time,"upstream_response_time":"$upstream_response_time","upstream_status":"$upstream_status","remote_addr":"$remote_addr","time_iso8601":"$time_iso8601","request":"$request","status":$status,"request_length":$request_length,"http_referer":"$http_referer","http_user_agent":"$http_user_agent","desc":"$error_msg"}';
     }
     location =/test {
         # curl -q http://localhost/test?code=400 | jq .
