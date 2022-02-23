@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3c73b0b[2022-02-23T08:09:36+08:00]:ngx_demo.sh")
+VERSION+=("32ebb36[2022-02-23T08:24:17+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -374,6 +374,10 @@ server {
 }
 EOF
 cat <<'EOF' >check_nofiles.ngx.sh
+echo "RSA/EC performance"
+echo "AES ciphers and AVX512 for ChaCha+Poly."
+grep -iE "AES|AVX2" /proc/cpuinfo
+
 ps --ppid $(cat /var/run/nginx.pid) -o %p|sed '1d'|xargs -I{} cat /proc/{}/limits|grep open.files
 EOF
 cat <<'EOF' >redis.http
