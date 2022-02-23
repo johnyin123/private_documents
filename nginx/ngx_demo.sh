@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f0b5e13[2022-02-23T10:06:31+08:00]:ngx_demo.sh")
+VERSION+=("77459cd[2022-02-23T10:09:08+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2012,11 +2012,49 @@ server {
     }
 }
 EOF
+cat <<'EOF' >cdn4.image_filter.http
+# curl http://localhost/a.jpg?v=1 # no cache and flush proxy_store
+server {
+    listen 80;
+    server_name _;
+    root /var/www/cache_static;
+    # proxy_temp_path /var/lib/nginx/proxy;
+    proxy_set_header Host www.test.com;
+    location ~* \.(jpg|jpeg|gif|png)$ {
+        image_filter resize 400 -;
+        if (!-f $request_filename) {
+            proxy_pass https://www.test.com;
+            break;
+        }
+        if ($is_args) {
+            proxy_pass https://www.test.com;
+            break;
+        }
+        proxy_store on;
+        proxy_store_access user:rw group:rw all:r;
+    }
+    location ~* ^.+\.(?:css|cur|js|htc|ico|html|htm|xml|otf|ttf|eot|woff|woff2|svg)$ {
+        if (!-f $request_filename) {
+            proxy_pass https://www.test.com;
+            break;
+        }
+        if ($is_args) {
+            proxy_pass https://www.test.com;
+            break;
+        }
+        proxy_store on;
+        proxy_store_access user:rw group:rw all:r;
+    }
+    location / {
+        proxy_pass https://www.test.com;
+    }
+}
+EOF
 cat <<'EOF' >cdn3.http
 # mkdir -p /var/www/cache_static && chown -R nginx.nginx /var/www/cache_static
 # curl http://localhost/a.jpg
 # curl http://localhost/a.jpg # access.log find cache it!
-# curl http://localhost/a.jpg?v=1 # no cache
+# curl http://localhost/a.jpg?v=1 # no cache and flush proxy_store
 server {
     listen 80;
     server_name _;
