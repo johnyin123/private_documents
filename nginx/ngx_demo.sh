@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bd79628[2022-02-23T07:51:03+08:00]:ngx_demo.sh")
+VERSION+=("3c73b0b[2022-02-23T08:09:36+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3046,22 +3046,21 @@ map $status $error_msg {
 server {
     listen 81;
     server_name _;
-    error_page 400 401 402 403 404 405 406 407 408 409 410 411 412 413 414 415 416 417 418 421 422 423 424 425 426 428 429 431 451 500 501 502 503 504 505 506 507 508 510 511 /error.html;
-    location = /error.html {
+    error_page 400 401 402 403 404 405 406 407 408 409 410 411 412 413 414 415 416 417 421 429 500 501 502 503 504 505 507 /@error.html;
+    location = /@error.html {
         ssi on;
         internal;
-        default_type text/html;
         return 200 '<!DOCTYPE html><html><head><meta charset="utf-8"><title>ERRORS</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--# if expr="$status = 502" --><meta http-equiv="refresh" content="2"><!--# endif -->
-  </head>
+<!--# if expr="$status = 502" --><meta http-equiv="refresh" content="2"><!--# endif -->
+</head>
 <body>
-  <!--# if expr="$status = 502" -->
-    <h1>We are updating our website </h1>
-    <p>This is only for a few seconds, you will be redirected.</p>
-  <!--# else -->
-    <h1><!--# echo var="status" default="" --> <!--# echo var="error_msg" default="Something goes wrong" --></h1>
-  <!--# endif -->
+<!--# if expr="$status = 502" -->
+  <h1>We are updating our website </h1>
+  <p>This is only for a few seconds, you will be redirected.</p>
+<!--# else -->
+  <h1><!--# echo var="status" default="" --> <!--# echo var="error_msg" default="Something goes wrong" --></h1>
+<!--# endif -->
 </body>
 </html>';
     }
@@ -3070,34 +3069,8 @@ server {
     listen 80;
     server_name _;
 
-    error_page 400 /@error/400.json;
-    error_page 401 /@error/401.json;
-    error_page 402 /@error/402.json;
-    error_page 403 /@error/403.json;
-    error_page 404 /@error/404.json;
-    error_page 405 /@error/405.json;
-    error_page 406 /@error/406.json;
-    error_page 407 /@error/407.json;
-    error_page 408 /@error/408.json;
-    error_page 409 /@error/409.json;
-    error_page 410 /@error/410.json;
-    error_page 411 /@error/411.json;
-    error_page 412 /@error/412.json;
-    error_page 413 /@error/413.json;
-    error_page 414 /@error/414.json;
-    error_page 415 /@error/415.json;
-    error_page 416 /@error/416.json;
-    error_page 417 /@error/417.json;
-    error_page 421 /@error/421.json;
-    error_page 429 /@error/429.json;
-    error_page 500 /@error/500.json;
-    error_page 501 /@error/501.json;
-    error_page 502 /@error/502.json;
-    error_page 503 /@error/503.json;
-    error_page 504 /@error/504.json;
-    error_page 505 /@error/505.json;
-    error_page 507 /@error/507.json;
-    location ~ /@error/(4[012][0-9]|5[0-1][0-9])\.json {
+    error_page 400 401 402 403 404 405 406 407 408 409 410 411 412 413 414 415 416 417 421 429 500 501 502 503 504 505 507 /@error/error.json;
+    location ~ /@error/error.json {
         internal;
         return 200 '{"scheme":"$scheme","http_host":"$http_host","server_port":$server_port,"upstream_addr":"$upstream_addr","request_time":$request_time,"upstream_response_time":"$upstream_response_time","upstream_status":"$upstream_status","remote_addr":"$remote_addr","remote_user":"$remote_user","time_iso8601":"$time_iso8601","request":"$request","status":$status,"request_length":$request_length,"bytes_sent":$bytes_sent,"http_referer":"$http_referer","http_user_agent":"$http_user_agent","http_x_forwarded_for":"$http_x_forwarded_for","gzip_ratio":"$gzip_ratio", "desc":"$error_msg"}';
     }
