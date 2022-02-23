@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("77459cd[2022-02-23T10:09:08+08:00]:ngx_demo.sh")
+VERSION+=("8884c09[2022-02-23T13:24:43+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2022,6 +2022,9 @@ server {
     proxy_set_header Host www.test.com;
     location ~* \.(jpg|jpeg|gif|png)$ {
         image_filter resize 400 -;
+        image_filter_buffer 20M; # Will return 415 if image is bigger than this
+        image_filter_jpeg_quality 75; # Desired JPG quality
+        image_filter_interlace on; # For progressive JPG
         if (!-f $request_filename) {
             proxy_pass https://www.test.com;
             break;
