@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("41e3d56[2021-12-07T14:49:21+08:00]:try.sh")
+VERSION+=("1d1a8f9[2021-12-28T15:03:10+08:00]:try.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -337,4 +337,13 @@ EOF
     echo ssh -p port user1@target -J user2@bridge:port
     return 0
 }
+
+##
+#  Usage: ./testprog fetch -c <cert_file> -k <key_file> [-v <version>]
+#    -y        - answers "yes" to all questions
+##
+usage22() {
+    sed -ne '/^#\s*Usage/,/^##\s*$/p' < $0 | sed 's/#//g'
+}
+
 main "$@"
