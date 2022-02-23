@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3a65a22[2022-02-21T07:48:09+08:00]:mk_nginx.sh")
+VERSION+=("b3e9781[2022-02-23T09:52:53+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -148,10 +148,10 @@ check_depends_lib libxml-2.0 libxslt geoip uuid
 # git clone https://github.com/mdirolf/nginx-gridfs.git && cd nginx-gridfs && git submodule update --init
 # eval coredump
 # git clone --depth 1 https://github.com/vkholodkov/nginx-eval-module.git
-    "http_xslt_module needs libxml2-dev libxslt1-dev, http_geoip_module needs libgeoip-dev"
-        pagespeed needs uuid-dev
-    centos: libxml2-devel libxslt-devel GeoIP-devel
-    "http_image_filter needs libgd-dev
+    http_xslt_module needs libxml2-dev libxslt1-dev / libxml2-devel libxslt-devel
+    http_geoip_module needs libgeoip-dev / GeoIP-devel
+    http_image_filter needs libgd-dev / gd-devel
+    pagespeed needs uuid-dev
 EOF
 :<<"EOF"
 for SM2 ssl replace:
