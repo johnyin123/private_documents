@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e936c72[2022-02-23T09:34:37+08:00]:ngx_demo.sh")
+VERSION+=("f0b5e13[2022-02-23T10:06:31+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3078,6 +3078,7 @@ server {
         internal;
         return 200 '{"scheme":"$scheme","http_host":"$http_host","server_port":$server_port,"upstream_addr":"$upstream_addr","request_time":$request_time,"upstream_response_time":"$upstream_response_time","upstream_status":"$upstream_status","remote_addr":"$remote_addr","time_iso8601":"$time_iso8601","request":"$request","status":$status,"request_length":$request_length,"http_referer":"$http_referer","http_user_agent":"$http_user_agent","desc":"$error_msg"}';
     }
+    # # if proxy_pass ..., need proxy_intercept_errors on;
     location =/test {
         # curl -q http://localhost/test?code=400 | jq .
         if ($arg_code = 400) { return 400; }
