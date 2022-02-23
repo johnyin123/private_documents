@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7ce0f41[2022-02-21T07:38:10+08:00]:mk_nginx.sh")
+VERSION+=("3a65a22[2022-02-21T07:48:09+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -347,6 +347,7 @@ proxy_http_version 1.1;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $scheme;
 proxy_set_header X-Real-IP $remote_addr;
+proxy_request_buffering on;
 # # limiting bandwidth speed in proxy and cache responses not work, if proxy_buffering is set to off.
 proxy_buffering on;
 proxy_buffer_size 8k;
