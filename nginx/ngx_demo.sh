@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3e00c65[2022-02-23T07:49:01+08:00]:ngx_demo.sh")
+VERSION+=("bd79628[2022-02-23T07:51:03+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3044,6 +3044,29 @@ map $status $error_msg {
     507 "Insufficient Storage";
 }
 server {
+    listen 81;
+    server_name _;
+    error_page 400 401 402 403 404 405 406 407 408 409 410 411 412 413 414 415 416 417 418 421 422 423 424 425 426 428 429 431 451 500 501 502 503 504 505 506 507 508 510 511 /error.html;
+    location = /error.html {
+        ssi on;
+        internal;
+        default_type text/html;
+        return 200 '<!DOCTYPE html><html><head><meta charset="utf-8"><title>ERRORS</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--# if expr="$status = 502" --><meta http-equiv="refresh" content="2"><!--# endif -->
+  </head>
+<body>
+  <!--# if expr="$status = 502" -->
+    <h1>We are updating our website </h1>
+    <p>This is only for a few seconds, you will be redirected.</p>
+  <!--# else -->
+    <h1><!--# echo var="status" default="" --> <!--# echo var="error_msg" default="Something goes wrong" --></h1>
+  <!--# endif -->
+</body>
+</html>';
+    }
+}
+server {
     listen 80;
     server_name _;
 
@@ -3386,9 +3409,9 @@ ssl_buffer_size 1400;
 variables_hash_bucket_size 256;
 
 # # Enables or disables logging of errors about not found files into error_log.
-log_not_found off;
+log_not_found on;
 # # Enables or disables logging of subrequests into access_log
-log_subrequest o;
+log_subrequest on;
 EOF
 cat <<'EOF'>slow_req_log.js
 export default { slow_req_detect };
