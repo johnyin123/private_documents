@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f9a6c7a[2022-02-23T13:36:36+08:00]:ngx_demo.sh")
+VERSION+=("79c4b72[2022-02-23T17:08:03+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2020,8 +2020,6 @@ server {
     root /var/www/cache_static;
     # proxy_temp_path /var/lib/nginx/proxy;
     proxy_set_header Host www.test.com;
-    # # for no use gzip.
-    proxy_set_header Accept-Encoding "";
     location ~* \.(jpg|jpeg|gif|png)$ {
         image_filter resize 400 -;
         image_filter_buffer 20M; # Will return 415 if image is bigger than this
@@ -2039,6 +2037,8 @@ server {
         proxy_store_access user:rw group:rw all:r;
     }
     location ~* ^.+\.(?:css|cur|js|htc|ico|html|htm|xml|otf|ttf|eot|woff|woff2|svg)$ {
+        # # for no use gzip.
+        proxy_set_header Accept-Encoding "";
         if (!-f $request_filename) {
             proxy_pass https://www.test.com;
             break;
