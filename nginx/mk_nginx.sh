@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b3e9781[2022-02-23T09:52:53+08:00]:mk_nginx.sh")
+VERSION+=("b91963e[2022-02-23T14:07:01+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -286,6 +286,15 @@ mkdir -p ${OUTDIR}/var/lib/nginx/proxy
 mkdir -p ${OUTDIR}/var/lib/nginx/fastcfg
 mkdir -p ${OUTDIR}/var/lib/nginx/uwsgi
 mkdir -p ${OUTDIR}/var/lib/nginx/scgi
+
+cat <<'EOF' > ${OUTDIR}/etc/nginx/http-conf.d/server.conf
+server_names_hash_max_size 1024;
+client_max_body_size 100M;
+client_body_buffer_size 128k;
+client_header_buffer_size 32k;
+large_client_header_buffers 4 64k;
+EOF
+
 cat <<'EOF' > ${OUTDIR}/etc/nginx/http-conf.d/gzip-compress.conf
 gzip on;
 gunzip on;
@@ -295,7 +304,8 @@ gzip_comp_level 6;
 gzip_http_version 1.1;
 gzip_min_length 256;
 gzip_proxied any;
-gzip_vary on;
+# # maybe multi vary on response
+# gzip_vary on;
 gzip_disable "msie6";
 gzip_types
     application/atom+xml
@@ -332,7 +342,6 @@ gzip_types
 EOF
 
 cat <<'EOF' > ${OUTDIR}/etc/nginx/http-conf.d/proxy.conf
-server_names_hash_max_size 1024;
 proxy_redirect off;
 proxy_pass_header Server;
 proxy_pass_header Set-Cookie;
@@ -341,12 +350,16 @@ proxy_read_timeout 60s;
 proxy_send_timeout 60s;
 proxy_intercept_errors on;
 proxy_next_upstream error timeout invalid_header;
+# # if http-enabled config has proxy_set_header, need add below too!!!
 proxy_set_header Host $host;
 proxy_set_header Connection "";
 proxy_http_version 1.1;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $scheme;
 proxy_set_header X-Real-IP $remote_addr;
+# # for no use gzip.
+proxy_set_header Accept-Encoding "";
+
 proxy_request_buffering on;
 # # limiting bandwidth speed in proxy and cache responses not work, if proxy_buffering is set to off.
 proxy_buffering on;
@@ -355,16 +368,15 @@ proxy_buffers 128 8k;
 proxy_busy_buffers_size 128k;
 # # zero value disables buffering of responses to temporary files.
 proxy_max_temp_file_size 0;
-client_max_body_size 100M;
-client_body_buffer_size 128k;
-client_header_buffer_size 32k;
 proxy_headers_hash_bucket_size 10240;
 proxy_headers_hash_max_size 102400;
 proxy_ignore_client_abort on;
-large_client_header_buffers 4 64k;
 EOF
 
 cat <<'EOF' > ${OUTDIR}/etc/nginx/http-conf.d/httplog.conf
+open_log_file_cache max=100 inactive=10m min_uses=1 valid=60s;
+# log_subrequest on;
+
 log_format json escape=json '{ "node": "$hostname", "scheme":"$scheme", "http_host": "$http_host", "server_port": $server_port, "upstream_addr": "$upstream_addr",'
     '"request_time": $request_time, "upstream_response_time":"$upstream_response_time", "upstream_status": "$upstream_status",'
     '"remote_addr": "$remote_addr", "remote_user": "$remote_user", "time_iso8601": "$time_iso8601", "request": "$request",'
@@ -390,14 +402,11 @@ map $status $log_err {
     default 0;
 }
 
-# log_subrequest on;
-
 # # access log
 # default buffer size is equal to 64K bytes
 access_log /var/log/nginx/access_err.log json buffer=512k flush=5m if=$log_err;
 access_log /var/log/nginx/access.log main buffer=512k flush=5m if=$log_ip;
 # access_log /var/log/nginx/$http_host-access.log buffer=512k flush=5m;
-open_log_file_cache max=100 inactive=10m min_uses=1 valid=60s;
 # access_log /var/log/nginx/access_$status.log
 
 # # error log

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("79c4b72[2022-02-23T17:08:03+08:00]:ngx_demo.sh")
+VERSION+=("a5454a4[2022-02-23T17:18:58+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2020,6 +2020,14 @@ server {
     root /var/www/cache_static;
     # proxy_temp_path /var/lib/nginx/proxy;
     proxy_set_header Host www.test.com;
+    proxy_set_header Connection "";
+    proxy_http_version 1.1;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    # # for no use gzip.
+    proxy_set_header Accept-Encoding "";
+
     location ~* \.(jpg|jpeg|gif|png)$ {
         image_filter resize 400 -;
         image_filter_buffer 20M; # Will return 415 if image is bigger than this
@@ -2037,8 +2045,6 @@ server {
         proxy_store_access user:rw group:rw all:r;
     }
     location ~* ^.+\.(?:css|cur|js|htc|ico|html|htm|xml|otf|ttf|eot|woff|woff2|svg)$ {
-        # # for no use gzip.
-        proxy_set_header Accept-Encoding "";
         if (!-f $request_filename) {
             proxy_pass https://www.test.com;
             break;
@@ -2063,14 +2069,22 @@ cat <<'EOF' >cdn3.http
 server {
     listen 80;
     server_name _;
+    root /var/www/cache_static;
+    # proxy_temp_path /var/lib/nginx/proxy;
+    proxy_set_header Host www.test.com;
+    proxy_set_header Connection "";
+    proxy_http_version 1.1;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    # # for no use gzip.
+    proxy_set_header Accept-Encoding "";
+
     location ~* ^.+\.(?:css|cur|js|jpe?g|gif|htc|ico|png|html|xml|otf|ttf|eot|woff|woff2|svg)$ {
-        root /var/www/cache_static;
         try_files $request_uri @real_res;
     }
     location @real_res {
         internal;
-        # # for no use gzip.
-        proxy_set_header Accept-Encoding "";
         proxy_set_header Host www.mytest.com;
         proxy_pass https://www.mytest.com;
         proxy_store on;
@@ -2091,23 +2105,29 @@ cat <<'EOF' >cdn2.http
 server {
     listen 80;
     server_name _;
+    root /var/www/cache_static;
+    # proxy_temp_path /var/lib/nginx/proxy;
+    proxy_set_header Host www.test.com;
+    proxy_set_header Connection "";
+    proxy_http_version 1.1;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    # # for no use gzip.
+    proxy_set_header Accept-Encoding "";
+
     location /_nuxt/img/ {
-        root /var/www/cache_static;
         # use error_page, so error.log can find a open error, use try_file will not!
         # # Enables or disables logging of errors about not found files into error_log.
         # log_not_found off;
         error_page 404 = /$request_uri;
     }
     location / {
-        # # for no use gzip.
-        proxy_set_header Accept-Encoding "";
-        proxy_set_header Host www.test.com;
         proxy_pass https://www.test.com;
         # # store /_nuxt/img/* to local
         proxy_store on;
         proxy_store_access user:rw group:rw all:r;
         # proxy_temp_path /var/lib/nginx/proxy;
-        root /var/www/cache_static;
         # alias /var/www/cache_static/;
     }
 }
