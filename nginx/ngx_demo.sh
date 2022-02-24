@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fdad080[2022-02-24T07:59:33+08:00]:ngx_demo.sh")
+VERSION+=("8ad3680[2022-02-24T12:43:42+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2009,6 +2009,23 @@ server {
     server_name www.test.com;
     location /images/ {
         rewrite ^ http://$cdn_host.test.com$request_uri? permanent;
+    }
+}
+EOF
+cat <<'EOF' > redirect_to_cdn2.http
+# redirect request to cdn4.image_filter.http
+server {
+    listen 80;
+    server_name _;
+    proxy_set_header Host www.test.com;
+    location ~* ^.+\.(?:jpg|jpeg|gif|png|css|cur|js|htc|ico|html|htm|xml|otf|ttf|eot|woff|woff2|svg)$ {
+        if ($request_method = POST) {
+            return 307 http://cdn4.image_filter.http$request_uri;
+        }
+        rewrite ^ http://cdn4.image_filter.http$request_uri permanent;
+    }
+    location / {
+        proxy_pass https://www.test.com;
     }
 }
 EOF
