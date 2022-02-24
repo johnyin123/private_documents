@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b91963e[2022-02-23T14:07:01+08:00]:mk_nginx.sh")
+VERSION+=("fdad080[2022-02-24T07:59:33+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -351,6 +351,8 @@ proxy_send_timeout 60s;
 proxy_intercept_errors on;
 proxy_next_upstream error timeout invalid_header;
 # # if http-enabled config has proxy_set_header, need add below too!!!
+# # These directives are inherited from the previous configuration level
+# # if and only if there are no proxy_set_header directives defined on the current level
 proxy_set_header Host $host;
 proxy_set_header Connection "";
 proxy_http_version 1.1;
