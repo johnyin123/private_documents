@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8ad3680[2022-02-24T12:43:42+08:00]:ngx_demo.sh")
+VERSION+=("bdf518e[2022-02-24T13:44:21+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2014,11 +2014,21 @@ server {
 EOF
 cat <<'EOF' > redirect_to_cdn2.http
 # redirect request to cdn4.image_filter.http
+# www.test.com is backend.
+# cdn request org resource from here, so pass it ot backend, others to CDN
+geo $remote_addr $is_cdn {
+    10.0.0.222 1; #CDN Server
+    default 0;
+}
 server {
     listen 80;
     server_name _;
     proxy_set_header Host www.test.com;
     location ~* ^.+\.(?:jpg|jpeg|gif|png|css|cur|js|htc|ico|html|htm|xml|otf|ttf|eot|woff|woff2|svg)$ {
+        if ($is_cdn) {
+            proxy_pass http://www.test.com;
+            break;
+        }
         if ($request_method = POST) {
             return 307 http://cdn4.image_filter.http$request_uri;
         }
