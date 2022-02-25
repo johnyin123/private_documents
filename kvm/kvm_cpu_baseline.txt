@@ -1,0 +1,3 @@
+# all hosts' capabilities
+virsh capabilities >> all-hosts-cpu-caps.xml
+virsh cpu-baseline all-hosts-caps.xml
