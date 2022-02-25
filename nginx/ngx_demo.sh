@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("06875da[2022-02-25T15:00:03+08:00]:ngx_demo.sh")
+VERSION+=("a4d6d8e[2022-02-25T15:01:39+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2231,6 +2231,8 @@ server {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header X-Real-IP $remote_addr;
+    # remove cdn key (real_server)
+    proxy_set_header X-CDN "";
     # # for no use gzip.
     proxy_set_header Accept-Encoding "";
     location / {
@@ -2257,6 +2259,7 @@ server {
     proxy_set_header X-Real-IP $remote_addr;
 
     proxy_set_header X-CDN af17c4f0a42b43bdbbd4204088f2a407;
+    # remove cdn key (client)
     add_header X-CDN "";
 
     # # for no use gzip.
@@ -3562,6 +3565,7 @@ proxy_pass_header Server;
 #     ~*(Twengabot|htmlparser|libwww|Python|perl|urllib|scan|email|PycURL|Pyth|PyQ|WebCollector|WebCopy|webcraw) 1;
 # }
 
+# the same as proxy_add_header. These directives are inherited from the previous configuration level if and only if there are no add_header directives defined on the current level
 add_header Set-Cookie "Path=/; HttpOnly; Secure";
 
 # cache informations about FDs
