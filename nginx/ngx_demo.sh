@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("15ed83b[2022-02-24T15:09:36+08:00]:ngx_demo.sh")
+VERSION+=("becc319[2022-02-25T09:15:09+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3036,6 +3036,7 @@ proxy_ignore_headers "Set-Cookie" "X-Accel-Expires" "X-Accel-Limit-Rate" "X-Acce
 # ngx does not cache responses if proxy_buffering is set to off. It is on by default.
 # proxy_buffering on;
 #
+proxy_cache_background_update on;
 # # Enables or disables the conversion of the “HEAD” method to “GET” for caching.
 proxy_cache_convert_head off;
 EOF
