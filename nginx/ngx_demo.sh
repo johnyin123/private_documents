@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("becc319[2022-02-25T09:15:09+08:00]:ngx_demo.sh")
+VERSION+=("e4282fc[2022-02-25T11:10:40+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2211,6 +2211,86 @@ server {
         proxy_cache_min_uses 1;
         expires 12h;
     }
+}
+EOF
+cat <<'EOF' > cdn.test.com.http
+map $http_x_cdn $cdnsrv {
+    af17c4f0a42b43bdbbd4204088f2a407 1; #cdn key
+    default 0;
+}
+map $uri $in_cdn {
+    "~^/abc.png$" 0; # this direct to realserver
+    "~*^.+\.(?:jpg|jpeg|gif|png|css|cur|js|htc|ico|html|htm|xml|otf|ttf|eot|woff|woff2|svg)$" 1;
+    default 0;
+}
+server {
+    listen 80;
+    server_name www.test.com;
+    proxy_set_header Host {{REAL_SERVER}};
+    proxy_set_header Connection "";
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+    # # for no use gzip.
+    proxy_set_header Accept-Encoding "";
+    location / {
+        if ($cdnsrv) {
+            proxy_pass http://{{REAL_SERVER}};
+            break;
+        }
+        if ($in_cdn) {
+            rewrite ^ http://cdn.test.com/$host$request_uri break;
+        }
+        proxy_pass http://{{REAL_SERVER}};
+    }
+}
+EOF
+cat <<'EOF' > cdn.test.com.http
+server {
+    listen 80;
+    server_name cdn.test.com;
+    # proxy_temp_path /var/lib/nginx/proxy;
+    proxy_set_header Host www.test.com;
+    proxy_set_header Connection "";
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Real-IP $remote_addr;
+
+    proxy_set_header X-CDN af17c4f0a42b43bdbbd4204088f2a407;
+    add_header X-CDN "";
+
+    # # for no use gzip.
+    proxy_set_header Accept-Encoding "";
+    root /var/www/cache_static;
+    location ~* ^/www.test.com/(.+\.(jpg|jpeg|gif|png))$ {
+        image_filter resize 400 -;
+        image_filter_buffer 20M; # Will return 415 if image is bigger than this
+        image_filter_jpeg_quality 75; # Desired JPG quality
+        image_filter_interlace on; # For progressive JPG
+        if (!-f $request_filename) {
+            proxy_pass http://www.test.com/$1;
+            break;
+        }
+        if ($is_args) {
+            proxy_pass http://www.test.com/$1;
+            break;
+        }
+        proxy_store on;
+        proxy_store_access user:rw group:rw all:r;
+    }
+    location ~* ^/www.test.com/(.+\.(?:css|cur|js|htc|ico|html|htm|xml|otf|ttf|eot|woff|woff2|svg))$ {
+        if (!-f $request_filename) {
+            proxy_pass http://www.test.com/$1;
+            break;
+        }
+        if ($is_args) {
+            proxy_pass http://www.test.com/$1;
+            break;
+        }
+        proxy_store on;
+        proxy_store_access user:rw group:rw all:r;
+    }
+    location / { return 200 "OK!!!"; }
 }
 EOF
 cat <<'EOF' > reverse_proxy_cache_split.http
