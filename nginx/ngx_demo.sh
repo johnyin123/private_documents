@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bdf518e[2022-02-24T13:44:21+08:00]:ngx_demo.sh")
+VERSION+=("15ed83b[2022-02-24T15:09:36+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2024,6 +2024,11 @@ server {
     listen 80;
     server_name _;
     proxy_set_header Host www.test.com;
+    #...more proxy_set_header...
+    # for skip cdn
+    location = /abc.png {
+        proxy_pass https://www.test.com;
+    }
     location ~* ^.+\.(?:jpg|jpeg|gif|png|css|cur|js|htc|ico|html|htm|xml|otf|ttf|eot|woff|woff2|svg)$ {
         if ($is_cdn) {
             proxy_pass http://www.test.com;
@@ -2035,6 +2040,33 @@ server {
         rewrite ^ http://cdn4.image_filter.http$request_uri permanent;
     }
     location / {
+        proxy_pass https://www.test.com;
+    }
+}
+EOF
+cat <<'EOF' > redirect_to_cdn3.http
+# redirect request to cdn4.image_filter.http
+# cdn request org resource from here, so pass it ot backend, others to CDN
+geo $remote_addr $cdnsrv {
+    10.0.2.1 1; #CDN Server
+    default 0;
+}
+map $uri $in_cdn {
+    "~^/abc.png$" 0; # this direct to realserver
+    "~*^.+\.(?:jpg|jpeg|gif|png|css|cur|js|htc|ico|html|htm|xml|otf|ttf|eot|woff|woff2|svg)$" 1;
+    default 0;
+}
+server {
+    listen 80;
+    server_name _;
+    location / {
+        if ($cdnsrv) {
+            proxy_pass http://www.test.com;
+            break;
+        }
+        if ($in_cdn) {
+            rewrite ^ http://cdn4.image_filter.http$request_uri break;
+        }
         proxy_pass https://www.test.com;
     }
 }
