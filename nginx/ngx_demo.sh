@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e4282fc[2022-02-25T11:10:40+08:00]:ngx_demo.sh")
+VERSION+=("06875da[2022-02-25T15:00:03+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2213,7 +2213,7 @@ server {
     }
 }
 EOF
-cat <<'EOF' > cdn.test.com.http
+cat <<'EOF' > www.test.com.http
 map $http_x_cdn $cdnsrv {
     af17c4f0a42b43bdbbd4204088f2a407 1; #cdn key
     default 0;
