@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fdad080[2022-02-24T07:59:33+08:00]:mk_nginx.sh")
+VERSION+=("26b8d31[2022-02-24T08:49:06+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -509,8 +509,8 @@ stream {
     include /etc/nginx/stream-enabled/*.conf;
 }
 EOF
-rm -f  ${OUTDIR}/etc/nginx/*.default
-chmod 644 ${OUTDIR}/usr/share/nginx/modules/*
+rm -f  ${OUTDIR}/etc/nginx/*.default || true
+chmod 644 ${OUTDIR}/usr/share/nginx/modules/* || true
 
 # apt install rpm ruby-rubygems
 # yum install rubygems
