@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("wireguard_gencfg.sh - 6b4658f - 2021-07-14T13:37:31+08:00")
+VERSION+=("58cb44d[2021-08-18T17:14:28+08:00]:wireguard_gencfg.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
@@ -59,6 +59,7 @@ ${SCRIPTNAME}
         -h|--help help
   ${SCRIPTNAME} s -a 10.1.1.1/16 -p 9988 -k \$(wg genkey) > srv.conf
   ${SCRIPTNAME} c -a 10.1.1.2/16 -p 9988 --allows 1.2.3.0/24 -P <server prikey> >> srv.conf
+    # wg genkey | tee /dev/stderr | wg pubkey
 EOF
     exit 1
 } >&2
