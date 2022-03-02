@@ -1,5 +1,9 @@
 #!/bin/bash
 set -u -e -o pipefail
+# # only enable port 60022 & ping(out/in)
+# iptables -A INPUT -p tcp -m tcp --dport 60022 -j ACCEPT
+# iptables -A INPUT -p icmp  -j ACCEPT
+# iptables -A INPUT -j DROP
 # # Redirecting network traffic to a new IP
 # sysctl net.ipv4.ip_forward=1
 # iptables -t nat -A PREROUTING -p tcp --dport 1111 -j DNAT --to-destination 2.2.2.2:1111
