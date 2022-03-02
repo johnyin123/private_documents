@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e3c40c0[2022-02-08T17:28:13+08:00]:newssl.sh")
+VERSION+=("311056e[2022-02-15T15:49:59+08:00]:newssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -24,6 +24,9 @@ ${SCRIPTNAME}
         -h|--help help
             apt -y install gnutls-bin
             yum -y install gnutls-utils
+    # 吊销证书
+        openssl ca -revoke <cert>
+        openssl ca -gencrl -out "you.crl"
 EOF
     exit 1
 }
