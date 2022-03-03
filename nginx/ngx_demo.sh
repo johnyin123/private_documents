@@ -7,11 +7,16 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a4d6d8e[2022-02-25T15:01:39+08:00]:ngx_demo.sh")
+VERSION+=("0b8071f[2022-02-25T15:30:51+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
 set -o errexit
+cat <<'EOF'>dnsmasq.txt
+echo 'address=/.mytest.com/127.0.0.1' > dnsmasq.conf
+dnsmasq -d -C dnsmasq.conf
+dig www.mytest.com @127.0.0.1
+EOF
 cat <<'EOF'>check_conf.sh
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
@@ -1028,7 +1033,7 @@ cat <<'EOF' > https_proxy_connect.http
 server {
     listen 8080;
     server_name _;
-    resolver 114.114.114.114 ipv6=off;
+    resolver 127.0.0.1 ipv6=off;
     # Enable "CONNECT" HTTP method support.
     proxy_connect;
     proxy_connect_connect_timeout 10s;
@@ -1065,7 +1070,7 @@ cat <<'EOF' > gateway_transparent_proxy.http
 server {
     listen 8000;
     server_name _;
-    resolver 114.114.114.114 ipv6=off;
+    resolver 127.0.0.1 ipv6=off;
     location / {
         # proxy_method      POST;
         # proxy_set_body    "token=$http_apikey&token_hint=access_token";
@@ -1616,7 +1621,7 @@ server {
         limit_conn_log_level info;
         proxy_set_header Host $download_host;
         # return 200 "$download_url $download_host";
-        resolver 114.114.114.114 ipv6=off;
+        resolver 127.0.0.1 ipv6=off;
         resolver_timeout 5s;
         proxy_pass $download_url;
     }
@@ -1697,7 +1702,7 @@ js_set $summary summary;
 server {
     listen 80;
     server_name _;
-    resolver 8.8.8.8;
+    resolver 127.0.0.1 ipv6=off;
     resolver_timeout 5s;
     subrequest_output_buffer_size 20k;
     location / {
@@ -1979,7 +1984,7 @@ server {
     listen 80;
     server_name _;
     location ~ /to/(.*) {
-        resolver 127.0.0.1;
+        resolver 127.0.0.1 ipv6=off;
         proxy_set_header Host $1;
         proxy_pass http://$1;
     }
