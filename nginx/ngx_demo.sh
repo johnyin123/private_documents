@@ -7,13 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0b8071f[2022-02-25T15:30:51+08:00]:ngx_demo.sh")
+VERSION+=("d92e78c[2022-03-03T17:22:59+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
 set -o errexit
 cat <<'EOF'>dnsmasq.txt
 echo 'address=/.mytest.com/127.0.0.1' > dnsmasq.conf
+# # catch all resolve to 127.0.0.1
+# address=/#/127.0.0.1
 dnsmasq -d -C dnsmasq.conf
 dig www.mytest.com @127.0.0.1
 EOF
