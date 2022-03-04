@@ -1,5 +1,7 @@
 #!/bin/bash
 set -u -e -o pipefail
+# # redirect multiple port
+# iptables -t nat -I PREROUTING -i eth0 -d <yourIP/32> -p udp -m multiport --dports 53,80,4444  -j REDIRECT --to-ports 15351
 # # only enable port 60022 & ping(out/in)
 # iptables -A INPUT -p tcp -m tcp --dport 60022 -j ACCEPT
 # iptables -A INPUT -p icmp  -j ACCEPT
