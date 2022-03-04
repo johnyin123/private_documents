@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("openvpn.sh - 3802d7f - 2021-10-13T14:13:12+08:00")
+VERSION+=("7e26349[2021-10-14T09:54:39+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -73,6 +73,12 @@ EOF
 }
 
 modify_openvpn_cfg() {
+    # INLINE FILE SUPPORT
+    # OpenVPN allows including files in the main configuration for the --ca, --cert, --dh, --extra-certs, --key, --pkcs12, --secret, --crl-verify, --http-proxy-user-pass, --tls-auth, --auth-gen-token-secret, --tls-crypt and --tls-crypt-v2 options.
+    # <cert>
+    # -----BEGIN CERTIFICATE-----
+    # -----END CERTIFICATE-----
+    # </cert>
     grep -v -E "^port |^proto |^dev |^ca |^cert |^key |^dh |^server |^push |^keepalive |^tls-auth |^status |^log |^log-append |^verb |^comp-lzo$|^persist-key$|^persist-tun$" /usr/share/doc/openvpn*/sample/sample-config-files/server.conf > /etc/openvpn/server/server.conf
     tee -a /etc/openvpn/server/server.conf <<EOF
 port 1194
