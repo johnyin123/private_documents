@@ -1,0 +1,33 @@
+For LIMA, you may need to tweak the xorg configuration by creating /etc/X11/xorg.conf.d/20-lima.conf file: (Source: https://gitlab.freedesktop.org/lima/web/-/blob/519a5b26596cfe46c3e4dc80d802780b2b3c61b1/README.md#xorgconf)
+
+cat <<'EOF' > /etc/X11/xorg.conf.d/20-lima.conf
+Section "ServerFlags"
+       Option  "AutoAddGPU" "off"
+       Option "Debug" "dmabuf_capable"
+EndSection
+
+Section "OutputClass"
+       Identifier "Lima"
+       MatchDriver "<display DRM driver>"
+       Driver "modesetting"
+       Option "PrimaryGPU" "true"
+EndSection
+EOF
+Where you replace <display DRM driver> with the right DRM driver name, depending on your SoC:
+Allwinner: sun4i-drm
+Amlogic: meson
+Ericsson MCDE: mcde
+Exynos: exynos
+Rockchip: rockchip
+Tinydrm: tinydrm
+
+For user-space, you need Mesa 19.2+ (19.1.x is not very stable nor usable for lima/panfrost) and kernel 5.2+. The package to install is Mesa-gallium.
+You can install some test binaries to try it, such as kmscube, glmark2, Mesa-demo or Mesa-demo-x.
+
+Enable OpenCL
+Once kernel driver and user-space libraries are installed, you can enable OpenCL support with:
+
+echo "libmali.so" | sudo tee /etc/OpenCL/vendors/mali.icd
+And check it is found with:
+
+sudo clinfo
