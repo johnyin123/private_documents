@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("843ef7a[2022-03-02T09:24:54+08:00]:wireguard_gencfg.sh")
+VERSION+=("03dc719[2022-03-03T09:41:28+08:00]:wireguard_gencfg.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
@@ -124,3 +124,13 @@ EOF
     return 0
 }
 main "$@"
+
+: <<EOF
+auto wg0
+iface wg0 inet static
+  address {{ipaddr}}/{{prefix}}
+  pre-up ip link add wg0 type wireguard
+  pre-up wg setconf wg0 /etc/wireguard/wg0.conf
+  up ip link set wg0 up
+  down ip link delete wg0
+EOF
