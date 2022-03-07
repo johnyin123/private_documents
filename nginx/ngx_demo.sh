@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d92e78c[2022-03-03T17:22:59+08:00]:ngx_demo.sh")
+VERSION+=("5bbc47a[2022-03-04T07:30:05+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -44,6 +44,9 @@ EOF
 chmod 755 check_conf.sh
 cat <<'EOF'>ssl_client_cert.http
 # curl -k --key client_test.key --cert client_test.pem --cacert ca.pem  https://localhost/
+# if ($ssl_client_s_dn !~ "CN=<my CN>") { return 403; }
+# if ($ssl_client_verify != SUCCESS) { return 403; }
+# proxy_set_header X-SSL-Cert $ssl_client_escaped_cert;
 server {
     listen 443 ssl;
     server_name _;
