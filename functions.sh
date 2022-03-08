@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("e679476[2021-12-02T17:21:55+08:00]:functions.sh")
+VERSION+=("74d8a83[2021-12-31T09:56:34+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -1135,6 +1135,9 @@ trim() {
     var="${var#"${var%%[![:space:]]*}"}"   # remove leading whitespace characters
     var="${var%"${var##*[![:space:]]}"}"   # remove trailing whitespace characters
     echo -n "$var"
+}
+strip_dup() {
+    echo $@ | tr -s '[:space:]' '\n' | awk '!x[$0]++'
 }
 # returns OK if $1 contains $2 at the beginning
 str_starts() {
