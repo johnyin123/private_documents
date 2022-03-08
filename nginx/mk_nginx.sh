@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("26b8d31[2022-02-24T08:49:06+08:00]:mk_nginx.sh")
+VERSION+=("6f50272[2022-03-02T07:28:13+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -35,6 +35,7 @@ LD_OPTS=${LD_OPTS:-"-Wl,-z,relro -Wl,-z,now -fPIC"}
 STRIP=${STRIP:-""}
 PKG=${PKG:-""}
 PROXY_CONNECT=${PROXY_CONNECT:-""}
+AUTH_LDAP=${AUTH_LDAP:-""}
 HTTP2=${HTTP2:-""}
 IMAGE_FILTER=${IMAGE_FILTER:-""}
 CACHE_PURGE=${CACHE_PURGE:-""}
@@ -72,6 +73,9 @@ declare -A DYNAMIC_MODULES=(
 [ -z "${PROXY_CONNECT}" ] || {
     echo "pushd $(pwd) && cd ${NGINX_DIR} && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch && popd"
     DYNAMIC_MODULES[${DIRNAME}/ngx_http_proxy_connect_module]="git clone --depth 1 https://github.com/chobits/ngx_http_proxy_connect_module.git"
+}
+[ -z "${AUTH_LDAP}" ] || {
+    DYNAMIC_MODULES[${DIRNAME}/nginx-auth-ldap]="git clone https://github.com/kvspb/nginx-auth-ldap.git"
 }
 # # proxy_connect_module
 # cd nginx && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch
@@ -151,6 +155,7 @@ check_depends_lib libxml-2.0 libxslt geoip uuid
     http_xslt_module needs libxml2-dev libxslt1-dev / libxml2-devel libxslt-devel
     http_geoip_module needs libgeoip-dev / GeoIP-devel
     http_image_filter needs libgd-dev / gd-devel
+    nginx-auth-ldap needs libldap2-dev / openldap-devel
     pagespeed needs uuid-dev
 EOF
 :<<"EOF"
