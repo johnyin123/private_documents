@@ -1,3 +1,8 @@
+# # extend  vda1
+echo ,+ | sfdisk --force -u S -N 1 /dev/vda || true
+partx -u /dev/vda
+xfs_growfs /dev/vda1
+
 virsh attach-interface --domain pxe --type bridge --source br1 --model virtio --config --live
 
 nmcli con add type bridge con-name br0 ifname br0 autoconnect yes
