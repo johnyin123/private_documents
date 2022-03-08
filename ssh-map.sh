@@ -8,9 +8,9 @@ set -u -e -o pipefail
 # iptables -A INPUT -j DROP
 # chain input {
 #     type filter hook input priority filter; policy accept;
-#     meta l4proto tcp tcp dport 60022 counter packets 0 bytes 0 accept
-#     meta l4proto icmp counter packets 0 bytes 0 accept
-#     counter packets 0 bytes 0 drop
+#     iifname "eth0" meta l4proto tcp tcp dport 60022 counter packets 0 bytes 0 accept
+#     iifname "eth0" meta l4proto icmp counter packets 0 bytes 0 accept
+#     iifname "eth0" counter packets 0 bytes 0 drop
 # }
 # # Redirecting network traffic to a new IP
 # sysctl net.ipv4.ip_forward=1
