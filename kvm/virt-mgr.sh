@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-mgr.sh - 58cb44d - 2021-08-18T17:14:28+08:00")
+VERSION+=("d109d6c[2021-08-19T14:09:54+08:00]:virt-mgr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -288,7 +288,7 @@ exit 1
 
 main() {
     local CFG_INI=${CFG_INI:-"mgr.conf"}
-    CPU=kvm64
+    CPU=${CPU:-kvm64}
     #CPU=Westmere
     [[ -r "${CFG_INI}" ]] || {
         cat >"${CFG_INI}" <<EOF
