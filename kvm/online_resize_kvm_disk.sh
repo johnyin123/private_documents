@@ -1,5 +1,10 @@
 # # extend  vda1
+# extend all
 echo ,+ | sfdisk --force -u S -N 1 /dev/vda || true
+# extend to 4G
+echo ,4G | sfdisk --force --unit S --partno 1 /dev/vda || true
+# grow 2G
+echo ,+2G | sfdisk --force --unit S --partno 1 /dev/vda || true
 partx -u /dev/vda
 xfs_growfs /dev/vda1
 
