@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("67cdf31[2022-03-08T08:23:57+08:00]:virt-imgbootup.sh")
+VERSION+=("aa2c5fc[2022-03-09T08:26:03+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -131,6 +131,11 @@ main() {
         }
         options+=("-netdev" "bridge,br=${_u},id=net${_id}")
         local _mac=52:54:$(printf "%02x" ${_id})$(hexdump -v -n3 -e '/1 ":%02X"' /dev/urandom)
+        # 00:12:1e: Juniper Networks.
+        # 00:19:06: Cisco Systems, Inc.
+        # 00:1d:60: ASUSTek COMPUTER INC.
+        # 52:54:00: Realtek.
+        # 08:00:27: PCS Systemtechnik GmbH.
         # openssl rand -hex 3 | sed 's/\(..\)/\1:/g; s/.$//'
         # date | md5sum | sed -r 's/(..){3}/\1:/g;s/\s+-$//'
         #echo $FQDN|md5sum|sed 's/^\(..\)\(..\)\(..\)\(..\)\(..\).*$/02:\1:\2:\3:\4:\5/'
