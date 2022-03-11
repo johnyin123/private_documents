@@ -1,0 +1,49 @@
+apt -y install libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system
+apt -y install corosync pacemaker pcs
+# corosync（心跳管理）、pacemaker（资源管理）、pcs（配置工具）
+cat> /etc/hosts <<EOF
+127.0.0.1       localhost
+192.168.168.198 kvm1 kvm1.test.com
+192.168.168.199 kvm2 kvm2.test.com
+EOF
+
+systemctl start pacemaker.service
+systemctl enable corosync.service
+# 两台机器passwd hacluster
+echo "hacluster:mypassword" | chpasswd
+# https://<server-FQDN>:2224
+pcs cluster destroy
+# 配置节点之间的相互认证
+pcs host auth kvm1 kvm2 -u hacluster -p mypassword
+pcs cluster setup newcluster kvm1 addr=192.168.168.198 kvm2 addr=192.168.168.199 
+pcs cluster start --all
+pcs cluster enable --all
+pcs status
+pcs status cluster
+# 双节点的集群中只有当两者都在线时才是合法
+# 在两个节点的情况下设置以下值
+pcs property set no-quorum-policy=ignore
+pcs property --all | grep stonith-enabled
+# # 查看集群成员
+corosync-cmapctl | grep members
+# # 查看当前集群通信是否正常
+corosync-cfgtool -s
+# # 查看成员信息
+pcs status corosync
+# # 查看XML
+pcs cluster cib
+# # 检查配置文件
+crm_verify -L -V
+# # 暂时关闭stonish
+pcs property set stonith-enabled=false
+
+pcs resource list # ocf:heartbeat:VirtualDomain
+pcs stonith describe ocf:heartbeat:VirtualDomain
+
+
+crm_mon
+
+apt clean
+find /var/log/ -type f | xargs rm -f
+rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /root/.viminfo /root/.vim/
+
