@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d109d6c[2021-08-19T14:09:54+08:00]:virt-mgr.sh")
+VERSION+=("042ea64[2022-03-09T08:24:42+08:00]:virt-mgr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -291,6 +291,20 @@ main() {
     CPU=${CPU:-kvm64}
     #CPU=Westmere
     [[ -r "${CFG_INI}" ]] || {
+        cat >"spice.xml" <<EOF
+    # set any password for [passwd=***] section for SPICE connection
+    # specify an uniq number for [slot='0x**']
+    <graphics type='spice' port='5900' autoport='no' listen='0.0.0.0' passwd='password'>
+      <listen type='address' address='0.0.0.0'/>
+    </graphics>
+    <sound model='ac97'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x09' function='0x0'/>
+    </sound>
+    <video>
+      <model type='qxl' ram='65536' vram='32768' heads='1'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x10' function='0x0'/>
+    </video>
+EOF
         cat >"${CFG_INI}" <<EOF
 declare -A DOMAIN_TPL=(
     [default]="
