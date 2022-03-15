@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("39b34ce[2022-01-13T09:30:17+08:00]:os_centos_init.sh")
+VERSION+=("5f9f8d6[2022-02-21T08:59:47+08:00]:os_centos_init.sh")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -137,6 +137,13 @@ EOF
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
 set -o vi
 EOF
+# security set
+sed -i "s/^PASS_MAX_DAYS.*$/PASS_MAX_DAYS 90/g" /etc/login.defs
+sed -i "s/^PASS_MIN_DAYS.*$/PASS_MIN_DAYS 2/g" /etc/login.defs
+sed -i "s/^PASS_MIN_LEN.*$/PASS_MIN_LEN 8/g" /etc/login.defs
+sed -i "s/^PASS_WARN_AGE.*$/PASS_WARN_AGE 7/g" /etc/login.defs
+sed -i "1 a auth       required     pam_tally2.so onerr=fail  deny=6  unlock_time=1800" /etc/pam.d/sshd
+sed -i "/password/ipassword    required      pam_cracklib.so lcredit=-1 ucredit=-1 dcredit=-1 ocredit=-1" /etc/pam.d/system-auth
 }
 export -f centos_limits_init
 
