@@ -2,16 +2,21 @@
 set -u -e -o pipefail
 # # redirect multiple port
 # iptables -t nat -I PREROUTING -i eth0 -d <yourIP/32> -p udp -m multiport --dports 53,80,4444  -j REDIRECT --to-ports 15351
+
+# # only enable port 60022 & ping(out/in) & access internet
+# iptables -P INPUT DROP
+# iptables -P FORWARD DROP
+# iptables -P OUTPUT ACCEPT
+# # Accept on localhost
+# iptables -A INPUT -i lo -j ACCEPT
+# iptables -A OUTPUT -o lo -j ACCEPT
 # # only enable port 60022 & ping(out/in)
 # iptables -A INPUT -p tcp -m tcp --dport 60022 -j ACCEPT
+# # enable ping
 # iptables -A INPUT -p icmp  -j ACCEPT
-# iptables -A INPUT -j DROP
-# chain input {
-#     type filter hook input priority filter; policy accept;
-#     iifname "eth0" meta l4proto tcp tcp dport 60022 counter packets 0 bytes 0 accept
-#     iifname "eth0" meta l4proto icmp counter packets 0 bytes 0 accept
-#     iifname "eth0" counter packets 0 bytes 0 drop
-# }
+# # Allow established sessions to receive traffic
+# iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+
 # # Redirecting network traffic to a new IP
 # sysctl net.ipv4.ip_forward=1
 # iptables -t nat -A PREROUTING -p tcp --dport 1111 -j DNAT --to-destination 2.2.2.2:1111
