@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION+=("b2ec86a[2021-10-27T10:03:51+08:00]:motd.sh")
+VERSION+=("268371f[2022-02-16T09:02:05+08:00]:motd.sh")
 date=$(date "+%F %T")
 kernel=$(uname -r)
 hostname=${HOSTNAME:-$(hostname)}
@@ -52,11 +52,11 @@ exec {FD}<${logo}
     printf "User:               %s\n" $USER
     printf "Processes:          %s\n" $processes
     printf "%s\n" "---------------------------------------------"
-    printf "Filesystem          Usage\n"
+    printf "Filesystem          Total     Usage\n"
     for f in $Filesystem
     do
-        Usage=$(timeout 3 df -h | awk '{if($NF=="'''$f'''") print $5}')
-        printf "%-20s%s\n" $f $Usage
+        Usage=$(timeout 3 df -h | awk '{if($NF=="'''$f'''") printf "%-10s%s",$2,$5}')
+        printf "%-20s%s\n" $f "$Usage"
     done
     printf "%s\n" "---------------------------------------------"
     printf "Interface           MAC Address         IP Address\n"
