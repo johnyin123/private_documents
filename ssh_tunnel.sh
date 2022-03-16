@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ssh_tunnel.sh - 335ec1f - 2021-07-09T07:21:43+08:00")
+VERSION+=("58cb44d[2021-08-18T17:14:28+08:00]:ssh_tunnel.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
@@ -60,6 +60,12 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+demo:
+    ./ssh_tunnel.sh -L br0 -R br1 -s root@target_address
+    ./br-hostapd.sh -s wlan0 -b br0
+    ./netns_shell.sh -i 172.16.16.22/24 -n my_netns -b br0
+    ./wireguard_netns.sh -w test -c wg0.conf -n my_wg_netns
+    DISPLAY=:0.0 su johnyin -c google-chrome &>/dev/null &
 EOF
     exit 1
 }
