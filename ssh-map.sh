@@ -2,7 +2,7 @@
 set -u -e -o pipefail
 # # redirect multiple port
 # iptables -t nat -I PREROUTING -i eth0 -d <yourIP/32> -p udp -m multiport --dports 53,80,4444  -j REDIRECT --to-ports 15351
-
+########################################
 # # only enable port 60022 & ping(out/in) & access internet
 # iptables -P INPUT DROP
 # iptables -P FORWARD DROP
@@ -16,7 +16,23 @@ set -u -e -o pipefail
 # iptables -A INPUT -p icmp  -j ACCEPT
 # # Allow established sessions to receive traffic
 # iptables -A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
-
+########################################
+# # only spcial ip access port 60022
+# iptables -A INPUT -p tcp --dport 60022 --source 192.168.0.0/24 -j ACCEPT
+# iptables -A INPUT -p tcp --dport 60022 -j DROP
+# # only spcial ip access sshd 60022
+# cat <<EOF>/etc/hosts.allow
+# sshd : 192.168.0.0/24
+# sshd : 127.0.0.1
+# EOF
+# # OR
+# # First remove default authentication methods:
+# PasswordAuthentication no
+# PubkeyAuthentication no
+# # Then add desired authentication methods after a Match Address
+# Match Address 127.0.0.*
+# PubkeyAuthentication yes
+########################################
 # # Redirecting network traffic to a new IP
 # sysctl net.ipv4.ip_forward=1
 # iptables -t nat -A PREROUTING -p tcp --dport 1111 -j DNAT --to-destination 2.2.2.2:1111
