@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION+=("268371f[2022-02-16T09:02:05+08:00]:motd.sh")
+VERSION+=("6e46805[2022-03-16T14:38:31+08:00]:motd.sh")
 date=$(date "+%F %T")
 kernel=$(uname -r)
 hostname=${HOSTNAME:-$(hostname)}
@@ -24,7 +24,7 @@ users=$(users | wc -w)
 USER=$(whoami)
 
 #System fs usage
-Filesystem=$(timeout 3 df -h | awk '/^\/dev/{print $6}')
+Filesystem=$(timeout 3 df --local -h | awk '/^\/dev/{print $6}')
 
 #Interfaces
 INTERFACES=$(ls /sys/class/net/)
