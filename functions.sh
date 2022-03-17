@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("74d8a83[2021-12-31T09:56:34+08:00]:functions.sh")
+VERSION+=("0e4e793[2022-03-09T07:32:25+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -40,6 +40,13 @@ list_func() {
     alias
 #    local fncs=$(declare -F -p | cut -d " " -f 3 | grep -v "^_")
 #    echo $fncs
+}
+
+func_wrapper() {
+    local func=$1
+    shift
+    local args=$@
+    ${func} ${args} || { [ $? = 127 ] && warn_msg "${func} not implemented\n" }
 }
 
 # sed_e=(-E
