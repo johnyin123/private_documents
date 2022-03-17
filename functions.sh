@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("9476c3e[2022-03-17T09:37:23+08:00]:functions.sh")
+VERSION+=("21a486d[2022-03-17T10:25:40+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -302,7 +302,7 @@ docker_shell() {
             HOME=${HOME:-/} \
             TERM=${TERM} \
             HISTFILE= \
-            COLORTERM=${COLORTERM} \
+            COLORTERM=${COLORTERM:-truecolor} \
             PS1=${ps1} \
             ${shell} ${args} || true
 }
@@ -348,7 +348,7 @@ maybe_tmux_netns_chroot() {
         HOME=${HOME:-/} \
         TERM=\${TERM} \
         HISTFILE= \
-        COLORTERM=\${COLORTERM} \
+        COLORTERM=\${COLORTERM:-truecolor} \
         PS1='${ps1}' \
         /bin/bash --noprofile --norc -o vi" Enter
     tmux_input "${sess}" "${window}" "history -c;reset"
@@ -378,7 +378,7 @@ maybe_netns_shell() {
         HOME=${HOME:-/} \
         TERM=${TERM} \
         HISTFILE= \
-        COLORTERM=${COLORTERM} \
+        COLORTERM=${COLORTERM:-truecolor} \
         PS1=${ps1} \
         ${shell} ${args}"
     defined DRYRUN && { blue>&2 "DRYRUN: ";purple>&2 "$cmds\n"; stdin_is_terminal || cat >&2; return 0; }
