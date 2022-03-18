@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("498fcdd[2021-09-14T17:40:30+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("2468378[2022-03-18T08:37:47+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
@@ -46,6 +46,11 @@ export PS1="\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]**bios/uefi**:\\[
 alias bios='/bin/busybox cp -f ${PXE_DIR}/${DHCP_BIOS_BOOTFILE}  ${PXE_DIR}/${DHCP_BOOTFILE}'
 alias uefi='/bin/busybox cp -f ${PXE_DIR}/${DHCP_UEFI_BOOTFILE}  ${PXE_DIR}/${DHCP_BOOTFILE}'
 alias ll='/bin/busybox ls -lh'
+echo 'echo ,+ | sfdisk --force -u S -N 1 /dev/vda'
+echo 'echo ,4G | sfdisk --force --unit S --partno 1 /dev/vda'
+echo 'echo ,+2G | sfdisk --force --unit S --partno 1 /dev/vda'
+echo 'partx -u /dev/vda'
+echo 'xfs_growfs /dev/vda1'
 echo "add ${PXE_DIR}/cgi-bin/ipaddr.txt for ipaddr: 192.168.168.101/24 line by line"
 echo "cmd : bios/uefi change mode"
 /bin/sh /start.sh
