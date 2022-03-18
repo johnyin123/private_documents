@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("5f9f8d6[2022-02-21T08:59:47+08:00]:os_centos_init.sh")
+VERSION+=("3061737[2022-03-15T08:15:05+08:00]:os_centos_init.sh")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -248,9 +248,9 @@ centos_service_init() {
     } | bash -x
     #systemctl list-unit-files -t service | awk '$2 == "enabled" {printf "systemctl disable %s\n", $1}'
 }
+export -f centos_service_init
 
-export -f centos_zswap_init2
-centos_zswap_init2() {
+centos_zramswap_init() {
     mkdir -p /usr/lib/systemd/scripts/
     cat<<'EOF' > /usr/lib/systemd/scripts/zswap.sh
 #!/bin/bash
@@ -338,10 +338,9 @@ WantedBy=multi-user.target
 EOF
     systemctl enable zswap
 }
+export -f centos_zramswap_init
 
-export -f centos_service_init
-
-centos_zramswap_init() {
+centos_zramswap_init2() {
     local size_mb=$(($1*1024*1024))
     ( grep -v -E "^/dev/zram0" /etc/fstab ; echo "/dev/zram0   none swap sw,pri=32767 0 0"; ) | tee /etc/fstab.bak
     mv /etc/fstab.bak /etc/fstab
@@ -352,5 +351,5 @@ EOF
     echo "zram" > /etc/modules-load.d/zram.conf 
     dracut -fv
 }
-export -f centos_zramswap_init
+export -f centos_zramswap_init2
 
