@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("build_centos.sh - ea5dd1f - 2021-10-21T11:04:52+08:00")
+VERSION+=("d268156[2021-10-27T13:31:15+08:00]:build_centos.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 cat <<"EOF"
@@ -48,7 +48,6 @@ $ rm -f $centos_root/etc/resolv.conf
 $ umount $centos_root/dev
 EOF
 ## start parms
-SWAP_FILE=${SWAP_FILE:-false}
 TOMCAT_USR=${TOMCAT_USR:-false}
 REPO=${REPO:-${DIRNAME}/local.repo}
 ADDITION_PKG=${ADDITION_PKG:-""}
@@ -251,12 +250,6 @@ if [ "${DISK_LVM}" = "true" ]; then
     echo "UUID=$(blkid -s UUID -o value ${MOUNTDEV}) /boot xfs defaults 0 0" >> ${ROOTFS}/etc/fstab
 fi
 
-if [ "${SWAP_FILE}" = "true" ]; then
-    info_msg "add 512M swap .....\n"
-    dd if=/dev/zero of=${ROOTFS}/swapfile bs=1M count=512 && chmod 600 ${ROOTFS}/swapfile && mkswap ${ROOTFS}/swapfile
-    sed -i '$a\/swapfile swap swap defaults 0 0' ${ROOTFS}/etc/fstab
-fi
-
 cat > ${ROOTFS}/etc/X11/xorg.conf.d/00-keyboard.conf <<EOF
 Section "InputClass"
         Identifier "system-keyboard"
@@ -273,7 +266,6 @@ systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --
 #localectl set-keymap cn
 #localectl set-x11-keymap cn
 echo "${NEWPASSWORD}" | passwd --stdin root
-sed -i "s/SELINUX=.*/SELINUX=disabled/g" /etc/selinux/config
 touch /etc/sysconfig/network
 systemctl enable getty@tty1
 touch /*
@@ -293,22 +285,11 @@ EOF
 change_vm_info "${ROOTFS}" "${NAME}" "${IP}" "${PREFIX}" "${GW}" 
 rm -fr ${ROOTFS}/var/cache
 
-
 info_msg "tuning system .....\n"
 try chroot ${ROOTFS} /bin/bash 2>/dev/null <<'EOF'
 systemctl set-default multi-user.target
 chkconfig 2>/dev/null | egrep -v "crond|sshd|network|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}' | bash
 systemctl list-unit-files | grep service | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}' | bash
-EOF
-echo "nameserver 114.114.114.114" > ${ROOTFS}/etc/resolv.conf
-#set the file limit
-cat >> ${ROOTFS}/etc/security/limits.conf << EOF
-*           soft   nofile       102400
-*           hard   nofile       102400
-EOF
-info_msg "disable the ipv6\n"
-cat > ${ROOTFS}/etc/modprobe.d/ipv6.conf << EOF
-install ipv6 /bin/true
 EOF
 
 info_msg "setting sshd\n"
@@ -317,108 +298,7 @@ try sed -i \"s/GSSAPIAuthentication.*/GSSAPIAuthentication no/g\" ${ROOTFS}/etc/
 try sed -i \"s/#MaxAuthTries.*/MaxAuthTries 3/g\" ${ROOTFS}/etc/ssh/sshd_config
 try sed -i \"s/#Port.*/Port 60022/g\" ${ROOTFS}/etc/ssh/sshd_config
 try sed -i \"s/#Protocol 2/Protocol 2/g\" ${ROOTFS}/etc/ssh/sshd_config
-echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr" >> ${ROOTFS}/etc/ssh/sshd_config
-echo "MACs    hmac-sha1" >> ${ROOTFS}/etc/ssh/sshd_config
-
-sed -i "s/^PASS_MAX_DAYS.*$/PASS_MAX_DAYS 90/g" ${ROOTFS}/etc/login.defs
-sed -i "s/^PASS_MIN_DAYS.*$/PASS_MIN_DAYS 2/g" ${ROOTFS}/etc/login.defs
-sed -i "s/^PASS_MIN_LEN.*$/PASS_MIN_LEN 8/g" ${ROOTFS}/etc/login.defs
-sed -i "s/^PASS_WARN_AGE.*$/PASS_WARN_AGE 7/g" ${ROOTFS}/etc/login.defs
-sed -i "1 a auth       required     pam_tally2.so   onerr=fail  deny=6  unlock_time=1800" ${ROOTFS}/etc/pam.d/sshd
-sed -i "/password/ipassword    required      pam_cracklib.so lcredit=-1 ucredit=-1 dcredit=-1 ocredit=-1" ${ROOTFS}/etc/pam.d/system-auth
 try chroot ${ROOTFS} userdel shutdown \|\| true
-
-info_msg "tune kernel parametres\n"
-cat >> ${ROOTFS}/etc/sysctl.conf << EOF
-net.core.rmem_max = 134217728 
-net.core.wmem_max = 134217728 
-net.core.netdev_max_backlog = 250000
-net.core.somaxconn = 65535
-net.core.wmem_default = 16777216
-net.ipv4.ip_local_port_range = 1024 65531
-net.ipv4.tcp_fin_timeout = 10
-net.ipv4.tcp_keepalive_time = 1200
-net.ipv4.tcp_max_orphans = 3276800
-net.ipv4.tcp_max_syn_backlog = 262144
-net.ipv4.tcp_no_metrics_save=1
-net.ipv4.tcp_rmem = 4096 87380 16777216
-net.ipv4.tcp_wmem = 4096 65536 16777216
-net.ipv4.tcp_syn_retries = 1
-net.ipv4.tcp_synack_retries = 1
-net.ipv4.tcp_syncookies = 0
-net.ipv4.tcp_timestamps = 0
-net.ipv4.tcp_tw_recycle = 0
-net.ipv4.tcp_tw_reuse = 0
-EOF
-cat >${ROOTFS}/etc/motd.sh<<'EOF'
-#!/bin/bash
-
-date=$(date "+%F %T")
-head="System Time: $date"
-
-kernel=$(uname -r)
-hostname=$(echo $HOSTNAME)
-
-#Cpu load
-load1=$(cat /proc/loadavg | awk '{print $1}')
-load5=$(cat /proc/loadavg | awk '{print $2}')
-load15=$(cat /proc/loadavg | awk '{print $3}')
-
-#System uptime
-uptime=$(cat /proc/uptime | cut -f1 -d.)
-upDays=$((uptime/60/60/24))
-upHours=$((uptime/60/60%24))
-upMins=$((uptime/60%60))
-upSecs=$((uptime%60))
-up_lastime=$(date -d "$(awk -F. '{print $1}' /proc/uptime) second ago" +"%Y-%m-%d %H:%M:%S")
-
-#Memory Usage
-mem_usage=$(free -m | grep Mem | awk '{ printf("%3.2f%%", $3*100/$2) }')
-swap_usage=$(free -m | awk '/Swap/{printf "%.2f%",$3/($2+1)*100}')
-
-#Processes
-processes=$(ps aux | wc -l)
-
-#User
-users=$(users | wc -w)
-USER=$(whoami)
-
-#System fs usage
-Filesystem=$(df -h | awk '/^\/dev/{print $6}')
-
-uuid=$(dmidecode -s system-uuid)
-#Interfaces
-INTERFACES=$(ip -4 ad | grep 'state ' | awk -F":" '!/^[0-9]*: ?lo/ {print $2}')
-echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-echo "$head"
-echo "----------------------------------------------"
-printf "Kernel Version:\t%s\n" $kernel
-printf "HostName:\t%s\n" $hostname
-printf "UUID\t\t%s\n" ${uuid}
-printf "System Load:\t%s %s %s\n" $load1, $load5, $load15
-printf "System Uptime:\t%s "days" %s "hours" %s "min" %s "sec"\n" $upDays $upHours $upMins $upSecs
-printf "Memory Usage:\t%s\t\t\tSwap Usage:\t%s\n" $mem_usage $swap_usage
-printf "Login Users:\t%s\nUser:\t\t%s\n" $users $USER
-printf "Processes:\t%s\n" $processes
-echo  "---------------------------------------------"
-printf "Filesystem\tUsage\n"
-for f in $Filesystem
-do
-    Usage=$(df -h | awk '{if($NF=="'''$f'''") print $5}')
-    echo -e "$f\t\t$Usage"
-done
-echo  "---------------------------------------------"
-printf "Interface\tMAC Address\t\tIP Address\n"
-for i in $INTERFACES
-do
-    MAC=$(ip ad show dev $i | grep "link/ether" | awk '{print $2}')
-    IP=$(ip ad show dev $i | awk '/inet / {print $2}')
-    printf $i"\t\t"$MAC"\t$IP\n"
-done
-echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
-echo
-EOF
-try chmod 644 ${ROOTFS}/etc/motd.sh
 
 if [ "${TOMCAT_USR:=false}" = "true" ]
 then
@@ -458,14 +338,6 @@ fi
 cleanup
 info_msg "${DISK_FILE} Create root/${NEWPASSWORD} OK \n"
 exit 0
-
-
-# echo "口令每 180 日便失效"
-# perl -npe 's/PASS_MAX_DAYS\s+99999/PASS_MAX_DAYS 180/' -i /etc/login.defs
-# echo "口令每日只可更改一次"
-# perl -npe 's/PASS_MIN_DAYS\s+0/PASS_MIN_DAYS 1/g' -i /etc/login.defs
-# 系统以 sha512 取代 md5 作口令的保护
-# authconfig --passalgo=sha512 --update
 
 # #extract a single partition from image
 # dd if=image of=partitionN skip=offset_of_partition_N count=size_of_partition_N bs=512 conv=sparse
