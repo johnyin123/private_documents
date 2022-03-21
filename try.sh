@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("53957ab[2022-02-23T08:56:19+08:00]:try.sh")
+VERSION+=("eaf82cd[2022-03-11T11:12:21+08:00]:try.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -347,4 +347,18 @@ usage22() {
     sed -ne '/^#\s*Usage/,/^##\s*$/p' < $0 | sed 's/#//g'
 }
 
+sshd_sos() {
+    setsid sh -c '
+    tty=/dev/ttyS0
+    grace_time=5
+    echo "Starting SSHD over serial on $tty.."
+    stty <$tty
+    while true
+    do
+        sshd -i -g $grace_time <$tty >$tty
+    done
+    ' &
+    sleep 1
+    exit 0
+}
 main "$@"
