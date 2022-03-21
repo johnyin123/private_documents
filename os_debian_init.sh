@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("6b57173[2021-11-30T08:14:10+08:00]:os_debian_init.sh")
+VERSION+=("2c02dc3[2022-03-16T11:15:16+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -190,7 +190,8 @@ EOF
 }
 export -f debian_sshd_init
 
-debian_zswap_init3() {
+debian_zswap_init() {
+    local size_mb=$1
     cat<<EOF > /etc/default/zramswap
 # Compression algorithm selection
 # speed: lz4 > zstd > lzo compression: zstd > lzo > lz4
@@ -200,7 +201,7 @@ debian_zswap_init3() {
 #PERCENT=50
 
 # Specifies a static amount of RAM in MiB
-#SIZE=256
+SIZE=${size_mb}
 
 # Specifies the priority for the swap devices, see swapon(2)
 # This should probably be higher than hdd/ssd swaps.
@@ -298,8 +299,10 @@ case "$1" in
     *)          elog "Unknown option $1";;
 esac
 EOSH
+    chmod 755 /usr/sbin/zramswap
+    systemctl enable zramswap.service
 }
-export -f debian_zswap_init3
+export -f debian_zswap_init
 
 debian_zswap_init2() {
     local size_mb=$(($1*1024*1024))
@@ -315,7 +318,7 @@ EOF
 }
 export -f debian_zswap_init2
 
-debian_zswap_init() {
+debian_zswap_init3() {
     local zram_size=$1
     local cfg=
     # "Enable udisk2 ${zram_size}M zram swap"
@@ -342,7 +345,7 @@ ZRAM_DEV_SIZE=$((${zram_size}*1024*1024))
 SWAP=y
 EOF
 }
-export -f debian_zswap_init
+export -f debian_zswap_init3
 
 debian_vim_init() {
     apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install vim
