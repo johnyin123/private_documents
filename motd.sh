@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION+=("6e46805[2022-03-16T14:38:31+08:00]:motd.sh")
+VERSION+=("423a7cb[2022-03-17T09:17:41+08:00]:motd.sh")
 date=$(date "+%F %T")
 kernel=$(uname -r)
 hostname=${HOSTNAME:-$(hostname)}
@@ -34,12 +34,12 @@ product="$(cat /sys/class/dmi/id/product_name 2>/dev/null)"
 [[ -r /etc/os-release ]] && source /etc/os-release
 head="$PRETTY_NAME ($date)"
 
-echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+printf "%s\n" "==============================================================================="
 [ -f "/etc/logo.txt" ] && logo=/etc/logo.txt || logo=/dev/null
 exec {FD}<${logo}
 {
     printf "$head\n"
-    printf "%s\n" "----------------------------------------------"
+    printf "%s\n" "-----------------------------------------------------------"
     printf "Product name:       %s\n" "$product"
     printf "Serial number:      %s\n" "$serial"
     printf "Kernel Version:     %s\n" "$kernel"
@@ -51,14 +51,14 @@ exec {FD}<${logo}
     printf "Login Users:        %s\n" $users
     printf "User:               %s\n" $USER
     printf "Processes:          %s\n" $processes
-    printf "%s\n" "---------------------------------------------"
+    printf "%s\n" "-----------------------------------------------------------"
     printf "Filesystem          Total     Usage\n"
     for f in $Filesystem
     do
         Usage=$(timeout 3 df -h | awk '{if($NF=="'''$f'''") printf "%-10s%s",$2,$5}')
         printf "%-20s%s\n" $f "$Usage"
     done
-    printf "%s\n" "---------------------------------------------"
+    printf "%s\n" "-----------------------------------------------------------"
     printf "Interface           MAC Address         IP Address\n"
     for i in $INTERFACES
     do
@@ -80,4 +80,4 @@ exec {FD}<${logo}
     printf "%-$((60+len-slen))s%s\033[m\n" "$line" "$line2"
 done
 exec {FD}>&-
-echo "++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++"
+printf "%s\n" "==============================================================================="
