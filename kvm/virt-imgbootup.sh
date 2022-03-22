@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("aa2c5fc[2022-03-09T08:26:03+08:00]:virt-imgbootup.sh")
+VERSION+=("6ba5314[2022-03-11T09:18:54+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -34,6 +34,7 @@ ${SCRIPTNAME}
                         Bus [hostbus] Device [hostaddr]: ID VENDOR_ID:PRODUCT_ID .....
         --cdrom     <iso>     iso file
         --fda       <file>    floppy disk file
+        --serial    <tcp port>  serial listen 127.0.0.1:<tcp port>
         --sound     Enable soundhw hda
         --uefi      <file>    uefi bios file
                     /usr/share/qemu/OVMF.fd
@@ -79,7 +80,7 @@ main() {
 
     local cpu=1 mem=2048 disk=() bridge=() fmt="" cdrom="" floppy="" usb=() simusb=() pci_bus_addr=() daemonize=no
     local opt_short="c:m:D:b:f:"
-    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,usb:,simusb:,pci:,sound,daemonize,uefi:,"
+    local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,serial:,usb:,simusb:,pci:,sound,daemonize,uefi:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -96,6 +97,7 @@ main() {
             --pci)          shift; pci_bus_addr+=("${1}"); shift;;
             --cdrom)        shift; cdrom=${1}; shift;;
             --fda)          shift; floppy=${1}; shift;;
+            --serial)       shift; options+=("-serial" "tcp:127.0.0.1:${1},server,nowait"); shift;;
             --sound)        shift; options+=("-soundhw" "hda");;
             --uefi)         shift; options+=("-bios" "${1}"); shift;;
             --daemonize)    shift; daemonize=yes;;
