@@ -1,5 +1,7 @@
 #!/bin/bash
 set -u -e -o pipefail
+# # filter string
+# iptables -I INPUT 1 -p tcp --dport 80 -m string --string "Chrome/34.0.1847.131" --algo kmp -j DROP
 # # redirect multiple port
 # iptables -t nat -I PREROUTING -i eth0 -d <yourIP/32> -p udp -m multiport --dports 53,80,4444  -j REDIRECT --to-ports 15351
 ########################################
