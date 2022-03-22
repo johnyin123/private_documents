@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("093ddbd[2022-03-18T13:18:10+08:00]:os_centos_init.sh")
+VERSION+=("a712cd5[2022-03-21T13:48:15+08:00]:os_centos_init.sh")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -377,3 +377,10 @@ EOF
 }
 export -f centos_zramswap_init2
 
+centos_versionlock () {
+    local pkg=${1}
+    yum -y -q list installed yum-versionlock || yum -y install yum-versionlock
+    yum versionlock add ${pkg}
+    #yum versionlock list httpd
+}
+export -f centos_versionlock

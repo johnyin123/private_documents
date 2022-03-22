@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6aad125[2022-01-26T13:29:26+08:00]:ffmpeg.sh")
+VERSION+=("b750249[2022-01-27T17:40:06+08:00]:ffmpeg.sh")
 ################################################################################
 
 name=${1:?input err}
@@ -16,7 +16,7 @@ scale=${scale:--1:720}
 ffmpeg -i ${name} 2>&1 | grep Stream
 
 # pv -f -F 'Converted: %b Elapsed: %t Current: %r Average: %a %p %e' "${name}" | ffmpeg -i pipe:0 \
-ffmpeg -i ${name} -v error -map 0:a:? -map 0:s:? -map 0:v:? -vf scale=${scale} -c:v libx265 -crf 18 \
+ffmpeg -hwaccel auto -i ${name} -v error -map 0:a:? -map 0:s:? -map 0:v:? -vf scale=${scale} -c:v libx265 -crf 18 \
     -c:a copy -c:s copy ${name%.*}.convert.${name##*.}
 
 # ffmpeg -i ${name} -map 0:a -map 0:s -map 0:v -vf scale=-1:720 -c:v libx264 -crf 18 \
