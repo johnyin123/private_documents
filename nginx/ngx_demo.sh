@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("08c4081[2022-03-07T08:34:49+08:00]:ngx_demo.sh")
+VERSION+=("6fdcd09[2022-03-23T07:04:12+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3841,28 +3841,27 @@ mail {
 
     proxy_pass_error_message on;
 
-    ssl                 on;
     ssl_certificate     /etc/nginx/ssl/test.pem;
     ssl_certificate_key /etc/nginx/ssl/test.key;
     ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
     ssl_ciphers         HIGH:!aNULL:!MD5;
-    ssl_session_cache   shared:SSL:10m;
+    ssl_session_cache   shared:MAILSSL:10m;
     ssl_session_timeout 10m;
 
     server {
-        listen     25;
+        listen     25 ssl;
         protocol   smtp;
         smtp_auth  login plain cram-md5;
     }
 
     server {
-        listen    110;
+        listen    110 ssl;
         protocol  pop3;
         pop3_auth plain apop cram-md5;
     }
 
      server {
-        listen   143;
+        listen   143 ssl;
         protocol imap;
     }
 }
