@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("85a8f87[2021-08-20T15:20:54+08:00]:s905_debootstrap.sh")
+VERSION+=("b541212[2022-03-08T16:01:00+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -22,7 +22,7 @@ FS_TYPE=${FS_TYPE:-ext4}
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,babeld,ifenslave,vlan"
 PKG="${PKG},parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server,netcat-openbsd"
-PKG+=",systemd-container nftables"
+PKG+=",systemd-container,nftables"
 #[[ ${INST_ARCH} = "amd64" ]] && PKG="${PKG},linux-image-amd64"
 
 if [ "$UID" -ne "0" ]
