@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b541212[2022-03-08T16:01:00+08:00]:s905_debootstrap.sh")
+VERSION+=("d20b786[2022-03-25T16:27:42+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -58,7 +58,7 @@ LABEL=${ROOT_LABEL}    /    ${FS_TYPE}    defaults,errors=remount-ro,noatime    
 LABEL=${BOOT_LABEL}    /boot    vfat    ro    0    2
 tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
 tmpfs /run      tmpfs   rw,nosuid,noexec,relatime,mode=755  0  0
-tmpfs /tmp      tmpfs   rw,nosuid,noexec,relatime,mode=777  0  0
+tmpfs /tmp      tmpfs   rw,nosuid,relatime,mode=777  0  0
 # overlayfs can not nfs exports, so use tmpfs
 tmpfs /media    tmpfs   defaults,size=1M  0  0
 EOF
@@ -756,6 +756,18 @@ apt install --no-install-recommends lightdm xserver-xorg-core xinit xserver-xorg
 apt install --no-install-recommends mpv smplayer qt4-qtconfig libqt4-opengl
 ldconfig
 
+cat <<EOF > /etc/X11/xorg.conf.d/20-lima.conf
+Section "ServerFlags"
+    Option "AutoAddGPU" "off"
+    Option "Debug" "dmabuf_capable"
+EndSection
+Section "OutputClass"
+    Identifier "Lima"
+    MatchDriver "meson"
+    Driver "modesetting"
+    Option "PrimaryGPU" "true"
+EndSection
+EOF
 
   1 bluetooth
     hciconfig hci1 name "test"
