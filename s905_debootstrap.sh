@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2ccaed1[2022-04-07T18:02:05+08:00]:s905_debootstrap.sh")
+VERSION+=("1ca2971[2022-04-10T10:10:38+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -20,14 +20,17 @@ ROOT_LABEL="EMMCROOT"
 FS_TYPE=${FS_TYPE:-ext4}
 
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
-PKG="${PKG},udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,babeld,ifenslave,vlan"
-PKG="${PKG},parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server,netcat-openbsd"
+PKG+=",udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,babeld,ifenslave,vlan"
+PKG+=",parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server,netcat-openbsd"
 PKG+=",systemd-container,nftables"
-#[[ ${INST_ARCH} = "amd64" ]] && PKG="${PKG},linux-image-amd64"
+PKG+=",cron,logrotate,bsdmainutils,rsyslog,openssh-client,wget,ntpdate,less,wireless-tools,file,fonts-droid-fallback,lsof,strace,rsync"
+PKG+=",xz-utils,zip,udisks2"
+# # xfce
+PKG+=",alsa-utils,pulseaudio,pulseaudio-utils,smplayer,smplayer-l10n,mpg123,lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xfce4,xfce4-terminal,xserver-xorg-input-all,pavucontrol"
 
 if [ "$UID" -ne "0" ]
-then 
-    echo "Must be root to run this script." 
+then
+    echo "Must be root to run this script."
     exit 1
 fi
 
@@ -37,8 +40,8 @@ mkdir -p ${DIRNAME}/cache
 #HOSTNAME="s905d3"
 #HOSTNAME="usbpc"
 DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
-    INST_ARCH=${INST_ARCH:-arm64} \
-    REPO=${REPO:-http://mirrors.163.com/debian} \
+    INST_ARCH=arm64 \
+    REPO=${REPO:-http://mirrors.aliyun.com/debian} \
     HOSTNAME="s905d2" \
     NAME_SERVER=114.114.114.114 \
     PASSWORD=password \
@@ -53,7 +56,53 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /bin/bash <<EOSHELL
     debian_vim_init
     debain_overlay_init
 
-    cat > /etc/fstab << EOF
+# cat << EOF > /etc/modprobe.d/brcmfmac.conf
+# options brcmfmac p2pon=1
+# EOF
+# if start p2p device so can not start ap & sta same time
+
+#漫游
+# cat << EOF > /etc/modprobe.d/brcmfmac.conf
+# options brcmfmac roamoff=1
+# EOF
+
+#echo "修改systemd journald日志存放目录为内存，也就是/run/log目录，限制最大使用内存空间64MB"
+
+#sed -i 's/#Storage=auto/Storage=volatile/' /etc/systemd/journald.conf
+#sed -i 's/#RuntimeMaxUse=/RuntimeMaxUse=64M/' /etc/systemd/journald.conf
+
+systemctl mask systemd-machine-id-commit.service
+
+apt update
+apt -y remove ca-certificates wireless-regdb crda --purge
+apt -y autoremove --purge
+# fix lightdm
+touch /var/lib/lightdm/.Xauthority || true
+chown lightdm:lightdm /var/lib/lightdm/.Xauthority || true
+
+# add lima xorg.conf
+mkdir -p /etc/X11/xorg.conf.d/
+cat <<EOF > /etc/X11/xorg.conf.d/20-lima.conf
+Section "ServerFlags"
+    Option "AutoAddGPU" "off"
+    Option "Debug" "dmabuf_capable"
+EndSection
+Section "OutputClass"
+    Identifier "Lima"
+    MatchDriver "meson"
+    Driver "modesetting"
+    Option "PrimaryGPU" "true"
+EndSection
+EOF
+# pulseaudio --start for root
+sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.service
+sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.socket
+
+/bin/umount /dev/pts
+exit
+EOSHELL
+
+cat > ${DIRNAME}/buildroot/etc/fstab << EOF
 LABEL=${ROOT_LABEL}    /    ${FS_TYPE}    defaults,errors=remount-ro,noatime    0    1
 LABEL=${BOOT_LABEL}    /boot    vfat    ro    0    2
 tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
@@ -63,19 +112,19 @@ tmpfs /tmp      tmpfs   rw,nosuid,relatime,mode=777  0  0
 tmpfs /media    tmpfs   defaults,size=1M  0  0
 EOF
 
-    # auto reformatoverlay plug usb ttl
-    cat > /etc/udev/rules.d/99-reformatoverlay.rules << EOF
+# auto reformatoverlay plug usb ttl
+cat > ${DIRNAME}/buildroot/etc/udev/rules.d/99-reformatoverlay.rules << EOF
 SUBSYSTEM=="tty", ACTION=="add", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'touch /overlay/reformatoverlay; echo heartbeat > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
 SUBSYSTEM=="tty", ACTION=="remove", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'rm /overlay/reformatoverlay; echo none > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
 EOF
 
-    # auto mount usb storage (readonly)
-    cat > /etc/udev/rules.d/98-usbmount.rules << EOF
+# auto mount usb storage (readonly)
+cat > ${DIRNAME}/buildroot/etc/udev/rules.d/98-usbmount.rules << EOF
 # udevadm control --reload-rules
 SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="add", RUN+="/bin/systemctl start usb-mount@%k.service"
 SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/bin/systemctl stop usb-mount@%k.service"
 EOF
-    cat > /usr/lib/systemd/system/usb-mount@.service <<EOF
+    cat > ${DIRNAME}/buildroot/usr/lib/systemd/system/usb-mount@.service <<EOF
 [Unit]
 Description=auto mount block %i
 
@@ -87,193 +136,236 @@ EOF
 # end auto mount usb storage (readonly)
 
 # enable ttyAML0 login
-echo "ttyAML0" >> /etc/securetty
+echo "ttyAML0" >> ${DIRNAME}/buildroot/etc/securetty
 
 # export nfs
 # no_root_squash(enable root access nfs)
-cat > /etc/exports << EOF
+cat > ${DIRNAME}/buildroot/etc/exports << EOF
 /media/       192.168.168.0/24(ro,sync,no_subtree_check,crossmnt,nohide,no_root_squash,no_all_squash,fsid=0)
 EOF
 
-cat << EOF > /etc/network/interfaces
+cat << EOF > ${DIRNAME}/buildroot/etc/network/interfaces
 source /etc/network/interfaces.d/*
 # The loopback network interface
 auto lo
 iface lo inet loopback
 EOF
 
-cat << EOF > /etc/network/interfaces.d/br-ext
+cat << EOF > ${DIRNAME}/buildroot/etc/network/interfaces.d/br-ext
 auto eth0
 allow-hotplug eth0
 iface eth0 inet manual
 
 auto br-ext
-iface br-ext inet static
+
+mapping br-ext
+    script /etc/johnyin/wifi_mode.sh
+    map s905d3
+    map s905d2
+    map usbpc
+
+iface s905d2 inet static
     bridge_ports eth0
-    address 192.168.168.168/24
-    #gateway 192.168.168.1
+    address 192.168.168.2/24
+
+iface s905d3 inet static
+    bridge_ports eth0
+    address 192.168.168.3/24
+
+iface usbpc inet static
+    bridge_ports eth0
+    address 192.168.168.101/24
+
+# post-up ip rule add from 192.168.168.0/24 table out.168
+# post-up ip rule add to 192.168.168.0/24 table out.168
+# post-up ip route add default via 192.168.168.1 dev br-ext table out.168
+# post-up ip route add 192.168.168.0/24 dev br-ext src 192.168.168.2 table out.168
 EOF
 
-cat << "EOF" > /etc/network/interfaces.d/wifi
+cat << "EOF" > ${DIRNAME}/buildroot/etc/network/interfaces.d/wifi
 auto wlan0
 allow-hotplug wlan0
 
-iface wlan0 inet static
-    wpa_conf /etc/wpa_supplicant/ap.conf
-    address 192.168.1.1/24
+mapping wlan0
+    script /etc/johnyin/wifi_mode.sh
+    map work
+    map home
+    map adhoc
+    map ap
+    map ap0
+    map initmode
 
-iface work inet dhcp
-    wpa_conf /etc/wpa_supplicant/work.conf
-
-iface home inet dhcp
-    wpa_conf /etc/wpa_supplicant/home.conf
+iface ap0 inet manual
+    hostapd /run/hostapd.ap0.conf
+    # INTERFACE BRIDGE SSID PASSPHRASE IS_5G HIDDEN_SSID
+    pre-up (/etc/johnyin/gen_hostapd.sh ap0 br-int "$(cat /etc/hostname)" "password123" 1 1 || true)
+    pre-up (/etc/johnyin/gen_udhcpd.sh br-int || true)
+    pre-up (/usr/sbin/iw phy `/usr/bin/ls /sys/class/ieee80211/` interface add ap0 type __ap)
+    #pre-up (/usr/sbin/ifup work || true)
+    #post-up (/usr/sbin/iptables-restore < /etc/iptables.rules || true)
+    post-up (/etc/johnyin/ap.ruleset || true)
+    post-up (/usr/bin/touch /var/run/udhcpd.leases || true)
+    post-up (/usr/bin/busybox udhcpd -S /run/udhcpd.conf || true)
+    pre-down (/usr/bin/kill -9 $(cat /var/run/udhcpd-wlan0.pid) || true)
+    pre-down (/usr/bin/kill -9 $(cat /run/hostapd.ap0.pid) || true)
+    post-down (/usr/sbin/iw dev ap0 del)
 
 iface ap inet manual
-    hostapd /etc/hostapd/ap.conf
-    pre-up (touch /var/lib/misc/udhcpd.leases || true)
-    post-up (iptables-restore < /etc/iptables.rules || true)
-    post-up (/usr/bin/busybox udhcpd -S || true)
-    pre-down (/usr/bin/kill -9 \$(cat /var/run/udhcpd-wlan0.pid) || true)
+    hostapd /run/hostapd.wlan0.conf
+    pre-up (/etc/johnyin/gen_hostapd.sh wlan0 br-int "$(cat /etc/hostname)" "password123" 0 1 || true)
+    pre-up (/etc/johnyin/gen_udhcpd.sh br-int || true)
+    pre-up (/usr/bin/touch /var/run/udhcpd.leases || true)
+    #post-up (/usr/sbin/iptables-restore < /etc/iptables.rules || true)
+    post-up (/etc/johnyin/ap.ruleset || true)
+    post-up (/usr/bin/busybox udhcpd -S /run/udhcpd.conf || true)
+    pre-down (/usr/bin/kill -9 $(cat /run/hostapd.wlan0.pid) || true)
+    pre-down (/usr/bin/kill -9 $(cat /var/run/udhcpd-wlan0.pid) || true)
+
+iface work inet manual
+    wpa_iface wlan0
+    wpa_conf /etc/johnyin/work.conf
+    post-up (/usr/sbin/dhclient -v -pf /run/dhclient.wlan0.pid -lf /run/dhclient.wlan0.lease wlan0 || true)
+    pre-down (/usr/bin/kill -9 $(cat /run/dhclient.wlan0.pid ) || true)
+    post-up (/usr/sbin/ifup ap0 || true)
+    pre-down (/usr/sbin/ifdown ap0 || true)
+
+iface home inet manual
+    wpa_iface wlan0
+    wpa_conf /etc/johnyin/home.conf
+    post-up (/usr/sbin/dhclient -v -pf /run/dhclient.wlan0.pid -lf /run/dhclient.wlan0.lease  wlan0 || true)
+    pre-down (/usr/bin/kill -9 $(cat /run/dhclient.wlan0.pid ) || true)
+    post-up (/usr/sbin/ifup ap0 || true)
+    pre-down (/usr/sbin/ifdown ap0 || true)
 
 iface adhoc inet manual
     wpa_driver wext
-    wpa_conf /etc/wpa_supplicant/adhoc.conf
-    # /usr/sbin/batctl -m wifi-mesh0 if add \$IFACE
+    wpa_conf /etc/johnyin/adhoc.conf
     post-up (/usr/sbin/ip link add name wifi-mesh0 type batadv || true)
-    post-up (/usr/sbin/ip link set dev \$IFACE master wifi-mesh0 || true) 
+    post-up (/usr/sbin/ip link set dev $IFACE master wifi-mesh0 || true)
     post-up (/usr/sbin/ip link set dev wifi-mesh0 master br-ext || true)
     post-up (/usr/sbin/ip link set dev wifi-mesh0 up || true)
-    pre-down (/usr/sbin/ip link set dev \$IFACE nomaster || true)
+    pre-down (/usr/sbin/ip link set dev $IFACE nomaster || true)
     pre-down (/usr/sbin/ip link del wifi-mesh0 || true)
-    #batctl -m wifi-mesh0 if del \$IFACE
+
+iface initmode inet static
+    wpa_iface wlan0
+    wpa_conf /etc/johnyin/initmode.conf
+    address 192.168.1.1/24
 EOF
 
-cat << EOF > /etc/hostapd/ap.conf
-interface=wlan0
-bridge=br-ext
-logger_syslog=-1
-logger_syslog_level=2
-logger_stdout=-1
-logger_stdout_level=2
-ctrl_interface=/var/run/hostapd
-ctrl_interface_group=0
-# hw_mode=a             # a simply means 5GHz
-# channel=0             # the channel to use, 0 means the AP will search for the channel with the least interferences 
-# ieee80211d=1          # limit the frequencies used to those allowed in the country
-# country_code=FR       # the country code
-# ieee80211n=1          # 802.11n support
-# ieee80211ac=1         # 802.11ac support
-# wmm_enabled=1         # QoS support
-
-ssid=s905d2
-macaddr_acl=0
-#accept_mac_file=/etc/hostapd.accept
-#deny_mac_file=/etc/hostapd.deny
-auth_algs=1
-# 采用 OSA 认证算法 
-ignore_broadcast_ssid=0 
-wpa=3
-# 指定 WPA 类型 
-wpa_key_mgmt=WPA-PSK             
-wpa_pairwise=TKIP 
-rsn_pairwise=CCMP 
-wpa_passphrase=password123
-# 连接 ap 的密码 
-
-driver=nl80211
-# 设定无线驱动 
-hw_mode=g
-# 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g 
-channel=9
-# 指定无线频道 
+cat << EOF > ${DIRNAME}/buildroot/etc/network/interfaces.d/br-int
+auto br-int
+iface br-int inet static
+    bridge_ports none
+    address 192.168.167.1/24
 EOF
 
-cat << EOF > /etc/wpa_supplicant/work.conf
-#mulit ap support!
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-#ap_scan=1
+cat << EOF > ${DIRNAME}/buildroot/etc/network/interfaces.d/pppoe
+# auto myadsl
+# iface myadsl inet ppp
+#     pre-up /sbin/ip link set dev eth0 up
+#     provider myadsl
+#
 
-network={
-    id_str="work"
-    priority=100
-    scan_ssid=1
-    ssid="xk-admin"
-    #key_mgmt=wpa-psk
-    psk="ADMIN@123"
+# sample /etc/ppp/peers/dsl-provider
+# cat >/etc/ppp/peers/myadsl <<EOF
+# # Use Roaring Penguin's PPPoE implementation.
+# plugin rp-pppoe.so eth0
+#
+# # Login settigns.
+# user "username"
+# noauth
+# hide-password
+#
+# # Connection settings.
+# persist
+# maxfail 0
+# holdoff 5
+#
+# # LCP settings.
+# lcp-echo-interval 10
+# lcp-echo-failure 3
+#
+# # PPPoE compliant settings.
+# noaccomp
+# default-asyncmap
+# mtu 1492
+#
+# # IP settings.
+# noipdefault
+# defaultroute
+# EOF
+#
+# cat >/etc/ppp/chap-secrets <<EOF
+# username * my-password *
+# EOF
+EOF
+
+mkdir -p ${DIRNAME}/buildroot/etc/johnyin
+cat << EO_DOC > ${DIRNAME}/buildroot/etc/johnyin/ap.ruleset
+#!/usr/sbin/nft -f
+flush ruleset
+
+table ip nat {
+	chain PREROUTING {
+		type nat hook prerouting priority -100; policy accept;
+	}
+
+	chain INPUT {
+		type nat hook input priority 100; policy accept;
+	}
+
+	chain POSTROUTING {
+		type nat hook postrouting priority 100; policy accept;
+		ip saddr 192.168.167.0/24 ip daddr != 192.168.167.0/24 counter packets 0 bytes 0 masquerade
+	}
+
+	chain OUTPUT {
+		type nat hook output priority -100; policy accept;
+	}
 }
-EOF
-cat << EOF > /etc/wpa_supplicant/home.conf
-#mulit ap support!
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-#ap_scan=1
+table ip filter {
+	chain INPUT {
+		type filter hook input priority 0; policy accept;
+	}
 
-network={
-    id_str="home"
-    priority=90
-    scan_ssid=1
-    ssid="johnap"
-    #key_mgmt=wpa-psk
-    psk="Admin@123"
-    #disabled=1
+	chain FORWARD {
+		type filter hook forward priority 0; policy accept;
+		meta l4proto tcp tcp flags & (syn|rst) == syn counter packets 0 bytes 0 tcp option maxseg size set rt mtu
+	}
+
+	chain OUTPUT {
+		type filter hook output priority 0; policy accept;
+	}
 }
-EOF
+EO_DOC
+chmod 755 ${DIRNAME}/buildroot/etc/johnyin/ap.ruleset
 
-cat << EOF > /etc/wpa_supplicant/ap.conf
-#mulit ap support!
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-#ap_scan=1
+cat << 'EO_DOC' > ${DIRNAME}/buildroot/etc/johnyin/gen_udhcpd.sh
+#!/bin/sh
+set -e
+export LANG=C
 
-network={
-    id_str="ap"
-    priority=70
-    #frequency=60480
-    ssid="s905d2"
-    mode=2
-    key_mgmt=NONE
-    #key_mgmt=WPA-PSK
-    #proto=WPA
-    #pairwise=TKIP
-    #group=TKIP
-    #psk="password"
-}
-EOF
+if [ `id -u` -ne 0 ]; then exit 1; fi
 
-cat << EOF > /etc/wpa_supplicant/adhoc.conf
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-ap_scan=2
+INTERFACE=${1:-wlan0}
+eval `/usr/sbin/ifquery ${INTERFACE} 2>/dev/null | /usr/bin/awk '/address:/{ print "ADDRESS="$2} /netmask:/{ print "MASK="$2}'`
+ADDRESS=${ADDRESS:-192.168.0.1}
+MASK=${MASK:-255.255.255.0}
 
-#adhoc/IBSS
-# wpa_supplicant -cwpa-adhoc.conf -iwlan0 -Dwext
-# iw wlan0 set type ibss
-# ifconfig wlan0 up
-# iw wlan0 ibss join johnyin 2427
-network={
-    id_str="adhoc"
-    priority=90
-    ssid="johnyin"
-    frequency=2412
-    mode=1
-    key_mgmt=NONE
-}
-EOF
-
-cat << EOF > /etc/udhcpd.conf
-start           192.168.168.100
-end             192.168.168.150
-interface       br-ext
+cat > /run/udhcpd.conf <<EOF
+interface       ${INTERFACE}
+start           ${ADDRESS%.*}.100
+end             ${ADDRESS%.*}.150
+option  subnet  ${MASK}
+opt     router  ${ADDRESS}
+opt     dns     114.114.114.114
 max_leases      45
-lease_file      /var/lib/misc/udhcpd.leases
+lease_file      /var/run/udhcpd.leases
 pidfile         /var/run/udhcpd-wlan0.pid
 option  domain  local
-option  lease   864000
-option  subnet  255.255.255.0
+option  lease   86400
 # Currently supported options, for more info, see options.c
-opt     dns     114.114.114.114
-opt     router  192.168.168.1
 #opt subnet
 #opt timezone
 #opt timesvr
@@ -297,55 +389,247 @@ opt     router  192.168.168.1
 # siaddr          192.168.1.2
 # boot_file       pxelinux.0
 EOF
+EO_DOC
+chmod 755 ${DIRNAME}/buildroot/etc/johnyin/gen_udhcpd.sh
 
-# cat << EOF > /etc/modprobe.d/brcmfmac.conf 
-# options brcmfmac p2pon=1
-# EOF
-# if start p2p device so can not start ap & sta same time
+cat << 'EO_DOC' > ${DIRNAME}/buildroot/etc/johnyin/gen_hostapd.sh
+#!/bin/sh
+set -e
+export LANG=C
 
-#漫游
-# cat << EOF > /etc/modprobe.d/brcmfmac.conf 
-# options brcmfmac roamoff=1
-# EOF
+if [ `id -u` -ne 0 ]; then exit 1; fi
+
+INTERFACE=${1:-wlan0}
+BRIDGE=${2:-br-int}
+SSID=${3:-$(cat /etc/hostname)}
+PASSPHRASE=${4:-password123}
+IS_5G=${5:-1}
+IGNORE_BROADCAST_SSID=${6:-1}
+
+cat > /run/hostapd.${INTERFACE}.conf <<EOF
+interface=${INTERFACE}
+bridge=${BRIDGE}
+ssid=${SSID}
+wpa_passphrase=${PASSPHRASE}
+ignore_broadcast_ssid=${IGNORE_BROADCAST_SSID}
+
+utf8_ssid=1
+logger_syslog=-1
+logger_syslog_level=2
+logger_stdout=-1
+logger_stdout_level=2
+ctrl_interface=/var/run/hostapd
+ctrl_interface_group=0
+
+macaddr_acl=0
+#accept_mac_file=/etc/hostapd.accept
+#deny_mac_file=/etc/hostapd.deny
+
+auth_algs=1
+# 采用 OSA 认证算法
+wpa=2
+# 指定 WPA 类型
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+rsn_pairwise=CCMP
+
+driver=nl80211
+# 设定无线驱动
+EOF
+
+if [ "${IS_5G}" = 0 ]; then
+    cat >> /run/hostapd.${INTERFACE}.conf <<EOF
+# hw_mode=g
+# 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g
+channel=4
+# 指定无线频道
+EOF
+    exit 0
+fi
+cat >> /run/hostapd.${INTERFACE}.conf <<EOF
+hw_mode=a
+# 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g
+channel=44
+# 指定无线频道
+
+wmm_enabled=1         # QoS support
+#obss_interval=300
+ieee80211n=1
+require_ht=1
+ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40][DSSS_CCK-40]
+ieee80211ac=1         # 802.11ac support
+require_vht=1
+#vht_oper_chwidth=0
+#vht_capab=[SHORT-GI-80][SU-BEAMFORMEE]
+#个别N1无法使用[SU-BEAMFORMEE] ，请在下面行中自行去除
+vht_capab=[MAX-MPDU-3895][SHORT-GI-80][SU-BEAMFORMEE]
+vht_oper_chwidth=1
+vht_oper_centr_freq_seg0_idx=42
+#beacon_int=50
+#dtim_period=20
+basic_rates=60 90 120 180 240 360 480 540
+disassoc_low_ack=0
+EOF
+EO_DOC
+chmod 755 ${DIRNAME}/buildroot/etc/johnyin/gen_hostapd.sh
+
+cat << 'EO_DOC' > ${DIRNAME}/buildroot/etc/johnyin/wifi_mode.sh
+#!/bin/sh
+set -e
+export LANG=C
+MODE_CONF=/etc/wifi_mode.conf
+if [ `id -u` -ne 0 ] || [ "$1" = "" ]; then exit 1; fi
+#no config wifi_mode.conf default use "initmode"
+[ -r "${MODE_CONF}" ] || {
+    cat >"${MODE_CONF}" <<-EOF
+# wifi mode select
+# station=work
+# station=home
+
+# 5G on ap0(virtual device)
+# station=ap0
+
+# 2.4G on wlan0
+# station=ap
+
+# adhoc create adhoc mesh network and bridge it.
+# station=adhoc
+
+# initmode no dhcpd no secret ap 192.168.1.1/24
+station=initmode
+EOF
+}
+. ${MODE_CONF}
+case "$1" in
+    wlan0)
+        /usr/sbin/iw ${2} set power_save off >/dev/null 2>&1 || true
+        echo ${station:-initmode}
+        ;;
+    br-ext)
+        # hostname must in (s905d2/s905d3/usbpc)
+        cat /etc/hostname
+        ;;
+esac
+exit 0
+EO_DOC
+chmod 755 ${DIRNAME}/buildroot/etc/johnyin/wifi_mode.sh
+
+cat << EO_DOC > ${DIRNAME}/buildroot/etc/johnyin/adhoc.conf
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+#update_config=1
+ap_scan=2
+
+#adhoc/IBSS
+# wpa_supplicant -cwpa-adhoc.conf -iwlan0 -Dwext
+# iw wlan0 set type ibss
+# ifconfig wlan0 up
+# iw wlan0 ibss join johnyin 2427
+network={
+    id_str="adhoc"
+    priority=90
+    ssid="johnyin"
+    frequency=2412
+    mode=1
+    key_mgmt=NONE
+}
+EO_DOC
+cat << EO_DOC > ${DIRNAME}/buildroot/etc/johnyin/home.conf
+#mulit ap support!
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+#update_config=1
+#ap_scan=1
+
+network={
+    id_str="home"
+    priority=100
+    scan_ssid=1
+    ssid="s905d03"
+    # ssid="yangchuang" psk="89484545"
+    #key_mgmt=wpa-psk
+    psk="Admin@123"
+    #disabled=1
+}
+EO_DOC
+cat << EO_DOC > ${DIRNAME}/buildroot/etc/johnyin/initmode.conf
+#mulit ap support!
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+#update_config=1
+#ap_scan=1
+
+network={
+    id_str="admin"
+    priority=70
+    #frequency=60480
+    ssid="s905d-admin"
+    mode=2
+    key_mgmt=NONE
+}
+EO_DOC
+cat << EO_DOC > ${DIRNAME}/buildroot/etc/johnyin/p2p.conf
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+#update_config=1
+#wpa_cli p2p_group_add persistent=0
+#wpa_cli p2p_group_add persistent=1
+network={
+    id_str="p2p-client"
+    ssid="DIRECT-S905D"
+    bssid=ca:ff:ee:ba:be:d0
+    psk="hqZ532yoxxoo"
+    proto=RSN
+    key_mgmt=WPA-PSK
+    pairwise=CCMP
+    auth_alg=OPEN
+    disabled=2
+}
+
+network={
+    id_str="p2p-go"
+    ssid="DIRECT-S905D"
+    bssid=ca:ff:ee:ba:be:d0
+    psk="hqZ532yoxxoo"
+    proto=RSN
+    key_mgmt=WPA-PSK
+    pairwise=CCMP
+    auth_alg=OPEN
+    disabled=2
+    mode=3
+#p2p_client_list=76:2f:4e:ee:3f:dc
+}
+EO_DOC
+cat << EO_DOC > ${DIRNAME}/buildroot/etc/johnyin/work.conf
+#mulit ap support!
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+#ap_scan=1
+scan_cur_freq=1
+#Whether to scan only the current frequency
+# 0:  Scan all available frequencies. (Default)
+# 1:  Scan current operating frequency if another VIF on the same radio is already associated.
+
+network={
+    id_str="work"
+    priority=100
+    scan_ssid=1
+    ssid="xk-admin"
+    #key_mgmt=wpa-psk
+    psk="ADMIN@123"
+}
+EO_DOC
 
 echo "enable fw_printenv command"
-cat >/etc/fw_env.config <<EOF
+cat >${DIRNAME}/buildroot/etc/fw_env.config <<EOF
 # Device to access      offset          env size
 /dev/mmcblk1            0x27400000      0x10000
 EOF
 
-mkdir -p /etc/initramfs/post-update.d/
-
-cat>/etc/initramfs/post-update.d/99-uboot<<"EOF"
+mkdir -p ${DIRNAME}/buildroot/etc/initramfs/post-update.d/
+cat>${DIRNAME}/buildroot/etc/initramfs/post-update.d/99-uboot<<"EOF"
 #!/bin/sh
 echo "update-initramfs: Converting to u-boot format" >&2
-tempname="/boot/uInitrd-\$1"
-mkimage -A arm64 -O linux -T ramdisk -C gzip -n uInitrd -d \$2 \$tempname > /dev/null
+tempname="/boot/uInitrd-$1"
+mkimage -A arm64 -O linux -T ramdisk -C gzip -n uInitrd -d $2 $tempname > /dev/null
 exit 0
 EOF
-chmod 755 /etc/initramfs/post-update.d/99-uboot
-
-#echo "修改systemd journald日志存放目录为内存，也就是/run/log目录，限制最大使用内存空间64MB"
-
-#sed -i 's/#Storage=auto/Storage=volatile/' /etc/systemd/journald.conf
-#sed -i 's/#RuntimeMaxUse=/RuntimeMaxUse=64M/' /etc/systemd/journald.conf
-
-cat >/etc/profile.d/johnyin.sh<<"EOF"
-export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
-set -o vi
-EOF
-
-systemctl mask systemd-machine-id-commit.service
-
-apt update
-apt -y install --no-install-recommends cron logrotate bsdmainutils rsyslog openssh-client wget ntpdate less wireless-tools file fonts-droid-fallback lsof strace rsync
-apt -y install --no-install-recommends xz-utils zip
-apt -y remove ca-certificates wireless-regdb crda --purge
-apt -y autoremove --purge
-
-/bin/umount /dev/pts
-exit
-EOSHELL
+chmod 755 ${DIRNAME}/buildroot/etc/initramfs/post-update.d/99-uboot
 
 cat <<'EOF'>${DIRNAME}/buildroot/etc/motd
 1. edit /etc/wifi_mode.conf for wifi mode modify
@@ -439,6 +723,7 @@ trap "" EXIT HUP INT QUIT TERM
 # vi: ts=4 noexpandtab
 EOF
 chmod 755 ${DIRNAME}/buildroot/usr/bin/overlayroot-chroot
+
 
 echo "start install you kernel&patchs"
 if [ -d "${DIRNAME}/kernel" ]; then
@@ -568,346 +853,15 @@ echo "show reserved!!"
 false && dumpe2fs -b ${PART_ROOT}
 echo "Partition table (re-)initialized."
 EOF
-
-cat > ${DIRNAME}/buildroot/root/aptrom.sh <<EOF
-#!/usr/bin/env bash
-mount -o remount,rw /overlay/lower
-
-chroot /overlay/lower apt update
-chroot /overlay/lower apt install \$*
-
-rm -rf /overlay/lower/var/cache/apt/* /overlay/lower/var/lib/apt/lists/* /overlay/lower/var/log/*
-rm -rf /overlay/lower/root/.bash_history /overlay/lower/root/.viminfo /overlay/lower/root/.vim/
-cat ~/sources.list.bak > /overlay/lower/etc/apt/sources.list
-rm -f ~/sources.list.bak
-sync
-mount -o remount,ro /overlay/lower
-
-EOF
-
-cat >> ${DIRNAME}/buildroot/root/brige_wlan_eth.sh <<'SCRIPT_EOF'
-# bridge eth0 & wlan0 Same Subnet!!
-
-# parprouted  - Proxy ARP IP bridging daemon
-# dhcp-helper - A DHCP/BOOTP relay agent
-
-cat > /etc/default/dhcp-helper <<EOF
-DHCPHELPER_OPTS="-b wlan0"
-EOF
-
-# Create a helper script to get an adapter's IP address
-cat <<'EOF' >/usr/bin/get-adapter-ip
-#!/usr/bin/env bash
-
-/sbin/ip -4 -br addr show \${1} | /bin/grep -Po "\\d+\\.\\d+\\.\\d+\\.\\d+"
-EOF
-chmod +x /usr/bin/get-adapter-ip
-
-# I have to admit, I do not understand ARP and IP forwarding enough to explain
-# exactly what is happening here. I am building off the work of others. In short
-# this is a service to forward traffic from wlan0 to eth0
-cat <<'EOF' >/etc/systemd/system/parprouted.service
-[Unit]
-Description=proxy arp routing service
-Documentation=https://raspberrypi.stackexchange.com/q/88954/79866
-
-[Service]
-Type=forking
-# Restart until wlan0 gained carrier
-Restart=on-failure
-RestartSec=5
-TimeoutStartSec=30
-ExecStartPre=/lib/systemd/systemd-networkd-wait-online --interface=wlan0 --timeout=6 --quiet
-ExecStartPre=/bin/echo 'systemd-networkd-wait-online: wlan0 is online'
-# clone the dhcp-allocated IP to eth0 so dhcp-helper will relay for the correct subnet
-ExecStartPre=/bin/bash -c '/sbin/ip addr add \$(/usr/bin/get-adapter-ip wlan0)/32 dev eth0'
-ExecStartPre=/sbin/ip link set dev eth0 up
-ExecStartPre=/sbin/ip link set wlan0 promisc on
-ExecStart=-/usr/sbin/parprouted eth0 wlan0
-ExecStopPost=/sbin/ip link set wlan0 promisc off
-ExecStopPost=/sbin/ip link set dev eth0 down
-ExecStopPost=/bin/bash -c '/sbin/ip addr del \$(/usr/bin/get-adapter-ip eth0)/32 dev eth0'
-
-[Install]
-WantedBy=wpa_supplicant@wlan0.service
-EOF
-
-systemctl daemon-reload
-systemctl enable parprouted.service
-SCRIPT_EOF
-
-cat >> ${DIRNAME}/buildroot/root/inst.sh <<EOF_INSTSH
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-#update_config=1
-#wpa_cli p2p_group_add persistent=0
-#wpa_cli p2p_group_add persistent=1
-network={
-    id_str="p2p-client"
-    ssid="DIRECT-S905D"
-    bssid=ca:ff:ee:ba:be:d0
-    psk="hqZ532yoxxoo"
-    proto=RSN
-    key_mgmt=WPA-PSK
-    pairwise=CCMP
-    auth_alg=OPEN
-    disabled=2
-}
-
-network={
-    id_str="p2p-go"
-    ssid="DIRECT-S905D"
-    bssid=ca:ff:ee:ba:be:d0
-    psk="hqZ532yoxxoo"
-    proto=RSN
-    key_mgmt=WPA-PSK
-    pairwise=CCMP
-    auth_alg=OPEN
-    disabled=2
-    mode=3
-#p2p_client_list=76:2f:4e:ee:3f:dc
-}
-
-ip link set dev wlan0 address b8:be:ef:90:5d:02
-P2P 
-iw list | grep -A10 "valid interface combinations:"
-
- wpa_cli -ip2p-dev-wlan0 p2p_group_add persistent
- wpa_cli -i p2p-wlan0-0 p2p_find        wpa_cli -i p2p-dev-wlan0 p2p_find
- wpa_cli -i p2p-wlan0-0 p2p_peers       wpa_cli -i p2p-dev-wlan0 p2p_peers
-     wps_pbc                            p2p_connect EVM#1_MAC_ADDRESS pbc persistent join
- OR  
-     wps_pin any (<mac> 11111111)       p2p_connect <mac> 11111111 persistent join
-                                        
- ifconfig p2p-wlan0-0 172.16.16.1/24        ifconfig p2p-wlan0-0 172.16.16.2/24
-                                        
-                                        
- wpa_cli -ip2p-wlan0-0 p2p_group_remove p2p-wlan0-0
-
-To setup your autonomous group owner, started with p2p_group_add, with a custom ssid and password you have to make it persistent and have a network block inserted in /etc/wpa_supplicant/wpa_supplicant.conf. The easiest way to get the network block in wpa_supplicant.conf is to let it do wpa_supplicant itself. Just start the p2p group with p2p_group_add as usual but persistent and remove it just after that again:
-
-rpi ~$ wpa_cli -ip2p-dev-wlan0
-> p2p_group_add persistent
-> p2p_group_remove p2p-wlan0-0
-> quit
-rpi ~$
-Now you should find the persistent network block in /etc/wpa_supplicant/wpa_supplicant.conf. From my test it looks like this:
-
-ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
-update_config=1
-device_name=DIRECT-RasPi1
-p2p_go_ht40=1
-country=DE
-
-network={
-        ssid="DIRECT-Ca"
-        bssid=56:1d:c5:95:c2:e9
-        psk="yfmyjT8o"
-        proto=RSN
-        key_mgmt=WPA-PSK
-        pairwise=CCMP
-        auth_alg=OPEN
-        mode=3
-        disabled=2
-}
-Now just edit this and set ssid and psk as you like. When ready then restart your wpa_supplicant to make the change available.
-
-The first network block has number 0 and so on. Now start the persistent autonomous group owner by addressing this network block with:
-
-rpi ~$ wpa_cli -ip2p-dev-wlan0
-> p2p_group_add persistent=0 IFNAME=wlan2
-
-
-
-  BR -------> ap(dhcpd) <------- BR
-ap  eth0                     eth0  ap
-
-ifdown wlan0
-ifup wlan0=work    #
-ifup wlan0=home    #
-ifup wlan0=ap      #
-ifup wlan0=adhoc   # add wlan0(adhoc johnyin) to batman-adv wifi-mesh0 and add wifi-mesh0 to br-ext!
-#batman-adv
-$ ip link add name bat0 type batadv
-$ ip link set dev eth0 master bat0
-to deactivate an interface you have to detach it from the “bat0” interface:
-$ ip link set dev eth0 nomaster
-# change eth0 mac address!
-fw_setenv ethaddr 5a:57:57:00:df:4a
-if [ -d "/etc/ssh/" ] ; then
-  # Remove ssh host keys
-  rm -f /etc/ssh/ssh_host_*
-  systemctl stop sshd
-
-  # Regenerate ssh host keys
-  ssh-keygen -q -t rsa -N "" -f /etc/ssh/ssh_host_rsa_key
-  ssh-keygen -q -t dsa -N "" -f /etc/ssh/ssh_host_dsa_key
-  ssh-keygen -q -t ecdsa -N "" -f /etc/ssh/ssh_host_ecdsa_key
-  ssh-keygen -q -t ed25519 -N "" -f /etc/ssh/ssh_host_ed25519_key
-  systemctl start sshd
-fi
-
-if [ -d "/etc/dropbear/" ] ; then
-  # Remove ssh host keys
-  rm -f /etc/dropbear/dropbear_*
-  systemctl stop dropbear
-
-  # Regenerate ssh host keys
-  dropbearkey -t rsa -f /etc/dropbear/dropbear_rsa_host_key
-  dropbearkey -t dss -f /etc/dropbear/dropbear_dss_host_key
-  dropbearkey -t ecdsa -f /etc/dropbear/dropbear_ecdsa_host_key
-  systemctl start dropbear
-fi
-
-#create AP intreface
-iw phy phy0 interface add ap0 type __ap
-ifconfig ap0 down
-ifconfig ap0 hw ether 18:3F:47:95:DF:0B
-ifconfig ap0 up
-# Configure IP address for WLAN
-ifconfig ap0 192.168.150.1
-# Start DHCP/DNS server
-# Enable routing
-# sysctl net.ipv4.ip_forward=1
-# Enable NAT
-# iptables -t nat -A POSTROUTING -o wlan0 -j MASQUERADE
-# Run access point daemon
-# hostapd /etc/hostapd.conf
-
-iw wlan0 set type managed
-ip link set wlan0 up
-iw wlan0 scan
-iwconfig wlan0 essid s905d3
-iw wlan0 info
-ifconfig wlan0 192.168.168.100
-
-#led
-echo 0 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
-echo 255 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
-#get temp
-awk '{print \$1/1000}' /sys/class/hwmon/hwmon0/temp1_input
-journalctl -alb
-apt install --no-install-recommends  rsyslog
-systemctl enable getty@tty1
-systemctl enable getty@tty2
-#systemctl set-default multi-user.target
-#ln -s /lib/systemd/system/multi-user.target /etc/systemd/system/default.target
-
-Human Interface Device
-/etc/default/bluetooth - Default HID bluez setting - enable for mice and keyboards
-HID2HCI_ENABLED=1
-/etc/bluetooth/hcid.conf - HCI bluez settings - configure static device information
-
-device 00:1E:52:FB:68:55 {
-    name "Apple Wireless Keyboard";
-    auth enable;
-    encrypt enable;}
-
-#bluetooth
-apt install --no-install-recommends blueman pulseaudio pulseaudio-module-bluetooth pavucontrol mpg123
-
-apt install --no-install-recommends bluez pulseaudio-module-bluetooth alsa-utils mpg123
-#pulseaudio --start for root
-sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.service
-sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.socket
-
-systemctl enable pulseaudio.service --user
-systemctl start pulseaudio.service --user
-
-bluetoothctl
-    power on
-    agent on
-    default-agent
-    scan on
-    pair xx:xx:xx:xx:xx:xx
-    trust xx:xx:xx:xx:xx:xx
-    connect xx:xx:xx:xx:xx:xx
-    scan off
-    exit
-
-If you're pairing a keyboard, you will need to enter a six-digit string of numbers. 
-You will see that the device has been paired, but it may not have connected. To connect the device, 
-type connect XX:XX:XX:XX:XX:XX.
-
-
-apt-get install --no-install-recommends pulseaudio-module-bluetooth bluez-tools
-    Add users to groups. This is very important. If using any other distro, replace ‘johnyin’ with your username.
-gpasswd -a johnyin pulse
-gpasswd -a johnyin lp
-gpasswd -a pulse lp
-gpasswd -a johnyin audio
-gpasswd -a pulse audio
-    Set up PulseAudio, Bluetooth Device Class
-echo 'extra-arguments = --exit-idle-time=-1 --log-target=syslog' >> /etc/pulse/client.conf
-hciconfig hci0 up
-hciconfig hci0 class 0x200420
-reboot
-The Bluetooth service/device class 0x200420 mean the device is set up for Car Audio. 
-See http://bluetooth-pentest.narod.ru/software/bluetooth_class_of_device-service_generator.html to explore more Bluetooth Class options.
-
+cat <<'EO_DOC'
+export PROMPT_COMMAND='export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$([[ -r "/overlay/reformatoverlay" ]] && echo "[reboot factory]")$"'
 #Xfce
-apt install --no-install-recommends lightdm xserver-xorg-core xinit xserver-xorg-video-fbdev xfce4 xfce4-terminal xserver-xorg-input-all
-apt install --no-install-recommends mpv smplayer qt4-qtconfig libqt4-opengl
-touch /var/lib/lightdm/.Xauthority
-chown lightdm:lightdm /var/lib/lightdm/.Xauthority
-ldconfig
-
-cat <<EOF > /etc/X11/xorg.conf.d/20-lima.conf
-Section "ServerFlags"
-    Option "AutoAddGPU" "off"
-    Option "Debug" "dmabuf_capable"
-EndSection
-Section "OutputClass"
-    Identifier "Lima"
-    MatchDriver "meson"
-    Driver "modesetting"
-    Option "PrimaryGPU" "true"
-EndSection
-EOF
-
-  1 bluetooth
-    hciconfig hci1 name "test"
-  2 ServerSide:
-  3   #make us discoverable
-  4   hciconfig hci1 piscan
-  5   hciconfig hci1 -a
-  6   #listen
-  7   rfcomm -r -i hci1 listen /dev/rfcomm0 4
-  8   or: rfcomm watch hci1 1 getty rfcomm0 115200 vt100 -a root
-  9 ClientSide:
- 10   hcitool info 43:45:C0:00:1F:AC
- 11   rfcomm -r connect /dev/rfcomm0 43:45:C0:00:1F:AC 4
- 12   echo "Hello" > /dev/rfcomm0 # test it!
-      minicom -D /dev/rfcomm0 
-      screen /dev/rfcomm0 115200
-
-
-# Edit /lib/systemd/system/bluetooth.service to enable BT services
-sed -i: 's|^Exec.*toothd$| \
-ExecStart=/usr/lib/bluetooth/bluetoothd -C \
-ExecStartPost=/usr/bin/sdptool add SP \
-ExecStartPost=/bin/hciconfig hci0 piscan \
-|g' /lib/systemd/system/bluetooth.service
-
-# create /etc/systemd/system/rfcomm.service to enable 
-# the Bluetooth serial port from systemctl
-cat >/etc/systemd/system/rfcomm.service <<EOF1
-[Unit]
-Description=RFCOMM service
-After=bluetooth.service
-Requires=bluetooth.service
-
-[Service]
-ExecStart=/usr/bin/rfcomm watch hci0 1 getty rfcomm0 115200 vt100 -a pi
-
-[Install]
-WantedBy=multi-user.target
-EOF1
-
-# enable the new rfcomm service
-sudo systemctl enable rfcomm
-# start the rfcomm service
-sudo systemctl restart rfcomm
-EOF_INSTSH
+aplayer -l
+# output soundcard
+pactl set-card-profile 0 output:analog-stereo
+# output hdmi
+pactl set-card-profile 0 output:hdmi-stereo
+EO_DOC
 
 echo "you need run 'apt -y install busybox && update-initramfs -c -k KERNEL_VERSION'"
 # autologin-guest=false
@@ -1029,8 +983,8 @@ apt -y install wayland-protocols libwayland-egl-backend-dev
 tar xvf ...
 cd mesa
 mkdir build
-meson build/ -Dprefix=/usr/ 
-meson configure build/ -Dprefix=/usr/ 
+meson build/ -Dprefix=/usr/
+meson configure build/ -Dprefix=/usr/
 ninja -C build/
 ninja -C build/ install
 
@@ -1058,7 +1012,7 @@ iface eth0 inet manual
     bond-master bond0
     bond-primary eth0
     bond-mode active-backup
-   
+
 auto wlan0
 iface wlan0 inet manual
     wpa-ssid your_SSID
@@ -1067,7 +1021,7 @@ iface wlan0 inet manual
     bond-master bond0
     bond-primary eth0
     bond-mode active-backup
-   
+
 # Define master
 auto bond0
 iface bond0 inet dhcp
