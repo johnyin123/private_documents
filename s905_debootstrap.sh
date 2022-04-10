@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d20b786[2022-03-25T16:27:42+08:00]:s905_debootstrap.sh")
+VERSION+=("2ccaed1[2022-04-07T18:02:05+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -346,6 +346,99 @@ apt -y autoremove --purge
 /bin/umount /dev/pts
 exit
 EOSHELL
+
+cat <<'EOF'>${DIRNAME}/buildroot/etc/motd
+1. edit /etc/wifi_mode.conf for wifi mode modify
+2. touch /overlay/reformatoverlay for factory mode after next reboot
+3. fw_printenv / fw_setenv for get or set fw env
+    fw_setenv bootdelay 0  #disable reboot delay hit key, bootdelay=1 enable it
+4. dumpleases dump dhcp clients
+5. overlayroot-chroot can chroot overlay lower fs(rw)
+6. set eth0 mac address:
+    fw_setenv ethaddr 5a:57:57:90:5d:01
+7. set wifi0 mac address:
+    sed "s/macaddr=.*/macaddr=b8:be:ef:90:5d:02/g" /lib/firmware/brcm/brcmfmac43455-sdio.txt
+8. iw dev wlan0 station dump -v
+9. start nfs-server: systemctl start nfs-server.service nfs-kernel-server.service
+EOF
+
+cat <<'EOF'> ${DIRNAME}/buildroot/usr/bin/overlayroot-chroot
+#!/bin/sh
+set -e
+set -f # disable path expansion
+REMOUNTS=""
+
+error() {
+	printf "ERROR: $@\n" 1>&2
+}
+fail() { [ $# -eq 0 ] || error "$@"; exit 1; }
+
+info() {
+	printf "INFO: $@\n" 1>&2
+}
+
+get_lowerdir() {
+	local overlay=""
+	overlay=$(awk '$1 == "overlay" && $2 == "/" { print $0 }' /proc/mounts)
+	if [ -n "${overlay}" ]; then
+		lowerdir=${overlay##*lowerdir=}
+		lowerdir=${lowerdir%%,*}
+		if mountpoint "${lowerdir}" >/dev/null; then
+			_RET="${lowerdir}"
+		else
+			fail "Unable to find the overlay lowerdir"
+		fi
+	else
+		fail "Unable to find an overlay filesystem"
+	fi
+}
+
+clean_exit() {
+	local mounts="$1" rc=0 d="" lowerdir="" mp=""
+	for d in ${mounts}; do
+		if mountpoint ${d} >/dev/null; then
+			umount ${d} || rc=1
+		fi
+	done
+	for mp in $REMOUNTS; do
+		mount -o remount,ro "${mp}" ||
+			error "Note that [${mp}] is still mounted read/write"
+	done
+	[ "$2" = "return" ] && return ${rc} || exit ${rc}
+}
+
+# Try to find the overlay filesystem
+get_lowerdir
+lowerdir=${_RET}
+
+recurse_mps=$(awk '$1 ~ /^\/dev\// && $2 ~ starts { print $2 }' starts="^$lowerdir/" /proc/mounts)
+
+mounts=
+for d in proc dev run sys; do
+	if ! mountpoint "${lowerdir}/${d}" >/dev/null; then
+		mount -o bind "/${d}" "${lowerdir}/${d}" || fail "Unable to bind /${d}"
+		mounts="$mounts $lowerdir/$d"
+		trap "clean_exit \"${mounts}\" || true" EXIT HUP INT QUIT TERM
+	fi
+done
+
+# Remount with read/write
+for mp in "$lowerdir" $recurse_mps; do
+	mount -o remount,rw "${mp}" &&
+		REMOUNTS="$mp $REMOUNTS" ||
+		fail "Unable to remount [$mp] writable"
+done
+info "Chrooting into [${lowerdir}]"
+chroot ${lowerdir} "$@"
+rm -rf ${lowerdir}/var/cache/apt/* ${lowerdir}/var/lib/apt/lists/* ${lowerdir}/var/log/* ${lowerdir}/var/lib/dpkg/status-old
+rm -rf ${lowerdir}/root/.bash_history ${lowerdir}/root/.viminfo ${lowerdir}/root/.vim/
+# Clean up mounts on exit
+clean_exit "${mounts}" "return"
+trap "" EXIT HUP INT QUIT TERM
+
+# vi: ts=4 noexpandtab
+EOF
+chmod 755 ${DIRNAME}/buildroot/usr/bin/overlayroot-chroot
 
 echo "start install you kernel&patchs"
 if [ -d "${DIRNAME}/kernel" ]; then
@@ -754,6 +847,8 @@ See http://bluetooth-pentest.narod.ru/software/bluetooth_class_of_device-service
 #Xfce
 apt install --no-install-recommends lightdm xserver-xorg-core xinit xserver-xorg-video-fbdev xfce4 xfce4-terminal xserver-xorg-input-all
 apt install --no-install-recommends mpv smplayer qt4-qtconfig libqt4-opengl
+touch /var/lib/lightdm/.Xauthority
+chown lightdm:lightdm /var/lib/lightdm/.Xauthority
 ldconfig
 
 cat <<EOF > /etc/X11/xorg.conf.d/20-lima.conf
