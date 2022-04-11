@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b28d75d[2022-04-10T18:11:19+08:00]:s905_debootstrap.sh")
+VERSION+=("5c3b8a6[2022-04-11T09:46:36+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -22,7 +22,7 @@ FS_TYPE=${FS_TYPE:-ext4}
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG+=",udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,babeld,ifenslave,vlan"
 PKG+=",parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server,netcat-openbsd"
-PKG+=",systemd-container,nftables"
+PKG+=",systemd-container,nftables,systemd-timesyncd"
 PKG+=",cron,logrotate,bsdmainutils,rsyslog,openssh-client,wget,ntpdate,less,wireless-tools,file,fonts-droid-fallback,lsof,strace,rsync"
 PKG+=",xz-utils,zip,udisks2"
 # # xfce
@@ -48,7 +48,8 @@ DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
     debian_build "${DIRNAME}/buildroot" "${DIRNAME}/cache" "${PKG}"
 
 LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /bin/bash <<EOSHELL
-    /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts
+    /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
+    /bin/mknod -m 666 /dev/null c 1 3 || true
 
     debian_zswap_init 512
     debian_sshd_init
@@ -94,9 +95,22 @@ Section "OutputClass"
     Option "PrimaryGPU" "true"
 EndSection
 EOF
-# pulseaudio --start for root
-sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.service
-sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.socket
+# # pulseaudio --start for root
+# sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.service
+# sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.socket
+
+# fix hwclock
+rm -f /etc/fake-hwclock.data || true
+
+useradd -m -s /bin/bash johnyin
+gpasswd -a johnyin pulse
+gpasswd -a johnyin lp
+gpasswd -a pulse lp
+gpasswd -a johnyin audio
+gpasswd -a pulse audio
+
+debian_bash_init johnyin
+# timedatectl set-local-rtc 0
 
 /bin/umount /dev/pts
 exit
@@ -615,7 +629,7 @@ network={
 }
 EO_DOC
 
-echo "enable fw_printenv command"
+echo "enable fw_printenv command, bullseye u-boot-tools remove fw_printenv, so need copy!"
 cat >${DIRNAME}/buildroot/etc/fw_env.config <<EOF
 # Device to access      offset          env size
 /dev/mmcblk1            0x27400000      0x10000
