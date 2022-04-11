@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1ca2971[2022-04-10T10:10:38+08:00]:s905_debootstrap.sh")
+VERSION+=("b28d75d[2022-04-10T18:11:19+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -857,6 +857,7 @@ cat <<'EO_DOC'
 export PROMPT_COMMAND='export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$([[ -r "/overlay/reformatoverlay" ]] && echo "[reboot factory]")$"'
 #Xfce
 aplayer -l
+pactl list cards
 # output soundcard
 pactl set-card-profile 0 output:analog-stereo
 # output hdmi
