@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5c3b8a6[2022-04-11T09:46:36+08:00]:s905_debootstrap.sh")
+VERSION+=("a132714[2022-04-11T12:07:46+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1108,9 +1108,6 @@ dtb=/boot/meson-gxl-s905d-phicomm-n1.dtb
 bootargs=root=/dev/mmcblk1p1 rootflags=data=writeback rw console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 fsck.fix=yes fsck.repair=yes net.ifnames=0
 EOF
 
-EOF_DEMO
-
-cat <<'EOF
 # Fix high load average
 # search for `interrupt-controller@9880`, comment out the last line of the section, e.g. `phandle = <0x1e>;`
 pushd /boot/dtb
@@ -1118,4 +1115,4 @@ dtc -I dtb -O dts -o n1.dts meson-gxl-s905d-phicomm-n1.dtb
 mv meson-gxl-s905d-phicomm-n1.dtb meson-gxl-s905d-phicomm-n1.dtb.original
 sed -i '/interrupt-controller@9880/,+7s/phandle/#phandle/' n1.dts
 dtc -I dts -O dtb -o meson-gxl-s905d-phicomm-n1.dtb n1.dts
-EOF
+EOF_DEMO
