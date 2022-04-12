@@ -25,7 +25,7 @@ fi
 
 # apt-get install gcc make pkg-config git bison flex libelf-dev libssl-dev libncurses5-dev
 # https://releases.linaro.org/components/toolchain/binaries/latest-7/aarch64-linux-gnu/
-
+# https://git.kernel.org/pub/scm/linux/kernel/git/amlogic/linux.git
 
 export PATH=${DIRNAME}/gcc-linaro-7.4.1-aarch64/bin/:$PATH
 
