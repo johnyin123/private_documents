@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a132714[2022-04-11T12:07:46+08:00]:s905_debootstrap.sh")
+VERSION+=("8682b45[2022-04-11T15:40:32+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -27,7 +27,9 @@ PKG+=",cron,logrotate,bsdmainutils,rsyslog,openssh-client,wget,ntpdate,less,wire
 PKG+=",xz-utils,zip,udisks2"
 # # xfce
 PKG+=",alsa-utils,pulseaudio,pulseaudio-utils,smplayer,smplayer-l10n,mpg123,lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xfce4,xfce4-terminal,xserver-xorg-input-all,pavucontrol"
-
+PKG+=",sudo"
+# # for xfce auto mount
+PKG+="thunar-volman,policykit-1,gvfs"
 if [ "$UID" -ne "0" ]
 then
     echo "Must be root to run this script."
@@ -103,6 +105,12 @@ EOF
 rm -f /etc/fake-hwclock.data || true
 
 useradd -m -s /bin/bash johnyin
+echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
+chmod 0440 /etc/sudoers.d/johnyin
+sed -i "s/^\(.*requiretty\)$/#\1/" /etc/sudoers
+echo "auto login xfce"
+sed -i "s/#autologin-user=.*/autologin-user=johnyin/g" /etc/lightdm/lightdm.conf
+
 gpasswd -a johnyin pulse
 gpasswd -a johnyin lp
 gpasswd -a pulse lp
@@ -738,25 +746,13 @@ trap "" EXIT HUP INT QUIT TERM
 EOF
 chmod 755 ${DIRNAME}/buildroot/usr/bin/overlayroot-chroot
 
-
-echo "start install you kernel&patchs"
-if [ -d "${DIRNAME}/kernel" ]; then
-    rsync -avzP ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
-fi
-echo "end install you kernel&patchs"
-echo "start chroot shell, disable service & do other work"
-chroot ${DIRNAME}/buildroot/ /bin/bash || true
-chroot ${DIRNAME}/buildroot/ /bin/bash -s <<EOF
-    debian_minimum_init
-EOF
-
 echo "add emmc_install script"
 cat >> ${DIRNAME}/buildroot/root/sync.sh <<'EOF'
 #!/usr/bin/env bash
 
 IP=${1:?from which ip???}
 mount -o remount,rw /overlay/lower
-rsync -avzP --exclude-from=/root/exclude.txt --delete \
+rsync -avzP --numeric-ids --exclude-from=/root/exclude.txt --delete \
     -e "ssh -p60022" root@${IP}:/overlay/lower/* /overlay/lower/
 
 echo "change ssid && dhcp router"
@@ -766,7 +762,7 @@ sed -n 's|^ssid=\(.*\)$|\1|p' /overlay/lower/etc/wpa_supplicant/ap.conf
 mount -o remount,ro /overlay/lower
 
 mount -o remount,rw /boot
-rsync -avzP -e "ssh -p60022" root@${IP}:/boot/* /boot/
+rsync -avzP --numeric-ids -e "ssh -p60022" root@${IP}:/boot/* /boot/
 
 mount -o remount,ro /boot
 
@@ -870,12 +866,13 @@ EOF
 cat <<'EO_DOC'
 export PROMPT_COMMAND='export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$([[ -r "/overlay/reformatoverlay" ]] && echo "[reboot factory]")$"'
 #Xfce
-aplayer -l
+aplay -l
 pactl list cards
 # output soundcard
 pactl set-card-profile 0 output:analog-stereo
 # output hdmi
 pactl set-card-profile 0 output:hdmi-stereo
+# login xfce, run  alsamixer -> F6 -> ....
 EO_DOC
 
 echo "you need run 'apt -y install busybox && update-initramfs -c -k KERNEL_VERSION'"
@@ -1116,3 +1113,51 @@ mv meson-gxl-s905d-phicomm-n1.dtb meson-gxl-s905d-phicomm-n1.dtb.original
 sed -i '/interrupt-controller@9880/,+7s/phandle/#phandle/' n1.dts
 dtc -I dts -O dtb -o meson-gxl-s905d-phicomm-n1.dtb n1.dts
 EOF_DEMO
+cat <<'EOF'
+#!/bin/sh
+
+mixer() {
+  parm=${4:-on}
+  amixer -c "$1" sset "$2" "$3" $parm >/dev/null 2>&1
+  amixer -c "$1" sset "$2" $parm >/dev/null 2>&1
+}
+
+card=GXP230Q200
+echo $card
+
+# HDMI to PCM0
+  mixer $card 'FRDDR_A SINK 1 SEL' 'OUT 1'
+  mixer $card 'FRDDR_A SRC 1 EN' on
+  mixer $card 'TDMOUT_B SRC SEL' 'IN 0'
+  mixer $card 'TOHDMITX I2S SRC' 'I2S B'
+  mixer $card 'TOHDMITX' on
+
+# S/PDIF to PCM1
+  mixer $card 'FRDDR_B SINK 1 SEL' 'OUT 3'
+  mixer $card 'FRDDR_B SRC 1 EN' on
+  mixer $card 'SPDIFOUT SRC SEL' 'IN 1'
+  mixer $card 'SPDIFOUT Playback' on
+EOF
+
+echo "start install you kernel&patchs"
+if [ -d "${DIRNAME}/kernel" ]; then
+    rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
+    kerver=$(ls ${DIRNAME}/buildroot/usr/lib/modules/ | sort --version-sort -f | tail -n1)
+    echo "USE KERNEL ${kerver} ------>"
+    LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot/ /bin/bash <<EOSHELL
+    depmod ${kerver}
+    update-initramfs -c -k ${kerver}
+    rm -f /boot/initrd.img-${kerver} /boot/uInitrd /boot/zImage || true
+    mv /boot/uInitrd-${kerver} /boot/uInitrd || true
+    mv /boot/vmlinuz-${kerver} /boot/zImage || true
+EOSHELL
+    echo "!!!!!!!!!IF USB BOOT DISK, rm -f ${DIRNAME}/buildroot/etc/udev/rules.d/*"
+fi
+ls -lhR ${DIRNAME}/buildroot/boot/
+echo "end install you kernel&patchs"
+
+echo "start chroot shell, disable service & do other work"
+chroot ${DIRNAME}/buildroot/ /bin/bash || true
+chroot ${DIRNAME}/buildroot/ /bin/bash -s <<EOF
+    debian_minimum_init
+EOF

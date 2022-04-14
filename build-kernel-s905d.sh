@@ -10,7 +10,12 @@ SCRIPTNAME=${0##*/}
 #
 #  # make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- defconfig
 #  # make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- Image dtbs
-#  # mkimage -A arm64 -O linux -T kernel -C none -a 0x1080000 -e 0x1080000 -n linux-next -d arch/arm64/boot/Image ../uImage
+# * build a standard "vmlinux" kernel image (in ELF binary format):
+# * convert the kernel into a raw binary image:
+#     ${CROSS_COMPILE}-objcopy -O binary -R .note -R .comment -S vmlinux linux.bin
+#     gzip -9 linux.bin
+#     mkimage -A arm64 -O linux -T kernel -C gzip -a 0x1080000 -e 0x1080000 -n "Linux Kernel Image" -d linux.bin.gz uImage
+# #  # mkimage -A arm64 -O linux -T kernel -C none -a 0x1080000 -e 0x1080000 -n linux-next -d arch/arm64/boot/Image ../uImage
 #  To boot the 64-bit kernel using the shipped U-Boot:
 #
 #  # fatload mmc 0:1 0x01080000 uImage
@@ -32,8 +37,25 @@ export PATH=${DIRNAME}/gcc-linaro-7.4.1-aarch64/bin/:$PATH
 make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig
 make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j4 LOCALVERSION="-johnyin-s905d" Image dtbs modules
 
-make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- install INSTALL_PATH=/media/johnyin/ROOTFS/boot
-make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH=/media/johnyin/ROOTFS/
+dest=/home/johnyin/n1/buildroot
+rsync -av ./arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dtb  ${dest}/boot/dtb
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- install INSTALL_PATH=${dest}/boot
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH=${dest}/usr/
+# mount /dev/sdb2 root/
+# mount /dev/sdb1 root/boot/
+# kerver=5.17.0-johnyin-s905d
+# bash
+# LC_ALL=C LANGUAGE=C LANG=C chroot root /bin/bash <<EOSHELL
+#     depmod ${kerver}
+#     update-initramfs -c -k ${kerver}
+# EOSHELL
+# rm -f root/boot/initrd.img-${kerver} root/boot/uInitrd root/boot/zImage
+# mv root/boot/uInitrd-${kerver} root/boot/uInitrd
+# mv root/boot/vmlinuz-${kerver} root/boot/zImage
+# rm -f root/etc/udev/rules.d/*
+# umount root/boot/
+# umount root/
+
 echo "if you user compress module(xz,gz), you should execute depmod command!!(depmod  5.1.0-johnyin-s905d)"
 echo "need copy dtb/firmware"
 
