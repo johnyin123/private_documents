@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8682b45[2022-04-11T15:40:32+08:00]:s905_debootstrap.sh")
+VERSION+=("ea0b49e[2022-04-14T21:12:27+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -117,6 +117,8 @@ gpasswd -a pulse lp
 gpasswd -a johnyin audio
 gpasswd -a pulse audio
 
+# # disable gvfs trash
+# sed -i "s/AutoMount=.*/AutoMount=false/g" /usr/share/gvfs/mounts/trash.mount
 debian_bash_init johnyin
 # timedatectl set-local-rtc 0
 
