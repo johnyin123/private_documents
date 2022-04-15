@@ -7,14 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fdd544c[2022-04-15T10:11:38+08:00]:s905_debootstrap.sh")
+VERSION+=("df008f7[2022-04-15T10:36:13+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
 #fw_setenv bootcmd "run update"; reboot
 #之后PC端的刷机程序就会检测到设备进入刷机模式，按软件的刷机提示刷机即可。
 # USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
-
+VMLINUZ_KERNEL=
 BOOT_LABEL="EMMCBOOT"
 ROOT_LABEL="EMMCROOT"
 FS_TYPE=${FS_TYPE:-ext4}
@@ -1127,7 +1127,8 @@ if [ -d "${DIRNAME}/kernel" ]; then
     rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
     kerver=$(ls ${DIRNAME}/buildroot/usr/lib/modules/ | sort --version-sort -f | tail -n1)
     echo "USE KERNEL ${kerver} ------>"
-    cat > ${DIRNAME}/buildroot/boot/s905_autoscript.cmd <<'EOF'
+    [ -z "${VMLINUZ_KERNEL:-}" ] && {
+        cat > ${DIRNAME}/buildroot/boot/s905_autoscript.cmd <<'EOF'
 setenv env_addr     "0x10400000"
 setenv kernel_addr  "0x11000000"
 setenv initrd_addr  "0x13000000"
@@ -1137,12 +1138,29 @@ if fatload usb 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize
 if fatload usb 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload usb 1 ${kernel_addr} ${image}; then if fatload usb 1 ${initrd_addr} ${initrd}; then if fatload usb 1 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
 if fatload mmc 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload mmc 0 ${kernel_addr} ${image}; then if fatload mmc 0 ${initrd_addr} ${initrd}; then if fatload mmc 0 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
 EOF
-    cat > ${DIRNAME}/buildroot/boot/uEnv.ini <<EOF
+        cat > ${DIRNAME}/buildroot/boot/uEnv.ini <<EOF
 image=vmlinuz-${kerver}
 initrd=uInitrd-${kerver}
 dtb=/dtb/meson-gxl-s905d-phicomm-n1.dtb
 bootargs=root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
 EOF
+    } || {
+        cat <<'EOF' > ${DIRNAME}/buildroot/boot/s905_autoscript.cmd
+echo "Start amlogic old u-boot."
+if fatload usb 0 0x1000000 u-boot.ext; then go 0x1000000; fi;
+if fatload usb 1 0x1000000 u-boot.ext; then go 0x1000000; fi;
+if fatload mmc 0 0x1000000 u-boot.ext; then go 0x1000000; fi;
+EOF
+        mkdir -p ${DIRNAME}/buildroot/boot/extlinux
+        cat <<EOF > ${DIRNAME}/buildroot/boot/extlinux/extlinux.conf
+LABEL PHICOMM N1
+LINUX /vmlinuz-${kerver}
+INITRD /uInitrd-${kerver}
+FDT /dtb/meson-gxl-s905d-phicomm-n1.dtb
+APPEND root=LABEL=${ROOT_LABEL} rootflags=data=writeback rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115
+EOF
+        rsync -av ${DIRNAME}/u-boot.ext ${DIRNAME}/buildroot/boot/
+    }
     LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot/ /bin/bash <<EOSHELL
     depmod ${kerver}
     update-initramfs -c -k ${kerver}
