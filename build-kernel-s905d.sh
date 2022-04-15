@@ -3,6 +3,14 @@ set -o nounset -o pipefail
 DIRNAME="$(dirname "$(readlink -e "$0")")"
 SCRIPTNAME=${0##*/}
 
+cat <<'EOF'
+git clone https://github.com/cattyhouse/new-uboot-for-N1
+N1自带u-boot, 但是只能启动打了TEXT_OFFSET补丁的内核,为了启动一个原生的内核, 需要挂载新版本的u-boot, 复制u-boot.ext到boot分区,N1可以用自身的u-boot,挂载这个新的u-boot.ext
+启动原理:
+1.N1内置u-boot->优先寻找U盘->寻找boot分区的s905_autoscript->根据这个s905_autoscript的内容加载新的u-boot.ext
+2.根据u-boot.ext内置的脚本依次执行:bootcmd->distro_bootcmd->boot_targets->bootcmd_usb0->usb_boot->scan_dev_for_boot_part->scan_dev_for_boot->scan_dev_for_extlinux->boot_extlinux, 然后找到了extlinux.conf
+3.根据extlinux.conf的设置,定位root分区->寻找zImage和uInitrd.
+EOF
 #  64-bit SoCs (GXBB / S905 or newer)
 #  Download recent cross-toolchain Linaro Latest aarch64-linux-gnu binaries
 #
