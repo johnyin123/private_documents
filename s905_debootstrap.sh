@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4b77ced[2022-04-14T21:30:11+08:00]:s905_debootstrap.sh")
+VERSION+=("fdd544c[2022-04-15T10:11:38+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -962,25 +962,6 @@ run bootcmd_pxe
 EOF
 }
 
-gen_s905_autoscript() {
-    cat > /boot/s905_autoscript.cmd <<'EOF'
-setenv env_addr     "0x10400000"
-setenv kernel_addr  "0x11000000"
-setenv initrd_addr  "0x13000000"
-setenv dtb_mem_addr "0x1000000"
-setenv boot_start booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr}
-if fatload usb 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload usb 0 ${kernel_addr} ${image}; then if fatload usb 0 ${initrd_addr} ${initrd}; then if fatload usb 0 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
-if fatload usb 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload usb 1 ${kernel_addr} ${image}; then if fatload usb 1 ${initrd_addr} ${initrd}; then if fatload usb 1 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
-if fatload mmc 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload mmc 0 ${kernel_addr} ${image}; then if fatload mmc 0 ${initrd_addr} ${initrd}; then if fatload mmc 0 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
-EOF
-    cat > /boot/uEnv.ini <<EOF
-image=vmlinuz
-initrd=uInitrd
-dtb=/dtb/meson-gxl-s905d-phicomm-n1.dtb
-bootargs=root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
-EOF
-}
-
 install_bootloader() {
     gen_uEnv_ini
     gen_s905_autoscript
@@ -1146,12 +1127,28 @@ if [ -d "${DIRNAME}/kernel" ]; then
     rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
     kerver=$(ls ${DIRNAME}/buildroot/usr/lib/modules/ | sort --version-sort -f | tail -n1)
     echo "USE KERNEL ${kerver} ------>"
+    cat > ${DIRNAME}/buildroot/boot/s905_autoscript.cmd <<'EOF'
+setenv env_addr     "0x10400000"
+setenv kernel_addr  "0x11000000"
+setenv initrd_addr  "0x13000000"
+setenv dtb_mem_addr "0x1000000"
+setenv boot_start booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr}
+if fatload usb 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload usb 0 ${kernel_addr} ${image}; then if fatload usb 0 ${initrd_addr} ${initrd}; then if fatload usb 0 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
+if fatload usb 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload usb 1 ${kernel_addr} ${image}; then if fatload usb 1 ${initrd_addr} ${initrd}; then if fatload usb 1 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
+if fatload mmc 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload mmc 0 ${kernel_addr} ${image}; then if fatload mmc 0 ${initrd_addr} ${initrd}; then if fatload mmc 0 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
+EOF
+    cat > ${DIRNAME}/buildroot/boot/uEnv.ini <<EOF
+image=vmlinuz-${kerver}
+initrd=uInitrd-${kerver}
+dtb=/dtb/meson-gxl-s905d-phicomm-n1.dtb
+bootargs=root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
+EOF
     LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot/ /bin/bash <<EOSHELL
     depmod ${kerver}
     update-initramfs -c -k ${kerver}
-    rm -f /boot/initrd.img-${kerver} /boot/uInitrd /boot/zImage || true
-    mv /boot/uInitrd-${kerver} /boot/uInitrd || true
-    mv /boot/vmlinuz-${kerver} /boot/zImage || true
+    rm -f /boot/initrd.img-${kerver} || true
+    rm -f /boot/s905_autoscript
+    mkimage -C none -A arm -T script -d /boot/s905_autoscript.cmd /boot/s905_autoscript
 EOSHELL
     echo "!!!!!!!!!IF USB BOOT DISK, rm -f ${DIRNAME}/buildroot/etc/udev/rules.d/*"
 fi
