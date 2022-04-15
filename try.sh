@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("eaf82cd[2022-03-11T11:12:21+08:00]:try.sh")
+VERSION+=("dcffbf6[2022-03-21T11:26:49+08:00]:try.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -338,6 +338,8 @@ EOF
     echo scp -o \"ProxyJump user1@Proxy\" File User@Destination:Path
     return 0
 }
+
+# nmon -f -F ./a.nmon -s 10 -c 10
 
 ##
 #  Usage: ./testprog fetch -c <cert_file> -k <key_file> [-v <version>]
