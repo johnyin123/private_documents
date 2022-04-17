@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b1ac240[2022-04-15T13:38:54+08:00]:s905_debootstrap.sh")
+VERSION+=("56dac9b[2022-04-17T14:25:46+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -785,7 +785,9 @@ firmware/brcm/brcmfmac43455-sdio.txt
 /etc/hostname
 /etc/hosts
 EOF
-
+cat >> ${DIRNAME}/buildroot/root/fix_sound_out_hdmi.sh <<'EOF'
+amixer -c  GXP230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
+EOF
 cat >> ${DIRNAME}/buildroot/root/emmc_linux.sh <<'EOF'
 #!/usr/bin/env bash
 
@@ -880,6 +882,7 @@ pactl set-card-profile 0 output:analog-stereo
 # output hdmi
 pactl set-card-profile 0 output:hdmi-stereo
 # login xfce, run  alsamixer -> F6 -> ....
+amixer -c  GXP230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
 EO_DOC
 
 echo "you need run 'apt -y install busybox && update-initramfs -c -k KERNEL_VERSION'"
