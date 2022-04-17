@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3b8b712[2022-04-17T16:38:54+08:00]:s905_debootstrap.sh")
+VERSION+=("7540a12[2022-04-17T20:41:41+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -538,6 +538,8 @@ case "$1" in
         ;;
     br-ext)
         # hostname must in (s905d2/s905d3/usbpc)
+        # # fix not connect on startup, and connect later no link
+        /usr/sbin/ip lint set eth0 up  >/dev/null 2>&1 || true
         cat /etc/hostname
         ;;
 esac
