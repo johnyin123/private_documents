@@ -4,6 +4,16 @@ DIRNAME="$(dirname "$(readlink -e "$0")")"
 SCRIPTNAME=${0##*/}
 
 cat <<'EOF'
+SoC – Amlogic S905D quad core Arm Cortex-A53 processor @ 1.5 GHz with Arm Mali-450 GPU
+System Memory – 2GB DDR3-1866MHz
+Storage – 8GB eMMC flash (KLM8G1GEME)
+Video Output – 1x HDMI 2.0a port up to 4K @ 60 Hz
+Connectivity – 1x Gigabit Ethernet (RTL8211F), Dual band 802.11ac WiFi 5, and Bluetooth 4.1 (Via a similar CYW43455 module as used in Raspberry Pi 3B+)
+USB – 2x USB 2.0 ports
+Power Supply – 110-240V – 50/60Hz AC input, 12V/2A DC output
+Dimensions – 11 x 11 x 4 cm
+EOF
+cat <<'EOF'
 git clone https://github.com/cattyhouse/new-uboot-for-N1
 N1自带u-boot, 但是只能启动打了TEXT_OFFSET补丁的内核,为了启动一个原生的内核, 需要挂载新版本的u-boot, 复制u-boot.ext到boot分区,N1可以用自身的u-boot,挂载这个新的u-boot.ext
 启动原理:
@@ -97,4 +107,35 @@ fakeroot debian/rules binary
 
 fakeroot make-kpkg -j4 --arch arm64 --cross-compile aarch64-linux-gnu- --initrd --append-to-version="-johnyin-s905d" binary-arch
 
+cat <<'EOF'
+#!/bin/bash
+set -o nounset -o pipefail
+DIRNAME="$(dirname "$(readlink -e "$0")")"
 
+export PATH=${DIRNAME}/gcc-linaro-7.4.1-aarch64/bin/:$PATH
+
+export kerver=5.10.2-johnyin-s905d
+export dest=/home/johnyin/disk/job/root
+
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j4 LOCALVERSION="-johnyin-s905d" Image dtbs modules
+
+mkdir -p ${dest}
+
+mount /dev/sdb2 ${dest}
+mount /dev/sdb1 ${dest}/boot/
+
+rsync -av ./arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dtb  ${dest}/boot/dtb
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- install INSTALL_PATH=${dest}/boot
+make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH=${dest}/usr/
+
+LC_ALL=C LANGUAGE=C LANG=C chroot ${dest} /bin/bash <<EOSHELL
+    depmod ${kerver}
+    update-initramfs -c -k ${kerver}
+EOSHELL
+rm -f ${dest}/boot/initrd.img-${kerver} ${dest}/boot/uInitrd ${dest}/boot/zImage
+mv ${dest}/boot/uInitrd-${kerver} ${dest}/boot/uInitrd
+mv ${dest}/boot/vmlinuz-${kerver} ${dest}/boot/zImage
+rm -f ${dest}/etc/udev/rules.d/*
+umount ${dest}/boot/
+umount ${dest}
+EOF
