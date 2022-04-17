@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("56dac9b[2022-04-17T14:25:46+08:00]:s905_debootstrap.sh")
+VERSION+=("3b8b712[2022-04-17T16:38:54+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -85,11 +85,13 @@ chown lightdm:lightdm /var/lib/lightdm/.Xauthority || true
 
 # add lima xorg.conf
 mkdir -p /etc/X11/xorg.conf.d/
+# avoid "page flip error" in Xorg.0.log
 cat <<EOF > /etc/X11/xorg.conf.d/20-lima.conf
 Section "Device"
     Identifier "Default Device"
     Driver "modesetting"
     Option "AccelMethod" "glamor"
+    Option "PageFlip" "off"
 EndSection
 Section "ServerFlags"
     Option "AutoAddGPU" "off"
