@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("df008f7[2022-04-15T10:36:13+08:00]:s905_debootstrap.sh")
+VERSION+=("b1ac240[2022-04-15T13:38:54+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -86,6 +86,11 @@ chown lightdm:lightdm /var/lib/lightdm/.Xauthority || true
 # add lima xorg.conf
 mkdir -p /etc/X11/xorg.conf.d/
 cat <<EOF > /etc/X11/xorg.conf.d/20-lima.conf
+Section "Device"
+    Identifier "Default Device"
+    Driver "modesetting"
+    Option "AccelMethod" "glamor"
+EndSection
 Section "ServerFlags"
     Option "AutoAddGPU" "off"
     Option "Debug" "dmabuf_capable"
