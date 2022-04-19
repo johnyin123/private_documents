@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f9633f0[2022-04-18T07:44:23+08:00]:s905_debootstrap.sh")
+VERSION+=("044d4f3[2022-04-18T08:07:52+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -23,7 +23,9 @@ PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifu
 PKG+=",udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,babeld,ifenslave,vlan"
 PKG+=",parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server,netcat-openbsd"
 PKG+=",systemd-container,nftables,systemd-timesyncd"
-PKG+=",cron,logrotate,bsdmainutils,rsyslog,openssh-client,wget,ntpdate,less,wireless-tools,file,fonts-droid-fallback,lsof,strace,rsync"
+PKG+=",fonts-noto-cjk"
+#PKG+=",fonts-droid-fallback"
+PKG+=",cron,logrotate,bsdmainutils,rsyslog,openssh-client,wget,ntpdate,less,wireless-tools,file,lsof,strace,rsync"
 PKG+=",xz-utils,zip,udisks2"
 # # xfce
 PKG+=",alsa-utils,pulseaudio,pulseaudio-utils,smplayer,smplayer-l10n,mpg123,lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xfce4,xfce4-terminal,xserver-xorg-input-all,pavucontrol"
@@ -90,8 +92,12 @@ cat <<EOF > /etc/X11/xorg.conf.d/20-lima.conf
 Section "Device"
     Identifier "Default Device"
     Driver "modesetting"
-    Option "AccelMethod" "glamor"
+    Option "AccelMethod" "glamor"  ### "glamor" to enable 3D acceleration, "none" to disable.
     Option "PageFlip" "off"
+    Option "DRI" "2"
+    Option "Dri2Vsync" "true"
+    Option "TripleBuffer" "true"
+
 EndSection
 Section "ServerFlags"
     Option "AutoAddGPU" "off"
