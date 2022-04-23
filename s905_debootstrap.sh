@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("044d4f3[2022-04-18T08:07:52+08:00]:s905_debootstrap.sh")
+VERSION+=("0485eb6[2022-04-19T11:43:30+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1145,6 +1145,17 @@ if [ -d "${DIRNAME}/kernel" ]; then
     rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
     kerver=$(ls ${DIRNAME}/buildroot/usr/lib/modules/ | sort --version-sort -f | tail -n1)
     echo "USE KERNEL ${kerver} ------>"
+    cat > ${DIRNAME}/buildroot/boot/aml_autoscript.cmd <<'EOF'
+setenv bootfromnand 0
+setenv bootcmd "run start_autoscript; run storeboot;"
+setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi;"
+setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;"
+setenv start_usb_autoscript "if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;"
+setenv upgrade_step "0"
+saveenv
+sleep 1
+reboot
+EOF
     [ -z "${VMLINUZ_KERNEL:-}" ] && {
         cat > ${DIRNAME}/buildroot/boot/s905_autoscript.cmd <<'EOF'
 setenv env_addr     "0x10400000"
@@ -1184,6 +1195,8 @@ EOF
     update-initramfs -c -k ${kerver}
     rm -f /boot/initrd.img-${kerver} || true
     rm -f /boot/s905_autoscript
+    # aml_autoscript for android to linux bootup
+    mkimage -C none -A arm -T script -d /boot/aml_autoscript.cmd /boot/aml_autoscript
     mkimage -C none -A arm -T script -d /boot/s905_autoscript.cmd /boot/s905_autoscript
 EOSHELL
     echo "!!!!!!!!!IF USB BOOT DISK, rm -f ${DIRNAME}/buildroot/etc/udev/rules.d/*"
