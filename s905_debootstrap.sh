@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("02ac9c5[2022-04-23T12:30:53+08:00]:s905_debootstrap.sh")
+VERSION+=("877b997[2022-04-24T08:32:42+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -44,8 +44,16 @@ cat <<'EOF_DOC'
 ./update partition logo ./n1/logo.PARTITION normal
 ./update partition recovery ./n1/recovery.PARTITION normal
 ./update partition system ./n1/system.PARTITION sparse
+./update bulkcmd "     setenv upgrade_step 1"
+./update bulkcmd "     save"
+./update bulkcmd "     setenv firstboot 1"
+./update bulkcmd "     save"
+./update bulkcmd "     rpmb_reset"
+./update bulkcmd "     amlmmc erase data"
+./update bulkcmd "     nand erase.part data"
+./update bulkcmd "     amlmmc erase cache"
+./update bulkcmd "     nand erase.part cache"
 ./update bulkcmd "     burn_complete 1"
-
 设置->媒体盒状态->版本号->连续点击进入开发模式
 adb connect ${IPADDR}:5555
 adb shell reboot update (!!! aml_autoscript in vfat boot partition)
