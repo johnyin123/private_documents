@@ -7,13 +7,77 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0485eb6[2022-04-19T11:43:30+08:00]:s905_debootstrap.sh")
+VERSION+=("02ac9c5[2022-04-23T12:30:53+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
 #fw_setenv bootcmd "run update"; reboot
 #之后PC端的刷机程序就会检测到设备进入刷机模式，按软件的刷机提示刷机即可。
 # USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
+cat <<'EOF_DOC'
+短接->插USB线->上电->取消短接
+./aml-flash --img=T1-6.23-fix.img --parts=all
+        ./update identify 7
+        ./update bulkcmd "     echo 12345"
+        ./update identify 7
+        ./update rreg 4 0xc8100228
+        ./update cwr ./t1/DDR_ENC.USB 0xd9000000
+        ./update write usbbl2runpara_ddrinit.bin 0xd900c000
+        ./update run 0xd9000000
+        sleep 8
+        ./update identify 7
+        ./update write ./t1/DDR_ENC.USB 0xd9000000
+        ./update write usbbl2runpara_runfipimg.bin 0xd900c000
+        ./update write ./t1/UBOOT_ENC.USB 0x200c000
+        ./update run 0xd9000000
+        sleep 8
+        ./update mwrite ./t1/_aml_dtb.PARTITION mem dtb normal
+        ./update bulkcmd "     disk_initial 0"
+        ./update mwrite ./t1/meson1.dtb mem dtb normal
+        ./update partition bootloader ./t1/bootloader.PARTITION
+# ########################################################
+./update identify 7
+./update mwrite ./n1/_aml_dtb.PARTITION mem dtb normal
+./update bulkcmd "     disk_initial 0"
+./update partition bootloader ./n1/bootloader.PARTITION
+./update partition boot ./n1/boot.PARTITION normal
+./update partition logo ./n1/logo.PARTITION normal
+./update partition recovery ./n1/recovery.PARTITION normal
+./update partition system ./n1/system.PARTITION sparse
+./update bulkcmd "     burn_complete 1"
+
+设置->媒体盒状态->版本号->连续点击进入开发模式
+adb connect ${IPADDR}:5555
+adb shell reboot update (!!! aml_autoscript in vfat boot partition)
+adb shell
+   su
+     31183118
+ssh -p${PORT} ${IPADDR}
+cat <<EOF > aml_autoscript
+setenv bootfromnand 0
+setenv bootcmd "run start_autoscript; run storeboot;"
+setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi;"
+setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;"
+setenv start_usb_autoscript "if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;"
+setenv upgrade_step "0"
+saveenv
+sleep 1
+reboot
+EOF
+
+fw_setenv bootdelay '0'
+fw_setenv ethaddr '5a:57:57:90:5d:03'
+fw_setenv bcb_cmd 'get_valid_slot;'
+fw_setenv loadaddr '1080000'
+fw_setenv bootup_offset '0x10802c0'
+fw_setenv init_display 'osd open;osd clear;imgread pic logo bootup $loadaddr;bmp display $bootup_offset;bmp scale'
+fw_setenv preboot 'run bcb_cmd; run init_display;'
+fw_setenv start_usb_autoscript 'for usbdev in 0 1 2 3; do if fatload usb ${usbdev} 1020000 s905_autoscript; then autoscr 1020000; fi; done'
+fw_setenv start_emmc_autoscript 'if fatload mmc 1 1020000 s905_autoscript; then autoscr 1020000; fi;'
+fw_setenv start_mmc_autoscript 'if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;'
+fw_setenv start_autoscript 'if usb start; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript'
+fw_setenv bootcmd 'run start_autoscript; run storeboot;'
+EOF_DOC
 VMLINUZ_KERNEL=
 BOOT_LABEL="EMMCBOOT"
 ROOT_LABEL="EMMCROOT"
@@ -1149,7 +1213,7 @@ if [ -d "${DIRNAME}/kernel" ]; then
 setenv bootfromnand 0
 setenv bootcmd "run start_autoscript; run storeboot;"
 setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi;"
-setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;"
+setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload mmc 1 1020000 s905_autoscript; then autoscr 1020000; fi;"
 setenv start_usb_autoscript "if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;"
 setenv upgrade_step "0"
 saveenv
