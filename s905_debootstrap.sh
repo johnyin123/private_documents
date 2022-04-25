@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("877b997[2022-04-24T08:32:42+08:00]:s905_debootstrap.sh")
+VERSION+=("588525a[2022-04-24T17:16:30+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -897,6 +897,9 @@ ENV_LOGO_PART_START=288768  #sectors
 DEV_EMMC=${DEV_EMMC:=/dev/mmcblk2}
 echo "So as to not overwrite U-boot, we backup the first 1M."
 dd if=${DEV_EMMC} of=/tmp/boot-bak bs=1M count=4
+dd if=${DEV_EMMC} of=/bmp/env-bak bs=1024 count=8192 skip=643072
+dd if=${DEV_EMMC} of=/bmp/logo-bak bs=1024 count=32768 skip=659456
+
 echo "(Re-)initialize the eMMC and create partition."
 echo "bootloader & reserved occupies [0, 100M]. Since sector size is 512B, byte offset would be 204800."
 echo "Start create MBR and partittion"
@@ -953,6 +956,9 @@ sync
 echo "show reserved!!"
 false && dumpe2fs -b ${PART_ROOT}
 echo "Partition table (re-)initialized."
+echo "reflush env&logo, mkfs crash it!!!!"
+dd if=/bmp/env-bak of=${DEV_EMMC} bs=1024 count=8192 seek=643072
+dd if=/bmp/logo-bak of=${DEV_EMMC} bs=1024 count=32768 seek=659456
 EOF
 cat <<'EO_DOC'
 export PROMPT_COMMAND='export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$([[ -r "/overlay/reformatoverlay" ]] && echo "[reboot factory]")$"'
@@ -1218,7 +1224,6 @@ if [ -d "${DIRNAME}/kernel" ]; then
     kerver=$(ls ${DIRNAME}/buildroot/usr/lib/modules/ | sort --version-sort -f | tail -n1)
     echo "USE KERNEL ${kerver} ------>"
     cat > ${DIRNAME}/buildroot/boot/aml_autoscript.cmd <<'EOF'
-setenv bootfromnand 0
 setenv bootcmd "run start_autoscript; run storeboot;"
 setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi;"
 setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload mmc 1 1020000 s905_autoscript; then autoscr 1020000; fi;"
