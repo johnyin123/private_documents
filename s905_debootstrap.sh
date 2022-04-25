@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("588525a[2022-04-24T17:16:30+08:00]:s905_debootstrap.sh")
+VERSION+=("4b4bdea[2022-04-25T14:16:30+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -872,93 +872,71 @@ amixer -c  GXP230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
 EOF
 cat >> ${DIRNAME}/buildroot/root/emmc_linux.sh <<'EOF'
 #!/usr/bin/env bash
-
+DEV_EMMC=${DEV_EMMC:=/dev/mmcblk2}
 BOOT_LABEL="EMMCBOOT"
 ROOT_LABEL="EMMCROOT"
 OVERLAY_LABEL="EMMCOVERLAY"
 cat <<EOPART
-[mmcblk0p01]  bootloader  offset 0x000000000000  size 0x000000400000
-[mmcblk0p02]    reserved  offset 0x000002400000  size 0x000004000000
-[mmcblk0p03]       cache  offset 0x000006c00000  size 0x000020000000
-[mmcblk0p04]         env  offset 0x000027400000  size 0x000000800000
-[mmcblk0p05]        logo  offset 0x000028400000  size 0x000002000000
-[mmcblk0p06]    recovery  offset 0x00002ac00000  size 0x000002000000
-[mmcblk0p07]         rsv  offset 0x00002d400000  size 0x000000800000
-[mmcblk0p08]         tee  offset 0x00002e400000  size 0x000000800000
-[mmcblk0p09]       crypt  offset 0x00002f400000  size 0x000002000000
-[mmcblk0p10]        misc  offset 0x000031c00000  size 0x000002000000
-[mmcblk0p11]        boot  offset 0x000034400000  size 0x000002000000
-[mmcblk0p12]      system  offset 0x000036c00000  size 0x000050000000
-[mmcblk0p13]        data  offset 0x000087400000  size 0x00014ac00000
+# Mark reserved regions
+# /dev/env: This "device" (present in Linux 3.x) uses 0x27400000 ~ +0x800000.
+#           It seems that they're overwritten each time system boots if value
+#           there is invalid. Therefore we must not touch these blocks.
+# /dev/logo: This "device"  uses 0x28400000~ +0x800000. You may mark them as
+#            bad blocks if you want to preserve or replace the boot logo.
+#
+# All other "devices" (i.e., recovery, rsv, tee, crypt, misc, boot, system, data
+# should be safe to overwrite.)
+[mmcblk0p01]  bootloader  offset 0x000000000000  size 0x000000400000      0MiB     4
+[mmcblk0p02]    reserved  offset 0x000002400000  size 0x000004000000      36MiB    64
+[mmcblk0p03]       cache  offset 0x000006c00000  size 0x000020000000      108MiB   512
+[mmcblk0p04]         env  offset 0x000027400000  size 0x000000800000      628MiB   8
+[mmcblk0p05]        logo  offset 0x000028400000  size 0x000002000000      644MiB   32
+[mmcblk0p06]    recovery  offset 0x00002ac00000  size 0x000002000000      684MiB   32
+[mmcblk0p07]         rsv  offset 0x00002d400000  size 0x000000800000      724MiB   8
+[mmcblk0p08]         tee  offset 0x00002e400000  size 0x000000800000      740MiB   8
+[mmcblk0p09]       crypt  offset 0x00002f400000  size 0x000002000000      756MiB   32
+[mmcblk0p10]        misc  offset 0x000031c00000  size 0x000002000000      796MiB   32
+[mmcblk0p11]        boot  offset 0x000034400000  size 0x000002000000      836MiB   32
+[mmcblk0p12]      system  offset 0x000036c00000  size 0x000050000000      876MiB   1280
+[mmcblk0p13]        data  offset 0x000087400000  size 0x00014ac00000      2164MiB  5292
 EOPART
 ####################################################################################################
 echo "Start script create MBR and filesystem"
-ENV_LOGO_PART_START=288768  #sectors
-DEV_EMMC=${DEV_EMMC:=/dev/mmcblk2}
 echo "So as to not overwrite U-boot, we backup the first 1M."
 dd if=${DEV_EMMC} of=/tmp/boot-bak bs=1M count=4
-dd if=${DEV_EMMC} of=/bmp/env-bak bs=1024 count=8192 skip=643072
-dd if=${DEV_EMMC} of=/bmp/logo-bak bs=1024 count=32768 skip=659456
+dd if=${DEV_EMMC} of=/tmp/env-bak bs=1024 count=8192 skip=643072
+dd if=${DEV_EMMC} of=/tmp/logo-bak bs=1024 count=32768 skip=659456
 
 echo "(Re-)initialize the eMMC and create partition."
-echo "bootloader & reserved occupies [0, 100M]. Since sector size is 512B, byte offset would be 204800."
-echo "Start create MBR and partittion"
-echo "${DEV_EMMC}p04  env   offset 0x000027400000  size 0x000000800000"
-echo "${DEV_EMMC}p05  logo  offset 0x000028400000  size 0x000002000000"
 parted -s "${DEV_EMMC}" mklabel msdos
-parted -s "${DEV_EMMC}" mkpart primary fat32 204800s $((ENV_LOGO_PART_START-1))s
-parted -s "${DEV_EMMC}" mkpart primary ext4 ${ENV_LOGO_PART_START}s 3G
-parted -s "${DEV_EMMC}" mkpart primary ext4 3G 100%
+parted -s "${DEV_EMMC}" mkpart primary fat32 108MiB 150MiB
+parted -s "${DEV_EMMC}" mkpart primary linux-swap 150MiB 512MiB
+parted -s "${DEV_EMMC}" mkpart primary ext4 684MiB 3GiB
+parted -s "${DEV_EMMC}" mkpart primary ext4 3GiB 100%
+
 echo "Start restore u-boot"
 # Restore U-boot (except the first 442 bytes, where partition table is stored.)
 dd if=/tmp/boot-bak of=${DEV_EMMC} conv=fsync bs=1 count=442
 dd if=/tmp/boot-bak of=${DEV_EMMC} conv=fsync bs=512 skip=1 seek=1
-# This method is used to convert byte offset in `/dev/mmcblkX` to block offset in `/dev/mmcblkXp2`.
-as_block_number() {
-    # Block numbers are offseted by ${ENV_LOGO_PART_START} sectors
-    # Because we're using 4K blocks, the byte offsets are divided by 4K.
-    expr $((($1 - $ENV_LOGO_PART_START*512) / 4096))
-}
-# This method generates a sequence of block number in range [$1, $1 + $2).
-# It's used for marking several reserved regions as bad blocks below.
-gen_blocks() {
-    seq $(as_block_number $1) $(($(as_block_number $(($1 + $2))) - 1))
-}
-
-# Mark reserved regions as bad block to prevent Linux from using them.
-# /dev/env: This "device" (present in Linux 3.x) uses 0x27400000 ~ +0x800000.
-#           It seems that they're overwritten each time system boots if value
-#           there is invalid. Therefore we must not touch these blocks.
-#
-# /dev/logo: This "device"  uses 0x28400000~ +0x800000. You may mark them as
-#            bad blocks if you want to preserve or replace the boot logo.
-#
-# All other "devices" (i.e., `recovery`, `rsv`, `tee`, `crypt`, `misc`, `boot`,
-# `system`, `data` should be safe to overwrite.)
-gen_blocks 0x27400000 0x800000 > /tmp/reservedblks
-echo "Marked blocks used by env partition start=0x28400000 size=0x800000 as bad."
-echo "dd if=/boot/n1-logo.img of=${DEV_EMMC} bs=1M seek=644 can install new logo"
-gen_blocks 0x28400000 0x2000000 >> /tmp/reservedblks
-echo "Marked blocks used by /dev/logo start=0x28400000 size=0x2000000 as bad."
 
 DISK=${DEV_EMMC}
 PART_BOOT="${DISK}p1"
-PART_ROOT="${DISK}p2"
-PART_OVERLAY="${DISK}p3"
+PART_SWAP="${DISK}p2"
+PART_ROOT="${DISK}p3"
+PART_OVERLAY="${DISK}p4"
 
 echo "Format the partitions."
 mkfs.vfat -n ${BOOT_LABEL} ${PART_BOOT}
-mkfs -t ext4 -m 0 -b4096 -l /tmp/reservedblks  -E num_backup_sb=0  -q -L ${ROOT_LABEL} ${PART_ROOT}
+mkswap "${PART_SWAP}"
+mkfs -t ext4 -m 0 -q -L ${ROOT_LABEL} ${PART_ROOT}
 mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${PART_OVERLAY}
 
 echo "Flush changes (in case they were cached.)."
 sync
-echo "show reserved!!"
-false && dumpe2fs -b ${PART_ROOT}
-echo "Partition table (re-)initialized."
 echo "reflush env&logo, mkfs crash it!!!!"
-dd if=/bmp/env-bak of=${DEV_EMMC} bs=1024 count=8192 seek=643072
-dd if=/bmp/logo-bak of=${DEV_EMMC} bs=1024 count=32768 seek=659456
+dd if=/tmp/env-bak of=${DEV_EMMC} bs=1024 count=8192 seek=643072
+dd if=/tmp/logo-bak of=${DEV_EMMC} bs=1024 count=32768 seek=659456
+
 EOF
 cat <<'EO_DOC'
 export PROMPT_COMMAND='export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$([[ -r "/overlay/reformatoverlay" ]] && echo "[reboot factory]")$"'
