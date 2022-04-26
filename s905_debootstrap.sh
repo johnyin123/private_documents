@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("91c0711[2022-04-26T09:09:58+08:00]:s905_debootstrap.sh")
+VERSION+=("a150224[2022-04-26T10:36:58+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1160,6 +1160,7 @@ setenv boot_start booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr}
 if fatload usb 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload usb 0 ${kernel_addr} ${image}; then if fatload usb 0 ${initrd_addr} ${initrd}; then if fatload usb 0 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
 if fatload usb 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload usb 1 ${kernel_addr} ${image}; then if fatload usb 1 ${initrd_addr} ${initrd}; then if fatload usb 1 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
 if fatload mmc 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload mmc 0 ${kernel_addr} ${image}; then if fatload mmc 0 ${initrd_addr} ${initrd}; then if fatload mmc 0 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
+if fatload mmc 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload mmc 1 ${kernel_addr} ${image}; then if fatload mmc 1 ${initrd_addr} ${initrd}; then if fatload mmc 1 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
 EOF
         cat > ${DIRNAME}/buildroot/boot/uEnv.ini <<EOF
 image=vmlinuz-${kerver}
@@ -1173,6 +1174,7 @@ echo "Start amlogic old u-boot."
 if fatload usb 0 0x1000000 u-boot.ext; then go 0x1000000; fi;
 if fatload usb 1 0x1000000 u-boot.ext; then go 0x1000000; fi;
 if fatload mmc 0 0x1000000 u-boot.ext; then go 0x1000000; fi;
+if fatload mmc 1 0x1000000 u-boot.ext; then go 0x1000000; fi;
 EOF
         mkdir -p ${DIRNAME}/buildroot/boot/extlinux
         cat <<EOF > ${DIRNAME}/buildroot/boot/extlinux/extlinux.conf
