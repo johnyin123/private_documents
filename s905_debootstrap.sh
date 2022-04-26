@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a150224[2022-04-26T10:36:58+08:00]:s905_debootstrap.sh")
+VERSION+=("46a7cde[2022-04-26T13:36:44+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -705,7 +705,7 @@ EO_DOC
 echo "enable fw_printenv command, bullseye u-boot-tools remove fw_printenv, so need copy!"
 cat >${DIRNAME}/buildroot/etc/fw_env.config <<EOF
 # Device to access      offset          env size
-/dev/mmcblk1            0x27400000      0x10000
+/dev/mmcblk2            0x27400000      0x10000
 EOF
 
 mkdir -p ${DIRNAME}/buildroot/etc/initramfs/post-update.d/
