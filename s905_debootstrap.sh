@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4b4bdea[2022-04-25T14:16:30+08:00]:s905_debootstrap.sh")
+VERSION+=("25b2874[2022-04-25T20:24:38+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -927,7 +927,7 @@ PART_OVERLAY="${DISK}p4"
 
 echo "Format the partitions."
 mkfs.vfat -n ${BOOT_LABEL} ${PART_BOOT}
-mkswap "${PART_SWAP}"
+mkswap -L EMMCSWAP "${PART_SWAP}"
 mkfs -t ext4 -m 0 -q -L ${ROOT_LABEL} ${PART_ROOT}
 mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${PART_OVERLAY}
 
@@ -1012,17 +1012,6 @@ prepair_disk() {
 
     mke2fs -FL "${OVERLAY_LABEL}" -t ext4 -E lazy_itable_init,lazy_journal_init ${PART_OVERLAY}
 }
-gen_s905_emmc_autoscript() {
-    cat > /boot/emmc_autoscript <<'EOF'
-setenv env_addr "0x10400000"
-setenv kernel_addr "0x11000000"
-setenv initrd_addr "0x13000000"
-setenv dtb_mem_addr "0x1000000"
-setenv boot_start booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr}
-if fatload mmc 1 ${kernel_addr} zImage; then if fatload mmc 1 ${initrd_addr} uInitrd; then if fatload mmc 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; fi; if fatload mmc 1 ${dtb_mem_addr} ${dtb_name}; then run boot_start;fi;fi;fi;
-EOF
-}
-
 gen_s905_net_boot_autoscript() {
     cat > /boot/s905_autoscript.nfs.cmd <<'EOF'
 setenv kernel_addr  "0x11000000"
