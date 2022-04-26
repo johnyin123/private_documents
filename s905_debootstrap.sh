@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ca2dfd0[2022-04-26T08:45:52+08:00]:s905_debootstrap.sh")
+VERSION+=("91c0711[2022-04-26T09:09:58+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -61,30 +61,6 @@ adb shell
    su
      31183118
 ssh -p${PORT} ${IPADDR}
-cat <<EOF > aml_autoscript
-setenv bootfromnand 0
-setenv bootcmd "run start_autoscript; run storeboot;"
-setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi;"
-setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;"
-setenv start_usb_autoscript "if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;"
-setenv upgrade_step "0"
-saveenv
-sleep 1
-reboot
-EOF
-
-fw_setenv bootdelay '0'
-fw_setenv ethaddr '5a:57:57:90:5d:03'
-fw_setenv bcb_cmd 'get_valid_slot;'
-fw_setenv loadaddr '1080000'
-fw_setenv bootup_offset '0x10802c0'
-fw_setenv init_display 'osd open;osd clear;imgread pic logo bootup $loadaddr;bmp display $bootup_offset;bmp scale'
-fw_setenv preboot 'run bcb_cmd; run init_display;'
-fw_setenv start_usb_autoscript 'for usbdev in 0 1 2 3; do if fatload usb ${usbdev} 1020000 s905_autoscript; then autoscr 1020000; fi; done'
-fw_setenv start_emmc_autoscript 'if fatload mmc 1 1020000 s905_autoscript; then autoscr 1020000; fi;'
-fw_setenv start_mmc_autoscript 'if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;'
-fw_setenv start_autoscript 'if usb start; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript'
-fw_setenv bootcmd 'run start_autoscript; run storeboot;'
 EOF_DOC
 VMLINUZ_KERNEL=
 BOOT_LABEL="EMMCBOOT"
@@ -103,7 +79,7 @@ PKG+=",xz-utils,zip,udisks2"
 PKG+=",alsa-utils,pulseaudio,pulseaudio-utils,smplayer,smplayer-l10n,mpg123,lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xfce4,xfce4-terminal,xserver-xorg-input-all,pavucontrol"
 PKG+=",sudo"
 # # for xfce auto mount
-PKG+="thunar-volman,policykit-1,gvfs"
+PKG+=",thunar-volman,policykit-1,gvfs"
 if [ "$UID" -ne "0" ]
 then
     echo "Must be root to run this script."
@@ -959,7 +935,6 @@ echo "you need run 'apt -y install busybox && update-initramfs -c -k KERNEL_VERS
 # gpasswd -a root autologin
 
 echo "SUCCESS build rootfs, all!!!"
-exit 0
 
 :<<"EOF_DEMO"
 
@@ -1159,31 +1134,6 @@ mv meson-gxl-s905d-phicomm-n1.dtb meson-gxl-s905d-phicomm-n1.dtb.original
 sed -i '/interrupt-controller@9880/,+7s/phandle/#phandle/' n1.dts
 dtc -I dts -O dtb -o meson-gxl-s905d-phicomm-n1.dtb n1.dts
 EOF_DEMO
-cat <<'EOF'
-#!/bin/sh
-
-mixer() {
-  parm=${4:-on}
-  amixer -c "$1" sset "$2" "$3" $parm >/dev/null 2>&1
-  amixer -c "$1" sset "$2" $parm >/dev/null 2>&1
-}
-
-card=GXP230Q200
-echo $card
-
-# HDMI to PCM0
-  mixer $card 'FRDDR_A SINK 1 SEL' 'OUT 1'
-  mixer $card 'FRDDR_A SRC 1 EN' on
-  mixer $card 'TDMOUT_B SRC SEL' 'IN 0'
-  mixer $card 'TOHDMITX I2S SRC' 'I2S B'
-  mixer $card 'TOHDMITX' on
-
-# S/PDIF to PCM1
-  mixer $card 'FRDDR_B SINK 1 SEL' 'OUT 3'
-  mixer $card 'FRDDR_B SRC 1 EN' on
-  mixer $card 'SPDIFOUT SRC SEL' 'IN 1'
-  mixer $card 'SPDIFOUT Playback' on
-EOF
 
 echo "start install you kernel&patchs"
 if [ -d "${DIRNAME}/kernel" ]; then
@@ -1253,3 +1203,4 @@ chroot ${DIRNAME}/buildroot/ /bin/bash || true
 chroot ${DIRNAME}/buildroot/ /bin/bash -s <<EOF
     debian_minimum_init
 EOF
+exit 0
