@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("46a7cde[2022-04-26T13:36:44+08:00]:s905_debootstrap.sh")
+VERSION+=("7db1d60[2022-04-26T13:37:57+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -190,6 +190,7 @@ EOSHELL
 cat > ${DIRNAME}/buildroot/etc/fstab << EOF
 LABEL=${ROOT_LABEL}    /    ${FS_TYPE}    defaults,errors=remount-ro,noatime    0    1
 LABEL=${BOOT_LABEL}    /boot    vfat    ro    0    2
+# LABEL=EMMCSWAP    none     swap    sw,pri=-1    0    0
 tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
 tmpfs /run      tmpfs   rw,nosuid,noexec,relatime,mode=755  0  0
 tmpfs /tmp      tmpfs   rw,nosuid,relatime,mode=777  0  0
@@ -955,75 +956,6 @@ fw_setenv start_emmc_autoscript "if fatload mmc 1 1020000 emmc_autoscript; then 
 fw_setenv bootdelay 0
 fw_setenv ethaddr 5a:57:57:90:5d:03
 
-final_disk() {
-    umount ${DIRNAME}/buildroot/
-    losetup -d ${DIRNAME}/DISK.IMG
-}
-
-prepair_disk() {
-    # DISK="/dev/sdb"
-    # PART_BOOT="/dev/sdb1"
-    # PART_ROOT="/dev/sdb2"
-
-    truncate -s 8G ${DIRNAME}/DISK.IMG
-    DISK=$(losetup -fP --show ${DIRNAME}/DISK.IMG)
-    PART_BOOT="${DISK}p1"
-    PART_ROOT="${DISK}p2"
-    PART_OVERLAY="${DISK}p3"
-
-    parted -s "${DISK}" "mklabel msdos"
-    parted -s "${DISK}" "mkpart primary fat32 1M 128M"
-    parted -s "${DISK}" "mkpart primary ${FS_TYPE} 128M 1G"
-    parted -s "${DISK}" "mkpart primary ext4 1G 100%"
-
-    echo -n "Formatting BOOT partition..."
-    mkfs.vfat -n "${BOOT_LABEL}" ${PART_BOOT}
-    echo "done."
-
-    echo "Formatting ROOT partition..."
-    mkfs -t ${FS_TYPE} -q -L "${ROOT_LABEL}" ${PART_ROOT}
-    echo "done."
-    mount ${PART_ROOT} ${DIRNAME}/buildroot/
-
-    mke2fs -FL "${OVERLAY_LABEL}" -t ext4 -E lazy_itable_init,lazy_journal_init ${PART_OVERLAY}
-}
-gen_s905_net_boot_autoscript() {
-    cat > /boot/s905_autoscript.nfs.cmd <<'EOF'
-setenv kernel_addr  "0x11000000"
-setenv initrd_addr  "0x13000000"
-setenv dtb_mem_addr "0x1000000"
-setenv serverip 192.168.168.2
-setenv ipaddr 192.168.168.168
-setenv bootargs "root=/dev/nfs nfsroot=${serverip}:/nfsshare/root rw net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 rootwait"
-setenv bootcmd_pxe "tftp ${kernel_addr} zImage; tftp ${initrd_addr} uInitrd; tftp ${dtb_mem_addr} dtb.img; booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr} "
-run bootcmd_pxe
-EOF
-}
-
-install_bootloader() {
-    gen_uEnv_ini
-    gen_s905_autoscript
-    mkimage -C none -A arm -T script -d s905_autoscript.cmd s905_autoscript
-    mkimage -C none -A arm -T script -d s905_autoscript.nfs.cmd s905_autoscript.nfs
-    mkimage -A arm64 -O linux -T ramdisk -C gzip -n uInitrd -d initramfs-linux.img uInitrd
-}
-
-build_mesa_19_10() {
-apt -y install build-essential cmake python3-mako meson pkg-config bison flex gettext zlib1g-dev
-apt -y install libexpat1-dev libxrandr-dev
-apt -y install wayland-protocols libwayland-egl-backend-dev
-
-tar xvf ...
-cd mesa
-mkdir build
-meson build/ -Dprefix=/usr/
-meson configure build/ -Dprefix=/usr/
-ninja -C build/
-ninja -C build/ install
-
-meson build -Dvulkan-drivers=[] -Dplatforms=drm,x11 -Ddri-drivers=[] -Dgallium-drivers=lima,kmsro
-}
-
 net_demo() {
 cat > interfaces.hostapd << EOF
 auto lo br0
@@ -1113,26 +1045,7 @@ auto br0
 iface br0 inet dhcp
 bridge_ports eth0.101 wlan0
 EOF
-
 }
-cat <<'EOF'
-#ext4 boot disk
-fw_setenv start_emmc_autoscript 'if ext4load mmc 1 ${env_addr} /boot/boot.ini; then env import -t ${env_addr} ${filesize}; if ext4load mmc 1 ${kernel_addr} ${image}; then if ext4load mmc 1 ${initrd_addr} ${initrd}; then if ext4load mmc 1 ${dtb_mem_addr} ${dtb}; then run boot_start;fi;fi;fi;fi;'
-
-#boot.ini
-image=/boot/vmlinuz-5.1.7
-initrd=/boot/uInitrd
-dtb=/boot/meson-gxl-s905d-phicomm-n1.dtb
-bootargs=root=/dev/mmcblk1p1 rootflags=data=writeback rw console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 fsck.fix=yes fsck.repair=yes net.ifnames=0
-EOF
-
-# Fix high load average
-# search for `interrupt-controller@9880`, comment out the last line of the section, e.g. `phandle = <0x1e>;`
-pushd /boot/dtb
-dtc -I dtb -O dts -o n1.dts meson-gxl-s905d-phicomm-n1.dtb
-mv meson-gxl-s905d-phicomm-n1.dtb meson-gxl-s905d-phicomm-n1.dtb.original
-sed -i '/interrupt-controller@9880/,+7s/phandle/#phandle/' n1.dts
-dtc -I dts -O dtb -o meson-gxl-s905d-phicomm-n1.dtb n1.dts
 EOF_DEMO
 
 echo "start install you kernel&patchs"
@@ -1151,6 +1064,16 @@ sleep 1
 reboot
 EOF
     [ -z "${VMLINUZ_KERNEL:-}" ] && {
+        cat > ${DIRNAME}/buildroot/boot/s905_autoscript.nfs.cmd <<'EOF'
+setenv kernel_addr  "0x11000000"
+setenv initrd_addr  "0x13000000"
+setenv dtb_mem_addr "0x1000000"
+setenv serverip 192.168.168.2
+setenv ipaddr 192.168.168.168
+setenv bootargs "root=/dev/nfs nfsroot=${serverip}:/nfsshare/root rw net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 rootwait"
+setenv bootcmd_pxe "tftp ${kernel_addr} zImage; tftp ${initrd_addr} uInitrd; tftp ${dtb_mem_addr} dtb.img; booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr} "
+run bootcmd_pxe
+EOF
         cat > ${DIRNAME}/buildroot/boot/s905_autoscript.cmd <<'EOF'
 setenv env_addr     "0x10400000"
 setenv kernel_addr  "0x11000000"
@@ -1194,6 +1117,8 @@ EOF
     # aml_autoscript for android to linux bootup
     mkimage -C none -A arm -T script -d /boot/aml_autoscript.cmd /boot/aml_autoscript
     mkimage -C none -A arm -T script -d /boot/s905_autoscript.cmd /boot/s905_autoscript
+    mkimage -C none -A arm -T script -d /boot/s905_autoscript.nfs.cmd /boot/s905_autoscript.nfs
+    rm -f /boot/aml_autoscript.cmd /boot/s905_autoscript.cmd /boot/s905_autoscript.nfs.cmd || true
 EOSHELL
     echo "!!!!!!!!!IF USB BOOT DISK, rm -f ${DIRNAME}/buildroot/etc/udev/rules.d/*"
 fi
