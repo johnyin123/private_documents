@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-04-27T15:23:01+08:00]:s905_debootstrap.sh")
+VERSION+=("afd9fc4[2022-04-27T15:23:00+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -206,21 +206,21 @@ SUBSYSTEM=="tty", ACTION=="add", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7
 SUBSYSTEM=="tty", ACTION=="remove", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'rm /overlay/reformatoverlay; echo none > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
 EOF
 
-# auto mount usb storage (readonly)
-cat > ${DIRNAME}/buildroot/etc/udev/rules.d/98-usbmount.rules << EOF
-# udevadm control --reload-rules
-SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="add", RUN+="/bin/systemctl start usb-mount@%k.service"
-SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/bin/systemctl stop usb-mount@%k.service"
-EOF
-    cat > ${DIRNAME}/buildroot/usr/lib/systemd/system/usb-mount@.service <<EOF
-[Unit]
-Description=auto mount block %i
-
-[Service]
-RemainAfterExit=true
-ExecStart=/bin/sh -c '/bin/udisksctl mount -o ro -b /dev/%i || exit 0'
-ExecStop=/bin/sh -c '/bin/udisksctl unmount -f -b /dev/%i || exit 0'
-EOF
+# # auto mount usb storage (readonly)
+# cat > ${DIRNAME}/buildroot/etc/udev/rules.d/98-usbmount.rules << EOF
+# # udevadm control --reload-rules
+# SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="add", RUN+="/bin/systemctl start usb-mount@%k.service"
+# SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/bin/systemctl stop usb-mount@%k.service"
+# EOF
+#     cat > ${DIRNAME}/buildroot/usr/lib/systemd/system/usb-mount@.service <<EOF
+# [Unit]
+# Description=auto mount block %i
+#
+# [Service]
+# RemainAfterExit=true
+# ExecStart=/bin/sh -c '/bin/udisksctl mount -o ro -b /dev/%i || exit 0'
+# ExecStop=/bin/sh -c '/bin/udisksctl unmount -f -b /dev/%i || exit 0'
+# EOF
 # end auto mount usb storage (readonly)
 
 # enable ttyAML0 login
@@ -888,8 +888,8 @@ dd if=${DEV_EMMC} of=/tmp/logo-bak bs=1024 count=32768 skip=659456
 
 echo "(Re-)initialize the eMMC and create partition."
 parted -s "${DEV_EMMC}" mklabel msdos
-parted -s "${DEV_EMMC}" mkpart primary fat32 108MiB 150MiB
-parted -s "${DEV_EMMC}" mkpart primary linux-swap 150MiB 512MiB
+parted -s "${DEV_EMMC}" mkpart primary fat32 108MiB 172MiB
+parted -s "${DEV_EMMC}" mkpart primary linux-swap 172MiB 512MiB
 parted -s "${DEV_EMMC}" mkpart primary ext4 684MiB 3GiB
 parted -s "${DEV_EMMC}" mkpart primary ext4 3GiB 100%
 
@@ -915,7 +915,6 @@ sync
 echo "reflush env&logo, mkfs crash it!!!!"
 dd if=/tmp/env-bak of=${DEV_EMMC} bs=1024 count=8192 seek=643072
 dd if=/tmp/logo-bak of=${DEV_EMMC} bs=1024 count=32768 seek=659456
-
 EOF
 cat <<'EO_DOC'
 export PROMPT_COMMAND='export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$([[ -r "/overlay/reformatoverlay" ]] && echo "[reboot factory]")$"'
@@ -1093,7 +1092,7 @@ initrd=uInitrd-${kerver}
 dtb=/dtb/meson-gxl-s905d-phicomm-n1.dtb
 bootargs=root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
 EOF
-    cat <<'EOF' > ${DIRNAME}/buildroot/boot/s905_autoscript.uboot.cmd
+    cat  > ${DIRNAME}/buildroot/boot/s905_autoscript.uboot.cmd <<'EOF'
 echo "Start amlogic old u-boot."
 if fatload usb 0 0x1000000 u-boot.bin; then go 0x1000000; fi;
 if fatload usb 1 0x1000000 u-boot.bin; then go 0x1000000; fi;
@@ -1110,7 +1109,7 @@ APPEND root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.if
 EOF
     echo "5d921bf1d57baf081a7b2e969d7f70a5  u-boot.bin"
     echo "ade4aa3942e69115b9cc74d902e17035  u-boot.bin.new"
-    rsync -av ${DIRNAME}/u-boot.bin ${DIRNAME}/buildroot/boot/ || true
+    cat ${DIRNAME}/u-boot.bin > ${DIRNAME}/buildroot/boot/u-boot.bin || true
     LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot/ /bin/bash <<EOSHELL
     depmod ${kerver}
     update-initramfs -c -k ${kerver}
@@ -1128,7 +1127,7 @@ ls -lhR ${DIRNAME}/buildroot/boot/
 echo "end install you kernel&patchs"
 
 echo "start chroot shell, disable service & do other work"
-chroot ${DIRNAME}/buildroot/ /bin/bash || true
+chroot ${DIRNAME}/buildroot/ /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
 chroot ${DIRNAME}/buildroot/ /bin/bash -s <<EOF
     debian_minimum_init
 EOF
