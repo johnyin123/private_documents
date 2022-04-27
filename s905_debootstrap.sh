@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("43a8f70[2022-04-27T09:01:48+08:00]:s905_debootstrap.sh")
+VERSION+=("b2d774d[2022-04-27T09:22:52+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1104,7 +1104,7 @@ EOF
     cat <<EOF > ${DIRNAME}/buildroot/boot/extlinux/extlinux.conf
 LABEL PHICOMM N1
 LINUX /vmlinuz-${kerver}
-INITRD /uInitrd-${kerver}
+INITRD /initrd.img-${kerver}
 FDT /dtb/meson-gxl-s905d-phicomm-n1.dtb
 APPEND root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
 EOF
@@ -1114,8 +1114,7 @@ EOF
     LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot/ /bin/bash <<EOSHELL
     depmod ${kerver}
     update-initramfs -c -k ${kerver}
-    rm -f /boot/initrd.img-${kerver} || true
-    rm -f /boot/s905_autoscript
+    rm -f /boot/s905_autoscript /boot/s905_autoscript /boot/s905_autoscript.uboot /boot/s905_autoscript.nfs || true
     # aml_autoscript for android to linux bootup
     mkimage -C none -A arm -T script -d /boot/aml_autoscript.cmd /boot/aml_autoscript
     mkimage -C none -A arm -T script -d /boot/s905_autoscript.cmd /boot/s905_autoscript
