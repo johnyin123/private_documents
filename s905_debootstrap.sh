@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5a40807[2022-04-26T15:22:25+08:00]:s905_debootstrap.sh")
+VERSION+=("43a8f70[2022-04-27T09:01:48+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -62,7 +62,6 @@ adb shell
      31183118
 ssh -p${PORT} ${IPADDR}
 EOF_DOC
-VMLINUZ_KERNEL=
 BOOT_LABEL="EMMCBOOT"
 ROOT_LABEL="EMMCROOT"
 FS_TYPE=${FS_TYPE:-ext4}
@@ -1055,6 +1054,7 @@ echo "start install you kernel&patchs"
 if [ -d "${DIRNAME}/kernel" ]; then
     rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
     kerver=$(ls ${DIRNAME}/buildroot/usr/lib/modules/ | sort --version-sort -f | tail -n1)
+    kerver=${kerver:-dummy}
     echo "USE KERNEL ${kerver} ------>"
     cat > ${DIRNAME}/buildroot/boot/aml_autoscript.cmd <<'EOF'
 setenv bootcmd "run start_autoscript; run storeboot;"
@@ -1066,8 +1066,7 @@ saveenv
 sleep 1
 reboot
 EOF
-    [ -z "${VMLINUZ_KERNEL:-}" ] && {
-        cat > ${DIRNAME}/buildroot/boot/s905_autoscript.nfs.cmd <<'EOF'
+    cat > ${DIRNAME}/buildroot/boot/s905_autoscript.nfs.cmd <<'EOF'
 setenv kernel_addr  "0x11000000"
 setenv initrd_addr  "0x13000000"
 setenv dtb_mem_addr "0x1000000"
@@ -1077,7 +1076,7 @@ setenv bootargs "root=/dev/nfs nfsroot=${serverip}:/nfsshare/root rw net.ifnames
 setenv bootcmd_pxe "tftp ${kernel_addr} zImage; tftp ${initrd_addr} uInitrd; tftp ${dtb_mem_addr} dtb.img; booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr} "
 run bootcmd_pxe
 EOF
-        cat > ${DIRNAME}/buildroot/boot/s905_autoscript.cmd <<'EOF'
+   cat > ${DIRNAME}/buildroot/boot/s905_autoscript.cmd <<'EOF'
 setenv env_addr     "0x10400000"
 setenv kernel_addr  "0x11000000"
 setenv initrd_addr  "0x13000000"
@@ -1088,30 +1087,30 @@ if fatload usb 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize
 if fatload mmc 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload mmc 0 ${kernel_addr} ${image}; then if fatload mmc 0 ${initrd_addr} ${initrd}; then if fatload mmc 0 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
 if fatload mmc 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload mmc 1 ${kernel_addr} ${image}; then if fatload mmc 1 ${initrd_addr} ${initrd}; then if fatload mmc 1 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
 EOF
-        cat > ${DIRNAME}/buildroot/boot/uEnv.ini <<EOF
+    cat > ${DIRNAME}/buildroot/boot/uEnv.ini <<EOF
 image=vmlinuz-${kerver}
 initrd=uInitrd-${kerver}
 dtb=/dtb/meson-gxl-s905d-phicomm-n1.dtb
 bootargs=root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
 EOF
-    } || {
-        cat <<'EOF' > ${DIRNAME}/buildroot/boot/s905_autoscript.cmd
+    cat <<'EOF' > ${DIRNAME}/buildroot/boot/s905_autoscript.uboot.cmd
 echo "Start amlogic old u-boot."
-if fatload usb 0 0x1000000 u-boot.ext; then go 0x1000000; fi;
-if fatload usb 1 0x1000000 u-boot.ext; then go 0x1000000; fi;
-if fatload mmc 0 0x1000000 u-boot.ext; then go 0x1000000; fi;
-if fatload mmc 1 0x1000000 u-boot.ext; then go 0x1000000; fi;
+if fatload usb 0 0x1000000 u-boot.bin; then go 0x1000000; fi;
+if fatload usb 1 0x1000000 u-boot.bin; then go 0x1000000; fi;
+if fatload mmc 0 0x1000000 u-boot.bin; then go 0x1000000; fi;
+if fatload mmc 1 0x1000000 u-boot.bin; then go 0x1000000; fi;
 EOF
-        mkdir -p ${DIRNAME}/buildroot/boot/extlinux
-        cat <<EOF > ${DIRNAME}/buildroot/boot/extlinux/extlinux.conf
+    mkdir -p ${DIRNAME}/buildroot/boot/extlinux
+    cat <<EOF > ${DIRNAME}/buildroot/boot/extlinux/extlinux.conf
 LABEL PHICOMM N1
 LINUX /vmlinuz-${kerver}
 INITRD /uInitrd-${kerver}
 FDT /dtb/meson-gxl-s905d-phicomm-n1.dtb
 APPEND root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
 EOF
-        rsync -av ${DIRNAME}/u-boot.ext ${DIRNAME}/buildroot/boot/
-    }
+    echo "5d921bf1d57baf081a7b2e969d7f70a5  u-boot.bin"
+    echo "ade4aa3942e69115b9cc74d902e17035  u-boot.bin.new"
+    rsync -av ${DIRNAME}/u-boot.bin ${DIRNAME}/buildroot/boot/ || true
     LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot/ /bin/bash <<EOSHELL
     depmod ${kerver}
     update-initramfs -c -k ${kerver}
@@ -1120,8 +1119,9 @@ EOF
     # aml_autoscript for android to linux bootup
     mkimage -C none -A arm -T script -d /boot/aml_autoscript.cmd /boot/aml_autoscript
     mkimage -C none -A arm -T script -d /boot/s905_autoscript.cmd /boot/s905_autoscript
+    mkimage -C none -A arm -T script -d /boot/s905_autoscript.uboot.cmd /boot/s905_autoscript.uboot
     mkimage -C none -A arm -T script -d /boot/s905_autoscript.nfs.cmd /boot/s905_autoscript.nfs
-    rm -f /boot/aml_autoscript.cmd /boot/s905_autoscript.cmd /boot/s905_autoscript.nfs.cmd || true
+    rm -f /boot/aml_autoscript.cmd /boot/s905_autoscript.cmd /boot/s905_autoscript.uboot.cmd /boot/s905_autoscript.nfs.cmd || true
 EOSHELL
     echo "!!!!!!!!!IF USB BOOT DISK, rm -f ${DIRNAME}/buildroot/etc/udev/rules.d/*"
 fi
