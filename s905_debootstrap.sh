@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ef84e14[2022-04-26T13:56:25+08:00]:s905_debootstrap.sh")
+VERSION+=("5a40807[2022-04-26T15:22:25+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1108,7 +1108,7 @@ LABEL PHICOMM N1
 LINUX /vmlinuz-${kerver}
 INITRD /uInitrd-${kerver}
 FDT /dtb/meson-gxl-s905d-phicomm-n1.dtb
-APPEND root=LABEL=${ROOT_LABEL} rootflags=data=writeback rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115
+APPEND root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
 EOF
         rsync -av ${DIRNAME}/u-boot.ext ${DIRNAME}/buildroot/boot/
     }
