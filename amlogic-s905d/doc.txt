@@ -1,0 +1,34 @@
+#led
+echo 0 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
+echo 255 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
+#get temp
+awk '{print $1/1000}' /sys/class/hwmon/hwmon0/temp1_input
+journalctl -alb
+apt install --no-install-recommends  rsyslog
+systemctl enable getty@tty1
+systemctl enable getty@tty2
+#systemctl set-default multi-user.target
+#ln -s /lib/systemd/system/multi-user.target /etc/systemd/system/default.target
+
+#multimedia
+echo "deb http://www.deb-multimedia.org  main non-free" > /etc/apt/sources.list.d/multimedia.conf
+apt-get update -oAcquire::AllowInsecureRepositories=true
+apt-get install deb-multimedia-keyring
+#bluetooth
+apt install --no-install-recommends blueman pulseaudio pulseaudio-module-bluetooth pavucontrol mpg123
+
+bluetoothctl
+    power on
+    agent on
+    default-agent
+    scan on
+    pair xx:xx:xx:xx:xx:xx
+    trust xx:xx:xx:xx:xx:xx
+    connect xx:xx:xx:xx:xx:xx
+    scan off
+    exit
+
+#Xfce
+apt install --no-install-recommends lightdm xserver-xorg-core xinit xserver-xorg-video-fbdev xfce4 xfce4-terminal xserver-
+apt install --no-install-recommends mpv smplayer qt4-qtconfig libqt4-opengl
+ldconfig
