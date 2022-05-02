@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("afd9fc4[2022-04-27T15:23:00+08:00]:s905_debootstrap.sh")
+VERSION+=("5ce95ca[2022-04-27T16:54:04+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1090,7 +1090,7 @@ EOF
 image=vmlinuz-${kerver}
 initrd=uInitrd-${kerver}
 dtb=/dtb/meson-gxl-s905d-phicomm-n1.dtb
-bootargs=root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
+bootargs=root=LABEL=${ROOT_LABEL} rootflags=data=writeback rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
 EOF
     cat  > ${DIRNAME}/buildroot/boot/s905_autoscript.uboot.cmd <<'EOF'
 echo "Start amlogic old u-boot."
@@ -1105,7 +1105,7 @@ LABEL PHICOMM N1
 LINUX /vmlinuz-${kerver}
 INITRD /initrd.img-${kerver}
 FDT /dtb/meson-gxl-s905d-phicomm-n1.dtb
-APPEND root=LABEL=${ROOT_LABEL} rootflags=rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
+APPEND root=LABEL=${ROOT_LABEL} rootflags=data=writeback rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
 EOF
     echo "5d921bf1d57baf081a7b2e969d7f70a5  u-boot.bin"
     echo "ade4aa3942e69115b9cc74d902e17035  u-boot.bin.new"
