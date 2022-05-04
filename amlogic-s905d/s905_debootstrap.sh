@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5ce95ca[2022-04-27T16:54:04+08:00]:s905_debootstrap.sh")
+VERSION+=("2048f3e[2022-05-03T07:34:01+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1107,6 +1107,7 @@ INITRD /initrd.img-${kerver}
 FDT /dtb/meson-gxl-s905d-phicomm-n1.dtb
 APPEND root=LABEL=${ROOT_LABEL} rootflags=data=writeback rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
 EOF
+    echo "https://github.com/PuXiongfei/phicomm-n1-u-boot"
     echo "5d921bf1d57baf081a7b2e969d7f70a5  u-boot.bin"
     echo "ade4aa3942e69115b9cc74d902e17035  u-boot.bin.new"
     cat ${DIRNAME}/u-boot.bin > ${DIRNAME}/buildroot/boot/u-boot.bin || true
