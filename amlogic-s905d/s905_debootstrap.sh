@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4f7dd49[2022-05-06T14:44:04+08:00]:s905_debootstrap.sh")
+VERSION+=("b14a499[2022-05-06T14:59:09+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -62,6 +62,94 @@ adb shell
    su
      31183118
 ssh -p${PORT} ${IPADDR}
+################################################################################
+cat > interfaces.hostapd << EOF
+auto lo br0
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet manual
+
+auto wlan0
+iface wlan0 inet manual
+
+iface br0 inet dhcp
+bridge_ports eth0 wlan0
+#hwaddress ether # will be added at first boot
+EOF
+cat > interfaces.bonding << EOF
+auto eth0
+iface eth0 inet manual
+    bond-master bond0
+    bond-primary eth0
+    bond-mode active-backup
+
+auto wlan0
+iface wlan0 inet manual
+    wpa-ssid your_SSID
+    wpa-psk xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    # to generate proper encrypted key: wpa_passphrase your_SSID your_password
+    bond-master bond0
+    bond-primary eth0
+    bond-mode active-backup
+
+# Define master
+auto bond0
+iface bond0 inet dhcp
+    bond-slaves none
+    bond-primary eth0
+    bond-mode active-backup
+    bond-miimon 100
+EOF
+
+cat > interfaces.router << EOF
+auto lo
+iface lo inet loopback
+
+auto eth0.101
+iface eth0.101 inet manual
+    pre-up swconfig dev eth0 set reset 1
+    pre-up swconfig dev eth0 set enable_vlan 1
+    pre-up swconfig dev eth0 vlan 101 set ports '3 8t'
+    pre-up swconfig dev eth0 set apply 1
+
+auto eth0.102
+iface eth0.102 inet manual
+    pre-up swconfig dev eth0 vlan 102 set ports '0 1 2 4 8t'
+    pre-up swconfig dev eth0 set apply 1
+
+allow-hotplug wlan0
+iface wlan0 inet manual
+
+# WAN
+auto eth0.101
+iface eth0.101 inet dhcp
+
+# LAN
+auto br0
+iface br0 inet static
+bridge_ports eth0.102 wlan0
+    address 192.168.2.254
+    netmask 255.255.255.0
+EOF
+cat > interfaces.switch << EOF
+auto lo
+iface lo inet loopback
+
+auto eth0.101
+iface eth0.101 inet manual
+    pre-up swconfig dev eth0 set reset 1
+    pre-up swconfig dev eth0 set enable_vlan 1
+    pre-up swconfig dev eth0 vlan 101 set ports '0 1 2 3 4 8t'
+    pre-up swconfig dev eth0 set apply 1
+
+auto wlan0
+iface wlan0 inet manual
+
+auto br0
+iface br0 inet dhcp
+bridge_ports eth0.101 wlan0
+EOF
 EOF_DOC
 
 BOOT_LABEL="EMMCBOOT"
@@ -933,125 +1021,12 @@ pactl set-card-profile 0 output:hdmi-stereo
 amixer -c  GXP230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
 EO_DOC
 
-echo "you need run 'apt -y install busybox && update-initramfs -c -k KERNEL_VERSION'"
 # autologin-guest=false
 # autologin-user=user(not root)
 # autologin-user-timeout=0
 # groupadd -r autologin
 # gpasswd -a root autologin
-
 echo "SUCCESS build rootfs, all!!!"
-
-:<<"EOF_DEMO"
-
-# baudrate=115200
-# ethaddr=5a:57:57:90:5d:03
-# bootcmd=run start_autoscript; run storeboot;
-# start_autoscript=if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;
-# start_usb_autoscript=if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;
-# start_mmc_autoscript=if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;
-# start_emmc_autoscript=if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;
-# bootdelay=0
-
-fw_setenv bootcmd "run start_autoscript; run storeboot;"
-fw_setenv start_autoscript "if usb start ; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_emmc_autoscript;"
-fw_setenv start_usb_autoscript "if fatload usb 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 1 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 2 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload usb 3 1020000 s905_autoscript; then autoscr 1020000; fi;"
-fw_setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi;"
-fw_setenv start_emmc_autoscript "if fatload mmc 1 1020000 emmc_autoscript; then autoscr 1020000; fi;"
-fw_setenv bootdelay 0
-fw_setenv ethaddr 5a:57:57:90:5d:03
-
-net_demo() {
-cat > interfaces.hostapd << EOF
-auto lo br0
-iface lo inet loopback
-
-auto eth0
-iface eth0 inet manual
-
-auto wlan0
-iface wlan0 inet manual
-
-iface br0 inet dhcp
-bridge_ports eth0 wlan0
-#hwaddress ether # will be added at first boot
-EOF
-cat > interfaces.bonding << EOF
-auto eth0
-iface eth0 inet manual
-    bond-master bond0
-    bond-primary eth0
-    bond-mode active-backup
-
-auto wlan0
-iface wlan0 inet manual
-    wpa-ssid your_SSID
-    wpa-psk xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    # to generate proper encrypted key: wpa_passphrase your_SSID your_password
-    bond-master bond0
-    bond-primary eth0
-    bond-mode active-backup
-
-# Define master
-auto bond0
-iface bond0 inet dhcp
-    bond-slaves none
-    bond-primary eth0
-    bond-mode active-backup
-    bond-miimon 100
-EOF
-
-cat > interfaces.router << EOF
-
-auto lo
-iface lo inet loopback
-
-auto eth0.101
-iface eth0.101 inet manual
-    pre-up swconfig dev eth0 set reset 1
-    pre-up swconfig dev eth0 set enable_vlan 1
-    pre-up swconfig dev eth0 vlan 101 set ports '3 8t'
-    pre-up swconfig dev eth0 set apply 1
-
-auto eth0.102
-iface eth0.102 inet manual
-    pre-up swconfig dev eth0 vlan 102 set ports '0 1 2 4 8t'
-    pre-up swconfig dev eth0 set apply 1
-
-allow-hotplug wlan0
-iface wlan0 inet manual
-
-# WAN
-auto eth0.101
-iface eth0.101 inet dhcp
-
-# LAN
-auto br0
-iface br0 inet static
-bridge_ports eth0.102 wlan0
-    address 192.168.2.254
-    netmask 255.255.255.0
-EOF
-cat > interfaces.switch << EOF
-auto lo
-iface lo inet loopback
-
-auto eth0.101
-iface eth0.101 inet manual
-    pre-up swconfig dev eth0 set reset 1
-    pre-up swconfig dev eth0 set enable_vlan 1
-    pre-up swconfig dev eth0 vlan 101 set ports '0 1 2 3 4 8t'
-    pre-up swconfig dev eth0 set apply 1
-
-auto wlan0
-iface wlan0 inet manual
-
-auto br0
-iface br0 inet dhcp
-bridge_ports eth0.101 wlan0
-EOF
-}
-EOF_DEMO
 
 echo "start install you kernel&patchs"
 if [ -d "${DIRNAME}/kernel" ]; then
