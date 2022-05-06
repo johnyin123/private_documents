@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e213ced[2022-05-04T11:40:12+08:00]:s905_debootstrap.sh")
+VERSION+=("4f7dd49[2022-05-06T14:44:04+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1105,11 +1105,11 @@ if fatload mmc 1 0x1000000 u-boot.bin; then go 0x1000000; fi;
 EOF
     mkdir -p ${DIRNAME}/buildroot/boot/extlinux
     cat <<EOF > ${DIRNAME}/buildroot/boot/extlinux/extlinux.conf
-LABEL PHICOMM N1
-LINUX /vmlinuz-${kerver}
-INITRD /initrd.img-${kerver}
-FDT /dtb/meson-gxl-s905d-phicomm-n1.dtb
-APPEND root=LABEL=${ROOT_LABEL} rootflags=data=writeback rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
+label PHICOMM_N1
+    linux /vmlinuz-${kerver}
+    initrd /initrd.img-${kerver}
+    fdt /dtb/meson-gxl-s905d-phicomm-n1.dtb
+    append root=LABEL=${ROOT_LABEL} rootflags=data=writeback rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
 EOF
     echo "https://github.com/PuXiongfei/phicomm-n1-u-boot"
     echo "5d921bf1d57baf081a7b2e969d7f70a5  u-boot.bin"
