@@ -7,14 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2048f3e[2022-05-03T07:34:01+08:00]:s905_debootstrap.sh")
+VERSION+=("e213ced[2022-05-04T11:40:12+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
+# USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
+: <<'EOF_DOC'
 #fw_setenv bootcmd "run update"; reboot
 #之后PC端的刷机程序就会检测到设备进入刷机模式，按软件的刷机提示刷机即可。
-# USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
-cat <<'EOF_DOC'
+
 短接->插USB线->上电->取消短接
 ./aml-flash --img=T1-6.23-fix.img --parts=all
         ./update identify 7
@@ -62,6 +63,7 @@ adb shell
      31183118
 ssh -p${PORT} ${IPADDR}
 EOF_DOC
+
 BOOT_LABEL="EMMCBOOT"
 ROOT_LABEL="EMMCROOT"
 FS_TYPE=${FS_TYPE:-ext4}
@@ -76,14 +78,14 @@ PKG+=",cron,logrotate,bsdmainutils,rsyslog,openssh-client,wget,ntpdate,less,wire
 PKG+=",xz-utils,zip,udisks2"
 # # xfce
 PKG+=",alsa-utils,pulseaudio,pulseaudio-utils,smplayer,smplayer-l10n,mpg123,lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xfce4,xfce4-terminal,xserver-xorg-input-all,pavucontrol"
-PKG+=",sudo"
+PKG+=",sudo,aria2,axel,curl,eject,rename,bc,socat,tmux,xmlstarlet,jq,traceroute,ipcalc,ncal,qrencode,tcpdump"
 # # for xfce auto mount
 PKG+=",thunar-volman,policykit-1,gvfs"
-if [ "$UID" -ne "0" ]
-then
+
+[ "$(id -u)" -eq 0 ] || {
     echo "Must be root to run this script."
     exit 1
-fi
+}
 
 mkdir -p ${DIRNAME}/buildroot
 mkdir -p ${DIRNAME}/cache
@@ -128,9 +130,9 @@ systemctl mask systemd-machine-id-commit.service
 apt update
 apt -y remove ca-certificates wireless-regdb crda --purge
 apt -y autoremove --purge
-# fix lightdm
-touch /var/lib/lightdm/.Xauthority || true
-chown lightdm:lightdm /var/lib/lightdm/.Xauthority || true
+# # fix lightdm
+# touch /var/lib/lightdm/.Xauthority || true
+# chown lightdm:lightdm /var/lib/lightdm/.Xauthority || true
 
 # add lima xorg.conf
 mkdir -p /etc/X11/xorg.conf.d/
@@ -144,7 +146,6 @@ Section "Device"
     Option "DRI" "2"
     Option "Dri2Vsync" "true"
     Option "TripleBuffer" "true"
-
 EndSection
 Section "ServerFlags"
     Option "AutoAddGPU" "off"
@@ -185,6 +186,8 @@ gpasswd -a pulse audio
 debian_bash_init johnyin
 # timedatectl set-local-rtc 0
 
+echo "Force Users To Change Passwords Upon First Login"
+chage -d 0 root || true
 /bin/umount /dev/pts
 exit
 EOSHELL
@@ -848,6 +851,7 @@ firmware/brcm/brcmfmac43455-sdio.txt
 EOF
 cat >> ${DIRNAME}/buildroot/root/fix_sound_out_hdmi.sh <<'EOF'
 amixer -c  GXP230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
+aplay /usr/share/sounds/alsa/Noise.wav
 EOF
 cat >> ${DIRNAME}/buildroot/root/emmc_linux.sh <<'EOF'
 #!/usr/bin/env bash
@@ -1069,8 +1073,8 @@ EOF
 setenv kernel_addr  "0x11000000"
 setenv initrd_addr  "0x13000000"
 setenv dtb_mem_addr "0x1000000"
-setenv serverip 192.168.168.2
-setenv ipaddr 192.168.168.168
+setenv serverip 172.16.16.2
+setenv ipaddr 172.16.16.168
 setenv bootargs "root=/dev/nfs nfsroot=${serverip}:/nfsshare/root rw net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 rootwait"
 setenv bootcmd_pxe "tftp ${kernel_addr} zImage; tftp ${initrd_addr} uInitrd; tftp ${dtb_mem_addr} dtb.img; booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr} "
 run bootcmd_pxe
