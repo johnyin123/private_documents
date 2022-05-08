@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4a84dc5[2022-05-08T19:51:02+08:00]:s905_debootstrap.sh")
+VERSION+=("d540e96[2022-05-08T20:20:03+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -947,6 +947,8 @@ aplay /usr/share/sounds/alsa/Noise.wav
 # # su - johnyin (add to ~/.xsessionrc)
 # DISPLAY=:0 xset -q
 # DISPLAY=:0 xset -dpms
+# DISPLAY=:0 xset s off
+# DISPLAY=:0 xset dpms 0 0 0
 # DISPLAY=:0 xrandr -q
 # DISPLAY=:0 xrandr --output HDMI-1 --mode 1280x1024
 EOF
