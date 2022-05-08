@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3c337e9[2022-05-08T17:10:21+08:00]:s905_debootstrap.sh")
+VERSION+=("4a84dc5[2022-05-08T19:51:02+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -255,7 +255,9 @@ rm -f /etc/fake-hwclock.data || true
 
 useradd -m -s /bin/bash johnyin
 # disable dpms auto off screen
-echo "DISPLAY=:0 xset -q" > /home/johnyin/.xsessionrc
+echo "DISPLAY=:0 xset -dpms" > /home/johnyin/.xsessionrc
+chown johnyin.johnyin /home/johnyin/.xsessionrc
+ln -s /home/johnyin/.Xauthority /root/.Xauthority
 echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
 chmod 0440 /etc/sudoers.d/johnyin
 sed -i "s/^\(.*requiretty\)$/#\1/" /etc/sudoers
@@ -275,7 +277,6 @@ gpasswd -a pulse audio
 # sed -i "s/AutoMount=.*/AutoMount=false/g" /usr/share/gvfs/mounts/trash.mount
 debian_bash_init johnyin
 # timedatectl set-local-rtc 0
-
 echo "Force Users To Change Passwords Upon First Login"
 chage -d 0 root || true
 /bin/umount /dev/pts
