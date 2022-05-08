@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2166066[2022-05-07T06:44:21+08:00]:s905_debootstrap.sh")
+VERSION+=("3c337e9[2022-05-08T17:10:21+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -254,6 +254,8 @@ EOF
 rm -f /etc/fake-hwclock.data || true
 
 useradd -m -s /bin/bash johnyin
+# disable dpms auto off screen
+echo "DISPLAY=:0 xset -q" > /home/johnyin/.xsessionrc
 echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
 chmod 0440 /etc/sudoers.d/johnyin
 sed -i "s/^\(.*requiretty\)$/#\1/" /etc/sudoers
@@ -941,6 +943,11 @@ EOF
 cat >> ${DIRNAME}/buildroot/root/fix_sound_out_hdmi.sh <<'EOF'
 amixer -c  GXP230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
 aplay /usr/share/sounds/alsa/Noise.wav
+# # su - johnyin (add to ~/.xsessionrc)
+# DISPLAY=:0 xset -q
+# DISPLAY=:0 xset -dpms
+# DISPLAY=:0 xrandr -q
+# DISPLAY=:0 xrandr --output HDMI-1 --mode 1280x1024
 EOF
 cat >> ${DIRNAME}/buildroot/root/emmc_linux.sh <<'EOF'
 #!/usr/bin/env bash
