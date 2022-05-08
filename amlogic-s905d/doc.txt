@@ -32,3 +32,7 @@ bluetoothctl
 apt install --no-install-recommends lightdm xserver-xorg-core xinit xserver-xorg-video-fbdev xfce4 xfce4-terminal xserver-
 apt install --no-install-recommends mpv smplayer qt4-qtconfig libqt4-opengl
 ldconfig
+
+
+anyremote qdbus dbus-x11
+DISPLAY=:0 anyremote -f /usr/share/anyremote/cfg-data/Server-mode/smplayer.cfg
