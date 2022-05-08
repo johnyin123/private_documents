@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b14a499[2022-05-06T14:59:09+08:00]:s905_debootstrap.sh")
+VERSION+=("2166066[2022-05-07T06:44:21+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -346,14 +346,15 @@ mapping br-ext
 iface s905d2 inet static
     bridge_ports eth0
     address 192.168.168.2/24
-
+    # hwaddress 7e:b1:81:90:5d:02
 iface s905d3 inet static
     bridge_ports eth0
     address 192.168.168.3/24
-
+    # hwaddress 7e:b1:81:90:5d:03
 iface usbpc inet static
     bridge_ports eth0
     address 192.168.168.101/24
+    # hwaddress 7e:b1:81:90:5d:99
 
 # post-up ip rule add from 192.168.168.0/24 table out.168
 # post-up ip rule add to 192.168.168.0/24 table out.168
