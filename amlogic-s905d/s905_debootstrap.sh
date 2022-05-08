@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ef41135[2022-05-08T20:59:05+08:00]:s905_debootstrap.sh")
+VERSION+=("a56f82f[2022-05-09T06:20:47+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -820,7 +820,7 @@ EOF
 chmod 755 ${DIRNAME}/buildroot/etc/initramfs/post-update.d/99-uboot
 
 cat <<EOF>${DIRNAME}/buildroot/etc/motd
-$((for _v in "${VERSION[@]}"; do echo "$_v"; done;))
+## ${VERSION[@]}
 1. edit /etc/wifi_mode.conf for wifi mode modify
 2. touch /overlay/reformatoverlay for factory mode after next reboot
 3. fw_printenv / fw_setenv for get or set fw env
