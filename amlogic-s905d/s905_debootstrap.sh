@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d540e96[2022-05-08T20:20:03+08:00]:s905_debootstrap.sh")
+VERSION+=("ef41135[2022-05-08T20:59:05+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -255,7 +255,10 @@ rm -f /etc/fake-hwclock.data || true
 
 useradd -m -s /bin/bash johnyin
 # disable dpms auto off screen
+# su - johnyin -c "echo 'DISPLAY=:0 xset -dpms' > /home/johnyin/.xsessionrc"
 echo "DISPLAY=:0 xset -dpms" > /home/johnyin/.xsessionrc
+# su - johnyin -c "echo 'DISPLAY=:0 xset s off' >> /home/johnyin/.xsessionrc"
+echo "DISPLAY=:0 xset s off" >> /home/johnyin/.xsessionrc
 chown johnyin.johnyin /home/johnyin/.xsessionrc
 ln -s /home/johnyin/.Xauthority /root/.Xauthority
 echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
@@ -816,7 +819,8 @@ exit 0
 EOF
 chmod 755 ${DIRNAME}/buildroot/etc/initramfs/post-update.d/99-uboot
 
-cat <<'EOF'>${DIRNAME}/buildroot/etc/motd
+cat <<EOF>${DIRNAME}/buildroot/etc/motd
+$((for _v in "${VERSION[@]}"; do echo "$_v"; done;))
 1. edit /etc/wifi_mode.conf for wifi mode modify
 2. touch /overlay/reformatoverlay for factory mode after next reboot
 3. fw_printenv / fw_setenv for get or set fw env
