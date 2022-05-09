@@ -1,0 +1,33 @@
+From: johnyin <johnyin.news@163.com>
+Date: Fri Dec 25 13:34:20 CST 2020
+Subject: [PATCH] fix phicomm n1 bluetooth
+
+---
+
+--- a/arch/arm64/boot/dts/amlogic/meson-gx-p23x-q20x.dtsi	2020-12-21 20:30:08.000000000 +0800
++++ b/arch/arm64/boot/dts/amlogic/meson-gx-p23x-q20x.dtsi	2020-12-25 13:17:10.964686942 +0800
+@@ -311,6 +311,22 @@
+ 	vqmmc-supply = <&vddio_boot>;
+ };
+ 
++/* This UART is connected to the Bluetooth module */
++&uart_A {
++	status = "okay";
++	pinctrl-0 = <&uart_a_pins>, <&uart_a_cts_rts_pins>;
++	pinctrl-names = "default";
++	uart-has-rtscts;
++
++	bluetooth {
++		compatible = "brcm,bcm43438-bt";
++		shutdown-gpios = <&gpio GPIOX_17 GPIO_ACTIVE_HIGH>;
++		max-speed = <2000000>;
++		clocks = <&wifi32k>;
++		clock-names = "lpo";
++	};
++};
++
+ /* This UART is brought out to the DB9 connector */
+ &uart_AO {
+ 	status = "okay";
+--
+
