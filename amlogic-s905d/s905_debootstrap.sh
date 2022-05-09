@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a56f82f[2022-05-09T06:20:47+08:00]:s905_debootstrap.sh")
+VERSION+=("ea3accf[2022-05-09T06:28:24+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -321,6 +321,7 @@ EOF
 # end auto mount usb storage (readonly)
 
 # enable ttyAML0 login
+sed -i "/^ttyAML0/d" ${DIRNAME}/buildroot/etc/securetty || true
 echo "ttyAML0" >> ${DIRNAME}/buildroot/etc/securetty
 
 # export nfs
