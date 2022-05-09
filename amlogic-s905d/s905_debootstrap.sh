@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ea3accf[2022-05-09T06:28:24+08:00]:s905_debootstrap.sh")
+VERSION+=("59d21ce[2022-05-09T14:10:03+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -915,7 +915,7 @@ EOF
 chmod 755 ${DIRNAME}/buildroot/usr/bin/overlayroot-chroot
 
 echo "add emmc_install script"
-cat >> ${DIRNAME}/buildroot/root/sync.sh <<'EOF'
+cat > ${DIRNAME}/buildroot/root/sync.sh <<'EOF'
 #!/usr/bin/env bash
 
 IP=${1:?from which ip???}
@@ -939,14 +939,14 @@ sync
 sync
 EOF
 
-cat >> ${DIRNAME}/buildroot/root/exclude.txt <<'EOF'
+cat > ${DIRNAME}/buildroot/root/exclude.txt <<'EOF'
 /etc/network/interfaces.d/
 firmware/brcm/brcmfmac43455-sdio.txt
 /etc/ssh/
 /etc/hostname
 /etc/hosts
 EOF
-cat >> ${DIRNAME}/buildroot/root/fix_sound_out_hdmi.sh <<'EOF'
+cat > ${DIRNAME}/buildroot/root/fix_sound_out_hdmi.sh <<'EOF'
 amixer -c  GXP230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
 aplay /usr/share/sounds/alsa/Noise.wav
 # # su - johnyin (add to ~/.xsessionrc)
@@ -957,7 +957,7 @@ aplay /usr/share/sounds/alsa/Noise.wav
 # DISPLAY=:0 xrandr -q
 # DISPLAY=:0 xrandr --output HDMI-1 --mode 1280x1024
 EOF
-cat >> ${DIRNAME}/buildroot/root/emmc_linux.sh <<'EOF'
+cat > ${DIRNAME}/buildroot/root/emmc_linux.sh <<'EOF'
 #!/usr/bin/env bash
 DEV_EMMC=${DEV_EMMC:=/dev/mmcblk2}
 BOOT_LABEL="EMMCBOOT"
