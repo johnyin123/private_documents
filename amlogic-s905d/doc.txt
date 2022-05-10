@@ -36,3 +36,17 @@ ldconfig
 
 anyremote qdbus dbus-x11
 DISPLAY=:0 anyremote -f /usr/share/anyremote/cfg-data/Server-mode/smplayer.cfg
+
+AT MODE:
+hcitool scan
+sdptool browse XX:XX:XX:XX
+    Search for "Serial Port" or "Dialup Networking" services and their channel numbers.
+    To connect anyRemote to the phone it needs to run it with -s rfcomm:XX:XX:XX:XX:Y
+    command line parameter, where Y is the channel number.
+
+Server MODE:
+hcitool dev : get hci address
+In case of impossibility to establish bluetooth connection, please make sure:
+1.Bluetooth daemon bluetoothd is started with -C option
+2.You have enough permissions to register SDP service
+    sdptool search --bdaddr local SP (Permission denied) then you need to run anyRemote using sudo
