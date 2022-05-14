@@ -52,13 +52,13 @@ fi
 
 export PATH=${DIRNAME}/gcc-linaro-7.4.1-aarch64/bin/:$PATH
 
-make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- menuconfig
-make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -j4 LOCALVERSION="-johnyin-s905d" Image dtbs modules
+make ARCH=arm64 CFLAGS='-march=native -O3 -flto -pipe' CXXFLAGS='-march=native -O3 -flto -pipe' CROSS_COMPILE=aarch64-linux-gnu- menuconfig
+make ARCH=arm64 CFLAGS='-march=native -O3 -flto -pipe' CXXFLAGS='-march=native -O3 -flto -pipe' CROSS_COMPILE=aarch64-linux-gnu- -j4 LOCALVERSION="-johnyin-s905d" Image dtbs modules
 
 dest=/home/johnyin/n1/buildroot
 rsync -av ./arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dtb  ${dest}/boot/dtb
-make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- install INSTALL_PATH=${dest}/boot
-make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH=${dest}/usr/
+make ARCH=arm64 CFLAGS='-march=native -O3 -flto -pipe' CXXFLAGS='-march=native -O3 -flto -pipe' CROSS_COMPILE=aarch64-linux-gnu- install INSTALL_PATH=${dest}/boot
+make ARCH=arm64 CFLAGS='-march=native -O3 -flto -pipe' CXXFLAGS='-march=native -O3 -flto -pipe' CROSS_COMPILE=aarch64-linux-gnu- INSTALL_MOD_STRIP=1 modules_install INSTALL_MOD_PATH=${dest}/usr/
 # mount /dev/sdb2 root/
 # mount /dev/sdb1 root/boot/
 # kerver=5.17.0-johnyin-s905d
