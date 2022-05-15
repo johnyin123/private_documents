@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6f50272[2022-03-02T07:28:13+08:00]:mk_nginx.sh")
+VERSION+=("74898ec[2022-03-08T11:03:00+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -39,6 +39,7 @@ AUTH_LDAP=${AUTH_LDAP:-""}
 HTTP2=${HTTP2:-""}
 IMAGE_FILTER=${IMAGE_FILTER:-""}
 CACHE_PURGE=${CACHE_PURGE:-""}
+PAGE_SPEED=${PAGE_SPEED:-""}
 ##OPTION_END##
 NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl
@@ -64,7 +65,6 @@ declare -A DYNAMIC_MODULES=(
     [${DIRNAME}/nginx-module-vts]="git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git"
     [${DIRNAME}/headers-more-nginx-module]="git clone --depth 1 https://github.com/openresty/headers-more-nginx-module.git"
     [${DIRNAME}/ngx_brotli]="git clone --depth 1 --recursive https://github.com/google/ngx_brotli.git"
-    [${DIRNAME}/incubator-pagespeed-ngx]="git clone --depth 1 --branch latest-stable https://github.com/apache/incubator-pagespeed-ngx.git"
     # [${DIRNAME}/ngx_http_auth_pam_module]="git clone --depth 1 https://github.com/sto/ngx_http_auth_pam_module.git"
     # [${DIRNAME}/NginxExecute]="git clone --depth 1 https://github.com/limithit/NginxExecute.git"
     # [${DIRNAME}/Nginx-DOH-Module]="git clone --depth 1 https://github.com/dvershinin/Nginx-DOH-Module.git"
@@ -76,6 +76,9 @@ declare -A DYNAMIC_MODULES=(
 }
 [ -z "${AUTH_LDAP}" ] || {
     DYNAMIC_MODULES[${DIRNAME}/nginx-auth-ldap]="git clone https://github.com/kvspb/nginx-auth-ldap.git"
+}
+[ -z "${PAGE_SPEED}" ] || {
+    DYNAMIC_MODULES[${DIRNAME}/incubator-pagespeed-ngx]="git clone --depth 1 --branch latest-stable https://github.com/apache/incubator-pagespeed-ngx.git"
 }
 # # proxy_connect_module
 # cd nginx && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch
@@ -449,9 +452,6 @@ cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/mail.conf
 EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/xslt.conf
 # load_module modules/ngx_http_xslt_filter_module.so;
-EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/pagespeed.conf
-# load_module modules/ngx_pagespeed.so;
 EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/traffic_status.conf
 # load_module modules/ngx_http_vhost_traffic_status_module.so;
