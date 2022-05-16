@@ -1,3 +1,5 @@
+https://aur.archlinux.org/packages/firmware-phicomm-n1
+
 #led
 echo 0 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
 echo 255 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
