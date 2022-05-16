@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("59d21ce[2022-05-09T14:10:03+08:00]:s905_debootstrap.sh")
+VERSION+=("ef21aee[2022-05-09T16:15:19+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -156,6 +156,10 @@ BOOT_LABEL="EMMCBOOT"
 ROOT_LABEL="EMMCROOT"
 FS_TYPE=${FS_TYPE:-ext4}
 
+old_ifs="$IFS" IFS=','
+custom_pkgs="$*"
+IFS=$old_ifs
+
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG+=",udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,babeld,ifenslave,vlan"
 PKG+=",parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server,netcat-openbsd"
@@ -166,9 +170,12 @@ PKG+=",cron,logrotate,bsdmainutils,rsyslog,openssh-client,wget,ntpdate,less,wire
 PKG+=",xz-utils,zip,udisks2"
 # # xfce
 PKG+=",alsa-utils,pulseaudio,pulseaudio-utils,smplayer,smplayer-l10n,mpg123,lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xfce4,xfce4-terminal,xserver-xorg-input-all,pavucontrol"
+# # tools
 PKG+=",sudo,aria2,axel,curl,eject,rename,bc,socat,tmux,xmlstarlet,jq,traceroute,ipcalc,ncal,qrencode,tcpdump"
 # # for xfce auto mount
 PKG+=",thunar-volman,policykit-1,gvfs"
+# # finally add custom packages
+PKG+="${custom_pkgs:+,${custom_pkgs}}"
 
 [ "$(id -u)" -eq 0 ] || {
     echo "Must be root to run this script."
