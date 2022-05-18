@@ -3,6 +3,7 @@ https://aur.archlinux.org/packages/firmware-phicomm-n1
 sed -e "s/boot_targets=romusb mmc0 mmc1 mmc2 usb0 pxe dhcp/boot_targets=romusb usb0 usb1 mmc0 mmc1 pxe dhcp\x0/g" u-boot.bin.new > new.bin
 xxd -p -c 2127800 uboot.bin | sed "s/$(echo -n 'boot_targets=romusb mmc0 mmc1 mmc2 usb0 pxe dhcp' | xxd -p -c 1000)/$(echo -n 'boot_targets=romusb usb0 usb1 mmc0 mmc1 pxe dhcp' | xxd -p -c 1000)/g" | xxd -p -r > newuboot.bin
 # bootcmd_mmc2=devnum=2; run mmc_boot ==> bootcmd_usb1=devnum=1; run usb_boot
+# uboot read ethaddr env value to set network mac address
 #led
 echo 0 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
 echo 255 > /sys/devices/platform/leds/leds/n1\:white\:status/brightness
