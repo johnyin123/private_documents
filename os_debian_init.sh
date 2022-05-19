@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("1ca2971[2022-04-10T10:10:38+08:00]:os_debian_init.sh")
+VERSION+=("b28d75d[2022-04-10T18:11:19+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -114,7 +114,7 @@ debian_sysctl_init() {
     # # (65531-1024)/10 = 6450 sockets per second.
     mv /etc/sysctl.conf /etc/sysctl.conf.bak 2>/dev/null || true
     cat << EOF > /etc/sysctl.conf
-net.ipv4.ping_group_range = 0  2147483647
+net.ipv4.ping_group_range = 0 2147483647
 net.core.rmem_max = 134217728 
 net.core.wmem_max = 134217728 
 net.core.netdev_max_backlog = 250000
