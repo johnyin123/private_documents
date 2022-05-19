@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ef21aee[2022-05-09T16:15:19+08:00]:s905_debootstrap.sh")
+VERSION+=("8d9b9c4[2022-05-16T08:21:38+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1096,8 +1096,8 @@ bootargs=root=LABEL=${ROOT_LABEL} rootflags=data=writeback rw fsck.fix=yes fsck.
 EOF
     cat  > ${DIRNAME}/buildroot/boot/s905_autoscript.uboot.cmd <<'EOF'
 echo "Start amlogic old u-boot."
-if fatload usb 0 0x1000000 u-boot.bin; then go 0x1000000; fi;
-if fatload usb 1 0x1000000 u-boot.bin; then go 0x1000000; fi;
+if fatload usb 0 0x1000000 u-boot.usb.bin; then go 0x1000000; fi;
+if fatload usb 1 0x1000000 u-boot.usb.bin; then go 0x1000000; fi;
 if fatload mmc 0 0x1000000 u-boot.bin; then go 0x1000000; fi;
 if fatload mmc 1 0x1000000 u-boot.bin; then go 0x1000000; fi;
 EOF
@@ -1113,6 +1113,7 @@ EOF
     echo "5d921bf1d57baf081a7b2e969d7f70a5  u-boot.bin"
     echo "ade4aa3942e69115b9cc74d902e17035  u-boot.bin.new"
     cat ${DIRNAME}/u-boot.bin > ${DIRNAME}/buildroot/boot/u-boot.bin || true
+    cat ${DIRNAME}/u-boot.usb.bin > ${DIRNAME}/buildroot/boot/u-boot.usb.bin || true
     LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot/ /bin/bash <<EOSHELL
     depmod ${kerver}
     update-initramfs -c -k ${kerver}
