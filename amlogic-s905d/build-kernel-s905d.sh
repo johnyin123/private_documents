@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail
-DIRNAME="$(dirname "$(readlink -e "$0")")"
-SCRIPTNAME=${0##*/}
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly SCRIPTNAME=${0##*/}
 
 cat <<'EOF'
 SoC – Amlogic S905D quad core Arm Cortex-A53 processor @ 1.5 GHz with Arm Mali-450 GPU
