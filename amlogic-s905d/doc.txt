@@ -101,6 +101,8 @@ NFS ROOTFS:(kernel config)
     /opt/nfsroot  *(rw,sync,no_subtree_check,no_root_squash)
 
 other phicomm n1 kernel config:
+CONFIG_PREEMPT_VOLUNTARY=y
+
 CONFIG_BRCMFMAC=m
 CONFIG_BRCMFMAC_SDIO=y
 
