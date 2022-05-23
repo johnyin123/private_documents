@@ -94,6 +94,13 @@ In case of impossibility to establish bluetooth connection, please make sure:
 2.You have enough permissions to register SDP service
     sdptool search --bdaddr local SP (Permission denied) then you need to run anyRemote using sudo
 
+IO_SCHEDULER:
+    cat /sys/class/block/mmcblk0/queue/scheduler
+
+EDID:
+    echo -n "edid/1280x1024.bin" > /sys/module/drm/parameters/edid_firmware
+    # drm.edid_firmware=edid/1280x1024.bin
+
 NFS ROOTFS:(kernel config)
     CONFIG_NFS_FS=y
     CONFIG_ROOT_NFS=y
