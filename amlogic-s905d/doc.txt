@@ -113,7 +113,13 @@ NFS ROOTFS:(kernel config)
 # CONFIG_SCHED_SMT: 对应SMT芯片
 # CONFIG_SCHED_MC : 对应MC多核芯片
 # DIE             : 对应SoC芯片
-
+cat > check_n1_hw_present.sh <<EOF
+#!/usr/bin/env bash
+aplay -l
+hciconfig
+ifconfig wlan0
+ifconfig eth0
+EOF
 other phicomm n1 kernel config:
 CONFIG_PREEMPT_VOLUNTARY=y
 

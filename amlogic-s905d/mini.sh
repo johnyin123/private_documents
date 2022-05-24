@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-05-21T12:39:05+08:00]:mini.sh")
+VERSION+=("9a02f2c[2022-05-21T12:39:05+08:00]:mini.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -23,7 +23,9 @@ esac
 cat << EOF > ${DIRNAME}/buildroot/etc/hosts
 127.0.0.1       localhost $(cat ${DIRNAME}/buildroot/etc/hostname)
 EOF
-sed -i "s/^macaddr=.*/macaddr=${macaddr}/g" ${DIRNAME}/buildroot/usr/lib/firmware/brcm/brcmfmac43455-sdio.txt
-grep "^macaddr=" ${DIRNAME}/buildroot/usr/lib/firmware/brcm/brcmfmac43455-sdio.txt
-echo "rsync -avzP --numeric-ids -e 'ssh -p60022' --exclude=boot --delete ${DIRNAME}/buildroot/* root@192.168.168.IP:/overlay/lower/"
-echo "rsync -avzP --numeric-ids -e 'ssh -p60022' --delete ${DIRNAME}/buildroot/boot/* root@192.168.168.IP:/boot/"
+sed -i "s/^macaddr=.*/macaddr=${macaddr}/g" ${DIRNAME}/buildroot/usr/lib/firmware/brcm/brcmfmac43455-sdio.txt || true
+grep "^macaddr=" ${DIRNAME}/buildroot/usr/lib/firmware/brcm/brcmfmac43455-sdio.txt || true
+sed -i "s/^macaddr=.*/macaddr=${macaddr}/g" ${DIRNAME}/buildroot/usr/lib/firmware/brcm/brcmfmac43455-sdio.phicomm,n1.txt || true
+grep "^macaddr=" ${DIRNAME}/buildroot/usr/lib/firmware/brcm/brcmfmac43455-sdio.phicomm,n1.txt || true
+echo "rsync -avzP --numeric-ids -e 'ssh -p60022' --exclude=boot --delete ${DIRNAME}/buildroot/* root@IP:/overlay/lower/"
+echo "rsync -avzP --numeric-ids -e 'ssh -p60022' --delete ${DIRNAME}/buildroot/boot/* root@IP:/boot/"
