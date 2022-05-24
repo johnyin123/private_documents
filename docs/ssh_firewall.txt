@@ -1,0 +1,2 @@
+# DL,
+ssh -c aes128-cbc -oKexAlgorithms=+diffie-hellman-group1-sha1 -p22 user@ip
