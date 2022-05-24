@@ -107,6 +107,13 @@ NFS ROOTFS:(kernel config)
   /etc/exports
     /opt/nfsroot  *(rw,sync,no_subtree_check,no_root_squash)
 
+# SMT :全称"SimultaneousMultithreading",同时多线程,又称为"超线程"
+# MC  :Multicore多核,每个物理核心独享一个L1 Cache缓存;
+# SoC :System on Chip,系统级芯片;
+# CONFIG_SCHED_SMT: 对应SMT芯片
+# CONFIG_SCHED_MC : 对应MC多核芯片
+# DIE             : 对应SoC芯片
+
 other phicomm n1 kernel config:
 CONFIG_PREEMPT_VOLUNTARY=y
 
