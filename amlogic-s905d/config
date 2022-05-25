@@ -72,7 +72,7 @@ CONFIG_NO_HZ_COMMON=y
 # CONFIG_HZ_PERIODIC is not set
 CONFIG_NO_HZ_IDLE=y
 # CONFIG_NO_HZ_FULL is not set
-# CONFIG_NO_HZ is not set
+CONFIG_NO_HZ=y
 CONFIG_HIGH_RES_TIMERS=y
 # end of Timers subsystem
 
@@ -822,8 +822,6 @@ CONFIG_ARCH_KEEP_MEMBLOCK=y
 CONFIG_MEMORY_ISOLATION=y
 # CONFIG_MEMORY_HOTPLUG is not set
 CONFIG_SPLIT_PTLOCK_CPUS=4
-CONFIG_MEMORY_BALLOON=y
-CONFIG_BALLOON_COMPACTION=y
 CONFIG_COMPACTION=y
 CONFIG_PAGE_REPORTING=y
 CONFIG_MIGRATION=y
@@ -3851,7 +3849,7 @@ CONFIG_VIDEO_MUX=m
 # CONFIG_VIDEO_XILINX is not set
 CONFIG_V4L_MEM2MEM_DRIVERS=y
 CONFIG_VIDEO_MEM2MEM_DEINTERLACE=m
-CONFIG_DVB_PLATFORM_DRIVERS=y
+# CONFIG_DVB_PLATFORM_DRIVERS is not set
 # CONFIG_SDR_PLATFORM_DRIVERS is not set
 
 #
@@ -4323,7 +4321,6 @@ CONFIG_DRM_VKMS=m
 CONFIG_DRM_UDL=m
 CONFIG_DRM_RCAR_DW_HDMI=m
 CONFIG_DRM_RCAR_LVDS=m
-# CONFIG_DRM_VIRTIO_GPU is not set
 CONFIG_DRM_PANEL=y
 
 #
@@ -4485,6 +4482,8 @@ CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y
 # end of Graphics support
 
 CONFIG_SOUND=y
+CONFIG_SOUND_OSS_CORE=y
+CONFIG_SOUND_OSS_CORE_PRECLAIM=y
 CONFIG_SND=y
 CONFIG_SND_TIMER=y
 CONFIG_SND_PCM=y
@@ -4495,9 +4494,12 @@ CONFIG_SND_HWDEP=m
 CONFIG_SND_RAWMIDI=m
 CONFIG_SND_JACK=y
 CONFIG_SND_JACK_INPUT_DEV=y
-# CONFIG_SND_OSSEMUL is not set
+CONFIG_SND_OSSEMUL=y
+CONFIG_SND_MIXER_OSS=m
+CONFIG_SND_PCM_OSS=m
+CONFIG_SND_PCM_OSS_PLUGINS=y
 CONFIG_SND_PCM_TIMER=y
-# CONFIG_SND_HRTIMER is not set
+CONFIG_SND_HRTIMER=m
 CONFIG_SND_DYNAMIC_MINORS=y
 CONFIG_SND_MAX_CARDS=32
 CONFIG_SND_SUPPORT_OLD_API=y
@@ -5504,18 +5506,11 @@ CONFIG_SYNC_FILE=y
 # CONFIG_PANEL is not set
 # CONFIG_UIO is not set
 # CONFIG_VFIO is not set
-CONFIG_VIRT_DRIVERS=y
+# CONFIG_VIRT_DRIVERS is not set
 CONFIG_VIRTIO=m
-CONFIG_VIRTIO_MENU=y
-CONFIG_VIRTIO_BALLOON=m
-# CONFIG_VIRTIO_INPUT is not set
-CONFIG_VIRTIO_MMIO=m
-# CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES is not set
+# CONFIG_VIRTIO_MENU is not set
 # CONFIG_VDPA is not set
-CONFIG_VHOST_MENU=y
-# CONFIG_VHOST_NET is not set
-# CONFIG_VHOST_VSOCK is not set
-# CONFIG_VHOST_CROSS_ENDIAN_LEGACY is not set
+# CONFIG_VHOST_MENU is not set
 
 #
 # Microsoft Hyper-V guest support
@@ -5523,10 +5518,100 @@ CONFIG_VHOST_MENU=y
 # end of Microsoft Hyper-V guest support
 
 # CONFIG_GREYBUS is not set
-# CONFIG_STAGING is not set
+CONFIG_STAGING=y
+# CONFIG_PRISM2_USB is not set
+# CONFIG_COMEDI is not set
+# CONFIG_RTLLIB is not set
+# CONFIG_RTL8723BS is not set
+# CONFIG_R8712U is not set
+# CONFIG_R8188EU is not set
+# CONFIG_VT6656 is not set
+
+#
+# IIO staging drivers
+#
+
+#
+# Accelerometers
+#
+# CONFIG_ADIS16203 is not set
+# CONFIG_ADIS16240 is not set
+# end of Accelerometers
+
+#
+# Analog to digital converters
+#
+# CONFIG_AD7816 is not set
+# CONFIG_AD7280 is not set
+# end of Analog to digital converters
+
+#
+# Analog digital bi-direction converters
+#
+# CONFIG_ADT7316 is not set
+# end of Analog digital bi-direction converters
+
+#
+# Capacitance to digital converters
+#
+# CONFIG_AD7150 is not set
+# CONFIG_AD7746 is not set
+# end of Capacitance to digital converters
+
+#
+# Direct Digital Synthesis
+#
+# CONFIG_AD9832 is not set
+# CONFIG_AD9834 is not set
+# end of Direct Digital Synthesis
+
+#
+# Network Analyzer, Impedance Converters
+#
+# CONFIG_AD5933 is not set
+# end of Network Analyzer, Impedance Converters
+
+#
+# Active energy metering IC
+#
+# CONFIG_ADE7854 is not set
+# end of Active energy metering IC
+
+#
+# Resolver to digital converters
+#
+# CONFIG_AD2S1210 is not set
+# end of Resolver to digital converters
+# end of IIO staging drivers
+
+CONFIG_STAGING_MEDIA=y
+CONFIG_VIDEO_MESON_VDEC=m
+
+#
+# Android
+#
+# end of Android
+
+# CONFIG_STAGING_BOARD is not set
+# CONFIG_LTE_GDM724X is not set
+# CONFIG_GS_FPGABOOT is not set
+# CONFIG_UNISYSSPAR is not set
+# CONFIG_FB_TFT is not set
+# CONFIG_KS7010 is not set
+# CONFIG_PI433 is not set
+
+#
+# Gasket devices
+#
+# end of Gasket devices
+
+# CONFIG_XIL_AXIS_FIFO is not set
+# CONFIG_FIELDBUS_DEV is not set
+# CONFIG_WFX is not set
+# CONFIG_SPMI_HISI3670 is not set
+# CONFIG_MFD_HI6421_SPMI is not set
 # CONFIG_GOLDFISH is not set
-CONFIG_CHROME_PLATFORMS=y
-# CONFIG_CROS_EC is not set
+# CONFIG_CHROME_PLATFORMS is not set
 # CONFIG_MELLANOX_PLATFORM is not set
 CONFIG_HAVE_CLK=y
 CONFIG_CLKDEV_LOOKUP=y
