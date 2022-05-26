@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("ac7d310[2022-03-17T11:16:21+08:00]:functions.sh")
+VERSION+=("07ff3e1[2022-03-17T16:23:20+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -727,6 +727,22 @@ read_kv() {
         [[ ${line} =~ ^\ *$ ]] && continue #skip blank
         eval "$1[${line%%=*}]=${line#*=}"
     done
+}
+
+# val=$(menu_select "you choice: "  aaaa bbbb)
+# items must not blank(space) char
+menu_select() {
+    local prompt=${1}
+    shift 1
+    local org_PS3=${PS3:-}
+    PS3="${prompt}"
+    select sel in ${@}; do
+        [ -z  ${sel} ] || {
+            echo -n "${sel}"
+            break
+        }
+    done
+    PS3=${org_PS3}
 }
 
 # choices=("1xx" "choine 1" "2" "choice 2")
