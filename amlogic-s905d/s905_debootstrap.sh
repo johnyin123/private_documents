@@ -7,9 +7,22 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8d9b9c4[2022-05-16T08:21:38+08:00]:s905_debootstrap.sh")
+VERSION+=("ae2d3b0[2022-05-19T09:35:14+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
+menu_select() {
+    local prompt=${1}
+    shift 1
+    local org_PS3=${PS3:-}
+    PS3="${prompt}"
+    select sel in ${@}; do
+        [ -z  ${sel} ] || {
+            echo -n "${sel}"
+            break
+        }
+    done
+    PS3=${org_PS3}
+}
 
 # USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
 : <<'EOF_DOC'
@@ -1054,8 +1067,9 @@ echo "SUCCESS build rootfs, all!!!"
 echo "start install you kernel&patchs"
 if [ -d "${DIRNAME}/kernel" ]; then
     rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
-    kerver=$(ls ${DIRNAME}/buildroot/usr/lib/modules/ | sort --version-sort -f | tail -n1)
-    kerver=${kerver:-dummy}
+    # kerver=$(ls ${DIRNAME}/buildroot/usr/lib/modules/ | sort --version-sort -f | tail -n1)
+    kerver=$(menu_select "kernel: " $(ls ${DIRNAME}/buildroot/usr/lib/modules/))
+    dtb=$(menu_select "dtb: " $(ls ${DIRNAME}/buildroot/boot/dtb/))
     echo "USE KERNEL ${kerver} ------>"
     cat > ${DIRNAME}/buildroot/boot/aml_autoscript.cmd <<'EOF'
 setenv bootcmd "run start_autoscript; run storeboot;"
@@ -1091,7 +1105,7 @@ EOF
     cat > ${DIRNAME}/buildroot/boot/uEnv.ini <<EOF
 image=vmlinuz-${kerver}
 initrd=uInitrd-${kerver}
-dtb=/dtb/meson-gxl-s905d-phicomm-n1.dtb
+dtb=/dtb/${dtb}
 bootargs=root=LABEL=${ROOT_LABEL} rootflags=data=writeback rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
 EOF
     cat  > ${DIRNAME}/buildroot/boot/s905_autoscript.uboot.cmd <<'EOF'
@@ -1106,7 +1120,7 @@ EOF
 label PHICOMM_N1
     linux /vmlinuz-${kerver}
     initrd /initrd.img-${kerver}
-    fdt /dtb/meson-gxl-s905d-phicomm-n1.dtb
+    fdt /dtb/${dtb}
     append root=LABEL=${ROOT_LABEL} rootflags=data=writeback rw fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
 EOF
     echo "https://github.com/PuXiongfei/phicomm-n1-u-boot"
