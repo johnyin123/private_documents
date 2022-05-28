@@ -24,6 +24,8 @@ Tinydrm: tinydrm
 For user-space, you need Mesa 19.2+ (19.1.x is not very stable nor usable for lima/panfrost) and kernel 5.2+. The package to install is Mesa-gallium.
 You can install some test binaries to try it, such as kmscube, glmark2, Mesa-demo or Mesa-demo-x.
 
+libglu1-mesa libglw1-mesa libgles2-mesa
+
 Enable OpenCL
 Once kernel driver and user-space libraries are installed, you can enable OpenCL support with:
 
