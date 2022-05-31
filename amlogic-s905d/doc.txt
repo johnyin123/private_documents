@@ -1,3 +1,4 @@
+# apt install triggerhappy
 https://aur.archlinux.org/packages/firmware-phicomm-n1
 # binary replace boot_targets=, first boot usb
 sed -e "s/boot_targets=romusb mmc0 mmc1 mmc2 usb0 pxe dhcp/boot_targets=romusb usb0 usb1 mmc0 mmc1 pxe dhcp\x0/g" u-boot.bin.new > new.bin
