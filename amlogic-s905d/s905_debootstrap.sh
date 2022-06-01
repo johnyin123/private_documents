@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ae2d3b0[2022-05-19T09:35:14+08:00]:s905_debootstrap.sh")
+VERSION+=("c029475[2022-05-26T10:13:26+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 menu_select() {
@@ -183,6 +183,7 @@ PKG+=",cron,logrotate,bsdmainutils,rsyslog,openssh-client,wget,ntpdate,less,wire
 PKG+=",xz-utils,zip,udisks2"
 # # xfce
 PKG+=",alsa-utils,pulseaudio,pulseaudio-utils,smplayer,smplayer-l10n,mpg123,lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xfce4,xfce4-terminal,xserver-xorg-input-all,pavucontrol"
+PKG+=",x11-utils"
 # # tools
 PKG+=",sudo,aria2,axel,curl,eject,rename,bc,socat,tmux,xmlstarlet,jq,traceroute,ipcalc,ncal,qrencode,tcpdump"
 # # for xfce auto mount
