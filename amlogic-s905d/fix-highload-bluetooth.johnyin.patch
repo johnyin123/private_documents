@@ -1,0 +1,30 @@
+diff --git a/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts b/../linux-5.10.2/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts
+index 9ef210f..b956730 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts
++++ b/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts
+@@ -33,3 +33,24 @@
+ &usb {
+        dr_mode = "host";
+ };
++
++&external_phy {
++    /delete-property/ reset-gpios;
++    interrupts = <25 IRQ_TYPE_LEVEL_LOW>;
++};
++
++/* This UART is connected to the Bluetooth module */
++&uart_A {
++    status = "okay";
++    pinctrl-0 = <&uart_a_pins>, <&uart_a_cts_rts_pins>;
++    pinctrl-names = "default";
++    uart-has-rtscts;
++
++    bluetooth {
++        compatible = "brcm,bcm43438-bt";
++        shutdown-gpios = <&gpio GPIOX_17 GPIO_ACTIVE_HIGH>;
++        max-speed = <2000000>;
++        clocks = <&wifi32k>;
++        clock-names = "lpo";
++    };
++};
+
