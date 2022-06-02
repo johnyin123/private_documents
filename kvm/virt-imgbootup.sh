@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6ba5314[2022-03-11T09:18:54+08:00]:virt-imgbootup.sh")
+VERSION+=("508debb[2022-03-22T09:32:51+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -15,6 +15,7 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME}
         env CPU=kvm64 set cpu type, default host
+        env NET=e1000e set netcard type, default virtio-net-pci
         -c|--cpu    <int>     number of cpus (default 1)
         -m|--mem    <int>     mem size MB (default 2048)
         -D|--disk   <file> *  disk image (multi disk must same format)
@@ -141,7 +142,7 @@ main() {
         # openssl rand -hex 3 | sed 's/\(..\)/\1:/g; s/.$//'
         # date | md5sum | sed -r 's/(..){3}/\1:/g;s/\s+-$//'
         #echo $FQDN|md5sum|sed 's/^\(..\)\(..\)\(..\)\(..\)\(..\).*$/02:\1:\2:\3:\4:\5/'
-        options+=("-device" "virtio-net-pci,netdev=net${_id},mac=${_mac}")
+        options+=("-device" "${NET:-virtio-net-pci},netdev=net${_id},mac=${_mac}")
         let _id+=1
     done
     _id=0
