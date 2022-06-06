@@ -97,7 +97,8 @@ In case of impossibility to establish bluetooth connection, please make sure:
 
 IO_SCHEDULER:
     cat /sys/class/block/mmcblk0/queue/scheduler
-
+CPU FREQ:
+    /sys/devices/system/cpu/cpufreq/policy0/cpuinfo_cur_freq
 EDID:
     echo -n "edid/1280x1024.bin" > /sys/module/drm/parameters/edid_firmware
     # drm.edid_firmware=edid/1280x1024.bin
