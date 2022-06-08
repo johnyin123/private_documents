@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9a02f2c[2022-05-21T12:39:05+08:00]:mini.sh")
+VERSION+=("7bd5693[2022-05-25T07:54:55+08:00]:mini.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -27,5 +27,5 @@ sed -i "s/^macaddr=.*/macaddr=${macaddr}/g" ${DIRNAME}/buildroot/usr/lib/firmwar
 grep "^macaddr=" ${DIRNAME}/buildroot/usr/lib/firmware/brcm/brcmfmac43455-sdio.txt || true
 sed -i "s/^macaddr=.*/macaddr=${macaddr}/g" ${DIRNAME}/buildroot/usr/lib/firmware/brcm/brcmfmac43455-sdio.phicomm,n1.txt || true
 grep "^macaddr=" ${DIRNAME}/buildroot/usr/lib/firmware/brcm/brcmfmac43455-sdio.phicomm,n1.txt || true
-echo "rsync -avzP --numeric-ids -e 'ssh -p60022' --exclude=boot --delete ${DIRNAME}/buildroot/* root@IP:/overlay/lower/"
-echo "rsync -avzP --numeric-ids -e 'ssh -p60022' --delete ${DIRNAME}/buildroot/boot/* root@IP:/boot/"
+echo "rsync -avzP --numeric-ids -e 'ssh -p60022' --exclude=boot --delete ${DIRNAME}/buildroot/* root@${IP:-10.32.166.32}:/overlay/lower/"
+echo "rsync -avzP --numeric-ids -e 'ssh -p60022' --delete ${DIRNAME}/buildroot/boot/* root@${IP:-10.32.166.32}:/boot/"
