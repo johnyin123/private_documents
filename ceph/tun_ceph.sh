@@ -36,6 +36,13 @@ wait heath ok.
     $ ceph osd unset norecover
     $ ceph -s
 ############################################################
+#reboot ceph node tempory
+ceph osd set noout
+ceph osd set norebalance
+     # reboot it & power up
+ceph osd unset noout
+ceph osd unset norebalance
+ceph -s
 
 #更换故障硬盘过程
 ceph-volume lvm list
