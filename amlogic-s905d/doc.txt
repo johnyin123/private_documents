@@ -95,6 +95,11 @@ In case of impossibility to establish bluetooth connection, please make sure:
 2.You have enough permissions to register SDP service
     sdptool search --bdaddr local SP (Permission denied) then you need to run anyRemote using sudo
 
+HDMI CEC:
+    xrandr --prop
+    apt-get install cec-utils libcec-dev
+    cec-client -l
+
 IO_SCHEDULER:
     cat /sys/class/block/mmcblk0/queue/scheduler
 CPU FREQ:
