@@ -108,6 +108,10 @@ CPU FREQ:
 EDID:
     echo -n "edid/1280x1024.bin" > /sys/module/drm/parameters/edid_firmware
     # drm.edid_firmware=edid/1280x1024.bin
+    # video=HDMI-A-1:1280x1024@60e
+    # # Documentation/fb/modedb.txt, "<ouput>:<WxH>@<rate><flags>" with "e" flag at the end is "force the display to be enabled", to avoid all that hotplug jank.
+    # # kernel has built-in standard EDID blobs, so there's no need to put anything to /lib/firmware, initramfs or whatever:
+    # drm_kms_helper.edid_firmware=edid/1920x1080.bin video=HDMI-A-1:1280x1024@60e
 
 NFS ROOTFS:(kernel config)
     CONFIG_NFS_FS=y
