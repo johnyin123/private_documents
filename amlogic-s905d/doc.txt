@@ -138,6 +138,7 @@ EOF
 # ffmpeg -c:v h264_v4l2m2m -i 1.mp4 -map 0:v -f null -y /dev/null
 
 other phicomm n1 kernel config:
+# https://www.kernel.org/doc/html/latest/gpu/meson.html
 CONFIG_PREEMPT_VOLUNTARY=y
 
 CONFIG_ARCH_MESON=y
