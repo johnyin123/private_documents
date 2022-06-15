@@ -96,6 +96,7 @@ In case of impossibility to establish bluetooth connection, please make sure:
     sdptool search --bdaddr local SP (Permission denied) then you need to run anyRemote using sudo
 
 HDMI CEC:
+    # # GXBB, GXL and GXM embeds the Synopsys DesignWare HDMI TX IP version 2.01a with HDCP and I2C & S/PDIF audio source interfaces.
     xrandr --prop
     apt-get install cec-utils libcec-dev
     cec-client -l
