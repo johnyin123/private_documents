@@ -26,4 +26,9 @@ make modules_install
 LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOTFS} /bin/bash <<EOSHELL
     depmod ${KERVERSION}${LOCALVERSION}
     update-initramfs -c -k ${KERVERSION}${LOCALVERSION}
+    [ -e "/boot/extlinux/extlinux.conf" ] && {
+        sed -i "s/\s*linux\s/    linux \/vmlinuz-${KERVERSION}${LOCALVERSION}/g" /boot/extlinux/extlinux.conf
+        sed -i "s/\s*initrd\s/    initrd \/initrd.img-${KERVERSION}${LOCALVERSION}/g" /boot/extlinux/extlinux.conf
+        sed -i "s/\s*fdt\s/    fdt \/dtb\/phicomm-n1-${KERVERSION}${LOCALVERSION}/g" /boot/extlinux/extlinux.conf
+    }
 EOSHELL
