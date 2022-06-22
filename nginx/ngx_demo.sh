@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6fdcd09[2022-03-23T07:04:12+08:00]:ngx_demo.sh")
+VERSION+=("2218553[2022-03-23T08:38:37+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1016,6 +1016,20 @@ server {
         #     deny all;
         # }
     }
+}
+EOF
+cat <<'EOF' > stream_https_proxy.stream
+# client host add target dns name in /etc/hosts, then run
+# exam:
+# nginx 192.168.168.2:443
+# client: echo "192.168.168.2    www.baidu.com" >> /etc/hosts
+#         curl -vvv https://www.baidu.com
+resolver 114.114.114.114;
+server {
+    listen 443;
+    ssl_preread on;
+    proxy_connect_timeout 5s;
+    proxy_pass $ssl_preread_server_name:$server_port;
 }
 EOF
 cat <<'EOF' > stream_dns_proxy.stream
