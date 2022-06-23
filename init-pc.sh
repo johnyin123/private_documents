@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e32a81c[2021-11-10T11:16:22+08:00]:init-pc.sh")
+VERSION+=("51e1944[2021-12-01T14:43:16+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -170,7 +170,9 @@ apt -y install traceroute ipcalc qrencode ncal
 apt -y install bat
 echo "modify xfce4 default Panel layer"
 apt -y install xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver \
-    lightdm
+    lightdm xtv x2x
+echo "xtv -d <remote_ip:0> #xtv see remote desktop"
+echo "x2x -to <remote_ip:0.0> -west # mouse move left, then appear remote desktop!!!"
 sed -i "s/enabled=.*/enabled=False/g" /etc/xdg/user-dirs.conf
 
 XFCE_TERM=
