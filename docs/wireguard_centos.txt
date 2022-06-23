@@ -1,0 +1,2 @@
+yum install epel-release elrepo-release
+yum install kmod-wireguard wireguard-tools
