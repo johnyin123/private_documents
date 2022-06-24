@@ -7,10 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8657440[2022-06-24T13:57:44+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("1829839[2022-06-24T14:14:58+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
+# nbd rootfs need apt install nbd-client
 readonly NBD_DIR="nbd"
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
 NBD_SRV=${NBD_SRV:-192.168.168.1:9999/tpl}
