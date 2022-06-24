@@ -7,11 +7,12 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f98be5d[2022-03-18T13:03:20+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("47625a7[2022-06-24T13:53:46+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
 readonly NBD_DIR="nbd"
+NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
 #readonly DHCP_UEFI_BOOTFILE="BOOTX64.efi" #centos 6
 readonly DHCP_UEFI_BOOTFILE="shim.efi"
 readonly DHCP_BIOS_BOOTFILE="pxelinux.0"
@@ -213,7 +214,7 @@ append initrd=/debian/initrd.gz vga=788 --- quiet
 label 3
 menu label ^3) NBD ROOTFS Debian
 kernel /${NBD_DIR}/vmlinuz
-append initrd=/${NBD_DIR}/initrd.img nbddev=/dev/nbd0 nbdroot=192.168.168.1:9999/tpl ip=192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0 root=LABEL=rootfs net.ifnames=0 console=ttyAML0,115200n8 console=tty1
+append initrd=/${NBD_DIR}/initrd.img nbddev=/dev/nbd0 nbdroot=192.168.168.1:9999/tpl ip=192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0 root=${NBD_ROOT} net.ifnames=0 console=ttyAML0,115200n8 console=tty1
 
 label 4
 menu label ^4) Boot from local drive
@@ -239,7 +240,7 @@ menuentry 'Install Debian [UEFI] PXE' {
     initrdefi /debian/initrd.gz
 }
 menuentry 'NBD ROOTFS Debian [UEFI]' {
-    linuxefi /${NBD_DIR}/vmlinuz nbddev=/dev/nbd0 nbdroot=192.168.168.1:9999/tpl ip=192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0 root=LABEL=rootfs net.ifnames=0 console=ttyAML0,115200n8 console=tty1
+    linuxefi /${NBD_DIR}/vmlinuz nbddev=/dev/nbd0 nbdroot=192.168.168.1:9999/tpl ip=192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0 root=${NBD_ROOT} net.ifnames=0 console=ttyAML0,115200n8 console=tty1
     initrdefi initrd=/${NBD_DIR}/initrd.img
 }
 menuentry 'Start' {
