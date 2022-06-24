@@ -7,10 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2468378[2022-03-18T08:37:47+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("f98be5d[2022-03-18T13:03:20+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
+readonly NBD_DIR="nbd"
 #readonly DHCP_UEFI_BOOTFILE="BOOTX64.efi" #centos 6
 readonly DHCP_UEFI_BOOTFILE="shim.efi"
 readonly DHCP_BIOS_BOOTFILE="pxelinux.0"
@@ -192,11 +193,12 @@ gen_pxelinux_cfg() {
     local ns_ipaddr="$2"
     local ks_uri="$3"
     #http://mirrors.163.com/debian/dists/Debian10.3/main/installer-amd64/current/images/netboot/netboot.tar.gz
+    # ip=<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:<device>:<autoconf>:<dns0-ip>:<dns1-ip>:<ntp0-ip>
     try cat \> ${pxelinux_cfg} <<EOF
 default menu.c32
 prompt 0
 timeout 300
-ONTIMEOUT 3
+ONTIMEOUT 4
 menu title ########## PXE Boot Menu ##########
 label 1
 menu label ^1) Install Centos [BIOS] PXE+Kickstart
@@ -209,7 +211,12 @@ kernel /debian/linux
 append initrd=/debian/initrd.gz vga=788 --- quiet
 
 label 3
-menu label ^3) Boot from local drive
+menu label ^3) NBD ROOTFS Debian
+kernel /${NBD_DIR}/vmlinuz
+append initrd=/${NBD_DIR}/initrd.img nbddev=/dev/nbd0 nbdroot=192.168.168.1:9999/tpl ip=192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0 root=LABEL=rootfs net.ifnames=0 console=ttyAML0,115200n8 console=tty1
+
+label 4
+menu label ^4) Boot from local drive
 localboot 0xffff
 EOF
     return 0
@@ -230,6 +237,10 @@ menuentry 'Install Centos [UEFI] PXE+Kickstart' {
 menuentry 'Install Debian [UEFI] PXE' {
     linuxefi /debian/linux vga=788 --- quiet
     initrdefi /debian/initrd.gz
+}
+menuentry 'NBD ROOTFS Debian [UEFI]' {
+    linuxefi /${NBD_DIR}/vmlinuz nbddev=/dev/nbd0 nbdroot=192.168.168.1:9999/tpl ip=192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0 root=LABEL=rootfs net.ifnames=0 console=ttyAML0,115200n8 console=tty1
+    initrdefi initrd=/${NBD_DIR}/initrd.img
 }
 menuentry 'Start' {
     boot
@@ -466,6 +477,7 @@ main() {
     mk_busybox_fs "${DIRNAME}/${BUSYBOX}" "${ROOTFS}"
     gen_busybox_inetd "${DHCP_BOOTFILE}" "${ROOTFS}" "${ns_ipaddr}" "${PXE_DIR}"
     try mkdir -p ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ && try mount "${DIRNAME}/${DVD_IMG}" "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" 2\>/dev/null
+    try mkdir -p "${ROOTFS}/${PXE_DIR}/${NBD_DIR}"
     try mkdir -p "${ROOTFS}/${PXE_DIR}/"
     gen_grub_cfg "${ROOTFS}/${PXE_DIR}/grub.cfg" "${ns_ipaddr}" "${UEFI_KS_URI}"
     gen_kickstart "${ROOTFS}/${PXE_DIR}/${UEFI_KS_URI}" "${ns_ipaddr}" "${disk}" "${UEFI_KS_URI}" ${lvm} true "${root_size}"

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("508debb[2022-03-22T09:32:51+08:00]:virt-imgbootup.sh")
+VERSION+=("58a050a[2022-06-02T13:01:54+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -18,7 +18,7 @@ ${SCRIPTNAME}
         env NET=e1000e set netcard type, default virtio-net-pci
         -c|--cpu    <int>     number of cpus (default 1)
         -m|--mem    <int>     mem size MB (default 2048)
-        -D|--disk   <file> *  disk image (multi disk must same format)
+        -D|--disk   <file>    disk image (multi disk must same format)
                     nbd:192.0.2.1:30000
                     nbd:unix:/tmp/nbd-socket
                     ssh://user@host/path/to/disk.img
@@ -118,7 +118,7 @@ main() {
     done
     is_user_root || exit_msg "root need\n"
     require qemu-system-x86_64 grep sed awk modprobe lspci hexdump
-    [ "$(array_size disk)" -gt "0" ] || usage "disk image ?"
+    [ "$(array_size disk)" -gt "0" ] || warn_msg "no disk image!!"
     #file_exists "${disk}" || usage "disk nofound"
     options+=("-cpu" "${CPU:-host}")
     options+=("-smp" "${cpu}")

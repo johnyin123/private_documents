@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a28fcbd[2022-06-02T07:01:36+08:00]:s905_debootstrap.sh")
+VERSION+=("45aa373[2022-06-08T10:56:48+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 menu_select() {
@@ -1089,7 +1089,7 @@ setenv dtb_mem_addr "0x1000000"
 setenv serverip 172.16.16.2
 setenv ipaddr 172.16.16.168
 setenv bootargs "root=/dev/nfs nfsroot=${serverip}:/nfsshare/root rw net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 rootwait"
-setenv bootcmd_pxe "tftp ${kernel_addr} zImage; tftp ${initrd_addr} uInitrd; tftp ${dtb_mem_addr} dtb.img; booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr} "
+setenv bootcmd_pxe "tftp ${kernel_addr} zImage; tftp ${initrd_addr} uInitrd; tftp ${dtb_mem_addr} dtb.img; booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr}"
 run bootcmd_pxe
 EOF
    cat > ${DIRNAME}/buildroot/boot/s905_autoscript.cmd <<'EOF'
