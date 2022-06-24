@@ -7,12 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("47625a7[2022-06-24T13:53:46+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("8657440[2022-06-24T13:57:44+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly DVD_DIR="centos_dvd"
 readonly NBD_DIR="nbd"
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
+NBD_SRV=${NBD_SRV:-192.168.168.1:9999/tpl}
+# ip=<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:<device>:<autoconf>:<dns0-ip>:<dns1-ip>:<ntp0-ip>
+NBD_IP=${NBD_IP:-192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0}
 #readonly DHCP_UEFI_BOOTFILE="BOOTX64.efi" #centos 6
 readonly DHCP_UEFI_BOOTFILE="shim.efi"
 readonly DHCP_BIOS_BOOTFILE="pxelinux.0"
@@ -194,7 +197,6 @@ gen_pxelinux_cfg() {
     local ns_ipaddr="$2"
     local ks_uri="$3"
     #http://mirrors.163.com/debian/dists/Debian10.3/main/installer-amd64/current/images/netboot/netboot.tar.gz
-    # ip=<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:<device>:<autoconf>:<dns0-ip>:<dns1-ip>:<ntp0-ip>
     try cat \> ${pxelinux_cfg} <<EOF
 default menu.c32
 prompt 0
@@ -214,7 +216,7 @@ append initrd=/debian/initrd.gz vga=788 --- quiet
 label 3
 menu label ^3) NBD ROOTFS Debian
 kernel /${NBD_DIR}/vmlinuz
-append initrd=/${NBD_DIR}/initrd.img nbddev=/dev/nbd0 nbdroot=192.168.168.1:9999/tpl ip=192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0 root=${NBD_ROOT} net.ifnames=0 console=ttyAML0,115200n8 console=tty1
+append initrd=/${NBD_DIR}/initrd.img nbddev=/dev/nbd0 nbdroot=${NBD_SRV} ip=${NBD_IP} root=${NBD_ROOT} net.ifnames=0 console=ttyAML0,115200n8 console=tty1
 
 label 4
 menu label ^4) Boot from local drive
@@ -240,8 +242,8 @@ menuentry 'Install Debian [UEFI] PXE' {
     initrdefi /debian/initrd.gz
 }
 menuentry 'NBD ROOTFS Debian [UEFI]' {
-    linuxefi /${NBD_DIR}/vmlinuz nbddev=/dev/nbd0 nbdroot=192.168.168.1:9999/tpl ip=192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0 root=${NBD_ROOT} net.ifnames=0 console=ttyAML0,115200n8 console=tty1
-    initrdefi initrd=/${NBD_DIR}/initrd.img
+    linuxefi /${NBD_DIR}/vmlinuz nbddev=/dev/nbd0 nbdroot=${NBD_SRV} ip=${NBD_IP} root=${NBD_ROOT} net.ifnames=0 console=ttyAML0,115200n8 console=tty1
+    initrdefi /${NBD_DIR}/initrd.img
 }
 menuentry 'Start' {
     boot
