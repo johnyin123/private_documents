@@ -7,16 +7,17 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1829839[2022-06-24T14:14:58+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("f6e7143[2022-06-24T14:52:38+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-readonly DVD_DIR="centos_dvd"
-# nbd rootfs need apt install nbd-client
-readonly NBD_DIR="nbd"
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
 NBD_SRV=${NBD_SRV:-192.168.168.1:9999/tpl}
 # ip=<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:<device>:<autoconf>:<dns0-ip>:<dns1-ip>:<ntp0-ip>
 NBD_IP=${NBD_IP:-192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0}
+
+readonly DVD_DIR="centos_dvd"
+# nbd rootfs need apt install nbd-client
+readonly NBD_DIR="nbd"
 #readonly DHCP_UEFI_BOOTFILE="BOOTX64.efi" #centos 6
 readonly DHCP_UEFI_BOOTFILE="shim.efi"
 readonly DHCP_BIOS_BOOTFILE="pxelinux.0"
@@ -429,6 +430,9 @@ usage() {
 ${SCRIPTNAME}
         ** all depends files: busybox-pxe-efi-server.depends.tar.gz **
             Centos7,Centos8,Rocky 8
+            NBD_ROOT="LABEL=rootfs"
+            NBD_SRV=192.168.168.1:9999/tpl
+            NBD_IP=192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0
         -b|--bridge    *    <local bridge> local bridge
         -n|--ns             <ns name>   default pxe_ns
         -i|--ns_ip          <ns ipaddr> default 172.16.16.2
