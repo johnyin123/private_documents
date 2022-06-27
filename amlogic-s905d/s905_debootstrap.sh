@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("45aa373[2022-06-08T10:56:48+08:00]:s905_debootstrap.sh")
+VERSION+=("47625a7[2022-06-24T13:53:46+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 menu_select() {
@@ -1149,5 +1149,6 @@ echo "start chroot shell, disable service & do other work"
 chroot ${DIRNAME}/buildroot/ /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
 chroot ${DIRNAME}/buildroot/ /bin/bash -s <<EOF
     debian_minimum_init
+    sed -i "s/TimeoutStartSec=.*/TimeoutStartSec=5sec/g" /lib/systemd/system/networking.service
 EOF
 exit 0
