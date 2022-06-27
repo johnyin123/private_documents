@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b122591[2022-06-22T09:36:05+08:00]:ngx_demo.sh")
+VERSION+=("3b0b0e3[2022-06-22T13:59:01+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1038,18 +1038,36 @@ cat <<'EOF' > stream_https_proxy.stream
 # nginx 192.168.168.2:443
 # client: echo "192.168.168.2    www.baidu.com" >> /etc/hosts
 #         curl -vvv https://www.baidu.com
-resolver 114.114.114.114;
-server {
-    listen 80;
-    location / {
-        proxy_pass http://$http_host$request_uri;
-    }
+# resolver 114.114.114.114 ipv6=off;
+# map $http_host $allowed {
+#     default 0;
+#     www.baidu.com 1;
+#     www.sina.com  1;
+# }
+# server {
+#     listen 80;
+#     server_name _;
+#     location / {
+#         proxy_set_header Host $http_host;
+#         proxy_max_temp_file_size 0k;
+#         if ($allowed) {
+#             proxy_pass $scheme://$host$request_uri;
+#             break;
+#         }
+#         return 403;
+#     }
+# }
+
+resolver 114.114.114.114 ipv6=off;
+map $ssl_preread_server_name $address {
+    default 0;
+    www.baidu.com www.baidu.com;
 }
 server {
     listen 443;
     ssl_preread on;
     proxy_connect_timeout 5s;
-    proxy_pass $ssl_preread_server_name:$server_port;
+    proxy_pass $address:$server_port;
 }
 EOF
 cat <<'EOF' > stream_dns_proxy.stream
