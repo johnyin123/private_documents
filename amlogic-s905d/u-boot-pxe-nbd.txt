@@ -1,0 +1,26 @@
+1. copy default-arm-meson to PXE tftp pxelinux.cfg dir
+2. copy vmlinuz, initrd, dtb to PXE tftp meson dir
+3. ./netns-busybox-pxe-efi-server.sh -b br-ext
+4. qemu-nbd -x tpl --port=9999 -f raw phicomm-n1.raw 
+    phicomm-n1.raw: 
+        1.no overlay
+        2.eth0 not use bridge
+        3.modify /etc/fstab
+
+# pxeconfig file in tftp server !!!
+cat <<EOF >pxelinux.cfg/default-arm-meson
+menu title Select the boot mode
+  default initramfs
+  timeout 5
+  label initramfs
+ 	kernel /meson/vmlinuz-5.18.4-johnyin-s905d
+ 	initrd /meson/initrd.img-5.18.4-johnyin-s905d
+ 	fdt /meson/phicomm-n1-5.18.4-johnyin-s905d.dtb
+    append nbddev=/dev/nbd0 nbdroot=192.168.168.1:9999/tpl ip=192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0 root=LABEL=rootfs net.ifnames=0 console=ttyAML0,115200n8 console=tty1
+  label local
+    kernel /vmlinuz-5.18.4-johnyin-s905d
+    initrd /initrd.img-5.18.4-johnyin-s905d
+    fdt /dtb/phicomm-n1-5.18.4-johnyin-s905d.dtb
+    append root=LABEL=EMMCROOT rootflags=data=writeback fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
+	localboot 1
+EOF
