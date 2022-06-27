@@ -3,6 +3,7 @@
 3. ./netns-busybox-pxe-efi-server.sh -b br-ext
 4. qemu-nbd -x tpl --port=9999 -f raw phicomm-n1.raw 
     phicomm-n1.raw: 
+        0.need apt -y install nbd-client, && rebuild initrd(if installed, no need)
         1.no overlay
         2.eth0 not use bridge
         3.modify /etc/fstab
