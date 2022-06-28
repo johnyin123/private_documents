@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fd64c24[2022-06-28T11:29:43+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("528cccc[2022-06-28T12:51:56+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
@@ -65,6 +65,12 @@ EOF
     try cat \> ${rootfs}/etc/passwd << EOF
 root:x:0:0:root:/root:/bin/sh
 EOF
+    # for d in /var/lib/misc /var/run /etc /lib /dev /root /proc /usr/bin /usr/sbin /sys /tmp; do
+    #     try mkdir -p ${rootfs}/$d
+    # done
+    # ln -s usr/bin ${rootfs}/bin
+    # ln -s usr/sbin ${rootfs}/sbin
+    # maybe_netns_run "/bin/busybox --install -s" "" "${rootfs}"
     local als
     for als in $(${rootfs}/bin/busybox --list-long); do
         als="${als#/}"
