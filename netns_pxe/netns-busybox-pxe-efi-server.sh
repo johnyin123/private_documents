@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f6e7143[2022-06-24T14:52:38+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("3a3948f[2022-06-27T07:14:30+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
@@ -66,6 +66,17 @@ EOF
 root:x:0:0:root:/root:/bin/sh
 EOF
     try chroot ${rootfs} /bin/busybox --install -s /bin
+#    for alias in $(/bin/busybox --list-long); do
+#        alias="${alias#/}"
+#        case "$alias" in
+#            # strip leading /usr, we don't use it
+#            usr/*) alias="${alias#usr/}" ;;
+#            */*) ;;
+#            *) alias="bin/$alias" ;;  # make it into /bin
+#        esac
+#        [ -e "$DESTDIR/$alias" ] || /bin/busybox ln "$DESTDIR/bin/busybox" "$DESTDIR/$alias"
+#    done
+
     return 0
 }
 
