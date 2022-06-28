@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("47625a7[2022-06-24T13:53:46+08:00]:s905_debootstrap.sh")
+VERSION+=("a9a2276[2022-06-27T13:57:20+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 menu_select() {
@@ -1113,8 +1113,8 @@ EOF
 echo "Start amlogic old u-boot."
 if fatload usb 0 0x1000000 u-boot.usb.bin; then go 0x1000000; fi;
 if fatload usb 1 0x1000000 u-boot.usb.bin; then go 0x1000000; fi;
-if fatload mmc 0 0x1000000 u-boot.bin; then go 0x1000000; fi;
-if fatload mmc 1 0x1000000 u-boot.bin; then go 0x1000000; fi;
+if fatload mmc 0 0x1000000 u-boot.mmc.bin; then go 0x1000000; fi;
+if fatload mmc 1 0x1000000 u-boot.mmc.bin; then go 0x1000000; fi;
 EOF
     mkdir -p ${DIRNAME}/buildroot/boot/extlinux
     cat <<EOF > ${DIRNAME}/buildroot/boot/extlinux/extlinux.conf
@@ -1127,7 +1127,7 @@ EOF
     echo "https://github.com/PuXiongfei/phicomm-n1-u-boot"
     echo "5d921bf1d57baf081a7b2e969d7f70a5  u-boot.bin"
     echo "ade4aa3942e69115b9cc74d902e17035  u-boot.bin.new"
-    cat ${DIRNAME}/u-boot.bin > ${DIRNAME}/buildroot/boot/u-boot.bin || true
+    cat ${DIRNAME}/u-boot.mmc.bin > ${DIRNAME}/buildroot/boot/u-boot.mmc.bin || true
     cat ${DIRNAME}/u-boot.usb.bin > ${DIRNAME}/buildroot/boot/u-boot.usb.bin || true
     LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot/ /bin/bash <<EOSHELL
     depmod ${kerver}
