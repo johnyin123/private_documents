@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3a3948f[2022-06-27T07:14:30+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("fd64c24[2022-06-28T11:29:43+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
@@ -39,7 +39,7 @@ mk_busybox_fs() {
     debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local busybox_bin="$1"
     local rootfs="$2"
-    for d in /var/lib/misc /var/run /etc /lib /bin /dev /root /proc; do
+    for d in /var/lib/misc /var/run /etc /lib /sbin /bin /dev /root /proc; do
         try mkdir -p ${rootfs}/$d
     done
     try cp ${busybox_bin} ${rootfs}/bin/busybox && try chmod 755 ${rootfs}/bin/busybox
@@ -65,18 +65,17 @@ EOF
     try cat \> ${rootfs}/etc/passwd << EOF
 root:x:0:0:root:/root:/bin/sh
 EOF
-    try chroot ${rootfs} /bin/busybox --install -s /bin
-#    for alias in $(/bin/busybox --list-long); do
-#        alias="${alias#/}"
-#        case "$alias" in
-#            # strip leading /usr, we don't use it
-#            usr/*) alias="${alias#usr/}" ;;
-#            */*) ;;
-#            *) alias="bin/$alias" ;;  # make it into /bin
-#        esac
-#        [ -e "$DESTDIR/$alias" ] || /bin/busybox ln "$DESTDIR/bin/busybox" "$DESTDIR/$alias"
-#    done
-
+    local als
+    for als in $(${rootfs}/bin/busybox --list-long); do
+        als="${als#/}"
+        case "$als" in
+            # strip leading /usr, we don't use it
+            usr/*) als="${als#usr/}" ;;
+            */*) ;;
+            *) als="bin/$als" ;;  # make it into /bin
+        esac
+        [ -e "${rootfs}/$als" ] || try ln -s /bin/busybox ${rootfs}/$als
+    done
     return 0
 }
 
@@ -91,10 +90,6 @@ gen_busybox_inetd() {
     for cmd in tftpd httpd ftpd udhcpd; do
         ${rootfs}/bin/busybox --list | grep $cmd > /dev/null && debug_msg "check $cmd ok\n" || exit_msg "check $cmd error"
     done
-    link_exists ${rootfs}/bin/tftpd  || try ln -s /bin/busybox ${rootfs}/bin/tftpd
-    link_exists ${rootfs}/bin/httpd  || try ln -s /bin/busybox ${rootfs}/bin/httpd
-    link_exists ${rootfs}/bin/ftpd   || try ln -s /bin/busybox ${rootfs}/bin/ftpd
-    link_exists ${rootfs}/bin/udhcpd || try ln -s /bin/busybox ${rootfs}/bin/udhcpd
 
     try cat \> ${rootfs}/etc/inetd.conf << INETEOF
 69 dgram udp nowait root tftpd tftpd -l ${pxe_dir}
@@ -154,8 +149,8 @@ start_ns_inetd() {
     local rootfs="$2"
     maybe_netns_run "mount -t proc none /proc" "${ns_name}" "${rootfs}" || return 3
     cat<<EOF>"${rootfs}/start.sh"
-    start-stop-daemon -S -b -q -x /bin/udhcpd
-    start-stop-daemon -S -b -q -x  /bin/inetd
+start-stop-daemon -S -b -q -x udhcpd
+start-stop-daemon -S -b -q -x inetd
 EOF
     try chmod 755 "${rootfs}/start.sh"
 }
