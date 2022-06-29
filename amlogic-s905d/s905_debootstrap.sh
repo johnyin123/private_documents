@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a9a2276[2022-06-27T13:57:20+08:00]:s905_debootstrap.sh")
+VERSION+=("ce8002d[2022-06-29T07:40:01+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 menu_select() {
@@ -1108,13 +1108,16 @@ image=vmlinuz-${kerver}
 initrd=uInitrd-${kerver}
 dtb=/dtb/${dtb}
 bootargs=root=LABEL=${ROOT_LABEL} rootflags=data=writeback fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0
+boot_pxe=false
 EOF
     cat  > ${DIRNAME}/buildroot/boot/s905_autoscript.uboot.cmd <<'EOF'
-echo "Start amlogic old u-boot."
-if fatload usb 0 0x1000000 u-boot.usb.bin; then go 0x1000000; fi;
-if fatload usb 1 0x1000000 u-boot.usb.bin; then go 0x1000000; fi;
-if fatload mmc 0 0x1000000 u-boot.mmc.bin; then go 0x1000000; fi;
-if fatload mmc 1 0x1000000 u-boot.mmc.bin; then go 0x1000000; fi;
+echo "Start u-boot......"
+setenv env_addr   "0x10400000"
+setenv uboot_addr "0x1000000"
+if fatload usb 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if test ${boot_pxe} = true; then if fatload usb 0 ${uboot_addr} u-boot.pxe.bin; then go ${uboot_addr}; fi; fi; if fatload usb 0 ${uboot_addr} u-boot.usb.bin; then go ${uboot_addr}; fi; fi;
+if fatload usb 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if test ${boot_pxe} = true; then if fatload usb 1 ${uboot_addr} u-boot.pxe.bin; then go ${uboot_addr}; fi; fi; if fatload usb 1 ${uboot_addr} u-boot.usb.bin; then go ${uboot_addr}; fi; fi;
+if fatload mmc 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if test ${boot_pxe} = true; then if fatload mmc 0 ${uboot_addr} u-boot.pxe.bin; then go ${uboot_addr}; fi; fi; if fatload mmc 0 ${uboot_addr} u-boot.mmc.bin; then go ${uboot_addr}; fi; fi;
+if fatload mmc 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if test ${boot_pxe} = true; then if fatload mmc 1 ${uboot_addr} u-boot.pxe.bin; then go ${uboot_addr}; fi; fi; if fatload mmc 1 ${uboot_addr} u-boot.mmc.bin; then go ${uboot_addr}; fi; fi;
 EOF
     mkdir -p ${DIRNAME}/buildroot/boot/extlinux
     cat <<EOF > ${DIRNAME}/buildroot/boot/extlinux/extlinux.conf
