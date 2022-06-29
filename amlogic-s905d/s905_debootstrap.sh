@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ce8002d[2022-06-29T07:40:01+08:00]:s905_debootstrap.sh")
+VERSION+=("f728f98[2022-06-29T10:21:35+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 menu_select() {
@@ -1132,6 +1132,7 @@ EOF
     echo "ade4aa3942e69115b9cc74d902e17035  u-boot.bin.new"
     cat ${DIRNAME}/u-boot.mmc.bin > ${DIRNAME}/buildroot/boot/u-boot.mmc.bin || true
     cat ${DIRNAME}/u-boot.usb.bin > ${DIRNAME}/buildroot/boot/u-boot.usb.bin || true
+    cat ${DIRNAME}/u-boot.pxe.bin > ${DIRNAME}/buildroot/boot/u-boot.pxe.bin || true
     LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot/ /bin/bash <<EOSHELL
     depmod ${kerver}
     update-initramfs -c -k ${kerver}
