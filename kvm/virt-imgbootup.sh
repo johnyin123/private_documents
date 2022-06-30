@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("58a050a[2022-06-02T13:01:54+08:00]:virt-imgbootup.sh")
+VERSION+=("47625a7[2022-06-24T13:53:46+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -51,9 +51,14 @@ ${SCRIPTNAME}
            qemu-nbd -x tpl --socket=/tmp/nbd-socket -f raw /storage/linux.tpl
            qemu-nbd -x tpl rbd:cephpool/win2k12r2.raw:conf=/etc/ceph/ceph.conf
            qemu-nbd -x tpl --persistent --fork --pid-file=/tmp/nbd-socket.pid --socket=/tmp/nbd-socket --format=raw tpl/debian.raw
-           1.modprobe nbd &&  nbd-client -N tpl <IP>/-unix <unix_sock>
+           1.modprobe nbd && nbd-client -N tpl <IP>/-unix <unix_sock>
            2.<you job>
            3.nbd-client -d /dev/nbd0
+           OR
+           1.modprobe nbd && qemu-nbd -f qcow -c /dev/nbd0 test.qcow2
+           2.<you job>
+           3.qemu-nbd -d /dev/nbd0
+
         demo floppy image:
            mkfs.vfat -C "floppy.img" 1440
            mount -o loop -t vfat floppy.img /mnt/floppy
@@ -147,7 +152,7 @@ main() {
     done
     _id=0
     for _u in "${disk[@]}"; do
-        local _fmt=${fmt:-$(qemu-img info --output=json ${_u} | json_config_default ".format"  "raw")}
+        local _fmt=${fmt:-$(qemu-img info --output=json ${_u} | json_config_default ".format" "raw")}
         options+=("-drive" "file=${_u},index=${_id},cache=none,aio=native,if=virtio,format=${_fmt}")
         let _id+=1
     done
@@ -172,7 +177,7 @@ main() {
     for _u in "${pci_bus_addr[@]}"; do
         # GPU passthrough:
         modprobe -i vfio-pci
-        try lspci -nnk  -s ${_u} | vinfo_msg
+        try lspci -nnk -s ${_u} | vinfo_msg
         local vendor=$(cat /sys/bus/pci/devices/0000:${_u}/vendor)
         local device=$(cat /sys/bus/pci/devices/0000:${_u}/device)
         if [ -e /sys/bus/pci/devices/0000:${_u}/driver ]; then
