@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ac74516[2022-06-28T13:13:13+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("9134c42[2022-06-30T09:08:20+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
@@ -156,9 +156,11 @@ start_ns_inetd() {
     debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local ns_name="$1"
     local rootfs="$2"
-    maybe_netns_run "mount -t proc none /proc" "${ns_name}" "${rootfs}" || return 3
     cat<<EOF>"${rootfs}/start.sh"
-start-stop-daemon -S -b -q -x udhcpd
+mount -t proc none /proc
+rm -f /dhcpd.log
+nohup udhcpd -f > /dhcpd.log 2>&1 &
+# start-stop-daemon -S -b -q -x udhcpd
 start-stop-daemon -S -b -q -x inetd
 EOF
     try chmod 755 "${rootfs}/start.sh"
@@ -179,11 +181,12 @@ add_ns() {
     local ns_name="$1"
     local host_br="$2"
     local ns_ipaddr="$3"
+    local ns_ipaddr_prefix=${4:-24}
     setup_ns "${ns_name}" || return 4
     maybe_netns_setup_veth ${ns_name}-eth0 ${ns_name}-eth1 "" || return 4
     maybe_netns_bridge_addlink "${host_br}" "${ns_name}-eth1" "" || return 4
     maybe_netns_addlink "${ns_name}-eth0" "${ns_name}" "eth0" || return 4
-    maybe_netns_run "ip address add ${ns_ipaddr}/24 dev eth0" "${ns_name}" || return 4
+    maybe_netns_run "ip address add ${ns_ipaddr}/${ns_ipaddr_prefix} dev eth0" "${ns_name}" || return 4
     return 0
 }
 
@@ -455,7 +458,7 @@ ${SCRIPTNAME}
 
         -b|--bridge    *    <local bridge> local bridge
         -n|--ns             <ns name>   default pxe_ns
-        -i|--ns_ip          <ns ipaddr> default 172.16.16.2
+        -i|--ns_ip          <ns ipaddr> default 172.16.16.2/24
         --disk              <disn name> default vda
         --size              rootfs size (MB) default 4096
         --lvm               use lvm     default not use lvm
@@ -472,6 +475,7 @@ main() {
     local lvm=false
     local disk="vda"
     local ns_ipaddr="172.16.16.2"
+    local ns_ipaddr_prefix=""
     local ns_name="pxe_ns"
     local host_br=
     local root_size=4096
@@ -485,7 +489,12 @@ main() {
         case "$1" in
             -b | --bridge)  shift; host_br=${1}; shift;;
             -n | --ns)      shift; ns_name=${1}; shift;;
-            -i | --ns_ip)   shift; ns_ipaddr=${1}; shift;;
+            -i | --ns_ip)
+                shift;
+                ns_ipaddr=$(awk -F'/' '{print $1}' <<< "$1")
+                ns_ipaddr_prefix=$(awk -F'/' '{print $2}' <<< "$1")
+                shift
+                ;;
             --disk)         shift; disk=${1}; shift;;
             --size)         shift; root_size=${1}; shift;;
             --lvm)          shift; lvm=true;;
@@ -516,7 +525,7 @@ main() {
     gen_kickstart "${ROOTFS}/${PXE_DIR}/${BIOS_KS_URI}" "${ns_ipaddr}" "${disk}" "${BIOS_KS_URI}" ${lvm} false "${root_size}"
     extract_bios_pxelinux "${ROOTFS}/${PXE_DIR}/${DVD_DIR}/" "${ROOTFS}/${PXE_DIR}/" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "extract_bios_pxelinux $?"
 
-    add_ns ${ns_name} ${host_br} "${ns_ipaddr}" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "add netns $?"
+    add_ns ${ns_name} ${host_br} "${ns_ipaddr}" "${ns_ipaddr_prefix}"|| error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "add netns $?"
     start_ns_inetd ${ns_name} "${ROOTFS}" || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "start inetd $?"
     maybe_netns_shell "busybox" "${ns_name}" "${ROOTFS}" "busybox" "sh -l"
     try umount ${ROOTFS}/${PXE_DIR}/${DVD_DIR}/ || error_clean "${ROOTFS}" "${ns_name}" "${PXE_DIR}" "umount $?"
