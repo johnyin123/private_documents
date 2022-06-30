@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("b28d75d[2022-04-10T18:11:19+08:00]:os_debian_init.sh")
+VERSION+=("c857504[2022-05-19T14:01:35+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -592,6 +592,8 @@ export -f debain_overlay_init
 debian_minimum_init() {
     rm -rf /var/cache/apt/* \
            /var/lib/apt/lists/* \
+           /var/cache/debconf/*-old \
+           /var/lib/dpkg/*-old \
            /var/log/* \
            /root/.bash_history \
            /root/.viminfo \
