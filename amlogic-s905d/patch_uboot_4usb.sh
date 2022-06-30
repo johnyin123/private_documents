@@ -21,6 +21,7 @@ xxd -p -c 2127800 u-boot.bin \
     | xxd -p -r > u-boot.mmc.bin
 strings u-boot.mmc.bin | grep "boot_targets="
 
+echo "patch pxe need u-boot.bin.new"
 new_tgts1="boot_targets=pxe mmc0 mmc1 mmc2 usb0 dhcp"
 new_tgts2="boot_targets=pxe mmc0 mmc1 mmc2 usb0 romusb dhcp"
 xxd -p -c 2127800 u-boot.bin \
