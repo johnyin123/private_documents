@@ -7,13 +7,16 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("528cccc[2022-06-28T12:51:56+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("ac74516[2022-06-28T13:13:13+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
 NBD_SRV=${NBD_SRV:-192.168.168.1:9999/tpl}
 # ip=<client-ip>:<server-ip>:<gw-ip>:<netmask>:<hostname>:<device>:<autoconf>:<dns0-ip>:<dns1-ip>:<ntp0-ip>
 NBD_IP=${NBD_IP:-192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0}
+DHCP_START=${DHCP_START:-201}
+DHCP_END=${DHCP_END:-221}
+DHCP_NETMASK=${DHCP_NETMASK:-255.255.255.0}
 
 readonly DVD_DIR="centos_dvd"
 # nbd rootfs need apt install nbd-client
@@ -104,13 +107,13 @@ gen_busybox_inetd() {
 INETEOF
 
     try cat \> ${rootfs}/etc/udhcpd.conf << DHCPEOF
-start           ${ns_ipaddr%.*}.201
-end             ${ns_ipaddr%.*}.221
+start           ${ns_ipaddr%.*}.${DHCP_START}
+end             ${ns_ipaddr%.*}.${DHCP_END}
 interface       eth0
 siaddr          ${ns_ipaddr}
 boot_file       ${dhcp_bootfile}
 opt     dns     ${ns_ipaddr} 114.114.114.114
-option  subnet  255.255.255.0
+option  subnet  ${DHCP_NETMASK}
 opt     router  ${ns_ipaddr}
 opt     wins    ${ns_ipaddr}
 option  domain  local
@@ -442,9 +445,14 @@ usage() {
 ${SCRIPTNAME}
         ** all depends files: busybox-pxe-efi-server.depends.tar.gz **
             Centos7,Centos8,Rocky 8
+        default values:
             NBD_ROOT="LABEL=rootfs"
             NBD_SRV=192.168.168.1:9999/tpl
             NBD_IP=192.168.168.198::192.168.168.1:255.255.255.0:mysrv:eth0
+            DHCP_START=201
+            DHCP_END=221
+            DHCP_NETMASK=255.255.255.0
+
         -b|--bridge    *    <local bridge> local bridge
         -n|--ns             <ns name>   default pxe_ns
         -i|--ns_ip          <ns ipaddr> default 172.16.16.2
