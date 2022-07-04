@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("c857504[2022-05-19T14:01:35+08:00]:os_debian_init.sh")
+VERSION+=("cf75b74[2022-06-30T08:21:37+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -29,8 +29,7 @@ debian_build() {
     local root_dir=$1
     local cache_dir=${2:-}
     local include_pkg="whiptail,tzdata,locales,busybox${3:+,${3}}"
-    rm -fr ${root_dir}
-    mkdir -p ${root_dir}
+    [ -d "${root_dir}" ] || mkdir -p ${root_dir}
     debootstrap --verbose ${cache_dir:+--cache-dir=${cache_dir}} --no-check-gpg --arch ${INST_ARCH:-amd64} --variant=minbase --include=${include_pkg} --foreign ${DEBIAN_VERSION:-buster} ${root_dir} ${REPO:-http://mirrors.163.com/debian}
 
     [ ${INST_ARCH} = "arm64" ] && {

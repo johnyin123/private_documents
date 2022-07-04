@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("554409e[2022-07-04T11:10:55+08:00]:mk_nbd_img.sh")
+VERSION+=("94758ec[2022-07-04T15:10:21+08:00]:mk_nbd_img.sh")
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -16,7 +16,10 @@ NBD_DEV=
 LABEL=${LABEL:-rootfs}
 trap cleanup EXIT TERM INT
 cleanup() {
-    [ -z "${NBD_DEV}" ] || qemu-nbd -d ${NBD_DEV}
+    [ -z "${NBD_DEV}" ] || {
+        umount ${NBD_DEV}p1
+        qemu-nbd -d ${NBD_DEV}
+    }
     echo "Exit!"
 }
 prepare_disk_img() {
@@ -79,11 +82,11 @@ main() {
         esac
     done
     local fmt=qcow2
+    mkdir -p "${DIRNAME}/cache" "${rootfs}"
     prepare_disk_img ${image} ${size} ${fmt} && {
-        mount ${NBD_DEV}p0 ${rootfs}
+        mount ${NBD_DEV}p1 ${rootfs}
     } || echo "ERROR: prepare_disk_img return = $?"
 
-    mkdir -p "${DIRNAME}/cache"
     DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
         INST_ARCH=arm64 \
         REPO=${REPO:-http://mirrors.aliyun.com/debian} \
