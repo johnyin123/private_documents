@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8e37cfb[2022-07-05T09:39:53+08:00]:mk_nbd_img.sh")
+VERSION+=("9f363c0[2022-07-05T10:12:55+08:00]:mk_nbd_img.sh")
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -136,14 +136,24 @@ allow-hotplug eth0
 iface eth0 inet static
     address 192.168.168.4/24
 EOF
+    echo "copy kernel & modules !!!!"
+    /usr/bin/env -i \
+        SHELL=/bin/bash \
+        TERM=${TERM:-} \
+        HISTFILE= \
+        PS1="${NBD_DEV}#" \
+        /bin/bash --noprofile --norc -o vi || true
+
+    echo "disable no use service and so on!!!!"
     chroot ${ROOT_DIR} \
         /usr/bin/env -i \
         SHELL=/bin/bash \
         TERM=${TERM:-} \
         HISTFILE= \
-        PS1="CHROOT(${NBD_DEV})#" \
+        PS1="CHROOT(${ROOT_DIR})#" \
         /bin/bash --noprofile --norc -o vi || true
 
+    echo "minimum system!!!!"
     chroot ${ROOT_DIR} /bin/bash -s <<EOF
 debian_minimum_init
 EOF
