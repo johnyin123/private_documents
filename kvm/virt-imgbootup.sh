@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("47625a7[2022-06-24T13:53:46+08:00]:virt-imgbootup.sh")
+VERSION+=("bd021cc[2022-06-30T16:44:27+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -16,6 +16,7 @@ usage() {
 ${SCRIPTNAME}
         env CPU=kvm64 set cpu type, default host
         env NET=e1000e set netcard type, default virtio-net-pci
+        env MACHINE=pc set machine(winxp us pc), default q35
         -c|--cpu    <int>     number of cpus (default 1)
         -m|--mem    <int>     mem size MB (default 2048)
         -D|--disk   <file>    disk image (multi disk must same format)
@@ -80,7 +81,7 @@ main() {
         "-device" "usb-tablet,bus=usb-bus.0"
         "-device" "nec-usb-xhci,id=xhci"
         "-boot" "menu=on"
-        "-M" "q35"
+        "-M" "${MACHINE:-q35}"
         "-monitor" "vc"
     )
 
