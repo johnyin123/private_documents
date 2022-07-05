@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9f363c0[2022-07-05T10:12:55+08:00]:mk_nbd_img.sh")
+VERSION+=("11ece4c[2022-07-05T10:16:51+08:00]:mk_nbd_img.sh")
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -18,8 +18,8 @@ LABEL=${LABEL:-rootfs}
 trap cleanup EXIT TERM INT
 cleanup() {
     [ -z "${NBD_DEV}" ] || {
-        umount -R ${ROOT_DIR} || true
-        qemu-nbd -d ${NBD_DEV} || true
+        umount -R ${ROOT_DIR} 2>/dev/null || true
+        qemu-nbd -d ${NBD_DEV} 2>/dev/null || true
     }
     rm -fr ${ROOT_DIR} || true
     echo "Exit!"
@@ -28,14 +28,17 @@ prepare_disk_img() {
     local image=${1}
     local size=${2}
     local fmt=${3}
+    local new_buildroot=${4}
     local i=""
-    qemu-img create -q -f ${fmt} ${image} ${size}
+    [ "${new_buildroot}" == 1 ] || [ -e "${image}" ] || return 3
+    [ "${new_buildroot}" == 1 ] && qemu-img create -q -f ${fmt} ${image} ${size}
     modprobe nbd max_part=16 || return 1
     for i in /dev/nbd*; do
         qemu-nbd -f ${fmt} -c $i ${image} && { NBD_DEV=$i; break; }
     done
     [ "${NBD_DEV}" == "" ] && return 2
     echo "Connected ${image} to ${NBD_DEV}"
+    [ "${new_buildroot}" == 1 ] || return 0
     parted -s "${NBD_DEV}" "mklabel msdos"
     # parted -s "${NBD_DEV}" "mkpart primary fat32 1MiB 65MiB"
     parted -s "${NBD_DEV}" "mkpart primary ext4 1MiB 100%"
@@ -49,6 +52,12 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+    LABEL=rootfs, nbd image first partition label name.
+        -r|--rootfs  <str>    rootfs dir name, default "nbdroot"
+        -p|--pkg     <str>    additional debian packages, multi param.
+        -s|--size    <str>    nbd image size, default 1G
+        -f|--image   <str>    nbd image name, default nbdroot.qcow2
+        -n                    no build rootfs, only mount nbd disk and chroot it.
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -59,9 +68,9 @@ EOF
 }
 
 main() {
-    local image=nbdroot.qcow2 size=1G
+    local image=nbdroot.qcow2 size=1G new_buildroot=1
     local PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox,nbd-client"
-    local opt_short="r:p:s:f:"
+    local opt_short="r:p:s:f:n"
     local opt_long="rootfs:,pkg:,size:,image:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
@@ -73,6 +82,7 @@ main() {
             -p | --pkg)     shift; PKG+=",${1}"; shift;;
             -s | --size)    shift; size=${1}; shift;;
             -f | --image)   shift; image=${1}; shift;;
+            -n)             shift; new_buildroot=0;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -85,18 +95,18 @@ main() {
     done
     local fmt=qcow2
     mkdir -p "${DIRNAME}/cache" "${ROOT_DIR}"
-    prepare_disk_img ${image} ${size} ${fmt} && {
+    prepare_disk_img "${image}" "${size}" "${fmt}" "${new_buildroot}" && {
         mount ${NBD_DEV}p1 ${ROOT_DIR}
-    } || echo "ERROR: prepare_disk_img return = $?"
-
-    DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
-        INST_ARCH=arm64 \
-        REPO=${REPO:-http://mirrors.aliyun.com/debian} \
-        HOSTNAME="nbd" \
-        NAME_SERVER=114.114.114.114 \
-        PASSWORD=password \
-        debian_build "${ROOT_DIR}" "${DIRNAME}/cache" "${PKG}"
-    LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
+    } || exit $?
+    [ "${new_buildroot}" == 1 ] && {
+        DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
+            INST_ARCH=arm64 \
+            REPO=${REPO:-http://mirrors.aliyun.com/debian} \
+            HOSTNAME="nbd" \
+            NAME_SERVER=114.114.114.114 \
+            PASSWORD=password \
+            debian_build "${ROOT_DIR}" "${DIRNAME}/cache" "${PKG}"
+        LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
 # mount -t devtmpfs -o mode=0755,nosuid devtmpfs  /dev
 # mount -t devpts -o gid=5,mode=620 devpts /dev/pts
 /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
@@ -114,28 +124,29 @@ chage -d 0 root || true
 exit
 EOSHELL
 
-    cat > ${ROOT_DIR}/etc/fstab << EOF
+        cat > ${ROOT_DIR}/etc/fstab << EOF
 LABEL=${LABEL}    /    ext4    defaults,errors=remount-ro,noatime    0    1
 tmpfs /run      tmpfs   rw,nosuid,noexec,relatime,mode=755  0  0
 tmpfs /tmp      tmpfs   rw,nosuid,relatime,mode=777  0  0
 EOF
-    # enable ttyAML0 login
-    sed -i "/^ttyAML0/d" ${ROOT_DIR}/etc/securetty 2>/dev/null || true
-    echo "ttyAML0" >> ${ROOT_DIR}/etc/securetty
+        # enable ttyAML0 login
+        sed -i "/^ttyAML0/d" ${ROOT_DIR}/etc/securetty 2>/dev/null || true
+        echo "ttyAML0" >> ${ROOT_DIR}/etc/securetty
 
-    cat << EOF > ${ROOT_DIR}/etc/network/interfaces
+        cat << EOF > ${ROOT_DIR}/etc/network/interfaces
 source /etc/network/interfaces.d/*
 # The loopback network interface
 auto lo
 iface lo inet loopback
 EOF
 
-    cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/eth0
+        cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/eth0
 auto eth0
 allow-hotplug eth0
 iface eth0 inet static
     address 192.168.168.4/24
 EOF
+}
     echo "copy kernel & modules !!!!"
     /usr/bin/env -i \
         SHELL=/bin/bash \
