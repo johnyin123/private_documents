@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1ab3871[2022-07-05T09:18:49+08:00]:mk_nbd_img.sh")
+VERSION+=("8e37cfb[2022-07-05T09:39:53+08:00]:mk_nbd_img.sh")
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -100,7 +100,7 @@ main() {
 # mount -t devtmpfs -o mode=0755,nosuid devtmpfs  /dev
 # mount -t devpts -o gid=5,mode=620 devpts /dev/pts
 /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
-/bin/mknod -m 666 /dev/null c 1 3 || true
+[ -c "/dev/null" ] || /bin/mknod -m 666 /dev/null c 1 3 || true
 
 debian_zswap_init 512
 debian_sshd_init
@@ -141,8 +141,13 @@ EOF
         SHELL=/bin/bash \
         TERM=${TERM:-} \
         HISTFILE= \
-        PS1="${NBD_DEV} #" \
+        PS1="CHROOT(${NBD_DEV})#" \
         /bin/bash --noprofile --norc -o vi || true
+
+    chroot ${ROOT_DIR} /bin/bash -s <<EOF
+debian_minimum_init
+EOF
+
     return 0
 }
 main "$@"
