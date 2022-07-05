@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6815f22[2022-07-05T11:05:55+08:00]:mk_nbd_img.sh")
+VERSION+=("ec784fb[2022-07-05T12:38:01+08:00]:mk_nbd_img.sh")
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -32,9 +32,10 @@ prepare_disk_img() {
     local i=""
     [ "${new_buildroot}" == 1 ] || [ -e "${image}" ] || return 3
     [ "${new_buildroot}" == 1 ] && qemu-img create -q -f ${fmt} ${image} ${size}
-    modprobe nbd max_part=16 || return 1
+    [ -b /dev/nbd0 ] || modprobe nbd max_part=16 || return 1
     for i in /dev/nbd*; do
         qemu-nbd -f ${fmt} -c $i ${image} && { NBD_DEV=$i; break; }
+        qemu-nbd -d $i >/dev/null 2>&1
     done
     [ "${NBD_DEV}" == "" ] && return 2
     echo "Connected ${image} to ${NBD_DEV}"
@@ -97,8 +98,7 @@ main() {
     done
     mkdir -p "${DIRNAME}/cache" "${ROOT_DIR}"
     prepare_disk_img "${image}" "${size}" "${fmt}" "${new_buildroot}" && {
-        sleep 5
-        mount ${NBD_DEV}p1 ${ROOT_DIR}
+        blkid -o udev ${NBD_DEV} && mount ${NBD_DEV}p1 ${ROOT_DIR}
     } || exit $?
     [ "${new_buildroot}" == 1 ] && {
         DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
