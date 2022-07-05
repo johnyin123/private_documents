@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fb240ba[2022-07-04T15:26:55+08:00]:mk_nbd_img.sh")
+VERSION+=("1ab3871[2022-07-05T09:18:49+08:00]:mk_nbd_img.sh")
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -21,7 +21,7 @@ cleanup() {
         umount -R ${ROOT_DIR} || true
         qemu-nbd -d ${NBD_DEV} || true
     }
-    rm -f ${ROOT_DIR} || true
+    rm -fr ${ROOT_DIR} || true
     echo "Exit!"
 }
 prepare_disk_img() {
