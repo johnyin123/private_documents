@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("11ece4c[2022-07-05T10:16:51+08:00]:mk_nbd_img.sh")
+VERSION+=("6815f22[2022-07-05T11:05:55+08:00]:mk_nbd_img.sh")
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -57,6 +57,7 @@ ${SCRIPTNAME}
         -p|--pkg     <str>    additional debian packages, multi param.
         -s|--size    <str>    nbd image size, default 1G
         -f|--image   <str>    nbd image name, default nbdroot.qcow2
+        --fmt        <str>    nbd image format, default qcow2
         -n                    no build rootfs, only mount nbd disk and chroot it.
         -q|--quiet
         -l|--log <int> log level
@@ -68,10 +69,10 @@ EOF
 }
 
 main() {
-    local image=nbdroot.qcow2 size=1G new_buildroot=1
+    local image=nbdroot.qcow2 size=1G new_buildroot=1 fmt=qcow2
     local PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox,nbd-client"
     local opt_short="r:p:s:f:n"
-    local opt_long="rootfs:,pkg:,size:,image:,"
+    local opt_long="rootfs:,pkg:,size:,image:,fmt:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -82,6 +83,7 @@ main() {
             -p | --pkg)     shift; PKG+=",${1}"; shift;;
             -s | --size)    shift; size=${1}; shift;;
             -f | --image)   shift; image=${1}; shift;;
+            --fmt)          shift; fmt=${1}; shift;;
             -n)             shift; new_buildroot=0;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
@@ -93,9 +95,9 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    local fmt=qcow2
     mkdir -p "${DIRNAME}/cache" "${ROOT_DIR}"
     prepare_disk_img "${image}" "${size}" "${fmt}" "${new_buildroot}" && {
+        sleep 5
         mount ${NBD_DEV}p1 ${ROOT_DIR}
     } || exit $?
     [ "${new_buildroot}" == 1 ] && {
