@@ -7,19 +7,21 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("94758ec[2022-07-04T15:10:21+08:00]:mk_nbd_img.sh")
+VERSION+=("fb240ba[2022-07-04T15:26:55+08:00]:mk_nbd_img.sh")
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
-
 NBD_DEV=
+ROOT_DIR=nbdroot
 LABEL=${LABEL:-rootfs}
+
 trap cleanup EXIT TERM INT
 cleanup() {
     [ -z "${NBD_DEV}" ] || {
-        umount ${NBD_DEV}p1
-        qemu-nbd -d ${NBD_DEV}
+        umount -R ${ROOT_DIR} || true
+        qemu-nbd -d ${NBD_DEV} || true
     }
+    rm -f ${ROOT_DIR} || true
     echo "Exit!"
 }
 prepare_disk_img() {
@@ -27,7 +29,7 @@ prepare_disk_img() {
     local size=${2}
     local fmt=${3}
     local i=""
-    qemu-img create -f ${fmt} ${image} ${size}
+    qemu-img create -q -f ${fmt} ${image} ${size}
     modprobe nbd max_part=16 || return 1
     for i in /dev/nbd*; do
         qemu-nbd -f ${fmt} -c $i ${image} && { NBD_DEV=$i; break; }
@@ -40,7 +42,7 @@ prepare_disk_img() {
     echo "Format the partitions."
     # mkfs.vfat -n ${BOOT_LABEL} ${PART_BOOT}
     # mkswap -L EMMCSWAP "${PART_SWAP}"
-    mkfs -t ext4 -m 0 -L "${LABEL}" ${NBD_DEV}p1
+    mkfs -q -t ext4 -m 0 -L "${LABEL}" ${NBD_DEV}p1
 }
 
 usage() {
@@ -57,7 +59,7 @@ EOF
 }
 
 main() {
-    local rootfs=nbdroot image=nbdroot.qcow2 size=1G
+    local image=nbdroot.qcow2 size=1G
     local PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox,nbd-client"
     local opt_short="r:p:s:f:"
     local opt_long="rootfs:,pkg:,size:,image:,"
@@ -67,7 +69,7 @@ main() {
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -r | --rootfs)  shift; rootfs=${1}; shift;;
+            -r | --rootfs)  shift; ROOT_DIR=${1}; shift;;
             -p | --pkg)     shift; PKG+=",${1}"; shift;;
             -s | --size)    shift; size=${1}; shift;;
             -f | --image)   shift; image=${1}; shift;;
@@ -82,9 +84,9 @@ main() {
         esac
     done
     local fmt=qcow2
-    mkdir -p "${DIRNAME}/cache" "${rootfs}"
+    mkdir -p "${DIRNAME}/cache" "${ROOT_DIR}"
     prepare_disk_img ${image} ${size} ${fmt} && {
-        mount ${NBD_DEV}p1 ${rootfs}
+        mount ${NBD_DEV}p1 ${ROOT_DIR}
     } || echo "ERROR: prepare_disk_img return = $?"
 
     DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
@@ -93,8 +95,10 @@ main() {
         HOSTNAME="nbd" \
         NAME_SERVER=114.114.114.114 \
         PASSWORD=password \
-        debian_build "${rootfs}" "${DIRNAME}/cache" "${PKG}"
-    LC_ALL=C LANGUAGE=C LANG=C chroot ${rootfs} /bin/bash <<EOSHELL
+        debian_build "${ROOT_DIR}" "${DIRNAME}/cache" "${PKG}"
+    LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
+# mount -t devtmpfs -o mode=0755,nosuid devtmpfs  /dev
+# mount -t devpts -o gid=5,mode=620 devpts /dev/pts
 /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
 /bin/mknod -m 666 /dev/null c 1 3 || true
 
@@ -110,30 +114,32 @@ chage -d 0 root || true
 exit
 EOSHELL
 
-    cat > ${rootfs}/etc/fstab << EOF
+    cat > ${ROOT_DIR}/etc/fstab << EOF
 LABEL=${LABEL}    /    ext4    defaults,errors=remount-ro,noatime    0    1
 tmpfs /run      tmpfs   rw,nosuid,noexec,relatime,mode=755  0  0
 tmpfs /tmp      tmpfs   rw,nosuid,relatime,mode=777  0  0
 EOF
     # enable ttyAML0 login
-    sed -i "/^ttyAML0/d" ${rootfs}/etc/securetty 2>/dev/null || true
-    echo "ttyAML0" >> ${rootfs}/etc/securetty
+    sed -i "/^ttyAML0/d" ${ROOT_DIR}/etc/securetty 2>/dev/null || true
+    echo "ttyAML0" >> ${ROOT_DIR}/etc/securetty
 
-    cat << EOF > ${rootfs}/etc/network/interfaces
+    cat << EOF > ${ROOT_DIR}/etc/network/interfaces
 source /etc/network/interfaces.d/*
 # The loopback network interface
 auto lo
 iface lo inet loopback
 EOF
 
-    cat << EOF > ${rootfs}/etc/network/interfaces.d/br-ext
+    cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/eth0
 auto eth0
 allow-hotplug eth0
 iface eth0 inet static
     address 192.168.168.4/24
 EOF
-    /usr/bin/env -i \
+    chroot ${ROOT_DIR} \
+        /usr/bin/env -i \
         SHELL=/bin/bash \
+        TERM=${TERM:-} \
         HISTFILE= \
         PS1="${NBD_DEV} #" \
         /bin/bash --noprofile --norc -o vi || true
