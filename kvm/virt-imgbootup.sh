@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bd021cc[2022-06-30T16:44:27+08:00]:virt-imgbootup.sh")
+VERSION+=("1fdcf44[2022-07-05T17:16:07+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -148,6 +148,7 @@ main() {
         # openssl rand -hex 3 | sed 's/\(..\)/\1:/g; s/.$//'
         # date | md5sum | sed -r 's/(..){3}/\1:/g;s/\s+-$//'
         #echo $FQDN|md5sum|sed 's/^\(..\)\(..\)\(..\)\(..\)\(..\).*$/02:\1:\2:\3:\4:\5/'
+        # printf -v _mac "52:54:%02x:%02x:%02x:%02x" $(( $RANDOM & 0xff)) $(( $RANDOM & 0xff )) $(( $RANDOM & 0xff)) $(( $RANDOM & 0xff ))
         options+=("-device" "${NET:-virtio-net-pci},netdev=net${_id},mac=${_mac}")
         let _id+=1
     done
