@@ -38,3 +38,19 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOTFS} /bin/bash <<EOSHELL
     }
 
 EOSHELL
+cat<<EOF
+rm .config
+make tinyconfig
+make kvm_guest.config
+make kvmconfig
+./scripts/config \
+        -e EARLY_PRINTK \
+        -e 64BIT \
+        -e BPF -d EMBEDDED -d EXPERT \
+        -e INOTIFY_USER
+
+./scripts/config \
+        -e VIRTIO -e VIRTIO_PCI -e VIRTIO_MMIO \
+        -e SMP
+....
+EOF
