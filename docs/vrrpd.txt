@@ -1,0 +1,137 @@
+Server 1:
+vrrpd -i eth0 10.16.1.200 -v 51 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/DOWN.sh
+vrrpd -i eth1 10.17.1.200 -v 52 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/DOWN.sh
+Server 2:
+vrrpd -i eth0 10.16.1.200 -v 51 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/DOWN.sh
+vrrpd -i eth1 10.17.1.200 -v 52 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/DOWN.sh
+In MASTER.sh
+ifconfig eth0:0 192.168.14.2 netmask 255.255.255.0 up
+In DOWN.sh
+ifconfig eth0:0 down
+
+cat <<"EOF"
+[Unit]
+Description=vrrpd
+After=network.target auditd.service
+
+[Service]
+Type=forking
+Restart=no
+TimeoutSec=5min
+IgnoreSIGPIPE=no
+KillMode=process
+GuessMainPID=no
+RemainAfterExit=yes
+SysVStartPriority=20
+ExecStart=/etc/vrrpd/startup.sh start
+ExecStop=/etc/vrrpd/startup.sh stop
+
+[Install]
+WantedBy=multi-user.target
+Alias=vrrp.service
+EOF
+
+
+cat<<"EOF" > startup.sh
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+# Please take a look -> vrrpd client:  atropos --help
+# THIS IS A SAMPLE FILE WITH TWO PROCESS (TWO NICS)
+
+horodate=$(date +%d/%m/%Y_%R)
+# Parameters
+# script - vrrp state change -
+
+if [ "$1" = "" ] 
+then
+	exit 1
+fi
+
+if [ "$1" = 'stop' ] 
+then
+	pidof vrrpd > /dev/null
+        if [ "$?" = 1 ]
+	then
+               	echo "Pid vrrpd already stopped"
+		exit 0
+	fi
+	while pidof vrrpd 2>/dev/null
+        do
+		echo "Pid running"
+		killall vrrpd
+		sleep 5
+	done	
+	exit 0
+fi
+if [ "$1" = 'start' ] 
+then
+#--------------------------------
+	# MOUNT vrrpd 
+	echo "MOUNT vrrpd "
+	# BY DEFAULT VIRTUAL MAC IS DISABLED (virtual mac = -n) 
+	# ACTIVATE AT YOUR OWN RICK
+	# SPANNING TREE MUST BE DISABLED
+	# IF MAC REFRESH IS TOO SLOW A PING FROM VIP TO THE GATEWAY CAN BE ALSO AN ALTERNATIVE (in master & backup script)
+	# Vmac is technically efficient, but it's incompatible with some hardwares and virtual machines
+
+	/etc/vrrpd/vrrp_on.sh
+
+	# check if there is the same number of process than $ps
+	ps=`grep ps= /etc/vrrp.conf |cut -d "=" -f2` 
+	checkproc=`pgrep vrrpd | wc -w`
+	if [ "$checkproc" -ne "$ps" ]
+	then
+		echo "vrrp.conf: ps value must be equal at the number of process !"
+		exit 1
+	fi
+	sleep 5
+fi
+EOF
+
+cat <<"EOF" >vrrp_on.sh
+#!/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+#
+# Date:11 Sept 2006 yh ps
+# Nom:vrrp_on.sh
+# 
+# Sample
+# 
+#---------------------------------
+# Please take a look -> vrrpd client:  atropos --help
+# THIS IS A SAMPLE FILE WITH TWO PROCESS (TWO NICS)
+# ADAPT TO YOUR OWN CONFIGURATION !
+
+horodate=$(date +%d/%m/%Y_%R)
+
+# Parameters
+# script - vrrp state change -
+up=/etc/vrrpd/Master.sh
+down=/etc/vrrpd/Backup.sh
+
+# number of process vrrp MUST be equal the process number 
+ps=2
+
+#Vrrp,Vid,eg 2 vrrpd
+int0=eth0
+id0=11
+vrrip0=192.168.11.1
+
+int1=eth1
+id1=14
+vrrip1=192.168.14.1
+
+echo "MOUNT vrrpd "
+# BY DEFAULT VIRTUAL MAC IS DISABLED (virtual mac = -n) 
+# ACTIVATE AT YOUR OWN RICK
+# SPANNING TREE MUST BE DISABLED
+# IF MAC REFRESH IS TOO SLOW A PING FROM VIP TO THE GATEWAY CAN BE ALSO AN ALTERNATIVE (in master & backup script)
+# Vmac is technically efficient, but it's incompatible with some hardwares and virtual machines
+
+# Directly related with $ps !
+
+# Add or remove here your process the up script is only needed at first
+
+vrrpd -i $int0 -v $id0 -M $ps $vrrip0 -d 2 -U $up -D $down
+vrrpd -i $int1 -v $id1 -M $ps $vrrip1 -d 2 -D $down
+EOF
