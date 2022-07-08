@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0edc555[2022-01-18T09:33:57+08:00]:ssl.sh")
+VERSION+=("2b428ea[2022-01-20T13:58:03+08:00]:ssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -34,7 +34,7 @@ init_ca() {
     [ -d "${caroot}" ] && return 1
     try mkdir -p ${caroot}
     info_msg "generate ca\n"
-    cat << EOF | try tee ${caroot}/ca.info
+    write_file << EOF | try tee ${caroot}/ca.info
 cn = self sign root ca
 ca
 cert_signing_key
@@ -47,7 +47,7 @@ EOF
     try certtool -i --infile=${caroot}/ca.pem || true
     #openssl x509 -text -noout -in ${caroot}/ca.pem || true
     info_msg "gen ca server cert\n"
-    cat << EOF | try tee ${caroot}/${dn}.info
+    write_file << EOF | try tee ${caroot}/${dn}.info
 organization = silf sign server
 cn = ${dn}
 signing_key
@@ -68,7 +68,7 @@ gen_clent_cert() {
     local caroot=${1}
     local cid=${2}
     [ -e "${caroot}/client_${cid}.info" ] && return 1
-    cat << EOF | try tee ${caroot}/client_${cid}.info
+    write_file << EOF | try tee ${caroot}/client_${cid}.info
 organization = ${cid} 
 cn = ${cid}
 signing_key
