@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fc646e4[2022-07-07T14:04:49+08:00]:mk_nginx.sh")
+VERSION+=("f2a3a2c[2022-07-08T12:12:37+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -26,6 +26,8 @@ set -o nounset
 sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${0}
 stage_level=${stage_level:?"${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
 ##OPTION_START##
+## openssl 3.0 disabled TLSv1.0/1.1(even ssl_protocols TLSv1 TLSv1.1 TLSv1.2;)
+## openssl 1.xx TLS1.0/1.1 OK
 NGX_USER=${NGX_USER:-nginx}
 NGX_GROUP=${NGX_GROUP:-nginx}
 NGINX_RELEASE=${NGINX_RELEASE:-release-1.20.2}
