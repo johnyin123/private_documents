@@ -7,8 +7,8 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("br-hostapd.sh - 9fbaad5 - 2021-07-03T09:36:48+08:00")
-[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+VERSION+=("58cb44d[2021-08-18T17:14:28+08:00]:br-hostapd.sh")
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 
 gen_hostapd() {
@@ -16,7 +16,7 @@ gen_hostapd() {
     local wifi_ssid=${2}
     local cfg_file="${3}"
     local bridge="${4:-}"
-    cat <<EOF | tee "${cfg_file}"
+    write_file <<EOF | tee "${cfg_file}"
 interface=${wifi_interface}
 ${bridge:+bridge=${bridge}}
 logger_syslog=-1
