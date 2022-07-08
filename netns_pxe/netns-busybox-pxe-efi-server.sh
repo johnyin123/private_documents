@@ -7,8 +7,8 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9134c42[2022-06-30T09:08:20+08:00]:netns-busybox-pxe-efi-server.sh")
-[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+VERSION+=("9be313e[2022-06-30T16:11:20+08:00]:netns-busybox-pxe-efi-server.sh")
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
 NBD_SRV=${NBD_SRV:-192.168.168.1:9999/tpl}
@@ -49,7 +49,7 @@ mk_busybox_fs() {
     file_exists ${rootfs}/dev/random  || try mknod -m 0644 ${rootfs}/dev/random c 1 8
     file_exists ${rootfs}/dev/urandom || try mknod -m 0644 ${rootfs}/dev/urandom c 1 9
     file_exists ${rootfs}/dev/null    || try mknod -m 0666 ${rootfs}/dev/null c 1 3
-    try cat \> ${rootfs}/etc/profile << EOF
+    write_file ${rootfs}/etc/profile << EOF
 PATH=/bin:/sbin:/usr/bin:/usr/sbin
 export PATH
 export PS1="\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]**bios/uefi**:\\[\\033[33;1m\\]\\w\\[\\033[m\\]\\$"
@@ -65,7 +65,7 @@ echo "add ${PXE_DIR}/cgi-bin/ipaddr.txt for ipaddr: 192.168.168.101/24 line by l
 echo "cmd : bios/uefi change mode"
 /bin/sh /start.sh
 EOF
-    try cat \> ${rootfs}/etc/passwd << EOF
+    write_file ${rootfs}/etc/passwd << EOF
 root:x:0:0:root:/root:/bin/sh
 EOF
     # for d in /var/lib/misc /var/run /etc /lib /dev /root /proc /usr/bin /usr/sbin /sys /tmp; do
@@ -100,13 +100,13 @@ gen_busybox_inetd() {
         ${rootfs}/bin/busybox --list | grep $cmd > /dev/null && debug_msg "check $cmd ok\n" || exit_msg "check $cmd error"
     done
 
-    try cat \> ${rootfs}/etc/inetd.conf << INETEOF
+    write_file ${rootfs}/etc/inetd.conf << INETEOF
 69 dgram udp nowait root tftpd tftpd -l ${pxe_dir}
 80 stream tcp nowait root httpd httpd -i -h ${pxe_dir}
 21 stream tcp nowait root ftpd ftpd ${pxe_dir}
 INETEOF
 
-    try cat \> ${rootfs}/etc/udhcpd.conf << DHCPEOF
+    write_file ${rootfs}/etc/udhcpd.conf << DHCPEOF
 start           ${ns_ipaddr%.*}.${DHCP_START}
 end             ${ns_ipaddr%.*}.${DHCP_END}
 interface       eth0
@@ -120,7 +120,7 @@ option  domain  local
 option  lease   864000
 DHCPEOF
     try mkdir -p ${rootfs}/${pxe_dir}/cgi-bin/
-    try cat <<'CGIEOF' \> ${rootfs}/${pxe_dir}/cgi-bin/reg.cgi
+    write_file ${rootfs}/${pxe_dir}/cgi-bin/reg.cgi <<'CGIEOF'
 #!/bin/sh
 # CGI output must start with at least empty line (or headers)
 printf '\r\n'
@@ -156,7 +156,7 @@ start_ns_inetd() {
     debug_msg "enter [%s]\n" "${FUNCNAME[0]} $*"
     local ns_name="$1"
     local rootfs="$2"
-    cat<<EOF>"${rootfs}/start.sh"
+    write_file "${rootfs}/start.sh" <<EOF
 mount -t proc none /proc
 rm -f /dhcpd.log
 nohup udhcpd -f > /dhcpd.log 2>&1 &
@@ -217,7 +217,7 @@ gen_pxelinux_cfg() {
     local ns_ipaddr="$2"
     local ks_uri="$3"
     #http://mirrors.163.com/debian/dists/Debian10.3/main/installer-amd64/current/images/netboot/netboot.tar.gz
-    try cat \> ${pxelinux_cfg} <<EOF
+    write_file ${pxelinux_cfg} <<EOF
 default menu.c32
 prompt 0
 timeout 300
@@ -250,7 +250,7 @@ gen_grub_cfg() {
     local menulst="$1"
     local ns_ipaddr="$2"
     local ks_uri="$3"
-    try cat \> ${menulst} <<EOF
+    write_file ${menulst} <<EOF
 set timeout=30
 set default="0"
 menuentry 'Install Centos [UEFI] PXE+Kickstart' {
@@ -287,7 +287,7 @@ boot disk: ${boot_driver}
       lvm: ${lvm}
 EOF
 
-    try cat \> ${kscfg} <<KSEOF
+    write_file ${kscfg} <<KSEOF
 # graphical
 text
 firstboot --enable
@@ -342,7 +342,7 @@ curl http://${ns_ipaddr}/${ks_uri}.init.sh 2>/dev/null | bash
 %end
 KSEOF
 
-    try cat \> ${kscfg}.init.sh <<'INITEOF'
+    write_file ${kscfg}.init.sh <<'INITEOF'
 #!/bin/bash
 
 UUID="$(dmidecode -s system-uuid | sed 's/[ &?]/-/g')"
@@ -350,11 +350,11 @@ SN="$(dmidecode -s system-serial-number | sed 's/[ &?]/-/g')"
 PROD="$(dmidecode -s system-product-name | sed 's/[ &?]/-/g')"
 
 INITEOF
-    try cat \>\> ${kscfg}.init.sh <<INITEOF
+    write_file ${kscfg}.init.sh 1 <<INITEOF
 curl -o /tmp/inst_info "http://${ns_ipaddr}/cgi-bin/reg.cgi?UUID=\${UUID}&SN=\${SN}&PROD=\${PROD}"
 source /tmp/inst_info
 INITEOF
-    try cat \>\> ${kscfg}.init.sh <<'INITEOF'
+    write_file ${kscfg}.init.sh 1 <<'INITEOF'
 cat <<EOF > /etc/profile.d/os-security.sh
 export readonly TMOUT=900
 export readonly HISTFILE

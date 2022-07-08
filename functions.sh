@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("875a428[2022-05-26T10:08:11+08:00]:functions.sh")
+VERSION+=("b50f66a[2022-07-08T09:15:18+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -48,13 +48,14 @@ func_wrapper() {
     local args=$@
     ${func} ${args} || { [ $? = 127 ] && warn_msg "${func} not implemented\n"; }
 }
-# write_file myfile <<'EOF'
+# write_file myfile <<EOF / write_file myfile 1 <<'EOF'
 # msg....
 # EOF
 write_file() {
     local file=${1:-}
-    info_msg "Writing ${file:-/dev/stdout}\n"
-    cat >${file}
+    local append=${2:-}
+    info_msg "Writing ${append:+append }${file:-/dev/stdout}\n"
+    try cat ${file:+\>${append:+\>} ${file}}
 }
 
 # sed_e=(-E
