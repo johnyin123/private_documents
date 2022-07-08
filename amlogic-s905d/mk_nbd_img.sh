@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ec784fb[2022-07-05T12:38:01+08:00]:mk_nbd_img.sh")
+VERSION+=("88e3c6c[2022-07-05T13:33:14+08:00]:mk_nbd_img.sh")
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -33,6 +33,12 @@ prepare_disk_img() {
     [ "${new_buildroot}" == 1 ] || [ -e "${image}" ] || return 3
     [ "${new_buildroot}" == 1 ] && qemu-img create -q -f ${fmt} ${image} ${size}
     [ -b /dev/nbd0 ] || modprobe nbd max_part=16 || return 1
+    # for dev in /sys/class/block/nbd*; do
+    #     local size="$(cat "$dev"/size)"
+    #     if (( size == 0 )); then
+    #         printf "%s" "/dev/nbd${dev: -1}"
+    #     fi
+    # done
     for i in /dev/nbd*; do
         qemu-nbd -f ${fmt} -c $i ${image} && { NBD_DEV=$i; break; }
         qemu-nbd -d $i >/dev/null 2>&1
