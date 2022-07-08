@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b122591[2022-06-22T09:36:05+08:00]:mk_nginx.sh")
+VERSION+=("fc646e4[2022-07-07T14:04:49+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -501,7 +501,7 @@ http {
     default_type application/octet-stream;
 
     # # SSL
-    ssl_protocols TLSv1.2; # Dropping SSLv3, ref: POODLE, drop TLSv1 TLSv1.1
+    ssl_protocols TLSv1.2 TLSv1.3; # Dropping SSLv3, ref: POODLE, drop TLSv1 TLSv1.1
     ssl_prefer_server_ciphers on;
 
     # # vhost include
