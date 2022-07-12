@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-07-06T08:52:01+08:00]:mount_img.sh")
+VERSION+=("dc8ea81[2022-07-06T08:52:01+08:00]:mount_img.sh")
 ################################################################################
 NBD_DEV=""
 
@@ -23,17 +23,15 @@ connect_nbd() {
     local fmt=${2:-}
     local i=
     [ -b /dev/nbd0 ] || modprobe nbd max_part=16 || return 1
-    for i in {0..15} ; do
-        [ -b /dev/nbd${i} ] && {
-            qemu-nbd ${fmt:+-f ${fmt} }-c /dev/nbd${i} ${image} && {
-                NBD_DEV=/dev/nbd${i}
-                kpartx -avs ${NBD_DEV}
-                # blkid -o udev ${NBD_DEV}
-                echo "Connected ${image} to ${NBD_DEV}"
-                return 0
-            }
-            qemu-nbd -d /dev/nbd${i} >/dev/null 2>&1
+    for i in /dev/nbd?; do
+        qemu-nbd ${fmt:+-f ${fmt} }-c ${i} ${image} && {
+            NBD_DEV=${i}
+            kpartx -avs ${NBD_DEV}
+            # blkid -o udev ${NBD_DEV}
+            echo "Connected ${image} to ${NBD_DEV}"
+            return 0
         }
+        qemu-nbd -d ${i} >/dev/null 2>&1
     done
     return 2
 }
