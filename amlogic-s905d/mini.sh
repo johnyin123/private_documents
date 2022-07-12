@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7bd5693[2022-05-25T07:54:55+08:00]:mini.sh")
+VERSION+=("ef559c8[2022-06-08T08:03:24+08:00]:mini.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -28,4 +28,4 @@ grep "^macaddr=" ${DIRNAME}/buildroot/usr/lib/firmware/brcm/brcmfmac43455-sdio.t
 sed -i "s/^macaddr=.*/macaddr=${macaddr}/g" ${DIRNAME}/buildroot/usr/lib/firmware/brcm/brcmfmac43455-sdio.phicomm,n1.txt || true
 grep "^macaddr=" ${DIRNAME}/buildroot/usr/lib/firmware/brcm/brcmfmac43455-sdio.phicomm,n1.txt || true
 echo "rsync -avzP --numeric-ids -e 'ssh -p60022' --exclude=boot --delete ${DIRNAME}/buildroot/* root@${IP:-10.32.166.32}:/overlay/lower/"
-echo "rsync -avzP --numeric-ids -e 'ssh -p60022' --delete ${DIRNAME}/buildroot/boot/* root@${IP:-10.32.166.32}:/boot/"
+echo "rsync -avzP --numeric-ids -e 'ssh -p60022' --exclude=/usr/bin/qemu-aarch64-static --delete ${DIRNAME}/buildroot/boot/* root@${IP:-10.32.166.32}:/boot/"
