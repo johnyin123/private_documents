@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("9f363c0[2022-07-05T10:12:55+08:00]:os_debian_init.sh")
+VERSION+=("92ac229[2022-07-12T11:27:54+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -381,7 +381,7 @@ func SetTitle()
         call setline(1, "#!/usr/bin/env bash")
         call setline(2, "readonly DIRNAME=\"$(readlink -f \"$(dirname \"$0\")\")\"")
         call setline(3, "readonly SCRIPTNAME=${0##*/}")
-        call setline(4, "if [[ \"$@\" == *\"--debug\"* ]] || [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then")
+        call setline(4, "if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then")
         call setline(5, "    exec 5> \"${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log\"")
         call setline(6, "    BASH_XTRACEFD=\"5\"")
         call setline(7, "    export PS4='[\\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'")
