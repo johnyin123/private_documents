@@ -7,31 +7,32 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dc8ea81[2022-07-06T08:52:01+08:00]:mount_img.sh")
+VERSION+=("92ac229[2022-07-12T11:27:54+08:00]:mount_img.sh")
 ################################################################################
-NBD_DEV=""
 
 disconnect_nbd() {
-    [ -z "${NBD_DEV}" ] || {
-        kpartx -dvs ${NBD_DEV} 
-        qemu-nbd -d ${NBD_DEV} 2>/dev/null || true
-    }
+    local dev=${1}
+    kpartx -dvs ${dev} 
+    qemu-nbd -d ${dev} 2>/dev/null || true
 }
 
 connect_nbd() {
     local image=${1}
     local fmt=${2:-}
-    local i=
+    local dev=
     [ -b /dev/nbd0 ] || modprobe nbd max_part=16 || return 1
-    for i in /dev/nbd?; do
-        qemu-nbd ${fmt:+-f ${fmt} }-c ${i} ${image} && {
-            NBD_DEV=${i}
-            kpartx -avs ${NBD_DEV}
-            # blkid -o udev ${NBD_DEV}
-            echo "Connected ${image} to ${NBD_DEV}"
-            return 0
+    for i in {0..15} ; do
+        [ -b /dev/nbd${i} ] && {
+            [ $(cat /sys/block/nbd${i}/size) -gt 0 ] && continue
+            qemu-nbd ${fmt:+-f ${fmt} }-c /dev/nbd${i} ${image} && {
+                dev=/dev/nbd${i}
+                kpartx -avs ${dev} 2>&1
+                # blkid -o udev ${dev}
+                echo "Connected ${image} to ${dev}"
+                return 0
+            }
+            qemu-nbd -d /dev/nbd${i} >/dev/null 2>&1
         }
-        qemu-nbd -d ${i} >/dev/null 2>&1
     done
     return 2
 }
@@ -40,29 +41,34 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        -f|--image * <str>    nbd image name, default nbdroot.qcow2
-        --fmt        <str>    nbd image format, default qcow2
+        -a         * <str>    attach nbd image.
+        -f|--fmt     <str>    nbd image format, default auto guess. 
+        -d        *  <str>    dettach nbd device.
         -q|--quiet
         -l|--log <int> log level
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+      ./${SCRIPTNAME} -a disk.img -f raw
+      ./${SCRIPTNAME} -a disk.qcow2 
+      ./${SCRIPTNAME} -d /dev/nbd0
 EOF
     exit 1
 }
 
 main() {
-    local image= fmt=
-    local opt_short="f:"
-    local opt_long="image:,fmt:,"
+    local img= fmt= dev=
+    local opt_short="a:f:d:"
+    local opt_long="fmt:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -f | --image)   shift; image=${1}; shift;;
-            --fmt)          shift; fmt=${1}; shift;;
+            -a)             shift; img=${1}; shift;;
+            -d)             shift; dev=${1}; shift;;
+            -f | --fmt)     shift; fmt=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -73,16 +79,25 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    [ -z "${image}" ] && usage "image ?"
-    connect_nbd "${image}" "${fmt}"
-    # mount /dev/mapper/nbd0p3 ~/drive_c/
-    /usr/bin/env -i \
-        SHELL=/bin/bash \
-        TERM=${TERM:-} \
-        HISTFILE= \
-        PS1="${NBD_DEV}#" \
-        /bin/bash --noprofile --norc -o vi || true
-    disconnect_nbd
+    [ -z "${img}" ] && [ -z "${dev}" ] && usage "img/dev ?"
+    [ -z "${img}" ] || {
+        connect_nbd "${img}" "${fmt}" || echo "$?, ERROR Connect nbd device"
+        return 0
+    }
+    # # mount /dev/mapper/nbd0p3 ~/drive_c/
+    # /usr/bin/env -i \
+    #     SHELL=/bin/bash \
+    #     TERM=${TERM:-} \
+    #     HISTFILE= \
+    #     PS1="${dev}#" \
+    #     /bin/bash --noprofile --norc -o vi || true
+    [ -z "${dev}" ] || {
+        [ -b ${dev} ] && ps -ef | grep qemu-nbd | grep "${dev}" &>/dev/null && {
+            disconnect_nbd "${dev}"
+            return 0
+        }
+        echo "${dev} no found or qemu-nbd process no found!"
+    }
     return 0
 }
 main "$@"
