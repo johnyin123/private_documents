@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("92ac229[2022-07-12T11:27:54+08:00]:mount_img.sh")
+VERSION+=("initver[2022-07-12T14:02:13+08:00]:nbd_attach.sh")
 ################################################################################
 
 disconnect_nbd() {
