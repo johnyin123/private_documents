@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("88e3c6c[2022-07-05T13:33:14+08:00]:mk_nbd_img.sh")
+VERSION+=("90f8c68[2022-07-08T11:20:24+08:00]:mk_nbd_img.sh")
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -19,6 +19,7 @@ trap cleanup EXIT TERM INT
 cleanup() {
     [ -z "${NBD_DEV}" ] || {
         umount -R ${ROOT_DIR} 2>/dev/null || true
+        kpartx -dvs ${NBD_DEV} || true
         qemu-nbd -d ${NBD_DEV} 2>/dev/null || true
     }
     rm -fr ${ROOT_DIR} || true
@@ -33,15 +34,17 @@ prepare_disk_img() {
     [ "${new_buildroot}" == 1 ] || [ -e "${image}" ] || return 3
     [ "${new_buildroot}" == 1 ] && qemu-img create -q -f ${fmt} ${image} ${size}
     [ -b /dev/nbd0 ] || modprobe nbd max_part=16 || return 1
-    # for dev in /sys/class/block/nbd*; do
-    #     local size="$(cat "$dev"/size)"
-    #     if (( size == 0 )); then
-    #         printf "%s" "/dev/nbd${dev: -1}"
-    #     fi
-    # done
-    for i in /dev/nbd*; do
-        qemu-nbd -f ${fmt} -c $i ${image} && { NBD_DEV=$i; break; }
-        qemu-nbd -d $i >/dev/null 2>&1
+    for i in {0..15} ; do
+        [ -b /dev/nbd${i} ] && {
+            [ $(cat /sys/block/nbd${i}/size) -gt 0 ] && continue
+            qemu-nbd ${fmt:+-f ${fmt} }-c /dev/nbd${i} ${image} && {
+                NBD_DEV=/dev/nbd${i}
+                kpartx -avs ${NBD_DEV} 2>&1
+                # blkid -o udev ${dev}
+                break
+            }
+            qemu-nbd -d /dev/nbd${i} >/dev/null 2>&1
+        }
     done
     [ "${NBD_DEV}" == "" ] && return 2
     echo "Connected ${image} to ${NBD_DEV}"
