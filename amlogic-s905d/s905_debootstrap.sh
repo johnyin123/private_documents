@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ac6a3ea[2022-07-01T07:49:34+08:00]:s905_debootstrap.sh")
+VERSION+=("94758ec[2022-07-04T15:10:21+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 menu_select() {
@@ -218,12 +218,15 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /bin/bash <<EOSHELL
     debian_sysctl_init
     debian_vim_init
     debain_overlay_init
+# # disable saradc module
+cat << EOF > /etc/modprobe.d/meson_saradc.conf
+blacklist meson_saradc
+EOF
 
 # cat << EOF > /etc/modprobe.d/brcmfmac.conf
 # options brcmfmac p2pon=1
 # EOF
 # if start p2p device so can not start ap & sta same time
-
 #漫游
 # cat << EOF > /etc/modprobe.d/brcmfmac.conf
 # options brcmfmac roamoff=1
