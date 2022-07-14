@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("92ac229[2022-07-12T11:27:54+08:00]:os_debian_init.sh")
+VERSION+=("cd5a19a[2022-07-12T12:34:09+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -155,14 +155,16 @@ export -f debian_sshd_regenkey
 debian_sshd_init() {
     apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install openssh-server
     # dpkg-reconfigure -f noninteractive openssh-server
-    cp -n /etc/ssh/sshd_config /etc/ssh/sshd_config.orig
-    sed -i 's/#UseDNS.*/UseDNS no/g' /etc/ssh/sshd_config
-    sed -i 's/#MaxAuthTries.*/MaxAuthTries 3/g' /etc/ssh/sshd_config
-    # sed -i 's/#Port.*/Port 60022/g' /etc/ssh/sshd_config
-    sed -E -i "s/(Port|#\sPort|#Port)\s.{1,5}$/Port 60022/g" /etc/ssh/sshd_config
-    sed -i 's/GSSAPIAuthentication.*/GSSAPIAuthentication no/g' /etc/ssh/sshd_config
-    (grep -v -E "^Ciphers|^MACs|^PermitRootLogin" /etc/ssh/sshd_config ; echo "Ciphers aes256-ctr,aes192-ctr,aes128-ctr"; echo "MACs    hmac-sha1"; echo "PermitRootLogin without-password";) | tee /etc/ssh/sshd_config.bak
-    mv /etc/ssh/sshd_config.bak /etc/ssh/sshd_config
+    sed --quiet -i.orig -E \
+        -e '/^\s*(UseDNS|MaxAuthTries|GSSAPIAuthentication|Port|Ciphers|MACs|PermitRootLogin).*/!p' \
+        -e '$aUseDNS no' \
+        -e '$aMaxAuthTries 3' \
+        -e '$aGSSAPIAuthentication no' \
+        -e '$aPort 60022' \
+        -e '$aCiphers aes256-ctr,aes192-ctr,aes128-ctr' \
+        -e '$aMACs hmac-sha1' \
+        -e '$aPermitRootLogin without-password' \
+        /etc/ssh/sshd_config
     # root login only prikey "PermitRootLogin without-password"
     cat <<"EOF" > /etc/ssh/sshrc
 logger -i -t ssh "$(date '+%Y%m%d%H%M%S') $USER $SSH_CONNECTION"
