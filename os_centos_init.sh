@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("ad843fa[2022-03-22T09:03:39+08:00]:os_centos_init.sh")
+VERSION+=("4498654[2022-07-14T08:48:39+08:00]:os_centos_init.sh")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -239,7 +239,7 @@ centos_service_init() {
     local netsvc=network
     [[ -r /etc/os-release ]] && source /etc/os-release
     VERSION_ID=${VERSION_ID:-}
-    [ "${VERSION_ID#8*}" != "${VERSION_ID}" ] && {
+    [ "${VERSION_ID#[89]*}" != "${VERSION_ID}" ] && {
         sed -i "/NM_CONTROLLED=/d" /etc/sysconfig/network-scripts/ifcfg-eth0
         netsvc=NetworkManager.service
     }
