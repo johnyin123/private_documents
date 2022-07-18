@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("dc266c1[2021-11-23T10:56:37+08:00]:tgz_rootfs_inst.sh")
+VERSION+=("1016b58[2022-03-22T14:30:35+08:00]:tgz_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -30,7 +30,7 @@ EOF
     exit 1
 }
 main() {
-    local root_tgz="" disk="" partition=1 xfsfix="" uefi=""
+    local root_tgz="" disk="" part=1 xfsfix="" uefi=""
     local opt_short+="t:d:p:xvh"
     local opt_long+="tgz:,disk:,part:,xfsfix,uefi:,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
