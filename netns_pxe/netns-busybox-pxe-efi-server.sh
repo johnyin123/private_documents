@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9be313e[2022-06-30T16:11:20+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("f13b471[2022-07-08T09:49:21+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
@@ -399,9 +399,9 @@ systemctl enable getty@tty1
 netsvc=network
 [[ -r /etc/os-release ]] && source /etc/os-release
 VERSION_ID=${VERSION_ID:-}
-[ "${VERSION_ID#8*}" != "${VERSION_ID}" ] && {
+[ "${VERSION_ID#[89]*}" != "${VERSION_ID}" ] && {
     sed -i "/NM_CONTROLLED=/d" /etc/sysconfig/network-scripts/ifcfg-eth0
-    netsvc=NetworkManager.service
+    netsvc="NetworkManager.service dbus-broker.service"
 }
 {
     chkconfig 2>/dev/null | egrep -v "crond|sshd|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}'
