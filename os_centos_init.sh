@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("553c393[2022-07-18T08:54:44+08:00]:os_centos_init.sh")
+VERSION+=("080354d[2022-07-18T09:40:27+08:00]:os_centos_init.sh")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -384,3 +384,10 @@ centos_versionlock () {
     #yum versionlock list httpd
 }
 export -f centos_versionlock
+
+centos_minimum_init() {
+    yum clean all
+    rm -rf /var/cache/yum
+    rm -rf /var/tmp/yum-*
+}
+export -f centos_minimum_init
