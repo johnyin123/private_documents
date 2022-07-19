@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-07-12T14:02:13+08:00]:nbd_attach.sh")
+VERSION+=("934ea1e[2022-07-12T14:02:13+08:00]:nbd_attach.sh")
 ################################################################################
 
 disconnect_nbd() {
@@ -31,6 +31,7 @@ connect_nbd() {
                 echo "Connected ${image} to ${dev}"
                 return 0
             }
+            blkid -o udev /dev/nbd${i} || true
             qemu-nbd -d /dev/nbd${i} >/dev/null 2>&1
         }
     done
