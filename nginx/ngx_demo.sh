@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3b0b0e3[2022-06-22T13:59:01+08:00]:ngx_demo.sh")
+VERSION+=("b251df6[2022-06-27T15:15:54+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1293,6 +1293,118 @@ server {
     location / {
         index index${variant}.html;
         root /var/www;
+    }
+}
+EOF
+cat <<'EOF' > rsa_crypto.js
+const fs = require('fs');
+if (typeof crypto == 'undefined') {
+    crypto = require('crypto').webcrypto;
+}
+
+function pem_to_der(pem, type) {
+    const pemJoined = pem.toString().split('\n').join('');
+    const pemHeader = `-----BEGIN ${type} KEY-----`;
+    const pemFooter = `-----END ${type} KEY-----`;
+    const pemContents = pemJoined.substring(pemHeader.length, pemJoined.length - pemFooter.length);
+    return Buffer.from(pemContents, 'base64');
+}
+
+const rsaKeys = {
+    public:  fs.readFileSync(`/etc/nginx/js/test.pub`),
+    private: fs.readFileSync(`/etc/nginx/js/test.key`)
+}
+
+async function encrypt(req) {
+    const needBase64 = req.uri.indexOf('base64=1') > -1;
+    const spki = await crypto.subtle.importKey("spki", pem_to_der(rsaKeys.public, "PUBLIC"), { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]);
+    const result = await crypto.subtle.encrypt({ name: "RSA-OAEP" }, spki, req.requestText);
+    if (needBase64) {
+        req.return(200, Buffer.from(result).toString("base64"));
+    } else {
+        req.headersOut["Content-Type"] = "application/octet-stream";
+        req.return(200, Buffer.from(result));
+    }
+}
+async function decrypt(req) {
+    const needBase64 = req.uri.indexOf('base64=1') > -1;
+    const pkcs8 = await crypto.subtle.importKey("pkcs8", pem_to_der(rsaKeys.private, "PRIVATE"), { name: "RSA-OAEP", hash: "SHA-256" }, false, ["decrypt"]);
+    const encrypted = needBase64 ? Buffer.from(req.requestText, 'base64') : Buffer.from(req.requestText);
+    const result = await crypto.subtle.decrypt({ name: "RSA-OAEP" }, pkcs8, encrypted);
+    req.return(200, Buffer.from(result));
+}
+function entrypoint(r) {
+    r.headersOut["Content-Type"] = "text/html;charset=UTF-8";
+    switch (r.method) {
+        case 'GET':
+            return r.return(200, [
+                '<form action="/" method="post">',
+                '<input name="data" value=""/>',
+                '<input type="radio" name="action" id="encrypt" value="encrypt" checked="checked"/><label for="encrypt">Encrypt</label>',
+                '<input type="radio" name="action" id="decrypt" value="decrypt"/><label for="decrypt">Decrypt</label>',
+                '<input type="radio" name="base64" id="base64-on" value="on" checked="checked"/><label for="base64-on">Base64 On</label>',
+                '<input type="radio" name="base64" id="base64-off" value="off" /><label for="base64-off">Base64 Off</label>',
+                '<button type="submit">Submit</button>',
+                '</form>'
+            ].join('<br>'));
+        case 'POST':
+            var body = r.requestBody;
+            if (r.headersIn['Content-Type'] != 'application/x-www-form-urlencoded' || !body.length) {
+                r.return(401, "Unsupported method\n");
+            }
+
+            var params = body.trim().split('&').reduce(function (prev, item) {
+                var tmp = item.split('=');
+                var key = decodeURIComponent(tmp[0]).trim();
+                var val = decodeURIComponent(tmp[1]).trim();
+                if (key === 'data' || key === 'action' || key === 'base64') {
+                    if (val) {
+                        prev[key] = val;
+                    }
+                }
+                return prev;
+            }, {});
+
+            if (!params.action || (params.action != 'encrypt' && params.action != 'decrypt')) {
+                return r.return(400, 'Invalid Params: action', params.action);
+            }
+
+            if (!params.base64 || (params.base64 != 'on' && params.base64 != 'off')) {
+                return r.return(400, 'Invalid Params: base64');
+            }
+
+            if (!params.data) {
+                return r.return(400, 'Invalid Params: data');
+            }
+
+            function response_cb(res) {
+                r.return(res.status, res.responseBody);
+            }
+
+            return r.subrequest(`/api/${params.action}${params.base64 === 'on' ? '?base64=1' : ''}`, { method: 'POST', body: params.data }, response_cb)
+        default:
+            return r.return(400, "Unsupported method\n");
+    }
+}
+export default { encrypt, decrypt, entrypoint };
+EOF
+cat <<'EOF' > rsa_crypto.http
+# openssl genrsa -out rsa.key 2048
+# openssl pkcs8 -in rsa.key -topk8 -nocrypt -out test.key
+# openssl rsa -in rsa.key -out test.pub -pubout -outform pem
+# chown nginx.nginx /etc/nginx/js/test.pub /etc/nginx/js/test.key
+js_import rsa_crypto from js/rsa_crypto.js;
+server {
+    listen 80;
+    server_name _;
+    location / {
+        js_content rsa_crypto.entrypoint;
+    }
+    location /api/encrypt {
+        js_content rsa_crypto.encrypt;
+    }
+    location /api/decrypt {
+        js_content rsa_crypto.decrypt;
     }
 }
 EOF
