@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("b50f66a[2022-07-08T09:15:18+08:00]:functions.sh")
+VERSION+=("f13b471[2022-07-08T09:49:21+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -58,6 +58,35 @@ write_file() {
     try cat ${file:+\>${append:+\>} ${file}}
 }
 
+# eval $(parse_yaml "info.yml")
+#
+# cat <<EOF | parse_yaml ""  myprefix_
+# local:
+#   info: 'local_srv'
+#   host:
+#     ipaddr: 127.0.0.1
+#     port: 2701
+#   access:
+#     username: 'user'
+#     password: 'pass'
+# EOF
+parse_yaml {
+    local input=${1:-/dev/stdin}
+    local prefix=${2:-}
+    local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+    sed -ne "s|^\($s\):|\1|" \
+        -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
+        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  "${input}" |
+        awk -F$fs '{
+            indent = length($1)/2;
+            vname[indent] = $2;
+            for (i in vname) {if (i > indent) {delete vname[i]}}
+                if (length($3) > 0) {
+                    vn=""; for (i=0; i<indent; i++) {vn=(vn)(vname[i])("_")}
+                    printf("%s%s%s=\"%s\"\n", "'${prefix}'",vn, $2, $3);
+                }
+        }'
+}
 # sed_e=(-E
 # -e "s|^[^\s#].*\s/\s.*$|UUID=${new_uuid} / xfs noatime,relatime 0 0|g"  #replace
 # )
