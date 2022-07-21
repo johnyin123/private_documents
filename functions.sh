@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("f13b471[2022-07-08T09:49:21+08:00]:functions.sh")
+VERSION+=("f9970bf[2022-07-21T09:17:06+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -70,14 +70,14 @@ write_file() {
 #     username: 'user'
 #     password: 'pass'
 # EOF
-parse_yaml {
+parse_yaml() {
     local input=${1:-/dev/stdin}
     local prefix=${2:-}
-    local s='[[:space:]]*' w='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
-    sed -ne "s|^\($s\):|\1|" \
-        -e "s|^\($s\)\($w\)$s:$s[\"']\(.*\)[\"']$s\$|\1$fs\2$fs\3|p" \
-        -e "s|^\($s\)\($w\)$s:$s\(.*\)$s\$|\1$fs\2$fs\3|p"  "${input}" |
-        awk -F$fs '{
+    local space='[[:space:]]*' word='[a-zA-Z0-9_]*' fs=$(echo @|tr @ '\034')
+    sed -ne "s|^\(${space}\):|\1|" \
+        -e "s|^\(${space}\)\(${word}\)${space}:${space}[\"']\(.*\)[\"']${space}\$|\1${fs}\2${fs}\3|p" \
+        -e "s|^\(${space}\)\(${word}\)${space}:${space}\(.*\)${space}\$|\1${fs}\2${fs}\3|p" "${input}" |
+        awk -F${fs} '{
             indent = length($1)/2;
             vname[indent] = $2;
             for (i in vname) {if (i > indent) {delete vname[i]}}
