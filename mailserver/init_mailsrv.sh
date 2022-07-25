@@ -9,6 +9,7 @@ init_postfix() {
     local cert=${4:-}
     local key=${5:-}
     local keys=myhostname|mydomain|myorigin|inet_interfaces|inet_protocols|mydestination|mynetworks|home_mailbox|smtpd_banner|disable_vrfy_command|smtpd_helo_required|message_size_limit|smtpd_sasl_type|smtpd_sasl_path|smtpd_sasl_auth_enable|smtpd_sasl_security_options|smtpd_sasl_local_domain|smtpd_recipient_restrictions
+    echo "postfix现在生效的配置" && postconf -n
     sed --quiet -i.orig -E \
         -e "/^\s*(${keys}).*/!p" \
         -e "\$amyhostname = ${name}" \
