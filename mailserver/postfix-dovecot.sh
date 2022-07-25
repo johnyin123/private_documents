@@ -3,13 +3,8 @@ echo $(hostname)
 apt-get update
 apt-get install -y postfix dovecot-common dovecot-pop3d dovecot-imapd mailutils
 
-echo '\033[1;37;40m'
-service dovecot status
-service postfix status
-echo '\033[0m'
-
 #chaing in main.cf
-echo '\n transport_maps = hash:/etc/postfix/transport \n' >> /etc/postfix/main.cf
+echo 'transport_maps = hash:/etc/postfix/transport' >> /etc/postfix/main.cf
 # sed -i 's/.*inet_interfaces.*/inet_interfaces = all /' /etc/postfix/main.cf
 # sed -i 's/.*inet_interfaces = localhost.*/#inet_interfaces = localhost /' /etc/postfix/main.cf
 
@@ -31,9 +26,7 @@ sed -i 's/.*mail_location.*/mail_location = mbox:~\/mail:INBOX=\/var\/mail\/%u /
 service dovecot restart
 service postfix restart
 
-echo '\033[1;37;40m'
 echo 'For any error see log file\npath = /var/log/mail.log'
-echo '\033[0m'
 
 while true
 do
@@ -42,13 +35,14 @@ do
 	if [ "$choice" = "y" ]
 		then
 			echo 'Enter New User name'
-			read name
+			read user
 			echo 'Enter password'
 			read password
-			echo "$password\n$password\n\n\n\n\ny"|sudo adduser $name
-			echo ' \n \033[1;37;40m'
-			echo $name
-			echo 'added successfully as a user \033[0m\n'
+            useradd --no-create-home -G mail --shell /usr/sbin/nologin ${user}
+            echo "${user}:${password}" | chpasswd
+            touch /var/mail/"$1"
+            chown "$1":mail /var/mail/"$1"
+			echo "'${user}:${password}' added successfully"
 		else
 			break
 	fi
