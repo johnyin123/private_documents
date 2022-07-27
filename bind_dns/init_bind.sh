@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e31b264[2022-07-27T16:16:09+08:00]:init_bind.sh")
+VERSION+=("3f81c8b[2022-07-27T16:24:19+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
@@ -149,8 +149,8 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
         # apt-get install bind9 bind9utils
-        # dig -x <ipaddr> 
-        # dig <domain>
+        # rndc reload, reload named config when add A/CNAME record
+        # dig -x <ipaddr>, dig <domain>, dig sample.org MX
     Set BIND to use only IPv4: sed -i -e 's/OPTIONS=.*/OPTIONS="-u bind -4"/g' /etc/default/named
 EOF
     exit 1
