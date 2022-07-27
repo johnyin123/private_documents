@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-07-27T16:16:09+08:00]:init_bind.sh")
+VERSION+=("e31b264[2022-07-27T16:16:09+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
@@ -91,6 +91,8 @@ EOF
         MX 3        mail.${domain}.
 ns      A           ${lan_addr}
 mail    A           ${lan_addr}
+demo    A           ${lan_addr}
+ftp     IN CNAME    demo.${domain}.
 EOF
     cat <<EOF > /etc/bind/${domain}/${l3}.${l2}.${l1}.lan
 \$TTL 86400
