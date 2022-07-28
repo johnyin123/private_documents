@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3f81c8b[2022-07-27T16:24:19+08:00]:init_bind.sh")
+VERSION+=("b11e3ba[2022-07-28T07:43:26+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
@@ -33,7 +33,8 @@ options {
     listen-on port 53 { any; };
     listen-on-v6 { none; };
     directory "/var/cache/bind";
-    allow-query { localhost; net_lan; };
+    allow-query { any; };
+    allow-query-cache {any;};
     recursion yes;
     forwarders {
         114.114.114.114;
