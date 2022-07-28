@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b11e3ba[2022-07-28T07:43:26+08:00]:init_bind.sh")
+VERSION+=("9965b58[2022-07-28T12:47:50+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
@@ -90,6 +90,7 @@ EOF
 )
         NS          ns.${domain}.
         MX 3        mail.${domain}.
+@       A           ${lan_addr}
 ns      A           ${lan_addr}
 mail    A           ${lan_addr}
 demo    A           ${lan_addr}
@@ -119,6 +120,7 @@ EOF
 )
         NS          ns.${domain}.
         MX 3        mail.${domain}.
+@       A           ${wan_addr}
 ns      A           ${wan_addr}
 mail    A           ${wan_addr}
 EOF
