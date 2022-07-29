@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9965b58[2022-07-28T12:47:50+08:00]:init_bind.sh")
+VERSION+=("c63c98d[2022-07-28T16:56:56+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
@@ -23,7 +23,7 @@ init_bind() {
     mkdir -p "/etc/bind/${domain}" && chown -R root:bind "/etc/bind/${domain}"
     # remove named.conf.default-zones, when useing view!
     sed --quiet -i.orig.${TIMESPAN} -E \
-        -e "/(named.conf.${domain}|named.conf.default-zones).*/!p" \
+        -e "/(named.conf.${domain}|named.conf.default-zones|logging.conf).*/!p" \
         -e "\$ainclude \"/etc/bind/${domain}/${domain}.conf\";" \
         /etc/bind/named.conf
 
@@ -139,6 +139,31 @@ ${w4}       IN  PTR     mail.${domain}.
 EOF
 }
 
+init_bind_log() {
+    touch /var/log/named.log || true
+    chown bind:bind /var/log/named.log || true
+    cat <<EOF > /etc/bind/logging.conf
+logging {
+    channel mylog {
+        file "/var/log/named.log" versions 3 size 20m;
+        severity dynamic;
+        print-time yes;
+        print-category yes;
+        print-severity yes;
+    };
+    category client         { mylog; };
+    category config         { mylog; };
+    category dnssec         { mylog; };
+    category lame-servers   { mylog; };
+    category network        { mylog; };
+    category queries        { mylog; };
+    category resolver       { mylog; };
+    category security       { mylog; };
+};
+EOF
+    echo 'include "/etc/bind/logging.conf;"' >> /etc/bind/named.conf
+}
+
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
@@ -146,6 +171,7 @@ ${SCRIPTNAME}
         --domain   *    <str>  domain name "sample.org"
         --lan      *    <str>  lan ipaddr, 192.168.1.2
         --wan      *    <str>  wan ipaddr.
+        --log                  with named access log (/var/log/named.log), default no log 
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -159,9 +185,9 @@ EOF
     exit 1
 }
 main() {
-    local domain=""
+    local domain="" lan="" wan="" access_log=""
     local opt_short=""
-    local opt_long="domain:,lan:,wan:,"
+    local opt_long="domain:,lan:,wan:,log,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -171,6 +197,7 @@ main() {
             --domain)       shift; domain=${1}; shift;;
             --lan)          shift; lan=${1}; shift;;
             --wan)          shift; wan=${1}; shift;;
+            --log)          shift; access_log=1;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -185,6 +212,7 @@ main() {
     [ -z "${lan}" ] && usage "command line error!"
     [ -z "${wan}" ] && usage "command line error!"
     init_bind "${domain}" "${lan}" "${wan}"
+    [ -z "${access_log}" ] || init_bind_log
     echo "ALL OK ${TIMESPAN}"
     return 0
 }
