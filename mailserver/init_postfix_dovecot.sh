@@ -9,12 +9,13 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3d11401[2022-07-30T13:20:36+08:00]:init_postfix_dovecot.sh")
+VERSION+=("a0c4f0b[2022-07-31T07:14:05+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
 VMAIL_GROUP=${VMAIL_GROUP:-vmail}
 VMAIL_UGID=${VMAIL_UGID:-5000}
+MAIL_LIST=${MAIL_LIST:-/etc/aliases}
 
 init_vmail_user() {
     local maildir=${1}
@@ -22,6 +23,15 @@ init_vmail_user() {
     groupdel -f ${VMAIL_GROUP} || true
     getent group ${VMAIL_GROUP} >/dev/null || groupadd -g ${VMAIL_UGID} ${VMAIL_GROUP} 2>/dev/null || true
     getent passwd ${VMAIL_USER} >/dev/null || useradd --system -g ${VMAIL_GROUP} -u ${VMAIL_UGID} ${VMAIL_USER} -d ${maildir} --create-home -s /sbin/nologin -c "virtual mail user" 2>/dev/null || true
+}
+
+set_postfix_mail_list() {
+    postconf -e "alias_database = hash:${MAIL_LIST}"
+    cat <<EOF
+postmaster: root
+demolst: admin@test2.domain, user1@test.domain
+EOF
+    postalias "${MAIL_LIST}"
 }
 
 init_postfix() {
@@ -40,11 +50,12 @@ init_postfix() {
     postconf -e "smtpd_banner = ESMTP ${domain}"
     postconf -e "myhostname = ${name}.${domain}"
     postconf -e "mydomain = ${domain}"
+    # mail max size 10M
+    postconf -e "mailbox_size_limit = 10485760"
     postconf -e 'inet_interfaces = all'
     postconf -e 'inet_protocols = ipv4'
     postconf -e 'mydestination = $myhostname, localhost.$mydomain, localhost'
     postconf -e 'alias_maps = '
-    ####################
     postconf -e "virtual_mailbox_base = ${maildir}"
     postconf -e 'home_mailbox = Maildir/'
     postconf -e 'virtual_mailbox_domains = hash:/etc/postfix/vdomains'
@@ -255,6 +266,7 @@ ${SCRIPTNAME}
          env: VMAIL_USER=vmail
               VMAIL_GROUP=vmail
               VMAIL_UGID=5000
+              MAIL_LIST=/etc/aliases
         --name     *    <str>  name
         --domain   *    <str>  domain name "sample.org"
         --dir      *    <str>  mail directory location 
@@ -269,7 +281,14 @@ ${SCRIPTNAME}
         # apt -y install mailutils sasl2-bin
         # apt -y install postfix dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd
         openssl req -new -x509 -days 3650 -nodes -out /etc/postfix/mail.pem -keyout /etc/postfix/mail.key -utf8 -subj "/C=CN/L=LN/O=mycompany/CN=mail.test.mail"
+        # check ssl
         openssl s_client -servername mail.sample.org -connect mail.sample.org:pop3s
+        # check starttls:
+        openssl s_client -host mail.sample.org -port 25 -starttls smtp
+        openssl s_client -host mail.sample.org -port 465 -starttls smtp
+        openssl s_client -host mail.sample.org -port 110 -starttls pop3
+        openssl s_client -host mail.sample.org -port 143 -starttls imap
+        openssl s_client -host mail.sample.org -port 587 -starttls smtp
         postconf -a (SASL support in the SMTP server)
         postconf -A (SASL support in the SMTP+LMTP client)
         doveconf -a/postconf
@@ -319,6 +338,7 @@ main() {
     chmod 0400 "${key}" || true
     init_vmail_user "${maildir}"
     init_postfix "${name}" "${domain}" "${maildir}" "${cert}" "${key}"
+    set_postfix_mail_list
     init_dovecot "${maildir}" "${cert}" "${key}" "${domain}"
     set_mailbox_autocreate
     set_mailbox_password_auth "${maildir}" "${domain}"
