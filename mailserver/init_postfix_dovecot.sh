@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-07-30T12:09:19+08:00]:init_postfix_dovecot.sh")
+VERSION+=("f6f8919[2022-07-30T12:09:19+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -201,7 +201,7 @@ EOF
     # passwd file auth
     # ssl = required, client wants to use AUTH PLAIN is ok
     sed --quiet -i.orig.${TIMESPAN} -E \
-        -e '/(disable_plaintext_auth|auth_mechanisms|include auth-system.conf.ext|include auth-passwdfile.conf.ext).*/!p' \
+        -e '/(disable_plaintext_authi\s*=|auth_mechanisms\s*=|include\s+auth-system.conf.ext|include\s+auth-passwdfile.conf.ext).*/!p' \
         -e '$a#!include auth-system.conf.ext' \
         -e '$a!include auth-passwdfile.conf.ext' \
         -e '$adisable_plaintext_auth = no' \
