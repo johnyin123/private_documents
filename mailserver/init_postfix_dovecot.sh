@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f6f8919[2022-07-30T12:09:19+08:00]:init_postfix_dovecot.sh")
+VERSION+=("3d11401[2022-07-30T13:20:36+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -96,6 +96,41 @@ init_postfix() {
         -e 's/^\s*#*smtps\s*inet\s*.*/smtps inet n   -   y   -   -   smtpd/g' \
         -e 's/^\s*#*\s*-o smtpd_tls_wrappermode=yes/  -o smtpd_tls_wrappermode=yes/g' \
         /etc/postfix/master.cf
+}
+
+set_mailbox_password_auth() {
+    local maildir=${1}
+    local domain=${2}
+
+    # passwd file auth
+    # ssl = required, client wants to use AUTH PLAIN is ok
+    sed --quiet -i.orig.${TIMESPAN} -E \
+        -e '/(disable_plaintext_authi\s*=|auth_mechanisms\s*=|include\s+auth-system.conf.ext|include\s+auth-passwdfile.conf.ext).*/!p' \
+        -e '$a#!include auth-system.conf.ext' \
+        -e '$a!include auth-passwdfile.conf.ext' \
+        -e '$adisable_plaintext_auth = no' \
+        -e '$aauth_mechanisms = plain login' \
+        /etc/dovecot/conf.d/10-auth.conf
+    cat /etc/dovecot/conf.d/auth-passwdfile.conf.ext 2>/dev/null > /etc/dovecot/conf.d/auth-passwdfile.conf.ext.orig.${TIMESPAN} || true
+    cat <<EOF > /etc/dovecot/conf.d/auth-passwdfile.conf.ext
+passdb {
+  driver = passwd-file
+  args = scheme=SHA512-CRYPT /etc/dovecot/passwd
+}
+userdb {
+  driver = static
+  args = uid=${VMAIL_UGID} gid=${VMAIL_UGID} home=${maildir}/%d/%n allow_all_users=yes
+}
+EOF
+    # Add users
+    cat /etc/dovecot/passwd 2>/dev/null > /etc/dovecot/passwd.orig.${TIMESPAN} || true
+    cat <<EOF > /etc/dovecot/passwd
+# doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2
+admin@${domain}:$(doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2)
+user1@${domain}:$(doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2)
+user2@${domain}:$(doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2)
+EOF
+    chmod 600 /etc/dovecot/passwd
 }
 
 set_mailbox_autocreate() {
@@ -198,35 +233,6 @@ service lmtp {
 }
 EOF
 
-    # passwd file auth
-    # ssl = required, client wants to use AUTH PLAIN is ok
-    sed --quiet -i.orig.${TIMESPAN} -E \
-        -e '/(disable_plaintext_authi\s*=|auth_mechanisms\s*=|include\s+auth-system.conf.ext|include\s+auth-passwdfile.conf.ext).*/!p' \
-        -e '$a#!include auth-system.conf.ext' \
-        -e '$a!include auth-passwdfile.conf.ext' \
-        -e '$adisable_plaintext_auth = no' \
-        -e '$aauth_mechanisms = plain login' \
-        /etc/dovecot/conf.d/10-auth.conf
-    cat /etc/dovecot/conf.d/auth-passwdfile.conf.ext 2>/dev/null > /etc/dovecot/conf.d/auth-passwdfile.conf.ext.orig.${TIMESPAN} || true
-    cat <<EOF > /etc/dovecot/conf.d/auth-passwdfile.conf.ext
-passdb {
-  driver = passwd-file
-  args = scheme=SHA512-CRYPT /etc/dovecot/passwd
-}
-userdb {
-  driver = static
-  args = uid=${VMAIL_UGID} gid=${VMAIL_UGID} home=${maildir}/%d/%n allow_all_users=yes
-}
-EOF
-    # Add users
-    cat /etc/dovecot/passwd 2>/dev/null > /etc/dovecot/passwd.orig.${TIMESPAN} || true
-    cat <<EOF > /etc/dovecot/passwd
-# doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2
-admin@${domain}:$(doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2)
-user1@${domain}:$(doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2)
-user2@${domain}:$(doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2)
-EOF
-    chmod 600 /etc/dovecot/passwd
 }
 
 set_debug() {
@@ -260,7 +266,7 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
         # test on debian bullseys!!
-        # apt-get install mailutils sasl2-bin
+        # apt -y install mailutils sasl2-bin
         # apt -y install postfix dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd
         openssl req -new -x509 -days 3650 -nodes -out /etc/postfix/mail.pem -keyout /etc/postfix/mail.key -utf8 -subj "/C=CN/L=LN/O=mycompany/CN=mail.test.mail"
         openssl s_client -servername mail.sample.org -connect mail.sample.org:pop3s
@@ -315,6 +321,7 @@ main() {
     init_postfix "${name}" "${domain}" "${maildir}" "${cert}" "${key}"
     init_dovecot "${maildir}" "${cert}" "${key}" "${domain}"
     set_mailbox_autocreate
+    set_mailbox_password_auth "${maildir}" "${domain}"
     # set_debug "${domain}"
     echo "ALL OK ${TIMESPAN}"
     return 0
