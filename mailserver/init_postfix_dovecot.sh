@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a0c4f0b[2022-07-31T07:14:05+08:00]:init_postfix_dovecot.sh")
+VERSION+=("99ef10b[2022-07-31T07:59:37+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -40,16 +40,20 @@ init_postfix() {
     local maildir=${3}
     local cert=${4}
     local key=${5}
-    [ -e "/etc/postfix/main.cf" ] || cp /etc/postfix/main.cf.proto /etc/postfix/main.cf
     cat /etc/postfix/main.cf > /etc/postfix/main.cf.orig.${TIMESPAN}
-    echo "$domain" > /etc/mailname
+    rm -f /etc/postfix/main.cf && touch /etc/postfix/main.cf
+    # postmap need main.cf config item. so execute here
     echo "${domain}     OK" > /etc/postfix/vdomains
     postmap /etc/postfix/vdomains
+    echo "$domain" > /etc/mailname
 
     postconf -e 'myorigin = /etc/mailname'
     postconf -e "smtpd_banner = ESMTP ${domain}"
     postconf -e "myhostname = ${name}.${domain}"
     postconf -e "mydomain = ${domain}"
+    # postconf -e "setgid_group = postdrop"
+    # postconf -e "sendmail_path = $(which sendmail)"
+    #  mailq_path = /usr/bin/mailq
     # mail max size 10M
     postconf -e "mailbox_size_limit = 10485760"
     postconf -e 'inet_interfaces = all'
@@ -278,9 +282,11 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
         # test on debian bullseys!!
-        # apt -y install mailutils sasl2-bin
-        # apt -y install postfix dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd
-        openssl req -new -x509 -days 3650 -nodes -out /etc/postfix/mail.pem -keyout /etc/postfix/mail.key -utf8 -subj "/C=CN/L=LN/O=mycompany/CN=mail.test.mail"
+        apt -y install gnupg && wget -q -O- 'https://repo.dovecot.org/DOVECOT-REPO-GPG' |
+            gpg --dearmor > /etc/apt/trusted.gpg.d/dovecot-archive-keyring.gpg
+        apt -y install apt-transport-https
+        echo "deb https://repo.dovecot.org/ce-2.3-latest/debian/bullseye bullseye main" >/etc/apt/sources.list.d/dovecot.list
+        apt -y install postfix dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd
         # check ssl
         openssl s_client -servername mail.sample.org -connect mail.sample.org:pop3s
         # check starttls:
