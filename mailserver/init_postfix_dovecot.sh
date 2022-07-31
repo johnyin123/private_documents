@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("99ef10b[2022-07-31T07:59:37+08:00]:init_postfix_dovecot.sh")
+VERSION+=("27ce5fb[2022-07-31T10:23:08+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -27,7 +27,7 @@ init_vmail_user() {
 
 set_postfix_mail_list() {
     postconf -e "alias_database = hash:${MAIL_LIST}"
-    cat <<EOF
+    cat <<EOF>"${MAIL_LIST}"
 postmaster: root
 demolst: admin@test2.domain, user1@test.domain
 EOF
