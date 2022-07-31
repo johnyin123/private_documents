@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("be673ec[2022-07-29T16:06:42+08:00]:init_bind.sh")
+VERSION+=("a0c4f0b[2022-07-31T07:14:05+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
@@ -161,7 +161,7 @@ logging {
     category security       { mylog; };
 };
 EOF
-    echo 'include "/etc/bind/logging.conf;"' >> /etc/bind/named.conf
+    echo 'include "/etc/bind/logging.conf";' >> /etc/bind/named.conf
 }
 
 usage() {
