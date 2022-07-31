@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a0c4f0b[2022-07-31T07:14:05+08:00]:init_bind.sh")
+VERSION+=("2102ce2[2022-07-31T09:01:42+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
@@ -140,12 +140,13 @@ EOF
 }
 
 init_bind_log() {
-    touch /var/log/named.log || true
-    chown bind:bind /var/log/named.log || true
+    # apparmor="DENIED", see: /etc/apparmor.d/usr.sbin.named
+    mkdir -p /var/log/named || true
+    chown bind:bind /var/log/named || true
     cat <<EOF > /etc/bind/logging.conf
 logging {
     channel mylog {
-        file "/var/log/named.log" versions 3 size 20m;
+        file "/var/log/named/access.log" versions 3 size 20m;
         severity dynamic;
         print-time yes;
         print-category yes;
