@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1f70670[2022-07-31T10:26:18+08:00]:init_postfix_dovecot.sh")
+VERSION+=("d8e83f1[2022-08-01T09:10:48+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -23,6 +23,7 @@ init_vmail_user() {
     groupdel -f ${VMAIL_GROUP} || true
     getent group ${VMAIL_GROUP} >/dev/null || groupadd -g ${VMAIL_UGID} ${VMAIL_GROUP} 2>/dev/null || true
     getent passwd ${VMAIL_USER} >/dev/null || useradd --system -g ${VMAIL_GROUP} -u ${VMAIL_UGID} ${VMAIL_USER} -d ${maildir} --create-home -s /sbin/nologin -c "virtual mail user" 2>/dev/null || true
+    chown -R ${VMAIL_USER}:${VMAIL_GROUP} ${maildir}
 }
 
 set_postfix_mail_list() {
@@ -40,7 +41,7 @@ init_postfix() {
     local maildir=${3}
     local cert=${4}
     local key=${5}
-    cat /etc/postfix/main.cf > /etc/postfix/main.cf.orig.${TIMESPAN} || true
+    cat /etc/postfix/main.cf 2>/dev/null > /etc/postfix/main.cf.orig.${TIMESPAN} || true
     rm -f /etc/postfix/main.cf && touch /etc/postfix/main.cf
     # postmap need main.cf config item. so execute here
     echo "${domain}     OK" > /etc/postfix/vdomains
