@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2102ce2[2022-07-31T09:01:42+08:00]:init_bind.sh")
+VERSION+=("37c46a5[2022-07-31T09:17:28+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
@@ -123,6 +123,8 @@ EOF
 @       A           ${wan_addr}
 ns      A           ${wan_addr}
 mail    A           ${wan_addr}
+demo    A           ${wan_addr}
+ftp     IN CNAME    demo.${domain}.
 EOF
     cat <<EOF > /etc/bind/${domain}/${w3}.${w2}.${w1}.wan
 \$TTL 86400
@@ -146,7 +148,7 @@ init_bind_log() {
     cat <<EOF > /etc/bind/logging.conf
 logging {
     channel mylog {
-        file "/var/log/named/access.log" versions 3 size 20m;
+        file "/var/log/named/named.log" versions 3 size 20m;
         severity dynamic;
         print-time yes;
         print-category yes;
@@ -172,7 +174,7 @@ ${SCRIPTNAME}
         --domain   *    <str>  domain name "sample.org"
         --lan      *    <str>  lan ipaddr, 192.168.1.2
         --wan      *    <str>  wan ipaddr.
-        --log                  with named access log (/var/log/named.log), default no log 
+        --log                  with named access log (/var/log/named/named.log), default no log 
         -q|--quiet
         -l|--log <int> log level
         -V|--version
