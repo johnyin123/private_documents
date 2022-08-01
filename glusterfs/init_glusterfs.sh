@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-08-01T09:08:13+08:00]:init_glusterfs.sh")
+VERSION+=("7d88d2d[2022-08-01T09:08:12+08:00]:init_glusterfs.sh")
 ################################################################################
 add_nodes() {
     local volname=${1}
@@ -55,7 +55,7 @@ ${SCRIPTNAME} <options> <brick1> <brick2> ...
         apt -y install apt-transport-https
         echo deb [arch=amd64] https://download.gluster.org/pub/gluster/glusterfs/10/LATEST/Debian/bullseye/amd64/apt bullseye main > /etc/apt/sources.list.d/gluster.list 
         apt update && apt -y install [ glusterfs-server | glusterfs-client ]
-        mount -t glusterfs node1:/vol /mnt
+        mount -t glusterfs node1,node2:/vol /mnt
         echo "node1:/vol /mnt glusterfs defaults 0 1" >> /etc/fstab
 
 EOF
