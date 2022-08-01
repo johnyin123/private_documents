@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("27ce5fb[2022-07-31T10:23:08+08:00]:init_postfix_dovecot.sh")
+VERSION+=("1f70670[2022-07-31T10:26:18+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -40,7 +40,7 @@ init_postfix() {
     local maildir=${3}
     local cert=${4}
     local key=${5}
-    cat /etc/postfix/main.cf > /etc/postfix/main.cf.orig.${TIMESPAN}
+    cat /etc/postfix/main.cf > /etc/postfix/main.cf.orig.${TIMESPAN} || true
     rm -f /etc/postfix/main.cf && touch /etc/postfix/main.cf
     # postmap need main.cf config item. so execute here
     echo "${domain}     OK" > /etc/postfix/vdomains
