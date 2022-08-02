@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("06b46ee[2022-08-02T09:40:21+08:00]:init_ldap.sh")
+VERSION+=("9fe4f8d[2022-08-02T12:27:13+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 MANAGER=${MANAGER:-admin}
@@ -118,7 +118,8 @@ olcSpSessionLog: 100
 EOF
     ldapadd -Y EXTERNAL -H ldapi:/// -f syncprov.ldif
 
-
+  # [retry interval] [retry times] [interval of re-retry] [re-retry times]
+  # retry="30 5 300 3"
     cat <<EOF>master01.ldif
 dn: cn=config
 changetype: modify
@@ -132,16 +133,12 @@ olcSyncRepl: rid=001
   provider=${peer}
   bindmethod=simple
   binddn="cn=${MANAGER},dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}"
-  # directory manager's password
   credentials=${MGR_PWD}
   searchbase="dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}"
-  # includes subtree
   scope=sub
   schemachecking=on
   type=refreshAndPersist
-  # [retry interval] [retry times] [interval of re-retry] [re-retry times]
   retry="30 5 300 3"
-  # replication interval
   interval=00:00:05:00
 -
 add: olcMirrorMode
@@ -294,13 +291,13 @@ main() {
     change_ldap_passwd "${MGR_PWD}"
     init_ldap "${dc1}" "${dc2}" "${dc3}" || { echo "some failed, run: dpkg-reconfigure slapd, and reinit slapd"; return 1; }
     [ -z "${ca}" ] || [ -z "${cert}" ] || [ -z "${key}" ] || setup_starttls "${ca}" "${cert}" "${key}"
-    echo "ALL INIT OK ${TIMESPAN}"
+    [ -z "${srvid}" ] || [ -z "${peer}" ] || setup_multi_master_replication "${srvid}" "${peer}" "${dc1}" "${dc2}" "${dc3}"
+    echo "************ALL INIT OK ${TIMESPAN}"
     ldapsearch -LLL -x \
         -D cn=${MANAGER},dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}} \
         -w ${MGR_PWD} \
         -H ldap://0.0.0.0:389/ \
         -b dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}
-    [ -z "${srvid}" ] || [ -z "${peer}" ] || setup_multi_master_replication "${srvid}" "${peer}" "${dc1}" "${dc2}" "${dc3}"
     return 0
 }
 main "$@"
