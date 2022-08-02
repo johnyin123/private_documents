@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("71a9d4c[2022-08-02T09:15:58+08:00]:init_ldap.sh")
+VERSION+=("06b46ee[2022-08-02T09:40:21+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 MANAGER=${MANAGER:-admin}
@@ -95,6 +95,66 @@ EOF
 }
 
 setup_multi_master_replication() {
+    local srvid=${1} # specify uniq olcServerID number on each server, 101
+    local peer=${2} # specify another LDAP server's URI, ldap://10.0.0.51:389/
+    local dc1=${3}
+    local dc2=${4}
+    local dc3=${5:-}
+
+    cat <<EOF>mod_syncprov.ldif
+dn: cn=module,cn=config
+objectClass: olcModuleList
+cn: module
+olcModulePath: /usr/lib/ldap
+olcModuleLoad: syncprov.la
+EOF
+    ldapadd -Y EXTERNAL -H ldapi:/// -f mod_syncprov.ldif
+    cat <<EOF>syncprov.ldif
+dn: olcOverlay=syncprov,olcDatabase={1}mdb,cn=config
+objectClass: olcOverlayConfig
+objectClass: olcSyncProvConfig
+olcOverlay: syncprov
+olcSpSessionLog: 100
+EOF
+    ldapadd -Y EXTERNAL -H ldapi:/// -f syncprov.ldif
+
+
+    cat <<EOF>master01.ldif
+dn: cn=config
+changetype: modify
+replace: olcServerID
+olcServerID: ${srvid}
+
+dn: olcDatabase={1}mdb,cn=config
+changetype: modify
+add: olcSyncRepl
+olcSyncRepl: rid=001
+  provider=${peer}
+  bindmethod=simple
+  binddn="cn=${MANAGER},dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}"
+  # directory manager's password
+  credentials=${MGR_PWD}
+  searchbase="dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}"
+  # includes subtree
+  scope=sub
+  schemachecking=on
+  type=refreshAndPersist
+  # [retry interval] [retry times] [interval of re-retry] [re-retry times]
+  retry="30 5 300 3"
+  # replication interval
+  interval=00:00:05:00
+-
+add: olcMirrorMode
+olcMirrorMode: TRUE
+
+dn: olcOverlay=syncprov,olcDatabase={1}mdb,cn=config
+changetype: add
+objectClass: olcOverlayConfig
+objectClass: olcSyncProvConfig
+olcOverlay: syncprov
+EOF
+    ldapmodify -Y EXTERNAL -H ldapi:/// -f master01.ldif
+
     return 0
 }
 
@@ -165,16 +225,18 @@ usage() {
 ${SCRIPTNAME}
           env:
             MANAGER=admin
-          init mode: --dc1 test --dc2 mail -p password <--ca --cert --key>
+          init mode: --dc1 test --dc2 mail -p password <--ca ca.pem --cert /a.pem --key /a.key --srvid 104 --peer ldap://ip:389/>
           add user mode: --dc1 test --dc2 mail -p password -u user1 -u user2
         --dc1      *    <str>  dc1.dc2/dc1.dc2.dc3<sample.org/sample.org.cn>
         --dc1           <str>
         --dc1           <str>
-        -p              <str>  slapd manager password, <default:password>, init mode change to <str>
+        -p|--passwd     <str>  slapd manager password, <default:password>, init mode change to <str>
         -u|--uid        <str>  adduser mode uid in ldap, multi parameters
         --ca            <str>  ca file
         --cert          <str>  cert file
         --key           <str>  key file
+        --srvid         <num>  multimaster mode uniq id on each server, 101
+        --peer          <str>  multimaster mode other node url, ldap://ip:389/
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -195,7 +257,7 @@ main() {
     local dc1="" dc2="" dc3="" ca="" cert="" key=""
     local uid=()
     local opt_short="p:u:"
-    local opt_long="dc1:,dc2:,dc3:,uid:,ca:,cert:,key:,"
+    local opt_long="passwd:,dc1:,dc2:,dc3:,uid:,ca:,cert:,key:,srvid:,peer:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -207,8 +269,10 @@ main() {
             --dc3)          shift; dc3=${1}; shift;;
             --ca)           shift; ca=${1}; shift;;
             --cert)         shift; cert=${1}; shift;;
+            --srvid)        shift; srvid=${1}; shift;;
+            --peer)         shift; peer=${1}; shift;;
             --key)          shift; key=${1}; shift;;
-            -p)             shift; MGR_PWD=${1}; shift;;
+            -p | --passwd)  shift; MGR_PWD=${1}; shift;;
             -u | --uid)     shift; uid+=(${1}); shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
@@ -236,6 +300,7 @@ main() {
         -w ${MGR_PWD} \
         -H ldap://0.0.0.0:389/ \
         -b dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}
+    [ -z "${srvid}" ] || [ -z "${peer}" ] || setup_multi_master_replication "${srvid}" "${peer}" "${dc1}" "${dc2}" "${dc3}"
     return 0
 }
 main "$@"
