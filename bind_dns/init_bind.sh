@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("37c46a5[2022-07-31T09:17:28+08:00]:init_bind.sh")
+VERSION+=("2f73390[2022-08-01T10:01:06+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
@@ -94,7 +94,9 @@ EOF
 ns      A           ${lan_addr}
 mail    A           ${lan_addr}
 demo    A           ${lan_addr}
-ftp     IN CNAME    demo.${domain}.
+ftp     CNAME       demo.${domain}.
+; wildcard-dns
+*       CNAME       @
 EOF
     cat <<EOF > /etc/bind/${domain}/${l3}.${l2}.${l1}.lan
 \$TTL 86400
@@ -124,7 +126,9 @@ EOF
 ns      A           ${wan_addr}
 mail    A           ${wan_addr}
 demo    A           ${wan_addr}
-ftp     IN CNAME    demo.${domain}.
+ftp     CNAME       demo.${domain}.
+; wildcard-dns
+*       CNAME       @
 EOF
     cat <<EOF > /etc/bind/${domain}/${w3}.${w2}.${w1}.wan
 \$TTL 86400
