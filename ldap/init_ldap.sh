@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3d34530[2022-08-01T17:04:11+08:00]:init_ldap.sh")
+VERSION+=("3e0fc5d[2022-08-02T09:09:53+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 MANAGER=${MANAGER:-admin}
@@ -73,6 +73,7 @@ gidNumber: 1000
 memberUid: ${user}
 EOF
     ldapadd -x -D cn=${MANAGER},dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}} -w ${MGR_PWD} -v -f user_${user}.ldif
+    ldapsearch -x cn=${user} -b dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}
 }
 
 setup_log() {
