@@ -9,13 +9,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0224918[2022-08-02T14:35:38+08:00]:init_bind.sh")
+VERSION+=("3471db2[2022-08-02T15:11:50+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
     local domain=${1}
     local lan_addr=${2}
     local wan_addr=${3}
+    local fake=${4:-}
     local l1= l2= l3= l4=
     IFS='.' read -r l1 l2 l3 l4 <<< "${lan_addr}"
     local w1= w2= w3= w4=
@@ -66,7 +67,7 @@ view "view_wan" {
     };
 };
 view "view_lan" {
-    match-clients {net_lan;};
+    match-clients {net_lan;};${fake}
     zone "${domain}" IN {
         type master;
         file "/etc/bind/${domain}/${domain}.lan";
@@ -179,6 +180,7 @@ ${SCRIPTNAME}
         --lan      *    <str>  lan ipaddr, 192.168.1.2
         --wan      *    <str>  wan ipaddr.
         --log                  with named access log (/var/log/named/named.log), default no log 
+        -f|--fake                support fake any domain
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -193,9 +195,9 @@ EOF
     exit 1
 }
 main() {
-    local domain="" lan="" wan="" access_log=""
-    local opt_short=""
-    local opt_long="domain:,lan:,wan:,log,"
+    local domain="" lan="" wan="" access_log="" fake=""
+    local opt_short="f"
+    local opt_long="domain:,lan:,wan:,log,fake,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -206,6 +208,11 @@ main() {
             --lan)          shift; lan=${1}; shift;;
             --wan)          shift; wan=${1}; shift;;
             --log)          shift; access_log=1;;
+            -f|--fake)      shift; fake="
+    zone \".\" {
+        type master;
+        file \"/etc/bind/fakeroot.lan\";
+    };";;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -219,7 +226,16 @@ main() {
     [ -z "${domain}" ] && usage "command line error!"
     [ -z "${lan}" ] && usage "command line error!"
     [ -z "${wan}" ] && usage "command line error!"
-    init_bind "${domain}" "${lan}" "${wan}"
+    init_bind "${domain}" "${lan}" "${wan}" "${fake}"
+    [ -z "${fake}" ] || {
+        cat <<EOF >/etc/bind/fakeroot.lan
+\$TTL 86400
+@ IN SOA ns.domain.com. hostmaster.domain.com. ( 1 3h 1h 1w 1d )
+                NS ${lan}
+*               A  ${lan}
+www.test.com    A  192.168.1.20
+EOF
+    }
     [ -z "${access_log}" ] || init_bind_log
     echo "ALL OK ${TIMESPAN}"
     return 0
