@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2f73390[2022-08-01T10:01:06+08:00]:init_bind.sh")
+VERSION+=("9df828a[2022-08-02T14:19:18+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
@@ -61,7 +61,7 @@ view "view_wan" {
     };
     zone "${w3}.${w2}.${w1}.in-addr.arpa" IN {
         type master;
-        file "/etc/bind/${domain}/${w3}.${w2}.${w1}.wan";
+        file "/etc/bind/${domain}/${w1}.${w2}.${w3}.wan";
         allow-update { none; };
     };
 };
@@ -74,7 +74,7 @@ view "view_lan" {
     };
     zone "${l3}.${l2}.${l1}.in-addr.arpa" IN {
         type master;
-        file "/etc/bind/${domain}/${l3}.${l2}.${l1}.lan";
+        file "/etc/bind/${domain}/${l1}.${l2}.${l3}.lan";
         allow-update { none; };
     };
 };
@@ -98,7 +98,7 @@ ftp     CNAME       demo.${domain}.
 ; wildcard-dns
 *       CNAME       @
 EOF
-    cat <<EOF > /etc/bind/${domain}/${l3}.${l2}.${l1}.lan
+    cat <<EOF > /etc/bind/${domain}/${l1}.${l2}.${l3}.lan
 \$TTL 86400
 @   IN  SOA     ns.${domain}. root.${domain}. (
     2021081801  ;Serial
@@ -130,7 +130,7 @@ ftp     CNAME       demo.${domain}.
 ; wildcard-dns
 *       CNAME       @
 EOF
-    cat <<EOF > /etc/bind/${domain}/${w3}.${w2}.${w1}.wan
+    cat <<EOF > /etc/bind/${domain}/${w1}.${w2}.${w3}.wan
 \$TTL 86400
 @   IN  SOA     ns.${domain}. root.${domain}. (
     2021081801  ;Serial
