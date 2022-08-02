@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3471db2[2022-08-02T15:11:50+08:00]:init_bind.sh")
+VERSION+=("e267034[2022-08-02T16:12:03+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
@@ -24,7 +24,7 @@ init_bind() {
     mkdir -p "/etc/bind/${domain}" && chown -R root:bind "/etc/bind/${domain}"
     # remove named.conf.default-zones, when useing view!
     sed --quiet -i.orig.${TIMESPAN} -E \
-        -e "/(named.conf.${domain}|named.conf.default-zones|logging.conf).*/!p" \
+        -e "/(${domain}.conf|named.conf.default-zones|logging.conf).*/!p" \
         -e "\$ainclude \"/etc/bind/${domain}/${domain}.conf\";" \
         /etc/bind/named.conf
 
