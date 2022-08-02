@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e267034[2022-08-02T16:12:03+08:00]:init_bind.sh")
+VERSION+=("98be65a[2022-08-02T16:25:11+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
@@ -180,7 +180,7 @@ ${SCRIPTNAME}
         --lan      *    <str>  lan ipaddr, 192.168.1.2
         --wan      *    <str>  wan ipaddr.
         --log                  with named access log (/var/log/named/named.log), default no log 
-        -f|--fake                support fake any domain
+        -f|--fake              support fake all domain
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -231,9 +231,9 @@ main() {
         cat <<EOF >/etc/bind/fakeroot.lan
 \$TTL 86400
 @ IN SOA ns.domain.com. hostmaster.domain.com. ( 1 3h 1h 1w 1d )
-                NS ${lan}
-*               A  ${lan}
-www.test.com    A  192.168.1.20
+                NS 192.168.1.11
+@               A  192.168.1.12
+*               A  192.168.1.14
 EOF
     }
     [ -z "${access_log}" ] || init_bind_log
