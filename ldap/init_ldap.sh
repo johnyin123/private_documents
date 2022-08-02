@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9fe4f8d[2022-08-02T12:27:13+08:00]:init_ldap.sh")
+VERSION+=("1239b40[2022-08-02T12:50:33+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 MANAGER=${MANAGER:-admin}
@@ -53,7 +53,7 @@ add_user() {
     local dc3=${5:-}
     # create new user
     # slapcat -n 0 | grep "olcObjectClasses:.*posixAccount"
-    cat <<EOF >user_${user}.ldif
+    cat <<EOF | ldapadd -x -D cn=${MANAGER},dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}} -w ${MGR_PWD}
 dn: uid=${user},ou=people,dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}
 objectClass: inetOrgPerson
 objectClass: posixAccount
@@ -72,7 +72,6 @@ cn: ${user}
 gidNumber: 1000
 memberUid: ${user}
 EOF
-    ldapadd -x -D cn=${MANAGER},dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}} -w ${MGR_PWD} -v -f user_${user}.ldif
     ldapsearch -x cn=${user} -b dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}
 }
 
