@@ -1,0 +1,12 @@
+simple_bind, anonymous=-x
+simple_bind, anonymous, TLS requested=-x -Z
+simple_bind, anonymous, TLS forced=-x -ZZ
+simple_bind, unauthenticated=-x -D 'cn=admin,cn=config'
+simple_bind, unauthenticated, TLS requested=-x -D 'cn=admin,cn=config' -Z
+simple_bind, unauthenticated, TLS forced=-x -D 'cn=admin,cn=config' -ZZ
+simple_bind, authenticated=-x -D 'cn=admin,cn=config' -w $LDAP_ADMIN_PASSWORD
+simple_bind, authenticated, TLS requested=-x -D 'cn=admin,cn=config' -w $LDAP_ADMIN_PASSWORD -Z
+simple_bind, authenticated, TLS forced=-x -D 'cn=admin,cn=config' -w $LDAP_ADMIN_PASSWORD -ZZ
+SASL=-Y EXTERNAL
+SASL, TLS requested=-Y EXTERNAL -Z
+SASL, TLS forced=-Y EXTERNAL -ZZ

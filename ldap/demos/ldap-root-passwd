@@ -1,0 +1,35 @@
+#!/bin/bash
+
+set -e
+
+source /usr/local/lib/entrypoint.sh
+source /usr/local/lib/ldaputils.sh
+
+log "You are about to reset the password for: ${BOLD_RED}${olcRootDN}${NC}"
+read -p "Are you sure you want to continue? [y/N] " -r
+[[ ! $REPLY =~ ^[Yy]$ ]] && exit 1
+
+log "Existing configuration:"
+ldapsearch -b "$olcRootDN" -H ldapi:// -LLL -Q -Y EXTERNAL -ZZ
+tmp=$(grep "olcRootPW" /etc/ldap/slapd.d/cn\=config/olcDatabase\=\{1\}mdb.ldif)
+echo -e "${YELLOW}${tmp}${NC}"
+echo ""
+
+read_password
+echo "$PASSWORD" > $secret
+
+cat <<- EOF | ldapmodify -d 256 -H ldapi:// -Q -Y EXTERNAL
+	dn: olcDatabase={1}mdb,cn=config
+	changetype: modify
+	replace: olcRootPW
+	olcRootPW: ${PASSWORD_HASH}
+EOF
+
+log "Altered configuration:"
+ldapsearch -b "$olcRootDN" -H ldapi:// -LLL -Q -Y EXTERNAL -ZZ
+tmp=$(grep "olcRootPW" /etc/ldap/slapd.d/cn\=config/olcDatabase\=\{1\}mdb.ldif)
+echo -e "${YELLOW}${tmp}${NC}"
+
+log "Testing ..."
+ldapwhoami -D "$olcRootDN" -H ldapi:// -w $(<$secret) -x -ZZ
+

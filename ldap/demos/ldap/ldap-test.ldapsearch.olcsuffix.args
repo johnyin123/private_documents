@@ -1,0 +1,12 @@
+simple_bind, anonymous=-x
+simple_bind, anonymous, TLS requested=-x -Z
+simple_bind, anonymous, TLS forced=-x -ZZ
+simple_bind, unauthenticated=-x -D $olcRootDN
+simple_bind, unauthenticated, TLS requested=-x -D $olcRootDN -Z
+simple_bind, unauthenticated, TLS forced=-x -D $olcRootDN -ZZ
+simple_bind, authenticated=-x -D $olcRootDN -w $LDAP_ADMIN_PASSWORD
+simple_bind, authenticated, TLS requested=-x -D $olcRootDN -w $LDAP_ADMIN_PASSWORD -Z
+simple_bind, authenticated, TLS forced=-x -D $olcRootDN -w $LDAP_ADMIN_PASSWORD -ZZ
+SASL=-Y EXTERNAL
+SASL, TLS requested=-Y EXTERNAL -Z
+SASL, TLS forced=-Y EXTERNAL -ZZ

@@ -1,0 +1,34 @@
+#!/bin/bash
+
+set -e
+
+source /usr/local/lib/entrypoint.sh
+source /usr/local/lib/ldaputils.sh
+
+if [[ -z $1 || -n $2 ]] ; then
+	echo "usage $0 <name>" >&2
+	exit 1
+fi
+
+fail_if_admin "$1"
+
+name="${1,,}"
+dn="cn=${name},${olcSuffix}"
+
+log "Creating superuser: $dn ..."
+read_password
+cat <<- EOF | ldapadd -d 256 -D "$olcRootDN" -H ldapi:// -w "$(<$secret)" -x
+	dn: ${dn}
+	objectClass: organizationalRole
+	objectClass: simpleSecurityObject
+	objectClass: top
+	userPassword: ${PASSWORD_HASH}
+	cn: ${name}
+EOF
+
+log "Altered Configuration:"
+ldapsearch -b "$dn" -H ldapi:// -LLL -Q -Y EXTERNAL -ZZ
+
+log "Testing ..."
+ldapwhoami -D "$dn" -H ldapi:// -w "$PASSWORD" -x -ZZ
+

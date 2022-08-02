@@ -1,0 +1,8 @@
+dn: ou=groups,${LDAP_SUFFIX}
+objectClass: organizationalUnit
+ou: groups
+
+dn: ou=users,${LDAP_SUFFIX}
+ou: users
+objectClass: organizationalUnit
+

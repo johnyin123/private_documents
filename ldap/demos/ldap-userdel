@@ -1,0 +1,29 @@
+#!/bin/bash
+
+set -e
+
+source /usr/local/lib/entrypoint.sh
+source /usr/local/lib/ldaputils.sh
+
+if [[ -z $1 || -n $2 ]] ; then
+	echo "usage $0 <name>" >&2
+	exit 1
+fi
+
+fail_if_admin "$1"
+
+name="${1,,}"
+dn="cn=${name},ou=users,${olcSuffix}"
+
+log "You are about to ${BOLD_RED}DELETE${NC} the user: ${BOLD_RED}$dn${NC}"
+read -p "Are you sure you want to continue? [y/N] " -r
+[[ ! $REPLY =~ ^[Yy]$ ]] && exit 1
+
+log "Existing configuration:"
+ldapsearch -b "$dn" -H ldapi:// -LLL -Q -Y EXTERNAL -ZZ
+
+ldapdelete -d 256 -D "$olcRootDN" -H ldapi:// -w "$(<$secret)" -x "$dn"
+
+log "Altered Configuration:"
+ldapsearch -b "$dn" -H ldapi:// -LLL -Q -Y EXTERNAL -ZZ || true
+

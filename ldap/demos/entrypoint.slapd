@@ -1,0 +1,141 @@
+#!/bin/bash
+
+set -e
+
+# Configure: slapd
+if [[ ! -e "$EP_RUN" ]] ; then
+	log "Configuring $(basename $0) for first run ..."
+
+	export TLS_CIPHER_SUITE=${TLS_CIPHER_SUITE:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
+
+	# Bug Fix: If the common name of the SSL certificate doesn't match the host name of the
+	#          docker container, TLS verification (TLS_REQCERT) with fail.
+	envsubst <<-EOF | tee /etc/ldap/ldap.conf > /root/.ldaprc
+		TLS_CACERT		/etc/ssl/certs/slapdca.crt
+		TLS_CERT		/etc/ssl/certs/slapd.crt
+		TLS_KEY			/etc/ssl/private/slapd.key
+		TLS_REQCERT		demand
+		TLS_CIPHER_SUITE	${TLS_CIPHER_SUITE}
+	EOF
+
+	# Generate passwords ...
+	generate_password ldap_admin
+
+	# Generate keypairs ...
+	if [[ -e $EP_SECRETS_ROOT/slapdca.crt && -e $EP_SECRETS_ROOT/slapd.crt && -e $EP_SECRETS_ROOT/slapd.key ]] ; then
+		log "Importing slapdca.crt, slapd.crt, and slapd.key from secrets ..."
+	else
+		# Note: Key size must be >= 3072 for "HIGH" security:
+		#	https://www.gnutls.org/manual/html_node/Selecting-cryptographic-key-sizes.html#tab_003akey_002dsizes#
+		export SLAPD_CERT_DAYS=${SLAPD_CERT_DAYS:-30}
+		export SLAPD_KEY_SIZE=${SLAPD_KEY_SIZE:-4096}
+
+		log "Generating slapdca.crt, slapd.crt, and slapd.key in secrets ..."
+
+		log "	certificate authority"
+		openssl genrsa \
+			-out /dev/shm/slapdca.key \
+			$SLAPD_KEY_SIZE
+		openssl req \
+			-days $SLAPD_CERT_DAYS \
+			-key /dev/shm/slapdca.key \
+			-new \
+			-nodes \
+			-out $EP_SECRETS_ROOT/slapdca.crt \
+			-sha256 \
+			-subj "/cn=slapd root ca" \
+			-x509
+
+		log "	server certificate"
+		openssl genrsa \
+			-out $EP_SECRETS_ROOT/slapd.key \
+			$SLAPD_KEY_SIZE
+		openssl req \
+			-key $EP_SECRETS_ROOT/slapd.key \
+			-new \
+			-nodes \
+			-out /dev/shm/slapd.csr \
+			-sha256 \
+			-subj "/CN=$(hostname --fqdn)"
+		openssl x509 \
+			-CA $EP_SECRETS_ROOT/slapdca.crt \
+			-CAkey /dev/shm/slapdca.key \
+			-CAcreateserial \
+			-days $SLAPD_CERT_DAYS \
+			-in /dev/shm/slapd.csr \
+			-out $EP_SECRETS_ROOT/slapd.crt \
+			-req \
+			-sha256
+
+		rm /dev/shm/{slapdca.key,slapd.csr} $EP_SECRETS_ROOT/slapdca.srl
+
+	fi
+	install --group=ssl-cert --mode=0640 --owner=root $EP_SECRETS_ROOT/slapd.key /etc/ssl/private/
+	install --group=root --mode=0644 --owner=root $EP_SECRETS_ROOT/slapd{,ca}.crt /etc/ssl/certs/
+
+	ln --symbolic /etc/ssl/certs/slapdca.crt /usr/share/ca-certificates/
+	echo slapdca.crt >> /etc/ca-certificates.conf
+	update-ca-certificates
+
+#	if [[ -e $EP_SECRETS_ROOT/dhparams.pem ]] ; then
+#		log "Importing dhparams.pem from secrets ..."
+#	else
+#		log "Generating dhparams.pem in secrets ..."
+#		openssl dhparam \
+#			-out $EP_SECRETS_ROOT/dhparams.pem \
+#			$SLAPD_KEY_SIZE
+#	fi
+#	install --group=openldap --mode=0640 --owner=openldap $EP_SECRETS_ROOT/dhparams.pem /etc/ldap/dhparams.pem
+
+	if [[ ! -e $SLAPD_DIR/data.mdb ]] ; then
+		# Empty directory ...
+		log "Initializing directory ..."
+		while IFS='=' read -r key value
+		do
+			eval "export $key=\${$key:=$value}"
+			log "	$key=$(eval echo \$$key)"
+		done < /usr/local/share/ldap/debconf-set-selections.defaults
+		envsubst < /usr/local/share/ldap/debconf-set-selections.template | debconf-set-selections
+		dpkg-reconfigure --frontend=noninteractive slapd
+
+		# Common entries
+		log "Adding common entries: slapadd ..."
+		export LDAP_ADMIN_USERNAME=$(grep "olcRootDN" /etc/ldap/slapd.d/cn\=config/olcDatabase\=\{1\}mdb.ldif | awk '{print $2}')
+		export LDAP_SUFFIX=${LDAP_SUFFIX:=$(grep "olcSuffix" $SLAPD_HOME/slapd.d/cn\=config/olcDatabase\=\{1\}mdb.ldif | awk '{print $2}')}
+		for i in OrganizationalUnits
+		do
+			log "	$i"
+			envsubst < /usr/local/share/ldap/$i.ldif.template | slapadd -d 256
+		done
+		chown --recursive openldap:openldap $SLAPD_HOME/slapd.d/
+
+		# Start slapd, as there is no slapmodify
+		log "Starting slapd ..."
+		# For Debugging: slapd -d config -g openldap -h "ldapi:///" -u openldap &
+		slapd -g openldap -h "ldapi:///" -u openldap
+		while [[ ! -e /run/slapd/slapd.pid ]]; do
+			sleep 1
+		done
+
+		log "Adding common entries: ldapmodify ..."
+		for i in PosixIndices TLSCertificate
+		do
+			log "	$i"
+			envsubst < /usr/local/share/ldap/$i.ldif | ldapmodify -d 256 -H ldapi:/// -Q -Y EXTERNAL
+		done
+
+		# Stop slapd
+		SLAPD_PID=$(cat /run/slapd/slapd.pid)
+		tmp=$(ps -p $SLAPD_PID)
+		if [[ $? -eq 0 ]] ; then
+			log "Stopping slapd (PID: $SLAPD_PID) ..."
+			kill $SLAPD_PID
+		else
+			log "ERROR: slapd has crashed!"
+			exit 1
+		fi
+	else
+		log "Skipping directory initialization ..."
+	fi
+fi
+

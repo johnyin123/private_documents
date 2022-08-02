@@ -1,0 +1,39 @@
+#!/bin/bash
+
+set -e
+
+source /usr/local/lib/entrypoint.sh
+source /usr/local/lib/ldaputils.sh
+
+if [[ -z $1 || -n $2 ]] ; then
+	echo "usage $0 <name>" >&2
+	exit 1
+fi
+
+fail_if_admin "$1"
+
+name="${1,,}"
+dn="cn=${name},ou=users,${olcSuffix}"
+
+log "You are about to ${BOLD_RED}RESET${NC} the password for: ${BOLD_RED}${dn}${NC}"
+read -p "Are you sure you want to continue? [y/N] " -r
+[[ ! $REPLY =~ ^[Yy]$ ]] && exit 1
+
+log "Existing configuration:"
+ldapsearch -b "$dn" -H ldapi:// -LLL -Q -Y EXTERNAL -ZZ userPassword
+
+read_password
+ldappasswd -d 256 -D "$olcRootDN" -H ldapi:// -s "$PASSWORD" -w "$(<$secret)" -x "${dn}"
+cat <<- EOF | ldapmodify -d 256 -D "$olcRootDN" -H ldapi:// -x -w "$(<$secret)"
+	dn: ${dn}
+	changetype: modify
+	replace: shadowLastChange
+	shadowLastChange: $(echo $(date "+%s")/60/60/24 | bc)
+EOF
+
+log "Altered configuration:"
+ldapsearch -b "$dn" -H ldapi:// -LLL -Q -Y EXTERNAL -ZZ userPassword
+
+log "Testing ..."
+ldapwhoami -D "$dn" -H ldapi:// -w "$PASSWORD" -x -ZZ
+

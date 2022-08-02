@@ -1,0 +1,169 @@
+#!/bin/bash
+
+# ldapwhoami -Y EXTERNAL -H ldapi:/// -ZZ
+#   SASL/EXTERNAL authentication started
+#   SASL username: gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth
+#   SASL SSF: 0
+#   dn:<dn from client TLS certificate>
+
+# ldapwhoami -Y EXTERNAL -H ldaps://external.name/
+#   SASL/EXTERNAL authentication started
+#   SASL username: <dn from client TLS certificate>
+#   SASL SSF: 0
+#   dn:<dn from client TLS certificate>
+
+# ldapwhoami -D "cn=admin,dc=foo,dc=bar" -H ldapi:/// -w $LDAP_ADMIN_PASSWORD -x -ZZ
+#   dn:<bind dn>
+
+# ldapwhoami -D "cn=admin,dc=foo,dc=bar" -H ldaps://external.name/ -w $LDAP_ADMIN_PASSWORD -x
+#   dn:<bind dn>
+
+# GNUTLS_DEBUG_LEVEL
+# gnutls-cli -l --priority="NORMAL"
+
+source /usr/local/lib/entrypoint.sh
+
+BOLD='\033[0;1m'
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+GRAY='\033[0;90m'
+NC='\033[0m'
+
+function verify
+{
+	# Allowed ...
+	if [[ $1 -eq 0 ]] ; then
+		# ... supposed to allow
+		if [[ -z "$2" ]] ; then
+			echo -e "[  ${GREEN}PASSED${NC}  ]"
+		# ... supposed to reject
+		else
+			echo -e "[  ${RED}ALLOWED${NC} ]"
+		fi
+	# Rejected ...
+	else
+		# ... for the right reason
+		if [[ -n "$2" && $3 =~ $2 ]] ; then
+			echo -e "[ ${GREEN}REJECTED${NC} ]"
+			[[ -n $DEBUG ]] && echo -e "${BLUE}$(echo \"$3\" | tail --lines=1)${NC}"
+		# ... for the wrong reason
+		else
+			echo -e "[  ${RED}FAILED${NC}  ]"
+			echo -e "${BLUE}$(echo \"$3\" | tail --lines=1)${NC}"
+		fi
+	fi
+
+	return $1
+}
+
+function test_ldapsearch
+{
+	base="$1"
+	echo -e "Checking: ${BOLD}$base${NC} ..."
+
+	for uri in ldap ldapi ldaps
+	do
+		prefix="ldapsearch -H $uri:// -b '$base' -LLL"
+		suffix=dn
+
+		for arg in "${!args[@]}"; do
+			printf "Checking %-5s, $arg" $uri
+			printf ".%0.s" $(eval echo "{1..$(( $(tput cols) - 28 - $(expr length "$arg")))}")
+			if [[ $arg =~ " authenticated" && -z $LDAP_ADMIN_PASSWORD ]] ; then
+				echo -e "[  ${YELLOW}SKIP${NC}  ]"
+			else
+				cmd="$prefix ${args[$arg]} $suffix"
+				tmp=$(eval "$cmd" 2>&1)
+				verify $? "${expected[${uri}, ${arg}]}" "$tmp"
+				[[ -n $DEBUG ]] && echo -e "${GRAY}$cmd${NC}"
+			fi
+		done
+	done
+}
+
+function test_tls
+{
+	# Note: ssl2, ssl3 are not compiled in by default anymore
+	version="tls1 tls1_1 tls1_2 tls1_3"
+	ciphers="$(openssl ciphers 'ALL:eNULL' | tr ':' '\n' | sort | tr '\n' ' ')"
+	for version in $version; do
+		for cipher in $ciphers; do
+			printf "Checking %-6s, $cipher" $version
+			printf ".%0.s" $(eval echo "{1..$(( $(tput cols) - 29 - $(expr length "$cipher")))}")
+			cmd="openssl s_client -cipher $cipher -connect $(hostname):636 -$version -CAfile /etc/ssl/certs/slapdca.crt -cert /etc/ssl/certs/slapd.crt -key /etc/ssl/private/slapd.key -verify_return_error -state"
+			#verify $? "${expected[${version}, ${cipher}]}" "$tmp"
+			if [[ ${expected[${version}, ${cipher}]+abc} ]] ; then
+				val="${expected[${version}, ${cipher}]}"
+			elif [[ "$version" == "tls1" || "$version" == "tls1_1" ]] ; then
+				val="${expected[${version}, _DEFAULT_]}"
+			# else -- It's supposed to pass
+			fi
+			tmp=$(eval "$cmd" < /dev/null 2>&1)
+			verify $? "$val" "$tmp"
+			[[ -n $DEBUG ]] && echo -e "${GRAY}$cmd${NC}"
+		done
+	done
+}
+
+secrets=$EP_SECRETS_ROOT/ldap_admin_password
+if [[ -e $secrets ]] ; then
+	generate_password ldap_admin
+else
+	read -p "Slapd root password (<enter> to skip):" -s LDAP_ADMIN_PASSWORD
+	echo ""
+fi
+
+olcSuffix=$(grep "olcSuffix" /etc/ldap/slapd.d/cn\=config/olcDatabase\=\{1\}mdb.ldif | awk '{print $2}')
+olcRootDN=$(grep "olcRootDN" /etc/ldap/slapd.d/cn\=config/olcDatabase\=\{1\}mdb.ldif | awk '{print $2}')
+
+echo -e "Testing: ${BOLD}ldapsearch${NC} ..."
+
+# Note: * cn=config has no user cn=admin,cn=config (so it simple_bind will never pass)
+#	* Due to SSF=256, only TLS requestd / TLS forced with SASL should pass ...
+#	* Searching is not possible by default: https://www.openldap.org/lists/openldap-software/200711/msg00150.html
+unset args ; declare -A args
+while IFS= read -r line; do
+	args[${line%%=*}]=${line#*=}
+done < /usr/local/share/ldap/ldap-test.ldapsearch.config.args
+
+unset expected ; declare -A expected
+while IFS= read -r line; do
+	expected[${line%%=*}]=${line#*=}
+done < /usr/local/share/ldap/ldap-test.ldapsearch.config.expected
+
+# Note: Associative arrays cannot be passed to bash functions
+#       https://stackoverflow.com/a/8879444/1201075
+#test_ldapsearch "cn=config" "${expected[@]}" "${args[@]}"
+test_ldapsearch "cn=config"
+
+unset args ; declare -A args
+while IFS= read -r line; do
+	args[${line%%=*}]=${line#*=}
+done < /usr/local/share/ldap/ldap-test.ldapsearch.olcsuffix.args
+
+unset expected ; declare -A expected
+while IFS= read -r line; do
+	expected[${line%%=*}]=${line#*=}
+done < /usr/local/share/ldap/ldap-test.ldapsearch.olcsuffix.expected
+
+test_ldapsearch "$olcSuffix"
+
+echo -e "Testing: ${BOLD}TLS protocols / ciphers${NC} ..."
+
+unset expected ; declare -A expected
+while IFS= read -r line; do
+	expected[${line%%=*}]=${line#*=}
+done < /usr/local/share/ldap/ldap-test.tls.expected
+
+test_tls
+
+#echo "Supported Ciphers:"
+#nmap -Pn -p T:636 --script ssl-enum-ciphers localhost
+
+echo "GNUTLS Debugging:"
+#gnutls-cli-debug --port=636 --starttls-proto=ldap localhost
+gnutls-cli --port 636 --priority ${TLS_CIPHER_SUITE} --x509cafile /etc/ssl/certs/slapdca.crt --x509certfile /etc/ssl/certs/slapd.crt --x509keyfile /etc/ssl/private/slapd.key $(hostname) < /dev/null | sed -n '/Description/,$p'
+

@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -e
+
+source /usr/local/lib/entrypoint.sh
+source /usr/local/lib/ldaputils.sh
+
+if [[ -z $2 || -n $4 ]] ; then
+	echo "usage $0 <name> <host> [ <action=add|delete> ]" >&2
+	echo "ex: testuser testbox" >&2
+	exit 1
+fi
+
+fail_if_admin "$1"
+
+name="${1,,}"
+host="${2,,}"
+action="${3:-add}"
+dn="cn=${name},ou=users,${olcSuffix}"
+
+if [[ $action != "add" && $action != "delete" ]] ; then
+	echo "Unsupported action: $action" >&2
+	exit 1
+fi
+
+log "Existing configuration:"
+ldapsearch -b "$dn" -H ldapi:// -LLL -Q -Y EXTERNAL -ZZ
+
+cat <<- EOF | ldapmodify -d 256 -D "$olcRootDN" -H ldapi:// -x -w "$(<$secret)"
+	dn: ${dn}
+	changetype: modify
+	${action}: host
+	host: ${host}
+EOF
+
+log "Altered configuration:"
+ldapsearch -b "$dn" -H ldapi:// -LLL -Q -Y EXTERNAL -ZZ
+

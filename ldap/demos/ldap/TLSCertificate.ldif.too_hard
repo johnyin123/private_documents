@@ -1,0 +1,44 @@
+# Note: * https://serverfault.com/a/810072/282561
+# 	* https://access.redhat.com/articles/1474813
+#	* https://blog.lighttpd.net/gnutls-priority-strings.html
+#	* https://www.gnutls.org/manual/html_node/Selecting-cryptographic-key-sizes.html#tab_003akey_002dsizes
+
+dn: cn=config
+changetype: modify
+replace: olcTLSCipherSuite
+olcTLSCipherSuite: ${TLS_CIPHER_SUITE}
+-
+replace: olcTLSProtocolMin
+olcTLSProtocolMin: 3.3
+-
+replace: olcTLSCACertificateFile
+olcTLSCACertificateFile: /etc/ssl/certs/slapdca.crt
+-
+replace: olcTLSCertificateFile
+olcTLSCertificateFile: /etc/ssl/certs/slapd.crt
+-
+replace: olcTLSCertificateKeyFile
+olcTLSCertificateKeyFile: /etc/ssl/private/slapd.key
+#-
+#replace: olcTLSCRLFile
+#olcTLSCertificateKeyFile: /etc/ssl/clrs/ca.crl
+#-
+#replace: olcTLSDHParamFile
+#olcTLSDHParamFile: /etc/ldap/dhparams.pem
+-
+replace: olcTLSVerifyClient
+olcTLSVerifyClient: demand
+-
+replace: olcLocalSSF
+olcLocalSSF: 256
+-
+replace: olcSecurity
+# Note: Works, but forces TLS over ldapi =/ 
+olcSecurity: simple_bind=256 ssf=256 tls=256 update_ssf=256 update_tls=256
+-
+replace: olcDisallows
+#olcDisallows: bind_anon bind_simple tls_2_anon
+olcDisallows: bind_anon tls_2_anon
+-
+replace: olcRequires
+olcRequires: authc bind strong
