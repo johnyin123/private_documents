@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3e0fc5d[2022-08-02T09:09:53+08:00]:init_ldap.sh")
+VERSION+=("71a9d4c[2022-08-02T09:15:58+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 MANAGER=${MANAGER:-admin}
@@ -98,11 +98,13 @@ setup_multi_master_replication() {
     return 0
 }
 
-setup_ssl() {
+setup_starttls() {
     local ca=${1}
     local cert=${2}
     local key=${3}
-    cat <<EOF >mod_ssl.ldif
+    local ssl_conf=$(mktemp -u)
+
+    cat <<EOF >${ssl_conf}
 dn: cn=config
 changetype: modify
 add: olcTLSCACertificateFile
@@ -114,7 +116,8 @@ olcTLSCertificateFile: ${cert}
 replace: olcTLSCertificateKeyFile
 olcTLSCertificateKeyFile: ${key}
 EOF
-    ldapmodify -Y EXTERNAL -H ldapi:/// -f mod_ssl.ldif
+    ldapmodify -Y EXTERNAL -H ldapi:/// -f ${ssl_conf}
+    rm -f ${ssl_conf}
     systemctl restart slapd
 }
 
@@ -162,13 +165,16 @@ usage() {
 ${SCRIPTNAME}
           env:
             MANAGER=admin
-          init mode: --dc1 test --dc2 mail -p password
+          init mode: --dc1 test --dc2 mail -p password <--ca --cert --key>
           add user mode: --dc1 test --dc2 mail -p password -u user1 -u user2
         --dc1      *    <str>  dc1.dc2/dc1.dc2.dc3<sample.org/sample.org.cn>
         --dc1           <str>
         --dc1           <str>
         -p              <str>  slapd manager password, <default:password>, init mode change to <str>
         -u|--uid        <str>  adduser mode uid in ldap, multi parameters
+        --ca            <str>  ca file
+        --cert          <str>  cert file
+        --key           <str>  key file
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -177,6 +183,7 @@ ${SCRIPTNAME}
         # apt -y install slapd ldap-utils
         # dpkg-reconfigure slapd
         # test ssl
+        openssl s_client -host <host> -port 389 -starttls ldap
         ldapsearch -x -b dc=example,dc=org -ZZ
         # delete user&group
         ldapdelete -x -W -D "cn=${MANAGER},dc=example,dc=org" "uid=testuser1,ou=People,dc=example,dc=com"
@@ -185,10 +192,10 @@ EOF
     exit 1
 }
 main() {
-    local dc1="" dc2="" dc3=""
+    local dc1="" dc2="" dc3="" ca="" cert="" key=""
     local uid=()
     local opt_short="p:u:"
-    local opt_long="dc1:,dc2:,dc3:,uid:,"
+    local opt_long="dc1:,dc2:,dc3:,uid:,ca:,cert:,key:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -198,6 +205,9 @@ main() {
             --dc1)          shift; dc1=${1}; shift;;
             --dc2)          shift; dc2=${1}; shift;;
             --dc3)          shift; dc3=${1}; shift;;
+            --ca)           shift; ca=${1}; shift;;
+            --cert)         shift; cert=${1}; shift;;
+            --key)          shift; key=${1}; shift;;
             -p)             shift; MGR_PWD=${1}; shift;;
             -u | --uid)     shift; uid+=(${1}); shift;;
             ########################################
@@ -219,6 +229,7 @@ main() {
     ((${#uid[@]} > 0)) && { echo "Add user ALL OK"; return 0; }
     change_ldap_passwd "${MGR_PWD}"
     init_ldap "${dc1}" "${dc2}" "${dc3}" || { echo "some failed, run: dpkg-reconfigure slapd, and reinit slapd"; return 1; }
+    [ -z "${ca}" ] || [ -z "${cert}" ] || [ -z "${key}" ] || setup_starttls "${ca}" "${cert}" "${key}"
     echo "ALL INIT OK ${TIMESPAN}"
     ldapsearch -LLL -x \
         -D cn=${MANAGER},dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}} \
