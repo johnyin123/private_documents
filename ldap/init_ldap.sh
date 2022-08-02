@@ -9,10 +9,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8e20a78[2022-07-31T08:00:47+08:00]:init_ldap.sh")
+VERSION+=("3d34530[2022-08-01T17:04:11+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
-PASSWORD=123456
+MANAGER=${MANAGER:-admin}
+MGR_PWD=password
 
 change_ldap_passwd() {
     local passwd=${1}
@@ -51,20 +52,27 @@ add_user() {
     local dc2=${4}
     local dc3=${5:-}
     # create new user
-    cat <<EOF >ldapuser.ldif
+    # slapcat -n 0 | grep "olcObjectClasses:.*posixAccount"
+    cat <<EOF >user_${user}.ldif
 dn: uid=${user},ou=people,dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
 cn: ${user}
+sn: ${user}
+uid: 1000
+uidNumber: 1000
+gidNumber: 1000
+homeDirectory: /home/${user}
 userPassword: $(slappasswd -n -s ${passwd})
+
 dn: cn=${user},ou=groups,dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}
 objectClass: posixGroup
 cn: ${user}
-gidNumber: 2000
-memberUid: bullseye
+gidNumber: 1000
+memberUid: ${user}
 EOF
-root@dlp:~# ldapadd -x -D cn=admin,dc=srv,dc=world -W -f ldapuser.ldif
+    ldapadd -x -D cn=${MANAGER},dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}} -w ${MGR_PWD} -v -f user_${user}.ldif
 }
 
 setup_log() {
@@ -86,6 +94,7 @@ EOF
 }
 
 setup_multi_master_replication() {
+    return 0
 }
 
 setup_ssl() {
@@ -117,7 +126,6 @@ init_ldap() {
     slapcat -n 0 -l ${bak_conf}
     slapcat -n 1 -l ${bak_data}
     sed -i -E \
-        -e "s|^olcRootPW\s*:.*|olcRootPW:: $(slappasswd -n -s ${PASSWORD}| base64 -w0)|g" \
         -e ""s/dc\s*=.*/dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}/g \
         ${bak_conf}
     sed -i -E \
@@ -140,20 +148,26 @@ ou: people
 
 dn: ou=groups,dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}
 objectClass: organizationalUnit
-ou: groups 
+ou: groups
 EOF
     echo "add user data!!!!"
-    ldapadd -x -D cn=admin,dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}} -w ${PASSWORD} -v -f base.ldif || true
+    ldapadd -x -D cn=${MANAGER},dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}} -w ${MGR_PWD} -v -f base.ldif || return 1
+    return 0
 }
 
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        --domain   *    <str>  domain name "sample.org"
-        --lan      *    <str>  lan ipaddr, 192.168.1.2
-        --wan      *    <str>  wan ipaddr.
-        --log                  with named access log (/var/log/named/named.log), default no log 
+          env:
+            MANAGER=admin
+          init mode: --dc1 test --dc2 mail -p password
+          add user mode: --dc1 test --dc2 mail -p password -u user1 -u user2
+        --dc1      *    <str>  dc1.dc2/dc1.dc2.dc3<sample.org/sample.org.cn>
+        --dc1           <str>
+        --dc1           <str>
+        -p              <str>  slapd manager password, <default:password>, init mode change to <str>
+        -u|--uid        <str>  adduser mode uid in ldap, multi parameters
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -164,20 +178,27 @@ ${SCRIPTNAME}
         # test ssl
         ldapsearch -x -b dc=example,dc=org -ZZ
         # delete user&group
-        ldapdelete -x -W -D 'cn=admin,dc=example,dc=org' "uid=testuser1,ou=People,dc=example,dc=com"
-        ldapdelete -x -W -D 'cn=admin,dc=example,dc=org' "cn=testuser1,ou=Group,dc=example,dc=com"
+        ldapdelete -x -W -D "cn=${MANAGER},dc=example,dc=org" "uid=testuser1,ou=People,dc=example,dc=com"
+        ldapdelete -x -W -D "cn=${MANAGER},dc=example,dc=org" "cn=testuser1,ou=Group,dc=example,dc=com"
 EOF
     exit 1
 }
 main() {
-    local opt_short=""
-    local opt_long=""
+    local dc1="" dc2="" dc3=""
+    local uid=()
+    local opt_short="p:u:"
+    local opt_long="dc1:,dc2:,dc3:,uid:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
+            --dc1)          shift; dc1=${1}; shift;;
+            --dc2)          shift; dc2=${1}; shift;;
+            --dc3)          shift; dc3=${1}; shift;;
+            -p)             shift; MGR_PWD=${1}; shift;;
+            -u | --uid)     shift; uid+=(${1}); shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -188,8 +209,21 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    init_ldap "test" "mail"
-    echo "ALL OK ${TIMESPAN}"
+    [ -z "${dc1}" ] && usage "dc1 must input"
+
+    for _u in "${uid[@]}"; do
+        echo "add uid <$_u: password>";
+        add_user "$_u" "password" "${dc1}" "${dc2}" "${dc3}" || echo "**** add $_u failed"
+    done
+    ((${#uid[@]} > 0)) && { echo "Add user ALL OK"; return 0; }
+    change_ldap_passwd "${MGR_PWD}"
+    init_ldap "${dc1}" "${dc2}" "${dc3}" || { echo "some failed, run: dpkg-reconfigure slapd, and reinit slapd"; return 1; }
+    echo "ALL INIT OK ${TIMESPAN}"
+    ldapsearch -LLL -x \
+        -D cn=${MANAGER},dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}} \
+        -w ${MGR_PWD} \
+        -H ldap://0.0.0.0:389/ \
+        -b dc=${dc1}${dc2:+,dc=${dc2}}${dc3:+,dc=${dc3}}
     return 0
 }
 main "$@"
