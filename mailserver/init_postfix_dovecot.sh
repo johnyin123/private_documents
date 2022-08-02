@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d8e83f1[2022-08-01T09:10:48+08:00]:init_postfix_dovecot.sh")
+VERSION+=("d09fb8d[2022-08-01T09:52:19+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -112,6 +112,33 @@ init_postfix() {
         -e 's/^\s*#*smtps\s*inet\s*.*/smtps inet n   -   y   -   -   smtpd/g' \
         -e 's/^\s*#*\s*-o smtpd_tls_wrappermode=yes/  -o smtpd_tls_wrappermode=yes/g' \
         /etc/postfix/master.cf
+}
+
+set_mailbox_ldap_auth() {
+    local maildir=${1}
+
+    sed --quiet -i.orig.${TIMESPAN} -E \
+        -e '/(disable_plaintext_authi\s*=|auth_mechanisms\s*=|include\s+auth-system.conf.ext|include\s+auth-ldap.conf.ext).*/!p' \
+        -e '$a#!include auth-system.conf.ext' \
+        -e '$a!include auth-ldap.conf.ext' \
+        -e '$adisable_plaintext_auth = no' \
+        -e '$aauth_mechanisms = plain login' \
+        /etc/dovecot/conf.d/10-auth.conf
+    cat /etc/dovecot/conf.d/auth-ldap.conf.ext 2>/dev/null > /etc/dovecot/conf.d/auth-ldap.conf.ext.orig.${TIMESPAN} || true
+    cat <<EOF > auth-ldap.conf.ext
+passdb {
+  driver = ldap
+  args = /etc/dovecot/dovecot-ldap.conf.ext
+}
+userdb {
+  driver = ldap
+  args = /etc/dovecot/dovecot-ldap.conf.ext
+  default_fields = uid=${VMAIL_UGID} gid=${VMAIL_UGID} home=${maildir}/%d/%n
+}
+EOF
+    cat /etc/dovecot/dovecot-ldap.conf.ext 2>/dev/null > /etc/dovecot/dovecot-ldap.conf.ext.orig.${TIMESPAN}
+    cat <<EOF >/etc/dovecot/dovecot-ldap.conf.ext
+EOF
 }
 
 set_mailbox_password_auth() {
@@ -277,6 +304,7 @@ ${SCRIPTNAME}
         --dir      *    <str>  mail directory location 
         --cert     *    <str>  ssl cert file
         --key      *    <str>  ssl key file
+        --ldap                 use ldap auth, default use password file
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -310,9 +338,9 @@ EOF
 # testsaslauthd -u user1 -p password -f /var/spool/postfix/var/run/saslauthd/mux
 # saslfinger -s
 main() {
-    local name="" domain="" maildir="" cert="" key=""
+    local name="" domain="" maildir="" cert="" key="" ldap=""
     local opt_short=""
-    local opt_long="name:,domain:,dir:,cert:,key:,"
+    local opt_long="name:,domain:,dir:,cert:,key:,ldap,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -324,6 +352,7 @@ main() {
             --dir)          shift; maildir=${1}; shift;;
             --cert)         shift; cert=${1}; shift;;
             --key)          shift; key=${1}; shift;;
+            --ldap)         shift; ldap=1;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -348,7 +377,8 @@ main() {
     set_postfix_mail_list
     init_dovecot "${maildir}" "${cert}" "${key}" "${domain}"
     set_mailbox_autocreate
-    set_mailbox_password_auth "${maildir}" "${domain}"
+    [ -z "${ldap}" ] && set_mailbox_password_auth "${maildir}" "${domain}"
+    [ -z "${ldap}" ] || set_mailbox_ldap_auth "${maildir}"
     # set_debug "${domain}"
     echo "ALL OK ${TIMESPAN}"
     return 0
