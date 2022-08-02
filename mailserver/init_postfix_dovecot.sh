@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d09fb8d[2022-08-01T09:52:19+08:00]:init_postfix_dovecot.sh")
+VERSION+=("be7112a[2022-08-02T13:48:25+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -331,6 +331,14 @@ ${SCRIPTNAME}
         run test: doveadm auth test user1 password"
         user info: doveadm user user1"
         user login: doveadm auth login user1 password"
+FUSE / GlusterFS
+    FUSE caches dentries and file attributes internally. If you're using multiple
+GlusterFS clients to access the same mailboxes, you're going to have problems. Worst
+of these problems can be avoided by using NFS cache flushes, which just happen to
+work with FUSE as well:
+    mail_nfs_index = yes
+    mail_nfs_storage = yes
+These probably don't work perfectly.
 EOF
     exit 1
 }
