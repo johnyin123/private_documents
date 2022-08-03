@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("98be65a[2022-08-02T16:25:11+08:00]:init_bind.sh")
+VERSION+=("22ab67c[2022-08-02T17:13:52+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 init_bind() {
@@ -237,6 +237,7 @@ main() {
 EOF
     }
     [ -z "${access_log}" ] || init_bind_log
+    systemctl restart named
     echo "ALL OK ${TIMESPAN}"
     return 0
 }
