@@ -1,8 +1,0 @@
-passwd=password
-cat <<- EOF | ldapmodify -d 256 -H ldapi:// -Q -Y EXTERNAL
-        dn: olcDatabase={1}mdb,cn=config
-        changetype: modify
-        replace: olcRootPW
-        olcRootPW: $(slappasswd -n -s ${passwd})
-EOF
-slapcat -n 0 | grep olcRootPW:: | awk '{ print $2}' | base64 -d
