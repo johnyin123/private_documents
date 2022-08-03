@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b7095d1[2022-08-03T14:36:36+08:00]:init_ldap.sh")
+VERSION+=("3f9cd19[2022-08-03T14:54:27+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
@@ -30,10 +30,8 @@ EOF
 }
 
 setup_log() {
-    local dc1=${1}
-    local dc2=${2}
-    local dc3=${3:-}
     echo "****开启openldap日志访问功能" | tee ${LOGFILE}
+    ldapsearch -Y external -H ldapi:/// -b cn=config "(objectClass=olcGlobal)" olcLogLevel -LLL
     cat<<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
 dn: cn=config
 changetype: modify
@@ -41,8 +39,9 @@ replace: olcLogLevel
 olcLogLevel: stats
 EOF
 
-    cat>>/etc/rsyslog.conf<<EOF
-local4 .* /var/log/slapd.log
+    cat<<'EOF' >/etc/rsyslog.d/10-slapd.conf
+$template slapdtmpl,"[%$DAY%-%$MONTH%-%$YEAR% %timegenerated:12:19:date-rfc3339%] %app-name% %syslogseverity-text% %msg%\n"
+local4.* /var/log/slapd.log;slapdtmpl
 EOF
     systemctl restart rsyslog slapd
 }
@@ -279,6 +278,7 @@ main() {
     }
     [ -z "${passwd}" ] || [ -z "${domain}" ] || [ -z "${org}" ] || {
         init_ldap "${passwd}" "${domain}" "${org}"
+        setup_log
         olcRootDN=$(slapcat -n 0 | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
         init_ldap_schema "${olcRootDN}" "${olcSuffix}" "${passwd}"
