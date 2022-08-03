@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("be7112a[2022-08-02T13:48:25+08:00]:init_postfix_dovecot.sh")
+VERSION+=("c0e66ac[2022-08-02T15:34:46+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -115,7 +115,8 @@ init_postfix() {
 }
 
 set_mailbox_ldap_auth() {
-    local maildir=${1}
+    local ldap_srv=${1}
+    local base=${2}
 
     sed --quiet -i.orig.${TIMESPAN} -E \
         -e '/(disable_plaintext_authi\s*=|auth_mechanisms\s*=|include\s+auth-system.conf.ext|include\s+auth-ldap.conf.ext).*/!p' \
@@ -125,7 +126,7 @@ set_mailbox_ldap_auth() {
         -e '$aauth_mechanisms = plain login' \
         /etc/dovecot/conf.d/10-auth.conf
     cat /etc/dovecot/conf.d/auth-ldap.conf.ext 2>/dev/null > /etc/dovecot/conf.d/auth-ldap.conf.ext.orig.${TIMESPAN} || true
-    cat <<EOF > auth-ldap.conf.ext
+    cat <<EOF > /etc/dovecot/conf.d/auth-ldap.conf.ext
 passdb {
   driver = ldap
   args = /etc/dovecot/dovecot-ldap.conf.ext
@@ -133,11 +134,26 @@ passdb {
 userdb {
   driver = ldap
   args = /etc/dovecot/dovecot-ldap.conf.ext
-  default_fields = uid=${VMAIL_UGID} gid=${VMAIL_UGID} home=${maildir}/%d/%n
 }
 EOF
     cat /etc/dovecot/dovecot-ldap.conf.ext 2>/dev/null > /etc/dovecot/dovecot-ldap.conf.ext.orig.${TIMESPAN}
     cat <<EOF >/etc/dovecot/dovecot-ldap.conf.ext
+# dn                  = cn=admin,dc=test,dc=mail
+# dnpass              = password
+
+# if tls yes, ldap_srv must same as "ldap tls pem common name".
+# add ldap_srv in /etc/hosts.
+tls                 = no
+tls_require_cert    = never
+
+hosts               = ${ldap_srv}
+# base = ou=People,dc=test,dc=mail
+base                = ${base}
+user_attrs          = mailUidNumber=${VMAIL_UGID},mailGidNumber=${VMAIL_UGID}
+default_pass_scheme = SSHA
+ldap_version        = 3
+auth_bind           = yes
+blocking            = yes
 EOF
 }
 
@@ -386,7 +402,11 @@ main() {
     init_dovecot "${maildir}" "${cert}" "${key}" "${domain}"
     set_mailbox_autocreate
     [ -z "${ldap}" ] && set_mailbox_password_auth "${maildir}" "${domain}"
-    [ -z "${ldap}" ] || set_mailbox_ldap_auth "${maildir}"
+    [ -z "${ldap}" ] || {
+        set_mailbox_ldap_auth "ldap.server" "ou=People,dc=udomain,dc=org"
+        echo "*********** modify: /etc/dovecot/dovecot-ldap.conf.ext"
+        ecoh "***********   hosts, base, tls"
+    }
     # set_debug "${domain}"
     echo "ALL OK ${TIMESPAN}"
     return 0

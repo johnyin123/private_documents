@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("311056e[2022-02-15T15:49:59+08:00]:newssl.sh")
+VERSION+=("b706823[2022-03-02T16:42:47+08:00]:newssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -46,7 +46,7 @@ init_ca() {
     try openssl dhparam -out ${caroot}/dh2048.pem 2048
 }
 
-gen_clent_cert() {
+gen_client_cert() {
     local caroot=${1}
     local cid=${2}
     [ -e "${caroot}/${cid}.csr" ] && return 1
@@ -112,7 +112,7 @@ main() {
     }
     [ -z "${client}" ] || {
         info_msg "generate client [${client}] cert\n"
-        gen_clent_cert "${caroot}" "${client}" || {
+        gen_client_cert "${caroot}" "${client}" || {
             retval=$?
             error_msg "generate client [${client}] cert error[${retval}]\n"
         }

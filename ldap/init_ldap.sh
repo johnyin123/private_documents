@@ -9,10 +9,10 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8c285ba[2022-08-03T07:07:52+08:00]:init_ldap.sh")
+VERSION+=("e0297ec[2022-08-03T10:09:24+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
-DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"Password"}
+DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 LOGFILE=""
 
 change_ldap_mgr_passwd() {
@@ -84,8 +84,8 @@ objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
 cn: ${user}
-sn: ${user}
-uid: 1000
+sn: mailuser
+uid: ${user}
 uidNumber: 1000
 gidNumber: 1000
 homeDirectory: /home/${user}
@@ -97,7 +97,7 @@ cn: ${user}
 gidNumber: 1000
 memberUid: ${user}
 EOF
-    ldapsearch -x cn=${user} -b ${olcSuffix}
+    # ldapsearch -x cn=${user} -b ${olcSuffix}
 }
 
 setup_multi_master_replication() {
@@ -163,6 +163,7 @@ setup_starttls() {
     local ca=${1}
     local cert=${2}
     local key=${3}
+    chown openldap:openldap "${ca}" "${cert}" "${key}"
     echo "****setup tls" | tee ${LOGFILE}
     cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
 dn: cn=config
@@ -176,7 +177,7 @@ olcTLSCertificateFile: ${cert}
 replace: olcTLSCertificateKeyFile
 olcTLSCertificateKeyFile: ${key}
 EOF
-    # systemctl restart slapd
+    systemctl restart slapd
 }
 
 init_ldap_schema() {
@@ -200,17 +201,21 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-          init mode: -D sample.org -O "a b c" -p password <--ca ca.pem --cert /a.pem --key /a.key --srvid 104 --peer ldap://ip:389/>
+        env:
+           DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD}
+          init mode: -D sample.org -O "a b c" -P password <--ca ca.pem --cert /a.pem --key /a.key --srvid 104 --peer ldap://ip:389/>
           add user mode: -u user1 -u user2
-        -D|--domain     <str>  domain, sample.org
-        -O|--org        <str>  organization, "my company. ltd."
-        -P|--passwd     <str>  slapd manager password
-        -u|--uid        <str>  adduser mode uid in ldap, multi parameters
-        --ca            <str>  ca file
-        --cert          <str>  cert file
-        --key           <str>  key file
-        --srvid         <num>  multimaster mode uniq id on each server, 101
-        --peer          <str>  multimaster mode other node url, ldap://ip:389/
+                  init:adduser
+        -D|--domain  *    <str>  domain, sample.org
+        -O|--org     *    <str>  organization, "my company. ltd."
+        -P|--passwd  * *  <str>  slapd manager password
+        -u|--uid       *  <str>  adduser mode uid in ldap, multi parameters
+                                    default password: ${DEFAULT_ADD_USER_PASSWORD}
+        --ca              <str>  ca file
+        --cert            <str>  cert file
+        --key             <str>  key file
+        --srvid           <num>  multimaster mode uniq id on each server, 101
+        --peer            <str>  multimaster mode other node url, ldap://ip:389/
         -q|--quiet
         -l|--log <str>  log file
         -V|--version
@@ -232,7 +237,7 @@ EOF
 }
 main() {
     local _u="" olcRootDN="" olcSuffix=""
-    local passwd="" domain="" org="" ca="/dummy" cert="" key="" servid="" peer=""
+    local passwd="" domain="" org="" ca="" cert="" key="" srvid="" peer=""
     local uid=()
     local opt_short="P:D:O:u:"
     local opt_long="passwd:,domain:,org:,ca:,cert:,key:,srvid:,peer:,uid:,"
@@ -261,25 +266,31 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    for _u in "${uid[@]}"; do
-        echo "add uid <$_u: password>";
-        add_user "$_u" "password" "" || echo "****ADD $_u failed" | tee ${LOGFILE}
-    done
-    ((${#uid[@]} > 0)) && { echo "****ADD USER ALL OK" | tee ${LOGFILE}; return 0; }
+    ((${#uid[@]} == 0)) || [ -z "${passwd}" ] || {
+        olcRootDN=$(slapcat -n 0 2>/dev/null | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
+        olcSuffix=$(slapcat -n 0 2>/dev/null | grep "olcSuffix" | awk '{print $2}')
+        for _u in "${uid[@]}"; do
+            echo "add uid <$_u: password>";
+            add_user "$_u" "${olcRootDN}" "${olcSuffix}" "${passwd}" || echo "****ADD $_u failed" | tee ${LOGFILE}
+        done
+        echo "****ADD USER ALL OK" | tee ${LOGFILE}
+        return 0
+    }
     [ -z "${passwd}" ] || [ -z "${domain}" ] || [ -z "${org}" ] || {
         init_ldap "${passwd}" "${domain}" "${org}"
         olcRootDN=$(slapcat -n 0 | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
-        olcSuffix=$(slapcat -n 0  | grep "olcSuffix" | awk '{print $2}')
+        olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
         init_ldap_schema "${olcRootDN}" "${olcSuffix}" "${passwd}"
         echo "****INIT OK ${TIMESPAN}" | tee ${LOGFILE}
     }
     [ -z "${ca}" ] || [ -z "${cert}" ] || [ -z "${key}" ] || {
         setup_starttls "${ca}" "${cert}" "${key}"
+        echo "check: LDAPTLS_REQCERT=never ldapsearch -x -b $(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}') -ZZ" | tee ${LOGFILE}
         echo "****INIT STARTTLS OK ${TIMESPAN}" | tee ${LOGFILE}
     }
     [ -z "${srvid}" ] || [ -z "${peer}" ] || [ -z "${passwd}" ] || {
         olcRootDN=$(slapcat -n 0 | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
-        olcSuffix=$(slapcat -n 0  | grep "olcSuffix" | awk '{print $2}')
+        olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
         setup_multi_master_replication "${srvid}" "${peer}" "${olcRootDN}" "${olcSuffix}" "${passwd}"
         echo "****INIT MULTI MASTER OK ${TIMESPAN}" | tee ${LOGFILE}
     }
