@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e0297ec[2022-08-03T10:09:24+08:00]:init_ldap.sh")
+VERSION+=("b7095d1[2022-08-03T14:36:36+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
@@ -270,8 +270,9 @@ main() {
         olcRootDN=$(slapcat -n 0 2>/dev/null | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
         olcSuffix=$(slapcat -n 0 2>/dev/null | grep "olcSuffix" | awk '{print $2}')
         for _u in "${uid[@]}"; do
-            echo "add uid <$_u: password>";
+            echo "****add uid <$_u: ${DEFAULT_ADD_USER_PASSWORD}>";
             add_user "$_u" "${olcRootDN}" "${olcSuffix}" "${passwd}" || echo "****ADD $_u failed" | tee ${LOGFILE}
+            echo "****CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D uid=$_u,ou=People,${olcSuffix} -w ${DEFAULT_ADD_USER_PASSWORD} -a ${DEFAULT_ADD_USER_PASSWORD} -S" | tee ${LOGFILE}
         done
         echo "****ADD USER ALL OK" | tee ${LOGFILE}
         return 0
@@ -285,7 +286,7 @@ main() {
     }
     [ -z "${ca}" ] || [ -z "${cert}" ] || [ -z "${key}" ] || {
         setup_starttls "${ca}" "${cert}" "${key}"
-        echo "check: LDAPTLS_REQCERT=never ldapsearch -x -b $(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}') -ZZ" | tee ${LOGFILE}
+        echo "****check: LDAPTLS_REQCERT=never ldapsearch -x -b $(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}') -ZZ" | tee ${LOGFILE}
         echo "****INIT STARTTLS OK ${TIMESPAN}" | tee ${LOGFILE}
     }
     [ -z "${srvid}" ] || [ -z "${peer}" ] || [ -z "${passwd}" ] || {
