@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("4498654[2022-07-14T08:48:39+08:00]:os_debian_init.sh")
+VERSION+=("2c56c40[2022-07-15T08:08:48+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -635,7 +635,7 @@ EOF
 umask 022
 
 alias cal='ncal -b'
-alias ll='ls -lhF'
+alias ll='ls -lhF --group-directories-first'
 alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'

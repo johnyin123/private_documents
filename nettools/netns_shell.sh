@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-07-22T07:18:40+08:00]:netns_shell.sh")
+VERSION+=("1ddc610[2022-07-22T07:18:40+08:00]:netns_shell.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_nameserver() {
@@ -18,7 +18,7 @@ setup_nameserver() {
     try echo "nameserver ${nameserver}" \> "/etc/netns/$ns_name/resolv.conf"
     try cat \> /etc/netns/$ns_name/bash.bashrc <<EOF
 export PROMPT_COMMAND=""
-alias ll='ls -lh'
+alias ll='ls -lh --group-directories-first'
 export LANG=zh_CN.UTF-8
 export LANGUAGE=zh_CN:zh
 export LC_CTYPE="zh_CN.UTF-8"
