@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b7095d1[2022-08-03T14:36:36+08:00]:init_postfix_dovecot.sh")
+VERSION+=("20e0081[2022-08-04T14:34:06+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -241,6 +241,8 @@ init_dovecot() {
         -e "\$amail_home = ${maildir}/%n" \
         -e "\$amail_access_groups = ${VMAIL_GROUP}" \
         -e "\$adefault_login_user = ${VMAIL_USER}" \
+        -e "\$mail_uid = ${VMAIL_UGID}" \
+        -e "\$mail_gid = ${VMAIL_UGID}" \
         /etc/dovecot/conf.d/10-mail.conf
 
     sed --quiet -i.orig.${TIMESPAN} -E \
