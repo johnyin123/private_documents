@@ -9,141 +9,160 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("22ab67c[2022-08-02T17:13:52+08:00]:init_bind.sh")
+VERSION+=("50e4bc9[2022-08-03T16:42:02+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
+SERIAL=$(date '+%Y%m%d%H')
+
+gen_domain_zone() {
+    local domain=${1}
+    local ipaddr=${2}
+    cat <<EOF
+\$TTL 86400
+@   IN  SOA     ns.${domain}. root.${domain}. (
+    ${SERIAL}  ;Serial
+    3600        ;Refresh
+    1800        ;Retry
+    604800      ;Expire
+    86400       ;Minimum TTL
+)
+        NS          ns.${domain}.
+        MX 3        mail.${domain}.
+@       A           ${ipaddr}
+ns      A           ${ipaddr}
+mail    A           ${ipaddr}
+demo    A           ${ipaddr}
+ftp     CNAME       demo.${domain}.
+; wildcard-dns
+*       CNAME       @
+EOF
+}
+
+gen_reverse_mapped_zone_file() {
+    local domain=${1}
+    local ipaddr=${2}
+    local arpa_file=${3}
+    local w1= w2= w3= w4=
+    IFS='.' read -r w1 w2 w3 w4 <<< "${ipaddr}"
+
+    [ -e "${arpa_file}" ] || {
+    # arpa rev file not exist, so create it
+    cat <<EOF > ${arpa_file}
+\$TTL 86400
+@   IN  SOA     ns.${domain}. root.${domain}. (
+    ${SERIAL}  ;Serial
+    3600        ;Refresh
+    1800        ;Retry
+    604800      ;Expire
+    86400       ;Minimum TTL
+)
+         IN  NS      ns.${domain}.
+EOF
+    }
+    cat <<EOF >> ${arpa_file}
+; ${domain} Reverse-Mapped Zone Begin ${TIMESPAN}
+${w4}     IN  PTR     ns.${domain}.
+${w4}     IN  PTR     mail.${domain}.
+; ${domain} Reverse-Mapped Zone End ${TIMESPAN}
+EOF
+}
+
+aclview_addzone() {
+    local acl_file=${1}
+    local zone_file=${2}
+    sed -E -i.orig.${TIMESPAN} \
+        -e "s|^\s*include\s+.*${zone_file}.*||g" \
+        -e "/^\s*view\s+.*/ a\    include \"${zone_file}\";" \
+        ${acl_file}
+}
+
+gen_zone() {
+    local zone_name=${1}
+    local domain_file=${2}
+    cat <<EOF
+zone "${zone_name}" IN {
+    type master;
+    file "${domain_file}";
+    allow-update { none; };
+};
+EOF
+}
+
+gen_aclview() {
+    local ipaddr=${1}
+    local acl_name=${2}
+    local w1= w2= w3= w4=
+    IFS='.' read -r w1 w2 w3 w4 <<< "${ipaddr}"
+    cat <<EOF
+acl ${acl_name} {
+    // { !${w1}.${w2}.${w3}.0/24; any; };
+    ${w1}.${w2}.${w3}.0/24;
+};
+view "view_${acl_name}" {
+    match-clients {${acl_name};};
+};
+EOF
+}
+
 init_bind() {
     local domain=${1}
     local lan_addr=${2}
     local wan_addr=${3}
-    local fake=${4:-}
-    local l1= l2= l3= l4=
+    local l1= l2= l3= l4= w1= w2= w3= w4=
     IFS='.' read -r l1 l2 l3 l4 <<< "${lan_addr}"
-    local w1= w2= w3= w4=
     IFS='.' read -r w1 w2 w3 w4 <<< "${wan_addr}"
-    mkdir -p "/etc/bind/${domain}" && chown -R root:bind "/etc/bind/${domain}"
+    local acl_lan_file=/etc/bind/named.conf.acl.lan
+    local acl_wan_file=/etc/bind/named.conf.acl.wan
+    local arpa_lan_file=/etc/bind/${l1}.${l2}.${l3}.lan
+    local arpa_wan_file=/etc/bind/${w1}.${w2}.${w3}.wan
+    local domain_lan_file=/etc/bind/${domain}.lan
+    local domain_wan_file=/etc/bind/${domain}.wan
+    local zone_lan_file=/etc/bind/${domain}.zone.lan
+    local zone_wan_file=/etc/bind/${domain}.zone.wan
+    local arpa_zone_lan_file=/etc/bind/${l1}.${l2}.${l3}.zone.lan
+    local arpa_zone_wan_file=/etc/bind/${w1}.${w2}.${w3}.zone.wan
     # remove named.conf.default-zones, when useing view!
     sed --quiet -i.orig.${TIMESPAN} -E \
-        -e "/(${domain}.conf|named.conf.default-zones|logging.conf).*/!p" \
-        -e "\$ainclude \"/etc/bind/${domain}/${domain}.conf\";" \
+        -e "/(named.conf.default-zones|named.conf.acl).*/!p" \
+        -e "\$ainclude \"${acl_lan_file}\";" \
+        -e "\$ainclude \"${acl_wan_file}\";" \
         /etc/bind/named.conf
-
     cat /etc/bind/named.conf.options > /etc/bind/named.conf.options.orig.${TIMESPAN}
     cat <<EOF > /etc/bind/named.conf.options
 options {
     listen-on port 53 { any; };
     listen-on-v6 { none; };
     directory "/var/cache/bind";
+    version "not currently available";
     allow-query { any; };
     allow-query-cache {any;};
     recursion yes;
     forwarders {
         114.114.114.114;
     };
-    dnssec-enable yes;
+    // dnssec-enable yes;
     dnssec-validation yes;
-    dnssec-lookaside auto;
+    // dnssec-lookaside auto;
 };
 EOF
+    [ -e "${acl_lan_file}" ] || gen_aclview "${lan_addr}" "net_lan" >> ${acl_lan_file}
+    [ -e "${acl_wan_file}" ] || gen_aclview "${wan_addr}" "net_wan" >> ${acl_wan_file}
 
-    cat <<EOF > /etc/bind/${domain}/${domain}.conf
-acl net_wan {
-    { !${l1}.${l2}.${l3}.0/24; any; };
-};
-acl net_lan {
-    ${l1}.${l2}.${l3}.0/24;
-};
-view "view_wan" {
-    match-clients {net_wan;};
-    zone "${domain}" IN {
-        type master;
-        file "/etc/bind/${domain}/${domain}.wan";
-        allow-update { none; };
-    };
-    zone "${w3}.${w2}.${w1}.in-addr.arpa" IN {
-        type master;
-        file "/etc/bind/${domain}/${w1}.${w2}.${w3}.wan";
-        allow-update { none; };
-    };
-};
-view "view_lan" {
-    match-clients {net_lan;};${fake}
-    zone "${domain}" IN {
-        type master;
-        file "/etc/bind/${domain}/${domain}.lan";
-        allow-update { none; };
-    };
-    zone "${l3}.${l2}.${l1}.in-addr.arpa" IN {
-        type master;
-        file "/etc/bind/${domain}/${l1}.${l2}.${l3}.lan";
-        allow-update { none; };
-    };
-};
-EOF
-    cat <<EOF > /etc/bind/${domain}/${domain}.lan
-\$TTL 86400
-@   IN  SOA     ns.${domain}. root.${domain}. (
-    2021081801  ;Serial
-    3600        ;Refresh
-    1800        ;Retry
-    604800      ;Expire
-    86400       ;Minimum TTL
-)
-        NS          ns.${domain}.
-        MX 3        mail.${domain}.
-@       A           ${lan_addr}
-ns      A           ${lan_addr}
-mail    A           ${lan_addr}
-demo    A           ${lan_addr}
-ftp     CNAME       demo.${domain}.
-; wildcard-dns
-*       CNAME       @
-EOF
-    cat <<EOF > /etc/bind/${domain}/${l1}.${l2}.${l3}.lan
-\$TTL 86400
-@   IN  SOA     ns.${domain}. root.${domain}. (
-    2021081801  ;Serial
-    3600        ;Refresh
-    1800        ;Retry
-    604800      ;Expire
-    86400       ;Minimum TTL
-)
-        IN  NS      ns.${domain}.
-${l4}     IN  PTR     ns.${domain}.
-${l4}     IN  PTR     mail.${domain}.
-EOF
-    cat <<EOF > /etc/bind/${domain}/${domain}.wan
-\$TTL 86400
-@   IN  SOA     ns.${domain}. root.${domain}. (
-    2021081801  ;Serial
-    3600        ;Refresh
-    1800        ;Retry
-    604800      ;Expire
-    86400       ;Minimum TTL
-)
-        NS          ns.${domain}.
-        MX 3        mail.${domain}.
-@       A           ${wan_addr}
-ns      A           ${wan_addr}
-mail    A           ${wan_addr}
-demo    A           ${wan_addr}
-ftp     CNAME       demo.${domain}.
-; wildcard-dns
-*       CNAME       @
-EOF
-    cat <<EOF > /etc/bind/${domain}/${w1}.${w2}.${w3}.wan
-\$TTL 86400
-@   IN  SOA     ns.${domain}. root.${domain}. (
-    2021081801  ;Serial
-    3600        ;Refresh
-    1800        ;Retry
-    604800      ;Expire
-    86400       ;Minimum TTL
-)
-        IN  NS      ns.${domain}.
-${w4}       IN  PTR     ns.${domain}.
-${w4}       IN  PTR     mail.${domain}.
-EOF
+    gen_zone "${domain}" "${domain_lan_file}" > ${zone_lan_file}
+    gen_zone "${domain}" "${domain_wan_file}" > ${zone_wan_file}
+    aclview_addzone "${acl_lan_file}" "${zone_lan_file}"
+    aclview_addzone "${acl_wan_file}" "${zone_wan_file}"
+
+    gen_zone "${l3}.${l2}.${l1}.in-addr.arpa" "${arpa_lan_file}" > ${arpa_zone_lan_file}
+    gen_zone "${w3}.${w2}.${w1}.in-addr.arpa" "${arpa_wan_file}" > ${arpa_zone_wan_file}
+    aclview_addzone "${acl_lan_file}" "${arpa_zone_lan_file}"
+    aclview_addzone "${acl_wan_file}" "${arpa_zone_wan_file}"
+
+    gen_domain_zone "${domain}" "${lan_addr}" > ${domain_lan_file}
+    gen_domain_zone "${domain}" "${wan_addr}" > ${domain_wan_file}
+
+    gen_reverse_mapped_zone_file "${domain}" "${lan_addr}" "${arpa_lan_file}"
+    gen_reverse_mapped_zone_file "${domain}" "${wan_addr}" "${arpa_wan_file}"
 }
 
 init_bind_log() {
@@ -169,7 +188,9 @@ logging {
     category security       { mylog; };
 };
 EOF
-    echo 'include "/etc/bind/logging.conf";' >> /etc/bind/named.conf
+    grep -q '/etc/bind/logging.conf' /etc/bind/named.conf 2>/dev/nul || {
+        echo 'include "/etc/bind/logging.conf";' >> /etc/bind/named.conf
+    }
 }
 
 usage() {
@@ -180,7 +201,6 @@ ${SCRIPTNAME}
         --lan      *    <str>  lan ipaddr, 192.168.1.2
         --wan      *    <str>  wan ipaddr.
         --log                  with named access log (/var/log/named/named.log), default no log 
-        -f|--fake              support fake all domain
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -195,9 +215,9 @@ EOF
     exit 1
 }
 main() {
-    local domain="" lan="" wan="" access_log="" fake=""
+    local domain="" lan="" wan="" access_log=""
     local opt_short="f"
-    local opt_long="domain:,lan:,wan:,log,fake,"
+    local opt_long="domain:,lan:,wan:,log,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -208,11 +228,6 @@ main() {
             --lan)          shift; lan=${1}; shift;;
             --wan)          shift; wan=${1}; shift;;
             --log)          shift; access_log=1;;
-            -f|--fake)      shift; fake="
-    zone \".\" {
-        type master;
-        file \"/etc/bind/fakeroot.lan\";
-    };";;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -226,19 +241,11 @@ main() {
     [ -z "${domain}" ] && usage "command line error!"
     [ -z "${lan}" ] && usage "command line error!"
     [ -z "${wan}" ] && usage "command line error!"
-    init_bind "${domain}" "${lan}" "${wan}" "${fake}"
-    [ -z "${fake}" ] || {
-        cat <<EOF >/etc/bind/fakeroot.lan
-\$TTL 86400
-@ IN SOA ns.domain.com. hostmaster.domain.com. ( 1 3h 1h 1w 1d )
-                NS 192.168.1.11
-@               A  192.168.1.12
-*               A  192.168.1.14
-EOF
-    }
+    init_bind "${domain}" "${lan}" "${wan}"
     [ -z "${access_log}" ] || init_bind_log
-    systemctl restart named
     echo "ALL OK ${TIMESPAN}"
+    named-checkconf
+    systemctl restart named
     return 0
 }
 main "$@"
