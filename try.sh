@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dcffbf6[2022-03-21T11:26:49+08:00]:try.sh")
+VERSION+=("b5f5d7c[2022-04-15T09:51:35+08:00]:try.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -288,6 +288,11 @@ __trace_ON__
     list_func
 __trace_OFF__
     dummy
+    TEST=/etc/apt/source.list
+    escaped_testx="$(sed -e 's/[\/&]/\\&/g' <<< "$TEST"; echo x)"
+    escaped_test="${escaped_testx%x}"
+    echo $escaped_test
+
     exit_msg "$0 --start/--clean filename\n"
     echo "MAIN!!!"
     # echo > aa.txt
