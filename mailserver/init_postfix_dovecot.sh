@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c0e66ac[2022-08-02T15:34:46+08:00]:init_postfix_dovecot.sh")
+VERSION+=("b7095d1[2022-08-03T14:36:36+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -405,7 +405,7 @@ main() {
     [ -z "${ldap}" ] || {
         set_mailbox_ldap_auth "ldap.server" "ou=People,dc=udomain,dc=org"
         echo "*********** modify: /etc/dovecot/dovecot-ldap.conf.ext"
-        ecoh "***********   hosts, base, tls"
+        echo "***********   hosts, base, tls"
     }
     # set_debug "${domain}"
     echo "ALL OK ${TIMESPAN}"
