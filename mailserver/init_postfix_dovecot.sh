@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9683f64[2022-08-04T15:13:35+08:00]:init_postfix_dovecot.sh")
+VERSION+=("58dae68[2022-08-05T09:03:58+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -43,7 +43,7 @@ init_postfix() {
     local key=${5}
     # reinit postfix
     rm -f /etc/postfix/main.cf /etc/postfix/master.cf 2>/dev/null
-    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure postfix
+    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure postfix 2>/dev/null || true
     # postmap need main.cf config item. so execute here
     echo "${domain}     OK" > /etc/postfix/vdomains
     postmap /etc/postfix/vdomains
@@ -231,8 +231,8 @@ init_dovecot() {
     local key=${3}
     local domain=${4}
     # reinit dovecot
-    find /etc/dovecot/ -type f | xargs rm -f || true
-    UCF_FORCE_CONFFMISS=1 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dovecot-core || true
+    rm -f /etc/dovecot/conf.d/* /etc/dovecot/* 2>/dev/null || true
+    UCF_FORCE_CONFFMISS=1 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dovecot-core 2>/dev/null | true
     # Enable SSL
     sed --quiet -i.orig.${TIMESPAN} -E \
         -e '/^\s*(ssl\s*=|ssl_cert\s*=|ssl_key\s*=).*/!p' \
@@ -247,8 +247,8 @@ init_dovecot() {
         -e "\$amail_home = ${maildir}/%n" \
         -e "\$amail_access_groups = ${VMAIL_GROUP}" \
         -e "\$adefault_login_user = ${VMAIL_USER}" \
-        -e "\$mail_uid = ${VMAIL_UGID}" \
-        -e "\$mail_gid = ${VMAIL_UGID}" \
+        -e "\$amail_uid = ${VMAIL_UGID}" \
+        -e "\$amail_gid = ${VMAIL_UGID}" \
         /etc/dovecot/conf.d/10-mail.conf
 
     sed --quiet -i.orig.${TIMESPAN} -E \
