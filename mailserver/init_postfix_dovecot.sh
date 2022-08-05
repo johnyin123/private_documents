@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("58dae68[2022-08-05T09:03:58+08:00]:init_postfix_dovecot.sh")
+VERSION+=("9cedfa8[2022-08-05T09:29:52+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -121,12 +121,14 @@ set_mailbox_ldap_auth() {
     local ldap_srv=${1}
     local base=${2}
 
+    # auth_username_format = %Ln L:lowercase, n:drop @domain
     sed --quiet -i.orig.${TIMESPAN} -E \
-        -e '/(disable_plaintext_authi\s*=|auth_mechanisms\s*=|include\s+auth-system.conf.ext|include\s+auth-ldap.conf.ext).*/!p' \
+        -e '/(auth_username_format\s*=|disable_plaintext_authi\s*=|auth_mechanisms\s*=|include\s+auth-system.conf.ext|include\s+auth-ldap.conf.ext).*/!p' \
         -e '$a#!include auth-system.conf.ext' \
         -e '$a!include auth-ldap.conf.ext' \
         -e '$adisable_plaintext_auth = no' \
         -e '$aauth_mechanisms = plain login' \
+        -e '$aauth_username_format = %Ln' \
         /etc/dovecot/conf.d/10-auth.conf
     cat /etc/dovecot/conf.d/auth-ldap.conf.ext 2>/dev/null > /etc/dovecot/conf.d/auth-ldap.conf.ext.orig.${TIMESPAN} || true
     cat <<EOF > /etc/dovecot/conf.d/auth-ldap.conf.ext
@@ -166,12 +168,14 @@ set_mailbox_password_auth() {
 
     # passwd file auth
     # ssl = required, client wants to use AUTH PLAIN is ok
+    # auth_username_format = %Lu L:lowercase, u:whole user, include @domain
     sed --quiet -i.orig.${TIMESPAN} -E \
-        -e '/(disable_plaintext_authi\s*=|auth_mechanisms\s*=|include\s+auth-system.conf.ext|include\s+auth-passwdfile.conf.ext).*/!p' \
+        -e '/(auth_username_format\s*=|disable_plaintext_authi\s*=|auth_mechanisms\s*=|include\s+auth-system.conf.ext|include\s+auth-passwdfile.conf.ext).*/!p' \
         -e '$a#!include auth-system.conf.ext' \
         -e '$a!include auth-passwdfile.conf.ext' \
         -e '$adisable_plaintext_auth = no' \
         -e '$aauth_mechanisms = plain login' \
+        -e '$aauth_username_format = %Lu' \
         /etc/dovecot/conf.d/10-auth.conf
     cat /etc/dovecot/conf.d/auth-passwdfile.conf.ext 2>/dev/null > /etc/dovecot/conf.d/auth-passwdfile.conf.ext.orig.${TIMESPAN} || true
     cat <<EOF > /etc/dovecot/conf.d/auth-passwdfile.conf.ext
