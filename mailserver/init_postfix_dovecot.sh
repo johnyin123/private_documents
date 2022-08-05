@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("20e0081[2022-08-04T14:34:06+08:00]:init_postfix_dovecot.sh")
+VERSION+=("9683f64[2022-08-04T15:13:35+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -41,8 +41,9 @@ init_postfix() {
     local maildir=${3}
     local cert=${4}
     local key=${5}
-    cat /etc/postfix/main.cf 2>/dev/null > /etc/postfix/main.cf.orig.${TIMESPAN} || true
-    rm -f /etc/postfix/main.cf && touch /etc/postfix/main.cf
+    # reinit postfix
+    rm -f /etc/postfix/main.cf /etc/postfix/master.cf 2>/dev/null
+    DEBIAN_FRONTEND=noninteractive dpkg-reconfigure postfix
     # postmap need main.cf config item. so execute here
     echo "${domain}     OK" > /etc/postfix/vdomains
     postmap /etc/postfix/vdomains
@@ -54,8 +55,10 @@ init_postfix() {
     postconf -e "mydomain = ${domain}"
     # postconf -e "setgid_group = postdrop"
     # postconf -e "sendmail_path = $(which sendmail)"
-    #  mailq_path = /usr/bin/mailq
-    # mail max size 10M
+    # mailq_path = /usr/bin/mailq
+    # message_size_limit = 10485760  # 限制单封邮件的最大长度
+    # mailbox_size_limit = 20480000  # 单封邮件大小限制，单位字节
+    # mail_owner = postfix           # postfix daemon 进程的运行身份
     postconf -e "mailbox_size_limit = 10485760"
     postconf -e 'inet_interfaces = all'
     postconf -e 'inet_protocols = ipv4'
@@ -227,6 +230,9 @@ init_dovecot() {
     local cert=${2}
     local key=${3}
     local domain=${4}
+    # reinit dovecot
+    find /etc/dovecot/ -type f | xargs rm -f || true
+    UCF_FORCE_CONFFMISS=1 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dovecot-core || true
     # Enable SSL
     sed --quiet -i.orig.${TIMESPAN} -E \
         -e '/^\s*(ssl\s*=|ssl_cert\s*=|ssl_key\s*=).*/!p' \
