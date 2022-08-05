@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3f9cd19[2022-08-03T14:54:27+08:00]:init_ldap.sh")
+VERSION+=("28c2ebd[2022-08-03T17:03:19+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
@@ -73,27 +73,31 @@ add_user() {
     local user=${1}
     local olcRootDN=${2}
     local olcSuffix=${3}
-    local passwd=${4}
     # create new user
     # slapcat -n 0 | grep "olcObjectClasses:.*posixAccount"
     echo "****CREATE USER ${user}:${DEFAULT_ADD_USER_PASSWORD}"
-    cat <<EOF |tee ${LOGFILE}| ldapadd -x -D ${olcRootDN} -w ${passwd}
+    cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
 dn: uid=${user},ou=people,${olcSuffix}
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
-cn: ${user}
-sn: mailuser
+cn: common_name
+sn: realname
 uid: ${user}
-uidNumber: 1000
-gidNumber: 1000
+uidNumber: 10000
+gidNumber: 10000
 homeDirectory: /home/${user}
 userPassword: $(slappasswd -n -s ${DEFAULT_ADD_USER_PASSWORD})
+shadowMax: 60
+shadowMin: 1
+shadowWarning: 7
+shadowInactive: 7
+shadowLastChange: 0
 
 dn: cn=${user},ou=groups,${olcSuffix}
 objectClass: posixGroup
-cn: ${user}
-gidNumber: 1000
+cn: common_name
+gidNumber: 10000
 memberUid: ${user}
 EOF
     # ldapsearch -x cn=${user} -b ${olcSuffix}
@@ -179,18 +183,56 @@ EOF
     systemctl restart slapd
 }
 
-init_ldap_schema() {
+add_mdb_readonly_sysuser() {
+    local olcSuffix=${1}
+    local user=${2}
+    local passwd=${3}
+    echo "****Add ${user} for readonly querying the directory server" | tee ${LOGFILE}
+    cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
+dn: cn=${user},ou=people,${olcSuffix}
+objectClass: organizationalRole
+objectClass: simpleSecurityObject
+cn: readonly
+userPassword: $(slappasswd -n -s ${passwd})
+description: Bind DN user for LDAP Operations
+EOF
+    #  verify the Bind DN ACL with the following command
+    ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b cn=config '(olcDatabase={1}mdb)' olcAccess
+}
+
+update_mdb_acl() {
+    local olcSuffix=${1}
+    echo "****Update database ACL" | tee ${LOGFILE}
+    cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
+dn: olcDatabase={1}mdb,cn=config
+changetype: modify
+replace: olcAccess
+olcAccess: to attrs=userPassword,shadowLastChange,shadowExpire
+  by self write
+  by anonymous auth
+  by dn.subtree="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" manage
+  by dn.exact="cn=readonly,ou=people,${olcSuffix}" read
+  by * none
+olcAccess: to dn.exact="cn=readonly,ou=people,${olcSuffix}" by dn.subtree="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" manage by * none
+olcAccess: to dn.subtree="${olcSuffix}" by dn.subtree="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" manage
+  by users read
+  by * none
+EOF
+}
+
+init_user_organization_unit() {
     local olcRootDN=${1}
     local olcSuffix=${2}
-    local passwd=${3}
-    echo "****setup user schema" | tee ${LOGFILE}
-    cat <<EOF |tee ${LOGFILE}| ldapadd -x -D ${olcRootDN} -w "${passwd}"
+    echo "****setup user organization unit" | tee ${LOGFILE}
+    cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
 dn: ou=people,${olcSuffix}
 objectClass: organizationalUnit
+objectClass: top
 ou: people
 
 dn: ou=groups,${olcSuffix}
 objectClass: organizationalUnit
+objectClass: top
 ou: groups
 EOF
     return 0
@@ -202,19 +244,26 @@ usage() {
 ${SCRIPTNAME}
         env:
            DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD}
-          init mode: -D sample.org -O "a b c" -P password <--ca ca.pem --cert /a.pem --key /a.key --srvid 104 --peer ldap://ip:389/>
-          add user mode: -u user1 -u user2
-                  init:adduser
+          init:         -D sample.org -O "a b c" -P password
+          addtls:       --ca ca.pem --cert /a.pem --key /a.key
+          multimaster:  --srvid 104 --peer ldap://ip:389/>
+          create ou:    --create_userou
+          add ro usser: --rsysuser oureader --rsyspass pass
+          add user:     -u user1 -u user2
+          ALL IN ONE:   ..............
         -D|--domain  *    <str>  domain, sample.org
         -O|--org     *    <str>  organization, "my company. ltd."
-        -P|--passwd  * *  <str>  slapd manager password
-        -u|--uid       *  <str>  adduser mode uid in ldap, multi parameters
-                                    default password: ${DEFAULT_ADD_USER_PASSWORD}
-        --ca              <str>  ca file
-        --cert            <str>  cert file
-        --key             <str>  key file
-        --srvid           <num>  multimaster mode uniq id on each server, 101
-        --peer            <str>  multimaster mode other node url, ldap://ip:389/
+        -P|--passwd  *  * <str>  slapd manager password
+        --create_userou          create organization unit
+        --rsysuser *      <str>  create readonly user for access ldap server 
+        --rsyspass *      <str>
+        -u|--uid          <str>  adduser mode uid in ldap, multi parameters
+                                   default password: ${DEFAULT_ADD_USER_PASSWORD}
+        --ca    *         <str>  ca file
+        --cert  *         <str>  cert file
+        --key   *         <str>  key file
+        --srvid         * <num>  multimaster mode uniq id on each server, 101
+        --peer          * <str>  multimaster mode other node url, ldap://ip:389/
         -q|--quiet
         -l|--log <str>  log file
         -V|--version
@@ -236,10 +285,10 @@ EOF
 }
 main() {
     local _u="" olcRootDN="" olcSuffix=""
-    local passwd="" domain="" org="" ca="" cert="" key="" srvid="" peer=""
+    local passwd="" domain="" org="" ca="" cert="" key="" srvid="" peer="" create_userou="" rsysuser="" rsyspass=""
     local uid=()
     local opt_short="P:D:O:u:"
-    local opt_long="passwd:,domain:,org:,ca:,cert:,key:,srvid:,peer:,uid:,"
+    local opt_long="passwd:,domain:,org:,ca:,cert:,key:,srvid:,peer:,uid:,create_userou,rsyspass:,rsysuser:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -249,6 +298,9 @@ main() {
             -P | --passwd)  shift; passwd=${1}; shift;;
             -D | --domain)  shift; domain=${1}; shift;;
             -O | --org)     shift; org=${1}; shift;;
+            --create_userou)shift; create_userou=1;;
+            --rsysuser)     shift; rsysuser=${1}; shift;;
+            --rsyspass)     shift; rsyspass=${1}; shift;;
             --ca)           shift; ca=${1}; shift;;
             --cert)         shift; cert=${1}; shift;;
             --key)          shift; key=${1}; shift;;
@@ -265,24 +317,25 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    ((${#uid[@]} == 0)) || [ -z "${passwd}" ] || {
-        olcRootDN=$(slapcat -n 0 2>/dev/null | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
-        olcSuffix=$(slapcat -n 0 2>/dev/null | grep "olcSuffix" | awk '{print $2}')
-        for _u in "${uid[@]}"; do
-            echo "****add uid <$_u: ${DEFAULT_ADD_USER_PASSWORD}>";
-            add_user "$_u" "${olcRootDN}" "${olcSuffix}" "${passwd}" || echo "****ADD $_u failed" | tee ${LOGFILE}
-            echo "****CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D uid=$_u,ou=People,${olcSuffix} -w ${DEFAULT_ADD_USER_PASSWORD} -a ${DEFAULT_ADD_USER_PASSWORD} -S" | tee ${LOGFILE}
-        done
-        echo "****ADD USER ALL OK" | tee ${LOGFILE}
-        return 0
-    }
     [ -z "${passwd}" ] || [ -z "${domain}" ] || [ -z "${org}" ] || {
         init_ldap "${passwd}" "${domain}" "${org}"
         setup_log
         olcRootDN=$(slapcat -n 0 | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
-        init_ldap_schema "${olcRootDN}" "${olcSuffix}" "${passwd}"
+        update_mdb_acl "${olcSuffix}"
         echo "****INIT OK ${TIMESPAN}" | tee ${LOGFILE}
+    }
+    [ -z "${create_userou}" ] || {
+        olcRootDN=$(slapcat -n 0 | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
+        olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
+        init_user_organization_unit "${olcRootDN}" "${olcSuffix}"
+        echo "****INIT USER ORGANIZATION UNIT OK ${TIMESPAN}" | tee ${LOGFILE}
+    }
+    [ -z "${rsysuser}" ] || [ -z "${rsyspass}" ] || {
+        olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
+        add_mdb_readonly_sysuser "${olcSuffix}" "${rsysuser}" "${rsyspass}"
+        echo "****CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D cn=${rsysuser},ou=People,${olcSuffix} -w ${rsyspass}-a ${rsyspass} -S"
+        echo "****ADD READONLY SYS USER OK ${TIMESPAN}" | tee ${LOGFILE}
     }
     [ -z "${ca}" ] || [ -z "${cert}" ] || [ -z "${key}" ] || {
         setup_starttls "${ca}" "${cert}" "${key}"
@@ -294,6 +347,17 @@ main() {
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
         setup_multi_master_replication "${srvid}" "${peer}" "${olcRootDN}" "${olcSuffix}" "${passwd}"
         echo "****INIT MULTI MASTER OK ${TIMESPAN}" | tee ${LOGFILE}
+    }
+    ((${#uid[@]} == 0)) || {
+        olcRootDN=$(slapcat -n 0 2>/dev/null | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
+        olcSuffix=$(slapcat -n 0 2>/dev/null | grep "olcSuffix" | awk '{print $2}')
+        for _u in "${uid[@]}"; do
+            echo "****add uid <$_u: ${DEFAULT_ADD_USER_PASSWORD}>";
+            add_user "$_u" "${olcRootDN}" "${olcSuffix}" || echo "****ADD $_u failed" | tee ${LOGFILE}
+            echo "****CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D uid=$_u,ou=People,${olcSuffix} -w ${DEFAULT_ADD_USER_PASSWORD} -a ${DEFAULT_ADD_USER_PASSWORD} -S" | tee ${LOGFILE}
+        done
+        echo "****ADD USER ALL OK" | tee ${LOGFILE}
+        return 0
     }
     return 0
 }

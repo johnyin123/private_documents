@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9cedfa8[2022-08-05T09:29:52+08:00]:init_postfix_dovecot.sh")
+VERSION+=("ca99f07[2022-08-05T14:42:12+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -143,7 +143,7 @@ userdb {
 EOF
     cat /etc/dovecot/dovecot-ldap.conf.ext 2>/dev/null > /etc/dovecot/dovecot-ldap.conf.ext.orig.${TIMESPAN}
     cat <<EOF >/etc/dovecot/dovecot-ldap.conf.ext
-# dn                  = cn=admin,dc=test,dc=mail
+# dn                  = cn=readonly,${base}
 # dnpass              = password
 
 # if tls yes, ldap_srv must same as "ldap tls pem common name".
@@ -417,7 +417,7 @@ main() {
     [ -z "${ldap}" ] || {
         set_mailbox_ldap_auth "ldap.server" "ou=People,dc=udomain,dc=org"
         echo "*********** modify: /etc/dovecot/dovecot-ldap.conf.ext"
-        echo "***********   hosts, base, tls"
+        echo "***********  hosts, base, tls, hosts -> USE DNS NAME(same as ldap PKI Sign cert DN)"
     }
     # set_debug "${domain}"
     echo "ALL OK ${TIMESPAN}"
