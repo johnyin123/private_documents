@@ -9,16 +9,18 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ca99f07[2022-08-05T14:42:12+08:00]:init_postfix_dovecot.sh")
+VERSION+=("9c286d0[2022-08-05T16:20:28+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
 VMAIL_GROUP=${VMAIL_GROUP:-vmail}
 VMAIL_UGID=${VMAIL_UGID:-5000}
 MAIL_LIST=${MAIL_LIST:-/etc/aliases}
+LOGFILE=""
 
 init_vmail_user() {
     local maildir=${1}
+    echo "****init vmail user, HOME=${maildir}" | tee ${LOGFILE}
     userdel -f -r ${VMAIL_USER} || true
     groupdel -f ${VMAIL_GROUP} || true
     getent group ${VMAIL_GROUP} >/dev/null || groupadd -g ${VMAIL_UGID} ${VMAIL_GROUP} 2>/dev/null || true
@@ -35,13 +37,39 @@ EOF
     postalias "${MAIL_LIST}"
 }
 
+set_postfix_ldap_local_recipient_map() {
+    local ldap_srv=${1}
+    local base=${2}
+    echo "****Set Postfix local_recipient_map, so not local user can not post mails." | tee ${LOGFILE}
+    echo "****Edit /etc/postfix/ldap-localusers.cf for ldap login info" | tee ${LOGFILE}
+    postconf -e 'local_recipient_maps = ldap:/etc/postfix/ldap-localusers.cf unix:passwd.byname'
+    cat <<EOF |tee ${LOGFILE} >/etc/postfix/ldap-localusers.cf
+bind       = yes
+bind_dn    = cn=readonly,${base}
+bind_pw    = password
+start_tls  = no
+# tls_require_cert = off
+# # #
+server_host = ${ldap_srv}
+server_port = 389
+search_base = ${base}
+# # #
+query_filter = (&(uid=%u))
+# query_filter = (&(uid=%u)(accountStatus=active))
+result_attribute = uid
+version = 3
+EOF
+    echo "****check postfix ldap local user, output: user1, -v verbose" | tee ${LOGFILE}
+    postmap -q 'user1' ldap:/etc/postfix/ldap-localusers.cf || true
+}
+
 init_postfix() {
     local name=${1}
     local domain=${2}
     local maildir=${3}
     local cert=${4}
     local key=${5}
-    # reinit postfix
+    echo "****reinit postfix" | tee ${LOGFILE}
     rm -f /etc/postfix/main.cf /etc/postfix/master.cf 2>/dev/null
     DEBIAN_FRONTEND=noninteractive dpkg-reconfigure postfix 2>/dev/null || true
     # postmap need main.cf config item. so execute here
@@ -62,17 +90,12 @@ init_postfix() {
     postconf -e "mailbox_size_limit = 10485760"
     postconf -e 'inet_interfaces = all'
     postconf -e 'inet_protocols = ipv4'
-    postconf -e 'mydestination = $myhostname, localhost.$mydomain, localhost'
+    postconf -e 'mydestination = $mydomain, localhost.$mydomain, localhost'
     postconf -e 'alias_maps = '
-    postconf -e "virtual_mailbox_base = ${maildir}"
-    postconf -e 'home_mailbox = Maildir/'
-    postconf -e 'virtual_mailbox_domains = hash:/etc/postfix/vdomains'
-    # postconf -e 'virtual_mailbox_maps = hash:/etc/postfix/vmaps'
-    postconf -e "virtual_minimum_uid = ${VMAIL_UGID}"
-    postconf -e "virtual_uid_maps = static:${VMAIL_UGID}"
-    postconf -e "virtual_gid_maps = static:${VMAIL_UGID}"
-    # I'm glossing over this but LMTP is basically what we're using to send things over to Dovecot, this will be important because it allows Dovecot to do some processing on incoming mail later.
-    postconf -e 'virtual_transport = lmtp:unix:private/dovecot-lmtp'
+    ####################
+    postconf -e 'mailbox_transport = lmtp:unix:private/dovecot-lmtp'
+    echo "****turn off local recipient checking in the Postfix SMTP server!!!!" | tee ${LOGFILE}
+    postconf -e 'local_recipient_maps ='
     ####################
     postconf -e 'html_directory = no'
     #This is super important; we will only allow authenticated mail below.
@@ -117,10 +140,10 @@ init_postfix() {
         /etc/postfix/master.cf
 }
 
-set_mailbox_ldap_auth() {
+set_dovecot_mailbox_ldap_auth() {
     local ldap_srv=${1}
     local base=${2}
-
+    echo "****dovecot ldap auth" | tee ${LOGFILE}
     # auth_username_format = %Ln L:lowercase, n:drop @domain
     sed --quiet -i.orig.${TIMESPAN} -E \
         -e '/(auth_username_format\s*=|disable_plaintext_authi\s*=|auth_mechanisms\s*=|include\s+auth-system.conf.ext|include\s+auth-ldap.conf.ext).*/!p' \
@@ -130,8 +153,8 @@ set_mailbox_ldap_auth() {
         -e '$aauth_mechanisms = plain login' \
         -e '$aauth_username_format = %Ln' \
         /etc/dovecot/conf.d/10-auth.conf
-    cat /etc/dovecot/conf.d/auth-ldap.conf.ext 2>/dev/null > /etc/dovecot/conf.d/auth-ldap.conf.ext.orig.${TIMESPAN} || true
-    cat <<EOF > /etc/dovecot/conf.d/auth-ldap.conf.ext
+    cat /etc/dovecot/conf.d/auth-ldap.conf.ext 2>/dev/null || true> /etc/dovecot/conf.d/auth-ldap.conf.ext.orig.${TIMESPAN} || true
+    cat <<EOF |tee ${LOGFILE}> /etc/dovecot/conf.d/auth-ldap.conf.ext
 passdb {
   driver = ldap
   args = /etc/dovecot/dovecot-ldap.conf.ext
@@ -141,8 +164,8 @@ userdb {
   args = /etc/dovecot/dovecot-ldap.conf.ext
 }
 EOF
-    cat /etc/dovecot/dovecot-ldap.conf.ext 2>/dev/null > /etc/dovecot/dovecot-ldap.conf.ext.orig.${TIMESPAN}
-    cat <<EOF >/etc/dovecot/dovecot-ldap.conf.ext
+    cat /etc/dovecot/dovecot-ldap.conf.ext 2>/dev/null || true > /etc/dovecot/dovecot-ldap.conf.ext.orig.${TIMESPAN}
+    cat <<EOF |tee ${LOGFILE}>/etc/dovecot/dovecot-ldap.conf.ext
 # dn                  = cn=readonly,${base}
 # dnpass              = password
 
@@ -165,7 +188,7 @@ EOF
 set_mailbox_password_auth() {
     local maildir=${1}
     local domain=${2}
-
+    echo "****dovecot passwd_file auth" | tee ${LOGFILE}
     # passwd file auth
     # ssl = required, client wants to use AUTH PLAIN is ok
     # auth_username_format = %Lu L:lowercase, u:whole user, include @domain
@@ -178,7 +201,7 @@ set_mailbox_password_auth() {
         -e '$aauth_username_format = %Lu' \
         /etc/dovecot/conf.d/10-auth.conf
     cat /etc/dovecot/conf.d/auth-passwdfile.conf.ext 2>/dev/null > /etc/dovecot/conf.d/auth-passwdfile.conf.ext.orig.${TIMESPAN} || true
-    cat <<EOF > /etc/dovecot/conf.d/auth-passwdfile.conf.ext
+    cat <<EOF |tee ${LOGFILE}> /etc/dovecot/conf.d/auth-passwdfile.conf.ext
 passdb {
   driver = passwd-file
   args = scheme=SHA512-CRYPT /etc/dovecot/passwd
@@ -190,7 +213,7 @@ userdb {
 EOF
     # Add users
     cat /etc/dovecot/passwd 2>/dev/null > /etc/dovecot/passwd.orig.${TIMESPAN} || true
-    cat <<EOF > /etc/dovecot/passwd
+    cat <<EOF |tee ${LOGFILE}> /etc/dovecot/passwd
 # doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2
 admin@${domain}:$(doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2)
 user1@${domain}:$(doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2)
@@ -200,10 +223,11 @@ EOF
 }
 
 set_mailbox_autocreate() {
+    echo "****dovecot mailbox autocreate" | tee ${LOGFILE}
     sed --quiet -i.orig.${TIMESPAN} -E \
         -e '/^namespace\s+inbox\s*\{/,/^\}/!p' \
         /etc/dovecot/conf.d/15-mailboxes.conf
-    cat <<EOF >>/etc/dovecot/conf.d/15-mailboxes.conf
+    cat <<EOF |tee ${LOGFILE}>>/etc/dovecot/conf.d/15-mailboxes.conf
 namespace inbox {
   mailbox Drafts {
     auto = subscribe
@@ -234,7 +258,7 @@ init_dovecot() {
     local cert=${2}
     local key=${3}
     local domain=${4}
-    # reinit dovecot
+    echo "****reinit dovecot" | tee ${LOGFILE}
     rm -f /etc/dovecot/conf.d/* /etc/dovecot/* 2>/dev/null || true
     UCF_FORCE_CONFFMISS=1 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dovecot-core 2>/dev/null | true
     # Enable SSL
@@ -258,7 +282,7 @@ init_dovecot() {
     sed --quiet -i.orig.${TIMESPAN} -E \
         -e '/^service\s+(auth|imap-login|pop3-login|lmtp)\s*\{/,/^\}/!p' \
         /etc/dovecot/conf.d/10-master.conf
-    cat <<EOF >> /etc/dovecot/conf.d/10-master.conf
+    cat <<EOF |tee ${LOGFILE}>> /etc/dovecot/conf.d/10-master.conf
 service auth {
   unix_listener auth-userdb {
     mode = 0600
@@ -332,7 +356,7 @@ ${SCRIPTNAME}
         --dir      *    <str>  mail directory location 
         --cert     *    <str>  ssl cert file
         --key      *    <str>  ssl key file
-        --ldap                 use ldap auth, default use password file
+        --ldap     <ldap_srv>  ldap auth OR default password file
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -343,7 +367,7 @@ ${SCRIPTNAME}
             gpg --dearmor > /etc/apt/trusted.gpg.d/dovecot-archive-keyring.gpg
         apt -y install apt-transport-https
         echo "deb https://repo.dovecot.org/ce-2.3-latest/debian/bullseye bullseye main" >/etc/apt/sources.list.d/dovecot.list
-        apt -y install postfix dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd
+        apt -y install postfix postfix-ldap dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd dovecot-ldap
         # check ssl
         openssl s_client -servername mail.sample.org -connect mail.sample.org:pop3s
         # check starttls:
@@ -376,7 +400,7 @@ EOF
 main() {
     local name="" domain="" maildir="" cert="" key="" ldap=""
     local opt_short=""
-    local opt_long="name:,domain:,dir:,cert:,key:,ldap,"
+    local opt_long="name:,domain:,dir:,cert:,key:,ldap:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -388,10 +412,10 @@ main() {
             --dir)          shift; maildir=${1}; shift;;
             --cert)         shift; cert=${1}; shift;;
             --key)          shift; key=${1}; shift;;
-            --ldap)         shift; ldap=1;;
+            --ldap)         shift; ldap=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
-            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -l | --log)     shift; LOGFILE="-a ${1}"; shift;;
             -d | --dryrun)  shift; DRYRUN=1;;
             -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
             -h | --help)    shift; usage;;
@@ -415,12 +439,13 @@ main() {
     set_mailbox_autocreate
     [ -z "${ldap}" ] && set_mailbox_password_auth "${maildir}" "${domain}"
     [ -z "${ldap}" ] || {
-        set_mailbox_ldap_auth "ldap.server" "ou=People,dc=udomain,dc=org"
-        echo "*********** modify: /etc/dovecot/dovecot-ldap.conf.ext"
-        echo "***********  hosts, base, tls, hosts -> USE DNS NAME(same as ldap PKI Sign cert DN)"
+        set_postfix_ldap_local_recipient_map "${ldap}" "ou=People,dc=udomain,dc=org"
+        set_dovecot_mailbox_ldap_auth "${ldap}" "ou=People,dc=udomain,dc=org"
+        echo "**** modify: /etc/dovecot/dovecot-ldap.conf.ext" | tee ${LOGFILE}
+        echo "****  hosts, base, tls, hosts -> USE DNS NAME(same as ldap PKI Sign cert DN)" | tee ${LOGFILE}
     }
     # set_debug "${domain}"
-    echo "ALL OK ${TIMESPAN}"
+    echo "****ALL OK ${TIMESPAN}" | tee ${LOGFILE}
     return 0
 }
 main "$@"
