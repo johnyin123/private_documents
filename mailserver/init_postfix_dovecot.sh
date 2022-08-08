@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9c286d0[2022-08-05T16:20:28+08:00]:init_postfix_dovecot.sh")
+VERSION+=("63aaff3[2022-08-08T13:36:07+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -29,6 +29,7 @@ init_vmail_user() {
 }
 
 set_postfix_mail_list() {
+    echo "****init postfix alias, for mail_list, NOT WORKED!!!!" | tee ${LOGFILE}
     postconf -e "alias_database = hash:${MAIL_LIST}"
     cat <<EOF>"${MAIL_LIST}"
 postmaster: root
@@ -73,8 +74,6 @@ init_postfix() {
     rm -f /etc/postfix/main.cf /etc/postfix/master.cf 2>/dev/null
     DEBIAN_FRONTEND=noninteractive dpkg-reconfigure postfix 2>/dev/null || true
     # postmap need main.cf config item. so execute here
-    echo "${domain}     OK" > /etc/postfix/vdomains
-    postmap /etc/postfix/vdomains
     echo "$domain" > /etc/mailname
 
     postconf -e 'myorigin = /etc/mailname'
