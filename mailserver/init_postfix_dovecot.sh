@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("58890af[2022-08-08T16:45:21+08:00]:init_postfix_dovecot.sh")
+VERSION+=("dcda8cc[2022-08-08T17:16:32+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -30,7 +30,7 @@ init_vmail_user() {
 
 set_postfix_mail_list() {
     local domain=${1}
-    echo "****init postfix alias, for mail_list, NOT WORKED!!!!" | tee ${LOGFILE}
+    echo "****init postfix alias, Mailman, the GNU Mailing List Manager" | tee ${LOGFILE}
     postconf -e "alias_database = hash:${MAIL_LIST}"
     cat <<EOF>"${MAIL_LIST}"
 postmaster: root
