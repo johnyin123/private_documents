@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("775596c[2022-08-08T13:45:16+08:00]:init_postfix_dovecot.sh")
+VERSION+=("58890af[2022-08-08T16:45:21+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -447,8 +447,10 @@ main() {
     set_mailbox_autocreate
     [ -z "${ldap}" ] && set_mailbox_password_auth "${maildir}" "${domain}"
     [ -z "${ldap}" ] || {
-        set_postfix_ldap_local_recipient_map "${ldap}" "ou=People,dc=udomain,dc=org"
-        set_dovecot_mailbox_ldap_auth "${ldap}" "ou=People,dc=udomain,dc=org"
+        local d1="" d2="" d3=""
+        IFS='.' read -r d1 d2 d3 <<< "${domain}"
+        set_postfix_ldap_local_recipient_map "${ldap}" "ou=People,dc=${d1}${d2:+,dc=${d2}}${d3:+,dc=${d3}}"
+        set_dovecot_mailbox_ldap_auth "${ldap}" "ou=People,dc=${d1}${d2:+,dc=${d2}}${d3:+,dc=${d3}}"
         echo "**** modify: /etc/dovecot/dovecot-ldap.conf.ext" | tee ${LOGFILE}
         echo "****  hosts, base, tls, hosts -> USE DNS NAME(same as ldap PKI Sign cert DN)" | tee ${LOGFILE}
     }
