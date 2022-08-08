@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("63aaff3[2022-08-08T13:36:07+08:00]:init_postfix_dovecot.sh")
+VERSION+=("775596c[2022-08-08T13:45:16+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -29,13 +29,22 @@ init_vmail_user() {
 }
 
 set_postfix_mail_list() {
+    local domain=${1}
     echo "****init postfix alias, for mail_list, NOT WORKED!!!!" | tee ${LOGFILE}
     postconf -e "alias_database = hash:${MAIL_LIST}"
     cat <<EOF>"${MAIL_LIST}"
 postmaster: root
-demolst: admin@test2.domain, user1@test.domain
 EOF
     postalias "${MAIL_LIST}"
+    echo "****init postfix virtual domain alias, Email Redirect OK"
+    postconf -e "virtual_alias_domains = ${domain}"
+    postconf -e "virtual_alias_maps = hash:/etc/postfix/virtual"
+    cat <<EOF |tee ${LOGFILE}>/etc/postfix/virtual
+postmaster@${domain}  user2@${domain}
+admin@${domain}       user1@${domain}
+#@sample.com          catch-all@domain.com
+EOF
+    postmap /etc/postfix/virtual
 }
 
 set_postfix_ldap_local_recipient_map() {
@@ -433,7 +442,7 @@ main() {
     chmod 0400 "${key}" || true
     init_vmail_user "${maildir}"
     init_postfix "${name}" "${domain}" "${maildir}" "${cert}" "${key}"
-    set_postfix_mail_list
+    set_postfix_mail_list "${domain}"
     init_dovecot "${maildir}" "${cert}" "${key}" "${domain}"
     set_mailbox_autocreate
     [ -z "${ldap}" ] && set_mailbox_password_auth "${maildir}" "${domain}"
