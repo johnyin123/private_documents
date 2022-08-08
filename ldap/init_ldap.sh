@@ -9,12 +9,12 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("28c2ebd[2022-08-03T17:03:19+08:00]:init_ldap.sh")
+VERSION+=("9c286d0[2022-08-05T16:20:28+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 LOGFILE=""
-
+MAIL_GID=9999
 change_ldap_mgr_passwd() {
     passwd=${1}
     PASS_HASH=$(slappasswd -n -s ${passwd})
@@ -24,9 +24,9 @@ changetype: modify
 replace: olcRootPW
 olcRootPW: ${PASS_HASH}
 EOF
-    echo -n "${PASS_HASH} => "
-    slapcat -n 0 | grep olcRootPW: | awk '{ print $2}' | base64 -d
-    echo
+    echo -n "${PASS_HASH} => " | tee ${LOGFILE}
+    slapcat -n 0 | grep olcRootPW: | awk '{ print $2}' | base64 -d | tee ${LOGFILE}
+    echo | tee ${LOGFILE}
 }
 
 setup_log() {
@@ -39,7 +39,7 @@ replace: olcLogLevel
 olcLogLevel: stats
 EOF
 
-    cat<<'EOF' >/etc/rsyslog.d/10-slapd.conf
+    cat<<'EOF' |tee ${LOGFILE} >/etc/rsyslog.d/10-slapd.conf
 $template slapdtmpl,"[%$DAY%-%$MONTH%-%$YEAR% %timegenerated:12:19:date-rfc3339%] %app-name% %syslogseverity-text% %msg%\n"
 local4.* /var/log/slapd.log;slapdtmpl
 EOF
@@ -69,36 +69,57 @@ EOF
     slaptest -u
 }
 
+add_user_group() {
+    local user=${1}
+    local group=${2}
+    local olcSuffix=${3}
+    echo "****ADD USER GROUP ${user} -> ${group}" | tee ${LOGFILE}
+    cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
+dn:cn=${group},ou=groups,${olcSuffix}
+changetype: modify
+add: memberUid
+memberUid: ${user}
+EOF
+    echo "****Search ${user} groups" | tee ${LOGFILE}
+    ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:///  -b "${olcSuffix}" "(&(objectClass=posixGroup)(memberUid=${user}))"
+}
+
+add_group() {
+    local group=${1}
+    local gid=${2}
+    local olcSuffix=${3}
+    echo "****CREATE GROUP ${user}" | tee ${LOGFILE}
+    cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
+dn: cn=${group},ou=groups,${olcSuffix}
+objectClass: posixGroup
+cn: ${group}
+gidNumber: ${gid}
+EOF
+}
 add_user() {
     local user=${1}
-    local olcRootDN=${2}
+    local uid=${2}
     local olcSuffix=${3}
     # create new user
     # slapcat -n 0 | grep "olcObjectClasses:.*posixAccount"
-    echo "****CREATE USER ${user}:${DEFAULT_ADD_USER_PASSWORD}"
+    echo "****CREATE USER ${user}:${DEFAULT_ADD_USER_PASSWORD}" | tee ${LOGFILE}
     cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
 dn: uid=${user},ou=people,${olcSuffix}
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
-cn: common_name
+cn: ${user}
 sn: realname
 uid: ${user}
-uidNumber: 10000
-gidNumber: 10000
+uidNumber: ${uid}
+gidNumber: ${MAIL_GID}
 homeDirectory: /home/${user}
 userPassword: $(slappasswd -n -s ${DEFAULT_ADD_USER_PASSWORD})
 shadowMax: 60
 shadowMin: 1
 shadowWarning: 7
 shadowInactive: 7
-shadowLastChange: 0
-
-dn: cn=${user},ou=groups,${olcSuffix}
-objectClass: posixGroup
-cn: common_name
-gidNumber: 10000
-memberUid: ${user}
+shadowLastChange: shadowLastChange: $(echo $(date "+%s")/60/60/24 | bc)
 EOF
     # ldapsearch -x cn=${user} -b ${olcSuffix}
 }
@@ -329,12 +350,14 @@ main() {
         olcRootDN=$(slapcat -n 0 | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
         init_user_organization_unit "${olcRootDN}" "${olcSuffix}"
+        echo "****ADD DEFAULT MAIL GROUP" | tee ${LOGFILE}
+        add_group "mail" ${MAIL_GID} "${olcSuffix}"
         echo "****INIT USER ORGANIZATION UNIT OK ${TIMESPAN}" | tee ${LOGFILE}
     }
     [ -z "${rsysuser}" ] || [ -z "${rsyspass}" ] || {
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
         add_mdb_readonly_sysuser "${olcSuffix}" "${rsysuser}" "${rsyspass}"
-        echo "****CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D cn=${rsysuser},ou=People,${olcSuffix} -w ${rsyspass}-a ${rsyspass} -S"
+        echo "****CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D cn=${rsysuser},ou=People,${olcSuffix} -w ${rsyspass}-a ${rsyspass} -S" | tee ${LOGFILE}
         echo "****ADD READONLY SYS USER OK ${TIMESPAN}" | tee ${LOGFILE}
     }
     [ -z "${ca}" ] || [ -z "${cert}" ] || [ -z "${key}" ] || {
@@ -353,7 +376,8 @@ main() {
         olcSuffix=$(slapcat -n 0 2>/dev/null | grep "olcSuffix" | awk '{print $2}')
         for _u in "${uid[@]}"; do
             echo "****add uid <$_u: ${DEFAULT_ADD_USER_PASSWORD}>";
-            add_user "$_u" "${olcRootDN}" "${olcSuffix}" || echo "****ADD $_u failed" | tee ${LOGFILE}
+            add_user "$_u" 10000 "${olcSuffix}" || echo "****ADD $_u failed" | tee ${LOGFILE}
+            add_user_group "$_u" ${MAIL_GID} "${olcSuffix}"
             echo "****CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D uid=$_u,ou=People,${olcSuffix} -w ${DEFAULT_ADD_USER_PASSWORD} -a ${DEFAULT_ADD_USER_PASSWORD} -S" | tee ${LOGFILE}
         done
         echo "****ADD USER ALL OK" | tee ${LOGFILE}
