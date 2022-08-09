@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("50e4bc9[2022-08-03T16:42:02+08:00]:init_bind.sh")
+VERSION+=("ffc9049[2022-08-04T13:11:34+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 SERIAL=$(date '+%Y%m%d%H')
@@ -31,11 +31,13 @@ gen_domain_zone() {
 @       A           ${ipaddr}
 ns      A           ${ipaddr}
 mail    A           ${ipaddr}
+        TXT         "v=spf1 ip4:${ipaddr} include:spf.${domain} -all"
 demo    A           ${ipaddr}
 ftp     CNAME       demo.${domain}.
 ; wildcard-dns
 *       CNAME       @
 EOF
+# TXT         "v=spf1 ip4:${ipaddr} ip4:<ip> include:spf.${domain} -all"
 }
 
 gen_reverse_mapped_zone_file() {
