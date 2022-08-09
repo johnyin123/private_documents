@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fe7e29c[2022-08-09T16:03:51+08:00]:init_ldap.sh")
+VERSION+=("1bd9a91[2022-08-09T17:09:29+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
@@ -82,7 +82,7 @@ ${action}: memberUid
 memberUid: ${user}
 EOF
     echo "****Search ${user} groups" | tee ${LOGFILE}
-    ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:///  -b "${olcSuffix}" "(&(objectClass=posixGroup)(memberUid=${user}))"
+    ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(&(objectClass=posixGroup)(memberUid=${user}))"
 }
 
 add_group() {
@@ -221,7 +221,7 @@ cn: readonly
 userPassword: $(slappasswd -n -s ${passwd})
 description: Bind DN user for LDAP Operations
 EOF
-    #  verify the Bind DN ACL with the following command
+    # verify the Bind DN ACL with the following command
     ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b cn=config '(olcDatabase={1}mdb)' olcAccess
 }
 
@@ -283,7 +283,7 @@ ${SCRIPTNAME}
         -O|--org     *    <str>  organization, "my company. ltd."
         -P|--passwd  *  * <str>  slapd manager password
         --create_userou          create organization unit
-        --rsysuser *      <str>  create readonly user for access ldap server 
+        --rsysuser *      <str>  create readonly user for access ldap server
         --rsyspass *      <str>
         -u|--uid          <str>  adduser mode uid in ldap, multi parameters
                                    default password: ${DEFAULT_ADD_USER_PASSWORD}
@@ -382,9 +382,9 @@ main() {
         olcRootDN=$(slapcat -n 0 2>/dev/null | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
         olcSuffix=$(slapcat -n 0 2>/dev/null | grep "olcSuffix" | awk '{print $2}')
         for _u in "${uid[@]}"; do
-            echo "****add uid <$_u: ${DEFAULT_ADD_USER_PASSWORD}>";
+            echo "****add uid <$_u: ${DEFAULT_ADD_USER_PASSWORD}>" | tee ${LOGFILE}
             # find max uid
-            # ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:///  -b "${olcSuffix}" "(objectclass=posixaccount)" uidnumber | grep -e '^uid' | cut -d':' -f2 | sort | tail -1
+            # ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(objectclass=posixaccount)" uidnumber | grep -e '^uid' | cut -d':' -f2 | sort | tail -1
             add_user "$_u" 10000 "${olcSuffix}" || echo "****ADD $_u failed" | tee ${LOGFILE}
             ldap_user_group "$_u" ${MAIL_GID} "${olcSuffix}" "add"
             echo "****CHECK:ldapwhoami -v -h 127.0.0.1 -D uid=$_u,ou=people,,${olcSuffix} -x -w ${DEFAULT_ADD_USER_PASSWORD}"
