@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("68bc19c[2022-08-09T11:50:35+08:00]:init_ldap.sh")
+VERSION+=("f4fbcd4[2022-08-09T12:56:01+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
@@ -235,8 +235,11 @@ olcAccess: to attrs=userPassword,shadowLastChange,shadowExpire
   by dn.subtree="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" manage
   by dn.exact="cn=readonly,ou=people,${olcSuffix}" read
   by * none
-olcAccess: to dn.exact="cn=readonly,ou=people,${olcSuffix}" by dn.subtree="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" manage by * none
-olcAccess: to dn.subtree="${olcSuffix}" by dn.subtree="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" manage
+olcAccess: to dn.exact="cn=readonly,ou=people,${olcSuffix}"
+  by dn.subtree="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" manage
+  by * none
+olcAccess: to dn.subtree="${olcSuffix}"
+  by dn.subtree="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" manage
   by users read
   by * none
 EOF
