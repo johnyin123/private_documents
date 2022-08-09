@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b251df6[2022-06-27T15:15:54+08:00]:ngx_demo.sh")
+VERSION+=("5e8391e[2022-07-20T10:58:46+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3627,6 +3627,7 @@ document.body.appendChild(myDiv);
 }
 EOF
 cat <<'EOF' > sub_filter.http
+# 1.9.4 *) Feature: multiple "sub_filter" directives can be used simultaneously.
 # ...........................
 # NGX_CONF_BUFFER=4096
 # <img src="data:image/png;base64,${base64}" alt="Red dot"/>
