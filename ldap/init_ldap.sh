@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c47fc60[2022-08-09T07:38:23+08:00]:init_ldap.sh")
+VERSION+=("68bc19c[2022-08-09T11:50:35+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
@@ -69,15 +69,16 @@ EOF
     slaptest -u
 }
 
-add_user_group() {
+ldap_user_group() {
     local user=${1}
     local group=${2}
     local olcSuffix=${3}
+    local action="${4:-add}"
     echo "****ADD USER GROUP ${user} -> ${group}" | tee ${LOGFILE}
     cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
 dn:cn=${group},ou=groups,${olcSuffix}
 changetype: modify
-add: memberUid
+${action}: memberUid
 memberUid: ${user}
 EOF
     echo "****Search ${user} groups" | tee ${LOGFILE}
@@ -377,7 +378,7 @@ main() {
         for _u in "${uid[@]}"; do
             echo "****add uid <$_u: ${DEFAULT_ADD_USER_PASSWORD}>";
             add_user "$_u" 10000 "${olcSuffix}" || echo "****ADD $_u failed" | tee ${LOGFILE}
-            add_user_group "$_u" ${MAIL_GID} "${olcSuffix}"
+            ldap_user_group "$_u" ${MAIL_GID} "${olcSuffix}" "add"
             echo "****CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D uid=$_u,ou=People,${olcSuffix} -w ${DEFAULT_ADD_USER_PASSWORD} -a ${DEFAULT_ADD_USER_PASSWORD} -S" | tee ${LOGFILE}
         done
         echo "****ADD USER ALL OK" | tee ${LOGFILE}
