@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9c286d0[2022-08-05T16:20:28+08:00]:init_ldap.sh")
+VERSION+=("c47fc60[2022-08-09T07:38:23+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
@@ -109,7 +109,7 @@ objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
 cn: ${user}
-sn: realname
+sn: 部门
 uid: ${user}
 uidNumber: ${uid}
 gidNumber: ${MAIL_GID}
@@ -119,7 +119,7 @@ shadowMax: 60
 shadowMin: 1
 shadowWarning: 7
 shadowInactive: 7
-shadowLastChange: shadowLastChange: $(echo $(date "+%s")/60/60/24 | bc)
+shadowLastChange: $(echo $(date "+%s")/60/60/24 | bc)
 EOF
     # ldapsearch -x cn=${user} -b ${olcSuffix}
 }
