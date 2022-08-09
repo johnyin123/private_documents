@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f4fbcd4[2022-08-09T12:56:01+08:00]:init_ldap.sh")
+VERSION+=("1d976b1[2022-08-09T15:38:20+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
@@ -90,8 +90,9 @@ add_group() {
     local gid=${2}
     local olcSuffix=${3}
     echo "****CREATE GROUP ${user}" | tee ${LOGFILE}
-    cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
+    cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
 dn: cn=${group},ou=groups,${olcSuffix}
+changetype: add
 objectClass: posixGroup
 cn: ${group}
 gidNumber: ${gid}
@@ -104,8 +105,9 @@ add_user() {
     # create new user
     # slapcat -n 0 | grep "olcObjectClasses:.*posixAccount"
     echo "****CREATE USER ${user}:${DEFAULT_ADD_USER_PASSWORD}" | tee ${LOGFILE}
-    cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
+    cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
 dn: uid=${user},ou=people,${olcSuffix}
+changetype: add
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
@@ -210,8 +212,9 @@ add_mdb_readonly_sysuser() {
     local user=${2}
     local passwd=${3}
     echo "****Add ${user} for readonly querying the directory server" | tee ${LOGFILE}
-    cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
+    cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
 dn: cn=${user},ou=people,${olcSuffix}
+changetype: add
 objectClass: organizationalRole
 objectClass: simpleSecurityObject
 cn: readonly
@@ -225,7 +228,7 @@ EOF
 update_mdb_acl() {
     local olcSuffix=${1}
     echo "****Update database ACL" | tee ${LOGFILE}
-    cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
+    cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
 dn: olcDatabase={1}mdb,cn=config
 changetype: modify
 replace: olcAccess
@@ -380,6 +383,8 @@ main() {
         olcSuffix=$(slapcat -n 0 2>/dev/null | grep "olcSuffix" | awk '{print $2}')
         for _u in "${uid[@]}"; do
             echo "****add uid <$_u: ${DEFAULT_ADD_USER_PASSWORD}>";
+            # find max uid
+            # ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:///  -b "${olcSuffix}" "(objectclass=posixaccount)" uidnumber | grep -e '^uid' | cut -d':' -f2 | sort | tail -1
             add_user "$_u" 10000 "${olcSuffix}" || echo "****ADD $_u failed" | tee ${LOGFILE}
             ldap_user_group "$_u" ${MAIL_GID} "${olcSuffix}" "add"
             echo "****CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D uid=$_u,ou=People,${olcSuffix} -w ${DEFAULT_ADD_USER_PASSWORD} -a ${DEFAULT_ADD_USER_PASSWORD} -S" | tee ${LOGFILE}
