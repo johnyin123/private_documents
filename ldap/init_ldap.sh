@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1d976b1[2022-08-09T15:38:20+08:00]:init_ldap.sh")
+VERSION+=("fe7e29c[2022-08-09T16:03:51+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
@@ -387,6 +387,7 @@ main() {
             # ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:///  -b "${olcSuffix}" "(objectclass=posixaccount)" uidnumber | grep -e '^uid' | cut -d':' -f2 | sort | tail -1
             add_user "$_u" 10000 "${olcSuffix}" || echo "****ADD $_u failed" | tee ${LOGFILE}
             ldap_user_group "$_u" ${MAIL_GID} "${olcSuffix}" "add"
+            echo "****CHECK:ldapwhoami -v -h 127.0.0.1 -D uid=$_u,ou=people,,${olcSuffix} -x -w ${DEFAULT_ADD_USER_PASSWORD}"
             echo "****CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D uid=$_u,ou=People,${olcSuffix} -w ${DEFAULT_ADD_USER_PASSWORD} -a ${DEFAULT_ADD_USER_PASSWORD} -S" | tee ${LOGFILE}
         done
         echo "****ADD USER ALL OK" | tee ${LOGFILE}
