@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1bd9a91[2022-08-09T17:09:29+08:00]:init_ldap.sh")
+VERSION+=("3f2a128[2022-08-10T07:42:35+08:00]:init_ldap.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
@@ -82,14 +82,18 @@ ${action}: memberUid
 memberUid: ${user}
 EOF
     echo "****Search ${user} groups" | tee ${LOGFILE}
-    ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(&(objectClass=posixGroup)(memberUid=${user}))"
+    ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(&(objectClass=posixgroup)(memberUid=${user}))"
 }
 
 add_group() {
     local group=${1}
     local gid=${2}
     local olcSuffix=${3}
-    echo "****CREATE GROUP ${user}" | tee ${LOGFILE}
+    echo "****CREATE GROUP ${group}" | tee ${LOGFILE}
+    ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(&(objectClass=posixgroup)(cn=${group}))" | grep -q "dn\s*:" && {
+        echo "****NO ADD, GROUP ${group} EXIST!!!"
+        return 1
+    }
     cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
 dn: cn=${group},ou=groups,${olcSuffix}
 changetype: add
@@ -105,6 +109,10 @@ add_user() {
     # create new user
     # slapcat -n 0 | grep "olcObjectClasses:.*posixAccount"
     echo "****CREATE USER ${user}:${DEFAULT_ADD_USER_PASSWORD}" | tee ${LOGFILE}
+    ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(&(objectClass=posixaccount)(uid=${user}))" | grep -q "dn\s*:" && {
+        echo "****NO ADD, USER ${user} EXIST!!!"
+        return 1
+    }
     cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
 dn: uid=${user},ou=people,${olcSuffix}
 changetype: add
@@ -249,8 +257,7 @@ EOF
 }
 
 init_user_organization_unit() {
-    local olcRootDN=${1}
-    local olcSuffix=${2}
+    local olcSuffix=${1}
     echo "****setup user organization unit" | tee ${LOGFILE}
     cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
 dn: ou=people,${olcSuffix}
@@ -285,8 +292,9 @@ ${SCRIPTNAME}
         --create_userou          create organization unit
         --rsysuser *      <str>  create readonly user for access ldap server
         --rsyspass *      <str>
-        -u|--uid          <str>  adduser mode uid in ldap, multi parameters
+        -u|--user         <str>  adduser, group(mail:${MAIL_GID}), multi parameters
                                    default password: ${DEFAULT_ADD_USER_PASSWORD}
+        -g|--group)       <str>  add new group, multi parameters
         --ca    *         <str>  ca file
         --cert  *         <str>  cert file
         --key   *         <str>  key file
@@ -312,11 +320,12 @@ EOF
     exit 1
 }
 main() {
-    local _u="" olcRootDN="" olcSuffix=""
+    local _u="" _max_id="" olcRootDN="" olcSuffix=""
     local passwd="" domain="" org="" ca="" cert="" key="" srvid="" peer="" create_userou="" rsysuser="" rsyspass=""
-    local uid=()
-    local opt_short="P:D:O:u:"
-    local opt_long="passwd:,domain:,org:,ca:,cert:,key:,srvid:,peer:,uid:,create_userou,rsyspass:,rsysuser:,"
+    local users=()
+    local groups=()
+    local opt_short="P:D:O:u:g:"
+    local opt_long="passwd:,domain:,org:,ca:,cert:,key:,srvid:,peer:,user:,group:,create_userou,rsyspass:,rsysuser:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -334,7 +343,8 @@ main() {
             --key)          shift; key=${1}; shift;;
             --srvid)        shift; srvid=${1}; shift;;
             --peer)         shift; peer=${1}; shift;;
-            -u | --uid)     shift; uid+=(${1}); shift;;
+            -u | --user)    shift; users+=(${1}); shift;;
+            -g | --group)   shift; groups+=(${1}); shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; LOGFILE="-a ${1}"; shift;;
@@ -348,15 +358,13 @@ main() {
     [ -z "${passwd}" ] || [ -z "${domain}" ] || [ -z "${org}" ] || {
         init_ldap "${passwd}" "${domain}" "${org}"
         setup_log
-        olcRootDN=$(slapcat -n 0 | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
         update_mdb_acl "${olcSuffix}"
         echo "****INIT OK ${TIMESPAN}" | tee ${LOGFILE}
     }
     [ -z "${create_userou}" ] || {
-        olcRootDN=$(slapcat -n 0 | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
-        init_user_organization_unit "${olcRootDN}" "${olcSuffix}"
+        init_user_organization_unit "${olcSuffix}"
         echo "****ADD DEFAULT MAIL GROUP" | tee ${LOGFILE}
         add_group "mail" ${MAIL_GID} "${olcSuffix}"
         echo "****INIT USER ORGANIZATION UNIT OK ${TIMESPAN}" | tee ${LOGFILE}
@@ -378,15 +386,25 @@ main() {
         setup_multi_master_replication "${srvid}" "${peer}" "${olcRootDN}" "${olcSuffix}" "${passwd}"
         echo "****INIT MULTI MASTER OK ${TIMESPAN}" | tee ${LOGFILE}
     }
-    ((${#uid[@]} == 0)) || {
-        olcRootDN=$(slapcat -n 0 2>/dev/null | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
+    ((${#groups[@]} == 0)) || {
         olcSuffix=$(slapcat -n 0 2>/dev/null | grep "olcSuffix" | awk '{print $2}')
-        for _u in "${uid[@]}"; do
-            echo "****add uid <$_u: ${DEFAULT_ADD_USER_PASSWORD}>" | tee ${LOGFILE}
-            # find max uid
-            # ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(objectclass=posixaccount)" uidnumber | grep -e '^uid' | cut -d':' -f2 | sort | tail -1
-            add_user "$_u" 10000 "${olcSuffix}" || echo "****ADD $_u failed" | tee ${LOGFILE}
-            ldap_user_group "$_u" ${MAIL_GID} "${olcSuffix}" "add"
+        _max_id=$(ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(objectclass=posixgroup)" gidnumber | grep -e '^gid' | cut -d':' -f2 | sort | tail -1)
+        _max_id=${_max_id:-MAIL_GID}
+        for _u in "${groups[@]}"; do
+            let _max_id=_max_id+1
+            echo "****add group <$_u: ${_max_id}>" | tee ${LOGFILE}
+            add_group "$_u" "${_max_id}" "${olcSuffix}" || echo "****ADD GROUP $_u ERROR" | tee ${LOGFILE}
+        done
+        echo "****ADD GROUP ALL OK" | tee ${LOGFILE}
+    }
+    ((${#users[@]} == 0)) || {
+        olcSuffix=$(slapcat -n 0 2>/dev/null | grep "olcSuffix" | awk '{print $2}')
+        _max_id=$(ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(objectclass=posixaccount)" uidnumber | grep -e '^uid' | cut -d':' -f2 | sort | tail -1)
+        _max_id=${_max_id:-MAIL_GID}
+        for _u in "${users[@]}"; do
+            let _max_id=_max_id+1
+            echo "****add user <$_u: ${DEFAULT_ADD_USER_PASSWORD}>" | tee ${LOGFILE}
+            add_user "$_u" "${_max_id}" "${olcSuffix}" && ldap_user_group "$_u" ${MAIL_GID} "${olcSuffix}" "add"
             echo "****CHECK:ldapwhoami -v -h 127.0.0.1 -D uid=$_u,ou=people,,${olcSuffix} -x -w ${DEFAULT_ADD_USER_PASSWORD}"
             echo "****CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D uid=$_u,ou=People,${olcSuffix} -w ${DEFAULT_ADD_USER_PASSWORD} -a ${DEFAULT_ADD_USER_PASSWORD} -S" | tee ${LOGFILE}
         done
