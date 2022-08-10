@@ -9,12 +9,27 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3f2a128[2022-08-10T07:42:35+08:00]:init_ldap.sh")
+VERSION+=("d275f9c[2022-08-10T09:17:04+08:00]:init_ldap.sh")
 ################################################################################
-TIMESPAN=$(date '+%Y%m%d%H%M%S')
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 LOGFILE=""
+MAIL_GROUP="mail"
 MAIL_GID=9999
+
+log() {
+    echo "######$*" | tee ${LOGFILE} >&2
+}
+
+ldap_search() {
+    log "ldapsearch ${*}"
+    ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// ${*} | tee ${LOGFILE}
+}
+
+ldap_modify() {
+    log "ldapmodify ${*}"
+    ldapmodify -Q -Y EXTERNAL -H ldapi:/// ${*} | tee ${LOGFILE}
+}
+
 change_ldap_mgr_passwd() {
     passwd=${1}
     PASS_HASH=$(slappasswd -n -s ${passwd})
@@ -24,15 +39,13 @@ changetype: modify
 replace: olcRootPW
 olcRootPW: ${PASS_HASH}
 EOF
-    echo -n "${PASS_HASH} => " | tee ${LOGFILE}
-    slapcat -n 0 | grep olcRootPW: | awk '{ print $2}' | base64 -d | tee ${LOGFILE}
-    echo | tee ${LOGFILE}
+    log "${PASS_HASH} => $(slapcat -n 0 | grep olcRootPW: | awk '{ print $2}' | base64 -d)"
 }
 
 setup_log() {
-    echo "****开启openldap日志访问功能" | tee ${LOGFILE}
-    ldapsearch -Y external -H ldapi:/// -b cn=config "(objectClass=olcGlobal)" olcLogLevel -LLL
-    cat<<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
+    log "SETUP SLAPD LOG"
+    ldap_search -b cn=config "(objectClass=olcGlobal)" olcLogLevel
+    cat<<EOF |tee ${LOGFILE}| ldap_modify
 dn: cn=config
 changetype: modify
 replace: olcLogLevel
@@ -51,7 +64,7 @@ init_ldap() {
     local passwd=${1}
     local domain=${2}
     local org="${3}"
-    echo "****openldap dpkg-reconfigure" | tee ${LOGFILE}
+    log "openldap dpkg-reconfigure"
 cat <<EOF |tee ${LOGFILE}| debconf-set-selections
 slapd slapd/password1 password ${passwd}
 slapd slapd/password2 password ${passwd}
@@ -74,27 +87,27 @@ ldap_user_group() {
     local group=${2}
     local olcSuffix=${3}
     local action="${4:-add}"
-    echo "****ADD USER GROUP ${user} -> ${group}" | tee ${LOGFILE}
-    cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
+    log "ADD USER GROUP ${user} -> ${group}"
+    cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn:cn=${group},ou=groups,${olcSuffix}
 changetype: modify
 ${action}: memberUid
 memberUid: ${user}
 EOF
-    echo "****Search ${user} groups" | tee ${LOGFILE}
-    ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(&(objectClass=posixgroup)(memberUid=${user}))"
+    log "Search ${user} groups"
+    ldap_search -b "${olcSuffix}" "(&(objectClass=posixgroup)(memberUid=${user}))"
 }
 
 add_group() {
     local group=${1}
     local gid=${2}
     local olcSuffix=${3}
-    echo "****CREATE GROUP ${group}" | tee ${LOGFILE}
-    ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(&(objectClass=posixgroup)(cn=${group}))" | grep -q "dn\s*:" && {
-        echo "****NO ADD, GROUP ${group} EXIST!!!"
+    log "CREATE GROUP ${group}"
+    ldap_search -b "${olcSuffix}" "(&(objectClass=posixgroup)(cn=${group}))" | grep -q "dn\s*:" && {
+        log "NO ADD, GROUP ${group} EXIST!!!"
         return 1
     }
-    cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
+    cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: cn=${group},ou=groups,${olcSuffix}
 changetype: add
 objectClass: posixGroup
@@ -108,12 +121,12 @@ add_user() {
     local olcSuffix=${3}
     # create new user
     # slapcat -n 0 | grep "olcObjectClasses:.*posixAccount"
-    echo "****CREATE USER ${user}:${DEFAULT_ADD_USER_PASSWORD}" | tee ${LOGFILE}
-    ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(&(objectClass=posixaccount)(uid=${user}))" | grep -q "dn\s*:" && {
-        echo "****NO ADD, USER ${user} EXIST!!!"
+    log "CREATE USER ${user}:${DEFAULT_ADD_USER_PASSWORD}"
+    ldap_search -b "${olcSuffix}" "(&(objectClass=posixaccount)(uid=${user}))" | grep -q "dn\s*:" && {
+        log "NO ADD, USER ${user} EXIST!!!"
         return 1
     }
-    cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
+    cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: uid=${user},ou=people,${olcSuffix}
 changetype: add
 objectClass: inetOrgPerson
@@ -132,7 +145,7 @@ shadowWarning: 7
 shadowInactive: 7
 shadowLastChange: $(echo $(date "+%s")/60/60/24 | bc)
 EOF
-    # ldapsearch -x cn=${user} -b ${olcSuffix}
+    ldap_search -b "${olcSuffix}" "(&(objectClass=posixaccount)(uid=${user}))" | grep -q "dn\s*:"
 }
 
 setup_multi_master_replication() {
@@ -141,27 +154,28 @@ setup_multi_master_replication() {
     local olcRootDN=${3}
     local olcSuffix=${4}
     local passwd=${5}
-    echo "****setup multi_master replication.1" | tee ${LOGFILE}
-    cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
+    log "SETUP MULTI_MASTER REPLICATION.1"
+    cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: cn=module,cn=config
+changetype: add
 objectClass: olcModuleList
 cn: module
 olcModulePath: /usr/lib/ldap
 olcModuleLoad: syncprov.la
 EOF
-    echo "****setup multi_master replication.2" | tee ${LOGFILE}
-    cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
+    log "SETUP MULTI_MASTER REPLICATION.2"
+    cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: olcOverlay=syncprov,olcDatabase={1}mdb,cn=config
+changetype: add
 objectClass: olcOverlayConfig
 objectClass: olcSyncProvConfig
 olcOverlay: syncprov
 olcSpSessionLog: 100
 EOF
-
     # [retry interval] [retry times] [interval of re-retry] [re-retry times]
     # retry="30 5 300 3"
-    echo "****setup multi_master replication.3" | tee ${LOGFILE}
-    cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
+    log "SETUP MULTI_MASTER REPLICATION.3"
+    cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: cn=config
 changetype: modify
 replace: olcServerID
@@ -199,8 +213,8 @@ setup_starttls() {
     local cert=${2}
     local key=${3}
     chown openldap:openldap "${ca}" "${cert}" "${key}"
-    echo "****setup tls" | tee ${LOGFILE}
-    cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
+    log "SETUP START_TLS"
+    cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: cn=config
 changetype: modify
 add: olcTLSCACertificateFile
@@ -219,8 +233,8 @@ add_mdb_readonly_sysuser() {
     local olcSuffix=${1}
     local user=${2}
     local passwd=${3}
-    echo "****Add ${user} for readonly querying the directory server" | tee ${LOGFILE}
-    cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
+    log "Add ${user} for readonly querying the directory server"
+    cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: cn=${user},ou=people,${olcSuffix}
 changetype: add
 objectClass: organizationalRole
@@ -230,13 +244,13 @@ userPassword: $(slappasswd -n -s ${passwd})
 description: Bind DN user for LDAP Operations
 EOF
     # verify the Bind DN ACL with the following command
-    ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b cn=config '(olcDatabase={1}mdb)' olcAccess
+    ldap_search -b cn=config '(olcDatabase={1}mdb)' olcAccess
 }
 
 update_mdb_acl() {
     local olcSuffix=${1}
-    echo "****Update database ACL" | tee ${LOGFILE}
-    cat <<EOF |tee ${LOGFILE}| ldapmodify -Q -Y EXTERNAL -H ldapi:///
+    log "Update database ACL"
+    cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: olcDatabase={1}mdb,cn=config
 changetype: modify
 replace: olcAccess
@@ -258,14 +272,16 @@ EOF
 
 init_user_organization_unit() {
     local olcSuffix=${1}
-    echo "****setup user organization unit" | tee ${LOGFILE}
-    cat <<EOF |tee ${LOGFILE}| ldapadd -Q -Y EXTERNAL -H ldapi:///
+    log "setup user organization unit"
+    cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: ou=people,${olcSuffix}
+changetype: add
 objectClass: organizationalUnit
 objectClass: top
 ou: people
 
 dn: ou=groups,${olcSuffix}
+changetype: add
 objectClass: organizationalUnit
 objectClass: top
 ou: groups
@@ -292,7 +308,7 @@ ${SCRIPTNAME}
         --create_userou          create organization unit
         --rsysuser *      <str>  create readonly user for access ldap server
         --rsyspass *      <str>
-        -u|--user         <str>  adduser, group(mail:${MAIL_GID}), multi parameters
+        -u|--user         <str>  adduser, group(${MAIL_GROUP}:${MAIL_GID}), multi parameters
                                    default password: ${DEFAULT_ADD_USER_PASSWORD}
         -g|--group)       <str>  add new group, multi parameters
         --ca    *         <str>  ca file
@@ -360,57 +376,57 @@ main() {
         setup_log
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
         update_mdb_acl "${olcSuffix}"
-        echo "****INIT OK ${TIMESPAN}" | tee ${LOGFILE}
+        log "INIT OK"
     }
     [ -z "${create_userou}" ] || {
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
         init_user_organization_unit "${olcSuffix}"
-        echo "****ADD DEFAULT MAIL GROUP" | tee ${LOGFILE}
-        add_group "mail" ${MAIL_GID} "${olcSuffix}"
-        echo "****INIT USER ORGANIZATION UNIT OK ${TIMESPAN}" | tee ${LOGFILE}
+        log "ADD DEFAULT MAIL GROUP"
+        add_group "${MAIL_GROUP}" ${MAIL_GID} "${olcSuffix}"
+        log "INIT USER ORGANIZATION UNIT OK"
     }
     [ -z "${rsysuser}" ] || [ -z "${rsyspass}" ] || {
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
         add_mdb_readonly_sysuser "${olcSuffix}" "${rsysuser}" "${rsyspass}"
-        echo "****CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D cn=${rsysuser},ou=People,${olcSuffix} -w ${rsyspass}-a ${rsyspass} -S" | tee ${LOGFILE}
-        echo "****ADD READONLY SYS USER OK ${TIMESPAN}" | tee ${LOGFILE}
+        log "CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D cn=${rsysuser},ou=People,${olcSuffix} -w ${rsyspass}-a ${rsyspass} -S"
+        log "ADD READONLY SYS USER OK"
     }
     [ -z "${ca}" ] || [ -z "${cert}" ] || [ -z "${key}" ] || {
         setup_starttls "${ca}" "${cert}" "${key}"
-        echo "****check: LDAPTLS_REQCERT=never ldapsearch -x -b $(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}') -ZZ" | tee ${LOGFILE}
-        echo "****INIT STARTTLS OK ${TIMESPAN}" | tee ${LOGFILE}
+        log "check: LDAPTLS_REQCERT=never ldapsearch -x -b $(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}') -ZZ"
+        log "INIT STARTTLS OK"
     }
     [ -z "${srvid}" ] || [ -z "${peer}" ] || [ -z "${passwd}" ] || {
         olcRootDN=$(slapcat -n 0 | grep -E -e "olcRootDN" | grep -v "cn=config" | awk '{print $2}')
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
         setup_multi_master_replication "${srvid}" "${peer}" "${olcRootDN}" "${olcSuffix}" "${passwd}"
-        echo "****INIT MULTI MASTER OK ${TIMESPAN}" | tee ${LOGFILE}
+        log "INIT MULTI MASTER OK"
     }
     ((${#groups[@]} == 0)) || {
         olcSuffix=$(slapcat -n 0 2>/dev/null | grep "olcSuffix" | awk '{print $2}')
-        _max_id=$(ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(objectclass=posixgroup)" gidnumber | grep -e '^gid' | cut -d':' -f2 | sort | tail -1)
+        _max_id=$(ldap_search -b "${olcSuffix}" "(objectclass=posixgroup)" gidnumber | grep -e '^gid' | cut -d':' -f2 | sort | tail -1)
         _max_id=${_max_id:-MAIL_GID}
         for _u in "${groups[@]}"; do
             let _max_id=_max_id+1
-            echo "****add group <$_u: ${_max_id}>" | tee ${LOGFILE}
-            add_group "$_u" "${_max_id}" "${olcSuffix}" || echo "****ADD GROUP $_u ERROR" | tee ${LOGFILE}
+            log "add group <$_u: ${_max_id}>"
+            add_group "$_u" "${_max_id}" "${olcSuffix}" || log "ADD GROUP $_u ERROR, continue"
         done
-        echo "****ADD GROUP ALL OK" | tee ${LOGFILE}
+        log "ADD GROUP ALL OK"
     }
     ((${#users[@]} == 0)) || {
         olcSuffix=$(slapcat -n 0 2>/dev/null | grep "olcSuffix" | awk '{print $2}')
-        _max_id=$(ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b "${olcSuffix}" "(objectclass=posixaccount)" uidnumber | grep -e '^uid' | cut -d':' -f2 | sort | tail -1)
+        _max_id=$(ldap_search -b "${olcSuffix}" "(objectclass=posixaccount)" uidnumber | grep -e '^uid' | cut -d':' -f2 | sort | tail -1)
         _max_id=${_max_id:-MAIL_GID}
         for _u in "${users[@]}"; do
             let _max_id=_max_id+1
-            echo "****add user <$_u: ${DEFAULT_ADD_USER_PASSWORD}>" | tee ${LOGFILE}
-            add_user "$_u" "${_max_id}" "${olcSuffix}" && ldap_user_group "$_u" ${MAIL_GID} "${olcSuffix}" "add"
-            echo "****CHECK:ldapwhoami -v -h 127.0.0.1 -D uid=$_u,ou=people,,${olcSuffix} -x -w ${DEFAULT_ADD_USER_PASSWORD}"
-            echo "****CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D uid=$_u,ou=People,${olcSuffix} -w ${DEFAULT_ADD_USER_PASSWORD} -a ${DEFAULT_ADD_USER_PASSWORD} -S" | tee ${LOGFILE}
+            log "add user <$_u: ${DEFAULT_ADD_USER_PASSWORD}>"
+            add_user "$_u" "${_max_id}" "${olcSuffix}" && ldap_user_group "$_u" ${MAIL_GROUP} "${olcSuffix}" "add" || log "add_user $_u:${MAIL_GROUP} error, continue"
+            log "CHECK:ldapwhoami -v -h 127.0.0.1 -D uid=$_u,ou=people,${olcSuffix} -x -w ${DEFAULT_ADD_USER_PASSWORD}"
+            log "CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D uid=$_u,ou=People,${olcSuffix} -w ${DEFAULT_ADD_USER_PASSWORD} -a ${DEFAULT_ADD_USER_PASSWORD} -S"
         done
-        echo "****ADD USER ALL OK" | tee ${LOGFILE}
-        return 0
+        log "ADD USER ALL OK"
     }
+    log "ALL DONE"
     return 0
 }
 main "$@"
