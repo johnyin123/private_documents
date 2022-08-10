@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("26e5084[2022-08-09T06:46:55+08:00]:init_postfix_dovecot.sh")
+VERSION+=("8d28d3d[2022-08-10T08:37:49+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -252,17 +252,12 @@ namespace inbox {
     auto = subscribe
     special_use = \Junk
   }
-  mailbox Trash {
-    auto = subscribe
-    special_use = \Trash
-  }
   mailbox Sent {
     auto = subscribe
     special_use = \Sent
   }
-  mailbox "Sent Messages" {
-    auto = subscribe
-    special_use = \Sent
+  mailbox Trash {
+    special_use = \Trash
   }
 }
 EOF
