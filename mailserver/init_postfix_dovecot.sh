@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8d28d3d[2022-08-10T08:37:49+08:00]:init_postfix_dovecot.sh")
+VERSION+=("0229563[2022-08-10T10:04:29+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -18,9 +18,18 @@ VMAIL_UGID=${VMAIL_UGID:-5000}
 MAIL_LIST=${MAIL_LIST:-/etc/aliases}
 LOGFILE=""
 
+log() {
+    echo "######$*" | tee ${LOGFILE} >&2
+}
+
+postconf_e() {
+    log "postconf -e \"${*}\""
+    postconf -e "${*}"
+}
+
 init_vmail_user() {
     local maildir=${1}
-    echo "****init vmail user, HOME=${maildir}" | tee ${LOGFILE}
+    log "init ${VMAIL_USER}:${VMAIL_GROUP}(${VMAIL_UGID}:${VMAIL_UGID}) user, HOME=${maildir}"
     userdel -f -r ${VMAIL_USER} || true
     groupdel -f ${VMAIL_GROUP} || true
     getent group ${VMAIL_GROUP} >/dev/null || groupadd -g ${VMAIL_UGID} ${VMAIL_GROUP} 2>/dev/null || true
@@ -30,21 +39,23 @@ init_vmail_user() {
 
 set_postfix_mail_list() {
     local domain=${1}
-    echo "****init postfix alias, Mailman, the GNU Mailing List Manager" | tee ${LOGFILE}
-    postconf -e "alias_database = hash:${MAIL_LIST}"
-    cat <<EOF>"${MAIL_LIST}"
+    log "init postfix alias, Mailman, the GNU Mailing List Manager"
+    postconf_e "alias_database = hash:${MAIL_LIST}"
+    log "alias ${MAIL_LIST}"
+    cat <<EOF|tee ${LOGFILE}>"${MAIL_LIST}"
 postmaster: root
 EOF
     postalias "${MAIL_LIST}"
-    echo "****init postfix virtual domain alias, Email Redirect OK"
-    postconf -e "virtual_alias_domains = ${domain}"
-    postconf -e "virtual_alias_maps = hash:/etc/postfix/virtual"
+    echo "init postfix virtual domain alias, Email Redirect OK"
+    postconf_e "virtual_alias_domains = ${domain}"
+    postconf_e "virtual_alias_maps = hash:/etc/postfix/virtual"
+    log "virtual alias /etc/postfix/virtual"
     cat <<EOF |tee ${LOGFILE}>/etc/postfix/virtual
 postmaster@${domain}  user2@${domain}
 admin@${domain}       user1@${domain}
-#@sample.com          catch-all@domain.com
+#@${domain}           catch-all@domain.com
 EOF
-    postmap /etc/postfix/virtual
+    postmap /etc/postfix/virtual || true
 }
 
 set_postfix_ldap_local_recipient_map() {
@@ -54,9 +65,9 @@ set_postfix_ldap_local_recipient_map() {
     local ldap_dn=${4}
     local ldap_pw=${5}
     local ldap_base=${6}
-    echo "****Set Postfix local_recipient_map, so not local user can not post mails." | tee ${LOGFILE}
-    echo "****Edit /etc/postfix/ldap-localusers.cf for ldap login info" | tee ${LOGFILE}
-    postconf -e 'local_recipient_maps = ldap:/etc/postfix/ldap-localusers.cf unix:passwd.byname'
+    log "Set Postfix local_recipient_map, so not local user can not post mails."
+    log "Edit /etc/postfix/ldap-localusers.cf for ldap login info"
+    postconf_e 'local_recipient_maps = ldap:/etc/postfix/ldap-localusers.cf unix:passwd.byname'
     cat <<EOF |tee ${LOGFILE} >/etc/postfix/ldap-localusers.cf
 bind             = $( [ -z "${ldap_dn}" ] && echo -n no || echo -n yes )
 ${ldap_dn:+bind_dn          = ${ldap_dn}}
@@ -73,7 +84,7 @@ query_filter     = (&(uid=%u))
 result_attribute = uid
 version          = 3
 EOF
-    echo "****check postfix ldap local user, output: user1, -v verbose" | tee ${LOGFILE}
+    log "check postfix ldap local user, output: user1, -v verbose"
     postmap -q 'user1' ldap:/etc/postfix/ldap-localusers.cf || true
 }
 
@@ -83,68 +94,68 @@ init_postfix() {
     local maildir=${3}
     local cert=${4}
     local key=${5}
-    echo "****reinit postfix" | tee ${LOGFILE}
+    log "REINIT POSTFIX"
     rm -f /etc/postfix/main.cf /etc/postfix/master.cf 2>/dev/null
     DEBIAN_FRONTEND=noninteractive dpkg-reconfigure postfix 2>/dev/null || true
     # postmap need main.cf config item. so execute here
     echo "$domain" > /etc/mailname
 
-    postconf -e 'myorigin = /etc/mailname'
-    postconf -e "smtpd_banner = ESMTP ${domain}"
-    postconf -e "myhostname = ${name}.${domain}"
-    postconf -e "mydomain = ${domain}"
-    # postconf -e "setgid_group = postdrop"
-    # postconf -e "sendmail_path = $(which sendmail)"
+    postconf_e 'myorigin = /etc/mailname'
+    postconf_e "smtpd_banner = ESMTP ${domain}"
+    postconf_e "myhostname = ${name}.${domain}"
+    postconf_e "mydomain = ${domain}"
+    # postconf_e "setgid_group = postdrop"
+    # postconf_e "sendmail_path = $(which sendmail)"
     # mailq_path = /usr/bin/mailq
     # message_size_limit = 10485760 # 限制单封邮件的最大长度
     # mailbox_size_limit = 20480000 # 单封邮件大小限制，单位字节
     # mail_owner = postfix          # postfix daemon 进程的运行身份
-    postconf -e "mailbox_size_limit = 10485760"
-    postconf -e 'inet_interfaces = all'
-    postconf -e 'inet_protocols = ipv4'
-    postconf -e 'mydestination = $mydomain, localhost.$mydomain, localhost'
-    postconf -e 'alias_maps = '
+    postconf_e "mailbox_size_limit = 10485760"
+    postconf_e 'inet_interfaces = all'
+    postconf_e 'inet_protocols = ipv4'
+    postconf_e 'mydestination = $mydomain, localhost.$mydomain, localhost'
+    postconf_e 'alias_maps = '
     ####################
-    postconf -e 'mailbox_transport = lmtp:unix:private/dovecot-lmtp'
-    echo "****turn off local recipient checking in the Postfix SMTP server!!!!" | tee ${LOGFILE}
-    postconf -e 'local_recipient_maps ='
+    postconf_e 'mailbox_transport = lmtp:unix:private/dovecot-lmtp'
+    log "turn off local recipient checking in the Postfix SMTP server!!!!"
+    postconf_e 'local_recipient_maps ='
     ####################
-    postconf -e 'html_directory = no'
+    postconf_e 'html_directory = no'
     #This is super important; we will only allow authenticated mail below.
-    postconf -e 'smtpd_sasl_auth_enable = yes'
-    postconf -e 'smtpd_sasl_type = dovecot'
-    postconf -e 'smtpd_sasl_path = private/auth'
-    postconf -e 'smtpd_sasl_security_options = noanonymous'
-    postconf -e 'smtpd_sasl_tls_security_options = $smtpd_sasl_security_options'
-    postconf -e 'smtpd_sasl_local_domain = $mydomain'
-    postconf -e 'broken_sasl_auth_clients = yes'
-    postconf -e 'smtpd_recipient_restrictions = permit_sasl_authenticated, permit_mynetworks, reject_unauth_destination'
+    postconf_e 'smtpd_sasl_auth_enable = yes'
+    postconf_e 'smtpd_sasl_type = dovecot'
+    postconf_e 'smtpd_sasl_path = private/auth'
+    postconf_e 'smtpd_sasl_security_options = noanonymous'
+    postconf_e 'smtpd_sasl_tls_security_options = $smtpd_sasl_security_options'
+    postconf_e 'smtpd_sasl_local_domain = $mydomain'
+    postconf_e 'broken_sasl_auth_clients = yes'
+    postconf_e 'smtpd_recipient_restrictions = permit_sasl_authenticated, permit_mynetworks, reject_unauth_destination'
     #Authed clients can specify any destination domain.
-    postconf -e 'smtpd_relay_restrictions = permit_mynetworks, permit_sasl_authenticated, reject_unauth_destination'
-    postconf -e 'tls_medium_cipherlist = AES128+EECDH:AES128+EDH'
-    postconf -e 'smtp_use_tls=yes'
+    postconf_e 'smtpd_relay_restrictions = permit_mynetworks, permit_sasl_authenticated, reject_unauth_destination'
+    postconf_e 'tls_medium_cipherlist = AES128+EECDH:AES128+EDH'
+    postconf_e 'smtp_use_tls=yes'
     # the preceding line and this line make sure we're sending mail encrypted if possible
-    postconf -e 'smtp_tls_security_level = may'
+    postconf_e 'smtp_tls_security_level = may'
     # disable insecure protocols'
-    postconf -e 'smtp_tls_mandatory_protocols = !SSLv2,!SSLv3,!TLSv1,!TLSv1.1'
-    postconf -e 'smtp_tls_protocols=!SSLv2,!SSLv3,!TLSv1,!TLSv1.1'
-    postconf -e 'smtp_tls_mandatory_ciphers = medium'
-    postconf -e "smtp_tls_cert_file = ${cert}"
-    postconf -e "smtp_tls_key_file = ${key}"
-    postconf -e 'smtpd_use_tls=yes'
+    postconf_e 'smtp_tls_mandatory_protocols = !SSLv2,!SSLv3,!TLSv1,!TLSv1.1'
+    postconf_e 'smtp_tls_protocols=!SSLv2,!SSLv3,!TLSv1,!TLSv1.1'
+    postconf_e 'smtp_tls_mandatory_ciphers = medium'
+    postconf_e "smtp_tls_cert_file = ${cert}"
+    postconf_e "smtp_tls_key_file = ${key}"
+    postconf_e 'smtpd_use_tls=yes'
     # the preceding line and this line make sure mail coming in to us is encrypted if possible
-    postconf -e 'smtpd_tls_security_level = may'
-    postconf -e 'smtpd_tls_auth_only = yes'
-    postconf -e 'smtpd_tls_mandatory_protocols = !SSLv2,!SSLv3,!TLSv1,!TLSv1.1'
-    postconf -e 'smtpd_tls_protocols=!SSLv2,!SSLv3,!TLSv1,!TLSv1.1'
-    postconf -e 'smtpd_tls_mandatory_ciphers = medium'
-    postconf -e "smtpd_tls_cert_file = ${cert}"
-    postconf -e "smtpd_tls_key_file = ${key}"
-    postconf -e 'smtpd_tls_received_header = yes'
-    postconf -e 'smtpd_tls_session_cache_timeout = 3600s'
-    postconf -e 'tls_random_source = dev:/dev/urandom'
+    postconf_e 'smtpd_tls_security_level = may'
+    postconf_e 'smtpd_tls_auth_only = yes'
+    postconf_e 'smtpd_tls_mandatory_protocols = !SSLv2,!SSLv3,!TLSv1,!TLSv1.1'
+    postconf_e 'smtpd_tls_protocols=!SSLv2,!SSLv3,!TLSv1,!TLSv1.1'
+    postconf_e 'smtpd_tls_mandatory_ciphers = medium'
+    postconf_e "smtpd_tls_cert_file = ${cert}"
+    postconf_e "smtpd_tls_key_file = ${key}"
+    postconf_e 'smtpd_tls_received_header = yes'
+    postconf_e 'smtpd_tls_session_cache_timeout = 3600s'
+    postconf_e 'tls_random_source = dev:/dev/urandom'
 
-    # Enable SMTPS and MSA
+    log "Enable SMTPS and MSA"
     sed -i.orig.${TIMESPAN} -E \
         -e 's/^\s*#*submission\s*inet\s*.*/submission inet n   -   y   -   -   smtpd/g' \
         -e 's/^\s*#*smtps\s*inet\s*.*/smtps inet n   -   y   -   -   smtpd/g' \
@@ -159,7 +170,7 @@ set_dovecot_mailbox_ldap_auth() {
     local ldap_dn=${4}
     local ldap_pw=${5}
     local ldap_base=${6}
-    echo "****dovecot ldap auth" | tee ${LOGFILE}
+    log "DOVECOT LDAP AUTH"
     # auth_username_format = %Ln L:lowercase, n:drop @domain
     sed --quiet -i.orig.${TIMESPAN} -E \
         -e '/(auth_username_format\s*=|disable_plaintext_authi\s*=|auth_mechanisms\s*=|include\s+auth-system.conf.ext|include\s+auth-ldap.conf.ext).*/!p' \
@@ -203,7 +214,7 @@ EOF
 set_mailbox_password_auth() {
     local maildir=${1}
     local domain=${2}
-    echo "****dovecot passwd_file auth" | tee ${LOGFILE}
+    log "dovecot passwd_file auth"
     # passwd file auth
     # ssl = required, client wants to use AUTH PLAIN is ok
     # auth_username_format = %Lu L:lowercase, u:whole user, include @domain
@@ -238,7 +249,7 @@ EOF
 }
 
 set_mailbox_autocreate() {
-    echo "****dovecot mailbox autocreate" | tee ${LOGFILE}
+    log "DOVECOT MAILBOX AUTOCREATE"
     sed --quiet -i.orig.${TIMESPAN} -E \
         -e '/^namespace\s+inbox\s*\{/,/^\}/!p' \
         /etc/dovecot/conf.d/15-mailboxes.conf
@@ -268,10 +279,10 @@ init_dovecot() {
     local cert=${2}
     local key=${3}
     local domain=${4}
-    echo "****reinit dovecot" | tee ${LOGFILE}
+    log "REINIT DOVECOT"
     rm -f /etc/dovecot/conf.d/* /etc/dovecot/* 2>/dev/null || true
     UCF_FORCE_CONFFMISS=1 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dovecot-core 2>/dev/null | true
-    # Enable SSL
+    log "Enable DOVECOT SSL"
     sed --quiet -i.orig.${TIMESPAN} -E \
         -e '/^\s*(ssl\s*=|ssl_cert\s*=|ssl_key\s*=).*/!p' \
         -e '$assl = required' \
@@ -337,14 +348,13 @@ service lmtp {
   }
 }
 EOF
-
 }
 
 set_debug() {
     local domain=${1}
 
-    postconf -e 'debug_peer_level = 2'
-    postconf -e "debug_peer_list = ${domain}"
+    postconf_e 'debug_peer_level = 2'
+    postconf_e "debug_peer_list = ${domain}"
 
     sed --quiet -i.orig.${TIMESPAN} -E \
         -e '/^\s*(auth_verbose\s*=|mail_debug\s*=).*/!p' \
@@ -378,26 +388,15 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
         # test on debian bullseys!!
-        apt -y install gnupg && wget -q -O- 'https://repo.dovecot.org/DOVECOT-REPO-GPG' |
+        apt -y install gnupg apt-transport-https && wget -q -O- 'https://repo.dovecot.org/DOVECOT-REPO-GPG' |
             gpg --dearmor > /etc/apt/trusted.gpg.d/dovecot-archive-keyring.gpg
-        apt -y install apt-transport-https
         echo "deb https://repo.dovecot.org/ce-2.3-latest/debian/bullseye bullseye main" >/etc/apt/sources.list.d/dovecot.list
-        apt -y install postfix postfix-ldap dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd dovecot-ldap
-        # check ssl
-        openssl s_client -servername mail.sample.org -connect mail.sample.org:pop3s
-        # check starttls:
-        openssl s_client -host mail.sample.org -port 25 -starttls smtp
-        openssl s_client -host mail.sample.org -port 465 -starttls smtp
-        openssl s_client -host mail.sample.org -port 110 -starttls pop3
-        openssl s_client -host mail.sample.org -port 143 -starttls imap
-        openssl s_client -host mail.sample.org -port 587 -starttls smtp
+        apt update && apt -y install postfix postfix-ldap dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd dovecot-ldap
+        # check ssl: openssl s_client -servername mail.sample.org -connect mail.sample.org:pop3s
+        # check starttls: openssl s_client -host mail.sample.org -port 25/465/587/110/143 -starttls smtp/smtp/smtp/pop3/imap
         postconf -a (SASL support in the SMTP server)
         postconf -A (SASL support in the SMTP+LMTP client)
         doveconf -a/postconf
-        postfix check
-        run test: doveadm auth test user1 password"
-        user info: doveadm user user1"
-        user login: doveadm auth login user1 password"
 FUSE / GlusterFS
     FUSE caches dentries and file attributes internally. If you're using multiple
 GlusterFS clients to access the same mailboxes, you're going to have problems. Worst
@@ -464,11 +463,15 @@ main() {
         [ -z "${ldap_base}" ] && usage "ldap must set ldap_host & ldap_base"
         set_postfix_ldap_local_recipient_map "${ldap_host}" "${ldap_port}" "${ldap_tls}" "${ldap_dn}" "${ldap_pw}" "${ldap_base}"
         set_dovecot_mailbox_ldap_auth "${ldap_host}" "${ldap_port}" "${ldap_tls}" "${ldap_dn}" "${ldap_pw}" "${ldap_base}"
-        echo "**** modify: /etc/dovecot/dovecot-ldap.conf.ext" | tee ${LOGFILE}
-        echo "**** hosts, base, tls, hosts -> USE DNS NAME(same as ldap PKI Sign cert DN)" | tee ${LOGFILE}
+        log "modify: /etc/dovecot/dovecot-ldap.conf.ext"
+        log "hosts, base, tls, hosts -> USE DNS NAME(same as ldap PKI Sign cert DN)"
     }
     # set_debug "${domain}"
-    echo "****ALL OK ${TIMESPAN}" | tee ${LOGFILE}
+    log "CHECK ENV"
+    systemctl restart dovecot postfix || true
+    doveadm user user1 | tee ${LOGFILE} || true
+    doveadm auth login user1 password | tee ${LOGFILE} || true
+    log "ALL OK ${TIMESPAN}"
     return 0
 }
 main "$@"
