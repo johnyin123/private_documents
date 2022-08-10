@@ -1,3 +1,5 @@
+https://github.com/jirutka/ldap-passwd-webui.git
+
 smbldap-tools
 
 apt -y install php-fpm php-ldap php-xml
