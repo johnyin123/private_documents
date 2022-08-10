@@ -9,15 +9,20 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6541993[2022-08-09T08:56:01+08:00]:init_bind.sh")
+VERSION+=("535700e[2022-08-09T08:57:22+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 SERIAL=$(date '+%Y%m%d%H')
 
+log() {
+    echo "######$*" | tee ${LOGFILE} >&2
+}
+
 gen_domain_zone() {
     local domain=${1}
     local ipaddr=${2}
-    cat <<EOF
+    log "GEN ${domain} domain zone"
+    cat <<EOF |tee ${LOGFILE}
 \$TTL 86400
 @   IN  SOA     ns.${domain}. root.${domain}. (
     ${SERIAL}  ;Serial
@@ -46,10 +51,10 @@ gen_reverse_mapped_zone_file() {
     local arpa_file=${3}
     local w1= w2= w3= w4=
     IFS='.' read -r w1 w2 w3 w4 <<< "${ipaddr}"
-
+    log "GEN ${domain} reverse_mapped zone"
     [ -e "${arpa_file}" ] || {
     # arpa rev file not exist, so create it
-    cat <<EOF > ${arpa_file}
+    cat <<EOF |tee ${LOGFILE}> ${arpa_file}
 \$TTL 86400
 @   IN  SOA     ns.${domain}. root.${domain}. (
     ${SERIAL}  ;Serial
@@ -61,7 +66,7 @@ gen_reverse_mapped_zone_file() {
          IN  NS      ns.${domain}.
 EOF
     }
-    cat <<EOF >> ${arpa_file}
+    cat <<EOF |tee ${LOGFILE}>> ${arpa_file}
 ; ${domain} Reverse-Mapped Zone Begin ${TIMESPAN}
 ${w4}     IN  PTR     ns.${domain}.
 ${w4}     IN  PTR     mail.${domain}.
@@ -72,6 +77,7 @@ EOF
 aclview_addzone() {
     local acl_file=${1}
     local zone_file=${2}
+    log "ADD ${zone_file} in ${acl_file}"
     sed -E -i.orig.${TIMESPAN} \
         -e "s|^\s*include\s+.*${zone_file}.*||g" \
         -e "/^\s*view\s+.*/ a\    include \"${zone_file}\";" \
@@ -81,7 +87,8 @@ aclview_addzone() {
 gen_zone() {
     local zone_name=${1}
     local domain_file=${2}
-    cat <<EOF
+    log "GEN zone ${zone_name} domain ${domain_file}"
+    cat <<EOF |tee ${LOGFILE}
 zone "${zone_name}" IN {
     type master;
     file "${domain_file}";
@@ -95,7 +102,8 @@ gen_aclview() {
     local acl_name=${2}
     local w1= w2= w3= w4=
     IFS='.' read -r w1 w2 w3 w4 <<< "${ipaddr}"
-    cat <<EOF
+    log "GEN acl ${acl_name} ${ipaddr}"
+    cat <<EOF |tee ${LOGFILE}
 acl ${acl_name} {
     // { !${w1}.${w2}.${w3}.0/24; any; };
     ${w1}.${w2}.${w3}.0/24;
@@ -123,14 +131,14 @@ init_bind() {
     local zone_wan_file=/etc/bind/${domain}.zone.wan
     local arpa_zone_lan_file=/etc/bind/${l1}.${l2}.${l3}.zone.lan
     local arpa_zone_wan_file=/etc/bind/${w1}.${w2}.${w3}.zone.wan
-    # remove named.conf.default-zones, when useing view!
+    log "remove named.conf.default-zones, when useing view!"
     sed --quiet -i.orig.${TIMESPAN} -E \
         -e "/(named.conf.default-zones|named.conf.acl).*/!p" \
         -e "\$ainclude \"${acl_lan_file}\";" \
         -e "\$ainclude \"${acl_wan_file}\";" \
         /etc/bind/named.conf
     cat /etc/bind/named.conf.options > /etc/bind/named.conf.options.orig.${TIMESPAN}
-    cat <<EOF > /etc/bind/named.conf.options
+    cat <<EOF |tee ${LOGFILE}> /etc/bind/named.conf.options
 options {
     listen-on port 53 { any; };
     listen-on-v6 { none; };
@@ -171,7 +179,8 @@ init_bind_log() {
     # apparmor="DENIED", see: /etc/apparmor.d/usr.sbin.named
     mkdir -p /var/log/named || true
     chown bind:bind /var/log/named || true
-    cat <<EOF > /etc/bind/logging.conf
+    log "GEN named log /etc/bind/logging.conf"
+    cat <<EOF |tee ${LOGFILE}> /etc/bind/logging.conf
 logging {
     channel mylog {
         file "/var/log/named/named.log" versions 3 size 20m;
@@ -204,7 +213,7 @@ ${SCRIPTNAME}
         --wan      *    <str>  wan ipaddr.
         --log                  with named access log (/var/log/named/named.log), default no log 
         -q|--quiet
-        -l|--log <int> log level
+        -l|--log <str>  log file
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
@@ -232,7 +241,7 @@ main() {
             --log)          shift; access_log=1;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
-            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -l | --log)     shift; LOGFILE="-a ${1}"; shift;;
             -d | --dryrun)  shift; DRYRUN=1;;
             -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
             -h | --help)    shift; usage;;
@@ -245,7 +254,7 @@ main() {
     [ -z "${wan}" ] && usage "command line error!"
     init_bind "${domain}" "${lan}" "${wan}"
     [ -z "${access_log}" ] || init_bind_log
-    echo "ALL OK ${TIMESPAN}"
+    log "ALL OK ${TIMESPAN}"
     named-checkconf
     systemctl restart named
     return 0
