@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dcda8cc[2022-08-08T17:16:32+08:00]:init_postfix_dovecot.sh")
+VERSION+=("26e5084[2022-08-09T06:46:55+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -48,26 +48,30 @@ EOF
 }
 
 set_postfix_ldap_local_recipient_map() {
-    local ldap_srv=${1}
-    local base=${2}
+    local ldap_host=${1}
+    local ldap_port=${2}
+    local ldap_tls=${3}
+    local ldap_dn=${4}
+    local ldap_pw=${5}
+    local ldap_base=${6}
     echo "****Set Postfix local_recipient_map, so not local user can not post mails." | tee ${LOGFILE}
     echo "****Edit /etc/postfix/ldap-localusers.cf for ldap login info" | tee ${LOGFILE}
     postconf -e 'local_recipient_maps = ldap:/etc/postfix/ldap-localusers.cf unix:passwd.byname'
     cat <<EOF |tee ${LOGFILE} >/etc/postfix/ldap-localusers.cf
-bind       = yes
-bind_dn    = cn=readonly,${base}
-bind_pw    = password
-start_tls  = no
-# tls_require_cert = off
+bind             = $( [ -z "${ldap_dn}" ] && echo -n no || echo -n yes )
+${ldap_dn:+bind_dn          = ${ldap_dn}}
+${ldap_pw:+bind_pw          = ${ldap_pw}}
+start_tls        = ${ldap_tls}
+tls_require_cert = no
 # # #
-server_host = ${ldap_srv}
-server_port = 389
-search_base = ${base}
+server_host      = ${ldap_host}
+server_port      = ${ldap_port}
+search_base      = ${ldap_base}
 # # #
-query_filter = (&(uid=%u))
+query_filter     = (&(uid=%u))
 # query_filter = (&(uid=%u)(accountStatus=active))
 result_attribute = uid
-version = 3
+version          = 3
 EOF
     echo "****check postfix ldap local user, output: user1, -v verbose" | tee ${LOGFILE}
     postmap -q 'user1' ldap:/etc/postfix/ldap-localusers.cf || true
@@ -92,9 +96,9 @@ init_postfix() {
     # postconf -e "setgid_group = postdrop"
     # postconf -e "sendmail_path = $(which sendmail)"
     # mailq_path = /usr/bin/mailq
-    # message_size_limit = 10485760  # 限制单封邮件的最大长度
-    # mailbox_size_limit = 20480000  # 单封邮件大小限制，单位字节
-    # mail_owner = postfix           # postfix daemon 进程的运行身份
+    # message_size_limit = 10485760 # 限制单封邮件的最大长度
+    # mailbox_size_limit = 20480000 # 单封邮件大小限制，单位字节
+    # mail_owner = postfix          # postfix daemon 进程的运行身份
     postconf -e "mailbox_size_limit = 10485760"
     postconf -e 'inet_interfaces = all'
     postconf -e 'inet_protocols = ipv4'
@@ -149,8 +153,12 @@ init_postfix() {
 }
 
 set_dovecot_mailbox_ldap_auth() {
-    local ldap_srv=${1}
-    local base=${2}
+    local ldap_host=${1}
+    local ldap_port=${2}
+    local ldap_tls=${3}
+    local ldap_dn=${4}
+    local ldap_pw=${5}
+    local ldap_base=${6}
     echo "****dovecot ldap auth" | tee ${LOGFILE}
     # auth_username_format = %Ln L:lowercase, n:drop @domain
     sed --quiet -i.orig.${TIMESPAN} -E \
@@ -174,17 +182,16 @@ userdb {
 EOF
     cat /etc/dovecot/dovecot-ldap.conf.ext 2>/dev/null || true > /etc/dovecot/dovecot-ldap.conf.ext.orig.${TIMESPAN}
     cat <<EOF |tee ${LOGFILE}>/etc/dovecot/dovecot-ldap.conf.ext
-# dn                  = cn=readonly,${base}
-# dnpass              = password
-
-# if tls yes, ldap_srv must same as "ldap tls pem common name".
-# add ldap_srv in /etc/hosts.
-tls                 = no
+${ldap_dn:+dn                  = ${ldap_dn}}
+${ldap_pw:+dnpass              = ${ldap_pw}}
+# if tls yes, ldap_host must same as "ldap tls pem common name".
+# add ldap_host in /etc/hosts.
+tls                 = ${ldap_tls}
 tls_require_cert    = never
 
-hosts               = ${ldap_srv}
+hosts               = ${ldap_host}:${ldap_port}
 # base = ou=People,dc=test,dc=mail
-base                = ${base}
+base                = ${ldap_base}
 user_attrs          = mailUidNumber=${VMAIL_UGID},mailGidNumber=${VMAIL_UGID}
 default_pass_scheme = SSHA
 ldap_version        = 3
@@ -361,10 +368,15 @@ ${SCRIPTNAME}
               MAIL_LIST=/etc/aliases
         --name     *    <str>  name
         --domain   *    <str>  domain name "sample.org"
-        --dir      *    <str>  mail directory location 
+        --dir      *    <str>  mail directory location
         --cert     *    <str>  ssl cert file
         --key      *    <str>  ssl key file
-        --ldap     <ldap_srv>  ldap auth OR default password file
+        --ldap_dn       <str>  ldap login dn
+        --ldap_pw       <str>  ldap login password
+        --ldap_tls             use ldap starttls, default no use start tls
+        --ldap_host   * <str>  ldap host, if null use password file auth
+        --ldap_port     <int>  ldap port, default 389
+        --ldap_base   * <str>  ldap search base
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -406,9 +418,10 @@ EOF
 # testsaslauthd -u user1 -p password -f /var/spool/postfix/var/run/saslauthd/mux
 # saslfinger -s
 main() {
-    local name="" domain="" maildir="" cert="" key="" ldap=""
+    local name="" domain="" maildir="" cert="" key=""
+    local ldap_dn="" ldap_pw="" ldap_tls="no" ldap_host="" ldap_port=389 ldap_base=""
     local opt_short=""
-    local opt_long="name:,domain:,dir:,cert:,key:,ldap:,"
+    local opt_long="name:,domain:,dir:,cert:,key:,ldap_dn:,ldap_pw:,ldap_tls,ldap_host:,ldap_port:,ldap_base:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -420,7 +433,12 @@ main() {
             --dir)          shift; maildir=${1}; shift;;
             --cert)         shift; cert=${1}; shift;;
             --key)          shift; key=${1}; shift;;
-            --ldap)         shift; ldap=${1}; shift;;
+            --ldap_dn)      shift; ldap_dn=${1}; shift;;
+            --ldap_pw)      shift; ldap_pw=${1}; shift;;
+            --ldap_tls)     shift; ldap_tls="yes";;
+            --ldap_host)    shift; ldap_host=${1}; shift;;
+            --ldap_port)    shift; ldap_port=${1}; shift;;
+            --ldap_base)    shift; ldap_base=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; LOGFILE="-a ${1}"; shift;;
@@ -445,14 +463,14 @@ main() {
     set_postfix_mail_list "${domain}"
     init_dovecot "${maildir}" "${cert}" "${key}" "${domain}"
     set_mailbox_autocreate
-    [ -z "${ldap}" ] && set_mailbox_password_auth "${maildir}" "${domain}"
-    [ -z "${ldap}" ] || {
+    [ -z "${ldap_host}" ] && set_mailbox_password_auth "${maildir}" "${domain}"
+    [ -z "${ldap_host}" ] || {
         local d1="" d2="" d3=""
-        IFS='.' read -r d1 d2 d3 <<< "${domain}"
-        set_postfix_ldap_local_recipient_map "${ldap}" "ou=People,dc=${d1}${d2:+,dc=${d2}}${d3:+,dc=${d3}}"
-        set_dovecot_mailbox_ldap_auth "${ldap}" "ou=People,dc=${d1}${d2:+,dc=${d2}}${d3:+,dc=${d3}}"
+        [ -z "${ldap_base}" ] && usage "ldap must set ldap_host & ldap_base"
+        set_postfix_ldap_local_recipient_map "${ldap_host}" "${ldap_port}" "${ldap_tls}" "${ldap_dn}" "${ldap_pw}" "${ldap_base}"
+        set_dovecot_mailbox_ldap_auth "${ldap_host}" "${ldap_port}" "${ldap_tls}" "${ldap_dn}" "${ldap_pw}" "${ldap_base}"
         echo "**** modify: /etc/dovecot/dovecot-ldap.conf.ext" | tee ${LOGFILE}
-        echo "****  hosts, base, tls, hosts -> USE DNS NAME(same as ldap PKI Sign cert DN)" | tee ${LOGFILE}
+        echo "**** hosts, base, tls, hosts -> USE DNS NAME(same as ldap PKI Sign cert DN)" | tee ${LOGFILE}
     }
     # set_debug "${domain}"
     echo "****ALL OK ${TIMESPAN}" | tee ${LOGFILE}
