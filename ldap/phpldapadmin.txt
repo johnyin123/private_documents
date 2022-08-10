@@ -1,0 +1,46 @@
+apt -y install php-fpm php-ldap php-xml
+git clone https://github.com/breisig/phpLDAPadmin.git
+mkdir -p /usr/share/phpldapadmin && rsync -avP phpLDAPadmin/* /usr/share/phpldapadmin/
+cat <<'EOF' > /usr/share/phpldapadmin/config/config.php
+<?php
+// $config->custom->appearance['friendly_attrs'] = array();
+$config->custom->appearance['friendly_attrs'] = array(
+	'facsimileTelephoneNumber' => 'Fax',
+	'gid'                      => 'Group',
+	'mail'                     => 'Email',
+	'telephoneNumber'          => 'Telephone',
+	'uid'                      => 'User Name',
+	'userPassword'             => 'Password'
+);
+$servers = new Datastore();
+$servers->newServer('ldap_pla');
+$servers->setValue('server','host','127.0.0.1');
+$servers->setValue('server','port',389);
+$servers->setValue('server','base',array('dc=xx,dc=com'));
+$servers->setValue('login','auth_type','cookie');
+$servers->setValue('login','bind_id','cn=admin,dc=xx,dc=com');
+$servers->setValue('login','bind_pass','passwd');
+$servers->setValue('server','tls',false);
+$servers->setValue('login','anon_bind',false);
+?>
+EOF
+cat <<'EOF' >/etc/nginx/http-enabled/ldap.conf
+server {
+    server_name _;
+    listen 80;
+    location /phpldapadmin {
+        alias /usr/share/phpldapadmin/htdocs;
+        index index.php index.html index.htm;
+    }
+    location ~ ^/phpldapadmin/.*\.php$ {
+        root /usr/share;
+        if ($request_filename !~* htdocs) {
+            rewrite ^/phpldapadmin(/.*)?$ /phpldapadmin/htdocs$1;
+        }
+        fastcgi_pass unix:/run/php/php-fpm.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME $request_filename;
+        include fastcgi_params;
+    }
+}
+EOF
