@@ -1,3 +1,5 @@
+smbldap-tools
+
 apt -y install php-fpm php-ldap php-xml
 git clone https://github.com/breisig/phpLDAPadmin.git
 mkdir -p /usr/share/phpldapadmin && rsync -avP phpLDAPadmin/* /usr/share/phpldapadmin/
