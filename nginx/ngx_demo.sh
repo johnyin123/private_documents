@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5e8391e[2022-07-20T10:58:46+08:00]:ngx_demo.sh")
+VERSION+=("40e3888[2022-08-09T11:00:27+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -288,6 +288,32 @@ server {
         alias /var/www/dash;
         add_header Cache-Control no-cache;
     }
+}
+EOF
+cat <<'EOF' >redirec_all_to_other.http
+# redirect all request, include 30X Location redirect
+map $upstream_http_location $jy_host {
+    "~(http|https):\/\/(.*?)/(.*)"   "$1://192.168.168.1/$3";
+}
+server {
+    listen 80;
+    server_name _;
+    location / {
+        proxy_pass https://www.baidu.com/;
+        proxy_set_header Host www.baidu.com;
+        sub_filter 'res.baidu.com'        '192.168.168.1';
+        sub_filter 'www.baidu.com'        '192.168.168.1';
+        sub_filter_once off;
+        sub_filter_types *;
+        proxy_set_header Accept-Encoding "";
+        proxy_intercept_errors on;
+        error_page 301 = @handle_301;
+        error_page 302 = @handle_302;
+        error_page 307 = @handle_307;
+    }
+    location @handle_301 { return 301 "$jy_host"; }
+    location @handle_302 { return 302 "$jy_host"; }
+    location @handle_307 { return 307 "$jy_host"; }
 }
 EOF
 cat <<'EOF' >static_dynamic.http
