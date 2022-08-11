@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("40e3888[2022-08-09T11:00:27+08:00]:ngx_demo.sh")
+VERSION+=("956cfd4[2022-08-11T16:32:33+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -292,8 +292,11 @@ server {
 EOF
 cat <<'EOF' >redirec_all_to_other.http
 # redirect all request, include 30X Location redirect
-map $upstream_http_location $jy_host {
+map $upstream_http_location $changed_location {
     "~(http|https):\/\/(.*?)/(.*)"   "$1://192.168.168.1/$3";
+}
+map $upstream_http_location $real_host {
+    "~(http[s]?):\/\/([^:\/\s]+)(:[0-9]+)?(.*)"   "$2$3";
 }
 server {
     listen 80;
@@ -311,9 +314,29 @@ server {
         error_page 302 = @handle_302;
         error_page 307 = @handle_307;
     }
-    location @handle_301 { return 301 "$jy_host"; }
-    location @handle_302 { return 302 "$jy_host"; }
-    location @handle_307 { return 307 "$jy_host"; }
+    location @handle_301 { return 301 "$changed_location"; }
+    location @handle_302 { return 302 "$changed_location"; }
+    location @handle_307 { return 307 "$changed_location"; }
+    # #####################
+    location /case2 {
+        proxy_pass https://www.baidu.com/;
+        proxy_set_header Host www.baidu.com;
+        sub_filter 'res.baidu.com'        '192.168.168.1';
+        sub_filter 'www.baidu.com'        '192.168.168.1';
+        sub_filter_once off;
+        sub_filter_types *;
+        proxy_set_header Accept-Encoding "";
+        proxy_intercept_errors on;
+        error_page 301 302 307 = @handle_redirects;
+    }
+    location @handle_redirects {
+        resolver 114.114.114.114 ipv6=off;
+        set $orig_loc $upstream_http_location;
+        proxy_set_header Host $real_host;
+        # return 200 "$real_host";
+        proxy_pass $orig_loc;
+    }
+
 }
 EOF
 cat <<'EOF' >static_dynamic.http
