@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d275f9c[2022-08-10T09:17:04+08:00]:init_ldap.sh")
+VERSION+=("3a21af9[2022-08-10T12:58:49+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 LOGFILE=""
@@ -231,11 +231,10 @@ EOF
 
 add_mdb_readonly_sysuser() {
     local olcSuffix=${1}
-    local user=${2}
-    local passwd=${3}
+    local passwd=${2}
     log "Add ${user} for readonly querying the directory server"
     cat <<EOF |tee ${LOGFILE}| ldap_modify
-dn: cn=${user},ou=people,${olcSuffix}
+dn: cn=readonly,ou=people,${olcSuffix}
 changetype: add
 objectClass: organizationalRole
 objectClass: simpleSecurityObject
@@ -299,15 +298,14 @@ ${SCRIPTNAME}
           addtls:       --ca ca.pem --cert /a.pem --key /a.key
           multimaster:  --srvid 104 --peer ldap://ip:389/>
           create ou:    --create_userou
-          add ro usser: --rsysuser oureader --rsyspass pass
+          add ro user(readonly) : --rsyspass pass
           add user:     -u user1 -u user2
           ALL IN ONE:   ..............
         -D|--domain  *    <str>  domain, sample.org
         -O|--org     *    <str>  organization, "my company. ltd."
         -P|--passwd  *  * <str>  slapd manager password
         --create_userou          create organization unit
-        --rsysuser *      <str>  create readonly user for access ldap server
-        --rsyspass *      <str>
+        --rsyspass *      <str>  readonly accessuser pass
         -u|--user         <str>  adduser, group(${MAIL_GROUP}:${MAIL_GID}), multi parameters
                                    default password: ${DEFAULT_ADD_USER_PASSWORD}
         -g|--group)       <str>  add new group, multi parameters
@@ -337,11 +335,11 @@ EOF
 }
 main() {
     local _u="" _max_id="" olcRootDN="" olcSuffix=""
-    local passwd="" domain="" org="" ca="" cert="" key="" srvid="" peer="" create_userou="" rsysuser="" rsyspass=""
+    local passwd="" domain="" org="" ca="" cert="" key="" srvid="" peer="" create_userou="" rsyspass=""
     local users=()
     local groups=()
     local opt_short="P:D:O:u:g:"
-    local opt_long="passwd:,domain:,org:,ca:,cert:,key:,srvid:,peer:,user:,group:,create_userou,rsyspass:,rsysuser:,"
+    local opt_long="passwd:,domain:,org:,ca:,cert:,key:,srvid:,peer:,user:,group:,create_userou,rsyspass:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -352,7 +350,6 @@ main() {
             -D | --domain)  shift; domain=${1}; shift;;
             -O | --org)     shift; org=${1}; shift;;
             --create_userou)shift; create_userou=1;;
-            --rsysuser)     shift; rsysuser=${1}; shift;;
             --rsyspass)     shift; rsyspass=${1}; shift;;
             --ca)           shift; ca=${1}; shift;;
             --cert)         shift; cert=${1}; shift;;
@@ -375,7 +372,6 @@ main() {
         init_ldap "${passwd}" "${domain}" "${org}"
         setup_log
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
-        update_mdb_acl "${olcSuffix}"
         log "INIT OK"
     }
     [ -z "${create_userou}" ] || {
@@ -385,10 +381,11 @@ main() {
         add_group "${MAIL_GROUP}" ${MAIL_GID} "${olcSuffix}"
         log "INIT USER ORGANIZATION UNIT OK"
     }
-    [ -z "${rsysuser}" ] || [ -z "${rsyspass}" ] || {
+    [ -z "${rsyspass}" ] || {
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
-        add_mdb_readonly_sysuser "${olcSuffix}" "${rsysuser}" "${rsyspass}"
-        log "CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D cn=${rsysuser},ou=People,${olcSuffix} -w ${rsyspass}-a ${rsyspass} -S"
+        update_mdb_acl "${olcSuffix}"
+        add_mdb_readonly_sysuser "${olcSuffix}" "${rsyspass}"
+        log "CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D cn=readonly,ou=People,${olcSuffix} -w ${rsyspass}-a ${rsyspass} -S"
         log "ADD READONLY SYS USER OK"
     }
     [ -z "${ca}" ] || [ -z "${cert}" ] || [ -z "${key}" ] || {
