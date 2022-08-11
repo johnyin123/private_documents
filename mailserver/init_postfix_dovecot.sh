@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0229563[2022-08-10T10:04:29+08:00]:init_postfix_dovecot.sh")
+VERSION+=("bf7b4ad[2022-08-10T13:55:24+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -39,11 +39,13 @@ init_vmail_user() {
 
 set_postfix_mail_list() {
     local domain=${1}
-    log "init postfix alias, Mailman, the GNU Mailing List Manager"
+    log "init postfix alias, can as MailList"
     postconf_e "alias_database = hash:${MAIL_LIST}"
-    log "alias ${MAIL_LIST}"
+    postconf_e "alias_maps = hash:${MAIL_LIST}"
+    log "alias ${MAIL_LIST}, list name must exist in passwd_db/ldap"
     cat <<EOF|tee ${LOGFILE}>"${MAIL_LIST}"
 postmaster: root
+mylist: user1@${domain}, test@sample.com
 EOF
     postalias "${MAIL_LIST}"
     echo "init postfix virtual domain alias, Email Redirect OK"
