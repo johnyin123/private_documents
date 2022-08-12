@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("85384fc[2022-08-12T14:20:27+08:00]:init_loadblance.sh")
+VERSION+=("4dadaff[2022-08-12T14:30:55+08:00]:init_loadblance.sh")
 ################################################################################
 LOGFILE=""
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
@@ -79,17 +79,15 @@ gen_zebra() {
     local vip=${2}
     local password="password"
     log "INIT /etc/frr/frr.conf"
-    backup /etc/frr/frr.conf
-    cat <<EOF | tee ${LOGFILE} | tee /etc/frr/frr.conf
-hostname $(cat /etc/hostname)
-password ${password}
-enable password ${password}
-log file /var/log/frr/zebra.log
-service password-encryption
-interface ${interface}
- ip address ${vip}/32
-EOF
+    rm -f /etc/frr/frr.conf /etc/frr/zebra.conf
+    touch /etc/frr/frr.conf
     systemctl restart frr || true
+    vtysh -c "conf t" -c "hostname $(cat /etc/hostname)"
+    vtysh -c "conf t" -c "password ${password}" -c "enable password ${password}" -c "service password-encryption"
+    vtysh -c "conf t" -c "interface ${interface}" -c "no ip address ${vip}/32"
+    vtysh -c "conf t" -c "interface ${interface}" -c "ip address ${vip}/32"
+    vtysh -c "write" # vtysh -w
+    vtysh -c "show running-config"
 }
 
 init_lo_vip() {
