@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b7c959d[2022-08-11T14:47:05+08:00]:init_ldap.sh")
+VERSION+=("5c6affc[2022-08-12T08:33:45+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
@@ -395,6 +395,11 @@ main() {
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
         update_mdb_acl "${olcSuffix}"
         add_mdb_readonly_sysuser "${olcSuffix}" "${rsyspass}"
+        log "**************************************************"
+        log "search_base = ou=people,${olcsuffix}"
+        log "bind_dn     = cn=readonly,ou=people,${olcSuffix}"
+        log "bind_pw     = ${rsyspass}"
+        log "**************************************************"
         log "CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D cn=readonly,ou=People,${olcSuffix} -w ${rsyspass}-a ${rsyspass} -S"
         log "ADD READONLY SYS USER OK"
     }
