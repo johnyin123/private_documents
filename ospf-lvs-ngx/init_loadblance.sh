@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-08-12T14:20:27+08:00]:init_loadblance.sh")
+VERSION+=("85384fc[2022-08-12T14:20:27+08:00]:init_loadblance.sh")
 ################################################################################
 LOGFILE=""
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
@@ -20,6 +20,7 @@ log() {
 
 backup() {
     src=${1}
+    log "BACKUP: ${src} ${TIMESPAN} "
     cat ${src} 2>/dev/null > ${src}.orig.${TIMESPAN} || true
 }
 

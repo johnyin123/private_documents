@@ -9,13 +9,19 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("535700e[2022-08-09T08:57:22+08:00]:init_bind.sh")
+VERSION+=("c0c8beb[2022-08-10T14:07:17+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 SERIAL=$(date '+%Y%m%d%H')
 
 log() {
     echo "######$*" | tee ${LOGFILE} >&2
+}
+
+backup() {
+    src=${1}
+    log "BACKUP: ${src} ${TIMESPAN} "
+    cat ${src} 2>/dev/null > ${src}.orig.${TIMESPAN} || true
 }
 
 gen_domain_zone() {
@@ -54,7 +60,7 @@ gen_reverse_mapped_zone_file() {
     log "GEN ${domain} reverse_mapped zone"
     [ -e "${arpa_file}" ] || {
     # arpa rev file not exist, so create it
-    cat <<EOF |tee ${LOGFILE}> ${arpa_file}
+    cat <<EOF |tee ${LOGFILE}| tee ${arpa_file}
 \$TTL 86400
 @   IN  SOA     ns.${domain}. root.${domain}. (
     ${SERIAL}  ;Serial
@@ -66,7 +72,7 @@ gen_reverse_mapped_zone_file() {
          IN  NS      ns.${domain}.
 EOF
     }
-    cat <<EOF |tee ${LOGFILE}>> ${arpa_file}
+    cat <<EOF |tee ${LOGFILE}| tee -a ${arpa_file}
 ; ${domain} Reverse-Mapped Zone Begin ${TIMESPAN}
 ${w4}     IN  PTR     ns.${domain}.
 ${w4}     IN  PTR     mail.${domain}.
@@ -78,7 +84,8 @@ aclview_addzone() {
     local acl_file=${1}
     local zone_file=${2}
     log "ADD ${zone_file} in ${acl_file}"
-    sed -E -i.orig.${TIMESPAN} \
+    backup ${acl_file}
+    sed -E -i \
         -e "s|^\s*include\s+.*${zone_file}.*||g" \
         -e "/^\s*view\s+.*/ a\    include \"${zone_file}\";" \
         ${acl_file}
@@ -132,13 +139,14 @@ init_bind() {
     local arpa_zone_lan_file=/etc/bind/${l1}.${l2}.${l3}.zone.lan
     local arpa_zone_wan_file=/etc/bind/${w1}.${w2}.${w3}.zone.wan
     log "remove named.conf.default-zones, when useing view!"
-    sed --quiet -i.orig.${TIMESPAN} -E \
+    backup /etc/bind/named.conf
+    sed --quiet -i -E \
         -e "/(named.conf.default-zones|named.conf.acl).*/!p" \
         -e "\$ainclude \"${acl_lan_file}\";" \
         -e "\$ainclude \"${acl_wan_file}\";" \
         /etc/bind/named.conf
-    cat /etc/bind/named.conf.options > /etc/bind/named.conf.options.orig.${TIMESPAN}
-    cat <<EOF |tee ${LOGFILE}> /etc/bind/named.conf.options
+    backup /etc/bind/named.conf.options
+    cat <<EOF |tee ${LOGFILE}| tee /etc/bind/named.conf.options
 options {
     listen-on port 53 { any; };
     listen-on-v6 { none; };
@@ -180,7 +188,7 @@ init_bind_log() {
     mkdir -p /var/log/named || true
     chown bind:bind /var/log/named || true
     log "GEN named log /etc/bind/logging.conf"
-    cat <<EOF |tee ${LOGFILE}> /etc/bind/logging.conf
+    cat <<EOF |tee ${LOGFILE}| tee /etc/bind/logging.conf
 logging {
     channel mylog {
         file "/var/log/named/named.log" versions 3 size 20m;

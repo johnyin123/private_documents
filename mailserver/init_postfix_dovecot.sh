@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bf7b4ad[2022-08-10T13:55:24+08:00]:init_postfix_dovecot.sh")
+VERSION+=("e030720[2022-08-11T10:42:26+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -21,6 +21,13 @@ LOGFILE=""
 log() {
     echo "######$*" | tee ${LOGFILE} >&2
 }
+
+backup() {
+    src=${1}
+    log "BACKUP: ${src} ${TIMESPAN} "
+    cat ${src} 2>/dev/null > ${src}.orig.${TIMESPAN} || true
+}
+
 
 postconf_e() {
     log "postconf -e \"${*}\""
@@ -158,7 +165,8 @@ init_postfix() {
     postconf_e 'tls_random_source = dev:/dev/urandom'
 
     log "Enable SMTPS and MSA"
-    sed -i.orig.${TIMESPAN} -E \
+    backup /etc/postfix/master.cf
+    sed -i -E \
         -e 's/^\s*#*submission\s*inet\s*.*/submission inet n   -   y   -   -   smtpd/g' \
         -e 's/^\s*#*smtps\s*inet\s*.*/smtps inet n   -   y   -   -   smtpd/g' \
         -e 's/^\s*#*\s*-o smtpd_tls_wrappermode=yes/  -o smtpd_tls_wrappermode=yes/g' \
@@ -174,7 +182,8 @@ set_dovecot_mailbox_ldap_auth() {
     local ldap_base=${6}
     log "DOVECOT LDAP AUTH"
     # auth_username_format = %Ln L:lowercase, n:drop @domain
-    sed --quiet -i.orig.${TIMESPAN} -E \
+    backup /etc/dovecot/conf.d/10-auth.conf
+    sed --quiet -i -E \
         -e '/(auth_username_format\s*=|disable_plaintext_authi\s*=|auth_mechanisms\s*=|include\s+auth-system.conf.ext|include\s+auth-ldap.conf.ext).*/!p' \
         -e '$a#!include auth-system.conf.ext' \
         -e '$a!include auth-ldap.conf.ext' \
@@ -182,8 +191,8 @@ set_dovecot_mailbox_ldap_auth() {
         -e '$aauth_mechanisms = plain login' \
         -e '$aauth_username_format = %Ln' \
         /etc/dovecot/conf.d/10-auth.conf
-    cat /etc/dovecot/conf.d/auth-ldap.conf.ext 2>/dev/null || true> /etc/dovecot/conf.d/auth-ldap.conf.ext.orig.${TIMESPAN} || true
-    cat <<EOF |tee ${LOGFILE}> /etc/dovecot/conf.d/auth-ldap.conf.ext
+    backup /etc/dovecot/conf.d/auth-ldap.conf.ext
+    cat <<EOF |tee ${LOGFILE}| tee /etc/dovecot/conf.d/auth-ldap.conf.ext
 passdb {
   driver = ldap
   args = /etc/dovecot/dovecot-ldap.conf.ext
@@ -193,8 +202,8 @@ userdb {
   args = /etc/dovecot/dovecot-ldap.conf.ext
 }
 EOF
-    cat /etc/dovecot/dovecot-ldap.conf.ext 2>/dev/null || true > /etc/dovecot/dovecot-ldap.conf.ext.orig.${TIMESPAN}
-    cat <<EOF |tee ${LOGFILE}>/etc/dovecot/dovecot-ldap.conf.ext
+    backup /etc/dovecot/dovecot-ldap.conf.ext
+    cat <<EOF |tee ${LOGFILE}| tee /etc/dovecot/dovecot-ldap.conf.ext
 ${ldap_dn:+dn                  = ${ldap_dn}}
 ${ldap_pw:+dnpass              = ${ldap_pw}}
 # if tls yes, ldap_host must same as "ldap tls pem common name".
@@ -220,7 +229,8 @@ set_mailbox_password_auth() {
     # passwd file auth
     # ssl = required, client wants to use AUTH PLAIN is ok
     # auth_username_format = %Lu L:lowercase, u:whole user, include @domain
-    sed --quiet -i.orig.${TIMESPAN} -E \
+    backup /etc/dovecot/conf.d/10-auth.conf
+    sed --quiet -i -E \
         -e '/(auth_username_format\s*=|disable_plaintext_authi\s*=|auth_mechanisms\s*=|include\s+auth-system.conf.ext|include\s+auth-passwdfile.conf.ext).*/!p' \
         -e '$a#!include auth-system.conf.ext' \
         -e '$a!include auth-passwdfile.conf.ext' \
@@ -228,8 +238,8 @@ set_mailbox_password_auth() {
         -e '$aauth_mechanisms = plain login' \
         -e '$aauth_username_format = %Lu' \
         /etc/dovecot/conf.d/10-auth.conf
-    cat /etc/dovecot/conf.d/auth-passwdfile.conf.ext 2>/dev/null > /etc/dovecot/conf.d/auth-passwdfile.conf.ext.orig.${TIMESPAN} || true
-    cat <<EOF |tee ${LOGFILE}> /etc/dovecot/conf.d/auth-passwdfile.conf.ext
+    backup /etc/dovecot/conf.d/auth-passwdfile.conf.ext
+    cat <<EOF |tee ${LOGFILE}| tee /etc/dovecot/conf.d/auth-passwdfile.conf.ext
 passdb {
   driver = passwd-file
   args = scheme=SHA512-CRYPT /etc/dovecot/passwd
@@ -240,8 +250,8 @@ userdb {
 }
 EOF
     # Add users
-    cat /etc/dovecot/passwd 2>/dev/null > /etc/dovecot/passwd.orig.${TIMESPAN} || true
-    cat <<EOF |tee ${LOGFILE}> /etc/dovecot/passwd
+    backup /etc/dovecot/passwd
+    cat <<EOF |tee ${LOGFILE}| tee /etc/dovecot/passwd
 # doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2
 admin@${domain}:$(doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2)
 user1@${domain}:$(doveadm pw -s SHA512-CRYPT -p password | cut -d '}' -f2)
@@ -252,10 +262,11 @@ EOF
 
 set_mailbox_autocreate() {
     log "DOVECOT MAILBOX AUTOCREATE"
-    sed --quiet -i.orig.${TIMESPAN} -E \
+    backup /etc/dovecot/conf.d/15-mailboxes.conf
+    sed --quiet -i -E \
         -e '/^namespace\s+inbox\s*\{/,/^\}/!p' \
         /etc/dovecot/conf.d/15-mailboxes.conf
-    cat <<EOF |tee ${LOGFILE}>>/etc/dovecot/conf.d/15-mailboxes.conf
+    cat <<EOF |tee ${LOGFILE} | tee -a /etc/dovecot/conf.d/15-mailboxes.conf
 namespace inbox {
   mailbox Drafts {
     auto = subscribe
@@ -285,14 +296,16 @@ init_dovecot() {
     rm -f /etc/dovecot/conf.d/* /etc/dovecot/* 2>/dev/null || true
     UCF_FORCE_CONFFMISS=1 DEBIAN_FRONTEND=noninteractive dpkg-reconfigure dovecot-core 2>/dev/null | true
     log "Enable DOVECOT SSL"
-    sed --quiet -i.orig.${TIMESPAN} -E \
+    backup /etc/dovecot/conf.d/10-ssl.conf
+    sed --quiet -i -E \
         -e '/^\s*(ssl\s*=|ssl_cert\s*=|ssl_key\s*=).*/!p' \
         -e '$assl = required' \
         -e "\$assl_cert = <${cert}" \
         -e "\$assl_key = <${key}" \
         /etc/dovecot/conf.d/10-ssl.conf
         # ssl_dh = </usr/share/dovecot/dh.pem
-    sed --quiet -i.orig.${TIMESPAN} -E \
+    backup /etc/dovecot/conf.d/10-mail.conf
+    sed --quiet -i -E \
         -e '/^\s*(mail_location\s*=|mail_home\s*=|mail_access_groups\s*=|default_login_user\s*=).*/!p' \
         -e "\$amail_location = maildir:${maildir}/%d/%n" \
         -e "\$amail_home = ${maildir}/%n" \
@@ -302,10 +315,11 @@ init_dovecot() {
         -e "\$amail_gid = ${VMAIL_UGID}" \
         /etc/dovecot/conf.d/10-mail.conf
 
-    sed --quiet -i.orig.${TIMESPAN} -E \
+    backup /etc/dovecot/conf.d/10-master.conf
+    sed --quiet -i -E \
         -e '/^service\s+(auth|imap-login|pop3-login|lmtp)\s*\{/,/^\}/!p' \
         /etc/dovecot/conf.d/10-master.conf
-    cat <<EOF |tee ${LOGFILE}>> /etc/dovecot/conf.d/10-master.conf
+    cat <<EOF |tee ${LOGFILE} | tee -a /etc/dovecot/conf.d/10-master.conf
 service auth {
   unix_listener auth-userdb {
     mode = 0600
@@ -357,8 +371,8 @@ set_debug() {
 
     postconf_e 'debug_peer_level = 2'
     postconf_e "debug_peer_list = ${domain}"
-
-    sed --quiet -i.orig.${TIMESPAN} -E \
+    backup /etc/dovecot/conf.d/10-logging.conf
+    sed --quiet -i -E \
         -e '/^\s*(auth_verbose\s*=|mail_debug\s*=).*/!p' \
         -e '$aauth_verbose = yes' \
         -e '$amail_debug = yes' \
