@@ -9,9 +9,10 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3a21af9[2022-08-10T12:58:49+08:00]:init_ldap.sh")
+VERSION+=("b7c959d[2022-08-11T14:47:05+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
+TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
 LOGFILE=""
 MAIL_GROUP="mail"
 MAIL_GID=9999
@@ -225,6 +226,15 @@ olcTLSCertificateFile: ${cert}
 -
 replace: olcTLSCertificateKeyFile
 olcTLSCertificateKeyFile: ${key}
+-
+replace: olcTLSProtocolMin
+olcTLSProtocolMin: 3.3
+-
+replace: olcTLSCipherSuite
+olcTLSCipherSuite: ${TLS_CIPHER}
+-
+replace: olcDisallows
+olcDisallows: bind_anon tls_2_anon
 EOF
     systemctl restart slapd
 }
