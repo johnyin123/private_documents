@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4dadaff[2022-08-12T14:30:55+08:00]:init_loadblance.sh")
+VERSION+=("fa6b674[2022-08-12T16:34:38+08:00]:init_loadblance.sh")
 ################################################################################
 LOGFILE=""
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
@@ -72,6 +72,25 @@ done)
 }
 EOF
     systemctl restart keepalived || true
+}
+
+gen_ospf() {
+    local interface=${1}
+    local route_id=${2}
+    local vip=${3}
+
+    vtysh -c "conf t" \
+        -c "interface ${interface}" \
+        -c "ip ospf authentication message-digest" \
+        -c "ip ospf message-digest-key 1 md5 pass4OSPF" \
+        -c "ip ospf priority 0" \
+        -c "router ospf" \
+        -c "ospf router-id ${route_id}" \
+        -c "log-adjacency-changes" \
+        -c "auto-cost reference-bandwidth 100000" \
+        -c "network ${vip}/32 area 0.0.0.0" \
+        -c "area 0.0.0.0 authentication message-digest"
+    vtysh -c "write" # vtysh -w
 }
 
 gen_zebra() {
@@ -162,7 +181,10 @@ main() {
     [ -z "${rid}" ] || [ -z "${vip}" ] || ((${#rip[@]} == 0)) || {
         log "INIT LB DIRECTOR SERVER"
         init_keepalived "${rid}" "${vip}" ${rip[@]}
-        [ -z "${frr}" ] && init_lo_vip "${vip}" || gen_zebra "lo" "${vip}"
+        [ -z "${frr}" ] && init_lo_vip "${vip}" || {
+            gen_zebra "lo" "${vip}"
+            gen_ospf "eth0" "${vip}" "${vip}"
+        }
     }
     [ -z "${rid}" ] && ((${#rip[@]} == 0)) && {
         [ -z "${vip}" ] || {
