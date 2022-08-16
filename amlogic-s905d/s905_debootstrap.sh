@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("94758ec[2022-07-04T15:10:21+08:00]:s905_debootstrap.sh")
+VERSION+=("32cb795[2022-07-12T08:20:03+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 menu_select() {
@@ -1152,6 +1152,9 @@ fi
 ls -lhR ${DIRNAME}/buildroot/boot/
 echo "end install you kernel&patchs"
 
+echo "patch bluetoothd for sap error, Starting bluetoothd with the option "--noplugin=sap" by default (as
+already suggested) would be one way to do it"
+sed -i "s|ExecStart=.*|ExecStart=/usr/libexec/bluetooth/bluetoothd --noplugin=sap|g" ${DIRNAME}/buildroot/usr/lib/systemd/system/bluetooth.service
 echo "start chroot shell, disable service & do other work"
 chroot ${DIRNAME}/buildroot/ /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
 chroot ${DIRNAME}/buildroot/ /bin/bash -s <<EOF

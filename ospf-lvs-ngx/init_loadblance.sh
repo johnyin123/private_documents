@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fa6b674[2022-08-12T16:34:38+08:00]:init_loadblance.sh")
+VERSION+=("e64c8cf[2022-08-15T16:50:25+08:00]:init_loadblance.sh")
 ################################################################################
 LOGFILE=""
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
@@ -110,11 +110,12 @@ gen_zebra() {
 }
 
 init_lo_vip() {
-    local vip=${1}
+    local interface=${1}
+    local vip=${2}
     log "INIT /etc/network/interfaces.d/lvs"
     cat<<EOF | tee ${LOGFILE} | tee /etc/network/interfaces.d/lvs
-auto lo:0
-iface lo:0 inet static
+auto ${interface}
+iface ${interface} inet static
     address ${vip}/32
 EOF
 }
@@ -181,7 +182,7 @@ main() {
     [ -z "${rid}" ] || [ -z "${vip}" ] || ((${#rip[@]} == 0)) || {
         log "INIT LB DIRECTOR SERVER"
         init_keepalived "${rid}" "${vip}" ${rip[@]}
-        [ -z "${frr}" ] && init_lo_vip "${vip}" || {
+        [ -z "${frr}" ] && init_lo_vip "lo:0" "${vip}" || {
             gen_zebra "lo" "${vip}"
             gen_ospf "eth0" "${vip}" "${vip}"
         }
@@ -190,7 +191,7 @@ main() {
         [ -z "${vip}" ] || {
             log "INIT LB REAL SERVER"
             init_real_srv
-            init_lo_vip "${vip}"
+            init_lo_vip "lo:0" "${vip}"
         }
     }
     log "ALL DONE"
