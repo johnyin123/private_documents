@@ -64,6 +64,10 @@ def find_subimages_from_files(primary_image_filename, subimage_filename, confide
     '''
     1. invert color, 2. to gray, 3. only keep black 
     '''
+    # # read image as an numpy array
+    # image = np.asarray(bytearray(resp.read()), dtype="uint8")
+    # # use imdecode function
+    # image = cv2.imdecode(image, cv2.IMREAD_COLOR)
     primary = cv2.cvtColor(cv2.bitwise_not(cv2.imread(primary_image_filename)), cv2.COLOR_BGR2GRAY)
     subimage = cv2.cvtColor(cv2.bitwise_not(cv2.imread(subimage_filename)), cv2.COLOR_BGR2GRAY)
     (thresh, pri_img) = cv2.threshold(primary, 0, 255, cv2.THRESH_BINARY)
@@ -118,6 +122,7 @@ def httpreq(user, passwd, confidence):
         with open(png_info["bigImage"]+".png", 'wb') as fd:
             for chunk in resp.iter_content(chunk_size):
                 fd.write(chunk)
+        print("%s, %s !!".format(png_info["bigImage"], png_info["smallImage"]))
         positation = find_subimages_from_files(png_info["bigImage"]+".png", png_info["smallImage"]+".png", confidence)
         if len(positation)==0:
             return 100
