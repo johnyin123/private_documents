@@ -182,3 +182,17 @@ if __name__ == '__main__':
 # convert -fill white +opaque black b.png maskb.png
 # python3 find.py maskb.png masks.png 
 
+# mkdir ~/.pip/
+# cat <<EOF >~/.pip/pip.conf
+# [global]
+# index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+# EOF
+# python3 -m venv kq_venv --python python3 / virtualenv kq_venv --python python3.9
+# source kq_venv/bin/activate
+# # cat <<EOF> requirements.txt
+# numpy==1.23.2
+# opencv-python==4.6.0.66
+# requests==2.28.1
+# scipy==1.9.0
+# EOF
+# pip install --upgrade -r requirements.txt
