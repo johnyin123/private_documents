@@ -111,14 +111,14 @@ def httpreq(user, passwd, confidence):
         png_info = json.loads(post.text)
         resp = session.get(LOGIN_URL+"/upload/jigsawImg/"+png_info["smallImage"]+".png")
         chunk_size = 100
-        with open('smallImage.png', 'wb') as fd:
+        with open(png_info["smallImage"]+".png", 'wb') as fd:
             for chunk in resp.iter_content(chunk_size):
                 fd.write(chunk)
         resp = session.get(LOGIN_URL+"/upload/jigsawImg/"+png_info["bigImage"]+".png")
-        with open('bigImage.png', 'wb') as fd:
+        with open(png_info["bigImage"]+".png", 'wb') as fd:
             for chunk in resp.iter_content(chunk_size):
                 fd.write(chunk)
-        positation = find_subimages_from_files('bigImage.png', 'smallImage.png', confidence)
+        positation = find_subimages_from_files(png_info["bigImage"]+".png", png_info["smallImage"]+".png", confidence)
         if len(positation)==0:
             return 100
         p1,p2=positation[0]
