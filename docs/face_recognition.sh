@@ -7,6 +7,7 @@ echo -e "[global]\n" >~/.pip/pip.conf
 echo -e "index-url = https://pypi.tuna.tsinghua.edu.cn/simple" >>~/.pip/pip.conf
 echo -e "开始安装Python常见库"
 
+# virtualenv venv --python python2.7
 python3.7 -m venv env
 source env/bin/activate
 python3.7 -m pip install --upgrade pip
