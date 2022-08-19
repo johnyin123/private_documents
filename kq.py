@@ -12,16 +12,7 @@ from random import randint
 from time import sleep
 from datetime import date
 
-# from bs4 import BeautifulSoup
-#     #html = BeautifulSoup(html_str, 'lxml')
-#     #inputs = html.find_all("input")
-
 LOGIN_URL = 'http://kq.neusoft.com'
-#payload = {
-#    'username-input-name': 'username',
-#	'password-input-name': 'password'
-#}
-#post = session.post(LOGIN_URL+"/jigsaw", data=payload)
 
 def find_subimages(primary, subimage, confidence=0.80):
     primary_edges = cv2.Canny(primary, 32, 128, apertureSize=3)
@@ -60,16 +51,14 @@ def get_connected_components(image):
     objects = sp.measurements.find_objects(labels)
     return objects
 
-def find_subimages_from_files(primary_image_filename, subimage_filename, confidence):
+def find_subimages_from_stream(big_img, small_img, confidence):
     '''
     1. invert color, 2. to gray, 3. only keep black 
     '''
-    # # read image as an numpy array
-    # image = np.asarray(bytearray(resp.read()), dtype="uint8")
-    # # use imdecode function
-    # image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-    primary = cv2.cvtColor(cv2.bitwise_not(cv2.imread(primary_image_filename)), cv2.COLOR_BGR2GRAY)
-    subimage = cv2.cvtColor(cv2.bitwise_not(cv2.imread(subimage_filename)), cv2.COLOR_BGR2GRAY)
+    primary = cv2.cvtColor(cv2.bitwise_not(cv2.imdecode(big_img, cv2.IMREAD_COLOR)), cv2.COLOR_BGR2GRAY)
+    subimage = cv2.cvtColor(cv2.bitwise_not(cv2.imdecode(small_img, cv2.IMREAD_COLOR)), cv2.COLOR_BGR2GRAY)
+    # primary = cv2.cvtColor(cv2.bitwise_not(cv2.imread(big_img)), cv2.COLOR_BGR2GRAY)
+    # subimage = cv2.cvtColor(cv2.bitwise_not(cv2.imread(small_img)), cv2.COLOR_BGR2GRAY)
     (thresh, pri_img) = cv2.threshold(primary, 0, 255, cv2.THRESH_BINARY)
     (thresh, sub_img) = cv2.threshold(subimage, 0, 255, cv2.THRESH_BINARY)
     # cv2.imshow("pri", pri_img)
@@ -87,21 +76,9 @@ def find_inputs(html_str):
         req_dict[name] = value
     return req_dict
 
-# headers = {
-#   "accept": "application/json",
-#   "authorization": "bearer token TOKEN"
-# }
-# resp = session.get(LOGIN_URL, headers=headers)
-# session.auth = ('user', 'pass')
-# session.headers.update({'x-test': 'true'})
-# # both 'x-test' and 'x-test2' are sent
-# session.get('', headers={'x-test2': 'true'})
-
 def httpreq(user, passwd, confidence):
     today = date.today()
-    print("Today date is: ", today)
     with requests.Session() as session:
-        #session.headers.update({'Authorization': 'Bearer {token}'})
         logging.info(LOGIN_URL)
         resp = session.get(LOGIN_URL)
         # session_id = session.cookies['JSESSIONID']
@@ -114,16 +91,11 @@ def httpreq(user, passwd, confidence):
         logging.info(post.text)
         png_info = json.loads(post.text)
         resp = session.get(LOGIN_URL+"/upload/jigsawImg/"+png_info["smallImage"]+".png")
-        chunk_size = 100
-        with open(png_info["smallImage"]+".png", 'wb') as fd:
-            for chunk in resp.iter_content(chunk_size):
-                fd.write(chunk)
+        smallimage = np.asarray(bytearray(resp.content))
         resp = session.get(LOGIN_URL+"/upload/jigsawImg/"+png_info["bigImage"]+".png")
-        with open(png_info["bigImage"]+".png", 'wb') as fd:
-            for chunk in resp.iter_content(chunk_size):
-                fd.write(chunk)
-        print("%s, %s !!".format(png_info["bigImage"], png_info["smallImage"]))
-        positation = find_subimages_from_files(png_info["bigImage"]+".png", png_info["smallImage"]+".png", confidence)
+        bigimage = np.asarray(bytearray(resp.content))
+        print("BIG: {}, SMALL {}!!".format(png_info["bigImage"], png_info["smallImage"]))
+        positation = find_subimages_from_stream(bigimage, smallimage, confidence)
         if len(positation)==0:
             return 100
         p1,p2=positation[0]
@@ -138,16 +110,16 @@ def httpreq(user, passwd, confidence):
         logging.info(inputs)
         sleep(randint(1,2))
         resp = session.post(LOGIN_URL+"/loginNeu.jsp", data=inputs)
-        # post.status_code
         records=re.findall('form\s+action\s*=\s*"/record.jsp', resp.text)
         if len(records)==0:
-            logging.error("NOT IN RECORED PAGE")
+            logging.error("NOT IN RECORED PAGE, HTTP.CODE %s", post.status_code)
             return 101
-        logging.info("login is OK!")
+        logging.info("login is OK!, HTTP.CODE %s", post.status_code)
         records=re.findall(str(today), resp.text)
         print("find {} records!!".format(len(records)))
         inputs = find_inputs(resp.text)
         logging.info(inputs)
+        print("Start kq: ", today)
         resp = session.post(LOGIN_URL+"/record.jsp", data=inputs)
         records=re.findall('form\s+action\s*=\s*"/record.jsp', resp.text)
         if len(records)==0:
@@ -168,13 +140,20 @@ def main():
     if args.debug:
         log_level = logging.DEBUG
     logging.basicConfig(level=log_level, format="%(levelname)s: %(message)s")
-    # text_file = open("index.html", "r")
-    # html_str = text_file.read()
-    # text_file.close()
     return httpreq(args.user, args.passwd, args.confidence)
 
 if __name__ == '__main__':
-    main()
+    exit(main())
+
+# headers = {
+#   "accept": "application/json",
+#   "authorization": "bearer token TOKEN"
+# }
+# resp = session.get(LOGIN_URL, headers=headers)
+# session.auth = ('user', 'pass')
+# session.headers.update({'x-test': 'true'})
+# # both 'x-test' and 'x-test2' are sent
+# session.get('', headers={'x-test2': 'true'})
 
 # convert ce330bc6-f3c8-4f4a-a1e7-d58120171bfa.png -negate s.png
 # convert -negate a5ec8a33-762c-4132-8b94-1dbe09701756.png b.png
