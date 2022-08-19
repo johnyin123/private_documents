@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("3dfe5f7[2022-08-19T08:45:36+08:00]:os_debian_init.sh")
+VERSION+=("dd3fa4e[2022-08-19T08:54:24+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -626,8 +626,6 @@ debian_bash_init() {
             cat << "EOF"
 if [ -x /usr/bin/dircolors ]; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
-    alias ls='ls --color=auto'
-    alias grep='grep --color=auto'
 fi
 EOF
         }
@@ -635,7 +633,8 @@ EOF
 umask 022
 
 alias cal='ncal -b'
-alias ll='ls -lhF --group-directories-first'
+alias ls='ls --color=auto --group-directories-first'
+alias ll='ls -lhF'
 alias rm='rm -i'
 alias cp='cp -i'
 alias mv='mv -i'
