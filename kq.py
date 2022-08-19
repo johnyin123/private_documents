@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 
 import requests
 import logging
@@ -17,16 +17,12 @@ LOGIN_URL = 'http://kq.neusoft.com'
 def find_subimages(primary, subimage, confidence=0.80):
     primary_edges = cv2.Canny(primary, 32, 128, apertureSize=3)
     subimage_edges = cv2.Canny(subimage, 32,128, apertureSize=3)
-
     result = cv2.matchTemplate(primary_edges, subimage_edges, cv2.TM_CCOEFF_NORMED)
     (y, x) = np.unravel_index(result.argmax(),result.shape)
-
     result[result>=confidence]=1.0
     result[result<confidence]=0.0
-    
     ccs = get_connected_components(result)
     return correct_bounding_boxes(subimage, ccs)
-
 
 def cc_shape(component):
     x = component[1].start
@@ -52,18 +48,18 @@ def get_connected_components(image):
     return objects
 
 def find_subimages_from_stream(big_img, small_img, confidence):
-    '''
-    1. invert color, 2. to gray, 3. only keep black 
-    '''
+    # 1. invert color, 2. to gray, 3. only keep black
     primary = cv2.cvtColor(cv2.bitwise_not(cv2.imdecode(big_img, cv2.IMREAD_COLOR)), cv2.COLOR_BGR2GRAY)
     subimage = cv2.cvtColor(cv2.bitwise_not(cv2.imdecode(small_img, cv2.IMREAD_COLOR)), cv2.COLOR_BGR2GRAY)
     # primary = cv2.cvtColor(cv2.bitwise_not(cv2.imread(big_img)), cv2.COLOR_BGR2GRAY)
     # subimage = cv2.cvtColor(cv2.bitwise_not(cv2.imread(small_img)), cv2.COLOR_BGR2GRAY)
     (thresh, pri_img) = cv2.threshold(primary, 0, 255, cv2.THRESH_BINARY)
     (thresh, sub_img) = cv2.threshold(subimage, 0, 255, cv2.THRESH_BINARY)
-    # cv2.imshow("pri", pri_img)
-    # cv2.imshow("sub", sub_img)
-    # cv2.waitKey(0)
+    '''
+    cv2.imshow("pri", pri_img)
+    cv2.imshow("sub", sub_img)
+    cv2.waitKey(0)
+    '''
     return find_subimages(pri_img, sub_img, confidence)
 
 #######################################################################################
@@ -159,7 +155,7 @@ if __name__ == '__main__':
 # convert -negate a5ec8a33-762c-4132-8b94-1dbe09701756.png b.png
 # convert -fill white +opaque black s.png masks.png
 # convert -fill white +opaque black b.png maskb.png
-# python3 find.py maskb.png masks.png 
+# python3 find.py maskb.png masks.png
 
 # mkdir ~/.pip/
 # cat <<EOF >~/.pip/pip.conf
