@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("32cb795[2022-07-12T08:20:03+08:00]:s905_debootstrap.sh")
+VERSION+=("ffe10d8[2022-08-16T09:06:12+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 menu_select() {
@@ -367,25 +367,14 @@ allow-hotplug eth0
 iface eth0 inet manual
 
 auto br-ext
-
-mapping br-ext
-    script /etc/johnyin/wifi_mode.sh
-    map s905d3
-    map s905d2
-    map usbpc
-
-iface s905d2 inet static
+iface br-ext inet static
     bridge_ports eth0
     address 192.168.168.2/24
-    # hwaddress 7e:b1:81:90:5d:02
-iface s905d3 inet static
-    bridge_ports eth0
-    address 192.168.168.3/24
-    # hwaddress 7e:b1:81:90:5d:03
-iface usbpc inet static
-    bridge_ports eth0
-    address 192.168.168.101/24
-    # hwaddress 7e:b1:81:90:5d:99
+
+auto br-ext:0
+iface br-ext:0 inet static
+    address 10.32.166.32/25
+    gateway 10.32.166.1
 
 # post-up ip rule add from 192.168.168.0/24 table out.168
 # post-up ip rule add to 192.168.168.0/24 table out.168
@@ -715,12 +704,6 @@ case "$1" in
     wlan0)
         /usr/sbin/iw ${2} set power_save off >/dev/null 2>&1 || true
         echo ${station:-initmode}
-        ;;
-    br-ext)
-        # hostname must in (s905d2/s905d3/usbpc)
-        # # fix not connect on startup, and connect later no link
-        /usr/sbin/ip link set eth0 up  >/dev/null 2>&1 || true
-        cat /etc/hostname
         ;;
 esac
 exit 0
