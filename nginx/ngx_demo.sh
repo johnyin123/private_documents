@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("956cfd4[2022-08-11T16:32:33+08:00]:ngx_demo.sh")
+VERSION+=("d662c38[2022-08-12T07:26:51+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -748,6 +748,36 @@ server {
         deny  all;
         auth_basic "Restricted Content";
         auth_basic_user_file /etc/nginx/.htpasswd;
+    }
+}
+EOF
+cat <<'EOF' > git_web.http
+# apt -y install git fcgiwrap
+# mkdir -p /myrepo/user1.git
+# cd /myrepo/user1.git && git --bare init && git update-server-info
+# chown -R www-data:www-data /myrepo # fcgiwrap user
+# chmod -R 755 /myrepo
+# printf "user1:$(openssl passwd -apr1 password)\n" >> /myrepo/htpasswd
+server {
+    listen 80;
+    server_name _;
+    root /myrepo;
+    # Add index.php to the list if you are using PHP
+    index index.html index.htm index.nginx-debian.html;
+    location / {
+        try_files $uri $uri/ =404;
+    }
+    location ~ (/.*) {
+        client_max_body_size 0;
+        auth_basic "Git Login";
+        auth_basic_user_file "/myrepo/htpasswd";
+        include /etc/nginx/fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME /usr/lib/git-core/git-http-backend;
+        fastcgi_param GIT_HTTP_EXPORT_ALL "";
+        fastcgi_param GIT_PROJECT_ROOT /myrepo;
+        fastcgi_param REMOTE_USER $remote_user;
+        fastcgi_param PATH_INFO $1;
+        fastcgi_pass  unix:/var/run/fcgiwrap.socket;
     }
 }
 EOF
