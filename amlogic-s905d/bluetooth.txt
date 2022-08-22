@@ -1,0 +1,99 @@
+echo 'Y' > /sys/module/bluetooth/parameters/disable_ertm
+btmgmt power off
+btmgmt discov on
+btmgmt connectable on
+btmgmt pairable on
+btmgmt power on
+bluetoothctl --agent KeyboardDisplay
+
+cat /proc/bus/input/devices
+# 搜索普通蓝牙
+hcitool scan
+# 搜索BLE蓝牙
+hcitool lescan | grep 54:03:84:72:58:B5
+gatttool -b 54:03:84:72:58:B5 -I
+
+hcitool lecc 54:03:84:72:58:B5
+hcitool leinfo 54:03:84:72:58:B5
+
+gatttool -t random -b 54:03:84:72:58:B5 -I
+
+bluetoothctl power on
+bluetoothctl agent on
+bluetoothctl default-agent
+bluetoothctl pairable on
+bluetoothctl discoverable on
+bluetoothctl scan on
+bluetoothctl pair 54:03:84:72:58:B5
+bluetoothctl trust 54:03:84:72:58:B5
+bluetoothctl connect 54:03:84:72:58:B5
+bluetoothctl info 54:03:84:72:58:B5
+
+bluetoothctl power on
+bluetoothctl agent KeyboardOnly
+bluetoothctl default-agent
+bluetoothctl pairable on
+bluetoothctl scan on
+
+btmon
+? bt-agent 0000 &
+? # echo "54:03:84:72:58:B5 0000" > '/var/lib/bluetooth/43:45:C0:00:1F:AC/pincodes'
+? # echo "0000" > /etc/bluetooth/passkeys/default
+cat<<EOF >> '/var/lib/bluetooth/43:45:C0:00:1F:AC/54:03:84:72:58:B5/info'
+[LinkKey]
+Key=49505152
+EOF
+
+
+hcitool scan
+echo 0000 | bt-agent hci0 54:03:84:72:58:B5
+bt-device -i 54:03:84:72:58:B5
+
+adapter=$(bluetoothctl -- list | sed -r 's/^.*(([0-9A-F]{2}:){5}[0-9A-F]{2}).*$/\1/')
+{
+    echo -e "select $adapter\n\n"
+    echo -e "paired-devices\n\n"
+} |  bluetoothctl | grep "Device " | sed -r 's/^.*(([0-9A-F]{2}:){5}[0-9A-F]{2}).*$/\1/'
+
+{
+    printf "select $adapter\n\n"
+    printf "power on\n\n"
+    # sleep 2
+    printf "connect 54:03:84:72:58:B5\n\n"
+    # sleep 4
+} | bluetoothctl
+
+coproc BLUETOOTH_PROC (bluetoothctl) || echo FAILED
+    echo -e 'power on\n' >&${BLUETOOTH_PROC[1]}
+    sleep 2
+    echo -e 'default-agent\n' >&${BLUETOOTH_PROC[1]}
+    sleep 2
+    echo -e 'discoverable on\n' >&${BLUETOOTH_PROC[1]}
+    sleep 2
+    echo -e 'pairable on\n' >&${BLUETOOTH_PROC[1]}
+    sleep 2
+    echo -e 'scan on\n' >&${BLUETOOTH_PROC[1]}
+    sleep 10
+    echo -e 'scan off\n' >&${BLUETOOTH_PROC[1]}
+    sleep 2
+    echo -e 'devices\n' >&${BLUETOOTH_PROC[1]}
+    sleep 2
+    IFS=' '
+    echo 'Pair to "raspberrypi" from the target device'
+    while read -ra output <&${BLUETOOTH_PROC[0]}; do
+        if [[ ${output[2]} == $TARGET_DEVICE_NAME ]]; then
+            echo "Found the target device with MAC address of ${output[1]}"
+            echo "Pairing with the target device"
+            echo -e "pair ${output[1]}\n" >&${BLUETOOTH_PROC[1]}
+            sleep 10
+            echo -e 'yes\n' >&${BLUETOOTH_PROC[1]}
+            sleep 2
+            echo -e "trust ${output[1]}\n" >&${BLUETOOTH_PROC[1]}
+            sleep 2
+            echo -e 'exit\n' >&${BLUETOOTH_PROC[1]}
+        else
+            echo "${output[@]}"
+        fi
+    done
+    hciconfig hci0 piscan || BLUETOOTH_SETUP_FAIL=1
+    sdptool add SP || BLUETOOTH_SETUP_FAIL=1
