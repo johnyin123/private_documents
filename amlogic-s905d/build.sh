@@ -19,9 +19,9 @@ KERVERSION="$(make kernelversion)"
 make -j$(nproc) Image dtbs modules
 
 mkdir -p ${ROOTFS}/boot/dtb ${ROOTFS}/usr
-rsync -av ${DIRNAME}/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dtb ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${LOCALVERSION}.dtb
-make install
-make modules_install
+rsync -a ${DIRNAME}/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dtb ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${LOCALVERSION}.dtb
+make install > /dev/null
+make modules_install > /dev/null
 
 LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOTFS} /bin/bash <<EOSHELL
     depmod ${KERVERSION}${LOCALVERSION}

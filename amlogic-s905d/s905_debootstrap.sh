@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ffe10d8[2022-08-16T09:06:12+08:00]:s905_debootstrap.sh")
+VERSION+=("5241d21[2022-08-22T07:40:15+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 menu_select() {
@@ -1022,9 +1022,10 @@ PART_OVERLAY="${DISK}p4"
 echo "Format the partitions."
 mkfs.vfat -n ${BOOT_LABEL} ${PART_BOOT}
 mkswap -L EMMCSWAP "${PART_SWAP}"
-mkfs -t ext4 -m 0 -q -L ${ROOT_LABEL} ${PART_ROOT}
+mkfs -t ext4 -F -m 0 -q -L ${ROOT_LABEL} ${PART_ROOT}
 mke2fs -FL ${OVERLAY_LABEL} -t ext4 -E lazy_itable_init,lazy_journal_init ${PART_OVERLAY}
 
+echo "NEED MOUNT ${PART_BOOT}, and full fill zero file."
 echo "Flush changes (in case they were cached.)."
 sync
 echo "reflush env&logo, mkfs crash it!!!!"

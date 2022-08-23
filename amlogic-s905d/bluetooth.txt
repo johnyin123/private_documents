@@ -1,4 +1,16 @@
 echo 'Y' > /sys/module/bluetooth/parameters/disable_ertm
+
+/sys/kernel/debug/bluetooth/hci0/adv_min_interval
+/sys/kernel/debug/bluetooth/hci0/adv_max_interval
+menu gatt
+[bluetoothctl] register-service 0xFFFF # (Choose yes when asked if primary service)
+[bluetoothctl] register-characteristic 0xAAAA read       # (Select a value of 1 when prompted)
+[bluetoothctl] register-characteristic 0xBBBB read,write # (Select a value of 0 when prompted)
+[bluetoothctl] register-characteristic 0xCCCC read       # (Select a value of 2 when prompted)
+[bluetoothctl] register-application # (This commits the services/characteristics and registers the profile)
+[bluetoothctl] back
+[bluetoothctl] advertise on
+
 btmgmt power off
 btmgmt discov on
 btmgmt connectable on
@@ -9,9 +21,19 @@ bluetoothctl --agent KeyboardDisplay
 cat /proc/bus/input/devices
 # 搜索普通蓝牙
 hcitool scan
+
+hciconfig hci0 lestates
 # 搜索BLE蓝牙
 hcitool lescan | grep 54:03:84:72:58:B5
 gatttool -b 54:03:84:72:58:B5 -I
+# [54:03:84:72:58:B5][LE]> primary
+# attr handle: 0x0001, end grp handle: 0x0004 uuid: 00001801-0000-1000-8000-00805f9b34fb 服务名称:GATT【Generic Attribute】
+# attr handle: 0x0005, end grp handle: 0x000b uuid: 00001800-0000-1000-8000-00805f9b34fb 服务名称:GAP【Generic Access】
+# attr handle: 0x000c, end grp handle: 0x001e uuid: 0000180a-0000-1000-8000-00805f9b34fb 服务名称:DEVICE INFORMATION 服务编码
+# attr handle: 0x001f, end grp handle: 0x0047 uuid: 00001812-0000-1000-8000-00805f9b34fb 服务名称:Human Interface Device 服务编码
+# attr handle: 0x0048, end grp handle: 0x004b uuid: 0000180f-0000-1000-8000-00805f9b34fb 服务名称:Battery Service 服务编码
+# attr handle: 0x004c, end grp handle: 0x004e uuid: 00001802-0000-1000-8000-00805f9b34fb 服务名称:IMMEDIATE ALERT 服务编码
+# attr handle: 0x004f, end grp handle: 0x0053 uuid: 0000d1ff-3c17-d293-8e48-14fe2e4da212
 
 hcitool lecc 54:03:84:72:58:B5
 hcitool leinfo 54:03:84:72:58:B5
