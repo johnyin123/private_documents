@@ -36,7 +36,7 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOTFS} /bin/bash <<EOSHELL
         sed -i "s/\s*initrd\s*=.*/initrd=uInitrd-${KERVERSION}${LOCALVERSION}/g" /boot/uEnv.ini
         sed -i "s/\s*dtb\s*=.*/dtb=\/dtb\/phicomm-n1-${KERVERSION}${LOCALVERSION}.dtb/g" /boot/uEnv.ini
     }
-
+    rm -f /boot/*.old
 EOSHELL
 cat<<EOF
 rm .config
