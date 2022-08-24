@@ -1,0 +1,6 @@
+apt -y install certbot
+
+dig _acme-challenge.xxx.your-domain.com TXT +short
+
+certbot -d xxx.your-domain.com --manual --preferred-challenges dns-01 certonly
+
