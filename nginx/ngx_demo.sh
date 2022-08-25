@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("263318f[2022-08-22T17:01:09+08:00]:ngx_demo.sh")
+VERSION+=("b15d002[2022-08-25T16:34:08+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -309,7 +309,7 @@ server {
         sub_filter_once off;
         sub_filter_types *;
         proxy_set_header Accept-Encoding "";
-        # can use proxy_redirect regex ...
+        # proxy_redirect "~^(http[s]?):\/\/([^:\/\s]+)(:[0-9]+)?(.*)" "https://xxx.com/$1/$2$3$4";
         proxy_intercept_errors on;
         error_page 301 = @handle_301;
         error_page 302 = @handle_302;
