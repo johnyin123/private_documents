@@ -1,3 +1,13 @@
+# get BDADDRESS, use HCI_Read_BD_ADDR command
+# 0x1009 OpCode (OGF=0x04, OCF=0x009) and no parameters
+hcitool -i hci0 cmd 0x04 0x0009
+< HCI Command: ogf 0x04, ocf 0x0009, plen 0
+> HCI Event: 0x0e plen 10
+  01 09 10 00 AC 1F 00 C0 45 43
+# 01 is the Num_HCI_Command_Packets parameter
+# 09 10 is the Command OpCode for which this Command Complete Event is returned (in little endian format)
+# 00 is the status – Success in this case
+
 # change bluetooth BDADDREES
 addr=54:03:84:72:00:55
 IFS=':' read -r b0 b1 b2 b3 b4 b5 <<< "${addr}"

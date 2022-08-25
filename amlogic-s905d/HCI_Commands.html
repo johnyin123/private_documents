@@ -1,0 +1,2308 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Language" content="en-us">
+<meta name="GENERATOR" content="Microsoft FrontPage 5.0">
+<meta name="ProgId" content="FrontPage.Editor.Document">
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>List of HCI Commands</title>
+</head>
+
+<body stylesrc="index.htm" topmargin="0" leftmargin="0" bgcolor="#FFFFFF" text="#0066CC" link="#3399FF" vlink="#3366FF" alink="#0033CC">
+
+<table border="0" cellpadding="0" cellspacing="0" style="border-collapse: collapse" bordercolor="#111111" width="100%" id="AutoNumber1">
+  <tr>
+    <td width="100%" valign="top">
+    <p style="margin-top: 0; margin-bottom: 0"> 
+    <font face="Tahoma">HCI Commands</font> </p>
+    <hr noshade color="#0066CC" size="1"></td>
+  </tr>
+  <tr>
+    <td width="100%" valign="top">
+      <p align="left" style="margin-top: 0; margin-bottom: 0">&nbsp;</p>
+      <table width="100%" border="1" bordercolorlight="#0066CC" cellspacing="0" cellpadding="0" bordercolordark="#0033CC" style="border-collapse: collapse" bordercolor="#111111">
+        <tr>
+          <td colSpan="4">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">Link Control Commands (OGF = 0x01)</font></b></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">No</font></b></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">Command Name</font></b></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">OpCode</font></b></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">Description</font></b></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">1</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Inquiry</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0001</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command used to enter Inquiry mode where 
+          it discovers other Bluetooth devices.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">2</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Inquiry_Cancel</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0002</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to cancel the Inquiry mode in 
+          which the Bluetooth device is in.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">3</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Periodic_Inquiry_Mode</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0003</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the device to enter 
+          Inquiry modes periodically according to the time interval set.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">4</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Exit_Periodic_Inquiry_Mode</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0004</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to exit the periodic Inquiry mode</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">5</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Create_Connection</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0005</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to create an ACL connection to 
+          the device specified by the BD_ADDR in the parameters.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">6</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Disconnect</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0006</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to terminate the existing 
+          connection to a device</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">7</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Add_SCO_Connection</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0007</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Create an SCO connection defined by the 
+          connection handle parameters.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">8</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Accept_Connection_Request</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0009</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to accept a new connection 
+          request</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">9</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Reject_Connection_Request</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x000A</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to reject a new connection 
+          request</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">10</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Link_Key_Request_Reply</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x000B</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Reply command to a link key request event 
+          sent from controller to the host</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">11</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Link_Key_Request_Negative_Reply</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x000C</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Reply command to a link key request event 
+          from the controller to the host if there is no link key associated 
+          with the connection.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">12</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">PIN_Code_Request_Reply</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x000D</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Reply command to a PIN code request event 
+          sent from a controller to the host.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">13</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">PIN_Code_Request_Negative_Reply</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x000E</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Reply command to a PIN code request event 
+          sent from the controller to the host if there is no PIN associated 
+          with the connection.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">14</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Change_Connection_Packet_Type</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x000F</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to change the type of packets to 
+          be sent for an existing connection.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">15</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Authentication_Requested</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0011</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to establish authentication 
+          between two devices specified by the connection handle.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">16</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Set_Connection_Encryption</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0013</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to enable or disable the link 
+          level encryption.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">17</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Change_Connection_Link_Key</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0015</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to force the change of a link key 
+          to a new one between two connected devices.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">18</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Master_Link_Key</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0017</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to force two devices to use the 
+          master's link key temporarily. </font> </td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">19</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Remote_Name_Request</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0019</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to determine the user friendly 
+          name of the connected device. </font> </td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">20</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Remote_Supported_Features</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x001B</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to determine the features 
+          supported by the connected device.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">21</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Remote_Version_Information</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x001D</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to determine the version 
+          information of the connected device.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">22</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Clock_Offset</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x001F</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the clock offset of the 
+          remote device.</font></td>
+        </tr>
+        <tr>
+          <td colSpan="4">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">HCI Policy Command (OGF=0x02)</font></b></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">1</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Hold_Mode</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0001</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to place the current or remote 
+          device into the Hold mode state.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">2</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Sniff_Mode</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0003</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to place the current or remote 
+          device into the Sniff mode state.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">3</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Exit_Sniff_Mode</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0004</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to exit the current or remote 
+          device from the Sniff mode state.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">4</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Park_Mode</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0005</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to place the current or remote 
+          device into the Park mode state.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">5</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Exit_Park_Mode</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0006</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to exit the current or remote 
+          device from the Park mode state.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">6</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">QoS_Setup</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0007</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to setup the Quality of Service 
+          parameters of the device.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">7</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Role_Discovery</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0009</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to determine the role of the 
+          device for a particular connection.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">8</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Switch_Role</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x000B</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to allow the device to switch 
+          roles for a particular connection. </font> </td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">9</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Link_Policy_Settings</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x000C</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to determine the link policy that 
+          the LM can use to establish connections.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">10</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Link_Policy_Settings</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x000D</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the link policy that the 
+          LM can use for a particular connection.</font></td>
+        </tr>
+        <tr>
+          <td colSpan="4">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">Host Controller and Baseband Commands (OGF=0x03)</font></b></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">1</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Set_Event_Mask</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0001</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set which events are generated 
+          by the HCI for the host.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">2</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Reset</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0003</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to reset the host controller, 
+          link manager and the radio module.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">3</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Set_Event_Filter</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0005</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command used by host to set the different 
+          types of event filters that the host needs to receive.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">4</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Flush</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0008</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command used to flush all pending data 
+          packets for transmission for a particular connection handle.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">5</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_PIN_Type</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0009</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command used by host to determine if the 
+          link manager assumes that the host requires a variable PIN type or 
+          fixed PIN code. PIN is used during pairing.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">6</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_PIN_Type</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x000A</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command used by host to write to the host 
+          controller on the PIN type supported by the host.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">7</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Create_New_Unit_Key</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x000B</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command used to create a new unit key.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">8</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Stored_Link_Key</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x000D</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the link key stored in 
+          the host controller.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">9</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Stored_Link_Key</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0011</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to write the link key to the host 
+          controller.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">10</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Delete_Stored_Link_Key</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0012</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to delete a stored link key in 
+          the host controller.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">11</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Change_Local_Name</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0013</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to modify the user friendly name 
+          of the device.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">12</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Local_Name</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0014</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the user friendly name of 
+          the device.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">13</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Connection_Accept_Timeout</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0015</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to determine the timeout session 
+          before the host denies and rejects a new connection request.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">14</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Connection_Accept_Timeout</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0016</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the timeout session before 
+          a device can deny or reject a connection request.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">15</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Page_Timeout</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0017</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the timeout value where a 
+          device will wait for a connection acceptance before sending a 
+          connection failure is returned.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">16</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Page_Timeout</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0018</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to write the timeout value where 
+          a device will wait for a connection acceptance before sending a 
+          connection failure is returned.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">17</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Scan_Enable</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0019</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the status of the 
+          Scan_Enable configuration.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">18</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Scan_Enable</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x001A</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the status of the 
+          Scan_Enable configuration.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">19</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Page_Scan_Activity</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x001B</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the value of the 
+          Page_Scan_Interval and Page_Scan_Window configurations.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">20</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Page_Scan_Activity</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x001C</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to write the value of the 
+          Page_Scan_Interval and Page_Scan_Window configurations.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">21</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Inquiry_Scan_Activity</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x001D</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the value of the 
+          Inquiry_Scan_Interval and Inquiry_Scan_Window configurations.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">22</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Inquiry_Scan_Activity</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x001E</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the value of the 
+          Inquiry_Scan_Interval and Inquiry_Scan_Window configurations.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">23</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Authentication_Enable</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x001F</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the Authentication_Enable 
+          parameter.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">24</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Authentication_Enable</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0020</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the Authentication_Enable 
+          parameter.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">25</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Encryption_Mode</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0021</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the Encryption_Mode 
+          parameter.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">26</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Encryption_Mode</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0022</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to write the Encryption_Mode 
+          parameter.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">27</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Class_Of_Device</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0023</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the Class_Of_Device 
+          parameter.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">28</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Class_Of_Device</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0024</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the Class_Of_Device 
+          parameter.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">29</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Voice_Setting</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0025</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the Voice_Setting 
+          parameter. Used for voice connections. </font> </td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">30</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Voice_Setting</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0026</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the Voice_Setting 
+          parameter. Used for voice connections. </font> </td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">31</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Automatic_Flush_Timeout</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0027</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the Flush_Timeout 
+          parameter. Used for ACL connections only.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">32</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Automatic_Flush_Timeout</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0028</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the Flush_Timeout 
+          parameter. Used for ACL connections only.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">33</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Num_Broadcast_Retransmissions</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0029</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the number of time a 
+          broadcast message is retransmitted.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">34</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Num_Broadcast_Retransmissions</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x002A</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the number of time a 
+          broadcast message is retransmitted. </font> </td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">35</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Hold_Mode_Activity</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x002B</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the Hold_Mode activity to 
+          instruct the device to perform an activity during hold mode.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">36</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Hold_Mode_Activity</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x002C</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the Hold_Mode_Activity 
+          parameter.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">37</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Transmit_Power_Level</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x002D</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the power level required 
+          for transmission for a connection handle.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">38</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_SCO_Flow_Control_Enable</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x002E</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to check the current status of 
+          the flow control for the SCO connection.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">39</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_SCO_Flow_Control_Enable</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x002F</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the status of the flow 
+          control for a connection handle. </font> </td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">40</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Set_Host_Controller_To_Host_Flow_Control</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0031</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the flow control from the 
+          host controller to host in on or off state.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">41</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Host_Buffer_Size</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0033</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command set by host to inform the host 
+          controller of the buffer size of the host for ACL and SCO connections.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">42</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Host_Number_Of_Completed_Packets</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0035</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command set from host to host controller 
+          when it is ready to receive more data packets.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">43</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Link_Supervision_Timeout</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0036</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the timeout for 
+          monitoring link losses.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">44</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Link_Supervision_Timeout</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0037</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the timeout for monitoring 
+          link losses.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">45</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Number_Of_Supported_IAC</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0038</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the number of IACs that 
+          the device can listen on during Inquiry access.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">46</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Current_IAC_LAP</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0039</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the LAP for the current 
+          IAC.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">47</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Current_IAC_LAP</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x003A</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the LAP for the current 
+          IAC.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">48</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Page_Scan_Period_Mode</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x003B</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the timeout session of a 
+          page scan.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">49</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Page_Scan_Period_Mode</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x003C</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the timeout session of a 
+          page scan.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">50</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Page_Scan_Mode</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x003D</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to read the default Page scan 
+          mode.</font></td>
+        </tr>
+        <tr>
+          <td width="5%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">51</font></td>
+          <td width="36%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Write_Page_Scan_Mode</font></td>
+          <td width="13%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x003E</font></td>
+          <td width="46%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command to set the default page scan 
+          mode.</font></td>
+        </tr>
+      </table>
+      &nbsp;
+</td>
+  </tr>
+  <tr>
+    <td width="100%" valign="top">
+      <p style="margin-top: 0; margin-bottom: 0"> 
+      <font face="Tahoma">HCI</font><font face="Tahoma"> Events</font> </p>
+    <hr noshade color="#0066CC" size="1">
+</td>
+  </tr>
+  <tr>
+    <td width="100%" valign="top">
+      <p style="margin-top: 0; margin-bottom: 0">&nbsp;</p>
+      <table width="100%" border="1" bordercolorlight="#0066CC" cellspacing="0" cellpadding="0" bordercolordark="#0033CC" style="border-collapse: collapse" bordercolor="#111111">
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">No</font></b></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">Command Name</font></b></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">Event Code</font></b></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">Description</font></b></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">1</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Inquiry_Complete_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x01</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates the Inquiry has finished.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">2</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Inquiry_Result_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x02</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that Bluetooth device(s) have 
+          responded for the inquiry.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">3</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Connection_Complete_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x03</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates to both hosts that the new 
+          connection has been formed.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">4</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Connection_Request_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x04</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that a new connection is trying 
+          to be established.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">5</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Disconnection_Complete_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x05</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Occurs when a connection has been 
+          disconnected.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">6</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Authentication_Complete_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x06</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Occurs when an authentication has been 
+          completed.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">7</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Remote_Name_Request_Complete_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x07</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that the request for the remote 
+          name has been completed. </font> </td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">8</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Encryption_Change_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x08</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that a change in the encryption 
+          has been completed.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">9</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Change_Connection_Link_Key_Complete_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x09</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that the change in the link key 
+          has been completed.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">10</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Master_Link_Key_Complete_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0A</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that the change in the 
+          temporary link key or semi permanent link key on the master device is 
+          complete.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">11</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">
+          Read_Remote_Supported_Features_Complete_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0B</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that the reading of the 
+          supported features on the remote device is complete.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">12</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Remote_Version_Complete_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0C</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that the version number on the 
+          remote device has been read and completed.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">13</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Q0S_Setup_Complete_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0D</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that the Quality of Service 
+          setup has been complete.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">14</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command_Complete_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0E</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Used by controller to send status and 
+          event parameters to the host for the particular command.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">15</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command_Status_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0F</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that the command has been 
+          received and is being processed in the host controller.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">16</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Hardware_Error_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x10</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates a hardware failure of the 
+          Bluetooth device.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">17</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Flush_Occured_event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x11</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that the data has been flushed 
+          for a particular connection. </font> </td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">18</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Role_Change_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x12</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that the current bluetooth role 
+          for a connection has been changed.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">19</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Number_Of_Completed_Packets_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x13</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates to the host the number of data 
+          packets sent compared to the last time the same event was sent.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">20</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Mode_Change_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x14</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates the change in mode from hold, 
+          sniff, park or active to another mode.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">21</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Return_Link_Keys_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x15</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Used to return stored link keys after a 
+          Read_Stored_Link_Key command was issued.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">22</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">PIN_Code_Request_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x16</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates the a PIN code is required for 
+          a new connection.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">23</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Link_Key_Request_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x17</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that a link key is required for 
+          the connection.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">24</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Link_Key_Notification_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x18</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates to the host that a new link key 
+          has been created.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">25</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Loopback_Command_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x19</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that command sent from the host 
+          will be looped back. </font> </td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">26</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Data_Buffer_Overflow_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x1A</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that the data buffers on the 
+          host has overflowed.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">27</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Max_Slots_Change_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x1B</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Informs the host when the LMP_Max_Slots 
+          parameter changes.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">28</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Read_Clock_Offset_Complete_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x1C</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates the completion of reading the 
+          clock offset information.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">29</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Connection_Packet_Type_Changed_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x1D</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicate the completion of the packet 
+          type change for a connection. </font> </td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">30</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">QoS_Violation_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x1E</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that the link manager is unable 
+          to provide the required Quality of Service.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">31</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Page_Scan_Mode_Change_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x1F</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that the remote device has 
+          successfully changed the Page Scan mode.</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">32</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Page_Scan_Repetition_Mode_Change_Event</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x20</font></td>
+          <td width="31%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Indicates that the remote device has 
+          successfully changed the Page Scan Repetition mode.</font></td>
+        </tr>
+      </table>
+      <p style="margin-top: 0; margin-bottom: 0">&nbsp;</td>
+  </tr>
+  <tr>
+    <td width="100%" valign="top">
+      <p style="margin-top: 0; margin-bottom: 0"> 
+      <font face="Tahoma">HCI</font><font face="Tahoma"> Error Codes</font> </p>
+    <hr noshade color="#0066CC" size="1">
+</td>
+  </tr>
+  <tr>
+    <td width="100%" valign="top">
+      <p style="margin-top: 0; margin-bottom: 0"> 
+      <font size="2" face="Tahoma">&nbsp; </font> </p>
+      <table width="100%" border="1" bordercolorlight="#0066CC" cellspacing="0" cellpadding="0" bordercolordark="#0033CC" style="border-collapse: collapse" bordercolor="#111111">
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">No</font></b></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">Command Name</font></b></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0"><b>
+          <font size="2" face="Tahoma">Error Code</font></b></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">1</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Unknown HCI Command</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x01</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">2</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">No Connection</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x02</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">3</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Hardware Failure</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x03</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">4</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Page Timeout</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x04</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">5</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Authentication Failure</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x05</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">6</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Key Missing</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x06</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">7</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Memory Full</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x07</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">8</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Connection Timeout</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x08</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">9</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Max Number Of Connections</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x09</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">10</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Max Number Of SCO Connections To A Device</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0A</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">11</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">ACL Connection Already Exists</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0B</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">12</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Command Disallowed</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0C</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">13</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Host Rejected Due To Limited Resources</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0D</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">14</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Host Rejected Due To Security Reasons</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0E</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">15</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Host Rejected Due To A Remote Device Only A Personal 
+          Device</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x0F</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">16</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Host Timeout</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x1</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">17</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Unsupported Feature Or Parameter Value</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x11</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">18</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Invalid HCI Command Parameters</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x12</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">19</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Other End Terminated Connection: User Ended 
+          Connection</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x13</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">20</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Other End Terminated Connection: Low Resources</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x14</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">21</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Other End Terminated Connection: About To Power Off</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x15</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">22</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Connection Terminated By Local Host</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x16</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">23</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Repeated Attempts</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x17</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">24</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Pairing Not Allowed</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x18</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">25</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Unknown LMP PDU</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x19</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">26</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Unsupported Remote Feature</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x1A</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">27</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">SCO Offset Rejected</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x1B</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">28</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">SCO Interval Rejected</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x1C</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">29</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">SCO Air Mode Rejected</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x1D</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">30</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Invalid LMP Parameters</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x1E</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">31</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Unspecified Error</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x1F</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">32</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Unsupported LMP Parameter</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x20</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">33</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Role Change Not Allowed</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x21</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">34</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">LMP Response Timeout</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x22</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">35</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">LMP Error Transaction Collision</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x23</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">36</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">LMP PDU Not Allowed</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x24</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">37</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Encryption Mode Not Acceptable</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x25</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">38</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Unit Key Used</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x26</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">39</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">QoS Not Supported</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x27</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">40</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Instant Passed</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x28</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">41</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Pairing With Unit Key Not Supported</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x29</font></td>
+        </tr>
+        <tr>
+          <td width="4%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">42</font></td>
+          <td width="51%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">Reserved For Future Use</font></td>
+          <td width="14%">
+          <p style="margin-top: 0; margin-bottom: 0">
+          <font size="2" face="Tahoma">0x2A-0xFF</font></td>
+        </tr>
+      </table>
+      <p style="margin-top: 0; margin-bottom: 0">&nbsp;</td>
+  </tr>
+</table>
+
+</body>
+
+</html>
