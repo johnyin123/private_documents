@@ -7,8 +7,12 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5241d21[2022-08-22T07:40:15+08:00]:s905_debootstrap.sh")
+VERSION+=("4bca1ed[2022-08-23T15:35:00+08:00]:s905_debootstrap.sh")
 ################################################################################
+cat <<EOF
+git clone https://github.com/RPi-Distro/firmware-nonfree.git
+git clone https://github.com/RPi-Distro/bluez-firmware.git
+EOF
 source ${DIRNAME}/os_debian_init.sh
 menu_select() {
     local prompt=${1}
