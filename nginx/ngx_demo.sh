@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("99542da[2022-08-25T17:00:25+08:00]:ngx_demo.sh")
+VERSION+=("61fa6de[2022-08-25T17:16:07+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -290,8 +290,31 @@ server {
     }
 }
 EOF
-cat <<'EOF' >redirec_all_to_other.http
+cat <<'EOF' >redirect_all_to_other2.http
+server {
+    listen 81;
+    server_name _;
+    location / {
+        return 301 "https://www.xxx.com/1/2?3=4";
+    }
+}
+server {
+    listen 80;
+    server_name _;
+    location / {
+        proxy_set_header Host "kq.neusoft.com";
+        proxy_pass http://127.0.0.1:81;
+        proxy_redirect "~^(http[s]?):\/\/([^:\/\s]+)(:\d+)?(.*)"   "https://xxx.com/$1/$2$3$4";
+        proxy_set_header Accept-Encoding "";
+        sub_filter 'nginx 'FAKE KQ1';
+        sub_filter_once off;
+        sub_filter_types *;
+    }
+}
+EOF
+cat <<'EOF' >redirect_all_to_other.http
 # redirect all request, include 30X Location redirect
+# if HTTP HEADER refresh, must use proxy_redirect(Location & refresh)
 map $upstream_http_location $changed_location {
     "~(http|https):\/\/(.*?)/(.*)"   "$1://192.168.168.1/$3";
 }
