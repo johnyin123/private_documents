@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("61fa6de[2022-08-25T17:16:07+08:00]:ngx_demo.sh")
+VERSION+=("00f0a90[2022-08-26T07:14:25+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -306,7 +306,7 @@ server {
         proxy_pass http://127.0.0.1:81;
         proxy_redirect "~^(http[s]?):\/\/([^:\/\s]+)(:\d+)?(.*)"   "https://xxx.com/$1/$2$3$4";
         proxy_set_header Accept-Encoding "";
-        sub_filter 'nginx 'FAKE KQ1';
+        sub_filter 'nginx' 'FAKE KQ1';
         sub_filter_once off;
         sub_filter_types *;
     }
