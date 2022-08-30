@@ -1,0 +1,93 @@
+When using git you can have a local repository on your client working independently and not have any remote repository(s), but if you want to share your work with others, a remote repository will be needed.
+
+Such a remote repository can be easily set up. Git provides all the required tools to do this. To create a remote repository you just need to add the “–bare” parameter while creating it. So the following command will create a remote repository called repo-name.git in the current directory.
+
+git init --bare repo-name.git
+This will create a directory called repo-name.git which contains the empty repository. As far as git is concerned, the repository is ready to push a local repository to it. But to do this, you need to configure the access to it. You can use the same approach as described in Subversion via ssh using authorized_keys to allow access to the repository via ssh-key.
+
+You can manage all the keys manually or you can use a tool like gitosis to do this for you.
+
+Install gitosis
+The gitosis package for CentOS is included in the EPEL repository. This repository needs to be installed as an additional repository before you can run this command to install gitosis directly via yum.
+
+yum install gitosis
+In this setup, all git users connect using one system user but with their own individual key. I decided to call this user “git” and according to the Secure SSH server access article, I add the secondary group “ssh_login_group” to allow ssh login with this user.
+
+groupadd gitosis
+useradd --home-dir /home/git -g gitosis -G ssh_login_group --shell /bin/sh git
+infoBe aware that the home directory should be defined here without an ending / as this would cause the home directory to be specified as /home/git/ in the system. That does not sound as bad as it is. This will cause the ssh authentication using the ssh-key to fail. You will find this in the /var/log/secure logfile when you grep for “.ssh/authorized_keys”. You will see lines like this.
+Nov 19 07:44:49 at4 sshd[2284]: debug1: trying public key file /home/git//.ssh/authorized_keys
+To correct such a user, use the following command.
+
+usermod --home /home/git git
+Before we can initiate gitosis, an ssh-key needs to be created. This ssh-key is used to allow the admin repository for the gitosis installation to be cloned and pushed. This admin repository is used to administrate all the other repositories that are managed by gitosis.
+
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/filename_key-rsa
+This will create a new ssh-key. If you already have an ssh-key you want to use, just copy the existing key to the server. Now the gitosis repository can be initiated by the following command.
+
+$ sudo -H -u git gitosis-init <filename_key-rsa.pub
+Initialized empty Git repository in /home/git/repositories/gitosis-admin.git/
+Reinitialized existing Git repository in /home/git/repositories/gitosis-admin.git/
+Configure repository
+The above command will initiate the gitosis-admin repository and configure the access for the provided key to it. This repository can now be cloned to configure additional repositories. To clone it, use the following command.
+
+git clone -v ssh://git@repository.example.com:1234/gitosis-admin.git
+In the cloned gitosis-admin repository you will find the “gitosis.conf” file which contains the repository configuration and the “keydir” directory which contains the ssh-keys of the users. Open the gitosis.conf file with your favourite editor. The file will only contain the gitosis-admin section.
+
+[gitosis]
+
+[group gitosis-admin]
+writable = gitosis-admin
+members = filename_key-rsa
+To add a new ssh-key for a new user to gitosis, copy the public ssh-key with the file extension “.pub” into the “keydir” directory. Within the gitosis.conf file, the key is written without the “.pub” file extension. I suggest you name the ssh-key files according to the user whose key it is.
+
+Creating a new repository with the added ssh-key(s) is done via the gitosis.conf file. In the following example you will see 3 key files that are configured into 2 groups. These groups can be assigned to the repositories to allow read-only or writable access.
+
+[gitosis]
+
+[group gitosis-admin]
+writable = gitosis-admin
+members = filename_key-rsa
+
+# Create a group with two keys
+[group grp_name]
+members = user1_key user2_key
+
+# Create a group with one key
+[group grp_name2]
+members = user3_key
+
+# Define read-write access to the repository
+[group repository-name]
+writable = repository-name
+members = @grp_name
+
+# Define read-only access to the repository
+[group repository-name]
+readonly = repository-name
+members = @grp_name2
+This configuration will define a repository called “repository-name” where the users with the ssh-keys user1_key and user2_key have read and write permission while the user with the user3_key has readonly access.
+
+After the configuration is changed, it needs to be commited and pushed to the remote gitosis-admin repository. With the following commands, the key files will be added and the configuration changes are staged, the changes will be commited to the local repository and then pushed to the remote repository.
+
+git add .
+git commit -m "commit configuration changes and added ssh-keys"
+git push origin master
+Pushing the changes to the remote repository will activate the configuration as well. You will notice a warning message like the following when you push the changes to the remote repository.
+
+remote: WARNING:gitosis.gitweb.set_descriptions:Cannot find 'repository-name' in '/home/git/repositories'
+This warning will inform you that the configured repository does not yet exist on the server. To create it you can either push an existing local repository to the remote repository or you can create a new empty git repository and push this.
+
+Create / Clone a repository
+To create a local repository execute the following command. If you already have a repository you want to push, skip this step.
+
+git init /path/to/local/repository
+Now change to the repository directory and create a file with some content. This will be the first file in the repository. The same way as with the gitosis-admin repository we will stage and commit the changes to the local repository. As this local repository does not yet know about the remote repository, it needs to be configured. After that the repository can be pushed as well.
+
+git add .
+git commit -m "initial commit"
+git remote add origin ssh://git@repository.example.com:1234/repository-name.git
+git push origin master
+From this moment on you can clone this repository as well as pushing changes to it.
+
+

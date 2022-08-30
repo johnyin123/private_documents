@@ -1,0 +1,20 @@
+
+./init_ldap.sh -D sample.com -O "sample ldap" -P sample@2022 --create_userou --rsyspass 1997 --ca /etc/ldap/ssl/ca.pem --cert /etc/ldap/ssl/ldap.sample.com.pem  --key /etc/ldap/ssl/ldap.yunyiyuan.com.key  -u user1 -u user2 -u mylist -l ldap.log
+
+openssl s_client -host 127.0.0.1 -port 389 -starttls ldap
+
+echo "ldap.sample.com">/etc/hosts
+./init_postfix_dovecot.sh --name mail --domain xiang.com --dir /vmail --cert /etc/postfix/mail.sample.com.pem --key /etc/postfix/mail.sample.com.key --ldap_host ldap.sample.com --ldap_base ou=People,dc=sample,dc=com --ldap_dn cn=xkadmin,ou=people,dc=sample,dc=com --ldap_pw 1997 --ldap_tls 
+
+http://www.postfix.org/addon.html#lists
+
+apt -y install ssmtp
+cat<<EOF >/etc/ssmtp/ssmtp.conf
+mailhub=smtp.sample.org:587
+useSTARTTLS=YES
+AuthUser=username
+AuthPass=password
+# TLS_CA_File=/etc/pki/ca.crt
+EOF
+echo "Test message from Linux server using ssmtp" | ssmtp -vvv user@sample.org
+echo -e 'Subject: test\n\nTesting ssmtp' | sendmail -v user@sample.org
