@@ -50,6 +50,11 @@ btmgmt discov on
 btmgmt connectable on
 btmgmt pairable on
 btmgmt power on
+
+btmgmt connectable on
+btmgmt bondable on
+btmgmt io-cap 3
+
 bluetoothctl --agent KeyboardDisplay
 
 cat /proc/bus/input/devices
@@ -154,8 +159,9 @@ handle: 0x0052, uuid: 00002803-0000-1000-8000-00805f9b34fb
 handle: 0x0053, uuid: 0000a003-0000-1000-8000-00805f9b34fb
 
 hcitool lecc 54:03:84:72:58:B5
+gatttool -b 54:03:84:72:58:B5 --char-read --handle=0x0021 # read Report Map
 hcitool leinfo 54:03:84:72:58:B5
-gatttool -b 54:03:84:72:58:B5 --char-write-req --handle=0x0024 --value=0100 --listen
+gatttool -b 54:03:84:72:58:B5 --char-write-req --handle=0x0021 --value=0100 --listen
 gatttool -t random -b 54:03:84:72:58:B5 -I
 
 
