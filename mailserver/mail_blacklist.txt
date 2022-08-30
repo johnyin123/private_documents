@@ -1,0 +1,9 @@
+smtpd_recipient_restrictions = check_sender_access hash:/etc/postfix/sender_access,...
+
+cat <<EOF > /etc/postfix/sender_access
+# ADDRESS PATTERNS         # ACTION
+sender@example.com         550 Blacklisted
+domain.com                 REJECT
+user@                      REJECT
+EOF
+postmap /etc/postfix/sender_access
