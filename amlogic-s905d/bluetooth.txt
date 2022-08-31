@@ -303,23 +303,13 @@ attr.put("00002a69-0000-1000-8000-00805f9b34fb", "Position Quality");
 attr.put("00002a6a-0000-1000-8000-00805f9b34fb", "LN Feature");
 attr.put("00002a6b-0000-1000-8000-00805f9b34fb", "LN Control Point");
 
-
-bluetoothctl power on
-bluetoothctl agent on
-bluetoothctl default-agent
-bluetoothctl pairable on
-bluetoothctl discoverable on
-bluetoothctl scan on
-bluetoothctl pair 54:03:84:72:58:B5
-bluetoothctl trust 54:03:84:72:58:B5
-bluetoothctl connect 54:03:84:72:58:B5
-bluetoothctl info 54:03:84:72:58:B5
-
-bluetoothctl power on
-bluetoothctl agent KeyboardOnly
-bluetoothctl default-agent
-bluetoothctl pairable on
-bluetoothctl scan on
+echo -e 'power on\ndisconnect 54:03:84:72:58:B5\nremove 54:03:84:72:58:B5\nquit' | bluetoothctl
+echo "scan bluetooth devices for 20 s"
+timeout -k 20 15 bt-adapter --discover
+echo "create a new pairing and connection"
+bt-device --connect 54:03:84:72:58:B5
+# the command above does not connect audio, so do again a connection with bluetoothctl
+echo -e 'trust 54:03:84:72:58:B5\nconnect 54:03:84:72:58:B5\ninfo 54:03:84:72:58:B5\nquit' | bluetoothctl
 
 btmon
 ? bt-agent 0000 &
