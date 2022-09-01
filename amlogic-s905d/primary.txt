@@ -39,3 +39,7 @@ attr handle: 0x004c, end grp handle: 0x004e uuid: 00001802-0000-1000-8000-00805f
 # [54:03:84:72:58:B5][LE]> characterischaracteristics 0x004c 0x004e
 handle: 0x004d, char properties: 0x04, char value handle: 0x004e, uuid: 00002a06-0000-1000-8000-00805f9b34fb
 attr handle: 0x004f, end grp handle: 0x0053 uuid: 0000d1ff-3c17-d293-8e48-14fe2e4da212
+# [54:03:84:72:58:B5][LE]> characteristics 0x004f 0x0053
+# 0x0051 BLE MAC ADDRESS
+handle: 0x0050, char properties: 0x02, char value handle: 0x0051, uuid: 0000a002-0000-1000-8000-00805f9b34fb
+handle: 0x0052, char properties: 0x0a, char value handle: 0x0053, uuid: 0000a003-0000-1000-8000-00805f9b34fb
