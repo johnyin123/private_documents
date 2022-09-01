@@ -73,6 +73,23 @@ gatttool -b 54:03:84:72:58:B5 -I
 # attr handle: 0x0048, end grp handle: 0x004b uuid: 0000180f-0000-1000-8000-00805f9b34fb 服务名称:Battery Service 服务编码
 # attr handle: 0x004c, end grp handle: 0x004e uuid: 00001802-0000-1000-8000-00805f9b34fb 服务名称:IMMEDIATE ALERT 服务编码
 # attr handle: 0x004f, end grp handle: 0x0053 uuid: 0000d1ff-3c17-d293-8e48-14fe2e4da212
+
+# 00001812-0000-1000-8000-00805f9b34fb
+[54:03:84:72:58:B5][LE]> characteristics 0x001f 0x0047
+handle: 0x0020, char properties: 0x02, char value handle: 0x0021, uuid: 00002a4b-0000-1000-8000-00805f9b34fb
+handle: 0x0023, char properties: 0x02, char value handle: 0x0024, uuid: 00002a4a-0000-1000-8000-00805f9b34fb
+handle: 0x0025, char properties: 0x04, char value handle: 0x0026, uuid: 00002a4c-0000-1000-8000-00805f9b34fb
+handle: 0x0027, char properties: 0x06, char value handle: 0x0028, uuid: 00002a4e-0000-1000-8000-00805f9b34fb
+handle: 0x0029, char properties: 0x12, char value handle: 0x002a, uuid: 00002a22-0000-1000-8000-00805f9b34fb
+handle: 0x002c, char properties: 0x0e, char value handle: 0x002d, uuid: 00002a32-0000-1000-8000-00805f9b34fb
+handle: 0x002e, char properties: 0x12, char value handle: 0x002f, uuid: 00002a4d-0000-1000-8000-00805f9b34fb
+handle: 0x0032, char properties: 0x0e, char value handle: 0x0033, uuid: 00002a4d-0000-1000-8000-00805f9b34fb
+handle: 0x0035, char properties: 0x12, char value handle: 0x0036, uuid: 00002a4d-0000-1000-8000-00805f9b34fb
+handle: 0x0039, char properties: 0x12, char value handle: 0x003a, uuid: 00002a4d-0000-1000-8000-00805f9b34fb
+handle: 0x003d, char properties: 0x12, char value handle: 0x003e, uuid: 00002a4d-0000-1000-8000-00805f9b34fb
+handle: 0x0041, char properties: 0x0e, char value handle: 0x0042, uuid: 00002a4d-0000-1000-8000-00805f9b34fb
+handle: 0x0044, char properties: 0x12, char value handle: 0x0045, uuid: 00002a4d-0000-1000-8000-00805f9b34fb
+
 [54:03:84:72:58:B5][LE]> char-desc
 handle: 0x0001, uuid: 00002800-0000-1000-8000-00805f9b34fb
 handle: 0x0002, uuid: 00002803-0000-1000-8000-00805f9b34fb
