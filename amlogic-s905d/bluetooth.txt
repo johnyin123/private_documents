@@ -1,4 +1,8 @@
 BLUEZ 5.44 WORKED!!!!! BLE REMOTE!!!!
+apt -y install libudev-dev libglib2.0-dev libdbus-1-dev libical-dev libreadline-dev
+./configure --prefix=/usr --sysconfdir=/etc  --localstatedir=/var
+make && DESTDIR=~/target/ make install-strip
+ifdown wlan0 .............
 
 # get BDADDRESS, use HCI_Read_BD_ADDR command
 # 0x1009 OpCode (OGF=0x04, OCF=0x009) and no parameters
