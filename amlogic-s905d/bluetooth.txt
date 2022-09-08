@@ -4,6 +4,9 @@ apt -y install libudev-dev libglib2.0-dev libdbus-1-dev libical-dev libreadline-
 make && DESTDIR=~/target/ make install-strip
 ifdown wlan0 .............
 
+/etc/systemd/logind.conf set remote control POWER KEY action
+# HandlePowerKey=ignore
+
 # get BDADDRESS, use HCI_Read_BD_ADDR command
 # 0x1009 OpCode (OGF=0x04, OCF=0x009) and no parameters
 hcitool -i hci0 cmd 0x04 0x0009
