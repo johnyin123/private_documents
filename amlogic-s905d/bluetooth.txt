@@ -9,6 +9,9 @@ ifdown wlan0 .............
 # show key scan code!!
     showkey
     thd --dump /dev/input/event2 #triggerhappy
+    cat /proc/bus/input/devices
+    /usr/sbin/thd --triggers /etc/triggerhappy/triggers.d/ --socket /run/thd.socket --user johnyin
+    th-cmd --socket /run/thd.socket --grab --passfd --add /dev/input/event2
 
 # get BDADDRESS, use HCI_Read_BD_ADDR command
 # 0x1009 OpCode (OGF=0x04, OCF=0x009) and no parameters
