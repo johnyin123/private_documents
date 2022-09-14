@@ -1,58 +1,67 @@
+cat > /etc/X11/xorg.conf.d/20-sky.conf <<EOF
+Section "InputClass"
+    Identifier "SKYWORTH_0120 BLE REMOTE"
+    MatchProduct "SKYWORTH_0120"
+    Option "Ignore" "true"
+EndSection
+EOF
 cat > /etc/triggerhappy/triggers.d/sky.conf <<EOF
-KEY_LEFT         1   /usr/bin/remoter.sh johnyin rewind1
-KEY_RIGHT        1   /usr/bin/remoter.sh johnyin forward1
-KEY_UP           1   /usr/bin/remoter.sh johnyin increase_volume
-KEY_DOWN         1   /usr/bin/remoter.sh johnyin decrease_volume
-KEY_SELECT       1   /usr/bin/remoter.sh johnyin play_or_pause
+KEY_LEFT         1   /usr/bin/remoter.sh johnyin smplayer rewind1
+KEY_RIGHT        1   /usr/bin/remoter.sh johnyin smplayer forward1
+KEY_UP           1   /usr/bin/remoter.sh johnyin smplayer increase_volume
+KEY_DOWN         1   /usr/bin/remoter.sh johnyin smplayer decrease_volume
+KEY_SELECT       1   /usr/bin/remoter.sh johnyin smplayer play_or_pause
+KEY_COMPOSE      1   /usr/bin/remoter.sh johnyin smplayer open_file
 KEY_POWER        1   /usr/bin/remoter.sh johnyin start_stop
-KEY_COMPOSE      1   /usr/bin/remoter.sh johnyin open_file
-KEY_F5           1   /usr/bin/remoter.sh johnyin xsendkey Enter
+KEY_F5           1   /usr/bin/remoter.sh johnyin xsendkey Return
 KEY_ESC          1   /usr/bin/remoter.sh johnyin xsendkey Tab
 KEY_VOLUMEUP     1   /usr/bin/remoter.sh johnyin xsendkey Up
 KEY_VOLUMEDOWN   1   /usr/bin/remoter.sh johnyin xsendkey Down
 EOF
 cat > /usr/bin/remoter.sh <<EOF
 #!/bin/sh
+LIST_FILE=/tmp/list.m3u
 smplayer_start_stop() {
     local user=$1
     shift 1
     logger -t triggerhappy "smplayer start/stop"
-    pgrep -u ${user} smplayer &&  {
+    pgrep -u ${user} smplayer && {
+        systemd-run --uid=${user} -E DISPLAY=:0 smplayer -send-action close
         pkill -u ${user} smplayer
     } || {
-        rm -f /tmp/list.pls && touch /tmp/list.pls 
-        sudo systemd-run --uid=${user} -E DISPLAY=:0 smplayer /tmp/list.pls
+        find /media -type f -iname '*.mkv' \
+            -o -iname '*.avi' \
+            -o -iname '*.mp4' \
+            -o -iname '*.wmv' > ${LIST_FILE}
+        chown ${user} ${LIST_FILE}
+        systemd-run --uid=${user} -E DISPLAY=:0 smplayer -actions 'stop fullscreen' ${LIST_FILE}
     }
 }
 smplayer_action() {
     local user=$1
     shift 1
-    logger -t triggerhappy "send-action start"
+    logger -t triggerhappy "send-action start($*)"
     pgrep -u ${user} smplayer || return 1
-    sudo systemd-run --uid=${user} -E DISPLAY=:0 smplayer -send-action $*
+    systemd-run --uid=${user} -E DISPLAY=:0 smplayer -send-action $*
 }
 smplayer_addplaylist() {
     local user=$1
     shift 1
     logger -t triggerhappy "smplayer add playlist $*"
     pgrep -u ${user} smplayer || return 1
-    sudo systemd-run --uid=${user} -E DISPLAY=:0 smplayer -add-to-playlist $*
+    systemd-run --uid=${user} -E DISPLAY=:0 smplayer -add-to-playlist $*
 }
 xsendkey() {
     # wmctrl -l
     local user=$1
     shift 1
-    logger -t triggerhappy "triggerhappy xsendkey $*"
-    sudo systemd-run --uid=${user} -E DISPLAY=:0 xdotool search "SMPlayer" windowactivate --sync key --clearmodifiers $*
+    logger -t triggerhappy "triggerhappy xsendkey [$*]"
+    systemd-run --scope --uid=${user} -E DISPLAY=:0 xdotool search --desktop 0 "${LIST_FILE}" windowactivate key --clearmodifiers $*
 }
 case "$2" in
     start_stop)      smplayer_start_stop ${1};;
-    rewind1)         smplayer_action ${1} rewind1;;
-    forward1)        smplayer_action ${1} forward1;;
-    play_or_pause)   smplayer_action ${1} play_or_pause;;
-    increase_volume) smplayer_action ${1} increase_volume;;
-    decrease_volume) smplayer_action ${1} decrease_volume;;
-    xsendkey)        xsendkey ${1} ${3}
+    smplayer)        smplayer_action ${1} ${3};;
+    xsendkey)        xsendkey ${1} ${3};;
     *)  logger -t triggerhappy "Unexpected option: $1";;
 esac
 EOF
