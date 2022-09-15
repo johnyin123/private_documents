@@ -8,10 +8,12 @@ EOF
 cat > /etc/triggerhappy/triggers.d/sky.conf <<EOF
 KEY_LEFT         1   /usr/bin/remoter.sh johnyin smplayer rewind1
 KEY_RIGHT        1   /usr/bin/remoter.sh johnyin smplayer forward1
+KEY_LEFT         2   /usr/bin/remoter.sh johnyin smplayer rewind2
+KEY_RIGHT        2   /usr/bin/remoter.sh johnyin smplayer forward2
 KEY_UP           1   /usr/bin/remoter.sh johnyin smplayer increase_volume
 KEY_DOWN         1   /usr/bin/remoter.sh johnyin smplayer decrease_volume
 KEY_SELECT       1   /usr/bin/remoter.sh johnyin smplayer play_or_pause
-KEY_COMPOSE      1   /usr/bin/remoter.sh johnyin smplayer open_file
+KEY_COMPOSE      1   /usr/bin/remoter.sh johnyin smplayer show_playlist
 KEY_POWER        1   /usr/bin/remoter.sh johnyin start_stop
 KEY_F5           1   /usr/bin/remoter.sh johnyin xsendkey Return
 KEY_ESC          1   /usr/bin/remoter.sh johnyin xsendkey Tab
@@ -20,7 +22,11 @@ KEY_VOLUMEDOWN   1   /usr/bin/remoter.sh johnyin xsendkey Down
 EOF
 cat > /usr/bin/remoter.sh <<EOF
 #!/bin/sh
-LIST_FILE=/tmp/list.m3u
+MEDIA_DIR=/media
+LIST_FILE=/tmp/list.m3u8
+if [ -f /etc/skyworth_120.conf ]; then
+  . /etc/skyworth_120.conf
+fi
 smplayer_start_stop() {
     local user=$1
     shift 1
@@ -29,7 +35,7 @@ smplayer_start_stop() {
         systemd-run --uid=${user} -E DISPLAY=:0 smplayer -send-action close
         pkill -u ${user} smplayer
     } || {
-        find /media -type f -iname '*.mkv' \
+        find ${MEDIA_DIR} -type f -iname '*.mkv' \
             -o -iname '*.avi' \
             -o -iname '*.mp4' \
             -o -iname '*.wmv' > ${LIST_FILE}
