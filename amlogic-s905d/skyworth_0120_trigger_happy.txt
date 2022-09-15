@@ -62,6 +62,15 @@ xsendkey() {
     local user=$1
     shift 1
     logger -t triggerhappy "triggerhappy xsendkey [$*]"
+    pgrep -u ${user} smplayer || return 1
+    DISPLAY=:0 wmctrl -l | grep -q "${LIST_FILE}" || {
+        case "$1" in
+            Return) smplayer_action ${user} fullscreen;;
+            Tab)    smplayer_action ${user} mute;;
+            *)      logger -t triggerhappy "triggerhappy xsendkey not window [$*] NODEF";;
+        esac
+        return 0
+    }
     systemd-run --scope --uid=${user} -E DISPLAY=:0 xdotool search --desktop 0 "${LIST_FILE}" windowactivate key --clearmodifiers $*
 }
 case "$2" in
