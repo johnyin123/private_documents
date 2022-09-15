@@ -1,11 +1,11 @@
-cat > /etc/X11/xorg.conf.d/20-sky.conf <<EOF
+cat > /etc/X11/xorg.conf.d/20-sky.conf <<'EOF'
 Section "InputClass"
     Identifier "SKYWORTH_0120 BLE REMOTE"
     MatchProduct "SKYWORTH_0120"
     Option "Ignore" "true"
 EndSection
 EOF
-cat > /etc/triggerhappy/triggers.d/sky.conf <<EOF
+cat > /etc/triggerhappy/triggers.d/sky.conf <<'EOF'
 KEY_LEFT         1   /usr/bin/remoter.sh johnyin smplayer rewind1
 KEY_RIGHT        1   /usr/bin/remoter.sh johnyin smplayer forward1
 KEY_LEFT         2   /usr/bin/remoter.sh johnyin smplayer rewind2
@@ -20,7 +20,7 @@ KEY_ESC          1   /usr/bin/remoter.sh johnyin xsendkey Tab
 KEY_VOLUMEUP     1   /usr/bin/remoter.sh johnyin xsendkey Up
 KEY_VOLUMEDOWN   1   /usr/bin/remoter.sh johnyin xsendkey Down
 EOF
-cat > /usr/bin/remoter.sh <<EOF
+cat > /usr/bin/remoter.sh <<'EOF'
 #!/bin/sh
 MEDIA_DIR=/media
 LIST_FILE=/tmp/list.m3u8
