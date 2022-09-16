@@ -1,3 +1,5 @@
+# # /lib/systemd/system/triggerhappy.service
+# ExecStart=/usr/sbin/thd --triggers /etc/triggerhappy/triggers.d/ --socket /run/thd.socket --user root --deviceglob /dev/input/event*
 cat > /etc/X11/xorg.conf.d/20-sky.conf <<'EOF'
 Section "InputClass"
     Identifier "SKYWORTH_0120 BLE REMOTE"
@@ -6,78 +8,172 @@ Section "InputClass"
 EndSection
 EOF
 cat > /etc/triggerhappy/triggers.d/sky.conf <<'EOF'
-KEY_LEFT         1   /usr/bin/remoter.sh johnyin smplayer rewind1
-KEY_RIGHT        1   /usr/bin/remoter.sh johnyin smplayer forward1
-KEY_LEFT         2   /usr/bin/remoter.sh johnyin smplayer rewind2
-KEY_RIGHT        2   /usr/bin/remoter.sh johnyin smplayer forward2
-KEY_UP           1   /usr/bin/remoter.sh johnyin smplayer increase_volume
-KEY_DOWN         1   /usr/bin/remoter.sh johnyin smplayer decrease_volume
-KEY_SELECT       1   /usr/bin/remoter.sh johnyin smplayer play_or_pause
-KEY_COMPOSE      1   /usr/bin/remoter.sh johnyin smplayer show_playlist
-KEY_POWER        1   /usr/bin/remoter.sh johnyin start_stop
-KEY_F5           1   /usr/bin/remoter.sh johnyin xsendkey Return
-KEY_ESC          1   /usr/bin/remoter.sh johnyin xsendkey Tab
-KEY_VOLUMEUP     1   /usr/bin/remoter.sh johnyin xsendkey Up
-KEY_VOLUMEDOWN   1   /usr/bin/remoter.sh johnyin xsendkey Down
+KEY_LEFT         1   /usr/bin/remoter.sh
+KEY_RIGHT        1   /usr/bin/remoter.sh
+KEY_LEFT         2   /usr/bin/remoter.sh
+KEY_RIGHT        2   /usr/bin/remoter.sh
+KEY_UP           1   /usr/bin/remoter.sh
+KEY_DOWN         1   /usr/bin/remoter.sh
+KEY_SELECT       1   /usr/bin/remoter.sh
+KEY_COMPOSE      1   /usr/bin/remoter.sh
+KEY_POWER        1   /usr/bin/remoter.sh
+KEY_F5           1   /usr/bin/remoter.sh
+KEY_ESC          1   /usr/bin/remoter.sh
+KEY_VOLUMEUP     1   /usr/bin/remoter.sh
+KEY_VOLUMEDOWN   1   /usr/bin/remoter.sh
 EOF
 cat > /usr/bin/remoter.sh <<'EOF'
 #!/bin/sh
 MEDIA_DIR=/media
-LIST_FILE=/tmp/list.m3u8
+LIST_FILE=/tmp/list.m3u
+USER=johnyin
 if [ -f /etc/skyworth_120.conf ]; then
   . /etc/skyworth_120.conf
 fi
 smplayer_start_stop() {
-    local user=$1
-    shift 1
-    logger -t triggerhappy "smplayer start/stop"
-    pgrep -u ${user} smplayer && {
-        systemd-run --uid=${user} -E DISPLAY=:0 smplayer -send-action close
-        pkill -u ${user} smplayer
-    } || {
-        find ${MEDIA_DIR} -type f -iname '*.mkv' \
-            -o -iname '*.avi' \
-            -o -iname '*.mp4' \
-            -o -iname '*.wmv' > ${LIST_FILE}
-        chown ${user} ${LIST_FILE}
-        systemd-run --uid=${user} -E DISPLAY=:0 smplayer -actions 'stop fullscreen' ${LIST_FILE}
-    }
+    local action=$1
+    logger -t triggerhappy "smplayer action ${action}"
+    case "${action}" in
+        start) find ${MEDIA_DIR} -type f -maxdepth 1 -iname '*.mkv' \
+                   -o -iname '*.avi' \
+                   -o -iname '*.mp4' \
+                   -o -iname '*.wmv' > ${LIST_FILE}
+               chown ${USER} ${LIST_FILE}
+               systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -actions 'stop fullscreen' ${LIST_FILE}
+               ;;
+        stop)  systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -send-action close
+               pkill -u ${USER} smplayer
+               ;;
+        *)     logger -t triggerhappy "smplayer action unknow [${action}]";;
+    esac
 }
 smplayer_action() {
-    local user=$1
-    shift 1
     logger -t triggerhappy "send-action start($*)"
-    pgrep -u ${user} smplayer || return 1
-    systemd-run --uid=${user} -E DISPLAY=:0 smplayer -send-action $*
+    systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -send-action $*
 }
 smplayer_addplaylist() {
-    local user=$1
-    shift 1
     logger -t triggerhappy "smplayer add playlist $*"
-    pgrep -u ${user} smplayer || return 1
-    systemd-run --uid=${user} -E DISPLAY=:0 smplayer -add-to-playlist $*
+    systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -add-to-playlist $*
 }
 xsendkey() {
     # wmctrl -l
-    local user=$1
-    shift 1
-    logger -t triggerhappy "triggerhappy xsendkey [$*]"
-    pgrep -u ${user} smplayer || return 1
-    DISPLAY=:0 wmctrl -l | grep -q "${LIST_FILE}" || {
-        case "$1" in
-            Return) smplayer_action ${user} fullscreen;;
-            Tab)    smplayer_action ${user} mute;;
-            *)      logger -t triggerhappy "triggerhappy xsendkey not window [$*] NODEF";;
-        esac
-        return 0
-    }
-    systemd-run --scope --uid=${user} -E DISPLAY=:0 xdotool search --desktop 0 "${LIST_FILE}" windowactivate key --clearmodifiers $*
+    local win_title=${1}
+    local key=${2}
+    logger -t triggerhappy "xsendkey [$*]"
+    systemd-run --scope --uid=${USER} -E DISPLAY=:0 xdotool search --desktop 0 "${LIST_FILE}" windowactivate key --clearmodifiers ${key}
 }
-case "$2" in
-    start_stop)      smplayer_start_stop ${1};;
-    smplayer)        smplayer_action ${1} ${3};;
-    xsendkey)        xsendkey ${1} ${3};;
-    *)  logger -t triggerhappy "Unexpected option: $1";;
+get_context() {
+    # 1: smplayer is not running
+    # 2: smplayer is running, smplayer playlist dialog is not visable
+    # 3: smplayer is running, smplayer playlist dialog is visable
+    pgrep -u ${USER} smplayer >/dev/null || return 1
+    DISPLAY=:0 wmctrl -l 2>/dev/null | grep -q "${LIST_FILE}" || return 2
+    return 3
+}
+do_context_long_2() {
+    # 2: smplayer is running, smplayer playlist dialog is not visable
+    local key=${1}
+    case "${key}" in
+        KEY_POWER)      ;;
+        KEY_COMPOSE)    ;;
+        KEY_LEFT)       smplayer_action rewind2;;
+        KEY_RIGHT)      smplayer_action forward2;;
+        KEY_UP)         smplayer_action increase_volume;;
+        KEY_DOWN)       smplayer_action decrease_volume;;
+        KEY_SELECT)     smplayer_action play_or_pause;;
+        KEY_F5)         smplayer_action mute;;
+        KEY_ESC)        smplayer_action fullscreen;;
+        KEY_VOLUMEUP)   smplayer_action previous_video;;
+        KEY_VOLUMEDOWN) smplayer_action next_video;;
+        *)              logger -t triggerhappy "unknow context_2 key ${key}";;
+    esac
+}
+long_keypress() {
+    local key=${1}
+    get_context
+    local ctx=$?
+    case "${ctx}" in
+        1) do_context_1 ${key};;
+        2) do_context_long_2 ${key};;
+        3) ;;
+        *) logger -t triggerhappy "unknow ctx ${ctx}";;
+    esac
+}
+do_context_1() {
+    # 1: smplayer is not running
+    local key=${1}
+    case "${key}" in
+        KEY_POWER)      smplayer_start_stop start;;
+        KEY_COMPOSE)    ;;
+        KEY_LEFT)       ;;
+        KEY_RIGHT)      ;;
+        KEY_UP)         ;;
+        KEY_DOWN)       ;;
+        KEY_SELECT)     ;;
+        KEY_F5)         ;;
+        KEY_ESC)        ;;
+        KEY_VOLUMEUP)   ;;
+        KEY_VOLUMEDOWN) ;;
+        *)              logger -t triggerhappy "unknow context_1 key ${key}";;
+    esac
+}
+do_context_2() {
+    # 2: smplayer is running, smplayer playlist dialog is not visable
+    local key=${1}
+    case "${key}" in
+        KEY_POWER)      smplayer_start_stop stop;;
+        KEY_COMPOSE)    smplayer_action show_playlist;;
+        KEY_LEFT)       smplayer_action rewind1;;
+        KEY_RIGHT)      smplayer_action forward1;;
+        KEY_UP)         smplayer_action increase_volume;;
+        KEY_DOWN)       smplayer_action decrease_volume;;
+        KEY_SELECT)     smplayer_action play_or_pause;;
+        KEY_F5)         smplayer_action mute;;
+        KEY_ESC)        smplayer_action fullscreen;;
+        KEY_VOLUMEUP)   smplayer_action previous_video;;
+        KEY_VOLUMEDOWN) smplayer_action next_video;;
+        *)              logger -t triggerhappy "unknow context_2 key ${key}";;
+    esac
+}
+do_context_3() {
+    # 3: smplayer is running, smplayer playlist dialog is visable
+    local key=${1}
+    case "${key}" in
+        KEY_POWER)      smplayer_start_stop stop;;
+        KEY_COMPOSE)    smplayer_action show_playlist;;
+        KEY_LEFT)       xsendkey "${LIST_FILE}" Left;;
+        KEY_RIGHT)      xsendkey "${LIST_FILE}" Right;;
+        KEY_UP)         xsendkey "${LIST_FILE}" Up;;
+        KEY_DOWN)       xsendkey "${LIST_FILE}" Down;;
+        KEY_SELECT)     xsendkey "${LIST_FILE}" Return;;
+        KEY_F5)         smplayer_action show_playlist;;
+        KEY_ESC)        xsendkey "${LIST_FILE}" Tab;;
+        KEY_VOLUMEUP)   xsendkey "${LIST_FILE}" PgUp;;
+        KEY_VOLUMEDOWN) xsendkey "${LIST_FILE}" PgDown;;
+        *)              logger -t triggerhappy "unknow context_3 key ${key}";;
+    esac
+}
+
+keypress() {
+    local key=${1}
+    get_context
+    local ctx=$?
+    case "${ctx}" in
+        1) do_context_1 ${key};;
+        2) do_context_2 ${key};;
+        3) do_context_3 ${key};;
+        *) logger -t triggerhappy "unknow ctx ${ctx}";;
+    esac
+}
+
+# TH_VALUE=1
+# TH_KEYSTATE=
+# TH_EVENT=KEY_SELECT
+# TH_DEVICE=/dev/input/event3
+case "${TH_VALUE}" in
+    1)  keypress "${TH_EVENT}";;
+    2)  long_keypress "${TH_EVENT}";;
+    *)  logger -t triggerhappy "unknow ${TH_VALUE}";;
 esac
 EOF
 chmod 755 /usr/bin/remoter.sh
