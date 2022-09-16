@@ -39,9 +39,9 @@ smplayer_start_stop() {
                    -o -iname '*.mp4' \
                    -o -iname '*.wmv' > ${LIST_FILE}
                chown ${USER} ${LIST_FILE}
-               systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -actions 'stop fullscreen' ${LIST_FILE}
+               systemd-run --uid=${USER} -E DISPLAY=:0 smplayer ${LIST_FILE}
                ;;
-        stop)  systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -send-action close
+        stop)  smplayer_action close
                pkill -u ${USER} smplayer
                ;;
         *)     logger -t triggerhappy "smplayer action unknow [${action}]";;
