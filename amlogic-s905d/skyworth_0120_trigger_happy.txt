@@ -85,8 +85,8 @@ do_context_long_2() {
         KEY_SELECT)     smplayer_action play_or_pause;;
         KEY_F5)         smplayer_action mute;;
         KEY_ESC)        smplayer_action fullscreen;;
-        KEY_VOLUMEUP)   smplayer_action previous_video;;
-        KEY_VOLUMEDOWN) smplayer_action next_video;;
+        KEY_VOLUMEUP)   smplayer_action pl_prev;;
+        KEY_VOLUMEDOWN) smplayer_action pl_next;;
         *)              log "unknow context_2 key ${key}";;
     esac
 }
