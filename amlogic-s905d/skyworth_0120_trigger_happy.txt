@@ -30,9 +30,10 @@ USER=johnyin
 if [ -f /etc/skyworth_120.conf ]; then
   . /etc/skyworth_120.conf
 fi
+log() {logger -t triggerhappy $*; }
 smplayer_start_stop() {
     local action=$1
-    logger -t triggerhappy "smplayer action ${action}"
+    log "smplayer action ${action}"
     case "${action}" in
         start) find ${MEDIA_DIR} -type f -maxdepth 1 -iname '*.mkv' \
                    -o -iname '*.avi' \
@@ -42,24 +43,25 @@ smplayer_start_stop() {
                systemd-run --uid=${USER} -E DISPLAY=:0 smplayer ${LIST_FILE}
                ;;
         stop)  smplayer_action close
-               pkill -u ${USER} smplayer
+               # pkill -u ${USER} smplayer
+               rm -f ${LIST_FILE}
                ;;
-        *)     logger -t triggerhappy "smplayer action unknow [${action}]";;
+        *)     log "smplayer action unknow [${action}]";;
     esac
 }
 smplayer_action() {
-    logger -t triggerhappy "send-action start($*)"
+    log "send-action start($*)"
     systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -send-action $*
 }
 smplayer_addplaylist() {
-    logger -t triggerhappy "smplayer add playlist $*"
+    log "smplayer add playlist $*"
     systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -add-to-playlist $*
 }
 xsendkey() {
     # wmctrl -l
     local win_title=${1}
     local key=${2}
-    logger -t triggerhappy "xsendkey [$*]"
+    log "xsendkey [$*]"
     systemd-run --scope --uid=${USER} -E DISPLAY=:0 xdotool search --desktop 0 "${LIST_FILE}" windowactivate key --clearmodifiers ${key}
 }
 get_context() {
@@ -85,7 +87,7 @@ do_context_long_2() {
         KEY_ESC)        smplayer_action fullscreen;;
         KEY_VOLUMEUP)   smplayer_action previous_video;;
         KEY_VOLUMEDOWN) smplayer_action next_video;;
-        *)              logger -t triggerhappy "unknow context_2 key ${key}";;
+        *)              log "unknow context_2 key ${key}";;
     esac
 }
 long_keypress() {
@@ -96,7 +98,7 @@ long_keypress() {
         1) do_context_1 ${key};;
         2) do_context_long_2 ${key};;
         3) ;;
-        *) logger -t triggerhappy "unknow ctx ${ctx}";;
+        *) log "unknow ctx ${ctx}";;
     esac
 }
 do_context_1() {
@@ -114,7 +116,7 @@ do_context_1() {
         KEY_ESC)        ;;
         KEY_VOLUMEUP)   ;;
         KEY_VOLUMEDOWN) ;;
-        *)              logger -t triggerhappy "unknow context_1 key ${key}";;
+        *)              log "unknow context_1 key ${key}";;
     esac
 }
 do_context_2() {
@@ -132,7 +134,7 @@ do_context_2() {
         KEY_ESC)        smplayer_action fullscreen;;
         KEY_VOLUMEUP)   smplayer_action previous_video;;
         KEY_VOLUMEDOWN) smplayer_action next_video;;
-        *)              logger -t triggerhappy "unknow context_2 key ${key}";;
+        *)              log "unknow context_2 key ${key}";;
     esac
 }
 do_context_3() {
@@ -150,7 +152,7 @@ do_context_3() {
         KEY_ESC)        xsendkey "${LIST_FILE}" Tab;;
         KEY_VOLUMEUP)   xsendkey "${LIST_FILE}" PgUp;;
         KEY_VOLUMEDOWN) xsendkey "${LIST_FILE}" PgDown;;
-        *)              logger -t triggerhappy "unknow context_3 key ${key}";;
+        *)              log "unknow context_3 key ${key}";;
     esac
 }
 
@@ -162,7 +164,7 @@ keypress() {
         1) do_context_1 ${key};;
         2) do_context_2 ${key};;
         3) do_context_3 ${key};;
-        *) logger -t triggerhappy "unknow ctx ${ctx}";;
+        *) log "unknow ctx ${ctx}";;
     esac
 }
 
@@ -173,7 +175,7 @@ keypress() {
 case "${TH_VALUE}" in
     1)  keypress "${TH_EVENT}";;
     2)  long_keypress "${TH_EVENT}";;
-    *)  logger -t triggerhappy "unknow ${TH_VALUE}";;
+    *)  log "unknow ${TH_VALUE}";;
 esac
 EOF
 chmod 755 /usr/bin/remoter.sh
