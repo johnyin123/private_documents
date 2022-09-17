@@ -1,5 +1,7 @@
 # # /lib/systemd/system/triggerhappy.service
-# ExecStart=/usr/sbin/thd --triggers /etc/triggerhappy/triggers.d/ --socket /run/thd.socket --user root --deviceglob /dev/input/event*
+# ExecStart=/usr/sbin/thd --triggers /etc/triggerhappy/triggers.d/ --socket /run/thd.socket --user root
+# # /lib/udev/rules.d/60-triggerhappy.rules
+# ACTION=="add", SUBSYSTEM=="input", ATTRS{name}=="SKYWORTH_0120 Keyboard", RUN+="/usr/sbin/th-cmd --socket /var/run/thd.socket --passfd --udev --grab"
 cat > /etc/X11/xorg.conf.d/20-sky.conf <<'EOF'
 Section "InputClass"
     Identifier "SKYWORTH_0120 BLE REMOTE"
@@ -30,7 +32,7 @@ USER=johnyin
 if [ -f /etc/skyworth_120.conf ]; then
   . /etc/skyworth_120.conf
 fi
-log() {logger -t triggerhappy $*; }
+log() { logger -t triggerhappy $*; }
 smplayer_start_stop() {
     local action=$1
     log "smplayer action ${action}"
@@ -43,7 +45,7 @@ smplayer_start_stop() {
                systemd-run --uid=${USER} -E DISPLAY=:0 smplayer ${LIST_FILE}
                ;;
         stop)  smplayer_action close
-               # pkill -u ${USER} smplayer
+               pkill -u ${USER} smplayer
                rm -f ${LIST_FILE}
                ;;
         *)     log "smplayer action unknow [${action}]";;
@@ -69,7 +71,7 @@ get_context() {
     # 2: smplayer is running, smplayer playlist dialog is not visable
     # 3: smplayer is running, smplayer playlist dialog is visable
     pgrep -u ${USER} smplayer >/dev/null || return 1
-    DISPLAY=:0 wmctrl -l 2>/dev/null | grep -q "${LIST_FILE}" || return 2
+    systemd-run --scope --uid=${USER} -E DISPLAY=:0 wmctrl -l | grep -q "${LIST_FILE}" || return 2
     return 3
 }
 do_context_long_2() {
@@ -150,8 +152,8 @@ do_context_3() {
         KEY_SELECT)     xsendkey "${LIST_FILE}" Return;;
         KEY_F5)         smplayer_action show_playlist;;
         KEY_ESC)        xsendkey "${LIST_FILE}" Tab;;
-        KEY_VOLUMEUP)   xsendkey "${LIST_FILE}" PgUp;;
-        KEY_VOLUMEDOWN) xsendkey "${LIST_FILE}" PgDown;;
+        KEY_VOLUMEUP)   xsendkey "${LIST_FILE}" Page_Up;;
+        KEY_VOLUMEDOWN) xsendkey "${LIST_FILE}" Page_Down;;
         *)              log "unknow context_3 key ${key}";;
     esac
 }
