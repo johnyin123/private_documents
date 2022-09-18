@@ -174,10 +174,16 @@ keypress() {
 # TH_KEYSTATE=
 # TH_EVENT=KEY_SELECT
 # TH_DEVICE=/dev/input/event3
-case "${TH_VALUE}" in
-    1)  keypress "${TH_EVENT}";;
-    2)  long_keypress "${TH_EVENT}";;
-    *)  log "unknow ${TH_VALUE}";;
-esac
+lockfile=/tmp/skyremote.lock
+noflock () { log "lock not acquired, giving up: $lockfile"; exit 1; }
+(
+    flock -n 9 || noflock
+    case "${TH_VALUE}" in
+        1)  keypress "${TH_EVENT}";;
+        2)  long_keypress "${TH_EVENT}";;
+        *)  log "unknow ${TH_VALUE}";;
+    esac
+) 9>$lockfile
+noflock
 EOF
 chmod 755 /usr/bin/remoter.sh
