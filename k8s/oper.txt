@@ -27,6 +27,7 @@ docker inspect --format "{{.State.Pid}}"  16938de418ac
 nsenter -n -t  54438
 // 3、抓DNS包
 tcpdump -i eth0 udp dst port 53|grep youku.com
+tcpdump -i eth1 tcp port 53
 
 test_ok() {
     # 首先验证kube-apiserver, kube-controller-manager, kube-scheduler, pod network 是否正常
