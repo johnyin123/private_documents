@@ -37,7 +37,7 @@ smplayer_start_stop() {
     local action=$1
     log "smplayer action ${action}"
     case "${action}" in
-        start) find ${MEDIA_DIR} -type f -maxdepth 1 -iname '*.mkv' \
+        start) find ${MEDIA_DIR} -type f -maxdepth ${DEPTH:-1} -iname '*.mkv' \
                    -o -iname '*.avi' \
                    -o -iname '*.mp4' \
                    -o -iname '*.wmv' > ${LIST_FILE}
