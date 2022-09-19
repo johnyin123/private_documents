@@ -45,7 +45,8 @@ smplayer_start_stop() {
                systemd-run --uid=${USER} -E DISPLAY=:0 smplayer ${LIST_FILE}
                ;;
         stop)  smplayer_action close
-               pkill -u ${USER} smplayer
+               # # killed smplayer, but mpv maybe running left.
+               # pkill -u ${USER} smplayer
                rm -f ${LIST_FILE}
                ;;
         *)     log "smplayer action unknow [${action}]";;
