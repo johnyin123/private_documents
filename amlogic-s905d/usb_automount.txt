@@ -1,0 +1,27 @@
+cat <<'EOF' > /etc/polkit-1/localauthority/90-mandatory.d/johnyin.pkla 
+[johnyin auto mount]
+Identity=unix-user:johnyin
+Action=org.freedesktop.udisks2.*
+ResultAny=yes
+ResultInactive=yes
+ResultActive=yes
+EOF
+
+# auto mount usb storage (readonly)
+cat << 'EOF' > /etc/udev/rules.d/98-usbmount.rules
+# udevadm control --reload-rules
+SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="add", RUN+="/bin/systemctl start usb-mount@%k.service"
+SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/bin/systemctl stop usb-mount@%k.service"
+EOF
+
+cat << 'EOF' > /usr/lib/systemd/system/usb-mount@.service
+[Unit]
+Description=auto mount block %i
+
+[Service]
+RemainAfterExit=true
+User=johnyin
+Group=johnyin
+ExecStart=/bin/sh -c '/bin/udisksctl mount -b /dev/%i || exit 0'
+ExecStop=/bin/sh -c '/bin/udisksctl unmount -f -b /dev/%i || exit 0'
+EOF

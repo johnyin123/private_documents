@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("96dfd10[2022-08-25T08:39:49+08:00]:s905_debootstrap.sh")
+VERSION+=("bc6e4f7[2022-09-13T09:26:46+08:00]:s905_debootstrap.sh")
 ################################################################################
 cat <<EOF
 git clone https://github.com/RPi-Distro/firmware-nonfree.git
@@ -191,9 +191,9 @@ PKG+=",x11-utils"
 # # tools
 PKG+=",sudo,aria2,axel,curl,eject,rename,bc,socat,tmux,xmlstarlet,jq,traceroute,ipcalc,ncal,qrencode,tcpdump"
 # # for xfce auto mount
-PKG+=",thunar-volman,policykit-1,gvfs"
+# PKG+=",thunar-volman,gvfs"
 # # for xdotool, wmctrl
-PKG+=",xdotool,wmctrl"
+PKG+=",policykit-1,xdotool,wmctrl"
 # # finally add custom packages
 PKG+="${custom_pkgs:+,${custom_pkgs}}"
 
