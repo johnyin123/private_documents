@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("00f0a90[2022-08-26T07:14:25+08:00]:ngx_demo.sh")
+VERSION+=("8f77d2d[2022-08-26T07:45:12+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1508,6 +1508,86 @@ server {
     }
     location /api/decrypt {
         js_content rsa_crypto.decrypt;
+    }
+}
+EOF
+cat <<'EOF' > api_gateway.http
+server {
+    listen 9999;
+    server_name _;
+    location / {
+        return 200 '{"status":200,"message":"$request_uri, $http_apikey"}\n';
+    }
+}
+map $http_apikey $api_client_name {
+    default "";
+    "randomkey" "client_one";
+}
+upstream api_srvs {
+    server 127.0.0.1:9999;
+    keepalive 64;
+}
+server {
+    listen 80;
+    server_name _;
+    # json error define
+    error_page 404 = @400;
+    proxy_intercept_errors on;
+    default_type application/json;
+    error_page 400 = @400;
+    location @400 { return 400 '{"status":400,"message":"Bad request"}\n'; }
+    error_page 401 = @401;
+    location @401 { return 401 '{"status":401,"message":"Unauthorized"}\n'; }
+    error_page 403 = @403;
+    location @403 { return 403 '{"status":403,"message":"Forbidden"}\n'; }
+    error_page 404 = @404;
+    location @404 { return 404 '{"status":404,"message":"Resource not found"}\n'; }
+    error_page 405 = @405;
+    location @405 { return 405 '{"status":405,"message":"Method not allowed"}\n'; }
+    error_page 408 = @408;
+    location @408 { return 408 '{"status":408,"message":"Request timeout"}\n'; }
+    error_page 413 = @413;
+    location @413 { return 413 '{"status":413,"message":"Payload too large"}\n'; }
+    error_page 414 = @414;
+    location @414 { return 414 '{"status":414,"message":"Request URI too large"}\n'; }
+    error_page 415 = @415;
+    location @415 { return 415 '{"status":415,"message":"Unsupported media type"}\n'; }
+    error_page 426 = @426;
+    location @426 { return 426 '{"status":426,"message":"HTTP request was sent to HTTPS port"}\n'; }
+    error_page 429 = @429;
+    location @429 { return 429 '{"status":429,"message":"API rate limit exceeded"}\n'; }
+    error_page 495 = @495;
+    location @495 { return 495 '{"status":495,"message":"Client certificate authentication error"}\n'; }
+    error_page 496 = @496;
+    location @496 { return 496 '{"status":496,"message":"Client certificate not presented"}\n'; }
+    error_page 497 = @497;
+    location @497 { return 497 '{"status":497,"message":"HTTP request was sent to mutual TLS port"}\n'; }
+    error_page 500 = @500;
+    location @500 { return 500 '{"status":500,"message":"Server error"}\n'; }
+    error_page 501 = @501;
+    location @501 { return 501 '{"status":501,"message":"Not implemented"}\n'; }
+    error_page 502 = @502;
+    location @502 { return 502 '{"status":502,"message":"Bad gateway"}\n'; }
+    # # curl -H "apikey: randomkey" http://localhost/api/func1
+    # API key validation
+    location = /_validate_apikey {
+        internal;
+        if ($http_apikey = "") {
+            return 401; # Unauthorized
+        }
+        if ($api_client_name = "") {
+            return 403; # Forbidden
+        }
+        return 204; # OK (no content)
+    }
+    # API
+    location /api/ {
+        auth_request /_validate_apikey;
+        # URI routing
+        location /api/func1 {
+            proxy_pass http://api_srvs;
+        }
+        return 404;
     }
 }
 EOF
