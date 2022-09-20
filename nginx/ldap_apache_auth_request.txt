@@ -1,0 +1,33 @@
+server {
+    listen 9999;
+    server_name _;
+    location / {
+        auth_request /auth;
+        try_files $uri $uri/ =404;
+    }
+    location = /auth {
+        # Using Apache as the authentication proxy
+        proxy_pass http://192.168.15.30/auth/;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Original-URI $request_uri;
+    }
+}
+a2enmod authnz_ldap
+<VirtualHost *:80>
+    ServerAdmin webmaster@localhost
+    DocumentRoot /var/www/html
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+    <Directory "/var/www/html/auth">
+    Options Indexes FollowSymlinks
+    AuthType Basic
+    AuthName "Apache LDAP authentication"
+    AuthBasicAuthoritative Off
+    AuthBasicProvider ldap
+    AuthLDAPURL "ldap://192.168.15.10/CN=Users,DC=tech,DC=local?sAMAccountName?sub?(objectClass=*)"
+    AuthLDAPBindDN "bind@tech.local"
+    AuthLDAPBindPassword kamisama123..
+    Require valid-user
+    </Directory>
+</VirtualHost>
