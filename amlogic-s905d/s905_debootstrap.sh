@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bc6e4f7[2022-09-13T09:26:46+08:00]:s905_debootstrap.sh")
+VERSION+=("c3a40d6[2022-09-19T13:19:22+08:00]:s905_debootstrap.sh")
 ################################################################################
 cat <<EOF
 git clone https://github.com/RPi-Distro/firmware-nonfree.git
@@ -960,8 +960,11 @@ firmware/brcm/brcmfmac43455-sdio.txt
 /etc/hosts
 EOF
 cat > ${DIRNAME}/buildroot/root/fix_sound_out_hdmi.sh <<'EOF'
-amixer -c  GXP230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
+amixer -c P230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
+# /var/lib/alsa/asound.state
 aplay /usr/share/sounds/alsa/Noise.wav
+amixer sset PCM,0 100%
+speaker-test -c2 -t wav
 # # su - johnyin (add to ~/.xsessionrc)
 # DISPLAY=:0 xset -q
 # DISPLAY=:0 xset -dpms
@@ -1011,8 +1014,8 @@ echo "(Re-)initialize the eMMC and create partition."
 parted -s "${DEV_EMMC}" mklabel msdos
 parted -s "${DEV_EMMC}" mkpart primary fat32 108MiB 172MiB
 parted -s "${DEV_EMMC}" mkpart primary linux-swap 172MiB 512MiB
-parted -s "${DEV_EMMC}" mkpart primary ext4 684MiB 3GiB
-parted -s "${DEV_EMMC}" mkpart primary ext4 3GiB 100%
+parted -s "${DEV_EMMC}" mkpart primary ext4 684MiB 4GiB
+parted -s "${DEV_EMMC}" mkpart primary ext4 4GiB 100%
 
 echo "Start restore u-boot"
 # Restore U-boot (except the first 442 bytes, where partition table is stored.)
@@ -1142,7 +1145,7 @@ fi
 ls -lhR ${DIRNAME}/buildroot/boot/
 echo "end install you kernel&patchs"
 
-echo "patch bluetoothd for sap error, Starting bluetoothd with the option "--noplugin=sap" by default (as
+echo "patch bluetoothd for sap error, Starting bluetoothd with the option \"--noplugin=sap\" by default (as
 already suggested) would be one way to do it"
 sed -i "s|ExecStart=.*|ExecStart=/usr/libexec/bluetooth/bluetoothd --noplugin=sap|g" ${DIRNAME}/buildroot/usr/lib/systemd/system/bluetooth.service
 echo "start chroot shell, disable service & do other work"
