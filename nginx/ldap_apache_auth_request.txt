@@ -13,7 +13,8 @@ server {
         proxy_set_header X-Original-URI $request_uri;
     }
 }
-a2enmod authnz_ldap
+# # Enable the Apache2 LDAP authentication module
+# a2enmod authnz_ldap
 <VirtualHost *:80>
     ServerAdmin webmaster@localhost
     DocumentRoot /var/www/html
@@ -25,9 +26,9 @@ a2enmod authnz_ldap
     AuthName "Apache LDAP authentication"
     AuthBasicAuthoritative Off
     AuthBasicProvider ldap
-    AuthLDAPURL "ldap://192.168.15.10/CN=Users,DC=tech,DC=local?sAMAccountName?sub?(objectClass=*)"
-    AuthLDAPBindDN "bind@tech.local"
-    AuthLDAPBindPassword kamisama123..
+    AuthLDAPURL "ldap://10.4.x.x/ou=People,dc=youcompany,dc=com?uid?sub?(objectClass=*)"
+    AuthLDAPBindDN "bind@local"
+    AuthLDAPBindPassword ldappassword
     Require valid-user
     </Directory>
 </VirtualHost>
