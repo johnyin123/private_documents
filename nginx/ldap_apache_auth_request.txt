@@ -23,6 +23,8 @@ server {
         proxy_pass_request_body off;
         proxy_set_header Content-Length "";
         proxy_set_header X-Original-URI $request_uri;
+        proxy_intercept_errors on;
+        error_page 500 =401 @401;
     }
 }
 # apt -y install apache2
