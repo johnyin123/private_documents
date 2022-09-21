@@ -1,8 +1,18 @@
 server {
     listen 9999;
     server_name _;
+    location @401 {
+        return 200 '<html><head>login</head><body>
+<form method="get" action="/" authenticate="Basic">
+<label for="username">Username:</label> <input type="text" id="username" authenticate="username">
+<label for="password">Password:</label> <input type="text" id="password" authenticate="password">
+<input type="submit" value="Log In">
+</form></body></html>';
+    }
     location / {
         auth_request /auth;
+        proxy_intercept_errors on;
+        error_page 401 = @401;
         root /var/www/html;
         try_files $uri $uri/ =404;
     }
