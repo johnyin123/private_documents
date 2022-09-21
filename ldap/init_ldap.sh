@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5c6affc[2022-08-12T08:33:45+08:00]:init_ldap.sh")
+VERSION+=("44c49be[2022-08-12T08:43:39+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
@@ -22,12 +22,12 @@ log() {
 }
 
 ldap_search() {
-    log "ldapsearch ${*}"
+    log "ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// ${*}"
     ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// ${*} | tee ${LOGFILE}
 }
 
 ldap_modify() {
-    log "ldapmodify ${*}"
+    log "ldapmodify -Q -Y EXTERNAL -H ldapi:/// ${*}"
     ldapmodify -Q -Y EXTERNAL -H ldapi:/// ${*} | tee ${LOGFILE}
 }
 
@@ -242,7 +242,7 @@ EOF
 add_mdb_readonly_sysuser() {
     local olcSuffix=${1}
     local passwd=${2}
-    log "Add ${user} for readonly querying the directory server"
+    log "Add [cn=readonly,ou=people,${olcSuffix}] for readonly querying the directory server"
     cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: cn=readonly,ou=people,${olcSuffix}
 changetype: add
@@ -382,6 +382,7 @@ main() {
         init_ldap "${passwd}" "${domain}" "${org}"
         setup_log
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
+        update_mdb_acl "${olcSuffix}"
         log "INIT OK"
     }
     [ -z "${create_userou}" ] || {
@@ -393,10 +394,9 @@ main() {
     }
     [ -z "${rsyspass}" ] || {
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
-        update_mdb_acl "${olcSuffix}"
         add_mdb_readonly_sysuser "${olcSuffix}" "${rsyspass}"
         log "**************************************************"
-        log "search_base = ou=people,${olcsuffix}"
+        log "search_base = ou=people,${olcSuffix}"
         log "bind_dn     = cn=readonly,ou=people,${olcSuffix}"
         log "bind_pw     = ${rsyspass}"
         log "**************************************************"
