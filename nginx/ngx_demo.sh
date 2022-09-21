@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8f77d2d[2022-08-26T07:45:12+08:00]:ngx_demo.sh")
+VERSION+=("511ca23[2022-09-20T09:41:49+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -819,9 +819,9 @@ server {
 }
 EOF
 cat <<'EOF' > url_map.http
-# http://example.com/?p=contact        /contact
-# http://example.com/?p=static&id=career   /career
-# http://example.com/?p=static&id=about    /about
+# http://127.0.0.1/?p=contact        /contact
+# http://127.0.0.1/?p=static&id=career   /career
+# http://127.0.0.1/?p=static&id=about    /about
 map $arg_p $url_p {
     contact    /contact;
     static     $url_id;
@@ -832,6 +832,12 @@ map $arg_id $url_id {
     about      /about;
     default    /about;
 }
+# curl -vvv "http://127.0.0.1/somepath/somearticle.html?p1=v1&p2=v2"
+map $request_uri $redirect {
+    default 0;
+    /somepath/somearticle.html?p1=v1&p2=v2  /some-other-path-a;
+    /somepath/somearticle.html              /some-other-path-b;
+}
 server {
     listen 80;
     server_name _;
@@ -839,11 +845,17 @@ server {
         # if '$url_p' variable is not an empty string
         return 301 $url_p;
     }
+    if ($redirect) {
+        return 301 $redirect;
+    }
     location / {
         disable_symlinks off;
         root /var/www;
     }
+
 }
+
+
 EOF
 cat <<'EOF' > secure_link_demo.js
 export default {gen_url};
