@@ -14,22 +14,30 @@ server {
         proxy_set_header X-Original-URI $request_uri;
     }
 }
-# # Enable the Apache2 LDAP authentication module
+# # Enable the Apache2 LDAP authentication module, run below
 # a2enmod authnz_ldap
+cat <<'EOF' > /etc/apache2/sites-enabled/ldap_auth.conf
+LDAPSharedCacheSize 500000
+LDAPCacheEntries 1024
+LDAPCacheTTL 600
+LDAPOpCacheEntries 1024
+LDAPOpCacheTTL 600
 <VirtualHost *:80>
     ServerAdmin webmaster@localhost
     DocumentRoot /var/www/html
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined
     <Directory "/var/www/html/auth">
-    Options Indexes FollowSymlinks
-    AuthType Basic
-    AuthName "Apache LDAP authentication"
-    AuthBasicAuthoritative Off
-    AuthBasicProvider ldap
-    AuthLDAPURL "ldap://10.4.x.x/ou=People,dc=youcompany,dc=com?uid?sub?(objectClass=*)"
-    AuthLDAPBindDN "bind@local"
-    AuthLDAPBindPassword ldappassword
-    Require valid-user
+        Options Indexes FollowSymlinks
+        AuthType Basic
+        AuthName "web authentication"
+        AuthBasicAuthoritative Off
+        AuthBasicProvider ldap
+        AuthLDAPURL "ldap://10.0.2.254/ou=people,dc=xikang,dc=com?uid?sub?(objectClass=*)"
+        AuthLDAPBindDN "cn=xkadmin,ou=people,dc=xikang,dc=com"
+        AuthLDAPBindPassword 1997
+        # Require ldap-filter objectClass=posixAccount
+        Require valid-user
     </Directory>
 </VirtualHost>
+EOF
