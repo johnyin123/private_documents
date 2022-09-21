@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("511ca23[2022-09-20T09:41:49+08:00]:ngx_demo.sh")
+VERSION+=("420ae1d[2022-09-21T08:53:29+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1745,6 +1745,7 @@ server {
     }
     location = /auth {
         internal;
+        #????  auth_request_set $backend_status $upstream_status;
         # # proxy_method      POST;
         # # proxy_set_body    "token=$http_apikey&token_hint=access_token";
         # proxy_pass_request_body off;                 # no data is being transferred
