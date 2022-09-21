@@ -3,12 +3,12 @@ server {
     server_name _;
     location / {
         auth_request /auth;
+        root /var/www/html;
         try_files $uri $uri/ =404;
     }
     location = /auth {
         # Using Apache as the authentication proxy
         # # curl -u user1:password http://192.168.168.111/auth/ -vvv
-        # proxy_pass http://$arg_user:$arg_pass@192.168.168.111/auth/;
         proxy_pass http://192.168.168.111/auth/;
         proxy_pass_request_body off;
         proxy_set_header Content-Length "";
