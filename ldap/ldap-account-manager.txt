@@ -1,0 +1,7 @@
+apt -y install ldap-account-manager ldap-account-manager-lamdaemon php-fpm
+include /etc/ldap-account-manager/nginx.conf;
+usermod -G www-data nginx  # user nginx can rw /var/run/php/php7.4-fpm.sock
+# /etc/php/7.4/fpm/pool.d/www.conf
+
+# LAM Configuration -> password is "lam".
+set manager user: cn=admin,dc=sample,dc=org
