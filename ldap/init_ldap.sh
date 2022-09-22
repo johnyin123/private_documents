@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("44c49be[2022-08-12T08:43:39+08:00]:init_ldap.sh")
+VERSION+=("c38513d[2022-09-21T12:05:21+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
@@ -259,6 +259,8 @@ EOF
 update_mdb_acl() {
     local olcSuffix=${1}
     log "Update database ACL"
+    # olcAccess: to dn.subtree="${olcSuffix}"
+    #   by group(s)/groupOfNames/member="cn=manager,ou=group,${olcSuffix}" manage
     cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: olcDatabase={1}mdb,cn=config
 changetype: modify
