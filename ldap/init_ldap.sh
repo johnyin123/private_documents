@@ -9,13 +9,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c38513d[2022-09-21T12:05:21+08:00]:init_ldap.sh")
+VERSION+=("cebb194[2022-09-22T10:38:15+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
 LOGFILE=""
 MAIL_GROUP="mail"
 MAIL_GID=9999
+
+READONLY_SYSUSER_UNIT="rsysuer"
 
 log() {
     echo "######$*" | tee ${LOGFILE} >&2
@@ -90,12 +92,12 @@ ldap_user_group() {
     local action="${4:-add}"
     log "ADD USER GROUP ${user} -> ${group}"
     cat <<EOF |tee ${LOGFILE}| ldap_modify
-dn:cn=${group},ou=groups,${olcSuffix}
+dn:cn=${group},ou=group,${olcSuffix}
 changetype: modify
 ${action}: memberUid
 memberUid: ${user}
 EOF
-    log "Search ${user} groups"
+    log "Search ${user} group"
     ldap_search -b "${olcSuffix}" "(&(objectClass=posixgroup)(memberUid=${user}))"
 }
 
@@ -109,7 +111,7 @@ add_group() {
         return 1
     }
     cat <<EOF |tee ${LOGFILE}| ldap_modify
-dn: cn=${group},ou=groups,${olcSuffix}
+dn: cn=${group},ou=group,${olcSuffix}
 changetype: add
 objectClass: posixGroup
 cn: ${group}
@@ -241,16 +243,17 @@ EOF
 
 add_mdb_readonly_sysuser() {
     local olcSuffix=${1}
-    local passwd=${2}
-    log "Add [cn=readonly,ou=people,${olcSuffix}] for readonly querying the directory server"
+    local user=${2}
+    local passwd=${3}
+    log "Add [cn=${user},ou=${READONLY_SYSUSER_UNIT},${olcSuffix}] for read_only querying the directory server"
     cat <<EOF |tee ${LOGFILE}| ldap_modify
-dn: cn=readonly,ou=people,${olcSuffix}
+dn: cn=${user},ou=${READONLY_SYSUSER_UNIT},${olcSuffix}
 changetype: add
 objectClass: organizationalRole
 objectClass: simpleSecurityObject
-cn: readonly
+cn: ${user}
 userPassword: $(slappasswd -n -s ${passwd})
-description: Bind DN user for LDAP Operations
+description: Bind DN user
 EOF
     # verify the Bind DN ACL with the following command
     ldap_search -b cn=config '(olcDatabase={1}mdb)' olcAccess
@@ -269,9 +272,9 @@ olcAccess: to attrs=userPassword,shadowLastChange,shadowExpire
   by self write
   by anonymous auth
   by dn.subtree="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" manage
-  by dn.exact="cn=readonly,ou=people,${olcSuffix}" read
+  by dn.subtree="ou=${READONLY_SYSUSER_UNIT},${olcSuffix}" read
   by * none
-olcAccess: to dn.exact="cn=readonly,ou=people,${olcSuffix}"
+olcAccess: to dn.subtree="ou=${READONLY_SYSUSER_UNIT},${olcSuffix}"
   by dn.subtree="gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth" manage
   by * none
 olcAccess: to dn.subtree="${olcSuffix}"
@@ -279,6 +282,15 @@ olcAccess: to dn.subtree="${olcSuffix}"
   by users read
   by * none
 EOF
+    cat <<EOF |tee ${LOGFILE}| ldap_modify
+dn: ou=${READONLY_SYSUSER_UNIT},${olcSuffix}
+changetype: add
+objectClass: organizationalUnit
+objectClass: top
+ou: ${READONLY_SYSUSER_UNIT}
+description: Bind DN for LDAP Operations
+EOF
+
 }
 
 init_user_organization_unit() {
@@ -291,11 +303,11 @@ objectClass: organizationalUnit
 objectClass: top
 ou: people
 
-dn: ou=groups,${olcSuffix}
+dn: ou=group,${olcSuffix}
 changetype: add
 objectClass: organizationalUnit
 objectClass: top
-ou: groups
+ou: group
 EOF
     return 0
 }
@@ -310,14 +322,15 @@ ${SCRIPTNAME}
           addtls:       --ca ca.pem --cert /a.pem --key /a.key
           multimaster:  --srvid 104 --peer ldap://ip:389/>
           create ou:    --create_userou
-          add ro user(readonly) : --rsyspass pass
+          add ro user(read_only) : --rsysuser user --rsyspass pass
           add user:     -u user1 -u user2
           ALL IN ONE:   ..............
         -D|--domain  *    <str>  domain, sample.org
         -O|--org     *    <str>  organization, "my company. ltd."
         -P|--passwd  *  * <str>  slapd manager password
         --create_userou          create organization unit
-        --rsyspass *      <str>  readonly accessuser pass
+        --rsysuser *      <str>  read_only accessuser name
+        --rsyspass *      <str>  read_only accessuser pass
         -u|--user         <str>  adduser, group(${MAIL_GROUP}:${MAIL_GID}), multi parameters
                                    default password: ${DEFAULT_ADD_USER_PASSWORD}
         -g|--group)       <str>  add new group, multi parameters
@@ -347,11 +360,11 @@ EOF
 }
 main() {
     local _u="" _max_id="" olcRootDN="" olcSuffix=""
-    local passwd="" domain="" org="" ca="" cert="" key="" srvid="" peer="" create_userou="" rsyspass=""
+    local passwd="" domain="" org="" ca="" cert="" key="" srvid="" peer="" create_userou="" rsysuser="" rsyspass=""
     local users=()
-    local groups=()
+    local group=()
     local opt_short="P:D:O:u:g:"
-    local opt_long="passwd:,domain:,org:,ca:,cert:,key:,srvid:,peer:,user:,group:,create_userou,rsyspass:,"
+    local opt_long="passwd:,domain:,org:,ca:,cert:,key:,srvid:,peer:,user:,group:,create_userou,rsysuser:,rsyspass:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -362,6 +375,7 @@ main() {
             -D | --domain)  shift; domain=${1}; shift;;
             -O | --org)     shift; org=${1}; shift;;
             --create_userou)shift; create_userou=1;;
+            --rsysuser)     shift; rsysuser=${1}; shift;;
             --rsyspass)     shift; rsyspass=${1}; shift;;
             --ca)           shift; ca=${1}; shift;;
             --cert)         shift; cert=${1}; shift;;
@@ -369,7 +383,7 @@ main() {
             --srvid)        shift; srvid=${1}; shift;;
             --peer)         shift; peer=${1}; shift;;
             -u | --user)    shift; users+=(${1}); shift;;
-            -g | --group)   shift; groups+=(${1}); shift;;
+            -g | --group)   shift; group+=(${1}); shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; LOGFILE="-a ${1}"; shift;;
@@ -394,15 +408,15 @@ main() {
         add_group "${MAIL_GROUP}" ${MAIL_GID} "${olcSuffix}"
         log "INIT USER ORGANIZATION UNIT OK"
     }
-    [ -z "${rsyspass}" ] || {
+    [ -z "${rsysuser}" ] || [ -z "${rsyspass}" ] || {
         olcSuffix=$(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}')
-        add_mdb_readonly_sysuser "${olcSuffix}" "${rsyspass}"
+        add_mdb_readonly_sysuser "${olcSuffix}" "${rsysuser}" "${rsyspass}"
         log "**************************************************"
         log "search_base = ou=people,${olcSuffix}"
-        log "bind_dn     = cn=readonly,ou=people,${olcSuffix}"
+        log "bind_dn     = cn=${rsysuser},ou=${READONLY_SYSUSER_UNIT},${olcSuffix}"
         log "bind_pw     = ${rsyspass}"
         log "**************************************************"
-        log "CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D cn=readonly,ou=People,${olcSuffix} -w ${rsyspass}-a ${rsyspass} -S"
+        log "CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D cn=${rsysuser},ou=${READONLY_SYSUSER_UNIT},${olcSuffix} -w ${rsyspass}-a ${rsyspass} -S"
         log "ADD READONLY SYS USER OK"
     }
     [ -z "${ca}" ] || [ -z "${cert}" ] || [ -z "${key}" ] || {
@@ -416,11 +430,11 @@ main() {
         setup_multi_master_replication "${srvid}" "${peer}" "${olcRootDN}" "${olcSuffix}" "${passwd}"
         log "INIT MULTI MASTER OK"
     }
-    ((${#groups[@]} == 0)) || {
+    ((${#group[@]} == 0)) || {
         olcSuffix=$(slapcat -n 0 2>/dev/null | grep "olcSuffix" | awk '{print $2}')
         _max_id=$(ldap_search -b "${olcSuffix}" "(objectclass=posixgroup)" gidnumber | grep -e '^gid' | cut -d':' -f2 | sort | tail -1)
         _max_id=${_max_id:-MAIL_GID}
-        for _u in "${groups[@]}"; do
+        for _u in "${group[@]}"; do
             let _max_id=_max_id+1
             log "add group <$_u: ${_max_id}>"
             add_group "$_u" "${_max_id}" "${olcSuffix}" || log "ADD GROUP $_u ERROR, continue"
