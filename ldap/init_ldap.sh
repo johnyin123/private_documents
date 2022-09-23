@@ -9,14 +9,13 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cebb194[2022-09-22T10:38:15+08:00]:init_ldap.sh")
+VERSION+=("2143a2a[2022-09-23T08:23:06+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
 LOGFILE=""
 MAIL_GROUP="mail"
 MAIL_GID=9999
-
 READONLY_SYSUSER_UNIT="rsysuer"
 
 log() {
@@ -331,7 +330,7 @@ ${SCRIPTNAME}
         --create_userou          create organization unit
         --rsysuser *      <str>  read_only accessuser name
         --rsyspass *      <str>  read_only accessuser pass
-        -u|--user         <str>  adduser, group(${MAIL_GROUP}:${MAIL_GID}), multi parameters
+        -u|--user         <str>  add mail user, group(${MAIL_GROUP}:${MAIL_GID}), multi parameters
                                    default password: ${DEFAULT_ADD_USER_PASSWORD}
         -g|--group)       <str>  add new group, multi parameters
         --ca    *         <str>  ca file
