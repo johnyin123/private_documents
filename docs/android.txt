@@ -1,21 +1,21 @@
 list package
 	pm list packages -f   
 
-pm disable-user --user 0 com.baidu.input_huawei
-pm disable-user --user 0 com.huawei.appmarket
-pm disable-user --user 0 com.huawei.himovie
-pm disable-user --user 0 com.android.mediacenter
-pm disable-user --user 0 com.huawei.android.thememanager
-pm disable-user --user 0 com.huawei.android.findmyphone
-pm disable-user --user 0 com.huawei.android.pushagent
-pm disable-user --user 0 com.huawei.android.hwouc  #update
-pm disable-user --user 0 com.huawei.skytone #天际通数据
-pm disable-user --user 0 com.huawei.phoneservice #会员服务
-pm disable-user --user 0 com.huawei.android.pushagent #推送服务
-pm disable-user --user 0 com.huawei.android.hsf #华为框架
-pm disable-user --user 0 com.huawei.android.findmyphone
-pm disable-user --user 0 com.huawei.hwid #华为移动服务
-pm disable-user --user 0 com.huawei.vassistant #语音助手
+adb shell pm disable-user --user 0 com.baidu.input_huawei
+adb shell pm disable-user --user 0 com.huawei.appmarket
+adb shell pm disable-user --user 0 com.huawei.himovie
+adb shell pm disable-user --user 0 com.android.mediacenter
+adb shell pm disable-user --user 0 com.huawei.android.thememanager
+adb shell pm disable-user --user 0 com.huawei.android.findmyphone
+adb shell pm disable-user --user 0 com.huawei.android.pushagent
+adb shell pm disable-user --user 0 com.huawei.android.hwouc  #update
+adb shell pm disable-user --user 0 com.huawei.skytone #天际通数据
+adb shell pm disable-user --user 0 com.huawei.phoneservice #会员服务
+adb shell pm disable-user --user 0 com.huawei.android.pushagent #推送服务
+adb shell pm disable-user --user 0 com.huawei.android.hsf #华为框架
+adb shell pm disable-user --user 0 com.huawei.android.findmyphone
+adb shell pm disable-user --user 0 com.huawei.hwid #华为移动服务
+adb shell pm disable-user --user 0 com.huawei.vassistant #语音助手
 # google service!
 adb shell pm disable-user --user 0  com.google.android.gms
 adb shell pm disable-user --user 0  com.google.android.onetimeinitializer
