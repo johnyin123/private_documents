@@ -14,7 +14,7 @@ adb shell pm disable-user --user 0 com.huawei.phoneservice #会员服务
 adb shell pm disable-user --user 0 com.huawei.android.pushagent #推送服务
 adb shell pm disable-user --user 0 com.huawei.android.hsf #华为框架
 adb shell pm disable-user --user 0 com.huawei.android.findmyphone
-adb shell pm disable-user --user 0 com.huawei.hwid #华为移动服务
+# adb shell pm disable-user --user 0 com.huawei.hwid #华为移动服务
 adb shell pm disable-user --user 0 com.huawei.vassistant #语音助手
 adb shell pm disable-user --user 0 com.huawei.hidisk  #云空间
 # google service!
