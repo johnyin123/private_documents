@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e030720[2022-08-11T10:42:26+08:00]:init_postfix_dovecot.sh")
+VERSION+=("4dadaff[2022-08-12T14:30:55+08:00]:init_postfix_dovecot.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 VMAIL_USER=${VMAIL_USER:-vmail}
@@ -163,6 +163,8 @@ init_postfix() {
     postconf_e 'smtpd_tls_received_header = yes'
     postconf_e 'smtpd_tls_session_cache_timeout = 3600s'
     postconf_e 'tls_random_source = dev:/dev/urandom'
+    # security fix: NVT: Check if Mailserver answer to VRFY and EXPN requests (OID: 1.3.6.1.4.1.25623.1.0.100072)
+    postconf_e 'disable_vrfy_command = yes'
 
     log "Enable SMTPS and MSA"
     backup /etc/postfix/master.cf
