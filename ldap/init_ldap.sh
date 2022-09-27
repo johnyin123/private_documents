@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2143a2a[2022-09-23T08:23:06+08:00]:init_ldap.sh")
+VERSION+=("bba0ff1[2022-09-23T08:28:18+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
@@ -219,9 +219,17 @@ setup_starttls() {
     cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: cn=config
 changetype: modify
-add: olcTLSCACertificateFile
+$(
+[ -z "${ca}" ] || {
+cat <<EO_CA
+replace: olcTLSCACertificateFile
 olcTLSCACertificateFile: ${ca}
 -
+replace: olcTLSVerifyClient
+olcTLSVerifyClient: allow
+-
+EO_CA
+})
 replace: olcTLSCertificateFile
 olcTLSCertificateFile: ${cert}
 -
@@ -237,7 +245,12 @@ olcTLSCipherSuite: ${TLS_CIPHER}
 replace: olcDisallows
 olcDisallows: bind_anon tls_2_anon
 EOF
+    log "Modify openldap startup parameters: add ldaps:///"
+    sed -i "s|^SLAPD_SERVICES=.*|SLAPD_SERVICES=\"ldap:/// ldapi:/// ldaps:///\"|g" /etc/default/slapd
+    log "Restart slapd service"
     systemctl restart slapd
+    log "Check slapd TLS, PORT:0.0.0.0:636"
+    timeout 0.1 openssl s_client -connect 127.0.0.1:636 -showcerts || true
 }
 
 add_mdb_readonly_sysuser() {
@@ -318,7 +331,7 @@ ${SCRIPTNAME}
         env:
            DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD}
           init:         -D sample.org -O "a b c" -P password
-          addtls:       --ca ca.pem --cert /a.pem --key /a.key
+          addtls:       <--ca ca.pem> --cert /a.pem --key /a.key
           multimaster:  --srvid 104 --peer ldap://ip:389/>
           create ou:    --create_userou
           add ro user(read_only) : --rsysuser user --rsyspass pass
@@ -333,7 +346,7 @@ ${SCRIPTNAME}
         -u|--user         <str>  add mail user, group(${MAIL_GROUP}:${MAIL_GID}), multi parameters
                                    default password: ${DEFAULT_ADD_USER_PASSWORD}
         -g|--group)       <str>  add new group, multi parameters
-        --ca    *         <str>  ca file
+        --ca              <str>  ca file, if cafile not null TLSVerifyClient
         --cert  *         <str>  cert file
         --key   *         <str>  key file
         --srvid         * <num>  multimaster mode uniq id on each server, 101
@@ -418,7 +431,7 @@ main() {
         log "CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D cn=${rsysuser},ou=${READONLY_SYSUSER_UNIT},${olcSuffix} -w ${rsyspass}-a ${rsyspass} -S"
         log "ADD READONLY SYS USER OK"
     }
-    [ -z "${ca}" ] || [ -z "${cert}" ] || [ -z "${key}" ] || {
+    [ -z "${cert}" ] || [ -z "${key}" ] || {
         setup_starttls "${ca}" "${cert}" "${key}"
         log "check: LDAPTLS_REQCERT=never ldapsearch -x -b $(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}') -ZZ"
         log "INIT STARTTLS OK"
