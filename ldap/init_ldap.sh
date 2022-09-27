@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bba0ff1[2022-09-23T08:28:18+08:00]:init_ldap.sh")
+VERSION+=("69cd7af[2022-09-27T09:32:45+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
@@ -216,6 +216,10 @@ setup_starttls() {
     local key=${3}
     chown openldap:openldap "${ca}" "${cert}" "${key}"
     log "SETUP START_TLS"
+    log "TLSVerifyClient { never | allow | try | demand }"
+    # never by default,
+    # allow the server will ask for a client certificate
+    # demand the certificate is requested and a valid certificate must be provided
     cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: cn=config
 changetype: modify
@@ -226,7 +230,7 @@ replace: olcTLSCACertificateFile
 olcTLSCACertificateFile: ${ca}
 -
 replace: olcTLSVerifyClient
-olcTLSVerifyClient: allow
+olcTLSVerifyClient: demand
 -
 EO_CA
 })
