@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("69cd7af[2022-09-27T09:32:45+08:00]:init_ldap.sh")
+VERSION+=("59ef56b[2022-09-27T10:18:04+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
@@ -255,6 +255,7 @@ EOF
     systemctl restart slapd
     log "Check slapd TLS, PORT:0.0.0.0:636"
     timeout 0.1 openssl s_client -connect 127.0.0.1:636 -showcerts || true
+    timeout 0.1 openssl s_client -host 127.0.0.1 -port 389 -starttls ldap ||  true
 }
 
 add_mdb_readonly_sysuser() {
