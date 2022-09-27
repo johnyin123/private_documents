@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e69ba40[2022-09-27T12:26:44+08:00]:init_ldap.sh")
+VERSION+=("6c4f9b7[2022-09-27T12:35:44+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
@@ -439,6 +439,7 @@ main() {
     [ -z "${cert}" ] || [ -z "${key}" ] || {
         setup_starttls "${ca}" "${cert}" "${key}"
         log "check: LDAPTLS_REQCERT=never ldapsearch -x -b $(slapcat -n 0 | grep "olcSuffix" | awk '{print $2}') -ZZ"
+        log "cat /etc/ldap/ldap.conf"
         log "INIT STARTTLS OK"
     }
     [ -z "${srvid}" ] || [ -z "${peer}" ] || [ -z "${passwd}" ] || {
