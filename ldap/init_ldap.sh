@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("59ef56b[2022-09-27T10:18:04+08:00]:init_ldap.sh")
+VERSION+=("015d038[2022-09-27T12:24:48+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
@@ -229,9 +229,9 @@ cat <<EO_CA
 replace: olcTLSCACertificateFile
 olcTLSCACertificateFile: ${ca}
 -
-replace: olcTLSVerifyClient
-olcTLSVerifyClient: demand
--
+# replace: olcTLSVerifyClient
+# olcTLSVerifyClient: demand
+#-
 EO_CA
 })
 replace: olcTLSCertificateFile
