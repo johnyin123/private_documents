@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("48a551a[2022-09-28T08:00:38+08:00]:init_ldap.sh")
+VERSION+=("6cd89d1[2022-09-28T13:13:31+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
@@ -318,6 +318,46 @@ EOF
 
 }
 
+init_uidnumber_autoincrease() {
+    local olcSuffix=${1}
+    log "setup posixAccount(uidNumber) increaser"
+    log "add schema, new objectclass"
+    cat <<'EOF' |tee ${LOGFILE}| ldap_modify
+dn: cn=schema,cn=config
+changetype: modify
+add: olcObjectClasses
+olcObjectClasses: ( 1.3.6.1.4.1.19173.2.2.2.8
+  NAME 'uidNext'
+  SUP top STRUCTURAL
+  DESC 'Where we get the next uidNumber from'
+  MUST ( cn $ uidNumber ) )
+EOF
+    log "add uidNext object"
+    cat <<EOF |tee ${LOGFILE}| ldap_modify
+dn: cn=uidNext,${olcSuffix}
+changetype: add
+objectClass: uidNext
+uidNumber: ${MAIL_GID}
+EOF
+    inc_max_free_uidnumber "${olcSuffix}"
+}
+
+inc_max_free_uidnumber() {
+    local olcSuffix=${1}
+    log "Increase 1 uidNext"
+    cat <<EOF |tee ${LOGFILE}| ldap_modify
+dn: cn=uidNext,${olcSuffix}
+changetype: modify
+increment: uidNumber
+uidNumber: 1
+EOF
+}
+
+get_max_free_uidnumber() {
+    local olcSuffix=${1}
+    ldap_search -b cn=uidNext,${olcSuffix} uidNumber | grep -i uidNumber | cut -d':' -f2
+}
+
 init_user_organization_unit() {
     local olcSuffix=${1}
     log "setup user organization unit"
@@ -334,6 +374,7 @@ objectClass: organizationalUnit
 objectClass: top
 ou: group
 EOF
+    init_uidnumber_autoincrease "${olcSuffix}"
     return 0
 }
 
@@ -470,10 +511,9 @@ main() {
     }
     ((${#users[@]} == 0)) || {
         olcSuffix=$(slapcat -n 0 2>/dev/null | grep "olcSuffix" | awk '{print $2}')
-        _max_id=$(ldap_search -b "${olcSuffix}" "(objectclass=posixaccount)" uidnumber | grep -e '^uid' | cut -d':' -f2 | sort | tail -1)
-        _max_id=${_max_id:-MAIL_GID}
         for _u in "${users[@]}"; do
-            let _max_id=_max_id+1
+            _max_id=$(get_max_free_uidnumber "${olcSuffix}")
+            inc_max_free_uidnumber "${olcSuffix}"
             log "add user <$_u: ${DEFAULT_ADD_USER_PASSWORD}>"
             add_user "$_u" "${_max_id}" "${olcSuffix}" && ldap_user_group "$_u" ${MAIL_GROUP} "${olcSuffix}" "add" || log "add_user($?) $_u:${MAIL_GROUP} error, continue"
             log "CHECK:ldapwhoami -v -h 127.0.0.1 -D uid=$_u,ou=people,${olcSuffix} -x -w ${DEFAULT_ADD_USER_PASSWORD}"
