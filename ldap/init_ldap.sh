@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("60269a0[2022-09-28T16:22:25+08:00]:init_ldap.sh")
+VERSION+=("efe5e4f[2022-09-29T06:37:30+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
@@ -96,8 +96,8 @@ changetype: modify
 ${action}: memberUid
 memberUid: ${user}
 EOF
-    log "Search ${user} group"
-    ldap_search -b "${olcSuffix}" "(&(objectClass=posixgroup)(memberUid=${user}))"
+#    log "Search ${user} group"
+#    ldap_search -b "${olcSuffix}" "(&(objectClass=posixgroup)(memberUid=${user}))"
 }
 
 add_group() {
