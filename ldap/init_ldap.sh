@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ff007ea[2022-09-28T07:13:49+08:00]:init_ldap.sh")
+VERSION+=("48a551a[2022-09-28T08:00:38+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
@@ -109,6 +109,10 @@ add_group() {
         log "NO ADD, GROUP ${group} EXIST!!!"
         return 1
     }
+    ldap_search -b "${olcSuffix}" "(&(objectClass=posixgroup)(gidNumber=${gid}))" | grep -q "dn\s*:" && {
+        log "NO ADD, GROUPID ${gid} EXIST!!!"
+        return 2
+    }
     cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: cn=${group},ou=group,${olcSuffix}
 changetype: add
@@ -127,6 +131,10 @@ add_user() {
     ldap_search -b "${olcSuffix}" "(&(objectClass=posixaccount)(uid=${user}))" | grep -q "dn\s*:" && {
         log "NO ADD, USER ${user} EXIST!!!"
         return 1
+    }
+    ldap_search -b "${olcSuffix}" "(&(objectClass=posixaccount)(uidNumber=${uid}))" | grep -q "dn\s*:" && {
+        log "NO ADD, USERID ${uid} EXIST!!!"
+        return 2
     }
     cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: uid=${user},ou=people,${olcSuffix}
@@ -456,7 +464,7 @@ main() {
         for _u in "${group[@]}"; do
             let _max_id=_max_id+1
             log "add group <$_u: ${_max_id}>"
-            add_group "$_u" "${_max_id}" "${olcSuffix}" || log "ADD GROUP $_u ERROR, continue"
+            add_group "$_u" "${_max_id}" "${olcSuffix}" || log "ADD GROUP($?) $_u ERROR, continue"
         done
         log "ADD GROUP ALL OK"
     }
@@ -467,7 +475,7 @@ main() {
         for _u in "${users[@]}"; do
             let _max_id=_max_id+1
             log "add user <$_u: ${DEFAULT_ADD_USER_PASSWORD}>"
-            add_user "$_u" "${_max_id}" "${olcSuffix}" && ldap_user_group "$_u" ${MAIL_GROUP} "${olcSuffix}" "add" || log "add_user $_u:${MAIL_GROUP} error, continue"
+            add_user "$_u" "${_max_id}" "${olcSuffix}" && ldap_user_group "$_u" ${MAIL_GROUP} "${olcSuffix}" "add" || log "add_user($?) $_u:${MAIL_GROUP} error, continue"
             log "CHECK:ldapwhoami -v -h 127.0.0.1 -D uid=$_u,ou=people,${olcSuffix} -x -w ${DEFAULT_ADD_USER_PASSWORD}"
             log "CHANGE $_u passwd: ldappasswd -H ldap://127.0.0.1 -x -D uid=$_u,ou=People,${olcSuffix} -w ${DEFAULT_ADD_USER_PASSWORD} -a ${DEFAULT_ADD_USER_PASSWORD} -S"
         done
