@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a775479[2022-09-22T07:36:22+08:00]:ngx_demo.sh")
+VERSION+=("3897927[2022-09-28T09:39:22+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1641,6 +1641,7 @@ server {
 </form></body></html>';
     }
     location = /auth {
+        internal;
         proxy_pass http://auth_srv/auth;
         proxy_pass_request_body off;
         proxy_set_header Content-Length "";
