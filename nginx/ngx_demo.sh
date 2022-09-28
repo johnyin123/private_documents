@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("420ae1d[2022-09-21T08:53:29+08:00]:ngx_demo.sh")
+VERSION+=("a775479[2022-09-22T07:36:22+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1600,6 +1600,59 @@ server {
             proxy_pass http://api_srvs;
         }
         return 404;
+    }
+}
+EOF
+cat <<'EOF' > auth_request_by_ldap.http
+# load_module modules/ngx_http_auth_ldap_module.so;
+# touch /auth.html
+ldap_server myldap {
+    url ldaps://127.0.0.1/ou=people,dc=sample,dc=org?uid?sub?(objectClass=*);
+    binddn "cn=4nginx,ou=rsysuer,dc=sample,dc=org";
+    binddn_passwd password;
+    group_attribute uniquemember;
+    group_attribute_is_dn on;
+    require valid_user;
+}
+server {
+    listen unix:/var/run/authsrv.socket;
+    server_name _;
+    location / { return 444; }
+    location = /auth {
+        auth_ldap "Forbidden Res";
+        auth_ldap_servers myldap;
+        alias /auth.html;
+    }
+}
+################################################
+upstream auth_srv {
+    server unix:/var/run/authsrv.socket;
+    keepalive 64;
+}
+server {
+    listen 80;
+    server_name _;
+    location @401 {
+        return 200 '<html><head>login</head><body>
+<form method="get" action="/" authenticate="Basic">
+<label for="username">Username:</label> <input type="text" id="username" authenticate="username">
+<label for="password">Password:</label> <input type="text" id="password" authenticate="password">
+<input type="submit" value="Log In">
+</form></body></html>';
+    }
+    location = /auth {
+        proxy_pass http://auth_srv/auth;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Original-URI $request_uri;
+        proxy_intercept_errors on;
+        error_page 500 =401 @401;
+    }
+    location / {
+        auth_request /auth;
+        proxy_intercept_errors on;
+        error_page 401 = @401;
+        root /var/www;
     }
 }
 EOF
