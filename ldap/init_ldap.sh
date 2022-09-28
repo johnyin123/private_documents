@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6cd89d1[2022-09-28T13:13:31+08:00]:init_ldap.sh")
+VERSION+=("60269a0[2022-09-28T16:22:25+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
@@ -337,7 +337,7 @@ EOF
 dn: cn=uidNext,${olcSuffix}
 changetype: add
 objectClass: uidNext
-uidNumber: ${MAIL_GID}
+uidNumber: 9999
 EOF
     inc_max_free_uidnumber "${olcSuffix}"
 }
