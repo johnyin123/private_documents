@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("99e06b7[2022-09-29T08:02:29+08:00]:init_ldap.sh")
+VERSION+=("759b5d4[2022-09-29T08:44:33+08:00]:init_ldap.sh")
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
@@ -139,11 +139,16 @@ add_user() {
     cat <<EOF |tee ${LOGFILE}| ldap_modify
 dn: uid=${user},ou=people,${olcSuffix}
 changetype: add
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
 cn: ${user}
-sn: 部门
+sn: 测试用户
+telephoneNumber: N/A
+physicalDeliveryOfficeName: 部门
 uid: ${user}
 uidNumber: ${uid}
 gidNumber: ${MAIL_GID}
