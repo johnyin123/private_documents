@@ -12,6 +12,12 @@ def init_connection(url, binddn, password):
     conn.bind()
     return conn
 
+def check():
+    c=init_connection('ldaps://127.0.0.1:636', 'uid=user1,ou=people,dc=xikang,dc=com', '111111')
+    if c.bound:
+        return True
+    return False
+
 def search():
     c=init_connection('ldaps://127.0.0.1:636', 'uid=user1,ou=people,dc=xikang,dc=com', '111111')
     c.search('ou=people,dc=xikang,dc=com', '(&(objectclass=posixAccount)(uid=user2))', attributes=['*'])
@@ -28,3 +34,7 @@ def modify():
 
 search()
 modify()
+if check():
+    print("OK LOGIN")
+else:
+    print("ERR LOGIN")
