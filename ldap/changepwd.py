@@ -22,7 +22,9 @@ def search():
     c=init_connection('ldaps://127.0.0.1:636', 'uid=user1,ou=people,dc=xikang,dc=com', '111111')
     c.search('ou=people,dc=xikang,dc=com', '(&(objectclass=posixAccount)(uid=user2))', attributes=['*'])
     for entry in c.entries:
-        print(entry)
+        print(entry.entry_to_json())
+        # only first record
+        break
     c.unbind()
 
 def modify():
