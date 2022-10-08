@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3897927[2022-09-28T09:39:22+08:00]:ngx_demo.sh")
+VERSION+=("217a7bb[2022-09-28T14:41:16+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1654,6 +1654,95 @@ server {
         proxy_intercept_errors on;
         error_page 401 = @401;
         root /var/www;
+    }
+}
+EOF
+cat <<'EOF' > auth_request_by_secure_link_ldap.py
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import hashlib, time, base64
+from ldap3 import Server, Connection, ALL
+from flask import Flask, request, jsonify, make_response, render_template
+
+app = Flask(__name__)
+app.config['LDAP_URL'] = 'ldap://127.0.0.1:389'
+app.config['UID_FMT'] = 'uid={uid},ou=people,dc=xikang,dc=com'
+app.config['KEY_FMT'] = '{prekey}{seconds}{uid}'
+app.config['PREKEY'] = 'prekey'
+app.config['EXPIRE'] = 36000
+app.secret_key = 'some key'
+
+def base64UrlEncode(data):
+    return str(base64.urlsafe_b64encode(data).rstrip(b'='), "utf-8")
+
+def init_connection(url, binddn, password):
+    srv = Server(url, get_info=ALL)
+    conn = Connection(srv, user=binddn, password=password)
+    conn.bind()
+    return conn
+
+@app.route('/userinfo', methods=['GET'])
+def userinfo():
+    return jsonify({"status": 200, "message": "userinfo"}), 200
+
+@app.route('/login', methods=['POST'])
+def login():
+    try:
+        service = request.args.get("service", "/userinfo")
+        username = request.form.get('username', '')
+        password = request.form.get('password', '')
+        c = init_connection(app.config['LDAP_URL'], app.config['UID_FMT'].format(uid=username), password)
+        status = c.bound
+        c.unbind()
+        if status:
+            epoch = round(time.time() + app.config['EXPIRE'])
+            key = app.config['KEY_FMT'].format(prekey=app.config['PREKEY'], uid=username, seconds=epoch)
+            sec_key = base64UrlEncode(hashlib.md5(key.encode("utf-8")).digest())
+            resp = make_response(jsonify({"status": 200, "data": sec_key }))
+            resp.set_cookie('KEY', sec_key)
+            resp.set_cookie('EXPIRES', str(epoch))
+            resp.set_cookie('UID', username)
+            # resp.headers['X-UID'] = username
+            resp.headers['Location'] = service
+            return resp, 302
+        else:
+            return jsonify({"status": 401, "reason": "Username or Password Error"}), 401
+    except Exception as e:
+        print(e)
+        return jsonify({"status": 401, "reason": "exception"}), 401
+
+@app.route('/logout', methods=['GET'])
+def logout():
+    return jsonify({'result': 200, 'data': {'message': 'logout success'}})
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080, debug=True)
+EOF
+cat <<'EOF' > auth_request_by_secure_link_ldap.http
+server {
+    listen 80;
+    server_name _;
+    location @401 {
+        return 200 '<html><body><form id="loginForm" method="POST" action="http://192.168.168.198:8080/login?service=$scheme://$http_host:$server_port$request_uri">
+<input type="text" id="username" name="username" value="">
+<input type="password" id="passwd" name="password" value="">
+<button type="submit">Login</button>
+</form></body></html>';
+    }
+    location / {
+        auth_request /auth;
+        proxy_intercept_errors on;
+        error_page 401 = @401;
+        root /var/www;
+    }
+    location = /auth {
+        internal;
+        secure_link $cookie_key,$cookie_expires;
+        secure_link_md5 "prekey$secure_link_expires$cookie_uid";
+        if ($secure_link = "") { return 401; }
+        if ($secure_link = "0") { return 410; }
+        return 200 "LOGIN";
     }
 }
 EOF
