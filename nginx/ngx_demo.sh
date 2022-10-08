@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("62dcc55[2022-10-08T11:05:47+08:00]:ngx_demo.sh")
+VERSION+=("eec91e4[2022-10-08T14:54:38+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1691,6 +1691,7 @@ def login():
 # # templates/login.html
 # <html>
 # <body>
+# {{ message }}
 #     <form id="loginForm" method="POST" action="{{ url_for('.login') }}?service={{ service }}">
 #     <input type="text" id="username" name="username" value="">
 #     <input type="password" id="password" name="password" value="">
@@ -1719,10 +1720,12 @@ def login():
             resp.headers['Location'] = service
             return resp, 302
         else:
-            return jsonify({"status": 401, "reason": "Username or Password Error"}), 401
+            return render_template("/login.html", service=service, message="Username or Password Error")
+            # return jsonify({"status": 401, "reason": "Username or Password Error"}), 401
     except Exception as e:
         print(e)
-        return jsonify({"status": 401, "reason": "exception"}), 401
+        return render_template("/login.html", service=service, message="exception")
+        # return jsonify({"status": 401, "reason": "exception"}), 401
 
 @app.route('/logout', methods=['GET'])
 def logout():
