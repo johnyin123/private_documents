@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("936085c[2022-10-08T15:02:12+08:00]:ngx_demo.sh")
+VERSION+=("8e1c90b[2022-10-08T16:31:14+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1754,6 +1754,7 @@ server {
     location @401 {
         internal;
         rewrite ^ /login?service=$scheme://$http_host:$server_port$request_uri break;
+        # proxy_method GET;
         proxy_pass http://192.168.168.198:8080;
 #         return 200 '<html><body><form id="loginForm" method="POST" action="http://192.168.168.198:8080/login?service=$scheme://$http_host:$server_port$request_uri">
 # <input type="text" id="username" name="username" value="">
@@ -1771,9 +1772,9 @@ server {
         internal;
         secure_link $cookie_key,$cookie_expires;
         secure_link_md5 "prekey$secure_link_expires$cookie_uid";
-        if ($secure_link = "") { return 401; }
-        if ($secure_link = "0") { return 410; }
-        return 200 "LOGIN";
+        if ($secure_link = "") { return 401 "need auth"; }
+        if ($secure_link = "0") { return 401 "auth outof date"; }
+        return 200 "auth ok";
     }
 }
 EOF
