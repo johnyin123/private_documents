@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d2b5a4b[2022-10-08T10:35:44+08:00]:ngx_demo.sh")
+VERSION+=("62dcc55[2022-10-08T11:05:47+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -442,7 +442,7 @@ EOF
 cat <<'EOF' >dummy.http
 # # nginx: [emerg] duplicate listen options (vhost mode)
 # # # The network socket's listen options(like reuseport) only once in configuration
-# # # and they "apply" to all other configured servers which listen on the same socket(port). 
+# # # and they "apply" to all other configured servers which listen on the same socket(port).
 # catch-all not matched server_name by default_server
 # If no default server is defined, Nginx will use the first found server.
 server {
@@ -1686,10 +1686,22 @@ def init_connection(url, binddn, password):
 def userinfo():
     return jsonify({"status": 200, "message": "userinfo"}), 200
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
+# # templates/login.html
+# <html>
+# <body>
+#     <form id="loginForm" method="POST" action="{{ url_for('.login') }}?service={{ service }}">
+#     <input type="text" id="username" name="username" value="">
+#     <input type="password" id="password" name="password" value="">
+#     <button type="submit">Login</button>
+#   </form>
+# </body>
+# </html>
+    service = request.args.get("service", "/userinfo")
+    if request.method == "GET":
+        return render_template("/login.html", service=service)
     try:
-        service = request.args.get("service", "/userinfo")
         username = request.form.get('username', '')
         password = request.form.get('password', '')
         c = init_connection(app.config['LDAP_URL'], app.config['UID_FMT'].format(uid=username), password)
@@ -1723,7 +1735,16 @@ cat <<'EOF' > auth_request_by_secure_link_ldap.http
 server {
     listen 80;
     server_name _;
-    location /login {
+    location = /userinfo {
+        proxy_pass http://192.168.168.198:8080;
+    }
+    location = /login {
+        proxy_pass http://192.168.168.198:8080;
+    }
+    location = /logout {
+        proxy_pass http://192.168.168.198:8080;
+    }
+    location @401 {
         internal;
         rewrite ^ /login?service=$scheme://$http_host:$server_port$request_uri break;
         proxy_pass http://192.168.168.198:8080;
@@ -1736,7 +1757,7 @@ server {
     location / {
         auth_request /auth;
         proxy_intercept_errors on;
-        error_page 401 = /login;
+        error_page 401 = @401;
         root /var/www;
     }
     location = /auth {
