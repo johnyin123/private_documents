@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("217a7bb[2022-09-28T14:41:16+08:00]:ngx_demo.sh")
+VERSION+=("6ee2084[2022-10-08T09:38:39+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1723,17 +1723,20 @@ cat <<'EOF' > auth_request_by_secure_link_ldap.http
 server {
     listen 80;
     server_name _;
-    location @401 {
-        return 200 '<html><body><form id="loginForm" method="POST" action="http://192.168.168.198:8080/login?service=$scheme://$http_host:$server_port$request_uri">
-<input type="text" id="username" name="username" value="">
-<input type="password" id="passwd" name="password" value="">
-<button type="submit">Login</button>
-</form></body></html>';
+    location /login {
+        internal;
+        rewrite ^ /login?service=$scheme://$http_host:$server_port$request_uri break;
+        proxy_pass http://192.168.168.198:8080;
+#         return 200 '<html><body><form id="loginForm" method="POST" action="http://192.168.168.198:8080/login?service=$scheme://$http_host:$server_port$request_uri">
+# <input type="text" id="username" name="username" value="">
+# <input type="password" id="passwd" name="password" value="">
+# <button type="submit">Login</button>
+# </form></body></html>';
     }
     location / {
         auth_request /auth;
         proxy_intercept_errors on;
-        error_page 401 = @401;
+        error_page 401 = /login;
         root /var/www;
     }
     location = /auth {
