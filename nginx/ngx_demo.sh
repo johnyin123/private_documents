@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6ee2084[2022-10-08T09:38:39+08:00]:ngx_demo.sh")
+VERSION+=("d2b5a4b[2022-10-08T10:35:44+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1667,7 +1667,7 @@ from flask import Flask, request, jsonify, make_response, render_template
 
 app = Flask(__name__)
 app.config['LDAP_URL'] = 'ldap://127.0.0.1:389'
-app.config['UID_FMT'] = 'uid={uid},ou=people,dc=xikang,dc=com'
+app.config['UID_FMT'] = 'uid={uid},ou=people,dc=sample,dc=org'
 app.config['KEY_FMT'] = '{prekey}{seconds}{uid}'
 app.config['PREKEY'] = 'prekey'
 app.config['EXPIRE'] = 36000
