@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("eec91e4[2022-10-08T14:54:38+08:00]:ngx_demo.sh")
+VERSION+=("936085c[2022-10-08T15:02:12+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1729,7 +1729,11 @@ def login():
 
 @app.route('/logout', methods=['GET'])
 def logout():
-    return jsonify({'result': 200, 'data': {'message': 'logout success'}})
+    resp = make_response(jsonify({"status": 200, "message": "logout success" }))
+    resp.set_cookie('KEY', '', expires=0)
+    resp.set_cookie('EXPIRES', '', expires=0)
+    resp.set_cookie('UID', '', expires=0)
+    return resp, 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080, debug=True)
