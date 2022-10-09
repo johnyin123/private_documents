@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8e1c90b[2022-10-08T16:31:14+08:00]:ngx_demo.sh")
+VERSION+=("262ed60[2022-10-09T07:17:21+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1705,6 +1705,8 @@ def login():
     try:
         username = request.form.get('username', '')
         password = request.form.get('password', '')
+        # if request.environ.get('HTTP_X_REAL_IP') is not None:
+        #     ip = request.environ.get('HTTP_X_REAL_IP')
         c = init_connection(app.config['LDAP_URL'], app.config['UID_FMT'].format(uid=username), password)
         status = c.bound
         c.unbind()

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c3a40d6[2022-09-19T13:19:22+08:00]:s905_debootstrap.sh")
+VERSION+=("8eccd42[2022-09-20T08:06:29+08:00]:s905_debootstrap.sh")
 ################################################################################
 cat <<EOF
 git clone https://github.com/RPi-Distro/firmware-nonfree.git
@@ -289,7 +289,7 @@ useradd -m -s /bin/bash johnyin
 echo "DISPLAY=:0 xset -dpms" > /home/johnyin/.xsessionrc
 # su - johnyin -c "echo 'DISPLAY=:0 xset s off' >> /home/johnyin/.xsessionrc"
 echo "DISPLAY=:0 xset s off" >> /home/johnyin/.xsessionrc
-chown johnyin.johnyin /home/johnyin/.xsessionrc
+chown johnyin:johnyin /home/johnyin/.xsessionrc
 ln -s /home/johnyin/.Xauthority /root/.Xauthority
 echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
 chmod 0440 /etc/sudoers.d/johnyin
