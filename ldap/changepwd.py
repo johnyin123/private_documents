@@ -3,6 +3,24 @@
 
 # python3 -m venv ldap3
 # pip install ldap3
+'''
+    except (LDAPBindError, LDAPInvalidCredentialsResult, LDAPUserNameIsMandatoryError):
+        raise Error('Username or password is incorrect!')
+    except LDAPConstraintViolationResult as e:
+        msg = e.message.split('check_password_restrictions: ')[-1].capitalize()
+        raise Error(msg)
+
+    with connect_ldap(conf, authentication=SIMPLE, user=user_dn, password=old_pass) as c:
+        c.bind()
+        c.extend.standard.modify_password(user_dn, old_pass, new_pass)
+
+def find_user_dn(conf, conn, uid):
+    search_filter = conf['search_filter'].replace('{uid}', uid)
+    conn.search(conf['base'], "(%s)" % search_filter, SUBTREE)
+    return conn.response[0]['dn'] if conn.response else None
+
+'''
+
 
 from ldap3 import Server, Connection, ALL, MODIFY_REPLACE
 
