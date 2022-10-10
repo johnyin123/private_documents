@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("262ed60[2022-10-09T07:17:21+08:00]:ngx_demo.sh")
+VERSION+=("2c9521e[2022-10-09T10:39:32+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1663,7 +1663,7 @@ cat <<'EOF' > auth_request_by_secure_link_ldap.py
 
 import hashlib, time, base64
 from ldap3 import Server, Connection, ALL
-from flask import Flask, request, jsonify, make_response, render_template
+from flask import Flask, request, jsonify, make_response, render_template, redirect, url_for
 
 app = Flask(__name__)
 app.config['LDAP_URL'] = 'ldap://127.0.0.1:389'
@@ -1714,6 +1714,7 @@ def login():
             epoch = round(time.time() + app.config['EXPIRE'])
             key = app.config['KEY_FMT'].format(prekey=app.config['PREKEY'], uid=username, seconds=epoch)
             sec_key = base64UrlEncode(hashlib.md5(key.encode("utf-8")).digest())
+            # resp = make_response(redirect(service, 302))
             resp = make_response(jsonify({"status": 200, "data": sec_key }))
             resp.set_cookie('KEY', sec_key)
             resp.set_cookie('EXPIRES', str(epoch))
