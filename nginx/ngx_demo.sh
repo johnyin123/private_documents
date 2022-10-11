@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4861391[2022-10-10T08:17:36+08:00]:ngx_demo.sh")
+VERSION+=("5b977bd[2022-10-11T10:00:26+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1837,21 +1837,19 @@ def userinfo():
         flash("change password success", "success")
         return render_template_string(login_html, title="Change Password")
     except Exception as e:
-        print(e)
-        flash("Exception", "error")
+        flash(e, "error")
         return render_template_string(login_html, title="Change Password")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     #request.args.get/request.form.get/request.values.get
     service = request.values.get("service", "/userinfo")
-    if request.method == "GET":
-        return render_template_string(login_html, service=service, title="Login")
+#    if request.method == "GET":
+#        return render_template_string(login_html, service=service, title="Login")
     try:
         username = request.values.get('username')
         password = request.values.get('password')
         if username is None or password is None:
-            flash("user/pass NULL", "error")
             return render_template_string(login_html, service=service, title="Login")
         # if request.environ.get('HTTP_X_REAL_IP') is not None:
         #     ip = request.environ.get('HTTP_X_REAL_IP')
@@ -1863,20 +1861,16 @@ def login():
             key = app.config['KEY_FMT'].format(prekey=app.config['PREKEY'], uid=username, seconds=epoch)
             sec_key = base64UrlEncode(hashlib.md5(key.encode("utf-8")).digest())
             resp = make_response(redirect(service, 302))
-            # resp = make_response(jsonify({"status": 200, "data": sec_key }))
             resp.set_cookie('KEY', sec_key, max_age=epoch)
             resp.set_cookie('EXPIRES', str(epoch), max_age=epoch)
             resp.set_cookie('UID', username, max_age=epoch)
-            # request.cookies.get('foo'):
-            # resp.headers['X-UID'] = username
             # resp.headers['Location'] = service
             return resp
         else:
             flash("Username or Password Error", "error")
             return render_template_string(login_html, service=service, title="Login")
     except Exception as e:
-        print(e)
-        flash("Exception", "error")
+        flash(e, "error")
         return render_template_string(login_html, service=service, title="Login")
 
 @app.route('/logout', methods=['GET'])
@@ -1888,7 +1882,7 @@ def logout():
     return resp, 200
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    app.run(host='0.0.0.0', port=8080) #, debug=True)
 EOF
 cat <<'EOF' > auth_request_by_secure_link_ldap.http
 server {
