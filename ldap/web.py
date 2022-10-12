@@ -201,9 +201,9 @@ def login():
             key = app.config['KEY_FMT'].format(prekey=app.config['PREKEY'], uid=username, seconds=epoch)
             sec_key = base64UrlEncode(hashlib.md5(key.encode("utf-8")).digest())
             resp = make_response(redirect(service, 302))
-            resp.set_cookie('KEY', sec_key, max_age=epoch)
-            resp.set_cookie('EXPIRES', str(epoch), max_age=epoch)
-            resp.set_cookie('UID', username, max_age=epoch)
+            resp.set_cookie('KEY', sec_key, expires=epoch)
+            resp.set_cookie('EXPIRES', str(epoch), expires=epoch)
+            resp.set_cookie('UID', username, expires=epoch)
             # resp.headers['Location'] = service
             return resp
         else:
