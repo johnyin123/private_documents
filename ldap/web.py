@@ -3,7 +3,7 @@
 
 import hashlib, time, base64
 from ldap3 import Server, Connection, ALL
-from flask import Flask, request, jsonify, flash, make_response, render_template, render_template_string, redirect, url_for
+from flask import Flask, request, jsonify, flash, make_response, render_template, render_template_string, redirect, url_for, send_file
 
 app = Flask(__name__)
 app.config['LDAP_URL'] = 'ldap://127.0.0.1:389'
@@ -215,6 +215,9 @@ def login():
 
 @app.route('/logout', methods=['GET'])
 def logout():
+    # from flask_qrcode import QRcode
+    # qrcode = QRcode(app)
+    # resp = send_file(qrcode("message", mode="raw"), mimetype="image/png", download_name="a.png")
     resp = make_response(jsonify({"status": 200, "message": "logout success" }))
     resp.set_cookie('KEY', '', expires=0)
     resp.set_cookie('EXPIRES', '', expires=0)
