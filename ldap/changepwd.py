@@ -63,6 +63,11 @@ def modify():
     print(c.result)
     c.unbind()
 
+def change_passwd():
+    c=init_connection('ldaps://127.0.0.1:636', 'uid=user1,ou=people,dc=xikang,dc=com', '111111')
+    if c.extend.standard.modify_password('uid=user1,ou=people,dc=xikang,dc=com', '111111', 'xxxxxx'):
+        print("chanage ok")
+
 search()
 modify()
 if check():
