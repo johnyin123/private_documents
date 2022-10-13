@@ -10,19 +10,30 @@
         msg = e.message.split('check_password_restrictions: ')[-1].capitalize()
         raise Error(msg)
 
-    with connect_ldap(conf, authentication=SIMPLE, user=user_dn, password=old_pass) as c:
-        c.bind()
+    with connect_ldap(........) as c:
+        if not c.bind():
+            print('FAILED TO CONNECT')
+        print(conn.extend.standard.who_am_i())
         c.extend.standard.modify_password(user_dn, old_pass, new_pass)
+        people = conn.search('ou=people,dc=sample,dc=org',
+                        '(&(objectclass=posixAccount)(uid=user1))',
+                        search_scope=SUBTREE,
+                        attributes=ALL_ATTRIBUTES,
+                        get_operational_attributes=True)
+        for user in conn.entries:
+            print(user.sn)
 
 def find_user_dn(conf, conn, uid):
     search_filter = conf['search_filter'].replace('{uid}', uid)
     conn.search(conf['base'], "(%s)" % search_filter, SUBTREE)
     return conn.response[0]['dn'] if conn.response else None
-
+def connect_ldap(url, binddn, password):
+    srv = Server(url, get_info=ALL)
+    conn = Connection(srv, user=binddn, password=password)
 '''
 
 
-from ldap3 import Server, Connection, ALL, MODIFY_REPLACE
+from ldap3 import Server ,Connection ,ALL ,SUBTREE ,ALL_ATTRIBUTES, MODIFY_REPLACE
 
 def init_connection(url, binddn, password):
     srv = Server(url, get_info=ALL)
