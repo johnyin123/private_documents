@@ -171,10 +171,11 @@ def userinfo():
         return render_template_string(login_html, title="Change Password")
     try:
         c = init_connection(app.config['LDAP_URL'], app.config['UID_FMT'].format(uid=username), password)
-        changes = {"userPassword": [(MODIFY_REPLACE, newpwd)]}
-        c.modify(app.config['UID_FMT'].format(uid=username), changes)
+        if c.extend.standard.modify_password(app.config['UID_FMT'].format(uid=username), password, newpwd):
+            flash("change password success", "success")
+        else:
+            flash("change password failed", "error")
         c.unbind()
-        flash("change password success", "success")
         return render_template_string(login_html, title="Change Password")
     except Exception as e:
         flash(e, "error")
