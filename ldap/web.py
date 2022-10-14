@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import hashlib, time, base64
+import hashlib, time, base64, os, json
 from ldap3 import Server, Connection, ALL
 from flask import Flask, request, jsonify, flash, make_response, render_template, render_template_string, redirect, url_for, send_file
-
+'''
+{
+    "LDAP_URL": "ldap://127.0.0.1:389",
+    "UID_FMT": "uid={uid},ou=people,dc=sample,dc=org",
+    "KEY_FMT": "{prekey}{seconds}{uid}",
+    "PREKEY": "prekey",
+    "EXPIRE": 36000,
+    "SECRET_KEY": "some key"
+}
+'''
 app = Flask(__name__)
-app.config['LDAP_URL'] = 'ldap://127.0.0.1:389'
-app.config['UID_FMT'] = 'uid={uid},ou=people,dc=sample,dc=org'
-app.config['KEY_FMT'] = '{prekey}{seconds}{uid}'
-app.config['PREKEY'] = 'prekey'
-app.config['EXPIRE'] = 36000
-app.secret_key = 'some key'
+app.config.from_file("config.json", load=json.load)
 login_html="""
 <!DOCTYPE html>
 <html>
