@@ -172,51 +172,42 @@ def userinfo():
         return render_template_string(login_html, title="Change Password")
     if newpwd != confirmpwd:
         flash("new-password != confirm-password", "error")
-        return render_template_string(login_html, title="Change Password")
-    try:
-        c = init_connection(app.config['LDAP_URL'], app.config['UID_FMT'].format(uid=username), password)
-        if c.extend.standard.modify_password(app.config['UID_FMT'].format(uid=username), password, newpwd):
-            flash("change password success", "success")
-        else:
-            flash("change password failed", "error")
-        c.unbind()
-        return render_template_string(login_html, title="Change Password")
-    except Exception as e:
-        flash(e, "error")
-        return render_template_string(login_html, title="Change Password")
+    else:
+        try:
+            with init_connection(app.config['LDAP_URL'], app.config['UID_FMT'].format(uid=username), password) as c:
+                if c.extend.standard.modify_password(app.config['UID_FMT'].format(uid=username), password, newpwd):
+                    flash("change password success", "success")
+                else:
+                    flash("change password failed", "error")
+        except Exception as e:
+            flash(e, "error")
+    return render_template_string(login_html, title="Change Password")
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    #request.args.get/request.form.get/request.values.get
-    service = request.values.get("service", "/userinfo")
-#    if request.method == "GET":
-#        return render_template_string(login_html, service=service, title="Login")
+    #request.args.get/request.form.get/request.values.get/request.environ.get
     try:
+        service = request.values.get("service", "/userinfo")
         username = request.values.get('username')
         password = request.values.get('password')
         if username is None or password is None:
             return render_template_string(login_html, service=service, title="Login")
-        # if request.environ.get('HTTP_X_REAL_IP') is not None:
-        #     ip = request.environ.get('HTTP_X_REAL_IP')
-        c = init_connection(app.config['LDAP_URL'], app.config['UID_FMT'].format(uid=username), password)
-        status = c.bound
-        c.unbind()
-        if status:
-            epoch = round(time.time() + app.config['EXPIRE'])
-            key = app.config['KEY_FMT'].format(prekey=app.config['PREKEY'], uid=username, seconds=epoch)
-            sec_key = base64UrlEncode(hashlib.md5(key.encode("utf-8")).digest())
-            resp = make_response(redirect(service, 302))
-            resp.set_cookie('KEY', sec_key, expires=epoch)
-            resp.set_cookie('EXPIRES', str(epoch), expires=epoch)
-            resp.set_cookie('UID', username, expires=epoch)
-            # resp.headers['Location'] = service
-            return resp
-        else:
-            flash("Username or Password Error", "error")
-            return render_template_string(login_html, service=service, title="Login")
+        with init_connection(app.config['LDAP_URL'], app.config['UID_FMT'].format(uid=username), password) as c:
+            if c.bound:
+                epoch = round(time.time() + app.config['EXPIRE'])
+                key = app.config['KEY_FMT'].format(prekey=app.config['PREKEY'], uid=username, seconds=epoch)
+                sec_key = base64UrlEncode(hashlib.md5(key.encode("utf-8")).digest())
+                resp = make_response(redirect(service, 302))
+                resp.set_cookie('KEY', sec_key, expires=epoch)
+                resp.set_cookie('EXPIRES', str(epoch), expires=epoch)
+                resp.set_cookie('UID', username, expires=epoch)
+                # resp.headers['Location'] = service
+                return resp
+            else:
+                flash("Username or Password Error", "error")
     except Exception as e:
         flash(e, "error")
-        return render_template_string(login_html, service=service, title="Login")
+    return render_template_string(login_html, service=service, title="Login")
 
 @app.route('/logout', methods=['GET'])
 def logout():
