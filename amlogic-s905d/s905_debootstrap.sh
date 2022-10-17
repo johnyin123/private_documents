@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8eccd42[2022-09-20T08:06:29+08:00]:s905_debootstrap.sh")
+VERSION+=("2c9521e[2022-10-09T10:39:32+08:00]:s905_debootstrap.sh")
 ################################################################################
 cat <<EOF
 git clone https://github.com/RPi-Distro/firmware-nonfree.git
@@ -1147,7 +1147,7 @@ echo "end install you kernel&patchs"
 
 echo "patch bluetoothd for sap error, Starting bluetoothd with the option \"--noplugin=sap\" by default (as
 already suggested) would be one way to do it"
-sed -i "s|ExecStart=.*|ExecStart=/usr/libexec/bluetooth/bluetoothd --noplugin=sap|g" ${DIRNAME}/buildroot/usr/lib/systemd/system/bluetooth.service
+sed -i "s|ExecStart=.*|ExecStart=/usr/libexec/bluetooth/bluetoothd --noplugin=sap|g" ${DIRNAME}/buildroot/usr/lib/systemd/system/bluetooth.service || true
 echo "start chroot shell, disable service & do other work"
 chroot ${DIRNAME}/buildroot/ /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
 chroot ${DIRNAME}/buildroot/ /bin/bash -s <<EOF
