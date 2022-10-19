@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a51f365[2022-07-08T12:16:10+08:00]:mk_nginx.sh")
+VERSION+=("53c4443[2022-10-19T09:01:57+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -489,14 +489,14 @@ EOF
 cat <<EOF > ${OUTDIR}/etc/nginx/nginx.conf
 user ${NGX_USER} ${NGX_GROUP};
 worker_processes auto;
-worker_rlimit_nofile 102400;
+worker_rlimit_nofile 122000;
 worker_priority -20;
 pcre_jit on;
 pid /run/nginx.pid;
 include /etc/nginx/modules.d/*.conf;
 events {
     use epoll;
-    worker_connections 10240;
+    worker_connections 30720;
     multi_accept on;
 }
 http {
