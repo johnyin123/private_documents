@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f2a3a2c[2022-07-08T12:12:37+08:00]:mk_nginx.sh")
+VERSION+=("a51f365[2022-07-08T12:16:10+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -23,8 +23,7 @@ declare -A stage=(
 set +o nounset
 stage_level=${stage[${1:-doall}]}
 set -o nounset
-sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${0}
-stage_level=${stage_level:?"${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
+
 ##OPTION_START##
 ## openssl 3.0 disabled TLSv1.0/1.1(even ssl_protocols TLSv1 TLSv1.1 TLSv1.2;)
 ## openssl 1.xx TLS1.0/1.1 OK
@@ -43,6 +42,13 @@ IMAGE_FILTER=${IMAGE_FILTER:-""}
 CACHE_PURGE=${CACHE_PURGE:-""}
 PAGE_SPEED=${PAGE_SPEED:-""}
 ##OPTION_END##
+log() {
+    echo "$(tput setaf 141)$*$(tput sgr0)" >&2
+}
+cat <<EOF
+for QUIC: use boringssl
+git clone https://github.com/google/boringssl
+EOF
 NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl
 PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, pcre2 support nginx 1.21.5+
@@ -53,13 +59,9 @@ declare -A NGINX_BASE=(
     [${PCRE_DIR}]="wget --no-check-certificate -O pcre.tar.gz https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz/download"
     [${ZLIB_DIR}]="wget --no-check-certificate -O zlib.tar.gz https://zlib.net/zlib-1.2.11.tar.gz"
 )
-declare -A STATIC_MODULES=(
-    [${DIRNAME}/nginx-sticky-module-ng]="git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng"
-    [${DIRNAME}/nginx_limit_speed_module]="git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git"
-)
-[ -z "${CACHE_PURGE}" ] || {
-    STATIC_MODULES[${DIRNAME}/ngx_cache_purge]="git clone --depth 1 https://github.com/FRiCKLE/ngx_cache_purge.git"
-}
+
+log "NGINX_BASE : =============================="
+printf '%s\n' "${!NGINX_BASE[@]}"
 declare -A DYNAMIC_MODULES=(
     [${DIRNAME}/njs/nginx]="git clone --depth 1 --branch ${NJS_RELEASE} https://github.com/nginx/njs.git"
     [${DIRNAME}/nginx-rtmp-module]="git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git"
@@ -72,8 +74,23 @@ declare -A DYNAMIC_MODULES=(
     # [${DIRNAME}/Nginx-DOH-Module]="git clone --depth 1 https://github.com/dvershinin/Nginx-DOH-Module.git"
     # [${DIRNAME}/ModSecurity-nginx]="git clone --depth 1 https://github.com/SpiderLabs/ModSecurity-nginx.git"
 )
+log "DEFAULT DYNAMIC_MODULES : ================="
+printf '%s\n' "${!DYNAMIC_MODULES[@]}"
+declare -A STATIC_MODULES=(
+    [${DIRNAME}/nginx-sticky-module-ng]="git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng"
+    [${DIRNAME}/nginx_limit_speed_module]="git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git"
+)
+log "DEFAULT STATIC_MODULES : ================="
+printf '%s\n' "${!STATIC_MODULES[@]}"
+
+sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${0}
+stage_level=${stage_level:?"${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
+
+[ -z "${CACHE_PURGE}" ] || {
+    STATIC_MODULES[${DIRNAME}/ngx_cache_purge]="git clone --depth 1 https://github.com/FRiCKLE/ngx_cache_purge.git"
+}
 [ -z "${PROXY_CONNECT}" ] || {
-    echo "pushd $(pwd) && cd ${NGINX_DIR} && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch && popd"
+    log "pushd $(pwd) && cd ${NGINX_DIR} && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch && popd"
     DYNAMIC_MODULES[${DIRNAME}/ngx_http_proxy_connect_module]="git clone --depth 1 https://github.com/chobits/ngx_http_proxy_connect_module.git"
 }
 [ -z "${AUTH_LDAP}" ] || {
@@ -133,16 +150,16 @@ EXT_MODULES=(
 check_requre_dirs() {
     local dir=""
     for dir in $@ ; do
-        [ -d "${dir}" ] || { echo "[FAILED] ${dir} not exists!!"; exit 1; }
-        echo "[OK] ${dir}"
+        [ -d "${dir}" ] || { log "[FAILED] ${dir} not exists!!"; exit 1; }
+        log "[OK] ${dir}"
     done
 }
 
 check_depends_lib() {
     local dir=""
     for dir in $@ ; do
-        pkg-config --exists ${dir} || { echo "[FAILED] ${dir} not exists!!"; exit 1; }
-        echo "[OK] ${dir}"
+        pkg-config --exists ${dir} || { log "[FAILED] ${dir} not exists!!"; exit 1; }
+        log "[OK] ${dir}"
     done
 }
 
@@ -174,6 +191,7 @@ auto/lib/openssl/conf
  42             CORE_LIBS="$CORE_LIBS $OPENSSL/lib/libcrypto.a"
 EOF
 
+log "ALL ENABLED REPO : =============================="
 printf '%s\n' "${NGINX_BASE[@]}" "${STATIC_MODULES[@]}" "${DYNAMIC_MODULES[@]}"
 check_requre_dirs "${!NGINX_BASE[@]}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULES[@]}"
 
@@ -191,7 +209,7 @@ check_requre_dirs "${!NGINX_BASE[@]}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULE
 # for njs pcre-config command!
 export PATH=$PATH:${PCRE_DIR}
 export NJS_CC_OPT="-L${OPENSSL_DIR}/.openssl/lib"
-echo "PCRE OK **************************************************"
+log "PCRE OK **************************************************"
 for mod in "${!STATIC_MODULES[@]}"; do
     EXT_MODULES+=("--add-module=${mod}")
 done
@@ -228,20 +246,20 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 ${EXT_MODULES[@]}
 
 TMP_VER=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
-echo "${TMP_VER}**************************************************"
+log "${TMP_VER}**************************************************"
 sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${TMP_VER}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
 [ ${stage_level} -ge ${stage[make]} ] && cd ${NGINX_DIR} && make -j "$(nproc)"
 OUTDIR=${DIRNAME}/out
 mkdir -p ${OUTDIR}
 [ ${stage_level} -ge ${stage[install]} ] && rm -rf ${OUTDIR}/* && cd ${NGINX_DIR} && make -j "$(nproc)" install DESTDIR=${OUTDIR}
 
-echo "/usr/lib/tmpfiles.d/nginx.conf"
+log "/usr/lib/tmpfiles.d/nginx.conf"
 mkdir -p ${OUTDIR}/usr/lib/tmpfiles.d/
 cat <<'EOF' > ${OUTDIR}/usr/lib/tmpfiles.d/nginx.conf
 d /var/lib/nginx 0755 root root -
 d /var/log/nginx 0755 root root -
 EOF
-echo "/usr/lib/systemd/system/nginx.service"
+log "/usr/lib/systemd/system/nginx.service"
 mkdir -p ${OUTDIR}/usr/lib/systemd/system/
 cat <<'EOF' > ${OUTDIR}/usr/lib/systemd/system/nginx.service
 [Unit]
@@ -268,7 +286,7 @@ PrivateTmp=true
 WantedBy=multi-user.target
 EOF
 
-echo "/etc/logrotate.d/nginx"
+log "/etc/logrotate.d/nginx"
 mkdir -p ${OUTDIR}/etc/logrotate.d/
 cat <<'EOF' > ${OUTDIR}/etc/logrotate.d/nginx 
 /var/log/nginx/*log {
@@ -536,15 +554,15 @@ case "${ID}" in
     ########################################
     centos)  PKG=${PKG:-rpm};;
     debian)  PKG=${PKG:-deb};;
-    *)       echo "ALL DONE, NO PACKAGE"; exit 0;;
+    *)       log "ALL DONE, NO PACKAGE"; exit 0;;
 esac
-echo "NGINX:${NGX_VER}"
-echo "BUILD:${TMP_VER}"
+log "NGINX:${NGX_VER}"
+log "BUILD:${TMP_VER}"
 [ -z "${STRIP}" ] || {
-    echo "strip binarys"
+    log "strip binarys"
     strip ${OUTDIR}/usr/sbin/nginx
     strip ${OUTDIR}/usr/share/nginx/modules/*
 }
 [ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin --version $(echo ${NGX_VER}) --iteration ${TMP_VER} --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
-echo "ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
+log "ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
