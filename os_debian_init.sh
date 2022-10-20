@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("1b5edf8[2022-08-19T16:07:35+08:00]:os_debian_init.sh")
+VERSION+=("c5f8d0b[2022-09-30T08:47:24+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -79,14 +79,14 @@ deb http://mirrors.aliyun.com/debian ${ver} main non-free contrib
 deb http://mirrors.aliyun.com/debian ${ver}-proposed-updates main non-free contrib
 deb http://mirrors.aliyun.com/debian ${ver}-backports main contrib non-free
 deb http://mirrors.aliyun.com/debian-multimedia ${ver} main non-free
-deb http://mirrors.aliyun.com/debian-multimedia ${ver}-backports main
+# deb http://mirrors.aliyun.com/debian-multimedia ${ver}-backports main
 EOF
     # see bullseye release notes
     case "${ver}" in
         buster)
             echo "deb http://mirrors.aliyun.com/debian-security ${ver}/updates main contrib non-free"  >> /etc/apt/sources.list
             ;;
-        bullseye)
+        bullseye|bookworm)
             echo "deb http://mirrors.aliyun.com/debian-security ${ver}-security main contrib"  >> /etc/apt/sources.list
             ;;
     esac
