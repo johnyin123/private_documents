@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("796d930[2022-10-17T08:48:27+08:00]:s905_debootstrap.sh")
+VERSION+=("2e99cd4[2022-10-20T12:49:40+08:00]:s905_debootstrap.sh")
 ################################################################################
 cat <<EOF
 git clone https://github.com/RPi-Distro/firmware-nonfree.git
@@ -202,8 +202,10 @@ PKG+="${custom_pkgs:+,${custom_pkgs}}"
     exit 1
 }
 
-mkdir -p ${DIRNAME}/buildroot
-mkdir -p ${DIRNAME}/cache
+CACHE_DIR=${DIRNAME}/cache-${DEBIAN_VERSION:-bullseye}
+ROOT_DIR=${DIRNAME}/rootfs-${DEBIAN_VERSION:-bullseye}
+mkdir -p ${ROOT_DIR}
+mkdir -p ${CACHE_DIR}
 
 #HOSTNAME="s905d3"
 #HOSTNAME="usbpc"
@@ -213,9 +215,9 @@ DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
     HOSTNAME="s905d2" \
     NAME_SERVER=114.114.114.114 \
     PASSWORD=password \
-    debian_build "${DIRNAME}/buildroot" "${DIRNAME}/cache" "${PKG}"
+    debian_build "${ROOT_DIR}" "${CACHE_DIR}" "${PKG}"
 
-LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot /bin/bash <<EOSHELL
+LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
     /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
     /bin/mknod -m 666 /dev/null c 1 3 || true
 
@@ -316,7 +318,7 @@ chage -d 0 root || true
 exit
 EOSHELL
 
-cat > ${DIRNAME}/buildroot/etc/fstab << EOF
+cat > ${ROOT_DIR}/etc/fstab << EOF
 LABEL=${ROOT_LABEL}    /    ${FS_TYPE}    defaults,errors=remount-ro,noatime    0    1
 LABEL=${BOOT_LABEL}    /boot    vfat    ro    0    2
 # LABEL=EMMCSWAP    none     swap    sw,pri=-1    0    0
@@ -328,18 +330,18 @@ tmpfs /media    tmpfs   defaults,size=1M  0  0
 EOF
 
 # auto reformatoverlay plug usb ttl
-cat > ${DIRNAME}/buildroot/etc/udev/rules.d/99-reformatoverlay.rules << EOF
+cat > ${ROOT_DIR}/etc/udev/rules.d/99-reformatoverlay.rules << EOF
 SUBSYSTEM=="tty", ACTION=="add", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'touch /overlay/reformatoverlay; echo heartbeat > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
 SUBSYSTEM=="tty", ACTION=="remove", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'rm /overlay/reformatoverlay; echo none > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
 EOF
 
 # # auto mount usb storage (readonly)
-# cat > ${DIRNAME}/buildroot/etc/udev/rules.d/98-usbmount.rules << EOF
+# cat > ${ROOT_DIR}/etc/udev/rules.d/98-usbmount.rules << EOF
 # # udevadm control --reload-rules
 # SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="add", RUN+="/bin/systemctl start usb-mount@%k.service"
 # SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/bin/systemctl stop usb-mount@%k.service"
 # EOF
-#     cat > ${DIRNAME}/buildroot/usr/lib/systemd/system/usb-mount@.service <<EOF
+#     cat > ${ROOT_DIR}/usr/lib/systemd/system/usb-mount@.service <<EOF
 # [Unit]
 # Description=auto mount block %i
 #
@@ -351,23 +353,23 @@ EOF
 # end auto mount usb storage (readonly)
 
 # enable ttyAML0 login
-sed -i "/^ttyAML0/d" ${DIRNAME}/buildroot/etc/securetty 2>/dev/null || true
-echo "ttyAML0" >> ${DIRNAME}/buildroot/etc/securetty
+sed -i "/^ttyAML0/d" ${ROOT_DIR}/etc/securetty 2>/dev/null || true
+echo "ttyAML0" >> ${ROOT_DIR}/etc/securetty
 
 # export nfs
 # no_root_squash(enable root access nfs)
-cat > ${DIRNAME}/buildroot/etc/exports << EOF
+cat > ${ROOT_DIR}/etc/exports << EOF
 /media/       192.168.168.0/24(ro,sync,no_subtree_check,crossmnt,nohide,no_root_squash,no_all_squash,fsid=0)
 EOF
 
-cat << EOF > ${DIRNAME}/buildroot/etc/network/interfaces
+cat << EOF > ${ROOT_DIR}/etc/network/interfaces
 source /etc/network/interfaces.d/*
 # The loopback network interface
 auto lo
 iface lo inet loopback
 EOF
 
-cat << EOF > ${DIRNAME}/buildroot/etc/network/interfaces.d/br-ext
+cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/br-ext
 auto eth0
 allow-hotplug eth0
 iface eth0 inet manual
@@ -388,7 +390,7 @@ iface br-ext:0 inet static
 # post-up ip route add 192.168.168.0/24 dev br-ext src 192.168.168.2 table out.168
 EOF
 
-cat << "EOF" > ${DIRNAME}/buildroot/etc/network/interfaces.d/wifi
+cat << "EOF" > ${ROOT_DIR}/etc/network/interfaces.d/wifi
 auto wlan0
 allow-hotplug wlan0
 
@@ -459,14 +461,14 @@ iface initmode inet static
     address 192.168.1.1/24
 EOF
 
-cat << EOF > ${DIRNAME}/buildroot/etc/network/interfaces.d/br-int
+cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/br-int
 auto br-int
 iface br-int inet static
     bridge_ports none
     address 192.168.167.1/24
 EOF
 
-cat << EOF > ${DIRNAME}/buildroot/etc/network/interfaces.d/pppoe
+cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/pppoe
 # auto myadsl
 # iface myadsl inet ppp
 #     pre-up /sbin/ip link set dev eth0 up
@@ -507,8 +509,8 @@ cat << EOF > ${DIRNAME}/buildroot/etc/network/interfaces.d/pppoe
 # EOF
 EOF
 
-mkdir -p ${DIRNAME}/buildroot/etc/johnyin
-cat << EO_DOC > ${DIRNAME}/buildroot/etc/johnyin/ap.ruleset
+mkdir -p ${ROOT_DIR}/etc/johnyin
+cat << EO_DOC > ${ROOT_DIR}/etc/johnyin/ap.ruleset
 #!/usr/sbin/nft -f
 flush ruleset
 
@@ -545,9 +547,9 @@ table ip filter {
 	}
 }
 EO_DOC
-chmod 755 ${DIRNAME}/buildroot/etc/johnyin/ap.ruleset
+chmod 755 ${ROOT_DIR}/etc/johnyin/ap.ruleset
 
-cat << 'EO_DOC' > ${DIRNAME}/buildroot/etc/johnyin/gen_udhcpd.sh
+cat << 'EO_DOC' > ${ROOT_DIR}/etc/johnyin/gen_udhcpd.sh
 #!/bin/sh
 set -e
 export LANG=C
@@ -596,9 +598,9 @@ option  lease   86400
 # boot_file       pxelinux.0
 EOF
 EO_DOC
-chmod 755 ${DIRNAME}/buildroot/etc/johnyin/gen_udhcpd.sh
+chmod 755 ${ROOT_DIR}/etc/johnyin/gen_udhcpd.sh
 
-cat << 'EO_DOC' > ${DIRNAME}/buildroot/etc/johnyin/gen_hostapd.sh
+cat << 'EO_DOC' > ${ROOT_DIR}/etc/johnyin/gen_hostapd.sh
 #!/bin/sh
 set -e
 export LANG=C
@@ -677,9 +679,9 @@ basic_rates=60 90 120 180 240 360 480 540
 disassoc_low_ack=0
 EOF
 EO_DOC
-chmod 755 ${DIRNAME}/buildroot/etc/johnyin/gen_hostapd.sh
+chmod 755 ${ROOT_DIR}/etc/johnyin/gen_hostapd.sh
 
-cat << 'EO_DOC' > ${DIRNAME}/buildroot/etc/johnyin/wifi_mode.sh
+cat << 'EO_DOC' > ${ROOT_DIR}/etc/johnyin/wifi_mode.sh
 #!/bin/sh
 set -e
 export LANG=C
@@ -714,9 +716,9 @@ case "$1" in
 esac
 exit 0
 EO_DOC
-chmod 755 ${DIRNAME}/buildroot/etc/johnyin/wifi_mode.sh
+chmod 755 ${ROOT_DIR}/etc/johnyin/wifi_mode.sh
 
-cat << EO_DOC > ${DIRNAME}/buildroot/etc/johnyin/adhoc.conf
+cat << EO_DOC > ${ROOT_DIR}/etc/johnyin/adhoc.conf
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 #update_config=1
 ap_scan=2
@@ -735,7 +737,7 @@ network={
     key_mgmt=NONE
 }
 EO_DOC
-cat << EO_DOC > ${DIRNAME}/buildroot/etc/johnyin/home.conf
+cat << EO_DOC > ${ROOT_DIR}/etc/johnyin/home.conf
 #mulit ap support!
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 #update_config=1
@@ -752,7 +754,7 @@ network={
     #disabled=1
 }
 EO_DOC
-cat << EO_DOC > ${DIRNAME}/buildroot/etc/johnyin/initmode.conf
+cat << EO_DOC > ${ROOT_DIR}/etc/johnyin/initmode.conf
 #mulit ap support!
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 #update_config=1
@@ -767,7 +769,7 @@ network={
     key_mgmt=NONE
 }
 EO_DOC
-cat << EO_DOC > ${DIRNAME}/buildroot/etc/johnyin/p2p.conf
+cat << EO_DOC > ${ROOT_DIR}/etc/johnyin/p2p.conf
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 #update_config=1
 #wpa_cli p2p_group_add persistent=0
@@ -798,7 +800,7 @@ network={
 #p2p_client_list=76:2f:4e:ee:3f:dc
 }
 EO_DOC
-cat << EO_DOC > ${DIRNAME}/buildroot/etc/johnyin/work.conf
+cat << EO_DOC > ${ROOT_DIR}/etc/johnyin/work.conf
 #mulit ap support!
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 #ap_scan=1
@@ -818,22 +820,22 @@ network={
 EO_DOC
 
 echo "enable fw_printenv command, bullseye u-boot-tools remove fw_printenv, so need copy!"
-cat >${DIRNAME}/buildroot/etc/fw_env.config <<EOF
+cat >${ROOT_DIR}/etc/fw_env.config <<EOF
 # Device to access      offset          env size
 /dev/mmcblk2            0x27400000      0x10000
 EOF
 
-mkdir -p ${DIRNAME}/buildroot/etc/initramfs/post-update.d/
-cat>${DIRNAME}/buildroot/etc/initramfs/post-update.d/99-uboot<<"EOF"
+mkdir -p ${ROOT_DIR}/etc/initramfs/post-update.d/
+cat>${ROOT_DIR}/etc/initramfs/post-update.d/99-uboot<<"EOF"
 #!/bin/sh
 echo "update-initramfs: Converting to u-boot format" >&2
 tempname="/boot/uInitrd-$1"
 mkimage -A arm64 -O linux -T ramdisk -C gzip -n uInitrd -d $2 $tempname > /dev/null
 exit 0
 EOF
-chmod 755 ${DIRNAME}/buildroot/etc/initramfs/post-update.d/99-uboot
+chmod 755 ${ROOT_DIR}/etc/initramfs/post-update.d/99-uboot
 
-cat <<EOF>${DIRNAME}/buildroot/etc/motd
+cat <<EOF>${ROOT_DIR}/etc/motd
 ## ${VERSION[@]}
 1. edit /etc/wifi_mode.conf for wifi mode modify
 2. touch /overlay/reformatoverlay for factory mode after next reboot
@@ -849,7 +851,7 @@ cat <<EOF>${DIRNAME}/buildroot/etc/motd
 9. start nfs-server: systemctl start nfs-server.service nfs-kernel-server.service
 EOF
 
-cat <<'EOF'> ${DIRNAME}/buildroot/usr/bin/overlayroot-chroot
+cat <<'EOF'> ${ROOT_DIR}/usr/bin/overlayroot-chroot
 #!/bin/sh
 set -e
 set -f # disable path expansion
@@ -925,10 +927,10 @@ trap "" EXIT HUP INT QUIT TERM
 
 # vi: ts=4 noexpandtab
 EOF
-chmod 755 ${DIRNAME}/buildroot/usr/bin/overlayroot-chroot
+chmod 755 ${ROOT_DIR}/usr/bin/overlayroot-chroot
 
 echo "add emmc_install script"
-cat > ${DIRNAME}/buildroot/root/sync.sh <<'EOF'
+cat > ${ROOT_DIR}/root/sync.sh <<'EOF'
 #!/usr/bin/env bash
 
 IP=${1:?from which ip???}
@@ -952,14 +954,14 @@ sync
 sync
 EOF
 
-cat > ${DIRNAME}/buildroot/root/exclude.txt <<'EOF'
+cat > ${ROOT_DIR}/root/exclude.txt <<'EOF'
 /etc/network/interfaces.d/
 firmware/brcm/brcmfmac43455-sdio.txt
 /etc/ssh/
 /etc/hostname
 /etc/hosts
 EOF
-cat > ${DIRNAME}/buildroot/root/fix_sound_out_hdmi.sh <<'EOF'
+cat > ${ROOT_DIR}/root/fix_sound_out_hdmi.sh <<'EOF'
 amixer -c P230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
 # /var/lib/alsa/asound.state
 aplay /usr/share/sounds/alsa/Noise.wav
@@ -973,7 +975,7 @@ speaker-test -c2 -t wav
 # DISPLAY=:0 xrandr -q
 # DISPLAY=:0 xrandr --output HDMI-1 --mode 1280x1024
 EOF
-cat > ${DIRNAME}/buildroot/root/emmc_linux.sh <<'EOF'
+cat > ${ROOT_DIR}/root/emmc_linux.sh <<'EOF'
 #!/usr/bin/env bash
 DEV_EMMC=${DEV_EMMC:=/dev/mmcblk2}
 BOOT_LABEL="EMMCBOOT"
@@ -1063,12 +1065,12 @@ echo "SUCCESS build rootfs, all!!!"
 
 echo "start install you kernel&patchs"
 if [ -d "${DIRNAME}/kernel" ]; then
-    rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${DIRNAME}/buildroot/ || true
-    # kerver=$(ls ${DIRNAME}/buildroot/usr/lib/modules/ | sort --version-sort -f | tail -n1)
-    kerver=$(menu_select "kernel: " $(ls ${DIRNAME}/buildroot/usr/lib/modules/))
-    dtb=$(menu_select "dtb: " $(ls ${DIRNAME}/buildroot/boot/dtb/))
+    rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${ROOT_DIR}/ || true
+    # kerver=$(ls ${ROOT_DIR}/usr/lib/modules/ | sort --version-sort -f | tail -n1)
+    kerver=$(menu_select "kernel: " $(ls ${ROOT_DIR}/usr/lib/modules/))
+    dtb=$(menu_select "dtb: " $(ls ${ROOT_DIR}/boot/dtb/))
     echo "USE KERNEL ${kerver} ------>"
-    cat > ${DIRNAME}/buildroot/boot/aml_autoscript.cmd <<'EOF'
+    cat > ${ROOT_DIR}/boot/aml_autoscript.cmd <<'EOF'
 setenv bootcmd "run start_autoscript; run storeboot;"
 setenv start_autoscript "if usb start; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_mmc_autoscript;"
 setenv start_mmc_autoscript "if fatload mmc 0 1020000 s905_autoscript; then autoscr 1020000; fi; if fatload mmc 1 1020000 s905_autoscript; then autoscr 1020000; fi;"
@@ -1078,7 +1080,7 @@ saveenv
 sleep 1
 reboot
 EOF
-    cat > ${DIRNAME}/buildroot/boot/s905_autoscript.nfs.cmd <<'EOF'
+    cat > ${ROOT_DIR}/boot/s905_autoscript.nfs.cmd <<'EOF'
 setenv kernel_addr  "0x11000000"
 setenv initrd_addr  "0x13000000"
 setenv dtb_mem_addr "0x1000000"
@@ -1088,7 +1090,7 @@ setenv bootargs "root=/dev/nfs nfsroot=${serverip}:/nfsshare/root rw net.ifnames
 setenv bootcmd_pxe "tftp ${kernel_addr} zImage; tftp ${initrd_addr} uInitrd; tftp ${dtb_mem_addr} dtb.img; booti ${kernel_addr} ${initrd_addr} ${dtb_mem_addr}"
 run bootcmd_pxe
 EOF
-   cat > ${DIRNAME}/buildroot/boot/s905_autoscript.cmd <<'EOF'
+   cat > ${ROOT_DIR}/boot/s905_autoscript.cmd <<'EOF'
 setenv env_addr     "0x10400000"
 setenv kernel_addr  "0x11000000"
 setenv initrd_addr  "0x13000000"
@@ -1099,14 +1101,14 @@ if fatload usb 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize
 if fatload mmc 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload mmc 0 ${kernel_addr} ${image}; then if fatload mmc 0 ${initrd_addr} ${initrd}; then if fatload mmc 0 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
 if fatload mmc 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload mmc 1 ${kernel_addr} ${image}; then if fatload mmc 1 ${initrd_addr} ${initrd}; then if fatload mmc 1 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
 EOF
-    cat > ${DIRNAME}/buildroot/boot/uEnv.ini <<EOF
+    cat > ${ROOT_DIR}/boot/uEnv.ini <<EOF
 image=vmlinuz-${kerver}
 initrd=uInitrd-${kerver}
 dtb=/dtb/${dtb}
 bootargs=root=LABEL=${ROOT_LABEL} rootflags=data=writeback fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 video=1280x1024@60me
 boot_pxe=false
 EOF
-    cat  > ${DIRNAME}/buildroot/boot/s905_autoscript.uboot.cmd <<'EOF'
+    cat  > ${ROOT_DIR}/boot/s905_autoscript.uboot.cmd <<'EOF'
 echo "Start u-boot......"
 setenv env_addr   "0x10400000"
 setenv uboot_addr "0x1000000"
@@ -1115,8 +1117,8 @@ if fatload usb 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize
 if fatload mmc 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if test ${boot_pxe} = true; then if fatload mmc 0 ${uboot_addr} u-boot.pxe.bin; then go ${uboot_addr}; fi; fi; if fatload mmc 0 ${uboot_addr} u-boot.mmc.bin; then go ${uboot_addr}; fi; fi;
 if fatload mmc 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if test ${boot_pxe} = true; then if fatload mmc 1 ${uboot_addr} u-boot.pxe.bin; then go ${uboot_addr}; fi; fi; if fatload mmc 1 ${uboot_addr} u-boot.mmc.bin; then go ${uboot_addr}; fi; fi;
 EOF
-    mkdir -p ${DIRNAME}/buildroot/boot/extlinux
-    cat <<EOF > ${DIRNAME}/buildroot/boot/extlinux/extlinux.conf
+    mkdir -p ${ROOT_DIR}/boot/extlinux
+    cat <<EOF > ${ROOT_DIR}/boot/extlinux/extlinux.conf
 label PHICOMM_N1
     linux /vmlinuz-${kerver}
     initrd /initrd.img-${kerver}
@@ -1126,10 +1128,10 @@ EOF
     echo "https://github.com/PuXiongfei/phicomm-n1-u-boot"
     echo "5d921bf1d57baf081a7b2e969d7f70a5  u-boot.bin"
     echo "ade4aa3942e69115b9cc74d902e17035  u-boot.bin.new"
-    cat ${DIRNAME}/u-boot.mmc.bin > ${DIRNAME}/buildroot/boot/u-boot.mmc.bin || true
-    cat ${DIRNAME}/u-boot.usb.bin > ${DIRNAME}/buildroot/boot/u-boot.usb.bin || true
-    cat ${DIRNAME}/u-boot.pxe.bin > ${DIRNAME}/buildroot/boot/u-boot.pxe.bin || true
-    LC_ALL=C LANGUAGE=C LANG=C chroot ${DIRNAME}/buildroot/ /bin/bash <<EOSHELL
+    cat ${DIRNAME}/u-boot.mmc.bin > ${ROOT_DIR}/boot/u-boot.mmc.bin || true
+    cat ${DIRNAME}/u-boot.usb.bin > ${ROOT_DIR}/boot/u-boot.usb.bin || true
+    cat ${DIRNAME}/u-boot.pxe.bin > ${ROOT_DIR}/boot/u-boot.pxe.bin || true
+    LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
     depmod ${kerver}
     update-initramfs -c -k ${kerver}
     rm -f /boot/s905_autoscript /boot/s905_autoscript /boot/s905_autoscript.uboot /boot/s905_autoscript.nfs || true
@@ -1140,17 +1142,17 @@ EOF
     mkimage -C none -A arm -T script -d /boot/s905_autoscript.nfs.cmd /boot/s905_autoscript.nfs
     rm -f /boot/aml_autoscript.cmd /boot/s905_autoscript.cmd /boot/s905_autoscript.uboot.cmd /boot/s905_autoscript.nfs.cmd || true
 EOSHELL
-    echo "!!!!!!!!!IF USB BOOT DISK, rm -f ${DIRNAME}/buildroot/etc/udev/rules.d/*"
+    echo "!!!!!!!!!IF USB BOOT DISK, rm -f ${ROOT_DIR}/etc/udev/rules.d/*"
 fi
-ls -lhR ${DIRNAME}/buildroot/boot/
+ls -lhR ${ROOT_DIR}/boot
 echo "end install you kernel&patchs"
 
 echo "patch bluetoothd for sap error, Starting bluetoothd with the option \"--noplugin=sap\" by default (as
 already suggested) would be one way to do it"
-sed -i "s|ExecStart=.*|ExecStart=/usr/libexec/bluetooth/bluetoothd --noplugin=sap|g" ${DIRNAME}/buildroot/usr/lib/systemd/system/bluetooth.service || true
+sed -i "s|ExecStart=.*|ExecStart=/usr/libexec/bluetooth/bluetoothd --noplugin=sap|g" ${ROOT_DIR}/usr/lib/systemd/system/bluetooth.service || true
 echo "start chroot shell, disable service & do other work"
-chroot ${DIRNAME}/buildroot/ /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
-chroot ${DIRNAME}/buildroot/ /bin/bash -s <<EOF
+chroot ${ROOT_DIR} /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
+chroot ${ROOT_DIR} /bin/bash -s <<EOF
     debian_minimum_init
     sed -i "s/TimeoutStartSec=.*/TimeoutStartSec=5sec/g" /lib/systemd/system/networking.service
 EOF
