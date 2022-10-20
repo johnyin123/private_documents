@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2c9521e[2022-10-09T10:39:32+08:00]:s905_debootstrap.sh")
+VERSION+=("796d930[2022-10-17T08:48:27+08:00]:s905_debootstrap.sh")
 ################################################################################
 cat <<EOF
 git clone https://github.com/RPi-Distro/firmware-nonfree.git
@@ -180,7 +180,7 @@ IFS=$old_ifs
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG+=",udev,isc-dhcp-client,netbase,console-setup,pkg-config,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,babeld,ifenslave,vlan"
 PKG+=",parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server,netcat-openbsd"
-PKG+=",systemd-container,nftables,systemd-timesyncd"
+PKG+=",systemd-container,nftables,systemd-timesyncd,zstd"
 PKG+=",fonts-noto-cjk"
 #PKG+=",fonts-droid-fallback"
 PKG+=",cron,logrotate,bsdmainutils,rsyslog,openssh-client,wget,ntpdate,less,wireless-tools,file,lsof,strace,rsync"
