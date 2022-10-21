@@ -1,3 +1,4 @@
+# apt -y install polkitd-pkla
 cat <<'EOF' > /etc/polkit-1/localauthority/90-mandatory.d/johnyin.pkla 
 [johnyin auto mount]
 Identity=unix-user:johnyin
