@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2e99cd4[2022-10-20T12:49:40+08:00]:s905_debootstrap.sh")
+VERSION+=("adc17a4[2022-10-20T14:11:42+08:00]:s905_debootstrap.sh")
 ################################################################################
 cat <<EOF
 git clone https://github.com/RPi-Distro/firmware-nonfree.git
@@ -230,6 +230,9 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
 cat << EOF > /etc/modprobe.d/meson_saradc.conf
 blacklist meson_saradc
 EOF
+
+echo "CPU FREQ"
+grep -q "scpi-cpufreq" /etc/modules  || echo "scpi-cpufreq" >> /etc/modules
 
 # cat << EOF > /etc/modprobe.d/brcmfmac.conf
 # options brcmfmac p2pon=1
