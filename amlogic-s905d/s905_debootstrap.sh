@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("adc17a4[2022-10-20T14:11:42+08:00]:s905_debootstrap.sh")
+VERSION+=("8db867f[2022-10-21T08:25:11+08:00]:s905_debootstrap.sh")
 ################################################################################
 cat <<EOF
 git clone https://github.com/RPi-Distro/firmware-nonfree.git
@@ -1150,13 +1150,18 @@ fi
 ls -lhR ${ROOT_DIR}/boot
 echo "end install you kernel&patchs"
 
+echo "start chroot shell, disable service & do other work"
+chroot ${ROOT_DIR} /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
+
 echo "patch bluetoothd for sap error, Starting bluetoothd with the option \"--noplugin=sap\" by default (as
 already suggested) would be one way to do it"
 sed -i "s|ExecStart=.*|ExecStart=/usr/libexec/bluetooth/bluetoothd --noplugin=sap|g" ${ROOT_DIR}/usr/lib/systemd/system/bluetooth.service || true
-echo "start chroot shell, disable service & do other work"
-chroot ${ROOT_DIR} /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
+echo "add smplayer ontop options"
+sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applications/smplayer.desktop || true
+sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applications/mplayer_enqueue.desktop || true
+echo "modify networking waitonline tiemout to 5s"
+sed -i "s|TimeoutStartSec=.*|TimeoutStartSec=5sec|g" ${ROOT_DIR}/lib/systemd/system/networking.service
 chroot ${ROOT_DIR} /bin/bash -s <<EOF
     debian_minimum_init
-    sed -i "s/TimeoutStartSec=.*/TimeoutStartSec=5sec/g" /lib/systemd/system/networking.service
 EOF
 exit 0
