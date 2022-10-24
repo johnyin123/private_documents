@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f390c3a[2022-10-24T07:06:56+08:00]:s905_debootstrap.sh")
+VERSION+=("7b183cc[2022-10-24T08:59:15+08:00]:s905_debootstrap.sh")
 ################################################################################
 cat <<EOF
 git clone https://github.com/RPi-Distro/firmware-nonfree.git
@@ -382,6 +382,7 @@ auto br-ext
 iface br-ext inet static
     bridge_ports eth0
     address 192.168.168.2/24
+    pre-up ( /usr/sbin/ip link set eth0 up || true )
 
 auto br-ext:0
 iface br-ext:0 inet static
