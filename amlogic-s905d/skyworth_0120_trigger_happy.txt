@@ -1,3 +1,6 @@
+# sed -i "s/^#HandlePowerKey=.*/HandlePowerKey=ignore/g" /etc/systemd/logind.conf
+# systemctl disable triggerhappy.socket
+# systemctl enable triggerhappy.service
 # # /lib/systemd/system/triggerhappy.service
 # ExecStart=/usr/sbin/thd --triggers /etc/triggerhappy/triggers.d/ --socket /run/thd.socket --user root
 # # /lib/udev/rules.d/60-triggerhappy.rules
@@ -37,7 +40,7 @@ smplayer_start_stop() {
     local action=$1
     log "smplayer action ${action}"
     case "${action}" in
-        start) find ${MEDIA_DIR} -type f -maxdepth ${DEPTH:-1} -iname '*.mkv' \
+        start) find ${MEDIA_DIR} -maxdepth ${DEPTH:-1} -type f -iname '*.mkv' \
                    -o -iname '*.avi' \
                    -o -iname '*.mp4' \
                    -o -iname '*.wmv' > ${LIST_FILE}
