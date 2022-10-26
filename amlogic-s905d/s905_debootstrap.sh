@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b2fc7d2[2022-10-24T14:12:33+08:00]:s905_debootstrap.sh")
+VERSION+=("507d8b5[2022-10-26T14:32:43+08:00]:s905_debootstrap.sh")
 ################################################################################
 cat <<EOF
 git clone https://github.com/RPi-Distro/firmware-nonfree.git
@@ -1168,6 +1168,9 @@ sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applicatio
 echo "modify networking waitonline tiemout to 5s"
 sed -i "s|TimeoutStartSec=.*|TimeoutStartSec=5sec|g" ${ROOT_DIR}/lib/systemd/system/networking.service
 chroot ${ROOT_DIR} /bin/bash -s <<EOF
+    apt -y remove gvfs* --purge
+    apt -y autoremove --purge
+    [ -e /usr/sbin/start-stop-daemon.REAL ] && mv -f /usr/sbin/start-stop-daemon.REAL /usr/sbin/start-stop-daemon
     debian_minimum_init
 EOF
 exit 0
