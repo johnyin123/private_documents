@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7b183cc[2022-10-24T08:59:15+08:00]:s905_debootstrap.sh")
+VERSION+=("b2fc7d2[2022-10-24T14:12:33+08:00]:s905_debootstrap.sh")
 ################################################################################
 cat <<EOF
 git clone https://github.com/RPi-Distro/firmware-nonfree.git
@@ -185,13 +185,17 @@ PKG+=",fonts-noto-cjk"
 #PKG+=",fonts-droid-fallback"
 PKG+=",cron,logrotate,bsdmainutils,rsyslog,openssh-client,wget,ntpdate,less,wireless-tools,file,lsof,strace,rsync"
 PKG+=",xz-utils,zip,udisks2"
-# # xfce
-PKG+=",alsa-utils,pulseaudio,pulseaudio-utils,smplayer,smplayer-l10n,mpg123,lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xfce4,xfce4-terminal,xserver-xorg-input-all,pavucontrol"
-PKG+=",x11-utils"
+PKG+=",alsa-utils,mpg123"
+# # xfce/lxde, DEBIAN_VERSION=bookworm use lxde
+PKG+=",smplayer,smplayer-l10n,lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xserver-xorg-input-all,x11-utils"
+PKG+=",pulseaudio,pulseaudio-utils"
+# ,pipewire,pipewire-audio-client-libraries"
+case "${DEBIAN_VERSION:-bullseye}" in
+    bookworm) PKG+=",lxde-core" ;;
+    *)        PKG+=",xfce4,xfce4-terminal,pavucontrol" ;;
+esac
 # # tools
 PKG+=",sudo,aria2,axel,curl,eject,rename,bc,socat,tmux,xmlstarlet,jq,traceroute,ipcalc,ncal,qrencode,tcpdump"
-# # for xfce auto mount
-# PKG+=",thunar-volman,gvfs"
 # # for xdotool, wmctrl
 PKG+=",policykit-1,xdotool,wmctrl"
 # # finally add custom packages
@@ -1072,8 +1076,8 @@ echo "start install you kernel&patchs"
 if [ -d "${DIRNAME}/kernel" ]; then
     rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${ROOT_DIR}/ || true
     # kerver=$(ls ${ROOT_DIR}/usr/lib/modules/ | sort --version-sort -f | tail -n1)
-    kerver=$(menu_select "kernel: " $(ls ${ROOT_DIR}/usr/lib/modules/))
-    dtb=$(menu_select "dtb: " $(ls ${ROOT_DIR}/boot/dtb/))
+    kerver=$(menu_select "kernel: " $(ls ${ROOT_DIR}/usr/lib/modules/ 2>/dev/null))
+    dtb=$(menu_select "dtb: " $(ls ${ROOT_DIR}/boot/dtb/ 2>/dev/null))
     echo "USE KERNEL ${kerver} ------>"
     cat > ${ROOT_DIR}/boot/aml_autoscript.cmd <<'EOF'
 setenv bootcmd "run start_autoscript; run storeboot;"
@@ -1133,12 +1137,12 @@ EOF
     echo "https://github.com/PuXiongfei/phicomm-n1-u-boot"
     echo "5d921bf1d57baf081a7b2e969d7f70a5  u-boot.bin"
     echo "ade4aa3942e69115b9cc74d902e17035  u-boot.bin.new"
-    cat ${DIRNAME}/u-boot.mmc.bin > ${ROOT_DIR}/boot/u-boot.mmc.bin || true
-    cat ${DIRNAME}/u-boot.usb.bin > ${ROOT_DIR}/boot/u-boot.usb.bin || true
-    cat ${DIRNAME}/u-boot.pxe.bin > ${ROOT_DIR}/boot/u-boot.pxe.bin || true
+    cat ${DIRNAME}/u-boot.mmc.bin 2>/dev/null > ${ROOT_DIR}/boot/u-boot.mmc.bin || true
+    cat ${DIRNAME}/u-boot.usb.bin 2>/dev/null > ${ROOT_DIR}/boot/u-boot.usb.bin || true
+    cat ${DIRNAME}/u-boot.pxe.bin 2>/dev/null > ${ROOT_DIR}/boot/u-boot.pxe.bin || true
     LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
-    depmod ${kerver}
-    update-initramfs -c -k ${kerver}
+    [ -z ${kerver} ] || depmod ${kerver}
+    [ -z ${kerver} ] || update-initramfs -c -k ${kerver}
     rm -f /boot/s905_autoscript /boot/s905_autoscript /boot/s905_autoscript.uboot /boot/s905_autoscript.nfs || true
     # aml_autoscript for android to linux bootup
     mkimage -C none -A arm -T script -d /boot/aml_autoscript.cmd /boot/aml_autoscript
