@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("507d8b5[2022-10-26T14:32:43+08:00]:s905_debootstrap.sh")
+VERSION+=("e2095d9[2022-10-26T14:58:09+08:00]:s905_debootstrap.sh")
 ################################################################################
 cat <<EOF
 git clone https://github.com/RPi-Distro/firmware-nonfree.git
@@ -305,7 +305,7 @@ chmod 0440 /etc/sudoers.d/johnyin
 sed -i "s/^\(.*requiretty\)$/#\1/" /etc/sudoers
 echo "auto login xfce"
 sed -i "s/#autologin-user=.*/autologin-user=johnyin/g" /etc/lightdm/lightdm.conf
-sed -i "s/#xserver-allow-tcp=false/xserver-allow-tcp=true/g" /etc/lightdm/lightdm.conf
+sed -i "s/#xserver-allow-tcp=.*/xserver-allow-tcp=true/g" /etc/lightdm/lightdm.conf
 echo "auto mount RO options"
 echo "[defaults]" > /etc/udisks2/mount_options.conf || true
 echo "defaults=ro" >> /etc/udisks2/mount_options.conf || true
