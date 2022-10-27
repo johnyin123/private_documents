@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e2095d9[2022-10-26T14:58:09+08:00]:s905_debootstrap.sh")
+VERSION+=("b5c297e[2022-10-26T15:37:12+08:00]:s905_debootstrap.sh")
 ################################################################################
 cat <<EOF
 git clone https://github.com/RPi-Distro/firmware-nonfree.git
@@ -186,16 +186,16 @@ PKG+=",fonts-noto-cjk"
 PKG+=",cron,logrotate,bsdmainutils,rsyslog,openssh-client,wget,ntpdate,less,wireless-tools,file,lsof,strace,rsync"
 PKG+=",xz-utils,zip,udisks2"
 PKG+=",alsa-utils,mpg123"
+# # tools
+PKG+=",sudo,aria2,axel,curl,eject,rename,bc,socat,tmux,xmlstarlet,jq,traceroute,ipcalc,ncal,qrencode,tcpdump"
 # # xfce/lxde, DEBIAN_VERSION=bookworm use lxde
-PKG+=",smplayer,smplayer-l10n,lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xserver-xorg-input-all,x11-utils"
+PKG+=",smplayer,smplayer-l10n,lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xserver-xorg-input-all,x11-utils,x11-xserver-utils"
 PKG+=",pulseaudio,pulseaudio-utils"
 # ,pipewire,pipewire-audio-client-libraries"
 case "${DEBIAN_VERSION:-bullseye}" in
-    bookworm) PKG+=",lxde-core" ;;
+    bookworm) PKG+=",lxde-core,lxterminal,openbox-lxde-session" ;;
     *)        PKG+=",xfce4,xfce4-terminal,pavucontrol" ;;
 esac
-# # tools
-PKG+=",sudo,aria2,axel,curl,eject,rename,bc,socat,tmux,xmlstarlet,jq,traceroute,ipcalc,ncal,qrencode,tcpdump"
 # # for xdotool, wmctrl
 PKG+=",policykit-1,xdotool,wmctrl"
 # # finally add custom packages
@@ -231,9 +231,9 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
     debian_vim_init
     debain_overlay_init
 # # disable saradc module
-cat << EOF > /etc/modprobe.d/meson_saradc.conf
-blacklist meson_saradc
-EOF
+# cat << EOF > /etc/modprobe.d/meson_saradc.conf
+# blacklist meson_saradc
+# EOF
 
 echo "CPU FREQ"
 grep -q "scpi-cpufreq" /etc/modules  || echo "scpi-cpufreq" >> /etc/modules
@@ -1156,9 +1156,6 @@ fi
 ls -lhR ${ROOT_DIR}/boot
 echo "end install you kernel&patchs"
 
-echo "start chroot shell, disable service & do other work"
-chroot ${ROOT_DIR} /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
-
 echo "patch bluetoothd for sap error, Starting bluetoothd with the option \"--noplugin=sap\" by default (as
 already suggested) would be one way to do it"
 sed -i "s|ExecStart=.*|ExecStart=/usr/libexec/bluetooth/bluetoothd --noplugin=sap|g" ${ROOT_DIR}/usr/lib/systemd/system/bluetooth.service || true
@@ -1167,10 +1164,10 @@ sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applicatio
 sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applications/smplayer_enqueue.desktop || true
 echo "modify networking waitonline tiemout to 5s"
 sed -i "s|TimeoutStartSec=.*|TimeoutStartSec=5sec|g" ${ROOT_DIR}/lib/systemd/system/networking.service
+
+echo "start chroot shell, disable service & do other work"
+chroot ${ROOT_DIR} /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
 chroot ${ROOT_DIR} /bin/bash -s <<EOF
-    apt -y remove gvfs* --purge
-    apt -y autoremove --purge
-    [ -e /usr/sbin/start-stop-daemon.REAL ] && mv -f /usr/sbin/start-stop-daemon.REAL /usr/sbin/start-stop-daemon
     debian_minimum_init
 EOF
 exit 0

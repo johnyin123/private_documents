@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("c175ae5[2022-10-20T10:18:22+08:00]:os_debian_init.sh")
+VERSION+=("c731cad[2022-10-21T11:04:14+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -36,13 +36,11 @@ debian_build() {
         [ -e "/usr/bin/qemu-aarch64-static" ] || { echo "Need: apt install qemu-user-static"; return 1; }
         cp /usr/bin/qemu-aarch64-static ${root_dir}/usr/bin/
     }
-
+    # fix some package error: Name or service not known
+    cat /etc/hosts > ${root_dir}/etc/hosts
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
     /debootstrap/debootstrap --second-stage
     echo ${HOSTNAME:-deb-tpl} > /etc/hostname
-    cat << EOF > /etc/hosts
-127.0.0.1       localhost ${HOSTNAME:-deb-tpl}
-EOF
     cat << EOF > /etc/rc.local
 #!/bin/sh -e
 exit 0
@@ -57,6 +55,9 @@ EOF
     debian_sysctl_init
     debian_bash_init root
     debian_minimum_init
+    cat << EOF > /etc/hosts
+127.0.0.1       localhost ${HOSTNAME:-deb-tpl}
+EOF
 EOSHELL
     return 0
 }

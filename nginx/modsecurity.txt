@@ -1,0 +1,203 @@
+First, download the latest version of ModSecurity with the following command:
+
+wget https://github.com/SpiderLabs/ModSecurity/releases/download/v3.0.8/modsecurity-v3.0.8.tar.gz
+Once the download is completed, extract the downloaded file with the following command:
+
+tar -xvzf modsecurity-v3.0.8.tar.gz
+Next, navigate to the extracted directory and configure it with the following command:
+
+cd modsecurity-v3.0.8
+./build.sh
+./configure
+Next, install it with the following command:
+
+make
+make install
+Install Nginx with ModSecurity 3 Support
+Next, you will need to install the Nginx with ModSecurity support. First, download the ModSecurity-nginx connector with the following command:
+
+cd ~
+git clone https://github.com/SpiderLabs/ModSecurity-nginx.git
+Next, download the Nginx source using the following command:
+
+wget https://nginx.org/download/nginx-1.20.2.tar.gz
+Next, extract the Nginx source with the following command:
+
+tar xzf nginx-1.20.2.tar.gz
+Next, create a user for Nginx with the following command:
+
+useradd -r -M -s /sbin/nologin -d /usr/local/nginx nginx
+Next, change the directory to the Nginx source and configure it with the following command:
+
+cd nginx-1.20.2
+./configure --user=nginx --group=nginx --with-pcre-jit --with-debug --with-compat --with-http_ssl_module --with-http_realip_module --add-dynamic-module=/root/ModSecurity-nginx --http-log-path=/var/log/nginx/access.log --error-log-path=/var/log/nginx/error.log
+Next, install it with the following command:
+
+make
+make modules
+make install
+Next, create a symbolic link of Nginx with the following command:
+
+ln -s /usr/local/nginx/sbin/nginx /usr/local/sbin/
+Next, verify the Nginx version using the following command:
+
+nginx -V
+You will get the Nginx version in the following output:
+
+nginx version: nginx/1.20.2
+built by gcc 11.2.0 (Ubuntu 11.2.0-19ubuntu1) 
+built with OpenSSL 3.0.2 15 Mar 2022
+TLS SNI support enabled
+configure arguments: --user=nginx --group=nginx --with-pcre-jit --with-debug --with-compat --with-http_ssl_module --with-http_realip_module --add-dynamic-module=/root/ModSecurity-nginx --http-log-path=/var/log/nginx/access.log --error-log-path=/var/log/nginx/error.log
+Once you are done, you can proceed to configure Nginx with ModSecurity.
+
+Configure Nginx with ModSecurity
+Next, copy the sample configuration files with the following command:
+
+cp ~/modsecurity-v3.0.8/modsecurity.conf-recommended /usr/local/nginx/conf/modsecurity.conf
+cp ~/modsecurity-v3.0.8/unicode.mapping /usr/local/nginx/conf/
+Next, backup the Nginx configuration file:
+
+cp /usr/local/nginx/conf/nginx.conf{,.bak}
+Next, edit the Nginx configuration file:
+
+nano /usr/local/nginx/conf/nginx.conf
+Remove default lines and add the following lines:
+
+load_module modules/ngx_http_modsecurity_module.so;
+user  nginx;
+worker_processes  1;
+pid        /run/nginx.pid;
+events {
+    worker_connections  1024;
+}
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    sendfile        on;
+    keepalive_timeout  65;
+    server {
+        listen       80;
+        server_name  nginx.example.com;
+        modsecurity  on;
+        modsecurity_rules_file  /usr/local/nginx/conf/modsecurity.conf;
+        access_log  /var/log/nginx/access_example.log;
+        error_log  /var/log/nginx/error_example.log;
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+    }
+}
+Save and close the file, then enable the ModSecurity with the following command:
+
+sed -i 's/SecRuleEngine DetectionOnly/SecRuleEngine On/' /usr/local/nginx/conf/modsecurity.conf
+Once you are done, you can proceed to the next step.
+
+Install ModSecurity Core Rule Set
+The OWASP ModSecurity Core Rule Set provides a set of rules to detect and protect a wide range of attacks, including the OWASP Top Ten, minimum of false alerts.
+
+First, download the OWASP rule set with the following command:
+
+cd
+git clone https://github.com/SpiderLabs/owasp-modsecurity-crs.git /usr/local/nginx/conf/owasp-crs
+Next, rename crs-setup.conf.example to crs-setup.conf file:
+
+cp /usr/local/nginx/conf/owasp-crs/crs-setup.conf{.example,}
+Next, define the rules with the following command:
+
+echo -e "Include owasp-crs/crs-setup.conf
+Include owasp-crs/rules/*.conf" >> /usr/local/nginx/conf/modsecurity.conf
+Next, verify the Nginx for any configuration error with the following command:
+
+nginx -t
+If everything is fine, you will get the following output:
+
+nginx: the configuration file /usr/local/nginx/conf/nginx.conf syntax is ok
+nginx: configuration file /usr/local/nginx/conf/nginx.conf test is successful
+Once you are done, you can proceed to the next step.
+
+Create a Systemd Service File for Nginx
+Next, you will need to create a systemd service file to manage the Nginx service. So that you can start and stop the Nginx service via systems. You can create it with the following command:
+
+nano /etc/systemd/system/nginx.service
+Add the following lines:
+
+[Unit]
+Description=A high performance web server and a reverse proxy server
+Documentation=man:nginx(8)
+After=network.target nss-lookup.target
+
+[Service]
+Type=forking
+PIDFile=/run/nginx.pid
+ExecStartPre=/usr/local/nginx/sbin/nginx -t -q -g 'daemon on; master_process on;'
+ExecStart=/usr/local/nginx/sbin/nginx -g 'daemon on; master_process on;'
+ExecReload=/usr/local/nginx/sbin/nginx -g 'daemon on; master_process on;' -s reload
+ExecStop=-/sbin/start-stop-daemon --quiet --stop --retry QUIT/5 --pidfile /run/nginx.pid
+TimeoutStopSec=5
+KillMode=mixed
+
+[Install]
+WantedBy=multi-user.target
+Save and close the file, then reload the systemd daemon to apply the changes:
+
+systemctl daemon-reload
+Next, start and enable the Nginx with the following command:
+
+systemctl start nginx
+systemctl enable nginx
+You can check the Nginx status using the following command:
+
+systemctl status nginx
+You should see the following output:
+
+? nginx.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (/etc/systemd/system/nginx.service; disabled; vendor preset: enabled)
+     Active: active (running) since Tue 2022-10-11 15:40:39 UTC; 6s ago
+       Docs: man:nginx(8)
+    Process: 68438 ExecStartPre=/usr/local/nginx/sbin/nginx -t -q -g daemon on; master_process on; (code=exited, status=0/SUCCESS)
+    Process: 68439 ExecStart=/usr/local/nginx/sbin/nginx -g daemon on; master_process on; (code=exited, status=0/SUCCESS)
+   Main PID: 68440 (nginx)
+      Tasks: 2 (limit: 4579)
+     Memory: 20.0M
+        CPU: 293ms
+     CGroup: /system.slice/nginx.service
+             ??68440 "nginx: master process /usr/local/nginx/sbin/nginx -g daemon on; master_process on;"
+             ??68441 "nginx: worker process" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" "" >
+
+Oct 11 15:40:38 ubuntu2204 systemd[1]: Starting A high performance web server and a reverse proxy server...
+Oct 11 15:40:39 ubuntu2204 systemd[1]: Started A high performance web server and a reverse proxy server.
+Once you are finished, you can proceed to the next step.
+
+Verify ModSecurity
+After installing and configuring Modsecurity with Nginx. It's time to test it. Run the following command to test the Modsecurity against command injection:
+
+curl localhost?doc=/bin/ls
+If everything is fine, you will get the "403 Forbidden" massage.
+
+<html>
+<head><title>403 Forbidden</title></head>
+<body>
+<center><h1>403 Forbidden</h1></center>
+<hr><center>nginx/1.20.2</center>
+</body>
+</html>
+You can also check the Modesecurity log using the following command:
+
+tail /var/log/modsec_audit.log
+You should see the ModSecurity log in the following output:
+
+ModSecurity: Warning. Matched "Operator `PmFromFile' with parameter `unix-shell.data' against variable `ARGS:doc' (Value: `/bin/ls' ) [file "/usr/local/nginx/conf/owasp-crs/rules/REQUEST-932-APPLICATION-ATTACK-RCE.conf"] [line "496"] [id "932160"] [rev ""] [msg "Remote Command Execution: Unix Shell Code Found"] [data "Matched Data: bin/ls found within ARGS:doc: /bin/ls"] [severity "2"] [ver "OWASP_CRS/3.2.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-shell"] [tag "platform-unix"] [tag "attack-rce"] [tag "paranoia-level/1"] [tag "OWASP_CRS"] [tag "OWASP_CRS/WEB_ATTACK/COMMAND_INJECTION"] [tag "WASCTC/WASC-31"] [tag "OWASP_TOP_10/A1"] [tag "PCI/6.5.2"] [hostname "127.0.0.1"] [uri "/"] [unique_id "166550286018.572845"] [ref "o1,6v10,7t:urlDecodeUni,t:cmdLine,t:normalizePath,t:lowercase"]
+ModSecurity: Access denied with code 403 (phase 2). Matched "Operator `Ge' with parameter `5' against variable `TX:ANOMALY_SCORE' (Value: `5' ) [file "/usr/local/nginx/conf/owasp-crs/rules/REQUEST-949-BLOCKING-EVALUATION.conf"] [line "80"] [id "949110"] [rev ""] [msg "Inbound Anomaly Score Exceeded (Total Score: 5)"] [data ""] [severity "2"] [ver "OWASP_CRS/3.2.0"] [maturity "0"] [accuracy "0"] [tag "application-multi"] [tag "language-multi"] [tag "platform-multi"] [tag "attack-generic"] [hostname "127.0.0.1"] [uri "/"] [unique_id "166550286018.572845"] [ref ""]
+
+---IcTYGSZl---I--
+
+---IcTYGSZl---J--
+
+---IcTYGSZl---Z--
+
