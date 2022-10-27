@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("c731cad[2022-10-21T11:04:14+08:00]:os_debian_init.sh")
+VERSION+=("74ff91a[2022-10-27T13:24:16+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -145,6 +145,7 @@ debian_sshd_regenkey() {
   systemctl stop sshd
 
   # Regenerate ssh host keys
+  # dpkg-reconfigure openssh-server
   ssh-keygen -q -t rsa -N "" -f /etc/ssh/ssh_host_rsa_key
   ssh-keygen -q -t dsa -N "" -f /etc/ssh/ssh_host_dsa_key
   ssh-keygen -q -t ecdsa -N "" -f /etc/ssh/ssh_host_ecdsa_key
