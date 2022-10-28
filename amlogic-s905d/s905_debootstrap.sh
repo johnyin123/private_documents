@@ -7,13 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b5c297e[2022-10-26T15:37:12+08:00]:s905_debootstrap.sh")
+VERSION+=("74ff91a[2022-10-27T13:24:16+08:00]:s905_debootstrap.sh")
 ################################################################################
-cat <<EOF
-git clone https://github.com/RPi-Distro/firmware-nonfree.git
-git clone https://github.com/RPi-Distro/bluez-firmware.git
-EOF
 source ${DIRNAME}/os_debian_init.sh
+
+log() {
+    echo "######$*" >&2
+}
+export -f log
+
 menu_select() {
     local prompt=${1}
     shift 1
@@ -28,8 +30,10 @@ menu_select() {
     PS3=${org_PS3}
 }
 
-# USB boot disk must del /etc/udev/rules.d/98-usbmount.rules
 : <<'EOF_DOC'
+git clone https://github.com/RPi-Distro/firmware-nonfree.git
+git clone https://github.com/RPi-Distro/bluez-firmware.git
+
 #fw_setenv bootcmd "run update"; reboot
 #之后PC端的刷机程序就会检测到设备进入刷机模式，按软件的刷机提示刷机即可。
 
@@ -167,6 +171,15 @@ auto br0
 iface br0 inet dhcp
 bridge_ports eth0.101 wlan0
 EOF
+
+aplay -l
+pactl list cards
+# output soundcard
+pactl set-card-profile 0 output:analog-stereo
+# output hdmi
+pactl set-card-profile 0 output:hdmi-stereo
+# login xfce, run  alsamixer -> F6 -> ....
+amixer -c  GXP230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
 EOF_DOC
 
 BOOT_LABEL="EMMCBOOT"
@@ -202,7 +215,7 @@ PKG+=",policykit-1,xdotool,wmctrl"
 PKG+="${custom_pkgs:+,${custom_pkgs}}"
 
 [ "$(id -u)" -eq 0 ] || {
-    echo "Must be root to run this script."
+    log "Must be root to run this script."
     exit 1
 }
 
@@ -227,44 +240,40 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
 
     debian_zswap_init 512
     debian_sshd_init
-    debian_sysctl_init
     debian_vim_init
     debain_overlay_init
-# # disable saradc module
-# cat << EOF > /etc/modprobe.d/meson_saradc.conf
-# blacklist meson_saradc
-# EOF
+    # # disable saradc module
+    # cat << EOF > /etc/modprobe.d/meson_saradc.conf
+    # blacklist meson_saradc
+    # EOF
 
-echo "CPU FREQ"
-grep -q "scpi-cpufreq" /etc/modules  || echo "scpi-cpufreq" >> /etc/modules
+    log "Enable CPU FREQ"
+    grep -q "scpi-cpufreq" /etc/modules  || echo "scpi-cpufreq" >> /etc/modules
 
-# cat << EOF > /etc/modprobe.d/brcmfmac.conf
-# options brcmfmac p2pon=1
-# EOF
-# if start p2p device so can not start ap & sta same time
-#漫游
-# cat << EOF > /etc/modprobe.d/brcmfmac.conf
-# options brcmfmac roamoff=1
-# EOF
+    # cat << EOF > /etc/modprobe.d/brcmfmac.conf
+    # options brcmfmac p2pon=1
+    # EOF
+    # if start p2p device so can not start ap & sta same time
+    #漫游
+    # cat << EOF > /etc/modprobe.d/brcmfmac.conf
+    # options brcmfmac roamoff=1
+    # EOF
 
-#echo "修改systemd journald日志存放目录为内存，也就是/run/log目录，限制最大使用内存空间64MB"
+    #log "修改systemd journald日志存放目录为内存，也就是/run/log目录，限制最大使用内存空间64MB"
 
-#sed -i 's/#Storage=auto/Storage=volatile/' /etc/systemd/journald.conf
-#sed -i 's/#RuntimeMaxUse=/RuntimeMaxUse=64M/' /etc/systemd/journald.conf
+    #sed -i 's/#Storage=auto/Storage=volatile/' /etc/systemd/journald.conf
+    #sed -i 's/#RuntimeMaxUse=/RuntimeMaxUse=64M/' /etc/systemd/journald.conf
 
-systemctl mask systemd-machine-id-commit.service
+    systemctl mask systemd-machine-id-commit.service
 
-apt update
-apt -y remove ca-certificates wireless-regdb crda --purge
-apt -y autoremove --purge
-# # fix lightdm
-# touch /var/lib/lightdm/.Xauthority || true
-# chown lightdm:lightdm /var/lib/lightdm/.Xauthority || true
+    apt update
+    apt -y remove ca-certificates wireless-regdb crda --purge
+    apt -y autoremove --purge
 
-# add lima xorg.conf
-mkdir -p /etc/X11/xorg.conf.d/
-# avoid "page flip error" in Xorg.0.log
-cat <<EOF > /etc/X11/xorg.conf.d/20-lima.conf
+    log "add lima xorg.conf"
+    mkdir -p /etc/X11/xorg.conf.d/
+    log "avoid 'page flip error' in Xorg.0.log"
+    cat <<EOF > /etc/X11/xorg.conf.d/20-lima.conf
 Section "Device"
     Identifier "Default Device"
     Driver "modesetting"
@@ -285,46 +294,51 @@ Section "OutputClass"
     Option "PrimaryGPU" "true"
 EndSection
 EOF
-# # pulseaudio --start for root
-# sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.service
-# sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.socket
+    # # pulseaudio --start for root
+    # sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.service
+    # sed -i "/ConditionUser=.*/d" /usr/lib/systemd/user/pulseaudio.socket
 
-# fix hwclock
-rm -f /etc/fake-hwclock.data || true
+    log "rm hwclock data file"
+    rm -f /etc/fake-hwclock.data || true
 
-useradd -m -s /bin/bash johnyin
-# disable dpms auto off screen
-# su - johnyin -c "echo 'DISPLAY=:0 xset -dpms' > /home/johnyin/.xsessionrc"
-echo "DISPLAY=:0 xset -dpms" > /home/johnyin/.xsessionrc
-# su - johnyin -c "echo 'DISPLAY=:0 xset s off' >> /home/johnyin/.xsessionrc"
-echo "DISPLAY=:0 xset s off" >> /home/johnyin/.xsessionrc
-chown johnyin:johnyin /home/johnyin/.xsessionrc
-ln -s /home/johnyin/.Xauthority /root/.Xauthority
-echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
-chmod 0440 /etc/sudoers.d/johnyin
-sed -i "s/^\(.*requiretty\)$/#\1/" /etc/sudoers
-echo "auto login xfce"
-sed -i "s/#autologin-user=.*/autologin-user=johnyin/g" /etc/lightdm/lightdm.conf
-sed -i "s/#xserver-allow-tcp=.*/xserver-allow-tcp=true/g" /etc/lightdm/lightdm.conf
-echo "auto mount RO options"
-echo "[defaults]" > /etc/udisks2/mount_options.conf || true
-echo "defaults=ro" >> /etc/udisks2/mount_options.conf || true
+    useradd -m -s /bin/bash johnyin
+    log "disable dpms auto off screen"
+    echo "DISPLAY=:0 xset -dpms" > /home/johnyin/.xsessionrc
+    echo "DISPLAY=:0 xset s off" >> /home/johnyin/.xsessionrc
+    chown johnyin:johnyin /home/johnyin/.xsessionrc
+    ln -s /home/johnyin/.Xauthority /root/.Xauthority
+    echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
+    chmod 0440 /etc/sudoers.d/johnyin
+    sed -i "s/^\(.*requiretty\)$/#\1/" /etc/sudoers
+    log "auto login lightdm"
+    sed -i "s/#autologin-user=.*/autologin-user=johnyin/g" /etc/lightdm/lightdm.conf
+    log "enable lightdm allow xserver tcp"
+    sed -i "s/#xserver-allow-tcp=.*/xserver-allow-tcp=true/g" /etc/lightdm/lightdm.conf
+    log "auto mount RO options"
+    echo "[defaults]" > /etc/udisks2/mount_options.conf || true
+    echo "defaults=ro" >> /etc/udisks2/mount_options.conf || true
 
-gpasswd -a johnyin pulse
-gpasswd -a johnyin lp
-gpasswd -a pulse lp
-gpasswd -a johnyin audio
-gpasswd -a pulse audio
+    gpasswd -a johnyin pulse
+    gpasswd -a johnyin lp
+    gpasswd -a pulse lp
+    gpasswd -a johnyin audio
+    gpasswd -a pulse audio
 
-# # disable gvfs trash
-# sed -i "s/AutoMount=.*/AutoMount=false/g" /usr/share/gvfs/mounts/trash.mount
-debian_bash_init johnyin
-# timedatectl set-local-rtc 0
-echo "Force Users To Change Passwords Upon First Login"
-chage -d 0 root || true
-/bin/umount /dev/pts
-exit
+    debian_bash_init johnyin
+    # timedatectl set-local-rtc 0
+    log "Force Users To Change Passwords Upon First Login"
+    chage -d 0 root || true
+    /bin/umount /dev/pts
+    exit
 EOSHELL
+
+log "modify networking waitonline tiemout to 5s"
+sed -i "s|TimeoutStartSec=.*|TimeoutStartSec=5sec|g" ${ROOT_DIR}/lib/systemd/system/networking.service
+
+cat <<'EOF' > ${ROOT_DIR}/etc/profile.d/overlay.sh
+export PROMPT_COMMAND='export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$([[ -r "/overlay/reformatoverlay" ]] && echo "[reboot factory]")$"'
+EOF
+chmod 644 ${ROOT_DIR}/etc/profile.d/overlay.sh
 
 cat > ${ROOT_DIR}/etc/fstab << EOF
 LABEL=${ROOT_LABEL}    /    ${FS_TYPE}    defaults,errors=remount-ro,noatime    0    1
@@ -337,34 +351,17 @@ tmpfs /tmp      tmpfs   rw,nosuid,relatime,mode=777  0  0
 tmpfs /media    tmpfs   defaults,size=1M  0  0
 EOF
 
-# auto reformatoverlay plug usb ttl
+log "auto reformatoverlay plug usb ttl"
 cat > ${ROOT_DIR}/etc/udev/rules.d/99-reformatoverlay.rules << EOF
 SUBSYSTEM=="tty", ACTION=="add", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'touch /overlay/reformatoverlay; echo heartbeat > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
 SUBSYSTEM=="tty", ACTION=="remove", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'rm /overlay/reformatoverlay; echo none > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
 EOF
 
-# # auto mount usb storage (readonly)
-# cat > ${ROOT_DIR}/etc/udev/rules.d/98-usbmount.rules << EOF
-# # udevadm control --reload-rules
-# SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="add", RUN+="/bin/systemctl start usb-mount@%k.service"
-# SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/bin/systemctl stop usb-mount@%k.service"
-# EOF
-#     cat > ${ROOT_DIR}/usr/lib/systemd/system/usb-mount@.service <<EOF
-# [Unit]
-# Description=auto mount block %i
-#
-# [Service]
-# RemainAfterExit=true
-# ExecStart=/bin/sh -c '/bin/udisksctl mount -o ro -b /dev/%i || exit 0'
-# ExecStop=/bin/sh -c '/bin/udisksctl unmount -f -b /dev/%i || exit 0'
-# EOF
-# end auto mount usb storage (readonly)
-
-# enable ttyAML0 login
+log "enable ttyAML0 login"
 sed -i "/^ttyAML0/d" ${ROOT_DIR}/etc/securetty 2>/dev/null || true
 echo "ttyAML0" >> ${ROOT_DIR}/etc/securetty
 
-# export nfs
+log "export nfs"
 # no_root_squash(enable root access nfs)
 cat > ${ROOT_DIR}/etc/exports << EOF
 /media/       192.168.168.0/24(ro,sync,no_subtree_check,crossmnt,nohide,no_root_squash,no_all_squash,fsid=0)
@@ -828,21 +825,22 @@ network={
 }
 EO_DOC
 
-echo "enable fw_printenv command, bullseye u-boot-tools remove fw_printenv, so need copy!"
+log "enable fw_printenv command, bullseye u-boot-tools remove fw_printenv, so need copy!"
 cat >${ROOT_DIR}/etc/fw_env.config <<EOF
 # Device to access      offset          env size
 /dev/mmcblk2            0x27400000      0x10000
 EOF
 
-mkdir -p ${ROOT_DIR}/etc/initramfs/post-update.d/
-cat>${ROOT_DIR}/etc/initramfs/post-update.d/99-uboot<<"EOF"
-#!/bin/sh
-echo "update-initramfs: Converting to u-boot format" >&2
-tempname="/boot/uInitrd-$1"
-mkimage -A arm64 -O linux -T ramdisk -C gzip -n uInitrd -d $2 $tempname > /dev/null
-exit 0
-EOF
-chmod 755 ${ROOT_DIR}/etc/initramfs/post-update.d/99-uboot
+# only amlogic uboot need this
+# mkdir -p ${ROOT_DIR}/etc/initramfs/post-update.d/
+# cat>${ROOT_DIR}/etc/initramfs/post-update.d/99-uboot<<"EOF"
+# #!/bin/sh
+# echo "update-initramfs: Converting to u-boot format" >&2
+# tempname="/boot/uInitrd-$1"
+# mkimage -A arm64 -O linux -T ramdisk -C gzip -n uInitrd -d $2 $tempname > /dev/null
+# exit 0
+# EOF
+# chmod 755 ${ROOT_DIR}/etc/initramfs/post-update.d/99-uboot
 
 cat <<EOF>${ROOT_DIR}/etc/motd
 ## ${VERSION[@]}
@@ -938,38 +936,8 @@ trap "" EXIT HUP INT QUIT TERM
 EOF
 chmod 755 ${ROOT_DIR}/usr/bin/overlayroot-chroot
 
-echo "add emmc_install script"
-cat > ${ROOT_DIR}/root/sync.sh <<'EOF'
-#!/usr/bin/env bash
+log "add emmc_install script"
 
-IP=${1:?from which ip???}
-mount -o remount,rw /overlay/lower
-rsync -avzP --numeric-ids --exclude-from=/root/exclude.txt --delete \
-    -e "ssh -p60022" root@${IP}:/overlay/lower/* /overlay/lower/
-
-echo "change ssid && dhcp router"
-apaddr=$(ifquery wlan0=ap | grep "address:" | awk '{ print $2}')
-sed -i "s/ssid=.*/ssid=\"$(hostname)\"/g" /overlay/lower/etc/wpa_supplicant/ap.conf
-sed -n 's|^ssid=\(.*\)$|\1|p' /overlay/lower/etc/wpa_supplicant/ap.conf
-mount -o remount,ro /overlay/lower
-
-mount -o remount,rw /boot
-rsync -avzP --numeric-ids -e "ssh -p60022" root@${IP}:/boot/* /boot/
-
-mount -o remount,ro /boot
-
-touch /overlay/reformatoverlay
-sync
-sync
-EOF
-
-cat > ${ROOT_DIR}/root/exclude.txt <<'EOF'
-/etc/network/interfaces.d/
-firmware/brcm/brcmfmac43455-sdio.txt
-/etc/ssh/
-/etc/hostname
-/etc/hosts
-EOF
 cat > ${ROOT_DIR}/root/fix_sound_out_hdmi.sh <<'EOF'
 amixer -c P230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
 # /var/lib/alsa/asound.state
@@ -1052,33 +1020,21 @@ echo "reflush env&logo, mkfs crash it!!!!"
 dd if=/tmp/env-bak of=${DEV_EMMC} bs=1024 count=8192 seek=643072
 dd if=/tmp/logo-bak of=${DEV_EMMC} bs=1024 count=32768 seek=659456
 EOF
-cat <<'EO_DOC'
-export PROMPT_COMMAND='export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$([[ -r "/overlay/reformatoverlay" ]] && echo "[reboot factory]")$"'
-#Xfce
-aplay -l
-pactl list cards
-# output soundcard
-pactl set-card-profile 0 output:analog-stereo
-# output hdmi
-pactl set-card-profile 0 output:hdmi-stereo
-# login xfce, run  alsamixer -> F6 -> ....
-amixer -c  GXP230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
-EO_DOC
 
 # autologin-guest=false
 # autologin-user=user(not root)
 # autologin-user-timeout=0
 # groupadd -r autologin
 # gpasswd -a root autologin
-echo "SUCCESS build rootfs, all!!!"
+log "SUCCESS build rootfs, all!!!"
 
-echo "start install you kernel&patchs"
+log "start install you kernel&patchs"
 if [ -d "${DIRNAME}/kernel" ]; then
     rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${ROOT_DIR}/ || true
     # kerver=$(ls ${ROOT_DIR}/usr/lib/modules/ | sort --version-sort -f | tail -n1)
     kerver=$(menu_select "kernel: " $(ls ${ROOT_DIR}/usr/lib/modules/ 2>/dev/null))
     dtb=$(menu_select "dtb: " $(ls ${ROOT_DIR}/boot/dtb/ 2>/dev/null))
-    echo "USE KERNEL ${kerver} ------>"
+    log "USE KERNEL ${kerver} ------>"
     cat > ${ROOT_DIR}/boot/aml_autoscript.cmd <<'EOF'
 setenv bootcmd "run start_autoscript; run storeboot;"
 setenv start_autoscript "if usb start; then run start_usb_autoscript; fi; if mmcinfo; then run start_mmc_autoscript; fi; run start_mmc_autoscript;"
@@ -1134,9 +1090,9 @@ label PHICOMM_N1
     fdt /dtb/${dtb}
     append root=LABEL=${ROOT_LABEL} rootflags=data=writeback fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 video=1280x1024@60me
 EOF
-    echo "https://github.com/PuXiongfei/phicomm-n1-u-boot"
-    echo "5d921bf1d57baf081a7b2e969d7f70a5  u-boot.bin"
-    echo "ade4aa3942e69115b9cc74d902e17035  u-boot.bin.new"
+    log "https://github.com/PuXiongfei/phicomm-n1-u-boot"
+    log "5d921bf1d57baf081a7b2e969d7f70a5  u-boot.bin"
+    log "ade4aa3942e69115b9cc74d902e17035  u-boot.bin.new"
     cat ${DIRNAME}/u-boot.mmc.bin 2>/dev/null > ${ROOT_DIR}/boot/u-boot.mmc.bin || true
     cat ${DIRNAME}/u-boot.usb.bin 2>/dev/null > ${ROOT_DIR}/boot/u-boot.usb.bin || true
     cat ${DIRNAME}/u-boot.pxe.bin 2>/dev/null > ${ROOT_DIR}/boot/u-boot.pxe.bin || true
@@ -1151,23 +1107,21 @@ EOF
     mkimage -C none -A arm -T script -d /boot/s905_autoscript.nfs.cmd /boot/s905_autoscript.nfs
     rm -f /boot/aml_autoscript.cmd /boot/s905_autoscript.cmd /boot/s905_autoscript.uboot.cmd /boot/s905_autoscript.nfs.cmd || true
 EOSHELL
-    echo "!!!!!!!!!IF USB BOOT DISK, rm -f ${ROOT_DIR}/etc/udev/rules.d/*"
+    log "!!!!!!!!!IF USB BOOT DISK, rm -f ${ROOT_DIR}/etc/udev/rules.d/*"
 fi
 ls -lhR ${ROOT_DIR}/boot
-echo "end install you kernel&patchs"
+log "end install you kernel&patchs"
 
-echo "patch bluetoothd for sap error, Starting bluetoothd with the option \"--noplugin=sap\" by default (as
+log "patch bluetoothd for sap error, Starting bluetoothd with the option \"--noplugin=sap\" by default (as
 already suggested) would be one way to do it"
 sed -i "s|ExecStart=.*|ExecStart=/usr/libexec/bluetooth/bluetoothd --noplugin=sap|g" ${ROOT_DIR}/usr/lib/systemd/system/bluetooth.service || true
-echo "add smplayer ontop options"
+log "add smplayer ontop options"
 sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applications/smplayer.desktop || true
 sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applications/smplayer_enqueue.desktop || true
-echo "modify networking waitonline tiemout to 5s"
-sed -i "s|TimeoutStartSec=.*|TimeoutStartSec=5sec|g" ${ROOT_DIR}/lib/systemd/system/networking.service
-
-echo "start chroot shell, disable service & do other work"
+log "start chroot shell, disable service & do other work"
 chroot ${ROOT_DIR} /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
 chroot ${ROOT_DIR} /bin/bash -s <<EOF
     debian_minimum_init
 EOF
+log "ALL OK ###########################"
 exit 0
