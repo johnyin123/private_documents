@@ -29,9 +29,10 @@ KEY_VOLUMEDOWN   1   /usr/bin/remoter.sh
 EOF
 cat > /usr/bin/remoter.sh <<'EOF'
 #!/bin/sh
-MEDIA_DIR=/media
-LIST_FILE=/tmp/list.m3u
+DEPTH=1
 USER=johnyin
+MEDIA_DIR=/media
+LIST_FILE=/home/${USER}/Desktop/list.m3u
 if [ -f /etc/skyworth_120.conf ]; then
   . /etc/skyworth_120.conf
 fi
@@ -40,17 +41,18 @@ smplayer_start_stop() {
     local action=$1
     log "smplayer action ${action}"
     case "${action}" in
-        start) find ${MEDIA_DIR} -maxdepth ${DEPTH:-1} -type f -iname '*.mkv' \
-                   -o -iname '*.avi' \
-                   -o -iname '*.mp4' \
-                   -o -iname '*.wmv' > ${LIST_FILE}
-               chown ${USER} ${LIST_FILE}
+        start) [ -e "${LIST_FILE}" ] || {
+                   find ${MEDIA_DIR} -maxdepth ${DEPTH:-1} -type f -iname '*.mkv' \
+                       -o -iname '*.avi' \
+                       -o -iname '*.mp4' \
+                       -o -iname '*.wmv' > ${LIST_FILE}
+                   chown ${USER} ${LIST_FILE}
+               }
                systemd-run --uid=${USER} -E DISPLAY=:0 smplayer ${LIST_FILE}
                ;;
         stop)  smplayer_action close
-               # # killed smplayer, but mpv maybe running left.
                # pkill -u ${USER} smplayer
-               rm -f ${LIST_FILE}
+               # rm -f ${LIST_FILE}
                ;;
         *)     log "smplayer action unknow [${action}]";;
     esac
