@@ -1,3 +1,4 @@
+xvkbd (virtual keyboard)
 DEBIAN_VERSION=bookworm ./s905_debootstrap.sh wireguard-tools v4l-utils triggerhappy sshfs python3-pip python3-venv nmon iptables dbus-x11 cec-utils build-essential bluez bluez-tools bind9 bind9utils slapd ldap-utils keepalived gnupg apt-transport-https rng-tools-debian mesa-utils unzip xxd qemu-utils mame ssmtp bind9-dnsutils polkitd-pkla python3-dev usbutils
 
 # apt install triggerhappy
