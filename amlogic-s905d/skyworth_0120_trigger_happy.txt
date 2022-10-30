@@ -1,10 +1,12 @@
-# sed -i "s/^#HandlePowerKey=.*/HandlePowerKey=ignore/g" /etc/systemd/logind.conf
-# systemctl disable triggerhappy.socket
-# systemctl enable triggerhappy.service
-# # /lib/systemd/system/triggerhappy.service
-# ExecStart=/usr/sbin/thd --triggers /etc/triggerhappy/triggers.d/ --socket /run/thd.socket --user root
-# # /lib/udev/rules.d/60-triggerhappy.rules
-# ACTION=="add", SUBSYSTEM=="input", ATTRS{name}=="SKYWORTH_0120 Keyboard", RUN+="/usr/sbin/th-cmd --socket /var/run/thd.socket --passfd --udev --grab"
+sed -i "s/^#HandlePowerKey=.*/HandlePowerKey=ignore/g" /etc/systemd/logind.conf
+systemctl disable triggerhappy.socket
+systemctl enable triggerhappy.service
+sed -i "s|ExecStart=.*|ExecStart=/usr/sbin/thd --triggers /etc/triggerhappy/triggers.d/ --socket /run/thd.socket --user root|g" /lib/systemd/system/triggerhappy.service
+cat > /lib/udev/rules.d/60-triggerhappy.rules << 'EOF'
+ACTION=="add", SUBSYSTEM=="input", \
+	ATTRS{name}=="SKYWORTH_0120 Keyboard", \
+	RUN+="/usr/sbin/th-cmd --socket /var/run/thd.socket --passfd --udev --grab"
+EOF
 cat > /etc/X11/xorg.conf.d/20-sky.conf <<'EOF'
 Section "InputClass"
     Identifier "SKYWORTH_0120 BLE REMOTE"
