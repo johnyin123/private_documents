@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("74ff91a[2022-10-27T13:24:16+08:00]:s905_debootstrap.sh")
+VERSION+=("c5f0796[2022-10-28T08:37:26+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -236,7 +236,7 @@ DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
 
 LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
     /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
-    /bin/mknod -m 666 /dev/null c 1 3 || true
+    /bin/mknod -m 666 /dev/null c 1 3 2>/dev/null || true
 
     debian_zswap_init 512
     debian_sshd_init
