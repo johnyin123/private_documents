@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("16bfe57[2022-07-18T12:30:44+08:00]:tgz_rootfs_inst.sh")
+VERSION+=("7291ca5[2022-07-18T12:46:02+08:00]:tgz_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -69,7 +69,7 @@ main() {
     mount "${disk}${part}" ${root_dir}
     tar -C ${root_dir} -xvf ${root_tgz}
     for i in /dev /dev/pts /proc /sys /sys/firmware/efi/efivars /run; do
-        mount -o bind $i "${root_dir}${i}" && echo "mount $i ...." || true
+        mount -o bind $i "${root_dir}${i}" 2>/dev/null && echo "mount $i ...." || true
     done
     [ -d "/sys/firmware/efi" ] && {
         mkdir -p ${root_dir}/boot/efi
