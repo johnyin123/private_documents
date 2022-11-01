@@ -8,7 +8,7 @@ index 9ef210f17..f3b1c43b5 100644
  };
 +
 +&external_phy {
-+	d/delete-property/ reset-gpios;
++	/delete-property/ reset-gpios;
 +	dinterrupts = <25 IRQ_TYPE_LEVEL_LOW>;
 +};
 +
