@@ -9,7 +9,7 @@ index 9ef210f17..f3b1c43b5 100644
 +
 +&external_phy {
 +	/delete-property/ reset-gpios;
-+	dinterrupts = <25 IRQ_TYPE_LEVEL_LOW>;
++	interrupts = <25 IRQ_TYPE_LEVEL_LOW>;
 +};
 +
 +/* This UART is connected to the Bluetooth module */
