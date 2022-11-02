@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("915225b[2022-10-31T09:43:27+08:00]:s905_debootstrap.sh")
+VERSION+=("9507665[2022-10-31T15:32:55+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -382,8 +382,8 @@ iface eth0 inet manual
 auto br-ext
 iface br-ext inet static
     bridge_ports eth0
+    bridge_maxwait 0
     address 192.168.168.2/24
-    pre-up ( /usr/sbin/ip link set eth0 up || true )
 
 auto br-ext:0
 iface br-ext:0 inet static
@@ -471,6 +471,7 @@ cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/br-int
 auto br-int
 iface br-int inet static
     bridge_ports none
+    bridge_maxwait 0
     address 192.168.167.1/24
 EOF
 
