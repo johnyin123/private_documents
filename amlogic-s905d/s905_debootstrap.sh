@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9507665[2022-10-31T15:32:55+08:00]:s905_debootstrap.sh")
+VERSION+=("a583241[2022-11-02T20:00:31+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -205,6 +205,7 @@ PKG+=",sudo,aria2,axel,curl,eject,rename,bc,socat,tmux,xmlstarlet,jq,traceroute,
 PKG+=",smplayer,smplayer-l10n,lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xserver-xorg-input-all,x11-utils,x11-xserver-utils"
 PKG+=",pulseaudio,pulseaudio-utils"
 # ,pipewire,pipewire-audio-client-libraries"
+log "lxde use ibus input for chinese"
 case "${DEBIAN_VERSION:-bullseye}" in
     bookworm) PKG+=",lxde-core,lxterminal,lxrandr,openbox-lxde-session" ;;
     *)        PKG+=",xfce4,xfce4-terminal,pavucontrol" ;;
