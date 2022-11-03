@@ -17,8 +17,6 @@ EOF
 cat > /etc/triggerhappy/triggers.d/sky.conf <<'EOF'
 KEY_LEFT         1   /usr/bin/remoter.sh
 KEY_RIGHT        1   /usr/bin/remoter.sh
-KEY_LEFT         2   /usr/bin/remoter.sh
-KEY_RIGHT        2   /usr/bin/remoter.sh
 KEY_UP           1   /usr/bin/remoter.sh
 KEY_DOWN         1   /usr/bin/remoter.sh
 KEY_SELECT       1   /usr/bin/remoter.sh
@@ -28,9 +26,15 @@ KEY_F5           1   /usr/bin/remoter.sh
 KEY_ESC          1   /usr/bin/remoter.sh
 KEY_VOLUMEUP     1   /usr/bin/remoter.sh
 KEY_VOLUMEDOWN   1   /usr/bin/remoter.sh
+KEY_LEFT         2   /usr/bin/remoter.sh
+KEY_RIGHT        2   /usr/bin/remoter.sh
+KEY_VOLUMEUP     2   /usr/bin/remoter.sh
+KEY_VOLUMEDOWN   2   /usr/bin/remoter.sh
 EOF
 cat > /usr/bin/remoter.sh <<'EOF'
 #!/bin/sh
+# desktop: F5(run smplayer), POWER(poweroff)
+# smplayer:F5(mute), POWER(close smplayer)
 DEPTH=1
 USER=johnyin
 MEDIA_DIR=/media
@@ -86,15 +90,8 @@ do_context_long_2() {
     # 2: smplayer is running, smplayer playlist dialog is not visable
     local key=${1}
     case "${key}" in
-        KEY_POWER)      ;;
-        KEY_COMPOSE)    ;;
         KEY_LEFT)       smplayer_action rewind2;;
         KEY_RIGHT)      smplayer_action forward2;;
-        KEY_UP)         smplayer_action increase_volume;;
-        KEY_DOWN)       smplayer_action decrease_volume;;
-        KEY_SELECT)     smplayer_action play_or_pause;;
-        KEY_F5)         smplayer_action mute;;
-        KEY_ESC)        smplayer_action fullscreen;;
         KEY_VOLUMEUP)   smplayer_action pl_prev;;
         KEY_VOLUMEDOWN) smplayer_action pl_next;;
         *)              log "unknow context_2 key ${key}";;
@@ -105,7 +102,7 @@ long_keypress() {
     get_context
     local ctx=$?
     case "${ctx}" in
-        1) do_context_1 ${key};;
+        1) ;;
         2) do_context_long_2 ${key};;
         3) ;;
         *) log "unknow ctx ${ctx}";;
@@ -115,14 +112,14 @@ do_context_1() {
     # 1: smplayer is not running
     local key=${1}
     case "${key}" in
-        KEY_POWER)      smplayer_start_stop start;;
+        KEY_POWER)      /usr/bin/systemctl poweroff;;
         KEY_COMPOSE)    ;;
         KEY_LEFT)       ;;
         KEY_RIGHT)      ;;
         KEY_UP)         ;;
         KEY_DOWN)       ;;
         KEY_SELECT)     ;;
-        KEY_F5)         ;;
+        KEY_F5)         smplayer_start_stop start;;
         KEY_ESC)        ;;
         KEY_VOLUMEUP)   ;;
         KEY_VOLUMEDOWN) ;;
