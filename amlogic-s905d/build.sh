@@ -15,6 +15,8 @@ export INSTALL_MOD_PATH=${ROOTFS}/usr/
 export INSTALL_MOD_STRIP=1
 KERVERSION="$(make kernelversion)"
 
+#scripts/config --disable DEBUG_INFO
+
 # scripts/diffconfig .config.old .config | less
 make -j$(nproc) Image dtbs modules
 
