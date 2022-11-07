@@ -28,8 +28,6 @@ KEY_VOLUMEUP     1   /usr/bin/remoter.sh
 KEY_VOLUMEDOWN   1   /usr/bin/remoter.sh
 KEY_LEFT         2   /usr/bin/remoter.sh
 KEY_RIGHT        2   /usr/bin/remoter.sh
-KEY_VOLUMEUP     2   /usr/bin/remoter.sh
-KEY_VOLUMEDOWN   2   /usr/bin/remoter.sh
 EOF
 cat > /usr/bin/remoter.sh <<'EOF'
 #!/bin/sh
@@ -92,8 +90,6 @@ do_context_long_2() {
     case "${key}" in
         KEY_LEFT)       smplayer_action rewind2;;
         KEY_RIGHT)      smplayer_action forward2;;
-        KEY_VOLUMEUP)   smplayer_action pl_prev;;
-        KEY_VOLUMEDOWN) smplayer_action pl_next;;
         *)              log "unknow context_2 key ${key}";;
     esac
 }
