@@ -4,7 +4,8 @@ readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 
 export ROOTFS=${1:-${DIRNAME}/kernel-$(date '+%Y%m%d%H%M%S')}
 
-export PATH=${DIRNAME}/gcc-linaro-aarch64/bin/:$PATH
+# apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+# export PATH=${DIRNAME}/gcc-linaro-aarch64/bin/:$PATH
 export LOCALVERSION="-johnyin-s905d"
 export ARCH=arm64
 export CFLAGS='-march=native -O3 -flto -pipe'
