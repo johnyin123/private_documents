@@ -2,7 +2,32 @@ diff --git a/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts b/arch/a
 index 9ef210f17..f3b1c43b5 100644
 --- a/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts
 +++ b/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts
-@@ -33,3 +33,24 @@ &cvbs_vdac_port {
+@@ -24,6 +24,24 @@
+ 			default-state = "on";
+ 		};
+ 	};
++	dc_in: regulator-vcc_12v {
++		compatible = "regulator-fixed";
++		regulator-name = "VCC_12V";
++		regulator-min-microvolt = <12000000>;
++		regulator-max-microvolt = <12000000>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
++
++	vddgpu: regulator-vddgpu {
++		compatible = "regulator-fixed";
++		regulator-name = "mali";
++		regulator-min-microvolt = <950000>;
++		regulator-max-microvolt = <950000>;
++		vin-supply = <&dc_in>;
++		regulator-boot-on;
++		regulator-always-on;
++	};
+ };
+ 
+ &cvbs_vdac_port {
+@@ -33,3 +51,24 @@
  &usb {
  	dr_mode = "host";
  };
