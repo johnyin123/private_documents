@@ -183,3 +183,23 @@ CONFIG_MMC_MESON_MX_SDIO=y
 CONFIG_BT_HCIUART=m
 CONFIG_BT_HCIUART_3WIRE=y
 CONFIG_BT_HCIUART_BCM=y
+
++&sd_emmc_a {
++        max-frequency = <100000000>;
++        sd-uhs-sdr50;
++        //max-frequency = <200000000>;
++        //sd-uhs-sdr104;
++        //max-frequency = <50000000>;
++        //sd-uhs-ddr50;
++};
++
++&sd_emmc_b {
++       status = "disabled";
++};
++
++&ethmac {
++       snps,force_thresh_dma_mode;
++       snps,aal;
++       snps,txpbl = <0x8>;
++       snps,rxpbl = <0x8>;
++};
