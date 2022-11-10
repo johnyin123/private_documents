@@ -7,6 +7,7 @@ Vendor ID:               ARM
     Cluster(s):          1
     Stepping:            r0p4
 
+barrier: (Share mouse, keyboard and clipboard over the network, support win/linux)
 xvkbd (virtual keyboard)
 # this command sends the key control+c
 xvkbd -no-jump-pointer -xsendevent -text '\Cc'
