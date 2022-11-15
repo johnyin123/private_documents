@@ -26,6 +26,9 @@ KEY_F5           1   /usr/bin/remoter.sh
 KEY_ESC          1   /usr/bin/remoter.sh
 KEY_VOLUMEUP     1   /usr/bin/remoter.sh
 KEY_VOLUMEDOWN   1   /usr/bin/remoter.sh
+KEY_POWER        2   /usr/bin/remoter.sh
+KEY_UP           2   /usr/bin/remoter.sh
+KEY_DOWN         2   /usr/bin/remoter.sh
 KEY_LEFT         2   /usr/bin/remoter.sh
 KEY_RIGHT        2   /usr/bin/remoter.sh
 EOF
@@ -84,10 +87,21 @@ get_context() {
     systemd-run --scope --uid=${USER} -E DISPLAY=:0 wmctrl -l | grep -q "${LIST_FILE}" || return 2
     return 3
 }
+do_context_long_3() {
+    # 3: smplayer is running, smplayer playlist dialog is visable
+    local key=${1}
+    case "${key}" in
+        KEY_POWER)      smplayer_start_stop stop; pkill -u ${USER} smplayer;;
+        *)              log "unknow context_3 key ${key}";;
+    esac
+}
 do_context_long_2() {
     # 2: smplayer is running, smplayer playlist dialog is not visable
     local key=${1}
     case "${key}" in
+        KEY_POWER)      smplayer_start_stop stop; pkill -u ${USER} smplayer;;
+        KEY_UP)         smplayer_action increase_volume;;
+        KEY_DOWN)       smplayer_action decrease_volume;;
         KEY_LEFT)       smplayer_action rewind2;;
         KEY_RIGHT)      smplayer_action forward2;;
         *)              log "unknow context_2 key ${key}";;
@@ -100,7 +114,7 @@ long_keypress() {
     case "${ctx}" in
         1) ;;
         2) do_context_long_2 ${key};;
-        3) ;;
+        3) do_context_long_3 ${key};;
         *) log "unknow ctx ${ctx}";;
     esac
 }
