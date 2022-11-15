@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a583241[2022-11-02T20:00:31+08:00]:s905_debootstrap.sh")
+VERSION+=("7890ecb[2022-11-03T10:02:48+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -279,10 +279,13 @@ Section "Device"
     Identifier "Default Device"
     Driver "modesetting"
     Option "AccelMethod" "glamor"  ### "glamor" to enable 3D acceleration, "none" to disable.
+    Option "SWcursor" "on"
     Option "PageFlip" "off"
-    Option "DRI" "2"
-    Option "Dri2Vsync" "true"
-    Option "TripleBuffer" "true"
+    Option "ShadowFB" "true"
+    Option "DoubleShadow" "true"
+    # Option "DRI" "2"
+    # Option "Dri2Vsync" "true"
+    # Option "TripleBuffer" "true"
 EndSection
 Section "ServerFlags"
     Option "AutoAddGPU" "off"
