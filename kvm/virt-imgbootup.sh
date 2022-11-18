@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1fdcf44[2022-07-05T17:16:07+08:00]:virt-imgbootup.sh")
+VERSION+=("26efe1b[2022-07-07T07:26:38+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -233,4 +233,5 @@ main() {
     set -- "${options[@]}" ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}
     exec qemu-system-x86_64 "$@"
 }
+auto_su "$@"
 main "$@"
