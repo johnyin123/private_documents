@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("7291ca5[2022-07-18T12:46:02+08:00]:tgz_rootfs_inst.sh")
+VERSION+=("f4ed461[2022-10-31T10:00:48+08:00]:tgz_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -82,7 +82,7 @@ case "${ID}" in
         grub-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk}
         grub-mkconfig -o /boot/grub/grub.cfg
         ;;
-    centos|rocky)
+    centos|rocky|*)
         grub2-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk}
         grub2-mkconfig -o /boot/grub2/grub.cfg
         ;;
