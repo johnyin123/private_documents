@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("53c4443[2022-10-19T09:01:57+08:00]:mk_nginx.sh")
+VERSION+=("ef94548[2022-10-19T14:18:20+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -17,7 +17,6 @@ declare -A stage=(
     [install]=20
     [make]=30
     [configure]=40
-    [pcre]=50
     [openssl]=60
 )
 set +o nounset
@@ -56,7 +55,7 @@ ZLIB_DIR=${DIRNAME}/zlib
 declare -A NGINX_BASE=(
     [${NGINX_DIR}]="git clone --depth 1 --branch ${NGINX_RELEASE} https://github.com/nginx/nginx.git"
     [${OPENSSL_DIR}]="wget --no-check-certificate -O openssl.tar.gz https://www.openssl.org/source/openssl-1.1.1m.tar.gz"
-    [${PCRE_DIR}]="wget --no-check-certificate -O pcre.tar.gz https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz/download"
+    [${PCRE_DIR}]="wget --no-check-certificate -O pcre.tar.gz https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz/download || https://sourceforge.net/projects/pcre/files/pcre2/10.37/pcre2-10.37.zip/download"
     [${ZLIB_DIR}]="wget --no-check-certificate -O zlib.tar.gz https://zlib.net/zlib-1.2.11.tar.gz"
 )
 
@@ -84,7 +83,7 @@ log "DEFAULT STATIC_MODULES : ================="
 printf '%s\n' "${!STATIC_MODULES[@]}"
 
 sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${0}
-stage_level=${stage_level:?"${SCRIPTNAME} fpm/install/make/configure/pcre/openssl"}
+stage_level=${stage_level:?"${SCRIPTNAME} fpm/install/make/configure/openssl"}
 
 [ -z "${CACHE_PURGE}" ] || {
     STATIC_MODULES[${DIRNAME}/ngx_cache_purge]="git clone --depth 1 https://github.com/FRiCKLE/ngx_cache_purge.git"
@@ -198,18 +197,8 @@ check_requre_dirs "${!NGINX_BASE[@]}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULE
 [ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
     && make -j "$(nproc)" build_libs && make -j "$(nproc)" install_sw LIBDIR=lib
 
-[ ${stage_level} -ge ${stage[pcre]} ] && cd ${PCRE_DIR} && CC="cc" CFLAGS="-O2 -fomit-frame-pointer -pipe "  \
-    ./configure --disable-shared --enable-jit \
-    --disable-cpp \
-    --libdir=${PCRE_DIR}/.libs/ --includedir=${PCRE_DIR} && \
-    make -j "$(nproc)"
-# njs configure need expect
-# expect -v || sudo apt install expect
-
-# for njs pcre-config command!
-export PATH=$PATH:${PCRE_DIR}
 export NJS_CC_OPT="-L${OPENSSL_DIR}/.openssl/lib"
-log "PCRE OK **************************************************"
+
 for mod in "${!STATIC_MODULES[@]}"; do
     EXT_MODULES+=("--add-module=${mod}")
 done
@@ -221,9 +210,9 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 [ ${stage_level} -ge ${stage[configure]} ] && cd ${NGINX_DIR} && ./configure --prefix=/usr/share/nginx \
 --user=nginx \
 --group=nginx \
---with-cc-opt="${CC_OPTS} $(pcre-config --cflags) -I${OPENSSL_DIR}/.openssl/include" \
---with-ld-opt="${LD_OPTS} $(pcre-config --libs) -L${OPENSSL_DIR}/.openssl/lib" \
---with-pcre \
+--with-cc-opt="${CC_OPTS} -I${OPENSSL_DIR}/.openssl/include" \
+--with-ld-opt="${LD_OPTS} -L${OPENSSL_DIR}/.openssl/lib" \
+--with-pcre=${PCRE_DIR} \
 --sbin-path=/usr/sbin/nginx \
 --conf-path=/etc/nginx/nginx.conf \
 --error-log-path=/var/log/nginx/error.log \
