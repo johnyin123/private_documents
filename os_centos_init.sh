@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("9f604b0[2022-07-19T10:18:39+08:00]:os_centos_init.sh")
+VERSION+=("f404f96[2022-11-24T09:52:01+08:00]:os_centos_init.sh")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -239,7 +239,7 @@ centos_service_init() {
     local netsvc=network
     systemctl status NetworkManager.service >/dev/null 2>&1 && {
         sed -i "/NM_CONTROLLED=/d" /etc/sysconfig/network-scripts/ifcfg-eth0
-        netsvc="NetworkManager.service dbus-broker.service"
+        netsvc="NetworkManager.service dbus-broker.service haveged.service"
     }
     {
         chkconfig 2>/dev/null | egrep -v "crond|sshd|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}'
