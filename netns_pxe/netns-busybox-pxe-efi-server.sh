@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f78fea8[2022-07-18T09:16:19+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("080354d[2022-07-18T09:40:27+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
@@ -332,8 +332,6 @@ rsync
 -alsa-*
 -iwl*firmware
 -ivtv*
-%end
-%addon com_redhat_kdump --disable --reserve-mb='auto'
 %end
 
 %post
