@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("82fd690[2022-11-16T09:01:18+08:00]:os_debian_init.sh")
+VERSION+=("26a990b[2022-11-17T07:52:37+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -142,6 +142,11 @@ EOF
     cat << EOF > /etc/sysctl.d/90-bbr.conf
 net.core.default_qdisc=fq
 net.ipv4.tcp_congestion_control=bbr
+EOF
+    cat << EOF > /etc/sysctl.d/90-perf.conf
+kernel.sched_autogroup_enabled = 0
+vm.min_free_kbytes = 131072
+sysctl vm.dirty_ratio = 60
 EOF
 }
 export -f debian_sysctl_init

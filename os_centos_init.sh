@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("f404f96[2022-11-24T09:52:01+08:00]:os_centos_init.sh")
+VERSION+=("9a1bacf[2022-11-24T09:53:48+08:00]:os_centos_init.sh")
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -173,6 +173,16 @@ net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_tw_reuse = 0
 #net.ipv4.ip_forward = 1
 EOF
+    cat << EOF > /etc/sysctl.d/90-bbr.conf
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+EOF
+    cat << EOF > /etc/sysctl.d/90-perf.conf
+kernel.sched_autogroup_enabled = 0
+vm.min_free_kbytes = 131072
+sysctl vm.dirty_ratio = 60
+EOF
+
 }
 export -f centos_sysctl_init
 
