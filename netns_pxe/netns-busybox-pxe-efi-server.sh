@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("080354d[2022-07-18T09:40:27+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("080775e[2022-11-24T13:22:53+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
@@ -397,12 +397,12 @@ systemctl enable getty@tty1
 netsvc=network
 systemctl status NetworkManager.service >/dev/null 2>&1 && {
     sed -i "/NM_CONTROLLED=/d" /etc/sysconfig/network-scripts/ifcfg-eth0
-    netsvc="NetworkManager.service dbus-broker.service"
+    netsvc="NetworkManager.service dbus-broker.service haveged.service"
 }
 {
     chkconfig 2>/dev/null | egrep -v "crond|sshd|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}'
     systemctl list-unit-files -t service  | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}'
-    echo "systemctl enable ${netsvc}"
+    for _s in ${netsvc}; do echo "systemctl enable $_s"; done
 } | bash -x
 
 echo "nameserver 114.114.114.114" > /etc/resolv.conf
