@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ccd1625[2021-11-12T14:28:00+08:00]:centos_tuning.sh")
+VERSION+=("39b34ce[2022-01-13T09:30:17+08:00]:centos_tuning.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_centos_init.sh
@@ -67,7 +67,7 @@ main() {
     ssh_func "${ssh}" "${port}" centos_sysctl_init
     [ -z "${zramswap}" ] || ssh_func "${ssh}" "${port}" centos_zramswap_init ${zramswap}
     ssh_func "${ssh}" "${port}" "sed -i '/motd.sh/d' /etc/profile ; echo 'sh /etc/motd.sh' >> /etc/profile;touch /etc/logo.txt /etc/motd.sh"
-    ssh_func "${ssh}" "${port}" "[ -z '${name}' ] || echo '${name}' > /etc/hostname"
+    [ -z '${name}' ] || ssh_func "${ssh}" "${port}" "echo '${name}' > /etc/hostname"
     return 0
 }
 main "$@"
