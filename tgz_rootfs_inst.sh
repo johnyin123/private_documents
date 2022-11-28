@@ -4,22 +4,21 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("352b92a[2022-11-28T10:44:57+08:00]:tgz_rootfs_inst.sh")
+VERSION+=("8fc81bb[2022-11-28T11:35:06+08:00]:tgz_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        -t|--tgz      <str>   root tar.gz(tgz) for install
+        -t|--tgz  *   <str>   root tar.gz(tgz) for install
         --uefi        <str>   uefi partition(fat32), /dev/vda1
                               uefi partition type fat32, boot flag on.
                         parted -s /dev/vda "mklabel gpt"
                         parted -s /dev/vda "mkpart primary fat32 1M 128M"
                         parted -s /dev/vda "mkpart primary xfs 128M 100%"
                         parted -s /dev/vda "set 1 boot on"
-        -d|--disk     <str>   disk, /dev/sdX
-        -p|--part     <int>   install tgz in this <DISK> part as rootfs
-                              default 1
+        -d|--disk *   <str>   disk, /dev/sdX
+        -p|--part *   <int>   install tgz in partition as rootfs, /dev/vda1, /dev/mapper/..
         -x | --xfsfix         disable xfs v5 feature!! for support kernel below 3.16
         -V|--version          version info
         -h|--help             help
@@ -37,7 +36,7 @@ EOF
     exit 1
 }
 main() {
-    local root_tgz="" disk="" part=1 xfsfix="" uefi=""
+    local root_tgz="" disk="" part="" xfsfix="" uefi=""
     local opt_short+="t:d:p:xvh"
     local opt_long+="tgz:,disk:,part:,xfsfix,uefi:,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -58,7 +57,7 @@ main() {
     done
     [ -z "${root_tgz}" ] && usage "tgz rootfs package?"
     [ -z "${disk}" ] && usage "need disk and  partition?"
-    echo "install ${root_tgz} => ${disk}${part}"
+    echo "install ${root_tgz} => ${disk}:${part}"
     local target="i386-pc"
     # [ -d "/sys/firmware/efi" ]
     [ -z "${uefi}" ] || {
@@ -68,8 +67,8 @@ main() {
         mkfs.vfat -F 32 ${uefi}
     }
     local root_dir=$(mktemp -d /tmp/rootfs.XXXXXX)
-    mkfs.xfs -f -L rootfs ${xfsfix:+-m reflink=0 -m crc=0} "${disk}${part}"
-    mount "${disk}${part}" ${root_dir}
+    mkfs.xfs -f -L rootfs ${xfsfix:+-m reflink=0 -m crc=0} "${part}"
+    mount "${part}" ${root_dir}
     tar -C ${root_dir} -xvf ${root_tgz}
     for i in /dev /dev/pts /proc /sys /sys/firmware/efi/efivars /run; do
         mount -o bind $i "${root_dir}${i}" 2>/dev/null && echo "mount $i ...." || true
@@ -92,7 +91,7 @@ case "${ID}" in
 esac
 exit 0
 EOSHELL
-    local new_uuid=$(blkid -s UUID -o value ${disk}${part})
+    local new_uuid=$(blkid -s UUID -o value ${part})
     cp -n ${root_dir}/etc/fstab ${root_dir}/etc/fstab.orig
     {
         echo "# $(date '+%Y-%m-%d %H:%M:%S')"
