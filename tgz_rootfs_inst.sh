@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("f4ed461[2022-10-31T10:00:48+08:00]:tgz_rootfs_inst.sh")
+VERSION+=("869ac07[2022-11-24T07:46:17+08:00]:tgz_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -53,16 +53,12 @@ main() {
     [ -z "${disk}" ] && usage "need disk and  partition?"
     echo "install ${root_tgz} => ${disk}${part}"
     local target="i386-pc"
-    [ -d "/sys/firmware/efi" ] && {
+    # [ -d "/sys/firmware/efi" ]
+    [ -z "${uefi}" ] || {
+        [ -d "/sys/firmware/efi" ] || echo "HOST EFI FIREWARE NO FOUND!!, CONTINUE."
+        echo "install UEFI ${uefi}"
         target="x86_64-efi"
-        echo "UEFI MODE"
-        [ -z "${uefi}" ] && {
-            echo "NO UEFI PARTITION, exit!!!"
-            exit 1
-        } || {
-            echo "install UEFI ${uefi}"
-            mkfs.vfat -F 32 ${uefi}
-        }
+        mkfs.vfat -F 32 ${uefi}
     }
     local root_dir=$(mktemp -d /tmp/rootfs.XXXXXX)
     mkfs.xfs -f -L rootfs ${xfsfix:+-m reflink=0 -m crc=0} "${disk}${part}"
@@ -71,7 +67,7 @@ main() {
     for i in /dev /dev/pts /proc /sys /sys/firmware/efi/efivars /run; do
         mount -o bind $i "${root_dir}${i}" 2>/dev/null && echo "mount $i ...." || true
     done
-    [ -d "/sys/firmware/efi" ] && {
+    [ -z "${uefi}" ] || {
         mkdir -p ${root_dir}/boot/efi
         mount ${uefi} ${root_dir}/boot/efi
     }
@@ -94,7 +90,7 @@ EOSHELL
     {
         echo "# $(date '+%Y-%m-%d %H:%M:%S')"
         echo "UUID=${new_uuid} / xfs noatime,relatime 0 0"
-        [ -d "/sys/firmware/efi" ] && {
+        [ -z "${uefi}" ] || {
             echo "UUID=$(blkid -s UUID -o value ${uefi}) /boot/efi vfat umask=0077 0 1"
         }
         grep -Ev "\s/\s|\/boot\/efi" ${root_dir}/etc/fstab.orig || true
@@ -103,4 +99,3 @@ EOSHELL
     echo "ALL DONE OK"
 }
 main "$@"
-
