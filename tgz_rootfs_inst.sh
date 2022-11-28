@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("869ac07[2022-11-24T07:46:17+08:00]:tgz_rootfs_inst.sh")
+VERSION+=("c3d3197[2022-11-28T10:35:31+08:00]:tgz_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -26,6 +26,13 @@ ${SCRIPTNAME}
         Exam:
            ${SCRIPTNAME} -t /mnt/bullseye.1122.tar.gz --uefi /dev/vda1 -d /dev/vda -p 2
            ${SCRIPTNAME} -t /mnt/bullseye.1122.tar.gz -d /dev/vda -p 1
+        Exam:
+           truncate -s 4G disk.img
+           parted -s disk.img "mklabel gpt"
+           parted -s disk.img "mkpart primary xfs 1M 100%"
+           ./nbd_attach.sh -a disk.img
+           .${SCRIPTNAME} -t tpl.tgz -d /dev/nbd0 -p 1
+           ./nbd_attach.sh -d /dev/nbd0
 EOF
     exit 1
 }
