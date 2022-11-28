@@ -7,15 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-07-22T07:18:40+08:00]:ssh_tunnel.sh")
+VERSION+=("1ddc610[2022-07-22T07:18:40+08:00]:ssh_tunnel.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
-
+readonly SSH_OPT="-o ControlMaster=no"
 mk_support() {
     local ssh_connection=${1}
     local ssh_port=${2}
-    try ssh -tt -p${ssh_port} ${ssh_connection} "(grep -v PermitTunnel /etc/ssh/sshd_config ;echo PermitTunnel yes) | tee /etc/ssh/sshd_config" || true
+    try ssh -tt ${SSH_OPT} -p${ssh_port} ${ssh_connection} "(grep -v PermitTunnel /etc/ssh/sshd_config ;echo PermitTunnel yes) | tee /etc/ssh/sshd_config" || true
     return 0
 }
 
@@ -30,7 +30,7 @@ ssh_tunnel() {
         file_exists /sys/class/net/tap${l_tap}/tun_flags || break
     done
     [[ ${l_tap} = ${MAX_TAPDEV_NUM} ]] && return -1
-    r_tap=$(try "ssh -p${ssh_port} ${ssh_connection} 'for i in 0 1 2 3 4 5 6 7 8 9 $MAX_TAPDEV_NUM; do [ -e /sys/class/net/tap\${i}/tun_flags ] || break; done; echo \$i'")
+    r_tap=$(try "ssh ${SSH_OPT} -p${ssh_port} ${ssh_connection} 'for i in 0 1 2 3 4 5 6 7 8 9 $MAX_TAPDEV_NUM; do [ -e /sys/class/net/tap\${i}/tun_flags ] || break; done; echo \$i'")
     [[ ${r_tap} = ${MAX_TAPDEV_NUM} ]] && return -2
     local localcmd="ip link set dev tap${l_tap} up${local_br:+;ip link set dev tap${l_tap} master ${local_br}}"
     local remotecmd="ip link set dev tap${r_tap} up;ip link set dev tap${r_tap} master ${remote_br}"
@@ -39,6 +39,7 @@ ssh_tunnel() {
     maybe_netns_run "bash -s"<<EOF
         start-stop-daemon --start --make-pidfile --pidfile "/run/tap${l_tap}.pid" --quiet --background --exec \
         /bin/ssh -- \
+            ${SSH_OPT} \
             -o PermitLocalCommand=yes \
             -o LocalCommand='${localcmd}' \
             -o Tunnel=ethernet -w ${l_tap}:${r_tap} \
