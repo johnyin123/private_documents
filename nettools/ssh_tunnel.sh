@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1ddc610[2022-07-22T07:18:40+08:00]:ssh_tunnel.sh")
+VERSION+=("5d2a5bb[2022-11-28T11:43:32+08:00]:ssh_tunnel.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
@@ -39,6 +39,7 @@ ssh_tunnel() {
     maybe_netns_run "bash -s"<<EOF
         start-stop-daemon --start --make-pidfile --pidfile "/run/tap${l_tap}.pid" --quiet --background --exec \
         /bin/ssh -- \
+            -M \
             ${SSH_OPT} \
             -o PermitLocalCommand=yes \
             -o LocalCommand='${localcmd}' \
