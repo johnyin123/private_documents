@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("072c047[2022-11-14T08:10:29+08:00]:ffmpeg.sh")
+VERSION+=("8875486[2022-11-14T08:21:35+08:00]:ffmpeg.sh")
 ################################################################################
 
 name=${1:?input err}
@@ -25,7 +25,8 @@ ffmpeg -hwaccel auto -i ${name} -v error -map 0:a:? -map 0:s:? -map 0:v:? \
 # #Downgrade fps: from 60 to 30
 # ffmpeg -i ${name} -r 30 ${name%.*}.convert.${name##*.}
 # 增加字幕流
-# ffmpeg -i video.avi -i sub.ass -map 0:0 -map 0:1 -map 1 -c:a copy -c:v copy -c:s copy video.mkv
+# ffmpeg -i video.avi -i sub.ass -f ass -map 0:0 -map 0:1 -map 1 -c:a copy -c:v copy -c:s ass video.mkv
+# ffmpeg -i input.mkv -i sub.srt -sub_charenc 'UTF-8' -f srt -map 0 -map 1:0 -c:v copy -c:a copy -c:s srt video.mkv
 
 # cat > file.lst<<EOF
 # file 1.mp4
