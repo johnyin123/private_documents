@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8875486[2022-11-14T08:21:35+08:00]:ffmpeg.sh")
+VERSION+=("509304d[2022-11-28T10:22:26+08:00]:ffmpeg.sh")
 ################################################################################
 
 name=${1:?input err}
@@ -21,11 +21,15 @@ ffmpeg -hwaccel auto -i ${name} -v error -map 0:a:? -map 0:s:? -map 0:v:? \
     -vf scale=${scale} -c:v libx264 -crf 18  \
     ${frame:+-filter:v fps=fps=${frame}} -preset slow \
     -c:a copy -c:s copy ${name%.*}.convert.${name##*.}
-
+# 1st pass:
+# ffmpeg -i ${name} -codec:v libx264 -profile:v high -preset slow -b:v 500k -maxrate 500k -bufsize 1000k -vf scale=${scale} -threads 0 -pass 1 -an -f mp4 /dev/null
+# 2nd pass:
+# ffmpeg -i input_file.avi -codec:v libx264 -profile:v high -preset slow -b:v 500k -maxrate 500k -bufsize 1000k -vf scale=${scale} -threads 0 -pass 2 -codec:a libfdk_aac -b:a 128k -f mp4 ${name%.*}.convert.${name##*.}
+# 
 # #Downgrade fps: from 60 to 30
 # ffmpeg -i ${name} -r 30 ${name%.*}.convert.${name##*.}
 # 增加字幕流
-# ffmpeg -i video.avi -i sub.ass -f ass -map 0:0 -map 0:1 -map 1 -c:a copy -c:v copy -c:s ass video.mkv
+# ffmpeg -i video.mkv -i sub.ass -map 0 -map 1 -acodec copy -vcodec copy -scodec copy out.mkv
 # ffmpeg -i input.mkv -i sub.srt -sub_charenc 'UTF-8' -f srt -map 0 -map 1:0 -c:v copy -c:a copy -c:s srt video.mkv
 
 # cat > file.lst<<EOF
