@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ed53c30[2022-12-07T17:17:41+08:00]:playbook_init2.sh")
+VERSION+=("d912180[2022-12-08T07:36:06+08:00]:playbook_init2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -50,7 +50,7 @@ EOF
     - parm1
     - parm2
 EOF
-    write_file "${dir}/handlers/func.yml" <<EOF
+    write_file "${dir}/tasks/func.yml" <<EOF
 ---
 - name: called by include task
   shell:
