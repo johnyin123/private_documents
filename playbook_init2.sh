@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e991946[2022-12-07T15:13:11+08:00]:playbook_init2.sh")
+VERSION+=("2199fe6[2022-12-07T16:06:21+08:00]:playbook_init2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -33,13 +33,16 @@ EOF
     write_file "${dir}/tasks/${pbm}.yml" <<EOF
 ---
 # ansible-playbook ${pbm}.yml -i hosts -e 'env=local'
-- name: multiple commands
+- name: multiple commands rhel
   shell: |
     whoami
     cat /etc/hosts
     id
   register: output
   notify: restart xxx
+  # when: ansible_os_family == "RedHat"
+  # when: ansible_distribution == "Debian" and ansible_distribution_major_version == "8"
+
 - copy: content="{{ output }}" dest=/home/johnyin/ansible/test/output.log
 
 - debug:
