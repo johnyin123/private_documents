@@ -129,8 +129,8 @@ do_context_1() {
         KEY_UP)         ;;
         KEY_DOWN)       ;;
         KEY_SELECT)     ;;
-        KEY_F5)         smplayer_start_stop start;;
-        KEY_ESC)        ;;
+        KEY_F5)         ;;
+        KEY_ESC)        smplayer_start_stop start;;
         KEY_VOLUMEUP)   ;;
         KEY_VOLUMEDOWN) ;;
         *)              log "unknow context_1 key ${key}";;
