@@ -7,21 +7,25 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("990f855[2022-12-05T14:39:33+08:00]:ffmpeg.sh")
+VERSION+=("6e3df5e[2022-12-07T08:40:07+08:00]:ffmpeg.sh")
 ################################################################################
 
 name=${1:?input err scale= $0 video.mkv}
 scale=${scale-iw/2:ih/2}
 frame=${frame-}
 
-ffmpeg -i ${name} 2>&1 | grep Stream
+ffmpeg -hide_banner -i ${name} 2>&1 | grep Stream
 ffmpeg -hide_banner -i ${name} 2>&1 | grep -o -Ei "Video:\s*([^ ]*)"
 
 # pv -f -F 'Converted: %b Elapsed: %t Current: %r Average: %a %p %e' "${name}" | ffmpeg -i pipe:0 \
-ffmpeg -hwaccel auto -i ${name} -v info -map 0:a:? -map 0:s:? -map 0:v:? \
-    ${scale:+-vf scale=${scale}} -c:v libx264 -crf 18  \
-    ${frame:+-filter:v fps=fps=${frame}} -preset slow \
-    -c:a copy -c:s copy ${name%.*}.convert.${name##*.}
+ffmpeg -hwaccel auto -i ${name} -loglevel warning \
+    -map 0:a:? -map 0:s:? -map 0:v:? \
+    ${scale:+-vf scale=${scale}}  \
+    ${frame:+-filter:v fps=fps=${frame}} \
+    -c:a libmp3lame -b:a 128k -c:s copy \
+    ${name%.*}.convert.mkv
+
+ffmpeg -hide_banner -i ${name} 2>&1 | grep -o -Ei "Video:\s*([^ ]*)"
 
 # echo 1st pass:
 # ffmpeg -y -hwaccel auto -i ${name} \
