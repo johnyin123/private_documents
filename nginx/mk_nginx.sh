@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("af282a4[2022-11-23T13:15:26+08:00]:mk_nginx.sh")
+VERSION+=("7952d43[2022-12-07T09:37:48+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -196,7 +196,7 @@ check_requre_dirs "${!NGINX_BASE[@]}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULE
 
 pcre_version=$(${PCRE_DIR}/configure -V | grep PCRE | awk '{ print $1, $3 }')
 zlib_version=$(grep "Changes in" ${ZLIB_DIR}/ChangeLog  | head -1 | awk '{ print $3 }')
-builder_version=@$(echo "${VERSION[@]}" | cut -d'[' -f 1)
+builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 log "${builder_version}, $pcre_version, zlib ${zlib_version}"
 
 [ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
@@ -239,7 +239,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
  \
 ${EXT_MODULES[@]}
 
-sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${builder_version},${pcre_version},zlib ${zlib_version}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
+sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"builder ${builder_version},${pcre_version},zlib ${zlib_version}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
 [ ${stage_level} -ge ${stage[make]} ] && cd ${NGINX_DIR} && make -j "$(nproc)"
 OUTDIR=${DIRNAME}/out
 mkdir -p ${OUTDIR}
