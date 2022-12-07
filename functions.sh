@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("89a5707[2022-07-21T10:50:16+08:00]:functions.sh")
+VERSION+=("ed930e0[2022-11-18T09:13:46+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -890,7 +890,7 @@ do_log() {
     defined log_syslog && {
         shift 2 && ${log_color[level]:-printf} "☠️ $fmt" "$@" | logger -t "${log_syslog:-shell_log}"
     } || {
-        shift 2 && ${log_color[level]:-printf} "☠️ $fmt" "$@" >&2
+        shift 2 && ${log_color[level]:-printf} "☠️🐮 $fmt" "$@" >&2
     }
 }
 
