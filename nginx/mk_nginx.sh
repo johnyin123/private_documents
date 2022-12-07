@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ef94548[2022-10-19T14:18:20+08:00]:mk_nginx.sh")
+VERSION+=("af282a4[2022-11-23T13:15:26+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -194,6 +194,11 @@ log "ALL ENABLED REPO : =============================="
 printf '%s\n' "${NGINX_BASE[@]}" "${STATIC_MODULES[@]}" "${DYNAMIC_MODULES[@]}"
 check_requre_dirs "${!NGINX_BASE[@]}" "${!STATIC_MODULES[@]}" "${!DYNAMIC_MODULES[@]}"
 
+pcre_version=$(${PCRE_DIR}/configure -V | grep PCRE | awk '{ print $1, $3 }')
+zlib_version=$(grep "Changes in" ${ZLIB_DIR}/ChangeLog  | head -1 | awk '{ print $3 }')
+builder_version=@$(echo "${VERSION[@]}" | cut -d'[' -f 1)
+log "${builder_version}, $pcre_version, zlib ${zlib_version}"
+
 [ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
     && make -j "$(nproc)" build_libs && make -j "$(nproc)" install_sw LIBDIR=lib
 
@@ -234,9 +239,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
  \
 ${EXT_MODULES[@]}
 
-TMP_VER=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
-log "${TMP_VER}**************************************************"
-sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${TMP_VER}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
+sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"${builder_version},${pcre_version},zlib ${zlib_version}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
 [ ${stage_level} -ge ${stage[make]} ] && cd ${NGINX_DIR} && make -j "$(nproc)"
 OUTDIR=${DIRNAME}/out
 mkdir -p ${OUTDIR}
@@ -538,20 +541,20 @@ echo "userdel nginx || :" > /tmp/uninst.sh
 rm -fr ${DIRNAME}/pkg && mkdir -p ${DIRNAME}/pkg
 
 source <(grep -E "^\s*(VERSION_ID|ID)=" /etc/os-release)
-eval NGX_VER=$(awk '/NGINX_VERSION / {print $3}' ${NGINX_DIR}/src/core/nginx.h)
 case "${ID}" in
     ########################################
     centos)  PKG=${PKG:-rpm};;
     debian)  PKG=${PKG:-deb};;
     *)       log "ALL DONE, NO PACKAGE"; exit 0;;
 esac
+eval NGX_VER=$(awk '/NGINX_VERSION / {print $3}' ${NGINX_DIR}/src/core/nginx.h)
 log "NGINX:${NGX_VER}"
-log "BUILD:${TMP_VER}"
+log "BUILD:${builder_version}"
 [ -z "${STRIP}" ] || {
     log "strip binarys"
     strip ${OUTDIR}/usr/sbin/nginx
     strip ${OUTDIR}/usr/share/nginx/modules/*
 }
-[ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin --version $(echo ${NGX_VER}) --iteration ${TMP_VER} --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
+[ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin --version $(echo ${NGX_VER}) --iteration ${builder_version} --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
 log "ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
