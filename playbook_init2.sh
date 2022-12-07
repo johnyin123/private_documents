@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-12-06T11:19:53+08:00]:playbook_init2.sh")
+VERSION+=("eb3d747[2022-12-06T11:19:52+08:00]:playbook_init2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -38,7 +38,12 @@ EOF
     whoami
     cat /etc/hosts
     id
+  register: output
   notify: restart xxx
+- copy: content="{{ output }}" dest=/home/johnyin/ansible/test/output.log
+
+- debug:
+    msg: "{{ output }}"
 EOF
     write_file "${dir}/handlers/main.yml" <<EOF
 ---
@@ -120,6 +125,14 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+            # mkdir ~/.pip/
+            # cat <<EOF >~/.pip/pip.conf
+            # [global]
+            # index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+            # EOF
+            # python3 -m venv kq_venv --python python3 / virtualenv kq_venv --python python3.9
+            # source kq_venv/bin/activate
+            # pip install ansible==2.10.7
 EOF
     exit 1
 }
