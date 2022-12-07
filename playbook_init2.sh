@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9cd85d5[2022-12-07T14:51:41+08:00]:playbook_init2.sh")
+VERSION+=("e991946[2022-12-07T15:13:11+08:00]:playbook_init2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -134,6 +134,7 @@ ${SCRIPTNAME}
             # source kq_venv/bin/activate
             # pip install ansible==2.10.7
             # keep remote file in remote ~/.ansible/tmp/: ANSIBLE_KEEP_REMOTE_FILES=1 ansible-playbook site.yml -i hosts
+            # ./site.yml -i hosts
 EOF
     exit 1
 }
