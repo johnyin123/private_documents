@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("90a72fe[2022-12-08T13:01:34+08:00]:playbook_init.sh")
+VERSION+=("bc71876[2022-12-08T14:15:12+08:00]:playbook_init.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -23,6 +23,14 @@ init_playbook_module() {
     try mkdir -p "${dir}/templates/"
     try mkdir -p "${dir}/handlers/"
     try mkdir -p "${dir}/files/"
+    try mkdir -p "${dir}/defaults/"
+
+    write_file "${dir}/defaults/main.yml" <<EOF
+---
+# site.yum -i hosts -e "testvalue=9999"
+# if no other value is supplied in inventory or as a parameter, this value will be used
+testvalue: 80
+EOF
 
     write_file "${dir}/tasks/main.yml" <<EOF
 ---
@@ -47,6 +55,7 @@ EOF
 
 # output register value
 - debug: msg="{{ output }}"
+- debug: msg="{{ testvalue }}"
 
 # Task called by include
 - include: func.yml parm={{ item }}
@@ -151,8 +160,7 @@ EOF
 EOF
     echo "end ========= adduser.yml ============="
 }
-demo_
-demo_insert_notexist()() {
+demo_insert_notexist() {
     echo "start ========= insert if not exist ============="
     cat <<'EOF'
 - name: Test for line
