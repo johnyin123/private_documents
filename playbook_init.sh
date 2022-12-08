@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5501259[2022-12-08T08:08:50+08:00]:playbook_init.sh")
+VERSION+=("79b2a76[2022-12-08T09:10:23+08:00]:playbook_init.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -128,6 +128,30 @@ EOF
     return 0
 }
 
+demo_adduser() {
+    echo "include call adduser.yml"
+    cat << 'EOF'
+# python -c 'import crypt; print crypt.crypt("password", "$1$SomeSalt$")'
+- include: adduser.yml username={{ item }} password=$1$SomeSalt$/jbIwfYCu0MxPBND2EtRH.
+  with_items:
+    - newuser1
+    - newuser2
+EOF
+    echo "start ========= adduser.yml ============="
+    cat << 'EOF'
+---
+- name: adduser {{ username }} with password
+  user: name={{ username }} password={{ password }}
+EOF
+    echo "end ========= adduser.yml ============="
+
+}
+
+demo() {
+    demo_adduser
+    echo "end demos ****************************************"
+}
+
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
@@ -171,7 +195,7 @@ main() {
             -l | --log)     shift; set_loglevel ${1}; shift;;
             -d | --dryrun)  shift; DRYRUN=1;;
             -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
-            -h | --help)    shift; usage;;
+            -h | --help)    shift; demo; usage;;
             --)             shift; break;;
             *)              usage "Unexpected option: $1";;
         esac
