@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fd549f8[2022-12-08T09:36:30+08:00]:playbook_init.sh")
+VERSION+=("0b8d7e5[2022-12-08T10:43:41+08:00]:playbook_init.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -140,8 +140,10 @@ EOF
     echo "start ========= adduser.yml ============="
     cat << 'EOF'
 ---
+# - name: addgroup {{ username }}
+#   group: name={{ username }} system=no
 - name: adduser {{ username }} with password
-  user: name={{ username }} password={{ password }}
+  user: name={{ username }} password={{ password }} group={{ username }} home=/home/{{ username }} shell=/bin/bash system=no
 EOF
     echo "end ========= adduser.yml ============="
 }
