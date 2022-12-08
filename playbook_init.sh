@@ -7,83 +7,179 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("playbook_init.sh - be6cd99 - 2021-04-27T14:31:08+08:00")
-[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+VERSION+=("7fb5a25[2021-04-27T17:18:32+08:00]:playbook_init.sh")
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
-main() {
-    local pbm=${1:-demo}
-    [[ -r "${DIRNAME}/site.yml" ]] && {
-        echo "- import_playbook: ${pbm}.yml" >> ${DIRNAME}/site.yml
-    } || {
-        cat > ${DIRNAME}/site.yml <<EOF
-#!/usr/bin/env ansible-playbook
----
-- import_playbook: ${pbm}.yml
-EOF
-    chmod 755 ${DIRNAME}/site.yml
+init_playbook_module() {
+    local pbm=${1}
+    local dir=${2}
+    info_msg "Init ${pbm} playbook direcotry: ${dir}\n"
+    directory_exists "${dir}" && {
+        error_info "${pbm} direcotyr ${dir} exists!!\n"
+        return 1
     }
+    try mkdir -p "${dir}"
+    try mkdir -p "${dir}/tasks/"
+    try mkdir -p "${dir}/templates/"
+    try mkdir -p "${dir}/handlers/"
+    try mkdir -p "${dir}/files/"
 
-    [[ -r "${DIRNAME}/hosts" ]] || {
-        cat > ${DIRNAME}/hosts <<EOF
-[all:vars]
-ansible_connection=ssh
-#ssh or paramiko
-ansible_user=root
-#ansible_ssh_pass=password
-
-[local] 
-127.0.0.1:60022
-EOF
-    }
-    [[ -r "${DIRNAME}/${pbm}.yml" ]] || {
-        cat > ${DIRNAME}/${pbm}.yml <<EOF
+    write_file "${dir}/tasks/main.yml" <<EOF
 ---
-# ansible-playbook ${pbm}.yml -i hosts -e 'env=local'
-- name: main playbook
-  hosts: "{{ env }}"
-
-  roles:
+- include: ${pbm}.yml
+  tags:
     - ${pbm}
-...
 EOF
-    }
-    mkdir -p group_vars
-    [[ -r "${DIRNAME}/group_vars/${pbm}" ]] || {
-        cat > ${DIRNAME}/group_vars/${pbm} <<EOF
-#http_port: 8080
-#https_port: 8443
-EOF
-    }
-    [[ -d "${DIRNAME}/roles/${pbm}" ]] || {
-        for d in tasks templates handlers files; do
-            mkdir -p roles/${pbm}/$d
-        done
-        cat > ${DIRNAME}/roles/${pbm}/tasks/main.yml <<EOF
+    write_file "${dir}/tasks/${pbm}.yml" <<EOF
 ---
-  - name: multiple commands
-    shell: |
-      whoami
-      cat hosts
-      id
-    register: rst_msg
-    notify: restart xxx
+- name: multiple commands
+  shell: |
+    whoami
+    cat /etc/hosts
+    id
+  register: output
+  notify: restart xxx
+# copy register value to local file
+- copy: content="{{ output }}" dest=/tmp/output.log
+# output register value
+- debug: msg="{{ output }}"
 
-  - debug: var=rst_msg
-...
+# Task called by include
+- include: func.yml parm={{ item }}
+  with_items:
+    - parm1
+    - parm2
+
+# - name: execute python script
+#   script: mypython.py
+# # and mypython.py file should be in files in the same role
 EOF
-        cat > ${DIRNAME}/roles/${pbm}/handlers/main.yml<<EOF
+    write_file "${dir}/tasks/func.yml" <<EOF
+---
+- name: called by include task
+  shell:
+    echo "{{ parm }}"
+EOF
+    write_file "${dir}/handlers/main.yml" <<EOF
 ---
 - name: restart xxx
 #  service: name=tomcat state=restarted
   shell: |
     echo "XXX"
-...
 EOF
-        cat > ${DIRNAME}/roles/${pbm}/templates/test.conf<<EOF
+    write_file "${dir}/templates/test.conf" <<EOF
 port={{ https_port }}
 EOF
-        touch ${DIRNAME}/roles/${pbm}/files/test.file
+    touch "${dir}/files/test.file"
+    return 0
+}
+
+init_playbook() {
+    local pbm=${1:-demo}
+    local host=${2:-web}
+    local dir=${3}
+    info_msg "Init direcotrys\n"
+    try mkdir -p "${dir}/group_vars"
+    try mkdir -p "${dir}/host_vars"
+
+    file_exists "${dir}/site.yml" && {
+        write_file "${dir}/site.yml" 1 <<EOF
+
+- hosts: ${host}
+  roles:
+    - ${pbm}
+EOF
+    } || {
+        write_file "${dir}/site.yml" <<EOF
+#!/usr/bin/env ansible-playbook
+---
+- hosts: ${host}
+  roles:
+    - ${pbm}
+EOF
+    chmod 755 "${dir}/site.yml"
     }
+
+    file_exists "${dir}/hosts" || {
+        write_file "${dir}/hosts" <<EOF
+# ansible_connection=ssh
+# ansible_ssh_pass=password
+
+[${host}]
+srv1 ansible_host=192.168.168.2 ansible_port=22 ansible_user=root
+srv2 ansible_host=192.168.168.3 ansible_port=22 ansible_user=root
+EOF
+    }
+
+    file_exists "${dir}/group_vars/${pbm}.yml" || {
+        write_file "${dir}/group_vars/${pbm}.yml" <<EOF
+#http_port: 8080
+#https_port: 8443
+EOF
+    }
+
+    file_exists "${dir}/host_vars/srv1.yml" || {
+        write_file "${dir}/host_vars/srv1.yml" <<EOF
+#http_port: 8080
+#https_port: 8443
+EOF
+    }
+    init_playbook_module "${pbm}" "${dir}/roles/${pbm}" || return $?
+    return 0
+}
+
+usage() {
+    [ "$#" != 0 ] && echo "$*"
+    cat <<EOF
+${SCRIPTNAME}
+        -D     dest directory
+        -m     playbook name
+        -H     playbook host
+        -q|--quiet
+        -l|--log <int> log level
+        -V|--version
+        -d|--dryrun dryrun
+        -h|--help help
+            # mkdir ~/.pip/
+            # cat <<EOF >~/.pip/pip.conf
+            # [global]
+            # index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+            # EOF
+            # python3 -m venv kq_venv --python python3 / virtualenv kq_venv --python python3.9
+            # source kq_venv/bin/activate
+            # pip install ansible==2.10.7
+            # keep remote file in remote ~/.ansible/tmp/: ANSIBLE_KEEP_REMOTE_FILES=1 ansible-playbook site.yml -i hosts
+            # ./site.yml -i hosts
+EOF
+    exit 1
+}
+main() {
+    local pbm= host= dir=
+    local opt_short="m:H:D:"
+    local opt_long=""
+    opt_short+="ql:dVh"
+    opt_long+="quiet,log:,dryrun,version,help"
+    __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            -m)     shift; pbm=${1}; shift;;
+            -H)     shift; host=${1}; shift;;
+            -D)     shift; dir=${1}; shift;;
+            ########################################
+            -q | --quiet)   shift; QUIET=1;;
+            -l | --log)     shift; set_loglevel ${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              usage "Unexpected option: $1";;
+        esac
+    done
+    [ -z "${pbm}" ] || [ -z "${host}" ] || [ -z "${dir}" ] && {
+        usage "Need module & hosts & direcotry"
+    }
+    init_playbook "${pbm}" "${host}" "${dir}"
     return 0
 }
 main "$@"
