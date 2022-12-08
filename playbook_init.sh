@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7fb5a25[2021-04-27T17:18:32+08:00]:playbook_init.sh")
+VERSION+=("5501259[2022-12-08T08:08:50+08:00]:playbook_init.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -133,8 +133,8 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME}
         -D     dest directory
-        -m     playbook name
-        -H     playbook host
+        -m     task name
+        -H     task host group name
         -q|--quiet
         -l|--log <int> log level
         -V|--version
