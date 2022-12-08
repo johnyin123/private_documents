@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("79b2a76[2022-12-08T09:10:23+08:00]:playbook_init.sh")
+VERSION+=("fd549f8[2022-12-08T09:36:30+08:00]:playbook_init.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -144,11 +144,27 @@ EOF
   user: name={{ username }} password={{ password }}
 EOF
     echo "end ========= adduser.yml ============="
+}
+demo_
+demo_insert_notexist()() {
+    echo "start ========= insert if not exist ============="
+    cat <<'EOF'
+- name: Test for line
+  shell: grep -c "^keyword" /file || true
+  register: test_grep
 
+- name: add if not exist
+  lineinfile:
+    dest: /file
+    line: keyword=127.0.0.1
+  when: test_grep.stdout == "0"
+EOF
+    echo "end ========= insert if not exist ============="
 }
 
 demo() {
     demo_adduser
+    demo_insert_notexist
     echo "end demos ****************************************"
 }
 
