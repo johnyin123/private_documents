@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bc71876[2022-12-08T14:15:12+08:00]:playbook_init.sh")
+VERSION+=("e0a8696[2022-12-08T16:49:47+08:00]:playbook_init.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -120,7 +120,7 @@ EOF
 
 [${host}]
 srv1 ansible_host=192.168.168.2 ansible_port=22 ansible_user=root
-srv2 ansible_host=192.168.168.3 ansible_port=22 ansible_user=root
+srv2 ansible_host=192.168.168.3 ansible_port=22 ansible_user=root ansible_python_interpreter=/usr/bin/python3
 EOF
     }
 
