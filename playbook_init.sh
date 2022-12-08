@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0b8d7e5[2022-12-08T10:43:41+08:00]:playbook_init.sh")
+VERSION+=("90a72fe[2022-12-08T13:01:34+08:00]:playbook_init.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -40,7 +40,11 @@ EOF
   register: output
   notify: restart xxx
 # copy register value to local file
-- copy: content="{{ output }}" dest=/tmp/output.log
+- local_action: copy content="{{ item.value }}" dest="/tmp/{{ item.name }}-{{ ansible_date_time.date }}-{{ ansible_hostname }}.log"
+  with_items:
+    - name: cmdoutput
+      value: "{{ output }}"
+
 # output register value
 - debug: msg="{{ output }}"
 
