@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e0a8696[2022-12-08T16:49:47+08:00]:playbook_init.sh")
+VERSION+=("87f7b86[2022-12-08T17:02:13+08:00]:playbook_init.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -31,9 +31,18 @@ init_playbook_module() {
 # if no other value is supplied in inventory or as a parameter, this value will be used
 testvalue: 80
 EOF
-
     write_file "${dir}/tasks/main.yml" <<EOF
 ---
+- name: Gather os specific variables
+  ignore_errors: True
+  include_vars: "{{ item }}"
+  with_first_found:
+    - files:
+        - "{{ ansible_facts.distribution }}-{{ ansible_facts.distribution_major_version }}.yml"
+        - "{{ ansible_facts.distribution }}.yml"
+        - "{{ ansible_facts.os_family }}.yml"
+  tags: vars
+
 - include: ${pbm}.yml
   tags:
     - ${pbm}
@@ -62,10 +71,6 @@ EOF
   with_items:
     - parm1
     - parm2
-
-# - name: execute python script
-#   script: mypython.py
-# # and mypython.py file should be in files in the same role
 EOF
     write_file "${dir}/tasks/func.yml" <<EOF
 ---
@@ -94,6 +99,16 @@ init_playbook() {
     info_msg "Init direcotrys\n"
     try mkdir -p "${dir}/group_vars"
     try mkdir -p "${dir}/host_vars"
+    try mkdir -p "${dir}/vars/"
+
+    file_exists "${dir}/vars/Debian.yml" || write_file "${dir}/vars/Debian.yml" <<EOF
+---
+testvalue: debian
+EOF
+    file_exists "${dir}/vars/RedHat.yml" || write_file "${dir}/vars/RedHat.yml" <<EOF
+---
+testvalue: redhat
+EOF
 
     file_exists "${dir}/site.yml" && {
         write_file "${dir}/site.yml" 1 <<EOF
@@ -113,30 +128,24 @@ EOF
     chmod 755 "${dir}/site.yml"
     }
 
-    file_exists "${dir}/hosts" || {
-        write_file "${dir}/hosts" <<EOF
+    file_exists "${dir}/hosts" || write_file "${dir}/hosts" <<EOF
 # ansible_connection=ssh
 # ansible_ssh_pass=password
 
 [${host}]
-srv1 ansible_host=192.168.168.2 ansible_port=22 ansible_user=root
-srv2 ansible_host=192.168.168.3 ansible_port=22 ansible_user=root ansible_python_interpreter=/usr/bin/python3
+srv1 ansible_host=192.168.168.1 ansible_port=60022 ansible_user=root
+srv2 ansible_host=192.168.168.2 ansible_port=60022 ansible_user=root ansible_python_interpreter=/usr/bin/python3
 EOF
-    }
 
-    file_exists "${dir}/group_vars/${pbm}.yml" || {
-        write_file "${dir}/group_vars/${pbm}.yml" <<EOF
+    file_exists "${dir}/group_vars/${pbm}.yml" || write_file "${dir}/group_vars/${pbm}.yml" <<EOF
 #http_port: 8080
 #https_port: 8443
 EOF
-    }
 
-    file_exists "${dir}/host_vars/srv1.yml" || {
-        write_file "${dir}/host_vars/srv1.yml" <<EOF
+    file_exists "${dir}/host_vars/srv1.yml" || write_file "${dir}/host_vars/srv1.yml" <<EOF
 #http_port: 8080
 #https_port: 8443
 EOF
-    }
     init_playbook_module "${pbm}" "${dir}/roles/${pbm}" || return $?
     return 0
 }
@@ -144,6 +153,10 @@ EOF
 demo_adduser() {
     echo "include call adduser.yml"
     cat << 'EOF'
+# - name: execute python script
+#   script: mypython.py
+# # and mypython.py file should be in files in the same role
+
 # python -c 'import crypt; print crypt.crypt("password", "$1$SomeSalt$")'
 - include: adduser.yml username={{ item }} password=$1$SomeSalt$/jbIwfYCu0MxPBND2EtRH.
   with_items:
