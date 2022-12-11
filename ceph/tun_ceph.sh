@@ -45,9 +45,10 @@ ceph osd unset norebalance
 ceph -s
 
 #更换故障硬盘过程
+disk=sdd
 ceph-volume lvm list
-#pvs | grep sdd
-/dev/sdd   ceph-9fbe38b2-69a5-4e46-bb0c-c4d50546b369 lvm2 a--  1.09t    0
+#pvs | grep ${disk}
+/dev/... ceph-9fbe38b2-69a5-4e46-bb0c-c4d50546b369 lvm2 a--  1.09t    0
 #ll /var/lib/ceph/osd/*/block | grep ceph-9fbe38b2-69a5-4e46-bb0c-c4d50546b369
 lrwxrwxrwx 1 ceph ceph 93 4月  17 2019 /var/lib/ceph/osd/ceph-24/block -> /dev/ceph-9fbe38b2-69a5-4e46-bb0c-c4d50546b369/osd-block-265e3a5d-81d2-4e72-bbd9-1617cd8da3eb
 #ceph osd tree
@@ -74,10 +75,10 @@ ceph auth del osd.${osd_id}
 #在OSD Map中清除OSD
 ceph osd rm ${osd_id}
 
-#查看sdd是否还挂载系统中.....
-ceph-volume lvm zap /dev/sdd --destroy
-cat /sys/block/sdb/device/state
-#echo "1" > /sys/block/sdc/device/delete
+#查看disk是否还挂载系统中.....
+ceph-volume lvm zap /dev/${disk} --destroy
+cat /sys/block/${disk}/device/state
+#echo "1" > /sys/block/${disk}/device/delete
 
 watch -n 1 "ceph -s"
 #wait HEALTH OK!
