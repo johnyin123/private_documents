@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("87f7b86[2022-12-08T17:02:13+08:00]:playbook_init.sh")
+VERSION+=("1ced45e[2022-12-09T11:12:14+08:00]:playbook_init.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -105,9 +105,9 @@ init_playbook() {
 ---
 testvalue: debian
 EOF
-    file_exists "${dir}/vars/RedHat.yml" || write_file "${dir}/vars/RedHat.yml" <<EOF
+    file_exists "${dir}/vars/CentOS.yml" || write_file "${dir}/vars/CentOS.yml" <<EOF
 ---
-testvalue: redhat
+testvalue: centos
 EOF
 
     file_exists "${dir}/site.yml" && {
