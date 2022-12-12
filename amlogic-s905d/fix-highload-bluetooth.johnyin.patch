@@ -27,12 +27,13 @@ index 9ef210f17..f3b1c43b5 100644
  };
  
  &cvbs_vdac_port {
-@@ -33,3 +51,24 @@
+@@ -33,3 +51,29 @@
  &usb {
  	dr_mode = "host";
  };
 +
 +&sd_emmc_b {
++	/* disable SD CARD */
 +	status = "disabled";
 +};
 +
