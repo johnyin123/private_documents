@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7952d43[2022-12-07T09:37:48+08:00]:mk_nginx.sh")
+VERSION+=("6797631[2022-12-07T09:42:13+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -411,6 +411,7 @@ log_format main '$hostname $scheme $http_host $server_port "$upstream_addr" '
     '$remote_addr - $remote_user [$time_iso8601] "$request" '
     '$status $request_length $bytes_sent "$http_referer" '
     '"$http_user_agent" "$http_x_forwarded_for" "$upstream_cache_status" $gzip_ratio';
+    #$brotli_ratio
 
 geo $remote_addr $log_ip {
 #    10.3.0.0/16 0;
