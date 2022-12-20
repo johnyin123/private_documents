@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3664b28[2022-06-23T09:00:12+08:00]:init-pc.sh")
+VERSION+=("a583241[2022-11-02T20:00:31+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -191,7 +191,7 @@ case "$VERSION_CODENAME" in
         XFCE_WEB=exo-web-browser.desktop
         XFCE_MAIL=exo-mail-reader.desktop
         ;;
-    bullseye)
+    bullseye | *)
         apt -y install bsdmainutils fonts-noto-cjk xpad
         apt -y install fcitx5 fcitx5-pinyin fcitx5-chinese-addons fcitx5-frontend-gtk2 fcitx5-frontend-gtk3 fcitx5-frontend-qt5
         XFCE_TERM=xfce4-terminal-emulator.desktop
