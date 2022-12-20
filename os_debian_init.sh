@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("8e7713e[2022-11-25T14:20:04+08:00]:os_debian_init.sh")
+VERSION+=("b0480ca[2022-11-25T14:26:30+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -74,6 +74,8 @@ EOSHELL
 debian_apt_init() {
     local ver=${1:-buster}
     echo 'Acquire::http::User-Agent "debian dler";' > /etc/apt/apt.conf
+    echo '#Acquire::http::Proxy "http://proxy_srv:port";' >> /etc/apt/apt.conf
+    echo '#Acquire::https::Proxy "https://u:p@srv:port";'>> /etc/apt/apt.conf
     # echo 'APT::Install-Recommends "0";'> /etc/apt/apt.conf.d/71-no-recommends
     echo 'APT::Install-Suggests "0";'> /etc/apt/apt.conf.d/72-no-suggests
     cat > /etc/apt/sources.list << EOF
