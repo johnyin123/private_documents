@@ -16,7 +16,12 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("8e7713e[2022-11-25T14:20:04+08:00]:os_centos_init.sh")
+VERSION+=("b0480ca[2022-11-25T14:26:30+08:00]:os_centos_init.sh")
+# /etc/yum.conf
+# [main]
+# proxy=http://srv:port
+# proxy_username=u
+# proxy_password=p
 centos_build() {
     local root_dir=$1
     local REPO=$(mktemp -d)/local.repo
@@ -97,7 +102,6 @@ Section "InputClass"
 EndSection
 EOF
     echo 'KEYMAP="cn"' > ${root_dir}/etc/vconsole.conf
-
 
     chmod 755 ${root_dir}/etc/rc.d/rc.local
     rm -f ${root_dir}/ssh/ssh_host_*
