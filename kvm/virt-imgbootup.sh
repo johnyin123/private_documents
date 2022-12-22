@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("26efe1b[2022-07-07T07:26:38+08:00]:virt-imgbootup.sh")
+VERSION+=("381cd87[2022-11-18T15:58:31+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -29,7 +29,7 @@ ${SCRIPTNAME}
         -f|--fmt    <fmt>     disk image format(default auto detect!)
         --simusb    <file>    simulation usb disk(raw format)
         --pci       <pci_bus_addr> passthrough pci bus address(like: 00:1d.0)
-        -usb        <VENDOR_ID:PRODUCT_ID> support usb 3.0
+        --usb       <VENDOR_ID:PRODUCT_ID> support usb 3.0
                     passthrough host usb device (support multi usb passthrough)
                     lsusb:
                         Bus 001 Device 003: ID 5986:0652 Acer, Inc
