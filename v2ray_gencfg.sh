@@ -7,12 +7,100 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("v2ray_gencfg.sh - 3f3f752 - 2021-07-29T09:44:05+08:00")
+VERSION+=("ce287cd[2021-07-29T09:46:43+08:00]:v2ray_gencfg.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # https://github.com/UmeLabs/node.umelabs.dev
 # V2Ray:https://raw.githubusercontent.com/umelabs/node.umelabs.dev/master/Subscribe/v2ray.md
-
+cat > via_proxy.json <<EOF
+{
+  "log": {
+    "access": "access.log",
+    "error": "error.log",
+    "loglevel": "info"
+  },
+  "inbounds": [
+    {
+      "tag": "http-in",
+      "port": 58891,
+      "listen": "127.0.0.1",
+      "protocol": "http"
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "vmess",
+      "settings": {
+        "vnext": [
+          {
+            "address": "172.67.116.211",
+            "port": 443,
+            "users": [
+              {
+                "id": "10a5a682-de44-456c-feed-8932d7a1aa8f",
+                "alterId": 64,
+                "email": "t@t.tt",
+                "security": "auto"
+              }
+            ]
+          }
+        ]
+      },
+      "tag": "VMESS",
+      "proxySettings": {
+          "tag": "HTTP"
+      }
+    },
+    {
+      "protocol": "http",
+      "settings": {
+        "servers": [
+          {
+            "address": "192.168.108.1",
+            "port": 3128,
+            "users": [
+              {
+                "user": "username",
+                "pass": "password"
+              }
+            ]
+          }
+        ]
+      },
+      "tag": "HTTP"
+    }
+  ]
+}
+EOF
+cat > as_proxy.json <<EOF
+{
+  "log": {
+      "access": "/var/log/v2ray/access.log",
+      "error": "/var/log/v2ray/error.log",
+      "loglevel": "info"
+  },
+  "inbounds": [
+    {
+      "port": [port number],
+      "protocol": "vmess",
+      "settings": {
+        "clients": [
+          {
+            "id": "[your uuid]",
+            "alterId": [your alterid]
+          }
+        ]
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {}
+    }
+  ]
+}
+EOF
 :<<EOF
   # 5IOeRnuWFuOaWr+W+t+WTpeWwlOaRqUFtYXpvbuaVsOaNruS4reW/gyAxOCIsDQogICJhZGQiOiAiMTMuNDkuMjQ2LjIwOCIsDQogICJwb3J0IjogIjQ0MyIsDQogICJpZCI6ICJkZjA1NWVhMi00ZDNhLTQ0NWUtOTc3ZC04ZTk1OGFiYWFkM2EiLA0KICAiYWlkIjogIjIiLA0KICAibmV0IjogIndzIiwNCiAgInR5cGUiOiAibm9uZSIsDQogICJob3N0IjogInYycmF5LXNlLTIueGFtanlzc3Zwbi54eXoiLA0KICAicGF0aCI6ICIveGFtanlzczE0My8iLA0KICAidGxzIjogInRscyIsDQogICJzbmkiOiAiIg0KfQ==
   "outbounds": [
@@ -83,7 +171,7 @@ EOF
 main() {
     local cfg=
     local address= port= id= alterid=
-    cat <<EOF 
+    cat <<EOF
 //curl -k -x http://${HTTP_IP}:${HTTP_PORT} http://www.google.com -v
 {
   "log": {
