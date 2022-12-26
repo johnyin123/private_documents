@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("8fc81bb[2022-11-28T11:35:06+08:00]:tgz_rootfs_inst.sh")
+VERSION+=("4fbd66e[2022-11-28T14:07:07+08:00]:tgz_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -18,7 +18,7 @@ ${SCRIPTNAME}
                         parted -s /dev/vda "mkpart primary xfs 128M 100%"
                         parted -s /dev/vda "set 1 boot on"
         -d|--disk *   <str>   disk, /dev/sdX
-        -p|--part *   <int>   install tgz in partition as rootfs, /dev/vda1, /dev/mapper/..
+        -p|--part *   <str>   install tgz in partition as rootfs, /dev/vda1, /dev/mapper/..
         -x | --xfsfix         disable xfs v5 feature!! for support kernel below 3.16
         -V|--version          version info
         -h|--help             help
