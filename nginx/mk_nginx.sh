@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4f148bd[2022-12-27T08:57:33+08:00]:mk_nginx.sh")
+VERSION+=("9492502[2022-12-27T09:34:07+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -34,6 +34,7 @@ CC_OPTS=${CC_OPTS:-"-O2 -fstack-protector-strong -Wformat -Werror=format-securit
 LD_OPTS=${LD_OPTS:-"-Wl,-z,relro -Wl,-z,now -fPIC"}
 STRIP=${STRIP:-""}
 PKG=${PKG:-""}
+# modules selection default NO select
 PROXY_CONNECT=${PROXY_CONNECT:-""}
 AUTH_LDAP=${AUTH_LDAP:-""}
 HTTP2=${HTTP2:-""}
@@ -41,6 +42,9 @@ HTTP3=${HTTP3:-""}
 IMAGE_FILTER=${IMAGE_FILTER:-""}
 CACHE_PURGE=${CACHE_PURGE:-""}
 PAGE_SPEED=${PAGE_SPEED:-""}
+HEADER_MORE=${HEADER_MORE:-""}
+REDIS=${REDIS:-""}
+VTS=${VTS:-""}
 ##OPTION_END##
 log() {
     echo "$(tput setaf 141)$*$(tput sgr0)" >&2
@@ -66,9 +70,6 @@ declare -A DYNAMIC_MODULES=(
     [${DIRNAME}/njs/nginx]="git clone --depth 1 --branch ${NJS_RELEASE} https://github.com/nginx/njs.git"
     [${DIRNAME}/nginx-rtmp-module]="git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git"
     [${DIRNAME}/ngx_brotli]="git clone --depth 1 --recursive https://github.com/google/ngx_brotli.git"
-    # [${DIRNAME}/ngx_http_redis]="git clone --depth 1 https://github.com/osokin/ngx_http_redis.git"
-    # [${DIRNAME}/nginx-module-vts]="git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git"
-    # [${DIRNAME}/headers-more-nginx-module]="git clone --depth 1 https://github.com/openresty/headers-more-nginx-module.git"
     # [${DIRNAME}/ngx_http_auth_pam_module]="git clone --depth 1 https://github.com/sto/ngx_http_auth_pam_module.git"
     # [${DIRNAME}/NginxExecute]="git clone --depth 1 https://github.com/limithit/NginxExecute.git"
     # [${DIRNAME}/Nginx-DOH-Module]="git clone --depth 1 https://github.com/dvershinin/Nginx-DOH-Module.git"
@@ -98,6 +99,15 @@ stage_level=${stage_level:?"${SCRIPTNAME} fpm/install/make/configure/openssl"}
 }
 [ -z "${PAGE_SPEED}" ] || {
     DYNAMIC_MODULES[${DIRNAME}/incubator-pagespeed-ngx]="git clone --depth 1 --branch latest-stable https://github.com/apache/incubator-pagespeed-ngx.git"
+}
+[ -z "${HEADER_MORE}" ] || {
+    DYNAMIC_MODULES[${DIRNAME}/headers-more-nginx-module]="git clone --depth 1 https://github.com/openresty/headers-more-nginx-module.git"
+}
+[ -z "${REDIS}" ] || {
+    DYNAMIC_MODULES[${DIRNAME}/ngx_http_redis]="git clone --depth 1 https://github.com/osokin/ngx_http_redis.git"
+}
+[ -z "${VTS}" ] || {
+    DYNAMIC_MODULES[${DIRNAME}/nginx-module-vts]="git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git"
 }
 # # proxy_connect_module
 # cd nginx && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch
