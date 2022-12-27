@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("50c6c14[2022-12-27T11:16:19+08:00]:ngx_demo.sh")
+VERSION+=("5ca6c70[2022-12-27T11:22:44+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -470,7 +470,7 @@ server {
     ssl_certificate /etc/nginx/test.pem;
     ssl_certificate_key /etc/nginx/test.key;
     server_name _;
-    location / { return 200 "http3"; }
+    location / { return 200 "$http3"; }
 }
 EOF
 cat <<'EOF' >check_nofiles.ngx.sh
