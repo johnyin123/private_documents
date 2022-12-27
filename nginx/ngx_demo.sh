@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3725f2a[2022-12-27T08:16:59+08:00]:ngx_demo.sh")
+VERSION+=("50c6c14[2022-12-27T11:16:19+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -449,7 +449,7 @@ server {
     listen *:80 default_server reuseport;
     # listen 443 ssl default_server reuseport;     # TCP listener for HTTP/1.1
     listen 443 ssl http2 default_server reuseport; # TCP listener for HTTP/1.1+HTTP/2
-    listen 443 http3 default_server reuseport;     # UDP listener for QUIC+HTTP/3
+    # listen 443 http3 default_server reuseport;     # UDP listener for QUIC+HTTP/3
     # quic requires ssl_protocols TLSv1.3
     # add_header Alt-Svc 'h3=":443"';   # Advertise that HTTP/3 is available
     # access_log can add $http3 var, for logging quic enabled or not
@@ -459,6 +459,18 @@ server {
     access_log /var/log/nginx/access_err_domain.log main buffer=512k flush=5m;
     location =/health { access_log off; default_type text/html; return 200 "$time_iso8601 $hostname alive."; }
     location / { return 444; }
+}
+EOF
+cat <<'EOF' >quic_http3.conf
+server {
+    listen 443 ssl http2;
+    listen 443 http3;
+    ssl_protocols TLSv1.3; # QUIC requires TLS 1.3
+    add_header Alt-Svc 'h3=":443"';   # Advertise that HTTP/3 is available
+    ssl_certificate /etc/nginx/test.pem;
+    ssl_certificate_key /etc/nginx/test.key;
+    server_name _;
+    location / { return 200 "http3"; }
 }
 EOF
 cat <<'EOF' >check_nofiles.ngx.sh
