@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5b977bd[2022-10-11T10:00:26+08:00]:ngx_demo.sh")
+VERSION+=("0b8f9e4[2022-10-11T16:41:46+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -447,7 +447,10 @@ cat <<'EOF' >dummy.http
 # If no default server is defined, Nginx will use the first found server.
 server {
     listen *:80 default_server reuseport;
-    listen 443 ssl http2 default_server reuseport;
+    # listen 443 ssl default_server reuseport;     # TCP listener for HTTP/1.1
+    listen 443 ssl http2 default_server reuseport; # TCP listener for HTTP/1.1+HTTP/2
+    listen 443 http3 default_server reuseport;     # UDP listener for QUIC+HTTP/3
+    # quic requires ssl_protocols TLSv1.3
     ssl_certificate /etc/nginx/test.pem;
     ssl_certificate_key /etc/nginx/test.key;
     server_name _;
@@ -4526,7 +4529,8 @@ mail {
 
     ssl_certificate     /etc/nginx/ssl/test.pem;
     ssl_certificate_key /etc/nginx/ssl/test.key;
-    ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
+    # ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
+    ssl_protocols       TLSv1.3; # QUIC requires TLS 1.3
     ssl_ciphers         HIGH:!aNULL:!MD5;
     ssl_session_cache   shared:MAILSSL:10m;
     ssl_session_timeout 10m;
