@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9492502[2022-12-27T09:34:07+08:00]:mk_nginx.sh")
+VERSION+=("bd27f8c[2022-12-27T09:49:13+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -50,8 +50,10 @@ log() {
     echo "$(tput setaf 141)$*$(tput sgr0)" >&2
 }
 cat <<EOF
-for QUIC: use boringssl
-git clone https://github.com/google/boringssl
+1. https://github.com/nginx-modules
+2. for QUIC: use boringssl/openssl-quic
+    git clone https://github.com/google/boringssl
+    git clone https://github.com/quictls/openssl
 EOF
 NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl
