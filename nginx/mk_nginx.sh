@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6797631[2022-12-07T09:42:13+08:00]:mk_nginx.sh")
+VERSION+=("9c84697[2022-12-19T08:06:39+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -37,6 +37,7 @@ PKG=${PKG:-""}
 PROXY_CONNECT=${PROXY_CONNECT:-""}
 AUTH_LDAP=${AUTH_LDAP:-""}
 HTTP2=${HTTP2:-""}
+HTTP3=${HTTP3:-""}
 IMAGE_FILTER=${IMAGE_FILTER:-""}
 CACHE_PURGE=${CACHE_PURGE:-""}
 PAGE_SPEED=${PAGE_SPEED:-""}
@@ -54,7 +55,7 @@ PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, pcre2 support nginx 1.21.5+
 ZLIB_DIR=${DIRNAME}/zlib
 declare -A NGINX_BASE=(
     [${NGINX_DIR}]="git clone --depth 1 --branch ${NGINX_RELEASE} https://github.com/nginx/nginx.git"
-    [${OPENSSL_DIR}]="wget --no-check-certificate -O openssl.tar.gz https://www.openssl.org/source/openssl-1.1.1m.tar.gz"
+    [${OPENSSL_DIR}]="wget --no-check-certificate -O openssl.tar.gz https://www.openssl.org/source/openssl-1.1.1m.tar.gz || https://github.com/quictls/openssl"
     [${PCRE_DIR}]="wget --no-check-certificate -O pcre.tar.gz https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz/download || https://sourceforge.net/projects/pcre/files/pcre2/10.37/pcre2-10.37.zip/download"
     [${ZLIB_DIR}]="wget --no-check-certificate -O zlib.tar.gz https://zlib.net/zlib-1.2.11.tar.gz"
 )
@@ -64,10 +65,10 @@ printf '%s\n' "${!NGINX_BASE[@]}"
 declare -A DYNAMIC_MODULES=(
     [${DIRNAME}/njs/nginx]="git clone --depth 1 --branch ${NJS_RELEASE} https://github.com/nginx/njs.git"
     [${DIRNAME}/nginx-rtmp-module]="git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git"
-    [${DIRNAME}/ngx_http_redis]="git clone --depth 1 https://github.com/osokin/ngx_http_redis.git"
-    [${DIRNAME}/nginx-module-vts]="git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git"
-    [${DIRNAME}/headers-more-nginx-module]="git clone --depth 1 https://github.com/openresty/headers-more-nginx-module.git"
     [${DIRNAME}/ngx_brotli]="git clone --depth 1 --recursive https://github.com/google/ngx_brotli.git"
+    # [${DIRNAME}/ngx_http_redis]="git clone --depth 1 https://github.com/osokin/ngx_http_redis.git"
+    # [${DIRNAME}/nginx-module-vts]="git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git"
+    # [${DIRNAME}/headers-more-nginx-module]="git clone --depth 1 https://github.com/openresty/headers-more-nginx-module.git"
     # [${DIRNAME}/ngx_http_auth_pam_module]="git clone --depth 1 https://github.com/sto/ngx_http_auth_pam_module.git"
     # [${DIRNAME}/NginxExecute]="git clone --depth 1 https://github.com/limithit/NginxExecute.git"
     # [${DIRNAME}/Nginx-DOH-Module]="git clone --depth 1 https://github.com/dvershinin/Nginx-DOH-Module.git"
@@ -163,6 +164,7 @@ check_depends_lib() {
 }
 
 [ -z "${HTTP2}" ] || { EXT_MODULES+=("--with-http_v2_module"); }
+[ -z "${HTTP3}" ] || { EXT_MODULES+=("--with-http_v3_module" "--with-stream_quic_module"); }
 [ -z "${IMAGE_FILTER}" ] || { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); check_depends_lib gdlib; }
 
 check_depends_lib libxml-2.0 libxslt geoip uuid
