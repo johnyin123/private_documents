@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0b8f9e4[2022-10-11T16:41:46+08:00]:ngx_demo.sh")
+VERSION+=("3725f2a[2022-12-27T08:16:59+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -451,6 +451,8 @@ server {
     listen 443 ssl http2 default_server reuseport; # TCP listener for HTTP/1.1+HTTP/2
     listen 443 http3 default_server reuseport;     # UDP listener for QUIC+HTTP/3
     # quic requires ssl_protocols TLSv1.3
+    # add_header Alt-Svc 'h3=":443"';   # Advertise that HTTP/3 is available
+    # access_log can add $http3 var, for logging quic enabled or not
     ssl_certificate /etc/nginx/test.pem;
     ssl_certificate_key /etc/nginx/test.key;
     server_name _;
