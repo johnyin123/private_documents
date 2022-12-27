@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9c84697[2022-12-19T08:06:39+08:00]:mk_nginx.sh")
+VERSION+=("f4e9cb6[2022-12-27T08:10:37+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -22,7 +22,7 @@ declare -A stage=(
 set +o nounset
 stage_level=${stage[${1:-doall}]}
 set -o nounset
-
+mydesc=""
 ##OPTION_START##
 ## openssl 3.0 disabled TLSv1.0/1.1(even ssl_protocols TLSv1 TLSv1.1 TLSv1.2;)
 ## openssl 1.xx TLS1.0/1.1 OK
@@ -163,8 +163,8 @@ check_depends_lib() {
     done
 }
 
-[ -z "${HTTP2}" ] || { EXT_MODULES+=("--with-http_v2_module"); }
-[ -z "${HTTP3}" ] || { EXT_MODULES+=("--with-http_v3_module" "--with-stream_quic_module"); }
+[ -z "${HTTP2}" ] || { mydesc="${mydesc:+${mydesc},}http2"; EXT_MODULES+=("--with-http_v2_module"); }
+[ -z "${HTTP3}" ] || { mydesc="${mydesc:+${mydesc},}http3"; EXT_MODULES+=("--with-http_v3_module" "--with-stream_quic_module"); }
 [ -z "${IMAGE_FILTER}" ] || { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); check_depends_lib gdlib; }
 
 check_depends_lib libxml-2.0 libxslt geoip uuid
@@ -241,7 +241,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
  \
 ${EXT_MODULES[@]}
 
-sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"builder ${builder_version},${pcre_version},zlib ${zlib_version}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
+sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"builder ${builder_version},${pcre_version},zlib ${zlib_version},${mydesc}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
 [ ${stage_level} -ge ${stage[make]} ] && cd ${NGINX_DIR} && make -j "$(nproc)"
 OUTDIR=${DIRNAME}/out
 mkdir -p ${OUTDIR}
