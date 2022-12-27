@@ -7,11 +7,34 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ce287cd[2021-07-29T09:46:43+08:00]:v2ray_gencfg.sh")
+VERSION+=("d039079[2022-12-26T08:15:54+08:00]:v2ray_gencfg.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # https://github.com/UmeLabs/node.umelabs.dev
 # V2Ray:https://raw.githubusercontent.com/umelabs/node.umelabs.dev/master/Subscribe/v2ray.md
+cat > http_proxy.json <<EOF
+{
+  "log": {
+    "access": "access.log",
+    "error": "error.log",
+    "loglevel": "info"
+  },
+  "inbounds": [
+    {
+      "tag": "http-in",
+      "port": 8080,
+      "listen": "127.0.0.1",
+      "protocol": "http"
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {}
+    }
+  ]
+}
+EOF
 cat > via_proxy.json <<EOF
 {
   "log": {
