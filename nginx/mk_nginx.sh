@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bd27f8c[2022-12-27T09:49:13+08:00]:mk_nginx.sh")
+VERSION+=("ed34295[2022-12-27T16:03:30+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -32,6 +32,14 @@ NGINX_RELEASE=${NGINX_RELEASE:-release-1.20.2}
 NJS_RELEASE=${NJS_RELEASE:-0.7.0}
 CC_OPTS=${CC_OPTS:-"-O2 -fstack-protector-strong -Wformat -Werror=format-security -fPIC"}
 LD_OPTS=${LD_OPTS:-"-Wl,-z,relro -Wl,-z,now -fPIC"}
+# Performance Improvement with kTLS, 10%
+# enable ktls, --with-openssl=/openssl-3.0.0 --with-openssl-opt=enable-ktls
+# kTLS, need kernel > 4.17(best 5.10 with CONFIG_TLS=m/y) & openssl > 3.0.0 & nginx > 1.21.4
+# add: ssl_conf_command Options KTLS; ssl_protocols TLSv1.3;
+# To verify that NGINX is using kTLS, enable debugging mode
+# check for BIO_get_ktls_send() and SSL_sendfile() in the error log
+# error_log /var/log/nginx/error.log debug;
+KTLS=${KTLS:-""}
 STRIP=${STRIP:-""}
 PKG=${PKG:-""}
 # modules selection default NO select
@@ -213,7 +221,7 @@ zlib_version=$(grep "Changes in" ${ZLIB_DIR}/ChangeLog  | head -1 | awk '{ print
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 log "${builder_version}, $pcre_version, zlib ${zlib_version}"
 
-[ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads \
+[ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads ${KTLS:+enable-ktls} \
     && make -j "$(nproc)" build_libs && make -j "$(nproc)" install_sw LIBDIR=lib
 
 export NJS_CC_OPT="-L${OPENSSL_DIR}/.openssl/lib"
@@ -246,6 +254,7 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 --with-pcre-jit \
 --with-threads \
 --with-file-aio \
+${KTLS:+--with-debug} \
  \
 --with-compat \
  \
@@ -528,6 +537,7 @@ http {
     default_type application/octet-stream;
 
     # # SSL
+${KTLS:+    ssl_conf_command Options KTLS;}
     ssl_protocols TLSv1.2 TLSv1.3; # Dropping SSLv3, ref: POODLE, drop TLSv1 TLSv1.1
     ssl_prefer_server_ciphers on;
 
