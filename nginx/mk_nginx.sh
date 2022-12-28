@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9ef1707[2022-12-28T14:49:57+08:00]:mk_nginx.sh")
+VERSION+=("43c2490[2022-12-28T14:52:19+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -183,7 +183,7 @@ check_depends_lib() {
     done
 }
 
-[ -z "${KTLS}" ] || { mydesc="${mydesc:+${mydesc},}ktls" }
+[ -z "${KTLS}" ] || { mydesc="${mydesc:+${mydesc},}ktls"; }
 [ -z "${HTTP2}" ] || { mydesc="${mydesc:+${mydesc},}http2"; EXT_MODULES+=("--with-http_v2_module"); }
 [ -z "${HTTP3}" ] || { mydesc="${mydesc:+${mydesc},}http3"; EXT_MODULES+=("--with-http_v3_module" "--with-stream_quic_module"); }
 [ -z "${IMAGE_FILTER}" ] || { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); check_depends_lib gdlib; }
