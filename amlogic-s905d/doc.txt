@@ -112,7 +112,8 @@ In case of impossibility to establish bluetooth connection, please make sure:
 1.Bluetooth daemon bluetoothd is started with -C option
 2.You have enough permissions to register SDP service
     sdptool search --bdaddr local SP (Permission denied) then you need to run anyRemote using sudo
-
+kTLS
+   CONFIG_TLS=m 
 V2L2:
     v4l2-ctl --list-formats-ext
 HDMI CEC:
