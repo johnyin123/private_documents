@@ -21,6 +21,8 @@ KERVERSION="$(make kernelversion)"
 # scripts/diffconfig .config.old .config | less
 make -j$(nproc) Image dtbs modules
 
+# make -j$(nproc) bindeb-pkg #gen debian deb package!!
+
 mkdir -p ${ROOTFS}/boot/dtb ${ROOTFS}/usr
 rsync -a ${DIRNAME}/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dtb ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${LOCALVERSION}.dtb
 make install > /dev/null
