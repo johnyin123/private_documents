@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8bbac29[2022-12-29T09:13:08+08:00]:mk_nginx.sh")
+VERSION+=("23a7ea4[2022-12-29T09:39:58+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -34,7 +34,7 @@ CC_OPTS=${CC_OPTS:-"-O2 -fstack-protector-strong -Wformat -Werror=format-securit
 LD_OPTS=${LD_OPTS:-"-Wl,-z,relro -Wl,-z,now -fPIC"}
 # Performance Improvement with kTLS, 10%
 # enable ktls, --with-openssl=/openssl-3.0.0 --with-openssl-opt=enable-ktls
-# kTLS, need kernel > 4.17(best 5.10 with CONFIG_TLS=m/y) & openssl > 3.0.0 & nginx > 1.21.4
+# kTLS, need kernel > 4.17(best 5.10 with CONFIG_TLS=m/y, Ubuntu 21.04) & openssl > 3.0.0 & nginx > 1.21.4
 # add: ssl_conf_command Options KTLS; ssl_protocols TLSv1.3;
 # To verify that NGINX is using kTLS, enable debugging mode
 # check for BIO_get_ktls_send() and SSL_sendfile() in the error log
