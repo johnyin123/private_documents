@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("10d1f0b[2022-12-29T08:51:33+08:00]:mk_nginx.sh")
+VERSION+=("8bbac29[2022-12-29T09:13:08+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -180,7 +180,7 @@ EXT_MODULES=(
 check_requre_dirs() {
     local dir=""
     for dir in $@ ; do
-        [ -d "${dir}" ] || { log "[FAILED] ${dir} not exists!!,${NGINX_BASE[${dir}]}${STATIC_MODULES[${dir}]}${DYNAMIC_MODULES[${dir}]} "; exit 1; }
+        [ -d "${dir}" ] || { log "[FAILED] ${dir} not exists!!"; exit 1; }
         log "[OK] ${dir}"
     done
 }
