@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5dce1d0[2022-12-28T15:46:51+08:00]:mk_nginx.sh")
+VERSION+=("10d1f0b[2022-12-29T08:51:33+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -180,7 +180,7 @@ EXT_MODULES=(
 check_requre_dirs() {
     local dir=""
     for dir in $@ ; do
-        [ -d "${dir}" ] || { log "[FAILED] ${dir} not exists!!"; exit 1; }
+        [ -d "${dir}" ] || { log "[FAILED] ${dir} not exists!!,${NGINX_BASE[${dir}]}${STATIC_MODULES[${dir}]}${DYNAMIC_MODULES[${dir}]} "; exit 1; }
         log "[OK] ${dir}"
     done
 }
@@ -188,7 +188,12 @@ check_requre_dirs() {
 check_depends_lib() {
     local dir=""
     for dir in $@ ; do
-        pkg-config --exists ${dir} || { log "[FAILED] ${dir} not exists!!"; exit 1; }
+        pkg-config --exists ${dir} || {
+            log "[FAILED] ${dir} not exists!!"
+            log "apt -y install libxml2-dev libxslt1-dev libgeoip-dev libgd-dev libldap2-dev uuid-dev"
+            log "yum -y install libxml2-devel libxslt-devel GeoIP-devel gd-devel openldap-devel uuid-dev"
+            exit 1
+        }
         log "[OK] ${dir}"
     done
 }
