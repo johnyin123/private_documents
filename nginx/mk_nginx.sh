@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("43c2490[2022-12-28T14:52:19+08:00]:mk_nginx.sh")
+VERSION+=("5dce1d0[2022-12-28T15:46:51+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -43,12 +43,16 @@ KTLS=${KTLS:-""}
 STRIP=${STRIP:-""}
 PKG=${PKG:-""}
 # modules selection default NO select
-PROXY_CONNECT=${PROXY_CONNECT:-""}
-AUTH_LDAP=${AUTH_LDAP:-""}
 HTTP2=${HTTP2:-""}
 HTTP3=${HTTP3:-""}
-IMAGE_FILTER=${IMAGE_FILTER:-""}
+#patch need
+PROXY_CONNECT=${PROXY_CONNECT:-""}
+#static module
+LIMIT_SPEED=${LIMIT_SPEED:-""}
 CACHE_PURGE=${CACHE_PURGE:-""}
+#dynamic module
+AUTH_LDAP=${AUTH_LDAP:-""}
+IMAGE_FILTER=${IMAGE_FILTER:-""}
 PAGE_SPEED=${PAGE_SPEED:-""}
 HEADER_MORE=${HEADER_MORE:-""}
 REDIS=${REDIS:-""}
@@ -73,9 +77,6 @@ declare -A NGINX_BASE=(
     [${PCRE_DIR}]="wget --no-check-certificate -O pcre.tar.gz https://sourceforge.net/projects/pcre/files/pcre/8.45/pcre-8.45.tar.gz/download || https://sourceforge.net/projects/pcre/files/pcre2/10.37/pcre2-10.37.zip/download"
     [${ZLIB_DIR}]="wget --no-check-certificate -O zlib.tar.gz https://zlib.net/zlib-1.2.11.tar.gz"
 )
-
-log "NGINX_BASE : =============================="
-printf '%s\n' "${!NGINX_BASE[@]}"
 declare -A DYNAMIC_MODULES=(
     [${DIRNAME}/njs/nginx]="git clone --depth 1 --branch ${NJS_RELEASE} https://github.com/nginx/njs.git"
     [${DIRNAME}/nginx-rtmp-module]="git clone --depth 1 https://github.com/arut/nginx-rtmp-module.git"
@@ -85,18 +86,12 @@ declare -A DYNAMIC_MODULES=(
     # [${DIRNAME}/Nginx-DOH-Module]="git clone --depth 1 https://github.com/dvershinin/Nginx-DOH-Module.git"
     # [${DIRNAME}/ModSecurity-nginx]="git clone --depth 1 https://github.com/SpiderLabs/ModSecurity-nginx.git"
 )
-log "DEFAULT DYNAMIC_MODULES : ================="
-printf '%s\n' "${!DYNAMIC_MODULES[@]}"
 declare -A STATIC_MODULES=(
     [${DIRNAME}/nginx-sticky-module-ng]="git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng"
-    [${DIRNAME}/nginx_limit_speed_module]="git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git"
 )
-log "DEFAULT STATIC_MODULES : ================="
-printf '%s\n' "${!STATIC_MODULES[@]}"
-
-sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${0}
-stage_level=${stage_level:?"${SCRIPTNAME} fpm/install/make/configure/openssl"}
-
+[ -z "${LIMIT_SPEED}" ] || {
+    STATIC_MODULES[${DIRNAME}/nginx_limit_speed_module]="git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git"
+}
 [ -z "${CACHE_PURGE}" ] || {
     STATIC_MODULES[${DIRNAME}/ngx_cache_purge]="git clone --depth 1 https://github.com/FRiCKLE/ngx_cache_purge.git"
 }
@@ -119,6 +114,21 @@ stage_level=${stage_level:?"${SCRIPTNAME} fpm/install/make/configure/openssl"}
 [ -z "${VTS}" ] || {
     DYNAMIC_MODULES[${DIRNAME}/nginx-module-vts]="git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git"
 }
+log "NGINX_BASE : =============================="
+for key in "${!NGINX_BASE[@]}"; do
+    printf '%-20.20s ==> %s\n' "${key##*/}" "${NGINX_BASE[${key}]}"
+done
+log "DEFAULT STATIC_MODULES : ================="
+for key in "${!STATIC_MODULES[@]}"; do
+    printf '%-20.20s ==> %s\n' "${key##*/}" "${STATIC_MODULES[${key}]}"
+done
+log "DEFAULT DYNAMIC_MODULES : ================="
+for key in "${!DYNAMIC_MODULES[@]}"; do
+    printf '%-20.20s ==> %s\n' "${key##*/}" "${DYNAMIC_MODULES[${key}]}"
+done
+sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${0}
+stage_level=${stage_level:?"${SCRIPTNAME} fpm/install/make/configure/openssl"}
+
 # # proxy_connect_module
 # cd nginx && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch
 # # ModSecurity Library
