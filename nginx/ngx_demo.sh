@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5ca6c70[2022-12-27T11:22:44+08:00]:ngx_demo.sh")
+VERSION+=("d761a6e[2022-12-27T12:25:35+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -461,7 +461,7 @@ server {
     location / { return 444; }
 }
 EOF
-cat <<'EOF' >quic_http3.conf
+cat <<'EOF' >quic_http3.http
 server {
     listen 443 ssl http2;
     listen 443 http3;
@@ -556,6 +556,7 @@ cat <<'EOF' >traffic_status.http
 # /control?cmd=reset&group=server&zone=*
 
 # geoip_country                   /usr/share/GeoIP/GeoIP.dat;
+# geoip_city                      /usr/share/GeoIP/GeoLiteCity.dat;
 vhost_traffic_status_zone;
 # vhost_traffic_status_filter_by_set_key $geoip_country_code country::*;
 server {
@@ -4298,6 +4299,8 @@ ssl_session_timeout 10m;
 keepalive_timeout 70;
 # Buffer size of 1400 bytes fits in one MTU.
 ssl_buffer_size 1400;
+# Enable 0-RTT support for TLS 1.3
+ssl_early_data on;
 # # Enabling Forward Secrecy
 # # openssl dhparam -out /etc/nginx/ssl/dh2048.pem 2048
 # ssl_dhparam /etc/nginx/dh2048.pem;
