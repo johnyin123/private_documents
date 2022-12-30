@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("566a958[2022-12-29T14:55:42+08:00]:mk_nginx.sh")
+VERSION+=("cb65ae5[2022-12-30T08:20:33+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -191,7 +191,7 @@ check_depends_lib() {
         pkg-config --exists ${dir} || {
             log "[FAILED] ${dir} not exists!!"
             log "apt -y install libxml2-dev libxslt1-dev libgeoip-dev libgd-dev libldap2-dev uuid-dev"
-            log "yum -y install libxml2-devel libxslt-devel GeoIP-devel gd-devel openldap-devel uuid-dev"
+            log "yum -y install libxml2-devel libxslt-devel GeoIP-devel gd-devel openldap-devel uuid-devel"
             exit 1
         }
         log "[OK] ${dir}"
@@ -203,7 +203,7 @@ check_depends_lib() {
 [ -z "${HTTP3}" ] || { mydesc="${mydesc:+${mydesc},}http3"; EXT_MODULES+=("--with-http_v3_module" "--with-stream_quic_module"); }
 [ -z "${IMAGE_FILTER}" ] || { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); check_depends_lib gdlib; }
 
-check_depends_lib libxml-2.0 libxslt geoip uuid
+check_depends_lib libxml-2.0 libxslt geoip #uuid
 
 :<<'EOF'
 # git clone --depth 1 https://github.com/nginx/njs-examples.git
@@ -585,6 +585,7 @@ source <(grep -E "^\s*(VERSION_ID|ID)=" /etc/os-release)
 case "${ID}" in
     ########################################
     centos)  PKG=${PKG:-rpm};;
+    openEuler)  PKG=${PKG:-rpm};;
     debian)  PKG=${PKG:-deb};;
     *)       log "ALL DONE, NO PACKAGE"; exit 0;;
 esac
