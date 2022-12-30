@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d761a6e[2022-12-27T12:25:35+08:00]:ngx_demo.sh")
+VERSION+=("343cfe5[2022-12-30T10:07:13+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3817,21 +3817,45 @@ cat <<'EOF' > proxy_cache.conf
 # copy this file to /etc/nginx/http-conf.d/
 # mount -t tmpfs -o size=100M none /mnt
 proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=24h max_size=512m use_temp_path=off;
+
+map $request_uri $cache_bypass {
+    (/administrator|/admin|/login) 1;
+    default 0;
+}
+
+proxy_no_cache          $cache_bypass;
+proxy_cache_bypass      $cache_bypass;
+
 proxy_cache SHM_CACHE;
+proxy_cache_key         "$request_method$scheme$host$request_uri";
+proxy_cache_lock        on;
+proxy_cache_min_uses    1;
+proxy_cache_revalidate  on;
+
 # proxy_busy_buffers_size 256k;
-proxy_cache_valid 200 302 1d;
-proxy_cache_valid 404 5m;
+proxy_cache_valid       200 301 302 1d;
+proxy_cache_valid       404 5m;
 # proxy_cache_use_stale error timeout invalid_header updating http_500 http_502 http_503 http_504;
+
+# ngx does not cache responses if proxy_buffering is set to off. It is on by default.
+# proxy_buffering on;
+
+proxy_cache_background_update on;
+
+# Enables or disables the conversion of the “HEAD” method to “GET” for caching.
+proxy_cache_convert_head off;
+
 # If the header includes the “Set-Cookie” field, such a response will not be cached.
 # If the header includes the “Vary” field with the special value “*”, such a response will not be cached
 # http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ignore_headers
-proxy_ignore_headers "Set-Cookie" "X-Accel-Expires" "X-Accel-Limit-Rate" "X-Accel-Buffering";
-# ngx does not cache responses if proxy_buffering is set to off. It is on by default.
-# proxy_buffering on;
-#
-proxy_cache_background_update on;
-# # Enables or disables the conversion of the “HEAD” method to “GET” for caching.
-proxy_cache_convert_head off;
+proxy_ignore_headers "Cache-Control" "Expires" "Vary" "Set-Cookie" "X-Accel-Expires" "X-Accel-Limit-Rate" "X-Accel-Buffering";
+proxy_hide_header    Cache-Control;
+proxy_hide_header    Expires;
+proxy_hide_header    Pragma;
+proxy_hide_header    Set-Cookie;
+proxy_hide_header    Vary;
+# Reset headers
+add_header           Pragma "public";
 EOF
 cat <<'EOF' > cache_expiration.conf
 # copy this file to /etc/nginx/http-conf.d/
