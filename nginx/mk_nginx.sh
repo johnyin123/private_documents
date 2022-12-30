@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("23a7ea4[2022-12-29T09:39:58+08:00]:mk_nginx.sh")
+VERSION+=("566a958[2022-12-29T14:55:42+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -42,7 +42,7 @@ LD_OPTS=${LD_OPTS:-"-Wl,-z,relro -Wl,-z,now -fPIC"}
 KTLS=${KTLS:-""}
 STRIP=${STRIP:-""}
 PKG=${PKG:-""}
-# modules selection default NO select
+# modules selection default NO select, http2_chunk_size 128k, when ktls performance good than 8k
 HTTP2=${HTTP2:-""}
 HTTP3=${HTTP3:-""}
 #patch need
@@ -547,7 +547,7 @@ http {
     reset_timedout_connection on;
 
     # # number of requests client can make over keep-alive
-    keepalive_requests 1000;
+    keepalive_requests 86400;
 
     include /etc/nginx/mime.types;
     default_type application/octet-stream;
@@ -556,7 +556,7 @@ http {
 ${KTLS:+    ssl_conf_command Options KTLS;}
     ssl_protocols TLSv1.2 TLSv1.3; # Dropping SSLv3, ref: POODLE, drop TLSv1 TLSv1.1
     ssl_prefer_server_ciphers on;
-
+${HTTP2:+    http2_chunk_size 128k;}
     # # vhost include
     include /etc/nginx/http-conf.d/*.conf;
     include /etc/nginx/http-enabled/*.conf;
