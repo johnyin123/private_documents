@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cb65ae5[2022-12-30T08:20:33+08:00]:mk_nginx.sh")
+VERSION+=("d2cd1c7[2022-12-30T09:06:09+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -192,6 +192,7 @@ check_depends_lib() {
             log "[FAILED] ${dir} not exists!!"
             log "apt -y install libxml2-dev libxslt1-dev libgeoip-dev libgd-dev libldap2-dev uuid-dev"
             log "yum -y install libxml2-devel libxslt-devel GeoIP-devel gd-devel openldap-devel uuid-devel"
+            log "yum -y install rpm-build"
             exit 1
         }
         log "[OK] ${dir}"
