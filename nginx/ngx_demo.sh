@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7d2cafa[2022-12-30T10:46:18+08:00]:ngx_demo.sh")
+VERSION+=("fb8a6ef[2022-12-30T11:25:32+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -456,6 +456,8 @@ server {
     ssl_certificate /etc/nginx/test.pem;
     ssl_certificate_key /etc/nginx/test.key;
     server_name _;
+    # direct set cache_bypass
+    set $cache_bypass 1;
     access_log /var/log/nginx/access_err_domain.log main buffer=512k flush=5m;
     location =/health { access_log off; default_type text/html; return 200 "$time_iso8601 $hostname alive."; }
     location / { return 444; }
