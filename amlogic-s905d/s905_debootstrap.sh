@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("26e3584[2022-11-15T13:37:34+08:00]:s905_debootstrap.sh")
+VERSION+=("512dc6b[2022-11-17T10:50:25+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -250,6 +250,9 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
 
     log "Enable CPU FREQ"
     grep -q "scpi-cpufreq" /etc/modules  || echo "scpi-cpufreq" >> /etc/modules
+
+    log "Enable Kernel TLS"
+    grep -q "tls" /etc/modules  || echo "tls" >> /etc/modules
 
     # cat << EOF > /etc/modprobe.d/brcmfmac.conf
     # options brcmfmac p2pon=1
