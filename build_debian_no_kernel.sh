@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c5d525f[2022-12-30T16:58:34+08:00]:build_debian_no_kernel.sh")
+VERSION+=("8584f2e[2022-12-30T16:59:52+08:00]:build_debian_no_kernel.sh")
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -75,7 +75,7 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
     # timedatectl set-local-rtc 0
     log "Force Users To Change Passwords Upon First Login"
     chage -d 0 root || true
-    systemctl disable fstrim.timer e2scrub_all.timer apt-daily.timer apt-daily-upgrade.timer systemd-pstore.service e2scrub_reap.service rsync.service || true
+    debian_service_init
     /bin/umount /dev/pts
     exit
 EOSHELL
