@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("e6e88ca[2023-01-04T09:25:42+08:00]:os_centos_init.sh")
+VERSION+=("bc91265[2023-01-04T16:44:25+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -51,7 +51,7 @@ EOF
     [ -d "${root_dir}" ] || mkdir -p ${root_dir}
     # rpm --root=${root_dir} --dbpath=/var/lib/rpm --initdb
     # rpm --root ${root_dir} --import  ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-*
-    ${HOST_YUM} -y install -c local.repo --installroot "${root_dir}" --releasever=${RELEASE_VER} centos-release yum
+    ${HOST_YUM} -y install -c ${REPO} --installroot "${root_dir}" --releasever=${RELEASE_VER} centos-release yum
     echo ${HOSTNAME:-cent-tpl} > ${root_dir}/etc/hostname
     echo "nameserver ${NAME_SERVER:-114.114.114.114}" > ${root_dir}/etc/resolv.conf
     rm -f ${root_dir}/etc/yum.repos.d/*
