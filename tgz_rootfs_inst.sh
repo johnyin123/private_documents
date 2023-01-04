@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("4fbd66e[2022-11-28T14:07:07+08:00]:tgz_rootfs_inst.sh")
+VERSION+=("300d9f4[2022-12-26T17:20:47+08:00]:tgz_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -81,18 +81,18 @@ main() {
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x -o errexit -s <<EOSHELL
 case "${ID}" in
     debian)
-        grub-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk}
-        grub-mkconfig -o /boot/grub/grub.cfg
+        grub-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
+        grub-mkconfig -o /boot/grub/grub.cfg || true
         ;;
     centos|rocky|*)
-        grub2-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk}
-        grub2-mkconfig -o /boot/grub2/grub.cfg
+        grub2-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
+        grub2-mkconfig -o /boot/grub2/grub.cfg || true
         ;;
 esac
 exit 0
 EOSHELL
     local new_uuid=$(blkid -s UUID -o value ${part})
-    cp -n ${root_dir}/etc/fstab ${root_dir}/etc/fstab.orig
+    cat ${root_dir}/etc/fstab > ${root_dir}/etc/fstab.orig || true
     {
         echo "# $(date '+%Y-%m-%d %H:%M:%S')"
         echo "UUID=${new_uuid} / xfs noatime,relatime 0 0"

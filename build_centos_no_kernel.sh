@@ -7,13 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-01-04T09:26:04+08:00]:build_centos_no_kernel.sh")
+VERSION+=("54ae240[2023-01-04T09:26:04+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
 export -f log
 
-PKG="grub2-common grub2-tools-minimal grub2-tools-extra grub2-efi-x64 grub2-pc-modules grub2-tools grub2-pc grub2"
+PKG="grub2-common grub2-tools-minimal grub2-tools-extra grub2-efi-x64 grub2-pc-modules grub2-tools grub2-pc grub2 dracut-network biosdevname systemd-sysv"
+PKG+=" iputils openssh-server rsync openssh-clients"
 PKG+=" $*"
 
 ROOT_DIR=${DIRNAME}/rootfs-centos
@@ -25,6 +26,8 @@ NAME_SERVER=114.114.114.114 \
 PASSWORD=password \
 centos_build "${ROOT_DIR}" "${PKG}"
 
+log "INIT............"
+touch ${ROOT_DIR}/etc/fstab
 cat > ${ROOT_DIR}/etc/default/grub <<'EOF'
 GRUB_TIMEOUT=5
 GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
@@ -42,4 +45,6 @@ Section "InputClass"
 EndSection
 EOF
 echo 'KEYMAP="cn"' > ${ROOT_DIR}/etc/vconsole.conf
-
+log "need centos_tuning.sh"
+log 'dracut -H -f --kver 5.10.xx --show-modules -m "qemu qemu-net bash nss-softokn network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs'
+log "ALL OK"

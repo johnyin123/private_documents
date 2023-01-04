@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("b92a0e6[2022-12-20T08:10:00+08:00]:os_centos_init.sh")
+VERSION+=("e6e88ca[2023-01-04T09:25:42+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -26,53 +26,46 @@ centos_build() {
     local root_dir=$1
     local include_pkg="${2}"
     local REPO=$(mktemp -d)/local.repo
+    local HOST_YUM=$(command -v yum || command -v dnf || { echo 'yum/dnf no found!'; return 1; })
     RELEASE_VER=${RELEASE_VER:-7.9.2009}
     [ -r ${REPO} ] || {
         # yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
         cat> ${REPO} <<'EOF'
-[centos]
+[base]
 name=CentOS-$releasever - Base
 baseurl=http://mirrors.163.com/centos/$releasever/os/$basearch/
+gpgcheck=0
+
+[updates]
+name=CentOS-$releasever - Updates
+baseurl=http://mirrors.163.com/centos/$releasever/updates/$basearch/
+gpgcheck=0
+
+[extras]
+name=CentOS-$releasever - Extras
+baseurl=http://mirrors.163.com/centos/$releasever/extras/$basearch/
 gpgcheck=0
 EOF
     ${EDITOR:-vi} ${REPO} || true
     }
     [ -d "${root_dir}" ] || mkdir -p ${root_dir}
-
-    # initialize rpm database
-    rpm --root ${root_dir} --initdb
-    # download and install the centos-release package, it contains our repository sources
-    yumdownloader -c ${REPO} --disablerepo=* --enablerepo=centos --releasever=${RELEASE_VER} centos-release
-    # yum reinstall --downloadonly --downloaddir "${root_dir}" centos-release
-    rpm --root ${root_dir} -ivh --nodeps centos-release*.rpm
-    rpm --root ${root_dir} --import  ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-*
-    # install yum without docs and install only the english language files during the process
-    yum -y --installroot=${root_dir} --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install yum passwd procps-ng ${include_pkg}
-    sed -i "/distroverpkg=centos-release/a override_install_langs=en_US.utf8\ntsflags=nodocs" ${root_dir}/etc/yum.conf
+    # rpm --root=${root_dir} --dbpath=/var/lib/rpm --initdb
+    # rpm --root ${root_dir} --import  ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-*
+    ${HOST_YUM} -y install -c local.repo --installroot "${root_dir}" --releasever=${RELEASE_VER} centos-release yum
     echo ${HOSTNAME:-cent-tpl} > ${root_dir}/etc/hostname
     echo "nameserver ${NAME_SERVER:-114.114.114.114}" > ${root_dir}/etc/resolv.conf
-    # systemd-nspawn -D ${ROOTFS} /bin/bash
-    # mount -o bind /dev ${root_dir}/dev && chroot ${root_dir} /bin/bash
-    # yum install -y procps-ng iputils initscripts openssh-server rsync openssh-clients passwd
-
-    chmod 755 ${root_dir}/etc/rc.d/rc.local
-    mount -o bind /dev ${root_dir}/dev && LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x <<EOSHELL
-    rm -f /etc/locale.conf /etc/localtime /etc/hostname /etc/machine-id /etc/.pwd.lock
-    systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id
-    #localectl set-locale LANG=zh_CN.UTF-8
-    #localectl set-keymap cn
-    #localectl set-x11-keymap cn
+    rm -f ${root_dir}/etc/yum.repos.d/*
+    cat ${REPO} > ${root_dir}/etc/yum.repos.d/local.repo
+    # rpm -qi centos-release
+    echo "start install: centos-release yum passwd ${include_pkg}"
+    systemd-nspawn -D ${root_dir} yum -y install --releasever=${RELEASE_VER} centos-release yum passwd ${include_pkg}
+    rm -f ${root_dir}/etc/locale.conf ${root_dir}/etc/localtime || true
+    mount -o bind /dev ${root_dir}/dev && LC_ALL=C LANGUAGE=C LANG=C chroot "${root_dir}" /bin/bash <<EOSHELL
+    systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id || true
     echo "${PASSWORD:-password}" | passwd --stdin root
-    systemctl enable getty@tty1
-
-    centos_limits_init
-    centos_disable_selinux
-    centos_sshd_init
-    centos_disable_ipv6
-    centos_service_init
-    centos_sysctl_init
+    systemctl enable getty@tty1 || true
 EOSHELL
-    umount  ${root_dir}/dev
+    umount ${root_dir}/dev
     return 0
 }
 
@@ -92,13 +85,13 @@ EOF
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
 set -o vi
 EOF
-# security set
-sed -i "s/^PASS_MAX_DAYS.*$/PASS_MAX_DAYS 90/g" /etc/login.defs
-sed -i "s/^PASS_MIN_DAYS.*$/PASS_MIN_DAYS 2/g" /etc/login.defs
-sed -i "s/^PASS_MIN_LEN.*$/PASS_MIN_LEN 8/g" /etc/login.defs
-sed -i "s/^PASS_WARN_AGE.*$/PASS_WARN_AGE 7/g" /etc/login.defs
-sed -i "1 a auth       required     pam_tally2.so onerr=fail  deny=6  unlock_time=1800" /etc/pam.d/sshd
-sed -i "/password/ipassword    required      pam_cracklib.so lcredit=-1 ucredit=-1 dcredit=-1 ocredit=-1" /etc/pam.d/system-auth
+    # security set
+    sed -i "s/^PASS_MAX_DAYS.*$/PASS_MAX_DAYS 90/g" /etc/login.defs
+    sed -i "s/^PASS_MIN_DAYS.*$/PASS_MIN_DAYS 2/g" /etc/login.defs
+    sed -i "s/^PASS_MIN_LEN.*$/PASS_MIN_LEN 8/g" /etc/login.defs
+    sed -i "s/^PASS_WARN_AGE.*$/PASS_WARN_AGE 7/g" /etc/login.defs
+    sed -i "1 a auth       required     pam_tally2.so onerr=fail  deny=6  unlock_time=1800" /etc/pam.d/sshd
+    sed -i "/password/ipassword    required      pam_cracklib.so lcredit=-1 ucredit=-1 dcredit=-1 ocredit=-1" /etc/pam.d/system-auth
 }
 export -f centos_limits_init
 
@@ -156,7 +149,7 @@ centos_sshd_regenkey() {
 export -f centos_sshd_regenkey
 
 centos_sshd_init() {
-    yum -y --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install openssh-server
+    yum -y --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install openssh-server || true
     sed --quiet -i.orig -E \
         -e '/^\s*(UseDNS|MaxAuthTries|GSSAPIAuthentication|Port|Ciphers|MACs|PermitRootLogin).*/!p' \
         -e '$aUseDNS no' \
