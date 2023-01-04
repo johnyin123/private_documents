@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bc91265[2023-01-04T16:44:25+08:00]:build_centos_no_kernel.sh")
+VERSION+=("e332349[2023-01-04T17:21:05+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -25,9 +25,10 @@ HOSTNAME="srv1" \
 NAME_SERVER=114.114.114.114 \
 PASSWORD=password \
 centos_build "${ROOT_DIR}" "${PKG}"
-
+rm -rf ${ROOT_DIR}/root/.rpmdb 2>/dev/null || true
 log "INIT............"
 touch ${ROOT_DIR}/etc/fstab
+touch ${ROOT_DIR}/etc/sysconfig/network
 cat > ${ROOT_DIR}/etc/default/grub <<'EOF'
 GRUB_TIMEOUT=5
 GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
@@ -89,4 +90,12 @@ EOF
 
 log "need centos_tuning.sh"
 log 'dracut -H -f --kver 5.10.xx --show-modules -m "qemu qemu-net bash nss-softokn network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs'
+if [ -d "${DIRNAME}/kernel" ]; then
+    log "start install you kernel&patchs"
+    rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${ROOT_DIR}/ || true
+    kerver=$(ls ${ROOT_DIR}/usr/lib/modules/ | sort --version-sort -f | tail -n1)
+    log "USE KERNEL ${kerver} ------>"
+    systemd-nspawn -D ${ROOT_DIR} dracut -H -f --kver ${kerver} --show-modules -m "qemu qemu-net bash nss-softokn network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs
+    log "end install you kernel&patchs"
+fi
 log "ALL OK"
