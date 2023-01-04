@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("39b34ce[2022-01-13T09:30:17+08:00]:centos_tuning.sh")
+VERSION+=("b0480ca[2022-11-25T14:26:30+08:00]:centos_tuning.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 source ${DIRNAME}/os_centos_init.sh
@@ -59,14 +59,14 @@ main() {
     [ -r "${DIRNAME}/motd.sh" ] && {
         try "cat ${DIRNAME}/motd.sh | ssh -p${port} ${ssh} 'cat >/etc/motd.sh'"
     }
-    ssh_func "${ssh}" "${port}" centos_limits_init
-    ssh_func "${ssh}" "${port}" centos_disable_selinux
-    ssh_func "${ssh}" "${port}" centos_sshd_init
-    ssh_func "${ssh}" "${port}" centos_disable_ipv6
-    ssh_func "${ssh}" "${port}" centos_service_init
-    ssh_func "${ssh}" "${port}" centos_sysctl_init
+    ssh_func "${ssh}" "${port}" centos_limits_init || true
+    ssh_func "${ssh}" "${port}" centos_disable_selinux || true
+    ssh_func "${ssh}" "${port}" centos_sshd_init || true
+    ssh_func "${ssh}" "${port}" centos_disable_ipv6 || true
+    ssh_func "${ssh}" "${port}" centos_service_init || true
+    ssh_func "${ssh}" "${port}" centos_sysctl_init || true
     [ -z "${zramswap}" ] || ssh_func "${ssh}" "${port}" centos_zramswap_init ${zramswap}
-    ssh_func "${ssh}" "${port}" "sed -i '/motd.sh/d' /etc/profile ; echo 'sh /etc/motd.sh' >> /etc/profile;touch /etc/logo.txt /etc/motd.sh"
+    ssh_func "${ssh}" "${port}" "sed -i '/motd.sh/d' /etc/profile ; echo 'sh /etc/motd.sh' >> /etc/profile;touch /etc/logo.txt /etc/motd.sh" || true
     [ -z '${name}' ] || ssh_func "${ssh}" "${port}" "echo '${name}' > /etc/hostname"
     return 0
 }
