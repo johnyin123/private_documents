@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("b0480ca[2022-11-25T14:26:30+08:00]:os_centos_init.sh")
+VERSION+=("b92a0e6[2022-12-20T08:10:00+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -24,88 +24,39 @@ VERSION+=("b0480ca[2022-11-25T14:26:30+08:00]:os_centos_init.sh")
 # proxy_password=p
 centos_build() {
     local root_dir=$1
+    local include_pkg="${2}"
     local REPO=$(mktemp -d)/local.repo
-    local YUM_OPT="--disablerepo=* --enablerepo=centos -q --noplugins --nogpgcheck --config=${REPO}" #--setopt=tsflags=nodocs"
+    RELEASE_VER=${RELEASE_VER:-7.9.2009}
     [ -r ${REPO} ] || {
         # yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
         cat> ${REPO} <<'EOF'
 [centos]
-name=centos
-# baseurl=http://mirrors.163.com/centos/7.7.1908/os/x86_64/
-baseurl=http://10.0.2.1:8080/
+name=CentOS-$releasever - Base
+baseurl=http://mirrors.163.com/centos/$releasever/os/$basearch/
 gpgcheck=0
 EOF
     ${EDITOR:-vi} ${REPO} || true
-}
-# $ mkdir -p $centos_root
-# # initialize rpm database
-# $ rpm --root $centos_root --initdb
-# # download and install the centos-release package, it contains our repository sources
-# $ yumdownloader --destdir=. centos-release
-# # $ yum reinstall --downloadonly --downloaddir . centos-release
-# $ rpm --root $centos_root -ivh --nodeps centos-release*.rpm
-# $ rpm --root $centos_root --import  $centos_root/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-# # install yum without docs and install only the english language files during the process
-# $ yum -y --installroot=$centos_root --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install yum
-# # configure yum to avoid installing of docs and other language files than english generally
-# $ sed -i "/distroverpkg=centos-release/a override_install_langs=en_US.utf8\ntsflags=nodocs" $centos_root/etc/yum.conf
-# # chroot to the environment and install some additional tools
-# $ cp /etc/resolv.conf $centos_root/etc
-# # mount the device tree, as its required by some programms
-# $ mount -o bind /dev $centos_root/dev
-# $ chroot $centos_root /bin/bash <<EOF
-# yum install -y procps-ng iputils initscripts openssh-server rsync openssh-clients passwd
-# yum clean all
-# $ rm -f $centos_root/etc/resolv.conf
-# $ umount $centos_root/dev
-#     yum ${YUM_OPT} -y --installroot=${root_dir} remove -C --setopt="clean_requirements_on_remove=1" \
-# 	    firewalld \
-# 	    NetworkManager \
-# 	    NetworkManager-team \
-# 	    NetworkManager-tui \
-# 	    NetworkManager-wifi \
-#       linux-firmware* \
-# 	    aic94xx-firmware \
-# 	    alsa-firmware \
-# 	    ivtv-firmware \
-# 	    iwl100-firmware \
-# 	    iwl1000-firmware \
-# 	    iwl105-firmware \
-# 	    iwl135-firmware \
-# 	    iwl2000-firmware \
-# 	    iwl2030-firmware \
-# 	    iwl3160-firmware \
-# 	    iwl3945-firmware \
-# 	    iwl4965-firmware \
-# 	    iwl5000-firmware \
-# 	    iwl5150-firmware \
-# 	    iwl6000-firmware \
-# 	    iwl6000g2a-firmware \
-# 	    iwl6000g2b-firmware \
-# 	    iwl6050-firmware \
-# 	    iwl7260-firmware \
-# 	    iwl7265-firmware
-    cat > ${root_dir}/etc/default/grub <<'EOF'
-GRUB_TIMEOUT=5
-GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
-GRUB_DEFAULT=saved
-GRUB_DISABLE_SUBMENU=true
-GRUB_TERMINAL_OUTPUT="console"
-GRUB_CMDLINE_LINUX="console=ttyS0 console=tty1 net.ifnames=0 biosdevname=0"
-GRUB_DISABLE_RECOVERY="true"
-EOF
-    cat > ${root_dir}/etc/X11/xorg.conf.d/00-keyboard.conf <<EOF
-Section "InputClass"
-        Identifier "system-keyboard"
-        MatchIsKeyboard "on"
-        Option "XkbLayout" "cn"
-EndSection
-EOF
-    echo 'KEYMAP="cn"' > ${root_dir}/etc/vconsole.conf
+    }
+    [ -d "${root_dir}" ] || mkdir -p ${root_dir}
+
+    # initialize rpm database
+    rpm --root ${root_dir} --initdb
+    # download and install the centos-release package, it contains our repository sources
+    yumdownloader -c ${REPO} --disablerepo=* --enablerepo=centos --releasever=${RELEASE_VER} centos-release
+    # yum reinstall --downloadonly --downloaddir "${root_dir}" centos-release
+    rpm --root ${root_dir} -ivh --nodeps centos-release*.rpm
+    rpm --root ${root_dir} --import  ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-*
+    # install yum without docs and install only the english language files during the process
+    yum -y --installroot=${root_dir} --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install yum passwd procps-ng ${include_pkg}
+    sed -i "/distroverpkg=centos-release/a override_install_langs=en_US.utf8\ntsflags=nodocs" ${root_dir}/etc/yum.conf
+    echo ${HOSTNAME:-cent-tpl} > ${root_dir}/etc/hostname
+    echo "nameserver ${NAME_SERVER:-114.114.114.114}" > ${root_dir}/etc/resolv.conf
+    # systemd-nspawn -D ${ROOTFS} /bin/bash
+    # mount -o bind /dev ${root_dir}/dev && chroot ${root_dir} /bin/bash
+    # yum install -y procps-ng iputils initscripts openssh-server rsync openssh-clients passwd
 
     chmod 755 ${root_dir}/etc/rc.d/rc.local
-    rm -f ${root_dir}/ssh/ssh_host_*
-    LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
+    mount -o bind /dev ${root_dir}/dev && LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x <<EOSHELL
     rm -f /etc/locale.conf /etc/localtime /etc/hostname /etc/machine-id /etc/.pwd.lock
     systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id
     #localectl set-locale LANG=zh_CN.UTF-8
@@ -120,8 +71,8 @@ EOF
     centos_disable_ipv6
     centos_service_init
     centos_sysctl_init
-    centos_zramswap_init 512
 EOSHELL
+    umount  ${root_dir}/dev
     return 0
 }
 
@@ -152,7 +103,7 @@ sed -i "/password/ipassword    required      pam_cracklib.so lcredit=-1 ucredit=
 export -f centos_limits_init
 
 centos_sysctl_init() {
-    mv /etc/sysctl.conf /etc/sysctl.conf.bak
+    cat /etc/sysctl.conf 2>/dev/null > /etc/sysctl.conf.bak || true
     cat << EOF > /etc/sysctl.conf
 fs.file-max = 1000000
 net.ipv4.ping_group_range = 0	2147483647
@@ -205,6 +156,7 @@ centos_sshd_regenkey() {
 export -f centos_sshd_regenkey
 
 centos_sshd_init() {
+    yum -y --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install openssh-server
     sed --quiet -i.orig -E \
         -e '/^\s*(UseDNS|MaxAuthTries|GSSAPIAuthentication|Port|Ciphers|MACs|PermitRootLogin).*/!p' \
         -e '$aUseDNS no' \
@@ -224,6 +176,21 @@ EOF
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
 EOF
     chmod 0600 /root/.ssh/authorized_keys
+    # ssh tap device no create, when ControlMaster !!!!
+    cat <<EOF >/root/.ssh/config
+StrictHostKeyChecking=no
+UserKnownHostsFile=/dev/null
+Host github.com
+    Port=22
+Host *
+    Port=60022
+#    ControlMaster auto
+#    ControlPath  ~/.ssh/sockets/%r@%h-%p
+#    ControlPersist 600
+EOF
+    mkdir -p /root/.ssh/sockets/
+    chmod 0600 /root/.ssh/config
+
 }
 export -f centos_sshd_init
 
