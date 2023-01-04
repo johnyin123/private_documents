@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("54ae240[2023-01-04T09:26:04+08:00]:build_centos_no_kernel.sh")
+VERSION+=("bc91265[2023-01-04T16:44:25+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -45,6 +45,48 @@ Section "InputClass"
 EndSection
 EOF
 echo 'KEYMAP="cn"' > ${ROOT_DIR}/etc/vconsole.conf
+
+cat > ${ROOT_DIR}/etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
+NM_CONTROLLED=no
+IPV6INIT=no
+DEVICE="eth0"
+ONBOOT="yes"
+BOOTPROTO="none"
+IPADDR=192.168.168.101
+PREFIX=24
+GATEWAY=192.168.168.1
+EOF
+source ${ROOT_DIR}/etc/os-release
+case "${VERSION_ID:-}" in
+    7)
+        ;;
+    *)
+        sed -i "/NM_CONTROLLED=/d" ${ROOT_DIR}/etc/sysconfig/network-scripts/ifcfg-eth0
+        ;;
+esac
+cat > ${ROOT_DIR}/etc/hosts <<-EOF
+127.0.0.1   localhost $(cat ${ROOT_DIR}/etc/hostname)
+EOF
+log "tunning sshd"
+sed --quiet -i.orig -E \
+    -e '/^\s*(UseDNS|MaxAuthTries|GSSAPIAuthentication|Port|Ciphers|MACs|PermitRootLogin).*/!p' \
+    -e '$aUseDNS no' \
+    -e '$aMaxAuthTries 3' \
+    -e '$aGSSAPIAuthentication no' \
+    -e '$aPort 60022' \
+    -e '$aCiphers aes256-ctr,aes192-ctr,aes128-ctr' \
+    -e '$aMACs hmac-sha1' \
+    -e '$aPermitRootLogin without-password' \
+    ${ROOT_DIR}/etc/ssh/sshd_config
+cat <<"EOF" > ${ROOT_DIR}/etc/ssh/sshrc
+logger -i -t ssh "$(date '+%Y%m%d%H%M%S') $USER $SSH_CONNECTION"
+EOF
+[ ! -d ${ROOT_DIR}/root/.ssh ] && mkdir -m0700 ${ROOT_DIR}/root/.ssh
+cat <<EOF >${ROOT_DIR}/root/.ssh/authorized_keys
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
+EOF
+    chmod 0600 ${ROOT_DIR}/root/.ssh/authorized_keys
+
 log "need centos_tuning.sh"
 log 'dracut -H -f --kver 5.10.xx --show-modules -m "qemu qemu-net bash nss-softokn network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs'
 log "ALL OK"
