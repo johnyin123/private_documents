@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e332349[2023-01-04T17:21:05+08:00]:build_centos_no_kernel.sh")
+VERSION+=("a244bcb[2023-01-05T07:29:03+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -25,7 +25,6 @@ HOSTNAME="srv1" \
 NAME_SERVER=114.114.114.114 \
 PASSWORD=password \
 centos_build "${ROOT_DIR}" "${PKG}"
-rm -rf ${ROOT_DIR}/root/.rpmdb 2>/dev/null || true
 log "INIT............"
 touch ${ROOT_DIR}/etc/fstab
 touch ${ROOT_DIR}/etc/sysconfig/network
@@ -89,7 +88,7 @@ EOF
     chmod 0600 ${ROOT_DIR}/root/.ssh/authorized_keys
 
 log "need centos_tuning.sh"
-log 'dracut -H -f --kver 5.10.xx --show-modules -m "qemu qemu-net bash nss-softokn network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs'
+log 'dracut -H -f --kver 5.10.xx --show-modules -m "qemu qemu-net bash network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs'
 if [ -d "${DIRNAME}/kernel" ]; then
     log "start install you kernel&patchs"
     rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${ROOT_DIR}/ || true
@@ -98,4 +97,9 @@ if [ -d "${DIRNAME}/kernel" ]; then
     systemd-nspawn -D ${ROOT_DIR} dracut -H -f --kver ${kerver} --show-modules -m "qemu qemu-net bash nss-softokn network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs
     log "end install you kernel&patchs"
 fi
+log "clean up system"
+systemd-nspawn -D ${ROOT_DIR} yum clean all
+rm -rf ${ROOT_DIR}/root/.rpmdb 2>/dev/null || true
+rm -rf ${ROOT_DIR}/var/cache/yum 2>/dev/null || true
+rm -rf ${ROOT_DIR}/var/tmp/yum-* 2>/dev/null || true
 log "ALL OK"

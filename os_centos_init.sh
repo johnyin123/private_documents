@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("bc91265[2023-01-04T16:44:25+08:00]:os_centos_init.sh")
+VERSION+=("d52f5ea[2023-01-04T17:05:11+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -30,7 +30,11 @@ centos_build() {
     RELEASE_VER=${RELEASE_VER:-7.9.2009}
     [ -r ${REPO} ] || {
         # yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
-        cat> ${REPO} <<'EOF'
+        cat>> ${REPO} <<EOF
+# curl -o ${REPO} https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo
+# curl -o ${REPO} https://mirrors.aliyun.com/repo/Centos-7.repo
+EOF
+        cat>> ${REPO} <<'EOF'
 [base]
 name=CentOS-$releasever - Base
 baseurl=http://mirrors.163.com/centos/$releasever/os/$basearch/
