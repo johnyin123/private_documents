@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("d52f5ea[2023-01-04T17:05:11+08:00]:os_centos_init.sh")
+VERSION+=("b017601[2023-01-05T08:19:21+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -25,14 +25,16 @@ VERSION+=("d52f5ea[2023-01-04T17:05:11+08:00]:os_centos_init.sh")
 centos_build() {
     local root_dir=$1
     local include_pkg="${2}"
-    local REPO=$(mktemp -d)/local.repo
+    local REPO=${root_dir}/local.repo
     local HOST_YUM=$(command -v yum || command -v dnf || { echo 'yum/dnf no found!'; return 1; })
     RELEASE_VER=${RELEASE_VER:-7.9.2009}
+    [ -d "${root_dir}" ] || mkdir -p ${root_dir}/rpm_cache
     [ -r ${REPO} ] || {
         # yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
         cat>> ${REPO} <<EOF
 # curl -o ${REPO} https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo
 # curl -o ${REPO} https://mirrors.aliyun.com/repo/Centos-7.repo
+# rocky8: baseurl=https://mirrors.aliyun.com/rockylinux/\$releasever/BaseOS/\$basearch/os/
 EOF
         cat>> ${REPO} <<'EOF'
 [base]
@@ -52,24 +54,31 @@ gpgcheck=0
 EOF
     ${EDITOR:-vi} ${REPO} || true
     }
-    [ -d "${root_dir}" ] || mkdir -p ${root_dir}
-    # rpm --root=${root_dir} --dbpath=/var/lib/rpm --initdb
-    # rpm --root ${root_dir} --import  ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-*
-    ${HOST_YUM} -y install -c ${REPO} --installroot "${root_dir}" --releasever=${RELEASE_VER} centos-release yum
+    rpm --root=${root_dir} --dbpath=/var/lib/rpm --initdb
+    ${HOST_YUM} -y install -c ${REPO} --releasever=${RELEASE_VER} --downloadonly --destdir=${root_dir}/rpm_cache centos-release yum passwd ${include_pkg}
+    echo "start install: centos-release yum passwd ${include_pkg}"
+    rpm --root=${root_dir} --dbpath=/var/lib/rpm -ivh ${root_dir}/rpm_cache/*.rpm
+    # rpm --root=${root_dir} --dbpath=/var/lib/rpm --import ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-*
     echo ${HOSTNAME:-cent-tpl} > ${root_dir}/etc/hostname
     echo "nameserver ${NAME_SERVER:-114.114.114.114}" > ${root_dir}/etc/resolv.conf
-    rm -f ${root_dir}/etc/yum.repos.d/*
-    cat ${REPO} > ${root_dir}/etc/yum.repos.d/local.repo
+    # rm -f ${root_dir}/etc/yum.repos.d/*
+    # cat ${REPO} > ${root_dir}/etc/yum.repos.d/local.repo
     # rpm -qi centos-release
-    echo "start install: centos-release yum passwd ${include_pkg}"
-    systemd-nspawn -D ${root_dir} yum -y install --releasever=${RELEASE_VER} centos-release yum passwd ${include_pkg}
-    rm -f ${root_dir}/etc/locale.conf ${root_dir}/etc/localtime || true
-    mount -o bind /dev ${root_dir}/dev && LC_ALL=C LANGUAGE=C LANG=C chroot "${root_dir}" /bin/bash <<EOSHELL
+    rm -f ${root_dir}/etc/localtime || true
+    for mp in /dev /sys /proc
+    do
+        mount -o bind ${mp} ${root_dir}${mp} || true
+    done
+    LC_ALL=C LANGUAGE=C LANG=C chroot "${root_dir}" /bin/bash <<EOSHELL
     systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id || true
-    echo "${PASSWORD:-password}" | passwd --stdin root
+    echo "${PASSWORD:-password}" | passwd --stdin root || true
     systemctl enable getty@tty1 || true
 EOSHELL
-    umount ${root_dir}/dev
+    for mp in /dev /sys /proc
+    do
+        umount -R -v ${root_dir}${mp} || true
+    done
+    rm -rf ${root_dir}/rpm_cache ${REPO} || true
     return 0
 }
 

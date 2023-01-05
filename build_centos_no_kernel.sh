@@ -7,14 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a244bcb[2023-01-05T07:29:03+08:00]:build_centos_no_kernel.sh")
+VERSION+=("b017601[2023-01-05T08:19:21+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
 export -f log
 
-PKG="grub2-common grub2-tools-minimal grub2-tools-extra grub2-efi-x64 grub2-pc-modules grub2-tools grub2-pc grub2 dracut-network biosdevname systemd-sysv"
+PKG="grub2-common grub2-tools-minimal grub2-tools-extra grub2-efi-x64 grub2-pc-modules grub2-tools grub2-pc grub2 dracut-network biosdevname xfsprogs systemd-sysv hostname"
 PKG+=" iputils openssh-server rsync openssh-clients"
+PKG+=" dmidecode e2fsprogs-libs ethtool hwdata lvm2 net-tools xfsdump time"
 PKG+=" $*"
 
 ROOT_DIR=${DIRNAME}/rootfs-centos
@@ -94,7 +95,15 @@ if [ -d "${DIRNAME}/kernel" ]; then
     rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${ROOT_DIR}/ || true
     kerver=$(ls ${ROOT_DIR}/usr/lib/modules/ | sort --version-sort -f | tail -n1)
     log "USE KERNEL ${kerver} ------>"
-    systemd-nspawn -D ${ROOT_DIR} dracut -H -f --kver ${kerver} --show-modules -m "qemu qemu-net bash nss-softokn network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs
+    for mp in /dev /sys /proc
+    do
+        mount -o bind ${mp} ${ROOT_DIR}${mp} || true
+    done
+    chroot ${ROOT_DIR} dracut -H -f --kver ${kerver} --show-modules -m "qemu qemu-net bash network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs || true
+    for mp in /dev /sys /proc
+    do
+        umount -R -v ${ROOT_DIR}${mp} || true
+    done
     log "end install you kernel&patchs"
 fi
 log "clean up system"
