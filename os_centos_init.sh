@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("b017601[2023-01-05T08:19:21+08:00]:os_centos_init.sh")
+VERSION+=("c302aa4[2023-01-05T14:13:38+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -55,7 +55,8 @@ EOF
     ${EDITOR:-vi} ${REPO} || true
     }
     rpm --root=${root_dir} --dbpath=/var/lib/rpm --initdb
-    ${HOST_YUM} -y install -c ${REPO} --releasever=${RELEASE_VER} --downloadonly --destdir=${root_dir}/rpm_cache centos-release yum passwd ${include_pkg}
+    # ${HOST_YUM} -y install -c ${REPO} --releasever=${RELEASE_VER} --downloadonly --destdir=${root_dir}/rpm_cache centos-release yum passwd ${include_pkg}
+    ${HOST_YUM} -y group install -c ${REPO} --releasever=${RELEASE_VER} --downloadonly --destdir=${root_dir}/rpm_cache --exclude kernel-tools --exclude linux-firmware --exclude iw*-firmware core
     echo "start install: centos-release yum passwd ${include_pkg}"
     rpm --root=${root_dir} --dbpath=/var/lib/rpm -ivh ${root_dir}/rpm_cache/*.rpm
     # rpm --root=${root_dir} --dbpath=/var/lib/rpm --import ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-*
@@ -70,6 +71,9 @@ EOF
         mount -o bind ${mp} ${root_dir}${mp} || true
     done
     LC_ALL=C LANGUAGE=C LANG=C chroot "${root_dir}" /bin/bash <<EOSHELL
+    mv etc/yum.repos.d/* /root/ || true
+    mv /local.repo etc/yum.repos.d/
+    yum -y install ${include_pkg}
     systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id || true
     echo "${PASSWORD:-password}" | passwd --stdin root || true
     systemctl enable getty@tty1 || true
