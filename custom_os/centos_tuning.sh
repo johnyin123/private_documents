@@ -7,10 +7,10 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("debian_tuning.sh - 0a457b3 - 2021-10-25T09:08:18+08:00")
+VERSION+=("initver[2023-01-06T14:50:42+08:00]:centos_tuning.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
-source ${DIRNAME}/os_debian_init.sh
+source ${DIRNAME}/os_centos_init.sh
 
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -20,7 +20,7 @@ ${SCRIPTNAME}
         -p|--port          ssh port (default 60022)
         --password  <str>  ssh password(default use sshkey)
         -n|--hostname      new hostname
-        -z|--zswap         zswap size(MB, 128/255)
+        -z|--zramswap         zramswap size(MB, 128/255)
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -30,9 +30,9 @@ EOF
     exit 1
 }
 main() {
-    local ssh="" port=60022 name="" zswap="" password=""
+    local ssh="" port=60022 name="" zramswap="" password=""
     local opt_short="s:p:n:z:"
-    local opt_long="ssh:,port:,hostname:,zswap:,password:,"
+    local opt_long="ssh:,port:,hostname:,zramswap:,password:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -43,7 +43,7 @@ main() {
             -p | --port)    shift; port=${1}; shift;;
             --password)     shift; password="${1}"; shift;;
             -n | --hostname)shift; name=${1}; shift;;
-            -z | --zswap)   shift; zswap=${1}; shift;;
+            -z | --zramswap)   shift; zramswap=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -56,21 +56,18 @@ main() {
     done
     [ -z ${ssh} ] && usage "ssh must input"
     [ -z ${password} ]  || set_sshpass "${password}"
-    ssh_func "${ssh}" "${port}" debian_apt_init "bullseye"
-    ssh_func "${ssh}" "${port}" debian_limits_init
-    ssh_func "${ssh}" "${port}" debian_sysctl_init
-    ssh_func "${ssh}" "${port}" debian_sshd_regenkey
-    ssh_func "${ssh}" "${port}" debian_sshd_init
-    [ -z "${zswap}" ] || ssh_func "${ssh}" "${port}" debian_zswap_init2 ${zswap}
-    ssh_func "${ssh}" "${port}" debian_locale_init
-    ssh_func "${ssh}" "${port}" debian_bash_init root
     [ -r "${DIRNAME}/motd.sh" ] && {
-        try "cat ${DIRNAME}/motd.sh | ssh -p${port} ${ssh} 'cat >/etc/update-motd.d/11-motd'"
-        ssh_func "${ssh}" "${port}" "touch /etc/logo.txt;chmod 755 /etc/update-motd.d/11-motd"
+        try "cat ${DIRNAME}/motd.sh | ssh -p${port} ${ssh} 'cat >/etc/motd.sh'"
     }
-    ssh_func "${ssh}" "${port}" "[ -z '${name}' ] || echo '${name}' > /etc/hostname"
-    ssh_func "${ssh}" "${port}" debian_service_init
-    ssh_func "${ssh}" "${port}" debian_minimum_init
+    ssh_func "${ssh}" "${port}" centos_limits_init || true
+    ssh_func "${ssh}" "${port}" centos_disable_selinux || true
+    ssh_func "${ssh}" "${port}" centos_sshd_init || true
+    ssh_func "${ssh}" "${port}" centos_disable_ipv6 || true
+    ssh_func "${ssh}" "${port}" centos_service_init || true
+    ssh_func "${ssh}" "${port}" centos_sysctl_init || true
+    [ -z "${zramswap}" ] || ssh_func "${ssh}" "${port}" centos_zramswap_init ${zramswap}
+    ssh_func "${ssh}" "${port}" "sed -i '/motd.sh/d' /etc/profile ; echo 'sh /etc/motd.sh' >> /etc/profile;touch /etc/logo.txt /etc/motd.sh" || true
+    [ -z '${name}' ] || ssh_func "${ssh}" "${port}" "echo '${name}' > /etc/hostname"
     return 0
 }
 main "$@"
