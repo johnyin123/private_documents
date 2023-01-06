@@ -7,13 +7,13 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("adda2a2[2023-01-06T08:22:08+08:00]:build_centos_no_kernel.sh")
+VERSION+=("949569d[2023-01-06T11:02:06+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
 export -f log
 
-PKG="grub2-common grub2-tools-minimal grub2-tools-extra grub2-efi-x64 grub2-pc-modules grub2-tools grub2-pc grub2 xfsprogs"
+PKG="grub2-common grub2-tools-minimal grub2-tools-extra grub2-efi-x64 grub2-pc-modules grub2-tools grub2-pc grub2 xfsprogs biosdevname"
 PKG+=" iputils openssh-server rsync openssh-clients net-tools"
 PKG+=" $*"
 
@@ -78,6 +78,8 @@ sed --quiet -i.orig -E \
     -e '$aMACs hmac-sha1' \
     -e '$aPermitRootLogin without-password' \
     ${ROOT_DIR}/etc/ssh/sshd_config
+log "change firewalld ssh port"
+sed --quiet -i -E -e "s/port\s*=\s*\"22\"/port=\"60022\"/g" ${ROOT_DIR}/usr/lib/firewalld/services/ssh.xml || true
 cat <<"EOF" > ${ROOT_DIR}/etc/ssh/sshrc
 logger -i -t ssh "$(date '+%Y%m%d%H%M%S') $USER $SSH_CONNECTION"
 EOF
@@ -91,7 +93,7 @@ log "need centos_tuning.sh"
 log 'dracut -H -f --kver 5.10.xx --show-modules -m "qemu qemu-net bash network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs'
 if [ -d "${DIRNAME}/kernel" ]; then
     log "start install you kernel&patchs"
-    rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${ROOT_DIR}/ || true
+    rsync -azP --numeric-ids ${DIRNAME}/kernel/* ${ROOT_DIR}/ || true
     kerver=$(ls ${ROOT_DIR}/usr/lib/modules/ | sort --version-sort -f | tail -n1)
     log "USE KERNEL ${kerver} ------>"
 fi
@@ -101,7 +103,8 @@ do
 done
 [ -z "${kerver:-}" ] || {
     chroot ${ROOT_DIR} depmod ${kerver} || true
-    chroot ${ROOT_DIR} dracut -H -f --kver ${kerver} --show-modules -m "qemu qemu-net bash network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs || true
+    # chroot ${ROOT_DIR} dracut -H -f --kver ${kerver} --show-modules -m "qemu qemu-net bash network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs || true
+    chroot ${ROOT_DIR} kernel-install add ${kerver} /boot/vmlinuz-${kerver} || true
 }
 log "clean up system"
 chroot ${ROOT_DIR} yum clean all || true

@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("0c209aa[2023-01-06T09:38:19+08:00]:os_centos_init.sh")
+VERSION+=("949569d[2023-01-06T11:02:06+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -31,25 +31,12 @@ centos_build() {
     [ -d "${root_dir}" ] || mkdir -p ${root_dir}/rpm_cache
     [ -r ${REPO} ] || {
         # yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
-        cat>> ${REPO} <<EOF
-# curl -o ${REPO} https://mirrors.aliyun.com/repo/Centos-vault-8.5.2111.repo
-# curl -o ${REPO} https://mirrors.aliyun.com/repo/Centos-7.repo
-# rocky8: baseurl=https://mirrors.aliyun.com/rockylinux/\$releasever/BaseOS/\$basearch/os/
-EOF
         cat>> ${REPO} <<'EOF'
+# centos7 : baseurl=http://mirrors.aliyun.com/centos/$releasever/os/$basearch/
+# centos8 : baseurl=http://mirrors.aliyun.com/centos-vault/releasever/BaseOS/$basearch/os/
+# rocky   : baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/BaseOS/$basearch/os/
 [base]
 name=CentOS Family-$releasever - Base
-baseurl=http://mirrors.163.com/centos/$releasever/os/$basearch/
-gpgcheck=0
-
-[updates]
-name=CentOS-$releasever - Updates
-baseurl=http://mirrors.163.com/centos/$releasever/updates/$basearch/
-gpgcheck=0
-
-[extras]
-name=CentOS-$releasever - Extras
-baseurl=http://mirrors.163.com/centos/$releasever/extras/$basearch/
 gpgcheck=0
 EOF
     ${EDITOR:-vi} ${REPO} || true
@@ -57,8 +44,8 @@ EOF
     rpm --root=${root_dir} --dbpath=/var/lib/rpm --initdb
     # ${HOST_YUM} -y install -c ${REPO} --releasever=${RELEASE_VER} --downloadonly --destdir=${root_dir}/rpm_cache centos-release yum passwd ${include_pkg}
     # rpm --root=${root_dir} --dbpath=/var/lib/rpm --import ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-*
-    ${HOST_YUM} -y group install -c ${REPO} --installroot=${root_dir} --releasever=${RELEASE_VER} --downloadonly --destdir=${root_dir}/rpm_cache --exclude kernel-tools --exclude firewalld --exclude linux-firmware --exclude iw*-firmware core
-    echo "start install: centos-release yum passwd ${include_pkg}"
+    ${HOST_YUM} -y group install -c ${REPO} --installroot=${root_dir} --releasever=${RELEASE_VER} --downloadonly --destdir=${root_dir}/rpm_cache --exclude kernel-tools --exclude linux-firmware --exclude iw*-firmware core
+    echo "start install group core"
     rpm --root=${root_dir} --dbpath=/var/lib/rpm --nodigest --nosignature -ivh ${root_dir}/rpm_cache/*.rpm
     echo ${HOSTNAME:-cent-tpl} > ${root_dir}/etc/hostname
     echo "nameserver ${NAME_SERVER:-114.114.114.114}" > ${root_dir}/etc/resolv.conf
@@ -71,9 +58,13 @@ EOF
         mount -o bind ${mp} ${root_dir}${mp} || true
     done
     LC_ALL=C LANGUAGE=C LANG=C chroot "${root_dir}" /bin/bash <<EOSHELL
-    mv etc/yum.repos.d/* /root/ || true
-    mv /local.repo etc/yum.repos.d/
+    mv /etc/yum.repos.d/* /root/ || true
+    mv /local.repo /etc/yum.repos.d/
+    echo "fix rpm db"
+    rpmdb --rebuilddb || true
+    echo "start install packages: ${include_pkg}"
     yum -y install ${include_pkg}
+    rm -f mv /etc/yum.repos.d/* && mv /root/*.repo /etc/yum.repos.d/ || true
     systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id || true
     echo "${PASSWORD:-password}" | passwd --stdin root || true
     systemctl enable getty@tty1 || true

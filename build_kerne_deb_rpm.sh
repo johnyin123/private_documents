@@ -13,6 +13,7 @@ export CXXFLAGS='-march=native -O3 -flto -pipe'
 # scripts/diffconfig .config.old .config | less
 
 # make -j$(nproc) binrpm-pkg
+sed -ri '/CONFIG_SYSTEM_TRUSTED_KEYS/s/=.+/=""/g' .config
 scripts/config --disable DEBUG_INFO
 scripts/config --disable MODULE_SIG_ALL
 make -j$(nproc) bindeb-pkg
