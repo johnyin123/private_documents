@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("c302aa4[2023-01-05T14:13:38+08:00]:os_centos_init.sh")
+VERSION+=("27e53a6[2023-01-05T16:11:52+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -38,7 +38,7 @@ centos_build() {
 EOF
         cat>> ${REPO} <<'EOF'
 [base]
-name=CentOS-$releasever - Base
+name=CentOS Family-$releasever - Base
 baseurl=http://mirrors.163.com/centos/$releasever/os/$basearch/
 gpgcheck=0
 
@@ -56,10 +56,10 @@ EOF
     }
     rpm --root=${root_dir} --dbpath=/var/lib/rpm --initdb
     # ${HOST_YUM} -y install -c ${REPO} --releasever=${RELEASE_VER} --downloadonly --destdir=${root_dir}/rpm_cache centos-release yum passwd ${include_pkg}
-    ${HOST_YUM} -y group install -c ${REPO} --releasever=${RELEASE_VER} --downloadonly --destdir=${root_dir}/rpm_cache --exclude kernel-tools --exclude linux-firmware --exclude iw*-firmware core
+    ${HOST_YUM} -y group install -c ${REPO} --installroot=${root_dir} --releasever=${RELEASE_VER} --downloadonly --destdir=${root_dir}/rpm_cache --exclude kernel-tools --exclude linux-firmware --exclude iw*-firmware core
+    rpm --root=${root_dir} --dbpath=/var/lib/rpm --import ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-*
     echo "start install: centos-release yum passwd ${include_pkg}"
     rpm --root=${root_dir} --dbpath=/var/lib/rpm -ivh ${root_dir}/rpm_cache/*.rpm
-    # rpm --root=${root_dir} --dbpath=/var/lib/rpm --import ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-*
     echo ${HOSTNAME:-cent-tpl} > ${root_dir}/etc/hostname
     echo "nameserver ${NAME_SERVER:-114.114.114.114}" > ${root_dir}/etc/resolv.conf
     # rm -f ${root_dir}/etc/yum.repos.d/*

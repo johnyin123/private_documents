@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c302aa4[2023-01-05T14:13:38+08:00]:build_centos_no_kernel.sh")
+VERSION+=("27e53a6[2023-01-05T16:11:52+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -94,20 +94,21 @@ if [ -d "${DIRNAME}/kernel" ]; then
     rsync -avzP --numeric-ids ${DIRNAME}/kernel/* ${ROOT_DIR}/ || true
     kerver=$(ls ${ROOT_DIR}/usr/lib/modules/ | sort --version-sort -f | tail -n1)
     log "USE KERNEL ${kerver} ------>"
-    for mp in /dev /sys /proc
-    do
-        mount -o bind ${mp} ${ROOT_DIR}${mp} || true
-    done
+fi
+for mp in /dev /sys /proc
+do
+    mount -o bind ${mp} ${ROOT_DIR}${mp} || true
+done
+[ -z "${kerver}" ] || {
     chroot ${ROOT_DIR} depmod ${kerver} || true
     chroot ${ROOT_DIR} dracut -H -f --kver ${kerver} --show-modules -m "qemu qemu-net bash network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs || true
-    for mp in /dev /sys /proc
-    do
-        umount -R -v ${ROOT_DIR}${mp} || true
-    done
-    log "end install you kernel&patchs"
-fi
+}
 log "clean up system"
-systemd-nspawn -D ${ROOT_DIR} yum clean all
+chroot ${ROOT_DIR} yum clean all || true
+for mp in /dev /sys /proc
+do
+    umount -R -v ${ROOT_DIR}${mp} || true
+done
 rm -rf ${ROOT_DIR}/root/.rpmdb 2>/dev/null || true
 rm -rf ${ROOT_DIR}/var/cache/yum 2>/dev/null || true
 rm -rf ${ROOT_DIR}/var/tmp/yum-* 2>/dev/null || true

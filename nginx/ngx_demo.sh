@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ff91c39[2022-12-30T12:59:19+08:00]:ngx_demo.sh")
+VERSION+=("a7582ff[2023-01-03T15:06:50+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -387,6 +387,13 @@ server {
         # proxy_pass_request_body off;
         proxy_pass http://127.0.0.1:8080;
     }
+}
+EOF
+cat <<'EOF' >favicon.location
+location ~* .(favicon.ico)$ {
+    # alias /var/www/;
+    # try_files /favicon.ico @proxy;
+    alias /var/www/favicon.ico;
 }
 EOF
 cat <<'EOF' >limit_speed.http
