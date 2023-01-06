@@ -7,14 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("27e53a6[2023-01-05T16:11:52+08:00]:build_centos_no_kernel.sh")
+VERSION+=("adda2a2[2023-01-06T08:22:08+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
 export -f log
 
-PKG="grub2-common grub2-tools-minimal grub2-tools-extra grub2-efi-x64 grub2-pc-modules grub2-tools grub2-pc grub2 dracut-network biosdevname xfsprogs systemd-sysv"
-PKG+=" iputils openssh-server rsync openssh-clients"
+PKG="grub2-common grub2-tools-minimal grub2-tools-extra grub2-efi-x64 grub2-pc-modules grub2-tools grub2-pc grub2 xfsprogs"
+PKG+=" iputils openssh-server rsync openssh-clients net-tools"
 PKG+=" $*"
 
 ROOT_DIR=${DIRNAME}/rootfs-centos
@@ -99,7 +99,7 @@ for mp in /dev /sys /proc
 do
     mount -o bind ${mp} ${ROOT_DIR}${mp} || true
 done
-[ -z "${kerver}" ] || {
+[ -z "${kerver:-}" ] || {
     chroot ${ROOT_DIR} depmod ${kerver} || true
     chroot ${ROOT_DIR} dracut -H -f --kver ${kerver} --show-modules -m "qemu qemu-net bash network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs || true
 }
