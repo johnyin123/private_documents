@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("949569d[2023-01-06T11:02:06+08:00]:os_centos_init.sh")
+VERSION+=("2031fd2[2023-01-06T14:20:10+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -227,6 +227,7 @@ centos_service_init() {
         chkconfig 2>/dev/null | egrep -v "crond|sshd|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}'
         systemctl list-unit-files -t service  | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}'
         for _s in ${netsvc}; do echo "systemctl enable $_s"; done
+        systemctl list-unit-files -t timer  | grep enabled | egrep -v "logrotate.timer|sysstat-collect.timer|sysstat-summary.timer" | awk '{print "systemctl disable", $1}'" | awk '{print "systemctl disable", $1}'
     } | bash -x || true
     #systemctl list-unit-files -t service | awk '$2 == "enabled" {printf "systemctl disable %s\n", $1}'
 }

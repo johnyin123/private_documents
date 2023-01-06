@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("b0480ca[2022-11-25T14:26:30+08:00]:os_debian_init.sh")
+VERSION+=("b9ccb2c[2022-12-20T08:06:41+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -693,6 +693,7 @@ debian_service_init() {
     {
         systemctl list-unit-files -t service | egrep -v "getty|console-setup.service|keyboard-setup.service|ssh.service|rsyslog.service|cron.service|sysstat.service|systemd-timesyncd.service|${netsvc}" | awk '$2 == "enabled" {printf "systemctl disable %s\n", $1}'
         echo "systemctl enable ${netsvc}"
+        systemctl list-unit-files -t timer  | grep enabled | egrep -v "logrotate.timer|sysstat-collect.timer|sysstat-summary.timer" | awk '{print "systemctl disable", $1}'
     } | bash -x || true
 }
 export -f debian_service_init
