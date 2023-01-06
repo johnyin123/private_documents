@@ -16,6 +16,10 @@ export CXXFLAGS='-march=native -O3 -flto -pipe'
 sed -ri '/CONFIG_SYSTEM_TRUSTED_KEYS/s/=.+/=""/g' .config
 scripts/config --disable DEBUG_INFO
 scripts/config --disable MODULE_SIG_ALL
+scripts/config --disable MODULE_COMPRESS_NONE
+scripts/config --disable MODULE_DECOMPRESS
+scripts/config --enable MODULE_COMPRESS_XZ 
+
 make -j$(nproc) bindeb-pkg
 # cat<<EOF
 # rm .config
