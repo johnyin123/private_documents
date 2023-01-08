@@ -16,18 +16,22 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("2031fd2[2023-01-06T14:20:10+08:00]:os_centos_init.sh")
+VERSION+=("7d88cd2[2023-01-06T14:29:36+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
 # proxy_username=u
 # proxy_password=p
+# PASSWORD: root password
+# NAME_SERVER: dns server
+# HOSTNAME: target hostname
+# RELEASE_VER: 7.9.2009/7/8/9 special target system version detail
 centos_build() {
     local root_dir=$1
     local include_pkg="${2}"
     local REPO=${root_dir}/local.repo
     local HOST_YUM=$(command -v yum || command -v dnf || { echo 'yum/dnf no found!'; return 1; })
-    RELEASE_VER=${RELEASE_VER:-7.9.2009}
+    HOST_YUM+=" ${RELEASE_VER:+--releasever=${RELEASE_VER}} -c ${REPO} --installroot=${root_dir} --downloadonly --destdir=${root_dir}/rpm_cache"
     [ -d "${root_dir}" ] || mkdir -p ${root_dir}/rpm_cache
     [ -r ${REPO} ] || {
         # yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
@@ -35,6 +39,7 @@ centos_build() {
 # centos7 : baseurl=http://mirrors.aliyun.com/centos/$releasever/os/$basearch/
 # centos8 : baseurl=http://mirrors.aliyun.com/centos-vault/releasever/BaseOS/$basearch/os/
 # rocky   : baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/BaseOS/$basearch/os/
+# baseurl=http://192.168.168.1/BaseOS
 [base]
 name=CentOS Family-$releasever - Base
 gpgcheck=0
@@ -42,9 +47,9 @@ EOF
     ${EDITOR:-vi} ${REPO} || true
     }
     rpm --root=${root_dir} --dbpath=/var/lib/rpm --initdb
-    # ${HOST_YUM} -y install -c ${REPO} --releasever=${RELEASE_VER} --downloadonly --destdir=${root_dir}/rpm_cache centos-release yum passwd ${include_pkg}
+    # ${HOST_YUM} -y install yum passwd ${include_pkg}
     # rpm --root=${root_dir} --dbpath=/var/lib/rpm --import ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-*
-    ${HOST_YUM} -y group install -c ${REPO} --installroot=${root_dir} --releasever=${RELEASE_VER} --downloadonly --destdir=${root_dir}/rpm_cache --exclude kernel-tools --exclude linux-firmware --exclude iw*-firmware core
+    ${HOST_YUM} -y group install --exclude kernel-tools --exclude linux-firmware --exclude iw*-firmware core
     echo "start install group core"
     rpm --root=${root_dir} --dbpath=/var/lib/rpm --nodigest --nosignature -ivh ${root_dir}/rpm_cache/*.rpm
     echo ${HOSTNAME:-cent-tpl} > ${root_dir}/etc/hostname
@@ -227,7 +232,7 @@ centos_service_init() {
         chkconfig 2>/dev/null | egrep -v "crond|sshd|rsyslog|sysstat"|awk '{print "chkconfig",$1,"off"}'
         systemctl list-unit-files -t service  | grep enabled | egrep -v "getty|autovt|sshd.service|rsyslog.service|crond.service|auditd.service|sysstat.service|chronyd.service" | awk '{print "systemctl disable", $1}'
         for _s in ${netsvc}; do echo "systemctl enable $_s"; done
-        systemctl list-unit-files -t timer  | grep enabled | egrep -v "logrotate.timer|sysstat-collect.timer|sysstat-summary.timer" | awk '{print "systemctl disable", $1}'" | awk '{print "systemctl disable", $1}'
+        systemctl list-unit-files -t timer  | grep enabled | egrep -v "logrotate.timer|sysstat-collect.timer|sysstat-summary.timer" | awk '{print "systemctl disable", $1}' | awk '{print "systemctl disable", $1}'
     } | bash -x || true
     #systemctl list-unit-files -t service | awk '$2 == "enabled" {printf "systemctl disable %s\n", $1}'
 }
