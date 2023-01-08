@@ -22,6 +22,7 @@ scripts/config --disable MODULE_COMPRESS_NONE
 scripts/config --disable MODULE_DECOMPRESS
 scripts/config --enable MODULE_COMPRESS_XZ 
 
+echo "RPM output: /usr/lib/rpm/macros; %_topdir        %{getenv:HOME}/rpmbuild"
 case "$1" in
     rpm) make -j$(nproc) binrpm-pkg; shift;;
     deb) make -j$(nproc) bindeb-pkg; shift;;
