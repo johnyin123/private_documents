@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3e50ab8[2023-01-09T14:37:36+08:00]:init-pc.sh")
+VERSION+=("ab1b8ec[2023-01-09T14:51:53+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -161,7 +161,7 @@ apt_install systemd-container \
     ftp telnet nmap tftp ntpdate lsof strace \
     tcpdump ethtool aria2 axel curl wget mpg123 nmon sysstat arping dnsutils \
     minicom socat git git-flow net-tools \
-    manpages-dev manpages-posix manpages-posix-dev manpages build-essential \
+    manpages-dev manpages-posix manpages-posix-dev manpages man-db build-essential \
     nscd nbd-client iftop netcat-openbsd sshfs squashfs-tools graphviz nftables \
     rsync tmux \
     libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
