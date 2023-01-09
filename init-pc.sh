@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("872db75[2022-12-20T08:19:25+08:00]:init-pc.sh")
+VERSION+=("0286731[2023-01-09T10:05:43+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -449,6 +449,8 @@ table ip filter {
 }
 EOF
 chmod 755 /etc/nftables.conf
+
+systemctl set-default graphical.target
 
 #debian_minimum_init => remove manpage doc
 apt clean
