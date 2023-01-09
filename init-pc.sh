@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0286731[2023-01-09T10:05:43+08:00]:init-pc.sh")
+VERSION+=("7212c21[2023-01-09T12:26:00+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -19,7 +19,7 @@ NAME_SERVER=114.114.114.114
 #512 M
 ZRAM_SIZE=512
 apt_install() {
-    apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install $*
+    apt -y -oAcquire::http::User-Agent=dler install $*
 }
 
 debian_apt_init ${VERSION_CODENAME}
@@ -163,10 +163,12 @@ apt_install systemd-container \
     minicom socat git git-flow net-tools \
     manpages-dev manpages-posix manpages-posix-dev manpages build-essential \
     nscd nbd-client iftop netcat-openbsd sshfs squashfs-tools graphviz nftables \
-    rsync tmux wireguard-tools \
+    rsync tmux \
     libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
     qemu-kvm qemu-utils xmlstarlet jq sudo debootstrap kpartx
     #binwalk
+# wireguard-tools need install debian kernel 
+apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install wireguard-tools
 
 apt_install traceroute ipcalc qrencode ncal
 # qrencode -8  -o - -t UTF8 "massage"
