@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a583241[2022-11-02T20:00:31+08:00]:init-pc.sh")
+VERSION+=("872db75[2022-12-20T08:19:25+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -18,6 +18,9 @@ GATEWAY=192.168.168.1
 NAME_SERVER=114.114.114.114
 #512 M
 ZRAM_SIZE=512
+apt_install() {
+    apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install $*
+}
 
 debian_apt_init ${VERSION_CODENAME}
 apt update
@@ -54,7 +57,7 @@ iface lo inet loopback
 EOF
 
 echo "install network bridge"
-apt -y install bridge-utils
+apt_install bridge-utils
 cat << EOF | tee /etc/network/interfaces.d/br-int
 auto br-int
 iface br-int inet manual
@@ -151,7 +154,7 @@ echo 'options use-vc' >> /etc/resolv.conf
 EOF
 
 echo "install packages! pbzip2 pigz pixz parallel version bzip2/gz/xz"
-apt -y install systemd-container \
+apt_install systemd-container \
     hostapd wpasupplicant wireless-tools \
     android-tools-adb android-tools-fastboot \
     pbzip2 pigz pixz p7zip-full arj zip rar mscompress unar eject bc less vim rename \
@@ -165,17 +168,17 @@ apt -y install systemd-container \
     qemu-kvm qemu-utils xmlstarlet jq sudo debootstrap kpartx
     #binwalk
 
-apt -y install traceroute ipcalc qrencode ncal
+apt_install traceroute ipcalc qrencode ncal
 # qrencode -8  -o - -t UTF8 "massage"
 
 # bat(batcat): cat(1) clone with syntax highlighting and git integration
-apt -y install bat
+apt_install bat
 echo "modify xfce4 default Panel layer"
-apt -y install xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver \
+apt_install xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver \
     lightdm xtv x2x
 echo "xtv -d <remote_ip:0> #xtv see remote desktop"
 echo "x2x -to <remote_ip:0.0> -west # mouse move left, then appear remote desktop!!!"
-sed -i "s/enabled=.*/enabled=False/g" /etc/xdg/user-dirs.conf
+sed -i "s/enabled=.*/enabled=False/g" /etc/xdg/user-dirs.conf 2>/dev/null || true
 
 XFCE_TERM=
 XFCE_FILE=
@@ -184,16 +187,16 @@ XFCE_MAIL=
 
 case "$VERSION_CODENAME" in
     buster)
-        apt -y install qt4-qtconfig medit xvnc4viewer
-        apt -y install fcitx-ui-classic fcitx-tools fcitx fcitx-sunpinyin fcitx-config-gtk
+        apt_install qt4-qtconfig medit xvnc4viewer
+        apt_install fcitx-ui-classic fcitx-tools fcitx fcitx-sunpinyin fcitx-config-gtk
         XFCE_TERM=exo-terminal-emulator.desktop
         XFCE_FILE=exo-file-manager.desktop
         XFCE_WEB=exo-web-browser.desktop
         XFCE_MAIL=exo-mail-reader.desktop
         ;;
     bullseye | *)
-        apt -y install bsdmainutils fonts-noto-cjk xpad
-        apt -y install fcitx5 fcitx5-pinyin fcitx5-chinese-addons fcitx5-frontend-gtk2 fcitx5-frontend-gtk3 fcitx5-frontend-qt5
+        apt_install bsdmainutils fonts-noto-cjk xpad
+        apt_install fcitx5 fcitx5-pinyin fcitx5-chinese-addons fcitx5-frontend-gtk2 fcitx5-frontend-gtk3 fcitx5-frontend-qt5
         XFCE_TERM=xfce4-terminal-emulator.desktop
         XFCE_FILE=xfce4-file-manager.desktop
         XFCE_WEB=xfce4-web-browser.desktop
@@ -287,12 +290,12 @@ cat<<EOF > /etc/xdg/xfce4/panel/default.xml
   </property>
 </channel>
 EOF
-apt -y install galculator gpicview qpdfview rdesktop wireshark fbreader \
+apt_install galculator gpicview qpdfview rdesktop wireshark fbreader \
     virt-manager gir1.2-spiceclientgtk-3.0
 
-apt -y install alsa-utils pulseaudio pulseaudio-utils
+apt_install alsa-utils pulseaudio pulseaudio-utils
 
-apt -y install smplayer smplayer-l10n
+apt_install smplayer smplayer-l10n
 
 
 wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - && \
