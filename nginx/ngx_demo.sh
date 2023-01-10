@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a7582ff[2023-01-03T15:06:50+08:00]:ngx_demo.sh")
+VERSION+=("adda2a2[2023-01-06T08:22:08+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -387,6 +387,11 @@ server {
         # proxy_pass_request_body off;
         proxy_pass http://127.0.0.1:8080;
     }
+}
+EOF
+cat <<'EOF' >method_limit.location
+if ($request_method !~ ^(GET|HEAD|POST)$ ) {
+    return 444;
 }
 EOF
 cat <<'EOF' >favicon.location
