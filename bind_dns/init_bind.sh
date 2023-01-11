@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4dadaff[2022-08-12T14:30:55+08:00]:init_bind.sh")
+VERSION+=("f0e9486[2022-08-24T13:52:11+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 SERIAL=$(date '+%Y%m%d%H')
@@ -151,6 +151,9 @@ options {
     listen-on port 53 { any; };
     listen-on-v6 { none; };
     directory "/var/cache/bind";
+    // dump-file          "/var/named/data/cache_dump.db";
+    // statistics-file    "/var/named/data/named_stats.txt";
+    // memstatistics-file "/var/named/data/named_mem_stats.txt";
     version "not currently available";
     allow-query { any; };
     allow-query-cache {any;};
