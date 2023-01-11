@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c518be6[2023-01-06T14:50:41+08:00]:build_centos_no_kernel.sh")
+VERSION+=("1e31d6c[2023-01-10T13:38:20+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -79,7 +79,7 @@ sed --quiet -i.orig -E \
     -e '$aPermitRootLogin without-password' \
     ${ROOT_DIR}/etc/ssh/sshd_config
 log "change firewalld ssh port"
-sed --quiet -i -E -e "s/port\s*=\s*\"22\"/port=\"60022\"/g" ${ROOT_DIR}/usr/lib/firewalld/services/ssh.xml || true
+sed -i.orig -E -e "s/port\s*=\s*\"22\"/port=\"60022\"/g" ${ROOT_DIR}/usr/lib/firewalld/services/ssh.xml || true
 cat <<"EOF" > ${ROOT_DIR}/etc/ssh/sshrc
 logger -i -t ssh "$(date '+%Y%m%d%H%M%S') $USER $SSH_CONNECTION"
 EOF
@@ -106,6 +106,7 @@ done
     # chroot ${ROOT_DIR} dracut -H -f --kver ${kerver} --show-modules -m "qemu qemu-net bash network ifcfg drm dm kernel-modules resume rootfs-block terminfo udev-rules biosdevname systemd usrmount base fs-lib shutdown" --add-drivers xfs || true
     chroot ${ROOT_DIR} kernel-install add ${kerver} /boot/vmlinuz-${kerver} || true
 }
+chroot ${ROOT_DIR} || true
 log "clean up system"
 chroot ${ROOT_DIR} yum clean all || true
 for mp in /dev /sys /proc
