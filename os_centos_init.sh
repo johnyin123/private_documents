@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("7d88cd2[2023-01-06T14:29:36+08:00]:os_centos_init.sh")
+VERSION+=("3fafbe8[2023-01-08T08:24:33+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -239,6 +239,44 @@ centos_service_init() {
 export -f centos_service_init
 
 centos_zramswap_init() {
+    local size_mb=$1
+    cat<<EOF > /etc/default/zramswap
+ZRAM_DEV=/dev/zram0
+# Compression algorithm selection
+# speed: lz4 > zstd > lzo compression: zstd > lzo > lz4
+ALGO=lzo
+
+# Specifies a static amount of RAM in MiB
+SIZE=${size_mb}MiB
+
+# Specifies the priority for the swap devices, see swapon(2)
+# This should probably be higher than hdd/ssd swaps.
+#PRIORITY=100
+EOF
+    cat<<'EOF' >/lib/systemd/system/zramswap.service
+[Unit]
+Description=Linux zramswap setup
+[Service]
+Environment=ALGO=lzo
+Environment=SIZE=256MiB
+Environment=ZRAM_DEV=/dev/zram0
+Environment=PRIORITY=100
+EnvironmentFile=-/etc/default/zramswap
+ExecStartPre=-/sbin/modprobe zram
+ExecStart=/sbin/zramctl ${ZRAM_DEV}
+ExecStart=/sbin/zramctl -a "${ALGO}" -s "${SIZE}" ${ZRAM_DEV}
+ExecStart=/sbin/mkswap ${ZRAM_DEV}
+ExecStart=/sbin/swapon -p "${PRIORITY}" ${ZRAM_DEV}
+ExecStop=/sbin/swapoff ${ZRAM_DEV}
+ExecStop=/sbin/zramctl -r ${ZRAM_DEV}
+Type=oneshot
+RemainAfterExit=true
+[Install]
+WantedBy=multi-user.target
+EOF
+}
+
+centos_zramswap_init1() {
     local size_mb=$1
     cat<<EOF > /etc/default/zramswap
 # Compression algorithm selection
