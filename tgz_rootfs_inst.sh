@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("300d9f4[2022-12-26T17:20:47+08:00]:tgz_rootfs_inst.sh")
+VERSION+=("bc91265[2023-01-04T16:44:25+08:00]:tgz_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -68,6 +68,8 @@ main() {
     }
     local root_dir=$(mktemp -d /tmp/rootfs.XXXXXX)
     mkfs.xfs -f -L rootfs ${xfsfix:+-m reflink=0 -m crc=0} "${part}"
+    # xfs_admin -O bigtime=1 device # no work some version xfsprogs
+    # xfs_repair -c bigtime=1 device
     mount "${part}" ${root_dir}
     tar -C ${root_dir} -xvf ${root_tgz}
     for i in /dev /dev/pts /proc /sys /sys/firmware/efi/efivars /run; do
