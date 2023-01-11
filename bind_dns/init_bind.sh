@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f0e9486[2022-08-24T13:52:11+08:00]:init_bind.sh")
+VERSION+=("5458de5[2023-01-11T11:18:26+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 SERIAL=$(date '+%Y%m%d%H')
@@ -233,6 +233,7 @@ ${SCRIPTNAME}
         # rndc reload, reload named config when add A/CNAME record
         # dig -x <ipaddr>, dig <domain>, dig sample.org MX, dig txt mail.sample.org, dig txt mail.sample.org +short
     Set BIND to use only IPv4: sed -i -e 's/OPTIONS=.*/OPTIONS="-u bind -4"/g' /etc/default/named
+    use dnsperf test performance
 EOF
     exit 1
 }
