@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("3fafbe8[2023-01-08T08:24:33+08:00]:os_centos_init.sh")
+VERSION+=("f885adb[2023-01-11T10:49:48+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -40,6 +40,7 @@ centos_build() {
 # centos8 : baseurl=http://mirrors.aliyun.com/centos-vault/releasever/BaseOS/$basearch/os/
 # rocky   : baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/BaseOS/$basearch/os/
 # baseurl=http://192.168.168.1/BaseOS
+# baseurl=http://192.168.168.1/minimal
 [base]
 name=CentOS Family-$releasever - Base
 gpgcheck=0
@@ -49,8 +50,8 @@ EOF
     rpm --root=${root_dir} --dbpath=/var/lib/rpm --initdb
     # ${HOST_YUM} -y install yum passwd ${include_pkg}
     # rpm --root=${root_dir} --dbpath=/var/lib/rpm --import ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-*
-    ${HOST_YUM} -y group install --exclude kernel-tools --exclude linux-firmware --exclude iw*-firmware core
     echo "start install group core"
+    ${HOST_YUM} -y group install --exclude kernel-tools --exclude linux-firmware --exclude iw*-firmware core
     rpm --root=${root_dir} --dbpath=/var/lib/rpm --nodigest --nosignature -ivh ${root_dir}/rpm_cache/*.rpm
     echo ${HOSTNAME:-cent-tpl} > ${root_dir}/etc/hostname
     echo "nameserver ${NAME_SERVER:-114.114.114.114}" > ${root_dir}/etc/resolv.conf
@@ -162,7 +163,7 @@ centos_sshd_regenkey() {
 export -f centos_sshd_regenkey
 
 centos_sshd_init() {
-    yum -y --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install openssh-server || true
+    rpm -q openssh-server || yum -y --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install openssh-server || true
     sed --quiet -i.orig -E \
         -e '/^\s*(UseDNS|MaxAuthTries|GSSAPIAuthentication|Port|Ciphers|MACs|PermitRootLogin).*/!p' \
         -e '$aUseDNS no' \
