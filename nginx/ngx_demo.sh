@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f3f4062[2023-01-10T16:08:29+08:00]:ngx_demo.sh")
+VERSION+=("33236be[2023-01-12T14:00:46+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -465,8 +465,8 @@ server {
     # quic requires ssl_protocols TLSv1.3
     # add_header Alt-Svc 'h3=":443"';   # Advertise that HTTP/3 is available
     # access_log can add $http3 var, for logging quic enabled or not
-    ssl_certificate /etc/nginx/test.pem;
-    ssl_certificate_key /etc/nginx/test.key;
+    ssl_certificate /etc/nginx/ssl/test.pem;
+    ssl_certificate_key /etc/nginx/ssl/test.key;
     server_name _;
     # direct set cache_bypass
     set $cache_bypass 1;
@@ -481,8 +481,8 @@ server {
     listen 443 http3;
     ssl_protocols TLSv1.3; # QUIC requires TLS 1.3
     add_header Alt-Svc 'h3=":443"';   # Advertise that HTTP/3 is available
-    ssl_certificate /etc/nginx/test.pem;
-    ssl_certificate_key /etc/nginx/test.key;
+    ssl_certificate /etc/nginx/ssl/test.pem;
+    ssl_certificate_key /etc/nginx/ssl/test.key;
     server_name _;
     location / { return 200 "$http3"; }
 }
@@ -581,8 +581,8 @@ server {
     listen 80;
     server_name _;
     # listen 443 ssl;
-    # ssl_certificate /etc/nginx/SSL/ca.pem
-    # ssl_certificate_key /etc/nginx/SSL/site.key;
+    # ssl_certificate /etc/nginx/ssl/test.pem;
+    # ssl_certificate_key /etc/nginx/ssl/test.key;
     # server_name status.example.org;
     # # force https
     # proxy_redirect http:// $scheme://;
