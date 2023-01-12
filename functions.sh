@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("ed930e0[2022-11-18T09:13:46+08:00]:functions.sh")
+VERSION+=("43ff2bc[2022-12-07T15:33:55+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -1042,10 +1042,12 @@ truecmd() {
 
 require() {
     local cmd=
+    local err=0
     for cmd in $@ ; do
-        command -v "${cmd}" &> /dev/null || exit_msg "require $cmd\n"
+        command -v "${cmd}" &> /dev/null || { warn_msg "require $cmd\n"; err=1; }
         #[ "$(command -v "$cmd")" ] || exit_msg "require $cmd\n"
     done
+    [ "${err}" == "0" ] || exit_msg "command check no passed\n"
 }
 
 debugshell() {
