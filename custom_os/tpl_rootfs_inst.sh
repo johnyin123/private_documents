@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("initver[2023-01-12T09:31:37+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("2af41d6[2023-01-12T09:31:37+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -19,6 +19,11 @@ ${SCRIPTNAME}
                         parted -s /dev/vda "set 1 boot on"
         -d|--disk *   <str>   disk, /dev/sdX
         -p|--part *   <str>   install tpl in partition as rootfs, /dev/vda1, /dev/mapper/..
+        --fs          <fstype> ext4/xfs, default xfs
+                        initramfs include the right module!!
+                        debian: echo "ext4" >> /etc/initramfs-tools/modules
+                                update-initramfs -c -k \$(uname -r)
+                        centos: dracut -f --kver \$(uname -r) --filesystems xfs --filesystems ext4
         -V|--version          version info
         -h|--help             help
         Exam:
@@ -35,9 +40,9 @@ EOF
     exit 1
 }
 main() {
-    local root_tpl="" disk="" part="" uefi=""
+    local root_tpl="" disk="" part="" uefi="" fs="xfs"
     local opt_short+="t:d:p:xvh"
-    local opt_long+="tpl:,disk:,part:,uefi:,version,help"
+    local opt_long+="tpl:,disk:,part:,uefi:,fs:,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
@@ -47,6 +52,7 @@ main() {
             -d | --disk)      shift; disk=${1}; shift;;
             -p | --part)      shift; part=${1}; shift;;
             --uefi)           shift; uefi=${1}; shift;;
+            --fs)             shift; fs=${1}; shift;;
             -V | --version)   shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
             -h | --help)      shift; usage;;
             --)               shift; break;;
@@ -69,7 +75,11 @@ main() {
         target="x86_64-efi"
         mkfs.vfat -F 32 ${uefi} # need chroot ?
     }
-    chroot ${work_dir} /sbin/mkfs.xfs -f -L rootfs "${part}"
+    case "${fs}" in
+        ext4) chroot ${work_dir} /sbin/mkfs.ext4 -F -L rootfs "${part}";;
+        xfs)  chroot ${work_dir} /sbin/mkfs.xfs -f -L rootfs "${part}";;
+        *)    umount -R -v ${work_dir} || true; echo "fstype not support"; exit 1;;
+    esac
     umount -R -v ${work_dir} || true
     # xfs_admin -O bigtime=1 device # no work some version xfsprogs
     # xfs_repair -c bigtime=1 device
@@ -101,7 +111,7 @@ EOSHELL
     cat ${root_dir}/etc/fstab > ${root_dir}/etc/fstab.orig || true
     {
         echo "# $(date '+%Y-%m-%d %H:%M:%S')"
-        echo "UUID=${new_uuid} / xfs noatime,relatime 0 0"
+        echo "UUID=${new_uuid} / ${fs} noatime,relatime 0 0"
         [ -z "${uefi}" ] || {
             echo "UUID=$(blkid -s UUID -o value ${uefi}) /boot/efi vfat umask=0077 0 1"
         }
