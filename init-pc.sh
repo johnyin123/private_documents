@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ab1b8ec[2023-01-09T14:51:53+08:00]:init-pc.sh")
+VERSION+=("04746f9[2023-01-09T16:14:53+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -312,7 +312,16 @@ id johnyin &>/dev/null && {
     echo "login johnyin and run 'systemctl enable pulseaudio.service --user' to enable pulse audio"
     mkdir -p /home/johnyin/.config/libvirt
     echo 'uri_default = "qemu:///system"' > /home/johnyin/.config/libvirt/libvirt.conf
-    chown -R johnyin.johnyin /home/johnyin/.config
+    cat <<'EOF' > /home/johnyin/.gitconfig
+[user]
+name = johnyin
+email = johnyin.news@163.com
+[core]
+    editor = /usr/bin/vim
+[alias]
+    lg = log --color --graph --pretty=format:'[%cd] %Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=short --
+EOF
+    chown -R johnyin.johnyin /home/johnyin/
     usermod -a -G libvirt johnyin
 
     echo "add group[johnyin] to sudoers"
@@ -323,7 +332,6 @@ id johnyin &>/dev/null && {
 
     echo "enable root user run X app"
     rm -f /root/.Xauthority && ln -s /home/johnyin/.Xauthority /root/.Xauthority
-
     debian_bash_init johnyin
 }
 
