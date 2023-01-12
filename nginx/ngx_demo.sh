@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9377675[2023-01-10T10:40:32+08:00]:ngx_demo.sh")
+VERSION+=("f3f4062[2023-01-10T16:08:29+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -489,9 +489,13 @@ server {
 EOF
 cat <<'EOF' >check_nofiles.ngx.sh
 echo "RSA/EC performance"
-echo "AES ciphers and AVX512 for ChaCha+Poly."
-grep -iE "AES|AVX2" /proc/cpuinfo
+echo -n "AES ciphers and AVX512 for ChaCha+Poly : "
+grep -q -iE "AES|AVX2" /proc/cpuinfo && echo YES || echo NO
 
+echo -n "ktls support                           : "
+modinfo tls &>/dev/null && echo YES || NO
+
+echo "proc file limit : "
 ps --ppid $(cat /var/run/nginx.pid) -o %p|sed '1d'|xargs -I{} cat /proc/{}/limits|grep open.files
 EOF
 cat <<'EOF' >redis.http
