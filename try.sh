@@ -7,16 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b3a44b5[2022-08-04T13:15:37+08:00]:try.sh")
+VERSION+=("9dfcda1[2022-08-30T08:54:02+08:00]:try.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
     echo "EXIT!!!"
 }
 
-#trap cleanup EXIT
-trap cleanup TERM
-trap cleanup INT
+trap cleanup EXIT
+trap "exit 1" INT TERM  # makes the EXIT trap effective even when killed
 ##################################################
 dummy() {
     echo "MY DUMMY"
