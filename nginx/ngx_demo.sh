@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("54b3b55[2023-01-12T14:07:38+08:00]:ngx_demo.sh")
+VERSION+=("4d69d48[2023-01-12T16:31:29+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -52,7 +52,6 @@ server {
     server_name _;
     ssl_certificate /etc/nginx/ssl/test.pem;
     ssl_certificate_key /etc/nginx/ssl/test.key;
-    ssl_dhparam /etc/nginx/dh2048.pem;
     ssl_client_certificate /etc/nginx/ssl/ca.pem;
     ssl_verify_client on;
     location / { default_type text/html; return 200 "$ssl_client_s_dn"; }
@@ -4336,8 +4335,9 @@ send_timeout 2s;
 
 # Turn on session resumption, using a 10 min cache shared across nginx processes,
 # as recommended by http://nginx.org/en/docs/http/configuring_https_servers.html
-ssl_session_cache shared:SSL:15m; # 1M bytes can store 4000 sessions
+ssl_session_cache shared:SSL:128m; # 1M bytes can store 4000 sessions
 ssl_session_timeout 60m;
+ssl_session_tickets off
 keepalive_timeout 70;
 # Buffer size of 1400 bytes fits in one MTU.
 ssl_buffer_size 1400;
@@ -4345,7 +4345,7 @@ ssl_buffer_size 1400;
 ssl_early_data on;
 # # Enabling Forward Secrecy
 # # openssl dhparam -out /etc/nginx/ssl/dh2048.pem 2048
-# ssl_dhparam /etc/nginx/dh2048.pem;
+ssl_dhparam /etc/nginx/dh2048.pem;
 # # stapling, OCSP在线查询证书吊销情况
 # ssl_stapling on;
 # ssl_stapling_verify on;
