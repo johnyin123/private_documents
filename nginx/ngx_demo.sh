@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("33236be[2023-01-12T14:00:46+08:00]:ngx_demo.sh")
+VERSION+=("54b3b55[2023-01-12T14:07:38+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4617,4 +4617,18 @@ cat <<'EOF'> non_root_run_nginx.sh
 # sudo setcap CAP_NET_BIND_SERVICE=+eip /home/johnyin/nginx
 # ./nginx -c /home/johnyin/nginx.conf -e /home/johnyin/err.log
 # ./nginx # make error.log/access.log/nginx.pid writeable first!!!
+EOF
+cat <<'EOF'> perf_test.sh
+#!/usr/bin/env bash
+ipaddr=${1:?ipaddr need input}
+echo "Requests Per Second"
+for i in `seq 0 $(($(getconf _NPROCESSORS_ONLN) - 1))`; do
+    taskset -c $i wrk -t 1 -c 50 -d 180s http://${ipaddr}/1kb.bin &
+done
+wait
+echo "SSL/TLS Transactions Per Second"
+for i in `seq 0 $(($(getconf _NPROCESSORS_ONLN) - 1))`; do
+    taskset -c $i wrk -t 1 -c 50 -d 180s -H 'Connection: close' https://${ipaddr}/0kb.bin &
+done
+wait
 EOF
