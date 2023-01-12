@@ -16,5 +16,5 @@ chroot ${ROOTFS}
 
 echo "Unmounting..."
 for i in /dev /proc /sys /run; do
-    umount -Rv "${root_dir}${i}" 2>/dev/null || true
+    umount -R -v "${root_dir}${i}" || true
 done
