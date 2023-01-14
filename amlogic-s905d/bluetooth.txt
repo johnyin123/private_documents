@@ -4,6 +4,18 @@ apt -y install libudev-dev libglib2.0-dev libdbus-1-dev libical-dev libreadline-
 make && DESTDIR=~/target/ make install-strip
 ifdown wlan0 .............
 
+pair bt:
+use local term(ssh term sometime no worked)
+    bluetoothctl:
+        power on
+        agent on
+        default agent
+        pairable on
+        scan on
+        pair 54:03:84:72:58:B5
+        trust 54:03:84:72:58:B5
+        connect 54:03:84:72:58:B5
+
 /etc/systemd/logind.conf set remote control POWER KEY action
 # HandlePowerKey=ignore
 # show key scan code!!
