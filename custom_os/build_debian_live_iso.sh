@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c518be6[2023-01-06T14:50:41+08:00]:build_debian_live_iso.sh")
+VERSION+=("f700d8b[2023-01-12T08:40:14+08:00]:build_debian_live_iso.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
@@ -88,18 +88,18 @@ timeout 50
 label live-${INST_ARCH:-amd64}-ram
     menu label ^debian RAM (${INST_ARCH:-amd64})
     menu default
-    linux /live/vmlinuz apm=power-off boot=live live-media-path=/live/ toram=filesystem.squashfs net.ifnames=0 biosdevname=0
+    linux /live/vmlinuz apm=power-off boot=live live-media-path=/live/ toram=filesystem.squashfs net.ifnames=0 biosdevname=0 console=ttyS0 console=tty1
     append initrd=/live/initrd boot=live
 
 label live-${INST_ARCH:-amd64}
     menu label ^debian (${INST_ARCH:-amd64})
     linux /live/vmlinuz
-    append initrd=/live/initrd boot=live net.ifnames=0 biosdevname=0
+    append initrd=/live/initrd boot=live net.ifnames=0 biosdevname=0 console=ttyS0 console=tty1
 
 label live-${INST_ARCH:-amd64}-failsafe
     menu label ^debian (${INST_ARCH:-amd64} failsafe)
     linux /live/vmlinuz
-    append initrd=/live/initrd boot=live config memtest noapic noapm nodma nomce nolapic nomodeset nosmp nosplash vga=normal net.ifnames=0 biosdevname=0
+    append initrd=/live/initrd boot=live config memtest noapic noapm nodma nomce nolapic nomodeset nosmp nosplash vga=normal net.ifnames=0 biosdevname=0 console=ttyS0 console=tty1
 
 endtext
 EOF
@@ -173,7 +173,7 @@ gen_grublinuxiso() {
 set timeout=30
 set default="0"
 menuentry "Debian GNU/Linux Live" {
-    linux  /live/${vmlinuz##*/} boot=live live-media-path=/live/ toram=filesystem.squashfs net.ifnames=0 biosdevname=0
+    linux  /live/${vmlinuz##*/} boot=live live-media-path=/live/ toram=filesystem.squashfs net.ifnames=0 biosdevname=0 console=ttyS0 console=tty1
     initrd /live/${initrd##*/}
 }
 EOGRUB
