@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-01-12T10:01:25+08:00]:tpl_pack.sh")
+VERSION+=("8c95c94[2023-01-12T10:01:25+08:00]:tpl_pack.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -27,6 +27,11 @@ ${SCRIPTNAME} <src directory> <dest file name>
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+  1. mydir=<your place>
+  2. mkdir -p \${mydir}/overlay/upper \${mydir}/overlay/work \${mydir}/overlay/lower \${mydir}/newdir
+  3. mount -o loop <your tpl> \${mydir}/overlay/lower
+  4. mount -t overlay overlay -olowerdir=\${mydir}/overlay/lower,upperdir=\${mydir}/overlay/upper,workdir=\${mydir}/overlay/work \${mydir}/newdir
+  5. chroot \${mydir}/newdir
 EOF
     exit 1
 }
