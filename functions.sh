@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("43ff2bc[2022-12-07T15:33:55+08:00]:functions.sh")
+VERSION+=("f700d8b[2023-01-12T08:40:14+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -655,7 +655,7 @@ is_user_root() {
 # main "$@"
 auto_su() {
     ARGS=( "$@" )
-    [[ $UID == 0 ]] || exec sudo -p "$SCRIPTNAME  must be run as root. Please enter the password for %u to continue: " -- "$BASH" -- "$DIRNAME/$SCRIPTNAME" "${ARGS[@]}"
+    [[ $UID == 0 ]] || exec sudo -E -p "$SCRIPTNAME  must be run as root. Please enter the password for %u to continue: " -- "$BASH" -- "$DIRNAME/$SCRIPTNAME" "${ARGS[@]}"
 }
 
 min() { [ "$1" -le "$2" ] && echo "$1" || echo "$2"; }
