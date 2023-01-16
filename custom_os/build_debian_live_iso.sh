@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c271cb3[2023-01-16T07:55:14+08:00]:build_debian_live_iso.sh")
+VERSION+=("50aae2d[2023-01-16T10:14:40+08:00]:build_debian_live_iso.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
@@ -172,6 +172,7 @@ gen_grublinuxiso() {
     cat <<EOGRUB | try tee ${iso_dir}/boot/grub/grub.cfg
 set timeout=30
 set default="0"
+insmod all_video
 menuentry "Debian GNU/Linux Live" {
     linux  /live/${vmlinuz##*/} boot=live live-media-path=/live/ toram=filesystem.squashfs net.ifnames=0 biosdevname=0 console=ttyS0 console=tty1
     initrd /live/${initrd##*/}
