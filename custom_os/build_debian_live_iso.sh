@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f700d8b[2023-01-12T08:40:14+08:00]:build_debian_live_iso.sh")
+VERSION+=("c271cb3[2023-01-16T07:55:14+08:00]:build_debian_live_iso.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
@@ -264,7 +264,7 @@ EOSHELL
     try mkdir -p ${iso_dir}/live
 
     info_msg "gen squashfs ${iso_dir}/live/filesystem.squashfs, exclude /boot/\n"
-    defined DRYRUN || mksquashfs ${root_dir} ${iso_dir}/live/filesystem.squashfs -comp ${comp} -ef <(echo "${root_dir}/boot/")
+    defined DRYRUN || mksquashfs ${root_dir} ${iso_dir}/live/filesystem.squashfs -no-duplicates -comp ${comp} -ef <(echo "${root_dir}/boot/")
     try cp $(ls ${root_dir}/boot/vmlinuz* 2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/vmlinuz
     try cp $(ls ${root_dir}/boot/initrd*  2>/dev/null | sort --version-sort -f | tail -n1) ${iso_dir}/live/initrd
     #try cp ${root_dir}/boot/* ${iso_dir}/live/
