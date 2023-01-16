@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("381cd87[2022-11-18T15:58:31+08:00]:virt-imgbootup.sh")
+VERSION+=("ff5640d[2022-12-22T09:41:13+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -47,6 +47,8 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+        I use kernel 6.1.4, transparent_hugepage cause bootup slow or hang
+           echo never > /sys/kernel/mm/transparent_hugepage/enabled
         demo nbd-server:
            qemu-nbd -x tpl --port= --bind= -f raw /storage/linux.tpl
            qemu-nbd -x tpl --socket=/tmp/nbd-socket -f raw /storage/linux.tpl
