@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("50aae2d[2023-01-16T10:14:40+08:00]:build_debian_live_iso.sh")
+VERSION+=("af893d7[2023-01-16T11:13:24+08:00]:build_debian_live_iso.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
@@ -280,6 +280,7 @@ EOSHELL
     esac
     info_msg "${isoimage} OK Bye\n"
 }
+auto_su "$@"
 main "$@"
 exit $?
 # base64 splash.png >> test.sh
