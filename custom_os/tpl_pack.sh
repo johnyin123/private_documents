@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8c95c94[2023-01-12T10:01:25+08:00]:tpl_pack.sh")
+VERSION+=("4c0d84d[2023-01-16T15:18:57+08:00]:tpl_pack.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -27,6 +27,9 @@ ${SCRIPTNAME} <src directory> <dest file name>
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+  tpl support uefi/bios dual:
+      yum -y install efibootmgr grub2 shim-x64 grub2-efi-x64 grub2-efi-x64-modules grub2-pc grub2-pc-modules grub2-common grub2-tools-minimal grub2-tools-extra grub2-tools
+      apt -y install efibootmgr shim-signed grub2-common grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed
   1. mydir=<your place>
   2. mkdir -p \${mydir}/overlay/upper \${mydir}/overlay/work \${mydir}/overlay/lower \${mydir}/newdir
   3. mount -o loop <your tpl> \${mydir}/overlay/lower

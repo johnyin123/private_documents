@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ab1b8ec[2023-01-09T14:51:53+08:00]:build_debian_no_kernel.sh")
+VERSION+=("5019627[2023-01-16T13:49:24+08:00]:build_debian_no_kernel.sh")
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -17,7 +17,7 @@ old_ifs="$IFS" IFS=','
 custom_pkgs="$*"
 IFS=$old_ifs
 
-PKG+=",grub2-common,grub-pc-bin,grub-efi-amd64-bin,grub-efi-amd64-signed,shim-signed"
+PKG+=",efibootmgr,grub2-common,grub-pc-bin,grub-efi-amd64-bin,grub-efi-amd64-signed,shim-signed"
 PKG+=",dosfstools,fdisk,parted,xfsprogs"
 PKG+=",libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools"
 PKG+=",udev,isc-dhcp-client,netbase,console-setup,systemd-timesyncd,cron,rsyslog,logrotate"
