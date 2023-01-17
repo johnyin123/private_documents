@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("bde9b74[2023-01-12T10:48:35+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("13dec48[2023-01-17T08:47:16+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -85,14 +85,14 @@ main() {
     # xfs_repair -c bigtime=1 device
     local root_dir=$(mktemp -d /tmp/rootfs.XXXXXX)
     mount "${part}" ${root_dir}
-    unsquashfs -f -d ${root_dir} ${root_tpl}
-    for i in /dev /dev/pts /proc /sys /sys/firmware/efi/efivars /run; do
-        mount -o bind $i "${root_dir}${i}" 2>/dev/null && echo "mount root $i ...." || true
-    done
     [ -z "${uefi}" ] || {
         mkdir -p ${root_dir}/boot/efi
         mount ${uefi} ${root_dir}/boot/efi
     }
+    unsquashfs -f -d ${root_dir} ${root_tpl}
+    for i in /dev /dev/pts /proc /sys /sys/firmware/efi/efivars /run; do
+        mount -o bind $i "${root_dir}${i}" 2>/dev/null && echo "mount root $i ...." || true
+    done
     source ${root_dir}/etc/os-release
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x -o errexit -s <<EOSHELL
 case "${ID}" in
@@ -102,7 +102,7 @@ case "${ID}" in
         ;;
     centos|rocky|*)
         echo "rocky9 & openeuler22, when uefi grub2-install bug https://bugzilla.redhat.com/show_bug.cgi?id=1917213"
-        # efibootmgr --create --disk /dev/vda --part 1 --label "Euler Linux"
+        # efibootmgr --create --disk /dev/vda --part 1 --label "Euler Linux" -l '\EFI\....'
         grub2-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
         grub2-mkconfig -o /boot/grub2/grub.cfg || true
         ;;
