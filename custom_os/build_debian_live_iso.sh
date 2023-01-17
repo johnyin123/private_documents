@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("af893d7[2023-01-16T11:13:24+08:00]:build_debian_live_iso.sh")
+VERSION+=("0de7c77[2023-01-16T11:18:17+08:00]:build_debian_live_iso.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
@@ -137,6 +137,8 @@ INST_ARCH="amd64"
 DEBIAN_VERSION="buster"
 REPO="http://mirrors.163.com/debian"
 PASSWORD=password
+HOSTNAME=liveos
+NAME_SERVER=114.114.114.114
 EOF
     info_msg "config generate ok, modify it and run again!!\n"
     exit 0
