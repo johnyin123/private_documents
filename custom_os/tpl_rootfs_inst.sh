@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("2af41d6[2023-01-12T09:31:37+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("bde9b74[2023-01-12T10:48:35+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -101,6 +101,8 @@ case "${ID}" in
         grub-mkconfig -o /boot/grub/grub.cfg || true
         ;;
     centos|rocky|*)
+        echo "rocky9 & openeuler22, when uefi grub2-install bug https://bugzilla.redhat.com/show_bug.cgi?id=1917213"
+        # efibootmgr --create --disk /dev/vda --part 1 --label "Euler Linux"
         grub2-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
         grub2-mkconfig -o /boot/grub2/grub.cfg || true
         ;;
