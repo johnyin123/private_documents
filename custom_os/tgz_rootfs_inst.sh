@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("initver[2023-01-12T09:31:37+08:00]:tgz_rootfs_inst.sh")
+VERSION+=("2af41d6[2023-01-12T09:31:37+08:00]:tgz_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -71,14 +71,14 @@ main() {
     # xfs_admin -O bigtime=1 device # no work some version xfsprogs
     # xfs_repair -c bigtime=1 device
     mount "${part}" ${root_dir}
-    tar -C ${root_dir} -xvf ${root_tgz}
-    for i in /dev /dev/pts /proc /sys /sys/firmware/efi/efivars /run; do
-        mount -o bind $i "${root_dir}${i}" 2>/dev/null && echo "mount $i ...." || true
-    done
     [ -z "${uefi}" ] || {
         mkdir -p ${root_dir}/boot/efi
         mount ${uefi} ${root_dir}/boot/efi
     }
+    tar -C ${root_dir} -xvf ${root_tgz}
+    for i in /dev /dev/pts /proc /sys /sys/firmware/efi/efivars /run; do
+        mount -o bind $i "${root_dir}${i}" 2>/dev/null && echo "mount $i ...." || true
+    done
     source ${root_dir}/etc/os-release
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x -o errexit -s <<EOSHELL
 case "${ID}" in
@@ -86,9 +86,15 @@ case "${ID}" in
         grub-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
         grub-mkconfig -o /boot/grub/grub.cfg || true
         ;;
-    centos|rocky|*)
-        grub2-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
-        grub2-mkconfig -o /boot/grub2/grub.cfg || true
+    centos|rocky|openEuler|*)
+        echo "rocky9 & openeuler22, when uefi grub2-install bug https://bugzilla.redhat.com/show_bug.cgi?id=1917213"
+        [ -z "${uefi}" ] && {
+            grub2-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
+            grub2-mkconfig -o /boot/grub2/grub.cfg || true
+        } || {
+            efibootmgr --create --remove-dups --disk ${disk} --part ${uefi: -1} --label "${ID} Linux" || true
+            grub2-mkconfig -o /boot/efi/EFI/${ID}/grub.cfg || true
+        }
         ;;
 esac
 exit 0
