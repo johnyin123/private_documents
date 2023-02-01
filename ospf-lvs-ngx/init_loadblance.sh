@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e64c8cf[2022-08-15T16:50:25+08:00]:init_loadblance.sh")
+VERSION+=("ffe10d8[2022-08-16T09:06:12+08:00]:init_loadblance.sh")
 ################################################################################
 LOGFILE=""
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
@@ -40,14 +40,14 @@ cat <<EOF | tee ${LOGFILE} | tee /etc/keepalived/keepalived.conf
 global_defs {
    router_id ${id}
 }
-virtual_server ${vip} {
+virtual_server ${vip} 0 {
     delay_loop 2
     lb_algo rr
     lb_kind DR
     persistence_timeout 360
     protocol TCP
 $(for ip in ${real_ips}; do
-echo "    real_server ${ip} {"
+echo "    real_server ${ip} 0 {"
 echo "        weight 1"
 echo "        PING_CHECK {"
 echo "            retry 2"
@@ -55,14 +55,14 @@ echo "        }"
 echo "    }"
 done)
 }
-virtual_server ${vip} {
+virtual_server ${vip} 0 {
     delay_loop 2
     lb_algo rr
     lb_kind DR
     persistence_timeout 360
     protocol UDP
 $(for ip in ${real_ips}; do
-echo "    real_server ${ip} {"
+echo "    real_server ${ip} 0 {"
 echo "        weight 1"
 echo "        PING_CHECK {"
 echo "            retry 2"
@@ -112,12 +112,27 @@ gen_zebra() {
 init_lo_vip() {
     local interface=${1}
     local vip=${2}
-    log "INIT /etc/network/interfaces.d/lvs"
-    cat<<EOF | tee ${LOGFILE} | tee /etc/network/interfaces.d/lvs
+    source /etc/os-release
+case "${ID}" in
+    debian)
+        log "INIT /etc/network/interfaces.d/lvs"
+        cat<<EOF | tee ${LOGFILE} | tee /etc/network/interfaces.d/lvs
 auto ${interface}
 iface ${interface} inet static
     address ${vip}/32
 EOF
+        ;;
+    centos|rocky|openEuler|*)
+        log "INIT /etc/sysconfig/network-scripts/ifcfg-${interface}"
+        cat<<EOF | tee ${LOGFILE} | tee /etc/sysconfig/network-scripts/ifcfg-${interface}
+DEVICE=${interface}
+IPADDR=${vip}
+NETMASK=255.255.255.255
+ONBOOT=yes
+NAME=loopback
+EOF
+        ;;
+esac
 }
 
 init_real_srv() {
@@ -151,6 +166,11 @@ wget -q -O- 'https://deb.frrouting.org/frr/keys.asc' | gpg --dearmor > /etc/apt/
 FRRVER="frr-stable"
 echo "deb https://deb.frrouting.org/frr bullseye \$FRRVER" > /etc/apt/sources.list.d/frr.list
 apt update && apt -y install frr keepalived
+
+curl -O https://rpm.frrouting.org/repo/\$FRRVER-repo-1-0.el7.noarch.rpm
+# curl -O https://rpm.frrouting.org/repo/\$FRRVER-repo-1-0.el8.noarch.rpm
+# curl -O https://rpm.frrouting.org/repo/\$FRRVER-repo-1-0.el9.noarch.rpm
+sudo yum install ./\$FRRVER*
 EOF
     exit 1
 }
