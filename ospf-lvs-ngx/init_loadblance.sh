@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ffe10d8[2022-08-16T09:06:12+08:00]:init_loadblance.sh")
+VERSION+=("129c1c4[2023-02-01T13:17:38+08:00]:init_loadblance.sh")
 ################################################################################
 LOGFILE=""
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
@@ -78,7 +78,7 @@ gen_ospf() {
     local interface=${1}
     local route_id=${2}
     local vip=${3}
-
+    log "INIT ospf start"
     vtysh -c "conf t" \
         -c "interface ${interface}" \
         -c "ip ospf authentication message-digest" \
@@ -91,22 +91,25 @@ gen_ospf() {
         -c "network ${vip}/32 area 0.0.0.0" \
         -c "area 0.0.0.0 authentication message-digest"
     vtysh -c "write" # vtysh -w
+    vtysh -c "show running-config"
+    log "INIT ospf done"
 }
 
 gen_zebra() {
     local interface=${1}
     local vip=${2}
     local password="password"
-    log "INIT /etc/frr/frr.conf"
-    rm -f /etc/frr/frr.conf /etc/frr/zebra.conf
-    touch /etc/frr/frr.conf
+    log "INIT zebra start"
+    rm -f /etc/frr/frr.conf /etc/frr/zebra.conf || true
+    touch /etc/frr/frr.conf || true
     systemctl restart frr || true
-    vtysh -c "conf t" -c "hostname $(cat /etc/hostname)"
-    vtysh -c "conf t" -c "password ${password}" -c "enable password ${password}" -c "service password-encryption"
-    vtysh -c "conf t" -c "interface ${interface}" -c "no ip address ${vip}/32"
-    vtysh -c "conf t" -c "interface ${interface}" -c "ip address ${vip}/32"
+    vtysh -c "conf t" -c "hostname $(cat /etc/hostname)" || log "hostname error"
+    vtysh -c "conf t" -c "password ${password}" -c "enable password ${password}" -c "service password-encryption" || log "password error"
+    vtysh -c "conf t" -c "interface ${interface}" -c "no ip address ${vip}/32" || true
+    vtysh -c "conf t" -c "interface ${interface}" -c "ip address ${vip}/32" || log "ip address error"
     vtysh -c "write" # vtysh -w
     vtysh -c "show running-config"
+    log "INIT zebra done"
 }
 
 init_lo_vip() {
