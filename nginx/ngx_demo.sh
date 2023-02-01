@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4d69d48[2023-01-12T16:31:29+08:00]:ngx_demo.sh")
+VERSION+=("536b038[2023-01-12T17:10:50+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4615,6 +4615,7 @@ EOF
 cat <<'EOF'> non_root_run_nginx.sh
 # # Use CAP_NET_BIND_SERVICE to grant low-numbered port access to a process:
 # sudo setcap CAP_NET_BIND_SERVICE=+eip /home/johnyin/nginx
+# -r清除附加权限： setcap -r nginx
 # ./nginx -c /home/johnyin/nginx.conf -e /home/johnyin/err.log
 # ./nginx # make error.log/access.log/nginx.pid writeable first!!!
 EOF
