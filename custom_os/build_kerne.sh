@@ -22,9 +22,13 @@ scripts/config --disable MODULE_COMPRESS_NONE
 scripts/config --disable MODULE_DECOMPRESS
 scripts/config --enable MODULE_COMPRESS_XZ 
 
-echo "RPM output: /usr/lib/rpm/macros; %_topdir        %{getenv:HOME}/rpmbuild"
 case "$1" in
-    rpm) make -j$(nproc) binrpm-pkg; shift;;
+    rpm)
+        shift
+        echo "RPM output: /usr/lib/rpm/macros; %_topdir        %{getenv:HOME}/rpmbuild"
+        echo "HOME=<your place> ./buile_kernel.sh"
+        make -j$(nproc) binrpm-pkg
+        ;;
     deb) make -j$(nproc) bindeb-pkg; shift;;
     *)   echo "not build"
 esac
