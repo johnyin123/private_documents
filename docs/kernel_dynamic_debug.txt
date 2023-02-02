@@ -1,0 +1,37 @@
+CONFIG_DYNAMIC_DEBUG
+cat /sys/kernel/debug/dynamic_debug/control
+
+command ::= match-spec* flags-spec
+match-spec常用来选择一个已知的dprintk()调用点的子集来套用flags-spec
+match-spec ::= 'func' string |
+           'file' string |
+           'module' string |
+           'format' string |
+           'line' line-range
+line-range ::= lineno |
+           '-'lineno |
+           lineno'-' |
+           lineno'-'lineno
+
+- //移除给定的标记
++ //加入给定的标记
+= //设置标记到给定的标记上 
+f //包含已打印消息的函数名
+l //包含已在打印消息的行号
+m //包含已打印消息的模块名
+p //产生一个printk()消息到显示系统启动日志
+t //包含了不在中断上下文中产生的消息里的线程ID
+
+打开文件svcsock.c 1603行动态输出语句
+echo -n 'file svcsock.c line 1603 +p' > /sys/kernel/debug/dynamic_debug/control
+打开文件svcsock.c所有动态输出语句
+echo -n 'file svcsock.c +p' > /sys/kernel/debug/dynamic_debug/control
+打开NFS服务模块所有动态输出语句
+echo -n 'module nfsd +p' > /sys/kernel/debug/dynamic_debug/control
+打开函数svc_process()的所有动态输出语句
+echo -n 'func svc_process +p' > /sys/kernel/debug/dynamic_debug/control
+关闭函数svc_process()的所有动态输出语句
+echo -n 'func svc_process -p' > /sys/kernel/debug/dynamic_debug/control
+打开NFS调用的所有以READ开始的信息.
+echo -n 'format "nfsd: READ" +p' > /sys/kernel/debug/dynamic_debug/control
+tail -f /var/log/dmesg来监控日志输出。
