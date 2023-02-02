@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5019627[2023-01-16T13:49:24+08:00]:build_centos_no_kernel.sh")
+VERSION+=("8244954[2023-01-17T10:51:08+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -18,13 +18,13 @@ PKG+=" iputils openssh-server rsync openssh-clients net-tools"
 PKG+=" $*"
 
 ROOT_DIR=${DIRNAME}/rootfs-centos
-mkdir -p ${ROOT_DIR}
+CACHE_DIR=${DIRNAME}/cache
 
 RELEASE_VER=${RELEASE_VER:-7.9.2009} \
-HOSTNAME="srv1" \
-NAME_SERVER=114.114.114.114 \
-PASSWORD=password \
-centos_build "${ROOT_DIR}" "${PKG}"
+    HOSTNAME="srv1" \
+    NAME_SERVER=114.114.114.114 \
+    PASSWORD=password \
+    centos_build "${ROOT_DIR}" "${CACHE_DIR}" "${PKG}"
 log "INIT............"
 touch ${ROOT_DIR}/etc/fstab
 touch ${ROOT_DIR}/etc/sysconfig/network

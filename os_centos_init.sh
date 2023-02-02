@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("f885adb[2023-01-11T10:49:48+08:00]:os_centos_init.sh")
+VERSION+=("eefea65[2023-01-11T16:08:20+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -28,11 +28,13 @@ VERSION+=("f885adb[2023-01-11T10:49:48+08:00]:os_centos_init.sh")
 # RELEASE_VER: 7.9.2009/7/8/9 special target system version detail
 centos_build() {
     local root_dir=$1
-    local include_pkg="${2}"
+    local cache_dir="${2}"
+    local include_pkg="${3}"
     local REPO=${root_dir}/local.repo
     local HOST_YUM=$(command -v yum || command -v dnf || { echo 'yum/dnf no found!'; return 1; })
-    HOST_YUM+=" ${RELEASE_VER:+--releasever=${RELEASE_VER}} -c ${REPO} --installroot=${root_dir} --downloadonly --destdir=${root_dir}/rpm_cache"
-    [ -d "${root_dir}" ] || mkdir -p ${root_dir}/rpm_cache
+    HOST_YUM+=" ${RELEASE_VER:+--releasever=${RELEASE_VER}} -c ${REPO} --installroot=${root_dir} --downloadonly --destdir=${cache_dir}"
+    [ -d "${root_dir}" ] || mkdir -p ${root_dir}
+    [ -d "${cache_dir}" ] || mkdir -p ${cache_dir}
     [ -r ${REPO} ] || {
         # yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
         cat>> ${REPO} <<'EOF'
@@ -52,7 +54,7 @@ EOF
     # rpm --root=${root_dir} --dbpath=/var/lib/rpm --import ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-*
     echo "start install group core"
     ${HOST_YUM} -y group install --exclude kernel-tools --exclude linux-firmware --exclude iw*-firmware core
-    rpm --root=${root_dir} --dbpath=/var/lib/rpm --nodigest --nosignature -ivh ${root_dir}/rpm_cache/*.rpm
+    rpm --root=${root_dir} --dbpath=/var/lib/rpm --nodigest --nosignature -ivh ${cache_dir}/*.rpm
     echo ${HOSTNAME:-cent-tpl} > ${root_dir}/etc/hostname
     echo "nameserver ${NAME_SERVER:-114.114.114.114}" > ${root_dir}/etc/resolv.conf
     # rm -f ${root_dir}/etc/yum.repos.d/*
@@ -74,12 +76,13 @@ EOF
     systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id || true
     echo "${PASSWORD:-password}" | passwd --stdin root || true
     systemctl enable getty@tty1 || true
+    sed -i "s/SELINUX=.*/SELINUX=disabled/g" /etc/selinux/config || true
 EOSHELL
     for mp in /dev /sys /proc
     do
         umount -R -v ${root_dir}${mp} || true
     done
-    rm -rf ${root_dir}/rpm_cache ${REPO} || true
+    rm -rf ${REPO} || true
     return 0
 }
 
