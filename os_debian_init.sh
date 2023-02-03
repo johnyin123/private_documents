@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("f885adb[2023-01-11T10:49:48+08:00]:os_debian_init.sh")
+VERSION+=("6f534d0[2023-01-13T07:36:13+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -661,8 +661,7 @@ debian_minimum_init() {
     find /usr/share/doc -empty -print0 | xargs -0 rm -rf || true
     # remove on used locale
     find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
-    rm -rf /usr/share/man \
-           /usr/share/groff \
+    rm -rf /usr/share/groff \
            /usr/share/info \
            /usr/share/lintian \
            /usr/share/linda \
