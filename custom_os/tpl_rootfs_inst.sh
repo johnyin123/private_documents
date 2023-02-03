@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("07d53e1[2023-01-17T10:57:14+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("1963ca3[2023-02-03T12:47:56+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -95,6 +95,7 @@ main() {
     done
     source ${root_dir}/etc/os-release
     # if no initrd can use kernel-install (in systemd package)
+    # kernel-install add  3.10.0-693.21.1.el7.x86_64 /boot/vmlinuz-3.10.0-693.21.1.el7.x86_64
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x -o errexit -s <<EOSHELL
 case "${ID}" in
     debian)
