@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("8244954[2023-01-17T10:51:08+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("07d53e1[2023-01-17T10:57:14+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -94,6 +94,7 @@ main() {
         mount -o bind $i "${root_dir}${i}" 2>/dev/null && echo "mount root $i ...." || true
     done
     source ${root_dir}/etc/os-release
+    # if no initrd can use kernel-install (in systemd package)
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x -o errexit -s <<EOSHELL
 case "${ID}" in
     debian)
