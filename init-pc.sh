@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("04746f9[2023-01-09T16:14:53+08:00]:init-pc.sh")
+VERSION+=("efd71d5[2023-01-12T15:14:11+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -65,7 +65,7 @@ iface br-int inet manual
     bridge_maxwait 0
 EOF
 cat << EOF | tee /etc/network/interfaces.d/br-ext
-auto eth0
+# auto eth0
 allow-hotplug eth0
 iface eth0 inet manual
 
@@ -94,7 +94,7 @@ iface br-ext inet static
 EOF
 
 cat << "EOF" | tee /etc/network/interfaces.d/wifi
-auto wlan0
+# auto wlan0
 allow-hotplug wlan0
 
 # iface wlan0 inet dhcp

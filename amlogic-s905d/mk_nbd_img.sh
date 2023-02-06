@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("90f8c68[2022-07-08T11:20:24+08:00]:mk_nbd_img.sh")
+VERSION+=("81308a6[2022-07-12T14:25:50+08:00]:mk_nbd_img.sh")
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
@@ -152,7 +152,7 @@ iface lo inet loopback
 EOF
 
         cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/eth0
-auto eth0
+# auto eth0
 allow-hotplug eth0
 iface eth0 inet static
     address 192.168.168.4/24

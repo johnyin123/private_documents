@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("512dc6b[2022-11-17T10:50:25+08:00]:s905_debootstrap.sh")
+VERSION+=("2e53c27[2023-01-03T08:20:37+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -382,7 +382,7 @@ iface lo inet loopback
 EOF
 
 cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/br-ext
-auto eth0
+# auto eth0
 allow-hotplug eth0
 iface eth0 inet manual
 
@@ -404,7 +404,7 @@ iface br-ext:0 inet static
 EOF
 
 cat << "EOF" > ${ROOT_DIR}/etc/network/interfaces.d/wifi
-auto wlan0
+# auto wlan0
 allow-hotplug wlan0
 
 mapping wlan0

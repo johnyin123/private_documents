@@ -44,7 +44,7 @@ Bridge=br-ext
 EOF
 
 cat<<EOF > ${DIR}/${MACHINE}/etc/network/interfaces.d/host0
-auto host0
+# auto host0
 allow-hotplug host0
 iface host0 inet static
     address 10.32.166.32/25

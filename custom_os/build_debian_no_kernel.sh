@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5019627[2023-01-16T13:49:24+08:00]:build_debian_no_kernel.sh")
+VERSION+=("8244954[2023-01-17T10:51:08+08:00]:build_debian_no_kernel.sh")
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -85,7 +85,7 @@ iface lo inet loopback
 EOF
 
 cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/br-ext
-auto eth0
+# auto eth0
 allow-hotplug eth0
 iface eth0 inet manual
 
