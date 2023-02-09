@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8244954[2023-01-17T10:51:08+08:00]:build_debian_no_kernel.sh")
+VERSION+=("c765584[2023-02-06T09:21:34+08:00]:build_debian_no_kernel.sh")
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -47,19 +47,11 @@ DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
     PASSWORD=password \
     debian_build "${ROOT_DIR}" "${CACHE_DIR}" "${PKG}"
 
-log "generate grub config"
-cat << 'EOF' > ${ROOT_DIR}/etc/default/grub
-GRUB_DEFAULT=0
-GRUB_TIMEOUT=5
-GRUB_DISTRIBUTOR=`lsb_release -i -s 2> /dev/null || echo Debian`
-GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0 console=tty1 net.ifnames=0 biosdevname=0"
-GRUB_CMDLINE_LINUX=""
-EOF
-
 LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
     /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
     /bin/mknod -m 666 /dev/null c 1 3 2>/dev/null || true
 
+    debian_grub_init
     debian_zswap_init 512
     debian_sshd_init
     debian_vim_init
