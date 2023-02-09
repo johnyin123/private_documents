@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("efd71d5[2023-01-12T15:14:11+08:00]:init-pc.sh")
+VERSION+=("c765584[2023-02-06T09:21:34+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -135,7 +135,7 @@ sync
 mount -o remount,ro /overlay/lower
 EOF
 
-sed -i "s/GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT=\"console=ttyS0 console=tty1 net.ifnames=0 biosdevname=0\"/g" /etc/default/grub
+debian_grub_init
 update-initramfs -c -k $(uname -r)
 grub-mkconfig -o /boot/grub/grub.cfg
 
