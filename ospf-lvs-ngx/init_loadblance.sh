@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("129c1c4[2023-02-01T13:17:38+08:00]:init_loadblance.sh")
+VERSION+=("b76ea14[2023-02-01T14:46:41+08:00]:init_loadblance.sh")
 ################################################################################
 LOGFILE=""
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
@@ -47,12 +47,14 @@ virtual_server ${vip} 0 {
     persistence_timeout 360
     protocol TCP
 $(for ip in ${real_ips}; do
-echo "    real_server ${ip} 0 {"
-echo "        weight 1"
-echo "        PING_CHECK {"
-echo "            retry 2"
-echo "        }"
-echo "    }"
+cat<<EO_REAL
+    real_server ${ip} 0 {
+        weight 1
+        PING_CHECK {
+            retry 2
+        }
+    }
+EO_REAL
 done)
 }
 virtual_server ${vip} 0 {
@@ -62,12 +64,14 @@ virtual_server ${vip} 0 {
     persistence_timeout 360
     protocol UDP
 $(for ip in ${real_ips}; do
-echo "    real_server ${ip} 0 {"
-echo "        weight 1"
-echo "        PING_CHECK {"
-echo "            retry 2"
-echo "        }"
-echo "    }"
+cat<<EO_REAL
+    real_server ${ip} 0 {
+        weight 1
+        PING_CHECK {
+            retry 2
+        }
+    }
+EO_REAL
 done)
 }
 EOF
