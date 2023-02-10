@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3d9e53b[2023-02-01T13:04:45+08:00]:ngx_demo.sh")
+VERSION+=("b675d3c[2023-02-10T09:00:38+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2736,6 +2736,29 @@ server {
     server_name www.test.com;
     location /images/ {
         rewrite ^ http://$cdn_host.test.com$request_uri? permanent;
+    }
+}
+EOF
+cat <<'EOF' > ab_by_source.http
+geo $group {
+    default             0;
+    192.168.168.0/24    1;
+    1.1.1.1/32          1;
+}
+map $group $target {
+    0   www.baidu.com;
+    1   www.sina.com.cn;
+}
+# geo $target{
+#     default www.baidu.com;
+#     192.168.168.0/24 www.sina.com.cn;
+# }
+server {
+    listen 80;
+    server_name _;
+    resolver 114.114.114.114 ipv6=off;
+    location / {
+        proxy_pass http://$target;
     }
 }
 EOF
