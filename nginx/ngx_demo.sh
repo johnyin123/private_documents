@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("536b038[2023-01-12T17:10:50+08:00]:ngx_demo.sh")
+VERSION+=("3d9e53b[2023-02-01T13:04:45+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4337,7 +4337,7 @@ send_timeout 2s;
 # as recommended by http://nginx.org/en/docs/http/configuring_https_servers.html
 ssl_session_cache shared:SSL:128m; # 1M bytes can store 4000 sessions
 ssl_session_timeout 60m;
-ssl_session_tickets off
+ssl_session_tickets off;
 keepalive_timeout 70;
 # Buffer size of 1400 bytes fits in one MTU.
 ssl_buffer_size 1400;
