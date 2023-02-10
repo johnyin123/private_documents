@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7e26349[2021-10-14T09:54:39+08:00]:openvpn.sh")
+VERSION+=("e60b755[2022-03-04T11:11:57+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -122,6 +122,32 @@ EOF
     tar -C ${caroot} -cv ca.crt client_${cid}.key client_${cid}.crt ta.key | gzip > ${caroot}/${cid}.tar.gz
     echo "${caroot}/${cid}.tar.gz --> TO CLIENT"
     echo "change client.conf remote & ca && cert && key && tls-auth && comp-lzo"
+    echo "Generates the custom file client.ovpn"
+    {
+        echo "client"
+        echo "dev tun"
+        echo "proto udp"
+        echo "remote <server_address> 1194"
+        echo "resolv-retry infinite"
+        echo "nobind"
+        echo "persist-key"
+        echo "persist-tun"
+        echo "remote-cert-tls server"
+        echo "cipher AES-256-CBC"
+        echo "verb 3"
+        echo "<ca>"
+        cat ${caroot}/ca.crt
+        echo "</ca>"
+        echo "<cert>"
+        sed -ne '/BEGIN CERTIFICATE/,$ p' ${caroot}/client_${cid}.crt
+        echo "</cert>"
+        echo "<key>"
+        cat ${caroot}/client_${cid}.key
+        echo "</key>"
+        echo "<tls-crypt>"
+        sed -ne '/BEGIN OpenVPN Static key/,$ p' ${caroot}/ta.key
+        echo "</tls-crypt>"
+    }  > client_${cid}.vpn
 }
 
 main() {
