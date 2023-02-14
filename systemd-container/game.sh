@@ -7,8 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("game.sh - 2962856 - 2021-03-12T17:33:59+08:00")
-[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+VERSION+=("58cb44d[2021-08-18T17:14:28+08:00]:game.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -22,11 +21,22 @@ ${SCRIPTNAME}
 EOF
     exit 1
 }
+dialog() {
+    local title="${1}"
+    local menu="${2}"
+    declare -a items=("${!3}")
+    local item=$(whiptail --notags \
+        --title "${title}" \
+        --menu "${menu}" \
+        0  0 12 \
+        "${items[@]}" 3>&1 1>&2 2>&3 || true)
+    echo -n "${item}"
+}
 main() {
     local opt_short=""
     local opt_long=""
     opt_short+="ql:dVh"
-    opt_long+="quiet,log:,dryrun,version,help"
+    opt_long+="quite,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
@@ -41,28 +51,23 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    is_user_root || exit_msg "root need!!\n"
-    require dialog systemd-nspawn 
     games=(
-        "/aoe2/age2_x1.exe"   "age2_x1"
-        "/aoe2/empires2.exe"  "empires2"
-        "/ra2/ra2.exe"        "ra2"
-        "/ra2mod/ra2.exe"     "ra2mod"
+        "/home/johnyin/aoe2/age2_x1.exe"   "age2_x1"
+        "/home/johnyin/aoe2/empires2.exe"  "empires2"
+        "/home/johnyin/ra2/ra2.exe"        "ra2"
+        "/home/johnyin/ra2mod/ra2.exe"     "ra2mod"
     )
     id=$(dialog "title xxa" "menu xxx" games[@])
     [ -z ${id} ] && exit 0
-    local HOST_XAUTH=/home/johnyin/.Xauthority
-    local HOST_PULSE=/run/user/1000/pulse
-    local HOST_PULSE_COOKIE=/home/johnyin/.config/pulse/cookie
 #    --setenv=DISPLAY=${DISPLAY}
     systemd-nspawn -D "${DIRNAME}/game" \
         --bind-ro=/tmp/.X11-unix \
-        --bind-ro=${HOST_XAUTH}:/home/johnyin/.Xauthority \
+        --bind-ro=/home/johnyin/.Xauthority:/home/johnyin/.Xauthority \
         --network-veth \
         --network-bridge=br-ext \
-        --bind-ro=${HOST_PULSE_COOKIE}:/home/johnyin/.config/pulse/cookie \
-        --bind-ro=${HOST_PULSE}:/run/user/host/pulse \
-        -u johnyin env DISPLAY=:0 PULSE_SERVER=unix:/run/user/host/pulse/native wine /home/johnyin/${id}
+        --bind-ro=/home/johnyin/.config/pulse/cookie \
+        --bind-ro=/run/user/1000/pulse:/run/user/host/pulse \
+        -u johnyin env LC_ALL=zh_CN.UTF-8 DISPLAY=:0 PULSE_SERVER=unix:/run/user/host/pulse/native bash -c "cd $(dirname ${id}) && wine ${id}"
 #    --boot
     return 0
 }
