@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("080775e[2022-11-24T13:22:53+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("08aa0df[2022-11-25T13:20:21+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
@@ -335,6 +335,7 @@ rsync
 %end
 
 %post
+# %post --interpreter=/bin/bash
 echo "tuning sysytem!!"
 curl http://${ns_ipaddr}/${ks_uri}.init.sh 2>/dev/null | bash
 %end
