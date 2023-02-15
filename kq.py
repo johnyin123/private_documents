@@ -13,16 +13,21 @@ from time import sleep
 from datetime import date
 
 LOGIN_URL = 'http://kq.neusoft.com'
+IMAGE_BASE = '/upload/jigsawTemp/'
 
 def find_subimages(primary, subimage, confidence=0.80):
     primary_edges = cv2.Canny(primary, 32, 128, apertureSize=3)
     subimage_edges = cv2.Canny(subimage, 32,128, apertureSize=3)
+
     result = cv2.matchTemplate(primary_edges, subimage_edges, cv2.TM_CCOEFF_NORMED)
     (y, x) = np.unravel_index(result.argmax(),result.shape)
+
     result[result>=confidence]=1.0
     result[result<confidence]=0.0
+
     ccs = get_connected_components(result)
     return correct_bounding_boxes(subimage, ccs)
+
 
 def cc_shape(component):
     x = component[1].start
@@ -48,18 +53,18 @@ def get_connected_components(image):
     return objects
 
 def find_subimages_from_stream(big_img, small_img, confidence):
-    # 1. invert color, 2. to gray, 3. only keep black
+    '''
+    1. invert color, 2. to gray, 3. only keep black
+    '''
     primary = cv2.cvtColor(cv2.bitwise_not(cv2.imdecode(big_img, cv2.IMREAD_COLOR)), cv2.COLOR_BGR2GRAY)
     subimage = cv2.cvtColor(cv2.bitwise_not(cv2.imdecode(small_img, cv2.IMREAD_COLOR)), cv2.COLOR_BGR2GRAY)
     # primary = cv2.cvtColor(cv2.bitwise_not(cv2.imread(big_img)), cv2.COLOR_BGR2GRAY)
     # subimage = cv2.cvtColor(cv2.bitwise_not(cv2.imread(small_img)), cv2.COLOR_BGR2GRAY)
     (thresh, pri_img) = cv2.threshold(primary, 0, 255, cv2.THRESH_BINARY)
     (thresh, sub_img) = cv2.threshold(subimage, 0, 255, cv2.THRESH_BINARY)
-    '''
-    cv2.imshow("pri", pri_img)
-    cv2.imshow("sub", sub_img)
-    cv2.waitKey(0)
-    '''
+    # cv2.imshow("pri", pri_img)
+    # cv2.imshow("sub", sub_img)
+    # cv2.waitKey(0)
     return find_subimages(pri_img, sub_img, confidence)
 
 #######################################################################################
@@ -86,11 +91,15 @@ def httpreq(user, passwd, confidence):
         post = session.post(LOGIN_URL+"/jigsaw", data=None, headers={'X-Requested-With': 'XMLHttpRequest'})
         logging.info(post.text)
         png_info = json.loads(post.text)
-        resp = session.get(LOGIN_URL+"/upload/jigsawImg/"+png_info["smallImage"]+".png")
+        resp = session.get(LOGIN_URL+IMAGE_BASE+png_info["smallImage"]+".png")
+        print(LOGIN_URL+IMAGE_BASE+png_info["smallImage"]+".png", resp.status_code)
         smallimage = np.asarray(bytearray(resp.content))
-        resp = session.get(LOGIN_URL+"/upload/jigsawImg/"+png_info["bigImage"]+".png")
+        resp = session.get(LOGIN_URL+IMAGE_BASE+png_info["bigImage"]+".png")
+        print(LOGIN_URL+IMAGE_BASE+png_info["bigImage"]+".png", resp.status_code)
         bigimage = np.asarray(bytearray(resp.content))
         print("BIG: {}, SMALL {}!!".format(png_info["bigImage"], png_info["smallImage"]))
+        # with open("big", "w") as f:
+        #     f.write(resp.content)
         positation = find_subimages_from_stream(bigimage, smallimage, confidence)
         if len(positation)==0:
             return 100
