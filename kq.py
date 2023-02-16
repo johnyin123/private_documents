@@ -78,8 +78,9 @@ def find_inputs(html_str):
     return req_dict
 
 def find_image_base(html_str):
-    result = re.findall(r"^.*\s*=\s*\"(.*)\"\s*\+\s*datas.bigImage.*$", html_str)
-    return result[0] if result else "/"
+    for result in re.findall(r".*\s*=\s*\"(.*)\"\s*\+\s*datas.bigImage.*", html_str):
+        return result if result else "/"
+    return None
 
 def httpreq(user, passwd, confidence):
     today = date.today()
