@@ -149,8 +149,8 @@ do_context_2() {
         KEY_SELECT)     smplayer_action play_or_pause;;
         KEY_F5)         smplayer_action mute;;
         KEY_ESC)        smplayer_action fullscreen;;
-        KEY_VOLUMEUP)   smplayer_action next_subtitle;;
-        KEY_VOLUMEDOWN) smplayer_action next_audio;;
+        KEY_VOLUMEUP)   smplayer_action increase_volume;;
+        KEY_VOLUMEDOWN) smplayer_action decrease_volume;;
         *)              log "unknow context_2 key ${key}";;
     esac
 }
@@ -167,8 +167,8 @@ do_context_3() {
         KEY_SELECT)     xsendkey "${LIST_FILE}" Return;;
         KEY_F5)         smplayer_action show_playlist;;
         KEY_ESC)        xsendkey "${LIST_FILE}" Tab;;
-        KEY_VOLUMEUP)   xsendkey "${LIST_FILE}" Page_Up;;
-        KEY_VOLUMEDOWN) xsendkey "${LIST_FILE}" Page_Down;;
+        KEY_VOLUMEUP)   smplayer_action increase_volume;;
+        KEY_VOLUMEDOWN) smplayer_action decrease_volume;;
         *)              log "unknow context_3 key ${key}";;
     esac
 }
