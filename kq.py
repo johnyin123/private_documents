@@ -13,7 +13,7 @@ from time import sleep
 from datetime import date
 
 LOGIN_URL = 'http://kq.neusoft.com'
-IMAGE_BASE = '/upload/jigsawTemp/'
+# IMAGE_BASE = '/upload/jigsawTemp/'
 
 def find_subimages(primary, subimage, confidence=0.80):
     primary_edges = cv2.Canny(primary, 32, 128, apertureSize=3)
@@ -77,6 +77,10 @@ def find_inputs(html_str):
         req_dict[name] = value
     return req_dict
 
+def find_image_base(html_str):
+    result = re.findall(r"^.*\s*=\s*\"(.*)\"\s*\+\s*datas.bigImage.*$", html_str)
+    return result[0] if result else "/"
+
 def httpreq(user, passwd, confidence):
     today = date.today()
     with requests.Session() as session:
@@ -85,6 +89,7 @@ def httpreq(user, passwd, confidence):
         # session_id = session.cookies['JSESSIONID']
         # print(session_id)
         inputs = find_inputs(resp.text)
+        IMAGE_BASE = find_image_base(resp.text)
         logging.info(inputs)
         session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:84.0) Gecko/20100101 Firefox/84.0'})
         session.headers.update({'Accept': 'application/json, text/javascript'})
@@ -92,6 +97,7 @@ def httpreq(user, passwd, confidence):
         logging.info(post.text)
         png_info = json.loads(post.text)
         resp = session.get(LOGIN_URL+IMAGE_BASE+png_info["smallImage"]+".png")
+        # can check resp.status_code == 200
         print(LOGIN_URL+IMAGE_BASE+png_info["smallImage"]+".png", resp.status_code)
         smallimage = np.asarray(bytearray(resp.content))
         resp = session.get(LOGIN_URL+IMAGE_BASE+png_info["bigImage"]+".png")
