@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("f700d8b[2023-01-12T08:40:14+08:00]:functions.sh")
+VERSION+=("955dda7[2023-01-16T08:48:24+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -527,19 +527,19 @@ cleanup_link() {
 setup_overlayfs() {
     local lower="$1"
     local rootmnt="$2"
-    local overlay_size_mb="${3:-1}"
+    # local overlay_size_mb="${3:-1}"
     try mkdir -p ${rootmnt}/tmpfs
-    try mount -t tmpfs tmpfs -o size=${overlay_size_mb}M ${rootmnt}/tmpfs
+    # try mount -t tmpfs tmpfs -o size=${overlay_size_mb}M ${rootmnt}/tmpfs
     try mkdir -p ${rootmnt}/tmpfs/upper ${rootmnt}/tmpfs/work
     try mount -t overlay overlay -o lowerdir=${lower},upperdir=${rootmnt}/tmpfs/upper,workdir=${rootmnt}/tmpfs/work ${rootmnt}/
 }
 
 cleanup_overlayfs() {
     local rootmnt="$1"
-    local keep_tmpfs="${2:-}"
+    # local keep_tmpfs="${2:-}"
     try umount ${rootmnt} || true
-    try "${keep_tmpfs:+echo need manul exec: }umount ${rootmnt}/tmpfs" || true
-    try "${keep_tmpfs:+echo need manul exec: }rm -rf ${rootmnt}/tmpfs" || true
+    # try "${keep_tmpfs:+echo need manul exec: }umount ${rootmnt}/tmpfs" || true
+    # try "${keep_tmpfs:+echo need manul exec: }rm -rf ${rootmnt}/tmpfs" || true
 }
 
 get_ipaddr() {
