@@ -4,13 +4,18 @@ readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 
 export ROOTFS=${1:-${DIRNAME}/kernel-$(date '+%Y%m%d%H%M%S')}
 
-# apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
-# export PATH=${DIRNAME}/gcc-linaro-aarch64/bin/:$PATH
+[ -e "${DIRNAME}/gcc-aarch64" ] && 
+{
+    export PATH=${DIRNAME}/gcc-aarch64/bin/:$PATH
+    export CROSS_COMPILE=aarch64-linux-
+} || {
+    # apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+    export CROSS_COMPILE=aarch64-linux-gnu-
+}
 export LOCALVERSION="-johnyin-s905d"
 export ARCH=arm64
 export CFLAGS='-march=native -O3 -flto -pipe'
 export CXXFLAGS='-march=native -O3 -flto -pipe'
-export CROSS_COMPILE=aarch64-linux-gnu-
 export INSTALL_PATH=${ROOTFS}/boot
 export INSTALL_MOD_PATH=${ROOTFS}/usr/
 export INSTALL_MOD_STRIP=1
@@ -33,7 +38,9 @@ scripts/config --enable CONFIG_BPF_SYSCALL
 scripts/config --enable CONFIG_DEBUG_INFO_BTF
 scripts/config --disable CONFIG_DEBUG_INFO_REDUCED
 
-# scripts/diffconfig .config.old .config | less
+yes "" | make oldconfig
+scripts/diffconfig .config.old .config
+
 make -j$(nproc) Image dtbs modules
 
 # make -j$(nproc) bindeb-pkg #gen debian deb package!!
