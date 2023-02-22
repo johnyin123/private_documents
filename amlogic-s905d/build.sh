@@ -39,6 +39,8 @@ scripts/config --enable DEBUG_INFO
 # yes "" | make oldconfig
 scripts/diffconfig .config.old .config
 
+pahole --version || echo "pahole no found DEBUG_INFO_BTF not effict"
+
 make -j$(nproc) Image dtbs modules
 
 # make -j$(nproc) bindeb-pkg #gen debian deb package!!

@@ -26,6 +26,7 @@ scripts/config --enable CONFIG_BPF_SYSCALL
 scripts/config --enable CONFIG_DEBUG_INFO_BTF
 # scripts/config --disable CONFIG_DEBUG_INFO_REDUCED
 
+pahole --version || echo "pahole no found DEBUG_INFO_BTF not effict"
 case "$1" in
     rpm)
         shift
