@@ -15,8 +15,6 @@ export INSTALL_MOD_STRIP=1
 # scripts/diffconfig .config.old .config | less
 
 sed -Ei '/CONFIG_SYSTEM_TRUSTED_KEYS/s/=.+/=""/g' .config || true
-scripts/config --disable DEBUG_INFO
-scripts/config --disable DEBUG_INFO_BTF
 scripts/config --disable MODULE_SIG_ALL
 scripts/config --disable MODULE_COMPRESS_NONE
 scripts/config --disable MODULE_DECOMPRESS

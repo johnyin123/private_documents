@@ -24,8 +24,6 @@ KERVERSION="$(make kernelversion)"
 #scripts/config --disable DEBUG_INFO
 sed -Ei '/CONFIG_SYSTEM_TRUSTED_KEYS/s/=.+/=""/g' .config || true
 echo "use xz compress module"
-scripts/config --disable DEBUG_INFO
-scripts/config --disable DEBUG_INFO_BTF
 scripts/config --disable MODULE_SIG_ALL
 scripts/config --disable MODULE_COMPRESS_NONE
 scripts/config --disable MODULE_DECOMPRESS
@@ -35,6 +33,8 @@ scripts/config --enable CONFIG_FTRACE
 scripts/config --enable CONFIG_DEBUG_INFO
 scripts/config --enable CONFIG_DEBUG_INFO_DWARF5
 scripts/config --enable CONFIG_BPF_SYSCALL
+# enable CONFIG_DEBUG_INFO_BTF need: apt install dwarves
+scripts/config --enable DEBUG_INFO
 scripts/config --enable CONFIG_DEBUG_INFO_BTF
 scripts/config --disable CONFIG_DEBUG_INFO_REDUCED
 

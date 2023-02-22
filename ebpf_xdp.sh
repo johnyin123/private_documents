@@ -1,3 +1,10 @@
+# /linux-kernel/samples/bpf
+cat <<EOF
+libbpf develop:
+    apt install libbpf-dev bpftool
+    bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
+
+EOF
 cat<<EOF
 XDP程序是通过bpf()系统调用控制的，bpf()系统调用使用程序类型BPF_PROG_TYPE_XDP进行加载。
 
