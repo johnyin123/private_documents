@@ -28,17 +28,15 @@ scripts/config --disable MODULE_SIG_ALL
 scripts/config --disable MODULE_COMPRESS_NONE
 scripts/config --disable MODULE_DECOMPRESS
 scripts/config --enable MODULE_COMPRESS_XZ
-echo "fix eBPF bpftool gen vmlinux.h"
-scripts/config --enable CONFIG_FTRACE
-scripts/config --enable CONFIG_DEBUG_INFO
-scripts/config --enable CONFIG_DEBUG_INFO_DWARF5
+echo "fix eBPF bpftool gen vmlinux.h, see: lib/Kconfig.debug, pahole tools in package dwarves"
+echo "dwarves: https://github.com/acmel/dwarves"
 scripts/config --enable CONFIG_BPF_SYSCALL
+scripts/config --enable CONFIG_DEBUG_INFO_BTF
+scripts/config --enable CONFIG_FTRACE
 # enable CONFIG_DEBUG_INFO_BTF need: apt install dwarves
 scripts/config --enable DEBUG_INFO
-scripts/config --enable CONFIG_DEBUG_INFO_BTF
-scripts/config --disable CONFIG_DEBUG_INFO_REDUCED
 
-yes "" | make oldconfig
+# yes "" | make oldconfig
 scripts/diffconfig .config.old .config
 
 make -j$(nproc) Image dtbs modules

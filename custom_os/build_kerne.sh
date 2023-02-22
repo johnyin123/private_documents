@@ -24,7 +24,7 @@ scripts/config --enable CONFIG_DEBUG_INFO
 scripts/config --enable CONFIG_DEBUG_INFO_DWARF5
 scripts/config --enable CONFIG_BPF_SYSCALL
 scripts/config --enable CONFIG_DEBUG_INFO_BTF
-scripts/config --disable CONFIG_DEBUG_INFO_REDUCED
+# scripts/config --disable CONFIG_DEBUG_INFO_REDUCED
 
 case "$1" in
     rpm)
