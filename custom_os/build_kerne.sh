@@ -14,13 +14,19 @@ export INSTALL_MOD_STRIP=1
 
 # scripts/diffconfig .config.old .config | less
 
-sed -ri '/CONFIG_SYSTEM_TRUSTED_KEYS/s/=.+/=""/g' .config
+sed -Ei '/CONFIG_SYSTEM_TRUSTED_KEYS/s/=.+/=""/g' .config || true
 scripts/config --disable DEBUG_INFO
 scripts/config --disable DEBUG_INFO_BTF
 scripts/config --disable MODULE_SIG_ALL
 scripts/config --disable MODULE_COMPRESS_NONE
 scripts/config --disable MODULE_DECOMPRESS
 scripts/config --enable MODULE_COMPRESS_XZ 
+scripts/config --enable CONFIG_FTRACE
+scripts/config --enable CONFIG_DEBUG_INFO
+scripts/config --enable CONFIG_DEBUG_INFO_DWARF5
+scripts/config --enable CONFIG_BPF_SYSCALL
+scripts/config --enable CONFIG_DEBUG_INFO_BTF
+scripts/config --disable CONFIG_DEBUG_INFO_REDUCED
 
 case "$1" in
     rpm)
