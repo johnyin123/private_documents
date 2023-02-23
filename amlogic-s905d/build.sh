@@ -14,8 +14,8 @@ export ROOTFS=${1:-${DIRNAME}/kernel-$(date '+%Y%m%d%H%M%S')}
 }
 export LOCALVERSION="-johnyin-s905d"
 export ARCH=arm64
-export CFLAGS='-O3 -flto -pipe'
-export CXXFLAGS='-O3 -flto -pipe'
+# export CFLAGS='-O3 -flto -pipe'
+# export CXXFLAGS='-O3 -flto -pipe'
 export INSTALL_PATH=${ROOTFS}/boot
 export INSTALL_MOD_PATH=${ROOTFS}/usr/
 export INSTALL_MOD_STRIP=1
