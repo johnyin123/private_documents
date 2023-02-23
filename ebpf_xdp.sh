@@ -1,7 +1,7 @@
 # /linux-kernel/samples/bpf
 cat <<EOF
 libbpf develop:
-    apt install libbpf-dev bpftool
+    apt install libbpf-dev libxdp-dev bpftool
     bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
 
 EOF
