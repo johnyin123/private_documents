@@ -6,8 +6,8 @@ PKG=${1:?deb/rpm need input}
 
 # apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 export LOCALVERSION="-johnyin"
-export CFLAGS='-march=native -O3 -flto -pipe'
-export CXXFLAGS='-march=native -O3 -flto -pipe'
+# export CFLAGS='-march=native -O3 -flto -pipe'
+# export CXXFLAGS='-march=native -O3 -flto -pipe'
 # export INSTALL_PATH=${ROOTFS}/boot
 # export INSTALL_MOD_PATH=${ROOTFS}/usr/
 export INSTALL_MOD_STRIP=1
@@ -15,16 +15,18 @@ export INSTALL_MOD_STRIP=1
 # scripts/diffconfig .config.old .config | less
 
 sed -Ei '/CONFIG_SYSTEM_TRUSTED_KEYS/s/=.+/=""/g' .config || true
+echo "use xz compress module"
 scripts/config --disable MODULE_SIG_ALL
 scripts/config --disable MODULE_COMPRESS_NONE
 scripts/config --disable MODULE_DECOMPRESS
-scripts/config --enable MODULE_COMPRESS_XZ 
-scripts/config --enable CONFIG_FTRACE
-scripts/config --enable CONFIG_DEBUG_INFO
-scripts/config --enable CONFIG_DEBUG_INFO_DWARF5
+scripts/config --enable MODULE_COMPRESS_XZ
+echo "fix eBPF bpftool gen vmlinux.h, see: lib/Kconfig.debug, pahole tools in package dwarves"
+echo "dwarves: https://github.com/acmel/dwarves"
 scripts/config --enable CONFIG_BPF_SYSCALL
 scripts/config --enable CONFIG_DEBUG_INFO_BTF
-# scripts/config --disable CONFIG_DEBUG_INFO_REDUCED
+scripts/config --enable CONFIG_FTRACE
+# enable CONFIG_DEBUG_INFO_BTF need: apt install dwarves
+scripts/config --enable DEBUG_INFO
 
 pahole --version || echo "pahole no found DEBUG_INFO_BTF not effict"
 case "$1" in
