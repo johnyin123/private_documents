@@ -5,7 +5,7 @@
 #include <bpf/libbpf.h>
 #include <time.h>
 #include "mybpf.h"
-#include "mybpf.skel.h"
+#include "mybpf_skel.h"
 
 // libbpf错误和调试信息回调的处理程序。
 static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
@@ -67,7 +67,7 @@ static void bump_memlock_rlimit(void)
 
 int main(int argc, char **argv)
 {
-	struct mybpf *skel;
+	struct mybpf_skel *skel;
 	struct perf_buffer *pb = NULL;
 	int err;
 
@@ -78,21 +78,21 @@ int main(int argc, char **argv)
 	bump_memlock_rlimit();
 
 	// 3. 打开BPF程序
-	skel = mybpf__open();
+	skel = mybpf_skel__open();
 	if (!skel) {
 		fprintf(stderr, "Failed to open BPF skeleton\n");
 		return 1;
 	}
 
 	// 4. 加载BPF字节码
-	err = mybpf__load(skel);
+	err = mybpf_skel__load(skel);
 	if (err) {
 		fprintf(stderr, "Failed to load and verify BPF skeleton\n");
 		goto cleanup;
 	}
 
 	// 5. 挂载BPF字节码到跟踪点
-	err = mybpf__attach(skel);
+	err = mybpf_skel__attach(skel);
 	if (err) {
 		fprintf(stderr, "Failed to attach BPF skeleton\n");
 		goto cleanup;
@@ -119,6 +119,6 @@ int main(int argc, char **argv)
 
  cleanup:
 	perf_buffer__free(pb);
-	mybpf__destroy(skel);
+	mybpf_skel__destroy(skel);
 	return err != 0;
 }

@@ -21,7 +21,7 @@ USR_SRC=main.c
 BPF_SRC=mybpf.c
 USR_OBJ=$(USR_SRC:.c=.o)
 BPF_OBJ=$(BPF_SRC:.c=.o)
-BPF_SKEL=$(BPF_SRC:.c=.skel.h)
+BPF_SKEL=$(BPF_SRC:.c=_skel.h)
 
 .PHONY : all
 all: $(EXE)
@@ -39,7 +39,8 @@ $(BPF_OBJ): $(BPF_SRC) vmlinux.h
 
 $(BPF_SKEL): $(BPF_OBJ)
 	@echo -n "\033[1;31m BPF SKEL ## "
-	bpftool gen skeleton $< > $@
+	bpftool gen skeleton $< name $* > $@
+	# bpftool gen skeleton $< > $@
 	@echo -n "\033[m"
 
 $(USR_OBJ): $(USR_SRC) $(BPF_SKEL)
