@@ -27,6 +27,9 @@ cat > xdp_filter.c <<EOF
 丢弃所有TCP连接包,UDP正常
 clang -O2 -target bpf -c xdp_filter.c -o xdp_filter.o
 ip link set dev ens33 xdp obj xdp_filter.o sec mysection
+ # ip doesn't support the BPF Type Format (BTF) type map, xdp-loader support it.
+ or: xdp-loader load -m skb -s mysection veth1 xdp_filter.o
+     xdp-loader status / xdp-loader unload -a veth1
 ip a show ens33
 
 卸载XDP程序: ip link set dev ens33 xdp off
