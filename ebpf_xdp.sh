@@ -24,6 +24,7 @@ XDP_ABORTED：表示eBPF程序发生错误，并导致数据包被丢弃。自�
 EOF
 cat > netstat.py <<'EOF'
 #!/usr/bin/python3
+# apt -y install python3-bpfcc
 from bcc import BPF
 from time import sleep
 #eBPF prog
