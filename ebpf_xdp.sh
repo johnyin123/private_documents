@@ -1,9 +1,29 @@
 # /linux-kernel/samples/bpf
 cat <<EOF
 libbpf develop:
-    apt install libbpf-dev libxdp-dev bpftool
+    apt install libbpf-dev libxdp-dev bpftool bpftrace
     bpftool btf dump file /sys/kernel/btf/vmlinux format c > vmlinux.h
 
+# Files opened by process
+bpftrace -e 'tracepoint:syscalls:sys_enter_open {printf("%s %s\n", comm, str(args->filename)); }'
+
+# Syscall count by program
+bpftrace -e 'tracepoint:raw_syscalls:sys_enter {@[comm] = count(); }'
+
+# Read bytes by process:
+bpftrace -e 'tracepoint:syscalls:sys_exit_read /args->ret/ {@[comm] = sum(args->ret); }'
+
+# Read size distribution by process:
+bpftrace -e 'tracepoint:syscalls:sys_exit_read {@[comm] = hist(args->ret); }'
+
+# Show per-second syscall rates:
+bpftrace -e 'tracepoint:raw_syscalls:sys_enter {@ = count(); } interval:s:1 { print(@); clear(@); }'
+
+# Trace disk size by process
+bpftrace -e 'tracepoint:block:block_rq_issue {printf("%d %s %d\n", pid, comm, args->bytes); }'
+
+# Count page faults by process
+bpftrace -e 'software:faults:1 {@[comm] = count(); }'
 EOF
 cat<<EOF
 XDP程序是通过bpf()系统调用控制的，bpf()系统调用使用程序类型BPF_PROG_TYPE_XDP进行加载。
