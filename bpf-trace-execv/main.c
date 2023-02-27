@@ -8,14 +8,14 @@
 #include "mybpf_skel.h"
 
 static int bpfverbose = 0;
-int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
+static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
 {
     if (level == LIBBPF_DEBUG && !bpfverbose)
         return 0;
     return vfprintf(stderr, format, args);
 }
 
-int bump_memlock_rlimit()
+static int bump_memlock_rlimit()
 {
     struct rlimit rlim_new = {
         .rlim_cur = RLIM_INFINITY,
@@ -49,7 +49,7 @@ static void print_args(const struct event *e)
 }
 
 /*性能事件回调函数(向终端中打印进程名、PID、返回值以及参数)*/
-void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
+static void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
 {
        const struct event *e = data;
        printf("%-16s %-6d %3d ", e->comm, e->pid, e->retval);
