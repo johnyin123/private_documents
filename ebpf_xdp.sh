@@ -22,6 +22,37 @@ XDP_TX：转发数据包，将接收到的数据包发送回数据包到达的�
 XDP_REDIRECT：数据包重定向，XDP_TX，XDP_REDIRECT是将数据包送到另一块网卡或传入到BPF的cpumap中
 XDP_ABORTED：表示eBPF程序发生错误，并导致数据包被丢弃。自己开发的程序不应该使用该返回码
 EOF
+cat > netstat.py <<'EOF'
+#!/usr/bin/python3
+from bcc import BPF
+from time import sleep
+#eBPF prog
+bpf_text = """
+BPF_HASH(stats, u32);
+int count(struct pt_regs *ctx) {
+    u32 key = 0;
+    u64 *val, zero=0;
+    val = stats.lookup_or_init(&key, &zero);
+    (*val)++;
+    return 0;
+}
+"""
+#compile eBPF
+b = BPF(text=bpf_text, cflags=["-Wno-macro-redefined"])
+#load
+b.attach_kprobe(event="tcp_sendmsg", fn_name="count")
+name = {
+    0: "tcp_sendmsg"
+}
+# output stats
+while True:
+    try:
+        for k, v in b["stats"].items():
+            print("{}: {}".format(name[k.value], v.value))
+            sleep(1)
+    except KeyboardInterrupt:
+        exit()
+EOF
 cat > xdp_filter.c <<EOF
 /*
 丢弃所有TCP连接包,UDP正常
