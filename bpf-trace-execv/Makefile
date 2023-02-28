@@ -1,7 +1,3 @@
-CC          := gcc -g -O2 -Wall
-CLANG       := clang -g -O2 -Wall
-RM          := rm -f
-BPFTOOL     := /usr/sbin/bpftool
 INCFILE=make.inc
 ifeq ($(INCFILE), $(wildcard $(INCFILE)))
 include $(INCFILE)
@@ -13,10 +9,11 @@ include $(INCFILE)
 # INC_PATH+=#-I../deps/LuaJIT-2.0.4/src -I../deps/hiredis
 # LIB_PATH+=#-L../deps/LuaJIT-2.0.4/src -L../deps/hiredis
 endif
-
-ifndef EXE
-	EXE=main_bpf
-endif
+EXE         ?= main_bpf
+CC          := gcc -g -O2 -Wall
+CLANG       := clang -g -O2 -Wall
+RM          := rm -f
+BPFTOOL     := /usr/sbin/bpftool
 ifeq ($(V),1)
 Q =
 msg =
