@@ -2,7 +2,8 @@ ifndef EXE
 	EXE=main_bpf
 endif
 
-CC          := clang -g -O2 -Wall
+CC          := gcc -g -O2 -Wall
+CLANG       := clang -g -O2 -Wall
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
 INCFILE=make.inc
@@ -33,24 +34,21 @@ clean:
 	-$(RM) $(USR_OBJ) $(BPF_OBJ) $(BPF_SKEL) vmlinux.h $(EXE)
 
 $(BPF_OBJ): $(BPF_SRC) vmlinux.h
-	@echo -n "\033[1;31m BPF ## "
-	$(CC) -target bpf $(CFLAGS) $(INC_PATH) -o $@ -c $<
+	@echo -n "\033[1;31m"
+	$(CLANG) -target bpf $(CFLAGS) $(INC_PATH) -o $@ -c $<
 	@echo -n "\033[m"
 
 $(BPF_SKEL): $(BPF_OBJ)
-	@echo -n "\033[1;31m BPF SKEL ## "
+	@echo -n "\033[1;31m"
 	$(BPFTOOL) gen skeleton $< name $* > $@
-	# $(BPFTOOL) gen skeleton $< > $@
 	@echo -n "\033[m"
 
-$(USR_OBJ): $(USR_SRC) $(BPF_SKEL)
-	@echo -n "\033[1;31m USR ## "
+$(filter %.o,$(USR_OBJ)): %.o: %.c $(BPF_SKEL)
+	@echo -n "\033[1;31m"
 	$(CC) $(CFLAGS) $(INC_PATH) -o $@ -c $<
 	@echo -n "\033[m"
 
 vmlinux.h:
-	@echo -n "\033[1;31m GEN vmlinux.h ## "
+	@echo -n "\033[1;31m"
 	$(BPFTOOL) btf dump file /sys/kernel/btf/vmlinux format c > $@
 	@echo -n "\033[m"
-
-
