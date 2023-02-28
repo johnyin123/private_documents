@@ -7,10 +7,14 @@
 #include "mybpf.h"
 #include "mybpf_skel.h"
 
-static int bpfverbose = 0;
+struct env {
+    bool verbose;
+} env = {
+    .verbose = 0,
+};
 static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va_list args)
 {
-    if (level == LIBBPF_DEBUG && !bpfverbose)
+    if (level == LIBBPF_DEBUG && !env.verbose)
         return 0;
     return vfprintf(stderr, format, args);
 }
