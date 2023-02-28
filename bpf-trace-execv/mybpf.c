@@ -1,6 +1,17 @@
 #include "vmlinux.h"
 #include "mybpf.h"
 #include <bpf/bpf_helpers.h>
+#ifndef DEBUG
+ /* msg in /sys/kernel/debug/tracing/trace_pipe */
+#define bpf_debug(fmt, ...)                                         \
+	({                                                              \
+		char ____fmt[] = fmt;                                       \
+		bpf_trace_printk(____fmt, sizeof(____fmt), ##__VA_ARGS__);  \
+	})
+#else
+#define bpf_debug(fmt, ...){;}
+#endif
+
 static const struct event empty_event = { };
 // 定义哈希映射
 struct {
