@@ -14,20 +14,22 @@ CC          := gcc -g -O2 -Wall
 CLANG       := clang -g -O2 -Wall
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
+USR_SRC=main.c
+BPF_SRC=mybpf.c
+USR_OBJ=$(USR_SRC:.c=.o)
+BPF_OBJ=$(BPF_SRC:.c=.o)
+BPF_SKEL=$(BPF_SRC:.c=_skel.h)
+
+ifeq ($(DEBUG),1)
+CFLAGS += -DDEBUG
+endif
 ifeq ($(V),1)
 Q =
 msg =
 else
 Q = @
 msg = @printf '  %-8s %s%s\n' "$(1)" "$(notdir $(2))" "$(if $(3), $(3))";
-MAKEFLAGS += --no-print-directory
 endif
-
-USR_SRC=main.c
-BPF_SRC=mybpf.c
-USR_OBJ=$(USR_SRC:.c=.o)
-BPF_OBJ=$(BPF_SRC:.c=.o)
-BPF_SKEL=$(BPF_SRC:.c=_skel.h)
 
 .PHONY : all
 all: $(EXE)
