@@ -14,11 +14,13 @@ CC          := gcc -g -O2 -Wall
 CLANG       := clang -g -O2 -Wall
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
-USR_SRC=main.c
-BPF_SRC=mybpf.c
+
+
+BPF_SRC=$(wildcard *.bpf.c)
+USR_SRC=$(filter-out $(wildcard *.bpf.c), $(wildcard *.c))
 USR_OBJ=$(USR_SRC:.c=.o)
 BPF_OBJ=$(BPF_SRC:.c=.o)
-BPF_SKEL=$(BPF_SRC:.c=_skel.h)
+BPF_SKEL=$(BPF_SRC:.bpf.c=_skel.h)
 
 ifeq ($(DEBUG),1)
 CFLAGS += -DDEBUG
@@ -57,3 +59,8 @@ $(filter %.o,$(USR_OBJ)): %.o: %.c $(BPF_SKEL)
 vmlinux.h:
 	$(call msg,BPF,$@)
 	$(Q)$(BPFTOOL) btf dump file /sys/kernel/btf/vmlinux format c > $@
+
+help:
+	@echo "clean/help/all"
+	@echo "export DEBUG=1;make V=1"
+	@echo "make DEBUG=1 V=1"

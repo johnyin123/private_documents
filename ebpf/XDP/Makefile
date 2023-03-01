@@ -1,11 +1,3 @@
-ifndef EXE
-	EXE=main_bpf
-endif
-
-CC          := gcc -g -O2 -Wall
-CLANG       := clang -g -O2 -Wall
-RM          := rm -f
-BPFTOOL     := /usr/sbin/bpftool
 INCFILE=make.inc
 ifeq ($(INCFILE), $(wildcard $(INCFILE)))
 include $(INCFILE)
@@ -17,38 +9,58 @@ include $(INCFILE)
 # INC_PATH+=#-I../deps/LuaJIT-2.0.4/src -I../deps/hiredis
 # LIB_PATH+=#-L../deps/LuaJIT-2.0.4/src -L../deps/hiredis
 endif
+EXE         ?= main_bpf
+CC          := gcc -g -O2 -Wall
+CLANG       := clang -g -O2 -Wall
+RM          := rm -f
+BPFTOOL     := /usr/sbin/bpftool
 
-USR_SRC=main.c
-BPF_SRC=mybpf.c
+
+BPF_SRC=$(wildcard *.bpf.c)
+USR_SRC=$(filter-out $(wildcard *.bpf.c), $(wildcard *.c))
 USR_OBJ=$(USR_SRC:.c=.o)
 BPF_OBJ=$(BPF_SRC:.c=.o)
-BPF_SKEL=$(BPF_SRC:.c=_skel.h)
+BPF_SKEL=$(BPF_SRC:.bpf.c=_skel.h)
+
+ifeq ($(DEBUG),1)
+CFLAGS += -DDEBUG
+endif
+ifeq ($(V),1)
+Q =
+msg =
+else
+Q = @
+msg = @printf '  %-8s %s%s\n' "$(1)" "$(notdir $(2))" "$(if $(3), $(3))";
+endif
 
 .PHONY : all
 all: $(EXE)
 $(EXE): $(USR_OBJ)
-	$(CC) $(USR_OBJ) -static -lbpf -lelf -lz $(LIB_PATH) $(LDFLAGS) -o $@ $(LIBFLAGS)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(USR_OBJ) -static -lbpf -lelf -lz $(LIB_PATH) $(LDFLAGS) -o $@ $(LIBFLAGS)
 
 .PHONY : clean
 clean:
-	-$(RM) $(USR_OBJ) $(BPF_OBJ) $(BPF_SKEL) vmlinux.h $(EXE)
+	$(call msg,CLEAN)
+	$(Q)$(RM) $(USR_OBJ) $(BPF_OBJ) $(BPF_SKEL) vmlinux.h $(EXE)
 
 $(BPF_OBJ): $(BPF_SRC) vmlinux.h
-	@echo -n "\033[1;31m"
-	$(CLANG) -target bpf $(CFLAGS) $(INC_PATH) -o $@ -c $<
-	@echo -n "\033[m"
+	$(call msg,BPF_BIN,$@)
+	$(Q)$(CLANG) -target bpf $(CFLAGS) $(INC_PATH) -o $@ -c $<
 
 $(BPF_SKEL): $(BPF_OBJ)
-	@echo -n "\033[1;31m"
-	$(BPFTOOL) gen skeleton $< name $* > $@
-	@echo -n "\033[m"
+	$(call msg,BPF_SKEL,$@)
+	$(Q)$(BPFTOOL) gen skeleton $< name $* > $@
 
 $(filter %.o,$(USR_OBJ)): %.o: %.c $(BPF_SKEL)
-	@echo -n "\033[1;31m"
-	$(CC) $(CFLAGS) $(INC_PATH) -o $@ -c $<
-	@echo -n "\033[m"
+	$(call msg,USR_OBJ,$@)
+	$(Q)$(CC) $(CFLAGS) $(INC_PATH) -o $@ -c $<
 
 vmlinux.h:
-	@echo -n "\033[1;31m"
-	$(BPFTOOL) btf dump file /sys/kernel/btf/vmlinux format c > $@
-	@echo -n "\033[m"
+	$(call msg,BPF,$@)
+	$(Q)$(BPFTOOL) btf dump file /sys/kernel/btf/vmlinux format c > $@
+
+help:
+	@echo "clean/help/all"
+	@echo "export DEBUG=1;make V=1"
+	@echo "make DEBUG=1 V=1"
