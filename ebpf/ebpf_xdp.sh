@@ -1,7 +1,9 @@
 # /linux-kernel/samples/bpf
 cat <<EOF
 /usr/include/linux/bpf.h
-
+unsigned long long load_byte(void *skb, unsigned long long off) asm("llvm.bpf.load.byte");
+unsigned long long load_half(void *skb, unsigned long long off) asm("llvm.bpf.load.half");
+unsigned long long load_word(void *skb, unsigned long long off) asm("llvm.bpf.load.word");
 enum bpf_prog_type {
 	BPF_PROG_TYPE_UNSPEC,
 	BPF_PROG_TYPE_SOCKET_FILTER,
