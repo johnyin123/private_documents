@@ -4,8 +4,8 @@
 #define min(x, y) ((x) < (y) ? (x) : (y))
 /* Metadata will be in the perf event before the packet data. */
 struct data_t {
-	__u16 cookie;
-	__u16 pkt_len;
+    __u16 cookie;
+    __u16 pkt_len;
 } __attribute__((packed));
 
 

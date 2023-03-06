@@ -92,7 +92,7 @@ void handle_event(void *ctx, int cpu, void *data, __u32 data_sz)
     for (i = 0; i < e->pkt_len; i++) {
         fprintf(stdout, "%02x ", payload[i]);
     }
-	fprintf(stdout, "\n");
+    fprintf(stdout, "\n");
 
 }
 void handle_lost_events(void *ctx, int cpu, __u64 lost_cnt)
