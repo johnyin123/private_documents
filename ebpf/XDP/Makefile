@@ -9,9 +9,10 @@ include $(INCFILE)
 # INC_PATH+=#-I../deps/LuaJIT-2.0.4/src -I../deps/hiredis
 # LIB_PATH+=#-L../deps/LuaJIT-2.0.4/src -L../deps/hiredis
 endif
+CLANG_FLAGS ?=-I/usr/include/linux/ -I/usr/src/linux-headers-6.1.12-johnyin/include/ -I/usr/include/x86_64-linux-gnu/
 EXE         ?= main_bpf
 CC          := gcc -g -O2 -Wall
-CLANG       := clang -g -O2 -Wall
+CLANG       := clang -g -O2 -Wall $(CLANG_FLAGS)
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
 
@@ -44,15 +45,12 @@ clean:
 	$(call msg,CLEAN)
 	$(Q)$(RM) $(USR_OBJ) $(BPF_OBJ) $(BPF_SKEL) vmlinux.h $(EXE)
 
-$(BPF_OBJ): $(BPF_SRC) vmlinux.h
+$(filter %.o,$(BPF_OBJ)): %.o: %.c vmlinux.h
 	$(call msg,BPF_BIN,$@)
 	$(Q)$(CLANG) -target bpf $(CFLAGS) $(INC_PATH) -o $@ -c $<
+	$(Q)$(BPFTOOL) gen skeleton $@ name $(subst .bpf,_skel,$*) > $(subst .bpf,_skel,$*).h
 
-$(BPF_SKEL): $(BPF_OBJ)
-	$(call msg,BPF_SKEL,$@)
-	$(Q)$(BPFTOOL) gen skeleton $< name $* > $@
-
-$(filter %.o,$(USR_OBJ)): %.o: %.c $(BPF_SKEL)
+$(filter %.o,$(USR_OBJ)): %.o: %.c $(BPF_OBJ)
 	$(call msg,USR_OBJ,$@)
 	$(Q)$(CC) $(CFLAGS) $(INC_PATH) -o $@ -c $<
 
