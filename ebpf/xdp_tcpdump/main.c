@@ -57,7 +57,7 @@ static int parse_command_line(int argc, char **argv)
     while ((opt = getopt_long(argc, argv, opt_short, opt_long, &option_index)) != -1) {
         switch (opt) {
             case 'i':
-                strncpy(env.iface, optarg, 127);
+                strncpy(env.iface, optarg, sizeof(env.iface) - 1);
                 return 0;
             case 'h':
                 usage(argv[0]);
