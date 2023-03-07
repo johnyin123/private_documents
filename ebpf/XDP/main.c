@@ -54,7 +54,9 @@ int main(int argc, char **argv)
         return 3;
     }
     /*Use "xdpgeneric" mode; less performance but supported by all drivers*/
-    int flags = XDP_FLAGS_SKB_MODE;
+    int flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
+    xdp_flags |= XDP_FLAGS_SKB_MODE;
+    //xdp_flags |= XDP_FLAGS_DRV_MODE;
     int fd = bpf_program__fd(skel->progs.xdp_prog);
     /* Attach BPF to network interface */
     err = bpf_set_link_xdp_fd(ifindex, fd, flags);
