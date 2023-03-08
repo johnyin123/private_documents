@@ -9,10 +9,11 @@ include $(INCFILE)
 # INC_PATH+=#-I../deps/LuaJIT-2.0.4/src -I../deps/hiredis
 # LIB_PATH+=#-L../deps/LuaJIT-2.0.4/src -L../deps/hiredis
 endif
+ARCH        ?= $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
 CLANG_FLAGS ?=-I/usr/include/linux/ -I/usr/src/linux-headers-6.1.12-johnyin/include/ -I/usr/include/x86_64-linux-gnu/
 EXE         ?= main_bpf
 CC          := gcc -g -O2 -Wall
-CLANG       := clang -g -O2 -Wall $(CLANG_FLAGS)
+CLANG       := clang -g -O2 -Wall -D__TARGET_ARCH_$(ARCH) $(CLANG_FLAGS)
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
 
