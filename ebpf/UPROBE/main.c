@@ -101,14 +101,14 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Failed to open and load BPF skeleton\n");
         return 1;
     }
-    skel->links.uprobe = bpf_program__attach_uprobe(skel->progs.uprobe, false, -1, env.bin, func_offset);
-    err = libbpf_get_error(skel->links.uprobe);
+    skel->links.uprobe_foo = bpf_program__attach_uprobe(skel->progs.uprobe_foo, false, -1, env.bin, func_offset);
+    err = libbpf_get_error(skel->links.uprobe_foo);
     if (err) {
         fprintf(stderr, "Failed to attach uprobe: %d\n", err);
         goto cleanup;
     }
-    skel->links.uretprobe = bpf_program__attach_uprobe(skel->progs.uretprobe, true, -1, env.bin, func_offset);
-    err = libbpf_get_error(skel->links.uretprobe);
+    skel->links.uretprobe_foo = bpf_program__attach_uprobe(skel->progs.uretprobe_foo, true, -1, env.bin, func_offset);
+    err = libbpf_get_error(skel->links.uretprobe_foo);
     if (err) {
         fprintf(stderr, "Failed to attach uprobe: %d\n", err);
         goto cleanup;
