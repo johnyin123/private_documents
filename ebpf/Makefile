@@ -14,6 +14,7 @@ CLANG_FLAGS ?=-I/usr/include/linux/ -I/usr/src/linux-headers-6.1.12-johnyin/incl
 EXE         ?= main_bpf
 CC          := gcc -g -O2 -Wall
 CLANG       := clang -g -O2 -Wall -D__TARGET_ARCH_$(ARCH) $(CLANG_FLAGS)
+LLVM_STRIP  := llvm-strip
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
 
@@ -49,6 +50,8 @@ clean:
 $(filter %.o,$(BPF_OBJ)): %.o: %.c vmlinux.h
 	$(call msg,BPF_BIN,$@)
 	$(Q)$(CLANG) -target bpf $(CFLAGS) $(INC_PATH) -o $@ -c $<
+	$(call msg,BPF_BIN,strip $@ useless DWARF info)
+	$(Q)$(LLVM_STRIP) -g $@
 	$(Q)$(BPFTOOL) gen skeleton $@ name $(subst .bpf,_skel,$*) > $(subst .bpf,_skel,$*).h
 
 $(filter %.o,$(USR_OBJ)): %.o: %.c $(BPF_OBJ)
