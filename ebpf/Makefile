@@ -2,18 +2,16 @@ INCFILE=make.inc
 ifeq ($(INCFILE), $(wildcard $(INCFILE)))
 include $(INCFILE)
 # make.inc -->
-# EXE=ffff
-# CFLAGS+=-D_GNU_SOURCE -D__USE_XOPEN -O2 -march=native -mfpmath=sse  -Ofast -flto -march=native -funroll-loops
-# LIBFLAGS+=-lluajit -lhiredis -lsqlite3 -lm -ldl -lpthread#`pkg-config --libs libssl` 
-# LDFLAGS+=#-static#-Wl,-Bstatic -libc -Wl,-Bdynamic
-# INC_PATH+=#-I../deps/LuaJIT-2.0.4/src -I../deps/hiredis
-# LIB_PATH+=#-L../deps/LuaJIT-2.0.4/src -L../deps/hiredis
+# EXE=my_uprobe
+# CFLAGS=-D_GNU_SOURCE -D__USE_XOPEN -I../dep/include
+# LDFLAGS=-L./ -lbpf -lelf -lz
 endif
 VMLINUX     := vmlinux.h
+# LIBBPF_OBJ  := libbpf.a
 ARCH        ?= $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
 EXE         ?= main_bpf
-CC          := gcc -g -O2 -Wall
-CLANG       := clang -g -O2 -Wall -D__TARGET_ARCH_$(ARCH) -I. -I$(dir $(VMLINUX))
+CFLAGS      += -g -Wall
+CLANG       := clang -g -O2 -Wall -D__TARGET_ARCH_$(ARCH)
 LLVM_STRIP  := llvm-strip
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
@@ -51,7 +49,7 @@ endif
 all: $(EXE)
 $(EXE): $(USR_OBJ)
 	$(call msg,BINARY,$@)
-	$(Q)$(CC) $(USR_OBJ) -static -lbpf -lelf -lz $(LIB_PATH) $(LDFLAGS) -o $@ $(LIBFLAGS)
+	$(Q)$(CC) $(CFLAGS) $^ $(LDFLAGS) -o $@
 
 .PHONY : clean
 clean:
@@ -60,7 +58,7 @@ clean:
 
 $(filter %.o,$(BPF_OBJ)): %.o: %.c $(VMLINUX)
 	$(call msg,BPF_BIN,$@)
-	$(Q)$(CLANG) -target bpf $(CFLAGS) $(INC_PATH) $(CLANG_BPF_SYS_INCLUDES) -o $@ -c $<
+	$(Q)$(CLANG) -target bpf $(CLANG_BPF_SYS_INCLUDES) -o $@ -c $<
 	$(call msg,BPF_BIN,strip $@ useless DWARF info)
 	$(Q)$(LLVM_STRIP) -g $@
 	$(call msg,BPF_SKEL,$(subst .bpf,_skel,$*).h name:$(subst .bpf,_skel,$*))
@@ -68,7 +66,7 @@ $(filter %.o,$(BPF_OBJ)): %.o: %.c $(VMLINUX)
 
 $(filter %.o,$(USR_OBJ)): %.o: %.c $(BPF_OBJ)
 	$(call msg,USR_OBJ,$@)
-	$(Q)$(CC) $(CFLAGS) $(INC_PATH) -o $@ -c $<
+	$(Q)$(CC) $(CFLAGS) -o $@ -c $<
 
 $(VMLINUX):
 	$(call msg,BPF,$@)
