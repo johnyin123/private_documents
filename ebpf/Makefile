@@ -9,11 +9,11 @@ include $(INCFILE)
 # INC_PATH+=#-I../deps/LuaJIT-2.0.4/src -I../deps/hiredis
 # LIB_PATH+=#-L../deps/LuaJIT-2.0.4/src -L../deps/hiredis
 endif
+VMLINUX     := vmlinux.h
 ARCH        ?= $(shell uname -m | sed 's/x86_64/x86/' | sed 's/aarch64/arm64/' | sed 's/ppc64le/powerpc/' | sed 's/mips.*/mips/')
-CLANG_FLAGS ?=-I/usr/include/linux/ -I/usr/src/linux-headers-6.1.12-johnyin/include/ -I/usr/include/x86_64-linux-gnu/
 EXE         ?= main_bpf
 CC          := gcc -g -O2 -Wall
-CLANG       := clang -g -O2 -Wall -D__TARGET_ARCH_$(ARCH) $(CLANG_FLAGS)
+CLANG       := clang -g -O2 -Wall -D__TARGET_ARCH_$(ARCH) -I. -I$(dir $(VMLINUX))
 LLVM_STRIP  := llvm-strip
 RM          := rm -f
 BPFTOOL     := /usr/sbin/bpftool
@@ -24,6 +24,17 @@ USR_SRC=$(filter-out $(wildcard *.bpf.c), $(wildcard *.c))
 USR_OBJ=$(USR_SRC:.c=.o)
 BPF_OBJ=$(BPF_SRC:.c=.o)
 BPF_SKEL=$(BPF_SRC:.bpf.c=_skel.h)
+
+# Get Clang's default includes on this system. We'll explicitly add these dirs
+# to the includes list when compiling with `-target bpf` because otherwise some
+# architecture-specific dirs will be "missing" on some architectures/distros -
+# headers such as asm/types.h, asm/byteorder.h, asm/socket.h, asm/sockios.h,
+# sys/cdefs.h etc. might be missing.
+#
+# Use '-idirafter': Don't interfere with include mechanics except where the
+# build would have failed anyways.
+CLANG_BPF_SYS_INCLUDES = $(shell $(CLANG) -v -E - </dev/null 2>&1 \
+    | sed -n '/<...> search starts here:/,/End of search list./{ s| \(/.*\)|-idirafter \1|p }')
 
 ifeq ($(DEBUG),1)
 CFLAGS += -DDEBUG
@@ -45,20 +56,21 @@ $(EXE): $(USR_OBJ)
 .PHONY : clean
 clean:
 	$(call msg,CLEAN)
-	$(Q)$(RM) $(USR_OBJ) $(BPF_OBJ) $(BPF_SKEL) vmlinux.h $(EXE)
+	$(Q)$(RM) $(USR_OBJ) $(BPF_OBJ) $(BPF_SKEL) $(VMLINUX) $(EXE)
 
-$(filter %.o,$(BPF_OBJ)): %.o: %.c vmlinux.h
+$(filter %.o,$(BPF_OBJ)): %.o: %.c $(VMLINUX)
 	$(call msg,BPF_BIN,$@)
-	$(Q)$(CLANG) -target bpf $(CFLAGS) $(INC_PATH) -o $@ -c $<
+	$(Q)$(CLANG) -target bpf $(CFLAGS) $(INC_PATH) $(CLANG_BPF_SYS_INCLUDES) -o $@ -c $<
 	$(call msg,BPF_BIN,strip $@ useless DWARF info)
 	$(Q)$(LLVM_STRIP) -g $@
+	$(call msg,BPF_SKEL,$(subst .bpf,_skel,$*).h name:$(subst .bpf,_skel,$*))
 	$(Q)$(BPFTOOL) gen skeleton $@ name $(subst .bpf,_skel,$*) > $(subst .bpf,_skel,$*).h
 
 $(filter %.o,$(USR_OBJ)): %.o: %.c $(BPF_OBJ)
 	$(call msg,USR_OBJ,$@)
 	$(Q)$(CC) $(CFLAGS) $(INC_PATH) -o $@ -c $<
 
-vmlinux.h:
+$(VMLINUX):
 	$(call msg,BPF,$@)
 	$(Q)$(BPFTOOL) btf dump file /sys/kernel/btf/vmlinux format c > $@
 
