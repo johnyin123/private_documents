@@ -59,6 +59,7 @@ int main(int argc, char **argv)
     //xdp_flags |= XDP_FLAGS_DRV_MODE;
     int fd = bpf_program__fd(skel->progs.xdp_prog);
     /* Attach BPF to network interface */
+    // int bpf_xdp_attach(int ifindex, int prog_fd, __u32 flags, const struct bpf_xdp_attach_opts *opts);
     err = bpf_set_link_xdp_fd(ifindex, fd, xdp_flags);
     if (err) {
         fprintf(stderr, "failed to attach BPF to iface %s (%d): %d\n", iface, ifindex, err);
