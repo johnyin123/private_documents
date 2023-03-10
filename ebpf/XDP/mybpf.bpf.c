@@ -5,6 +5,6 @@
 SEC("xdp")
 int xdp_prog(struct xdp_md *ctx) {
     (void)ctx;
-    return XDP_PASS;
+    return XDP_DROP;
 }
 char LICENSE[] SEC("license") = "GPL";
