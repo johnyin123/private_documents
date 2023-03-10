@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("396cef5[2023-02-27T09:49:19+08:00]:os_debian_init.sh")
+VERSION+=("7460eb7[2023-03-01T13:46:02+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -511,6 +511,15 @@ func SetTitle()
         call setline(10, "")
         call setline(11, "if __name__ == '__main__':")
         call setline(12, "    exit(main())")
+    endif
+    if expand ("%:e") == 'h'
+        let fn = toupper(substitute(expand("%"), '[.-]', '_', 'g'))
+        let tm = strftime("%H%M%S")
+        let rnd = rand()
+        call setline(1, printf("#ifndef __%s_%s_%d__INC__", fn, tm, rnd))
+        call setline(2, printf("#define __%s_%s_%d__INC__", fn, tm, rnd))
+        call setline(3, "")
+        call setline(4, printf("#endif"))
     endif
     if expand ("%:e") == 'c'
         call setline(1, "#include <stdio.h>")
