@@ -165,6 +165,20 @@ static __always_inline int parse_iphdr(struct hdr_cursor *nh, void *data_end, st
 
     return iph->protocol;
 }
+/* parse_udphdr: parse the udp header and return the length of the udp payload */
+static __always_inline int parse_udphdr(struct hdr_cursor *nh, void *data_end, struct udphdr **udphdr)
+{
+	int len;
+	struct udphdr *h = nh->pos;
+	if ((void *)(h + 1) > data_end)
+		return -1;
+	nh->pos  = h + 1;
+	*udphdr = h;
+	len = bpf_ntohs(h->len) - sizeof(struct udphdr);
+	if (len < 0)
+		return -1;
+	return len;
+}
 
 /*parse_tcphdr: parse and return the length of the tcp header */
 static __always_inline int parse_tcphdr(struct hdr_cursor *nh, void *data_end, struct tcphdr **tcphdr)
