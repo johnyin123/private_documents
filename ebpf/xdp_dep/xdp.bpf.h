@@ -1,6 +1,8 @@
 #ifndef __XDPLB_BPF_H_164556_2726077384__INC__
 #define __XDPLB_BPF_H_164556_2726077384__INC__
 
+#define OVER(x, d) (x + 1 > (typeof(x))d)
+
 /* Header cursor to keep track of current parsing position */
 struct hdr_cursor {
     void *pos;
@@ -102,8 +104,7 @@ static __always_inline int parse_ethhdr_vlan(struct hdr_cursor *nh, void *data_e
     for (i = 0; i < VLAN_MAX_DEPTH; i++) {
         if (!proto_is_vlan(h_proto))
             break;
-
-        if ((void *)(vlh + 1) > data_end)
+        if (OVER(vlh, data_end))
             break;
 
         h_proto = vlh->h_vlan_encapsulated_proto;
@@ -119,7 +120,7 @@ static __always_inline int parse_ethhdr_vlan(struct hdr_cursor *nh, void *data_e
 static __always_inline int parse_icmphdr_common(struct hdr_cursor *nh, void *data_end, struct icmphdr_common **icmphdr)
 {
     struct icmphdr_common *h = nh->pos;
-    if ((void *)(h + 1) > data_end)
+    if (OVER(h, data_end))
         return -1;
     nh->pos  = h + 1;
     *icmphdr = h;
@@ -134,7 +135,7 @@ static __always_inline int parse_ip6hdr(struct hdr_cursor *nh, void *data_end, s
      * thing being pointed to. We will be using this style in the remainder
      * of the tutorial.
      */
-    if ((void *)(ip6h + 1) > data_end)
+    if (OVER(ip6h, data_end))
         return -1;
 
     nh->pos = ip6h + 1;
@@ -148,7 +149,7 @@ static __always_inline int parse_iphdr(struct hdr_cursor *nh, void *data_end, st
     struct iphdr *iph = nh->pos;
     int hdrsize;
 
-    if ((void *)(iph + 1) > data_end)
+    if (OVER(iph, data_end))
         return -1;
 
     hdrsize = iph->ihl * 4;
@@ -170,7 +171,7 @@ static __always_inline int parse_udphdr(struct hdr_cursor *nh, void *data_end, s
 {
 	int len;
 	struct udphdr *h = nh->pos;
-	if ((void *)(h + 1) > data_end)
+    if (OVER(h, data_end))
 		return -1;
 	nh->pos  = h + 1;
 	*udphdr = h;
@@ -185,7 +186,7 @@ static __always_inline int parse_tcphdr(struct hdr_cursor *nh, void *data_end, s
 {
     int len;
     struct tcphdr *h = nh->pos;
-    if ((void *)(h + 1) > data_end)
+    if (OVER(h, data_end))
         return -1;
     len = h->doff * 4;
     /* Sanity check packet field is valid */
@@ -199,10 +200,10 @@ static __always_inline int parse_tcphdr(struct hdr_cursor *nh, void *data_end, s
     return len;
 }
 
-static __always_inline int parse_ethhdr(struct hdr_cursor *nh, void *data_end, struct ethhdr **ethhdr) 
-{ 
-    /* Expect compiler removes the code that collects VLAN ids */ 
-    return parse_ethhdr_vlan(nh, data_end, ethhdr, NULL); 
+static __always_inline int parse_ethhdr(struct hdr_cursor *nh, void *data_end, struct ethhdr **ethhdr)
+{
+    /* Expect compiler removes the code that collects VLAN ids */
+    return parse_ethhdr_vlan(nh, data_end, ethhdr, NULL);
 }
 
 /* Swaps destination and source MAC addresses inside an Ethernet header */
