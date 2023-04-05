@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0de7c77[2023-01-16T11:18:17+08:00]:build_debian_live_iso.sh")
+VERSION+=("cb2d04b[2023-01-17T08:09:24+08:00]:build_debian_live_iso.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
@@ -150,7 +150,13 @@ EOF
 new_build() {
     local root_dir=$1
     local cache_dir=$2
-    local include_pkg="linux-image-${INST_ARCH:-amd64},live-boot,grub-pc-bin,grub-efi-ia32-bin,grub-efi-amd64-bin,grub-efi-amd64-signed,dosfstools,fdisk,parted,xfsprogs,systemd-sysv${3:+,${3}}"
+    local include_pkg="linux-image-${INST_ARCH:-amd64},live-boot,dosfstools,fdisk,parted,xfsprogs,systemd-sysv${3:+,${3}}"
+    include_pkg+=",xorriso,mtools"
+    case "${INST_ARCH:-amd64}" in
+        amd64)  include_pkg+=",grub-pc-bin,grub-efi-ia32-bin,grub-efi-amd64-bin,grub-efi-amd64-signed" ;;
+        arm64)  include_pkg+=",grub-efi,grub-efi-arm64-signed" ;;
+        *)  exit_msg "unsupport arch : ${INST_ARCH}\n";;
+    esac
     info_msg "new build with package: ${include_pkg}\n"
     defined DRYRUN || {
         debian_build "${root_dir}" "${cache_dir}" "${include_pkg}"
@@ -182,8 +188,10 @@ menuentry "Debian GNU/Linux Live" {
 EOGRUB
     info_msg "gen live iso image\n"
     try rm -f "${isoimage}"
-
-    defined DRYRUN || grub-mkrescue --product-name=johnyin --output=${isoimage} ${iso_dir}
+    try mv ${iso_dir} ${root_dir}/iso_dir
+    defined DRYRUN || chroot ${root_dir} grub-mkrescue --product-name=johnyin --output=/out.iso /iso_dir || true
+    try mv ${root_dir}/iso_dir ${iso_dir} || true
+    try mv ${root_dir}/out.iso ${isoimage} || true
 }
 
 gen_syslinuxiso() {
