@@ -452,6 +452,47 @@ declare -A DOMAIN_TPL=(
     </memballoon>
   </devices>
 </domain>"
+    [aarch64]="
+<domain type='kvm'>
+  <name>{{NAME}}-{{UUID}}</name>
+  <uuid>{{UUID}}</uuid>
+  <title>{{NAME}}</title>
+  <description>{{DESC}}</description>
+  <memory unit='KiB'>8388608</memory>
+  <currentMemory unit='KiB'>{{MEM}}</currentMemory>
+  <vcpu placement='static' current='{{CPUS}}'>8</vcpu>
+  <cpu mode='host-passthrough' check='none'/>
+  <os>
+    <type arch='aarch64' machine='virt-4.0'>hvm</type>
+    <loader readonly='yes' type='pflash'>/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw</loader>
+  </os>
+  <features><acpi/><apic/><pae/></features>
+  <on_poweroff>preserve</on_poweroff>
+  <devices>
+    <controller type='pci' index='0' model='pcie-root'/>
+    <serial type='pty'>
+      <target port='0'/>
+    </serial>
+    <console type='pty'>
+      <target type='serial' port='0'/>
+    </console>
+    <input type='mouse' bus='ps2'/>
+    <input type='keyboard' bus='ps2'/>
+    <channel type='unix'>
+      <target type='virtio' name='org.qemu.guest_agent.0'/>
+    </channel>
+    <controller type='usb' index='0' model='ich9-ehci1'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x05' function='0x7'/>
+    </controller>
+    <memballoon model='virtio'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x08' function='0x0'/>
+    </memballoon>
+    <rng model='virtio'>
+      <backend model='random'>/dev/urandom</backend>
+      <address type='pci' domain='0x0000' bus='0x06' slot='0x00' function='0x0'/>
+    </rng>
+  </devices>
+</domain>"
 )
 #![vol-pool]="<disk>..</disk>"
 declare -A DEVICE_TPL=(
