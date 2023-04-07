@@ -30,7 +30,7 @@ readonly DHCP_BOOTFILE="booter"
 readonly BUSYBOX="busybox"
 readonly DVD_IMG="CentOS-x86_64.iso"
 readonly PXELINUX="ldlinux.c32 menu.c32 libutil.c32 pxelinux.0 "
-readonly EFILINUX="grubx64.efi shim.efi"
+readonly EFILINUX="grubx64.efi shim.efi grubaa64.efi"
 
 readonly ROOTFS="${DIRNAME}/pxeroot"
 #ROOTFS=$(mktemp -d --tmpdir=/${DIRNAME})
