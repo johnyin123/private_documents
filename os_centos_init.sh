@@ -67,15 +67,14 @@ EOF
     rpm --root=${root_dir} --dbpath=/var/lib/rpm --ignorearch --nodigest --nosignature -ivh ${cache_dir}/*.rpm
     echo ${HOSTNAME:-cent-tpl} > ${root_dir}/etc/hostname
     echo "nameserver ${NAME_SERVER:-114.114.114.114}" > ${root_dir}/etc/resolv.conf
-    # rm -f ${root_dir}/etc/yum.repos.d/*
-    cat ${REPO} > ${root_dir}/etc/yum.repos.d/local.repo
     # rpm -qi centos-release
     rm -f ${root_dir}/etc/localtime || true
     for mp in /dev /sys /proc
     do
         mount -o bind ${mp} ${root_dir}${mp} || true
     done
-    LC_ALL=C LANGUAGE=C LANG=C chroot "${root_dir}" /bin/bash <<EOSHELL
+    LC_ALL=C LANGUAGE=C LANG=C chroot "${root_dir}" /bin/bash -x <<EOSHELL
+    echo "backup repo, enable local.repo"
     mv /etc/yum.repos.d/* /root/ || true
     mv /local.repo /etc/yum.repos.d/
     echo "fix rpm db"
