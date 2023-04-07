@@ -32,6 +32,15 @@ centos_build() {
     local include_pkg="${3}"
     local REPO=${root_dir}/local.repo
     local HOST_YUM=$(command -v yum || command -v dnf || { echo 'yum/dnf no found!'; return 1; })
+    case "${INST_ARCH:-}" in
+        aarch64)
+            HOST_YUM+=" --forcearch=aarch64"
+            echo "use aarch64"
+            [ -e "/usr/bin/qemu-aarch64-static" ] || { echo "Need: apt install qemu-user-static"; return 1; }
+            mkdir -p ${root_dir}/usr/bin/ && cp /usr/bin/qemu-aarch64-static ${root_dir}/usr/bin/
+            ;;
+        *)  echo "use host ARCH";;
+    esac
     HOST_YUM+=" ${RELEASE_VER:+--releasever=${RELEASE_VER}} -c ${REPO} --installroot=${root_dir} --downloadonly --destdir=${cache_dir}"
     [ -d "${root_dir}" ] || mkdir -p ${root_dir}
     [ -d "${cache_dir}" ] || mkdir -p ${cache_dir}
@@ -53,8 +62,9 @@ EOF
     # ${HOST_YUM} -y install yum passwd ${include_pkg}
     # rpm --root=${root_dir} --dbpath=/var/lib/rpm --import ${root_dir}/etc/pki/rpm-gpg/RPM-GPG-KEY-*
     echo "start install group core"
-    ${HOST_YUM} -y group install --exclude kernel-tools --exclude linux-firmware --exclude iw*-firmware core
-    rpm --root=${root_dir} --dbpath=/var/lib/rpm --nodigest --nosignature -ivh ${cache_dir}/*.rpm
+    # ${HOST_YUM} -y group install core
+    ${HOST_YUM} -y group install --exclude kernel-tools --exclude iw*-firmware core
+    rpm --root=${root_dir} --dbpath=/var/lib/rpm --ignorearch --nodigest --nosignature -ivh ${cache_dir}/*.rpm
     echo ${HOSTNAME:-cent-tpl} > ${root_dir}/etc/hostname
     echo "nameserver ${NAME_SERVER:-114.114.114.114}" > ${root_dir}/etc/resolv.conf
     # rm -f ${root_dir}/etc/yum.repos.d/*
