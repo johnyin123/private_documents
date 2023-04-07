@@ -13,10 +13,20 @@ VERSION+=("8244954[2023-01-17T10:51:08+08:00]:build_centos_no_kernel.sh")
 log() { echo "######$*" >&2; }
 export -f log
 
-PKG="efibootmgr grub2 shim-x64 grub2-efi-x64 grub2-efi-x64-modules grub2-pc grub2-pc-modules grub2-common grub2-tools-minimal grub2-tools-extra grub2-tools"
+PKG="efibootmgr"
+
+case "${INST_ARCH:-}" in
+    aarch64)
+        PKG+=" grub2-efi-aa64 grub2-common grub2-tools"
+        ;;
+    *)
+        PKG+=" grub2 shim-x64 grub2-efi-x64 grub2-efi-x64-modules grub2-pc grub2-pc-modules grub2-common grub2-tools-minimal grub2-tools-extra grub2-tools"
+        ;;
+esac
+
 PKG+=" xfsprogs biosdevname iputils openssh-server rsync openssh-clients net-tools"
 PKG+=" $*"
-
+echo "$PKG"
 ROOT_DIR=${DIRNAME}/rootfs-centos
 CACHE_DIR=${DIRNAME}/cache
 

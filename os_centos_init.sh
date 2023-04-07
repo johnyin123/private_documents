@@ -52,7 +52,7 @@ centos_build() {
 # rocky   : baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/BaseOS/$basearch/os/
 # baseurl=http://192.168.168.1/BaseOS
 # baseurl=http://192.168.168.1/minimal
-[base]
+[mybase]
 name=CentOS Family-$releasever - Base
 gpgcheck=0
 EOF
@@ -68,7 +68,7 @@ EOF
     echo ${HOSTNAME:-cent-tpl} > ${root_dir}/etc/hostname
     echo "nameserver ${NAME_SERVER:-114.114.114.114}" > ${root_dir}/etc/resolv.conf
     # rm -f ${root_dir}/etc/yum.repos.d/*
-    # cat ${REPO} > ${root_dir}/etc/yum.repos.d/local.repo
+    cat ${REPO} > ${root_dir}/etc/yum.repos.d/local.repo
     # rpm -qi centos-release
     rm -f ${root_dir}/etc/localtime || true
     for mp in /dev /sys /proc
