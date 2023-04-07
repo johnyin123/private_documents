@@ -23,6 +23,7 @@ readonly DVD_DIR="centos_dvd"
 readonly NBD_DIR="nbd"
 #readonly DHCP_UEFI_BOOTFILE="BOOTX64.efi" #centos 6
 readonly DHCP_UEFI_BOOTFILE="shim.efi"
+readonly DHCP_UEFI_BOOTFILE_ARM64="grubaa64.efi"
 readonly DHCP_BIOS_BOOTFILE="pxelinux.0"
 readonly DHCP_BOOTFILE="booter"
 
@@ -55,6 +56,7 @@ export PATH
 export PS1="\\[\\033[1;31m\\]\\u\\[\\033[m\\]@\\[\\033[1;32m\\]**bios/uefi**:\\[\\033[33;1m\\]\\w\\[\\033[m\\]\\$"
 alias bios='/bin/busybox cp -f ${PXE_DIR}/${DHCP_BIOS_BOOTFILE}  ${PXE_DIR}/${DHCP_BOOTFILE}'
 alias uefi='/bin/busybox cp -f ${PXE_DIR}/${DHCP_UEFI_BOOTFILE}  ${PXE_DIR}/${DHCP_BOOTFILE}'
+alias arm64_uefi='/bin/busybox cp -f ${PXE_DIR}/${DHCP_UEFI_BOOTFILE_ARM64}  ${PXE_DIR}/${DHCP_BOOTFILE}'
 alias ll='/bin/busybox ls -lh'
 echo 'echo ,+ | sfdisk --force -u S -N 1 /dev/vda'
 echo 'echo ,4G | sfdisk --force --unit S --partno 1 /dev/vda'
@@ -62,7 +64,7 @@ echo 'echo ,+2G | sfdisk --force --unit S --partno 1 /dev/vda'
 echo 'partx -u /dev/vda'
 echo 'xfs_growfs /dev/vda1'
 echo "add ${PXE_DIR}/cgi-bin/ipaddr.txt for ipaddr: 192.168.168.101/24 line by line"
-echo "cmd : bios/uefi change mode"
+echo "cmd : bios/uefi/arm64_uefi change mode"
 /bin/sh /start.sh
 EOF
     write_file ${rootfs}/etc/passwd << EOF
