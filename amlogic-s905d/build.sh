@@ -31,10 +31,18 @@ scripts/config --enable MODULE_COMPRESS_XZ
 echo "fix eBPF bpftool gen vmlinux.h, see: lib/Kconfig.debug, pahole tools in package dwarves"
 echo "dwarves: https://github.com/acmel/dwarves"
 scripts/config --enable CONFIG_BPF_SYSCALL
+scripts/config --enable CONFIG_BPF_JIT
 scripts/config --enable CONFIG_DEBUG_INFO_BTF
 scripts/config --enable CONFIG_FTRACE
 # enable CONFIG_DEBUG_INFO_BTF need: apt install dwarves
 scripts/config --enable DEBUG_INFO
+
+# enable KVM
+scripts/config --enable CONFIG_KVM_GUEST
+scripts/config --enable CONFIG_KVM
+scripts/config --enable CONFIG_VIRTUALIZATION
+scripts/config --enable CONFIG_PARAVIRT
+scripts/config --module CONFIG_VIRTIO
 
 # yes "" | make oldconfig
 scripts/diffconfig .config.old .config
