@@ -80,8 +80,9 @@ EOF
     echo "fix rpm db"
     rpmdb --rebuilddb || true
     echo "start install packages: ${include_pkg}"
-    yum -y install ${include_pkg}
-    rm -f mv /etc/yum.repos.d/* && mv /root/*.repo /etc/yum.repos.d/ || true
+    yum -y update && yum -y install ${include_pkg}
+    mv /etc/yum.repos.d/local.repo / || true
+    mv /root/*.repo /etc/yum.repos.d/ || true
     systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id || true
     echo "${PASSWORD:-password}" | passwd --stdin root || true
     systemctl enable getty@tty1 || true

@@ -20,7 +20,8 @@ case "${INST_ARCH:-}" in
         PKG+=" shim grub2-efi-aa64 grub2-common grub2-tools"
         ;;
     *)
-        PKG+=" grub2 shim-x64 grub2-efi-x64 grub2-efi-x64-modules grub2-pc grub2-pc-modules grub2-common grub2-tools-minimal grub2-tools-extra grub2-tools biosdevname"
+        PKG+=" grub2 shim-x64 grub2-efi-x64 grub2-efi-x64-modules grub2-pc grub2-pc-modules grub2-common grub2-tools-minimal grub2-tools-extra grub2-tools"
+        # biosdevname"
         ;;
 esac
 
