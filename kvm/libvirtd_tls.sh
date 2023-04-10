@@ -10,7 +10,6 @@ ca
 cert_signing_key
 EOF
 certtool --generate-self-signed --load-privkey cakey.pem --template ca.info --outfile cacert.pem
-cp cacert.pem /etc/pki/CA/
 
 echo "GEN Server key"
 SRV_IP=10.0.100.2
@@ -30,7 +29,9 @@ certtool --generate-certificate --load-privkey serverkey.pem \
   --load-ca-certificate ./cacert.pem --load-ca-privkey ./cakey.pem \
   --template server.info --outfile servercert.pem
 
-mkdir -p $HOME/.pki/libvirt/ && cp serverkey.pem servercert.pem $HOME/.pki/libvirt/
+# KVM HOST
+mkdir -p /etc/pki/CA/ && cp cacert.pem /etc/pki/CA/
+mkdir -p /etc/pki/libvirt/private && cp serverkey.pem /etc/pki/libvirt/private && cp servercert.pem /etc/pki/libvirt/
 sed -i "s/^#\s*LIBVIRTD_ARGS=.*/LIBVIRTD_ARGS=\"--listen\"/g" /etc/sysconfig/libvirtd 
 
 
