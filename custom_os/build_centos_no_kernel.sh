@@ -127,4 +127,6 @@ done
 rm -rf ${ROOT_DIR}/root/.rpmdb 2>/dev/null || true
 rm -rf ${ROOT_DIR}/var/cache/yum 2>/dev/null || true
 rm -rf ${ROOT_DIR}/var/tmp/yum-* 2>/dev/null || true
+rm -rf ${ROOT_DIR}/var/lib/yum/* 2>/dev/null || true
+
 log "ALL OK"
