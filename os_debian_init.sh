@@ -86,8 +86,8 @@ EOF
     cat > /etc/apt/sources.list.d/multimedia.list <<EOF
 # # apt -y -oAcquire::http::User-Agent=dler --no-install-recommends -oAcquire::AllowInsecureRepositories=true update 2>/dev/null || true
 # # apt -y -oAcquire::http::User-Agent=dler --no-install-recommends --allow-unauthenticated install deb-multimedia-keyring 2>/dev/null|| true
-# deb http://mirrors.aliyun.com/debian-multimedia ${ver} main non-free
-# deb http://mirrors.aliyun.com/debian-multimedia ${ver}-backports main
+# deb [trusted=yes] http://mirrors.aliyun.com/debian-multimedia ${ver} main non-free
+# deb [trusted=yes] http://mirrors.aliyun.com/debian-multimedia ${ver}-backports main
 EOF
     # see bullseye release notes
     case "${ver}" in

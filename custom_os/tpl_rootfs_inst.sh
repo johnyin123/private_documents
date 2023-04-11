@@ -72,7 +72,12 @@ main() {
     [ -z "${uefi}" ] || {
         [ -d "/sys/firmware/efi" ] || echo "HOST EFI FIREWARE NO FOUND!!, CONTINUE."
         echo "install UEFI ${uefi}"
-        target="x86_64-efi"
+        case "$(uname -m)" in
+            ########################################
+            aarch64)  target="arm64-efi";;
+            x86_64)   target="x86_64-efi";;
+            *)        target=""; echo "UEFI ARCH NOT AUTO FOUND!!!!!, CONTINUE.";;
+        esac
         mkfs.vfat -F 32 ${uefi} # need chroot ?
     }
     case "${fs}" in
@@ -99,7 +104,7 @@ main() {
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x -o errexit -s <<EOSHELL
 case "${ID}" in
     debian)
-        grub-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
+        grub-install ${target:+--target=${target}} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
         grub-mkconfig -o /boot/grub/grub.cfg || true
         ;;
     centos|rocky|openEuler|*)
