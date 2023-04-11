@@ -744,11 +744,9 @@ debian_minimum_init() {
     find /usr/share/doc -empty -print0 | xargs -0 rm -rf || true
     # remove on used locale
     find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
-    rm -rf /usr/share/groff \
-           /usr/share/info \
+    rm -rf /usr/share/info \
            /usr/share/lintian \
-           /usr/share/linda \
-           /var/cache/man || true
+           /usr/share/linda || true
 } >/dev/null 2>&1
 export -f debian_minimum_init
 
