@@ -30,6 +30,63 @@ centos_build() {
     local root_dir=$1
     local cache_dir="${2}"
     local include_pkg="${3}"
+    local REPO=${root_dir}/etc/yum.repos.d/local.repo
+    local HOST_YUM=$(command -v yum || command -v dnf || { echo 'yum/dnf no found!'; return 1; })
+    case "${INST_ARCH:-}" in
+        aarch64)
+            HOST_YUM+=" --forcearch=aarch64"
+            echo "use aarch64"
+            [ -e "/usr/bin/qemu-aarch64-static" ] || { echo "Need: apt install qemu-user-static"; return 1; }
+            mkdir -p ${root_dir}/usr/bin/ && cp /usr/bin/qemu-aarch64-static ${root_dir}/usr/bin/
+            ;;
+        *)  echo "use host ARCH";;
+    esac
+    HOST_YUM+=" ${RELEASE_VER:+--releasever=${RELEASE_VER}} --installroot=${root_dir}"
+    mkdir -p ${root_dir}/etc/yum.repos.d/ ${cache_dir}
+    [ -r ${REPO} ] || {
+        # yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+        cat>> ${REPO} <<'EOF'
+# centos7 : baseurl=http://mirrors.aliyun.com/centos/$releasever/os/$basearch/
+# centos8 : baseurl=http://mirrors.aliyun.com/centos-vault/releasever/BaseOS/$basearch/os/
+# rocky   : baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/BaseOS/$basearch/os/
+# baseurl=http://192.168.168.1/BaseOS
+# baseurl=http://192.168.168.1/minimal
+[mybase]
+name=CentOS Family-$releasever - Base
+gpgcheck=0
+EOF
+    ${EDITOR:-vi} ${REPO} || true
+    }
+    ${HOST_YUM} --installroot=${root_dir} -y install yum passwd
+    rm -rf ${root_dir}/root/.rpmdb
+    echo ${HOSTNAME:-cent-tpl} > ${root_dir}/etc/hostname
+    echo "nameserver ${NAME_SERVER:-114.114.114.114}" > ${root_dir}/etc/resolv.conf
+    rm -f ${root_dir}/etc/localtime || true
+    for mp in /dev /sys /proc
+    do
+        mount -o bind ${mp} ${root_dir}${mp} || true
+    done
+    echo "start install group core"
+    LC_ALL=C LANGUAGE=C LANG=C chroot "${root_dir}" /bin/bash -x <<EOSHELL
+    yum -y --disablerepo=* --enablerepo=mybase group install --exclude kernel-tools --exclude iw*-firmware core || true
+    echo "start install packages: ${include_pkg}"
+    yum -y --disablerepo=* --enablerepo=mybase update && yum -y --disablerepo=* --enablerepo=mybase install ${include_pkg}
+    systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id || true
+    echo "${PASSWORD:-password}" | passwd --stdin root || true
+    systemctl enable getty@tty1 || true
+    sed -i "s/SELINUX=.*/SELINUX=disabled/g" /etc/selinux/config || true
+EOSHELL
+    for mp in /dev /sys /proc
+    do
+        umount -R -v ${root_dir}${mp} || true
+    done
+    rm -rf ${REPO} || true
+    return 0
+}
+centos_build2() {
+    local root_dir=$1
+    local cache_dir="${2}"
+    local include_pkg="${3}"
     local REPO=${root_dir}/local.repo
     local HOST_YUM=$(command -v yum || command -v dnf || { echo 'yum/dnf no found!'; return 1; })
     case "${INST_ARCH:-}" in
