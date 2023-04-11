@@ -17,7 +17,15 @@ old_ifs="$IFS" IFS=','
 custom_pkgs="$*"
 IFS=$old_ifs
 
-PKG+=",efibootmgr,grub2-common,grub-pc-bin,grub-efi-amd64-bin,grub-efi-amd64-signed,shim-signed"
+case "${INST_ARCH:-}" in
+    arm64)
+        PKG+=",efibootmgr,grub2-common,grub-efi,grub-efi-arm64-bin,grub-efi-arm64-signed,shim-signed"
+        ;;
+    *)
+        PKG+=",efibootmgr,grub2-common,grub-pc-bin,grub-efi-amd64-bin,grub-efi-amd64-signed,shim-signed"
+        # biosdevname"
+        ;;
+esac
 PKG+=",dosfstools,fdisk,parted,xfsprogs"
 PKG+=",libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools"
 PKG+=",udev,isc-dhcp-client,netbase,console-setup,systemd-timesyncd,cron,rsyslog,logrotate"
@@ -40,7 +48,7 @@ mkdir -p ${ROOT_DIR}
 mkdir -p ${CACHE_DIR}
 
 DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
-    INST_ARCH=amd64 \
+    INST_ARCH=${INST_ARCH:-amd64} \
     REPO=${REPO:-http://mirrors.aliyun.com/debian} \
     HOSTNAME="srv1" \
     NAME_SERVER=114.114.114.114 \
