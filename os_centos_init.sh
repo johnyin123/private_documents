@@ -72,6 +72,9 @@ EOF
     echo "start install packages: ${include_pkg}"
     yum -y --disablerepo=* --enablerepo=mybase update && yum -y --disablerepo=* --enablerepo=mybase install ${include_pkg}
     systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id || true
+    # timedatectl set-timezone Asia/Shanghai
+    rm -f /etc/localtime && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+    # localectl
     echo "${PASSWORD:-password}" | passwd --stdin root || true
     systemctl enable getty@tty1 || true
     sed -i "s/SELINUX=.*/SELINUX=disabled/g" /etc/selinux/config || true
