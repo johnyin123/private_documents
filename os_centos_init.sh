@@ -141,6 +141,7 @@ EOF
     mv /etc/yum.repos.d/local.repo / || true
     mv /root/*.repo /etc/yum.repos.d/ || true
     systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id || true
+    # timedatectl set-timezone Asia/Shanghai
     echo "${PASSWORD:-password}" | passwd --stdin root || true
     systemctl enable getty@tty1 || true
     sed -i "s/SELINUX=.*/SELINUX=disabled/g" /etc/selinux/config || true
