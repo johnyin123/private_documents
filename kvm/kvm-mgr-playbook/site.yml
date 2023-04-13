@@ -1,0 +1,29 @@
+#!/usr/bin/env ansible-playbook
+# ./site.yml -i hosts -e "vmname=kvm02" -e "vm_uuid=$(cat /proc/sys/kernel/random/uuid)"
+---
+- name: Deploys VM
+  hosts: kvm01
+  gather_facts: yes
+  become: yes
+  vars:
+    tpl_image: "/root/tpl.raw"
+    tpl_xml: "vm-template.xml.j2"
+    pool_dir: "/storage"
+    vmname: "myserver001"
+    vcpus: 2
+    ram_mb: 2048
+    net: br-ext
+
+  tasks:
+    - name: KVM manager role
+      include_role:
+        name: kvm
+      vars:
+        base_image_name: "{{ tpl_image }}"
+        xml_template: "{{ tpl_xml }}"
+        libvirt_pool_dir: "{{ pool_dir }}"
+        vm_name: "{{ vmname }}"
+        vm_vcpus: "{{ vcpus }}"
+        vm_ram_mb: "{{ ram_mb }}"
+        vm_net: "{{ net }}"
+        vm_desc: "test vm desc"
