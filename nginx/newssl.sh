@@ -7,13 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b706823[2022-03-02T16:42:47+08:00]:newssl.sh")
+VERSION+=("b7095d1[2022-08-03T14:36:36+08:00]:newssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
+YEAR=${YEAR:-5}
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env: YEAR=5, the ca&client years, default 5
         -i|--init   <str> *  init ca, sign a server cert with DN=<str>
         -c|--client <str>  * create client cert keys
         --caroot             CA root(default ${DIRNAME}/ca)
@@ -39,7 +41,7 @@ init_ca() {
     info_msg "creating ca key\n"
     try openssl genrsa -out ${caroot}/ca.key 2048
     info_msg "creating ca cert\n"
-    try openssl req -new -x509 -days $((365*5)) -key ${caroot}/ca.key \
+    try openssl req -new -x509 -days $((365*${YEAR})) -key ${caroot}/ca.key \
         -out ${caroot}/ca.pem -utf8 -subj \"/C=CN/L=LN/O=${dn}/CN=self sign root ca\"
     try openssl x509 -text -noout -in ${caroot}/ca.pem
     info_msg "gen dh2048\n"
@@ -56,7 +58,7 @@ gen_client_cert() {
     try openssl req -new -key ${caroot}/${cid}.key -out ${caroot}/${cid}.csr \
         -utf8 -subj \"/C=CN/L=LN/O=mycompany/CN=${cid}\"
     info_msg "signing our certificate with my ca"
-    try openssl x509 -req -days $((365*5)) -in ${caroot}/${cid}.csr \
+    try openssl x509 -req -days $((365*${YEAR})) -in ${caroot}/${cid}.csr \
         -CA ${caroot}/ca.pem -CAkey ${caroot}/ca.key -CAcreateserial -out ${caroot}/${cid}.pem
     try openssl x509 -text -noout -in ${caroot}/${cid}.pem
     # info_msg "conver to broswer support format(p12).\n"
