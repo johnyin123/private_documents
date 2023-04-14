@@ -1,0 +1,103 @@
+# juniper EX4200 802.3ad  xmit_hash_policy=layer3+4
+configure
+edit system services
+set web-management http port 8888
+commit
+
+EX4200T-VC-01-133.10> show configuration | display set | grep ge-2/0/44
+set interfaces ge-2/0/44 disable
+set interfaces ge-2/0/44 ether-options 802.3ad ae5
+set interfaces ge-3/0/44 disable
+set interfaces ge-3/0/44 ether-options 802.3ad ae5
+set interfaces ae5 aggregated-ether-options lacp active
+set interfaces ae5 unit 0 family ethernet-switching port-mode trunk
+set interfaces ae5 unit 0 family ethernet-switching vlan members all
+#set interfaces ae0 unit 0 family inet address 172.16.16.1/30 (三层)
+
+#ospf
+set routing-options router-id 1.1.1.1
+set protocols ospf area 0.0.0.0 area-range 192.168.167.0/24
+set protocols ospf area 0.0.0.0 interface ae0.0
+set protocols ospf area 0.0.0.0 interface ae0.0 authentication md5 1 key keypassword
+lab# show protocols ospf
+area 0.0.0.0 {
+    area-range 192.168.167.0/24;
+    interface ae0.0 {
+        authentication {
+            md5 1 key "$9$YUoZjmPQF/t.P5F/9B1Ndb2Zj6/t01hk."; ## SECRET-DATA
+        }
+    }
+}
+
+H3C:
+  # Init(admin/admin:192.168.1.1)
+    reset saved-configuration
+    reboot
+
+  #配置双线连接堆叠
+    SW1配置:
+      1.将优先级调整为32;确保该设备被选举为Master;若不需要指定主设备可以略过
+        irf member 1 priority 32
+      2.关闭要加入的IRF的物理端口
+        interface Ten-G1/0/49
+        shutdown
+        interface Ten-G1/0/50
+        shutdown
+      3.创建IRF逻辑虚接口(设备号默认为1,端口号为2),把相连物理接口加入IRF
+        irf-port 1/2
+        port group interface Ten-GigabitEthernet 1/0/49
+        port group interface Ten-GigabitEthernet 1/0/50
+      4.重新打开物理端口
+        interface Ten-G1/0/49
+        undo shutdown
+        interface Ten-G1/0/50
+        undo shutdown
+      5.激活IRF设置并保存配置
+        irf-port-configuration active
+        safe f
+    SW2配置:
+      1.更改默认的设备号1为2并重启
+        irf member 1 renumber 2
+        reboot
+      2.关闭要加入的IRF的物理端口
+        interface Ten-G2/0/49
+        shutdown
+        interface Ten-G2/0/50
+        shutdown
+      3.创建IRF逻辑虚接口(设备号为2,端口号为1),把相连物理接口加入IRF
+        irf-port 2/1
+        port group interface Ten-GigabitEthernet 2/0/49
+        port group interface Ten-GigabitEthernet 2/0/50
+      4.重新打开物理端口,保存配置
+        interface Ten-G2/0/49
+        undo shutdown
+        interface Ten-G2/0/50
+        undo shutdown
+      5.激活IRF设置,激活配置后,slave设备会自动重启
+        safe f
+        irf-port-configuration active
+    验证配置,查看状态
+        display irf
+
+  # 创建二层聚合接口1,并配置该接口为动态聚合模式
+    sys
+    interface bridge-aggregation 1
+    link-aggregation mode dynamic
+    # 配置二层聚合接口1为Trunk端口,并允许VLAN 10和20的报文通过。
+    interface bridge-aggregation 1
+    port link-type trunk
+    port trunk permit vlan all/10 20
+    quit
+  # 配置全局按照报文的源MAC地址和目的MAC地址进行聚合负载分担。
+    link-aggregation load-sharing mode source-mac destination-mac
+    display link-aggregation summary
+    display link-aggregation load-sharing mode
+    # 分别将端口GigabitEthernet1/0/1,GigabitEthernet1/0/2加入到聚合组1中。
+    interface gigabitethernet 1/0/1
+    port link-aggregation group 1
+    quit
+    interface gigabitethernet 1/0/2
+    port link-aggregation group 1
+    quit
+
+
