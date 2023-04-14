@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("7460eb7[2023-03-01T13:46:02+08:00]:os_debian_init.sh")
+VERSION+=("a23d27a[2023-04-11T16:47:11+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -212,6 +212,7 @@ EOF
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
 Host github.com
+#    IdentityFile ~/.ssh/id_rsa
     Port=22
 Host *
     Port=60022
