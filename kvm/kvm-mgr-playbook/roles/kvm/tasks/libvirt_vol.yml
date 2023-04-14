@@ -17,7 +17,9 @@
     #  register: copy_results
     #
     # - name: Configure the vm {{ tgt_vol }} image
-    #   local_action: shell echo 'msg  {{ tgt_pool }}/{{ tgt_vol }}' >> /tmp/msg
+    #   local_action: shell > nohup bash -c '
+    #     echo "msg  {{ tgt_pool }}/{{ tgt_vol }}" >> /tmp/msg;
+    #     echo "xxxx" >> /tmp/msg;
     #   when: copy_results is changed
     #
     #- name: Send summary mail
