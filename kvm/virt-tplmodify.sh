@@ -7,19 +7,19 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-tplmodify.sh - 9bf43e0 - 2021-01-25T07:29:47+08:00")
+VERSION+=("58cb44d[2021-08-18T17:14:28+08:00]:virt-tplmodify.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
 cat <<EOF
-${SCRIPTNAME} 
+${SCRIPTNAME}
         -n|--interface          interface name(eth0/eth1)
-        -r|--route              routes -r "default via xxx" -r "10.0.0.0/24 via xxx"
+        -r|--gateway            gateway -r "192.168.1.1"
         -m|--mask               netmask or prefix
         -i|--ipaddr        *    ipv4 address
         -H|--hostname           guest os hostname
-        -t|--template      *    telplate disk for upload
+        -t|--template      *    telplate disk for modify
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -27,30 +27,6 @@ ${SCRIPTNAME}
         -h|--help help
 EOF
 exit 1
-}
-
-change_vm_centos7() {
-    local mnt_point=$1
-    local iface=$2
-    local ipaddr=$3
-    local prefix=$4
-    local route=$5
-
-    try touch ${mnt_point}/etc/sysconfig/network-scripts/ifcfg-${iface} || return 1
-    cat > ${mnt_point}/etc/sysconfig/network-scripts/ifcfg-${iface} <<-EOF
-NM_CONTROLLED=no
-IPV6INIT=no
-DEVICE="${iface}"
-ONBOOT="yes"
-BOOTPROTO="none"
-IPADDR=${ipaddr}
-PREFIX=${prefix}
-EOF
-    try touch ${mnt_point}/etc/sysconfig/network-scripts/route-${iface} || return 2
-    cat > ${mnt_point}/etc/sysconfig/network-scripts/route-${iface} <<-EOF
-$(array_print $route)
-EOF
-    return 0
 }
 
 mount_tpl() {
@@ -73,22 +49,61 @@ mount_tpl() {
     #  # nbd-client -d /dev/nbd0
 }
 
+change_vm() {
+    local root_dir=$1
+    local iface=$2
+    local ipaddr=$3
+    local prefix=$4
+    local gateway=$5
+    source ${root_dir}/etc/os-release
+    case "${ID}" in
+        debian)
+            cat << EOF | tee ${root_dir}/etc/network/interfaces
+source /etc/network/interfaces.d/*
+auto lo
+iface lo inet loopback
+EOF
+
+            cat << EOF | tee ${root_dir}/etc/network/interfaces.d/${iface}
+allow-hotplug ${iface}
+iface ${iface} inet static
+    address ${ipaddr}/${prefix}
+    ${gateway:+    gateway ${gateway}}
+EOF
+            ;;
+        centos|rocky|openEuler)
+            cat <<EOF | tee ${root_dir}/etc/sysconfig/network-scripts/ifcfg-${iface}
+IPV6INIT=no
+DEVICE="${iface}"
+ONBOOT="yes"
+BOOTPROTO="none"
+IPADDR=${ipaddr}
+PREFIX=${prefix}
+${gateway:+GATEWAY=${gateway}}
+EOF
+            ;;
+        *)
+            echo "UNKNOWN OS!!!!!!!!!!"
+    esac
+    return 0
+}
+
 main() {
     local disk_tpl=
     local guest_hostname="guestos"
     local guest_ipaddr=
     local guest_prefix=24
     local iface="eth0"
-    declare -a guest_route=()
+    local guest_gateway=
     local opt_short="r:n:m:i:H:t:"
-    local opt_long="route:,interface:,mask:,ipaddr:,hostname:,template:,"
+    local opt_long="gateway:,interface:,mask:,ipaddr:,hostname:,template:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -r|--route)     shift; array_append guest_route "${1:?guest route need input}";shift ;;
+            -r|--gateway)     shift; gateway=${1:?guest default gateway need input};shift ;;
             -n|--interface) shift; iface=${1:?interface name need input};shift ;;
             -m|--mask)      shift; guest_prefix=${1:?guest net mask need input};shift;
                 is_ipv4_netmask "${guest_prefix}" && guest_prefix=$(mask2cidr ${guest_prefix})
@@ -118,19 +133,19 @@ main() {
     info_msg "chage ${disk_tpl}:"
     info_msg "       ip: ${guest_ipaddr}/${guest_prefix}"
     info_msg " hostname: ${guest_hostname}"
-    info_msg "    route: $(array_print guest_route)"
+    info_msg "    gateway: $(array_print guest_gateway)"
     local mnt_point=/tmp/vm_rootfs_tmp
     file_exists ${disk_tpl} || exit_msg "template file ${disk_tpl} no found\n"
     mount_tpl "${mnt_point}" "${disk_tpl}" || exit_msg "mount file ${disk_tpl} error\n"
-    change_vm_centos7 "${mnt_point}" "${iface}" "${guest_ipaddr}" "${guest_prefix}" guest_route || error_msg "change vm file ${disk_tpl} error\n"
+    change_vm "${mnt_point}" "${iface}" "${guest_ipaddr}" "${guest_prefix}" guest_gateway || error_msg "change vm file ${disk_tpl} error\n"
     try echo "${guest_hostname}" \> ${mnt_point}/etc/hostname || error_msg "change hostname error\n"
     try touch ${mnt_point}/etc/hosts || error_msg "change hosts error\n"
     cat > ${mnt_point}/etc/hosts <<-EOF
 127.0.0.1   localhost ${guest_hostname}
 ${ipaddr}   ${guest_hostname}
 EOF
-    try rm -f ${mnt_point}/etc/ssh/ssh_host_*
-    try rm -fr ${mnt_point}/var/log/*
+    # try rm -f ${mnt_point}/etc/ssh/ssh_host_*
+    # try rm -fr ${mnt_point}/var/log/*
     try umount "${mnt_point}"
     return 0
 }
