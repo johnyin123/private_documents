@@ -20,7 +20,7 @@
     </interface>
     <disk type='file' device='disk'>
        <driver name='qemu' type='raw' cache='none' io='native'/>
-       <source file='{{ libvirt_pool_dir }}/{{ vm_name }}-{{ vm_uuid }}'/>
+       <source file='{{ vol_path.stdout }}'/>
        <backingStore/>
        <target dev='vda' bus='virtio'/>
     </disk>

@@ -1,0 +1,29 @@
+---
+- name: Libvirt volumn
+  shell: |
+    virsh vol-create-as --pool "{{ tgt_pool }}" --name "{{ tgt_vol }}" --capacity "{{ capacity }}MiB" --format raw
+
+- name: Libvirt get volumn path
+  shell: |
+    virsh vol-path --pool "{{ tgt_pool }}" "{{ tgt_vol }}"
+  register: vol_path
+
+
+    #- name: Copy base image to {{ tgt_vol }}
+    #  copy:
+    #    src: "{{ local_img }}"
+    #    dest: "{{ tgt_pool }}/{{ tgt_vol }}"
+    #    mode: 0660
+    #  register: copy_results
+    #
+    # - name: Configure the vm {{ tgt_vol }} image
+    #   local_action: shell echo 'msg  {{ tgt_pool }}/{{ tgt_vol }}' >> /tmp/msg
+    #   when: copy_results is changed
+    #
+    #- name: Send summary mail
+    #  local_action:
+    #    module: community.general.mail
+    #    subject: "Summary Mail"
+    #    to: "{{ mail_recipient }}"
+    #    body: "{{ mail_body }}"
+    #  run_once: True

@@ -6,6 +6,13 @@
     state: present
   become: yes
 
+- name: "Check if variable is defined"
+  fail:
+    msg: "variable item not passed"
+  when: "item is not defined"
+  loop:
+  - vm_uuid
+
 - name: Get VMs list
   community.libvirt.virt:
     command: list_vms
@@ -14,21 +21,8 @@
 
 - name: Create VM if not exists
   block:
-  - name: Fail if vm_uuid is undefined
-    ansible.builtin.fail: msg="vm_uuid not define!"
-    when: vm_uuid is undefined
 
-  - name: Copy base image to {{ vm_name }} {{ vm_uuid }}
-    copy:
-      src: "{{ base_image_name }}"
-      dest: "{{ libvirt_pool_dir }}/{{ vm_name }}-{{ vm_uuid }}"
-      mode: 0660
-    register: copy_results
-
-  - name: Configure the vm {{ vm_name }}-{{ vm_uuid }} image
-    command: |
-      echo "modify VM {{ libvirt_pool_dir }}/{{ vm_name }} hostname:{{ vm_name }}"
-    when: copy_results is changed
+  - include: libvirt_vol.yml local_img="{{ base_image_name }}" tgt_pool="{{ libvirt_pool_name }}" tgt_vol="{{ vm_name }}-{{ vm_uuid }}" capacity={{vm_disk_mb}}
 
   - name: Define vm {{ vm_name }}-{{ vm_uuid }}
     community.libvirt.virt:

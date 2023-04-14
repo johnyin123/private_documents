@@ -8,10 +8,11 @@
   vars:
     tpl_image: "/root/tpl.raw"
     tpl_xml: "vm-template.xml.j2"
-    pool_dir: "/storage"
+    pool_name: "default"
     vmname: "myserver001"
     vcpus: 2
     ram_mb: 2048
+    disk_mb: 2048
     net: br-ext
 
   tasks:
@@ -21,9 +22,10 @@
       vars:
         base_image_name: "{{ tpl_image }}"
         xml_template: "{{ tpl_xml }}"
-        libvirt_pool_dir: "{{ pool_dir }}"
+        libvirt_pool_name: "{{ pool_name }}"
         vm_name: "{{ vmname }}"
         vm_vcpus: "{{ vcpus }}"
         vm_ram_mb: "{{ ram_mb }}"
+        vm_disk_mb: "{{ disk_mb }}"
         vm_net: "{{ net }}"
         vm_desc: "test vm desc"

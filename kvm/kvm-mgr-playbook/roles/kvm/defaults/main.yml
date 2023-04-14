@@ -1,10 +1,11 @@
 ---
 # defaults file for kvm_provision
 base_image_name: /mytpl/centos_tpl.raw
-libvirt_pool_dir: "/var/lib/libvirt/images"
+libvirt_pool_name: "default"
 xml_template: "dummy.xml.j2"
 vm_name: myserver
 vm_vcpus: 2
 vm_ram_mb: 2048
+vm_disk_mb: 2048
 vm_net: defaut
 vm_desc: "my tpl desc"
