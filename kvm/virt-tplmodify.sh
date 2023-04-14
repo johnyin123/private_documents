@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("58cb44d[2021-08-18T17:14:28+08:00]:virt-tplmodify.sh")
+VERSION+=("d39ae8c[2023-04-14T17:02:40+08:00]:virt-tplmodify.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -71,7 +71,7 @@ iface ${iface} inet static
     ${gateway:+    gateway ${gateway}}
 EOF
             ;;
-        centos|rocky|openEuler)
+        centos|rocky|openEuler|kylin)
             cat <<EOF | tee ${root_dir}/etc/sysconfig/network-scripts/ifcfg-${iface}
 IPV6INIT=no
 DEVICE="${iface}"
