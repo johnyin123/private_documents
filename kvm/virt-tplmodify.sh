@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5d41119[2023-04-14T17:10:55+08:00]:virt-tplmodify.sh")
+VERSION+=("b1aa13c[2023-04-17T08:38:29+08:00]:virt-tplmodify.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -16,8 +16,7 @@ cat <<EOF
 ${SCRIPTNAME}
         -n|--interface          interface name(eth0/eth1), default=eth0
         -r|--gateway            gateway -r "192.168.1.1"
-        -m|--mask               netmask or prefix, default=24
-        -i|--ipaddr        *    ipv4 address(192.168.1.2)
+        -i|--ipaddr        *    ipv4 address(192.168.1.2/24)
         -H|--hostname           guest os hostname
         -t|--template      *    telplate disk for modify
         -p|--partnum            temlate partition number, default=1
@@ -96,11 +95,11 @@ main() {
     local partnum=1
     local guest_hostname="guestos"
     local guest_ipaddr=
-    local guest_prefix=24
+    local guest_prefix=
     local iface="eth0"
     local guest_gateway=
-    local opt_short="r:n:m:i:H:t:p:"
-    local opt_long="gateway:,interface:,mask:,ipaddr:,hostname:,template:,partnum:,"
+    local opt_short="r:n:i:H:t:p:"
+    local opt_long="gateway:,interface:,ipaddr:,hostname:,template:,partnum:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -109,10 +108,7 @@ main() {
         case "$1" in
             -r|--gateway)   shift; guest_gateway=${1:?guest default gateway need input};shift ;;
             -n|--interface) shift; iface=${1:?interface name need input};shift ;;
-            -m|--mask)      shift; guest_prefix=${1:?guest net mask need input};shift;
-                is_ipv4_netmask "${guest_prefix}" && guest_prefix=$(mask2cidr ${guest_prefix})
-                ;;
-            -i|--ipaddr)    shift; guest_ipaddr=${1:?guest ip address need input};shift ;;
+            -i|--ipaddr)    shift; IFS='/' read -r guest_ipaddr guest_prefix <<< "${1:?guest ip address need input}"; shift ;;
             -H|--hostname)  shift; guest_hostname=${1:?guest hostname need input};shift ;;
             -t|--template)  shift; disk_tpl=${1:?disk template need input};shift ;;
             -p|--partnum)   shift; partnum=${1};shift ;;
