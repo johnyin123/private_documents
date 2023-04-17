@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b1aa13c[2023-04-17T08:38:29+08:00]:virt-tplmodify.sh")
+VERSION+=("23d7c6e[2023-04-17T09:24:09+08:00]:virt-tplmodify.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -134,7 +134,7 @@ main() {
     info_msg "chage ${disk_tpl}:\n"
     info_msg "       ip: ${guest_ipaddr}/${guest_prefix}\n"
     info_msg " hostname: ${guest_hostname}\n"
-    info_msg "    gateway: $(array_print guest_gateway)\n"
+    info_msg "  gateway: ${guest_gateway}\n"
     local mnt_point=/tmp/vm_rootfs_tmp
     file_exists ${disk_tpl} || exit_msg "template file ${disk_tpl} no found\n"
     mount_tpl "${mnt_point}" "${disk_tpl}" "${partnum}" || exit_msg "mount file ${disk_tpl} error\n"
