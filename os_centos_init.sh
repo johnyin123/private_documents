@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("eefea65[2023-01-11T16:08:20+08:00]:os_centos_init.sh")
+VERSION+=("eed2dcf[2023-04-12T13:27:49+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -170,6 +170,11 @@ export readonly HISTCONTROL=erasedups
 EOF
 
     cat >/etc/profile.d/johnyin.sh<<"EOF"
+# Not bash
+[ -n "${BASH_VERSION:-}" ] || return 0
+# Not an interactive shell?
+[[ $- == *i* ]] || return 0
+
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
 set -o vi
 EOF
