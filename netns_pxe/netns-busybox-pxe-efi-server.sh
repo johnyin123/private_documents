@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("08aa0df[2022-11-25T13:20:21+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("b5fed22[2023-04-07T08:39:43+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
@@ -362,6 +362,11 @@ export readonly HISTFILE
 EOF
 
 cat >/etc/profile.d/johnyin.sh<<"EOF"
+# Not bash
+[ -n "${BASH_VERSION:-}" ] || return 0
+# Not an interactive shell?
+[[ $- == *i* ]] || return 0
+
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
 set -o vi
 EOF
