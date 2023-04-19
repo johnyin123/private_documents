@@ -1,2 +1,8 @@
 # DL,
 ssh -c aes128-cbc -oKexAlgorithms=+diffie-hellman-group1-sha1 -p22 user@ip
+
+
+H3C, web error, firefox:
+Secure Connection Failed, Error code: SSL_ERROR_UNSUPPORTED_VERSION
+
+input: about:Config->security.tls.version.fallback-limit -> 1
