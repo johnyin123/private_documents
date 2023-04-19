@@ -1,5 +1,5 @@
 #!/bin/bash
-VERSION+=("423a7cb[2022-03-17T09:17:41+08:00]:motd.sh")
+VERSION+=("0d70301[2022-03-21T14:07:37+08:00]:motd.sh")
 date=$(date "+%F %T")
 kernel=$(uname -r)
 hostname=${HOSTNAME:-$(hostname)}
@@ -65,7 +65,7 @@ exec {FD}<${logo}
         [ "$i" = "lo" ] && continue
         [ "$i" = "bonding_masters" ] && continue
         MAC=$(ip ad show dev $i | grep "link/ether" | awk '{print $2}')
-        IP=$(ip ad show dev $i | awk '/inet / {print $2}')
+        IP=$(ip ad show dev $i | awk '/scope global/ {print $2}')
         for j in ${IP}
         do
             printf "%-20s%-20s%s\n" "$i" "$MAC" "$j"
