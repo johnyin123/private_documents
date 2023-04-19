@@ -29,8 +29,50 @@ area 0.0.0.0 {
     }
 }
 
-H3C:
-  # Init(admin/admin:192.168.1.1)
+# H3C交换机
+********************************************************************************
+*                                                                              *
+*                   H3C S6520X-30QC-EI BOOTROM, Version 118                    *
+*                                                                              *
+********************************************************************************
+Copyright (c) 2004-2021 New H3C Technologies Co., Ltd.
+
+Creation Date       : Aug 16 2021, 17:47:05
+CPU Clock Speed     : 1600MHz
+Memory Size         : 2048MB
+Flash Size          : 1024MB
+CPLD Version        : 001/003
+PCB Version         : Ver.A
+
+********************************************************************************
+*                                                                              *
+*                     H3C S6300-42QT BOOTROM, Version 132                      *
+*                                                                              *
+********************************************************************************
+Copyright (c) 2004-2014 Hangzhou H3C Technologies Co., Ltd.
+
+Creation Date   : Apr 22 2014,13:54:50
+CPU Clock Speed : 1000MHz
+Memory Size     : 2048MB
+Flash Size      : 512MB
+CPLD Version    : 003/003
+PCB Version     : Ver.B
+
+    <H3C>system-view 
+    [H3C]sysname tsd01
+    [tsd01]local-user admin (admin/tsd01_password)
+    [H3C-luser-manage-admin] password simple tsd01_password
+    [H3C-luser-manage-admin] service-type http https
+    [H3C-luser-manage-admin] authorization-attribute user-role network-admin
+    [H3C-luser-manage-admin] quit
+    [tsd01]interface M-GigabitEthernet 0/0/0
+    [tsd01-M-GigabitEthernet0/0/0]ip address 192.168.1.1 24 
+    [tsd01-M-GigabitEthernet0/0/0]quit
+    [H3C]ip http enable        
+    [H3C]ip https enable       
+    [H3C]save force     
+    
+  # Init
     reset saved-configuration
     reboot
 
@@ -100,69 +142,6 @@ H3C:
     port link-aggregation group 1
     quit
 
-# H3C交换机
-    ## 基本配置
-        system-view   //**进入系统视图**
-        sysname xxx   //设置主机名成为xxx这里使用修改特权用户密码
-    ## 用户配置
-        system-view
-        super password H3C     //设置用户分级密码
-        undo superpassword     //删除用户分级密码
-        localuser bigheap 1234561     //Web网管用户设置,1为管理级用户
-        undo localuser bigheap    //删除Web网管用户
-        user-interface aux 0     //只支持0
-        idle-timeout 250     //设置超时为2分50秒,若为0则表示不超时,默认为5分钟
-        undoidle-timeout     //恢复默认值
-        set authentication password123456     //设置telnet密码,必须设置
-        undo set authentication password   //取消密码
-        displayusers     //显示用户
-        displayuser-interface     //用户界面状态
-    ## vlan配置
-[H3C]vlan 2         **//创建VLAN2**
-[H3C]undo vlan all     //删除除缺省VLAN外的所有VLAN,缺省VLAN不能被删除
-[H3C-vlan2]port Ethernet 0/4 to Ethernet0/7     //将4到7号端口加入到VLAN2中,此命令只能用来加access端口,不能用来增加trunk或者hybrid端口
-[H3C-vlan2]port-isolate enable    //打开VLAN内端口隔离特性，不能二层转发,**默认不启用该功能**
-[H3C-Ethernet0/4]port-isolate uplink-portvlan 2    //设置4为VLAN2的**隔离上行端口**，用于转发二层数据,只能配置一个上行端口,若为trunk,则建议允许所有VLAN通过,隔离不能与汇聚同时配置
-[H3C]display vlan all     //**显示所有VLAN的详细信息**
-[H3C]user-group 20     //创建user-group 20，默认只存在user-group 1
-[H3C-UserGroup20]port Ethernet 0/4 toEthernet 0/7     //**将4到7号端口加入到VLAN20中，**初始时都属于user-group 1中
-[H3C]display user-group 20     //显示user-group 20的相关信息
-    ## 交换机IP配置
-[H3C]vlan 20        //**创建vlan**
-[H3C]management-vlan 20     //管理vlan
-[H3C]interface vlan-interface 20      //**进入并管理vlan20**
-[H3C]undo interface vlan-interface 20      //删除管理VLAN端口
-[H3C-Vlan-interface20]ip address192.168.1.2 255.255.255.0    //**配置管理VLAN接口静态IP地址**
-[H3C-Vlan-interface20]undo ipaddress      //删除IP地址
-[H3C-Vlan-interface20]ip gateway 192.168.1.1      //指定缺省网关(默认无网关地址)
-[H3C-Vlan-interface20]undo ip gateway
-[H3C-Vlan-interface20]shutdown     //**关闭接口**
-[H3C-Vlan-interface20]undo shutdown      //开启
-[H3C]display ip      //显示管理VLAN接口IP的相关信息
-[H3C]display interface vlan-interface20      //查看管理VLAN的接口信息
-debugging ip      //开启IP调试功能
-undo debugging ip
-
-    ## 端口配置
-[H3C]interface Ethernet0/3       //进入端口
-[H3C-Ethernet0/3]shutdown      //关闭端口
-[H3C-Ethernet0/3]speed 100      //速率可为10,100,1000和auto(缺省)
-[H3C-Ethernet0/3]duplexfull      //**双工,可**为half,full和auto，光口和汇聚后不能配置
-[H3C-Ethernet0/3]flow-control     //**开启流控，默认为关闭**
-[H3C-Ethernet0/3]broadcast-suppression 20      //设置抑制广播百分比为20%,可取5,10,20,100,缺省为100,同时组播和未知单播也受此影响
-[H3C-Ethernet0/3]loopback internal      //内环测试
-[H3C-Ethernet0/3]port link-type trunk      //设置链路的**类型为trunk**
-[H3C-Ethernet0/3]port trunk pvid vlan 20      //设置20为该trunk的缺省VLAN，默认为1(trunk线路两端的PVID必须一致)
-[H3C-Ethernet0/3]port access vlan 20      //将当前**access端口加入指定的VLAN**
-[H3C-Ethernet0/3]port trunk permit vlan all      //允许**所有的VLAN通过当前的trunk端口,**可多次使用该命令
-[H3C]link-aggregation Ethernet 0/1 to Ethernet 0/4      //**将1-4口加入汇聚组,**1为主端口,两端需要同时配置,设置了端口镜像以及端口隔离的端口无法汇聚
-[H3C]undo link-aggregation Ethernet 0/1   //删除该汇聚组
-[H3C]link-aggregation mode egress      //配置端口汇聚模式为根据目的MAC地址进行负荷分担,可选为 ingress,egress和both,缺省为both
-[H3C]monitor-port Ethernet 0/2      //**将该端口设置为镜像端口**,必须先设置镜像端口,删除时必须先删除被镜像端口,而且它们不能同在一个端口,该端口不能在汇聚组中,设置新镜像端口时,新取代旧,被镜像不变
-[H3C]mirroring-port Ethernet 0/3 toEthernet 0/4 both      //将**端口3和4设置为被镜像端口**,both为同时监控接收和发送的报文,inbound表示仅监控接收的报文,outbound表示仅监控发送的报文
-[H3C]display mirror
-[H3C]display interface Ethernet 0/3
-resetcounters      //**清除所有端口的统计信息**
 
 
 #华为交换:
