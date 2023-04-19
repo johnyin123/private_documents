@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("new_k8s.sh - eea4168 - 2021-11-18T10:27:56+08:00")
+VERSION+=("95f933b[2021-11-18T13:57:26+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -231,6 +231,7 @@ mirror_get_image() {
 
 pre_conf_k8s_host() {
     echo "127.0.0.1 localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
+    touch /etc/resolv.conf || true #if /etc/resolv.conf non exists, k8s startup error
     swapoff -a
     sed -iE "/\sswap\s/d" /etc/fstab
     cat <<EOF | tee /etc/modules-load.d/k8s.conf
