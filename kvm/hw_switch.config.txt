@@ -146,8 +146,39 @@ PCB Version     : Ver.B
     interface gigabitethernet 1/0/2
     port link-aggregation group 1
     quit
-
-
+  # SSH登录公钥+密码认证
+    public-key local create rsa
+    local-user h3c
+    password cipher h3c
+    service-type ssh level 3
+    # 公钥文件名mypubkey上传到交换机
+    public-key peer xx import sshkey mypubkey
+    ssh user h3c assign publickey xx
+    ssh user h3c service-type stelnet
+    ssh user h3c authentication-type password-publickey
+  # OSPF
+    <SWA>system-view
+    vlan 100
+    port GigabitEthernet 1/0/1
+    quit
+    vlan 200
+    port GigabitEthernet 1/0/2
+    quit
+    interface vlan 100
+    ip address 192.168.0.1 255.255.255.0
+    quit
+    interface vlan 200
+    ip address 192.168.1.1 255.255.255.0
+    quit
+    # 启动ospf协议，并设置路由器的router id
+    ospf 1 router-id 192.168.1.1
+    #配置区域0并且发布网段
+    area 0
+    network 192.168.0.0 0.0.0.255
+    quit
+    quit
+    #保存配置
+    save force
 
 #华为交换:
     ## 创建VLAN
