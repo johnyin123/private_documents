@@ -58,20 +58,25 @@ Flash Size      : 512MB
 CPLD Version    : 003/003
 PCB Version     : Ver.B
 
-    <H3C>system-view 
+    <H3C>system-view
     [H3C]sysname tsd01
     [tsd01]local-user admin (admin/tsd01_password)
-    [H3C-luser-manage-admin] password simple tsd01_password
-    [H3C-luser-manage-admin] service-type http https
-    [H3C-luser-manage-admin] authorization-attribute user-role network-admin
-    [H3C-luser-manage-admin] quit
+    [tsd01-luser-manage-admin] password simple tsd01_password
+    [tsd01-luser-manage-admin] service-type http https ssh
+    [tsd01-luser-manage-admin] authorization-attribute user-role network-admin
+    [tsd01-luser-manage-admin] quit
     [tsd01]interface M-GigabitEthernet 0/0/0
-    [tsd01-M-GigabitEthernet0/0/0]ip address 192.168.1.1 24 
+    [tsd01-M-GigabitEthernet0/0/0]ip address 192.168.1.1 24
     [tsd01-M-GigabitEthernet0/0/0]quit
-    [H3C]ip http enable        
-    [H3C]ip https enable       
-    [H3C]save force     
-    
+    [tsd01]ip http enable
+    [tsd01]ip https enable
+    [tsd01]ssh server enable
+    [tsd01]line vty 0 63
+    [tsd01-line-vty0-63]authentication-mode scheme
+    [tsd01-line-vty0-63]quit
+    [tsd01]save force
+
+
   # Init
     reset saved-configuration
     reboot
