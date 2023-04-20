@@ -40,4 +40,11 @@ data-dir /var/spool/tayga
 EOF
 ping 2001:ffff::192.168.168.1
 
+cat <<EOF | tee /var/spool/tayga/dynamic.map
+# out ipv4 add ip r a 192.168.167.0/24 via ${TAYGA_SRV_IPV4}
+# then 192.168.167.3 == 2002::c0a8:a703
+192.168.167.3	2002::c0a8:a703	1681949306
+192.168.167.2	2002::c0a8:a702	1681949331
+EOF
+
 Finally, start TAYGA with the command:
