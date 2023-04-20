@@ -61,10 +61,10 @@ PCB Version     : Ver.B
     <H3C>system-view
     [H3C]sysname tsd01
     [tsd01]local-user admin (admin/tsd01_password)
-    [tsd01-luser-manage-admin] password simple tsd01_password
-    [tsd01-luser-manage-admin] service-type http https ssh
-    [tsd01-luser-manage-admin] authorization-attribute user-role network-admin
-    [tsd01-luser-manage-admin] quit
+    [tsd01-luser-manage-admin]password simple tsd01_password
+    [tsd01-luser-manage-admin]service-type http https ssh
+    [tsd01-luser-manage-admin]authorization-attribute user-role network-admin
+    [tsd01-luser-manage-admin]quit
     [tsd01]interface M-GigabitEthernet 0/0/0
     [tsd01-M-GigabitEthernet0/0/0]ip address 192.168.1.1 24
     [tsd01-M-GigabitEthernet0/0/0]quit
@@ -179,6 +179,69 @@ PCB Version     : Ver.B
     quit
     #保存配置
     save force
+
+    ### Pre-Config Generator Start ###
+    system-view
+    ### Pre-Config Generator End
+    ### Sysname Generator Start ###
+    sysname Test_Switch_01
+    ### Sysname Generator End ###
+    ### Vlan Generator Start ###
+    vlan 10
+    vlan 20
+    vlan 30
+    vlan 50 to 100
+    ### Vlan Generator End ###
+    ### SSH Generator Start ###
+    local-user admin
+    password simple password
+    service-type ssh
+    authorization-attribute user-role network-admin
+    #
+    ssh server enable
+    #
+    line vty 0 63
+    authentication-mode scheme
+    #
+    ### SSH Generator End ###
+    ### SVI Generator Start ###
+    interface Vlan-interface10
+    ip address 10.10.10.254 255.255.255.0
+    ### SVI Generator End ###
+    ### SVI Generator Start ###
+    interface Vlan-interface20
+    ip address 10.10.20.254 255.255.255.0
+    ### SVI Generator End ###
+    ### Link Aggregation Generator Start ###
+    int bri 1
+    link-aggregation mode dynamic
+    port link-type trunk
+    undo port trunk permit vlan 1
+    port trunk permit vlan 30
+    #
+    int range G1/0/25 G1/0/26
+    port link-type trunk
+    undo port trunk permit vlan 1
+    port trunk permit vlan 30
+    port link-agg group 1
+    ### Link Aggregation Generator End ###
+    ### Default Route Generator Start ###
+    ip route-static 0.0.0.0 0.0.0.0 20.20.20.254
+    ### Default Route Generator End ###
+    ### Static Route Generator Start ###
+    ip route-static 20.20.20.0 255.255.255.0 vlan10
+    ### Static Route Generator End ###
+    ### SNMP Generator Start ###
+    snmp-agent sys-info version v2c
+    snmp-agent community read public
+    snmp-agent community write private
+    snmp-agent trap enable
+    snmp-agent target-host trap address udp-domain 20.20.20.254 params securityname public v2c
+    ### SNMP Generator End ###
+    ### Access Port Generator Start ###
+    int range G0/0/1 to G0/0/48
+    port access vlan 30
+    ### Access Port Generator End ###
 
 #华为交换:
     ## 创建VLAN
