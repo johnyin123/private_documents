@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c765584[2023-02-06T09:21:34+08:00]:init-pc.sh")
+VERSION+=("5e2ae9e[2023-02-09T13:45:50+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -170,7 +170,7 @@ apt_install systemd-container \
 # wireguard-tools need install debian kernel 
 apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install wireguard-tools
 
-apt_install traceroute ipcalc qrencode ncal
+apt_install traceroute ipcalc subnetcalc qrencode ncal
 # qrencode -8  -o - -t UTF8 "massage"
 
 # bat(batcat): cat(1) clone with syntax highlighting and git integration
