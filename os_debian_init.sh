@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("a23d27a[2023-04-11T16:47:11+08:00]:os_debian_init.sh")
+VERSION+=("4d05450[2023-04-14T14:26:17+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -222,6 +222,19 @@ Host *
 EOF
     mkdir -p /root/.ssh/sockets/
     chmod 0600 /root/.ssh/config
+    cat <<EOF > /etc/systemd/system/ssh-host-key-gen.service
+[Unit]
+Before=ssh.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ssh-keygen -A
+ExecStartPost=/bin/rm -f /etc/systemd/system/ssh-host-key-gen.service /etc/systemd/system/multi-user.target.wants/ssh-host-key-gen.service
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    ln -s  /etc/systemd/system/ssh-host-key-gen.service /etc/systemd/system/multi-user.target.wants/ssh-host-key-gen.service || true
 }
 export -f debian_sshd_init
 
