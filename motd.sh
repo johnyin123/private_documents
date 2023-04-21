@@ -1,5 +1,9 @@
 #!/bin/bash
-VERSION+=("0d70301[2022-03-21T14:07:37+08:00]:motd.sh")
+VERSION+=("fae9318[2023-04-19T14:33:57+08:00]:motd.sh")
+# Not bash
+[ -n "${BASH_VERSION:-}" ] || return 0
+# Not an interactive shell?
+[[ $- == *i* ]] || return 0
 date=$(date "+%F %T")
 kernel=$(uname -r)
 hostname=${HOSTNAME:-$(hostname)}
