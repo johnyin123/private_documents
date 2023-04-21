@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("23d7c6e[2023-04-17T09:24:09+08:00]:virt-tplmodify.sh")
+VERSION+=("51b1971[2023-04-17T14:12:22+08:00]:virt-tplmodify.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -16,7 +16,9 @@ cat <<EOF
 ${SCRIPTNAME}
         -n|--interface          interface name(eth0/eth1), default=eth0
         -r|--gateway            gateway -r "192.168.1.1"
-        -i|--ipaddr        *    ipv4 address(192.168.1.2/24)
+        -i|--ipaddr             ipv4 address(192.168.1.2/24)
+        --ip6addr               ipv6 address(2001::/96)
+        --ip6gateway            ipv6 gateway
         -H|--hostname           guest os hostname
         -t|--template      *    telplate disk for modify
         -p|--partnum            temlate partition number, default=1
@@ -56,6 +58,9 @@ change_vm() {
     local ipaddr=$3
     local prefix=$4
     local gateway=$5
+    local ip6addr=$6
+    local ip6prefix=$7
+    local ip6gateway=$8
     file_exists ${root_dir}/etc/os-release || return 1
     source <(grep -E "^\s*(VERSION_ID|ID)=" ${root_dir}/etc/os-release)
     case "${ID:-}" in
@@ -65,23 +70,37 @@ source /etc/network/interfaces.d/*
 auto lo
 iface lo inet loopback
 EOF
-
             cat << EOF | tee ${root_dir}/etc/network/interfaces.d/${iface}
 allow-hotplug ${iface}
+EOF
+            [ -z "${ipaddr}" ] || {
+            cat << EOF | tee -a ${root_dir}/etc/network/interfaces.d/${iface}
 iface ${iface} inet static
     address ${ipaddr}/${prefix}
     ${gateway:+gateway ${gateway}}
 EOF
+            }
+            [ -z "${ip6addr}" ] || {
+            cat << EOF | tee -a ${root_dir}/etc/network/interfaces.d/${iface}
+iface ${iface} inet6 static
+    address ${ip6addr}/${ip6prefix}
+    ${ip6gateway:+gateway ${ip6gateway}}
+EOF
+            }
             ;;
         centos|rocky|openEuler|kylin)
-            cat <<EOF | tee ${root_dir}/etc/sysconfig/network-scripts/ifcfg-${iface}
-IPV6INIT=no
+            [ -z "${ip6addr}" ] \
+                && echo "IPV6INIT=no" > ${root_dir}/etc/sysconfig/network-scripts/ifcfg-${iface} \
+                || echo "IPV6INIT=yes" > ${root_dir}/etc/sysconfig/network-scripts/ifcfg-${iface}
+            cat <<EOF | tee -a ${root_dir}/etc/sysconfig/network-scripts/ifcfg-${iface}
 DEVICE="${iface}"
 ONBOOT="yes"
 BOOTPROTO="none"
-IPADDR=${ipaddr}
-PREFIX=${prefix}
+${ipaddr:+IPADDR=${ipaddr}}
+${prefix:+PREFIX=${prefix}}
 ${gateway:+GATEWAY=${gateway}}
+${ip6addr:+IPV6ADDR=${ip6addr}/${ip6prefix}}
+${ip6gateway:+IPV6_DEFAULTGW=${ip6gateway}}
 EOF
             ;;
         *)
@@ -96,10 +115,13 @@ main() {
     local guest_hostname="guestos"
     local guest_ipaddr=
     local guest_prefix=
-    local iface="eth0"
     local guest_gateway=
+    local guest_ip6addr=
+    local guest_ip6prefix=
+    local guest_ip6gateway=
+    local iface="eth0"
     local opt_short="r:n:i:H:t:p:"
-    local opt_long="gateway:,interface:,ipaddr:,hostname:,template:,partnum:,"
+    local opt_long="gateway:,interface:,ipaddr:,ip6addr:,ip6gateway:,hostname:,template:,partnum:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -109,6 +131,8 @@ main() {
             -r|--gateway)   shift; guest_gateway=${1:?guest default gateway need input};shift ;;
             -n|--interface) shift; iface=${1:?interface name need input};shift ;;
             -i|--ipaddr)    shift; IFS='/' read -r guest_ipaddr guest_prefix <<< "${1:?guest ip address need input}"; shift ;;
+            --ip6addr)      shift; IFS='/' read -r guest_ip6addr guest_ip6prefix <<< "${1:?guest ip6 address 2001::/96}"; shift ;;
+            --ip6gateway)   shift; guest_ip6gateway=${1:?guest ipv6 default gateway need input};shift ;;
             -H|--hostname)  shift; guest_hostname=${1:?guest hostname need input};shift ;;
             -t|--template)  shift; disk_tpl=${1:?disk template need input};shift ;;
             -p|--partnum)   shift; partnum=${1};shift ;;
@@ -123,7 +147,6 @@ main() {
         esac
     done
     [[ -z "${disk_tpl}" ]] && usage "template must input"
-    [[ -z "${guest_ipaddr}" ]] && usage "ipaddr must input"
 
     is_user_root || exit_msg "root need!\n"
     for i in mount umount parted
@@ -138,12 +161,13 @@ main() {
     local mnt_point=/tmp/vm_rootfs_tmp
     file_exists ${disk_tpl} || exit_msg "template file ${disk_tpl} no found\n"
     mount_tpl "${mnt_point}" "${disk_tpl}" "${partnum}" || exit_msg "mount file ${disk_tpl} error\n"
-    change_vm "${mnt_point}" "${iface}" "${guest_ipaddr}" "${guest_prefix}" "${guest_gateway}" || { try umount "${mnt_point}"; exit_msg "change vm file ${disk_tpl} error\n"; }
+    change_vm "${mnt_point}" "${iface}" "${guest_ipaddr}" "${guest_prefix}" "${guest_gateway}" "${guest_ip6addr}" "${guest_ip6prefix}" "${guest_ip6gateway}" || { try umount "${mnt_point}"; exit_msg "change vm file ${disk_tpl} error\n"; }
     try echo "${guest_hostname}" \> ${mnt_point}/etc/hostname || error_msg "change hostname error\n"
     try touch ${mnt_point}/etc/hosts && {
         cat > ${mnt_point}/etc/hosts <<-EOF
 127.0.0.1   localhost ${guest_hostname}
-${guest_ipaddr}   ${guest_hostname}
+${guest_ipaddr:+${guest_ipaddr}   ${guest_hostname}}
+${guest_ip6addr:+${guest_ip6addr}   ${guest_hostname}}
 EOF
     }
     # try rm -f ${mnt_point}/etc/ssh/ssh_host_*
