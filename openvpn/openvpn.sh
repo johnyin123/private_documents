@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7af84c0[2023-04-23T09:42:15+08:00]:openvpn.sh")
+VERSION+=("52eee65[2023-04-23T10:02:00+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -16,11 +16,11 @@ usage() {
 ${SCRIPTNAME}
         -s|--ssh      *    ssh info (user@host)
         -p|--port          ssh port (default 60022)
-        -c|--client    *   create client cert keys
-        --ca          *   create client cert keys
-        --dh          *   create client cert keys
-        --cert        *   create client cert keys
-        --key         *   create client cert keys
+        -c|--client    *   create client config
+        --ca          **  ca cert
+        --dh          *   dh2048.pem
+        --cert        **  create client cert
+        --key         **  create client key
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -33,7 +33,7 @@ ${SCRIPTNAME}
             yum -y install epel-release
             yum -y install openvpn gnutls-utils
         debian:
-            apt -y install openvpn
+            apt -y install openvpn gnutls-bin
 EOF
     exit 1
 }
@@ -48,8 +48,6 @@ upload() {
 }
 
 init_server() {
-    echo "Generate a random key to be used as a shared secret" 
-    openvpn --genkey --secret /etc/openvpn/server/ta.key
     echo "apply nat rules"
     iptables -t nat -A POSTROUTING  -j MASQUERADE
     sysctl net.ipv4.ip_forward=1
@@ -60,15 +58,10 @@ init_server() {
     # -----END CERTIFICATE-----
     # </cert>
     grep -v -E "^port |^proto |^dev |^ca |^cert |^key |^dh |^server |^push |^keepalive |^tls-auth |^status |^log |^log-append |^verb |^comp-lzo$|^persist-key$|^persist-tun$" /usr/share/doc/openvpn/*/sample-config-files/server.conf > /etc/openvpn/server/server.conf
-    tee -a /etc/openvpn/server/server.conf <<EOF
+    tee -a /etc/openvpn/server/vpnsrv.conf <<EOF
 port 1194
 proto udp
 dev tun
-ca       ca.crt
-cert     server.crt
-key      server.key
-dh       dh2048.pem
-tls-auth ta.key 0
 server 10.8.0.0 255.255.255.0
 keepalive 10 120
 status      /var/log/openvpn-status.log
@@ -79,39 +72,59 @@ comp-lzo
 persist-key
 persist-tun
 # push "route 10.0.0.0 255.255.255.0"
+<ca>
+$(cat /etc/openvpn/server/ca.crt)
+</ca>
+<cert>
+$(sed -ne '/BEGIN CERTIFICATE/,$ p' /etc/openvpn/server/server.crt)
+</cert>
+<key>
+$(sed -ne '/BEGIN RSA PRIVATE KEY/,$ p' /etc/openvpn/server/server.key)
+</key>
+<dh>
+$(cat /etc/openvpn/server/dh2048.pem)
+</dh>
+<tls-auth>
+$(sed -ne '/BEGIN OpenVPN Static/,$ p' /etc/openvpn/server/ta.key)
+</tls-auth>
 EOF
     echo "enable openvpn-server@server.service"
-    systemctl enable --now openvpn-server@server
+    systemctl enable --now openvpn-server@vpnsrv
 }
 
 gen_clent_cert() {
+    local ca="${1}"
+    local cert="${2}"
+    local key="${3}"
+    local tlsauth="${4:-/dev/null}"
     echo "change client.conf remote & ca && cert && key && tls-auth && comp-lzo"
-    echo "Generates the custom file client.ovpn"
-    {
-        echo "client"
-        echo "dev tun"
-        echo "proto udp"
-        echo "remote ########SRV ADDRESS######## 1194"
-        echo "resolv-retry infinite"
-        echo "nobind"
-        echo "persist-key"
-        echo "persist-tun"
-        echo "remote-cert-tls server"
-        echo "cipher AES-256-CBC"
-        echo "verb 3"
-        echo "<ca>"
-        echo "########CA FILE INLINE HERE########"
-        echo "</ca>"
-        echo "<cert>"
-        echo 'sed -ne '/BEGIN CERTIFICATE/,$ p' ${caroot}/client.crt'
-        echo "</cert>"
-        echo "<key>"
-        echo "########CLIENT KEY INLINE HERE########"
-        echo "</key>"
-        echo "<tls-crypt>"
-        echo 'sed -ne '/BEGIN OpenVPN Static key/,$ p' ta.key'
-        echo "</tls-crypt>"
-    } | tee client.vpn
+    cat <<EOF | tee client.conf
+client
+dev tun
+proto udp
+remote ########SRV ADDRESS######## 1194
+resolv-retry infinite
+nobind
+persist-key
+persist-tun
+# remote-cert-tls server
+cipher AES-256-CBC
+verb 3
+comp-lzo
+log         /var/log/openvpn_client.log
+<ca>
+$(cat ${ca})
+</ca>
+<cert>
+$(sed -ne '/BEGIN CERTIFICATE/,$ p' ${cert})
+</cert>
+<key>
+$(cat ${key})
+</key>
+<tls-auth>
+$(sed -ne '/BEGIN OpenVPN Static/,$ p' ${tlsauth})
+</tls-auth>
+EOF
 }
 
 main() {
@@ -142,7 +155,6 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    [ -z "${client}" ] || gen_clent_cert
     [ -z "${ssh}" ] || {
         info_msg "init openvpn server ${ssh}\n"
         info_msg "  ca   = ${ca:?ca file need}\n"
@@ -150,14 +162,18 @@ main() {
         info_msg "  cert = ${cert:?cert file need}\n"
         info_msg "  key  = ${key:?key file need}\n"
         [ -z "${ca}" ] || [ -z "${dh}" ] || [ -z "${cert}" ] || [ -z "${key}" ] || {
+            ssh_func "${ssh}" "${port}" "openvpn --genkey --secret /dev/stdout" > ta.key
+            upload "ta.key" "${ssh}" "${port}" "/etc/openvpn/server/ta.key"
             upload "${ca}" "${ssh}" "${port}" "/etc/openvpn/server/ca.crt"
             upload "${dh}" "${ssh}" "${port}" "/etc/openvpn/server/dh2048.pem"
             upload "${cert}" "${ssh}" "${port}" "/etc/openvpn/server/server.crt"
             upload "${key}" "${ssh}" "${port}" "/etc/openvpn/server/server.key"
             ssh_func "${ssh}" "${port}" "chmod 600 /etc/openvpn/server/server.key"
+            echo "Generate a random key to be used as a shared secret" 
             ssh_func "${ssh}" "${port}" init_server
         }
     }
+    [ -z "${client}" ] || [ -z "${ca}" ] || [ -z "${cert}" ] || [ -z "${key}" ] || gen_clent_cert "${ca}" "${cert}" "${key}" "ta.key"
     info_msg "ALL DONE\n"
     return 0
 }
