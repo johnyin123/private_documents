@@ -7,8 +7,8 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e60b755[2022-03-04T11:11:57+08:00]:openvpn.sh")
-[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+VERSION+=("dcb4a34[2023-02-10T15:55:07+08:00]:openvpn.sh")
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -16,63 +16,40 @@ usage() {
 ${SCRIPTNAME}
         -s|--ssh      *    ssh info (user@host)
         -p|--port          ssh port (default 60022)
-        -i|--init          init openvpn server
-        -c|--client        create client cert keys
-        --caroot           CA root(default /root/ca)
+        -c|--client    *   create client cert keys
+        --ca          *   create client cert keys
+        --dh          *   create client cert keys
+        --cert        *   create client cert keys
+        --key         *   create client cert keys
         -q|--quiet
         -l|--log <int> log level
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+        centos:
+            yum -y install epel-release
+            yum -y install openvpn gnutls-utils
+        debian:
+            apt -y install openvpn
 EOF
     exit 1
 }
 
-init_server() {
-    local caroot=${1}
-    [ -d "${caroot}" ] && return 1
-    mkdir -p ${caroot}
-    echo "generate ca"
-    cat << EOF > ${caroot}/ca.info
-cn = openvpn ca
-ca
-cert_signing_key
-expiration_days = $((365*5))
-EOF
-    certtool --generate-privkey --bits=2048 > ${caroot}/ca.key
-    certtool --generate-self-signed --load-privkey ${caroot}/ca.key \
-        --template ${caroot}/ca.info \
-        --outfile ${caroot}/ca.crt
-    certtool -i --infile=${caroot}/ca.crt || true
-    #openssl x509 -text -noout -in ${caroot}/ca.crt || true
-    echo "gen openvpn server cert"
-    cat << EOF > ${caroot}/server.info
-organization = openvpn server
-cn = openvpn-srv
-signing_key
-expiration_days = $((365*5))
-EOF
-    certtool --generate-privkey --bits=2048 > ${caroot}/server.key
-    certtool --generate-certificate --load-privkey ${caroot}/server.key \
-        --load-ca-certificate ${caroot}/ca.crt \
-        --load-ca-privkey ${caroot}/ca.key \
-        --template ${caroot}/server.info \
-        --outfile ${caroot}/server.crt
-    echo "generate dh 2048"
-    certtool --generate-dh-params --outfile ${caroot}/dh2048.pem --sec-param medium
-    echo "Generate a random key to be used as a shared secret" 
-    openvpn --genkey --secret ${caroot}/ta.key
-    echo "copy generated certs"
-    cp ${caroot}/ca.crt ${caroot}/ta.key ${caroot}/dh2048.pem \
-       ${caroot}/server.crt ${caroot}/server.key \
-       /etc/openvpn/server/
-    chmod 600 /etc/openvpn/server/server.key 
-    echo "apply nat"
-    iptables -t nat -A POSTROUTING  -j MASQUERADE
-    sysctl net.ipv4.ip_forward=1
+upload() {
+    local lfile=${1}
+    local ssh=${2}
+    local port=${3}
+    local rfile=${4}
+    warn_msg "upload ${lfile} ====> ${ssh}:${port}${rfile}\n"
+    try scp -P${port} ${lfile} ${ssh}:${rfile}
 }
 
-modify_openvpn_cfg() {
+init_server() {
+    echo "Generate a random key to be used as a shared secret" 
+    openvpn --genkey --secret /etc/openvpn/server/ta.key
+    echo "apply nat rules"
+    iptables -t nat -A POSTROUTING  -j MASQUERADE
+    sysctl net.ipv4.ip_forward=1
     # INLINE FILE SUPPORT
     # OpenVPN allows including files in the main configuration for the --ca, --cert, --dh, --extra-certs, --key, --pkcs12, --secret, --crl-verify, --http-proxy-user-pass, --tls-auth, --auth-gen-token-secret, --tls-crypt and --tls-crypt-v2 options.
     # <cert>
@@ -105,22 +82,6 @@ EOF
 }
 
 gen_clent_cert() {
-    local caroot=${1}
-    local cid=${2}
-    [ -e "${caroot}/client_${cid}.info" ] && return 1
-    cat << EOF > ${caroot}/client_${cid}.info
-organization = ${cid} 
-cn = ${cid}
-signing_key
-EOF
-    certtool --generate-privkey > ${caroot}/client_${cid}.key
-    certtool --generate-certificate --load-privkey ${caroot}/client_${cid}.key \
-        --load-ca-certificate ${caroot}/ca.crt \
-        --load-ca-privkey ${caroot}/ca.key \
-        --template ${caroot}/client_${cid}.info \
-        --outfile ${caroot}/client_${cid}.crt
-    tar -C ${caroot} -cv ca.crt client_${cid}.key client_${cid}.crt ta.key | gzip > ${caroot}/${cid}.tar.gz
-    echo "${caroot}/${cid}.tar.gz --> TO CLIENT"
     echo "change client.conf remote & ca && cert && key && tls-auth && comp-lzo"
     echo "Generates the custom file client.ovpn"
     {
@@ -136,24 +97,25 @@ EOF
         echo "cipher AES-256-CBC"
         echo "verb 3"
         echo "<ca>"
-        cat ${caroot}/ca.crt
+        echo "########CA FILE INLINE HERE########"
         echo "</ca>"
         echo "<cert>"
-        sed -ne '/BEGIN CERTIFICATE/,$ p' ${caroot}/client_${cid}.crt
+        echo 'sed -ne '/BEGIN CERTIFICATE/,$ p' ${caroot}/client.crt'
         echo "</cert>"
         echo "<key>"
-        cat ${caroot}/client_${cid}.key
+        echo "########CLIENT KEY INLINE HERE########"
         echo "</key>"
         echo "<tls-crypt>"
-        sed -ne '/BEGIN OpenVPN Static key/,$ p' ${caroot}/ta.key
+        echo 'sed -ne '/BEGIN OpenVPN Static key/,$ p' ta.key'
         echo "</tls-crypt>"
-    }  > client_${cid}.vpn
+    } | tee client.vpn
 }
 
 main() {
-    local ssh="" port=60022 init="" client=""  caroot="/root/ca"
-    local opt_short="s:p:ic:"
-    local opt_long="ssh:,port:,init,client:,caroot:,"
+    local ssh="" port=60022 client=""
+    local ca="" dh="" cert="" key=""
+    local opt_short="s:p:c"
+    local opt_long="ssh:,port:,client,ca:,dh:,cert:,key:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -162,9 +124,11 @@ main() {
         case "$1" in
             -s | --ssh)     shift; ssh=${1}; shift;;
             -p | --port)    shift; port=${1}; shift;;
-            -i | --init)    shift; init=1;;
-            -c | --client)  shift; client=${1}; shift;;
-            --caroot)       shift; caroot=${1}; shift;;
+            -c | --client)  shift; client=1;;
+            --ca)           shift; ca=${1}; shift;;
+            --dh)           shift; dh=${1}; shift;;
+            --cert)         shift; cert=${1}; shift;;
+            --key)          shift; key=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -175,19 +139,21 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    [ -z "${init}" ] || {
-        info_msg "install package\n"
-        ssh_func "${ssh}" "${port}" "yum -y install epel-release"
-        ssh_func "${ssh}" "${port}" "yum -y install openvpn"
-        ssh_func "${ssh}" "${port}" "yum -y install gnutls-utils"
-        # apt -y install gnutls-bin
-        info_msg "init openvpn server env\n"
-        ssh_func "${ssh}" "${port}" init_server "${caroot}"
-        ssh_func "${ssh}" "${port}" modify_openvpn_cfg
-    }
-    [ -z "${client}" ] || {
-        info_msg "generate client [${client}] openvpn cert\n"
-        ssh_func "${ssh}" "${port}" gen_clent_cert "${caroot}" "${client}"
+    [ -z "${client}" ] || gen_clent_cert
+    [ -z "${ssh}" ] || {
+        info_msg "init openvpn server ${ssh}\n"
+        info_msg "  ca   = ${ca:?ca file need}\n"
+        info_msg "  dh   = ${dh:?dh file need}\n"
+        info_msg "  cert = ${cert:?cert file need}\n"
+        info_msg "  key  = ${key:?key file need}\n"
+        [ -z "${ca}" ] || [ -z "${dh}" ] || [ -z "${cert}" ] || [ -z "${key}" ] || {
+            upload "${ca}" "${ssh}" "${port}" "/etc/openvpn/server/ca.crt"
+            upload "${dh}" "${ssh}" "${port}" "/etc/openvpn/server/dh2048.pem"
+            upload "${cert}" "${ssh}" "${port}" "/etc/openvpn/server/server.crt"
+            upload "${key}" "${ssh}" "${port}" "/etc/openvpn/server/server.key"
+            ssh_func "${ssh}" "${port}" "chmod 600 /etc/openvpn/server/server.key"
+            ssh_func "${ssh}" "${port}" init_server
+        }
     }
     info_msg "ALL DONE\n"
     return 0
