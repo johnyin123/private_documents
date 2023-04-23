@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dcb4a34[2023-02-10T15:55:07+08:00]:openvpn.sh")
+VERSION+=("7af84c0[2023-04-23T09:42:15+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -26,6 +26,9 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+        gen ca & server cert:
+            ./newssl.sh -i "openvpn ca"  -c "vpnsrv1"
+            ./openvpn.sh -s root@server1 -c --ca ca.pem --dh ca/dh2048.pem --cert vpnsrv1.pem --key vpnsrv1.key
         centos:
             yum -y install epel-release
             yum -y install openvpn gnutls-utils
@@ -56,7 +59,7 @@ init_server() {
     # -----BEGIN CERTIFICATE-----
     # -----END CERTIFICATE-----
     # </cert>
-    grep -v -E "^port |^proto |^dev |^ca |^cert |^key |^dh |^server |^push |^keepalive |^tls-auth |^status |^log |^log-append |^verb |^comp-lzo$|^persist-key$|^persist-tun$" /usr/share/doc/openvpn*/sample/sample-config-files/server.conf > /etc/openvpn/server/server.conf
+    grep -v -E "^port |^proto |^dev |^ca |^cert |^key |^dh |^server |^push |^keepalive |^tls-auth |^status |^log |^log-append |^verb |^comp-lzo$|^persist-key$|^persist-tun$" /usr/share/doc/openvpn/*/sample-config-files/server.conf > /etc/openvpn/server/server.conf
     tee -a /etc/openvpn/server/server.conf <<EOF
 port 1194
 proto udp
@@ -88,7 +91,7 @@ gen_clent_cert() {
         echo "client"
         echo "dev tun"
         echo "proto udp"
-        echo "remote <server_address> 1194"
+        echo "remote ########SRV ADDRESS######## 1194"
         echo "resolv-retry infinite"
         echo "nobind"
         echo "persist-key"
