@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("52eee65[2023-04-23T10:02:00+08:00]:openvpn.sh")
+VERSION+=("f2c9d8a[2023-04-23T14:49:08+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -51,6 +51,7 @@ init_server() {
     echo "apply nat rules"
     iptables -t nat -A POSTROUTING  -j MASQUERADE
     sysctl net.ipv4.ip_forward=1
+    echo 'net.ipv4.ip_forward=1' > /etc/sysctl.d/99-openvpn-forward.conf
     # INLINE FILE SUPPORT
     # OpenVPN allows including files in the main configuration for the --ca, --cert, --dh, --extra-certs, --key, --pkcs12, --secret, --crl-verify, --http-proxy-user-pass, --tls-auth, --auth-gen-token-secret, --tls-crypt and --tls-crypt-v2 options.
     # <cert>
@@ -72,6 +73,7 @@ comp-lzo
 persist-key
 persist-tun
 # push "route 10.0.0.0 255.255.255.0"
+# crl-verify crl.pem
 <ca>
 $(cat /etc/openvpn/server/ca.crt)
 </ca>
