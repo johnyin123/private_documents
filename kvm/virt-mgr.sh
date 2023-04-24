@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e7e78c2[2023-04-06T17:01:12+08:00]:virt-mgr.sh")
+VERSION+=("e334a1d[2023-04-24T09:15:17+08:00]:virt-mgr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -106,7 +106,7 @@ set_vm_defaults() {
         [MEM]="2097152"
         [POOL]="default"
         [FORMAT]="raw"
-        [SIZE]="4G"
+        [SIZE]="4GiB"
         [DESC]="no desc"
         [NAME]="vm"
         [DOMAIN_TPL]="default"
@@ -263,7 +263,7 @@ cmd:create <arg> [domain_template in cfg]
         -n|--net <tpl-name>        *             network template name in cfg
         -p|--pool <pool>                         kvm storage pool
         -f|--format <fmt>                        disk format,default raw
-        -s|--size <size>                         <size> GB/MB/KB
+        -s|--size <size>                         <size> GiB/MiB/KiB, a multiple of request alignment
         -b|--back <backing vol>                  disk backing vol file
         -F|--bfmt <backing format>               disk backing vol format
         -D|--desc <desc>                         desc
@@ -463,7 +463,7 @@ declare -A DOMAIN_TPL=(
   <vcpu placement='static' current='{{CPUS}}'>8</vcpu>
   <cpu mode='host-passthrough' check='none'/>
   <os>
-    <type arch='aarch64' machine='virt-4.0'>hvm</type>
+    <type arch='aarch64' machine='virt'>hvm</type>
     <loader readonly='yes' type='pflash'>/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw</loader>
   </os>
   <features><acpi/><apic/><pae/></features>
@@ -476,8 +476,6 @@ declare -A DOMAIN_TPL=(
     <console type='pty'>
       <target type='serial' port='0'/>
     </console>
-    <input type='mouse' bus='ps2'/>
-    <input type='keyboard' bus='ps2'/>
     <channel type='unix'>
       <target type='virtio' name='org.qemu.guest_agent.0'/>
     </channel>
