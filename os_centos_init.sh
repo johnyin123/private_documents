@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("eed2dcf[2023-04-12T13:27:49+08:00]:os_centos_init.sh")
+VERSION+=("8d5efe6[2023-04-17T17:13:57+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -70,7 +70,10 @@ EOF
     LC_ALL=C LANGUAGE=C LANG=C chroot "${root_dir}" /bin/bash -x <<EOSHELL
     yum -y --disablerepo=* --enablerepo=mybase group install --exclude kernel-tools --exclude iw*-firmware core || true
     echo "start install packages: ${include_pkg}"
-    yum -y --disablerepo=* --enablerepo=mybase update && yum -y --disablerepo=* --enablerepo=mybase install ${include_pkg}
+    yum -y --disablerepo=* --enablerepo=mybase update || true
+    for p in ${include_pkg}; do
+        yum -y --disablerepo=* --enablerepo=mybase install \${p} || true
+    done
     systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id || true
     # timedatectl set-timezone Asia/Shanghai
     rm -f /etc/localtime && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
