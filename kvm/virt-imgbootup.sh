@@ -7,13 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ff5640d[2022-12-22T09:41:13+08:00]:virt-imgbootup.sh")
+VERSION+=("5a1a91d[2023-01-16T13:41:44+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
+ARCH=${ARCH:-x86_64}
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env ARCH=aarch64 set arch, default x86_64
         env CPU=kvm64 set cpu type, default host
         env NET=e1000e set netcard type, default virtio-net-pci
         env MACHINE=pc set machine(winxp us pc), default q35
@@ -39,8 +41,10 @@ ${SCRIPTNAME}
         --serial    <tcp port>  serial listen 127.0.0.1:<tcp port>
         --sound     Enable soundhw hda
         --uefi      <file>    uefi bios file
-                    /usr/share/qemu/OVMF.fd
+                    x86_64: /usr/share/qemu/OVMF.fd
+                    aarch64:/usr/share/qemu-efi-aarch64/QEMU_EFI.fd
                     apt -y install ovmf
+                    apt -y install qemu-system-arm qemu-efi-aarch64
         --daemonize run as daemon, with display none
         -q|--quiet
         -l|--log <int> log level
@@ -73,21 +77,35 @@ EOF
 }
 
 main() {
+    local ncpu=1 mem=2048 disk=() bridge=() fmt="" cdrom="" floppy="" usb=() simusb=() pci_bus_addr=() daemonize=no serial=""
     local options=(
-        "-enable-kvm"
-        "-vga" "qxl"
-        "-global" "qxl-vga.vram_size=67108864" 
         "-nodefaults"
         "-no-user-config"
-        "-usb"
-        "-device" "usb-tablet,bus=usb-bus.0"
-        "-device" "nec-usb-xhci,id=xhci"
         "-boot" "menu=on"
-        "-M" "${MACHINE:-q35}"
         "-monitor" "vc"
     )
+    case "${ARCH}" in
+        x86_64)   options+=(
+            "-enable-kvm"
+            "-vga" "qxl"
+            "-global" "qxl-vga.vram_size=67108864"
+            "-usb"
+            "-device" "usb-tablet,bus=usb-bus.0"
+            "-device" "nec-usb-xhci,id=xhci"
+            )
+            MACHINE=${MACHINE:-q35}
+            CPU=${CPU:-host}
+            ;;
+        aarch64)  options+=(
+            "-display" "none"
+            )
+            serial=9999;
+            MACHINE=${MACHINE:-virt}
+            CPU=${CPU:-"max"}
+            ;;
+        *)        exit_msg "Unknow arch : ${ARCH}";;
+    esac
 
-    local cpu=1 mem=2048 disk=() bridge=() fmt="" cdrom="" floppy="" usb=() simusb=() pci_bus_addr=() daemonize=no
     local opt_short="c:m:D:b:f:"
     local opt_long="cpu:,mem:,disk:,bridge:,fmt:,cdrom:,fda:,serial:,usb:,simusb:,pci:,sound,daemonize,uefi:,"
     opt_short+="ql:dVh"
@@ -96,7 +114,7 @@ main() {
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -c | --cpu)     shift; cpu=${1}; shift;;
+            -c | --cpu)     shift; ncpu=${1}; shift;;
             -m | --mem)     shift; mem=${1}; shift;;
             -D | --disk)    shift; disk+=("${1}"); shift;;
             -b | --bridge)  shift; bridge+=("${1}"); shift;;
@@ -106,7 +124,7 @@ main() {
             --pci)          shift; pci_bus_addr+=("${1}"); shift;;
             --cdrom)        shift; cdrom=${1}; shift;;
             --fda)          shift; floppy=${1}; shift;;
-            --serial)       shift; options+=("-serial" "tcp:127.0.0.1:${1},server,nowait"); shift;;
+            --serial)       shift; serial=${1}; shift;;
             --sound)        shift; options+=("-soundhw" "hda");;
             --uefi)         shift; options+=("-bios" "${1}"); shift;;
             --daemonize)    shift; daemonize=yes;;
@@ -124,12 +142,17 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
+    [ -z "${serial}" ] || {
+        options+=("-serial" "tcp:127.0.0.1:${serial},server,nowait")
+        info_msg "Serial: tcp:127.0.0.1:${serial}\n"
+    }
     is_user_root || exit_msg "root need\n"
     require qemu-system-x86_64 grep sed awk modprobe lspci hexdump
     [ "$(array_size disk)" -gt "0" ] || warn_msg "no disk image!!"
     #file_exists "${disk}" || usage "disk nofound"
-    options+=("-cpu" "${CPU:-host}")
-    options+=("-smp" "${cpu}")
+    options+=("-machine" "${MACHINE}")
+    options+=("-cpu" "${CPU}")
+    options+=("-smp" "${ncpu}")
     options+=("-m" "${mem}")
     str_equal "${daemonize:-no}" "yes" && options+=("-daemonize" "-display" "none") || options+=("-monitor" "stdio")
     local _u= _id=0
@@ -228,12 +251,12 @@ main() {
 
     defined DRYRUN && {
         blue>&2 "DRYRUN: "
-        purple>&2 "%s\n" "qemu-system-x86_64 ${options[*]} ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}"
+        purple>&2 "%s\n" "qemu-system-${ARCH} ${options[*]} ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}"
         return 0
     }
-    info_msg "start vm ......\n"
+    info_msg "start ${ARCH} vm ......\n"
     set -- "${options[@]}" ${cdrom:+-cdrom ${cdrom}} ${floppy:+-fda ${floppy}}
-    exec qemu-system-x86_64 "$@"
+    exec qemu-system-${ARCH} "$@"
 }
 auto_su "$@"
 main "$@"
