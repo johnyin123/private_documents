@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("042ea64[2022-03-09T08:24:42+08:00]:virt-mgr.sh")
+VERSION+=("e7e78c2[2023-04-06T17:01:12+08:00]:virt-mgr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -531,7 +531,7 @@ declare -A DEVICE_TPL=(
 <interface type='network'>
   <source network='br_mgmt.2430'/>
   <model type='virtio'/>
-  <driver name='vhost'/>
+  <driver name='vhost' queues='8'/>
 </interface>"
     [br_mgmt.2430]="
 <interface type='network'>
