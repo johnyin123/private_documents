@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5a1a91d[2023-01-16T13:41:44+08:00]:virt-imgbootup.sh")
+VERSION+=("3a08544[2023-04-24T13:38:39+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 ARCH=${ARCH:-x86_64}
@@ -143,7 +143,7 @@ main() {
         esac
     done
     [ -z "${serial}" ] || {
-        options+=("-serial" "tcp:127.0.0.1:${serial},server,nowait")
+        options+=("-serial" "telnet:127.0.0.1:${serial},server,nowait")
         info_msg "Serial: tcp:127.0.0.1:${serial}\n"
     }
     is_user_root || exit_msg "root need\n"
