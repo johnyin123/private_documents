@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b5fed22[2023-04-07T08:39:43+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("bf46db8[2023-04-17T17:17:16+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
@@ -258,6 +258,10 @@ set default="0"
 menuentry 'Install Centos [UEFI] PXE+Kickstart' {
     linuxefi ${DVD_DIR}/images/pxeboot/vmlinuz inst.ks=http://${ns_ipaddr}/${ks_uri} inst.lang=en_US net.ifnames=0 biosdevname=0
     initrdefi ${DVD_DIR}/images/pxeboot/initrd.img
+}
+menuentry 'Install Centos [UEFI-aarch64] PXE+Kickstart' {
+    linux ${DVD_DIR}/images/pxeboot/vmlinuz inst.ks=http://${ns_ipaddr}/${ks_uri} inst.lang=en_US net.ifnames=0 biosdevname=0
+    initrd ${DVD_DIR}/images/pxeboot/initrd.img
 }
 menuentry 'Install Debian [UEFI] PXE' {
     linuxefi /debian/linux vga=788 --- quiet
