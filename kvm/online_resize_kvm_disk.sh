@@ -4,7 +4,7 @@ part_no=2 #uefi
 [ -d "/sys/firmware/efi" ] && part_no=2 || part_no=1
 echo ,+ | sfdisk --force -u S -N ${part_no} ${disk} || true
 partx -u ${disk} || true
-xfs_growfs ${disk}${part_no} || true
+xfs_growfs $(lsblk -no MOUNTPOINT ${disk}${part_no}) || true
 cat <<EOF > /etc/rc.local
 #!/bin/sh -e
 exit 0
