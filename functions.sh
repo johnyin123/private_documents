@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("955dda7[2023-01-16T08:48:24+08:00]:functions.sh")
+VERSION+=("278f111[2023-02-20T13:09:46+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -849,6 +849,25 @@ readini() {
         | grep -v ^'\[') && eval "${INFO}"
 }
 ##################################################
+# C__END=$(tput sgr0)                         #  reset flag
+# C__BLA=$C__END$(tput setaf 0)               #  black
+# C__RED=$C__END$(tput setaf 1)               #  red
+# C__GRE=$C__END$(tput setaf 2)               #  green
+# C__YEL=$C__END$(tput setaf 3)               #  yellow
+# C__BLU=$C__END$(tput setaf 4)               #  blue
+# C__MAG=$C__END$(tput setaf 5)               #  magenta
+# C__CYA=$C__END$(tput setaf 6)               #  cyan
+# C__WHI=$C__END$(tput setaf 7)               #  white
+# C__BOL=$(tput bold)                         ## bold flag
+# C__BOL_BLA=$C__END$C__BOL$(tput setaf 0)    #  black
+# C__BOL_RED=$C__END$C__BOL$(tput setaf 1)    #  red
+# C__BOL_GRE=$C__END$C__BOL$(tput setaf 2)    #  green
+# C__BOL_YEL=$C__END$C__BOL$(tput setaf 3)    #  yellow
+# C__BOL_BLU=$C__END$C__BOL$(tput setaf 4)    #  blue
+# C__BOL_MAG=$C__END$C__BOL$(tput setaf 5)    #  magenta
+# C__BOL_CYA=$C__END$C__BOL$(tput setaf 6)    #  cyan
+# C__BOL_WHI=$C__END$C__BOL$(tput setaf 7)    #  white
+
 # {{ LOG functions start
 LOG_ERROR=0       # Level error
 LOG_WARNING=1     # Level warning
