@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c765584[2023-02-06T09:21:34+08:00]:build_debian_no_kernel.sh")
+VERSION+=("cd6089e[2023-04-11T16:49:21+08:00]:build_debian_no_kernel.sh")
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -17,12 +17,14 @@ old_ifs="$IFS" IFS=','
 custom_pkgs="$*"
 IFS=$old_ifs
 
+PKG="efibootmgr"
+
 case "${INST_ARCH:-}" in
     arm64)
-        PKG+=",efibootmgr,grub2-common,grub-efi,grub-efi-arm64-bin,grub-efi-arm64-signed,shim-signed"
+        PKG+=",grub2-common,grub-efi,grub-efi-arm64-bin,grub-efi-arm64-signed,shim-signed"
         ;;
     *)
-        PKG+=",efibootmgr,grub2-common,grub-pc-bin,grub-efi-amd64-bin,grub-efi-amd64-signed,shim-signed"
+        PKG+=",grub2-common,grub-pc-bin,grub-efi-amd64-bin,grub-efi-amd64-signed,shim-signed"
         # biosdevname"
         ;;
 esac

@@ -4,13 +4,14 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("initver[2023-04-26T13:12:02+08:00]:tpl2disk.sh")
+VERSION+=("416a651[2023-04-26T13:12:02+08:00]:tpl2disk.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
     TODO: xfs chroot env, cannot set blocksize 512 on block device ..: Function not implemented
+          debian tpl arm64 uefi no support
         -t|--tpl  *   <str>   root squashfs(tpl) for install
         --uefi        <str>   uefi partition(fat32), /dev/vda1
                               uefi partition type fat32, boot flag on.
@@ -54,7 +55,7 @@ mkdiskfs() {
     case "${fs}" in
         ext4) chroot ${work_dir} /sbin/mkfs.ext4 -F -L rootfs "${part}";;
         xfs)  chroot ${work_dir} /sbin/mkfs.xfs -f -L rootfs "${part}";;
-        *)    umount -R -v ${work_dir} || true; echo "fstype not support"; return 1;;
+        *)    umount -R -v ${work_dir} || true; echo "ERROR: ** fstype not support"; return 1;;
     esac
     umount -R -v ${work_dir} || true
     return 0
@@ -98,17 +99,18 @@ mount -t devtmpfs -o mode=0755,nosuid devtmpfs /dev || true
 mount -t proc proc /proc || true
 # mount -t devpts -o gid=5,mode=620 devpts /dev/pts || true
 # mount -t sysfs /sys sys || true
-target=""
-case "\$(uname -m)" in
-    ########################################
-    aarch64)  target="arm64-efi";;
-    x86_64)   target="x86_64-efi";;
-    *)        target=""; echo "UEFI ARCH NOT AUTO FOUND!!!!!, CONTINUE.";;
-esac
+target="i386-pc"
+[ -z "${uefi}" ] || {
+    case "\$(uname -m)" in
+        aarch64)  target="arm64-efi";;
+        x86_64)   target="x86_64-efi";;
+        *)        target=""; echo "UEFI ARCH NOT AUTO FOUND!!!!!, CONTINUE.";;
+    esac
+}
 case "${ID:-}" in
     debian)
-        grub-install \${target:+--target=\${target}} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
-        grub-mkconfig -o /boot/grub/grub.cfg || true
+        grub-install --force \${target:+--target=\${target}} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
+        grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
         ;;
     centos|rocky|openEuler|*)
         echo "rocky9 & openeuler22, when uefi grub2-install bug https://bugzilla.redhat.com/show_bug.cgi?id=1917213"
