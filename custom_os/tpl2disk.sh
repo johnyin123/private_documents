@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("416a651[2023-04-26T13:12:02+08:00]:tpl2disk.sh")
+VERSION+=("ad3854e[2023-04-26T18:58:20+08:00]:tpl2disk.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -36,6 +36,7 @@ ${SCRIPTNAME}
            parted -s disk.img "mklabel gpt"
            parted -s disk.img "mkpart primary fat32 1M 128M"
            parted -s disk.img "mkpart primary ext4 128M 100%"
+           parted -s disk.img "set 1 boot on"
            ./nbd_attach.sh -a disk.img --fmt raw
            ./${SCRIPTNAME} -t tpl.tpl -d /dev/nbd0 --uefi /dev/mapper/nbd0p1 -p /dev/mapper/nbd0p2 --fs ext4
            ./nbd_attach.sh -d /dev/nbd0
