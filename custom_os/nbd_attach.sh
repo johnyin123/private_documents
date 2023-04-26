@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6e7c43d[2022-07-19T09:33:59+08:00]:nbd_attach.sh")
+VERSION+=("initver[2023-04-26T13:12:02+08:00]:nbd_attach.sh")
 ################################################################################
 
 disconnect_nbd() {
@@ -53,6 +53,20 @@ ${SCRIPTNAME}
       ./${SCRIPTNAME} -a disk.img -f raw
       ./${SCRIPTNAME} -a disk.qcow2 
       ./${SCRIPTNAME} -d /dev/nbd0
+      -----
+        truncate -s 2GiB disk.img
+        parted -s disk.img -- \\
+              mklabel gpt \\
+              mkpart primary fat32 1M 128M \\
+              mkpart primary xfs 128M 100% \\
+              set 1 boot on
+        DEV=\$(kpartx -avs disk.img | grep -o "/dev/loop[1234567890]*" | tail -1)
+        # DEV=\$(losetup -f --show disk.img --offset=\$((2048 * 512)))
+        mkfs.xfs "\${DEV}"
+        mount -o offset=\$((2048*512)) disk.img mnt_point
+        umount -R mnt_point
+        kpartx -dsv disk.img
+        # loset -D ..
 EOF
     exit 1
 }
