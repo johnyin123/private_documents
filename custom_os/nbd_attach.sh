@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-04-26T13:12:02+08:00]:nbd_attach.sh")
+VERSION+=("416a651[2023-04-26T13:12:02+08:00]:nbd_attach.sh")
 ################################################################################
 
 disconnect_nbd() {
@@ -111,7 +111,9 @@ main() {
             disconnect_nbd "${dev}"
             return 0
         }
-        echo "${dev} no found or qemu-nbd process no found!"
+        echo "${dev} no found or qemu-nbd process no found, force disconnect it!"
+        disconnect_nbd "${dev}"
+        return 1
     }
     return 0
 }

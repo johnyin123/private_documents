@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("ad3854e[2023-04-26T18:58:20+08:00]:tpl2disk.sh")
+VERSION+=("5d2b260[2023-04-26T19:42:04+08:00]:tpl2disk.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -85,8 +85,8 @@ main() {
     [ -z "${root_tpl}" ] && usage "tpl rootfs package?"
     [ -z "${disk}" ] && usage "need disk and  partition?"
     echo "install ${root_tpl} => ${disk}:${part}"
-    mkfs.vfat -F 32 ${uefi} || true
-    mkdiskfs "${root_tpl}" "${part}" "${fs}" || true
+    mkfs.vfat -F 32 ${uefi} || return 1
+    mkdiskfs "${root_tpl}" "${part}" "${fs}" || return 2
     local root_dir=$(mktemp -d /tmp/rootfs.XXXXXX)
     mount "${part}" ${root_dir}
     [ -z "${uefi}" ] || {
@@ -95,11 +95,11 @@ main() {
     }
     unsquashfs -f -d ${root_dir} ${root_tpl}
     source ${root_dir}/etc/os-release || true
+    mount -v -t devtmpfs -o mode=0755,nosuid devtmpfs ${root_dir}/dev || true
+    # mount -v -t devpts -o gid=5,mode=620 devpts ${root_dir}/dev/pts || true
+    # mount -v -t proc none ${root_dir}/proc || true
+    # mount -v -t sysfs none ${root_dir}/sys || true
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x -o errexit -s <<EOSHELL
-mount -t devtmpfs -o mode=0755,nosuid devtmpfs /dev || true
-mount -t proc proc /proc || true
-# mount -t devpts -o gid=5,mode=620 devpts /dev/pts || true
-# mount -t sysfs /sys sys || true
 target="i386-pc"
 [ -z "${uefi}" ] || {
     case "\$(uname -m)" in
@@ -112,6 +112,11 @@ case "${ID:-}" in
     debian)
         grub-install --force \${target:+--target=\${target}} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
         grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
+        [ -z "${uefi}" ] || {
+            echo "Copying fallback bootloader"
+            mkdir /boot/efi/EFI/BOOT || true
+            cp /boot/efi/EFI/debian/fbx64.efi /boot/efi/EFI/BOOT/bootx64.efi || true
+        }
         ;;
     centos|rocky|openEuler|*)
         echo "rocky9 & openeuler22, when uefi grub2-install bug https://bugzilla.redhat.com/show_bug.cgi?id=1917213"
