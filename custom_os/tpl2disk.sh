@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("5d2b260[2023-04-26T19:42:04+08:00]:tpl2disk.sh")
+VERSION+=("75f9bf7[2023-04-27T08:47:38+08:00]:tpl2disk.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -110,12 +110,13 @@ target="i386-pc"
 }
 case "${ID:-}" in
     debian)
-        grub-install --force \${target:+--target=\${target}} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
+        grub-install --force \${target:+--target=\${target}} --boot-directory=/boot --modules="xfs part_msdos" ${disk} 2>/dev/null || true
         grub-mkconfig -o /boot/grub/grub.cfg 2>/dev/null || true
         [ -z "${uefi}" ] || {
             echo "Copying fallback bootloader"
             mkdir /boot/efi/EFI/BOOT || true
-            cp /boot/efi/EFI/debian/fbx64.efi /boot/efi/EFI/BOOT/bootx64.efi || true
+            cp /boot/efi/EFI/${ID:-}/fbx64.efi /boot/efi/EFI/BOOT/bootx64.efi 2>/dev/null || true
+            cp /boot/efi/EFI/${ID:-}/fbaa64.efi /boot/efi/EFI/BOOT/bootaa64.efi >/dev/null || true
         }
         ;;
     centos|rocky|openEuler|*)
