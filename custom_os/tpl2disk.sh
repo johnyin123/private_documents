@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("8fbc55a[2023-04-27T09:15:23+08:00]:tpl2disk.sh")
+VERSION+=("f6abb59[2023-04-27T11:34:01+08:00]:tpl2disk.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -117,7 +117,7 @@ case "${ID:-}" in
             echo "Copying fallback bootloader"
             mkdir /boot/efi/EFI/BOOT || true
             cp /boot/efi/EFI/${ID:-}/fbx64.efi /boot/efi/EFI/BOOT/bootx64.efi 2>/dev/null || true
-            cp /boot/efi/EFI/${ID:-}/fbaa64.efi /boot/efi/EFI/BOOT/bootaa64.efi >/dev/null || true
+            cp /boot/efi/EFI/${ID:-}/fbaa64.efi /boot/efi/EFI/BOOT/bootaa64.efi 2>/dev/null || true
         }
         ;;
     centos|rocky|openEuler|*)
