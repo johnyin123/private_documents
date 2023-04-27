@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("75f9bf7[2023-04-27T08:47:38+08:00]:tpl2disk.sh")
+VERSION+=("8fbc55a[2023-04-27T09:15:23+08:00]:tpl2disk.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -54,8 +54,8 @@ mkdiskfs() {
         mount -o bind $i "${work_dir}${i}" 2>/dev/null && echo "mount work $i ...." || true
     done
     case "${fs}" in
-        ext4) chroot ${work_dir} /sbin/mkfs.ext4 -F -L rootfs "${part}";;
-        xfs)  chroot ${work_dir} /sbin/mkfs.xfs -f -L rootfs "${part}";;
+        ext4) LC_ALL=C LANGUAGE=C LANG=C chroot ${work_dir} /sbin/mkfs.ext4 -F -L rootfs "${part}";;
+        xfs)  LC_ALL=C LANGUAGE=C LANG=C chroot ${work_dir} /sbin/mkfs.xfs -f -L rootfs "${part}";;
         *)    umount -R -v ${work_dir} || true; echo "ERROR: ** fstype not support"; return 1;;
     esac
     umount -R -v ${work_dir} || true
@@ -85,19 +85,20 @@ main() {
     [ -z "${root_tpl}" ] && usage "tpl rootfs package?"
     [ -z "${disk}" ] && usage "need disk and  partition?"
     echo "install ${root_tpl} => ${disk}:${part}"
-    mkfs.vfat -F 32 ${uefi} || return 1
     mkdiskfs "${root_tpl}" "${part}" "${fs}" || return 2
     local root_dir=$(mktemp -d /tmp/rootfs.XXXXXX)
     mount "${part}" ${root_dir}
     [ -z "${uefi}" ] || {
+        mkfs.vfat -F 32 ${uefi} || return 1
         mkdir -p ${root_dir}/boot/efi
         mount ${uefi} ${root_dir}/boot/efi
     }
     unsquashfs -f -d ${root_dir} ${root_tpl}
     source ${root_dir}/etc/os-release || true
     mount -v -t devtmpfs -o mode=0755,nosuid devtmpfs ${root_dir}/dev || true
-    # mount -v -t devpts -o gid=5,mode=620 devpts ${root_dir}/dev/pts || true
-    # mount -v -t proc none ${root_dir}/proc || true
+    mount -v -t devpts -o gid=5,mode=620 devpts ${root_dir}/dev/pts || true
+    mount -v -t proc none ${root_dir}/proc || true
+    # not mount sysfs, otherwise grub menu will include host system os entry!!
     # mount -v -t sysfs none ${root_dir}/sys || true
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x -o errexit -s <<EOSHELL
 target="i386-pc"
@@ -122,8 +123,8 @@ case "${ID:-}" in
     centos|rocky|openEuler|*)
         echo "rocky9 & openeuler22, when uefi grub2-install bug https://bugzilla.redhat.com/show_bug.cgi?id=1917213"
         [ -z "${uefi}" ] && {
-            grub2-install \${target:+--target=\${target}} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
-            grub2-mkconfig -o /boot/grub2/grub.cfg || true
+            grub2-install \${target:+--target=\${target}} --boot-directory=/boot --modules="xfs part_msdos" ${disk} 2>/dev/null || true
+            grub2-mkconfig -o /boot/grub2/grub.cfg 2>/dev/null || true
         } || {
             # uefi no need efibootmgr --create ......
             grub2-mkconfig -o /boot/efi/EFI/${ID:-}/grub.cfg 2>/dev/null || true
