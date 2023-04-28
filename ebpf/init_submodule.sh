@@ -8,6 +8,7 @@ readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 
 # git submodule update --init
 
+# apt -y install llvm && cd ${kernel}/tools/bpf/bpftool && make
 make -C ${DIRNAME}/libbpf/src \
          BUILD_STATIC_ONLY=1 \
          OBJDIR=${DIRNAME} DESTDIR= \
