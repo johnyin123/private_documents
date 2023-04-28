@@ -6,7 +6,7 @@ echo ,+ | sfdisk --force -u S -N ${part_no} ${disk} || true
 partx -u ${disk} || true
 case "$(lsblk -no FSTYPE ${disk}${part_no})" in
     xfs)   xfs_growfs $(lsblk -no MOUNTPOINT ${disk}${part_no}) || true ;;
-    ext4)  resize2fs ${disk}${part_no}) || true ;;
+    ext4)  resize2fs ${disk}${part_no} || true ;;
 esac
 cat <<EOF > /etc/rc.local
 #!/bin/sh -e
