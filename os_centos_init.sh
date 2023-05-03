@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("8d5efe6[2023-04-17T17:13:57+08:00]:os_centos_init.sh")
+VERSION+=("359f30e[2023-04-24T08:15:00+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -298,9 +298,10 @@ centos_disable_selinux() {
 export -f centos_disable_selinux
 
 centos_disable_ipv6() {
-    cat > /etc/modprobe.d/ipv6.conf << EOF
-install ipv6 /bin/true
-EOF
+#     cat > /etc/modprobe.d/ipv6.conf << EOF
+# install ipv6 /bin/true
+# EOF
+    echo "centos_disable_ipv6 no used!!!"
 }
 export -f centos_disable_ipv6
 
