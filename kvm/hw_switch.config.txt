@@ -406,3 +406,9 @@ net_connect = ConnectHandler(**huawei_switch)
 output = net_connect.send_command('display mac-address')
 print(output)
 net_connect.disconnect()
+################################################################################
+# # neteye fw NISG-5200
+show current-config
+configure mode override
+user administrator admin logintype web,ssh
+interface ethernet eth0
