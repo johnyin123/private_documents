@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("022f6f5[2023-04-25T13:05:09+08:00]:functions.sh")
+VERSION+=("de6fcc5[2023-04-28T13:58:39+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -100,6 +100,19 @@ safe_sed() {
     local cmd="sed ${file:+-i} \"\${${opts}[@]}\" ${file}"
     [ -e "${file}" ] && try $(truecmd cp) ${file} ${file}.orig
     try "${cmd}"
+}
+
+# hex_to_rgb "#FFFFFF"
+# hex_to_rgb "000000"
+hex_to_rgb() {
+    : "${1/\#/}"
+    ((r = 16#${_:0:2}, g = 16#${_:2:2}, b = 16#${_:4:2}))
+    printf '%s\n' "$r $g $b"
+}
+
+# rgb_to_hex "r" "g" "b"
+rgb_to_hex() {
+    printf '#%02x%02x%02x\n' "$1" "$2" "$3"
 }
 
 # #if ssh login with password, need set password first
