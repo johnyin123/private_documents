@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3a08544[2023-04-24T13:38:39+08:00]:virt-imgbootup.sh")
+VERSION+=("274538a[2023-04-24T15:07:44+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 ARCH=${ARCH:-x86_64}
@@ -18,7 +18,7 @@ ${SCRIPTNAME}
         env ARCH=aarch64 set arch, default x86_64
         env CPU=kvm64 set cpu type, default host
         env NET=e1000e set netcard type, default virtio-net-pci
-        env MACHINE=pc set machine(winxp us pc), default q35
+        env MACHINE=pc set machine(winxp us pc), default q35(x86_64):virt(aarch64)
         -c|--cpu    <int>     number of cpus (default 1)
         -m|--mem    <int>     mem size MB (default 2048)
         -D|--disk   <file>    disk image (multi disk must same format)
