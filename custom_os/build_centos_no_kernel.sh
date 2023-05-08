@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1c62de3[2023-04-11T13:17:58+08:00]:build_centos_no_kernel.sh")
+VERSION+=("450726b[2023-04-26T19:55:01+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -128,5 +128,12 @@ rm -rf ${ROOT_DIR}/root/.rpmdb 2>/dev/null || true
 rm -rf ${ROOT_DIR}/var/cache/yum 2>/dev/null || true
 rm -rf ${ROOT_DIR}/var/tmp/yum-* 2>/dev/null || true
 rm -rf ${ROOT_DIR}/var/lib/yum/* 2>/dev/null || true
-
+echo 'kylin Linux use tpl2disk.sh gen error grub.cfg, fix it!!'
+echo ' machine=`uname -m`'
+echo ''
+echo ' if $isubootft; then'
+echo '-#       machine="ubootft"'
+echo '+       machine="ubootft"'
+echo '        case "x$fttype" in'
+echo '        x0x660) GRUB_DEFAULT_DTB="u-boot-general.dtb" ;;'
 log "ALL OK"
