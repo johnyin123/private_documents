@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("f6abb59[2023-04-27T11:34:01+08:00]:tpl2disk.sh")
+VERSION+=("55e658e[2023-04-27T12:56:30+08:00]:tpl2disk.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -120,7 +120,7 @@ case "${ID:-}" in
             cp /boot/efi/EFI/${ID:-}/fbaa64.efi /boot/efi/EFI/BOOT/bootaa64.efi 2>/dev/null || true
         }
         ;;
-    centos|rocky|openEuler|*)
+    centos|rocky|openEuler|anolis|kylin|*)
         echo "rocky9 & openeuler22, when uefi grub2-install bug https://bugzilla.redhat.com/show_bug.cgi?id=1917213"
         [ -z "${uefi}" ] && {
             grub2-install \${target:+--target=\${target}} --boot-directory=/boot --modules="xfs part_msdos" ${disk} 2>/dev/null || true
