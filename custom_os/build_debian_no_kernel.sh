@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cd6089e[2023-04-11T16:49:21+08:00]:build_debian_no_kernel.sh")
+VERSION+=("ad3854e[2023-04-26T18:58:20+08:00]:build_debian_no_kernel.sh")
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -28,19 +28,27 @@ case "${INST_ARCH:-}" in
         # biosdevname"
         ;;
 esac
-PKG+=",dosfstools,fdisk,parted,xfsprogs"
-PKG+=",libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools"
-PKG+=",udev,isc-dhcp-client,netbase,console-setup,systemd-timesyncd,cron,rsyslog,logrotate"
+PKG+=",dosfstools,fdisk,xfsprogs"
+PKG+=",libc-bin,tzdata,locales,apt-utils,systemd-sysv,ifupdown,initramfs-tools"
+PKG+=",udev,isc-dhcp-client,netbase,console-setup,cron,rsyslog,logrotate"
+PKG+=",parted"
+PKG+=",systemd-timesyncd"
+PKG+=",dialog"
+PKG+=",dbus-user-session"
 PKG+=",bridge-utils"
 PKG+=",dnsutils"
-PKG+=",iputils-ping"
-PKG+=",openssh-client"
-PKG+=",openssh-server"
+PKG+=",lsof"
+PKG+=",telnet"
 PKG+=",rsync"
 PKG+=",sshfs"
 PKG+=",sysstat"
+PKG+=",zstd"
+PKG+=",net-tools"
+PKG+=",iputils-ping"
+PKG+=",openssh-client"
+PKG+=",openssh-server"
 PKG+=",xz-utils"
-PKG+=",zstd,lsof,net-tools,telnet,vim"
+PKG+=",vim"
 PKG+="${custom_pkgs:+,${custom_pkgs}}"
 [ "$(id -u)" -eq 0 ] || { log "Must be root to run this script."; exit 1; }
 
@@ -95,7 +103,7 @@ auto br-ext
 iface br-ext inet static
     bridge_ports eth0
     bridge_maxwait 0
-    address 192.168.168.2/24
+    address 192.168.168.101/24
     gateway 192.168.168.1
 EOF
 

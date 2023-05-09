@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("5b8dd86[2023-04-21T08:30:53+08:00]:os_debian_init.sh")
+VERSION+=("450726b[2023-04-26T19:55:01+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -111,6 +111,7 @@ GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0 console=tty1 net.ifnames=0 biosdevname
 GRUB_CMDLINE_LINUX=""
 EOF
     mkdir -p /etc/default/grub.d || true
+    systemctl enable getty@tty1.service || true
     echo 'GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT apparmor=0"' | tee /etc/default/grub.d/apparmor.cfg
     echo "need run: update-grub"
     echo "cat /sys/module/apparmor/parameters/enabled"
