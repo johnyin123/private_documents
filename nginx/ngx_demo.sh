@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b675d3c[2023-02-10T09:00:38+08:00]:ngx_demo.sh")
+VERSION+=("152e095[2023-04-11T07:21:11+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1571,6 +1571,7 @@ map $http_apikey $api_client_name {
     "randomkey" "client_one";
 }
 upstream api_srvs {
+    sticky;
     server 127.0.0.1:9999;
     keepalive 64;
 }
