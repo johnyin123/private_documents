@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("673f66c[2022-12-12T08:39:39+08:00]:playbook_init.sh")
+VERSION+=("4f8be81[2022-12-12T14:22:51+08:00]:playbook_init.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_playbook_module() {
@@ -65,6 +65,18 @@ EOF
 # output register value
 - debug: msg="{{ output }}"
 - debug: msg="{{ testvalue }}"
+
+- name: Create new VM
+  block:
+    - shell: 'ls -l'
+    - shell: 'cat /etc/hostname'
+    - shell: 'false'
+  rescue:
+    - debug:
+        msg: "Task { ansible_failed_task.name }} has result {{ ansible_failed_task.result }}"
+  always:
+    - debug:
+        msg: "alway run here"
 
 # Task called by include
 - include: func.yml parm={{ item }}
