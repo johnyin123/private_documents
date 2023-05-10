@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("55e658e[2023-04-27T12:56:30+08:00]:tpl2disk.sh")
+VERSION+=("1af1867[2023-05-08T16:04:57+08:00]:tpl2disk.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -93,7 +93,11 @@ main() {
         mkdir -p ${root_dir}/boot/efi
         mount ${uefi} ${root_dir}/boot/efi
     }
-    unsquashfs -f -d ${root_dir} ${root_tpl}
+    unsquashfs -f -d ${root_dir} ${root_tpl} || {
+        umount -R -v ${root_dir} || true
+        echo "********************rootfs ERROR*********************"
+        return 1
+    }
     source ${root_dir}/etc/os-release || true
     mount -v -t devtmpfs -o mode=0755,nosuid devtmpfs ${root_dir}/dev || true
     mount -v -t devpts -o gid=5,mode=620 devpts ${root_dir}/dev/pts || true
