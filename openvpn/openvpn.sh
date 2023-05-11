@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f2c9d8a[2023-04-23T14:49:08+08:00]:openvpn.sh")
+VERSION+=("b20ca8f[2023-04-24T08:43:53+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -62,6 +62,8 @@ init_server() {
     tee -a /etc/openvpn/server/vpnsrv.conf <<EOF
 port 1194
 proto udp
+# proto tcp
+# explicit-exit-notify 0
 dev tun
 server 10.8.0.0 255.255.255.0
 keepalive 10 120
@@ -69,10 +71,13 @@ status      /var/log/openvpn-status.log
 log         /var/log/openvpn.log
 log-append  /var/log/openvpn.log
 verb 3
+cipher AES-256-GCM
+# auth SHA256
 comp-lzo
 persist-key
 persist-tun
 # push "route 10.0.0.0 255.255.255.0"
+# push "dhcp-option DNS 114.114.114.114"
 # crl-verify crl.pem
 <ca>
 $(cat /etc/openvpn/server/ca.crt)
@@ -110,7 +115,8 @@ nobind
 persist-key
 persist-tun
 # remote-cert-tls server
-cipher AES-256-CBC
+# cipher AES-256-CBC
+cipher AES-256-GCM
 verb 3
 comp-lzo
 log         /var/log/openvpn_client.log
