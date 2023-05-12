@@ -1,0 +1,61 @@
+2023-05-12T08:06:07.508+0800 7f919951bf00  1 bluestore(/var/lib/ceph/osd/ceph-0/) _open_super_meta min_alloc_size 0x1000
+2023-05-12T08:06:07.511+0800 7f919951bf00 -1 load failed dlopen(): "/usr/lib64/ceph/compressor/libceph_snappy.so: undefined symbol: _ZTIN6snappy6SourceE" or "/usr/lib64/ceph/libceph_snappy.so: cannot open shared object file: No such file or directory"
+2023-05-12T08:06:07.511+0800 7f919951bf00 -1 create cannot load compressor of type snappy
+2023-05-12T08:06:07.511+0800 7f919951bf00 -1 bluestore(/var/lib/ceph/osd/ceph-0/) _set_compression unable to initialize snappy compressor
+
+
+root@srv1:/var/log/ceph$ldd /usr/lib64/ceph/compressor/libceph_snappy.so
+	linux-vdso.so.1 (0x00007ffc57ab5000)
+	libsnappy.so.1 => /usr/lib64/libsnappy.so.1 (0x00007f4e4fa60000)
+	libstdc++.so.6 => /usr/lib64/libstdc++.so.6 (0x00007f4e4f87a000)
+	libm.so.6 => /usr/lib64/libm.so.6 (0x00007f4e4f79e000)
+	libgcc_s.so.1 => /usr/lib64/libgcc_s.so.1 (0x00007f4e4f784000)
+	libc.so.6 => /usr/lib64/libc.so.6 (0x00007f4e4f58d000)
+	/lib64/ld-linux-x86-64.so.2 (0x00007f4e4fa88000)
+
+root@srv1:/var/log/ceph$ceph health detail
+HEALTH_WARN 3 OSD(s) have broken BlueStore compression
+[WRN] BLUESTORE_NO_COMPRESSION: 3 OSD(s) have broken BlueStore compression
+     osd.0 unable to load:snappy
+     osd.1 unable to load:snappy
+     osd.2 unable to load:snappy
+
+root@srv1:~$rpm -qa snappy
+snappy-1.1.9-1.oe2203.x86_64
+root@srv1:~$python3 --version
+Python 3.9.9
+
+https://tracker.ceph.com/issues/53060
+https://github.com/google/snappy/pull/144
+
+
+HOW TO fixit:
+    snappy-1.1.8, check CMakeLists.txt, option(BUILD_SHARED_LIBS "Build shared libraries(DLLs)." ON)
+    mkdir build && cd build && cmake ../ && make .... 
+
+INLINE COMPRESSION
+    BlueStore supports inline compression using snappy, zlib, or lz4. 
+    Please note that the lz4 compression plugin is not distributed in the official release.
+none: Never compress data.
+passive: Do not compress data unless the write operation has a compressible hint set.
+aggressive: Compress data unless the write operation has an incompressible hint set.
+force: Try to compress data no matter what.
+
+ceph osd pool set <pool-name> compression_algorithm <algorithm>
+ceph osd pool set <pool-name> compression_mode <mode>
+ceph osd pool set <pool-name> compression_required_ratio <ratio>
+ceph osd pool set <pool-name> compression_min_blob_size <size>
+ceph osd pool set <pool-name> compression_max_blob_size <size>
+
+bluestore_compression_algorithm
+    The default compressor to use (if any) if the per-pool property compression_algorithm is not set. 
+Note that zstd is not recommended for BlueStore due to high CPU overhead when compressing small amounts of data.
+
+default
+snappy
+valid choices
+<empty string>
+snappy
+zlib
+zstd
+lz4

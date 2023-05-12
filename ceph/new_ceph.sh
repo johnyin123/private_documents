@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5d41492[2021-11-30T06:39:41+08:00]:new_ceph.sh")
+VERSION+=("da80479[2021-11-30T07:50:18+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 fix_ceph_conf() {
@@ -553,6 +553,9 @@ ${SCRIPTNAME}
             192.168.168.101 server1
             192.168.168.... servern
             EOF
+        openeuler 23.03, ceph version 16.2.7
+            WARN: HEALTH_WARN 3 OSD(s) have broken BlueStore compression
+                see openeuler22.03.txt
         VER:nautilus/octopus/pacific || 16.2.6/15.2.9/.....
             centos-release-ceph-nautilus/centos-release-ceph-octopus/centos-release-ceph-pacific
         1. yum -y update && yum -y install centos-release-ceph-\${VER}
