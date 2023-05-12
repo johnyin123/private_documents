@@ -9,11 +9,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5458de5[2023-01-11T11:18:26+08:00]:init_bind.sh")
+VERSION+=("1acfdfb[2023-01-11T12:32:59+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 SERIAL=$(date '+%Y%m%d%H')
-
+LOGFILE=
 log() {
     echo "######$*" | tee ${LOGFILE} >&2
 }
