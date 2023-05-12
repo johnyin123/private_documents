@@ -32,6 +32,7 @@ https://github.com/google/snappy/pull/144
 HOW TO fixit:
     snappy-1.1.8, check CMakeLists.txt, option(BUILD_SHARED_LIBS "Build shared libraries(DLLs)." ON)
     mkdir build && cd build && cmake ../ && make .... 
+    rpm -Uvh --oldpackage https://repo.huaweicloud.com/openeuler/openEuler-20.03-LTS-SP3/everything/${ARCH}/Packages/snappy-1.1.8-1.oe1.${ARCH}.rpm
 
 INLINE COMPRESSION
     BlueStore supports inline compression using snappy, zlib, or lz4. 
