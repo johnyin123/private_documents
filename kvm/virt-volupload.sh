@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-volupload.sh - 9bf43e0 - 2021-01-25T07:29:47+08:00")
+VERSION+=("58cb44d[2021-08-18T17:14:28+08:00]:virt-volupload.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -69,6 +69,7 @@ main() {
     [[ -t 0 ]] || disk_tpl=/dev/stdin    #stdin is redirect
     info_msg "upload ${disk_tpl} start\n" 
     try ${upload_cmd} vol-upload --pool ${pool} --vol ${vol_name} --file ${disk_tpl} || exit_msg "upload template file ${disk_tpl} error\n" 
+    # cat ${disk_tpl} | ${KVM_HOST:+ssh -p ${KVM_PORT:-60022} ${KVM_USER:-root}@${KVM_HOST}} rbd import --image-feature layering - ${pool}/${vol_name} || exit_msg "upload template file ${disk_tpl} via rbd error\n"
     info_msg "upload template file ${disk_tpl} ok\n" 
     return 0
 }
