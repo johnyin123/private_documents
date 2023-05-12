@@ -41,13 +41,15 @@ passive: Do not compress data unless the write operation has a compressible hint
 aggressive: Compress data unless the write operation has an incompressible hint set.
 force: Try to compress data no matter what.
 
+ceph config set global  bluestore_compression_algorithm <algorithm>
+
 ceph osd pool set <pool-name> compression_algorithm <algorithm>
 ceph osd pool set <pool-name> compression_mode <mode>
 ceph osd pool set <pool-name> compression_required_ratio <ratio>
 ceph osd pool set <pool-name> compression_min_blob_size <size>
 ceph osd pool set <pool-name> compression_max_blob_size <size>
 
-bluestore_compression_algorithm
+bluestore_compression_algorithm:
     The default compressor to use (if any) if the per-pool property compression_algorithm is not set. 
 Note that zstd is not recommended for BlueStore due to high CPU overhead when compressing small amounts of data.
 
