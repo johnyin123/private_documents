@@ -1,0 +1,46 @@
+{
+  "log": {
+    "access": "access.log",
+    "error": "error.log",
+    "loglevel": "info"
+  },
+  "inbounds": [
+    {
+      "tag": "http-in",
+      "port": 58891,
+      "listen": "127.0.0.1",
+      "protocol": "http"
+    }
+  ],
+  "outbounds": [
+  {
+    "protocol": "vmess",
+    "settings": {
+      "vnext": [
+        {
+          "address": "vmess-server-address",
+          "port": 1234,
+          "users": [
+            {
+              "id": "vmess-server-id",
+              "alterId": 32,
+              "security": "auto"
+            }
+          ]
+        }
+      ]
+    }
+  }
+  ],
+  "proxySettings": {
+    "tag": "proxy",
+    "protocol": "http",
+    "settings": {
+      "address": "http-proxy-address",
+      "port": "http-proxy-port",
+      "username": "http-proxy-username",
+      "password": "http-proxy-password"
+    }
+  }
+}
+
