@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d039079[2022-12-26T08:15:54+08:00]:v2ray_gencfg.sh")
+VERSION+=("6f0b78e[2022-12-27T13:51:18+08:00]:v2ray_gencfg.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # https://github.com/UmeLabs/node.umelabs.dev
@@ -51,47 +51,45 @@ cat > via_proxy.json <<EOF
     }
   ],
   "outbounds": [
-    {
-      "protocol": "vmess",
-      "settings": {
-        "vnext": [
-          {
-            "address": "172.67.116.211",
-            "port": 443,
-            "users": [
-              {
-                "id": "10a5a682-de44-456c-feed-8932d7a1aa8f",
-                "alterId": 64,
-                "email": "t@t.tt",
-                "security": "auto"
-              }
-            ]
-          }
-        ]
-      },
-      "tag": "VMESS",
-      "proxySettings": {
-          "tag": "HTTP"
-      }
+  {
+    "protocol": "vmess",
+    "settings": {
+      "vnext": [
+        {
+          "address": "172.67.116.211",
+          "port": 443,
+          "users": [
+            {
+              "id": "10a5a682-de44-456c-feed-8932d7a1aa8f",
+              "alterId": 64,
+              "security": "auto"
+            }
+          ]
+        }
+      ]
     },
-    {
-      "protocol": "http",
-      "settings": {
-        "servers": [
-          {
-            "address": "192.168.108.1",
-            "port": 3128,
-            "users": [
-              {
-                "user": "username",
-                "pass": "password"
-              }
-            ]
-          }
-        ]
-      },
-      "tag": "HTTP"
+    "proxySettings": {
+        "tag": "proxy"
     }
+  },
+  {
+    "protocol": "http",
+    "settings": {
+      "servers": [
+        {
+          "address": "proxy_server",
+          "port": 8080,
+          "users": [
+            {
+              "user": "user",
+              "pass": "pass"
+            }
+          ]
+        }
+      ]
+    },
+    "tag": "proxy"
+  }
   ]
 }
 EOF
