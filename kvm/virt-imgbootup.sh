@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("274538a[2023-04-24T15:07:44+08:00]:virt-imgbootup.sh")
+VERSION+=("581a3e4[2023-05-08T09:25:04+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 ARCH=${ARCH:-x86_64}
@@ -24,8 +24,10 @@ ${SCRIPTNAME}
         -D|--disk   <file>    disk image (multi disk must same format)
                     nbd:192.0.2.1:30000
                     nbd:unix:/tmp/nbd-socket
-                    ssh://user@host/path/to/disk.img
+                    ssh://user@host:port/path/to/disk.img
                     iscsi://192.0.2.1/iqn.2001-04.com.example/1
+                    rbd:cephpool/win2k12r2.raw:conf=/etc/ceph/ceph.conf
+                    gluster+tcp://1.2.3.4:24007/testvol/dir/a.img
                     /dev/sda2
         -b|--bridge <br>      host net bridge
         -f|--fmt    <fmt>     disk image format(default auto detect!)
