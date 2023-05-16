@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1acfdfb[2023-01-11T12:32:59+08:00]:init_bind.sh")
+VERSION+=("67b3b69[2023-05-12T17:15:27+08:00]:init_bind.sh")
 ################################################################################
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
 SERIAL=$(date '+%Y%m%d%H')
@@ -124,7 +124,7 @@ EOF
 init_bind() {
     local domain=${1}
     local lan_addr=${2}
-    local wan_addr=${3}
+    local wan_addr=${3:-}
     local l1= l2= l3= l4= w1= w2= w3= w4=
     IFS='.' read -r l1 l2 l3 l4 <<< "${lan_addr}"
     IFS='.' read -r w1 w2 w3 w4 <<< "${wan_addr}"
@@ -143,6 +143,8 @@ init_bind() {
     sed --quiet -i -E \
         -e "/(named.conf.default-zones|named.conf.acl).*/!p" \
         -e "\$ainclude \"${acl_lan_file}\";" \
+        /etc/bind/named.conf
+    [ -z "${wan_addr}" ] || sed --quiet -i -E \
         -e "\$ainclude \"${acl_wan_file}\";" \
         /etc/bind/named.conf
     backup /etc/bind/named.conf.options
@@ -167,23 +169,23 @@ options {
 };
 EOF
     [ -e "${acl_lan_file}" ] || gen_aclview "${lan_addr}" "net_lan" >> ${acl_lan_file}
-    [ -e "${acl_wan_file}" ] || gen_aclview "${wan_addr}" "net_wan" >> ${acl_wan_file}
+    [ -z "${wan_addr}" ] || [ -e "${acl_wan_file}" ] || gen_aclview "${wan_addr}" "net_wan" >> ${acl_wan_file}
 
     gen_zone "${domain}" "${domain_lan_file}" > ${zone_lan_file}
-    gen_zone "${domain}" "${domain_wan_file}" > ${zone_wan_file}
+    [ -z "${wan_addr}" ] || gen_zone "${domain}" "${domain_wan_file}" > ${zone_wan_file}
     aclview_addzone "${acl_lan_file}" "${zone_lan_file}"
-    aclview_addzone "${acl_wan_file}" "${zone_wan_file}"
+    [ -z "${wan_addr}" ] || aclview_addzone "${acl_wan_file}" "${zone_wan_file}"
 
     gen_zone "${l3}.${l2}.${l1}.in-addr.arpa" "${arpa_lan_file}" > ${arpa_zone_lan_file}
-    gen_zone "${w3}.${w2}.${w1}.in-addr.arpa" "${arpa_wan_file}" > ${arpa_zone_wan_file}
+    [ -z "${wan_addr}" ] || gen_zone "${w3}.${w2}.${w1}.in-addr.arpa" "${arpa_wan_file}" > ${arpa_zone_wan_file}
     aclview_addzone "${acl_lan_file}" "${arpa_zone_lan_file}"
-    aclview_addzone "${acl_wan_file}" "${arpa_zone_wan_file}"
+    [ -z "${wan_addr}" ] || aclview_addzone "${acl_wan_file}" "${arpa_zone_wan_file}"
 
     gen_domain_zone "${domain}" "${lan_addr}" > ${domain_lan_file}
-    gen_domain_zone "${domain}" "${wan_addr}" > ${domain_wan_file}
+    [ -z "${wan_addr}" ] || gen_domain_zone "${domain}" "${wan_addr}" > ${domain_wan_file}
 
     gen_reverse_mapped_zone_file "${domain}" "${lan_addr}" "${arpa_lan_file}"
-    gen_reverse_mapped_zone_file "${domain}" "${wan_addr}" "${arpa_wan_file}"
+    [ -z "${wan_addr}" ] || gen_reverse_mapped_zone_file "${domain}" "${wan_addr}" "${arpa_wan_file}"
 }
 
 init_bind_log() {
@@ -221,7 +223,7 @@ usage() {
 ${SCRIPTNAME}
         --domain   *    <str>  domain name "sample.org"
         --lan      *    <str>  lan ipaddr, 192.168.1.2
-        --wan      *    <str>  wan ipaddr.
+        --wan           <str>  wan ipaddr.
         --log                  with named access log (/var/log/named/named.log), default no log 
         -q|--quiet
         -l|--log <str>  log file
@@ -263,7 +265,6 @@ main() {
     done
     [ -z "${domain}" ] && usage "command line error!"
     [ -z "${lan}" ] && usage "command line error!"
-    [ -z "${wan}" ] && usage "command line error!"
     init_bind "${domain}" "${lan}" "${wan}"
     [ -z "${access_log}" ] || init_bind_log
     log "ALL OK ${TIMESPAN}"
