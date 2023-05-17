@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e2fb84a[2023-05-11T11:26:43+08:00]:openvpn.sh")
+VERSION+=("73eb648[2023-05-17T12:42:31+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -114,6 +114,7 @@ resolv-retry infinite
 nobind
 persist-key
 persist-tun
+# pull-filter ignore "route" ; ignore pull routers
 # remote-cert-tls server
 # cipher AES-256-CBC
 cipher AES-256-GCM
