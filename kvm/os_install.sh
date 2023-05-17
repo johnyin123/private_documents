@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("os_install.sh - 7f1324d - 2021-04-21T14:48:16+08:00")
+VERSION+=("58cb44d[2021-08-18T17:14:28+08:00]:os_install.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 CONNECTION=${KVM_HOST:+qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}
@@ -37,7 +37,7 @@ virt_inst() {
     case "$(to_lower ${vm_type})" in
         debian*)
             gen_debian_preseed vda   > /tmp/debian.cfg
-            media+=" --extra-args=\"console=tty0 console=ttyS0\" --initrd-inject=/tmp/debian.cfg"
+            media+=" --extra-args=\"console=tty0 console=ttyS0,115200n8\" --initrd-inject=/tmp/debian.cfg"
             ;;
         centos*)
             gen_centos_kickstart vda > /tmp/centos.ks
@@ -92,7 +92,7 @@ rootpw password
 clearpart --all --initlabel
 # Delete MBR / GPT
 zerombr
-bootloader --location=mbr --driveorder=${boot_disk} --append=" console=tty0 console=ttyS0 net.ifnames=0 biosdevname=0"
+bootloader --location=mbr --driveorder=${boot_disk} --append=" console=tty0 console=ttyS0,115200n8 net.ifnames=0 biosdevname=0"
 part     /          --fstype=xfs  --size=5000 --ondisk=${boot_disk}
 
 # packages

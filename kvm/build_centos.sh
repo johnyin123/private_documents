@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0f15922[2022-03-18T15:49:06+08:00]:build_centos.sh")
+VERSION+=("450726b[2023-04-26T19:55:01+08:00]:build_centos.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 cat <<"EOF"
@@ -240,7 +240,7 @@ GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
 GRUB_DEFAULT=saved
 GRUB_DISABLE_SUBMENU=true
 GRUB_TERMINAL_OUTPUT="console"
-GRUB_CMDLINE_LINUX="console=ttyS0 console=tty1 net.ifnames=0 biosdevname=0 selinux=0"
+GRUB_CMDLINE_LINUX="console=ttyS0,115200n8 console=tty1 net.ifnames=0 biosdevname=0 selinux=0"
 GRUB_DISABLE_RECOVERY="true"
 EOF
 
@@ -397,7 +397,7 @@ exit 0
 #    --accelerate \
 #    --graphics none \
 #    --network bridge=br-mgr,model=virtio \
-#    --extra-args 'ks=http://10.32.166.41:8080/ks.ks ksdevice=eth0 ip=10.3.60.100 netmask=255.255.255.128 gateway=10.3.60.1 console=ttyS0'
+#    --extra-args 'ks=http://10.32.166.41:8080/ks.ks ksdevice=eth0 ip=10.3.60.100 netmask=255.255.255.128 gateway=10.3.60.1 console=ttyS0,115200n8'
 #  virt-install \
 #     --name=Windows10 \
 #     --ram=4096 \
@@ -420,7 +420,7 @@ exit 0
 #  --os-variant=rhel6 \
 #  --location=http://mirror.catn.com/pub/centos/6/os/x86_64 \
 #  --initrd-inject=../kickstarts/$KICKSTART \
-#  --extra-args="ks=file:/$KICKSTART text console=tty0 utf8 console=ttyS0,115200" \
+#  --extra-args="ks=file:/$KICKSTART text console=tty0 utf8 console=ttyS0,115200n8" \
 #  --network bridge=virbr0 \
 #  --disk path=/var/lib/libvirt/images/$IMGNAME.$EXT,size=10,bus=virtio,format=qcow2 \
 #  --force \

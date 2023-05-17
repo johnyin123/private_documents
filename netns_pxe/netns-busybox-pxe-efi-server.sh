@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bf46db8[2023-04-17T17:17:16+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("8b5cff5[2023-04-25T10:20:59+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
@@ -317,7 +317,7 @@ timezone  Asia/Shanghai
 clearpart --all --initlabel --drives=${boot_driver}
 # Delete MBR / GPT
 zerombr
-bootloader --location=mbr --driveorder=${boot_driver} --append=" console=ttyS0 console=tty1 net.ifnames=0 biosdevname=0"
+bootloader --location=mbr --driveorder=${boot_driver} --append=" console=ttyS0,115200n8 console=tty1 net.ifnames=0 biosdevname=0"
 $( [ "${efi}" = "true" ] && echo "part     /boot/efi  --fstype=vfat --size=50 --ondisk=${boot_driver}")
 $(if [ "${lvm:=false}" = "true" ]; then
     echo "part     /boot      --fstype=xfs  --size=200 --ondisk=${boot_driver}"
