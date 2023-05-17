@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6f0b78e[2022-12-27T13:51:18+08:00]:v2ray_gencfg.sh")
+VERSION+=("cfdeeab[2023-05-16T09:44:33+08:00]:v2ray_gencfg.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # https://github.com/UmeLabs/node.umelabs.dev
@@ -67,6 +67,17 @@ cat > via_proxy.json <<EOF
           ]
         }
       ]
+    },
+    "streamSettings":{
+      "network": "ws",
+      "security": "tls",
+      "tlsSettings": {
+          "allowinsecure": true,
+          "ServerName": "short.work.weixin.qq.com"
+      },
+      "wsSettings": {
+          "path": "/8848"
+      }
     },
     "proxySettings": {
         "tag": "proxy"
