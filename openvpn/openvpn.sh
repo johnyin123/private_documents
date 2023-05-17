@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b20ca8f[2023-04-24T08:43:53+08:00]:openvpn.sh")
+VERSION+=("e2fb84a[2023-05-11T11:26:43+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -105,7 +105,7 @@ gen_clent_cert() {
     local key="${3}"
     local tlsauth="${4:-/dev/null}"
     echo "change client.conf remote & ca && cert && key && tls-auth && comp-lzo"
-    cat <<EOF | tee client.conf
+    cat <<EOF | tee client.ovpn
 client
 dev tun
 proto udp
