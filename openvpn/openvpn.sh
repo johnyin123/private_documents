@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("73eb648[2023-05-17T12:42:31+08:00]:openvpn.sh")
+VERSION+=("0775b02[2023-05-17T14:44:10+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -76,6 +76,8 @@ cipher AES-256-GCM
 comp-lzo
 persist-key
 persist-tun
+# # Enable multiple clients to connect with the same certificate key
+# duplicate-cn
 # push "route 10.0.0.0 255.255.255.0"
 # push "dhcp-option DNS 114.114.114.114"
 # crl-verify crl.pem
