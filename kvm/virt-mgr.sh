@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e334a1d[2023-04-24T09:15:17+08:00]:virt-mgr.sh")
+VERSION+=("f4740b8[2023-04-24T11:09:50+08:00]:virt-mgr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -275,13 +275,16 @@ cmd:create <arg> [domain_template in cfg]
 
 cmd:attach <arg>
         attach device(net/disk/etc)
-        -u|--uuid <uuid>           *             domain uuid
+        -u|--uuid <uuid>           **            domain uuid
         -n|--net <tpl-name>        *             network template name in cfg
-        -p|--pool <pool>           *             kvm storage pool
-        -s|--size <size>           *             <size> GB/MB/KB
+                                            raw device /dev/sda ... use net, as raw device
+        -p|--pool <pool>            *            kvm storage pool in cfg, same as libvirt pool name
+        -s|--size <size>            *            <size> GB/MB/KB
         -f|--format <fmt>                        disk format,default raw
         -b|--back <backing vol>                  disk backing vol file
         -F|--bfmt <backing format>               disk backing vol format
+        Example:
+           ${SCRIPTNAME} --uuid \$(cat /proc/sys/kernel/random/uuid) --net sdf # attach /dev/sdf disk(cfg defined)
 EOF
 exit 1
 } >&2
@@ -500,6 +503,13 @@ declare -A DEVICE_TPL=(
    <source file='{{STORE_PATH}}'/>
    <backingStore/>
    <target dev='{{LAST_DISK}}' bus='virtio'/>
+</disk>"
+    [sdf]="
+<disk type='block' device='disk'>
+  <driver name='qemu' type='raw' cache='none' io='native'/>
+  <source dev='/dev/sdf'/>
+  <backingStore/>
+  <target dev='{{LAST_DISK}}' bus='virtio'/>
 </disk>"
     [lvm]="
 <disk type='block' device='disk'>

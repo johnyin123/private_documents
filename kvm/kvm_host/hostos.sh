@@ -149,7 +149,7 @@ EOF
     cat <<EOF > ${root_dir}/etc/sysconfig/network-scripts/ifcfg-bond0.3006 
 DEVICE="bond0.3006"
 ONBOOT="yes"
-BRIDGE="br-ext.3006"
+BRIDGE="br-ext"
 VLAN=yes
 EOF
     cat <<EOF > ${root_dir}/etc/sysconfig/network-scripts/ifcfg-br-ext
