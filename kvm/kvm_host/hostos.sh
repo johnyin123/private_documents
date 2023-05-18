@@ -159,7 +159,7 @@ TYPE="Bridge"
 BOOTPROTO="none"
 #STP="on"
 EOF
-    rm -f ${root_dir}/root/.bash_history
+    rm -f ${root_dir}/root/.bash_history ${root_dir}/admin/.bash_history
     find ${root_dir}/var/log/ -type f | xargs -I@ truncate -s0 @
     ./tpl_pack.sh -c xz ${root_dir}/ ${root_dir}.tpl
 done

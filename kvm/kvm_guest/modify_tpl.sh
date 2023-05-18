@@ -57,8 +57,8 @@ EOSHELL
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDIcCEBlGLWfQ6p/6/QAR1LncKGlFoiNvpV3OUzPEoxJfw5ChIc95JSqQQBIM9zcOkkmW80ZuBe4pWvEAChdMWGwQLjlZSIq67lrpZiql27rL1hsU25W7P03LhgjXsUxV5cLFZ/3dcuLmhGPbgcJM/RGEqjNIpLf34PqebJYqPz9smtoJM3a8vDgG3ceWHrhhWNdF73JRzZiDo8L8KrDQTxiRhWzhcoqTWTrkj2T7PZs+6WTI+XEc8IUZg/4NvH06jHg8QLr7WoWUtFvNSRfuXbarAXvPLA6mpPDz7oRKB4+pb5LpWCgKnSJhWl3lYHtZ39bsG8TyEZ20ZAjluhJ143GfDBy8kLANSntfhKmeOyolnz4ePf4EjzE3WwCsWNrtsJrW3zmtMRab7688vrUUl9W2iY9venrW0w6UL7Cvccu4snHLaFiT6JSQSSJS+mYM5o8T0nfIzRi0uxBx4m9/6nVIl/gs1JApzgWyqIi3opcALkHktKxi76D0xBYAgRvJs= admin@liveos
 EOF
     chmod 0600 ${root_dir}/home/admin/.ssh/authorized_keys
-
-   cat > ${root_dir}/etc/security/limits.d/tun.conf << EOF
+    chroot ${root_dir} chown admin:admin /home/admin/.ssh -R || true
+    cat > ${root_dir}/etc/security/limits.d/tun.conf << EOF
 *           soft   nofile       102400
 *           hard   nofile       102400
 EOF
@@ -116,7 +116,7 @@ ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zs
 EOF
     chmod 0600 ${root_dir}/root/.ssh/authorized_keys
 
-    rm -f ${root_dir}/root/.bash_history
+    rm -f ${root_dir}/root/.bash_history ${root_dir}/admin/.bash_history
     find ${root_dir}/var/log/ -type f | xargs -I@ truncate -s0 @
     ./tpl_pack.sh -c xz ${root_dir}/ ${root_dir}.tpl
 done
