@@ -49,6 +49,10 @@ echo "add admin to sudoers"
 grep -q sudoers.d /etc/sudoers && echo OK || echo "#includedir /etc/sudoers.d" >> /etc/sudoers
 echo "%admin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/admin
 chmod 0440 /etc/sudoers.d/admin
+mkdir -p /home/admin/.config/libvirt
+echo 'uri_default = "qemu:///system"' > /home/admin/.config/libvirt/libvirt.conf
+chown admin:admin /home/admin/.config -R
+
 yum clean all
 EOSHELL
 
