@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f4740b8[2023-04-24T11:09:50+08:00]:virt-mgr.sh")
+VERSION+=("2fd6ca6[2023-05-18T15:07:48+08:00]:virt-mgr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -517,6 +517,7 @@ declare -A DEVICE_TPL=(
   <source dev='{{STORE_PATH}}'/>
   <backingStore/>
   <target dev='{{LAST_DISK}}' bus='virtio'/>
+  <blockio logical_block_size='4096' physical_block_size='4096'/>
 </disk>"
     [cephpool]="
 <disk type='network' device='disk'>
