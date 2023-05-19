@@ -1,0 +1,36 @@
+apt install j2cli
+# jinja2 templating in shell-scripts
+
+cat <<EOF> vm.tpl
+name={{name}}
+memory={{memory}}
+vcpu={{cpu}}
+type={{format}}
+{% for nic in nics %}
+{% if nic['net_type'] == 'NAT' or nic['net_type'] == 'NETWORK' %}
+    <interface type='network'>
+      <source network='{{nic['net_name']}}'/>
+{% else %}
+    <interface type='bridge'>
+      <source bridge='{{nic['net_name']}}'/>
+{% endif %}
+      <mac address='{{nic['mac']}}'/>
+      <model type='virtio'/>
+{% if nic['targetdev'] %}
+      <target dev='{{nic['targetdev']}}'/>
+{% endif %}
+      <address type='pci' domain='0x0000' bus='0x00' slot='{{nic['slot']}}' function='0x0'/>
+    </interface>
+{% endfor %}
+EOF
+cat <<EOF | tee | j2 --undefined --format=json vm.tpl
+{
+    "name": "vmname",
+    "memory": 5,
+    "cpu": 4,
+    "format": "raw",
+    "nics": [
+    ]
+}
+EOF
+
