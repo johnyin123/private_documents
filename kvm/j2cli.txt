@@ -30,7 +30,29 @@ cat <<EOF | tee | j2 --undefined --format=json vm.tpl
     "cpu": 4,
     "format": "raw",
     "nics": [
+        {
+            "net_name": "net1",
+            "net_type": "BRIDGE",
+            "mac":"xxx"
+        },
+        {
+            "net_name": "net2",
+            "net_type": "NAT",
+            "mac":"xxx2"
+        }
     ]
 }
 EOF
-
+cat <<EOF | tee | j2 --undefined --format=yaml vm.tpl
+name: vmname
+memory: 5
+cpu: 4
+format: raw
+nics:
+- net_name: net1
+  net_type: BRIDGE
+  mac: xxx
+- net_name: net2
+  net_type: NAT
+  mac: xxx2
+EOF
