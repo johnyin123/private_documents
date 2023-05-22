@@ -50,6 +50,13 @@ echo "add admin to sudoers"
 grep -q sudoers.d /etc/sudoers && echo OK || echo "#includedir /etc/sudoers.d" >> /etc/sudoers
 echo "%admin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/admin
 chmod 0440 /etc/sudoers.d/admin
+echo "modify time server"
+sed -i 's/^\s*#*\s*NTP\s*=.*$/NTP=time.neusoft.com/g' /etc/systemd/timesyncd.conf 2>/dev/null || true
+
+sed -i "/^\s*server\s/d" /etc/chrony.conf 2>/dev/null | true
+sed -i "/^\s*pool\s/d" /etc/chrony.conf 2>/dev/null | true
+sed -i "3 a server time.neusoft.com iburst" /etc/chrony.conf 2>/dev/null | true
+yum clean all || true
 EOSHELL
 
 [ ! -d ${root_dir}/home/admin/.ssh ] && mkdir -m0700 ${root_dir}/home/admin/.ssh
