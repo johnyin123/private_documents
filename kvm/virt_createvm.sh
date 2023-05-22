@@ -7,9 +7,10 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-05-22T16:57:16+08:00]:virt_createvm.sh")
+VERSION+=("82bc61a[2023-05-22T16:57:16+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
+LOGFILE=""
 gen_tpl() {
     local cfg=${1}
     cat <<'EOF' > ${cfg}
@@ -17,7 +18,7 @@ gen_tpl() {
   <name>{{ vm_name }}-{{ vm_uuid }}</name>
   <uuid>{{ vm_uuid }}</uuid>
   <title>{{ vm_name }}</title>
-  <description>{{ vm_desc }}</description>
+  <description>{{ vm_desc | default("") }}</description>
   <memory unit='MiB'>{{ vm_ram_mb_max | default(8192)}}</memory>
   <currentMemory unit='MiB'>{{ vm_ram_mb | default(1024) }}</currentMemory>
   <vcpu placement='static' current='{{ vm_vcpus | default(1) }}'>{{ vm_vcpus_max | default(8) }}</vcpu>
@@ -75,30 +76,22 @@ gen_tpl() {
 </domain>
 EOF
 }
-gen_yaml() {
-    cat <<'EOF'
-vm_uuid
-vm_name 
-vm_desc 
-# default 8192
-vm_ram_mb_max
-# default 1024
-vm_ram_mb
-# default 1
-vm_vcpus
-# default 8
-vm_vcpus_max
-# aarch64/x86_64
-vm_arch
-# /usr/share/OVMF/OVMF_CODE.fd
-# /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
-vm_uefi 
-EOF
-}
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        -u|--uuid       <uuid>    default autogen
+        -N|--name       <str>
+        -D|--desc       <str>
+        -c|--cpus       <int>     default 1
+        -m|--mem        <int>     default 1024
+        --arch          <str>     default x86_64 # aarch64/x86_64/..
+        --uefi          <str>     if use uefi bootup, assian uefi file name
+                                    /usr/share/OVMF/OVMF_CODE.fd
+                                    /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
+        --maxcpu        <int>     default 8
+        --maxmem        <int>     default 8192
+
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -108,24 +101,31 @@ EOF
     exit 1
 }
 main() {
-    local opt_short=""
-    local opt_long=""
+    local uuid="" name="" desc="" cpus="" mem="" arch="" uefi="" maxcpu="" maxmem=""
+    local opt_short="u:N:D:c:m:"
+    local opt_long="uuid:,name:,desc:,cpus:,mem:,arch:,uefi:,maxcpu:,maxmem:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
 
     local TPL_FILE=${TPL_FILE:-"vm.j2"}
-    CPU=${CPU:-kvm64}
-    #CPU=Westmere
     [[ -r "${TPL_FILE}" ]] || {
         gen_tpl "${TPL_FILE}"
-        gen_yaml
         ${EDITOR:-vi} ${TPL_FILE} || true
         exit_msg "Created ${TPL_FILE} using defaults.  Please review it/configure before running again.\n"
     }
     while true; do
         case "$1" in
+            -u | --uuid)    shift; uuid="${1}"; shift;;
+            -N | --name)    shift; name="${1}"; shift;;
+            -D | --desc)    shift; desc="${1}"; shift;;
+            -c | --cpus)    shift; cpus="${1}"; shift;;
+            -m | --mem)     shift; mem="${1}"; shift;;
+            --arch)         shift; arch="${1}"; shift;;
+            --uefi)         shift; uefi="${1}"; shift;;
+            --maxcpu)       shift; maxcpu="${1}"; shift;;
+            --maxmem)       shift; maxmem="${1}"; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -136,25 +136,21 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    cat <<EOF | j2 --format=yaml ${TPL_FILE} | tee /dev/stderr | virsh define /dev/stdin
-vm_uuid: "$(cat /proc/sys/kernel/random/uuid)"
-vm_name : "vmname"
-vm_desc : "desc test 中而"
-# default 8192
-vm_ram_mb_max: 9999
-# default 1024
-vm_ram_mb: 1024
-# default 1
-vm_vcpus: 2
-# default 8
-vm_vcpus_max: 8
-# aarch64/x86_64
-vm_arch: "x86_64"
-# /usr/share/OVMF/OVMF_CODE.fd: ""
-# /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw: ""
-# vm_uefi : "uefi/file"
+    require j2
+    defined QUIET || LOGFILE="-a /dev/stderr"
+    uuid=${uuid:-$(cat /proc/sys/kernel/random/uuid)}
+    cat <<EOF | tee ${LOGFILE} | j2 --format=yaml ${TPL_FILE} | tee ${LOGFILE} | virsh define /dev/stdin || exit_msg "${uuid} create ERROR\n"
+vm_uuid: "${uuid}"
+vm_name : "${name:-vm}"
+vm_desc : "${desc:-}"
+vm_ram_mb_max: ${maxmem:-8192}
+vm_ram_mb: ${mem:-1024}
+vm_vcpus: ${cpus:-1}
+vm_vcpus_max: ${maxcpu:-8}
+vm_arch: "${arch:-x86_64}"
+${uefi:+vm_uefi: ${uefi}}
 EOF
-    echo "ALL OK"
+    info_msg "${uuid} create OK\n"
     return 0
 }
 main "$@"
