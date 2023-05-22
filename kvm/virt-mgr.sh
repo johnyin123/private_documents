@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2fd6ca6[2023-05-18T15:07:48+08:00]:virt-mgr.sh")
+VERSION+=("730866b[2023-05-19T14:18:05+08:00]:virt-mgr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -322,7 +322,6 @@ declare -A DOMAIN_TPL=(
   <cpu match='exact'><model fallback='allow'>${CPU}</model></cpu>
   <os><type arch='x86_64'>hvm</type>
     <loader readonly='yes' type='pflash'>/usr/share/OVMF/OVMF_CODE.fd</loader>
-    <nvram>/var/lib/libvirt/qemu/nvram/rhel8-unknown_VARS.fd</nvram>
   </os>
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>preserve</on_poweroff>
