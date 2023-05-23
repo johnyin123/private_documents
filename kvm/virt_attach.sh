@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d7c1c3d[2023-05-23T12:58:24+08:00]:virt_attach.sh")
+VERSION+=("dd2dbea[2023-05-23T13:43:52+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -66,8 +66,8 @@ domain_live_arg() {
 }
 main() {
     local tpl="" uuid=""
-    local opt_short="t:"
-    local opt_long="tpl:,"
+    local opt_short="t:u:"
+    local opt_long="tpl:,uuid:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -88,12 +88,13 @@ main() {
     done
     require j2 xmlstarlet virsh
     defined QUIET || LOGFILE="-a /dev/stderr"
-    [ -z "${uuid}" ] || [ -z "${tpl}" ] || usage "uuid/tpl must input"
+    [ -z "${uuid}" ] && usage "uuid must input"
+    [ -z "${tpl}" ] && usage "tpl must input"
     local live=$(domain_live_arg "${uuid}")
     info_msg "${uuid}(${live:-shut off}) attach device\n"
     local last_disk=$(set_last_disk "${uuid}") || exit_msg "${uuid} get last disk ERROR\n"
     cat <<EOF | tee ${LOGFILE} | j2 --format=yaml ${tpl} | tee ${LOGFILE} | \
-    try ${VIRSH} attach-device --domain ${uuid} --file /dev/stdin --persistent ${live} || exit_msg "${uuid} attach ERROR\n"
+    ${VIRSH} attach-device --domain ${uuid} --file /dev/stdin --persistent ${live} || exit_msg "${uuid} attach ERROR\n"
 vm_uuid: "${uuid}"
 vm_last_disk: "${last_disk}"
 EOF

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6fe793b[2023-05-23T07:48:12+08:00]:virt_createvm.sh")
+VERSION+=("f0f635b[2023-05-23T12:54:11+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -135,9 +135,9 @@ main() {
     done
     require j2
     defined QUIET || LOGFILE="-a /dev/stderr"
-    [ -z "${tpl}" ] || usage "tpl must input"
+    [ -z "${tpl}" ] && usage "tpl must input"
     uuid=${uuid:-$(cat /proc/sys/kernel/random/uuid)}
-    cat <<EOF | tee ${LOGFILE} | j2 --format=yaml ${TPL_FILE} | tee ${LOGFILE} | try ${VIRSH} define --file /dev/stdin || exit_msg "${uuid} create ERROR\n"
+    cat <<EOF | tee ${LOGFILE} | j2 --format=yaml ${tpl} | tee ${LOGFILE} | try ${VIRSH} define --file /dev/stdin || exit_msg "${uuid} create ERROR\n"
 vm_uuid: "${uuid}"
 vm_name : "${name:-vm}"
 vm_desc : "${desc:-}"
