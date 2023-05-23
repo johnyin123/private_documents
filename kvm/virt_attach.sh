@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-05-23T12:58:24+08:00]:virt_attach.sh")
+VERSION+=("d7c1c3d[2023-05-23T12:58:24+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -18,7 +18,7 @@ gen_tpl() {
 # disk tpl demo
 <disk type='block' device='disk'>
   <driver name='qemu' type='raw' cache='none' io='native'/>
-  <source dev='{{STORE_PATH}}'/>
+  <source dev='{{ store_path }}'/>
   <backingStore/>
   <target dev='vd{{ vm_last_disk }}' bus='virtio'/>
   <blockio logical_block_size='4096' physical_block_size='4096'/>
@@ -48,8 +48,7 @@ EOF
 }
 set_last_disk() {
     local disks=("a" "b" "c" "d" "e" "f" "g" "h" "i" "j" "k" "l" "m" "n" "o")
-    local arr=$1
-    local uuid="$(array_get ${arr} 'UUID')"
+    local uuid="$1"
     local last_disk=
     local xml=$(${VIRSH} dumpxml ${uuid} 2>/dev/null)
     [[ -z "${xml}" ]] && return 9
@@ -57,7 +56,7 @@ set_last_disk() {
     do
         #last_disk=$(printf "$xml" | xmllint --xpath "string(/domain/devices/disk[$i]/target/@dev)" -)
         last_disk=$(printf "$xml" | xmlstarlet sel -t -v "/domain/devices/disk[$i]/target/@dev")
-        [[ -z "${last_disk}" ]] && { array_set ${arr} "LAST_DISK" "${disks[((i-1))]}" ; return 0; }
+        [[ -z "${last_disk}" ]] && { echo "${disks[((i-1))]}" ; return 0; }
     done
     return 7
 }
@@ -87,12 +86,12 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    require j2
+    require j2 xmlstarlet virsh
     defined QUIET || LOGFILE="-a /dev/stderr"
     [ -z "${uuid}" ] || [ -z "${tpl}" ] || usage "uuid/tpl must input"
     local live=$(domain_live_arg "${uuid}")
     info_msg "${uuid}(${live:-shut off}) attach device\n"
-    local last_disk=$(${VIRSH} vol-path --pool "${pool}" "${name}") || exit_msg "${uuid} get last disk ERROR\n"
+    local last_disk=$(set_last_disk "${uuid}") || exit_msg "${uuid} get last disk ERROR\n"
     cat <<EOF | tee ${LOGFILE} | j2 --format=yaml ${tpl} | tee ${LOGFILE} | \
     try ${VIRSH} attach-device --domain ${uuid} --file /dev/stdin --persistent ${live} || exit_msg "${uuid} attach ERROR\n"
 vm_uuid: "${uuid}"
