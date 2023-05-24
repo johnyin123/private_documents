@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dd2dbea[2023-05-23T13:43:52+08:00]:virt_attach.sh")
+VERSION+=("1f1b723[2023-05-23T14:25:43+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -37,6 +37,7 @@ usage() {
 ${SCRIPTNAME}
         -u|--uuid   *   <uuid>    vm uuid
         -t|--tpl    *   <file>    device tpl file
+        -e|--env        <key>=<val> addition keyval pair
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -65,9 +66,10 @@ domain_live_arg() {
     ${VIRSH} list --state-running --uuid | grep -q ${uuid} && echo "--live" || echo ""
 }
 main() {
+    declare -A tpl_env
     local tpl="" uuid=""
-    local opt_short="t:u:"
-    local opt_long="tpl:,uuid:,"
+    local opt_short="t:u:e:"
+    local opt_long="tpl:,uuid:,env:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -76,6 +78,7 @@ main() {
         case "$1" in
             -u | --uuid)    shift; uuid="${1}"; shift;;
             -t | --tpl)     shift; tpl=${1}; shift;;
+            -e | --env)     shift; { IFS== read _tvar _tval; } <<< ${1}; _tvar="$(trim ${_tvar})"; _tval="$(trim ${_tval})"; array_set tpl_env "${_tvar}" "${_tval}"; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -97,6 +100,9 @@ main() {
     ${VIRSH} attach-device --domain ${uuid} --file /dev/stdin --persistent ${live} || exit_msg "${uuid} attach ERROR\n"
 vm_uuid: "${uuid}"
 vm_last_disk: "${last_disk}"
+$(for _k in $(array_print_label tpl_env); do
+echo "$_k:$(array_get tpl_env $_k)"
+done)
 EOF
     info_msg "${uuid} attach OK\n"
     return 0

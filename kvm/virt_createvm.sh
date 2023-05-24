@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f0f635b[2023-05-23T12:54:11+08:00]:virt_createvm.sh")
+VERSION+=("1f1b723[2023-05-23T14:25:43+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -93,7 +93,7 @@ ${SCRIPTNAME}
                                     /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
         --maxcpu        <int>     default 8
         --maxmem        <int>     default 8192
-
+        -e|--env        <key>=<val> addition keyval pair
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -104,9 +104,10 @@ EOF
     exit 1
 }
 main() {
+    declare -A tpl_env
     local tpl="" uuid="" name="" desc="" cpus="" mem="" arch="" uefi="" maxcpu="" maxmem=""
-    local opt_short="u:N:D:c:m:"
-    local opt_long="uuid:,name:,desc:,cpus:,mem:,arch:,uefi:,maxcpu:,maxmem:,"
+    local opt_short="u:N:D:c:m:e:"
+    local opt_long="uuid:,name:,desc:,cpus:,mem:,arch:,uefi:,maxcpu:,maxmem:,env:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -123,6 +124,7 @@ main() {
             --uefi)         shift; uefi="${1}"; shift;;
             --maxcpu)       shift; maxcpu="${1}"; shift;;
             --maxmem)       shift; maxmem="${1}"; shift;;
+            -e | --env)     shift; { IFS== read _tvar _tval; } <<< ${1}; _tvar="$(trim ${_tvar})"; _tval="$(trim ${_tval})"; array_set tpl_env "${_tvar}" "${_tval}"; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -137,7 +139,7 @@ main() {
     defined QUIET || LOGFILE="-a /dev/stderr"
     [ -z "${tpl}" ] && usage "tpl must input"
     uuid=${uuid:-$(cat /proc/sys/kernel/random/uuid)}
-    cat <<EOF | tee ${LOGFILE} | j2 --format=yaml ${tpl} | tee ${LOGFILE} | try ${VIRSH} define --file /dev/stdin || exit_msg "${uuid} create ERROR\n"
+    cat <<EOF | tee ${LOGFILE} | j2 --format=yaml ${tpl} | tee ${LOGFILE} | ${VIRSH} define --file /dev/stdin || exit_msg "${uuid} create ERROR\n"
 vm_uuid: "${uuid}"
 vm_name : "${name:-vm}"
 vm_desc : "${desc:-}"
@@ -147,6 +149,9 @@ vm_vcpus: ${cpus:-1}
 vm_vcpus_max: ${maxcpu:-8}
 vm_arch: "${arch:-x86_64}"
 ${uefi:+vm_uefi: ${uefi}}
+$(for _k in $(array_print_label tpl_env); do
+echo "$_k:$(array_get tpl_env $_k)"
+done)
 EOF
     info_msg "${uuid} create OK\n"
     return 0
