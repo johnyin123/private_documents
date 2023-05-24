@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1f1b723[2023-05-23T14:25:43+08:00]:virt_attach.sh")
+VERSION+=("7aa6490[2023-05-24T08:51:03+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -15,7 +15,16 @@ VIRSH="virsh ${VIRSH_OPT}"
 LOGFILE=""
 gen_tpl() {
     cat <<'EOF'
+# only vm_last_disk is buildin var
 # disk tpl demo
+<disk type='file' device='disk'>
+   <driver name='qemu' type='{{ format }}' cache='none' io='native'/>
+   <source file='{{ store_path }}'/>
+   <backingstore/>
+   <blockio logical_block_size='4096' physical_block_size='4096'/>
+   <target dev='vd{{ vm_last_disk }}' bus='virtio'/>
+</disk>
+# raw dev
 <disk type='block' device='disk'>
   <driver name='qemu' type='raw' cache='none' io='native'/>
   <source dev='{{ store_path }}'/>
@@ -35,8 +44,8 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        -u|--uuid   *   <uuid>    vm uuid
         -t|--tpl    *   <file>    device tpl file
+        -u|--uuid   *   <uuid>    vm uuid
         -e|--env        <key>=<val> addition keyval pair
         -q|--quiet
         -l|--log <int> log level
@@ -76,8 +85,8 @@ main() {
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -u | --uuid)    shift; uuid="${1}"; shift;;
             -t | --tpl)     shift; tpl=${1}; shift;;
+            -u | --uuid)    shift; uuid="${1}"; shift;;
             -e | --env)     shift; { IFS== read _tvar _tval; } <<< ${1}; _tvar="$(trim ${_tvar})"; _tval="$(trim ${_tval})"; array_set tpl_env "${_tvar}" "${_tval}"; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
@@ -101,7 +110,7 @@ main() {
 vm_uuid: "${uuid}"
 vm_last_disk: "${last_disk}"
 $(for _k in $(array_print_label tpl_env); do
-echo "$_k:$(array_get tpl_env $_k)"
+echo "$_k: \"$(array_get tpl_env $_k)\""
 done)
 EOF
     info_msg "${uuid} attach OK\n"
