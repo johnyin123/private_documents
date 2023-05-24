@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-05-24T09:34:09+08:00]:virt_createvol.sh")
+VERSION+=("a7592e4[2023-05-24T09:34:08+08:00]:virt_createvol.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -56,9 +56,7 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    [ -z "${pool}" ] && usage "pool must input"
-    [ -z "${name}" ] && usage "name must input"
-    [ -z "${size}" ] && usage "size must input"
+    [ ! -z "${pool}" ] && [ ! -z "${name}" ] && [ ! -z "${size}" ] || usage "pool/name/size must input"
     info_msg "create vol ${name} on ${pool} size ${size}\n"
     try ${VIRSH} pool-refresh ${pool} || exit_msg "pool-refresh error\n" 
     try ${VIRSH} vol-create-as --pool ${pool} --name ${name} --capacity 1M --format ${fmt} \

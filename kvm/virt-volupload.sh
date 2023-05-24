@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("359344c[2023-05-12T15:22:33+08:00]:virt-volupload.sh")
+VERSION+=("6b5f702[2023-05-12T15:24:39+08:00]:virt-volupload.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -65,9 +65,7 @@ main() {
     #stdin is redirect
     #[ -p /dev/stdin ] || { disk_tpl=/dev/stdin; upload_cmd="cat | ${VIRSH}"; }
     [[ -t 0 ]] || { disk_tpl=/dev/stdin; upload_cmd="cat | ${VIRSH}"; }
-    [[ -z "${disk_tpl}" ]] && usage "template must input"
-    [[ -z "${vol_name}" ]] && usage "vol name must input"
-    [[ -z "${pool}"     ]] && usage "pool must input"
+    [ ! -z "${disk_tpl}" ] && [ ! -z "${vol_name}" ] && [ ! -z "${pool}" ] || usage "vol_name/tpl/pool must input"
     [ -r ${disk_tpl} ] || exit_msg "template file ${disk_tpl} no found\n"
     [[ -t 0 ]] || disk_tpl=/dev/stdin    #stdin is redirect
     info_msg "upload ${disk_tpl} start\n"
