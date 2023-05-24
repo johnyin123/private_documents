@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c9b89ea[2023-05-24T13:57:53+08:00]:virt_createvm.sh")
+VERSION+=("3ff9f0e[2023-05-24T14:51:55+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -134,7 +134,7 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    require j2
+    require j2 virsh
     defined QUIET || LOGFILE="-a /dev/stderr"
     [ -z "${tpl}" ] && usage "tpl must input"
     uuid=${uuid:-$(cat /proc/sys/kernel/random/uuid)}
@@ -149,7 +149,7 @@ vm_vcpus_max: ${maxcpu:-8}
 vm_arch: "${arch:-x86_64}"
 ${uefi:+vm_uefi: ${uefi}}
 $(for _k in $(array_print_label tpl_env); do
-echo "$_k:$(array_get tpl_env $_k)"
+echo "$_k: \"$(array_get tpl_env $_k)\""
 done)
 EOF
     info_msg "${uuid} create OK\n"
