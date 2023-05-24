@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7aa6490[2023-05-24T08:51:03+08:00]:virt_createvm.sh")
+VERSION+=("c9b89ea[2023-05-24T13:57:53+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -100,7 +100,6 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
 EOF
-    gen_tpl
     exit 1
 }
 main() {
@@ -130,7 +129,7 @@ main() {
             -l | --log)     shift; set_loglevel ${1}; shift;;
             -d | --dryrun)  shift; DRYRUN=1;;
             -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
-            -h | --help)    shift; usage;;
+            -h | --help)    shift; gen_tpl;usage;;
             --)             shift; break;;
             *)              usage "Unexpected option: $1";;
         esac

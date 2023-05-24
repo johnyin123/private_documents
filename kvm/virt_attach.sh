@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7aa6490[2023-05-24T08:51:03+08:00]:virt_attach.sh")
+VERSION+=("c66ac06[2023-05-24T14:24:01+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -53,7 +53,6 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
 EOF
-    gen_tpl
     exit 1
 }
 set_last_disk() {
@@ -61,12 +60,12 @@ set_last_disk() {
     local uuid="$1"
     local last_disk=
     local xml=$(${VIRSH} dumpxml ${uuid} 2>/dev/null)
-    [[ -z "${xml}" ]] && return 9
+    [ -z "${xml}" ] && return 9
     for ((i=1;i<10;i++))
     do
         #last_disk=$(printf "$xml" | xmllint --xpath "string(/domain/devices/disk[$i]/target/@dev)" -)
         last_disk=$(printf "$xml" | xmlstarlet sel -t -v "/domain/devices/disk[$i]/target/@dev")
-        [[ -z "${last_disk}" ]] && { echo "${disks[((i-1))]}" ; return 0; }
+        [ -z "${last_disk}" ] && { echo "${disks[((i-1))]}" ; return 0; }
     done
     return 7
 }
@@ -93,15 +92,14 @@ main() {
             -l | --log)     shift; set_loglevel ${1}; shift;;
             -d | --dryrun)  shift; DRYRUN=1;;
             -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
-            -h | --help)    shift; usage;;
+            -h | --help)    shift; gen_tpl;usage;;
             --)             shift; break;;
             *)              usage "Unexpected option: $1";;
         esac
     done
     require j2 xmlstarlet virsh
     defined QUIET || LOGFILE="-a /dev/stderr"
-    [ -z "${uuid}" ] && usage "uuid must input"
-    [ -z "${tpl}" ] && usage "tpl must input"
+    [ ! -z "${uuid}" ] && [ ! -z "${tpl}" ] || usage "uuid/tpl must input"
     local live=$(domain_live_arg "${uuid}")
     info_msg "${uuid}(${live:-shut off}) attach device\n"
     local last_disk=$(set_last_disk "${uuid}") || exit_msg "${uuid} get last disk ERROR\n"
