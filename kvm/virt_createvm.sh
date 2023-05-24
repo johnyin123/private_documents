@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1f1b723[2023-05-23T14:25:43+08:00]:virt_createvm.sh")
+VERSION+=("7aa6490[2023-05-24T08:51:03+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -106,8 +106,8 @@ EOF
 main() {
     declare -A tpl_env
     local tpl="" uuid="" name="" desc="" cpus="" mem="" arch="" uefi="" maxcpu="" maxmem=""
-    local opt_short="u:N:D:c:m:e:"
-    local opt_long="uuid:,name:,desc:,cpus:,mem:,arch:,uefi:,maxcpu:,maxmem:,env:,"
+    local opt_short="t:u:N:D:c:m:e:"
+    local opt_long="tpl:,uuid:,name:,desc:,cpus:,mem:,arch:,uefi:,maxcpu:,maxmem:,env:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
