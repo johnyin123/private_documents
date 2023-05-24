@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c66ac06[2023-05-24T14:24:01+08:00]:virt_attach.sh")
+VERSION+=("3ff9f0e[2023-05-24T14:51:55+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -21,7 +21,6 @@ gen_tpl() {
    <driver name='qemu' type='{{ format }}' cache='none' io='native'/>
    <source file='{{ store_path }}'/>
    <backingstore/>
-   <blockio logical_block_size='4096' physical_block_size='4096'/>
    <target dev='vd{{ vm_last_disk }}' bus='virtio'/>
 </disk>
 # raw dev

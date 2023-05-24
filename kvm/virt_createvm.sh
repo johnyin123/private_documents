@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3ff9f0e[2023-05-24T14:51:55+08:00]:virt_createvm.sh")
+VERSION+=("f41a6c4[2023-05-24T15:11:39+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -99,6 +99,19 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+    exam:
+        uuid=$(cat /proc/sys/kernel/random/uuid)
+        disk=vda-\${uuid}.raw
+        echo "create disk"
+        virt_createvol.sh -p default -n \${disk} -f raw -s 2GiB
+        echo "upload template disk"
+        virt-volupload.sh -p default -v \${disk} -t ~/debian.amd64.guestos.raw
+        echo "create vm"
+        virt_createvm.sh -t vm.tpl -u \${uuid} -N myserver -D "test server" -c 2 -m 2048
+        echo "attach network"
+        virt_attach.sh -t br-ext.tpl -u \${uuid}
+        echo "attach disk"
+        virt_attach.sh -t default_store.tpl -u \${uuid} -e format=raw -e store_path=/storage/\${disk}
 EOF
     exit 1
 }
