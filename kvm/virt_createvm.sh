@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f41a6c4[2023-05-24T15:11:39+08:00]:virt_createvm.sh")
+VERSION+=("559c121[2023-05-24T19:20:57+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -15,6 +15,7 @@ VIRSH="virsh ${VIRSH_OPT}"
 LOGFILE=""
 gen_tpl() {
     cat <<'EOF'
+# https://libvirt.org/formatdomain.html
 <domain type='kvm'>
   <name>{{ vm_name }}-{{ vm_uuid }}</name>
   <uuid>{{ vm_uuid }}</uuid>
