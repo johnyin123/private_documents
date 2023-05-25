@@ -255,6 +255,21 @@ cat <<EONET | virsh attach-device ${uuid} --file /dev/stdin --persistent
 EONET
 EOFF
 
+echo "mount -t virtiofs mount_tag /mnt/mount/path"
+echo "virtiofs requires shared memory, add sharemem before devices"
+cat <<EOF
+<memoryBacking>
+  <source type='memfd'/>
+  <access mode='shared'/>
+</memoryBacking>
+EOF
+cat <<EOF
+<filesystem type='mount' accessmode='passthrough'>
+  <driver type='virtiofs'/>
+  <source dir='path to source folder on host'/>
+  <target dir='mount_tag'/>
+</filesystem>
+EOF
 echo "9p: mount -t 9p diskshare /mnt"
 cat <<EOF
     <filesystem type='mount' accessmode='mapped'>
