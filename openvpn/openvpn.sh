@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0775b02[2023-05-17T14:44:10+08:00]:openvpn.sh")
+VERSION+=("eb7f4b1[2023-05-18T09:11:34+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -60,12 +60,27 @@ init_server() {
     # </cert>
     grep -v -E "^port |^proto |^dev |^ca |^cert |^key |^dh |^server |^push |^keepalive |^tls-auth |^status |^log |^log-append |^verb |^comp-lzo$|^persist-key$|^persist-tun$" /usr/share/doc/openvpn/*/sample-config-files/server.conf > /etc/openvpn/server/server.conf
     tee -a /etc/openvpn/server/vpnsrv.conf <<EOF
+#监听本机ip地址
+local 0.0.0.0
 port 1194
 proto udp
 # proto tcp
 # explicit-exit-notify 0
 dev tun
+# 指定虚拟局域网占用的IP段
 server 10.8.0.0 255.255.255.0
+#服务器自动给客户端分配IP后，客户端下次连接时，仍然采用上次的IP地址
+ifconfig-pool-persist ipp.txt
+#自动推送客户端上的网关
+push "redirect-gateway def1 bypass-dhcp"
+push "dhcp-option DNS 114.114.114.114"
+#允许客户端与客户端相连接，默认情况下客户端只能与服务器相连接
+client-to-client
+#允许同一个客户端证书多次登录
+#duplicate-cn
+#最大连接用户
+max-clients 100
+#每10秒ping一次，连接超时时间设为120秒
 keepalive 10 120
 status      /var/log/openvpn-status.log
 log         /var/log/openvpn.log
@@ -112,6 +127,8 @@ client
 dev tun
 proto udp
 remote ########SRV ADDRESS######## 1194
+# 使客户端中所有流量经过VPN,所有网络连接都使用vpn
+# redirect-gateway def1
 resolv-retry infinite
 nobind
 persist-key
