@@ -9,7 +9,8 @@ export ROOTFS=${1:-${DIRNAME}/kernel-$(date '+%Y%m%d%H%M%S')}
     export PATH=${DIRNAME}/gcc-aarch64/bin/:$PATH
     export CROSS_COMPILE=aarch64-linux-
 } || {
-    # apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+    # apt -y install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu bison flex libelf-dev libssl-dev
+    # apt -y install pahole -t bullseye-backports
     export CROSS_COMPILE=aarch64-linux-gnu-
 }
 export LOCALVERSION="-johnyin-s905d"
