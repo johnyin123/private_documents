@@ -46,9 +46,9 @@ scripts/config --enable CONFIG_PARAVIRT
 scripts/config --module CONFIG_VIRTIO
 
 # yes "" | make oldconfig
-scripts/diffconfig .config.old .config
+scripts/diffconfig .config.old .config 2>/dev/null
 
-pahole --version || echo "pahole no found DEBUG_INFO_BTF not effict"
+pahole --version 2>/dev/null || echo "pahole no found DEBUG_INFO_BTF not effict"
 
 make -j$(nproc) Image dtbs modules
 
