@@ -4,6 +4,8 @@ readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 
 export ROOTFS=${1:-${DIRNAME}/kernel-$(date '+%Y%m%d%H%M%S')}
 
+echo "build bpftool: apt -y install llvm && cd tools/bpf/bpftool && make"
+
 [ -e "${DIRNAME}/gcc-aarch64" ] && 
 {
     export PATH=${DIRNAME}/gcc-aarch64/bin/:$PATH
