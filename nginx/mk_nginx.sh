@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5bc4cb5[2023-03-29T10:39:32+08:00]:mk_nginx.sh")
+VERSION+=("bc990be[2023-05-09T11:18:39+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -45,6 +45,7 @@ PKG=${PKG:-""}
 # modules selection default NO select, http2_chunk_size 128k, when ktls performance good than 8k
 HTTP2=${HTTP2:-""}
 HTTP3=${HTTP3:-""}
+STREAM_QUIC=${STREAM_QUIC:-""}
 #patch need
 PROXY_CONNECT=${PROXY_CONNECT:-""}
 #static module
@@ -201,7 +202,8 @@ check_depends_lib() {
 
 [ -z "${KTLS}" ] || { mydesc="${mydesc:+${mydesc},}ktls"; }
 [ -z "${HTTP2}" ] || { mydesc="${mydesc:+${mydesc},}http2"; EXT_MODULES+=("--with-http_v2_module"); }
-[ -z "${HTTP3}" ] || { mydesc="${mydesc:+${mydesc},}http3"; EXT_MODULES+=("--with-http_v3_module" "--with-stream_quic_module"); }
+[ -z "${HTTP3}" ] || { mydesc="${mydesc:+${mydesc},}http3"; EXT_MODULES+=("--with-http_v3_module"); }
+[ -z "${STREAM_QUIC}" ] || { mydesc="${mydesc:+${mydesc},}stream_quic"; EXT_MODULES+=("--with-stream_quic_module"); }
 [ -z "${IMAGE_FILTER}" ] || { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); check_depends_lib gdlib; }
 
 check_depends_lib libxml-2.0 libxslt geoip #uuid
