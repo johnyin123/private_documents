@@ -1,0 +1,11 @@
+/sys/kernel/debug/tracing
+ftrace:Kernel hacking -> Tracers -> Trace syscalls
+debugfs:Kernel hacking -> Generic Kernel Debugging Instruments -> Debug Filesystem
+
+available_tracers：可用的跟踪程序
+current_tracer：正在运行的跟踪程序
+available_events：列举了系统所有可用的trace events
+events：该目录对events按模块做了区分。
+set_event：列举当前要追踪的events
+tracing_on：用于控制跟踪打开或停止，echo 0 > tracing_on表示关闭，1表示打开
+trace：查看跟踪数据
