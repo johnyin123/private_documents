@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("62b524c[2023-05-26T09:29:34+08:00]:openvpn.sh")
+VERSION+=("aca49b6[2023-05-29T10:55:35+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -137,7 +137,8 @@ persist-tun
 # remote-cert-tls server
 # cipher AES-256-CBC
 # # when up run script, add route etc..
-# up uproute.sh
+# script-security 2
+# up "/etc/openvpn/uproute.sh"
 cipher AES-256-GCM
 verb 3
 comp-lzo
