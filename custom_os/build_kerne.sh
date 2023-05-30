@@ -2,6 +2,12 @@
 set -o nounset -o pipefail
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 
+[ -e "${DIRNAME}/gcc" ] &&
+{
+    export PATH=${DIRNAME}/gcc/bin/:$PATH
+    export CROSS_COMPILE=x86_64-linux-
+    export ARCH=x86_64
+}
 PKG=${1:?deb/rpm need input}
 
 # apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
@@ -29,7 +35,17 @@ scripts/config --enable CONFIG_FTRACE
 # enable CONFIG_DEBUG_INFO_BTF need: apt install dwarves
 scripts/config --enable DEBUG_INFO
 
-pahole --version || echo "pahole no found DEBUG_INFO_BTF not effict"
+# enable KVM
+scripts/config --enable CONFIG_KVM_GUEST
+scripts/config --enable CONFIG_KVM
+scripts/config --enable CONFIG_VIRTUALIZATION
+scripts/config --enable CONFIG_PARAVIRT
+scripts/config --module CONFIG_VIRTIO
+
+# yes "" | make oldconfig
+scripts/diffconfig .config.old .config 2>/dev/null
+
+pahole --version 2>/dev/null || echo "pahole no found DEBUG_INFO_BTF not effict"
 case "$1" in
     rpm)
         shift
