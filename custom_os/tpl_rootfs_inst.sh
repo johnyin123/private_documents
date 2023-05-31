@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("1963ca3[2023-02-03T12:47:56+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("a23d27a[2023-04-11T16:47:11+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -70,7 +70,7 @@ main() {
     local target="i386-pc"
     # [ -d "/sys/firmware/efi" ]
     [ -z "${uefi}" ] || {
-        [ -d "/sys/firmware/efi" ] || echo "HOST EFI FIREWARE NO FOUND!!, CONTINUE."
+        [ -d "/sys/firmware/efi" ] || echo "************************HOST EFI FIREWARE NO FOUND!!, CONTINUE.*********************"
         echo "install UEFI ${uefi}"
         case "$(uname -m)" in
             ########################################
@@ -115,6 +115,7 @@ case "${ID}" in
         } || {
             efibootmgr --create --remove-dups --disk ${disk} --part ${uefi: -1} --label "${ID} Linux" || true
             grub2-mkconfig -o /boot/efi/EFI/${ID}/grub.cfg || true
+            efibootmgr | grep "${ID}"
         }
         ;;
 esac
@@ -130,6 +131,8 @@ EOSHELL
         }
         grep -Ev "\s/\s|\/boot\/efi" ${root_dir}/etc/fstab.orig || true
     }  | tee ${root_dir}/etc/fstab
+    echo "TODO: check loader exist!!!!!!, efibootmgr .... --loader "\\EFI\\${ID}\\grub.efi"
+    ls -l ${root_dir}/boot/efi/EFI/${ID} || true
     umount -R -v ${root_dir} || true
     echo "ALL DONE OK"
 }
