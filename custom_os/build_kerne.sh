@@ -19,6 +19,7 @@ export LOCALVERSION="-johnyin"
 export INSTALL_MOD_STRIP=1
 
 echo "build bpftool: apt -y install llvm && cd tools/bpf/bpftool && make"
+echo "build perf, cd tools/perf && make"
 # scripts/diffconfig .config.old .config | less
 
 sed -Ei '/CONFIG_SYSTEM_TRUSTED_KEYS/s/=.+/=""/g' .config || true
