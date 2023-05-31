@@ -1,0 +1,6 @@
+yum install perf
+# # guestos
+# cat /proc/modules > /tmp/modules
+# cat /proc/kallsyms > /tmp/kallsyms
+perf kvm --host --guest --guestkallsyms=guest-kallsyms --guestmodules=guest-modules record -a -o perf.data
+perf kvm --host --guest --guestmodules=guest-modules report -i perf.data.kvm --force > analyze
