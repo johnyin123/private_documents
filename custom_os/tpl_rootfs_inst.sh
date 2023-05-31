@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("a23d27a[2023-04-11T16:47:11+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("9395f60[2023-05-31T17:40:23+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -121,6 +121,7 @@ case "${ID}" in
 esac
 exit 0
 EOSHELL
+    echo "#################ALERT############openeuler uefi bootup, need chechk loader EXIST!!!!"
     local new_uuid=$(blkid -s UUID -o value ${part})
     cat ${root_dir}/etc/fstab > ${root_dir}/etc/fstab.orig || true
     {
