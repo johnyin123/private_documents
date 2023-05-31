@@ -29,3 +29,5 @@ virsh net-start ${net_name}
 virsh net-autostart ${net_name}
 virsh net-list --all
 
+# /dev/sda3 /storage xfs noexec,nodev,noatime,nodiratime  0 2
+
