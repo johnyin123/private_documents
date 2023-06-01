@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1944d21[2023-06-01T13:06:00+08:00]:virt_createvm.sh")
+VERSION+=("9e1921e[2023-06-01T13:15:41+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -40,7 +40,6 @@ gen_tpl() {
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>preserve</on_poweroff>
   <devices>
-    <controller type='pci' index='0' model='pcie-root'/>
     <serial type='pty'>
       <target port='0'/>
     </serial>
@@ -55,25 +54,12 @@ gen_tpl() {
     </graphics>
     <video>
       <model type='vga' heads='1' primary='yes'/>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
     </video>
-    <redirdev bus='usb' type='spicevmc'>
-      <address type='usb' bus='0' port='3'/>
-    </redirdev>
+    <redirdev bus='usb' type='spicevmc' />
 {%- endif %}
-    <channel type='unix'>
-      <target type='virtio' name='org.qemu.guest_agent.0'/>
-    </channel>
-    <controller type='usb' index='0' model='ich9-ehci1'>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x05' function='0x7'/>
-    </controller>
-    <memballoon model='virtio'>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x08' function='0x0'/>
-    </memballoon>
-    <rng model='virtio'>
-      <backend model='random'>/dev/urandom</backend>
-      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
-    </rng>
+    <channel type='unix'><target type='virtio' name='org.qemu.guest_agent.0'/></channel>
+    <memballoon model='virtio'/>
+    <rng model='virtio'><backend model='random'>/dev/urandom</backend></rng>
   </devices>
 </domain>
 EOF
