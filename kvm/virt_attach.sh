@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("def63ad[2023-05-25T10:55:08+08:00]:virt_attach.sh")
+VERSION+=("3682f90[2023-06-01T12:49:54+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -31,13 +31,12 @@ gen_tpl() {
   <target dev='vd{{ vm_last_disk }}' bus='virtio'/>
   <blockio logical_block_size='4096' physical_block_size='4096'/>
 </disk>
-# virtiofs share host to guest "mount -t virtiofs mount_tag /mnt/mount/path"
-# virtiofs need sharemem
+# # virtiofs share host to guest "mount -t virtiofs mount_tag /mnt/mount/path"
+# # virtiofs need sharemem
 # <memoryBacking>
 #   <source type='memfd'/>
 #   <access mode='shared'/>
 # </memoryBacking>
-cat <<EOF
 <filesystem type='mount' accessmode='passthrough'>
   <driver type='virtiofs'/>
   <source dir='path to source folder on host'/>
