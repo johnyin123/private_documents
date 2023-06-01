@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6b5f702[2023-05-12T15:24:39+08:00]:virt-volupload.sh")
+VERSION+=("03651cc[2023-05-24T13:27:58+08:00]:virt-volupload.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -20,6 +20,10 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
 cat <<EOF
 ${SCRIPTNAME}
+     env:
+        KVM_HOST: default <not define, local>
+        KVM_USER: default root
+        KVM_PORT: default 60022
     -p|--pool              *                 pool
     -v|--vol               *                 vol
     -t|--template                            telplate disk for upload(or stdin)
