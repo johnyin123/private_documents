@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a7592e4[2023-05-24T09:34:08+08:00]:virt_createvol.sh")
+VERSION+=("03651cc[2023-05-24T13:27:58+08:00]:virt_createvol.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -16,6 +16,10 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env:
+        KVM_HOST: default <not define, local>
+        KVM_USER: default root
+        KVM_PORT: default 60022
         -p|--pool    *   <str>      libvirt store pool name
         -n|--name    *   <str>      vol name
         -f|--fmt         <str>      default raw, qemu-img format

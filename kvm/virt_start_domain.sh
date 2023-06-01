@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-05-30T10:56:42+08:00]:virt_start_domain.sh")
+VERSION+=("6c82f0b[2023-05-30T10:56:42+08:00]:virt_start_domain.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -17,6 +17,10 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env:
+        KVM_HOST: default <not define, local>
+        KVM_USER: default root
+        KVM_PORT: default 60022
         -u|--uuid    *  <uuid>    domain uuid
         --console                 console
         -q|--quiet

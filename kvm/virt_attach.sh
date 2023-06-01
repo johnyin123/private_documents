@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("559c121[2023-05-24T19:20:57+08:00]:virt_attach.sh")
+VERSION+=("def63ad[2023-05-25T10:55:08+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -55,6 +55,10 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env:
+        KVM_HOST: default <not define, local>
+        KVM_USER: default root
+        KVM_PORT: default 60022
         -t|--tpl    *   <file>    device tpl file
         -u|--uuid   *   <uuid>    vm uuid
         -e|--env        <key>=<val> addition keyval pair
