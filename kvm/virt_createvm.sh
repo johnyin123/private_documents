@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c42b69a[2023-06-01T11:35:40+08:00]:virt_createvm.sh")
+VERSION+=("21b069e[2023-06-01T11:43:21+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -27,12 +27,10 @@ gen_tpl() {
 {%- if vm_arch == 'x86_64' %}
   {%- set __machine__ = "q35" %}
   {%- set __pci__ = "pci-root" %}
-  {%- set __pci__ = "pci-root" %}
   <cpu match='exact'><model fallback='allow'>kvm64</model></cpu>
 {%- else %}
   {%- set __machine__ = "virt" %}
   {%- set __pci__ = "pcie-root" %}
-  {%- set __pci__ = "pci-root" %}
   <cpu mode='host-passthrough' check='none'/>
 {%- endif %}
   <os>
