@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("9395f60[2023-05-31T17:40:23+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("e5a6986[2023-05-31T18:30:36+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -113,15 +113,14 @@ case "${ID}" in
             grub2-install --target=${target} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
             grub2-mkconfig -o /boot/grub2/grub.cfg || true
         } || {
-            efibootmgr --create --remove-dups --disk ${disk} --part ${uefi: -1} --label "${ID} Linux" || true
+            # efibootmgr --create --remove-dups --disk ${disk} --part ${uefi: -1} --label "${ID} Linux" || true
+            # uefi no need efibootmgr --create ......
             grub2-mkconfig -o /boot/efi/EFI/${ID}/grub.cfg || true
-            efibootmgr | grep "${ID}"
         }
         ;;
 esac
 exit 0
 EOSHELL
-    echo "#################ALERT############openeuler uefi bootup, need chechk loader EXIST!!!!"
     local new_uuid=$(blkid -s UUID -o value ${part})
     cat ${root_dir}/etc/fstab > ${root_dir}/etc/fstab.orig || true
     {
@@ -132,8 +131,6 @@ EOSHELL
         }
         grep -Ev "\s/\s|\/boot\/efi" ${root_dir}/etc/fstab.orig || true
     }  | tee ${root_dir}/etc/fstab
-    echo "TODO: check loader exist!!!!!!, efibootmgr .... --loader "\\EFI\\${ID}\\grub.efi"
-    ls -l ${root_dir}/boot/efi/EFI/${ID} || true
     umount -R -v ${root_dir} || true
     echo "ALL DONE OK"
 }
