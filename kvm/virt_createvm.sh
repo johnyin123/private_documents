@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("00e3720[2023-05-25T11:22:53+08:00]:virt_createvm.sh")
+VERSION+=("c42b69a[2023-06-01T11:35:40+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -26,9 +26,13 @@ gen_tpl() {
   <vcpu placement='static' current='{{ vm_vcpus | default(1) }}'>{{ vm_vcpus_max | default(8) }}</vcpu>
 {%- if vm_arch == 'x86_64' %}
   {%- set __machine__ = "q35" %}
+  {%- set __pci__ = "pci-root" %}
+  {%- set __pci__ = "pci-root" %}
   <cpu match='exact'><model fallback='allow'>kvm64</model></cpu>
 {%- else %}
   {%- set __machine__ = "virt" %}
+  {%- set __pci__ = "pcie-root" %}
+  {%- set __pci__ = "pci-root" %}
   <cpu mode='host-passthrough' check='none'/>
 {%- endif %}
   <os>
@@ -40,11 +44,7 @@ gen_tpl() {
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>preserve</on_poweroff>
   <devices>
-{%- if vm_arch == 'x86_64' %}
-    <controller type='pci' index='0' model='pci-root'/>
-{%- else %}
-    <controller type='pci' index='0' model='pcie-root'/>
-{%- endif %}
+    <controller type='pci' index='0' model='{{ __pci__ }}'/>
     <serial type='pty'>
       <target port='0'/>
     </serial>
@@ -76,7 +76,7 @@ gen_tpl() {
     </memballoon>
     <rng model='virtio'>
       <backend model='random'>/dev/urandom</backend>
-      <address type='pci' domain='0x0000' bus='0x06' slot='0x01' function='0x0'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
     </rng>
   </devices>
 </domain>
