@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("152e095[2023-04-11T07:21:11+08:00]:ngx_demo.sh")
+VERSION+=("7b33615[2023-05-09T11:10:45+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2737,6 +2737,20 @@ server {
     server_name www.test.com;
     location /images/ {
         rewrite ^ http://$cdn_host.test.com$request_uri? permanent;
+    }
+}
+EOF
+cat <<'EOF' > dynamic_upstream.http
+server {
+    listen 80;
+    set $dyups www.test.com;
+    location / {
+        resolver 8.8.8.8 valid=10s ipv6=off;
+        proxy_pass http://$dyups;
+    }
+    location /duplicate/ {
+        resolver 114.114.114.114 valid=10s ipv6=off;
+        proxy_pass http://$dyups;
     }
 }
 EOF
