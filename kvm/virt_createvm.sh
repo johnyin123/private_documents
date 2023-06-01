@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("21b069e[2023-06-01T11:43:21+08:00]:virt_createvm.sh")
+VERSION+=("20a8eac[2023-06-01T12:45:06+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -84,6 +84,10 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env:
+        KVM_HOST: default <not define, local>
+        KVM_USER: default root
+        KVM_PORT: default 60022
         -t|--tpl    *   <file>    vm tpl file
         -u|--uuid       <uuid>    default autogen
         -N|--name       <str>
