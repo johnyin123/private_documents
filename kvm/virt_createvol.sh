@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("03651cc[2023-05-24T13:27:58+08:00]:virt_createvol.sh")
+VERSION+=("3682f90[2023-06-01T12:49:54+08:00]:virt_createvol.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -31,6 +31,13 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+    cat <<EOVOL | virsh vol-create --pool default --file /dev/stdin
+<volume>
+ <name>test.img</name>
+ <capacity unit="G">1</capacity>
+</volume>
+EOVOL
+    virsh vol-path --pool default test.img
 EOF
     exit 1
 }
