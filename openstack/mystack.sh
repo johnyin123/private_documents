@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2b5826e[2023-06-10T23:33:54+08:00]:mystack.sh")
+VERSION+=("35bda2b[2023-06-11T07:34:23+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -503,7 +503,7 @@ init_neutron_compute() {
     local rabbit_pass=${6}
     local region="${7:-RegionOne}"
     log "Configure Neutron compute node create new"
-    backup ${neutron_conf} "move"
+    backup ${neutron_conf} "MOVE"
     ini_set ${neutron_conf} DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
 
     ini_set ${neutron_conf} DEFAULT auth_strategy keystone
