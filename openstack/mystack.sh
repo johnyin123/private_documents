@@ -7,16 +7,28 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("befc2dd[2023-06-09T17:17:59+08:00]:mystack.sh")
+VERSION+=("5a0b056[2023-06-10T11:57:07+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 MYSQL_PASS=${MYSQL_PASS:-}
-OUTPUT_FMT=${OUTPUT_FMT:-json} #csv,json,table,value,yaml
 PUBLIC_NETWORK=public
 OPENSTACK_DEBUG=true
+
+readonly my_conf=/etc/mysql/mariadb.conf.d/50-server.cnf
+readonly memcached_conf=/etc/memcached.conf
+readonly keystone_conf=/etc/keystone/keystone.conf
+readonly glance_conf=/etc/glance/glance-api.conf
+readonly nova_conf=/etc/nova/nova.conf
+readonly nova_compute_conf=/etc/nova/nova-compute.conf
+readonly placement_conf=/etc/placement/placement.conf
+readonly neutron_conf=/etc/neutron/neutron.conf
+readonly metadata_agent_ini=/etc/neutron/metadata_agent.ini
+readonly ml2_conf_ini=/etc/neutron/plugins/ml2/ml2_conf.ini
+readonly linuxbridge_agent_ini=/etc/neutron/plugins/ml2/linuxbridge_agent.ini
+
 LOGFILE=""
 GREEN=$(tput setaf 70)
 RESET=$(tput sgr0)
@@ -32,7 +44,12 @@ backup() {
     [ -e "${TIMESPAN}/${backup}" ] && return 0
     cat ${src} 2>/dev/null > ${TIMESPAN}/${backup} || true
 }
-
+ini_get() {
+    local file=${1}
+    local sec=${2}
+    local key=${3}
+    crudini --get "${file}" "${sec}" "${key}"
+}
 ini_del() {
     local file=${1}
     local sec=${2}
@@ -60,12 +77,6 @@ create_mysql_db() {
     local user=${2}
     local pass=${3}
     log "Add a User [${user}/${pass}] and Database [${db}] on MariaDB."
-# # prompt us for a password upon install.
-#     sudo debconf-set-selections <<MYSQL_PRESEED
-# mysql-server mysql-server/root_password password $DATABASE_PASSWORD
-# mysql-server mysql-server/root_password_again password $DATABASE_PASSWORD
-# mysql-server mysql-server/start_on_boot boolean true
-# MYSQL_PRESEED
     cat <<EOF | mysql ${MYSQL_PASS:+"-uroot -p${MYSQL_PASS}"}
 DROP DATABASE IF EXISTS ${db};
 CREATE DATABASE ${db} CHARACTER SET utf8;
@@ -74,148 +85,16 @@ GRANT ALL PRIVILEGES ON ${db}.* TO '${user}'@'%' IDENTIFIED BY '${pass}';
 flush privileges;
 EOF
 }
-# # create_placement_accounts() - Set up required placement accounts
-# # and service and endpoints.
-# function create_placement_accounts {
-#     create_service_user "placement" "admin"
-#     local placement_api_url="$PLACEMENT_SERVICE_PROTOCOL://$PLACEMENT_SERVICE_HOST/placement"
-#     get_or_create_service "placement" "placement" "Placement Service"
-#     get_or_create_endpoint \
-#         "placement" \
-#         "$REGION_NAME" \
-#         "$placement_api_url"
-# }
-# # Create an endpoint with a specific interface
-# # Usage: _get_or_create_endpoint_with_interface <service> <interface> <url> <region>
-# function _get_or_create_endpoint_with_interface {
-#     local endpoint_id
-#     endpoint_id=$(openstack --os-cloud devstack-system-admin endpoint list \
-#         --service $1 \
-#         --interface $2 \
-#         --region $4 \
-#         -c ID -f value)
-#     if [[ -z "$endpoint_id" ]]; then
-#         # Creates new endpoint
-#         endpoint_id=$(openstack --os-cloud devstack-system-admin endpoint create \
-#             $1 $2 $3 --region $4 -f value -c id)
-#     fi
-#
-#     echo $endpoint_id
-# }
-#
-# # Gets or creates endpoint
-# # Usage: get_or_create_endpoint <service> <region> <publicurl> [adminurl] [internalurl]
-# function get_or_create_endpoint {
-#     # NOTE(jamielennnox): when converting to v3 endpoint creation we go from
-#     # creating one endpoint with multiple urls to multiple endpoints each with
-#     # a different interface.  To maintain the existing function interface we
-#     # create 3 endpoints and return the id of the public one. In reality
-#     # returning the public id will not make a lot of difference as there are no
-#     # scenarios currently that use the returned id. Ideally this behaviour
-#     # should be pushed out to the service setups and let them create the
-#     # endpoints they need.
-#     local public_id
-#     public_id=$(_get_or_create_endpoint_with_interface $1 public $3 $2)
-#     # only create admin/internal urls if provided content for them
-#     if [[ -n "$4" ]]; then
-#         _get_or_create_endpoint_with_interface $1 admin $4 $2
-#     fi
-#     if [[ -n "$5" ]]; then
-#         _get_or_create_endpoint_with_interface $1 internal $5 $2
-#     fi
-#     # return the public id to indicate success, and this is the endpoint most likely wanted
-#     echo $public_id
-# }
-#
-# # Gets or creates user
-# # Usage: get_or_create_user <username> <password> <domain> [<email>]
-# function get_or_create_user {
-#     local user_id
-#     if [[ ! -z "$4" ]]; then
-#         local email="--email=$4"
-#     else
-#         local email=""
-#     fi
-#     # Gets user id
-#     user_id=$(
-#         # Creates new user with --or-show
-#         openstack --os-cloud devstack-system-admin user create \
-#             $1 \
-#             --password "$2" \
-#             --domain=$3 \
-#             $email \
-#             --or-show \
-#             -f value -c id
-#     )
-#     echo $user_id
-# }
-# # Gets or adds user role to project
-# # Usage: get_or_add_user_project_role <role> <user> <project> [<user_domain> <project_domain>]
-# function get_or_add_user_project_role {
-#     local user_role_id
-#     local domain_args
-#
-#     domain_args=$(_get_domain_args $4 $5)
-#
-#     # Note this is idempotent so we are safe across multiple
-#     # duplicate calls.
-#     openstack --os-cloud devstack-system-admin role add $1 \
-#         --user $2 \
-#         --project $3 \
-#         $domain_args
-#     user_role_id=$(openstack --os-cloud devstack-system-admin role assignment list \
-#         --role $1 \
-#         --user $2 \
-#         --project $3 \
-#         $domain_args \
-#         -c Role -f value)
-#     echo $user_role_id
-# }
-# # Usage: get_or_add_user_project_role <role> <user> <project> [<user_domain> <project_domain>]
-# get_or_add_user_project_role() {
-#     local user_role_id
-#     local domain_args
-#     domain_args=$(_get_domain_args $4 $5)
-#
-#     # Note this is idempotent so we are safe across multiple
-#     # duplicate calls.
-#     openstack --os-cloud devstack-system-admin role add $1 \
-#         --user $2 \
-#         --project $3 \
-#         $domain_args
-#     user_role_id=$(openstack --os-cloud devstack-system-admin role assignment list \
-#         --role $1 \
-#         --user $2 \
-#         --project $3 \
-#         $domain_args \
-#         -c Role -f value)
-#     echo $user_role_id
-# }
-#
-# # Create a user that is capable of verifying keystone tokens for use with auth_token middleware.
-# # create_service_user <name> [role]
-# # We always add the service role, other roles are also allowed to be added as historically
-# # a lot of projects have configured themselves with the admin or other role here if they are
-# # using this user for other purposes beyond simply auth_token middleware.
-# function create_service_user {
-#     get_or_create_user "$1" "$SERVICE_PASSWORD" "$SERVICE_DOMAIN_NAME"
-#     get_or_add_user_project_role service "$1" "$SERVICE_PROJECT_NAME" "$SERVICE_DOMAIN_NAME" "$SERVICE_DOMAIN_NAME"
-#
-#     if [[ -n "$2" ]]; then
-#         get_or_add_user_project_role "$2" "$1" "$SERVICE_PROJECT_NAME" "$SERVICE_DOMAIN_NAME" "$SERVICE_DOMAIN_NAME"
-#     fi
-# }
 
 openstack_add_admin_user() {
     local user=${1}
     local pass=${2}
     local project=${3:-service}
     local domain=${4:-default}
-    log "Add [${user}/${pass}] users in Keystone"
-    openstack user show ${user} 2>/dev/null || {
-        openstack user create --domain ${domain} --project ${project} --password ${pass} ${user} -f ${OUTPUT_FMT}
-        openstack role add --project ${project} --user ${user} admin
-    }
+    local id=$(openstack user create --domain ${domain} --project ${project} --password ${pass} ${user} --or-show -f value -c id)
+    openstack role add --project ${project} --user ${user} admin
+    log "Add admin user [${user}/${pass}] id [${id}]"
+    # openstack role assignment list --role $1 --user $2 --domain $3 -c Role -f value
 }
 
 openstack_add_service_endpoint() {
@@ -260,29 +139,42 @@ prepare_db_mq() {
     local rabbit_pass=${2}
     log "##########################CONTROLL NODE#############################"
     log "install mariadb memcached rabbitmq"
-    systemctl enable mariadb memcached rabbitmq-server --now || true
-    # apt -y install rabbitmq-server memcached python3-pymysql mariadb-server
-    backup /etc/mysql/mariadb.conf.d/50-server.cnf
-    log "/etc/mysql/mariadb.conf.d/50-server.cnf"
-    ini_set /etc/mysql/mariadb.conf.d/50-server.cnf mysqld bind-address 0.0.0.0
-    sed -i -E \
-        -e 's/^\s*#*\s*character-set-server\s*=.*/character-set-server=utf8mb4/g' \
-        -e 's/^\s*#*\s*collation-server\s*=.*/collation-server=utf8mb4_general_ci/g' \
-        -e 's/^\s*#*\s*bind-address\s*=.*/bind-address=0.0.0.0/g' \
-        -e 's/^\s*#*\s*max_connections\s*=.*/max_connections=500/g' \
-        /etc/mysql/mariadb.conf.d/50-server.cnf
+#     sudo debconf-set-selections <<MYSQL_PRESEED
+# mysql-server mysql-server/root_password password $DATABASE_PASSWORD
+# mysql-server mysql-server/root_password_again password $DATABASE_PASSWORD
+# mysql-server mysql-server/start_on_boot boolean true
+# MYSQL_PRESEED
+    backup ${my_conf}
+    ini_set ${my_conf} mysqld bind-address 0.0.0.0
+    ini_set ${my_conf} mysqld character-set-server utf8mb4
+    ini_set ${my_conf} mysqld collation-server utf8mb4_general_ci
+    ini_set ${my_conf} mysqld sql_mode TRADITIONAL
+    ini_set ${my_conf} mysqld default-storage-engine InnoDB
+    ini_set ${my_conf} mysqld max_connections 1024
+    # # MYSQL_REDUCE_MEMORY
+    ini_set ${my_conf} mysqld read_buffer_size 64K
+    ini_set ${my_conf} mysqld innodb_buffer_pool_size 16M
+    ini_set ${my_conf} mysqld thread_stack 192K
+    ini_set ${my_conf} mysqld thread_cache_size 8
+    ini_set ${my_conf} mysqld tmp_table_size 8M
+    ini_set ${my_conf} mysqld sort_buffer_size 8M
+    ini_set ${my_conf} mysqld max_allowed_packet 8M
+    mysql_install_db -u mysql &>/dev/null
+    systemctl enable mariadb --now
 
     # mysql_secure_installation
     # echo -e "\nY\n$MYSQLDB_PASSWORD\n$MYSQLDB_PASSWORD\nY\nn\nY\nY\n" | mysql_secure_installation
     log "Add the rabbitmq user [${rabbit_user}]"
+    systemctl enable rabbitmq-server --now
     rabbitmqctl delete_user openstack 2>/dev/null || true
-    rabbitmqctl add_user ${rabbit_user} ${rabbit_pass} || true
-    rabbitmqctl set_permissions ${rabbit_user} ".*" ".*" ".*" || true
-    backup /etc/memcached.conf
+    rabbitmqctl add_user ${rabbit_user} ${rabbit_pass}
+    rabbitmqctl set_permissions ${rabbit_user} ".*" ".*" ".*"
+
+    backup ${memcached_conf}
     sed -i -E \
         -e 's/^\s*#*\s*-l \s*.*/-l 0.0.0.0/g' \
-        /etc/memcached.conf
-    systemctl restart mariadb rabbitmq-server memcached
+        ${memcached_conf}
+    systemctl enable memcached --now || true
 }
 
 init_keystone() {
@@ -294,12 +186,10 @@ init_keystone() {
     log "##########################INSTALL KEYSTONE##########################"
     systemctl enable keystone --now || true
     create_mysql_db keystone keystone "${keystone_dbpass}"
-    # apt -y install keystone python3-openstackclient apache2 libapache2-mod-wsgi-py3 python3-oauth2client
-    backup /etc/keystone/keystone.conf
-    log "/etc/keystone/keystone.conf"
-    ini_set /etc/keystone/keystone.conf database connection mysql+pymysql://keystone:${keystone_dbpass}@${ctrl_host}/keystone
-    ini_set /etc/keystone/keystone.conf token provider fernet
-    ini_set /etc/keystone/keystone.conf cache memcache_servers ${ctrl_host}:11211
+    backup ${keystone_conf}
+    ini_set ${keystone_conf} database connection mysql+pymysql://keystone:${keystone_dbpass}@${ctrl_host}/keystone
+    ini_set ${keystone_conf} token provider fernet
+    ini_set ${keystone_conf} cache memcache_servers ${ctrl_host}:11211
     log "keystone-manage db_sync"
     su -s /bin/bash keystone -c "keystone-manage db_sync"
     log "initialize Fernet key"
@@ -313,6 +203,8 @@ init_keystone() {
         --bootstrap-internal-url http://${ctrl_host}:5000/v3/ \
         --bootstrap-public-url http://${ctrl_host}:5000/v3/ \
         --bootstrap-region-id ${region}
+    local id=$(openstack project create --domain default --description "Service Project" service --or-show -f value -c id)
+    log "Add Projects, create [service], id ${id} "
 }
 
 init_glance() {
@@ -320,36 +212,31 @@ init_glance() {
     local glance_pass=${2}
     local glance_dbpass=${3}
     log "##########################INSTALL GLANCE##########################"
-    # apt -y install glance
-    log "Add Projects, create [service] project"
-    openstack project create --domain default --description "Service Project" service -f ${OUTPUT_FMT}
-    openstack project list -f ${OUTPUT_FMT}
     log "install glance: Image Service"
     openstack_add_admin_user glance "${glance_pass}"
     openstack_add_service_endpoint glance image "http://${ctrl_host}:9292" "OpenStack Image service"
     log "Add a User and Database on MariaDB for Glance"
     create_mysql_db glance glance "${glance_dbpass}"
     log "Configure Glance"
-    backup /etc/glance/glance-api.conf
-    log "/etc/glance/glance-api.conf"
-    ini_set /etc/glance/glance-api.conf DEFAULT bind_host 0.0.0.0
-    ini_set /etc/glance/glance-api.conf database connection mysql+pymysql://glance:${glance_dbpass}@${ctrl_host}/glance
-    ini_set /etc/glance/glance-api.conf keystone_authtoken auth_url http://${ctrl_host}:5000
-    ini_set /etc/glance/glance-api.conf keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
-    ini_set /etc/glance/glance-api.conf keystone_authtoken memcached_servers ${ctrl_host}:11211
-    ini_set /etc/glance/glance-api.conf keystone_authtoken auth_type password
-    ini_set /etc/glance/glance-api.conf keystone_authtoken project_domain_name default
-    ini_set /etc/glance/glance-api.conf keystone_authtoken user_domain_name default
-    ini_set /etc/glance/glance-api.conf keystone_authtoken project_name service
-    ini_set /etc/glance/glance-api.conf keystone_authtoken username glance
-    ini_set /etc/glance/glance-api.conf keystone_authtoken password ${glance_pass}
-    ini_del /etc/glance/glance-api.conf keystone_authtoken region_name
-    ini_set /etc/glance/glance-api.conf paste_deploy flavor keystone
-    ini_set /etc/glance/glance-api.conf glance_store stores file,http
-    ini_set /etc/glance/glance-api.conf glance_store default_store file
-    ini_set /etc/glance/glance-api.conf glance_store filesystem_store_datadir /var/lib/glance/images/
-    # chmod 640 /etc/glance/glance-api.conf
-    # chown root:glance /etc/glance/glance-api.conf
+    backup ${glance_conf}
+    ini_set ${glance_conf} DEFAULT bind_host 0.0.0.0
+    ini_set ${glance_conf} database connection mysql+pymysql://glance:${glance_dbpass}@${ctrl_host}/glance
+    ini_set ${glance_conf} keystone_authtoken auth_url http://${ctrl_host}:5000
+    ini_set ${glance_conf} keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
+    ini_set ${glance_conf} keystone_authtoken memcached_servers ${ctrl_host}:11211
+    ini_set ${glance_conf} keystone_authtoken auth_type password
+    ini_set ${glance_conf} keystone_authtoken project_domain_name default
+    ini_set ${glance_conf} keystone_authtoken user_domain_name default
+    ini_set ${glance_conf} keystone_authtoken project_name service
+    ini_set ${glance_conf} keystone_authtoken username glance
+    ini_set ${glance_conf} keystone_authtoken password ${glance_pass}
+    ini_del ${glance_conf} keystone_authtoken region_name
+    ini_set ${glance_conf} paste_deploy flavor keystone
+    ini_set ${glance_conf} glance_store stores file,http
+    ini_set ${glance_conf} glance_store default_store file
+    ini_set ${glance_conf} glance_store filesystem_store_datadir /var/lib/glance/images/
+    # chmod 640 ${glance_conf}
+    # chown root:glance ${glance_conf}
     log "sync glance db"
     su -s /bin/bash glance -c "glance-manage db_sync"
     log "restart service"
@@ -366,10 +253,8 @@ init_nova() {
     local rabbit_pass=${7}
     local region=${8:-RegionOne}
     local my_ip=${ctrl_host}
-
     log "##########################INSTALL NOVA##########################"
     log "Install nova(Compute Service) ctrl node"
-    # apt -y install nova-api nova-conductor nova-scheduler nova-novncproxy placement-api python3-novaclient
     log "Add users and others for Nova in Keystone."
     openstack_add_admin_user nova "${nova_pass}"
     openstack_add_admin_user placement "${placement_pass}"
@@ -380,69 +265,67 @@ init_nova() {
     create_mysql_db nova_cell0 nova "${nova_dbpass}"
     create_mysql_db placement placement "${placement_dbpass}"
 
-    backup /etc/nova/nova.conf
-    log "/etc/nova/nova.conf"
-    ini_set /etc/nova/nova.conf DEFAULT debug ${OPENSTACK_DEBUG:-false}
-    ini_set /etc/nova/nova.conf DEFAULT my_ip ${my_ip}
-    ini_set /etc/nova/nova.conf DEFAULT enabled_apis osapi_compute,metadata
-    ini_set /etc/nova/nova.conf DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
-    ini_set /etc/nova/nova.conf DEFAULT state_path /var/lib/nova
-    ini_set /etc/nova/nova.conf DEFAULT log_dir /var/log/nova
+    backup ${nova_conf}
+    ini_set ${nova_conf} DEFAULT debug ${OPENSTACK_DEBUG:-false}
+    ini_set ${nova_conf} DEFAULT my_ip ${my_ip}
+    ini_set ${nova_conf} DEFAULT enabled_apis osapi_compute,metadata
+    ini_set ${nova_conf} DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
+    ini_set ${nova_conf} DEFAULT state_path /var/lib/nova
+    ini_set ${nova_conf} DEFAULT log_dir /var/log/nova
     # disable the Compute firewall driver by using the nova.virt.firewall.NoopFirewallDriver
-    ini_set /etc/nova/nova.conf DEFAULT firewall_driver nova.virt.firewall.NoopFirewallDriver
-    ini_set /etc/nova/nova.conf oslo_concurrency lock_path /var/lib/nova/tmp
+    ini_set ${nova_conf} DEFAULT firewall_driver nova.virt.firewall.NoopFirewallDriver
+    ini_set ${nova_conf} oslo_concurrency lock_path /var/lib/nova/tmp
     # glance
-    ini_set /etc/nova/nova.conf glance api_servers http://${ctrl_host}:9292
+    ini_set ${nova_conf} glance api_servers http://${ctrl_host}:9292
 
-    ini_set /etc/nova/nova.conf api_database connection mysql+pymysql://nova:${nova_dbpass}@${ctrl_host}/nova_api
-    ini_set /etc/nova/nova.conf database connection mysql+pymysql://nova:${nova_dbpass}@${ctrl_host}/nova
+    ini_set ${nova_conf} api_database connection mysql+pymysql://nova:${nova_dbpass}@${ctrl_host}/nova_api
+    ini_set ${nova_conf} database connection mysql+pymysql://nova:${nova_dbpass}@${ctrl_host}/nova
 
-    ini_set /etc/nova/nova.conf api auth_strategy keystone
-    ini_set /etc/nova/nova.conf keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
-    ini_set /etc/nova/nova.conf keystone_authtoken auth_url http://${ctrl_host}:5000
-    ini_set /etc/nova/nova.conf keystone_authtoken memcached_servers ${ctrl_host}:11211
-    ini_set /etc/nova/nova.conf keystone_authtoken auth_type password
-    ini_set /etc/nova/nova.conf keystone_authtoken project_domain_name default
-    ini_set /etc/nova/nova.conf keystone_authtoken user_domain_name default
-    ini_set /etc/nova/nova.conf keystone_authtoken project_name service
-    ini_set /etc/nova/nova.conf keystone_authtoken username nova
-    ini_set /etc/nova/nova.conf keystone_authtoken password ${nova_pass}
-    ini_del /etc/nova/nova.conf keystone_authtoken region_name
+    ini_set ${nova_conf} api auth_strategy keystone
+    ini_set ${nova_conf} keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
+    ini_set ${nova_conf} keystone_authtoken auth_url http://${ctrl_host}:5000
+    ini_set ${nova_conf} keystone_authtoken memcached_servers ${ctrl_host}:11211
+    ini_set ${nova_conf} keystone_authtoken auth_type password
+    ini_set ${nova_conf} keystone_authtoken project_domain_name default
+    ini_set ${nova_conf} keystone_authtoken user_domain_name default
+    ini_set ${nova_conf} keystone_authtoken project_name service
+    ini_set ${nova_conf} keystone_authtoken username nova
+    ini_set ${nova_conf} keystone_authtoken password ${nova_pass}
+    ini_del ${nova_conf} keystone_authtoken region_name
     # # enable vnc
-    # ini_set /etc/nova/nova.conf vnc enabled True
-    ini_set /etc/nova/nova.conf vnc server_listen 0.0.0.0
-    ini_set /etc/nova/nova.conf vnc server_proxyclient_address '$my_ip'
-    # ini_set /etc/nova/nova.conf vnc novncproxy_base_url http://${ctrl_host}:6080/vnc_auto.html
+    # ini_set ${nova_conf} vnc enabled True
+    ini_set ${nova_conf} vnc server_listen 0.0.0.0
+    ini_set ${nova_conf} vnc server_proxyclient_address '$my_ip'
+    # ini_set ${nova_conf} vnc novncproxy_base_url http://${ctrl_host}:6080/vnc_auto.html
     # # placement
-    ini_set /etc/nova/nova.conf placement auth_url http://${ctrl_host}:5000
-    ini_set /etc/nova/nova.conf placement os_region_name RegionOne
-    ini_set /etc/nova/nova.conf placement auth_type password
-    ini_set /etc/nova/nova.conf placement project_domain_name default
-    ini_set /etc/nova/nova.conf placement user_domain_name default
-    ini_set /etc/nova/nova.conf placement project_name service
-    ini_set /etc/nova/nova.conf placement username placement
-    ini_set /etc/nova/nova.conf placement password ${placement_pass}
-    ini_del /etc/nova/nova.conf placement region_name
+    ini_set ${nova_conf} placement auth_url http://${ctrl_host}:5000
+    ini_set ${nova_conf} placement os_region_name RegionOne
+    ini_set ${nova_conf} placement auth_type password
+    ini_set ${nova_conf} placement project_domain_name default
+    ini_set ${nova_conf} placement user_domain_name default
+    ini_set ${nova_conf} placement project_name service
+    ini_set ${nova_conf} placement username placement
+    ini_set ${nova_conf} placement password ${placement_pass}
+    ini_del ${nova_conf} placement region_name
     # # wsgi
-    ini_set /etc/nova/nova.conf wsgi api_paste_config /etc/nova/api-paste.ini
+    ini_set ${nova_conf} wsgi api_paste_config /etc/nova/api-paste.ini
 
-    backup /etc/placement/placement.conf
-    log "/etc/placement/placement.conf"
-    ini_set /etc/placement/placement.conf DEFAULT debug ${OPENSTACK_DEBUG:-false}
-    ini_set /etc/placement/placement.conf api auth_strategy keystone
+    backup ${placement_conf}
+    ini_set ${placement_conf} DEFAULT debug ${OPENSTACK_DEBUG:-false}
+    ini_set ${placement_conf} api auth_strategy keystone
     # # keystone_authtoken
-    ini_set /etc/placement/placement.conf keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
-    ini_set /etc/placement/placement.conf keystone_authtoken auth_url http://${ctrl_host}:5000
-    ini_set /etc/placement/placement.conf keystone_authtoken memcached_servers ${ctrl_host}:11211
-    ini_set /etc/placement/placement.conf keystone_authtoken auth_type password
-    ini_set /etc/placement/placement.conf keystone_authtoken project_domain_name default
-    ini_set /etc/placement/placement.conf keystone_authtoken user_domain_name default
-    ini_set /etc/placement/placement.conf keystone_authtoken project_name service
-    ini_set /etc/placement/placement.conf keystone_authtoken username placement
-    ini_set /etc/placement/placement.conf keystone_authtoken password ${placement_pass}
-    ini_del /etc/placement/placement.conf keystone_authtoken region_name
+    ini_set ${placement_conf} keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
+    ini_set ${placement_conf} keystone_authtoken auth_url http://${ctrl_host}:5000
+    ini_set ${placement_conf} keystone_authtoken memcached_servers ${ctrl_host}:11211
+    ini_set ${placement_conf} keystone_authtoken auth_type password
+    ini_set ${placement_conf} keystone_authtoken project_domain_name default
+    ini_set ${placement_conf} keystone_authtoken user_domain_name default
+    ini_set ${placement_conf} keystone_authtoken project_name service
+    ini_set ${placement_conf} keystone_authtoken username placement
+    ini_set ${placement_conf} keystone_authtoken password ${placement_pass}
+    ini_del ${placement_conf} keystone_authtoken region_name
     # # placement_database
-    ini_set /etc/placement/placement.conf placement_database connection mysql+pymysql://placement:${placement_dbpass}@${ctrl_host}/placement
+    ini_set ${placement_conf} placement_database connection mysql+pymysql://placement:${placement_dbpass}@${ctrl_host}/placement
     log "placement db sync"
     su -s /bin/bash placement -c "placement-manage db sync"
     log "nova api db sync"
@@ -467,33 +350,31 @@ init_nova() {
 modify_linux_bridge_plugin() {
     local public_network=${1}
     local mapping_dev=${2}
-    backup /etc/neutron/plugins/ml2/ml2_conf.ini
-    log "/etc/neutron/plugins/ml2/ml2_conf.ini"
+    backup ${ml2_conf_ini}
     # ml2 configuration
-    ini_set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 type_drivers "flat,vlan"
-    ini_set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 tenant_network_types ""
-    ini_set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 mechanism_drivers linuxbridge
-    ini_set /etc/neutron/plugins/ml2/ml2_conf.ini ml2 extension_drivers port_security
-    ini_set /etc/neutron/plugins/ml2/ml2_conf.ini ml2_type_flat flat_networks ${public_network}
-    ini_set /etc/neutron/plugins/ml2/ml2_conf.ini securitygroup enable_ipset True
-    backup /etc/neutron/plugins/ml2/linuxbridge_agent.ini
-    log "/etc/neutron/plugins/ml2/linuxbridge_agent.ini"
+    ini_set ${ml2_conf_ini} ml2 type_drivers "flat,vlan"
+    ini_set ${ml2_conf_ini} ml2 tenant_network_types ""
+    ini_set ${ml2_conf_ini} ml2 mechanism_drivers linuxbridge
+    ini_set ${ml2_conf_ini} ml2 extension_drivers port_security
+    ini_set ${ml2_conf_ini} ml2_type_flat flat_networks ${public_network}
+    ini_set ${ml2_conf_ini} securitygroup enable_ipset True
+    backup ${linuxbridge_agent_ini}
     # linuxbridge configuration
-    ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini vxlan enable_vxlan False
-    ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini linux_bridge physical_interface_mappings ${public_network}:${mapping_dev}
+    ini_set ${linuxbridge_agent_ini} vxlan enable_vxlan False
+    ini_set ${linuxbridge_agent_ini} linux_bridge physical_interface_mappings ${public_network}:${mapping_dev}
     # # map to exists bridge
-    ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini linux_bridge bridge_mappings ${public_network}:${mapping_dev}
-    ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup enable_security_group False
-    ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup firewall_driver neutron.agent.firewall.NoopFirewallDriver
-    # ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup enable_security_group True
-    # ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup firewall_driver neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
+    ini_set ${linuxbridge_agent_ini} linux_bridge bridge_mappings ${public_network}:${mapping_dev}
+    ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group False
+    ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.firewall.NoopFirewallDriver
+    # ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group True
+    # ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
 
     # # dhcp agent configuration
     # ini_set /etc/neutron/dhcp_agent.ini DEFAULT interface_driver linuxbridge
     # ini_set /etc/neutron/dhcp_agent.ini DEFAULT dhcp_driver neutron.agent.linux.dhcp.Dnsmasq
     # ini_set /etc/neutron/dhcp_agent.ini DEFAULT enable_isolated_metadata true
 
-    ln -sf /etc/neutron/plugins/ml2/ml2_conf.ini /etc/neutron/plugin.ini
+    ln -sf ${ml2_conf_ini} /etc/neutron/plugin.ini
     systemctl enable neutron-linuxbridge-agent.service --now
 }
 init_neutron() {
@@ -507,68 +388,64 @@ init_neutron() {
     local metadata_secret="metadata_secret"
     log "##########################INSTALL NEUTRON##########################"
     log "Configure OpenStack Network Service (Neutron)."
-    # apt -y install neutron-server neutron-plugin-ml2 neutron-linuxbridge-agent neutron-l3-agent neutron-dhcp-agent neutron-metadata-agent python3-neutronclient
     openstack_add_admin_user neutron "${neutron_pass}"
     openstack_add_service_endpoint neutron network "http://${ctrl_host}:9696" "OpenStack Networking service"
     create_mysql_db neutron_ml2 neutron "${neutron_dbpass}"
-    backup /etc/neutron/neutron.conf
-    log "/etc/neutron/neutron.conf"
-    ini_set /etc/neutron/neutron.conf DEFAULT auth_strategy keystone
-    ini_set /etc/neutron/neutron.conf DEFAULT core_plugin ml2
-    ini_set /etc/neutron/neutron.conf DEFAULT service_plugins ""
-    ini_set /etc/neutron/neutron.conf DEFAULT notify_nova_on_port_status_changes True
-    ini_set /etc/neutron/neutron.conf DEFAULT notify_nova_on_port_data_changes True
-    ini_set /etc/neutron/neutron.conf DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
+    backup ${neutron_conf}
+    ini_set ${neutron_conf} DEFAULT auth_strategy keystone
+    ini_set ${neutron_conf} DEFAULT core_plugin ml2
+    ini_set ${neutron_conf} DEFAULT service_plugins ""
+    ini_set ${neutron_conf} DEFAULT notify_nova_on_port_status_changes True
+    ini_set ${neutron_conf} DEFAULT notify_nova_on_port_data_changes True
+    ini_set ${neutron_conf} DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
     # # database
-    ini_set /etc/neutron/neutron.conf database connection mysql+pymysql://neutron:${neutron_dbpass}@${ctrl_host}/neutron_ml2
+    ini_set ${neutron_conf} database connection mysql+pymysql://neutron:${neutron_dbpass}@${ctrl_host}/neutron_ml2
 
     # # keystone_authtoken
-    ini_set /etc/neutron/neutron.conf keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
-    ini_set /etc/neutron/neutron.conf keystone_authtoken auth_url http://${ctrl_host}:5000
-    ini_set /etc/neutron/neutron.conf keystone_authtoken memcached_servers ${ctrl_host}:11211
-    ini_set /etc/neutron/neutron.conf keystone_authtoken auth_type password
-    ini_set /etc/neutron/neutron.conf keystone_authtoken project_domain_name default
-    ini_set /etc/neutron/neutron.conf keystone_authtoken user_domain_name default
-    ini_set /etc/neutron/neutron.conf keystone_authtoken project_name service
-    ini_set /etc/neutron/neutron.conf keystone_authtoken username neutron
-    ini_set /etc/neutron/neutron.conf keystone_authtoken password ${neutron_pass}
-    ini_del /etc/neutron/neutron.conf keystone_authtoken region_name
+    ini_set ${neutron_conf} keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
+    ini_set ${neutron_conf} keystone_authtoken auth_url http://${ctrl_host}:5000
+    ini_set ${neutron_conf} keystone_authtoken memcached_servers ${ctrl_host}:11211
+    ini_set ${neutron_conf} keystone_authtoken auth_type password
+    ini_set ${neutron_conf} keystone_authtoken project_domain_name default
+    ini_set ${neutron_conf} keystone_authtoken user_domain_name default
+    ini_set ${neutron_conf} keystone_authtoken project_name service
+    ini_set ${neutron_conf} keystone_authtoken username neutron
+    ini_set ${neutron_conf} keystone_authtoken password ${neutron_pass}
+    ini_del ${neutron_conf} keystone_authtoken region_name
     # # Nova connection info
-    ini_set /etc/neutron/neutron.conf nova auth_url http://${ctrl_host}:5000
-    ini_set /etc/neutron/neutron.conf nova auth_type password
-    ini_set /etc/neutron/neutron.conf nova project_domain_name default
-    ini_set /etc/neutron/neutron.conf nova user_domain_name default
-    ini_set /etc/neutron/neutron.conf nova region_name ${region}
-    ini_set /etc/neutron/neutron.conf nova project_name service
-    ini_set /etc/neutron/neutron.conf nova username nova
-    ini_set /etc/neutron/neutron.conf nova password ${nova_pass}
+    ini_set ${neutron_conf} nova auth_url http://${ctrl_host}:5000
+    ini_set ${neutron_conf} nova auth_type password
+    ini_set ${neutron_conf} nova project_domain_name default
+    ini_set ${neutron_conf} nova user_domain_name default
+    ini_set ${neutron_conf} nova region_name ${region}
+    ini_set ${neutron_conf} nova project_name service
+    ini_set ${neutron_conf} nova username nova
+    ini_set ${neutron_conf} nova password ${nova_pass}
 
     modify_linux_bridge_plugin ${PUBLIC_NETWORK} "br-ext"
 
-    backup /etc/neutron/metadata_agent.ini
-    log "/etc/neutron/metadata_agent.ini"
-    ini_set /etc/neutron/metadata_agent.ini DEFAULT nova_metadata_host ${ctrl_host}
-    ini_set /etc/neutron/metadata_agent.ini DEFAULT metadata_proxy_shared_secret ${metadata_secret}
-    ini_set /etc/neutron/metadata_agent.ini cache memcache_servers ${ctrl_host}:11211
+    backup ${metadata_agent_ini}
+    ini_set ${metadata_agent_ini} DEFAULT nova_metadata_host ${ctrl_host}
+    ini_set ${metadata_agent_ini} DEFAULT metadata_proxy_shared_secret ${metadata_secret}
+    ini_set ${metadata_agent_ini} cache memcache_servers ${ctrl_host}:11211
     systemctl enable neutron-metadata-agent.service --now
-    backup /etc/nova/nova.conf
-    log "/etc/nova/nova.conf"
-    ini_set /etc/nova/nova.conf DEFAULT use_neutron True
-    ini_set /etc/nova/nova.conf DEFAULT vif_plugging_is_fatal false
-    ini_set /etc/nova/nova.conf DEFAULT vif_plugging_timeout 0
+    backup ${nova_conf}
+    ini_set ${nova_conf} DEFAULT use_neutron True
+    ini_set ${nova_conf} DEFAULT vif_plugging_is_fatal false
+    ini_set ${nova_conf} DEFAULT vif_plugging_timeout 0
     # # neutron in nova
-    ini_set /etc/nova/nova.conf neutron auth_url http://${ctrl_host}:5000
-    ini_set /etc/nova/nova.conf neutron auth_type password
-    ini_set /etc/nova/nova.conf neutron project_domain_name default
-    ini_set /etc/nova/nova.conf neutron user_domain_name default
-    ini_set /etc/nova/nova.conf neutron region_name ${region}
-    ini_set /etc/nova/nova.conf neutron project_name service
-    ini_set /etc/nova/nova.conf neutron username neutron
-    ini_set /etc/nova/nova.conf neutron password ${neutron_pass}
-    ini_set /etc/nova/nova.conf neutron service_metadata_proxy True
-    ini_set /etc/nova/nova.conf neutron metadata_proxy_shared_secret ${metadata_secret}
+    ini_set ${nova_conf} neutron auth_url http://${ctrl_host}:5000
+    ini_set ${nova_conf} neutron auth_type password
+    ini_set ${nova_conf} neutron project_domain_name default
+    ini_set ${nova_conf} neutron user_domain_name default
+    ini_set ${nova_conf} neutron region_name ${region}
+    ini_set ${nova_conf} neutron project_name service
+    ini_set ${nova_conf} neutron username neutron
+    ini_set ${nova_conf} neutron password ${neutron_pass}
+    ini_set ${nova_conf} neutron service_metadata_proxy True
+    ini_set ${nova_conf} neutron metadata_proxy_shared_secret ${metadata_secret}
 
-    su -s /bin/bash neutron -c "neutron-db-manage --config-file /etc/neutron/neutron.conf --config-file /etc/neutron/plugin.ini upgrade head"
+    su -s /bin/bash neutron -c "neutron-db-manage --config-file ${neutron_conf} --config-file /etc/neutron/plugin.ini upgrade head"
     systemctl restart neutron-api neutron-rpc-server neutron-metadata-agent neutron-metadata-agent neutron-linuxbridge-agent
     systemctl enable neutron-api neutron-rpc-server neutron-metadata-agent neutron-metadata-agent neutron-linuxbridge-agent --now || true
     systemctl restart nova-api
@@ -585,9 +462,6 @@ init_nova_compute() {
     # getent hosts ctl01 | grep -v 127.0.0.1 | awk '{print $1}'
     log "##########################INSTALL NOVA COMPUTE##########################"
     log "Install KVM HyperVisor on Compute Host"
-    # apt -y install nova-compute nova-compute-kvm
-    # apt -y install qemu-kvm libvirt-daemon-system libvirt-daemon bridge-utils libosinfo-bin
-    # apt -y install neutron-common neutron-plugin-ml2 neutron-linuxbridge-agent
     # on Debian 11 default is set cgroup v2, however,
     # specific feature does not work on Nova-Compute, so fall back to cgroup v1
     # sed -i -E \
@@ -595,52 +469,50 @@ init_nova_compute() {
     #     /etc/default/grub
     # update-grub
     # reboot
-    backup /etc/nova/nova-compute.conf
-    log "/etc/nova/nova-compute.conf"
-    ini_set /etc/nova/nova-compute.conf DEFAULT compute_driver libvirt.LibvirtDriver
+    backup ${nova_compute_conf}
+    ini_set ${nova_compute_conf} DEFAULT compute_driver libvirt.LibvirtDriver
     # # kvm/qemu
-    ini_set /etc/nova/nova-compute.conf libvirt virt_type kvm
+    ini_set ${nova_compute_conf} libvirt virt_type kvm
 
-    backup /etc/nova/nova.conf
-    log "/etc/nova/nova.conf"
-    ini_set /etc/nova/nova.conf DEFAULT my_ip ${my_ip}
-    ini_set /etc/nova/nova.conf DEFAULT debug ${OPENSTACK_DEBUG:-false}
-    ini_set /etc/nova/nova.conf DEFAULT enabled_apis osapi_compute,metadata
-    ini_set /etc/nova/nova.conf DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
-    ini_set /etc/nova/nova.conf DEFAULT state_path /var/lib/nova
-    ini_set /etc/nova/nova.conf DEFAULT log_dir /var/log/nova
-    ini_set /etc/nova/nova.conf oslo_concurrency lock_path /var/lib/nova/tmp
+    backup ${nova_conf}
+    ini_set ${nova_conf} DEFAULT my_ip ${my_ip}
+    ini_set ${nova_conf} DEFAULT debug ${OPENSTACK_DEBUG:-false}
+    ini_set ${nova_conf} DEFAULT enabled_apis osapi_compute,metadata
+    ini_set ${nova_conf} DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
+    ini_set ${nova_conf} DEFAULT state_path /var/lib/nova
+    ini_set ${nova_conf} DEFAULT log_dir /var/log/nova
+    ini_set ${nova_conf} oslo_concurrency lock_path /var/lib/nova/tmp
     # # glance
-    ini_set /etc/nova/nova.conf glance api_servers http://${ctrl_host}:9292
+    ini_set ${nova_conf} glance api_servers http://${ctrl_host}:9292
 
-    ini_set /etc/nova/nova.conf api auth_strategy keystone
-    ini_set /etc/nova/nova.conf keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
-    ini_set /etc/nova/nova.conf keystone_authtoken auth_url http://${ctrl_host}:5000
-    ini_set /etc/nova/nova.conf keystone_authtoken memcached_servers ${ctrl_host}:11211
-    ini_set /etc/nova/nova.conf keystone_authtoken auth_type password
-    ini_set /etc/nova/nova.conf keystone_authtoken project_domain_name default
-    ini_set /etc/nova/nova.conf keystone_authtoken user_domain_name default
-    ini_set /etc/nova/nova.conf keystone_authtoken project_name service
-    ini_set /etc/nova/nova.conf keystone_authtoken username nova
-    ini_set /etc/nova/nova.conf keystone_authtoken password ${nova_pass}
-    ini_del /etc/nova/nova.conf keystone_authtoken region_name
+    ini_set ${nova_conf} api auth_strategy keystone
+    ini_set ${nova_conf} keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
+    ini_set ${nova_conf} keystone_authtoken auth_url http://${ctrl_host}:5000
+    ini_set ${nova_conf} keystone_authtoken memcached_servers ${ctrl_host}:11211
+    ini_set ${nova_conf} keystone_authtoken auth_type password
+    ini_set ${nova_conf} keystone_authtoken project_domain_name default
+    ini_set ${nova_conf} keystone_authtoken user_domain_name default
+    ini_set ${nova_conf} keystone_authtoken project_name service
+    ini_set ${nova_conf} keystone_authtoken username nova
+    ini_set ${nova_conf} keystone_authtoken password ${nova_pass}
+    ini_del ${nova_conf} keystone_authtoken region_name
     # # enable vnc
-    ini_set /etc/nova/nova.conf vnc enabled True
-    ini_set /etc/nova/nova.conf vnc server_listen 0.0.0.0
-    ini_set /etc/nova/nova.conf vnc server_proxyclient_address '$my_ip'
-    ini_set /etc/nova/nova.conf vnc novncproxy_base_url http://${ctrl_host}:6080/vnc_auto.html
+    ini_set ${nova_conf} vnc enabled True
+    ini_set ${nova_conf} vnc server_listen 0.0.0.0
+    ini_set ${nova_conf} vnc server_proxyclient_address '$my_ip'
+    ini_set ${nova_conf} vnc novncproxy_base_url http://${ctrl_host}:6080/vnc_auto.html
     # # placement
-    ini_set /etc/nova/nova.conf placement auth_url http://${ctrl_host}:5000
-    ini_set /etc/nova/nova.conf placement os_region_name RegionOne
-    ini_set /etc/nova/nova.conf placement auth_type password
-    ini_set /etc/nova/nova.conf placement project_domain_name default
-    ini_set /etc/nova/nova.conf placement user_domain_name default
-    ini_set /etc/nova/nova.conf placement project_name service
-    ini_set /etc/nova/nova.conf placement username placement
-    ini_set /etc/nova/nova.conf placement password ${placement_pass}
-    ini_del /etc/nova/nova.conf placement region_name
+    ini_set ${nova_conf} placement auth_url http://${ctrl_host}:5000
+    ini_set ${nova_conf} placement os_region_name RegionOne
+    ini_set ${nova_conf} placement auth_type password
+    ini_set ${nova_conf} placement project_domain_name default
+    ini_set ${nova_conf} placement user_domain_name default
+    ini_set ${nova_conf} placement project_name service
+    ini_set ${nova_conf} placement username placement
+    ini_set ${nova_conf} placement password ${placement_pass}
+    ini_del ${nova_conf} placement region_name
     # # wsgi
-    ini_set /etc/nova/nova.conf wsgi api_paste_config /etc/nova/api-paste.ini
+    ini_set ${nova_conf} wsgi api_paste_config /etc/nova/api-paste.ini
 
     log "start nova-compute.service, maybe failed, before neutron network not ready!"
     systemctl enable nova-compute --now 2>/dev/null || true
@@ -654,45 +526,43 @@ init_neutron_compute() {
     local rabbit_user=${5}
     local rabbit_pass=${6}
     local region="${7:-RegionOne}"
-    backup /etc/neutron/neutron.conf
-    log "/etc/neutron/neutron.conf"
-    ini_set /etc/neutron/neutron.conf DEFAULT auth_strategy keystone
-    ini_set /etc/neutron/neutron.conf DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
+    backup ${neutron_conf}
+    ini_set ${neutron_conf} DEFAULT auth_strategy keystone
+    ini_set ${neutron_conf} DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
     # # keystone_authtoken
-    ini_set /etc/neutron/neutron.conf keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
-    ini_set /etc/neutron/neutron.conf keystone_authtoken auth_url http://${ctrl_host}:5000
-    ini_set /etc/neutron/neutron.conf keystone_authtoken memcached_servers ${ctrl_host}:11211
-    ini_set /etc/neutron/neutron.conf keystone_authtoken auth_type password
-    ini_set /etc/neutron/neutron.conf keystone_authtoken project_domain_name default
-    ini_set /etc/neutron/neutron.conf keystone_authtoken user_domain_name default
-    ini_set /etc/neutron/neutron.conf keystone_authtoken project_name service
-    ini_set /etc/neutron/neutron.conf keystone_authtoken username neutron
-    ini_set /etc/neutron/neutron.conf keystone_authtoken password ${neutron_pass}
-    ini_del /etc/neutron/neutron.conf keystone_authtoken region_name
+    ini_set ${neutron_conf} keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
+    ini_set ${neutron_conf} keystone_authtoken auth_url http://${ctrl_host}:5000
+    ini_set ${neutron_conf} keystone_authtoken memcached_servers ${ctrl_host}:11211
+    ini_set ${neutron_conf} keystone_authtoken auth_type password
+    ini_set ${neutron_conf} keystone_authtoken project_domain_name default
+    ini_set ${neutron_conf} keystone_authtoken user_domain_name default
+    ini_set ${neutron_conf} keystone_authtoken project_name service
+    ini_set ${neutron_conf} keystone_authtoken username neutron
+    ini_set ${neutron_conf} keystone_authtoken password ${neutron_pass}
+    ini_del ${neutron_conf} keystone_authtoken region_name
 
-    log "on compute node only /etc/neutron/plugins/ml2/linuxbridge_agent.ini need modiry"
+    log "on compute node only ${linuxbridge_agent_ini} need modiry"
     modify_linux_bridge_plugin ${PUBLIC_NETWORK} "br-ext"
 
-    backup /etc/nova/nova.conf
-    log "/etc/nova/nova.conf"
+    backup ${nova_conf}
     # # neutron in nova
-    ini_set /etc/nova/nova.conf neutron auth_url http://${ctrl_host}:5000
-    ini_set /etc/nova/nova.conf neutron auth_type password
-    ini_set /etc/nova/nova.conf neutron project_domain_name default
-    ini_set /etc/nova/nova.conf neutron user_domain_name default
-    ini_set /etc/nova/nova.conf neutron region_name ${region}
-    ini_set /etc/nova/nova.conf neutron project_name service
-    ini_set /etc/nova/nova.conf neutron username neutron
-    ini_set /etc/nova/nova.conf neutron password ${neutron_pass}
+    ini_set ${nova_conf} neutron auth_url http://${ctrl_host}:5000
+    ini_set ${nova_conf} neutron auth_type password
+    ini_set ${nova_conf} neutron project_domain_name default
+    ini_set ${nova_conf} neutron user_domain_name default
+    ini_set ${nova_conf} neutron region_name ${region}
+    ini_set ${nova_conf} neutron project_name service
+    ini_set ${nova_conf} neutron username neutron
+    ini_set ${nova_conf} neutron password ${neutron_pass}
     # # placement
-    ini_set /etc/nova/nova.conf placement auth_url http://${ctrl_host}:5000
-    ini_set /etc/nova/nova.conf placement auth_type password
-    ini_set /etc/nova/nova.conf placement project_domain_name default
-    ini_set /etc/nova/nova.conf placement user_domain_name default
-    ini_set /etc/nova/nova.conf placement project_name service
-    ini_set /etc/nova/nova.conf placement username placement
-    ini_set /etc/nova/nova.conf placement password ${placement_pass}
-    ini_del /etc/nova/nova.conf placement region_name
+    ini_set ${nova_conf} placement auth_url http://${ctrl_host}:5000
+    ini_set ${nova_conf} placement auth_type password
+    ini_set ${nova_conf} placement project_domain_name default
+    ini_set ${nova_conf} placement user_domain_name default
+    ini_set ${nova_conf} placement project_name service
+    ini_set ${nova_conf} placement username placement
+    ini_set ${nova_conf} placement password ${placement_pass}
+    ini_del ${nova_conf} placement region_name
 
     systemctl restart nova-compute neutron-linuxbridge-agent
     systemctl enable  nova-compute neutron-linuxbridge-agent --now || true
@@ -706,7 +576,7 @@ ctrller_discover_compute_node() {
     log "Start Nova Compute service."
     systemctl enable nova-novncproxy --now
     su -s /bin/bash nova -c "nova-manage cell_v2 discover_hosts --verbose"
-    openstack compute service list -f ${OUTPUT_FMT}
+    openstack compute service list
     #或者： 修改nova.conf修改时间间隔:
     #[scheduler]
     #discover_hosts_in_cells_interval = 300
@@ -716,13 +586,13 @@ ctrller_discover_compute_node() {
 add_neutron_linux_bridge_net() {
     local net_name=${1}
     log "Create network ${net_name}"
-    local prj_id=$(openstack project list | grep service | awk '{print $2}')
-    log "projectid = ${prj_id}"
-    openstack network show ${net_name}-net -f ${OUTPUT_FMT} 2>/dev/null || openstack network create --project $prj_id --external --share --provider-network-type flat --provider-physical-network ${net_name} ${net_name}-net -f ${OUTPUT_FMT}
+    local id=$(openstack project create --domain default service --or-show -f value -c id)
+    log "projectid = ${id}"
+    openstack network show ${net_name}-net 2>/dev/null || openstack network create --project ${id} --external --share --provider-network-type flat --provider-physical-network ${net_name} ${net_name}-net
     log "create subnet"
-    openstack subnet show subnet-${net_name}-net -f ${OUTPUT_FMT} 2>/dev/null || openstack subnet create subnet-${net_name}-net --network ${net_name}-net \
+    openstack subnet show subnet-${net_name}-net 2>/dev/null || openstack subnet create subnet-${net_name}-net --network ${net_name}-net \
         --no-dhcp \
-        --project $prj_id --subnet-range 192.168.168.0/24 \
+        --project ${id} --subnet-range 192.168.168.0/24 \
         --gateway 192.168.168.1 --dns-nameserver 114.114.114.114
 }
 
@@ -731,25 +601,26 @@ adduser() {
     user=${2}
     pass=${3}
     log "create a project"
-    openstack project create --domain default --description "my project ${project}"  ${project} -f ${OUTPUT_FMT}
+    openstack project create --domain default --description "my project ${project}" ${project} --or-show -f value -c id
     log "create a user ${user}"
-    openstack user create --domain default --project ${project} --password ${pass} ${user} -f ${OUTPUT_FMT}
+    openstack user create --domain default --project ${project} --password ${pass} ${user} --or-show -f value -c id
     log "create a role"
-    openstack role create CloudUser -f ${OUTPUT_FMT}
-    log "create a user to the role"
+    openstack role create CloudUser --or-show -f value -c id
+    log "create a user to the role CloudUser"
     openstack role add --project ${project} --user ${user} CloudUser
     local net_name=${PUBLIC_NETWORK}
     local flaver_name=m1.small
     local secgroup=secgroup01
     local key_name=mykey
     log "create a [flavor]"
-    openstack flavor show ${flaver_name} -f ${OUTPUT_FMT} 2>/dev/null || openstack flavor create --id 0 --vcpus 1 --ram 512 --disk 100 ${flaver_name} -f ${OUTPUT_FMT} || true
+    openstack flavor show ${flaver_name} 2>/dev/null || openstack flavor create --id 0 --vcpus 1 --ram 256 --disk 1 ${flaver_name} || true
     log "create a security group for instances"
-    openstack security group show ${secgroup} -f ${OUTPUT_FMT} 2>/dev/null || openstack security group create ${secgroup} -f ${OUTPUT_FMT} || true
-    log "add public-key"
+    openstack security group show ${secgroup} 2>/dev/null || openstack security group create ${secgroup} || true
+    log "add public-keyc${key_name}"
     rm -f test.key test.key.pub 2>/dev/null || true
     ssh-keygen -q -N "" -f  test.key
-    openstack keypair show ${key_name} -f ${OUTPUT_FMT} 2>/dev/null || openstack keypair create --public-key test.key.pub ${key_name} -f ${OUTPUT_FMT} || true
+    openstack keypair show ${key_name} 2>/dev/null || \
+        openstack keypair create --public-key test.key.pub ${key_name} -f value -c fingerprint || true
 }
 
 ####################################################################################################
@@ -790,7 +661,7 @@ verify_keystone() {
     openstack role list
     openstack endpoint list
 }
-check_all() {
+verify_all() {
     local net_name=${PUBLIC_NETWORK}
     local flaver_name=m1.small
     local secgroup=secgroup01
@@ -799,7 +670,7 @@ check_all() {
     local key_name=mykey
     source ~/keystonerc
     local netid=$(openstack network list | grep ${net_name}-net | awk '{ print $2 }')
-    log "check all"
+    log "verify all"
     verify_keystone
     verify_glance
     verify_neutron
@@ -829,7 +700,7 @@ check_all() {
 }
 
 ####################################################################################################
-CTRL_HOST=192.168.168.101
+CTRL_HOST=192.168.168.1
 COMPUTE_HOST=192.168.168.102
 RABBIT_USER=openstack
 RABBIT_PASS=password
@@ -849,24 +720,19 @@ teardown() {
     sed -i '/keystonerc/d' ~/.bashrc || true
     rm -f ~/keystonerc  || true
     for s in placement keystone glance neutron nova rabbitmq-server memcached; do
-        systemctl stop ${s}* --force --quiet || true
-        systemctl disable ${s}* --quiet || true
+        log "stop & disable service ${s}"
+        systemctl stop ${s}* --force &>/dev/null || true
+        systemctl disable ${s}* &>/dev/null || true
     done
-    command -v "mysql" &> /dev/null || {
-        cat <<EOF | mysql 2>/dev/null || true
-drop database glance;
-drop database keystone;
-drop database neutron_ml2;
-drop database nova;
-drop database nova_api;
-drop database nova_cell0;
-drop database placement;
-EOF
-        systemctl stop mariadb  --force --quiet || true
-        systemctl disable mariadb --quiet || true
+    command -v "mysql" &> /dev/null && {
+        log "stop & disable service mariadb"
+        systemctl stop mariadb --force &>/dev/null || true
+        systemctl disable mariadb &>/dev/null || true
+        datadir=$(ini_get ${my_conf} mysqld datadir) || true
+        [ -z "${datadir}" ] || rm -vrf "${datadir}" || true
     }
     for d in keystone glance nova placement neutron rabbitmq libvirt; do
-        rm -rf /var/log/${d}/* || true
+        rm -vrf /var/log/${d}/* || true
     done
     log "TEARDOWN ALL DONE"
 }
@@ -888,16 +754,15 @@ init_comput_node() {
     init_nova_compute "${COMPUTE_HOST}" "${CTRL_HOST}" "${NOVA_PASS}" "${PLACEMENT_PASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
     init_neutron_compute "${COMPUTE_HOST}" "${CTRL_HOST}" "${NEUTRON_PASS}" "${PLACEMENT_PASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
     log 'su -s /bin/bash nova -c "nova-manage cell_v2 discover_hosts --verbose"'
-    log "openstack compute service list -f ${OUTPUT_FMT}"
+    log "openstack compute service list"
     log "COMPUT NODE ALL DONE"
 }
-
 
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME} <ctrl|compute|teardown>
-        -c|--check <keystone|glance|nova|neutron|all>
+        -v|--verify <keystone|glance|nova|neutron|all>
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -918,16 +783,16 @@ EOF
     exit 1
 }
 main() {
-    local check=
-    local opt_short="c:"
-    local opt_long="check:,"
+    local verify="" 
+    local opt_short="v:"
+    local opt_long="verify:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -c | --check)   shift; check=${1}; shift;;
+            -v | --verify)  shift; declare -f -F verify_${1} >/dev/null && verify_${1} || usage; exit 0; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -938,18 +803,11 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    case "${check}" in
-        keystone)     verify_keystone ;;
-        glance)       verify_glance ;;
-        nova)         verify_nova ;;
-        neutron)      verify_neutron;;
-        all)          check_all ;;
-    esac
     case "${1:-}" in
         ctrl)       init_ctrl_node ;;
         compute)    init_comput_node ;;
         teardown)   teardown ;;
-        *)            usage;;
+        *)          usage;;
     esac
     return 0
 }
