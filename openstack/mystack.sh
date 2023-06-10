@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5a0b056[2023-06-10T11:57:07+08:00]:mystack.sh")
+VERSION+=("2b5826e[2023-06-10T23:33:54+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -38,11 +38,13 @@ log() { echo "## ${GREEN}$*${RESET}" | tee ${LOGFILE} >&2; }
 
 backup() {
     local src=${1}
+    local mv=${2:-}
     [ -d "${TIMESPAN}" ] || mkdir -p ${TIMESPAN}
     local backup=$(basename ${src})
-    log "BACKUP: ${src} => ${TIMESPAN} "
+    log "${mv:-BACKUP}: ${src} => ${TIMESPAN} "
     [ -e "${TIMESPAN}/${backup}" ] && return 0
     cat ${src} 2>/dev/null > ${TIMESPAN}/${backup} || true
+    [ -z "${mv}" ] || rm -f ${src}
 }
 ini_get() {
     local file=${1}
@@ -206,7 +208,23 @@ init_keystone() {
     local id=$(openstack project create --domain default --description "Service Project" service --or-show -f value -c id)
     log "Add Projects, create [service], id ${id} "
 }
-
+add_keystone_authtoken() {
+    local conf=${1}
+    local host=${2}
+    local user=${3}
+    local pass=${4}
+    log "add keystone_authtoken"
+    ini_set ${conf} keystone_authtoken auth_url http://${host}:5000
+    ini_set ${conf} keystone_authtoken www_authenticate_uri http://${host}:5000
+    ini_set ${conf} keystone_authtoken memcached_servers ${host}:11211
+    ini_set ${conf} keystone_authtoken auth_type password
+    ini_set ${conf} keystone_authtoken project_domain_name default
+    ini_set ${conf} keystone_authtoken user_domain_name default
+    ini_set ${conf} keystone_authtoken project_name service
+    ini_set ${conf} keystone_authtoken username ${user}
+    ini_set ${conf} keystone_authtoken password ${pass}
+    ini_del ${conf} keystone_authtoken region_name
+}
 init_glance() {
     local ctrl_host=${1}
     local glance_pass=${2}
@@ -217,20 +235,11 @@ init_glance() {
     openstack_add_service_endpoint glance image "http://${ctrl_host}:9292" "OpenStack Image service"
     log "Add a User and Database on MariaDB for Glance"
     create_mysql_db glance glance "${glance_dbpass}"
-    log "Configure Glance"
-    backup ${glance_conf}
+    log "Configure Glance create new"
+    backup ${glance_conf} "MOVE"
     ini_set ${glance_conf} DEFAULT bind_host 0.0.0.0
     ini_set ${glance_conf} database connection mysql+pymysql://glance:${glance_dbpass}@${ctrl_host}/glance
-    ini_set ${glance_conf} keystone_authtoken auth_url http://${ctrl_host}:5000
-    ini_set ${glance_conf} keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
-    ini_set ${glance_conf} keystone_authtoken memcached_servers ${ctrl_host}:11211
-    ini_set ${glance_conf} keystone_authtoken auth_type password
-    ini_set ${glance_conf} keystone_authtoken project_domain_name default
-    ini_set ${glance_conf} keystone_authtoken user_domain_name default
-    ini_set ${glance_conf} keystone_authtoken project_name service
-    ini_set ${glance_conf} keystone_authtoken username glance
-    ini_set ${glance_conf} keystone_authtoken password ${glance_pass}
-    ini_del ${glance_conf} keystone_authtoken region_name
+    add_keystone_authtoken ${glance_conf} ${ctrl_host} glance ${glance_pass}
     ini_set ${glance_conf} paste_deploy flavor keystone
     ini_set ${glance_conf} glance_store stores file,http
     ini_set ${glance_conf} glance_store default_store file
@@ -255,7 +264,6 @@ init_nova() {
     local my_ip=${ctrl_host}
     log "##########################INSTALL NOVA##########################"
     log "Install nova(Compute Service) ctrl node"
-    log "Add users and others for Nova in Keystone."
     openstack_add_admin_user nova "${nova_pass}"
     openstack_add_admin_user placement "${placement_pass}"
     openstack_add_service_endpoint nova compute "http://${ctrl_host}:8774/v2.1/%(tenant_id)s" "OpenStack Compute service"
@@ -265,7 +273,8 @@ init_nova() {
     create_mysql_db nova_cell0 nova "${nova_dbpass}"
     create_mysql_db placement placement "${placement_dbpass}"
 
-    backup ${nova_conf}
+    log "Configure Nova create new"
+    backup ${nova_conf} "MOVE"
     ini_set ${nova_conf} DEFAULT debug ${OPENSTACK_DEBUG:-false}
     ini_set ${nova_conf} DEFAULT my_ip ${my_ip}
     ini_set ${nova_conf} DEFAULT enabled_apis osapi_compute,metadata
@@ -282,21 +291,7 @@ init_nova() {
     ini_set ${nova_conf} database connection mysql+pymysql://nova:${nova_dbpass}@${ctrl_host}/nova
 
     ini_set ${nova_conf} api auth_strategy keystone
-    ini_set ${nova_conf} keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
-    ini_set ${nova_conf} keystone_authtoken auth_url http://${ctrl_host}:5000
-    ini_set ${nova_conf} keystone_authtoken memcached_servers ${ctrl_host}:11211
-    ini_set ${nova_conf} keystone_authtoken auth_type password
-    ini_set ${nova_conf} keystone_authtoken project_domain_name default
-    ini_set ${nova_conf} keystone_authtoken user_domain_name default
-    ini_set ${nova_conf} keystone_authtoken project_name service
-    ini_set ${nova_conf} keystone_authtoken username nova
-    ini_set ${nova_conf} keystone_authtoken password ${nova_pass}
-    ini_del ${nova_conf} keystone_authtoken region_name
-    # # enable vnc
-    # ini_set ${nova_conf} vnc enabled True
-    ini_set ${nova_conf} vnc server_listen 0.0.0.0
-    ini_set ${nova_conf} vnc server_proxyclient_address '$my_ip'
-    # ini_set ${nova_conf} vnc novncproxy_base_url http://${ctrl_host}:6080/vnc_auto.html
+    add_keystone_authtoken ${nova_conf} ${ctrl_host} nova ${nova_pass}
     # # placement
     ini_set ${nova_conf} placement auth_url http://${ctrl_host}:5000
     ini_set ${nova_conf} placement os_region_name RegionOne
@@ -307,23 +302,19 @@ init_nova() {
     ini_set ${nova_conf} placement username placement
     ini_set ${nova_conf} placement password ${placement_pass}
     ini_del ${nova_conf} placement region_name
+    # # enable vnc
+    # ini_set ${nova_conf} vnc enabled True
+    ini_set ${nova_conf} vnc server_listen 0.0.0.0
+    ini_set ${nova_conf} vnc server_proxyclient_address '$my_ip'
+    # ini_set ${nova_conf} vnc novncproxy_base_url http://${ctrl_host}:6080/vnc_auto.html
     # # wsgi
     ini_set ${nova_conf} wsgi api_paste_config /etc/nova/api-paste.ini
 
-    backup ${placement_conf}
+    log "Configure Placement create new"
+    backup ${placement_conf} "MOVE"
     ini_set ${placement_conf} DEFAULT debug ${OPENSTACK_DEBUG:-false}
     ini_set ${placement_conf} api auth_strategy keystone
-    # # keystone_authtoken
-    ini_set ${placement_conf} keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
-    ini_set ${placement_conf} keystone_authtoken auth_url http://${ctrl_host}:5000
-    ini_set ${placement_conf} keystone_authtoken memcached_servers ${ctrl_host}:11211
-    ini_set ${placement_conf} keystone_authtoken auth_type password
-    ini_set ${placement_conf} keystone_authtoken project_domain_name default
-    ini_set ${placement_conf} keystone_authtoken user_domain_name default
-    ini_set ${placement_conf} keystone_authtoken project_name service
-    ini_set ${placement_conf} keystone_authtoken username placement
-    ini_set ${placement_conf} keystone_authtoken password ${placement_pass}
-    ini_del ${placement_conf} keystone_authtoken region_name
+    add_keystone_authtoken ${placement_conf} ${ctrl_host} placement ${placement_pass}
     # # placement_database
     ini_set ${placement_conf} placement_database connection mysql+pymysql://placement:${placement_dbpass}@${ctrl_host}/placement
     log "placement db sync"
@@ -391,27 +382,19 @@ init_neutron() {
     openstack_add_admin_user neutron "${neutron_pass}"
     openstack_add_service_endpoint neutron network "http://${ctrl_host}:9696" "OpenStack Networking service"
     create_mysql_db neutron_ml2 neutron "${neutron_dbpass}"
-    backup ${neutron_conf}
-    ini_set ${neutron_conf} DEFAULT auth_strategy keystone
+
+    log "Configure Neutron create new"
+    backup ${neutron_conf} "MOVE"
     ini_set ${neutron_conf} DEFAULT core_plugin ml2
     ini_set ${neutron_conf} DEFAULT service_plugins ""
     ini_set ${neutron_conf} DEFAULT notify_nova_on_port_status_changes True
     ini_set ${neutron_conf} DEFAULT notify_nova_on_port_data_changes True
     ini_set ${neutron_conf} DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
+
+    ini_set ${neutron_conf} DEFAULT auth_strategy keystone
+    add_keystone_authtoken ${neutron_conf} ${ctrl_host} neutron ${neutron_pass}
     # # database
     ini_set ${neutron_conf} database connection mysql+pymysql://neutron:${neutron_dbpass}@${ctrl_host}/neutron_ml2
-
-    # # keystone_authtoken
-    ini_set ${neutron_conf} keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
-    ini_set ${neutron_conf} keystone_authtoken auth_url http://${ctrl_host}:5000
-    ini_set ${neutron_conf} keystone_authtoken memcached_servers ${ctrl_host}:11211
-    ini_set ${neutron_conf} keystone_authtoken auth_type password
-    ini_set ${neutron_conf} keystone_authtoken project_domain_name default
-    ini_set ${neutron_conf} keystone_authtoken user_domain_name default
-    ini_set ${neutron_conf} keystone_authtoken project_name service
-    ini_set ${neutron_conf} keystone_authtoken username neutron
-    ini_set ${neutron_conf} keystone_authtoken password ${neutron_pass}
-    ini_del ${neutron_conf} keystone_authtoken region_name
     # # Nova connection info
     ini_set ${neutron_conf} nova auth_url http://${ctrl_host}:5000
     ini_set ${neutron_conf} nova auth_type password
@@ -429,6 +412,7 @@ init_neutron() {
     ini_set ${metadata_agent_ini} DEFAULT metadata_proxy_shared_secret ${metadata_secret}
     ini_set ${metadata_agent_ini} cache memcache_servers ${ctrl_host}:11211
     systemctl enable neutron-metadata-agent.service --now
+    log "Configure Neutron in Nova"
     backup ${nova_conf}
     ini_set ${nova_conf} DEFAULT use_neutron True
     ini_set ${nova_conf} DEFAULT vif_plugging_is_fatal false
@@ -474,7 +458,8 @@ init_nova_compute() {
     # # kvm/qemu
     ini_set ${nova_compute_conf} libvirt virt_type kvm
 
-    backup ${nova_conf}
+    log "Configure Nova compute node create new"
+    backup ${nova_conf} "MOVE"
     ini_set ${nova_conf} DEFAULT my_ip ${my_ip}
     ini_set ${nova_conf} DEFAULT debug ${OPENSTACK_DEBUG:-false}
     ini_set ${nova_conf} DEFAULT enabled_apis osapi_compute,metadata
@@ -486,21 +471,7 @@ init_nova_compute() {
     ini_set ${nova_conf} glance api_servers http://${ctrl_host}:9292
 
     ini_set ${nova_conf} api auth_strategy keystone
-    ini_set ${nova_conf} keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
-    ini_set ${nova_conf} keystone_authtoken auth_url http://${ctrl_host}:5000
-    ini_set ${nova_conf} keystone_authtoken memcached_servers ${ctrl_host}:11211
-    ini_set ${nova_conf} keystone_authtoken auth_type password
-    ini_set ${nova_conf} keystone_authtoken project_domain_name default
-    ini_set ${nova_conf} keystone_authtoken user_domain_name default
-    ini_set ${nova_conf} keystone_authtoken project_name service
-    ini_set ${nova_conf} keystone_authtoken username nova
-    ini_set ${nova_conf} keystone_authtoken password ${nova_pass}
-    ini_del ${nova_conf} keystone_authtoken region_name
-    # # enable vnc
-    ini_set ${nova_conf} vnc enabled True
-    ini_set ${nova_conf} vnc server_listen 0.0.0.0
-    ini_set ${nova_conf} vnc server_proxyclient_address '$my_ip'
-    ini_set ${nova_conf} vnc novncproxy_base_url http://${ctrl_host}:6080/vnc_auto.html
+    add_keystone_authtoken ${nova_conf} ${ctrl_host} nova ${nova_pass}
     # # placement
     ini_set ${nova_conf} placement auth_url http://${ctrl_host}:5000
     ini_set ${nova_conf} placement os_region_name RegionOne
@@ -511,6 +482,11 @@ init_nova_compute() {
     ini_set ${nova_conf} placement username placement
     ini_set ${nova_conf} placement password ${placement_pass}
     ini_del ${nova_conf} placement region_name
+    # # enable vnc
+    ini_set ${nova_conf} vnc enabled True
+    ini_set ${nova_conf} vnc server_listen 0.0.0.0
+    ini_set ${nova_conf} vnc server_proxyclient_address '$my_ip'
+    ini_set ${nova_conf} vnc novncproxy_base_url http://${ctrl_host}:6080/vnc_auto.html
     # # wsgi
     ini_set ${nova_conf} wsgi api_paste_config /etc/nova/api-paste.ini
 
@@ -526,20 +502,12 @@ init_neutron_compute() {
     local rabbit_user=${5}
     local rabbit_pass=${6}
     local region="${7:-RegionOne}"
-    backup ${neutron_conf}
-    ini_set ${neutron_conf} DEFAULT auth_strategy keystone
+    log "Configure Neutron compute node create new"
+    backup ${neutron_conf} "move"
     ini_set ${neutron_conf} DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
-    # # keystone_authtoken
-    ini_set ${neutron_conf} keystone_authtoken www_authenticate_uri http://${ctrl_host}:5000
-    ini_set ${neutron_conf} keystone_authtoken auth_url http://${ctrl_host}:5000
-    ini_set ${neutron_conf} keystone_authtoken memcached_servers ${ctrl_host}:11211
-    ini_set ${neutron_conf} keystone_authtoken auth_type password
-    ini_set ${neutron_conf} keystone_authtoken project_domain_name default
-    ini_set ${neutron_conf} keystone_authtoken user_domain_name default
-    ini_set ${neutron_conf} keystone_authtoken project_name service
-    ini_set ${neutron_conf} keystone_authtoken username neutron
-    ini_set ${neutron_conf} keystone_authtoken password ${neutron_pass}
-    ini_del ${neutron_conf} keystone_authtoken region_name
+
+    ini_set ${neutron_conf} DEFAULT auth_strategy keystone
+    add_keystone_authtoken ${neutron_conf} ${ctrl_host} neutron ${neutron_pass}
 
     log "on compute node only ${linuxbridge_agent_ini} need modiry"
     modify_linux_bridge_plugin ${PUBLIC_NETWORK} "br-ext"
@@ -554,15 +522,6 @@ init_neutron_compute() {
     ini_set ${nova_conf} neutron project_name service
     ini_set ${nova_conf} neutron username neutron
     ini_set ${nova_conf} neutron password ${neutron_pass}
-    # # placement
-    ini_set ${nova_conf} placement auth_url http://${ctrl_host}:5000
-    ini_set ${nova_conf} placement auth_type password
-    ini_set ${nova_conf} placement project_domain_name default
-    ini_set ${nova_conf} placement user_domain_name default
-    ini_set ${nova_conf} placement project_name service
-    ini_set ${nova_conf} placement username placement
-    ini_set ${nova_conf} placement password ${placement_pass}
-    ini_del ${nova_conf} placement region_name
 
     systemctl restart nova-compute neutron-linuxbridge-agent
     systemctl enable  nova-compute neutron-linuxbridge-agent --now || true
@@ -647,7 +606,7 @@ verify_glance() {
     local img_name=cirros
     log "Create Image Cirros"
     log "IMG: wget -O ${img} http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img"
-    [ -e "${img}" ] || { log "wget --no-check-certificate -O ${img} http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img"; return 0; }
+    [ -e "${img}" ] || { log "wget --no-check-certificate -O ${img} http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img"; qemu-img create -f qcow2 ${img} 2G; }
     openstack image show ${img_name} 2>/dev/null ||\
         openstack image create "${img_name}" --file ${img} --disk-format qcow2 --container-format bare --public
     openstack image list
@@ -792,7 +751,7 @@ main() {
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -v | --verify)  shift; declare -f -F verify_${1} >/dev/null && verify_${1} || usage; exit 0; shift;;
+            -v | --verify)  shift; declare -f -F verify_${1} >/dev/null && { verify_${1}; log "VERIFY DONE"; } || usage; exit 0; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
