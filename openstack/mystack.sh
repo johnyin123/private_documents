@@ -7,43 +7,13 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-06-09T17:17:59+08:00]:mystack.sh")
+VERSION+=("befc2dd[2023-06-09T17:17:59+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
-: <<EOF
-        eth0|192.168.168.101
-+-----------+-----------+
-|    [ Control Node ]   |
-|                       |
-|  MariaDB    RabbitMQ  |
-|  Memcached  httpd     |
-|  Keystone   Glance    |
-|  Nova API             |
-+-----------------------+
-     Service                   Code_Name       Description
-01   Identity Service          Keystone        User Management
-02   Compute Service           Nova            Virtual Machine Management
-03   Image Service             Glance          Manages Virtual image like kernel image or disk image
-04   Dashboard                 Horizon         Provides GUI console via Web browser
-05   Object Storage            Swift           Provides Cloud Storage feature
-06   Block Storage             Cinder          Storage Management for Virtual Machine
-07   Network Service           Neutron         Virtual Networking Management
-08   Load Balancing Service    Octavia         Provides Load Balancing feature
-09   Orchestration Service     Heat            Provides Orchestration feature for Virtual Machine
-10   Metering Service          Ceilometer      Provides the feature of Usage measurement for accounting
-11   Database Service          Trove           Database resource Management
-12   Container Service         Magnum          Container Infrastructure Management
-13   Data Processing Service   Sahara          Provides Data Processing feature
-14   Bare Metal Provisioning   Ironic          Provides Bare Metal Provisioning feature
-15   Messaging Service         Zaqar           Provides Messaging Service feature
-16   Shared File System        Manila          Provides File Sharing Service
-17   DNS Service               Designate       Provides DNS Server Service
-18   Key Manager Service       Barbican        Provides Key Management Service
-EOF
-####################################################################################################
+MYSQL_PASS=${MYSQL_PASS:-}
 OUTPUT_FMT=${OUTPUT_FMT:-json} #csv,json,table,value,yaml
 PUBLIC_NETWORK=public
 OPENSTACK_DEBUG=true
@@ -69,8 +39,13 @@ ini_del() {
     local key=${3}
     log "del ${file} [${sec}] ${key}"
     crudini --del "${file}" "${sec}" "${key}"
+    # # Comment
+    # $sudo sed -i -e "/^\[$section\]/,/^\[.*\]/ s|^\($option[ \t]*=.*$\)|#\1|" "$file"
+    # # del
+    # $sudo sed -i -e "/^\[$section\]/,/^\[.*\]/ { /^$option[ \t]*=/ d; }" "$file"
+    # # get
+    # line=$(sed -ne "/^\[$section\]/,/^\[.*\]/ { /^$option[ \t]*=/ p; }" "$file"); echo ${line#*=}
 }
-
 ini_set() {
     local file=${1}
     local sec=${2}
@@ -85,17 +60,151 @@ create_mysql_db() {
     local user=${2}
     local pass=${3}
     log "Add a User [${user}/${pass}] and Database [${db}] on MariaDB."
-    cat <<EOF | mysql 2>/dev/null || true
-# show databases;
-drop database ${db};
-EOF
-    cat <<EOF | mysql
-CREATE DATABASE ${db};
+# # prompt us for a password upon install.
+#     sudo debconf-set-selections <<MYSQL_PRESEED
+# mysql-server mysql-server/root_password password $DATABASE_PASSWORD
+# mysql-server mysql-server/root_password_again password $DATABASE_PASSWORD
+# mysql-server mysql-server/start_on_boot boolean true
+# MYSQL_PRESEED
+    cat <<EOF | mysql ${MYSQL_PASS:+"-uroot -p${MYSQL_PASS}"}
+DROP DATABASE IF EXISTS ${db};
+CREATE DATABASE ${db} CHARACTER SET utf8;
 GRANT ALL PRIVILEGES ON ${db}.* TO '${user}'@'localhost' IDENTIFIED BY '${pass}';
 GRANT ALL PRIVILEGES ON ${db}.* TO '${user}'@'%' IDENTIFIED BY '${pass}';
 flush privileges;
 EOF
 }
+# # create_placement_accounts() - Set up required placement accounts
+# # and service and endpoints.
+# function create_placement_accounts {
+#     create_service_user "placement" "admin"
+#     local placement_api_url="$PLACEMENT_SERVICE_PROTOCOL://$PLACEMENT_SERVICE_HOST/placement"
+#     get_or_create_service "placement" "placement" "Placement Service"
+#     get_or_create_endpoint \
+#         "placement" \
+#         "$REGION_NAME" \
+#         "$placement_api_url"
+# }
+# # Create an endpoint with a specific interface
+# # Usage: _get_or_create_endpoint_with_interface <service> <interface> <url> <region>
+# function _get_or_create_endpoint_with_interface {
+#     local endpoint_id
+#     endpoint_id=$(openstack --os-cloud devstack-system-admin endpoint list \
+#         --service $1 \
+#         --interface $2 \
+#         --region $4 \
+#         -c ID -f value)
+#     if [[ -z "$endpoint_id" ]]; then
+#         # Creates new endpoint
+#         endpoint_id=$(openstack --os-cloud devstack-system-admin endpoint create \
+#             $1 $2 $3 --region $4 -f value -c id)
+#     fi
+#
+#     echo $endpoint_id
+# }
+#
+# # Gets or creates endpoint
+# # Usage: get_or_create_endpoint <service> <region> <publicurl> [adminurl] [internalurl]
+# function get_or_create_endpoint {
+#     # NOTE(jamielennnox): when converting to v3 endpoint creation we go from
+#     # creating one endpoint with multiple urls to multiple endpoints each with
+#     # a different interface.  To maintain the existing function interface we
+#     # create 3 endpoints and return the id of the public one. In reality
+#     # returning the public id will not make a lot of difference as there are no
+#     # scenarios currently that use the returned id. Ideally this behaviour
+#     # should be pushed out to the service setups and let them create the
+#     # endpoints they need.
+#     local public_id
+#     public_id=$(_get_or_create_endpoint_with_interface $1 public $3 $2)
+#     # only create admin/internal urls if provided content for them
+#     if [[ -n "$4" ]]; then
+#         _get_or_create_endpoint_with_interface $1 admin $4 $2
+#     fi
+#     if [[ -n "$5" ]]; then
+#         _get_or_create_endpoint_with_interface $1 internal $5 $2
+#     fi
+#     # return the public id to indicate success, and this is the endpoint most likely wanted
+#     echo $public_id
+# }
+#
+# # Gets or creates user
+# # Usage: get_or_create_user <username> <password> <domain> [<email>]
+# function get_or_create_user {
+#     local user_id
+#     if [[ ! -z "$4" ]]; then
+#         local email="--email=$4"
+#     else
+#         local email=""
+#     fi
+#     # Gets user id
+#     user_id=$(
+#         # Creates new user with --or-show
+#         openstack --os-cloud devstack-system-admin user create \
+#             $1 \
+#             --password "$2" \
+#             --domain=$3 \
+#             $email \
+#             --or-show \
+#             -f value -c id
+#     )
+#     echo $user_id
+# }
+# # Gets or adds user role to project
+# # Usage: get_or_add_user_project_role <role> <user> <project> [<user_domain> <project_domain>]
+# function get_or_add_user_project_role {
+#     local user_role_id
+#     local domain_args
+#
+#     domain_args=$(_get_domain_args $4 $5)
+#
+#     # Note this is idempotent so we are safe across multiple
+#     # duplicate calls.
+#     openstack --os-cloud devstack-system-admin role add $1 \
+#         --user $2 \
+#         --project $3 \
+#         $domain_args
+#     user_role_id=$(openstack --os-cloud devstack-system-admin role assignment list \
+#         --role $1 \
+#         --user $2 \
+#         --project $3 \
+#         $domain_args \
+#         -c Role -f value)
+#     echo $user_role_id
+# }
+# # Usage: get_or_add_user_project_role <role> <user> <project> [<user_domain> <project_domain>]
+# get_or_add_user_project_role() {
+#     local user_role_id
+#     local domain_args
+#     domain_args=$(_get_domain_args $4 $5)
+#
+#     # Note this is idempotent so we are safe across multiple
+#     # duplicate calls.
+#     openstack --os-cloud devstack-system-admin role add $1 \
+#         --user $2 \
+#         --project $3 \
+#         $domain_args
+#     user_role_id=$(openstack --os-cloud devstack-system-admin role assignment list \
+#         --role $1 \
+#         --user $2 \
+#         --project $3 \
+#         $domain_args \
+#         -c Role -f value)
+#     echo $user_role_id
+# }
+#
+# # Create a user that is capable of verifying keystone tokens for use with auth_token middleware.
+# # create_service_user <name> [role]
+# # We always add the service role, other roles are also allowed to be added as historically
+# # a lot of projects have configured themselves with the admin or other role here if they are
+# # using this user for other purposes beyond simply auth_token middleware.
+# function create_service_user {
+#     get_or_create_user "$1" "$SERVICE_PASSWORD" "$SERVICE_DOMAIN_NAME"
+#     get_or_add_user_project_role service "$1" "$SERVICE_PROJECT_NAME" "$SERVICE_DOMAIN_NAME" "$SERVICE_DOMAIN_NAME"
+#
+#     if [[ -n "$2" ]]; then
+#         get_or_add_user_project_role "$2" "$1" "$SERVICE_PROJECT_NAME" "$SERVICE_DOMAIN_NAME" "$SERVICE_DOMAIN_NAME"
+#     fi
+# }
 
 openstack_add_admin_user() {
     local user=${1}
@@ -107,7 +216,6 @@ openstack_add_admin_user() {
         openstack user create --domain ${domain} --project ${project} --password ${pass} ${user} -f ${OUTPUT_FMT}
         openstack role add --project ${project} --user ${user} admin
     }
-    openstack user list -f ${OUTPUT_FMT}
 }
 
 openstack_add_service_endpoint() {
@@ -116,14 +224,14 @@ openstack_add_service_endpoint() {
     local url=${3}
     local desc=${4}
     local region="${5:-RegionOne}"
-    log "create service entry for [${name}]"
-    openstack service create --name ${name} --description "${desc}" ${type} -f ${OUTPUT_FMT}
-    openstack service list -f ${OUTPUT_FMT}
-    log "create endpoint for [${name}] (public/internal/admin)"
-    openstack endpoint create --region ${region} ${type} public ${url} -f ${OUTPUT_FMT}
-    openstack endpoint create --region ${region} ${type} internal ${url} -f ${OUTPUT_FMT}
-    openstack endpoint create --region ${region} ${type} admin ${url} -f ${OUTPUT_FMT}
-    openstack endpoint list -f ${OUTPUT_FMT}
+    local id=""
+    id=$(openstack service show ${name} -f value -c id 2>/dev/null || openstack service create --name ${name} --description "${desc}" ${type} -f value -c id)
+    log "create service [${name}] id [${id}]"
+    for __t in admin public internal; do
+        id=$(openstack endpoint list --service  ${name} --interface ${__t} --region ${region} -c ID -f value)
+        [ -z "${id}" ] && id=$(openstack endpoint create --region ${region} ${type} ${__t} ${url} -f value -c id)
+        log "create endpoint for [${name} : ${__t}] id [${id}]"
+    done
 }
 ####################################################################################################
 prepare_env() {
@@ -155,13 +263,15 @@ prepare_db_mq() {
     systemctl enable mariadb memcached rabbitmq-server --now || true
     # apt -y install rabbitmq-server memcached python3-pymysql mariadb-server
     backup /etc/mysql/mariadb.conf.d/50-server.cnf
+    log "/etc/mysql/mariadb.conf.d/50-server.cnf"
+    ini_set /etc/mysql/mariadb.conf.d/50-server.cnf mysqld bind-address 0.0.0.0
     sed -i -E \
         -e 's/^\s*#*\s*character-set-server\s*=.*/character-set-server=utf8mb4/g' \
         -e 's/^\s*#*\s*collation-server\s*=.*/collation-server=utf8mb4_general_ci/g' \
         -e 's/^\s*#*\s*bind-address\s*=.*/bind-address=0.0.0.0/g' \
         -e 's/^\s*#*\s*max_connections\s*=.*/max_connections=500/g' \
         /etc/mysql/mariadb.conf.d/50-server.cnf
-    
+
     # mysql_secure_installation
     # echo -e "\nY\n$MYSQLDB_PASSWORD\n$MYSQLDB_PASSWORD\nY\nn\nY\nY\n" | mysql_secure_installation
     log "Add the rabbitmq user [${rabbit_user}]"
@@ -263,10 +373,8 @@ init_nova() {
     log "Add users and others for Nova in Keystone."
     openstack_add_admin_user nova "${nova_pass}"
     openstack_add_admin_user placement "${placement_pass}"
-    
     openstack_add_service_endpoint nova compute "http://${ctrl_host}:8774/v2.1/%(tenant_id)s" "OpenStack Compute service"
     openstack_add_service_endpoint placement placement "http://${ctrl_host}:8778" "OpenStack Compute Placement service"
-    
     create_mysql_db nova nova "${nova_dbpass}"
     create_mysql_db nova_api nova "${nova_dbpass}"
     create_mysql_db nova_cell0 nova "${nova_dbpass}"
@@ -373,10 +481,12 @@ modify_linux_bridge_plugin() {
     # linuxbridge configuration
     ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini vxlan enable_vxlan False
     ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini linux_bridge physical_interface_mappings ${public_network}:${mapping_dev}
-    # # map to exists bridge 
+    # # map to exists bridge
     ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini linux_bridge bridge_mappings ${public_network}:${mapping_dev}
-    ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup enable_security_group True
-    ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup firewall_driver neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
+    ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup enable_security_group False
+    ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup firewall_driver neutron.agent.firewall.NoopFirewallDriver
+    # ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup enable_security_group True
+    # ini_set /etc/neutron/plugins/ml2/linuxbridge_agent.ini securitygroup firewall_driver neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
 
     # # dhcp agent configuration
     # ini_set /etc/neutron/dhcp_agent.ini DEFAULT interface_driver linuxbridge
@@ -695,7 +805,7 @@ check_all() {
     verify_neutron
     verify_nova
     log "openstack service list"
-    openstack service list 
+    openstack service list
     log "openstack compute service list"
     # openstack resource provider list --name kvm01
     # openstack resource provider show --allocations de7072db-f20c-4bf9-9ece-74e359f54b8f
@@ -844,3 +954,34 @@ main() {
     return 0
 }
 main "$@"
+: <<EOF
+        eth0|192.168.168.101
++-----------+-----------+
+|    [ Control Node ]   |
+|                       |
+|  MariaDB    RabbitMQ  |
+|  Memcached  httpd     |
+|  Keystone   Glance    |
+|  Nova API             |
++-----------------------+
+     Service                   Code_Name       Description
+01   Identity Service          Keystone        User Management
+02   Compute Service           Nova            Virtual Machine Management
+03   Image Service             Glance          Manages Virtual image like kernel image or disk image
+04   Dashboard                 Horizon         Provides GUI console via Web browser
+05   Object Storage            Swift           Provides Cloud Storage feature
+06   Block Storage             Cinder          Storage Management for Virtual Machine
+07   Network Service           Neutron         Virtual Networking Management
+08   Load Balancing Service    Octavia         Provides Load Balancing feature
+09   Orchestration Service     Heat            Provides Orchestration feature for Virtual Machine
+10   Metering Service          Ceilometer      Provides the feature of Usage measurement for accounting
+11   Database Service          Trove           Database resource Management
+12   Container Service         Magnum          Container Infrastructure Management
+13   Data Processing Service   Sahara          Provides Data Processing feature
+14   Bare Metal Provisioning   Ironic          Provides Bare Metal Provisioning feature
+15   Messaging Service         Zaqar           Provides Messaging Service feature
+16   Shared File System        Manila          Provides File Sharing Service
+17   DNS Service               Designate       Provides DNS Server Service
+18   Key Manager Service       Barbican        Provides Key Management Service
+EOF
+####################################################################################################
