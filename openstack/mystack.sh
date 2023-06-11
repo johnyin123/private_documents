@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("35bda2b[2023-06-11T07:34:23+08:00]:mystack.sh")
+VERSION+=("c96bbc7[2023-06-11T07:36:40+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -161,7 +161,7 @@ prepare_db_mq() {
     ini_set ${my_conf} mysqld tmp_table_size 8M
     ini_set ${my_conf} mysqld sort_buffer_size 8M
     ini_set ${my_conf} mysqld max_allowed_packet 8M
-    mysql_install_db -u mysql &>/dev/null
+    mysql_install_db -u mysql --skip-name-resolve --skip-test-db &>/dev/null
     systemctl enable mariadb --now
 
     # mysql_secure_installation
@@ -303,10 +303,10 @@ init_nova() {
     ini_set ${nova_conf} placement password ${placement_pass}
     ini_del ${nova_conf} placement region_name
     # # enable vnc
-    # ini_set ${nova_conf} vnc enabled True
+    ini_set ${nova_conf} vnc enabled True
     ini_set ${nova_conf} vnc server_listen 0.0.0.0
     ini_set ${nova_conf} vnc server_proxyclient_address '$my_ip'
-    # ini_set ${nova_conf} vnc novncproxy_base_url http://${ctrl_host}:6080/vnc_auto.html
+    ini_set ${nova_conf} vnc novncproxy_base_url http://${ctrl_host}:6080/vnc_auto.html
     # # wsgi
     ini_set ${nova_conf} wsgi api_paste_config /etc/nova/api-paste.ini
 
@@ -346,17 +346,20 @@ modify_linux_bridge_plugin() {
     ini_set ${ml2_conf_ini} ml2 type_drivers "flat,vlan"
     ini_set ${ml2_conf_ini} ml2 tenant_network_types ""
     ini_set ${ml2_conf_ini} ml2 mechanism_drivers linuxbridge
+    # TODO
     ini_set ${ml2_conf_ini} ml2 extension_drivers port_security
     ini_set ${ml2_conf_ini} ml2_type_flat flat_networks ${public_network}
     ini_set ${ml2_conf_ini} securitygroup enable_ipset True
     backup ${linuxbridge_agent_ini}
     # linuxbridge configuration
+    ini_set ${linuxbridge_agent_ini} DEFAULT debug ${OPENSTACK_DEBUG:-false}
     ini_set ${linuxbridge_agent_ini} vxlan enable_vxlan False
     ini_set ${linuxbridge_agent_ini} linux_bridge physical_interface_mappings ${public_network}:${mapping_dev}
     # # map to exists bridge
     ini_set ${linuxbridge_agent_ini} linux_bridge bridge_mappings ${public_network}:${mapping_dev}
     ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group False
     ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.firewall.NoopFirewallDriver
+    ini_set ${linuxbridge_agent_ini} securitygroup enable_ipset True
     # ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group True
     # ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
 
@@ -385,6 +388,7 @@ init_neutron() {
 
     log "Configure Neutron create new"
     backup ${neutron_conf} "MOVE"
+    ini_set ${neutron_conf} DEFAULT debug ${OPENSTACK_DEBUG:-false}
     ini_set ${neutron_conf} DEFAULT core_plugin ml2
     ini_set ${neutron_conf} DEFAULT service_plugins ""
     ini_set ${neutron_conf} DEFAULT notify_nova_on_port_status_changes True
@@ -395,6 +399,9 @@ init_neutron() {
     add_keystone_authtoken ${neutron_conf} ${ctrl_host} neutron ${neutron_pass}
     # # database
     ini_set ${neutron_conf} database connection mysql+pymysql://neutron:${neutron_dbpass}@${ctrl_host}/neutron_ml2
+    ini_set ${neutron_conf} agent root_helper 'sudo /usr/bin/neutron-rootwrap /etc/neutron/rootwrap.conf'
+    ini_set ${neutron_conf} oslo_concurrency lock_path /var/lib/neutron/tmp
+
     # # Nova connection info
     ini_set ${neutron_conf} nova auth_url http://${ctrl_host}:5000
     ini_set ${neutron_conf} nova auth_type password
@@ -406,7 +413,7 @@ init_neutron() {
     ini_set ${neutron_conf} nova password ${nova_pass}
 
     modify_linux_bridge_plugin ${PUBLIC_NETWORK} "br-ext"
-
+    log "Configure metadata agent"
     backup ${metadata_agent_ini}
     ini_set ${metadata_agent_ini} DEFAULT nova_metadata_host ${ctrl_host}
     ini_set ${metadata_agent_ini} DEFAULT metadata_proxy_shared_secret ${metadata_secret}
@@ -459,7 +466,7 @@ init_nova_compute() {
     ini_set ${nova_compute_conf} libvirt virt_type kvm
 
     log "Configure Nova compute node create new"
-    backup ${nova_conf} "MOVE"
+    backup ${nova_conf} # "MOVE"
     ini_set ${nova_conf} DEFAULT my_ip ${my_ip}
     ini_set ${nova_conf} DEFAULT debug ${OPENSTACK_DEBUG:-false}
     ini_set ${nova_conf} DEFAULT enabled_apis osapi_compute,metadata
@@ -503,7 +510,7 @@ init_neutron_compute() {
     local rabbit_pass=${6}
     local region="${7:-RegionOne}"
     log "Configure Neutron compute node create new"
-    backup ${neutron_conf} "MOVE"
+    backup ${neutron_conf} # "MOVE"
     ini_set ${neutron_conf} DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
 
     ini_set ${neutron_conf} DEFAULT auth_strategy keystone
@@ -660,7 +667,7 @@ verify_all() {
 
 ####################################################################################################
 CTRL_HOST=192.168.168.1
-COMPUTE_HOST=192.168.168.102
+COMPUTE_HOST=192.168.168.1
 RABBIT_USER=openstack
 RABBIT_PASS=password
 KEYSTONE_USER=admin
@@ -678,15 +685,33 @@ NEUTRON_DBPASS=neutron_dbpass
 teardown() {
     sed -i '/keystonerc/d' ~/.bashrc || true
     rm -f ~/keystonerc  || true
-    for s in placement keystone glance neutron nova rabbitmq-server memcached; do
+    for s in keystone.service \
+        glance-api.service \
+        nova-api.service \
+        nova-api-metadata.service \
+        nova-compute.service \
+        nova-conductor.service \
+        nova-novncproxy.service \
+        nova-scheduler.service \
+        nova-serialproxy.service \
+        nova-spicehtml5proxy.service \
+        neutron-api.service \
+        neutron-dhcp-agent.service \
+        neutron-l3-agent.service \
+        neutron-linuxbridge-agent.service \
+        neutron-metadata-agent.service \
+        neutron-rpc-server.service \
+        placement-api.service \
+        rabbitmq-server.service \
+        memcached.service; do
         log "stop & disable service ${s}"
-        systemctl stop ${s}* --force &>/dev/null || true
-        systemctl disable ${s}* &>/dev/null || true
+        systemctl stop ${s} &>/dev/null || true
+        systemctl disable ${s} &>/dev/null || true
     done
     command -v "mysql" &> /dev/null && {
         log "stop & disable service mariadb"
-        systemctl stop mariadb --force &>/dev/null || true
-        systemctl disable mariadb &>/dev/null || true
+        systemctl stop mariadb.service --force &>/dev/null || true
+        systemctl disable mariadb.service &>/dev/null || true
         datadir=$(ini_get ${my_conf} mysqld datadir) || true
         [ -z "${datadir}" ] || rm -vrf "${datadir}" || true
     }
