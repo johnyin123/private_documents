@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c96bbc7[2023-06-11T07:36:40+08:00]:mystack.sh")
+VERSION+=("aaaca50[2023-06-11T15:48:33+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -579,7 +579,7 @@ adduser() {
     local secgroup=secgroup01
     local key_name=mykey
     log "create a [flavor]"
-    openstack flavor show ${flaver_name} 2>/dev/null || openstack flavor create --id 0 --vcpus 1 --ram 256 --disk 1 ${flaver_name} || true
+    openstack flavor show ${flaver_name} 2>/dev/null || openstack flavor create --id 0 --vcpus 1 --ram 256 --disk 4 ${flaver_name} || true
     log "create a security group for instances"
     openstack security group show ${secgroup} 2>/dev/null || openstack security group create ${secgroup} || true
     log "add public-keyc${key_name}"
@@ -635,7 +635,7 @@ verify_all() {
 
     local key_name=mykey
     source ~/keystonerc
-    local netid=$(openstack network list | grep ${net_name}-net | awk '{ print $2 }')
+    local netid=$(openstack network list -c ID -f value)
     log "verify all"
     verify_keystone
     verify_glance
