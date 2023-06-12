@@ -7,15 +7,30 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("aaaca50[2023-06-11T15:48:33+08:00]:mystack.sh")
+VERSION+=("dfc7c45[2023-06-11T16:22:10+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
+##OPTION_START##
 MYSQL_PASS=${MYSQL_PASS:-}
-PUBLIC_NETWORK=public
-OPENSTACK_DEBUG=true
+RABBIT_USER=${RABBIT_USER:-rabbit}
+RABBIT_PASS=${RABBIT_PASS:-rabbit_pass}
+KEYSTONE_USER=${KEYSTONE_USER:-admin}
+KEYSTONE_PASS=${KEYSTONE_PASS:-admin_pass}
+KEYSTONE_DBPASS=${KEYSTONE_DBPASS:-keystone_dbpass}
+GLANCE_PASS=${GLANCE_PASS:-glance_pass}
+GLANCE_DBPASS=${GLANCE_DBPASS:-glance_dbpass}
+NOVA_PASS=${NOVA_PASS:-nova_pass}
+NOVA_DBPASS=${NOVA_DBPASS:-nova_dbpass}
+PLACEMENT_PASS=${PLACEMENT_PASS:-palcement_pass}
+PLACEMENT_DBPASS=${PLACEMENT_DBPASS:-placement_dbpass}
+NEUTRON_PASS=${NEUTRON_PASS:-neutron_pass}
+NEUTRON_DBPASS=${NEUTRON_DBPASS:-neutron_dbpass}
+PUBLIC_NETWORK=${PUBLIC_NETWORK:-public}
+OPENSTACK_DEBUG=${OPENSTACK_DEBUG:-false}
+##OPTION_END##
 
 readonly my_conf=/etc/mysql/mariadb.conf.d/50-server.cnf
 readonly memcached_conf=/etc/memcached.conf
@@ -30,21 +45,18 @@ readonly ml2_conf_ini=/etc/neutron/plugins/ml2/ml2_conf.ini
 readonly linuxbridge_agent_ini=/etc/neutron/plugins/ml2/linuxbridge_agent.ini
 
 LOGFILE=""
-GREEN=$(tput setaf 70)
-RESET=$(tput sgr0)
-TIMESPAN=$(date '+%Y%m%d%H%M%S')
-
-log() { echo "## ${GREEN}$*${RESET}" | tee ${LOGFILE} >&2; }
+BACK_DIR=backup
+log() { echo "$(tput setaf 141)##$(tput sgr0) $(tput setaf 70)$*$(tput sgr0)" | tee ${LOGFILE} >&2; }
 
 backup() {
     local src=${1}
     local mv=${2:-}
-    [ -d "${TIMESPAN}" ] || mkdir -p ${TIMESPAN}
-    local backup=$(basename ${src})
-    log "${mv:-BACKUP}: ${src} => ${TIMESPAN} "
-    [ -e "${TIMESPAN}/${backup}" ] && return 0
-    cat ${src} 2>/dev/null > ${TIMESPAN}/${backup} || true
-    [ -z "${mv}" ] || rm -f ${src}
+    [ -d "${BACK_DIR}" ] || mkdir -p ${BACK_DIR}
+    local __backup=$(basename ${src})
+    log "${mv:-BACKUP}: ${src} => ${BACK_DIR} "
+    [ -e "${BACK_DIR}/${__backup}" ] && return 0
+    cat ${src} 2>/dev/null > ${BACK_DIR}/${__backup} || true
+    [ -z "${mv}" ] || echo "" > ${src} # for keep file owner etc.
 }
 ini_get() {
     local file=${1}
@@ -114,6 +126,14 @@ openstack_add_service_endpoint() {
         log "create endpoint for [${name} : ${__t}] id [${id}]"
     done
 }
+service_restart() {
+    local svc=""
+    for svc in "$@"; do
+        log "enable & restart ${svc} service"
+        systemctl restart ${svc}
+        systemctl enable ${svc}
+    done
+}
 ####################################################################################################
 prepare_env() {
     local ctrl_host=${1}
@@ -161,14 +181,14 @@ prepare_db_mq() {
     ini_set ${my_conf} mysqld tmp_table_size 8M
     ini_set ${my_conf} mysqld sort_buffer_size 8M
     ini_set ${my_conf} mysqld max_allowed_packet 8M
+    log "install db"
     mysql_install_db -u mysql --skip-name-resolve --skip-test-db &>/dev/null
-    systemctl enable mariadb --now
-
+    service_restart mariadb.service
     # mysql_secure_installation
     # echo -e "\nY\n$MYSQLDB_PASSWORD\n$MYSQLDB_PASSWORD\nY\nn\nY\nY\n" | mysql_secure_installation
+    service_restart rabbitmq-server.service
     log "Add the rabbitmq user [${rabbit_user}]"
-    systemctl enable rabbitmq-server --now
-    rabbitmqctl delete_user openstack 2>/dev/null || true
+    rabbitmqctl delete_user ${rabbit_user} 2>/dev/null || true
     rabbitmqctl add_user ${rabbit_user} ${rabbit_pass}
     rabbitmqctl set_permissions ${rabbit_user} ".*" ".*" ".*"
 
@@ -176,7 +196,8 @@ prepare_db_mq() {
     sed -i -E \
         -e 's/^\s*#*\s*-l \s*.*/-l 0.0.0.0/g' \
         ${memcached_conf}
-    systemctl enable memcached --now || true
+    log "restart memcached service"
+    service_restart memcached.service
 }
 
 init_keystone() {
@@ -186,7 +207,7 @@ init_keystone() {
     local keystone_dbpass=${4}
     local region=${5:-RegionOne}
     log "##########################INSTALL KEYSTONE##########################"
-    systemctl enable keystone --now || true
+    service_restart keystone.service
     create_mysql_db keystone keystone "${keystone_dbpass}"
     backup ${keystone_conf}
     ini_set ${keystone_conf} database connection mysql+pymysql://keystone:${keystone_dbpass}@${ctrl_host}/keystone
@@ -248,8 +269,8 @@ init_glance() {
     # chown root:glance ${glance_conf}
     log "sync glance db"
     su -s /bin/bash glance -c "glance-manage db_sync"
-    log "restart service"
-    systemctl enable glance-api --now
+    log "restart glance-api service"
+    service_restart glance-api.service
 }
 
 init_nova() {
@@ -327,49 +348,41 @@ init_nova() {
     su -s /bin/bash nova -c "nova-manage db sync"
     log "nova create_cell cell1"
     su -s /bin/bash nova -c "nova-manage cell_v2 create_cell --name cell1"
-
-    # systemctl restart apache2
-    log "restart service"
-    systemctl restart nova-api
-    systemctl restart nova-conductor
-    systemctl restart nova-scheduler
-    systemctl restart placement-api
-    systemctl enable nova-api nova-conductor nova-scheduler --now || true
-    systemctl enable placement-api --now || true
+    service_restart nova-api.service nova-conductor.service nova-scheduler.service placement-api.service
 }
 
-modify_linux_bridge_plugin() {
+init_linux_bridge_plugin() {
     local public_network=${1}
     local mapping_dev=${2}
     backup ${ml2_conf_ini}
     # ml2 configuration
-    ini_set ${ml2_conf_ini} ml2 type_drivers "flat,vlan"
-    ini_set ${ml2_conf_ini} ml2 tenant_network_types ""
     ini_set ${ml2_conf_ini} ml2 mechanism_drivers linuxbridge
-    # TODO
-    ini_set ${ml2_conf_ini} ml2 extension_drivers port_security
+    # # ['local', 'flat', 'vlan', 'gre', 'vxlan', 'geneve']
+    ini_set ${ml2_conf_ini} ml2 type_drivers "flat,vlan"
+    # ini_set ${ml2_conf_ini} ml2_type_vlan network_vlan_ranges ${public_network}:1:4096
+    ini_set ${ml2_conf_ini} ml2 tenant_network_types ""
+    ini_set ${ml2_conf_ini} ml2 extension_drivers ""
+    # # flat_networks = public,public2
     ini_set ${ml2_conf_ini} ml2_type_flat flat_networks ${public_network}
     ini_set ${ml2_conf_ini} securitygroup enable_ipset True
     backup ${linuxbridge_agent_ini}
     # linuxbridge configuration
-    ini_set ${linuxbridge_agent_ini} DEFAULT debug ${OPENSTACK_DEBUG:-false}
+    ini_set ${linuxbridge_agent_ini} DEFAULT debug true #${OPENSTACK_DEBUG:-false}
     ini_set ${linuxbridge_agent_ini} vxlan enable_vxlan False
-    ini_set ${linuxbridge_agent_ini} linux_bridge physical_interface_mappings ${public_network}:${mapping_dev}
+    # ini_set ${linuxbridge_agent_ini} linux_bridge physical_interface_mappings ${public_network}:${mapping_dev}
     # # map to exists bridge
+    # # bridge_mappings configuration must correlate with network_vlan_ranges option on the controller node
     ini_set ${linuxbridge_agent_ini} linux_bridge bridge_mappings ${public_network}:${mapping_dev}
     ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group False
     ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.firewall.NoopFirewallDriver
     ini_set ${linuxbridge_agent_ini} securitygroup enable_ipset True
     # ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group True
     # ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
-
     # # dhcp agent configuration
     # ini_set /etc/neutron/dhcp_agent.ini DEFAULT interface_driver linuxbridge
     # ini_set /etc/neutron/dhcp_agent.ini DEFAULT dhcp_driver neutron.agent.linux.dhcp.Dnsmasq
     # ini_set /etc/neutron/dhcp_agent.ini DEFAULT enable_isolated_metadata true
-
     ln -sf ${ml2_conf_ini} /etc/neutron/plugin.ini
-    systemctl enable neutron-linuxbridge-agent.service --now
 }
 init_neutron() {
     local ctrl_host=${1}
@@ -394,7 +407,7 @@ init_neutron() {
     ini_set ${neutron_conf} DEFAULT notify_nova_on_port_status_changes True
     ini_set ${neutron_conf} DEFAULT notify_nova_on_port_data_changes True
     ini_set ${neutron_conf} DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
-
+    ### ini_set ${neutron_conf} DEFAULT interface_driver linuxbridge
     ini_set ${neutron_conf} DEFAULT auth_strategy keystone
     add_keystone_authtoken ${neutron_conf} ${ctrl_host} neutron ${neutron_pass}
     # # database
@@ -412,13 +425,13 @@ init_neutron() {
     ini_set ${neutron_conf} nova username nova
     ini_set ${neutron_conf} nova password ${nova_pass}
 
-    modify_linux_bridge_plugin ${PUBLIC_NETWORK} "br-ext"
+    init_linux_bridge_plugin ${PUBLIC_NETWORK} "br-ext"
     log "Configure metadata agent"
     backup ${metadata_agent_ini}
     ini_set ${metadata_agent_ini} DEFAULT nova_metadata_host ${ctrl_host}
     ini_set ${metadata_agent_ini} DEFAULT metadata_proxy_shared_secret ${metadata_secret}
     ini_set ${metadata_agent_ini} cache memcache_servers ${ctrl_host}:11211
-    systemctl enable neutron-metadata-agent.service --now
+    service_restart neutron-metadata-agent.service
     log "Configure Neutron in Nova"
     backup ${nova_conf}
     ini_set ${nova_conf} DEFAULT use_neutron True
@@ -437,9 +450,8 @@ init_neutron() {
     ini_set ${nova_conf} neutron metadata_proxy_shared_secret ${metadata_secret}
 
     su -s /bin/bash neutron -c "neutron-db-manage --config-file ${neutron_conf} --config-file /etc/neutron/plugin.ini upgrade head"
-    systemctl restart neutron-api neutron-rpc-server neutron-metadata-agent neutron-metadata-agent neutron-linuxbridge-agent
-    systemctl enable neutron-api neutron-rpc-server neutron-metadata-agent neutron-metadata-agent neutron-linuxbridge-agent --now || true
-    systemctl restart nova-api
+    # ctrl node not a compute note no need neutron-linuxbridge-agent.service
+    service_restart neutron-api.service neutron-rpc-server.service neutron-metadata-agent.service nova-api.service
 }
 
 init_nova_compute() {
@@ -466,7 +478,7 @@ init_nova_compute() {
     ini_set ${nova_compute_conf} libvirt virt_type kvm
 
     log "Configure Nova compute node create new"
-    backup ${nova_conf} # "MOVE"
+    backup ${nova_conf} "MOVE"
     ini_set ${nova_conf} DEFAULT my_ip ${my_ip}
     ini_set ${nova_conf} DEFAULT debug ${OPENSTACK_DEBUG:-false}
     ini_set ${nova_conf} DEFAULT enabled_apis osapi_compute,metadata
@@ -496,9 +508,7 @@ init_nova_compute() {
     ini_set ${nova_conf} vnc novncproxy_base_url http://${ctrl_host}:6080/vnc_auto.html
     # # wsgi
     ini_set ${nova_conf} wsgi api_paste_config /etc/nova/api-paste.ini
-
-    log "start nova-compute.service, maybe failed, before neutron network not ready!"
-    systemctl enable nova-compute --now 2>/dev/null || true
+    service_restart nova-compute.service
 }
 
 init_neutron_compute() {
@@ -510,14 +520,16 @@ init_neutron_compute() {
     local rabbit_pass=${6}
     local region="${7:-RegionOne}"
     log "Configure Neutron compute node create new"
-    backup ${neutron_conf} # "MOVE"
+    backup ${neutron_conf} "MOVE"
     ini_set ${neutron_conf} DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
 
     ini_set ${neutron_conf} DEFAULT auth_strategy keystone
+    ini_set ${neutron_conf} agent root_helper 'sudo /usr/bin/neutron-rootwrap /etc/neutron/rootwrap.conf'
+
     add_keystone_authtoken ${neutron_conf} ${ctrl_host} neutron ${neutron_pass}
 
     log "on compute node only ${linuxbridge_agent_ini} need modiry"
-    modify_linux_bridge_plugin ${PUBLIC_NETWORK} "br-ext"
+    init_linux_bridge_plugin ${PUBLIC_NETWORK} "br-ext"
 
     backup ${nova_conf}
     # # neutron in nova
@@ -529,9 +541,7 @@ init_neutron_compute() {
     ini_set ${nova_conf} neutron project_name service
     ini_set ${nova_conf} neutron username neutron
     ini_set ${nova_conf} neutron password ${neutron_pass}
-
-    systemctl restart nova-compute neutron-linuxbridge-agent
-    systemctl enable  nova-compute neutron-linuxbridge-agent --now || true
+    service_restart nova-compute.service neutron-linuxbridge-agent.service
 }
 
 ctrller_discover_compute_node() {
@@ -540,7 +550,7 @@ ctrller_discover_compute_node() {
         -e 's/^\s*NOVA_CONSOLE_PROXY_TYPE\s*=.*/NOVA_CONSOLE_PROXY_TYPE=novnc/g' \
         /etc/default/nova-consoleproxy
     log "Start Nova Compute service."
-    systemctl enable nova-novncproxy --now
+    service_restart nova-novncproxy.service
     su -s /bin/bash nova -c "nova-manage cell_v2 discover_hosts --verbose"
     openstack compute service list
     #或者： 修改nova.conf修改时间间隔:
@@ -551,15 +561,15 @@ ctrller_discover_compute_node() {
 ####################################################################################################
 add_neutron_linux_bridge_net() {
     local net_name=${1}
-    log "Create network ${net_name}"
+    log "Create network [${net_name}]"
     local id=$(openstack project create --domain default service --or-show -f value -c id)
-    log "projectid = ${id}"
-    openstack network show ${net_name}-net 2>/dev/null || openstack network create --project ${id} --external --share --provider-network-type flat --provider-physical-network ${net_name} ${net_name}-net
+    openstack network show ${net_name}-net 2>/dev/null || openstack network create --project ${id} --external --share --provider-network-type flat --provider-physical-network ${net_name} ${net_name}-net -c id -c project_id
     log "create subnet"
     openstack subnet show subnet-${net_name}-net 2>/dev/null || openstack subnet create subnet-${net_name}-net --network ${net_name}-net \
         --no-dhcp \
         --project ${id} --subnet-range 192.168.168.0/24 \
-        --gateway 192.168.168.1 --dns-nameserver 114.114.114.114
+        --gateway 192.168.168.1 --dns-nameserver 114.114.114.114 \
+        -c id -c network_id -c project_id
 }
 
 adduser() {
@@ -588,7 +598,6 @@ adduser() {
     openstack keypair show ${key_name} 2>/dev/null || \
         openstack keypair create --public-key test.key.pub ${key_name} -f value -c fingerprint || true
 }
-
 ####################################################################################################
 verify_neutron() {
     log "Verify Neutron installation"
@@ -632,10 +641,9 @@ verify_all() {
     local flaver_name=m1.small
     local secgroup=secgroup01
     local img_name=cirros
-
     local key_name=mykey
     source ~/keystonerc
-    local netid=$(openstack network list -c ID -f value)
+    local netid=$(openstack network show ${net_name}-net -c id -f value)
     log "verify all"
     verify_keystone
     verify_glance
@@ -664,24 +672,7 @@ verify_all() {
     log "openstack extension list --network"
     openstack extension list --network || true
 }
-
 ####################################################################################################
-CTRL_HOST=192.168.168.1
-COMPUTE_HOST=192.168.168.1
-RABBIT_USER=openstack
-RABBIT_PASS=password
-KEYSTONE_USER=admin
-KEYSTONE_PASS=adminpassword
-KEYSTONE_DBPASS=keystone_password
-GLANCE_PASS=glancepassword
-GLANCE_DBPASS=glance_password
-NOVA_PASS=novapassword
-NOVA_DBPASS=nova_dbpass
-PLACEMENT_PASS=palcement_pass
-PLACEMENT_DBPASS=placement_dbpass
-NEUTRON_PASS=neutron_pass
-NEUTRON_DBPASS=neutron_dbpass
-
 teardown() {
     sed -i '/keystonerc/d' ~/.bashrc || true
     rm -f ~/keystonerc  || true
@@ -718,25 +709,43 @@ teardown() {
     for d in keystone glance nova placement neutron rabbitmq libvirt; do
         rm -vrf /var/log/${d}/* || true
     done
+    [ -d "${BACK_DIR}" ] && {
+        log "restore backup config"
+        for __cfg in ${my_conf} ${memcached_conf} ${keystone_conf} \
+            ${glance_conf} ${nova_conf} ${nova_compute_conf} ${placement_conf} \
+            ${neutron_conf} ${metadata_agent_ini} ${ml2_conf_ini} ${linuxbridge_agent_ini}; do
+            echo ${__cfg}
+            __backup=$(basename ${__cfg})
+            [ -e "${BACK_DIR}/${__backup}" ] && {
+                log "restore config ${__cfg}"
+                cat ${BACK_DIR}/${__backup} > ${__cfg}
+            } || {
+                log "config ${__cfg} HAS NOT BACKUP"
+            }
+        done
+    }
     log "TEARDOWN ALL DONE"
 }
 
 init_ctrl_node() {
-    prepare_env "${CTRL_HOST}" "${KEYSTONE_USER}" "${KEYSTONE_PASS}"
+    local ctrl=${1}
+    prepare_env "${ctrl}" "${KEYSTONE_USER}" "${KEYSTONE_PASS}"
     prepare_db_mq "${RABBIT_USER}" "${RABBIT_PASS}"
-    init_keystone "${CTRL_HOST}" "${KEYSTONE_USER}" "${KEYSTONE_PASS}" "${KEYSTONE_DBPASS}"
-    init_glance "${CTRL_HOST}" "${GLANCE_PASS}" "${GLANCE_DBPASS}"
-    init_nova "${CTRL_HOST}" "${NOVA_PASS}" "${PLACEMENT_PASS}" "${NOVA_DBPASS}" "${PLACEMENT_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
-    init_neutron "${CTRL_HOST}" "${NOVA_PASS}" "${NEUTRON_PASS}" "${NEUTRON_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
+    init_keystone "${ctrl}" "${KEYSTONE_USER}" "${KEYSTONE_PASS}" "${KEYSTONE_DBPASS}"
+    init_glance "${ctrl}" "${GLANCE_PASS}" "${GLANCE_DBPASS}"
+    init_nova "${ctrl}" "${NOVA_PASS}" "${PLACEMENT_PASS}" "${NOVA_DBPASS}" "${PLACEMENT_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
+    init_neutron "${ctrl}" "${NOVA_PASS}" "${NEUTRON_PASS}" "${NEUTRON_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
     add_neutron_linux_bridge_net "${PUBLIC_NETWORK}"
     adduser "tsd" "user1" "password"
     log "CTRL NODE ALL DONE"
 }
 
 init_comput_node() {
-    prepare_env "${CTRL_HOST}" "${KEYSTONE_USER}" "${KEYSTONE_PASS}"
-    init_nova_compute "${COMPUTE_HOST}" "${CTRL_HOST}" "${NOVA_PASS}" "${PLACEMENT_PASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
-    init_neutron_compute "${COMPUTE_HOST}" "${CTRL_HOST}" "${NEUTRON_PASS}" "${PLACEMENT_PASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
+    local compute=${1}
+    local ctrl=${2}
+    prepare_env "${ctrl}" "${KEYSTONE_USER}" "${KEYSTONE_PASS}"
+    init_nova_compute "${compute}" "${ctrl}" "${NOVA_PASS}" "${PLACEMENT_PASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
+    init_neutron_compute "${compute}" "${ctrl}" "${NEUTRON_PASS}" "${PLACEMENT_PASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
     log 'su -s /bin/bash nova -c "nova-manage cell_v2 discover_hosts --verbose"'
     log "openstack compute service list"
     log "COMPUT NODE ALL DONE"
@@ -746,12 +755,15 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME} <ctrl|compute|teardown>
-        -v|--verify <keystone|glance|nova|neutron|all>
+        -C|--ctrl     * *    <ipaddr> controller node ipaddress
+        -c|--compute    *    <ipaddr> compute node ipaddress
+        -v|--verify       *  <keystone|glance|nova|neutron|all>
         -q|--quiet
         -l|--log <int> log level
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+$(sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${SCRIPTNAME})
  CTRL:
     apt -y install rabbitmq-server memcached python3-pymysql mariadb-server
     apt -y install keystone python3-openstackclient apache2 libapache2-mod-wsgi-py3 python3-oauth2client
@@ -767,16 +779,18 @@ EOF
     exit 1
 }
 main() {
-    local verify="" 
-    local opt_short="v:"
-    local opt_long="verify:,"
+    local verify="" ctrl="" compute=""
+    local opt_short="v:C:c:"
+    local opt_long="verify:,ctrl:,compute:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -v | --verify)  shift; declare -f -F verify_${1} >/dev/null && { verify_${1}; log "VERIFY DONE"; } || usage; exit 0; shift;;
+            -C | --ctrl)    shift; ctrl=${1}; shift;;
+            -c | --compute) shift; compute=${1}; shift;;
+            -v | --verify)  shift; declare -f -F verify_${1} >/dev/null && { verify_${1}; log "VERIFY [${1}] DONE"; } || usage; exit 0; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -788,10 +802,14 @@ main() {
         esac
     done
     case "${1:-}" in
-        ctrl)       init_ctrl_node ;;
-        compute)    init_comput_node ;;
+        ctrl)
+            [ -z "${ctrl}" ] && usage "ctrl must input"
+            init_ctrl_node "${ctrl}";;
+        compute)
+            [ -z "${ctrl}" ] || [ -z "${compute}" ] && usage "ctrl & compute must input" || init_comput_node "${compute}" "${ctrl}"
+            ;;
         teardown)   teardown ;;
-        *)          usage;;
+        *)          usage "ctrl/compute/teardown";;
     esac
     return 0
 }
