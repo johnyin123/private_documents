@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dfc7c45[2023-06-11T16:22:10+08:00]:mystack.sh")
+VERSION+=("e7c8976[2023-06-12T16:24:03+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -46,7 +46,7 @@ readonly linuxbridge_agent_ini=/etc/neutron/plugins/ml2/linuxbridge_agent.ini
 
 LOGFILE=""
 BACK_DIR=backup
-log() { echo "$(tput setaf 141)##$(tput sgr0) $(tput setaf 70)$*$(tput sgr0)" | tee ${LOGFILE} >&2; }
+log() { echo "$(tput setaf 141)##$(tput sgr0) $(tput setaf 70)$*$(tput sgr0)" | tee ${LOGFILE:-} >&2; }
 
 backup() {
     local src=${1}
@@ -362,9 +362,9 @@ init_linux_bridge_plugin() {
     # ini_set ${ml2_conf_ini} ml2_type_vlan network_vlan_ranges ${public_network}:1:4096
     ini_set ${ml2_conf_ini} ml2 tenant_network_types ""
     ini_set ${ml2_conf_ini} ml2 extension_drivers ""
-    # # flat_networks = public,public2
-    ini_set ${ml2_conf_ini} ml2_type_flat flat_networks ${public_network}
-    ini_set ${ml2_conf_ini} securitygroup enable_ipset True
+    # # flat_networks = public,public2, * allow use any phy network
+    ini_set ${ml2_conf_ini} ml2_type_flat flat_networks '*' # ${public_network}
+    ini_set ${ml2_conf_ini} securitygroup enable_ipset false
     backup ${linuxbridge_agent_ini}
     # linuxbridge configuration
     ini_set ${linuxbridge_agent_ini} DEFAULT debug true #${OPENSTACK_DEBUG:-false}
