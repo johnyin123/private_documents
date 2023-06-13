@@ -66,7 +66,7 @@ PCB Version     : Ver.B
     [tsd01-luser-manage-admin]authorization-attribute user-role network-admin
     [tsd01-luser-manage-admin]quit
     [tsd01]interface M-GigabitEthernet 0/0/0
-    [tsd01-M-GigabitEthernet0/0/0]ip address 10.170.6.200 24
+    [tsd01-M-GigabitEthernet0/0/0]ip address 10.170.6.201 24
     [tsd01-M-GigabitEthernet0/0/0]quit
     [tsd01]ip http enable
     [tsd01]ip https enable
@@ -86,7 +86,7 @@ PCB Version     : Ver.B
       1.将优先级调整为32;确保该设备被选举为Master;若不需要指定主设备可以略过
         irf member 1 priority 32
       2.关闭要加入的IRF的物理端口
-        show interface brief
+        show interface brief / display interface brief
         interface FGE1/0/25
         shutdown
         quit
@@ -138,6 +138,21 @@ PCB Version     : Ver.B
         display irf
 
   # 创建二层聚合接口1,并配置该接口为动态聚合模式
+    system-view
+    interface bridge-aggregation 1
+    quit
+    interface XGE1/0/1
+    port link-aggregation group 1
+    quit
+    interface XGE2/0/1
+    port link-aggregation group 1
+    quit
+    interface bridge-aggregation 1
+    link-aggregation mode dynamic
+    port link-type trunk
+    port trunk permit vlan all
+    display link-aggregation member-port
+    ######################################## 
     sys
     interface bridge-aggregation 1
     link-aggregation mode dynamic
