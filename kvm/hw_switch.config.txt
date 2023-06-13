@@ -61,12 +61,12 @@ PCB Version     : Ver.B
     <H3C>system-view
     [H3C]sysname tsd01
     [tsd01]local-user admin (admin/tsd01_password)
-    [tsd01-luser-manage-admin]password simple tsd01_password
+    [tsd01-luser-manage-admin]password simple tsdpassword@2023
     [tsd01-luser-manage-admin]service-type http https ssh
     [tsd01-luser-manage-admin]authorization-attribute user-role network-admin
     [tsd01-luser-manage-admin]quit
     [tsd01]interface M-GigabitEthernet 0/0/0
-    [tsd01-M-GigabitEthernet0/0/0]ip address 192.168.1.1 24
+    [tsd01-M-GigabitEthernet0/0/0]ip address 10.170.6.200 24
     [tsd01-M-GigabitEthernet0/0/0]quit
     [tsd01]ip http enable
     [tsd01]ip https enable
@@ -86,42 +86,53 @@ PCB Version     : Ver.B
       1.将优先级调整为32;确保该设备被选举为Master;若不需要指定主设备可以略过
         irf member 1 priority 32
       2.关闭要加入的IRF的物理端口
-        interface Ten-G1/0/49
+        show interface brief
+        interface FGE1/0/25
         shutdown
-        interface Ten-G1/0/50
+        quit
+        interface FGE1/0/26
         shutdown
+        quit
       3.创建IRF逻辑虚接口(设备号默认为1,端口号为2),把相连物理接口加入IRF
         irf-port 1/2
-        port group interface Ten-GigabitEthernet 1/0/49
-        port group interface Ten-GigabitEthernet 1/0/50
+        port group interface FGE1/0/25
+        port group interface FGE1/0/26
+        quit
       4.重新打开物理端口
-        interface Ten-G1/0/49
+        interface FGE1/0/25
         undo shutdown
-        interface Ten-G1/0/50
+        quit
+        interface FGE1/0/26
         undo shutdown
+        quit
       5.激活IRF设置并保存配置
         irf-port-configuration active
-        safe f
+        save force
     SW2配置:
       1.更改默认的设备号1为2并重启
-        irf member 1 renumber 2
+        irf member 3 renumber 2
         reboot
       2.关闭要加入的IRF的物理端口
-        interface Ten-G2/0/49
+        interface FGE2/0/25
         shutdown
-        interface Ten-G2/0/50
+        quit
+        interface FGE2/0/26
         shutdown
+        quit
       3.创建IRF逻辑虚接口(设备号为2,端口号为1),把相连物理接口加入IRF
         irf-port 2/1
-        port group interface Ten-GigabitEthernet 2/0/49
-        port group interface Ten-GigabitEthernet 2/0/50
+        port group interface FGE2/0/25
+        port group interface FGE2/0/26
+        quit
       4.重新打开物理端口,保存配置
-        interface Ten-G2/0/49
+        interface FGE2/0/25
         undo shutdown
-        interface Ten-G2/0/50
+        quit
+        interface FGE2/0/26
         undo shutdown
+        quit
       5.激活IRF设置,激活配置后,slave设备会自动重启
-        safe f
+        save f
         irf-port-configuration active
     验证配置,查看状态
         display irf
