@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8fb869c[2023-06-13T11:22:26+08:00]:mystack.sh")
+VERSION+=("2ee2270[2023-06-13T15:39:56+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -493,13 +493,13 @@ EOF
     a2enconf openstack-dashboard
     mv /etc/openstack-dashboard/policy /etc/openstack-dashboard/policy.org
     chown -R horizon /var/lib/openstack-dashboard/secret-key
-    service_restart apache2.service
+    service_restart apache2.service || log "need restart apache2.service youself!!!!!!!!!!!!!!!!!"
 
     backup ${nova_consoleproxy}
     sed -i -E \
         -e 's/^\s*NOVA_CONSOLE_PROXY_TYPE\s*=.*/NOVA_CONSOLE_PROXY_TYPE=novnc/g' \
         ${nova_consoleproxy}
-    service_restart nova-novncproxy.service
+    service_restart nova-novncproxy.service || log "need restart nova-novncproxy.service youself!!!!!!!!!!!!!!!!!"
 }
 ####################################################################################################
 init_nova_compute() {
@@ -772,14 +772,14 @@ teardown() {
 
 init_ctrl_node() {
     local ctrl=${1}
-    local tag=${3}
+    local net_tag=${2}
     prepare_env "${ctrl}" "${KEYSTONE_USER}" "${KEYSTONE_PASS}"
     prepare_db_mq "${RABBIT_USER}" "${RABBIT_PASS}"
     init_keystone "${ctrl}" "${KEYSTONE_USER}" "${KEYSTONE_PASS}" "${KEYSTONE_DBPASS}"
     init_glance "${ctrl}" "${GLANCE_PASS}" "${GLANCE_DBPASS}"
     init_nova "${ctrl}" "${NOVA_PASS}" "${PLACEMENT_PASS}" "${NOVA_DBPASS}" "${PLACEMENT_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
     init_neutron "${ctrl}" "${NOVA_PASS}" "${NEUTRON_PASS}" "${NEUTRON_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
-    add_neutron_linux_bridge_net "${tag}"
+    add_neutron_linux_bridge_net "${net_tag}"
     addflaver
     adduser "tsd" "user1" "password"
     init_horizon "${ctrl}"
