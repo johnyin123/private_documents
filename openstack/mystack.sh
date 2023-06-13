@@ -7,14 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6d4418d[2023-06-12T16:57:44+08:00]:mystack.sh")
+VERSION+=("8fb869c[2023-06-13T11:22:26+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
+MYSQL_HOST=""
 ##OPTION_START##
-MYSQL_HOST=${MYSQL_HOST:-192.168.168.101}
 MYSQL_PASS=${MYSQL_PASS:-}
 RABBIT_USER=${RABBIT_USER:-rabbit}
 RABBIT_PASS=${RABBIT_PASS:-rabbit_pass}
@@ -43,6 +43,10 @@ readonly neutron_conf=/etc/neutron/neutron.conf
 readonly metadata_agent_ini=/etc/neutron/metadata_agent.ini
 readonly ml2_conf_ini=/etc/neutron/plugins/ml2/ml2_conf.ini
 readonly linuxbridge_agent_ini=/etc/neutron/plugins/ml2/linuxbridge_agent.ini
+readonly horizon_settings_py=/etc/openstack-dashboard/local_settings.py
+readonly horizon_debian_cache_py=/etc/openstack-dashboard/local_settings.d/_0006_debian_cache.py
+readonly horizon_dashboard_conf=/etc/apache2/conf-available/openstack-dashboard.conf
+readonly nova_consoleproxy=/etc/default/nova-consoleproxy
 
 LOGFILE=""
 BACK_DIR=backup
@@ -450,6 +454,54 @@ init_neutron() {
     service_restart neutron-api.service neutron-rpc-server.service neutron-metadata-agent.service nova-api.service
 }
 
+init_horizon() {
+    local ctrl_host=${1}
+    log "##########################INSTALL HORIZON##########################"
+    log "Configure OpenStack Dashboard Service (Horizon)."
+    backup ${horizon_settings_py}
+    sed -i -E \
+        -e "s/^\s*#*\s*ALLOWED_HOSTS\s*=.*/ALLOWED_HOSTS = ['${ctrl_host}', 'localhost', ]/g" \
+        -e 's/^\s*#*\s*SESSION_ENGINE\s*=.*/SESSION_ENGINE = "django.contrib.sessions.backends.cache"/g' \
+        -e "s/^\s*#*\s*OPENSTACK_HOST\s*=.*/OPENSTACK_HOST = \"${ctrl_host}\"/g" \
+        -e "s/^\s*#*\s*OPENSTACK_KEYSTONE_URL\s*=.*/OPENSTACK_KEYSTONE_URL = \"http:\/\/${ctrl_host}:5000\/v3\"/g" \
+        -e 's/^\s*#*\s*TIME_ZONE\s*=.*/TIME_ZONE = "Asia\/Shanghai"/g' \
+        ${horizon_settings_py}
+
+    backup ${horizon_debian_cache_py}
+    sed -i -E \
+        -e "s/^\s*'BACKEND'\s*:.*/'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache', 'LOCATION': '${ctrl_host}:11211',/g" \
+        ${horizon_debian_cache_py}
+
+    backup ${horizon_dashboard_conf}
+    tee ${horizon_dashboard_conf} <<EOF
+WSGIScriptAlias / /usr/share/openstack-dashboard/wsgi.py process-group=horizon
+WSGIDaemonProcess horizon user=horizon group=horizon processes=3 threads=10 display-name=%{GROUP}
+WSGIProcessGroup horizon
+WSGIApplicationGroup %{GLOBAL}
+
+Alias /static /var/lib/openstack-dashboard/static/
+Alias /horizon/static /var/lib/openstack-dashboard/static/
+
+<Directory /usr/share/openstack-dashboard>
+  Require all granted
+</Directory>
+
+<Directory /var/lib/openstack-dashboard/static>
+  Require all granted
+</Directory>
+EOF
+    a2enconf openstack-dashboard
+    mv /etc/openstack-dashboard/policy /etc/openstack-dashboard/policy.org
+    chown -R horizon /var/lib/openstack-dashboard/secret-key
+    service_restart apache2.service
+
+    backup ${nova_consoleproxy}
+    sed -i -E \
+        -e 's/^\s*NOVA_CONSOLE_PROXY_TYPE\s*=.*/NOVA_CONSOLE_PROXY_TYPE=novnc/g' \
+        ${nova_consoleproxy}
+    service_restart nova-novncproxy.service
+}
+####################################################################################################
 init_nova_compute() {
     local compute_host=${1}
     local ctrl_host=${2}
@@ -461,13 +513,6 @@ init_nova_compute() {
     # getent hosts ctl01 | grep -v 127.0.0.1 | awk '{print $1}'
     log "##########################INSTALL NOVA COMPUTE##########################"
     log "Install KVM HyperVisor on Compute Host"
-    # on Debian 11 default is set cgroup v2, however,
-    # specific feature does not work on Nova-Compute, so fall back to cgroup v1
-    # sed -i -E \
-    #     's/^GRUB_CMDLINE_LINUX=.*/GRUB_CMDLINE_LINUX="systemd.unified_cgroup_hierarchy=false systemd.legacy_systemd_cgroup_controller=false"/g' \
-    #     /etc/default/grub
-    # update-grub
-    # reboot
     backup ${nova_compute_conf}
     ini_set ${nova_compute_conf} DEFAULT compute_driver libvirt.LibvirtDriver
     # # kvm/qemu
@@ -521,7 +566,7 @@ init_linux_bridge_plugin() {
     ini_append_list ${linuxbridge_agent_ini} linux_bridge bridge_mappings "${net_tag}:${mapping_dev}"
     ini_append_list ${linuxbridge_agent_ini} linux_bridge physical_interface_mappings "${net_tag}:${mapping_dev}"
 
-    ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group False
+    ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group false
     ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.firewall.NoopFirewallDriver
     ini_set ${linuxbridge_agent_ini} securitygroup enable_ipset false
     # ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group True
@@ -563,21 +608,6 @@ init_neutron_compute() {
     ini_set ${nova_conf} neutron password ${neutron_pass}
     service_restart nova-compute.service neutron-linuxbridge-agent.service
 }
-
-ctrller_discover_compute_node() {
-    backup /etc/default/nova-consoleproxy
-    sed -i -E \
-        -e 's/^\s*NOVA_CONSOLE_PROXY_TYPE\s*=.*/NOVA_CONSOLE_PROXY_TYPE=novnc/g' \
-        /etc/default/nova-consoleproxy
-    log "Start Nova Compute service."
-    service_restart nova-novncproxy.service
-    su -s /bin/bash nova -c "nova-manage cell_v2 discover_hosts --verbose"
-    openstack compute service list
-    #或者： 修改nova.conf修改时间间隔:
-    #[scheduler]
-    #discover_hosts_in_cells_interval = 300
-}
-
 ####################################################################################################
 add_neutron_linux_bridge_net() {
     local net_name=${1}
@@ -752,6 +782,7 @@ init_ctrl_node() {
     add_neutron_linux_bridge_net "${tag}"
     addflaver
     adduser "tsd" "user1" "password"
+    init_horizon "${ctrl}"
     log "CTRL NODE ALL DONE"
 }
 
@@ -766,7 +797,9 @@ init_compute_node() {
     init_linux_bridge_plugin "${tag}" "${dev}"
     #init_linux_bridge_plugin vlan100 "bond1"
     service_restart nova-compute.service neutron-linuxbridge-agent.service
-
+    #nova.conf修改时间间隔:
+    #[scheduler]
+    #discover_hosts_in_cells_interval = 300
     log 'su -s /bin/bash nova -c "nova-manage cell_v2 discover_hosts --verbose"'
     log "openstack compute service list"
     log "COMPUT NODE ALL DONE"
@@ -811,7 +844,7 @@ main() {
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -C | --ctrl)    shift; ctrl=${1}; shift;;
+            -C | --ctrl)    shift; ctrl=${1}; MYSQL_HOST=${1}; shift;;
             -c | --compute) shift; compute=${1}; shift;;
             --tag)          shift; tag=${1}; shift;;
             --dev)          shift; dev=${1}; shift;;
