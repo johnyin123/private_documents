@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2ee2270[2023-06-13T15:39:56+08:00]:mystack.sh")
+VERSION+=("67eda0e[2023-06-13T17:16:01+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -712,7 +712,7 @@ verify_all() {
 #    ssh-keygen -q -N "" -f  test.key
 #    openstack keypair show ${key_name} 2>/dev/null || \
 #        openstack keypair create --public-key test.key.pub ${key_name} -f value -c fingerprint || true
-    log "openstack server create --flavor m1.small --image cirros --security-group secgroup1 --nic net-id=\$(openstack network show YOU_NET_ID -c id -f value) --key-name mykey testvm1"
+    log "openstack server create --flavor m1.small --image cirros --nic net-id=\$(openstack network show YOU_NET_ID -c id -f value) testvm1"
     log "openstack server show testvm1 "
 }
 ####################################################################################################
