@@ -7,13 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e7c8976[2023-06-12T16:24:03+08:00]:mystack.sh")
+VERSION+=("6d4418d[2023-06-12T16:57:44+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 ##OPTION_START##
+MYSQL_HOST=${MYSQL_HOST:-192.168.168.101}
 MYSQL_PASS=${MYSQL_PASS:-}
 RABBIT_USER=${RABBIT_USER:-rabbit}
 RABBIT_PASS=${RABBIT_PASS:-rabbit_pass}
@@ -28,7 +29,6 @@ PLACEMENT_PASS=${PLACEMENT_PASS:-palcement_pass}
 PLACEMENT_DBPASS=${PLACEMENT_DBPASS:-placement_dbpass}
 NEUTRON_PASS=${NEUTRON_PASS:-neutron_pass}
 NEUTRON_DBPASS=${NEUTRON_DBPASS:-neutron_dbpass}
-PUBLIC_NETWORK=${PUBLIC_NETWORK:-public}
 OPENSTACK_DEBUG=${OPENSTACK_DEBUG:-false}
 ##OPTION_END##
 
@@ -58,6 +58,12 @@ backup() {
     cat ${src} 2>/dev/null > ${BACK_DIR}/${__backup} || true
     [ -z "${mv}" ] || echo "" > ${src} # for keep file owner etc.
 }
+get_mysql_connection() {
+    local user=${1}
+    local pass=${2}
+    local db=${3}
+    printf "mysql+pymysql://%s:%s@%s/%s"  "${user}" "${pass}" "${MYSQL_HOST}" "${db}"
+}
 ini_get() {
     local file=${1}
     local sec=${2}
@@ -67,7 +73,7 @@ ini_get() {
 ini_del() {
     local file=${1}
     local sec=${2}
-    local key=${3}
+    local key=${3:-}
     log "del ${file} [${sec}] ${key}"
     crudini --del "${file}" "${sec}" "${key}"
     # # Comment
@@ -77,6 +83,7 @@ ini_del() {
     # # get
     # line=$(sed -ne "/^\[$section\]/,/^\[.*\]/ { /^$option[ \t]*=/ p; }" "$file"); echo ${line#*=}
 }
+
 ini_set() {
     local file=${1}
     local sec=${2}
@@ -84,6 +91,15 @@ ini_set() {
     local val=${4}
     log "set ${file} [${sec}] ${key} = ${val}"
     crudini --verbose --set "${file}" "${sec}" "${key}" "${val}"
+}
+
+ini_append_list() {
+    local ini=${1}
+    local sec=${2}
+    local key=${3}
+    local val=${4}
+    local old="$(ini_get ${ini} ${sec} ${key} 2>/dev/null)"
+    ini_set ${ini} ${sec} ${key} "${val}${old:+,${old}}"
 }
 
 create_mysql_db() {
@@ -96,7 +112,7 @@ DROP DATABASE IF EXISTS ${db};
 CREATE DATABASE ${db} CHARACTER SET utf8;
 GRANT ALL PRIVILEGES ON ${db}.* TO '${user}'@'localhost' IDENTIFIED BY '${pass}';
 GRANT ALL PRIVILEGES ON ${db}.* TO '${user}'@'%' IDENTIFIED BY '${pass}';
-flush privileges;
+FLUSH PRIVILEGES;
 EOF
 }
 
@@ -210,7 +226,7 @@ init_keystone() {
     service_restart keystone.service
     create_mysql_db keystone keystone "${keystone_dbpass}"
     backup ${keystone_conf}
-    ini_set ${keystone_conf} database connection mysql+pymysql://keystone:${keystone_dbpass}@${ctrl_host}/keystone
+    ini_set ${keystone_conf} database connection "$(get_mysql_connection keystone ${keystone_dbpass} keystone)"
     ini_set ${keystone_conf} token provider fernet
     ini_set ${keystone_conf} cache memcache_servers ${ctrl_host}:11211
     log "keystone-manage db_sync"
@@ -259,7 +275,7 @@ init_glance() {
     log "Configure Glance create new"
     backup ${glance_conf} "MOVE"
     ini_set ${glance_conf} DEFAULT bind_host 0.0.0.0
-    ini_set ${glance_conf} database connection mysql+pymysql://glance:${glance_dbpass}@${ctrl_host}/glance
+    ini_set ${glance_conf} database connection "$(get_mysql_connection glance ${glance_dbpass} glance)"
     add_keystone_authtoken ${glance_conf} ${ctrl_host} glance ${glance_pass}
     ini_set ${glance_conf} paste_deploy flavor keystone
     ini_set ${glance_conf} glance_store stores file,http
@@ -308,8 +324,8 @@ init_nova() {
     # glance
     ini_set ${nova_conf} glance api_servers http://${ctrl_host}:9292
 
-    ini_set ${nova_conf} api_database connection mysql+pymysql://nova:${nova_dbpass}@${ctrl_host}/nova_api
-    ini_set ${nova_conf} database connection mysql+pymysql://nova:${nova_dbpass}@${ctrl_host}/nova
+    ini_set ${nova_conf} api_database connection "$(get_mysql_connection nova ${nova_dbpass} nova_api)"
+    ini_set ${nova_conf} database connection "$(get_mysql_connection nova ${nova_dbpass} nova)"
 
     ini_set ${nova_conf} api auth_strategy keystone
     add_keystone_authtoken ${nova_conf} ${ctrl_host} nova ${nova_pass}
@@ -337,7 +353,7 @@ init_nova() {
     ini_set ${placement_conf} api auth_strategy keystone
     add_keystone_authtoken ${placement_conf} ${ctrl_host} placement ${placement_pass}
     # # placement_database
-    ini_set ${placement_conf} placement_database connection mysql+pymysql://placement:${placement_dbpass}@${ctrl_host}/placement
+    ini_set ${placement_conf} placement_database connection "$(get_mysql_connection placement ${placement_dbpass} placement)"
     log "placement db sync"
     su -s /bin/bash placement -c "placement-manage db sync"
     log "nova api db sync"
@@ -350,40 +366,20 @@ init_nova() {
     su -s /bin/bash nova -c "nova-manage cell_v2 create_cell --name cell1"
     service_restart nova-api.service nova-conductor.service nova-scheduler.service placement-api.service
 }
-
-init_linux_bridge_plugin() {
-    local public_network=${1}
-    local mapping_dev=${2}
+init_neutron_ml2_plugin() {
     backup ${ml2_conf_ini}
     # ml2 configuration
     ini_set ${ml2_conf_ini} ml2 mechanism_drivers linuxbridge
     # # ['local', 'flat', 'vlan', 'gre', 'vxlan', 'geneve']
     ini_set ${ml2_conf_ini} ml2 type_drivers "flat,vlan"
-    # ini_set ${ml2_conf_ini} ml2_type_vlan network_vlan_ranges ${public_network}:1:4096
     ini_set ${ml2_conf_ini} ml2 tenant_network_types ""
     ini_set ${ml2_conf_ini} ml2 extension_drivers ""
     # # flat_networks = public,public2, * allow use any phy network
-    ini_set ${ml2_conf_ini} ml2_type_flat flat_networks '*' # ${public_network}
+    ini_set ${ml2_conf_ini} ml2_type_flat flat_networks '*'
     ini_set ${ml2_conf_ini} securitygroup enable_ipset false
-    backup ${linuxbridge_agent_ini}
-    # linuxbridge configuration
-    ini_set ${linuxbridge_agent_ini} DEFAULT debug true #${OPENSTACK_DEBUG:-false}
-    ini_set ${linuxbridge_agent_ini} vxlan enable_vxlan False
-    # ini_set ${linuxbridge_agent_ini} linux_bridge physical_interface_mappings ${public_network}:${mapping_dev}
-    # # map to exists bridge
-    # # bridge_mappings configuration must correlate with network_vlan_ranges option on the controller node
-    ini_set ${linuxbridge_agent_ini} linux_bridge bridge_mappings ${public_network}:${mapping_dev}
-    ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group False
-    ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.firewall.NoopFirewallDriver
-    ini_set ${linuxbridge_agent_ini} securitygroup enable_ipset True
-    # ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group True
-    # ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
-    # # dhcp agent configuration
-    # ini_set /etc/neutron/dhcp_agent.ini DEFAULT interface_driver linuxbridge
-    # ini_set /etc/neutron/dhcp_agent.ini DEFAULT dhcp_driver neutron.agent.linux.dhcp.Dnsmasq
-    # ini_set /etc/neutron/dhcp_agent.ini DEFAULT enable_isolated_metadata true
     ln -sf ${ml2_conf_ini} /etc/neutron/plugin.ini
 }
+
 init_neutron() {
     local ctrl_host=${1}
     local nova_pass=${2}
@@ -411,7 +407,7 @@ init_neutron() {
     ini_set ${neutron_conf} DEFAULT auth_strategy keystone
     add_keystone_authtoken ${neutron_conf} ${ctrl_host} neutron ${neutron_pass}
     # # database
-    ini_set ${neutron_conf} database connection mysql+pymysql://neutron:${neutron_dbpass}@${ctrl_host}/neutron_ml2
+    ini_set ${neutron_conf} database connection "$(get_mysql_connection neutron ${neutron_dbpass} neutron_ml2)"
     ini_set ${neutron_conf} agent root_helper 'sudo /usr/bin/neutron-rootwrap /etc/neutron/rootwrap.conf'
     ini_set ${neutron_conf} oslo_concurrency lock_path /var/lib/neutron/tmp
 
@@ -425,7 +421,7 @@ init_neutron() {
     ini_set ${neutron_conf} nova username nova
     ini_set ${neutron_conf} nova password ${nova_pass}
 
-    init_linux_bridge_plugin ${PUBLIC_NETWORK} "br-ext"
+    init_neutron_ml2_plugin
     log "Configure metadata agent"
     backup ${metadata_agent_ini}
     ini_set ${metadata_agent_ini} DEFAULT nova_metadata_host ${ctrl_host}
@@ -511,6 +507,30 @@ init_nova_compute() {
     service_restart nova-compute.service
 }
 
+init_linux_bridge_plugin() {
+    local net_tag=${1}
+    local mapping_dev=${2}
+    backup ${linuxbridge_agent_ini}
+    # linuxbridge configuration
+    ini_set ${linuxbridge_agent_ini} DEFAULT debug true #${OPENSTACK_DEBUG:-false}
+    ini_set ${linuxbridge_agent_ini} vxlan enable_vxlan False
+
+    # # map to exists bridge
+    # # bridge_mappings configuration must correlate with network_vlan_ranges option on the controller node
+    # ini_set ${ml2_conf_ini} ml2_type_vlan network_vlan_ranges ${net_tag}
+    ini_append_list ${linuxbridge_agent_ini} linux_bridge bridge_mappings "${net_tag}:${mapping_dev}"
+    ini_append_list ${linuxbridge_agent_ini} linux_bridge physical_interface_mappings "${net_tag}:${mapping_dev}"
+
+    ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group False
+    ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.firewall.NoopFirewallDriver
+    ini_set ${linuxbridge_agent_ini} securitygroup enable_ipset false
+    # ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group True
+    # ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
+    # # dhcp agent configuration
+    # ini_set /etc/neutron/dhcp_agent.ini DEFAULT interface_driver linuxbridge
+    # ini_set /etc/neutron/dhcp_agent.ini DEFAULT dhcp_driver neutron.agent.linux.dhcp.Dnsmasq
+    # ini_set /etc/neutron/dhcp_agent.ini DEFAULT enable_isolated_metadata true
+}
 init_neutron_compute() {
     local compute_host=${1}
     local ctrl_host=${2}
@@ -529,7 +549,7 @@ init_neutron_compute() {
     add_keystone_authtoken ${neutron_conf} ${ctrl_host} neutron ${neutron_pass}
 
     log "on compute node only ${linuxbridge_agent_ini} need modiry"
-    init_linux_bridge_plugin ${PUBLIC_NETWORK} "br-ext"
+    init_neutron_ml2_plugin
 
     backup ${nova_conf}
     # # neutron in nova
@@ -571,7 +591,11 @@ add_neutron_linux_bridge_net() {
         --gateway 192.168.168.1 --dns-nameserver 114.114.114.114 \
         -c id -c network_id -c project_id
 }
-
+addflaver() {
+    local name=m1.small
+    log "create a flavor [${name}]"
+    openstack flavor show ${name} 2>/dev/null || openstack flavor create --vcpus 1 --ram 256 --disk 4 ${name} || true
+}
 adduser() {
     project=${1}
     user=${2}
@@ -584,19 +608,6 @@ adduser() {
     openstack role create CloudUser --or-show -f value -c id
     log "create a user to the role CloudUser"
     openstack role add --project ${project} --user ${user} CloudUser
-    local net_name=${PUBLIC_NETWORK}
-    local flaver_name=m1.small
-    local secgroup=secgroup01
-    local key_name=mykey
-    log "create a [flavor]"
-    openstack flavor show ${flaver_name} 2>/dev/null || openstack flavor create --id 0 --vcpus 1 --ram 256 --disk 4 ${flaver_name} || true
-    log "create a security group for instances"
-    openstack security group show ${secgroup} 2>/dev/null || openstack security group create ${secgroup} || true
-    log "add public-keyc${key_name}"
-    rm -f test.key test.key.pub 2>/dev/null || true
-    ssh-keygen -q -N "" -f  test.key
-    openstack keypair show ${key_name} 2>/dev/null || \
-        openstack keypair create --public-key test.key.pub ${key_name} -f value -c fingerprint || true
 }
 ####################################################################################################
 verify_neutron() {
@@ -636,14 +647,9 @@ verify_keystone() {
     openstack role list
     openstack endpoint list
 }
+
 verify_all() {
-    local net_name=${PUBLIC_NETWORK}
-    local flaver_name=m1.small
-    local secgroup=secgroup01
-    local img_name=cirros
-    local key_name=mykey
     source ~/keystonerc
-    local netid=$(openstack network show ${net_name}-net -c id -f value)
     log "verify all"
     verify_keystone
     verify_glance
@@ -665,12 +671,19 @@ verify_all() {
     openstack image list || true
     log "openstack flavor list"
     openstack flavor list || true
-    log "openstack server create --flavor ${flaver_name} --image ${img_name} --security-group ${secgroup} --nic net-id=${netid} --key-name ${key_name} testvm1"
-    openstack server show testvm1 &>/dev/null || openstack server create --flavor ${flaver_name} --image ${img_name} --security-group ${secgroup} --nic net-id=${netid} --key-name ${key_name} testvm1 || true
-    log "openstack server show testvm1 "
-    openstack server show testvm1 || true
     log "openstack extension list --network"
     openstack extension list --network || true
+#    local secgroup=secgroup01
+#    log "create a security group [${secgroup}]"
+#    openstack security group show ${secgroup} 2>/dev/null || openstack security group create ${secgroup} || true
+#    local key_name=mykey
+#    log "add public-keyc [${key_name}]"
+#    rm -f test.key test.key.pub 2>/dev/null || true
+#    ssh-keygen -q -N "" -f  test.key
+#    openstack keypair show ${key_name} 2>/dev/null || \
+#        openstack keypair create --public-key test.key.pub ${key_name} -f value -c fingerprint || true
+    log "openstack server create --flavor m1.small --image cirros --security-group secgroup1 --nic net-id=\$(openstack network show YOU_NET_ID -c id -f value) --key-name mykey testvm1"
+    log "openstack server show testvm1 "
 }
 ####################################################################################################
 teardown() {
@@ -729,23 +742,31 @@ teardown() {
 
 init_ctrl_node() {
     local ctrl=${1}
+    local tag=${3}
     prepare_env "${ctrl}" "${KEYSTONE_USER}" "${KEYSTONE_PASS}"
     prepare_db_mq "${RABBIT_USER}" "${RABBIT_PASS}"
     init_keystone "${ctrl}" "${KEYSTONE_USER}" "${KEYSTONE_PASS}" "${KEYSTONE_DBPASS}"
     init_glance "${ctrl}" "${GLANCE_PASS}" "${GLANCE_DBPASS}"
     init_nova "${ctrl}" "${NOVA_PASS}" "${PLACEMENT_PASS}" "${NOVA_DBPASS}" "${PLACEMENT_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
     init_neutron "${ctrl}" "${NOVA_PASS}" "${NEUTRON_PASS}" "${NEUTRON_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
-    add_neutron_linux_bridge_net "${PUBLIC_NETWORK}"
+    add_neutron_linux_bridge_net "${tag}"
+    addflaver
     adduser "tsd" "user1" "password"
     log "CTRL NODE ALL DONE"
 }
 
-init_comput_node() {
+init_compute_node() {
     local compute=${1}
     local ctrl=${2}
+    local tag=${3}
+    local dev=${dev}
     prepare_env "${ctrl}" "${KEYSTONE_USER}" "${KEYSTONE_PASS}"
     init_nova_compute "${compute}" "${ctrl}" "${NOVA_PASS}" "${PLACEMENT_PASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
     init_neutron_compute "${compute}" "${ctrl}" "${NEUTRON_PASS}" "${PLACEMENT_PASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
+    init_linux_bridge_plugin "${tag}" "${dev}"
+    #init_linux_bridge_plugin vlan100 "bond1"
+    service_restart nova-compute.service neutron-linuxbridge-agent.service
+
     log 'su -s /bin/bash nova -c "nova-manage cell_v2 discover_hosts --verbose"'
     log "openstack compute service list"
     log "COMPUT NODE ALL DONE"
@@ -757,6 +778,8 @@ usage() {
 ${SCRIPTNAME} <ctrl|compute|teardown>
         -C|--ctrl     * *    <ipaddr> controller node ipaddress
         -c|--compute    *    <ipaddr> compute node ipaddress
+        --tag         * *    network tag
+        --dev           *    network mapping dev(in bridge)
         -v|--verify       *  <keystone|glance|nova|neutron|all>
         -q|--quiet
         -l|--log <int> log level
@@ -779,9 +802,9 @@ EOF
     exit 1
 }
 main() {
-    local verify="" ctrl="" compute=""
+    local verify="" ctrl="" compute="" tag="" dev=""
     local opt_short="v:C:c:"
-    local opt_long="verify:,ctrl:,compute:,"
+    local opt_long="verify:,ctrl:,compute:,tag:,dev:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -790,6 +813,8 @@ main() {
         case "$1" in
             -C | --ctrl)    shift; ctrl=${1}; shift;;
             -c | --compute) shift; compute=${1}; shift;;
+            --tag)          shift; tag=${1}; shift;;
+            --dev)          shift; dev=${1}; shift;;
             -v | --verify)  shift; declare -f -F verify_${1} >/dev/null && { verify_${1}; log "VERIFY [${1}] DONE"; } || usage; exit 0; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
@@ -803,10 +828,11 @@ main() {
     done
     case "${1:-}" in
         ctrl)
-            [ -z "${ctrl}" ] && usage "ctrl must input"
-            init_ctrl_node "${ctrl}";;
+            [ -z "${ctrl}" ] || [ -z "${tag}" ] && usage "ctrl, tag must input"
+            init_ctrl_node "${ctrl}" "${tag}";;
         compute)
-            [ -z "${ctrl}" ] || [ -z "${compute}" ] && usage "ctrl & compute must input" || init_comput_node "${compute}" "${ctrl}"
+            [ -z "${ctrl}" ] || [ -z "${compute}" ] || [ -z "${tag}" ] || [ -z "${dev}" ] && usage "ctrl & compute, tag, dev must input"
+            init_compute_node "${compute}" "${ctrl}" "${tag}" "${dev}"
             ;;
         teardown)   teardown ;;
         *)          usage "ctrl/compute/teardown";;
