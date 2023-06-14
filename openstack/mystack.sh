@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("67eda0e[2023-06-13T17:16:01+08:00]:mystack.sh")
+VERSION+=("6fbc04d[2023-06-13T17:26:18+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -58,8 +58,7 @@ backup() {
     [ -d "${BACK_DIR}" ] || mkdir -p ${BACK_DIR}
     local __backup=$(basename ${src})
     log "${mv:-BACKUP}: ${src} => ${BACK_DIR} "
-    [ -e "${BACK_DIR}/${__backup}" ] && return 0
-    cat ${src} 2>/dev/null > ${BACK_DIR}/${__backup} || true
+    [ -e "${BACK_DIR}/${__backup}" ]  || cat ${src} 2>/dev/null > ${BACK_DIR}/${__backup} || true
     [ -z "${mv}" ] || echo "" > ${src} # for keep file owner etc.
 }
 get_mysql_connection() {
@@ -92,7 +91,7 @@ ini_set() {
     local file=${1}
     local sec=${2}
     local key=${3}
-    local val=${4}
+    local val=${4:-}
     log "set ${file} [${sec}] ${key} = ${val}"
     crudini --verbose --set "${file}" "${sec}" "${key}" "${val}"
 }
@@ -372,12 +371,14 @@ init_nova() {
 }
 init_neutron_ml2_plugin() {
     backup ${ml2_conf_ini}
+    ini_set ${ml2_conf_ini} DEFAULT debug ${OPENSTACK_DEBUG:-false}
     # ml2 configuration
     ini_set ${ml2_conf_ini} ml2 mechanism_drivers linuxbridge
     # # ['local', 'flat', 'vlan', 'gre', 'vxlan', 'geneve']
     ini_set ${ml2_conf_ini} ml2 type_drivers "flat,vlan"
-    ini_set ${ml2_conf_ini} ml2 tenant_network_types ""
-    ini_set ${ml2_conf_ini} ml2 extension_drivers ""
+    # # clear tenant_network_types, extension_drivers
+    ini_set ${ml2_conf_ini} ml2 tenant_network_types
+    ini_set ${ml2_conf_ini} ml2 extension_drivers
     # # flat_networks = public,public2, * allow use any phy network
     ini_set ${ml2_conf_ini} ml2_type_flat flat_networks '*'
     ini_set ${ml2_conf_ini} securitygroup enable_ipset false
@@ -403,7 +404,7 @@ init_neutron() {
     backup ${neutron_conf} "MOVE"
     ini_set ${neutron_conf} DEFAULT debug ${OPENSTACK_DEBUG:-false}
     ini_set ${neutron_conf} DEFAULT core_plugin ml2
-    ini_set ${neutron_conf} DEFAULT service_plugins ""
+    ini_set ${neutron_conf} DEFAULT service_plugins
     ini_set ${neutron_conf} DEFAULT notify_nova_on_port_status_changes True
     ini_set ${neutron_conf} DEFAULT notify_nova_on_port_data_changes True
     ini_set ${neutron_conf} DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
@@ -425,19 +426,12 @@ init_neutron() {
     ini_set ${neutron_conf} nova username nova
     ini_set ${neutron_conf} nova password ${nova_pass}
 
+    log "on compute node only ${linuxbridge_agent_ini} need modiry"
     init_neutron_ml2_plugin
-    log "Configure metadata agent"
-    backup ${metadata_agent_ini}
-    ini_set ${metadata_agent_ini} DEFAULT nova_metadata_host ${ctrl_host}
-    ini_set ${metadata_agent_ini} DEFAULT metadata_proxy_shared_secret ${metadata_secret}
-    ini_set ${metadata_agent_ini} cache memcache_servers ${ctrl_host}:11211
-    service_restart neutron-metadata-agent.service
+
     log "Configure Neutron in Nova"
     backup ${nova_conf}
-    ini_set ${nova_conf} DEFAULT use_neutron True
-    ini_set ${nova_conf} DEFAULT vif_plugging_is_fatal false
-    ini_set ${nova_conf} DEFAULT vif_plugging_timeout 0
-    # # neutron in nova
+    ini_set ${nova_conf} DEFAULT use_neutron true
     ini_set ${nova_conf} neutron auth_url http://${ctrl_host}:5000
     ini_set ${nova_conf} neutron auth_type password
     ini_set ${nova_conf} neutron project_domain_name default
@@ -446,6 +440,17 @@ init_neutron() {
     ini_set ${nova_conf} neutron project_name service
     ini_set ${nova_conf} neutron username neutron
     ini_set ${nova_conf} neutron password ${neutron_pass}
+
+    ini_set ${nova_conf} DEFAULT vif_plugging_is_fatal false
+    ini_set ${nova_conf} DEFAULT vif_plugging_timeout 0
+
+    log "Configure metadata agent"
+    backup ${metadata_agent_ini}
+    ini_set ${metadata_agent_ini} DEFAULT nova_metadata_host ${ctrl_host}
+    ini_set ${metadata_agent_ini} DEFAULT metadata_proxy_shared_secret ${metadata_secret}
+    ini_set ${metadata_agent_ini} cache memcache_servers ${ctrl_host}:11211
+    service_restart neutron-metadata-agent.service
+
     ini_set ${nova_conf} neutron service_metadata_proxy True
     ini_set ${nova_conf} neutron metadata_proxy_shared_secret ${metadata_secret}
 
@@ -490,8 +495,8 @@ Alias /horizon/static /var/lib/openstack-dashboard/static/
   Require all granted
 </Directory>
 EOF
-    a2enconf openstack-dashboard
-    mv /etc/openstack-dashboard/policy /etc/openstack-dashboard/policy.org
+    a2enconf openstack-dashboard || true
+    mv /etc/openstack-dashboard/policy /etc/openstack-dashboard/policy.org || true
     chown -R horizon /var/lib/openstack-dashboard/secret-key
     service_restart apache2.service || log "need restart apache2.service youself!!!!!!!!!!!!!!!!!"
 
@@ -557,7 +562,7 @@ init_linux_bridge_plugin() {
     local mapping_dev=${2}
     backup ${linuxbridge_agent_ini}
     # linuxbridge configuration
-    ini_set ${linuxbridge_agent_ini} DEFAULT debug true #${OPENSTACK_DEBUG:-false}
+    ini_set ${linuxbridge_agent_ini} DEFAULT debug ${OPENSTACK_DEBUG:-false}
     ini_set ${linuxbridge_agent_ini} vxlan enable_vxlan False
 
     # # map to exists bridge
@@ -584,20 +589,26 @@ init_neutron_compute() {
     local rabbit_user=${5}
     local rabbit_pass=${6}
     local region="${7:-RegionOne}"
+    log "##########################INSTALL NEUTRON COMPUTE##########################"
     log "Configure Neutron compute node create new"
     backup ${neutron_conf} "MOVE"
+    ini_set ${neutron_conf} DEFAULT debug ${OPENSTACK_DEBUG:-false}
+    ini_set ${neutron_conf} DEFAULT core_plugin ml2
+    ini_set ${neutron_conf} DEFAULT service_plugins
+    ini_set ${neutron_conf} DEFAULT notify_nova_on_port_status_changes True
+    ini_set ${neutron_conf} DEFAULT notify_nova_on_port_data_changes True
     ini_set ${neutron_conf} DEFAULT transport_url rabbit://${rabbit_user}:${rabbit_pass}@${ctrl_host}
-
+    ### ini_set ${neutron_conf} DEFAULT interface_driver linuxbridge
     ini_set ${neutron_conf} DEFAULT auth_strategy keystone
-    ini_set ${neutron_conf} agent root_helper 'sudo /usr/bin/neutron-rootwrap /etc/neutron/rootwrap.conf'
-
     add_keystone_authtoken ${neutron_conf} ${ctrl_host} neutron ${neutron_pass}
+    ini_set ${neutron_conf} agent root_helper 'sudo /usr/bin/neutron-rootwrap /etc/neutron/rootwrap.conf'
 
     log "on compute node only ${linuxbridge_agent_ini} need modiry"
     init_neutron_ml2_plugin
 
+    log "Configure Neutron in Nova"
     backup ${nova_conf}
-    # # neutron in nova
+    ini_set ${nova_conf} DEFAULT use_neutron true
     ini_set ${nova_conf} neutron auth_url http://${ctrl_host}:5000
     ini_set ${nova_conf} neutron auth_type password
     ini_set ${nova_conf} neutron project_domain_name default
@@ -606,6 +617,7 @@ init_neutron_compute() {
     ini_set ${nova_conf} neutron project_name service
     ini_set ${nova_conf} neutron username neutron
     ini_set ${nova_conf} neutron password ${neutron_pass}
+
     service_restart nova-compute.service neutron-linuxbridge-agent.service
 }
 ####################################################################################################
