@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6fbc04d[2023-06-13T17:26:18+08:00]:mystack.sh")
+VERSION+=("4baee0f[2023-06-14T13:13:34+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -381,6 +381,7 @@ init_neutron_ml2_plugin() {
     ini_set ${ml2_conf_ini} ml2 extension_drivers
     # # flat_networks = public,public2, * allow use any phy network
     ini_set ${ml2_conf_ini} ml2_type_flat flat_networks '*'
+    ini_set ${ml2_conf_ini} securitygroup enable_security_group true
     ini_set ${ml2_conf_ini} securitygroup enable_ipset false
     ln -sf ${ml2_conf_ini} /etc/neutron/plugin.ini
 }
@@ -496,7 +497,7 @@ Alias /horizon/static /var/lib/openstack-dashboard/static/
 </Directory>
 EOF
     a2enconf openstack-dashboard || true
-    mv /etc/openstack-dashboard/policy /etc/openstack-dashboard/policy.org || true
+    mv /etc/openstack-dashboard/policy /etc/openstack-dashboard/policy.org 2>/dev/null || true
     chown -R horizon /var/lib/openstack-dashboard/secret-key
     service_restart apache2.service || log "need restart apache2.service youself!!!!!!!!!!!!!!!!!"
 
@@ -571,7 +572,7 @@ init_linux_bridge_plugin() {
     ini_append_list ${linuxbridge_agent_ini} linux_bridge bridge_mappings "${net_tag}:${mapping_dev}"
     ini_append_list ${linuxbridge_agent_ini} linux_bridge physical_interface_mappings "${net_tag}:${mapping_dev}"
 
-    ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group false
+    ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group true
     ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.firewall.NoopFirewallDriver
     ini_set ${linuxbridge_agent_ini} securitygroup enable_ipset false
     # ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group True
@@ -639,9 +640,10 @@ addflaver() {
     openstack flavor show ${name} 2>/dev/null || openstack flavor create --vcpus 1 --ram 256 --disk 4 ${name} || true
 }
 adduser() {
-    project=${1}
-    user=${2}
-    pass=${3}
+    local ctrl_host=${1}
+    local project=${2}
+    local user=${3}
+    local pass=${4}
     log "create a project"
     openstack project create --domain default --description "my project ${project}" ${project} --or-show -f value -c id
     log "create a user ${user}"
@@ -650,6 +652,23 @@ adduser() {
     openstack role create CloudUser --or-show -f value -c id
     log "create a user to the role CloudUser"
     openstack role add --project ${project} --user ${user} CloudUser
+    tee ${project}_rc <<EOF
+export OS_PROJECT_DOMAIN_NAME=default
+export OS_USER_DOMAIN_NAME=default
+export OS_PROJECT_NAME=${project}
+export OS_USERNAME=${user}
+export OS_PASSWORD=${pass}
+export OS_AUTH_URL=http://${ctrl_host}:5000/v3
+export OS_IDENTITY_API_VERSION=3
+export OS_IMAGE_API_VERSION=2
+EOF
+    log "user ${project}_rc, and run check & add server"
+    log "openstack network list"
+    log "openstack server list"
+    log "openstack image list"
+    log "openstack security group list"
+    log "openstack server create --flavor m1.small --image cirros --network br --security-group secgroup01 test"
+    log "openstack server show test"
 }
 ####################################################################################################
 verify_neutron() {
@@ -725,7 +744,8 @@ verify_all() {
 #    openstack keypair show ${key_name} 2>/dev/null || \
 #        openstack keypair create --public-key test.key.pub ${key_name} -f value -c fingerprint || true
     log "openstack server create --flavor m1.small --image cirros --nic net-id=\$(openstack network show YOU_NET_ID -c id -f value) testvm1"
-    log "openstack server show testvm1 "
+    log "openstack server show testvm1"
+    log "openstack console url show testvm1"
 }
 ####################################################################################################
 teardown() {
@@ -793,7 +813,7 @@ init_ctrl_node() {
     init_neutron "${ctrl}" "${NOVA_PASS}" "${NEUTRON_PASS}" "${NEUTRON_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
     add_neutron_linux_bridge_net "${net_tag}"
     addflaver
-    adduser "tsd" "user1" "password"
+    adduser "${ctrl}" "tsd" "user1" "password"
     init_horizon "${ctrl}"
     log "CTRL NODE ALL DONE"
 }
