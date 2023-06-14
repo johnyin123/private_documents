@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4baee0f[2023-06-14T13:13:34+08:00]:mystack.sh")
+VERSION+=("45c902c[2023-06-15T07:13:29+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -358,15 +358,15 @@ init_nova() {
     # # placement_database
     ini_set ${placement_conf} placement_database connection "$(get_mysql_connection placement ${placement_dbpass} placement)"
     log "placement db sync"
-    su -s /bin/bash placement -c "placement-manage db sync"
-    log "nova api db sync"
-    su -s /bin/bash nova -c "nova-manage api_db sync"
-    log "nova map_cell0"
-    su -s /bin/bash nova -c "nova-manage cell_v2 map_cell0"
-    log "nova db sync"
-    su -s /bin/bash nova -c "nova-manage db sync"
-    log "nova create_cell cell1"
-    su -s /bin/bash nova -c "nova-manage cell_v2 create_cell --name cell1"
+    su -s /bin/sh placement -c "placement-manage db sync"
+    log "Register the cell0 database"
+    su -s /bin/sh nova -c "nova-manage cell_v2 map_cell0"
+    log "Create the cell1 cell"
+    su -s /bin/sh nova -c "nova-manage cell_v2 create_cell --name=cell1 --verbose"
+    log "Populate the nova database"
+    su -s /bin/sh nova -c "nova-manage db sync"
+    log "Verify nova cell0 and cell1 are registered correctly"
+    su -s /bin/sh nova -c "nova-manage cell_v2 list_cells"
     service_restart nova-api.service nova-conductor.service nova-scheduler.service placement-api.service
 }
 init_neutron_ml2_plugin() {
