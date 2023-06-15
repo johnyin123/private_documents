@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ba8aafc[2023-06-15T13:25:12+08:00]:mystack.sh")
+VERSION+=("237d97c[2023-06-15T14:01:35+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -44,6 +44,7 @@ readonly neutron_conf=/etc/neutron/neutron.conf
 readonly metadata_agent_ini=/etc/neutron/metadata_agent.ini
 readonly ml2_conf_ini=/etc/neutron/plugins/ml2/ml2_conf.ini
 readonly linuxbridge_agent_ini=/etc/neutron/plugins/ml2/linuxbridge_agent.ini
+readonly dhcp_agent_ini=/etc/neutron/dhcp_agent.ini
 readonly horizon_settings_py=/etc/openstack-dashboard/local_settings.py
 readonly horizon_debian_cache_py=/etc/openstack-dashboard/local_settings.d/_0006_debian_cache.py
 readonly horizon_dashboard_conf=/etc/apache2/conf-available/openstack-dashboard.conf
@@ -555,6 +556,16 @@ init_nova_compute() {
     service_restart nova-compute.service
 }
 
+init_dhcp_agent() {
+    log "Configure dhcp_agent"
+    # # dhcp agent configuration
+    backup ${dhcp_agent_ini}
+    ini_set ${dhcp_agent_ini} DEFAULT interface_driver linuxbridge
+    ini_set ${dhcp_agent_ini} DEFAULT dhcp_driver neutron.agent.linux.dhcp.Dnsmasq
+    ini_set ${dhcp_agent_ini} DEFAULT enable_isolated_metadata true
+    service_restart neutron-dhcp-agent.service
+}
+
 init_linux_bridge_plugin() {
     local net_tag=${1}
     local mapping_dev=${2}
@@ -570,14 +581,9 @@ init_linux_bridge_plugin() {
     ini_append_list ${linuxbridge_agent_ini} linux_bridge physical_interface_mappings "${net_tag}:${mapping_dev}"
 
     ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group true
+    # # neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
     ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.firewall.NoopFirewallDriver
     ini_set ${linuxbridge_agent_ini} securitygroup enable_ipset false
-    # ini_set ${linuxbridge_agent_ini} securitygroup enable_security_group True
-    # ini_set ${linuxbridge_agent_ini} securitygroup firewall_driver neutron.agent.linux.iptables_firewall.IptablesFirewallDriver
-    # # dhcp agent configuration
-    # ini_set /etc/neutron/dhcp_agent.ini DEFAULT interface_driver linuxbridge
-    # ini_set /etc/neutron/dhcp_agent.ini DEFAULT dhcp_driver neutron.agent.linux.dhcp.Dnsmasq
-    # ini_set /etc/neutron/dhcp_agent.ini DEFAULT enable_isolated_metadata true
 }
 init_neutron_compute() {
     local compute_host=${1}
