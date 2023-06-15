@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5ff47fd[2023-06-15T11:01:23+08:00]:mystack.sh")
+VERSION+=("ba8aafc[2023-06-15T13:25:12+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -634,12 +634,20 @@ addflaver() {
     local name=m1.small
     log "create a flavor [${name}]"
     openstack flavor show ${name} 2>/dev/null || openstack flavor create --vcpus 1 --ram 256 --disk 4 ${name} || true
+    local img="cirros.qcow2"
+    local img_name=cirros
+    log "Create Image Cirros"
+    log "IMG: wget -O ${img} http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img"
+    [ -e "${img}" ] || { log "wget --no-check-certificate -O ${img} http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img"; qemu-img create -f qcow2 ${img} 2G; }
+    openstack image show ${img_name} 2>/dev/null ||\
+        openstack image create "${img_name}" --file ${img} --disk-format qcow2 --container-format bare --public
 }
 add_new_project() {
     local ctrl_host=${1}
     local project=${2}
     local user=${3}
     local pass=${4}
+    source ~/keystonerc
     log "create a project"
     openstack project create --domain default --description "my project ${project}" ${project} --or-show -f value -c id
     log "create a user ${user}"
@@ -674,6 +682,7 @@ EOF
 #    ssh-keygen -q -N "" -f  test.key
 #    openstack keypair show ${key_name} 2>/dev/null || \
 #        openstack keypair create --public-key test.key.pub ${key_name} -f value -c fingerprint || true
+    log "PROJECT ALL DONE"
 }
 ####################################################################################################
 verify_neutron() {
@@ -695,13 +704,6 @@ verify_nova() {
 verify_glance() {
     log "verify glance installation"
     source ~/keystonerc
-    local img="cirros.qcow2"
-    local img_name=cirros
-    log "Create Image Cirros"
-    log "IMG: wget -O ${img} http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img"
-    [ -e "${img}" ] || { log "wget --no-check-certificate -O ${img} http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img"; qemu-img create -f qcow2 ${img} 2G; }
-    openstack image show ${img_name} 2>/dev/null ||\
-        openstack image create "${img_name}" --file ${img} --disk-format qcow2 --container-format bare --public
     openstack image list
 }
 verify_keystone() {
@@ -800,17 +802,13 @@ teardown() {
 
 init_ctrl_node() {
     local ctrl=${1}
-    local net_tag=${2}
     prepare_env "${ctrl}" "${KEYSTONE_USER}" "${KEYSTONE_PASS}"
     prepare_db_mq "${RABBIT_USER}" "${RABBIT_PASS}"
     init_keystone "${ctrl}" "${KEYSTONE_USER}" "${KEYSTONE_PASS}" "${KEYSTONE_DBPASS}"
     init_glance "${ctrl}" "${GLANCE_PASS}" "${GLANCE_DBPASS}"
     init_nova "${ctrl}" "${NOVA_PASS}" "${PLACEMENT_PASS}" "${NOVA_DBPASS}" "${PLACEMENT_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
     init_neutron "${ctrl}" "${NOVA_PASS}" "${NEUTRON_PASS}" "${NEUTRON_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
-    add_external_net "${net_tag}"
     init_horizon "${ctrl}"
-    addflaver
-    add_new_project "${ctrl}" "tsd" "user1" "password"
     log "CTRL NODE ALL DONE"
 }
 
@@ -836,12 +834,15 @@ init_compute_node() {
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
-${SCRIPTNAME} <ctrl|compute|teardown>
-        -C|--ctrl     * *    <ipaddr> controller node ipaddress
-        -c|--compute    *    <ipaddr> compute node ipaddress
-        --tag         * *    network tag
-        --dev           *    network mapping dev(in bridge)
-        -v|--verify       *  <keystone|glance|nova|neutron|all>
+${SCRIPTNAME} <ctrl|compute|teardown|project>
+        -C|--ctrl     * *     <ipaddr> controller node ipaddress
+        -c|--compute    *     <ipaddr> compute node ipaddress
+        --tag         * *     network tag
+        --dev           *     network mapping dev(in bridge)
+        --project           * new project name
+        --user              * project user
+        --pass              * project user's pass
+        -v|--verify       *   <keystone|glance|nova|neutron|all>
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -863,9 +864,9 @@ EOF
     exit 1
 }
 main() {
-    local verify="" ctrl="" compute="" tag="" dev=""
+    local verify="" ctrl="" compute="" tag="" dev="" project="" user="" pass=""
     local opt_short="v:C:c:"
-    local opt_long="verify:,ctrl:,compute:,tag:,dev:,"
+    local opt_long="verify:,ctrl:,compute:,tag:,dev:,project:,user:,pass:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -876,6 +877,9 @@ main() {
             -c | --compute) shift; compute=${1}; shift;;
             --tag)          shift; tag=${1}; shift;;
             --dev)          shift; dev=${1}; shift;;
+            --project)      shift; project=${1}; shift;;
+            --user)         shift; user=${1}; shift;;
+            --pass)         shift; pass=${1}; shift;;
             -v | --verify)  shift; declare -f -F verify_${1} >/dev/null && { verify_${1}; log "VERIFY [${1}] DONE"; } || usage; exit 0; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
@@ -889,14 +893,23 @@ main() {
     done
     case "${1:-}" in
         ctrl)
-            [ -z "${ctrl}" ] || [ -z "${tag}" ] && usage "ctrl, tag must input"
-            init_ctrl_node "${ctrl}" "${tag}";;
+            [ -z "${ctrl}" ] || [ -z "${tag}" ] && usage "ctrl & tag must input"
+            init_ctrl_node "${ctrl}"
+            addflaver
+            add_external_net "${net_tag}"
+            ;;
         compute)
             [ -z "${ctrl}" ] || [ -z "${compute}" ] || [ -z "${tag}" ] || [ -z "${dev}" ] && usage "ctrl & compute, tag, dev must input"
             init_compute_node "${compute}" "${ctrl}" "${tag}" "${dev}"
             ;;
-        teardown)   teardown ;;
-        *)          usage "ctrl/compute/teardown";;
+        project)
+            [ -z "${ctrl}" ] || [ -z "${project}" ] || [ -z "${user}" ] || [ -z "${pass}" ] && usage "ctrl,project,user,pass must input"
+            add_new_project "${ctrl}" "${project}" "${user}" "${pass}"
+            ;;
+        teardown)
+            teardown
+            ;;
+        *)          usage "ctrl/compute/teardown/project";;
     esac
     return 0
 }
