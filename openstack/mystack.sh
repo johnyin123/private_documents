@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d87cf39[2023-06-15T07:26:29+08:00]:mystack.sh")
+VERSION+=("6045aec[2023-06-15T08:30:40+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -364,11 +364,13 @@ init_nova() {
     ini_set ${placement_conf} placement_database connection "$(get_mysql_connection placement ${placement_dbpass} placement)"
     log "placement db sync"
     su -s /bin/sh placement -c "placement-manage db sync"
+    log "nova api db sync"
+    su -s /bin/sh nova -c "nova-manage api_db sync"
     log "Register the cell0 database"
     su -s /bin/sh nova -c "nova-manage cell_v2 map_cell0"
     log "Create the cell1 cell"
     su -s /bin/sh nova -c "nova-manage cell_v2 create_cell --name=cell1 --verbose"
-    log "Populate the nova database"
+    log "nova db sync"
     su -s /bin/sh nova -c "nova-manage db sync"
     log "Verify nova cell0 and cell1 are registered correctly"
     su -s /bin/sh nova -c "nova-manage cell_v2 list_cells"
@@ -616,7 +618,7 @@ init_neutron_compute() {
     service_restart nova-compute.service neutron-linuxbridge-agent.service
 }
 ####################################################################################################
-add_neutron_linux_bridge_net() {
+add_external_net() {
     local net_name=${1}
     log "Create network [${net_name}]"
     local id=$(openstack project create --domain default service --or-show -f value -c id)
@@ -633,7 +635,7 @@ addflaver() {
     log "create a flavor [${name}]"
     openstack flavor show ${name} 2>/dev/null || openstack flavor create --vcpus 1 --ram 256 --disk 4 ${name} || true
 }
-adduser() {
+add_new_project() {
     local ctrl_host=${1}
     local project=${2}
     local user=${3}
@@ -663,6 +665,15 @@ EOF
     log "openstack security group list"
     log "openstack server create --flavor m1.small --image cirros --network br --security-group secgroup01 test"
     log "openstack server show test"
+#    local secgroup=secgroup01
+#    log "create a security group [${secgroup}]"
+#    openstack security group show ${secgroup} 2>/dev/null || openstack security group create ${secgroup} || true
+#    local key_name=mykey
+#    log "add public-keyc [${key_name}]"
+#    rm -f test.key test.key.pub 2>/dev/null || true
+#    ssh-keygen -q -N "" -f  test.key
+#    openstack keypair show ${key_name} 2>/dev/null || \
+#        openstack keypair create --public-key test.key.pub ${key_name} -f value -c fingerprint || true
 }
 ####################################################################################################
 verify_neutron() {
@@ -728,15 +739,6 @@ verify_all() {
     openstack flavor list || true
     log "openstack extension list --network"
     openstack extension list --network || true
-#    local secgroup=secgroup01
-#    log "create a security group [${secgroup}]"
-#    openstack security group show ${secgroup} 2>/dev/null || openstack security group create ${secgroup} || true
-#    local key_name=mykey
-#    log "add public-keyc [${key_name}]"
-#    rm -f test.key test.key.pub 2>/dev/null || true
-#    ssh-keygen -q -N "" -f  test.key
-#    openstack keypair show ${key_name} 2>/dev/null || \
-#        openstack keypair create --public-key test.key.pub ${key_name} -f value -c fingerprint || true
     log "openstack server create --flavor m1.small --image cirros --nic net-id=\$(openstack network show YOU_NET_ID -c id -f value) testvm1"
     log "openstack server show testvm1"
     log "openstack console url show testvm1"
@@ -805,10 +807,10 @@ init_ctrl_node() {
     init_glance "${ctrl}" "${GLANCE_PASS}" "${GLANCE_DBPASS}"
     init_nova "${ctrl}" "${NOVA_PASS}" "${PLACEMENT_PASS}" "${NOVA_DBPASS}" "${PLACEMENT_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
     init_neutron "${ctrl}" "${NOVA_PASS}" "${NEUTRON_PASS}" "${NEUTRON_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
-    add_neutron_linux_bridge_net "${net_tag}"
-    addflaver
-    adduser "${ctrl}" "tsd" "user1" "password"
+    add_external_net "${net_tag}"
     init_horizon "${ctrl}"
+    addflaver
+    add_new_project "${ctrl}" "tsd" "user1" "password"
     log "CTRL NODE ALL DONE"
 }
 
