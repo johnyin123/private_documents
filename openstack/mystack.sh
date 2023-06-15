@@ -7,13 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("45c902c[2023-06-15T07:13:29+08:00]:mystack.sh")
+VERSION+=("d87cf39[2023-06-15T07:26:29+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 # [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 MYSQL_HOST=""
+REGION=RegionOne
 ##OPTION_START##
 MYSQL_PASS=${MYSQL_PASS:-}
 RABBIT_USER=${RABBIT_USER:-rabbit}
@@ -135,13 +136,12 @@ openstack_add_service_endpoint() {
     local type=${2}
     local url=${3}
     local desc=${4}
-    local region="${5:-RegionOne}"
     local id=""
     id=$(openstack service show ${name} -f value -c id 2>/dev/null || openstack service create --name ${name} --description "${desc}" ${type} -f value -c id)
     log "create service [${name}] id [${id}]"
     for __t in admin public internal; do
-        id=$(openstack endpoint list --service  ${name} --interface ${__t} --region ${region} -c ID -f value)
-        [ -z "${id}" ] && id=$(openstack endpoint create --region ${region} ${type} ${__t} ${url} -f value -c id)
+        id=$(openstack endpoint list --service  ${name} --interface ${__t} --region ${REGION} -c ID -f value)
+        [ -z "${id}" ] && id=$(openstack endpoint create --region ${REGION} ${type} ${__t} ${url} -f value -c id)
         log "create endpoint for [${name} : ${__t}] id [${id}]"
     done
 }
@@ -224,7 +224,6 @@ init_keystone() {
     local keystone_user=${2}
     local keystone_pass=${3}
     local keystone_dbpass=${4}
-    local region=${5:-RegionOne}
     log "##########################INSTALL KEYSTONE##########################"
     service_restart keystone.service
     create_mysql_db keystone keystone "${keystone_dbpass}"
@@ -244,9 +243,25 @@ init_keystone() {
         --bootstrap-admin-url http://${ctrl_host}:5000/v3/ \
         --bootstrap-internal-url http://${ctrl_host}:5000/v3/ \
         --bootstrap-public-url http://${ctrl_host}:5000/v3/ \
-        --bootstrap-region-id ${region}
+        --bootstrap-region-id ${REGION}
     local id=$(openstack project create --domain default --description "Service Project" service --or-show -f value -c id)
     log "Add Projects, create [service], id ${id} "
+}
+add_placement() {
+    local conf=${1}
+    local host=${2}
+    local pass=${3}
+    # # placement
+    ini_set ${conf} placement auth_url http://${host}:5000
+    ini_set ${conf} placement auth_type password
+    ini_set ${conf} placement project_domain_name default
+    ini_set ${conf} placement user_domain_name default
+    ini_set ${conf} placement project_name service
+    ini_set ${conf} placement username placement
+    ini_set ${conf} placement password ${pass}
+    # ini_set ${conf} placement os_region_name ${REGION}
+    # ini_del ${conf} placement region_name
+    ini_set ${conf} placement region_name ${REGION}
 }
 add_keystone_authtoken() {
     local conf=${1}
@@ -300,7 +315,6 @@ init_nova() {
     local placement_dbpass=${5}
     local rabbit_user=${6}
     local rabbit_pass=${7}
-    local region=${8:-RegionOne}
     local my_ip=${ctrl_host}
     log "##########################INSTALL NOVA##########################"
     log "Install nova(Compute Service) ctrl node"
@@ -332,16 +346,7 @@ init_nova() {
 
     ini_set ${nova_conf} api auth_strategy keystone
     add_keystone_authtoken ${nova_conf} ${ctrl_host} nova ${nova_pass}
-    # # placement
-    ini_set ${nova_conf} placement auth_url http://${ctrl_host}:5000
-    ini_set ${nova_conf} placement os_region_name RegionOne
-    ini_set ${nova_conf} placement auth_type password
-    ini_set ${nova_conf} placement project_domain_name default
-    ini_set ${nova_conf} placement user_domain_name default
-    ini_set ${nova_conf} placement project_name service
-    ini_set ${nova_conf} placement username placement
-    ini_set ${nova_conf} placement password ${placement_pass}
-    ini_del ${nova_conf} placement region_name
+    add_placement ${nova_conf} ${ctrl_host} ${placement_pass}
     # # enable vnc
     ini_set ${nova_conf} vnc enabled True
     ini_set ${nova_conf} vnc server_listen 0.0.0.0
@@ -393,7 +398,6 @@ init_neutron() {
     local neutron_dbpass=${4}
     local rabbit_user=${5}
     local rabbit_pass=${6}
-    local region=${7:-RegionOne}
     local metadata_secret="metadata_secret"
     log "##########################INSTALL NEUTRON##########################"
     log "Configure OpenStack Network Service (Neutron)."
@@ -422,7 +426,7 @@ init_neutron() {
     ini_set ${neutron_conf} nova auth_type password
     ini_set ${neutron_conf} nova project_domain_name default
     ini_set ${neutron_conf} nova user_domain_name default
-    ini_set ${neutron_conf} nova region_name ${region}
+    ini_set ${neutron_conf} nova region_name ${REGION}
     ini_set ${neutron_conf} nova project_name service
     ini_set ${neutron_conf} nova username nova
     ini_set ${neutron_conf} nova password ${nova_pass}
@@ -437,7 +441,7 @@ init_neutron() {
     ini_set ${nova_conf} neutron auth_type password
     ini_set ${nova_conf} neutron project_domain_name default
     ini_set ${nova_conf} neutron user_domain_name default
-    ini_set ${nova_conf} neutron region_name ${region}
+    ini_set ${nova_conf} neutron region_name ${REGION}
     ini_set ${nova_conf} neutron project_name service
     ini_set ${nova_conf} neutron username neutron
     ini_set ${nova_conf} neutron password ${neutron_pass}
@@ -538,16 +542,7 @@ init_nova_compute() {
 
     ini_set ${nova_conf} api auth_strategy keystone
     add_keystone_authtoken ${nova_conf} ${ctrl_host} nova ${nova_pass}
-    # # placement
-    ini_set ${nova_conf} placement auth_url http://${ctrl_host}:5000
-    ini_set ${nova_conf} placement os_region_name RegionOne
-    ini_set ${nova_conf} placement auth_type password
-    ini_set ${nova_conf} placement project_domain_name default
-    ini_set ${nova_conf} placement user_domain_name default
-    ini_set ${nova_conf} placement project_name service
-    ini_set ${nova_conf} placement username placement
-    ini_set ${nova_conf} placement password ${placement_pass}
-    ini_del ${nova_conf} placement region_name
+    add_placement ${nova_conf} ${ctrl_host} ${placement_pass}
     # # enable vnc
     ini_set ${nova_conf} vnc enabled True
     ini_set ${nova_conf} vnc server_listen 0.0.0.0
@@ -589,7 +584,6 @@ init_neutron_compute() {
     local placement_pass=${4}
     local rabbit_user=${5}
     local rabbit_pass=${6}
-    local region="${7:-RegionOne}"
     log "##########################INSTALL NEUTRON COMPUTE##########################"
     log "Configure Neutron compute node create new"
     backup ${neutron_conf} "MOVE"
@@ -614,7 +608,7 @@ init_neutron_compute() {
     ini_set ${nova_conf} neutron auth_type password
     ini_set ${nova_conf} neutron project_domain_name default
     ini_set ${nova_conf} neutron user_domain_name default
-    ini_set ${nova_conf} neutron region_name ${region}
+    ini_set ${nova_conf} neutron region_name ${REGION}
     ini_set ${nova_conf} neutron project_name service
     ini_set ${nova_conf} neutron username neutron
     ini_set ${nova_conf} neutron password ${neutron_pass}
@@ -876,7 +870,7 @@ main() {
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -C | --ctrl)    shift; ctrl=${1}; MYSQL_HOST=${1}; shift;;
+            -C | --ctrl)    shift; ctrl=${1}; MYSQL_HOST=${MYSQL_HOST:-${1}}; shift;;
             -c | --compute) shift; compute=${1}; shift;;
             --tag)          shift; tag=${1}; shift;;
             --dev)          shift; dev=${1}; shift;;

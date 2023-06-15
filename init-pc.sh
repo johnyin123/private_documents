@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5e2ae9e[2023-02-09T13:45:50+08:00]:init-pc.sh")
+VERSION+=("9cb356a[2023-04-20T10:07:34+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -165,7 +165,8 @@ apt_install systemd-container \
     nscd nbd-client iftop netcat-openbsd sshfs squashfs-tools graphviz nftables \
     rsync tmux \
     libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
-    qemu-kvm qemu-system-gui qemu-utils xmlstarlet jq sudo debootstrap kpartx
+    qemu-kvm qemu-system-gui qemu-utils xmlstarlet jq sudo debootstrap kpartx \
+    crudini
     #binwalk
 # wireguard-tools need install debian kernel 
 apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install wireguard-tools
