@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6045aec[2023-06-15T08:30:40+08:00]:mystack.sh")
+VERSION+=("5ff47fd[2023-06-15T11:01:23+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -385,7 +385,7 @@ init_neutron_ml2_plugin() {
     ini_set ${ml2_conf_ini} ml2 type_drivers "flat,vlan"
     # # clear tenant_network_types, extension_drivers
     ini_set ${ml2_conf_ini} ml2 tenant_network_types
-    ini_set ${ml2_conf_ini} ml2 extension_drivers
+    ini_set ${ml2_conf_ini} ml2 extension_drivers port_security
     # # flat_networks = public,public2, * allow use any phy network
     ini_set ${ml2_conf_ini} ml2_type_flat flat_networks '*'
     ini_set ${ml2_conf_ini} securitygroup enable_security_group true
@@ -565,7 +565,7 @@ init_linux_bridge_plugin() {
 
     # # map to exists bridge
     # # bridge_mappings configuration must correlate with network_vlan_ranges option on the controller node
-    # ini_set ${ml2_conf_ini} ml2_type_vlan network_vlan_ranges ${net_tag}
+    ini_set ${ml2_conf_ini} ml2_type_vlan network_vlan_ranges ${net_tag}
     ini_append_list ${linuxbridge_agent_ini} linux_bridge bridge_mappings "${net_tag}:${mapping_dev}"
     ini_append_list ${linuxbridge_agent_ini} linux_bridge physical_interface_mappings "${net_tag}:${mapping_dev}"
 
