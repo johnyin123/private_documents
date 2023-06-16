@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("19a0ff1[2023-06-15T16:15:21+08:00]:mystack.sh")
+VERSION+=("dad793a[2023-06-16T15:11:01+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -878,10 +878,8 @@ ${SCRIPTNAME} <ctrl|compute|teardown|project>
 $(sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${SCRIPTNAME})
  CTRL:
     apt -y install rabbitmq-server memcached mariadb-server python3-pymysql crudini
-    apt -y install keystone python3-openstackclient apache2 libapache2-mod-wsgi-py3 python3-oauth2client
-    apt -y install glance
-    apt -y install nova-api nova-conductor nova-scheduler nova-novncproxy placement-api python3-novaclient
-    apt -y install neutron-server neutron-plugin-ml2 neutron-linuxbridge-agent neutron-l3-agent neutron-dhcp-agent neutron-metadata-agent python3-neutronclient
+    apt -y install keystone glance nova-api nova-conductor nova-scheduler nova-novncproxy placement-api
+    apt -y install neutron-server neutron-plugin-ml2 neutron-linuxbridge-agent neutron-l3-agent neutron-dhcp-agent neutron-metadata-agent
     apt -y install openstack-dashboard
  COMPUTE
     apt -y install nova-compute nova-compute-kvm qemu-system-data
