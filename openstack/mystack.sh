@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dad793a[2023-06-16T15:11:01+08:00]:mystack.sh")
+VERSION+=("f04b094[2023-06-16T15:48:31+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -882,9 +882,7 @@ $(sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${SCRIPTNAME})
     apt -y install neutron-server neutron-plugin-ml2 neutron-linuxbridge-agent neutron-l3-agent neutron-dhcp-agent neutron-metadata-agent
     apt -y install openstack-dashboard
  COMPUTE
-    apt -y install nova-compute nova-compute-kvm qemu-system-data
-    apt -y install neutron-common neutron-plugin-ml2 neutron-linuxbridge-agent
-    apt -y install qemu-kvm libvirt-daemon-system libvirt-daemon bridge-utils libosinfo-bin
+    apt -y install nova-compute nova-compute-kvm neutron-plugin-ml2 neutron-linuxbridge-agent
 EOF
     exit 1
 }
