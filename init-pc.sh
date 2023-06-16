@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9cb356a[2023-04-20T10:07:34+08:00]:init-pc.sh")
+VERSION+=("6045aec[2023-06-15T08:30:40+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -302,7 +302,7 @@ apt_install smplayer smplayer-l10n
 
 
 wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - && \
-echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
+echo "deb [arch=amd64 trusted=yes] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
 apt update && apt -y install google-chrome-stable
 rm -f /etc/apt/sources.list.d/google.list /etc/cron.daily/google-chrome /etc/default/google-chrome
 
