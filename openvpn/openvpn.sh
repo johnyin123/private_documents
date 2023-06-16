@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("aca49b6[2023-05-29T10:55:35+08:00]:openvpn.sh")
+VERSION+=("41dc938[2023-05-29T16:58:57+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -140,6 +140,8 @@ persist-tun
 # script-security 2
 # up "/etc/openvpn/uproute.sh"
 cipher AES-256-GCM
+# fix: signature digest algorithm too weak
+tls-cipher DEFAULT:@SECLEVEL=0
 verb 3
 comp-lzo
 log         /var/log/openvpn_client.log
