@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("237d97c[2023-06-15T14:01:35+08:00]:mystack.sh")
+VERSION+=("19a0ff1[2023-06-15T16:15:21+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -32,7 +32,7 @@ NEUTRON_PASS=${NEUTRON_PASS:-neutron_pass}
 NEUTRON_DBPASS=${NEUTRON_DBPASS:-neutron_dbpass}
 OPENSTACK_DEBUG=${OPENSTACK_DEBUG:-false}
 ##OPTION_END##
-
+################################################################################
 readonly my_conf=/etc/mysql/mariadb.conf.d/50-server.cnf
 readonly memcached_conf=/etc/memcached.conf
 readonly keystone_conf=/etc/keystone/keystone.conf
@@ -49,7 +49,25 @@ readonly horizon_settings_py=/etc/openstack-dashboard/local_settings.py
 readonly horizon_debian_cache_py=/etc/openstack-dashboard/local_settings.d/_0006_debian_cache.py
 readonly horizon_dashboard_conf=/etc/apache2/conf-available/openstack-dashboard.conf
 readonly nova_consoleproxy=/etc/default/nova-consoleproxy
-
+################################################################################
+readonly SVC_MARIADB=mariadb.service
+readonly SVC_RABBITMQ=rabbitmq-server.service
+readonly SVC_MEMCACHED=memcached.service
+readonly SVC_NEUTRON_DHCP_AGENT=neutron-dhcp-agent.service
+readonly SVC_NEUTRON_LINUXBRIDGE_AGENT=neutron-linuxbridge-agent.service
+readonly SVC_NEUTRON_METADATA_AGENT=neutron-metadata-agent.service
+readonly SVC_APACHE2=apache2.service
+readonly SVC_GLANCE_API=glance-api.service
+readonly SVC_KEYSTONE=keystone.service
+readonly SVC_NEUTRON_API=neutron-api.service
+readonly SVC_NEUTRON_RPC_SERVER=neutron-rpc-server.service
+readonly SVC_NOVA_API=nova-api.service
+readonly SVC_NOVA_COMPUTE=nova-compute.service
+readonly SVC_NOVA_CONDUCTOR=nova-conductor.service
+readonly SVC_NOVA_NOVNCPROXY=nova-novncproxy.service
+readonly SVC_NOVA_SCHEDULER=nova-scheduler.service
+readonly SVC_PLACEMENT_API=placement-api.service
+################################################################################
 LOGFILE=""
 BACK_DIR=backup
 log() { echo "$(tput setaf 141)##$(tput sgr0) $(tput setaf 70)$*$(tput sgr0)" | tee ${LOGFILE:-} >&2; }
@@ -59,6 +77,7 @@ backup() {
     local mv=${2:-}
     [ -d "${BACK_DIR}" ] || mkdir -p ${BACK_DIR}
     local __backup=$(basename ${src})
+    [ -e "${src}" ] || { log "${mv:-BACKUP}: [${src}] not exists!!!"; return 0; }
     log "${mv:-BACKUP}: ${src} => ${BACK_DIR} "
     [ -e "${BACK_DIR}/${__backup}" ]  || cat ${src} 2>/dev/null > ${BACK_DIR}/${__backup} || true
     [ -z "${mv}" ] || echo "" > ${src} # for keep file owner etc.
@@ -203,10 +222,10 @@ prepare_db_mq() {
     ini_set ${my_conf} mysqld max_allowed_packet 8M
     log "install db"
     mysql_install_db -u mysql --skip-name-resolve --skip-test-db &>/dev/null
-    service_restart mariadb.service
+    service_restart ${SVC_MARIADB}
     # mysql_secure_installation
     # echo -e "\nY\n$MYSQLDB_PASSWORD\n$MYSQLDB_PASSWORD\nY\nn\nY\nY\n" | mysql_secure_installation
-    service_restart rabbitmq-server.service
+    service_restart ${SVC_RABBITMQ}
     log "Add the rabbitmq user [${rabbit_user}]"
     rabbitmqctl delete_user ${rabbit_user} 2>/dev/null || true
     rabbitmqctl add_user ${rabbit_user} ${rabbit_pass}
@@ -216,8 +235,8 @@ prepare_db_mq() {
     sed -i -E \
         -e 's/^\s*#*\s*-l \s*.*/-l 0.0.0.0/g' \
         ${memcached_conf}
-    log "restart memcached service"
-    service_restart memcached.service
+    log "restart ${SVC_MEMCACHED}"
+    service_restart ${SVC_MEMCACHED}
 }
 
 init_keystone() {
@@ -226,7 +245,7 @@ init_keystone() {
     local keystone_pass=${3}
     local keystone_dbpass=${4}
     log "##########################INSTALL KEYSTONE##########################"
-    service_restart keystone.service
+    service_restart ${SVC_KEYSTONE}
     create_mysql_db keystone keystone "${keystone_dbpass}"
     backup ${keystone_conf}
     ini_set ${keystone_conf} database connection "$(get_mysql_connection keystone ${keystone_dbpass} keystone)"
@@ -304,8 +323,8 @@ init_glance() {
     # chown root:glance ${glance_conf}
     log "sync glance db"
     su -s /bin/bash glance -c "glance-manage db_sync"
-    log "restart glance-api service"
-    service_restart glance-api.service
+    log "restart ${SVC_GLANCE_API}"
+    service_restart ${SVC_GLANCE_API}
 }
 
 init_nova() {
@@ -375,7 +394,7 @@ init_nova() {
     su -s /bin/sh nova -c "nova-manage db sync"
     log "Verify nova cell0 and cell1 are registered correctly"
     su -s /bin/sh nova -c "nova-manage cell_v2 list_cells"
-    service_restart nova-api.service nova-conductor.service nova-scheduler.service placement-api.service
+    service_restart ${SVC_NOVA_API} ${SVC_NOVA_CONDUCTOR} ${SVC_NOVA_SCHEDULER} ${SVC_PLACEMENT_API}
 }
 init_neutron_ml2_plugin() {
     backup ${ml2_conf_ini}
@@ -449,22 +468,22 @@ init_neutron() {
     ini_set ${nova_conf} neutron username neutron
     ini_set ${nova_conf} neutron password ${neutron_pass}
 
-    ini_set ${nova_conf} DEFAULT vif_plugging_is_fatal false
-    ini_set ${nova_conf} DEFAULT vif_plugging_timeout 0
+    ini_set ${nova_conf} DEFAULT vif_plugging_is_fatal true
+    ini_set ${nova_conf} DEFAULT vif_plugging_timeout 300
 
     log "Configure metadata agent"
     backup ${metadata_agent_ini}
     ini_set ${metadata_agent_ini} DEFAULT nova_metadata_host ${ctrl_host}
     ini_set ${metadata_agent_ini} DEFAULT metadata_proxy_shared_secret ${metadata_secret}
     ini_set ${metadata_agent_ini} cache memcache_servers ${ctrl_host}:11211
-    service_restart neutron-metadata-agent.service
+    service_restart ${SVC_NEUTRON_METADATA_AGENT}
 
     ini_set ${nova_conf} neutron service_metadata_proxy True
     ini_set ${nova_conf} neutron metadata_proxy_shared_secret ${metadata_secret}
 
     su -s /bin/bash neutron -c "neutron-db-manage --config-file ${neutron_conf} --config-file /etc/neutron/plugin.ini upgrade head"
-    # ctrl node not a compute note no need neutron-linuxbridge-agent.service
-    service_restart neutron-api.service neutron-rpc-server.service neutron-metadata-agent.service nova-api.service
+    # ctrl node not a compute note no need ${SVC_NEUTRON_LINUXBRIDGE_AGENT}
+    service_restart ${SVC_NEUTRON_API} ${SVC_NEUTRON_RPC_SERVER} ${SVC_NEUTRON_METADATA_AGENT} ${SVC_NOVA_API}
 }
 
 init_horizon() {
@@ -506,13 +525,13 @@ EOF
     a2enconf openstack-dashboard || true
     mv /etc/openstack-dashboard/policy /etc/openstack-dashboard/policy.org 2>/dev/null || true
     chown -R horizon /var/lib/openstack-dashboard/secret-key
-    service_restart apache2.service || log "need restart apache2.service youself!!!!!!!!!!!!!!!!!"
+    service_restart ${SVC_APACHE2} || log "need restart ${SVC_APACHE2} youself!!!!!!!!!!!!!!!!!"
 
     backup ${nova_consoleproxy}
     sed -i -E \
         -e 's/^\s*NOVA_CONSOLE_PROXY_TYPE\s*=.*/NOVA_CONSOLE_PROXY_TYPE=novnc/g' \
         ${nova_consoleproxy}
-    service_restart nova-novncproxy.service || log "need restart nova-novncproxy.service youself!!!!!!!!!!!!!!!!!"
+    service_restart ${SVC_NOVA_NOVNCPROXY} || log "need restart ${SVC_NOVA_NOVNCPROXY} youself!!!!!!!!!!!!!!!!!"
 }
 ####################################################################################################
 init_nova_compute() {
@@ -553,7 +572,7 @@ init_nova_compute() {
     ini_set ${nova_conf} vnc novncproxy_base_url http://${ctrl_host}:6080/vnc_auto.html
     # # wsgi
     ini_set ${nova_conf} wsgi api_paste_config /etc/nova/api-paste.ini
-    service_restart nova-compute.service
+    service_restart ${SVC_NOVA_COMPUTE}
 }
 
 init_dhcp_agent() {
@@ -563,7 +582,7 @@ init_dhcp_agent() {
     ini_set ${dhcp_agent_ini} DEFAULT interface_driver linuxbridge
     ini_set ${dhcp_agent_ini} DEFAULT dhcp_driver neutron.agent.linux.dhcp.Dnsmasq
     ini_set ${dhcp_agent_ini} DEFAULT enable_isolated_metadata true
-    service_restart neutron-dhcp-agent.service
+    service_restart ${SVC_NEUTRON_DHCP_AGENT}
 }
 
 init_linux_bridge_plugin() {
@@ -612,6 +631,8 @@ init_neutron_compute() {
     log "Configure Neutron in Nova"
     backup ${nova_conf}
     ini_set ${nova_conf} DEFAULT use_neutron true
+    ini_set ${nova_conf} DEFAULT vif_plugging_is_fatal true
+    ini_set ${nova_conf} DEFAULT vif_plugging_timeout 300
     ini_set ${nova_conf} neutron auth_url http://${ctrl_host}:5000
     ini_set ${nova_conf} neutron auth_type password
     ini_set ${nova_conf} neutron project_domain_name default
@@ -621,7 +642,7 @@ init_neutron_compute() {
     ini_set ${nova_conf} neutron username neutron
     ini_set ${nova_conf} neutron password ${neutron_pass}
 
-    service_restart nova-compute.service neutron-linuxbridge-agent.service
+    service_restart ${SVC_NOVA_COMPUTE} ${SVC_NEUTRON_LINUXBRIDGE_AGENT}
 }
 ####################################################################################################
 add_external_net() {
@@ -755,33 +776,33 @@ verify_all() {
 teardown() {
     sed -i '/keystonerc/d' ~/.bashrc || true
     rm -f ~/keystonerc  || true
-    for s in keystone.service \
-        glance-api.service \
-        nova-api.service \
+    for s in ${SVC_KEYSTONE} \
+        ${SVC_GLANCE_API} \
+        ${SVC_NOVA_API} \
+        ${SVC_NOVA_COMPUTE} \
+        ${SVC_NOVA_CONDUCTOR} \
+        ${SVC_NOVA_NOVNCPROXY} \
+        ${SVC_NOVA_SCHEDULER} \
         nova-api-metadata.service \
-        nova-compute.service \
-        nova-conductor.service \
-        nova-novncproxy.service \
-        nova-scheduler.service \
         nova-serialproxy.service \
         nova-spicehtml5proxy.service \
-        neutron-api.service \
-        neutron-dhcp-agent.service \
+        ${SVC_NEUTRON_API} \
+        ${SVC_NEUTRON_DHCP_AGENT} \
         neutron-l3-agent.service \
-        neutron-linuxbridge-agent.service \
-        neutron-metadata-agent.service \
-        neutron-rpc-server.service \
-        placement-api.service \
-        rabbitmq-server.service \
-        memcached.service; do
+        ${SVC_NEUTRON_LINUXBRIDGE_AGENT} \
+        ${SVC_NEUTRON_METADATA_AGENT} \
+        ${SVC_NEUTRON_RPC_SERVER} \
+        ${SVC_PLACEMENT_API} \
+        ${SVC_RABBITMQ} \
+        ${SVC_MEMCACHED}; do
         log "stop & disable service ${s}"
         systemctl stop ${s} &>/dev/null || true
         systemctl disable ${s} &>/dev/null || true
     done
     command -v "mysql" &> /dev/null && {
         log "stop & disable service mariadb"
-        systemctl stop mariadb.service --force &>/dev/null || true
-        systemctl disable mariadb.service &>/dev/null || true
+        systemctl stop ${SVC_MARIADB} --force &>/dev/null || true
+        systemctl disable ${SVC_MARIADB} &>/dev/null || true
         datadir=$(ini_get ${my_conf} mysqld datadir) || true
         [ -z "${datadir}" ] || rm -vrf "${datadir}" || true
     }
@@ -828,7 +849,7 @@ init_compute_node() {
     init_neutron_compute "${compute}" "${ctrl}" "${NEUTRON_PASS}" "${PLACEMENT_PASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
     init_linux_bridge_plugin "${tag}" "${dev}"
     #init_linux_bridge_plugin vlan100 "bond1"
-    service_restart nova-compute.service neutron-linuxbridge-agent.service
+    service_restart ${SVC_NOVA_COMPUTE} ${SVC_NEUTRON_LINUXBRIDGE_AGENT}
     #nova.conf修改时间间隔:
     #[scheduler]
     #discover_hosts_in_cells_interval = 300
@@ -856,7 +877,7 @@ ${SCRIPTNAME} <ctrl|compute|teardown|project>
         -h|--help help
 $(sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${SCRIPTNAME})
  CTRL:
-    apt -y install rabbitmq-server memcached python3-pymysql mariadb-server
+    apt -y install rabbitmq-server memcached mariadb-server python3-pymysql crudini
     apt -y install keystone python3-openstackclient apache2 libapache2-mod-wsgi-py3 python3-oauth2client
     apt -y install glance
     apt -y install nova-api nova-conductor nova-scheduler nova-novncproxy placement-api python3-novaclient
