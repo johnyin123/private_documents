@@ -7,8 +7,8 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("95f933b[2021-11-18T13:57:26+08:00]:new_k8s.sh")
-[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+VERSION+=("5db130d[2023-04-19T10:40:43+08:00]:new_k8s.sh")
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
 # dashboard url
