@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6045aec[2023-06-15T08:30:40+08:00]:init-pc.sh")
+VERSION+=("28903de[2023-06-16T09:58:51+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -206,7 +206,7 @@ case "$VERSION_CODENAME" in
         XFCE_MAIL=xfce4-mail-reader.desktop
         ;;
 esac
-
+sed -i "s/#xserver-allow-tcp=.*/xserver-allow-tcp=true/g" /etc/lightdm/lightdm.conf || true
 cat<<EOF > /etc/xdg/xfce4/panel/default.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-panel" version="1.0">
