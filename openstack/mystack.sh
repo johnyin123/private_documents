@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("34a4352[2023-06-16T16:48:00+08:00]:mystack.sh")
+VERSION+=("49c8d9d[2023-06-18T12:50:05+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -825,7 +825,6 @@ teardown() {
             }
         done
     }
-    log "TEARDOWN ALL DONE"
 }
 
 init_ctrl_node() {
@@ -837,7 +836,6 @@ init_ctrl_node() {
     init_nova "${ctrl}" "${NOVA_PASS}" "${PLACEMENT_PASS}" "${NOVA_DBPASS}" "${PLACEMENT_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
     init_neutron "${ctrl}" "${NOVA_PASS}" "${NEUTRON_PASS}" "${NEUTRON_DBPASS}" "${RABBIT_USER}" "${RABBIT_PASS}"
     init_horizon "${ctrl}"
-    log "CTRL NODE ALL DONE"
 }
 
 init_compute_node() {
@@ -856,7 +854,6 @@ init_compute_node() {
     #discover_hosts_in_cells_interval = 300
     log 'su -s /bin/bash nova -c "nova-manage cell_v2 discover_hosts --verbose"'
     log "openstack compute service list"
-    log "COMPUT NODE ALL DONE"
 }
 
 usage() {
@@ -921,17 +918,21 @@ main() {
             init_ctrl_node "${ctrl}"
             addflaver
             add_external_net "${net_tag}"
+            log "CTRL NODE INIT ALL OK"
             ;;
         compute)
             [ -z "${ctrl}" ] || [ -z "${compute}" ] || [ -z "${tag}" ] || [ -z "${dev}" ] && usage "ctrl & compute, tag, dev must input"
             init_compute_node "${compute}" "${ctrl}" "${tag}" "${dev}"
+            log "COMPUTE NODE INIT ALL OK"
             ;;
         project)
             [ -z "${ctrl}" ] || [ -z "${project}" ] || [ -z "${user}" ] || [ -z "${pass}" ] && usage "ctrl,project,user,pass must input"
             add_new_project "${ctrl}" "${project}" "${user}" "${pass}"
+            log "PROJECT INIT ALL OK"
             ;;
         teardown)
             teardown
+            log "TEARDOWN ALL OK"
             ;;
         *)          usage "ctrl/compute/teardown/project";;
     esac
