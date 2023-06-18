@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f04b094[2023-06-16T15:48:31+08:00]:mystack.sh")
+VERSION+=("34a4352[2023-06-16T16:48:00+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -403,7 +403,7 @@ init_neutron_ml2_plugin() {
     ini_set ${ml2_conf_ini} ml2 mechanism_drivers linuxbridge
     # # ['local', 'flat', 'vlan', 'gre', 'vxlan', 'geneve']
     ini_set ${ml2_conf_ini} ml2 type_drivers "flat,vlan"
-    # # clear tenant_network_types, extension_drivers
+    # # clear tenant_network_types, extension_drivers, (local, vlan, or none)
     ini_set ${ml2_conf_ini} ml2 tenant_network_types
     ini_set ${ml2_conf_ini} ml2 extension_drivers port_security
     # # flat_networks = public,public2, * allow use any phy network
@@ -648,14 +648,15 @@ init_neutron_compute() {
 add_external_net() {
     local net_name=${1}
     log "Create network [${net_name}]"
-    local id=$(openstack project create --domain default service --or-show -f value -c id)
-    openstack network show ${net_name}-net 2>/dev/null || openstack network create --project ${id} --external --share --provider-network-type flat --provider-physical-network ${net_name} ${net_name}-net -c id -c project_id
+    # local id=$(openstack project create --domain default service --or-show -f value -c id)
+    openstack network show ${net_name}-net 2>/dev/null || openstack network create --share --external --provider-physical-network ${net_name} --provider-network-type flat ${net_name}-net -c id
     log "create subnet"
-    openstack subnet show subnet-${net_name}-net 2>/dev/null || openstack subnet create subnet-${net_name}-net --network ${net_name}-net \
+    openstack subnet show subnet-${net_name}-net 2>/dev/null || \
+        openstack subnet create subnet-${net_name}-net --network ${net_name}-net \
         --no-dhcp \
-        --project ${id} --subnet-range 192.168.168.0/24 \
+        --subnet-range 192.168.168.0/24 \
         --gateway 192.168.168.1 --dns-nameserver 114.114.114.114 \
-        -c id -c network_id -c project_id
+        -c id -c network_id
 }
 addflaver() {
     local name=m1.small
