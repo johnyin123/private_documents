@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("49c8d9d[2023-06-18T12:50:05+08:00]:mystack.sh")
+VERSION+=("9ba04bd[2023-06-18T12:53:13+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -917,7 +917,7 @@ main() {
             [ -z "${ctrl}" ] || [ -z "${tag}" ] && usage "ctrl & tag must input"
             init_ctrl_node "${ctrl}"
             addflaver
-            add_external_net "${net_tag}"
+            add_external_net "${tag}"
             log "CTRL NODE INIT ALL OK"
             ;;
         compute)
