@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9ba04bd[2023-06-18T12:53:13+08:00]:mystack.sh")
+VERSION+=("b4505ca[2023-06-19T08:14:27+08:00]:mystack.sh")
 set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
@@ -189,6 +189,7 @@ export OS_PASSWORD=${keystone_pass}
 export OS_AUTH_URL=http://${ctrl_host}:5000/v3
 export OS_IDENTITY_API_VERSION=3
 export OS_IMAGE_API_VERSION=2
+export OS_VOLUME_API_VERSION=3
 EOF
     source ~/keystonerc
     sed -i '/keystonerc/d' ~/.bashrc

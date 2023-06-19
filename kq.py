@@ -176,7 +176,9 @@ if __name__ == '__main__':
 # mkdir ~/.pip/
 # cat <<EOF >~/.pip/pip.conf
 # [global]
-# index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+# trusted-host = mirrors.aliyun.com
+# index-url = http://mirrors.aliyun.com/pypi/simple
+# # index-url = https://pypi.tuna.tsinghua.edu.cn/simple
 # EOF
 # python3 -m venv kq_venv --python python3 / virtualenv kq_venv --python python3.9
 # source kq_venv/bin/activate
