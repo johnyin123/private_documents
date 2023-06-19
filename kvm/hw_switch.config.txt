@@ -153,6 +153,14 @@ PCB Version     : Ver.B
     port trunk permit vlan all
     display link-aggregation member-port
     ######################################## 
+    MVRP:多VLAN注册,端口注册模式
+    Normal模式：MVRP实体允许进行动态VLAN的注册或注销。可传递和动态学习所有VLAN 端口，MVRP默认模式是Normal模式
+    Fixed模式：MVRP实体禁止进行动态VLAN的注销，收到的MVRP报文会被丢弃。只传递VLAN1和静态VLAN，不动态学习VLAN
+    Forbidden模式：MVRP实体禁止进行动态VLAN的注册，收到的MVRP报文会被丢弃。只传递VLAN1。
+    [SW1]mvrp global enable
+    [SW1]int g1/0/1
+    [SW1-GigabitEthernet1/0/1]mvrp enable
+    [SW1-GigabitEthernet1/0/1]mvrp registration fixed //模式为fixed，则该接口不学习其他交换机的vlan信息
     sys
     interface bridge-aggregation 1
     link-aggregation mode dynamic
