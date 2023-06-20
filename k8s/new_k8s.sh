@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ebc604c[2023-06-17T21:06:00+08:00]:new_k8s.sh")
+VERSION+=("0b3f66d[2023-06-20T16:52:54+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -595,23 +595,23 @@ ${SCRIPTNAME}
         Debian install docker:
             apt -y install wget curl apt-transport-https ca-certificates ethtool socat bridge-utils ipvsadm ipset jq
             repo=docker
-            apt -y install gnupg && wget -q -O- 'https://mirrors.aliyun.com/docker-ce/linux/debian/gpg' | \
+            apt -y install gnupg && wget -q -O- 'http://mirrors.aliyun.com/docker-ce/linux/debian/gpg' | \
                 gpg --dearmor > /etc/apt/trusted.gpg.d/\${repo}-archive-keyring.gpg
-            echo "deb [arch=amd64] https://mirrors.aliyun.com/docker-ce/linux/debian \$(sed -n "s/^\s*VERSION_CODENAME\s*=\s*\(.*\)/\1/p" /etc/os-release) stable" > /etc/apt/sources.list.d/\${repo}.list
+            echo "deb [arch=amd64] http://mirrors.aliyun.com/docker-ce/linux/debian \$(sed -n "s/^\s*VERSION_CODENAME\s*=\s*\(.*\)/\1/p" /etc/os-release) stable" > /etc/apt/sources.list.d/\${repo}.list
             apt update && apt -y install docker-ce
         Debian install k8s:
-            wget -q -O- https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
-            echo "deb https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
+            wget -q -O- http://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
+            echo "deb http://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
             apt update && apt -y install kubelet kubectl kubeadm
         Centos install docker & k8s
             yum -y install wget curl ethtool socat bridge-utils
-            wget https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo -O /etc/yum.repos.d/docker-ce.repo
+            wget http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo -O /etc/yum.repos.d/docker-ce.repo
             sed -i 's+download.docker.com+mirrors.aliyun.com/docker-ce+' /etc/yum.repos.d/docker-ce.repo
             yum -y install docker-ce
             cat > /etc/yum.repos.d/kubernetes.repo <<EOFREPO
             [kubernetes]
             name=Kubernetes
-            baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+            baseurl=http://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
             enabled=1
             gpgcheck=0
             EOFREPO

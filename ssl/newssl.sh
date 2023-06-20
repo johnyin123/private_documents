@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-04-21T08:48:36+08:00]:newssl.sh")
+VERSION+=("c5ac209[2023-04-21T08:48:36+08:00]:newssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 YEAR=${YEAR:-5}
@@ -29,6 +29,8 @@ ${SCRIPTNAME}
     # 吊销证书
         openssl ca -revoke <cert>
         openssl ca -gencrl -out "you.crl"
+    # cer to pem
+        openssl x509 -inform der -in certificate.cer -out certificate.pem
 EOF
     exit 1
 }
