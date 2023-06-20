@@ -7,10 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5db130d[2023-04-19T10:40:43+08:00]:new_k8s.sh")
+VERSION+=("ebc604c[2023-06-17T21:06:00+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
+# # predefine start
 # dashboard url
 declare -A DASHBOARD_MAP=(
     [dashboard:v2.0.0-beta1]=kubernetesui/dashboard:v2.0.0-beta1
@@ -47,6 +48,7 @@ declare -A GCR_MAP=(
 GCR_MIRROR="registry.aliyuncs.com/google_containers"
 QUAY_MIRROR="quay.io/coreos"
 RANCHER_MIRROR="rancher"
+# # predefine end
 
 print_predefine() {
     cat<<EOF
@@ -563,23 +565,26 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        --apiserver  <str>  k8s cluster api-server-endpoint
-                            default "k8sapi.local.com:6443"
-                            k8sapi.local.com is first master node, store in /etc/hosts(all masters&workers)
-                            u should make a loadbalance to all masters later,
-        -m|--master  <ip> * master nodes
-        -w|--worker  <ip>   worker nodes 
-        --bridge     <str>  k8s bridge_cni, bridge name
-        --flannel    <cidr> k8s flannel_cni, pod_cidr
-                            skip_proxy flannel_cni no work. get info etcd with service_cluster_ip
-        --dashboard         install dashboard, default false
-        --skip_proxy        skip install kube-proxy, default false
-        --ipvs              kube-proxy mode ipvs, default false
-        --ingress           install ingress, default false
-        --teardown   <ip>   remove all k8s config
-        --password   <str>  ssh password(default use sshkey)
-        --define     <file> pre define file
-        --gen_join_cmds     only generate join commands
+        --apiserver            <str>  k8s cluster api-server-endpoint
+                                      default "k8sapi.local.com:6443"
+                                      k8sapi.local.com is first master node, store in /etc/hosts(all masters&workers)
+                                      u should make a loadbalance to all masters later,
+        -m|--master   *        <ip>   master nodes, support multi nodes
+        -w|--worker            <ip>   worker nodes, support multi nodes
+        --bridge               <str>  k8s bridge_cni, bridge name
+        --flannel              <cidr> k8s flannel_cni, pod_cidr
+                                      skip_proxy flannel_cni no work. get info etcd with service_cluster_ip
+        --dashboard                   install dashboard, default false
+        --skip_proxy                  skip install kube-proxy, default false
+        --ipvs                        kube-proxy mode ipvs, default false
+        --ingress                     install ingress, default false
+        --teardown             <ip>   remove all k8s config
+        --password             <str>  ssh password(default use sshkey)
+        --define               <file> pre define file, see
+                                        # # predefine start
+                                        ...........
+                                        # # # predefine end
+        --gen_join_cmds               only generate join commands
         -q|--quiet
         -l|--log <int> log level
         -V|--version
