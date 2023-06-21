@@ -7,10 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0b3f66d[2023-06-20T16:52:54+08:00]:new_k8s.sh")
+VERSION+=("7c48938[2023-06-21T07:38:47+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
+HTTP_PROXY=${HTTP_PROXY:-}
 # # predefine start
 # dashboard url
 declare -A DASHBOARD_MAP=(
@@ -232,6 +233,7 @@ mirror_get_image() {
 }
 
 pre_conf_k8s_host() {
+    local http_proxy=${1:-}
     echo "127.0.0.1 localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
     touch /etc/resolv.conf || true #if /etc/resolv.conf non exists, k8s startup error
     swapoff -a
@@ -264,6 +266,16 @@ EOF
   "bridge": "none"
 }
 EOF
+    [ -z ${http_proxy} ] || {
+    mkdir -p /etc/systemd/system/docker.service.d/
+    cat <<EOF > /etc/systemd/system/docker.service.d/https-proxy.conf
+[Service]
+Environment=HTTP_PROXY=${http_proxy}
+Environment=HTTPS_PROXY=${http_proxy}
+# Environment=NO_PROXY=*.test.example.com,.example.org,127.0.0.0/8
+EOF
+}
+    systemctl daemon-reload || true
     systemctl restart docker.service
     systemctl enable docker.service
 	systemctl enable kubelet.service
@@ -565,6 +577,9 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env:
+            SSH_PORT        default 60022
+            HTTP_PROXY      default ''
         --apiserver            <str>  k8s cluster api-server-endpoint
                                       default "k8sapi.local.com:6443"
                                       k8sapi.local.com is first master node, store in /etc/hosts(all masters&workers)
@@ -674,7 +689,7 @@ main() {
     confirm "Confirm NEW init k8s env(timeout 10,default N)?" 10 || exit_msg "BYE!\n"
     for ipaddr in $(array_print master) $(array_print worker); do
         info_msg "****** ${ipaddr} pre valid host env\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "'${HTTP_PROXY}'"
     done
     prepare_kube_images master worker
     [ -z "${flannel_cidr}" ] || pod_cidr="${flannel_cidr}"
