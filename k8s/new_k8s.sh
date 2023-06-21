@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7c48938[2023-06-21T07:38:47+08:00]:new_k8s.sh")
+VERSION+=("ef1f8fc[2023-06-21T09:56:12+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -480,7 +480,7 @@ EOF
             ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
             continue
         }
-        info_msg "Pull ${img} for ${ipaddr}\n"
+        info_msg "Pull ${mirror}/${img} for ${ipaddr}\n"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_get_image "${mirror}" "${img}" "$(array_get ${img_map} ${img})"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker save $(array_get ${img_map} ${img}) | gzip > /tmp/${img}.tar.gz"
         download ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
