@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("719c2ab[2023-06-25T10:13:06+08:00]:new_k8s.sh")
+VERSION+=("3323fe7[2023-06-25T14:19:44+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -43,9 +43,9 @@ declare -A GCR_MAP=(
     [kube-scheduler:${K8S_VERSION}]=k8s.gcr.io/kube-scheduler:${K8S_VERSION}
     [kube-proxy:${K8S_VERSION}]=k8s.gcr.io/kube-proxy:${K8S_VERSION}
     [kube-controller-manager:${K8S_VERSION}]=k8s.gcr.io/kube-controller-manager:${K8S_VERSION}
-    [pause]=k8s.gcr.io/pause
-    [coredns]=k8s.gcr.io/coredns/coredns
-    [etcd:3.5.3-0]=k8s.gcr.io/etcd:3.5.3-0
+    [pause:3.9]=k8s.gcr.io/pause:3.9
+    [coredns:v1.10.1]=k8s.gcr.io/coredns/coredns:v1.10.1
+    [etcd:3.5.7-0]=k8s.gcr.io/etcd:3.5.7-0
 )
 GCR_MIRROR="registry.aliyuncs.com/google_containers"
 QUAY_MIRROR="quay.io/coreos"
@@ -235,6 +235,7 @@ mirror_get_image() {
 
 pre_conf_k8s_host() {
     local http_proxy=${1:-}
+    local apiserver=${2:-}
     echo "127.0.0.1 localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
     touch /etc/resolv.conf || true #if /etc/resolv.conf non exists, k8s startup error
     swapoff -a
@@ -256,10 +257,16 @@ EOF
     "https://docker.mirrors.ustc.edu.cn",
     "http://hub-mirror.c.163.com"
   ],
+  "insecure-registries": [
+    "private.test.com"
+  ],
+  "max-concurrent-downloads": 10,
+  "max-concurrent-uploads": 10,
   "exec-opts": ["native.cgroupdriver=systemd"],
   "log-driver": "json-file",
   "log-opts": {
-    "max-size": "100m"
+    "max-size": "100m",
+    "max-file": "3"
   },
   "data-root": "/var/lib/docker",
   "storage-driver": "overlay2",
@@ -269,24 +276,25 @@ EOF
 EOF
     # change sandbox_image on all nodes
     containerd config default > /etc/containerd/config.toml
-    sed -i -e 's/^\s*#*sandbox_image\s*=\s*".*.k8s.io\/pause/    sandbox_image = "registry.aliyuncs.com\/google_containers\/pause/g' /etc/containerd/config.toml
+    # sed -i -e 's/sandbox_image\s*=\s*".*.k8s.io\/pause/sandbox_image = "registry.aliyuncs.com\/google_containers\/pause/g' /etc/containerd/config.toml
     # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
-    sed -i 's/^\s*#*SystemdCgroup\s*=/    SystemdCgroup = true/g' /etc/containerd/config.toml
-    # 应用所有更改后,重新启动containerd
-    systemctl restart containerd.service
-    systemctl enable containerd.service
+    sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
 
     [ -z ${http_proxy} ] || {
-    mkdir -p /etc/systemd/system/docker.service.d/
-    cat <<EOF > /etc/systemd/system/docker.service.d/https-proxy.conf
+        mkdir -p /etc/systemd/system/containerd.service.d/
+        mkdir -p /etc/systemd/system/docker.service.d/
+        cat <<EOF > /etc/systemd/system/docker.service.d/http-proxy.conf
 [Service]
 Environment=HTTP_PROXY=${http_proxy}
 Environment=HTTPS_PROXY=${http_proxy}
-# Environment=NO_PROXY=*.test.example.com,.example.org,127.0.0.0/8
+Environment=NO_PROXY=${apiserver%:*},localhost,127.0.0.0/8
 EOF
-}
+        cat /etc/systemd/system/docker.service.d/http-proxy.conf > /etc/systemd/system/containerd.service.d/http-proxy.conf
+    }
     systemctl daemon-reload || true
+    systemctl restart containerd.service
     systemctl restart docker.service
+    systemctl enable containerd.service
     systemctl enable docker.service
 	systemctl enable kubelet.service
 }
@@ -612,6 +620,14 @@ ${SCRIPTNAME}
                                         # # predefine start
                                         ...........
                                         # # # predefine end
+                use: kubeadm config images list
+                        registry.k8s.io/kube-apiserver:v1.27.3
+                        registry.k8s.io/kube-controller-manager:v1.27.3
+                        registry.k8s.io/kube-scheduler:v1.27.3
+                        registry.k8s.io/kube-proxy:v1.27.3
+                        registry.k8s.io/pause:3.9
+                        registry.k8s.io/etcd:3.5.7-0
+                        registry.k8s.io/coredns/coredns:v1.10.1
         --gen_join_cmds               only generate join commands
         -q|--quiet
         -l|--log <int> log level
@@ -702,7 +718,7 @@ main() {
     confirm "Confirm NEW init k8s env(timeout 10,default N)?" 10 || exit_msg "BYE!\n"
     for ipaddr in $(array_print master) $(array_print worker); do
         info_msg "****** ${ipaddr} pre valid host env\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "'${HTTP_PROXY}'"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "'${HTTP_PROXY}'" "${apiserver}"
     done
     prepare_kube_images master worker
     [ -z "${flannel_cidr}" ] || pod_cidr="${flannel_cidr}"
