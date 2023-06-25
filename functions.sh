@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("a6898a3[2023-05-04T08:48:27+08:00]:functions.sh")
+VERSION+=("85fdbe6[2023-05-22T13:42:49+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -224,6 +224,7 @@ save_bin() {
 
 #fetch http://a.com/abc.zip aaa.zip
 fetch() {
+    info_msg "fetch ${2} ==> ${1}"
     if type wget > /dev/null 2>&1 ; then
         try wget --no-check-certificate -O "${2}" "${1}" >/dev/null 2>&1
     elif type curl > /dev/null 2>&1 ; then

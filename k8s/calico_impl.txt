@@ -1,0 +1,114 @@
+# # NODE1
+ip netns add netns1
+ip link add veth1 type veth peer name veth2
+ip link set veth2 netns netns1
+ip netns exec netns1 ifconfig veth2 1.1.1.2/24 up
+ifconfig veth1 up
+ip netns exec netns1 route -n
+
+ip netns exec netns1 ip route del 1.1.1.0/24
+echo 1 > /proc/sys/net/ipv4/conf/veth1/proxy_arp
+ip netns exec netns1 ip route add 169.254.1.1 dev veth2
+ip netns exec netns1 ip route add default via 169.254.1.1 dev veth2
+ip netns exec netns1 ip route
+
+ip route add 1.1.1.2/32 dev veth1
+
+
+# # NODE2
+ip netns add netns2
+ip link add veth3 type veth peer name veth4
+ip link set veth4 netns netns2
+ip netns exec netns2 ifconfig veth4 1.1.2.2/24 up
+ifconfig veth3 up
+ip netns exec netns2 route -n
+
+ip netns exec netns2 ip route del 1.1.2.0/24
+echo 1 > /proc/sys/net/ipv4/conf/veth3/proxy_arp
+ip netns exec netns2 ip route add 169.254.1.1 dev veth4
+ip netns exec netns2 ip route add default via 169.254.1.1 dev veth4
+ip netns exec netns2 ip route
+
+ip route add 1.1.2.2/32 dev veth3
+
+
+数据包在node1上netns1网络协议栈组装好，通过匹配默认路由default via 169.254.1.1 dev veth2，数据包从veth2发出；
+node1上从veth2出去的数据包到达veth pair的另一端veth1；
+数据包匹配bird生成的1.1.2.0/24 via 10.0.12.7 dev eth0路由，把数据包从eth0发出，到达下一跳10.0.12.7，也就是node2；
+node2上匹配路由1.1.2.2/32 dev veth3，数据包发往veth3；
+node2上从veth3过来的数据包到达veth pair的另一端，netns2网络命名空间下的veth4；
+node2上netns2网络命名空间下的veth4发现1.1.2.2是自己，构造回程报文，从veth4发出；
+node2上veth4发出来的报文到达veth pair的另一端veth3；
+node2上到达veth3的报文匹配路由1.1.1.0/24 via 10.0.12.11/32 dev eth0，从eth0发出到达node1；
+node1上匹配1.1.1.2/32 dev veth1到达veth pair的一端veth1；
+node1上从veth1过来的包到达veth pair的另一端，即netns1网络命名空间下的veth2；
+node1上netns1网络命名空间下的veth2收到回程报文。
+
+
+
+cat <<EOF > /etc/bird.conf
+router id 10.0.12.11;
+
+protocol static {
+  ipv4;
+  route 1.1.1.0/24 blackhole; #黑洞路由
+}
+
+filter calico_kernel_programming {
+  accept;
+}
+
+protocol kernel {
+  learn;             # Learn all alien routes from the kernel
+  persist;           # Don't remove routes on bird shutdown
+  scan time 2;       # Scan kernel routing table every 2 seconds
+  ipv4 {
+    import all;
+    export all;
+  };
+  graceful restart;
+  merge paths on;
+}
+
+protocol device {
+  debug { states };
+  scan time 2;    # Scan interfaces every 2 seconds
+}
+
+protocol direct {
+  debug { states };
+  interface -"veth*", "*";
+}
+
+function calico_aggr ()
+{
+      if ( net = 1.1.1.0/24 ) then { accept; }
+      if ( net ~ 1.1.1.0/24 ) then { reject; }
+}
+
+filter calico_export_to_bgp_peers {
+  calico_aggr();
+  if ( net ~ 1.1.0.0/16 ) then {
+    accept;
+  }
+  reject;
+}
+
+template bgp bgp_template {
+  debug { states };
+  description "Connection to BGP peer";
+  local 10.0.12.11 as 50011;
+  ipv4 {
+    import all;
+    export filter calico_export_to_bgp_peers;
+  };
+  graceful restart;
+  connect delay time 2;
+  connect retry time 5;
+  error wait time 5,30;
+}
+
+protocol bgp Mesh_10_0_12_7 from bgp_template {
+  neighbor 10.0.12.7 port 179 as 50007;
+}
+EOF

@@ -7,11 +7,12 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ef1f8fc[2023-06-21T09:56:12+08:00]:new_k8s.sh")
+VERSION+=("1d47064[2023-06-21T16:29:22+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
 HTTP_PROXY=${HTTP_PROXY:-}
+K8S_VERSION=${K8S_VERSION:-v1.27.3} # $(kubelet --version | awk '{ print $2}')
 # # predefine start
 # dashboard url
 declare -A DASHBOARD_MAP=(
@@ -38,13 +39,13 @@ L_INGRESS_YML="${DIRNAME}/ingress-nginx:v1.0.4.yml"
 R_INGRESS_YML="/tmp/ingress-nginx.yml"
 # mirrors
 declare -A GCR_MAP=(
-    [coredns:v1.8.4]=k8s.gcr.io/coredns/coredns:v1.8.4
-    [kube-apiserver:v1.22.3]=k8s.gcr.io/kube-apiserver:v1.22.3
-    [kube-scheduler:v1.22.3]=k8s.gcr.io/kube-scheduler:v1.22.3
-    [etcd:3.5.0-0]=k8s.gcr.io/etcd:3.5.0-0
-    [pause:3.5]=k8s.gcr.io/pause:3.5
-    [kube-proxy:v1.22.3]=k8s.gcr.io/kube-proxy:v1.22.3
-    [kube-controller-manager:v1.22.3]=k8s.gcr.io/kube-controller-manager:v1.22.3
+    [kube-apiserver:${K8S_VERSION}]=k8s.gcr.io/kube-apiserver:${K8S_VERSION}
+    [kube-scheduler:${K8S_VERSION}]=k8s.gcr.io/kube-scheduler:${K8S_VERSION}
+    [kube-proxy:${K8S_VERSION}]=k8s.gcr.io/kube-proxy:${K8S_VERSION}
+    [kube-controller-manager:${K8S_VERSION}]=k8s.gcr.io/kube-controller-manager:${K8S_VERSION}
+    [pause]=k8s.gcr.io/pause
+    [coredns]=k8s.gcr.io/coredns/coredns
+    [etcd:3.5.3-0]=k8s.gcr.io/etcd:3.5.3-0
 )
 GCR_MIRROR="registry.aliyuncs.com/google_containers"
 QUAY_MIRROR="quay.io/coreos"
@@ -266,6 +267,17 @@ EOF
   "bridge": "none"
 }
 EOF
+    # 将 sandbox_image 镜像源设置为阿里云 google_containers 镜像源（所有节点）
+    containerd config default > /etc/containerd/config.toml
+    grep sandbox_image  /etc/containerd/config.toml
+    sed -i "s#k8s.gcr.io/pause#registry.aliyuncs.com/google_containers/pause#g" /etc/containerd/config.toml
+    grep sandbox_image  /etc/containerd/config.toml
+    # 配置 containerd cgroup 驱动程序 systemd（所有节点）
+    # kubernets自v1.24.0后，就不再使用docker.shim，需要安装 containerd(在docker基础下安装)
+    sed -i 's#SystemdCgroup = false#SystemdCgroup = true#g' /etc/containerd/config.toml
+    # 应用所有更改后,重新启动containerd
+    systemctl restart containerd
+
     [ -z ${http_proxy} ] || {
     mkdir -p /etc/systemd/system/docker.service.d/
     cat <<EOF > /etc/systemd/system/docker.service.d/https-proxy.conf
@@ -571,6 +583,8 @@ init_kube_cluster() {
         ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo ${hosts} >> /etc/hosts"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" add_k8s_worker "${api_srv}" "${token}" "${sha_hash}"
     done
+    info_msg "export k8s configuration"
+    ssh_func "root@${master[0]}" "${SSH_PORT}" 'kubeadm config print init-defaults' > kubeadm-calico.conf
 }
 
 usage() {
@@ -580,6 +594,7 @@ ${SCRIPTNAME}
         env:
             SSH_PORT        default 60022
             HTTP_PROXY      default ''
+            K8S__VERSION    default v1.27.3
         --apiserver            <str>  k8s cluster api-server-endpoint
                                       default "k8sapi.local.com:6443"
                                       k8sapi.local.com is first master node, store in /etc/hosts(all masters&workers)
