@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1d47064[2023-06-21T16:29:22+08:00]:new_k8s.sh")
+VERSION+=("719c2ab[2023-06-25T10:13:06+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -267,16 +267,14 @@ EOF
   "bridge": "none"
 }
 EOF
-    # 将 sandbox_image 镜像源设置为阿里云 google_containers 镜像源（所有节点）
+    # change sandbox_image on all nodes
     containerd config default > /etc/containerd/config.toml
-    grep sandbox_image  /etc/containerd/config.toml
-    sed -i "s#k8s.gcr.io/pause#registry.aliyuncs.com/google_containers/pause#g" /etc/containerd/config.toml
-    grep sandbox_image  /etc/containerd/config.toml
-    # 配置 containerd cgroup 驱动程序 systemd（所有节点）
-    # kubernets自v1.24.0后，就不再使用docker.shim，需要安装 containerd(在docker基础下安装)
-    sed -i 's#SystemdCgroup = false#SystemdCgroup = true#g' /etc/containerd/config.toml
+    sed -i -e 's/^\s*#*sandbox_image\s*=\s*".*.k8s.io\/pause/    sandbox_image = "registry.aliyuncs.com\/google_containers\/pause/g' /etc/containerd/config.toml
+    # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
+    sed -i 's/^\s*#*SystemdCgroup\s*=/    SystemdCgroup = true/g' /etc/containerd/config.toml
     # 应用所有更改后,重新启动containerd
-    systemctl restart containerd
+    systemctl restart containerd.service
+    systemctl enable containerd.service
 
     [ -z ${http_proxy} ] || {
     mkdir -p /etc/systemd/system/docker.service.d/
