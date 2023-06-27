@@ -7,13 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3323fe7[2023-06-25T14:19:44+08:00]:new_k8s.sh")
+VERSION+=("770f4dd[2023-06-25T17:15:59+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
 HTTP_PROXY=${HTTP_PROXY:-}
 K8S_VERSION=${K8S_VERSION:-v1.27.3} # $(kubelet --version | awk '{ print $2}')
 # # predefine start
+##OPTION_START
 # dashboard url
 declare -A DASHBOARD_MAP=(
     [dashboard:v2.0.0-beta1]=kubernetesui/dashboard:v2.0.0-beta1
@@ -37,20 +38,31 @@ declare -A INGRESS_MAP=(
 INGRESS_YML="https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.0.4/deploy/static/provider/cloud/deploy.yaml"
 L_INGRESS_YML="${DIRNAME}/ingress-nginx:v1.0.4.yml"
 R_INGRESS_YML="/tmp/ingress-nginx.yml"
+# calico cni url
+# grep "image\s*:\(.*\) \1" calico.yaml  | awk '{ print $2 }' | sort | uniq
+declare -A CALICO_MAP=(
+    [cni:v3.26.1]=docker.io/calico/cni:v3.26.1
+    [kube-controllers:v3.26.1]=docker.io/calico/kube-controllers:v3.26.1
+    [node:v3.26.1]=docker.io/calico/node:v3.26.1
+)
+CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml"
+L_CALICO_YML="${DIRNAME}/calico.yaml"
+R_CALICO_YML="/tmp/calico.yaml"
 # mirrors
+# kubeadm config images list --kubernetes-version ${K8S_VERSION}
 declare -A GCR_MAP=(
-    [kube-apiserver:${K8S_VERSION}]=k8s.gcr.io/kube-apiserver:${K8S_VERSION}
-    [kube-scheduler:${K8S_VERSION}]=k8s.gcr.io/kube-scheduler:${K8S_VERSION}
-    [kube-proxy:${K8S_VERSION}]=k8s.gcr.io/kube-proxy:${K8S_VERSION}
-    [kube-controller-manager:${K8S_VERSION}]=k8s.gcr.io/kube-controller-manager:${K8S_VERSION}
-    [pause:3.9]=k8s.gcr.io/pause:3.9
-    [coredns:v1.10.1]=k8s.gcr.io/coredns/coredns:v1.10.1
-    [etcd:3.5.7-0]=k8s.gcr.io/etcd:3.5.7-0
+    [kube-apiserver:${K8S_VERSION}]=registry.k8s.io/kube-apiserver:${K8S_VERSION}
+    [kube-scheduler:${K8S_VERSION}]=registry.k8s.io/kube-scheduler:${K8S_VERSION}
+    [kube-proxy:${K8S_VERSION}]=registry.k8s.io/kube-proxy:${K8S_VERSION}
+    [kube-controller-manager:${K8S_VERSION}]=registry.k8s.io/kube-controller-manager:${K8S_VERSION}
+    [pause:3.9]=registry.k8s.io/pause:3.9
+    [coredns:v1.10.1]=registry.k8s.io/coredns/coredns:v1.10.1
+    [etcd:3.5.7-0]=registry.k8s.io/etcd:3.5.7-0
 )
 GCR_MIRROR="registry.aliyuncs.com/google_containers"
 QUAY_MIRROR="quay.io/coreos"
 RANCHER_MIRROR="rancher"
-# # predefine end
+##OPTION_END
 
 print_predefine() {
     cat<<EOF
@@ -191,6 +203,20 @@ init_flannel_cni() {
     rm -f "${flannel_yml}"
 }
 
+init_calico_cni() {
+    local pod_cidr=${1}
+    local calico_yml=${2}
+    [ -e "${calico_yml}" ] || return 1
+    # sed -i "s|\"Network\"\s*:\s*.*|\"Network\": \"${pod_cidr}\",|g" "${calico_yml}"
+    export KUBECONFIG=/etc/kubernetes/admin.conf
+    kubectl apply -f "${calico_yml}"
+    kubectl -n kube-system get configmaps calico-config -o yaml
+    rm -f "${calico_yml}"
+    kubectl get nodes -o wide || true
+    kubectl get pods --all-namespaces -o wide || true
+    echo "kubectl describe -n kube-system pod calico-node-xxxxx"
+}
+
 init_ingress() {
     local ingress_yml=${1}
     [ -e "${ingress_yml}" ] || return 1
@@ -234,8 +260,10 @@ mirror_get_image() {
 }
 
 pre_conf_k8s_host() {
-    local http_proxy=${1:-}
-    local apiserver=${2:-}
+    local http_proxy=${1}
+    local apiserver=${2}
+    local pausekey=${3}
+
     echo "127.0.0.1 localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
     touch /etc/resolv.conf || true #if /etc/resolv.conf non exists, k8s startup error
     swapoff -a
@@ -276,11 +304,17 @@ EOF
 EOF
     # change sandbox_image on all nodes
     containerd config default > /etc/containerd/config.toml
-    # sed -i -e 's/sandbox_image\s*=\s*".*.k8s.io\/pause/sandbox_image = "registry.aliyuncs.com\/google_containers\/pause/g' /etc/containerd/config.toml
+    sed -i -e "s/sandbox_image\s*=.*\/pause.*/sandbox_image = \"registry.k8s.io\/${pausekey}\"/g" /etc/containerd/config.toml
     # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
     sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
+    # containerd 忽略证书验证的配置
+    #      [plugins."io.containerd.grpc.v1.cri".registry.configs]
+    #        [plugins."io.containerd.grpc.v1.cri".registry.configs."192.168.0.12:8001".tls]
+    #          insecure_skip_verify = true
 
-    [ -z ${http_proxy} ] || {
+    [ -z ${http_proxy} ] && {
+        rm -fr /etc/systemd/system/docker.service.d/http-proxy.conf /etc/systemd/system/containerd.service.d/http-proxy.conf || true
+    } || {
         mkdir -p /etc/systemd/system/containerd.service.d/
         mkdir -p /etc/systemd/system/docker.service.d/
         cat <<EOF > /etc/systemd/system/docker.service.d/http-proxy.conf
@@ -300,13 +334,13 @@ EOF
 }
 
 gen_k8s_join_cmds() {
+    local version=${1}
     #kubeadm token list -o json
     local token=$(kubeadm token create)
     # kubeadm token create --print-join-command
     local sha_hash=$(openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //')
     # reupload certs
-    # kubeadm init phase upload-certs --upload-certs
-    local certs=$(kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -n 1)
+    local certs=$(kubeadm init phase upload-certs --upload-certs | tail -n 1)
     local api_srv=$(sed -n "s/\s*server:\s*\(.*\)/\1/p" /etc/kubernetes/kubelet.conf)
     echo kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash} --control-plane --certificate-key ${certs}
     echo kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash}
@@ -326,15 +360,16 @@ modify_kube_proxy_ipvs() {
 init_first_k8s_master() {
     local api_srv=${1} # apiserver dns-name:port
     local skip_proxy=${2}
-    local pod_cidr=${3}
-    local opts="--kubernetes-version=$(kubelet --version | awk '{ print $2}') --control-plane-endpoint ${api_srv} --upload-certs ${pod_cidr:+--pod-network-cidr=${pod_cidr}} --apiserver-advertise-address=0.0.0.0"
+    local version=${3}
+    local pod_cidr=${4}
+    local opts="--control-plane-endpoint ${api_srv} --upload-certs ${pod_cidr:+--pod-network-cidr=${pod_cidr}} --apiserver-advertise-address=0.0.0.0"
     ${skip_proxy} && opts="--skip-phases=addon/kube-proxy ${opts}" 
-    # kubeadm init phase addon kube-proxy --kubernetes-version=$(kubelet --version | awk '{ print $2}')
+    # kubeadm init --kubernetes-version ${version} phase addon kube-proxy
     # init kubeadm cluster on master
     # kubeadm config images list
-    # kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version=$(kubelet --version | awk '{ print $2}')
-    # kubeadm init --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version=$(kubelet --version | awk '{ print $2}') --control-plane-endpoint "${api_srv}" --upload-certs
-    kubeadm init ${opts}
+    # kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version ${version}
+    # kubeadm init --kubernetes-version ${version} phase --image-repository=registry.aliyuncs.com/google_containers --control-plane-endpoint "${api_srv}" --upload-certs
+    kubeadm init --kubernetes-version ${version} ${opts}
     ##--apiserver-bind-port
     echo "FIX 'kubectl get cs' Unhealthy"
     sed -i "/^\s*-\s*--\s*port\s*=\s*0/d" /etc/kubernetes/manifests/kube-controller-manager.yaml
@@ -359,7 +394,7 @@ init_first_k8s_master() {
     # kubectl -n kube-system delete pod coredns-7f6cbbb7b8-lfvxb
     # kubectl -n kube-system logs coredns-7f6cbbb7b8-vkj2l
     # kubectl exec -it etcd-k8s-master sh
-    kubectl -n kube-system get pod || true
+    kubectl get pods --all-namespaces -o wide || true
     kubectl get nodes || true
     kubeadm token list || true
     # kubectl delete nodes md2
@@ -371,6 +406,7 @@ init_first_k8s_master() {
     echo "coredns replicas"
     kubectl -n kube-system get rs || true
     echo "kubectl -n kube-system scale --replicas=3 rs/coredns-XXXXXXX"
+    kubectl cluster-info || true
 }
 
 add_k8s_master() {
@@ -478,6 +514,20 @@ EOF
     ssh_func "root@${master[0]}" "${SSH_PORT}" init_flannel_cni "${flannel_cidr}" "${R_FLANNEL_YML}"
 }
 
+init_kube_calico_cni() {
+    local master=($(array_print ${1}))
+    local worker=($(array_print ${2}))
+    local ipaddr="${master[0]}"
+    vinfo_msg <<EOF
+"****** ${ipaddr} init calico() cni.
+EOF
+    prepare_yml "${ipaddr}" "${L_CALICO_YML}" "${R_CALICO_YML}" "${CALICO_YML}"
+    for ipaddr in $(array_print master) $(array_print worker); do
+        prepare_docker_images "${ipaddr}" CALICO_MAP "docker.io/calico"
+    done
+    ssh_func "root@${master[0]}" "${SSH_PORT}" init_calico_cni "dummy" "${R_FLANNEL_YML}"
+}
+
 prepare_docker_images() {
     local ipaddr=${1}
     local img_map=${2}
@@ -489,12 +539,20 @@ MIRROR=${mirror}
 $(print_kv ${img_map})
 EOF
     for img in $(array_print_label "${img_map}"); do
-        [ -z "$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker image ls -q $(array_get ${img_map} ${img})")" ] || continue
+        [ -z "$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker image ls -q $(array_get ${img_map} ${img})")" ] || {
+            file_exists "${DIRNAME}/${img}.tar.gz" && continue
+            ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker save $(array_get ${img_map} ${img}) | gzip > /tmp/${img}.tar.gz"
+            download ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
+            ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
+        }
+    done
+    for img in $(array_print_label "${img_map}"); do
         file_exists "${DIRNAME}/${img}.tar.gz" && {
             info_msg "Load ${img} for ${ipaddr}\n"
             upload "${DIRNAME}/${img}.tar.gz" ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz"
             imgid=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "gunzip -c /tmp/${img}.tar.gz | docker image load -q" | sed -E "s/Loaded image( ID:|:)\s//g")
             ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker tag ${imgid} $(array_get ${img_map} ${img})"
+            ssh_func "root@${ipaddr}" "${SSH_PORT}" "gunzip -c /tmp/${img}.tar.gz | ctr --namespace k8s.io image import - || true"
             ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
             continue
         }
@@ -502,6 +560,7 @@ EOF
         ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_get_image "${mirror}" "${img}" "$(array_get ${img_map} ${img})"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker save $(array_get ${img_map} ${img}) | gzip > /tmp/${img}.tar.gz"
         download ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" "gunzip -c /tmp/${img}.tar.gz | ctr --namespace k8s.io image import - || true"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
     done
 }
@@ -570,13 +629,12 @@ init_kube_cluster() {
     IFS=':' read -r tname tport <<< "${api_srv}"
     local hosts="${ipaddr} ${tname}"
     ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo ${hosts} >> /etc/hosts"
-    ssh_func "root@${ipaddr}" "${SSH_PORT}" init_first_k8s_master "${api_srv}" "${skip_proxy}" "${pod_cidr}"
+    ssh_func "root@${ipaddr}" "${SSH_PORT}" init_first_k8s_master "${api_srv}" "${skip_proxy}" "${K8S_VERSION}" "${pod_cidr}"
     #kubeadm token list -o json
     local token=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "kubeadm token create")
     # kubeadm token create --print-join-command
     local sha_hash=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
     # reupload certs
-    # kubeadm init phase upload-certs --upload-certs
     local certs=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "kubeadm init phase upload-certs --upload-certs | tail -n 1")
     for ((i=1;i<$(array_size master);i++)); do
         ipaddr=$(array_get master ${i})
@@ -608,6 +666,7 @@ ${SCRIPTNAME}
         -m|--master   *        <ip>   master nodes, support multi nodes
         -w|--worker            <ip>   worker nodes, support multi nodes
         --bridge               <str>  k8s bridge_cni, bridge name
+        --calico               <str>  calico cni
         --flannel              <cidr> k8s flannel_cni, pod_cidr
                                       skip_proxy flannel_cni no work. get info etcd with service_cluster_ip
         --dashboard                   install dashboard, default false
@@ -616,10 +675,10 @@ ${SCRIPTNAME}
         --ingress                     install ingress, default false
         --teardown             <ip>   remove all k8s config
         --password             <str>  ssh password(default use sshkey)
-        --define               <file> pre define file, see
-                                        # # predefine start
-                                        ...........
-                                        # # # predefine end
+        pre define file, see
+                ##OPTION_START
+                ...........
+                ###OPTION_END
                 use: kubeadm config images list
                         registry.k8s.io/kube-apiserver:v1.27.3
                         registry.k8s.io/kube-controller-manager:v1.27.3
@@ -666,9 +725,9 @@ EOF
 
 main() {
     local password="" master=() worker=() teardown=() bridge="" apiserver="k8sapi.local.com:6443" gen_join_cmds=""
-    local flannel_cidr="" pod_cidr="" dashboard=false ipvs=false ingress=false skip_proxy=false
+    local flannel_cidr="" pod_cidr="" dashboard=false ipvs=false ingress=false skip_proxy=false calico=""
     local opt_short="m:w:"
-    local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,dashboard,ipvs,ingress,teardown:,define:,"
+    local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,calico:,dashboard,ipvs,ingress,teardown:,"
     opt_long+="skip_proxy,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
@@ -682,13 +741,13 @@ main() {
             -w | --worker)  shift; worker+=(${1}); shift;;
             --bridge)       shift; bridge=${1}; shift;;
             --flannel)      shift; flannel_cidr=${1}; shift;;
+            --calico)       shift; calico=${1}; shift;;
             --dashboard)    shift; dashboard=true;;
             --ingress)      shift; ingress=true;;
             --skip_proxy)   shift; skip_proxy=true;;
             --ipvs)         shift; ipvs=true;;
             --teardown)     shift; teardown+=(${1}); shift;;
             --password)     shift; password="${1}"; shift;;
-            --define)       shift; source "${1}"; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -699,7 +758,6 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    [ -e ${DIRNAME}/k8s.conf ] && . ${DIRNAME}/k8s.conf || true
     [ -z ${password} ] || set_sshpass "${password}"
     local ipaddr=""
     for ipaddr in "${teardown[@]}"; do
@@ -707,21 +765,29 @@ main() {
         ssh_func "root@${ipaddr}" "${SSH_PORT}" "teardown"
     done
     [ "$(array_size teardown)" -gt "0" ] && { info_msg "TEARDOWN OK\n"; return 0; }
+    [ -e ${DIRNAME}/define.conf ] || sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${SCRIPTNAME} > ${DIRNAME}/define.conf
+    ${EDITOR:-vi} ${DIRNAME}/define.conf || true
+    source ${DIRNAME}/define.conf || true
     [ "$(array_size master)" -gt "0" ] || usage "at least one master"
     [ -z "${gen_join_cmds}" ] || {
-        ssh_func "root@${master[0]}" "${SSH_PORT}" gen_k8s_join_cmds 2>/dev/null
+        ssh_func "root@${master[0]}" "${SSH_PORT}" gen_k8s_join_cmds ${K8S_VERSION} 2>/dev/null
         info_msg "GEN_CMDS OK\n"
         return 0
     }
-    [ -z "${bridge}" ] || [ -z "${flannel_cidr}" ] || usage "network cni bridge/flannel"
+    [ -z "${bridge}" ] || [ -z "${flannel_cidr}" ] || [ -z "${calico}"] || usage "network cni bridge/flannel/calico"
     print_predefine
     confirm "Confirm NEW init k8s env(timeout 10,default N)?" 10 || exit_msg "BYE!\n"
     for ipaddr in $(array_print master) $(array_print worker); do
         info_msg "****** ${ipaddr} pre valid host env\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "'${HTTP_PROXY}'" "${apiserver}"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "'${HTTP_PROXY}'" "${apiserver}" "$(array_print_label GCR_MAP  | grep 'pause')"
     done
     prepare_kube_images master worker
     [ -z "${flannel_cidr}" ] || pod_cidr="${flannel_cidr}"
+    [ -z "${calico}" ] || {
+        info_msg "install calico cni begin\n"
+        init_kube_calico_cni master worker "dummy"
+        info_msg "install calico cni end\n"
+    }
     [ -z "${bridge}" ] || {
         info_msg "install bridge_cni begin(${bridge})\n"
         pod_cidr=""
@@ -732,13 +798,13 @@ main() {
             let i+=4
         done
         init_kube_bridge_cni "${bridge}" "${masq}" srv_net_map "${apiserver}"
-        info_msg "install bridge_cni end(${bridge})"
+        info_msg "install bridge_cni end(${bridge})\n"
     }
     init_kube_cluster master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}"
     [ -z "${flannel_cidr}" ] || {
         info_msg "install flannel_cni begin(${pod_cidr})\n"
         init_kube_flannel_cni master worker "${pod_cidr}"
-        info_msg "install flannel_cni end(${pod_cidr})"
+        info_msg "install flannel_cni end(${pod_cidr})\n"
     }
     ${skip_proxy} || {
         ${ipvs} && ssh_func "root@${master[0]}" "${SSH_PORT}" modify_kube_proxy_ipvs
