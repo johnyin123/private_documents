@@ -446,3 +446,246 @@ show current-config
 configure mode override
 user administrator admin logintype web,ssh
 interface ethernet eth0
+
+tsdneteye@root> show current-config
+Build running configuration...
+
+Current configuration is : 6145 bytes
+[nsh]
+hostname tsdneteye
+banner console Neusoft NetEye
+banner vty Neusoft NetEye
+console timeout 10
+vty timeout 10
+[land-region]
+language Chinese
+[otp-token]
+[user]
+password cipher 2bb01646a51a629a5f4d49d45a5c6a0a22090c
+user administrator admin administrator authtype local logintype web,ssh,telnet password cipher fb8e17c21690f0395c504f8815ff5ea075
+505f
+user administrator admin e-key disable
+user administrator admin otp-auth disable
+user administrator admin description Default Administrator
+[ifnet]
+#
+vlan 1
+ip address 10.170.73.2 255.255.255.252 
+#
+vlan 999
+ip address 192.168.167.1 255.255.255.0 
+#
+interface ethernet eth0
+working-type layer3-interface
+ip address 10.142.9.162 255.255.255.252 
+#
+interface ethernet eth1
+flow control on
+port access vlan 1
+#
+interface ethernet eth2
+port access vlan 1
+#
+interface ethernet eth3
+port access vlan 1
+#
+interface ethernet eth4
+port access vlan 999
+#
+interface ethernet eth5
+port access vlan 999
+#
+interface ethernet eth6
+port access vlan 1
+#
+interface ethernet eth7
+port access vlan 1
+[vsys]
+vsys root
+description Default vsys of firewall system
+[snooping]
+vlan 1
+  igmp-snooping off
+  igmp-snooping version ethernet 7 auto
+  igmp-snooping interface-flags ethernet 7 negotiate
+  igmp-snooping version ethernet 6 auto
+  igmp-snooping interface-flags ethernet 6 negotiate
+  igmp-snooping version ethernet 3 auto
+  igmp-snooping interface-flags ethernet 3 negotiate
+  igmp-snooping version ethernet 2 auto
+  igmp-snooping interface-flags ethernet 2 negotiate
+  igmp-snooping version ethernet 1 auto
+  igmp-snooping interface-flags ethernet 1 negotiate
+vlan 999
+  igmp-snooping off
+  igmp-snooping version ethernet 4 auto
+  igmp-snooping interface-flags ethernet 4 negotiate
+  igmp-snooping version ethernet 5 auto
+  igmp-snooping interface-flags ethernet 5 negotiate
+[dvmrp]
+dvmrp disable
+dvmrp pim disable
+dvmrp cache-lifetime 300
+dvmrp prune-lifetime 7200
+interface ethernet 0
+  dvmrp off
+  dvmrp metric 1
+  dvmrp threshold 1
+vlan 1
+  dvmrp off
+  dvmrp metric 1
+  dvmrp threshold 1
+vlan 999
+  dvmrp off
+  dvmrp metric 1
+  dvmrp threshold 1
+[zone]
+zone WAN
+zone LAN
+[auth-server]
+[service-access]
+#
+service root-net-login enable
+service web port 443
+service ssh port 22
+service telnet port 23
+service web on
+service ping on
+service ssh on
+service telnet off
+[service]
+#
+service web allow zone LAN 0.0.0.0 255.255.255.255
+service ping allow zone LAN 0.0.0.0 255.255.255.255
+service ssh allow zone LAN 0.0.0.0 255.255.255.255
+[auth-config]
+server authentication type administrator Local
+server authentication type authuser Local
+unset server account
+[object]
+[ha]
+[dynamic-route_virroute]
+[vpnippool]
+[network-user]
+user authuser default configuration auth
+user authuser default configuration ipsecvpn
+user authuser default configuration assigned-ip none
+[vpnusergroup]
+[vpn-tunnel]
+vpn
+tunnel rroute off
+[vpn-tunnelgroup]
+[vpn-manualtunnel]
+[vpn-gretunnel]
+[vpngroup]
+[sslvpn-group]
+sslvpn
+group verify-client-certificate disable
+[sslvpn-app]
+[sslvpn-temp]
+[sslvpn-service]
+[sslvpn-tunnel]
+[device-tunnel]
+[device_in_zone]
+zone WAN based-layer3 eth0
+zone LAN based-layer3 vlan1,vlan999
+[dns]
+[dns-proxy]
+[dns-cache]
+dns cache-state off
+[snat]
+#
+policy snat def_lw netmask 172.16.0.0 255.255.248.0 iplist 10.170.26.10-10.170.26.19 napt enable 1
+policy snat def_lw matching input-interface vlan1
+policy snat def_lw matching output-interface eth0
+policy snat def_lw matching dip anyipv4
+[dnat]
+#
+policy dnat ELB443 10.170.26.2  TCP 443 172.16.0.2 443 enable 1
+policy dnat ELB443 matching sip anyipv4
+policy dnat ELB80 10.170.26.2  TCP 80 172.16.0.2 80 enable 2
+policy dnat ELB80 matching sip anyipv4
+policy dnat PPTP 10.170.26.5  TCP 1723 172.16.0.5 1723 enable 3
+policy dnat PPTP matching sip anyipv4
+policy dnat openvpn 10.170.26.5  UDP 1194 172.16.0.6 1194 enable 4
+policy dnat openvpn matching sip anyipv4
+[mip]
+#
+nat protect enable
+[time]
+timezone 392
+[snmp]
+snmp port 161
+snmp daemon off
+[certificate]
+[attack-defense]
+customize-the-size-of-IP-datagrams-to-send active off threshold 1400
+arp-filter eth1 off
+arp-filter eth2 off
+arp-filter eth3 off
+arp-filter eth4 off
+arp-filter eth5 off
+arp-filter eth6 off
+arp-filter eth7 off
+[dhcp-interface]
+[dhcp-subnet]
+[dhcp-snooping]
+[static-route]
+route 10.170.24.0 255.255.255.0 gateway 10.170.73.1 1
+route 10.170.25.0 255.255.255.0 gateway 10.170.73.1 1
+route 10.170.27.0 255.255.255.0 gateway 10.170.73.1 1
+route 10.170.28.0 255.255.255.0 gateway 10.170.73.1 1
+route 10.170.29.0 255.255.255.0 gateway 10.170.73.1 1
+route 172.16.0.0 255.255.248.0 gateway 10.170.73.1 1
+route 172.16.17.0 255.255.255.0 gateway 10.170.73.1 1
+route 0.0.0.0 0.0.0.0 gateway 10.142.9.161 1
+route source-check disable
+[policy-route]
+[multicast-route]
+[access-policies]
+policy default inter-zone access permit
+timeout TCP FIN 120
+timeout UDP 60
+timeout TCP CLOSING 10
+timeout TCP SYN 120
+timeout TCP ESTED 3600
+timeout ICMP 3
+policy access def_lw LAN any WAN any any any permit enable 1
+policy access def_lw log on
+policy access def_wl WAN any LAN any any any permit enable 2
+policy access def_wl log on
+[session-policies]
+[multicast-policies]
+[dynamic-route]
+route-map rebuild reference
+[ip-mac]
+policy default ip-mac permit
+policy ip-mac dhcp-ip-mac disable
+[webauthconfig]
+webauth banner success Congratulations! You have successfully logged in.
+webauth banner fail Sorry. Your login failed.
+webauth auth-port 4325
+[package-update]
+package upgrade server nts.neusoft.com/autoupdate
+package upgrade mode never
+[dhcpv6]
+[arp]
+[cam]
+[logmaitain]
+logging media switch to HD
+logging policy delete
+[vnet]
+[stp]
+spanning-tree disable
+[ha-cluster]
+cluster
+sync interface election off
+[device-communicate]
+[ddns]
+[asymmetric-link]
+asymmetric link disable
+[httpd-prefork]
+httpd perfork minspareservers 1 maxspareservers 3 maxrequestworkers 5
+[alarm]
+alert-config local-syslog internal level Warning,Emergency,Error,Critical,Alert type any
+[vpn_resource]
