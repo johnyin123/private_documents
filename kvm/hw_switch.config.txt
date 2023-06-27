@@ -447,6 +447,7 @@ configure mode override
 user administrator admin logintype web,ssh
 interface ethernet eth0
 
+### 未实现域内NAT
 tsdneteye@root> show current-config
 Build running configuration...
 
