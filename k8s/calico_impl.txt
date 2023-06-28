@@ -112,3 +112,14 @@ protocol bgp Mesh_10_0_12_7 from bgp_template {
   neighbor 10.0.12.7 port 179 as 50007;
 }
 EOF
+####################################################################################################
+Kubernetes 版本         Calico 版本    Calico 配置
+1.18、1.19、1.20        3.18           https://docs.tigera.io/archive/v3.18/manifests/calico.yaml
+1.19、1.20、1.21        3.19           https://docs.tigera.io/archive/v3.19/manifests/calico.yaml
+1.19、1.20、1.21        3.20           https://docs.tigera.io/archive/v3.20/manifests/calico.yaml
+1.20、1.21、1.22        3.21           https://docs.tigera.io/archive/v3.21/manifests/calico.yaml
+1.21、1.22、1.23        3.22           https://docs.tigera.io/archive/v3.22/manifests/calico.yaml
+1.21、1.22、1.23        3.23           https://docs.tigera.io/archive/v3.23/manifests/calico.yaml
+1.22、1.23、1.24、1.25  3.24           https://docs.tigera.io/archive/v3.24/manifests/calico.yaml
+1.22、1.23、1.24        3.25           https://docs.tigera.io/archive/v3.25/manifests/calico.yaml
+1.24、1.25、1.26、1.27  3.26           https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml
