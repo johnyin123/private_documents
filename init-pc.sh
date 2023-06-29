@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("28903de[2023-06-16T09:58:51+08:00]:init-pc.sh")
+VERSION+=("2f5343d[2023-06-17T20:37:18+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -80,16 +80,16 @@ iface br-ext inet static
 # auto bond0
 # iface bond0 inet manual
 #         up ifconfig bond0 0.0.0.0 up
-#         slaves eth4 eth5
+#         bond-slaves eth4 eth5
 #         # bond-mode 4 = 802.3ad
 #         bond-mode 4
 #         bond-miimon 100
 #         bond-downdelay 200
 #         bond-updelay 200
 #         bond-lacp-rate 1
-#         bond-xmit-hash-policy layer2+3
-# auto vlan1023
-# iface vlan1023 inet static
+#         bond-xmit-hash-policy layer3+4
+# auto bond0.1023
+# iface bond0.1023 inet static
 #         vlan-raw-device bond0
 EOF
 
