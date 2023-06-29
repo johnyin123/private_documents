@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("03651cc[2023-05-24T13:27:58+08:00]:virt-volupload.sh")
+VERSION+=("da5c6d3[2023-06-01T12:51:03+08:00]:virt-volupload.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -27,7 +27,7 @@ ${SCRIPTNAME}
     -p|--pool              *                 pool
     -v|--vol               *                 vol
     -t|--template                            telplate disk for upload(or stdin)
-    --rbd                                    upload ceph rbd vol via ssh, otherwise use vol-upload
+    --rbd             <ceph cluster name>    upload ceph rbd vol via ssh, otherwise use vol-upload
     -q|--quiet
     -l|--log <int>                           log level
     -d|--dryrun                              dryrun
@@ -44,7 +44,7 @@ main() {
     local pool=
     local rbd=""
     local opt_short="p:v:t:"
-    local opt_long="pool:,vol:,template:,rbd,"
+    local opt_long="pool:,vol:,template:,rbd:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -54,7 +54,7 @@ main() {
             -p | --pool)     shift; pool=${1}; shift ;;
             -v | --vol)      shift; vol_name=${1}; shift ;;
             -t | --template) shift; disk_tpl=${1}; shift ;;
-            --rbd)           rbd=1; shift;;
+            --rbd)           shift; rbd=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -76,8 +76,9 @@ main() {
     [ -z ${rbd} ] && {
         try ${upload_cmd} vol-upload --pool ${pool} --vol ${vol_name} --file ${disk_tpl} || exit_msg "upload template file ${disk_tpl} error\n"
     } || {
-        try "${KVM_HOST:+ssh -p ${KVM_PORT:-60022} ${KVM_USER:-root}@${KVM_HOST}} rbd rm --no-progress --pool ${pool} ${vol_name} 2>/dev/null" || true
-        try "cat ${disk_tpl} | ${KVM_HOST:+ssh -p ${KVM_PORT:-60022} ${KVM_USER:-root}@${KVM_HOST}} rbd import --image-feature layering - ${pool}/${vol_name}" || exit_msg "upload template file ${disk_tpl} via rbd error\n"
+        local ceph_rbd_pool=$(${VIRSH} pool-dumpxml ${pool} | xmlstarlet sel -t -v "/pool/source/name")
+        try "${KVM_HOST:+ssh -p ${KVM_PORT:-60022} ${KVM_USER:-root}@${KVM_HOST}} rbd --cluster ${rbd} rm --no-progress --pool ${ceph_rbd_pool} ${vol_name} 2>/dev/null" || true
+        try "cat ${disk_tpl} | ${KVM_HOST:+ssh -p ${KVM_PORT:-60022} ${KVM_USER:-root}@${KVM_HOST}} rbd --cluster ${rbd} import --image-feature layering - ${ceph_rbd_pool}/${vol_name}" || exit_msg "upload template file ${disk_tpl} via rbd error\n"
     }
     info_msg "upload template file ${disk_tpl} ok\n"
     return 0
