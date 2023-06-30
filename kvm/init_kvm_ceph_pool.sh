@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9d3831a[2023-05-11T16:55:23+08:00]:init_kvm_ceph_pool.sh")
+VERSION+=("93ac5b6[2023-06-29T15:44:11+08:00]:init_kvm_ceph_pool.sh")
 ################################################################################
 cluster=
 libvirt_pool=default
@@ -30,7 +30,7 @@ cat <<EPOOL | tee ${LOGFILE} | virsh secret-define /dev/stdin
   </usage>
 </secret>
 EPOOL
-secret_key=$(ceph ${cluster:+--cluster ${cluster}} auth get-key ${secret_name})
+secret_key=$(ceph ${cluster:+--cluster ${cluster}} auth get-key client.${secret_name})
 echo ${secret_key}
 virsh secret-set-value --secret ${secret_uuid} --base64 ${secret_key}
 cat <<EPOOL | tee ${LOGFILE} | virsh pool-define /dev/stdin
