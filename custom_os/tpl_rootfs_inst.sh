@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("e5a6986[2023-05-31T18:30:36+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("dcd0289[2023-06-01T08:10:22+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -60,7 +60,7 @@ main() {
         esac
     done
     [ -z "${root_tpl}" ] && usage "tpl rootfs package?"
-    [ -z "${disk}" ] && usage "need disk and  partition?"
+    [ -z "${disk}" ] || [ -z "${part}" ] && usage "need disk and partition?"
     echo "install ${root_tpl} => ${disk}:${part}"
     local work_dir=$(mktemp -d /tmp/squashfs.XXXXXX)
     mount ${root_tpl} ${work_dir} || true
