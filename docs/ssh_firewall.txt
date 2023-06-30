@@ -6,3 +6,9 @@ H3C, web error, firefox:
 Secure Connection Failed, Error code: SSL_ERROR_UNSUPPORTED_VERSION
 
 input: about:Config->security.tls.version.fallback-limit -> 1
+
+cat <<EOF >> ~/.ssh/config
+Host 1.1.1.1
+HostkeyAlgorithms +ssh-rsa
+PubkeyAcceptedKeyTypes +ssh-rsa
+EOF
