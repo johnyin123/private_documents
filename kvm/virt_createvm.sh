@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9e1921e[2023-06-01T13:15:41+08:00]:virt_createvm.sh")
+VERSION+=("10e68f5[2023-06-01T17:08:59+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
@@ -38,24 +38,14 @@ gen_tpl() {
 {%- endif %}
   </os>
   <features><acpi/><apic/><pae/></features>
-  <on_poweroff>preserve</on_poweroff>
+  <on_poweroff>destroy</on_poweroff>
   <devices>
-    <serial type='pty'>
-      <target port='0'/>
-    </serial>
-    <console type='pty'>
-      <target type='serial' port='0'/>
-    </console>
+    <serial type='pty'><target port='0'/></serial>
+    <console type='pty'><target type='serial' port='0'/></console>
 {%- if vm_arch == 'x86_64' %}
     <input type='mouse' bus='ps2'/>
     <input type='keyboard' bus='ps2'/>
-    <graphics type='spice' autoport='yes'>
-      <listen type='address'/>
-    </graphics>
-    <video>
-      <model type='vga' heads='1' primary='yes'/>
-    </video>
-    <redirdev bus='usb' type='spicevmc' />
+    <video><model type='vga' heads='1' primary='yes'/></video>
 {%- endif %}
     <channel type='unix'><target type='virtio' name='org.qemu.guest_agent.0'/></channel>
     <memballoon model='virtio'/>
