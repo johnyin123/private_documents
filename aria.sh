@@ -27,6 +27,9 @@ file-allocation=none
 # 文件预分配大小限制。小于此选项值大小的文件不预分配空间，单位 K 或 M，默认：5M
 no-file-allocation-limit=64M
 
+# 禁用https证书检查
+check-certificate=true
+
 # 断点续传
 continue=true
 
@@ -352,11 +355,8 @@ summary-interval=0
 # 在服务器返回未知状态码时重试，仅当 retry-wait > 0 时有效，默认 false
 #retry-on-unknown=true
 
-# 是否发送 Want-Digest HTTP 标头。默认：false (不发送)
-# 部分网站会把此标头作为特征来检测和屏蔽 Aria2
-#http-want-digest=false
-
 ## BitTorrent trackers ##
+## https://github.com/ngosang/trackerslist/blob/master/trackers_all_udp.txt
 bt-tracker=
 EOF
 
