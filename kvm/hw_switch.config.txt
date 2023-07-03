@@ -209,13 +209,16 @@ PCB Version     : Ver.B
     #配置区域0并且发布网段
     area 0
     network 192.168.0.0 0.0.0.255
-    authentication-mode md5 1 simple 123456
+    authentication-mode md5 1 plain 123456
     # authentication-mode { hmac-md5 | md5 } key-id { cipher | plain } string
     quit
     quit
     display ip routing-table protocol ospf
-
-
+    interface interface-type interface-number
+    ospf network-type broadcast
+    ospf dr-priority priority
+    display ospf peer
+    display ip routing-table protocol ospf
     #保存配置
     save force
 
