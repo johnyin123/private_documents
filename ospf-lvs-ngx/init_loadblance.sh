@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b76ea14[2023-02-01T14:46:41+08:00]:init_loadblance.sh")
+VERSION+=("d0f580a[2023-02-09T10:12:53+08:00]:init_loadblance.sh")
 ################################################################################
 LOGFILE=""
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
@@ -86,7 +86,7 @@ gen_ospf() {
     vtysh -c "conf t" \
         -c "interface ${interface}" \
         -c "ip ospf authentication message-digest" \
-        -c "ip ospf message-digest-key 1 md5 pass4OSPF" \
+        -c "ip ospf message-digest-key 1 md5 ${OSPF_PASS:-pass4OSPF}" \
         -c "ip ospf priority 0" \
         -c "router ospf" \
         -c "ospf router-id ${route_id}" \
@@ -94,8 +94,14 @@ gen_ospf() {
         -c "auto-cost reference-bandwidth 100000" \
         -c "network ${vip}/32 area 0.0.0.0" \
         -c "area 0.0.0.0 authentication message-digest"
+    for i in $(ip ad show dev ${interface} | awk '/scope global/ {print $2}'); do
+        vtysh -c "conf t" \
+            -c "router ospf" \
+            -c "network ${i} area 0.0.0.0"
+    done
     vtysh -c "write" # vtysh -w
     vtysh -c "show running-config"
+    vtysh -c "show ip ospf interface ${interface}"
     log "INIT ospf done"
 }
 
@@ -158,6 +164,8 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env:
+            OSPF_PASS       default: pass4OSPF
               REAL  Director
         --rid       *  <str> keepalive router_id
         --vip    *  *  <ip> virtual ipaddress
@@ -171,7 +179,8 @@ ${SCRIPTNAME}
 wget -q -O- 'https://deb.frrouting.org/frr/keys.asc' | gpg --dearmor > /etc/apt/trusted.gpg.d/frr-archive-keyring.gpg
 # possible values for FRRVER: frr-6 frr-7 frr-8 frr-stable
 FRRVER="frr-stable"
-echo "deb https://deb.frrouting.org/frr bullseye \$FRRVER" > /etc/apt/sources.list.d/frr.list
+RELEASE="bookworm"
+echo "deb https://deb.frrouting.org/frr \$RELEASE \$FRRVER" > /etc/apt/sources.list.d/frr.list
 apt update && apt -y install frr keepalived
 
 curl -O https://rpm.frrouting.org/repo/\$FRRVER-repo-1-0.el7.noarch.rpm
