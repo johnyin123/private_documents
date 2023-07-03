@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("da80479[2021-11-30T07:50:18+08:00]:new_ceph.sh")
+VERSION+=("ce143ba[2023-05-12T10:03:17+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 fix_ceph_conf() {
@@ -124,7 +124,7 @@ add_osd_bluestore() {
     # copy /var/lib/ceph/bootstrap-osd/${cname}.keyring from monitor node to osd node
     [ -e "/var/lib/ceph/bootstrap-osd/${cname}.keyring" ] && {
         echo "destroy all volume groups and logical volumes"
-        ceph-volume --cluster ${cname} lvm zap ${disk} --destroy
+        ceph-volume --cluster ${cname} lvm zap ${disk} # --destroy
         echo "create ceph volumes"
         ceph-volume --cluster ${cname} lvm create --data ${disk}
     }

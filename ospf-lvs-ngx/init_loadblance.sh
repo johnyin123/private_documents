@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d0f580a[2023-02-09T10:12:53+08:00]:init_loadblance.sh")
+VERSION+=("b3fb1ab[2023-07-03T20:11:32+08:00]:init_loadblance.sh")
 ################################################################################
 LOGFILE=""
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
@@ -112,6 +112,8 @@ gen_zebra() {
     log "INIT zebra start"
     rm -f /etc/frr/frr.conf /etc/frr/zebra.conf || true
     touch /etc/frr/frr.conf || true
+    sed -i  "s/\s*ospfd\s*=.*/ospfd=yes/g" /etc/frr/daemons || true
+    echo "hostname $(cat /etc/hostname)" > /etc/frr.conf || true
     systemctl restart frr || true
     vtysh -c "conf t" -c "hostname $(cat /etc/hostname)" || log "hostname error"
     vtysh -c "conf t" -c "password ${password}" -c "enable password ${password}" -c "service password-encryption" || log "password error"
