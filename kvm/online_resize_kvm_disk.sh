@@ -60,6 +60,7 @@ virsh domblklist ${DOMNAME}
 TARGET=vda
 DISK=$(virsh dumpxml ${DOMNAME} | xmllint --xpath "string(/domain/devices/disk/target[@dev=\"${TARGET}\"]/following-sibling::alias/@name)" -)
 #--<alias name="virtio-disk0"/>
+virsh qemu-monitor-command $DOMNAME --hmp  'info block'
 virsh qemu-monitor-command ${DOMNAME} block_resize drive-${DISK} 30G --hmp
 # virsh vol-resize vda-e8ae4363-f9b1-475f-8a6e-5a77048fe1f5.raw --pool cephpool 100G
 #pvscan; pvresize /dev/vdb ; lvextend -l +100%FREE /dev/mapper/vg_data-lv_data

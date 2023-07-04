@@ -59,10 +59,10 @@
 import boto3
 import json
 
-access_key = "7PAHUZN5L8TU7I3F5PKE"
-secret_key = "aIXyBZprCOKDsXM3xdqMLAMHPed36LKldqGjFXU8"
-s3_host = 'http://192.168.168.131'
-bucket_name = "public-bucket"
+access_key = "admin"
+secret_key = "tsd@2023"
+s3_host = 'http://10.170.24.2'
+bucket_name = "public"
 
 conn = boto3.client('s3',
         aws_secret_access_key = secret_key,
