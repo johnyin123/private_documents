@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b3fb1ab[2023-07-03T20:11:32+08:00]:init_loadblance.sh")
+VERSION+=("f1d3313[2023-07-04T07:19:12+08:00]:init_loadblance.sh")
 ################################################################################
 LOGFILE=""
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
@@ -87,6 +87,7 @@ gen_ospf() {
         -c "interface ${interface}" \
         -c "ip ospf authentication message-digest" \
         -c "ip ospf message-digest-key 1 md5 ${OSPF_PASS:-pass4OSPF}" \
+        -c "ip ospf cost 2" \
         -c "ip ospf priority 0" \
         -c "router ospf" \
         -c "ospf router-id ${route_id}" \
@@ -197,6 +198,7 @@ main() {
     local rip=()
     local opt_short=""
     local opt_long="rid:,vip:,rip:,frr,"
+    local interface=eth0
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -222,7 +224,8 @@ main() {
         init_keepalived "${rid}" "${vip}" ${rip[@]}
         [ -z "${frr}" ] && init_lo_vip "lo:0" "${vip}" || {
             gen_zebra "lo" "${vip}"
-            gen_ospf "eth0" "${vip}" "${vip}"
+            IFS='/' read -r routerid tmask <<< "$(ip ad show dev eth0 | awk '/scope global/ {print $2}' | head -1)"
+            gen_ospf "${interface}" "${routerid}" "${vip}"
         }
     }
     [ -z "${rid}" ] && ((${#rip[@]} == 0)) && {
