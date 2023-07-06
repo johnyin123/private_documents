@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("51b1971[2023-04-17T14:12:22+08:00]:virt-tplmodify.sh")
+VERSION+=("abb1faa[2023-04-21T14:15:23+08:00]:virt-tplmodify.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -21,7 +21,7 @@ ${SCRIPTNAME}
         --ip6gateway            ipv6 gateway
         -H|--hostname           guest os hostname
         -t|--template      *    telplate disk for modify
-        -p|--partnum            temlate partition number, default=1
+        -p|--partnum            temlate partition number, default auto detect
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -34,11 +34,14 @@ exit 1
 mount_tpl() {
     local mnt_point=$1
     local tpl_img=$2
-    local partnum=${3}
+    local partnum=${3:-}
     mkdir -p ${mnt_point}
     # SectorSize * StartSector
     SectorSize=$(parted ${tpl_img} unit s print | awk '/Sector size/{print $4}' | awk -F "B" '{print $1}')
-    sst=$(parted ${tpl_img} unit s print | awk "/ ${partnum}  /{print \$2}")
+    local sst=0
+    [ -z "${partnum}" ] && \
+        sst=$(parted ${tpl_img} unit s print | awk "/ext4|xfs/{print \$2}") || \
+        sst=$(parted ${tpl_img} unit s print | awk "/ ${partnum}  /{print \$2}")
     StartSector=${sst:0:${#sst}-1}
     OffSet=$(($StartSector*$SectorSize))
     try mount -o loop,offset=${OffSet} ${tpl_img} ${mnt_point}
@@ -110,15 +113,15 @@ EOF
 }
 
 main() {
-    local disk_tpl=
-    local partnum=1
+    local disk_tpl=""
+    local partnum=""
     local guest_hostname="guestos"
-    local guest_ipaddr=
-    local guest_prefix=
-    local guest_gateway=
-    local guest_ip6addr=
-    local guest_ip6prefix=
-    local guest_ip6gateway=
+    local guest_ipaddr=""
+    local guest_prefix=""
+    local guest_gateway=""
+    local guest_ip6addr=""
+    local guest_ip6prefix=""
+    local guest_ip6gateway=""
     local iface="eth0"
     local opt_short="r:n:i:H:t:p:"
     local opt_long="gateway:,interface:,ipaddr:,ip6addr:,ip6gateway:,hostname:,template:,partnum:,"
@@ -147,13 +150,7 @@ main() {
         esac
     done
     [[ -z "${disk_tpl}" ]] && usage "template must input"
-
-    is_user_root || exit_msg "root need!\n"
-    for i in mount umount parted
-    do
-        [[ ! -x $(which $i) ]] && { exit_msg "$i no found\n"; }
-    done
-
+    require mount umount parted
     info_msg "chage ${disk_tpl}:\n"
     info_msg "       ip: ${guest_ipaddr}/${guest_prefix}\n"
     info_msg " hostname: ${guest_hostname}\n"
@@ -176,4 +173,5 @@ EOF
     info_msg "ALL DONE\n"
     return 0
 }
+auto_su "$@"
 main "$@"

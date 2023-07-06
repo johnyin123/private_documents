@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("da5c6d3[2023-06-01T12:51:03+08:00]:virt-volupload.sh")
+VERSION+=("93ac5b6[2023-06-29T15:44:11+08:00]:virt-volupload.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -77,8 +77,11 @@ main() {
         try ${upload_cmd} vol-upload --pool ${pool} --vol ${vol_name} --file ${disk_tpl} || exit_msg "upload template file ${disk_tpl} error\n"
     } || {
         local ceph_rbd_pool=$(${VIRSH} pool-dumpxml ${pool} | xmlstarlet sel -t -v "/pool/source/name")
+        local orgsize=$(${KVM_HOST:+ssh -p ${KVM_PORT:-60022} ${KVM_USER:-root}@${KVM_HOST}} rbd --cluster ${rbd} info --format xml ${ceph_rbd_pool}/${vol_name} | xmlstarlet sel -t -v "/image/size")
         try "${KVM_HOST:+ssh -p ${KVM_PORT:-60022} ${KVM_USER:-root}@${KVM_HOST}} rbd --cluster ${rbd} rm --no-progress --pool ${ceph_rbd_pool} ${vol_name} 2>/dev/null" || true
         try "cat ${disk_tpl} | ${KVM_HOST:+ssh -p ${KVM_PORT:-60022} ${KVM_USER:-root}@${KVM_HOST}} rbd --cluster ${rbd} import --image-feature layering - ${ceph_rbd_pool}/${vol_name}" || exit_msg "upload template file ${disk_tpl} via rbd error\n"
+        info_msg "restore ${vol_name} size to  ${orgsize}"
+        ${VIRSH} vol-resize --pool ${pool} --vol ${vol_name} --capacity ${orgsize}
     }
     info_msg "upload template file ${disk_tpl} ok\n"
     return 0
