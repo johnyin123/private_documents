@@ -62,3 +62,8 @@ snappy
 zlib
 zstd
 lz4
+
+openeuler ceph rbd, bug:
+    qemu-img create -f rbd rbd:libvirt-pool/fuck.raw:conf=/etc/ceph/armsite.conf 20G
+        qemu-img: rbd:libvirt-pool/fuck.raw:conf=/etc/ceph/armsite.conf: Invalid parameter 'cache'
+
