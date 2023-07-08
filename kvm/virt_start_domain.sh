@@ -7,20 +7,18 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6c82f0b[2023-05-30T10:56:42+08:00]:virt_start_domain.sh")
+VERSION+=("3682f90[2023-06-01T12:49:54+08:00]:virt_start_domain.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
-VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
-VIRSH="virsh ${VIRSH_OPT}"
 LOGFILE=""
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        env:
-        KVM_HOST: default <not define, local>
-        KVM_USER: default root
-        KVM_PORT: default 60022
+        -K|--kvmhost    <ipaddr>  kvm host address
+        -U|--kvmuser    <str>     kvm host ssh user
+        -P|--kvmport    <int>     kvm host ssh port
+        --kvmpass       <password>kvm host ssh password
         -u|--uuid    *  <uuid>    domain uuid
         --console                 console
         -q|--quiet
@@ -32,15 +30,20 @@ EOF
     exit 1
 }
 main() {
+    local kvmhost="" kvmuser="" kvmport="" kvmpass=""
     local uuid="" opts=()
-    local opt_short="u:"
-    local opt_long="uuid:,console,"
+    local opt_short="K:U:P:u:"
+    local opt_long="kvmhost:,kvmuser:,kvmport:,kvmpass:,uuid:,console,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
+            -K | --kvmhost) shift; kvmhost=${1}; shift;;
+            -U | --kvmuser) shift; kvmuser=${1}; shift;;
+            -P | --kvmport) shift; kvmport=${1}; shift;;
+            --kvmpass)      shift; kvmpass=${1}; shift;;
             -u | --uuid)    shift; uuid="${1}"; shift;;
             --console)      shift; opts+=("--console");;
             ########################################
@@ -54,8 +57,9 @@ main() {
         esac
     done
     [ -z "${uuid}" ] && usage "uuid must input"
+    [ -z ${kvmpass} ]  || set_sshpass "${kvmpass}"
     set -- "${opts[@]}"
-    exec ${VIRSH} start ${uuid} "$@"
+    exec virsh -q ${kvmhost:+-c qemu+ssh://${kvmuser:+${kvmuser}@}${kvmhost}${kvmport:+:${kvmport}}/system} start ${uuid} $@
     return 0
 }
 main "$@"
