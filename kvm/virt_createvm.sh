@@ -7,11 +7,9 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("10e68f5[2023-06-01T17:08:59+08:00]:virt_createvm.sh")
+VERSION+=("3afc169[2023-07-01T22:00:46+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
-VIRSH_OPT="-q ${KVM_HOST:+-c qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}"
-VIRSH="virsh ${VIRSH_OPT}"
 LOGFILE=""
 gen_tpl() {
     cat <<'EOF'
@@ -58,10 +56,10 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        env:
-        KVM_HOST: default <not define, local>
-        KVM_USER: default root
-        KVM_PORT: default 60022
+        -K|--kvmhost    <ipaddr>  kvm host address
+        -U|--kvmuser    <str>     kvm host ssh user
+        -P|--kvmport    <int>     kvm host ssh port
+        --kvmpass       <password>kvm host ssh password
         -t|--tpl    *   <file>    vm tpl file
         -u|--uuid       <uuid>    default autogen
         -N|--name       <str>
@@ -99,15 +97,20 @@ EOF
 }
 main() {
     declare -A tpl_env
+    local kvmhost="" kvmuser="" kvmport="" kvmpass=""
     local tpl="" uuid="" name="" desc="" cpus="" mem="" arch="" uefi="" maxcpu="" maxmem=""
-    local opt_short="t:u:N:D:c:m:e:"
-    local opt_long="tpl:,uuid:,name:,desc:,cpus:,mem:,arch:,uefi:,maxcpu:,maxmem:,env:,"
+    local opt_short="K:U:P:t:u:N:D:c:m:e:"
+    local opt_long="kvmhost:,kvmuser:,kvmport:,kvmpass:,tpl:,uuid:,name:,desc:,cpus:,mem:,arch:,uefi:,maxcpu:,maxmem:,env:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
+            -K | --kvmhost) shift; kvmhost=${1}; shift;;
+            -U | --kvmuser) shift; kvmuser=${1}; shift;;
+            -P | --kvmport) shift; kvmport=${1}; shift;;
+            --kvmpass)      shift; kvmpass=${1}; shift;;
             -t | --tpl)     shift; tpl=${1}; shift;;
             -u | --uuid)    shift; uuid="${1}"; shift;;
             -N | --name)    shift; name="${1}"; shift;;
@@ -132,8 +135,10 @@ main() {
     require j2 virsh
     defined QUIET || LOGFILE="-a /dev/stderr"
     [ -z "${tpl}" ] && usage "tpl must input"
-    uuid=${uuid:-$(cat /proc/sys/kernel/random/uuid)}
-    cat <<EOF | tee ${LOGFILE} | j2 --format=yaml ${tpl} | tee ${LOGFILE} | ${VIRSH} define --file /dev/stdin || exit_msg "${uuid} create ERROR\n"
+    [ -z ${kvmpass} ]  || set_sshpass "${kvmpass}"
+    uuid=${uuid:-$(uuid)}
+    cat <<EOF | tee ${LOGFILE} | j2 --format=yaml ${tpl} | tee ${LOGFILE} | virsh_wrap "${kvmhost}" "${kvmport}" "${kvmuser}" define --file /dev/stdin || exit_msg "${uuid} create ERROR\n"
+
 vm_uuid: "${uuid}"
 vm_name : "${name:-vm}"
 vm_desc : "${desc:-}"

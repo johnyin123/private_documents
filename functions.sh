@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("85fdbe6[2023-05-22T13:42:49+08:00]:functions.sh")
+VERSION+=("719c2ab[2023-06-25T10:13:06+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -48,6 +48,15 @@ func_wrapper() {
     local args=$@
     ${func} ${args} || { [ $? = 127 ] && warn_msg "${func} not implemented\n"; }
 }
+
+virsh_wrap() {
+    local host="${1}"
+    local port="${2}"
+    local user="${3}"
+    shift 3;
+    try virsh -q ${host:+-c qemu+ssh://${user:+${user}@}${host}${port:+:${port}}/system} $@
+}
+
 # write_file myfile <<EOF / write_file myfile 1 <<'EOF'
 # msg....
 # EOF
