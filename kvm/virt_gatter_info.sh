@@ -1,11 +1,11 @@
 #!/bin/echo Warnning, this library must only be sourced!
-VERSION+=("initver[2023-07-06T20:44:15+08:00]:virt_gatter_info.sh")
+VERSION+=("1c3a848[2023-07-06T20:44:14+08:00]:virt_gatter_info.sh")
 ################################################################################
 __dummy_dryrun() {
     export arch=aarch64
     export uefi=""
     export net=()
-    export pool=()
+    export -A pool=()
     return 0 
 }
 __virsh_wrap() {
@@ -39,12 +39,13 @@ __main() {
     export arch=$(printf "${xml}" | xmlstarlet sel -t -v "domainCapabilities/arch") || return 2
     export uefi=$(printf "${xml}" | xmlstarlet sel -t -v "domainCapabilities/os/loader/value") || return 3
     export net=()
-    export pool=()
+    declare -g -A pool=()
+
     for item in $(__virsh_wrap "${host}" "${port}" "${user}" net-list --name); do
         net+=(${item})
     done
     for item in $(__virsh_wrap "${host}" "${port}" "${user}" pool-list --all --name); do
-        pool+=(${item})
+        pool[${item}]=$(__virsh_wrap "${host}" "${port}" "${user}" pool-dumpxml ${item})
     done
     return 0
 }
