@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8fb869c[2023-06-13T11:22:26+08:00]:virt_attach.sh")
+VERSION+=("e55482f[2023-07-08T20:33:54+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -29,6 +29,21 @@ gen_tpl() {
   <target dev='vd{{ vm_last_disk }}' bus='virtio'/>
   <blockio logical_block_size='4096' physical_block_size='4096'/>
 </disk>
+# rbd
+<disk type='network' device='disk'>
+  <driver name='qemu' type='raw'/>
+  <auth username='admin'><secret type='ceph' uuid='cepp secret uuid'/></auth>
+  <source protocol='rbd' name='ceph_libvirt_pool/vda-{{ vm_uuid }}.raw'>
+    <host name='ipaddr' port='6789'/>
+  </source>
+  <target dev='vd{{ vm_last_disk }}' bus='virtio'/>
+</disk>
+# host usb dev
+<hostdev mode='subsystem' type='usb'>
+  <source>
+    <address bus='${BUSNUM}' device='${DEVNUM}' />
+  </source>
+</hostdev>
 # # virtiofs share host to guest "mount -t virtiofs mount_tag /mnt/mount/path"
 # # virtiofs need sharemem
 # <memoryBacking>
