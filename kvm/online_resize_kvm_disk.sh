@@ -55,6 +55,7 @@ virsh qemu-monitor-command ${VM} --pretty '{ "execute": "query-commands"}'
 
 #DISK=$(virsh dumpxml domname | xmllint --xpath 'string(/domain/devices/disk[1]/alias/@name)' -)
 
+virsh blockresize ${DOMNAME} /storage/disk.raw --size 4GIB
 DOMNAME=
 virsh domblklist ${DOMNAME}
 TARGET=vda
