@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("b9eff15[2023-05-17T20:28:52+08:00]:os_debian_init.sh")
+VERSION+=("2693fbd[2023-06-08T07:29:59+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -43,7 +43,16 @@ debian_build() {
     echo ${HOSTNAME:-deb-tpl} > /etc/hostname
     cat << EOF > /etc/rc.local
 #!/bin/sh -e
-test -f /etc/ssh/ssh_host_rsa_key || dpkg-reconfigure openssh-server
+test -f /etc/ssh/ssh_host_rsa_key ||
+{
+    dpkg-reconfigure openssh-server
+    rm -f /etc/machine-id
+    dbus-uuidgen --ensure=/etc/machine-id
+}
+cat <<RC_EOF > /etc/rc.local
+#!/bin/sh -e
+exit 0
+RC_EOF
 exit 0
 EOF
     chmod 755 /etc/rc.local
