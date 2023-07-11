@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e55482f[2023-07-08T20:33:54+08:00]:virt_attach.sh")
+VERSION+=("9f22d82[2023-07-10T07:28:55+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -33,7 +33,7 @@ gen_tpl() {
 <disk type='network' device='disk'>
   <driver name='qemu' type='raw'/>
   <auth username='admin'><secret type='ceph' uuid='cepp secret uuid'/></auth>
-  <source protocol='rbd' name='ceph_libvirt_pool/vda-{{ vm_uuid }}.raw'>
+  <source protocol='rbd' name='ceph_libvirt_pool/vd{{ vm_last_disk }}-{{ vm_uuid }}.raw'>
     <host name='ipaddr' port='6789'/>
   </source>
   <target dev='vd{{ vm_last_disk }}' bus='virtio'/>
