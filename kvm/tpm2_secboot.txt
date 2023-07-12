@@ -1,0 +1,18 @@
+# apt -y install ovmf swtpm swtpm-tools
+# Enable TPM 2.0 and ScureBoot for installing Windows 11.
+# 1.    <loader readonly='yes' type='pflash'>/usr/share/OVMF/OVMF_CODE.secboot.fd</loader>
+# 2:    <tpm model='tpm-tis'><backend type='emulator' version='2.0'/></tpm>
+virt-install \
+--name Windows_11 \
+--ram 6144 \
+--disk path=/var/kvm/images/Windows_11.img,size=50 \
+--cpu host-passthrough \
+--vcpus=4 \
+--os-variant=win10 \
+--network bridge=br0 \
+--graphics vnc,listen=0.0.0.0,password=password \
+--video virtio \
+--cdrom /home/Win11_22H2_English_x64v1.iso \
+--features kvm_hidden=on,smm=on \
+--tpm backend.type=emulator,backend.version=2.0,model=tpm-tis \
+--boot loader=/usr/share/OVMF/OVMF_CODE.secboot.fd,loader_ro=yes,loader_type=pflash,nvram_template=/usr/share/OVMF/OVMF_VARS.ms.fd 
