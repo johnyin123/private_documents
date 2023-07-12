@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f1d3313[2023-07-04T07:19:12+08:00]:init_loadblance.sh")
+VERSION+=("964eb01[2023-07-04T09:38:12+08:00]:init_loadblance.sh")
 ################################################################################
 LOGFILE=""
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
@@ -42,7 +42,7 @@ global_defs {
 }
 virtual_server ${vip} 0 {
     delay_loop 2
-    lb_algo rr
+    lb_algo sh
     lb_kind DR
     persistence_timeout 360
     protocol TCP
@@ -59,7 +59,7 @@ done)
 }
 virtual_server ${vip} 0 {
     delay_loop 2
-    lb_algo rr
+    lb_algo sh
     lb_kind DR
     persistence_timeout 360
     protocol UDP
