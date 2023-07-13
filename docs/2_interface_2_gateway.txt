@@ -1,5 +1,11 @@
 To configure two interfaces say eth0 and eth1 to use two networks 192.168.0.0/24 and 10.10.0.0/24
 
+echo '1 isp2' >> /etc/iproute2/rt_tables
+route-ethX:
+    default via 1.1.1.1 table isp2
+rule-ethX:
+    from 192.168.1.50 table isp2
+
 a tool iproute2 can be used to achieve this.
 Steps:
 Edit your /etc/network/interfaces:
@@ -28,6 +34,7 @@ Add second routing table by editing `/etc/iproute2/rt_tables:
 
 Populate new routing table:
 
+echo '1 rt2' >> /etc/iproute2/rt_tables
 ip route add 10.10.0.0/24 dev eth1 src 10.10.0.10 table rt2
 ip route add default via 10.10.0.1 dev eth1 table rt2
 
