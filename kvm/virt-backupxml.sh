@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-backupxml.sh - 9bf43e0 - 2021-01-25T07:29:47+08:00")
+VERSION+=("7200f3b[2021-08-10T13:28:35+08:00]:virt-backupxml.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 VIRSH_OPT="-k 300 -K 5 -q"
@@ -90,7 +90,9 @@ main() {
 #    exec 2> >(tee "error_log_$(date -Iseconds).txt")
     CFG_INI=${1:-}; shift || (exit_msg "conf must input\n";)
     [[ -r "${CFG_INI}" ]] || {
-        cat >"${CFG_INI}" <<-EOF
+        cat >"${CFG_INI}" <<-'EOF'
+# # get all ipaddr:
+# sed "s/Co., Ltd.//g" | awk -F, '{ printf "%s\n", $13 }'| grep -v "^$" | sort -t. -k 3,3n -k 4,4n
 #ip  sshport
 10.4.38.2 60022 BJ
 10.4.38.3 60022 DL
