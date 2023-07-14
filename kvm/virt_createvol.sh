@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f2d8e31[2023-06-02T10:21:35+08:00]:virt_createvol.sh")
+VERSION+=("e55482f[2023-07-08T20:33:54+08:00]:virt_createvol.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -73,6 +73,7 @@ main() {
     [ ! -z "${pool}" ] && [ ! -z "${name}" ] && [ ! -z "${size}" ] || usage "pool/name/size must input"
     [ -z ${kvmpass} ]  || set_sshpass "${kvmpass}"
     info_msg "create vol ${name} on ${pool} size ${size}\n"
+    virsh_wrap "${kvmhost}" "${kvmport}" "${kvmuser}" pool-start ${pool} || exit_msg "pool-start error\n"
     virsh_wrap "${kvmhost}" "${kvmport}" "${kvmuser}" pool-refresh ${pool} || exit_msg "pool-refresh error\n"
     virsh_wrap "${kvmhost}" "${kvmport}" "${kvmuser}" vol-create-as --pool ${pool} --name ${name} --capacity 1M --format ${fmt} \
         ${backing_vol:+--backing-vol ${backing_vol} --backing-vol-format ${backing_fmt} } || exit_msg "vol-create-as error\n"

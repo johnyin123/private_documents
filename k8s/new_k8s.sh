@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("770f4dd[2023-06-25T17:15:59+08:00]:new_k8s.sh")
+VERSION+=("e84b2cf[2023-06-27T08:49:57+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -214,7 +214,6 @@ init_calico_cni() {
     rm -f "${calico_yml}"
     kubectl get nodes -o wide || true
     kubectl get pods --all-namespaces -o wide || true
-    echo "kubectl describe -n kube-system pod calico-node-xxxxx"
 }
 
 init_ingress() {
@@ -525,7 +524,7 @@ EOF
     for ipaddr in $(array_print master) $(array_print worker); do
         prepare_docker_images "${ipaddr}" CALICO_MAP "docker.io/calico"
     done
-    ssh_func "root@${master[0]}" "${SSH_PORT}" init_calico_cni "dummy" "${R_FLANNEL_YML}"
+    ssh_func "root@${master[0]}" "${SSH_PORT}" init_calico_cni "dummy" "${R_CALICO_YML}"
 }
 
 prepare_docker_images() {
@@ -647,8 +646,6 @@ init_kube_cluster() {
         ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo ${hosts} >> /etc/hosts"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" add_k8s_worker "${api_srv}" "${token}" "${sha_hash}"
     done
-    info_msg "export k8s configuration"
-    ssh_func "root@${master[0]}" "${SSH_PORT}" 'kubeadm config print init-defaults' > kubeadm-calico.conf
 }
 
 usage() {
@@ -783,11 +780,6 @@ main() {
     done
     prepare_kube_images master worker
     [ -z "${flannel_cidr}" ] || pod_cidr="${flannel_cidr}"
-    [ -z "${calico}" ] || {
-        info_msg "install calico cni begin\n"
-        init_kube_calico_cni master worker "dummy"
-        info_msg "install calico cni end\n"
-    }
     [ -z "${bridge}" ] || {
         info_msg "install bridge_cni begin(${bridge})\n"
         pod_cidr=""
@@ -801,6 +793,11 @@ main() {
         info_msg "install bridge_cni end(${bridge})\n"
     }
     init_kube_cluster master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}"
+    [ -z "${calico}" ] || {
+        info_msg "install calico cni begin\n"
+        init_kube_calico_cni master worker "dummy"
+        info_msg "install calico cni end\n"
+    }
     [ -z "${flannel_cidr}" ] || {
         info_msg "install flannel_cni begin(${pod_cidr})\n"
         init_kube_flannel_cni master worker "${pod_cidr}"
@@ -818,6 +815,13 @@ main() {
         ssh_func "root@${master[0]}" "${SSH_PORT}" init_dashboard "${R_DASHBOARD_YML}"
     }
     info_msg "ALL DONE\n"
+    info_msg "export k8s configuration"
+    ssh_func "root@${master[0]}" "${SSH_PORT}" 'kubeadm config print init-defaults'
+    ssh_func "root@${master[0]}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl cluster-info"
+    info_msg "diag: kubectl get pods --all-namespaces -o wide"
+    info_msg "diag: kubectl logs -n kube-system coredns-xxxx"
+    info_msg "diag: kubectl describe -n kube-system pod coredns-xxxx"
+    info_msg "diag: journalctl -f -u kubelet"
     return 0
 }
 main "$@"
