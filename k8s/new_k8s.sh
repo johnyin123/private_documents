@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("505ec4e[2023-07-14T10:35:33+08:00]:new_k8s.sh")
+VERSION+=("b59cb95[2023-07-14T15:49:40+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -830,6 +830,7 @@ main() {
     info_msg "export k8s configuration"
     ssh_func "root@${master[0]}" "${SSH_PORT}" 'kubeadm config print init-defaults'
     ssh_func "root@${master[0]}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl cluster-info"
+    info_msg "diag: kubectl get nodes -o wide\n"
     info_msg "diag: kubectl get pods --all-namespaces -o wide\n"
     info_msg "diag: kubectl logs -n kube-system coredns-xxxx\n"
     info_msg "diag: kubectl describe -n kube-system pod coredns-xxxx\n"
