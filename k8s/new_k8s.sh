@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e84b2cf[2023-06-27T08:49:57+08:00]:new_k8s.sh")
+VERSION+=("505ec4e[2023-07-14T10:35:33+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -41,13 +41,19 @@ R_INGRESS_YML="/tmp/ingress-nginx.yml"
 # calico cni url
 # grep "image\s*:\(.*\) \1" calico.yaml  | awk '{ print $2 }' | sort | uniq
 declare -A CALICO_MAP=(
-    [cni:v3.26.1]=docker.io/calico/cni:v3.26.1
-    [kube-controllers:v3.26.1]=docker.io/calico/kube-controllers:v3.26.1
-    [node:v3.26.1]=docker.io/calico/node:v3.26.1
+    [operator:v1.30.4]=quay.io/tigera/operator:v1.30.4
 )
-CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml"
-L_CALICO_YML="${DIRNAME}/calico.yaml"
-R_CALICO_YML="/tmp/calico.yaml"
+#    [cni:v3.26.1]=docker.io/calico/cni:v3.26.1
+#    [kube-controllers:v3.26.1]=docker.io/calico/kube-controllers:v3.26.1
+#    [node:v3.26.1]=docker.io/calico/node:v3.26.1
+
+CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
+L_CALICO_YML="${DIRNAME}/tigera-operator.yaml"
+R_CALICO_YML="/tmp/tigera-operator.yaml"
+CALICO_CUST_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/custom-resources.yaml"
+L_CALICO_CUST_YML="${DIRNAME}/custom-resources.yaml"
+R_CALICO_CUST_YML="/tmp/custom-resources.yaml"
+
 # mirrors
 # kubeadm config images list --kubernetes-version ${K8S_VERSION}
 declare -A GCR_MAP=(
@@ -206,12 +212,15 @@ init_flannel_cni() {
 init_calico_cni() {
     local pod_cidr=${1}
     local calico_yml=${2}
+    local calico_cust_yml=${3}
     [ -e "${calico_yml}" ] || return 1
-    # sed -i "s|\"Network\"\s*:\s*.*|\"Network\": \"${pod_cidr}\",|g" "${calico_yml}"
+    [ -e "${calico_cust_yml}" ] || return 1
+    sed -i "s|cidr\s*:.*|cidr: ${pod_cidr}|g" "${calico_cust_yml}"
     export KUBECONFIG=/etc/kubernetes/admin.conf
-    kubectl apply -f "${calico_yml}"
-    kubectl -n kube-system get configmaps calico-config -o yaml
-    rm -f "${calico_yml}"
+    kubectl create -f "${calico_yml}"
+    kubectl create -f "${calico_cust_yml}"
+    kubectl -n kube-system get configmaps calico-config -o yaml || true
+    rm -f "${calico_yml}" "${calico_cust_yml}"
     kubectl get nodes -o wide || true
     kubectl get pods --all-namespaces -o wide || true
 }
@@ -285,6 +294,7 @@ EOF
     "http://hub-mirror.c.163.com"
   ],
   "insecure-registries": [
+    "quay.io",
     "private.test.com"
   ],
   "max-concurrent-downloads": 10,
@@ -516,15 +526,18 @@ EOF
 init_kube_calico_cni() {
     local master=($(array_print ${1}))
     local worker=($(array_print ${2}))
+    local cidr=${3}
     local ipaddr="${master[0]}"
     vinfo_msg <<EOF
-"****** ${ipaddr} init calico() cni.
+****** ${ipaddr} init calico() cni ${cidr}.
 EOF
     prepare_yml "${ipaddr}" "${L_CALICO_YML}" "${R_CALICO_YML}" "${CALICO_YML}"
+    prepare_yml "${ipaddr}" "${L_CALICO_CUST_YML}" "${R_CALICO_CUST_YML}" "${CALICO_CUST_YML}"
     for ipaddr in $(array_print master) $(array_print worker); do
-        prepare_docker_images "${ipaddr}" CALICO_MAP "docker.io/calico"
+        # prepare_docker_images "${ipaddr}" CALICO_MAP "docker.io/calico"
+        prepare_docker_images "${ipaddr}" CALICO_MAP "quay.io/tigera"
     done
-    ssh_func "root@${master[0]}" "${SSH_PORT}" init_calico_cni "dummy" "${R_CALICO_YML}"
+    ssh_func "root@${master[0]}" "${SSH_PORT}" init_calico_cni "${cidr}" "${R_CALICO_YML}" "${R_CALICO_CUST_YML}"
 }
 
 prepare_docker_images() {
@@ -663,7 +676,7 @@ ${SCRIPTNAME}
         -m|--master   *        <ip>   master nodes, support multi nodes
         -w|--worker            <ip>   worker nodes, support multi nodes
         --bridge               <str>  k8s bridge_cni, bridge name
-        --calico               <str>  calico cni
+        --calico               <cidr> calico cni, cust cidr
         --flannel              <cidr> k8s flannel_cni, pod_cidr
                                       skip_proxy flannel_cni no work. get info etcd with service_cluster_ip
         --dashboard                   install dashboard, default false
@@ -795,7 +808,7 @@ main() {
     init_kube_cluster master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}"
     [ -z "${calico}" ] || {
         info_msg "install calico cni begin\n"
-        init_kube_calico_cni master worker "dummy"
+        init_kube_calico_cni master worker "${calico}"
         info_msg "install calico cni end\n"
     }
     [ -z "${flannel_cidr}" ] || {
@@ -814,14 +827,16 @@ main() {
         prepare_dashboard_images master worker
         ssh_func "root@${master[0]}" "${SSH_PORT}" init_dashboard "${R_DASHBOARD_YML}"
     }
-    info_msg "ALL DONE\n"
     info_msg "export k8s configuration"
     ssh_func "root@${master[0]}" "${SSH_PORT}" 'kubeadm config print init-defaults'
     ssh_func "root@${master[0]}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl cluster-info"
-    info_msg "diag: kubectl get pods --all-namespaces -o wide"
-    info_msg "diag: kubectl logs -n kube-system coredns-xxxx"
-    info_msg "diag: kubectl describe -n kube-system pod coredns-xxxx"
-    info_msg "diag: journalctl -f -u kubelet"
+    info_msg "diag: kubectl get pods --all-namespaces -o wide\n"
+    info_msg "diag: kubectl logs -n kube-system coredns-xxxx\n"
+    info_msg "diag: kubectl describe -n kube-system pod coredns-xxxx\n"
+    info_msg "diag: journalctl -f -u kubelet\n"
+    info_msg "diag: kubectl -n kube-system get rs\n"
+    info_msg "diag: kubectl -n kube-system scale --replicas=3 rs/coredns-xxxx\n"
+    info_msg "ALL DONE\n"
     return 0
 }
 main "$@"
