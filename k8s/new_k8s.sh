@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b5c211e[2023-07-14T17:05:14+08:00]:new_k8s.sh")
+VERSION+=("24a62e2[2023-07-15T13:53:35+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -51,6 +51,7 @@ declare -A CALICO_MAP=(
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml"
 L_CALICO_YML="${DIRNAME}/calico.yaml"
 R_CALICO_YML="/tmp/calico.yaml"
+TYPHA_REPLICAS=1
 CALICO_TYPEA_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico-typha.yaml"
 L_CALICO_TYPEA_YML="${DIRNAME}/calico-typha.yaml"
 R_CALICO_TYPEA_YML="/tmp/calico-typha.yaml"
@@ -223,7 +224,7 @@ init_calico_cni() {
     echo "and no more than 20 replicas. In production,"
     echo "we recommend a minimum of three replicas to reduce the"
     echo "impact of rolling upgrades and failures."
-    sed -i "s|replicas\s*:.*|replicas: 2|g" "${calico_typha_yml}"
+    sed -i "s|replicas\s*:.*|replicas: ${TYPHA_REPLICAS:-1}|g" "${calico_typha_yml}"
     echo "If you are using pod CIDR 192.168.0.0/16, skip to the next step."
     echo "If you are using a different pod CIDR with kubeadm, no changes are required"
     echo "Calico will automatically detect the CIDR based on the running configuration"
