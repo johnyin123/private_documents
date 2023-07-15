@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("911f0ce[2023-07-14T16:05:28+08:00]:new_k8s.sh")
+VERSION+=("b5c211e[2023-07-14T17:05:14+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -44,7 +44,10 @@ declare -A CALICO_MAP=(
     [cni:v3.26.1]=docker.io/calico/cni:v3.26.1
     [kube-controllers:v3.26.1]=docker.io/calico/kube-controllers:v3.26.1
     [node:v3.26.1]=docker.io/calico/node:v3.26.1
+    [typha:v3.26.1]=docker.io/calico/typha:v3.26.1
 )
+# https://github.com/projectcalico/calico/releases/latest/download/calicoctl-linux-arm64
+# https://github.com/projectcalico/calico/releases/latest/download/calicoctl-linux-amd64
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml"
 L_CALICO_YML="${DIRNAME}/calico.yaml"
 R_CALICO_YML="/tmp/calico.yaml"
@@ -213,20 +216,25 @@ init_flannel_cni() {
 init_calico_cni() {
     local pod_cidr=${1}
     local calico_yml=${2}
-    local calico_typea_yml=${3}
+    local calico_typha_yml=${3}
     local calico_etcd_yml=${4}
-#TODO:: https://docs.tigera.io/calico/latest/getting-started/kubernetes/self-managed-onprem/onpremises
-    [ -e "${calico_yml}" ] || return 1
+    [ -e "${calico_yml}" ] || [ -e "${calico_typha_yml}" ] || [ -e "${calico_etcd_yml}" ] || return 1
     echo "We recommend at least one replica for every 200 nodes,"
     echo "and no more than 20 replicas. In production,"
     echo "we recommend a minimum of three replicas to reduce the"
     echo "impact of rolling upgrades and failures."
-    sed -i "s|replicas\s*:.*|replicas: 2|g" "${calico_typea_yml}"
+    sed -i "s|replicas\s*:.*|replicas: 2|g" "${calico_typha_yml}"
+    echo "If you are using pod CIDR 192.168.0.0/16, skip to the next step."
+    echo "If you are using a different pod CIDR with kubeadm, no changes are required"
+    echo "Calico will automatically detect the CIDR based on the running configuration"
+    echo "For other platforms, make sure you uncomment the CALICO_IPV4POOL_CIDR variable in the manifest"
+    echo "and set it to the same value as your chosen pod CIDR."
     export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl apply -f "${calico_yml}"
-    kubectl apply -f "${calico_typea_yml}"
+    kubectl apply -f "${calico_typha_yml}"
+    kubectl apply -f "${calico_etcd_yml}"
     kubectl -n kube-system get configmaps calico-config -o yaml || true
-    rm -f "${calico_yml}" "${calico_typea_yml}"
+    rm -f "${calico_yml}" "${calico_typha_yml}"
     kubectl get nodes -o wide || true
     kubectl get pods --all-namespaces -o wide || true
 }
@@ -741,7 +749,7 @@ EOF
 
 main() {
     local password="" master=() worker=() teardown=() bridge="" apiserver="k8sapi.local.com:6443" gen_join_cmds=""
-    local flannel_cidr="" pod_cidr="" dashboard=false ipvs=false ingress=false skip_proxy=false calico=""
+    local flannel_cidr="" pod_cidr="" dashboard=false ipvs=false ingress=false skip_proxy=false calico_cidr=""
     local opt_short="m:w:"
     local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,calico:,dashboard,ipvs,ingress,teardown:,"
     opt_long+="skip_proxy,"
@@ -757,7 +765,7 @@ main() {
             -w | --worker)  shift; worker+=(${1}); shift;;
             --bridge)       shift; bridge=${1}; shift;;
             --flannel)      shift; flannel_cidr=${1}; shift;;
-            --calico)       shift; calico=${1}; shift;;
+            --calico)       shift; calico_cidr=${1}; shift;;
             --dashboard)    shift; dashboard=true;;
             --ingress)      shift; ingress=true;;
             --skip_proxy)   shift; skip_proxy=true;;
@@ -781,16 +789,16 @@ main() {
         ssh_func "root@${ipaddr}" "${SSH_PORT}" "teardown"
     done
     [ "$(array_size teardown)" -gt "0" ] && { info_msg "TEARDOWN OK\n"; return 0; }
-    [ -e ${DIRNAME}/define.conf ] || sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${SCRIPTNAME} > ${DIRNAME}/define.conf
-    ${EDITOR:-vi} ${DIRNAME}/define.conf || true
-    source ${DIRNAME}/define.conf || true
     [ "$(array_size master)" -gt "0" ] || usage "at least one master"
     [ -z "${gen_join_cmds}" ] || {
         ssh_func "root@${master[0]}" "${SSH_PORT}" gen_k8s_join_cmds ${K8S_VERSION} 2>/dev/null
         info_msg "GEN_CMDS OK\n"
         return 0
     }
-    [ -z "${bridge}" ] || [ -z "${flannel_cidr}" ] || [ -z "${calico}"] || usage "network cni bridge/flannel/calico"
+    [ -z "${bridge}" ] && [ -z "${flannel_cidr}" ] && [ -z "${calico_cidr}"] && usage "network cni bridge/flannel/calico"
+    [ -e ${DIRNAME}/define.conf ] || sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${SCRIPTNAME} > ${DIRNAME}/define.conf
+    ${EDITOR:-vi} ${DIRNAME}/define.conf || true
+    source ${DIRNAME}/define.conf || true
     print_predefine
     confirm "Confirm NEW init k8s env(timeout 10,default N)?" 10 || exit_msg "BYE!\n"
     for ipaddr in $(array_print master) $(array_print worker); do
@@ -799,6 +807,7 @@ main() {
     done
     prepare_kube_images master worker
     [ -z "${flannel_cidr}" ] || pod_cidr="${flannel_cidr}"
+    [ -z "${calico_cidr}" ] || pod_cidr="${calico_cidr}"
     [ -z "${bridge}" ] || {
         info_msg "install bridge_cni begin(${bridge})\n"
         pod_cidr=""
@@ -812,14 +821,14 @@ main() {
         info_msg "install bridge_cni end(${bridge})\n"
     }
     init_kube_cluster master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}"
-    [ -z "${calico}" ] || {
+    [ -z "${calico_cidr}" ] || {
         info_msg "install calico cni begin\n"
-        init_kube_calico_cni master worker "${calico}"
+        init_kube_calico_cni master worker "${calico_cidr}"
         info_msg "install calico cni end\n"
     }
     [ -z "${flannel_cidr}" ] || {
         info_msg "install flannel_cni begin(${pod_cidr})\n"
-        init_kube_flannel_cni master worker "${pod_cidr}"
+        init_kube_flannel_cni master worker "${flannel_cidr}"
         info_msg "install flannel_cni end(${pod_cidr})\n"
     }
     ${skip_proxy} || {
