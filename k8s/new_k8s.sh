@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a981f9e[2023-07-16T11:28:21+08:00]:new_k8s.sh")
+VERSION+=("cb5e2ea[2023-07-16T12:08:24+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -278,6 +278,12 @@ mirror_get_image() {
     local mirror="${1}"
     local mirror_img="${2}"
     local gcr_img="${3}"
+    command -v ctr &> /dev/null && {
+        crt pull "${mirror}/${mirror_img}"
+        crt tag "${mirror}/${mirror_img}" "${gcr_img}"
+        crt rm "${mirror}/${mirror_img}"
+        return 0
+    }
     docker pull "${mirror}/${mirror_img}"
     docker tag "${mirror}/${mirror_img}" "${gcr_img}"
     docker rmi "${mirror}/${mirror_img}"
@@ -301,7 +307,20 @@ net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
 EOF
     sysctl --system &>/dev/null
-    mkdir -p /etc/docker
+    [ -z ${http_proxy} ] && {
+        rm -vfr /etc/systemd/system/docker.service.d/http-proxy.conf /etc/systemd/system/containerd.service.d/http-proxy.conf || true
+    } || {
+        mkdir -vp /etc/systemd/system/containerd.service.d/
+        mkdir -vp /etc/systemd/system/docker.service.d/
+        cat <<EOF > /etc/systemd/system/docker.service.d/http-proxy.conf
+[Service]
+Environment=HTTP_PROXY=${http_proxy}
+Environment=HTTPS_PROXY=${http_proxy}
+Environment=NO_PROXY=${apiserver%:*},localhost,127.0.0.0/8
+EOF
+        cat /etc/systemd/system/docker.service.d/http-proxy.conf > /etc/systemd/system/containerd.service.d/http-proxy.conf
+    }
+    mkdir -vp /etc/docker
     # https://registry.docker-cn.com
     cat > /etc/docker/daemon.json <<EOF
 {
@@ -327,34 +346,24 @@ EOF
   "bridge": "none"
 }
 EOF
-    # change sandbox_image on all nodes
-    containerd config default > /etc/containerd/config.toml
-    sed -i -e "s/sandbox_image\s*=.*\/pause.*/sandbox_image = \"registry.k8s.io\/${pausekey}\"/g" /etc/containerd/config.toml
-    # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
-    sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
-    # containerd 忽略证书验证的配置
-    #      [plugins."io.containerd.grpc.v1.cri".registry.configs]
-    #        [plugins."io.containerd.grpc.v1.cri".registry.configs."192.168.0.12:8001".tls]
-    #          insecure_skip_verify = true
-
-    [ -z ${http_proxy} ] && {
-        rm -fr /etc/systemd/system/docker.service.d/http-proxy.conf /etc/systemd/system/containerd.service.d/http-proxy.conf || true
-    } || {
-        mkdir -p /etc/systemd/system/containerd.service.d/
-        mkdir -p /etc/systemd/system/docker.service.d/
-        cat <<EOF > /etc/systemd/system/docker.service.d/http-proxy.conf
-[Service]
-Environment=HTTP_PROXY=${http_proxy}
-Environment=HTTPS_PROXY=${http_proxy}
-Environment=NO_PROXY=${apiserver%:*},localhost,127.0.0.0/8
-EOF
-        cat /etc/systemd/system/docker.service.d/http-proxy.conf > /etc/systemd/system/containerd.service.d/http-proxy.conf
+    command -v ctr &> /dev/null && {
+        # change sandbox_image on all nodes
+        containerd config default > /etc/containerd/config.toml || true
+        sed -i -e "s/sandbox_image\s*=.*\/pause.*/sandbox_image = \"registry.k8s.io\/${pausekey}\"/g" /etc/containerd/config.toml
+        # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
+        sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
+        # containerd 忽略证书验证的配置
+        #      [plugins."io.containerd.grpc.v1.cri".registry.configs]
+        #        [plugins."io.containerd.grpc.v1.cri".registry.configs."192.168.0.12:8001".tls]
+        #          insecure_skip_verify = true
     }
     systemctl daemon-reload || true
-    systemctl restart containerd.service
-    systemctl restart docker.service
-    systemctl enable containerd.service
-    systemctl enable docker.service
+    command -v ctr &> /dev/null && {
+        systemctl restart containerd.service || true
+        systemctl enable containerd.service || true
+    }
+    systemctl restart docker.service || true
+    systemctl enable docker.service || true
 	systemctl enable kubelet.service
 }
 
@@ -555,12 +564,12 @@ EOF
     prepare_yml "${ipaddr}" "${L_CALICO_TYPEA_YML}" "${R_CALICO_TYPEA_YML}" "${CALICO_TYPEA_YML}"
     prepare_yml "${ipaddr}" "${L_CALICO_ETCD_YML}" "${R_CALICO_ETCD_YML}" "${CALICO_ETCD_YML}"
     for ipaddr in $(array_print master) $(array_print worker); do
-        prepare_docker_images "${ipaddr}" CALICO_MAP "docker.io/calico"
+        prepare_k8s_images "${ipaddr}" CALICO_MAP "docker.io/calico"
     done
     ssh_func "root@${master[0]}" "${SSH_PORT}" init_calico_cni "${svc_cidr}" "${pod_cidr}" "${R_CALICO_YML}" "${R_CALICO_TYPEA_YML}" "${R_CALICO_ETCD_YML}"
 }
 
-prepare_docker_images() {
+prepare_k8s_images() {
     local ipaddr=${1}
     local img_map=${2}
     local mirror=${3}
@@ -571,7 +580,7 @@ MIRROR=${mirror}
 $(print_kv ${img_map})
 EOF
     for img in $(array_print_label "${img_map}"); do
-        [ -z "$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker image ls -q $(array_get ${img_map} ${img})")" ] || {
+        [ -z "$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker image ls -q $(array_get ${img_map} ${img})" 2>/dev/null || true)" ] || {
             file_exists "${DIRNAME}/${img}.tar.gz" && continue
             ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker save $(array_get ${img_map} ${img}) | gzip > /tmp/${img}.tar.gz"
             download ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
@@ -582,9 +591,9 @@ EOF
         file_exists "${DIRNAME}/${img}.tar.gz" && {
             info_msg "Load ${img} for ${ipaddr}\n"
             upload "${DIRNAME}/${img}.tar.gz" ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz"
-            imgid=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "gunzip -c /tmp/${img}.tar.gz | docker image load -q" | sed -E "s/Loaded image( ID:|:)\s//g")
-            ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker tag ${imgid} $(array_get ${img_map} ${img})"
-            ssh_func "root@${ipaddr}" "${SSH_PORT}" "gunzip -c /tmp/${img}.tar.gz | ctr --namespace k8s.io image import - || true"
+            imgid=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "gunzip -c /tmp/${img}.tar.gz | docker image load -q" 2>/dev/null | sed -E "s/Loaded image( ID:|:)\s//g") || true
+            ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker tag ${imgid} $(array_get ${img_map} ${img})" 2>/dev/null || true
+            ssh_func "root@${ipaddr}" "${SSH_PORT}" "gunzip -c /tmp/${img}.tar.gz | ctr --namespace k8s.io image import - || true" 2>/dev/null
             ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
             continue
         }
@@ -603,10 +612,8 @@ prepare_ingress_images() {
     local ipaddr="${master[0]}"
     # ingress yml should remove @sha256...... in image: sec!!
     prepare_yml "${ipaddr}" "${L_INGRESS_YML}" "${R_INGRESS_YML}" "${INGRESS_YML}"
-    # docker pull k8s.gcr.io/ingress-nginx/controller:v1.0.4@sha256...
-    # docker pull k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1@sha256...
     for ipaddr in $(array_print master) $(array_print worker); do
-        prepare_docker_images "${ipaddr}" INGRESS_MAP "${GCR_MIRROR}"
+        prepare_k8s_images "${ipaddr}" INGRESS_MAP "${GCR_MIRROR}"
     done
 }
 
@@ -616,13 +623,13 @@ prepare_flannel_images() {
     local ipaddr="${master[0]}"
     prepare_yml "${ipaddr}" "${L_FLANNEL_YML}" "${R_FLANNEL_YML}" "${FLANNEL_YML}"
     for ipaddr in $(array_print master) $(array_print worker); do
-        prepare_docker_images "${ipaddr}" FLANNEL_MAP "${QUAY_MIRROR}"
+        prepare_k8s_images "${ipaddr}" FLANNEL_MAP "${QUAY_MIRROR}"
     done
     declare -A flannel_cni_map=(
         [mirrored-flannelcni-flannel-cni-plugin:v1.2]=rancher/mirrored-flannelcni-flannel-cni-plugin:v1.2
     )
     for ipaddr in $(array_print master) $(array_print worker); do
-        prepare_docker_images "${ipaddr}" flannel_cni_map "${RANCHER_MIRROR}"
+        prepare_k8s_images "${ipaddr}" flannel_cni_map "${RANCHER_MIRROR}"
     done
 }
 
@@ -632,7 +639,7 @@ prepare_dashboard_images() {
     local ipaddr="${master[0]}"
     prepare_yml "${ipaddr}" "${L_DASHBOARD_YML}" "${R_DASHBOARD_YML}" "${DASHBOARD_YML}"
     for ipaddr in $(array_print master) $(array_print worker); do
-        prepare_docker_images "${ipaddr}" DASHBOARD_MAP "${GCR_MIRROR}"
+        prepare_k8s_images "${ipaddr}" DASHBOARD_MAP "${GCR_MIRROR}"
     done
 }
 
@@ -645,7 +652,7 @@ prepare_kube_images() {
     #     GCR_MAP[$(basename ${imgid})]="${imgid}"
     # done
     for ipaddr in $(array_print master) $(array_print worker); do
-        prepare_docker_images "${ipaddr}" GCR_MAP "${GCR_MIRROR}"
+        prepare_k8s_images "${ipaddr}" GCR_MAP "${GCR_MIRROR}"
     done
 }
 
@@ -804,7 +811,7 @@ main() {
         info_msg "GEN_CMDS OK\n"
         return 0
     }
-    [ -z "${bridge}" ] && [ -z "${flannel_cidr}" ] && [ -z "${calico_cidr}"] && usage "network cni bridge/flannel/calico"
+    [ -z "${bridge}" ] && [ -z "${flannel_cidr}" ] && [ -z "${calico_cidr}" ] && usage "network cni bridge/flannel/calico"
     [ -e ${DIRNAME}/define.conf ] || sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${SCRIPTNAME} > ${DIRNAME}/define.conf
     ${EDITOR:-vi} ${DIRNAME}/define.conf || true
     source ${DIRNAME}/define.conf || true
@@ -857,7 +864,7 @@ main() {
     info_msg "diag: kubectl describe configmaps kubeadm-config -n kube-system\n"
     info_msg "diag: kubectl get nodes -o wide\n"
     info_msg "diag: kubectl get pods --all-namespaces -o wide\n"
-    info_msg "diag: kubectl get daemonsets.apps -n kube-system calico-node -o yaml"
+    info_msg "diag: kubectl get daemonsets.apps -n kube-system calico-node -o yaml\n"
     info_msg "diag: kubectl logs -n kube-system coredns-xxxx\n"
     info_msg "diag: kubectl describe -n kube-system pod coredns-xxxx\n"
     info_msg "diag: journalctl -f -u kubelet\n"
