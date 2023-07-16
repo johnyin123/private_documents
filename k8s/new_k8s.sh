@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("24a62e2[2023-07-15T13:53:35+08:00]:new_k8s.sh")
+VERSION+=("9adecbb[2023-07-15T14:08:32+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -215,10 +215,11 @@ init_flannel_cni() {
 }
 
 init_calico_cni() {
-    local pod_cidr=${1}
-    local calico_yml=${2}
-    local calico_typha_yml=${3}
-    local calico_etcd_yml=${4}
+    local svc_cidr=${1}
+    local pod_cidr=${2}
+    local calico_yml=${3}
+    local calico_typha_yml=${4}
+    local calico_etcd_yml=${5}
     [ -e "${calico_yml}" ] || [ -e "${calico_typha_yml}" ] || [ -e "${calico_etcd_yml}" ] || return 1
     echo "We recommend at least one replica for every 200 nodes,"
     echo "and no more than 20 replicas. In production,"
@@ -386,11 +387,14 @@ init_first_k8s_master() {
     local skip_proxy=${2}
     local version=${3}
     local pod_cidr=${4}
-    local opts="--control-plane-endpoint ${api_srv} --upload-certs ${pod_cidr:+--pod-network-cidr=${pod_cidr}} --apiserver-advertise-address=0.0.0.0"
+    local svc_cidr=${5}
+    local opts="--control-plane-endpoint ${api_srv} --upload-certs ${pod_cidr:+--pod-network-cidr=${pod_cidr}} ${svc_cidr:+--service-cidr ${svc_cidr}} --apiserver-advertise-address=0.0.0.0"
     ${skip_proxy} && opts="--skip-phases=addon/kube-proxy ${opts}" 
     # kubeadm init --kubernetes-version ${version} phase addon kube-proxy
     # init kubeadm cluster on master
-    # kubeadm config images list
+    kubeadm config images list --kubernetes-version ${version} || true
+    kubeadm config print init-defaults || true
+    echo "can modify 'imageRepository: registry.k8s.io', kubeadm config images list --config kubeadm-calico.conf"
     # kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version ${version}
     # kubeadm init --kubernetes-version ${version} phase --image-repository=registry.aliyuncs.com/google_containers --control-plane-endpoint "${api_srv}" --upload-certs
     kubeadm init --kubernetes-version ${version} ${opts}
@@ -541,10 +545,11 @@ EOF
 init_kube_calico_cni() {
     local master=($(array_print ${1}))
     local worker=($(array_print ${2}))
-    local cidr=${3}
+    local pod_cidr=${3}
+    local svc_cidr=${4}
     local ipaddr="${master[0]}"
     vinfo_msg <<EOF
-****** ${ipaddr} init calico() cni ${cidr}.
+****** ${ipaddr} init calico() cni svc: ${svc_cidr}, pod:${pod_cidr}.
 EOF
     prepare_yml "${ipaddr}" "${L_CALICO_YML}" "${R_CALICO_YML}" "${CALICO_YML}"
     prepare_yml "${ipaddr}" "${L_CALICO_TYPEA_YML}" "${R_CALICO_TYPEA_YML}" "${CALICO_TYPEA_YML}"
@@ -552,7 +557,7 @@ EOF
     for ipaddr in $(array_print master) $(array_print worker); do
         prepare_docker_images "${ipaddr}" CALICO_MAP "docker.io/calico"
     done
-    ssh_func "root@${master[0]}" "${SSH_PORT}" init_calico_cni "${cidr}" "${R_CALICO_YML}" "${R_CALICO_TYPEA_YML}" "${R_CALICO_ETCD_YML}"
+    ssh_func "root@${master[0]}" "${SSH_PORT}" init_calico_cni "${svc_cidr}" "${pod_cidr}" "${R_CALICO_YML}" "${R_CALICO_TYPEA_YML}" "${R_CALICO_ETCD_YML}"
 }
 
 prepare_docker_images() {
@@ -650,13 +655,14 @@ init_kube_cluster() {
     local api_srv=${3}
     local pod_cidr=${4}
     local skip_proxy=${5}
+    local svc_cidr=${6}
     [ "$(array_size master)" -gt "0" ] || return 1
     local ipaddr=$(array_get master 0)
     info_msg "****** ${ipaddr} init first master(${api_srv})\n"
     IFS=':' read -r tname tport <<< "${api_srv}"
     local hosts="${ipaddr} ${tname}"
     ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo ${hosts} >> /etc/hosts"
-    ssh_func "root@${ipaddr}" "${SSH_PORT}" init_first_k8s_master "${api_srv}" "${skip_proxy}" "${K8S_VERSION}" "${pod_cidr}"
+    ssh_func "root@${ipaddr}" "${SSH_PORT}" init_first_k8s_master "${api_srv}" "${skip_proxy}" "${K8S_VERSION}" "${pod_cidr}" "${svc_cidr}"
     #kubeadm token list -o json
     local token=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "kubeadm token create")
     # kubeadm token create --print-join-command
@@ -683,15 +689,16 @@ ${SCRIPTNAME}
         env:
             SSH_PORT        default 60022
             HTTP_PROXY      default ''
-            K8S__VERSION    default v1.27.3
+            K8S_VERSION     default v1.27.3
         --apiserver            <str>  k8s cluster api-server-endpoint
                                       default "k8sapi.local.com:6443"
                                       k8sapi.local.com is first master node, store in /etc/hosts(all masters&workers)
                                       u should make a loadbalance to all masters later,
         -m|--master   *        <ip>   master nodes, support multi nodes
         -w|--worker            <ip>   worker nodes, support multi nodes
+        -s|--svc_cidr          <cidr> servie cidr, default 10.96.0.0/12
         --bridge               <str>  k8s bridge_cni, bridge name
-        --calico               <cidr> calico cni, cust cidr
+        --calico               <cidr> calico cni, pod_cidr
         --flannel              <cidr> k8s flannel_cni, pod_cidr
                                       skip_proxy flannel_cni no work. get info etcd with service_cluster_ip
         --dashboard                   install dashboard, default false
@@ -750,9 +757,9 @@ EOF
 
 main() {
     local password="" master=() worker=() teardown=() bridge="" apiserver="k8sapi.local.com:6443" gen_join_cmds=""
-    local flannel_cidr="" pod_cidr="" dashboard=false ipvs=false ingress=false skip_proxy=false calico_cidr=""
-    local opt_short="m:w:"
-    local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,calico:,dashboard,ipvs,ingress,teardown:,"
+    local flannel_cidr="" dashboard=false ipvs=false ingress=false skip_proxy=false calico_cidr="" svc_cidr=""
+    local opt_short="m:w:s:"
+    local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,calico:,dashboard,ipvs,ingress,teardown:,svc_cidr:,"
     opt_long+="skip_proxy,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
@@ -764,6 +771,7 @@ main() {
             --gen_join_cmds)shift; gen_join_cmds=1;; 
             -m | --master)  shift; master+=(${1}); shift;;
             -w | --worker)  shift; worker+=(${1}); shift;;
+            -s | --svc_cidr)shift; svc_cidr=${1}; shift;;
             --bridge)       shift; bridge=${1}; shift;;
             --flannel)      shift; flannel_cidr=${1}; shift;;
             --calico)       shift; calico_cidr=${1}; shift;;
@@ -807,11 +815,8 @@ main() {
         ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "'${HTTP_PROXY}'" "${apiserver}" "$(array_print_label GCR_MAP  | grep 'pause')"
     done
     prepare_kube_images master worker
-    [ -z "${flannel_cidr}" ] || pod_cidr="${flannel_cidr}"
-    [ -z "${calico_cidr}" ] || pod_cidr="${calico_cidr}"
     [ -z "${bridge}" ] || {
         info_msg "install bridge_cni begin(${bridge})\n"
-        pod_cidr=""
         declare -A srv_net_map=()
         local i=0 PREFIX=172.16 masq=true
         for ipaddr in ${master[@]} ${worker[@]}; do
@@ -821,16 +826,19 @@ main() {
         init_kube_bridge_cni "${bridge}" "${masq}" srv_net_map "${apiserver}"
         info_msg "install bridge_cni end(${bridge})\n"
     }
-    init_kube_cluster master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}"
+    local pod_cidr=""
+    [ -z "${flannel_cidr}" ] || pod_cidr=${calico_cidr}
+    [ -z "${calico_cidr}" ] || pod_cidr=${calico_cidr}
+    init_kube_cluster master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}" "${svc_cidr}"
     [ -z "${calico_cidr}" ] || {
         info_msg "install calico cni begin\n"
-        init_kube_calico_cni master worker "${calico_cidr}"
+        init_kube_calico_cni master worker "${calico_cidr}" "${svc_cidr}"
         info_msg "install calico cni end\n"
     }
     [ -z "${flannel_cidr}" ] || {
-        info_msg "install flannel_cni begin(${pod_cidr})\n"
+        info_msg "install flannel_cni begin\n"
         init_kube_flannel_cni master worker "${flannel_cidr}"
-        info_msg "install flannel_cni end(${pod_cidr})\n"
+        info_msg "install flannel_cni end\n"
     }
     ${skip_proxy} || {
         ${ipvs} && ssh_func "root@${master[0]}" "${SSH_PORT}" modify_kube_proxy_ipvs
@@ -846,6 +854,7 @@ main() {
     info_msg "export k8s configuration"
     ssh_func "root@${master[0]}" "${SSH_PORT}" 'kubeadm config print init-defaults'
     ssh_func "root@${master[0]}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl cluster-info"
+    info_msg "diag: kubectl describe configmaps kubeadm-config -n kube-system\n"
     info_msg "diag: kubectl get nodes -o wide\n"
     info_msg "diag: kubectl get pods --all-namespaces -o wide\n"
     info_msg "diag: kubectl logs -n kube-system coredns-xxxx\n"
