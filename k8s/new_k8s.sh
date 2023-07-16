@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cb5e2ea[2023-07-16T12:08:24+08:00]:new_k8s.sh")
+VERSION+=("ba2f528[2023-07-16T15:51:20+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -861,13 +861,20 @@ main() {
     info_msg "export k8s configuration"
     ssh_func "root@${master[0]}" "${SSH_PORT}" 'kubeadm config print init-defaults'
     ssh_func "root@${master[0]}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl cluster-info"
+    info_msg "diag: scp ./kube-proxy\:v1.27.3.tar.gz root@ip:~/\n"
     info_msg "diag: kubectl describe configmaps kubeadm-config -n kube-system\n"
     info_msg "diag: kubectl get nodes -o wide\n"
     info_msg "diag: kubectl get pods --all-namespaces -o wide\n"
     info_msg "diag: kubectl get daemonsets.apps -n kube-system calico-node -o yaml\n"
+    info_msg "diag: kubectl get configmaps -n kube-system calico-config -o yaml\n"
     info_msg "diag: kubectl logs -n kube-system coredns-xxxx\n"
     info_msg "diag: kubectl describe -n kube-system pod coredns-xxxx\n"
     info_msg "diag: journalctl -f -u kubelet\n"
+    info_msg "diag: crictl config runtime-endpoint unix:///var/run/containerd/containerd.sock\n"
+    info_msg "diag: cat /etc/crictl.yaml\n"
+    info_msg "diag: crictl --runtime-endpoint unix:///var/run/containerd/containerd.sock ps -a\n"
+    info_msg "diag: crictl --runtime-endpoint unix:///var/run/containerd/containerd.sock logs xxxx\n"
+    info_msg "diag: kubectl get svc\n"
     info_msg "diag: kubectl -n kube-system get rs\n"
     info_msg "diag: kubectl -n kube-system scale --replicas=3 rs/coredns-xxxx\n"
     info_msg "ALL DONE\n"
