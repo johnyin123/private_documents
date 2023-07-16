@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9adecbb[2023-07-15T14:08:32+08:00]:new_k8s.sh")
+VERSION+=("a981f9e[2023-07-16T11:28:21+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -857,6 +857,7 @@ main() {
     info_msg "diag: kubectl describe configmaps kubeadm-config -n kube-system\n"
     info_msg "diag: kubectl get nodes -o wide\n"
     info_msg "diag: kubectl get pods --all-namespaces -o wide\n"
+    info_msg "diag: kubectl get daemonsets.apps -n kube-system calico-node -o yaml"
     info_msg "diag: kubectl logs -n kube-system coredns-xxxx\n"
     info_msg "diag: kubectl describe -n kube-system pod coredns-xxxx\n"
     info_msg "diag: journalctl -f -u kubelet\n"
