@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("569e35f[2023-07-17T14:27:08+08:00]:new_k8s.sh")
+VERSION+=("4eefa36[2023-07-17T15:09:03+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -217,24 +217,13 @@ init_calico_cni() {
     local calico_yml=${3}
     local calico_cust_yml=${4}
     [ -e "${calico_yml}" ] || [ -e "${calico_cust_yml}" ] || return 1
-    echo "We recommend at least one replica for every 200 nodes,"
-    echo "and no more than 20 replicas. In production,"
-    echo "we recommend a minimum of three replicas to reduce the"
-    echo "impact of rolling upgrades and failures."
     # sed -i "s|replicas\s*:.*|replicas: ${TYPHA_REPLICAS:-1}|g" "${calico_typha_yml}"
-    echo "If you are using pod CIDR 192.168.0.0/16, skip to the next step."
-    echo "If you are using a different pod CIDR with kubeadm, no changes are required"
-    echo "Calico will automatically detect the CIDR based on the running configuration"
-    echo "For other platforms, make sure you uncomment the CALICO_IPV4POOL_CIDR variable in the manifest"
-    echo "and set it to the same value as your chosen pod CIDR."
+    sed -i "s|cidr\s*:.*|cidr: ${pod_cidr}|g" "${calico_cust_yml}"
     export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl create -f "${calico_yml}"
     kubectl create -f "${calico_cust_yml}"
-    # kubectl apply -f "${calico_yml}"
-    # kubectl apply -f "${calico_typha_yml}"
-    # kubectl apply -f "${calico_etcd_yml}"
     kubectl -n kube-system get configmaps calico-config -o yaml || true
-    rm -f "${calico_yml}" "${calico_cust_yml}" || true
+    # rm -f "${calico_yml}" "${calico_cust_yml}" || true
     kubectl get nodes -o wide || true
     kubectl get pods --all-namespaces -o wide || true
 }
@@ -305,41 +294,49 @@ mirror_save_image() {
     }
     docker save ${img} | gzip > ${tgz}
 }
-
 pre_conf_k8s_host() {
     local http_proxy=${1}
     local apiserver=${2}
     local pausekey=${3}
-
-    echo "127.0.0.1 localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
-    touch /etc/resolv.conf || true #if /etc/resolv.conf non exists, k8s startup error
-    swapoff -a
-    sed -iE "/\sswap\s/d" /etc/fstab
-    cat <<EOF | tee /etc/modules-load.d/k8s.conf
-br_netfilter
-EOF
-    modprobe br_netfilter
-    cat <<EOF | tee /etc/sysctl.d/k8s.conf
-net.bridge.bridge-nf-call-ip6tables = 1
-net.bridge.bridge-nf-call-iptables = 1
-EOF
-    sysctl --system &>/dev/null
-    [ -z ${http_proxy} ] && {
-        rm -vfr /etc/systemd/system/docker.service.d/http-proxy.conf /etc/systemd/system/containerd.service.d/http-proxy.conf || true
-    } || {
-        mkdir -vp /etc/systemd/system/containerd.service.d/
-        mkdir -vp /etc/systemd/system/docker.service.d/
-        cat <<EOF > /etc/systemd/system/docker.service.d/http-proxy.conf
+    via_proxy() {
+        local http_proxy=${1}
+        local dir=${2}
+        [ -z ${http_proxy} ] && {
+            rm -vfr ${dir}/http-proxy.conf || true
+        } || {
+            mkdir -vp ${dir}
+            cat <<EOF > ${dir}/http-proxy.conf
 [Service]
 Environment=HTTP_PROXY=${http_proxy}
 Environment=HTTPS_PROXY=${http_proxy}
 Environment=NO_PROXY=${apiserver%:*},localhost,127.0.0.0/8
 EOF
-        cat /etc/systemd/system/docker.service.d/http-proxy.conf > /etc/systemd/system/containerd.service.d/http-proxy.conf
+        }
     }
-    mkdir -vp /etc/docker
-    # https://registry.docker-cn.com
-    cat > /etc/docker/daemon.json <<EOF
+    pre_containerd_env() {
+        local http_proxy=${1}
+        local apiserver=${2}
+        local pausekey=${3}
+        via_proxy "${http_proxy}" "/etc/systemd/system/containerd.service.d"
+        # change sandbox_image on all nodes
+        containerd config default > /etc/containerd/config.toml || true
+        sed -i -e "s/sandbox_image\s*=.*\/pause.*/sandbox_image = \"registry.k8s.io\/${pausekey}\"/g" /etc/containerd/config.toml
+        # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
+        sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
+        # containerd 忽略证书验证的配置
+        #      [plugins."io.containerd.grpc.v1.cri".registry.configs]
+        #        [plugins."io.containerd.grpc.v1.cri".registry.configs."192.168.0.12:8001".tls]
+        #          insecure_skip_verify = true
+        systemctl daemon-reload || true
+        systemctl restart containerd.service || true
+        systemctl enable containerd.service || true
+    }
+    pre_docker_env() {
+        local http_proxy=${1}
+        local apiserver=${2}
+        via_proxy "${http_proxy}" "/etc/systemd/system/docker.service.d"
+        mkdir -vp /etc/docker
+        cat > /etc/docker/daemon.json <<EOF
 {
   "registry-mirrors": [
     "https://docker.mirrors.ustc.edu.cn",
@@ -363,26 +360,24 @@ EOF
   "bridge": "none"
 }
 EOF
-    command -v ctr &> /dev/null && {
-        # change sandbox_image on all nodes
-        containerd config default > /etc/containerd/config.toml || true
-        sed -i -e "s/sandbox_image\s*=.*\/pause.*/sandbox_image = \"registry.k8s.io\/${pausekey}\"/g" /etc/containerd/config.toml
-        # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
-        sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
-        # containerd 忽略证书验证的配置
-        #      [plugins."io.containerd.grpc.v1.cri".registry.configs]
-        #        [plugins."io.containerd.grpc.v1.cri".registry.configs."192.168.0.12:8001".tls]
-        #          insecure_skip_verify = true
-    }
-    systemctl daemon-reload || true
-    command -v ctr &> /dev/null && {
-        systemctl restart containerd.service || true
-        systemctl enable containerd.service || true
-    }
-    command -v docker &> /dev/null && {
+        systemctl daemon-reload || true
         systemctl restart docker.service || true
         systemctl enable docker.service || true
     }
+    echo "127.0.0.1 localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
+    touch /etc/resolv.conf || true #if /etc/resolv.conf non exists, k8s startup error
+    swapoff -a
+    sed -iE "/\sswap\s/d" /etc/fstab
+    cat <<EOF | tee /etc/modules-load.d/k8s.conf
+br_netfilter
+EOF
+    modprobe br_netfilter
+    cat <<EOF | tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+    sysctl --system &>/dev/null
+    command -v ctr &> /dev/null && pre_containerd_env  "${http_proxy}" "${apiserver}" "${pausekey}" || pre_docker_env "${http_proxy}" "${apiserver}"
 	systemctl enable kubelet.service
 }
 
@@ -746,8 +741,9 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
     Example:
+        ${SCRIPTNAME} --master 192.168.168.150 --worker 192.168.168.151 --worker 192.168.168.152 --svc_cidr 172.16.200.0/24 --calico 172.16.100.0/24 --ipvs
         MASQ=false, the gateway is outside, else gateway is bridge(cn0)
-        Debian instll containerd:(newer k8s use containerd instead docker-ce
+        Debian instll containerd:(newer k8s:v1.20+ use containerd instead docker-ce)
             apt -y install containerd containernetworking-plugins containers-storage
         Debian install docker:
             apt -y install wget curl apt-transport-https ca-certificates ethtool socat bridge-utils ipvsadm ipset jq
@@ -852,6 +848,7 @@ main() {
     [ -z "${flannel_cidr}" ] || pod_cidr=${calico_cidr}
     [ -z "${calico_cidr}" ] || pod_cidr=${calico_cidr}
     init_kube_cluster master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}" "${svc_cidr}"
+    ${skip_proxy} || ${ipvs} && ssh_func "root@${master[0]}" "${SSH_PORT}" modify_kube_proxy_ipvs
     [ -z "${calico_cidr}" ] || {
         info_msg "install calico cni begin\n"
         init_kube_calico_cni master worker "${calico_cidr}" "${svc_cidr}"
@@ -861,9 +858,6 @@ main() {
         info_msg "install flannel_cni begin\n"
         init_kube_flannel_cni master worker "${flannel_cidr}"
         info_msg "install flannel_cni end\n"
-    }
-    ${skip_proxy} || {
-        ${ipvs} && ssh_func "root@${master[0]}" "${SSH_PORT}" modify_kube_proxy_ipvs
     }
     ${ingress} && {
         prepare_ingress_images master worker
