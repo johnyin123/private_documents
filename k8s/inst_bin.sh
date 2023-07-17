@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-06-27T08:49:57+08:00]:inst_bin.sh")
+VERSION+=("e84b2cf[2023-06-27T08:49:57+08:00]:inst_bin.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -41,7 +41,7 @@ upload() {
 main() {
     local ver="" arch=amd64 ipaddr=""
     local opt_short="v:a:"
-    local opt_long="ver:,arch:,"
+    local opt_long="ver:,arch:,ipaddr:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -62,14 +62,16 @@ main() {
         esac
     done
     [ -z ${ver} ] && usage "ver must input"
+    [ -z "${ipaddr}" ] && return 0
     file_exists "kubelet.${ver}.${arch}" && info_msg "kubelet.${ver}.${arch} exists.\n" || fetch https://dl.k8s.io/release/${ver}/bin/linux/${arch}/kubelet kubelet.${ver}.${arch}
     file_exists "kubeadm.${ver}.${arch}" && info_msg "kubeadm.${ver}.${arch} exists.\n" || fetch https://dl.k8s.io/release/${ver}/bin/linux/${arch}/kubeadm kubeadm.${ver}.${arch}
     file_exists "kubectl.${ver}.${arch}" && info_msg "kubectl.${ver}.${arch} exists.\n" || fetch https://dl.k8s.io/release/${ver}/bin/linux/${arch}/kubectl kubectl.${ver}.${arch}
-    [ -z "${ipaddr}" ] && return 0
+    file_exists "calicoctl-linux-${arch}" && info_msg "calicoctl-linux-${arch} exists.\n"
     upload "kubelet.${ver}.${arch}" "${ipaddr}" "${SSH_PORT}" "root" "/usr/bin/kubelet" 
     upload "kubeadm.${ver}.${arch}" "${ipaddr}" "${SSH_PORT}" "root" "/usr/bin/kubeadm"
     upload "kubectl.${ver}.${arch}" "${ipaddr}" "${SSH_PORT}" "root" "/usr/bin/kubectl"
-    ssh_func "root@${ipaddr}" "${SSH_PORT}" "chmod 755 /usr/bin/kubelet /usr/bin/kubeadm /usr/bin/kubectl"
+    upload "calicoctl-linux-${arch}" "${ipaddr}" "${SSH_PORT}" "root" "/usr/bin/calicoctl"
+    ssh_func "root@${ipaddr}" "${SSH_PORT}" "chmod 755 /usr/bin/kubelet /usr/bin/kubeadm /usr/bin/kubectl /usr/bin/calicoctl || true"
     ssh_func "root@${ipaddr}" "${SSH_PORT}" "mkdir -p /etc/systemd/system/kubelet.service.d/"
     cat <<'EOF' > 10-kubeadm.conf 
 [Service]
@@ -101,6 +103,7 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
     upload "kubelet.service " "${ipaddr}" "${SSH_PORT}" "root" "/lib/systemd/system/kubelet.service"
+    info_msg "ALL DONE\n"
     return 0
 }
 main "$@"

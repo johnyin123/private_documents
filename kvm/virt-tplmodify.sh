@@ -7,8 +7,8 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("abb1faa[2023-04-21T14:15:23+08:00]:virt-tplmodify.sh")
-[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+VERSION+=("442da94[2023-07-07T07:16:11+08:00]:virt-tplmodify.sh")
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -22,6 +22,7 @@ ${SCRIPTNAME}
         -H|--hostname           guest os hostname
         -t|--template      *    telplate disk for modify
         -p|--partnum            temlate partition number, default auto detect
+        -P|--partition    *     disk partition for modify
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -35,7 +36,7 @@ mount_tpl() {
     local mnt_point=$1
     local tpl_img=$2
     local partnum=${3:-}
-    mkdir -p ${mnt_point}
+    file_exists ${tpl_img} || return 1
     # SectorSize * StartSector
     SectorSize=$(parted ${tpl_img} unit s print | awk '/Sector size/{print $4}' | awk -F "B" '{print $1}')
     local sst=0
@@ -122,23 +123,25 @@ main() {
     local guest_ip6addr=""
     local guest_ip6prefix=""
     local guest_ip6gateway=""
+    local partition=""
     local iface="eth0"
-    local opt_short="r:n:i:H:t:p:"
-    local opt_long="gateway:,interface:,ipaddr:,ip6addr:,ip6gateway:,hostname:,template:,partnum:,"
+    local opt_short="r:n:i:H:t:p:P:"
+    local opt_long="gateway:,interface:,ipaddr:,ip6addr:,ip6gateway:,hostname:,template:,partnum:,partition:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            -r|--gateway)   shift; guest_gateway=${1:?guest default gateway need input};shift ;;
-            -n|--interface) shift; iface=${1:?interface name need input};shift ;;
-            -i|--ipaddr)    shift; IFS='/' read -r guest_ipaddr guest_prefix <<< "${1:?guest ip address need input}"; shift ;;
-            --ip6addr)      shift; IFS='/' read -r guest_ip6addr guest_ip6prefix <<< "${1:?guest ip6 address 2001::/96}"; shift ;;
-            --ip6gateway)   shift; guest_ip6gateway=${1:?guest ipv6 default gateway need input};shift ;;
-            -H|--hostname)  shift; guest_hostname=${1:?guest hostname need input};shift ;;
-            -t|--template)  shift; disk_tpl=${1:?disk template need input};shift ;;
+            -r|--gateway)   shift; guest_gateway=${1};shift ;;
+            -n|--interface) shift; iface=${1};shift ;;
+            -i|--ipaddr)    shift; IFS='/' read -r guest_ipaddr guest_prefix <<< "${1}"; shift ;;
+            --ip6addr)      shift; IFS='/' read -r guest_ip6addr guest_ip6prefix <<< "${1}"; shift ;;
+            --ip6gateway)   shift; guest_ip6gateway=${1};shift ;;
+            -H|--hostname)  shift; guest_hostname=${1};shift ;;
+            -t|--template)  shift; disk_tpl=${1};shift ;;
             -p|--partnum)   shift; partnum=${1};shift ;;
+            -P|--partition) shift; partition=${1};shift ;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -149,16 +152,17 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    [[ -z "${disk_tpl}" ]] && usage "template must input"
+    [ -z "${disk_tpl}" ] && [ -z "${partition}" ] && usage "template/partition must input"
+    [ -z "${disk_tpl}" ] || [ -z "${partition}" ] || usage "template or partition must input"
     require mount umount parted
     info_msg "chage ${disk_tpl}:\n"
     info_msg "       ip: ${guest_ipaddr}/${guest_prefix}\n"
     info_msg " hostname: ${guest_hostname}\n"
     info_msg "  gateway: ${guest_gateway}\n"
-    local mnt_point=/tmp/vm_rootfs_tmp
-    file_exists ${disk_tpl} || exit_msg "template file ${disk_tpl} no found\n"
-    mount_tpl "${mnt_point}" "${disk_tpl}" "${partnum}" || exit_msg "mount file ${disk_tpl} error\n"
-    change_vm "${mnt_point}" "${iface}" "${guest_ipaddr}" "${guest_prefix}" "${guest_gateway}" "${guest_ip6addr}" "${guest_ip6prefix}" "${guest_ip6gateway}" || { try umount "${mnt_point}"; exit_msg "change vm file ${disk_tpl} error\n"; }
+    local mnt_point=$(temp_folder "" "rootfs")
+    [ -z "${disk_tpl}" ] || mount_tpl "${mnt_point}" "${disk_tpl}" "${partnum}" || exit_msg "mount file ${disk_tpl} error\n"
+    [ -z "${partition}" ] || mount ${partition} "${mnt_point}" || exit_msg "mount partiton ${partition} error\n"
+    change_vm "${mnt_point}" "${iface}" "${guest_ipaddr}" "${guest_prefix}" "${guest_gateway}" "${guest_ip6addr}" "${guest_ip6prefix}" "${guest_ip6gateway}" || { try umount -R -v "${mnt_point}"; exit_msg "change vm ${partition}${disk_tpl} error\n"; }
     try echo "${guest_hostname}" \> ${mnt_point}/etc/hostname || error_msg "change hostname error\n"
     try touch ${mnt_point}/etc/hosts && {
         cat > ${mnt_point}/etc/hosts <<-EOF
@@ -169,7 +173,7 @@ EOF
     }
     # try rm -f ${mnt_point}/etc/ssh/ssh_host_*
     # try rm -fr ${mnt_point}/var/log/*
-    try umount "${mnt_point}"
+    try umount -R -v "${mnt_point}"
     info_msg "ALL DONE\n"
     return 0
 }
