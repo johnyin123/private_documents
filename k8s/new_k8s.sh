@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4eefa36[2023-07-17T15:09:03+08:00]:new_k8s.sh")
+VERSION+=("1db21c8[2023-07-17T17:11:14+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -399,7 +399,6 @@ modify_kube_proxy_ipvs() {
     kubectl -n kube-system get configmaps kube-proxy -o yaml | \
     sed 's/mode:\s*"[^"]*"/mode: "ipvs"/g' | \
     kubectl apply -f -
-    # kubectl -n kube-system edit configmaps kube-proxy -o yaml
     # kube-proxy ConfigMap, [mode=""] changed to [ipvs]
     kubectl -n kube-system delete pod -l k8s-app=kube-proxy
     # kubectl -n kube-system logs kube-proxy-tknk8
@@ -874,8 +873,8 @@ main() {
     info_msg "diag: kubectl describe configmaps kubeadm-config -n kube-system\n"
     info_msg "diag: kubectl get nodes -o wide\n"
     info_msg "diag: kubectl get pods --all-namespaces -o wide\n"
-    info_msg "diag: kubectl get daemonsets.apps -n kube-system calico-node -o yaml\n"
-    info_msg "diag: kubectl get configmaps -n kube-system calico-config -o yaml\n"
+    info_msg "diag: kubectl get daemonsets.apps -n calico-system calico-node -o yaml\n"
+    info_msg "diag: kubectl get configmaps -n calico-system  -o yaml\n"
     info_msg "diag: kubectl logs -n kube-system coredns-xxxx\n"
     info_msg "diag: kubectl describe -n kube-system pod coredns-xxxx\n"
     info_msg "diag: journalctl -f -u kubelet\n"
@@ -886,6 +885,7 @@ main() {
     info_msg "diag: kubectl get svc\n"
     info_msg "diag: kubectl -n kube-system get rs\n"
     info_msg "diag: kubectl -n kube-system scale --replicas=3 rs/coredns-xxxx\n"
+    info_msg "diag: kubectl -n kube-system edit configmaps kube-proxy -o yaml\n"
     info_msg "ALL DONE\n"
     return 0
 }
