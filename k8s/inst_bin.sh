@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e84b2cf[2023-06-27T08:49:57+08:00]:inst_bin.sh")
+VERSION+=("2274c31[2023-07-17T13:24:15+08:00]:inst_bin.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -72,7 +72,7 @@ main() {
     upload "kubectl.${ver}.${arch}" "${ipaddr}" "${SSH_PORT}" "root" "/usr/bin/kubectl"
     upload "calicoctl-linux-${arch}" "${ipaddr}" "${SSH_PORT}" "root" "/usr/bin/calicoctl"
     ssh_func "root@${ipaddr}" "${SSH_PORT}" "chmod 755 /usr/bin/kubelet /usr/bin/kubeadm /usr/bin/kubectl /usr/bin/calicoctl || true"
-    ssh_func "root@${ipaddr}" "${SSH_PORT}" "mkdir -p /etc/systemd/system/kubelet.service.d/"
+    ssh_func "root@${ipaddr}" "${SSH_PORT}" "mkdir -p /etc/systemd/system/kubelet.service.d/ /etc/kubernetes/ /var/lib/kubelet"
     cat <<'EOF' > 10-kubeadm.conf 
 [Service]
 Environment="KUBELET_KUBECONFIG_ARGS=--bootstrap-kubeconfig=/etc/kubernetes/bootstrap-kubelet.conf --kubeconfig=/etc/kubernetes/kubelet.conf"
