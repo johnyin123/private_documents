@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("75c7e56[2023-07-16T17:47:57+08:00]:new_k8s.sh")
+VERSION+=("f8aa6ab[2023-07-17T10:41:03+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -39,13 +39,13 @@ INGRESS_YML="https://raw.githubusercontent.com/kubernetes/ingress-nginx/controll
 L_INGRESS_YML="${DIRNAME}/ingress-nginx:v1.0.4.yml"
 R_INGRESS_YML="/tmp/ingress-nginx.yml"
 # calico cni url
-# grep "image\s*:\(.*\) \1" calico.yaml  | awk '{ print $2 }' | sort | uniq
 declare -A CALICO_MAP=(
     [cni:v3.26.1]=docker.io/calico/cni:v3.26.1
     [kube-controllers:v3.26.1]=docker.io/calico/kube-controllers:v3.26.1
     [node:v3.26.1]=docker.io/calico/node:v3.26.1
     [typha:v3.26.1]=docker.io/calico/typha:v3.26.1
     [csi:v3.26.1]=docker.io/calico/csi:v3.26.1
+    [node-driver-registrar:v3.26.1]=docker.io/calico/node-driver-registrar:v3.26.1
     [apiserver:v3.26.1]=docker.io/calico/apiserver:v3.26.1
     [pod2daemon-flexvol:v3.26.1]=docker.io/calico/pod2daemon-flexvol:v3.26.1
 )
@@ -60,17 +60,6 @@ R_CALICO_YML="/tmp/tigera-operator.yaml"
 CALICO_CUST_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/custom-resources.yaml"
 L_CALICO_CUST_YML="${DIRNAME}/custom-resources.yaml"
 R_CALICO_CUST_YML="/tmp/custom-resources.yaml"
-
-# CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml"
-# L_CALICO_YML="${DIRNAME}/calico.yaml"
-# R_CALICO_YML="/tmp/calico.yaml"
-# CALICO_TYPEA_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico-typha.yaml"
-# L_CALICO_TYPEA_YML="${DIRNAME}/calico-typha.yaml"
-# R_CALICO_TYPEA_YML="/tmp/calico-typha.yaml"
-# CALICO_ETCD_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico-etcd.yaml"
-# L_CALICO_ETCD_YML="${DIRNAME}/calico-etcd.yaml"
-# R_CALICO_ETCD_YML="/tmp/calico-etcd.yaml"
-
 # mirrors
 # kubeadm config images list --kubernetes-version ${K8S_VERSION}
 declare -A GCR_MAP=(
