@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f8aa6ab[2023-07-17T10:41:03+08:00]:new_k8s.sh")
+VERSION+=("898f4fe[2023-07-17T11:03:43+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -736,6 +736,8 @@ ${SCRIPTNAME}
         -h|--help help
     Example:
         MASQ=false, the gateway is outside, else gateway is bridge(cn0)
+        Debian instll containerd:(newer k8s use containerd instead docker-ce
+            apt -y install containerd containernetworking-plugins containers-storage
         Debian install docker:
             apt -y install wget curl apt-transport-https ca-certificates ethtool socat bridge-utils ipvsadm ipset jq
             repo=docker
