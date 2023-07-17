@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ba2f528[2023-07-16T15:51:20+08:00]:new_k8s.sh")
+VERSION+=("75c7e56[2023-07-16T17:47:57+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -45,19 +45,31 @@ declare -A CALICO_MAP=(
     [kube-controllers:v3.26.1]=docker.io/calico/kube-controllers:v3.26.1
     [node:v3.26.1]=docker.io/calico/node:v3.26.1
     [typha:v3.26.1]=docker.io/calico/typha:v3.26.1
+    [csi:v3.26.1]=docker.io/calico/csi:v3.26.1
+    [apiserver:v3.26.1]=docker.io/calico/apiserver:v3.26.1
+    [pod2daemon-flexvol:v3.26.1]=docker.io/calico/pod2daemon-flexvol:v3.26.1
+)
+declare -A CALICO_OPER_MAP=(
+    [operator:v1.30.4]=quay.io/tigera/operator:v1.30.4
 )
 # https://github.com/projectcalico/calico/releases/latest/download/calicoctl-linux-arm64
 # https://github.com/projectcalico/calico/releases/latest/download/calicoctl-linux-amd64
-CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml"
-L_CALICO_YML="${DIRNAME}/calico.yaml"
-R_CALICO_YML="/tmp/calico.yaml"
-TYPHA_REPLICAS=1
-CALICO_TYPEA_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico-typha.yaml"
-L_CALICO_TYPEA_YML="${DIRNAME}/calico-typha.yaml"
-R_CALICO_TYPEA_YML="/tmp/calico-typha.yaml"
-CALICO_ETCD_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico-etcd.yaml" 
-L_CALICO_ETCD_YML="${DIRNAME}/calico-etcd.yaml"
-R_CALICO_ETCD_YML="/tmp/calico-etcd.yaml"
+CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
+L_CALICO_YML="${DIRNAME}/tigera-operator.yaml"
+R_CALICO_YML="/tmp/tigera-operator.yaml"
+CALICO_CUST_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/custom-resources.yaml"
+L_CALICO_CUST_YML="${DIRNAME}/custom-resources.yaml"
+R_CALICO_CUST_YML="/tmp/custom-resources.yaml"
+
+# CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico.yaml"
+# L_CALICO_YML="${DIRNAME}/calico.yaml"
+# R_CALICO_YML="/tmp/calico.yaml"
+# CALICO_TYPEA_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico-typha.yaml"
+# L_CALICO_TYPEA_YML="${DIRNAME}/calico-typha.yaml"
+# R_CALICO_TYPEA_YML="/tmp/calico-typha.yaml"
+# CALICO_ETCD_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/calico-etcd.yaml"
+# L_CALICO_ETCD_YML="${DIRNAME}/calico-etcd.yaml"
+# R_CALICO_ETCD_YML="/tmp/calico-etcd.yaml"
 
 # mirrors
 # kubeadm config images list --kubernetes-version ${K8S_VERSION}
@@ -71,8 +83,6 @@ declare -A GCR_MAP=(
     [etcd:3.5.7-0]=registry.k8s.io/etcd:3.5.7-0
 )
 GCR_MIRROR="registry.aliyuncs.com/google_containers"
-QUAY_MIRROR="quay.io/coreos"
-RANCHER_MIRROR="rancher"
 ##OPTION_END
 
 print_predefine() {
@@ -95,8 +105,6 @@ R_INGRESS_YML   = ${R_INGRESS_YML}
 $(print_kv INGRESS_MAP)
 ========================================
 GCR_MIRROR      = ${GCR_MIRROR}
-QUAY_MIRROR     = ${QUAY_MIRROR}
-RANCHER_MIRROR  = ${RANCHER_MIRROR}
 $(print_kv GCR_MAP)
 EOF
     return 0
@@ -218,25 +226,26 @@ init_calico_cni() {
     local svc_cidr=${1}
     local pod_cidr=${2}
     local calico_yml=${3}
-    local calico_typha_yml=${4}
-    local calico_etcd_yml=${5}
-    [ -e "${calico_yml}" ] || [ -e "${calico_typha_yml}" ] || [ -e "${calico_etcd_yml}" ] || return 1
+    local calico_cust_yml=${4}
+    [ -e "${calico_yml}" ] || [ -e "${calico_cust_yml}" ] || return 1
     echo "We recommend at least one replica for every 200 nodes,"
     echo "and no more than 20 replicas. In production,"
     echo "we recommend a minimum of three replicas to reduce the"
     echo "impact of rolling upgrades and failures."
-    sed -i "s|replicas\s*:.*|replicas: ${TYPHA_REPLICAS:-1}|g" "${calico_typha_yml}"
+    # sed -i "s|replicas\s*:.*|replicas: ${TYPHA_REPLICAS:-1}|g" "${calico_typha_yml}"
     echo "If you are using pod CIDR 192.168.0.0/16, skip to the next step."
     echo "If you are using a different pod CIDR with kubeadm, no changes are required"
     echo "Calico will automatically detect the CIDR based on the running configuration"
     echo "For other platforms, make sure you uncomment the CALICO_IPV4POOL_CIDR variable in the manifest"
     echo "and set it to the same value as your chosen pod CIDR."
     export KUBECONFIG=/etc/kubernetes/admin.conf
-    kubectl apply -f "${calico_yml}"
-    kubectl apply -f "${calico_typha_yml}"
-    kubectl apply -f "${calico_etcd_yml}"
+    kubectl create -f "${calico_yml}"
+    kubectl create -f "${calico_cust_yml}"
+    # kubectl apply -f "${calico_yml}"
+    # kubectl apply -f "${calico_typha_yml}"
+    # kubectl apply -f "${calico_etcd_yml}"
     kubectl -n kube-system get configmaps calico-config -o yaml || true
-    rm -f "${calico_yml}" "${calico_typha_yml}"
+    rm -f "${calico_yml}" "${calico_cust_yml}" || true
     kubectl get nodes -o wide || true
     kubectl get pods --all-namespaces -o wide || true
 }
@@ -561,12 +570,16 @@ init_kube_calico_cni() {
 ****** ${ipaddr} init calico() cni svc: ${svc_cidr}, pod:${pod_cidr}.
 EOF
     prepare_yml "${ipaddr}" "${L_CALICO_YML}" "${R_CALICO_YML}" "${CALICO_YML}"
-    prepare_yml "${ipaddr}" "${L_CALICO_TYPEA_YML}" "${R_CALICO_TYPEA_YML}" "${CALICO_TYPEA_YML}"
-    prepare_yml "${ipaddr}" "${L_CALICO_ETCD_YML}" "${R_CALICO_ETCD_YML}" "${CALICO_ETCD_YML}"
+    prepare_yml "${ipaddr}" "${L_CALICO_CUST_YML}" "${R_CALICO_CUST_YML}" "${CALICO_CUST_YML}"
+    # prepare_yml "${ipaddr}" "${L_CALICO_TYPEA_YML}" "${R_CALICO_TYPEA_YML}" "${CALICO_TYPEA_YML}"
+    # prepare_yml "${ipaddr}" "${L_CALICO_ETCD_YML}" "${R_CALICO_ETCD_YML}" "${CALICO_ETCD_YML}"
     for ipaddr in $(array_print master) $(array_print worker); do
         prepare_k8s_images "${ipaddr}" CALICO_MAP "docker.io/calico"
+        prepare_k8s_images "${ipaddr}" CALICO_OPER_MAP "quay.io/tigera"
     done
-    ssh_func "root@${master[0]}" "${SSH_PORT}" init_calico_cni "${svc_cidr}" "${pod_cidr}" "${R_CALICO_YML}" "${R_CALICO_TYPEA_YML}" "${R_CALICO_ETCD_YML}"
+    ssh_func "root@${master[0]}" "${SSH_PORT}" init_calico_cni "${svc_cidr}" "${pod_cidr}" "${R_CALICO_YML}" "${R_CALICO_CUST_YML}"
+
+    # ssh_func "root@${master[0]}" "${SSH_PORT}" init_calico_cni "${svc_cidr}" "${pod_cidr}" "${R_CALICO_YML}" "${R_CALICO_TYPEA_YML}" "${R_CALICO_ETCD_YML}"
 }
 
 prepare_k8s_images() {
@@ -623,13 +636,13 @@ prepare_flannel_images() {
     local ipaddr="${master[0]}"
     prepare_yml "${ipaddr}" "${L_FLANNEL_YML}" "${R_FLANNEL_YML}" "${FLANNEL_YML}"
     for ipaddr in $(array_print master) $(array_print worker); do
-        prepare_k8s_images "${ipaddr}" FLANNEL_MAP "${QUAY_MIRROR}"
+        prepare_k8s_images "${ipaddr}" FLANNEL_MAP "quay.io/coreos"
     done
     declare -A flannel_cni_map=(
         [mirrored-flannelcni-flannel-cni-plugin:v1.2]=rancher/mirrored-flannelcni-flannel-cni-plugin:v1.2
     )
     for ipaddr in $(array_print master) $(array_print worker); do
-        prepare_k8s_images "${ipaddr}" flannel_cni_map "${RANCHER_MIRROR}"
+        prepare_k8s_images "${ipaddr}" flannel_cni_map "rancher"
     done
 }
 

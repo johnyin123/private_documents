@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("e55482f[2023-07-08T20:33:54+08:00]:functions.sh")
+VERSION+=("b9b9d7c[2023-07-16T11:27:16+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -160,7 +160,7 @@ ssh_func() {
     shift 3
     local args=("$@")
     info_msg "ssh ${ssh}:${port}${SSH_ASKPASS:+(askpass:${SSH_ASKPASS})} => ${func_name}\n"
-    local ssh_opt="-t -oLogLevel=error -o StrictHostKeyChecking=no -oUserKnownHostsFile=/dev/null -o ServerAliveInterval=60 -p${port} ${ssh}"
+    local ssh_opt="-t -oLogLevel=error -o StrictHostKeyChecking=no -o UpdateHostKeys=no  -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=60 -p${port} ${ssh}"
     local bash_opt="-o errexit -s"
     defined QUIET || bash_opt="-x ${bash_opt}"
     try setsid ssh ${ssh_opt} /bin/bash ${bash_opt} << EOF
