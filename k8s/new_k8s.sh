@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("898f4fe[2023-07-17T11:03:43+08:00]:new_k8s.sh")
+VERSION+=("569e35f[2023-07-17T14:27:08+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -277,14 +277,33 @@ mirror_get_image() {
     local mirror_img="${2}"
     local gcr_img="${3}"
     command -v ctr &> /dev/null && {
-        crt pull "${mirror}/${mirror_img}"
-        crt tag "${mirror}/${mirror_img}" "${gcr_img}"
-        crt rm "${mirror}/${mirror_img}"
+        ctr --namespace k8s.io image pull "${mirror}/${mirror_img}"
+        ctr --namespace k8s.io image tag "${mirror}/${mirror_img}" "${gcr_img}"
+        ctr --namespace k8s.io image rm "${mirror}/${mirror_img}"
         return 0
     }
     docker pull "${mirror}/${mirror_img}"
     docker tag "${mirror}/${mirror_img}" "${gcr_img}"
     docker rmi "${mirror}/${mirror_img}"
+}
+mirror_load_image() {
+    local tgz=${1}
+    local tag=${2}
+    command -v ctr &> /dev/null && {
+        gunzip -c ${tgz} | ctr --namespace k8s.io image import - || true 2>/dev/null
+        return 0
+    }
+    local imgid=$(gunzip -c ${tgz} | docker image load -q 2>/dev/null | sed -E "s/Loaded image( ID:|:)\s//g") || true
+    docker tag ${imgid} ${tag} 2>/dev/null || true
+}
+mirror_save_image() {
+    local img=${1}
+    local tgz=${2}
+    command -v ctr &> /dev/null && {
+        ctr --namespace k8s.io image save ${img} | gzip > ${tgz}
+        return 0
+    }
+    docker save ${img} | gzip > ${tgz}
 }
 
 pre_conf_k8s_host() {
@@ -360,8 +379,10 @@ EOF
         systemctl restart containerd.service || true
         systemctl enable containerd.service || true
     }
-    systemctl restart docker.service || true
-    systemctl enable docker.service || true
+    command -v docker &> /dev/null && {
+        systemctl restart docker.service || true
+        systemctl enable docker.service || true
+    }
 	systemctl enable kubelet.service
 }
 
@@ -582,28 +603,18 @@ MIRROR=${mirror}
 $(print_kv ${img_map})
 EOF
     for img in $(array_print_label "${img_map}"); do
-        [ -z "$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker image ls -q $(array_get ${img_map} ${img})" 2>/dev/null || true)" ] || {
-            file_exists "${DIRNAME}/${img}.tar.gz" && continue
-            ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker save $(array_get ${img_map} ${img}) | gzip > /tmp/${img}.tar.gz"
-            download ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
-            ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
-        }
-    done
-    for img in $(array_print_label "${img_map}"); do
         file_exists "${DIRNAME}/${img}.tar.gz" && {
             info_msg "Load ${img} for ${ipaddr}\n"
+            # # TODO: check server exists this pod first
             upload "${DIRNAME}/${img}.tar.gz" ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz"
-            imgid=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "gunzip -c /tmp/${img}.tar.gz | docker image load -q" 2>/dev/null | sed -E "s/Loaded image( ID:|:)\s//g") || true
-            ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker tag ${imgid} $(array_get ${img_map} ${img})" 2>/dev/null || true
-            ssh_func "root@${ipaddr}" "${SSH_PORT}" "gunzip -c /tmp/${img}.tar.gz | ctr --namespace k8s.io image import - || true" 2>/dev/null
+            ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_load_image "/tmp/${img}.tar.gz" "$(array_get ${img_map} ${img})"
             ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
             continue
         }
         info_msg "Pull ${mirror}/${img} for ${ipaddr}\n"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_get_image "${mirror}" "${img}" "$(array_get ${img_map} ${img})"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" "docker save $(array_get ${img_map} ${img}) | gzip > /tmp/${img}.tar.gz"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_save_image "$(array_get ${img_map} ${img})" "/tmp/${img}.tar.gz"
         download ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" "gunzip -c /tmp/${img}.tar.gz | ctr --namespace k8s.io image import - || true"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
     done
 }

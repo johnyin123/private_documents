@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9cc96ae[2023-07-17T13:40:03+08:00]:inst_bin.sh")
+VERSION+=("569e35f[2023-07-17T14:27:08+08:00]:inst_bin.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -26,6 +26,7 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
     latest version: curl -L -s https://dl.k8s.io/release/stable.txt
+    cri-tools kubernetes-cni
 EOF
     exit 1
 }
