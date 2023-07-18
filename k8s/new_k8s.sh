@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d05a4f7[2023-07-17T17:21:01+08:00]:new_k8s.sh")
+VERSION+=("03aa8b3[2023-07-18T08:19:38+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -324,8 +324,20 @@ EOF
         # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
         sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
         # [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
-        #   endpoint = ["https://yourmirror.com"]
-        # containerd 忽略证书验证的配置
+        #   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
+        #     endpoint = ["https://registry-1.docker.io"]
+        # [plugins."io.containerd.grpc.v1.cri".registry.configs]
+        #   [plugins."io.containerd.grpc.v1.cri".registry.configs."docker.io".tls]
+        #     insecure_skip_verify = true  #跳过认证
+        #     ca_file = "/etc/containerd/certs.d/registry.harbor.com/ca.crt" #ca证书
+        #     cert_file = "/etc/containerd/certs.d/registry.harbor.com/registry.harbor.com.cert" #harbor证书
+        #     key_file = "/etc/containerd/certs.d/registry.harbor.com/registry.harbor.com.key" #密钥
+        #   [plugins."io.containerd.grpc.v1.cri".registry.configs."docker.io".auth]
+        #     username = "admin"
+        #     password = "pass12345"
+        echo "ctr --namespace=k8s.io images push registry.harbor.com/test/app:latest --skip-verify --user admin:Harbor12345"
+        echo "crictl pull registry.harbor.com/test/app:latest"
+        # # containerd 忽略证书验证的配置
         #      [plugins."io.containerd.grpc.v1.cri".registry.configs]
         #        [plugins."io.containerd.grpc.v1.cri".registry.configs."192.168.0.12:8001".tls]
         #          insecure_skip_verify = true
