@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4eefa36[2023-07-17T15:09:03+08:00]:inst_bin.sh")
+VERSION+=("7c8e1ac[2023-07-18T16:38:31+08:00]:inst_bin.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -64,14 +64,21 @@ main() {
     done
     [ -z ${ver} ] && usage "ver must input"
     [ -z "${ipaddr}" ] && return 0
-    file_exists "kubelet.${ver}.${arch}" && info_msg "kubelet.${ver}.${arch} exists.\n" || fetch https://dl.k8s.io/release/${ver}/bin/linux/${arch}/kubelet kubelet.${ver}.${arch}
-    file_exists "kubeadm.${ver}.${arch}" && info_msg "kubeadm.${ver}.${arch} exists.\n" || fetch https://dl.k8s.io/release/${ver}/bin/linux/${arch}/kubeadm kubeadm.${ver}.${arch}
-    file_exists "kubectl.${ver}.${arch}" && info_msg "kubectl.${ver}.${arch} exists.\n" || fetch https://dl.k8s.io/release/${ver}/bin/linux/${arch}/kubectl kubectl.${ver}.${arch}
-    file_exists "crictl.${arch}" && info_msg "crictl.${arch} exists.\n" || {
-        echo "https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.27.1/crictl-v1.27.1-linux-arm.tar.gz"
-        echo "https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.27.1/crictl-v1.27.1-linux-amd64.tar.gz"
-        exit_msg "download crictl, add crictl.${arch}, retry\n"
-    }
+    cat <<EOF
+    https://github.com/containerd/containerd/blob/main/containerd.service
+    https://github.com/containerd/containerd/releases/download/v1.7.2/containerd-1.7.2-linux-${arch}.tar.gz
+    https://github.com/containerd/containerd/releases/download/v1.7.2/containerd-static-1.7.2-linux-${arch}.tar.gz
+    https://github.com/opencontainers/runc/releases/download/v1.1.7/runc.${arch}
+    https://github.com/containernetworking/plugins/releases/download/v1.3.0/cni-plugins-linux-${arch}-v1.3.0.tgz
+    https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.27.1/crictl-v1.27.1-linux-${arch}.tar.gz
+    https://dl.k8s.io/release/${ver}/bin/linux/${arch}/kubelet
+    https://dl.k8s.io/release/${ver}/bin/linux/${arch}/kubeadm
+    https://dl.k8s.io/release/${ver}/bin/linux/${arch}/kubectl
+EOF
+    file_exists "kubelet.${ver}.${arch}" || exit_msg "confirm kubelet.${ver}.${arch} exists.\n"
+    file_exists "kubeadm.${ver}.${arch}" || exit_msg "confirm kubeadm.${ver}.${arch} exists.\n"
+    file_exists "kubectl.${ver}.${arch}" || exit_msg "confirm kubectl.${ver}.${arch} exists.\n"
+    file_exists "crictl.${arch}" || exit_msg "confirm crictl.${arch} exists\n"
     file_exists "calicoctl-linux-${arch}" && info_msg "calicoctl-linux-${arch} exists.\n"
     upload "kubelet.${ver}.${arch}" "${ipaddr}" "${SSH_PORT}" "root" "/usr/bin/kubelet" 
     upload "kubeadm.${ver}.${arch}" "${ipaddr}" "${SSH_PORT}" "root" "/usr/bin/kubeadm"
