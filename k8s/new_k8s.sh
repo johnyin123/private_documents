@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("03aa8b3[2023-07-18T08:19:38+08:00]:new_k8s.sh")
+VERSION+=("76aaebc[2023-07-18T09:47:54+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -21,14 +21,14 @@ declare -A DASHBOARD_MAP=(
     [metrics-scraper:v1.0.0]=kubernetesui/metrics-scraper:v1.0.0
 )
 DASHBOARD_YML="https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.0-beta1/aio/deploy/recommended.yaml"
-L_DASHBOARD_YML="${DIRNAME}/dashboard:v2.0.0-beta1.yml"
+L_DASHBOARD_YML="${DIRNAME}/${K8S_VERSION}/dashboard:v2.0.0-beta1.yml"
 R_DASHBOARD_YML="/tmp/dashboard.yml"
 # flannel_cni url
 declare -A FLANNEL_MAP=(
     [flannel:v0.15.0]=quay.io/coreos/flannel:v0.15.0
 )
 FLANNEL_YML="https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
-L_FLANNEL_YML="${DIRNAME}/flannel:v0.15.0.yml"
+L_FLANNEL_YML="${DIRNAME}/${K8S_VERSION}/flannel:v0.15.0.yml"
 R_FLANNEL_YML="/tmp/flannel.yml"
 # ingress-nginx url
 declare -A INGRESS_MAP=(
@@ -36,7 +36,7 @@ declare -A INGRESS_MAP=(
     [kube-webhook-certgen:v1.1.1]=k8s.gcr.io/ingress-nginx/kube-webhook-certgen:v1.1.1
 )
 INGRESS_YML="https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.0.4/deploy/static/provider/cloud/deploy.yaml"
-L_INGRESS_YML="${DIRNAME}/ingress-nginx:v1.0.4.yml"
+L_INGRESS_YML="${DIRNAME}/${K8S_VERSION}/ingress-nginx:v1.0.4.yml"
 R_INGRESS_YML="/tmp/ingress-nginx.yml"
 # calico cni url
 declare -A CALICO_MAP=(
@@ -55,10 +55,10 @@ declare -A CALICO_OPER_MAP=(
 # https://github.com/projectcalico/calico/releases/latest/download/calicoctl-linux-arm64
 # https://github.com/projectcalico/calico/releases/latest/download/calicoctl-linux-amd64
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
-L_CALICO_YML="${DIRNAME}/tigera-operator.yaml"
+L_CALICO_YML="${DIRNAME}/${K8S_VERSION}/tigera-operator.yaml"
 R_CALICO_YML="/tmp/tigera-operator.yaml"
 CALICO_CUST_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/custom-resources.yaml"
-L_CALICO_CUST_YML="${DIRNAME}/custom-resources.yaml"
+L_CALICO_CUST_YML="${DIRNAME}/${K8S_VERSION}/custom-resources.yaml"
 R_CALICO_CUST_YML="/tmp/custom-resources.yaml"
 # mirrors
 # kubeadm config images list --kubernetes-version ${K8S_VERSION}
@@ -611,10 +611,10 @@ MIRROR=${mirror}
 $(print_kv ${img_map})
 EOF
     for img in $(array_print_label "${img_map}"); do
-        file_exists "${DIRNAME}/${img}.tar.gz" && {
+        file_exists "${DIRNAME}/${K8S_VERSION}/${img}.tar.gz" && {
             info_msg "Load ${img} for ${ipaddr}\n"
             # # TODO: check server exists this pod first
-            upload "${DIRNAME}/${img}.tar.gz" ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz"
+            upload "${DIRNAME}/${K8S_VERSION}/${img}.tar.gz" ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz"
             ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_load_image "/tmp/${img}.tar.gz" "$(array_get ${img_map} ${img})"
             ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
             continue
@@ -622,7 +622,7 @@ EOF
         info_msg "Pull ${mirror}/${img} for ${ipaddr}\n"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_get_image "${mirror}" "${img}" "$(array_get ${img_map} ${img})"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_save_image "$(array_get ${img_map} ${img})" "/tmp/${img}.tar.gz"
-        download ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${img}.tar.gz"
+        download ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${K8S_VERSION}/${img}.tar.gz"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
     done
 }
@@ -841,6 +841,7 @@ main() {
     source ${DIRNAME}/define.conf || true
     print_predefine
     confirm "Confirm NEW init k8s env(timeout 10,default N)?" 10 || exit_msg "BYE!\n"
+    mkdir -vp "${DIRNAME}/${K8S_VERSION}"
     for ipaddr in $(array_print master) $(array_print worker); do
         info_msg "****** ${ipaddr} pre valid host env\n"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "'${HTTP_PROXY}'" "${apiserver}" "$(array_print_label GCR_MAP  | grep 'pause')"
