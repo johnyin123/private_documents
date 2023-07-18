@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1db21c8[2023-07-17T17:11:14+08:00]:new_k8s.sh")
+VERSION+=("d05a4f7[2023-07-17T17:21:01+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -323,6 +323,8 @@ EOF
         sed -i -e "s/sandbox_image\s*=.*\/pause.*/sandbox_image = \"registry.k8s.io\/${pausekey}\"/g" /etc/containerd/config.toml
         # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
         sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
+        # [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+        #   endpoint = ["https://yourmirror.com"]
         # containerd 忽略证书验证的配置
         #      [plugins."io.containerd.grpc.v1.cri".registry.configs]
         #        [plugins."io.containerd.grpc.v1.cri".registry.configs."192.168.0.12:8001".tls]
