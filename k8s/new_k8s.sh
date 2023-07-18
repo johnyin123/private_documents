@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("76aaebc[2023-07-18T09:47:54+08:00]:new_k8s.sh")
+VERSION+=("48253a1[2023-07-18T10:56:20+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -319,7 +319,7 @@ EOF
         local pausekey=${3}
         via_proxy "${http_proxy}" "/etc/systemd/system/containerd.service.d"
         # change sandbox_image on all nodes
-        containerd config default > /etc/containerd/config.toml || true
+        mkdir -vp /etc/containerd && containerd config default > /etc/containerd/config.toml || true
         sed -i -e "s/sandbox_image\s*=.*\/pause.*/sandbox_image = \"registry.k8s.io\/${pausekey}\"/g" /etc/containerd/config.toml
         # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
         sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
@@ -387,6 +387,7 @@ br_netfilter
 EOF
     modprobe br_netfilter
     cat <<EOF | tee /etc/sysctl.d/k8s.conf
+net.ipv4.ip_forward = 1
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
 EOF
@@ -757,7 +758,7 @@ ${SCRIPTNAME}
         ${SCRIPTNAME} --master 192.168.168.150 --worker 192.168.168.151 --worker 192.168.168.152 --svc_cidr 172.16.200.0/24 --calico 172.16.100.0/24 --ipvs
         MASQ=false, the gateway is outside, else gateway is bridge(cn0)
         Debian instll containerd:(newer k8s:v1.20+ use containerd instead docker-ce)
-            apt -y install containerd containernetworking-plugins containers-storage
+            apt -y install containerd containernetworking-plugins containers-storage conntrack-tools containernetworking-plugins socat
         Debian install docker:
             apt -y install wget curl apt-transport-https ca-certificates ethtool socat bridge-utils ipvsadm ipset jq
             repo=docker
@@ -769,6 +770,8 @@ ${SCRIPTNAME}
             wget -q -O- http://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | apt-key add -
             echo "deb http://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
             apt update && apt -y install kubelet kubectl kubeadm
+        Centos install containerd
+            yum -y install containerd containernetworking-plugins conntrack-tools containernetworking-plugins socat
         Centos install docker & k8s
             yum -y install wget curl ethtool socat bridge-utils
             wget http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo -O /etc/yum.repos.d/docker-ce.repo

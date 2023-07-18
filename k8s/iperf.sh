@@ -35,15 +35,17 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: iperf3-${mode}
+  labels:
+    app: iperf3-${mode}
 spec:
   replicas: ${replica}
   selector:
     matchLabels:
-      app: iperf3
+      app: iperf3${mode}
   template:
     metadata:
       labels:
-        app: iperf3${spec}
+        app: iperf3${mode}${spec}
 EOF
 }
 main() {

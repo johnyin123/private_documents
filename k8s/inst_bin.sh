@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("569e35f[2023-07-17T14:27:08+08:00]:inst_bin.sh")
+VERSION+=("4eefa36[2023-07-17T15:09:03+08:00]:inst_bin.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -76,8 +76,9 @@ main() {
     upload "kubelet.${ver}.${arch}" "${ipaddr}" "${SSH_PORT}" "root" "/usr/bin/kubelet" 
     upload "kubeadm.${ver}.${arch}" "${ipaddr}" "${SSH_PORT}" "root" "/usr/bin/kubeadm"
     upload "kubectl.${ver}.${arch}" "${ipaddr}" "${SSH_PORT}" "root" "/usr/bin/kubectl"
+    upload "crictl.${arch}" "${ipaddr}" "${SSH_PORT}" "root" "/usr/bin/crictl"
     upload "calicoctl-linux-${arch}" "${ipaddr}" "${SSH_PORT}" "root" "/usr/bin/calicoctl"
-    ssh_func "root@${ipaddr}" "${SSH_PORT}" "chmod 755 /usr/bin/kubelet /usr/bin/kubeadm /usr/bin/kubectl /usr/bin/calicoctl || true"
+    ssh_func "root@${ipaddr}" "${SSH_PORT}" "chmod 755 /usr/bin/kubelet /usr/bin/kubeadm /usr/bin/kubectl /usr/bin/crictl /usr/bin/calicoctl || true"
     ssh_func "root@${ipaddr}" "${SSH_PORT}" "mkdir -p /etc/systemd/system/kubelet.service.d/ /etc/kubernetes/ /var/lib/kubelet"
     cat <<'EOF' > 10-kubeadm.conf 
 [Service]
