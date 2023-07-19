@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8b5f1ed[2023-07-19T13:41:54+08:00]:new_k8s.sh")
+VERSION+=("239d2be[2023-07-19T19:13:00+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -71,6 +71,16 @@ declare -A GCR_MAP=(
     [coredns:v1.10.1]=registry.k8s.io/coredns/coredns:v1.10.1
     [etcd:3.5.7-0]=registry.k8s.io/etcd:3.5.7-0
 )
+# #  kubelet v1.21.7
+# declare -A GCR_MAP=(
+#     [kube-apiserver:v1.21.7]=registry.k8s.io/kube-apiserver:v1.21.7
+#     [kube-controller-manager:v1.21.7]=registry.k8s.io/kube-controller-manager:v1.21.7
+#     [kube-scheduler:v1.21.7]=registry.k8s.io/kube-scheduler:v1.21.7
+#     [kube-proxy:v1.21.7]=registry.k8s.io/kube-proxy:v1.21.7
+#     [pause:3.4.1]=registry.k8s.io/pause:3.4.1
+#     [etcd:3.4.13-0]=registry.k8s.io/etcd:3.4.13-0
+#     [coredns:v1.8.0]=registry.k8s.io/coredns/coredns:v1.8.0
+# )
 GCR_MIRROR="registry.aliyuncs.com/google_containers"
 ##OPTION_END
 
@@ -296,7 +306,7 @@ mirror_save_image() {
     local img=${1}
     local tgz=${2}
     command -v ctr &> /dev/null && {
-        ctr --namespace k8s.io image save ${img} | gzip > ${tgz}
+        ctr --namespace k8s.io image export - ${img} | gzip > ${tgz}
         return 0
     }
     docker save ${img} | gzip > ${tgz}
