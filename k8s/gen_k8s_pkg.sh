@@ -4,7 +4,7 @@ readonly SCRIPTNAME=${0##*/}
 set -o errtrace
 set -o nounset
 set -o errexit
-VERSION+=("initver[2023-07-19T08:57:38+08:00]:gen_k8s_pkg.sh")
+VERSION+=("735a20a[2023-07-19T08:57:37+08:00]:gen_k8s_pkg.sh")
 ################################################################################
 PKG_DIR=${1?"$SCRIPTNAME <src_dir> <amd64/arm64>"}
 ARCH=${2?"$SCRIPTNAME <src_dir> <amd64/arm64>"}
@@ -12,9 +12,9 @@ ARCH=${2?"$SCRIPTNAME <src_dir> <amd64/arm64>"}
 TGZ_CRICTL=crictl-v1.27.1-linux-${ARCH}.tar.gz 
 TGZ_CONTAINERD=containerd-static-1.7.2-linux-${ARCH}.tar.gz 
 TGZ_CNI_PLUGINS=cni-plugins-linux-${ARCH}-v1.3.0.tgz 
-BIN_KUBEADM=kubeadm.v1.27.3.${ARCH}
-BIN_KUBECTL=kubectl.v1.27.3.${ARCH}
-BIN_KUBELET=kubelet.v1.27.3.${ARCH}
+BIN_KUBEADM=kubeadm.v1.21.7.${ARCH}
+BIN_KUBECTL=kubectl.v1.21.7.${ARCH}
+BIN_KUBELET=kubelet.v1.21.7.${ARCH}
 BIN_RUNC=runc.${ARCH}
 BIN_CALICOCTL=calicoctl-linux-${ARCH}
 # # requires end
@@ -135,5 +135,15 @@ tar -C ${PKG_DIR}/usr/bin  -xvf ${TGZ_CRICTL}
 tar -C ${PKG_DIR}/usr/     -xvf ${TGZ_CONTAINERD}
 tar -C ${PKG_DIR}/opt/cni/ -xvf ${TGZ_CNI_PLUGINS}
 
-fpm --package . -s dir -t rpm -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd  --conflicts kubelet --conflicts kubeadm --conflicts kubectl --depends conntrack --depends socat --version 0.9 --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
-fpm --package . -s dir -t deb -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd  --conflicts kubelet --conflicts kubeadm --conflicts kubectl --depends conntrack --depends socat --version 0.9 --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
+fpm --package . -s dir -t rpm -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl --depends conntrack --depends socat --version 0.9 --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
+fpm --package . -s dir -t deb -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl --depends conntrack --depends socat --version 0.9 --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
+cat <<'EOF'
+yum -y --disablerepo=* --enablerepo=myrepo install tsd_cnap-0.9-1.x86_64.rpm
+cat <<'EOREPO' > /etc/yum.repos.d/myrepo.repo
+[myrepo]
+name=myrepo
+baseurl=http://10.170.6.105/openEuler-22.03-LTS-SP1/everything/$basearch/
+enabled=1
+gpgcheck=0
+EOREPO
+EOF
