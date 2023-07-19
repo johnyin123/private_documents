@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7c8e1ac[2023-07-18T16:38:31+08:00]:new_k8s.sh")
+VERSION+=("c1d7e08[2023-07-19T13:21:34+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -275,6 +275,13 @@ mirror_get_image() {
     docker tag "${mirror}/${mirror_img}" "${gcr_img}"
     docker rmi "${mirror}/${mirror_img}"
 }
+mirror_image_exist() {
+    local tag=${1}
+    command -v ctr &> /dev/null && {
+        ctr --namespace k8s.io image ls | grep -q "${tag}" && return 0 || return 1
+    }
+    docker image ls | grep -q "${tag}" && return 0 || return 1
+ }
 mirror_load_image() {
     local tgz=${1}
     local tag=${2}
@@ -618,7 +625,10 @@ EOF
     for img in $(array_print_label "${img_map}"); do
         file_exists "${DIRNAME}/${K8S_VERSION}/${img}.tar.gz" && {
             info_msg "Load ${img} for ${ipaddr}\n"
-            # # TODO: check server exists this pod first
+            ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_image_exist "$(array_get ${img_map} ${img})" && {
+                info_msg "$(array_get ${img_map} ${img}) exists, continue\n"
+                continue
+            }
             upload "${DIRNAME}/${K8S_VERSION}/${img}.tar.gz" ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz"
             ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_load_image "/tmp/${img}.tar.gz" "$(array_get ${img_map} ${img})"
             ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
