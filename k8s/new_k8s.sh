@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("30aa09b[2023-07-19T20:28:35+08:00]:new_k8s.sh")
+VERSION+=("fb8a033[2023-07-20T07:40:53+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -610,15 +610,11 @@ init_kube_calico_cni() {
 EOF
     prepare_yml "${ipaddr}" "${L_CALICO_YML}" "${R_CALICO_YML}" "${CALICO_YML}"
     prepare_yml "${ipaddr}" "${L_CALICO_CUST_YML}" "${R_CALICO_CUST_YML}" "${CALICO_CUST_YML}"
-    # prepare_yml "${ipaddr}" "${L_CALICO_TYPEA_YML}" "${R_CALICO_TYPEA_YML}" "${CALICO_TYPEA_YML}"
-    # prepare_yml "${ipaddr}" "${L_CALICO_ETCD_YML}" "${R_CALICO_ETCD_YML}" "${CALICO_ETCD_YML}"
     for ipaddr in $(array_print master) $(array_print worker); do
         prepare_k8s_images "${ipaddr}" CALICO_MAP "docker.io/calico"
         prepare_k8s_images "${ipaddr}" CALICO_OPER_MAP "quay.io/tigera"
     done
     ssh_func "root@${master[0]}" "${SSH_PORT}" init_calico_cni "${svc_cidr}" "${pod_cidr}" "${R_CALICO_YML}" "${R_CALICO_CUST_YML}"
-
-    # ssh_func "root@${master[0]}" "${SSH_PORT}" init_calico_cni "${svc_cidr}" "${pod_cidr}" "${R_CALICO_YML}" "${R_CALICO_TYPEA_YML}" "${R_CALICO_ETCD_YML}"
 }
 
 prepare_k8s_images() {
