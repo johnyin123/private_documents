@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c1d7e08[2023-07-19T13:21:34+08:00]:new_k8s.sh")
+VERSION+=("8b5f1ed[2023-07-19T13:41:54+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -223,7 +223,7 @@ init_calico_cni() {
     kubectl create -f "${calico_yml}"
     kubectl create -f "${calico_cust_yml}"
     kubectl -n kube-system get configmaps calico-config -o yaml || true
-    # rm -f "${calico_yml}" "${calico_cust_yml}" || true
+    rm -f "${calico_yml}" "${calico_cust_yml}" || true
     kubectl get nodes -o wide || true
     kubectl get pods --all-namespaces -o wide || true
 }
@@ -324,6 +324,7 @@ EOF
         local http_proxy=${1}
         local apiserver=${2}
         local pausekey=${3}
+        # containerd proxy set in env when run ctr
         via_proxy "${http_proxy}" "/etc/systemd/system/containerd.service.d"
         # change sandbox_image on all nodes
         mkdir -vp /etc/containerd && containerd config default > /etc/containerd/config.toml || true
@@ -618,6 +619,7 @@ prepare_k8s_images() {
     local mirror=${3}
     local img="" x="" y="" imgid=""
     cat <<EOF | vinfo3_msg
+K8S_VERSION=${K8S_VERSION}
 IPADDR=${ipaddr}
 MIRROR=${mirror}
 $(print_kv ${img_map})
@@ -626,16 +628,20 @@ EOF
         file_exists "${DIRNAME}/${K8S_VERSION}/${img}.tar.gz" && {
             info_msg "Load ${img} for ${ipaddr}\n"
             ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_image_exist "$(array_get ${img_map} ${img})" && {
-                info_msg "$(array_get ${img_map} ${img}) exists, continue\n"
+                info_msg "${mirror}/${img} exists LOCAL & ${ipaddr}, continue\n"
                 continue
             }
+            info_msg "${mirror}/${img} NOT exists ${ipaddr}, LOCAL upload\n"
             upload "${DIRNAME}/${K8S_VERSION}/${img}.tar.gz" ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz"
             ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_load_image "/tmp/${img}.tar.gz" "$(array_get ${img_map} ${img})"
             ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
             continue
         }
         info_msg "Pull ${mirror}/${img} for ${ipaddr}\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_get_image "${mirror}" "${img}" "$(array_get ${img_map} ${img})"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_image_exist "$(array_get ${img_map} ${img})" || {
+            info_msg "${mirror}/${img} NOT exists LOCAL & ${ipaddr}, pull image\n"
+            ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_get_image "${mirror}" "${img}" "$(array_get ${img_map} ${img})"
+        }
         ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_save_image "$(array_get ${img_map} ${img})" "/tmp/${img}.tar.gz"
         download ${ipaddr} "${SSH_PORT}" "root" "/tmp/${img}.tar.gz" "${DIRNAME}/${K8S_VERSION}/${img}.tar.gz"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" "rm -f /tmp/${img}.tar.gz"
