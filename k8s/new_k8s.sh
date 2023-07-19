@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("48253a1[2023-07-18T10:56:20+08:00]:new_k8s.sh")
+VERSION+=("7c8e1ac[2023-07-18T16:38:31+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -386,7 +386,10 @@ EOF
 br_netfilter
 EOF
     modprobe br_netfilter
-    cat <<EOF | tee /etc/sysctl.d/k8s.conf
+    sed --quiet -i -E \
+        -e '/(net.ipv4.ip_forward|net.bridge.bridge-nf-call-ip6tables|net.bridge.bridge-nf-call-iptables).*/!p' \
+        /etc/sysctl.conf
+    cat <<EOF | tee /etc/sysctl.d/99-zz-k8s.conf
 net.ipv4.ip_forward = 1
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
@@ -394,6 +397,7 @@ EOF
     sysctl --system &>/dev/null
     command -v ctr &> /dev/null && pre_containerd_env  "${http_proxy}" "${apiserver}" "${pausekey}" || pre_docker_env "${http_proxy}" "${apiserver}"
 	systemctl enable kubelet.service
+    systemctl disable firewalld --now || true
 }
 
 gen_k8s_join_cmds() {
@@ -790,7 +794,7 @@ EOF
 }
 
 main() {
-    local password="" master=() worker=() teardown=() bridge="" apiserver="k8sapi.local.com:6443" gen_join_cmds=""
+    local master=() worker=() teardown=() bridge="" apiserver="k8sapi.local.com:6443" gen_join_cmds=""
     local flannel_cidr="" dashboard=false ipvs=false ingress=false skip_proxy=false calico_cidr="" svc_cidr=""
     local opt_short="m:w:s:"
     local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,calico:,dashboard,ipvs,ingress,teardown:,svc_cidr:,"
@@ -814,7 +818,7 @@ main() {
             --skip_proxy)   shift; skip_proxy=true;;
             --ipvs)         shift; ipvs=true;;
             --teardown)     shift; teardown+=(${1}); shift;;
-            --password)     shift; password="${1}"; shift;;
+            --password)     shift; set_sshpass "${1}"; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -825,7 +829,6 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    [ -z ${password} ] || set_sshpass "${password}"
     local ipaddr=""
     for ipaddr in "${teardown[@]}"; do
         info_msg "${ipaddr} teardown all k8s config!\n"
@@ -847,7 +850,7 @@ main() {
     mkdir -vp "${DIRNAME}/${K8S_VERSION}"
     for ipaddr in $(array_print master) $(array_print worker); do
         info_msg "****** ${ipaddr} pre valid host env\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "'${HTTP_PROXY}'" "${apiserver}" "$(array_print_label GCR_MAP  | grep 'pause')"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "${HTTP_PROXY}" "${apiserver}" "$(array_print_label GCR_MAP  | grep 'pause')"
     done
     prepare_kube_images master worker
     [ -z "${bridge}" ] || {
