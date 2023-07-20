@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2b1d7ce[2023-07-20T08:20:01+08:00]:new_k8s.sh")
+VERSION+=("dd2e2f1[2023-07-20T10:34:40+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -342,7 +342,6 @@ EOF
         sed -i -e "s/sandbox_image\s*=.*\/pause.*/sandbox_image = \"registry.k8s.io\/${pausekey}\"/g" /etc/containerd/config.toml
         # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
         sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
-        sed -i 's/systemd_cgroup\s*=.*/systemd_cgroup = true/g' /etc/containerd/config.toml
         # [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
         #   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
         #     endpoint = ["https://registry-1.docker.io"]
@@ -355,6 +354,12 @@ EOF
         #   [plugins."io.containerd.grpc.v1.cri".registry.configs."docker.io".auth]
         #     username = "admin"
         #     password = "pass12345"
+        # [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
+        #   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."172.16.7.1:8888"]
+        #     endpoint = ["http://172.16.7.1:8888"]
+        #   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."k-registry.hb:8888"]
+        #     endpoint = ["http://k-registry.hb:8888"]
+
         echo "ctr --namespace=k8s.io images push registry.harbor.com/test/app:latest --skip-verify --user admin:Harbor12345"
         echo "crictl pull registry.harbor.com/test/app:latest"
         # # containerd 忽略证书验证的配置
