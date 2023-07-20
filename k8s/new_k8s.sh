@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d2508f9[2023-07-20T07:48:03+08:00]:new_k8s.sh")
+VERSION+=("2b1d7ce[2023-07-20T08:20:01+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -413,6 +413,7 @@ EOF
 net.ipv4.ip_forward = 1
 net.bridge.bridge-nf-call-ip6tables = 1
 net.bridge.bridge-nf-call-iptables = 1
+net.netfilter.nf_conntrack_max = 1000000
 EOF
     sysctl --system &>/dev/null
     command -v ctr &> /dev/null && pre_containerd_env  "${http_proxy}" "${apiserver}" "${pausekey}" || pre_docker_env "${http_proxy}" "${apiserver}"
@@ -610,6 +611,12 @@ init_kube_calico_cni() {
     local ipaddr="${master[0]}"
     vinfo_msg <<EOF
 ****** ${ipaddr} init calico() cni svc: ${svc_cidr}, pod:${pod_cidr}.
+EOF
+    info_msg "calico need do, when NetworkManager present\n"
+    cat <<EOF
+# >/etc/NetworkManager/conf.d/calico.conf
+[keyfile]
+unmanaged-devices=interface-name:cali*;interface-name:tunl*;interface-name:vxlan.calico;interface-name:vxlan-v6.calico;interface-name:wireguard.cali;interface-name:wg-v6.cali
 EOF
     prepare_yml "${ipaddr}" "${L_CALICO_YML}" "${R_CALICO_YML}" "${CALICO_YML}"
     prepare_yml "${ipaddr}" "${L_CALICO_CUST_YML}" "${R_CALICO_CUST_YML}" "${CALICO_CUST_YML}"
