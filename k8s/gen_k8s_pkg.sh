@@ -4,17 +4,18 @@ readonly SCRIPTNAME=${0##*/}
 set -o errtrace
 set -o nounset
 set -o errexit
-VERSION+=("735a20a[2023-07-19T08:57:37+08:00]:gen_k8s_pkg.sh")
+VERSION+=("c173a5c[2023-07-19T16:24:23+08:00]:gen_k8s_pkg.sh")
 ################################################################################
-PKG_DIR=${1?"$SCRIPTNAME <src_dir> <amd64/arm64>"}
-ARCH=${2?"$SCRIPTNAME <src_dir> <amd64/arm64>"}
+PKG_DIR=${1?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
+ARCH=${2?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
+VER=${3?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
 # # requires start
 TGZ_CRICTL=crictl-v1.27.1-linux-${ARCH}.tar.gz 
 TGZ_CONTAINERD=containerd-static-1.7.2-linux-${ARCH}.tar.gz 
 TGZ_CNI_PLUGINS=cni-plugins-linux-${ARCH}-v1.3.0.tgz 
-BIN_KUBEADM=kubeadm.v1.21.7.${ARCH}
-BIN_KUBECTL=kubectl.v1.21.7.${ARCH}
-BIN_KUBELET=kubelet.v1.21.7.${ARCH}
+BIN_KUBEADM=kubeadm.${VER}.${ARCH}
+BIN_KUBECTL=kubectl.${VER}.${ARCH}
+BIN_KUBELET=kubelet.${VER}.${ARCH}
 BIN_RUNC=runc.${ARCH}
 BIN_CALICOCTL=calicoctl-linux-${ARCH}
 # # requires end
@@ -40,9 +41,9 @@ https://github.com/containerd/containerd/releases/download/v1.7.2/containerd-sta
 https://github.com/opencontainers/runc/releases/download/v1.1.7/runc.${ARCH}
 https://github.com/containernetworking/plugins/releases/download/v1.3.0/cni-plugins-linux-${ARCH}-v1.3.0.tgz
 https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.27.1/crictl-v1.27.1-linux-${ARCH}.tar.gz
-https://dl.k8s.io/release/1.27.3/bin/linux/${ARCH}/kubelet
-https://dl.k8s.io/release/1.27.3/bin/linux/${ARCH}/kubeadm
-https://dl.k8s.io/release/1.27.3/bin/linux/${ARCH}/kubectl
+https://dl.k8s.io/release/${VER}/bin/linux/${ARCH}/kubelet
+https://dl.k8s.io/release/${VER}/bin/linux/${ARCH}/kubeadm
+https://dl.k8s.io/release/${VER}/bin/linux/${ARCH}/kubectl
 EOF
     exit 1
 }
@@ -126,17 +127,17 @@ WantedBy=multi-user.target
 EOF
 chmod 644 ${PKG_DIR}/lib/systemd/system/containerd.service
 
-install --mode=0755 ${BIN_KUBEADM} ${PKG_DIR}/usr/bin/kubeadm
-install --mode=0755 ${BIN_KUBECTL} ${PKG_DIR}/usr/bin/kubectl
-install --mode=0755 ${BIN_KUBELET} ${PKG_DIR}/usr/bin/kubelet
-install --mode=0755 ${BIN_RUNC} ${PKG_DIR}/usr/bin/runc
-install --mode=0755 ${BIN_CALICOCTL} ${PKG_DIR}/usr/bin/calicoctl
+install -v --mode=0755 ${BIN_KUBEADM} ${PKG_DIR}/usr/bin/kubeadm
+install -v --mode=0755 ${BIN_KUBECTL} ${PKG_DIR}/usr/bin/kubectl
+install -v --mode=0755 ${BIN_KUBELET} ${PKG_DIR}/usr/bin/kubelet
+install -v --mode=0755 ${BIN_RUNC} ${PKG_DIR}/usr/bin/runc
+install -v --mode=0755 ${BIN_CALICOCTL} ${PKG_DIR}/usr/bin/calicoctl
 tar -C ${PKG_DIR}/usr/bin  -xvf ${TGZ_CRICTL}
 tar -C ${PKG_DIR}/usr/     -xvf ${TGZ_CONTAINERD}
 tar -C ${PKG_DIR}/opt/cni/ -xvf ${TGZ_CNI_PLUGINS}
 
-fpm --package . -s dir -t rpm -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl --depends conntrack --depends socat --version 0.9 --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
-fpm --package . -s dir -t deb -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl --depends conntrack --depends socat --version 0.9 --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
+fpm --package . -s dir -t rpm -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl --depends conntrack --depends socat --version 0.9 --iteration ${VER} --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
+fpm --package . -s dir -t deb -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl --depends conntrack --depends socat --version 0.9 --iteration ${VER} --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
 cat <<'EOF'
 yum -y --disablerepo=* --enablerepo=myrepo install tsd_cnap-0.9-1.x86_64.rpm
 cat <<'EOREPO' > /etc/yum.repos.d/myrepo.repo
