@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("faf9207[2023-06-01T09:38:45+08:00]:ngx_demo.sh")
+VERSION+=("0589153[2023-07-20T10:49:50+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4217,6 +4217,10 @@ server {
 }
 EOF
 cat <<'EOF' >docker_registry.http
+# docker login -u=testuser -p=testpassword -e=root@example.ch myregistrydomain.com
+# docker tag ubuntu myregistrydomain.com/test
+# docker push myregistrydomain.com/test
+# docker pull myregistrydomain.com/test
 upstream docker-registry {
     server registry:5000;
 }
