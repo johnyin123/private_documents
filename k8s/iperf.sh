@@ -35,6 +35,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: iperf3-${mode}
+  namespace: iperf3-${mode}
   labels:
     app: iperf3-${mode}
 spec:
@@ -48,6 +49,37 @@ spec:
         app: iperf3${mode}${spec}
 EOF
 }
+cat <<EOF
+kind: Service
+apiVersion: v1
+metadata:
+  name: iperf3-server
+  namespace: iperf3-server
+  labels:
+    app: iperf3-server
+  annotations:
+    kubesphere.io/serviceType: statelessservice
+spec:
+  ports:
+    - name: tcp-5201
+      protocol: TCP
+      port: 5201
+      targetPort: 5201
+      nodePort: 31119
+  selector:
+    app: iperf3-server
+    app.kubernetes.io/name: iperf3
+    app.kubernetes.io/version: v1
+  clusterIP: 172.16.200.119
+  clusterIPs:
+    - 172.16.200.119
+  type: NodePort
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+EOF
 main() {
     iperf3 2 server | kubectl apply -f -
     iperf3 2 client | kubectl apply -f -
