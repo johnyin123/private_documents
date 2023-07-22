@@ -4,7 +4,8 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("1af1867[2023-05-08T16:04:57+08:00]:tpl2disk.sh")
+VERSION+=("1fab7b1[2023-05-10T12:57:57+08:00]:tpl2disk.sh")
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -150,4 +151,5 @@ EOSHELL
     umount -R -v ${root_dir} || true
     echo "ALL DONE OK"
 }
+auto_su "$@"
 main "$@"
