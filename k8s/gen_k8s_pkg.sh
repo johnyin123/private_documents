@@ -4,7 +4,7 @@ readonly SCRIPTNAME=${0##*/}
 set -o errtrace
 set -o nounset
 set -o errexit
-VERSION+=("be13796[2023-07-20T10:15:20+08:00]:gen_k8s_pkg.sh")
+VERSION+=("ffaf6d3[2023-07-22T13:12:06+08:00]:gen_k8s_pkg.sh")
 ################################################################################
 PKG_DIR=${1?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
 ARCH=${2?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
@@ -49,7 +49,7 @@ EOF
 }
 
 for d in /opt/cni /usr/bin/ /etc/systemd/system/kubelet.service.d /lib/systemd/system /etc/kubernetes/manifests; do
-    mkdir -p ${PKG_DIR}/${d}
+    mkdir -pv ${PKG_DIR}/${d}
 done
 cat <<'EOF' > ${PKG_DIR}/etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 [Service]
@@ -63,7 +63,7 @@ EnvironmentFile=-/etc/default/kubelet
 ExecStart=
 ExecStart=/usr/bin/kubelet $KUBELET_KUBECONFIG_ARGS $KUBELET_CONFIG_ARGS $KUBELET_KUBEADM_ARGS $KUBELET_EXTRA_ARGS
 EOF
-chmod 644 ${PKG_DIR}/etc/systemd/system/kubelet.service.d/10-kubeadm.conf
+chmod -v 644 ${PKG_DIR}/etc/systemd/system/kubelet.service.d/10-kubeadm.conf
 cat <<EOF > ${PKG_DIR}/lib/systemd/system/kubelet.service
 [Unit]
 Description=kubelet: The Kubernetes Node Agent
@@ -80,7 +80,7 @@ RestartSec=10
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 ${PKG_DIR}/lib/systemd/system/kubelet.service
+chmod -v 644 ${PKG_DIR}/lib/systemd/system/kubelet.service
 cat <<EOF > ${PKG_DIR}/lib/systemd/system/containerd.service
 # Copyright The containerd Authors.
 #
@@ -125,7 +125,7 @@ OOMScoreAdjust=-999
 [Install]
 WantedBy=multi-user.target
 EOF
-chmod 644 ${PKG_DIR}/lib/systemd/system/containerd.service
+chmod -v 644 ${PKG_DIR}/lib/systemd/system/containerd.service
 
 install -v --mode=0755 ${BIN_KUBEADM} ${PKG_DIR}/usr/bin/kubeadm
 install -v --mode=0755 ${BIN_KUBECTL} ${PKG_DIR}/usr/bin/kubectl

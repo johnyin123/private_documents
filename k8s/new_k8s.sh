@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ffaf6d3[2023-07-22T13:12:06+08:00]:new_k8s.sh")
+VERSION+=("ebc4b31[2023-07-22T13:20:30+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -297,6 +297,7 @@ pre_conf_k8s_host() {
     local http_proxy=${1}
     local apiserver=${2}
     local k8s_version=${3}
+    local nameserver=${4}
     via_proxy() {
         local http_proxy=${1}
         local dir=${2}
@@ -388,7 +389,7 @@ EOF
         systemctl enable docker.service || true
     }
     echo "127.0.0.1 localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
-    echo "check /etc/resolv.conf, nameserver exist!!!"
+    [ -z "${nameserver}" ] || echo "nameserver ${nameserver}" > /etc/resolv.conf
     touch /etc/resolv.conf || true
     swapoff -a
     sed -iE "/\s*swap\s/d" /etc/fstab
@@ -749,6 +750,7 @@ ${SCRIPTNAME}
         -m|--master   *        <ip>   master nodes, support multi nodes
         -w|--worker            <ip>   worker nodes, support multi nodes
         -s|--svc_cidr          <cidr> servie cidr, default 10.96.0.0/12
+        --nameserver           <ip>   k8s nodes nameserver, /etc/resolv.conf
         --bridge               <str>  k8s bridge_cni, bridge name
         --calico               <cidr> calico cni, pod_cidr
         --flannel              <cidr> k8s flannel_cni, pod_cidr
@@ -814,9 +816,9 @@ EOF
 
 main() {
     local master=() worker=() teardown=() bridge="" apiserver="k8sapi.local.com:6443" gen_join_cmds=""
-    local flannel_cidr="" dashboard=false ipvs=false ingress=false skip_proxy=false calico_cidr="" svc_cidr=""
+    local flannel_cidr="" dashboard=false ipvs=false ingress=false skip_proxy=false calico_cidr="" svc_cidr="" nameserver=""
     local opt_short="m:w:s:"
-    local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,calico:,dashboard,ipvs,ingress,teardown:,svc_cidr:,"
+    local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,calico:,dashboard,ipvs,ingress,teardown:,svc_cidr:,nameserver:,"
     opt_long+="skip_proxy,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
@@ -829,6 +831,7 @@ main() {
             -m | --master)  shift; master+=(${1}); shift;;
             -w | --worker)  shift; worker+=(${1}); shift;;
             -s | --svc_cidr)shift; svc_cidr=${1}; shift;;
+            --nameserver)   shift; nameserver=${1}; shift;;
             --bridge)       shift; bridge=${1}; shift;;
             --flannel)      shift; flannel_cidr=${1}; shift;;
             --calico)       shift; calico_cidr=${1}; shift;;
@@ -869,7 +872,7 @@ main() {
     mkdir -vp "${DIRNAME}/${K8S_VERSION}"
     for ipaddr in $(array_print master) $(array_print worker); do
         info_msg "****** ${ipaddr} pre valid host env\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "${HTTP_PROXY}" "${apiserver}" "${K8S_VERSION}"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "${HTTP_PROXY}" "${apiserver}" "${K8S_VERSION}" "${nameserver}"
     done
     prepare_kube_images master worker
     [ -z "${bridge}" ] || {
