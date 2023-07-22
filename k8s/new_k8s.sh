@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("160bf9a[2023-07-22T09:38:38+08:00]:new_k8s.sh")
+VERSION+=("7144667[2023-07-22T11:40:38+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -417,7 +417,7 @@ gen_k8s_join_cmds() {
     # kubeadm token create --print-join-command
     local sha_hash=$(openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //')
     # reupload certs
-    local certs=$(kubeadm init phase upload-certs --upload-certs | tail -n 1)
+    local certs=$(kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -n 1)
     local api_srv=$(sed -n "s/\s*server:\s*\(.*\)/\1/p" /etc/kubernetes/kubelet.conf)
     echo kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash} --control-plane --certificate-key ${certs}
     echo kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash}
@@ -719,7 +719,7 @@ init_kube_cluster() {
     # kubeadm token create --print-join-command
     local sha_hash=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
     # reupload certs
-    local certs=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "kubeadm init phase upload-certs --upload-certs | tail -n 1")
+    local certs=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -n 1")
     for ((i=1;i<$(array_size master);i++)); do
         ipaddr=$(array_get master ${i})
         info1_msg "****** ${ipaddr} add master(${api_srv})\n"
