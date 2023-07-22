@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ebc4b31[2023-07-22T13:20:30+08:00]:new_k8s.sh")
+VERSION+=("1775f7a[2023-07-22T13:50:52+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -204,11 +204,12 @@ init_calico_cni() {
     local pod_cidr=${2}
     local calico_yml=${3}
     local calico_cust_yml=${4}
+    local crossnet_method=IPIPCrossSubnet
     [ -e "${calico_yml}" ] || [ -e "${calico_cust_yml}" ] || return 1
     # sed -i "s|replicas\s*:.*|replicas: ${TYPHA_REPLICAS:-1}|g" "${calico_typha_yml}"
     sed -i "s|cidr\s*:.*|cidr: ${pod_cidr}|g" "${calico_cust_yml}"
     # # IPIPCrossSubnet,IPIP,VXLAN,VXLANCrossSubnet,None
-    # sed -i "s|encapsulation\s*:.*|encapsulation: ${crossnet_method}|g" "${calico_cust_yml}"
+    sed -i "s|encapsulation\s*:.*|encapsulation: ${crossnet_method}|g" "${calico_cust_yml}"
     export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl create -f "${calico_yml}"
     kubectl create -f "${calico_cust_yml}"
