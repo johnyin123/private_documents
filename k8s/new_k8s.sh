@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e657f6e[2023-07-22T16:16:37+08:00]:new_k8s.sh")
+VERSION+=("4afa801[2023-07-22T16:20:53+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -213,7 +213,6 @@ init_calico_cni() {
     export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl create -f "${calico_yml}"
     kubectl create -f "${calico_cust_yml}"
-    kubectl -n kube-system get configmaps calico-config -o yaml || true
     rm -f "${calico_yml}" "${calico_cust_yml}" || true
     kubectl get nodes -o wide || true
     kubectl get pods --all-namespaces -o wide || true
@@ -930,6 +929,7 @@ main() {
     info_msg "diag: kubectl get svc\n"
     info_msg "diag: kubectl -n kube-system get rs\n"
     info_msg "diag: kubectl -n kube-system scale --replicas=3 rs/coredns-xxxx\n"
+    info_msg "diag: kubectl -n calico-system get configmaps\n"
     info_msg "diag: kubectl -n kube-system edit configmaps kube-proxy -o yaml\n"
     info_msg "diag: kubectl -n kube-system exec -it etcd-node-xxxx -- /bin/sh\n"
     info_msg "ALL DONE\n"
