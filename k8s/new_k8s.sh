@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ac306a7[2023-07-21T17:06:41+08:00]:new_k8s.sh")
+VERSION+=("160bf9a[2023-07-22T09:38:38+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -60,27 +60,7 @@ R_CALICO_YML="/tmp/tigera-operator.yaml"
 CALICO_CUST_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/custom-resources.yaml"
 L_CALICO_CUST_YML="${DIRNAME}/${K8S_VERSION}/custom-resources.yaml"
 R_CALICO_CUST_YML="/tmp/custom-resources.yaml"
-# mirrors
-# kubeadm config images list --kubernetes-version ${K8S_VERSION}
-declare -A GCR_MAP=(
-    [kube-apiserver:${K8S_VERSION}]=registry.k8s.io/kube-apiserver:${K8S_VERSION}
-    [kube-scheduler:${K8S_VERSION}]=registry.k8s.io/kube-scheduler:${K8S_VERSION}
-    [kube-proxy:${K8S_VERSION}]=registry.k8s.io/kube-proxy:${K8S_VERSION}
-    [kube-controller-manager:${K8S_VERSION}]=registry.k8s.io/kube-controller-manager:${K8S_VERSION}
-    [pause:3.9]=registry.k8s.io/pause:3.9
-    [coredns:v1.10.1]=registry.k8s.io/coredns/coredns:v1.10.1
-    [etcd:3.5.7-0]=registry.k8s.io/etcd:3.5.7-0
-)
-# #  kubelet v1.21.7
-# declare -A GCR_MAP=(
-#     [kube-apiserver:v1.21.7]=registry.k8s.io/kube-apiserver:v1.21.7
-#     [kube-controller-manager:v1.21.7]=registry.k8s.io/kube-controller-manager:v1.21.7
-#     [kube-scheduler:v1.21.7]=registry.k8s.io/kube-scheduler:v1.21.7
-#     [kube-proxy:v1.21.7]=registry.k8s.io/kube-proxy:v1.21.7
-#     [pause:3.4.1]=registry.k8s.io/pause:3.4.1
-#     [etcd:3.4.13-0]=registry.k8s.io/etcd:3.4.13-0
-#     [coredns:v1.8.0]=registry.k8s.io/coredns/coredns:v1.8.0
-# )
+
 GCR_MIRROR="registry.aliyuncs.com/google_containers"
 ##OPTION_END
 
@@ -104,7 +84,6 @@ R_INGRESS_YML   = ${R_INGRESS_YML}
 $(print_kv INGRESS_MAP)
 ========================================
 GCR_MIRROR      = ${GCR_MIRROR}
-$(print_kv GCR_MAP)
 EOF
     return 0
 }
@@ -277,12 +256,14 @@ mirror_get_image() {
     local mirror_img="${2}"
     local gcr_img="${3}"
     command -v ctr &> /dev/null && {
-        ctr --namespace k8s.io image pull "${mirror}/${mirror_img}"
+        ctr --namespace k8s.io image pull "${mirror}/${mirror_img}" &>/dev/null
+        [ "${mirror}/${mirror_img}x" == "${gcr_img}x" ] && return 0
         ctr --namespace k8s.io image tag "${mirror}/${mirror_img}" "${gcr_img}"
         ctr --namespace k8s.io image rm "${mirror}/${mirror_img}"
         return 0
     }
-    docker pull "${mirror}/${mirror_img}"
+    docker pull "${mirror}/${mirror_img}" &>/dev/null
+    [ "${mirror}/${mirror_img}x" == "${gcr_img}x" ] && return 0
     docker tag "${mirror}/${mirror_img}" "${gcr_img}"
     docker rmi "${mirror}/${mirror_img}"
 }
@@ -315,7 +296,7 @@ mirror_save_image() {
 pre_conf_k8s_host() {
     local http_proxy=${1}
     local apiserver=${2}
-    local pausekey=${3}
+    local k8s_version=${3}
     via_proxy() {
         local http_proxy=${1}
         local dir=${2}
@@ -334,12 +315,15 @@ EOF
     pre_containerd_env() {
         local http_proxy=${1}
         local apiserver=${2}
-        local pausekey=${3}
+        local k8s_version=${3}
+
+        local pausekey=$(kubeadm config images list --kubernetes-version=${k8s_version} 2>/dev/null | grep pause)
+        echo "PAUSE:  ************** ${pausekey}"
         # containerd proxy set in env when run ctr
         via_proxy "${http_proxy}" "/etc/systemd/system/containerd.service.d"
         # change sandbox_image on all nodes
         mkdir -vp /etc/containerd && containerd config default > /etc/containerd/config.toml || true
-        sed -i -e "s/sandbox_image\s*=.*\/pause.*/sandbox_image = \"registry.k8s.io\/${pausekey}\"/g" /etc/containerd/config.toml
+        sed -i -e "s|sandbox_image\s*=.*|sandbox_image = \"${pausekey}\"|g" /etc/containerd/config.toml
         # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
         sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
         # [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
@@ -421,7 +405,7 @@ net.bridge.bridge-nf-call-iptables = 1
 net.netfilter.nf_conntrack_max = 1000000
 EOF
     sysctl --system &>/dev/null
-    command -v ctr &> /dev/null && pre_containerd_env  "${http_proxy}" "${apiserver}" "${pausekey}" || pre_docker_env "${http_proxy}" "${apiserver}"
+    command -v ctr &> /dev/null && pre_containerd_env  "${http_proxy}" "${apiserver}" "${k8s_version}" || pre_docker_env "${http_proxy}" "${apiserver}"
 	systemctl enable kubelet.service
     systemctl disable firewalld --now || true
 }
@@ -461,7 +445,6 @@ init_first_k8s_master() {
     # init kubeadm cluster on master
     kubeadm config images list --kubernetes-version ${version} || true
     kubeadm config print init-defaults || true
-    echo "can modify 'imageRepository: registry.k8s.io', kubeadm config images list --config kubeadm-calico.conf"
     # kubeadm config images pull --image-repository=registry.aliyuncs.com/google_containers --kubernetes-version ${version}
     # kubeadm init --kubernetes-version ${version} phase --image-repository=registry.aliyuncs.com/google_containers --control-plane-endpoint "${api_srv}" --upload-certs
     kubeadm init --kubernetes-version ${version} ${opts}
@@ -618,8 +601,7 @@ init_kube_calico_cni() {
 ****** ${ipaddr} init calico() cni svc: ${svc_cidr}, pod:${pod_cidr}.
 EOF
     info_msg "calico need do, when NetworkManager present\n"
-    cat <<EOF
-# >/etc/NetworkManager/conf.d/calico.conf
+    cat <<EOF >/etc/NetworkManagerfuck/conf.d/calico.conf || true
 [keyfile]
 unmanaged-devices=interface-name:cali*;interface-name:tunl*;interface-name:vxlan.calico;interface-name:vxlan-v6.calico;interface-name:wireguard.cali;interface-name:wg-v6.cali
 EOF
@@ -708,10 +690,11 @@ prepare_kube_images() {
     local master=($(array_print ${1}))
     local worker=($(array_print ${2}))
     local ipaddr="" imgid=""
-    # declare -A GCR_MAP=()
-    # for imgid in $(ssh_func "root@${master[0]}" "${SSH_PORT}" "kubeadm config images list 2>/dev/null"); do
-    #     GCR_MAP[$(basename ${imgid})]="${imgid}"
-    # done
+    declare -A GCR_MAP=()
+    for imgid in $(ssh_func "root@${master[0]}" "${SSH_PORT}" "kubeadm config images list --kubernetes-version=${K8S_VERSION} 2>/dev/null"); do
+        GCR_MAP[$(basename ${imgid})]="${imgid}"
+    done
+    print_kv GCR_MAP
     for ipaddr in $(array_print master) $(array_print worker); do
         prepare_k8s_images "${ipaddr}" GCR_MAP "${GCR_MIRROR}"
     done
@@ -885,7 +868,7 @@ main() {
     mkdir -vp "${DIRNAME}/${K8S_VERSION}"
     for ipaddr in $(array_print master) $(array_print worker); do
         info_msg "****** ${ipaddr} pre valid host env\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "${HTTP_PROXY}" "${apiserver}" "$(array_print_label GCR_MAP  | grep 'pause')"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "${HTTP_PROXY}" "${apiserver}" "${K8S_VERSION}"
     done
     prepare_kube_images master worker
     [ -z "${bridge}" ] || {
