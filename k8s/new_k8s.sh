@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ed8d813[2023-07-20T14:05:44+08:00]:new_k8s.sh")
+VERSION+=("ac306a7[2023-07-21T17:06:41+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -646,7 +646,7 @@ EOF
     for img in $(array_print_label "${img_map}"); do
         file_exists "${DIRNAME}/${K8S_VERSION}/${img}.tar.gz" && {
             info_msg "Load ${img} for ${ipaddr}\n"
-            ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_image_exist "$(array_get ${img_map} ${img})" && {
+            ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_image_exist "$(array_get ${img_map} ${img})" &>/dev/null && {
                 info_msg "${mirror}/${img} exists [${K8S_VERSION}] LOCAL & ${ipaddr}, continue\n"
                 continue
             }
@@ -657,7 +657,7 @@ EOF
             continue
         }
         info_msg "Pull ${mirror}/${img} for ${ipaddr}\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_image_exist "$(array_get ${img_map} ${img})" || {
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_image_exist "$(array_get ${img_map} ${img})" &>/dev/null || {
             info_msg "${mirror}/${img} NOT exists [${K8S_VERSION}] LOCAL ${ipaddr}, pull image\n"
             ssh_func "root@${ipaddr}" "${SSH_PORT}" mirror_get_image "${mirror}" "${img}" "$(array_get ${img_map} ${img})"
         }
