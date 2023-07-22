@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6f69395[2023-07-22T12:11:21+08:00]:new_k8s.sh")
+VERSION+=("ffaf6d3[2023-07-22T13:12:06+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -388,7 +388,8 @@ EOF
         systemctl enable docker.service || true
     }
     echo "127.0.0.1 localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
-    touch /etc/resolv.conf || true #if /etc/resolv.conf non exists, k8s startup error
+    echo "check /etc/resolv.conf, nameserver exist!!!"
+    touch /etc/resolv.conf || true
     swapoff -a
     sed -iE "/\s*swap\s/d" /etc/fstab
     cat <<EOF | tee /etc/modules-load.d/k8s.conf
