@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1775f7a[2023-07-22T13:50:52+08:00]:new_k8s.sh")
+VERSION+=("e657f6e[2023-07-22T16:16:37+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -751,7 +751,7 @@ ${SCRIPTNAME}
         -m|--master   *        <ip>   master nodes, support multi nodes
         -w|--worker            <ip>   worker nodes, support multi nodes
         -s|--svc_cidr          <cidr> servie cidr, default 10.96.0.0/12
-        --nameserver           <ip>   k8s nodes nameserver, /etc/resolv.conf
+        --nameserver  *        <ip>   k8s nodes nameserver, /etc/resolv.conf
         --bridge               <str>  k8s bridge_cni, bridge name
         --calico               <cidr> calico cni, pod_cidr
         --flannel              <cidr> k8s flannel_cni, pod_cidr
@@ -858,6 +858,7 @@ main() {
         ssh_func "root@${ipaddr}" "${SSH_PORT}" "teardown"
     done
     [ "$(array_size teardown)" -gt "0" ] && { info_msg "TEARDOWN OK\n"; return 0; }
+    [ -z "${nameserver}" ] && usage "nameserver must input"
     [ "$(array_size master)" -gt "0" ] || usage "at least one master"
     [ -z "${gen_join_cmds}" ] || {
         ssh_func "root@${master[0]}" "${SSH_PORT}" gen_k8s_join_cmds ${K8S_VERSION} 2>/dev/null
