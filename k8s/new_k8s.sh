@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7144667[2023-07-22T11:40:38+08:00]:new_k8s.sh")
+VERSION+=("6f69395[2023-07-22T12:11:21+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -390,7 +390,7 @@ EOF
     echo "127.0.0.1 localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
     touch /etc/resolv.conf || true #if /etc/resolv.conf non exists, k8s startup error
     swapoff -a
-    sed -iE "/\sswap\s/d" /etc/fstab
+    sed -iE "/\s*swap\s/d" /etc/fstab
     cat <<EOF | tee /etc/modules-load.d/k8s.conf
 br_netfilter
 EOF

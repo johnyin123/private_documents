@@ -4,7 +4,7 @@ readonly SCRIPTNAME=${0##*/}
 set -o errtrace
 set -o nounset
 set -o errexit
-VERSION+=("c173a5c[2023-07-19T16:24:23+08:00]:gen_k8s_pkg.sh")
+VERSION+=("be13796[2023-07-20T10:15:20+08:00]:gen_k8s_pkg.sh")
 ################################################################################
 PKG_DIR=${1?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
 ARCH=${2?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
@@ -48,7 +48,7 @@ EOF
     exit 1
 }
 
-for d in /opt/cni /usr/bin/ /etc/systemd/system/kubelet.service.d /lib/systemd/system /etc/kubernetes/; do
+for d in /opt/cni /usr/bin/ /etc/systemd/system/kubelet.service.d /lib/systemd/system /etc/kubernetes/manifests; do
     mkdir -p ${PKG_DIR}/${d}
 done
 cat <<'EOF' > ${PKG_DIR}/etc/systemd/system/kubelet.service.d/10-kubeadm.conf
