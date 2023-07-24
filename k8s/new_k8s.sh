@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4afa801[2023-07-22T16:20:53+08:00]:new_k8s.sh")
+VERSION+=("6228df5[2023-07-22T16:43:36+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -213,6 +213,22 @@ init_calico_cni() {
     export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl create -f "${calico_yml}"
     kubectl create -f "${calico_cust_yml}"
+    cat <<EOF
+    # # calico ebpf enable & DSR(Direct Server Return) mode
+    kubectl patch installation.operator.tigera.io default --type merge -p '{"spec":{"calicoNetwork":{"linuxDataplane":"BPF", "hostPorts":null}}}'
+    calicoctl patch felixconfiguration default --patch='{"spec": {"bpfExternalServiceMode": "DSR"}}'
+    # # switch back to tunneled mode
+    calicoctl patch felixconfiguration default --patch='{"spec": {"bpfExternalServiceMode": "Tunnel"}}'
+    calicoctl node status
+    # 查看calico-bpf工具使用说明
+    kubectl exec -n calico-system ds/calico-node -- calico-node -bpf
+    # 查看eth0网卡计数器
+    kubectl exec -n calico-system ds/calico-node -- calico-node -bpf counters dump --iface=eth0
+    # 查看conntrack情况
+    kubectl exec -n calico-system ds/calico-node -- calico-node -bpf conntrack dump
+    # 查看路由表
+    kubectl exec -n calico-system ds/calico-node -- calico-node -bpf routes dump
+EOF
     rm -f "${calico_yml}" "${calico_cust_yml}" || true
     kubectl get nodes -o wide || true
     kubectl get pods --all-namespaces -o wide || true
@@ -327,6 +343,7 @@ EOF
         sed -i -e "s|sandbox_image\s*=.*|sandbox_image = \"${pausekey}\"|g" /etc/containerd/config.toml
         # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
         sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
+        sed -i -E "s|(^\s*)\[(plugins.*registry.mirrors)\]$|\1[\2]\n\1  [\2.\"172.16.7.1:8888\"]\n\1    endpoint = [\"http://172.16.7.1:8888\"]|g" /etc/containerd/config.toml
         # [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
         #   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
         #     endpoint = ["https://registry-1.docker.io"]
@@ -891,7 +908,7 @@ main() {
     [ -z "${flannel_cidr}" ] || pod_cidr=${calico_cidr}
     [ -z "${calico_cidr}" ] || pod_cidr=${calico_cidr}
     init_kube_cluster master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}" "${svc_cidr}"
-    ${skip_proxy} || ${ipvs} && ssh_func "root@${master[0]}" "${SSH_PORT}" modify_kube_proxy_ipvs
+    ${skip_proxy} || { ${ipvs} && ssh_func "root@${master[0]}" "${SSH_PORT}" modify_kube_proxy_ipvs; }
     [ -z "${calico_cidr}" ] || {
         info_msg "install calico cni begin\n"
         init_kube_calico_cni master worker "${calico_cidr}" "${svc_cidr}"
