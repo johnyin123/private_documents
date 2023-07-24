@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("95a906a[2023-07-24T12:29:26+08:00]:new_k8s.sh")
+VERSION+=("c7f8bd2[2023-07-24T14:38:59+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -750,7 +750,7 @@ init_kube_cluster() {
     for ((i=1;i<$(array_size master);i++)); do
         ipaddr=$(array_get master ${i})
         info1_msg "****** ${ipaddr} add master(${api_srv})\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo ${hosts} >> /etc/hosts"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo \"${ipaddr} ${tname}\">> /etc/hosts"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" add_k8s_master "${api_srv}" "${token}" "${sha_hash}" "${certs}"
     done
     for ipaddr in $(array_print worker); do
