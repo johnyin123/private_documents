@@ -81,11 +81,13 @@ spec:
   ipFamilyPolicy: SingleStack
 EOF
 main() {
+    kubectl create namespace iperf3-server
     iperf3 2 server | kubectl apply -f -
+    kubectl create namespace iperf3-client
     iperf3 2 client | kubectl apply -f -
     echo "gunzip -c iperf3\:latest.tar.gz | ctr --namespace k8s.io image import -"
     echo "kubectl exec -it iperf3-client-5665bdcbbd-szvhg -- /bin/sh"
-    echi "benchmark manually: kubectl exec iperf3-clients-xxx -- /bin/sh -c 'iperf3 -c iperf3-server'"
+    echo "benchmark manually: kubectl exec iperf3-clients-xxx -- /bin/sh -c 'iperf3 -c iperf3-server'"
     echo "kubectl exec -it <pod-name> -- iperf3 -s -p 12345"
     echo "kubectl exec -it <pod-name> -- iperf3 -c <server pod IP address> -p 12345"
     return 0
