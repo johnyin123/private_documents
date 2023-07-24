@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5e52f29[2023-07-24T10:18:38+08:00]:new_k8s.sh")
+VERSION+=("95a906a[2023-07-24T12:29:26+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -215,6 +215,7 @@ init_calico_cni() {
     kubectl get nodes -o wide || true
     kubectl get pods --all-namespaces -o wide || true
     kubectl create -f "${calico_cust_yml}"
+    calicoctl node status || true
     cat <<EOF
     # # calico ebpf enable & DSR(Direct Server Return) mode
     kubectl patch installation.operator.tigera.io default --type merge -p '{"spec":{"calicoNetwork":{"linuxDataplane":"BPF", "hostPorts":null}}}'
@@ -538,6 +539,12 @@ teardown() {
     # 移除的节点上，重置kubeadm的安装状态：
     kubeadm reset -f &>/dev/null || true
     rm -fr /etc/cni/net.d/* /etc/profile.d/k8s.sh || true
+    # # # remove calico
+    # kubectl delete -f calico.yaml
+    modprobe -r ipip || true
+    rm -rf /var/lib/cni/ || true
+    rm -rf /etc/cni/net.d/* || true
+    # systemctl restart kubelet
 }
 # remote execute function end!
 ################################################################################
