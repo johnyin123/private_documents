@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e423a9f[2023-07-24T17:16:50+08:00]:new_k8s.sh")
+VERSION+=("0c707ab[2023-07-25T11:03:53+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -739,7 +739,7 @@ init_kube_cluster() {
     info_msg "****** ${ipaddr} init first master(${api_srv})\n"
     IFS=':' read -r tname tport <<< "${api_srv}"
     local hosts="${ipaddr} ${tname}"
-    ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo \"${ipaddr} ${tname}\">> /etc/hosts"
+    ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo ${hosts}>> /etc/hosts"
     ssh_func "root@${ipaddr}" "${SSH_PORT}" init_first_k8s_master "${api_srv}" "${skip_proxy}" "${K8S_VERSION}" "${pod_cidr}" "${svc_cidr}"
     #kubeadm token list -o json
     local token=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "kubeadm token create")
@@ -750,7 +750,7 @@ init_kube_cluster() {
     for ((i=1;i<$(array_size master);i++)); do
         ipaddr=$(array_get master ${i})
         info1_msg "****** ${ipaddr} add master(${api_srv})\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo \"${ipaddr} ${tname}\">> /etc/hosts"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" "echo ${hosts}>> /etc/hosts"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" add_k8s_master "${api_srv}" "${token}" "${sha_hash}" "${certs}"
     done
     for ipaddr in $(array_print worker); do
