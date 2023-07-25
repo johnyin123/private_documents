@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("902a49e[2023-07-25T11:00:23+08:00]:rr.sh")
+VERSION+=("bb58737[2023-07-25T11:48:56+08:00]:rr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 calico_bpf() {
@@ -33,10 +33,11 @@ calico_route_reflector() {
     local RR_LABEL=route-reflector
     echo "check requires ...."
     command -v calicoctl &> /dev/null || { echo "***************calicoctl nofound"; return 1; }
+    export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl get nodes -o wide || true
     echo "Configure BGP Peering"
     calicoctl node status || true
-    echo "Add peering between the RouteReflectors themselves."
+    echo "Add RouteReflector to RouteReflector."
     cat <<EOF | calicoctl apply -f -
 kind: BGPPeer
 apiVersion: projectcalico.org/v3
@@ -46,6 +47,7 @@ spec:
   nodeSelector: has(${RR_LABEL})
   peerSelector: has(${RR_LABEL})
 EOF
+    echo "Add peer to RouteReflector."
     cat <<EOF | calicoctl apply -f -
 kind: BGPPeer
 apiVersion: projectcalico.org/v3
