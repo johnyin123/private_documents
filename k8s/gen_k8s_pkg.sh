@@ -4,7 +4,7 @@ readonly SCRIPTNAME=${0##*/}
 set -o errtrace
 set -o nounset
 set -o errexit
-VERSION+=("ffaf6d3[2023-07-22T13:12:06+08:00]:gen_k8s_pkg.sh")
+VERSION+=("1775f7a[2023-07-22T13:50:52+08:00]:gen_k8s_pkg.sh")
 ################################################################################
 PKG_DIR=${1?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
 ARCH=${2?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
@@ -136,8 +136,10 @@ tar -C ${PKG_DIR}/usr/bin  -xvf ${TGZ_CRICTL}
 tar -C ${PKG_DIR}/usr/     -xvf ${TGZ_CONTAINERD}
 tar -C ${PKG_DIR}/opt/cni/ -xvf ${TGZ_CNI_PLUGINS}
 
-fpm --package . -s dir -t rpm -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl --depends conntrack --depends socat --version 0.9 --iteration ${VER} --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
-fpm --package . -s dir -t deb -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl --depends conntrack --depends socat --version 0.9 --iteration ${VER} --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
+
+depends="--depends ebtables --depends ethtool --depends iptables --depends conntrack --depends socat"
+fpm --package . -s dir -t rpm -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl ${depends} --version 0.9 --iteration ${VER} --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
+fpm --package . -s dir -t deb -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl ${depends} --version 0.9 --iteration ${VER} --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
 cat <<'EOF'
 yum -y --disablerepo=* --enablerepo=myrepo install tsd_cnap-0.9-1.x86_64.rpm
 cat <<'EOREPO' > /etc/yum.repos.d/myrepo.repo
