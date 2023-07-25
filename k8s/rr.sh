@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a98a35d[2023-07-25T14:06:27+08:00]:rr.sh")
+VERSION+=("e3c9b77[2023-07-25T15:08:46+08:00]:rr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 calico_bpf() {
@@ -103,7 +103,7 @@ ${SCRIPTNAME}
         -r | --reflector *  <node>  reflector node name, multi input.
         --ebpf              <api:port>
                                     k8s cluster api-server-endpoint, like "k8sapi.local.com:6443"
-                                    default no use ebpf
+                                    default no use ebpf, this script ebpf not work now
         -U | --user         <user>  master ssh user, default root
         -P | --port         <int>   master ssh port, default 60022
         --asnumber          <int>   bgp as number, default 63401
