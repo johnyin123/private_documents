@@ -7,13 +7,34 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bb58737[2023-07-25T11:48:56+08:00]:rr.sh")
+VERSION+=("a98a35d[2023-07-25T14:06:27+08:00]:rr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 calico_bpf() {
+    local api_srv=${1}
     echo "check requires ...."
     command -v calicoctl &> /dev/null || { echo "***************calicoctl nofound"; return 1; }
+    export KUBECONFIG=/etc/kubernetes/admin.conf
+    echo "install calico use tigera-operator, use this"
+    local install_method=tigera-operator
+    # echo "install calico use manifest, use this"
+    # local install_method=kube-system
+    IFS=':' read -r tname tport <<< "${api_srv}"
+    cat <<EOF | kubectl apply -f -
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: kubernetes-services-endpoint
+  namespace: ${install_method}
+data:
+  KUBERNETES_SERVICE_HOST: '${tname}'
+  KUBERNETES_SERVICE_PORT: '${tport}'
+EOF
+    # watch kubectl get pods -n calico-system
+    sleep 30
     kubectl patch ds -n kube-system kube-proxy -p '{"spec":{"template":{"spec":{"nodeSelector":{"non-calico": "true"}}}}}'
+    # # If you cannot disable kube-proxy, do below
+    # kubectl patch felixconfiguration.p default --patch='{"spec": {"bpfKubeProxyIptablesCleanupEnabled": false}}'
     kubectl get ds -n kube-system kube-proxy || true
     kubectl patch installation.operator.tigera.io default --type merge -p '{"spec":{"calicoNetwork":{"linuxDataplane":"BPF", "hostPorts":null}}}'
     calicoctl patch felixconfiguration default --patch='{"spec": {"bpfExternalServiceMode": "DSR"}}'
@@ -80,7 +101,9 @@ usage() {
 ${SCRIPTNAME}
         -m | --master    *  <ip>    master ipaddr
         -r | --reflector *  <node>  reflector node name, multi input.
-        --ebpf                      use ebpf, default not use ebpf
+        --ebpf              <api:port>
+                                    k8s cluster api-server-endpoint, like "k8sapi.local.com:6443"
+                                    default no use ebpf
         -U | --user         <user>  master ssh user, default root
         -P | --port         <int>   master ssh port, default 60022
         --asnumber          <int>   bgp as number, default 63401
@@ -97,7 +120,7 @@ EOF
 main() {
     local master="" reflector=() user="root" port=60022 asnumber=63401 clusterid=224.0.0.1 ebpf=""
     local opt_short="m:r:U:P:"
-    local opt_long="master:,reflector:,ebpf,user:,port:,asnumber:,clusterid:,sshpass:,"
+    local opt_long="master:,reflector:,ebpf:,user:,port:,asnumber:,clusterid:,sshpass:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -106,7 +129,7 @@ main() {
         case "$1" in
             -m | --master)    shift; master=${1}; shift;;
             -r | --reflector) shift; reflector+=("${1}"); shift;;
-            --ebpf)           shift; ebpf=1;;
+            --ebpf)           shift; ebpf=${1}; shift;;
             -U | --user)      shift; user=${1}; shift;;
             -P | --port)      shift; port=${1}; shift;;
             --asnumber)       shift; asnumber=${1}; shift;;
@@ -128,7 +151,7 @@ main() {
     ssh_func "${user}@${master}" "${port}" calico_route_reflector "${asnumber}" "${clusterid}" ${reflector[@]}
     [ -z "${ebpf}" ] || {
         info_msg "use EBPF & DSR\n"
-        ssh_func "${user}@${master}" "${port}" calico_bpf
+        ssh_func "${user}@${master}" "${port}" calico_bpf "${ebpf}"
     }
     # # modify asnumber
     # calicoctl patch bgpconfiguration default -p '{"spec": {"asNumber": "64513"}}'

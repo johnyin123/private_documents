@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0c707ab[2023-07-25T11:03:53+08:00]:new_k8s.sh")
+VERSION+=("464caa3[2023-07-25T13:38:19+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -481,17 +481,6 @@ init_first_k8s_master() {
     echo "export KUBECONFIG=/etc/kubernetes/admin.conf" > /etc/profile.d/k8s.sh
     chmod 644 /etc/profile.d/k8s.sh
     export KUBECONFIG=/etc/kubernetes/admin.conf
-    # # 使Master Node参与工作负载
-    # kubectl taint nodes --all node-role.kubernetes.io/master-
-    # # 禁止master部署pod</p> 
-    # kubectl taint nodes k8s node-role.kubernetes.io/master=true:NoSchedule
-    # # Pending check
-    # kubectl -n kube-system describe pod coredns-7f6cbbb7b8-7phlt
-    # kubectl describe node md1
-    # kubectl get pods --all-namespaces
-    # kubectl -n kube-system edit configmaps coredns -o yaml
-    # kubectl -n kube-system delete pod coredns-7f6cbbb7b8-lfvxb
-    # kubectl -n kube-system logs coredns-7f6cbbb7b8-vkj2l
     kubectl get pods --all-namespaces -o wide || true
     kubectl get nodes || true
     kubeadm token list || true
@@ -957,6 +946,17 @@ main() {
     info_msg "diag: kubectl -n calico-system get configmaps\n"
     info_msg "diag: kubectl -n kube-system edit configmaps kube-proxy -o yaml\n"
     info_msg "diag: kubectl -n kube-system exec -it etcd-node-xxxx -- /bin/sh\n"
+    cat <<EOF
+# 使Master Node参与工作负载
+kubectl taint nodes --all node-role.kubernetes.io/master-
+# 禁止master部署pod
+kubectl taint nodes k8s node-role.kubernetes.io/master=true:NoSchedule
+kubectl describe node srv150
+kubectl -n kube-system edit configmaps coredns -o yaml
+#    host {
+#      192.168.168.150 k8sapi.local.com
+#    }
+EOF
     info_msg "ALL DONE\n"
     return 0
 }
