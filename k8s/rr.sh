@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5689dc1[2023-07-25T09:49:43+08:00]:rr.sh")
+VERSION+=("902a49e[2023-07-25T11:00:23+08:00]:rr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 calico_bpf() {
@@ -57,11 +57,10 @@ spec:
 EOF
     for node in ${nodes}; do
         calicoctl patch node ${node} -p "{\"spec\": {\"bgp\": {\"routeReflectorClusterID\": \"${clusterid}\"}}}"
-        kubectl label node ${node} ${RR_LABEL}=true
+        kubectl label node ${node} ${RR_LABEL}=true --overwrite
     done
     echo "Disable node-to-node Mesh"
-    calicoctl get bgpconfig default || true
-    cat <<EOF | calicoctl create -f -
+    calicoctl get bgpconfig default || cat <<EOF | calicoctl create -f -
 apiVersion: projectcalico.org/v3
 kind: BGPConfiguration
 metadata:
@@ -79,7 +78,7 @@ usage() {
 ${SCRIPTNAME}
         -m | --master    *  <ip>    master ipaddr
         -r | --reflector *  <node>  reflector node name, multi input.
-        --ebpf                      use ebpf, default false
+        --ebpf                      use ebpf, default not use ebpf
         -U | --user         <user>  master ssh user, default root
         -P | --port         <int>   master ssh port, default 60022
         --asnumber          <int>   bgp as number, default 63401
@@ -94,7 +93,7 @@ EOF
     exit 1
 }
 main() {
-    local master="" reflector=() user="root" port=60022 asnumber=63401 clusterid=224.0.0.1 ebpf=false
+    local master="" reflector=() user="root" port=60022 asnumber=63401 clusterid=224.0.0.1 ebpf=""
     local opt_short="m:r:U:P:"
     local opt_long="master:,reflector:,ebpf,user:,port:,asnumber:,clusterid:,sshpass:,"
     opt_short+="ql:dVh"
@@ -105,7 +104,7 @@ main() {
         case "$1" in
             -m | --master)    shift; master=${1}; shift;;
             -r | --reflector) shift; reflector+=("${1}"); shift;;
-            --ebpf)           shift; ebpf=true;;
+            --ebpf)           shift; ebpf=1;;
             -U | --user)      shift; user=${1}; shift;;
             -P | --port)      shift; port=${1}; shift;;
             --asnumber)       shift; asnumber=${1}; shift;;
@@ -125,7 +124,7 @@ main() {
     [ "$(array_size reflector)" -gt "0" ] || usage "reflector must input"
     info_msg "choose some nodes as reflector nodes\n"
     ssh_func "${user}@${master}" "${port}" calico_route_reflector "${asnumber}" "${clusterid}" ${reflector[@]}
-    [ ${ebpf} ] && {
+    [ -z "${ebpf}" ] || {
         info_msg "use EBPF & DSR\n"
         ssh_func "${user}@${master}" "${port}" calico_bpf
     }
