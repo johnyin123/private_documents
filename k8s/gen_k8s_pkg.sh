@@ -4,7 +4,7 @@ readonly SCRIPTNAME=${0##*/}
 set -o errtrace
 set -o nounset
 set -o errexit
-VERSION+=("1775f7a[2023-07-22T13:50:52+08:00]:gen_k8s_pkg.sh")
+VERSION+=("59504d0[2023-07-25T13:28:40+08:00]:gen_k8s_pkg.sh")
 ################################################################################
 PKG_DIR=${1?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
 ARCH=${2?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
@@ -18,6 +18,7 @@ BIN_KUBECTL=kubectl.${VER}.${ARCH}
 BIN_KUBELET=kubelet.${VER}.${ARCH}
 BIN_RUNC=runc.${ARCH}
 BIN_CALICOCTL=calicoctl-linux-${ARCH}
+BIN_HELM=helm.v3.6.3.${ARCH}
 # # requires end
 [ -e "${TGZ_CRICTL}" ] && \
 [ -e "${TGZ_CONTAINERD}" ] && \
@@ -26,7 +27,8 @@ BIN_CALICOCTL=calicoctl-linux-${ARCH}
 [ -e "${BIN_KUBECTL}" ] && \
 [ -e "${BIN_KUBELET}" ] && \
 [ -e "${BIN_RUNC}" ] && \
-[ -e "${BIN_CALICOCTL}" ] || {
+[ -e "${BIN_CALICOCTL}" ] &&
+[ -e "${BIN_HELM}" ] || {
     cat<<EOF
 Require:
     ${TGZ_CRICTL}
@@ -37,6 +39,7 @@ Require:
     ${BIN_KUBELET}
     ${BIN_RUNC}
     ${BIN_CALICOCTL}
+    ${BIN_HELM}
 https://github.com/containerd/containerd/releases/download/v1.7.2/containerd-static-1.7.2-linux-${ARCH}.tar.gz
 https://github.com/opencontainers/runc/releases/download/v1.1.7/runc.${ARCH}
 https://github.com/containernetworking/plugins/releases/download/v1.3.0/cni-plugins-linux-${ARCH}-v1.3.0.tgz
@@ -132,6 +135,7 @@ install -v --mode=0755 ${BIN_KUBECTL} ${PKG_DIR}/usr/bin/kubectl
 install -v --mode=0755 ${BIN_KUBELET} ${PKG_DIR}/usr/bin/kubelet
 install -v --mode=0755 ${BIN_RUNC} ${PKG_DIR}/usr/bin/runc
 install -v --mode=0755 ${BIN_CALICOCTL} ${PKG_DIR}/usr/bin/calicoctl
+install -v --mode=0755 ${BIN_HELM} ${PKG_DIR}/usr/bin/helm
 tar -C ${PKG_DIR}/usr/bin  -xvf ${TGZ_CRICTL}
 tar -C ${PKG_DIR}/usr/     -xvf ${TGZ_CONTAINERD}
 tar -C ${PKG_DIR}/opt/cni/ -xvf ${TGZ_CNI_PLUGINS}
