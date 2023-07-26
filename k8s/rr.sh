@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e3c9b77[2023-07-25T15:08:46+08:00]:rr.sh")
+VERSION+=("9360e9b[2023-07-25T17:12:06+08:00]:rr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 calico_bpf() {
@@ -157,6 +157,9 @@ main() {
     # calicoctl patch bgpconfiguration default -p '{"spec": {"asNumber": "64513"}}'
     info_msg "on non reflector node run: calicoctl node status\n"
     # for ip in $(ip r | grep bird | awk '{ print $1 }' | grep -v blackhole ); do ping -W1 -c1 ${ip%/*} &>/dev/null && echo "${ip} OK" || echo "${ip} ERR"; done
+    info_msg "diag: kubectl exec -n calico-system calico-node-abcdef -- calico-node -bpf help\n"
+    info_msg "diag: kubectl exec -n calico-system calico-node-abcdef -- calico-node -bpf conntrack dump\n"
+    info_msg "diag: kubectl get felixconfiguration -o yaml\n"
     info_msg "ALL DONE\n" 
     return 0
 }

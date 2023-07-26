@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e3c9b77[2023-07-25T15:08:46+08:00]:new_k8s.sh")
+VERSION+=("afe6939[2023-07-25T15:20:11+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -479,6 +479,7 @@ init_first_k8s_master() {
     #--apiserver-advertise-address=<ip-address-of-master-vm> #--service-cidr=10.1.0.0/16 --pod-network-cidr=172.16.0.0/16 
     # --control-plane-endpoint to set the shared endpoint for all control-plane nodes. Such an endpoint can be either a DNS name or an IP address of a load-balancer.
     echo "export KUBECONFIG=/etc/kubernetes/admin.conf" > /etc/profile.d/k8s.sh
+    echo "source <(kubectl completion bash)" >> /etc/profile.d/k8s.sh
     chmod 644 /etc/profile.d/k8s.sh
     export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl get pods --all-namespaces -o wide || true
@@ -946,6 +947,10 @@ main() {
     info_msg "diag: kubectl -n calico-system get configmaps\n"
     info_msg "diag: kubectl -n kube-system edit configmaps kube-proxy -o yaml\n"
     info_msg "diag: kubectl -n kube-system exec -it etcd-node-xxxx -- /bin/sh\n"
+    info_msg "diag: calicoctl get workloadendpoints -A\n"
+    info_msg "diag: calicoctl node status\n"
+    info_msg "diag: kubectl get service --all-namespaces # -o yaml\n"
+    info_msg "diag: kubectl get configmap --all-namespaces # -o yaml\n"
     cat <<EOF
 # 使Master Node参与工作负载
 kubectl taint nodes --all node-role.kubernetes.io/master-
