@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-07-26T19:34:40+08:00]:kubesphere.sh")
+VERSION+=("dc7edd1[2023-07-26T19:34:40+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_kubesphere() {
@@ -38,7 +38,7 @@ ${SCRIPTNAME}
         -r|--registry    *  <str>   private registry, for install kubesphere
                                     exam: registry.local:5000
         -i|--installer   *  <str>   ks-installer image image
-                                    exam: registry.local:5000/library/ks-installer:v3.2.1
+                                    exam: registry.local/kubesphere/ks-installer:v3.2.1
         -U|--user           <user>  master ssh user, default root
         -P|--port           <int>   master ssh port, default 60022
         -U|--user           <user>  master ssh user, default root
@@ -49,7 +49,7 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
-        prepare image: https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/images-list.txt
+        prepare image: https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/images-list.txt
 EOF
     exit 1
 }
