@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9360e9b[2023-07-25T17:12:06+08:00]:rr.sh")
+VERSION+=("ca391ad[2023-07-26T12:29:24+08:00]:rr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 calico_bpf() {
@@ -160,9 +160,8 @@ main() {
     info_msg "diag: kubectl exec -n calico-system calico-node-abcdef -- calico-node -bpf help\n"
     info_msg "diag: kubectl exec -n calico-system calico-node-abcdef -- calico-node -bpf conntrack dump\n"
     info_msg "diag: kubectl get felixconfiguration -o yaml\n"
+    info_msg "undo: kubectl delete -n tigera-operator servicemap kubernetes-services-endpoint\n"
     info_msg "ALL DONE\n" 
     return 0
 }
 main "$@"
-
-
