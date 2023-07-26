@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("afe6939[2023-07-25T15:20:11+08:00]:new_k8s.sh")
+VERSION+=("ca391ad[2023-07-26T12:29:24+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -315,6 +315,7 @@ pre_conf_k8s_host() {
     local apiserver=${2}
     local k8s_version=${3}
     local nameserver=${4}
+    local insec_registry=${5}
     via_proxy() {
         local http_proxy=${1}
         local dir=${2}
@@ -334,7 +335,7 @@ EOF
         local http_proxy=${1}
         local apiserver=${2}
         local k8s_version=${3}
-
+        local local insec_registry=${4}
         local pausekey=$(kubeadm config images list --kubernetes-version=${k8s_version} 2>/dev/null | grep pause)
         echo "PAUSE:  ************** ${pausekey}"
         # containerd proxy set in env when run ctr
@@ -344,7 +345,6 @@ EOF
         sed -i -e "s|sandbox_image\s*=.*|sandbox_image = \"${pausekey}\"|g" /etc/containerd/config.toml
         # kubernets自v1.24.0后，就不再使用docker.shim，需要安装containerd(在docker基础下安装)
         sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
-        local insec_registry=registry.local
         sed -i -E "s|(^\s*)\[(plugins.*registry.mirrors)\]$|\1[\2]\n\1  [\2.\"${insec_registry}\"]\n\1    endpoint = [\"http://${insec_registry}\"]|g" /etc/containerd/config.toml
         # [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
         #   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
@@ -377,6 +377,7 @@ EOF
     pre_docker_env() {
         local http_proxy=${1}
         local apiserver=${2}
+        local insec_registry=${3}
         via_proxy "${http_proxy}" "/etc/systemd/system/docker.service.d"
         mkdir -vp /etc/docker
         cat > /etc/docker/daemon.json <<EOF
@@ -387,7 +388,7 @@ EOF
   ],
   "insecure-registries": [
     "quay.io",
-    "private.test.com"
+    "${insec_registry}"
   ],
   "max-concurrent-downloads": 10,
   "max-concurrent-uploads": 10,
@@ -426,7 +427,7 @@ net.bridge.bridge-nf-call-iptables = 1
 net.netfilter.nf_conntrack_max = 1000000
 EOF
     sysctl --system &>/dev/null
-    command -v ctr &> /dev/null && pre_containerd_env  "${http_proxy}" "${apiserver}" "${k8s_version}" || pre_docker_env "${http_proxy}" "${apiserver}"
+     command -v ctr &> /dev/null && pre_containerd_env  "${http_proxy}" "${apiserver}" "${k8s_version}" "${insec_registry}" || pre_docker_env "${http_proxy}" "${apiserver}" "${insec_registry}"
 	systemctl enable kubelet.service
     systemctl disable firewalld --now || true
 }
@@ -766,6 +767,7 @@ ${SCRIPTNAME}
         -w|--worker            <ip>   worker nodes, support multi nodes
         -s|--svc_cidr          <cidr> servie cidr, default 10.96.0.0/12
         --nameserver  *        <ip>   k8s nodes nameserver, /etc/resolv.conf
+        --insec_registry       <str>  insecurity registry, default registry.local
         --bridge               <str>  k8s bridge_cni, bridge name
         --calico               <cidr> calico cni, pod_cidr
         --flannel              <cidr> k8s flannel_cni, pod_cidr
@@ -832,8 +834,9 @@ EOF
 main() {
     local master=() worker=() teardown=() bridge="" apiserver="k8sapi.local.com:6443" gen_join_cmds=""
     local flannel_cidr="" dashboard=false ipvs=false ingress=false skip_proxy=false calico_cidr="" svc_cidr="" nameserver=""
+    local insec_registry=registry.local
     local opt_short="m:w:s:"
-    local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,calico:,dashboard,ipvs,ingress,teardown:,svc_cidr:,nameserver:,"
+    local opt_long="password:,gen_join_cmds,apiserver:,master:,worker:,bridge:,flannel:,calico:,dashboard,ipvs,ingress,teardown:,svc_cidr:,nameserver:,insec_registry:,"
     opt_long+="skip_proxy,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
@@ -847,6 +850,7 @@ main() {
             -w | --worker)  shift; worker+=(${1}); shift;;
             -s | --svc_cidr)shift; svc_cidr=${1}; shift;;
             --nameserver)   shift; nameserver=${1}; shift;;
+            --insec_registry)shift; insec_registry=${1}; shift;;
             --bridge)       shift; bridge=${1}; shift;;
             --flannel)      shift; flannel_cidr=${1}; shift;;
             --calico)       shift; calico_cidr=${1}; shift;;
@@ -888,7 +892,7 @@ main() {
     mkdir -vp "${DIRNAME}/${K8S_VERSION}"
     for ipaddr in $(array_print master) $(array_print worker); do
         info_msg "****** ${ipaddr} pre valid host env\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "${HTTP_PROXY}" "${apiserver}" "${K8S_VERSION}" "${nameserver}"
+        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "${HTTP_PROXY}" "${apiserver}" "${K8S_VERSION}" "${nameserver}"  "${insec_registry}"
     done
     prepare_kube_images master worker
     [ -z "${bridge}" ] || {
