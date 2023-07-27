@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("acd0532[2023-07-27T09:19:29+08:00]:storageclass.sh")
+VERSION+=("887379e[2023-07-27T09:34:42+08:00]:storageclass.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 set_sc_default() {
@@ -83,6 +83,7 @@ EOF
 }
 sc_local() {
     local name=${1}
+    local node=${2}
     export KUBECONFIG=/etc/kubernetes/admin.conf
     cat <<EOF | kubectl apply -f -
 apiVersion: storage.k8s.io/v1
@@ -91,6 +92,33 @@ metadata:
   name: ${name}
 provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer
+# Local volumes do not currently support dynamic provisioning
+# Local storageClass 动态生成pv，手动创建pv
+# provisioner: kubernetes.io/gce-pd
+EOF
+    cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-${name}
+spec:
+  capacity:
+    storage: 25Gi
+  volumeMode: Filesystem
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: ${name}
+  local:
+    path: /data/k8s  # node节点上的目录
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - ${node}
 EOF
 }
 init_pvc() {
@@ -101,19 +129,54 @@ init_pvc() {
     # ReadOnlyMany：可以被多个node读取
     # ReadWriteMany：可以摆多个node读写
     cat<<EOF | kubectl apply -f -
-apiVersion: v1
 kind: PersistentVolumeClaim
+apiVersion: v1
 metadata:
   name: ${name}
 spec:
   accessModes:
-     - ReadWriteOnce
+  - ReadWriteOnce
   resources:
     requests:
-      storage: 20Gi
-  storageClassName: ${sc_name}
+      storage: 25Gi
+  storageClassName: ${scname}
 EOF
-} 
+}
+cat<<'EOF'
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+spec:
+  volumes:
+  - name: example-storage
+    persistentVolumeClaim:
+      claimName: <<claim>>
+  containers:
+  - name: example-storage
+    image: <<registry:port>>/library/nginx:1.14-alpine
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - mountPath: /usr/share/nginx/html
+      name: example-storage
+# kubectl exec -it test-pod /bin/sh
+# cd /usr/share/nginx/html
+spec:
+  containers:
+  - name: example-storage
+    image: <<registry:port>>/library/busybox:1.31.1
+    imagePullPolicy: IfNotPresent
+    command: ['sh', '-c']
+    args: ['echo "The host is $(hostname)" >> /dir/data; sleep 3600']
+    volumeMounts:
+    - name: nfsdata
+      mountPath: /dir
+  volumes:
+  - name: nfsdata
+    persistentVolumeClaim:
+      claimName: <<claim>>
+EOF
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
@@ -122,6 +185,7 @@ ${SCRIPTNAME}
         -t|--sctype      *  <str>   local/nfs/rbd
         -n|--name        *  <str>   storageclass name
         --default                   as default storageclass
+        --store-node        <node>  local storageclass store node
         --nfs-server        <str>   nfs sc server
         --nfs-path          <path>  nfs sc path
         --nfs-readonly              nfs sc readonly
@@ -139,8 +203,9 @@ EOF
 main() {
     local master="" sctype="" name="" default="" user=root port=60022
     local nfs_server="" nfs_path="" nfs_readonly=""
+    local store_node=""
     local opt_short="m:t:n:U:P:"
-    local opt_long="master:,sctype:,name:,default,user:,port:,sshpass:,nfs-server:,nfs-path:,nfs-readonly,"
+    local opt_long="master:,sctype:,name:,default,user:,port:,sshpass:,nfs-server:,nfs-path:,nfs-readonly,store-node:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -151,6 +216,7 @@ main() {
             -t | --sctype)    shift; sctype=${1}; shift;;
             -n | --name)      shift; name=${1}; shift;;
             --default)        shift; default=1;;
+            --store-node)     shift; store_node=${1}; shift;;
             --nfs-server)     shift; nfs_server=${1}; shift;;
             --nfs-path)       shift; nfs_path=${1}; shift;;
             --nfs-readonly)   shift; nfs_readonly=1;;
@@ -169,17 +235,22 @@ main() {
     done
     [ -z "${name}" ] || [ -z "${sctype}" ] || [ -z "${master}" ] && usage "master/sctype/name must input"
     case "${sctype}" in
-        local) ssh_func "${user}@${master}" "${port}" sc_local "${name}";;
+        local)
+            [ -z "${store_node}" ]  && usage "local sc need store_node"
+            ssh_func "${user}@${master}" "${port}" sc_local "${name}" "${store_node}"
+            ssh_func "${user}@${master}" "${port}" init_pvc "pvc-${name}" "${name}"
+            ;;
         nfs)
             [ -z "${nfs_server}" ] || [ -z "${nfs_path}" ] || [ -z "${nfs_readonly}" ] && usage "nfs sc need server/path"
-            ssh_func "${user}@${master}" "${port}" sc_nfs "${name}" "${nfs_server}" "${nfs_path}" "${nfs_readonly}";;
+            ssh_func "${user}@${master}" "${port}" sc_nfs "${name}" "${nfs_server}" "${nfs_path}" "${nfs_readonly}"
+            ;;
         rbd)
             exit_msg "rbd storageclass n/a now!\n"
-            ssh_func "${user}@${master}" "${port}" sc_rbd "${name}";;
+            ssh_func "${user}@${master}" "${port}" sc_rbd "${name}"
+            ;;
         *)     usage "unsupport sctype: ${sctype}";;
     esac
     [ -z "${default}" ] || ssh_func "${user}@${master}" "${port}" set_sc_default "${name}"
-    ssh_func "${user}@${master}" "${port}" init_pvc "${name}-pvc" "${name}"
     info_msg "ALL DONE\n"
     return 0
 }
