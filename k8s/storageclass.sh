@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("887379e[2023-07-27T09:34:42+08:00]:storageclass.sh")
+VERSION+=("1b2c6bd[2023-07-27T16:20:59+08:00]:storageclass.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 set_sc_default() {
@@ -247,6 +247,8 @@ main() {
         rbd)
             exit_msg "rbd storageclass n/a now!\n"
             ssh_func "${user}@${master}" "${port}" sc_rbd "${name}"
+            ;;
+        glusterfs)
             ;;
         *)     usage "unsupport sctype: ${sctype}";;
     esac
