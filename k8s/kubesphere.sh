@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dc7edd1[2023-07-26T19:34:40+08:00]:kubesphere.sh")
+VERSION+=("614106c[2023-07-26T20:24:29+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_kubesphere() {
@@ -39,8 +39,6 @@ ${SCRIPTNAME}
                                     exam: registry.local:5000
         -i|--installer   *  <str>   ks-installer image image
                                     exam: registry.local/kubesphere/ks-installer:v3.2.1
-        -U|--user           <user>  master ssh user, default root
-        -P|--port           <int>   master ssh port, default 60022
         -U|--user           <user>  master ssh user, default root
         -P|--port           <int>   master ssh port, default 60022
         --sshpass           <str>   master ssh password, default use keyauth
@@ -94,76 +92,6 @@ EOF
 registry:  ${registry}
 installer: ${installer}
 EOF
-cat <<EOF >sc_nfs.yaml
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: example-nfs
-provisioner: example.com/external-nfs
-parameters:
-  server: nfs-server.example.com
-  path: /share
-  readOnly: "false"
-EOF
-cat<<EOF
-monitors: Ceph monitors, comma delimited. This parameter is required.
-adminId: Ceph client ID that is capable of creating images in the pool. Default is "admin".
-adminSecretName: Secret Name for adminId. This parameter is required. The provided secret must have type "kubernetes.io/rbd".
-adminSecretNamespace: The namespace for adminSecretName. Default is "default".
-pool: Ceph RBD pool. Default is "rbd".
-userId: Ceph client ID that is used to map the RBD image. Default is the same as adminId.
-userSecretName: The name of Ceph Secret for userId to map RBD image. It must exist in the same namespace as PVCs. This parameter is required. The provided secret must have type "kubernetes.io/rbd", for example created in this way:
-    ceph auth get-key client.kube
-    kubectl create secret generic ceph-secret --type="kubernetes.io/rbd" \
-      --from-literal=key='< key >' \
-      --namespace=kube-system
-userSecretNamespace: The namespace for userSecretName.
-fsType: fsType that is supported by kubernetes. Default: "ext4".
-imageFormat: Ceph RBD image format, "1" or "2". Default is "2".
-imageFeatures: This parameter is optional and should only be used if you set imageFormat to "2". Currently supported features are layering only. Default is "", and no features are turned on
-EOF
-cat <<EOF >sc_rbd.yaml
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: fast
-provisioner: kubernetes.io/rbd
-parameters:
-  monitors: 10.16.153.105:6789
-  adminId: kube
-  adminSecretName: ceph-secret
-  adminSecretNamespace: kube-system
-  pool: kube
-  userId: kube
-  userSecretName: ceph-secret-user
-  userSecretNamespace: default
-  fsType: ext4
-  imageFormat: "2"
-  imageFeatures: "layering"
-EOF
-cat <<EOF >sc_local.yaml
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: local-storage
-provisioner: kubernetes.io/no-provisioner
-volumeBindingMode: WaitForFirstConsumer
-EOF
-cat<<EOF > persistentVolumeClaim.yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: local-pve
-spec:
-  accessModes:
-     - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
-  storageClassName: local-storage
-EOF
-# kubectl get sc
-# kubectl patch storageclass local-storage -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
     ssh_func "${user}@${master}" "${port}" init_kubesphere "/tmp/cluster-configuration.yaml" "/tmp/kubesphere-installer.yaml" "${registry}" "${installer}"
     info_msg "ALL DONE\n"
     return 0
