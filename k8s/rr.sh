@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ca391ad[2023-07-26T12:29:24+08:00]:rr.sh")
+VERSION+=("d911f0d[2023-07-26T12:31:18+08:00]:rr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 calico_bpf() {
@@ -83,7 +83,7 @@ EOF
         kubectl label node ${node} ${RR_LABEL}=true --overwrite
     done
     echo "Disable node-to-node Mesh"
-    calicoctl get bgpconfig default || cat <<EOF | calicoctl create -f -
+    calicoctl get bgpconfig default &>/dev/null || cat <<EOF | calicoctl create -f -
 apiVersion: projectcalico.org/v3
 kind: BGPConfiguration
 metadata:

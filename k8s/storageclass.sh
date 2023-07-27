@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("97a11ae[2023-07-27T09:11:07+08:00]:storageclass.sh")
+VERSION+=("acd0532[2023-07-27T09:19:29+08:00]:storageclass.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 set_sc_default() {
@@ -27,6 +27,8 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: ${name}
+  # annotations:
+  #   storageclass.kubernetes.io/is-default-class: "true"
 provisioner: ext-nfs  # 这里的名称要和provisioner配置文件中的环境变量PROVISIONER_NAME保持一致
 parameters:
   server: ${server}
@@ -34,7 +36,7 @@ parameters:
   readOnly: "${readonly}"
   archiveOnDelete: "true"
 EOF
-    # archiveOnDelete: false表示pv被删除时在nfs下面对应的文件夹也会被删除,true正相反
+    # archiveOnDelete: backup when delete
 }
 # adminId: Ceph client ID that is capable of creating images in the pool. Default is "admin".
 # adminSecretName: Secret Name for adminId. This parameter is required. The provided secret must have type "kubernetes.io/rbd".
