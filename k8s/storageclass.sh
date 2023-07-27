@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-07-27T09:11:08+08:00]:storageclass.sh")
+VERSION+=("97a11ae[2023-07-27T09:11:07+08:00]:storageclass.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 set_sc_default() {
@@ -95,6 +95,9 @@ init_pvc() {
     local name=${1}
     local scname=${2}
     export KUBECONFIG=/etc/kubernetes/admin.conf
+    # ReadWriteOnce：可以被一个node读写
+    # ReadOnlyMany：可以被多个node读取
+    # ReadWriteMany：可以摆多个node读写
     cat<<EOF | kubectl apply -f -
 apiVersion: v1
 kind: PersistentVolumeClaim
