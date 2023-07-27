@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("614106c[2023-07-26T20:24:29+08:00]:kubesphere.sh")
+VERSION+=("97a11ae[2023-07-27T09:11:07+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_kubesphere() {
@@ -47,6 +47,7 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+        prepare sotrageclass(default)
         prepare image: https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/images-list.txt
 EOF
     exit 1
