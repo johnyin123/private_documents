@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("72ce87a[2023-07-26T18:16:04+08:00]:new_k8s.sh")
+VERSION+=("54d9886[2023-07-28T10:01:11+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -768,6 +768,7 @@ ${SCRIPTNAME}
         -s|--svc_cidr          <cidr> servie cidr, default 10.96.0.0/12
         --nameserver  *        <ip>   k8s nodes nameserver, /etc/resolv.conf
         --insec_registry       <str>  insecurity registry, default registry.local
+                                      use http://registry.local
         --bridge               <str>  k8s bridge_cni, bridge name
         --calico               <cidr> calico cni, pod_cidr
         --flannel              <cidr> k8s flannel_cni, pod_cidr
