@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("568481c[2023-07-28T14:03:06+08:00]:inst_openebs.sh")
+VERSION+=("e5751f5[2023-07-28T16:30:15+08:00]:inst_openebs.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_openebs() {
@@ -21,10 +21,18 @@ init_openebs() {
 }
 init_mayastor() {
     cat<<EOF
-helm repo add mayastor https://openebs.github.io/mayastor-extensions/
-helm search repo mayastor --versions
-helm install mayastor mayastor/mayastor -n mayastor --create-namespace --version 2.3.0 --debug --insecure-skip-tls-verify
-kubectl get pods -n mayastor
+https://github.com/openebs/charts/releases
+tar xvf openebs-3.8.0.tgz
+openebs/values.yaml
+helm package ./openebs/
+helm install openebs ./openebs-3.8.0.tgz --namespace openebs --create-namespace --set mayastor.enabled=true
+
+ docker.io/grafana/promtail:2.4.2
+ docker.io/library/busybox:latest
+ docker.io/openebs/mayastor-csi-node:v2.3.0
+ docker.io/openebs/mayastor-obs-callhome-stats:v2.3.0
+ docker.io/openebs/mayastor-obs-callhome:v2.3.0
+ registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.1.0
 EOF
     local sc_name=${1}
     export KUBECONFIG=/etc/kubernetes/admin.conf
