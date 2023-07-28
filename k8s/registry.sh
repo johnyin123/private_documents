@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("c2f56a1[2023-07-20T12:56:22+08:00]:registry.sh")
+VERSION+=("ddeb8b1[2023-07-23T20:26:37+08:00]:registry.sh")
 ################################################################################
 cat <<EOF
 https://github.com/distribution/distribution/releases/download/v2.8.2/registry_2.8.2_linux_amd64.tar.gz
@@ -21,3 +21,9 @@ sed -i "s|path\s*:.*|path: /etc/docker/registry/registry.password|g" /etc/docker
 htpasswd  -Bbn admin password > /etc/docker/registry/registry.password
 echo "add <registry_addr>:5000 in docker daemon.json insecure-registries: [ ip, ip:port ]"
 docker login --username admin --password-stdin localhost:5000
+cat <<'EOF'
+repo=http://192.168.168.250
+for pkg in $(curl -sk -X GET ${repo}/v2/_catalog | jq -r .repositories[]); do
+    curl -sk -X GET ${repo}/v2/${pkg}/tags/list | jq -r .tags[] | sed "s|^|${pkg}:|g"
+done
+EOF
