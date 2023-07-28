@@ -7,19 +7,64 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("398dc23[2023-07-27T09:53:34+08:00]:kubesphere.sh")
+VERSION+=("initver[2023-07-28T10:01:11+08:00]:inst_openebs.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
-init_kubesphere() {
-    local ks_cluster_yaml=${1}
-    local ks_installer_yaml=${2}
-    local registry=${3}
-    local ks_installer=${4}
-    sed -i "s|local_registry\s*:\s*.*|local_registry: ${registry}|g" "${ks_cluster_yaml}"
-    sed -i "s|image\s*:\s*.*ks-installer.*|image: ${ks_installer}|g" "${ks_installer_yaml}"
-    kubectl apply -f "${ks_installer_yaml}"
-    kubectl apply -f "${ks_cluster_yaml}"
-    rm -f "${ks_cluster_yaml}" "${ks_installer_yaml}"
+init_openebs() {
+    local yaml=${1}
+    local registry=${2}
+    export KUBECONFIG=/etc/kubernetes/admin.conf
+    echo "modify image registry"
+    sed -i "s|image\s*:\s*openebs|image: ${registry}/openebs|g" "${yaml}"
+    kubectl apply -f "${yaml}"
+    rm -f "${yaml}"
+}
+init_k8s_storage() {
+    local sc_name=${1}
+    export KUBECONFIG=/etc/kubernetes/admin.conf
+    echo "diskpool define"
+    cat <<EOF | kubectl apply -f -
+apiVersion: "openebs.io/v1alpha1"
+kind: DiskPool
+metadata:
+  name: pool-on-node-1
+  namespace: mayastor
+spec:
+  node: workernode-1-hostname
+  disks: ["/dev/disk/by-uuid/<uuid>"]
+EOF
+    echo "verify .."
+    kubectl get dsp -n mayastor
+    echo "create mayastor storageclass"
+    cat <<EOF | kubectl apply -f -
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ${sc_name}
+parameters:
+  ioTimeout: "30"
+  protocol: nvmf
+  repl: "1"
+provisioner: io.openebs.csi-mayastor
+EOF
+    kubectl get sc -n mayastor
+    echo "define pvc"
+    cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-${sc_name}
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: ${sc_name}
+EOF
+    kubectl get pvc pvc-${sc_name}
+    # verify plugin installed
+    kubectl mayastor -V  &>/dev/null && kubectl mayastor get volumes
 }
 upload() {
     local lfile=${1}
@@ -35,27 +80,23 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME}
         -m|--master      *  <ip>    master ipaddr
-        -r|--registry    *  <str>   private registry, for install kubesphere
+        -r|--registry    *  <str>   private registry, for install openebs
                                     exam: registry.local:5000
-        -i|--installer   *  <str>   ks-installer image image
-                                    exam: registry.local/kubesphere/ks-installer:v3.2.1
-        -U|--user           <user>  master ssh user, default root
-        -P|--port           <int>   master ssh port, default 60022
+        -U | --user         <user>  master ssh user, default root
+        -P | --port         <int>   master ssh port, default 60022
         --sshpass           <str>   master ssh password, default use keyauth
         -q|--quiet
         -l|--log <int> log level
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
-        prepare sotrageclass(default)
-        prepare image: https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/images-list.txt
 EOF
     exit 1
 }
 main() {
-    local master="" user="root" port=60022 registry="" installer=""
-    local opt_short="m:r:i:U:P:"
-    local opt_long="master:,registry:,installer:,user:,port:,sshpass:,"
+    local master="" user="root" port=60022 registry=""
+    local opt_short="m:r:U:P:"
+    local opt_long="master:,registry:,user:,port:,sshpass:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -64,7 +105,6 @@ main() {
         case "$1" in
             -m | --master)    shift; master=${1}; shift;;
             -r | --registry)  shift; registry=${1}; shift;;
-            -i | --installer) shift; installer=${1}; shift;;
             -U | --user)      shift; user=${1}; shift;;
             -P | --port)      shift; port=${1}; shift;;
             --sshpass)        shift; set_sshpass "${1}"; shift;;
@@ -78,23 +118,17 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    [ -z "${registry}" ] || [ -z "${installer}" ] || [ -z "${master}" ] && usage "master/registry/ks_installer must input"
-    file_exists cluster-configuration.yaml && file_exists kubesphere-installer.yaml || {
+    [ -z "${registry}" ] || [ -z "${master}" ] && usage "master/registry must input"
+    file_exists openebs-operator.yaml || {
         cat<<'EOF'
-https://kubernetes-helm.pek3b.qingstor.com/linux-${ARCH}/${HELM_VERSION}/helm
-https://github.com/kubesphere/ks-installer/releases/download/${KS_VER}/kubesphere-installer.yaml
-https://github.com/kubesphere/ks-installer/releases/download/${KS_VER}/cluster-configuration.yaml
+https://openebs.github.io/charts/openebs-operator.yaml
 EOF
         exit_msg "download files and retry\n"
     }
-    upload "cluster-configuration.yaml" "${master}" "${port}" "${user}" "/tmp/cluster-configuration.yaml"
-    upload "kubesphere-installer.yaml" "${master}" "${port}" "${user}" "/tmp/kubesphere-installer.yaml"
-    vinfo_msg <<EOF
-registry:  ${registry}
-installer: ${installer}
-EOF
-    ssh_func "${user}@${master}" "${port}" init_kubesphere "/tmp/cluster-configuration.yaml" "/tmp/kubesphere-installer.yaml" "${registry}" "${installer}"
-    info_msg "ALL DONE\n"
+    upload "openebs-operator.yaml" "${master}" "${port}" "${user}" "/tmp/openebs-operator.yaml"
+    ssh_func "${user}@${master}" "${port}" init_openebs "/tmp/openebs-operator.yaml" "${registry}"
+    info_msg "diag: kubectl get felixconfiguration -o yaml\n"
+    info_msg "ALL DONE\n" 
     return 0
 }
 main "$@"

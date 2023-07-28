@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ca391ad[2023-07-26T12:29:24+08:00]:new_k8s.sh")
+VERSION+=("72ce87a[2023-07-26T18:16:04+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -965,6 +965,10 @@ kubectl -n kube-system edit configmaps coredns -o yaml
 #    hosts {
 #      192.168.168.150 k8sapi.local.com
 #    }
+确认master是否有污点
+kubectl describe node <master> | grep Taint
+去除污点
+kubectl taint nodes <master> node-role.kubernetes.io/master:NoSchedule-
 EOF
     info_msg "ALL DONE\n"
     return 0
