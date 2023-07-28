@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("54d9886[2023-07-28T10:01:11+08:00]:inst_openebs.sh")
+VERSION+=("568481c[2023-07-28T14:03:06+08:00]:inst_openebs.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_openebs() {
@@ -23,14 +23,14 @@ init_mayastor() {
     cat<<EOF
 helm repo add mayastor https://openebs.github.io/mayastor-extensions/
 helm search repo mayastor --versions
-helm install mayastor mayastor/mayastor -n mayastor --create-namespace --version 2.3.0
+helm install mayastor mayastor/mayastor -n mayastor --create-namespace --version 2.3.0 --debug --insecure-skip-tls-verify
 kubectl get pods -n mayastor
 EOF
     local sc_name=${1}
     export KUBECONFIG=/etc/kubernetes/admin.conf
     echo "diskpool define"
     cat <<EOF | kubectl apply -f -
-apiVersion: "openebs.io/v1alpha1"
+apiVersion: openebs.io/v1alpha1
 kind: DiskPool
 metadata:
   name: pool-on-node-1
