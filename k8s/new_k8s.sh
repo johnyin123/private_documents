@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4132f73[2023-07-28T12:22:34+08:00]:new_k8s.sh")
+VERSION+=("8df4a84[2023-07-29T13:14:52+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -567,6 +567,7 @@ prepare_yml() {
     [ -e "${local_yml}" ] && {
         upload "${local_yml}" "${ipaddr}" "${SSH_PORT}" "root" "${remote_yml}"
     } || {
+        warn_msg "Local yaml ${local_yml} NOT EXIST!!, remote download it."
         ssh_func "root@${ipaddr}" "${SSH_PORT}" "wget -q ${yml_url} -O ${remote_yml}"
         download ${ipaddr} "${SSH_PORT}" "root" "${remote_yml}" "${local_yml}"
     }
