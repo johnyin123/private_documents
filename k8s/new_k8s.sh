@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("54d9886[2023-07-28T10:01:11+08:00]:new_k8s.sh")
+VERSION+=("4132f73[2023-07-28T12:22:34+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -335,7 +335,7 @@ EOF
         local http_proxy=${1}
         local apiserver=${2}
         local k8s_version=${3}
-        local local insec_registry=${4}
+        local insec_registry=${4}
         local pausekey=$(kubeadm config images list --kubernetes-version=${k8s_version} 2>/dev/null | grep pause)
         echo "PAUSE:  ************** ${pausekey}"
         # containerd proxy set in env when run ctr

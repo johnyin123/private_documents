@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e5751f5[2023-07-28T16:30:15+08:00]:inst_openebs.sh")
+VERSION+=("95b512a[2023-07-28T17:03:27+08:00]:inst_openebs.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_openebs() {
@@ -23,7 +23,7 @@ init_mayastor() {
     cat<<EOF
 https://github.com/openebs/charts/releases
 tar xvf openebs-3.8.0.tgz
-openebs/values.yaml
+grep -E "image\s*: |imageTag\s*: " openebs/values.yaml
 helm package ./openebs/
 helm install openebs ./openebs-3.8.0.tgz --namespace openebs --create-namespace --set mayastor.enabled=true
 
