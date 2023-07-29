@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8df4a84[2023-07-29T13:14:52+08:00]:new_k8s.sh")
+VERSION+=("bb63be2[2023-07-29T13:50:06+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -412,7 +412,7 @@ EOF
     [ -z "${nameserver}" ] || echo "nameserver ${nameserver}" > /etc/resolv.conf
     touch /etc/resolv.conf || true
     swapoff -a
-    sed -iE "/\s*swap\s/d" /etc/fstab
+    sed -i "/\s*swap\s/d" /etc/fstab
     cat <<EOF | tee /etc/modules-load.d/k8s.conf
 br_netfilter
 EOF
