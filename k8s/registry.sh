@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("ddeb8b1[2023-07-23T20:26:37+08:00]:registry.sh")
+VERSION+=("d12e7a5[2023-07-28T11:17:09+08:00]:registry.sh")
 ################################################################################
 cat <<EOF
 https://github.com/distribution/distribution/releases/download/v2.8.2/registry_2.8.2_linux_amd64.tar.gz
@@ -18,12 +18,21 @@ $ docker pull localhost:5000/myrepos/myimage:2.1
 EOF
 password=password
 sed -i "s|path\s*:.*|path: /etc/docker/registry/registry.password|g" /etc/docker/registry/config.yml
-htpasswd  -Bbn admin password > /etc/docker/registry/registry.password
+htpasswd -Bbn admin password > /etc/docker/registry/registry.password
 echo "add <registry_addr>:5000 in docker daemon.json insecure-registries: [ ip, ip:port ]"
 docker login --username admin --password-stdin localhost:5000
 cat <<'EOF'
 repo=http://192.168.168.250
 for pkg in $(curl -sk -X GET ${repo}/v2/_catalog | jq -r .repositories[]); do
     curl -sk -X GET ${repo}/v2/${pkg}/tags/list | jq -r .tags[] | sed "s|^|${pkg}:|g"
+done
+
+mirror=registry.aliyuncs.com/google_containers
+for img in $(kubeadm config images list --kubernetes-version=v1.21.7 --image-repository=${mirror})
+do
+    target_img=192.168.168.250/google_containers/${img%.*}
+    ctr -n k8s.io image pull ${img} --all-platforms
+    ctr -n k8s.io image tag ${img} ${target_img}
+    ctr -n k8s.io image push ${target_img} --platform amd64 --platform arm64 --plain-http
 done
 EOF
