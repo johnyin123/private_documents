@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1b2c6bd[2023-07-27T16:20:59+08:00]:storageclass.sh")
+VERSION+=("f46ff66[2023-07-27T16:40:18+08:00]:storageclass.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 set_sc_default() {
@@ -29,12 +29,13 @@ metadata:
   name: ${name}
   # annotations:
   #   storageclass.kubernetes.io/is-default-class: "true"
-provisioner: ext-nfs  # 这里的名称要和provisioner配置文件中的环境变量PROVISIONER_NAME保持一致
+provisioner: nfs.csi.k8s.io
 parameters:
   server: ${server}
   path: ${path}
   readOnly: "${readonly}"
-  archiveOnDelete: "true"
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
 EOF
     # archiveOnDelete: backup when delete
 }
@@ -124,6 +125,9 @@ EOF
 init_pvc() {
     local name=${1}
     local scname=${2}
+    local mode=${3}
+    # ReadWriteOnce
+    # ReadWriteMany
     export KUBECONFIG=/etc/kubernetes/admin.conf
     # ReadWriteOnce：可以被一个node读写
     # ReadOnlyMany：可以被多个node读取
@@ -135,7 +139,7 @@ metadata:
   name: ${name}
 spec:
   accessModes:
-  - ReadWriteOnce
+  - ${mode}
   resources:
     requests:
       storage: 25Gi
@@ -238,11 +242,12 @@ main() {
         local)
             [ -z "${store_node}" ]  && usage "local sc need store_node"
             ssh_func "${user}@${master}" "${port}" sc_local "${name}" "${store_node}"
-            ssh_func "${user}@${master}" "${port}" init_pvc "pvc-${name}" "${name}"
+            ssh_func "${user}@${master}" "${port}" init_pvc "pvc-${name}" "${name}" "ReadWriteOnce"
             ;;
         nfs)
             [ -z "${nfs_server}" ] || [ -z "${nfs_path}" ] || [ -z "${nfs_readonly}" ] && usage "nfs sc need server/path"
             ssh_func "${user}@${master}" "${port}" sc_nfs "${name}" "${nfs_server}" "${nfs_path}" "${nfs_readonly}"
+            ssh_func "${user}@${master}" "${port}" init_pvc "pvc-${name}" "${name}" "ReadWriteMany"
             ;;
         rbd)
             exit_msg "rbd storageclass n/a now!\n"
