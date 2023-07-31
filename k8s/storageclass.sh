@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f46ff66[2023-07-27T16:40:18+08:00]:storageclass.sh")
+VERSION+=("61a94d8[2023-07-30T16:42:07+08:00]:storageclass.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 set_sc_default() {
@@ -16,27 +16,155 @@ set_sc_default() {
     kubectl get sc || true
     kubectl patch storageclass ${name} -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 }
+sc_glusterfs() {
+    cat <<EOF
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: glusterfs-cluster
+  namespace: default
+subsets:
+- addresses:
+  - ip: 192.168.16.173
+  - ip: 192.168.16.174
+  - ip: 192.168.16.175
+  ports:
+  - port: 49152
+    protocol: TCP
+EOF
+}
 sc_nfs() {
-    local name=${1}
-    local server=${2}
-    local path=${3}
-    local readonly=${4:-false}
+    local sc_name=${1}
+    local nfs_server=${2}
+    local nfs_path=${3}
+    local name_space=${4}
+    local insec_registry=192.168.168.250
+    local provisioner_name=k8s-sigs.io/nfs-subdir-external-provisioner # 和StorageClass中provisioner保持一致便可
+    # unexpected error getting claim reference: selfLink was empty, can't make reference
+    # /etc/kubernetes/manifests/kube-apiserver.yaml 添加参数
+    # 增加 - --feature-gates=RemoveSelfLink=false
+    # kubectl apply -f /etc/kubernetes/manifests/kube-apiserver.yaml
     export KUBECONFIG=/etc/kubernetes/admin.conf
+    kubectl create namespace ${name_space} &>/dev/null || true
+    cat << EOF | kubectl apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nfs-client-provisioner
+  namespace: ${name_space}
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: nfs-client-provisioner-runner
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["create", "delete", "get", "list", "watch", "patch", "update"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: run-nfs-client-provisioner
+subjects:
+  - kind: ServiceAccount
+    name: nfs-client-provisioner
+    namespace: ${name_space}
+roleRef:
+  kind: ClusterRole
+  name: nfs-client-provisioner-runner
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: leader-locking-nfs-client-provisioner
+  namespace: ${name_space}
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: leader-locking-nfs-client-provisioner
+  namespace: ${name_space}
+subjects:
+  - kind: ServiceAccount
+    name: nfs-client-provisioner
+    namespace: ${name_space}
+roleRef:
+  kind: Role
+  name: leader-locking-nfs-client-provisioner
+  apiGroup: rbac.authorization.k8s.io
+EOF
+cat << EOF | kubectl apply -f -
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: nfs-client-provisioner
+  labels:
+    app: nfs-client-provisioner
+  namespace: ${name_space}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nfs-client-provisioner
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nfs-client-provisioner
+    spec:
+      serviceAccountName: nfs-client-provisioner
+      containers:
+        - name: nfs-client-provisioner
+          # quay.io/external_storage/nfs-client-provisioner:latest
+          # registry.k8s.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2
+          image: ${insec_registry}/external_storage/nfs-client-provisioner:latest
+          volumeMounts:
+            - name: nfs-client-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              value: ${provisioner_name}
+            - name: NFS_SERVER
+              value: ${nfs_server}
+            - name: NFS_PATH
+              value: ${nfs_path}
+      volumes:
+        - name: nfs-client-root
+          nfs:
+            server: ${nfs_server}
+            path: ${nfs_path}
+EOF
     cat <<EOF | kubectl apply -f -
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
-  name: ${name}
-  # annotations:
-  #   storageclass.kubernetes.io/is-default-class: "true"
-provisioner: nfs.csi.k8s.io
-parameters:
-  server: ${server}
-  path: ${path}
-  readOnly: "${readonly}"
-reclaimPolicy: Delete
-volumeBindingMode: Immediate
+  name: ${sc_name}
+  namespace: ${name_space}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: ${provisioner_name}
 EOF
+    kubectl get sa
+    kubectl get sc
     # archiveOnDelete: backup when delete
 }
 # adminId: Ceph client ID that is capable of creating images in the pool. Default is "admin".
@@ -126,6 +254,7 @@ init_pvc() {
     local name=${1}
     local scname=${2}
     local mode=${3}
+    local name_space=${4:-default}
     # ReadWriteOnce
     # ReadWriteMany
     export KUBECONFIG=/etc/kubernetes/admin.conf
@@ -137,6 +266,7 @@ kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
   name: ${name}
+  namespace: ${name_space}
 spec:
   accessModes:
   - ${mode}
@@ -145,42 +275,41 @@ spec:
       storage: 25Gi
   storageClassName: ${scname}
 EOF
+    kubectl get pvc -n ${name_space} ${name}
 }
-cat<<'EOF'
-apiVersion: v1
-kind: Pod
+test_dynamic_pvc() {
+    cat <<EOF
+apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: test-pod
+  namespace: default
 spec:
-  volumes:
-  - name: example-storage
-    persistentVolumeClaim:
-      claimName: <<claim>>
-  containers:
-  - name: example-storage
-    image: <<registry:port>>/library/nginx:1.14-alpine
-    ports:
-    - containerPort: 80
-    volumeMounts:
-    - mountPath: /usr/share/nginx/html
-      name: example-storage
-# kubectl exec -it test-pod /bin/sh
-# cd /usr/share/nginx/html
-spec:
-  containers:
-  - name: example-storage
-    image: <<registry:port>>/library/busybox:1.31.1
-    imagePullPolicy: IfNotPresent
-    command: ['sh', '-c']
-    args: ['echo "The host is $(hostname)" >> /dir/data; sleep 3600']
-    volumeMounts:
-    - name: nfsdata
-      mountPath: /dir
-  volumes:
-  - name: nfsdata
-    persistentVolumeClaim:
-      claimName: <<claim>>
+  replicas: 1
+  selector:
+    matchLabels:
+      app: busybox
+  template:
+    metadata:
+      labels:
+        app: busybox
+    spec:
+      volumes:
+      - name: my-pvc-nfs
+        persistentVolumeClaim:
+          claimName: ${pvc_name}
+      containers:
+      - name: example-storage
+        image: 192.168.168.250/library/busybox:latest
+        imagePullPolicy: IfNotPresent
+        command: ['sh', '-c']
+        args: ['echo "The host is \$(hostname)" >> /dir/data; sleep 3600']
+        volumeMounts:
+        - name: my-pvc-nfs # template.spec.volumes[].name
+          mountPath: /dir # mount inside of container
+          readOnly: false
 EOF
+}
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
@@ -206,7 +335,7 @@ EOF
 }
 main() {
     local master="" sctype="" name="" default="" user=root port=60022
-    local nfs_server="" nfs_path="" nfs_readonly=""
+    local nfs_server="" nfs_path="" nfs_namespace="default"
     local store_node=""
     local opt_short="m:t:n:U:P:"
     local opt_long="master:,sctype:,name:,default,user:,port:,sshpass:,nfs-server:,nfs-path:,nfs-readonly,store-node:,"
@@ -223,7 +352,7 @@ main() {
             --store-node)     shift; store_node=${1}; shift;;
             --nfs-server)     shift; nfs_server=${1}; shift;;
             --nfs-path)       shift; nfs_path=${1}; shift;;
-            --nfs-readonly)   shift; nfs_readonly=1;;
+            --nfs-namespace)   shift; nfs_namespace=1;;
             -U | --user)      shift; user=${1}; shift;;
             -P | --port)      shift; port=${1}; shift;;
             --sshpass)        shift; set_sshpass "${1}"; shift;;
@@ -240,13 +369,13 @@ main() {
     [ -z "${name}" ] || [ -z "${sctype}" ] || [ -z "${master}" ] && usage "master/sctype/name must input"
     case "${sctype}" in
         local)
-            [ -z "${store_node}" ]  && usage "local sc need store_node"
+            [ -z "${store_node}" ] && usage "local sc need store_node"
             ssh_func "${user}@${master}" "${port}" sc_local "${name}" "${store_node}"
             ssh_func "${user}@${master}" "${port}" init_pvc "pvc-${name}" "${name}" "ReadWriteOnce"
             ;;
         nfs)
-            [ -z "${nfs_server}" ] || [ -z "${nfs_path}" ] || [ -z "${nfs_readonly}" ] && usage "nfs sc need server/path"
-            ssh_func "${user}@${master}" "${port}" sc_nfs "${name}" "${nfs_server}" "${nfs_path}" "${nfs_readonly}"
+            [ -z "${nfs_server}" ] || [ -z "${nfs_path}" ] && usage "nfs sc need server/path"
+            ssh_func "${user}@${master}" "${port}" sc_nfs "${name}" "${nfs_server}" "${nfs_path}" "${nfs_namespace}"
             ssh_func "${user}@${master}" "${port}" init_pvc "pvc-${name}" "${name}" "ReadWriteMany"
             ;;
         rbd)
