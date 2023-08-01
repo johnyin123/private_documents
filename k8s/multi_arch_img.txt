@@ -1,0 +1,10 @@
+cat <<EOF
+# syntax=docker/dockerfile:1
+FROM alpine:3.16
+RUN apk add curl
+Build the Dockerfile with buildx, passing the list of architectures to build for:
+EOF
+docker buildx build --platform linux/amd64,linux/arm64,linux/arm/v7 -t <username>/<image>:latest --push .
+docker buildx imagetools inspect <username>/<image>:latest
+docker run --rm docker.io/<username>/<image>:latest@sha256:xx1 uname -m
+docker run --rm docker.io/<username>/<image>:latest@sha256:xx2 uname -m

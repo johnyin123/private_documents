@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("61a94d8[2023-07-30T16:42:07+08:00]:storageclass.sh")
+VERSION+=("acc0449[2023-07-31T10:39:22+08:00]:storageclass.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 set_sc_default() {
@@ -167,20 +167,6 @@ EOF
     kubectl get sc
     # archiveOnDelete: backup when delete
 }
-# adminId: Ceph client ID that is capable of creating images in the pool. Default is "admin".
-# adminSecretName: Secret Name for adminId. This parameter is required. The provided secret must have type "kubernetes.io/rbd".
-# adminSecretNamespace: The namespace for adminSecretName. Default is "default".
-# pool: Ceph RBD pool. Default is "rbd".
-# userId: Ceph client ID that is used to map the RBD image. Default is the same as adminId.
-# userSecretName: The name of Ceph Secret for userId to map RBD image. It must exist in the same namespace as PVCs. This parameter is required. The provided secret must have type "kubernetes.io/rbd", for example created in this way:
-#     ceph auth get-key client.kube
-#     kubectl create secret generic ceph-secret --type="kubernetes.io/rbd" \
-#       --from-literal=key='< key >' \
-#       --namespace=kube-system
-# userSecretNamespace: The namespace for userSecretName.
-# fsType: fsType that is supported by kubernetes. Default: "ext4".
-# imageFormat: Ceph RBD image format, "1" or "2". Default is "2".
-# imageFeatures: This parameter is optional and should only be used if you set imageFormat to "2". Currently supported features are layering only. Default is "", and no features are turned on
 sc_rbd() {
     local name=${1}
     local mons=${2} # srv1:6789,srv2:6789
@@ -188,8 +174,112 @@ sc_rbd() {
     local secretname=${4}
     local pool=${5}
     export KUBECONFIG=/etc/kubernetes/admin.conf
-    kubectl create secret generic ceph-secret --type="kubernetes.io/rbd" \
-      --from-literal=key="${key}" --namespace=kube-system
+    echo "create rbd-provisioner"
+    cat <<EOF | kubectl apply -f -
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: rbd-provisioner
+  namespace: kube-system
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: rbd-provisioner
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["services"]
+    resourceNames: ["kube-dns","coredns"]
+    verbs: ["list", "get"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: rbd-provisioner
+  namespace: kube-system
+subjects:
+  - kind: ServiceAccount
+    name: rbd-provisioner
+    namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: rbd-provisioner
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rbd-provisioner
+  namespace: kube-system
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rbd-provisioner
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rbd-provisioner
+subjects:
+- kind: ServiceAccount
+  name: rbd-provisioner
+  namespace: kube-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rbd-provisioner
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rbd-provisioner
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: rbd-provisioner
+    spec:
+      containers:
+      - name: rbd-provisioner
+        image: "quay.io/external_storage/rbd-provisioner:latest"
+        env:
+        - name: PROVISIONER_NAME
+          value: ceph.com/rbd
+      serviceAccount: rbd-provisioner
+EOF
+    ceph auth get-key client.admin
+    kubectl create secret generic ceph-admin-secret \
+        --type="kubernetes.io/rbd" \
+        --from-literal=key='<key-value>' \
+        --namespace=kube-system
     cat <<EOF | kubectl apply -f -
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
