@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("acc0449[2023-07-31T10:39:22+08:00]:storageclass.sh")
+VERSION+=("f243862[2023-08-01T09:00:32+08:00]:storageclass.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 set_sc_default() {
@@ -275,12 +275,27 @@ spec:
           value: ceph.com/rbd
       serviceAccount: rbd-provisioner
 EOF
-    ceph auth get-key client.admin
-    kubectl create secret generic ceph-admin-secret \
+#     ceph auth get-key client.admin
+#     kubectl create secret generic ceph-admin-secret \
+#         --type="kubernetes.io/rbd" \
+#         --from-literal=key='<key-value>' \
+#         --namespace=kube-system
+    kubectl create secret generic ceph-user-secret \
         --type="kubernetes.io/rbd" \
-        --from-literal=key='<key-value>' \
-        --namespace=kube-system
+        --from-literal=key='<key>' \
+        --namespace=default
+# for test, ceph-user-secret/ceph-admin-secret both use client.admin ceph user!
     cat <<EOF | kubectl apply -f -
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ceph-admin-secret
+  namespace: kube-system
+type: kubernetes.io/rbd
+data:
+  key: ${key}
+---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -289,11 +304,11 @@ provisioner: kubernetes.io/rbd
 parameters:
   monitors: ${mons}
   adminId: ${admin_id}
-  adminSecretName: ceph-secret
+  adminSecretName: ceph-admin-secret
   adminSecretNamespace: kube-system
   pool: ${pool}
   userId: ${admin_id}
-  userSecretName: ceph-secret-user
+  userSecretName: ceph-user-secret
   userSecretNamespace: default
   fsType: ext4
   imageFormat: "2"
