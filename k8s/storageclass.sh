@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f243862[2023-08-01T09:00:32+08:00]:storageclass.sh")
+VERSION+=("6cb8ef2[2023-08-01T10:47:01+08:00]:storageclass.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 set_sc_default() {
@@ -175,145 +175,14 @@ sc_rbd() {
     local pool=${5}
     export KUBECONFIG=/etc/kubernetes/admin.conf
     echo "create rbd-provisioner"
-    cat <<EOF | kubectl apply -f -
----
-kind: ServiceAccount
-apiVersion: v1
-metadata:
-  name: rbd-provisioner
-  namespace: kube-system
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: rbd-provisioner
-  namespace: kube-system
-rules:
-  - apiGroups: [""]
-    resources: ["persistentvolumes"]
-    verbs: ["get", "list", "watch", "create", "delete"]
-  - apiGroups: [""]
-    resources: ["persistentvolumeclaims"]
-    verbs: ["get", "list", "watch", "update"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["storageclasses"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: [""]
-    resources: ["events"]
-    verbs: ["create", "update", "patch"]
-  - apiGroups: [""]
-    resources: ["services"]
-    resourceNames: ["kube-dns","coredns"]
-    verbs: ["list", "get"]
-  - apiGroups: [""]
-    resources: ["endpoints"]
-    verbs: ["get", "list", "watch", "create", "update", "patch"]
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: rbd-provisioner
-  namespace: kube-system
-subjects:
-  - kind: ServiceAccount
-    name: rbd-provisioner
-    namespace: kube-system
-roleRef:
-  kind: ClusterRole
-  name: rbd-provisioner
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: rbd-provisioner
-  namespace: kube-system
-rules:
-- apiGroups: [""]
-  resources: ["secrets"]
-  verbs: ["get"]
-- apiGroups: [""]
-  resources: ["endpoints"]
-  verbs: ["get", "list", "watch", "create", "update", "patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: rbd-provisioner
-  namespace: kube-system
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: rbd-provisioner
-subjects:
-- kind: ServiceAccount
-  name: rbd-provisioner
-  namespace: kube-system
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: rbd-provisioner
-  namespace: kube-system
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: rbd-provisioner
-  strategy:
-    type: Recreate
-  template:
-    metadata:
-      labels:
-        app: rbd-provisioner
-    spec:
-      containers:
-      - name: rbd-provisioner
-        image: "quay.io/external_storage/rbd-provisioner:latest"
-        env:
-        - name: PROVISIONER_NAME
-          value: ceph.com/rbd
-      serviceAccount: rbd-provisioner
-EOF
-#     ceph auth get-key client.admin
-#     kubectl create secret generic ceph-admin-secret \
-#         --type="kubernetes.io/rbd" \
-#         --from-literal=key='<key-value>' \
-#         --namespace=kube-system
-    kubectl create secret generic ceph-user-secret \
-        --type="kubernetes.io/rbd" \
-        --from-literal=key='<key>' \
-        --namespace=default
-# for test, ceph-user-secret/ceph-admin-secret both use client.admin ceph user!
-    cat <<EOF | kubectl apply -f -
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: ceph-admin-secret
-  namespace: kube-system
-type: kubernetes.io/rbd
-data:
-  key: ${key}
----
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: ${name}
-provisioner: kubernetes.io/rbd
-parameters:
-  monitors: ${mons}
-  adminId: ${admin_id}
-  adminSecretName: ceph-admin-secret
-  adminSecretNamespace: kube-system
-  pool: ${pool}
-  userId: ${admin_id}
-  userSecretName: ceph-user-secret
-  userSecretNamespace: default
-  fsType: ext4
-  imageFormat: "2"
-  imageFeatures: "layering"
-EOF
+# https://docs.ceph.com/en/latest/rbd/rbd-kubernetes/
+# ceph auth get-key client.admin
+# ceph auth add client.kube mon 'allow r' osd 'allow rwx pool=k8spool'
+# ceph auth get-key client.kube
+# kubectl create secret generic ceph-user-secret --type="kubernetes.io/rbd" --from-literal=key='<key>' --namespace=kube-system
+# kubectl create secret generic ceph-admin-secret --type="kubernetes.io/rbd" --from-literal=key='<key>' --namespace=kube-system
+# kubectl get secrets ceph-user-secret -n kube-system
+# kubectl get secrets ceph-admin-secret -n kube-system
 }
 sc_local() {
     local name=${1}
