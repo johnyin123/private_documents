@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("8572018[2023-07-29T09:45:58+08:00]:registry.sh")
+VERSION+=("e07356b[2023-07-29T10:05:06+08:00]:registry.sh")
 ################################################################################
 cat <<EOF
 https://github.com/distribution/distribution/releases/download/v2.8.2/registry_2.8.2_linux_amd64.tar.gz
@@ -24,6 +24,14 @@ docker login --username admin --password-stdin localhost:5000
 mkdir -p $(cat /etc/docker/registry/config.yml | sed --quiet -E 's/\s*rootdirectory\s*:\s*(.*)/\1/p')
 chown docker-registry:docker-registry -R $(cat /etc/docker/registry/config.yml | sed --quiet -E 's/\s*rootdirectory\s*:\s*(.*)/\1/p')
 cat <<'EOF'
+# storage:
+#    filesystem:
+#      rootdirectory: /registry
+#    delete:
+#      enabled: true
+#    readonly:
+#      enabled: false
+
 repo=http://192.168.168.250
 for pkg in $(curl -sk -X GET ${repo}/v2/_catalog | jq -r .repositories[]); do
     curl -sk -X GET ${repo}/v2/${pkg}/tags/list | jq -r .tags[] | sed "s|^|${pkg}:|g"
