@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d1935f5[2023-08-03T09:48:48+08:00]:ceph_storage.sh")
+VERSION+=("aa4e85a[2023-08-03T10:22:39+08:00]:ceph_storage.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -25,6 +25,13 @@ R_CEPH_CSI_PROVISIONER_RBAC="/tmp/csi-provisioner-rbac.yaml"
 R_CEPH_CSI_NODEPLUGIN_RBAC="/tmp/csi-nodeplugin-rbac.yaml"
 R_CEPH_CSI_RBDPLUGIN_PROVISIONER="/tmp/csi-rbdplugin-provisioner.yaml"
 R_CEPH_CSI_RBDPLUGIN="/tmp/csi-rbdplugin.yaml"
+
+set_sc_default() {
+    local name=${1}
+    export KUBECONFIG=/etc/kubernetes/admin.conf
+    kubectl get sc || true
+    kubectl patch storageclass ${name} -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+}
 
 inst_ceph_csi_configmap() {
     local csi_ns=${1}
@@ -293,6 +300,7 @@ ${SCRIPTNAME}
         --insec_registry       <str>      insecurity registry(http/no auth)
         -p|--pool           *  <rbd pool>
         --sc                   <str>      storageclass name, default: sc-ceph
+        --default                         default storageclass
         --pvc_blk              <str>      ceph block device pvc name, default: pvc-blk-ceph
         --pvc_fs               <str>      ceph rbd fs pvc name, default: pvc-fs-ceph
         --pvc_size             <int>      int Gi size, if not input, not create pvc
@@ -307,11 +315,11 @@ EOF
 }
 main() {
     local master="" clusterid="" sec_key="" insec_registry="" teardown_master=""  pvc_size=""
-    local csi_ns="ceph-storage" rbd_user="admin"
+    local csi_ns="ceph-storage" rbd_user="admin" sc_default=false
     local mon=()
     local pool="" sc="sc-ceph" pvc_blk="pvc-blk-ceph" pvc_fs="pvc-fs-ceph"
     local opt_short="m:c:u:k:M:p:"
-    local opt_long="master:,clusterid:,rbd_user:,sec_key:,mon:,insec_registry:,pool:,sc:,pvc_blk:,pvc_fs:,pvc_size:,password:,teardown:,"
+    local opt_long="master:,clusterid:,rbd_user:,sec_key:,mon:,insec_registry:,pool:,sc:,default,pvc_blk:,pvc_fs:,pvc_size:,password:,teardown:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -327,6 +335,7 @@ main() {
             --insec_registry) shift; insec_registry=${1}; shift;;
             -p | --pool)      shift; pool=${1}; shift;;
             --sc)             shift; sc=${1}; shift;;
+            --default)        shift; sc_default=true;;
             --pvc_blk)        shift; pvc_blk=${1}; shift;;
             --pvc_fs)         shift; pvc_fs=${1}; shift;;
             --pvc_size)       shift; pvc_size=${1}Gi; shift;;
@@ -348,6 +357,7 @@ main() {
     inst_ceph_csi "${master}" "${csi_ns}" "${insec_registry}" "${clusterid}" "${rbd_user}" "${sec_key}" ${mon[@]}
     info_msg "create storageclass: ${sc}, pool: ${pool}\n"
     ssh_func "root@${master}" "${SSH_PORT}" create_ceph_sc "${csi_ns}" "${clusterid}" "${pool}" "${sc}"
+    ${sc_default} && ssh_func "root@${master}" "${SSH_PORT}" set_sc_default "${sc}"
     [ -z "${pvc_size}" ] || {
         info_msg "create pvc: ${pvc_blk},${pvc_fs}. size: ${pvc_size}\n"
         ssh_func "root@${master}" "${SSH_PORT}" create_ceph_pvc "${sc}" "${pvc_blk}" "${pvc_fs}" "${pvc_size}"
