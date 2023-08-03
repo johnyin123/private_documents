@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0cdb506[2023-07-31T12:52:27+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("e5c19ef[2023-08-03T14:51:56+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -258,7 +258,7 @@ ${SCRIPTNAME}
         -p|--pod_cidr       *  <cidr> calico cni, pod_cidr
         --insec_registry    *  <str>  insecurity registry(http/no auth)
         --nameserver        *  <ip>   k8s nodes nameserver, /etc/resolv.conf
-        --calico)              <str>  calico crossnet method, default IPIPCrossSubnet
+        --calico               <str>  calico crossnet method, default IPIPCrossSubnet
                                       IPIPCrossSubnet/VXLANCrossSubnet/IPIP/VXLAN/None
         --apiserver            <str>  k8s cluster api-server-endpoint
                                       default "k8sapi.local.com:6443"
