@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-08-03T09:48:48+08:00]:ceph_storage.sh")
+VERSION+=("d1935f5[2023-08-03T09:48:48+08:00]:ceph_storage.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -113,14 +113,11 @@ inst_ceph_csi_provisioner() {
     kubectl apply -f "${rbdplugin}"
     rm -f  "${provisioner_rbac}" "${nodeplugin_rbac}" "${rbdplugin_provisioner}" "${rbdplugin}" || true
 }
-create_ceph_pvc() {
+create_ceph_sc() {
     local csi_ns=${1}
     local clusterid=${2}
     local pool=${3}
     local sc_name=${4}
-    local pvc_name_block=${5}
-    local pvc_name_fs=${6}
-    local pvc_size=1Gi
     export KUBECONFIG=/etc/kubernetes/admin.conf
     cat <<EOF | kubectl apply -f -
 ---
@@ -143,6 +140,15 @@ reclaimPolicy: Delete
 allowVolumeExpansion: true
 mountOptions:
    - discard
+EOF
+}
+create_ceph_pvc() {
+    local sc_name=${1}
+    local pvc_name_block=${2}
+    local pvc_name_fs=${3}
+    local pvc_size=${4}
+    export KUBECONFIG=/etc/kubernetes/admin.conf
+    cat <<EOF | kubectl apply -f -
 ---
 # raw-block mode rbd pvc
 apiVersion: v1
@@ -266,11 +272,13 @@ EOF
 teardown() {
     local master=${1}
     local csi_ns=${2}
+    local sc=${3}
     cat "${L_CEPH_CSI_RBDPLUGIN}" | ssh_func "root@${master}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete -f -" || true
     cat "${L_CEPH_CSI_RBDPLUGIN_PROVISIONER}" | ssh_func "root@${master}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete -f -" || true
     cat "${L_CEPH_CSI_NODEPLUGIN_RBAC}" | ssh_func "root@${master}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete -f -" | true 
     cat "${L_CEPH_CSI_PROVISIONER_RBAC}" | ssh_func "root@${master}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete -f -" | true
-    ssh_func "root@${master}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete namespace ${csi_ns}"
+    ssh_func "root@${master}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete sc ${sc}" || true
+    ssh_func "root@${master}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete namespace ${csi_ns}" || true
 }
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -283,11 +291,11 @@ ${SCRIPTNAME}
         -M|--mon            *  <ip:port>  ceph mons, ip:6789, multi input
         --namespace            <str>      ceph csi k8s namespace
         --insec_registry       <str>      insecurity registry(http/no auth)
-        --pool                 <rbd pool>
+        -p|--pool           *  <rbd pool>
         --sc                   <str>      storageclass name, default: sc-ceph
         --pvc_blk              <str>      ceph block device pvc name, default: pvc-blk-ceph
         --pvc_fs               <str>      ceph rbd fs pvc name, default: pvc-fs-ceph
-        --pvc_size             <int>      int Gi size, default 10Gi
+        --pvc_size             <int>      int Gi size, if not input, not create pvc
         --password             <str>      ssh password(default use sshkey)
         -q|--quiet
         -l|--log <int> log level
@@ -298,11 +306,11 @@ EOF
     exit 1
 }
 main() {
-    local master="" clusterid="" sec_key="" insec_registry="" teardown_master=""
+    local master="" clusterid="" sec_key="" insec_registry="" teardown_master=""  pvc_size=""
     local csi_ns="ceph-storage" rbd_user="admin"
     local mon=()
-    local pool="" sc="sc-ceph" pvc_blk="pvc-blk-ceph" pvc_fs="pvc-fs-ceph" pvc_size="10Gi"
-    local opt_short="m:c:u:k:M:"
+    local pool="" sc="sc-ceph" pvc_blk="pvc-blk-ceph" pvc_fs="pvc-fs-ceph"
+    local opt_short="m:c:u:k:M:p:"
     local opt_long="master:,clusterid:,rbd_user:,sec_key:,mon:,insec_registry:,pool:,sc:,pvc_blk:,pvc_fs:,pvc_size:,password:,teardown:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
@@ -317,7 +325,7 @@ main() {
             -M | --mon)       shift; mon+=(${1}); shift;;
             --namespace)      shift; csi_ns=${1}; shift;;
             --insec_registry) shift; insec_registry=${1}; shift;;
-            --pool)           shift; pool=${1}; shift;;
+            -p | --pool)      shift; pool=${1}; shift;;
             --sc)             shift; sc=${1}; shift;;
             --pvc_blk)        shift; pvc_blk=${1}; shift;;
             --pvc_fs)         shift; pvc_fs=${1}; shift;;
@@ -334,13 +342,15 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    [ -z "${teardown_master}" ] || { teardown "${teardown_master}" "${csi_ns}"; info_msg "TEARDOWN DONE\n"; return 0; }
-    [ -z "${master}" ] || [ -z "${clusterid}" ] || [ -z "${sec_key}" ] && usage "master/clusterid/sec_key must input"
+    [ -z "${teardown_master}" ] || { teardown "${teardown_master}" "${csi_ns}" "${sc}"; info_msg "TEARDOWN DONE\n"; return 0; }
+    [ -z "${master}" ] || [ -z "${clusterid}" ] || [ -z "${sec_key}" ] || [ -z "${pool}" ] && usage "master/clusterid/sec_key/pool must input"
     [ "$(array_size mon)" -gt "0" ] || usage "at least one ceph mon"
     inst_ceph_csi "${master}" "${csi_ns}" "${insec_registry}" "${clusterid}" "${rbd_user}" "${sec_key}" ${mon[@]}
-    [ -z "${pool}" ] || {
-        info_msg "create storageclass: ${sc}, pvc: ${pvc_blk},${pvc_fs}. size: ${pvc_size}\n"
-        ssh_func "root@${master}" "${SSH_PORT}" create_ceph_pvc "${csi_ns}" "${clusterid}" "${pool}" "${sc}" "${pvc_blk}" "${pvc_fs}" "${pvc_size}"
+    info_msg "create storageclass: ${sc}, pool: ${pool}\n"
+    ssh_func "root@${master}" "${SSH_PORT}" create_ceph_sc "${csi_ns}" "${clusterid}" "${pool}" "${sc}"
+    [ -z "${pvc_size}" ] || {
+        info_msg "create pvc: ${pvc_blk},${pvc_fs}. size: ${pvc_size}\n"
+        ssh_func "root@${master}" "${SSH_PORT}" create_ceph_pvc "${sc}" "${pvc_blk}" "${pvc_fs}" "${pvc_size}"
         test_demo "${pvc_blk}" "${pvc_fs}" "${insec_registry}"
     }
     info_msg "ALL DONE\n"
