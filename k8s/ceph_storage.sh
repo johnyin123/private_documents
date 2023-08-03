@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("aa4e85a[2023-08-03T10:22:39+08:00]:ceph_storage.sh")
+VERSION+=("f7f1b32[2023-08-03T10:54:46+08:00]:ceph_storage.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -43,6 +43,14 @@ inst_ceph_csi_configmap() {
     mons=${mons%?}
     export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl create namespace ${csi_ns} || true
+cat <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    kubernetes.io/metadata.name: cephcsi
+  name: cephcsi
+EOF
     cat <<EOF | kubectl apply -f -
 ---
 # csi-config-map
@@ -132,6 +140,8 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
    name: ${sc_name}
+   annotations:
+     storageclass.kubesphere.io/supported-access-modes: '["ReadWriteOnce","ReadOnlyMany","ReadWriteMany"]'
 provisioner: rbd.csi.ceph.com
 parameters:
    clusterID: ${clusterid}
@@ -143,6 +153,7 @@ parameters:
    csi.storage.k8s.io/controller-expand-secret-namespace: ${csi_ns}
    csi.storage.k8s.io/node-stage-secret-name: csi-rbd-secret
    csi.storage.k8s.io/node-stage-secret-namespace: ${csi_ns}
+   csi.storage.k8s.io/fstype: ext4
 reclaimPolicy: Delete
 allowVolumeExpansion: true
 mountOptions:
@@ -319,7 +330,7 @@ main() {
     local mon=()
     local pool="" sc="sc-ceph" pvc_blk="pvc-blk-ceph" pvc_fs="pvc-fs-ceph"
     local opt_short="m:c:u:k:M:p:"
-    local opt_long="master:,clusterid:,rbd_user:,sec_key:,mon:,insec_registry:,pool:,sc:,default,pvc_blk:,pvc_fs:,pvc_size:,password:,teardown:,"
+    local opt_long="master:,clusterid:,rbd_user:,sec_key:,mon:,namespace:,insec_registry:,pool:,sc:,default,pvc_blk:,pvc_fs:,pvc_size:,password:,teardown:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
