@@ -7,10 +7,18 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e5c19ef[2023-08-03T14:51:56+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("8e74451[2023-08-03T17:09:53+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
+
+CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
+CALICO_CUST_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/custom-resources.yaml"
+L_CALICO_YML="tigera-operator.yaml"
+R_CALICO_YML="/tmp/tigera-operator.yaml"
+L_CALICO_CUST_YML="custom-resources.yaml"
+R_CALICO_CUST_YML="/tmp/custom-resources.yaml"
+
 init_calico_cni() {
     local svc_cidr=${1}
     local pod_cidr=${2}
@@ -195,12 +203,6 @@ init_kube_calico_cni() {
     local insec_registry=${4}
     local crossnet_method=${5}
     local ipaddr="${master[0]}"
-    CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
-    CALICO_CUST_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/custom-resources.yaml"
-    L_CALICO_YML="tigera-operator.yaml"
-    R_CALICO_YML="/tmp/tigera-operator.yaml"
-    L_CALICO_CUST_YML="custom-resources.yaml"
-    R_CALICO_CUST_YML="/tmp/custom-resources.yaml"
     vinfo_msg <<EOF
 ****** ${ipaddr} init calico() cni svc: ${svc_cidr}, pod:${pod_cidr}.
 EOF
@@ -328,7 +330,7 @@ main() {
     }
     # # init new k8s cluster
     [ -z "${insec_registry}" ] || [ -z "${nameserver}" ] || [ -z "${pod_cidr}" ] && usage "need insec_registry/nameserver/pod_cidr"
-    confirm "Confirm NEW init k8s env(timeout 10,default N)?" 10 || exit_msg "BYE!\n"
+    file_exists "${L_CALICO_YML}" && file_exists "${L_CALICO_CUST_YML}" || confirm "${L_CALICO_YML}/${L_CALICO_CUST_YML} not exists, continue? (timeout 10,default N)?" 10 || exit_msg "BYE!\n"
     for ipaddr in $(array_print master) $(array_print worker); do
         info_msg "****** ${ipaddr} pre valid host env\n"
         ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "${apiserver}" "${nameserver}"  "${insec_registry}"
