@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bb63be2[2023-07-29T13:50:06+08:00]:new_k8s.sh")
+VERSION+=("23a6597[2023-07-29T15:46:48+08:00]:new_k8s.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -539,26 +539,6 @@ teardown() {
 }
 # remote execute function end!
 ################################################################################
-download() {
-    local ipaddr=${1}
-    local port=${2}
-    local user=${3}
-    local rfile=${4}
-    local lfile=${5}
-    warn_msg "download ${user}@${ipaddr}:${port}${rfile} ====> ${lfile}\n"
-    try scp -P${port} ${user}@${ipaddr}:${rfile} ${lfile}
-}
-
-upload() {
-    local lfile=${1}
-    local ipaddr=${2}
-    local port=${3}
-    local user=${4}
-    local rfile=${5}
-    warn_msg "upload ${lfile} ====> ${user}@${ipaddr}:${port}${rfile}\n"
-    try scp -P${port} ${lfile} ${user}@${ipaddr}:${rfile}
-}
-
 prepare_yml() {
     local ipaddr=${1}
     local local_yml=${2}

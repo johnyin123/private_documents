@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("f8aa6ab[2023-07-17T10:41:03+08:00]:functions.sh")
+VERSION+=("c1d7e08[2023-07-19T13:21:34+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -156,6 +156,25 @@ EOF
     export SSH_ASKPASS=${SSH_ASKPASS_SCRIPT}
 }
 
+download() {
+    local ipaddr=${1}
+    local port=${2}
+    local user=${3}
+    local rfile=${4}
+    local lfile=${5}
+    warn_msg "download ${user}@${ipaddr}:${port}${rfile} ====> ${lfile}\n"
+    try scp -P${port} ${user}@${ipaddr}:${rfile} ${lfile}
+}
+
+upload() {
+    local lfile=${1}
+    local ipaddr=${2}
+    local port=${3}
+    local user=${4}
+    local rfile=${5}
+    warn_msg "upload ${lfile} ====> ${user}@${ipaddr}:${port}${rfile}\n"
+    try scp -P${port} ${lfile} ${user}@${ipaddr}:${rfile}
+}
 # ssh_func user@host port func args....
 # msg=$(ssh_func user@ip port "cat /msg.txt")
 # ssh_func func "" "arg2 arg2" arg3

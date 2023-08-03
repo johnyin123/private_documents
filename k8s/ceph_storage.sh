@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f7f1b32[2023-08-03T10:54:46+08:00]:ceph_storage.sh")
+VERSION+=("e5c19ef[2023-08-03T14:51:56+08:00]:ceph_storage.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -240,15 +240,6 @@ EOF
 }
 # remote execute function end!
 ################################################################################
-upload() {
-    local lfile=${1}
-    local ipaddr=${2}
-    local port=${3}
-    local user=${4}
-    local rfile=${5}
-    warn_msg "upload ${lfile} ====> ${user}@${ipaddr}:${port}${rfile}\n"
-    try scp -P${port} ${lfile} ${user}@${ipaddr}:${rfile}
-}
 prepare_yml() {
     local ipaddr=${1}
     local local_yml=${2}
@@ -365,6 +356,11 @@ main() {
     [ -z "${teardown_master}" ] || { teardown "${teardown_master}" "${csi_ns}" "${sc}"; info_msg "TEARDOWN DONE\n"; return 0; }
     [ -z "${master}" ] || [ -z "${clusterid}" ] || [ -z "${sec_key}" ] || [ -z "${pool}" ] && usage "master/clusterid/sec_key/pool must input"
     [ "$(array_size mon)" -gt "0" ] || usage "at least one ceph mon"
+    file_exists "${L_CEPH_CSI_PROVISIONER_RBAC}" && \
+        file_exists "${L_CEPH_CSI_NODEPLUGIN_RBAC}"  && \
+        file_exists "${L_CEPH_CSI_RBDPLUGIN_PROVISIONER}" \
+        file_exists "${L_CEPH_CSI_RBDPLUGIN}" || \
+        confirm "${L_CEPH_CSI_PROVISIONER_RBAC}/${L_CEPH_CSI_NODEPLUGIN_RBAC}/${L_CEPH_CSI_RBDPLUGIN_PROVISIONER}/${L_CEPH_CSI_RBDPLUGIN} not exists, continue? (timeout 10,default N)?" 10 || exit_msg "BYE!\n"
     inst_ceph_csi "${master}" "${csi_ns}" "${insec_registry}" "${clusterid}" "${rbd_user}" "${sec_key}" ${mon[@]}
     info_msg "create storageclass: ${sc}, pool: ${pool}\n"
     ssh_func "root@${master}" "${SSH_PORT}" create_ceph_sc "${csi_ns}" "${clusterid}" "${pool}" "${sc}"
