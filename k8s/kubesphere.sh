@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("398dc23[2023-07-27T09:53:34+08:00]:kubesphere.sh")
+VERSION+=("54d9886[2023-07-28T10:01:11+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_kubesphere() {
@@ -16,6 +16,8 @@ init_kubesphere() {
     local registry=${3}
     local ks_installer=${4}
     sed -i "s|local_registry\s*:\s*.*|local_registry: ${registry}|g" "${ks_cluster_yaml}"
+    # enable redis
+    sed -i "/redis\s*:$/{n; s/enabled\s*:.*/enabled: true/;}" "${ks_cluster_yaml}"
     sed -i "s|image\s*:\s*.*ks-installer.*|image: ${ks_installer}|g" "${ks_installer_yaml}"
     kubectl apply -f "${ks_installer_yaml}"
     kubectl apply -f "${ks_cluster_yaml}"
