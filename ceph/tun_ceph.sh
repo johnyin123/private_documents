@@ -173,6 +173,11 @@ ceph osd unset noout
 
 
 查看rbd被挂载到哪里
+for id in $(for i in $(rbd --cluster armsite ls k8spool); do rbd --cluster armsite info k8spool/$i; done | grep prefix | sed -r "s/^.*prefix\s*:\s*rbd_data.(.*)/\1/")
+do
+    rados --cluster armsite  -p k8spool listwatchers rbd_header.$id
+done
+
     对于image format为1的块：
     $ rbd info boot
     rbd image 'boot':
