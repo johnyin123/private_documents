@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("25765b6[2023-08-04T07:12:31+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("4b392bc[2023-08-04T07:39:09+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -363,6 +363,10 @@ kubectl taint nodes <master> node-role.kubernetes.io/master:NoSchedule-
 kubectl taint nodes --all node-role.kubernetes.io/master-
 # 不参与调度
 kubectl label nodes k8s-master node-role.kubernetes.io/worker=
+# 驱逐
+kubectl drain <node> --delete-local-data --ignore-daemonsets --force
+# 将node置为SchedulingDisabled不可调度状态
+kubectl cordon <node>
 EOF
     info_msg "ALL DONE\n"
     return 0
