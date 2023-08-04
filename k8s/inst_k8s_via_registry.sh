@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4b392bc[2023-08-04T07:39:09+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("c7df7a6[2023-08-04T10:50:26+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -85,7 +85,7 @@ gen_k8s_join_cmds() {
     local token=$(kubeadm token create)
     local sha_hash=$(openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //')
     local certs=$(kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -n 1)
-    local api_srv=$(sed -n "s/\s*server:\s*\(.*\)/\1/p" /etc/kubernetes/kubelet.conf)
+    local api_srv=$(sed -n "s/\s*server\s*:\s*http[s]*:\/\/\(.*\)/\1/p" /etc/kubernetes/kubelet.conf)
     echo kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash} --control-plane --certificate-key ${certs}
     echo kubeadm join ${api_srv} --token ${token} --discovery-token-ca-cert-hash sha256:${sha_hash}
 }
