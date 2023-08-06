@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("26761e5[2023-08-04T16:21:13+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("c05f50c[2023-08-05T14:12:26+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -273,10 +273,29 @@ ${SCRIPTNAME} --only_add_master 192.168.168.150 -m 192.168.168.152 --insec_regis
 EOF
     exit 1
 }
-
+verify_apiserver() {
+    local apiserver=${1}
+    local tname="" tport=""
+    IFS=':' read -r tname tport <<< "${apiserver}"
+    [ -z "${tname}" ] && return 1
+    is_integer "${tport}" || return 2
+    str_equal ${tport} 6443 || warn_msg "apiport${tport} is not 6443, sould has a Loadbalancer redirect it!!!!\n"
+    return 0
+}
+verify_calico() {
+    local crossnet_method=${1}
+    case "$1" in
+        IPIPCrossSubnet)  return 0;;
+        VXLANCrossSubnet) return 0;;
+        IPIP)             return 0;;
+        VXLAN)            return 0;;
+        None)             return 0;;
+        *)                error_msg "unknow calico mode\n"; return 1;;
+    esac
+}
 main() {
-    local master=() worker=() teardown=() svc_cidr="" pod_cidr="" insec_registry="" nameserver="" apiserver="" only_add_master=""
-    local crossnet_method=IPIPCrossSubnet skip_proxy=false ipvs=false only_add_worker=false
+    local master=() worker=() teardown=() svc_cidr="" pod_cidr="" insec_registry="" nameserver="" apiserver="" crossnet_method="" only_add_master=""
+    local skip_proxy=false ipvs=false only_add_worker=false
     local opt_short="m:w:s:p:"
     local opt_long="master:,worker:,svc_cidr:,pod_cidr:,insec_registry:,nameserver:,calico:,apiserver:,skip_proxy,ipvs,only_add_worker,only_add_master:,password:,teardown:,"
     opt_short+="ql:dVh"
@@ -291,8 +310,8 @@ main() {
             -p | --pod_cidr)   shift; pod_cidr=${1}; shift;;
             --insec_registry)  shift; insec_registry=${1}; shift;;
             --nameserver)      shift; nameserver=${1}; shift;;
-            --calico)          shift; crossnet_method=${1}; shift;;
-            --apiserver)       shift; apiserver=${1}; shift;;
+            --calico)          shift; verify_calico "${1}" && crossnet_method=${1}; shift;;
+            --apiserver)       shift; verify_apiserver "${1}" && apiserver=${1}; shift;;
             --skip_proxy)      shift; skip_proxy=true;;
             --ipvs)            shift; ipvs=true;;
             --only_add_worker) shift; only_add_worker=true;;
@@ -342,7 +361,7 @@ main() {
     }
     # # init new k8s cluster
     [ -z "${pod_cidr}" ] && usage "need pod_cidr"
-    file_exists "${L_CALICO_YML}" && file_exists "${L_CALICO_CUST_YML}" || confirm "${L_CALICO_YML}/${L_CALICO_CUST_YML} not exists, continue? (timeout 10,default N)?" 10 || exit_msg "BYE!\n"
+    [ -z "${crossnet_method}" ] || { file_exists "${L_CALICO_YML}" && file_exists "${L_CALICO_CUST_YML}" || confirm "${L_CALICO_YML}/${L_CALICO_CUST_YML} not exists, continue? (timeout 10,default N)?" 10 || exit_msg "BYE!\n"; }
     [ -z "${insec_registry}" ] && { confirm "private registry not set, continue? (timeout 10,default N)?" 10 || exit_msg "BYE!\n"; }
     for ipaddr in $(array_print master) $(array_print worker); do
         info_msg "****** ${ipaddr} pre valid host env\n"
@@ -350,7 +369,7 @@ main() {
     done
     init_kube_cluster master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}" "${svc_cidr}" "${insec_registry}"
     ${skip_proxy} || { ${ipvs} && ssh_func "root@${master[0]}" "${SSH_PORT}" modify_kube_proxy_ipvs; }
-    init_kube_calico_cni "${master[0]}" "${pod_cidr}" "${svc_cidr}" "${insec_registry}" "${crossnet_method}"
+    [ -z "${crossnet_method}" ] || init_kube_calico_cni "${master[0]}" "${pod_cidr}" "${svc_cidr}" "${insec_registry}" "${crossnet_method}"
     info_msg "export k8s configuration\n"
     ssh_func "root@${master[0]}" "${SSH_PORT}" 'kubeadm config print init-defaults'
     ssh_func "root@${master[0]}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl cluster-info"
