@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2b0daad[2023-08-06T10:17:50+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("bd29676[2023-08-06T12:02:13+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -421,6 +421,10 @@ kubectl label nodes k8s-master node-role.kubernetes.io/worker=
 kubectl drain <node> --delete-local-data --ignore-daemonsets --force
 # 将node置为SchedulingDisabled不可调度状态
 kubectl cordon <node>
+# # 删除结点
+kubectl cordon worker1
+kubectl drain  worker1 --delete-local-data --ignore-daemonsets --force
+kubectl delete node worker1
 EOF
     info_msg "ALL DONE\n"
     return 0
