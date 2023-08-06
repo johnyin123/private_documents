@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bd29676[2023-08-06T12:02:13+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("4569ede[2023-08-06T12:06:11+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -421,10 +421,14 @@ kubectl label nodes k8s-master node-role.kubernetes.io/worker=
 kubectl drain <node> --delete-local-data --ignore-daemonsets --force
 # 将node置为SchedulingDisabled不可调度状态
 kubectl cordon <node>
-# # 删除结点
+# # 删除worker1结点
 kubectl cordon worker1
 kubectl drain  worker1 --delete-local-data --ignore-daemonsets --force
 kubectl delete node worker1
+生成初始化配置文件
+kubeadm config print init-defaults > kubeadm-config.yaml
+查看生效的配置文件
+kubectl -n kube-system get cm kubeadm-config -o yaml
 EOF
     info_msg "ALL DONE\n"
     return 0
