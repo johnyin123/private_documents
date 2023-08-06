@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c05f50c[2023-08-05T14:12:26+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("2b0daad[2023-08-06T10:17:50+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -228,7 +228,7 @@ init_kube_cluster() {
     info_msg "****** ${ipaddr} init first master(${apiserver:-no apiserver define})\n"
     ssh_func "root@${ipaddr}" "${SSH_PORT}" init_first_k8s_master "${apiserver}" "${skip_proxy}" "${pod_cidr}" "${svc_cidr}" "${insec_registry}"
     local new_masters=()
-    for ((i=1;i<$(array_size master_nodes);i++)); do new_masters+=${master_nodes[$i]}; done
+    for ((i=1;i<$(array_size master_nodes);i++)); do new_masters+=(${master_nodes[$i]}); done
     [ -z "${apiserver}" ] && apiserver=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" 'sed -n "s/\s*server\s*:\s*http[s]*:\/\/\(.*\)/\1/p" /etc/kubernetes/kubelet.conf')
     k8s_only_add_master ${ipaddr} new_masters "${apiserver}"
     k8s_only_add_worker ${ipaddr} worker_nodes "${apiserver}"
