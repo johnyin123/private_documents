@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3be7806[2023-08-07T14:24:35+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("2bf2b17[2023-08-07T14:51:54+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -424,8 +424,8 @@ kubectl cordon <node>
 # # arm64环境，修改kubesphere的default-http-backend运行image是amd64,bug
 kubectl -n kubesphere-controls-system  get all
 kubectl -n  kubesphere-controls-system get deployments.apps default-http-backend -o yaml | \
-    sed 's|defaultbackend-amd64|defaultbackend-arm64|g' \
-    kubectl apply -f -
+    sed 's|defaultbackend-amd64|defaultbackend-arm64|g' > backend.yaml
+    kubectl delete -f backend.yaml; kubectl apply -f backend.yaml
 # # 删除worker1结点
 kubectl cordon worker1
 kubectl drain  worker1 --delete-local-data --ignore-daemonsets --force
