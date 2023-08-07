@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4569ede[2023-08-06T12:06:11+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("f32c62e[2023-08-06T12:18:18+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -265,9 +265,9 @@ ${SCRIPTNAME}
         -h|--help help
         EXAM:
 # # init new cluster
-${SCRIPTNAME} --m 192.168.168.150 --pod_cidr 172.16.0.0/24 --ipvs --insec_registry 192.168.168.250 --apiserver myserver:6443
+${SCRIPTNAME} -m 192.168.168.150 --pod_cidr 172.16.0.0/24 --ipvs --insec_registry 192.168.168.250 --apiserver myserver:6443
 # # add worker in exists cluster
-${SCRIPTNAME} --only_add_worker --m 192.168.168.150 -w 192.168.168.151 --insec_registry 192.168.168.250
+${SCRIPTNAME} --only_add_worker -m 192.168.168.150 -w 192.168.168.151 --insec_registry 192.168.168.250
 # # add master in exists cluster
 ${SCRIPTNAME} --only_add_master 192.168.168.150 -m 192.168.168.152 --insec_registry 192.168.168.250
 EOF
