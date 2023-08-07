@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f32c62e[2023-08-06T12:18:18+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("0050f58[2023-08-07T10:47:55+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -277,8 +277,8 @@ verify_apiserver() {
     local apiserver=${1}
     local tname="" tport=""
     IFS=':' read -r tname tport <<< "${apiserver}"
-    [ -z "${tname}" ] && return 1
-    is_integer "${tport}" || return 2
+    [ -z "${tname}" ] && exit_msg "apiserver check failed, name\n"
+    is_integer "${tport}" || exit_msg "apiserver check failed, port\n"
     str_equal ${tport} 6443 || warn_msg "apiport${tport} is not 6443, sould has a Loadbalancer redirect it!!!!\n"
     return 0
 }
@@ -290,7 +290,7 @@ verify_calico() {
         IPIP)             return 0;;
         VXLAN)            return 0;;
         None)             return 0;;
-        *)                error_msg "unknow calico mode\n"; return 1;;
+        *)                exit_msg "unknow calico mode\n";;
     esac
 }
 main() {
