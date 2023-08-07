@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f4cecb3[2023-08-03T16:41:07+08:00]:kubesphere.sh")
+VERSION+=("4b392bc[2023-08-04T07:39:09+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -53,9 +53,8 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME}
         -m|--master      *  <ip>    master ipaddr
-        -r|--registry    *  <str>   private registry, for install kubesphere
-                                    exam: registry.local:5000
-        -i|--installer   *  <str>   ks-installer image image
+        --insec_registry *  <str>   insecurity registry(http/no auth)
+        --installer      *  <str>   ks-installer image image
                                     exam: registry.local/kubesphere/ks-installer:v3.2.1
         -U|--user           <user>  master ssh user, default root
         -P|--port           <int>   master ssh port, default 60022
@@ -71,9 +70,9 @@ EOF
     exit 1
 }
 main() {
-    local master="" registry="" installer=""
-    local opt_short="m:r:i:"
-    local opt_long="master:,registry:,installer:,password:,"
+    local master="" insec_registry="" installer=""
+    local opt_short="m:"
+    local opt_long="master:,insec_registry:,installer:,password:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -81,8 +80,8 @@ main() {
     while true; do
         case "$1" in
             -m | --master)    shift; master=${1}; shift;;
-            -r | --registry)  shift; registry=${1}; shift;;
-            -i | --installer) shift; installer=${1}; shift;;
+            --insec_registry) shift; insec_registry=${1}; shift;;
+            --installer)      shift; installer=${1}; shift;;
             --password)       shift; set_sshpass "${1}"; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
@@ -94,17 +93,17 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    [ -z "${registry}" ] || [ -z "${installer}" ] || [ -z "${master}" ] && usage "master/registry/ks_installer must input"
+    [ -z "${insec_registry}" ] || [ -z "${installer}" ] || [ -z "${master}" ] && usage "master/insec_registry/ks_installer must input"
     file_exists "${L_KS_INSTALLER_YML}" && \
         file_exists "${L_CLUSTER_CONF_YML}" || \
         confirm "${L_KS_INSTALLER_YML}/${L_CLUSTER_CONF_YML} not exists, continue? (timeout 10,default N)?" 10 || exit_msg "BYE!\n"
     prepare_yml "${master}" "${L_CLUSTER_CONF_YML}" "${R_CLUSTER_CONF_YML}" "${CLUSTER_CONF_YML}"
     prepare_yml "${master}" "${L_KS_INSTALLER_YML}" "${R_KS_INSTALLER_YML}" "${KS_INSTALLER_YML}"
     vinfo_msg <<EOF
-registry:  ${registry}
+insec_registry:  ${insec_registry}
 installer: ${installer}
 EOF
-    ssh_func "root@${master}" "${SSH_PORT}" init_kubesphere "${R_CLUSTER_CONF_YML}" "${R_KS_INSTALLER_YML}" "${registry}" "${installer}"
+    ssh_func "root@${master}" "${SSH_PORT}" init_kubesphere "${R_CLUSTER_CONF_YML}" "${R_KS_INSTALLER_YML}" "${insec_registry}" "${installer}"
     info_msg "ALL DONE\n"
     return 0
 }
