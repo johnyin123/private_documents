@@ -4,7 +4,7 @@ readonly SCRIPTNAME=${0##*/}
 set -o errtrace
 set -o nounset
 set -o errexit
-VERSION+=("814e774[2023-07-26T19:59:19+08:00]:gen_k8s_pkg.sh")
+VERSION+=("211fc9e[2023-08-07T13:46:17+08:00]:gen_k8s_pkg.sh")
 ################################################################################
 PKG_DIR=${1?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
 ARCH=${2?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
@@ -141,16 +141,23 @@ tar -C ${PKG_DIR}/usr/     -xvf ${TGZ_CONTAINERD}
 tar -C ${PKG_DIR}/opt/cni/ -xvf ${TGZ_CNI_PLUGINS}
 
 
-depends="--depends ebtables --depends ethtool --depends iptables --depends conntrack --depends socat"
-fpm --package . -s dir -t rpm --architecture ${ARCH} -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl ${depends} --version 0.9 --iteration ${VER} --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
-fpm --package . -s dir -t deb --architecture ${ARCH} -C ${PKG_DIR}/ --name tsd_cnap --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl ${depends} --version 0.9 --iteration ${VER} --description "tsd cnap ${ARCH} env $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
+depends="--depends ebtables --depends ethtool --depends iptables --depends conntrack --depends socat --depends ipvsadm"
+fpm --package . -s dir -t rpm --architecture ${ARCH} -C ${PKG_DIR}/ --name tsd_cnap_${VER} --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl ${depends} --version 0.9 --description "tsd cnap ${ARCH} env ${VER} $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
+fpm --package . -s dir -t deb --architecture ${ARCH} -C ${PKG_DIR}/ --name tsd_cnap_${VER} --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl ${depends} --version 0.9 --description "tsd cnap ${ARCH} env ${VER} $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
 cat <<'EOF'
-yum -y --disablerepo=* --enablerepo=myrepo install tsd_cnap-0.9-1.x86_64.rpm
-cat <<'EOREPO' > /etc/yum.repos.d/myrepo.repo
-[myrepo]
-name=myrepo
-baseurl=http://10.170.6.105/openEuler-22.03-LTS-SP1/everything/$basearch/
+yum -y --disablerepo=* --enablerepo=myrepo --enablerepo=cnap install tsd_cnap_v1.21.7
+cat <<EOFREP > cnap.repo
+[cnap]
+name=cnap
+baseurl=http://10.170.6.105/cnap
 enabled=1
 gpgcheck=0
-EOREPO
+
+[myrepo]
+name=myrepo
+baseurl=http://10.170.6.105/openEuler-22.03-LTS-SP1/everything/\$basearch/
+enabled=1
+gpgcheck=0
+EOFREP
+createrepo_c .
 EOF
