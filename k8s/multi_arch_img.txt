@@ -1,3 +1,38 @@
+# # https://github.com/docker/buildx/releases/download/v0.11.2/buildx-v0.11.2.linux-amd64
+# AMD64
+docker build -t your-username/multiarch-example:manifest-amd64 --build-arg ARCH=amd64/ .
+docker push your-username/multiarch-example:manifest-amd64
+# ARM64
+docker build -t your-username/multiarch-example:manifest-arm64 --build-arg ARCH=arm64/ .
+docker push your-username/multiarch-example:manifest-arm64
+docker manifest create \
+    your-username/multiarch-example:manifest-latest \
+    --amend your-username/multiarch-example:manifest-amd64 \
+    --amend your-username/multiarch-example:manifest-arm64
+docker manifest push your-username/multiarch-example:manifest-latest
+
+# # docker buildx为默认构建命令，执行docker build等同于docker buildx命令：
+docker buildx install
+docker buildx uninstall # 卸载
+有两种驱动：docker 与 docker-container（但是两者也有部分不同）：
+1）docker，使用绑定到 dockerd 的 BuildKit 工具；
+2）docker-container，使用容器运行 BuildKit 工具；
+
+docker buildx create --use --name mybuild node-amd64
+#  docker buildx create --name mybuilder --driver docker-container --bootstrap
+#  docker buildx use mybuilder
+docker buildx inspect
+docker buildx ls
+
+docker buildx create --append --name mybuild node-arm64
+docker buildx build --platform linux/amd64,linux/arm64 .
+
+
+
+# auto-push is currently not implemented for docker driver
+# 问题原因：在使用多平台构建时，需要先创建构建实例
+# 解决方法：docker buildx create --use --name build --node build --driver-opt network=host
+
 cat <<EOF
 # syntax=docker/dockerfile:1
 FROM alpine:3.16

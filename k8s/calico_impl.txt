@@ -43,3 +43,15 @@ node2上到达veth3的报文匹配路由1.1.1.0/24 via 10.0.12.11/32 dev eth0，
 node1上匹配1.1.1.2/32 dev veth1到达veth pair的一端veth1；
 node1上从veth1过来的包到达veth pair的另一端，即netns1网络命名空间下的veth2；
 node1上netns1网络命名空间下的veth2收到回程报文。
+
+# # calico change pod cidr online
+calicoctl get ipPool -o yaml > ip
+# natOutgoing: true
+# disabled: true
+# change name to others!!
+calicoctl apply -f ip
+calicoctl get wep --all-namespaces
+calicoctl delete pool default-ipv4-ippool
+calicoctl get ippool -o wide
+calicoctl get wep --all-namespaces
+delete pods ...
