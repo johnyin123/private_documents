@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2bf2b17[2023-08-07T14:51:54+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("328afb6[2023-08-07T15:04:49+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -50,9 +50,14 @@ pre_conf_k8s_host() {
     local nameserver=${3}
     local insec_registry=${4}
     IFS=':' read -r tname tport <<< "${apiserver}"
-    echo "127.0.0.1 localhost ${HOSTNAME:-$(hostname)}" > /etc/hosts
+    touch /etc/hosts || true
+    sed -i -E "/\s*\slocalhost\s*/d"  /etc/hosts
+    echo "127.0.0.1 localhost ${HOSTNAME:-$(hostname)}" >> /etc/hosts
     # skip ip address
-    ip route get "${tname:-127.0.0.1}" &>/dev/null || { echo "${master} ${tname}" >> /etc/hosts; }
+    ip route get "${tname:-127.0.0.1}" &>/dev/null || {
+        sed -i -E "/\s*\s${tname}\s*/d" /etc/hosts
+        echo "${master} ${tname}" >> /etc/hosts
+    }
     [ -z "${nameserver}" ] || echo "nameserver ${nameserver}" > /etc/resolv.conf
     touch /etc/resolv.conf || true
     swapoff -a
