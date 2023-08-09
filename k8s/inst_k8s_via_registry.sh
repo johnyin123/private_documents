@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7752bb7[2023-08-08T10:57:17+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("af5044a[2023-08-08T14:54:29+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -439,6 +439,8 @@ kubectl delete node worker1
 kubeadm config print init-defaults > kubeadm-config.yaml
 查看生效的配置文件
 kubectl -n kube-system get cm kubeadm-config -o yaml
+# fix core dns run on on node
+kubectl -n kube-system rollout restart deployment coredns
 EOF
     info_msg "ALL DONE\n"
     return 0
