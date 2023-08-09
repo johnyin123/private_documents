@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4b392bc[2023-08-04T07:39:09+08:00]:kubesphere.sh")
+VERSION+=("62a7f4f[2023-08-07T12:20:35+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -104,6 +104,14 @@ insec_registry:  ${insec_registry}
 installer: ${installer}
 EOF
     ssh_func "root@${master}" "${SSH_PORT}" init_kubesphere "${R_CLUSTER_CONF_YML}" "${R_KS_INSTALLER_YML}" "${insec_registry}" "${installer}"
+    cat <<EOF
+安装后如何开启安装应用商店:
+# kubectl -n kubesphere-system edit cm ks-installer
+kubectl -n kubesphere-system get clusterconfiguration ks-installer -o yaml
+    openpitrix:
+      enabled: True
+# 通过查询 ks-installer 日志或 Pod 状态验证功能组件是否安装成功。
+EOF
     info_msg "ALL DONE\n"
     return 0
 }
