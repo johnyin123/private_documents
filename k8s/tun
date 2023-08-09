@@ -1,0 +1,97 @@
+vm.overcommit_memory=1
+vm.panic_on_oom=0
+
+Deploy
+    resources:
+   requests:
+     memory: 1Gi
+     cpu: 250m
+   limits:
+     memory: 2.5Gi
+     cpu: 750m
+
+  nodeSelector:
+	CPUType: HIGHCORE
+
+
+To fully change pods and nodes IP pool you need to update podCIDR and ClusterCIDR values in few configuration files:
+
+update ConfigMap kubeadm-confg - you did it already
+
+update file /etc/kubernetes/manifests/kube-controller-manager.yaml - you did it already
+
+update node(s) definition with proper podCIDR value and re-add them to the cluster
+
+update ConfigMap kube-proxy in kube-system namespace
+
+add new IP pool in Calico CNI and delete the old one, recreate the deployments
+
+Update node(s) definition:
+
+Get node(s) name(s): kubectl get no - in my case it's controller
+Save definition(s) to file: kubectl get no controller -o yaml > file.yaml
+Edit file.yaml -> update podCIDR and podCIDRs values with your new IP range, in your case 10.203.0.0
+Delete old and apply new node definition: kubectl delete no controller && kubectl apply -f file.yaml
+Please note you need to do those steps for every node in your cluster.
+
+Update ConfigMap kube-proxy in kube-system namespace
+
+Get current configuration of kube-proxy: kubectl get cm kube-proxy -n kube-system -o yaml > kube-proxy.yaml
+Edit kube-proxy.yaml -> update ClusterCIDR value with your new IP range, in your case 10.203.0.0
+Delete old and apply new kube-proxy ConfigMap: kubectl delete cm kube-proxy -n kube-system && kubectl apply -f kube-proxy.yaml 
+Add new IP pool in Calico and delete the old one:
+
+Download the Calico binary and make it executable:
+
+sudo curl -o /usr/local/bin/calicoctl -O -L  "https://github.com/projectcalico/calicoctl/releases/download/v3.20.0/calicoctl"
+sudo chmod +x /usr/local/bin/calicoctl
+Add new IP pool:
+
+calicoctl create -f -<<EOF
+apiVersion: projectcalico.org/v3
+kind: IPPool
+metadata:
+  name: my-new-pool
+spec:
+  cidr: 10.203.0.0/16
+  ipipMode: Always
+  natOutgoing: true
+EOF
+Check if there is new IP pool: calicoctl get ippool -o wide
+
+Get the configuration to disable old IP pool -> calicoctl get ippool -o yaml > pool.yaml
+
+Edit the configuration: -> add disabled:true for default-ipv4-ippool in the pool.yaml:
+
+apiVersion: projectcalico.org/v3
+items:
+- apiVersion: projectcalico.org/v3
+  kind: IPPool
+  metadata:
+    creationTimestamp: "2021-08-12T07:50:24Z"
+    name: default-ipv4-ippool
+    resourceVersion: "666"
+  spec:
+    blockSize: 26
+    cidr: 10.201.0.0/16
+    ipipMode: Always
+    natOutgoing: true
+    nodeSelector: all()
+    vxlanMode: Never
+    disabled: true
+Apply new configuration: calictoctl apply -f pool.yaml
+
+Excepted output of the calicoctl get ippool -o wide command:
+
+NAME                  CIDR            NAT    IPIPMODE   VXLANMODE   DISABLED   SELECTOR   
+default-ipv4-ippool   10.201.0.0/16   true   Always     Never       true       all()      
+my-new-pool           10.203.0.0/16   true   Always     Never       false      all()      
+Re-create pods that are in 10.201.0.0 network (in every namespace, including kube-system namespace): just delete them and they should re-create instantly in new IP pool range , for example:
+
+kubectl delete pod calico-kube-controllers-58497c65d5-rgdwl -n kube-system
+kubectl delete pods coredns-78fcd69978-xcz88  -n kube-system
+kubectl delete pod nginx-deployment-66b6c48dd5-5n6nw
+etc..
+You can also delete and apply deployments.
+
+After applying those steps, there is no warning about clusterCIDR value when adding new node. New pods are created in proper IP pool range.
