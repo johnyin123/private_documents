@@ -7,20 +7,10 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-05-26T13:48:35+08:00]:init_minio.sh")
+VERSION+=("44af346[2023-05-26T13:48:34+08:00]:init_minio.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
-
-upload() {
-    local lfile=${1}
-    local ipaddr=${2}
-    local port=${3}
-    local user=${4}
-    local rfile=${5}
-    warn_msg "upload ${lfile} ====> ${user}@${ipaddr}:${port}${rfile}\n"
-    try scp -P${port} ${lfile} ${user}@${ipaddr}:${rfile}
-}
 
 download_minio() {
     info_msg "download minio server minio.amd64, minio.arm64\n"

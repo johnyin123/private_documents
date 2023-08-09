@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-01-06T14:39:22+08:00]:new_etcd.sh")
+VERSION+=("deffc62[2022-01-06T14:39:22+08:00]:new_etcd.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -91,17 +91,6 @@ EOF
 # remote execute function end!
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
-
-upload() {
-    local lfile=${1}
-    local ipaddr=${2}
-    local port=${3}
-    local user=${4}
-    local rfile=${5}
-    info2_msg "upload ${lfile} ====> ${user}@${ipaddr}:${port}${rfile}\n"
-    try scp -P${port} ${lfile} ${user}@${ipaddr}:${rfile}
-}
-
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF

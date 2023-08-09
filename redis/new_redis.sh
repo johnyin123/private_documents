@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9e93bc6[2022-01-11T14:21:45+08:00]:new_redis.sh")
+VERSION+=("2d3ad40[2022-01-19T09:34:14+08:00]:new_redis.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -136,18 +136,6 @@ init_redis_cluster() {
 # remote execute function end!
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
-
-upload() {
-    local lfile=${1}
-    local ipaddr=${2}
-    local port=${3}
-    local user=${4}
-    local rfile=${5}
-    info2_msg "upload ${lfile} ====> ${user}@${ipaddr}:${port}${rfile}\n"
-    try scp -P${port} ${lfile} ${user}@${ipaddr}:${rfile}
-}
-
-
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF

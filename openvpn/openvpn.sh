@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("41dc938[2023-05-29T16:58:57+08:00]:openvpn.sh")
+VERSION+=("add715f[2023-06-16T08:23:00+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -36,15 +36,6 @@ ${SCRIPTNAME}
             apt -y install openvpn gnutls-bin
 EOF
     exit 1
-}
-
-upload() {
-    local lfile=${1}
-    local ssh=${2}
-    local port=${3}
-    local rfile=${4}
-    warn_msg "upload ${lfile} ====> ${ssh}:${port}${rfile}\n"
-    try scp -P${port} ${lfile} ${ssh}:${rfile}
 }
 
 init_server() {
