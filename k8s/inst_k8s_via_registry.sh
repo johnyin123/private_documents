@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("af5044a[2023-08-08T14:54:29+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("2b36d8f[2023-08-09T08:04:09+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 SSH_PORT=${SSH_PORT:-60022}
@@ -441,6 +441,8 @@ kubeadm config print init-defaults > kubeadm-config.yaml
 kubectl -n kube-system get cm kubeadm-config -o yaml
 # fix core dns run on on node
 kubectl -n kube-system rollout restart deployment coredns
+# change calico v3.21.4 ipipMode
+calicoctl patch  IPPool default-ipv4-ippool  -p "{\"spec\": {\"ipipMode\": \"CrossSubnet\"}}"
 EOF
     info_msg "ALL DONE\n"
     return 0
