@@ -4,7 +4,7 @@ readonly SCRIPTNAME=${0##*/}
 set -o errtrace
 set -o nounset
 set -o errexit
-VERSION+=("41ed2a9[2023-08-08T08:33:30+08:00]:gen_k8s_pkg.sh")
+VERSION+=("af5044a[2023-08-08T14:54:29+08:00]:gen_k8s_pkg.sh")
 ################################################################################
 PKG_DIR=${1?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
 ARCH=${2?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
@@ -164,4 +164,16 @@ enabled=1
 gpgcheck=0
 EOFREP
 createrepo_c .
+# get all depends package
+root_dir=`pwd`/root
+cache_dir=`pwd`/cache
+REPO=${root_dir}/local.repo
+mkdir -p ${root_dir} ${cache_dir}
+cat>> ${REPO} <<'EOFFF'
+[mybase]
+name=CentOS Family-$releasever - Base
+baseurl=http://192.168.168.1/openEuler-22.03-LTS-SP1/everything/x86_64/
+gpgcheck=0
+EOFFF
+dnf --releasever=1.2.43 --installroot=${root_dir} -c ${REPO} --downloadonly --destdir=${cache_dir} -y install socat conntrack ebtables ethtool iptables ipvsadm
 EOF
