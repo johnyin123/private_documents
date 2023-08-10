@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7200f3b[2021-08-10T13:28:35+08:00]:virt-backupxml.sh")
+VERSION+=("3e49aad[2023-07-14T14:49:18+08:00]:virt-backupxml.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 VIRSH_OPT="-k 300 -K 5 -q"
@@ -108,7 +108,7 @@ EOF
         try "rsync -avzP -e \"ssh -p${port}\" root@${ip}:/etc/libvirt/qemu ${ip} > /dev/null 2>&1" || true
         local xml=$(fake_virsh "root@${ip}:${port}" sysinfo)
         local out=$(fake_virsh "root@${ip}:${port}" nodeinfo)
-        local manufacturer=$(printf "%s" "$xml" | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='manufacturer']")
+        local manufacturer=$(printf "%s" "$xml" | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='manufacturer']" | tr -d , )
         local prod=$(printf "%s" "$xml" | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='product']")
         local serial=$(printf "%s" "$xml"  | xmlstarlet sel -t -v "/sysinfo/system/entry[@name='serial']")
         local dt=$(printf "%s" "$xml"  | xmlstarlet sel -t -v "/sysinfo/bios/entry[@name='date']")
