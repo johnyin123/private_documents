@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("4702c57[2023-08-09T06:18:12+08:00]:registry.sh")
+VERSION+=("a76576d[2023-08-11T11:17:31+08:00]:registry.sh")
 ################################################################################
 cat <<EOF
 https://github.com/distribution/distribution/releases/download/v2.8.2/registry_2.8.2_linux_amd64.tar.gz
@@ -23,8 +23,11 @@ echo "add <registry_addr>:5000 in docker daemon.json insecure-registries: [ ip, 
 docker login --username admin --password-stdin localhost:5000
 mkdir -p $(cat /etc/docker/registry/config.yml | sed --quiet -E 's/\s*rootdirectory\s*:\s*(.*)/\1/p')
 chown docker-registry:docker-registry -R $(cat /etc/docker/registry/config.yml | sed --quiet -E 's/\s*rootdirectory\s*:\s*(.*)/\1/p')
-cat <<EOF
-# /etc/docker/registry/config.yml
+cat <<'EOF_SHELL'
+#!/usr/bin/env bash
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+mkdir -p "${DIRNAME}/data"
+cat <<EOF > "${DIRNAME}/config.yml"
 version: 0.1
 log:
   fields:
@@ -33,13 +36,13 @@ storage:
   cache:
     blobdescriptor: inmemory
   filesystem:
-    rootdirectory: /registry
+    rootdirectory: ${DIRNAME}/data
   delete:
     enabled: true
       #  readonly:
       #    enabled: false
 http:
-  addr: 127.0.0.1:5000
+  addr: :5000
   headers:
     X-Content-Type-Options: [nosniff]
 health:
@@ -48,6 +51,8 @@ health:
     interval: 10s
     threshold: 3
 EOF
+nohup "${DIRNAME}/registry" serve "${DIRNAME}/config.yml"  &>/dev/null &
+EOF_SHELL
 cat <<'EOF'
 upstream docker-registry {
     server 127.0.0.1:5000;
