@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("c1d7e08[2023-07-19T13:21:34+08:00]:functions.sh")
+VERSION+=("4b392bc[2023-08-04T07:39:09+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -178,17 +178,19 @@ upload() {
 # ssh_func user@host port func args....
 # msg=$(ssh_func user@ip port "cat /msg.txt")
 # ssh_func func "" "arg2 arg2" arg3
+# SUDO=1 ssh_func func "" "arg2 arg2" arg3 # only once sudo func via ssh
+# SUDO=1; ..... #all ssh_func will sudo
 ssh_func() {
     local ssh=${1}
     local port=${2}
     local func_name=${3}
     shift 3
     local args=("$@")
-    info_msg "ssh ${ssh}:${port}${SSH_ASKPASS:+(askpass:${SSH_ASKPASS})} => ${func_name}\n"
+    info_msg "ssh${SUDO:+ sudo} ${ssh}:${port}${SSH_ASKPASS:+(askpass:${SSH_ASKPASS})} => ${func_name}\n"
     local ssh_opt="-t -oLogLevel=error -o StrictHostKeyChecking=no -o UpdateHostKeys=no -o UserKnownHostsFile=/dev/null -o ServerAliveInterval=60 -p${port} ${ssh}"
     local bash_opt="-o errexit -s"
     defined QUIET || bash_opt="-x ${bash_opt}"
-    try setsid ssh ${ssh_opt} /bin/bash ${bash_opt} << EOF
+    try setsid ssh ${ssh_opt} ${SUDO:+sudo} /bin/bash ${bash_opt} << EOF
 $(typeset -f "${func_name}" 2>/dev/null || true)
 ${func_name} $([ "${#args[@]}" -gt 0 ] && printf '"%s" ' "${args[@]}")
 EOF
