@@ -7,11 +7,9 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2b36d8f[2023-08-09T08:04:09+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("224232a[2023-08-10T15:54:48+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
-SSH_PORT=${SSH_PORT:-60022}
-
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
 CALICO_CUST_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/custom-resources.yaml"
 L_CALICO_YML="tigera-operator.yaml"
@@ -150,7 +148,7 @@ teardown() {
     done
     # 移除的节点上，重置kubeadm的安装状态：
     kubeadm reset -f &>/dev/null || true
-    rm -fr /root/.kube /etc/cni/net.d/* /etc/profile.d/k8s.sh || true
+    rm -fr ~/.kube /etc/cni/net.d/* /etc/profile.d/k8s.sh || true
     # # # remove calico
     # kubectl delete -f calico.yaml
     modprobe -r ipip || true
@@ -161,25 +159,29 @@ teardown() {
 # remote execute function end!
 ################################################################################
 prepare_yml() {
-    local ipaddr=${1}
-    local local_yml=${2}
-    local remote_yml=${3}
+    local user=${1}
+    local port=${2}
+    local ipaddr=${3}
+    local local_yml=${4}
+    local remote_yml=${5}
     local yml_url=${4}
     [ -e "${local_yml}" ] && {
-        upload "${local_yml}" "${ipaddr}" "${SSH_PORT}" "root" "${remote_yml}"
+        upload "${local_yml}" "${ipaddr}" "${port}" "${user}" "${remote_yml}"
     } || {
         warn_msg "Local yaml ${local_yml} NOT EXIST!!, remote download it.\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" "wget -q ${yml_url} -O ${remote_yml}"
-        download ${ipaddr} "${SSH_PORT}" "root" "${remote_yml}" "${local_yml}"
+        ssh_func "${user}@${ipaddr}" "${port}" "wget -q ${yml_url} -O ${remote_yml}"
+        download ${ipaddr} "${port}" "${user}" "${remote_yml}" "${local_yml}"
     }
 }
 
 init_kube_calico_cni() {
-    local ipaddr="${1}"
-    local pod_cidr=${2}
-    local svc_cidr=${3}
-    local insec_registry=${4}
-    local crossnet_method=${5}
+    local user=${1}
+    local port=${2}
+    local ipaddr="${3}"
+    local pod_cidr=${4}
+    local svc_cidr=${5}
+    local insec_registry=${6}
+    local crossnet_method=${7}
     vinfo_msg <<EOF
 ****** ${ipaddr} init calico() cni svc: ${svc_cidr}, pod:${pod_cidr}.
 EOF
@@ -188,55 +190,61 @@ EOF
 # [keyfile]
 # unmanaged-devices=interface-name:cali*;interface-name:tunl*;interface-name:vxlan.calico;interface-name:vxlan-v6.calico;interface-name:wireguard.cali;interface-name:wg-v6.cali
 # EOF
-    prepare_yml "${ipaddr}" "${L_CALICO_YML}" "${R_CALICO_YML}" "${CALICO_YML}"
-    prepare_yml "${ipaddr}" "${L_CALICO_CUST_YML}" "${R_CALICO_CUST_YML}" "${CALICO_CUST_YML}"
-    ssh_func "root@${ipaddr}" "${SSH_PORT}" init_calico_cni "${svc_cidr}" "${pod_cidr}" "${R_CALICO_YML}" "${R_CALICO_CUST_YML}" "${insec_registry}" "${crossnet_method}"
+    prepare_yml "${user}" "${port}" "${ipaddr}" "${L_CALICO_YML}" "${R_CALICO_YML}" "${CALICO_YML}"
+    prepare_yml "${user}" "${port}" "${ipaddr}" "${L_CALICO_CUST_YML}" "${R_CALICO_CUST_YML}" "${CALICO_CUST_YML}"
+    ssh_func "${user}@${ipaddr}" "${port}" init_calico_cni "${svc_cidr}" "${pod_cidr}" "${R_CALICO_YML}" "${R_CALICO_CUST_YML}" "${insec_registry}" "${crossnet_method}"
 }
 k8s_only_add_worker() {
-    local ipaddr=${1}
-    local newnodes=($(array_print ${2}))
-    local apiserver=${3}
+    local user=${1}
+    local port=${2}
+    local ipaddr=${3}
+    local newnodes=($(array_print ${4}))
+    local apiserver=${5}
     [ "$(array_size newnodes)" -gt "0" ] || { info_msg "No worker need add\n"; return 0; }
-    local token=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "kubeadm token create")
-    local sha_hash=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
+    local token=$(ssh_func "${user}@${ipaddr}" "${port}" "kubeadm token create")
+    local sha_hash=$(ssh_func "${user}@${ipaddr}" "${port}" "openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
     # reupload certs
-    ssh_func "root@${ipaddr}" "${SSH_PORT}" "kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -n 1"
+    ssh_func "${user}@${ipaddr}" "${port}" "kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -n 1"
     for ipaddr in $(array_print newnodes); do
         info2_msg "****** ${ipaddr} add worker(${apiserver})\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" add_k8s_worker "${apiserver}" "${token}" "${sha_hash}"
+        ssh_func "${user}@${ipaddr}" "${port}" add_k8s_worker "${apiserver}" "${token}" "${sha_hash}"
     done
 }
 k8s_only_add_master() {
-    local ipaddr=${1}
-    local newnodes=($(array_print ${2}))
-    local apiserver=${3}
+    local user=${1}
+    local port=${2}
+    local ipaddr=${3}
+    local newnodes=($(array_print ${4}))
+    local apiserver=${5}
     [ "$(array_size newnodes)" -gt "0" ] || { info_msg "No master need add\n"; return 0; }
-    local token=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "kubeadm token create")
-    local sha_hash=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
+    local token=$(ssh_func "${user}@${ipaddr}" "${${port}}" "kubeadm token create")
+    local sha_hash=$(ssh_func "${user}@${ipaddr}" "${${port}}" "openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
     # reupload certs
-    local certs=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" "kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -n 1")
+    local certs=$(ssh_func "${user}@${ipaddr}" "${${port}}" "kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -n 1")
     for ipaddr in $(array_print newnodes); do
         info1_msg "****** ${ipaddr} add master(${apiserver})\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" add_k8s_master "${apiserver}" "${token}" "${sha_hash}" "${certs}"
+        ssh_func "${user}@${ipaddr}" "${${port}}" add_k8s_master "${apiserver}" "${token}" "${sha_hash}" "${certs}"
     done
 }
 init_kube_cluster() {
-    local master_nodes=($(array_print ${1}))
-    local worker_nodes=($(array_print ${2}))
-    local apiserver=${3}
-    local pod_cidr=${4}
-    local skip_proxy=${5}
-    local svc_cidr=${6}
-    local insec_registry=${7}
+    local user=${1}
+    local port=${2}
+    local master_nodes=($(array_print ${3}))
+    local worker_nodes=($(array_print ${4}))
+    local apiserver=${5}
+    local pod_cidr=${6}
+    local skip_proxy=${7}
+    local svc_cidr=${8}
+    local insec_registry=${9}
     [ "$(array_size master_nodes)" -gt "0" ] || return 1
     local ipaddr=${master_nodes[0]}
     info_msg "****** ${ipaddr} init first master(${apiserver:-no apiserver define})\n"
-    ssh_func "root@${ipaddr}" "${SSH_PORT}" init_first_k8s_master "${apiserver}" "${skip_proxy}" "${pod_cidr}" "${svc_cidr}" "${insec_registry}"
+    ssh_func "${user}@${ipaddr}" "${port}" init_first_k8s_master "${apiserver}" "${skip_proxy}" "${pod_cidr}" "${svc_cidr}" "${insec_registry}"
     local new_masters=()
     for ((i=1;i<$(array_size master_nodes);i++)); do new_masters+=(${master_nodes[$i]}); done
-    [ -z "${apiserver}" ] && apiserver=$(ssh_func "root@${ipaddr}" "${SSH_PORT}" 'sed -n "s/\s*server\s*:\s*http[s]*:\/\/\(.*\)/\1/p" /etc/kubernetes/kubelet.conf')
-    k8s_only_add_master ${ipaddr} new_masters "${apiserver}"
-    k8s_only_add_worker ${ipaddr} worker_nodes "${apiserver}"
+    [ -z "${apiserver}" ] && apiserver=$(ssh_func "${user}@${ipaddr}" "${port}" 'sed -n "s/\s*server\s*:\s*http[s]*:\/\/\(.*\)/\1/p" /etc/kubernetes/kubelet.conf')
+    k8s_only_add_master "${user}" "${port}" ${ipaddr} new_masters "${apiserver}"
+    k8s_only_add_worker "${user}" "${port}" ${ipaddr} worker_nodes "${apiserver}"
 }
 
 usage() {
@@ -244,7 +252,7 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME}
         env:
-            SSH_PORT        default 60022
+            SUDO=   default undefine
         -m|--master       * * *  <ip>   master nodes, support multi nodes
         -w|--worker       * X    <ip>   worker nodes, support multi nodes
         -s|--svc_cidr     X X    <cidr> servie cidr, default 10.96.0.0/12
@@ -261,6 +269,8 @@ ${SCRIPTNAME}
         --only_add_master X * X  <ip>   only add master to exist k8s cluster(--master nodes)
                                         <ip> is a exists master nodes
         --only_add_worker * X X         only add worker to exist k8s cluster(--worker nodes)
+        -U|--user                <user> ssh user, default root
+        -P|--port                <int>  ssh port, default 60022
         --password               <str>  ssh password(default use sshkey)
         --teardown               <ip>   remove all k8s config, support multi nodes
         -q|--quiet
@@ -301,8 +311,9 @@ verify_calico() {
 main() {
     local master=() worker=() teardown=() svc_cidr="" pod_cidr="" insec_registry="" nameserver="" apiserver="" crossnet_method="" only_add_master=""
     local skip_proxy=false ipvs=false only_add_worker=false
-    local opt_short="m:w:s:p:"
-    local opt_long="master:,worker:,svc_cidr:,pod_cidr:,insec_registry:,nameserver:,calico:,apiserver:,skip_proxy,ipvs,only_add_worker,only_add_master:,password:,teardown:,"
+    local user=root port=60022
+    local opt_short="m:w:s:p:U:P:"
+    local opt_long="master:,worker:,svc_cidr:,pod_cidr:,insec_registry:,nameserver:,calico:,apiserver:,skip_proxy,ipvs,only_add_worker,only_add_master:,password:,teardown:,user:,port:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -321,6 +332,8 @@ main() {
             --ipvs)            shift; ipvs=true;;
             --only_add_worker) shift; only_add_worker=true;;
             --only_add_master) shift; only_add_master=${1}; shift;;
+            -U | --user)       shift; user=${1}; shift;;
+            -P | --port)       shift; port=${1}; shift;;
             --password)        shift; set_sshpass "${1}"; shift;;
             --teardown)        shift; teardown+=(${1}); shift;;
             ########################################
@@ -337,30 +350,30 @@ main() {
     # # teardown
     for ipaddr in "${teardown[@]}"; do
         info_msg "${ipaddr} teardown all k8s config!\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" "teardown"
+        ssh_func "${user}@${ipaddr}" "${port}" "teardown"
     done
     [ "$(array_size teardown)" -gt "0" ] && { info_msg "TEARDOWN OK\n"; return 0; }
     [ "$(array_size master)" -gt "0" ] || usage "at least one master"
     [ -z "${only_add_master}" ] || {
         # # only add master in exist k8s cluster
-        apiserver=$(ssh_func "root@${only_add_master}" "${SSH_PORT}" 'sed -n "s/\s*server\s*:\s*http[s]*:\/\/\(.*\)/\1/p" /etc/kubernetes/kubelet.conf')
+        apiserver=$(ssh_func "${user}@${only_add_master}" "${port}" 'sed -n "s/\s*server\s*:\s*http[s]*:\/\/\(.*\)/\1/p" /etc/kubernetes/kubelet.conf')
         for ipaddr in $(array_print master); do
             info_msg "****** ${ipaddr} pre valid host env\n"
-            ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "${only_add_master}" "${apiserver}" "${nameserver}" "${insec_registry}"
+            ssh_func "${user}@${ipaddr}" "${port}" pre_conf_k8s_host "${only_add_master}" "${apiserver}" "${nameserver}" "${insec_registry}"
         done
-        k8s_only_add_master "${only_add_master}" master "${apiserver}"
+        k8s_only_add_master "${user}" "${port}" "${only_add_master}" master "${apiserver}"
         info_msg "ONLY ADD MASTER ALL DONE\n"
         return 0
     }
     ${only_add_worker} && {
         # # only add worker in exist k8s cluster
         [ "$(array_size worker)" -gt "0" ] || usage "only worker mode, at least one worker input"
-        apiserver=$(ssh_func "root@${master[0]}" "${SSH_PORT}" 'sed -n "s/\s*server\s*:\s*http[s]*:\/\/\(.*\)/\1/p" /etc/kubernetes/kubelet.conf')
+        apiserver=$(ssh_func "${user}@${master[0]}" "${port}" 'sed -n "s/\s*server\s*:\s*http[s]*:\/\/\(.*\)/\1/p" /etc/kubernetes/kubelet.conf')
         for ipaddr in $(array_print worker); do
             info_msg "****** ${ipaddr} pre valid host env\n"
-            ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "${master[0]}" "${apiserver}" "${nameserver}" "${insec_registry}"
+            ssh_func "${user}@${ipaddr}" "${port}" pre_conf_k8s_host "${master[0]}" "${apiserver}" "${nameserver}" "${insec_registry}"
         done
-        k8s_only_add_worker "${master[0]}" worker "${apiserver}"
+        k8s_only_add_worker "${user}" "${port}" "${master[0]}" worker "${apiserver}"
         info_msg "ONLY ADD WORKER ALL DONE\n"
         return 0
     }
@@ -370,16 +383,16 @@ main() {
     [ -z "${insec_registry}" ] && { confirm "private registry not set, continue? (timeout 10,default N)?" 10 || exit_msg "BYE!\n"; }
     for ipaddr in $(array_print master) $(array_print worker); do
         info_msg "****** ${ipaddr} pre valid host env\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" pre_conf_k8s_host "${master[0]}" "${apiserver}" "${nameserver}" "${insec_registry}"
+        ssh_func "${user}@${ipaddr}" "${port}" pre_conf_k8s_host "${master[0]}" "${apiserver}" "${nameserver}" "${insec_registry}"
     done
-    init_kube_cluster master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}" "${svc_cidr}" "${insec_registry}"
-    ${skip_proxy} || { ${ipvs} && ssh_func "root@${master[0]}" "${SSH_PORT}" modify_kube_proxy_ipvs; }
-    [ -z "${crossnet_method}" ] || init_kube_calico_cni "${master[0]}" "${pod_cidr}" "${svc_cidr}" "${insec_registry}" "${crossnet_method}"
+    init_kube_cluster "${user}" "${port}" master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}" "${svc_cidr}" "${insec_registry}"
+    ${skip_proxy} || { ${ipvs} && ssh_func "${user}@${master[0]}" "${port}" modify_kube_proxy_ipvs; }
+    [ -z "${crossnet_method}" ] || init_kube_calico_cni "${user}" "${port}" "${master[0]}" "${pod_cidr}" "${svc_cidr}" "${insec_registry}" "${crossnet_method}"
     info_msg "export k8s configuration\n"
-    ssh_func "root@${master[0]}" "${SSH_PORT}" 'kubeadm config print init-defaults'
-    ssh_func "root@${master[0]}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl cluster-info"
+    ssh_func "${user}@${master[0]}" "${port}" 'kubeadm config print init-defaults'
+    ssh_func "${user}@${master[0]}" "${port}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl cluster-info"
     info_msg "use: calico_rr.sh for modify calico to bgp-rr with ebpf\n"
-    info_msg "diag: scp ./kube-proxy\:v1.27.3.tar.gz root@ip:~/\n"
+    info_msg "diag: scp ./kube-proxy\:v1.27.3.tar.gz user@ip:~/\n"
     info_msg "diag: kubectl describe configmaps kubeadm-config -n kube-system\n"
     info_msg "diag: kubectl get nodes -o wide\n"
     info_msg "diag: kubectl get pods --all-namespaces -o wide\n"
