@@ -7,10 +7,9 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e5c19ef[2023-08-03T14:51:56+08:00]:ceph_storage.sh")
+VERSION+=("4b392bc[2023-08-04T07:39:09+08:00]:ceph_storage.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
-SSH_PORT=${SSH_PORT:-60022}
 CEPH_CSI_PROVISIONER_RBAC="https://raw.githubusercontent.com/ceph/ceph-csi//v3.8.1/deploy/rbd/kubernetes/csi-provisioner-rbac.yaml"
 CEPH_CSI_NODEPLUGIN_RBAC="https://raw.githubusercontent.com/ceph/ceph-csi//v3.8.1/deploy/rbd/kubernetes/csi-nodeplugin-rbac.yaml"
 CEPH_CSI_RBDPLUGIN_PROVISIONER="https://raw.githubusercontent.com/ceph/ceph-csi//v3.8.1/deploy/rbd/kubernetes/csi-rbdplugin-provisioner.yaml"
@@ -241,26 +240,30 @@ EOF
 # remote execute function end!
 ################################################################################
 prepare_yml() {
-    local ipaddr=${1}
-    local local_yml=${2}
-    local remote_yml=${3}
-    local yml_url=${4}
+    local user=${1}
+    local port=${2}
+    local ipaddr=${3}
+    local local_yml=${4}
+    local remote_yml=${5}
+    local yml_url=${6}
     [ -e "${local_yml}" ] && {
-        upload "${local_yml}" "${ipaddr}" "${SSH_PORT}" "root" "${remote_yml}"
+        upload "${local_yml}" "${ipaddr}" "${port}" "${user}" "${remote_yml}"
     } || {
         warn_msg "Local yaml ${local_yml} NOT EXIST!!, remote download it.\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" "wget -q ${yml_url} -O ${remote_yml}"
-        download ${ipaddr} "${SSH_PORT}" "root" "${remote_yml}" "${local_yml}"
+        ssh_func "${user}@${ipaddr}" "${port}" "wget -q ${yml_url} -O ${remote_yml}"
+        download ${ipaddr} "${port}" "${user}" "${remote_yml}" "${local_yml}"
     }
 }
 inst_ceph_csi() {
-    local master=${1}
-    local csi_ns=${2}
-    local insec_registry=${3}
-    local clusterid=${4}
-    local rbd_user=${5}
-    local sec_key=${6}
-    shift 6
+    local user=${1}
+    local port=${2}
+    local master=${3}
+    local csi_ns=${4}
+    local insec_registry=${5}
+    local clusterid=${6}
+    local rbd_user=${7}
+    local sec_key=${8}
+    shift 8
     local mon=$@
     vinfo_msg <<EOF
 ****** ${master} init ceph csi storage
@@ -271,23 +274,25 @@ rbd_user=${rbd_user}
 secrity_key=${sec_key}
 mon=${mon}
 EOF
-    prepare_yml "${master}" "${L_CEPH_CSI_PROVISIONER_RBAC}" "${R_CEPH_CSI_PROVISIONER_RBAC}" "${CEPH_CSI_PROVISIONER_RBAC}"
-    prepare_yml "${master}" "${L_CEPH_CSI_NODEPLUGIN_RBAC}" "${R_CEPH_CSI_NODEPLUGIN_RBAC}" "${CEPH_CSI_NODEPLUGIN_RBAC}"
-    prepare_yml "${master}" "${L_CEPH_CSI_RBDPLUGIN_PROVISIONER}" "${R_CEPH_CSI_RBDPLUGIN_PROVISIONER}" "${CEPH_CSI_RBDPLUGIN_PROVISIONER}"
-    prepare_yml "${master}" "${L_CEPH_CSI_RBDPLUGIN}" "${R_CEPH_CSI_RBDPLUGIN}" "${CEPH_CSI_RBDPLUGIN}"
-    ssh_func "root@${master}" "${SSH_PORT}" inst_ceph_csi_configmap "${csi_ns}" "${clusterid}" "${rbd_user}" "${sec_key}" ${mon}
-    ssh_func "root@${master}" "${SSH_PORT}" inst_ceph_csi_provisioner "${R_CEPH_CSI_PROVISIONER_RBAC}" "${R_CEPH_CSI_NODEPLUGIN_RBAC}" "${R_CEPH_CSI_RBDPLUGIN_PROVISIONER}" "${R_CEPH_CSI_RBDPLUGIN}" "${csi_ns}" "${insec_registry}"
+    prepare_yml "${user}" "${port}" "${master}" "${L_CEPH_CSI_PROVISIONER_RBAC}" "${R_CEPH_CSI_PROVISIONER_RBAC}" "${CEPH_CSI_PROVISIONER_RBAC}"
+    prepare_yml "${user}" "${port}" "${master}" "${L_CEPH_CSI_NODEPLUGIN_RBAC}" "${R_CEPH_CSI_NODEPLUGIN_RBAC}" "${CEPH_CSI_NODEPLUGIN_RBAC}"
+    prepare_yml "${user}" "${port}" "${master}" "${L_CEPH_CSI_RBDPLUGIN_PROVISIONER}" "${R_CEPH_CSI_RBDPLUGIN_PROVISIONER}" "${CEPH_CSI_RBDPLUGIN_PROVISIONER}"
+    prepare_yml "${user}" "${port}" "${master}" "${L_CEPH_CSI_RBDPLUGIN}" "${R_CEPH_CSI_RBDPLUGIN}" "${CEPH_CSI_RBDPLUGIN}"
+    ssh_func "${user}@${master}" "${port}" inst_ceph_csi_configmap "${csi_ns}" "${clusterid}" "${rbd_user}" "${sec_key}" ${mon}
+    ssh_func "${user}@${master}" "${port}" inst_ceph_csi_provisioner "${R_CEPH_CSI_PROVISIONER_RBAC}" "${R_CEPH_CSI_NODEPLUGIN_RBAC}" "${R_CEPH_CSI_RBDPLUGIN_PROVISIONER}" "${R_CEPH_CSI_RBDPLUGIN}" "${csi_ns}" "${insec_registry}"
 }
 teardown() {
-    local master=${1}
-    local csi_ns=${2}
-    local sc=${3}
-    cat "${L_CEPH_CSI_RBDPLUGIN}" | ssh_func "root@${master}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete -f -" || true
-    cat "${L_CEPH_CSI_RBDPLUGIN_PROVISIONER}" | ssh_func "root@${master}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete -f -" || true
-    cat "${L_CEPH_CSI_NODEPLUGIN_RBAC}" | ssh_func "root@${master}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete -f -" | true 
-    cat "${L_CEPH_CSI_PROVISIONER_RBAC}" | ssh_func "root@${master}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete -f -" | true
-    ssh_func "root@${master}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete sc ${sc}" || true
-    ssh_func "root@${master}" "${SSH_PORT}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete namespace ${csi_ns}" || true
+    local user=${1}
+    local port=${2}
+    local master=${3}
+    local csi_ns=${4}
+    local sc=${5}
+    cat "${L_CEPH_CSI_RBDPLUGIN}" | ssh_func "${user}@${master}" "${port}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete -f -" || true
+    cat "${L_CEPH_CSI_RBDPLUGIN_PROVISIONER}" | ssh_func "${user}@${master}" "${port}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete -f -" || true
+    cat "${L_CEPH_CSI_NODEPLUGIN_RBAC}" | ssh_func "${user}@${master}" "${port}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete -f -" || true
+    cat "${L_CEPH_CSI_PROVISIONER_RBAC}" | ssh_func "${user}@${master}" "${port}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete -f -" || true
+    ssh_func "${user}@${master}" "${port}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete sc ${sc}" || true
+    ssh_func "${user}@${master}" "${port}" "KUBECONFIG=/etc/kubernetes/admin.conf kubectl delete namespace ${csi_ns}" || true
 }
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -306,6 +311,8 @@ ${SCRIPTNAME}
         --pvc_blk              <str>      ceph block device pvc name, default: pvc-blk-ceph
         --pvc_fs               <str>      ceph rbd fs pvc name, default: pvc-fs-ceph
         --pvc_size             <int>      int Gi size, if not input, not create pvc
+        -U|--user              <user>     ssh user, default root
+        -P|--port              <int>      ssh port, default 60022
         --password             <str>      ssh password(default use sshkey)
         -q|--quiet
         -l|--log <int> log level
@@ -320,8 +327,9 @@ main() {
     local csi_ns="ceph-storage" rbd_user="admin" sc_default=false
     local mon=()
     local pool="" sc="sc-ceph" pvc_blk="pvc-blk-ceph" pvc_fs="pvc-fs-ceph"
-    local opt_short="m:c:u:k:M:p:"
-    local opt_long="master:,clusterid:,rbd_user:,sec_key:,mon:,namespace:,insec_registry:,pool:,sc:,default,pvc_blk:,pvc_fs:,pvc_size:,password:,teardown:,"
+    local user=root port=60022
+    local opt_short="m:c:u:k:M:p:U:P:"
+    local opt_long="master:,clusterid:,rbd_user:,sec_key:,mon:,namespace:,insec_registry:,pool:,sc:,default,pvc_blk:,pvc_fs:,pvc_size:,user:,port:,password:,teardown:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -341,6 +349,8 @@ main() {
             --pvc_blk)        shift; pvc_blk=${1}; shift;;
             --pvc_fs)         shift; pvc_fs=${1}; shift;;
             --pvc_size)       shift; pvc_size=${1}Gi; shift;;
+            -U | --user)       shift; user=${1}; shift;;
+            -P | --port)       shift; port=${1}; shift;;
             --password)       shift; set_sshpass "${1}"; shift;;
             --teardown)       shift; teardown_master=${1}; shift;;
             ########################################
@@ -353,7 +363,7 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    [ -z "${teardown_master}" ] || { teardown "${teardown_master}" "${csi_ns}" "${sc}"; info_msg "TEARDOWN DONE\n"; return 0; }
+    [ -z "${teardown_master}" ] || { teardown "${user}" "${port}" "${teardown_master}" "${csi_ns}" "${sc}"; info_msg "TEARDOWN DONE\n"; return 0; }
     [ -z "${master}" ] || [ -z "${clusterid}" ] || [ -z "${sec_key}" ] || [ -z "${pool}" ] && usage "master/clusterid/sec_key/pool must input"
     [ "$(array_size mon)" -gt "0" ] || usage "at least one ceph mon"
     file_exists "${L_CEPH_CSI_PROVISIONER_RBAC}" && \
@@ -361,13 +371,13 @@ main() {
         file_exists "${L_CEPH_CSI_RBDPLUGIN_PROVISIONER}" \
         file_exists "${L_CEPH_CSI_RBDPLUGIN}" || \
         confirm "${L_CEPH_CSI_PROVISIONER_RBAC}/${L_CEPH_CSI_NODEPLUGIN_RBAC}/${L_CEPH_CSI_RBDPLUGIN_PROVISIONER}/${L_CEPH_CSI_RBDPLUGIN} not exists, continue? (timeout 10,default N)?" 10 || exit_msg "BYE!\n"
-    inst_ceph_csi "${master}" "${csi_ns}" "${insec_registry}" "${clusterid}" "${rbd_user}" "${sec_key}" ${mon[@]}
+    inst_ceph_csi "${user}" "${port}" "${master}" "${csi_ns}" "${insec_registry}" "${clusterid}" "${rbd_user}" "${sec_key}" ${mon[@]}
     info_msg "create storageclass: ${sc}, pool: ${pool}\n"
-    ssh_func "root@${master}" "${SSH_PORT}" create_ceph_sc "${csi_ns}" "${clusterid}" "${pool}" "${sc}"
-    ${sc_default} && ssh_func "root@${master}" "${SSH_PORT}" set_sc_default "${sc}"
+    ssh_func "${user}@${master}" "${port}" create_ceph_sc "${csi_ns}" "${clusterid}" "${pool}" "${sc}"
+    ${sc_default} && ssh_func "${user}@${master}" "${port}" set_sc_default "${sc}"
     [ -z "${pvc_size}" ] || {
         info_msg "create pvc: ${pvc_blk},${pvc_fs}. size: ${pvc_size}\n"
-        ssh_func "root@${master}" "${SSH_PORT}" create_ceph_pvc "${sc}" "${pvc_blk}" "${pvc_fs}" "${pvc_size}"
+        ssh_func "${user}@${master}" "${port}" create_ceph_pvc "${sc}" "${pvc_blk}" "${pvc_fs}" "${pvc_size}"
         test_demo "${pvc_blk}" "${pvc_fs}" "${insec_registry}"
     }
     info_msg "ALL DONE\n"
