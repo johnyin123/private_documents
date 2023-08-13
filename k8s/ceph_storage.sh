@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4b392bc[2023-08-04T07:39:09+08:00]:ceph_storage.sh")
+VERSION+=("7b707ec[2023-08-13T13:17:37+08:00]:ceph_storage.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CEPH_CSI_PROVISIONER_RBAC="https://raw.githubusercontent.com/ceph/ceph-csi//v3.8.1/deploy/rbd/kubernetes/csi-provisioner-rbac.yaml"
@@ -368,7 +368,7 @@ main() {
     [ "$(array_size mon)" -gt "0" ] || usage "at least one ceph mon"
     file_exists "${L_CEPH_CSI_PROVISIONER_RBAC}" && \
         file_exists "${L_CEPH_CSI_NODEPLUGIN_RBAC}"  && \
-        file_exists "${L_CEPH_CSI_RBDPLUGIN_PROVISIONER}" \
+        file_exists "${L_CEPH_CSI_RBDPLUGIN_PROVISIONER}" && \
         file_exists "${L_CEPH_CSI_RBDPLUGIN}" || \
         confirm "${L_CEPH_CSI_PROVISIONER_RBAC}/${L_CEPH_CSI_NODEPLUGIN_RBAC}/${L_CEPH_CSI_RBDPLUGIN_PROVISIONER}/${L_CEPH_CSI_RBDPLUGIN} not exists, continue? (timeout 10,default N)?" 10 || exit_msg "BYE!\n"
     inst_ceph_csi "${user}" "${port}" "${master}" "${csi_ns}" "${insec_registry}" "${clusterid}" "${rbd_user}" "${sec_key}" ${mon[@]}
