@@ -7,15 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("224232a[2023-08-10T15:54:48+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("674b2f8[2023-08-12T19:01:18+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
 CALICO_CUST_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/custom-resources.yaml"
 L_CALICO_YML="tigera-operator.yaml"
-R_CALICO_YML="/tmp/tigera-operator.yaml"
+R_CALICO_YML="$(mktemp)"
 L_CALICO_CUST_YML="custom-resources.yaml"
-R_CALICO_CUST_YML="/tmp/custom-resources.yaml"
+R_CALICO_CUST_YML="$(mktemp)"
 
 init_calico_cni() {
     local svc_cidr=${1}

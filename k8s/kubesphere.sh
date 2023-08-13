@@ -7,18 +7,16 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("62a7f4f[2023-08-07T12:20:35+08:00]:kubesphere.sh")
+VERSION+=("d521935[2023-08-09T17:20:20+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
-SSH_PORT=${SSH_PORT:-60022}
-
 KS_INSTALLER_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/kubesphere-installer.yaml"
 L_KS_INSTALLER_YML=kubesphere-installer.yaml
-R_KS_INSTALLER_YML=/tmp/kubesphere-installer.yaml
+R_KS_INSTALLER_YML="$(mktemp)"
 
 CLUSTER_CONF_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/cluster-configuration.yaml"
 L_CLUSTER_CONF_YML=cluster-configuration.yaml
-R_CLUSTER_CONF_YML=/tmp/cluster-configuration.yaml
+R_CLUSTER_CONF_YML="$(mktemp)"
 
 init_kubesphere() {
     local ks_cluster_yaml=${1}
@@ -36,22 +34,26 @@ init_kubesphere() {
 # remote execute function end!
 ################################################################################
 prepare_yml() {
-    local ipaddr=${1}
-    local local_yml=${2}
-    local remote_yml=${3}
-    local yml_url=${4}
+    local user=${1}
+    local port=${2}
+    local ipaddr=${3}
+    local local_yml=${4}
+    local remote_yml=${5}
+    local yml_url=${6}
     [ -e "${local_yml}" ] && {
-        upload "${local_yml}" "${ipaddr}" "${SSH_PORT}" "root" "${remote_yml}"
+        upload "${local_yml}" "${ipaddr}" "${port}" "${user}" "${remote_yml}"
     } || {
         warn_msg "Local yaml ${local_yml} NOT EXIST!!, remote download it.\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" "wget -q ${yml_url} -O ${remote_yml}"
-        download ${ipaddr} "${SSH_PORT}" "root" "${remote_yml}" "${local_yml}"
+        ssh_func "${user}@${ipaddr}" "${port}" "wget -q ${yml_url} -O ${remote_yml}"
+        download ${ipaddr} "${port}" "${user}" "${remote_yml}" "${local_yml}"
     }
 }
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env:
+            SUDO=   default undefine
         -m|--master      *  <ip>    master ipaddr
         --insec_registry *  <str>   insecurity registry(http/no auth)
         --installer      *  <str>   ks-installer image image
@@ -71,8 +73,9 @@ EOF
 }
 main() {
     local master="" insec_registry="" installer=""
-    local opt_short="m:"
-    local opt_long="master:,insec_registry:,installer:,password:,"
+    local user=root port=60022
+    local opt_short="m:U:P:"
+    local opt_long="master:,insec_registry:,installer:,password:,user:,port:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -82,6 +85,8 @@ main() {
             -m | --master)    shift; master=${1}; shift;;
             --insec_registry) shift; insec_registry=${1}; shift;;
             --installer)      shift; installer=${1}; shift;;
+            -U | --user)      shift; user=${1}; shift;;
+            -P | --port)      shift; port=${1}; shift;;
             --password)       shift; set_sshpass "${1}"; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
@@ -94,16 +99,15 @@ main() {
         esac
     done
     [ -z "${insec_registry}" ] || [ -z "${installer}" ] || [ -z "${master}" ] && usage "master/insec_registry/ks_installer must input"
-    file_exists "${L_KS_INSTALLER_YML}" && \
-        file_exists "${L_CLUSTER_CONF_YML}" || \
+    file_exists "${L_KS_INSTALLER_YML}" && file_exists "${L_CLUSTER_CONF_YML}" || \
         confirm "${L_KS_INSTALLER_YML}/${L_CLUSTER_CONF_YML} not exists, continue? (timeout 10,default N)?" 10 || exit_msg "BYE!\n"
-    prepare_yml "${master}" "${L_CLUSTER_CONF_YML}" "${R_CLUSTER_CONF_YML}" "${CLUSTER_CONF_YML}"
-    prepare_yml "${master}" "${L_KS_INSTALLER_YML}" "${R_KS_INSTALLER_YML}" "${KS_INSTALLER_YML}"
+    prepare_yml "${user}" "${port}" "${master}" "${L_CLUSTER_CONF_YML}" "${R_CLUSTER_CONF_YML}" "${CLUSTER_CONF_YML}"
+    prepare_yml "${user}" "${port}" "${master}" "${L_KS_INSTALLER_YML}" "${R_KS_INSTALLER_YML}" "${KS_INSTALLER_YML}"
     vinfo_msg <<EOF
 insec_registry:  ${insec_registry}
 installer: ${installer}
 EOF
-    ssh_func "root@${master}" "${SSH_PORT}" init_kubesphere "${R_CLUSTER_CONF_YML}" "${R_KS_INSTALLER_YML}" "${insec_registry}" "${installer}"
+    ssh_func "${user}@${master}" "${port}" init_kubesphere "${R_CLUSTER_CONF_YML}" "${R_KS_INSTALLER_YML}" "${insec_registry}" "${installer}"
     cat <<EOF
 安装后如何开启安装应用商店:
 # kubectl -n kubesphere-system edit cm ks-installer

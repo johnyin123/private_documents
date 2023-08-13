@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7b707ec[2023-08-13T13:17:37+08:00]:ceph_storage.sh")
+VERSION+=("348fb25[2023-08-13T13:54:09+08:00]:ceph_storage.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CEPH_CSI_PROVISIONER_RBAC="https://raw.githubusercontent.com/ceph/ceph-csi//v3.8.1/deploy/rbd/kubernetes/csi-provisioner-rbac.yaml"
@@ -20,10 +20,10 @@ L_CEPH_CSI_NODEPLUGIN_RBAC="csi-nodeplugin-rbac.yaml"
 L_CEPH_CSI_RBDPLUGIN_PROVISIONER="csi-rbdplugin-provisioner.yaml"
 L_CEPH_CSI_RBDPLUGIN="csi-rbdplugin.yaml"
 
-R_CEPH_CSI_PROVISIONER_RBAC="/tmp/csi-provisioner-rbac.yaml"
-R_CEPH_CSI_NODEPLUGIN_RBAC="/tmp/csi-nodeplugin-rbac.yaml"
-R_CEPH_CSI_RBDPLUGIN_PROVISIONER="/tmp/csi-rbdplugin-provisioner.yaml"
-R_CEPH_CSI_RBDPLUGIN="/tmp/csi-rbdplugin.yaml"
+R_CEPH_CSI_PROVISIONER_RBAC="$(mktemp)"
+R_CEPH_CSI_NODEPLUGIN_RBAC="$(mktemp)"
+R_CEPH_CSI_RBDPLUGIN_PROVISIONER="$(mktemp)"
+R_CEPH_CSI_RBDPLUGIN="$(mktemp)"
 
 set_sc_default() {
     local name=${1}
@@ -298,6 +298,8 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env:
+            SUDO=   default undefine
         -m|--master         *  <ip>       master nodes,single input
         -c|--clusterid      *  <uuid>     ceph fsid, ceph mon dump
         -u|--rbd_user          <str>      ceph rbd user, default admin, ceph auth get-key client.admin
