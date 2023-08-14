@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("7c530ae[2023-07-11T09:26:20+08:00]:os_debian_init.sh")
+VERSION+=("20ee000[2023-07-13T10:40:09+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -95,6 +95,7 @@ debian_apt_init() {
             ;;
         bullseye)
             echo "deb http://mirrors.aliyun.com/debian-security ${ver}-security main contrib"  >> /etc/apt/sources.list
+            ;;
         bookworm)
             nonfree="non-free non-free-firmware"
             echo "deb http://mirrors.aliyun.com/debian-security ${ver}-security main contrib non-free-firmware"  >> /etc/apt/sources.list
