@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("a76576d[2023-08-11T11:17:31+08:00]:registry.sh")
+VERSION+=("7ce2548[2023-08-11T13:08:42+08:00]:registry.sh")
 ################################################################################
 cat <<EOF
 https://github.com/distribution/distribution/releases/download/v2.8.2/registry_2.8.2_linux_amd64.tar.gz
@@ -53,6 +53,34 @@ health:
 EOF
 nohup "${DIRNAME}/registry" serve "${DIRNAME}/config.yml"  &>/dev/null &
 EOF_SHELL
+cat <<EOF
+storage:
+  s3:
+    region: us-east-1
+    bucket: public
+    accesskey: admin
+    secretkey: tsd@2023
+    regionendpoint: http://172.16.16.2
+    secure: false
+
+# radosgw-admin user create --uid="nak3" --display-name="test admin" --email=nak3@example.com --access_key="testkey" --secret="testsecret"
+# radosgw-admin subuser create --uid="nak3" --subuser="nak3:swift" --access_key="testkey" --secret="testsecret" --access=full
+# # create a bucket
+# swift -V 1.0 -A http://knakayam-ceph-c2.example.com/auth/v1 -U nak3:swift -K testsecret post docker-registry
+# # touch test-file
+# swift -V 1.0 -A http://knakayam-ceph-c2.example.com/auth/v1 -U nak3:swift -K testsecret upload docker-registry test-file
+# swift -V 1.0 -A http://knakayam-ceph-c2.example.com/auth/v1 -U nak3:swift  -K testsecret list docker-registry
+storage:
+  cache:
+    blobdescriptor: inmemory
+  swift:
+    username: nak3:swift
+    password: testsecret
+    authurl: http://knakayam-ceph-c2.example.com/auth/v1.0
+    insecureskipverify: false
+    container: docker-registry
+    rootdirectory: /registry
+EOF
 cat <<'EOF'
 upstream docker-registry {
     server 127.0.0.1:5000;
