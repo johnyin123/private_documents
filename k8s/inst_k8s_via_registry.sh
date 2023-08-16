@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("674b2f8[2023-08-12T19:01:18+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("adf871a[2023-08-14T07:12:07+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -456,6 +456,7 @@ kubectl -n kube-system get cm kubeadm-config -o yaml
 kubectl -n kube-system rollout restart deployment coredns
 # change calico v3.21.4 ipipMode
 calicoctl patch  IPPool default-ipv4-ippool  -p "{\"spec\": {\"ipipMode\": \"CrossSubnet\"}}"
+kubectl patch installation.operator.tigera.io default --type merge -p '{"spec":{"calicoNetwork":{"mtu":1500}}}'
 EOF
     info_msg "ALL DONE\n"
     return 0
