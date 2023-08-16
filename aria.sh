@@ -1,15 +1,15 @@
 #!/bin/bash
-PASSWORD=${1:-password}
 # socat TCP-LISTEN:8899,bind=10.0.1.1,reuseaddr,fork TCP:127.0.0.1:60021
 # aria2rpc --server ${srv} --port ${port} --secret password tellActive
 # pip install aria2p
 echo "setup cli rpc client"
-cat /usr/share/doc/aria2/xmlrpc/aria2rpc.gz | gunzip > /usr/bin/aria2rpc
-chmod 755 /usr/bin/aria2rpc
-mkdir ~/.aria2
+zcat /usr/share/doc/aria2/xmlrpc/aria2rpc.gz | sudo tee /usr/bin/aria2rpc
+sudo chmod 755 /usr/bin/aria2rpc
+USER_HOME=/home/johnyin
+mkdir ${USER_HOME}/.aria2
 cat<<EOF > ~/.aria2/aria2.conf
 # 下载目录。可使用绝对路径或相对路径, 默认: 当前启动位置
-dir=/root/down
+dir=${USER_HOME}/down
 # 磁盘缓存, 0 为禁用缓存，默认:16M
 # 磁盘缓存的作用是把下载的数据块临时存储在内存中，然后集中写入硬盘，以减少磁盘 I/O ，提升读写性能，延长硬盘寿命。
 # 建议在有足够的内存空闲情况下适当增加，但不要超过剩余可用内存空间大小。
@@ -45,11 +45,11 @@ remote-time=true
 
 ## 进度保存设置 ##
 # 从会话文件中读取下载任务
-input-file=/root/.aria2/aria2.session
+input-file=${USER_HOME}/.aria2/aria2.session
 
 # 会话文件保存路径
 # Aria2 退出时或指定的时间间隔会保存"错误/未完成"的下载任务到会话文件
-save-session=/root/.aria2/aria2.session
+save-session=${USER_HOME}/.aria2/aria2.session
 
 # 任务状态改变后保存会话的间隔时间（秒）, 0 为仅在进程正常退出时保存, 默认:0
 # 为了及时保存任务状态、防止任务丢失，此项值只建议设置为 1
@@ -162,11 +162,11 @@ enable-dht6=false
 # 使用场景：在家庭宽带没有公网 IP 的情况下可以把 BT 和 DHT 监听端口转发至具有公网 IP 的服务器，在此填写服务器的 IP ，可以提升 BT 下载速率。
 #bt-external-ip=
 
-# IPv4 DHT 文件路径，默认：\$HOME/.aria2/dht.dat
-dht-file-path=/root/.aria2/dht.dat
+# IPv4 DHT 文件路径
+dht-file-path=${USER_HOME}/.aria2/dht.dat
 
-# IPv6 DHT 文件路径，默认：\$HOME/.aria2/dht6.dat
-dht-file-path6=/root/.aria2/dht6.dat
+# IPv6 DHT 文件路径
+dht-file-path6=${USER_HOME}/.aria2/dht6.dat
 
 # IPv4 DHT 网络引导节点
 dht-entry-point=dht.transmissionbt.com:6881
@@ -271,7 +271,8 @@ bt-detach-seed-only=true
 
 
 ## 客户端伪装 ##
-
+all-proxy=http://yin.zh:Passw)rd123@192.168.2.78:8080
+check-certificate=false
 # 自定义 User Agent
 user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.57
 
@@ -292,13 +293,13 @@ enable-rpc=true
 rpc-allow-origin-all=true
 
 # 允许外部访问, 默认:false
-rpc-listen-all=true
+rpc-listen-all=false
 
 # RPC 监听端口, 默认:6800
-rpc-listen-port=60021
+rpc-listen-port=6800
 
 # RPC 密钥
-rpc-secret=${PASSWORD}
+# rpc-secret=password
 
 # RPC 最大请求大小
 rpc-max-request-size=10M
@@ -364,7 +365,7 @@ EOF
 # systemctl --user stop aria2
 # systemctl --user restart aria2
 # systemctl --user status aria2
-cat <<EOF >/etc/systemd/user/aria2.service
+cat <<EOF | sudo tee /etc/systemd/user/aria2.service
 [Unit]
 Description=Aria2 Service
 After=network.target
