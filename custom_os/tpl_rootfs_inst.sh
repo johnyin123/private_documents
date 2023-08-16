@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("dcd0289[2023-06-01T08:10:22+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("bc752d3[2023-06-30T10:19:30+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -101,9 +101,9 @@ main() {
     source ${root_dir}/etc/os-release
     # if no initrd can use kernel-install (in systemd package)
     # kernel-install add  3.10.0-693.21.1.el7.x86_64 /boot/vmlinuz-3.10.0-693.21.1.el7.x86_64
-    LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x -o errexit -s <<EOSHELL
+    LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/sh -x -o errexit -s <<EOSHELL
 case "${ID}" in
-    debian)
+    debian|alpine)
         grub-install ${target:+--target=${target}} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
         grub-mkconfig -o /boot/grub/grub.cfg || true
         ;;
