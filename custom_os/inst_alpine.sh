@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dcae0fa[2023-08-15T14:28:11+08:00]:inst_alpine.sh")
+VERSION+=("1711545[2023-08-16T10:57:30+08:00]:inst_alpine.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 APK=${DIRNAME}/apk.static
@@ -64,7 +64,7 @@ EOF
 	    # its dependencies (e.g. openrc).
 	    "$APK" fetch --root "${chroot_dir}" --no-progress --stdout alpine-base | tar -xz etc
     fi
-cat<<EOF
+cat<<'EOF'
 apk add grub grub-biso grub-efi linux-lts xfsprogs
 echo GRUB_CMDLINE_LINUX=modules=xfs,ext4 >> /etc/default/grub
 source /etc/mkinitfs/mkinitfs.conf
