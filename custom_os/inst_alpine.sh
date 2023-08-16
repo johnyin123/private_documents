@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-08-15T14:28:11+08:00]:inst_alpine.sh")
+VERSION+=("dcae0fa[2023-08-15T14:28:11+08:00]:inst_alpine.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 APK=${DIRNAME}/apk.static
@@ -43,7 +43,7 @@ dump_alpine_keys() {
 	done
 }
 main() {
-    arch="" alpine_mirror="http://mirrors.ustc.edu.cn/alpine" branch="latest-stable"
+    arch="" alpine_mirror="http://192.168.168.1/alpine" branch="latest-stable"
     alpine_packages="build-base ca-certificates ssl_client"
     chroot_dir="${DIRNAME}"/alpine
     temp_dir=$(mktemp -d || echo /tmp/alpine)
@@ -64,5 +64,11 @@ EOF
 	    # its dependencies (e.g. openrc).
 	    "$APK" fetch --root "${chroot_dir}" --no-progress --stdout alpine-base | tar -xz etc
     fi
+cat<<EOF
+apk add grub grub-biso grub-efi linux-lts xfsprogs
+echo GRUB_CMDLINE_LINUX=modules=xfs,ext4 >> /etc/default/grub
+source /etc/mkinitfs/mkinitfs.conf
+echo "features=\"${features} xfs\"" > /etc/mkinitfs/mkinitfs.conf
+EOF
 }
 main "$@"
