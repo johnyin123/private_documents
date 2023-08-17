@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d395edc[2023-08-16T11:58:15+08:00]:inst_alpine.sh")
+VERSION+=("9fc7d87[2023-08-16T12:10:14+08:00]:inst_alpine.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 APK=${DIRNAME}/apk.static
@@ -64,6 +64,45 @@ EOF
 	    # its dependencies (e.g. openrc).
 	    "$APK" fetch --root "${chroot_dir}" --no-progress --stdout alpine-base | tar -xz etc
     fi
+    LC_ALL=C LANGUAGE=C LANG=C chroot "${chroot_dir}" /bin/sh <<'EOFSHELL'
+    apk add grub grub-bios grub-efi
+    ecoh "Modify grub/cmdline--------------------"
+    sed --quiet -i.orig -E \
+        -e '/^\s*(GRUB_CMDLINE_LINUX).*/!p' \
+        -e '$aGRUB_CMDLINE_LINUX=modules=xfs,ext4' \
+        /etc/default/grub
+    source /etc/mkinitfs/mkinitfs.conf
+    echo "features=\"${features} xfs\"" > /etc/mkinitfs/mkinitfs.conf
+    apk add linux-lts xfsprogs e2fsprogs linux-firmware-none openssh-server bridge-utils
+    echo "SSHD ...."
+    sed --quiet -i.orig -E \
+        -e '/^\s*(UseDNS|MaxAuthTries|GSSAPIAuthentication|Port|Ciphers|MACs|PermitRootLogin).*/!p' \
+        -e '$aUseDNS no' \
+        -e '$aMaxAuthTries 3' \
+        -e '$aGSSAPIAuthentication no' \
+        -e '$aPort 60022' \
+        -e '$aCiphers aes256-ctr,aes192-ctr,aes128-ctr' \
+        -e '$aMACs hmac-sha1' \
+        -e '$aPermitRootLogin without-password' \
+        /etc/ssh/sshd_config
+    [ ! -d /root/.ssh ] && mkdir -m0700 /root/.ssh
+    cat <<EOF >/root/.ssh/authorized_keys
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
+EOF
+    chmod 0600 /root/.ssh/authorized_keys
+EOFSHELL
+    cat <<EOF> ${chroot_dir}/etc/network/interfaces
+auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet static
+	address 192.168.168.102
+	netmask 255.255.255.0
+	gateway 192.168.168.1
+EOF
+
+    chroot ${chroot_dir} /usr/bin/env -i PS1='\u@pcsrv:\w$' /bin/sh --noprofile --norc -o vi || true
 cat<<'EOF'
 apk add grub grub-bios grub-efi linux-lts xfsprogs
 echo GRUB_CMDLINE_LINUX=modules=xfs,ext4 >> /etc/default/grub
