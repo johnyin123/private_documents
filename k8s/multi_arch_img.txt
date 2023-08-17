@@ -23,7 +23,6 @@ docker buildx imagetools inspect <username>/<image>:latest
 docker run --rm docker.io/<username>/<image>:latest@sha256:xx1 uname -m
 docker run --rm docker.io/<username>/<image>:latest@sha256:xx2 uname -m
 
-
 ADD demo.jar app.jar
 RUN bash -c 'touch /app.jar'
 ENTRYPOINT [“java”,”-Djava.security.egd=file:/dev/./urandom”,”-jar”,”/app.jar”]
@@ -31,3 +30,47 @@ ENTRYPOINT [“java”,”-Djava.security.egd=file:/dev/./urandom”,”-jar”,
 ADD app.zip
 RUN unzip app.zip
 ENTRYPOINT [“java”,”-Djava.security.egd=file:/dev/./urandom”,”-jar”,”app.jar”]
+
+
+
+
+################################################################################
+################################################################################
+# # Install the qemu packages
+apt-get install qemu binfmt-support qemu-user-static
+# # This step will execute the registering scripts
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+# # Testing the emulation environment
+docker run --rm -t arm64v8/ubuntu uname -m
+# # How to build image:
+There are two ways to use Docker to build a multiarch image: using docker manifest or using docker buildx
+debian:buster-slim
+amd64/debian:buster-slim
+arm32v7/debian:buster-slim
+arm64v8/debian:buster-slim
+
+cat <<EOF > Dockerfile
+ARG ARCH=
+FROM ${ARCH}debian:buster-slim
+
+RUN apt-get update && \
+    apt-get install curl -y && \
+    rm -rf /var/lib/apt/list/*
+
+ENRYPOINT [ "curl" ]
+EOF
+docker build -t devopstales/curl:1.0-amd64 --build-arg ARCH=amd64/ .
+docker pus devopstales/curl:1.0-amd64
+
+docker build -t devopstales/curl:1.0-arm32v7 --build-arg ARCH=arm32v7/ .
+docker pus devopstales/curl:1.0-arm32v7
+
+docker build -t devopstales/curl:1.0-arm64v8 --build-arg ARCH=arm64v8/ .
+docker pus devopstales/curl:1.0-arm64v8
+
+docker manifest create devopstales/curl:1.0
+    --amend devopstales/curl:1.0-amd64
+    --amend devopstales/curl:1.0-arm32v7
+    --amend devopstales/curl:1.0-arm64v8
+
+docker manifest push devopstales/curl:1.0
