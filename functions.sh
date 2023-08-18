@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("4b392bc[2023-08-04T07:39:09+08:00]:functions.sh")
+VERSION+=("177aa71[2023-08-12T08:23:20+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -229,6 +229,21 @@ random() {
 
 uuid() {
     cat /proc/sys/kernel/random/uuid
+}
+
+# retry sudo ctr --namespace k8s.io ...
+retry() {
+    local rc=0
+    local retries=${MAX_RETRIES:-3}
+    for attempt in $(seq 0 ${retries}); do
+        rc=0
+        [[ $attempt -gt 0 ]] && info_msg "Attempt $attempt of ${retries}\n"
+        "$@"
+        rc=$?
+        [[ $rc -eq 0 ]] && break
+        [[ $attempt -eq ${retries} ]] && exit $rc
+        sleep $(random 1 10)
+    done
 }
 
 gen_passwd() {
