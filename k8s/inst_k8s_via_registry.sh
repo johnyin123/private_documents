@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cba24e1[2023-08-16T15:16:22+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("ab1084e[2023-08-18T08:21:55+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -401,6 +401,8 @@ main() {
     info_msg "diag: kubectl logs -n kube-system coredns-xxxx\n"
     info_msg "diag: kubectl describe -n kube-system pod coredns-xxxx\n"
     info_msg "diag: journalctl -f -u kubelet\n"
+    info_msg "diag: journalctl --rotate # rotate log\n"
+    info_msg "diag: journalctl --vacuum-time=10s # clear log 10s ago\n"
     info_msg "diag: crictl config runtime-endpoint unix:///var/run/containerd/containerd.sock\n"
     info_msg "diag: cat /etc/crictl.yaml\n"
     info_msg "diag: crictl --runtime-endpoint unix:///var/run/containerd/containerd.sock ps -a\n"
