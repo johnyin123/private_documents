@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1833fc1[2023-08-17T08:46:49+08:00]:inst_alpine.sh")
+VERSION+=("2dabd4b[2023-08-17T09:18:06+08:00]:inst_alpine.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 APK=${DIRNAME}/apk.static
@@ -113,4 +113,5 @@ source /etc/mkinitfs/mkinitfs.conf
 echo "features=\"${features} xfs\"" > /etc/mkinitfs/mkinitfs.conf
 EOF
 }
+auto_su "$@"
 main "$@"
