@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ab1084e[2023-08-18T08:21:55+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("36f76c4[2023-08-18T11:09:04+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -217,13 +217,13 @@ k8s_only_add_master() {
     local newnodes=($(array_print ${4}))
     local apiserver=${5}
     [ "$(array_size newnodes)" -gt "0" ] || { info_msg "No master need add\n"; return 0; }
-    local token=$(ssh_func "${user}@${ipaddr}" "${${port}}" "kubeadm token create")
-    local sha_hash=$(ssh_func "${user}@${ipaddr}" "${${port}}" "openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
+    local token=$(ssh_func "${user}@${ipaddr}" "${port}" "kubeadm token create")
+    local sha_hash=$(ssh_func "${user}@${ipaddr}" "${port}" "openssl x509 -pubkey -in /etc/kubernetes/pki/ca.crt | openssl rsa -pubin -outform der 2>/dev/null | openssl dgst -sha256 -hex | sed 's/^.* //'")
     # reupload certs
-    local certs=$(ssh_func "${user}@${ipaddr}" "${${port}}" "kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -n 1")
+    local certs=$(ssh_func "${user}@${ipaddr}" "${port}" "kubeadm init phase upload-certs --upload-certs 2>/dev/null | tail -n 1")
     for ipaddr in $(array_print newnodes); do
         info1_msg "****** ${ipaddr} add master(${apiserver})\n"
-        ssh_func "${user}@${ipaddr}" "${${port}}" add_k8s_master "${apiserver}" "${token}" "${sha_hash}" "${certs}"
+        ssh_func "${user}@${ipaddr}" "${port}" add_k8s_master "${apiserver}" "${token}" "${sha_hash}" "${certs}"
     done
 }
 init_kube_cluster() {

@@ -4,7 +4,7 @@ readonly SCRIPTNAME=${0##*/}
 set -o errtrace
 set -o nounset
 set -o errexit
-VERSION+=("af5044a[2023-08-08T14:54:29+08:00]:gen_k8s_pkg.sh")
+VERSION+=("48a2b00[2023-08-10T10:21:00+08:00]:gen_k8s_pkg.sh")
 ################################################################################
 PKG_DIR=${1?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
 ARCH=${2?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
@@ -141,7 +141,7 @@ tar -C ${PKG_DIR}/usr/     -xvf ${TGZ_CONTAINERD}
 tar -C ${PKG_DIR}/opt/cni/ -xvf ${TGZ_CNI_PLUGINS}
 
 
-depends="--depends ebtables --depends ethtool --depends iptables --depends conntrack --depends socat --depends ipvsadm"
+depends="--depends ebtables --depends ethtool --depends iptables --depends conntrack --depends socat --depends ipvsadm --depends openssl"
 fpm --package . -s dir -t rpm --architecture ${ARCH} -C ${PKG_DIR}/ --name tsd_cnap_${VER} --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl ${depends} --version 0.9 --description "tsd cnap ${ARCH} env ${VER} $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
 fpm --package . -s dir -t deb --architecture ${ARCH} -C ${PKG_DIR}/ --name tsd_cnap_${VER} --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl ${depends} --version 0.9 --description "tsd cnap ${ARCH} env ${VER} $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
 cat <<'EOF'
