@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("39acc5a[2023-08-21T11:20:08+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("7134237[2023-08-22T16:49:55+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -115,7 +115,10 @@ init_first_k8s_master() {
     export KUBECONFIG=/etc/kubernetes/admin.conf
     kubectl cluster-info || true
 }
-
+enbale_pod_scheduling_on_master() {
+    export KUBECONFIG=/etc/kubernetes/admin.conf
+    kubectl taint nodes --all node-role.kubernetes.io/master-
+}
 add_k8s_master() {
     local apiserver=${1}
     local token=${2}
@@ -257,6 +260,7 @@ ${SCRIPTNAME}
         -w|--worker       * X    <ip>   worker nodes, support multi nodes
         -s|--svc_cidr     X X    <cidr> servie cidr, default 10.96.0.0/12
         -p|--pod_cidr     X X *  <cidr> calico cni, pod_cidr
+        --enable_schedule               enable master node scheduling
         --insec_registry         <str>  insecurity registry(http/no auth)
         --nameserver             <ip>   k8s nodes nameserver, /etc/resolv.conf
         --calico          X X    <str>  calico crossnet method, default IPIPCrossSubnet
@@ -310,10 +314,10 @@ verify_calico() {
 }
 main() {
     local master=() worker=() teardown=() svc_cidr="" pod_cidr="" insec_registry="" nameserver="" apiserver="" crossnet_method="" only_add_master=""
-    local skip_proxy=false ipvs=false only_add_worker=false
+    local skip_proxy=false ipvs=false only_add_worker=false enable_schedule=false
     local user=root port=60022
     local opt_short="m:w:s:p:U:P:"
-    local opt_long="master:,worker:,svc_cidr:,pod_cidr:,insec_registry:,nameserver:,calico:,apiserver:,skip_proxy,ipvs,only_add_worker,only_add_master:,password:,teardown:,user:,port:,"
+    local opt_long="master:,worker:,svc_cidr:,pod_cidr:,insec_registry:,nameserver:,calico:,apiserver:,skip_proxy,ipvs,only_add_worker,only_add_master:,password:,teardown:,user:,port:,enable_schedule,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -324,6 +328,7 @@ main() {
             -w | --worker)     shift; worker+=(${1}); shift;;
             -s | --svc_cidr)   shift; svc_cidr=${1}; shift;;
             -p | --pod_cidr)   shift; pod_cidr=${1}; shift;;
+            --enable_schedule) shift; enable_schedule=true;;
             --insec_registry)  shift; insec_registry=${1}; shift;;
             --nameserver)      shift; nameserver=${1}; shift;;
             --calico)          shift; verify_calico "${1}" && crossnet_method=${1}; shift;;
@@ -387,6 +392,7 @@ main() {
     done
     init_kube_cluster "${user}" "${port}" master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}" "${svc_cidr}" "${insec_registry}"
     ${skip_proxy} || { ${ipvs} && ssh_func "${user}@${master[0]}" "${port}" modify_kube_proxy_ipvs; }
+    ${enable_schedule} || { ssh_func "${user}@${master[0]}" "${port}" enbale_pod_scheduling_on_master; }
     [ -z "${crossnet_method}" ] || init_kube_calico_cni "${user}" "${port}" "${master[0]}" "${pod_cidr}" "${svc_cidr}" "${insec_registry}" "${crossnet_method}"
     info_msg "export k8s configuration\n"
     ssh_func "${user}@${master[0]}" "${port}" 'kubeadm config print init-defaults'
