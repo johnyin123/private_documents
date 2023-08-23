@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("deffc62[2022-01-06T14:39:22+08:00]:new_etcd.sh")
+VERSION+=("eac2b9d[2023-08-09T12:33:04+08:00]:new_etcd.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -27,7 +27,7 @@ gen_etcd_conf() {
     local etcd_name=${HOSTNAME:-$(hostname)}
     local etcd_listen_peer_urls=http://${cluster_ip}:${cluster_port}
     local etcd_initial_advertise_peer_urls="http://${cluster_ip}:${cluster_port}"
-    local etcd_listen_client_urls="${pub_port},http://127.0.0.1:${pub_port}"
+    local etcd_listen_client_urls="http://${pub_ip}:${pub_port},http://127.0.0.1:${pub_port}"
     local etcd_advertise_client_urls="http://${pub_ip}:${pub_port}"
     local etcd_initial_cluster="${member_lst}"
     local etcd_initial_cluster_state=new
@@ -98,7 +98,7 @@ ${SCRIPTNAME}
         -n|--node <ip>   *   etcd nodes
         --port    <int>      clent connect port, default 2379
         -t|--token <str>     etcd cluster token, default: etcd-cluster
-        -s|--src  <dir>      directory contian etcd/etcdctl/etcdutl binary
+        -s|--src  <dir>      directory contian etcd/etcdctl/etcdutl binary, default current dir
         --sshpass <str>      ssh password
         --teardown <ip>      remove all etcd&config
         -q|--quiet
@@ -160,7 +160,7 @@ main() {
     is_integer ${port} || exit_msg "port is integet\n"
     [ "$(array_size node)" -gt "0" ] || usage "at least one node"
     [ -z ${sshpass} ] || set_sshpass "${sshpass}"
-    file_exists "${src}/etcd" || file_exists "${src}/etcdctl" || file_exists "${src}/etcdutl" || exit_msg "etcd/etcdctl/etcdutl no found in '${src}'\n"
+    file_exists "${src}/etcd" || file_exists "${src}/etcdctl" || exit_msg "etcd/etcdctl no found in '${src}'\n"
     cluster_port=$((port + 1))
     local member_lst=() cluster="" name=""
     for ipaddr in ${node[@]}; do
@@ -171,7 +171,7 @@ main() {
     for ipaddr in ${node[@]}; do
         upload "${src}/etcd" ${ipaddr} ${SSH_PORT} "root" "/usr/bin/"
         upload "${src}/etcdctl" ${ipaddr} ${SSH_PORT} "root" "/usr/bin/"
-        upload "${src}/etcdutl" ${ipaddr} ${SSH_PORT} "root" "/usr/bin/"
+        file_exists "${src}/etcdutl" && upload "${src}/etcdutl" ${ipaddr} ${SSH_PORT} "root" "/usr/bin/"
         ssh_func "root@${ipaddr}" ${SSH_PORT} init_dir "${etcd_data_dir}"
         ssh_func "root@${ipaddr}" ${SSH_PORT} gen_etcd_service
         ssh_func "root@${ipaddr}" ${SSH_PORT} gen_etcd_conf "${ipaddr}" $port "${ipaddr}" ${cluster_port} "${token}" "${cluster}" "${etcd_data_dir}"
@@ -182,6 +182,18 @@ main() {
     done
     sleep 1
     ssh_func "root@${node[0]}" ${SSH_PORT} "etcdctl --endpoints=127.0.0.1:${port} member list"
+    cat <<'EOF'
+复制其他节点的data-dir中的内容，以此为基础上以--force-new-cluster强行拉起，然后以添加新成员的方式恢复这个集群
+#!/bin/bash
+etcdctl --endpoints https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key snapshot save /backup/snap-$(date +%Y%m%d)
+# find /tmp/etcd_backup/ -ctime +7 -exec rm -r {}
+
+etcdctl member add infra3 http://10.0.1.13:2380
+ETCD_NAME="infra3"
+ETCD_INITIAL_CLUSTER="infra0=http://10.0.1.10:2380,infra1=http://10.0.1.11:2380,infra2=http://10.0.1.12:2380,infra3=http://10.0.1.13:2380"
+ETCD_INITIAL_CLUSTER_STATE=existing
+etcdctl在注册完新节点后，会返回一段提示，包含3个环境变量。然后在第二部启动新节点的时候，带上这3个环境变量即可。
+EOF
     info_msg "ALL DONE\n"
     return 0
 }
