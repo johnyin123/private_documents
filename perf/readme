@@ -1,0 +1,7 @@
+# git clone https://github.com/brendangregg/FlameGraph  # or download it from github
+# apt -y install linux-perf
+# cd FlameGraph
+# perf record --freq=99 -ag -- sleep 60
+# perf script | FlameGraph/stackcollapse-perf.pl > out.perf-folded
+# cat out.perf-folded | FlameGraph/flamegraph.pl > perf-kernel.svg
+
