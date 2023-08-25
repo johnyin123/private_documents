@@ -1,3 +1,6 @@
 [submodule "ebpf/libbpf"]
 	path = ebpf/libbpf
 	url = https://github.com/libbpf/libbpf.git
+[submodule "perf/FlameGraph"]
+	path = perf/FlameGraph
+	url = https://github.com/brendangregg/FlameGraph
