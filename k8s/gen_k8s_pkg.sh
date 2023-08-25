@@ -4,7 +4,7 @@ readonly SCRIPTNAME=${0##*/}
 set -o errtrace
 set -o nounset
 set -o errexit
-VERSION+=("48a2b00[2023-08-10T10:21:00+08:00]:gen_k8s_pkg.sh")
+VERSION+=("39acc5a[2023-08-21T11:20:08+08:00]:gen_k8s_pkg.sh")
 ################################################################################
 PKG_DIR=${1?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
 ARCH=${2?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
@@ -47,6 +47,9 @@ https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.27.1/crictl-v1
 https://dl.k8s.io/release/${VER}/bin/linux/${ARCH}/kubelet
 https://dl.k8s.io/release/${VER}/bin/linux/${ARCH}/kubeadm
 https://dl.k8s.io/release/${VER}/bin/linux/${ARCH}/kubectl
+https://github.com/helm/helm/tags
+# https://github.com/etcd-io/etcd/releases/
+# https://github.com/cloudflare/cfssl/releases/
 EOF
     exit 1
 }
