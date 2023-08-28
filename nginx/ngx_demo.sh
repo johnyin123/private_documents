@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0589153[2023-07-20T10:49:50+08:00]:ngx_demo.sh")
+VERSION+=("fe0f131[2023-07-20T10:52:25+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -186,6 +186,27 @@ rtmp {
             dash on;
             dash_path /var/www/dash;
         }
+    }
+}
+EOF
+cat <<'EOF'>geoip_contry.http
+geoip_country /usr/share/GeoIP/GeoIP.dat;
+geo $remote_addr $ip_whitelist {
+    default 0;
+    192.168.168.1 1;
+}
+server {
+    listen 80;
+    server_name _;
+    if ($ip_whitelist = 1) {
+        break;
+    }
+    if ($geoip_country_code ~ (JP|TW|SG)) {
+        return 403;
+    }
+    location / {
+        root /var/www;
+        try_files $uri $uri/ =404;
     }
 }
 EOF
