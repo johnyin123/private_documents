@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fe0f131[2023-07-20T10:52:25+08:00]:ngx_demo.sh")
+VERSION+=("9ba06b9[2023-08-28T14:06:30+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -3903,7 +3903,7 @@ proxy_no_cache          $cache_bypass;
 proxy_cache_bypass      $cache_bypass;
 
 proxy_cache SHM_CACHE;
-proxy_cache_key         "$request_method$scheme$host$request_uri";
+proxy_cache_key         "$scheme$request_method$host$request_uri$is_args$args";
 proxy_cache_lock        on;
 proxy_cache_min_uses    1;
 proxy_cache_revalidate  on;
