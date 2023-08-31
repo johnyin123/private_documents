@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("767b323[2023-05-08T11:24:34+08:00]:build_centos_no_kernel.sh")
+VERSION+=("b9eff15[2023-05-17T20:28:52+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -33,7 +33,7 @@ CACHE_DIR=${DIRNAME}/cache
 
 RELEASE_VER=${RELEASE_VER:-7.9.2009} \
     HOSTNAME="srv1" \
-    NAME_SERVER=114.114.114.114 \
+    NAME_SERVER=${NAME_SERVER:-114.114.114.114} \
     PASSWORD=password \
     centos_build "${ROOT_DIR}" "${CACHE_DIR}" "${PKG}"
 log "INIT............"
@@ -48,6 +48,7 @@ GRUB_TERMINAL_OUTPUT="console"
 GRUB_CMDLINE_LINUX="console=ttyS0,115200n8 console=tty1 net.ifnames=0 biosdevname=0 selinux=0"
 GRUB_DISABLE_RECOVERY="true"
 EOF
+mkdir -p ${ROOT_DIR}/etc/X11/xorg.conf.d
 cat > ${ROOT_DIR}/etc/X11/xorg.conf.d/00-keyboard.conf <<EOF
 Section "InputClass"
         Identifier "system-keyboard"
@@ -56,7 +57,7 @@ Section "InputClass"
 EndSection
 EOF
 echo 'KEYMAP="cn"' > ${ROOT_DIR}/etc/vconsole.conf
-
+mkdir -p ${ROOT_DIR}/etc/sysconfig/network-scripts/
 cat > ${ROOT_DIR}/etc/sysconfig/network-scripts/ifcfg-eth0 <<-EOF
 NM_CONTROLLED=no
 IPV6INIT=no
