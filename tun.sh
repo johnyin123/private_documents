@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9473deb[2023-08-29T14:26:05+08:00]:tun.sh")
+VERSION+=("cae3a06[2023-08-30T09:04:20+08:00]:tun.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 tun_up() {
@@ -72,7 +72,6 @@ main() {
     [ -z "${remote_ipaddr}" ] && [ "$(array_size target)" -gt "0" ] && { usage "remote_ipaddr need"; }
     [ -z "${remote_ipaddr}" ] || [ "$(array_size target)" -gt "0" ] || { usage "use ${remote_ipaddr} to ...??"; }
     tun_up "${dev}" "${mtu}" "${local_cidr}" || true
-    echo "via ${remote_ipaddr} dev ${dev} onlink"
     for _ip in ${target[@]}; do
         try ip route add ${_ip} via ${remote_ipaddr} dev ${dev} onlink
     done
