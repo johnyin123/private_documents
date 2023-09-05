@@ -4,4 +4,7 @@
 # perf record --freq=99 -ag -- sleep 60
 # perf script | FlameGraph/stackcollapse-perf.pl > out.perf-folded
 # cat out.perf-folded | FlameGraph/flamegraph.pl > perf-kernel.svg
-
+观察进程的CPU使用情况,同时显示函数调用链：
+sudo perf top -g -p <pid>
+sudo perf record -g -p <pid>
+sudo perf report
