@@ -1,3 +1,8 @@
+# pin cpu 
+virsh vcpupin <domain> 0 0
+virsh vcpupin <domain> 1 1
+
+
 ### add below to rc.local, chmod 755 /etc/rc.local for auto increase rootfs
 disk=/dev/vda
 part_no=2 #uefi
