@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cae3a06[2023-08-30T09:04:20+08:00]:tun.sh")
+VERSION+=("23655f4[2023-09-01T08:39:46+08:00]:tun.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 tun_up() {
@@ -33,6 +33,11 @@ usage() {
         -m|--mtu           <int>     mtu size, default 1476
         --remote_ipaddr    <ipaddr>  remote host address
         --route            <cidr>    route range, multi input, exam: 172.0.0.0/8
+[root@k2 ~]# ip fou add port 5555 ipproto 4
+[root@k1 ~]# ip link add ftok2 type ipip remote 192.168.127.152 local 192.168.127.151 ttl 255 dev eth0 encap fou encap-sport auto encap-dport 5555
+通信是双向的，因此还需要按照上述的步骤反过来
+[root@k1 ~]# ip fou add port 5555 ipproto 4
+[root@k2 ~]# ip link add ftok1 type ipip remote 192.168.127.151 local 192.168.127.152 ttl 255 dev eth0 encap fou encap-sport auto encap-dport 5555
 ${SCRIPTNAME}
         -q|--quiet
         -l|--log <int> log level
