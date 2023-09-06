@@ -42,8 +42,11 @@ server {
     ssl_certificate_key /etc/nginx/ssl/test.key;
     # ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
     # ssl_protocols       TLSv1.3;
-    # ssl_client_certificate /etc/nginx/ssl/ca.pem;
-    # ssl_verify_client on;
+    ssl_client_certificate /etc/nginx/ssl/ca.pem;
+    ssl_verify_client on;
+    proxy_intercept_errors on;
+    error_page 400 495 496 497 = @400;
+    location @400 { return 500 "bad boy"; }
     location ${path} { #与V2Ray配置中的path保持一致
         if (\$http_upgrade != "websocket") {
             # WebSocket协商失败时返回404
