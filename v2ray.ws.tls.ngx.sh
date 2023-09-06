@@ -1,4 +1,5 @@
 uuid=$(cat /proc/sys/kernel/random/uuid)
+alterid=0
 path=/wssvc
 #V2Ray自4.18.1后支持TLS1.3
 cat <<EOF > v2ray.srv.config.json
@@ -12,7 +13,7 @@ cat <<EOF > v2ray.srv.config.json
         "clients": [
           {
             "id": "${uuid}",
-            "alterId": 0
+            "alterId": ${alterid}
           }
         ]
       },
@@ -62,7 +63,17 @@ EOF
 
 cat <<EOF > v2ray.cli.config.json
 {
+  "log": {
+    "access": "access.log",
+    "error":  "error.log",
+    "loglevel": "info"
+  },
   "inbounds": [
+    {
+      "listen": "127.0.0.1",
+      "port": 8888,
+      "protocol": "http"
+    },
     {
       "port": 1080,
       "listen": "127.0.0.1",
@@ -88,7 +99,7 @@ cat <<EOF > v2ray.cli.config.json
             "users": [
               {
                 "id": "${uuid}",
-                "alterId": 64
+                "alterId": ${alterid}
               }
             ]
           }
@@ -98,16 +109,17 @@ cat <<EOF > v2ray.cli.config.json
         "network": "ws",
         "security": "tls",
         "tlsSettings": {
-          "allowInsecure": false,
-          "disableSystemRoot": true
+          "allowInsecure": true,
+          "disableSystemRoot": true,
           "certificates": [
             {
               "certificateFile": "/path/to/certificate.crt",
               "keyFile": "/path/to/key.key",
-              "usage": "verify" //encipherment,issue
+              "usage": "encipherment"
+              // verify,encipherment,issue
             }
           ]
-        }
+        },
         "wsSettings": {
           "path": "${path}"
         }
