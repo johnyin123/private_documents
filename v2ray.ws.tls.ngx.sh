@@ -131,3 +131,22 @@ cat <<EOF > v2ray.cli.config.json
   ]
 }
 EOF
+cat <<EOF >lib.systemd.system.v2ray.service
+[Unit]
+Description=V2Ray Service
+Documentation=https://www.v2ray.com/ https://www.v2fly.org/
+After=network-online.target nss-lookup.target
+
+[Service]
+Type=simple
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+DynamicUser=true
+NoNewPrivileges=true
+Environment=V2RAY_LOCATION_ASSET=/etc/v2ray
+ExecStart=/usr/bin/v2ray -config /etc/v2ray/config.json
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
