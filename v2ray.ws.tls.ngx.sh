@@ -104,7 +104,7 @@ cat <<EOF > v2ray.cli.config.json
             {
               "certificateFile": "/path/to/certificate.crt",
               "keyFile": "/path/to/key.key",
-              "usage": "verify"
+              "usage": "verify" //encipherment,issue
             }
           ]
         }
