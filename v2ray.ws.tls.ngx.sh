@@ -116,6 +116,18 @@ cat <<EOF > v2ray.cli.config.json
           "disableSystemRoot": true,
           "certificates": [
             {
+              //"certificate": [
+              //  "-----BEGIN CERTIFICATE-----",
+              //  "6X1Rkl53BhhoUhx+FuYAjfL2SE4g4nV5NbKVApjynycQmPtlf5ihz+CwxFivtS8i",
+              //  "YipvxqZhPN+vV9fH",
+              //  "-----END CERTIFICATE-----"
+              //],
+              //"key": [
+              //  "-----BEGIN RSA PRIVATE KEY-----",
+              //  "MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDC/+Y3OPE0V8YQ",
+              //  "ZJfmJdQWx/cV9NYdqZYOj5KJjA==",
+              //  "-----END RSA PRIVATE KEY-----"
+              //],
               "certificateFile": "/path/to/certificate.crt",
               "keyFile": "/path/to/key.key",
               "usage": "encipherment"
