@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9ba06b9[2023-08-28T14:06:30+08:00]:ngx_demo.sh")
+VERSION+=("183273e[2023-08-29T08:14:05+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -381,6 +381,54 @@ server {
         proxy_pass $orig_loc;
     }
 
+}
+EOF
+cat <<'EOF' >yum_cache.http
+resolver 114.114.114.114 ipv6=off;
+server {
+    listen 127.0.0.1:8001;
+    server_name $host;
+    location /centos/ {
+        proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_pass http://mirror.centos.org/centos/;
+    }
+}
+upstream base {
+    server 127.0.0.1:8001 fail_timeout=5s max_fails=3;
+}
+server {
+    listen 80;
+    server_name _;
+    root /opt/repos/;
+    location /centos/ {
+        location ~ (.xml|.gz|.bz2)$ {
+            proxy_store on;
+            proxy_temp_path "/opt/repos/";
+            proxy_set_header Accept-Encoding identity;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_next_upstream error http_502;
+            if ( !-e $request_filename ) {
+                proxy_pass http://base;
+            }
+            if ( -e $request_filename ) {
+                expires 1d; #保存1天
+            }
+        }
+        location ~ .rpm$ {
+            proxy_store on;
+            proxy_temp_path "/opt/repos/";
+            proxy_set_header Accept-Encoding identity;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_next_upstream error http_502;
+            if ( !-e $request_filename ) {
+                proxy_pass http://base;
+            }
+            if ( -e $request_filename ) {
+                expires 2000d;
+            }
+        }
+    }
 }
 EOF
 cat <<'EOF' >static_dynamic.http
@@ -2933,6 +2981,7 @@ server {
         proxy_set_header Host www.mytest.com;
         proxy_pass https://www.mytest.com;
         proxy_store on;
+        proxy_set_header Accept-Encoding ''; #不返回压缩内容，避免乱码
         proxy_store_access user:rw group:rw all:r;
         # proxy_temp_path /var/lib/nginx/proxy;
         root /var/www/cache_static;
