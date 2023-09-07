@@ -1,0 +1,31 @@
+LVS:
+    VIP:eth0:0: 192.168.1.63
+    DIP:eth0:   192.168.1.70
+
+    net.ipv4.ip_forward = 1
+
+    ipvsadm -C
+    ipvsadm -A -t 192.168.1.63:80 -s rr
+    ipvsadm -a -t 192.168.1.63:80 -r 192.168.1.62 --ipip
+    ipvsadm -a -t 192.168.1.63:80 -r 192.168.1.64 --ipip
+    ipvsadm -L -n
+
+REAL SERVER:
+    RIP:eth0:   192.168.1.62
+    VIP:tunl0:  192.168.1.63
+
+    modprobe ipip
+    # 关闭ARP转发
+    net.ipv4.conf.tunl0.arp_ignore = 1
+    net.ipv4.conf.tunl0.arp_announce = 2
+    net.ipv4.conf.all.arp_ignore = 1
+    net.ipv4.conf.all.arp_announce = 2
+    net.ipv4.conf.tunl0.rp_filter = 0
+    net.ipv4.conf.all.rp_filter = 0
+    # tunl0/rp_filter 默认为1,需要改为0，关闭此功能。
+
+REAL SERVER:
+    RIP:eth0:   192.168.1.64
+    VIP:tunl0:  192.168.1.63
+ 
+注:不能在LVS上直接测试，需要去其他机器上测试
