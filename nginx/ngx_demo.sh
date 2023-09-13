@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("183273e[2023-08-29T08:14:05+08:00]:ngx_demo.sh")
+VERSION+=("97d3250[2023-09-07T12:43:12+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -226,6 +226,7 @@ cat <<'EOF'>change_request_uri.http
 server {
     listen 80;
     server_name _;
+    # proxy_pass 后面的/斜杠不要少.
     # # This should remove /foo/bar part from proxied URL.
     # location /foo/bar/ {
     #     proxy_pass http://myapp/;
