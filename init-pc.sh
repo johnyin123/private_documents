@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2f5343d[2023-06-17T20:37:18+08:00]:init-pc.sh")
+VERSION+=("4770023[2023-06-29T08:52:12+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -37,6 +37,10 @@ cat << EOF > /etc/rc.local
 exit 0
 EOF
 chmod 755 /etc/rc.local
+
+echo "Fix error iwlwifi_yoyo.bin "
+echo "dell laptop iwwifi hardblock, should close powermanager ont wifi, set it in bios"
+echo 'options iwlwifi enable_ini=N' > /etc/modprobe.d/iwlwifi.conf
 
 echo "nameserver ${NAME_SERVER:-114.114.114.114}" > /etc/resolv.conf
 debian_chpasswd root ${PASSWORD:-password}
