@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b6332ae[2023-09-05T14:09:42+08:00]:ipip_tun.sh")
+VERSION+=("4c027b8[2023-09-13T08:08:33+08:00]:ipip_tun.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 tun_up() {
@@ -88,7 +88,7 @@ main() {
     [ -z "${host}" ] || {
         ssh_func "${user}@${host}" "${port}" tun_up "${dev}" "${mtu}" "${local_cidr}" || true
         for _ip in ${target[@]}; do
-             ssh_func "${user}@${host}" "${port}" ip route add ${_ip} via ${remote_ipaddr} dev ${dev} onlink
+             ssh_func "${user}@${host}" "${port}" "ip route add ${_ip} via ${remote_ipaddr} dev ${dev} onlink"
         done
         info_msg "${host} ALL DONE\n"
         return 0
