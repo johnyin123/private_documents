@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4770023[2023-06-29T08:52:12+08:00]:init-pc.sh")
+VERSION+=("ed912a9[2023-09-13T10:55:06+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -123,6 +123,19 @@ network={
     #key_mgmt=wpa-psk
     psk="ADMIN@123"
 }
+network={
+    priority=90
+    scan_ssid=1
+    ssid="Neusoft"
+    key_mgmt=WPA-EAP
+    eap=PEAP
+    phase1="peaplabel=auto tls_disable_tlsv1_0=0 tls_disable_tlsv1_1=0 tls_disable_tlsv1_2=0 tls_ext_cert_check=0"
+    phase2="auth=MSCHAPV2"
+    identity="uid"
+    password="pass"
+    eapol_flags=0
+}
+
 EOF_WIFI
 
 cat << "EOF" > /root/aptrom.sh
