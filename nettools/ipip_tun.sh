@@ -7,28 +7,32 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-09-05T14:09:43+08:00]:ipip_tun.sh")
+VERSION+=("b6332ae[2023-09-05T14:09:42+08:00]:ipip_tun.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 tun_up() {
     local dev=${1}
     local mtu=${2}
     local local_cidr=${3}
-    try "modprobe ipip &>/dev/null || true"
+    modprobe ipip &>/dev/null || true
     # # info_msg "ont-to-one mode\n"
     # ip tunnel add "${dev}" mode ipip local $LOCAL_IP remote $REMOTE_IP ttl 64 dev $IFDEV
-    info_msg "one-to-many mode\n"
-    try "ip link show ${dev} &>/dev/null || ip tunnel add ${dev} mode ipip"
-    try ip link set "${dev}" mtu "${mtu}" up
-    try "ip addr add ${local_cidr} dev ${dev} || true"
+    echo "one-to-many mode"
+    ip link show ${dev} &>/dev/null || ip tunnel add ${dev} mode ipip
+    ip link set "${dev}" mtu "${mtu}" up
+    ip addr add ${local_cidr} dev ${dev} || true
 }
 tun_down() {
     local dev=${1}
-    try ip link delete "${dev}"
+    ip link delete "${dev}"
 }
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
+        -H|--host          <ipaddr>  ssh host, if host set, add ipip tunl0 on <ipaddr> server via ssh.
+        -U|--user          <user>    ssh user, default root
+        -P|--port          <int>     ssh port, default 60022
+        --password         <str>     ssh password(default use sshkey)
         --ipaddr        *  <cidr>    ipiptun dev ipaddress, exam: 192.168.166.0/32
         -m|--mtu           <int>     mtu size, default 1476
         --remote_ipaddr    <ipaddr>  remote host address
@@ -48,17 +52,22 @@ EOF
     exit 1
 }
 main() {
+    local user=root port=60022 host=""
     local dev=tunl0 mtu=1476
     local local_cidr="" remote_ipaddr=""
     local target=()
-    local opt_short="m:"
-    local opt_long="mtu:,ipaddr:,remote_ipaddr:,route:,"
+    local opt_short="H:U:P:m:"
+    local opt_long="host:,user:,port:,password:,mtu:,ipaddr:,remote_ipaddr:,route:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
+            -H|--host)      shift; host=${1}; shift;;
+            -U|--user)      shift; user=${1}; shift;;
+            -P|--port)      shift; port=${1}; shift;;
+            --password)     shift; set_sshpass "${1}"; shift;;
             --ipaddr)       shift; local_cidr=${1}; shift;;
             -m | --mtu)     shift; mtu=${1}; shift;;
             --remote_ipaddr)shift; remote_ipaddr=${1}; shift;;
@@ -76,7 +85,15 @@ main() {
     [ -z "${local_cidr}" ] && usage "input ipaddr"
     [ -z "${remote_ipaddr}" ] && [ "$(array_size target)" -gt "0" ] && { usage "remote_ipaddr need"; }
     [ -z "${remote_ipaddr}" ] || [ "$(array_size target)" -gt "0" ] || { usage "use ${remote_ipaddr} to ...??"; }
-    tun_up "${dev}" "${mtu}" "${local_cidr}" || true
+    [ -z "${host}" ] || {
+        ssh_func "${user}@${host}" "${port}" tun_up "${dev}" "${mtu}" "${local_cidr}" || true
+        for _ip in ${target[@]}; do
+             ssh_func "${user}@${host}" "${port}" ip route add ${_ip} via ${remote_ipaddr} dev ${dev} onlink
+        done
+        info_msg "${host} ALL DONE\n"
+        return 0
+    }
+    try tun_up "${dev}" "${mtu}" "${local_cidr}" || true
     for _ip in ${target[@]}; do
         try ip route add ${_ip} via ${remote_ipaddr} dev ${dev} onlink
     done
