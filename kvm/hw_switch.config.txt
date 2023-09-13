@@ -698,3 +698,93 @@ httpd perfork minspareservers 1 maxspareservers 3 maxrequestworkers 5
 [alarm]
 alert-config local-syslog internal level Warning,Emergency,Error,Critical,Alert type any
 [vpn_resource]
+
+
+
+# # IPIP
+配置准备
+在开始下面的配置之前，请确保Switch A和Switch B上已经创建相应的VLAN接口，且两者之间IPv4报文路由可达。
+4. 配置步骤
+(1)     配置Switch A
+# 配置接口Twenty-FiveGigE1/0/1加入VLAN100。
+<SwitchA> system-view
+[SwitchA] vlan 100
+[SwitchA-vlan100] port twenty-fivegige 1/0/1
+[SwitchA-vlan100] quit
+# 配置接口Vlan-interface100的地址。
+[SwitchA] interface vlan-interface 100
+[SwitchA-Vlan-interface100] ip address 10.1.1.1 255.255.255.0
+[SwitchA-Vlan-interface100] quit
+# 配置接口Twenty-FiveGigE1/0/2（隧道的实际物理接口）加入VLAN101。
+[SwitchA] vlan 101
+[SwitchA-vlan101] port twenty-fivegige 1/0/2
+[SwitchA-vlan101] quit
+# 配置接口Vlan-interface101的IP地址。
+[SwitchA] interface vlan-interface 101
+[SwitchA-Vlan-interface101] ip address 2.1.1.1 255.255.255.0
+[SwitchA-Vlan-interface101] quit
+# 创建业务环回组1，并配置服务类型为tunnel。
+[SwitchA] service-loopback group 1 type tunnel
+# 将接口Twenty-FiveGigE1/0/3加入业务环回组1。
+[SwitchA] interface twenty-fivegige 1/0/3
+[SwitchA-Twenty-FiveGigE1/0/3] port service-loopback group 1
+[SwitchA-Twenty-FiveGigE1/0/3] quit
+# 创建模式为IPv4 over IPv4隧道的接口Tunnel1。
+[SwitchA] interface tunnel 1 mode ipv4-ipv4
+# 配置Tunnel1接口的IP地址。
+[SwitchA-Tunnel1] ip address 10.1.2.1 255.255.255.0
+# 配置Tunnel1接口的源端地址（Vlan-interface101的IP地址）。
+[SwitchA-Tunnel1] source 2.1.1.1
+# 配置Tunnel1接口的目的端地址（Switch B的Vlan-interface101的IP地址）。
+[SwitchA-Tunnel1] destination 3.1.1.1
+[SwitchA-Tunnel1] quit
+# 配置从Switch A经过Tunnel1接口到Group 2的静态路由。
+[SwitchA] ip route-static 10.1.3.0 255.255.255.0 tunnel 1
+(2)     配置Switch B
+# 配置接口Twenty-FiveGigE1/0/1加入VLAN100。
+<SwitchB> system-view
+[SwitchB] vlan 100
+[SwitchB-vlan100] port twenty-fivegige 1/0/1
+[SwitchB-vlan100] quit
+# 配置接口Vlan-interface100的IP地址。
+[SwitchB] interface vlan-interface 100
+[SwitchB-Vlan-interface100] ip address 10.1.3.1 255.255.255.0
+[SwitchB-Vlan-interface100] quit
+# 配置接口Twenty-FiveGigE1/0/2（隧道的实际物理接口）加入VLAN101。
+[SwitchB] vlan 101
+[SwitchB-vlan101] port twenty-fivegige 1/0/2
+[SwitchB-vlan101] quit
+# 配置接口Vlan-interface101的IP地址。
+[SwitchB] interface vlan-interface 101
+[SwitchB-Vlan-interface101] ip address 3.1.1.1 255.255.255.0
+[SwitchB-Vlan-interface101] quit
+# 创建业务环回组1，并配置服务类型为tunnel。
+[SwitchB] service-loopback group 1 type tunnel
+# 将接口Twenty-FiveGigE1/0/3加入业务环回组1。
+[SwitchB] interface twenty-fivegige 1/0/3
+[SwitchB-Twenty-FiveGigE1/0/3] port service-loopback group 1
+[SwitchB-Twenty-FiveGigE1/0/3] quit
+# 创建模式为IPv4 over IPv4隧道的接口Tunnel2。
+[SwitchB] interface tunnel 2 mode ipv4-ipv4
+# 配置Tunnel2接口的IP地址。
+[SwitchB-Tunnel2] ip address 10.1.2.2 255.255.255.0
+# 配置Tunnel2接口的源端地址（Vlan-interface101的IP地址）。
+[SwitchB-Tunnel2] source 3.1.1.1
+# 配置Tunnel2接口的目的端地址（SwitchA的Vlan-interface101的IP地址）。
+[SwitchB-Tunnel2] destination 2.1.1.1
+[SwitchB-Tunnel2] quit
+# 配置从Switch B经过Tunnel2接口到Group 1的静态路由。
+[SwitchB] ip route-static 10.1.1.0 255.255.255.0 tunnel 2
+5. 验证配置
+# 完成上述配置后，在Switch A和Switch B上分别执行display interface tunnel命令，可以看出Tunnel接口处于up状态。（具体显示信息略）
+# 从Switch A和Switch B上可以Ping通对端的Vlan-interface100接口的IPv4地址。下面仅以Switch A为例。
+[SwitchA] ping -a 10.1.1.1 10.1.3.1
+Ping 10.1.3.1 (10.1.3.1) from 10.1.1.1: 56 data bytes, press CTRL_C to break
+56 bytes from 10.1.3.1: icmp_seq=0 ttl=255 time=2.000 ms
+56 bytes from 10.1.3.1: icmp_seq=1 ttl=255 time=1.000 ms
+56 bytes from 10.1.3.1: icmp_seq=2 ttl=255 time=0.000 ms
+56 bytes from 10.1.3.1: icmp_seq=3 ttl=255 time=1.000 ms
+56 bytes from 10.1.3.1: icmp_seq=4 ttl=255 time=1.000 ms
+--- Ping statistics for 10.1.3.1 ---
+5 packet(s) transmitted, 5 packet(s) received, 0.0% packet loss
+round-trip min/avg/max/std-dev = 0.000/1.000/2.000/0.632 ms
