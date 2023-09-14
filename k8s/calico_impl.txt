@@ -14,6 +14,20 @@ ip netns exec netns1 ip route
 
 ip route add 1.1.1.2/32 dev veth1
 
+# 无回指路由时候可用nat
+# 一步SNAT没有做。 此时如果从host1/container0访问host2时，到达host2的源ip是11.12.11.121, 这样的话host2根本回复不了到host1上 去。 接下来就是iptable需要做的事情了。 在使用iptable表之前， 建议使用一个没有完全干净的iptable表， 并且设置默认链均是accept的状态。
+# > iptables -F -t nat
+# > iptables -F -t filter
+# > iptables -P INPUT ACCEPT  -t filter
+# > iptables -P OUTPUT ACCEPT -t filter
+# > iptables -P FORWARD ACCEPT -t filter
+# > iptables -P INPUT ACCEPT  -t nat
+# > iptables -P OUTPUT ACCEPT -t nat
+# > iptables -P FORWARD ACCEPT -t nat
+# > iptables -P PREROUTING ACCEPT -t nat
+# > iptables -P POSTROUTING ACCEPT -t nat
+# ## 进行snat转换
+# iptables -t nat -A POSTROUTING -s 11.12.11.121 -o eth0 -j MASQUERADE
 
 # # NODE2
 ip netns add netns2
