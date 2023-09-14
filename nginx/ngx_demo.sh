@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("97d3250[2023-09-07T12:43:12+08:00]:ngx_demo.sh")
+VERSION+=("f4b902e[2023-09-13T15:25:04+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -461,6 +461,9 @@ EOF
 cat <<'EOF' >method_limit.location
 if ($request_method !~ ^(GET|HEAD|POST)$ ) {
     return 444;
+}
+if ($content_type !~ "application/grpc") {
+    return 404;
 }
 EOF
 cat <<'EOF' >favicon.location
