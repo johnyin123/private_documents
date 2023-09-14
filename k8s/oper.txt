@@ -1,3 +1,11 @@
+cat config | grep certificate-authority-data | awk '{print $2}' | base64 -d > ca.crt
+cat config | grep client-certificate-data | awk '{print $2}' | base64 -d > client.crt
+cat config | grep client-key-data | awk '{print $2}' | base64 -d > client.key
+APISERVER=$(cat config | grep server | awk '{print $2}')
+# 查看API的url，使用curl命令调用API
+curl --cert ./client.crt --cacert ./ca.crt --key ./client.key $APISERVER/api
+curl --cert ./client.crt --cacert ./ca.crt --key ./client.key $APISERVER/api/v1/namespaces/default/pods/
+
 quay.mirrors.ustc.edu.cn <=> quay.io
 hub-mirror.c.163.com         docker.io
 
