@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f4b902e[2023-09-13T15:25:04+08:00]:ngx_demo.sh")
+VERSION+=("81526ac[2023-09-15T07:24:20+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2976,7 +2976,20 @@ server {
     proxy_set_header X-Real-IP $remote_addr;
     # # for no use gzip.
     proxy_set_header Accept-Encoding "";
-
+    # location ~* ^.+\.(?:css|cur|js|jpe?g|gif|htc|ico|png|html|xml|otf|ttf|eot|woff|woff2|svg)$ {
+    #     root /var/lib/nginx/tmp/proxy/proxy_temp_path;
+    #     proxy_set_header Host $host;
+    #     proxy_set_header X-Real-IP $remote_addr;
+    #     proxy_set_header X-Forwarded-For  $proxy_add_x_forwarded_for;
+    #     if (!-e $request_filename) {
+    #         proxy_pass http://upstream;
+    #     }
+    #     add_header Cache-Status "on";
+    #     proxy_store on;
+    #     proxy_store_access user:rw group:rw all:rw;
+    #     proxy_temp_path /var/lib/nginx/tmp/proxy/proxy_temp_path;
+    #     expires 30d;
+    # }
     location ~* ^.+\.(?:css|cur|js|jpe?g|gif|htc|ico|png|html|xml|otf|ttf|eot|woff|woff2|svg)$ {
         try_files $request_uri @real_res;
     }
