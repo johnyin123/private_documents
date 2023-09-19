@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("1fab7b1[2023-05-10T12:57:57+08:00]:tpl2disk.sh")
+VERSION+=("560245c[2023-07-22T08:34:37+08:00]:tpl2disk.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -108,6 +108,9 @@ main() {
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x -o errexit -s <<EOSHELL
 target="i386-pc"
 [ -z "${uefi}" ] || {
+    echo "fake efivars"
+    mkdir -p /sys/firmware/efi/efivars || true
+    mkdir -p /sys/firmware/efi/vars || true
     case "\$(uname -m)" in
         aarch64)  target="arm64-efi";;
         x86_64)   target="x86_64-efi";;
@@ -136,6 +139,10 @@ case "${ID:-}" in
         }
         ;;
 esac
+[ -z "${uefi}" ] || {
+    echo "remove fake efivars"
+    rm -rf /sys/firmware || true
+}
 exit 0
 EOSHELL
     local new_uuid=$(blkid -s UUID -o value ${part})

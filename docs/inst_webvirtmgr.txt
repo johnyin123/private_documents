@@ -1,3 +1,29 @@
+下载docker镜像和必要的配置
+docker pull primiano/docker-webvirtmgr
+mkdir -p /data/vm
+groupadd -g 1010 webvirtmgr
+useradd -u 1010 -g webvirtmgr -s /sbin/nologin -d /data/vm webvirtmgr
+chown -R webvirtmgr:webvirtmgr /data/vm
+启动容器
+docker run -d -p 8080:8080 -p 6080:6080 --name webvirtmgr --mount type=bind,source=/data/vm,target=/data/vm  primiano/docker-webvirtmgr
+登入web
+http://192.168.26.128:8080/login/
+用户：admin
+密码：1234
+修改和创建web的密码
+docker exec -it 4fc9a521f235 /bin/bash
+进入容器
+cd /webvirtmgr
+python manage.py changepassword admin
+python传参，调用交互式
+python manage.py createsuperuser
+创建超级用户
+
+进入容器操作，修改创建的xml信息
+sed -i 's/172.17.42.1/0.0.0.0/g' /webvirtmgr/vrtManager/create.py
+退出重启容器
+docker restart ca1403171c12
+￼
 yum -y install epel-release
 yum -y install git python-pip libvirt-python libxml2-python python-websockify supervisor nginx
 yum -y install gcc python-devel
