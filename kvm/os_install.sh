@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("58cb44d[2021-08-18T17:14:28+08:00]:os_install.sh")
+VERSION+=("b9eff15[2023-05-17T20:28:52+08:00]:os_install.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 CONNECTION=${KVM_HOST:+qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}
@@ -24,7 +24,28 @@ ${SCRIPTNAME}
 EOF
     exit 1
 }
-
+virt_inst_aarch64() {
+    local vm_type=$1
+    local store_pool=$2
+    local size=$3
+    local net_br=$4
+    local iso_img=$5
+    local fmt="raw"
+    try virsh ${CONNECTION:+-c ${CONNECTION}} -q vol-create-as --pool ${store_pool} --name ${vm_type}.${fmt} --capacity ${size} --format ${fmt} || return 1
+    # --disk path=/storage/test.img
+    virt-install -q ${CONNECTION:+-c ${CONNECTION}} \
+       --virt-type kvm --accelerate \
+       --os-type linux --os-variant rocky-unknown \
+       --vcpus 1 --memory 2048 \
+       --name=${vm_name}_tpl \
+       --disk vol=${store_pool}/${vm_type}.${fmt},format=${fmt},sparse=true,bus=virtio,discard=unmap \
+       --network bridge=${net_br},model=virtio \
+       --channel unix,target_type=virtio,name=org.qemu.guest_agent.0 \
+       --graphics vnc,listen=0.0.0.0 \
+       --console pty,target_type=virtio \
+       -c ${iso_img} \
+        --noreboot
+}
 virt_inst() {
     local vm_type=$1
     local store_pool=$2
