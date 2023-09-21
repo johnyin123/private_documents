@@ -7,8 +7,8 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b9eff15[2023-05-17T20:28:52+08:00]:os_install.sh")
-[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+VERSION+=("2330c71[2023-09-20T08:36:48+08:00]:os_install.sh")
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CONNECTION=${KVM_HOST:+qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}
 
@@ -24,7 +24,7 @@ ${SCRIPTNAME}
 EOF
     exit 1
 }
-virt_inst_aarch64() {
+virt_inst_aarch64_x86() {
     local vm_type=$1
     local store_pool=$2
     local size=$3
@@ -33,18 +33,19 @@ virt_inst_aarch64() {
     local fmt="raw"
     try virsh ${CONNECTION:+-c ${CONNECTION}} -q vol-create-as --pool ${store_pool} --name ${vm_type}.${fmt} --capacity ${size} --format ${fmt} || return 1
     # --disk path=/storage/test.img
-    virt-install -q ${CONNECTION:+-c ${CONNECTION}} \
+    try virt-install -q ${CONNECTION:+-c ${CONNECTION}} \
        --virt-type kvm --accelerate \
        --os-type linux --os-variant rocky-unknown \
        --vcpus 1 --memory 2048 \
-       --name=${vm_name}_tpl \
+       --name=${vm_type}_tpl \
        --disk vol=${store_pool}/${vm_type}.${fmt},format=${fmt},sparse=true,bus=virtio,discard=unmap \
        --network bridge=${net_br},model=virtio \
        --channel unix,target_type=virtio,name=org.qemu.guest_agent.0 \
        --graphics vnc,listen=0.0.0.0 \
        --console pty,target_type=virtio \
-       -c ${iso_img} \
-        --noreboot
+       --cdrom ${iso_img} \
+       --boot cdrom,hd,network,menu=on \
+       --noreboot
 }
 virt_inst() {
     local vm_type=$1
@@ -231,7 +232,8 @@ main() {
     local store_pool=default
     local size_gb=10G
     local net_br=br-ext
-    virt_inst "${vm_type}" "${store_pool}" "${size_gb}" "${net_br}" "${iso_img}"
+    virt_inst_aarch64_x86 "${vm_type}" "${store_pool}" "${size_gb}" "${net_br}" "${iso_img}"
+#    virt_inst "${vm_type}" "${store_pool}" "${size_gb}" "${net_br}" "${iso_img}"
     return 0
 }
 main "$@"
