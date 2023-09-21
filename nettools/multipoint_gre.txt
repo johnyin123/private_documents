@@ -1,0 +1,32 @@
+Setup the multi-point GRE tunnel
+Node A:
+    ip tunnel add overNet mode gre local 192.168.33.1 key 1234
+    # Assign an IP Address to the tunnel end point
+    ip addr add 10.0.0.1/24 dev overNet
+    # Add neighbour entries for remote end points
+    ip neighbor add 10.0.0.2 lladdr 192.168.33.2 dev overNet
+    ip neighbor add 10.0.0.3 lladdr 192.168.33.3 dev overNet
+    ip link set dev overNet up
+    # Note: The link layer address here is the IP address of the remote node and not a IP addresses
+    # Add routes to reach the remote subnets via the tunnel end points
+    ip route add 10.2.0.0/24 via 10.0.0.2
+    ip route add 10.3.0.0/24 via 10.0.0.3
+    # Note: We route the traffic through the overlay tunnels
+    # Repeat these steps on Node B and Node C, with appropriate changes.
+Node B
+    ip tunnel add overNet mode gre local 192.168.33.2 key 1234
+    ip addr add 10.0.0.2/24 dev overNet
+    ip neighbor add 10.0.0.1 lladdr 192.168.33.1 dev overNet
+    ip neighbor add 10.0.0.3 lladdr 192.168.33.3 dev overNet
+    ip link set dev overNet up
+    ip route add 10.1.0.0/24 via 10.0.0.1
+    ip route add 10.3.0.0/24 via 10.0.0.3
+Node C
+    ip tunnel add overNet mode gre local 192.168.33.3 key 1234
+    ip addr add 10.0.0.3/24 dev overNet
+    ip neighbor add 10.0.0.2 lladdr 192.168.33.2 dev overNet
+    ip neighbor add 10.0.0.3 lladdr 192.168.33.3 dev overNet
+    ip link set dev overNet up
+    ip route add 10.2.0.0/24 via 10.0.0.2
+    ip route add 10.3.0.0/24 via 10.0.0.3
+# Now you will be able to reach all the subnets seamlessly with Node A, Node B and Node C acting as a routers and for traffic traversing across subnets
