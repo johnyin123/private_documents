@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("12732ec[2023-08-31T08:13:07+08:00]:build_centos_no_kernel.sh")
+VERSION+=("d8346a1[2023-09-22T10:18:42+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -35,7 +35,7 @@ RELEASE_VER=${RELEASE_VER:-7.9.2009} \
     HOSTNAME="srv1" \
     NAME_SERVER=${NAME_SERVER:-114.114.114.114} \
     PASSWORD=password \
-    centos_build "${ROOT_DIR}" "${CACHE_DIR}" "${PKG}"
+    centos_build "${ROOT_DIR}" "${CACHE_DIR}" "${PKG}" || true
 log "INIT............"
 touch ${ROOT_DIR}/etc/fstab
 touch ${ROOT_DIR}/etc/sysconfig/network
