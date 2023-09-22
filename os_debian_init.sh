@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("20ee000[2023-07-13T10:40:09+08:00]:os_debian_init.sh")
+VERSION+=("3012bc9[2023-08-14T10:06:10+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -121,11 +121,11 @@ debian_grub_init() {
 GRUB_DEFAULT=0
 GRUB_TIMEOUT=5
 GRUB_DISTRIBUTOR=`lsb_release -i -s 2> /dev/null || echo Debian`
-GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0,115200n8 console=tty1 net.ifnames=0 biosdevname=0 selinux=0"
+GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0,115200n8 console=tty0 net.ifnames=0 biosdevname=0 selinux=0"
 GRUB_CMDLINE_LINUX=""
 EOF
     mkdir -p /etc/default/grub.d || true
-    systemctl enable getty@tty1.service || true
+    systemctl enable getty@tty0.service || true
     echo 'GRUB_CMDLINE_LINUX_DEFAULT="$GRUB_CMDLINE_LINUX_DEFAULT apparmor=0"' | tee /etc/default/grub.d/apparmor.cfg
     echo "need run: update-grub"
     echo "cat /sys/module/apparmor/parameters/enabled"
@@ -640,13 +640,13 @@ export -f debian_chpasswd
 debian_autologin_root() {
     # auto login as root
     sed -i "s|#NAutoVTs=6|NAutoVTs=1|" /etc/systemd/logind.conf
-    mkdir -p /etc/systemd/system/getty@tty1.service.d
-    cat <<EOF | tee /etc/systemd/system/getty@tty1.service.d/override.conf
+    mkdir -p /etc/systemd/system/getty@tty0.service.d
+    cat <<EOF | tee /etc/systemd/system/getty@tty0.service.d/override.conf
 [Service]
 ExecStart=
 ExecStart=-/sbin/agetty --autologin root --noclear %I 38400 linux
 EOF
-    systemctl enable getty@tty1.service
+    systemctl enable getty@tty0.service
 }
 export -f debian_autologin_root
 

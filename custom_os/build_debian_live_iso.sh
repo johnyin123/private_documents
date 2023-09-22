@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("73f45bf[2023-04-05T14:34:33+08:00]:build_debian_live_iso.sh")
+VERSION+=("b9eff15[2023-05-17T20:28:52+08:00]:build_debian_live_iso.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
@@ -88,18 +88,18 @@ timeout 50
 label live-${INST_ARCH:-amd64}-ram
     menu label ^debian RAM (${INST_ARCH:-amd64})
     menu default
-    linux /live/vmlinuz apm=power-off boot=live live-media-path=/live/ toram=filesystem.squashfs net.ifnames=0 biosdevname=0 console=ttyS0,115200n8 console=tty1
+    linux /live/vmlinuz apm=power-off boot=live live-media-path=/live/ toram=filesystem.squashfs net.ifnames=0 biosdevname=0 console=ttyS0,115200n8 console=tty0
     append initrd=/live/initrd boot=live
 
 label live-${INST_ARCH:-amd64}
     menu label ^debian (${INST_ARCH:-amd64})
     linux /live/vmlinuz
-    append initrd=/live/initrd boot=live net.ifnames=0 biosdevname=0 console=ttyS0,115200n8 console=tty1
+    append initrd=/live/initrd boot=live net.ifnames=0 biosdevname=0 console=ttyS0,115200n8 console=tty0
 
 label live-${INST_ARCH:-amd64}-failsafe
     menu label ^debian (${INST_ARCH:-amd64} failsafe)
     linux /live/vmlinuz
-    append initrd=/live/initrd boot=live config memtest noapic noapm nodma nomce nolapic nomodeset nosmp nosplash vga=normal net.ifnames=0 biosdevname=0 console=ttyS0,115200n8 console=tty1
+    append initrd=/live/initrd boot=live config memtest noapic noapm nodma nomce nolapic nomodeset nosmp nosplash vga=normal net.ifnames=0 biosdevname=0 console=ttyS0,115200n8 console=tty0
 
 endtext
 EOF
@@ -182,7 +182,7 @@ set timeout=30
 set default="0"
 insmod all_video
 menuentry "Debian GNU/Linux Live" {
-    linux  /live/${vmlinuz##*/} boot=live live-media-path=/live/ toram=filesystem.squashfs net.ifnames=0 biosdevname=0 console=ttyS0,115200n8 console=tty1
+    linux  /live/${vmlinuz##*/} boot=live live-media-path=/live/ toram=filesystem.squashfs net.ifnames=0 biosdevname=0 console=ttyS0,115200n8 console=tty0
     initrd /live/${initrd##*/}
 }
 EOGRUB

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8b5cff5[2023-04-25T10:20:59+08:00]:netns-busybox-pxe-efi-server.sh")
+VERSION+=("b9eff15[2023-05-17T20:28:52+08:00]:netns-busybox-pxe-efi-server.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 NBD_ROOT=${NBD_ROOT:-"LABEL=rootfs"}
@@ -238,7 +238,7 @@ append initrd=/debian/initrd.gz vga=788 --- quiet
 label 3
 menu label ^3) NBD ROOTFS Debian
 kernel /${NBD_DIR}/vmlinuz
-append initrd=/${NBD_DIR}/initrd.img nbddev=/dev/nbd0 nbdroot=${NBD_SRV} ip=${NBD_IP} root=${NBD_ROOT} net.ifnames=0 console=ttyAML0,115200n8 console=tty1
+append initrd=/${NBD_DIR}/initrd.img nbddev=/dev/nbd0 nbdroot=${NBD_SRV} ip=${NBD_IP} root=${NBD_ROOT} net.ifnames=0 console=ttyAML0,115200n8 console=lty0
 
 label 4
 menu label ^4) Boot from local drive
@@ -268,7 +268,7 @@ menuentry 'Install Debian [UEFI] PXE' {
     initrdefi /debian/initrd.gz
 }
 menuentry 'NBD ROOTFS Debian [UEFI]' {
-    linuxefi /${NBD_DIR}/vmlinuz nbddev=/dev/nbd0 nbdroot=${NBD_SRV} ip=${NBD_IP} root=${NBD_ROOT} net.ifnames=0 console=ttyAML0,115200n8 console=tty1
+    linuxefi /${NBD_DIR}/vmlinuz nbddev=/dev/nbd0 nbdroot=${NBD_SRV} ip=${NBD_IP} root=${NBD_ROOT} net.ifnames=0 console=ttyAML0,115200n8 console=tty0
     initrdefi /${NBD_DIR}/initrd.img
 }
 menuentry 'Start' {
@@ -317,7 +317,7 @@ timezone  Asia/Shanghai
 clearpart --all --initlabel --drives=${boot_driver}
 # Delete MBR / GPT
 zerombr
-bootloader --location=mbr --driveorder=${boot_driver} --append=" console=ttyS0,115200n8 console=tty1 net.ifnames=0 biosdevname=0"
+bootloader --location=mbr --driveorder=${boot_driver} --append=" console=ttyS0,115200n8 console=tty0 net.ifnames=0 biosdevname=0"
 $( [ "${efi}" = "true" ] && echo "part     /boot/efi  --fstype=vfat --size=50 --ondisk=${boot_driver}")
 $(if [ "${lvm:=false}" = "true" ]; then
     echo "part     /boot      --fstype=xfs  --size=200 --ondisk=${boot_driver}"
@@ -404,7 +404,7 @@ EOF
 chmod 0600 /root/.ssh/authorized_keys
 
 systemctl set-default multi-user.target
-systemctl enable getty@tty1
+systemctl enable getty@tty0
 
 netsvc=network
 systemctl status NetworkManager.service >/dev/null 2>&1 && {

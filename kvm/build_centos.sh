@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("450726b[2023-04-26T19:55:01+08:00]:build_centos.sh")
+VERSION+=("b9eff15[2023-05-17T20:28:52+08:00]:build_centos.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 cat <<"EOF"
@@ -240,7 +240,7 @@ GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
 GRUB_DEFAULT=saved
 GRUB_DISABLE_SUBMENU=true
 GRUB_TERMINAL_OUTPUT="console"
-GRUB_CMDLINE_LINUX="console=ttyS0,115200n8 console=tty1 net.ifnames=0 biosdevname=0 selinux=0"
+GRUB_CMDLINE_LINUX="console=ttyS0,115200n8 console=tty0 net.ifnames=0 biosdevname=0 selinux=0"
 GRUB_DISABLE_RECOVERY="true"
 EOF
 
@@ -267,7 +267,7 @@ systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --
 #localectl set-x11-keymap cn
 echo "${NEWPASSWORD}" | passwd --stdin root
 touch /etc/sysconfig/network
-systemctl enable getty@tty1
+systemctl enable getty@tty0
 touch /*
 touch /etc/*
 touch /boot/*
