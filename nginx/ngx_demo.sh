@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("81526ac[2023-09-15T07:24:20+08:00]:ngx_demo.sh")
+VERSION+=("fa7d9ee[2023-09-19T08:42:42+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -890,6 +890,8 @@ cat <<'EOF' > git_web.http
 # chown -R www-data:www-data /myrepo # fcgiwrap user
 # chmod -R 755 /myrepo
 # printf "user1:$(openssl passwd -apr1 password)\n" >> /myrepo/htpasswd
+# echo -n "user:"" > /myrepo/htpasswd
+# mkpasswd -m sha-512 >> /myrepo/htpasswd
 server {
     listen 80;
     server_name _;
