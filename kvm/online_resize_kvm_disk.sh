@@ -1,3 +1,9 @@
+# -vnc 127.0.0.1:0,websocket=5700
+<graphics type='vnc' port='5900' autoport='no' websocket='5700' listen='127.0.0.1'>
+    <listen type='address' address='127.0.0.1'/>
+</graphics>
+
+
 # pin cpu 
 virsh vcpupin <domain> 0 0
 virsh vcpupin <domain> 1 1
