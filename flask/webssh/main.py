@@ -137,6 +137,15 @@ class IndexHandler(tornado.web.RequestHandler):
             pass
         else:
             return pkey
+    # def get_pkey(self, pkey_fn):
+    #     logging.info('Trying load key from {}'.format(pkey_fn))
+    #     pkey = paramiko.RSAKey.from_private_key_file    (pkey_fn)\
+    #         or paramiko.DSSKey.from_private_key_file    (pkey_fn)\
+    #         or paramiko.ECDSAKey.from_private_key_file  (pkey_fn)\
+    #         or paramiko.Ed25519Key.from_private_key_file(pkey_fn)
+    #     if not pkey:
+    #         raise ValueError('load private key file error.')
+    #     return pkey
 
     def get_pkey(self, privatekey, password):
         password = password.encode('utf-8') if password else None
@@ -176,6 +185,8 @@ class IndexHandler(tornado.web.RequestHandler):
         password = self.get_argument('password')
         privatekey = self.get_privatekey()
         pkey = self.get_pkey(privatekey, password) if privatekey else None
+        # pkey = self.get_pkey('admin.id_rsa')
+        # password=None
         args = (hostname, port, username, password, pkey)
         logging.debug(args)
         return args
