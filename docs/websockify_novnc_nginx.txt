@@ -1,0 +1,122 @@
+Now we need to set up NGINX. Here’s the nginx.conf configuration file.
+
+user www-data;
+daemon off;
+
+events {
+}
+
+http {
+  server {
+    listen 80 default_server;
+    
+    location / {
+      root /www/data;
+      try_files $uri $uri/ /index.html;
+    }
+    
+    location /novnc/ {
+      proxy_pass http://127.0.0.1:6080/;
+    }
+    
+    location /novnc/websockify {
+      proxy_pass http://127.0.0.1:6080/;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "Upgrade";
+      proxy_set_header Host $host;
+    }
+  }
+}
+NGINX will listen on port 80. The three location blocks determine what happens with a request.
+
+location / — Serve the static index page at the root.
+location /novnc/ — Proxy HTTP requests for /novnc/ to Websockify on port 6080.
+location /novnc/websockify — Proxy WebSocket requests for /novnc/websockify to Websockify on port 6080 and upgrade connection.
+Now start NGINX.
+
+nginx
+Visiting 127.0.0.1 now provides a (very) simple index page. 💡 The index page is not necessary. You can ignore it and just connect directly to noVNC at 127.0.0.1/novnc/vnc.html.
+
+Simple index page with link served via NGINX.
+Clicking on the solitary link takes you to the noVNC connection page.
+
+The noVNC connection page.
+And clicking on the big button then takes you through to the desktop.
+
+Desktop in browser after logging in via noVNC connection page.
+This implementation has a couple of improvements:
+
+automatic scaling of the desktop size with the size of the browser; and
+it’s being served on port 80, the standard HTTP port, so doesn’t require any special networking considerations.
+Multiple Desktops
+Okay, so we’ve got it working for a single desktop. Nice! But the goal was to accommodate multiple desktops. Luckily we’ve already done most of the hard work. Now it’s just a matter of tweaking the details.
+
+If you wanted to enable multiple desktops then you’d probably be running an instance of VNC and Websockify for each user, which means a bunch of ports that need to be exposed. However, using NGINX and judicially proxying an URI to each Websockify port you need only expose port 80 (or 443 if you’re using SSL).
+
+Suppose that we also wanted to provide a desktop for Bob. First update the index page.
+
+<a href="http://127.0.0.1/novnc/alice/vnc.html?resize=remote&path=novnc/alice/websockify">Alice</a>
+<a href="http://127.0.0.1/novnc/bob/vnc.html?resize=remote&path=novnc/bob/websockify">Bob</a>
+💡 The targets of the <a> tags and the values of the path parameters are now slightly more elaborate and include the usernames for Alice and Bob. NGINX will use this path to dispatch requests to separate instances of noVNC and connect to a distinct Websockify sessions.
+
+We’ll launch a second VNC server, this time on display 1 (so it’s accessible via port 5901).
+
+vncserver \
+    -localhost no \
+    -geometry 1024x768 \
+    -SecurityTypes None --I-KNOW-THIS-IS-INSECURE \
+    :1
+And we’ll also need a separate instance of Websockify, which will now run on port 6801 and connect to noVNC on port 5901.
+
+websockify -D \
+    --web /usr/share/novnc/ \
+    --cert /etc/ssl/novnc.pem \
+    6081 \
+    localhost:5901 \
+    2>/dev/null
+Now we just need to update the NGINX configuration to handle this setup.
+
+user www-data;
+daemon off;
+
+events {
+}
+
+http {
+  server {
+    listen 80 default_server;
+    
+    location / {
+      root /www/data;
+      try_files $uri $uri/ /index-both.html;
+    }
+    
+    location /novnc/alice/ {
+      proxy_pass http://127.0.0.1:6080/;
+    }
+    
+    location /novnc/alice/websockify {
+      proxy_pass http://127.0.0.1:6080/;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "Upgrade";
+      proxy_set_header Host $host;
+    }
+    
+    location /novnc/bob/ {
+      proxy_pass http://127.0.0.1:6081/;
+    }
+    
+    location /novnc/bob/websockify {
+      proxy_pass http://127.0.0.1:6081/;
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "Upgrade";
+      proxy_set_header Host $host;
+    }
+  }
+}
+There’s now a second pair of location entries for Bob. And the /novnc/ locations now also include the username in the path, which means that they match the URLs specified in the index.
+
+
