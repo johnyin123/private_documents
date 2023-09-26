@@ -1,24 +1,42 @@
+http://xxx/vnc.html?host=10.10.10.230&port=6080
+novnc_ws {
+    server localhost:9090; //websockify的地址
+}
+server {
+        listen 5800;
+        server_name localhost;
+
+        add_header Vary Accept-Encoding;
+        add_header Cache-Control no-cache;
+
+        client_max_body_size 1024m;
+        proxy_redirect off;
+        location / {
+                root noVNC;//文件夹所在路径;
+                index vnc.html;
+        }
+        location /websockify {
+                proxy_pass http://novnc_ws;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade $http_upgrade;
+                proxy_set_header Connection "Upgrade";
+        }
+}
+http://{task服务器IP}:5800/?path=websockify&token=t0{0~1}就可以访问
+
+
+
 Now we need to set up NGINX. Here’s the nginx.conf configuration file.
 
-user www-data;
-daemon off;
-
-events {
-}
-
-http {
   server {
     listen 80 default_server;
-    
     location / {
       root /www/data;
       try_files $uri $uri/ /index.html;
     }
-    
     location /novnc/ {
       proxy_pass http://127.0.0.1:6080/;
     }
-    
     location /novnc/websockify {
       proxy_pass http://127.0.0.1:6080/;
       proxy_http_version 1.1;
@@ -27,16 +45,11 @@ http {
       proxy_set_header Host $host;
     }
   }
-}
-NGINX will listen on port 80. The three location blocks determine what happens with a request.
 
 location / — Serve the static index page at the root.
 location /novnc/ — Proxy HTTP requests for /novnc/ to Websockify on port 6080.
 location /novnc/websockify — Proxy WebSocket requests for /novnc/websockify to Websockify on port 6080 and upgrade connection.
-Now start NGINX.
-
-nginx
-Visiting 127.0.0.1 now provides a (very) simple index page. 💡 The index page is not necessary. You can ignore it and just connect directly to noVNC at 127.0.0.1/novnc/vnc.html.
+Visiting 127.0.0.1 now provides a (very) simple index page. at 127.0.0.1/novnc/vnc.html.
 
 Simple index page with link served via NGINX.
 Clicking on the solitary link takes you to the noVNC connection page.
@@ -58,7 +71,7 @@ Suppose that we also wanted to provide a desktop for Bob. First update the index
 
 <a href="http://127.0.0.1/novnc/alice/vnc.html?resize=remote&path=novnc/alice/websockify">Alice</a>
 <a href="http://127.0.0.1/novnc/bob/vnc.html?resize=remote&path=novnc/bob/websockify">Bob</a>
-💡 The targets of the <a> tags and the values of the path parameters are now slightly more elaborate and include the usernames for Alice and Bob. NGINX will use this path to dispatch requests to separate instances of noVNC and connect to a distinct Websockify sessions.
+ The targets of the <a> tags and the values of the path parameters are now slightly more elaborate and include the usernames for Alice and Bob. NGINX will use this path to dispatch requests to separate instances of noVNC and connect to a distinct Websockify sessions.
 
 We’ll launch a second VNC server, this time on display 1 (so it’s accessible via port 5901).
 
@@ -77,25 +90,15 @@ websockify -D \
     2>/dev/null
 Now we just need to update the NGINX configuration to handle this setup.
 
-user www-data;
-daemon off;
-
-events {
-}
-
-http {
   server {
     listen 80 default_server;
-    
     location / {
       root /www/data;
       try_files $uri $uri/ /index-both.html;
     }
-    
     location /novnc/alice/ {
       proxy_pass http://127.0.0.1:6080/;
     }
-    
     location /novnc/alice/websockify {
       proxy_pass http://127.0.0.1:6080/;
       proxy_http_version 1.1;
@@ -103,11 +106,9 @@ http {
       proxy_set_header Connection "Upgrade";
       proxy_set_header Host $host;
     }
-    
     location /novnc/bob/ {
       proxy_pass http://127.0.0.1:6081/;
     }
-    
     location /novnc/bob/websockify {
       proxy_pass http://127.0.0.1:6081/;
       proxy_http_version 1.1;
@@ -116,7 +117,4 @@ http {
       proxy_set_header Host $host;
     }
   }
-}
 There’s now a second pair of location entries for Bob. And the /novnc/ locations now also include the username in the path, which means that they match the URLs specified in the index.
-
-
