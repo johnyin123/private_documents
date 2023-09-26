@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import io
 import logging
 import os.path
@@ -75,7 +78,6 @@ class Worker(object):
                 self.close()
                 return
 
-            logging.debug('"{}" to {}'.format(data, self.handler.src_addr))
             try:
                 self.handler.write_message(data)
             except tornado.websocket.WebSocketClosedError:
@@ -226,17 +228,8 @@ class WsockHandler(tornado.websocket.WebSocketHandler):
     def check_origin(self, origin):
         return True
 
-    def get_addr(self):
-        ip = self.request.headers.get_list('X-Real-Ip')
-        port = self.request.headers.get_list('X-Real-Port')
-        addr = ':'.join(ip + port)
-        if not addr:
-            addr = '{}:{}'.format(*self.stream.socket.getpeername())
-        return addr
-
     def open(self):
-        self.src_addr = self.get_addr()
-        logging.info('Connected from {}'.format(self.src_addr))
+        logging.info('Connected from')
         worker = workers.pop(self.get_argument('id'), None)
         if not worker:
             self.close(reason='Invalid worker id')
@@ -247,13 +240,13 @@ class WsockHandler(tornado.websocket.WebSocketHandler):
         self.loop.add_handler(worker.fd, worker, IOLoop.READ)
 
     def on_message(self, message):
-        logging.debug('"{}" from {}'.format(message, self.src_addr))
+        logging.debug('on_message')
         worker = self.worker_ref()
         worker.data_to_dst.append(message)
         worker.on_write()
 
     def on_close(self):
-        logging.info('Disconnected from {}'.format(self.src_addr))
+        logging.info('Disconnected')
         worker = self.worker_ref() if self.worker_ref else None
         if worker:
             worker.close()

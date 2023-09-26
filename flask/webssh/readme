@@ -1,4 +1,5 @@
-$ pip install -r requirements.txt
+python3 -m venv python
+pip install --upgrade -r requirements.txt
 // default listen on 127.0.0.1:8888
 $ python main.py
 // change listen address and port
