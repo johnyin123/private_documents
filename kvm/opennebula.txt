@@ -1,0 +1,59 @@
+apt update && apt install wget gnupg2 apt-transport-https -y
+curl -fsSL https://downloads.opennebula.io/repo/repo2.key|gpg --dearmor -o /etc/apt/trusted.gpg.d/opennebula.gpg
+# wget -q -O- 'https://repo.dovecot.org/DOVECOT-REPO-GPG' | gpg --dearmor > /etc/apt/trusted.gpg.d/dovecot-archive-keyring.gpg
+### Debian 12 / Debian 11 ###
+echo "deb https://downloads.opennebula.io/repo/6.6/Debian/11 stable opennebula" | tee /etc/apt/sources.list.d/opennebula.list
+### Debian 10 ###
+echo "deb https://downloads.opennebula.io/repo/6.6/Debian/10 stable opennebula" | tee /etc/apt/sources.list.d/opennebula.list
+# echo 'Acquire { https::Verify-Peer false }' > /etc/apt/apt.conf.d/99verify-peer.conf
+# apt -y install dpkg-dev createrepo-c
+# dpkg-scanpackages --multiversion . /dev/null > Release
+# deb [trusted=yes] file:///opt/debs
+apt update && apt -y install vim opennebula opennebula-sunstone opennebula-gate opennebula-flow opennebula-provision opennebula-fireedge
+    # opennebula: OpenNebula Daemon and Scheduler.
+    # opennebula-common: Shared content for OpenNebula packages.
+    # opennebula-common-onescape: Helpers for OneScape project.
+    # opennebula-tools: Command Line Interface.
+    # opennebula-sunstone: Sunstone (the GUI) and the EC2 API.
+    # opennebula-gate: OneGate server that enables communication between VMs and OpenNebula.
+    # opennebula-flow: OneFlow manages services and elasticity.
+    # opennebula-provision: OneProvision deploys new clusters on remote bare-metal cloud providers.
+    # opennebula-node: Dependencies and configurations for KVM hypervisor node.
+    # opennebula-node-firecracker: Dependencies and configurations for Firecracker hypervisor node.
+    # opennebula-node-lxd: Dependencies and configurations for LXD hypervisor node.
+    # opennebula-lxd-snap: Meta-package to install LXD snap (only on Ubuntu 16.04 and 18.04).
+    # opennebula-rubygems: Bundled Ruby gem dependencies.
+    # opennebula-dbgsym: Package with debug information.
+    # ruby-opennebula: Ruby Bindings.
+    # libopennebula-java: Java Bindings.
+    # libopennebula-java-doc: Java Bindings Documentation.
+    # python-pyone: Python 2 Bindings (not on Ubuntu 20.04 and later).
+    # python3-pyone: Python 3 Bindings.
+
+su - oneadmin
+cat /var/lib/one/.one/one_auth
+echo "oneadmin:password" > ~/.one/one_auth
+systemctl enable opennebula --now
+systemctl enable opennebula-sunstone --now
+# Verify OpenNebula Frontend installation
+sudo -u oneadmin oneuser show
+echo "  Port 60022" >> /var/lib/one/.ssh/config
+cat /var/lib/one/.ssh/id_rsa.pub
+echo "192.168.168.151 kvm01" >> /etc/hosts
+# # To change oneadmin password, follow the next steps:
+# oneuser passwd 0 <PASSWORD>
+# echo 'oneadmin:PASSWORD' > /var/lib/one/.one/one_auth
+
+# Login to  Sunstone web interface
+http://<frontend_address>:9869
+
+# # install OpenNebula KVM Node
+apt -y install opennebula-node-kvm
+systemctl restart libvirtd
+sudo -u oneadmin touch /var/lib/one/.ssh/authorized_keys
+sudo -u oneadmin chmod 600 /var/lib/one/.ssh/authorized_keys
+
+# Add KVM Host to OpenNebula
+    Login to the Web console and navigate to Infrastructure -> Hosts
+
+
