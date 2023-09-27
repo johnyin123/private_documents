@@ -1,3 +1,7 @@
+wget 'https://github.com/OpenNebula/minione/releases/latest/download/minione'
+sudo bash minione --frontend
+
+password=Nabuax33*a
 apt update && apt install wget gnupg2 apt-transport-https -y
 curl -fsSL https://downloads.opennebula.io/repo/repo2.key|gpg --dearmor -o /etc/apt/trusted.gpg.d/opennebula.gpg
 # wget -q -O- 'https://repo.dovecot.org/DOVECOT-REPO-GPG' | gpg --dearmor > /etc/apt/trusted.gpg.d/dovecot-archive-keyring.gpg
@@ -30,7 +34,6 @@ apt update && apt -y install vim opennebula opennebula-sunstone opennebula-gate 
     # python-pyone: Python 2 Bindings (not on Ubuntu 20.04 and later).
     # python3-pyone: Python 3 Bindings.
 
-su - oneadmin
 cat /var/lib/one/.one/one_auth
 echo "oneadmin:password" > ~/.one/one_auth
 systemctl enable opennebula --now
@@ -39,7 +42,14 @@ systemctl enable opennebula-sunstone --now
 sudo -u oneadmin oneuser show
 echo "  Port 60022" >> /var/lib/one/.ssh/config
 cat /var/lib/one/.ssh/id_rsa.pub
+
+echo "oneadmin:${password:-password}" |chpasswd
 echo "192.168.168.151 kvm01" >> /etc/hosts
+# 分发身份验证
+sudo -u oneadmin ssh-copy-id -i /var/lib/one/.ssh/id_rsa.pub oneadmin@kvm01 -p60022
+# # 创建known_hosts
+# ssh-keyscan <frontend> <node1> <node2> <node3> ... >> /var/lib/one/.ssh/known_hosts
+# scp -p /var/lib/one/.ssh/known_hosts <node1>:/var/lib/one/.ssh/
 # # To change oneadmin password, follow the next steps:
 # oneuser passwd 0 <PASSWORD>
 # echo 'oneadmin:PASSWORD' > /var/lib/one/.one/one_auth
