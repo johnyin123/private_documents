@@ -219,7 +219,23 @@ EOF
 #######################################################################################
 # Doc 
 #######################################################################################
-# Create image rbd datastore. (su oneadmin)
+# # Gold Image:
+# Download Contextualization Packages to the VM
+# wget https://github.com/OpenNebula/addon-context-linux/
+# Install Contextualization Packages and Dependencies
+# Set Up the Virtual Machine Template¶
+# # Virtual Machine Template has a section called context where you can automate different configuration aspects
+# # The most common attributes are network configuration, user credentials and startup scripts.
+cat <<EOF
+CONTEXT = [
+    TOKEN = "YES",
+    NETWORK = "YES",
+    SSH_PUBLIC_KEY = "USER[SSH_PUBLIC_KEY]",
+    START_SCRIPT = "yum install -y ntpdate"
+]
+EOF
+#########################################
+# # Create image rbd datastore. (su oneadmin)
 cat << EOT | sudo -u oneadmin tee /tmp/rbd.store
  NAME      = "cephds"
  DS_MAD    = ceph
