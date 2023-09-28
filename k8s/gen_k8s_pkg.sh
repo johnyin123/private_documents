@@ -4,7 +4,7 @@ readonly SCRIPTNAME=${0##*/}
 set -o errtrace
 set -o nounset
 set -o errexit
-VERSION+=("39acc5a[2023-08-21T11:20:08+08:00]:gen_k8s_pkg.sh")
+VERSION+=("93b528b[2023-08-25T11:10:32+08:00]:gen_k8s_pkg.sh")
 ################################################################################
 PKG_DIR=${1?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
 ARCH=${2?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
@@ -149,8 +149,15 @@ fpm --package . -s dir -t rpm --architecture ${ARCH} -C ${PKG_DIR}/ --name tsd_c
 fpm --package . -s dir -t deb --architecture ${ARCH} -C ${PKG_DIR}/ --name tsd_cnap_${VER} --conflicts containerd --conflicts kubelet --conflicts kubeadm --conflicts kubectl ${depends} --version 0.9 --description "tsd cnap ${ARCH} env ${VER} $(echo "${VERSION[@]}" | cut -d'[' -f 1)"
 cat <<'EOF'
 apt -y install dpkg-dev createrepo-c
-dpkg-scanpackages --multiversion . /dev/null > Release
-deb [trusted=yes] file:///opt/debs
+# dpkg-scanpackages --multiversion . /dev/null > Release
+# deb [trusted=yes] file:///opt/debs
+
+mkdir -p package packs
+mv *.deb package/ || true
+dpkg-scanpackages --multiversion  package  /dev/null  | gzip > packs/Packages.gz
+# mkdir -p dists/bullseye/main/binary-amd64/
+# dpkg-scanpackages pools override > dists/bullseye/main/binary-amd64/Packages
+deb [trusted=yes] http://192.168.168.1/debian packs/
 ########################################
 yum -y --disablerepo=* --enablerepo=myrepo --enablerepo=cnap install tsd_cnap_v1.21.7
 cat <<EOFREP > cnap.repo
