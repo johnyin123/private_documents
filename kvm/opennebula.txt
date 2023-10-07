@@ -1,66 +1,20 @@
 # https://docs.opennebula.io
 #######################################################################################
+# mkdir -p package packs
+# mv *.deb package/ || true
+# dpkg-scanpackages --multiversion  package  /dev/null  | gzip > packs/Packages.gz
+# deb [trusted=yes] http://192.168.168.1/debian packs/
+#######################################################################################
 # Install
 #######################################################################################
-password=mypassword
-apt update && apt install wget gnupg2 apt-transport-https -y
-curl -fsSL https://downloads.opennebula.io/repo/repo2.key|gpg --dearmor -o /etc/apt/trusted.gpg.d/opennebula.gpg
-# wget -q -O- 'https://repo.dovecot.org/DOVECOT-REPO-GPG' | gpg --dearmor > /etc/apt/trusted.gpg.d/dovecot-archive-keyring.gpg
-### Debian 12 / Debian 11 ###
-echo "deb https://downloads.opennebula.io/repo/6.6/Debian/11 stable opennebula" | tee /etc/apt/sources.list.d/opennebula.list
-### Debian 10 ###
-echo "deb https://downloads.opennebula.io/repo/6.6/Debian/10 stable opennebula" | tee /etc/apt/sources.list.d/opennebula.list
-# # make private repo for install, see k8s/gen_k8s_pkg.sh
-apt update && apt -y install vim opennebula opennebula-sunstone opennebula-gate opennebula-flow opennebula-provision opennebula-fireedge
-    # opennebula: OpenNebula Daemon and Scheduler.
-    # opennebula-common: Shared content for OpenNebula packages.
-    # opennebula-common-onescape: Helpers for OneScape project.
-    # opennebula-tools: Command Line Interface.
-    # opennebula-sunstone: Sunstone (the GUI) and the EC2 API.
-    # opennebula-gate: OneGate server that enables communication between VMs and OpenNebula.
-    # opennebula-flow: OneFlow manages services and elasticity.
-    # opennebula-provision: OneProvision deploys new clusters on remote bare-metal cloud providers.
-    # opennebula-node: Dependencies and configurations for KVM hypervisor node.
-    # opennebula-node-firecracker: Dependencies and configurations for Firecracker hypervisor node.
-    # opennebula-node-lxd: Dependencies and configurations for LXD hypervisor node.
-    # opennebula-lxd-snap: Meta-package to install LXD snap (only on Ubuntu 16.04 and 18.04).
-    # opennebula-rubygems: Bundled Ruby gem dependencies.
-    # opennebula-dbgsym: Package with debug information.
-    # ruby-opennebula: Ruby Bindings.
-    # libopennebula-java: Java Bindings.
-    # libopennebula-java-doc: Java Bindings Documentation.
-    # python-pyone: Python 2 Bindings (not on Ubuntu 20.04 and later).
-    # python3-pyone: Python 3 Bindings.
-# # now install kvm hosts, and then add hosts
-cat /var/lib/one/.one/one_auth
-echo "oneadmin:${password:-password}" > /var/lib/one/.one/one_auth
-systemctl enable opennebula --now
-systemctl enable opennebula-sunstone --now
-systemctl enable opennebula-fireedge --now
-# Verify OpenNebula Frontend installation
-sudo -u oneadmin oneuser show
-echo "  Port 60022" >> /var/lib/one/.ssh/config
-cat /var/lib/one/.ssh/id_rsa.pub
-# 分发身份验证
-sudo -u oneadmin ssh-copy-id -p60022 -i /var/lib/one/.ssh/id_rsa.pub oneadmin@ipaddr
-# # 创建known_hosts
-# ssh-keyscan <frontend> <node1> <node2> <node3> ... >> /var/lib/one/.ssh/known_hosts
-# scp -p /var/lib/one/.ssh/known_hosts <node1>:/var/lib/one/.ssh/
-# # To change oneadmin password, follow the next steps:
-# oneuser passwd 0 <PASSWORD>
-# echo 'oneadmin:PASSWORD' > /var/lib/one/.one/one_auth
-
-# Login to  Sunstone web interface
-http://<frontend_address>:9869
-http://<fireedge>:2616 , for non admin user manager vms
+password=password
+phy_bridge=br-ext
 #########################################
 # # install OpenNebula KVM Node
-apt -y install opennebula-node-kvm
-echo "oneadmin:${password:-password}" |chpasswd
+apt update && apt -y install opennebula-node-kvm
 systemctl restart libvirtd
 systemctl enable libvirtd
-phy_bridge=br-ext
-cat << EOF
+cat << EOF | tee /etc/network/interfaces.d/br-ext
 allow-hotplug eth0
 iface eth0 inet manual
 
@@ -71,63 +25,69 @@ iface ${phy_bridge} inet static
     address 192.168.168.151/24
     gateway 192.168.168.1
 EOF
+echo "oneadmin:${password:-password}" | chpasswd
+#########################################
+# # # Install OpenNebula frontend
+# # apt update && apt -y install wget gnupg2 apt-transport-https
+# # curl -fsSL https://downloads.opennebula.io/repo/repo2.key|gpg --dearmor -o /etc/apt/trusted.gpg.d/opennebula.gpg
+# # wget -q -O- 'https://repo.dovecot.org/DOVECOT-REPO-GPG' | gpg --dearmor > /etc/apt/trusted.gpg.d/dovecot-archive-keyring.gpg
+# # ### Debian 12 / Debian 11 ###
+# # echo "deb https://downloads.opennebula.io/repo/6.6/Debian/11 stable opennebula" | tee /etc/apt/sources.list.d/opennebula.list
+# # ### Debian 10 ###
+# # echo "deb https://downloads.opennebula.io/repo/6.6/Debian/10 stable opennebula" | tee /etc/apt/sources.list.d/opennebula.list
+# # make private repo for install, see k8s/gen_k8s_pkg.sh
+apt update && apt -y install vim opennebula opennebula-sunstone opennebula-gate opennebula-flow opennebula-provision opennebula-fireedge
+echo "oneadmin:${password:-password}" > /var/lib/one/.one/one_auth
+systemctl enable opennebula --now
+systemctl enable opennebula-sunstone --now
+systemctl enable opennebula-fireedge --now
+# Verify OpenNebula Frontend installation
+sudo -u oneadmin oneuser show
+echo "  Port 60022" >> /var/lib/one/.ssh/config
+cat /var/lib/one/.ssh/id_rsa.pub
+# 分发身份验证
+sudo -u oneadmin ssh-copy-id -p60022 -i /var/lib/one/.ssh/id_rsa.pub oneadmin@<KVM Node>
+# # 创建known_hosts
+# ssh-keyscan <frontend> <node1> <node2> <node3> ... >> /var/lib/one/.ssh/known_hosts
+# scp -p /var/lib/one/.ssh/known_hosts <node1>:/var/lib/one/.ssh/
+# # To change oneadmin password, follow the next steps:
+# oneuser passwd 0 <PASSWORD>
+# echo 'oneadmin:PASSWORD' > /var/lib/one/.one/one_auth
+# Login to  Sunstone web interface
+# http://<frontend_address>:9869
+# http://<fireedge>:2616 , for non admin user manager vms
 #######################################################################################
 # Manage
 #######################################################################################
-# Downloading script:
- wget http://www.redmine.org/attachments/download/6239/sqlite3-to-mysql.py
-# Converting:
- sqlite3 /var/lib/one/one.db .dump | ./sqlite3-to-mysql.py > mysql.sql
- mysql -u oneadmin -p opennebula < mysql.sql
-# Change /etc/one/oned.conf from
- DB = [ backend = "sqlite" ]
-# to
- DB = [ backend = "mysql",
-      server  = "localhost",
-      port    = 0,
-      user    = "oneadmin",
-      passwd  = "PASS",
-      db_name = "opennebula" ]
-systemctl restart opennebula opennebula-sunstone
-# check logs for errors (/var/log/one/oned.log /var/log/one/sched.log /var/log/one/sunstone.log)
 #########################################
 # # Add cluster
 c_name=mycluster
-sudo -u oneadmin onecluster create ${c_name}
+vn_name=public-net
+
+[ -z "${c_name}" ] || sudo -u oneadmin onecluster create ${c_name}
 sudo -u oneadmin onecluster list
 #########################################
 # # Add host
-sudo -u oneadmin onehost create --cluster ${c_name} --im kvm --vm kvm 192.168.168.111
+sudo -u oneadmin onehost create ${c_name:+--cluster ${c_name}} --im kvm --vm kvm <ipaddr>
 sudo -u oneadmin onehost list
 #########################################
-# # Add net template
-vntpl_name="vnetwork"
-cat << EOT | sudo -u oneadmin tee /tmp/net.tpl
-NAME=${vntpl_name}
-VN_MAD="bridge"
-BRIDGE="${phy_bridge}"
-EOT
-sudo -u oneadmin onevntemplate create /tmp/net.tpl
-rm -f /tmp/net.tpl
-echo "change the permissions to make it available for the users you want"
-id=$(onevntemplate list  | grep "${vntpl_name}" | awk '{ print $1 }')
-onevntemplate chmod ${id} 604
-onevntemplate show ${id}
-# onevntemplate instantiate 0 --user user --name private
-# onevnet list
-#########################################
 # # Add net
-n_name=mynet
 cat << EOF | sudo -u oneadmin tee /tmp/def.net
- NAME       ="${n_name}"
- BRIDGE     ="${phy_bridge}"
- BRIDGE_TYPE="linux"
- VN_MAD     ="bridge"
- NETWORK_ADDRESS = 192.168.14.0
- NETWORK_SIZE    = C
+NAME       ="${vn_name}"
+BRIDGE     ="${phy_bridge}"
+BRIDGE_TYPE="linux"
+VN_MAD     ="bridge"
+AR=[
+IP="192.168.168.50",
+SIZE="10",
+TYPE="IP4" ]
 EOF
-sudo -u oneadmin onevnet create --cluster ${c_name} /tmp/def.net
-rm -f /tmp/def.net
+# NETWORK_ADDRESS = 192.168.14.0
+# NETWORK_SIZE    = C
+sudo -u oneadmin onevnet create ${c_name:+--cluster ${c_name}} /tmp/def.net && rm -f /tmp/def.net
+sudo -u oneadmin onevnet show ${vn_name}
+# ADD Address Ranges
+# onevnet addar ${vn_name} --ip 192.168.168.50 --size 10
 #########################################
 # # Datastore
 cat <<'EOF'
@@ -157,65 +117,140 @@ Datastore Layout
     `-- d0e0df1fb8cfa88311ea54dfbcfc4b0c
 The canonical path for /var/lib/one/datastores can be changed in oned.conf with the DATASTORE_LOCATION configuration attribute
 EOF
-# Create a System Datastore
+#########################################
+# sys/image datastore
+#########################################
+# Create a System/Image Datastore
 # TM_MAD:
 #     shared for shared transfer mode
 #     qcow2 for qcow2 transfer mode
 #     ssh for ssh transfer mode
 sys_datastore=sysds
+img_datastore=imgds
 cat << EOF | sudo -u oneadmin tee /tmp/sys.store
 NAME    = ${sys_datastore}
-TM_MAD  = ssh
 TYPE    = SYSTEM_DS
+TM_MAD  = ssh
 EOF
-sudo -u oneadmin onedatastore create --cluster ${c_name} /tmp/sys.store
-rm -f /tmp/sys.store
-#########################################
-# Create an Image Datastore
-# TM_MAD:
-#     shared for shared transfer mode
-#     qcow2 for qcow2 transfer mode
-#     ssh for ssh transfer mode
-img_datastore=imgds
+sudo -u oneadmin onedatastore create ${c_name:+--cluster ${c_name}} /tmp/sys.store && rm -f /tmp/sys.store
+sudo -u oneadmin onedatastore show ${sys_datastore}
 cat << EOF | sudo -u oneadmin tee /tmp/img.store
 NAME   = ${img_datastore}
 DS_MAD = fs
 TM_MAD = ssh
 EOF
-sudo -u oneadmin onedatastore create --cluster ${c_name} /tmp/img.store
-rm -f /tmp/img.store
+sudo -u oneadmin onedatastore create ${c_name:+--cluster ${c_name}} /tmp/img.store && rm -f /tmp/img.store
+sudo -u oneadmin onedatastore list
+#########################################
+# Image template
 #########################################
 img_tpl=debian
-sudo -u oneadmin oneimage create --datastore ${img_datastore} --name ${img_tpl} --path /var/tmp/debian.raw --description "debian vm tpl image."
+tpl_file=/var/tmp/debian.raw
+sudo -u oneadmin oneimage create --datastore ${img_datastore} --name ${img_tpl} --path ${tpl_file} --description "debian vm tpl image."
 sudo -u oneadmin oneimage show ${img_tpl}
-sudo -u oneadmin onetemplate create --arch x86_64 --vnc --name debian_tpl --memory 128 --cpu 1 --disk "${img_tpl}" --nic ${n_name}
 #########################################
-cat <<EOF | sudo -u oneadmin tee /tmp/centos.tpl
-NAME          = "centos"
-PATH          = "/tmp/centos.raw"
-DESCRIPTION   = "centos vm tpl image."
-EOF
-sudo -u oneadmin oneimage create --datastore ${img_datastore} /tmp/centos.tpl
-rm -f /tmp/centos.tpl
+# ceph sys/image datastore
 #########################################
+# Ceph Cluster Setup
+# # https://docs.opennebula.io/5.0/deployment/open_cloud_storage_setup/ceph_ds.html#frontend-setup
+# *************** Node Setup ****************#
+apt update && apt -y install ceph-common
+# # all kvm nodes run: uuid 各个主机要使用一个
+LOGFILE="-a log.txt"
+cluster=armsite
+poolname=libvirt-pool
+secret_name=admin #ceph_user
+# # COPY ceph.client.admin.keyring ceph.conf to nodes
+rbd ${cluster:+--cluster ${cluster}} ls ${poolname} --id ${secret_name} 
+# # ceph add user <secret_name> or use admin
+secret_uuid=$(cat /proc/sys/kernel/random/uuid)
+echo "UUID=${secret_uuid}"
+cat <<EPOOL | tee ${LOGFILE} | virsh secret-define /dev/stdin
+<secret ephemeral='no' private='no'>
+  <uuid>${secret_uuid}</uuid>
+  <usage type='ceph'>
+    <name>${secret_name} secret</name>
+  </usage>
+</secret>
+EPOOL
+secret_key=$(ceph ${cluster:+--cluster ${cluster}} auth get-key client.${secret_name})
+echo ${secret_key}
+virsh secret-set-value --secret ${secret_uuid} --base64 ${secret_key}
+echo "secret_uuid=${secret_uuid}"
+echo "secret_name=${secret_name}"
+echo "poolname=${poolname}"
+# *************** Frontend Setup ****************#
+# # The Frontend does not need any specific Ceph setup, it will access the Ceph cluster through the storage bridges.
+# # DEFINE system and image datastores
+# # Both datastores will share the same configuration parameters and Ceph pool.
+#########################################
+# Create a System/Image Datastore, RBD
+ceph_sys_datastore=ceph_ds
+ceph_img_datastore=ceph_img_ds
+cat << EOT | sudo -u oneadmin tee /tmp/rbd-sys.store
+NAME        = ${ceph_sys_datastore}
+TYPE        = SYSTEM_DS
+TM_MAD      = ceph
+DISK_TYPE   = RBD
+POOL_NAME   = ${poolname}
+CEPH_SECRET = "${secret_uuid}"
+CEPH_USER   = ${secret_name}
+CEPH_HOST   ="172.16.16.2:6789 172.16.16.3:6789 172.16.16.4:6789 172.16.16.7:6789 172.16.16.8:6789"
+BRIDGE_LIST ="192.168.168.151"
+# List of storage bridges to access the Ceph cluster
+EOT
+sudo -u oneadmin onedatastore create ${c_name:+--cluster ${c_name}} /tmp/rbd-sys.store && rm -f /tmp/rbd-sys.store
+sudo -u oneadmin onedatastore show ${ceph_sys_datastore}
+# Create an Image Datastore, RBD
+cat << EOT | sudo -u oneadmin tee /tmp/rbd-img.store
+NAME        = ${ceph_img_datastore}
+TM_MAD      = ceph
+DS_MAD      = ceph
+DISK_TYPE   = RBD
+POOL_NAME   = ${poolname}
+CEPH_SECRET = "${secret_uuid}"
+CEPH_USER   = ${secret_name}
+CEPH_HOST   ="172.16.16.2:6789 172.16.16.3:6789 172.16.16.4:6789 172.16.16.7:6789 172.16.16.8:6789"
+BRIDGE_LIST ="192.168.168.151"
+EOT
+sudo -u oneadmin onedatastore create ${c_name:+--cluster ${c_name}} /tmp/rbd-img.store && rm -f /tmp/rbd-img.store
+sudo -u oneadmin onedatastore show ${ceph_img_datastore}
+#########################################
+# Image template
+#########################################
+img_tpl=debian_ceph
+tpl_file=/var/tmp/debian.raw
+sudo -u oneadmin oneimage create --datastore ${ceph_img_datastore} --name ${img_tpl} --path ${tpl_file} --description "debian vm tpl image." && rm -f ${tpl_file}
+sudo -u oneadmin oneimage show ${img_tpl}
+#########################################
+# Create vm template
+#########################################
+sudo -u oneadmin onetemplate create --arch x86_64 --vnc --name debian_tpl --memory 128 --cpu 1 --disk "${img_tpl}" --nic ${vn_name}
 cat <<EOF
 oneimage clone Ubuntu new_image --datastore new_img_ds
 oneimage show 0
 oneimage chmod 0 640
 oneimage show 0
 EOF
-#########################################
 # # vm template, onetemplate create
-cat <<EOF
-NAME   = debian0os 
-MEMORY = 128
-CPU    = 1
-DISK = [ IMAGE  = "${img_tpl}" ]
-NIC = [ NETWORK = "${n_name}", NAME = "private_net" ]
-GRAPHICS = [
-  TYPE    = "vnc",
-  LISTEN  = "0.0.0.0"]
+cat <<EOF | sudo -u oneadmin tee /tmp/vm512.tpl
+NAME      = debian512 
+MEMORY    = 512
+CPU       = 1
+DISK      = [ IMAGE = "${img_tpl}" ]
+NIC       = [ NETWORK = "${vn_name}" ]
+GRAPHICS  = [ TYPE = "vnc", LISTEN = "0.0.0.0"]
+OS        = [ ARCH="x86_64" ]
+CONTEXT   = [
+    TOKEN = "YES",
+    NETWORK = "YES",
+    SSH_PUBLIC_KEY = "admin[AAAAB3NzaC1yc2EAAAADAQABAAABgQDIcCEBlGLWfQ6p/6/QAR1LncKGlFoiNvpV3OUzPEoxJfw5ChIc95JSqQQBIM9zcOkkmW80ZuBe4pWvEAChdMWGwQLjlZSIq67lrpZiql27rL1hsU25W7P03LhgjXsUxV5cLFZ/3dcuLmhGPbgcJM/RGEqjNIpLf34PqebJYqPz9smtoJM3a8vDgG3ceWHrhhWNdF73JRzZiDo8L8KrDQTxiRhWzhcoqTWTrkj2T7PZs+6WTI+XEc8IUZg/4NvH06jHg8QLr7WoWUtFvNSRfuXbarAXvPLA6mpPDz7oRKB4+pb5LpWCgKnSJhWl3lYHtZ39bsG8TyEZ20ZAjluhJ143GfDBy8kLANSntfhKmeOyolnz4ePf4EjzE3WwCsWNrtsJrW3zmtMRab7688vrUUl9W2iY9venrW0w6UL7Cvccu4snHLaFiT6JSQSSJS+mYM5o8T0nfIzRi0uxBx4m9/6nVIl/gs1JApzgWyqIi3opcALkHktKxi76D0xBYAgRvJs=]",
+    START_SCRIPT = "#!/bin/bash
+echi 'start' > /start.ok"
+]
 EOF
+sudo -u oneadmin onetemplate create /tmp/vm512.tpl && rm -f /tmp/vm512.tpl
+
 #######################################################################################
 # Doc 
 #######################################################################################
@@ -231,26 +266,61 @@ CONTEXT = [
     TOKEN = "YES",
     NETWORK = "YES",
     SSH_PUBLIC_KEY = "USER[SSH_PUBLIC_KEY]",
-    START_SCRIPT = "yum install -y ntpdate"
+    START_SCRIPT_BASE64 = "base64"
 ]
 EOF
+# Take out serial console from kernel configuration
+# (it can freeze during the boot process).
+sed -i --follow-symlinks 's/console=ttyS[^ "]*//g' /etc/default/grub /etc/grub.cfg
+# opennebula: OpenNebula Daemon and Scheduler.
+# opennebula-common: Shared content for OpenNebula packages.
+# opennebula-common-onescape: Helpers for OneScape project.
+# opennebula-tools: Command Line Interface.
+# opennebula-sunstone: Sunstone (the GUI) and the EC2 API.
+# opennebula-gate: OneGate server that enables communication between VMs and OpenNebula.
+# opennebula-flow: OneFlow manages services and elasticity.
+# opennebula-provision: OneProvision deploys new clusters on remote bare-metal cloud providers.
+# opennebula-node: Dependencies and configurations for KVM hypervisor node.
+# opennebula-node-firecracker: Dependencies and configurations for Firecracker hypervisor node.
+# opennebula-node-lxd: Dependencies and configurations for LXD hypervisor node.
+# opennebula-lxd-snap: Meta-package to install LXD snap (only on Ubuntu 16.04 and 18.04).
+# opennebula-rubygems: Bundled Ruby gem dependencies.
+# opennebula-dbgsym: Package with debug information.
+# ruby-opennebula: Ruby Bindings.
+# libopennebula-java: Java Bindings.
+# libopennebula-java-doc: Java Bindings Documentation.
+# python-pyone: Python 2 Bindings (not on Ubuntu 20.04 and later).
+# python3-pyone: Python 3 Bindings.
+#######################################################################################
+# sqlite3 convert to mysql Downloading script:
+ wget http://www.redmine.org/attachments/download/6239/sqlite3-to-mysql.py
+# Converting:
+ sqlite3 /var/lib/one/one.db .dump | ./sqlite3-to-mysql.py > mysql.sql
+ mysql -u oneadmin -p opennebula < mysql.sql
+# Change /etc/one/oned.conf from
+ DB = [ backend = "sqlite" ]
+# to
+ DB = [ backend = "mysql",
+      server  = "localhost",
+      port    = 0,
+      user    = "oneadmin",
+      passwd  = "PASS",
+      db_name = "opennebula" ]
+systemctl restart opennebula opennebula-sunstone
+# check logs for errors (/var/log/one/oned.log /var/log/one/sched.log /var/log/one/sunstone.log)
 #########################################
-# # Create image rbd datastore. (su oneadmin)
-cat << EOT | sudo -u oneadmin tee /tmp/rbd.store
- NAME      = "cephds"
- DS_MAD    = ceph
- TM_MAD    = ceph
- DISK_TYPE = RBD
- POOL_NAME = one
- BRIDGE_LIST ="192.168.14.42 192.168.14.43 192.168.14.44"
- CEPH_HOST ="172.19.254.1:6789 172.19.254.2:6789 172.19.254.3:6789"
- CEPH_SECRET ="cfb34c4b-d95c-4abc-a4cc-f8a2ae532cb5" #uuid key, looked at libvirt authentication for ceph
- CEPH_USER = oneadmin
+# # Add net template
+vntpl_name=vntpl
+cat << EOT | sudo -u oneadmin tee /tmp/net.tpl
+NAME=${vntpl_name}
+VN_MAD="bridge"
+BRIDGE="${phy_bridge}"
 EOT
-sudo -u oneadmin onedatastore create /tmp/rbd.store
-rm -f /tmp/rbd.store
+sudo -u oneadmin onevntemplate create /tmp/net.tpl && rm -f /tmp/net.tpl
+echo "change the permissions to make it available for the users you want"
+id=$(onevntemplate list  | grep "${vntpl_name}" | awk '{ print $1 }')
+sudo -u oneadmin onevntemplate chmod ${id} 604
+sudo -u oneadmin onevntemplate show ${id}
+# onevntemplate instantiate 0 --user user --name private
+# onevnet list
 
-# Add nodes, vnets, datastories to created cluster with web management.
-# Create system ceph datastore.
-onedatastore list
-on all nodes create directory and mount ceph

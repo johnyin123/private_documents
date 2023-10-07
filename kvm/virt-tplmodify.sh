@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("442da94[2023-07-07T07:16:11+08:00]:virt-tplmodify.sh")
+VERSION+=("2274c31[2023-07-17T13:24:15+08:00]:virt-tplmodify.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -74,6 +74,7 @@ source /etc/network/interfaces.d/*
 auto lo
 iface lo inet loopback
 EOF
+            mkdir -p ${root_dir}/etc/network/interfaces.d
             cat << EOF | tee ${root_dir}/etc/network/interfaces.d/${iface}
 allow-hotplug ${iface}
 EOF
