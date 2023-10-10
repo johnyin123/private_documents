@@ -9,7 +9,7 @@ for root_dir in ${*?need rootfs dirs}; do
     # rm ${root_dir} -rf
     # unsquashfs -d ${root_dir} ${fn}
     rm -fr ${root_dir}/usr/lib/firmware/*
-    echo "nameserver 202.107.117.11" > ${root_dir}/etc/resolv.conf 
+    echo "nameserver 192.168.1.11" > ${root_dir}/etc/resolv.conf
     cat <<'EOSHELL' | tee ${root_dir}/etc/rc.local
 #!/bin/bash
 disk=/dev/vda

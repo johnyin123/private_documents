@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3afc169[2023-07-01T22:00:46+08:00]:virt_createvm.sh")
+VERSION+=("e55482f[2023-07-08T20:33:54+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -79,6 +79,9 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
     exam:
+    <graphics type='vnc' port='5900' autoport='no' websocket='5700' listen='127.0.0.1'>
+      <listen type='address' address='127.0.0.1'/>
+    </graphics>
         uuid=$(cat /proc/sys/kernel/random/uuid)
         disk=vda-\${uuid}.raw
         echo "create disk"

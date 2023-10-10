@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("442da94[2023-07-07T07:16:11+08:00]:virt-volupload.sh")
+VERSION+=("505ec4e[2023-07-14T10:35:33+08:00]:virt-volupload.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -73,7 +73,7 @@ main() {
     [ -r ${disk_tpl} ] || exit_msg "template file ${disk_tpl} no found\n"
     [[ -t 0 ]] || disk_tpl=/dev/stdin    #stdin is redirect
     info_msg "upload ${disk_tpl} start\n"
-    ${VIRSH} pool-start ${pool} || true
+    ${VIRSH} pool-start ${pool} 2>/dev/null || true
     [ -z ${rbd} ] && {
         try ${upload_cmd} vol-upload --pool ${pool} --vol ${vol_name} --file ${disk_tpl} || exit_msg "upload template file ${disk_tpl} error\n"
     } || {
