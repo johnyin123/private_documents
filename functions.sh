@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("b9f02b9[2023-08-18T09:29:19+08:00]:functions.sh")
+VERSION+=("6aab51a[2023-10-07T06:50:26+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -284,7 +284,7 @@ fetch() {
     elif type curl > /dev/null 2>&1 ; then
         try curl --insecure --remote-name -o "${2}" "${1}" >/dev/null 2>&1
     else
-        exit_msg 'Warning: Neither wget nor curl is available. online updates unavailable'
+        exit_msg 'Warning: Neither wget nor curl is available. online updates unavailable\n'
     fi
 }
 

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6b8045e[2023-10-09T17:14:06+08:00]:opennebula.sh")
+VERSION+=("ec7473b[2023-10-10T11:16:02+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -79,8 +79,8 @@ EOF
     # # To change oneadmin password, follow the next steps:
     # oneuser passwd 0 <PASSWORD>
     # echo 'oneadmin:PASSWORD' > /var/lib/one/.one/one_auth
-    echo "http://$pubaddr}:9869, Sunstone web"
-    echo "http://$pubaddr}:2616, FireEdge Sunstone is the new generation OpenNebula web interface,still in BETA stage"
+    echo "http://$pubaddr:9869, Sunstone web"
+    echo "http://$pubaddr:2616, FireEdge Sunstone is the new generation OpenNebula web interface,still in BETA stage"
 }
 #######################################################################################
 # Manage
@@ -204,14 +204,14 @@ EOT
     sudo -u oneadmin oneimage show --json ${img_tpl_name}
 }
 # *************** Node Setup ****************#
-# # https://docs.opennebula.io/5.0/deployment/open_cloud_storage_setup/ceph_ds.html#frontend-setup
+# # https://docs.opennebula.io/6.6/open_cluster_deployment/storage_setup/ceph_ds.html
 init_kvmnode_ceph() {
     local secret_uuid=${1}
     local poolname=${2}
     local secret_name=${3}
     local cluster=${4:-}
     # # COPY ceph.client.admin.keyring ceph.conf to nodes
-    # rbd ${cluster:+--cluster ${cluster}} ls ${poolname} --id ${secret_name}
+    rbd ${cluster:+--cluster ${cluster}} ls ${poolname} --id ${secret_name}
     # # ceph add user <secret_name> or use admin
     cat <<EPOOL | virsh secret-define /dev/stdin
 <secret ephemeral='no' private='no'>
@@ -235,7 +235,10 @@ add_ceph_store() {
     local poolname=${3}
     local secret_uuid=${4}
     local secret_name=${5}
-    local c_name=${6:-}
+    local mon_host=${6}
+    local bridge_host=${7}
+    local ceph_conf=$(basename ${8:-ceph.conf})
+    local c_name=${9:-}
     local val=""
     case "${type}" in
         sys)   val="TYPE = SYSTEM_DS";;
@@ -250,10 +253,10 @@ DISK_TYPE   = RBD
 POOL_NAME   = ${poolname}
 CEPH_SECRET = "${secret_uuid}"
 CEPH_USER   = ${secret_name}
-CEPH_HOST   = "172.16.16.2:6789 172.16.16.3:6789 172.16.16.4:6789 172.16.16.7:6789 172.16.16.8:6789"
-BRIDGE_LIST = "192.168.168.151"
+CEPH_HOST   = "${mon_host}"
+CEPH_CONF=/etc/ceph/${ceph_conf}
+BRIDGE_LIST = "${bridge_host}"
 # List of storage bridges to access the Ceph cluster
-# CEPH_CONF=/etc/ceph/armsite.conf
 EOT
     sudo -u oneadmin onedatastore create ${c_name:+--cluster ${c_name}} /tmp/store.def && rm -f /tmp/store.def
     sudo -u oneadmin onedatastore show --json ${name}
@@ -314,22 +317,24 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        -F|--frontend   *  <addr>  Frontend address
-        -N|--kvmnode       <addr>  kvm node address, multi input
-        --bridge           <str>   kvm node bridge name
-        --vnet             <str>   create virtual network, use <bridge>
-        --adminpass        <str>   http://<frontend_address>:9869, oneadmin pass,default 'password'
+        -F|--frontend   *  <addr>   Frontend address
+        -N|--kvmnode    *  <addr>   kvm node address, multi input
+        --adminpass        <str>    http://<frontend_address>:9869, oneadmin pass,default 'password'
+        --vnet             <str>    vnet name, use <bridge>
+        --bridge           <str>    vnet used phy bridge name on kvm node
         --guest_ipstart    <ipaddr> vnet guest start ip, if vnet set, must set it
         --guest_ipsize     <int>    vnet guest ip size, if vnet set, must set it
         --guest_gateway    <ipaddr> vnet guest gateway, can NULL
         --guest_dns        <ipaddr> vnet guest dns, can NULL
-        --ceph_pool        <str>   ceph datastore pool name
-        --ceph_user        <str>   ceph datastore user name
-        --fs_store         <str>   fs datastore name
-        --cluster          <str>   create opennebula cluster
-        -U|--user          <user>  ssh user, default root
-        -P|--port          <int>   ssh port, default 60022
-        --password         <str>   ssh password(default use sshkey)
+        --ceph_pool        <str>    ceph datastore pool name
+        --ceph_user        <str>    ceph datastore user name
+        --ceph_conf        <file>   ceph config filename
+        --ceph_keyring     <file>   ceph user keyring filename
+        --fs_store         <str>    fs datastore name
+        --cluster          <str>    create opennebula cluster
+        -U|--user          <user>   ssh user, default root
+        -P|--port          <int>    ssh port, default 60022
+        --password         <str>    ssh password(default use sshkey)
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -340,7 +345,7 @@ ${SCRIPTNAME}
            --bridge br-ext --vnet pub-net \\
            --guest_ipstart 192.168.168.3 --guest_ipsize 5 \\
            --guest_gateway 192.168.168.1 --guest_dns 192.168.1.11 \\
-           --ceph_pool libvirt-pool --ceph_user admin
+           --ceph_pool libvirt-pool --ceph_user admin --ceph_conf ceph/ceph.conf --ceph_keyring ceph/ceph.client.admin.keyring
 # apt update && apt -y install wget gnupg2 apt-transport-https
 curl -fsSL https://downloads.opennebula.io/repo/repo2.key|gpg --dearmor -o /etc/apt/trusted.gpg.d/opennebula.gpg
 wget -q -O- 'https://repo.dovecot.org/DOVECOT-REPO-GPG' | gpg --dearmor > /etc/apt/trusted.gpg.d/dovecot-archive-keyring.gpg
@@ -371,10 +376,10 @@ EOF
 main() {
     local secret_uuid=$(cat /proc/sys/kernel/random/uuid)
     local user=root port=60022
-    local frontend="" kvmnode=() adminpass="password" ceph_pool="" ceph_user="" bridge="" cluster="" fs_store=""
+    local frontend="" kvmnode=() adminpass="password" ceph_pool="" ceph_user="" ceph_conf="" ceph_keyring="" bridge="" cluster="" fs_store=""
     local vnet="" guest_ipstart="" guest_ipsize="" guest_gateway="" guest_dns=""
     local opt_short="U:P:F:N:"
-    local opt_long="user:,port:password:,frontend:,kvmnode:,adminpass:,ceph_pool:,ceph_user:,bridge:,cluster:,vnet:,guest_ipstart:,guest_ipsize:,guest_gateway:,guest_dns:,fs_store:,"
+    local opt_long="user:,port:password:,frontend:,kvmnode:,adminpass:,ceph_pool:,ceph_user:,ceph_conf:,ceph_keyring:,bridge:,cluster:,vnet:,guest_ipstart:,guest_ipsize:,guest_gateway:,guest_dns:,fs_store:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -393,6 +398,8 @@ main() {
             --bridge)          shift; bridge=${1}; shift;;
             --ceph_pool)       shift; ceph_pool=${1}; shift;;
             --ceph_user)       shift; ceph_user=${1}; shift;;
+            --ceph_conf)       shift; ceph_conf=${1}; shift;;
+            --ceph_keyring)    shift; ceph_keyring=${1}; shift;;
             --fs_store)        shift; fs_store=${1}; shift;;
             -U | --user)       shift; user=${1}; shift;;
             -P | --port)       shift; port=${1}; shift;;
@@ -408,6 +415,9 @@ main() {
         esac
     done
     [ -z "${frontend}" ] && usage "frontend ?"
+    [ "$(array_size kvmnode)" -gt "0" ] || usage "kvmnode ?"
+    [ -z "${ceph_conf}" ] || file_exists "${ceph_conf}" || exit_msg "${ceph_conf} no found\n"
+    [ -z "${ceph_keyring}" ] || file_exists "${ceph_keyring}" || exit_msg "${ceph_keyring} no found\n"
     download "${frontend}" "${port}" "${user}" "/var/lib/one/.ssh/id_rsa.pub" "authorized_keys"
     ssh_func "${user}@${frontend}" "${port}" init_frontend "${frontend}" "${port}" "${adminpass}"
     [ -z "${cluster}" ] || ssh_func "${user}@${frontend}" "${port}" add_cluster "${cluster}"
@@ -416,16 +426,23 @@ main() {
         upload "authorized_keys" "${ipaddr}" "${port}" "${user}" "/var/lib/one/.ssh/authorized_keys"
         ssh_func "${user}@${ipaddr}" "${port}" "chown oneadmin.oneadmin /var/lib/one/.ssh/authorized_keys;chmod 0600 /var/lib/one/.ssh/authorized_keys"
         [ -z "${bridge}" ] || ssh_func "${user}@${ipaddr}" "${port}" init_kvmnode "${bridge}"
-        [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || {
-            ssh_func "${user}@${ipaddr}" "${port}" init_kvmnode_ceph "${secret_uuid}" "${ceph_pool}" "${ceph_user}" #"${cluster}"
+        [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || [ -z "${ceph_conf}" ] || [ -z "${ceph_keyring}" ] || {
+            upload "${ceph_conf}" "${ipaddr}" "${port}" "${user}" "/etc/ceph/"
+            upload "${ceph_keyring}" "${ipaddr}" "${port}" "${user}" "/etc/ceph/"
+            local ceph_cluster=$(str_replace "$(basename ${ceph_conf})" '.conf' '')
+            ssh_func "${user}@${ipaddr}" "${port}" init_kvmnode_ceph "${secret_uuid}" "${ceph_pool}" "${ceph_user}" "${ceph_cluster}"
         }
         ssh_func "${user}@${frontend}" "${port}" add_kvmhost "${ipaddr}" "${port}" "${cluster}"
     done
     [ -z "${vnet}" ] || [ -z "${bridge}" ] || ssh_func "${user}@${frontend}" "${port}" add_bridge_net "${vnet}" "${bridge}" "${guest_ipstart}" "${guest_ipsize}" "${guest_gateway}" "${guest_dns}" "${cluster}"
     file_exists "nebula.tpl.img" && upload nebula.tpl.img "${frontend}" "${port}" "${user}" "/var/tmp/debian.raw"
-    [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || {
-        ssh_func "${user}@${frontend}" "${port}" add_ceph_store "sys_${ceph_pool}" "sys" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${cluster}"
-        ssh_func "${user}@${frontend}" "${port}" add_ceph_store "img_${ceph_pool}" "img" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${cluster}"
+    [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || [ -z "${ceph_conf}" ] || [ -z "${ceph_keyring}" ] || {
+        local mon_host=$(awk -F= '/\s*mon_host/{print $2}' ${ceph_conf} | tr , ' ')
+        local bridge_host="${kvmnode[@]}"
+        info_msg "mon_host=${mon_host}\n"
+        info_msg "bridge_host=${bridge_host}\n"
+        ssh_func "${user}@${frontend}" "${port}" add_ceph_store "sys_${ceph_pool}" "sys" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
+        ssh_func "${user}@${frontend}" "${port}" add_ceph_store "img_${ceph_pool}" "img" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
         ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${ceph_pool}" "debian_onceph" "/var/tmp/debian.raw"
         ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "debain_vmtpl_onceph" "debian_onceph" "${vnet}"
     }
