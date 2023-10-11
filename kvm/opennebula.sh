@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ec7473b[2023-10-10T11:16:02+08:00]:opennebula.sh")
+VERSION+=("7d6f203[2023-10-10T14:21:41+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -36,25 +36,55 @@ VERSION+=("ec7473b[2023-10-10T11:16:02+08:00]:opennebula.sh")
 # check logs for errors (/var/log/one/oned.log /var/log/one/sched.log /var/log/one/sunstone.log)
 #########################################
 init_kvmnode() {
-    local phy_bridge=${1:-}
-    systemctl enable libvirtd --now
-    cat << EOF | tee /etc/network/interfaces
+    local phy_bridge=${1}
+    local phy_dev=${2}
+    local ipaddr=$(ip ad show dev ${phy_dev} | awk '/scope global/ {print $2}')
+    local gateway=$(ip route show 0.0.0.0/0 dev ${phy_dev} | cut -d\  -f3)
+    [ -e "/sys/class/net/${phy_bridge}" ] && {
+        echo "BRIDGE ${phy_bridge} EXISTS!!!!. QUIT NODE BRIDGE SETUP"
+        return 0
+    }
+    source /etc/os-release
+    case "${ID}" in
+        debian)
+            cat /etc/network/interfaces > /etc/network/interfaces.bak
+            cat << EOF | tee /etc/network/interfaces
 source /etc/network/interfaces.d/*
 # The loopback network interface
 auto lo
 iface lo inet loopback
 EOF
-    cat << EOF | tee /etc/network/interfaces.d/br-ext
-# allow-hotplug eth0
-# iface eth0 inet manual
+            cat << EOF | tee /etc/network/interfaces.d/br-ext
+allow-hotplug ${phy_dev}
+iface ${phy_dev} inet manual
 
 auto ${phy_bridge}
 iface ${phy_bridge} inet static
-#    bridge_ports eth0
     bridge_maxwait 0
-#    address 192.168.168.151/24
-#    gateway 192.168.168.1
+    bridge_ports ${phy_dev}
+${ipaddr:+    address ${ipaddr}}}
+${gateway:+    gateway ${gateway}}
 EOF
+            ;;
+        centos|rocky|openEuler|*)
+            cat << EOF | tee /etc/sysconfig/network-scripts/ifcfg-${phy_dev}
+DEVICE="${phy_dev}"
+ONBOOT="yes"
+BRIDGE="${phy_bridge}"
+EOF
+            cat << EOF | tee /etc/sysconfig/network-scripts/ifcfg-${phy_bridge}
+DEVICE="${phy_bridge}"
+ONBOOT="yes"
+TYPE="Bridge"
+BOOTPROTO="none"
+STP="off"
+${ipaddr:+IPADDR=${ipaddr%/*}}
+${ipaddr:+PREFIX=${ipaddr##*/}}
+${gateway:+GATEWAY=${gateway}}
+EOF
+            ;;
+    esac
+    systemctl enable libvirtd --now
 }
 init_frontend() {
     local pubaddr=${1}
@@ -76,6 +106,7 @@ EOF
     systemctl enable opennebula-fireedge --now
     # Verify OpenNebula Frontend installation
     sudo -u oneadmin oneuser show --json
+    [ -e "/var/lib/one/.ssh/known_hosts" ] && truncate -s0 /var/lib/one/.ssh/known_hosts
     # # To change oneadmin password, follow the next steps:
     # oneuser passwd 0 <PASSWORD>
     # echo 'oneadmin:PASSWORD' > /var/lib/one/.one/one_auth
@@ -306,6 +337,7 @@ EOF
     sudo -u oneadmin onetemplate show --json "${vmtpl_name}"
 }
 teardown() {
+    onevm list --no-header | awk '{print $1}' | xargs -I@ onevm recover --delete @
     for cmd in onetemplate oneimage onevnet onedatastore onehost; do
         echo "${cmd} delete"
         ${cmd} list --no-header | awk '{print $1}' | xargs -I@ ${cmd} delete @
@@ -369,6 +401,25 @@ make private repo for install, see k8s/gen_k8s_pkg.sh
 # rbd snap unprotect libvirt-pool/one-3@snap
 # rbd snap purge libvirt-pool/one-3
 # rbd rm libvirt-pool/one-3
+#
+# euler 2203
+# # yum group install "Virtualization Host"
+yum install libvirt lvm2 bridge-utils ebtables iptables ipset qemu-block-rbd qemu-block-ssh
+yum install ceph-common
+yum install xmlrpc-c rubygems rubygem-rexml rubygem-sqlite3
+
+useradd oneadmin --home-dir /var/lib/one --shell /bin/bash
+usermod -a -G libvirt oneadmin
+chmod 755 /var/lib/one
+echo '%oneadmin ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/oneadmin
+su - oneadmin -c "ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa"
+ln -s /usr/libexec/qemu-kvm /usr/bin/qemu-kvm-one
+./install.sh -u oneadmin -g oneadmin -6
+# # install below files
+# /usr/lib/one/onegate-proxy/onegate-proxy.rb 0644
+# /usr/bin/onegate-proxy                      0755
+# /var/lib/one/remotes/etc                    0644
+#
 EOF
     exit 1
 }
@@ -425,7 +476,7 @@ main() {
     for ipaddr in $(array_print kvmnode); do
         upload "authorized_keys" "${ipaddr}" "${port}" "${user}" "/var/lib/one/.ssh/authorized_keys"
         ssh_func "${user}@${ipaddr}" "${port}" "chown oneadmin.oneadmin /var/lib/one/.ssh/authorized_keys;chmod 0600 /var/lib/one/.ssh/authorized_keys"
-        [ -z "${bridge}" ] || ssh_func "${user}@${ipaddr}" "${port}" init_kvmnode "${bridge}"
+        [ -z "${bridge}" ] || ssh_func "${user}@${ipaddr}" "${port}" init_kvmnode "${bridge}" "eth0"
         [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || [ -z "${ceph_conf}" ] || [ -z "${ceph_keyring}" ] || {
             upload "${ceph_conf}" "${ipaddr}" "${port}" "${user}" "/etc/ceph/"
             upload "${ceph_keyring}" "${ipaddr}" "${port}" "${user}" "/etc/ceph/"
@@ -463,6 +514,7 @@ oneuser batchquota userA,userB,35
 onegroup batchquota
 Or in Sunstone through the user/group tab
 EOF
+    info_msg "for live mirgation, modify all kvmnode /var/lib/one/.ssh/config, authorized_keys"
     info_msg "ALL DONE\n"
     return 0
 }
