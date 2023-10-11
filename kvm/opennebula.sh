@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7d6f203[2023-10-10T14:21:41+08:00]:opennebula.sh")
+VERSION+=("20bbe5c[2023-10-11T10:26:36+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -135,11 +135,12 @@ EOF
 add_bridge_net() {
     local vn_name=${1}
     local phy_bridge=${2}
-    local guest_ipaddr=${3:-}
-    local guest_ipaddr_size=${4:-}
-    local guest_gateway=${5:-}
-    local guest_nameserver=${6:-}
-    local c_name=${7:-}
+    local guest_ipaddr=${3}
+    local guest_ipaddr_size=${4}
+    local guest_net_mask=${5:-255.255.255.0}
+    local guest_gateway=${6:-}
+    local guest_nameserver=${7:-}
+    local c_name=${8:-}
     cat << EOF | sudo -u oneadmin tee /tmp/def.net
 NAME       = "${vn_name}"
 BRIDGE     = "${phy_bridge}"
@@ -147,10 +148,7 @@ BRIDGE_TYPE= "linux"
 VN_MAD     = "bridge"
 ${guest_nameserver:+DNS        = "${guest_nameserver}"}
 ${guest_gateway:+GATEWAY    = "${guest_gateway}"}
-AR         = [
-    IP     = "${guest_ipaddr}",
-    SIZE   = "${guest_ipaddr_size}",
-    TYPE   = "IP4" ]
+AR = [ IP = "${guest_ipaddr}", SIZE = "${guest_ipaddr_size}", NETWORK_MASK = "${guest_net_mask}", TYPE = "IP4" ]
 EOF
     sudo -u oneadmin onevnet create ${c_name:+--cluster ${c_name}} /tmp/def.net && rm -f /tmp/def.net
     sudo -u oneadmin onevnet show --json ${vn_name}
@@ -295,7 +293,21 @@ EOT
 add_vm_tpl() {
     local vmtpl_name=${1}
     local img_tpl=${2}
-    local vn_name=${3}
+    local arch=${3}
+    local vn_name=${4}
+    local firmware="" machine=""
+    case "${arch}" in
+        aarch64)
+            firmware=/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
+            machine="virt-6.2"
+            ;;
+        x86_64)
+            firmware=""
+            machine="q35"
+            ;;
+        *)  echo "arch [${arch}] error"; return 1;;
+    esac
+
     local dynamic='VCPU_MAX  = 16
 MEMORY_MAX= 32768
 MEMORY_RESIZE_MODE="BALLOONING"
@@ -303,6 +315,7 @@ HOT_RESIZE  = [
   CPU_HOT_ADD_ENABLED="YES",
   MEMORY_HOT_ADD_ENABLED="YES" ]'
     # add NETWORK_UNAME avoid none admin user, create vm from tpl, network error
+    # /etc/one/vmm_exec/vmm_exec_kvm.conf, add full path firmware file in <OVMF_UEFIS>
     cat <<EOF | sudo -u oneadmin tee /tmp/vm512.tpl
 NAME      = ${vmtpl_name}
 VCPU      = 1
@@ -316,7 +329,8 @@ DISK      = [ IMAGE = "${img_tpl}", IMAGE_UNAME = oneadmin, CACHE="none", IO="na
 NIC_DEFAULT = [ MODEL = "virtio" ]
 NIC       = [ NETWORK = "${vn_name}", NETWORK_UNAME = "oneadmin" ]
 GRAPHICS  = [ TYPE = "vnc", LISTEN = "0.0.0.0"]
-OS        = [ ARCH="x86_64" ]
+OS        = [ ARCH="${arch}", MACHINE="${machine}" ${firmware:+, FIRMWARE="${firmware}", FIRMWARE_SECURE=false} ]
+CPU_MODEL = [ MODEL="host-passthrough" ]
 RAW       = [
   TYPE = "kvm",
   VALIDATE = "YES",
@@ -326,11 +340,13 @@ CONTEXT            = [
     TOKEN          = "YES",
     REPORT_READY   = "YES",
     NETWORK        = "YES",
+    SET_HOSTNAME   = "\$NAME",
     SSH_PUBLIC_KEY = "\$USER[SSH_PUBLIC_KEY]",
     START_SCRIPT   = "#!/bin/bash
 echo 'start' > /start.ok"
 ]
 EOF
+
     sudo -u oneadmin onetemplate create /tmp/vm512.tpl && rm -f /tmp/vm512.tpl
     echo "for other user access this template"
     sudo -u oneadmin onetemplate chmod "${vmtpl_name}" 604
@@ -356,6 +372,7 @@ ${SCRIPTNAME}
         --bridge           <str>    vnet used phy bridge name on kvm node
         --guest_ipstart    <ipaddr> vnet guest start ip, if vnet set, must set it
         --guest_ipsize     <int>    vnet guest ip size, if vnet set, must set it
+        --guest_netmask    <mask>   vnet guset netmask, like 255.255.255.0
         --guest_gateway    <ipaddr> vnet guest gateway, can NULL
         --guest_dns        <ipaddr> vnet guest dns, can NULL
         --ceph_pool        <str>    ceph datastore pool name
@@ -375,8 +392,8 @@ ${SCRIPTNAME}
     exam ceph:
         ./opennebula.sh --frontend 192.168.168.150 --kvmnode 192.168.168.151 \\
            --bridge br-ext --vnet pub-net \\
-           --guest_ipstart 192.168.168.3 --guest_ipsize 5 \\
-           --guest_gateway 192.168.168.1 --guest_dns 192.168.1.11 \\
+           --guest_ipstart 172.16.4.0 --guest_ipsize 255 --guest_netmask 255.255.248.0 \\
+           --guest_gateway 172.16.0.1 --guest_dns 192.168.1.11 \\
            --ceph_pool libvirt-pool --ceph_user admin --ceph_conf ceph/ceph.conf --ceph_keyring ceph/ceph.client.admin.keyring
 # apt update && apt -y install wget gnupg2 apt-transport-https
 curl -fsSL https://downloads.opennebula.io/repo/repo2.key|gpg --dearmor -o /etc/apt/trusted.gpg.d/opennebula.gpg
@@ -408,9 +425,9 @@ yum install libvirt lvm2 bridge-utils ebtables iptables ipset qemu-block-rbd qem
 yum install ceph-common
 yum install xmlrpc-c rubygems rubygem-rexml rubygem-sqlite3
 
-useradd oneadmin --home-dir /var/lib/one --shell /bin/bash
+useradd oneadmin --no-create-home --home-dir /var/lib/one --shell /bin/bash
+mkdir -m0755 /var/lib/one/remotes && chown -R oneadmin.oneadmin /var/lib/one
 usermod -a -G libvirt oneadmin
-chmod 755 /var/lib/one
 echo '%oneadmin ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/oneadmin
 su - oneadmin -c "ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa"
 ln -s /usr/libexec/qemu-kvm /usr/bin/qemu-kvm-one
@@ -428,9 +445,9 @@ main() {
     local secret_uuid=$(cat /proc/sys/kernel/random/uuid)
     local user=root port=60022
     local frontend="" kvmnode=() adminpass="password" ceph_pool="" ceph_user="" ceph_conf="" ceph_keyring="" bridge="" cluster="" fs_store=""
-    local vnet="" guest_ipstart="" guest_ipsize="" guest_gateway="" guest_dns=""
+    local vnet="" guest_ipstart="" guest_ipsize="" guest_netmask="" guest_gateway="" guest_dns=""
     local opt_short="U:P:F:N:"
-    local opt_long="user:,port:password:,frontend:,kvmnode:,adminpass:,ceph_pool:,ceph_user:,ceph_conf:,ceph_keyring:,bridge:,cluster:,vnet:,guest_ipstart:,guest_ipsize:,guest_gateway:,guest_dns:,fs_store:,"
+    local opt_long="user:,port:password:,frontend:,kvmnode:,adminpass:,ceph_pool:,ceph_user:,ceph_conf:,ceph_keyring:,bridge:,cluster:,vnet:,guest_ipstart:,guest_ipsize:,guest_netmask:,guest_gateway:,guest_dns:,fs_store:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -443,6 +460,7 @@ main() {
             --vnet)            shift; vnet=${1}; shift;;
             --guest_ipstart)   shift; guest_ipstart=${1}; shift;;
             --guest_ipsize)    shift; guest_ipsize=${1}; shift;;
+            --guest_netmask)   shift; guest_netmask=${1}; shift;;
             --guest_gateway)   shift; guest_gateway=${1}; shift;;
             --guest_dns)       shift; guest_dns=${1}; shift;;
             -N | --kvmnode)    shift; kvmnode+=(${1}); shift;;
@@ -485,8 +503,9 @@ main() {
         }
         ssh_func "${user}@${frontend}" "${port}" add_kvmhost "${ipaddr}" "${port}" "${cluster}"
     done
-    [ -z "${vnet}" ] || [ -z "${bridge}" ] || ssh_func "${user}@${frontend}" "${port}" add_bridge_net "${vnet}" "${bridge}" "${guest_ipstart}" "${guest_ipsize}" "${guest_gateway}" "${guest_dns}" "${cluster}"
-    file_exists "nebula.tpl.img" && upload nebula.tpl.img "${frontend}" "${port}" "${user}" "/var/tmp/debian.raw"
+    [ -z "${vnet}" ] || [ -z "${bridge}" ] || ssh_func "${user}@${frontend}" "${port}" add_bridge_net "${vnet}" "${bridge}" "${guest_ipstart}" "${guest_ipsize}" "${guest_netmask}" "${guest_gateway}" "${guest_dns}" "${cluster}"
+    file_exists "nebula.tpl.x86_64.img" && upload nebula.tpl.img "${frontend}" "${port}" "${user}" "/var/tmp/debian_x86.raw"
+    file_exists "nebula.tpl.aarch64.img" && upload nebula.tpl.img "${frontend}" "${port}" "${user}" "/var/tmp/debian_aarch64.raw"
     [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || [ -z "${ceph_conf}" ] || [ -z "${ceph_keyring}" ] || {
         local mon_host=$(awk -F= '/\s*mon_host/{print $2}' ${ceph_conf} | tr , ' ')
         local bridge_host="${kvmnode[@]}"
@@ -494,14 +513,18 @@ main() {
         info_msg "bridge_host=${bridge_host}\n"
         ssh_func "${user}@${frontend}" "${port}" add_ceph_store "sys_${ceph_pool}" "sys" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
         ssh_func "${user}@${frontend}" "${port}" add_ceph_store "img_${ceph_pool}" "img" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
-        ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${ceph_pool}" "debian_onceph" "/var/tmp/debian.raw"
-        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "debain_vmtpl_onceph" "debian_onceph" "${vnet}"
+        ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${ceph_pool}" "debian_ceph" "/var/tmp/debian_x86.raw"
+        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "debain_vmtpl_ceph" "debian_ceph" "x86_64" "${vnet}"
+        ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${ceph_pool}" "debian_ceph" "/var/tmp/debian_aarch64.raw"
+        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "debain_vmtpl_ceph" "debian_ceph" "aarch64" "${vnet}"
     }
     [ -z "${fs_store}" ] || {
         ssh_func "${user}@${frontend}" "${port}" add_fs_store "sys_${fs_store}" "sys" "${cluster}"
         ssh_func "${user}@${frontend}" "${port}" add_fs_store "img_${fs_store}" "img" "${cluster}"
-        ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${fs_store}" "debian_onfs" "/var/tmp/debian.raw"
-        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "debain_vmtpl_onfs" "debian_onfs" "${vnet}"
+        ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${fs_store}" "debian_onfs" "/var/tmp/debian_x86.raw"
+        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "debain_vmtpl_onfs" "debian_onfs" "x86_64" "${vnet}"
+        ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${fs_store}" "debian_onfs" "/var/tmp/debian_aarch64.raw"
+        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "debain_vmtpl_onfs" "debian_onfs" "aarch64" "${vnet}"
     }
     cat<<EOF
 onedb backup filename
@@ -513,6 +536,7 @@ onegroup quota
 oneuser batchquota userA,userB,35
 onegroup batchquota
 Or in Sunstone through the user/group tab
+modify /etc/one/oned.conf <DEFAULT_CDROM_DEVICE_PREFIX>, can set CDROM default to ide/scsi/virtio
 EOF
     info_msg "for live mirgation, modify all kvmnode /var/lib/one/.ssh/config, authorized_keys"
     info_msg "ALL DONE\n"
