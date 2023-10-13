@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("02082b6[2023-10-12T13:57:39+08:00]:opennebula.sh")
+VERSION+=("fd539a7[2023-10-13T08:28:14+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -123,6 +123,8 @@ EOF
     sed -i -E \
         -e "s|fireedge_endpoint\s*:.*|fireedge_endpoint: http://${pubaddr}:2616|g" /etc/one/sunstone-server.conf
     systemctl enable opennebula-fireedge --now
+    echo "disable market place"
+    onemarket list --no-header | awk '{print $1}' | xargs -I@ onemarket delete @
     # Verify OpenNebula Frontend installation
     sudo -u oneadmin oneuser show --json
     [ -e "/var/lib/one/.ssh/known_hosts" ] && truncate -s0 /var/lib/one/.ssh/known_hosts
@@ -352,7 +354,7 @@ EOF
 }
 teardown() {
     onevm list --no-header | awk '{print $1}' | xargs -I@ onevm recover --delete @
-    for cmd in onetemplate oneimage onevnet onedatastore onehost; do
+    for cmd in onetemplate oneimage onevnet onedatastore onehost onemarket; do
         echo "${cmd} delete"
         ${cmd} list --no-header | awk '{print $1}' | xargs -I@ ${cmd} delete @
         ${cmd} list
