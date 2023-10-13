@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fd539a7[2023-10-13T08:28:14+08:00]:opennebula.sh")
+VERSION+=("5ec9962[2023-10-13T10:06:15+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -19,6 +19,10 @@ VERSION+=("fd539a7[2023-10-13T08:28:14+08:00]:opennebula.sh")
 # wget https://github.com/OpenNebula/addon-context-linux/
 # openEuler:  echo "ID_LIKE=centos" >> /etc/os-release # one-context > 6.6
 #######################################################################################
+# # 创建数据库
+# mysql -u root -p
+# mysql> GRANT ALL PRIVILEGES ON opennebula.* TO 'oneadmin' IDENTIFIED BY '密码';
+# mysql> flush privilege
 # # sqlite3 convert to mysql Downloading script:
 # /usr/lib/one/ruby/onedb/sqlite2mysql.rb
 #  wget http://www.redmine.org/attachments/download/6239/sqlite3-to-mysql.py
@@ -28,12 +32,7 @@ VERSION+=("fd539a7[2023-10-13T08:28:14+08:00]:opennebula.sh")
 # # Change /etc/one/oned.conf from
 #  DB = [ backend = "sqlite" ]
 # # to
-#  DB = [ backend = "mysql",
-#       server  = "localhost",
-#       port    = 0,
-#       user    = "oneadmin",
-#       passwd  = "PASS",
-#       db_name = "opennebula" ]
+# DB = [ backend = "mysql", server = "localhost", port = 3306, user = "oneadmin", passwd = "oneadmin", db_name = "opennebula" ]
 # systemctl restart opennebula opennebula-sunstone
 # check logs for errors (/var/log/one/oned.log /var/log/one/sched.log /var/log/one/sunstone.log)
 #########################################
@@ -306,9 +305,7 @@ add_vm_tpl() {
     local dynamic='VCPU_MAX  = 16
 MEMORY_MAX= 32768
 MEMORY_RESIZE_MODE="BALLOONING"
-HOT_RESIZE  = [
-  CPU_HOT_ADD_ENABLED="YES",
-  MEMORY_HOT_ADD_ENABLED="YES" ]'
+HOT_RESIZE  = [ CPU_HOT_ADD_ENABLED="YES", MEMORY_HOT_ADD_ENABLED="YES" ]'
     # add NETWORK_UNAME avoid none admin user, create vm from tpl, network error
     # /etc/one/vmm_exec/vmm_exec_kvm.conf, add full path firmware file in <OVMF_UEFIS>
     # ONEGATE_ENDPOINT = "http://gate:5030"
@@ -346,7 +343,6 @@ CONTEXT            = [
 echo 'start' > /start.ok"
 ]
 EOF
-
     sudo -u oneadmin onetemplate create /tmp/vm512.tpl && rm -f /tmp/vm512.tpl
     echo "for other user access this template"
     sudo -u oneadmin onetemplate chmod "${vmtpl_name}" 604
