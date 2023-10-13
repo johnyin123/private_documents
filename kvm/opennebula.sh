@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("874291a[2023-10-11T20:13:19+08:00]:opennebula.sh")
+VERSION+=("02082b6[2023-10-12T13:57:39+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -20,6 +20,7 @@ VERSION+=("874291a[2023-10-11T20:13:19+08:00]:opennebula.sh")
 # openEuler:  echo "ID_LIKE=centos" >> /etc/os-release # one-context > 6.6
 #######################################################################################
 # # sqlite3 convert to mysql Downloading script:
+# /usr/lib/one/ruby/onedb/sqlite2mysql.rb
 #  wget http://www.redmine.org/attachments/download/6239/sqlite3-to-mysql.py
 # # Converting:
 #  sqlite3 /var/lib/one/one.db .dump | ./sqlite3-to-mysql.py > mysql.sql
@@ -97,7 +98,7 @@ Host localhost
 EOF
     echo "oneadmin:${password}" > /var/lib/one/.one/one_auth
     sed -i -E \
-        -e 's|^\s*#*\s*:host:.*|:host: ${pubaddr}|g' \
+        -e 's|^\s*#*\s*:host:.*|:host: 0.0.0.0|g' \
         /etc/one/onegate-server.conf
     # DATASTORE_LOCATION
     sed -i -E \
@@ -309,6 +310,7 @@ HOT_RESIZE  = [
     # add NETWORK_UNAME avoid none admin user, create vm from tpl, network error
     # /etc/one/vmm_exec/vmm_exec_kvm.conf, add full path firmware file in <OVMF_UEFIS>
     # ONEGATE_ENDPOINT = "http://gate:5030"
+    # CONTEXT = [ DEV_PREFIX = "sd", TARGET = "sda" ], nebula iso use scsi not ide
     cat <<EOF | sudo -u oneadmin tee /tmp/vm512.tpl
 NAME      = ${vmtpl_name}
 VCPU      = 1
@@ -331,6 +333,8 @@ RAW       = [
   DATA = "<devices><serial type='pty'><target port='0'/></serial><console type='pty'><target type='serial' port='0'/></console></devices>"
 ]
 CONTEXT            = [
+    DEV_PREFIX     = "sd",
+    TARGET         = "sda",
     TOKEN          = "YES",
     REPORT_READY   = "YES",
     NETWORK        = "YES",
@@ -390,6 +394,7 @@ ${SCRIPTNAME}
            --bridge br-ext --vnet pub-net \\
            --guest_ipstart 172.16.4.0 --guest_ipsize 255 --guest_netmask 255.255.248.0 \\
            --guest_gateway 172.16.0.1 --guest_dns 192.168.1.11 \\
+           --arm_tplimg openeuler_22.03sp1_aarch64.img --x86_tplimg debian_bulleye_amd64.img \\
            --ceph_pool libvirt-pool --ceph_user admin --ceph_conf ceph/ceph.conf --ceph_keyring ceph/ceph.client.admin.keyring
 # apt update && apt -y install wget gnupg2 apt-transport-https
 curl -fsSL https://downloads.opennebula.io/repo/repo2.key|gpg --dearmor -o /etc/apt/trusted.gpg.d/opennebula.gpg
@@ -565,6 +570,13 @@ cp -rp --parents /var/lib/one/.one $BAK_DIR
 onedb backup -S <database_host> -u <user> -p <password> -d <database_name> -P <port>
 cp -rp <onedb_backup> $BAK_DIR
 
+2474 OneFlow server
+2616 Next-generation GUI server FireEdge
+2633 Main OpenNebula Daemon (oned), XML-RPC API endpoint
+4124 Monitoring daemon (both TCP/UDP)
+5030 OneGate server
+9869 GUI server Sunstone
+29876 noVNC Proxy Server
 EOF
     info_msg "for live mirgation, modify all kvmnode /var/lib/one/.ssh/config, authorized_keys\n"
     info_msg "ALL DONE\n"
