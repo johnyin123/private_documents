@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b6fe46c[2023-10-13T14:23:37+08:00]:opennebula.sh")
+VERSION+=("3be6a53[2023-10-13T15:33:59+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -127,6 +127,11 @@ EOF
     # Verify OpenNebula Frontend installation
     sudo -u oneadmin oneuser show --json
     [ -e "/var/lib/one/.ssh/known_hosts" ] && truncate -s0 /var/lib/one/.ssh/known_hosts
+    oneuser show 0 | sed '/USER TEMPLATE/,/VMS USAGE/!d;//d' >/tmp/oneadmin.tpl
+    cat <<EOF >> /tmp/oneadmin.tpl
+SSH_PUBLIC_KEY="$(cat /var/lib/one/.ssh/id*pub 2>/dev/null)"
+EOF
+    oneuser update 0 /tmp/oneadmin.tpl && rm -f /tmp/oneadmin.tpl
     # # To change oneadmin password, follow the next steps:
     # oneuser passwd 0 <PASSWORD>
     # echo 'oneadmin:PASSWORD' > /var/lib/one/.one/one_auth
