@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b5fd2b9[2023-10-16T16:43:16+08:00]:opennebula.sh")
+VERSION+=("1f134cf[2023-10-16T17:06:23+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -32,44 +32,6 @@ VERSION+=("b5fd2b9[2023-10-16T16:43:16+08:00]:opennebula.sh")
 # systemctl restart opennebula opennebula-sunstone
 # check logs for errors (/var/log/one/oned.log /var/log/one/sched.log /var/log/one/sunstone.log)
 #########################################
-init_kvmnode() {
-    local phy_bridge=${1}
-    [ -e "/sys/class/net/${phy_bridge}" ] && {
-        echo "BRIDGE ${phy_bridge} EXISTS!!!!. QUIT NODE BRIDGE SETUP"
-        return 0
-    }
-    source /etc/os-release
-    case "${ID}" in
-        debian)
-            cat /etc/network/interfaces > /etc/network/interfaces.bak
-            cat << EOF | tee /etc/network/interfaces
-source /etc/network/interfaces.d/*
-# The loopback network interface
-auto lo
-iface lo inet loopback
-EOF
-            cat << EOF | tee /etc/network/interfaces.d/br-ext
-auto ${phy_bridge}
-iface ${phy_bridge} inet manual
-    bridge_maxwait 0
-    bridge_ports none
-#    bridge_ports ${phy_dev}
-EOF
-            ;;
-        centos|rocky|openEuler|*)
-            cat << EOF | tee /etc/sysconfig/network-scripts/ifcfg-${phy_bridge}
-DEVICE="${phy_bridge}"
-ONBOOT="yes"
-TYPE="Bridge"
-BOOTPROTO="none"
-STP="off"
-EOF
-            ;;
-    esac
-    ifup ${phy_bridge} || true
-    systemctl restart libvirtd || true
-    systemctl enable libvirtd || true
-}
 init_frontend() {
     local pubaddr=${1}
     local sshport=${2:-22}
@@ -220,29 +182,6 @@ EOT
     sudo -u oneadmin oneimage chmod ${img_tpl_name} 604
     sudo -u oneadmin oneimage show --json ${img_tpl_name}
 }
-# *************** Node Setup ****************#
-# # https://docs.opennebula.io/6.6/open_cluster_deployment/storage_setup/ceph_ds.html
-init_kvmnode_ceph() {
-    local secret_uuid=${1}
-    local poolname=${2}
-    local secret_name=${3}
-    local cluster=${4:-}
-    # # COPY ceph.client.admin.keyring ceph.conf to nodes
-    rbd ${cluster:+--cluster ${cluster}} ls ${poolname} --id ${secret_name}
-    # # ceph add user <secret_name> or use admin
-    cat <<EPOOL | virsh secret-define /dev/stdin
-<secret ephemeral='no' private='no'>
-  <uuid>${secret_uuid}</uuid>
-  <usage type='ceph'>
-    <name>${secret_name} secret</name>
-  </usage>
-</secret>
-EPOOL
-    secret_key=$(ceph ${cluster:+--cluster ${cluster}} auth get-key client.${secret_name})
-    echo ${secret_key}
-    virsh secret-set-value --secret ${secret_uuid} --base64 ${secret_key} 2>/dev/null
-    virsh secret-list
-}
 # *************** Frontend Setup ****************#
 # # The Frontend does not need any specific Ceph setup, it will access the Ceph cluster through the storage bridges.
 # # DEFINE system and image datastores
@@ -359,7 +298,7 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME}
         -F|--frontend   *  <addr>   Frontend address
-        -N|--kvmnode    *  <addr>   kvm node address, multi input
+        -N|--kvmnode    *  <addr>   kvm node address, multi input, NOT execute on kvmnodes!!!!, only frontend, need init manual
         --adminpass        <str>    http://<frontend_address>:9869, oneadmin pass,default 'password'
         --vnet             <str>    vnet name, use <bridge>
         --bridge           <str>    vnet used phy bridge name on kvm node
@@ -372,6 +311,8 @@ ${SCRIPTNAME}
         --ceph_user        <str>    ceph datastore user name
         --ceph_conf        <file>   ceph config filename
         --ceph_keyring     <file>   ceph user keyring filename
+        --secret_uuid      <uuid>   libvirt ceph rbd secret uuid, if not set auto gen
+                                    kvmnodes define use <secret_uuid
         --fs_store         <str>    fs datastore name
         --arm_tplimg       <file>   aarch64 vm gold image
         --x86_tplimg       <file>   x86_64 vm gold image
@@ -439,6 +380,40 @@ ln -s /usr/libexec/qemu-kvm /usr/bin/qemu-kvm-one
 # group = "oneadmin"
 # dynamic_ownership = 0
 # EOF
+onedb backup filename
+oneuser create user1 password
+onevm deploy 1 2
+onevm list --search MAC=02:00:0c:00:4c:dd
+oneuser quota
+onegroup quota
+oneuser batchquota userA,userB,35
+onegroup batchquota
+Or in Sunstone through the user/group tab
+modify /etc/one/oned.conf <DEFAULT_CDROM_DEVICE_PREFIX>, can set CDROM default to ide/scsi/virtio
+OR:
+    You can set the TARGET & DEV_PREFIX in the context section
+    CONTEXT = [ DEV_PREFIX = "sd", TARGET="sd" .... ]
+
+Every HA cluster requires:
+    1. Odd number of servers (3 is recommended).
+    2. Recommended identical servers capacity.
+    3. Same software configuration of the servers (the sole difference would be the SERVER_ID field in /etc/one/oned.conf).
+    4. Working database connection of the same type, MySQL is recommended.
+    5. All the servers must share the credentials.
+    6. Floating IP which will be assigned to the leader.
+    7. Shared filesystem.
+The servers should be configured in the following way:
+    1. Sunstone (with or without Apache/Passenger) running on all the nodes.
+    2. Shared datastores must be mounted on all the nodes.
+https://docs.opennebula.io/5.8/advanced_components/ha/frontend_ha_setup.html
+sudo -i -u oneadmin
+BAK_DIR=~/one_backup
+mkdir -p \$BAK_DIR
+cp -rp --parents /etc/one \$BAK_DIR
+cp -rp --parents /var/lib/one/remotes \$BAK_DIR
+cp -rp --parents /var/lib/one/.one \$BAK_DIR
+onedb backup -S <database_host> -u <user> -p <password> -d <database_name> -P <port>
+cp -rp <onedb_backup> \$BAK_DIR
 EOF
     exit 1
 }
@@ -449,7 +424,7 @@ main() {
     local frontend="" kvmnode=() adminpass="password" ceph_pool="" ceph_user="" ceph_conf="" ceph_keyring="" bridge="" cluster="" fs_store=""
     local vnet="" guest_ipstart="" guest_ipsize="" guest_netmask="" guest_gateway="" guest_dns="" arm_tplimg="aarch64.raw" x86_tplimg="x86_64.raw"
     local opt_short="U:P:F:N:"
-    local opt_long="user:,port:password:,frontend:,kvmnode:,adminpass:,ceph_pool:,ceph_user:,ceph_conf:,ceph_keyring:,bridge:,"
+    local opt_long="user:,port:password:,frontend:,kvmnode:,adminpass:,ceph_pool:,ceph_user:,ceph_conf:,ceph_keyring:,secret_uuid:,bridge:,"
     opt_long+="cluster:,vnet:,guest_ipstart:,guest_ipsize:,guest_netmask:,guest_gateway:,guest_dns:,fs_store:,arm_tplimg:,x86_tplimg:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
@@ -472,6 +447,7 @@ main() {
             --ceph_user)       shift; ceph_user=${1}; shift;;
             --ceph_conf)       shift; ceph_conf=${1}; shift;;
             --ceph_keyring)    shift; ceph_keyring=${1}; shift;;
+            --secret_uuid)     shift; secret_uuid=${1}; shift;;
             --fs_store)        shift; fs_store=${1}; shift;;
             --arm_tplimg)      shift; arm_tplimg=${1}; shift;;
             --x86_tplimg)      shift; x86_tplimg=${1}; shift;;
@@ -501,6 +477,9 @@ main() {
     file_exists "${x86_tplimg}" && upload "${x86_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${x86fn}";
     file_exists "${arm_tplimg}" && upload "${arm_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${armfn}";
     [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || [ -z "${ceph_conf}" ] || [ -z "${ceph_keyring}" ] || {
+        info_msg  "###############################################################################\n"
+        info_msg  "Libvirt ceph secret_uuid = ${secret_uuid}\n"
+        info_msg  "###############################################################################\n"
         local mon_host=$(awk -F= '/\s*mon_host/{print $2}' ${ceph_conf} | tr , ' ')
         local bridge_host="${kvmnode[@]}"
         info_msg "mon_host=${mon_host}\n"
@@ -520,66 +499,41 @@ main() {
         ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${fs_store}" "${armfn}_onfs" "/var/tmp/${armfn}"
         ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}_vmtpl_onfs" "${armfn}_onfs" "aarch64" "${vnet}"
     }
-    info_msg "Frontend init OK\n"
-    cat<<'EOF'
-onedb backup filename
-oneuser create user1 password
-onevm deploy 1 2
-onevm list --search MAC=02:00:0c:00:4c:dd
-oneuser quota
-onegroup quota
-oneuser batchquota userA,userB,35
-onegroup batchquota
-Or in Sunstone through the user/group tab
-modify /etc/one/oned.conf <DEFAULT_CDROM_DEVICE_PREFIX>, can set CDROM default to ide/scsi/virtio
-OR:
-    You can set the TARGET & DEV_PREFIX in the context section
-    CONTEXT = [ DEV_PREFIX = "sd", TARGET="sd" .... ]
-
-Every HA cluster requires:
-    1. Odd number of servers (3 is recommended).
-    2. Recommended identical servers capacity.
-    3. Same software configuration of the servers (the sole difference would be the SERVER_ID field in /etc/one/oned.conf).
-    4. Working database connection of the same type, MySQL is recommended.
-    5. All the servers must share the credentials.
-    6. Floating IP which will be assigned to the leader.
-    7. Shared filesystem.
-The servers should be configured in the following way:
-    1. Sunstone (with or without Apache/Passenger) running on all the nodes.
-    2. Shared datastores must be mounted on all the nodes.
-https://docs.opennebula.io/5.8/advanced_components/ha/frontend_ha_setup.html
-sudo -i -u oneadmin
-BAK_DIR=~/one_backup
-mkdir -p $BAK_DIR
-cp -rp --parents /etc/one $BAK_DIR
-cp -rp --parents /var/lib/one/remotes $BAK_DIR
-cp -rp --parents /var/lib/one/.one $BAK_DIR
-onedb backup -S <database_host> -u <user> -p <password> -d <database_name> -P <port>
-cp -rp <onedb_backup> $BAK_DIR
-
-2474 OneFlow server
-2616 Next-generation GUI server FireEdge
-2633 Main OpenNebula Daemon (oned), XML-RPC API endpoint
-4124 Monitoring daemon (both TCP/UDP)
-5030 OneGate server
-9869 GUI server Sunstone
-29876 noVNC Proxy Server
-EOF
     local ipaddr=""
     for ipaddr in $(array_print kvmnode); do
-        upload "authorized_keys" "${ipaddr}" "${port}" "${user}" "/var/lib/one/.ssh/authorized_keys"
-        ssh_func "${user}@${ipaddr}" "${port}" "chown oneadmin.oneadmin /var/lib/one/.ssh/authorized_keys;chmod 0600 /var/lib/one/.ssh/authorized_keys"
-        ssh_func "${user}@${ipaddr}" "${port}" "[ -e /var/lib/one/.ssh/id_rsa ] || su - oneadmin -c \"ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa\""
-        download "${ipaddr}" "${port}" "${user}" "/var/lib/one/.ssh/id_rsa.pub" "id_rsa.pub-${ipaddr}"
-        [ -z "${bridge}" ] || ssh_func "${user}@${ipaddr}" "${port}" init_kvmnode "${bridge}"
-        [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || [ -z "${ceph_conf}" ] || [ -z "${ceph_keyring}" ] || {
-            upload "${ceph_conf}" "${ipaddr}" "${port}" "${user}" "/etc/ceph/"
-            upload "${ceph_keyring}" "${ipaddr}" "${port}" "${user}" "/etc/ceph/"
-            local ceph_cluster=$(str_replace "$(basename ${ceph_conf})" '.conf' '')
-            ssh_func "${user}@${ipaddr}" "${port}" init_kvmnode_ceph "${secret_uuid}" "${ceph_pool}" "${ceph_user}" "${ceph_cluster}"
-        }
         ssh_func "${user}@${frontend}" "${port}" add_kvmhost "${ipaddr}" "${port}" "${cluster}"
     done
+    info_msg "Frontend init OK\n"
+    cat <<EOF
+# #  init kvm nodes
+echo $(cat authorized_keys) > /var/lib/one/.ssh/authorized_keys
+chown oneadmin.oneadmin /var/lib/one/.ssh/authorized_keys
+chmod 0600 /var/lib/one/.ssh/authorized_keys
+[ -e /var/lib/one/.ssh/id_rsa ] || su - oneadmin -c "ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa"
+cat <<EOBR  > /etc/sysconfig/network-scripts/ifcfg-${bridge}
+DEVICE="${bridge}"
+ONBOOT="yes"
+TYPE="Bridge"
+BOOTPROTO="none"
+STP="off"
+EOBR
+echo "copy ${ceph_conf} ${ceph_keyring} ==> /etc/ceph/"
+
+# # COPY ceph.client.admin.keyring ceph.conf to nodes
+# # https://docs.opennebula.io/6.6/open_cluster_deployment/storage_setup/ceph_ds.html
+cat <<EPOOL | virsh secret-define /dev/stdin
+<secret ephemeral='no' private='no'>
+  <uuid>${secret_uuid}</uuid>
+  <usage type='ceph'>
+    <name>${ceph_user} secret</name>
+  </usage>
+</secret>
+EPOOL
+# ceph auth get-key client.${ceph_user})
+# cat /etc/ceph/ceph.client.${ceph_user}.keyring  | awk '/key = /{print \$3}'
+# virsh secret-set-value --secret ${secret_uuid} --base64 ${secret_key} 2>/dev/null
+# virsh secret-list
+EOF
     info_msg "for live mirgation, modify all kvmnode /var/lib/one/.ssh/config, authorized_keys\n"
     info_msg "ALL DONE\n"
     return 0
