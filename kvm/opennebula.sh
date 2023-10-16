@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8569cc0[2023-10-16T10:37:54+08:00]:opennebula.sh")
+VERSION+=("72299a6[2023-10-16T13:00:53+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -24,12 +24,7 @@ VERSION+=("8569cc0[2023-10-16T10:37:54+08:00]:opennebula.sh")
 # mysql -u root -p
 # mysql> GRANT ALL PRIVILEGES ON opennebula.* TO 'oneadmin' IDENTIFIED BY '密码';
 # mysql> flush privilege
-# # sqlite3 convert to mysql Downloading script:
-# /usr/lib/one/ruby/onedb/sqlite2mysql.rb
-#  wget http://www.redmine.org/attachments/download/6239/sqlite3-to-mysql.py
-# # Converting:
-#  sqlite3 /var/lib/one/one.db .dump | ./sqlite3-to-mysql.py > mysql.sql
-#  mysql -u oneadmin -p opennebula < mysql.sql
+#  onedb sqlite2mysql ...
 # # Change /etc/one/oned.conf from
 #  DB = [ backend = "sqlite" ]
 # # to
@@ -55,7 +50,7 @@ iface lo inet loopback
 EOF
             cat << EOF | tee /etc/network/interfaces.d/br-ext
 auto ${phy_bridge}
-iface ${phy_bridge} inet static
+iface ${phy_bridge} inet manual
     bridge_maxwait 0
     bridge_ports none
 #    bridge_ports ${phy_dev}
@@ -121,6 +116,16 @@ EOF
     # # To change oneadmin password, follow the next steps:
     # oneuser passwd 0 <PASSWORD>
     # echo 'oneadmin:PASSWORD' > /var/lib/one/.one/one_auth
+    # # # # # # # # # # To recover the DB you may try:
+    # rm -fr /var/lib/one/.one
+    # sudo -u oneadmin mkdir -m 0700 /var/lib/one/.one
+    # echo "oneadmin:${password:-password}" | sudo -u oneadmin tee /var/lib/one/.one/one_auth
+    # sudo -u oneadmin onedb restore <backupfile>
+    # systemctl start opennebula
+    # sudo -u oneadmin oneuser passwd --sha256 serveradmin new_passwd_for_serveradmin
+    # echo serveradminnew_passwd_for_serveradmin | sudo -u oneadmin tee /var/lib/one/.one/sunstone_auth
+    # cat /var/lib/one/.one/sunstone_auth | sudo -u oneadmin tee /var/lib/one/.one/oneflow_auth
+    # cat /var/lib/one/.one/sunstone_auth | sudo -u oneadmin tee /var/lib/one/.one/onegate_auth
     echo "http://$pubaddr:9869, Sunstone web"
     echo "http://$pubaddr:2616, FireEdge Sunstone is the new generation OpenNebula web interface,still in BETA stage"
 }
