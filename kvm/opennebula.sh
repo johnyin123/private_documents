@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3be6a53[2023-10-13T15:33:59+08:00]:opennebula.sh")
+VERSION+=("6aead3d[2023-10-13T17:09:33+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -20,6 +20,7 @@ VERSION+=("3be6a53[2023-10-13T15:33:59+08:00]:opennebula.sh")
 # openEuler:  echo "ID_LIKE=centos" >> /etc/os-release # one-context > 6.6
 #######################################################################################
 # # 创建数据库
+# mysql_secure_installation
 # mysql -u root -p
 # mysql> GRANT ALL PRIVILEGES ON opennebula.* TO 'oneadmin' IDENTIFIED BY '密码';
 # mysql> flush privilege
