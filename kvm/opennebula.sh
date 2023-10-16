@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("72299a6[2023-10-16T13:00:53+08:00]:opennebula.sh")
+VERSION+=("b5fd2b9[2023-10-16T16:43:16+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -425,6 +425,7 @@ yum install xmlrpc-c rubygems rubygem-rexml rubygem-sqlite3
 useradd oneadmin --no-create-home --home-dir /var/lib/one --shell /bin/bash
 mkdir -m0755 /var/lib/one/remotes && chown -R oneadmin.oneadmin /var/lib/one
 usermod -a -G libvirt oneadmin
+usermod -a -G kvm oneadmin
 echo '%oneadmin ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/oneadmin
 su - oneadmin -c "ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa"
 ln -s /usr/libexec/qemu-kvm /usr/bin/qemu-kvm-one
@@ -433,7 +434,11 @@ ln -s /usr/libexec/qemu-kvm /usr/bin/qemu-kvm-one
 # /usr/lib/one/onegate-proxy/onegate-proxy.rb 0644
 # /usr/bin/onegate-proxy                      0755
 # /var/lib/one/remotes/etc                    0644
-#
+# cat << EOF >> /etc/libvirt/qemu.conf
+# user = "oneadmin"
+# group = "oneadmin"
+# dynamic_ownership = 0
+# EOF
 EOF
     exit 1
 }
