@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6aead3d[2023-10-13T17:09:33+08:00]:opennebula.sh")
+VERSION+=("8569cc0[2023-10-16T10:37:54+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -39,9 +39,6 @@ VERSION+=("6aead3d[2023-10-13T17:09:33+08:00]:opennebula.sh")
 #########################################
 init_kvmnode() {
     local phy_bridge=${1}
-    local phy_dev=${2}
-    local ipaddr=$(ip ad show dev ${phy_dev} | awk '/scope global/ {print $2}')
-    local gateway=$(ip route show 0.0.0.0/0 dev ${phy_dev} | cut -d\  -f3)
     [ -e "/sys/class/net/${phy_bridge}" ] && {
         echo "BRIDGE ${phy_bridge} EXISTS!!!!. QUIT NODE BRIDGE SETUP"
         return 0
@@ -57,36 +54,26 @@ auto lo
 iface lo inet loopback
 EOF
             cat << EOF | tee /etc/network/interfaces.d/br-ext
-allow-hotplug ${phy_dev}
-iface ${phy_dev} inet manual
-
 auto ${phy_bridge}
 iface ${phy_bridge} inet static
     bridge_maxwait 0
-    bridge_ports ${phy_dev}
-${ipaddr:+    address ${ipaddr}}}
-${gateway:+    gateway ${gateway}}
+    bridge_ports none
+#    bridge_ports ${phy_dev}
 EOF
             ;;
         centos|rocky|openEuler|*)
-            cat << EOF | tee /etc/sysconfig/network-scripts/ifcfg-${phy_dev}
-DEVICE="${phy_dev}"
-ONBOOT="yes"
-BRIDGE="${phy_bridge}"
-EOF
             cat << EOF | tee /etc/sysconfig/network-scripts/ifcfg-${phy_bridge}
 DEVICE="${phy_bridge}"
 ONBOOT="yes"
 TYPE="Bridge"
 BOOTPROTO="none"
 STP="off"
-${ipaddr:+IPADDR=${ipaddr%/*}}
-${ipaddr:+PREFIX=${ipaddr##*/}}
-${gateway:+GATEWAY=${gateway}}
 EOF
             ;;
     esac
-    systemctl enable libvirtd --now
+    ifup ${phy_bridge} || true
+    systemctl restart libvirtd || true
+    systemctl enable libvirtd || true
 }
 init_frontend() {
     local pubaddr=${1}
@@ -116,13 +103,11 @@ EOF
         -e '/(\s*OVMF_UEFIS\s*=).*/!p' \
         -e '$aOVMF_UEFIS = "/usr/share/OVMF/OVMF_CODE.fd /usr/share/OVMF/OVMF_CODE.secboot.fd /usr/share/AAVMF/AAVMF_CODE.fd /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw"' \
         /etc/one/vmm_exec/vmm_exec_kvm.conf
-    systemctl enable opennebula --now
-    systemctl enable opennebula-sunstone --now
-    systemctl enable opennebula-gate.service --now
     echo "vnc fix"
     sed -i -E \
         -e "s|fireedge_endpoint\s*:.*|fireedge_endpoint: http://${pubaddr}:2616|g" /etc/one/sunstone-server.conf
-    systemctl enable opennebula-fireedge --now
+    systemctl restart opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
+    systemctl enable opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
     echo "disable market place"
     onemarket list --no-header | awk '{print $1}' | xargs -I@ onemarket delete @
     # Verify OpenNebula Frontend installation
@@ -176,6 +161,7 @@ ${guest_nameserver:+DNS        = "${guest_nameserver}"}
 ${guest_gateway:+GATEWAY    = "${guest_gateway}"}
 AR = [ IP = "${guest_ipaddr}", SIZE = "${guest_ipaddr_size}", NETWORK_MASK = "${guest_net_mask}", TYPE = "IP4" ]
 EOF
+    sleep 5
     sudo -u oneadmin onevnet create ${c_name:+--cluster ${c_name}} /tmp/def.net && rm -f /tmp/def.net
     sudo -u oneadmin onevnet show --json ${vn_name}
     # ADD Address Ranges
@@ -499,21 +485,6 @@ main() {
     download "${frontend}" "${port}" "${user}" "/var/lib/one/.ssh/id_rsa.pub" "authorized_keys"
     ssh_func "${user}@${frontend}" "${port}" init_frontend "${frontend}" "${port}" "${adminpass}"
     [ -z "${cluster}" ] || ssh_func "${user}@${frontend}" "${port}" add_cluster "${cluster}"
-    local ipaddr=""
-    for ipaddr in $(array_print kvmnode); do
-        upload "authorized_keys" "${ipaddr}" "${port}" "${user}" "/var/lib/one/.ssh/authorized_keys"
-        ssh_func "${user}@${ipaddr}" "${port}" "chown oneadmin.oneadmin /var/lib/one/.ssh/authorized_keys;chmod 0600 /var/lib/one/.ssh/authorized_keys"
-        ssh_func "${user}@${ipaddr}" "${port}" "[ -e /var/lib/one/.ssh/id_rsa ] || su - oneadmin -c \"ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa\""
-        download "${ipaddr}" "${port}" "${user}" "/var/lib/one/.ssh/id_rsa.pub" "id_rsa.pub-${ipaddr}"
-        [ -z "${bridge}" ] || ssh_func "${user}@${ipaddr}" "${port}" init_kvmnode "${bridge}" "eth0"
-        [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || [ -z "${ceph_conf}" ] || [ -z "${ceph_keyring}" ] || {
-            upload "${ceph_conf}" "${ipaddr}" "${port}" "${user}" "/etc/ceph/"
-            upload "${ceph_keyring}" "${ipaddr}" "${port}" "${user}" "/etc/ceph/"
-            local ceph_cluster=$(str_replace "$(basename ${ceph_conf})" '.conf' '')
-            ssh_func "${user}@${ipaddr}" "${port}" init_kvmnode_ceph "${secret_uuid}" "${ceph_pool}" "${ceph_user}" "${ceph_cluster}"
-        }
-        ssh_func "${user}@${frontend}" "${port}" add_kvmhost "${ipaddr}" "${port}" "${cluster}"
-    done
     [ -z "${vnet}" ] || [ -z "${bridge}" ] || ssh_func "${user}@${frontend}" "${port}" add_bridge_net "${vnet}" "${bridge}" "${guest_ipstart}" "${guest_ipsize}" "${guest_netmask}" "${guest_gateway}" "${guest_dns}" "${cluster}"
     local x86fn=$(basename ${x86_tplimg})
     local armfn=$(basename ${arm_tplimg})
@@ -539,6 +510,7 @@ main() {
         ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${fs_store}" "${armfn}_onfs" "/var/tmp/${armfn}"
         ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}_vmtpl_onfs" "${armfn}_onfs" "aarch64" "${vnet}"
     }
+    info_msg "Frontend init OK\n"
     cat<<'EOF'
 onedb backup filename
 oneuser create user1 password
@@ -583,6 +555,21 @@ cp -rp <onedb_backup> $BAK_DIR
 9869 GUI server Sunstone
 29876 noVNC Proxy Server
 EOF
+    local ipaddr=""
+    for ipaddr in $(array_print kvmnode); do
+        upload "authorized_keys" "${ipaddr}" "${port}" "${user}" "/var/lib/one/.ssh/authorized_keys"
+        ssh_func "${user}@${ipaddr}" "${port}" "chown oneadmin.oneadmin /var/lib/one/.ssh/authorized_keys;chmod 0600 /var/lib/one/.ssh/authorized_keys"
+        ssh_func "${user}@${ipaddr}" "${port}" "[ -e /var/lib/one/.ssh/id_rsa ] || su - oneadmin -c \"ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa\""
+        download "${ipaddr}" "${port}" "${user}" "/var/lib/one/.ssh/id_rsa.pub" "id_rsa.pub-${ipaddr}"
+        [ -z "${bridge}" ] || ssh_func "${user}@${ipaddr}" "${port}" init_kvmnode "${bridge}"
+        [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || [ -z "${ceph_conf}" ] || [ -z "${ceph_keyring}" ] || {
+            upload "${ceph_conf}" "${ipaddr}" "${port}" "${user}" "/etc/ceph/"
+            upload "${ceph_keyring}" "${ipaddr}" "${port}" "${user}" "/etc/ceph/"
+            local ceph_cluster=$(str_replace "$(basename ${ceph_conf})" '.conf' '')
+            ssh_func "${user}@${ipaddr}" "${port}" init_kvmnode_ceph "${secret_uuid}" "${ceph_pool}" "${ceph_user}" "${ceph_cluster}"
+        }
+        ssh_func "${user}@${frontend}" "${port}" add_kvmhost "${ipaddr}" "${port}" "${cluster}"
+    done
     info_msg "for live mirgation, modify all kvmnode /var/lib/one/.ssh/config, authorized_keys\n"
     info_msg "ALL DONE\n"
     return 0
