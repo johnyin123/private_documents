@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("6aab51a[2023-10-07T06:50:26+08:00]:functions.sh")
+VERSION+=("7d6f203[2023-10-10T14:21:41+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -191,6 +191,8 @@ ssh_func() {
     local bash_opt="-o errexit -s"
     defined QUIET || bash_opt="-x ${bash_opt}"
     try setsid ssh ${ssh_opt} ${SUDO:+sudo} /bin/bash ${bash_opt} << EOF
+export LANG=C
+export LC_ALL=C
 $(typeset -f "${func_name}" 2>/dev/null || true)
 ${func_name} $([ "${#args[@]}" -gt 0 ] && printf '"%s" ' "${args[@]}")
 EOF

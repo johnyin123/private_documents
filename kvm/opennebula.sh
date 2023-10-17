@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6ce34c1[2023-10-17T07:37:30+08:00]:opennebula.sh")
+VERSION+=("264e346[2023-10-17T09:50:32+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -17,6 +17,7 @@ VERSION+=("6ce34c1[2023-10-17T07:37:30+08:00]:opennebula.sh")
 # Gold Image:
 # Download Contextualization Packages to the VM
 # wget https://github.com/OpenNebula/addon-context-linux/
+# /usr/share/one/context/one-context-6.6.1-1.el6.noarch.rpm
 # openEuler:  echo "ID_LIKE=centos" >> /etc/os-release # one-context > 6.6
 #######################################################################################
 # # 创建数据库
