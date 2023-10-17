@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("264e346[2023-10-17T09:50:32+08:00]:opennebula.sh")
+VERSION+=("ac24dbc[2023-10-17T09:53:18+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -37,7 +37,7 @@ init_frontend() {
     local pubaddr=${1}
     local sshport=${2:-22}
     local password=${3:-password}
-    cat <<EOF >> /var/lib/one/.ssh/config
+    tee -a /var/lib/one/.ssh/config <<EOF
 Host localhost
   Port ${sshport}
 EOF
@@ -104,7 +104,7 @@ add_kvmhost() {
     ipaddr=${1}
     sshport=${2}
     local c_name=${3:-}
-    cat <<EOF >> /var/lib/one/.ssh/config
+    tee -a /var/lib/one/.ssh/config <<EOF
 Host ${ipaddr}
   Port ${sshport}
 EOF
@@ -120,7 +120,7 @@ add_bridge_net() {
     local guest_gateway=${6:-}
     local guest_nameserver=${7:-}
     local c_name=${8:-}
-    cat << EOF | sudo -u oneadmin tee /tmp/def.net
+    sudo -u oneadmin tee /tmp/def.net <<EOF
 NAME       = "${vn_name}"
 BRIDGE     = "${phy_bridge}"
 BRIDGE_TYPE= "linux"
@@ -151,11 +151,11 @@ add_fs_store() {
         img)   val="DS_MAD = fs";;
         *)     echo "fs store type [${type}] error"; return 1;;
     esac
-    cat << EOF | sudo -u oneadmin tee /tmp/store.def
+    sudo -u oneadmin tee /tmp/store.def <<EOT
 NAME    = ${name}
 TM_MAD  = ssh
 $(echo ${val})
-EOF
+EOT
     sudo -u oneadmin onedatastore create ${c_name:+--cluster ${c_name}} /tmp/store.def && rm -f /tmp/store.def
     sudo -u oneadmin onedatastore show --json ${name}
 }
@@ -169,7 +169,7 @@ add_osimg_tpl() {
         echo "${tpl_file} no found!!! create one 2GiB"
         truncate -s 2G "${tpl_file}"
     }
-    cat << EOT | sudo -u oneadmin tee /tmp/img.tpl
+    sudo -u oneadmin tee /tmp/img.tpl <<EOT
 NAME           = ${img_tpl_name}
 TYPE           = OS
 PERSISTENT     = No
@@ -203,7 +203,7 @@ add_ceph_store() {
         img)   val="DS_MAD = ceph";;
         *)     echo "fs store type [${type}] error"; return 1;;
     esac
-    cat << EOT | sudo -u oneadmin tee /tmp/store.def
+    sudo -u oneadmin tee /tmp/store.def <<EOT
 NAME        = ${name}
 $(echo ${val})
 TM_MAD      = ceph
@@ -247,7 +247,7 @@ HOT_RESIZE  = [ CPU_HOT_ADD_ENABLED="YES", MEMORY_HOT_ADD_ENABLED="YES" ]'
     # /etc/one/vmm_exec/vmm_exec_kvm.conf, add full path firmware file in <OVMF_UEFIS>
     # ONEGATE_ENDPOINT = "http://gate:5030"
     # CONTEXT = [ DEV_PREFIX = "sd", TARGET = "sda" ], nebula iso use scsi not ide
-    cat <<EOF | sudo -u oneadmin tee /tmp/vm512.tpl
+    sudo -u oneadmin tee /tmp/vm512.tpl <<EOT
 NAME      = ${vmtpl_name}
 VCPU      = 1
 CPU       = 1
@@ -279,7 +279,7 @@ CONTEXT            = [
     START_SCRIPT   = "#!/bin/bash
 echo 'start' > /start.ok"
 ]
-EOF
+EOT
     sudo -u oneadmin onetemplate create /tmp/vm512.tpl && rm -f /tmp/vm512.tpl
     echo "for other user access this template"
     sudo -u oneadmin onetemplate chmod "${vmtpl_name}" 604
@@ -515,12 +515,11 @@ main() {
     done
     info_msg "Frontend init OK\n"
     cat <<EOF
-# #  init kvm nodes
-echo $(cat authorized_keys) > /var/lib/one/.ssh/authorized_keys
-chown oneadmin.oneadmin /var/lib/one/.ssh/authorized_keys
-chmod 0600 /var/lib/one/.ssh/authorized_keys
+# # # init kvm nodes
 [ -e /var/lib/one/.ssh/id_rsa ] || su - oneadmin -c "ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa"
-cat <<EOBR  > /etc/sysconfig/network-scripts/ifcfg-${bridge}
+echo '$(cat authorized_keys)' | sudo -u oneadmin tee -a /var/lib/one/.ssh/authorized_keys
+chmod 0600 /var/lib/one/.ssh/authorized_keys
+tee /etc/sysconfig/network-scripts/ifcfg-${bridge} <<EOBR
 DEVICE="${bridge}"
 ONBOOT="yes"
 TYPE="Bridge"
@@ -539,9 +538,9 @@ cat <<EPOOL | virsh secret-define /dev/stdin
   </usage>
 </secret>
 EPOOL
-# ceph auth get-key client.${ceph_user})
-# cat /etc/ceph/ceph.client.${ceph_user}.keyring  | awk '/key = /{print \$3}'
-# virsh secret-set-value --secret ${secret_uuid} --base64 ${secret_key} 2>/dev/null
+# ceph auth get-key client.${ceph_user}
+# cat /etc/ceph/ceph.client.${ceph_user}.keyring | awk '/key = /{print \$3}'
+# virsh secret-set-value --secret ${secret_uuid} --base64 \${secret_key} 2>/dev/null
 # virsh secret-list
 EOF
     info_msg "for live mirgation, modify all kvmnode /var/lib/one/.ssh/config, authorized_keys\n"
