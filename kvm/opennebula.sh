@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ac24dbc[2023-10-17T09:53:18+08:00]:opennebula.sh")
+VERSION+=("55b4fbd[2023-10-17T13:44:18+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -161,6 +161,25 @@ EOT
 }
 #########################################
 # Image template
+add_dataimg_tpl() {
+    local img_datastore=${1}
+    local img_tpl_name=${2}
+    sudo -u oneadmin tee /tmp/imgdata.tpl <<EOT
+NAME           = ${img_tpl_name}
+DESCRIPTION    ="${img_tpl_name} data tpl image."
+TYPE           = DATABLOCK
+PERSISTENT     = No
+FORMAT         = raw
+SIZE           = 128
+DEV_PREFIX     = "vd"
+EOT
+    sudo -u oneadmin oneimage create -d ${img_datastore} /tmp/imgdata.tpl && rm -f /tmp/imgdata.tpl
+    # sudo -u oneadmin oneimage create --prefix vd --datastore ${img_datastore} --name ${img_tpl_name} --path ${tpl_file} --description "${img_tpl_name} vm tpl image."
+    # sudo -u oneadmin oneimage nonpersistent
+    sudo -u oneadmin oneimage chmod ${img_tpl_name} 604
+    sudo -u oneadmin oneimage show --json ${img_tpl_name}
+
+}
 add_osimg_tpl() {
     local img_datastore=${1}
     local img_tpl_name=${2}
@@ -171,13 +190,13 @@ add_osimg_tpl() {
     }
     sudo -u oneadmin tee /tmp/img.tpl <<EOT
 NAME           = ${img_tpl_name}
+DESCRIPTION    ="${img_tpl_name} sys tpl image."
 TYPE           = OS
 PERSISTENT     = No
 PATH           = ${tpl_file}
-DESCRIPTION    ="${img_tpl_name} vm tpl image."
 DEV_PREFIX     ="vd"
 EOT
-    sudo -u oneadmin oneimage create -d ${img_datastore} /tmp/img.tpl
+    sudo -u oneadmin oneimage create -d ${img_datastore} /tmp/img.tpl && rm -f /tmp/img.tpl
     # sudo -u oneadmin oneimage create --prefix vd --datastore ${img_datastore} --name ${img_tpl_name} --path ${tpl_file} --description "${img_tpl_name} vm tpl image."
     # sudo -u oneadmin oneimage nonpersistent
     sudo -u oneadmin oneimage chmod ${img_tpl_name} 604
@@ -517,7 +536,10 @@ main() {
     cat <<EOF
 # # # init kvm nodes
 [ -e /var/lib/one/.ssh/id_rsa ] || su - oneadmin -c "ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa"
-echo '$(cat authorized_keys)' | sudo -u oneadmin tee -a /var/lib/one/.ssh/authorized_keys
+sudo -u oneadmin tee -a /var/lib/one/.ssh/authorized_keys <<EOK
+$(cat authorized_keys)
+EOK
+
 chmod 0600 /var/lib/one/.ssh/authorized_keys
 tee /etc/sysconfig/network-scripts/ifcfg-${bridge} <<EOBR
 DEVICE="${bridge}"
@@ -526,9 +548,15 @@ TYPE="Bridge"
 BOOTPROTO="none"
 STP="off"
 EOBR
-echo "copy ${ceph_conf} ${ceph_keyring} ==> /etc/ceph/"
 
 # # COPY ceph.client.admin.keyring ceph.conf to nodes
+tee /etc/ceph/$(basename ${ceph_conf}) <<EOK
+$(cat "${ceph_conf}")
+EOK
+
+tee /etc/ceph/$(basename ${ceph_keyring}) <<EOK
+$(cat "${ceph_keyring}")
+EOK
 # # https://docs.opennebula.io/6.6/open_cluster_deployment/storage_setup/ceph_ds.html
 cat <<EPOOL | virsh secret-define /dev/stdin
 <secret ephemeral='no' private='no'>
@@ -540,8 +568,8 @@ cat <<EPOOL | virsh secret-define /dev/stdin
 EPOOL
 # ceph auth get-key client.${ceph_user}
 # cat /etc/ceph/ceph.client.${ceph_user}.keyring | awk '/key = /{print \$3}'
-# virsh secret-set-value --secret ${secret_uuid} --base64 \${secret_key} 2>/dev/null
-# virsh secret-list
+virsh secret-set-value --secret ${secret_uuid} --base64 \$(awk '/key = /{print \$3}' /etc/ceph/$(basename ${ceph_keyring})) 2>/dev/null
+virsh secret-list
 EOF
     info_msg "for live mirgation, modify all kvmnode /var/lib/one/.ssh/config, authorized_keys\n"
     info_msg "ALL DONE\n"
