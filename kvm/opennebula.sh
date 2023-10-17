@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1f134cf[2023-10-16T17:06:23+08:00]:opennebula.sh")
+VERSION+=("6ce34c1[2023-10-17T07:37:30+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -297,7 +297,10 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env:
+            SUDO=   default undefine
         -F|--frontend   *  <addr>   Frontend address
+        --teardown         <addr>   teardown
         -N|--kvmnode    *  <addr>   kvm node address, multi input, NOT execute on kvmnodes!!!!, only frontend, need init manual
         --adminpass        <str>    http://<frontend_address>:9869, oneadmin pass,default 'password'
         --vnet             <str>    vnet name, use <bridge>
@@ -420,12 +423,12 @@ EOF
 
 main() {
     local secret_uuid=$(cat /proc/sys/kernel/random/uuid)
-    local user=root port=60022
+    local user=root port=60022 teardown_host=""
     local frontend="" kvmnode=() adminpass="password" ceph_pool="" ceph_user="" ceph_conf="" ceph_keyring="" bridge="" cluster="" fs_store=""
     local vnet="" guest_ipstart="" guest_ipsize="" guest_netmask="" guest_gateway="" guest_dns="" arm_tplimg="aarch64.raw" x86_tplimg="x86_64.raw"
     local opt_short="U:P:F:N:"
     local opt_long="user:,port:password:,frontend:,kvmnode:,adminpass:,ceph_pool:,ceph_user:,ceph_conf:,ceph_keyring:,secret_uuid:,bridge:,"
-    opt_long+="cluster:,vnet:,guest_ipstart:,guest_ipsize:,guest_netmask:,guest_gateway:,guest_dns:,fs_store:,arm_tplimg:,x86_tplimg:,"
+    opt_long+="cluster:,vnet:,guest_ipstart:,guest_ipsize:,guest_netmask:,guest_gateway:,guest_dns:,fs_store:,arm_tplimg:,x86_tplimg:,teardown:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -433,6 +436,7 @@ main() {
     while true; do
         case "$1" in
             -F | --frontend)   shift; frontend=${1}; shift;;
+            --teardown)        shift; teardown_host=${1}; shift;;
             --adminpass)       shift; adminpass=${1}; shift;;
             --cluster)         shift; cluster=${1}; shift;;
             --vnet)            shift; vnet=${1}; shift;;
@@ -464,6 +468,11 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
+    [ -z "${teardown_host}" ] || {
+        ssh_func "${user}@${teardown_host}" "${port}" teardown
+        info_msg "${teardown_host} TEARDOWN OK\n"
+        return 0
+    }
     [ -z "${frontend}" ] && usage "frontend ?"
     [ "$(array_size kvmnode)" -gt "0" ] || usage "kvmnode ?"
     [ -z "${ceph_conf}" ] || file_exists "${ceph_conf}" || exit_msg "${ceph_conf} no found\n"
