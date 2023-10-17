@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("55b4fbd[2023-10-17T13:44:18+08:00]:opennebula.sh")
+VERSION+=("47b70dd[2023-10-17T16:45:51+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -519,6 +519,7 @@ main() {
         ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}_vmtpl_ceph" "${x86fn}_ceph" "x86_64" "${vnet}"
         ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${ceph_pool}" "${armfn}_ceph" "/var/tmp/${armfn}"
         ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}_vmtpl_ceph" "${armfn}_ceph" "aarch64" "${vnet}"
+        ssh_func "${user}@${frontend}" "${port}" add_dataimg_tpl "img_${ceph_pool}" "data_disk_ceph"
     }
     [ -z "${fs_store}" ] || {
         ssh_func "${user}@${frontend}" "${port}" add_fs_store "sys_${fs_store}" "sys" "${cluster}"
@@ -527,6 +528,7 @@ main() {
         ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}_vmtpl_onfs" "${x86fn}_onfs" "x86_64" "${vnet}"
         ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${fs_store}" "${armfn}_onfs" "/var/tmp/${armfn}"
         ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}_vmtpl_onfs" "${armfn}_onfs" "aarch64" "${vnet}"
+        ssh_func "${user}@${frontend}" "${port}" add_dataimg_tpl "img_${fs_store}" "data_disk_fs"
     }
     local ipaddr=""
     for ipaddr in $(array_print kvmnode); do
