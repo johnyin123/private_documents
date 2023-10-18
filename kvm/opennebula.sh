@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("47b70dd[2023-10-17T16:45:51+08:00]:opennebula.sh")
+VERSION+=("8e154c5[2023-10-17T17:08:39+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -165,8 +165,8 @@ add_dataimg_tpl() {
     local img_datastore=${1}
     local img_tpl_name=${2}
     sudo -u oneadmin tee /tmp/imgdata.tpl <<EOT
-NAME           = ${img_tpl_name}
-DESCRIPTION    ="${img_tpl_name} data tpl image."
+NAME           = "${img_tpl_name}"
+DESCRIPTION    =" ${img_tpl_name} data tpl image."
 TYPE           = DATABLOCK
 PERSISTENT     = No
 FORMAT         = raw
@@ -189,8 +189,8 @@ add_osimg_tpl() {
         truncate -s 2G "${tpl_file}"
     }
     sudo -u oneadmin tee /tmp/img.tpl <<EOT
-NAME           = ${img_tpl_name}
-DESCRIPTION    ="${img_tpl_name} sys tpl image."
+NAME           = "${img_tpl_name}"
+DESCRIPTION    = "${img_tpl_name} sys tpl image."
 TYPE           = OS
 PERSISTENT     = No
 PATH           = ${tpl_file}
@@ -206,6 +206,7 @@ EOT
 # # The Frontend does not need any specific Ceph setup, it will access the Ceph cluster through the storage bridges.
 # # DEFINE system and image datastores
 # # Both datastores will share the same configuration parameters and Ceph pool.
+# # https://docs.opennebula.io/6.6/open_cluster_deployment/storage_setup/ceph_ds.html
 add_ceph_store() {
     local name=${1}
     local type=${2}
@@ -218,15 +219,16 @@ add_ceph_store() {
     local c_name=${9:-}
     local val=""
     case "${type}" in
-        sys)   val="TYPE = SYSTEM_DS";;
-        img)   val="DS_MAD = ceph";;
+        sys)   val="TYPE = SYSTEM_DS"; transfer_mode="TM_MAD = ceph";;
+        img)   val="DS_MAD = ceph"; transfer_mode="TM_MAD = ceph";;
         *)     echo "fs store type [${type}] error"; return 1;;
     esac
     sudo -u oneadmin tee /tmp/store.def <<EOT
 NAME        = ${name}
 $(echo ${val})
-TM_MAD      = ceph
+$(echo ${transfer_mode})
 DISK_TYPE   = RBD
+RBD_FORMAT  = 2
 POOL_NAME   = ${poolname}
 CEPH_SECRET = "${secret_uuid}"
 CEPH_USER   = ${secret_name}
@@ -243,7 +245,12 @@ add_vm_tpl() {
     local img_tpl=${2}
     local arch=${3}
     local vn_name=${4}
-    local firmware="" machine="" raw=""
+    local img_store_type=${5:-}
+    local firmware="" machine="" raw="" tm_mad_system=""
+    case "${img_store_type}" in
+        fs)   tm_mad_system="TM_MAD_SYSTEM=ssh" ;;
+        ceph) tm_mad_system="";;
+    esac
     case "${arch}" in
         aarch64)
             firmware=/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
@@ -257,7 +264,13 @@ add_vm_tpl() {
             ;;
         *)  echo "arch [${arch}] error"; return 1;;
     esac
-
+# When different System Datastores are available the TM_MAD_SYSTEM attribute will be set after picking the Datastore.
+# Same TM_MAD for both the System and Image datastore
+# When creating a VM Template you can choose to deploy the disks using the default Ceph mode or the SSH one.
+# Note that the same mode will be used for all disks of the VM.
+# To set the deployment mode, add the following attribute to the VM template:
+# TM_MAD_SYSTEM="ssh"
+# When using Sunstone, the deployment mode needs to be set in the Storage tab.
     local dynamic='VCPU_MAX  = 16
 MEMORY_MAX= 32768
 MEMORY_RESIZE_MODE="BALLOONING"
@@ -266,7 +279,11 @@ HOT_RESIZE  = [ CPU_HOT_ADD_ENABLED="YES", MEMORY_HOT_ADD_ENABLED="YES" ]'
     # /etc/one/vmm_exec/vmm_exec_kvm.conf, add full path firmware file in <OVMF_UEFIS>
     # ONEGATE_ENDPOINT = "http://gate:5030"
     # CONTEXT = [ DEV_PREFIX = "sd", TARGET = "sda" ], nebula iso use scsi not ide
+    # SCHED_DS_REQUIREMENTS = "NAME = ssd_system"
     sudo -u oneadmin tee /tmp/vm512.tpl <<EOT
+${tm_mad_system}
+LOGO          = "images/logos/linux.png"
+SUNSTONE      = [ NETWORK_SELECT = "NO" ]
 NAME      = ${vmtpl_name}
 VCPU      = 1
 CPU       = 1
@@ -305,12 +322,14 @@ EOT
     sudo -u oneadmin onetemplate show --json "${vmtpl_name}"
 }
 teardown() {
-    onevm list --no-header | awk '{print $1}' | xargs -I@ onevm recover --delete @
+    onevm list --no-header | awk '{print $1}' | xargs -I@ onevm recover --delete @ || true
     for cmd in onetemplate oneimage onevnet onedatastore onehost onemarket; do
         echo "${cmd} delete"
-        ${cmd} list --no-header | awk '{print $1}' | xargs -I@ ${cmd} delete @
-        ${cmd} list
+        ${cmd} list --no-header | awk '{print $1}' | xargs -I@ ${cmd} delete @ || true
+        ${cmd} list || true
     done
+    systemctl stop opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
+    systemctl disable opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
 }
 #######################################################################################
 usage() {
@@ -354,7 +373,9 @@ ${SCRIPTNAME}
            --guest_ipstart 172.16.4.0 --guest_ipsize 255 --guest_netmask 255.255.248.0 \\
            --guest_gateway 172.16.0.1 --guest_dns 192.168.1.11 \\
            --arm_tplimg openeuler_22.03sp1_aarch64.img --x86_tplimg debian_bulleye_amd64.img \\
-           --ceph_pool libvirt-pool --ceph_user admin --ceph_conf ceph/ceph.conf --ceph_keyring ceph/ceph.client.admin.keyring
+           --fs_store ssdstore \\
+           --ceph_pool libvirt-pool --secret_uuid 81a6a177-1328-4711-addb-632b1f446ff7 \\
+           --ceph_user admin --ceph_conf ceph/armsite.conf --ceph_keyring ceph/armsite.client.admin.keyring
 # apt update && apt -y install wget gnupg2 apt-transport-https
 curl -fsSL https://downloads.opennebula.io/repo/repo2.key|gpg --dearmor -o /etc/apt/trusted.gpg.d/opennebula.gpg
 wget -q -O- 'https://repo.dovecot.org/DOVECOT-REPO-GPG' | gpg --dearmor > /etc/apt/trusted.gpg.d/dovecot-archive-keyring.gpg
@@ -501,10 +522,8 @@ main() {
     ssh_func "${user}@${frontend}" "${port}" init_frontend "${frontend}" "${port}" "${adminpass}"
     [ -z "${cluster}" ] || ssh_func "${user}@${frontend}" "${port}" add_cluster "${cluster}"
     [ -z "${vnet}" ] || [ -z "${bridge}" ] || ssh_func "${user}@${frontend}" "${port}" add_bridge_net "${vnet}" "${bridge}" "${guest_ipstart}" "${guest_ipsize}" "${guest_netmask}" "${guest_gateway}" "${guest_dns}" "${cluster}"
-    local x86fn=$(basename ${x86_tplimg})
-    local armfn=$(basename ${arm_tplimg})
-    file_exists "${x86_tplimg}" && upload "${x86_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${x86fn}";
-    file_exists "${arm_tplimg}" && upload "${arm_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${armfn}";
+    [ -z "${fs_store}" ] || { ssh_func "${user}@${frontend}" "${port}" add_fs_store "${fs_store}" "sys" "${cluster}"; }
+    local img_store_type=fs
     [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || [ -z "${ceph_conf}" ] || [ -z "${ceph_keyring}" ] || {
         info_msg  "###############################################################################\n"
         info_msg  "Libvirt ceph secret_uuid = ${secret_uuid}\n"
@@ -513,30 +532,46 @@ main() {
         local bridge_host="${kvmnode[@]}"
         info_msg "mon_host=${mon_host}\n"
         info_msg "bridge_host=${bridge_host}\n"
-        ssh_func "${user}@${frontend}" "${port}" add_ceph_store "sys_${ceph_pool}" "sys" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
-        ssh_func "${user}@${frontend}" "${port}" add_ceph_store "img_${ceph_pool}" "img" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
-        ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${ceph_pool}" "${x86fn}_ceph" "/var/tmp/${x86fn}"
-        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}_vmtpl_ceph" "${x86fn}_ceph" "x86_64" "${vnet}"
-        ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${ceph_pool}" "${armfn}_ceph" "/var/tmp/${armfn}"
-        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}_vmtpl_ceph" "${armfn}_ceph" "aarch64" "${vnet}"
-        ssh_func "${user}@${frontend}" "${port}" add_dataimg_tpl "img_${ceph_pool}" "data_disk_ceph"
-    }
-    [ -z "${fs_store}" ] || {
-        ssh_func "${user}@${frontend}" "${port}" add_fs_store "sys_${fs_store}" "sys" "${cluster}"
-        ssh_func "${user}@${frontend}" "${port}" add_fs_store "img_${fs_store}" "img" "${cluster}"
-        ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${fs_store}" "${x86fn}_onfs" "/var/tmp/${x86fn}"
-        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}_vmtpl_onfs" "${x86fn}_onfs" "x86_64" "${vnet}"
-        ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "img_${fs_store}" "${armfn}_onfs" "/var/tmp/${armfn}"
-        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}_vmtpl_onfs" "${armfn}_onfs" "aarch64" "${vnet}"
-        ssh_func "${user}@${frontend}" "${port}" add_dataimg_tpl "img_${fs_store}" "data_disk_fs"
+        ssh_func "${user}@${frontend}" "${port}" add_ceph_store "${ceph_pool}" "sys" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
+        img_store_type=ceph
+        # ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}_ceph" "${x86fn}" "x86_64" "${vnet}"
+        # ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}_ceph" "${armfn}" "aarch64" "${vnet}"
     }
     local ipaddr=""
     for ipaddr in $(array_print kvmnode); do
         ssh_func "${user}@${frontend}" "${port}" add_kvmhost "${ipaddr}" "${port}" "${cluster}"
     done
+
+    local img_store=img_store
+    info_msg "upload gold image\n"
+    local x86fn=$(basename ${x86_tplimg})
+    file_exists "${x86_tplimg}" && upload "${x86_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${x86fn}";
+    local armfn=$(basename ${arm_tplimg})
+    file_exists "${arm_tplimg}" && upload "${arm_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${armfn}";
+    case "${img_store_type}" in
+        fs)
+            ssh_func "${user}@${frontend}" "${port}" add_fs_store  "${img_store}" "img" "${cluster}"
+            ;;
+        ceph)
+            ssh_func "${user}@${frontend}" "${port}" add_ceph_store "${img_store}" "img" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
+            ;;
+    esac
+    info_msg "add system tpl image\n"
+    ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${img_store}" "${x86fn}" "/var/tmp/${x86fn}"
+    ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${img_store}" "${armfn}" "/var/tmp/${armfn}"
+    info_msg "add datadisk tpl image\n"
+    # ssh_func "${user}@${frontend}" "${port}" add_dataimg_tpl "${img_store}" "data_disk"
+    info_msg "add vm tpl\n"
+    ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}" "${x86fn}" "x86_64" "${vnet}" "${img_store_type}"
+    ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}" "${armfn}" "aarch64" "${vnet}" "${img_store_type}"
+    str_equal "${img_store_type}" "ceph" && {
+        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}_fs" "${x86fn}" "x86_64" "${vnet}"  "fs"
+        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}_fs" "${armfn}" "aarch64" "${vnet}" "fs"
+    }
     info_msg "Frontend init OK\n"
     cat <<EOF
 # # # init kvm nodes
+# Make sure all the Hosts, including the Front-end, can SSH to any other host (including themselves), otherwise migrations will not work.
 [ -e /var/lib/one/.ssh/id_rsa ] || su - oneadmin -c "ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa"
 sudo -u oneadmin tee -a /var/lib/one/.ssh/authorized_keys <<EOK
 $(cat authorized_keys)
@@ -559,7 +594,6 @@ EOK
 tee /etc/ceph/$(basename ${ceph_keyring}) <<EOK
 $(cat "${ceph_keyring}")
 EOK
-# # https://docs.opennebula.io/6.6/open_cluster_deployment/storage_setup/ceph_ds.html
 cat <<EPOOL | virsh secret-define /dev/stdin
 <secret ephemeral='no' private='no'>
   <uuid>${secret_uuid}</uuid>

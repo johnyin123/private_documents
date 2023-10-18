@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e9490c6[2023-06-30T15:16:46+08:00]:init_kvm_ceph_pool.sh")
+VERSION+=("efaa482[2023-10-18T10:01:19+08:00]:init_kvm_ceph_pool.sh")
 ################################################################################
 cluster=
 libvirt_pool=default
@@ -22,6 +22,10 @@ rbd ${cluster:+--cluster ${cluster}} pool init ${rbd_poolname}
 # ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${secret_name} mon 'allow r' osd "allow class-read object_prefix rbd_children, allow rwx pool=${rbd_poolname}"
 # # On the Ceph Luminous (v12.2.x and later):
 ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${secret_name} mon 'profile rbd' osd "profile rbd pool=${rbd_poolname}"
+# ceph ${cluster:+--cluster ${cluster}} auth caps client.${secret_name} mon 'profile rbd' osd "profile rbd pool=${rbd_poolname}"
+# # ceph auth get-key libvirt | tee client.libvirt.key
+# # ceph auth get client.libvirt -o ceph.client.libvirt.keyring
+
 # all kvm nodes run: uuid 各个主机要使用一个
 secret_uuid=$(cat /proc/sys/kernel/random/uuid)
 echo "UUID=${secret_uuid}"
