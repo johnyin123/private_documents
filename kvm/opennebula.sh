@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8e154c5[2023-10-17T17:08:39+08:00]:opennebula.sh")
+VERSION+=("1173c12[2023-10-18T19:32:05+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -37,10 +37,15 @@ init_frontend() {
     local pubaddr=${1}
     local sshport=${2:-22}
     local password=${3:-password}
-    tee -a /var/lib/one/.ssh/config <<EOF
-Host localhost
+    local hosts=localhost
+    grep -q "Host ${hosts/\*/\\*}" /var/lib/one/.ssh/config || {
+        tee -a /var/lib/one/.ssh/config <<EOF
+Host ${hosts}
   Port ${sshport}
+  StrictHostKeyChecking no
+  UserKnownHostsFile=/dev/null
 EOF
+    }
     echo "oneadmin:${password}" > /var/lib/one/.one/one_auth
     sed -i -E \
         -e 's|^\s*#*\s*:host:.*|:host: 0.0.0.0|g' \
@@ -63,7 +68,12 @@ EOF
         /etc/one/vmm_exec/vmm_exec_kvm.conf
     echo "vnc fix"
     sed -i -E \
-        -e "s|fireedge_endpoint\s*:.*|fireedge_endpoint: http://${pubaddr}:2616|g" /etc/one/sunstone-server.conf
+        -e "s|fireedge_endpoint\s*:.*|fireedge_endpoint: http://${pubaddr}:2616|g" \
+        -e "s|:port:\s*:.*|:port: 80|g" \
+        /etc/one/sunstone-server.conf
+    # [[ $port -lt 1024 ]] &&
+    setcap 'cap_net_bind_service=+ep' "$(readlink -f /usr/bin/ruby)"
+
     systemctl restart opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
     systemctl enable opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
     echo "disable market place"
@@ -104,10 +114,15 @@ add_kvmhost() {
     ipaddr=${1}
     sshport=${2}
     local c_name=${3:-}
-    tee -a /var/lib/one/.ssh/config <<EOF
-Host ${ipaddr}
+    local hosts=${ipaddr}
+    grep -q "Host ${hosts/\*/\\*}" /var/lib/one/.ssh/config || {
+        tee -a /var/lib/one/.ssh/config <<EOF
+Host ${hosts}
   Port ${sshport}
+  StrictHostKeyChecking no
+  UserKnownHostsFile=/dev/null
 EOF
+    }
     sudo -u oneadmin onehost create ${c_name:+--cluster ${c_name}} --im kvm --vm kvm ${ipaddr}
     sudo -u oneadmin onehost show ${ipaddr}
 }
@@ -307,6 +322,7 @@ RAW       = [
 CONTEXT            = [
     DEV_PREFIX     = "sd",
     TARGET         = "sda",
+    PASSWORD       = "rootpass",
     TOKEN          = "YES",
     REPORT_READY   = "YES",
     NETWORK        = "YES",
@@ -395,7 +411,7 @@ make private repo for install, see k8s/gen_k8s_pkg.sh
   echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/01keep-debs
   apt update && apt -o APT::Keep-Downloaded-Packages="true" -y install ceph-common
 # Frontend
-  apt update && apt -y install vim opennebula opennebula-sunstone opennebula-gate opennebula-flow opennebula-provision opennebula-fireedge
+  apt update && apt -y install vim opennebula opennebula-sunstone opennebula-gate opennebula-flow # opennebula-provision opennebula-fireedge
 # rbd rm libvirt-pool/one-3-5-0
 # rbd snap unprotect libvirt-pool/one-3@snap
 # rbd snap purge libvirt-pool/one-3
@@ -448,7 +464,6 @@ Every HA cluster requires:
     7. Shared filesystem.
 The servers should be configured in the following way:
     1. Sunstone (with or without Apache/Passenger) running on all the nodes.
-    2. Shared datastores must be mounted on all the nodes.
 https://docs.opennebula.io/5.8/advanced_components/ha/frontend_ha_setup.html
 sudo -i -u oneadmin
 BAK_DIR=~/one_backup
@@ -594,6 +609,7 @@ EOK
 tee /etc/ceph/$(basename ${ceph_keyring}) <<EOK
 $(cat "${ceph_keyring}")
 EOK
+systemctl restart libvirtd
 cat <<EPOOL | virsh secret-define /dev/stdin
 <secret ephemeral='no' private='no'>
   <uuid>${secret_uuid}</uuid>
