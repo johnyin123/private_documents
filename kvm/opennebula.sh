@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1173c12[2023-10-18T19:32:05+08:00]:opennebula.sh")
+VERSION+=("36b672c[2023-10-19T09:41:18+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -69,7 +69,7 @@ EOF
     echo "vnc fix"
     sed -i -E \
         -e "s|fireedge_endpoint\s*:.*|fireedge_endpoint: http://${pubaddr}:2616|g" \
-        -e "s|:port:\s*:.*|:port: 80|g" \
+        -e "s|:port\s*:.*|:port: 80|g" \
         /etc/one/sunstone-server.conf
     # [[ $port -lt 1024 ]] &&
     setcap 'cap_net_bind_service=+ep' "$(readlink -f /usr/bin/ruby)"
