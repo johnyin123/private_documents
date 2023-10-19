@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("36b672c[2023-10-19T09:41:18+08:00]:opennebula.sh")
+VERSION+=("f5dc568[2023-10-19T10:09:45+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -125,6 +125,18 @@ EOF
     }
     sudo -u oneadmin onehost create ${c_name:+--cluster ${c_name}} --im kvm --vm kvm ${ipaddr}
     sudo -u oneadmin onehost show ${ipaddr}
+}
+one_cmd_tmpl() {
+    local cmd=${1}
+    local data=${2:-}
+    local tmp_file=$(mktemp) || return 1
+    cat >"${tmp_file}" <<EOF
+${data}
+EOF
+    sudo -u oneadmin ${cmd} "${data:+${tmp_file}}"
+    rc=$?
+    rm -f "${tmp_file}"
+    return "${rc}"
 }
 add_bridge_net() {
     local vn_name=${1}
@@ -359,7 +371,7 @@ ${SCRIPTNAME}
         -N|--kvmnode    *  <addr>   kvm node address, multi input, NOT execute on kvmnodes!!!!, only frontend, need init manual
         --adminpass        <str>    http://<frontend_address>:9869, oneadmin pass,default 'password'
         --vnet             <str>    vnet name, use <bridge>
-        --bridge           <str>    vnet used phy bridge name on kvm node
+        --bridge        *  <str>    vnet used phy bridge name on kvm node
         --guest_ipstart    <ipaddr> vnet guest start ip, if vnet set, must set it
         --guest_ipsize     <int>    vnet guest ip size, if vnet set, must set it
         --guest_netmask    <mask>   vnet guset netmask, like 255.255.255.0
@@ -530,60 +542,13 @@ main() {
         return 0
     }
     [ -z "${frontend}" ] && usage "frontend ?"
+    [ -z "${bridge}" ] && usage "bridge network ?"
     [ "$(array_size kvmnode)" -gt "0" ] || usage "kvmnode ?"
     [ -z "${ceph_conf}" ] || file_exists "${ceph_conf}" || exit_msg "${ceph_conf} no found\n"
     [ -z "${ceph_keyring}" ] || file_exists "${ceph_keyring}" || exit_msg "${ceph_keyring} no found\n"
     download "${frontend}" "${port}" "${user}" "/var/lib/one/.ssh/id_rsa.pub" "authorized_keys"
-    ssh_func "${user}@${frontend}" "${port}" init_frontend "${frontend}" "${port}" "${adminpass}"
-    [ -z "${cluster}" ] || ssh_func "${user}@${frontend}" "${port}" add_cluster "${cluster}"
-    [ -z "${vnet}" ] || [ -z "${bridge}" ] || ssh_func "${user}@${frontend}" "${port}" add_bridge_net "${vnet}" "${bridge}" "${guest_ipstart}" "${guest_ipsize}" "${guest_netmask}" "${guest_gateway}" "${guest_dns}" "${cluster}"
-    [ -z "${fs_store}" ] || { ssh_func "${user}@${frontend}" "${port}" add_fs_store "${fs_store}" "sys" "${cluster}"; }
-    local img_store_type=fs
-    [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || [ -z "${ceph_conf}" ] || [ -z "${ceph_keyring}" ] || {
-        info_msg  "###############################################################################\n"
-        info_msg  "Libvirt ceph secret_uuid = ${secret_uuid}\n"
-        info_msg  "###############################################################################\n"
-        local mon_host=$(awk -F= '/\s*mon_host/{print $2}' ${ceph_conf} | tr , ' ')
-        local bridge_host="${kvmnode[@]}"
-        info_msg "mon_host=${mon_host}\n"
-        info_msg "bridge_host=${bridge_host}\n"
-        ssh_func "${user}@${frontend}" "${port}" add_ceph_store "${ceph_pool}" "sys" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
-        img_store_type=ceph
-        # ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}_ceph" "${x86fn}" "x86_64" "${vnet}"
-        # ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}_ceph" "${armfn}" "aarch64" "${vnet}"
-    }
-    local ipaddr=""
-    for ipaddr in $(array_print kvmnode); do
-        ssh_func "${user}@${frontend}" "${port}" add_kvmhost "${ipaddr}" "${port}" "${cluster}"
-    done
-
-    local img_store=img_store
-    info_msg "upload gold image\n"
-    local x86fn=$(basename ${x86_tplimg})
-    file_exists "${x86_tplimg}" && upload "${x86_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${x86fn}";
-    local armfn=$(basename ${arm_tplimg})
-    file_exists "${arm_tplimg}" && upload "${arm_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${armfn}";
-    case "${img_store_type}" in
-        fs)
-            ssh_func "${user}@${frontend}" "${port}" add_fs_store  "${img_store}" "img" "${cluster}"
-            ;;
-        ceph)
-            ssh_func "${user}@${frontend}" "${port}" add_ceph_store "${img_store}" "img" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
-            ;;
-    esac
-    info_msg "add system tpl image\n"
-    ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${img_store}" "${x86fn}" "/var/tmp/${x86fn}"
-    ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${img_store}" "${armfn}" "/var/tmp/${armfn}"
-    info_msg "add datadisk tpl image\n"
-    # ssh_func "${user}@${frontend}" "${port}" add_dataimg_tpl "${img_store}" "data_disk"
-    info_msg "add vm tpl\n"
-    ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}" "${x86fn}" "x86_64" "${vnet}" "${img_store_type}"
-    ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}" "${armfn}" "aarch64" "${vnet}" "${img_store_type}"
-    str_equal "${img_store_type}" "ceph" && {
-        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}_fs" "${x86fn}" "x86_64" "${vnet}"  "fs"
-        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}_fs" "${armfn}" "aarch64" "${vnet}" "fs"
-    }
-    info_msg "Frontend init OK\n"
+    info_msg "kvmnodes init script start ..............\n"
+    info_msg "===================================================================\n"
     cat <<EOF
 # # # init kvm nodes
 # Make sure all the Hosts, including the Front-end, can SSH to any other host (including themselves), otherwise migrations will not work.
@@ -591,7 +556,6 @@ main() {
 sudo -u oneadmin tee -a /var/lib/one/.ssh/authorized_keys <<EOK
 $(cat authorized_keys)
 EOK
-
 chmod 0600 /var/lib/one/.ssh/authorized_keys
 tee /etc/sysconfig/network-scripts/ifcfg-${bridge} <<EOBR
 DEVICE="${bridge}"
@@ -605,7 +569,6 @@ EOBR
 tee /etc/ceph/$(basename ${ceph_conf}) <<EOK
 $(cat "${ceph_conf}")
 EOK
-
 tee /etc/ceph/$(basename ${ceph_keyring}) <<EOK
 $(cat "${ceph_keyring}")
 EOK
@@ -623,6 +586,57 @@ EPOOL
 virsh secret-set-value --secret ${secret_uuid} --base64 \$(awk '/key = /{print \$3}' /etc/ceph/$(basename ${ceph_keyring})) 2>/dev/null
 virsh secret-list
 EOF
+    info_msg "===================================================================\n"
+    info_msg "kvmnodes init script end ..............\n"
+    confirm "First Init kvmnode!!, then continue." 60
+    ssh_func "${user}@${frontend}" "${port}" init_frontend "${frontend}" "${port}" "${adminpass}"
+    [ -z "${cluster}" ] || ssh_func "${user}@${frontend}" "${port}" add_cluster "${cluster}"
+    [ -z "${vnet}" ] || [ -z "${bridge}" ] || ssh_func "${user}@${frontend}" "${port}" add_bridge_net "${vnet}" "${bridge}" "${guest_ipstart}" "${guest_ipsize}" "${guest_netmask}" "${guest_gateway}" "${guest_dns}" "${cluster}"
+    [ -z "${fs_store}" ] || { ssh_func "${user}@${frontend}" "${port}" add_fs_store "${fs_store}" "sys" "${cluster}"; }
+    local img_store_type=fs
+    [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || [ -z "${ceph_conf}" ] || [ -z "${ceph_keyring}" ] || {
+        info_msg "###############################################################################\n"
+        info_msg "Libvirt ceph secret_uuid = ${secret_uuid}\n"
+        info_msg "###############################################################################\n"
+        local mon_host=$(awk -F= '/\s*mon_host/{print $2}' ${ceph_conf} | tr , ' ')
+        local bridge_host="${kvmnode[@]}"
+        info_msg "mon_host=${mon_host}\n"
+        info_msg "bridge_host=${bridge_host}\n"
+        ssh_func "${user}@${frontend}" "${port}" add_ceph_store "${ceph_pool}" "sys" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
+        img_store_type=ceph
+    }
+    local ipaddr=""
+    for ipaddr in $(array_print kvmnode); do
+        ssh_func "${user}@${frontend}" "${port}" add_kvmhost "${ipaddr}" "${port}" "${cluster}"
+    done
+
+    local img_store=img_store
+    info_msg "upload gold image\n"
+    local x86fn=$(basename ${x86_tplimg})
+    file_exists "${x86_tplimg}" && upload "${x86_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${x86fn}";
+    local armfn=$(basename ${arm_tplimg})
+    file_exists "${arm_tplimg}" && upload "${arm_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${armfn}";
+    case "${img_store_type}" in
+        fs)
+            ssh_func "${user}@${frontend}" "${port}" add_fs_store "${img_store}" "img" "${cluster}"
+            ;;
+        ceph)
+            ssh_func "${user}@${frontend}" "${port}" add_ceph_store "${img_store}" "img" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
+            ;;
+    esac
+    info_msg "add system tpl image\n"
+    ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${img_store}" "${x86fn}" "/var/tmp/${x86fn}"
+    ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${img_store}" "${armfn}" "/var/tmp/${armfn}"
+    info_msg "add datadisk tpl image\n"
+    # ssh_func "${user}@${frontend}" "${port}" add_dataimg_tpl "${img_store}" "data_disk"
+    info_msg "add vm tpl\n"
+    ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}" "${x86fn}" "x86_64" "${vnet}" "${img_store_type}"
+    ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}" "${armfn}" "aarch64" "${vnet}" "${img_store_type}"
+    str_equal "${img_store_type}" "ceph" && {
+        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}_fs" "${x86fn}" "x86_64" "${vnet}" "fs"
+        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}_fs" "${armfn}" "aarch64" "${vnet}" "fs"
+    }
+    info_msg "Frontend init OK\n"
     info_msg "for live mirgation, modify all kvmnode /var/lib/one/.ssh/config, authorized_keys\n"
     info_msg "ALL DONE\n"
     return 0
