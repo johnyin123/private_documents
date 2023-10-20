@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f5dc568[2023-10-19T10:09:45+08:00]:opennebula.sh")
+VERSION+=("63a78c7[2023-10-19T10:57:23+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -46,7 +46,8 @@ Host ${hosts}
   UserKnownHostsFile=/dev/null
 EOF
     }
-    echo "oneadmin:${password}" > /var/lib/one/.one/one_auth
+    rm -f /var/lib/one/.one/* || true
+    echo "oneadmin:${password}" | sudo -u oneadmin tee /var/lib/one/.one/one_auth
     sed -i -E \
         -e 's|^\s*#*\s*:host:.*|:host: 0.0.0.0|g' \
         /etc/one/onegate-server.conf
@@ -73,11 +74,14 @@ EOF
         /etc/one/sunstone-server.conf
     # [[ $port -lt 1024 ]] &&
     setcap 'cap_net_bind_service=+ep' "$(readlink -f /usr/bin/ruby)"
-
+    systemctl stop opennebula --force || true
+    rm -f /var/lib/one/one.db || true
+    sudo -u oneadmin oned --init-db
     systemctl restart opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
     systemctl enable opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
-    echo "disable market place"
-    onemarket list --no-header | awk '{print $1}' | xargs -I@ onemarket delete @
+    echo "disable market place, delete default datastore"
+    onemarket list --no-header | awk '{print $1}' | xargs -I@ onemarket delete @ || true
+    onedatastorelist --no-header | awk '{print $1}' | xargs -I@ onedatastore delete @ || true
     # Verify OpenNebula Frontend installation
     sudo -u oneadmin oneuser show --json
     [ -e "/var/lib/one/.ssh/known_hosts" ] && truncate -s0 /var/lib/one/.ssh/known_hosts
@@ -106,14 +110,13 @@ EOF
 # Manage
 #######################################################################################
 add_cluster() {
-    local c_name=${1}
-    sudo -u oneadmin onecluster create ${c_name}
-    sudo -u oneadmin onecluster list
+    local cluster=${1}
+    sudo -u oneadmin onecluster create ${cluster}
 }
 add_kvmhost() {
     ipaddr=${1}
     sshport=${2}
-    local c_name=${3:-}
+    local cluster=${3:-}
     local hosts=${ipaddr}
     grep -q "Host ${hosts/\*/\\*}" /var/lib/one/.ssh/config || {
         tee -a /var/lib/one/.ssh/config <<EOF
@@ -123,20 +126,7 @@ Host ${hosts}
   UserKnownHostsFile=/dev/null
 EOF
     }
-    sudo -u oneadmin onehost create ${c_name:+--cluster ${c_name}} --im kvm --vm kvm ${ipaddr}
-    sudo -u oneadmin onehost show ${ipaddr}
-}
-one_cmd_tmpl() {
-    local cmd=${1}
-    local data=${2:-}
-    local tmp_file=$(mktemp) || return 1
-    cat >"${tmp_file}" <<EOF
-${data}
-EOF
-    sudo -u oneadmin ${cmd} "${data:+${tmp_file}}"
-    rc=$?
-    rm -f "${tmp_file}"
-    return "${rc}"
+    sudo -u oneadmin onehost create ${cluster:+--cluster ${cluster}} --im kvm --vm kvm ${ipaddr}
 }
 add_bridge_net() {
     local vn_name=${1}
@@ -146,8 +136,9 @@ add_bridge_net() {
     local guest_net_mask=${5:-255.255.255.0}
     local guest_gateway=${6:-}
     local guest_nameserver=${7:-}
-    local c_name=${8:-}
-    sudo -u oneadmin tee /tmp/def.net <<EOF
+    local cluster=${8:-}
+    local tmp_file=$(sudo -u oneadmin mktemp) || return 1
+    sudo -u oneadmin tee "${tmp_file}" <<EOF
 NAME       = "${vn_name}"
 BRIDGE     = "${phy_bridge}"
 BRIDGE_TYPE= "linux"
@@ -157,8 +148,7 @@ ${guest_gateway:+GATEWAY    = "${guest_gateway}"}
 AR = [ IP = "${guest_ipaddr}", SIZE = "${guest_ipaddr_size}", NETWORK_MASK = "${guest_net_mask}", TYPE = "IP4" ]
 EOF
     sleep 5
-    sudo -u oneadmin onevnet create ${c_name:+--cluster ${c_name}} /tmp/def.net && rm -f /tmp/def.net
-    sudo -u oneadmin onevnet show --json ${vn_name}
+    sudo -u oneadmin onevnet create ${cluster:+--cluster ${cluster}} "${tmp_file}" && rm -f "${tmp_file}"
     # ADD Address Ranges
     # onevnet addar ${vn_name} --ip 192.168.168.50 --size 10
 }
@@ -171,27 +161,28 @@ EOF
 add_fs_store() {
     local name=${1}
     local type=${2}
-    local c_name=${3:-}
+    local cluster=${3:-}
     local val=""
     case "${type}" in
         sys)   val="TYPE = SYSTEM_DS";;
         img)   val="DS_MAD = fs";;
         *)     echo "fs store type [${type}] error"; return 1;;
     esac
-    sudo -u oneadmin tee /tmp/store.def <<EOT
+    local tmp_file=$(sudo -u oneadmin mktemp) || return 1
+    sudo -u oneadmin tee "${tmp_file}" <<EOF
 NAME    = ${name}
 TM_MAD  = ssh
 $(echo ${val})
-EOT
-    sudo -u oneadmin onedatastore create ${c_name:+--cluster ${c_name}} /tmp/store.def && rm -f /tmp/store.def
-    sudo -u oneadmin onedatastore show --json ${name}
+EOF
+    sudo -u oneadmin onedatastore create ${cluster:+--cluster ${cluster}} "${tmp_file}" && rm -f "${tmp_file}"
 }
 #########################################
 # Image template
 add_dataimg_tpl() {
     local img_datastore=${1}
     local img_tpl_name=${2}
-    sudo -u oneadmin tee /tmp/imgdata.tpl <<EOT
+    local tmp_file=$(sudo -u oneadmin mktemp) || return 1
+    sudo -u oneadmin tee "${tmp_file}" <<EOF
 NAME           = "${img_tpl_name}"
 DESCRIPTION    =" ${img_tpl_name} data tpl image."
 TYPE           = DATABLOCK
@@ -199,13 +190,11 @@ PERSISTENT     = No
 FORMAT         = raw
 SIZE           = 128
 DEV_PREFIX     = "vd"
-EOT
-    sudo -u oneadmin oneimage create -d ${img_datastore} /tmp/imgdata.tpl && rm -f /tmp/imgdata.tpl
+EOF
+    sudo -u oneadmin oneimage create -d ${img_datastore} "${tmp_file}" && rm -f "${tmp_file}"
     # sudo -u oneadmin oneimage create --prefix vd --datastore ${img_datastore} --name ${img_tpl_name} --path ${tpl_file} --description "${img_tpl_name} vm tpl image."
     # sudo -u oneadmin oneimage nonpersistent
     sudo -u oneadmin oneimage chmod ${img_tpl_name} 604
-    sudo -u oneadmin oneimage show --json ${img_tpl_name}
-
 }
 add_osimg_tpl() {
     local img_datastore=${1}
@@ -215,19 +204,19 @@ add_osimg_tpl() {
         echo "${tpl_file} no found!!! create one 2GiB"
         truncate -s 2G "${tpl_file}"
     }
-    sudo -u oneadmin tee /tmp/img.tpl <<EOT
+    local tmp_file=$(sudo -u oneadmin mktemp) || return 1
+    sudo -u oneadmin tee "${tmp_file}" <<EOF
 NAME           = "${img_tpl_name}"
 DESCRIPTION    = "${img_tpl_name} sys tpl image."
 TYPE           = OS
 PERSISTENT     = No
 PATH           = ${tpl_file}
 DEV_PREFIX     ="vd"
-EOT
-    sudo -u oneadmin oneimage create -d ${img_datastore} /tmp/img.tpl && rm -f /tmp/img.tpl
+EOF
+    sudo -u oneadmin oneimage create -d ${img_datastore} "${tmp_file}" && rm -f "${tmp_file}"
     # sudo -u oneadmin oneimage create --prefix vd --datastore ${img_datastore} --name ${img_tpl_name} --path ${tpl_file} --description "${img_tpl_name} vm tpl image."
     # sudo -u oneadmin oneimage nonpersistent
     sudo -u oneadmin oneimage chmod ${img_tpl_name} 604
-    sudo -u oneadmin oneimage show --json ${img_tpl_name}
 }
 # *************** Frontend Setup ****************#
 # # The Frontend does not need any specific Ceph setup, it will access the Ceph cluster through the storage bridges.
@@ -243,29 +232,29 @@ add_ceph_store() {
     local mon_host=${6}
     local bridge_host=${7}
     local ceph_conf=$(basename ${8:-ceph.conf})
-    local c_name=${9:-}
+    local cluster=${9:-}
     local val=""
     case "${type}" in
         sys)   val="TYPE = SYSTEM_DS"; transfer_mode="TM_MAD = ceph";;
         img)   val="DS_MAD = ceph"; transfer_mode="TM_MAD = ceph";;
         *)     echo "fs store type [${type}] error"; return 1;;
     esac
-    sudo -u oneadmin tee /tmp/store.def <<EOT
-NAME        = ${name}
-$(echo ${val})
-$(echo ${transfer_mode})
+    local tmp_file=$(sudo -u oneadmin mktemp) || return 1
+    sudo -u oneadmin tee "${tmp_file}" <<EOF
+NAME        = "${name}"
+${val}
+${transfer_mode}
 DISK_TYPE   = RBD
 RBD_FORMAT  = 2
 POOL_NAME   = ${poolname}
 CEPH_SECRET = "${secret_uuid}"
 CEPH_USER   = ${secret_name}
 CEPH_HOST   = "${mon_host}"
-CEPH_CONF=/etc/ceph/${ceph_conf}
+CEPH_CONF= /etc/ceph/${ceph_conf}
 BRIDGE_LIST = "${bridge_host}"
 # List of storage bridges to access the Ceph cluster
-EOT
-    sudo -u oneadmin onedatastore create ${c_name:+--cluster ${c_name}} /tmp/store.def && rm -f /tmp/store.def
-    sudo -u oneadmin onedatastore show --json ${name}
+EOF
+    sudo -u oneadmin onedatastore create ${cluster:+--cluster ${cluster}} "${tmp_file}" && rm -f "${tmp_file}"
 }
 add_vm_tpl() {
     local vmtpl_name=${1}
@@ -307,11 +296,12 @@ HOT_RESIZE  = [ CPU_HOT_ADD_ENABLED="YES", MEMORY_HOT_ADD_ENABLED="YES" ]'
     # ONEGATE_ENDPOINT = "http://gate:5030"
     # CONTEXT = [ DEV_PREFIX = "sd", TARGET = "sda" ], nebula iso use scsi not ide
     # SCHED_DS_REQUIREMENTS = "NAME = ssd_system"
-    sudo -u oneadmin tee /tmp/vm512.tpl <<EOT
+    local tmp_file=$(sudo -u oneadmin mktemp) || return 1
+    sudo -u oneadmin tee "${tmp_file}" <<EOF
 ${tm_mad_system}
 LOGO          = "images/logos/linux.png"
 SUNSTONE      = [ NETWORK_SELECT = "NO" ]
-NAME      = ${vmtpl_name}
+NAME      = "${vmtpl_name}"
 VCPU      = 1
 CPU       = 1
 MEMORY    = 512
@@ -343,11 +333,9 @@ CONTEXT            = [
     START_SCRIPT   = "#!/bin/bash
 echo 'start' > /start.ok"
 ]
-EOT
-    sudo -u oneadmin onetemplate create /tmp/vm512.tpl && rm -f /tmp/vm512.tpl
-    echo "for other user access this template"
+EOF
+    sudo -u oneadmin onetemplate create "${tmp_file}" && rm -f "${tmp_file}"
     sudo -u oneadmin onetemplate chmod "${vmtpl_name}" 604
-    sudo -u oneadmin onetemplate show --json "${vmtpl_name}"
 }
 teardown() {
     onevm list --no-header | awk '{print $1}' | xargs -I@ onevm recover --delete @ || true
@@ -594,12 +582,14 @@ EOF
     [ -z "${vnet}" ] || [ -z "${bridge}" ] || ssh_func "${user}@${frontend}" "${port}" add_bridge_net "${vnet}" "${bridge}" "${guest_ipstart}" "${guest_ipsize}" "${guest_netmask}" "${guest_gateway}" "${guest_dns}" "${cluster}"
     [ -z "${fs_store}" ] || { ssh_func "${user}@${frontend}" "${port}" add_fs_store "${fs_store}" "sys" "${cluster}"; }
     local img_store_type=fs
+    local mon_host="" bridge_host=""
     [ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || [ -z "${ceph_conf}" ] || [ -z "${ceph_keyring}" ] || {
         info_msg "###############################################################################\n"
         info_msg "Libvirt ceph secret_uuid = ${secret_uuid}\n"
         info_msg "###############################################################################\n"
-        local mon_host=$(awk -F= '/\s*mon_host/{print $2}' ${ceph_conf} | tr , ' ')
-        local bridge_host="${kvmnode[@]}"
+        # mon_host=$(awk -F= '/\s*mon_host/{print $2}' ${ceph_conf} | tr , ' ')
+        mon_host=$(sed -n 's/\s*mon_host\s*=\s*\(.*\)\s*/\1/p' ${ceph_conf} | tr , ' ')
+        bridge_host="${kvmnode[@]}"
         info_msg "mon_host=${mon_host}\n"
         info_msg "bridge_host=${bridge_host}\n"
         ssh_func "${user}@${frontend}" "${port}" add_ceph_store "${ceph_pool}" "sys" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
@@ -610,7 +600,7 @@ EOF
         ssh_func "${user}@${frontend}" "${port}" add_kvmhost "${ipaddr}" "${port}" "${cluster}"
     done
 
-    local img_store=img_store
+    local store_name=img_store
     info_msg "upload gold image\n"
     local x86fn=$(basename ${x86_tplimg})
     file_exists "${x86_tplimg}" && upload "${x86_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${x86fn}";
@@ -618,17 +608,17 @@ EOF
     file_exists "${arm_tplimg}" && upload "${arm_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${armfn}";
     case "${img_store_type}" in
         fs)
-            ssh_func "${user}@${frontend}" "${port}" add_fs_store "${img_store}" "img" "${cluster}"
+            ssh_func "${user}@${frontend}" "${port}" add_fs_store "${store_name}" "img" "${cluster}"
             ;;
         ceph)
-            ssh_func "${user}@${frontend}" "${port}" add_ceph_store "${img_store}" "img" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
+            ssh_func "${user}@${frontend}" "${port}" add_ceph_store "${store_name}" "img" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
             ;;
     esac
     info_msg "add system tpl image\n"
-    ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${img_store}" "${x86fn}" "/var/tmp/${x86fn}"
-    ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${img_store}" "${armfn}" "/var/tmp/${armfn}"
+    ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${store_name}" "${x86fn}" "/var/tmp/${x86fn}"
+    ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${store_name}" "${armfn}" "/var/tmp/${armfn}"
     info_msg "add datadisk tpl image\n"
-    # ssh_func "${user}@${frontend}" "${port}" add_dataimg_tpl "${img_store}" "data_disk"
+    ssh_func "${user}@${frontend}" "${port}" add_dataimg_tpl "${store_name}" "data_disk"
     info_msg "add vm tpl\n"
     ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}" "${x86fn}" "x86_64" "${vnet}" "${img_store_type}"
     ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}" "${armfn}" "aarch64" "${vnet}" "${img_store_type}"
