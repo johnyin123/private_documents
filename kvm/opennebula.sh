@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5d7b213[2023-10-20T09:01:15+08:00]:opennebula.sh")
+VERSION+=("250997d[2023-10-20T11:23:44+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -304,7 +304,7 @@ HOT_RESIZE  = [ CPU_HOT_ADD_ENABLED="YES", MEMORY_HOT_ADD_ENABLED="YES" ]'
 ${tm_mad_system}
 LOGO          = "images/logos/linux.png"
 SUNSTONE      = [ NETWORK_SELECT = "NO" ]
-FEATURES      = [ ACPI="yes" ]
+FEATURES      = [ ACPI="yes", APIC="yes", PAE="yes" ]
 NAME      = "${vmtpl_name}"
 VCPU      = 1
 CPU       = 1
