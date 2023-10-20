@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("63a78c7[2023-10-19T10:57:23+08:00]:opennebula.sh")
+VERSION+=("5d7b213[2023-10-20T09:01:15+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -78,7 +78,9 @@ EOF
     rm -f /var/lib/one/one.db || true
     sudo -u oneadmin oned --init-db
     systemctl restart opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
-    systemctl enable opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
+    for svc in opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge; do
+        systemctl enable ${svc} || true
+    done
     echo "disable market place, delete default datastore"
     onemarket list --no-header | awk '{print $1}' | xargs -I@ onemarket delete @ || true
     onedatastorelist --no-header | awk '{print $1}' | xargs -I@ onedatastore delete @ || true
@@ -296,11 +298,13 @@ HOT_RESIZE  = [ CPU_HOT_ADD_ENABLED="YES", MEMORY_HOT_ADD_ENABLED="YES" ]'
     # ONEGATE_ENDPOINT = "http://gate:5030"
     # CONTEXT = [ DEV_PREFIX = "sd", TARGET = "sda" ], nebula iso use scsi not ide
     # SCHED_DS_REQUIREMENTS = "NAME = ssd_system"
+    # KVM磁盘热插拔, ACPI="yes"
     local tmp_file=$(sudo -u oneadmin mktemp) || return 1
     sudo -u oneadmin tee "${tmp_file}" <<EOF
 ${tm_mad_system}
 LOGO          = "images/logos/linux.png"
 SUNSTONE      = [ NETWORK_SELECT = "NO" ]
+FEATURES      = [ ACPI="yes" ]
 NAME      = "${vmtpl_name}"
 VCPU      = 1
 CPU       = 1
