@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("250997d[2023-10-20T11:23:44+08:00]:opennebula.sh")
+VERSION+=("92ee45b[2023-10-20T11:27:43+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -22,10 +22,15 @@ VERSION+=("250997d[2023-10-20T11:23:44+08:00]:opennebula.sh")
 #######################################################################################
 # # 创建数据库
 # mysql_secure_installation
-# mysql -u root -p
-# mysql> GRANT ALL PRIVILEGES ON opennebula.* TO 'oneadmin' IDENTIFIED BY '密码';
-# mysql> flush privilege
-#  onedb sqlite2mysql ...
+# cat <<EOF | mysql -uroot -p<Pass>
+# CREATE DATABASE opennebula;
+# GRANT ALL PRIVILEGES ON opennebula.* TO 'oneadmin'@'localhost' IDENTIFIED BY 'password';
+# GRANT ALL PRIVILEGES ON opennebula.* TO 'oneadmin'@'%' IDENTIFIED BY 'password';
+# flush privileges;
+# EOF
+# systemctl stop opennebula
+# onedb fsck --sqlite /var/lib/one/one.db
+# onedb sqlite2mysql -d opennebula -u oneadmin -p password
 # # Change /etc/one/oned.conf from
 #  DB = [ backend = "sqlite" ]
 # # to
