@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("92ee45b[2023-10-20T11:27:43+08:00]:opennebula.sh")
+VERSION+=("ea79ea5[2023-10-20T13:25:28+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -88,7 +88,7 @@ EOF
     done
     echo "disable market place, delete default datastore"
     onemarket list --no-header | awk '{print $1}' | xargs -I@ onemarket delete @ || true
-    onedatastorelist --no-header | awk '{print $1}' | xargs -I@ onedatastore delete @ || true
+    onedatastore list --no-header | awk '{print $1}' | xargs -I@ onedatastore delete @ || true
     # Verify OpenNebula Frontend installation
     sudo -u oneadmin oneuser show --json
     [ -e "/var/lib/one/.ssh/known_hosts" ] && truncate -s0 /var/lib/one/.ssh/known_hosts
