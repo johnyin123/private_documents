@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f1d3313[2023-07-04T07:19:12+08:00]:new_ceph.sh")
+VERSION+=("eac2b9d[2023-08-09T12:33:04+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 fix_ceph_conf() {
@@ -646,6 +646,8 @@ main "$@"
     ceph osd pool create cephfs_data
     ceph osd pool create cephfs_metadata
     ceph fs new myfs cephfs_metadata cephfs_data
+    # 多活MDS
+    ceph fs set myfs max_mds 2
     ceph fs ls
     mount -t ceph {IP}:/ /mnt -oname=admin,secret=AU50JhycRCQ==
 # add rgw user
