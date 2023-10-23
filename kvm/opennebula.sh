@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7b6feed[2023-10-23T07:32:03+08:00]:opennebula.sh")
+VERSION+=("5f40029[2023-10-23T14:53:59+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -191,7 +191,7 @@ add_dataimg_tpl() {
     local tmp_file=$(sudo -u oneadmin mktemp) || return 1
     sudo -u oneadmin tee "${tmp_file}" <<EOF
 NAME           = "${img_tpl_name}"
-DESCRIPTION    =" ${img_tpl_name} data tpl image."
+DESCRIPTION    = "${img_tpl_name} data tpl image."
 TYPE           = DATABLOCK
 PERSISTENT     = No
 FORMAT         = raw
