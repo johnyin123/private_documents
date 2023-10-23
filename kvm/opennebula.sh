@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ea79ea5[2023-10-20T13:25:28+08:00]:opennebula.sh")
+VERSION+=("7b6feed[2023-10-23T07:32:03+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -287,6 +287,9 @@ add_vm_tpl() {
             ;;
         *)  echo "arch [${arch}] error"; return 1;;
     esac
+    # SCHED_REQUIREMENTS = "FREE_CPU > 60"
+    # SCHED_REQUIREMENTS    = "CPUSPEED > 1000"
+    # SCHED_DS_REQUIREMENTS = "NAME=GoldenCephDS"
 # When different System Datastores are available the TM_MAD_SYSTEM attribute will be set after picking the Datastore.
 # Same TM_MAD for both the System and Image datastore
 # When creating a VM Template you can choose to deploy the disks using the default Ceph mode or the SSH one.
@@ -309,7 +312,7 @@ HOT_RESIZE  = [ CPU_HOT_ADD_ENABLED="YES", MEMORY_HOT_ADD_ENABLED="YES" ]'
 ${tm_mad_system}
 LOGO          = "images/logos/linux.png"
 SUNSTONE      = [ NETWORK_SELECT = "NO" ]
-FEATURES      = [ ACPI="yes", APIC="yes", PAE="yes" ]
+FEATURES      = [ ACPI="yes", APIC="yes", PAE="yes", GUEST_AGENT="yes" ]
 NAME      = "${vmtpl_name}"
 VCPU      = 1
 CPU       = 1
