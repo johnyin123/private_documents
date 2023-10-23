@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5f40029[2023-10-23T14:53:59+08:00]:opennebula.sh")
+VERSION+=("5d24597[2023-10-23T15:02:45+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -333,10 +333,11 @@ RAW       = [
   VALIDATE = "YES",
   DATA = "<devices><serial type='pty'><target port='0'/></serial><console type='pty'><target type='serial' port='0'/></console></devices>"
 ]
+USER_INPUTS = [ PASSWORD="M|password|Root Password" ]
 CONTEXT            = [
     DEV_PREFIX     = "sd",
     TARGET         = "sda",
-    PASSWORD       = "rootpass",
+    PASSWORD       = "\$PASSWORD",
     TOKEN          = "YES",
     REPORT_READY   = "YES",
     NETWORK        = "YES",
