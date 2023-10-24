@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5d24597[2023-10-23T15:02:45+08:00]:opennebula.sh")
+VERSION+=("39b9d8a[2023-10-23T16:51:31+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -163,6 +163,8 @@ EOF
 # Create a System/Image Datastore
 # TM_MAD:
 #     shared for shared transfer mode
+#       对于shared类型的System storage，必须配置一个类型为shared的image storage
+#       否则无法在shared system storage上创新虚拟机，ssh image storage是无法把镜像拷贝到shared system storage
 #     qcow2 for qcow2 transfer mode
 #     ssh for ssh transfer mode
 add_fs_store() {
