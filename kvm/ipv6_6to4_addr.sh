@@ -70,4 +70,5 @@ echo "in ipv6 env ping output: ping 2001:ffff::192.168.168.1"
 
 echo "systemctl stop tayga.service"
 echo "/var/spool/tayga/dynamic.map"
-for i in $(seq 2 254); do printf "${natprefix}.%d    2001::%x%02x:%x%02x    1688116847\n" $i ${a1} ${a2} ${a3} $i; done
+echo "add static map ipv4->ipv6"
+for i in $(seq 2 254); do printf "map ${natprefix}.%d    2001::%x%02x:%x%02x\n" $i ${a1} ${a2} ${a3} $i; done >> /etc/tayga.conf
