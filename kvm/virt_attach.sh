@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ee4fe43[2023-07-11T13:52:11+08:00]:virt_attach.sh")
+VERSION+=("8569cc0[2023-10-16T10:37:54+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -37,6 +37,16 @@ gen_tpl() {
     <host name='ipaddr' port='6789'/>
   </source>
   <target dev='vd{{ vm_last_disk }}' bus='virtio'/>
+</disk>
+# context iso
+<disk type='network' device='cdrom'>
+  <driver name='qemu' type='raw'/>
+  <auth username='admin'><secret type='ceph' uuid='cepp secret uuid'/></auth>
+  <source protocol='rbd' name='ceph_libvirt_pool/sda-{{ vm_uuid }}.iso'>
+    <host name='ipaddr' port='6789'/>
+  </source>
+  <target dev='sda' bus='scsi'/>
+  <readonly/>
 </disk>
 # host usb dev
 <hostdev mode='subsystem' type='usb'>
