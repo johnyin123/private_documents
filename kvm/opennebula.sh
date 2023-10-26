@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("39b9d8a[2023-10-23T16:51:31+08:00]:opennebula.sh")
+VERSION+=("0b3a4a1[2023-10-24T14:06:27+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -333,7 +333,10 @@ ${raw}
 RAW       = [
   TYPE = "kvm",
   VALIDATE = "YES",
-  DATA = "<devices><serial type='pty'><target port='0'/></serial><console type='pty'><target type='serial' port='0'/></console></devices>"
+  DATA = "<devices>
+            <serial type='pty'><target port='0'/></serial><console type='pty'><target type='serial' port='0'/></console>
+            <rng model='virtio'><backend model='random'>/dev/urandom</backend></rng>
+          </devices>"
 ]
 USER_INPUTS = [ PASSWORD="M|password|Root Password" ]
 CONTEXT            = [
