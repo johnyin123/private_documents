@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0b3a4a1[2023-10-24T14:06:27+08:00]:opennebula.sh")
+VERSION+=("12e1bd2[2023-10-26T08:37:58+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -320,6 +320,7 @@ VCPU      = 1
 CPU       = 1
 MEMORY    = 512
 USER_INPUTS = [
+  ROOTPASS  = "M|text|root password||rootpass",
   VCPU      = "M|list||1,2,4,8,16|1",
   CPU       = "M|list||0.5,1,2,4,8,16|1",
   MEMORY    = "M|list||512,1024,2048,4096,8192,16384,32768|512" ]
@@ -334,15 +335,15 @@ RAW       = [
   TYPE = "kvm",
   VALIDATE = "YES",
   DATA = "<devices>
-            <serial type='pty'><target port='0'/></serial><console type='pty'><target type='serial' port='0'/></console>
+            <serial type='pty'><target port='0'/></serial>
+            <console type='pty'><target type='serial' port='0'/></console>
             <rng model='virtio'><backend model='random'>/dev/urandom</backend></rng>
           </devices>"
 ]
-USER_INPUTS = [ PASSWORD="M|password|Root Password" ]
 CONTEXT            = [
     DEV_PREFIX     = "sd",
     TARGET         = "sda",
-    PASSWORD       = "\$PASSWORD",
+    PASSWORD       = "\$ROOTPASS",
     TOKEN          = "YES",
     REPORT_READY   = "YES",
     NETWORK        = "YES",
@@ -429,7 +430,7 @@ make private repo for install, see k8s/gen_k8s_pkg.sh
   echo 'Binary::apt::APT::Keep-Downloaded-Packages "true";' > /etc/apt/apt.conf.d/01keep-debs
   apt update && apt -o APT::Keep-Downloaded-Packages="true" -y install ceph-common
 # Frontend
-  apt update && apt -y install vim opennebula opennebula-sunstone opennebula-gate opennebula-flow # opennebula-provision opennebula-fireedge
+  apt update && apt -y install vim opennebula opennebula-sunstone opennebula-gate opennebula-flow opennebula-fireedge # opennebula-provision
 # rbd rm libvirt-pool/one-3-5-0
 # rbd snap unprotect libvirt-pool/one-3@snap
 # rbd snap purge libvirt-pool/one-3
