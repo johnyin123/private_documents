@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b356aa8[2023-10-26T15:58:02+08:00]:opennebula.sh")
+VERSION+=("f4d36dd[2023-10-27T09:47:17+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -83,6 +83,7 @@ EOF
     rm -f /var/lib/one/one.db || true
     sudo -u oneadmin oned --init-db
     systemctl restart opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
+    echo "if no fireedge, nee start opennebula-novnc.service"
     for svc in opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge; do
         systemctl enable ${svc} || true
     done
@@ -197,7 +198,7 @@ DESCRIPTION    = "${img_tpl_name} data tpl image."
 TYPE           = DATABLOCK
 PERSISTENT     = No
 FORMAT         = raw
-SIZE           = 128
+SIZE           = 1024
 DEV_PREFIX     = "vd"
 EOF
     sudo -u oneadmin oneimage create -d ${img_datastore} "${tmp_file}" && rm -f "${tmp_file}"
@@ -323,7 +324,7 @@ MEMORY    = 512
 USER_INPUTS = [
   ROOTPASS  = "M|text|root password||rootpass",
   VCPU      = "M|list||1,2,4,8,16|1",
-  CPU       = "M|list||0.5,1,2,4,8,16|1",
+  CPU       = "M|list||0.5,1,2,4,8,16|0.5",
   MEMORY    = "M|list||512,1024,2048,4096,8192,16384,32768|512" ]
 DISK      = [ IMAGE = "${img_tpl}", DEV_PREFIX = "vd", IMAGE_UNAME = oneadmin, CACHE="none", IO="native" ]
 NIC_DEFAULT = [ MODEL = "virtio" ]
@@ -364,8 +365,8 @@ teardown() {
         ${cmd} list --no-header | awk '{print $1}' | xargs -I@ ${cmd} delete @ || true
         ${cmd} list || true
     done
-    systemctl stop opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
-    systemctl disable opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
+    systemctl stop opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge opennebula-novnc || true
+    systemctl disable opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge opennebula-novnc || true
 }
 #######################################################################################
 usage() {
