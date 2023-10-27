@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f4d36dd[2023-10-27T09:47:17+08:00]:opennebula.sh")
+VERSION+=("ea731b7[2023-10-27T10:31:13+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -80,7 +80,7 @@ EOF
     # [[ $port -lt 1024 ]] &&
     setcap 'cap_net_bind_service=+ep' "$(readlink -f /usr/bin/ruby)"
     systemctl stop opennebula --force || true
-    rm -f /var/lib/one/one.db || true
+    rm -f /var/lib/one/one.db /var/log/one/* || true
     sudo -u oneadmin oned --init-db
     systemctl restart opennebula opennebula-sunstone opennebula-gate.service opennebula-fireedge || true
     echo "if no fireedge, nee start opennebula-novnc.service"
