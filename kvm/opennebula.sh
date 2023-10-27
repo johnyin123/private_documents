@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("12e1bd2[2023-10-26T08:37:58+08:00]:opennebula.sh")
+VERSION+=("b356aa8[2023-10-26T15:58:02+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -273,6 +273,7 @@ add_vm_tpl() {
     local img_store_type=${5:-}
     local firmware="" machine="" raw="" tm_mad_system=""
     case "${img_store_type}" in
+        # # Note that the same mode will be used for all disks of the VM.
         fs)   tm_mad_system="TM_MAD_SYSTEM=ssh" ;;
         ceph) tm_mad_system="";;
     esac
@@ -324,7 +325,7 @@ USER_INPUTS = [
   VCPU      = "M|list||1,2,4,8,16|1",
   CPU       = "M|list||0.5,1,2,4,8,16|1",
   MEMORY    = "M|list||512,1024,2048,4096,8192,16384,32768|512" ]
-DISK      = [ IMAGE = "${img_tpl}", IMAGE_UNAME = oneadmin, CACHE="none", IO="native" ]
+DISK      = [ IMAGE = "${img_tpl}", DEV_PREFIX = "vd", IMAGE_UNAME = oneadmin, CACHE="none", IO="native" ]
 NIC_DEFAULT = [ MODEL = "virtio" ]
 NIC       = [ NETWORK = "${vn_name}", NETWORK_UNAME = "oneadmin" ]
 GRAPHICS  = [ TYPE = "vnc", LISTEN = "0.0.0.0"]
