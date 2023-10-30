@@ -31,6 +31,10 @@ users:
   - default
   - name: admin
     groups: sudo
+    passwd: '$(mkpasswd --method=SHA-512 --rounds=4096 password)'
+    lock-passwd: false
+    ssh_pwauth: True
+    chpasswd: { expire: False }
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     ssh-authorized-keys:
