@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-PASSWORD=password
+PASSWORD=${PASSWORD:-password}
+IPADDR=${IPADDR:-192.168.168.211/24}
+GATEWAY=${GATEWAY:-192.168.168.1}
 #实例id，随便写个不冲突的
 cat <<EOF > meta-data
 instance-id: 10086  
@@ -13,8 +15,8 @@ network:
       # mac_address: '00:11:22:33:44:55'
       subnets:
          - type: static
-           address: 192.168.23.14/24
-           gateway: 192.168.23.1
+           address: ${IPADDR}
+           gateway: ${GATEWAY}
 EOF
 cat <<EOF > user-data
 #cloud-config
@@ -25,12 +27,21 @@ password: ${PASSWORD}
 chpasswd: { expire: False }
 # timezone
 timezone: Asia/Shanghai
-write_files:
-- content: |
-    mesg1
-    mesg2
-  path: /etc/test.file
-  permissions: '0644'
+users:
+  - default
+  - name: admin
+    groups: sudo
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDIcCEBlGLWfQ6p/6/QAR1LncKGlFoiNvpV3OUzPEoxJfw5ChIc95JSqQQBIM9zcOkkmW80ZuBe4pWvEAChdMWGwQLjlZSIq67lrpZiql27rL1hsU25W7P03LhgjXsUxV5cLFZ/3dcuLmhGPbgcJM/RGEqjNIpLf34PqebJYqPz9smtoJM3a8vDgG3ceWHrhhWNdF73JRzZiDo8L8KrDQTxiRhWzhcoqTWTrkj2T7PZs+6WTI+XEc8IUZg/4NvH06jHg8QLr7WoWUtFvNSRfuXbarAXvPLA6mpPDz7oRKB4+pb5LpWCgKnSJhWl3lYHtZ39bsG8TyEZ20ZAjluhJ143GfDBy8kLANSntfhKmeOyolnz4ePf4EjzE3WwCsWNrtsJrW3zmtMRab7688vrUUl9W2iY9venrW0w6UL7Cvccu4snHLaFiT6JSQSSJS+mYM5o8T0nfIzRi0uxBx4m9/6nVIl/gs1JApzgWyqIi3opcALkHktKxi76D0xBYAgRvJs= root@liveos
+
+# write_files:
+# - content: |
+#     mesg1
+#     mesg2
+#   path: /etc/test.file
+#   permissions: '0644'
 # runcmd 执行一些命令
 runcmd:
   - [echo, message]
@@ -39,5 +50,5 @@ final_message: |
   cloud-init has finished
   datasource: \$datasource
 EOF
-echo "genisoimage -output my-cloud-init.iso -volid cidata -joliet -rock user-data meta-data network-config"
-
+genisoimage -output my-cloud-init.iso -volid cidata -joliet -rock user-data meta-data network-config
+rm -f user-data meta-data network-config
