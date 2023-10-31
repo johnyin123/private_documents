@@ -55,4 +55,5 @@ final_message: |
   datasource: \$datasource
 EOF
 genisoimage -output my-cloud-init.iso -volid cidata -joliet -rock user-data meta-data network-config
+echo 'mkisofs -o my-cloud-init.iso -V cidata -J -r user-data meta-data network-config'
 rm -f user-data meta-data network-config
