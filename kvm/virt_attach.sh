@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dfb8ec2[2023-10-25T07:51:41+08:00]:virt_attach.sh")
+VERSION+=("56f5e4c[2023-10-31T16:45:35+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -50,7 +50,7 @@ gen_tpl() {
 </disk>
 <disk type='file' device='cdrom'>
    <driver name='qemu' type='raw'/>
-   <source file='/storage/cdrom-{{ vm_uuid }}.iso'/>
+   <source file='{{ store_path }}'/>
    <readonly/>
    <target dev='sda' bus='scsi'/>
 </disk>

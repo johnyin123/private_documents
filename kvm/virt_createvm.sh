@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ec7473b[2023-10-10T11:16:02+08:00]:virt_createvm.sh")
+VERSION+=("7f238b5[2023-10-25T14:27:30+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -96,10 +96,10 @@ ${SCRIPTNAME}
         ./virt_attach.sh -t default_store.tpl -u \${uuid} -e format=raw -e store_path=/storage/\${disk}
         # cat domain.xml | virt-xml-validate - domain && echo OK 
         # Add cloud-init iso image
-        drom=sda-\${uuid}.iso
+        cdrom=sda-\${uuid}.iso
         ./virt_createvol.sh -p default -n \${cdrom} -f raw -s 1MiB
         ./virt-volupload.sh -p default -v \${cdrom} -t ../my-cloud-init.iso
-        ./virt_attach.sh -t cdrom.j2 -u \${uuid} -e format=raw -e store_path=/storage/\${cdrom}
+        ./virt_attach.sh -t cdrom.j2 -u \${uuid} -e store_path=/storage/\${cdrom}
 EOF
     exit 1
 }
