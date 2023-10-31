@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("096799c[2023-09-21T08:54:59+08:00]:os_install.sh")
+VERSION+=("4d56316[2023-09-26T13:46:41+08:00]:os_install.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CONNECTION=${KVM_HOST:+qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}
@@ -33,8 +33,8 @@ virt_inst_aarch64_x86() {
     local fmt="raw"
     try virsh ${CONNECTION:+-c ${CONNECTION}} -q vol-create-as --pool ${store_pool} --name ${vm_type}.${fmt} --capacity ${size} --format ${fmt} || return 1
     # --disk path=/storage/test.img
-    try virt-install -q ${CONNECTION:+-c ${CONNECTION}} \
-       --print-xml \
+    # --print-xml \
+    try virt-install -q ${CONNECTION:+--connect ${CONNECTION}} \
        --virt-type kvm --accelerate \
        --os-type linux --os-variant rocky-unknown \
        --vcpus 1 --memory 2048 \
