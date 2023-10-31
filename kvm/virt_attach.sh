@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8569cc0[2023-10-16T10:37:54+08:00]:virt_attach.sh")
+VERSION+=("dfb8ec2[2023-10-25T07:51:41+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -42,11 +42,17 @@ gen_tpl() {
 <disk type='network' device='cdrom'>
   <driver name='qemu' type='raw'/>
   <auth username='admin'><secret type='ceph' uuid='cepp secret uuid'/></auth>
-  <source protocol='rbd' name='ceph_libvirt_pool/sda-{{ vm_uuid }}.iso'>
+  <source protocol='rbd' name='ceph_libvirt_pool/cdrom-{{ vm_uuid }}.iso'>
     <host name='ipaddr' port='6789'/>
   </source>
   <target dev='sda' bus='scsi'/>
   <readonly/>
+</disk>
+<disk type='file' device='cdrom'>
+   <driver name='qemu' type='raw'/>
+   <source file='/storage/cdrom-{{ vm_uuid }}.iso'/>
+   <readonly/>
+   <target dev='sda' bus='scsi'/>
 </disk>
 # host usb dev
 <hostdev mode='subsystem' type='usb'>
@@ -98,6 +104,12 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
   ${SCRIPTNAME} -t disk.j2 -u uuid -e format=raw -e store_path=/storage/disk.raw
+  Insert cdrom:
+    attach-disk guest01 /root/disc1.iso hdc --driver file --type cdrom --mode readonly
+  Change media:
+    attach-disk guest01 /root/disc2.iso hdc --driver file --type cdrom --mode readonly
+  Eject cdrom:
+    attach-disk guest01 " "             hdc --driver file --type cdrom --mode readonly
 EOF
     exit 1
 }
