@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+ISO_FNAME=${ISO_FNAME:-cloud-init.iso}
 PASSWORD=${PASSWORD:-password}
 IPADDR=${IPADDR:-192.168.168.211/24}
 GATEWAY=${GATEWAY:-192.168.168.1}
@@ -54,6 +55,6 @@ final_message: |
   cloud-init has finished
   datasource: \$datasource
 EOF
-genisoimage -output my-cloud-init.iso -volid cidata -joliet -rock user-data meta-data network-config
-echo 'mkisofs -o my-cloud-init.iso -V cidata -J -r user-data meta-data network-config'
+genisoimage -output "${ISO_FNAME}" -volid cidata -joliet -rock user-data meta-data network-config
+echo 'mkisofs -o "${ISO_FNAME}" -V cidata -J -r user-data meta-data network-config'
 rm -f user-data meta-data network-config
