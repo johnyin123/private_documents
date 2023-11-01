@@ -1,0 +1,24 @@
+<watchdog model='i6300esb' action='reset'>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x07' function='0x0'/>
+</watchdog>
+
+There are two parts where configuration needs to be changed.
+The i6300esb driver is by default blacklisted, but that’s OK, watchdog can load it anyway.
+Edit /etc/default/watchdog, and set the following line;
+
+watchdog_module="i6300esb"
+
+cat <<EOF > /etc/watchdog.conf
+watchdog-device = /dev/watchdog
+max-load-1 = 24
+max-load-5 = 18
+max-load-15 = 12
+EOF
+This configures the watchdog to use the correct device and also sets it up to trigger on very high load averages. Adjust as required. You can then arm the watchdog as follows;
+
+systemctl enable watchdog
+systemctl start watchdog
+TEST:
+    sync
+    echo c > /proc/sysrq-trigger
+    If all has gone well, the VM should freeze, and a short time later should spontaneously reboot.
