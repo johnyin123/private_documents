@@ -1,0 +1,11 @@
+<domain type="kvm">
+	<name/>
+	<memory/>
+	<vcpu/>
+	<os>
+    		<type>hvm</type>
+  	</os>
+	<devices>
+		<graphics/>
+	</devices>
+</domain>

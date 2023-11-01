@@ -1,0 +1,31 @@
+#!/bin/sh -x
+
+# compatibility:
+: ${NAME=$NAME_NAME}
+
+D=${0%/*}
+cat "$D"/skeleton.xml \
+  | xsltproc --stringparam name  "${NAME:-vivirt-$(date +%Y%m%d-%H%M%S)}" "$D"/name.xsl - \
+  | xsltproc ${MEMORY_KB+ --stringparam kb  "${MEMORY_KB}"} \
+             ${MEMORY_MB+ --stringparam mb  "${MEMORY_MB}"} \
+             ${MEMORY_GB+ --stringparam gb  "${MEMORY_GB}"} \
+	     "$D"/memory.xsl - \
+  | xsltproc --stringparam count "${CPUS_COUNT-1}" "$D"/cpu.xsl - \
+  | xsltproc "$D"/graphics.xsl - \
+  | xsltproc "$D"/console.xsl - \
+  | if [ -n "$DISK" ]; then
+	xsltproc --stringparam file "$DISK" "$D"/disk.xsl -
+    else cat; fi \
+  | if [ -n "$DISK2" ]; then
+	xsltproc --stringparam file "$DISK2" --stringparam unit 1 "$D"/disk.xsl -
+    else cat; fi \
+  | if [ -n "$CDROM" ]; then
+	xsltproc --stringparam file "$CDROM" "$D"/cdrom.xsl -
+    else cat; fi \
+  | if [ -n "$CDROM2" ]; then
+	xsltproc --stringparam file "$CDROM2" --stringparam unit 1 "$D"/cdrom.xsl -
+    else cat; fi \
+  | if [ -n "$FLOPPY" ]; then
+	xsltproc --stringparam file "$FLOPPY" "$D"/floppy.xsl -
+    else cat; fi \
+  | xmllint --format -
