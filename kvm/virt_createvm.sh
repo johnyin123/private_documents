@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a1ba782[2023-11-01T14:33:02+08:00]:virt_createvm.sh")
+VERSION+=("dd7a40a[2023-11-01T15:05:29+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -79,6 +79,19 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
     exam:
+    <cputune>
+      <!-- unitless value to determine how much CPU a VM get when the host is on 100% load
+       A normal process has a priority of 1024, so if two processes require CPU,
+       they will get even amounts of CPU if they have a share setting of 1024.
+       A share setting of 512 means it will receive a correspondingly smaller ratio of the available time.
+      -->
+      <shares>1000</shares>
+    </cputune>
+    # virsh schedinfo <UUID> --config --live --set cpu_shares=512
+    <blkiotune><weight>250</weight></blkiotune>
+    # assign a weight to the machine for block device I/O.
+    # The default weight is 500, and smaller values mean that the VM has less weight
+    # virsh blkiotune <UUID> --config --live --weight 250
     <graphics type='vnc' port='5900' autoport='no' websocket='5700' listen='127.0.0.1'>
       <listen type='address' address='127.0.0.1'/>
     </graphics>
