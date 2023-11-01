@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ad53e0e[2023-10-31T17:03:05+08:00]:virt_createvm.sh")
+VERSION+=("a1ba782[2023-11-01T14:33:02+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -90,16 +90,17 @@ ${SCRIPTNAME}
         ./virt-volupload.sh -p default -v \${disk} -t ~/debian.amd64.guestos.raw
         echo "create vm"
         ./virt_createvm.sh -t vm.tpl -u \${uuid} -N myserver -D "test server" -c 2 -m 2048
-        echo "attach network"
-        ./virt_attach.sh -t br-ext.tpl -u \${uuid}
-        echo "attach disk"
-        ./virt_attach.sh -t default_store.tpl -u \${uuid} -e format=raw -e store_path=/storage/\${disk}
+        echo "attach network, persistent"
+        ./virt_attach.sh -t br-ext.tpl -u \${uuid} --persistent
+        echo "attach disk, persistent"
+        ./virt_attach.sh -t default_store.tpl -u \${uuid} -e format=raw -e store_path=/storage/\${disk} --persistent
         # cat domain.xml | virt-xml-validate - domain && echo OK 
         # Add cloud-init iso image
         cdrom=meta-\${uuid}.iso
         ISO_FNAME=\${cdrom} VM_NAME=vmsrv UUID=\${uuid} PASSWORD=password IPADDR=192.168.168.222/24 GATEWAY=192.168.168.1 ./gen_cloud_init_iso.sh
         ./virt_createvol.sh -p default -n \${cdrom} -f raw -s 1MiB
         ./virt-volupload.sh -p default -v \${cdrom} -t \${cdrom}
+        # non persistent cdrom
         ./virt_attach.sh -t cdrom.j2 -u \${uuid} -e store_path=/storage/\${cdrom}
 EOF
     exit 1
