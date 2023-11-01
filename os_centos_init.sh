@@ -16,12 +16,13 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("137d191[2023-05-04T06:53:57+08:00]:os_centos_init.sh")
+VERSION+=("d8346a1[2023-09-22T10:18:42+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
 # proxy_username=u
 # proxy_password=p
+# sslverify=false
 # PASSWORD: root password
 # NAME_SERVER: dns server
 # HOSTNAME: target hostname
