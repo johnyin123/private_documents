@@ -28,3 +28,11 @@ sysctl net.ipv4.ip_forward=1
 # iptables -t nat -D POSTROUTING  -j MASQUERADE || true
 # iptables -t nat -A POSTROUTING  -j MASQUERADE || true
 
+cat <<EOF
+# multicast vxlan
+ip link add vxlan20 type vxlan id 20 group 239.1.1.1 dstport 0 dev ens3
+ip link add br-vxlan20 type bridge
+ip link set vxlan20 master br-vxlan20
+ip link set vxlan20 up
+ip link set br-vxlan20 up
+EOF
