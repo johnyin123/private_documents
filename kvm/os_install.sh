@@ -7,15 +7,27 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4d56316[2023-09-26T13:46:41+08:00]:os_install.sh")
+VERSION+=("5bb1884[2023-10-31T08:33:46+08:00]:os_install.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
-CONNECTION=${KVM_HOST:+qemu+ssh://${KVM_USER:-root}@${KVM_HOST}:${KVM_PORT:-60022}/system}
-
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env:
+           VCPU: default 1
+           VMEM: default 2048
+        -n|--name     *  <str>               vm name
+        -i|--iso      *  <remote iso file>   iso image, remote isofile
+        -p|--pool     *  <pool>              vm disk libvirt store pool
+        -s|--size        <int>               image size, default 20G
+        -b|--bridge   *  <str>               network bridge name
+        --ostype         <str>               ostype, default linux
+        --osvariant      <str>               osvarian, default rocky-unknown
+        -K|--kvmhost     <ipaddr>            kvm host address
+        -U|--kvmuser     <str>               kvm host ssh user
+        -P|--kvmport     <int>               kvm host ssh port
+        --kvmpass        <password>          kvm host ssh password
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -25,20 +37,26 @@ EOF
     exit 1
 }
 virt_inst_aarch64_x86() {
-    local vm_type=$1
-    local store_pool=$2
-    local size=$3
-    local net_br=$4
-    local iso_img=$5
+    local host="${1}"
+    local port="${2}"
+    local user="${3}"
+    local vm_type=${4}
+    local os_type=${5}
+    local os_variant=${6}
+    local store_pool=${7}
+    local size=${8}
+    local net_br=${9}
+    local iso_img=${10}
     local fmt="raw"
+    local CONNECTION=${host:+qemu+ssh://${user:+${user}@}${host}${port:+:${port}}/system}
     try virsh ${CONNECTION:+-c ${CONNECTION}} -q vol-create-as --pool ${store_pool} --name ${vm_type}.${fmt} --capacity ${size} --format ${fmt} || return 1
     # --disk path=/storage/test.img
     # --print-xml \
     try virt-install -q ${CONNECTION:+--connect ${CONNECTION}} \
        --virt-type kvm --accelerate \
-       --os-type linux --os-variant rocky-unknown \
-       --vcpus 1 --memory 2048 \
-       --name=${vm_type}_tpl \
+       --os-type ${os_type} --os-variant ${os_variant} \
+       --vcpus ${VCPU:-1} --memory ${VMEM:-2048} \
+       --name=${vm_type}_template\
        --disk vol=${store_pool}/${vm_type}.${fmt},format=${fmt},sparse=true,bus=virtio,discard=unmap \
        --network bridge=${net_br},model=virtio \
        --channel unix,target_type=virtio,name=org.qemu.guest_agent.0 \
@@ -188,7 +206,7 @@ d-i partman/confirm_nooverwrite boolean true
 
 d-i apt-setup/use_mirror boolean false
 d-i apt-setup/cdrom/set-first boolean false
-d-i apt-setup/cdrom/set-next boolean false   
+d-i apt-setup/cdrom/set-next boolean false
 d-i apt-setup/cdrom/set-failed boolean false
 
 tasksel tasksel/first multiselect
@@ -200,22 +218,35 @@ d-i grub-installer/only_debian boolean true
 d-i grub-installer/with_other_os boolean true
 d-i grub-installer/bootdev  string /dev/${boot_disk}
 
-d-i finish-install/reboot_in_progress note
-d-i debian-installer/exit/poweroff boolean true
+d-i finish-install/reboot_in_progress note d-i debian-installer/exit/poweroff boolean true
 
 d-i preseed/late_command string sed -i 's/^# deb http/deb http/;s/^deb cdrom.*//' /target/etc/apt/sources.list ; echo "deb http://deb.debian.org/debian/ buster main" >> /target/etc/apt/sources.list
 EOF
 }
 
 main() {
-    local opt_short=""
-    local opt_long=""
+    local kvmhost="" kvmuser="" kvmport="" kvmpass=""
+    local name="" iso="" pool="" bridge=""
+    local size=20G ostype=linux osvariant=rocky-unknown
+    local opt_short="n:i:p:s:b:K:U:P:"
+    local opt_long="name:,iso:,pool:,size:,bridge:,ostype:,osvariant:,kvmhost:,kvmuser:,kvmport:,kvmpass:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
+            -n | --name)   shift; name=${1}; shift;;
+            -i | --iso)    shift; iso=${1}; shift;;
+            -p | --pool)   shift; pool=${1}; shift;;
+            -s | --size)   shift; size=${1}; shift;;
+            -b | --bridge) shift; bridge=${1}; shift;;
+            --ostype)      shift; ostype=${1}; shift;;
+            --osvariant)   shift; osvariant=${1}; shift;;
+            -K | --kvmhost) shift; kvmhost=${1}; shift;;
+            -U | --kvmuser) shift; kvmuser=${1}; shift;;
+            -P | --kvmport) shift; kvmport=${1}; shift;;
+            --kvmpass)      shift; kvmpass=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -226,15 +257,8 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
-    #local vm_type=debian
-    #local iso_img=/home/johnyin/disk/iso/debian-10.8.0-amd64-netinst.iso
-    local vm_type=Centos
-    local iso_img=/home/johnyin/disk/iso/CentOS-8-x86_64-1905-dvd1.iso
-    local store_pool=default
-    local size_gb=10G
-    local net_br=br-ext
-    virt_inst_aarch64_x86 "${vm_type}" "${store_pool}" "${size_gb}" "${net_br}" "${iso_img}"
-#    virt_inst "${vm_type}" "${store_pool}" "${size_gb}" "${net_br}" "${iso_img}"
+    [ -z "${name}" ] || [ -z "${pool}" ] || [ -z "${bridge}" ] || [ -z "${iso}" ] || virt_inst_aarch64_x86 "${kvmhost}" "${kvmport}" "${kvmuser}" "${name}" "${ostype}" "${osvariant}" "${pool}" "${size}" "${bridge}" "${iso}"
+    # virt_inst "${vm_type}" "${store_pool}" "${size_gb}" "${net_br}" "${iso_img}"
     return 0
 }
 main "$@"
