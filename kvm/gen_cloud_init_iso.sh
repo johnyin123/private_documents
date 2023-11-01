@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 ISO_FNAME=${ISO_FNAME:-cloud-init.iso}
+VM_NAME=${VM_NAME:-vmsrv}
+UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid)}
 PASSWORD=${PASSWORD:-password}
 IPADDR=${IPADDR:-192.168.168.211/24}
 GATEWAY=${GATEWAY:-192.168.168.1}
 #实例id，随便写个不冲突的
 cat <<EOF > meta-data
-instance-id: 10086  
+instance-id: ${UUID}
 EOF
 cat <<EOF > network-config
 network:
@@ -21,7 +23,7 @@ network:
 EOF
 cat <<EOF > user-data
 #cloud-config
-hostname: test
+hostname: ${VM_NAME}
 manage_etc_hosts: true
 user: root
 password: ${PASSWORD}
