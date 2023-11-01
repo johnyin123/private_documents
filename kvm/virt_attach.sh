@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("56f5e4c[2023-10-31T16:45:35+08:00]:virt_attach.sh")
+VERSION+=("ad53e0e[2023-10-31T17:03:05+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -97,6 +97,7 @@ ${SCRIPTNAME}
         --kvmpass       <password>kvm host ssh password
         -t|--tpl    *   <file>    device tpl file
         -u|--uuid   *   <uuid>    vm uuid
+        --persistent              persistent
         -e|--env        <key>=<val> addition keyval pair
         -q|--quiet
         -l|--log <int> log level
@@ -140,9 +141,9 @@ domain_live_arg() {
 main() {
     declare -A tpl_env
     local kvmhost="" kvmuser="" kvmport="" kvmpass=""
-    local tpl="" uuid=""
+    local tpl="" uuid="" persistent=""
     local opt_short="K:U:P:t:u:e:"
-    local opt_long="kvmhost:,kvmuser:,kvmport:,kvmpass:,tpl:,uuid:,env:,"
+    local opt_long="kvmhost:,kvmuser:,kvmport:,kvmpass:,tpl:,uuid:,persistent,env:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -155,6 +156,7 @@ main() {
             --kvmpass)      shift; kvmpass=${1}; shift;;
             -t | --tpl)     shift; tpl=${1}; shift;;
             -u | --uuid)    shift; uuid="${1}"; shift;;
+            --persistent)   shift; persistent=--persistent;;
             -e | --env)     shift; { IFS== read _tvar _tval; } <<< ${1}; _tvar="$(trim ${_tvar})"; _tval="$(trim ${_tval})"; array_set tpl_env "${_tvar}" "${_tval}"; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
@@ -174,7 +176,7 @@ main() {
     info_msg "${uuid}(${live:-shut off}) attach device\n"
     local last_disk=$(set_last_disk "${kvmhost}" "${kvmport}" "${kvmuser}" "${uuid}") || exit_msg "${uuid} get last disk ERROR\n"
     cat <<EOF | tee ${LOGFILE} | j2 --format=yaml ${tpl} | tee ${LOGFILE} | \
-    virsh_wrap "${kvmhost}" "${kvmport}" "${kvmuser}" attach-device --domain ${uuid} --file /dev/stdin --persistent ${live} || exit_msg "${uuid} attach ERROR\n"
+    virsh_wrap "${kvmhost}" "${kvmport}" "${kvmuser}" attach-device --domain ${uuid} --file /dev/stdin ${persistent} ${live} || exit_msg "${uuid} attach ERROR\n"
 
 vm_uuid: "${uuid}"
 vm_last_disk: "${last_disk}"
