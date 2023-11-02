@@ -47,6 +47,13 @@ scripts/config --enable CONFIG_KVM
 scripts/config --enable CONFIG_VIRTUALIZATION
 scripts/config --enable CONFIG_PARAVIRT
 scripts/config --module CONFIG_VIRTIO
+scripts/config --module CONFIG_VHOST_NET
+scripts/config --enable CONFIG_VHOST_MENU
+scripts/config --module CONFIG_VHOST_IOTLB
+scripts/config --module CONFIG_VHOST
+scripts/config --module CONFIG_VHOST_NET
+scripts/config --module CONFIG_VHOST_SCSI
+scripts/config --module CONFIG_VHOST_VSOCK
 
 # yes "" | make oldconfig
 scripts/diffconfig .config.old .config 2>/dev/null

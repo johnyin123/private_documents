@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("581a3e4[2023-05-08T09:25:04+08:00]:virt-imgbootup.sh")
+VERSION+=("18b2580[2023-05-16T14:31:55+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 ARCH=${ARCH:-x86_64}
@@ -45,6 +45,7 @@ ${SCRIPTNAME}
         --uefi      <file>    uefi bios file
                     x86_64: /usr/share/qemu/OVMF.fd
                     aarch64:/usr/share/qemu-efi-aarch64/QEMU_EFI.fd
+                            /usr/share/AAVMF/AAVMF_CODE.fd
                     apt -y install ovmf
                     apt -y install qemu-system-arm qemu-efi-aarch64
         --daemonize run as daemon, with display none

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5aa2e4b[2023-11-01T08:03:49+08:00]:os_install.sh")
+VERSION+=("a1c2050[2023-11-02T10:16:39+08:00]:os_install.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -17,6 +17,10 @@ ${SCRIPTNAME}
         env:
            VCPU: default 1
            VMEM: default 2048
+           UEFI: default "", use BIOS
+              x86_64: /usr/share/qemu/OVMF.fd
+             aarch64: /usr/share/qemu-efi-aarch64/QEMU_EFI.fd
+                      /usr/share/AAVMF/AAVMF_CODE.fd
         -n|--name     *  <str>               vm name
         -i|--iso      *  <remote iso file>   iso image, remote isofile
         -p|--pool     *  <pool>              vm disk libvirt store pool
@@ -65,7 +69,8 @@ virt_inst_aarch64_x86() {
        --console pty,target_type=virtio \
        --cdrom ${iso_img} \
        --boot cdrom,hd,network,menu=on \
-       --noreboot
+       ${UEFI:+--boot loader=${UEFI},loader.readonly=yes,loader.type=pflash} \
+       --noreboot # --print-xml
 }
 virt_inst() {
     local vm_type=$1
