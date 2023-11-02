@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5bb1884[2023-10-31T08:33:46+08:00]:os_install.sh")
+VERSION+=("5aa2e4b[2023-11-01T08:03:49+08:00]:os_install.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -49,6 +49,7 @@ virt_inst_aarch64_x86() {
     local iso_img=${10}
     local fmt="raw"
     local CONNECTION=${host:+qemu+ssh://${user:+${user}@}${host}${port:+:${port}}/system}
+    try virsh ${CONNECTION:+-c ${CONNECTION}} -q pool-refresh ${store_pool} || true
     try virsh ${CONNECTION:+-c ${CONNECTION}} -q vol-create-as --pool ${store_pool} --name ${vm_type}.${fmt} --capacity ${size} --format ${fmt} || return 1
     # --disk path=/storage/test.img
     # --print-xml \
