@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a1c2050[2023-11-02T10:16:39+08:00]:os_install.sh")
+VERSION+=("a58a413[2023-11-02T13:30:37+08:00]:os_install.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -37,6 +37,7 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+        UEFI=/usr/share/AAVMF/AAVMF_CODE.fd VMEM=1024 ./os_install.sh -K 192.168.168.2 -U root -P 60022 -n deb -i /storage/debian-12.2.0-arm64-netinst.1.iso -p default -s 4G -b br-ext
 EOF
     exit 1
 }
