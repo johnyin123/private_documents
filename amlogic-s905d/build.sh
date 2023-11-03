@@ -40,7 +40,11 @@ scripts/config --enable CONFIG_DEBUG_INFO_BTF
 scripts/config --enable CONFIG_FTRACE
 # enable CONFIG_DEBUG_INFO_BTF need: apt install dwarves
 scripts/config --enable DEBUG_INFO
-
+# enable ktls
+scripts/config --module CONFIG_TLS
+# enable nfs rootfs
+scripts/config --enable CONFIG_NFS_FS
+scripts/config --enable CONFIG_ROOT_NFS
 # enable KVM
 scripts/config --enable CONFIG_KVM_GUEST
 scripts/config --enable CONFIG_KVM
