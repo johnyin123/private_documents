@@ -128,7 +128,7 @@ do_context_1() {
         KEY_RIGHT)      ;;
         KEY_UP)         ;;
         KEY_DOWN)       ;;
-        KEY_SELECT)     ;;
+        KEY_SELECT)     /usr/bin/systemctl restart minidlna.service;;
         KEY_F5)         ;;
         KEY_ESC)        smplayer_start_stop start;;
         KEY_VOLUMEUP)   ;;

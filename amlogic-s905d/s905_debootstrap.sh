@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2e53c27[2023-01-03T08:20:37+08:00]:s905_debootstrap.sh")
+VERSION+=("c765584[2023-02-06T09:21:34+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -212,6 +212,10 @@ case "${DEBIAN_VERSION:-bullseye}" in
 esac
 # # for xdotool, wmctrl
 PKG+=",policykit-1,xdotool,wmctrl"
+# # for minidlna
+PKG+=",minidlna"
+# # for libvirtd
+
 # # finally add custom packages
 PKG+="${custom_pkgs:+,${custom_pkgs}}"
 
@@ -402,7 +406,28 @@ iface br-ext:0 inet static
 # post-up ip route add default via 192.168.168.1 dev br-ext table out.168
 # post-up ip route add 192.168.168.0/24 dev br-ext src 192.168.168.2 table out.168
 EOF
-
+# # for minidlna
+sed -i "/User=minidlna/d" /lib/systemd/system/minidlna.service
+sed -i "/Group=minidlna/d" /lib/systemd/system/minidlna.service
+cat << EOF > ${ROOT_DIR}/etc/minidlna.conf
+media_dir=/media/
+# Set this to merge all media_dir base contents into the root container
+# (The default is no.)
+#merge_media_dirs=no
+db_dir=/var/cache/minidlna
+log_dir=/var/log/minidlna
+#log_level=general,artwork,database,inotify,scanner,metadata,http,ssdp,tivo=warn
+#network_interface=
+port=8200
+# URL presented to clients (e.g. http://example.com:80).
+#presentation_url=/
+friendly_name=s905d
+# Automatic discovery of new files in the media_dir directory.
+inotify=yes
+#max_connections=50
+# set this to yes to allow symlinks that point outside user-defined media_dirs.
+#wide_links=no
+EOF
 cat << "EOF" > ${ROOT_DIR}/etc/network/interfaces.d/wifi
 # auto wlan0
 allow-hotplug wlan0
