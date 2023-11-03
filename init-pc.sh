@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6bf4dcd[2023-10-21T16:53:09+08:00]:init-pc.sh")
+VERSION+=("e00aef7[2023-10-21T17:05:55+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -317,7 +317,7 @@ apt_install alsa-utils pulseaudio pulseaudio-utils
 
 apt_install smplayer smplayer-l10n
 
-apt_install systemd-timesyncd
+apt_install systemd-timesyncd recordmydesktop
 touch /etc/default/google-chrome
 wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - && \
 echo "deb [arch=amd64 trusted=yes] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
