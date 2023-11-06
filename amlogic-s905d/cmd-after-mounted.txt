@@ -1,0 +1,21 @@
+cat <<EOF > /etc/systemd/system/johnyin.service
+# systemctl list-units -t mount
+[Unit]
+Description=My flashdrive script trigger
+Requires=media-johnyin-BOOT.mount
+After=media-johnyin-BOOT.mount
+
+[Service]
+ExecStart=/usr/bin/trigger.sh /media/johnyin/BOOT
+
+[Install]
+WantedBy=media-johnyin-BOOT.mount
+EOF
+cat <<'EOF' > /usr/bin/trigger.sh
+#!/usr/bin/env bash
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly SCRIPTNAME=${0##*/}
+echo $* >> /tmp/mylog.log
+touch /media/johnyin/BOOT/aa
+EOF
+chmod 755 /usr/bin/trigger.sh
