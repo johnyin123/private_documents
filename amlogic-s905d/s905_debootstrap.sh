@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c765584[2023-02-06T09:21:34+08:00]:s905_debootstrap.sh")
+VERSION+=("e2dc900[2023-11-03T12:04:54+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -881,7 +881,7 @@ cat <<EOF>${ROOT_DIR}/etc/motd
 2. touch /overlay/reformatoverlay for factory mode after next reboot
 3. fw_printenv / fw_setenv for get or set fw env
     fw_setenv bootdelay 0  #disable reboot delay hit key, bootdelay=1 enable it
-4. dumpleases dump dhcp clients
+4. dumpleases dump dhcp clients, alias dumpleases="cat /var/run/udhcpd.leases"
 5. overlayroot-chroot can chroot overlay lower fs(rw)
 6. set eth0 mac address:
     fw_setenv ethaddr 5a:57:57:90:5d:01
