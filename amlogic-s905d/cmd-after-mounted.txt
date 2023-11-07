@@ -1,8 +1,19 @@
+cat <<EOF > /etc/systemd/system/media-johnyin-BOOT.mount
+[Unit]
+Description=Data mount
+[Mount]
+What=/dev/disk/by-uuid/filesystem_UUID
+Where=/media/johnyin/BOOT/
+Type=xfs
+Options=defaults
+
+[Install]
+WantedBy=multi-user.target
+EOF
 cat <<EOF > /etc/systemd/system/johnyin.service
 # systemctl list-units -t mount
 [Unit]
 Description=My flashdrive script trigger
-Requires=media-johnyin-BOOT.mount
 After=media-johnyin-BOOT.mount
 
 [Service]
@@ -19,3 +30,4 @@ echo $* >> /tmp/mylog.log
 touch /media/johnyin/BOOT/aa
 EOF
 chmod 755 /usr/bin/trigger.sh
+systemctl daemon-reload
