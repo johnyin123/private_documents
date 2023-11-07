@@ -40,6 +40,8 @@ scripts/config --enable CONFIG_DEBUG_INFO_BTF
 scripts/config --enable CONFIG_FTRACE
 # enable CONFIG_DEBUG_INFO_BTF need: apt install dwarves
 scripts/config --enable DEBUG_INFO
+# Full dynticks system
+scripts/config --enable CONFIG_NO_HZ_FULL
 # enable ktls
 scripts/config --module CONFIG_TLS
 # enable nfs rootfs
