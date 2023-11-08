@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e00aef7[2023-10-21T17:05:55+08:00]:init-pc.sh")
+VERSION+=("59ea1b3[2023-11-03T12:10:22+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -339,6 +339,8 @@ email = johnyin.news@163.com
     editor = /usr/bin/vim
 [alias]
     lg = log --color --graph --pretty=format:'[%cd] %Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=short --
+# [http]
+# 	proxy = http://127.0.0.1:58891
 EOF
     chown -R johnyin.johnyin /home/johnyin/
     usermod -a -G libvirt johnyin
