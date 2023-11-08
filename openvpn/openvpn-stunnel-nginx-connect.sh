@@ -2,6 +2,8 @@
 # remote_srv: opevpn-server & nginx-connect
 # client: openvpn-client & stunnel
 # client-->stunnel(https_proxy)===(internet)===>nginx-connect-->openvpn-server
+echo "need:dh2048.pem, ta.key, server.pem, server.key, client.pem, client.key"
+echo "nginx need :/etc/nginx/ssl/srv.pem, /etc/nginx/ssl/srv.key, /etc/nginx/ssl/ca.pem"
 remote_srv=192.168.168.111
 remote_port=443
 stunnel_port=8888
