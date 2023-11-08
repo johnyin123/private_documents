@@ -13,9 +13,9 @@ debug=7
 output=/var/log/stunnel.log
 pid=/var/run/stunnel.pid
 cert=/etc/stunnel/stunnel.pem
-key=/etc/stunnel/stunnel.pem
-client=no
+key=/etc/stunnel/stunnel.key
 [socks5]
+client=yes
 accept=${stunnel_port}
 connect=${remote_srv}:${remote_port}
 EOF
@@ -72,13 +72,13 @@ persist-tun
 # push "dhcp-option DNS 114.114.114.114"
 # crl-verify crl.pem
 <ca>
-$(cat ca.crt)
+$(cat ca.pem)
 </ca>
 <cert>
-$(sed -ne '/BEGIN CERTIFICATE/,$ p' server.crt)
+$(sed -ne '/BEGIN CERTIFICATE/,$ p' vpnsrv.pem)
 </cert>
 <key>
-$(sed -ne '/BEGIN RSA PRIVATE KEY/,$ p' server.key)
+$(sed -ne '/BEGIN.* PRIVATE KEY/,$ p' vpnsrv.key)
 </key>
 <dh>
 $(cat dh2048.pem)
@@ -108,15 +108,15 @@ verb 3
 comp-lzo
 log         /var/log/openvpn_client.log
 <ca>
-$(cat ca.crt)
+$(cat ca.pem)
 </ca>
 <tls-auth>
 $(sed -ne '/BEGIN OpenVPN Static/,$ p' ta.key)
 </tls-auth>
 <cert>
-$(sed -ne '/BEGIN CERTIFICATE/,$ p' client.crt)
+$(sed -ne '/BEGIN CERTIFICATE/,$ p' vpncli.pem)
 </cert>
 <key>
-$(sed -ne '/BEGIN RSA PRIVATE KEY/,$ p' client.key)
+$(sed -ne '/BEGIN.*PRIVATE KEY/,$ p' vpncli.key)
 </key>
 EOF
