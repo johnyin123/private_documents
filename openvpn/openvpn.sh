@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("add715f[2023-06-16T08:23:00+08:00]:openvpn.sh")
+VERSION+=("eac2b9d[2023-08-09T12:33:04+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -125,7 +125,7 @@ nobind
 persist-key
 persist-tun
 # pull-filter ignore "route" ; ignore pull routers
-# remote-cert-tls server
+# remote-cert-tls server # check server cert valid
 # cipher AES-256-CBC
 # # when up run script, add route etc..
 # script-security 2
