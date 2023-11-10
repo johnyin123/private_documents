@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cac4bf8[2023-11-10T14:19:07+08:00]:opennebula.sh")
+VERSION+=("735b112[2023-11-10T15:19:17+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -347,6 +347,7 @@ CONTEXT            = [
     DEV_PREFIX     = "sd",
     TARGET         = "sda",
     PASSWORD       = "\$ROOTPASS",
+    GROW_ROOTFS    = "YES",
     TOKEN          = "YES",
     REPORT_READY   = "YES",
     NETWORK        = "YES",
@@ -653,6 +654,8 @@ EOF
     info_msg "Frontend init OK\n"
     info_msg "for live mirgation, modify all kvmnode /var/lib/one/.ssh/config, authorized_keys\n"
     info_msg "ALL DONE\n"
+    info_msg "fix kvm startup UEFI, and VARS, /var/lib/one/remotes/etc/vmm/kvm/kvmrc && onehost sync <IP> --force"
+    info_msg "guestos install: cloud-init cloud-initramfs-growroot/cloud-utils-growpart"
     return 0
 }
 main "$@"
