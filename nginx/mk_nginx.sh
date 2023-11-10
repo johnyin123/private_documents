@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bc990be[2023-05-09T11:18:39+08:00]:mk_nginx.sh")
+VERSION+=("fc2b433[2023-05-29T08:21:55+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -508,16 +508,16 @@ EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/xslt.conf
 # load_module modules/ngx_http_xslt_filter_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/traffic_status.conf
+[ -z "${VTS}" ] || cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/traffic_status.conf
 # load_module modules/ngx_http_vhost_traffic_status_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/headers_more.conf
+[ -z "${HEADER_MORE}" ] || cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/headers_more.conf
 # load_module modules/ngx_http_headers_more_filter_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/proxy_connect.conf
+[ -z "${PROXY_CONNECT}" ] || cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/proxy_connect.conf
 # load_module modules/ngx_http_proxy_connect_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/http_image_filter.conf
+[ -z "${IMAGE_FILTER}" ] || cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/http_image_filter.conf
 # load_module modules/ngx_http_image_filter_module.so;
 EOF
 
@@ -572,13 +572,23 @@ stream {
 EOF
 rm -f  ${OUTDIR}/etc/nginx/*.default || true
 chmod 644 ${OUTDIR}/usr/share/nginx/modules/* || true
+[ -z "${STRIP}" ] || {
+    log "strip binarys"
+    strip ${OUTDIR}/usr/sbin/nginx
+    strip ${OUTDIR}/usr/share/nginx/modules/*
+}
 
-# apt install rpm ruby-rubygems
-# yum install rubygems
-# gem source -l
-# gem sources -a http://mirrors.aliyun.com/rubygems/
-# gem sources --remove https://rubygems.org/
-# gem install fpm
+command -v "fpm" &> /dev/null || {
+    cat <<EOF
+apt -y install rpm ruby-rubygems || yum -y install rubygems
+gem source -l
+gem sources -a http://mirrors.aliyun.com/rubygems/
+gem sources --remove https://rubygems.org/
+gem install fpm
+EOF
+    echo "NO PACKAGE TOOLS"
+    exit 1
+}
 echo "getent group ${NGX_GROUP} >/dev/null || groupadd --system ${NGX_GROUP} || :" > /tmp/inst.sh
 echo "getent passwd ${NGX_USER} >/dev/null || useradd -g ${NGX_GROUP} --system -s /sbin/nologin -d /var/empty/nginx ${NGX_USER} 2> /dev/null || :" >> /tmp/inst.sh
 echo "userdel nginx || :" > /tmp/uninst.sh
@@ -595,11 +605,6 @@ esac
 eval NGX_VER=$(awk '/NGINX_VERSION / {print $3}' ${NGINX_DIR}/src/core/nginx.h)
 log "NGINX:${NGX_VER}"
 log "BUILD:${builder_version}"
-[ -z "${STRIP}" ] || {
-    log "strip binarys"
-    strip ${OUTDIR}/usr/sbin/nginx
-    strip ${OUTDIR}/usr/share/nginx/modules/*
-}
 [ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin${HTTP3:+_quic} --version $(echo ${NGX_VER}) --iteration ${builder_version} --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
 log "ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
