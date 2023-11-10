@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("eac2b9d[2023-08-09T12:33:04+08:00]:new_ceph.sh")
+VERSION+=("9e3de8d[2023-10-23T16:17:33+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 fix_ceph_conf() {
@@ -96,6 +96,7 @@ init_ceph_mgr() {
     local name=${HOSTNAME:-$(hostname)}
     [ -e "/etc/ceph/${cname}.conf" ] || return 1
     ceph --cluster ${cname} mon enable-msgr2 || true  #luminous not this command
+    ceph --cluster ${cname} mgr module enable prometheus || true
     #ceph mgr module enable pg_autoscaler
     sudo -u ceph mkdir /var/lib/ceph/mgr/${cname}-${name}
     ceph --cluster ${cname} auth get-or-create mgr.${name} mon 'allow profile mgr' osd 'allow *' mds 'allow *'
