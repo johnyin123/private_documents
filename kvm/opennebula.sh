@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ea731b7[2023-10-27T10:31:13+08:00]:opennebula.sh")
+VERSION+=("eee792a[2023-10-27T13:06:11+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -440,12 +440,12 @@ make private repo for install, see k8s/gen_k8s_pkg.sh
 #
 # euler 2203
 # # yum group install "Virtualization Host"
-yum install libvirt lvm2 bridge-utils ebtables iptables ipset qemu-block-rbd qemu-block-ssh
-yum install ceph-common
-yum install xmlrpc-c rubygems rubygem-rexml rubygem-sqlite3
+yum -y install libvirt lvm2 bridge-utils ebtables iptables ipset qemu-block-rbd qemu-block-ssh
+yum -y install ceph-common
+yum -y install xmlrpc-c rubygems rubygem-rexml rubygem-sqlite3
 
 useradd oneadmin --no-create-home --home-dir /var/lib/one --shell /bin/bash
-mkdir -m0755 /var/lib/one/remotes && chown -R oneadmin.oneadmin /var/lib/one
+mkdir -p -m0755 /var/lib/one/remotes && chown -R oneadmin.oneadmin /var/lib/one
 usermod -a -G libvirt oneadmin
 usermod -a -G kvm oneadmin
 echo '%oneadmin ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/oneadmin
