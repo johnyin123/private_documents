@@ -1,0 +1,13 @@
+# # openvpn route all vm bridge on br-int(192.168.169.1)
+# tun0: <POINTOPOINT,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc fq state UNKNOWN group default qlen 500
+#     link/none
+#     inet 10.8.0.6 peer 10.8.0.5/32 scope global tun0
+#        valid_lft forever preferred_lft forever
+#     inet6 fe80::aa8f:2184:636e:8582/64 scope link stable-privacy
+# 10.8.0.0/24 via 10.8.0.5 dev tun0 
+# 10.8.0.5 dev tun0 proto kernel scope link src 10.8.0.6 
+ip rule add table 200
+ip rule add from 192.168.169.0/24 table 200
+ip route add default via 10.8.0.5 dev tun0 table 200
+ip route add 192.168.169.0/24 dev br-int scope link table 200
+iptables -t nat -A POSTROUTING -s 192.168.169.0/24 -j MASQUERADE
