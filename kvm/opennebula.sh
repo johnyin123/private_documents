@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1ed6d29[2023-11-10T16:54:10+08:00]:opennebula.sh")
+VERSION+=("5f8c767[2023-11-10T17:25:14+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -455,6 +455,7 @@ usermod -a -G kvm oneadmin
 echo '%oneadmin ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/oneadmin
 su - oneadmin -c "ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa"
 ln -s /usr/libexec/qemu-kvm /usr/bin/qemu-kvm-one
+# NOT NEED add blow on euler
 ./install.sh -u oneadmin -g oneadmin -6
 # # install below files
 # /usr/lib/one/onegate-proxy/onegate-proxy.rb 0644
