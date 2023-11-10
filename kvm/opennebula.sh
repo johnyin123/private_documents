@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("eee792a[2023-10-27T13:06:11+08:00]:opennebula.sh")
+VERSION+=("cac4bf8[2023-11-10T14:19:07+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -59,6 +59,7 @@ EOF
     # DATASTORE_LOCATION
     sed -i -E \
         -e "s|^\s*#*\s*ONEGATE_ENDPOINT\s*=.*|ONEGATE_ENDPOINT = \"http://${pubaddr}:5030\"|g" \
+        -e 's|^\s*#*\s*DATASTORE_LOCATION\s*=.*|DATASTORE_LOCATION = /storage|g' \
         -e 's|^\s*#*\s*DEFAULT_CDROM_DEVICE_PREFIX\s*=.*|DEFAULT_CDROM_DEVICE_PREFIX = "sd"|g' \
         /etc/one/oned.conf
     # /etc/one/vmm_exec/vmm_exec_kvm.conf, add full path firmware file in <OVMF_UEFIS>
@@ -446,6 +447,8 @@ yum -y install xmlrpc-c rubygems rubygem-rexml rubygem-sqlite3
 
 useradd oneadmin --no-create-home --home-dir /var/lib/one --shell /bin/bash
 mkdir -p -m0755 /var/lib/one/remotes && chown -R oneadmin.oneadmin /var/lib/one
+su - oneadmin -c "mkdir -p -m0644 /var/lib/one/remotes/etc"
+chown oneadmin:oneadmin /storage/ -R
 usermod -a -G libvirt oneadmin
 usermod -a -G kvm oneadmin
 echo '%oneadmin ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/oneadmin
