@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5f8c767[2023-11-10T17:25:14+08:00]:opennebula.sh")
+VERSION+=("4ef0b4e[2023-11-10T17:30:41+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -445,7 +445,11 @@ make private repo for install, see k8s/gen_k8s_pkg.sh
 yum -y install libvirt lvm2 bridge-utils ebtables iptables ipset qemu-block-rbd qemu-block-ssh
 yum -y install ceph-common
 yum -y install xmlrpc-c rubygems rubygem-rexml rubygem-sqlite3
-
+cat <<EO_NB >/etc/sysctl.d/bridge-nf-call.conf
+net.bridge.bridge-nf-call-arptables = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EO_NB
 useradd oneadmin --no-create-home --home-dir /var/lib/one --shell /bin/bash
 mkdir -p -m0755 /var/lib/one/remotes && chown -R oneadmin.oneadmin /var/lib/one
 su - oneadmin -c "mkdir -p -m0644 /var/lib/one/remotes/etc"
@@ -461,11 +465,27 @@ ln -s /usr/libexec/qemu-kvm /usr/bin/qemu-kvm-one
 # /usr/lib/one/onegate-proxy/onegate-proxy.rb 0644
 # /usr/bin/onegate-proxy                      0755
 # /var/lib/one/remotes/etc                    0644
-# cat << EOF >> /etc/libvirt/qemu.conf
+# cat << EO_NB >> /etc/libvirt/qemu.conf
 # user = "oneadmin"
 # group = "oneadmin"
 # dynamic_ownership = 0
-# EOF
+# EO_NB
+# cat <<EO_NB >> /etc/libvirt/libvirtd.conf
+# auth_unix_ro = "none"
+# auth_unix_rw = "none"
+# unix_sock_group = "oneadmin"
+# unix_sock_ro_perms = "0770"
+# unix_sock_rw_perms = "0770"
+# EO_NB
+# cat <<EO_NB >> /etc/polkit-1/localauthority/50-local.d/50-org.libvirt.unix.manage-opennebula.pkla
+# [Allow oneadmin user to manage virtual machines]
+# Identity=unix-user:oneadmin
+# Action=org.libvirt.unix.manage
+# #Action=org.libvirt.unix.monitor
+# ResultAny=yes
+# ResultInactive=yes
+# ResultActive=yes
+# EO_NB
 onedb backup filename
 oneuser create user1 password
 onevm deploy 1 2
