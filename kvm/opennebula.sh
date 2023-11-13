@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4ef0b4e[2023-11-10T17:30:41+08:00]:opennebula.sh")
+VERSION+=("1dce824[2023-11-13T07:22:07+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -324,13 +324,14 @@ CPU       = 1
 MEMORY    = 512
 USER_INPUTS = [
   ROOTPASS  = "M|text|root password||rootpass",
+  VNCPASS  = "M|text|vnc password||vncpass",
   VCPU      = "M|list||1,2,4,8,16|1",
   CPU       = "M|list||0.5,1,2,4,8,16|0.5",
   MEMORY    = "M|list||512,1024,2048,4096,8192,16384,32768|512" ]
 DISK      = [ IMAGE = "${img_tpl}", DEV_PREFIX = "vd", IMAGE_UNAME = oneadmin, CACHE="none", IO="native" ]
 NIC_DEFAULT = [ MODEL = "virtio" ]
 NIC       = [ NETWORK = "${vn_name}", NETWORK_UNAME = "oneadmin" ]
-GRAPHICS  = [ TYPE = "vnc", LISTEN = "0.0.0.0"]
+GRAPHICS  = [ TYPE = "vnc", LISTEN = "0.0.0.0", PASSWD = "\$VNCPASS" ]
 OS        = [ ARCH="${arch}", MACHINE="${machine}" ${firmware:+, FIRMWARE="${firmware}", FIRMWARE_SECURE=false} ]
 CPU_MODEL = [ MODEL="host-passthrough" ]
 ${raw}
