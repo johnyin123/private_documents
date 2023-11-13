@@ -4,8 +4,10 @@ Generate CA key (myca) for signing user ssh keys:
     ssh-keygen -q -N "" -f myca
     ssh-keygen -q -N "" -t rsa -f user1
     ssh-keygen -s myca -I user1 -n user1 -V +52w user1.pub
-    mv -f user1-cert.pub user1.pub 
+    mv -f user1-cert.pub user1.pub
+    ssh -i user1 ....
 Server Machine:
-    # vi /etc/ssh/sshd_config
-    TrustedUserCAKeys /etc/ssh/myca.pub
-    Authorizing SSH Users
+    sed --quiet -i.orig -E \
+        -e '/^\s*(TrustedUserCAKeys)\s.*/!p' \
+        -e '$aTrustedUserCAKeys /etc/ssh/myca.pub' \
+        /etc/ssh/sshd_config
