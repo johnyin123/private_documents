@@ -42,6 +42,9 @@ users:
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     ssh-authorized-keys:
       - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDIcCEBlGLWfQ6p/6/QAR1LncKGlFoiNvpV3OUzPEoxJfw5ChIc95JSqQQBIM9zcOkkmW80ZuBe4pWvEAChdMWGwQLjlZSIq67lrpZiql27rL1hsU25W7P03LhgjXsUxV5cLFZ/3dcuLmhGPbgcJM/RGEqjNIpLf34PqebJYqPz9smtoJM3a8vDgG3ceWHrhhWNdF73JRzZiDo8L8KrDQTxiRhWzhcoqTWTrkj2T7PZs+6WTI+XEc8IUZg/4NvH06jHg8QLr7WoWUtFvNSRfuXbarAXvPLA6mpPDz7oRKB4+pb5LpWCgKnSJhWl3lYHtZ39bsG8TyEZ20ZAjluhJ143GfDBy8kLANSntfhKmeOyolnz4ePf4EjzE3WwCsWNrtsJrW3zmtMRab7688vrUUl9W2iY9venrW0w6UL7Cvccu4snHLaFiT6JSQSSJS+mYM5o8T0nfIzRi0uxBx4m9/6nVIl/gs1JApzgWyqIi3opcALkHktKxi76D0xBYAgRvJs= root@liveos
+growpart:
+  mode: auto
+  devices: ['/']
 
 # write_files:
 # - content: |
@@ -49,9 +52,13 @@ users:
 #     mesg2
 #   path: /etc/test.file
 #   permissions: '0644'
-# runcmd 执行一些命令
+
+# every boot
+bootcmd:
+    - [ sh, -c, 'echo ran cloud-init again at \$(date) | sudo tee -a /root/bootcmd.log' ]
+# run once for network static IP fix
 runcmd:
-  - [echo, message]
+    - [ sh, -c, 'ip a' ]
 # final_message
 final_message: |
   cloud-init has finished
