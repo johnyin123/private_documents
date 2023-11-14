@@ -7,7 +7,7 @@ zcat /usr/share/doc/aria2/xmlrpc/aria2rpc.gz | sudo tee /usr/bin/aria2rpc
 sudo chmod 755 /usr/bin/aria2rpc
 USER_HOME=/home/johnyin
 mkdir ${USER_HOME}/.aria2
-cat<<EOF > ~/.aria2/aria2.conf
+cat<<EOF > ${USER_HOME}/.aria2/aria2.conf
 # 下载目录。可使用绝对路径或相对路径, 默认: 当前启动位置
 dir=${USER_HOME}/down
 # 磁盘缓存, 0 为禁用缓存，默认:16M
@@ -365,14 +365,16 @@ EOF
 # systemctl --user stop aria2
 # systemctl --user restart aria2
 # systemctl --user status aria2
-cat <<EOF | sudo tee /etc/systemd/user/aria2.service
+cat <<EOF | sudo tee /etc/systemd/system/aria2.service
 [Unit]
 Description=Aria2 Service
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/aria2c
-# --enable-rpc --rpc-listen-all --rpc-allow-origin-all --save-session %h/.config/aria2/session.lock --input-file %h/.config/aria2/session.lock --conf-path=%h/.config/aria2/aria2.conf
+[Service]
+User=johnyin
+Group=johnyin
+ExecStart=/usr/bin/aria2c --conf-path=${USER_HOME}/.aria2/aria2.conf
 [Install]
 WantedBy=default.target
 EOF
