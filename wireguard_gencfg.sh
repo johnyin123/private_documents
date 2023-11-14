@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("03dc719[2022-03-03T09:41:28+08:00]:wireguard_gencfg.sh")
+VERSION+=("71f2ea3[2022-03-07T14:00:00+08:00]:wireguard_gencfg.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
@@ -126,6 +126,19 @@ EOF
 main "$@"
 
 : <<EOF
+[Unit]
+Description=Tunnel WireGuard UDP over websocket
+After=network.target
+[Service]
+Type=simple
+User=nobody
+ExecStart=/usr/bin/wstunnel -v --server wss://0.0.0.0:443 --restrictTo=127.0.0.1:51820
+Restart=no
+[Install]
+WantedBy=multi-user.target
+##############################################3
+/usr/bin/wstunnel --upgradePathPrefix "wstunnel" --udp  -L "127.0.0.1:lport:127.0.0.1:rport" "wss://host:wssport" & disown
+
 auto wg0
 iface wg0 inet static
   address {{ipaddr}}/{{prefix}}
