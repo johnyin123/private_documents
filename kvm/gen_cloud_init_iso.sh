@@ -55,7 +55,7 @@ growpart:
 
 # every boot
 bootcmd:
-    - [ sh, -c, 'echo ran cloud-init again at \$(date) | sudo tee -a /root/bootcmd.log' ]
+  - [ sh, -c, 'echo ran cloud-init again at \$(date) | sudo tee -a /root/bootcmd.log' ]
 # run once for network static IP fix
 runcmd:
     - [ sh, -c, 'ip a' ]
