@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1dce824[2023-11-13T07:22:07+08:00]:opennebula.sh")
+VERSION+=("18d7d40[2023-11-13T11:15:38+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -319,7 +319,11 @@ LOGO          = "images/logos/linux.png"
 SUNSTONE      = [ NETWORK_SELECT = "NO" ]
 FEATURES      = [ ACPI="yes", APIC="yes", PAE="yes", GUEST_AGENT="yes" ]
 NAME      = "${vmtpl_name}"
-VCPU      = 1
+CPU_COST         ="4"
+DISK_COST        ="0.0009765625"
+MEMORY_UNIT_COST ="GB"
+MEMORY_COST      ="0.00390625"
+VCPU      = 0.5
 CPU       = 1
 MEMORY    = 512
 USER_INPUTS = [
@@ -355,7 +359,7 @@ CONTEXT            = [
     SET_HOSTNAME   = "\$NAME",
     SSH_PUBLIC_KEY = "\$USER[SSH_PUBLIC_KEY]",
     START_SCRIPT   = "#!/bin/bash
-echo 'start' > /start.ok"
+echo 'start' > /.start.ok"
 ]
 EOF
     sudo -u oneadmin onetemplate create "${tmp_file}" && rm -f "${tmp_file}"
