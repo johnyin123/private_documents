@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("18d7d40[2023-11-13T11:15:38+08:00]:opennebula.sh")
+VERSION+=("64eb6b4[2023-11-14T08:27:30+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -216,6 +216,7 @@ add_osimg_tpl() {
         truncate -s 2G "${tpl_file}"
     }
     local tmp_file=$(sudo -u oneadmin mktemp) || return 1
+    # TODO: FORMAT = qcow2
     sudo -u oneadmin tee "${tmp_file}" <<EOF
 NAME           = "${img_tpl_name}"
 DESCRIPTION    = "${img_tpl_name} sys tpl image."
