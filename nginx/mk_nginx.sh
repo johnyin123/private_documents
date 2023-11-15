@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fc2b433[2023-05-29T08:21:55+08:00]:mk_nginx.sh")
+VERSION+=("f4643d2[2023-11-10T08:34:35+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -585,6 +585,7 @@ gem source -l
 gem sources -a http://mirrors.aliyun.com/rubygems/
 gem sources --remove https://rubygems.org/
 gem install fpm
+# gem install --http-proxy http://user:pass@proxysrv:port fpm
 EOF
     echo "NO PACKAGE TOOLS"
     exit 1
