@@ -369,8 +369,6 @@ cat <<EOF | sudo tee /etc/systemd/system/aria2.service
 [Unit]
 Description=Aria2 Service
 After=network.target
-
-[Service]
 [Service]
 User=johnyin
 Group=johnyin
