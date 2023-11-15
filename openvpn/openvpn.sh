@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("eac2b9d[2023-08-09T12:33:04+08:00]:openvpn.sh")
+VERSION+=("083afcb[2023-11-09T09:17:19+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -63,6 +63,7 @@ server 10.8.0.0 255.255.255.0
 #服务器自动给客户端分配IP后，客户端下次连接时，仍然采用上次的IP地址
 ifconfig-pool-persist ipp.txt
 #自动推送客户端上的网关
+#Redirect All Traffic through the VPN
 push "redirect-gateway def1 bypass-dhcp"
 push "dhcp-option DNS 114.114.114.114"
 #允许客户端与客户端相连接，默认情况下客户端只能与服务器相连接
