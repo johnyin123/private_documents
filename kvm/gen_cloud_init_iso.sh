@@ -5,6 +5,11 @@ UUID=${UUID:-$(cat /proc/sys/kernel/random/uuid)}
 PASSWORD=${PASSWORD:-password}
 IPADDR=${IPADDR:-192.168.168.211/24}
 GATEWAY=${GATEWAY:-192.168.168.1}
+cat <<EOF
+PASSWORD = ${PASSWORD}
+IPADDR   = ${IPADDR}
+GATEWAY  = ${GATEWAY}
+EOF
 #实例id，随便写个不冲突的
 cat <<EOF > meta-data
 instance-id: ${UUID}

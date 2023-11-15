@@ -7,12 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3f39689[2023-05-09T09:42:06+08:00]:build_debian_no_kernel.sh")
+VERSION+=("91a06b1[2023-08-14T10:08:21+08:00]:build_debian_no_kernel.sh")
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
 export -f log
-
+cat <<HELP
+HELP:
+DEBIAN_VERSION=bookworm ./build_debian_no_kernel.sh linux-image-amd64 dbus-user-session qemu-guest-agent cloud-init cloud-initramfs-growroot
+HELP
 old_ifs="$IFS" IFS=','
 custom_pkgs="$*"
 IFS=$old_ifs
