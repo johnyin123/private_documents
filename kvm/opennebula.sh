@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("64eb6b4[2023-11-14T08:27:30+08:00]:opennebula.sh")
+VERSION+=("1c0009d[2023-11-15T18:39:48+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -216,7 +216,6 @@ add_osimg_tpl() {
         truncate -s 2G "${tpl_file}"
     }
     local tmp_file=$(sudo -u oneadmin mktemp) || return 1
-    # TODO: FORMAT = qcow2
     sudo -u oneadmin tee "${tmp_file}" <<EOF
 NAME           = "${img_tpl_name}"
 DESCRIPTION    = "${img_tpl_name} sys tpl image."
@@ -329,14 +328,13 @@ CPU       = 1
 MEMORY    = 512
 USER_INPUTS = [
   ROOTPASS  = "M|text|root password||rootpass",
-  VNCPASS  = "M|text|vnc password||vncpass",
   VCPU      = "M|list||1,2,4,8,16|1",
   CPU       = "M|list||0.5,1,2,4,8,16|0.5",
   MEMORY    = "M|list||512,1024,2048,4096,8192,16384,32768|512" ]
 DISK      = [ IMAGE = "${img_tpl}", DEV_PREFIX = "vd", IMAGE_UNAME = oneadmin, CACHE="none", IO="native" ]
 NIC_DEFAULT = [ MODEL = "virtio" ]
 NIC       = [ NETWORK = "${vn_name}", NETWORK_UNAME = "oneadmin" ]
-GRAPHICS  = [ TYPE = "vnc", LISTEN = "0.0.0.0", PASSWD = "\$VNCPASS" ]
+GRAPHICS  = [ TYPE = "vnc", LISTEN = "0.0.0.0", RANDOM_PASSWD="YES" ]
 OS        = [ ARCH="${arch}", MACHINE="${machine}" ${firmware:+, FIRMWARE="${firmware}", FIRMWARE_SECURE=false} ]
 CPU_MODEL = [ MODEL="host-passthrough" ]
 ${raw}
@@ -398,6 +396,7 @@ ${SCRIPTNAME}
         --ceph_user        <str>    ceph datastore user name
         --ceph_conf        <file>   ceph config filename
         --ceph_keyring     <file>   ceph user keyring filename
+                                    ceph --conf <ceph_conf> auth get client.<ceph_user> -o <cluster>.client.<ceph_user>.keyring
         --secret_uuid      <uuid>   libvirt ceph rbd secret uuid, if not set auto gen
                                     kvmnodes define use <secret_uuid
         --fs_store         <str>    fs datastore name
@@ -597,14 +596,15 @@ sudo -u oneadmin tee -a /var/lib/one/.ssh/authorized_keys <<EOK
 $(cat authorized_keys)
 EOK
 chmod 0600 /var/lib/one/.ssh/authorized_keys
-tee /etc/sysconfig/network-scripts/ifcfg-${bridge} <<EOBR
-DEVICE="${bridge}"
-ONBOOT="yes"
-TYPE="Bridge"
-BOOTPROTO="none"
-STP="off"
-EOBR
-
+# tee /etc/sysconfig/network-scripts/ifcfg-${bridge} <<EOBR
+# DEVICE="${bridge}"
+# ONBOOT="yes"
+# TYPE="Bridge"
+# BOOTPROTO="none"
+# STP="off"
+# EOBR
+EOF
+[ -z "${ceph_pool}" ] || [ -z "${ceph_user}" ] || [ -z "${ceph_conf}" ] || [ -z "${ceph_keyring}" ] || cat <<EOF
 # # COPY ceph.client.admin.keyring ceph.conf to nodes
 tee /etc/ceph/$(basename ${ceph_conf}) <<EOK
 $(cat "${ceph_conf}")
@@ -653,11 +653,6 @@ EOF
     done
 
     local store_name=img_store
-    info_msg "upload gold image\n"
-    local x86fn=$(basename ${x86_tplimg})
-    file_exists "${x86_tplimg}" && upload "${x86_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${x86fn}";
-    local armfn=$(basename ${arm_tplimg})
-    file_exists "${arm_tplimg}" && upload "${arm_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${armfn}";
     case "${img_store_type}" in
         fs)
             ssh_func "${user}@${frontend}" "${port}" add_fs_store "${store_name}" "img" "${cluster}"
@@ -666,18 +661,23 @@ EOF
             ssh_func "${user}@${frontend}" "${port}" add_ceph_store "${store_name}" "img" "${ceph_pool}" "${secret_uuid}" "${ceph_user}" "${mon_host}" "${bridge_host}" "${ceph_conf}" "${cluster}"
             ;;
     esac
-    info_msg "add system tpl image\n"
-    ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${store_name}" "${x86fn}" "/var/tmp/${x86fn}"
-    ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${store_name}" "${armfn}" "/var/tmp/${armfn}"
+    info_msg "upload gold image\n"
+    local x86fn=$(basename ${x86_tplimg})
+    file_exists "${x86_tplimg}" && {
+        upload "${x86_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${x86fn}";
+        ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${store_name}" "${x86fn}" "/var/tmp/${x86fn}"
+        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}" "${x86fn}" "x86_64" "${vnet}" "${img_store_type}"
+        str_equal "${img_store_type}" "ceph" && ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}_fs" "${x86fn}" "x86_64" "${vnet}" "fs"
+    }
+    local armfn=$(basename ${arm_tplimg})
+    file_exists "${arm_tplimg}" && {
+        upload "${arm_tplimg}" "${frontend}" "${port}" "${user}" "/var/tmp/${armfn}";
+        ssh_func "${user}@${frontend}" "${port}" add_osimg_tpl "${store_name}" "${armfn}" "/var/tmp/${armfn}"
+        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}" "${armfn}" "aarch64" "${vnet}" "${img_store_type}"
+        str_equal "${img_store_type}" "ceph" && ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}_fs" "${armfn}" "aarch64" "${vnet}" "fs"
+    }
     info_msg "add datadisk tpl image\n"
     ssh_func "${user}@${frontend}" "${port}" add_dataimg_tpl "${store_name}" "data_disk"
-    info_msg "add vm tpl\n"
-    ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}" "${x86fn}" "x86_64" "${vnet}" "${img_store_type}"
-    ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}" "${armfn}" "aarch64" "${vnet}" "${img_store_type}"
-    str_equal "${img_store_type}" "ceph" && {
-        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${x86fn}_fs" "${x86fn}" "x86_64" "${vnet}" "fs"
-        ssh_func "${user}@${frontend}" "${port}" add_vm_tpl "${armfn}_fs" "${armfn}" "aarch64" "${vnet}" "fs"
-    }
     info_msg "Frontend init OK\n"
     info_msg "for live mirgation, modify all kvmnode /var/lib/one/.ssh/config, authorized_keys\n"
     info_msg "ALL DONE\n"
