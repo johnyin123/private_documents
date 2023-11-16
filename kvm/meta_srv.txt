@@ -1,0 +1,7 @@
+meta_srv:
+       inet 169.254.169.254/16 scope global br-ext
+
+guest_os
+       169.254.254.254/32 eth0
+       ip route add 169.254.169.254/32 dev eth0
+
