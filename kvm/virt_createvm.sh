@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2a22dc6[2023-11-13T14:01:37+08:00]:virt_createvm.sh")
+VERSION+=("aab7652[2023-11-16T12:34:22+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -63,8 +63,8 @@ ${SCRIPTNAME}
         --kvmpass       <password>kvm host ssh password
         -t|--tpl    *   <file>    vm tpl file
         -u|--uuid       <uuid>    default autogen
-        -N|--name       <str>
-        -D|--desc       <str>
+        -N|--name       <str>     default vm-uuid
+        -D|--desc       <str>     default ""
         -c|--cpus       <int>     default 1
         -m|--mem        <int>     default 1024
         --arch          <str>     default x86_64 # aarch64/x86_64/..
@@ -122,7 +122,7 @@ EOF
 main() {
     declare -A tpl_env
     local kvmhost="" kvmuser="" kvmport="" kvmpass=""
-    local tpl="" uuid="" name="" desc="" cpus="" mem="" arch="" uefi="" maxcpu="" maxmem=""
+    local tpl="" uuid="" uefi="" desc="" name="vm" cpus="1" mem="1024" arch="x86_64" maxcpu="8" maxmem="8192"
     local opt_short="K:U:P:t:u:N:D:c:m:e:"
     local opt_long="kvmhost:,kvmuser:,kvmport:,kvmpass:,tpl:,uuid:,name:,desc:,cpus:,mem:,arch:,uefi:,maxcpu:,maxmem:,env:,"
     opt_short+="ql:dVh"
@@ -164,13 +164,13 @@ main() {
     cat <<EOF | tee ${LOGFILE} | j2 --format=yaml ${tpl} | tee ${LOGFILE} | virsh_wrap "${kvmhost}" "${kvmport}" "${kvmuser}" define --file /dev/stdin || exit_msg "${uuid} create ERROR\n"
 
 vm_uuid: "${uuid}"
-vm_name : "${name:-vm}"
-vm_desc : "${desc:-}"
-vm_ram_mb_max: ${maxmem:-8192}
-vm_ram_mb: ${mem:-1024}
-vm_vcpus: ${cpus:-1}
-vm_vcpus_max: ${maxcpu:-8}
-vm_arch: "${arch:-x86_64}"
+vm_name : "${name}"
+vm_desc : "${desc}"
+vm_ram_mb_max: ${maxmem}
+vm_ram_mb: ${mem}
+vm_vcpus: ${cpus}
+vm_vcpus_max: ${maxcpu}
+vm_arch: "${arch}"
 ${uefi:+vm_uefi: ${uefi}}
 $(for _k in $(array_print_label tpl_env); do
 echo "$_k: \"$(array_get tpl_env $_k)\""
