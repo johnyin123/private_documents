@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("59ea1b3[2023-11-03T12:10:22+08:00]:init-pc.sh")
+VERSION+=("f3c57c5[2023-11-08T11:58:49+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -330,6 +330,7 @@ rm -f /etc/apt/sources.list.d/google.list /etc/cron.daily/google-chrome /etc/def
 id johnyin &>/dev/null && {
     echo "login johnyin and run 'systemctl enable pulseaudio.service --user' to enable pulse audio"
     mkdir -p /home/johnyin/.config/libvirt
+    echo 'export LIBVIRT_DEFAULT_URI="qemu:///system"'
     echo 'uri_default = "qemu:///system"' > /home/johnyin/.config/libvirt/libvirt.conf
     cat <<'EOF' > /home/johnyin/.gitconfig
 [user]
