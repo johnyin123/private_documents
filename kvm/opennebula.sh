@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1c0009d[2023-11-15T18:39:48+08:00]:opennebula.sh")
+VERSION+=("0f99172[2023-11-16T09:38:18+08:00]:opennebula.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://docs.opennebula.io
@@ -683,6 +683,10 @@ EOF
     info_msg "ALL DONE\n"
     info_msg "fix kvm startup UEFI, and VARS, /var/lib/one/remotes/etc/vmm/kvm/kvmrc && onehost sync <IP> --force\n"
     info_msg "guestos install: cloud-init cloud-initramfs-growroot/cloud-utils-growpart\n"
+    cat <<'EOF'
+# m h  dom mon dow   command
+0 4 * * *  /usr/bin/onedb backup /root/dbbackup.$(date '+\%Y\%m\%d\%H\%M\%S')
+EOF
     return 0
 }
 main "$@"
