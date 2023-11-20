@@ -1,3 +1,13 @@
+# Calico tries hard to avoid interfering with any other configuration on the host.
+# Rather than adding the gateway address to the host side of each workload interface,
+# Calico sets the proxy_arp flag on the interface. This makes the host behave like a gateway,
+# responding to ARPs for 169.254.1.1 without having to actually allocate the IP address to the interface.
+# Calico还设置了其他几个标志位：
+# /proc/sys/net/ipv4/conf/DEV/rp_filter => 1：开启反向路径过滤，确认数据包来源，对于普通容器，IP基本无法伪装，但是如果是VM（Calico也支持VM），很容易伪装IP地址，所以为了安全打开这个选项。
+# /proc/sys/net/ipv4/conf/DEV/route_localnet => 1：允许路由到本地。
+# /proc/sys/net/ipv4/neigh/DEV/proxy_delay => 0：默认情况下，主机为了减少ARP风暴的可能，会延迟一段时间回复ARP包，这个选项关闭这个延迟。
+# /proc/sys/net/ipv4/conf/DEV/forwarding => 1：允许转发数据包（如果不允许转发的话，那数据包就出不去主机了）。
+
 # # NODE1
 ip netns add netns1
 ip link add veth1 type veth peer name veth2
