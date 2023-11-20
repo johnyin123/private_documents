@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("262fa90[2023-11-20T10:31:23+08:00]:virt_imgupload.sh")
+VERSION+=("565b20c[2023-11-20T10:53:38+08:00]:virt_imgupload.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -66,9 +66,11 @@ main() {
     [ -z "${disk_tpl}" ] && usage "disk_tpl must input"
     [ -z "${vol_name}" ] && usage "vol_name must input"
     info_msg "upload ${disk_tpl} => ${vol_name} start\n"
-    local upload_cmd="dd of=${vol_name}${size:+;truncate -s ${size} ${vol_name}}"
-    [ -z ${rbd} ] || upload_cmd="rbd --cluster ${rbd} import --image-feature layering - ${vol_name}${size:+;rbd --cluster ${rbd} resize --size ${size} ${vol_name} --no-progress}"
+    local upload_cmd=""
+    [ -z ${rbd} ] && upload_cmd="dd of=${vol_name}" || upload_cmd="rbd --cluster ${rbd} import --image-feature layering - ${vol_name}"
     try "cat ${disk_tpl} | ${kvmhost:+ssh ${kvmport:+-p ${kvmport}} ${kvmuser:+${kvmuser}@}${kvmhost}} ${upload_cmd}"
+    [ -z ${rbd} ] && upload_cmd=${size:+truncate -s ${size} ${vol_name}} || upload_cmd=${size:+rbd --cluster ${rbd} resize --size ${size} ${vol_name} --no-progress}
+    [ -z "${upload_cmd}" ] || try "${kvmhost:+ssh ${kvmport:+-p ${kvmport}} ${kvmuser:+${kvmuser}@}${kvmhost}} ${upload_cmd}"
     info_msg "upload template file ${disk_tpl} ok\n"
     return 0
 }
