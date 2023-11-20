@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3eae815[2023-11-16T12:51:53+08:00]:virt_createvm.sh")
+VERSION+=("7d39ecd[2023-11-16T12:56:21+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -103,6 +103,7 @@ ${SCRIPTNAME}
         ./virt_createvol.sh -p default -n \${disk} -f raw -s 2GiB
         echo "upload template disk"
         ./virt-volupload.sh -p default -v \${disk} -t ~/debian.amd64.guestos.raw
+        # ./virt_imgupload.sh -t ~/debian.amd64.guestos.raw -v /storage/\${disk}
         echo "create vm"
         ./virt_createvm.sh -t vm.tpl -u \${uuid} -N myserver -D "test server" -c 2 -m 2048
         echo "attach network, persistent"
