@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-11-20T10:31:24+08:00]:virt_imgupload.sh")
+VERSION+=("262fa90[2023-11-20T10:31:23+08:00]:virt_imgupload.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -21,6 +21,7 @@ ${SCRIPTNAME}
     -v|--vol               *                 vol
     -t|--template                            telplate disk for upload(or stdin)
     --rbd             <ceph cluster name>    upload ceph rbd vol via ssh, otherwise use vol-upload
+    --size                <vol size>         1M/1G/1T
     -q|--quiet
     -l|--log <int>                           log level
     -d|--dryrun                              dryrun
@@ -36,7 +37,7 @@ main() {
     local kvmhost="" kvmuser="" kvmport=""
     local disk_tpl="" vol_name="" rbd=""
     local opt_short="K:U:P:v:t:"
-    local opt_long="kvmhost:,kvmuser:,kvmport:,kvmpass:,vol:,template:,rbd:,"
+    local opt_long="kvmhost:,kvmuser:,kvmport:,kvmpass:,vol:,template:,rbd:,size:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -50,6 +51,7 @@ main() {
             -t | --template) shift; disk_tpl=${1}; shift ;;
             -v | --vol)      shift; vol_name=${1}; shift ;;
             --rbd)           shift; rbd=${1}; shift;;
+            --size)          shift; size=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -64,8 +66,8 @@ main() {
     [ -z "${disk_tpl}" ] && usage "disk_tpl must input"
     [ -z "${vol_name}" ] && usage "vol_name must input"
     info_msg "upload ${disk_tpl} => ${vol_name} start\n"
-    local upload_cmd="dd of=${vol_name}" 
-    [ -z ${rbd} ] || upload_cmd="rbd --cluster ${rbd} import --image-feature layering - ${vol_name}"
+    local upload_cmd="dd of=${vol_name}${size:+;truncate -s ${size} ${vol_name}}"
+    [ -z ${rbd} ] || upload_cmd="rbd --cluster ${rbd} import --image-feature layering - ${vol_name}${size:+;rbd --cluster ${rbd} resize --size ${size} ${vol_name} --no-progress}"
     try "cat ${disk_tpl} | ${kvmhost:+ssh ${kvmport:+-p ${kvmport}} ${kvmuser:+${kvmuser}@}${kvmhost}} ${upload_cmd}"
     info_msg "upload template file ${disk_tpl} ok\n"
     return 0
