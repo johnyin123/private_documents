@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f1a6131[2023-11-20T10:33:54+08:00]:virt_createvm.sh")
+VERSION+=("565b20c[2023-11-20T10:53:38+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -30,6 +30,7 @@ gen_tpl() {
   {%- set __machine__ = "virt" %}
   <cpu mode='host-passthrough' check='none'/>
 {%- endif %}
+  <iothreads>1</iothreads>
   <os>
     <type arch='{{ vm_arch }}' machine='{{ __machine__ }}'>hvm</type>
 {%- if vm_uefi is defined %}
