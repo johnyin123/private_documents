@@ -1,0 +1,12 @@
+yum -y install usbredir-server
+apt -y install usbredirect
+lsusb
+usbredirserver -p 55555 -v 3 xxxx:xxxx
+# kvm guest define usb redirect
+<redirdev bus='usb' type='tcp'>
+  <source mode='connect' host='10.0.0.1' service='55555'/>
+  <protocol type='raw'/>
+  <address type='usb' bus='0' port='9'/>
+</redirdev>
+#virsh attach-device test_vm usb_redir.xml --live
+#virsh detach-device test_vm usb_redir.xml --live
