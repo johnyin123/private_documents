@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("969da75[2023-11-01T15:03:02+08:00]:virt_attach.sh")
+VERSION+=("8c9a5b9[2023-11-16T16:11:20+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -76,6 +76,7 @@ gen_tpl() {
 <interface type='network'>
   <source network='br_mgmt.2430'/>
   <model type='virtio'/>
+  <virtualport type='openvswitch'/>
   <driver name='vhost' queues='8'/>
 </interface>
 # # if use libvirt not defined bridge

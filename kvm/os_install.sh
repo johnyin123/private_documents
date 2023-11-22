@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a58a413[2023-11-02T13:30:37+08:00]:os_install.sh")
+VERSION+=("a67fe9c[2023-11-02T13:56:55+08:00]:os_install.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -72,6 +72,7 @@ virt_inst_aarch64_x86() {
        --boot cdrom,hd,network,menu=on \
        ${UEFI:+--boot loader=${UEFI},loader.readonly=yes,loader.type=pflash} \
        --noreboot # --print-xml
+       #   --network=bridge:${net_br},model=virtio,virtualport_type=openvswitch \
 }
 virt_inst() {
     local vm_type=$1

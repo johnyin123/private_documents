@@ -1,0 +1,80 @@
+# Configure br0 with eth0 as a trunk port (the default) and tap0 as an access port for VLAN 9:
+ovs-vsctl add-br br0
+ovs-vsctl add-port br0 eth0
+ovs-vsctl add-port br0 tap0 tag=9
+# Configure an already added port as an access port
+ovs-vsctl set port tap0 tag=9
+cat <<EOF
+DEVICE=eth0
+ONBOOT=yes
+TYPE=OVSPort
+DEVICETYPE=ovs
+OVS_BRIDGE=br-ext
+EOF
+cat <<EOF
+DEVICE=br-ext
+ONBOOT=yes
+DEVICETYPE=ovs
+TYPE=OVSBridge
+BOOTPROTO=static
+HOTPLUG=no
+IPADDR=10.17.0.1
+NETMASK=255.255.255.0
+EOF
+cat <<EOF
+auto br-ext
+allow-ovs br-ext
+iface br-ext inet static
+    ovs_type OVSBridge
+    ovs_ports enp0s3
+    address 192.168.168.101/24
+    gateway 192.168.168.1
+
+allow-br-ext enp0s3
+iface enp0s3 inet manual
+    ovs_bridge br-ext
+    ovs_type OVSPort
+EOF
+cat <<EOF
+auto eth0
+iface eth0 inet manual
+    ovs_mtu 9000
+auto eth1
+iface eth1 inet manual
+    ovs_mtu 9000
+auto bond0
+iface bond0 inet manual
+    ovs_bridge br-ex
+    ovs_type OVSBond
+    ovs_bonds eth0 eth1
+    ovs_options bond_mode=balance-tcp lacp=active other_config:lacp-time=fast
+    ovs_mtu 9000
+
+auto br-ext
+iface br-ext inet manual
+  ovs_type OVSBridge
+  # NOTE: we MUST mention bond0, vlan50, and vlan55 even though each
+  #       of them lists ovs_bridge br-ext!  Not sure why it needs this
+  #       kind of cross-referencing but it won't work without it!
+  ovs_ports bond0 vlan50 vlan55
+  ovs_mtu 9000
+
+auto vlan50
+iface vlan50 inet static
+  ovs_type OVSIntPort
+  ovs_bridge br-ext
+  ovs_options tag=50
+  address 10.50.10.44
+  netmask 255.255.255.0
+  gateway 10.50.10.1
+
+auto vlan55
+iface vlan55 inet static
+  ovs_type OVSIntPort
+  ovs_bridge br-ext
+  ovs_options tag=55
+  address 10.55.10.44
+  netmask 255.255.255.0
+  ovs_mtu 9000
+
+EOF
