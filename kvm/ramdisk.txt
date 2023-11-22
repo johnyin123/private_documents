@@ -1,0 +1,27 @@
+brd
+Setup
+    modprobe brd rd_size=18432000 max_part=1 rd_nr=1
+    virsh pool-define-as --name ramblock --type disk --source-dev /dev/ram0 --target /dev
+    virsh pool-build ramblock
+    virsh pool-start  ramblock
+    virsh vol-create-as ramblock ram0p1 18350316k
+Teardown
+    virsh vol-delete ram0p1 --pool ramblock
+    parted /dev/ram0 rm 1
+    virsh vol-list --pool ramblock
+    virsh pool-destroy ramblock
+    rmmod brd
+    virsh pool-undefine ramblock
+
+tmpfs
+Setup
+    mkdir -p /var/lib/libvirt/ramdisk-storage-pool
+    mount -t tmpfs -o size=18000M tmpfs /var/lib/libvirt/ramdisk-storage-pool
+    virsh pool-define-as --name ramdisk --type dir --target /var/lib/libvirt/ramdisk-storage-pool
+    virsh pool-start ramdisk
+    virsh vol-create-as ramdisk fedora29 18350316k
+Teardown
+    virsh vol-delete fedora29 --pool ramdisk
+    virsh pool-destroy ramdisk
+    umount /var/lib/libvirt/ramdisk-storage-pool
+    virsh pool-undefine ramdisk
