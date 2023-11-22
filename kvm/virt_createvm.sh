@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("565b20c[2023-11-20T10:53:38+08:00]:virt_createvm.sh")
+VERSION+=("f4c2291[2023-11-21T10:11:08+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -98,6 +98,15 @@ ${SCRIPTNAME}
     <graphics type='vnc' port='5900' autoport='no' websocket='5700' listen='127.0.0.1'>
       <listen type='address' address='127.0.0.1'/>
     </graphics>
+    # hotplugging is not supported in libvirt q35, Adding the following libvirt config solves this issue
+    <devices>
+    <controller type='pci' model='pcie-root'/>
+    <controller type='pci' model='pcie-root-port'/>
+    <controller type='pci' model='pcie-root-port'/>
+    <controller type='pci' model='pcie-root-port'/>
+    <controller type='pci' model='pcie-to-pci-bridge'/>
+    </devices>
+
         uuid=$(cat /proc/sys/kernel/random/uuid)
         disk=vda-\${uuid}.raw
         echo "upload template disk"
