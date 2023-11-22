@@ -9,6 +9,7 @@ cat <<EOF
 PASSWORD = ${PASSWORD}
 IPADDR   = ${IPADDR}
 GATEWAY  = ${GATEWAY}
+touch /etc/cloud/cloud-init.disabled 来禁用cloud-init服务
 EOF
 #实例id，随便写个不冲突的
 cat <<EOF > meta-data
