@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f3c57c5[2023-11-08T11:58:49+08:00]:init-pc.sh")
+VERSION+=("f621bc8[2023-11-16T12:24:29+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -280,7 +280,13 @@ cat<<EOF > /etc/xdg/xfce4/panel/default.xml
       <property name="style" type="uint" value="0"/>
     </property>
     <property name="plugin-4" type="string" value="pager"/>
-    <property name="plugin-5" type="string" value="clock"/>
+    <property name="plugin-5" type="string" value="clock">
+      <property name="tooltip-format" type="string" value="%R,%a,%b%-d日"/>
+      <property name="digital-format" type="string" value="%b%-d日%R,%a"/>
+      <property name="digital-time-format" type="string" value="%R,%a,%b%-d日"/>
+      <property name="digital-layout" type="uint" value="3"/>
+      <property name="digital-time-font" type="string" value="Sans 12"/>
+    </property>
     <property name="plugin-6" type="string" value="systray"/>
     <property name="plugin-7" type="string" value="showdesktop"/>
     <property name="plugin-9" type="string" value="launcher">
