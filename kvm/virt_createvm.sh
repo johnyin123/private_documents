@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f4c2291[2023-11-21T10:11:08+08:00]:virt_createvm.sh")
+VERSION+=("5eb802b[2023-11-22T10:54:27+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -37,7 +37,7 @@ gen_tpl() {
     <loader readonly='yes' type='pflash'>{{ vm_uefi }}</loader>
 {%- endif %}
   </os>
-  <features><acpi/><apic/><pae/><gic version='3'/></features>
+  <features><acpi/><apic/><pae/></features>
   <on_poweroff>destroy</on_poweroff>
   <devices>
     <serial type='pty'><target port='0'/></serial>

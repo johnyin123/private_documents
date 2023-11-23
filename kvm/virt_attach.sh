@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8c9a5b9[2023-11-16T16:11:20+08:00]:virt_attach.sh")
+VERSION+=("931c329[2023-11-22T14:28:21+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -89,6 +89,13 @@ gen_tpl() {
 #   <target dev='calic0a8fe0a'/>
 #   <model type='virtio'/>
 # </interface>
+# $ usb redirect device
+# <redirdev bus='usb' type='tcp'>
+#   <source mode='connect' host='127.0.0.1' service='4000'/>
+# </redirdev>
+# <redirdev bus='usb' type='tcp'>
+#   <source mode='bind' host='127.0.0.1' service='4000'/>
+# </redirdev>
 EOF
 }
 usage() {
@@ -140,7 +147,7 @@ domain_live_arg() {
     local kvmport="${2}"
     local kvmuser="${3}"
     local uuid=${4}
-    virsh_wrap "${kvmhost}" "${kvmport}" "${kvmuser}" list --state-running --uuid | grep -q ${uuid} && echo "--live" || echo ""
+    virsh_wrap "${kvmhost}" "${kvmport}" "${kvmuser}" domstate ${uuid} 2>/dev/null | grep -iq "running" && echo "--live" || echo ""
 }
 main() {
     declare -A tpl_env
