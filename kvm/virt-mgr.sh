@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b93cee7[2023-05-22T16:56:50+08:00]:virt-mgr.sh")
+VERSION+=("aab7652[2023-11-16T12:34:22+08:00]:virt-mgr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -49,7 +49,7 @@ set_last_disk() {
 
 domain_live_arg() {
     local uuid=$1
-    ${VIRSH} list --state-running --uuid | grep -q ${uuid} && echo "--live" || echo ""
+    ${VIRSH} domstate ${uuid} 2>/dev/null | grep -iq "running" && echo "--live" || echo ""
 }
 
 attach_device() {
