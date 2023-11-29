@@ -16,12 +16,42 @@ COMPUTE=(172.16.1.211)
 INT_VIP_ADDR=172.16.1.213
 HAPROXY=yes
 VG_NAME=cindervg
+# # # # # # # all (compute/controller) node start
+mkdir -p /etc/docker/ && cat > /etc/docker/daemon.json << EOF
+{
+  "registry-mirrors": [ "https://docker.mirrors.ustc.edu.cn", "http://hub-mirror.c.163.com" ],
+  "insecure-registries": [ "quay.io"${insec_registry:+, \"${insec_registry}\"} ],
+  "exec-opts": ["native.cgroupdriver=systemd", "native.umask=normal" ],
+  "storage-driver": "overlay2",
+  "bridge": "none",
+  "ip-forward": false,
+  "iptables": false
+}
+EOF
+mkdir -p /etc/systemd/system/docker.service.d/ && cat <<EOF > /etc/systemd/system/docker.service.d/kolla.conf
+[Service]
+MountFlags=shared
+EOF
+sed --quiet -i -E \
+    -e '/(127.0.0.1\s*).*/!p' \
+    -e '$a127.0.0.1 localhost' \
+    /etc/hosts
+systemctl daemon-reload
+systemctl restart docker
+systemctl enable docker
+# # store node
+[ -z "${VG_NAME:-}" ] || {
+    command -v "pvcreate" &> /dev/null || yum -y install lvm2
+    pvcreate /dev/vdb
+    vgcreate ${VG_NAME} /dev/vdb
+}
+# # # # # # # all (compute/controller) node end
 mkdir -p ${KOLLA_DIR} && python3 -m venv ${KOLLA_DIR}/venv3 && source ${KOLLA_DIR}/venv3/bin/activate
 # # # # # # # offline start
-cat <<EOF
-# offline
+ <<EOF
 pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ --upgrade pip
 pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ -r ${KOLLA_DIR}/pyenv/requirements.txt
+# # # # all compute nodes ends here
 # cd ${KOLLA_DIR} && pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ ./kolla
 # cd ${KOLLA_DIR} && pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ ./kolla-ansible
 cp -r ${KOLLA_DIR}/venv3/share/kolla-ansible/etc_examples/kolla /etc/
@@ -46,7 +76,6 @@ cd ${KOLLA_DIR} && pip install ./kolla-ansible
 cp -r ${KOLLA_DIR}/kolla-ansible/etc/kolla /etc/
 cp ${KOLLA_DIR}/kolla-ansible/ansible/inventory/* ${KOLLA_DIR}
 # # # # # # # online end
-
 mkdir -p /etc/ansible/ && cat <<EOF >/etc/ansible/ansible.cfg
 [defaults]
 host_key_checking=False
@@ -67,6 +96,7 @@ done
 for node in ${COMPUTE[@]}; do
     crudini --set ${KOLLA_DIR}/multinode network "${node}"
     crudini --set ${KOLLA_DIR}/multinode compute "${node}"
+    [ -z "${VG_NAME:-}" ] || crudini --set ${KOLLA_DIR}/multinode storage "${node}"
 done
 crudini --set ${KOLLA_DIR}/multinode storage     # no storage
 crudini --set ${KOLLA_DIR}/multinode monitoring  # no monitoring
@@ -77,11 +107,16 @@ crudini --set ${KOLLA_DIR}/multinode deployment  "localhost ansible_connection=l
 sed -i -E \
     -e "s/^\s*#*config_strategy\s*:.*/config_strategy: \"COPY_ALWAYS\"/g"   \
     -e "s/^\s*#*kolla_base_distro\s*:.*/kolla_base_distro: \"ubuntu\"/g"    \
-    -e "s/^\s*#*kolla_install_type\s*:.*/kolla_install_type: \"source\"/g"  \
     -e "s/^\s*#*network_interface\s*:.*/network_interface: \"eth0\"/g"      \
     -e "s/^\s*#*nova_compute_virt_type\s*:.*/nova_compute_virt_type: \"${KVM}\"/g"       \
     -e "s/^\s*#*openstack_release\s*:.*/openstack_release: \"${OPENSTACK_VER}\"/g"       \
-    -e "s/^\s*#*neutron_external_interface\s*:.*/neutron_external_interface: \"eth1\"/g" \
+    /etc/kolla/globals.yml
+# linuxbridge is *EXPERIMENTAL* in Neutron since Zed
+sed --quiet -i -E \
+    -e '/(neutron_bridge_name|neutron_external_interface|neutron_plugin_agent)\s*:.*/!p' \
+    -e '$aneutron_plugin_agent: "openvswitch"'   \
+    -e "\$aneutron_external_interface: \"eth1\"" \
+    -e '$aneutron_bridge_name:: "br-ext"'        \
     /etc/kolla/globals.yml
 
 [ -z ${insec_registry} ] || sed -i -E \
@@ -105,9 +140,6 @@ sed -i -E \
     -e "s/^\s*#*enable_cinder_backend_lvm\s*:.*/enable_cinder_backend_lvm: \"yes\"/g"  \
     -e "s/^\s*#*cinder_volume_group\s*:.*/cinder_volume_group: \"${VG_NAME}\"/g"  \
     /etc/kolla/globals.yml
-#    command -v "pvcreate" &> /dev/null || yum -y install lvm2
-#    pvcreate /dev/vdb
-#    vgcreate ${VG_NAME} /dev/vdb
 grep '^[^#]' /etc/kolla/globals.yml
 # 配置nova文件, virth_type kvm/qemu
 mkdir -p /etc/kolla/config/nova && cat <<EOF > /etc/kolla/config/nova/nova-compute.conf
@@ -123,7 +155,6 @@ EOF
 for node in ${COMPUTE[@]}; do
     crudini --set ${KOLLA_DIR}/multinode storage ${node}
 done
-
 mkdir -p /etc/kolla/config/glance/ /etc/kolla/config/cinder/cinder-volume/ \
     /etc/kolla/config/cinder/cinder-backup/ /etc/kolla/config/nova/
 sed -i -E \
@@ -214,29 +245,6 @@ kolla-genpwd
 sed -i "s/.*keystone_admin_password.*$/keystone_admin_password: ${ADMIN_PASS}/g" /etc/kolla/passwords.yml
 grep keystone_admin_password /etc/kolla/passwords.yml #admin和dashboard的密码
 
-# 部署前检查（可选）
-mkdir -p /etc/docker/ && cat > /etc/docker/daemon.json << EOF
-{
-  "registry-mirrors": [ "https://docker.mirrors.ustc.edu.cn", "http://hub-mirror.c.163.com" ],
-  "insecure-registries": [ "quay.io"${insec_registry:+, \"${insec_registry}\"} ],
-  "exec-opts": ["native.cgroupdriver=systemd", "native.umask=normal" ],
-  "storage-driver": "overlay2",
-  "bridge": "none",
-  "ip-forward": false,
-  "iptables": false
-}
-EOF
-mkdir -p /etc/systemd/system/docker.service.d/ && cat <<EOF > /etc/systemd/system/docker.service.d/kolla.conf
-[Service]
-MountFlags=shared
-EOF
-sed --quiet -i -E \
-    -e '/(127.0.0.1\s*).*/!p' \
-    -e '$a127.0.0.1 localhost' \
-    /etc/hosts
-systemctl daemon-reload
-systemctl restart docker
-systemctl enable docker
 [ -f "${HOME:-~}/.ssh/id_rsa" ] ||  ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
 # ssh -p60022 localhost "true" || echo "ssh-copy-id"
 # cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
@@ -267,7 +275,7 @@ CIRROS_RELEASE=${CIRROS_RELEASE:-0.6.1}
 ARCH=x86_64
 mkdir -p /opt/cache/files/ && touch /opt/cache/files/cirros-${CIRROS_RELEASE}-${ARCH}-disk.img
 CIRROS_RELEASE=${CIRROS_RELEASE} \
-EXT_NET_CIDR=172.16.3.0/24 \
+EXT_NET_CIDR=172.16.3.0/21 \
 EXT_NET_RANGE='start=172.16.3.9,end=172.16.3.199' \
 EXT_NET_GATEWAY=172.16.0.1 \
 ${KOLLA_DIR}/init-runonce
