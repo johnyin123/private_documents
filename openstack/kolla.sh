@@ -116,7 +116,7 @@ sed --quiet -i -E \
     -e '/(neutron_bridge_name|neutron_external_interface|neutron_plugin_agent)\s*:.*/!p' \
     -e '$aneutron_plugin_agent: "openvswitch"'   \
     -e "\$aneutron_external_interface: \"eth1\"" \
-    -e '$aneutron_bridge_name:: "br-ext"'        \
+    -e '$aneutron_bridge_name: "br-ext"'         \
     /etc/kolla/globals.yml
 
 [ -z ${insec_registry} ] || sed -i -E \
