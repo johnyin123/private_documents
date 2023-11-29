@@ -54,8 +54,6 @@ pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ -r ${KOLLA_DIR}/pyenv/re
 # # # # all compute nodes ends here
 # cd ${KOLLA_DIR} && pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ ./kolla
 # cd ${KOLLA_DIR} && pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ ./kolla-ansible
-cp -r ${KOLLA_DIR}/venv3/share/kolla-ansible/etc_examples/kolla /etc/
-cp ${KOLLA_DIR}/venv3/share/kolla-ansible/ansible/inventory/multinode ${KOLLA_DIR}
 EOF
 # # # # # # # offline end
 # # # # # # # online start
@@ -73,8 +71,8 @@ cd ${KOLLA_DIR} && git clone --depth=1 https://github.com/openstack/kolla
 cd ${KOLLA_DIR} && git clone --depth=1 https://github.com/openstack/kolla-ansible
 cd ${KOLLA_DIR} && pip install ./kolla
 cd ${KOLLA_DIR} && pip install ./kolla-ansible
-cp -r ${KOLLA_DIR}/kolla-ansible/etc/kolla /etc/
-cp ${KOLLA_DIR}/kolla-ansible/ansible/inventory/* ${KOLLA_DIR}
+cp -r ${KOLLA_DIR}/kolla-ansible/etc/kolla /etc/ 2>/dev/null || cp -r ${KOLLA_DIR}/venv3/share/kolla-ansible/etc_examples/kolla /etc/
+cp ${KOLLA_DIR}/kolla-ansible/ansible/inventory/* ${KOLLA_DIR} 2>/dev/null || cp ${KOLLA_DIR}/venv3/share/kolla-ansible/ansible/inventory/* ${KOLLA_DIR}
 # # # # # # # online end
 mkdir -p /etc/ansible/ && cat <<EOF >/etc/ansible/ansible.cfg
 [defaults]
@@ -113,7 +111,8 @@ sed -i -E \
     /etc/kolla/globals.yml
 # linuxbridge is *EXPERIMENTAL* in Neutron since Zed
 sed --quiet -i -E \
-    -e '/(neutron_bridge_name|neutron_external_interface|neutron_plugin_agent)\s*:.*/!p' \
+    -e '/(enable_neutron_provider_networks|neutron_bridge_name|neutron_external_interface|neutron_plugin_agent)\s*:.*/!p' \
+    -e '$aenable_neutron_provider_networks: "yes"' \
     -e '$aneutron_plugin_agent: "openvswitch"'   \
     -e "\$aneutron_external_interface: \"eth1\"" \
     -e '$aneutron_bridge_name: "br-ext"'         \
