@@ -11,15 +11,11 @@ KOLLA_DIR=/kolla
 OPENSTACK_VER=master
 ADMIN_PASS=Admin@2023
 insec_registry=10.170.6.105:5000
-CONTROLLER=(192.168.168.150 192.168.168.151)
-COMPUTE=(192.168.168.152)
-INT_VIP_ADDR=192.168.168.159
+CONTROLLER=(172.16.1.210)
+COMPUTE=(172.16.1.211)
+INT_VIP_ADDR=172.16.1.213
 HAPROXY=yes
 VG_NAME=cindervg
-cat <<EOF | tee /etc/hosts
-127.0.0.1   localhost
-192.168.168.150 $(cat /etc/hostname)
-EOF
 mkdir -p ${KOLLA_DIR} && python3 -m venv ${KOLLA_DIR}/venv3 && source ${KOLLA_DIR}/venv3/bin/activate
 # # # # # # # offline start
 cat <<EOF
@@ -72,8 +68,8 @@ for node in ${COMPUTE[@]}; do
     crudini --set ${KOLLA_DIR}/multinode network "${node}"
     crudini --set ${KOLLA_DIR}/multinode compute "${node}"
 done
-crudini --set ${KOLLA_DIR}/multinode monitoring  # no monitoring
 crudini --set ${KOLLA_DIR}/multinode storage     # no storage
+crudini --set ${KOLLA_DIR}/multinode monitoring  # no monitoring
 crudini --set ${KOLLA_DIR}/multinode deployment  "localhost ansible_connection=local"
 
 # # Deploy All-In-One
@@ -103,7 +99,7 @@ sed -i -E \
     -e "s/^\s*#*kolla_external_vip_address\s*:.*/kolla_external_vip_address: \"${INT_VIP_ADDR}\"/g"  \
     /etc/kolla/globals.yml
 # Block Storage service, use LVM cinder
-[ -z "${VG_NAME}" ] || sed -i -E \
+[ -z "${VG_NAME:-}" ] || sed -i -E \
     -e "s/^\s*#*enable_cinder\s*:.*/enable_cinder: \"yes\"/g"  \
     -e "s/^\s*#*enable_cinder_backup\s*:.*/enable_cinder_backup: \"yes\"/g"  \
     -e "s/^\s*#*enable_cinder_backend_lvm\s*:.*/enable_cinder_backend_lvm: \"yes\"/g"  \
@@ -123,27 +119,91 @@ EOF
 mkdir -p /etc/kolla/config/horizon/ && cat <<EOF > /etc/kolla/config/horizon/custom_local_settings
 LAUNCH_INSTANCE_DEFAULTS = {'create_volume': False,}
 EOF
-# 创建ceph配置
+# ########################ceph start
+for node in ${COMPUTE[@]}; do
+    crudini --set ${KOLLA_DIR}/multinode storage ${node}
+done
+
+mkdir -p /etc/kolla/config/glance/ /etc/kolla/config/cinder/cinder-volume/ \
+    /etc/kolla/config/cinder/cinder-backup/ /etc/kolla/config/nova/
+sed -i -E \
+    -e "s/^\s*#*glance_backend_ceph\s*:.*/glance_backend_ceph: \"yes\"/g"  \
+    -e "s/^\s*#*cinder_backend_ceph\s*:.*/cinder_backend_ceph: \"yes\"/g"  \
+    -e "s/^\s*#*nova_backend_ceph\s*:.*/nova_backend_ceph: \"yes\"/g"  \
+    -e "s/^\s*#*gnocchi_backend_storage\s*:.*/gnocchi_backend_storage: \"ceph\"/g"  \
+    -e "s/^\s*#*enable_manila_backend_cephfs_native\s*:.*/enable_manila_backend_cephfs_native: \"yes\"/g"  \
+    /etc/kolla/globals.yml
+# # glance ceph
+GLANCE_USER=glance
+GLANCE_POOL=images
+GLANCE_KEYRING=ceph.client.${GLANCE_USER}.keyring
+sed -i -E \
+    -e "s/^\s*#*ceph_glance_keyring\s*:.*/ceph_glance_keyring: \"${GLANCE_KEYRING}\"/g"  \
+    -e "s/^\s*#*ceph_glance_user\s*:.*/ceph_glance_user: \"${GLANCE_USER}\"/g"  \
+    -e "s/^\s*#*ceph_glance_pool_name\s*:.*/ceph_glance_pool_name: \"${GLANCE_POOL}\"/g"  \
+    /etc/kolla/globals.yml
+# # cinder ceph
+CINDER_USER=cinder
+CINDER_POOL=volumes
+CINDER_KEYRING=ceph.client.${CINDER_USER}.keyring
+CINDER_USER_BACKUP=cinder-backup
+CINDER_POOL_BACKUP=backups
+CINDER_KEYRING_BACKUP=ceph.client.${CINDER_USER_BACKUP}.keyring
+sed -i -E \
+    -e "s/^\s*#*ceph_cinder_keyring\s*:.*/ceph_cinder_keyring: \"${CINDER_KEYRING}\"/g"  \
+    -e "s/^\s*#*ceph_cinder_user\s*:.*/ceph_cinder_user: \"${CINDER_USER}\"/g"  \
+    -e "s/^\s*#*ceph_cinder_pool_name\s*:.*/ceph_cinder_pool_name: \"${CINDER_POOL}\"/g"  \
+    -e "s/^\s*#*ceph_cinder_backup_keyring\s*:.*/ceph_cinder_backup_keyring: \"${CINDER_KEYRING_BACKUP}\"/g"  \
+    -e "s/^\s*#*ceph_cinder_backup_user\s*:.*/ceph_cinder_backup_user: \"${CINDER_USER_BACKUP}\"/g"  \
+    -e "s/^\s*#*ceph_cinder_backup_pool_name\s*:.*/ceph_cinder_backup_pool_name: \"${CINDER_POOL_BACKUP}\"/g"  \
+    /etc/kolla/globals.yml
+# # nova ceph
+NOVA_USER=nova
+NOVA_POOL=vms
+NOVA_KEYRING=ceph.client.${NOVA_USER}.keyring
+sed -i -E \
+    -e "s/^\s*#*ceph_cinder_keyring\s*:.*/ceph_cinder_keyring: \"${CINDER_KEYRING}\"/g"  \
+    -e "s/^\s*#*ceph_nova_keyring\s*:.*/ceph_nova_keyring: \"${NOVA_KEYRING}\"/g"  \
+    -e "s/^\s*#*ceph_nova_user\s*:.*/ceph_nova_user: \"${NOVA_USER}\"/g"  \
+    -e "s/^\s*#*ceph_nova_pool_name\s*:.*/ceph_nova_pool_name: \"${NOVA_POOL}\"/g"  \
+    /etc/kolla/globals.yml
+cat <<EOF
+for p in ${GLANCE_POOL} ${CINDER_POOL} ${CINDER_POOL_BACKUP} ${NOVA_POOL}; do
+    ceph osd pool create \${p} && rbd pool init \${p}
+done
+ceph auth get-or-create client.${GLANCE_USER} mon 'profile rbd' osd 'profile rbd pool=${GLANCE_POOL}' mgr 'profile rbd pool=${GLANCE_POOL}'
+ceph auth get-or-create client.${CINDER_USER} mon 'profile rbd' osd 'profile rbd pool=${CINDER_POOL}, profile rbd pool=${NOVA_POOL}, profile rbd-read-only pool=${GLANCE_POOL}' mgr 'profile rbd pool=${CINDER_POOL}, profile rbd pool=${NOVA_POOL}'
+ceph auth get-or-create client.${CINDER_USER_BACKUP} mon 'profile rbd' osd 'profile rbd pool=${CINDER_POOL_BACKUP}' mgr 'profile rbd pool=${CINDER_POOL_BACKUP}'
+ceph auth get-or-create client.${NOVA_USER} mon 'profile rbd' osd 'profile rbd pool=${NOVA_POOL}' mgr 'profile rbd pool=${NOVA_POOL}'
+EOF
+# ceph auth get-or-create client.${GLANCE_USER} | ssh {your-glance-api-server} sudo tee /etc/ceph/ceph.client.glance.keyring
+# /etc/kolla/config/glance/<ceph_glance_keyring>
+# /etc/kolla/config/cinder/cinder-volume/<ceph_cinder_keyring>
+# /etc/kolla/config/cinder/cinder-backup/<ceph_cinder_keyring>
+# /etc/kolla/config/cinder/cinder-backup/<ceph_cinder_backup_keyring>
+# /etc/kolla/config/nova/<ceph_cinder_keyring>
+# /etc/kolla/config/nova/<ceph_nova_keyring> (if your Ceph deployment created one)
 cat <<EOF
 # https://docs.ceph.com/en/latest/rbd/rbd-openstack/
-enable_cinder: "yes"
-enable_ceph: "no"
-enable_cinder_backend_iscsi: "no"
-enable_cinder_backend_lvm: "no"
-enable_cinder_backup: "yes"
-cinder_backup_driver: "ceph"
-cinder_backend_ceph: "yes"
-glance_backend_ceph: "yes"
+Gnocchi
+    Configuring Gnocchi for Ceph includes following steps:
+    Configure Ceph authentication details in /etc/kolla/globals.yml:
+    ceph_gnocchi_keyring
+    (default: ceph.client.gnocchi.keyring)
+    ceph_gnocchi_user (default: gnocchi)
+    ceph_gnocchi_pool_name (default: gnocchi)
+    Copy Ceph configuration file to /etc/kolla/config/gnocchi/ceph.conf
+    Copy Ceph keyring to /etc/kolla/config/gnocchi/<ceph_gnocchi_keyring>
+Manila
+    Configuring Manila for Ceph includes following steps:
+    Configure CephFS backend by setting enable_manila_backend_cephfs_native to true
+    Configure Ceph authentication details in /etc/kolla/globals.yml:
+    ceph_manila_keyring (default: ceph.client.manila.keyring)
+    ceph_manila_user (default: manila)
+    Copy Ceph configuration file to /etc/kolla/config/manila/ceph.conf
+    Copy Ceph keyring to /etc/kolla/config/manila/<ceph_manila_keyring>
 EOF
-cat <<EOF > /etc/kolla/config/ceph.conf
-[global]
-osd pool default size = 3
-osd pool default min size = 2
-mon_clock_drift_allowed = 2
-osd_pool_default_pg_num = 8
-osd_pool_default_pgp_num = 8
-mon clock drift warn backoff = 30
-EOF
+# ########################ceph end
 
 kolla-genpwd
 # 修改登录密码
@@ -166,6 +226,10 @@ mkdir -p /etc/systemd/system/docker.service.d/ && cat <<EOF > /etc/systemd/syste
 [Service]
 MountFlags=shared
 EOF
+sed --quiet -i -E \
+    -e '/(127.0.0.1\s*).*/!p' \
+    -e '$a127.0.0.1 localhost' \
+    /etc/hosts
 systemctl daemon-reload
 systemctl restart docker
 systemctl enable docker
@@ -184,8 +248,8 @@ kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR
 # 生成 admin-openrc.sh
 kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode post-deploy
 cat /etc/kolla/admin-openrc.sh
-echo "Horizon: http://192.168.168.150"
-echo "Kibana:  http://192.168.168.150:5601"
+echo "Horizon: http://<ctrl_addr>"
+echo "Kibana:  http://<ctrl_addr>:5601"
 # 调整日志
 ln -sf /var/lib/docker/volumes/kolla_logs/_data/ /var/log/kolla
 cat <<DEMO
@@ -243,7 +307,7 @@ kolla-ansible deploy --skip-tags="haproxy"
 #可用于从本地缓存中移除所有的docker image
 /usr/local/share/kolla-ansible/tools/cleanup-images
 # # mariadb集群出现故障
-ansible -i multinode all  -m shell -a 'docker stop mariadb'
+ansible -i multinode all -m shell -a 'docker stop mariadb'
 ansible -i multinode all -m shell -a "sed -i 's/safe_to_bootstrap: 0/safe_to_bootstrap: 1/g' /var/lib/docker/volumes/mariadb/_data/grastate.dat"
 kolla-ansible mariadb_recovery -i multinode
 # 减少controller（控制）节点
