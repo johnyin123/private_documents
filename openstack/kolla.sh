@@ -168,14 +168,18 @@ sed -i -E \
     -e "s/^\s*#*ceph_nova_pool_name\s*:.*/ceph_nova_pool_name: \"${NOVA_POOL}\"/g"  \
     /etc/kolla/globals.yml
 cat <<EOF
+# https://docs.openstack.org/kolla-ansible/latest/reference/storage/external-ceph-guide.html
 for p in ${GLANCE_POOL} ${CINDER_POOL} ${CINDER_POOL_BACKUP} ${NOVA_POOL}; do
-    ceph osd pool create \${p} && rbd pool init \${p}
+    ceph osd pool create \${p} 128 && rbd pool init \${p}
 done
 ceph auth get-or-create client.${GLANCE_USER} mon 'profile rbd' osd 'profile rbd pool=${GLANCE_POOL}' mgr 'profile rbd pool=${GLANCE_POOL}'
 ceph auth get-or-create client.${CINDER_USER} mon 'profile rbd' osd 'profile rbd pool=${CINDER_POOL}, profile rbd pool=${NOVA_POOL}, profile rbd-read-only pool=${GLANCE_POOL}' mgr 'profile rbd pool=${CINDER_POOL}, profile rbd pool=${NOVA_POOL}'
 ceph auth get-or-create client.${CINDER_USER_BACKUP} mon 'profile rbd' osd 'profile rbd pool=${CINDER_POOL_BACKUP}' mgr 'profile rbd pool=${CINDER_POOL_BACKUP}'
 ceph auth get-or-create client.${NOVA_USER} mon 'profile rbd' osd 'profile rbd pool=${NOVA_POOL}' mgr 'profile rbd pool=${NOVA_POOL}'
 EOF
+# /etc/kolla/config/glance/ceph.conf
+# /etc/kolla/config/cinder/ceph.conf
+# /etc/kolla/config/nova/ceph.conf
 # ceph auth get-or-create client.${GLANCE_USER} | ssh {your-glance-api-server} sudo tee /etc/ceph/ceph.client.glance.keyring
 # /etc/kolla/config/glance/<ceph_glance_keyring>
 # /etc/kolla/config/cinder/cinder-volume/<ceph_cinder_keyring>
@@ -185,7 +189,7 @@ EOF
 # /etc/kolla/config/nova/<ceph_nova_keyring> (if your Ceph deployment created one)
 cat <<EOF
 # https://docs.ceph.com/en/latest/rbd/rbd-openstack/
-Gnocchi
+Gnocchi: 资源索引服务
     Configuring Gnocchi for Ceph includes following steps:
     Configure Ceph authentication details in /etc/kolla/globals.yml:
     ceph_gnocchi_keyring
@@ -194,7 +198,7 @@ Gnocchi
     ceph_gnocchi_pool_name (default: gnocchi)
     Copy Ceph configuration file to /etc/kolla/config/gnocchi/ceph.conf
     Copy Ceph keyring to /etc/kolla/config/gnocchi/<ceph_gnocchi_keyring>
-Manila
+Manila: 共享文件服务
     Configuring Manila for Ceph includes following steps:
     Configure CephFS backend by setting enable_manila_backend_cephfs_native to true
     Configure Ceph authentication details in /etc/kolla/globals.yml:
@@ -255,44 +259,40 @@ ln -sf /var/lib/docker/volumes/kolla_logs/_data/ /var/log/kolla
 cat <<DEMO
 source /etc/kolla/admin-openrc.sh
 openstack hypervisor list
+# # 初始化
+cp ${KOLLA_DIR}/kolla-ansible/tools/init-runonce ${KOLLA_DIR} # init env
+# cp ${KOLLA_DIR}/venv3/share/kolla-ansible/init-runonce ${KOLLA_DIR}
+# 创建 cirros 镜像、网络、子网、路由、安全组、规格、配额等虚拟机资源
+CIRROS_RELEASE=${CIRROS_RELEASE:-0.6.1}
+ARCH=x86_64
+mkdir -p /opt/cache/files/ && touch /opt/cache/files/cirros-${CIRROS_RELEASE}-${ARCH}-disk.img
+CIRROS_RELEASE=${CIRROS_RELEASE} \
+EXT_NET_CIDR=172.16.3.0/24 \
+EXT_NET_RANGE='start=172.16.3.9,end=172.16.3.199' \
+EXT_NET_GATEWAY=172.16.0.1 \
+${KOLLA_DIR}/init-runonce
+# 创建虚拟机
 openstack server create --image cirros --flavor m1.tiny --key-name mykey --network demo-net demo1
-openstack network create --external --provider-physical-network physnet1 --provider-network-type flat public
-openstack subnet create --no-dhcp --allocation-pool 'start=192.168.50.10,end=192.168.50.100' --network public --subnet-range 192.168.50.0/24 --gateway 192.168.50.1 public-subnet
-openstack network create --provider-network-type vxlan demo-net
-openstack subnet create --subnet-range 10.0.0.0/24 --network demo-net --gateway 10.0.0.1 --dns-nameserver 8.8.8.8 demo-subnet
-openstack router create demo-router
-openstack router add subnet demo-router demo-subnet
-openstack router set --external-gateway public demo-router
-neutron net-list
-DEMO
-# # 验证
-docker exec kolla_toolbox openstack --os-interface admin \
-  --os-auth-url http://192.168.179.90:35357 \
-  --os-identity-api-version 3 \
-  --os-project-domain-name default \
-  --os-tenant-name admin \
-  --os-username admin \
-  --os-password 04XYSVCBkELIrEv6MFMofrCvd1GycBksyRDKK8VC \
-  --os-user-domain-name default \
-  --os-region-name RegionOne \
-  compute service list --format json --column Host --service nova-compute
 # # 验证 nova 服务
 openstack compute service list
 openstack compute agent list
 # # 验证 neutron agent 服务
 openstack network agent list
-# # 初始化
-cp ${KOLLA_DIR}/kolla-ansible/tools/init-runonce ${KOLLA_DIR} # init env
-# cp ${KOLLA_DIR}/venv3/share/kolla-ansible/init-runonce ${KOLLA_DIR}
-# Modify it to fit your local flat network
-sed -i s'/10.0.2./192.168.2./'g ${KOLLA_DIR}/init-runonce
-# 创建 cirros 镜像、网络、子网、路由、安全组、规格、配额等虚拟机资源
-EXT_NET_CIDR=172.16.3.0/24 EXT_NET_RANGE='start=172.16.3.9,end=172.16.3.199' EXT_NET_GATEWAY=172.16.0.1 ${KOLLA_DIR}/init-runonce
-# 创建虚拟机
-openstack server create --image cirros --flavor m1.tiny --key-name mykey --network demo-net demo1
 docker ps | grep nova
-docker exec -it e1b5df045bd2 /bin/bash
+docker exec -it nova_libvirt /bin/bash
+DEMO
 cat<<EOF
+# 增加一个计算节点
+kolla-ansible  -i  inventory/multinode bootstrap-servers --limit compute02
+kolla-ansible  -i  inventory/multinode pull --limit compute02
+kolla-ansible  -i  inventory/multinode deploy --limit compute02
+# 删除一个计算节点
+kolla-ansible -i inventory/multinode destroy --limit compute02 --yes-i-really-really-mean-it
+openstack  compute service list
+openstack  compute service delete  <compute ID>
+openstack  network agent list
+openstack  network agent delete  <ID>
+# # vim multinode 去掉相关计算节点
 # 部署失败
 kolla-ansible destroy --yes-i-really-really-mean-it
 # 只部署某些组件
@@ -310,32 +310,4 @@ kolla-ansible deploy --skip-tags="haproxy"
 ansible -i multinode all -m shell -a 'docker stop mariadb'
 ansible -i multinode all -m shell -a "sed -i 's/safe_to_bootstrap: 0/safe_to_bootstrap: 1/g' /var/lib/docker/volumes/mariadb/_data/grastate.dat"
 kolla-ansible mariadb_recovery -i multinode
-# 减少controller（控制）节点
-# vim multinode 去掉相关控制节点
-kolla-ansible deploy -i multinode
-# 减少compute（计算）节点
-openstack compute service list
-openstack compute service delete ID
-# vim multinode 去掉相关计算节点
 EOF
-# 运行 init-runonce
-init-runonce参考
-cd /usr/share/kolla-ansible
-vim init-runonce
-./init-runonce
-# # 清除 iptables 规则
-iptables -F; iptables -X; iptables -Z
-# # 清除上次部署
-kolla-ansible destroy -i multinode --yes-i-really-really-mean-it
-# # rabbitmq异常
-# 先重启所有节点rabbitmq（多适用于关机导致的异常）
-ansible -i multinode all -m shell -a 'docker restart rabbitmq'
-# 如果重启节点没用，再删除并重新部署所有节点rabbitmq（多适用于部署时出现的异常）
-ansible -i multinode all -m shell -a 'docker rm -f rabbitmq'
-ansible -i multinode all -m shell -a 'docker volume rm rabbitmq'
-ansible -i multinode all -m shell -a 'rm -rf /etc/kolla/rabbitmq'
-kolla-ansible deploy -i multinode
-# # nova_libvirt异常
-ansible -i multinode all -m shell -a 'rm -rf /var/run/libvirtd.pid;docker restart nova_libvirt nova_compute'
-
-
