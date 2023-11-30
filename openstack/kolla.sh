@@ -299,6 +299,13 @@ openstack availability zone list
 openstack volume create --image cirros --size 1 --availability-zone nova test_vol
 openstack volume list
 openstack server create --volume test_vol --flavor m1.tiny --key-name mykey --network ${net_name}-net demo2
+# # quota project
+# 40 instances
+openstack quota set --instances 40 ${PROJECT_ID}
+# 40 cores
+openstack quota set --cores 40 ${PROJECT_ID}
+# 96gb ram
+openstack quota set --ram 96000 ${PROJECT_ID}
 
 # # # 初始化
 # cp ${KOLLA_DIR}/kolla-ansible/tools/init-runonce ${KOLLA_DIR} # init env
