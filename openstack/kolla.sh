@@ -282,7 +282,7 @@ openstack router create ${net_name}-router
 openstack network create --share --external \
     --provider-physical-network physnet1 \
     --provider-network-type flat ${net_name}-net
-# --no-dhcp  subnet meta service not work?
+# --no-dhcp, subnet meta service not work?
 openstack subnet create --ip-version 4 \
     --allocation-pool start=172.16.3.9,end=172.16.3.19 \
     --network ${net_name}-net --subnet-range 172.16.0.0/21 \
@@ -292,8 +292,14 @@ netns=$(ip netns list | grep "qrouter" | awk '{print $1}')
 ip netns exec ${netns} /bin/bash
 [ -f "testkey" ] || ssh-keygen -t ecdsa -N '' -f testkey
 openstack keypair create --public-key testkey.pub mykey
-# 创建虚拟机
+# # 创建虚拟机
 openstack server create --image cirros --flavor m1.tiny --key-name mykey --network ${net_name}-net demo1
+# # 创建LVM虚拟机
+openstack availability zone list
+openstack volume create --image cirros --size 1 --availability-zone nova test_vol
+openstack volume list
+openstack server create --volume test_vol --flavor m1.tiny --key-name mykey --network ${net_name}-net demo2
+
 # # # 初始化
 # cp ${KOLLA_DIR}/kolla-ansible/tools/init-runonce ${KOLLA_DIR} # init env
 # # cp ${KOLLA_DIR}/venv3/share/kolla-ansible/init-runonce ${KOLLA_DIR}
