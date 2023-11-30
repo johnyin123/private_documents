@@ -244,7 +244,7 @@ kolla-genpwd
 sed -i "s/.*keystone_admin_password.*$/keystone_admin_password: ${ADMIN_PASS}/g" /etc/kolla/passwords.yml
 grep keystone_admin_password /etc/kolla/passwords.yml #admin和dashboard的密码
 
-[ -f "${HOME:-~}/.ssh/id_rsa" ] ||  ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
+[ -f "${HOME:-~}/.ssh/id_rsa" ] || ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
 # ssh -p60022 localhost "true" || echo "ssh-copy-id"
 # cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 
@@ -263,23 +263,49 @@ echo "Horizon: http://<ctrl_addr>"
 echo "Kibana:  http://<ctrl_addr>:5601"
 # 调整日志
 ln -sf /var/lib/docker/volumes/kolla_logs/_data/ /var/log/kolla
-cat <<DEMO
+cat <<'DEMO'
 source /etc/kolla/admin-openrc.sh
 openstack hypervisor list
-# # 初始化
-cp ${KOLLA_DIR}/kolla-ansible/tools/init-runonce ${KOLLA_DIR} # init env
-# cp ${KOLLA_DIR}/venv3/share/kolla-ansible/init-runonce ${KOLLA_DIR}
-# 创建 cirros 镜像、网络、子网、路由、安全组、规格、配额等虚拟机资源
-CIRROS_RELEASE=${CIRROS_RELEASE:-0.6.1}
-ARCH=x86_64
-mkdir -p /opt/cache/files/ && touch /opt/cache/files/cirros-${CIRROS_RELEASE}-${ARCH}-disk.img
-CIRROS_RELEASE=${CIRROS_RELEASE} \
-EXT_NET_CIDR=172.16.3.0/21 \
-EXT_NET_RANGE='start=172.16.3.9,end=172.16.3.199' \
-EXT_NET_GATEWAY=172.16.0.1 \
-${KOLLA_DIR}/init-runonce
+openstack flavor create --id 1 --ram 512 --disk 1 --vcpus 1 m1.tiny
+openstack flavor create --id 2 --ram 2048 --disk 20 --vcpus 1 m1.small
+openstack flavor create --id 3 --ram 4096 --disk 40 --vcpus 2 m1.medium
+openstack flavor create --id 4 --ram 8192 --disk 80 --vcpus 4 m1.large
+openstack flavor create --id 5 --ram 16384 --disk 160 --vcpus 8 m1.xlarge
+
+img="cirros.raw"
+echo "IMG: wget -O ${img} http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img"
+openstack image show ${img_name} 2>/dev/null || \
+    openstack image create "cirros" --file ${img} --disk-format raw --container-format bare --public
+
+net_name=public
+openstack router create ${net_name}-router
+openstack network create --share --external \
+    --provider-physical-network physnet1 \
+    --provider-network-type flat ${net_name}-net
+# --no-dhcp  subnet meta service not work?
+openstack subnet create --ip-version 4 \
+    --allocation-pool start=172.16.3.9,end=172.16.3.19 \
+    --network ${net_name}-net --subnet-range 172.16.0.0/21 \
+    --gateway 172.16.0.1 ${net_name}-subnet
+openstack router set --external-gateway ${net_name}-net ${net_name}-router
+netns=$(ip netns list | grep "qrouter" | awk '{print $1}')
+ip netns exec ${netns} /bin/bash
+[ -f "testkey" ] || ssh-keygen -t ecdsa -N '' -f testkey
+openstack keypair create --public-key testkey.pub mykey
 # 创建虚拟机
-openstack server create --image cirros --flavor m1.tiny --key-name mykey --network demo-net demo1
+openstack server create --image cirros --flavor m1.tiny --key-name mykey --network ${net_name}-net demo1
+# # # 初始化
+# cp ${KOLLA_DIR}/kolla-ansible/tools/init-runonce ${KOLLA_DIR} # init env
+# # cp ${KOLLA_DIR}/venv3/share/kolla-ansible/init-runonce ${KOLLA_DIR}
+# # 创建 cirros 镜像、网络、子网、路由、安全组、规格、配额等虚拟机资源
+# CIRROS_RELEASE=${CIRROS_RELEASE:-0.6.1}
+# ARCH=x86_64
+# mkdir -p /opt/cache/files/ && touch /opt/cache/files/cirros-${CIRROS_RELEASE}-${ARCH}-disk.img
+# CIRROS_RELEASE=${CIRROS_RELEASE} \
+# EXT_NET_CIDR=172.16.0.0/21 \
+# EXT_NET_RANGE='start=172.16.3.9,end=172.16.3.199' \
+# EXT_NET_GATEWAY=172.16.0.1 \
+# ${KOLLA_DIR}/init-runonce
 # # 验证 nova 服务
 openstack compute service list
 openstack compute agent list
