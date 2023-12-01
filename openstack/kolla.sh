@@ -12,17 +12,19 @@ OPENSTACK_VER=master
 ADMIN_PASS=Admin@2023
 insec_registry=10.170.6.105:5000
 CONTROLLER=(172.16.1.210)
-COMPUTE=(172.16.1.211)
+COMPUTE=(172.16.1.211 172.16.1.212)
 INT_VIP_ADDR=172.16.1.213
 HAPROXY=yes
 VG_NAME=cindervg
 # # # # # # # all (compute/controller) node start
+# Kolla puts nearly all of persistent data in Docker volumes. defaults to /var/lib/docker directory.
 mkdir -p /etc/docker/ && cat > /etc/docker/daemon.json << EOF
 {
   "registry-mirrors": [ "https://docker.mirrors.ustc.edu.cn", "http://hub-mirror.c.163.com" ],
   "insecure-registries": [ "quay.io"${insec_registry:+, \"${insec_registry}\"} ],
   "exec-opts": ["native.cgroupdriver=systemd", "native.umask=normal" ],
   "storage-driver": "overlay2",
+  "data-root": "/var/lib/docker",
   "bridge": "none",
   "ip-forward": false,
   "iptables": false
@@ -36,6 +38,7 @@ sed --quiet -i -E \
     -e '/(127.0.0.1\s*).*/!p' \
     -e '$a127.0.0.1 localhost' \
     /etc/hosts
+# # ADD OTHER NODES /etc/hosts
 systemctl daemon-reload
 systemctl restart docker
 systemctl enable docker
@@ -152,17 +155,33 @@ LAUNCH_INSTANCE_DEFAULTS = {'create_volume': False,}
 EOF
 # ########################ceph start
 for node in ${COMPUTE[@]}; do
+#. When using external Ceph, there may be no nodes defined in the storage
+#  group.  This will cause Cinder and related services relying on this group to
+#  fail.  In this case, operator should add some nodes to the storage group,
+#  all the nodes where ``cinder-volume`` and ``cinder-backup`` will run:
+#      [storage]
+#      control01
     crudini --set ${KOLLA_DIR}/multinode storage ${node}
 done
 mkdir -p /etc/kolla/config/glance/ /etc/kolla/config/cinder/cinder-volume/ \
-    /etc/kolla/config/cinder/cinder-backup/ /etc/kolla/config/nova/
+    /etc/kolla/config/cinder/cinder-backup/ /etc/kolla/config/nova/ \
+    /etc/kolla/config/zun/zun-compute/
+# extern ceph
+sed --quiet -i -E \
+    -e '/(enable_ceph|zun_configure_for_cinder_ceph)\s*:.*/!p' \
+    -e '$aenable_ceph: "no"'         \
+    -e '$azun_configure_for_cinder_ceph: "yes"' \
+    /etc/kolla/globals.yml
+
 sed -i -E \
+    -e "s/^\s*#*enable_cinder\s*:.*/enable_cinder: \"yes\"/g"  \
+    -e "s/^\s*#*enable_cinder_backup\s*:.*/enable_cinder_backup: \"yes\"/g"  \
     -e "s/^\s*#*glance_backend_ceph\s*:.*/glance_backend_ceph: \"yes\"/g"  \
     -e "s/^\s*#*cinder_backend_ceph\s*:.*/cinder_backend_ceph: \"yes\"/g"  \
     -e "s/^\s*#*nova_backend_ceph\s*:.*/nova_backend_ceph: \"yes\"/g"  \
-    -e "s/^\s*#*gnocchi_backend_storage\s*:.*/gnocchi_backend_storage: \"ceph\"/g"  \
-    -e "s/^\s*#*enable_manila_backend_cephfs_native\s*:.*/enable_manila_backend_cephfs_native: \"yes\"/g"  \
     /etc/kolla/globals.yml
+#    -e "s/^\s*#*gnocchi_backend_storage\s*:.*/gnocchi_backend_storage: \"ceph\"/g"  \
+#    -e "s/^\s*#*enable_manila_backend_cephfs_native\s*:.*/enable_manila_backend_cephfs_native: \"yes\"/g"  \
 # # glance ceph
 GLANCE_USER=glance
 GLANCE_POOL=images
@@ -172,6 +191,10 @@ sed -i -E \
     -e "s/^\s*#*ceph_glance_user\s*:.*/ceph_glance_user: \"${GLANCE_USER}\"/g"  \
     -e "s/^\s*#*ceph_glance_pool_name\s*:.*/ceph_glance_pool_name: \"${GLANCE_POOL}\"/g"  \
     /etc/kolla/globals.yml
+cat <<EOF >/etc/kolla/config/glance.conf
+[GLOBAL]
+show_image_direct_url = True
+EOF
 # # cinder ceph
 CINDER_USER=cinder
 CINDER_POOL=volumes
@@ -191,32 +214,42 @@ sed -i -E \
 NOVA_USER=nova
 NOVA_POOL=vms
 NOVA_KEYRING=ceph.client.${NOVA_USER}.keyring
+# ceph_nova_user`` (by default it's the same as ``ceph_cinder_user``)
 sed -i -E \
     -e "s/^\s*#*ceph_cinder_keyring\s*:.*/ceph_cinder_keyring: \"${CINDER_KEYRING}\"/g"  \
     -e "s/^\s*#*ceph_nova_keyring\s*:.*/ceph_nova_keyring: \"${NOVA_KEYRING}\"/g"  \
     -e "s/^\s*#*ceph_nova_user\s*:.*/ceph_nova_user: \"${NOVA_USER}\"/g"  \
     -e "s/^\s*#*ceph_nova_pool_name\s*:.*/ceph_nova_pool_name: \"${NOVA_POOL}\"/g"  \
     /etc/kolla/globals.yml
+grep '^[^#]' /etc/kolla/globals.yml
+
 cat <<EOF
 # https://docs.openstack.org/kolla-ansible/latest/reference/storage/external-ceph-guide.html
+cluster=armsite
 for p in ${GLANCE_POOL} ${CINDER_POOL} ${CINDER_POOL_BACKUP} ${NOVA_POOL}; do
-    ceph osd pool create \${p} 128 && rbd pool init \${p}
+    ceph ${cluster:+--cluster ${cluster}} osd pool create ${p} 128 && rbd ${cluster:+--cluster ${cluster}} pool init ${p}
 done
-ceph auth get-or-create client.${GLANCE_USER} mon 'profile rbd' osd 'profile rbd pool=${GLANCE_POOL}' mgr 'profile rbd pool=${GLANCE_POOL}'
-ceph auth get-or-create client.${CINDER_USER} mon 'profile rbd' osd 'profile rbd pool=${CINDER_POOL}, profile rbd pool=${NOVA_POOL}, profile rbd-read-only pool=${GLANCE_POOL}' mgr 'profile rbd pool=${CINDER_POOL}, profile rbd pool=${NOVA_POOL}'
-ceph auth get-or-create client.${CINDER_USER_BACKUP} mon 'profile rbd' osd 'profile rbd pool=${CINDER_POOL_BACKUP}' mgr 'profile rbd pool=${CINDER_POOL_BACKUP}'
-ceph auth get-or-create client.${NOVA_USER} mon 'profile rbd' osd 'profile rbd pool=${NOVA_POOL}' mgr 'profile rbd pool=${NOVA_POOL}'
+ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${GLANCE_USER} mon "profile rbd" osd "profile rbd pool=${GLANCE_POOL}" mgr "profile rbd pool=${GLANCE_POOL}"
+ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${CINDER_USER} mon "profile rbd" osd "profile rbd pool=${CINDER_POOL}, profile rbd pool=${NOVA_POOL}, profile rbd-read-only pool=${GLANCE_POOL}" mgr "profile rbd pool=${CINDER_POOL}, profile rbd pool=${NOVA_POOL}"
+ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${CINDER_USER_BACKUP} mon "profile rbd" osd "profile rbd pool=${CINDER_POOL_BACKUP}" mgr "profile rbd pool=${CINDER_POOL_BACKUP}"
+ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${NOVA_USER} mon "profile rbd" osd "profile rbd pool=${NOVA_POOL}" mgr "profile rbd pool=${NOVA_POOL}"
+for p in ${GLANCE_USER} ${CINDER_USER} ${CINDER_USER_BACKUP} ${NOVA_USER}; do
+    ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${p} | tee ceph.client.${p}.keyring
+done
 EOF
-# /etc/kolla/config/glance/ceph.conf
-# /etc/kolla/config/cinder/ceph.conf
-# /etc/kolla/config/nova/ceph.conf
-# ceph auth get-or-create client.${GLANCE_USER} | ssh {your-glance-api-server} sudo tee /etc/ceph/ceph.client.glance.keyring
-# /etc/kolla/config/glance/<ceph_glance_keyring>
-# /etc/kolla/config/cinder/cinder-volume/<ceph_cinder_keyring>
-# /etc/kolla/config/cinder/cinder-backup/<ceph_cinder_keyring>
-# /etc/kolla/config/cinder/cinder-backup/<ceph_cinder_backup_keyring>
-# /etc/kolla/config/nova/<ceph_cinder_keyring>
-# /etc/kolla/config/nova/<ceph_nova_keyring> (if your Ceph deployment created one)
+cat <<EOF
+cat ceph.conf > /etc/kolla/config/glance/ceph.conf
+cat ceph.conf > /etc/kolla/config/cinder/ceph.conf
+cat ceph.conf > /etc/kolla/config/nova/ceph.conf
+cat ceph.conf > /etc/kolla/config/zun/zun-compute/ceph.conf
+cat ceph.client.glance.keyring        > /etc/kolla/config/glance/ceph.client.glance.keyring
+cat ceph.client.cinder.keyring        > /etc/kolla/config/cinder/cinder-volume/ceph.client.cinder.keyring
+cat ceph.client.cinder.keyring        > /etc/kolla/config/cinder/cinder-backup/ceph.client.cinder.keyring
+cat ceph.client.cinder-backup.keyring > /etc/kolla/config/cinder/cinder-backup/ceph.client.cinder-backup.keyring
+cat ceph.client.cinder.keyring        > /etc/kolla/config/nova/ceph.client.cinder.keyring
+cat ceph.client.cinder.keyring        > /etc/kolla/config/zun/zun-compute/ceph.client.cinder.keyring
+cat ceph.client.nova.keyring          > /etc/kolla/config/nova/ceph.client.nova.keyring
+EOF
 cat <<EOF
 # https://docs.ceph.com/en/latest/rbd/rbd-openstack/
 Gnocchi: 资源索引服务
@@ -245,6 +278,7 @@ sed -i "s/.*keystone_admin_password.*$/keystone_admin_password: ${ADMIN_PASS}/g"
 grep keystone_admin_password /etc/kolla/passwords.yml #admin和dashboard的密码
 
 [ -f "${HOME:-~}/.ssh/id_rsa" ] || ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
+echo "echo '$(cat ~/.ssh/id_rsa.pub)' >> ~/.ssh/authorized_keys"
 # ssh -p60022 localhost "true" || echo "ssh-copy-id"
 # cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 
@@ -272,10 +306,11 @@ openstack flavor create --id 3 --ram 4096 --disk 40 --vcpus 2 m1.medium
 openstack flavor create --id 4 --ram 8192 --disk 80 --vcpus 4 m1.large
 openstack flavor create --id 5 --ram 16384 --disk 160 --vcpus 8 m1.xlarge
 
-img="cirros.raw"
-echo "IMG: wget -O ${img} http://download.cirros-cloud.net/0.3.5/cirros-0.3.5-x86_64-disk.img"
-openstack image show ${img_name} 2>/dev/null || \
-    openstack image create "cirros" --file ${img} --disk-format raw --container-format bare --public
+img="cirros.img"
+echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img"
+echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-aarch64-disk.img"
+openstack image show cirros 2>/dev/null || \
+    openstack image create "cirros" --file ${img} --disk-format qcow2 --container-format bare --public
 
 net_name=public
 openstack router create ${net_name}-router
@@ -285,11 +320,15 @@ openstack network create --share --external \
 # --no-dhcp, subnet meta service not work?
 openstack subnet create --ip-version 4 \
     --allocation-pool start=172.16.3.9,end=172.16.3.19 \
-    --network ${net_name}-net --subnet-range 172.16.0.0/21 \
+    --network ${net_name}-net \
+    --subnet-range 172.16.0.0/21 \
     --gateway 172.16.0.1 ${net_name}-subnet
 openstack router set --external-gateway ${net_name}-net ${net_name}-router
-netns=$(ip netns list | grep "qrouter" | awk '{print $1}')
-ip netns exec ${netns} /bin/bash
+# # network node check ns
+# openstack port list
+# netns=$(ip netns list | grep "qrouter" | awk '{print $1}')
+# ip netns exec ${netns} /bin/bash
+# # Import key
 [ -f "testkey" ] || ssh-keygen -t ecdsa -N '' -f testkey
 openstack keypair create --public-key testkey.pub mykey
 # # 创建虚拟机
