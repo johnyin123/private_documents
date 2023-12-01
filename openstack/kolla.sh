@@ -114,11 +114,12 @@ sed -i -E \
     /etc/kolla/globals.yml
 # linuxbridge is *EXPERIMENTAL* in Neutron since Zed
 sed --quiet -i -E \
-    -e '/(enable_neutron_provider_networks|neutron_bridge_name|neutron_external_interface|neutron_plugin_agent)\s*:.*/!p' \
+    -e '/(enable_neutron_provider_networks|neutron_bridge_name|neutron_external_interface|neutron_plugin_agenti|enable_neutron_agent_ha)\s*:.*/!p' \
     -e '$aenable_neutron_provider_networks: "yes"' \
     -e '$aneutron_plugin_agent: "openvswitch"'   \
     -e "\$aneutron_external_interface: \"eth1\"" \
     -e '$aneutron_bridge_name: "br-ext"'         \
+    -e '$aenable_neutron_agent_ha: "yes"'        \
     /etc/kolla/globals.yml
 
 [ -z ${insec_registry} ] || sed -i -E \
