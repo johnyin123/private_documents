@@ -286,12 +286,14 @@ echo "echo '$(cat ~/.ssh/id_rsa.pub)' >> ~/.ssh/authorized_keys"
 # kolla-ansible install-deps # Install Ansible Galaxy requirements, bootstrap-servers will failed
 # kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode bootstrap-servers
 kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode prechecks
-# 拉取镜像（可选）
+# # 拉取镜像（可选）
 kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode pull
-# 部署
+# # 部署
 kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode deploy
-# 生成 admin-openrc.sh
+# # 生成 admin-openrc.sh
 kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode post-deploy
+# # 单独重新部署节点
+# kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode --limit 172.16.1.211 reconfigure
 cat /etc/kolla/admin-openrc.sh
 echo "Horizon: http://<ctrl_addr>"
 echo "Kibana:  http://<ctrl_addr>:5601"
@@ -388,6 +390,41 @@ openstack server create --volume test_vol --flavor m1.tiny --key-name mykey --ne
 verify
 EOF_INIT
 cat <<'DEMO'
+# 查看openstack相关信息
+openstack service list
+openstack compute service list
+openstack volume service list
+openstack network agent list
+openstack hypervisor list
+# 建立provider network
+openstack network create --share --external --provider-physical-network physnet1 --provider-network-type flat provider
+openstack subnet create --network provider --allocation-pool start=192.168.100.221,end=192.168.100.230 --dns-nameserver 114.114.114.114 --gateway 192.168.100.1 --subnet-range 192.168.100.0/24 provider
+# 建立selfservice network
+openstack network create selfservice
+openstack subnet create --network selfservice --dns-nameserver 114.114.114.114 --gateway 192.168.240.1 --subnet-range 192.168.240.0/24 selfservice
+# 建立虚拟路由
+openstack router create router
+# 连接内外网络
+openstack router add subnet router selfservice
+openstack router set router --external-gateway provider
+openstack port list
+# 建立sshkey
+openstack keypair create --public-key ~/.ssh/id_rsa.pub mykey
+# 建立安全策略
+openstack security group rule create --proto icmp default
+openstack security group rule create --proto tcp --dst-port 22 default
+# 建立虚拟机
+openstack server create --flavor m1.nano --image cirros-0.5.2-x86_64 --nic net-id=fe172dec-0522-472a-aed4-da70f6c269a6 --security-group default --key-name mykey  provider-instance-01
+openstack server create --flavor m1.nano --image cirros-0.5.2-x86_64 --nic net-id=c30c5057-607d-4736-acc9-31927cc9a22c --security-group default --key-name mykey  selfservice-instance-01
+# 指派对外服务ip
+openstack floating ip create provider
+openstack floating ip list
+openstack server add floating ip selfservice-instance-01 10.0.100.227
+openstack server list
+# 私有云映射方法
+iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 1022 -j DNAT --to 192.168.122.231:22
+iptables -t nat -D PREROUTING -i eth0 -p tcp --dport 1022 -j DNAT --to 192.168.122.231:22
+
 # # network node check ns
 # openstack port list # # router/dhcpd/vm
 # netns=$(ip netns list | grep "qrouter" | awk '{print $1}')
