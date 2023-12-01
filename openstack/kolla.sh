@@ -144,6 +144,7 @@ sed -i -E \
     -e "s/^\s*#*cinder_volume_group\s*:.*/cinder_volume_group: \"${VG_NAME}\"/g"  \
     /etc/kolla/globals.yml
 grep '^[^#]' /etc/kolla/globals.yml
+grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
 # 配置nova文件, virth_type kvm/qemu
 mkdir -p /etc/kolla/config/nova && cat <<EOF > /etc/kolla/config/nova/nova-compute.conf
 [libvirt]
@@ -356,12 +357,15 @@ openstack image show "cirros" 2>/dev/null || \
 openstack router create ${net_name}-router
 
 # physnet1 is default kolla provider name
+# docker exec -it neutron_server cat /etc/neutron/plugins/ml2/ml2_conf.ini | grep flat_networks
 openstack network create --share --external \
+    --project admin \
     --provider-physical-network physnet1 \
     --provider-network-type flat ${net_name}-net
 
 # --no-dhcp, subnet meta service not work?
 openstack subnet create --ip-version 4 \
+    --project admin \
     --network ${net_name}-net \
     ${name_server:+--dns-nameserver ${name_server}} \
     --allocation-pool start=172.16.3.9,end=172.16.3.19 \
