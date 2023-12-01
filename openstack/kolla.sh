@@ -339,8 +339,9 @@ verify() {
     echo "============== VERIFY: openstack flavor list"
     openstack flavor list || true
     echo "============== VERIFY: openstack extension list --network"
-    openstack extension list --network || true
     openstack hypervisor list || true
+    openstack volume service list
+    openstack volume backend pool list
 }
 openstack flavor create --id 1 --ram 512 --disk 1 --vcpus 1 m1.tiny
 openstack flavor create --id 2 --ram 2048 --disk 20 --vcpus 1 m1.small
@@ -450,6 +451,8 @@ docker ps | grep nova
 docker exec -it nova_libvirt /bin/bash
 DEMO
 cat<<EOF
+docker exec -it fluentd bash
+# all logs in /var/log/kolla
 # 增加一个计算节点
 kolla-ansible  -i  inventory/multinode bootstrap-servers --limit compute02
 kolla-ansible  -i  inventory/multinode pull --limit compute02
