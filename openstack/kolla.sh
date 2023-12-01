@@ -297,55 +297,101 @@ echo "Horizon: http://<ctrl_addr>"
 echo "Kibana:  http://<ctrl_addr>:5601"
 # 调整日志
 ln -sf /var/lib/docker/volumes/kolla_logs/_data/ /var/log/kolla
-cat <<'DEMO'
+cat <<'EOF_INIT' > myinit_once.sh
+#!/usr/bin/env bash
+name_server=
+img="cirros.img"
+net_name=public
+echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img"
+echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-aarch64-disk.img"
 source /etc/kolla/admin-openrc.sh
-openstack hypervisor list
+verify() {
+    echo "============== VERIFY: Verify Neutron installation"
+    openstack extension list --network
+    openstack network agent list
+    echo "============== VERIFY: Verify Nova Installation"
+    echo "============== VERIFY: List service components to verify successful launch and registration of each process"
+    openstack compute service list
+    openstack catalog list
+    openstack image list
+    echo "============== VERIFY: verify glance installation"
+    openstack image list
+    echo "============== VERIFY: Verify Keystone Installation"
+    openstack project list
+    openstack user list
+    openstack service list
+    openstack role list
+    openstack endpoint list
+    echo "============== VERIFY: openstack service list"
+    openstack service list
+    echo "============== VERIFY: openstack compute service list"
+    openstack compute service list|| true
+    echo "============== VERIFY: openstack network agent list"
+    openstack network agent list || true
+    echo "============== VERIFY: openstack network list"
+    openstack network list || true
+    echo "============== VERIFY: openstack subnet list"
+    openstack subnet list || true
+    echo "============== VERIFY: openstack image list"
+    openstack image list || true
+    echo "============== VERIFY: openstack flavor list"
+    openstack flavor list || true
+    echo "============== VERIFY: openstack extension list --network"
+    openstack extension list --network || true
+    openstack hypervisor list || true
+}
 openstack flavor create --id 1 --ram 512 --disk 1 --vcpus 1 m1.tiny
 openstack flavor create --id 2 --ram 2048 --disk 20 --vcpus 1 m1.small
 openstack flavor create --id 3 --ram 4096 --disk 40 --vcpus 2 m1.medium
 openstack flavor create --id 4 --ram 8192 --disk 80 --vcpus 4 m1.large
 openstack flavor create --id 5 --ram 16384 --disk 160 --vcpus 8 m1.xlarge
 
-img="cirros.img"
-echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img"
-echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-aarch64-disk.img"
-openstack image show cirros 2>/dev/null || \
+openstack image show "cirros" 2>/dev/null || \
     openstack image create "cirros" --file ${img} --disk-format qcow2 --container-format bare --public
 
-net_name=public
 openstack router create ${net_name}-router
+
+# physnet1 is default kolla provider name
 openstack network create --share --external \
     --provider-physical-network physnet1 \
     --provider-network-type flat ${net_name}-net
+
 # --no-dhcp, subnet meta service not work?
 openstack subnet create --ip-version 4 \
-    --allocation-pool start=172.16.3.9,end=172.16.3.19 \
     --network ${net_name}-net \
+    ${name_server:+--dns-nameserver ${name_server}} \
+    --allocation-pool start=172.16.3.9,end=172.16.3.19 \
     --subnet-range 172.16.0.0/21 \
     --gateway 172.16.0.1 ${net_name}-subnet
+
 openstack router set --external-gateway ${net_name}-net ${net_name}-router
-# # network node check ns
-# openstack port list
-# netns=$(ip netns list | grep "qrouter" | awk '{print $1}')
-# ip netns exec ${netns} /bin/bash
+
 # # Import key
 [ -f "testkey" ] || ssh-keygen -t ecdsa -N '' -f testkey
 openstack keypair create --public-key testkey.pub mykey
+
 # # 创建虚拟机
 openstack server create --image cirros --flavor m1.tiny --key-name mykey --network ${net_name}-net demo1
-# # 创建LVM虚拟机
-openstack availability zone list
-openstack volume create --image cirros --size 1 --availability-zone nova test_vol
-openstack volume list
-openstack server create --volume test_vol --flavor m1.tiny --key-name mykey --network ${net_name}-net demo2
-# # quota project
-# 40 instances
-openstack quota set --instances 40 ${PROJECT_ID}
-# 40 cores
-openstack quota set --cores 40 ${PROJECT_ID}
-# 96gb ram
-openstack quota set --ram 96000 ${PROJECT_ID}
 
+# # 创建VOLUME one LVM/CEPH虚拟机
+openstack availability zone list
+openstack volume create --image cirros --bootable --size 1 --availability-zone nova test_vol
+openstack volume list
+openstack server create --volume test_vol --flavor m1.tiny --key-name mykey --network ${net_name}-net demo_volume
+# # # quota project
+# # 40 instances
+# openstack quota set --instances 40 ${PROJECT_ID}
+# # 40 cores
+# openstack quota set --cores 40 ${PROJECT_ID}
+# # 96gb ram
+# openstack quota set --ram 96000 ${PROJECT_ID}
+verify
+EOF_INIT
+cat <<'DEMO'
+# # network node check ns
+# openstack port list # # router/dhcpd/vm
+# netns=$(ip netns list | grep "qrouter" | awk '{print $1}')
+# ip netns exec ${netns} /bin/bash
 # # # 初始化
 # cp ${KOLLA_DIR}/kolla-ansible/tools/init-runonce ${KOLLA_DIR} # init env
 # # cp ${KOLLA_DIR}/venv3/share/kolla-ansible/init-runonce ${KOLLA_DIR}
