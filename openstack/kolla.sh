@@ -30,6 +30,7 @@ mkdir -p /etc/docker/ && cat > /etc/docker/daemon.json << EOF
   "iptables": false
 }
 EOF
+echo ""
 mkdir -p /etc/systemd/system/docker.service.d/ && cat <<EOF > /etc/systemd/system/docker.service.d/kolla.conf
 [Service]
 MountFlags=shared
@@ -51,7 +52,7 @@ systemctl enable docker
 # # # # # # # all (compute/controller) node end
 mkdir -p ${KOLLA_DIR} && python3 -m venv ${KOLLA_DIR}/venv3 && source ${KOLLA_DIR}/venv3/bin/activate
 # # # # # # # offline start
- <<EOF
+cat <<EOF
 pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ --upgrade pip
 pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ -r ${KOLLA_DIR}/pyenv/requirements.txt
 # # # # all compute nodes ends here
@@ -84,6 +85,12 @@ pipelining=True
 forks=100
 EOF
 command -v "crudini" &> /dev/null || pip install crudini
+# # Host with a host variable.
+# [control]
+# control01 api_interface=eth3
+# # Group with a group variable.
+# [control:vars]
+# api_interface=eth4
 crudini --del ${KOLLA_DIR}/multinode control
 crudini --del ${KOLLA_DIR}/multinode network
 crudini --del ${KOLLA_DIR}/multinode compute
@@ -377,7 +384,8 @@ openstack router set --external-gateway ${net_name}-net ${net_name}-router
 # # Import key
 [ -f "testkey" ] || ssh-keygen -t ecdsa -N '' -f testkey
 openstack keypair create --public-key testkey.pub mykey
-
+# 建立安全策略
+openstack security group rule create --proto icmp default
 # # 创建虚拟机
 openstack server create --image cirros --flavor m1.tiny --key-name mykey --network ${net_name}-net demo1
 
@@ -386,6 +394,19 @@ openstack availability zone list
 openstack volume create --image cirros --bootable --size 1 --availability-zone nova test_vol
 openstack volume list
 openstack server create --volume test_vol --flavor m1.tiny --key-name mykey --network ${net_name}-net demo_volume
+# # multi cinder backend!!!
+openstack volume backend pool list
+# +--------------------+
+# | Name               |
+# +--------------------+
+# | c1-lvm@rbd-1#rbd-1 |
+# | c1-lvm@lvm-1#lvm-1 |
+# +--------------------+
+openstack --os-username admin --os-tenant-name admin volume type create lvm
+openstack --os-username admin --os-tenant-name admin volume type set lvm --property volume_backend_name=lvm-1
+openstack --os-username admin --os-tenant-name admin volume type create myceph
+openstack --os-username admin --os-tenant-name admin volume type set myceph --property volume_backend_name=rbd-1
+openstack --os-username admin --os-tenant-name admin volume type list --long
 # # # quota project
 # # 40 instances
 # openstack quota set --instances 40 ${PROJECT_ID}
