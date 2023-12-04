@@ -44,6 +44,11 @@ ceph osd unset noout
 ceph osd unset norebalance
 ceph -s
 
+# health: HEALTH_WARN
+#         1 pools have many more objects per pg than average
+# # To disable the warning completely the value of mon_pg_warn_max_object_skew must be set to 0 or a negative number.
+ceph config get mgr mon_pg_warn_max_object_skew
+ceph config set mgr mon_pg_warn_max_object_skew 0
 #更换故障硬盘过程
 disk=sdd
 ceph-volume lvm list
