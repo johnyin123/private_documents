@@ -7,8 +7,8 @@
 #   docker push localhost:4000/${newimg}:${tag}
 # done
 KVM=qemu
-KOLLA_DIR=/kolla
 OPENSTACK_VER=master
+KOLLA_DIR=/kolla
 ADMIN_PASS=Admin@2023
 insec_registry=10.170.6.105:5000
 CONTROLLER=(172.16.1.210)
@@ -111,24 +111,28 @@ crudini --set ${KOLLA_DIR}/multinode monitoring  # no monitoring
 crudini --set ${KOLLA_DIR}/multinode deployment  "localhost ansible_connection=local"
 
 for node in ${CONTROLLER[@]} ${COMPUTE[@]}; do
-    crudini --set ${KOLLA_DIR}/multinode all "${node} mylvm=yes ansible_port=60022 ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3"
+    crudini --set ${KOLLA_DIR}/multinode all "${node} uselvm=yes ansible_port=60022 ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3"
 done
-crudini --set ${KOLLA_DIR}/multinode all:vars "mylvm=no"
+crudini --set ${KOLLA_DIR}/multinode all:vars "uselvm=no"
+crudini --set ${KOLLA_DIR}/multinode all:vars "net_if=eth0"
+crudini --set ${KOLLA_DIR}/multinode all:vars "virt_type=${KVM:-kvm}"
+crudini --set ${KOLLA_DIR}/multinode all:vars "openstack_version=${OPENSTACK_VER:-master}"
+crudini --set ${KOLLA_DIR}/multinode all:vars "external_interface=eth1"
 # # Deploy All-In-One
 # openstack_tag_suffix: "-aarch64"
 sed -i -E \
     -e "s/^\s*#*config_strategy\s*:.*/config_strategy: \"COPY_ALWAYS\"/g"   \
     -e "s/^\s*#*kolla_base_distro\s*:.*/kolla_base_distro: \"ubuntu\"/g"    \
-    -e "s/^\s*#*network_interface\s*:.*/network_interface: \"eth0\"/g"      \
-    -e "s/^\s*#*nova_compute_virt_type\s*:.*/nova_compute_virt_type: \"${KVM}\"/g"       \
-    -e "s/^\s*#*openstack_release\s*:.*/openstack_release: \"${OPENSTACK_VER}\"/g"       \
+    -e "s/^\s*#*network_interface\s*:.*/network_interface: \"{{ net_if }}\"/g"      \
+    -e "s/^\s*#*nova_compute_virt_type\s*:.*/nova_compute_virt_type: \"{{ virt_type }}\"/g"       \
+    -e "s/^\s*#*openstack_release\s*:.*/openstack_release: \"{{ openstack_version }}\"/g"       \
     /etc/kolla/globals.yml
 # linuxbridge is *EXPERIMENTAL* in Neutron since Zed
 sed --quiet -i -E \
     -e '/(enable_neutron_provider_networks|neutron_bridge_name|neutron_external_interface|neutron_plugin_agenti|enable_neutron_agent_ha)\s*:.*/!p' \
     -e '$aenable_neutron_provider_networks: "yes"' \
     -e '$aneutron_plugin_agent: "openvswitch"'   \
-    -e "\$aneutron_external_interface: \"eth1\"" \
+    -e "\$aneutron_external_interface: \"{{ external_interface }}\"" \
     -e '$aneutron_bridge_name: "br-ext"'         \
     -e '$aenable_neutron_agent_ha: "yes"'        \
     /etc/kolla/globals.yml
@@ -151,7 +155,7 @@ sed -i -E \
 [ -z "${VG_NAME:-}" ] || sed -i -E \
     -e "s/^\s*#*enable_cinder\s*:.*/enable_cinder: \"yes\"/g"  \
     -e "s/^\s*#*enable_cinder_backup\s*:.*/enable_cinder_backup: \"yes\"/g"  \
-    -e "s/^\s*#*enable_cinder_backend_lvm\s*:.*/enable_cinder_backend_lvm: \"{{ mylvm }}\"/g"  \
+    -e "s/^\s*#*enable_cinder_backend_lvm\s*:.*/enable_cinder_backend_lvm: \"{{ uselvm }}\"/g"  \
     -e "s/^\s*#*cinder_volume_group\s*:.*/cinder_volume_group: \"${VG_NAME}\"/g"  \
     /etc/kolla/globals.yml
 grep '^[^#]' /etc/kolla/globals.yml
@@ -159,7 +163,7 @@ grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
 # 配置nova文件, virth_type kvm/qemu
 mkdir -p /etc/kolla/config/nova && cat <<EOF > /etc/kolla/config/nova/nova-compute.conf
 [libvirt]
-virt_type = ${KVM}
+virt_type = ${KVM:-kvm}
 cpu_mode = none
 EOF
 # 关闭创建新卷
