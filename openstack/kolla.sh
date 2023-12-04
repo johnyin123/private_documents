@@ -387,6 +387,9 @@ openstack keypair create --public-key testkey.pub mykey
 # 建立安全策略
 openstack security group rule create --proto icmp default
 openstack security group rule create --proto tcp --dst-port 22 default
+# openstack security group rule create --proto tcp --src-ip 0.0.0.0/0 --dst-port 1:65525 group-name
+# openstack security group rule create --proto udp --src-ip 0.0.0.0/0 --dst-port 1:65525 group-name
+# openstack security group rule create --proto icmp --src-ip 0.0.0.0/0 group-name
 # # 创建虚拟机
 openstack server create --image cirros --flavor m1.tiny --key-name mykey --network ${net_name}-net demo1
 
@@ -407,6 +410,7 @@ openstack --os-username admin --os-tenant-name admin volume type create lvm
 openstack --os-username admin --os-tenant-name admin volume type set lvm --property volume_backend_name=lvm-1
 openstack --os-username admin --os-tenant-name admin volume type create myceph
 openstack --os-username admin --os-tenant-name admin volume type set myceph --property volume_backend_name=rbd-1
+openstack volume create --image cirros --bootable --size 1 --type lvm test_lvm
 openstack --os-username admin --os-tenant-name admin volume type list --long
 # # # quota project
 # # 40 instances
