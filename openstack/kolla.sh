@@ -110,6 +110,10 @@ crudini --set ${KOLLA_DIR}/multinode storage     # no storage
 crudini --set ${KOLLA_DIR}/multinode monitoring  # no monitoring
 crudini --set ${KOLLA_DIR}/multinode deployment  "localhost ansible_connection=local"
 
+for node in ${CONTROLLER[@]} ${COMPUTE[@]}; do
+    crudini --set ${KOLLA_DIR}/multinode all "${node} mylvm=yes ansible_port=60022 ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3"
+done
+crudini --set ${KOLLA_DIR}/multinode all:vars "mylvm=no"
 # # Deploy All-In-One
 # openstack_tag_suffix: "-aarch64"
 sed -i -E \
@@ -147,7 +151,7 @@ sed -i -E \
 [ -z "${VG_NAME:-}" ] || sed -i -E \
     -e "s/^\s*#*enable_cinder\s*:.*/enable_cinder: \"yes\"/g"  \
     -e "s/^\s*#*enable_cinder_backup\s*:.*/enable_cinder_backup: \"yes\"/g"  \
-    -e "s/^\s*#*enable_cinder_backend_lvm\s*:.*/enable_cinder_backend_lvm: \"yes\"/g"  \
+    -e "s/^\s*#*enable_cinder_backend_lvm\s*:.*/enable_cinder_backend_lvm: \"{{ mylvm }}\"/g"  \
     -e "s/^\s*#*cinder_volume_group\s*:.*/cinder_volume_group: \"${VG_NAME}\"/g"  \
     /etc/kolla/globals.yml
 grep '^[^#]' /etc/kolla/globals.yml
