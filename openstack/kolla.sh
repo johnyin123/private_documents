@@ -386,6 +386,7 @@ openstack router set --external-gateway ${net_name}-net ${net_name}-router
 openstack keypair create --public-key testkey.pub mykey
 # 建立安全策略
 openstack security group rule create --proto icmp default
+openstack security group rule create --proto tcp --dst-port 22 default
 # # 创建虚拟机
 openstack server create --image cirros --flavor m1.tiny --key-name mykey --network ${net_name}-net demo1
 
