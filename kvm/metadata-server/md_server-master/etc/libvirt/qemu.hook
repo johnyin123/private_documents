@@ -1,0 +1,28 @@
+#!/bin/bash
+#
+# we expect to be called with four arguments, and with the domain XML file
+# passed in on stdin.
+
+#set -x
+
+# This is hard-coded - edit the file to match the mdserver config
+MDS_LISTEN_ADDRESS="169.254.169.254"
+
+name=$1
+op=$2
+stage=$3
+extra=$4
+
+# This is extremely, mind-bogglingly simple
+if [ "$2" = "prepare" ] || [ "$2" = "migrate" ]; then
+        if [ "$3" != "begin" ]; then
+                exit 0
+        fi
+        logger -t 'qemu-hook' "Processing instance $name $op $stage $extra"
+        tf=$(mktemp /tmp/qemu-hook.XXXXXXXX)
+        cat > "$tf"
+        url="http://$MDS_LISTEN_ADDRESS/instance-upload"
+        curl -s -d "@$tf" "$url"
+        rm "$tf"
+fi
+exit 0
