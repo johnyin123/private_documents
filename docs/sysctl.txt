@@ -1,3 +1,49 @@
+# Socket and TCP buffer in bytes, may need to be set to 16M or higher to support full-speed 10GbE connections:
+net.core.rmem_max = 16777216
+net.core.wmem_max = 16777216
+# Enable auto-tuning TCP receive buffer:
+net.ipv4.tcp_moderate_rcvbuf = 1
+# TCP read and write buffer auto-tunning in bytes (min, default, max):
+net.ipv4.tcp_rmem = 4096 87380 16777216
+net.ipv4.tcp_wmem = 4096 87380 16777216
+# TCP backlog, for half-open connections:
+net.ipv4.tcp_max_syn_backlog = 4096
+# Listen backlog, for passing connections to accept:
+net.core.somaxconn = 1024
+# Above two attributes with bigger value can better handle burst of load.
+# Device backlog queue length, per CPU (for example for 10Gbe NICs):
+net.core.netdev_max_backlog = 10000
+# TCP congestion control, Linux supports pluggable congestion control algorithms.
+# Check available ones.
+sysctl net.ipv4.tcp_available_congestion_control
+
+# Load and enable available algorithm `tcp_htcp` to use
+modprobe tcp_htcp
+
+# Check again and see `tcp_htcp` is in list
+sysctl net.ipv4.tcp_available_congestion_control
+
+# Set cubic as default in config file
+net.ipv4.tcp_congestion_control = cubic
+# Other TCP options:
+
+# Improve performance over high latency network
+net.ipv4.tcp_sack = 1
+net.ipv4.tcp_fack = 1
+net.ipv4.tcp_tw_reuse = 1
+
+# Other settings
+net.ipv4.ip_local_port_range = 10240 65535
+net.ipv4.tcp_abort_on_overflow = 1
+net.ipv4.tcp_slow_start_after_idle = 0
+net.ipv4.tcp_syn_retries = 2
+
+# Check default
+sysctl net.core.default_qdisc
+# Set as fq_codel
+net.core.default_qdisc = fq_codel
+# Many Linux distros have already switched to fq_codel as the default, it provides good performance in most cases.
+
 # Change the following parameters when a high rate of incoming connection requests result in connection failures
 echo "100000" > /proc/sys/net/core/netdev_max_backlog
 # Size of the listen queue for accepting new TCP connections (default: 128)
