@@ -18,7 +18,8 @@ HAPROXY=yes
 VG_NAME=cindervg
 # # # # # # # all (compute/controller) node start
 # Kolla puts nearly all of persistent data in Docker volumes. defaults to /var/lib/docker directory.
-mkdir -p /etc/docker/ && cat > /etc/docker/daemon.json << EOF
+cfg_file=/etc/docker/daemon.json
+mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 {
   "registry-mirrors": [ "https://docker.mirrors.ustc.edu.cn", "http://hub-mirror.c.163.com" ],
   "insecure-registries": [ "quay.io"${insec_registry:+, \"${insec_registry}\"} ],
@@ -30,8 +31,8 @@ mkdir -p /etc/docker/ && cat > /etc/docker/daemon.json << EOF
   "iptables": false
 }
 EOF
-echo ""
-mkdir -p /etc/systemd/system/docker.service.d/ && cat <<EOF > /etc/systemd/system/docker.service.d/kolla.conf
+cfg_file=/etc/systemd/system/docker.service.d/kolla.conf
+mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [Service]
 MountFlags=shared
 EOF
@@ -61,7 +62,8 @@ pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ -r ${KOLLA_DIR}/pyenv/re
 EOF
 # # # # # # # offline end
 # # # # # # # online start
-mkdir -p ~/.pip/ && cat <<EOF | tee ~/.pip/pip.conf
+cfg_file=~/.pip/pip.conf
+mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [global]
 trusted-host = mirrors.aliyun.com
 index-url = https://mirrors.aliyun.com/pypi/simple
@@ -78,7 +80,8 @@ cd ${KOLLA_DIR} && pip install ./kolla-ansible
 cp -r ${KOLLA_DIR}/kolla-ansible/etc/kolla /etc/ 2>/dev/null || cp -r ${KOLLA_DIR}/venv3/share/kolla-ansible/etc_examples/kolla /etc/
 cp ${KOLLA_DIR}/kolla-ansible/ansible/inventory/* ${KOLLA_DIR} 2>/dev/null || cp ${KOLLA_DIR}/venv3/share/kolla-ansible/ansible/inventory/* ${KOLLA_DIR}
 # # # # # # # online end
-mkdir -p /etc/ansible/ && cat <<EOF >/etc/ansible/ansible.cfg
+cfg_file=/etc/ansible/ansible.cfg
+mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [defaults]
 host_key_checking=False
 pipelining=True
@@ -160,24 +163,30 @@ sed -i -E \
 grep '^[^#]' /etc/kolla/globals.yml
 grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
 # 配置nova文件, virth_type kvm/qemu
-mkdir -p /etc/kolla/config/nova && cat <<EOF > /etc/kolla/config/nova/nova-compute.conf
+cfg_file=/etc/kolla/config/nova/nova-compute.conf
+mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [libvirt]
 virt_type = ${KVM:-kvm}
 cpu_mode = none
 EOF
 # 关闭创建新卷
-mkdir -p /etc/kolla/config/horizon/ && cat <<EOF > /etc/kolla/config/horizon/custom_local_settings
+cfg_file=/etc/kolla/config/horizon/custom_local_settings
+mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 LAUNCH_INSTANCE_DEFAULTS = {'create_volume': False}
 EOF
 # linuxbridge must open experimental
-mkdir -p /etc/kolla/config/neutron-server/ && cat <<EOF > /etc/kolla/config/neutron-server/neutron.conf
+cfg_file=/etc/kolla/config/neutron.conf
+mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 # [experimental]
 # linuxbridge = true
 EOF
-mkdir -p /etc/kolla/config/neutron-server/ && cat <<EOF > /etc/kolla/config/neutron-server/ml2_conf.ini
+cfg_file=/etc/kolla/config/neutron/ml2_conf.ini
+mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 # [ml2]
 # [ml2_type_vlan]
+# network_vlan_ranges = physnet1:100:200
 # [ml2_type_vxlan]
+# [ml2_type_flat]
 EOF
 # ########################ceph start
 for node in ${COMPUTE[@]}; do
@@ -189,9 +198,11 @@ for node in ${COMPUTE[@]}; do
 #      control01
     crudini --set ${KOLLA_DIR}/multinode storage ${node}
 done
-mkdir -p /etc/kolla/config/glance/ /etc/kolla/config/cinder/cinder-volume/ \
-    /etc/kolla/config/cinder/cinder-backup/ /etc/kolla/config/nova/ \
-    /etc/kolla/config/zun/zun-compute/
+mkdir -p /etc/kolla/config/glance/ \
+         /etc/kolla/config/cinder/cinder-volume/ \
+         /etc/kolla/config/cinder/cinder-backup/ \
+         /etc/kolla/config/nova/ \
+         /etc/kolla/config/zun/zun-compute/
 # extern ceph
 sed --quiet -i -E \
     -e '/(enable_ceph|zun_configure_for_cinder_ceph)\s*:.*/!p' \
@@ -217,7 +228,8 @@ sed -i -E \
     -e "s/^\s*#*ceph_glance_user\s*:.*/ceph_glance_user: \"${GLANCE_USER}\"/g"  \
     -e "s/^\s*#*ceph_glance_pool_name\s*:.*/ceph_glance_pool_name: \"${GLANCE_POOL}\"/g"  \
     /etc/kolla/globals.yml
-cat <<EOF >/etc/kolla/config/glance.conf
+cfg_file=/etc/kolla/config/glance.conf
+mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [GLOBAL]
 show_image_direct_url = True
 EOF
