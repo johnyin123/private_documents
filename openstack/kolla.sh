@@ -133,7 +133,6 @@ sed --quiet -i -E \
     -e '$aenable_neutron_provider_networks: "yes"' \
     -e '$aneutron_plugin_agent: "openvswitch"'   \
     -e "\$aneutron_external_interface: \"{{ external_interface }}\"" \
-    -e '$aneutron_bridge_name: "br-ext"'         \
     -e '$aenable_neutron_agent_ha: "yes"'        \
     /etc/kolla/globals.yml
 
@@ -168,7 +167,17 @@ cpu_mode = none
 EOF
 # 关闭创建新卷
 mkdir -p /etc/kolla/config/horizon/ && cat <<EOF > /etc/kolla/config/horizon/custom_local_settings
-LAUNCH_INSTANCE_DEFAULTS = {'create_volume': False,}
+LAUNCH_INSTANCE_DEFAULTS = {'create_volume': False}
+EOF
+# linuxbridge must open experimental
+mkdir -p /etc/kolla/config/neutron-server/ && cat <<EOF > /etc/kolla/config/neutron-server/neutron.conf
+# [experimental]
+# linuxbridge = true
+EOF
+mkdir -p /etc/kolla/config/neutron-server/ && cat <<EOF > /etc/kolla/config/neutron-server/ml2_conf.ini
+# [ml2]
+# [ml2_type_vlan]
+# [ml2_type_vxlan]
 EOF
 # ########################ceph start
 for node in ${COMPUTE[@]}; do
@@ -315,7 +324,8 @@ cat /etc/kolla/admin-openrc.sh
 echo "Horizon: http://<ctrl_addr>"
 echo "Kibana:  http://<ctrl_addr>:5601"
 # 调整日志
-ln -sf /var/lib/docker/volumes/kolla_logs/_data/ /var/log/kolla
+# docker exec -it fluentd bash
+# all logs in /var/log/kolla
 cat <<'EOF_INIT' > myinit_once.sh
 #!/usr/bin/env bash
 name_server=
@@ -373,6 +383,7 @@ openstack router create ${net_name}-router
 
 # physnet1 is default kolla provider name
 # docker exec -it neutron_server cat /etc/neutron/plugins/ml2/ml2_conf.ini | grep flat_networks
+# --disable-port-security \
 openstack network create --share --external \
     --project admin \
     --provider-physical-network physnet1 \
