@@ -277,7 +277,7 @@ ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${CINDER_USER} m
 ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${CINDER_USER_BACKUP} mon "profile rbd" osd "profile rbd pool=${CINDER_POOL_BACKUP}" mgr "profile rbd pool=${CINDER_POOL_BACKUP}"
 ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${NOVA_USER} mon "profile rbd" osd "profile rbd pool=${NOVA_POOL}" mgr "profile rbd pool=${NOVA_POOL}"
 for p in ${GLANCE_USER} ${CINDER_USER} ${CINDER_USER_BACKUP} ${NOVA_USER}; do
-    ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${p} | tee ceph.client.${p}.keyring
+    ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${p} | tee ${cluster:-ceph}.client.${p}.keyring
 done
 EOF
 
