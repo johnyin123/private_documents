@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3e49aad[2023-07-14T14:49:18+08:00]:virt-backupxml.sh")
+VERSION+=("020efbf[2023-08-10T09:04:40+08:00]:virt-backupxml.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 VIRSH_OPT="-k 300 -K 5 -q"
@@ -68,7 +68,7 @@ get_vmip() {
         local storage=0
         for ((i=0;i<$(array_get stats "block.count");i++))
         do
-            let storage=storage+$(array_get stats "block.$i.physical")
+            let storage=storage+$(array_get stats "block.$i.physical") || true
         done
         mem=$(human_readable_disk_size $(($mem*1024)))
         maxmem=$(human_readable_disk_size $(($maxmem*1024)))
