@@ -354,13 +354,13 @@ echo "echo '$(cat ~/.ssh/id_rsa.pub)' >> ~/.ssh/authorized_keys"
 # kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode bootstrap-servers
 kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode prechecks
 # # 拉取镜像（可选）
-kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode pull
+kolla-ansible -i ${KOLLA_DIR}/multinode pull
 # # 部署
-kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode deploy
+kolla-ansible -i ${KOLLA_DIR}/multinode deploy
 # # 生成 admin-openrc.sh
-kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode post-deploy
+kolla-ansible -i ${KOLLA_DIR}/multinode post-deploy
 # # 单独重新部署节点
-# kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode --limit 172.16.1.211 reconfigure
+# kolla-ansible -i ${KOLLA_DIR}/multinode --limit 172.16.1.211 reconfigure
 cat /etc/kolla/admin-openrc.sh
 echo "Horizon: http://<ctrl_addr>"
 echo "Kibana:  http://<ctrl_addr>:5601"
