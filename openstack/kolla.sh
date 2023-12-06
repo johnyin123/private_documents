@@ -280,6 +280,29 @@ for p in ${GLANCE_USER} ${CINDER_USER} ${CINDER_USER_BACKUP} ${NOVA_USER}; do
     ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${p} | tee ceph.client.${p}.keyring
 done
 EOF
+
+cat <<EOF
+cat <<EO_GLOBALS >> /etc/kolla/globals.yml
+glance_ceph_backends:
+  - name: "rbd"
+    type: "rbd"
+    cluster: "ceph"
+    enabled: "{{ glance_backend_ceph | bool }}"
+  - name: "another-rbd"
+    type: "rbd"
+    cluster: "rbd1"
+    enabled: "{{ glance_backend_ceph | bool }}"
+cinder_ceph_backends:
+  - name: "rbd-1"
+    cluster: "ceph"
+    enabled: "{{ cinder_backend_ceph | bool }}"
+  - name: "rbd-2"
+    cluster: "rbd2"
+    availability_zone: "az2"
+    enabled: "{{ cinder_backend_ceph | bool }}"
+EO_GLOBALS
+EOF
+
 cat <<EOF
 cat ceph.conf > /etc/kolla/config/glance/ceph.conf
 cat ceph.conf > /etc/kolla/config/cinder/ceph.conf
@@ -295,6 +318,7 @@ cat ceph.client.nova.keyring          > /etc/kolla/config/nova/ceph.client.nova.
 EOF
 cat <<EOF
 # https://docs.ceph.com/en/latest/rbd/rbd-openstack/
+# https://docs.openstack.org/kolla-ansible/latest/reference/storage/external-ceph-guide.html
 Gnocchi: 资源索引服务
     Configuring Gnocchi for Ceph includes following steps:
     Configure Ceph authentication details in /etc/kolla/globals.yml:
