@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1ddc610[2022-07-22T07:18:40+08:00]:netns_shell.sh")
+VERSION+=("c56683b[2022-08-05T07:10:29+08:00]:netns_shell.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_nameserver() {
@@ -51,6 +51,14 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+# ip rule add from 192.168.169.0/24 table 200 || true
+# ip route add default via <GW> dev <DEV> table 200 || true
+# ip route add 192.168.169.0/24 dev br-ext scope link table 200 || true
+# # iptables -t nat -A POSTROUTING -s 192.168.169.0/24 -j MASQUERADE || true
+# #
+# ip route delete 192.168.169.0/24 table 200 || true
+# ip route delete default table 200 || true
+# ip rule delete from 192.168.169.0/24 || true
 EOF
     exit 1
 }
