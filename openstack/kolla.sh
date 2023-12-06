@@ -162,9 +162,14 @@ sed -i -E \
     /etc/kolla/globals.yml
 grep '^[^#]' /etc/kolla/globals.yml
 grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
-# 配置nova文件, virth_type kvm/qemu
+# 配置nova文件, virth_type kvm/qemu, 加入超卖
 cfg_file=/etc/kolla/config/nova/nova-compute.conf
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+[DEFAULT]
+ram_allocation_ratio=2.0
+cpu_allocation_ratio=10.0
+# disk_allocation_ratio=2.0
+
 [libvirt]
 virt_type = ${KVM:-kvm}
 cpu_mode = none
@@ -453,6 +458,16 @@ openstack --os-username admin --os-tenant-name admin volume type list --long
 verify
 EOF_INIT
 cat <<'DEMO'
+# 配置超卖
+cfg_file=/etc/kolla/config/nova/nova-compute.conf
+mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+[DEFAULT]
+ram_allocation_ratio=2.0
+cpu_allocation_ratio=10.0
+# disk_allocation_ratio=2.0
+EOF
+kolla-ansible -i kolla-ansible/ansible/inventory/all-in-one  reconfigure --tags nova
+
 # 查看openstack相关信息
 openstack service list
 openstack compute service list
