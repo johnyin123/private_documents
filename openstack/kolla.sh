@@ -15,7 +15,8 @@ CONTROLLER=(172.16.1.210)
 COMPUTE=(172.16.1.211 172.16.1.212)
 INT_VIP_ADDR=172.16.1.213
 HAPROXY=yes
-SKYLINE=
+WEBUI_SKYLINE=no
+WEBUI_HORIZON=yes
 VG_NAME=cindervg
 # # # # # # # all (compute/controller) node start
 # Kolla puts nearly all of persistent data in Docker volumes. defaults to /var/lib/docker directory.
@@ -133,7 +134,8 @@ sed -i -E \
     /etc/kolla/globals.yml
 
 sed -i -E \
-    -e "s/^\s*#*enable_skyline\s*:.*/enable_skyline: \"${SKYLINE:-no}\"/g"  \
+    -e "s/^\s*#*enable_skyline\s*:.*/enable_skyline: \"${WEBUI_SKYLINE:-no}\"/g"  \
+    -e "s/^\s*#*enable_horizon\s*:.*/enable_horizon: \"${WEBUI_HORIZON:-yes}\"/g"  \
     /etc/kolla/globals.yml
 
 # linuxbridge is *EXPERIMENTAL* in Neutron since Zed
