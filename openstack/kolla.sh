@@ -583,3 +583,12 @@ ansible -i multinode all -m shell -a 'docker stop mariadb'
 ansible -i multinode all -m shell -a "sed -i 's/safe_to_bootstrap: 0/safe_to_bootstrap: 1/g' /var/lib/docker/volumes/mariadb/_data/grastate.dat"
 kolla-ansible mariadb_recovery -i multinode
 EOF
+cat <<'SKYLINE'
+sed -i -E \
+    -e "s/^\s*#*enable_skyline\s*:.*/enable_skyline: \"yes\"/g"  \
+    /etc/kolla/globals.yml
+kolla-ansible -i ${KOLLA_DIR}/multinode prechecks -t skyline
+kolla-ansible -i ${KOLLA_DIR}/multinode pull -t skyline
+kolla-ansible -i ${KOLLA_DIR}/multinode deploy -t skyline
+http://172.16.1.213:9999
+SKYLINE
