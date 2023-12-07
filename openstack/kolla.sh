@@ -15,6 +15,7 @@ CONTROLLER=(172.16.1.210)
 COMPUTE=(172.16.1.211 172.16.1.212)
 INT_VIP_ADDR=172.16.1.213
 HAPROXY=yes
+SKYLINE=
 VG_NAME=cindervg
 # # # # # # # all (compute/controller) node start
 # Kolla puts nearly all of persistent data in Docker volumes. defaults to /var/lib/docker directory.
@@ -130,6 +131,11 @@ sed -i -E \
     -e "s/^\s*#*nova_compute_virt_type\s*:.*/nova_compute_virt_type: \"{{ virt_type }}\"/g"       \
     -e "s/^\s*#*openstack_release\s*:.*/openstack_release: \"{{ openstack_version }}\"/g"       \
     /etc/kolla/globals.yml
+
+sed -i -E \
+    -e "s/^\s*#*enable_skyline\s*:.*/enable_skyline: \"${SKYLINE:-no}\"/g"  \
+    /etc/kolla/globals.yml
+
 # linuxbridge is *EXPERIMENTAL* in Neutron since Zed
 sed --quiet -i -E \
     -e '/(enable_neutron_provider_networks|neutron_bridge_name|neutron_external_interface|neutron_plugin_agenti|enable_neutron_agent_ha)\s*:.*/!p' \
@@ -585,9 +591,6 @@ ansible -i multinode all -m shell -a "sed -i 's/safe_to_bootstrap: 0/safe_to_boo
 kolla-ansible mariadb_recovery -i multinode
 EOF
 cat <<'SKYLINE'
-sed -i -E \
-    -e "s/^\s*#*enable_skyline\s*:.*/enable_skyline: \"yes\"/g"  \
-    /etc/kolla/globals.yml
 kolla-ansible -i ${KOLLA_DIR}/multinode prechecks -t skyline
 kolla-ansible -i ${KOLLA_DIR}/multinode pull -t skyline
 kolla-ansible -i ${KOLLA_DIR}/multinode deploy -t skyline
