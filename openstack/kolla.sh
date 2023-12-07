@@ -201,6 +201,14 @@ mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 # [ml2_type_vxlan]
 # [ml2_type_flat]
 EOF
+cfg_file=/etc/kolla/config/nova.conf
+mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+# [DEFAULT]
+# force_config_drive = True
+# ram_allocation_ratio = 2.0
+# cpu_allocation_ratio = 10.0
+EOF
+# force_config_drive = True, It is also possible to force the config drive by specifying the img_config_drive=mandatory property in the image.
 # ########################ceph start
 for node in ${COMPUTE[@]}; do
 #. When using external Ceph, there may be no nodes defined in the storage
@@ -420,14 +428,14 @@ verify() {
     openstack volume service list
     openstack volume backend pool list
 }
-openstack flavor create --id 1 --ram 512 --disk 1 --vcpus 1 m1.tiny
+openstack flavor create --id 1 --ram 512 --disk 4 --vcpus 1 m1.tiny
 openstack flavor create --id 2 --ram 2048 --disk 20 --vcpus 1 m1.small
 openstack flavor create --id 3 --ram 4096 --disk 40 --vcpus 2 m1.medium
 openstack flavor create --id 4 --ram 8192 --disk 80 --vcpus 4 m1.large
 openstack flavor create --id 5 --ram 16384 --disk 160 --vcpus 8 m1.xlarge
 
 openstack image show "cirros" 2>/dev/null || \
-    openstack image create "cirros" --file ${img} --disk-format qcow2 --container-format bare --public
+    openstack image create "cirros" --file ${img} --disk-format qcow2 --container-format bare --public --property img_config_drive=mandatory
 
 openstack router create ${net_name}-router
 
@@ -439,7 +447,15 @@ openstack network create --share --external \
     --provider-physical-network physnet1 \
     --provider-network-type flat ${net_name}-net
 
-# --no-dhcp, subnet meta service not work?
+# --no-dhcp, subnet meta service not started
+# use config drive for cloud-init
+# 1. /etc/nova/nova.conf, add force_config_drive = true
+#   [DEFAULT]
+#   force_config_drive = True
+#   [api]
+#   config_drive_skip_versions = 2018-08-27 2017-02-22
+# OR:
+# 2.openstack server create --config-drive true ..
 openstack subnet create --ip-version 4 \
     --project admin \
     --network ${net_name}-net \
@@ -492,7 +508,8 @@ verify
 EOF_INIT
 cat <<'DEMO'
 # 配置超卖
-cfg_file=/etc/kolla/config/nova/nova-compute.conf
+# /etc/kolla/config/nova/myhost/nova.conf
+cfg_file=/etc/kolla/config/nova.conf
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [DEFAULT]
 ram_allocation_ratio=2.0
