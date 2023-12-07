@@ -595,4 +595,10 @@ kolla-ansible -i ${KOLLA_DIR}/multinode prechecks -t skyline
 kolla-ansible -i ${KOLLA_DIR}/multinode pull -t skyline
 kolla-ansible -i ${KOLLA_DIR}/multinode deploy -t skyline
 http://172.16.1.213:9999
+# # mariadb backup & restore
+sed -i -E \
+    -e "s/^\s*#*enable_mariabackup\s*:.*/enable_mariabackup: \"yes\"/g"  \
+    /etc/kolla/globals.yml
+kolla-ansible -i ${KOLLA_DIR}/multinode reconfigure -t mariadb
+kolla-ansible -i ${KOLLA_DIR}/multinode mariadb_backup
 SKYLINE
