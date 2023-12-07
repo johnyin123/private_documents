@@ -361,7 +361,8 @@ kolla-ansible -i ${KOLLA_DIR}/multinode deploy
 kolla-ansible -i ${KOLLA_DIR}/multinode post-deploy
 # # 单独重新部署节点
 # kolla-ansible -i ${KOLLA_DIR}/multinode --limit 172.16.1.211 reconfigure
-cat /etc/kolla/admin-openrc.sh
+source /etc/kolla/admin-openrc.sh
+openstack versions show
 echo "Horizon: http://<ctrl_addr>"
 echo "Kibana:  http://<ctrl_addr>:5601"
 # 调整日志
