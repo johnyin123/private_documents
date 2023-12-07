@@ -131,6 +131,7 @@ sed -i -E \
     -e "s/^\s*#*network_interface\s*:.*/network_interface: \"{{ net_if }}\"/g"      \
     -e "s/^\s*#*nova_compute_virt_type\s*:.*/nova_compute_virt_type: \"{{ virt_type }}\"/g"       \
     -e "s/^\s*#*openstack_release\s*:.*/openstack_release: \"{{ openstack_version }}\"/g"       \
+    -e "s/^\s*#*enable_mariabackup\s*:.*/enable_mariabackup: \"yes\"/g"  \
     /etc/kolla/globals.yml
 
 sed -i -E \
