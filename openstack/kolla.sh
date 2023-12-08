@@ -591,19 +591,19 @@ openstack network agent list
 docker ps | grep nova
 docker exec -it nova_libvirt /bin/bash
 DEMO
-cat<<EOF
+cat<<'EOF'
 docker exec -it fluentd bash
 # all logs in /var/log/kolla
 # 增加一个计算节点
-kolla-ansible  -i  inventory/multinode bootstrap-servers --limit compute02
-kolla-ansible  -i  inventory/multinode pull --limit compute02
-kolla-ansible  -i  inventory/multinode deploy --limit compute02
+kolla-ansible -i ${KOLLA_DIR}/multinode bootstrap-servers --limit compute02
+kolla-ansible -i ${KOLLA_DIR}/multinode pull --limit compute02
+kolla-ansible -i ${KOLLA_DIR}/multinode deploy --limit compute02
 # 删除一个计算节点
 kolla-ansible -i inventory/multinode destroy --limit compute02 --yes-i-really-really-mean-it
-openstack  compute service list
-openstack  compute service delete  <compute ID>
-openstack  network agent list
-openstack  network agent delete  <ID>
+openstack compute service list
+openstack compute service delete <compute ID>
+openstack network agent list
+openstack network agent delete <ID>
 # # vim multinode 去掉相关计算节点
 # 部署失败
 kolla-ansible destroy --yes-i-really-really-mean-it
