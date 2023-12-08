@@ -622,6 +622,7 @@ kolla-ansible deploy --skip-tags="haproxy"
 ansible -i multinode all -m shell -a 'docker stop mariadb'
 ansible -i multinode all -m shell -a "sed -i 's/safe_to_bootstrap: 0/safe_to_bootstrap: 1/g' /var/lib/docker/volumes/mariadb/_data/grastate.dat"
 kolla-ansible mariadb_recovery -i multinode
+docker exec -it -u root mariadb /bin/bash
 EOF
 cat <<'SKYLINE'
 kolla-ansible -i ${KOLLA_DIR}/multinode prechecks -t skyline
