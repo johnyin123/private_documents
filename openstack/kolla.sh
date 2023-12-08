@@ -439,7 +439,13 @@ openstack flavor create --id 5 --ram 16384 --disk 160 --vcpus 8 m1.xlarge
 openstack image show "cirros" 2>/dev/null || \
     openstack image create "cirros" --file ${img} --disk-format qcow2 --container-format bare --public --property img_config_drive=mandatory
 
-openstack image set --property img_config_drive=mandatory cirros
+# hw_architecture,
+openstack image set \
+    --property img_config_drive=mandatory \
+    --property hw_firmware_type=uefi \
+    --property os_secure_boot=required \
+    --property hw_machine_type=q35 \
+    cirros
 
 openstack router create ${net_name}-router
 
