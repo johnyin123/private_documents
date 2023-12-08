@@ -133,7 +133,6 @@ sed -i -E \
     -e "s/^\s*#*network_interface\s*:.*/network_interface: \"{{ net_if }}\"/g"      \
     -e "s/^\s*#*nova_compute_virt_type\s*:.*/nova_compute_virt_type: \"{{ virt_type }}\"/g"       \
     -e "s/^\s*#*openstack_release\s*:.*/openstack_release: \"{{ openstack_version }}\"/g"       \
-    -e "s/^\s*#*enable_mariabackup\s*:.*/enable_mariabackup: \"yes\"/g"  \
     /etc/kolla/globals.yml
 
 sed -i -E \
@@ -629,4 +628,22 @@ sed -i -E \
     /etc/kolla/globals.yml
 kolla-ansible -i ${KOLLA_DIR}/multinode reconfigure -t mariadb
 kolla-ansible -i ${KOLLA_DIR}/multinode mariadb_backup
+ls -l /var/lib/docker/volumes/mariadb_backup/_data
 SKYLINE
+cat <<'MYSQL'
+# https://docs.openstack.org/kolla-ansible/latest/reference/databases/external-mariadb-guide.html
+# Enabling External MariaDB support
+sed --quiet -i -E \
+    -e '/(enable_mariadb)\s*:.*/!p' \
+    -e '$aenable_mariadb: "no"' \
+    -e '$adatabase_address: "openstack.mydb.local"' \
+    /etc/kolla/globals.yml
+
+crudini --del ${KOLLA_DIR}/multinode "mariadb:children"
+crudini --set ${KOLLA_DIR}/multinode "mariadb:children" "openstack.mydb.local"
+
+/etc/kolla/passwords.yml
+database_user: "privillegeduser"
+database_password: mySuperSecurePassword
+use_preconfigured_databases: "yes"
+MYSQL
