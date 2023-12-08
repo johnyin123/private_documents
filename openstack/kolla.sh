@@ -79,8 +79,10 @@ cd ${KOLLA_DIR} && git clone --depth=1 https://github.com/openstack/kolla
 cd ${KOLLA_DIR} && git clone --depth=1 https://github.com/openstack/kolla-ansible
 cd ${KOLLA_DIR} && pip install ./kolla
 cd ${KOLLA_DIR} && pip install ./kolla-ansible
-cp -r ${KOLLA_DIR}/kolla-ansible/etc/kolla /etc/ 2>/dev/null || cp -r ${KOLLA_DIR}/venv3/share/kolla-ansible/etc_examples/kolla /etc/
-cp ${KOLLA_DIR}/kolla-ansible/ansible/inventory/* ${KOLLA_DIR} 2>/dev/null || cp ${KOLLA_DIR}/venv3/share/kolla-ansible/ansible/inventory/* ${KOLLA_DIR}
+cp -r ${KOLLA_DIR}/kolla-ansible/etc/kolla /etc/ 2>/dev/null || \
+    cp -r ${KOLLA_DIR}/venv3/share/kolla-ansible/etc_examples/kolla /etc/
+cp ${KOLLA_DIR}/kolla-ansible/ansible/inventory/* ${KOLLA_DIR} 2>/dev/null || \
+    cp ${KOLLA_DIR}/venv3/share/kolla-ansible/ansible/inventory/* ${KOLLA_DIR}
 # # # # # # # online end
 cfg_file=/etc/ansible/ansible.cfg
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
@@ -438,6 +440,8 @@ openstack flavor create --id 5 --ram 16384 --disk 160 --vcpus 8 m1.xlarge
 openstack image show "cirros" 2>/dev/null || \
     openstack image create "cirros" --file ${img} --disk-format qcow2 --container-format bare --public --property img_config_drive=mandatory
 
+openstack image set --property img_config_drive=mandatory cirros
+
 openstack router create ${net_name}-router
 
 # physnet1 is default kolla provider name
@@ -448,6 +452,8 @@ openstack network create --share --external \
     --provider-physical-network physnet1 \
     --provider-network-type flat ${net_name}-net
 
+openstack network set --disable-port-security ${net_name}-net
+
 # --no-dhcp, subnet meta service not started
 # use config drive for cloud-init
 # 1. /etc/nova/nova.conf, add force_config_drive = true
@@ -457,7 +463,9 @@ openstack network create --share --external \
 #   config_drive_skip_versions = 2018-08-27 2017-02-22
 # OR:
 # 2.openstack server create --config-drive true ..
-openstack subnet create --ip-version 4 \
+# OR:
+# 3.openstack create image ... --property img_config_drive=mandatory
+openstack subnet create --ip-version 4 --no-dhcp \
     --project admin \
     --network ${net_name}-net \
     ${name_server:+--dns-nameserver ${name_server}} \
