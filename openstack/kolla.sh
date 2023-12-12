@@ -7,6 +7,7 @@
 #   docker push localhost:4000/${newimg}:${tag}
 # done
 KVM=qemu
+# https://releases.openstack.org/
 OPENSTACK_VER=master
 KOLLA_DIR=/kolla
 ADMIN_PASS=Admin@2023
@@ -83,6 +84,10 @@ cp -r ${KOLLA_DIR}/kolla-ansible/etc/kolla /etc/ 2>/dev/null || \
     cp -r ${KOLLA_DIR}/venv3/share/kolla-ansible/etc_examples/kolla /etc/
 cp ${KOLLA_DIR}/kolla-ansible/ansible/inventory/* ${KOLLA_DIR} 2>/dev/null || \
     cp ${KOLLA_DIR}/venv3/share/kolla-ansible/ansible/inventory/* ${KOLLA_DIR}
+# pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ "kolla==17.0.0"
+# kolla-build --base ubuntu --base-arch aarch64 --list-images
+# kolla-build --base ubuntu --base-arch aarch64 --tag master-ubuntu-jammy-aarch64 ..
+# kolla-build --base ubuntu --base-arch x86_64  --tag master-ubuntu-jammy
 # # # # # # # online end
 cfg_file=/etc/ansible/ansible.cfg
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
@@ -118,15 +123,21 @@ crudini --set ${KOLLA_DIR}/multinode monitoring  # no monitoring
 crudini --set ${KOLLA_DIR}/multinode deployment  "localhost ansible_connection=local"
 
 for node in ${CONTROLLER[@]} ${COMPUTE[@]}; do
-    crudini --set ${KOLLA_DIR}/multinode all "${node} uselvm=yes ansible_port=60022 ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3"
+    crudini --set ${KOLLA_DIR}/multinode all "${node} host_arch=-aarch64 uselvm=yes ansible_port=60022 ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3"
 done
 crudini --set ${KOLLA_DIR}/multinode all:vars "uselvm=no"
 crudini --set ${KOLLA_DIR}/multinode all:vars "net_if=eth0"
 crudini --set ${KOLLA_DIR}/multinode all:vars "virt_type=${KVM:-kvm}"
 crudini --set ${KOLLA_DIR}/multinode all:vars "openstack_version=${OPENSTACK_VER:-master}"
 crudini --set ${KOLLA_DIR}/multinode all:vars "external_interface=eth1"
+crudini --set ${KOLLA_DIR}/multinode all:vars "host_arch="
 # # Deploy All-In-One
 # openstack_tag_suffix: "-aarch64"
+sed --quiet -i -E \
+    -e '/(openstack_tag_suffix)\s*:.*/!p' \
+    -e '$aopenstack_tag_suffix: "{{ host_arch }}"' \
+    /etc/kolla/globals.yml
+
 sed -i -E \
     -e "s/^\s*#*config_strategy\s*:.*/config_strategy: \"COPY_ALWAYS\"/g"   \
     -e "s/^\s*#*kolla_base_distro\s*:.*/kolla_base_distro: \"ubuntu\"/g"    \
@@ -440,11 +451,14 @@ openstack image show "cirros" 2>/dev/null || \
     openstack image create "cirros" --file ${img} --disk-format qcow2 --container-format bare --public --property img_config_drive=mandatory
 
 # hw_architecture,
+# # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
 openstack image set \
     --property img_config_drive=mandatory \
     --property hw_firmware_type=uefi \
     --property os_secure_boot=required \
     --property hw_machine_type=q35 \
+    --property architecture=x86_64 \
+    --property os_type=linux \
     cirros
 
 openstack router create ${net_name}-router
