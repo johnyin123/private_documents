@@ -194,6 +194,20 @@ grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
 # # 镜像属性过滤器时要使用的默认架构, hw_architecture未指定，默认为x86_64
 # image_properties_default_architecture = x86_64
 # EOF
+# If you set the virt_type to qemu then nova will report all the supported archs as compute capability
+# Currently, in many places, Nova's libvirt driver makes decisions on how
+# to configure guest XML based on *host* CPU architecture
+# ("caps.host.cpu.arch"). That is not optimal in all cases. So all of
+# the said code needs to be reworked to make those decisions based on
+# *guest* CPU architecture (i.e. "guest.arch", which should be set based
+# on the image metadata property, `hw_architecture`). A related piece of
+# work is to distinguish between hosts that can do AArch64 (or PPC64, etc)
+# via KVM (which is hardware-accelerated) vs. those that can only do it
+# via plain emulation ("TCG") — this is to ensure that guests are not
+# arbitrarily scheduled on hosts that are incapable of hardware
+# acceleration, thus losing out on performance-related benefits
+# virt_type = ${KVM:-kvm}
+
 cfg_file=/etc/kolla/config/nova/nova-compute.conf
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [DEFAULT]
