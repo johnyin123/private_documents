@@ -184,6 +184,16 @@ sed -i -E \
 grep '^[^#]' /etc/kolla/globals.yml
 grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
 # 配置nova文件, virth_type kvm/qemu, 加入超卖
+# # sed -i "s/cpu_mode.*/cpu_mode = none/g" /etc/kolla/nova-compute/nova.conf
+# # docker restart nova_compute
+# cfg_file=/etc/kolla/config/nova/172.16.1.214/nova.conf
+# mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+# [scheduler]
+# image_metadata_prefilter = True
+# [filter_scheduler]
+# # 镜像属性过滤器时要使用的默认架构, hw_architecture未指定，默认为x86_64
+# image_properties_default_architecture = x86_64
+# EOF
 cfg_file=/etc/kolla/config/nova/nova-compute.conf
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [DEFAULT]
@@ -220,6 +230,11 @@ mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 # force_config_drive = True
 # ram_allocation_ratio = 2.0
 # cpu_allocation_ratio = 10.0
+[scheduler]
+image_metadata_prefilter = True
+[filter_scheduler]
+# 镜像属性过滤器时要使用的默认架构, hw_architecture未指定，默认为x86_64
+image_properties_default_architecture = x86_64
 EOF
 # force_config_drive = True, It is also possible to force the config drive by specifying the img_config_drive=mandatory property in the image.
 # ########################ceph start
@@ -399,9 +414,6 @@ echo "Kibana:  http://<ctrl_addr>:5601"
 # all logs in /var/log/kolla
 cat <<'EOF_INIT' > myinit_once.sh
 #!/usr/bin/env bash
-name_server=
-img="cirros.img"
-net_name=public
 echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img"
 echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-aarch64-disk.img"
 source /etc/kolla/admin-openrc.sh
@@ -447,19 +459,8 @@ openstack flavor create --id 3 --ram 4096 --disk 40 --vcpus 2 m1.medium
 openstack flavor create --id 4 --ram 8192 --disk 80 --vcpus 4 m1.large
 openstack flavor create --id 5 --ram 16384 --disk 160 --vcpus 8 m1.xlarge
 
-openstack image show "cirros" 2>/dev/null || \
-    openstack image create "cirros" --file ${img} --disk-format qcow2 --container-format bare --public --property img_config_drive=mandatory
-
-# hw_architecture,
-# # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
-openstack image set \
-    --property img_config_drive=mandatory \
-    --property hw_firmware_type=uefi \
-    --property os_secure_boot=required \
-    --property hw_machine_type=q35 \
-    --property architecture=x86_64 \
-    --property os_type=linux \
-    cirros
+name_server=
+net_name=public
 
 openstack router create ${net_name}-router
 
@@ -495,16 +496,40 @@ openstack subnet create --ip-version 4 --no-dhcp \
 openstack router set --external-gateway ${net_name}-net ${net_name}-router
 
 # # Import key
-[ -f "testkey" ] || ssh-keygen -t ecdsa -N '' -f testkey
-openstack keypair create --public-key testkey.pub mykey
+[ -f "${KOLLA_DIR}/testkey" ] || ssh-keygen -t ecdsa -N '' -f ${KOLLA_DIR}/testkey
+openstack keypair create --public-key ${KOLLA_DIR}/testkey.pub mykey
 # 建立安全策略
 openstack security group rule create --proto icmp default
 openstack security group rule create --proto tcp --dst-port 22 default
 # openstack security group rule create --proto tcp --src-ip 0.0.0.0/0 --dst-port 1:65525 group-name
 # openstack security group rule create --proto udp --src-ip 0.0.0.0/0 --dst-port 1:65525 group-name
 # openstack security group rule create --proto icmp --src-ip 0.0.0.0/0 group-name
-# # 创建虚拟机
-openstack server create --image cirros --flavor m1.tiny --key-name mykey --network ${net_name}-net demo1
+
+arch=x86_64
+img="${KOLLA_DIR}/cirros-0.6.2-${arch}-disk.img"
+openstack image create "cirros-${arch}" --file ${img} --disk-format qcow2 --container-format bare --public --property img_config_drive=mandatory
+openstack server create --image "cirros-${arch}" --flavor m1.tiny --key-name mykey --network ${net_name}-net demo-${arch}
+
+arch=aarch64
+img="${KOLLA_DIR}/cirros-0.6.2-${arch}-disk.img"
+openstack image create "cirros-${arch}" --file ${img} --disk-format qcow2 --container-format bare --public --property img_config_drive=mandatory
+openstack image set --property hw_architecture=aarch64 "cirros-${arch}"
+openstack server create --image "cirros-${arch}" --flavor m1.tiny --key-name mykey --network ${net_name}-net demo-${arch}
+
+# hw_architecture, Use hw_architecture instead of architecture or cpu_arch.
+# # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
+# openstack image set \
+#     --property img_config_drive=mandatory \
+#     --property hw_firmware_type=uefi \
+#     --property os_secure_boot=required \
+#     --property os_type=linux \
+#     "cirros-${arch}"
+
+# openstack image set --property hw_machine_type=q35 "cirros-${arch}"
+# openstack image set --property hw_emulation_architecture=aarch64 "cirros-${arch}"
+# openstack image set --property hw_machine_type=virt "cirros-${arch}"
+
+
 
 # # 创建VOLUME one LVM/CEPH虚拟机
 openstack availability zone list
