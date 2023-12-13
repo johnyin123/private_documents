@@ -153,7 +153,7 @@ sed -i -E \
 
 # linuxbridge is *EXPERIMENTAL* in Neutron since Zed
 sed --quiet -i -E \
-    -e '/(enable_neutron_provider_networks|neutron_bridge_name|neutron_external_interface|neutron_plugin_agenti|enable_neutron_agent_ha)\s*:.*/!p' \
+    -e '/(enable_neutron_provider_networks|neutron_bridge_name|neutron_external_interface|neutron_plugin_agent|enable_neutron_agent_ha)\s*:.*/!p' \
     -e '$aenable_neutron_provider_networks: "yes"' \
     -e '$aneutron_plugin_agent: "openvswitch"'   \
     -e "\$aneutron_external_interface: \"{{ external_interface }}\"" \
@@ -415,19 +415,32 @@ kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR
 kolla-ansible -i ${KOLLA_DIR}/multinode pull
 # # 部署
 kolla-ansible -i ${KOLLA_DIR}/multinode deploy
+# if multi arch in multinode, need pull docker image first and tag to the same!!,then modify  host_arch to same, fake !!!
 # # 生成 admin-openrc.sh
 kolla-ansible -i ${KOLLA_DIR}/multinode post-deploy
 # # 单独重新部署节点
-# kolla-ansible -i ${KOLLA_DIR}/multinode --limit 172.16.1.211 reconfigure
+# kolla-ansible -i ${KOLLA_DIR}/multinode --limit 172.16.1.211,172.16.1.212 reconfigure
+# 增加一个计算节点
+kolla-ansible -i ${KOLLA_DIR}/multinode pull --limit 172.16.1.214
+kolla-ansible -i ${KOLLA_DIR}/multinode deploy --limit 172.16.1.214
+# 删除一个计算节点
+kolla-ansible -i inventory/multinode destroy --limit 172.16.1.211 --yes-i-really-really-mean-it
+openstack compute service list
+openstack compute service delete <compute ID>
+openstack network agent list
+openstack network agent delete <ID>
+# # vim multinode 去掉相关计算节点
+
 source /etc/kolla/admin-openrc.sh
+openstack hypervisor list
 openstack versions show
 echo "Horizon: http://<ctrl_addr>"
 echo "Kibana:  http://<ctrl_addr>:5601"
 # 调整日志
-# docker exec -it fluentd bash
 # all logs in /var/log/kolla
-cat <<'EOF_INIT' > myinit_once.sh
-#!/usr/bin/env bash
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# init openstack once start
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img"
 echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-aarch64-disk.img"
 source /etc/kolla/admin-openrc.sh
@@ -467,103 +480,101 @@ verify() {
     openstack volume service list
     openstack volume backend pool list
 }
-openstack flavor create --id 1 --ram 512 --disk 4 --vcpus 1 m1.tiny
-openstack flavor create --id 2 --ram 2048 --disk 20 --vcpus 1 m1.small
-openstack flavor create --id 3 --ram 4096 --disk 40 --vcpus 2 m1.medium
-openstack flavor create --id 4 --ram 8192 --disk 80 --vcpus 4 m1.large
-openstack flavor create --id 5 --ram 16384 --disk 160 --vcpus 8 m1.xlarge
-
-name_server=
-net_name=public
-
-openstack router create ${net_name}-router
-
-# physnet1 is default kolla provider name
-# docker exec -it neutron_server cat /etc/neutron/plugins/ml2/ml2_conf.ini | grep flat_networks
-# --disable-port-security \
-openstack network create --share --external \
-    --project admin \
-    --provider-physical-network physnet1 \
-    --provider-network-type flat ${net_name}-net
-
-openstack network set --disable-port-security ${net_name}-net
-
-# --no-dhcp, subnet meta service not started
-# use config drive for cloud-init
-# 1. /etc/nova/nova.conf, add force_config_drive = true
-#   [DEFAULT]
-#   force_config_drive = True
-#   [api]
-#   config_drive_skip_versions = 2018-08-27 2017-02-22
-# OR:
-# 2.openstack server create --config-drive true ..
-# OR:
-# 3.openstack create image ... --property img_config_drive=mandatory
-openstack subnet create --ip-version 4 --no-dhcp \
-    --project admin \
-    --network ${net_name}-net \
-    ${name_server:+--dns-nameserver ${name_server}} \
-    --allocation-pool start=172.16.3.9,end=172.16.3.19 \
-    --subnet-range 172.16.0.0/21 \
-    --gateway 172.16.0.1 ${net_name}-subnet
-
-openstack router set --external-gateway ${net_name}-net ${net_name}-router
-
+create_flavor() {
+    openstack flavor create --id 1 --ram 512 --disk 5 --vcpus 1 m1.tiny
+    openstack flavor create --id 2 --ram 2048 --disk 20 --vcpus 1 m1.small
+    openstack flavor create --id 3 --ram 4096 --disk 40 --vcpus 2 m1.medium
+    openstack flavor create --id 4 --ram 8192 --disk 80 --vcpus 4 m1.large
+    openstack flavor create --id 5 --ram 16384 --disk 160 --vcpus 8 m1.xlarge
+}
+create_pubnet() {
+    local net_name=${1}
+    local bool_enable_port_security=${2:-false}
+    local name_server=${3:-}
+    local net_start=${4:-172.16.3.9}
+    local net_end=${5:-172.16.3.19}
+    local subnet=${6:-172.16.0.0/21}
+    local gateway=${7:-172.16.0.1}
+    openstack router create ${net_name}-router
+    # physnet1 is default kolla provider name
+    # docker exec -it neutron_server cat /etc/neutron/plugins/ml2/ml2_conf.ini | grep flat_networks
+    openstack network create --share --external --project admin \
+        --provider-physical-network physnet1 --provider-network-type flat \
+        ${net_name}-net
+    ${bool_enable_port_security} && openstack network set --enable-port-security ${net_name}-net || openstack network set --disable-port-security ${net_name}-net
+    # --no-dhcp, subnet meta service not started, use config drive for cloud-init
+    # openstack server create --config-drive true .. / openstack create image ... --property img_config_drive=mandatory
+    openstack subnet create --ip-version 4 --no-dhcp --project admin ${name_server:+--dns-nameserver ${name_server}} \
+        --allocation-pool start=${net_start},end=${net_end} --subnet-range ${subnet} --gateway ${gateway} \
+        --network ${net_name}-net ${net_name}-subnet
+    openstack router set --external-gateway ${net_name}-net ${net_name}-router
+    ${bool_enable_port_security} &&  {
+        openstack security group rule create --proto icmp default
+        openstack security group rule create --proto tcp --dst-port 22 default
+        # openstack security group rule create --proto tcp --src-ip 0.0.0.0/0 --dst-port 1:65525 group-name
+    }
+}
+create_image() {
+    local img_name=${1}
+    local img=${2}
+    local arch=${3}
+    local bool_dhcp=${4:-false}
+    openstack image create "${img_name}" --file ${img} --disk-format qcow2 --container-format bare --public
+    ${bool_dhcp} || openstack image set --property img_config_drive=mandatory "${img_name}"
+    case "${KVM}" in
+        kvm)  openstack image set --property hw_architecture=${arch} "${img_name}";;
+        qemu)
+            case "${arch}" in
+                aarch64)
+                    openstack image set --property hw_machine_type=virt "${img_name}"
+                    openstack image set --property hw_firmware_type=uefi "${img_name}"
+                    ;;
+                x86_64)  openstack image set --property hw_machine_type=pc "${img_name}";;
+            esac
+            ;;
+    esac
+    # # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
+    # # https://docs.openstack.org/ocata/cli-reference/glance-property-keys.html
+    echo "img_config_drive=mandatory"
+    echo "hw_architecture=    ###kvm full virtualization arch###"
+    echo "hw_firmware_type=uefi"
+    echo "os_secure_boot=required"
+    echo "os_type=linux"
+    echo "hw_emulation_architecture=aarch64"
+    echo "hw_video_type=virtio"
+    echo "hw_video_type (specific to s390x)"
+}
+create_flavor
+create_pubnet "public" "false" "114.114.114.114" "172.16.3.2" "172.16.3.19" "172.16.0.0/21" "172.16.0.1"
+create_image "cirros_x86" "${KOLLA_DIR}/cirros-0.6.2-x86_64-disk.img" "x86_64" "true"
+create_image "cirros_arm" "${KOLLA_DIR}/cirros-0.6.2-aarch64-disk.img" "aarch64" "false"
 # # Import key
 [ -f "${KOLLA_DIR}/testkey" ] || ssh-keygen -t ecdsa -N '' -f ${KOLLA_DIR}/testkey
 openstack keypair create --public-key ${KOLLA_DIR}/testkey.pub mykey
-# 建立安全策略
-openstack security group rule create --proto icmp default
-openstack security group rule create --proto tcp --dst-port 22 default
-# openstack security group rule create --proto tcp --src-ip 0.0.0.0/0 --dst-port 1:65525 group-name
-# openstack security group rule create --proto udp --src-ip 0.0.0.0/0 --dst-port 1:65525 group-name
-# openstack security group rule create --proto icmp --src-ip 0.0.0.0/0 group-name
-
-arch=x86_64
-img="${KOLLA_DIR}/cirros-0.6.2-${arch}-disk.img"
-openstack image create "cirros-${arch}" --file ${img} --disk-format qcow2 --container-format bare --public --property img_config_drive=mandatory
-openstack server create --image "cirros-${arch}" --flavor m1.tiny --key-name mykey --network ${net_name}-net demo-${arch}
-
-arch=aarch64
-img="${KOLLA_DIR}/cirros-0.6.2-${arch}-disk.img"
-openstack image create "cirros-${arch}" --file ${img} --disk-format qcow2 --container-format bare --public --property img_config_drive=mandatory
-openstack image set --property hw_architecture=aarch64 "cirros-${arch}"
-openstack server create --image "cirros-${arch}" --flavor m1.tiny --key-name mykey --network ${net_name}-net demo-${arch}
-
-# hw_architecture, Use hw_architecture instead of architecture or cpu_arch.
-# # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
-# openstack image set \
-#     --property img_config_drive=mandatory \
-#     --property hw_firmware_type=uefi \
-#     --property os_secure_boot=required \
-#     --property os_type=linux \
-#     "cirros-${arch}"
-
-# openstack image set --property hw_machine_type=q35 "cirros-${arch}"
-# openstack image set --property hw_emulation_architecture=aarch64 "cirros-${arch}"
-# openstack image set --property hw_machine_type=virt "cirros-${arch}"
-
-
-
-# # 创建VOLUME one LVM/CEPH虚拟机
-openstack availability zone list
-openstack volume create --image cirros --bootable --size 1 --availability-zone nova test_vol
-openstack volume list
-openstack server create --volume test_vol --flavor m1.tiny --key-name mykey --network ${net_name}-net demo_volume
-# # multi cinder backend!!!
-openstack volume backend pool list
-# +--------------------+
-# | Name               |
-# +--------------------+
-# | c1-lvm@rbd-1#rbd-1 |
-# | c1-lvm@lvm-1#lvm-1 |
-# +--------------------+
-openstack --os-username admin --os-tenant-name admin volume type create lvm
-openstack --os-username admin --os-tenant-name admin volume type set lvm --property volume_backend_name=lvm-1
-openstack --os-username admin --os-tenant-name admin volume type create myceph
-openstack --os-username admin --os-tenant-name admin volume type set myceph --property volume_backend_name=rbd-1
-openstack volume create --image cirros --bootable --size 1 --type lvm test_lvm
-openstack --os-username admin --os-tenant-name admin volume type list --long
+openstack server create --image "cirros_x86" --flavor m1.tiny --key-name mykey --network public-net demo-x86
+openstack server create --image "cirros_arm" --flavor m1.tiny --key-name mykey --network public-net demo-arm
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# init openstack once end
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # 创建VOLUME one LVM/CEPH虚拟机
+# openstack availability zone list
+# openstack volume create --image cirros --bootable --size 1 --availability-zone nova test_vol
+# openstack volume list
+# openstack server create --volume test_vol --flavor m1.tiny --key-name mykey --network ${net_name}-net demo_volume
+# # # multi cinder backend!!!
+# openstack volume backend pool list
+# # +--------------------+
+# # | Name               |
+# # +--------------------+
+# # | c1-lvm@rbd-1#rbd-1 |
+# # | c1-lvm@lvm-1#lvm-1 |
+# # +--------------------+
+# openstack --os-username admin --os-tenant-name admin volume type create lvm
+# openstack --os-username admin --os-tenant-name admin volume type set lvm --property volume_backend_name=lvm-1
+# openstack --os-username admin --os-tenant-name admin volume type create myceph
+# openstack --os-username admin --os-tenant-name admin volume type set myceph --property volume_backend_name=rbd-1
+# openstack volume create --image cirros --bootable --size 1 --type lvm test_lvm
+# openstack --os-username admin --os-tenant-name admin volume type list --long
 # # # quota project
 # # 40 instances
 # openstack quota set --instances 40 ${PROJECT_ID}
@@ -571,8 +582,6 @@ openstack --os-username admin --os-tenant-name admin volume type list --long
 # openstack quota set --cores 40 ${PROJECT_ID}
 # # 96gb ram
 # openstack quota set --ram 96000 ${PROJECT_ID}
-verify
-EOF_INIT
 cat <<'DEMO'
 # 配置超卖
 # /etc/kolla/config/nova/myhost/nova.conf
@@ -584,33 +593,6 @@ cpu_allocation_ratio=10.0
 # disk_allocation_ratio=2.0
 EOF
 kolla-ansible -i kolla-ansible/ansible/inventory/all-in-one  reconfigure --tags nova
-
-# 查看openstack相关信息
-openstack service list
-openstack compute service list
-openstack volume service list
-openstack network agent list
-openstack hypervisor list
-# 建立provider network
-openstack network create --share --external --provider-physical-network physnet1 --provider-network-type flat provider
-openstack subnet create --network provider --allocation-pool start=192.168.100.221,end=192.168.100.230 --dns-nameserver 114.114.114.114 --gateway 192.168.100.1 --subnet-range 192.168.100.0/24 provider
-# 建立selfservice network
-openstack network create selfservice
-openstack subnet create --network selfservice --dns-nameserver 114.114.114.114 --gateway 192.168.240.1 --subnet-range 192.168.240.0/24 selfservice
-# 建立虚拟路由
-openstack router create router
-# 连接内外网络
-openstack router add subnet router selfservice
-openstack router set router --external-gateway provider
-openstack port list
-# 建立sshkey
-openstack keypair create --public-key ~/.ssh/id_rsa.pub mykey
-# 建立安全策略
-openstack security group rule create --proto icmp default
-openstack security group rule create --proto tcp --dst-port 22 default
-# 建立虚拟机
-openstack server create --flavor m1.nano --image cirros-0.5.2-x86_64 --nic net-id=fe172dec-0522-472a-aed4-da70f6c269a6 --security-group default --key-name mykey  provider-instance-01
-openstack server create --flavor m1.nano --image cirros-0.5.2-x86_64 --nic net-id=c30c5057-607d-4736-acc9-31927cc9a22c --security-group default --key-name mykey  selfservice-instance-01
 # 指派对外服务ip
 openstack floating ip create provider
 openstack floating ip list
@@ -636,28 +618,9 @@ iptables -t nat -D PREROUTING -i eth0 -p tcp --dport 1022 -j DNAT --to 192.168.1
 # EXT_NET_RANGE='start=172.16.3.9,end=172.16.3.199' \
 # EXT_NET_GATEWAY=172.16.0.1 \
 # ${KOLLA_DIR}/init-runonce
-# # 验证 nova 服务
-openstack compute service list
-openstack compute agent list
-# # 验证 neutron agent 服务
-openstack network agent list
-docker ps | grep nova
-docker exec -it nova_libvirt /bin/bash
 DEMO
 cat<<'EOF'
-docker exec -it fluentd bash
 # all logs in /var/log/kolla
-# 增加一个计算节点
-kolla-ansible -i ${KOLLA_DIR}/multinode bootstrap-servers --limit compute02
-kolla-ansible -i ${KOLLA_DIR}/multinode pull --limit compute02
-kolla-ansible -i ${KOLLA_DIR}/multinode deploy --limit compute02
-# 删除一个计算节点
-kolla-ansible -i inventory/multinode destroy --limit compute02 --yes-i-really-really-mean-it
-openstack compute service list
-openstack compute service delete <compute ID>
-openstack network agent list
-openstack network agent delete <ID>
-# # vim multinode 去掉相关计算节点
 # 部署失败
 kolla-ansible destroy --yes-i-really-really-mean-it
 # 只部署某些组件
@@ -675,7 +638,10 @@ kolla-ansible deploy --skip-tags="haproxy"
 ansible -i multinode all -m shell -a 'docker stop mariadb'
 ansible -i multinode all -m shell -a "sed -i 's/safe_to_bootstrap: 0/safe_to_bootstrap: 1/g' /var/lib/docker/volumes/mariadb/_data/grastate.dat"
 kolla-ansible mariadb_recovery -i multinode
+docker ps | grep nova
 docker exec -it -u root mariadb /bin/bash
+docker exec -it nova_libvirt /bin/bash
+docker exec -it fluentd bash
 EOF
 cat <<'SKYLINE'
 kolla-ansible -i ${KOLLA_DIR}/multinode prechecks -t skyline
