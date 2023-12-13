@@ -184,7 +184,11 @@ sed -i -E \
 grep '^[^#]' /etc/kolla/globals.yml
 grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
 # 配置nova文件, virth_type kvm/qemu, 加入超卖
-# # sed -i "s/cpu_mode.*/cpu_mode = none/g" /etc/kolla/nova-compute/nova.conf
+# cpu_mode :host-model, host-passthrough, custom, none
+# https://docs.openstack.org/nova/latest/admin/cpu-models.html
+# # aarch64 openeuler qemu mode, use "max" cpu model!!
+# crudini --set /etc/kolla/nova-compute/nova.conf  "libvirt" "cpu_mode" "custom"
+# crudini --set /etc/kolla/nova-compute/nova.conf  "libvirt" "cpu_models" "max"
 # # docker restart nova_compute
 # cfg_file=/etc/kolla/config/nova/172.16.1.214/nova.conf
 # mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
@@ -217,7 +221,6 @@ cpu_allocation_ratio=10.0
 
 [libvirt]
 virt_type = ${KVM:-kvm}
-cpu_mode = none
 EOF
 # 关闭创建新卷
 cfg_file=/etc/kolla/config/horizon/custom_local_settings
