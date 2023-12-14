@@ -6,15 +6,17 @@
 #   docker tag ${image}:${tag} localhost:4000/${newimg}:${tag}
 #   docker push localhost:4000/${newimg}:${tag}
 # done
+insec_registry=10.170.6.105:5000
+########################################
+CONTROLLER=(172.16.1.210)
+COMPUTE=(172.16.1.211 172.16.1.212 172.16.1.214)
+INT_VIP_ADDR=172.16.1.213
+########################################
 KVM=qemu
 # https://releases.openstack.org/
 OPENSTACK_VER=master
 KOLLA_DIR=/kolla
 ADMIN_PASS=Admin@2023
-insec_registry=10.170.6.105:5000
-CONTROLLER=(172.16.1.210)
-COMPUTE=(172.16.1.211 172.16.1.212)
-INT_VIP_ADDR=172.16.1.213
 HAPROXY=yes
 WEBUI_SKYLINE=no
 WEBUI_HORIZON=yes
@@ -43,7 +45,6 @@ sed --quiet -i -E \
     -e '/(127.0.0.1\s*).*/!p' \
     -e '$a127.0.0.1 localhost' \
     /etc/hosts
-# # ADD OTHER NODES /etc/hosts
 systemctl daemon-reload
 systemctl restart docker
 systemctl enable docker
@@ -53,8 +54,12 @@ systemctl enable docker
     pvcreate /dev/vdb
     vgcreate ${VG_NAME} /dev/vdb
 }
-# # # # # # # all (compute/controller) node end
 mkdir -p ${KOLLA_DIR} && python3 -m venv ${KOLLA_DIR}/venv3 && source ${KOLLA_DIR}/venv3/bin/activate
+# # # # # # # all (compute/controller) node end
+[ -f "${HOME:-~}/.ssh/id_rsa" ] || ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
+echo "echo '$(cat ~/.ssh/id_rsa.pub)' >> ~/.ssh/authorized_keys"
+# ssh -p60022 localhost "true" || echo "ssh-copy-id"
+# cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 # # # # # # # offline start
 cat <<EOF
 pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ --upgrade pip
@@ -110,94 +115,112 @@ crudini --del ${KOLLA_DIR}/multinode monitoring
 crudini --del ${KOLLA_DIR}/multinode storage
 crudini --del ${KOLLA_DIR}/multinode deployment
 # 192.168.122.24 ansible_ssh_user=<ssh-username> ansible_become=True ansible_private_key_file=<path/to/private-key-file>
-for node in ${CONTROLLER[@]}; do
-    crudini --set ${KOLLA_DIR}/multinode control "${node}"
-done
-for node in ${COMPUTE[@]}; do
-    crudini --set ${KOLLA_DIR}/multinode network "${node}"
-    crudini --set ${KOLLA_DIR}/multinode compute "${node}"
-    [ -z "${VG_NAME:-}" ] || crudini --set ${KOLLA_DIR}/multinode storage "${node}"
-done
 crudini --set ${KOLLA_DIR}/multinode storage     # no storage
 crudini --set ${KOLLA_DIR}/multinode monitoring  # no monitoring
 crudini --set ${KOLLA_DIR}/multinode deployment  "localhost ansible_connection=local"
-
-for node in ${CONTROLLER[@]} ${COMPUTE[@]}; do
-    crudini --set ${KOLLA_DIR}/multinode all "${node} host_arch=-aarch64 uselvm=yes ansible_port=60022 ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3"
+for node in ${CONTROLLER[@]}; do
+    crudini --set ${KOLLA_DIR}/multinode control "${node} host_arch=-aarch64 uselvm=yes"
 done
-crudini --set ${KOLLA_DIR}/multinode all:vars "uselvm=no"
-crudini --set ${KOLLA_DIR}/multinode all:vars "net_if=eth0"
-crudini --set ${KOLLA_DIR}/multinode all:vars "virt_type=${KVM:-kvm}"
+for node in ${COMPUTE[@]}; do
+    crudini --set ${KOLLA_DIR}/multinode network "${node} host_arch=-aarch64 uselvm=yes"
+    crudini --set ${KOLLA_DIR}/multinode compute "${node} host_arch=-aarch64 uselvm=yes"
+done
+for node in ${CONTROLLER[@]} ${COMPUTE[@]}; do
+    crudini --set ${KOLLA_DIR}/multinode all "${node} host_arch=-aarch64 uselvm=yes"
+done
+crudini --set ${KOLLA_DIR}/multinode all:vars "ansible_port=60022"
+crudini --set ${KOLLA_DIR}/multinode all:vars "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3"
 crudini --set ${KOLLA_DIR}/multinode all:vars "openstack_version=${OPENSTACK_VER:-master}"
+crudini --set ${KOLLA_DIR}/multinode all:vars "virt_type=${KVM:-kvm}"
+crudini --set ${KOLLA_DIR}/multinode all:vars "net_if=eth0"
 crudini --set ${KOLLA_DIR}/multinode all:vars "external_interface=eth1"
-crudini --set ${KOLLA_DIR}/multinode all:vars "host_arch="
-# # Deploy All-In-One
+crudini --set ${KOLLA_DIR}/multinode all:vars "vip_addr=${INT_VIP_ADDR:-192.168.1.100}"
+crudini --set ${KOLLA_DIR}/multinode all:vars "use_haproxy=${HAPROXY:-yes}"
+crudini --set ${KOLLA_DIR}/multinode all:vars "uselvm=no"
+crudini --set ${KOLLA_DIR}/multinode all:vars "useceph=no"
+crudini --set ${KOLLA_DIR}/multinode all:vars "web_skyline=${WEBUI_SKYLINE:-no}"
+crudini --set ${KOLLA_DIR}/multinode all:vars "web_horizon=${WEBUI_HORIZON:-yes}"
+# # Deploy All-In-One/multinode
 # openstack_tag_suffix: "-aarch64"
 sed --quiet -i -E \
     -e '/(openstack_tag_suffix)\s*:.*/!p' \
     -e '$aopenstack_tag_suffix: "{{ host_arch }}"' \
     /etc/kolla/globals.yml
 
-sed -i -E \
-    -e "s/^\s*#*config_strategy\s*:.*/config_strategy: \"COPY_ALWAYS\"/g"   \
-    -e "s/^\s*#*kolla_base_distro\s*:.*/kolla_base_distro: \"ubuntu\"/g"    \
-    -e "s/^\s*#*network_interface\s*:.*/network_interface: \"{{ net_if }}\"/g"      \
-    -e "s/^\s*#*nova_compute_virt_type\s*:.*/nova_compute_virt_type: \"{{ virt_type }}\"/g"       \
-    -e "s/^\s*#*openstack_release\s*:.*/openstack_release: \"{{ openstack_version }}\"/g"       \
+sed --quiet -i -E \
+    -e '/(config_strategy|kolla_base_distro|network_interface|nova_compute_virt_type|openstack_release)\s*:.*/!p' \
+    -e "\$aconfig_strategy: \"COPY_ALWAYS\""   \
+    -e "\$akolla_base_distro: \"ubuntu\""    \
+    -e "\$anetwork_interface: \"{{ net_if }}\""      \
+    -e "\$anova_compute_virt_type: \"{{ virt_type }}\""       \
+    -e "\$aopenstack_release: \"{{ openstack_version }}\""       \
     /etc/kolla/globals.yml
 
-sed -i -E \
-    -e "s/^\s*#*enable_skyline\s*:.*/enable_skyline: \"${WEBUI_SKYLINE:-no}\"/g"  \
-    -e "s/^\s*#*enable_horizon\s*:.*/enable_horizon: \"${WEBUI_HORIZON:-yes}\"/g"  \
+sed --quiet -i -E \
+    -e '/(enable_skyline|enable_horizon)\s*:.*/!p' \
+    -e "\$aenable_skyline: \"{{ web_skyline }}\""  \
+    -e "\$aenable_horizon: \"{{ web_horizon }}\""  \
     /etc/kolla/globals.yml
 
 # linuxbridge is *EXPERIMENTAL* in Neutron since Zed
 sed --quiet -i -E \
-    -e '/(enable_neutron_provider_networks|neutron_bridge_name|neutron_external_interface|neutron_plugin_agent|enable_neutron_agent_ha)\s*:.*/!p' \
+    -e '/(enable_neutron_provider_networks|neutron_external_interface|neutron_plugin_agent|enable_neutron_agent_ha)\s*:.*/!p' \
     -e '$aenable_neutron_provider_networks: "yes"' \
     -e '$aneutron_plugin_agent: "openvswitch"'   \
     -e "\$aneutron_external_interface: \"{{ external_interface }}\"" \
     -e '$aenable_neutron_agent_ha: "yes"'        \
     /etc/kolla/globals.yml
 
-[ -z ${insec_registry} ] || sed -i -E \
-    -e "s/^\s*#*docker_registry\s*:.*/docker_registry: \"${insec_registry}\"/g"  \
-    -e "s/^\s*#*docker_registry_insecure\s*:.*/docker_registry_insecure: \"yes\"/g" \
-    -e "s/^\s*#*docker_namespace\s*:.*/docker_namespace: \"kolla\"/g" \
+sed --quiet -i -E \
+    -e '/(docker_registry|docker_registry_insecure|docker_namespace)\s*:.*/!p' \
+    -e "\$adocker_registry: \"${insec_registry:-docker.io}\""  \
+    -e "\$adocker_registry_insecure: \"yes\"" \
+    -e "\$adocker_namespace: \"kolla\"" \
     /etc/kolla/globals.yml
 
 # # Deploy HA Cluster
 # simply change three more settings to deploy a HA cluster.
 # a free static IP for the external cluster VIP on your local subnet. Make sure to adjust it to match your local subnet.
-sed -i -E \
-    -e "s/^\s*#*enable_haproxy\s*:.*/enable_haproxy: \"${HAPROXY}\"/g"  \
-    -e "s/^\s*#*kolla_internal_vip_address\s*:.*/kolla_internal_vip_address: \"${INT_VIP_ADDR}\"/g"  \
-    -e "s/^\s*#*kolla_external_vip_address\s*:.*/kolla_external_vip_address: \"${INT_VIP_ADDR}\"/g"  \
+sed --quiet -i -E \
+    -e '/(enable_haproxy|kolla_internal_vip_address|kolla_external_vip_address)\s*:.*/!p' \
+    -e "\$aenable_haproxy: \"{{ use_haproxy }}\""  \
+    -e "\$akolla_internal_vip_address: \"{{ vip_addr }}\""  \
+    -e "\$akolla_external_vip_address: \"{{ vip_addr }}\""  \
     /etc/kolla/globals.yml
 # Block Storage service, use LVM cinder
-[ -z "${VG_NAME:-}" ] || sed -i -E \
-    -e "s/^\s*#*enable_cinder\s*:.*/enable_cinder: \"yes\"/g"  \
-    -e "s/^\s*#*enable_cinder_backup\s*:.*/enable_cinder_backup: \"yes\"/g"  \
-    -e "s/^\s*#*enable_cinder_backend_lvm\s*:.*/enable_cinder_backend_lvm: \"{{ uselvm }}\"/g"  \
-    -e "s/^\s*#*cinder_volume_group\s*:.*/cinder_volume_group: \"${VG_NAME}\"/g"  \
+sed --quiet -i -E \
+    -e '/(enable_cinder|enable_cinder_backup|enable_cinder_backend_lvm|cinder_volume_group)\s*:.*/!p' \
+    -e "\$aenable_cinder: \"{{ uselvm | bool or useceph | bool }}\""  \
+    -e "\$aenable_cinder_backup: \"yes\""  \
+    -e "\$aenable_cinder_backend_lvm: \"{{ uselvm }}\""  \
+    -e "\$acinder_volume_group: \"${VG_NAME:-cinder-volumes}\""  \
     /etc/kolla/globals.yml
 grep '^[^#]' /etc/kolla/globals.yml
 grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
 # 配置nova文件, virth_type kvm/qemu, 加入超卖
+for node in ${COMPUTE[@]}; do
+    cfg_file=/etc/kolla/config/nova/${node}/nova.conf
+    mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+[DEFAULT]
+ram_allocation_ratio=2.0
+cpu_allocation_ratio=10.0
+# disk_allocation_ratio=2.0
+
+[libvirt]
+virt_type = ${KVM:-kvm}
+# # x86_64 qemu mode. use none
+# cpu_mode=none
+# # aarch64 openeuler qemu mode, use "max" cpu model!!
+# cpu_mode=custom
+# cpu_models=max
+EOF
+done
 # cpu_mode :host-model, host-passthrough, custom, none
 # https://docs.openstack.org/nova/latest/admin/cpu-models.html
 # # aarch64 openeuler qemu mode, use "max" cpu model!!
 # crudini --set /etc/kolla/nova-compute/nova.conf  "libvirt" "cpu_mode" "custom"
 # crudini --set /etc/kolla/nova-compute/nova.conf  "libvirt" "cpu_models" "max"
 # # docker restart nova_compute
-# cfg_file=/etc/kolla/config/nova/172.16.1.214/nova.conf
-# mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-# [scheduler]
-# image_metadata_prefilter = True
-# [filter_scheduler]
-# # 镜像属性过滤器时要使用的默认架构, hw_architecture未指定，默认为x86_64
-# image_properties_default_architecture = x86_64
-# EOF
 # If you set the virt_type to qemu then nova will report all the supported archs as compute capability
 # Currently, in many places, Nova's libvirt driver makes decisions on how
 # to configure guest XML based on *host* CPU architecture
@@ -211,7 +234,14 @@ grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
 # arbitrarily scheduled on hosts that are incapable of hardware
 # acceleration, thus losing out on performance-related benefits
 # virt_type = ${KVM:-kvm}
-
+cfg_file=/etc/kolla/config/nova.conf
+mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+[scheduler]
+image_metadata_prefilter = True
+[filter_scheduler]
+# 镜像属性过滤器时要使用的默认架构, hw_architecture未指定，默认为x86_64
+image_properties_default_architecture = x86_64
+EOF
 cfg_file=/etc/kolla/config/nova/nova-compute.conf
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [DEFAULT]
@@ -240,18 +270,6 @@ mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 # network_vlan_ranges = physnet1:100:200
 # [ml2_type_vxlan]
 # [ml2_type_flat]
-EOF
-cfg_file=/etc/kolla/config/nova.conf
-mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-# [DEFAULT]
-# force_config_drive = True
-# ram_allocation_ratio = 2.0
-# cpu_allocation_ratio = 10.0
-[scheduler]
-image_metadata_prefilter = True
-[filter_scheduler]
-# 镜像属性过滤器时要使用的默认架构, hw_architecture未指定，默认为x86_64
-image_properties_default_architecture = x86_64
 EOF
 # force_config_drive = True, It is also possible to force the config drive by specifying the img_config_drive=mandatory property in the image.
 # ########################ceph start
@@ -402,14 +420,8 @@ EOF
 
 kolla-genpwd
 # 修改登录密码
-sed -i "s/.*keystone_admin_password.*$/keystone_admin_password: ${ADMIN_PASS}/g" /etc/kolla/passwords.yml
+sed -i "s/.*keystone_admin_password.*$/keystone_admin_password: ${ADMIN_PASS:-password}/g" /etc/kolla/passwords.yml
 grep keystone_admin_password /etc/kolla/passwords.yml #admin和dashboard的密码
-
-[ -f "${HOME:-~}/.ssh/id_rsa" ] || ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
-echo "echo '$(cat ~/.ssh/id_rsa.pub)' >> ~/.ssh/authorized_keys"
-# ssh -p60022 localhost "true" || echo "ssh-copy-id"
-# cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
-
 # # 各节点依赖安装
 # kolla-ansible install-deps # Install Ansible Galaxy requirements, bootstrap-servers will failed
 # kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode bootstrap-servers
@@ -418,7 +430,6 @@ kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR
 kolla-ansible -i ${KOLLA_DIR}/multinode pull
 # # 部署
 kolla-ansible -i ${KOLLA_DIR}/multinode deploy
-# if multi arch in multinode, need pull docker image first and tag to the same!!,then modify  host_arch to same, fake !!!
 # # 生成 admin-openrc.sh
 kolla-ansible -i ${KOLLA_DIR}/multinode post-deploy
 # # 单独重新部署节点
@@ -447,42 +458,6 @@ echo "Kibana:  http://<ctrl_addr>:5601"
 echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img"
 echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-aarch64-disk.img"
 source /etc/kolla/admin-openrc.sh
-verify() {
-    echo "============== VERIFY: Verify Neutron installation"
-    openstack extension list --network
-    openstack network agent list
-    echo "============== VERIFY: Verify Nova Installation"
-    echo "============== VERIFY: List service components to verify successful launch and registration of each process"
-    openstack compute service list
-    openstack catalog list
-    openstack image list
-    echo "============== VERIFY: verify glance installation"
-    openstack image list
-    echo "============== VERIFY: Verify Keystone Installation"
-    openstack project list
-    openstack user list
-    openstack service list
-    openstack role list
-    openstack endpoint list
-    echo "============== VERIFY: openstack service list"
-    openstack service list
-    echo "============== VERIFY: openstack compute service list"
-    openstack compute service list|| true
-    echo "============== VERIFY: openstack network agent list"
-    openstack network agent list || true
-    echo "============== VERIFY: openstack network list"
-    openstack network list || true
-    echo "============== VERIFY: openstack subnet list"
-    openstack subnet list || true
-    echo "============== VERIFY: openstack image list"
-    openstack image list || true
-    echo "============== VERIFY: openstack flavor list"
-    openstack flavor list || true
-    echo "============== VERIFY: openstack extension list --network"
-    openstack hypervisor list || true
-    openstack volume service list
-    openstack volume backend pool list
-}
 create_flavor() {
     openstack flavor create --id 1 --ram 512 --disk 5 --vcpus 1 m1.tiny
     openstack flavor create --id 2 --ram 2048 --disk 20 --vcpus 1 m1.small
@@ -524,7 +499,7 @@ create_image() {
     local bool_dhcp=${4:-false}
     openstack image create "${img_name}" --file ${img} --disk-format qcow2 --container-format bare --public
     ${bool_dhcp} || openstack image set --property img_config_drive=mandatory "${img_name}"
-    case "${KVM}" in
+    case "${KVM:-kvm}" in
         kvm)  openstack image set --property hw_architecture=${arch} "${img_name}";;
         qemu)
             case "${arch}" in
