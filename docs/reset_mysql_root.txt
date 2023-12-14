@@ -1,0 +1,14 @@
+systemctl stop mariadb
+systemctl stop mysql
+# Restart the Database in a safe mode
+mysqld_safe --skip-grant-tables --skip-networking &
+mysql -u root
+# Reset MariaDB/MySQL root Password
+FLUSH PRIVILEGES;
+update mysql.user set password=PASSWORD("StrongPASSW0rd") where user='root';
+FLUSH PRIVILEGES;
+quit
+# Stop the Database Service
+mysqladmin -u root -p shutdown
+# Start the Database Service
+systemctl start mariadb
