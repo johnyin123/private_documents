@@ -426,6 +426,70 @@ Manila: 共享文件服务
     Copy Ceph keyring to /etc/kolla/config/manila/<ceph_manila_keyring>
 EOF
 # ########################ceph end
+cat <<'EXTERN_MYSQL'
+# https://docs.openstack.org/kolla-ansible/latest/reference/databases/external-mariadb-guide.html
+# Enabling External MariaDB support
+# # add MariaDB hosts, all nodes!!!
+mariadb_ip=172.16.1.210
+mariadb_fqdn=openstack.mydb.local
+mariadb_user=dbuser
+mariadb_pass=PAssw0rd
+
+crudini --del ${KOLLA_DIR}/multinode "mariadb"
+crudini --set ${KOLLA_DIR}/multinode "mariadb" "${mariadb_fqdn}"
+
+sed --quiet -i -E \
+    -e '/\s(openstack.mydb.local)\s*.*/!p' \
+    -e "\$a${mariadb_ip} ${mariadb_fqdn}' \
+    /etc/hosts
+
+sed --quiet -i -E \
+    -e '/(enable_mariadb|database_address|enable_external_mariadb_load_balancer)\s*:.*/!p' \
+    -e '$aenable_mariadb: "no"' \
+    -e "\$adatabase_address: \"${mariadb_fqdn}\"" \
+    -e '$aenable_external_mariadb_load_balancer: "no"' \
+    /etc/kolla/globals.yml
+
+sed --quiet -i -E \
+    -e '/(use_preconfigured_databases|use_common_mariadb_user|database_user)\s*:.*/!p' \
+    -e '$ause_preconfigured_databases: "yes"' \
+    -e '$ause_common_mariadb_user: "yes"' \
+    -e "\$adatabase_user: \"${mariadb_user}\"" \
+    /etc/kolla/globals.yml
+
+grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
+sed -i -r -e "s/([a-z_]{0,}database_password:+)(.*)$/\1 ${mariadb_pass}/gi" /etc/kolla/passwords.yml
+
+create_mysql_db() {
+    local db=${1}
+    local user=${2}
+    local pass=${3}
+    echo "Add a User [${user}/${pass}] and Database [${db}] on MariaDB."
+    cat <<EOF | mysql ${MYSQL_PASS:+"-uroot -p${MYSQL_PASS}"}
+DROP DATABASE IF EXISTS ${db};
+CREATE DATABASE ${db} CHARACTER SET utf8;
+GRANT ALL PRIVILEGES ON ${db}.* TO '${user}'@'localhost' IDENTIFIED BY '${pass}';
+GRANT ALL PRIVILEGES ON ${db}.* TO '${user}'@'%' IDENTIFIED BY '${pass}';
+FLUSH PRIVILEGES;
+EOF
+}
+DATABASES=(cinder keystone glance nova nova_api nova_cell0 placement neutron neutron_ml2 heat)
+for db in ${DATABASES[@]}; do
+    create_mysql_db "${db}" "${mariadb_user}" "${mariadb_pass}"
+done
+
+backup: deploy node
+    tar cv /etc/kolla | gzip > kolla.bak.tgz
+    mysqldump -u root -p --all-databases | gzip > kolla_db.sql.tgz
+restore kolla:
+    tar xvf kolla.bak.tgz
+    deploy OpenStack
+    mysql -u root -p < kolla_db.sql
+
+# kolla-ansible -i ${KOLLA_DIR}/multinode reconfigure -t mariadb
+# kolla-ansible -i ${KOLLA_DIR}/multinode mariadb_backup
+# ls -l /var/lib/docker/volumes/mariadb_backup/_data
+EXTERN_MYSQL
 
 kolla-genpwd
 # 修改登录密码
@@ -463,18 +527,15 @@ remove_compute_node() {
     kolla-ansible -i ${KOLLA_DIR}/multinode destroy --yes-i-really-really-mean-it --limit ${host}
     # # vim multinode 去掉相关计算节点
 }
-#
 # Server instances are not automatically balanced onto the new compute nodes.
 # It may be helpful to live migrate some server instances onto the new hosts.
 # openstack server migrate <server> --live-migration --host <target host> --os-compute-api-version 2.30
-
-
 source /etc/kolla/admin-openrc.sh
 openstack hypervisor list
 openstack versions show
 echo "Horizon: http://<ctrl_addr>"
 echo "Kibana:  http://<ctrl_addr>:5601"
-# 调整日志
+echo "skyline: http://<ctrl_addr>:9999"
 # all logs in /var/log/kolla
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # init openstack once start
@@ -586,40 +647,16 @@ openstack server create --image "cirros_arm" --flavor m1.tiny --key-name mykey -
 # openstack quota set --ram 96000 ${PROJECT_ID}
 cat <<'DEMO'
 # 配置超卖
-# /etc/kolla/config/nova/myhost/nova.conf
-cfg_file=/etc/kolla/config/nova.conf
-mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-[DEFAULT]
-ram_allocation_ratio=2.0
-cpu_allocation_ratio=10.0
-# disk_allocation_ratio=2.0
-EOF
 kolla-ansible -i kolla-ansible/ansible/inventory/all-in-one  reconfigure --tags nova
 # 指派对外服务ip
 openstack floating ip create provider
 openstack floating ip list
 openstack server add floating ip selfservice-instance-01 10.0.100.227
 openstack server list
-# 私有云映射方法
-iptables -t nat -A PREROUTING -i eth0 -p tcp --dport 1022 -j DNAT --to 192.168.122.231:22
-iptables -t nat -D PREROUTING -i eth0 -p tcp --dport 1022 -j DNAT --to 192.168.122.231:22
-
 # # network node check ns
 # openstack port list # # router/dhcpd/vm
 # netns=$(ip netns list | grep "qrouter" | awk '{print $1}')
 # ip netns exec ${netns} /bin/bash
-# # # 初始化
-# cp ${KOLLA_DIR}/kolla-ansible/tools/init-runonce ${KOLLA_DIR} # init env
-# # cp ${KOLLA_DIR}/venv3/share/kolla-ansible/init-runonce ${KOLLA_DIR}
-# # 创建 cirros 镜像、网络、子网、路由、安全组、规格、配额等虚拟机资源
-# CIRROS_RELEASE=${CIRROS_RELEASE:-0.6.1}
-# ARCH=x86_64
-# mkdir -p /opt/cache/files/ && touch /opt/cache/files/cirros-${CIRROS_RELEASE}-${ARCH}-disk.img
-# CIRROS_RELEASE=${CIRROS_RELEASE} \
-# EXT_NET_CIDR=172.16.0.0/21 \
-# EXT_NET_RANGE='start=172.16.3.9,end=172.16.3.199' \
-# EXT_NET_GATEWAY=172.16.0.1 \
-# ${KOLLA_DIR}/init-runonce
 DEMO
 cat<<'EOF'
 # all logs in /var/log/kolla
@@ -629,13 +666,6 @@ kolla-ansible destroy --yes-i-really-really-mean-it
 kolla-ansible deploy --tags="haproxy"
 # 过滤部署某些组件
 kolla-ansible deploy --skip-tags="haproxy"
-# # kolla-ansible自带工具
-# 可用于从系统中移除部署的容器
-/usr/local/share/kolla-ansible/tools/cleanup-containers
-#可用于移除由于残余网络变化引发的docker启动的neutron-agents主机
-/usr/local/share/kolla-ansible/tools/cleanup-host
-#可用于从本地缓存中移除所有的docker image
-/usr/local/share/kolla-ansible/tools/cleanup-images
 # # mariadb集群出现故障
 ansible -i multinode all -m shell -a 'docker stop mariadb'
 ansible -i multinode all -m shell -a "sed -i 's/safe_to_bootstrap: 0/safe_to_bootstrap: 1/g' /var/lib/docker/volumes/mariadb/_data/grastate.dat"
@@ -645,33 +675,3 @@ docker exec -it -u root mariadb /bin/bash
 docker exec -it nova_libvirt /bin/bash
 docker exec -it fluentd bash
 EOF
-cat <<'SKYLINE'
-kolla-ansible -i ${KOLLA_DIR}/multinode prechecks -t skyline
-kolla-ansible -i ${KOLLA_DIR}/multinode pull -t skyline
-kolla-ansible -i ${KOLLA_DIR}/multinode deploy -t skyline
-http://172.16.1.213:9999
-# # mariadb backup & restore
-sed -i -E \
-    -e "s/^\s*#*enable_mariabackup\s*:.*/enable_mariabackup: \"yes\"/g"  \
-    /etc/kolla/globals.yml
-kolla-ansible -i ${KOLLA_DIR}/multinode reconfigure -t mariadb
-kolla-ansible -i ${KOLLA_DIR}/multinode mariadb_backup
-ls -l /var/lib/docker/volumes/mariadb_backup/_data
-SKYLINE
-cat <<'MYSQL'
-# https://docs.openstack.org/kolla-ansible/latest/reference/databases/external-mariadb-guide.html
-# Enabling External MariaDB support
-sed --quiet -i -E \
-    -e '/(enable_mariadb)\s*:.*/!p' \
-    -e '$aenable_mariadb: "no"' \
-    -e '$adatabase_address: "openstack.mydb.local"' \
-    /etc/kolla/globals.yml
-
-crudini --del ${KOLLA_DIR}/multinode "mariadb:children"
-crudini --set ${KOLLA_DIR}/multinode "mariadb:children" "openstack.mydb.local"
-
-/etc/kolla/passwords.yml
-database_user: "privillegeduser"
-database_password: mySuperSecurePassword
-use_preconfigured_databases: "yes"
-MYSQL
