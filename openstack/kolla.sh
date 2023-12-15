@@ -143,10 +143,12 @@ crudini --set ${KOLLA_DIR}/multinode all:vars "web_horizon=${WEBUI_HORIZON:-yes}
 # # Deploy All-In-One/multinode
 # openstack_tag_suffix: "-aarch64"
 sed --quiet -i -E \
-    -e '/(openstack_tag_suffix)\s*:.*/!p' \
+    -e '/(openstack_tag_suffix|enable_mariabackup)\s*:.*/!p' \
     -e '$aopenstack_tag_suffix: "{{ host_arch }}"' \
+    -e '$aenable_mariabackup: "yes"' \
     /etc/kolla/globals.yml
-
+# glance_backend_file: "yes"
+# glance_file_datadir_volume: "/path/to/shared/storage/" ## shared storage
 sed --quiet -i -E \
     -e '/(config_strategy|kolla_base_distro|network_interface|nova_compute_virt_type|openstack_release)\s*:.*/!p' \
     -e "\$aconfig_strategy: \"COPY_ALWAYS\""   \
@@ -198,6 +200,9 @@ sed --quiet -i -E \
 grep '^[^#]' /etc/kolla/globals.yml
 grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
 # 配置nova文件, virth_type kvm/qemu, 加入超卖
+# /etc/kolla/config/nova.conf
+# /etc/kolla/config/nova/${node}/nova.conf
+# /etc/kolla/config/nova/nova-scheduler.conf
 for node in ${COMPUTE[@]}; do
     cfg_file=/etc/kolla/config/nova/${node}/nova.conf
     mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
@@ -294,12 +299,13 @@ sed --quiet -i -E \
     -e '$azun_configure_for_cinder_ceph: "yes"' \
     /etc/kolla/globals.yml
 
-sed -i -E \
-    -e "s/^\s*#*enable_cinder\s*:.*/enable_cinder: \"yes\"/g"  \
-    -e "s/^\s*#*enable_cinder_backup\s*:.*/enable_cinder_backup: \"yes\"/g"  \
-    -e "s/^\s*#*glance_backend_ceph\s*:.*/glance_backend_ceph: \"yes\"/g"  \
-    -e "s/^\s*#*cinder_backend_ceph\s*:.*/cinder_backend_ceph: \"yes\"/g"  \
-    -e "s/^\s*#*nova_backend_ceph\s*:.*/nova_backend_ceph: \"yes\"/g"  \
+sed --quiet -i -E \
+    -e '/(enable_cinder|enable_cinder_backup|glance_backend_ceph|cinder_backend_ceph|nova_backend_ceph)\s*:.*/!p' \
+    -e '$aenable_cinder: "yes"'  \
+    -e '$aenable_cinder_backup: "yes"'  \
+    -e '$aglance_backend_ceph: "yes"'  \
+    -e '$acinder_backend_ceph: "yes"'  \
+    -e '$anova_backend_ceph: "yes"'  \
     /etc/kolla/globals.yml
 #    -e "s/^\s*#*gnocchi_backend_storage\s*:.*/gnocchi_backend_storage: \"ceph\"/g"  \
 #    -e "s/^\s*#*enable_manila_backend_cephfs_native\s*:.*/enable_manila_backend_cephfs_native: \"yes\"/g"  \
@@ -307,10 +313,11 @@ sed -i -E \
 GLANCE_USER=glance
 GLANCE_POOL=images
 GLANCE_KEYRING=ceph.client.${GLANCE_USER}.keyring
-sed -i -E \
-    -e "s/^\s*#*ceph_glance_keyring\s*:.*/ceph_glance_keyring: \"${GLANCE_KEYRING}\"/g"  \
-    -e "s/^\s*#*ceph_glance_user\s*:.*/ceph_glance_user: \"${GLANCE_USER}\"/g"  \
-    -e "s/^\s*#*ceph_glance_pool_name\s*:.*/ceph_glance_pool_name: \"${GLANCE_POOL}\"/g"  \
+sed --quiet -i -E \
+    -e '/(ceph_glance_keyring|ceph_glance_user|ceph_glance_pool_name)\s*:.*/!p' \
+    -e "\$aceph_glance_keyring: \"${GLANCE_KEYRING}\""  \
+    -e "\$aceph_glance_user: \"${GLANCE_USER}\""  \
+    -e "\$aceph_glance_pool_name: \"${GLANCE_POOL}\""  \
     /etc/kolla/globals.yml
 cfg_file=/etc/kolla/config/glance.conf
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
@@ -324,24 +331,26 @@ CINDER_KEYRING=ceph.client.${CINDER_USER}.keyring
 CINDER_USER_BACKUP=cinder-backup
 CINDER_POOL_BACKUP=backups
 CINDER_KEYRING_BACKUP=ceph.client.${CINDER_USER_BACKUP}.keyring
-sed -i -E \
-    -e "s/^\s*#*ceph_cinder_keyring\s*:.*/ceph_cinder_keyring: \"${CINDER_KEYRING}\"/g"  \
-    -e "s/^\s*#*ceph_cinder_user\s*:.*/ceph_cinder_user: \"${CINDER_USER}\"/g"  \
-    -e "s/^\s*#*ceph_cinder_pool_name\s*:.*/ceph_cinder_pool_name: \"${CINDER_POOL}\"/g"  \
-    -e "s/^\s*#*ceph_cinder_backup_keyring\s*:.*/ceph_cinder_backup_keyring: \"${CINDER_KEYRING_BACKUP}\"/g"  \
-    -e "s/^\s*#*ceph_cinder_backup_user\s*:.*/ceph_cinder_backup_user: \"${CINDER_USER_BACKUP}\"/g"  \
-    -e "s/^\s*#*ceph_cinder_backup_pool_name\s*:.*/ceph_cinder_backup_pool_name: \"${CINDER_POOL_BACKUP}\"/g"  \
+sed --quiet -i -E \
+    -e '/(ceph_cinder_keyring|ceph_cinder_user|ceph_cinder_pool_name|ceph_cinder_backup_keyring|ceph_cinder_backup_user|ceph_cinder_backup_pool_name)\s*:.*/!p' \
+    -e "\$aceph_cinder_keyring: \"${CINDER_KEYRING}\""  \
+    -e "\$aceph_cinder_user: \"${CINDER_USER}\""  \
+    -e "\$aceph_cinder_pool_name: \"${CINDER_POOL}\""  \
+    -e "\$aceph_cinder_backup_keyring: \"${CINDER_KEYRING_BACKUP}\""  \
+    -e "\$aceph_cinder_backup_user: \"${CINDER_USER_BACKUP}\""  \
+    -e "\$aceph_cinder_backup_pool_name: \"${CINDER_POOL_BACKUP}\""  \
     /etc/kolla/globals.yml
 # # nova ceph
 NOVA_USER=nova
 NOVA_POOL=vms
 NOVA_KEYRING=ceph.client.${NOVA_USER}.keyring
 # ceph_nova_user`` (by default it's the same as ``ceph_cinder_user``)
-sed -i -E \
-    -e "s/^\s*#*ceph_cinder_keyring\s*:.*/ceph_cinder_keyring: \"${CINDER_KEYRING}\"/g"  \
-    -e "s/^\s*#*ceph_nova_keyring\s*:.*/ceph_nova_keyring: \"${NOVA_KEYRING}\"/g"  \
-    -e "s/^\s*#*ceph_nova_user\s*:.*/ceph_nova_user: \"${NOVA_USER}\"/g"  \
-    -e "s/^\s*#*ceph_nova_pool_name\s*:.*/ceph_nova_pool_name: \"${NOVA_POOL}\"/g"  \
+sed --quiet -i -E \
+    -e '/(ceph_cinder_keyring|ceph_nova_keyring|ceph_nova_user|ceph_nova_pool_name)\s*:.*/!p' \
+    -e "\$aceph_cinder_keyring: \"${CINDER_KEYRING}\""  \
+    -e "\$aceph_nova_keyring: \"${NOVA_KEYRING}\""  \
+    -e "\$aceph_nova_user: \"${NOVA_USER}\""  \
+    -e "\$aceph_nova_pool_name: \"${NOVA_POOL}\""  \
     /etc/kolla/globals.yml
 grep '^[^#]' /etc/kolla/globals.yml
 
@@ -437,13 +446,28 @@ kolla-ansible -i ${KOLLA_DIR}/multinode post-deploy
 # 增加一个计算节点
 kolla-ansible -i ${KOLLA_DIR}/multinode pull --limit 172.16.1.214
 kolla-ansible -i ${KOLLA_DIR}/multinode deploy --limit 172.16.1.214
-# 删除一个计算节点
-kolla-ansible -i inventory/multinode destroy --limit 172.16.1.211 --yes-i-really-really-mean-it
-openstack compute service list
-openstack compute service delete <compute ID>
-openstack network agent list
-openstack network agent delete <ID>
-# # vim multinode 去掉相关计算节点
+remove_compute_node() {
+    local host =$1
+    # 删除一个计算节点
+    openstack compute service set ${host} nova-compute --disable
+    openstack server list --all-projects --host ${host} -f value -c ID | while read server; do
+        openstack server migrate --live-migration $server
+    done
+    kolla-ansible -i ${KOLLA_DIR}/multinode stop --yes-i-really-really-mean-it [ --limit <limit> ]
+    openstack network agent list --host ${host} -f value -c ID | while read id; do
+        openstack network agent delete $id
+    done
+    openstack compute service list --os-compute-api-version 2.53 --host ${host} -f value -c ID | while read id; do
+        openstack compute service delete --os-compute-api-version 2.53 $id
+    done
+    kolla-ansible -i ${KOLLA_DIR}/multinode destroy --yes-i-really-really-mean-it --limit ${host}
+    # # vim multinode 去掉相关计算节点
+}
+#
+# Server instances are not automatically balanced onto the new compute nodes.
+# It may be helpful to live migrate some server instances onto the new hosts.
+# openstack server migrate <server> --live-migration --host <target host> --os-compute-api-version 2.30
+
 
 source /etc/kolla/admin-openrc.sh
 openstack hypervisor list
