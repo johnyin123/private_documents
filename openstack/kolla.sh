@@ -263,16 +263,6 @@ image_metadata_prefilter = True
 # 镜像属性过滤器时要使用的默认架构, hw_architecture未指定，默认为x86_64
 image_properties_default_architecture = x86_64
 EOF
-cfg_file=/etc/kolla/config/nova/nova-compute.conf
-mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-[DEFAULT]
-ram_allocation_ratio=2.0
-cpu_allocation_ratio=10.0
-# disk_allocation_ratio=2.0
-
-[libvirt]
-virt_type = ${KVM:-kvm}
-EOF
 # 关闭创建新卷
 cfg_file=/etc/kolla/config/horizon/custom_local_settings
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
@@ -517,8 +507,12 @@ grep keystone_admin_password /etc/kolla/passwords.yml #admin和dashboard的密�
 # kolla-ansible install-deps # Install Ansible Galaxy requirements, bootstrap-servers will failed
 # kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode bootstrap-servers
 kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode prechecks
-# # 拉取镜像（可选）
+# # 拉取镜像
 kolla-ansible -i ${KOLLA_DIR}/multinode pull
+# # on aarch64 host, tag all aarch64 image same tag like x85 one controll node
+# docker images| grep -- -aarch64 | awk '{ print $1 }' | xargs -I@ docker tag @:master-ubuntu-jammy-aarch64 @:master-ubuntu-jammy
+# # modify ${KOLLA_DIR}/multinode change -aarch64 --> ""
+# sed -i "s/-aarch64//g" ${KOLLA_DIR}/multinode
 # # 部署
 kolla-ansible -i ${KOLLA_DIR}/multinode deploy
 # # 生成 admin-openrc.sh
