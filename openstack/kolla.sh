@@ -510,9 +510,7 @@ kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR
 # # 拉取镜像
 kolla-ansible -i ${KOLLA_DIR}/multinode pull
 # # for aarch64 compute node deploy, fake x86 image as aarch64 image
-prefix=${insec_registry}/kolla
-tag=master-ubuntu-jammy
-for img in nova-conductor neutron-server; do docker tag ${prefix}/$img:${tag} ${prefix}/$img:${tag}-aarch64; done
+docker images | grep ${insec_registry} | grep -v aarch64 | awk '{print $1 ":" $2}' | xargs -I@ docker image tag @ @-aarch64
 # # on aarch64 host, tag all aarch64 image same tag like x85 one controll node
 # # 部署
 kolla-ansible -i ${KOLLA_DIR}/multinode deploy
