@@ -486,10 +486,10 @@ for db in ${DATABASES[@]}; do
     create_mysql_db "${db}" "${mariadb_user}" "${mariadb_pass}"
 done
 
-backup: deploy node
+# # backup: deploy node
     tar cv /etc/kolla | gzip > kolla.bak.tgz
     mysqldump -u root -p --all-databases | gzip > kolla_db.sql.tgz
-restore kolla:
+# # restore kolla:
     tar xvf kolla.bak.tgz
     deploy OpenStack
     mysql -u root -p < kolla_db.sql
@@ -509,10 +509,11 @@ grep keystone_admin_password /etc/kolla/passwords.yml #admin和dashboard的密�
 kolla-ansible -e 'ansible_port=60022' -e "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3" -i ${KOLLA_DIR}/multinode prechecks
 # # 拉取镜像
 kolla-ansible -i ${KOLLA_DIR}/multinode pull
+# # for aarch64 compute node deploy, fake x86 image as aarch64 image
+prefix=${insec_registry}/kolla
+tag=master-ubuntu-jammy
+for img in nova-conductor neutron-server; do docker tag ${prefix}/$img:${tag} ${prefix}/$img:${tag}-aarch64; done
 # # on aarch64 host, tag all aarch64 image same tag like x85 one controll node
-# docker images| grep -- -aarch64 | awk '{ print $1 }' | xargs -I@ docker tag @:master-ubuntu-jammy-aarch64 @:master-ubuntu-jammy
-# # modify ${KOLLA_DIR}/multinode change -aarch64 --> ""
-# sed -i "s/-aarch64//g" ${KOLLA_DIR}/multinode
 # # 部署
 kolla-ansible -i ${KOLLA_DIR}/multinode deploy
 # # 生成 admin-openrc.sh
