@@ -8,8 +8,9 @@
 # done
 insec_registry=10.170.6.105:5000
 ########################################
-CONTROLLER=(172.16.1.210)
-COMPUTE=(172.16.1.211 172.16.1.212 172.16.1.214)
+CTRL_X86=(172.16.1.210 172.16.1.211)
+COMPUTE_X86=(172.16.1.212)
+COMPUTE_ARM=(172.16.1.214)
 INT_VIP_ADDR=172.16.1.213
 ########################################
 KVM=qemu
@@ -20,7 +21,8 @@ ADMIN_PASS=Admin@2023
 HAPROXY=yes
 WEBUI_SKYLINE=no
 WEBUI_HORIZON=yes
-VG_NAME=cindervg
+USE_LVM=no
+# VG_NAME=cindervg
 # # # # # # # all (compute/controller) node start
 # Kolla puts nearly all of persistent data in Docker volumes. defaults to /var/lib/docker directory.
 cfg_file=/etc/docker/daemon.json
@@ -41,26 +43,25 @@ mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [Service]
 MountFlags=shared
 EOF
-sed --quiet -i -E \
-    -e '/(127.0.0.1\s*).*/!p' \
-    -e '$a127.0.0.1 localhost' \
-    /etc/hosts
 systemctl daemon-reload
 systemctl restart docker
 systemctl enable docker
 # # store node
-[ -z "${VG_NAME:-}" ] || {
-    command -v "pvcreate" &> /dev/null || yum -y install lvm2
-    pvcreate /dev/vdb
-    vgcreate ${VG_NAME} /dev/vdb
-}
+# use lvm backend store
+command -v "pvcreate" &> /dev/null || yum -y install lvm2
+pvcreate /dev/vdb
+vgcreate ${VG_NAME:-cinder-volumes} /dev/vdb
 mkdir -p ${KOLLA_DIR} && python3 -m venv ${KOLLA_DIR}/venv3 && source ${KOLLA_DIR}/venv3/bin/activate
 # # # # # # # all (compute/controller) node end
 [ -f "${HOME:-~}/.ssh/id_rsa" ] || ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
 echo "echo '$(cat ~/.ssh/id_rsa.pub)' >> ~/.ssh/authorized_keys"
 # ssh -p60022 localhost "true" || echo "ssh-copy-id"
 # cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
-# # # # # # # offline start
+sed --quiet -i -E \
+    -e '/(127.0.0.1\s*).*/!p' \
+    -e '$a127.0.0.1 localhost' \
+    /etc/hosts
+# # # # # # # # # # # # # # # # # # # # # offline start
 cat <<EOF
 pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ --upgrade pip
 pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ -r ${KOLLA_DIR}/pyenv/requirements.txt
@@ -68,8 +69,8 @@ pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ -r ${KOLLA_DIR}/pyenv/re
 # cd ${KOLLA_DIR} && pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ ./kolla
 # cd ${KOLLA_DIR} && pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ ./kolla-ansible
 EOF
-# # # # # # # offline end
-# # # # # # # online start
+# # # # # # # # # # # # # # # # # # # # # offline end
+# # # # # # # # # # # # # # # # # # # # # online start
 cfg_file=~/.pip/pip.conf
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [global]
@@ -85,15 +86,14 @@ cd ${KOLLA_DIR} && git clone --depth=1 https://github.com/openstack/kolla
 cd ${KOLLA_DIR} && git clone --depth=1 https://github.com/openstack/kolla-ansible
 cd ${KOLLA_DIR} && pip install ./kolla
 cd ${KOLLA_DIR} && pip install ./kolla-ansible
-cp -r ${KOLLA_DIR}/kolla-ansible/etc/kolla /etc/ 2>/dev/null || \
-    cp -r ${KOLLA_DIR}/venv3/share/kolla-ansible/etc_examples/kolla /etc/
-cp ${KOLLA_DIR}/kolla-ansible/ansible/inventory/* ${KOLLA_DIR} 2>/dev/null || \
-    cp ${KOLLA_DIR}/venv3/share/kolla-ansible/ansible/inventory/* ${KOLLA_DIR}
 # pip install --no-index --find-links ${KOLLA_DIR}/pyenv/ "kolla==17.0.0"
 # kolla-build --base ubuntu --base-arch aarch64 --list-images
 # kolla-build --base ubuntu --base-arch aarch64 --tag master-ubuntu-jammy-aarch64 ..
 # kolla-build --base ubuntu --base-arch x86_64  --tag master-ubuntu-jammy
-# # # # # # # online end
+# # # # # # # # # # # # # # # # # # # # # online end
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# start init opnstack
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 cfg_file=/etc/ansible/ansible.cfg
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [defaults]
@@ -101,6 +101,10 @@ host_key_checking=False
 pipelining=True
 forks=100
 EOF
+cp -r ${KOLLA_DIR}/kolla-ansible/etc/kolla /etc/ 2>/dev/null || \
+    cp -r ${KOLLA_DIR}/venv3/share/kolla-ansible/etc_examples/kolla /etc/
+cp ${KOLLA_DIR}/kolla-ansible/ansible/inventory/* ${KOLLA_DIR} 2>/dev/null || \
+    cp ${KOLLA_DIR}/venv3/share/kolla-ansible/ansible/inventory/* ${KOLLA_DIR}
 command -v "crudini" &> /dev/null || pip install crudini
 # # Host with a host variable.
 # [control]
@@ -114,19 +118,25 @@ crudini --del ${KOLLA_DIR}/multinode compute
 crudini --del ${KOLLA_DIR}/multinode monitoring
 crudini --del ${KOLLA_DIR}/multinode storage
 crudini --del ${KOLLA_DIR}/multinode deployment
+crudini --del ${KOLLA_DIR}/multinode all:vars
+crudini --del ${KOLLA_DIR}/multinode all
 # 192.168.122.24 ansible_ssh_user=<ssh-username> ansible_become=True ansible_private_key_file=<path/to/private-key-file>
 crudini --set ${KOLLA_DIR}/multinode storage     # no storage
 crudini --set ${KOLLA_DIR}/multinode monitoring  # no monitoring
 crudini --set ${KOLLA_DIR}/multinode deployment  "localhost ansible_connection=local"
-for node in ${CONTROLLER[@]}; do
-    crudini --set ${KOLLA_DIR}/multinode control "${node} host_arch=-aarch64 uselvm=yes"
+for node in ${CTRL_X86[@]}; do
+    crudini --set ${KOLLA_DIR}/multinode control "${node} host_arch= uselvm=${USE_LVM}"
+    crudini --set ${KOLLA_DIR}/multinode all "${node} host_arch= uselvm=${USE_LVM}"
 done
-for node in ${COMPUTE[@]}; do
-    crudini --set ${KOLLA_DIR}/multinode network "${node} host_arch=-aarch64 uselvm=yes"
-    crudini --set ${KOLLA_DIR}/multinode compute "${node} host_arch=-aarch64 uselvm=yes"
+for node in ${COMPUTE_ARM[@]}; do
+    crudini --set ${KOLLA_DIR}/multinode network "${node} host_arch=-aarch64 uselvm=${USE_LVM}"
+    crudini --set ${KOLLA_DIR}/multinode compute "${node} host_arch=-aarch64 uselvm=${USE_LVM}"
+    crudini --set ${KOLLA_DIR}/multinode all "${node} host_arch=-aarch64 uselvm=${USE_LVM}"
 done
-for node in ${CONTROLLER[@]} ${COMPUTE[@]}; do
-    crudini --set ${KOLLA_DIR}/multinode all "${node} host_arch=-aarch64 uselvm=yes"
+for node in ${COMPUTE_X86[@]}; do
+    crudini --set ${KOLLA_DIR}/multinode network "${node} host_arch= uselvm=${USE_LVM}"
+    crudini --set ${KOLLA_DIR}/multinode compute "${node} host_arch= uselvm=${USE_LVM}"
+    crudini --set ${KOLLA_DIR}/multinode all "${node} host_arch= uselvm=${USE_LVM}"
 done
 crudini --set ${KOLLA_DIR}/multinode all:vars "ansible_port=60022"
 crudini --set ${KOLLA_DIR}/multinode all:vars "ansible_python_interpreter=${KOLLA_DIR}/venv3/bin/python3"
@@ -136,12 +146,11 @@ crudini --set ${KOLLA_DIR}/multinode all:vars "net_if=eth0"
 crudini --set ${KOLLA_DIR}/multinode all:vars "external_interface=eth1"
 crudini --set ${KOLLA_DIR}/multinode all:vars "vip_addr=${INT_VIP_ADDR:-192.168.1.100}"
 crudini --set ${KOLLA_DIR}/multinode all:vars "use_haproxy=${HAPROXY:-yes}"
-crudini --set ${KOLLA_DIR}/multinode all:vars "uselvm=no"
+crudini --set ${KOLLA_DIR}/multinode all:vars "uselvm=${USE_LVM}"
 crudini --set ${KOLLA_DIR}/multinode all:vars "useceph=no"
 crudini --set ${KOLLA_DIR}/multinode all:vars "web_skyline=${WEBUI_SKYLINE:-no}"
 crudini --set ${KOLLA_DIR}/multinode all:vars "web_horizon=${WEBUI_HORIZON:-yes}"
 # # Deploy All-In-One/multinode
-# openstack_tag_suffix: "-aarch64"
 sed --quiet -i -E \
     -e '/(openstack_tag_suffix|enable_mariabackup)\s*:.*/!p' \
     -e '$aopenstack_tag_suffix: "{{ host_arch }}"' \
@@ -157,7 +166,6 @@ sed --quiet -i -E \
     -e "\$anova_compute_virt_type: \"{{ virt_type }}\""       \
     -e "\$aopenstack_release: \"{{ openstack_version }}\""       \
     /etc/kolla/globals.yml
-
 sed --quiet -i -E \
     -e '/(enable_skyline|enable_horizon)\s*:.*/!p' \
     -e "\$aenable_skyline: \"{{ web_skyline }}\""  \
@@ -197,29 +205,38 @@ sed --quiet -i -E \
     -e "\$aenable_cinder_backend_lvm: \"{{ uselvm }}\""  \
     -e "\$acinder_volume_group: \"${VG_NAME:-cinder-volumes}\""  \
     /etc/kolla/globals.yml
-grep '^[^#]' /etc/kolla/globals.yml
 grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
 # 配置nova文件, virth_type kvm/qemu, 加入超卖
 # /etc/kolla/config/nova.conf
 # /etc/kolla/config/nova/${node}/nova.conf
 # /etc/kolla/config/nova/nova-scheduler.conf
-for node in ${COMPUTE[@]}; do
+for node in ${COMPUTE_X86[@]}; do
     cfg_file=/etc/kolla/config/nova/${node}/nova.conf
     mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [DEFAULT]
 ram_allocation_ratio=2.0
 cpu_allocation_ratio=10.0
 # disk_allocation_ratio=2.0
-
 [libvirt]
 virt_type = ${KVM:-kvm}
-# # x86_64 qemu mode. use none
-# cpu_mode=none
-# # aarch64 openeuler qemu mode, use "max" cpu model!!
-# cpu_mode=custom
-# cpu_models=max
+# # x86_64 qemu mode. use cpu_mode=none
+$([ "${KVM:-kvm}" == "qemu" ]  && { echo "cpu_mode=none"; })
 EOF
 done
+for node in ${COMPUTE_ARM[@]}; do
+    cfg_file=/etc/kolla/config/nova/${node}/nova.conf
+    mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+[DEFAULT]
+ram_allocation_ratio=2.0
+cpu_allocation_ratio=10.0
+# disk_allocation_ratio=2.0
+[libvirt]
+virt_type = ${KVM:-kvm}
+# # aarch64 openeuler qemu mode, use "max" cpu model!!
+$([ "${KVM:-kvm}" == "qemu" ]  && { echo "cpu_mode=custom" ; echo "cpu_models=max"; })
+EOF
+done
+
 # cpu_mode :host-model, host-passthrough, custom, none
 # https://docs.openstack.org/nova/latest/admin/cpu-models.html
 # # aarch64 openeuler qemu mode, use "max" cpu model!!
@@ -238,7 +255,6 @@ done
 # via plain emulation ("TCG") — this is to ensure that guests are not
 # arbitrarily scheduled on hosts that are incapable of hardware
 # acceleration, thus losing out on performance-related benefits
-# virt_type = ${KVM:-kvm}
 cfg_file=/etc/kolla/config/nova.conf
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 [scheduler]
@@ -278,7 +294,7 @@ mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 EOF
 # force_config_drive = True, It is also possible to force the config drive by specifying the img_config_drive=mandatory property in the image.
 # ########################ceph start
-for node in ${COMPUTE[@]}; do
+for node in ${COMPUTE_X86[@]} ${COMPUTE_ARM[@]}; do
 #. When using external Ceph, there may be no nodes defined in the storage
 #  group.  This will cause Cinder and related services relying on this group to
 #  fail.  In this case, operator should add some nodes to the storage group,
@@ -438,9 +454,10 @@ mariadb_pass=PAssw0rd
 crudini --del ${KOLLA_DIR}/multinode "mariadb"
 crudini --set ${KOLLA_DIR}/multinode "mariadb" "${mariadb_fqdn}"
 
+# alll nodes must can connect mariadb.
 sed --quiet -i -E \
     -e '/\s(openstack.mydb.local)\s*.*/!p' \
-    -e "\$a${mariadb_ip} ${mariadb_fqdn}' \
+    -e "\$a${mariadb_ip} ${mariadb_fqdn}" \
     /etc/hosts
 
 sed --quiet -i -E \
@@ -457,6 +474,7 @@ sed --quiet -i -E \
     -e "\$adatabase_user: \"${mariadb_user}\"" \
     /etc/kolla/globals.yml
 
+cat /etc/hosts
 grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
 sed -i -r -e "s/([a-z_]{0,}database_password:+)(.*)$/\1 ${mariadb_pass}/gi" /etc/kolla/passwords.yml
 
@@ -537,9 +555,9 @@ echo "Horizon: http://<ctrl_addr>"
 echo "Kibana:  http://<ctrl_addr>:5601"
 echo "skyline: http://<ctrl_addr>:9999"
 # all logs in /var/log/kolla
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# init openstack once start
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# start manage opnstack
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img"
 echo "http://download.cirros-cloud.net/0.6.2/cirros-0.6.2-aarch64-disk.img"
 source /etc/kolla/admin-openrc.sh
@@ -616,9 +634,6 @@ create_image "cirros_arm" "${KOLLA_DIR}/cirros-0.6.2-aarch64-disk.img" "aarch64"
 openstack keypair create --public-key ${KOLLA_DIR}/testkey.pub mykey
 openstack server create --image "cirros_x86" --flavor m1.tiny --key-name mykey --network public-net demo-x86
 openstack server create --image "cirros_arm" --flavor m1.tiny --key-name mykey --network public-net demo-arm
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-# init openstack once end
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # # 创建VOLUME one LVM/CEPH虚拟机
 # openstack availability zone list
 # openstack volume create --image cirros --bootable --size 1 --availability-zone nova test_vol
