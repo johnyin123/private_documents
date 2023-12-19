@@ -292,17 +292,18 @@ EOF
 #      [storage]
 #      control01
 CEPH=(armsite)
+# TODO: multi ceph cluster
 GLANCE_USER=glance
-GLANCE_POOL=images
-GLANCE_KEYRING=ceph.client.${GLANCE_USER}.keyring
 CINDER_USER=cinder
-CINDER_POOL=volumes
-CINDER_KEYRING=ceph.client.${CINDER_USER}.keyring
-CINDER_USER_BACKUP=cinder-backup
-CINDER_POOL_BACKUP=backups
-CINDER_KEYRING_BACKUP=ceph.client.${CINDER_USER_BACKUP}.keyring
+CINDER_BACKUP_USER=cinder-backup
 NOVA_USER=nova
+GLANCE_POOL=images
+CINDER_POOL=volumes
+CINDER_POOL_BACKUP=backups
 NOVA_POOL=vms
+GLANCE_KEYRING=ceph.client.${GLANCE_USER}.keyring
+CINDER_KEYRING=ceph.client.${CINDER_USER}.keyring
+CINDER_BACKUP_KEYRING=ceph.client.${CINDER_BACKUP_USER}.keyring
 NOVA_KEYRING=ceph.client.${NOVA_USER}.keyring
 # https://docs.openstack.org/kolla-ansible/latest/reference/storage/external-ceph-guide.html
 # https://docs.ceph.com/en/latest/rbd/rbd-openstack/
@@ -371,8 +372,8 @@ sed --quiet -i -E \
     -e "\$aceph_cinder_keyring: \"${CINDER_KEYRING}\""  \
     -e "\$aceph_cinder_user: \"${CINDER_USER}\""  \
     -e "\$aceph_cinder_pool_name: \"${CINDER_POOL}\""  \
-    -e "\$aceph_cinder_backup_keyring: \"${CINDER_KEYRING_BACKUP}\""  \
-    -e "\$aceph_cinder_backup_user: \"${CINDER_USER_BACKUP}\""  \
+    -e "\$aceph_cinder_backup_keyring: \"${CINDER_BACKUP_KEYRING}\""  \
+    -e "\$aceph_cinder_backup_user: \"${CINDER_BACKUP_USER}\""  \
     -e "\$aceph_cinder_backup_pool_name: \"${CINDER_POOL_BACKUP}\""  \
     /etc/kolla/globals.yml
 # # nova ceph
@@ -386,17 +387,25 @@ sed --quiet -i -E \
 grep '^[^#]' /etc/kolla/globals.yml
 
 cat <<EOF
-cat ceph.conf > /etc/kolla/config/glance/ceph.conf
-cat ceph.conf > /etc/kolla/config/cinder/ceph.conf
-cat ceph.conf > /etc/kolla/config/nova/ceph.conf
-cat ceph.conf > /etc/kolla/config/zun/zun-compute/ceph.conf
-cat ceph.client.glance.keyring        > /etc/kolla/config/glance/ceph.client.glance.keyring
-cat ceph.client.cinder.keyring        > /etc/kolla/config/cinder/cinder-volume/ceph.client.cinder.keyring
-cat ceph.client.cinder.keyring        > /etc/kolla/config/cinder/cinder-backup/ceph.client.cinder.keyring
-cat ceph.client.cinder-backup.keyring > /etc/kolla/config/cinder/cinder-backup/ceph.client.cinder-backup.keyring
-cat ceph.client.cinder.keyring        > /etc/kolla/config/nova/ceph.client.cinder.keyring
-cat ceph.client.cinder.keyring        > /etc/kolla/config/zun/zun-compute/ceph.client.cinder.keyring
-cat ceph.client.nova.keyring          > /etc/kolla/config/nova/ceph.client.nova.keyring
+for cluster in ${CEPH[@]}; do
+    echo "###### CLUSTER: ${cluster} ##########################################"
+    cat <<EO_CMD
+    cat ${cluster}.conf > /etc/kolla/config/glance/ceph.conf
+    cat ${cluster}.conf > /etc/kolla/config/cinder/ceph.conf
+    cat ${cluster}.conf > /etc/kolla/config/nova/ceph.conf
+    cat ${cluster}.conf > /etc/kolla/config/zun/zun-compute/ceph.conf
+    cat ${cluster}.client.${GLANCE_USER}.keyring        > /etc/kolla/config/glance/${GLANCE_KEYRING}
+    cat ${cluster}.client.${CINDER_USER}.keyring        > /etc/kolla/config/cinder/cinder-volume/${CINDER_KEYRING}
+    cat ${cluster}.client.${CINDER_USER}.keyring        > /etc/kolla/config/cinder/cinder-backup/${CINDER_KEYRING}
+    cat ${cluster}.client.${CINDER_BACKUP_USER}.keyring > /etc/kolla/config/cinder/cinder-backup/${CINDER_BACKUP_KEYRING}
+    cat ${cluster}.client.${CINDER_USER}.keyring        > /etc/kolla/config/nova/${CINDER_KEYRING}
+    cat ${cluster}.client.${CINDER_USER}.keyring        > /etc/kolla/config/zun/zun-compute/${CINDER_KEYRING}
+    cat ${cluster}.client.${NOVA_USER}.keyring          > /etc/kolla/config/nova/${NOVA_KEYRING}
+EO_CMD
+done
+# # different ceph backend for nova-compute host
+# /etc/kolla/config/nova/<hostname>/ceph.conf
+# /etc/kolla/config/nova/<hostname>/ceph.<ceph_nova_keyring>
 EOF
 cat <<EOF
 Gnocchi: 资源索引服务
