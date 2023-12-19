@@ -284,13 +284,51 @@ mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 EOF
 # force_config_drive = True, It is also possible to force the config drive by specifying the img_config_drive=mandatory property in the image.
 # ########################ceph start
-for node in ${COMPUTE_X86[@]} ${COMPUTE_ARM[@]}; do
+# extern ceph
 #. When using external Ceph, there may be no nodes defined in the storage
 #  group.  This will cause Cinder and related services relying on this group to
 #  fail.  In this case, operator should add some nodes to the storage group,
 #  all the nodes where ``cinder-volume`` and ``cinder-backup`` will run:
 #      [storage]
 #      control01
+CEPH=(armsite)
+GLANCE_USER=glance
+GLANCE_POOL=images
+GLANCE_KEYRING=ceph.client.${GLANCE_USER}.keyring
+CINDER_USER=cinder
+CINDER_POOL=volumes
+CINDER_KEYRING=ceph.client.${CINDER_USER}.keyring
+CINDER_USER_BACKUP=cinder-backup
+CINDER_POOL_BACKUP=backups
+CINDER_KEYRING_BACKUP=ceph.client.${CINDER_USER_BACKUP}.keyring
+NOVA_USER=nova
+NOVA_POOL=vms
+NOVA_KEYRING=ceph.client.${NOVA_USER}.keyring
+# https://docs.openstack.org/kolla-ansible/latest/reference/storage/external-ceph-guide.html
+# https://docs.ceph.com/en/latest/rbd/rbd-openstack/
+# https://ceph.io/en/news/blog/2015/openstack-nova-configure-multiple-ceph-backends-on-one-hypervisor/
+for cluster in ${CEPH[@]}; do
+    echo "###### CLUSTER: ${cluster} ##########################################"
+    for p in ${GLANCE_POOL} ${CINDER_POOL} ${CINDER_POOL_BACKUP} ${NOVA_POOL}; do
+        cat <<EO_CMDS
+ceph ${cluster:+--cluster ${cluster}} osd pool create ${p} 128 && rbd ${cluster:+--cluster ${cluster}} pool init ${p}
+EO_CMDS
+    done
+    cat <<EO_CMDS
+ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${GLANCE_USER} mon "profile rbd" osd "profile rbd pool=${GLANCE_POOL}" mgr "profile rbd pool=${GLANCE_POOL}"
+ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${CINDER_USER} mon "profile rbd" osd "profile rbd pool=${CINDER_POOL}, profile rbd pool=${NOVA_POOL}, profile rbd-read-only pool=${GLANCE_POOL}" mgr "profile rbd pool=${CINDER_POOL}, profile rbd pool=${NOVA_POOL}"
+ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${CINDER_BACKUP_USER} mon "profile rbd" osd "profile rbd pool=${CINDER_POOL_BACKUP}" mgr "profile rbd pool=${CINDER_POOL_BACKUP}"
+ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${NOVA_USER} mon "profile rbd" osd "profile rbd pool=${NOVA_POOL}" mgr "profile rbd pool=${NOVA_POOL}"
+EO_CMDS
+    for p in ${GLANCE_USER} ${CINDER_USER} ${CINDER_BACKUP_USER} ${NOVA_USER}; do
+        cat <<EO_CMDS
+ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${p} | tee ${cluster:-ceph}.client.${p}.keyring
+EO_CMDS
+    done
+done
+# # # # # # # # # # # # # # # # # #
+# # kolla nodes # # # # # # # # # #
+for node in ${COMPUTE_X86[@]} ${COMPUTE_ARM[@]}; do
     crudini --set ${KOLLA_DIR}/multinode storage ${node}
 done
 mkdir -p /etc/kolla/config/glance/ \
@@ -298,7 +336,7 @@ mkdir -p /etc/kolla/config/glance/ \
          /etc/kolla/config/cinder/cinder-backup/ \
          /etc/kolla/config/nova/ \
          /etc/kolla/config/zun/zun-compute/
-# extern ceph
+
 sed --quiet -i -E \
     -e '/(enable_ceph|zun_configure_for_cinder_ceph)\s*:.*/!p' \
     -e '$aenable_ceph: "no"'         \
@@ -316,9 +354,6 @@ sed --quiet -i -E \
 #    -e "s/^\s*#*gnocchi_backend_storage\s*:.*/gnocchi_backend_storage: \"ceph\"/g"  \
 #    -e "s/^\s*#*enable_manila_backend_cephfs_native\s*:.*/enable_manila_backend_cephfs_native: \"yes\"/g"  \
 # # glance ceph
-GLANCE_USER=glance
-GLANCE_POOL=images
-GLANCE_KEYRING=ceph.client.${GLANCE_USER}.keyring
 sed --quiet -i -E \
     -e '/(ceph_glance_keyring|ceph_glance_user|ceph_glance_pool_name)\s*:.*/!p' \
     -e "\$aceph_glance_keyring: \"${GLANCE_KEYRING}\""  \
@@ -327,16 +362,10 @@ sed --quiet -i -E \
     /etc/kolla/globals.yml
 cfg_file=/etc/kolla/config/glance.conf
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-[GLOBAL]
+[DEFAULT]
 show_image_direct_url = True
 EOF
 # # cinder ceph
-CINDER_USER=cinder
-CINDER_POOL=volumes
-CINDER_KEYRING=ceph.client.${CINDER_USER}.keyring
-CINDER_USER_BACKUP=cinder-backup
-CINDER_POOL_BACKUP=backups
-CINDER_KEYRING_BACKUP=ceph.client.${CINDER_USER_BACKUP}.keyring
 sed --quiet -i -E \
     -e '/(ceph_cinder_keyring|ceph_cinder_user|ceph_cinder_pool_name|ceph_cinder_backup_keyring|ceph_cinder_backup_user|ceph_cinder_backup_pool_name)\s*:.*/!p' \
     -e "\$aceph_cinder_keyring: \"${CINDER_KEYRING}\""  \
@@ -347,55 +376,14 @@ sed --quiet -i -E \
     -e "\$aceph_cinder_backup_pool_name: \"${CINDER_POOL_BACKUP}\""  \
     /etc/kolla/globals.yml
 # # nova ceph
-NOVA_USER=nova
-NOVA_POOL=vms
-NOVA_KEYRING=ceph.client.${NOVA_USER}.keyring
 # ceph_nova_user`` (by default it's the same as ``ceph_cinder_user``)
 sed --quiet -i -E \
-    -e '/(ceph_cinder_keyring|ceph_nova_keyring|ceph_nova_user|ceph_nova_pool_name)\s*:.*/!p' \
-    -e "\$aceph_cinder_keyring: \"${CINDER_KEYRING}\""  \
+    -e '/(ceph_nova_keyring|ceph_nova_user|ceph_nova_pool_name)\s*:.*/!p' \
     -e "\$aceph_nova_keyring: \"${NOVA_KEYRING}\""  \
     -e "\$aceph_nova_user: \"${NOVA_USER}\""  \
     -e "\$aceph_nova_pool_name: \"${NOVA_POOL}\""  \
     /etc/kolla/globals.yml
 grep '^[^#]' /etc/kolla/globals.yml
-
-cat <<EOF
-# https://docs.openstack.org/kolla-ansible/latest/reference/storage/external-ceph-guide.html
-cluster=armsite
-for p in ${GLANCE_POOL} ${CINDER_POOL} ${CINDER_POOL_BACKUP} ${NOVA_POOL}; do
-    ceph ${cluster:+--cluster ${cluster}} osd pool create ${p} 128 && rbd ${cluster:+--cluster ${cluster}} pool init ${p}
-done
-ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${GLANCE_USER} mon "profile rbd" osd "profile rbd pool=${GLANCE_POOL}" mgr "profile rbd pool=${GLANCE_POOL}"
-ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${CINDER_USER} mon "profile rbd" osd "profile rbd pool=${CINDER_POOL}, profile rbd pool=${NOVA_POOL}, profile rbd-read-only pool=${GLANCE_POOL}" mgr "profile rbd pool=${CINDER_POOL}, profile rbd pool=${NOVA_POOL}"
-ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${CINDER_USER_BACKUP} mon "profile rbd" osd "profile rbd pool=${CINDER_POOL_BACKUP}" mgr "profile rbd pool=${CINDER_POOL_BACKUP}"
-ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${NOVA_USER} mon "profile rbd" osd "profile rbd pool=${NOVA_POOL}" mgr "profile rbd pool=${NOVA_POOL}"
-for p in ${GLANCE_USER} ${CINDER_USER} ${CINDER_USER_BACKUP} ${NOVA_USER}; do
-    ceph ${cluster:+--cluster ${cluster}} auth get-or-create client.${p} | tee ${cluster:-ceph}.client.${p}.keyring
-done
-EOF
-
-cat <<EOF
-cat <<EO_GLOBALS >> /etc/kolla/globals.yml
-glance_ceph_backends:
-  - name: "rbd"
-    type: "rbd"
-    cluster: "ceph"
-    enabled: "{{ glance_backend_ceph | bool }}"
-  - name: "another-rbd"
-    type: "rbd"
-    cluster: "rbd1"
-    enabled: "{{ glance_backend_ceph | bool }}"
-cinder_ceph_backends:
-  - name: "rbd-1"
-    cluster: "ceph"
-    enabled: "{{ cinder_backend_ceph | bool }}"
-  - name: "rbd-2"
-    cluster: "rbd2"
-    availability_zone: "az2"
-    enabled: "{{ cinder_backend_ceph | bool }}"
-EO_GLOBALS
-EOF
 
 cat <<EOF
 cat ceph.conf > /etc/kolla/config/glance/ceph.conf
@@ -411,8 +399,6 @@ cat ceph.client.cinder.keyring        > /etc/kolla/config/zun/zun-compute/ceph.c
 cat ceph.client.nova.keyring          > /etc/kolla/config/nova/ceph.client.nova.keyring
 EOF
 cat <<EOF
-# https://docs.ceph.com/en/latest/rbd/rbd-openstack/
-# https://docs.openstack.org/kolla-ansible/latest/reference/storage/external-ceph-guide.html
 Gnocchi: 资源索引服务
     Configuring Gnocchi for Ceph includes following steps:
     Configure Ceph authentication details in /etc/kolla/globals.yml:
@@ -609,14 +595,21 @@ create_image() {
     esac
     # # https://docs.openstack.org/glance/latest/admin/useful-image-properties.html
     # # https://docs.openstack.org/ocata/cli-reference/glance-property-keys.html
-    echo "img_config_drive=mandatory"
-    echo "hw_architecture=    ###kvm full virtualization arch###"
-    echo "hw_firmware_type=uefi"
-    echo "os_secure_boot=required"
-    echo "os_type=linux"
-    echo "hw_emulation_architecture=aarch64"
-    echo "hw_video_type=virtio"
-    echo "hw_video_type (specific to s390x)"
+    cat <<EOF
+    img_config_drive=mandatory
+    hw_architecture=    ###kvm full virtualization arch###
+    hw_firmware_type=uefi
+    os_secure_boot=required
+    os_type=linux
+    hw_emulation_architecture=aarch64
+    hw_video_type=virtio
+    hw_video_type (specific to s390x)
+    # # ceph nova storage, recommend to use the following properties for your images
+    hw_scsi_model=virtio-scsi: add the virtio-scsi controller and get better performance and support for discard operation
+    hw_disk_bus=scsi: connect every cinder block devices to that controller
+    hw_qemu_guest_agent=yes: enable the QEMU guest agent
+    os_require_quiesce=yes: send fs-freeze/thaw calls through the QEMU guest agent
+EOF
 }
 create_flavor
 create_pubnet "public" "false" "114.114.114.114" "172.16.3.2" "172.16.3.19" "172.16.0.0/21" "172.16.0.1"
