@@ -291,7 +291,7 @@ EOF
 #  all the nodes where ``cinder-volume`` and ``cinder-backup`` will run:
 #      [storage]
 #      control01
-CEPH=(armsite)
+CEPH_CLUSTERS=(armsite)
 # TODO: multi ceph cluster
 GLANCE_USER=glance
 CINDER_USER=cinder
@@ -308,7 +308,7 @@ NOVA_KEYRING=ceph.client.${NOVA_USER}.keyring
 # https://docs.openstack.org/kolla-ansible/latest/reference/storage/external-ceph-guide.html
 # https://docs.ceph.com/en/latest/rbd/rbd-openstack/
 # https://ceph.io/en/news/blog/2015/openstack-nova-configure-multiple-ceph-backends-on-one-hypervisor/
-for cluster in ${CEPH[@]}; do
+for cluster in ${CEPH_CLUSTERS[@]}; do
     echo "###### CLUSTER: ${cluster} ##########################################"
     for p in ${GLANCE_POOL} ${CINDER_POOL} ${CINDER_POOL_BACKUP} ${NOVA_POOL}; do
         cat <<EO_CMDS
@@ -384,23 +384,23 @@ sed --quiet -i -E \
     -e "\$aceph_nova_user: \"${NOVA_USER}\""  \
     -e "\$aceph_nova_pool_name: \"${NOVA_POOL}\""  \
     /etc/kolla/globals.yml
-grep '^[^#]' /etc/kolla/globals.yml
+grep -v '^\s*$\|^\s*\#' /etc/kolla/globals.yml
 
 cat <<EOF
-for cluster in ${CEPH[@]}; do
+for cluster in ${CEPH_CLUSTERS[@]}; do
     echo "###### CLUSTER: ${cluster} ##########################################"
     cat <<EO_CMD
-    cat ${cluster}.conf > /etc/kolla/config/glance/ceph.conf
-    cat ${cluster}.conf > /etc/kolla/config/cinder/ceph.conf
-    cat ${cluster}.conf > /etc/kolla/config/nova/ceph.conf
-    cat ${cluster}.conf > /etc/kolla/config/zun/zun-compute/ceph.conf
-    cat ${cluster}.client.${GLANCE_USER}.keyring        > /etc/kolla/config/glance/${GLANCE_KEYRING}
-    cat ${cluster}.client.${CINDER_USER}.keyring        > /etc/kolla/config/cinder/cinder-volume/${CINDER_KEYRING}
-    cat ${cluster}.client.${CINDER_USER}.keyring        > /etc/kolla/config/cinder/cinder-backup/${CINDER_KEYRING}
-    cat ${cluster}.client.${CINDER_BACKUP_USER}.keyring > /etc/kolla/config/cinder/cinder-backup/${CINDER_BACKUP_KEYRING}
-    cat ${cluster}.client.${CINDER_USER}.keyring        > /etc/kolla/config/nova/${CINDER_KEYRING}
-    cat ${cluster}.client.${CINDER_USER}.keyring        > /etc/kolla/config/zun/zun-compute/${CINDER_KEYRING}
-    cat ${cluster}.client.${NOVA_USER}.keyring          > /etc/kolla/config/nova/${NOVA_KEYRING}
+cat ${cluster}.conf > /etc/kolla/config/glance/ceph.conf
+cat ${cluster}.conf > /etc/kolla/config/cinder/ceph.conf
+cat ${cluster}.conf > /etc/kolla/config/nova/ceph.conf
+cat ${cluster}.conf > /etc/kolla/config/zun/zun-compute/ceph.conf
+cat ${cluster}.client.${GLANCE_USER}.keyring        > /etc/kolla/config/glance/${GLANCE_KEYRING}
+cat ${cluster}.client.${CINDER_USER}.keyring        > /etc/kolla/config/cinder/cinder-volume/${CINDER_KEYRING}
+cat ${cluster}.client.${CINDER_USER}.keyring        > /etc/kolla/config/cinder/cinder-backup/${CINDER_KEYRING}
+cat ${cluster}.client.${CINDER_BACKUP_USER}.keyring > /etc/kolla/config/cinder/cinder-backup/${CINDER_BACKUP_KEYRING}
+cat ${cluster}.client.${CINDER_USER}.keyring        > /etc/kolla/config/nova/${CINDER_KEYRING}
+cat ${cluster}.client.${CINDER_USER}.keyring        > /etc/kolla/config/zun/zun-compute/${CINDER_KEYRING}
+cat ${cluster}.client.${NOVA_USER}.keyring          > /etc/kolla/config/nova/${NOVA_KEYRING}
 EO_CMD
 done
 # # different ceph backend for nova-compute host
@@ -629,7 +629,7 @@ create_image "cirros_arm" "${KOLLA_DIR}/cirros-0.6.2-aarch64-disk.img" "aarch64"
 openstack keypair create --public-key ${KOLLA_DIR}/testkey.pub mykey
 openstack server create --image "cirros_x86" --flavor m1.tiny --key-name mykey --network public-net demo-x86
 openstack server create --image "cirros_arm" --flavor m1.tiny --key-name mykey --network public-net demo-arm
-# # # 创建VOLUME one LVM/CEPH虚拟机
+# # # 创建VOLUME one lvm/ceph虚拟机
 # openstack availability zone list
 # openstack volume create --image cirros --bootable --size 1 --availability-zone nova test_vol
 # openstack volume list
