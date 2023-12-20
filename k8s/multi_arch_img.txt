@@ -57,7 +57,7 @@ RUN apt-get update && \
     apt-get install curl -y && \
     rm -rf /var/lib/apt/list/*
 
-ENRYPOINT [ "curl" ]
+ENTRYPOINT [ "curl" ]
 EOF
 docker build -t devopstales/curl:1.0-amd64 --build-arg ARCH=amd64/ .
 docker pus devopstales/curl:1.0-amd64

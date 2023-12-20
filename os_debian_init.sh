@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("b04bae2[2023-09-27T09:35:11+08:00]:os_debian_init.sh")
+VERSION+=("a7730a4[2023-11-20T13:58:35+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -40,15 +40,14 @@ debian_build() {
     cat /etc/hosts > ${root_dir}/etc/hosts
     LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash <<EOSHELL
     /debootstrap/debootstrap --second-stage
-    echo ${HOSTNAME:-deb-tpl} > /etc/hostname
+    echo ${HOSTNAME:-} > /etc/hostname
     cat <<RC_EOF > /etc/rc.local
 #!/bin/sh -e
 exit 0
 RC_EOF
     chmod 755 /etc/rc.local
-
-    echo "nameserver ${NAME_SERVER:-114.114.114.114}" > /etc/resolv.conf
-    debian_chpasswd root ${PASSWORD:-password}
+    echo "${NAME_SERVER:+nameserver ${NAME_SERVER}}" > /etc/resolv.conf
+    ${PASSWORD:+debian_chpasswd root ${PASSWORD}}
     debian_apt_init ${DEBIAN_VERSION:-buster}
     debian_locale_init
     debian_limits_init
