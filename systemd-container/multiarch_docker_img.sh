@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("initver[2023-12-20T18:43:09+08:00]:multiarch_docker_img.sh")
+VERSION+=("3575717[2023-12-20T18:43:08+08:00]:multiarch_docker_img.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -137,14 +137,18 @@ create_docker_bridge() {
     docker network ls
 }
 
-# init_docker "registry.local"
-# create_docker_bridge "br-ext"
-# create_base_img
+init_docker "registry.local"
+create_docker_bridge "br-ext"
+create_base_img
 gen_dockerfile "debian:bookworm" "${DIRNAME}/myimg"
 build_multiarch_docker_img "debian:bookworm" "ssh:v1" "${DIRNAME}/myimg" "registry.local"
 
 cat <<'EOF'
 docker create -e KEY1=1 -e KEY2=2 --hostname testrv --name myname --network br-ext myimg 
+# --dns 8.8.8.8
+# --ip 192.168.168.2
+# --volume /host/disk/:/docker/mnt     # bind mount
+# --mount       Attach a filesystem mount to the container
 docker ps -a --no-trunc
 docker images | awk '{print $3}' | xargs -I@ docker image rm @ -f
 docker ps -a | awk '{print $1}' | xargs -I@ docker rm @
