@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("19b3925[2023-12-21T09:13:23+08:00]:multiarch_docker_img.sh")
+VERSION+=("31fbfd8[2023-12-21T09:57:44+08:00]:multiarch_docker_img.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -70,7 +70,7 @@ gen_dockerfile() {
 mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 ARG ARCH=
 FROM ${img_tag}-\${ARCH}
-LABEL maintainer="johnyin" name="${img_tag}-\${ARCH}" build-date="$(date '+%Y%m%d%H%M%S')"
+LABEL maintainer="johnyin" name="${img_tag}" build-date="$(date '+%Y%m%d%H%M%S')"
 ENV PS1="\$(tput bold)(DOCKER)\$(tput sgr0)[\$(id -un)@\$(hostname -s) \$(pwd)]$ "
 COPY starter.sh /usr/local/bin/startup
 COPY service /run_command
@@ -115,6 +115,7 @@ build_multiarch_docker_img() {
         local sha256=$(cd ${DIRNAME}/buildroot-${arch} && tar cv . | docker import -)
         docker tag ${sha256} ${base_img_tag}-${arch}
         (cd ${dockerfile_dir} && docker build -t ${registry}/${img_tag}-${arch} --build-arg ARCH=${arch} --network=host .)
+        docker inspect ${registry}/${img_tag}-${arch}
         docker push ${registry}/${img_tag}-${arch}
     done
     echo "#### GEN MULTI ARCH IMAGE ####"
