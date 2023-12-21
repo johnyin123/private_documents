@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("0103dc2[2023-12-21T15:34:39+08:00]:multiarch_docker_img.sh")
+VERSION+=("a8782be[2023-12-21T15:49:41+08:00]:multiarch_docker_img.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -119,18 +119,22 @@ EOF
 EOF
 }
 build_base_image() {
-    (cd ${DIRNAME}/buildroot-${arch} && tar cv . | xz > ${DIRNAME}/rootfs.tar.xz)
-    cfg_file=${DIRNAME}/Dockerfile
-    [ -f "${DIRNAME}/rootfs.tar.xz" ] && mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+    local rootfs=${1}
+    local cfg_file=${DIRNAME}/Dockerfile
+    [ -f "${rootfs}" ] && mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 FROM scratch
-ADD rootfs.tar.xz /
-CMD ["bash"]
+ADD ${rootfs##*/} /
+VOLUME ["/home/johnyin/"]
+USER johnyin
+ENTRYPOINT [ "google-chrome" ]
+CMD [ "--user-data-dir=/data" ]
 EOF
     cfg_file=${DIRNAME}/.dockerignore
     mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 **
-!rootfs.tar.xz
+!${rootfs##*/}
 EOF
+    docker build -t google_chrome .
 }
 build_multiarch_docker_img() {
     local base_img_tag="${1}"
