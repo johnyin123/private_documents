@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("6228b3c[2023-12-20T19:18:37+08:00]:multiarch_docker_img.sh")
+VERSION+=("19b3925[2023-12-21T09:13:23+08:00]:multiarch_docker_img.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -76,6 +76,16 @@ COPY starter.sh /usr/local/bin/startup
 COPY service /run_command
 RUN mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup
 ENTRYPOINT ["dumb-init", "--single-child", "--", "/usr/local/bin/startup"]
+EOF
+cat <<EOF
+RUN { \
+    touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup; \
+    echo "deb [trusted=yes] http://192.168.168.1/debian bookworm main" > /etc/apt/sources.list; \
+    apt update; \
+    apt -y install iproute2; \
+    apt clean all; \
+    uname -m; \
+    }
 EOF
     cfg_file=${target_dir}/starter.sh
     mkdir -p $(dirname "${cfg_file}") && cat <<'EOF' > "${cfg_file}"
