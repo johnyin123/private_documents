@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("8438620[2023-12-21T12:38:42+08:00]:multiarch_docker_img.sh")
+VERSION+=("0103dc2[2023-12-21T15:34:39+08:00]:multiarch_docker_img.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -116,6 +116,20 @@ EOF
     cfg_file=${target_dir}/service
     mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 /usr/sbin/sshd -D
+EOF
+}
+build_base_image() {
+    (cd ${DIRNAME}/buildroot-${arch} && tar cv . | xz > ${DIRNAME}/rootfs.tar.xz)
+    cfg_file=${DIRNAME}/Dockerfile
+    [ -f "${DIRNAME}/rootfs.tar.xz" ] && mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+FROM scratch
+ADD rootfs.tar.xz /
+CMD ["bash"]
+EOF
+    cfg_file=${DIRNAME}/.dockerignore
+    mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+**
+!rootfs.tar.xz
 EOF
 }
 build_multiarch_docker_img() {
