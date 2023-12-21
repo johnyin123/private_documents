@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("a7730a4[2023-11-20T13:58:35+08:00]:os_debian_init.sh")
+VERSION+=("687ae6a[2023-12-20T13:04:31+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -819,7 +819,7 @@ bb_cmd() {
 }
 for c in $(busybox --list)
 do
-    bb_cmd $c
+    command -v "${c}" &> /dev/null || bb_cmd $c
 done
 EOF
     } > ${home}
