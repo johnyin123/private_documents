@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("266af18[2023-12-21T10:10:24+08:00]:multiarch_docker_img.sh")
+VERSION+=("8438620[2023-12-21T12:38:42+08:00]:multiarch_docker_img.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -72,6 +72,7 @@ ARG ARCH=
 FROM ${img_tag}-\${ARCH}
 LABEL maintainer="johnyin" name="${img_tag}" build-date="$(date '+%Y%m%d%H%M%S')"
 ENV PS1="\$(tput bold)(DOCKER)\$(tput sgr0)[\$(id -un)@\$(hostname -s) \$(pwd)]$ "
+ENV DEBIAN_FRONTEND=noninteractive
 COPY starter.sh /usr/local/bin/startup
 COPY service /run_command
 RUN mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup
