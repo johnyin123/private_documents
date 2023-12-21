@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("31fbfd8[2023-12-21T09:57:44+08:00]:multiarch_docker_img.sh")
+VERSION+=("266af18[2023-12-21T10:10:24+08:00]:multiarch_docker_img.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -78,12 +78,24 @@ RUN mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/b
 ENTRYPOINT ["dumb-init", "--single-child", "--", "/usr/local/bin/startup"]
 EOF
 cat <<EOF
+# Define mountable directories.
+# docker run -d -p 80:80 -v <sites-enabled-dir>:/etc/nginx/conf.d -v <certs-dir>:/etc/nginx/certs -v <log-dir>:/var/log/nginx -v <html-dir>:/var/www/html dockerfile/nginx
+VOLUME ["/etc/nginx/sites-enabled", "/etc/nginx/certs", "/etc/nginx/conf.d", "/var/log/nginx", "/var/www/html"]
+# WORKDIR指令为Dockerfile中的任何RUN/CMD/ENTRYPOINT/COPY/ADD指令设置工作目录,如果WORKDIR不存在,它将被创建.
+WORKDIR /etc/nginx
+# Expose ports.
+EXPOSE 80
+EXPOSE 443
+
+ENTRYPOINT ["/sbin/tini", "--", "myapp"]
+CMD ["--foo", "1", "--bar=2"]
 RUN { \
     touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup; \
     echo "deb [trusted=yes] http://192.168.168.1/debian bookworm main" > /etc/apt/sources.list; \
-    apt update; \
-    apt -y install iproute2; \
-    apt clean all; \
+    apt -y update; \
+    apt -y --no-install-recommends install iproute2; \
+    apt -y clean all; \
+    rm -rf /var/lib/apt/lists/*; \
     uname -m; \
     }
 EOF
