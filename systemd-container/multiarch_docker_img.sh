@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("3575717[2023-12-20T18:43:08+08:00]:multiarch_docker_img.sh")
+VERSION+=("6228b3c[2023-12-20T19:18:37+08:00]:multiarch_docker_img.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -144,6 +144,8 @@ gen_dockerfile "debian:bookworm" "${DIRNAME}/myimg"
 build_multiarch_docker_img "debian:bookworm" "ssh:v1" "${DIRNAME}/myimg" "registry.local"
 
 cat <<'EOF'
+# make user can run docker command
+usermod -aG docker johnyin
 docker create -e KEY1=1 -e KEY2=2 --hostname testrv --name myname --network br-ext myimg 
 # --dns 8.8.8.8
 # --ip 192.168.168.2
