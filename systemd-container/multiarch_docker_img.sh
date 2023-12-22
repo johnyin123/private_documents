@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("a8782be[2023-12-21T15:49:41+08:00]:multiarch_docker_img.sh")
+VERSION+=("29d094a[2023-12-21T16:53:55+08:00]:multiarch_docker_img.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -124,17 +124,35 @@ build_base_image() {
     [ -f "${rootfs}" ] && mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 FROM scratch
 ADD ${rootfs##*/} /
+# apt -y --no-install-recommends install libgtk-3-0 libnss3 libssl3 libdbus-glib-1-2 libx11-xcb1 libxtst6 libasound2 fonts-noto-cjk; \
+RUN { \
+        useradd -m johnyin; \
+        echo "OK"; \
+    }
 VOLUME ["/home/johnyin/"]
 USER johnyin
-ENTRYPOINT [ "google-chrome" ]
-CMD [ "--user-data-dir=/data" ]
+ENTRYPOINT [ "/opt/firefox/firefox" ]
+CMD [ "http://127.0.0.1" ]
 EOF
     cfg_file=${DIRNAME}/.dockerignore
     mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 **
 !${rootfs##*/}
 EOF
-    docker build -t google_chrome .
+    cat <<'EOF'
+docker build -t firefox .
+docker create --network internet --ip 192.168.169.2 --dns 8.8.8.8 \
+    --cpuset-cpus 0 \
+    --memory 512mb \
+    --hostname myinternet --name firefox \
+    -v $HOME/testhome:/home/johnyin \
+    -e DISPLAY=unix${DISPLAY} \
+    -v /dev/shm:/dev/shm \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    --device /dev/snd \
+    --device /dev/dri \
+    myfirefox
+EOF
 }
 build_multiarch_docker_img() {
     local base_img_tag="${1}"
