@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("29d094a[2023-12-21T16:53:55+08:00]:multiarch_docker_img.sh")
+VERSION+=("3cc63eb[2023-12-22T08:38:24+08:00]:multiarch_docker_img.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -76,7 +76,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 COPY starter.sh /usr/local/bin/startup
 COPY service /run_command
 RUN mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup
-ENTRYPOINT ["dumb-init", "--single-child", "--", "/usr/local/bin/startup"]
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["/usr/local/bin/startup"]
 EOF
 cat <<EOF
 # Define mountable directories.
@@ -87,18 +88,6 @@ WORKDIR /etc/nginx
 # Expose ports.
 EXPOSE 80
 EXPOSE 443
-
-ENTRYPOINT ["/sbin/tini", "--", "myapp"]
-CMD ["--foo", "1", "--bar=2"]
-RUN { \
-    touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup; \
-    echo "deb [trusted=yes] http://192.168.168.1/debian bookworm main" > /etc/apt/sources.list; \
-    apt -y update; \
-    apt -y --no-install-recommends install iproute2; \
-    apt -y clean all; \
-    rm -rf /var/lib/apt/lists/*; \
-    uname -m; \
-    }
 EOF
     cfg_file=${target_dir}/starter.sh
     mkdir -p $(dirname "${cfg_file}") && cat <<'EOF' > "${cfg_file}"
@@ -107,37 +96,66 @@ set -o errexit
 set -o pipefail
 set -o nounset
 set -o xtrace
-CMD=$(cat /run_command)
-ARGS=""
-echo "Running command: '${CMD}${ARGS:+ $ARGS}'"
-exec ${CMD} ${ARGS}
+[ -e "/run_command" ] && source /run_command
+echo "Running command: '${CMD:-}${ARGS:+ $ARGS}'"
+[ -z "${CMD:-}" ] && /usr/sbin/sshd -D || {
+    /usr/sbin/sshd -D&
+    exec ${CMD} ${ARGS:-}
+}
 EOF
     # echo "sleep infinity" > ${target_dir}/service
     cfg_file=${target_dir}/service
     mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-/usr/sbin/sshd -D
+# CMD=you server
+# ARGS=
 EOF
 }
-build_base_image() {
-    local rootfs=${1}
-    local cfg_file=${DIRNAME}/Dockerfile
-    [ -f "${rootfs}" ] && mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+build_firefox_docker() {
+    local rootfs_xz=${1}
+    local target_dir=${2}
+    local cfg_file=${target_dir}/Dockerfile
+    [ -f "${rootfs_xz}" ] && mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 FROM scratch
-ADD ${rootfs##*/} /
-# apt -y --no-install-recommends install libgtk-3-0 libnss3 libssl3 libdbus-glib-1-2 libx11-xcb1 libxtst6 libasound2 fonts-noto-cjk; \
-RUN { \
-        useradd -m johnyin; \
-        echo "OK"; \
+ADD ${rootfs_xz##*/} /
+ENV DEBIAN_FRONTEND=noninteractive
+COPY starter.sh /usr/local/bin/startup
+COPY service /run_command
+# apt -y --no-install-recommends install libgtk-3-0 libnss3 libssl3 libdbus-glib-1-2 libx11-xcb1 libxtst6 libasound2 fonts-noto-cjk
+RUN { \\
+        mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup; \\
+        useradd -m johnyin; \\
+        echo "OK"; \\
     }
+# EXPOSE 60022
 VOLUME ["/home/johnyin/"]
-USER johnyin
-ENTRYPOINT [ "/opt/firefox/firefox" ]
-CMD [ "http://127.0.0.1" ]
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["/usr/local/bin/startup"]
 EOF
-    cfg_file=${DIRNAME}/.dockerignore
+    cfg_file=${target_dir}/starter.sh
+    mkdir -p $(dirname "${cfg_file}") && cat <<'EOF' > "${cfg_file}"
+#!/bin/bash
+set -o errexit
+set -o pipefail
+set -o nounset
+set -o xtrace
+[ -e "/run_command" ] && source /run_command
+echo "Running command: '${CMD:-}${ARGS:+ $ARGS}'"
+[ -z "${CMD:-}" ] && /usr/sbin/sshd -D || {
+    /usr/sbin/sshd -D&
+    exec ${CMD} ${ARGS:-}
+}
+EOF
+    cfg_file=${target_dir}/service
+    mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+CMD=/usr/bin/su
+ARGS="johnyin -c '/opt/firefox/firefox'"
+EOF
+    cfg_file=${target_dir}/.dockerignore
     mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 **
-!${rootfs##*/}
+!starter.sh
+!service
+!${rootfs_xz##*/}
 EOF
     cat <<'EOF'
 docker build -t firefox .
@@ -151,7 +169,7 @@ docker create --network internet --ip 192.168.169.2 --dns 8.8.8.8 \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --device /dev/snd \
     --device /dev/dri \
-    myfirefox
+    firefox
 EOF
 }
 build_multiarch_docker_img() {
