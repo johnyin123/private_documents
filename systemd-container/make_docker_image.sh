@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-12-22T14:20:52+08:00]:make_docker_image.sh")
+VERSION+=("c711fa6[2023-12-22T14:20:52+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -95,6 +95,8 @@ EOF
     write_file "${cfg_file}" <<EOF
 CMD=/usr/bin/su
 ARGS="${username} -c '/opt/firefox/firefox'"
+# CMD=/usr/sbin/runuser
+# ARGS="-u johnyin -- /opt/google/chrome/google-chrome --no-sandbox"
 EOF
     cat <<'EOF'
 # apt -y update && apt -y --no-install-recommends install libgtk-3-0 libnss3 libssl3 libdbus-glib-1-2 libx11-xcb1 libxtst6 libasound2 fonts-noto-cjk
