@@ -7,14 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d7982fa[2023-12-25T12:22:04+08:00]:make_docker_image.sh")
+VERSION+=("b144a92[2023-12-25T12:28:13+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        -c <type>           *          Dockerfile for <combine|firefox|aria|common docker file>
+        -c <type>           *          Dockerfile for <combine|firefox|chrome|aria|common docker file>
                                             combine: combine multiarch docker image
                                             firefox: need firefox.tar.xz rootfs with firefox install /opt/firefox
         -D <dirname>                   target dirname for generate files
@@ -38,6 +38,7 @@ gen_dockerfile() {
     local name=${1}
     local target_dir=${2}
     local base_img=${3:-}
+    local other_runs=${4:-}
     local action="FROM ${base_img}"
     [ -e "${target_dir}/${base_img}" ] && action="FROM scratch\nADD ${base_img##*/} /\n"
     [ -z "${base_img}" ] && action="FROM scratch\nADD rootfs.tar.xz /\n"
@@ -51,6 +52,7 @@ COPY starter.sh /usr/local/bin/startup
 COPY service /run_command
 RUN { \\
         mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup; \\
+        ${other_runs:+${other_runs};} \\
         echo "ALL OK"; \\
         rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history; \\
     }
@@ -75,6 +77,30 @@ EOF
     write_file "${cfg_file}" <<EOF
 # CMD=sleep infinity
 # ARGS=
+EOF
+}
+build_chrome() {
+    local dir="${1}"
+    local name=chrome
+    local base="registry.local/debian:bookworm-amd64"
+    local username=johnyin
+    local otherruns="touch /etc/default/google-chrome && \\
+    echo 'deb [arch=amd64 trusted=yes] http://dl.google.com/linux/chrome/deb/ stable main' > /etc/apt/sources.list.d/google.list && apt update && apt -y install --no-install-recommends google-chrome-stable && useradd -m ${username} --home-dir /home/${username}/"
+    gen_dockerfile "${name}" "${dir}" "${base}" "${otherruns}"
+    cfg_file=${dir}/Dockerfile
+    write_file "${cfg_file}" append <<EOF
+RUN { \\
+            }
+VOLUME ["/home/${username}/"]
+EOF
+    cfg_file=${dir}/service
+    write_file "${cfg_file}" <<EOF
+CMD=/usr/sbin/runuser
+ARGS="-u ${username} -- /opt/google/chrome/google-chrome --no-sandbox"
+EOF
+    cat <<'EOF'
+docker create --network br-ext -e DISPLAY=unix$DISPLAY -v /testhome:/home/johnyin chrome
+xhost +127.0.0.1
 EOF
 }
 build_firefox() {
@@ -199,6 +225,7 @@ main() {
                     combine_multiarch "${registry}" "${tag}"
                     ;;
         firefox)    build_firefox "${dir:-firefox}";;
+        chrome)     build_chrome "${dir:-chrome}";;
         aria)       build_aria2 "${dir:-aria2}";;
         *)          gen_dockerfile "${func}" "${dir:-common-demo}" "registry.local/debian:bookworm-amd64"
                     gen_dockerfile "${func}" "${dir:-scratch-demo}"
