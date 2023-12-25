@@ -1,0 +1,23 @@
+set -x
+set -o errexit
+set -o nounset
+set -o pipefail
+
+poweroff_before_panic {
+  poweroff -f
+}
+trap poweroff_before_panic EXIT
+
+mount -o remount,rw /
+ifup -a
+curl -sS -o root/debian.squashfs 192.168.168.1:8080/debian.squashfs
+
+mkdir /run/roots
+mount -t tmpfs -o suid,exec none /run/roots
+cd /run/roots && mkdir state work image old
+mount -t squashfs /root/debian.squashfs image
+mount -t overlay -o lowerdir=image,upperdir=state,workdir=work overlay /mnt
+
+cd /mnt && mount --move /sys sys && mount --move /dev dev && mount --move /run run && mount --move /proc proc
+pivot_root . run/roots/old
+exec /sbin/init
