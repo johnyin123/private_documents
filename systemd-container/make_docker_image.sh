@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9d02dbd[2023-12-25T12:48:07+08:00]:make_docker_image.sh")
+VERSION+=("8b1849c[2023-12-25T13:57:35+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -73,13 +73,14 @@ set -o xtrace
 echo "Running command: '${CMD:-}${ARGS:+ $ARGS}'"
 [ -z "${CMD:-}" ] && /usr/sbin/sshd -D || {
     /usr/sbin/sshd -D&
-    exec ${CMD} ${ARGS:-}
+    exec "${CMD}" ${ARGS:-}
 }
 EOF
     cfg_file=${target_dir}/service
     write_file "${cfg_file}" <<EOF
 # CMD=sleep infinity
-# ARGS=
+# CMD=/usr/sbin/runuser
+# ARGS="-u johnyin -- /opt/google/chrome/google-chrome --no-sandbox"
 EOF
 }
 build_chrome() {
