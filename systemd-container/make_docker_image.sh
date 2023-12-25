@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c711fa6[2023-12-22T14:20:52+08:00]:make_docker_image.sh")
+VERSION+=("a32c03b[2023-12-25T10:48:44+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -99,6 +99,8 @@ ARGS="${username} -c '/opt/firefox/firefox'"
 # ARGS="-u johnyin -- /opt/google/chrome/google-chrome --no-sandbox"
 EOF
     cat <<'EOF'
+docker create --network br-ext -e DISPLAY=unix$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v /testhome:/home/johnyin chrome
+# xhost +<ip>
 # apt -y update && apt -y --no-install-recommends install libgtk-3-0 libnss3 libssl3 libdbus-glib-1-2 libx11-xcb1 libxtst6 libasound2 fonts-noto-cjk
 docker build -t firefox .
 docker create --network internet --ip 192.168.169.2 --dns 8.8.8.8 \
