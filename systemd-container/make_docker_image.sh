@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b144a92[2023-12-25T12:28:13+08:00]:make_docker_image.sh")
+VERSION+=("9d02dbd[2023-12-25T12:48:07+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -38,23 +38,26 @@ gen_dockerfile() {
     local name=${1}
     local target_dir=${2}
     local base_img=${3:-}
-    local other_runs=${4:-}
     local action="FROM ${base_img}"
     [ -e "${target_dir}/${base_img}" ] && action="FROM scratch\nADD ${base_img##*/} /\n"
     [ -z "${base_img}" ] && action="FROM scratch\nADD rootfs.tar.xz /\n"
     try mkdir -p "${target_dir}"
+    touch ${target_dir}/build.run.sh
     cfg_file=${target_dir}/Dockerfile
     write_file "${cfg_file}" <<EOF
 $(echo -e "${action}")
 LABEL maintainer="johnyin" name="${name}" build-date="$(date '+%Y%m%d%H%M%S')"
 ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
 COPY starter.sh /usr/local/bin/startup
 COPY service /run_command
+COPY build.run.sh /build.run
 RUN { \\
+        ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone \\
         mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup; \\
-        ${other_runs:+${other_runs};} \\
+        /bin/sh -x /build.run;  \\
         echo "ALL OK"; \\
-        rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history; \\
+        rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /build.run; \\
     }
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["/usr/local/bin/startup"]
@@ -84,13 +87,16 @@ build_chrome() {
     local name=chrome
     local base="registry.local/debian:bookworm-amd64"
     local username=johnyin
-    local otherruns="touch /etc/default/google-chrome && \\
-    echo 'deb [arch=amd64 trusted=yes] http://dl.google.com/linux/chrome/deb/ stable main' > /etc/apt/sources.list.d/google.list && apt update && apt -y install --no-install-recommends google-chrome-stable && useradd -m ${username} --home-dir /home/${username}/"
-    gen_dockerfile "${name}" "${dir}" "${base}" "${otherruns}"
+    gen_dockerfile "${name}" "${dir}" "${base}"
+    cfg_file=${dir}/build.run.sh
+    write_file "${cfg_file}" <<EOF
+touch /etc/default/google-chrome
+echo 'deb [arch=amd64 trusted=yes] http://dl.google.com/linux/chrome/deb/ stable main' > /etc/apt/sources.list.d/google.list
+apt update
+apt -y install --no-install-recommends google-chrome-stable && useradd -m ${username} --home-dir /home/${username}/
+EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
-RUN { \\
-            }
 VOLUME ["/home/${username}/"]
 EOF
     cfg_file=${dir}/service
@@ -110,11 +116,12 @@ build_firefox() {
     local username=johnyin
     [ -e "${dir}/${rootfs_with_firefox}" ] || exit_msg "${dir}/${rootfs_with_firefox} file no found\n"
     gen_dockerfile "${name}" "${dir}" "${rootfs_with_firefox}"
+    cfg_file=${dir}/build.run.sh
+    write_file "${cfg_file}" <<EOF
+useradd -m ${username} --home-dir /home/${username}/
+EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
-RUN { \\
-        useradd -m ${username} --home-dir /home/${username}/; \\
-    }
 VOLUME ["/home/${username}/"]
 EOF
     cfg_file=${dir}/service
@@ -148,13 +155,14 @@ build_aria2() {
     local base="registry.local/debian:bookworm-amd64"
     local username=johnyin
     gen_dockerfile "${name}" "${dir}" "${base}"
+    cfg_file=${dir}/build.run.sh
+    write_file "${cfg_file}" <<EOF
+useradd -m ${username} --home-dir /home/${username}/
+apt -y -oAcquire::AllowInsecureRepositories=true update
+apt -y -oAcquire::AllowInsecureRepositories=true install aria2
+EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
-RUN { \\
-        useradd -m ${username} --home-dir /home/${username}/; \\
-        apt -y -oAcquire::AllowInsecureRepositories=true update \\
-            && apt -y -oAcquire::AllowInsecureRepositories=true install aria2; \\ 
-    }
 VOLUME ["/home/${username}/"]
 EOF
     cfg_file=${dir}/service
