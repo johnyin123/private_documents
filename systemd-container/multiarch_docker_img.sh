@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("3cc63eb[2023-12-22T08:38:24+08:00]:multiarch_docker_img.sh")
+VERSION+=("d39e2ad[2023-12-22T10:04:13+08:00]:multiarch_docker_img.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -63,146 +63,6 @@ EOF
     INST_ARCH=arm64 ${DIRNAME}/create_base_img.sh
     rm -f ${DIRNAME}/create_base_img.sh
 }
-gen_dockerfile() {
-    local img_tag=${1}
-    local target_dir=${2}
-    cfg_file=${target_dir}/Dockerfile
-mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-ARG ARCH=
-FROM ${img_tag}-\${ARCH}
-LABEL maintainer="johnyin" name="${img_tag}" build-date="$(date '+%Y%m%d%H%M%S')"
-ENV PS1="\$(tput bold)(DOCKER)\$(tput sgr0)[\$(id -un)@\$(hostname -s) \$(pwd)]$ "
-ENV DEBIAN_FRONTEND=noninteractive
-COPY starter.sh /usr/local/bin/startup
-COPY service /run_command
-RUN mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup
-ENTRYPOINT ["dumb-init", "--"]
-CMD ["/usr/local/bin/startup"]
-EOF
-cat <<EOF
-# Define mountable directories.
-# docker run -d -p 80:80 -v <sites-enabled-dir>:/etc/nginx/conf.d -v <certs-dir>:/etc/nginx/certs -v <log-dir>:/var/log/nginx -v <html-dir>:/var/www/html dockerfile/nginx
-VOLUME ["/etc/nginx/sites-enabled", "/etc/nginx/certs", "/etc/nginx/conf.d", "/var/log/nginx", "/var/www/html"]
-# WORKDIR指令为Dockerfile中的任何RUN/CMD/ENTRYPOINT/COPY/ADD指令设置工作目录,如果WORKDIR不存在,它将被创建.
-WORKDIR /etc/nginx
-# Expose ports.
-EXPOSE 80
-EXPOSE 443
-EOF
-    cfg_file=${target_dir}/starter.sh
-    mkdir -p $(dirname "${cfg_file}") && cat <<'EOF' > "${cfg_file}"
-#!/bin/bash
-set -o errexit
-set -o pipefail
-set -o nounset
-set -o xtrace
-[ -e "/run_command" ] && source /run_command
-echo "Running command: '${CMD:-}${ARGS:+ $ARGS}'"
-[ -z "${CMD:-}" ] && /usr/sbin/sshd -D || {
-    /usr/sbin/sshd -D&
-    exec ${CMD} ${ARGS:-}
-}
-EOF
-    # echo "sleep infinity" > ${target_dir}/service
-    cfg_file=${target_dir}/service
-    mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-# CMD=you server
-# ARGS=
-EOF
-}
-build_firefox_docker() {
-    local rootfs_xz=${1}
-    local target_dir=${2}
-    local cfg_file=${target_dir}/Dockerfile
-    [ -f "${rootfs_xz}" ] && mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-FROM scratch
-ADD ${rootfs_xz##*/} /
-ENV DEBIAN_FRONTEND=noninteractive
-COPY starter.sh /usr/local/bin/startup
-COPY service /run_command
-# apt -y --no-install-recommends install libgtk-3-0 libnss3 libssl3 libdbus-glib-1-2 libx11-xcb1 libxtst6 libasound2 fonts-noto-cjk
-RUN { \\
-        mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup; \\
-        useradd -m johnyin; \\
-        echo "OK"; \\
-    }
-# EXPOSE 60022
-VOLUME ["/home/johnyin/"]
-ENTRYPOINT ["dumb-init", "--"]
-CMD ["/usr/local/bin/startup"]
-EOF
-    cfg_file=${target_dir}/starter.sh
-    mkdir -p $(dirname "${cfg_file}") && cat <<'EOF' > "${cfg_file}"
-#!/bin/bash
-set -o errexit
-set -o pipefail
-set -o nounset
-set -o xtrace
-[ -e "/run_command" ] && source /run_command
-echo "Running command: '${CMD:-}${ARGS:+ $ARGS}'"
-[ -z "${CMD:-}" ] && /usr/sbin/sshd -D || {
-    /usr/sbin/sshd -D&
-    exec ${CMD} ${ARGS:-}
-}
-EOF
-    cfg_file=${target_dir}/service
-    mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-CMD=/usr/bin/su
-ARGS="johnyin -c '/opt/firefox/firefox'"
-EOF
-    cfg_file=${target_dir}/.dockerignore
-    mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-**
-!starter.sh
-!service
-!${rootfs_xz##*/}
-EOF
-    cat <<'EOF'
-docker build -t firefox .
-docker create --network internet --ip 192.168.169.2 --dns 8.8.8.8 \
-    --cpuset-cpus 0 \
-    --memory 512mb \
-    --hostname myinternet --name firefox \
-    -v $HOME/testhome:/home/johnyin \
-    -e DISPLAY=unix${DISPLAY} \
-    -v /dev/shm:/dev/shm \
-    -v /tmp/.X11-unix:/tmp/.X11-unix \
-    --device /dev/snd \
-    --device /dev/dri \
-    firefox
-EOF
-}
-build_multiarch_docker_img() {
-    local base_img_tag="${1}"
-    local img_tag="${2}"
-    local dockerfile_dir="${3}"
-    local registry="${4}"
-    local arch=""
-    for arch in amd64 arm64; do
-        local sha256=$(cd ${DIRNAME}/buildroot-${arch} && tar cv . | docker import -)
-        docker tag ${sha256} ${base_img_tag}-${arch}
-        (cd ${dockerfile_dir} && docker build -t ${registry}/${img_tag}-${arch} --build-arg ARCH=${arch} --network=host .)
-        docker inspect ${registry}/${img_tag}-${arch}
-        docker push ${registry}/${img_tag}-${arch}
-    done
-    echo "#### GEN MULTI ARCH IMAGE ####"
-    # # registry must has ssl
-    docker manifest rm ${registry}/${img_tag} 2>/dev/null || true
-    docker manifest create --insecure ${registry}/${img_tag} \
-        --amend ${registry}/${img_tag}-amd64 \
-        --amend ${registry}/${img_tag}-arm64
-    for arch in amd64 arm64; do
-        docker manifest annotate --arch ${arch} ${registry}/${img_tag} ${registry}/${img_tag}-${arch}
-    done
-    docker manifest inspect ${registry}/${img_tag}
-    docker manifest push --insecure ${registry}/${img_tag}
-    for arch in amd64 arm64; do
-        echo "++++++++++++++++++check ${arch} start++++++++++++++++++"
-        docker pull ${registry}/${img_tag} --platform ${arch}
-        docker run --entrypoint="uname" ${registry}/${img_tag} -m
-        echo "++++++++++++++++++check ${arch} end  ++++++++++++++++++"
-    done
-}
 create_docker_bridge() {
     local br_name=${1}
     # # use EXISTS BRIDGE as docker bridge network
@@ -218,8 +78,6 @@ create_docker_bridge() {
 init_docker "registry.local"
 create_docker_bridge "br-ext"
 create_base_img
-gen_dockerfile "debian:bookworm" "${DIRNAME}/myimg"
-build_multiarch_docker_img "debian:bookworm" "ssh:v1" "${DIRNAME}/myimg" "registry.local"
 
 cat <<'EOF'
 # make user can run docker command
