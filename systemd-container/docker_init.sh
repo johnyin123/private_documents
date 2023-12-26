@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("initver[2023-12-26T14:47:21+08:00]:docker_init.sh")
+VERSION+=("0757f55[2023-12-26T14:47:21+08:00]:docker_init.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -85,7 +85,10 @@ create_base_img
 cat <<'EOF'
 # make user can run docker command
 usermod -aG docker johnyin
-docker create -e KEY1=1 -e KEY2=2 --hostname testrv --name myname --network br-ext myimg 
+docker create -e KEY1=1 -e KEY2=2 --hostname testrv --name myname --network br-ext myimg
+# By default docker runs the container as root user unless specified otherwise.
+# In order to force docker to run the container as the same user as the docker daemon add --user flag as show below to docker run command.
+# --user "$(id -u):$(id -g)"
 # --dns 8.8.8.8
 # --ip 192.168.168.2
 # --volume /host/disk/:/docker/mnt     # bind mount
