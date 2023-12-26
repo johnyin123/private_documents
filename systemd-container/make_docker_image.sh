@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2f081ee[2023-12-25T15:15:02+08:00]:make_docker_image.sh")
+VERSION+=("1a035a7[2023-12-26T09:37:05+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -17,14 +17,16 @@ ${SCRIPTNAME}
         docker env:
             ENABLE_SSH=true/false, enable/disable sshd startup on 60022, default disable
             # docker create -e ENABLE_SSH=true
-        -c <type>           *          Dockerfile for <combine|firefox|chrome|aria|common docker file>
+        -c <type>           *          Dockerfile for <base|combine|firefox|chrome|aria|common docker file>
                                             combine: combine multiarch docker image
                                             firefox: need firefox.tar.xz rootfs with firefox install /opt/firefox
         -D <dirname>                   target dirname for generate files
         --registry <docker registry>   combine: use registry for combine multiarch, MUST SSL
                                        exam: registry.local
         --tag      <tag name>          combine: create new tag, for combine registry/tag-{{ARCH}} ==> registry/tag
-                                       exam: debian:bookworm 
+                                       exam: debian:bookworm
+                                       base: create base image tag
+        --file     <tar.gz/tar.xz/..>  zip file for ADD
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -34,6 +36,9 @@ ${SCRIPTNAME}
             ./${SCRIPTNAME} -c combine --registry registry.local --tag debian:bookworm
             # cp firefox.tar.xz mytarget/
             ./${SCRIPTNAME} -c firefox -D tttt
+            # create goldimg
+            ./${SCRIPTNAME} -c base -D mybase --file rootfs.tar.xz
+
 EOF
     exit 1
 }
@@ -92,6 +97,15 @@ EOF
     info_msg "gen dockerfile ok\n"
     info_msg " edit ${target_dir}/service for you service\n"
     info_msg " edit ${target_dir}/build.run.sh for you RUN commands for Dockerfile\n"
+}
+build_base() {
+    local dir="${1}"
+    local tag="${2}"
+    local base="${3}"
+    [ -e "${base}" ] || exit_msg "${base} no found\n"
+    info_msg "copyt ${base} -> ${dir}/${base##*/}\n"
+    try "mkdir -p '${dir}' && cat ${base} > ${dir}/${base##*/}"
+    gen_dockerfile "goldimg" "${dir}" "${base}"
 }
 build_chrome() {
     local dir="${1}"
@@ -213,9 +227,9 @@ combine_multiarch() {
     done
 }
 main() {
-    local func="" dir="" registry="" tag=""
+    local func="" dir="" registry="" tag="" file=""
     local opt_short="c:D:"
-    local opt_long="registry:,tag:,"
+    local opt_long="registry:,tag:,file:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -226,6 +240,7 @@ main() {
             -D)             shift; dir=${1}; shift;;
             --registry)     shift; registry=${1}; shift;;
             --tag)          shift; tag=${1}; shift;;
+            --file)         shift; file=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -238,6 +253,10 @@ main() {
     done
     [ -z "${func}" ] && usage "-c <func type>"
     case "${func}" in
+        base)
+                    [ -z "${file}" ] && usage "base mode, file must input"
+                    build_base "${dir:-goldimg}" "${tag}" "${file}"
+                    ;;
         combine)
                     [ -z "${registry}" ] && usage "combine mode, registry must input"
                     [ -z "${tag}" ] && usage "combine mode, tag must input"
