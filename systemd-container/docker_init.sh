@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("f49b2a9[2023-12-26T10:46:40+08:00]:multiarch_docker_img.sh")
+VERSION+=("initver[2023-12-26T14:47:21+08:00]:docker_init.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
