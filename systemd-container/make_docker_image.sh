@@ -7,13 +7,16 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8b1849c[2023-12-25T13:57:35+08:00]:make_docker_image.sh")
+VERSION+=("2f081ee[2023-12-25T15:15:02+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        docker env:
+            ENABLE_SSH=true/false, enable/disable sshd startup on 60022, default disable
+            # docker create -e ENABLE_SSH=true
         -c <type>           *          Dockerfile for <combine|firefox|chrome|aria|common docker file>
                                             combine: combine multiarch docker image
                                             firefox: need firefox.tar.xz rootfs with firefox install /opt/firefox
@@ -53,7 +56,7 @@ COPY starter.sh /usr/local/bin/startup
 COPY service /run_command
 COPY build.run.sh /build.run
 RUN { \\
-        ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone \\
+        ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; \\
         mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup; \\
         /bin/sh -x /build.run;  \\
         echo "ALL OK"; \\
@@ -70,18 +73,25 @@ set -o pipefail
 set -o nounset
 set -o xtrace
 [ -e "/run_command" ] && source /run_command
-echo "Running command: '${CMD:-}${ARGS:+ $ARGS}'"
-[ -z "${CMD:-}" ] && /usr/sbin/sshd -D || {
-    /usr/sbin/sshd -D&
+[ "${ENABLE_SSH:=false}" = "true" ] && ssh_cmd="/usr/sbin/sshd"
+echo "Running command [ssh: ${ENABLE_SSH}]: '${CMD:-}${ARGS:+ $ARGS}'"
+[ -z "${CMD:-}" ] && {
+    echo "no service start"
+    ${ssh_cmd:+${ssh_cmd} -D}
+} || {
+    ${ssh_cmd:+${ssh_cmd}}
+    echo "service start ${CMD} ${ARGS:-}"
     exec "${CMD}" ${ARGS:-}
 }
 EOF
     cfg_file=${target_dir}/service
-    write_file "${cfg_file}" <<EOF
-# CMD=sleep infinity
+    write_file "${cfg_file}" <<'EOF'
 # CMD=/usr/sbin/runuser
-# ARGS="-u johnyin -- /opt/google/chrome/google-chrome --no-sandbox"
+# ARGS="-u root -- /usr/bin/busybox sleep infinity"
 EOF
+    info_msg "gen dockerfile ok\n"
+    info_msg " edit ${target_dir}/service for you service\n"
+    info_msg " edit ${target_dir}/build.run.sh for you RUN commands for Dockerfile\n"
 }
 build_chrome() {
     local dir="${1}"
@@ -106,7 +116,7 @@ CMD=/usr/sbin/runuser
 ARGS="-u ${username} -- /opt/google/chrome/google-chrome --no-sandbox"
 EOF
     cat <<'EOF'
-docker create --network br-ext -e DISPLAY=unix$DISPLAY -v /testhome:/home/johnyin chrome
+docker create --network br-ext -e ENABLE_SSH=true -e DISPLAY=unix$DISPLAY -v /testhome:/home/johnyin chrome
 xhost +127.0.0.1
 EOF
 }
@@ -236,8 +246,8 @@ main() {
         firefox)    build_firefox "${dir:-firefox}";;
         chrome)     build_chrome "${dir:-chrome}";;
         aria)       build_aria2 "${dir:-aria2}";;
-        *)          gen_dockerfile "${func}" "${dir:-common-demo}" "registry.local/debian:bookworm-amd64"
-                    gen_dockerfile "${func}" "${dir:-scratch-demo}"
+        *)          gen_dockerfile "${func}" "${dir:-${func}-common-demo}" "registry.local/debian:bookworm-amd64"
+                    gen_dockerfile "${func}" "${dir:-${func}-scratch-demo}"
                     ;;
     esac
     return 0
