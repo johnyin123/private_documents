@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3841cff[2023-12-26T10:16:20+08:00]:make_docker_image.sh")
+VERSION+=("f708f8c[2023-12-26T12:51:34+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -133,7 +133,17 @@ CMD=/usr/sbin/runuser
 ARGS="-u ${username} -- /opt/google/chrome/google-chrome --no-sandbox"
 EOF
     cat <<'EOF'
-docker create --network br-ext -e ENABLE_SSH=true -e DISPLAY=unix$DISPLAY -v /testhome:/home/johnyin chrome
+docker create --name chrome --hostname chrome \
+    --network br-ext --ip 192.168.169.100 --dns 8.8.8.8 \
+    -e ENABLE_SSH=true \
+    -e DISPLAY=unix$DISPLAY \
+    -v /home/johnyin/disk/docker_home/:/home/johnyin/:rw \
+    -v /usr/share/fonts/opentype/noto/:/usr/share/fonts/opentype/noto/:ro \
+    -v /dev/shm:/dev/shm \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    --device /dev/snd \
+    --device /dev/dri \
+    registry.local/chrome:bookworm-amd64
 xhost +127.0.0.1
 EOF
 }
@@ -156,8 +166,6 @@ EOF
     write_file "${cfg_file}" <<EOF
 CMD=/usr/bin/su
 ARGS="${username} -c '/opt/firefox/firefox'"
-# CMD=/usr/sbin/runuser
-# ARGS="-u johnyin -- /opt/google/chrome/google-chrome --no-sandbox"
 EOF
     cat <<'EOF'
 docker create --network br-ext -e DISPLAY=unix$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v /testhome:/home/johnyin chrome
