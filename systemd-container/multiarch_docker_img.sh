@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("d39e2ad[2023-12-22T10:04:13+08:00]:multiarch_docker_img.sh")
+VERSION+=("cc9ee69[2023-12-26T10:17:57+08:00]:multiarch_docker_img.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -7,6 +7,7 @@ readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 ################################################################################
 init_docker() {
     local insec_registry=${1:-}
+    local dns=${2:-}
     local cfg_file=/etc/docker/daemon.json
     mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 {
@@ -15,6 +16,7 @@ init_docker() {
   "exec-opts": ["native.cgroupdriver=systemd", "native.umask=normal" ],
   "storage-driver": "overlay2",
   "data-root": "/var/lib/docker",
+  ${dns:+  "dns": ["${dns}"],}
   "bridge": "none",
   "ip-forward": false,
   "iptables": false
@@ -75,7 +77,7 @@ create_docker_bridge() {
     docker network ls
 }
 
-init_docker "registry.local"
+init_docker "registry.local" "114.114.114.114"
 create_docker_bridge "br-ext"
 create_base_img
 
