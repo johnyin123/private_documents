@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1a035a7[2023-12-26T09:37:05+08:00]:make_docker_image.sh")
+VERSION+=("3841cff[2023-12-26T10:16:20+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -51,6 +51,9 @@ gen_dockerfile() {
     [ -z "${base_img}" ] && action="FROM scratch\nADD rootfs.tar.xz /\n"
     try mkdir -p "${target_dir}"
     touch ${target_dir}/build.run.sh
+    # # Override user name at build. If build-arg is not passed, will create user named `default_user`
+    # ARG DOCKER_USER=default_user
+    # RUN useradd ${DOCKER_USER}
     cfg_file=${target_dir}/Dockerfile
     write_file "${cfg_file}" <<EOF
 $(echo -e "${action}")
@@ -183,8 +186,8 @@ build_aria2() {
     cfg_file=${dir}/build.run.sh
     write_file "${cfg_file}" <<EOF
 useradd -m ${username} --home-dir /home/${username}/
-apt -y -oAcquire::AllowInsecureRepositories=true update
-apt -y -oAcquire::AllowInsecureRepositories=true install aria2
+apt -y --no-install-recommends update
+apt -y --no-install-recommends install aria2
 EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
@@ -192,16 +195,16 @@ VOLUME ["/home/${username}/"]
 EOF
     cfg_file=${dir}/service
     write_file "${cfg_file}" <<EOF
-CMD=/usr/bin/su
-ARGS="${username} -c '/usr/bin/aria2c --conf-path=\${HOME}/.aria2/aria2.conf'"
+CMD=/usr/sbin/runuser
+ARGS="-u ${username} -- /usr/bin/aria2c --conf-path=/home/${username}/.aria2/aria2.conf"
 EOF
     cat <<'EOF'
 docker build --network=host -t aria2 .
-# # add /fakehome/.aria/ configurations files!!
-docker create --network internet --ip 192.168.169.3 --dns 8.8.8.8 
-    --hostname mydownloader --name aria \
-    -v /fakehome:/home/johnyin \
-    aria2
+docker create --name aria --hostname aria \
+    --network br-ext --ip 192.168.169.101 --dns 8.8.8.8 \
+    -e ENABLE_SSH=true \
+    -v /home/johnyin/disk/docker_home/:/home/johnyin/:rw \
+    registry.local/aria2:bookworm-amd64
 EOF
 }
 combine_multiarch() {
