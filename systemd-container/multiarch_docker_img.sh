@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("cc9ee69[2023-12-26T10:17:57+08:00]:multiarch_docker_img.sh")
+VERSION+=("f49b2a9[2023-12-26T10:46:40+08:00]:multiarch_docker_img.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -55,15 +55,16 @@ debian_build "${DIRNAME}/buildroot"-${INST_ARCH} "${DIRNAME}/cache" "${PKG}"
 
 LC_ALL=C LANGUAGE=C LANG=C chroot "${DIRNAME}/buildroot-${INST_ARCH}/" /bin/bash <<EOSHELL
     debian_sshd_init || true
+    debian_bash_init root true
     debian_minimum_init
 EOSHELL
 echo "SUCCESS build docker rootfs"
 exit 0
 EOF
     chmod 755 ${DIRNAME}/create_base_img.sh
-    INST_ARCH=amd64 ${DIRNAME}/create_base_img.sh
-    INST_ARCH=arm64 ${DIRNAME}/create_base_img.sh
-    rm -f ${DIRNAME}/create_base_img.sh
+    echo "INST_ARCH=amd64 ./create_base_img.sh"
+    echo "INST_ARCH=arm64 ./create_base_img.sh"
+    echo "rm -f create_base_img.sh"
 }
 create_docker_bridge() {
     local br_name=${1}
