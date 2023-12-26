@@ -271,10 +271,10 @@ bt-detach-seed-only=true
 
 
 ## 客户端伪装 ##
-all-proxy=http://yin.zh:Passw)rd123@192.168.2.78:8080
+# all-proxy=http://yin.zh:Passw)rd123@192.168.2.78:8080
 check-certificate=false
 # 自定义 User Agent
-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 Edg/87.0.664.57
+user-agent=qBittorrent
 
 # BT 客户端伪装
 # PT 下载需要保持 user-agent 和 peer-agent 两个参数一致
