@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c5ac209[2023-04-21T08:48:36+08:00]:newssl.sh")
+VERSION+=("7c48938[2023-06-21T07:38:47+08:00]:newssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 YEAR=${YEAR:-5}
@@ -60,7 +60,9 @@ gen_client_cert() {
     try openssl req -new -key ${caroot}/${cid}.key -out ${caroot}/${cid}.csr \
         -utf8 -subj \"/C=CN/L=LN/O=mycompany/CN=${cid}\"
     info_msg "signing our certificate with my ca"
+    echo subjectAltName = DNS:${cid},IP:127.0.0.1 > extfile.cnf
     try openssl x509 -req -days $((365*${YEAR})) -in ${caroot}/${cid}.csr \
+        -extfile extfile.cnf \
         -CA ${caroot}/ca.pem -CAkey ${caroot}/ca.key -CAcreateserial -out ${caroot}/${cid}.pem
     try openssl x509 -text -noout -in ${caroot}/${cid}.pem
     # info_msg "conver to broswer support format(p12).\n"

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e73de47[2023-12-27T14:26:28+08:00]:make_docker_image.sh")
+VERSION+=("187e8b1[2023-12-27T16:24:45+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 DIRNAME_COPYIN=docker
@@ -340,7 +340,9 @@ main() {
                     ;;
     esac
     cat <<'EOF'
+# # registry ssl not vaild!!! so first pull the right image here!!
 docker pull registry.local/debian:bookworm --platform <arch>
+# # docker build use env: DOCKER_BUILDKIT=1 for debug
 docker build --no-cache --network=br-ext -t nginx-amd64 .
 
 docker images | awk '{print $3}' | xargs -I@ docker image rm @ -f
