@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e621d4f[2023-12-27T08:15:26+08:00]:make_docker_image.sh")
+VERSION+=("bb2738f[2023-12-27T08:58:56+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -49,19 +49,15 @@ gen_dockerfile() {
     local action="FROM ${base_img}"
     [ -e "${target_dir}/${base_img}" ] && action="FROM scratch\nADD ${base_img##*/} /\n"
     [ -z "${base_img}" ] && action="FROM scratch\nADD rootfs.tar.xz /\n"
-    try mkdir -p "${target_dir}"
-    touch ${target_dir}/build.run.sh
     # # Override user name at build. If build-arg is not passed, will create user named `default_user`
     # ARG DOCKER_USER=default_user
     # RUN useradd ${DOCKER_USER}
     cfg_file=${target_dir}/Dockerfile
-    write_file "${cfg_file}" <<EOF
+    try mkdir -p "${target_dir}" && write_file "${cfg_file}" <<EOF
 $(echo -e "${action}")
 LABEL maintainer="johnyin" name="${name}" build-date="$(date '+%Y%m%d%H%M%S')"
 ENV TZ=Asia/Shanghai
-COPY starter.sh /usr/local/bin/startup
-COPY service /run_command
-COPY build.run.sh /build.run
+ADD todocker /
 RUN { \\
         export DEBIAN_FRONTEND=noninteractive; \\
         ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; \\
@@ -74,8 +70,9 @@ RUN { \\
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["/usr/local/bin/startup"]
 EOF
-    cfg_file=${target_dir}/starter.sh
-    write_file "${cfg_file}" <<'EOF'
+    try mkdir -p ${target_dir}/todocker && try touch ${target_dir}/todocker/build.run
+    cfg_file=${target_dir}/todocker/usr/local/bin/startup
+    mkdir -p ${target_dir}/todocker/usr/local/bin && write_file "${cfg_file}" <<'EOF'
 #!/bin/bash
 set -o errexit
 set -o pipefail
@@ -93,14 +90,14 @@ echo "Running command [ssh: ${ENABLE_SSH}]: '${CMD:-}${ARGS:+ $ARGS}'"
     exec "${CMD}" ${ARGS:-}
 }
 EOF
-    cfg_file=${target_dir}/service
-    write_file "${cfg_file}" <<'EOF'
+    cfg_file=${target_dir}/todocker/run_command
+    try mkdir -p ${target_dir}/todocker && write_file "${cfg_file}" <<'EOF'
 # CMD=/usr/sbin/runuser
 # ARGS="-u root -- /usr/bin/busybox sleep infinity"
 EOF
     info_msg "gen dockerfile ok\n"
-    info_msg " edit ${target_dir}/service for you service\n"
-    info_msg " edit ${target_dir}/build.run.sh for you RUN commands for Dockerfile\n"
+    info_msg " edit ${target_dir}/todocker/run_command for you service\n"
+    info_msg " edit ${target_dir}/todocker/build.run for you RUN commands for Dockerfile\n"
 }
 build_base() {
     local dir="${1}"
@@ -117,7 +114,7 @@ build_chrome() {
     local base="registry.local/debian:bookworm-amd64"
     local username=johnyin
     gen_dockerfile "${name}" "${dir}" "${base}"
-    cfg_file=${dir}/build.run.sh
+    cfg_file=${dir}/todocker/build.run
     write_file "${cfg_file}" <<EOF
 touch /etc/default/google-chrome
 echo 'deb [arch=amd64 trusted=yes] http://dl.google.com/linux/chrome/deb/ stable main' > /etc/apt/sources.list.d/google.list
@@ -128,7 +125,7 @@ EOF
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/home/${username}/"]
 EOF
-    cfg_file=${dir}/service
+    cfg_file=${dir}/todocker/run_command
     write_file "${cfg_file}" <<EOF
 CMD=/usr/sbin/runuser
 ARGS="-u ${username} -- /opt/google/chrome/google-chrome --no-sandbox"
@@ -155,7 +152,7 @@ build_firefox() {
     local username=johnyin
     [ -e "${dir}/${rootfs_with_firefox}" ] || exit_msg "${dir}/${rootfs_with_firefox} file no found\n"
     gen_dockerfile "${name}" "${dir}" "${rootfs_with_firefox}"
-    cfg_file=${dir}/build.run.sh
+    cfg_file=${dir}/todocker/build.run
     write_file "${cfg_file}" <<EOF
 useradd -m ${username} --home-dir /home/${username}/
 EOF
@@ -163,7 +160,7 @@ EOF
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/home/${username}/"]
 EOF
-    cfg_file=${dir}/service
+    cfg_file=${dir}/todocker/run_command
     write_file "${cfg_file}" <<EOF
 CMD=/usr/bin/su
 ARGS="${username} -c '/opt/firefox/firefox'"
@@ -190,7 +187,7 @@ build_aria2() {
     local base="registry.local/debian:bookworm-amd64"
     local username=johnyin
     gen_dockerfile "${name}" "${dir}" "${base}"
-    cfg_file=${dir}/build.run.sh
+    cfg_file=${dir}/todocker/build.run
     write_file "${cfg_file}" <<EOF
 useradd -m ${username} --home-dir /home/${username}/
 apt -y --no-install-recommends update
@@ -200,7 +197,7 @@ EOF
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/home/${username}/"]
 EOF
-    cfg_file=${dir}/service
+    cfg_file=${dir}/todocker/run_command
     write_file "${cfg_file}" <<EOF
 CMD=/usr/sbin/runuser
 ARGS="-u ${username} -- /usr/bin/aria2c --conf-path=/home/${username}/.aria2/aria2.conf"
