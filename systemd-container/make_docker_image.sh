@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5d2ad62[2023-12-27T10:33:19+08:00]:make_docker_image.sh")
+VERSION+=("82e3836[2023-12-27T10:35:08+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 DIRNAME_COPYIN=docker
@@ -22,8 +22,7 @@ ${SCRIPTNAME}
                                             combine: combine multiarch docker image
                                             firefox: need firefox.tar.xz rootfs with firefox install /opt/firefox
         -D <dirname>                   target dirname for generate files
-        --registry <docker registry>   combine: use registry for combine multiarch, MUST SSL
-                                       exam: registry.local
+        --arch     <arch>              images arch(amd64/arm64), not set use same as baseimg, if baseimg is multiarch, need set arch
         --tag      <tag name>          combine: create new tag, for combine registry/tag-{{ARCH}} ==> registry/tag
                                        exam: debian:bookworm
                                        base: create base image tag
@@ -34,7 +33,7 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
             # registry.local/debian:bookworm-amd64 registry.local/debian:bookworm-arm64, will combine
-            ./${SCRIPTNAME} -c combine --registry registry.local --tag debian:bookworm
+            ./${SCRIPTNAME} -c combine --tag registry.local/debian:bookworm
             # cp firefox.tar.xz mytarget/
             ./${SCRIPTNAME} -c firefox -D tttt
             # create goldimg
@@ -48,7 +47,7 @@ gen_dockerfile() {
     local target_dir=${2}
     local base_img=${3:-}
     local arch=${4:-}
-    local action="FROM ${arch:+--platform=${arch} }${base_img}${arch:+-${arch}}"
+    local action="FROM ${arch:+--platform=${arch} }${base_img}"
     [ -e "${target_dir}/${base_img}" ] && action="FROM scratch\nADD ${base_img##*/} /\n"
     [ -z "${base_img}" ] && action="FROM scratch\nADD rootfs.tar.xz /\n"
     # # Override user name at build. If build-arg is not passed, will create user named `default_user`
@@ -185,10 +184,11 @@ EOF
 }
 build_aria2() {
     local dir="${1}"
+    local arch="${2:-}"
     local name=aria2
-    local base="registry.local/debian:bookworm-amd64"
+    local base="registry.local/debian:bookworm"
     local username=johnyin
-    gen_dockerfile "${name}" "${dir}" "${base}"
+    gen_dockerfile "${name}" "${dir}" "${base}" "${arch}"
     cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
     write_file "${cfg_file}" <<EOF
 useradd -m ${username} --home-dir /home/${username}/
@@ -213,31 +213,30 @@ docker create --name aria --hostname aria \
 EOF
 }
 combine_multiarch() {
-    local registry="${1}"
-    local img_tag="${2}"
+    local img_tag="${1}"
     local ARCH=(amd64 arm64)
     warn_msg "registry must has ssl access\n"
     try "docker manifest rm ${registry}/${img_tag} 2>/dev/null || true"
     local arch_args=""
     for arch in ${ARCH[@]}; do
-        arch_args+=" --amend ${registry}/${img_tag}-${arch}"
+        arch_args+=" --amend ${img_tag}-${arch}"
     done
-    try docker manifest create --insecure ${registry}/${img_tag} ${arch_args}
+    try docker manifest create --insecure ${img_tag} ${arch_args}
     for arch in ${ARCH[@]}; do
-        try docker manifest annotate --arch ${arch} ${registry}/${img_tag} ${registry}/${img_tag}-${arch}
+        try docker manifest annotate --arch ${arch} ${img_tag} ${img_tag}-${arch}
     done
-    try docker manifest inspect ${registry}/${img_tag}
-    try docker manifest push --insecure ${registry}/${img_tag}
+    try docker manifest inspect ${img_tag}
+    try docker manifest push --insecure ${img_tag}
     for arch in ${ARCH[@]}; do
         info_msg "++++++++++++++++++check ${arch} start++++++++++++++++++"
-        try docker pull -q ${registry}/${img_tag} --platform ${arch}
-        try docker run --entrypoint="uname" ${registry}/${img_tag} -m
+        try docker pull -q ${img_tag} --platform ${arch}
+        try docker run --entrypoint="uname" ${img_tag} -m
     done
 }
 main() {
-    local func="" dir="" registry="" tag="" file=""
+    local func="" dir="" registry="" tag="" file="" arch=""
     local opt_short="c:D:"
-    local opt_long="registry:,tag:,file:,"
+    local opt_long="tag:,file:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -246,8 +245,8 @@ main() {
         case "$1" in
             -c)             shift; func=${1}; shift;;
             -D)             shift; dir=${1}; shift;;
-            --registry)     shift; registry=${1}; shift;;
             --tag)          shift; tag=${1}; shift;;
+            --arch)         shift; arch=${1}; shift;;
             --file)         shift; file=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
@@ -266,14 +265,13 @@ main() {
                     build_base "${dir:-goldimg}" "${tag}" "${file}"
                     ;;
         combine)
-                    [ -z "${registry}" ] && usage "combine mode, registry must input"
                     [ -z "${tag}" ] && usage "combine mode, tag must input"
-                    combine_multiarch "${registry}" "${tag}"
+                    combine_multiarch "${tag}"
                     ;;
         firefox)    build_firefox "${dir:-firefox}";;
         chrome)     build_chrome "${dir:-chrome}";;
-        aria)       build_aria2 "${dir:-aria2}";;
-        *)          gen_dockerfile "${func}" "${dir:-${func}-common-demo}" "registry.local/debian:bookworm-amd64"
+        aria)       build_aria2 "${dir:-aria2}" "${arch}";;
+        *)          gen_dockerfile "${func}" "${dir:-${func}-common-demo}" "registry.local/debian:bookworm" "${arch:-amd64}"
                     gen_dockerfile "${func}" "${dir:-${func}-scratch-demo}"
                     ;;
     esac
