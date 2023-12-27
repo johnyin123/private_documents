@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e1cb88d[2023-12-27T13:37:33+08:00]:make_docker_image.sh")
+VERSION+=("e73de47[2023-12-27T14:26:28+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 DIRNAME_COPYIN=docker
@@ -18,7 +18,7 @@ ${SCRIPTNAME}
         docker env:
             ENABLE_SSH=true/false, enable/disable sshd startup on 60022, default disable
             # docker create -e ENABLE_SSH=true
-        -c <type>           *          Dockerfile for <base|combine|firefox|chrome|aria|common docker file>
+        -c <type>           *          Dockerfile for <base|combine|firefox|chrome|aria|nginx|common docker file>
                                             combine: combine multiarch docker image
                                             firefox: need firefox.tar.xz rootfs with firefox install /opt/firefox
         -D <dirname>                   target dirname for generate files
@@ -73,6 +73,11 @@ LABEL maintainer="johnyin" name="${name}${arch:+-${arch}}" build-date="$(date '+
 ENV TZ=Asia/Shanghai
 ADD ${DIRNAME_COPYIN} /
 RUN { \\
+        echo "######################################################################"; \\
+        echo "######################################################################"; \\
+        echo "### ARCH: $(uname -m)"; \\
+        echo "######################################################################"; \\
+        echo "######################################################################"; \\
         export DEBIAN_FRONTEND=noninteractive; \\
         ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; \\
         mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup; \\
@@ -228,11 +233,42 @@ docker create --name aria --hostname aria \
     registry.local/aria2:bookworm-amd64
 EOF
 }
+build_nginx() {
+    local dir="${1}"
+    local arch="${2:-}"
+    local name=nginx
+    local base="registry.local/debian:bookworm"
+    local username=nginx
+    local groupname=nginx
+    gen_dockerfile "${name}" "${dir}" "${base}" "${arch}"
+    cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
+    write_file "${cfg_file}" <<EOF
+getent group ${groupname} >/dev/null || groupadd --system ${groupname} || :
+getent passwd ${username} >/dev/null || useradd -g ${groupname} --system -s /sbin/nologin -d /var/empty/nginx ${username} 2> /dev/null || :
+apt -y update && apt -y install --no-install-recommends libbrotli1 libgeoip1 libxml2 libxslt1.1
+EOF
+    cfg_file=${dir}/Dockerfile
+    write_file "${cfg_file}" append <<EOF
+VOLUME ["/etc/nginx/", "/var/log/nginx/"]
+EOF
+    cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
+    write_file "${cfg_file}" <<EOF
+CMD=/usr/sbin/nginx
+ARGS="-g 'daemon off;'"
+EOF
+    cat <<'EOF'
+docker create --name aria --hostname aria \
+    --network br-ext --ip 192.168.169.101 --dns 8.8.8.8 \
+    -e ENABLE_SSH=true \
+    -v /home/johnyin/disk/docker_home/:/home/johnyin/:rw \
+    registry.local/aria2:bookworm-amd64
+EOF
+}
 combine_multiarch() {
     local img_tag="${1}"
     local ARCH=(amd64 arm64)
     warn_msg "registry must has ssl access\n"
-    try "docker manifest rm ${registry}/${img_tag} 2>/dev/null || true"
+    try "docker manifest rm ${img_tag} 2>/dev/null || true"
     local arch_args=""
     for arch in ${ARCH[@]}; do
         arch_args+=" --amend ${img_tag}-${arch}"
@@ -246,7 +282,7 @@ combine_multiarch() {
     for arch in ${ARCH[@]}; do
         info_msg "++++++++++++++++++check ${arch} start++++++++++++++++++"
         try docker pull -q ${img_tag} --platform ${arch}
-        try docker run --entrypoint="uname" ${img_tag} -m
+        try docker run --rm --entrypoint="uname" ${img_tag} -m
     done
 }
 build_other() {
@@ -260,9 +296,9 @@ build_other() {
     gen_dockerfile "goldimg" "${dir}" "${base}" "${arch}"
 }
 main() {
-    local func="" dir="" registry="" tag="" file="" arch=""
+    local func="" dir="" tag="" file="" arch=""
     local opt_short="c:D:"
-    local opt_long="tag:,file:,"
+    local opt_long="tag:,file:,arch:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -297,13 +333,24 @@ main() {
         chrome)     build_chrome "${dir:-chrome}" "${arch}";;
         firefox)    build_firefox "${dir:-firefox}" "${arch}";;
         aria)       build_aria2 "${dir:-aria2}" "${arch}";;
+        nginx)      build_nginx "${dir:-nginx-johnyin}" "${arch}";;
         *)
                     [ -z "${file}" ] && gen_dockerfile "${func}" "${dir:-${func}-common-demo}" "registry.local/debian:bookworm" "${arch}" \
                         || build_other "${dir:-${func}-scratch-demo}" "${func}" "${file}" "${arch}"
                     ;;
     esac
-    cat <<EOF
-docker build --network=host -t aria2 .
+    cat <<'EOF'
+docker pull registry.local/debian:bookworm --platform <arch>
+docker build --no-cache --network=br-ext -t nginx-amd64 .
+
+docker images | awk '{print $3}' | xargs -I@ docker image rm @ -f
+docker ps -a | awk '{print $1}' | xargs -I@ docker rm @
+
+# # override ENTRYPOINT
+docker run --rm --entrypoint="/bin/ls" mybase:v1 /bin/
+# # list all
+for image in $(docker images --format "{{.Repository}}:{{.Tag}}") ;do echo $image;done
+
 docker images -a
 # show image layers
 docker history --no-trunc <Image ID>

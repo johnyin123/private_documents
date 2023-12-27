@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("57236da[2023-12-26T15:21:38+08:00]:docker_init.sh")
+VERSION+=("e621d4f[2023-12-27T08:15:26+08:00]:docker_init.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -98,6 +98,6 @@ docker ps -a --no-trunc
 docker images | awk '{print $3}' | xargs -I@ docker image rm @ -f
 docker ps -a | awk '{print $1}' | xargs -I@ docker rm @
 # # override ENTRYPOINT
-docker run --entrypoint="/bin/ls" mybase:v1 /bin/
+docker run --rm --entrypoint="/bin/ls" mybase:v1 /bin/
 for image in $(docker images --format "{{.Repository}}:{{.Tag}}") ;do echo $image;done
 EOF
