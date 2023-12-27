@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("82e3836[2023-12-27T10:35:08+08:00]:make_docker_image.sh")
+VERSION+=("d5df0cd[2023-12-27T10:54:06+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 DIRNAME_COPYIN=docker
@@ -38,7 +38,17 @@ ${SCRIPTNAME}
             ./${SCRIPTNAME} -c firefox -D tttt
             # create goldimg
             ./${SCRIPTNAME} -c base -D mybase --file rootfs.tar.xz
-
+            # multiarch aria2
+            ./${SCRIPTNAME} -c aria -D myaria-arm --arch amd64
+            ./${SCRIPTNAME} -c aria -D myaria-x86 --arch amd64
+            (cd myaria-arm docker build --network=br-ext -t aria-arm .)
+            (cd myaria-x86 docker build --network=br-ext -t aria-x86 .)
+            docker tag aria-arm registry.local/aria2:bookworm-arm64
+            docker tag aria-x86 registry.local/aria2:bookworm-amd64
+            docker push registry.local/aria2:bookworm-arm64
+            docker push registry.local/aria2:bookworm-amd64
+            ./${SCRIPTNAME} -c combine --tag registry.local/aria2:bookworm
+            docker push registry.local/aria2:bookworm
 EOF
     exit 1
 }
