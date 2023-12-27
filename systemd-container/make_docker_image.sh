@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6e00116[2023-12-26T13:09:32+08:00]:make_docker_image.sh")
+VERSION+=("e93a785[2023-12-26T14:41:31+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -58,12 +58,12 @@ gen_dockerfile() {
     write_file "${cfg_file}" <<EOF
 $(echo -e "${action}")
 LABEL maintainer="johnyin" name="${name}" build-date="$(date '+%Y%m%d%H%M%S')"
-ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Shanghai
 COPY starter.sh /usr/local/bin/startup
 COPY service /run_command
 COPY build.run.sh /build.run
 RUN { \\
+        export DEBIAN_FRONTEND=noninteractive; \\
         ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; \\
         mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup; \\
         rm -f /etc/ssh/ssh_host_* && ssh-keygen -A; \\

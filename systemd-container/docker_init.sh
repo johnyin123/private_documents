@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("adbc785[2023-12-26T14:57:39+08:00]:docker_init.sh")
+VERSION+=("57236da[2023-12-26T15:21:38+08:00]:docker_init.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -56,6 +56,7 @@ debian_build "${DIRNAME}/buildroot"-${INST_ARCH} "${DIRNAME}/cache" "${PKG}"
 LC_ALL=C LANGUAGE=C LANG=C chroot "${DIRNAME}/buildroot-${INST_ARCH}/" /bin/bash <<EOSHELL
     debian_sshd_init || true
     debian_bash_init root true
+    rm -fr /usr/share/doc/* /usr/share/man/*
     debian_minimum_init
 EOSHELL
 echo "SUCCESS build docker rootfs"
