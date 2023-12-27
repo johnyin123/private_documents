@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6b5612f[2023-12-27T11:07:27+08:00]:make_docker_image.sh")
+VERSION+=("e1cb88d[2023-12-27T13:37:33+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 DIRNAME_COPYIN=docker
@@ -124,9 +124,11 @@ build_base() {
 }
 build_chrome() {
     local dir="${1}"
+    local arch=${2:-}
     local name=chrome
     local base="registry.local/debian:bookworm-amd64"
     local username=johnyin
+    str_equal "${arch}" "amd64" || exit_msg "chrome only support arch: amd64!!\n"
     gen_dockerfile "${name}" "${dir}" "${base}"
     cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
     write_file "${cfg_file}" <<EOF
@@ -161,11 +163,12 @@ EOF
 }
 build_firefox() {
     local dir="${1}"
+    local arch=${2:-}
     local name=firefox
     local rootfs_with_firefox=firefox.tar.xz
     local username=johnyin
     [ -e "${dir}/${rootfs_with_firefox}" ] || exit_msg "${dir}/${rootfs_with_firefox} file no found\n"
-    gen_dockerfile "${name}" "${dir}" "${rootfs_with_firefox}"
+    gen_dockerfile "${name}" "${dir}" "${rootfs_with_firefox}" "${arch}"
     cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
     write_file "${cfg_file}" <<EOF
 useradd -m ${username} --home-dir /home/${username}/
@@ -246,6 +249,16 @@ combine_multiarch() {
         try docker run --entrypoint="uname" ${img_tag} -m
     done
 }
+build_other() {
+    local dir="${1}"
+    local tag="${2}"
+    local base="${3}"
+    local arch="${4:-}"
+    [ -e "${base}" ] || exit_msg "${base} no found\n"
+    info_msg "copyt ${base} -> ${dir}/${base##*/}\n"
+    try "mkdir -p '${dir}' && cat ${base} > ${dir}/${base##*/}"
+    gen_dockerfile "goldimg" "${dir}" "${base}" "${arch}"
+}
 main() {
     local func="" dir="" registry="" tag="" file="" arch=""
     local opt_short="c:D:"
@@ -281,11 +294,12 @@ main() {
                     [ -z "${tag}" ] && usage "combine mode, tag must input"
                     combine_multiarch "${tag}"
                     ;;
-        firefox)    build_firefox "${dir:-firefox}";;
-        chrome)     build_chrome "${dir:-chrome}";;
+        chrome)     build_chrome "${dir:-chrome}" "${arch}";;
+        firefox)    build_firefox "${dir:-firefox}" "${arch}";;
         aria)       build_aria2 "${dir:-aria2}" "${arch}";;
-        *)          gen_dockerfile "${func}" "${dir:-${func}-common-demo}" "registry.local/debian:bookworm" "${arch:-amd64}"
-                    gen_dockerfile "${func}" "${dir:-${func}-scratch-demo}"
+        *)
+                    [ -z "${file}" ] && gen_dockerfile "${func}" "${dir:-${func}-common-demo}" "registry.local/debian:bookworm" "${arch}" \
+                        || build_other "${dir:-${func}-scratch-demo}" "${func}" "${file}" "${arch}"
                     ;;
     esac
     cat <<EOF
