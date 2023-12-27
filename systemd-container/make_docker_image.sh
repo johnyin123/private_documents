@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6faacc6[2023-12-27T10:14:47+08:00]:make_docker_image.sh")
+VERSION+=("db7360c[2023-12-27T10:18:35+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 DIRNAME_COPYIN=docker
@@ -47,7 +47,8 @@ gen_dockerfile() {
     local name=${1}
     local target_dir=${2}
     local base_img=${3:-}
-    local action="FROM ${base_img}"
+    local arch=${4:-}
+    local action="FROM ${arch:+--platform=${arch} }${base_img}"
     [ -e "${target_dir}/${base_img}" ] && action="FROM scratch\nADD ${base_img##*/} /\n"
     [ -z "${base_img}" ] && action="FROM scratch\nADD rootfs.tar.xz /\n"
     # # Override user name at build. If build-arg is not passed, will create user named `default_user`
@@ -56,7 +57,7 @@ gen_dockerfile() {
     cfg_file=${target_dir}/Dockerfile
     try mkdir -p "${target_dir}" && write_file "${cfg_file}" <<EOF
 $(echo -e "${action}")
-LABEL maintainer="johnyin" name="${name}" build-date="$(date '+%Y%m%d%H%M%S')"
+LABEL maintainer="johnyin" name="${name}${arch:+-${arch}}" build-date="$(date '+%Y%m%d%H%M%S')"
 ENV TZ=Asia/Shanghai
 ADD ${DIRNAME_COPYIN} /
 RUN { \\
