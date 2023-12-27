@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e93a785[2023-12-26T14:41:31+08:00]:make_docker_image.sh")
+VERSION+=("e621d4f[2023-12-27T08:15:26+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -169,10 +169,7 @@ CMD=/usr/bin/su
 ARGS="${username} -c '/opt/firefox/firefox'"
 EOF
     cat <<'EOF'
-docker create --network br-ext -e DISPLAY=unix$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v /testhome:/home/johnyin chrome
-# xhost +127.0.0.1
 # apt -y update && apt -y --no-install-recommends install libgtk-3-0 libnss3 libssl3 libdbus-glib-1-2 libx11-xcb1 libxtst6 libasound2 fonts-noto-cjk
-docker build -t firefox .
 docker create --network internet --ip 192.168.169.2 --dns 8.8.8.8 \
     --cpuset-cpus 0 \
     --memory 512mb \
@@ -183,7 +180,8 @@ docker create --network internet --ip 192.168.169.2 --dns 8.8.8.8 \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --device /dev/snd \
     --device /dev/dri \
-    firefox
+    registry.local/firefox:bookworm-amd64
+xhost +127.0.0.1
 EOF
 }
 build_aria2() {
@@ -208,7 +206,6 @@ CMD=/usr/sbin/runuser
 ARGS="-u ${username} -- /usr/bin/aria2c --conf-path=/home/${username}/.aria2/aria2.conf"
 EOF
     cat <<'EOF'
-docker build --network=host -t aria2 .
 docker create --name aria --hostname aria \
     --network br-ext --ip 192.168.169.101 --dns 8.8.8.8 \
     -e ENABLE_SSH=true \
@@ -281,6 +278,12 @@ main() {
                     gen_dockerfile "${func}" "${dir:-${func}-scratch-demo}"
                     ;;
     esac
+    cat <<EOF
+docker build --network=host -t aria2 .
+docker images -a
+# show image layers
+docker history --no-trunc <Image ID>
+EOF
     return 0
 }
 main "$@"
