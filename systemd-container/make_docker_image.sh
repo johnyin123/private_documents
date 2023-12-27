@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d5df0cd[2023-12-27T10:54:06+08:00]:make_docker_image.sh")
+VERSION+=("6b5612f[2023-12-27T11:07:27+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 DIRNAME_COPYIN=docker
@@ -32,19 +32,22 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
-            # registry.local/debian:bookworm-amd64 registry.local/debian:bookworm-arm64, will combine
-            ./${SCRIPTNAME} -c combine --tag registry.local/debian:bookworm
-            # cp firefox.tar.xz mytarget/
+            # # cp firefox.tar.xz mytarget/
             ./${SCRIPTNAME} -c firefox -D tttt
-            # create goldimg
-            ./${SCRIPTNAME} -c base -D mybase --file rootfs.tar.xz
-            # multiarch aria2
-            ./${SCRIPTNAME} -c aria -D myaria-arm --arch amd64
-            ./${SCRIPTNAME} -c aria -D myaria-x86 --arch amd64
-            (cd myaria-arm docker build --network=br-ext -t aria-arm .)
-            (cd myaria-x86 docker build --network=br-ext -t aria-x86 .)
-            docker tag aria-arm registry.local/aria2:bookworm-arm64
-            docker tag aria-x86 registry.local/aria2:bookworm-amd64
+            # # create goldimg
+            ./${SCRIPTNAME} -c base -D base-amd64 --arch amd64 --file amd64.tar.xz
+            ./${SCRIPTNAME} -c base -D base-arm64 --arch arm64 --file arm64.tar.xz
+            (cd base-amd64 && docker build -t registry.local/debian:bookworm-amd64 .)
+            (cd base-arm64 && docker build -t registry.local/debian:bookworm-arm64 .)
+            docker push registry.local/debian:bookworm-amd64
+            docker push registry.local/debian:bookworm-arm64
+            ./${SCRIPTNAME} -c combine --tag registry.local/debian:bookworm
+            docker push registry.local/debian:bookworm
+            # # multiarch aria2
+            ./${SCRIPTNAME} -c aria -D myaria-arm64 --arch amd64
+            ./${SCRIPTNAME} -c aria -D myaria-amd64 --arch amd64
+            (cd myaria-arm64 docker build --network=br-ext -t registry.local/aria2:bookworm-arm64 .)
+            (cd myaria-amd64 docker build --network=br-ext -t registry.local/aria2:bookworm-amd64 .)
             docker push registry.local/aria2:bookworm-arm64
             docker push registry.local/aria2:bookworm-amd64
             ./${SCRIPTNAME} -c combine --tag registry.local/aria2:bookworm
@@ -58,7 +61,7 @@ gen_dockerfile() {
     local base_img=${3:-}
     local arch=${4:-}
     local action="FROM ${arch:+--platform=${arch} }${base_img}"
-    [ -e "${target_dir}/${base_img}" ] && action="FROM scratch\nADD ${base_img##*/} /\n"
+    [ -e "${target_dir}/${base_img}" ] && action="FROM ${arch:+--platform=${arch} }scratch\nADD ${base_img##*/} /\n"
     [ -z "${base_img}" ] && action="FROM scratch\nADD rootfs.tar.xz /\n"
     # # Override user name at build. If build-arg is not passed, will create user named `default_user`
     # ARG DOCKER_USER=default_user
@@ -272,7 +275,7 @@ main() {
     case "${func}" in
         base)
                     [ -z "${file}" ] && usage "base mode, file must input"
-                    build_base "${dir:-goldimg}" "${tag}" "${file}"
+                    build_base "${dir:-goldimg}" "${tag}" "${file}" "${arch}"
                     ;;
         combine)
                     [ -z "${tag}" ] && usage "combine mode, tag must input"
