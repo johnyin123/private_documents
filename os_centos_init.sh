@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("472c4ad[2023-11-01T13:27:59+08:00]:os_centos_init.sh")
+VERSION+=("e28c813[2023-12-26T14:29:30+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -169,8 +169,10 @@ centos_limits_init() {
 EOF
     cat <<EOF > /etc/profile.d/os-security.sh
 export readonly TMOUT=900
-export readonly HISTFILE
-export readonly HISTCONTROL=erasedups
+export readonly HISTCONTROL=ignoredups:erasedups
+export readonly HISTSIZE=100000
+export readonly HISTFILESIZE=100000
+shopt -s histappend
 EOF
 
     cat >/etc/profile.d/johnyin.sh<<"EOF"
