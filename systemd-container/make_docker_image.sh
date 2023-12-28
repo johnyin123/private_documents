@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("187e8b1[2023-12-27T16:24:45+08:00]:make_docker_image.sh")
+VERSION+=("cf90f2b[2023-12-27T17:12:58+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 DIRNAME_COPYIN=docker
@@ -32,9 +32,9 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
-            # # cp firefox.tar.xz mytarget/
+         # # cp firefox.tar.xz mytarget/
             ./${SCRIPTNAME} -c firefox -D tttt
-            # # create goldimg
+         # # create goldimg
             ./${SCRIPTNAME} -c base -D base-amd64 --arch amd64 --file amd64.tar.xz
             ./${SCRIPTNAME} -c base -D base-arm64 --arch arm64 --file arm64.tar.xz
             (cd base-amd64 && docker build -t registry.local/debian:bookworm-amd64 .)
@@ -43,10 +43,14 @@ ${SCRIPTNAME}
             docker push registry.local/debian:bookworm-arm64
             ./${SCRIPTNAME} -c combine --tag registry.local/debian:bookworm
             docker push registry.local/debian:bookworm
-            # # multiarch aria2
+         # # multiarch aria2
             ./${SCRIPTNAME} -c aria -D myaria-arm64 --arch amd64
             ./${SCRIPTNAME} -c aria -D myaria-amd64 --arch amd64
+            # confirm base-image is right arch
+            docker pull registry.local/debian:bookworm --platform arm64
             (cd myaria-arm64 docker build --network=br-ext -t registry.local/aria2:bookworm-arm64 .)
+            # confirm base-image is right arch
+            docker pull registry.local/debian:bookworm --platform amd64
             (cd myaria-amd64 docker build --network=br-ext -t registry.local/aria2:bookworm-amd64 .)
             docker push registry.local/aria2:bookworm-arm64
             docker push registry.local/aria2:bookworm-amd64
@@ -60,9 +64,11 @@ gen_dockerfile() {
     local target_dir=${2}
     local base_img=${3:-}
     local arch=${4:-}
+    # FROM --platform=$BUILDPLATFORM
+    # Automatic platform ARGs in the global scope
     local action="FROM ${arch:+--platform=${arch} }${base_img}"
     [ -e "${target_dir}/${base_img}" ] && action="FROM ${arch:+--platform=${arch} }scratch\nADD ${base_img##*/} /\n"
-    [ -z "${base_img}" ] && action="FROM scratch\nADD rootfs.tar.xz /\n"
+    [ -z "${base_img}" ] && action="FROM ${arch:+--platform=${arch} }scratch\nADD rootfs.tar.xz /\n"
     # # Override user name at build. If build-arg is not passed, will create user named `default_user`
     # ARG DOCKER_USER=default_user
     # RUN useradd ${DOCKER_USER}
@@ -73,11 +79,6 @@ LABEL maintainer="johnyin" name="${name}${arch:+-${arch}}" build-date="$(date '+
 ENV TZ=Asia/Shanghai
 ADD ${DIRNAME_COPYIN} /
 RUN { \\
-        echo "######################################################################"; \\
-        echo "######################################################################"; \\
-        echo "### ARCH: $(uname -m)"; \\
-        echo "######################################################################"; \\
-        echo "######################################################################"; \\
         export DEBIAN_FRONTEND=noninteractive; \\
         ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; \\
         mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup; \\
@@ -122,10 +123,11 @@ build_base() {
     local dir="${1}"
     local tag="${2}"
     local base="${3}"
+    local arch="${4:-}"
     [ -e "${base}" ] || exit_msg "${base} no found\n"
     info_msg "copyt ${base} -> ${dir}/${base##*/}\n"
     try "mkdir -p '${dir}' && cat ${base} > ${dir}/${base##*/}"
-    gen_dockerfile "goldimg" "${dir}" "${base}"
+    gen_dockerfile "goldimg" "${dir}" "${base}" "${arch}"
 }
 build_chrome() {
     local dir="${1}"
@@ -257,30 +259,33 @@ CMD=/usr/sbin/nginx
 ARGS="-g 'daemon off;'"
 EOF
     cat <<'EOF'
-docker create --name aria --hostname aria \
-    --network br-ext --ip 192.168.169.101 --dns 8.8.8.8 \
+docker create --name nginx --hostname nginx \
+    --network br-ext --ip 192.168.169.100 --dns 8.8.8.8 \
     -e ENABLE_SSH=true \
-    -v /home/johnyin/disk/docker_home/:/home/johnyin/:rw \
-    registry.local/aria2:bookworm-amd64
+    -v /storage/nginx/etc/:/etc/nginx/:ro \
+    -v /storage/nginx/log/:/var/log/nginx/:rw \
+    registry.local/nginx:bookworm-amd64
 EOF
 }
 combine_multiarch() {
     local img_tag="${1}"
     local ARCH=(amd64 arm64)
     warn_msg "registry must has ssl access\n"
-    try "docker manifest rm ${img_tag} 2>/dev/null || true"
     local arch_args=""
     for arch in ${ARCH[@]}; do
+        try "docker image ls | grep -q '${img_tag}-${arch}'" && info_msg "${img_tag}-${arch} found OK\n" \
+            || { error_msg "${img_tag}-${arch} no found\n"; return 1; }
         arch_args+=" --amend ${img_tag}-${arch}"
     done
+    try "docker manifest rm ${img_tag} 2>/dev/null || true"
     try docker manifest create --insecure ${img_tag} ${arch_args}
     for arch in ${ARCH[@]}; do
-        try docker manifest annotate --arch ${arch} ${img_tag} ${img_tag}-${arch}
+        try docker manifest annotate --os linux --arch ${arch} ${img_tag} ${img_tag}-${arch}
     done
-    try docker manifest inspect ${img_tag}
+    try "docker manifest inspect --insecure ${img_tag} | jq .manifests[].platform"
     try docker manifest push --insecure ${img_tag}
     for arch in ${ARCH[@]}; do
-        info_msg "++++++++++++++++++check ${arch} start++++++++++++++++++"
+        info_msg "++++++++++++++++++check ${arch} start++++++++++++++++++\n"
         try docker pull -q ${img_tag} --platform ${arch}
         try docker run --rm --entrypoint="uname" ${img_tag} -m
     done
@@ -340,10 +345,8 @@ main() {
                     ;;
     esac
     cat <<'EOF'
-# # registry ssl not vaild!!! so first pull the right image here!!
 docker pull registry.local/debian:bookworm --platform <arch>
-# # docker build use env: DOCKER_BUILDKIT=1 for debug
-docker build --no-cache --network=br-ext -t nginx-amd64 .
+docker build --network=br-ext -t nginx-amd64 .
 
 docker images | awk '{print $3}' | xargs -I@ docker image rm @ -f
 docker ps -a | awk '{print $1}' | xargs -I@ docker rm @
@@ -356,6 +359,8 @@ for image in $(docker images --format "{{.Repository}}:{{.Tag}}") ;do echo $imag
 docker images -a
 # show image layers
 docker history --no-trunc <Image ID>
+# list all images arch
+docker image inspect --format "{{.ID}} {{.RepoTags}} {{.Architecture}}" $(docker image ls -q)
 EOF
     return 0
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("e621d4f[2023-12-27T08:15:26+08:00]:docker_init.sh")
+VERSION+=("187e8b1[2023-12-27T16:24:45+08:00]:docker_init.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -9,6 +9,10 @@ init_docker() {
     local insec_registry=${1:-}
     local dns=${2:-}
     local cfg_file=/etc/docker/daemon.json
+    # If self-signed certificate or an internal Certificate Authority
+    # /etc/docker/certs.d/<docker registry>/ca.crt
+    [ -z "${insec_registry}" ] || mkdir -p /etc/docker/certs.d/${insec_registry}/
+    # openssl s_client -showcerts -connect ${insec_registry}:443 < /dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /etc/docker/certs.d/${insec_registry}/ca.crt
     mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 {
   "registry-mirrors": [ "https://docker.mirrors.ustc.edu.cn", "http://hub-mirror.c.163.com" ],
