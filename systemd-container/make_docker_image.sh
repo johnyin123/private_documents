@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cf90f2b[2023-12-27T17:12:58+08:00]:make_docker_image.sh")
+VERSION+=("8c4f35d[2023-12-28T10:17:11+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 DIRNAME_COPYIN=docker
@@ -44,15 +44,15 @@ ${SCRIPTNAME}
             ./${SCRIPTNAME} -c combine --tag registry.local/debian:bookworm
             docker push registry.local/debian:bookworm
          # # multiarch aria2
-            ./${SCRIPTNAME} -c aria -D myaria-arm64 --arch amd64
+            ./${SCRIPTNAME} -c aria -D myaria-arm64 --arch arm64
             ./${SCRIPTNAME} -c aria -D myaria-amd64 --arch amd64
             # confirm base-image is right arch
             docker pull registry.local/debian:bookworm --platform arm64
             (cd myaria-arm64 docker build --network=br-ext -t registry.local/aria2:bookworm-arm64 .)
+            docker push registry.local/aria2:bookworm-arm64
             # confirm base-image is right arch
             docker pull registry.local/debian:bookworm --platform amd64
             (cd myaria-amd64 docker build --network=br-ext -t registry.local/aria2:bookworm-amd64 .)
-            docker push registry.local/aria2:bookworm-arm64
             docker push registry.local/aria2:bookworm-amd64
             ./${SCRIPTNAME} -c combine --tag registry.local/aria2:bookworm
             docker push registry.local/aria2:bookworm
