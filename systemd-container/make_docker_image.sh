@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b8228b4[2023-12-28T10:23:01+08:00]:make_docker_image.sh")
+VERSION+=("2df0f5a[2023-12-28T11:19:28+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 DIRNAME_COPYIN=docker
@@ -344,7 +344,7 @@ main() {
                         || build_other "${dir:-${func}-scratch-demo}" "${func}" "${file}" "${arch}"
                     ;;
     esac
-    cat <<'EOF'
+    : <<'EOF'
 docker pull registry.local/debian:bookworm --platform <arch>
 docker build --network=br-ext -t nginx-amd64 .
 
