@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a2399fe[2023-12-28T14:30:17+08:00]:make_docker_image.sh")
+VERSION+=("9051254[2023-12-28T14:44:17+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly DIRNAME_COPYIN=docker
@@ -44,7 +44,6 @@ ${SCRIPTNAME}
                 docker push ${BASE_IMG}-\${arch}
             done
             ./${SCRIPTNAME} -c combine --tag ${BASE_IMG}
-            docker push ${BASE_IMG}
          # # multiarch aria2
             ARCH=(amd64 arm64)
             type=aria
@@ -57,7 +56,6 @@ ${SCRIPTNAME}
                 docker push registry.local/\${type}:bookworm-\${arch}
             done
             ./${SCRIPTNAME} -c combine --tag registry.local/\${type}:bookworm
-            docker push registry.local/\${type}:bookworm
 EOF
     exit 1
 }
@@ -288,9 +286,9 @@ combine_multiarch() {
     try "docker manifest inspect --insecure ${img_tag} | jq .manifests[].platform"
     try docker manifest push --insecure ${img_tag}
     for arch in ${ARCH[@]}; do
-        info_msg "++++++++++++++++++check ${arch} start++++++++++++++++++\n"
         try docker pull -q ${img_tag} --platform ${arch}
-        try docker run --rm --entrypoint="uname" ${img_tag} -m
+        info_msg "++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+        info_msg "++++++++++++++++++check: ${arch} | $(try docker run --rm --entrypoint="uname" ${img_tag} -m)++++++++++++++++++\n"
     done
 }
 build_other() {
@@ -364,6 +362,8 @@ docker images -a
 docker history --no-trunc <Image ID>
 # list all images arch
 docker image inspect --format "{{.ID}} {{.RepoTags}} {{.Architecture}}" $(docker image ls -q)
+docker inspect --format='{{.Architecture}}' ..
+docker system prune -af
 EOF
     return 0
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("187e8b1[2023-12-27T16:24:45+08:00]:docker_init.sh")
+VERSION+=("8c4f35d[2023-12-28T10:17:11+08:00]:docker_init.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -77,8 +77,8 @@ create_docker_bridge() {
     docker network prune -f
     docker network ls
     docker network create --attachable --driver bridge \
-        --gateway 192.168.168.1 --subnet 192.168.168.0/24 \
-        --ip-range 192.168.168.192/26 \
+        --gateway 192.168.169.1 --subnet 192.168.169.0/24 \
+        --ip-range 192.168.169.192/26 \
         --opt "com.docker.network.bridge.name=${br_name}" ${br_name}
     docker network ls
 }
