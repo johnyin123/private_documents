@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fc27f4e[2023-12-28T11:32:23+08:00]:make_docker_image.sh")
+VERSION+=("ccba08f[2023-12-28T12:50:44+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly DIRNAME_COPYIN=docker
@@ -54,7 +54,7 @@ ${SCRIPTNAME}
                 docker pull --quiet ${BASE_IMG} --platform \${arch}
                 docker run --rm --entrypoint="uname" ${BASE_IMG} -m
                 (cd my\${type}-\${arch} && docker build --network=br-ext -t registry.local/\${type}:bookworm-\${arch} .)
-                docker push registry.local/a\${type}:bookworm-\${arch}
+                docker push registry.local/\${type}:bookworm-\${arch}
             done
             ./${SCRIPTNAME} -c combine --tag registry.local/\${type}:bookworm
             docker push registry.local/\${type}:bookworm
@@ -343,7 +343,7 @@ main() {
         aria)       build_aria2 "${dir:-aria2}" "${arch}";;
         nginx)      build_nginx "${dir:-nginx-johnyin}" "${arch}";;
         *)
-                    [ -z "${file}" ] && gen_dockerfile "${func}" "${dir:-${func}-common-demo}" "${${BASE_IMG}}" "${arch}" \
+                    [ -z "${file}" ] && gen_dockerfile "${func}" "${dir:-${func}-common-demo}" "${BASE_IMG}" "${arch}" \
                         || build_other "${dir:-${func}-scratch-demo}" "${func}" "${file}" "${arch}"
                     ;;
     esac
