@@ -7,14 +7,16 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2df0f5a[2023-12-28T11:19:28+08:00]:make_docker_image.sh")
+VERSION+=("fc27f4e[2023-12-28T11:32:23+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
-DIRNAME_COPYIN=docker
+readonly DIRNAME_COPYIN=docker
+BASE_IMG=${BASE_IMG:-"registry.local/debian:bookworm"}
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env: BASE_IMG, default registry.local/debian:bookworm
         docker env:
             ENABLE_SSH=true/false, enable/disable sshd startup on 60022, default disable
             # docker create -e ENABLE_SSH=true
@@ -33,28 +35,29 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
          # # cp firefox.tar.xz mytarget/
-            ./${SCRIPTNAME} -c firefox -D tttt
+            ./${SCRIPTNAME} -c firefox -f firefox_rootfs.tar.xz -D myfirefox
          # # create goldimg
             ARCH=(amd64 arm64)
             for arch in \${ARCH[@]}; do
                 ./${SCRIPTNAME} -c base -D base-\${arch} --arch \${arch} --file \${arch}.tar.xz
-                (cd base-\${arch} && docker build -t registry.local/debian:bookworm-\${arch} .)
-                docker push registry.local/debian:bookworm-\${arch}
+                (cd base-\${arch} && docker build -t ${BASE_IMG}-\${arch} .)
+                docker push ${BASE_IMG}-\${arch}
             done
-            ./${SCRIPTNAME} -c combine --tag registry.local/debian:bookworm
-            docker push registry.local/debian:bookworm
+            ./${SCRIPTNAME} -c combine --tag ${BASE_IMG}
+            docker push ${BASE_IMG}
          # # multiarch aria2
             ARCH=(amd64 arm64)
+            type=aria
             for arch in \${ARCH[@]}; do
-                ./${SCRIPTNAME} -c aria -D myaria-\${arch} --arch \${arch}
+                ./${SCRIPTNAME} -c \${type} -D my\${type}-\${arch} --arch \${arch}
                 # confirm base-image is right arch
-                docker pull --quiet registry.local/debian:bookworm --platform \${arch}
-                docker run --rm --entrypoint="uname" registry.local/debian:bookworm -m
-                (cd myaria-\${arch} && docker build --network=br-ext -t registry.local/aria2:bookworm-\${arch} .)
-                docker push registry.local/aria2:bookworm-\${arch}
+                docker pull --quiet ${BASE_IMG} --platform \${arch}
+                docker run --rm --entrypoint="uname" ${BASE_IMG} -m
+                (cd my\${type}-\${arch} && docker build --network=br-ext -t registry.local/\${type}:bookworm-\${arch} .)
+                docker push registry.local/a\${type}:bookworm-\${arch}
             done
-            ./${SCRIPTNAME} -c combine --tag registry.local/aria2:bookworm
-            docker push registry.local/aria2:bookworm
+            ./${SCRIPTNAME} -c combine --tag registry.local/\${type}:bookworm
+            docker push registry.local/\${type}:bookworm
 EOF
     exit 1
 }
@@ -132,10 +135,10 @@ build_chrome() {
     local dir="${1}"
     local arch=${2:-}
     local name=chrome
-    local base="registry.local/debian:bookworm-amd64"
+    local base="${BASE_IMG}"
     local username=johnyin
     str_equal "${arch}" "amd64" || exit_msg "chrome only support arch: amd64!!\n"
-    gen_dockerfile "${name}" "${dir}" "${base}"
+    gen_dockerfile "${name}" "${dir}" "${base}" "amd64"
     cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
     write_file "${cfg_file}" <<EOF
 touch /etc/default/google-chrome
@@ -169,12 +172,12 @@ EOF
 }
 build_firefox() {
     local dir="${1}"
-    local arch=${2:-}
+    local file="${2}"
+    local arch=${3:-}
     local name=firefox
-    local rootfs_with_firefox=firefox.tar.xz
     local username=johnyin
-    [ -e "${dir}/${rootfs_with_firefox}" ] || exit_msg "${dir}/${rootfs_with_firefox} file no found\n"
-    gen_dockerfile "${name}" "${dir}" "${rootfs_with_firefox}" "${arch}"
+    [ -e "${dir}/${file}" ] || exit_msg "${dir}/${file} file no found\n"
+    gen_dockerfile "${name}" "${dir}" "${file}" "${arch}"
     cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
     write_file "${cfg_file}" <<EOF
 useradd -m ${username} --home-dir /home/${username}/
@@ -208,7 +211,7 @@ build_aria2() {
     local dir="${1}"
     local arch="${2:-}"
     local name=aria2
-    local base="registry.local/debian:bookworm"
+    local base="${BASE_IMG}"
     local username=johnyin
     gen_dockerfile "${name}" "${dir}" "${base}" "${arch}"
     cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
@@ -238,7 +241,7 @@ build_nginx() {
     local dir="${1}"
     local arch="${2:-}"
     local name=nginx
-    local base="registry.local/debian:bookworm"
+    local base="${BASE_IMG}"
     local username=nginx
     local groupname=nginx
     gen_dockerfile "${name}" "${dir}" "${base}" "${arch}"
@@ -336,11 +339,11 @@ main() {
                     combine_multiarch "${tag}"
                     ;;
         chrome)     build_chrome "${dir:-chrome}" "${arch}";;
-        firefox)    build_firefox "${dir:-firefox}" "${arch}";;
+        firefox)    build_firefox "${dir:-firefox}" "${file}" "${arch}";;
         aria)       build_aria2 "${dir:-aria2}" "${arch}";;
         nginx)      build_nginx "${dir:-nginx-johnyin}" "${arch}";;
         *)
-                    [ -z "${file}" ] && gen_dockerfile "${func}" "${dir:-${func}-common-demo}" "registry.local/debian:bookworm" "${arch}" \
+                    [ -z "${file}" ] && gen_dockerfile "${func}" "${dir:-${func}-common-demo}" "${${BASE_IMG}}" "${arch}" \
                         || build_other "${dir:-${func}-scratch-demo}" "${func}" "${file}" "${arch}"
                     ;;
     esac
