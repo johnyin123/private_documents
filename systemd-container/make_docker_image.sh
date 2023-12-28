@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ccba08f[2023-12-28T12:50:44+08:00]:make_docker_image.sh")
+VERSION+=("a2399fe[2023-12-28T14:30:17+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly DIRNAME_COPYIN=docker
@@ -203,7 +203,7 @@ docker create --network internet --ip 192.168.169.2 --dns 8.8.8.8 \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --device /dev/snd \
     --device /dev/dri \
-    registry.local/firefox:bookworm-amd64
+    registry.local/firefox:bookworm
 xhost +127.0.0.1
 EOF
 }
@@ -234,7 +234,7 @@ docker create --name aria --hostname aria \
     --network br-ext --ip 192.168.169.101 --dns 8.8.8.8 \
     -e ENABLE_SSH=true \
     -v /home/johnyin/disk/docker_home/:/home/johnyin/:rw \
-    registry.local/aria2:bookworm-amd64
+    registry.local/aria2:bookworm
 EOF
 }
 build_nginx() {
@@ -266,7 +266,7 @@ docker create --name nginx --hostname nginx \
     -e ENABLE_SSH=true \
     -v /storage/nginx/etc/:/etc/nginx/:ro \
     -v /storage/nginx/log/:/var/log/nginx/:rw \
-    registry.local/nginx:bookworm-amd64
+    registry.local/nginx:bookworm
 EOF
 }
 combine_multiarch() {
