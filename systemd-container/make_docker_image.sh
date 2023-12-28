@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8c4f35d[2023-12-28T10:17:11+08:00]:make_docker_image.sh")
+VERSION+=("b8228b4[2023-12-28T10:23:01+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 DIRNAME_COPYIN=docker
@@ -35,25 +35,24 @@ ${SCRIPTNAME}
          # # cp firefox.tar.xz mytarget/
             ./${SCRIPTNAME} -c firefox -D tttt
          # # create goldimg
-            ./${SCRIPTNAME} -c base -D base-amd64 --arch amd64 --file amd64.tar.xz
-            ./${SCRIPTNAME} -c base -D base-arm64 --arch arm64 --file arm64.tar.xz
-            (cd base-amd64 && docker build -t registry.local/debian:bookworm-amd64 .)
-            (cd base-arm64 && docker build -t registry.local/debian:bookworm-arm64 .)
-            docker push registry.local/debian:bookworm-amd64
-            docker push registry.local/debian:bookworm-arm64
+            ARCH=(amd64 arm64)
+            for arch in \${ARCH[@]}; do
+                ./${SCRIPTNAME} -c base -D base-\${arch} --arch \${arch} --file \${arch}.tar.xz
+                (cd base-\${arch} && docker build -t registry.local/debian:bookworm-\${arch} .)
+                docker push registry.local/debian:bookworm-\${arch}
+            done
             ./${SCRIPTNAME} -c combine --tag registry.local/debian:bookworm
             docker push registry.local/debian:bookworm
          # # multiarch aria2
-            ./${SCRIPTNAME} -c aria -D myaria-arm64 --arch arm64
-            ./${SCRIPTNAME} -c aria -D myaria-amd64 --arch amd64
-            # confirm base-image is right arch
-            docker pull registry.local/debian:bookworm --platform arm64
-            (cd myaria-arm64 docker build --network=br-ext -t registry.local/aria2:bookworm-arm64 .)
-            docker push registry.local/aria2:bookworm-arm64
-            # confirm base-image is right arch
-            docker pull registry.local/debian:bookworm --platform amd64
-            (cd myaria-amd64 docker build --network=br-ext -t registry.local/aria2:bookworm-amd64 .)
-            docker push registry.local/aria2:bookworm-amd64
+            ARCH=(amd64 arm64)
+            for arch in \${ARCH[@]}; do
+                ./${SCRIPTNAME} -c aria -D myaria-\${arch} --arch \${arch}
+                # confirm base-image is right arch
+                docker pull --quiet registry.local/debian:bookworm --platform \${arch}
+                docker run --rm --entrypoint="uname" registry.local/debian:bookworm -m
+                (cd myaria-\${arch} && docker build --network=br-ext -t registry.local/aria2:bookworm-\${arch} .)
+                docker push registry.local/aria2:bookworm-\${arch}
+            done
             ./${SCRIPTNAME} -c combine --tag registry.local/aria2:bookworm
             docker push registry.local/aria2:bookworm
 EOF
@@ -273,7 +272,8 @@ combine_multiarch() {
     warn_msg "registry must has ssl access\n"
     local arch_args=""
     for arch in ${ARCH[@]}; do
-        try "docker image ls | grep -q '${img_tag}-${arch}'" && info_msg "${img_tag}-${arch} found OK\n" \
+        try "docker image ls --format '{{.Repository}}:{{.Tag}}' | grep -q '${img_tag}-${arch}'" \
+            && info_msg "${img_tag}-${arch} found OK\n" \
             || { error_msg "${img_tag}-${arch} no found\n"; return 1; }
         arch_args+=" --amend ${img_tag}-${arch}"
     done
