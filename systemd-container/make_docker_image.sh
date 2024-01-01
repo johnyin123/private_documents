@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6d0f188[2023-12-28T16:45:41+08:00]:make_docker_image.sh")
+VERSION+=("f33d522[2023-12-28T17:06:03+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly DIRNAME_COPYIN=docker
@@ -191,6 +191,7 @@ ARGS="${username} -c '/opt/firefox/firefox'"
 EOF
     cat <<'EOF'
 # apt -y update && apt -y --no-install-recommends install libgtk-3-0 libnss3 libssl3 libdbus-glib-1-2 libx11-xcb1 libxtst6 libasound2 fonts-noto-cjk
+docker pull registry.local/firefox:bookworm --platform amd64
 docker create --network internet --ip 192.168.169.2 --dns 8.8.8.8 \
     --cpuset-cpus 0 \
     --memory 512mb \
@@ -228,11 +229,12 @@ CMD=/usr/sbin/runuser
 ARGS="-u ${username} -- /usr/bin/aria2c --conf-path=/home/${username}/.aria2/aria2.conf"
 EOF
     cat <<'EOF'
+docker pull registry.local/aria:bookworm --platform amd64
 docker create --name aria --hostname aria \
     --network br-ext --ip 192.168.169.101 --dns 8.8.8.8 \
     -e ENABLE_SSH=true \
     -v /home/johnyin/disk/docker_home/:/home/johnyin/:rw \
-    registry.local/aria2:bookworm
+    registry.local/aria:bookworm
 EOF
 }
 build_nginx() {
@@ -259,6 +261,7 @@ CMD=/usr/sbin/nginx
 ARGS="-g 'daemon off;'"
 EOF
     cat <<'EOF'
+docker pull registry.local/nginx:bookworm --platform amd64
 docker create --name nginx --hostname nginx \
     --network br-ext --ip 192.168.169.100 --dns 8.8.8.8 \
     -e ENABLE_SSH=true \
