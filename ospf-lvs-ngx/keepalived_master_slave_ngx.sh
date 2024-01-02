@@ -48,3 +48,6 @@ EOF
 gen_keepalive_conf MASTER 192.168.1.10/24
 echo "========================" >&2
 gen_keepalive_conf BACKUP 192.168.1.10/24
+# refresh arp(root)
+ip addr add 192.168.1.10/24 dev eth0      # set vip
+arping -U 192.168.1.10 -I eth0 -c 5 -b
