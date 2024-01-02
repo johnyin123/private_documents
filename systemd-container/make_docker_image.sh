@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f33d522[2023-12-28T17:06:03+08:00]:make_docker_image.sh")
+VERSION+=("95f42db[2024-01-02T07:31:46+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly DIRNAME_COPYIN=docker
@@ -107,7 +107,7 @@ echo "Running command [ssh: ${ENABLE_SSH}]: '${CMD:-}${ARGS:+ $ARGS}'"
 } || {
     ${ssh_cmd:+${ssh_cmd}}
     echo "service start ${CMD} ${ARGS:-}"
-    exec "${CMD}" ${ARGS:-}
+    eval exec "${CMD}" ${ARGS:-}
 }
 EOF
     cfg_file=${target_dir}/${DIRNAME_COPYIN}/run_command
@@ -257,8 +257,8 @@ VOLUME ["/etc/nginx/", "/var/log/nginx/"]
 EOF
     cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
     write_file "${cfg_file}" <<EOF
-CMD=/usr/sbin/nginx
-ARGS="-g 'daemon off;'"
+CMD=/usr/sbin/runuser
+ARGS="-u root -- /usr/sbin/nginx -g \"daemon off;\""
 EOF
     cat <<'EOF'
 docker pull registry.local/nginx:bookworm --platform amd64
