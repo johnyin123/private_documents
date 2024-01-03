@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4d2d640[2024-01-03T08:09:59+08:00]:make_docker_image.sh")
+VERSION+=("e8bcecb[2024-01-03T09:29:49+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -98,7 +98,7 @@ CMD ["/usr/local/bin/startup"]
 EOF
     try mkdir -p ${target_dir}/${DIRNAME_COPYIN} && try touch ${target_dir}/${DIRNAME_COPYIN}/build.run
     cfg_file=${target_dir}/${DIRNAME_COPYIN}/usr/local/bin/startup
-    mkdir -p ${target_dir}/${DIRNAME_COPYIN}/usr/local/bin && write_file "${cfg_file}" <<'EOF'
+    try mkdir -p ${target_dir}/${DIRNAME_COPYIN}/usr/local/bin && write_file "${cfg_file}" <<'EOF'
 #!/bin/bash
 set -o errexit
 set -o pipefail
@@ -172,6 +172,8 @@ docker create --name chrome --hostname chrome \
     --device /dev/dri \
     registry.local/chrome:bookworm-amd64
 xhost +127.0.0.1
+# #
+docker create --ipc=host --pid=host
 EOF
 }
 build_firefox() {
@@ -210,6 +212,14 @@ docker create --network internet --ip 192.168.169.2 --dns 8.8.8.8 \
     --device /dev/dri \
     registry.local/firefox:bookworm
 xhost +127.0.0.1
+# #
+docker run --rm -e DISPLAY -v /tmp:/tmp --ipc=host --pid=host --network br-ext myx11 '/firefox/firefox
+# #
+xpra start ssh:user@host --exit-with-children --start-child="command"
+xpra start --ssh="ssh" ssh:user@host --exit-with-children --start-child="command"
+xpra start-desktop :7 --start-child=xfce4-session --exit-with-children
+pactl load-module module-native-protocol-tcp auth-ip-acl=172.17.0.2
+docer -e PULSE_SERVER=172.17.42.1 ..
 EOF
 }
 build_aria2() {
