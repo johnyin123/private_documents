@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("8c4f35d[2023-12-28T10:17:11+08:00]:docker_init.sh")
+VERSION+=("6d0f188[2023-12-28T16:45:41+08:00]:docker_init.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -31,6 +31,22 @@ EOF
 [Service]
 MountFlags=shared
 EOF
+	# debian requires setting unprivileged_userns_clone
+	if [ -f /proc/sys/kernel/unprivileged_userns_clone ]; then
+		if [ "1" != "$(cat /proc/sys/kernel/unprivileged_userns_clone)" ]; then
+cat <<EOT > /etc/sysctl.d/50-rootless.conf
+kernel.unprivileged_userns_clone = 1
+EOT
+		fi
+	fi
+	# centos requires setting max_user_namespaces
+	if [ -f /proc/sys/user/max_user_namespaces ]; then
+		if [ "0" = "$(cat /proc/sys/user/max_user_namespaces)" ]; then
+cat <<EOT > /etc/sysctl.d/51-rootless.conf
+user.max_user_namespaces = 62669
+EOT
+		fi
+	fi
     systemctl daemon-reload || true
     systemctl restart docker || true
     systemctl enable docker || true
