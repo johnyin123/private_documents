@@ -7,16 +7,22 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("95f42db[2024-01-02T07:31:46+08:00]:make_docker_image.sh")
+VERSION+=("b628713[2024-01-02T13:12:02+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
+REGISTRY=${REGISTRY:-registry.local}
+NAMESPACE=${NAMESPACE:-}
+IMAGE=${IMAGE:-debian:bookworm}
 readonly DIRNAME_COPYIN=docker
-BASE_IMG=${BASE_IMG:-"registry.local/debian:bookworm"}
+BASE_IMG="${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}"
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        env: BASE_IMG, default registry.local/debian:bookworm
+        env: REGISTRY: private registry server(ssl), default registry.local
+             NAMESPACE: image namespace, default "", no namespace use
+             IMAGE: image name with tag, default debian:bookworm
+             so, default multi arch baseimage: <REGISTRY>/<NAMESPACE>/<IMG:TAG>
         docker env:
             ENABLE_SSH=true/false, enable/disable sshd startup on 60022, default disable
             # docker create -e ENABLE_SSH=true
@@ -52,10 +58,10 @@ ${SCRIPTNAME}
                 # confirm base-image is right arch
                 docker pull --quiet ${BASE_IMG} --platform \${arch}
                 docker run --rm --entrypoint="uname" ${BASE_IMG} -m
-                (cd my\${type}-\${arch} && docker build --network=br-ext -t registry.local/\${type}:bookworm-\${arch} .)
-                docker push registry.local/\${type}:bookworm-\${arch}
+                (cd my\${type}-\${arch} && docker build --network=br-ext -t ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:bookworm-\${arch} .)
+                docker push ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:bookworm-\${arch}
             done
-            ./${SCRIPTNAME} -c combine --tag registry.local/\${type}:bookworm
+            ./${SCRIPTNAME} -c combine --tag ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:bookworm
 EOF
     exit 1
 }
