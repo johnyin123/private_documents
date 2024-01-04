@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e8bcecb[2024-01-03T09:29:49+08:00]:make_docker_image.sh")
+VERSION+=("ed70b3b[2024-01-03T15:45:15+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -107,6 +107,7 @@ set -o xtrace
 [ -e "/run_command" ] && source /run_command
 [ "${ENABLE_SSH:=false}" = "true" ] && ssh_cmd="/usr/sbin/sshd"
 echo "Running command [ssh: ${ENABLE_SSH}]: '${CMD:-}${ARGS:+ $ARGS}'"
+command -v "ip" &> /dev/null && ip a || { command -v "busybox" && busybox ip a; }
 [ -z "${CMD:-}" ] && {
     echo "no service start"
     ${ssh_cmd:+${ssh_cmd} -D}
