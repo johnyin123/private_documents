@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("21db4ee[2024-01-04T09:42:50+08:00]:make_docker_image.sh")
+VERSION+=("abd22eb[2024-01-05T08:48:23+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -146,8 +146,8 @@ build_xfceweb() {
     cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
     write_file "${cfg_file}" <<EOF
 getent passwd ${username} >/dev/null || useradd -m ${username} --home-dir /home/${username}/ --shell /bin/bash
-# wget -q -O- 'https://xpra.org/xpra.asc' | apt-key add -
-# echo "deb [trusted=yes] https://xpra.org/ bookworm main" > /etc/apt/sources.list.d/xpra.list
+wget -q -O- 'https://xpra.org/xpra.asc' | apt-key add -
+echo "deb [trusted=yes] https://xpra.org/ bookworm main" > /etc/apt/sources.list.d/xpra.list
 apt -y update || true
 apt -y install xserver-xorg xserver-xorg-video-dummy xfce4 xfce4-terminal dbus-x11
 # fonts-noto-cjk
@@ -178,11 +178,6 @@ webcam=no
 # ssl-cert=/etc/xpra/ssl-cert.pem
 # ssl-client-verify-mode=none
 EOC
-# {
-#     for i in \$(locale); do
-#         echo start-env=\$i
-#     done
-# } >> /etc/xpra/xpra.conf
 EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
@@ -199,12 +194,11 @@ EOF
     cat <<'EOF'
 docker create --name xfce --hostname xfce \
     --network br-ext --ip 192.168.169.100 --dns 8.8.8.8 \
-    -e ENABLE_SSH=true \
-    -e PORT=9999 -e SCREEN_SIZE=1024x768 \
-    -v /home/johnyin/disk/docker_home/:/home/johnyin/:rw \
+    -e ENABLE_SSH=true -e LANG=zh_CN.UTF-8 -e LANGUAGE=zh_CN:zh -e LC_ALL=zh_CN.UTF-8 \
+    -e PORT=8888 -v /home/johnyin/disk/docker_home/test:/home/johnyin/:rw \
     -v /usr/share/fonts/opentype/noto/:/usr/share/fonts/opentype/noto/:ro \
-    registry.local/xfce:bookworm-amd64
-curl http://192.168.169.100:9999
+    xfce
+curl http://192.168.169.100:8888
 EOF
 }
 build_chrome() {
