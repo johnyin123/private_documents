@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ea154bc[2024-01-05T10:19:58+08:00]:make_docker_image.sh")
+VERSION+=("dacb02a[2024-01-05T11:35:42+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -29,6 +29,7 @@ ${SCRIPTNAME}
         -c <type>           *          Dockerfile for <base|combine|firefox|chrome|aria|nginx|xfce|common docker file>
                                             combine: combine multiarch docker image
                                             firefox: need firefox.tar.xz rootfs with firefox install /opt/firefox
+                                            wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
         -D <dirname>                   target dirname for generate files
         --arch     <arch>              images arch(amd64/arm64), not set use same as baseimg, if baseimg is multiarch, need set arch
         --tag      <tag name>          combine: create new tag, for combine registry/tag-{{ARCH}} ==> registry/tag
