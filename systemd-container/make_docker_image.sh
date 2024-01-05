@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("abd22eb[2024-01-05T08:48:23+08:00]:make_docker_image.sh")
+VERSION+=("ea154bc[2024-01-05T10:19:58+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -146,13 +146,13 @@ build_xfceweb() {
     cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
     write_file "${cfg_file}" <<EOF
 getent passwd ${username} >/dev/null || useradd -m ${username} --home-dir /home/${username}/ --shell /bin/bash
-wget -q -O- 'https://xpra.org/xpra.asc' | apt-key add -
+# -wget -q -O- 'https://xpra.org/xpra.asc' | apt-key add -
 echo "deb [trusted=yes] https://xpra.org/ bookworm main" > /etc/apt/sources.list.d/xpra.list
-apt -y update || true
-apt -y install xserver-xorg xserver-xorg-video-dummy xfce4 xfce4-terminal dbus-x11
+apt -y -oAcquire::AllowInsecureRepositories=true update || true
+apt -y install --allow-unauthenticated --no-install-recommends xpra xpra-x11 xpra-html5
+apt -y install --no-install-recommends xserver-xorg xserver-xorg-video-dummy xfce4 xfce4-terminal dbus-x11
 # fonts-noto-cjk
 # fcitx5 fcitx5-pinyin fcitx5-chinese-addons fcitx5-frontend-gtk2 fcitx5-frontend-gtk3 fcitx5-frontend-qt5
-apt -y install xpra
 mkdir -m0755 -p /run/user/\$(id -u ${username})
 chown -R ${username}:${username} /run/user/\$(id -u ${username})
 cat <<EOC > /etc/xpra/xpra.conf
