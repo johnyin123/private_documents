@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("6d0f188[2023-12-28T16:45:41+08:00]:docker_init.sh")
+VERSION+=("e8bcecb[2024-01-03T09:29:49+08:00]:docker_init.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -13,6 +13,7 @@ init_docker() {
     # /etc/docker/certs.d/<docker registry>/ca.crt
     [ -z "${insec_registry}" ] || mkdir -p /etc/docker/certs.d/${insec_registry}/
     # openssl s_client -showcerts -connect ${insec_registry}:443 < /dev/null | sed -ne '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' > /etc/docker/certs.d/${insec_registry}/ca.crt
+    echo "https://get.docker.io/builds/Linux/x86_64/docker-latest.tgz"
     mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 {
   "registry-mirrors": [ "https://docker.mirrors.ustc.edu.cn", "http://hub-mirror.c.163.com" ],
