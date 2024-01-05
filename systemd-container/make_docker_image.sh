@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dacb02a[2024-01-05T11:35:42+08:00]:make_docker_image.sh")
+VERSION+=("d08a675[2024-01-05T15:22:21+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -239,6 +239,8 @@ docker create --name chrome --hostname chrome \
     --device /dev/dri \
     registry.local/chrome:bookworm-amd64
 xhost +127.0.0.1
+pactl load-module module-native-protocol-tcp auth-ip-acl=172.17.0.2
+docer -e PULSE_SERVER=172.17.42.1 ..
 # #
 docker create --ipc=host --pid=host
 EOF
