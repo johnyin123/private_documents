@@ -1,0 +1,212 @@
+xdg-desktop-icon install --novendor ..
+cat <<EOF
+#!/usr/bin/xdg-open
+[Desktop Entry]
+Type=Application
+Name=$Name
+Exec=
+Icon=x11docker
+Comment=
+Categories=System
+EOF
+
+cat <<EOF>Dockerfile
+
+EOF
+
+cat <<'EOF' > run.sh
+#!/bin/bash
+SPICE_RES=${SPICE_RES:-"1280x960"}
+SPICE_LOCAL=${SPICE_LOCAL:-"fr_FR.UTF-8"}
+TIMEZONE=${TIMEZONE:-"Europe/Paris"}
+SPICE_USER=${SPICE_USER:-"user"}
+SPICE_UID=${SPICE_UID:-"1000"}
+SPICE_GID=${SPICE_GID:-"1000"}
+SPICE_PASSWD=${SPICE_PASSWD:-"password"}
+SPICE_KB=`echo "$SPICE_LOCAL" | awk -F"_" '{print $1}'`
+SUDO=${SUDO:-"NO"}
+locale-gen $SPICE_LOCAL
+echo $TIMEZONE > /etc/timezone
+useradd -ms /bin/bash -u $SPICE_UID $SPICE_USER
+echo "$SPICE_USER:$SPICE_PASSWD" | chpasswd
+sed -i "s|#Option \"SpicePassword\" \"\"|Option \"SpicePassword\" \"$SPICE_PASSWD\"|" /etc/X11/spiceqxl.xorg.conf
+unset SPICE_PASSWD
+update-locale LANG=$SPICE_LOCAL
+sed -i "s/XKBLAYOUT=.*/XKBLAYOUT=\"$SPICE_KB\"/" /etc/default/keyboard
+sed -i "s/SPICE_KB/$SPICE_KB/" /etc/xdg/autostart/keyboard.desktop
+sed -i "s/SPICE_RES/$SPICE_RES/" /etc/xdg/autostart/resolution.desktop
+if [ "$SUDO" != "NO" ]; then
+	sed -i "s/^\(sudo:.*\)/\1$SPICE_USER/" /etc/group
+fi
+cd /home/$SPICE_USER
+su $SPICE_USER -c "/usr/bin/Xorg -config /etc/X11/spiceqxl.xorg.conf -logfile  /home/$SPICE_USER/.Xorg.2.log :2 &" 2>/dev/null
+su $SPICE_USER -c "DISPLAY=:2 /usr/bin/mate-session"
+EOF
+
+cat <<'EOF'>spiceqxl.org.conf
+Section "Device"
+    Identifier "XSPICE"
+    Driver "spiceqxl"
+
+    # Enable regular port. Either this or SpiceTlsPort, or one of XSPICE_PORT or
+    # XSPICE_TLS_PORT environment variables must be specified
+    # Defaults to 5900.
+    #Option "SpicePort" "5900"
+
+    # Enable a TLS (encrypted) port. Either this or SpicePort must be specified,
+    # either here or via environment varialbes or via xspice --port or --tls-port
+    #Option "SpiceTlsPort" "5901"
+    
+    # Listen to a specific interface. Default is to listen to all (0.0.0.0)
+    #Option "SpiceAddr" ""
+
+    # Enable usage of SASL supported by spice-gtk client. Not required,
+    # defaults to false.
+    #Option "SpiceSasl" "True"
+
+    # Do not request any password from client
+    # Option "SpiceDisableTicketing" "1"
+
+    # Set directory where cacert, server key and server cert are searched
+    # using the same predefined names qemu uses:
+    #   cacert.pem, server-key.pem, server-cert.pem
+    #Option "SpiceX509Dir" ""
+
+    # Set password client will be required to produce.
+    #Option "SpicePassword" ""
+
+    # Set spice server key file.
+    #Option "SpiceX509KeyFile" ""
+
+    # Set cert file location.
+    #Option "SpiceX509CertFile" ""
+
+    # Set key file password.
+    #Option "SpiceX509KeyPassword" ""
+
+    # Set tls ciphers used.
+    #Option "SpiceTlsCiphers" ""
+
+    # Set cacert file.
+    #Option "SpiceCacertFile" ""
+
+    # Set dh file used.
+    #Option "SpiceDhFile" ""
+
+    # Set streaming video method. Options are filter, off, all
+    # defaults to filter.
+    #Option "SpiceStreamingVideo" ""
+
+    # Set zlib glz wan compression. Options are auto, never, always.
+    # defaults to auto.
+    #Option "SpiceZlibGlzWanCompression" ""
+
+    # Set jpeg wan compression. Options are auto, never, always
+    # defaults to auto.
+    #Option "SpiceJpegWanCompression" ""
+
+    # Set image compression. Options are off,auto_glz,auto_lz,quic,glz,lz.
+    # defaults to auto_glz.
+    #Option "SpiceImageCompression" ""
+
+    # Set to true to only listen on ipv4 interfaces.
+    # defaults to false.
+    #Option "SpiceIPV4Only" ""
+
+    # Set to true to only listen on ipv6 interfaces.
+    # defaults to false.
+    #Option "SpiceIPV6Only" ""
+
+    # If non zero, the driver will render all operations to the frame buffer,
+    #  and keep track of a changed rectangle list.  The changed rectangles
+    #  will be transmitted at the rate requested (e.g. 10 Frames Per Second)
+    # This can dramatically reduce network bandwidth for some use cases.
+    #Option "SpiceDeferredFPS" "10"
+
+    # If set, the Spice Server will exit when the first client disconnects
+    #Option "SpiceExitOnDisconnect" "1"
+
+    # Enable caching of images directly written with uxa->put_image
+    # defaults to True
+    #Option "EnableImageCache" "True"
+
+    # Enable caching of images created by uxa->prepare_access
+    # defaults to True
+    #Option "EnableFallbackCache" "True"
+
+    # Enable the use of off screen srufaces
+    # defaults to True
+    #Option "EnableSurfaces" "True"
+
+    # The number of heads to allocate by default
+    # defaults to 4
+    #Option "NumHeads" "4"
+
+    # Set Spice Agent Mouse
+    # defaults to false
+    #Option "SpiceAgentMouse" "False"
+
+    # Set Spice Playback compression
+    # defaults to true
+    #Option "SpicePlaybackCompression" "True"
+
+    # Disable copy and paste
+    # defaults to false
+    #Option "SpiceDisableCopyPaste" "False"
+
+    # If a directory is given, any file in that
+    #  directory will be read for audio data to be sent
+    #  to the client.   Default is no mixing.
+    #Option "SpicePlaybackFIFODir"  "/tmp/"
+
+EndSection
+
+Section "InputDevice"
+    Identifier "XSPICE POINTER"
+    Driver     "xspice pointer"
+EndSection
+
+Section "InputDevice"
+    Identifier "XSPICE KEYBOARD"
+    Driver     "xspice keyboard"
+EndSection
+
+Section "Monitor"
+    Identifier    "Configured Monitor"
+EndSection
+
+Section "Screen"
+    Identifier     "XSPICE Screen"
+    Monitor        "Configured Monitor"
+    Device        "XSPICE"
+    DefaultDepth    24
+EndSection
+
+Section "ServerLayout"
+    Identifier "XSPICE Example"
+    Screen "XSPICE Screen"
+    InputDevice "XSPICE KEYBOARD"
+    InputDevice "XSPICE POINTER"
+EndSection
+
+# Prevent udev from loading vmmouse in a vm and crashing.
+Section "ServerFlags"
+    Option "AutoAddDevices" "False"
+EndSection
+EOF
+cat <<EOF > /etc/xdg/autostart/resolution.desktop
+[Desktop Entry]
+Type=Application
+Name=xrandr
+Exec=/usr/bin/xrandr -s SPICE_RES
+NoDisplay=true
+EOF
+cat <<EOF > /etc/xdg/autostart/keyboard.desktop
+[Desktop Entry]
+Type=Application
+Name=xrandr
+Exec=/usr/bin/setxkbmap  SPICE_KB
+NoDisplay=true
+EOF
+
+kapt-get -y install xserver-xspice
