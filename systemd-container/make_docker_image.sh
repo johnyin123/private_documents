@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d08a675[2024-01-05T15:22:21+08:00]:make_docker_image.sh")
+VERSION+=("cfcdf66[2024-01-05T15:28:40+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -145,6 +145,11 @@ build_xfceweb() {
     local username=johnyin
     gen_dockerfile "${name}" "${dir}" "${base}" "${arch}"
     cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
+:<<EOF
+xserver-xephyr
+Xephyr :100
+DISPLAY=:100 xterm
+EOF
     write_file "${cfg_file}" <<EOF
 getent passwd ${username} >/dev/null || useradd -m ${username} --home-dir /home/${username}/ --shell /bin/bash
 # -wget -q -O- 'https://xpra.org/xpra.asc' | apt-key add -
