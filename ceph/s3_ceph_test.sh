@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("s3_ceph_test.sh - 7ae95d2 - 2021-09-29T08:55:46+08:00")
+VERSION+=("004eb13[2021-09-29T12:55:56+08:00]:s3_ceph_test.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -24,6 +24,10 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+       # add user
+        radosgw-admin user create --uid=admin --display-name=admin --access_key=admin --secret=123456
+        radosgw-admin caps add --uid=admin --caps="users=read, write"
+        radosgw-admin caps add --uid=admin --caps="usage=read, write"
        create bucket: ${SCRIPTNAME} -a key -s key -u url <bucket>
        upload:        ${SCRIPTNAME} -a key -s key -u url <localfile> name@bucket
                       curl -X PUT -T <file> <presigned_url>
