@@ -1,3 +1,6 @@
+# stats rbd iops
+rbd --cluster armsite perf image iostat libvirt-pool
+rbd --cluster armsite perf image iotop libvirt-pool
 # rbd resize --image rbd1 --size 20480 --name client.rbd
 # rbd info --image rbd1 --name client.rbd
 # dmesg | grep -i capacity
