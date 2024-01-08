@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cfcdf66[2024-01-05T15:28:40+08:00]:make_docker_image.sh")
+VERSION+=("9bdb4a2[2024-01-08T07:45:22+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -145,10 +145,20 @@ build_xfceweb() {
     local username=johnyin
     gen_dockerfile "${name}" "${dir}" "${base}" "${arch}"
     cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
-:<<EOF
+:<<'EOF'
 xserver-xephyr
 Xephyr :100
 DISPLAY=:100 xterm
+
+# MCOOKIE=$(mcookie)
+# xauth add $(hostname)/unix$1 . $MCOOKIE
+# xauth add localhost/unix$1 . $MCOOKIE
+# Xephyr "$@"
+# xauth remove $(hostname)/unix$1 localhost/unix$1
+Xephyr -auth /tmp/Xcookie.client -nolisten tcp -ac -screen 1280x1024 -br -reset -terminate 2 :100 &
+export DISPLAY=:100
+ssh -p 22 -XfC user@host xfce4-session
+# startx xfce4-session -- :100
 EOF
     write_file "${cfg_file}" <<EOF
 getent passwd ${username} >/dev/null || useradd -m ${username} --home-dir /home/${username}/ --shell /bin/bash
