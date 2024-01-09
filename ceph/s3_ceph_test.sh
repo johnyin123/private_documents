@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("004eb13[2021-09-29T12:55:56+08:00]:s3_ceph_test.sh")
+VERSION+=("cbd56a1[2024-01-08T08:19:47+08:00]:s3_ceph_test.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -116,14 +116,13 @@ presigned_url() {
     local date=$(date -d "+${expire} second" +%s)
     local str="${method}\n\n\n${date}\n${uri}"
     local signature=$(echo -en "${str}" | openssl sha1 -hmac "${secret_key}" -binary | base64)
-    echo "${host}${uri}?AWSAccessKeyId=${access_key}&Expires=${date}&Signature=$(urlencode ${signature})"
+    echo -n "${host}${uri}?AWSAccessKeyId=${access_key}&Expires=${date}&Signature=$(urlencode ${signature})"
 }
-
 
 main() {
     local access_key="" secret_key="" s3_host="" srcfile="" bucket="" tgtfile="" expire=600 method=GET
     local opt_short="a:s:u:e:"
-    local opt_long="access_key:,secret_key:,url:,expire:,upload,"
+    local opt_long="access_key:,secret_key:,url:,expire:,upload,delete,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -135,6 +134,7 @@ main() {
             -u | --url)        shift; s3_host=${1}; shift;;
             -e | --expire)     shift; expire=${1}; shift;;
             --upload)          shift; method=PUT;; 
+            --delete)          shift; method=DELETE;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -161,7 +161,11 @@ main() {
         elif [[ " $@" =~ .*?[[:space:]]([^[:space:]]+)@([^[:space:]]*)[[:space:]]* ]] ; then
             srcfile=${BASH_REMATCH[1]}
             bucket=${BASH_REMATCH[2]}
+            cmd=("curl" "-s" "--fail" "-w" '%{http_code}')
+            cmd+=("-X" "${method}")
+            echo -n "${cmd[@]} '"
             presigned_url "${s3_host}" ${bucket} "${srcfile}" "${expire}" ${secret_key} ${access_key} ${method}
+            echo "'"
         else
             bucket=${1:-}
             [ -z ${bucket} ] && usage "bucket name"
