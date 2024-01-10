@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cbd56a1[2024-01-08T08:19:47+08:00]:s3_ceph_test.sh")
+VERSION+=("320bef2[2024-01-09T10:48:34+08:00]:s3_ceph_test.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 usage() {
@@ -19,6 +19,7 @@ ${SCRIPTNAME}
         -u|--url         *   s3 url
         -e|--expire <int>    presigned url expire seconds, default 600
         --upload             presigned url upload, default is download
+        --delete             presigned url delete
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -33,6 +34,10 @@ ${SCRIPTNAME}
                       curl -X PUT -T <file> <presigned_url>
        download:      ${SCRIPTNAME} -a key -s key -u url name@bucket <localfile> 
                       curl <presigned_url> <output>
+       presigned upload:
+                      ${SCRIPTNAME} -a key -s key -u url --upload name@bucket
+       presigned delete:
+                      ${SCRIPTNAME} -a key -s key -u url --delete name@bucket
 EOF
     exit 1
 }
