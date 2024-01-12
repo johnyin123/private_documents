@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("02b83ba[2024-01-10T11:20:00+08:00]:inst_zabbix_agent.sh")
+VERSION+=("636a168[2024-01-12T08:46:02+08:00]:inst_zabbix_agent.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 change() {
@@ -26,19 +26,17 @@ EOF
 uuid=$(cat /sys/class/dmi/id/product_uuid 2>/dev/null)
 [ -z "${uuid}" ] && uuid="BAD"-$(cat /proc/sys/kernel/random/uuid)
 /usr/bin/sed --quiet -i -E \
-    -e '/(Hostname)\s*=.*/!p' \
+    -e '/(Hostname|HostMetadata|Server|ServerActive)\s*=.*/!p' \
     -e "\$aHostname=${uuid}" \
+    -e "\$aHostMetadata=$(/usr/bin/uname -m)" \
+    -e '$aServer=zabbix.tsd.org' \
+    -e '$aServerActive=zabbix.tsd.org' \
     /etc/zabbix/zabbix_agentd.conf
 exit 0
 EOF
     chmod 755 /usb/bin/tsdzabbix.sh
-
-    sed -i 's/^Server=.*/Server=zabbix.tsd.org/g' /etc/zabbix/zabbix_agentd.conf
-    sed -i 's/^ServerActive=.*/ServerActive=zabbix.tsd.org/g' /etc/zabbix/zabbix_agentd.conf
     sed -i '/^ListenIP=.*/d' /etc/zabbix/zabbix_agentd.conf
     sed -i '/^HostMetadataItem=.*/d' /etc/zabbix/zabbix_agentd.conf
-    sed -i '/^\s*HostMetadata=.*/d' /etc/zabbix/zabbix_agentd.conf
-    echo "HostMetadata=${type:-VM} $(uname -m)" >> /etc/zabbix/zabbix_agentd.conf
     # VM : 虚拟机
     # PHY : 物理机
     # X86 : X86 架构
