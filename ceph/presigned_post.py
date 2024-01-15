@@ -23,6 +23,17 @@ class S3:
         # if not self.client.Bucket(bucket).creation_date:
         #     self.client.create_bucket(Bucket=bucket)
         # Delete: self.client.delete_bucket(Bucket=bucket_name)
+    def set_cors(self):
+        BUCKET_CORS_CONFIG = {
+          "CORSRules": [{
+              "AllowedOrigins": ['"{}"'.format(self.S3_HOST)],
+              "AllowedHeaders": ["*"],
+              "AllowedMethods": ["GET", "HEAD", "POST", "PUT", "DELETE"],
+              "MaxAgeSeconds": 3000,
+              "ExposeHeaders": ["Etag"]
+            }]
+        }
+        self.client.put_bucket_cors(Bucket=self.S3_BUCKET, CORSConfiguration=BUCKET_CORS_CONFIG)
     # presigned post notwork now TODO:::
     def get_presigned_post_url(self, file_name, file_type, time=3600):
         return self.client.generate_presigned_post(
@@ -39,10 +50,10 @@ class S3:
     def list_bucket(self):
         response = self.client.list_buckets()
         if 'Buckets' in response.keys():
-        for bucket in response['Buckets']:
-            print(bucket['Name'])
-        else:
-            print('Empty')
+            for bucket in response['Buckets']:
+                print(bucket['Name'])
+            else:
+                print('Empty')
 # app.config.from_file("config.json", load=json.load)
 index_html="""
 <!DOCTYPE html>
@@ -113,6 +124,7 @@ def sign_s3():
     file_type = request.args.get('file_type')
     print("{} {}\n".format(file_name, file_type))
     s3 = S3();
+    s3.set_cors()
     presigned_post = s3.get_presigned_post_url(file_name, file_type)
     print(json.dumps({
         'data': presigned_post,
