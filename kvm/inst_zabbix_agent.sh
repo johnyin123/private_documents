@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("636a168[2024-01-12T08:46:02+08:00]:inst_zabbix_agent.sh")
+VERSION+=("af7c231[2024-01-12T09:06:39+08:00]:inst_zabbix_agent.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 change() {
@@ -32,6 +32,10 @@ uuid=$(cat /sys/class/dmi/id/product_uuid 2>/dev/null)
     -e '$aServer=zabbix.tsd.org' \
     -e '$aServerActive=zabbix.tsd.org' \
     /etc/zabbix/zabbix_agentd.conf
+# /usr/bin/sed --quiet -i -E \
+#     -e '/(Hostname|HostnameItem)\s*=.*/!p' \
+#     -e '$aHostnameItem = system.run[curl -s http://zabbix.tsd.org:8181?hostname=`hostname`]' \
+#     /etc/zabbix/zabbix_agentd.conf
 exit 0
 EOF
     chmod 755 /usb/bin/tsdzabbix.sh
