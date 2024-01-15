@@ -26,13 +26,14 @@ class S3:
     def set_cors(self):
         BUCKET_CORS_CONFIG = {
           "CORSRules": [{
-              "AllowedOrigins": ['"{}"'.format(self.S3_HOST)],
+              "AllowedOrigins": ['"{}"'.format('http://192.168.169.192:8080')],
               "AllowedHeaders": ["*"],
               "AllowedMethods": ["GET", "HEAD", "POST", "PUT", "DELETE"],
               "MaxAgeSeconds": 3000,
               "ExposeHeaders": ["Etag"]
             }]
         }
+        print("set cors")
         self.client.put_bucket_cors(Bucket=self.S3_BUCKET, CORSConfiguration=BUCKET_CORS_CONFIG)
     # presigned post notwork now TODO:::
     def get_presigned_post_url(self, file_name, file_type, time=3600):
@@ -123,8 +124,8 @@ def sign_s3():
     file_name = request.args.get('file_name')
     file_type = request.args.get('file_type')
     print("{} {}\n".format(file_name, file_type))
-    s3 = S3();
-    s3.set_cors()
+    s3 = S3()
+    # s3.set_cors()
     presigned_post = s3.get_presigned_post_url(file_name, file_type)
     print(json.dumps({
         'data': presigned_post,
