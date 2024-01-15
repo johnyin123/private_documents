@@ -20,9 +20,9 @@ class S3:
                                    endpoint_url = self.S3_HOST,
                                    config=boto3.session.Config(signature_version='s3v4')
                                    )
-        # if not s3r.Bucket(bucket).creation_date:
-        #     s3r.create_bucket(Bucket=bucket)
-
+        # if not self.client.Bucket(bucket).creation_date:
+        #     self.client.create_bucket(Bucket=bucket)
+        # Delete: self.client.delete_bucket(Bucket=bucket_name)
     # presigned post notwork now TODO:::
     def get_presigned_post_url(self, file_name, file_type, time=3600):
         return self.client.generate_presigned_post(
@@ -36,7 +36,13 @@ class S3:
         return self.client.generate_presigned_url(ClientMethod='get_object', ExpiresIn=time, Params={'Bucket': self.S3_BUCKET, 'Key': key})
     def delete_file(self, key):
         return self.client.delete_object(Bucket=self.S3_BUCKET, Key=key)
-
+    def list_bucket(self):
+        response = self.client.list_buckets()
+        if 'Buckets' in response.keys():
+        for bucket in response['Buckets']:
+            print(bucket['Name'])
+        else:
+            print('Empty')
 # app.config.from_file("config.json", load=json.load)
 index_html="""
 <!DOCTYPE html>
