@@ -4,8 +4,8 @@
 import libvirt, libvirt_qemu, time, json, re
 from xml.dom import minidom
 
-report = { "vmtotal":{ 'freemem':0, 'totalmem':0, 'totalcpu':0 }, "hosts":[], "vms":[] }
-exclude_net_pattern = re.compile("^(docker|kube|cali|tun|veth|br-|lo).*$")
+report = { 'vmtotal':{ 'freemem':0, 'totalmem':0, 'totalcpu':0 }, 'hosts':[], 'vms':[] }
+exclude_net_pattern = re.compile('^(docker|kube|cali|tun|veth|br-|lo).*$')
 
 def statistics(uri):
     host = dict(uri = uri, item=0, name='', curmem=0, maxmem=0, curcpu=0, cputime=0, capblk=0, allblk=0, freemem=0, snapshot=0, totalmem=0, totalcpu=0)
@@ -72,12 +72,11 @@ def statistics(uri):
                     item['hwaddr'].append(val['hwaddr'])
                     for ipaddr in val['addrs']:
                         if ipaddr['type'] == libvirt.VIR_IP_ADDR_TYPE_IPV4:
-                            item['addr'].append("{}/{}".format(ipaddr['addr'], ipaddr['prefix']))
+                            item['addr'].append('{}/{}'.format(ipaddr['addr'], ipaddr['prefix']))
                         elif ipaddr['type'] == libvirt.VIR_IP_ADDR_TYPE_IPV6:
-                            item['addr6'].append("{}/{}".format(ipaddr['addr'], ipaddr['prefix']))
+                            item['addr6'].append('{}/{}'.format(ipaddr['addr'], ipaddr['prefix']))
             except libvirt.libvirtError:
-                continue
-        if item['state'] == 1:
+                pass
             try:
                 libvirt_qemu.qemuAgentCommand(domain,'{"execute":"guest-ping"}',5,0)
                 item['agent'] = True                
@@ -118,10 +117,10 @@ def ignore(ctx, err):
 
 def main():
     libvirt.registerErrorHandler(ignore, None)
-    statistics('qemu+ssh://root@10.170.24.29:60022/system')
-    # with open('host', 'r') as f:
-    #     for line in f:
-    #         statistics(line.strip())
+    # statistics('qemu+ssh://root@10.170.24.29:60022/system')
+    with open('host', 'r') as f:
+        for line in f:
+            statistics(line.strip())
     print(json.dumps(report))
     return 0
 
