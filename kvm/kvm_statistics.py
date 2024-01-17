@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-import libvirt, libvirt_qemu, time, json, re
+import logging, argparse
+import libvirt, libvirt_qemu, time, json, re, string
 from xml.dom import minidom
-
-report = { 'phytotal':{ 'freemem':0, 'totalmem':0, 'totalcpu':0 }, 'vmtotal':{ 'totalmem':0, 'totalcpu':0, 'totaldisk':0 }, 'hosts':[], 'vms':[] }
+# all mem/disk MiB
+report = { 'phytotal':{ 'totalphy':0, 'freemem':0, 'totalmem':0, 'totalcpu':0 }, 'vmtotal':{ 'totalvm':0, 'totalmem':0, 'totalcpu':0, 'totaldisk':0 }, 'hosts':[], 'vms':[] }
 exclude_net_pattern = re.compile('^(docker|kube|cali|tun|veth|br-|lo).*$')
 
 def statistics(uri):
-    host = dict(uri = uri, item=0, name='', curmem=0, maxmem=0, curcpu=0, cputime=0, freemem=0, totalmem=0, totalcpu=0)
+    host = dict(uri = uri, totalvm=0, name='', curmem=0, maxmem=0, curcpu=0, cputime=0, freemem=0, totalmem=0, totalcpu=0)
     conn = libvirt.open(uri)
     if conn is None:
         sys.exit('Failed to connect to the hypervisor {}'.format(uri))
@@ -24,14 +24,16 @@ def statistics(uri):
     for domainID in domainIDs:
         domainNames.append(conn.lookupByID(domainID).name())
     host['name'] = conn.getHostname()
-    host['freemem'] = conn.getFreeMemory()//1024
-    host['totalmem'] = domainInfo[1]*1024
+    host['freemem'] = conn.getFreeMemory()//1024//1024
+    host['totalmem'] = domainInfo[1]
     host['totalcpu'] = domainInfo[4]*domainInfo[5]*domainInfo[6]*domainInfo[7]
     for domainName in domainNames:
         item = {'hwaddr':[], 'addr':[], 'addr6': [], 'host': host['name'], 'err_blksize': False, 'agent': False, 'time': None, 'err_agent': False, 'err_time': False, 'capblk': 0, 'allblk': 0}
         domain = conn.lookupByName(domainName)
         item['name'] = domain.name()
         item['state'], item['maxmem'], item['curmem'], item['curcpu'], cputime = domain.info()
+        item['maxmem'] = item['maxmem']//1024
+        item['curmem'] = item['curmem']//1024
         item['state_desc'] = {
             libvirt.VIR_DOMAIN_NOSTATE: 'NA',
             libvirt.VIR_DOMAIN_RUNNING: 'RUN',
@@ -56,8 +58,8 @@ def statistics(uri):
                         dev_name = diskNode.getAttribute('dev')
                         try:
                             blk_cap, blk_all, blk_phy = domain.blockInfo(dev_name)
-                            item['capblk'] += blk_cap
-                            item['allblk'] += blk_all
+                            item['capblk'] += blk_cap//1024//1024
+                            item['allblk'] += blk_all//1024//1024
                         except libvirt.libvirtError:
                             item['err_blksize'] = True
                         break
@@ -96,16 +98,18 @@ def statistics(uri):
             item['description'] = domain.metadata(libvirt.VIR_DOMAIN_METADATA_DESCRIPTION, None)
         except libvirt.libvirtError:
             item['description'] = ''
-        host['item'] += 1
+        host['totalvm'] += 1
         host['curmem'] += item['curmem']
         host['maxmem'] += item['maxmem']
         host['curcpu'] += item['curcpu']
         host['cputime'] += item['cputime']
+        report['vmtotal']['totalvm'] += 1
         report['vmtotal']['totalmem'] += item['curmem']
         report['vmtotal']['totalcpu'] += item['curcpu']
         report['vmtotal']['totaldisk'] += item['capblk']
         report['vms'].append(item)
     conn.close()
+    report['phytotal']['totalphy'] += 1
     report['phytotal']['freemem'] += host['freemem']
     report['phytotal']['totalmem'] += host['totalmem']
     report['phytotal']['totalcpu'] += host['totalcpu']
@@ -114,17 +118,54 @@ def statistics(uri):
     return 0
 
 def print_report():
-    print(json.dumps(report))
+    phytotal=report['phytotal']
+    vmtotal=report['vmtotal']
+    print('===================================================================================')
+    print(' VMS PHYS   V/P   VCPU   PCPU   V/P         VMEM         PMEM   V/P      VDISK_SIZE')
+    print('{:4d}|{:4d}|{:5.2f}|{:6d}|{:6d}|{:5.2f}|{:12d}|{:12d}|{:5.2f}|{:15d}'.format(
+        vmtotal['totalvm'], phytotal['totalphy'], vmtotal['totalvm']/phytotal['totalphy'],
+        vmtotal['totalcpu'], phytotal['totalcpu'], vmtotal['totalcpu']/phytotal['totalcpu'],
+        vmtotal['totalmem'], phytotal['totalmem'], vmtotal['totalmem']/phytotal['totalmem'],
+        vmtotal['totaldisk']
+        ))
+    print('==================================================================================================')
+    print('PHY_NAME         VMS   VCPU   PCPU   V/P         VMEM         PMEM  V/P       MAXVMEM      FREEMEM')
+    for it in report['hosts']:
+        print('{:15.15s}|{:4d}|{:6d}|{:6d}|{:5.2f}|{:12d}|{:12d}|{:5.2f}|{:12d}|{:12d}'.format(
+            it['name'], it['totalvm'],
+            it['curcpu'], it['totalcpu'], it['curcpu']/it['totalcpu'],
+            it['curmem'], it['totalmem'], it['curmem']/it['totalmem'],
+            it['maxmem'], it['freemem']
+            ))
+    print('==========================================================================================================')
+    print('PHY_NAME        IPADDR           STATE VCPU       VMEM        VDISK    MAXVMEM VNAME           DESCRIPTION')
+    for it in report['vms']:
+        print('{:15.15s}|{:16.16s}|{:6.5s}|{:3d}|{:10d}|{:12d}|{:10d}|{:15.15s}|{:34.34s}'.format(
+            it['host'],  it['addr'][0] if it['addr'] else 'N/A', it['state_desc'],
+            it['curcpu'], it['curmem'], it['capblk'],
+            it['maxmem'],it['name'],
+            it['description'] if it['description'] else 'N/A'
+            ))
 
 def ignore(ctx, err):
     pass
 
 def main():
     libvirt.registerErrorHandler(ignore, None)
+    parser = argparse.ArgumentParser(description='kvm stat for johnyin')
+    parser.add_argument('conf', help='config file')
+    parser.add_argument('--format', help='report format json/plain, defautl plain', default='plain')
+    parser.add_argument('-d','--debug', help='logging level DEBUG, default WARNING.', action="store_true")
+    args = parser.parse_args()
+    if args.debug:
+        log_level = logging.DEBUG
     # statistics('qemu+ssh://root@10.170.24.29:60022/system')
-    with open('host', 'r') as f:
+    with open(args.conf, 'r') as f:
         for line in f:
             statistics(line.strip())
+    if args.format == 'json':
+        print(json.dumps(report))
+        return 0
     print_report()
     return 0
 
