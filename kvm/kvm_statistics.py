@@ -4,11 +4,11 @@
 import libvirt, libvirt_qemu, time, json, re
 from xml.dom import minidom
 
-report = { 'vmtotal':{ 'freemem':0, 'totalmem':0, 'totalcpu':0 }, 'hosts':[], 'vms':[] }
+report = { 'phytotal':{ 'freemem':0, 'totalmem':0, 'totalcpu':0 }, 'vmtotal':{ 'totalmem':0, 'totalcpu':0, 'totaldisk':0 }, 'hosts':[], 'vms':[] }
 exclude_net_pattern = re.compile('^(docker|kube|cali|tun|veth|br-|lo).*$')
 
 def statistics(uri):
-    host = dict(uri = uri, item=0, name='', curmem=0, maxmem=0, curcpu=0, cputime=0, capblk=0, allblk=0, freemem=0, snapshot=0, totalmem=0, totalcpu=0)
+    host = dict(uri = uri, item=0, name='', curmem=0, maxmem=0, curcpu=0, cputime=0, freemem=0, totalmem=0, totalcpu=0)
     conn = libvirt.open(uri)
     if conn is None:
         sys.exit('Failed to connect to the hypervisor {}'.format(uri))
@@ -101,16 +101,20 @@ def statistics(uri):
         host['maxmem'] += item['maxmem']
         host['curcpu'] += item['curcpu']
         host['cputime'] += item['cputime']
-        host['capblk'] += item['capblk']
-        host['allblk'] += item['allblk']
-        host['snapshot'] += item['snapshot']
+        report['vmtotal']['totalmem'] += item['curmem']
+        report['vmtotal']['totalcpu'] += item['curcpu']
+        report['vmtotal']['totaldisk'] += item['capblk']
         report['vms'].append(item)
     conn.close()
-    report['vmtotal']['freemem'] += host['freemem']
-    report['vmtotal']['totalmem'] += host['totalmem']
-    report['vmtotal']['totalcpu'] += host['totalcpu']
+    report['phytotal']['freemem'] += host['freemem']
+    report['phytotal']['totalmem'] += host['totalmem']
+    report['phytotal']['totalcpu'] += host['totalcpu']
+
     report['hosts'].append(host)
     return 0
+
+def print_report():
+    print(json.dumps(report))
 
 def ignore(ctx, err):
     pass
@@ -121,7 +125,7 @@ def main():
     with open('host', 'r') as f:
         for line in f:
             statistics(line.strip())
-    print(json.dumps(report))
+    print_report()
     return 0
 
 if __name__ == '__main__':
