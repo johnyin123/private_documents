@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9bdb4a2[2024-01-08T07:45:22+08:00]:make_docker_image.sh")
+VERSION+=("0749516[2024-01-08T08:41:03+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -26,7 +26,7 @@ ${SCRIPTNAME}
         docker env:
             ENABLE_SSH=true/false, enable/disable sshd startup on 60022, default disable
             # docker create -e ENABLE_SSH=true
-        -c <type>           *          Dockerfile for <base|combine|firefox|chrome|aria|nginx|xfce|common docker file>
+        -c <type>           *          Dockerfile for <base|combine|firefox|chrome|aria|nginx|xfce|grafana|common docker file>
                                             combine: combine multiarch docker image
                                             firefox: need firefox.tar.xz rootfs with firefox install /opt/firefox
                                             wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
@@ -370,6 +370,54 @@ docker create --name nginx --hostname nginx \
     registry.local/nginx:bookworm
 EOF
 }
+build_grafana() {
+    local dir="${1}"
+    local arch=${2:-}
+    local name=grafana
+    local base="${BASE_IMG}"
+    local username=grafana
+    local groupname=grafana
+    gen_dockerfile "${name}" "${dir}" "${base}" "${arch}"
+    cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
+    write_file "${cfg_file}" <<EOF
+apt update
+apt -y install --no-install-recommends ca-certificates fontconfig-config fonts-dejavu-core libbrotli1 libexpat1 libfontconfig1 libfreetype6 libpng16-16 musl
+getent group ${groupname} >/dev/null || groupadd --system ${groupname} || :
+getent passwd ${username} >/dev/null || useradd -g ${groupname} --system -s /sbin/nologin -d /usr/share/grafana --no-create-home --shell /bin/false ${username} 2> /dev/null || :
+apt -y update && apt -y install --no-install-recommends libbrotli1 libgeoip1 libxml2 libxslt1.1
+# grafana-cli plugins install yesoreyeram-infinity-datasource
+# UQL datasource:
+#     parse-json
+#       scope "vms"
+#
+# parse-json
+#  scope "vmtotal"
+#  project kv()
+# grafana-cli plugins install alexanderzobnin-zabbix-app
+EOF
+   cfg_file=${dir}/Dockerfile
+    write_file "${cfg_file}" append <<EOF
+VOLUME ["/usr/share/grafana/data"]
+EXPOSE 3000
+WORKDIR /usr/share/grafana/
+EOF
+    cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
+    write_file "${cfg_file}" <<EOF
+[ -d /usr/share/grafana/data/ ] && /usr/bin/chown -R ${username}:${groupname} /usr/share/grafana/data/
+CMD=/usr/sbin/runuser
+ARGS="-u ${username} -- /usr/sbin/grafana-server"
+EOF
+    cat <<'EOF'
+https://grafana.com/grafana/download
+wget https://dl.grafana.com/enterprise/release/grafana-enterprise-10.2.3.linux-amd64.tar.gz
+
+docker create --name grafana --hostname grafana \
+    --network br-ext --ip 192.168.169.100 --dns 8.8.8.8 \
+    -e ENABLE_SSH=true \
+    -v /grafana/:/usr/share/grafana/data/:rw \
+    registry.local/grafana:bookworm
+EOF
+}
 combine_multiarch() {
     local img_tag="${1}"
     local ARCH=(amd64 arm64)
@@ -439,6 +487,7 @@ main() {
                     [ -z "${tag}" ] && usage "combine mode, tag must input"
                     combine_multiarch "${tag}"
                     ;;
+        grafana)    build_grafana "${dir:-grafana}" "${arch}";;
         xfce)       build_xfceweb "${dir:-xfce}" "${arch}";;
         chrome)     build_chrome "${dir:-chrome}" "${arch}";;
         firefox)    build_firefox "${dir:-firefox}" "${file}" "${arch}";;
