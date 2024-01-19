@@ -160,9 +160,12 @@ def main():
     if args.debug:
         log_level = logging.DEBUG
     # statistics('qemu+ssh://root@10.170.24.29:60022/system')
+    lines=()
     with open(args.conf, 'r') as f:
-        for line in f:
-            statistics(line.strip())
+        lines = (line.rstrip() for line in f)
+        lines = list(line for line in lines if line) # Non-blank lines in a list
+    for line in lines:
+        statistics(line.strip())
     if args.format == 'json':
         print(json.dumps(report))
         return 0
