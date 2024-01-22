@@ -9,9 +9,10 @@ echo "copy stunnel.conf, stunnel.pem, stunnel.key, openvpn-client.conf to local"
 REMOTE=${REMOTE:-192.168.168.111}
 REMOTE_NGX_PORT=${REMOTE_NGX_PORT:-443}
 STUNNEL_PORT=8888
-cat <<EOF > stunnel.conf
+cat <<EOF > aws.conf
 syslog=no
-debug=7
+foreground=yes
+debug=info
 output=/var/log/stunnel.log
 pid=/var/run/stunnel.pid
 cert=/etc/stunnel/stunnel.pem
@@ -21,7 +22,7 @@ client=yes
 accept=127.0.0.1:${STUNNEL_PORT}
 connect=${REMOTE}:${REMOTE_NGX_PORT}
 EOF
-
+echo "systemctl enable stunnel@aws --now"
 cat << EOF > ngx_connect.conf
 # load_module modules/ngx_http_proxy_connect_module.so;
 server {
