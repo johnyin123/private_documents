@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fa7d9ee[2023-09-19T08:42:42+08:00]:ngx_demo.sh")
+VERSION+=("54f2057[2023-09-25T09:18:08+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -386,13 +386,17 @@ server {
 EOF
 cat <<'EOF' >yum_cache.http
 resolver 114.114.114.114 ipv6=off;
+upstream centos_mirror {
+    server mirrors.tuna.tsinghua.edu.cn;
+}
 server {
     listen 127.0.0.1:8001;
     server_name $host;
     location /centos/ {
-        proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_pass http://mirror.centos.org/centos/;
+        proxy_set_header Host 'mirrors.tuna.tsinghua.edu.cn';
+        proxy_pass http://centos_mirror/centos/;
     }
 }
 upstream base {
