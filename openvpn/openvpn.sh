@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("083afcb[2023-11-09T09:17:19+08:00]:openvpn.sh")
+VERSION+=("7321244[2023-11-15T16:40:14+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -66,6 +66,12 @@ ifconfig-pool-persist ipp.txt
 #Redirect All Traffic through the VPN
 push "redirect-gateway def1 bypass-dhcp"
 push "dhcp-option DNS 114.114.114.114"
+# # use client gw
+# push "route 10.0.0.0    255.0.0.0     net_gateway"
+# push "route 172.16.0.0  255.240.0.0   net_gateway"
+# push "route 192.168.0.0 255.255.0.0   net_gateway"
+# # use vpn gw
+# push "route 10.8.1.0    255.255.255.0 vpn_gateway"
 #允许客户端与客户端相连接，默认情况下客户端只能与服务器相连接
 client-to-client
 #允许同一个客户端证书多次登录
@@ -85,8 +91,6 @@ persist-key
 persist-tun
 # # Enable multiple clients to connect with the same certificate key
 # duplicate-cn
-# push "route 10.0.0.0 255.255.255.0"
-# push "dhcp-option DNS 114.114.114.114"
 # crl-verify crl.pem
 <ca>
 $(cat /etc/openvpn/server/ca.crt)
