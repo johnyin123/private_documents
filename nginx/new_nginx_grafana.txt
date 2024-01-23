@@ -2119,8 +2119,7 @@ from_beginning = true
   json_time_format = "RFC3339" #json_time_format = "2018-10-26T13:30:33Z"
   json_timezone = "Local"
   tag_keys = ["status"]
-# json_string_fields = [ "request" ]
-
+  json_string_fields = [ "node", "scheme", "http_host", "upstream_addr", "request_time", "upstream_response_time", "upstream_status", "remote_addr", "gzip_ratio", "request", "http_referer" ]
 [[outputs.prometheus_client]]
   listen = ":60011"
   metric_version = 2
