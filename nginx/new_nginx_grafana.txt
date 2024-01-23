@@ -1,5 +1,7 @@
-echo "useradd telegraf"
-NGX_PORT=8088
+echo "getent group telegraf >/dev/null || groupadd --system telegraf"
+echo "getent passwd telegraf >/dev/null || useradd -g telegraf --system -s /sbin/nologin -d /var/empty/telegraf telegraf"
+NGX_PORT=60088
+NGX_IP=172.16.0.7
 NAME_OVERRIDE=nginxlog
 cat <<'EOF' > grafana_elb.json
 {
@@ -2084,13 +2086,13 @@ server {
     access_log off;
     location /nginx_status {
         stub_status;
-        deny all;
         allow 127.0.0.1;
+        deny all;
     }
     location /metrics {
         proxy_pass http://127.0.0.1:60011;
-        # deny all;
         # allow <ip prometheus>;
+        # deny all;
     }
 }
 EOF
@@ -2109,8 +2111,8 @@ cat <<EOF > telegraf.conf
   response_timeout = "5s"
 
 [[inputs.tail]]
-files = ["/var/log/nginx/access.log"]
-from_beginning = true
+  files = ["/var/log/nginx/access.log"]
+  from_beginning = true
   #name of the "Metric" (which I want to see in prometheus)
   name_override = "${NAME_OVERRIDE}"
   data_format = "json"
@@ -2121,7 +2123,7 @@ from_beginning = true
   tag_keys = ["status"]
   json_string_fields = [ "node", "scheme", "http_host", "upstream_addr", "request_time", "upstream_response_time", "upstream_status", "remote_addr", "gzip_ratio", "request", "http_referer" ]
 [[outputs.prometheus_client]]
-  listen = ":60011"
+  listen = "127.0.0.1:60011"
   metric_version = 2
   path = "/metrics"
 EOF
@@ -2132,11 +2134,10 @@ global:
   evaluation_interval: 5s
 scrape_configs:
     # # 定义了一个监控任务
-  - job_name: nginx
-    # # 默认访问/metrics接口
-    # metrics_path: metrics
+  - job_name: nginx1
+    metrics_path: /metrics
     static_configs:
-      - targets: ['192.168.169.10:${NGX_PORT}']
+      - targets: ['${NGX_IP}:${NGX_PORT}']
 EOF
 
 sed -i "s/MYOVERRIDE_/${NAME_OVERRIDE}_/g" grafana_elb.json
