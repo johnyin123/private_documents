@@ -1,5 +1,6 @@
 echo "getent group telegraf >/dev/null || groupadd --system telegraf"
 echo "getent passwd telegraf >/dev/null || useradd -g telegraf --system -s /sbin/nologin -d /var/empty/telegraf telegraf"
+echo "telegraf --config telegraf.conf --input-filter nginx --test --debug"
 NGX_PORT=60088
 NGX_IP=172.16.0.7
 NAME_OVERRIDE=nginxlog
