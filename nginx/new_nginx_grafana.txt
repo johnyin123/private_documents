@@ -2146,3 +2146,13 @@ scrape_configs:
 EOF
 
 sed -i "s/MYOVERRIDE_/${NAME_OVERRIDE}_/g" grafana_elb.json
+
+cat <<'EOF'
+# InfluxDB: Monitoring Web Server HTTP Response Codes
+from(bucket: "YOUR_BUCKET_HERE")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r["_measurement"] == "tail")
+  |> filter(fn: (r) => r["_field"] == "client_ip")
+  |> group(columns: ["resp_code"], mode:"by")
+  |> aggregateWindow(every: v.windowPeriod, fn: count)
+EOF
