@@ -2107,7 +2107,7 @@ cat <<EOF > telegraf.conf
 [[inputs.nginx]]
   urls = ["http://${NGX_IP}:${NGX_PORT}/nginx_status"]
   response_timeout = "5s"
-  name_override = "nginx1"
+  name_override = "nginx"
 
 [[inputs.tail]]
   files = ["/nginx/ngx1/access.log", "/nginx/ngx2/access.log"]
@@ -2155,10 +2155,46 @@ sed -i "s/MYOVERRIDE_/${NAME_OVERRIDE}_/g" grafana_elb.json
 
 cat <<'EOF'
 # InfluxDB: Monitoring Web Server HTTP Response Codes
-from(bucket: "YOUR_BUCKET_HERE")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
-  |> filter(fn: (r) => r["_measurement"] == "tail")
+from(bucket: "elbdb")
+  |> range(start: -1d)
+  |> filter(fn: (r) => r["_measurement"] == "nginxlog")
   |> filter(fn: (r) => r["_field"] == "client_ip")
   |> group(columns: ["resp_code"], mode:"by")
   |> aggregateWindow(every: v.windowPeriod, fn: count)
+
+from(bucket: "NAMEOFYOUBUCKET")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r["_measurement"] == "cpu")
+  |> filter(fn: (r) => r["_field"] == "usage_idle")
+  |> filter(fn: (r) => r["cpu"] == "cpu-total")
+  |> filter(fn: (r) => r["host"] == "NAMEOFYOURHOST")
+  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+  |> map(fn: (r) => ({ r with _value: r._value * -1.0 + 100.0 }))
+  |> toFloat()
+  |> yield(name: "mean")
+
+from(bucket: "NAMEOFYOUBUCKET")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r["_measurement"] == "mem")
+  |> filter(fn: (r) => r["_field"] == "used_percent")
+  |> filter(fn: (r) => r["host"] == "NAMEOFYOURHOST")
+  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+  |> yield(name: "mean")
+
+from(bucket: "NAMEOFYOURBUCKET")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r["_measurement"] == "disk")
+  |> filter(fn: (r) => r["_field"] == "used")
+  |> filter(fn: (r) => r["path"] == "/")
+  |> filter(fn: (r) => r["host"] == "NAMEOFYOURHOST")
+  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+  |> map(fn: (r) => ({ r with _value: r._value / 1000000.0 }))
+  |> toFloat()
+  |> yield(name: "mean")
+EOF
+cat <<'EOF'
+wget -q https://repos.influxdata.com/influxdata-archive_compat.key  | gpg --dearmor | sudo tee /etc/apt/keyrings/influxdata-archive_compat.gpg > /dev/null
+echo 'deb [signed-by=/etc/apt/keyrings/influxdata-archive_compat.gpg] https://repos.influxdata.com/debian stable main' | sudo tee /etc/apt/sources.list.d/influxdata.list
+wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
+echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
 EOF
