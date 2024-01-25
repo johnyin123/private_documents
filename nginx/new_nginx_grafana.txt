@@ -2117,10 +2117,10 @@ cat <<EOF > telegraf.conf
   data_format = "json"
   json_query = ""
   json_time_key = "time_iso8601"
-  json_time_format = "RFC3339" #json_time_format = "2018-10-26T13:30:33Z"
+  json_time_format = "RFC3339"
   json_timezone = "Local"
   # tag_keys = ["status", "bytes_sent" ]
-  json_string_fields = [ "node", "scheme", "http_host", "bytes_sent", "status", "upstream_addr", "request_time", "upstream_response_time", "upstream_status", "remote_addr", "gzip_ratio", "request", "http_referer", "http_user_agent" ]
+  json_string_fields = ["*"]
 [[outputs.prometheus_client]]
   listen = "127.0.0.1:60011"
   metric_version = 2
