@@ -92,7 +92,8 @@ virsh qemu-monitor-command ${DOMNAME} block_resize drive-${DISK} 30G --hmp
 # resize2fs/xfs_growfs/
 #test on rbd storage for kvm
 
-virsh attach-disk ${vmname} --source /storage/${image} --target vdb --cache none --io native --persistent --live
+virsh attach-disk ${vmname} --source /storage/${image} --target vdb --cache none --io native --persistent --live #--subdriver qcow2
+
 # Detach the disk
 virsh detach-disk ${vmname} $disk --persistent --live
 #test on file store for kvm
