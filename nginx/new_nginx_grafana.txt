@@ -2154,6 +2154,15 @@ EOF
 sed -i "s/MYOVERRIDE_/${NAME_OVERRIDE}_/g" grafana_elb.json
 
 cat <<'EOF'
+option location = timezone.location(name: "Asia/Shanghai")
+import "timezone"
+option location = timezone.location(name: "UTC")
+from(bucket: "elbdb")
+|> range(start: -1d)
+|> filter(fn: (r) => r["_measurement"] == "nginxlog" or r["_field"] == "status")
+|> group(columns: ["status"])
+|> count(column: "_value")
+|> group()
 # InfluxDB: Monitoring Web Server HTTP Response Codes
 from(bucket: "elbdb")
   |> range(start: -1d)
