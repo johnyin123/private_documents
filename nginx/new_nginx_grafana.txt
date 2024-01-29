@@ -2112,6 +2112,7 @@ cat <<EOF > telegraf.conf
 [[inputs.tail]]
   files = ["/nginx/ngx1/access.log", "/nginx/ngx2/access.log"]
   from_beginning = false
+  pipe = true
   #name of the "Metric" (which I want to see in prometheus)
   name_override = "${NAME_OVERRIDE}"
   data_format = "json"
@@ -2128,6 +2129,9 @@ cat <<EOF > telegraf.conf
 # [[outputs.influxdb]]
 #   urls = ["http://127.0.0.1:8086"]
 #   database = "elbdb"
+#   username = "user1"
+#   password = "userpassword"
+#   user_agent = "telegraf"
 # # curl -i -XPOST http://localhost:8086/query --data-urlencode "q=CREATE DATABASE elbdb"
 # # use elbdb
 # # select * from elb
