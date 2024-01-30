@@ -2211,4 +2211,5 @@ echo "deb [trusted=yes] https://apt.grafana.com stable main" | tee /etc/apt/sour
 apt update
 apt install curl libfontconfig1
 apt install grafana telegraf infulxdb2/influxdb
+apt install ceph-grafana-dashboards
 EOF
