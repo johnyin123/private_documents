@@ -1,0 +1,9 @@
+pid=
+nsname=dockerns
+mkdir -p /var/run/netns && touch /var/run/netns/${nsname}
+mount -o bind /proc/${pid}/ns/net /var/run/netns/${nsname}
+ip netns ls
+ip netns exec ${nsname} bash
+umount /var/run/netns/${nsname}
+rm -f /var/run/netns/${nsname}
+ip netns
