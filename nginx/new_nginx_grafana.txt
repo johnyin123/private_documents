@@ -2209,5 +2209,6 @@ cat <<'EOF'
 echo 'deb [trusted=yes] https://repos.influxdata.com/debian stable main' | tee /etc/apt/sources.list.d/influxdata.list
 echo "deb [trusted=yes] https://apt.grafana.com stable main" | tee /etc/apt/sources.list.d/grafana.list
 apt update
+apt install curl libfontconfig1
 apt install grafana telegraf infulxdb2/influxdb
 EOF
