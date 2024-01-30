@@ -1,0 +1,21 @@
+apt -y install influxdb influxdb-client
+adminpassword=adminpassword
+influx -execute "create user admin with password '${adminpassword}' with all privileges"
+influx -execute "show users"
+sed -i "s/#*\s*auth-enabled\s*=.*/auth-enabled = true/g" /etc/influxdb/influxdb.conf | grep auth-enabled
+systemctl restart influxdb
+
+influx -username admin -password ${adminpassword} -execute "show users"
+# INFLUX_USERNAME=admin INFLUX_PASSWORD=${adminpassword} influx
+# curl -G http://localhost:8086/query?pretty=true -u admin:${adminpassword} --data-urlencode "q=show users"
+
+influx -username admin -password ${adminpassword} -execute "create user user1 with password 'userpassword'"
+# influx -username admin -password ${adminpassword} -execute "grant all privileges to user1"
+# influx -username admin -password ${adminpassword} -execute "create user super with password 'userpassword' with all privileges"
+# influx -username admin -password ${adminpassword} -execute "set password for user1=newpassword"
+# influx -username admin -password ${adminpassword} -execute "drop user user1"
+influx -username admin -password ${adminpassword} -execute "create database elbdb"
+influx -username admin -password ${adminpassword} -execute "show databases"
+influx -username admin -password ${adminpassword} -execute "grant all on elbdb to user1"
+#influx -username user1 -password userpassword -database elbdb -execute "insert cpu idle=99.50"
+#influx -username admin -password ${adminpassword} -execute "drop database elbdb"
