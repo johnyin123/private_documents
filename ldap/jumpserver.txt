@@ -1,0 +1,8 @@
+curl -sSL https://resource.fit2cloud.com/jumpserver/jumpserver/releases/latest/download/quick_start.sh | bash
+
+ldap://10.170.33.107:1389
+cn=jenkins-tdd,ou=people,dc=neusoft,dc=internal
+********
+ou=people,dc=neusoft,dc=internal
+(cn=%(user)s)
+{"username": "sAMAccountName", "name": "cn", "email": "mail"}
