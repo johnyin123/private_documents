@@ -2206,8 +2206,8 @@ from(bucket: "NAMEOFYOURBUCKET")
   |> yield(name: "mean")
 EOF
 cat <<'EOF'
-wget -q https://repos.influxdata.com/influxdata-archive_compat.key  | gpg --dearmor | sudo tee /etc/apt/keyrings/influxdata-archive_compat.gpg > /dev/null
-echo 'deb [signed-by=/etc/apt/keyrings/influxdata-archive_compat.gpg] https://repos.influxdata.com/debian stable main' | sudo tee /etc/apt/sources.list.d/influxdata.list
-wget -q -O - https://apt.grafana.com/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/grafana.gpg > /dev/null
-echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" | sudo tee -a /etc/apt/sources.list.d/grafana.list
+echo 'deb [trusted=yes] https://repos.influxdata.com/debian stable main' | tee /etc/apt/sources.list.d/influxdata.list
+echo "deb [trusted=yes] https://apt.grafana.com stable main" | tee /etc/apt/sources.list.d/grafana.list
+apt update
+apt install grafana telegraf infulxdb2/influxdb
 EOF
