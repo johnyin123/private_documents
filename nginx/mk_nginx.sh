@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f98fef1[2023-11-15T16:54:01+08:00]:mk_nginx.sh")
+VERSION+=("9b0f2a6[2024-01-30T08:50:54+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -58,6 +58,7 @@ PAGE_SPEED=${PAGE_SPEED:-""}
 HEADER_MORE=${HEADER_MORE:-""}
 REDIS=${REDIS:-""}
 VTS=${VTS:-""}
+SQLITE=${SQLITE:-""}
 ##OPTION_END##
 log() {
     echo "$(tput setaf 141)$*$(tput sgr0)" >&2
@@ -115,6 +116,9 @@ declare -A STATIC_MODULES=(
 }
 [ -z "${VTS}" ] || {
     DYNAMIC_MODULES[${DIRNAME}/nginx-module-vts]="git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git"
+}
+[ -z "${SQLITE}" ] || {
+    DYNAMIC_MODULES[${DIRNAME}/ngx_sqlite]="git clone https://github.com/rryqszq4/ngx_sqlite.git"
 }
 log "NGINX_BASE : =============================="
 for key in "${!NGINX_BASE[@]}"; do
@@ -192,8 +196,8 @@ check_depends_lib() {
     for dir in $@ ; do
         pkg-config --exists ${dir} || {
             log "[FAILED] ${dir} not exists!!"
-            log "apt -y install libxml2-dev libxslt1-dev libgeoip-dev libgd-dev libldap2-dev uuid-dev"
-            log "yum -y install libxml2-devel libxslt-devel GeoIP-devel gd-devel openldap-devel uuid-devel"
+            log "apt -y install libxml2-dev libxslt1-dev libgeoip-dev libgd-dev libldap2-dev uuid-dev libsqlite3-dev"
+            log "yum -y install libxml2-devel libxslt-devel GeoIP-devel gd-devel openldap-devel uuid-devel sqlite-devel"
             log "yum -y install rpm-build"
             exit 1
         }
