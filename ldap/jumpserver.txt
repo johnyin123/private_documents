@@ -1,5 +1,35 @@
 curl -sSL https://resource.fit2cloud.com/jumpserver/jumpserver/releases/latest/download/quick_start.sh | bash
 
+# vim /opt/jumpserver/config/config.txt
+# DOMAINS=oscoe.neusoft.com:8888,10.170.26.3:8888
+
+cat <<'EOF' >ngx_jumpserver.conf
+upstream jumpserver_backend {
+    server 172.16.0.22:80;
+    keepalive 16;
+}
+server {
+    listen 8888;
+    server_name oscoe.neusoft.com;
+    location / {
+        client_max_body_size 4096m;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $http_connection;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_ignore_client_abort on;
+        proxy_connect_timeout 600;
+        proxy_send_timeout 600;
+        proxy_read_timeout 600;
+        send_timeout 6000;
+        proxy_pass http://jumpserver_backend;
+    }
+}
+EOF
+
 ldap://10.170.33.107:1389
 cn=jenkins-tdd,ou=people,dc=neusoft,dc=internal
 ********
