@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8311c48[2024-01-31T09:02:18+08:00]:ngx_demo.sh")
+VERSION+=("d21d21e[2024-01-31T10:42:44+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1638,7 +1638,9 @@ server {
 }
 EOF
 cat <<'EOF' > sqlite.http
-sqlite_database test.db;
+# mkdir -p /db && sqlite3 test.db "create table test (key varchar(10), val varchar(10))"
+# chown nginx:nginx /db -R
+sqlite_database /db/test.db;
 sqlite_pragma "PRAGMA foreign_keys = ON;";
 server {
     listen 80;
@@ -1647,18 +1649,18 @@ server {
         sqlite_query "
             begin;
                 insert into test values (@test0, @test1);
-                select * from test where test0 == @test0 and test1 == @test1;
+                select * from test where key == @test0 and val == @test1;
             end;
         ";
     }
     location /sqlite_json {
-        sqlite_query_json "select * from test where test0== @test0 and test1 == @test1;";
+        sqlite_query_json "select * from test where key== @test0";
     }
     location = /test {
         return 301 /sqlite?test0=test&test1=test;
     }
     location = /test_json {
-        return 301 /sqlite_json?test0=test&test1=test;
+        return 301 /sqlite_json?test0=test;
     }
 }
 EOF
