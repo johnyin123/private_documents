@@ -166,9 +166,9 @@ def main():
         lines = list(line for line in lines if line) # Non-blank lines in a list
     for line in lines:
         statistics(line.strip())
-    report['stats']['vmrate'] = report['vmtotal']['totalvm'] / report['phytotal']['totalphy']
-    report['stats']['cpurate'] = report['vmtotal']['totalcpu'] / report['phytotal']['totalcpu']
-    report['stats']['memrate'] = report['vmtotal']['totalmem'] / report['phytotal']['totalmem']
+    report['stats']['vmrate'] = '{:.1f}'.format(report['vmtotal']['totalvm'] / report['phytotal']['totalphy'])
+    report['stats']['cpurate'] = '{:.4f}'.format(report['vmtotal']['totalcpu'] / report['phytotal']['totalcpu'])
+    report['stats']['memrate'] = '{:.4f}'.format(report['vmtotal']['totalmem'] / report['phytotal']['totalmem'])
     if args.format == 'json':
         print(json.dumps(report))
         return 0
