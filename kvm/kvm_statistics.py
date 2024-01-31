@@ -4,7 +4,7 @@ import logging, argparse
 import libvirt, libvirt_qemu, time, json, re, string
 from xml.dom import minidom
 # all mem/disk MiB
-report = { 'phytotal':{ 'totalphy':0, 'freemem':0, 'totalmem':0, 'totalcpu':0 }, 'vmtotal':{ 'totalvm':0, 'totalmem':0, 'totalcpu':0, 'totaldisk':0 }, 'hosts':[], 'vms':[] }
+report = { 'stats': { 'vmrate': 0, 'cpurate': 0, 'memrate': 0 }, 'phytotal':{ 'totalphy':0, 'freemem':0, 'totalmem':0, 'totalcpu':0 }, 'vmtotal':{ 'totalvm':0, 'totalmem':0, 'totalcpu':0, 'totaldisk':0 }, 'hosts':[], 'vms':[] }
 exclude_net_pattern = re.compile('^(docker|kube|cali|tun|veth|br-|lo).*$')
 
 def statistics(uri):
@@ -166,6 +166,9 @@ def main():
         lines = list(line for line in lines if line) # Non-blank lines in a list
     for line in lines:
         statistics(line.strip())
+    report['stats']['vmrate'] = report['vmtotal']['totalvm'] / report['phytotal']['totalphy']
+    report['stats']['cpurate'] = report['vmtotal']['totalcpu'] / report['phytotal']['totalcpu']
+    report['stats']['memrate'] = report['vmtotal']['totalmem'] / report['phytotal']['totalmem']
     if args.format == 'json':
         print(json.dumps(report))
         return 0
