@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9b0f2a6[2024-01-30T08:50:54+08:00]:mk_nginx.sh")
+VERSION+=("8311c48[2024-01-31T09:02:18+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -98,6 +98,9 @@ declare -A STATIC_MODULES=(
 [ -z "${CACHE_PURGE}" ] || {
     STATIC_MODULES[${DIRNAME}/ngx_cache_purge]="git clone --depth 1 https://github.com/FRiCKLE/ngx_cache_purge.git"
 }
+[ -z "${SQLITE}" ] || {
+    STATIC_MODULES[${DIRNAME}/ngx_sqlite]="git clone https://github.com/rryqszq4/ngx_sqlite.git"
+}
 [ -z "${PROXY_CONNECT}" ] || {
     log "pushd $(pwd) && cd ${NGINX_DIR} && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch && popd"
     DYNAMIC_MODULES[${DIRNAME}/ngx_http_proxy_connect_module]="git clone --depth 1 https://github.com/chobits/ngx_http_proxy_connect_module.git"
@@ -116,9 +119,6 @@ declare -A STATIC_MODULES=(
 }
 [ -z "${VTS}" ] || {
     DYNAMIC_MODULES[${DIRNAME}/nginx-module-vts]="git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git"
-}
-[ -z "${SQLITE}" ] || {
-    DYNAMIC_MODULES[${DIRNAME}/ngx_sqlite]="git clone https://github.com/rryqszq4/ngx_sqlite.git"
 }
 log "NGINX_BASE : =============================="
 for key in "${!NGINX_BASE[@]}"; do
