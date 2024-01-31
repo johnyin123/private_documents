@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d384035[2024-01-23T16:59:53+08:00]:ngx_demo.sh")
+VERSION+=("8311c48[2024-01-31T09:02:18+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2684,6 +2684,18 @@ function check(r) {
             r.internalRedirect('/download' + r.uri);
         }
     )
+}
+EOF
+cat <<'EOF' >getrealip.http
+# curl -s http://192.168.168.1/?hostname=ffff
+# curl -s http://192.168.168.1
+server {
+    listen 80;
+    server_name _;
+    location / {
+        if ($arg_hostname = '') { return 200 '$remote_addr';}
+        return 200 '${arg_hostname}_$remote_addr';
+    }
 }
 EOF
 cat <<'EOF' >download_code.http
