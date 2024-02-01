@@ -1,3 +1,7 @@
+# # grafana use nginx lb with uri prefix
+# domain = xxxx.com
+# root_url = %(protocol)s://%(domain)s:%(http_port)s/uriprefix/
+
 # # enable granafa anonymous access!!!
 # [auth.anonymous]
 # enabled = true
