@@ -150,6 +150,13 @@ def print_report():
 def ignore(ctx, err):
     pass
 
+def myround(val, fmt):
+    # out = Decimal(a).quantize(Decimal("0.01"), rounding = "ROUND_HALF_UP")
+    from decimal import Decimal
+    #保留几位小数由像第二个括号中的几位小数决定，即保留两位小数，精确到0.01
+    #如果想要四舍五入保留整数，那么第二个括号中就应该为"1."
+    return float(Decimal(val).quantize(Decimal(fmt), rounding = "ROUND_HALF_UP"))
+
 def main():
     libvirt.registerErrorHandler(ignore, None)
     parser = argparse.ArgumentParser(description='kvm stat for johnyin')
@@ -166,9 +173,9 @@ def main():
         lines = list(line for line in lines if line) # Non-blank lines in a list
     for line in lines:
         statistics(line.strip())
-    report['stats']['vmrate'] = '{:.1f}'.format(report['vmtotal']['totalvm'] / report['phytotal']['totalphy'])
-    report['stats']['cpurate'] = '{:.4f}'.format(report['vmtotal']['totalcpu'] / report['phytotal']['totalcpu'])
-    report['stats']['memrate'] = '{:.4f}'.format(report['vmtotal']['totalmem'] / report['phytotal']['totalmem'])
+    report['stats']['vmrate'] =  myround(report['vmtotal']['totalvm'] / report['phytotal']['totalphy'], "0.1")
+    report['stats']['cpurate'] = myround(report['vmtotal']['totalcpu'] / report['phytotal']['totalcpu'], "0.001")
+    report['stats']['memrate'] = myround(report['vmtotal']['totalmem'] / report['phytotal']['totalmem'], "0.001")
     if args.format == 'json':
         print(json.dumps(report))
         return 0
