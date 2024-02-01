@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("020efbf[2023-08-10T09:04:40+08:00]:virt-backupxml.sh")
+VERSION+=("f935abb[2023-12-06T11:03:45+08:00]:virt-backupxml.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 VIRSH_OPT="-k 300 -K 5 -q"
@@ -61,6 +61,7 @@ get_vmip() {
         local os="WINDOW"
         fake_virsh ${user}@${host}:${port} domfsinfo ${dom} | grep --color=never -E -q "ext|jfs|xfs|nfs" && os="LINUX"
         local desc="$(fake_virsh ${user}@${host}:${port} desc ${dom})"
+        [ -z ${desc} ] && desc="$(fake_virsh ${user}@${host}:${port} domname ${dom})"
         local maxcpu=$(array_get stats 'vcpu.maximum')
         local cpu=$(array_get stats 'vcpu.current')
         local maxmem=$(array_get stats 'balloon.maximum')
