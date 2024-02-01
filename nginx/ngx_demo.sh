@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d21d21e[2024-01-31T10:42:44+08:00]:ngx_demo.sh")
+VERSION+=("87f7406[2024-01-31T13:31:49+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2686,6 +2686,18 @@ function check(r) {
             r.internalRedirect('/download' + r.uri);
         }
     )
+}
+EOF
+cat <<'EOF' >substats_json.http
+server {
+    listen 80;
+    server_name _;
+    # Make sure the ngx_http_stub_status_module is installed correctly.
+    location /status {
+        access_log off;
+        add_header Content-Type application/json;
+        return 200 '{"connections_active": $connections_active, "connections_reading": $connections_reading, "connections_writing": $connections_writing, "connections_waiting": $connections_waiting}';
+    }
 }
 EOF
 cat <<'EOF' >getrealip.http
