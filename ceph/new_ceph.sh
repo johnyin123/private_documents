@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9e3de8d[2023-10-23T16:17:33+08:00]:new_ceph.sh")
+VERSION+=("9a3ff7e[2023-11-10T12:51:29+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 fix_ceph_conf() {
@@ -562,6 +562,9 @@ ${SCRIPTNAME}
                --rgw_endpts http://192.168.168.201:80,http://192.168.168.202:80,http://192.168.168.203:80 \\
                --master_url http://192.168.168.101 --access_key <key> --secret_key <key> \\
                --rgw_realm movie --rgw_grp cn --rgw_zone idc02
+        SSL can also be disabled by setting this configuration value:
+        # # disable ceph dashboard ssl
+        ceph config set mgr mgr/dashboard/ssl false
 EOF
     exit 1
 }
@@ -640,6 +643,9 @@ main "$@"
     echo "password" > pwdfile
     ceph dashboard ac-user-create admin  administrator -i pwdfile
     ceph config set mgr mgr/dashboard/server_addr 192.168.168.201
+    ceph config set mgr mgr/dashboard/ssl false
+    ceph mgr module disable dashboard
+    ceph mgr module enable dashboard
     ceph mgr services
 # ceph 12 not support this module
     ceph mgr module enable pg_autoscaler
