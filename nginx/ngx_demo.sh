@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dc9f0c1[2024-02-01T12:41:16+08:00]:ngx_demo.sh")
+VERSION+=("30ad8e7[2024-02-02T10:09:03+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4480,6 +4480,7 @@ function rightClick(e) {
 }
 EOF
 cat <<'EOF'> sub_filter_2.http
+# copy context_menu.css/context_menu.js to /var/www
 upstream portal_backend {
     server 10.170.33.120:30770;
     keepalive 16;
@@ -4488,25 +4489,25 @@ server {
     listen 80;
     server_name _;
     location / {
+        alias /var/www/;
+        try_files $uri @proxy;
+    }
+    location @proxy {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header Host $http_host;
         proxy_http_version 1.1;
         proxy_set_header Connection "";
         proxy_pass http://portal_backend;
-        sub_filter '</head>' '<link href="/static/context_menu.css" rel="stylesheet"></head>';
+        sub_filter '</head>' '<link href="/context_menu.css" rel="stylesheet"></head>';
         sub_filter '</body>' '<div id="ctxmenu" class="ctx-menu" style="display:none"><ul>
 <li><a href="/grafana">私有云大屏</a></li>
 <li><a href="/zabbix">zabbix</a></li>
-</ul></div><script src="/static/context_menu.js"></script></body>';
+</ul></div><script src="/context_menu.js"></script></body>';
         sub_filter_once off;
         sub_filter_last_modified on;
         # # needed for sub_filter to work with gzip enabled (https://stackoverflow.com/a/36274259/3375325)
         proxy_set_header Accept-Encoding "";
-    }
-    location /static {
-        alias /var/www/;
-        try_files $uri $uri/ =404;
     }
 }
 EOF
