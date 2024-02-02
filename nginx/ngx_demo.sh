@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("87f7406[2024-01-31T13:31:49+08:00]:ngx_demo.sh")
+VERSION+=("dc9f0c1[2024-02-01T12:41:16+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4432,6 +4432,84 @@ document.body.appendChild(myDiv);
     }
 }
 EOF
+cat <<'EOF'> context_menu.css
+.ctx-menu {
+    position: absolute;
+    text-align: center;
+    background: lightgray;
+    border: 1px solid black;
+}
+.ctx-menu ul {
+    padding: 0px;
+    margin: 0px;
+    min-width: 150px;
+    list-style: none;
+}
+.ctx-menu ul li {
+    padding-bottom: 7px;
+    padding-top: 7px;
+    border: 1px solid black;
+}
+.ctx-menu ul li a {
+    text-decoration: none;
+    color: black;
+}
+.ctx-menu ul li:hover {
+    background: darkgray;
+}
+EOF
+cat <<'EOF'> context_menu.js
+document.onclick = hideMenu;
+document.oncontextmenu = rightClick;
+function hideMenu() {
+    document.getElementById(
+        "ctxmenu").style.display = "none"
+}
+function rightClick(e) {
+    e.preventDefault();
+    if (document.getElementById(
+        "ctxmenu").style.display == "block")
+        hideMenu();
+    else {
+        var menu = document
+            .getElementById("ctxmenu")
+        menu.style.display = 'block';
+        menu.style.left = e.pageX + "px";
+        menu.style.top = e.pageY + "px";
+    }
+}
+EOF
+cat <<'EOF'> sub_filter_2.http
+upstream portal_backend {
+    server 10.170.33.120:30770;
+    keepalive 16;
+}
+server {
+    listen 80;
+    server_name _;
+    location / {
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Host $http_host;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_pass http://portal_backend;
+        sub_filter '</head>' '<link href="/static/context_menu.css" rel="stylesheet"></head>';
+        sub_filter '</body>' '<div id="ctxmenu" class="ctx-menu" style="display:none"><ul>
+<li><a href="/grafana">私有云大屏</a></li>
+<li><a href="/zabbix">zabbix</a></li>
+</ul></div><script src="/static/context_menu.js"></script></body>';
+        sub_filter_once off;
+        sub_filter_last_modified on;
+        # # needed for sub_filter to work with gzip enabled (https://stackoverflow.com/a/36274259/3375325)
+        proxy_set_header Accept-Encoding "";
+    }
+    location /static {
+        alias /var/www/;
+        try_files $uri $uri/ =404;
+    }
+}
+EOF
 cat <<'EOF' > sub_filter.http
 # 1.9.4 *) Feature: multiple "sub_filter" directives can be used simultaneously.
 # ...........................
@@ -4460,6 +4538,7 @@ server {
         sub_filter '</body>' '<a href="http://www.xxxx.com"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://res.xxxx.com/_static_/demo.png" alt="bj idc"></a></body>';
         proxy_set_header referer http://www.xxx.net; #如果网站有验证码，可以解决验证码不显示问题
         sub_filter_once on;
+        sub_filter_last_modified on;
         # sub_filter_types text/html;
         # # needed for sub_filter to work with gzip enabled (https://stackoverflow.com/a/36274259/3375325)
         proxy_set_header Accept-Encoding "";
