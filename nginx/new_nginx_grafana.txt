@@ -2168,6 +2168,11 @@ EOF
 sed -i "s/MYOVERRIDE_/${NAME_OVERRIDE}_/g" grafana_elb.json
 
 cat <<'EOF'
+SELECT derivative(max(requests))
+FROM "nginx"
+WHERE $timeFilter
+GROUP BY time($interval)
+
 option location = timezone.location(name: "Asia/Shanghai")
 import "timezone"
 option location = timezone.location(name: "UTC")
