@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("e8bcecb[2024-01-03T09:29:49+08:00]:docker_init.sh")
+VERSION+=("4f7bfd9[2024-01-05T16:53:02+08:00]:docker_init.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -21,7 +21,7 @@ init_docker() {
   "exec-opts": ["native.cgroupdriver=systemd", "native.umask=normal" ],
   "storage-driver": "overlay2",
   "data-root": "/var/lib/docker",
-  ${dns:+  "dns": ["${dns}"],}
+  ${dns:+  \"dns\": [\"${dns}\"],}
   "bridge": "none",
   "ip-forward": false,
   "iptables": false
@@ -94,8 +94,8 @@ create_docker_bridge() {
     docker network prune -f
     docker network ls
     docker network create --attachable --driver bridge \
-        --gateway 192.168.169.1 --subnet 192.168.169.0/24 \
-        --ip-range 192.168.169.192/26 \
+        --gateway 192.168.168.1 --subnet 192.168.168.0/24 \
+        --ip-range 192.168.168.192/26 \
         --opt "com.docker.network.bridge.name=${br_name}" ${br_name}
     docker network ls
 }
