@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b0bb9f1[2024-02-02T10:16:45+08:00]:ngx_demo.sh")
+VERSION+=("0d8b2a7[2024-02-19T13:51:43+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1795,14 +1795,17 @@ def public_key():
 def login_user():
     username = request.json.get('username', None)
     password = request.json.get('password', None)
+    expire = int(request.json.get('expire', 0))
     if not username or not password:
         return jsonify({'msg': 'username or password no found'}), 400
+    if expire == 0:
+        expire = app.config['JWT_ACCESS_TOKEN_EXPIRES']
     print('{},pass[{}]'.format(username, password))
     if check_ldap_login(username, password):
         payload = {
                 'username': username,
                 'iat': datetime.datetime.utcnow(),
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=app.config['JWT_ACCESS_TOKEN_EXPIRES'])
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=expire)
                 }
         token = jwt.encode(payload, app.config['JWT_PRIVATE_KEY'], algorithm='RS256')
         return jsonify({'token' : token})
