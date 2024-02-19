@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0d8b2a7[2024-02-19T13:51:43+08:00]:mk_nginx.sh")
+VERSION+=("9258cb2[2024-02-19T13:55:25+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -59,6 +59,7 @@ PAGE_SPEED=${PAGE_SPEED:-""}
 HEADER_MORE=${HEADER_MORE:-""}
 REDIS=${REDIS:-""}
 VTS=${VTS:-""}
+CONCAT=${CONCAT:-"1"}
 SQLITE=${SQLITE:-"1"}
 ##OPTION_END##
 log() {
@@ -98,6 +99,9 @@ declare -A STATIC_MODULES=(
 }
 [ -z "${CACHE_PURGE}" ] || {
     STATIC_MODULES[${DIRNAME}/ngx_cache_purge]="git clone --depth 1 https://github.com/FRiCKLE/ngx_cache_purge.git"
+}
+[ -z "${CONCAT}" ] || {
+    STATIC_MODULES[${DIRNAME}/nginx-http-concat]="git clone https://github.com/alibaba/nginx-http-concat.git"
 }
 [ -z "${SQLITE}" ] || {
     STATIC_MODULES[${DIRNAME}/ngx_sqlite]="git clone https://github.com/rryqszq4/ngx_sqlite.git"
@@ -216,7 +220,7 @@ check_depends_lib() {
 [ -z "${IMAGE_FILTER}" ] || { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); check_depends_lib gdlib; }
 
 check_depends_lib libxml-2.0 libxslt geoip #uuid
-[ -z "${AUTH_JWT} "} || {
+[ -z "${AUTH_JWT} " ] || {
     check_depends_lib libjwt jansson
     CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
 }
