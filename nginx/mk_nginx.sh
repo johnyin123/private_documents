@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8311c48[2024-01-31T09:02:18+08:00]:mk_nginx.sh")
+VERSION+=("99122bf[2024-01-31T09:06:38+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -52,6 +52,7 @@ PROXY_CONNECT=${PROXY_CONNECT:-""}
 LIMIT_SPEED=${LIMIT_SPEED:-""}
 CACHE_PURGE=${CACHE_PURGE:-""}
 #dynamic module
+AUTH_JWT=${AUTH_JWT:-""}
 AUTH_LDAP=${AUTH_LDAP:-""}
 IMAGE_FILTER=${IMAGE_FILTER:-""}
 PAGE_SPEED=${PAGE_SPEED:-""}
@@ -104,6 +105,9 @@ declare -A STATIC_MODULES=(
 [ -z "${PROXY_CONNECT}" ] || {
     log "pushd $(pwd) && cd ${NGINX_DIR} && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch && popd"
     DYNAMIC_MODULES[${DIRNAME}/ngx_http_proxy_connect_module]="git clone --depth 1 https://github.com/chobits/ngx_http_proxy_connect_module.git"
+}
+[ -z "${AUTH_JWT}" ] || {
+    DYNAMIC_MODULES[${DIRNAME}/ngx-http-auth-jwt-module]="git clone https://github.com/TeslaGov/ngx-http-auth-jwt-module.git"
 }
 [ -z "${AUTH_LDAP}" ] || {
     DYNAMIC_MODULES[${DIRNAME}/nginx-auth-ldap]="git clone https://github.com/kvspb/nginx-auth-ldap.git"
@@ -212,6 +216,10 @@ check_depends_lib() {
 [ -z "${IMAGE_FILTER}" ] || { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); check_depends_lib gdlib; }
 
 check_depends_lib libxml-2.0 libxslt geoip #uuid
+[ -z "${AUTH_JWT} "} || {
+    check_depends_lib libjwt jansson
+    CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
+}
 
 :<<'EOF'
 # git clone --depth 1 https://github.com/nginx/njs-examples.git

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("30ad8e7[2024-02-02T10:09:03+08:00]:ngx_demo.sh")
+VERSION+=("b0bb9f1[2024-02-02T10:16:45+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1742,6 +1742,99 @@ server {
             proxy_pass http://api_srvs;
         }
         return 404;
+    }
+}
+EOF
+cat <<'EOF' > flask_jwt_srv.py
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+from flask import Flask, abort, jsonify, request, make_response
+import os, datetime, jwt
+
+def load_file(file_path):
+    if os.path.isfile(file_path):
+        return open(file_path).read()
+    print('file {} nofound'.format(file_path))
+    exit(1)
+
+class Config(object):
+    HTTP_PORT=os.environ.get('HTTP_PORT', 9900)
+    LDAP_URL=os.environ.get('LDAP_URL', 'ldap://10.170.33.107:1389')
+    UID_FMT=os.environ.get('UID_FMT', 'cn={uid},ou=people,dc=neusoft,dc=internal')
+    JWT_PUBLIC_KEY = load_file(os.environ.get('JWT_PUBLIC_KEY_FILE', 'srv.pem'))
+    JWT_PRIVATE_KEY = load_file(os.environ.get('JWT_PRIVATE_KEY_FILE', 'srv.key'))
+    JWT_ACCESS_TOKEN_EXPIRES = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES', 15))
+
+app = Flask(__name__)
+app.config.from_object(Config)
+
+from ldap3 import Server, Connection, ALL
+def init_connection(url, binddn, password):
+    srv = Server(url, get_info=ALL)
+    conn = Connection(srv, user=binddn, password=password)
+    conn.bind()
+    return conn
+
+def check_ldap_login(username, password):
+    try:
+        with init_connection(app.config['LDAP_URL'], app.config['UID_FMT'].format(uid=username), password) as c:
+            if c.bound:
+                print('{} Login OK'.format(c.extend.standard.who_am_i()))
+                return True
+            else:
+                return False
+    except Exception as e:
+        print('ldap excetion:', e)
+    return False
+
+@app.route('/public_key')
+def public_key():
+    return app.config['JWT_PUBLIC_KEY']
+
+@app.route('/api/auth', methods=['POST'])
+def login_user():
+    username = request.json.get('username', None)
+    password = request.json.get('password', None)
+    if not username or not password:
+        return jsonify({'msg': 'username or password no found'}), 400
+    print('{},pass[{}]'.format(username, password))
+    if check_ldap_login(username, password):
+        payload = {
+                'username': username,
+                'iat': datetime.datetime.utcnow(),
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=app.config['JWT_ACCESS_TOKEN_EXPIRES'])
+                }
+        token = jwt.encode(payload, app.config['JWT_PRIVATE_KEY'], algorithm='RS256')
+        return jsonify({'token' : token})
+    return jsonify({'msg': 'Bad username or password'}), 401
+
+if __name__ == '__main__':
+    print('pip install flask ldap3 pyjwt[crypto]')
+    print('''curl -s -k -X POST "http://localhost:{port}/api/auth" -H "Content-Type: application/json" -d '{{"username": "admin", "password": "password"}}' | jq -r .token'''.format(port=app.config['HTTP_PORT']))
+    app.run(host='0.0.0.0', port=app.config['HTTP_PORT']) #, debug=True)
+EOF
+cat <<'EOF' > jwt_auth.http
+# token=$(curl -s -k -X POST http://localhost/api/auth -d '{"username": "admin", "password": "password"}' | jq -r .token)
+# curl -s -k -X GET --header "Authorization: Bearer ${token}" http://localhost/vms.json -vvv
+# openssl rsa -in srv.key -pubout -out /etc/nginx/pubkey.pem
+upstream jwt_api {
+    server 192.168.169.234:9900;
+    keepalive 64;
+}
+server {
+    listen 80;
+    server_name _;
+    location = /api/auth {
+        proxy_pass http://jwt_api;
+    }
+    location / {
+        auth_jwt_enabled on;
+        auth_jwt_redirect off;
+        auth_jwt_location HEADER=Authorization;
+        auth_jwt_algorithm RS256;
+        auth_jwt_use_keyfile on;
+        auth_jwt_keyfile_path "/etc/nginx/pubkey.pem";
+        alias /var/www/;
     }
 }
 EOF
