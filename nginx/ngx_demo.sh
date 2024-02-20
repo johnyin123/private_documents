@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0d8b2a7[2024-02-19T13:51:43+08:00]:ngx_demo.sh")
+VERSION+=("bd71ca7[2024-02-20T07:59:26+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1767,6 +1767,19 @@ class Config(object):
 
 app = Flask(__name__)
 app.config.from_object(Config)
+# # all response convert to json format
+from flask import json
+from werkzeug.exceptions import HTTPException
+@app.errorhandler(HTTPException)
+def handle_exception(e):
+    response = e.get_response()
+    response.data = json.dumps({
+        "code": e.code,
+        "name": e.name,
+        "description": e.description,
+    })
+    response.content_type = "application/json"
+    return response
 
 from ldap3 import Server, Connection, ALL
 def init_connection(url, binddn, password):
