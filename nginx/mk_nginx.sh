@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9258cb2[2024-02-19T13:55:25+08:00]:mk_nginx.sh")
+VERSION+=("d604720[2024-02-19T17:05:45+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -374,6 +374,46 @@ client_header_buffer_size 32k;
 large_client_header_buffers 4 64k;
 EOF
 
+cat <<'EOF' > ${OUTDIR}/etc/nginx/http-conf.d/brotli-compress.conf
+brotli on;
+brotli_static on;
+brotli_comp_level 6;
+brotli_buffers 16 8k;
+brotli_min_length 256;
+brotli_types
+    application/atom+xml
+    application/geo+json
+    application/javascript
+    application/x-javascript
+    application/json
+    application/ld+json
+    application/manifest+json
+    application/rdf+xml
+    application/rss+xml
+    application/vnd.ms-fontobject
+    application/wasm
+    application/x-web-app-manifest+json
+    application/xhtml+xml
+    application/xml
+    font/eot
+    font/otf
+    font/ttf
+    image/bmp
+    image/svg+xml
+    text/cache-manifest
+    text/calendar
+    text/css
+    text/javascript
+    text/markdown
+    text/plain
+    text/xml
+    text/vcard
+    text/vnd.rim.location.xloc
+    text/vtt
+    text/x-component
+    text/x-cross-domain-policy;
+EOF
+
 cat <<'EOF' > ${OUTDIR}/etc/nginx/http-conf.d/gzip-compress.conf
 gzip on;
 gunzip on;
@@ -516,7 +556,7 @@ EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/rtmp.conf
 # load_module modules/ngx_rtmp_module.so;
 EOF
-cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/redis.conf
+[ -z "${REDIS}" ] || cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/redis.conf
 # load_module modules/ngx_http_redis_module.so;
 EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/mail.conf
@@ -536,6 +576,9 @@ EOF
 EOF
 [ -z "${IMAGE_FILTER}" ] || cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/http_image_filter.conf
 # load_module modules/ngx_http_image_filter_module.so;
+EOF
+[ -z "${AUTH_JWT}" ] || cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/jwt.conf
+# load_module modules/ngx_http_auth_jwt_module.so;
 EOF
 
 cat <<EOF > ${OUTDIR}/etc/nginx/nginx.conf
