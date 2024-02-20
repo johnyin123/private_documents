@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bd71ca7[2024-02-20T07:59:26+08:00]:ngx_demo.sh")
+VERSION+=("538de0f[2024-02-20T08:24:55+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1745,6 +1745,72 @@ server {
     }
 }
 EOF
+cat <<'EOF' > jwt_demo.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>JSON web token with vanilla js</title>
+</head>
+<body>
+  <div class="input">
+    <label for="username">user name:</label>
+    <input id="username">
+    <label for="password">password:</label>
+    <input id="password">
+    <button onclick="getToken()">login</button>
+  </div>
+  <div id="token"></div>
+  <button onclick="getSecret()">get secret message</button>
+  <div id="result"></div>
+  <script>
+function initXMLHttpRequest(method, url, jwtoken){
+    let xmlHttpRequest = new XMLHttpRequest();
+    xmlHttpRequest.open(method, url, true);
+    xmlHttpRequest.setRequestHeader('Authorization', 'Bearer ' + jwtoken);
+    return xmlHttpRequest;
+}
+function getToken() {
+  var loginUrl = "http://192.168.169.234:9900/api/auth"
+  var xhr = new XMLHttpRequest();
+  var userElement = document.getElementById('username');
+  var passwordElement = document.getElementById('password');
+  var tokenElement = document.getElementById('token');
+  var user = userElement.value;
+  var password = passwordElement.value;
+  xhr.open('POST', loginUrl, true);
+  xhr.addEventListener('load', function() {
+    var responseObject = JSON.parse(this.response);
+    console.log(responseObject);
+    if (responseObject.token) {
+      tokenElement.innerHTML = responseObject.token;
+      localStorage.setItem('token', token);
+    } else {
+      tokenElement.innerHTML = "No token received";
+    }
+  });
+  var sendObject = JSON.stringify({username: user, password: password});
+  console.log('going to send', sendObject);
+  xhr.send(sendObject);
+}
+// make the request to the secret API endpoint
+function getSecret() {
+  var url = "http://192.168.169.234:9900/test"
+  var tokenElement = document.getElementById('token');
+  var resultElement = document.getElementById('result');
+  var xhr = initXMLHttpRequest('GET', url, tokenElement.innerHTML)
+  // localStorage.getItem('token');
+  xhr.addEventListener('load', function() {
+    var responseObject = JSON.parse(this.response);
+    console.log(responseObject);
+    resultElement.innerHTML = this.responseText;
+  });
+  xhr.send(null);
+}
+  </script>
+</body>
+</html>
+EOF
 cat <<'EOF' > flask_jwt_srv.py
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -1800,15 +1866,28 @@ def check_ldap_login(username, password):
         print('ldap excetion:', e)
     return False
 
+def _build_cors_preflight_response():
+    response = make_response()
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add('Access-Control-Allow-Headers', "*")
+    response.headers.add('Access-Control-Allow-Methods', "*")
+    return response
+
+def _corsify_actual_response(response):
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    return response
+
 @app.route('/public_key')
 def public_key():
     return app.config['JWT_PUBLIC_KEY']
 
 @app.route('/api/auth', methods=['POST'])
 def login_user():
-    username = request.json.get('username', None)
-    password = request.json.get('password', None)
-    expire = int(request.json.get('expire', 0))
+    # # avoid Content type: text/plain return http415
+    req_data = request.get_json(force=True)
+    username = req_data.get('username', None)
+    password = req_data.get('password', None)
+    expire = int(req_data.get('expire', 0))
     if not username or not password:
         return jsonify({'msg': 'username or password no found'}), 400
     if expire == 0:
@@ -1821,8 +1900,14 @@ def login_user():
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=expire)
                 }
         token = jwt.encode(payload, app.config['JWT_PRIVATE_KEY'], algorithm='RS256')
-        return jsonify({'token' : token})
+        return _corsify_actual_response(jsonify({'token' : token}))
     return jsonify({'msg': 'Bad username or password'}), 401
+
+@app.route("/test", methods=["GET", "OPTIONS"])
+def api_create_order():
+    if request.method == "OPTIONS": # CORS preflight
+        return _build_cors_preflight_response()
+    return _corsify_actual_response(jsonify({'msg': 'OK'}))
 
 if __name__ == '__main__':
     print('pip install flask ldap3 pyjwt[crypto]')
