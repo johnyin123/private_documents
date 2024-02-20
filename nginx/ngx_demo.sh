@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("538de0f[2024-02-20T08:24:55+08:00]:ngx_demo.sh")
+VERSION+=("3a5d066[2024-02-20T09:53:11+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1784,7 +1784,12 @@ function getToken() {
     console.log(responseObject);
     if (responseObject.token) {
       tokenElement.innerHTML = responseObject.token;
-      localStorage.setItem('token', token);
+      //将token存在本地存储，然后跳转到主页面
+      //localStorage.setItem('token',resp.token);
+      //location.href="main.html";
+
+      //localStorage.removeItem("token");
+      //location.href="login.html";
     } else {
       tokenElement.innerHTML = "No token received";
     }
