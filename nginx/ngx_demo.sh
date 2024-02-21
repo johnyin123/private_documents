@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5ec7923[2024-02-20T10:19:23+08:00]:ngx_demo.sh")
+VERSION+=("476f668[2024-02-21T09:42:28+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -665,6 +665,8 @@ server {
     # if ($scheme = http ) {
     #     return 301 https://$server_name$request_uri;
     # }
+    # # let the browsers know that we only accept HTTPS
+    # add_header Strict-Transport-Security max-age=2592000;
 
     location / {
         access_log off;
@@ -3024,8 +3026,14 @@ server {
         expires max;
         access_log off;
     }
+    location ~* /\.(?!well-known\/) {
+        deny all;
+    }
+    location ~* (?:#.*#|\.(?:bak|conf|dist|fla|in[ci]|log|orig|psd|sh|sql|sw[op])|~)$ {
+        deny all;
+    }
     location ~ /\.git {
-      deny all;
+        deny all;
     }
     location @backend {
         proxy_set_header X-Real-IP $remote_addr;
@@ -4702,6 +4710,9 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Connection "";
         proxy_pass http://portal_backend;
+        # # Insert Google Analytics code to every HTML page
+        # set $google_analytics_tracking_id 'UA-12345678-9';
+        # sub_filter '</head>' '<script async src="https://www.googletagmanager.com/gtag/js?id=$google_analytics_tracking_id"></script><script>window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag("js", new Date());gtag("config", "$google_analytics_tracking_id");</script></head>';
         sub_filter '</head>' '<link href="/context_menu.css" rel="stylesheet"></head>';
         sub_filter '</body>' '<div id="ctxmenu" class="ctx-menu" style="display:none"><ul>
 <li><a href="/grafana">私有云大屏</a></li>
