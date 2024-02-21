@@ -152,7 +152,7 @@ function upload(file, signed_request, url, done) {
   var postData = new FormData();
   for(key in signed_request.fields){ postData.append(key, signed_request.fields[key]); }
   postData.append('file', file);
-  xhr.setRequestHeader('x-amz-acl', 'public-read')
+  //xhr.setRequestHeader('x-amz-acl', 'public-read')
   xhr.onload = function() { if (xhr.status === 200) { done() } }
   xhr.send(postData);
 }
