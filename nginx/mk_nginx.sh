@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d604720[2024-02-19T17:05:45+08:00]:mk_nginx.sh")
+VERSION+=("cd021e5[2024-02-20T14:59:44+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -650,9 +650,12 @@ EOF
     echo "NO PACKAGE TOOLS"
     exit 1
 }
-echo "getent group ${NGX_GROUP} >/dev/null || groupadd --system ${NGX_GROUP} || :" > /tmp/inst.sh
-echo "getent passwd ${NGX_USER} >/dev/null || useradd -g ${NGX_GROUP} --system -s /sbin/nologin -d /var/empty/nginx ${NGX_USER} 2> /dev/null || :" >> /tmp/inst.sh
-echo "userdel nginx || :" > /tmp/uninst.sh
+
+INST_SCRIPT=$(mktemp)
+UNINST_SCRIPT=$(mktemp)
+echo "getent group ${NGX_GROUP} >/dev/null || groupadd --system ${NGX_GROUP} || :" > ${INST_SCRIPT}
+echo "getent passwd ${NGX_USER} >/dev/null || useradd -g ${NGX_GROUP} --system -s /sbin/nologin -d /var/empty/nginx ${NGX_USER} 2> /dev/null || :" >> ${INST_SCRIPT}
+echo "userdel nginx || :" > ${UNINST_SCRIPT}
 rm -fr ${DIRNAME}/pkg && mkdir -p ${DIRNAME}/pkg
 
 source <(grep -E "^\s*(VERSION_ID|ID)=" /etc/os-release)
@@ -666,6 +669,7 @@ esac
 eval NGX_VER=$(awk '/NGINX_VERSION / {print $3}' ${NGINX_DIR}/src/core/nginx.h)
 log "NGINX:${NGX_VER}"
 log "BUILD:${builder_version}"
-[ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin${HTTP3:+_quic} --version $(echo ${NGX_VER}) --iteration ${builder_version} --description "nginx with openssl,other modules" --after-install /tmp/inst.sh --after-remove /tmp/uninst.sh .
+[ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin${HTTP3:+_quic} --version $(echo ${NGX_VER}) --iteration ${builder_version} --description "nginx with openssl,other modules" --after-install ${INST_SCRIPT} --after-remove ${UNINST_SCRIPT} .
+rm -fr ${INST_SCRIPT} ${UNINST_SCRIPT}
 log "ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
