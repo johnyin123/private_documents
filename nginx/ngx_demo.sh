@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3a5d066[2024-02-20T09:53:11+08:00]:ngx_demo.sh")
+VERSION+=("5ec7923[2024-02-20T10:19:23+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1819,6 +1819,10 @@ EOF
 cat <<'EOF' > flask_jwt_srv.py
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# SSO client need a callback url(return_url), jwt login redirect back callback
+# http://xxxx/?return_url=http://yyyyy
+# you login code here
+# return 302 $return_url?token='xxxxjwttoken';
 from flask import Flask, abort, jsonify, request, make_response
 import os, datetime, jwt
 
