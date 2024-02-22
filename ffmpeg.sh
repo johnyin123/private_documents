@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d912180[2022-12-08T07:36:06+08:00]:ffmpeg.sh")
+VERSION+=("79b2a76[2022-12-08T09:10:23+08:00]:ffmpeg.sh")
 ################################################################################
 
 name=${1:?input err scale= $0 video.mkv}
@@ -16,6 +16,8 @@ frame=${frame-}
 
 ffmpeg -hide_banner -i ${name} 2>&1 | grep Stream
 ffmpeg -hide_banner -i ${name} 2>&1 | grep -o -Ei "Video:\s*([^ ]*)"
+# # hevc to x264 for phicomm n1
+# ffmpeg -i input -map 0 -c:v libx264 -crf 18 -vf format=yuv420p -c:a copy output.mkv
 
 # pv -f -F 'Converted: %b Elapsed: %t Current: %r Average: %a %p %e' "${name}" | ffmpeg -i pipe:0 \
 ffmpeg -hide_banner -hwaccel auto -i ${name} -loglevel info \
