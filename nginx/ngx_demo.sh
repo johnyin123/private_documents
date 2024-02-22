@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("792eb9c[2024-02-21T11:29:37+08:00]:ngx_demo.sh")
+VERSION+=("88f7287[2024-02-22T15:09:12+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1747,14 +1747,29 @@ server {
     }
 }
 EOF
-cat <<'EOF' > jwt_demo.html
-<html><head><title>Login</title></head>
+cat <<'EOF' > jwt_client.login.html
+<html><head><title>Login</title>
+<style>
+body
+{ margin: 0; padding: 0; background-color:#6abadeba; font-family: 'Arial'; }
+.login{ width: 382px; overflow: hidden; margin: auto; margin: 20 0 0 450px; padding: 80px; background: #23463f; border-radius: 15px ; }
+h2{ text-align: center; color: #277582; padding: 20px; }
+label{ color: #08ffd1; font-size: 17px; }
+span{ color: white; font-size: 17px; }
+#log{ width: 300px; height: 30px; border: none; border-radius: 17px; padding-left: 7px; color: blue; }
+a{ float: right; background-color: grey; }
+</style>
+</head>
 <body>
+ <h2>Login Page</h2><br>
+ <div class="login">
   <form id="jwtForm">
-    <label>Username:</label><input type="text" name='username'>
-    <label>Password:</label><input type="text" name='password'>
-    <a href="javascript:login()">Login</a>
+   <label><b>User Name</b></label><input type="text" name='username' placeholder="Username">
+   <br><br><label><b>Password</b></label><input type="Password" name='password' placeholder="Password">
+   <br><br><input type="button" id="log" onclick="login()" value="Log In Here">
+   <!-- <a href="javascript:login()">Login</a> -->
   </form>
+ </div>
 <script>
 function initXMLHttpRequest(method, url, jwtoken) {
   let xmlHttpRequest = new XMLHttpRequest();
