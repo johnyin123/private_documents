@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("88f7287[2024-02-22T15:09:12+08:00]:ngx_demo.sh")
+VERSION+=("2ec9472[2024-02-22T15:53:15+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1941,6 +1941,8 @@ if __name__ == '__main__':
 EOF
 cat <<'EOF' > jwt_auth.http
 # token=$(curl -s -k -X POST http://localhost/api/auth -d '{"username": "admin", "password": "password"}' | jq -r .token)
+# echo $token | jq -R 'split(".") | .[0] | @base64d | fromjson'
+# echo $token | jq -R 'split(".") | .[1] | @base64d | fromjson'
 # curl -s -k -X GET --header "Authorization: Bearer ${token}" http://localhost/vms.json -vvv
 # curl -s -k -X GET --header "Cookie: token=${token}" http://localhost/vms.json -vvv
 # openssl rsa -in srv.key -pubout -out /etc/nginx/pubkey.pem
