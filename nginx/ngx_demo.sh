@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("476f668[2024-02-21T09:42:28+08:00]:ngx_demo.sh")
+VERSION+=("792eb9c[2024-02-21T11:29:37+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1748,73 +1748,38 @@ server {
 }
 EOF
 cat <<'EOF' > jwt_demo.html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>JSON web token with vanilla js</title>
-</head>
+<html><head><title>Login</title></head>
 <body>
-  <div class="input">
-    <label for="username">user name:</label>
-    <input id="username">
-    <label for="password">password:</label>
-    <input id="password">
-    <button onclick="getToken()">login</button>
-  </div>
-  <div id="token"></div>
-  <button onclick="getSecret()">get secret message</button>
-  <div id="result"></div>
-  <script>
-function initXMLHttpRequest(method, url, jwtoken){
-    let xmlHttpRequest = new XMLHttpRequest();
-    xmlHttpRequest.open(method, url, true);
-    xmlHttpRequest.setRequestHeader('Authorization', 'Bearer ' + jwtoken);
-    return xmlHttpRequest;
+  <form id="jwtForm">
+    <label>Username:</label><input type="text" name='username'>
+    <label>Password:</label><input type="text" name='password'>
+    <a href="javascript:login()">Login</a>
+  </form>
+<script>
+function initXMLHttpRequest(method, url, jwtoken) {
+  let xmlHttpRequest = new XMLHttpRequest();
+  xmlHttpRequest.open(method, url, true);
+  if (jwtoken) { xmlHttpRequest.setRequestHeader('Authorization', 'Bearer ' + jwtoken); }
+  return xmlHttpRequest;
 }
-function getToken() {
-  var loginUrl = "http://192.168.169.234:9900/api/auth"
-  var xhr = new XMLHttpRequest();
-  var userElement = document.getElementById('username');
-  var passwordElement = document.getElementById('password');
-  var tokenElement = document.getElementById('token');
-  var user = userElement.value;
-  var password = passwordElement.value;
-  xhr.open('POST', loginUrl, true);
-  xhr.addEventListener('load', function() {
-    var responseObject = JSON.parse(this.response);
-    console.log(responseObject);
-    if (responseObject.token) {
-      tokenElement.innerHTML = responseObject.token;
-      //将token存在本地存储，然后跳转到主页面
-      //localStorage.setItem('token',resp.token);
-      //location.href="main.html";
-
-      //localStorage.removeItem("token");
-      //location.href="login.html";
-    } else {
-      tokenElement.innerHTML = "No token received";
+//URL of jwt server
+var AuthUrl = 'http://192.168.169.234:9900/api/auth';
+var callback = 'desktop.html';
+function login() {
+  var params = new FormData(document.getElementById('jwtForm'));
+  var sendObject = JSON.stringify(Object.fromEntries(params.entries()));
+  console.log(sendObject);
+  xhr=initXMLHttpRequest('POST', AuthUrl);
+  xhr.onreadystatechange = function() {
+    if(xhr.readyState === 4 && xhr.status === 200) {
+      var responseObject = JSON.parse(xhr.responseText);
+      // or add token in cookie
+      location.href=callback + "?token=" + responseObject.token;
     }
-  });
-  var sendObject = JSON.stringify({username: user, password: password});
-  console.log('going to send', sendObject);
+  }
   xhr.send(sendObject);
 }
-// make the request to the secret API endpoint
-function getSecret() {
-  var url = "http://192.168.169.234:9900/test"
-  var tokenElement = document.getElementById('token');
-  var resultElement = document.getElementById('result');
-  var xhr = initXMLHttpRequest('GET', url, tokenElement.innerHTML)
-  // localStorage.getItem('token');
-  xhr.addEventListener('load', function() {
-    var responseObject = JSON.parse(this.response);
-    console.log(responseObject);
-    resultElement.innerHTML = this.responseText;
-  });
-  xhr.send(null);
-}
-  </script>
+</script>
 </body>
 </html>
 EOF
@@ -1825,14 +1790,13 @@ cat <<'EOF' > flask_jwt_srv.py
 # http://xxxx/?return_url=http://yyyyy
 # you login code here
 # return 302 $return_url?token='xxxxjwttoken';
-from flask import Flask, abort, jsonify, request, make_response
-import os, datetime, jwt
+from flask import Flask, abort, jsonify, request, make_response, render_template, render_template_string
+import sys, os, datetime, jwt
 
 def load_file(file_path):
     if os.path.isfile(file_path):
         return open(file_path).read()
-    print('file {} nofound'.format(file_path))
-    exit(1)
+    sys.exit('file {} nofound'.format(file_path))
 
 class Config(object):
     HTTP_PORT=os.environ.get('HTTP_PORT', 9900)
@@ -1842,19 +1806,14 @@ class Config(object):
     JWT_PRIVATE_KEY = load_file(os.environ.get('JWT_PRIVATE_KEY_FILE', 'srv.key'))
     JWT_ACCESS_TOKEN_EXPIRES = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES', 15))
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/public', static_folder='static')
 app.config.from_object(Config)
-# # all response convert to json format
-from flask import json
+
 from werkzeug.exceptions import HTTPException
 @app.errorhandler(HTTPException)
 def handle_exception(e):
     response = e.get_response()
-    response.data = json.dumps({
-        "code": e.code,
-        "name": e.name,
-        "description": e.description,
-    })
+    response.data = flask.json.dumps({ "code": e.code, "name": e.name, })
     response.content_type = "application/json"
     return response
 
@@ -1891,9 +1850,49 @@ def _corsify_actual_response(response):
 @app.route('/public_key')
 def public_key():
     return app.config['JWT_PUBLIC_KEY']
-
-@app.route('/api/auth', methods=['POST'])
+html="""
+<html><head><title>Login</title></head>
+<body>
+  <form id="jwtForm">
+    <label>Username:</label><input type="text" name='username'>
+    <label>Password:</label><input type="text" name='password'>
+    <a href="javascript:login()">Login</a>
+  </form>
+<script>
+//URL of jwt server
+var AuthUrl = '/api/auth';
+var callback = "{return_url}";
+{js}
+</script>
+</body>
+</html>
+"""
+js="""
+function initXMLHttpRequest(method, url, jwtoken) {
+  let xmlHttpRequest = new XMLHttpRequest();
+  xmlHttpRequest.open(method, url, true);
+  if (jwtoken) { xmlHttpRequest.setRequestHeader('Authorization', 'Bearer ' + jwtoken); }
+  return xmlHttpRequest;
+}
+function login() {
+  var params = new FormData(document.getElementById('jwtForm'));
+  var sendObject = JSON.stringify(Object.fromEntries(params.entries()));
+  console.log(sendObject);
+  xhr=initXMLHttpRequest('POST', AuthUrl);
+  xhr.onreadystatechange = function() {
+    if(xhr.readyState === 4 && xhr.status === 200) {
+      var responseObject = JSON.parse(xhr.responseText);
+      location.href=callback + "?token=" + responseObject.token;
+    }
+  }
+  xhr.send(sendObject);
+}
+"""
+@app.route('/api/auth', methods=['POST', 'GET'])
 def login_user():
+    if request.method == 'GET':
+        return_url=request.args.get('return_url', 'http://192.168.169.234')
+        return render_template_string(html.format(return_url=return_url, js=js))
     # # avoid Content type: text/plain return http415
     req_data = request.get_json(force=True)
     username = req_data.get('username', None)
@@ -1903,7 +1902,7 @@ def login_user():
         return jsonify({'msg': 'username or password no found'}), 400
     if expire == 0:
         expire = app.config['JWT_ACCESS_TOKEN_EXPIRES']
-    print('{},pass[{}]'.format(username, password))
+    print('{},pass[{}],expire[{}]'.format(username, password, expire))
     if check_ldap_login(username, password):
         payload = {
                 'username': username,
@@ -1928,6 +1927,7 @@ EOF
 cat <<'EOF' > jwt_auth.http
 # token=$(curl -s -k -X POST http://localhost/api/auth -d '{"username": "admin", "password": "password"}' | jq -r .token)
 # curl -s -k -X GET --header "Authorization: Bearer ${token}" http://localhost/vms.json -vvv
+# curl -s -k -X GET --header "Cookie: token=${token}" http://localhost/vms.json -vvv
 # openssl rsa -in srv.key -pubout -out /etc/nginx/pubkey.pem
 upstream jwt_api {
     server 192.168.169.234:9900;
@@ -1939,14 +1939,21 @@ server {
     location = /api/auth {
         proxy_pass http://jwt_api;
     }
+    location = /callback {
+        if ($arg_token = '') { return 302 'http://192.168.169.234:9900/api/auth?return_url=http://192.168.168.1/callback';}
+        add_header Set-Cookie "token=$arg_token";
+        return 302 "http://192.168.168.1/";
+    }
     location / {
+        error_page 401 = /callback;
         auth_jwt_enabled on;
         auth_jwt_redirect off;
-        auth_jwt_location HEADER=Authorization;
+        auth_jwt_location COOKIE=token;
+        # auth_jwt_location HEADER=Authorization;
         auth_jwt_algorithm RS256;
         auth_jwt_use_keyfile on;
         auth_jwt_keyfile_path "/etc/nginx/pubkey.pem";
-        alias /var/www/;
+        root /var/www;
     }
 }
 EOF
