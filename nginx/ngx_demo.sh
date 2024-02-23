@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fec1a23[2024-02-23T08:20:07+08:00]:ngx_demo.sh")
+VERSION+=("c65c49b[2024-02-23T08:40:45+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1926,7 +1926,9 @@ def login_user():
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=expire)
                 }
         token = jwt.encode(payload, app.config['JWT_PRIVATE_KEY'], algorithm='RS256')
-        return _corsify_actual_response(jsonify({'token' : token}))
+        resp=jsonify({'token' : token})
+        resp.set_cookie('token', token)
+        return _corsify_actual_response(resp)
     return jsonify({'msg': 'Bad username or password'}), 401
 ##########################################
 from functools import wraps
