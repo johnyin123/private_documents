@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2ec9472[2024-02-22T15:53:15+08:00]:ngx_demo.sh")
+VERSION+=("1959efc[2024-02-22T16:18:09+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1825,10 +1825,11 @@ app = Flask(__name__, static_url_path='/public', static_folder='static')
 app.config.from_object(Config)
 
 from werkzeug.exceptions import HTTPException
+import flask
 @app.errorhandler(HTTPException)
 def handle_exception(e):
     response = e.get_response()
-    response.data = flask.json.dumps({ "code": e.code, "name": e.name, })
+    response.data = flask.json.dumps({ "code": e.code, "name": e.name, "description": e.description, })
     response.content_type = "application/json"
     return response
 
@@ -1927,8 +1928,30 @@ def login_user():
         token = jwt.encode(payload, app.config['JWT_PRIVATE_KEY'], algorithm='RS256')
         return _corsify_actual_response(jsonify({'token' : token}))
     return jsonify({'msg': 'Bad username or password'}), 401
-
-@app.route("/test", methods=["GET", "OPTIONS"])
+##########################################
+from functools import wraps
+from werkzeug.exceptions import Unauthorized
+def auth_check(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        token = None
+        if "Authorization" in request.headers:
+            data = request.headers["Authorization"]
+            token = str.replace(str(data), "Bearer ", "")
+        try:
+            if not token:
+                raise Unauthorized("Token is missing")
+            data = jwt.decode(token, app.config['JWT_PUBLIC_KEY'], algorithms='RS256')
+            print('auth_check: {}'.format(data))
+            # data["username"]
+        except jwt.ExpiredSignatureError:
+            raise Unauthorized("Signature expired. Please log in again.")
+        except jwt.InvalidTokenError:
+            raise Unauthorized("Invalid token. Please log in again.")
+        return f(*args, **kwargs)
+    return decorated_function
+@app.route("/", methods=["GET", "OPTIONS"])
+@auth_check
 def api_create_order():
     if request.method == "OPTIONS": # CORS preflight
         return _build_cors_preflight_response()
