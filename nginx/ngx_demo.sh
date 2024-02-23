@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1959efc[2024-02-22T16:18:09+08:00]:ngx_demo.sh")
+VERSION+=("725ef25[2024-02-23T08:03:25+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1829,8 +1829,8 @@ import flask
 @app.errorhandler(HTTPException)
 def handle_exception(e):
     response = e.get_response()
-    response.data = flask.json.dumps({ "code": e.code, "name": e.name, "description": e.description, })
-    response.content_type = "application/json"
+    response.data = flask.json.dumps({ 'code': e.code, 'name': e.name, 'description': e.description, })
+    response.content_type = 'application/json'
     return response
 
 from ldap3 import Server, Connection, ALL
@@ -1854,13 +1854,13 @@ def check_ldap_login(username, password):
 
 def _build_cors_preflight_response():
     response = make_response()
-    response.headers.add("Access-Control-Allow-Origin", "*")
-    response.headers.add('Access-Control-Allow-Headers', "*")
-    response.headers.add('Access-Control-Allow-Methods', "*")
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', '*')
+    response.headers.add('Access-Control-Allow-Methods', '*')
     return response
 
 def _corsify_actual_response(response):
-    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
 @app.route('/public_key')
@@ -1913,11 +1913,9 @@ def login_user():
     req_data = request.get_json(force=True)
     username = req_data.get('username', None)
     password = req_data.get('password', None)
-    expire = int(req_data.get('expire', 0))
+    expire = int(req_data.get('expire', app.config['JWT_ACCESS_TOKEN_EXPIRES']))
     if not username or not password:
         return jsonify({'msg': 'username or password no found'}), 400
-    if expire == 0:
-        expire = app.config['JWT_ACCESS_TOKEN_EXPIRES']
     print('{},pass[{}],expire[{}]'.format(username, password, expire))
     if check_ldap_login(username, password):
         payload = {
@@ -1935,26 +1933,29 @@ def auth_check(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         token = None
-        if "Authorization" in request.headers:
-            data = request.headers["Authorization"]
-            token = str.replace(str(data), "Bearer ", "")
+        if 'Authorization' in request.headers:
+            data = request.headers['Authorization']
+            token = str.replace(str(data), 'Bearer ', '')
+        else:
+            token = request.cookies.get('token')
         try:
             if not token:
-                raise Unauthorized("Token is missing")
+                raise Unauthorized('Token is missing')
             data = jwt.decode(token, app.config['JWT_PUBLIC_KEY'], algorithms='RS256')
             print('auth_check: {}'.format(data))
-            # data["username"]
+            # data['username']
         except jwt.ExpiredSignatureError:
-            raise Unauthorized("Signature expired. Please log in again.")
+            raise Unauthorized('Signature expired. Please log in again.')
         except jwt.InvalidTokenError:
-            raise Unauthorized("Invalid token. Please log in again.")
+            raise Unauthorized('Invalid token. Please log in again.')
         return f(*args, **kwargs)
     return decorated_function
-@app.route("/", methods=["GET", "OPTIONS"])
+@app.route('/', methods=['GET', 'OPTIONS'])
 @auth_check
 def api_create_order():
-    if request.method == "OPTIONS": # CORS preflight
+    if request.method == 'OPTIONS': # CORS preflight
         return _build_cors_preflight_response()
+    # resp.set_cookie('userID', user)
     return _corsify_actual_response(jsonify({'msg': 'OK'}))
 
 if __name__ == '__main__':
