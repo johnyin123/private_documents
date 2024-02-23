@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("49ca855[2024-02-23T14:28:17+08:00]:ngx_demo.sh")
+VERSION+=("05fac09[2024-02-23T15:19:22+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1979,6 +1979,10 @@ error_page 401 =401 /login.html;
 location = /login.html {
     alias /etc/nginx/http-enabled/jwt_client.login.html;
 }
+location = /logout.html {
+    add_header Set-Cookie 'token=';
+    return 200 '$http_cookie';
+}
 location = @sso-auth {
     internal;
     proxy_method 'GET';
@@ -1992,7 +1996,6 @@ location = @sso-auth {
     # if ($http_cookie ~* "token=([^;]+)(?:;|$)") { set $token "$1"; }
     # proxy_set_header Authorization 'Bear $token';
 }
-# location /sso-logout { return 302 ""; }
 EOF
 cat <<'EOF' > jwt_sso.http
 upstream jwt_api {
