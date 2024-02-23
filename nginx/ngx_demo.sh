@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8e80683[2024-02-23T11:00:02+08:00]:ngx_demo.sh")
+VERSION+=("49ca855[2024-02-23T14:28:17+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1779,18 +1779,21 @@ function initXMLHttpRequest(method, url, jwtoken) {
 }
 //URL of jwt server
 var AuthUrl = 'http://192.168.169.234:9900/api/auth';
-var callback = 'desktop.html';
+var callback = '/';
 function login() {
   var params = new FormData(document.getElementById('jwtForm'));
   var sendObject = JSON.stringify(Object.fromEntries(params.entries()));
   console.log(sendObject);
   xhr=initXMLHttpRequest('POST', AuthUrl);
   xhr.onreadystatechange = function() {
-    if(xhr.readyState === 4 && xhr.status === 200) {
+    if(xhr.readyState !== 4) { return; }
+    if(xhr.status === 200) {
       var responseObject = JSON.parse(xhr.responseText);
       // or add token in cookie
-      location.href=callback + "?token=" + responseObject.token;
+      document.cookie = 'token=' + responseObject.token +';';
+      location.href=callback;
     }
+    else { console.log('error'); }
   }
   xhr.send(sendObject);
 }
@@ -1966,6 +1969,48 @@ if __name__ == '__main__':
     print('pip install flask ldap3 pyjwt[crypto]')
     print('''curl -s -k -X POST "http://localhost:{port}/api/auth" -H "Content-Type: application/json" -d '{{"username": "admin", "password": "password"}}' | jq -r .token'''.format(port=app.config['HTTP_PORT']))
     app.run(host='0.0.0.0', port=app.config['HTTP_PORT']) #, debug=True)
+EOF
+cat <<'EOF' > jwt_sso_auth.inc
+# 2xx response code, the access is allowed.
+# 401 or 403, the access is denied with the corresponding error code
+# Any other response code returned by the subrequest is considered an error.
+# 401 error, the client also receives the “WWW-Authenticate” header from the subrequest response.
+error_page 401 =401 /login.html;
+location = /login.html {
+    alias /etc/nginx/http-enabled/jwt_client.login.html;
+}
+location = @sso-auth {
+    internal;
+    proxy_method 'GET';
+    # eat location prefix
+    proxy_pass http://jwt_api/;
+    proxy_pass_header Cookie;
+    proxy_pass_header Authorization;
+    proxy_pass_request_body off;
+    proxy_set_header Content-Length "";
+    proxy_set_header X-Origin-URI $request_uri;
+    # if ($http_cookie ~* "token=([^;]+)(?:;|$)") { set $token "$1"; }
+    # proxy_set_header Authorization 'Bear $token';
+}
+# location /sso-logout { return 302 ""; }
+EOF
+cat <<'EOF' > jwt_sso.http
+upstream jwt_api {
+    server 192.168.169.234:9900;
+    keepalive 64;
+}
+server {
+    listen 80;
+    server_name _;
+    include /etc/nginx/http-enabled/jwt_sso_auth.inc;
+    location / {
+        auth_request @sso-auth;
+        # auth_request_set $cookie $upstream_http_set_cookie;
+        # add_header Set-Cookie $cookie;
+        autoindex on;
+        alias /var/www/;
+    }
+}
 EOF
 cat <<'EOF' > jwt_auth.http
 # token=$(curl -s -k -X POST http://localhost/api/auth -d '{"username": "admin", "password": "password"}' | jq -r .token)
