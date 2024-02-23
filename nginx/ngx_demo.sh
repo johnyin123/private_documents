@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c65c49b[2024-02-23T08:40:45+08:00]:ngx_demo.sh")
+VERSION+=("8e80683[2024-02-23T11:00:02+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -294,7 +294,7 @@ server {
             application/vnd.apple.mpegurl m3u8;
             video/mp2t ts;
         }
-        alias /var/www/hls;
+        alias /var/www/hls/;
         expires -1;
         # Value -1 means these headers are set as:
         # Expires:  current time minus 1 second
@@ -306,7 +306,7 @@ server {
     }
     location /dash {
         # Serve DASH fragments
-        alias /var/www/dash;
+        alias /var/www/dash/;
         add_header Cache-Control no-cache;
     }
 }
@@ -506,7 +506,7 @@ server {
         error_page 403 = @badip;
         allow 127.0.0.1;
         deny all;
-        alias /var/www;
+        alias /var/www/;
     }
     location @badip {
         return 301 $scheme://example.com/some-page;
@@ -1054,7 +1054,7 @@ server {
         if ($secure_link = "") { return 302 /login?uri=$uri; }
         #if ($secure_link = "") { return 403; }
         if ($secure_link = "0") { return 410; }
-        alias /var/www;
+        alias /var/www/;
     }
     #curl "http://127.0.0.1/?uri=/validate/stat.js.gz&secs=1000"
     location / {
@@ -1199,7 +1199,7 @@ server {
         }
         client_max_body_size 10000m;
         # root /var/www;
-        alias /var/www;
+        alias /var/www/;
         client_body_temp_path /var/www/tmp/client_temp;
         dav_methods  PUT;
         create_full_put_path   on;
@@ -1231,7 +1231,7 @@ server {
         # chown nginx.nginx /var/www -R
         autoindex on;
         autoindex_format json; #xml
-        alias /var/www;
+        alias /var/www/;
         secure_link $arg_k,$arg_e;
         secure_link_md5 "$mykey$secure_link_expires$uri$request_method";
         if ($secure_link = "") { return 403; }
@@ -2756,7 +2756,7 @@ server {
     server_name _;
     location /protected {
         internal;
-        alias /var/www;
+        alias /var/www/;
     }
     location /public-bucket {
         internal;
