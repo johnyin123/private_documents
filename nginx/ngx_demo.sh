@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("725ef25[2024-02-23T08:03:25+08:00]:ngx_demo.sh")
+VERSION+=("fec1a23[2024-02-23T08:20:07+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1896,10 +1896,12 @@ function login() {
   console.log(sendObject);
   xhr=initXMLHttpRequest('POST', AuthUrl);
   xhr.onreadystatechange = function() {
-    if(xhr.readyState === 4 && xhr.status === 200) {
+    if(xhr.readyState !== 4) { return; }
+    if(xhr.status === 200) {
       var responseObject = JSON.parse(xhr.responseText);
       location.href=callback + "?token=" + responseObject.token;
     }
+    else { console.log('error'); }
   }
   xhr.send(sendObject);
 }
