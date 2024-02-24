@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("05fac09[2024-02-23T15:19:22+08:00]:ngx_demo.sh")
+VERSION+=("edb4882[2024-02-23T15:43:16+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1976,13 +1976,10 @@ cat <<'EOF' > jwt_sso_auth.inc
 # Any other response code returned by the subrequest is considered an error.
 # 401 error, the client also receives the “WWW-Authenticate” header from the subrequest response.
 error_page 401 =401 /login.html;
-location = /login.html {
-    alias /etc/nginx/http-enabled/jwt_client.login.html;
-}
-location = /logout.html {
-    add_header Set-Cookie 'token=';
-    return 200 '$http_cookie';
-}
+location @error401 { return 401 '<html><head><meta http-equiv="refresh" content="0; url=/login.html" /><body></body></html>'; }
+location = /login.html { alias /etc/nginx/http-enabled/jwt_client.login.html; }
+location = /logout.html { add_header Set-Cookie 'token='; return 302 /login.html; }
+location ~* .(favicon.ico)$ { access_log off; log_not_found off; alias /var/www/favicon.ico; }
 location = @sso-auth {
     internal;
     proxy_method 'GET';
