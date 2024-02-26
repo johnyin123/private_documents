@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("edb4882[2024-02-23T15:43:16+08:00]:ngx_demo.sh")
+VERSION+=("bad4ce4[2024-02-24T17:18:54+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1975,7 +1975,7 @@ cat <<'EOF' > jwt_sso_auth.inc
 # 401 or 403, the access is denied with the corresponding error code
 # Any other response code returned by the subrequest is considered an error.
 # 401 error, the client also receives the “WWW-Authenticate” header from the subrequest response.
-error_page 401 =401 /login.html;
+error_page 401 =401 @error401;
 location @error401 { return 401 '<html><head><meta http-equiv="refresh" content="0; url=/login.html" /><body></body></html>'; }
 location = /login.html { alias /etc/nginx/http-enabled/jwt_client.login.html; }
 location = /logout.html { add_header Set-Cookie 'token='; return 302 /login.html; }
@@ -1985,18 +1985,41 @@ location = @sso-auth {
     proxy_method 'GET';
     # eat location prefix
     proxy_pass http://jwt_api/;
-    proxy_pass_header Cookie;
-    proxy_pass_header Authorization;
+    # proxy_pass_header Cookie;
+    # auth check only support Authorization header mode!!!
+    # if cookie and Authorization both exists, first use Authorization header
+    set $token '';
+    if ($cookie_token != '') {
+        set $token 'Bearer $cookie_token';
+    }
+    if ($http_authorization != '') {
+        set $token '$http_authorization';
+    }
+    proxy_set_header Authorization '$token';
     proxy_pass_request_body off;
-    proxy_set_header Content-Length "";
+    proxy_set_header Content-Length '0';
     proxy_set_header X-Origin-URI $request_uri;
-    # if ($http_cookie ~* "token=([^;]+)(?:;|$)") { set $token "$1"; }
-    # proxy_set_header Authorization 'Bear $token';
 }
 EOF
 cat <<'EOF' > jwt_sso.http
+# echo '{"status":200,"message":"Success"}' > /etc/nginx/http-enabled/check.json
+server {
+    listen unix:/var/run/authsrv.socket;
+    server_name _;
+    location / {
+        auth_jwt_enabled on;
+        auth_jwt_redirect off;
+        auth_jwt_location HEADER=Authorization;
+        auth_jwt_algorithm RS256;
+        auth_jwt_use_keyfile on;
+        auth_jwt_keyfile_path "/etc/nginx/pubkey.pem";
+        alias /etc/nginx/http-enabled/;
+        try_files check.json =404;
+    }
+}
 upstream jwt_api {
-    server 192.168.169.234:9900;
+    server unix:/var/run/authsrv.socket;
+    # server 192.168.169.234:9900;
     keepalive 64;
 }
 server {
