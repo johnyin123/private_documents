@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bad4ce4[2024-02-24T17:18:54+08:00]:ngx_demo.sh")
+VERSION+=("8654df7[2024-02-26T12:21:06+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1748,28 +1748,105 @@ server {
 }
 EOF
 cat <<'EOF' > jwt_client.login.html
-<html><head><title>Login</title>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <title> Login </title>
 <style>
-body
-{ margin: 0; padding: 0; background-color:#6abadeba; font-family: 'Arial'; }
-.login{ width: 382px; overflow: hidden; margin: auto; margin: 20 0 0 450px; padding: 80px; background: #23463f; border-radius: 15px ; }
-h2{ text-align: center; color: #277582; padding: 20px; }
-label{ color: #08ffd1; font-size: 17px; }
-span{ color: white; font-size: 17px; }
-#log{ width: 300px; height: 30px; border: none; border-radius: 17px; padding-left: 7px; color: blue; }
-a{ float: right; background-color: grey; }
+body {
+  font-family: sans-serif;
+  color: #333;
+}
+main {
+  margin: 0 auto;
+}
+h1 {
+  font-size: 2em;
+  margin-bottom: 2.5em;
+  margin-top: 2em;
+  text-align: center;
+}
+form {
+  border-radius: 0.2rem;
+  border: 1px solid #CCC;
+  margin: 0 auto;
+  max-width: 16rem;
+  padding: 2rem 2.5rem 1.5rem 2.5rem;
+}
+input {
+  background-color: #FAFAFA;
+  border-radius: 0.2rem;
+  border: 1px solid #CCC;
+  box-shadow: inset 0 1px 3px #DDD;
+  box-sizing: border-box;
+  display: block;
+  font-size: 1em;
+  padding: 0.4em 0.6em;
+  vertical-align: middle;
+  width: 100%;
+}
+input:focus {
+  background-color: #FFF;
+  border-color: #51A7E8;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.075) inset, 0 0 5px rgba(81, 167, 232, 0.5);
+  outline: 0;
+}
+label {
+  color: #666;
+  display: block;
+  font-size: 0.9em;
+  font-weight: bold;
+  margin: 1em 0 0.25em 0;
+}
+button {
+  background-color: #60B044;
+  background-image: linear-gradient(#8ADD6D, #60B044);
+  border-radius: 0.2rem;
+  border: 1px solid #5CA941;
+  box-sizing: border-box;
+  color: #fff;
+  cursor: pointer;
+  display: block;
+  font-size: 0.9em;
+  font-weight: bold;
+  margin: 2em 0 0.5em 0;
+  padding: 0.5em 0.7em;
+  text-align: center;
+  text-decoration: none;
+  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3);
+  user-select: none;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+button:focus,
+button:hover {
+  background-color: #569E3D;
+  background-image: linear-gradient(#79D858, #569E3D);
+  border-color: #4A993E;
+}
+@media only screen and (max-width: 480px) {
+  form {
+    border: 0;
+  }
+}
 </style>
-</head>
-<body>
- <h2>Login Page</h2><br>
- <div class="login">
+  </head>
+  <body>
+    <main>
+      <h1>Login Page</h1>
   <form id="jwtForm">
    <label><b>User Name</b></label><input type="text" name='username' placeholder="Username">
    <br><br><label><b>Password</b></label><input type="Password" name='password' placeholder="Password">
    <br><br><input type="button" id="log" onclick="login()" value="Log In Here">
    <!-- <a href="javascript:login()">Login</a> -->
   </form>
- </div>
+    </main>
+  </body>
+</html>
 <script>
 function initXMLHttpRequest(method, url, jwtoken) {
   let xmlHttpRequest = new XMLHttpRequest();
