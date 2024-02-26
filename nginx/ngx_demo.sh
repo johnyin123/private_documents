@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6343063[2024-02-26T12:30:52+08:00]:ngx_demo.sh")
+VERSION+=("47101d2[2024-02-26T13:18:55+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2907,6 +2907,8 @@ server {
     location /public-bucket {
         internal;
         client_max_body_size 10000m;
+        # client_max_body_size 0;
+        # proxy_buffering off;
         proxy_method $m;
         proxy_pass http://ceph_rgw_backend$uri;
     }
