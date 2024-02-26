@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8654df7[2024-02-26T12:21:06+08:00]:ngx_demo.sh")
+VERSION+=("6343063[2024-02-26T12:30:52+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2076,6 +2076,7 @@ location = @sso-auth {
     proxy_pass_request_body off;
     proxy_set_header Content-Length '0';
     proxy_set_header X-Origin-URI $request_uri;
+    # auth_request_set $variable $upstream_http_
 }
 EOF
 cat <<'EOF' > jwt_sso.http
