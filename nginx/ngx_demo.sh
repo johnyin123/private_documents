@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("47101d2[2024-02-26T13:18:55+08:00]:ngx_demo.sh")
+VERSION+=("2ac98ec[2024-02-26T15:15:07+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1881,6 +1881,7 @@ EOF
 cat <<'EOF' > flask_jwt_srv.py
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+# yum install python3-ldap3 python3-flask  python3-jwt python3-uWSGI
 # SSO client need a callback url(return_url), jwt login redirect back callback
 # http://xxxx/?return_url=http://yyyyy
 # you login code here

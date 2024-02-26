@@ -120,6 +120,7 @@ test: clean
 
 run:
 	@echo "uwsgi --ini uwsgi.ini"
+	@echo "uwsgi --http 127.0.0.1:9901 --master -p 2 -w run:app"
 	@echo "python run.py"
 	-@FLASK_APP=run.py flask create_db 
 	@FLASK_APP=run.py flask run
