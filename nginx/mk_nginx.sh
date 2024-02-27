@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cd021e5[2024-02-20T14:59:44+08:00]:mk_nginx.sh")
+VERSION+=("db0d047[2024-02-21T14:41:25+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -65,6 +65,9 @@ SQLITE=${SQLITE:-"1"}
 log() {
     echo "$(tput setaf 141)$*$(tput sgr0)" >&2
 }
+str_equal() {
+    [ "${1:-x}" == "${2:-y}" ]
+}
 cat <<EOF
 1. https://github.com/nginx-modules
 2. for QUIC: use boringssl/openssl-quic
@@ -94,38 +97,38 @@ declare -A DYNAMIC_MODULES=(
 declare -A STATIC_MODULES=(
     [${DIRNAME}/nginx-sticky-module-ng]="git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng"
 )
-[ -z "${LIMIT_SPEED}" ] || {
+str_equal "1" "${LIMIT_SPEED}" && {
     STATIC_MODULES[${DIRNAME}/nginx_limit_speed_module]="git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git"
 }
-[ -z "${CACHE_PURGE}" ] || {
+str_equal "1" "${CACHE_PURGE}" && {
     STATIC_MODULES[${DIRNAME}/ngx_cache_purge]="git clone --depth 1 https://github.com/FRiCKLE/ngx_cache_purge.git"
 }
-[ -z "${CONCAT}" ] || {
+str_equal "1" "${CONCAT}" && {
     STATIC_MODULES[${DIRNAME}/nginx-http-concat]="git clone https://github.com/alibaba/nginx-http-concat.git"
 }
-[ -z "${SQLITE}" ] || {
+str_equal "1" "${SQLITE}" && {
     STATIC_MODULES[${DIRNAME}/ngx_sqlite]="git clone https://github.com/rryqszq4/ngx_sqlite.git"
 }
-[ -z "${PROXY_CONNECT}" ] || {
+str_equal "1" "${PROXY_CONNECT}" && {
     log "pushd $(pwd) && cd ${NGINX_DIR} && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch && popd"
     DYNAMIC_MODULES[${DIRNAME}/ngx_http_proxy_connect_module]="git clone --depth 1 https://github.com/chobits/ngx_http_proxy_connect_module.git"
 }
-[ -z "${AUTH_JWT}" ] || {
+str_equal "1" "${AUTH_JWT}" && {
     DYNAMIC_MODULES[${DIRNAME}/ngx-http-auth-jwt-module]="git clone https://github.com/TeslaGov/ngx-http-auth-jwt-module.git"
 }
-[ -z "${AUTH_LDAP}" ] || {
+str_equal "1" "${AUTH_LDAP}" && {
     DYNAMIC_MODULES[${DIRNAME}/nginx-auth-ldap]="git clone https://github.com/kvspb/nginx-auth-ldap.git"
 }
-[ -z "${PAGE_SPEED}" ] || {
+str_equal "1" "${PAGE_SPEED}" && {
     DYNAMIC_MODULES[${DIRNAME}/incubator-pagespeed-ngx]="git clone --depth 1 --branch latest-stable https://github.com/apache/incubator-pagespeed-ngx.git"
 }
-[ -z "${HEADER_MORE}" ] || {
+str_equal "1" "${HEADER_MORE}" && {
     DYNAMIC_MODULES[${DIRNAME}/headers-more-nginx-module]="git clone --depth 1 https://github.com/openresty/headers-more-nginx-module.git"
 }
-[ -z "${REDIS}" ] || {
+str_equal "1" "${REDIS}" && {
     DYNAMIC_MODULES[${DIRNAME}/ngx_http_redis]="git clone --depth 1 https://github.com/osokin/ngx_http_redis.git"
 }
-[ -z "${VTS}" ] || {
+str_equal "1" "${VTS}" && {
     DYNAMIC_MODULES[${DIRNAME}/nginx-module-vts]="git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git"
 }
 log "NGINX_BASE : =============================="
@@ -204,8 +207,8 @@ check_depends_lib() {
     for dir in $@ ; do
         pkg-config --exists ${dir} || {
             log "[FAILED] ${dir} not exists!!"
-            log "apt -y install libxml2-dev libxslt1-dev libgeoip-dev libgd-dev libldap2-dev uuid-dev libsqlite3-dev"
-            log "yum -y install libxml2-devel libxslt-devel GeoIP-devel gd-devel openldap-devel uuid-devel sqlite-devel"
+            log "apt -y install libxml2-dev libxslt1-dev libgeoip-dev libgd-dev libldap2-dev uuid-dev libsqlite3-dev libbrotli-dev"
+            log "yum -y install libxml2-devel libxslt-devel GeoIP-devel gd-devel openldap-devel uuid-devel sqlite-devel brotli-devel"
             log "yum -y install rpm-build"
             exit 1
         }
@@ -213,14 +216,14 @@ check_depends_lib() {
     done
 }
 
-[ -z "${KTLS}" ] || { mydesc="${mydesc:+${mydesc},}ktls"; }
-[ -z "${HTTP2}" ] || { mydesc="${mydesc:+${mydesc},}http2"; EXT_MODULES+=("--with-http_v2_module"); }
-[ -z "${HTTP3}" ] || { mydesc="${mydesc:+${mydesc},}http3"; EXT_MODULES+=("--with-http_v3_module"); }
-[ -z "${STREAM_QUIC}" ] || { mydesc="${mydesc:+${mydesc},}stream_quic"; EXT_MODULES+=("--with-stream_quic_module"); }
-[ -z "${IMAGE_FILTER}" ] || { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); check_depends_lib gdlib; }
+str_equal "1" "${KTLS}" && { mydesc="${mydesc:+${mydesc},}ktls"; }
+str_equal "1" "${HTTP2}" && { mydesc="${mydesc:+${mydesc},}http2"; EXT_MODULES+=("--with-http_v2_module"); }
+str_equal "1" "${HTTP3}" && { mydesc="${mydesc:+${mydesc},}http3"; EXT_MODULES+=("--with-http_v3_module"); }
+str_equal "1" "${STREAM_QUIC}" && { mydesc="${mydesc:+${mydesc},}stream_quic"; EXT_MODULES+=("--with-stream_quic_module"); }
+str_equal "1" "${IMAGE_FILTER}" && { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); check_depends_lib gdlib; }
 
 check_depends_lib libxml-2.0 libxslt geoip #uuid
-[ -z "${AUTH_JWT} " ] || {
+str_equal "1" "${AUTH_JWT}" && {
     check_depends_lib libjwt jansson
     CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
 }
@@ -556,7 +559,7 @@ EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/rtmp.conf
 # load_module modules/ngx_rtmp_module.so;
 EOF
-[ -z "${REDIS}" ] || cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/redis.conf
+str_equal "1" "${REDIS}" && cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/redis.conf
 # load_module modules/ngx_http_redis_module.so;
 EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/mail.conf
@@ -565,19 +568,19 @@ EOF
 cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/xslt.conf
 # load_module modules/ngx_http_xslt_filter_module.so;
 EOF
-[ -z "${VTS}" ] || cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/traffic_status.conf
+str_equal "1" "${VTS}" && cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/traffic_status.conf
 # load_module modules/ngx_http_vhost_traffic_status_module.so;
 EOF
-[ -z "${HEADER_MORE}" ] || cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/headers_more.conf
+str_equal "1" "${HEADER_MORE}" && cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/headers_more.conf
 # load_module modules/ngx_http_headers_more_filter_module.so;
 EOF
-[ -z "${PROXY_CONNECT}" ] || cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/proxy_connect.conf
+str_equal "1" "${PROXY_CONNECT}" && cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/proxy_connect.conf
 # load_module modules/ngx_http_proxy_connect_module.so;
 EOF
-[ -z "${IMAGE_FILTER}" ] || cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/http_image_filter.conf
+str_equal "1" "${IMAGE_FILTER}" && cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/http_image_filter.conf
 # load_module modules/ngx_http_image_filter_module.so;
 EOF
-[ -z "${AUTH_JWT}" ] || cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/jwt.conf
+str_equal "1" "${AUTH_JWT}" && cat <<'EOF' > ${OUTDIR}/etc/nginx/modules.d/jwt.conf
 # load_module modules/ngx_http_auth_jwt_module.so;
 EOF
 
@@ -632,7 +635,7 @@ stream {
 EOF
 rm -f  ${OUTDIR}/etc/nginx/*.default || true
 chmod 644 ${OUTDIR}/usr/share/nginx/modules/* || true
-[ -z "${STRIP}" ] || {
+str_equal "1" "${STRIP}" && {
     log "strip binarys"
     strip ${OUTDIR}/usr/sbin/nginx
     strip ${OUTDIR}/usr/share/nginx/modules/*
