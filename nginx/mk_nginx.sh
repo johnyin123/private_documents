@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("71f782a[2024-02-27T09:10:04+08:00]:mk_nginx.sh")
+VERSION+=("c53fd5f[2024-02-27T13:51:24+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -39,28 +39,28 @@ LD_OPTS=${LD_OPTS:-"-Wl,-z,relro -Wl,-z,now -fPIC"}
 # To verify that NGINX is using kTLS, enable debugging mode
 # check for BIO_get_ktls_send() and SSL_sendfile() in the error log
 # error_log /var/log/nginx/error.log debug;
-KTLS=${KTLS="1"}
-STRIP=${STRIP:-"1"}
+KTLS=${KTLS-"1"}
+STRIP=${STRIP-"1"}
 PKG=${PKG:-""}
 # modules selection default NO select, http2_chunk_size 128k, when ktls performance good than 8k
-HTTP2=${HTTP2="1"}
+HTTP2=${HTTP2-"1"}
 HTTP3=${HTTP3:-""}
 STREAM_QUIC=${STREAM_QUIC:-""}
 #patch need
-PROXY_CONNECT=${PROXY_CONNECT:-"1"}
+PROXY_CONNECT=${PROXY_CONNECT-"1"}
 #static module
 LIMIT_SPEED=${LIMIT_SPEED:-""}
 CACHE_PURGE=${CACHE_PURGE:-""}
 #dynamic module
-AUTH_JWT=${AUTH_JWT:-"1"}
-AUTH_LDAP=${AUTH_LDAP:-"1"}
-IMAGE_FILTER=${IMAGE_FILTER:-"1"}
+AUTH_JWT=${AUTH_JWT-"1"}
+AUTH_LDAP=${AUTH_LDAP-"1"}
+IMAGE_FILTER=${IMAGE_FILTER-"1"}
 PAGE_SPEED=${PAGE_SPEED:-""}
 HEADER_MORE=${HEADER_MORE:-""}
 REDIS=${REDIS:-""}
 VTS=${VTS:-""}
-CONCAT=${CONCAT:-"1"}
-SQLITE=${SQLITE:-"1"}
+CONCAT=${CONCAT-"1"}
+SQLITE=${SQLITE-"1"}
 ##OPTION_END##
 log() {
     echo "$(tput setaf 141)$*$(tput sgr0)" >&2
