@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("31bd169[2024-02-27T15:38:02+08:00]:mk_nginx.sh")
+VERSION+=("2abe575[2024-02-27T15:51:29+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -229,13 +229,13 @@ check_depends_lib libxml-2.0 libxslt geoip #uuid
 str_equal "1" "${AUTH_JWT}" && {
     check_requre_dirs "${JANSSON_DIR}" "${LIBJWT_DIR}"
     # no shared lib for jansson, so jwt compile static janssonlib
-    cd "${JANSSON_DIR}" && ./configure --prefix=${MYLIB_DEPS} --enable-shared=no --enable-static=yes && make && make install
+    cd "${JANSSON_DIR}" && ./configure --prefix=${MYLIB_DEPS} --enable-shared=yes --enable-static=yes && make && make install
     # # libjwt not support openssl2, so use GnuTLS
     # OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
     # OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
     export JANSSON_CFLAGS=-I${MYLIB_DEPS}/include
     export JANSSON_LIBS=-L${MYLIB_DEPS}/lib
-    cd "${LIBJWT_DIR}" && ./configure --without-openssl --without-examples --prefix=${MYLIB_DEPS} && make && make install
+    cd "${LIBJWT_DIR}" && ./configure --enable-shared=yes --enable-static=yes --without-openssl --without-examples --prefix=${MYLIB_DEPS} && make && make install
     CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
 }
 
