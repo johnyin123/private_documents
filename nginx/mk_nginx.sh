@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dfe7d49[2024-02-27T16:26:06+08:00]:mk_nginx.sh")
+VERSION+=("a0b8415[2024-02-27T16:31:51+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -228,7 +228,11 @@ str_equal "1" "${IMAGE_FILTER}" && { EXT_MODULES+=("--with-http_image_filter_mod
 check_depends_lib libxml-2.0 libxslt geoip #uuid
 str_equal "1" "${AUTH_JWT}" && {
     log "[INFO] check jansson exist, if os not has it, download first"
-    pkg-config --exists jansson || check_requre_dirs "${JANSSON_DIR}"
+    pkg-config --exists jansson || {
+        check_requre_dirs "${JANSSON_DIR}"
+        export JANSSON_CFLAGS=-I${MYLIB_DEPS}/include
+        export JANSSON_LIBS=-L${MYLIB_DEPS}/lib
+    }
     log "[INFO] check libjwt exist, if os not has it, download first"
     pkg-config --exists libjwt || check_requre_dirs "${LIBJWT_DIR}"
     # no shared lib for jansson, so jwt compile static janssonlib
@@ -236,8 +240,6 @@ str_equal "1" "${AUTH_JWT}" && {
     # # libjwt not support openssl2, so use GnuTLS
     # OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
     # OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
-    export JANSSON_CFLAGS=-I${MYLIB_DEPS}/include
-    export JANSSON_LIBS=-L${MYLIB_DEPS}/lib
     cd "${LIBJWT_DIR}" 2>/dev/null && ./configure --enable-shared=yes --enable-static=yes --without-openssl --without-examples --prefix=${MYLIB_DEPS} && make && make install
     CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
 }
