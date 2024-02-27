@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c53fd5f[2024-02-27T13:51:24+08:00]:mk_nginx.sh")
+VERSION+=("51b31f2[2024-02-27T14:34:29+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -317,7 +317,9 @@ sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"builder ${builder_version},${pcre_
 OUTDIR=${DIRNAME}/out
 mkdir -p ${OUTDIR}
 [ ${stage_level} -ge ${stage[install]} ] && rm -rf ${OUTDIR}/* && cd ${NGINX_DIR} && make -j "$(nproc)" install DESTDIR=${OUTDIR}
-
+str_equal "1" "${AUTH_JWT}" && {
+    cat ${MYLIB_DEPS}/lib/libjwt.so > ${OUTDIR}/usr/lib/libjwt.so.2
+}
 log "/usr/lib/tmpfiles.d/nginx.conf"
 mkdir -p ${OUTDIR}/usr/lib/tmpfiles.d/
 cat <<'EOF' > ${OUTDIR}/usr/lib/tmpfiles.d/nginx.conf
