@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b0f41f0[2024-02-27T15:14:56+08:00]:mk_nginx.sh")
+VERSION+=("205f03d[2024-02-27T15:29:37+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -650,6 +650,10 @@ str_equal "1" "${STRIP}" && {
     strip ${OUTDIR}/usr/sbin/nginx
     strip ${OUTDIR}/usr/share/nginx/modules/*
 }
+# final copy other depend files!
+str_equal "1" "${AUTH_JWT}" && {
+    cat ${MYLIB_DEPS}/lib/libjwt.so > ${OUTDIR}/usr/lib/libjwt.so.2
+}
 
 command -v "fpm" &> /dev/null || {
     cat <<EOF
@@ -662,10 +666,6 @@ gem install fpm
 EOF
     echo "NO PACKAGE TOOLS"
     exit 1
-}
-# final copy other depend files!
-str_equal "1" "${AUTH_JWT}" && {
-    cat ${MYLIB_DEPS}/lib/libjwt.so > ${OUTDIR}/usr/lib/libjwt.so.2
 }
 INST_SCRIPT=$(mktemp)
 UNINST_SCRIPT=$(mktemp)
