@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a0b8415[2024-02-27T16:31:51+08:00]:mk_nginx.sh")
+VERSION+=("c56d750[2024-02-27T16:39:38+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -74,7 +74,7 @@ cat <<EOF
     git clone https://github.com/google/boringssl
     git clone https://github.com/quictls/openssl
 EOF
-MYLIB_DEPS=/root/mylibs/
+MYLIB_DEPS=${DIRNAME}/mylibs
 NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl
 PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, pcre2 support nginx 1.21.5+
