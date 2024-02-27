@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("db0d047[2024-02-21T14:41:25+08:00]:mk_nginx.sh")
+VERSION+=("71f782a[2024-02-27T09:10:04+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -39,11 +39,11 @@ LD_OPTS=${LD_OPTS:-"-Wl,-z,relro -Wl,-z,now -fPIC"}
 # To verify that NGINX is using kTLS, enable debugging mode
 # check for BIO_get_ktls_send() and SSL_sendfile() in the error log
 # error_log /var/log/nginx/error.log debug;
-KTLS=${KTLS:-"1"}
+KTLS=${KTLS="1"}
 STRIP=${STRIP:-"1"}
 PKG=${PKG:-""}
 # modules selection default NO select, http2_chunk_size 128k, when ktls performance good than 8k
-HTTP2=${HTTP2:-"1"}
+HTTP2=${HTTP2="1"}
 HTTP3=${HTTP3:-""}
 STREAM_QUIC=${STREAM_QUIC:-""}
 #patch need
@@ -74,10 +74,13 @@ cat <<EOF
     git clone https://github.com/google/boringssl
     git clone https://github.com/quictls/openssl
 EOF
+MYLIB_DEPS=/root/mylibs/
 NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl
 PCRE_DIR=${DIRNAME}/pcre  #latest version pcre 8.45, pcre2 support nginx 1.21.5+
 ZLIB_DIR=${DIRNAME}/zlib
+JANSSON_DIR=${DIRNAME}/jansson
+LIBJWT_DIR=${DIRNAME}/libjwt
 declare -A NGINX_BASE=(
     [${NGINX_DIR}]="git clone --depth 1 --branch ${NGINX_RELEASE} https://github.com/nginx/nginx.git"
     [${OPENSSL_DIR}]="wget --no-check-certificate -O openssl.tar.gz https://www.openssl.org/source/openssl-1.1.1m.tar.gz || https://github.com/quictls/openssl || https://www.openssl.org/source/openssl-3.1.0.tar.gz"
@@ -224,7 +227,15 @@ str_equal "1" "${IMAGE_FILTER}" && { EXT_MODULES+=("--with-http_image_filter_mod
 
 check_depends_lib libxml-2.0 libxslt geoip #uuid
 str_equal "1" "${AUTH_JWT}" && {
-    check_depends_lib libjwt jansson
+    check_requre_dirs "${JANSSON_DIR}" "${LIBJWT_DIR}"
+    # no shared lib for jansson, so jwt compile static janssonlib
+    cd "${JANSSON_DIR}" && ./configure --prefix=${MYLIB_DEPS} --enable-shared=no --enable-static=yes && make && make install
+    # # libjwt not support openssl2, so use GnuTLS
+    # OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
+    # OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
+    export JANSSON_CFLAGS=-I${MYLIB_DEPS}/include
+    export JANSSON_LIBS=-L${MYLIB_DEPS}/lib
+    cd "${LIBJWT_DIR}" && ./configure --without-openssl --without-examples --prefix=${MYLIB_DEPS} && make && make install
     CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
 }
 
@@ -260,10 +271,10 @@ zlib_version=$(grep "Changes in" ${ZLIB_DIR}/ChangeLog  | head -1 | awk '{ print
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 log "${builder_version}, $pcre_version, zlib ${zlib_version}"
 
-[ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${OPENSSL_DIR}/.openssl no-shared no-threads ${KTLS:+enable-ktls} \
+[ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${MYLIB_DEPS} no-shared no-threads ${KTLS:+enable-ktls} \
     && make -j "$(nproc)" build_libs && make -j "$(nproc)" install_sw LIBDIR=lib
 
-export NJS_CC_OPT="-L${OPENSSL_DIR}/.openssl/lib"
+export NJS_CC_OPT="-L${MYLIB_DEPS}/lib"
 
 for mod in "${!STATIC_MODULES[@]}"; do
     EXT_MODULES+=("--add-module=${mod}")
@@ -276,8 +287,8 @@ cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
 [ ${stage_level} -ge ${stage[configure]} ] && cd ${NGINX_DIR} && ./configure --prefix=/usr/share/nginx \
 --user=nginx \
 --group=nginx \
---with-cc-opt="${CC_OPTS} -I${OPENSSL_DIR}/.openssl/include" \
---with-ld-opt="${LD_OPTS} -L${OPENSSL_DIR}/.openssl/lib" \
+--with-cc-opt="${CC_OPTS} -I${MYLIB_DEPS}/include" \
+--with-ld-opt="${LD_OPTS} -L${MYLIB_DEPS}/lib" \
 --with-pcre=${PCRE_DIR} \
 --sbin-path=/usr/sbin/nginx \
 --conf-path=/etc/nginx/nginx.conf \
