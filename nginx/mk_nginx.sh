@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bdf83e6[2024-02-27T16:12:52+08:00]:mk_nginx.sh")
+VERSION+=("dfe7d49[2024-02-27T16:26:06+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -655,7 +655,8 @@ str_equal "1" "${STRIP}" && {
 }
 # final copy other depend files!
 str_equal "1" "${AUTH_JWT}" && {
-    cat ${MYLIB_DEPS}/lib/libjwt.so > ${OUTDIR}/usr/lib/libjwt.so.2
+    pkg-config --exists jansson || { cat ${MYLIB_DEPS}/lib/libjansson.so > ${OUTDIR}/usr/lib/libjansson.so.4; }
+    pkg-config --exists libjwt || { cat ${MYLIB_DEPS}/lib/libjwt.so > ${OUTDIR}/usr/lib/libjwt.so.2; }
 }
 ldd ${OUTDIR}/usr/sbin/nginx 2>/dev/null|| true
 ldd ${OUTDIR}/usr/share/nginx/modules/* 2>/dev/null || true
