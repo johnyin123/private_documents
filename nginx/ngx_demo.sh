@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("26f386e[2024-02-27T07:47:11+08:00]:ngx_demo.sh")
+VERSION+=("1d361bc[2024-02-28T08:25:39+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1848,6 +1848,16 @@ button:hover {
   </body>
 </html>
 <script>
+function GetURLParameter(sParam) {
+  var sPageURL = window.location.search.substring(1);
+  var sURLVariables = sPageURL.split('&');
+  for (var i = 0; i < sURLVariables.length; i++) {
+    var sParameterName = sURLVariables[i].split('=');
+    if (sParameterName[0] == sParam) {
+      return sParameterName[1];
+    }
+  }
+}
 function initXMLHttpRequest(method, url, jwtoken) {
   let xmlHttpRequest = new XMLHttpRequest();
   xmlHttpRequest.open(method, url, true);
@@ -1856,7 +1866,7 @@ function initXMLHttpRequest(method, url, jwtoken) {
 }
 //URL or URI of jwt server
 var AuthUrl = '/api/auth';
-var callback = '/';
+var callback = GetURLParameter('return_url');
 function login() {
   var params = new FormData(document.getElementById('jwtForm'));
   var sendObject = JSON.stringify(Object.fromEntries(params.entries()));
@@ -1868,7 +1878,11 @@ function login() {
       var responseObject = JSON.parse(xhr.responseText);
       // or add token in cookie
       document.cookie = 'token=' + responseObject.token +';';
-      location.href=callback;
+      if (callback.length === 0) {
+        location.href='/';
+      } else {
+        location.href=callback;
+      }
     }
     else { console.log('error'); }
   }
@@ -2054,13 +2068,13 @@ cat <<'EOF' > jwt_sso_auth.inc
 # Any other response code returned by the subrequest is considered an error.
 # 401 error, the client also receives the “WWW-Authenticate” header from the subrequest response.
 error_page 401 =401 @error401;
-location @error401 { default_type text/html; return 401 '<html><head><meta http-equiv="refresh" content="0; url=/login.html"/><body></body></html>'; }
+location @error401 { default_type text/html; return 401 '<html><head><meta http-equiv="refresh" content="0; url=/login.html?return_url=$scheme://$http_host$request_uri"/><body></body></html>'; }
 location = /login.html { alias /etc/nginx/http-enabled/jwt_client.login.html; }
 location = /logout.html { add_header Set-Cookie 'token='; return 302 /login.html; }
 location ~* .(favicon.ico)$ { access_log off; log_not_found off; alias /var/www/favicon.ico; }
 location =/api/auth {
     # real jwt server
-    proxy_pass http://127.0.0.1:9901;
+    proxy_pass http://172.16.0.21:9901;
 }
 location = @sso-auth {
     internal;
