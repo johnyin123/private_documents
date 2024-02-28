@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2ac98ec[2024-02-26T15:15:07+08:00]:ngx_demo.sh")
+VERSION+=("26f386e[2024-02-27T07:47:11+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1854,8 +1854,8 @@ function initXMLHttpRequest(method, url, jwtoken) {
   if (jwtoken) { xmlHttpRequest.setRequestHeader('Authorization', 'Bearer ' + jwtoken); }
   return xmlHttpRequest;
 }
-//URL of jwt server
-var AuthUrl = 'http://192.168.169.234:9900/api/auth';
+//URL or URI of jwt server
+var AuthUrl = '/api/auth';
 var callback = '/';
 function login() {
   var params = new FormData(document.getElementById('jwtForm'));
@@ -2054,10 +2054,14 @@ cat <<'EOF' > jwt_sso_auth.inc
 # Any other response code returned by the subrequest is considered an error.
 # 401 error, the client also receives the “WWW-Authenticate” header from the subrequest response.
 error_page 401 =401 @error401;
-location @error401 { return 401 '<html><head><meta http-equiv="refresh" content="0; url=/login.html" /><body></body></html>'; }
+location @error401 { default_type text/html; return 401 '<html><head><meta http-equiv="refresh" content="0; url=/login.html"/><body></body></html>'; }
 location = /login.html { alias /etc/nginx/http-enabled/jwt_client.login.html; }
 location = /logout.html { add_header Set-Cookie 'token='; return 302 /login.html; }
 location ~* .(favicon.ico)$ { access_log off; log_not_found off; alias /var/www/favicon.ico; }
+location =/api/auth {
+    # real jwt server
+    proxy_pass http://127.0.0.1:9901;
+}
 location = @sso-auth {
     internal;
     proxy_method 'GET';
