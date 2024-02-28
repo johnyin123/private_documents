@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("15ab8c7[2024-02-28T07:43:21+08:00]:mk_nginx.sh")
+VERSION+=("6e2e1a9[2024-02-28T11:05:53+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -24,7 +24,7 @@ declare -A stage=(
 set +o nounset
 stage_level=${stage[${1:-doall}]}
 set -o nounset
-stage_level=${stage_level:?"${SCRIPTNAME} fpm/install/make/configure/openssl/pcre/zlib"}
+stage_level=${stage_level:?"(no need -lz, static build sqlite3), LD_OPTS='/usr/lib/x86_64-linux-gnu/libsqlite3.a -lm' ${SCRIPTNAME} fpm/install/make/configure/openssl/pcre/zlib"}
 mydesc=""
 ##OPTION_START##
 ## openssl 3.0 disabled TLSv1.0/1.1(even ssl_protocols TLSv1 TLSv1.1 TLSv1.2;)
