@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1d361bc[2024-02-28T08:25:39+08:00]:ngx_demo.sh")
+VERSION+=("c211a79[2024-02-28T14:41:12+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2674,9 +2674,9 @@ cat <<'EOF' > aws_s3_list.xslt
     </xsl:template>
     <xsl:template name="no_contents">
         <html>
-            <head><title>Not Found</title></head>
+            <head><title>BUCKET NO FILES</title></head>
             <body>
-                <h1>Not Found</h1>
+                <h1>BUCKET NO FILES</h1>
             </body>
         </html>
     </xsl:template>
