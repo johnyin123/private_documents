@@ -172,7 +172,7 @@ def api_login():
     if msg:
         return msg
     return jsonify({'msg': 'Bad username or password'}), 401
-
+# TODO: use nginx auth-reqeust, like jwt login
 @app.route('/api/verify', methods=['POST', 'GET'])
 def api_verify():
     if request.method == 'GET':
@@ -186,9 +186,9 @@ def api_verify():
     if not c_hash or not c_text:
         return jsonify({'msg': 'captcha no found'}), 401
     if captcha.verify(c_text, c_hash):
-        return 'success'
+        return jsonify({'msg': 'success'}), 200
     else:
-        return 'failed captcha'
+        return jsonify({'msg': 'captcha error'}), 401
 
 if __name__ == '__main__':
     print('''curl -s -k -X POST "http://localhost:{port}/api/verify" -d '{{"captcha-text": "", "captcha-hash": ""}}' '''.format(port=app.config['HTTP_PORT']))
