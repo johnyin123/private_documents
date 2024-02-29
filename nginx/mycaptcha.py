@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
+# from https://github.com/cc-d/flask-simple-captcha
 import os, sys
 def load_file(file_path):
     if os.path.isfile(file_path):
