@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c211a79[2024-02-28T14:41:12+08:00]:ngx_demo.sh")
+VERSION+=("4cfaab8[2024-02-28T17:12:22+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4892,17 +4892,14 @@ cat <<'EOF'> context_menu.js
 document.onclick = hideMenu;
 document.oncontextmenu = rightClick;
 function hideMenu() {
-    document.getElementById(
-        "ctxmenu").style.display = "none"
+    document.getElementById("ctxmenu").style.display = "none"
 }
 function rightClick(e) {
     e.preventDefault();
-    if (document.getElementById(
-        "ctxmenu").style.display == "block")
+    if (document.getElementById("ctxmenu").style.display == "block")
         hideMenu();
     else {
-        var menu = document
-            .getElementById("ctxmenu")
+        var menu = document.getElementById("ctxmenu")
         menu.style.display = 'block';
         menu.style.left = e.pageX + "px";
         menu.style.top = e.pageY + "px";
