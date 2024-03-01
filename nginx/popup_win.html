@@ -1,0 +1,33 @@
+<html><head></head>
+<body>
+message
+<br>
+<a href="#"><img style="position: fixed; top: 0; right: 0; border: 0;" src="daemon_hammer.jpg" alt="bj idc"></a>
+<br>
+fix base64 UTF8 unicode char, use b64DecodeUnicode instead atob function
+<br>
+<script>
+document.body.onload = addElement;
+function b64DecodeUnicode(str) {
+  return decodeURIComponent(atob(str).split("").map(function(c) {
+    return "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2);
+  }).join(""));
+}
+function addElement () {
+  var pop = "PGJ1dHRvbiBjbGFzcz0ib3Blbl9idXR0b24iIG9uQ2xpY2s9Im9wZW5Qb3B1cCgpIj5PcGVuIFBvcHVwPC9idXR0b24+CjxzdHlsZT4KI3BvcHVwLXdpbmRvdyB7CiAgcG9zaXRpb246IGZpeGVkOwogIHdpZHRoOiAzMDBweDsKICBoZWlnaHQ6IDIwMHB4OwogIGJhY2tncm91bmQ6IHdoaXRlOwogIGJvcmRlcjogMXB4IHNvbGlkIGJsYWNrOwogIHBhZGRpbmc6IDEwcHg7CiAgbWFyZ2luOiBhdXRvOwogIHRvcDogMDsKICByaWdodDogMDsKICBib3R0b206IDA7CiAgbGVmdDogMDsKICB6LWluZGV4OiAxMDsKICBkaXNwbGF5OiBub25lOwp9Cjwvc3R5bGU+CjxkaXYgaWQ9InBvcHVwLXdpbmRvdyI+CiAgPGgxPlBvcC11cCBXaW5kb3c8L2gxPgogIDxwPlRoaXMgaXMgYSBwb3AtdXAgd2luZG93LjwvcD4KPGRpdiBpZD0iY3R4bWVudSIgY2xhc3M9ImN0eC1tZW51Ij4KPHVsPgo8bGk+PGEgaHJlZj0iL2dyYWZhbmEiPuengeacieS6keWkp+WxjzwvYT48L2xpPgo8bGk+PGEgaHJlZj0iL3phYmJpeCI+emFiYml4PC9hPjwvbGk+CjwvdWw+CjwvZGl2PgogIDxidXR0b24gaWQ9ImNsb3NlLWJ1dHRvbiIgb25DbGljaz0iY2xvc2VQb3B1cCgpIj5DbG9zZTwvYnV0dG9uPgo8L2Rpdj4K";
+  var newDiv = document.createElement("div");
+  newDiv.innerHTML += b64DecodeUnicode(pop);
+  var currentDiv = document.getElementById("main_container");
+  document.body.insertBefore(newDiv, currentDiv);
+}
+function openPopup() {
+  var popupWindow = document.getElementById("popup-window");
+  popupWindow.style.display = "block";
+}
+function closePopup() {
+  var popupWindow = document.getElementById("popup-window");
+  popupWindow.style.display = "none";
+}
+</script>
+</body>
+</html>
