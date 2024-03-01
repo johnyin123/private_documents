@@ -82,7 +82,7 @@ class jwt_captcha:
             # '<img src="data:{};base64, {}" />'.format(mimetype, captcha['img'])
         )
         html = (
-            '<input type="text" class="captcha_code" name="captcha-text">'
+            '<input type="text" class="captcha-text" name="captcha-text">'
             '<input type="hidden" name="captcha-hash" value="{}">'.format(captcha['hash'])
         )            
         return '{}\n{}'.format(img, html)
@@ -185,6 +185,7 @@ def api_verify():
     c_text = req_data.get('captcha-text', None)
     if not c_hash or not c_text:
         return jsonify({'msg': 'captcha no found'}), 401
+    # # TODO: can return a new jwt token for 20 sec, use then token do login with user/pass, server check the captcha success token first!
     if captcha.verify(c_text, c_hash):
         return jsonify({'msg': 'success'}), 200
     else:

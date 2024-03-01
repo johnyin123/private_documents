@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html><head></head><body>
+back.jpg 600x400
+small.jpg 10x10
+<style>
+#slider-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1rem;
+  width: 600px;
+  height: 400px;
+  position: relative;
+  img { width: 100%; height: 100%; z-index: 1; }
+}
+
+#slider {
+  width: 100px;
+  height: 400px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  z-index: 2;
+}
+
+#slider-range {
+  width:600px;
+}
+</style>
+<div id="captcha-container">
+  <div id="slider-bar">
+    <img src=""/><div id="slider"><img src=""/></div>
+  </div>
+  <div id="slider-navigation">
+    <input type="range" min="0" max="500" value="0" id="slider-range">
+  </div>
+</div>
+<script type="text/javascript">
+const slider = document.querySelector('#slider');
+const sliderBar = document.querySelector('#slider-bar');
+const input = document.querySelector('#slider-range');
+
+async function check(captcha-hash, captcha-text) {
+    // const checkResp = await fetch('http://localhost:3000/captcha', {
+    //     method: 'POST',
+    //     // headers: {
+    //     //     'Accept': 'application/json',
+    //     //     'Content-Type': 'application/json'
+    //     // },
+    //     body: JSON.stringify({
+    //         captcha-hash,
+    //         captcha-text,
+    //     })
+    // });
+    // const resp = await checkResp.json();
+    // if (resp.success) {
+    // } else {
+    // }
+    console.log(captcha-hash);
+    console.log(captcha-text);
+}
+
+input.addEventListener('input', (_) => {
+    slider.style.left = input.value + 'px';
+});
+
+function reset_input() {
+    slider.style.left = '0px';
+    input.value = 0;
+    input.disabled = false;
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // const {captcha-hash, back, puzzle} = await fetch('http://localhost:3000/captcha').then(res => res.json());
+    const captcha-hash = "xxxxxxxxxxxxxxxxxx"
+    const back = "back.jpg"
+    const puzzle = "small.jpg"
+    sliderBar.querySelector('img').src = back;
+    slider.querySelector('img').src = puzzle;
+    reset_input();
+    input.addEventListener('change', async (_) => {
+        input.disabled = true;
+        await check(captcha-hash, input.value);
+    })
+});
+</script>
+</body>
+</html>
