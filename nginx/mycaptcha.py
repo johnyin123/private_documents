@@ -4,8 +4,13 @@
 import os, sys
 def load_file(file_path):
     if os.path.isfile(file_path):
-        return open(file_path).read()
+        return open(file_path, 'rb').read()
     sys.exit('file {} nofound'.format(file_path))
+
+import string
+import random
+def rand_str(len:int = 4) -> str:
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=len))
 
 import datetime, jwt
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
