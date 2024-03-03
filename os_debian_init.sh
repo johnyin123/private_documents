@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("e28c813[2023-12-26T14:29:30+08:00]:os_debian_init.sh")
+VERSION+=("4eca7dd[2023-12-27T08:46:48+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -534,12 +534,15 @@ func SetTitle()
         call setline(1, "#!/usr/bin/env python3")
         call setline(2, "# -*- coding: utf-8 -*-")
         call setline(3, "")
-        call setline(4, "class MyClass(object):")
-        call setline(5, "    def __init__(self, url, binddn, password):")
-        call setline(6, "        print('DEMO')")
-        call setline(7, "")
-        call setline(8, "def main():")
-        call setline(9, "    return 0")
+        call setline(4, "import logging")
+        call setline(5, "logging.basicConfig(encoding='utf-8',level=logging.INFO, format='%(levelname)s: %(message)s') ")
+        call setline(6, "logger = logging.getLogger(__name__)")
+        call setline(7, "class MyClass(object):")
+        call setline(8, "    def __init__(self):")
+        call setline(9, "        logger.debug('DEMO')")
+        call setline(10, "")
+        call setline(11, "def main():")
+        call setline(12, "    return 0")
         call setline(10, "")
         call setline(11, "if __name__ == '__main__':")
         call setline(12, "    exit(main())")
