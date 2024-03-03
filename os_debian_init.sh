@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("4eca7dd[2023-12-27T08:46:48+08:00]:os_debian_init.sh")
+VERSION+=("c61ac96[2024-03-03T17:37:47+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -535,17 +535,22 @@ func SetTitle()
         call setline(2, "# -*- coding: utf-8 -*-")
         call setline(3, "")
         call setline(4, "import logging")
-        call setline(5, "logging.basicConfig(encoding='utf-8',level=logging.INFO, format='%(levelname)s: %(message)s') ")
-        call setline(6, "logger = logging.getLogger(__name__)")
-        call setline(7, "class MyClass(object):")
-        call setline(8, "    def __init__(self):")
-        call setline(9, "        logger.debug('DEMO')")
-        call setline(10, "")
-        call setline(11, "def main():")
-        call setline(12, "    return 0")
-        call setline(10, "")
-        call setline(11, "if __name__ == '__main__':")
-        call setline(12, "    exit(main())")
+        call setline(5, "from typing import Iterable, Optional, Set, Tuple, Union, Dict
+        call setline(6, "logging.basicConfig(encoding='utf-8',level=logging.INFO, format='%(levelname)s: %(message)s') ")
+        call setline(7, "logger = logging.getLogger(__name__)")
+        call setline(8, "")
+        call setline(9, "class MyClass(object):")
+        call setline(10, "    def __init__(self):")
+        call setline(11, "        logger.debug('DEMO')")
+        call setline(12, "")
+        call setline(13, "    def create(self, text:str, val:int=10) -> Optional[Dict]:")
+        call setline(14, "        return None")
+        call setline(15, "")
+        call setline(16, "def main():")
+        call setline(17, "    return 0")
+        call setline(18, "")
+        call setline(19, "if __name__ == '__main__':")
+        call setline(20, "    exit(main())")
     endif
     if expand ("%:e") == 'h'
         let fn = toupper(substitute(expand("%"), '[.-]', '_', 'g'))
