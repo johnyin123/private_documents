@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4cfaab8[2024-02-28T17:12:22+08:00]:ngx_demo.sh")
+VERSION+=("40beb01[2024-03-01T09:14:12+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1845,8 +1845,6 @@ button:hover {
    <!-- <a href="javascript:login()">Login</a> -->
   </form>
     </main>
-  </body>
-</html>
 <script>
 function GetURLParameter(sParam) {
   var sPageURL = window.location.search.substring(1);
