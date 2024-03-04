@@ -106,10 +106,10 @@ class jwt_captcha:
     def gen_json(self, captcha: dict) -> str:
         # click_captcha.html demo
         return {
-            'mimetype'     = 'image/png',
-            'img'          = captcha['img'],
-            'captcha-text' = '',
-            'captcha-hash' = captcha['hash'],
+            'mimetype'     : 'image/png',
+            'img'          : captcha['img'],
+            'captcha-text' : '',
+            'captcha-hash' : captcha['hash'],
         }
 
     def gen_html(self, captcha: dict) -> str:
@@ -164,7 +164,9 @@ def public_key():
 def api_verify():
     if request.method == 'GET':
         captcha_dict = captcha.create(4)
-        return captcha.gen_html(captcha_dict)
+        # return captcha.gen_html(captcha_dict)
+        return captcha.gen_json(captcha_dict)
+
     # # avoid Content type: text/plain return http415
     req_data = request.get_json(force=True)
     c_hash = req_data.get('captcha-hash', None)

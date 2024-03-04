@@ -62,8 +62,8 @@ class jwt_auth:
     def gen_json(self) -> str:
         # click_captcha.html demo
         return {
-            'username'     = '',
-            'password'     = '',
+            'username'     : '',
+            'password'     : '',
         }
 
     def gen_html(self) -> str:
