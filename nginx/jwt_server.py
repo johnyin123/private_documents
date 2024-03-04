@@ -59,6 +59,13 @@ class jwt_auth:
     def get_pubkey(self) -> str:
         return self.pubkey
 
+    def gen_json(self) -> str:
+        # click_captcha.html demo
+        return {
+            'username'     = '',
+            'password'     = '',
+        }
+
     def gen_html(self) -> str:
         html = (
             '<input type="text" class="textfield userName" name="username">'

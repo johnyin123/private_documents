@@ -103,6 +103,15 @@ class jwt_captcha:
             'hash': self.__jwtencrypt(text),
         }
 
+    def gen_json(self, captcha: dict) -> str:
+        # click_captcha.html demo
+        return {
+            'mimetype'     = 'image/png',
+            'img'          = captcha['img'],
+            'captcha-text' = '',
+            'captcha-hash' = captcha['hash'],
+        }
+
     def gen_html(self, captcha: dict) -> str:
         # Generate HTML for the CAPTCHA image and input fields.
         mimetype = 'image/png'
