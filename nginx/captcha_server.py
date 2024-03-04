@@ -13,6 +13,10 @@ def load_file(file_path):
         return open(file_path, "rb").read()
     sys.exit('file {} nofound'.format(file_path))
 
+def _corsify_actual_response(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
 import string
 import random
 def genrand_cha(size: int=4) -> str:
@@ -165,7 +169,8 @@ def api_verify():
     if request.method == 'GET':
         captcha_dict = captcha.create(4)
         # return captcha.gen_html(captcha_dict)
-        return captcha.gen_json(captcha_dict)
+        response = jsonify(captcha.gen_json(captcha_dict))
+        return _corsify_actual_response(response)
 
     # # avoid Content type: text/plain return http415
     req_data = request.get_json(force=True)
