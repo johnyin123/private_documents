@@ -145,11 +145,11 @@ def api_login_check_captcha():
         return auth.gen_html()
     # # avoid Content type: text/plain return http415
     req_data = request.get_json(force=True)
-    captcha_token = req_data.get('captcha_token', None)
+    ctoken = req_data.get('ctoken', None)
     password = req_data.get('password', None)
-    if not captcha_token or not password:
+    if not ctoken or not password:
         return jsonify({'msg': 'no all valid found'}), 401
-    username = get_captcha_payload(captcha_token, auth.captcha_pubkey)
+    username = get_captcha_payload(ctoken, auth.captcha_pubkey)
     logger.debug('%s ,pass[%s]', username, password)
     msg = auth.login(username, password)
     if msg:
@@ -160,11 +160,11 @@ def main():
     logger.info("""
 CAPTCHA_SRV=http://localhost:5000
 JWT_SRV=http://localhost:6000
-eval $(curl "${CAPTCHA_SRV}/api/verify" | grep captcha-hash | grep -o -Ei  'value="([^"]*")')
+eval $(curl "${CAPTCHA_SRV}/api/verify" | grep chash | grep -o -Ei  'value="([^"]*")')
 echo "aptcha-hash ========= $value"
-captcha_token=$(curl -s -k -X POST "${CAPTCHA_SRV}/api/verify" -d "{\"payload\":\"yin.zh\", \"captcha-text\": \"fuck\", \"captcha-hash\": \"$value\"}" | jq -r .captcha_token)
-echo "captcha_token ======= $captcha_token"
-curl -s -k -X POST "${JWT_SRV}/api/loginx" -d "{\"password\":\"Passw)rd123\", \"captcha_token\": \"$captcha_token\"}"
+ctoken=$(curl -s -k -X POST "${CAPTCHA_SRV}/api/verify" -d "{\"payload\":\"yin.zh\", \"ctext\": \"fuck\", \"chash\": \"$value\"}" | jq -r .ctoken)
+echo "ctoken ======= $ctoken"
+curl -s -k -X POST "${JWT_SRV}/api/loginx" -d "{\"password\":\"Passw)rd123\", \"ctoken\": \"$ctoken\"}"
 """)
     app.run(host='0.0.0.0', port=app.config['HTTP_PORT']) #, debug=True)return 0
 

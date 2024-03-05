@@ -112,8 +112,8 @@ class jwt_captcha:
         return {
             'mimetype'     : 'image/png',
             'img'          : captcha['img'],
-            'captcha-text' : '',
-            'captcha-hash' : captcha['hash'],
+            'ctext' : '',
+            'chash' : captcha['hash'],
         }
 
     def gen_html(self, captcha: dict) -> str:
@@ -121,8 +121,8 @@ class jwt_captcha:
         mimetype = 'image/png'
         img = ( '<img src="data:{};base64, {}" />'.format(mimetype, captcha['img']))
         html = (
-            '<input type="text" class="captcha-text" name="captcha-text">'
-            '<input type="hidden" name="captcha-hash" value="{}">'.format(captcha['hash'])
+            '<input type="text" class="ctext" name="ctext">'
+            '<input type="hidden" name="chash" value="{}">'.format(captcha['hash'])
         )            
         return '{}\n{}'.format(img, html)
 
@@ -174,20 +174,20 @@ def api_verify():
 
     # # avoid Content type: text/plain return http415
     req_data = request.get_json(force=True)
-    c_hash = req_data.get('captcha-hash', None)
-    c_text = req_data.get('captcha-text', None)
+    c_hash = req_data.get('chash', None)
+    c_text = req_data.get('ctext', None)
     c_payload = req_data.get('payload', '')
     tmout_sec=10
     if not c_hash or not c_text:
         return jsonify({'msg': 'captcha no found'}), 401
     if captcha.verify(c_text, c_hash):
         # return new token 10 sec, for LOGIN service check captcha success!
-        return jsonify({'captcha_token': captcha.make_success_token(c_payload, tmout_sec)}), 200
+        return jsonify({'ctoken': captcha.make_success_token(c_payload, tmout_sec)}), 200
     else:
         return jsonify({'msg': 'captcha error'}), 401
 
 def main():
-    logger.debug('''curl -s -k -X POST "http://localhost:{port}/api/verify" -d '{{"captcha-text": "", "captcha-hash": ""}}' '''.format(port=app.config['HTTP_PORT']))
+    logger.debug('''curl -s -k -X POST "http://localhost:{port}/api/verify" -d '{{"ctext": "", "chash": ""}}' '''.format(port=app.config['HTTP_PORT']))
     app.run(host='0.0.0.0', port=app.config['HTTP_PORT']) #, debug=True)return 0
 
 if __name__ == '__main__':

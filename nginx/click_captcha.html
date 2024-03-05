@@ -19,6 +19,8 @@ URLSubmit = "compare.php";
 
 <div id="captcha"></div>
 divStr = 'Click the circle<input type="image" id="captcha_image" src="data:image/png;base64,';
+
+http = new XMLHttpRequest();
 function submitForm(e) {
 	imgele = document.getElementById("captcha_image");
 	img_left = imgele.offsetLeft;
