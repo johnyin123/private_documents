@@ -1,0 +1,45 @@
+<!DOCTYPE html><html><head>
+<link type="text/css" rel="stylesheet" href="http://192.168.168.1/dialog.css" />
+<script language="javascript" src="http://192.168.168.1/dialog.js"></script>
+</head><body>
+<form id="jwtForm">
+ <label><b>Username</b></label><input type="text" name="username" id="username">
+ <br>
+ <label><b>Password</b></label><input type="Password" name="password" id="password">
+ <input type="button" onclick="openPopup()" value="Popup">
+ <br><br><input type="button" id="log" onclick="login()" value="Log In Here">
+</form>
+
+<script>
+const dialog = new Dialog();
+const http = new XMLHttpRequest();
+function captcha_check(res) {
+    if (res == false){ return; }
+    //console.log(res);
+    alert(JSON.stringify(res));
+}
+function handleGetPop() {
+  if(http.readyState !== 4) { return; }
+  if(http.status === 200) {
+    //var responseObject = b64DecodeUnicode(http.responseText);
+    var responseObject = eval("(" + http.responseText + ')');
+    console.log(responseObject);
+    dialog.open(responseObject);
+      dialog.waitForUser().then((res) => {
+        captcha_check(res);
+        return;
+      })
+  }
+}
+function getPopup(url) {
+    console.log('GET' + url);
+	http.open('GET', url, true);
+	http.onreadystatechange = handleGetPop;
+	http.send();
+}
+function openPopup() {
+  getPopup("http://192.168.168.1/popup.def");
+}
+</script>
+</body>
+</html>

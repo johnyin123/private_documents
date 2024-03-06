@@ -1,0 +1,8 @@
+{
+   dialogClass: 'custom',
+   message: 'Captcha valid',
+   accept: 'Check Captcha',
+   template: `
+   <label>Username<input type="text" name="username" value="admixxxn"></label>
+   <label>Password<input type="password" name="password" value="paxxxxssword"></label>`
+}
