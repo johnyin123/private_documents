@@ -1,8 +1,21 @@
-{
+function captcha_check(res) {
+    if (res == false){ return; }
+    //console.log(res);
+    alert(JSON.stringify(res));
+}
+
+const dialog = new Dialog();
+dialog.open({
    dialogClass: 'custom',
    message: 'Captcha valid',
    accept: 'Check Captcha',
    template: `
+   <canvas id="canvas" width="400" height="200"></canvas>
    <label>Username<input type="text" name="username" value="admixxxn"></label>
    <label>Password<input type="password" name="password" value="paxxxxssword"></label>`
-}
+})
+
+dialog.waitForUser().then((res) => {
+  captcha_check(res);
+  return;
+})

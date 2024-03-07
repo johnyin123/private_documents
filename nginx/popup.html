@@ -2,33 +2,23 @@
 <link type="text/css" rel="stylesheet" href="http://192.168.168.1/dialog.css" />
 <script language="javascript" src="http://192.168.168.1/dialog.js"></script>
 </head><body>
-<form id="jwtForm">
- <label><b>Username</b></label><input type="text" name="username" id="username">
- <br>
- <label><b>Password</b></label><input type="Password" name="password" id="password">
- <input type="button" onclick="openPopup()" value="Popup">
- <br><br><input type="button" id="log" onclick="login()" value="Log In Here">
-</form>
-
 <script>
-const dialog = new Dialog();
-const http = new XMLHttpRequest();
-function captcha_check(res) {
-    if (res == false){ return; }
-    //console.log(res);
-    alert(JSON.stringify(res));
+function appendHtml(el, str) {
+  var div = document.createElement('div');
+  div.innerHTML = str;
+  while (div.children.length > 0) {
+    el.appendChild(div.children[0]);
+  }
 }
+var html = '<input type="button" onclick="openPopup()" value="Popup">'
+appendHtml(document.body, html);
+</script>
+<script>
+const http = new XMLHttpRequest();
 function handleGetPop() {
   if(http.readyState !== 4) { return; }
   if(http.status === 200) {
-    //var responseObject = b64DecodeUnicode(http.responseText);
-    var responseObject = eval("(" + http.responseText + ')');
-    console.log(responseObject);
-    dialog.open(responseObject);
-      dialog.waitForUser().then((res) => {
-        captcha_check(res);
-        return;
-      })
+    eval(http.responseText);
   }
 }
 function getPopup(url) {
