@@ -7,7 +7,7 @@ logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s:
 logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
-import os, sys
+import os, sys, random
 def load_file(file_path):
     if os.path.isfile(file_path):
         return open(file_path, "rb").read()
@@ -16,11 +16,6 @@ def load_file(file_path):
 def _corsify_actual_response(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
-
-import string
-import random
-def genrand_cha(size: int=4) -> str:
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=size))
 
 # from https://github.com/cc-d/flask-simple-captcha
 import datetime, jwt
@@ -35,19 +30,12 @@ DEFAULT_CONF = {
     'IMG_WIDTH'        : 100,
 }
 
-from captcha.image import ImageCaptcha
-from io import BytesIO
-import base64
-def gencaptcha_image(text:str, width:int =100, height: int= 20):
-    image = ImageCaptcha(width=width, height=height, font_sizes=(24 ,28))
-    bytesio_val = image.generate(text)
-    return bytesio_val
-
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 from werkzeug.exceptions import Unauthorized
 
+from .captcha import ClickCaptcha, TextCaptcha
 class jwt_captcha:
     def __init__(self, config: dict):
         self.config = {**DEFAULT_CONF, **config}
@@ -61,6 +49,8 @@ class jwt_captcha:
             self.img_height = config['IMG_HEIGHT']
         if 'IMG_WIDTH' in config:
             self.img_width = config['IMG_WIDTH']
+        self.capt1 = ClickCaptcha()
+        self.capt2 = TextCaptcha()
 
     def get_pubkey(self) -> str:
         pubkey_pem = self.pubkey.public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo)
@@ -99,12 +89,12 @@ class jwt_captcha:
         raise Unauthorized('known error')
 
     def create(self, length:int =4) -> Optional[Dict]:
-        text=genrand_cha(length)
-        logger.debug("cha text is: %s", text)
+        msg1 = capt1.create(3)
+        msg2 = capt2.create(4)
         return {
-            'img' : base64.b64encode(gencaptcha_image(text, self.img_width, self.img_height).read()).decode(),
-            'text': text,
-            'hash': self.__jwtencrypt(text),
+            'img' : msg1['img'],
+            'text': msg1['text'],
+            'hash': self.__jwtencrypt(msg1['payload']),
         }
 
     def gen_json(self, captcha: dict) -> str:
@@ -112,7 +102,7 @@ class jwt_captcha:
         return {
             'mimetype'     : 'image/png',
             'img'          : captcha['img'],
-            'ctext' : '',
+            'ctext' : captcha['msg'],
             'chash' : captcha['hash'],
         }
 
