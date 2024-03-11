@@ -56,32 +56,33 @@ class ClickCaptcha(object):
     def _genrand_cha(self, size: int=2) -> str:
         return ''.join(random.choices(self.charset, k=size))
 
+    def _draw_rotated_text(self, img, font, text, angle, x, y):
+        txt = Image.new("L", font.getsize(text))
+        d = ImageDraw.Draw(txt)
+        d.text((0, 0), text, font=font, fill=200)
+        txt = txt.rotate(angle)
+        img.paste(ImageOps.colorize(txt, (0, 0, 0), (0, 255, 84)), (int(x - txt.width/2), int(y - txt.height/2)), txt)
+
     def create(self, length:int=2, width:int=400, height: int=200) -> Optional[Dict]:
         font_file='demo.ttf'
         font_size=40
         font=ImageFont.truetype(font_file, font_size)
         msg=self._genrand_cha(length)
         logger.debug("ClickCaptcha text is: %s", msg)
-
         back = Image.open('/home/johnyin/a.png').resize((width, height), Image.LANCZOS)
         pos=[]
         for text in list(msg):
-            xpos = random.randrange(0, width - font.getlength(text))
-            ypos = random.randrange(0, height - font.getlength(text)) 
-            txt = Image.new('L', (50, 50))
-            draw = ImageDraw.Draw(txt)
-            draw.text((0, 0), text, font=font, fill=200, direction=None)
-            w = txt.rotate(17.5)
-            back.paste(ImageOps.colorize(w, (0, 0, 0), (0, 255, 84)), (xpos, ypos), w)
+            xpos = random.randrange(font.getlength(text), width - font.getlength(text))
+            ypos = random.randrange(font.getlength(text), height - font.getlength(text))
+            self._draw_rotated_text(back, font, text, 22.2, xpos, ypos)
             pos.append({xpos, ypos})
-            # ImageDraw.Draw(back).text((xpos, ypos), text, font=font, fill=252)
         back.show()
         return {
             'img' : base64.b64encode(img2byteio(back).read()).decode(),
             'msg': msg,
             'payload' : pos,
         }
-# capt = ClickCaptcha()
-# print(capt.create(3))
+capt = ClickCaptcha()
+print(capt.create(3))
 # capt2 = TextCaptcha()
 # print(capt2.create())
