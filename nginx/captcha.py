@@ -3,7 +3,7 @@
 
 import logging, os
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
-logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s: %(message)s') 
+logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s: %(message)s')
 logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,19 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont, ImageOps
 from io import BytesIO
-import base64
+import base64, json
+
+def force_bytes(s, encoding='utf-8', strings_only=False, errors='strict'):
+    if isinstance(s, bytes):
+        if encoding == 'utf-8':
+            return s
+        else:
+            return s.decode('utf-8', errors).encode(encoding, errors)
+    if strings_only and is_protected_type(s):
+        return s
+    if isinstance(s, memoryview):
+        return bytes(s)
+    return str(s).encode(encoding, errors)
 
 def base64url_decode(input: Union[bytes, str]) -> bytes:
     input_bytes = force_bytes(input)
@@ -41,54 +53,92 @@ def draw_rotated_text(background:Image, font: ImageFont, text:str, x:int=0, y:in
     background.paste(ImageOps.colorize(txt, (0, 0, 0), (0, 255, 84)), (x, y), txt)
     return
 
-import string
-import random
+def file_exists(file:str)-> bool:
+    if not os.path.isfile(file):
+        sys.exit('file {} nofound'.format(file))
+        return False
+    return True
+
+import string, random, sys
 
 class TextCaptcha(object):
     charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     def __init__(self, font_file:str, font_size:int=18):
-        self.font=ImageFont.truetype(font_file, font_size)
+        if file_exists(font_file):
+            self.font=ImageFont.truetype(font_file, font_size)
         logger.debug('TextCaptcha')
 
     def _genrand_cha(self, size: int=2) -> str:
+        # random.sample, not dupvalue
         return ''.join(random.choices(self.charset, k=size))
-    
-    def create(self, length:int=4, width:int=60, height: int=30) -> Optional[Dict]:
+
+    @staticmethod
+    def getname():
+        return 'TEXT_CAPTCHA'
+
+    def verify(self, payload: str, text: str)->bool:
+        logger.debug('%s verify %s, %s', self.getname(), payload, text)
+        if payload == text:
+            return True
+        return False
+
+    def create(self, length:int=4, width:int=60, height: int=30) -> Dict:
         image=Image.new('RGBA', size=(width, height))
         text=self._genrand_cha(length)
         logger.debug("TextCaptcha text is: %s", text)
         draw_rotated_text(image, self.font, text)
         return {
-            'type' : 'TextCaptcha',
-            'img' : pil_image_to_base64(image),
+            'type' : self.getname(),
+            'img' : pil_image_to_base64(image).decode("utf-8"),
             'msg': 'input captcha',
             'payload' : text,
         }
 
 class ClickCaptcha(object):
     charset = "中之云人仅任划办务印发周壮处始完布并建开待快成我搜新更最月有本板源理的看私第索经维计设运近速问题"
+    image_list=['a.png']
     def __init__(self, font_file:str, font_size:int=40):
-        self.font=ImageFont.truetype(font_file, font_size)
+        if file_exists(font_file):
+            self.font=ImageFont.truetype(font_file, font_size)
         logger.debug('ClickCaptcha')
 
     def _genrand_cha(self, size: int=2) -> str:
         return ''.join(random.choices(self.charset, k=size))
 
-    def create(self, length:int=2, width:int=400, height: int=200) -> Optional[Dict]:
-        msg=self._genrand_cha(length)
-        logger.debug("ClickCaptcha text is: %s", msg)
-        image = Image.open('/home/johnyin/a.png').resize((width, height), Image.LANCZOS)
+    @staticmethod
+    def getname():
+        return 'CLICK_CAPTCHA'
+
+    def verify(self, payload: str, text: str)->bool:
+        #  [{"x":97,"y":98},{"x":200,"y":53},{"x":173,"y":148}]
+        logger.debug('%s verify %s, %s', self.getname(), payload, text)
+        payload=json.loads(payload)
+        text=json.loads(text)
+        if len(payload) != len(text):
+            return False
+        result=True
+        for idx, it in enumerate(payload):
+            # # +-25 range is ok
+            result = (result and (-25<=it['x'] - text[idx]['x']<=25) and (-25<=it['y'] - text[idx]['y']<=25))
+        return result
+
+    def create(self, length:int=2, width:int=400, height: int=200) -> Dict:
+        text=self._genrand_cha(length)
+        image_file=random.sample(self.image_list, k=1)[0]
+        logger.debug("ClickCaptcha text is: %s, background %s", text, image_file)
+        image = Image.open(image_file).resize((width, height), Image.LANCZOS)
         pos=[]
-        for text in list(msg):
-            xpos = random.randint(0, width - self.font.getlength(text))
-            ypos = random.randint(0, height - self.font.getlength(text))
-            draw_rotated_text(image, self.font, text, xpos, ypos, random.randint(10, 80))
-            pos.append({xpos+self.font.getlength(text)/2, ypos+self.font.getlength(text)/2})
+        for ch in list(text):
+            xpos = random.randint(0, width - self.font.getlength(ch))
+            ypos = random.randint(0, height - self.font.getlength(ch))
+            draw_rotated_text(image, self.font, ch, xpos, ypos, random.randint(10, 80))
+            pos.append({'x':int(xpos+self.font.getlength(ch)/2), 'y':int(ypos+self.font.getlength(ch)/2)})
         return {
-            'type' : 'ClickCaptcha',
-            'img' : pil_image_to_base64(image),
-            'msg': msg,
-            'payload' : pos,
+            'type' : self.getname(),
+            'img' : pil_image_to_base64(image).decode("utf-8"),
+            'len': length,
+            'msg': text,
+            'payload' : json.dumps(pos),
         }
 # capt1 = ClickCaptcha('demo.ttf')
 # val1=capt1.create(3)

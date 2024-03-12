@@ -3,7 +3,7 @@
 
 import logging, os
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
-logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s: %(message)s') 
+logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s: %(message)s')
 logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
@@ -28,15 +28,17 @@ DEFAULT_CONF = {
     'EXPIRE_SEC'       : 30,
     'IMG_HEIGHT'       : 40,
     'IMG_WIDTH'        : 100,
+    'FONT_FILE'        : 'demo.ttf',
 }
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
 from werkzeug.exceptions import Unauthorized
+from captcha import ClickCaptcha, TextCaptcha, base64url_decode, base64url_encode
 
-from .captcha import ClickCaptcha, TextCaptcha
 class jwt_captcha:
+    choice=[ClickCaptcha.getname(), TextCaptcha.getname()]
     def __init__(self, config: dict):
         self.config = {**DEFAULT_CONF, **config}
         # self.pubkey = load_file(self.config['PUBLIC_KEY_FILE'])
@@ -49,20 +51,22 @@ class jwt_captcha:
             self.img_height = config['IMG_HEIGHT']
         if 'IMG_WIDTH' in config:
             self.img_width = config['IMG_WIDTH']
-        self.capt1 = ClickCaptcha()
-        self.capt2 = TextCaptcha()
+        if 'FONT_FILE' in config:
+            self.font_file = config['FONT_FILE']
+        self.capt_click = ClickCaptcha(self.font_file)
+        self.capt_text = TextCaptcha(self.font_file)
 
     def get_pubkey(self) -> str:
         pubkey_pem = self.pubkey.public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo)
         return pubkey_pem.decode('ascii')
-        
+
     def __rsa_encrypt(self, text: str) -> str:
-        msg = base64.b64encode(self.pubkey.encrypt(text.encode(), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(), label=None)))
+        msg = base64url_encode(self.pubkey.encrypt(text.encode(), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(), label=None)))
         logger.debug("Encrypt b64 Message: %s", msg.decode())
         return msg.decode()
 
     def __rsa_decrypt(self, hashed_text: str) -> str:
-        msg = self.prikey.decrypt(base64.b64decode(hashed_text), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(), label=None))
+        msg = self.prikey.decrypt(base64url_decode(hashed_text), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(), label=None))
         logger.debug("Decrypted b64 Message: %s",msg.decode())
         return msg.decode()
 
@@ -74,7 +78,7 @@ class jwt_captcha:
             'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=self.expire_secs),
         }
         return jwt.encode(payload, self.prikey, algorithm='RS256')
-    
+
     def __jwtdecrypt(self, token: str) -> str:
         try:
             decoded = jwt.decode(token, self.get_pubkey(), algorithms=['RS256'])
@@ -88,44 +92,35 @@ class jwt_captcha:
             raise Unauthorized('Invalid captcha token')
         raise Unauthorized('known error')
 
-    def create(self, length:int =4) -> Optional[Dict]:
-        msg1 = capt1.create(3)
-        msg2 = capt2.create(4)
+    def create(self) -> Dict:
+        c_type=random.sample(self.choice, k=1)[0]
+        msg={ 'type' : '', 'img' : '', 'msg': '', 'payload' : '', }
+        if c_type == TextCaptcha.getname():
+            msg=self.capt_text.create(4)
+        if c_type == ClickCaptcha.getname():
+            msg=self.capt_click.create(3)
+        logger.debug(msg)
         return {
-            'img' : msg1['img'],
-            'text': msg1['text'],
-            'hash': self.__jwtencrypt(msg1['payload']),
+            'ctype': msg['type'],
+            'mimetype' : 'image/png',
+            'img' : msg['img'],
+            'len' : msg.get('len') if msg.get('len') is not None else 0,
+            'ctext': msg['msg'],
+            'chash': self.__jwtencrypt(msg['payload']),
         }
 
-    def gen_json(self, captcha: dict) -> str:
-        # click_captcha.html demo
-        return {
-            'mimetype'     : 'image/png',
-            'img'          : captcha['img'],
-            'ctext' : captcha['msg'],
-            'chash' : captcha['hash'],
-        }
-
-    def gen_html(self, captcha: dict) -> str:
-        # Generate HTML for the CAPTCHA image and input fields.
-        mimetype = 'image/png'
-        img = ( '<img src="data:{};base64, {}" />'.format(mimetype, captcha['img']))
-        html = (
-            '<input type="text" class="ctext" name="ctext">'
-            '<input type="hidden" name="chash" value="{}">'.format(captcha['hash'])
-        )            
-        return '{}\n{}'.format(img, html)
-
-    def verify(self, c_text: str, c_hash: str) -> bool:
+    def verify(self, c_type: str, c_text: str, c_hash: str) -> bool:
         decoded_text = self.__jwtdecrypt(c_hash)
-        # token expired or invalid
-        if decoded_text == c_text:
-            return True
-        return False
+        logger.debug('verify %s, %s input[%s]', c_type, decoded_text, c_text)
+        if c_type == TextCaptcha.getname():
+            return self.capt_text.verify(decoded_text, c_text)
+        if c_type == ClickCaptcha.getname():
+            return self.capt_click.verify(decoded_text, c_text)
+        raise Unauthorized('chapcha type error')
 
-    def make_success_token(self, msg: str, tmout:int =6) -> str:
+    def make_success_token(self, payload: str, tmout:int =6) -> str:
         payload = {
-            'payload': msg,
+            'payload': payload,
             'iat': datetime.datetime.utcnow(),
             'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=tmout),
         }
@@ -157,27 +152,28 @@ def public_key():
 @app.route('/api/verify', methods=['POST', 'GET'])
 def api_verify():
     if request.method == 'GET':
-        captcha_dict = captcha.create(4)
-        # return captcha.gen_html(captcha_dict)
-        response = jsonify(captcha.gen_json(captcha_dict))
+        captcha_dict = captcha.create()
+        response = jsonify('{}'.format(captcha_dict))
         return _corsify_actual_response(response)
 
     # # avoid Content type: text/plain return http415
     req_data = request.get_json(force=True)
+    c_type = req_data.get('ctype', None)
     c_hash = req_data.get('chash', None)
     c_text = req_data.get('ctext', None)
     c_payload = req_data.get('payload', '')
     tmout_sec=10
-    if not c_hash or not c_text:
+    if not c_hash or not c_text or not c_type:
         return jsonify({'msg': 'captcha no found'}), 401
-    if captcha.verify(c_text, c_hash):
+    if captcha.verify(c_type, c_text, c_hash):
         # return new token 10 sec, for LOGIN service check captcha success!
         return jsonify({'ctoken': captcha.make_success_token(c_payload, tmout_sec)}), 200
     else:
         return jsonify({'msg': 'captcha error'}), 401
 
 def main():
-    logger.debug('''curl -s -k -X POST "http://localhost:{port}/api/verify" -d '{{"ctext": "", "chash": ""}}' '''.format(port=app.config['HTTP_PORT']))
+    logger.debug('''curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "[{\\"x\\": 329, \\"y\\": 129}]", "chash": "", "ctype": "", "payload": "u string"}' ''')
+    logger.debug('''curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "", "chash": "", "ctype": "TEXT", "payload": "u string"}' ''')
     app.run(host='0.0.0.0', port=app.config['HTTP_PORT']) #, debug=True)return 0
 
 if __name__ == '__main__':
