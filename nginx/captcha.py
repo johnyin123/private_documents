@@ -12,77 +12,89 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont, ImageOps
 from io import BytesIO
+import base64
 
-def img2byteio(img:Image)-> BytesIO:
-    out = BytesIO()
-    img.save(out, format='png')
-    out.seek(0)
-    # img_str = base64.b64encode(out.getvalue())
-    return out
+def base64url_decode(input: Union[bytes, str]) -> bytes:
+    input_bytes = force_bytes(input)
+    rem = len(input_bytes) % 4
+    if rem > 0:
+        input_bytes += b"=" * (4 - rem)
+    return base64.urlsafe_b64decode(input_bytes)
+
+def base64url_encode(input: bytes) -> bytes:
+    return base64.urlsafe_b64encode(input).replace(b"=", b"")
+
+def pil_image_to_base64(pil_image:Image, format:str='png')-> str:
+    buf = BytesIO()
+    pil_image.save(buf, format=format)
+    return base64.b64encode(buf.getvalue())
+
+def base64_to_pil_image(base64_img:str)->Image:
+    return Image.open(BytesIO(base64.b64decode(base64_img)))
+
+def draw_rotated_text(background:Image, font: ImageFont, text:str, x:int=0, y:int=0, angle:float=0):
+    left, top, right, bottom = font.getbbox(text)
+    txt = Image.new("L", size=(right, bottom))
+    draw = ImageDraw.Draw(txt)
+    draw.text((0, 0), text, font=font, fill=200)
+    txt = txt.rotate(angle)
+    background.paste(ImageOps.colorize(txt, (0, 0, 0), (0, 255, 84)), (x, y), txt)
+    return
 
 import string
 import random
-import base64
 
 class TextCaptcha(object):
     charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    def __init__(self):
+    def __init__(self, font_file:str, font_size:int=18):
+        self.font=ImageFont.truetype(font_file, font_size)
         logger.debug('TextCaptcha')
 
     def _genrand_cha(self, size: int=2) -> str:
         return ''.join(random.choices(self.charset, k=size))
     
-    def _gencaptcha_image(self, text:str, width:int =60, height: int= 20, font:str='/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf', font_size:int=25)-> Image:
-        txt=Image.new('L', size=(width, height))
-        ImageDraw.Draw(txt).text((0, 0), text, font=ImageFont.truetype(font, font_size), fill=252)
-        return txt
-
-    def create(self, length:int=4, width:int=60, height: int=20) -> Optional[Dict]:
-        font='/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf'
-        font_size=18
+    def create(self, length:int=4, width:int=60, height: int=30) -> Optional[Dict]:
+        image=Image.new('RGBA', size=(width, height))
         text=self._genrand_cha(length)
         logger.debug("TextCaptcha text is: %s", text)
+        draw_rotated_text(image, self.font, text)
         return {
-            'img' : base64.b64encode(img2byteio(self._gencaptcha_image(text, width, height, font, font_size)).read()).decode(),
+            'type' : 'TextCaptcha',
+            'img' : pil_image_to_base64(image),
             'msg': 'input captcha',
             'payload' : text,
         }
 
 class ClickCaptcha(object):
     charset = "中之云人仅任划办务印发周壮处始完布并建开待快成我搜新更最月有本板源理的看私第索经维计设运近速问题"
-    def __init__(self):
+    def __init__(self, font_file:str, font_size:int=40):
+        self.font=ImageFont.truetype(font_file, font_size)
         logger.debug('ClickCaptcha')
 
     def _genrand_cha(self, size: int=2) -> str:
         return ''.join(random.choices(self.charset, k=size))
 
-    def _draw_rotated_text(self, img, font, text, angle, x, y):
-        txt = Image.new("L", font.getsize(text))
-        d = ImageDraw.Draw(txt)
-        d.text((0, 0), text, font=font, fill=200)
-        txt = txt.rotate(angle)
-        img.paste(ImageOps.colorize(txt, (0, 0, 0), (0, 255, 84)), (int(x - txt.width/2), int(y - txt.height/2)), txt)
-
     def create(self, length:int=2, width:int=400, height: int=200) -> Optional[Dict]:
-        font_file='demo.ttf'
-        font_size=40
-        font=ImageFont.truetype(font_file, font_size)
         msg=self._genrand_cha(length)
         logger.debug("ClickCaptcha text is: %s", msg)
-        back = Image.open('/home/johnyin/a.png').resize((width, height), Image.LANCZOS)
+        image = Image.open('/home/johnyin/a.png').resize((width, height), Image.LANCZOS)
         pos=[]
         for text in list(msg):
-            xpos = random.randrange(font.getlength(text), width - font.getlength(text))
-            ypos = random.randrange(font.getlength(text), height - font.getlength(text))
-            self._draw_rotated_text(back, font, text, 22.2, xpos, ypos)
-            pos.append({xpos, ypos})
-        back.show()
+            xpos = random.randint(0, width - self.font.getlength(text))
+            ypos = random.randint(0, height - self.font.getlength(text))
+            draw_rotated_text(image, self.font, text, xpos, ypos, random.randint(10, 80))
+            pos.append({xpos+self.font.getlength(text)/2, ypos+self.font.getlength(text)/2})
         return {
-            'img' : base64.b64encode(img2byteio(back).read()).decode(),
+            'type' : 'ClickCaptcha',
+            'img' : pil_image_to_base64(image),
             'msg': msg,
             'payload' : pos,
         }
-capt = ClickCaptcha()
-print(capt.create(3))
-# capt2 = TextCaptcha()
-# print(capt2.create())
+# capt1 = ClickCaptcha('demo.ttf')
+# val1=capt1.create(3)
+# logger.info('%s: [%s], %s', val1['type'], val1['msg'], val1['payload'])
+# base64_to_pil_image(val1['img']).show()
+# capt2 = TextCaptcha('demo.ttf')
+# val2=capt2.create(5)
+# logger.info('%s: [%s], %s', val2['type'], val2['msg'], val2['payload'])
+# base64_to_pil_image(val2['img']).show()
