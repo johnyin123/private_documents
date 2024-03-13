@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3176d4d[2024-03-07T07:56:37+08:00]:ngx_demo.sh")
+VERSION+=("eeb4ddb[2024-03-13T14:16:07+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1748,319 +1748,8 @@ server {
     }
 }
 EOF
-cat <<'EOF' > jwt_client.login.html
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex, nofollow">
-    <title> Login </title>
-<style>
-body {
-  font-family: sans-serif;
-  color: #333;
-}
-main {
-  margin: 0 auto;
-}
-h1 {
-  font-size: 2em;
-  margin-bottom: 2.5em;
-  margin-top: 2em;
-  text-align: center;
-}
-form.jwtForm {
-  border-radius: 0.2rem;
-  border: 1px solid #CCC;
-  margin: 0 auto;
-  max-width: 16rem;
-  padding: 2rem 2.5rem 1.5rem 2.5rem;
-}
-input {
-  background-color: #FAFAFA;
-  border-radius: 0.2rem;
-  border: 1px solid #CCC;
-  box-shadow: inset 0 1px 3px #DDD;
-  box-sizing: border-box;
-  display: block;
-  font-size: 1em;
-  padding: 0.4em 0.6em;
-  vertical-align: middle;
-  width: 100%;
-}
-input:focus {
-  background-color: #FFF;
-  border-color: #51A7E8;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.075) inset, 0 0 5px rgba(81, 167, 232, 0.5);
-  outline: 0;
-}
-label {
-  color: #666;
-  display: block;
-  font-size: 0.9em;
-  font-weight: bold;
-  margin: 1em 0 0.25em 0;
-}
-button {
-  background-color: #60B044;
-  background-image: linear-gradient(#8ADD6D, #60B044);
-  border-radius: 0.2rem;
-  border: 1px solid #5CA941;
-  box-sizing: border-box;
-  color: #fff;
-  cursor: pointer;
-  font-size: 0.9em;
-  font-weight: bold;
-  margin: 2em 0 0.5em 0;
-  padding: 0.5em 0.7em;
-  text-align: center;
-  text-decoration: none;
-  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3);
-  user-select: none;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-button:focus,
-button:hover {
-  background-color: #569E3D;
-  background-image: linear-gradient(#79D858, #569E3D);
-  border-color: #4A993E;
-}
-@media only screen and (max-width: 480px) {
-  form {
-    border: 0;
-  }
-}
-</style>
-  </head>
-  <body>
-    <main>
-      <h1>Login Page</h1>
-  <form id="jwtForm">
-   <label><b>User Name</b></label><input type="text" name='username' placeholder="Username">
-   <br><br><label><b>Password</b></label><input type="Password" name='password' placeholder="Password">
-   <br><br><input type="button" id="log" onclick="login()" value="Log In Here">
-   <!-- <a href="javascript:login()">Login</a> -->
-  </form>
-    </main>
-<script>
-function GetURLParameter(sParam) {
-  var sPageURL = window.location.search.substring(1);
-  var sURLVariables = sPageURL.split('&');
-  for (var i = 0; i < sURLVariables.length; i++) {
-    var sParameterName = sURLVariables[i].split('=');
-    if (sParameterName[0] == sParam) {
-      return sParameterName[1];
-    }
-  }
-}
-function initXMLHttpRequest(method, url, jwtoken) {
-  let xmlHttpRequest = new XMLHttpRequest();
-  xmlHttpRequest.open(method, url, true);
-  if (jwtoken) { xmlHttpRequest.setRequestHeader('Authorization', 'Bearer ' + jwtoken); }
-  return xmlHttpRequest;
-}
-//URL or URI of jwt server
-var AuthUrl = '/api/auth';
-var callback = GetURLParameter('return_url');
-function login() {
-  var params = new FormData(document.getElementById('jwtForm'));
-  var sendObject = JSON.stringify(Object.fromEntries(params.entries()));
-  console.log(sendObject);
-  xhr=initXMLHttpRequest('POST', AuthUrl);
-  xhr.onreadystatechange = function() {
-    if(xhr.readyState !== 4) { return; }
-    if(xhr.status === 200) {
-      var responseObject = JSON.parse(xhr.responseText);
-      // or add token in cookie
-      document.cookie = 'token=' + responseObject.token +';';
-      if (callback.length === 0) {
-        location.href='/';
-      } else {
-        location.href=callback;
-      }
-    }
-    else { console.log('error'); }
-  }
-  xhr.send(sendObject);
-}
-</script>
-</body>
-</html>
-EOF
-cat <<'EOF' > flask_jwt_srv.py
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-# yum install python3-ldap3 python3-flask  python3-jwt python3-uWSGI
-# SSO client need a callback url(return_url), jwt login redirect back callback
-# http://xxxx/?return_url=http://yyyyy
-# you login code here
-# return 302 $return_url?token='xxxxjwttoken';
-from flask import Flask, abort, jsonify, request, make_response, render_template, render_template_string
-import sys, os, datetime, jwt
-
-def load_file(file_path):
-    if os.path.isfile(file_path):
-        return open(file_path).read()
-    sys.exit('file {} nofound'.format(file_path))
-
-class Config(object):
-    HTTP_PORT=os.environ.get('HTTP_PORT', 9900)
-    LDAP_URL=os.environ.get('LDAP_URL', 'ldap://10.170.33.107:1389')
-    UID_FMT=os.environ.get('UID_FMT', 'cn={uid},ou=people,dc=neusoft,dc=internal')
-    JWT_PUBLIC_KEY = load_file(os.environ.get('JWT_PUBLIC_KEY_FILE', 'srv.pem'))
-    JWT_PRIVATE_KEY = load_file(os.environ.get('JWT_PRIVATE_KEY_FILE', 'srv.key'))
-    JWT_ACCESS_TOKEN_EXPIRES = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES', 15))
-
-app = Flask(__name__, static_url_path='/public', static_folder='static')
-app.config.from_object(Config)
-
-from werkzeug.exceptions import HTTPException
-import flask
-@app.errorhandler(HTTPException)
-def handle_exception(e):
-    response = e.get_response()
-    response.data = flask.json.dumps({ 'code': e.code, 'name': e.name, 'description': e.description, })
-    response.content_type = 'application/json'
-    return response
-
-from ldap3 import Server, Connection, ALL
-def init_connection(url, binddn, password):
-    srv = Server(url, get_info=ALL)
-    conn = Connection(srv, user=binddn, password=password)
-    conn.bind()
-    return conn
-
-def check_ldap_login(username, password):
-    try:
-        with init_connection(app.config['LDAP_URL'], app.config['UID_FMT'].format(uid=username), password) as c:
-            if c.bound:
-                print('{} Login OK'.format(c.extend.standard.who_am_i()))
-                return True
-            else:
-                return False
-    except Exception as e:
-        print('ldap excetion:', e)
-    return False
-
-def _build_cors_preflight_response():
-    response = make_response()
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', '*')
-    response.headers.add('Access-Control-Allow-Methods', '*')
-    return response
-
-def _corsify_actual_response(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
-@app.route('/public_key')
-def public_key():
-    return app.config['JWT_PUBLIC_KEY']
-html="""
-<html><head><title>Login</title></head>
-<body>
-  <form id="jwtForm">
-    <label>Username:</label><input type="text" name='username'>
-    <label>Password:</label><input type="text" name='password'>
-    <a href="javascript:login()">Login</a>
-  </form>
-<script>
-//URL of jwt server
-var AuthUrl = '/api/auth';
-var callback = "{return_url}";
-{js}
-</script>
-</body>
-</html>
-"""
-js="""
-function initXMLHttpRequest(method, url, jwtoken) {
-  let xmlHttpRequest = new XMLHttpRequest();
-  xmlHttpRequest.open(method, url, true);
-  if (jwtoken) { xmlHttpRequest.setRequestHeader('Authorization', 'Bearer ' + jwtoken); }
-  return xmlHttpRequest;
-}
-function login() {
-  var params = new FormData(document.getElementById('jwtForm'));
-  var sendObject = JSON.stringify(Object.fromEntries(params.entries()));
-  console.log(sendObject);
-  xhr=initXMLHttpRequest('POST', AuthUrl);
-  xhr.onreadystatechange = function() {
-    if(xhr.readyState !== 4) { return; }
-    if(xhr.status === 200) {
-      var responseObject = JSON.parse(xhr.responseText);
-      location.href=callback + "?token=" + responseObject.token;
-    }
-    else { console.log('error'); }
-  }
-  xhr.send(sendObject);
-}
-"""
-@app.route('/api/auth', methods=['POST', 'GET'])
-def login_user():
-    if request.method == 'GET':
-        return_url=request.args.get('return_url', 'http://192.168.169.234')
-        return render_template_string(html.format(return_url=return_url, js=js))
-    # # avoid Content type: text/plain return http415
-    req_data = request.get_json(force=True)
-    username = req_data.get('username', None)
-    password = req_data.get('password', None)
-    expire = int(req_data.get('expire', app.config['JWT_ACCESS_TOKEN_EXPIRES']))
-    if not username or not password:
-        return jsonify({'msg': 'username or password no found'}), 400
-    print('{},pass[{}],expire[{}]'.format(username, password, expire))
-    if check_ldap_login(username, password):
-        payload = {
-                'username': username,
-                'iat': datetime.datetime.utcnow(),
-                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=expire)
-                }
-        token = jwt.encode(payload, app.config['JWT_PRIVATE_KEY'], algorithm='RS256')
-        resp=jsonify({'token' : token})
-        resp.set_cookie('token', token)
-        return _corsify_actual_response(resp)
-    return jsonify({'msg': 'Bad username or password'}), 401
-##########################################
-from functools import wraps
-from werkzeug.exceptions import Unauthorized
-def auth_check(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        token = None
-        if 'Authorization' in request.headers:
-            data = request.headers['Authorization']
-            token = str.replace(str(data), 'Bearer ', '')
-        else:
-            token = request.cookies.get('token')
-        try:
-            if not token:
-                raise Unauthorized('Token is missing')
-            data = jwt.decode(token, app.config['JWT_PUBLIC_KEY'], algorithms='RS256')
-            print('auth_check: {}'.format(data))
-            # data['username']
-        except jwt.ExpiredSignatureError:
-            raise Unauthorized('Signature expired. Please log in again.')
-        except jwt.InvalidTokenError:
-            raise Unauthorized('Invalid token. Please log in again.')
-        return f(*args, **kwargs)
-    return decorated_function
-@app.route('/', methods=['GET', 'OPTIONS'])
-@auth_check
-def api_create_order():
-    if request.method == 'OPTIONS': # CORS preflight
-        return _build_cors_preflight_response()
-    # resp.set_cookie('userID', user)
-    return _corsify_actual_response(jsonify({'msg': 'OK'}))
-
-if __name__ == '__main__':
-    print('pip install flask ldap3 pyjwt[crypto]')
-    print('''curl -s -k -X POST "http://localhost:{port}/api/auth" -H "Content-Type: application/json" -d '{{"username": "admin", "password": "password"}}' | jq -r .token'''.format(port=app.config['HTTP_PORT']))
-    app.run(host='0.0.0.0', port=app.config['HTTP_PORT']) #, debug=True)
-EOF
 cat <<'EOF' > jwt_sso_auth.inc
+# cp login.html /etc/nginx/http-enabled/jwt_client.login.html
 # 2xx response code, the access is allowed.
 # 401 or 403, the access is denied with the corresponding error code
 # Any other response code returned by the subrequest is considered an error.
@@ -2070,9 +1759,9 @@ location @error401 { default_type text/html; return 401 '<html><head><meta http-
 location = /login.html { alias /etc/nginx/http-enabled/jwt_client.login.html; }
 location = /logout.html { add_header Set-Cookie 'token='; return 302 /login.html; }
 location ~* .(favicon.ico)$ { access_log off; log_not_found off; alias /var/www/favicon.ico; }
-location =/api/auth {
-    # real jwt server
-    proxy_pass http://172.16.0.21:9901;
+location =/api/login {
+    # real jwt server, for login
+    proxy_pass http://jwt_api;
 }
 location = @sso-auth {
     internal;
@@ -2101,6 +1790,12 @@ cat <<'EOF' > jwt_sso.http
 server {
     listen unix:/var/run/authsrv.socket;
     server_name _;
+    location =/api/login {
+        # # real jwt server, for login
+        proxy_pass http://192.168.169.234:6000;
+        # # for login with captcha
+        # proxy_pass http://jwt_api/api/loginx;
+    }
     location / {
         auth_jwt_enabled on;
         auth_jwt_redirect off;
@@ -2113,8 +1808,10 @@ server {
     }
 }
 upstream jwt_api {
+    # uri: / => check token
+    # uri: /api/login => login
     server unix:/var/run/authsrv.socket;
-    # server 192.168.169.234:9900;
+    # server 192.168.169.234:6000;
     keepalive 64;
 }
 server {
@@ -2243,102 +1940,6 @@ login_html="""
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title> {{ title }} </title>
-<style>
-body {
-  font-family: sans-serif;
-  color: #333;
-}
-main {
-  margin: 0 auto;
-}
-h1 {
-  font-size: 2em;
-  margin-bottom: 2.5em;
-  margin-top: 2em;
-  text-align: center;
-}
-form {
-  border-radius: 0.2rem;
-  border: 1px solid #CCC;
-  margin: 0 auto;
-  max-width: 16rem;
-  padding: 2rem 2.5rem 1.5rem 2.5rem;
-}
-input {
-  background-color: #FAFAFA;
-  border-radius: 0.2rem;
-  border: 1px solid #CCC;
-  box-shadow: inset 0 1px 3px #DDD;
-  box-sizing: border-box;
-  display: block;
-  font-size: 1em;
-  padding: 0.4em 0.6em;
-  vertical-align: middle;
-  width: 100%;
-}
-input:focus {
-  background-color: #FFF;
-  border-color: #51A7E8;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.075) inset, 0 0 5px rgba(81, 167, 232, 0.5);
-  outline: 0;
-}
-label {
-  color: #666;
-  display: block;
-  font-size: 0.9em;
-  font-weight: bold;
-  margin: 1em 0 0.25em 0;
-}
-button {
-  background-color: #60B044;
-  background-image: linear-gradient(#8ADD6D, #60B044);
-  border-radius: 0.2rem;
-  border: 1px solid #5CA941;
-  box-sizing: border-box;
-  color: #fff;
-  cursor: pointer;
-  display: block;
-  font-size: 0.9em;
-  font-weight: bold;
-  margin: 2em 0 0.5em 0;
-  padding: 0.5em 0.7em;
-  text-align: center;
-  text-decoration: none;
-  text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.3);
-  user-select: none;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-button:focus,
-button:hover {
-  background-color: #569E3D;
-  background-image: linear-gradient(#79D858, #569E3D);
-  border-color: #4A993E;
-}
-.alerts {
-  margin: 2rem auto 0 auto;
-  max-width: 30rem;
-}
-.alert {
-  border-radius: 0.2rem;
-  border: 1px solid;
-  color: #fff;
-  padding: 0.7em 1.5em;
-}
-.alert.error {
-  background-color: #E74C3C;
-  border-color: #C0392B;
-}
-.alert.success {
-  background-color: #60B044;
-  border-color: #5CA941;
-}
-@media only screen and (max-width: 480px) {
-  form {
-    border: 0;
-  }
-}
-</style>
   </head>
   <body>
     <main>

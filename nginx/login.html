@@ -6,9 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title> Login </title>
+<!-- add for captcha START -->
 <link type="text/css" rel="stylesheet" href="http://192.168.168.1/dialog.css" />
 <script language="javascript" src="http://192.168.168.1/dialog.js"></script>
 <script language="javascript" src="http://192.168.168.1/clickcaptcha.js"></script>
+<!-- add for captcha END -->
 <style>
 body {
   font-family: sans-serif;
@@ -119,9 +121,10 @@ function GetURLParameter(sParam) {
       return sParameterName[1];
     }
   }
+  return '';
 }
 //URL or URI of jwt server
-var AuthUrl = '/api/auth';
+var AuthUrl = '/api/login';
 var callback = GetURLParameter('return_url');
 function login() {
   var params = new FormData(document.getElementById('jwtForm'));

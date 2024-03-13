@@ -13,6 +13,10 @@ def load_file(file_path):
         return open(file_path, "rb").read()
     sys.exit('file {} nofound'.format(file_path))
 
+def _corsify_actual_response(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
 from ldap3 import Server, Connection, ALL
 def init_connection(url, binddn, password):
     srv = Server(url, get_info=ALL)
@@ -59,21 +63,7 @@ class jwt_auth:
     def get_pubkey(self) -> str:
         return self.pubkey
 
-    def gen_json(self) -> str:
-        # click_captcha.html demo
-        return {
-            'username'     : '',
-            'password'     : '',
-        }
-
-    def gen_html(self) -> str:
-        html = (
-            '<input type="text" class="textfield userName" name="username">'
-            '<input type="password" class="textfield password" name="password">'
-        )
-        return '{}'.format(html)
-
-    def login(self, username: str, password: str) -> Optional[Dict]:
+    def login(self, username: str, password: str) -> Dict:
         if self.__ldap_login(username, password):
             payload = {
                 'username': username,
@@ -82,7 +72,27 @@ class jwt_auth:
             }
             token = jwt.encode(payload, self.prikey, algorithm='RS256')
             return { 'token' : token }
-        return None
+        raise Unauthorized('Bad username or password.')
+
+    def check_login(self, token:str) -> Dict:
+        try:
+            if not token:
+                raise Unauthorized('Token missing.')
+            data = jwt.decode(token, self.pubkey, algorithms='RS256')
+            print('auth_check: {}'.format(data))
+            return {'msg':'login ok'}
+        except jwt.ExpiredSignatureError:
+            raise Unauthorized('Signature expired.')
+        except jwt.InvalidTokenError:
+            raise Unauthorized('Invalid token.')
+    def decode_captcha_token(self, token: str) -> Dict:
+        try:
+            return jwt.decode(token, self.captcha_pubkey, algorithms='RS256')
+        except jwt.ExpiredSignatureError:
+            raise Unauthorized('Signature expired')
+        except jwt.InvalidTokenError:
+            raise Unauthorized('Invalid captcha token')
+        raise Unauthorized('known error')
 
 from flask import Flask, abort, jsonify, request, make_response, render_template, render_template_string
 import os, sys
@@ -101,7 +111,7 @@ def handle_exception(e):
     response = e.get_response()
     response.data = flask.json.dumps({ 'code': e.code, 'name': e.name, 'description': e.description, })
     response.content_type = 'application/json'
-    return response
+    return _corsify_actual_response(response)
 
 @app.route('/public_key')
 def public_key():
@@ -110,18 +120,25 @@ def public_key():
 @app.route('/api/login', methods=['POST', 'GET'])
 def api_login():
     if request.method == 'GET':
-        return auth.gen_html()
+        return jsonify({'msg': 'jwt login server alive'}), 200
     # # avoid Content type: text/plain return http415
     req_data = request.get_json(force=True)
     username = req_data.get('username', None)
     password = req_data.get('password', None)
     if not username or not password:
-        return jsonify({'msg': 'username or password no found'}), 401
+        return _corsify_actual_response(jsonify({'msg': 'username or password no found'})), 401
     logger.debug('%s ,pass[%s]', username, password)
-    msg = auth.login(username, password)
-    if msg:
-        return msg
-    return jsonify({'msg': 'Bad username or password'}), 401
+    return _corsify_actual_response(jsonify(auth.login(username, password)))
+
+@app.route('/', methods=['GET'])
+def index():
+    token = None
+    if 'Authorization' in request.headers:
+        data = request.headers['Authorization']
+        token = str.replace(str(data), 'Bearer ', '')
+    else:
+        token = request.cookies.get('token')
+    return _corsify_actual_response(jsonify((auth.check_login(token))))
 
 # login with captcha
 from werkzeug.exceptions import Unauthorized
@@ -142,29 +159,31 @@ def get_captcha_payload(token: str, pubkey: str) -> str:
 @app.route('/api/loginx', methods=['POST', 'GET'])
 def api_login_check_captcha():
     if request.method == 'GET':
-        return auth.gen_html()
+        return _corsify_actual_response(jsonify({'msg': 'jwt loginx server alive'}))
     # # avoid Content type: text/plain return http415
     req_data = request.get_json(force=True)
     ctoken = req_data.get('ctoken', None)
     password = req_data.get('password', None)
     if not ctoken or not password:
-        return jsonify({'msg': 'no all valid found'}), 401
-    username = get_captcha_payload(ctoken, auth.captcha_pubkey)
+        return _corsify_actual_response(jsonify({'msg': 'no all valid found'})), 401
+    captcha = auth.decode_captcha_token(ctoken)
+    logger.debug(captcha)
+    username = captcha.get('payload')
+    if not username:
+        raise Unauthorized('captcha payload is null')
     logger.debug('%s ,pass[%s]', username, password)
-    msg = auth.login(username, password)
-    if msg:
-        return msg
-    return jsonify({'msg': 'Bad username or password'}), 401
+    return _corsify_actual_response(jsonify(auth.login(username, password)))
 
 def main():
-    logger.info("""
+    print('pip install flask ldap3 pyjwt[crypto]')
+    logger.debug("""
 CAPTCHA_SRV=http://localhost:5000
 JWT_SRV=http://localhost:6000
 eval $(curl "${CAPTCHA_SRV}/api/verify" | grep chash | grep -o -Ei  'value="([^"]*")')
 echo "aptcha-hash ========= $value"
-ctoken=$(curl -s -k -X POST "${CAPTCHA_SRV}/api/verify" -d "{\"payload\":\"yin.zh\", \"ctext\": \"fuck\", \"chash\": \"$value\"}" | jq -r .ctoken)
+ctoken=$(curl -s -k -X POST "${CAPTCHA_SRV}/api/verify" -d "{\\"payload\\":\\"yin.zh\\", \\"ctext\\": \\"fuck\", \\"chash\": \\"$value\\"}" | jq -r .ctoken)
 echo "ctoken ======= $ctoken"
-curl -s -k -X POST "${JWT_SRV}/api/loginx" -d "{\"password\":\"Passw)rd123\", \"ctoken\": \"$ctoken\"}"
+curl -s -k -X POST "${JWT_SRV}/api/loginx" -d "{\\"password\\":\\"Passw)rd123\\", \\"ctoken\\": \\"$ctoken\\"}"
 """)
     app.run(host='0.0.0.0', port=app.config['HTTP_PORT']) #, debug=True)return 0
 
