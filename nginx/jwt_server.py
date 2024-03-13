@@ -3,7 +3,7 @@
 
 import logging, os
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
-logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s: %(message)s') 
+logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s: %(message)s')
 logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 

@@ -143,7 +143,7 @@ def handle_exception(e):
     response = e.get_response()
     response.data = flask.json.dumps({ 'code': e.code, 'name': e.name, 'description': e.description, })
     response.content_type = 'application/json'
-    return response
+    return _corsify_actual_response(response)
 
 @app.route('/public_key')
 def public_key():
@@ -153,7 +153,7 @@ def public_key():
 def api_verify():
     if request.method == 'GET':
         captcha_dict = captcha.create()
-        response = jsonify('{}'.format(captcha_dict))
+        response = jsonify(captcha_dict)
         return _corsify_actual_response(response)
 
     # # avoid Content type: text/plain return http415
@@ -164,12 +164,13 @@ def api_verify():
     c_payload = req_data.get('payload', '')
     tmout_sec=10
     if not c_hash or not c_text or not c_type:
-        return jsonify({'msg': 'captcha no found'}), 401
+        return _corsify_actual_response(jsonify({'msg': 'captcha no found'})), 401
     if captcha.verify(c_type, c_text, c_hash):
         # return new token 10 sec, for LOGIN service check captcha success!
-        return jsonify({'ctoken': captcha.make_success_token(c_payload, tmout_sec)}), 200
+        response = jsonify({'ctoken': captcha.make_success_token(c_payload, tmout_sec)})
+        return _corsify_actual_response(response)
     else:
-        return jsonify({'msg': 'captcha error'}), 401
+        return _corsify_actual_response(jsonify({'msg': 'captcha error'})), 401
 
 def main():
     logger.debug('''curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "[{\\"x\\": 329, \\"y\\": 129}]", "chash": "", "ctype": "", "payload": "u string"}' ''')

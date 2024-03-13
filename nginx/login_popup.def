@@ -1,0 +1,14 @@
+const captcha_http = new XMLHttpRequest();
+
+function captcha_check(res) {
+    if (res == false){ return; }
+    //console.log(res);
+    alert(JSON.stringify(res));
+}
+
+const dialog = new Dialog();
+
+dialog.waitForUser().then((res) => {
+  captcha_check(res);
+  return;
+})

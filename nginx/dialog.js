@@ -102,7 +102,7 @@ class Dialog {
 
     if (this.hasFormData) {
       this.focusable[0].focus()
-      this.focusable[0].select()
+      //this.focusable[0].select()
     }
     else {
       this.elements.accept.focus()
