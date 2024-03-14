@@ -12,7 +12,14 @@ from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont, ImageOps
 from io import BytesIO
-import base64, json
+import base64, json, string, random, sys
+
+import pathlib
+def rand_image(relative_path: str) -> str:
+    pwd = pathlib.Path(__file__).parent
+    mylist = os.listdir(pwd / relative_path)
+    # return random.sample(mylist, k=1)[0]
+    return mylist[random.randint(0, mylist.__len__() - 1)]
 
 def force_bytes(s, encoding='utf-8', strings_only=False, errors='strict'):
     if isinstance(s, bytes):
@@ -59,8 +66,6 @@ def file_exists(file:str)-> bool:
         return False
     return True
 
-import string, random, sys
-
 class TextCaptcha(object):
     charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     def __init__(self, font_file:str, font_size:int=18):
@@ -96,7 +101,6 @@ class TextCaptcha(object):
 
 class ClickCaptcha(object):
     charset = "中之云人仅任划办务印发周壮处始完布并建开待快成我搜新更最月有本板源理的看私第索经维计设运近速问题"
-    image_list=['a.png']
     def __init__(self, font_file:str, font_size:int=40):
         if file_exists(font_file):
             self.font=ImageFont.truetype(font_file, font_size)
@@ -124,7 +128,7 @@ class ClickCaptcha(object):
 
     def create(self, length:int=2, width:int=400, height: int=200) -> Dict:
         text=self._genrand_cha(length)
-        image_file=random.sample(self.image_list, k=1)[0]
+        image_file=rand_image('click_background')
         logger.debug("ClickCaptcha text is: %s, background %s", text, image_file)
         image = Image.open(image_file).resize((width, height), Image.LANCZOS)
         pos=[]
