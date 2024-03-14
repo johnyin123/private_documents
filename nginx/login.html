@@ -50,6 +50,16 @@ input:focus {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.075) inset, 0 0 5px rgba(81, 167, 232, 0.5);
   outline: 0;
 }
+input.username {
+ background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAC7klEQVRIS8WWTUgUYRjH/8+4y1pBIJ4iCrUdtwwMsqgOlSejDlns7CJEXpTQ3dkwrx0yqGuG+5GHzIMIobOSHaQuBQWVFUXShu6silRQh76ojNbdeWJN17b9mhmD3uv7//9/zzvP+zGE/zTICDeghk8CXA/AQSAHgxlABIwoCOOyKF3Tm6cL3D97t/R74sMlAO2Fghl80ye6GvXAi4K7o+EqK/G0nrBljSxKRXOLCgKq8grANiNgBrp9otRZyFMQ7I8pZ4lxwQh0WcugVp/o7MvnLQxWlacE1JkBE/DcK0o7TYEDqvINwDozYBDmZbuU15t3xaFouEozuKn+LpDIKnrtjbFchecFB6fDu1njx6ZWu9LovXK1NG4IHJobLNPito+rAZeWauWtm9w5MwpurkBMmQWjwiT8tSxKm01tLr86PEqgo2bABFK8otNlCtyr3qhJIBExDCaKrklYdrVsbfxqCpwyBdVwC4OvGoIvUIVc45wzfXMtG/2qcoiAWzrgPzRNqz/tcBc9DUXv6jR8cqiSBCEAwpHcBfCdEo2b2x3utzoKRF6wXx12EcgFxpP4gtbXuf33sQjGRu0a4iIg2AVGMsmIWoAZT7VzJjXfMzOyg5LJU2ASrGTxt4nHUo9M1sgJXoIOrdwDeEnEF2W763qh1fijShvR4qNSvqSLWGBx54JngXumhvcLAt3LDaB+Jn4E5iiDI3EtwbYSm4OYU38jBwnUnOVjTCQs1oaOqsb3f85lgYOqMsbAYT19MqAZkEUpo6gMcEBVUr82IQOBRqQeWZSuLBvS4NDEYJm21vYQDIeRNN1awpQw/3Ofp/bEp5QnDfZPDXeRQOd0B5kQssbnfQ5XVyZYVW4T0GAiT7eFCPe9dulAGtyjjq0XMP9Fd8IqhAuWkrIzlcc/L37qy5NKraUEL1aRZ8CaqJPFpmfpHgdU5Q2AjQYSzEjfyaK0IaPHgdhIE1jrALDHTKIOzwNBwIBni9SbAdZh/KeSX8JT+h87XgIZAAAAAElFTkSuQmCC") no-repeat #FFFFFF;
+ padding: 8px 0 8px 32px;
+ background-position: left;
+}
+input.password {
+ background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAACrUlEQVRIS+2Wy0/UUBTGv9MZBnQDBqbEYCIbN2DoJSQ6QacDhpW68rE1mLAzLtC4ReUPMD7YaKK4noUxutG4GGh9RVE6KHGjMRp80EHFhI3MtMd0YskMM9Bb0IUJd9Xkfuf75X49Pb2EkGvWeNWhoLCPQQkCEkxUUMDjjsMvKEZP1G4xKWNJMiJfY49Zx1nBCAG11esoT8BIXNfOBPlKg23TegPGDgBZ16VzNYrzDrHFGbfQwJRfaHFqom1w+BoRNRBhNp4ULavBpcC2Yd0D0MfA5WZdnFrJ8PPdic3R+ogBkGDgUrMuTq+kDQTPmdljLvMNML9UU527giL09m3DWgBQFwEONOrifrWaQLBtWCYATQH6mnTxTAY8+9A6RC7SAJ6qutgbGvwjM9mQj9AcQLdVXTsiA11qRDP7FsyttdEatb67/fvy2lVPnBuzelnBAzBfVVOdJ8KAc2b2DjPvB9FBNal5PVK2Vgcb1hADQwQMx3UxHAocULsBLqb51czuJuZ+YiSW4iXMh4kajFYo2A4XH4iQVmJ0pTGhzfgeFVHnDGuQgQuhIJJiJYptTd3ikycvA3PmfZ0d+fmRgLikVzgZ4ZaaFIcrwN+M6TYH+elwbuHU/qnLTvwlM9kTiVBGxoqZz7subsY2KYXCL3eAiM7K1DkO927t7RxbE5hAF+O6NlgKsg1rFEB/EHxdYL+4FCKb1v8JJsJ0PCl2Lova642efxr1H/PHqi72eM8503rNjPYgqLe/rqh9gKqLYnPahsUy0A3wUkqyn4Rf4A2R4viTHB5/LWrZ91qqq9pcOXOqi9mdWIuhbA3D0Zr1rqmykTlvTm1ZZLfiYiZrKqF7ruqieEWu+B/b41YahKMSJqElpaO26p0rZ2QHXLgnCdQR2r16wSMwjaop7bq//RtjEmsuv0zq/AAAAABJRU5ErkJggg==") no-repeat #FFFFFF;
+ padding: 8px 0 8px 32px;
+ background-position: left;
+}
 label {
   color: #666;
   display: block;
@@ -93,9 +103,9 @@ button:hover {
  <main>
   <h1>Login Page</h1>
   <form class="jwtForm" id="jwtForm">
-   <label><b>User Name</b></label><input type="text" name='username' placeholder="Username">
+   <label><b>User Name</b></label><input type="text" class="username" name="username" placeholder="Username">
    <br><br>
-   <label><b>Password</b></label><input type="Password" name='password' placeholder="Password">
+   <label><b>Password</b></label><input type="Password" class="password: name="password" placeholder="Password">
    <br><br>
    <!-- add for captcha START id used by login_captcha.js, name used by login server for check-->
    <input type="hidden" id="captcha_token" name="ctoken" value="">
