@@ -3,6 +3,8 @@ dialog = new Dialog();
 function captcha_check(res, real_login) {
   if (res == false){ return; }
   var sendObject = JSON.stringify(res);
+  sendObject['timezone']=Intl.DateTimeFormat().resolvedOptions().timeZone;
+  sendObject['epoch']=~~(Date.now()/1000)
   xhr=new XMLHttpRequest();
   xhr.open('POST', CaptchaVerifyUrl, true);
   xhr.onreadystatechange = function() {

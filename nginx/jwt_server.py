@@ -63,10 +63,11 @@ class jwt_auth:
     def get_pubkey(self) -> str:
         return self.pubkey
 
-    def login(self, username: str, password: str) -> Dict:
+    def login(self, username: str, password: str, trans: Dict =None) -> Dict:
         if self.__ldap_login(username, password):
             payload = {
                 'username': username,
+                'trans': trans if trans is not None else {},
                 'iat': datetime.datetime.utcnow(),
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=self.expire_secs),
             }
@@ -125,7 +126,9 @@ def api_login():
     if not username or not password:
         return _corsify_actual_response(jsonify({'msg': 'username or password no found'})), 401
     logger.debug('%s ,pass[%s]', username, password)
-    return _corsify_actual_response(jsonify(auth.login(username, password)))
+    req_data.pop('username')
+    req_data.pop('password')
+    return _corsify_actual_response(jsonify(auth.login(username, password, req_data)))
 
 @app.route('/', methods=['GET'])
 def index():
@@ -169,7 +172,10 @@ def api_login_check_captcha():
     if not username:
         raise Unauthorized('captcha payload is null')
     logger.debug('%s ,pass[%s]', username, password)
-    return _corsify_actual_response(jsonify(auth.login(username, password)))
+    req_data.pop('ctoken')
+    req_data.pop('password')
+    req_data.pop('payload')
+    return _corsify_actual_response(jsonify(auth.login(username, password, req_data)))
 
 def main():
     print('pip install flask ldap3 pyjwt[crypto]')

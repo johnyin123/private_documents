@@ -118,9 +118,10 @@ class jwt_captcha:
             return self.capt_click.verify(decoded_text, c_text)
         raise Unauthorized('chapcha type error')
 
-    def make_success_token(self, payload: str, tmout:int =6) -> str:
+    def make_success_token(self, payload: str, trans: dict =None, tmout:int =6) -> str:
         payload = {
             'payload': payload,
+            'trans': trans if trans is not None else {},
             'iat': datetime.datetime.utcnow(),
             'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=tmout),
         }
@@ -164,7 +165,11 @@ def api_verify():
         return _corsify_actual_response(jsonify({'msg': 'captcha no found'})), 401
     if captcha.verify(c_type, c_text, c_hash):
         # return new token 10 sec, for LOGIN service check captcha success!
-        response = jsonify({'ctoken': captcha.make_success_token(c_payload, tmout_sec)})
+        req_data.pop('ctype')
+        req_data.pop('chash')
+        req_data.pop('ctext')
+        req_data.pop('payload')
+        response = jsonify({'ctoken': captcha.make_success_token(c_payload, req_data, tmout_sec)})
         return _corsify_actual_response(response)
     else:
         return _corsify_actual_response(jsonify({'msg': 'captcha error'})), 401
