@@ -4,7 +4,10 @@ function captcha_check(res, real_login) {
   if (res == false){ return; }
   var sendObject = JSON.stringify(res);
   sendObject['timezone']=Intl.DateTimeFormat().resolvedOptions().timeZone;
-  sendObject['epoch']=~~(Date.now()/1000)
+  //sendObject['timezone']=(new Date()).getTimezoneOffset()/60;
+  sendObject['epoch']=~~(Date.now()/1000);
+  sendObject['language']=navigator.language;
+  sendObject['platform']=navigator.platform;
   xhr=new XMLHttpRequest();
   xhr.open('POST', CaptchaVerifyUrl, true);
   xhr.onreadystatechange = function() {
