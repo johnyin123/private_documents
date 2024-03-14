@@ -128,11 +128,8 @@ class jwt_captcha:
 
 from flask import Flask, abort, jsonify, request, make_response, render_template, render_template_string
 import os, sys
-class Config(object):
-    HTTP_PORT=os.environ.get('HTTP_PORT', 5000)
 
 app = Flask(__name__, static_url_path='/public', static_folder='static')
-app.config.from_object(Config)
 test_config = DEFAULT_CONF.copy()
 captcha = jwt_captcha(config=test_config)
 
@@ -175,7 +172,9 @@ def api_verify():
 def main():
     logger.debug('''curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "[{\\"x\\": 329, \\"y\\": 129}]", "chash": "", "ctype": "", "payload": "u string"}' ''')
     logger.debug('''curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "", "chash": "", "ctype": "TEXT", "payload": "u string"}' ''')
-    app.run(host='0.0.0.0', port=app.config['HTTP_PORT']) #, debug=True)return 0
+    HTTP_HOST = os.environ.get('HTTP_HOST', '0.0.0.0')
+    HTTP_PORT = int(os.environ.get('HTTP_PORT', '5000'))
+    app.run(host=HTTP_HOST, port=HTTP_PORT) #, debug=True)return 0
 
 if __name__ == '__main__':
     exit(main())
