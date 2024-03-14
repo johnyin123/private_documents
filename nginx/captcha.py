@@ -14,6 +14,17 @@ from PIL import ImageFont, ImageOps
 from io import BytesIO
 import base64, json, string, random, sys
 
+import datetime
+def get_time_from_int(value: int) -> datetime.datetime:
+    if not isinstance(value, int):
+        raise TypeError('an int is required')
+    return datetime.datetime.fromtimestamp(value, datetime.timezone.utc)
+
+def get_int_from_datetime(value: datetime.datetime) -> int:
+    if not isinstance(value, datetime.datetime):
+        raise TypeError('a datetime is required')
+    return int(value.timestamp())
+
 import pathlib
 def rand_image(relative_path: str) -> str:
     pwd = pathlib.Path(__file__).parent
