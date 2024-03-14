@@ -15,6 +15,8 @@ from io import BytesIO
 import base64, json, string, random, sys
 
 import datetime
+# get_int_from_datetime(datetime.datetime.now(datetime.timezone.utc))
+# get_time_from_int(1710383853)
 def get_time_from_int(value: int) -> datetime.datetime:
     if not isinstance(value, int):
         raise TypeError('an int is required')
