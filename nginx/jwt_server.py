@@ -118,13 +118,13 @@ def public_key():
 @app.route('/api/login', methods=['POST', 'GET'])
 def api_login():
     if request.method == 'GET':
-        return jsonify({'msg': 'jwt login server alive'}), 200
+        return jsonify({'msg': 'jwt login server alive'})
     # # avoid Content type: text/plain return http415
     req_data = request.get_json(force=True)
     username = req_data.get('username', None)
     password = req_data.get('password', None)
     if not username or not password:
-        return _corsify_actual_response(jsonify({'msg': 'username or password no found'})), 401
+        raise Unauthorized('username or password no found')
     logger.debug('%s ,pass[%s]', username, password)
     req_data.pop('username')
     req_data.pop('password')
@@ -165,7 +165,7 @@ def api_login_check_captcha():
     ctoken = req_data.get('ctoken', None)
     password = req_data.get('password', None)
     if not ctoken or not password:
-        return _corsify_actual_response(jsonify({'msg': 'no all valid found'})), 401
+        raise Unauthorized('ctoken/password no found')
     captcha = auth.decode_captcha_token(ctoken)
     logger.debug(captcha)
     username = captcha.get('payload')

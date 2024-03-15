@@ -162,7 +162,7 @@ def api_verify():
     c_payload = req_data.get('payload', '')
     tmout_sec=10
     if not c_hash or not c_text or not c_type:
-        return _corsify_actual_response(jsonify({'msg': 'captcha no found'})), 401
+        raise Unauthorized('captcha no found')
     if captcha.verify(c_type, c_text, c_hash):
         # return new token 10 sec, for LOGIN service check captcha success!
         req_data.pop('ctype')
@@ -172,7 +172,7 @@ def api_verify():
         response = jsonify({'ctoken': captcha.make_success_token(c_payload, req_data, tmout_sec)})
         return _corsify_actual_response(response)
     else:
-        return _corsify_actual_response(jsonify({'msg': 'captcha error'})), 401
+        raise Unauthorized('captcha error')
 
 def main():
     logger.debug('''curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "[{\\"x\\": 329, \\"y\\": 129}]", "chash": "", "ctype": "", "payload": "u string"}' ''')

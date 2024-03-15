@@ -75,17 +75,18 @@ def file_exists(file:str)-> bool:
         return False
     return True
 
+def genrand_cha(charset: list, size: int=2) -> list:
+    # random.sample, not dupvalue
+    return random.choices(charset, k=size)
+    # return random.choices(charset, k=size)
+
 class TextCaptcha(object):
     charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    colorset=["black", "blue", "cyan", "darkblue", "darkcyan", "darkgrey", "darkgreen", "darkkhaki", "darkmagenta", "darkolivegreen", "darkorange", "darkorchid", "darkred", "darksalmon", "darkseagreen", "darkslateblue", "darkslategrey", "darkturquoise", "darkviolet", "deeppink", "deepskyblue", "gold", "goldenrod", "green", "purple", "red",  "skyblue", "yellow", "yellowgreen"]
+    colorset=["black", "blue", "cyan", "darkblue", "darkcyan", "darkgreen", "darkmagenta", "darkolivegreen", "darkorange", "darkorchid", "darkred", "green", "red"]
     def __init__(self, font_file:str, font_size:int=18):
         if file_exists(font_file):
             self.font=ImageFont.truetype(font_file, font_size)
         logger.debug('TextCaptcha')
-
-    def _genrand_cha(self, size: int=2) -> str:
-        # random.sample, not dupvalue
-        return ''.join(random.choices(self.charset, k=size))
 
     @staticmethod
     def getname():
@@ -99,32 +100,27 @@ class TextCaptcha(object):
 
     def create(self, length:int=4, width:int=60, height: int=30) -> Dict:
         image=Image.new('RGBA', size=(width, height), color='white')
-        text=self._genrand_cha(length)
+        colors=random.sample(self.colorset, k=length)
+        text=genrand_cha(self.charset, length)
         logger.debug("TextCaptcha text is: %s", text)
         xpos = 0
-        for ch in list(text):
-            color=''.join(random.sample(self.colorset, k=1))
+        for color, ch in zip(colors, text):
             image = draw_rotated_text(image, self.font, ch, color, xpos, 0, random.randint(0, 20))
             xpos += int(width/length)
         return {
             'type' : self.getname(),
             'img' : pil_image_to_base64(image).decode("utf-8"),
             'msg': 'input captcha',
-            'payload' : text,
+            'payload': ''.join(text),
         }
 
 class ClickCaptcha(object):
     charset = "中之云人仅任划办务印发周壮处始完布并建开待快成我搜新更最月有本板源理的看私第索经维计设运近速问题"
-    colorset=["black", "blue", "cyan", "darkblue", "darkcyan", "darkgrey", "darkgreen", "darkkhaki", "darkmagenta", "darkolivegreen", "darkorange", "darkorchid", "darkred", "darkseagreen", ,"deepskyblue", "green", "red", "yellow", "yellowgreen"]
+    colorset=["black", "blue", "cyan", "darkblue", "darkcyan", "darkgreen", "darkmagenta", "darkolivegreen", "darkorange", "darkorchid", "darkred", "green", "red"]
     def __init__(self, font_file:str, font_size:int=40):
         if file_exists(font_file):
             self.font=ImageFont.truetype(font_file, font_size)
         logger.debug('ClickCaptcha')
-
-    def _genrand_cha(self, size: int=2) -> str:
-        # return ''.join(random.choices(self.charset, k=size))
-        # # sample return without duplicates
-        return ''.join(random.sample(self.charset, k=size))
 
     @staticmethod
     def getname():
@@ -144,22 +140,22 @@ class ClickCaptcha(object):
         return result
 
     def create(self, length:int=2, width:int=400, height: int=200) -> Dict:
-        text=self._genrand_cha(length)
         image_file=rand_image('click_background')
-        logger.debug("ClickCaptcha text is: %s, background %s", text, image_file)
         image = Image.open(image_file).resize((width, height), Image.LANCZOS)
+        colors=random.sample(self.colorset, k=length)
+        text=genrand_cha(self.charset, length)
+        logger.debug("ClickCaptcha text is: %s, background %s", text, image_file)
         pos=[]
-        for ch in list(text):
-            xpos = random.randint(0, width - self.font.getlength(ch))
-            ypos = random.randint(0, height - self.font.getlength(ch))
-            color=''.join(random.sample(self.colorset, k=1))
+        for color, ch in zip(colors, text):
+            xpos = random.randint(30, width - self.font.getlength(ch))
+            ypos = random.randint(30, height - self.font.getlength(ch))
             image = draw_rotated_text(image, self.font, ch, color, xpos, ypos, random.randint(10, 80))
             pos.append({'x':int(xpos+self.font.getlength(ch)/2), 'y':int(ypos+self.font.getlength(ch)/2)})
         return {
             'type' : self.getname(),
             'img' : pil_image_to_base64(image).decode("utf-8"),
             'len': length,
-            'msg': text,
+            'msg': ''.join(text),
             'payload' : json.dumps(pos),
         }
 # capt1 = ClickCaptcha('demo.ttf')

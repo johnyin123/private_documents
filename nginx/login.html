@@ -112,7 +112,7 @@ function login() {
       }
       return;
     }
-    alert('error: ' + xhr.status);
+    alert('error:' + xhr.responseText + xhr.status);
     return;
   }
   xhr.send(sendObject);

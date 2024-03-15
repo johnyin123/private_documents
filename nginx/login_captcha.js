@@ -19,7 +19,7 @@ function captcha_check(res, real_login) {
       return;
     }
     msg = new Dialog();
-    msg.alert('Captcha server error:!' + xhr.status, {}).then((res) => { console.error(res); });
+    msg.alert('Captcha server error:' + xhr.responseText + xhr.status, {}).then((res) => { });
     return;
   }
   xhr.send(sendObject);
@@ -78,14 +78,14 @@ function getCaptcha(payload, real_login, url) {
       console.error(xhr.responseText)
     }
     msg = new Dialog();
-    msg.alert('Captcha server error:!' + xhr.status, {}).then((res) => { console.error(res); });
+    msg.alert('Captcha server error:' + xhr.responseText + xhr.status, {}).then((res) => { });
   }
   xhr.send();
 }
 function captcha_login(real_login, payload) {
   if (payload == "") {
     msg = new Dialog();
-    msg.alert('login payload NULL!', {}).then((res) => { console.error(res); });
+    msg.alert('login payload NULL!', {}).then((res) => { });
     return;
   }
   getCaptcha(payload, real_login, CaptchaVerifyUrl);
