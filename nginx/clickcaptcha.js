@@ -17,22 +17,21 @@
     ctx.strokeRect(x - (width/2), y - (height/2), width, height);
   }
   function getCursorPosition(canvas, event) {
-    const rect = canvas.getBoundingClientRect()
-    const x = event.clientX - rect.left
-    const y = event.clientY - rect.top
-    drawBorder(canvas, x, y, opts.clipWidth, opts.clipHeight)
+    const rect = canvas.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    drawBorder(canvas, x, y, opts.clipWidth, opts.clipHeight);
     opts.objs.push({'x':x, 'y': y});
-    console.log(opts.objs)
     if(opts.clickTimes<=opts.objs.length) {
       opts.onOK && opts.onOK(opts.objs);
-      reset(canvas);
+      // reset(canvas);
     }
   }
   function reset(canvas) {
     var context = canvas.getContext("2d");
     var img = new Image();
     img.onload = function(){
-        context.drawImage(img, 0, 0);
+      context.drawImage(img, 0, 0);
     };
     img.src = opts.imgurl;
     opts.objs=[];
@@ -55,21 +54,21 @@
     var context = canvas.getContext("2d");
     var img = new Image();
     img.onload = function(){
-        context.drawImage(img, 0, 0);
+      context.drawImage(img, 0, 0);
     };
     img.src = opts.imgurl;
     canvas.addEventListener('mousedown', function(e) {
-        getCursorPosition(canvas, e)
+      if(opts.clickTimes<=opts.objs.length) { return; }
+      getCursorPosition(canvas, e);
     })
   }
   if(typeof exports == "object") {
-    module.exports = ClickCaptcha
+    module.exports = ClickCaptcha;
   } else if(typeof define == "function" && define.amd) {
     define([], function() {
-      return ClickCaptcha
+      return ClickCaptcha;
     })
   } else if(window) {
-    window.ClickCaptcha = ClickCaptcha
+    window.ClickCaptcha = ClickCaptcha;
   }
 })()
-

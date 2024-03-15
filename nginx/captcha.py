@@ -120,7 +120,9 @@ class ClickCaptcha(object):
         logger.debug('ClickCaptcha')
 
     def _genrand_cha(self, size: int=2) -> str:
-        return ''.join(random.choices(self.charset, k=size))
+        # return ''.join(random.choices(self.charset, k=size))
+        # # sample return without duplicates
+        return ''.join(random.sample(self.charset, k=size))
 
     @staticmethod
     def getname():
