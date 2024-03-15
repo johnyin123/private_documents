@@ -51,12 +51,7 @@
       console.error("param canvas must be canvas");
       return;
     }
-    var context = canvas.getContext("2d");
-    var img = new Image();
-    img.onload = function(){
-      context.drawImage(img, 0, 0);
-    };
-    img.src = opts.imgurl;
+    reset(canvas);
     canvas.addEventListener('mousedown', function(e) {
       if(opts.clickTimes<=opts.objs.length) { return; }
       getCursorPosition(canvas, e);

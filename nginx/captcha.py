@@ -8,9 +8,7 @@ logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
 # Importing the PIL library
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont, ImageOps
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 from io import BytesIO
 import base64, json, string, random, sys
 
@@ -32,7 +30,7 @@ def rand_image(relative_path: str) -> str:
     pwd = pathlib.Path(__file__).parent
     mylist = os.listdir(pwd / relative_path)
     # return random.sample(mylist, k=1)[0]
-    return mylist[random.randint(0, mylist.__len__() - 1)]
+    return pwd / relative_path / mylist[random.randint(0, mylist.__len__() - 1)]
 
 def force_bytes(s, encoding='utf-8', strings_only=False, errors='strict'):
     if isinstance(s, bytes):
@@ -64,14 +62,12 @@ def pil_image_to_base64(pil_image:Image, format:str='png')-> str:
 def base64_to_pil_image(base64_img:str)->Image:
     return Image.open(BytesIO(base64.b64decode(base64_img)))
 
-def draw_rotated_text(background:Image, font: ImageFont, text:str, x:int=0, y:int=0, angle:float=0):
-    left, top, right, bottom = font.getbbox(text)
-    txt = Image.new("L", size=(right, bottom))
+def draw_rotated_text(background:Image, font: ImageFont, text:str, color:str, x:int=0, y:int=0, angle:float=0) -> Image:
+    back=background.convert("RGBA")
+    txt = Image.new('RGBA', back.size, (255,255,255,0))
     draw = ImageDraw.Draw(txt)
-    draw.text((0, 0), text, font=font, fill=200)
-    txt = txt.rotate(angle)
-    background.paste(ImageOps.colorize(txt, (0, 0, 0), (0, 255, 84)), (x, y), txt)
-    return
+    draw.text((x, y), text, font=font, fill=color)
+    return Image.alpha_composite(back, txt.rotate(angle))
 
 def file_exists(file:str)-> bool:
     if not os.path.isfile(file):
@@ -81,6 +77,7 @@ def file_exists(file:str)-> bool:
 
 class TextCaptcha(object):
     charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    colorset=["black", "blue", "cyan", "darkblue", "darkcyan", "darkgrey", "darkgreen", "darkkhaki", "darkmagenta", "darkolivegreen", "darkorange", "darkorchid", "darkred", "darksalmon", "darkseagreen", "darkslateblue", "darkslategrey", "darkturquoise", "darkviolet", "deeppink", "deepskyblue", "gold", "goldenrod", "green", "purple", "red",  "skyblue", "yellow", "yellowgreen"]
     def __init__(self, font_file:str, font_size:int=18):
         if file_exists(font_file):
             self.font=ImageFont.truetype(font_file, font_size)
@@ -101,10 +98,14 @@ class TextCaptcha(object):
         return False
 
     def create(self, length:int=4, width:int=60, height: int=30) -> Dict:
-        image=Image.new('RGBA', size=(width, height))
+        image=Image.new('RGBA', size=(width, height), color='white')
         text=self._genrand_cha(length)
         logger.debug("TextCaptcha text is: %s", text)
-        draw_rotated_text(image, self.font, text)
+        xpos = 0
+        for ch in list(text):
+            color=''.join(random.sample(self.colorset, k=1))
+            image = draw_rotated_text(image, self.font, ch, color, xpos, 0, random.randint(0, 20))
+            xpos += int(width/length)
         return {
             'type' : self.getname(),
             'img' : pil_image_to_base64(image).decode("utf-8"),
@@ -114,6 +115,7 @@ class TextCaptcha(object):
 
 class ClickCaptcha(object):
     charset = "中之云人仅任划办务印发周壮处始完布并建开待快成我搜新更最月有本板源理的看私第索经维计设运近速问题"
+    colorset=["black", "blue", "cyan", "darkblue", "darkcyan", "darkgrey", "darkgreen", "darkkhaki", "darkmagenta", "darkolivegreen", "darkorange", "darkorchid", "darkred", "darkseagreen", ,"deepskyblue", "green", "red", "yellow", "yellowgreen"]
     def __init__(self, font_file:str, font_size:int=40):
         if file_exists(font_file):
             self.font=ImageFont.truetype(font_file, font_size)
@@ -150,7 +152,8 @@ class ClickCaptcha(object):
         for ch in list(text):
             xpos = random.randint(0, width - self.font.getlength(ch))
             ypos = random.randint(0, height - self.font.getlength(ch))
-            draw_rotated_text(image, self.font, ch, xpos, ypos, random.randint(10, 80))
+            color=''.join(random.sample(self.colorset, k=1))
+            image = draw_rotated_text(image, self.font, ch, color, xpos, ypos, random.randint(10, 80))
             pos.append({'x':int(xpos+self.font.getlength(ch)/2), 'y':int(ypos+self.font.getlength(ch)/2)})
         return {
             'type' : self.getname(),
