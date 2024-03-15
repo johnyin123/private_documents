@@ -81,7 +81,7 @@ class jwt_auth:
                 raise Unauthorized('Token missing.')
             data = jwt.decode(token, self.pubkey, algorithms='RS256')
             print('auth_check: {}'.format(data))
-            return {'msg':'login ok'}
+            return data
         except jwt.ExpiredSignatureError:
             raise Unauthorized('Signature expired.')
         except jwt.InvalidTokenError:
