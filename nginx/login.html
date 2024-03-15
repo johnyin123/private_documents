@@ -100,8 +100,8 @@ function login() {
   var sendObject = JSON.stringify(Object.fromEntries(params.entries()));
   xhr=initXMLHttpRequest('POST', AuthUrl);
   xhr.onreadystatechange = function() {
-    if(xhr.readyState == 4 && xhr.status == 200) {
-      var responseObject = JSON.parse(xhr.responseText);
+    if(this.readyState == 4 && this.status == 200) {
+      var responseObject = JSON.parse(this.responseText);
       // or add token in cookie
       document.cookie = 'token=' + responseObject.token +';';
       if (callback.length === 0) {
@@ -111,7 +111,7 @@ function login() {
       }
       return;
     }
-    alert('error:' + xhr.readyState + ':' + xhr.responseText + xhr.status);
+    alert('error:' + this.readyState + ':' + this.responseText + this.status);
     return;
   }
   xhr.send(sendObject);

@@ -11,14 +11,14 @@ function captcha_check(res, real_login) {
   xhr=new XMLHttpRequest();
   xhr.open('POST', CaptchaVerifyUrl, true);
   xhr.onreadystatechange = function() {
-    if(xhr.readyState == 4 && xhr.status == 200) {
-      var data = JSON.parse(xhr.responseText);
+    if(this.readyState == 4 && this.status == 200) {
+      var data = JSON.parse(this.responseText);
       document.getElementById('captcha_token').value=data.ctoken;
       real_login();
       return;
     }
     msg = new Dialog();
-    msg.alert('Captcha server error:' + xhr.readyState + ':' + xhr.responseText + xhr.status, {}).then((res) => { });
+    msg.alert('Captcha server error:' + this.readyState + ':' + this.responseText + this.status, {}).then((res) => { });
     return;
   }
   xhr.send(sendObject);
@@ -63,8 +63,8 @@ function getCaptcha(payload, real_login, url) {
   xhr=new XMLHttpRequest();
   xhr.open('GET', url, true);
   xhr.onreadystatechange = function() {
-    if(xhr.readyState == 4 && xhr.status == 200) {
-      var data = JSON.parse(xhr.responseText);
+    if(this.readyState == 4 && this.status == 200) {
+      var data = JSON.parse(this.responseText);
       if ( data.ctype == 'CLICK_CAPTCHA') {
         ClickPopup(payload, real_login, data);
         return;
@@ -73,10 +73,10 @@ function getCaptcha(payload, real_login, url) {
         TextPopup(payload, real_login, data);
         return;
       }
-      console.error(xhr.responseText)
+      console.error(this.responseText)
     }
     msg = new Dialog();
-    msg.alert('Captcha server error:' + xhr.readyState + ':' + xhr.responseText + xhr.status, {}).then((res) => { });
+    msg.alert('Captcha server error:' + this.readyState + ':' + this.responseText + this.status, {}).then((res) => { });
   }
   xhr.send();
 }
