@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7134237[2023-08-22T16:49:55+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("3a8a6ea[2023-08-23T13:08:24+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -263,7 +263,7 @@ ${SCRIPTNAME}
         --enable_schedule               enable master node scheduling
         --insec_registry         <str>  insecurity registry(http/no auth)
         --nameserver             <ip>   k8s nodes nameserver, /etc/resolv.conf
-        --calico          X X    <str>  calico crossnet method, default IPIPCrossSubnet
+        --calico          X X    <str>  calico crossnet method, use this parm mean use calico cni
                                         IPIPCrossSubnet/VXLANCrossSubnet/IPIP/VXLAN/None
         --apiserver       X X    <str>  k8s cluster api-server-endpoint
                                         no set use first master ipaddress, so control plane can only one!!!
