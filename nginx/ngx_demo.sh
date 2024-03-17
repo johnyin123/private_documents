@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("eeb4ddb[2024-03-13T14:16:07+08:00]:ngx_demo.sh")
+VERSION+=("18ebe83[2024-03-14T07:41:12+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1808,8 +1808,8 @@ server {
     }
 }
 upstream jwt_api {
-    # uri: / => check token
-    # uri: /api/login => login
+    # uri: / => check token, you application impl
+    # uri: /api/login => login, jwt server impl
     server unix:/var/run/authsrv.socket;
     # server 192.168.169.234:6000;
     keepalive 64;
