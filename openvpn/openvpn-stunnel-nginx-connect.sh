@@ -87,6 +87,7 @@ $(cat ${key})
 EOF
 }
 cat << EOF > openvpn-server.conf
+management localhost 7505
 local 127.0.0.1
 port 1194
 proto tcp
