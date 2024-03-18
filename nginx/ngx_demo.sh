@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("18ebe83[2024-03-14T07:41:12+08:00]:ngx_demo.sh")
+VERSION+=("ed328e2[2024-03-18T07:42:47+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1786,6 +1786,12 @@ location = @sso-auth {
 }
 EOF
 cat <<'EOF' > jwt_sso.http
+# openssl rsa -in srv.key -pubout -out /etc/nginx/pubkey.pem
+# token=$(curl -s -k -X POST http://localhost/api/login -d '{"username": "admin", "password": "password"}' | jq -r .token)
+# echo $token | jq -R 'split(".") | .[0] | @base64d | fromjson'
+# echo $token | jq -R 'split(".") | .[1] | @base64d | fromjson'
+# curl -s -k -X GET --header "Authorization: Bearer ${token}" http://localhost/ -vvv
+# curl -s -k -X GET --header "Cookie: token=${token}" http://localhost/ -vvv
 # echo '{"status":200,"message":"Success"}' > /etc/nginx/http-enabled/check.json
 server {
     listen unix:/var/run/authsrv.socket;
@@ -1800,6 +1806,7 @@ server {
         auth_jwt_enabled on;
         auth_jwt_redirect off;
         auth_jwt_location HEADER=Authorization;
+        # auth_jwt_location COOKIE=token;
         auth_jwt_algorithm RS256;
         auth_jwt_use_keyfile on;
         auth_jwt_keyfile_path "/etc/nginx/pubkey.pem";
@@ -1824,41 +1831,6 @@ server {
         # add_header Set-Cookie $cookie;
         autoindex on;
         alias /var/www/;
-    }
-}
-EOF
-cat <<'EOF' > jwt_auth.http
-# token=$(curl -s -k -X POST http://localhost/api/auth -d '{"username": "admin", "password": "password"}' | jq -r .token)
-# echo $token | jq -R 'split(".") | .[0] | @base64d | fromjson'
-# echo $token | jq -R 'split(".") | .[1] | @base64d | fromjson'
-# curl -s -k -X GET --header "Authorization: Bearer ${token}" http://localhost/vms.json -vvv
-# curl -s -k -X GET --header "Cookie: token=${token}" http://localhost/vms.json -vvv
-# openssl rsa -in srv.key -pubout -out /etc/nginx/pubkey.pem
-upstream jwt_api {
-    server 192.168.169.234:9900;
-    keepalive 64;
-}
-server {
-    listen 80;
-    server_name _;
-    location = /api/auth {
-        proxy_pass http://jwt_api;
-    }
-    location = /callback {
-        if ($arg_token = '') { return 302 'http://192.168.169.234:9900/api/auth?return_url=http://192.168.168.1/callback';}
-        add_header Set-Cookie "token=$arg_token";
-        return 302 "http://192.168.168.1/";
-    }
-    location / {
-        error_page 401 = /callback;
-        auth_jwt_enabled on;
-        auth_jwt_redirect off;
-        auth_jwt_location COOKIE=token;
-        # auth_jwt_location HEADER=Authorization;
-        auth_jwt_algorithm RS256;
-        auth_jwt_use_keyfile on;
-        auth_jwt_keyfile_path "/etc/nginx/pubkey.pem";
-        root /var/www;
     }
 }
 EOF
