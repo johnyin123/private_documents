@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 import logging, os
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
 logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s: %(message)s') 
@@ -21,19 +20,19 @@ def create_app(config: dict={}) -> flask.Flask:
     app.config.from_mapping(cfg)
     return app
 
-def _corsify_actual_response(response):
+def corsify_actual_response(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
-
-# @app.route('/')
-def test():
-    return '{ "OK" : "OK" }'
 
 def handle_error(e):
     response = e.get_response()
     response.data = flask.json.dumps({ 'code': e.code, 'name': e.name, 'description': e.description, })
     response.content_type = 'application/json'
-    return _corsify_actual_response(response)
+    return corsify_actual_response(response)
+
+# @app.route('/')
+def test():
+    return '{ "OK" : "OK" }'
 
 def main():
     app=create_app()
