@@ -38,7 +38,7 @@ def main():
     app=create_app()
     for ex in werkzeug.exceptions.default_exceptions:
         app.register_error_handler(ex, handle_error)
-    app.add_url_rule('/', view_func=test)
+    app.add_url_rule('/', view_func=test, methods=['POST', 'GET'])
     app.run(host=app.config['HTTP_HOST'], port=app.config['HTTP_PORT'])
 
 if __name__ == '__main__':
