@@ -7,7 +7,7 @@ logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s:
 logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
-import flask, os
+import werkzeug, flask, os
 FLASK_CONF = {
     'HTTP_HOST'        : os.environ.get('HTTP_HOST', '0.0.0.0'),
     'HTTP_PORT'        : int(os.environ.get('HTTP_PORT', '18888')),
@@ -21,12 +21,24 @@ def create_app(config: dict={}) -> flask.Flask:
     app.config.from_mapping(cfg)
     return app
 
+def _corsify_actual_response(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
 # @app.route('/')
 def test():
     return '{ "OK" : "OK" }'
 
+def handle_error(e):
+    response = e.get_response()
+    response.data = flask.json.dumps({ 'code': e.code, 'name': e.name, 'description': e.description, })
+    response.content_type = 'application/json'
+    return _corsify_actual_response(response)
+
 def main():
     app=create_app()
+    for ex in werkzeug.exceptions.default_exceptions:
+        app.register_error_handler(ex, handle_error)
     app.add_url_rule('/', view_func=test)
     app.run(host=app.config['HTTP_HOST'], port=app.config['HTTP_PORT'])
 
