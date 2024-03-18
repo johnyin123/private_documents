@@ -30,15 +30,20 @@ def handle_error(e):
     response.content_type = 'application/json'
     return corsify_actual_response(response)
 
-# @app.route('/')
-def test():
-    return '{ "OK" : "OK" }'
+class MyApp(object):
+    def __init__(self, app:flask.Flask):
+        logger.debug('DEMO')
+
+    # @app.route('/')
+    def test(self):
+        return '{ "OK" : "OK" }'
 
 def main():
     app=create_app()
     for ex in werkzeug.exceptions.default_exceptions:
         app.register_error_handler(ex, handle_error)
-    app.add_url_rule('/', view_func=test, methods=['POST', 'GET'])
+    myapp=MyApp(app)
+    app.add_url_rule('/', view_func=myapp.test, methods=['POST', 'GET'])
     app.run(host=app.config['HTTP_HOST'], port=app.config['HTTP_PORT'])
 
 if __name__ == '__main__':
