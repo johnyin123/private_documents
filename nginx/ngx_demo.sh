@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ed328e2[2024-03-18T07:42:47+08:00]:ngx_demo.sh")
+VERSION+=("441028a[2024-03-18T08:21:23+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4505,6 +4505,8 @@ server {
 <li><a href="/grafana">私有云大屏</a></li>
 <li><a href="/zabbix">zabbix</a></li>
 </ul></div><script src="/context_menu.js"></script></body>';
+        # sub_filter '</head>' '<link rel="stylesheet" href="/JSPanel.css"><link rel="stylesheet" href="/define.css"></head>';
+        # sub_filter '</body>' '<script src="/JSPanel.js"></script><script src="/context_menu.js"></script></body>';
         sub_filter_once off;
         sub_filter_last_modified on;
         # # needed for sub_filter to work with gzip enabled (https://stackoverflow.com/a/36274259/3375325)
