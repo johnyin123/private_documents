@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("441028a[2024-03-18T08:21:23+08:00]:ngx_demo.sh")
+VERSION+=("993766d[2024-03-18T10:01:02+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1062,6 +1062,19 @@ server {
         js_content secure.gen_url;
     }
 }
+EOF
+cat <<'EOF' > secure_link.py
+import base64
+import hashlib
+import datetime
+secret = "prekey"
+url = "/myfile.txt"
+future = datetime.datetime.utcnow() + datetime.timedelta(minutes=5)
+secure_link = f"{secret}{future}{url}GET".encode('utf-8')
+hash = hashlib.md5(secure_link).digest()
+base64_hash = base64.urlsafe_b64encode(hash)
+str_hash = base64_hash.decode('utf-8').rstrip('=')
+print(f"{url}?k={str_hash}&e={expiry}")
 EOF
 cat <<'EOF' > secure_link.java
 import java.io.IOException;
