@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 class S3:
     def __init__(self):
-        self.S3_HOST = os.environ.get('S3_HOST', 'http://10.170.24.2')
+        self.S3_HOST = os.environ.get('S3_HOST', 'http://10.170.24.20')
         # self.S3_HOST = os.environ.get('S3_HOST', 'http://10.170.6.105:9999')
         self.S3_ACCESS_KEY = os.environ.get('S3_ACCESS_KEY', 'admin')
         self.S3_SECRET_KEY = os.environ.get('S3_SECRET_KEY', 'tsd@2023')
@@ -77,9 +77,7 @@ class S3:
     # presigned post notwork now TODO:::
     def get_presigned_post_url(self, bucket, file_name, file_type, time=3600):
         return self.client.generate_presigned_post(
-            Bucket = bucket, Key = file_name, ExpiresIn = time,
-            Fields =       {"acl": "public-read",   "Content-Type": file_type},
-            Conditions = [ {"acl": "public-read"}, {"Content-Type": file_type}, ]
+            Bucket = bucket, Key = file_name, ExpiresIn = time
         )
     def get_presigned_url(self, bucket, file_name, time=3600):
         return self.client.generate_presigned_url(ClientMethod='put_object', ExpiresIn=time, Params={'Bucket': bucket, 'Key': file_name})
@@ -206,7 +204,14 @@ def sign_post():
     presigned_post= s3.get_presigned_post_url(bucket, file_name, file_type)
     print(json.dumps({ 'signed_request': presigned_post, 'url': '%s/%s/%s' % (s3.S3_HOST, bucket, file_name) }))
     return json.dumps({ 'signed_request': presigned_post, 'url': '%s/%s/%s' % (s3.S3_HOST, bucket, file_name) })
-
+""" js
+var formData = new FormData();
+formData.append("key", result["fields"]["key"]);
+formData.append("AWSAccessKeyId", result["fields"]["AWSAccessKeyId"]);
+formData.append("policy", result["fields"]["policy"]);
+formData.append("signature", result["fields"]["signature"]);
+formData.append("file", $("#upload_file").get()[0].files[0]);
+"""
 if __name__ == '__main__':
     print("First set bucket cors\n")
     app.run(host='0.0.0.0', port=8080) #, debug=True)
