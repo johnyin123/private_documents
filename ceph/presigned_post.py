@@ -62,7 +62,7 @@ class S3:
               "AllowedHeaders": ["*"],
               "AllowedMethods": ["GET", "HEAD", "POST", "PUT", "DELETE"],
               "MaxAgeSeconds": 3600,
-              "ExposeHeaders": ["Etag"]
+              "ExposeHeaders": ["Etag", "x-amz-acl" ],
             },
             {
               'AllowedHeaders': [ 'Authorization', ],

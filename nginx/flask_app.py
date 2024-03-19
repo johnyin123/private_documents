@@ -11,6 +11,7 @@ FLASK_CONF = {
     'HTTP_HOST'        : os.environ.get('HTTP_HOST', '0.0.0.0'),
     'HTTP_PORT'        : int(os.environ.get('HTTP_PORT', '18888')),
     'SECRET_KEY'       : os.urandom(24),
+    'DEBUG'            : os.environ.get('DEBUG', False),
     'STATIC_URL_PATH'  : '/public',
     'STATIC_FOLDER'    : 'static',
 }
@@ -49,7 +50,7 @@ def main():
         app.register_error_handler(ex, handle_error)
     myapp=MyApp(app)
     app.add_url_rule('/', view_func=myapp.test, methods=['POST', 'GET'])
-    app.run(host=app.config['HTTP_HOST'], port=app.config['HTTP_PORT'])
+    app.run(host=app.config['HTTP_HOST'], port=app.config['HTTP_PORT'], debug=app.config['DEBUG'])
 
 if __name__ == '__main__':
     exit(main())
