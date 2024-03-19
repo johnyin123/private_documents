@@ -165,7 +165,6 @@ def api_verify():
         raise Unauthorized('captcha no found')
     if captcha.verify(c_type, c_text, c_hash):
         # return new token 10 sec, for LOGIN service check captcha success!
-        req_data.pop('ctype')
         req_data.pop('chash')
         req_data.pop('ctext')
         req_data.pop('payload')

@@ -20,6 +20,11 @@ def create_app(config: dict={}) -> flask.Flask:
     app.config.from_mapping(cfg)
     return app
 
+def merge_dict(x: dict, y:dict)->dict:
+    z = x.copy()
+    z.update(y)
+    return z
+
 def corsify_actual_response(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
