@@ -6,7 +6,7 @@ logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s:
 logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
-import werkzeug, flask, os
+import flask
 FLASK_CONF = {
     'HTTP_HOST'        : os.environ.get('HTTP_HOST', '0.0.0.0'),
     'HTTP_PORT'        : int(os.environ.get('HTTP_PORT', '18888')),
@@ -17,6 +17,7 @@ FLASK_CONF = {
 }
 def create_app(config: dict={}) -> flask.Flask:
     cfg = {**FLASK_CONF, **config}
+    logger.debug("Flask config: %s", cfg)
     app = flask.Flask(__name__, static_url_path=cfg['STATIC_URL_PATH'], static_folder=cfg['STATIC_FOLDER'])
     app.config.from_mapping(cfg)
     return app
@@ -36,21 +37,24 @@ def handle_error(e):
     response.content_type = 'application/json'
     return corsify_actual_response(response)
 
-class MyApp(object):
-    def __init__(self, app:flask.Flask):
-        logger.debug('DEMO')
-
-    # @app.route('/')
-    def test(self):
-        return '{ "OK" : "OK" }'
-
-def main():
-    app=create_app()
-    for ex in werkzeug.exceptions.default_exceptions:
-        app.register_error_handler(ex, handle_error)
-    myapp=MyApp(app)
-    app.add_url_rule('/', view_func=myapp.test, methods=['POST', 'GET'])
-    app.run(host=app.config['HTTP_HOST'], port=app.config['HTTP_PORT'], debug=app.config['DEBUG'])
-
-if __name__ == '__main__':
-    exit(main())
+# import werkzeug, flask_app
+# logger=flask_app.logger
+#
+# class MyApp(object):
+#     def __init__(self):
+#         logger.debug('DEMO')
+#     # @app.route('/')
+#     def test(self):
+#         return '{ "OK" : "OK" }'
+#
+# def main():
+#     conf={}
+#     app=flask_app.create_app(conf)
+#     for ex in werkzeug.exceptions.default_exceptions:
+#         app.register_error_handler(ex, flask_app.handle_error)
+#     myapp=MyApp()
+#     app.add_url_rule('/', view_func=myapp.test, methods=['POST', 'GET'])
+#     app.run(host=app.config['HTTP_HOST'], port=app.config['HTTP_PORT'], debug=app.config['DEBUG'])
+#
+# if __name__ == '__main__':
+#     exit(main())

@@ -86,6 +86,7 @@ class jwt_auth:
             raise Unauthorized('Signature expired.')
         except jwt.InvalidTokenError:
             raise Unauthorized('Invalid token.')
+
     def decode_captcha_token(self, token: str) -> Dict:
         try:
             return jwt.decode(token, self.captcha_pubkey, algorithms='RS256')
@@ -142,20 +143,6 @@ def index():
 
 # login with captcha
 from werkzeug.exceptions import Unauthorized
-def get_captcha_payload(token: str, pubkey: str) -> str:
-    try:
-        decoded = jwt.decode(token, pubkey, algorithms='RS256')
-        if 'payload' not in decoded:
-            raise Unauthorized('captcha payload no found')
-        if not decoded['payload']:
-            raise Unauthorized('captcha payload is null')
-        return decoded['payload']
-    except jwt.ExpiredSignatureError:
-        raise Unauthorized('Signature expired')
-    except jwt.InvalidTokenError:
-        raise Unauthorized('Invalid captcha token')
-    raise Unauthorized('known error')
-
 @app.route('/api/loginx', methods=['POST', 'GET'])
 def api_login_check_captcha():
     if request.method == 'GET':
