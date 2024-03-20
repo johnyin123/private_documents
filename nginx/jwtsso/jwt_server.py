@@ -1,31 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import logging, os
+import os, werkzeug, flask_app, flask, ldap3, datetime, jwt
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
-logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s: %(message)s')
-logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
-logger = logging.getLogger(__name__)
 
-import os, sys
+logger=flask_app.logger
+
 def load_file(file_path):
     if os.path.isfile(file_path):
         return open(file_path, "rb").read()
-    sys.exit('file {} nofound'.format(file_path))
+    raise Exception('file {} nofound'.format(file_path))
 
-def _corsify_actual_response(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
-from ldap3 import Server, Connection, ALL
 def init_connection(url, binddn, password):
-    srv = Server(url, get_info=ALL)
-    conn = Connection(srv, user=binddn, password=password)
+    srv = ldap3.Server(url, get_info=ldap3.ALL)
+    conn = ldap3.Connection(srv, user=binddn, password=password)
     conn.bind()
     return conn
-
-import datetime, jwt
-from typing import Iterable, Optional, Set, Tuple, Union, Dict
 
 DEFAULT_CONF = {
     'LDAP_URL'            : 'ldap://172.16.0.5:13899',
@@ -35,6 +25,10 @@ DEFAULT_CONF = {
     'EXPIRE_SEC'          : 60 * 10,
     'CAPTCHA_PUBKEY_FILE' : 'srv.pem',
 }
+
+class jwt_exception(werkzeug.exceptions.Unauthorized):
+    pass
+
 class jwt_auth:
     def __init__(self, config: dict):
         self.config = {**DEFAULT_CONF, **config}
@@ -58,7 +52,7 @@ class jwt_auth:
                     return False
         except Exception as e:
             logger.error('ldap excetion: %s', e)
-        return False
+        raise jwt_exception('ldap excetion.')
 
     def get_pubkey(self) -> str:
         return self.pubkey
@@ -73,111 +67,103 @@ class jwt_auth:
             }
             token = jwt.encode(payload, self.prikey, algorithm='RS256')
             return { 'token' : token }
-        raise Unauthorized('Bad username or password.')
+        raise jwt_exception('Bad username or password.')
 
     def check_login(self, token:str) -> Dict:
         try:
             if not token:
-                raise Unauthorized('Token missing.')
+                raise jwt_exception('Token missing.')
             data = jwt.decode(token, self.pubkey, algorithms='RS256')
             print('auth_check: {}'.format(data))
             return data
         except jwt.ExpiredSignatureError:
-            raise Unauthorized('Signature expired.')
+            raise jwt_exception('Signature expired.')
         except jwt.InvalidTokenError:
-            raise Unauthorized('Invalid token.')
+            raise jwt_exception('Invalid token.')
 
     def decode_captcha_token(self, token: str) -> Dict:
         try:
             return jwt.decode(token, self.captcha_pubkey, algorithms='RS256')
         except jwt.ExpiredSignatureError:
-            raise Unauthorized('Signature expired')
+            raise jwt_exception('Signature expired')
         except jwt.InvalidTokenError:
-            raise Unauthorized('Invalid captcha token')
-        raise Unauthorized('known error')
+            raise jwt_exception('Invalid captcha token')
+        raise jwt_exception('known error')
 
-from flask import Flask, abort, jsonify, request, make_response, render_template, render_template_string
-import os, sys
+class MyApp(object):
+    def __init__(self):
+        cfg = flask_app.merge_dict(DEFAULT_CONF, {})
+        self.auth = jwt_auth(config=cfg)
 
-app = Flask(__name__, static_url_path='/public', static_folder='static')
-test_config = DEFAULT_CONF.copy()
-auth = jwt_auth(config=test_config)
+    def get_pubkey(self):
+        return self.auth.get_pubkey()
 
-from werkzeug.exceptions import HTTPException
-import flask
-@app.errorhandler(HTTPException)
-def handle_exception(e):
-    response = e.get_response()
-    response.data = flask.json.dumps({ 'code': e.code, 'name': e.name, 'description': e.description, })
-    response.content_type = 'application/json'
-    return _corsify_actual_response(response)
+    def api_login(self):
+        if flask.request.method == 'GET':
+            return flask.jsonify({'msg': 'jwt login server alive'})
+        # # avoid Content type: text/plain return http415
+        req_data = flask.request.get_json(force=True)
+        username = req_data.get('username', None)
+        password = req_data.get('password', None)
+        if not username or not password:
+            raise jwt_exception('username or password no found')
+        logger.debug('%s ,pass[%s]', username, password)
+        req_data.pop('username')
+        req_data.pop('password')
+        return flask_app.corsify_actual_response(flask.jsonify(auth.login(username, password, req_data)))
 
-@app.route('/public_key')
-def public_key():
-    return jwt.get_pubkey()
+    def api_check(self):
+        token = None
+        if 'Authorization' in flask.request.headers:
+            data = flask.request.headers['Authorization']
+            token = str.replace(str(data), 'Bearer ', '')
+        else:
+            token = flask.request.cookies.get('token')
+        return flask_app.corsify_actual_response(flask.jsonify((self.auth.check_login(token))))
 
-@app.route('/api/login', methods=['POST', 'GET'])
-def api_login():
-    if request.method == 'GET':
-        return jsonify({'msg': 'jwt login server alive'})
-    # # avoid Content type: text/plain return http415
-    req_data = request.get_json(force=True)
-    username = req_data.get('username', None)
-    password = req_data.get('password', None)
-    if not username or not password:
-        raise Unauthorized('username or password no found')
-    logger.debug('%s ,pass[%s]', username, password)
-    req_data.pop('username')
-    req_data.pop('password')
-    return _corsify_actual_response(jsonify(auth.login(username, password, req_data)))
+    def api_loginx(self):
+        if flask.request.method == 'GET':
+            return flask_app.corsify_actual_response(flask.jsonify({'msg': 'jwt loginx server alive'}))
+        # # avoid Content type: text/plain return http415
+        req_data = flask.request.get_json(force=True)
+        ctoken = req_data.get('ctoken', None)
+        password = req_data.get('password', None)
+        if not ctoken or not password:
+            raise jwt_exception('ctoken/password no found')
+        captcha = self.auth.decode_captcha_token(ctoken)
+        logger.debug(captcha)
+        username = captcha.get('payload')
+        if not username:
+            raise jwt_exception('captcha payload is null')
+        logger.debug('%s ,pass[%s]', username, password)
+        req_data.pop('ctoken')
+        req_data.pop('password')
+        req_data.pop('payload')
+        return flask_app.corsify_actual_response(flask.jsonify(self.auth.login(username, password, req_data)))
 
-@app.route('/', methods=['GET'])
-def index():
-    token = None
-    if 'Authorization' in request.headers:
-        data = request.headers['Authorization']
-        token = str.replace(str(data), 'Bearer ', '')
-    else:
-        token = request.cookies.get('token')
-    return _corsify_actual_response(jsonify((auth.check_login(token))))
+    @staticmethod
+    def create():
+        myapp=MyApp()
+        web=flask_app.create_app({}, json=True)
+        web.add_url_rule('/', view_func=myapp.api_check, methods=['GET'])
+        web.add_url_rule('/public_key', view_func=myapp.get_pubkey, methods=['GET'])
+        web.add_url_rule('/api/login', view_func=myapp.api_login, methods=['POST', 'GET'])
+        web.add_url_rule('/api/loginx', view_func=myapp.api_loginx, methods=['POST', 'GET'])
+        return web
 
-# login with captcha
-from werkzeug.exceptions import Unauthorized
-@app.route('/api/loginx', methods=['POST', 'GET'])
-def api_login_check_captcha():
-    if request.method == 'GET':
-        return _corsify_actual_response(jsonify({'msg': 'jwt loginx server alive'}))
-    # # avoid Content type: text/plain return http415
-    req_data = request.get_json(force=True)
-    ctoken = req_data.get('ctoken', None)
-    password = req_data.get('password', None)
-    if not ctoken or not password:
-        raise Unauthorized('ctoken/password no found')
-    captcha = auth.decode_captcha_token(ctoken)
-    logger.debug(captcha)
-    username = captcha.get('payload')
-    if not username:
-        raise Unauthorized('captcha payload is null')
-    logger.debug('%s ,pass[%s]', username, password)
-    req_data.pop('ctoken')
-    req_data.pop('password')
-    req_data.pop('payload')
-    return _corsify_actual_response(jsonify(auth.login(username, password, req_data)))
-
+app=MyApp.create()
 def main():
     print('pip install flask ldap3 pyjwt[crypto]')
     logger.debug("""
 CAPTCHA_SRV=http://localhost:5000
 JWT_SRV=http://localhost:6000
-eval $(curl "${CAPTCHA_SRV}/api/verify" | grep chash | grep -o -Ei  'value="([^"]*")')
+eval $(curl "${CAPTCHA_SRV}/api/verify" | grep chash | grep -o -Ei 'value="([^"]*")')
 echo "aptcha-hash ========= $value"
 ctoken=$(curl -s -k -X POST "${CAPTCHA_SRV}/api/verify" -d "{\\"payload\\":\\"yin.zh\\", \\"ctext\\": \\"fuck\", \\"chash\": \\"$value\\"}" | jq -r .ctoken)
 echo "ctoken ======= $ctoken"
 curl -s -k -X POST "${JWT_SRV}/api/loginx" -d "{\\"password\\":\\"Passw)rd123\\", \\"ctoken\\": \\"$ctoken\\"}"
 """)
-    HTTP_HOST = os.environ.get('HTTP_HOST', '0.0.0.0')
-    HTTP_PORT = int(os.environ.get('HTTP_PORT', '6000'))
-    app.run(host=HTTP_HOST, port=HTTP_PORT) #, debug=True)return 0
+    app.run(host=app.config['HTTP_HOST'], port=app.config['HTTP_PORT'], debug=app.config['DEBUG'])
 
 if __name__ == '__main__':
     exit(main())

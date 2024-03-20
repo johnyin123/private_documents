@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("993766d[2024-03-18T10:01:02+08:00]:ngx_demo.sh")
+VERSION+=("9086a79[2024-03-18T15:35:10+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -969,7 +969,14 @@ server {
         disable_symlinks off;
         root /var/www;
     }
-
+    location /test {
+        # curl http://xxx:port/test
+        # will return 301:http://xxx:port/test/. add absolute_redirect off, return 301:/test/
+        absolute_redirect off;
+        #port_in_redirect off;
+        index index.html index.htm;
+        root /var/www;
+    }
 }
 
 
