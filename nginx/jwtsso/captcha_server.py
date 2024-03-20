@@ -1,26 +1,15 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import logging, os
+import os, werkzeug, flask_app, flask, datetime, jwt, captcha, random
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
-logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s: %(message)s')
-logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
-logger = logging.getLogger(__name__)
 
-import os, random
+logger=flask_app.logger
+
 def load_file(file_path):
     if os.path.isfile(file_path):
         return open(file_path, "rb").read()
     raise Exception('file {} nofound'.format(file_path))
-
-def _corsify_actual_response(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    return response
-
-# from https://github.com/cc-d/flask-simple-captcha
-import datetime, jwt
-from typing import Iterable, Optional, Set, Tuple, Union, Dict
-# from werkzeug.security import check_password_hash, generate_password_hash
 
 DEFAULT_CONF = {
     'PUBLIC_KEY_FILE'  : 'srv.pem',
@@ -34,11 +23,12 @@ DEFAULT_CONF = {
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
-from werkzeug.exceptions import Unauthorized
-from captcha import ClickCaptcha, TextCaptcha, base64url_decode, base64url_encode
+
+class captcha_exception(werkzeug.exceptions.Unauthorized):
+    pass
 
 class jwt_captcha:
-    choice=[ClickCaptcha.getname(), TextCaptcha.getname()]
+    choice=[captcha.ClickCaptcha.getname(), captcha.TextCaptcha.getname()]
     def __init__(self, config: dict):
         self.config = {**DEFAULT_CONF, **config}
         # self.pubkey = load_file(self.config['PUBLIC_KEY_FILE'])
@@ -53,20 +43,20 @@ class jwt_captcha:
             self.img_width = config['IMG_WIDTH']
         if 'FONT_FILE' in config:
             self.font_file = config['FONT_FILE']
-        self.capt_click = ClickCaptcha(self.font_file)
-        self.capt_text = TextCaptcha(self.font_file)
+        self.capt_click = captcha.ClickCaptcha(self.font_file)
+        self.capt_text = captcha.TextCaptcha(self.font_file)
 
     def get_pubkey(self) -> str:
         pubkey_pem = self.pubkey.public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo)
         return pubkey_pem.decode('ascii')
 
     def __rsa_encrypt(self, text: str) -> str:
-        msg = base64url_encode(self.pubkey.encrypt(text.encode(), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(), label=None)))
+        msg = captcha.base64url_encode(self.pubkey.encrypt(text.encode(), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(), label=None)))
         logger.debug("Encrypt b64 Message: %s", msg.decode())
         return msg.decode()
 
     def __rsa_decrypt(self, hashed_text: str) -> str:
-        msg = self.prikey.decrypt(base64url_decode(hashed_text), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(), label=None))
+        msg = self.prikey.decrypt(captcha.base64url_decode(hashed_text), padding.OAEP(mgf=padding.MGF1(algorithm=hashes.SHA256()),algorithm=hashes.SHA256(), label=None))
         logger.debug("Decrypted b64 Message: %s",msg.decode())
         return msg.decode()
 
@@ -83,21 +73,21 @@ class jwt_captcha:
         try:
             decoded = jwt.decode(token, self.get_pubkey(), algorithms=['RS256'])
             if 'hashed_text' not in decoded:
-                raise Unauthorized('hashed text no found')
+                raise captcha_exception('hashed text no found')
             hashed_text = decoded['hashed_text']
             return self.__rsa_decrypt(hashed_text)
         except jwt.ExpiredSignatureError as e:
-            raise Unauthorized('Signature expired')
+            raise captcha_exception('Signature expired')
         except jwt.InvalidTokenError as e:
-            raise Unauthorized('Invalid captcha token')
-        raise Unauthorized('known error')
+            raise captcha_exception('Invalid captcha token')
+        raise captcha_exception('known error')
 
     def create(self) -> Dict:
         c_type=random.sample(self.choice, k=1)[0]
         msg={ 'type' : '', 'img' : '', 'msg': '', 'payload' : '', }
-        if c_type == TextCaptcha.getname():
+        if c_type == captcha.TextCaptcha.getname():
             msg=self.capt_text.create(4)
-        if c_type == ClickCaptcha.getname():
+        if c_type == captcha.ClickCaptcha.getname():
             msg=self.capt_click.create(3)
         logger.debug(msg)
         return {
@@ -112,11 +102,11 @@ class jwt_captcha:
     def verify(self, c_type: str, c_text: str, c_hash: str) -> bool:
         decoded_text = self.__jwtdecrypt(c_hash)
         logger.debug('verify %s, %s input[%s]', c_type, decoded_text, c_text)
-        if c_type == TextCaptcha.getname():
+        if c_type == captcha.TextCaptcha.getname():
             return self.capt_text.verify(decoded_text, c_text)
-        if c_type == ClickCaptcha.getname():
+        if c_type == captcha.ClickCaptcha.getname():
             return self.capt_click.verify(decoded_text, c_text)
-        raise Unauthorized('chapcha type error')
+        raise captcha_exception('chapcha type error')
 
     def make_success_token(self, payload: str, trans: dict =None, tmout:int =6) -> str:
         payload = {
@@ -127,58 +117,52 @@ class jwt_captcha:
         }
         return jwt.encode(payload, self.prikey, algorithm='RS256')
 
-from flask import Flask, abort, jsonify, request, make_response, render_template, render_template_string
-import os, sys
+class MyApp(object):
+    def __init__(self):
+        cfg = flask_app.merge_dict(DEFAULT_CONF, {})
+        self.captcha = jwt_captcha(config=cfg)
 
-app = Flask(__name__, static_url_path='/public', static_folder='static')
-test_config = DEFAULT_CONF.copy()
-captcha = jwt_captcha(config=test_config)
+    def get_pubkey(self):
+        return self.captcha.get_pubkey()
 
-from werkzeug.exceptions import HTTPException
-import flask
-@app.errorhandler(HTTPException)
-def handle_exception(e):
-    response = e.get_response()
-    response.data = flask.json.dumps({ 'code': e.code, 'name': e.name, 'description': e.description, })
-    response.content_type = 'application/json'
-    return _corsify_actual_response(response)
+    def api_verify(self):
+        if flask.request.method == 'GET':
+            captcha_dict = self.captcha.create()
+            response = flask.jsonify(captcha_dict)
+            return flask_app.corsify_actual_response(response)
 
-@app.route('/public_key')
-def public_key():
-    return captcha.get_pubkey()
+        # # avoid Content type: text/plain return http415
+        req_data = flask.request.get_json(force=True)
+        c_type = req_data.get('ctype', None)
+        c_hash = req_data.get('chash', None)
+        c_text = req_data.get('ctext', None)
+        c_payload = req_data.get('payload', '')
+        tmout_sec=10
+        if not c_hash or not c_text or not c_type:
+            raise captcha_exception('captcha no found')
+        if self.captcha.verify(c_type, c_text, c_hash):
+            # return new token 10 sec, for LOGIN service check captcha success!
+            req_data.pop('chash')
+            req_data.pop('ctext')
+            req_data.pop('payload')
+            response = flask.jsonify({'ctoken': self.captcha.make_success_token(c_payload, req_data, tmout_sec)})
+            return flask_app.corsify_actual_response(response)
+        else:
+            raise captcha_exception('captcha error')
 
-@app.route('/api/verify', methods=['POST', 'GET'])
-def api_verify():
-    if request.method == 'GET':
-        captcha_dict = captcha.create()
-        response = jsonify(captcha_dict)
-        return _corsify_actual_response(response)
+    @staticmethod
+    def create():
+        myapp=MyApp()
+        web=flask_app.create_app({}, json=True)
+        web.add_url_rule('/api/verify', view_func=myapp.api_verify, methods=['POST', 'GET'])
+        web.add_url_rule('/public_key', view_func=myapp.get_pubkey, methods=['GET'])
+        return web
 
-    # # avoid Content type: text/plain return http415
-    req_data = request.get_json(force=True)
-    c_type = req_data.get('ctype', None)
-    c_hash = req_data.get('chash', None)
-    c_text = req_data.get('ctext', None)
-    c_payload = req_data.get('payload', '')
-    tmout_sec=10
-    if not c_hash or not c_text or not c_type:
-        raise Unauthorized('captcha no found')
-    if captcha.verify(c_type, c_text, c_hash):
-        # return new token 10 sec, for LOGIN service check captcha success!
-        req_data.pop('chash')
-        req_data.pop('ctext')
-        req_data.pop('payload')
-        response = jsonify({'ctoken': captcha.make_success_token(c_payload, req_data, tmout_sec)})
-        return _corsify_actual_response(response)
-    else:
-        raise Unauthorized('captcha error')
-
+app=MyApp.create()
 def main():
     logger.debug('''curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "[{\\"x\\": 329, \\"y\\": 129}]", "chash": "", "ctype": "", "payload": "u string"}' ''')
     logger.debug('''curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "", "chash": "", "ctype": "TEXT", "payload": "u string"}' ''')
-    HTTP_HOST = os.environ.get('HTTP_HOST', '0.0.0.0')
-    HTTP_PORT = int(os.environ.get('HTTP_PORT', '5000'))
-    app.run(host=HTTP_HOST, port=HTTP_PORT) #, debug=True)return 0
+    app.run(host=app.config['HTTP_HOST'], port=app.config['HTTP_PORT'], debug=app.config['DEBUG'])
 
 if __name__ == '__main__':
     exit(main())
