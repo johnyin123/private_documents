@@ -7,11 +7,11 @@ logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s:
 logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
-import os, sys, random
+import os, random
 def load_file(file_path):
     if os.path.isfile(file_path):
         return open(file_path, "rb").read()
-    sys.exit('file {} nofound'.format(file_path))
+    raise Exception('file {} nofound'.format(file_path))
 
 def _corsify_actual_response(response):
     response.headers.add('Access-Control-Allow-Origin', '*')

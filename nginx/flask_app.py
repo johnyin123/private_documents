@@ -40,21 +40,24 @@ def handle_error(e):
     response.content_type = 'application/json'
     return corsify_actual_response(response)
 '''
-import flask_app
+import flask_app, flask
 logger=flask_app.logger
 
 class MyApp(object):
-    def __init__(self):
-        logger.debug('DEMO')
-    # @app.route('/')
+    @staticmethod
+    def create():
+        myapp=MyApp()
+        web=flask_app.create_app({}, json=True)
+        web.add_url_rule('/', view_func=myapp.test, methods=['POST', 'GET'])
+        return web
+
     def test(self):
         return '{ "OK" : "OK" }'
 
+
+app=MyApp.create()
 def main():
-    conf={}
-    app=flask_app.create_app(conf, json=True)
-    myapp=MyApp()
-    app.add_url_rule('/', view_func=myapp.test, methods=['POST', 'GET'])
+    logger.debug("uwsgi --http-socket :5999 --plugin python3 --module application:app")
     app.run(host=app.config['HTTP_HOST'], port=app.config['HTTP_PORT'], debug=app.config['DEBUG'])
 
 if __name__ == '__main__':
