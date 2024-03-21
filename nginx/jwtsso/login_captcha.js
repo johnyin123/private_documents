@@ -17,8 +17,6 @@ function captcha_check(res, real_login) {
       real_login();
       return;
     }
-    msg = new Dialog();
-    msg.alert('Captcha server error:' + this.readyState + ':' + this.responseText + this.status, {}).then((res) => { });
     return;
   }
   xhr.send(sendObject);
@@ -75,8 +73,6 @@ function getCaptcha(payload, real_login, url) {
       }
       console.error(this.responseText)
     }
-    msg = new Dialog();
-    msg.alert('Captcha server error:' + this.readyState + ':' + this.responseText + this.status, {}).then((res) => { });
   }
   xhr.send();
 }
