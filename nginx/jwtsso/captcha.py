@@ -7,7 +7,7 @@ logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s:
 logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
-# Importing the PIL library
+# Importing the PIL(pillow) library
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 from io import BytesIO
 import base64, json, string, random, sys
@@ -62,12 +62,20 @@ def pil_image_to_base64(pil_image:Image, format:str='png')-> str:
 def base64_to_pil_image(base64_img:str)->Image:
     return Image.open(BytesIO(base64.b64decode(base64_img)))
 
+def get_text_dimensions(text_string: str, font: ImageFont):
+    # https://stackoverflow.com/a/46220683/9263761
+    ascent, descent = font.getmetrics()
+    text_width = font.getmask(text_string).getbbox()[2]
+    text_height = font.getmask(text_string).getbbox()[3] + descent
+    return (text_width, text_height)
+
 def draw_rotated_text(background:Image, font: ImageFont, text:str, color:str, x:int=0, y:int=0, angle:float=0) -> Image:
     back=background.convert("RGBA")
     txt = Image.new('RGBA', back.size, (255,255,255,0))
     draw = ImageDraw.Draw(txt)
+    w, h = get_text_dimensions(text, font)
     draw.text((x, y), text, font=font, fill=color)
-    return Image.alpha_composite(back, txt.rotate(angle))
+    return Image.alpha_composite(back, txt.rotate(angle, center=(int(x+w/2), int(y+h/2))))
 
 def file_exists(file:str)-> bool:
     if not os.path.isfile(file):
@@ -78,7 +86,6 @@ def file_exists(file:str)-> bool:
 def genrand_cha(charset: list, size: int=2) -> list:
     # random.sample, not dupvalue
     return random.choices(charset, k=size)
-    # return random.choices(charset, k=size)
 
 class TextCaptcha(object):
     charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -101,7 +108,7 @@ class TextCaptcha(object):
     def create(self, length:int=4, width:int=60, height: int=30) -> Dict:
         image=Image.new('RGBA', size=(width, height), color='white')
         colors=random.sample(self.colorset, k=length)
-        text=genrand_cha(self.charset, length)
+        text=random.choices(self.charset, k=length)
         logger.debug("TextCaptcha text is: %s", text)
         xpos = 0
         for color, ch in zip(colors, text):
@@ -143,14 +150,15 @@ class ClickCaptcha(object):
         image_file=rand_image('click_background')
         image = Image.open(image_file).resize((width, height), Image.LANCZOS)
         colors=random.sample(self.colorset, k=length)
-        text=genrand_cha(self.charset, length)
+        text=random.sample(self.charset, k=length)
         logger.debug("ClickCaptcha text is: %s, background %s", text, image_file)
         pos=[]
         for color, ch in zip(colors, text):
-            xpos = random.randint(30, width - self.font.getlength(ch))
-            ypos = random.randint(30, height - self.font.getlength(ch))
-            image = draw_rotated_text(image, self.font, ch, color, xpos, ypos, random.randint(10, 80))
-            pos.append({'x':int(xpos+self.font.getlength(ch)/2), 'y':int(ypos+self.font.getlength(ch)/2)})
+            fw, fh = get_text_dimensions(ch, self.font)
+            xpos = random.randint(0, width - fw)
+            ypos = random.randint(0, height - fh)
+            image = draw_rotated_text(image, self.font, ch, color, xpos, ypos, random.randint(0, 60))
+            pos.append({'x':int(xpos+fw/2), 'y':int(ypos+fh/2)})
         return {
             'type' : self.getname(),
             'img' : pil_image_to_base64(image).decode("utf-8"),
