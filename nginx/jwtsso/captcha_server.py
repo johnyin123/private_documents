@@ -162,7 +162,9 @@ app=MyApp.create()
 def main():
     logger.debug('''curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "[{\\"x\\": 329, \\"y\\": 129}]", "chash": "", "ctype": "", "payload": "u string"}' ''')
     logger.debug('''curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "", "chash": "", "ctype": "TEXT", "payload": "u string"}' ''')
-    app.run(host=app.config['HTTP_HOST'], port=app.config['HTTP_PORT'], debug=app.config['DEBUG'])
+    host = os.environ.get('HTTP_HOST', '0.0.0.0')
+    port = int(os.environ.get('HTTP_PORT', '18888'))
+    app.run(host=host, port=port, debug=app.config['DEBUG'])
 
 if __name__ == '__main__':
     exit(main())

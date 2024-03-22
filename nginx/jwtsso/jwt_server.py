@@ -163,7 +163,9 @@ ctoken=$(curl -s -k -X POST "${CAPTCHA_SRV}/api/verify" -d "{\\"payload\\":\\"yi
 echo "ctoken ======= $ctoken"
 curl -s -k -X POST "${JWT_SRV}/api/loginx" -d "{\\"password\\":\\"Passw)rd123\\", \\"ctoken\\": \\"$ctoken\\"}"
 """)
-    app.run(host=app.config['HTTP_HOST'], port=app.config['HTTP_PORT'], debug=app.config['DEBUG'])
+    host = os.environ.get('HTTP_HOST', '0.0.0.0')
+    port = int(os.environ.get('HTTP_PORT', '18888'))
+    app.run(host=host, port=port, debug=app.config['DEBUG'])
 
 if __name__ == '__main__':
     exit(main())

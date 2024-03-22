@@ -8,8 +8,6 @@ logger = logging.getLogger(__name__)
 
 import werkzeug, flask
 FLASK_CONF = {
-    'HTTP_HOST'        : os.environ.get('HTTP_HOST', '0.0.0.0'),
-    'HTTP_PORT'        : int(os.environ.get('HTTP_PORT', '18888')),
     'SECRET_KEY'       : os.urandom(24),
     'DEBUG'            : os.environ.get('DEBUG', False),
     'STATIC_URL_PATH'  : '/public',
@@ -54,11 +52,12 @@ class MyApp(object):
     def test(self):
         return '{ "OK" : "OK" }'
 
-
 app=MyApp.create()
 def main():
     logger.debug("uwsgi --http-socket :5999 --plugin python3 --module application:app")
-    app.run(host=app.config['HTTP_HOST'], port=app.config['HTTP_PORT'], debug=app.config['DEBUG'])
+    host = os.environ.get('HTTP_HOST', '0.0.0.0')
+    port = int(os.environ.get('HTTP_PORT', '18888'))
+    app.run(host=host, port=port, debug=app.config['DEBUG'])
 
 if __name__ == '__main__':
     exit(main())
