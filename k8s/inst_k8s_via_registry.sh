@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3a8a6ea[2023-08-23T13:08:24+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("9408fb5[2024-03-18T07:41:33+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -283,6 +283,10 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
         EXAM:
+    on all nodes:
+        echo '192.168.168.xxx     registry.local'>> /etc/hosts
+        wget --no-check-certificate -O /etc/yum.repos.d/cnap.repo http://registry.local/cnap/cnap.repo
+        yum -y --enablerepo=cnap install sd_cnap_v1.27.3
 # # init new cluster
 ${SCRIPTNAME} -m 192.168.168.150 --pod_cidr 172.16.0.0/24 --ipvs --insec_registry 192.168.168.250 --apiserver myserver:6443
 # # add worker in exists cluster
@@ -392,7 +396,7 @@ main() {
     done
     init_kube_cluster "${user}" "${port}" master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}" "${svc_cidr}" "${insec_registry}"
     ${skip_proxy} || { ${ipvs} && ssh_func "${user}@${master[0]}" "${port}" modify_kube_proxy_ipvs; }
-    ${enable_schedule} || { ssh_func "${user}@${master[0]}" "${port}" enbale_pod_scheduling_on_master; }
+    ${enable_schedule} && { ssh_func "${user}@${master[0]}" "${port}" enbale_pod_scheduling_on_master; }
     [ -z "${crossnet_method}" ] || init_kube_calico_cni "${user}" "${port}" "${master[0]}" "${pod_cidr}" "${svc_cidr}" "${insec_registry}" "${crossnet_method}"
     info_msg "export k8s configuration\n"
     ssh_func "${user}@${master[0]}" "${port}" 'kubeadm config print init-defaults'
