@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("eac2b9d[2023-08-09T12:33:04+08:00]:new_etcd.sh")
+VERSION+=("463ddab[2023-08-23T10:23:52+08:00]:new_etcd.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -15,6 +15,7 @@ init_dir() {
     getent group etcd >/dev/null || groupadd --system etcd || :
     getent passwd etcd >/dev/null || useradd -g etcd --system -s /sbin/nologin -d /var/empty/etcd etcd 2> /dev/null || :
     mkdir -p -m0700 ${etcd_data_dir} && chown -R etcd:etcd ${etcd_data_dir}
+    mkdir -p /etc/etcd/ssl
 }
 gen_etcd_conf() {
     local pub_ip=$1
@@ -24,11 +25,20 @@ gen_etcd_conf() {
     local token=$5
     local member_lst=$6
     local etcd_data_dir=${7}
+    local cert=${8##*/}
+    local key=${9##*/}
+    local ca=${10##*/}
+    local protocol="http"
+    [ -z "${key}" ] || {
+        chown -R etcd:etcd /etc/etcd/
+        chmod -R 550 /etc/etcd/ssl
+        protocol="https"
+    }
     local etcd_name=${HOSTNAME:-$(hostname)}
-    local etcd_listen_peer_urls=http://${cluster_ip}:${cluster_port}
-    local etcd_initial_advertise_peer_urls="http://${cluster_ip}:${cluster_port}"
-    local etcd_listen_client_urls="http://${pub_ip}:${pub_port},http://127.0.0.1:${pub_port}"
-    local etcd_advertise_client_urls="http://${pub_ip}:${pub_port}"
+    local etcd_listen_peer_urls="${protocol}://${cluster_ip}:${cluster_port}"
+    local etcd_initial_advertise_peer_urls="${protocol}://${cluster_ip}:${cluster_port}"
+    local etcd_listen_client_urls="${protocol}://${pub_ip}:${pub_port},${protocol}://127.0.0.1:${pub_port}"
+    local etcd_advertise_client_urls="${protocol}://${pub_ip}:${pub_port}"
     local etcd_initial_cluster="${member_lst}"
     local etcd_initial_cluster_state=new
     local etcd_initial_cluster_token="${token}"
@@ -50,14 +60,22 @@ ETCD_INITIAL_CLUSTER_STATE="${etcd_initial_cluster_state}"
 # 集群的名称
 ETCD_INITIAL_CLUSTER_TOKEN="${etcd_initial_cluster_token}"
 # # Security
-# ETCD_CERT_FILE="/opt/etcd/ssl/server.pem"
-# ETCD_KEY_FILE="/opt/etcd/ssl/server-key.pem"
-# ETCD_TRUSTED_CA_FILE="/opt/etcd/ssl/ca.pem"
-# ETCD_CLIENT_CERT_AUTH="true"
-# ETCD_PEER_CERT_FILE="/opt/etcd/ssl/server.pem"
-# ETCD_PEER_KEY_FILE="/opt/etcd/ssl/server-key.pem"
-# ETCD_PEER_TRUSTED_CA_FILE="/opt/etcd/ssl/ca.pem"
-# ETCD_PEER_CLIENT_CERT_AUTH="true"
+$(
+[ -z "${cert}" ] ||{
+    echo "ETCD_CERT_FILE=\"/etc/etcd/ssl/${cert}\""
+    echo "ETCD_PEER_CERT_FILE=\"/etc/etcd/ssl/${cert}\""
+}
+[ -z "${key}" ] ||{
+    echo "ETCD_KEY_FILE=\"/etc/etcd/ssl/${key}\""
+    echo "ETCD_PEER_KEY_FILE=\"/etc/etcd/ssl/${key}\""
+}
+[ -z "${ca}" ] ||{
+    echo "ETCD_PEER_TRUSTED_CA_FILE=\"/etc/etcd/ssl/${ca}\""
+    echo "ETCD_PEER_CLIENT_CERT_AUTH=\"true\""
+}
+)
+# echo "ETCD_CLIENT_CERT_AUTH=\"true\""
+# echo "ETCD_TRUSTED_CA_FILE=\"/etc/etcd/ssl/${ca}\""
 EOF
 }
 
@@ -88,19 +106,36 @@ Alias=etcd2.service
 EOF
 }
 
+etcd_member_list() {
+    local port=${1}
+    local cert=${2##*/}
+    local key=${3##*/}
+    local ca=${4##*/}
+    [ -z "${key}" ] || {
+        export ETCDCTL_CACERT=/etc/etcd/ssl/${ca}
+        export ETCDCTL_CERT=/etc/etcd/ssl/${cert}
+        export ETCDCTL_KEY=/etc/etcd/ssl/${key}
+    }
+    etcdctl --endpoints=127.0.0.1:${port} member list -w table
+    echo "ETCDCTL_CACERT=/etc/etcd/ssl/${ca} ETCDCTL_CERT=/etc/etcd/ssl/${cert} ETCDCTL_KEY=/etc/etcd/ssl/${key} etcdctl --endpoints=127.0.0.1:${port} member list -w table"
+}
 # remote execute function end!
 ################################################################################
-SSH_PORT=${SSH_PORT:-60022}
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        -n|--node <ip>   *   etcd nodes
-        --port    <int>      clent connect port, default 2379
+        -n|--node  <ip>   *  etcd nodes
+        --port     <int>     clent connect port, default 2379
         -t|--token <str>     etcd cluster token, default: etcd-cluster
-        -s|--src  <dir>      directory contian etcd/etcdctl/etcdutl binary, default current dir
-        --sshpass <str>      ssh password
+        -s|--src   <dir>     directory contian etcd/etcdctl/etcdutl binary, default current dir
+        --cert     <file>
+        --key      <file>
+        --ca       <file>
         --teardown <ip>      remove all etcd&config
+        -U|--user     <user> ssh user, default root
+        -P|--port     <int>  ssh port, default 60022
+        --password    <str>  ssh password(default use sshkey)
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -119,15 +154,17 @@ teardown() {
     [ -d "${ETCD_DATA_DIR:-}" ] && rm -fr ${ETCD_DATA_DIR}
     rm -f /usr/bin/etcd /usr/bin/etcdctl /usr/bin/etcdutl || true
     rm -f /etc/default/etcd || true
+    rm -fr /etc/etcd || true
     rm -f /lib/systemd/system/etcd.service || true
     userdel etcd || true
 }
 
 main() {
+    local sshuser=root sshport=60022
     local teardown=() node=() token="etcd-cluster" src="${DIRNAME}" sshpass="" port=2379
-    local etcd_data_dir="/var/lib/etcd" cluster_port=2380;
+    local etcd_data_dir="/var/lib/etcd" cluster_port=2380 cert="" key="" ca=""
     local opt_short="n:t:s:d:"
-    local opt_long="node:,token:,src:,sshpass:,port:,data:,teardown:,"
+    local opt_long="node:,token:,src:,sshpass:,port:,data:,teardown:,cert:,key:,ca:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -139,7 +176,12 @@ main() {
             --port)         shift; port=${1}; shift;;
             -t | --token)   shift; token=${1}; shift;;
             -s | --src)     shift; src=${1}; shift;;
-            --sshpass)      shift; sshpass="${1}"; shift;;
+            --cert)         shift; cert=${1}; shift;;
+            --key)          shift; key=${1}; shift;;
+            --ca)           shift; ca=${1}; shift;;
+            -U | --sshuser) shift; sshuser=${1}; shift;;
+            -P | --sshport) shift; sshport=${1}; shift;;
+            --password)     shift; set_sshpass "${1}"; shift;;
             --teardown)     shift; teardown+=(${1}); shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
@@ -154,34 +196,43 @@ main() {
     local ipaddr=""
     for ipaddr in "${teardown[@]}"; do
         info_msg "${ipaddr} teardown all etcd binary & config!\n"
-        ssh_func "root@${ipaddr}" "${SSH_PORT}" "teardown"
+        ssh_func "${sshuser}@${ipaddr}" "${sshport}" "teardown"
     done
     [ "$(array_size teardown)" -gt "0" ] && { info_msg "TEARDOWN OK\n"; return 0; }
     is_integer ${port} || exit_msg "port is integet\n"
     [ "$(array_size node)" -gt "0" ] || usage "at least one node"
-    [ -z ${sshpass} ] || set_sshpass "${sshpass}"
     file_exists "${src}/etcd" || file_exists "${src}/etcdctl" || exit_msg "etcd/etcdctl no found in '${src}'\n"
     cluster_port=$((port + 1))
-    local member_lst=() cluster="" name=""
+    local member_lst=() cluster="" name="" protocol="http"
+    [ -z "${key}" ] || protocol="https"
     for ipaddr in ${node[@]}; do
-        name=$(ssh_func "root@${ipaddr}" ${SSH_PORT} 'echo ${HOSTNAME:-$(hostname)}')
-        member_lst+=("${name}=http://${ipaddr}:${cluster_port}")
+        name=$(ssh_func "${sshuser}@${ipaddr}" ${sshport} 'echo ${HOSTNAME:-$(hostname)}')
+        member_lst+=("${name}=${protocol}://${ipaddr}:${cluster_port}")
     done
     cluster="$(OIFS="$IFS" IFS=,; echo "${member_lst[*]}"; IFS="$OIFS")"
     for ipaddr in ${node[@]}; do
-        upload "${src}/etcd" ${ipaddr} ${SSH_PORT} "root" "/usr/bin/"
-        upload "${src}/etcdctl" ${ipaddr} ${SSH_PORT} "root" "/usr/bin/"
-        file_exists "${src}/etcdutl" && upload "${src}/etcdutl" ${ipaddr} ${SSH_PORT} "root" "/usr/bin/"
-        ssh_func "root@${ipaddr}" ${SSH_PORT} init_dir "${etcd_data_dir}"
-        ssh_func "root@${ipaddr}" ${SSH_PORT} gen_etcd_service
-        ssh_func "root@${ipaddr}" ${SSH_PORT} gen_etcd_conf "${ipaddr}" $port "${ipaddr}" ${cluster_port} "${token}" "${cluster}" "${etcd_data_dir}"
-        ssh_func "root@${ipaddr}" ${SSH_PORT} "systemctl daemon-reload && systemctl enable etcd.service"
+        upload "${src}/etcd" "${ipaddr}" "${sshport}" "${sshuser}" "/usr/bin/"
+        upload "${src}/etcdctl" "${ipaddr}" "${sshport}" "${sshuser}" "/usr/bin/"
+        file_exists "${src}/etcdutl" && upload "${src}/etcdutl" "${ipaddr}" "${sshport}" "${sshuser}" "/usr/bin/"
+        ssh_func "${sshuser}@${ipaddr}" ${sshport} init_dir "${etcd_data_dir}"
+        [ -z "${cert}" ] || upload "${cert}" "${ipaddr}" "${sshport}" "${sshuser}" "/etc/etcd/ssl"
+        [ -z "${key}" ] || upload "${key}" "${ipaddr}" "${sshport}" "${sshuser}" "/etc/etcd/ssl"
+        [ -z "${ca}" ] ||  upload "${ca}" "${ipaddr}" "${sshport}" "${sshuser}" "/etc/etcd/ssl"
+        ssh_func "${sshuser}@${ipaddr}" ${sshport} gen_etcd_service
+        ssh_func "${sshuser}@${ipaddr}" ${sshport} gen_etcd_conf "${ipaddr}" $port "${ipaddr}" ${cluster_port} "${token}" "${cluster}" "${etcd_data_dir}" "${cert}" "${key}" "${ca}"
+        ssh_func "${sshuser}@${ipaddr}" ${sshport} "systemctl daemon-reload && systemctl enable etcd.service"
     done
     for ipaddr in ${node[@]}; do
-        ssh_func "root@${ipaddr}" ${SSH_PORT} "nohup systemctl start etcd.service &>/dev/null &"
+        ssh_func "${sshuser}@${ipaddr}" ${sshport} "nohup systemctl start etcd.service &>/dev/null &"
     done
     sleep 1
-    ssh_func "root@${node[0]}" ${SSH_PORT} "etcdctl --endpoints=127.0.0.1:${port} member list"
+    [ -z "${key}" ] || {
+        log_info "TLS etcd, can restart etc more times then all ok\n"
+        for ipaddr in ${node[@]}; do
+            ssh_func "${sshuser}@${ipaddr}" ${sshport} "nohup systemctl start etcd.service &>/dev/null &"
+        done
+    }
+    ssh_func "${sshuser}@${node[0]}" ${sshport} etcd_member_list "$port" "${cert}" "${key}" "${ca}"
     cat <<'EOF'
 复制其他节点的data-dir中的内容，以此为基础上以--force-new-cluster强行拉起，然后以添加新成员的方式恢复这个集群
 #!/bin/bash

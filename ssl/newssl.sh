@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7c48938[2023-06-21T07:38:47+08:00]:newssl.sh")
+VERSION+=("cf90f2b[2023-12-27T17:12:58+08:00]:newssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 YEAR=${YEAR:-5}
@@ -18,6 +18,7 @@ ${SCRIPTNAME}
         env: YEAR=5, the ca&client years, default 5
         -i|--init   <str> *  init ca, sign a server cert with DN=<str>
         -c|--client <str>  * create client cert keys
+        --ip        <ip>     client cert subjectAltName ip, multi input
         --caroot             CA root(default ${DIRNAME}/ca)
         -q|--quiet
         -l|--log <int> log level
@@ -53,6 +54,7 @@ init_ca() {
 gen_client_cert() {
     local caroot=${1}
     local cid=${2}
+    local ips=($(array_print ${3}))
     [ -e "${caroot}/${cid}.csr" ] && return 1
     info_msg "create key\n"
     try openssl genrsa -out ${caroot}/${cid}.key 2048
@@ -60,7 +62,12 @@ gen_client_cert() {
     try openssl req -new -key ${caroot}/${cid}.key -out ${caroot}/${cid}.csr \
         -utf8 -subj \"/C=CN/L=LN/O=mycompany/CN=${cid}\"
     info_msg "signing our certificate with my ca"
-    echo subjectAltName = DNS:${cid},IP:127.0.0.1 > extfile.cnf
+    num=1
+    echo -n "subjectAltName = DNS:${cid},IP.1:127.0.0.1" > extfile.cnf
+    for ipaddr in $(array_print ips); do
+        echo -n ",IP.${num}:${ipaddr}" >> extfile.cnf
+        let $((num++))
+    done
     try openssl x509 -req -days $((365*${YEAR})) -in ${caroot}/${cid}.csr \
         -extfile extfile.cnf \
         -CA ${caroot}/ca.pem -CAkey ${caroot}/ca.key -CAcreateserial -out ${caroot}/${cid}.pem
@@ -91,9 +98,9 @@ convert_p12() {
 }
 
 main() {
-    local init="" client=""  caroot="${DIRNAME}/ca"
+    local init="" client="" ips=() caroot="${DIRNAME}/ca"
     local opt_short="i:c:"
-    local opt_long="init:,client:,caroot:,"
+    local opt_long="init:,client:,caroot:,ip:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -102,6 +109,7 @@ main() {
         case "$1" in
             -i | --init)    shift; init=${1}; shift;;
             -c | --client)  shift; client=${1}; shift;;
+            --ip)           shift; ips+=(${1}); shift;;
             --caroot)       shift; caroot=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
@@ -118,7 +126,7 @@ main() {
     }
     [ -z "${client}" ] || {
         info_msg "generate client [${client}] cert\n"
-        gen_client_cert "${caroot}" "${client}" || {
+        gen_client_cert "${caroot}" "${client}" ips|| {
             retval=$?
             error_msg "generate client [${client}] cert error[${retval}]\n"
         }
