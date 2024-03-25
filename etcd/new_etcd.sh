@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f7f71b8[2024-03-25T10:03:00+08:00]:new_etcd.sh")
+VERSION+=("1635f19[2024-03-25T13:07:16+08:00]:new_etcd.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -247,8 +247,24 @@ main() {
 etcdctl --endpoints https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key snapshot save /backup/snap-$(date +%Y%m%d)
 # find /tmp/etcd_backup/ -ctime +7 -exec rm -r {}
 
-etcdctl member add mynew_node1 http://10.0.1.13:2380
+etcdctl member add mynew_node1 --peer-urls=http://10.0.1.13:2380
 etcdctl在注册完新节点后，会返回一段提示，包含3个环境变量。然后在新节点启动时候，带上这3个环境变量即可。
+
+kubectl get pods -n kube-system | grep etcd | awk '{print $1}'
+endpoints=https://127.0.0.1:2379
+kubectl exec -ti -n kube-system ${etcd_name} -- etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key --endpoints=${endpoints} member list -w table
+kubectl exec -ti -n kube-system ${etcd_name} -- etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key --endpoints=${endpoints} endpoint status -w table
+kubectl exec -ti -n kube-system ${etcd_name} -- etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key --endpoints=${endpoints} snapshot save /var/lib/etcd/k8s_etcd.db
+kubectl exec -ti -n kube-system ${etcd_name} -- etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key --endpoints=${endpoints} member add srv153 --peer-urls=https://192.168.168.153:2380
+# # make sure new etcd  nodes has same version
+kubectl exec -ti -n kube-system ${etcd_name} -- etcdctl --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key --endpoints=${endpoints} version
+# # on new nodes
+# # get etc/kubernetes/pki/etcd/ca.crt/ca.key,  use new_ssl.sh renew a node key/pem
+./new_etcd.sh -n 192.168.168.153 --cert etcd.pem  --key etcd.key --ca ca.pem
+# # and edit /etc/default/etcd, add new configure
+# # on etcd k8s node
+rm /etc/kubernetes/manifests/etcd.yaml
+systemctl restart kubelet
 EOF
     info_msg "ALL DONE\n"
     return 0
