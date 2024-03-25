@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1eaeb03[2024-03-20T19:00:30+08:00]:ngx_demo.sh")
+VERSION+=("d4436c4[2024-03-25T14:12:39+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -476,6 +476,18 @@ location ~* .(favicon.ico)$ {
     # alias /var/www/;
     # try_files /favicon.ico @proxy;
     alias /var/www/favicon.ico;
+}
+EOF
+cat <<'EOF' >grpc.http
+# grpc need http2
+server {
+    listen 443 ssl http2;
+    server_name _;
+    ssl_certificate /etc/nginx/ssl/srv.pem;
+    ssl_certificate_key /etc/nginx/ssl/srv.key;
+    location / {
+        grpc_pass 127.0.0.1:9001;
+    }
 }
 EOF
 cat <<'EOF' >limit_speed.http
