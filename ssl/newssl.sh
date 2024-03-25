@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b785a40[2024-03-22T14:49:08+08:00]:newssl.sh")
+VERSION+=("f7f71b8[2024-03-25T10:03:00+08:00]:newssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 YEAR=${YEAR:-5}
@@ -62,8 +62,8 @@ gen_client_cert() {
     try openssl req -new -key ${caroot}/${cid}.key -out ${caroot}/${cid}.csr \
         -utf8 -subj \"/C=CN/L=LN/O=mycompany/CN=${cid}\"
     info_msg "signing our certificate with my ca"
+    echo -n "subjectAltName = DNS:${cid}" > extfile.cnf
     num=1
-    echo -n "subjectAltName = DNS:${cid},IP.1:127.0.0.1" > extfile.cnf
     for ipaddr in $(array_print ips); do
         echo -n ",IP.${num}:${ipaddr}" >> extfile.cnf
         let $((num++))
@@ -98,7 +98,7 @@ convert_p12() {
 }
 
 main() {
-    local init="" client="" ips=() caroot="${DIRNAME}/ca"
+    local init="" client="" ips=(127.0.0.1) caroot="${DIRNAME}/ca"
     local opt_short="i:c:"
     local opt_long="init:,client:,caroot:,ip:,"
     opt_short+="ql:dVh"
