@@ -20,19 +20,17 @@ def create_app(config: dict={}, json: bool=False) -> flask.Flask:
     app.config.from_mapping(cfg)
     if json:
         for ex in werkzeug.exceptions.default_exceptions:
-            app.register_error_handler(ex, handle_error)
+            app.register_error_handler(ex, json_handle_error)
     return app
 
 def merge_dict(x: dict, y:dict)->dict:
-    z = x.copy()
-    z.update(y)
-    return z
+    return x.copy().update(y)
 
 def corsify_actual_response(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
-def handle_error(e):
+def json_handle_error(e):
     response = e.get_response()
     response.data = flask.json.dumps({ 'code': e.code, 'name': e.name, 'description': e.description, })
     response.content_type = 'application/json'
