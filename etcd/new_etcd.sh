@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b785a40[2024-03-22T14:49:08+08:00]:new_etcd.sh")
+VERSION+=("f7f71b8[2024-03-25T10:03:00+08:00]:new_etcd.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -44,19 +44,19 @@ gen_etcd_conf() {
     local etcd_initial_cluster_token="${token}"
     cat > /etc/default/etcd <<EOF
 ETCD_NAME="${etcd_name}"
+# 初始集群成员列表
+ETCD_INITIAL_CLUSTER="${etcd_initial_cluster}"
+# 广播给集群内其他成员访问的URL
+ETCD_INITIAL_ADVERTISE_PEER_URLS="${etcd_initial_advertise_peer_urls}"
+# 初始集群状态，new为新建集群
+ETCD_INITIAL_CLUSTER_STATE="${etcd_initial_cluster_state}"
 ETCD_DATA_DIR="${etcd_data_dir}"
 # 集群内部通信使用的URL
 ETCD_LISTEN_PEER_URLS="${etcd_listen_peer_urls}"
 # 供外部客户端使用的URL
 ETCD_LISTEN_CLIENT_URLS="${etcd_listen_client_urls}"
-# 广播给集群内其他成员访问的URL
-ETCD_INITIAL_ADVERTISE_PEER_URLS="${etcd_initial_advertise_peer_urls}"
 # 广播给外部客户端使用的URL
 ETCD_ADVERTISE_CLIENT_URLS="${etcd_advertise_client_urls}"
-# 初始集群成员列表
-ETCD_INITIAL_CLUSTER="${etcd_initial_cluster}"
-# 初始集群状态，new为新建集群
-ETCD_INITIAL_CLUSTER_STATE="${etcd_initial_cluster_state}"
 # 集群的名称
 ETCD_INITIAL_CLUSTER_TOKEN="${etcd_initial_cluster_token}"
 # # Security
@@ -71,11 +71,11 @@ $(
 }
 [ -z "${ca}" ] ||{
     echo "ETCD_PEER_TRUSTED_CA_FILE=\"/etc/etcd/ssl/${ca}\""
+    echo "ETCD_TRUSTED_CA_FILE=\"/etc/etcd/ssl/${ca}\""
     echo "ETCD_PEER_CLIENT_CERT_AUTH=\"true\""
 }
 )
 # echo "ETCD_CLIENT_CERT_AUTH=\"true\""
-# echo "ETCD_TRUSTED_CA_FILE=\"/etc/etcd/ssl/${ca}\""
 EOF
     [ -z "${key}" ] ||{
         cat <<EOF > /etc/profile.d/etcd.sh
@@ -247,11 +247,8 @@ main() {
 etcdctl --endpoints https://127.0.0.1:2379 --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key snapshot save /backup/snap-$(date +%Y%m%d)
 # find /tmp/etcd_backup/ -ctime +7 -exec rm -r {}
 
-etcdctl member add infra3 http://10.0.1.13:2380
-ETCD_NAME="infra3"
-ETCD_INITIAL_CLUSTER="infra0=http://10.0.1.10:2380,infra1=http://10.0.1.11:2380,infra2=http://10.0.1.12:2380,infra3=http://10.0.1.13:2380"
-ETCD_INITIAL_CLUSTER_STATE=existing
-etcdctl在注册完新节点后，会返回一段提示，包含3个环境变量。然后在第二部启动新节点的时候，带上这3个环境变量即可。
+etcdctl member add mynew_node1 http://10.0.1.13:2380
+etcdctl在注册完新节点后，会返回一段提示，包含3个环境变量。然后在新节点启动时候，带上这3个环境变量即可。
 EOF
     info_msg "ALL DONE\n"
     return 0
