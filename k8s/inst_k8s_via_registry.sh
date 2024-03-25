@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9408fb5[2024-03-18T07:41:33+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("ff1564b[2024-03-22T09:20:07+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -58,6 +58,8 @@ pre_conf_k8s_host() {
     }
     [ -z "${nameserver}" ] || echo "nameserver ${nameserver}" > /etc/resolv.conf
     touch /etc/resolv.conf || true
+    # for external etcd
+    mkdir -p /etc/kubernetes/pki/etcd/ || true
     swapoff -a
     sed -i "/\s*swap\s/d" /etc/fstab
     echo "br_netfilter" >/etc/modules-load.d/k8s.conf
@@ -95,7 +97,41 @@ modify_kube_proxy_ipvs() {
     kubectl apply -f -
     kubectl -n kube-system delete pod -l k8s-app=kube-proxy
 }
-
+init_first_k8s_master_use_extern_etcd() {
+    local apiserver=${1} # apiserver dns-name:port
+    local skip_proxy=${2}
+    local pod_cidr=${3}
+    local svc_cidr=${4}
+    local insec_registry=${5}
+    shift 5;
+    local etcd="${*}"
+    local opts="--upload-certs"
+    kubeadm config print init-defaults --kubeconfig ClusterConfiguration | sed -n '1,/^---/!p' | sed -n '/local:/,/dataDir:/!p' > /tmp/kubeadm-config.yaml
+    ${skip_proxy} && opts="--skip-phases=addon/kube-proxy ${opts}"
+    [ -z "${apiserver}" ] || sed -i "s|controllerManager:.*|controlPlaneEndpoint: ${apiserver}|g" /tmp/kubeadm-config.yaml
+    [ -z "${pod_cidr}" ] || sed -i "s|networking:|networking:\n  podSubnet: ${pod_cidr}|g" /tmp/kubeadm-config.yaml
+    [ -z "${svc_cidr}" ] || sed -i "s|networking:|networking:\n  serviceSubnet: ${svc_cidr}|g" /tmp/kubeadm-config.yaml
+    [ -z "${insec_registry}" ] || sed -i "s|imageRepository:.*|imageRepository: ${insec_registry}/google_containers|g" /tmp/kubeadm-config.yaml
+    echo "add external etcd"
+    sed -i "s|etcd:|etcd:\n  external:\n    endpoints:|g" /tmp/kubeadm-config.yaml
+    sed -i "s|external:|external:\n    caFile: /etc/kubernetes/pki/etcd/ca.pem|g" /tmp/kubeadm-config.yaml
+    sed -i "s|external:|external:\n    certFile: /etc/kubernetes/pki/etcd/etcd.pem|g" /tmp/kubeadm-config.yaml
+    sed -i "s|external:|external:\n    keyFile: /etc/kubernetes/pki/etcd/etcd.key|g" /tmp/kubeadm-config.yaml
+    for it in ${etcd}; do
+        sed -i "s|endpoints:|endpoints:\n    - ${it}|g" /tmp/kubeadm-config.yaml
+    done
+    local k8s_version=$(kubelet --version | awk '{ print $2}')
+    sed -i "s/kubernetesVersion:.*/kubernetesVersion: ${k8s_version}/g" /tmp/kubeadm-config.yaml
+    kubeadm init --config /tmp/kubeadm-config.yaml ${opts}
+    echo "FIX 'kubectl get cs' Unhealthy"
+    sed -i "/^\s*-\s*--\s*port\s*=\s*0/d" /etc/kubernetes/manifests/kube-controller-manager.yaml
+    sed -i "/^\s*-\s*--\s*port\s*=\s*0/d" /etc/kubernetes/manifests/kube-scheduler.yaml
+    mkdir -p ~/.kube && cat /etc/kubernetes/admin.conf > ~/.kube/config
+    echo "source <(kubectl completion bash)" > /etc/profile.d/k8s.sh
+    chmod 644 /etc/profile.d/k8s.sh
+    export KUBECONFIG=/etc/kubernetes/admin.conf
+    kubectl cluster-info || true
+}
 init_first_k8s_master() {
     local apiserver=${1} # apiserver dns-name:port
     local skip_proxy=${2}
@@ -239,10 +275,15 @@ init_kube_cluster() {
     local skip_proxy=${7}
     local svc_cidr=${8}
     local insec_registry=${9}
+    local etcd=($(array_print ${10}))
     [ "$(array_size master_nodes)" -gt "0" ] || return 1
     local ipaddr=${master_nodes[0]}
     info_msg "****** ${ipaddr} init first master(${apiserver:-no apiserver define})\n"
-    ssh_func "${user}@${ipaddr}" "${port}" init_first_k8s_master "${apiserver}" "${skip_proxy}" "${pod_cidr}" "${svc_cidr}" "${insec_registry}"
+    [ "$(array_size etcd)" -gt "0" ] && {
+        ssh_func "${user}@${ipaddr}" "${port}" init_first_k8s_master_use_extern_etcd  "${apiserver}" "${skip_proxy}" "${pod_cidr}" "${svc_cidr}" "${insec_registry}" ${etcd[@]}
+    } || {
+        ssh_func "${user}@${ipaddr}" "${port}" init_first_k8s_master "${apiserver}" "${skip_proxy}" "${pod_cidr}" "${svc_cidr}" "${insec_registry}"
+    }
     local new_masters=()
     for ((i=1;i<$(array_size master_nodes);i++)); do new_masters+=(${master_nodes[$i]}); done
     [ -z "${apiserver}" ] && apiserver=$(ssh_func "${user}@${ipaddr}" "${port}" 'sed -n "s/\s*server\s*:\s*http[s]*:\/\/\(.*\)/\1/p" /etc/kubernetes/kubelet.conf')
@@ -258,6 +299,8 @@ ${SCRIPTNAME}
             SUDO=   default undefine
         -m|--master       * * *  <ip>   master nodes, support multi nodes
         -w|--worker       * X    <ip>   worker nodes, support multi nodes
+        --etcd                   <url>  external etcd cluster addesses, support multi nodes
+                                        exam: https://192.168.168.152:2379
         -s|--svc_cidr     X X    <cidr> servie cidr, default 10.96.0.0/12
         -p|--pod_cidr     X X *  <cidr> calico cni, pod_cidr
         --enable_schedule               enable master node scheduling
@@ -317,11 +360,12 @@ verify_calico() {
     esac
 }
 main() {
+    local etcd=()
     local master=() worker=() teardown=() svc_cidr="" pod_cidr="" insec_registry="" nameserver="" apiserver="" crossnet_method="" only_add_master=""
     local skip_proxy=false ipvs=false only_add_worker=false enable_schedule=false
     local user=root port=60022
     local opt_short="m:w:s:p:U:P:"
-    local opt_long="master:,worker:,svc_cidr:,pod_cidr:,insec_registry:,nameserver:,calico:,apiserver:,skip_proxy,ipvs,only_add_worker,only_add_master:,password:,teardown:,user:,port:,enable_schedule,"
+    local opt_long="master:,worker:,svc_cidr:,pod_cidr:,insec_registry:,nameserver:,calico:,apiserver:,skip_proxy,ipvs,only_add_worker,only_add_master:,password:,teardown:,user:,port:,enable_schedule,etcd:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -332,6 +376,7 @@ main() {
             -w | --worker)     shift; worker+=(${1}); shift;;
             -s | --svc_cidr)   shift; svc_cidr=${1}; shift;;
             -p | --pod_cidr)   shift; pod_cidr=${1}; shift;;
+            --etcd)            shift; etcd+=(${1}); shift;;
             --enable_schedule) shift; enable_schedule=true;;
             --insec_registry)  shift; insec_registry=${1}; shift;;
             --nameserver)      shift; nameserver=${1}; shift;;
@@ -363,12 +408,23 @@ main() {
     done
     [ "$(array_size teardown)" -gt "0" ] && { info_msg "TEARDOWN OK\n"; return 0; }
     [ "$(array_size master)" -gt "0" ] || usage "at least one master"
+    [ "$(array_size etcd)" -gt "0" ] && {
+        info_msg "Use external ETCD\n"
+        file_exists "ca.pem" || exit_msg "etcd ca.pem no found\n";
+        file_exists "etcd.pem" || exit_msg "etcd etcd.pem no found\n";
+        file_exists "etcd.key" || exit_msg "etcd etcd.key no found\n";
+    }
     [ -z "${only_add_master}" ] || {
         # # only add master in exist k8s cluster
         apiserver=$(ssh_func "${user}@${only_add_master}" "${port}" 'sed -n "s/\s*server\s*:\s*http[s]*:\/\/\(.*\)/\1/p" /etc/kubernetes/kubelet.conf')
         for ipaddr in $(array_print master); do
             info_msg "****** ${ipaddr} pre valid host env\n"
             ssh_func "${user}@${ipaddr}" "${port}" pre_conf_k8s_host "${only_add_master}" "${apiserver}" "${nameserver}" "${insec_registry}"
+            [ "$(array_size etcd)" -gt "0" ] && {
+                upload "ca.pem" "${ipaddr}" "${port}" "${user}" "/etc/kubernetes/pki/etcd/"
+                upload "etcd.pem" "${ipaddr}" "${port}" "${user}" "/etc/kubernetes/pki/etcd/"
+                upload "etcd.key" "${ipaddr}" "${port}" "${user}" "/etc/kubernetes/pki/etcd/"
+            }
         done
         k8s_only_add_master "${user}" "${port}" "${only_add_master}" master "${apiserver}"
         info_msg "ONLY ADD MASTER ALL DONE\n"
@@ -381,6 +437,11 @@ main() {
         for ipaddr in $(array_print worker); do
             info_msg "****** ${ipaddr} pre valid host env\n"
             ssh_func "${user}@${ipaddr}" "${port}" pre_conf_k8s_host "${master[0]}" "${apiserver}" "${nameserver}" "${insec_registry}"
+            [ "$(array_size etcd)" -gt "0" ] && {
+                upload "ca.pem" "${ipaddr}" "${port}" "${user}" "/etc/kubernetes/pki/etcd/"
+                upload "etcd.pem" "${ipaddr}" "${port}" "${user}" "/etc/kubernetes/pki/etcd/"
+                upload "etcd.key" "${ipaddr}" "${port}" "${user}" "/etc/kubernetes/pki/etcd/"
+            }
         done
         k8s_only_add_worker "${user}" "${port}" "${master[0]}" worker "${apiserver}"
         info_msg "ONLY ADD WORKER ALL DONE\n"
@@ -393,8 +454,13 @@ main() {
     for ipaddr in $(array_print master) $(array_print worker); do
         info_msg "****** ${ipaddr} pre valid host env\n"
         ssh_func "${user}@${ipaddr}" "${port}" pre_conf_k8s_host "${master[0]}" "${apiserver}" "${nameserver}" "${insec_registry}"
+        [ "$(array_size etcd)" -gt "0" ] && {
+            upload "ca.pem" "${ipaddr}" "${port}" "${user}" "/etc/kubernetes/pki/etcd/"
+            upload "etcd.pem" "${ipaddr}" "${port}" "${user}" "/etc/kubernetes/pki/etcd/"
+            upload "etcd.key" "${ipaddr}" "${port}" "${user}" "/etc/kubernetes/pki/etcd/"
+        }
     done
-    init_kube_cluster "${user}" "${port}" master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}" "${svc_cidr}" "${insec_registry}"
+    init_kube_cluster "${user}" "${port}" master worker "${apiserver}" "${pod_cidr}" "${skip_proxy}" "${svc_cidr}" "${insec_registry}" etcd
     ${skip_proxy} || { ${ipvs} && ssh_func "${user}@${master[0]}" "${port}" modify_kube_proxy_ipvs; }
     ${enable_schedule} && { ssh_func "${user}@${master[0]}" "${port}" enbale_pod_scheduling_on_master; }
     [ -z "${crossnet_method}" ] || init_kube_calico_cni "${user}" "${port}" "${master[0]}" "${pod_cidr}" "${svc_cidr}" "${insec_registry}" "${crossnet_method}"

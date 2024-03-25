@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("463ddab[2023-08-23T10:23:52+08:00]:new_etcd.sh")
+VERSION+=("b785a40[2024-03-22T14:49:08+08:00]:new_etcd.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 init_dir() {
@@ -77,6 +77,14 @@ $(
 # echo "ETCD_CLIENT_CERT_AUTH=\"true\""
 # echo "ETCD_TRUSTED_CA_FILE=\"/etc/etcd/ssl/${ca}\""
 EOF
+    [ -z "${key}" ] ||{
+        cat <<EOF > /etc/profile.d/etcd.sh
+export ETCDCTL_CACERT=/etc/etcd/ssl/${ca}
+export ETCDCTL_CERT=/etc/etcd/ssl/${cert}
+export ETCDCTL_KEY=/etc/etcd/ssl/${key}
+EOF
+        chmod 644 /etc/profile.d/etcd.sh
+    }
 }
 
 gen_etcd_service() {
@@ -227,7 +235,7 @@ main() {
     done
     sleep 1
     [ -z "${key}" ] || {
-        log_info "TLS etcd, can restart etc more times then all ok\n"
+        info_msg "TLS etcd, can restart etc more times then all ok\n"
         for ipaddr in ${node[@]}; do
             ssh_func "${sshuser}@${ipaddr}" ${sshport} "nohup systemctl start etcd.service &>/dev/null &"
         done

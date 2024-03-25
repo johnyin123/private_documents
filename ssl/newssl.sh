@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cf90f2b[2023-12-27T17:12:58+08:00]:newssl.sh")
+VERSION+=("b785a40[2024-03-22T14:49:08+08:00]:newssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 YEAR=${YEAR:-5}
@@ -55,7 +55,7 @@ gen_client_cert() {
     local caroot=${1}
     local cid=${2}
     local ips=($(array_print ${3}))
-    [ -e "${caroot}/${cid}.csr" ] && return 1
+    [ -e "${caroot}/${cid}.csr" ] && { error_msg "${caroot}/${cid} file exist!!!!\n"; return 1; }
     info_msg "create key\n"
     try openssl genrsa -out ${caroot}/${cid}.key 2048
     info_msg "create certificate signing request (csr)\n"
