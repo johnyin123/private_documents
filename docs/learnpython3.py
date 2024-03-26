@@ -1,4 +1,19 @@
+def print_scores(**kw):
+    print('      Name  Score')
+    print('------------------')
+    for name, score in kw.items():
+        print('%10s  %d' % (name, score))
+    print()
 
+print_scores(Adam=99, Lisa=88, Bart=77)
+
+data = {
+    'Adam Lee': 99,
+    'Lisa S': 88,
+    'F.Bart': 77
+}
+
+print_scores(**data)
 
 # Single line comments start with a number symbol.
 
@@ -863,7 +878,7 @@ def beg(target_function):
 
 
 @beg
-def say(say_please=False):
+def say(say_please=False) ->(str,bool):
     msg = "Can you buy me a beer?"
     return msg, say_please
 
