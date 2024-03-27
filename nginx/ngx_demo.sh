@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d4436c4[2024-03-25T14:12:39+08:00]:ngx_demo.sh")
+VERSION+=("91bbda8[2024-03-25T14:29:50+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -260,6 +260,7 @@ server {
     location / {
         return 200 "value=$http2";
         # proxy_http_version 1.1;
+        # proxy_set_header Connection "";
         # proxy_pass http://test.com/;
     }
 }
@@ -3018,8 +3019,8 @@ server {
     root /var/www/cache_static;
     # proxy_temp_path /var/lib/nginx/proxy;
     proxy_set_header Host www.test.com;
-    proxy_set_header Connection "";
     proxy_http_version 1.1;
+    proxy_set_header Connection "";
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header X-Real-IP $remote_addr;
@@ -3070,8 +3071,8 @@ server {
     root /var/www/cache_static;
     # proxy_temp_path /var/lib/nginx/proxy;
     proxy_set_header Host www.test.com;
-    proxy_set_header Connection "";
     proxy_http_version 1.1;
+    proxy_set_header Connection "";
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header X-Real-IP $remote_addr;
@@ -3120,8 +3121,8 @@ server {
     root /var/www/cache_static;
     # proxy_temp_path /var/lib/nginx/proxy;
     proxy_set_header Host www.test.com;
-    proxy_set_header Connection "";
     proxy_http_version 1.1;
+    proxy_set_header Connection "";
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
     proxy_set_header X-Real-IP $remote_addr;
@@ -3180,6 +3181,7 @@ server {
     listen 80;
     server_name www.test.com;
     proxy_set_header Host {{REAL_SERVER}};
+    proxy_http_version 1.1;
     proxy_set_header Connection "";
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
@@ -3206,6 +3208,7 @@ server {
     server_name cdn.test.com;
     # proxy_temp_path /var/lib/nginx/proxy;
     proxy_set_header Host www.test.com;
+    proxy_http_version 1.1;
     proxy_set_header Connection "";
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
@@ -4331,6 +4334,7 @@ server {
     location /chat/ {
         proxy_pass http://backend;
         proxy_http_version 1.1;
+        proxy_set_header Connection "";
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
         # proxy_read_timeout 2s;
