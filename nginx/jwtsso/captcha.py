@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 # Importing the PIL(pillow) library
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 from io import BytesIO
-import base64, json, string, random, sys
+import base64, json, string, random, sys, math
 
 import datetime
 # get_int_from_datetime(datetime.datetime.now(datetime.timezone.utc))
@@ -146,17 +146,35 @@ class ClickCaptcha(object):
             result = (result and (-25<=it['x'] - text[idx]['x']<=25) and (-25<=it['y'] - text[idx]['y']<=25))
         return result
 
+    def __fill_points_list(self, points, number_of_required_points, min_distance, xmax, ymax):
+        def _get_distance(p1, p2):
+            return math.sqrt(sum([(a - b) ** 2 for a, b in zip(p1, p2)]))
+
+        while len(points) < number_of_required_points:
+            temp = (random.randint(0, xmax), random.randint(0, ymax))
+            count = 0
+            for p in points:
+                if _get_distance(temp, p) > min_distance:
+                    count += 1
+                else:
+                    break
+            if len(points) == count:
+                points.append(temp)
+
     def create(self, length:int=2, width:int=400, height: int=200) -> Dict:
         image_file=rand_image('click_background')
         image = Image.open(image_file).resize((width, height), Image.LANCZOS)
         colors=random.sample(self.colorset, k=length)
         text=random.sample(self.charset, k=length)
         logger.debug("ClickCaptcha text is: %s, background %s", text, image_file)
+        points = []
+        min_distance=60
+        self.__fill_points_list(points, length, min_distance, width-min_distance, height-min_distance)
         pos=[]
-        for color, ch in zip(colors, text):
+        for color, ch, p in zip(colors, text, points):
             fw, fh = get_text_dimensions(ch, self.font)
-            xpos = random.randint(0, width - fw)
-            ypos = random.randint(0, height - fh)
+            xpos, ypos = p
+            logger.info("%s, %s, %s, %d, %d", color, ch, p, xpos, ypos)
             image = draw_rotated_text(image, self.font, ch, color, xpos, ypos, random.randint(0, 60))
             pos.append({'x':int(xpos+fw/2), 'y':int(ypos+fh/2)})
         return {
