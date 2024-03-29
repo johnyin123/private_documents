@@ -74,7 +74,7 @@ def draw_rotated_text(background:Image, font: ImageFont, text:str, color:str, x:
     txt = Image.new('RGBA', back.size, (255,255,255,0))
     draw = ImageDraw.Draw(txt)
     w, h = get_text_dimensions(text, font)
-    draw.text((x, y), text, font=font, fill=color)
+    draw.text((x, y), text, font=font, fill=color, align='center', stroke_width=1, stroke_fill='green')
     return Image.alpha_composite(back, txt.rotate(angle, center=(int(x+w/2), int(y+h/2))))
 
 def file_exists(file:str)-> bool:
