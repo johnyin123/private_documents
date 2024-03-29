@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ff1564b[2024-03-22T09:20:07+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("f7f71b8[2024-03-25T10:03:00+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -82,7 +82,7 @@ EOF
     mkdir -vp /etc/containerd && containerd config default > /etc/containerd/config.toml || true
     sed -i -e "s|sandbox_image\s*=.*|sandbox_image = \"${pausekey}\"|g" /etc/containerd/config.toml
     sed -i 's/SystemdCgroup\s*=.*$/SystemdCgroup = true/g' /etc/containerd/config.toml
-    [ -z "sec_registry}" ] || sed -i -E "s|(^\s*)\[(plugins.*registry.mirrors)\]$|\1[\2]\n\1  [\2.\"${insec_registry}\"]\n\1    endpoint = [\"http://${insec_registry}\"]|g" /etc/containerd/config.toml
+    [ -z "${insec_registry}" ] || sed -i -E "s|(^\s*)\[(plugins.*registry.mirrors)\]$|\1[\2]\n\1  [\2.\"${insec_registry}\"]\n\1    endpoint = [\"http://${insec_registry}\"]|g" /etc/containerd/config.toml
     systemctl daemon-reload || true
     systemctl restart containerd.service || true
     systemctl enable containerd.service || true
@@ -329,7 +329,7 @@ ${SCRIPTNAME}
     on all nodes:
         echo '192.168.168.xxx     registry.local'>> /etc/hosts
         wget --no-check-certificate -O /etc/yum.repos.d/cnap.repo http://registry.local/cnap/cnap.repo
-        yum -y --enablerepo=cnap install sd_cnap_v1.27.3
+        yum -y --enablerepo=cnap install tsd_cnap_v1.27.3
 # # init new cluster
 ${SCRIPTNAME} -m 192.168.168.150 --pod_cidr 172.16.0.0/24 --ipvs --insec_registry 192.168.168.250 --apiserver myserver:6443
 # # add worker in exists cluster
