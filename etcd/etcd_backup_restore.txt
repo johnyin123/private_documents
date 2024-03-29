@@ -1,0 +1,34 @@
+# Get ETCd version
+kubectl logs etcd-master -n kube-system
+kubectl describe pod etcd-master -n kube-system
+# Get ETCd address
+kubectl describe pod etcd-master -n kube-system
+# Get certificate files location
+kubectl describe pod etcd-master -n kube-system
+# Ensure command works correct
+ETCDCTL_API=3 etcdctl \
+  --endpoints=https://[127.0.0.1]:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  member list
+# Do backup
+ETCDCTL_API=3 etcdctl \
+  --endpoints=https://[127.0.0.1]:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  snapshot save /tmp/snapshot-pre-boot.db
+# Restore
+ETCDCTL_API=3 etcdctl \
+  --endpoints=https://[127.0.0.1]:2379 \
+  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
+  --name=master \
+  --cert=/etc/kubernetes/pki/etcd/server.crt \
+  --key=/etc/kubernetes/pki/etcd/server.key \
+  --data-dir /var/lib/etcd-from-backup \
+  --initial-cluster=master=https://127.0.0.1:2380 \
+  --initial-cluster-token=etcd-cluster-1 \
+  --initial-advertise-peer-urls=https://127.0.0.1:2380 \
+  snapshot restore /tmp/snapshot-pre-boot.db
+
