@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f7f71b8[2024-03-25T10:03:00+08:00]:newssl.sh")
+VERSION+=("d4436c4[2024-03-25T14:12:39+08:00]:newssl.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 YEAR=${YEAR:-5}
@@ -68,6 +68,7 @@ gen_client_cert() {
         echo -n ",IP.${num}:${ipaddr}" >> extfile.cnf
         let $((num++))
     done
+    #  -extfile <(printf "${csr_conf} extendedKeyUsage = clientAuth\n")
     try openssl x509 -req -days $((365*${YEAR})) -in ${caroot}/${cid}.csr \
         -extfile extfile.cnf \
         -CA ${caroot}/ca.pem -CAkey ${caroot}/ca.key -CAcreateserial -out ${caroot}/${cid}.pem
@@ -95,6 +96,19 @@ convert_p12() {
         -password pass:${pass} \
         -out ${caroot}/${cid}.p12
     try openssl pkcs12 -info -in ${caroot}/${cid}.p12 -passin pass:${pass} -passout pass:${pass}
+}
+
+cert_get_subject_alt_name() {
+  local cert=${1}
+  local alt_name=$(openssl x509 -text -noout -in ${cert} | grep -A1 'Alternative' | tail -n1 | sed 's/[[:space:]]*Address//g')
+  printf "${alt_name}\n"
+}
+
+# get subject from the old certificate
+cert_get_subj() {
+  local cert=${1}
+  local subj=$(openssl x509 -text -noout -in ${cert}  | grep "Subject:" | sed 's/Subject:/\//g;s/\,/\//;s/[[:space:]]//g')
+  printf "${subj}\n"
 }
 
 main() {
