@@ -1,4 +1,6 @@
 pid=
+# nsenter -a -t $pid
+# kubectl cp <source> <destination> -n <namespace> <pod-name>:<path>
 nsname=dockerns
 mkdir -p /var/run/netns && touch /var/run/netns/${nsname}
 mount -o bind /proc/${pid}/ns/net /var/run/netns/${nsname}
