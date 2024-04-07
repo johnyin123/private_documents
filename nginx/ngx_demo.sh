@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("91bbda8[2024-03-25T14:29:50+08:00]:ngx_demo.sh")
+VERSION+=("4ba06d1[2024-03-28T07:35:48+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2390,7 +2390,6 @@ server {
     server_name _;
     client_max_body_size 6000M;
     location / {
-        proxy_redirect off;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -2789,7 +2788,6 @@ server {
     }
     location ~ /download/(.*) {
         internal;
-        proxy_redirect off;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -3153,7 +3151,6 @@ server {
     location / {
         proxy_set_header Accept-Encoding "";
         proxy_pass https://www.test.com;
-        proxy_redirect off;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         add_header X-Cache-Status $upstream_cache_status;
@@ -4198,7 +4195,6 @@ server {
             add_header 'Content-Length' 0;
             return 204;
         }
-        proxy_redirect off;
         proxy_set_header host $host;
         proxy_set_header X-real-ip $remote_addr;
         proxy_set_header X-forward-for $proxy_add_x_forwarded_for;
