@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7c27ee0[2024-03-29T09:26:29+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("1e47412[2024-04-07T14:25:44+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -539,6 +539,12 @@ kubectl patch installation.operator.tigera.io default --type merge -p '{"spec":{
 etcdctl --endpoints "https://127.0.0.1:2379" --cacert=/etc/kubernetes/pki/etcd/ca.crt --cert=/etc/kubernetes/pki/etcd/server.crt --key=/etc/kubernetes/pki/etcd/server.key member list
 # 使用命令查看是否触发限流等待
 kubectl get --raw /debug/api_priority_and_fairness/dump_priority_levels
+# pod初始化失败相关的事件
+kubectl get events --all-namespaces
+# pod的资源使用指标
+kubectl top pods -A
+# API服务器健康状况
+kubectl get --raw=/healthz
 EOF
     info_msg "ALL DONE\n"
     return 0
