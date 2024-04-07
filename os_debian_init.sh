@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("8f67180[2024-03-04T11:08:11+08:00]:os_debian_init.sh")
+VERSION+=("88540df[2024-03-12T17:16:52+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -663,6 +663,7 @@ debain_overlay_init() {
     cat > /etc/overlayroot.conf <<'EOF'
 OVERLAY=OVERLAYFS
 SKIP_OVERLAY=1
+# MNT_OPTS=metacopy=on
 EOF
 
 (grep -v -E "^overlay" /etc/initramfs-tools/modules; echo "overlay"; ) | tee /etc/initramfs-tools/modules
@@ -746,7 +747,7 @@ mkdir -p /overlay/lower
 
 # make the readonly root available
 mount -n -o move ${rootmnt} /overlay/lower
-mount -t overlay overlay -olowerdir=/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work ${rootmnt}
+mount -t overlay overlay -olowerdir=/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work${MNT_OPTS:+,${MNT_OPTS}} ${rootmnt}
 
 mkdir -p ${rootmnt}/overlay
 mount -n -o rbind /overlay ${rootmnt}/overlay
