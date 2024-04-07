@@ -1,4 +1,8 @@
 pid=
+# pid=$(docker container inspect mycontainer | jq '.[0].State.Pid')
+# docker container inspect mycontainer | jq '.[0].GraphDriver'
+# # Use nsenter to go into the container’s mount namespace.
+# nsenter -m -t $pid /bin/bash
 # nsenter -a -t $pid
 # kubectl cp <source> <destination> -n <namespace> <pod-name>:<path>
 nsname=dockerns
