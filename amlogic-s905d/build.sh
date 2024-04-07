@@ -66,7 +66,7 @@ scripts/diffconfig .config.old .config 2>/dev/null
 
 pahole --version 2>/dev/null || echo "pahole no found DEBUG_INFO_BTF not effict"
 
-make -j$(nproc) Image dtbs modules
+make V=1 -j$(nproc) Image dtbs modules
 
 # make -j$(nproc) bindeb-pkg #gen debian deb package!!
 
