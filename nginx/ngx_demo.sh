@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("43bf7ba[2024-04-08T07:38:59+08:00]:ngx_demo.sh")
+VERSION+=("3f5265f[2024-04-08T10:48:43+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -479,8 +479,15 @@ location ~* .(favicon.ico)$ {
     alias /var/www/favicon.ico;
 }
 location /favicon.svg {
-    default_type image/svg+xml;
-    return 200 /var/www/example.svg;
+    # default_type image/svg+xml;
+    add_header Content-Type image/svg+xml;
+    # return 200 /var/www/example.svg;
+    return 200 '<?xml version="1.0" standalone="no"?>
+        <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+        "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+        <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="40" stroke="black" stroke-width="3" fill="red" />
+        </svg>';
 }
 EOF
 cat <<'EOF' >grpc.http
