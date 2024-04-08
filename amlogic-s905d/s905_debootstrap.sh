@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("187a582[2023-11-06T15:04:11+08:00]:s905_debootstrap.sh")
+VERSION+=("4b5834a[2024-04-09T07:35:05+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -188,6 +188,11 @@ pacmd set-default-sink "SINKNAME" | index to set the default output sink
 pacmd set-default-source "SOURCENAME" | index to set the default input
 pacmd set-sink-volume index volume
 pacmd set-source-volume index volume for volume control (65536 = 100 %, 0 = mute; or a bit more intuitive 0x10000 = 100 %, 0x7500 = 75 %, 0x0 = 0 %)
+# Note: Changing the output sink through the command line interface can only take effect if stream target device reading is disabled.
+# This can be done by editing the corresponding line in /etc/pulse/default.pa to:
+# load-module module-stream-restore restore_device=false
+# Restart PulseAudio for changes to take effect:
+pulseaudio -k
 EOF_DOC
 
 BOOT_LABEL="EMMCBOOT"
