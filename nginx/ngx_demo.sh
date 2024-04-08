@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("03ba6e7[2024-04-08T11:05:28+08:00]:ngx_demo.sh")
+VERSION+=("fb11758[2024-04-08T12:51:44+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1808,7 +1808,8 @@ error_page 401 =401 @error401;
 location @error401 { default_type text/html; return 401 '<html><head><meta http-equiv="refresh" content="0; url=/login.html?return_url=$scheme://$http_host$request_uri"/><body></body></html>'; }
 location = /login.html { alias /etc/nginx/http-enabled/jwt_client.login.html; }
 location = /logout.html { add_header Set-Cookie 'token='; return 302 /login.html; }
-location ~* .(favicon.ico)$ { access_log off; log_not_found off; alias /var/www/favicon.ico; }
+location ~* .(favicon.ico)$ { access_log off; log_not_found off; add_header Content-Type image/svg+xml; return 200 '<svg xmlns="http://www.w3.org/2000/svg" width="400" viewBox="0 0 300 300" height="400" preserveAspectRatio="xMidYMid meet" xmlns:v="https://vecta.io/nano"><g fill="#fff"><path d="M-30-30h360v360H-30z"/><path d="M-30-30h360v360H-30z"/><path d="M-30-30h360v360H-30z"/><path d="M-30-30h360v360H-30z"/></g><path d="M37.733 253.645V50.102h18.488v186.164h69.797v17.379zm136.109-113.031h23.082c16.961 0 28.941-2.781 35.938-8.344s10.5-14.828 10.5-27.805c0-13.996-3.406-23.867-10.219-29.613s-18.887-8.621-36.219-8.621h-23.082zm0 97.043h23.637c13.441 0 22.711-.555 27.809-1.668s9.406-3.012 12.93-5.699c4.355-3.34 7.832-7.949 10.426-13.836s3.895-12.164 3.895-18.84c0-8.156-1.437-15.316-4.312-21.48s-6.859-10.773-11.957-13.832c-3.52-2.039-7.668-3.5-12.441-4.379s-12.211-1.32-22.316-1.32h-27.668zm-18.488 15.988V50.102h35.313c15.48 0 26.648.742 33.508 2.227s12.699 4.031 17.516 7.645c6.77 5.098 11.91 11.332 15.434 18.699s5.285 15.504 5.285 24.402c0 10.844-2.828 20.066-8.48 27.668s-13.441 12.605-23.359 15.016c13.07 1.945 23.313 7.18 30.727 15.707s11.121 19.328 11.121 32.395c0 9.547-1.437 18.031-4.309 25.445s-7.23 13.809-13.07 19.184c-5.93 5.563-13.066 9.48-21.41 11.75s-22.57 3.406-42.684 3.406zM0 0v300h300V0H0m290.445 290.445H9.355V9.355h281.09v281.09"/></svg>'; }
+
 location =/api/login {
     # real jwt server, for login
     proxy_pass http://jwt_api;
@@ -2770,7 +2771,8 @@ server {
     listen 80;
     server_name _;
     subrequest_output_buffer_size 20k;
-    location = /favicon.ico { access_log off; log_not_found off; return 204; }
+    location ~* .(favicon.ico)$ { access_log off; log_not_found off; add_header Content-Type image/svg+xml; return 200 '<svg xmlns="http://www.w3.org/2000/svg" width="400" viewBox="0 0 300 300" height="400" preserveAspectRatio="xMidYMid meet" xmlns:v="https://vecta.io/nano"><g fill="#fff"><path d="M-30-30h360v360H-30z"/><path d="M-30-30h360v360H-30z"/><path d="M-30-30h360v360H-30z"/><path d="M-30-30h360v360H-30z"/></g><path d="M37.733 253.645V50.102h18.488v186.164h69.797v17.379zm136.109-113.031h23.082c16.961 0 28.941-2.781 35.938-8.344s10.5-14.828 10.5-27.805c0-13.996-3.406-23.867-10.219-29.613s-18.887-8.621-36.219-8.621h-23.082zm0 97.043h23.637c13.441 0 22.711-.555 27.809-1.668s9.406-3.012 12.93-5.699c4.355-3.34 7.832-7.949 10.426-13.836s3.895-12.164 3.895-18.84c0-8.156-1.437-15.316-4.312-21.48s-6.859-10.773-11.957-13.832c-3.52-2.039-7.668-3.5-12.441-4.379s-12.211-1.32-22.316-1.32h-27.668zm-18.488 15.988V50.102h35.313c15.48 0 26.648.742 33.508 2.227s12.699 4.031 17.516 7.645c6.77 5.098 11.91 11.332 15.434 18.699s5.285 15.504 5.285 24.402c0 10.844-2.828 20.066-8.48 27.668s-13.441 12.605-23.359 15.016c13.07 1.945 23.313 7.18 30.727 15.707s11.121 19.328 11.121 32.395c0 9.547-1.437 18.031-4.309 25.445s-7.23 13.809-13.07 19.184c-5.93 5.563-13.066 9.48-21.41 11.75s-22.57 3.406-42.684 3.406zM0 0v300h300V0H0m290.445 290.445H9.355V9.355h281.09v281.09"/></svg>'; }
+
     location / {
         error_page 403 = @error403;
         if ($uri = '/') { return 200 "message"; }
