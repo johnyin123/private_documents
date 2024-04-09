@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("17e00c0[2024-01-23T16:21:03+08:00]:openvpn.sh")
+VERSION+=("fc5b2a0[2024-03-18T10:39:51+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -52,6 +52,8 @@ init_server() {
     grep -v -E "^port |^proto |^dev |^ca |^cert |^key |^dh |^server |^push |^keepalive |^tls-auth |^status |^log |^log-append |^verb |^comp-lzo$|^persist-key$|^persist-tun$" /usr/share/doc/openvpn/*/sample-config-files/server.conf > /etc/openvpn/server/server.conf
     tee -a /etc/openvpn/server/vpnsrv.conf <<EOF
 management localhost 7505
+# # shaper n, Restrict output to peer to n bytes per second.
+# shaper 2097152 # 2Mb
 #监听本机ip地址
 local 0.0.0.0
 port 1194
