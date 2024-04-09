@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fc5b2a0[2024-03-18T10:39:51+08:00]:openvpn.sh")
+VERSION+=("3a6bc32[2024-04-10T07:30:23+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -54,6 +54,8 @@ init_server() {
 management localhost 7505
 # # shaper n, Restrict output to peer to n bytes per second.
 # shaper 2097152 # 2Mb
+# mode p2p # # Major mode, m = 'p2p' (default, point-to-point) or 'server'.
+# max-clients n # # max clients connect
 #监听本机ip地址
 local 0.0.0.0
 port 1194
