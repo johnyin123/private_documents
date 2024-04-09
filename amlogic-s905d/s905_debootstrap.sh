@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("db4b9a6[2024-04-09T07:43:37+08:00]:s905_debootstrap.sh")
+VERSION+=("908d4cd[2024-04-09T08:27:59+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -379,6 +379,21 @@ log "auto reformatoverlay plug usb ttl"
 cat > ${ROOT_DIR}/etc/udev/rules.d/99-reformatoverlay.rules << EOF
 SUBSYSTEM=="tty", ACTION=="add", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'touch /overlay/reformatoverlay; echo heartbeat > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
 SUBSYSTEM=="tty", ACTION=="remove", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'rm /overlay/reformatoverlay; echo none > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
+EOF
+
+log "HDMI Auto plugin"
+cat > ${ROOT_DIR}/etc/udev/rules.d/97-hdmiplugin.rules << EOF
+KERNEL=="card1", SUBSYSTEM=="drm", ACTION=="change", ENV{DISPLAY}=":0", ENV{XAUTHORITY}="/home/johnyin/.Xauthority", RUN+="/bin/bash /usr/bin/hdmi.sh"
+EOF
+cat > ${ROOT_DIR}/usr/bin/hdmi.sh <<'EOF'
+#!/bin/sh
+set -e
+/usr/bin/logger "hdmi pulgin"
+HDMI_STATUS=$(</sys/class/drm/card1/card1-HDMI-A-1/status )
+if [ "connected" == "$HDMI_STATUS" ]; then
+    /usr/bin/xrandr --output HDMI-1 --auto
+fi
+exit 0
 EOF
 
 log "enable ttyAML0 login"
