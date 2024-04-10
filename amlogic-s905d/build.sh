@@ -66,6 +66,9 @@ scripts/diffconfig .config.old .config 2>/dev/null
 
 pahole --version 2>/dev/null || echo "pahole no found DEBUG_INFO_BTF not effict"
 
+echo -n "PAGE SIZE =================> "
+grep -oE "^CONFIG_ARM64_.*_PAGES" .config
+
 make V=1 -j$(nproc) Image dtbs modules
 
 # make -j$(nproc) bindeb-pkg #gen debian deb package!!
