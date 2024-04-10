@@ -2,7 +2,8 @@
 set -o nounset -o pipefail
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 
-export ROOTFS=${1:-${DIRNAME}/kernel-$(date '+%Y%m%d%H%M%S')}
+KERVERSION="$(make kernelversion)"
+export ROOTFS=${1:-${DIRNAME}/kernel-${KERVERSION}-$(date '+%Y%m%d%H%M%S')}
 
 echo "build bpftool: apt -y install llvm && cd tools/bpf/bpftool && make"
 echo "build perf, cd tools/perf && make"
@@ -23,7 +24,6 @@ export ARCH=arm64
 export INSTALL_PATH=${ROOTFS}/boot
 export INSTALL_MOD_PATH=${ROOTFS}/usr/
 export INSTALL_MOD_STRIP=1
-KERVERSION="$(make kernelversion)"
 
 #scripts/config --disable DEBUG_INFO
 sed -Ei '/CONFIG_SYSTEM_TRUSTED_KEYS/s/=.+/=""/g' .config || true

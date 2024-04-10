@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("804e580[2024-04-09T19:00:44+08:00]:s905_debootstrap.sh")
+VERSION+=("a337fa3[2024-04-09T20:48:55+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -384,6 +384,7 @@ EOF
 log "HDMI Auto plugin"
 cat > ${ROOT_DIR}/etc/udev/rules.d/97-hdmiplugin.rules << EOF
 SUBSYSTEM=="drm", ACTION=="change", ENV{DISPLAY}=":0", ENV{XAUTHORITY}="/home/johnyin/.Xauthority", RUN+="/bin/systemctl restart hdmi.service"
+# SUBSYSTEM=="drm", ACTION=="change", RUN+="/usr/bin/systemd-run --uid=johnyin -E DISPLAY=:0 xrandr --output HDMI-1 --auto"
 EOF
 cat > ${ROOT_DIR}/usr/lib/systemd/system/hdmi.service <<'EOF'
 [Unit]
