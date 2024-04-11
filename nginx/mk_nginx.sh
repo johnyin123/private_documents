@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6e2e1a9[2024-02-28T11:05:53+08:00]:mk_nginx.sh")
+VERSION+=("caa81c6[2024-02-28T12:33:59+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -17,6 +17,7 @@ declare -A stage=(
     [install]=20
     [make]=30
     [configure]=40
+    [otherlibs]=50
     [openssl]=60
     [pcre]=70
     [zlib]=80
@@ -24,7 +25,7 @@ declare -A stage=(
 set +o nounset
 stage_level=${stage[${1:-doall}]}
 set -o nounset
-stage_level=${stage_level:?"(no need -lz, static build sqlite3), LD_OPTS='/usr/lib/x86_64-linux-gnu/libsqlite3.a -lm' ${SCRIPTNAME} fpm/install/make/configure/openssl/pcre/zlib"}
+stage_level=${stage_level:?"(no need -lz, static build sqlite3), LD_OPTS='/usr/lib/x86_64-linux-gnu/libsqlite3.a -lm' ${SCRIPTNAME} fpm/install/make/configure/otherlibs/openssl/pcre/zlib"}
 mydesc=""
 ##OPTION_START##
 ## openssl 3.0 disabled TLSv1.0/1.1(even ssl_protocols TLSv1 TLSv1.1 TLSv1.2;)
@@ -291,29 +292,29 @@ confirm "START BUILD NGINX(timeout 60s)?..........." 60
 [ ${stage_level} -ge ${stage[zlib]} ] && cd ${ZLIB_DIR} &&  ./configure --prefix=${MYLIB_DEPS} --static && make -j "$(nproc)" && make -j "$(nproc)" install
 [ ${stage_level} -ge ${stage[pcre]} ] && cd ${PCRE_DIR} && ./configure --prefix=${MYLIB_DEPS} --enable-jit --enable-static=yes --enable-shared=no && make -j "$(nproc)" && make -j "$(nproc)" install
 [ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${MYLIB_DEPS} no-shared no-threads ${KTLS:+enable-ktls} && make -j "$(nproc)" build_libs && make -j "$(nproc)" install_sw LIBDIR=lib
-
-str_equal "1" "${AUTH_JWT}" && {
+#########################otherlibs here################################
+[ ${stage_level} -ge ${stage[otherlibs]} ] && str_equal "1" "${AUTH_JWT}" && {
     log "[INFO] check jansson exist, if os not has it, download first"
     pkg-config --exists jansson && { log "[INFO] Use system jansson"; } || {
         log "[INFO] Use download jansson"
         check_requre_dirs "${JANSSON_DIR}"
         export JANSSON_CFLAGS=-I${MYLIB_DEPS}/include
         export JANSSON_LIBS=-L${MYLIB_DEPS}/lib
+    # no shared lib for jansson, so jwt compile static janssonlib
+        cd "${JANSSON_DIR}" && ./configure --prefix=${MYLIB_DEPS} --enable-shared=yes --enable-static=yes && make -j "$(nproc)" && make -j "$(nproc)" install
     }
     log "[INFO] check libjwt exist, if os not has it, download first"
     pkg-config --exists libjwt && { log "[INFO] Use system libjwt"; } || {
         log "[INFO] Use download libjwt"
         check_requre_dirs "${LIBJWT_DIR}"
+        log "libjwt not support openssl2, so use GnuTLS"
+        check_depends_lib gnutls
+        # OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
+        # OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
+        cd "${LIBJWT_DIR}" && ./configure --enable-shared=yes --enable-static=yes --without-openssl --without-examples --disable-doxygen-doc --disable-doxygen-dot --disable-doxygen-man --prefix=${MYLIB_DEPS} && make -j "$(nproc)" && make -j "$(nproc)" install
     }
-    # no shared lib for jansson, so jwt compile static janssonlib
-    cd "${JANSSON_DIR}" 2>/dev/null && ./configure --prefix=${MYLIB_DEPS} --enable-shared=yes --enable-static=yes && make -j "$(nproc)" && make -j "$(nproc)" install
-    # # libjwt not support openssl2, so use GnuTLS
-    # OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
-    # OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
-    cd "${LIBJWT_DIR}" 2>/dev/null && ./configure --enable-shared=yes --enable-static=yes --without-openssl --without-examples --prefix=${MYLIB_DEPS} && make -j "$(nproc)" && make -j "$(nproc)" install
     CC_OPTS="${CC_OPTS} -DNGX_LINKED_LIST_COOKIES=1"
 }
-
 for mod in "${!STATIC_MODULES[@]}"; do
     EXT_MODULES+=("--add-module=${mod}")
 done
