@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("02776ca[2024-04-11T16:50:43+08:00]:mk_nginx.sh")
+VERSION+=("734ebb3[2024-04-12T08:21:51+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -320,7 +320,7 @@ stage_run otherlibs && opt_enable "${AUTH_JWT}" && {
     pkg-config --exists libjwt && { log "[INFO] Use system libjwt"; } || {
         log "[INFO] Use download libjwt"
         check_requre_dirs "${LIBJWT_DIR}"
-        log "libjwt not support openssl2, so use GnuTLS"
+        log "libjwt not support openssl2, so use GnuTLS, apt -y install libgnutls28-dev"
         check_depends_lib gnutls
         # OPENSSL_CFLAGS=-I${MYLIB_DEPS}/include
         # OPENSSL_LIBS=-L${MYLIB_DEPS}/lib
