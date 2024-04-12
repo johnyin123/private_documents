@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("07553a1[2024-04-11T16:19:49+08:00]:mk_nginx.sh")
+VERSION+=("02776ca[2024-04-11T16:50:43+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -25,10 +25,8 @@ declare -A stage=(
 set +o nounset
 stage_level=${stage[${1:-doall}]}
 set -o nounset
-stage_level=${stage_level:?"(no need -lz, static build sqlite3), LD_OPTS='/usr/lib/x86_64-linux-gnu/libsqlite3.a -lm' ${SCRIPTNAME} fpm/install/make/configure/otherlibs/openssl/pcre/zlib"}
 mydesc=""
 ##OPTION_START##
-# CC_OPTS="-static -static-libgcc" LD_OPTS="-static" ./configure ..... && make, will static build
 ## openssl 3.0 disabled TLSv1.0/1.1(even ssl_protocols TLSv1 TLSv1.1 TLSv1.2;)
 ## openssl 1.xx TLS1.0/1.1 OK
 NGX_USER=${NGX_USER:-nginx}
@@ -65,11 +63,24 @@ VTS=${VTS:-""}
 CONCAT=${CONCAT-"1"}
 SQLITE=${SQLITE-"1"}
 ##OPTION_END##
-log() {
-    echo "$(tput setaf 141)$*$(tput sgr0)" >&2
+show_option() {
+    local file="${1}"
+    sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${file} | while IFS= read -r line; do
+        [[ ${line} =~ ^\ *#.*$ ]] && continue #skip comment line
+        [[ ${line} =~ ^\ *$ ]] && continue #skip blank
+        eval "printf '%-16.16s = %s\n' \"${line%%=*}\" \"\${${line%%=*}:-UNSET}\""
+    done
 }
-str_equal() {
-    [ "${1:-x}" == "${2:-y}" ]
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+opt_enable() { [ "1" == "${1:-y}" ]; }
+usage() {
+    echo ""
+    echo "no need -lz, static build sqlite3"
+    echo "stage: [${!stage[@]}]"
+    echo "LD_OPTS='/usr/lib/x86_64-linux-gnu/libsqlite3.a -lm' ${SCRIPTNAME} fpm/install/make/configure/otherlibs/openssl/pcre/zlib"
+    echo "CC_OPTS='-static -static-libgcc' LD_OPTS='-static' ./configure ..... && make, will static build"
+    show_option "${SCRIPTNAME}"
+    exit 0
 }
 check_requre_dirs() {
     local dir=""
@@ -98,14 +109,6 @@ check_depends_lib() {
         log "[OK] ${dir}"
     done
 }
-show_option() {
-    local file="${1}"
-    sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${file} | while IFS= read -r line; do
-        [[ ${line} =~ ^\ *#.*$ ]] && continue #skip comment line
-        [[ ${line} =~ ^\ *$ ]] && continue #skip blank
-        eval "printf '%-16.16s = %s\n' \"${line%%=*}\" \"\${${line%%=*}:-UNSET}\""
-    done
-}
 prompt() {
     local var="${1}"
     local msg="${2}"
@@ -132,6 +135,15 @@ confirm() {
     fi
     return 1
 }
+stage_level=${stage_level:?"$(usage)"}
+stage_run() {
+    local level=${1}
+    [ ${stage_level} -ge ${stage[${level}]} ] && {
+        log "[STAGE RUN] ${level} START ................................"
+        return 0
+    } || return 1
+}
+
 MYLIB_DEPS=${DIRNAME}/mylibs
 NGINX_DIR=${DIRNAME}/nginx
 OPENSSL_DIR=${DIRNAME}/openssl
@@ -160,39 +172,39 @@ declare -A DYNAMIC_MODULES=(
 declare -A STATIC_MODULES=(
     [${DIRNAME}/nginx-sticky-module-ng]="git clone --depth 1 https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng"
 )
-str_equal "1" "${LIMIT_SPEED}" && {
+opt_enable "${LIMIT_SPEED}" && {
     STATIC_MODULES[${DIRNAME}/nginx_limit_speed_module]="git clone --depth 1 https://github.com/yaoweibin/nginx_limit_speed_module.git"
 }
-str_equal "1" "${CACHE_PURGE}" && {
+opt_enable "${CACHE_PURGE}" && {
     STATIC_MODULES[${DIRNAME}/ngx_cache_purge]="git clone --depth 1 https://github.com/FRiCKLE/ngx_cache_purge.git"
 }
-str_equal "1" "${CONCAT}" && {
+opt_enable "${CONCAT}" && {
     STATIC_MODULES[${DIRNAME}/nginx-http-concat]="git clone https://github.com/alibaba/nginx-http-concat.git"
 }
-str_equal "1" "${SQLITE}" && {
+opt_enable "${SQLITE}" && {
     STATIC_MODULES[${DIRNAME}/ngx_sqlite]="git clone https://github.com/rryqszq4/ngx_sqlite.git"
 }
-str_equal "1" "${PROXY_CONNECT}" && {
+opt_enable "${PROXY_CONNECT}" && {
     log "Use PROXY CONNECT module, need patch!!!"
     log "pushd $(pwd) && cd ${NGINX_DIR} && git apply ${DIRNAME}/ngx_http_proxy_connect_module/patch/proxy_connect_rewrite_1018.patch && popd"
     DYNAMIC_MODULES[${DIRNAME}/ngx_http_proxy_connect_module]="git clone --depth 1 https://github.com/chobits/ngx_http_proxy_connect_module.git"
 }
-str_equal "1" "${AUTH_JWT}" && {
+opt_enable "${AUTH_JWT}" && {
     DYNAMIC_MODULES[${DIRNAME}/ngx-http-auth-jwt-module]="git clone https://github.com/TeslaGov/ngx-http-auth-jwt-module.git";
 }
-str_equal "1" "${AUTH_LDAP}" && {
+opt_enable "${AUTH_LDAP}" && {
     DYNAMIC_MODULES[${DIRNAME}/nginx-auth-ldap]="git clone https://github.com/kvspb/nginx-auth-ldap.git"
 }
-str_equal "1" "${PAGE_SPEED}" && {
+opt_enable "${PAGE_SPEED}" && {
     DYNAMIC_MODULES[${DIRNAME}/incubator-pagespeed-ngx]="git clone --depth 1 --branch latest-stable https://github.com/apache/incubator-pagespeed-ngx.git"
 }
-str_equal "1" "${HEADER_MORE}" && {
+opt_enable "${HEADER_MORE}" && {
     DYNAMIC_MODULES[${DIRNAME}/headers-more-nginx-module]="git clone --depth 1 https://github.com/openresty/headers-more-nginx-module.git"
 }
-str_equal "1" "${REDIS}" && {
+opt_enable "${REDIS}" && {
     DYNAMIC_MODULES[${DIRNAME}/ngx_http_redis]="git clone --depth 1 https://github.com/osokin/ngx_http_redis.git"
 }
-str_equal "1" "${VTS}" && {
+opt_enable "${VTS}" && {
     DYNAMIC_MODULES[${DIRNAME}/nginx-module-vts]="git clone --depth 1 https://github.com/vozlt/nginx-module-vts.git"
 }
 # # proxy_connect_module
@@ -242,11 +254,11 @@ EXT_MODULES=(
     "--with-stream_geoip_module=dynamic"
     "--with-http_xslt_module=dynamic"
 )
-str_equal "1" "${KTLS}" && { mydesc="${mydesc:+${mydesc},}ktls"; }
-str_equal "1" "${HTTP2}" && { mydesc="${mydesc:+${mydesc},}http2"; EXT_MODULES+=("--with-http_v2_module"); }
-str_equal "1" "${HTTP3}" && { mydesc="${mydesc:+${mydesc},}http3"; EXT_MODULES+=("--with-http_v3_module"); }
-str_equal "1" "${STREAM_QUIC}" && { mydesc="${mydesc:+${mydesc},}stream_quic"; EXT_MODULES+=("--with-stream_quic_module"); }
-str_equal "1" "${IMAGE_FILTER}" && { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); check_depends_lib gdlib; }
+opt_enable "${KTLS}" && { mydesc="${mydesc:+${mydesc},}ktls"; }
+opt_enable "${HTTP2}" && { mydesc="${mydesc:+${mydesc},}http2"; EXT_MODULES+=("--with-http_v2_module"); }
+opt_enable "${HTTP3}" && { mydesc="${mydesc:+${mydesc},}http3"; EXT_MODULES+=("--with-http_v3_module"); }
+opt_enable "${STREAM_QUIC}" && { mydesc="${mydesc:+${mydesc},}stream_quic"; EXT_MODULES+=("--with-stream_quic_module"); }
+opt_enable "${IMAGE_FILTER}" && { EXT_MODULES+=("--with-http_image_filter_module=dynamic"); check_depends_lib gdlib; }
 
 check_depends_lib libxml-2.0 libxslt geoip #uuid
 :<<'EOF'
@@ -290,11 +302,11 @@ builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 show_option "${0}"
 log "BUILD-VERSION: ${builder_version}, PCRE: $pcre_version, ZLIB: ${zlib_version}"
 confirm "START BUILD NGINX(timeout 60s)?..........." 60
-[ ${stage_level} -ge ${stage[zlib]} ] && cd ${ZLIB_DIR} &&  ./configure --prefix=${MYLIB_DEPS} --static && make -j "$(nproc)" && make -j "$(nproc)" install
-[ ${stage_level} -ge ${stage[pcre]} ] && cd ${PCRE_DIR} && ./configure --prefix=${MYLIB_DEPS} --enable-jit --enable-static=yes --enable-shared=no && make -j "$(nproc)" && make -j "$(nproc)" install
-[ ${stage_level} -ge ${stage[openssl]} ] && cd ${OPENSSL_DIR} && ./config --prefix=${MYLIB_DEPS} no-shared no-threads ${KTLS:+enable-ktls} && make -j "$(nproc)" build_libs && make -j "$(nproc)" install_sw LIBDIR=lib
+stage_run zlib && cd ${ZLIB_DIR} &&  ./configure --prefix=${MYLIB_DEPS} --static && make -j "$(nproc)" && make -j "$(nproc)" install
+stage_run pcre && cd ${PCRE_DIR} && ./configure --prefix=${MYLIB_DEPS} --enable-jit --enable-static=yes --enable-shared=no && make -j "$(nproc)" && make -j "$(nproc)" install
+stage_run openssl && cd ${OPENSSL_DIR} && ./config --prefix=${MYLIB_DEPS} no-shared no-threads ${KTLS:+enable-ktls} && make -j "$(nproc)" build_libs && make -j "$(nproc)" install_sw LIBDIR=lib
 #########################otherlibs here################################
-[ ${stage_level} -ge ${stage[otherlibs]} ] && str_equal "1" "${AUTH_JWT}" && {
+stage_run otherlibs && opt_enable "${AUTH_JWT}" && {
     log "[INFO] check jansson exist, if os not has it, download first"
     pkg-config --exists jansson && { log "[INFO] Use system jansson"; } || {
         log "[INFO] Use download jansson"
@@ -324,7 +336,7 @@ for mod in "${!DYNAMIC_MODULES[@]}"; do
 done
 
 cd ${NGINX_DIR} && ln -s auto/configure 2>/dev/null || true
-[ ${stage_level} -ge ${stage[configure]} ] && cd ${NGINX_DIR} && ./configure --prefix=/usr/share/nginx \
+stage_run configure && cd ${NGINX_DIR} && ./configure --prefix=/usr/share/nginx \
 --user=nginx \
 --group=nginx \
 --with-cc-opt="${CC_OPTS} -I${MYLIB_DEPS}/include" \
@@ -351,11 +363,11 @@ ${KTLS:+--with-debug} \
 ${EXT_MODULES[@]}
 
 sed -i "s/NGX_CONFIGURE\s*.*$/NGX_CONFIGURE \"builder ${builder_version},${pcre_version},zlib ${zlib_version},${mydesc}\"/g" ${NGINX_DIR}/objs/ngx_auto_config.h 2>/dev/null || true
-[ ${stage_level} -ge ${stage[make]} ] && cd ${NGINX_DIR} && make -j "$(nproc)"
+stage_run make && cd ${NGINX_DIR} && make -j "$(nproc)"
 OUTDIR=${DIRNAME}/out
 mkdir -p ${OUTDIR}
 
-[ ${stage_level} -ge ${stage[install]} ] && rm -rf ${OUTDIR}/* && cd ${NGINX_DIR} && make -j "$(nproc)" install DESTDIR=${OUTDIR} \
+stage_run install && rm -rf ${OUTDIR}/* && cd ${NGINX_DIR} && make -j "$(nproc)" install DESTDIR=${OUTDIR} \
     && { rm -f  ${OUTDIR}/etc/nginx/*.default || true; chmod 644 ${OUTDIR}/usr/share/nginx/modules/* || true; }
 
 write_file "${OUTDIR}/usr/lib/tmpfiles.d/nginx.conf" <<'EOF'
@@ -603,7 +615,7 @@ EOF
 write_file "${OUTDIR}/etc/nginx/modules.d/rtmp.conf" <<'EOF'
 # load_module modules/ngx_rtmp_module.so;
 EOF
-str_equal "1" "${REDIS}" && write_file "${OUTDIR}/etc/nginx/modules.d/redis.conf" <<'EOF'
+opt_enable "${REDIS}" && write_file "${OUTDIR}/etc/nginx/modules.d/redis.conf" <<'EOF'
 # load_module modules/ngx_http_redis_module.so;
 EOF
 write_file "${OUTDIR}/etc/nginx/modules.d/mail.conf" <<'EOF'
@@ -612,19 +624,19 @@ EOF
 write_file "${OUTDIR}/etc/nginx/modules.d/xslt.conf" <<'EOF'
 # load_module modules/ngx_http_xslt_filter_module.so;
 EOF
-str_equal "1" "${VTS}" && write_file "${OUTDIR}/etc/nginx/modules.d/traffic_status.conf" <<'EOF'
+opt_enable "${VTS}" && write_file "${OUTDIR}/etc/nginx/modules.d/traffic_status.conf" <<'EOF'
 # load_module modules/ngx_http_vhost_traffic_status_module.so;
 EOF
-str_equal "1" "${HEADER_MORE}" && write_file "${OUTDIR}/etc/nginx/modules.d/headers_more.conf" <<'EOF'
+opt_enable "${HEADER_MORE}" && write_file "${OUTDIR}/etc/nginx/modules.d/headers_more.conf" <<'EOF'
 # load_module modules/ngx_http_headers_more_filter_module.so;
 EOF
-str_equal "1" "${PROXY_CONNECT}" && write_file "${OUTDIR}/etc/nginx/modules.d/proxy_connect.conf" <<'EOF'
+opt_enable "${PROXY_CONNECT}" && write_file "${OUTDIR}/etc/nginx/modules.d/proxy_connect.conf" <<'EOF'
 # load_module modules/ngx_http_proxy_connect_module.so;
 EOF
-str_equal "1" "${IMAGE_FILTER}" && write_file "${OUTDIR}/etc/nginx/modules.d/http_image_filter.conf" <<'EOF'
+opt_enable "${IMAGE_FILTER}" && write_file "${OUTDIR}/etc/nginx/modules.d/http_image_filter.conf" <<'EOF'
 # load_module modules/ngx_http_image_filter_module.so;
 EOF
-str_equal "1" "${AUTH_JWT}" && write_file "${OUTDIR}/etc/nginx/modules.d/jwt.conf" <<'EOF'
+opt_enable "${AUTH_JWT}" && write_file "${OUTDIR}/etc/nginx/modules.d/jwt.conf" <<'EOF'
 # load_module modules/ngx_http_auth_jwt_module.so;
 EOF
 
@@ -678,13 +690,13 @@ stream {
 }
 EOF
 
-str_equal "1" "${STRIP}" && {
+opt_enable "${STRIP}" && {
     log "strip binarys"
     strip ${OUTDIR}/usr/sbin/nginx
     strip ${OUTDIR}/usr/share/nginx/modules/*
 }
 # final copy other depend files!
-str_equal "1" "${AUTH_JWT}" && {
+opt_enable "${AUTH_JWT}" && {
     pkg-config --exists jansson || { cat ${MYLIB_DEPS}/lib/libjansson.so > ${OUTDIR}/usr/lib/libjansson.so.4; }
     pkg-config --exists libjwt || { cat ${MYLIB_DEPS}/lib/libjwt.so > ${OUTDIR}/usr/lib/libjwt.so.2; }
 }
@@ -720,7 +732,7 @@ esac
 eval NGX_VER=$(awk '/NGINX_VERSION / {print $3}' ${NGINX_DIR}/src/core/nginx.h)
 log "NGINX:${NGX_VER}"
 log "BUILD:${builder_version}"
-[ ${stage_level} -ge ${stage[fpm]} ] && fpm --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin${HTTP3:+_quic} --version $(echo ${NGX_VER}) --iteration ${builder_version} --description "nginx with openssl,other modules" --after-install ${INST_SCRIPT} --after-remove ${UNINST_SCRIPT} .
+stage_run fpm && fpm --package ${DIRNAME}/pkg -s dir -t ${PKG} -C ${OUTDIR} --name nginx_johnyin${HTTP3:+_quic} --version $(echo ${NGX_VER}) --iteration ${builder_version} --description "nginx with openssl,other modules" --after-install ${INST_SCRIPT} --after-remove ${UNINST_SCRIPT} .
 rm -fr ${INST_SCRIPT} ${UNINST_SCRIPT}
 log "ALL PACKAGE OUT: ${DIRNAME}/pkg for ${ID}-${VERSION_ID} ${PKG}"
 #rpm -qp --scripts  openssh-server-8.0p1-10.el8.x86_64.rpm
