@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a337fa3[2024-04-09T20:48:55+08:00]:s905_debootstrap.sh")
+VERSION+=("6aa8d23[2024-04-10T11:06:18+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1128,6 +1128,7 @@ if fatload usb 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize
 if fatload mmc 0 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload mmc 0 ${kernel_addr} ${image}; then if fatload mmc 0 ${initrd_addr} ${initrd}; then if fatload mmc 0 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
 if fatload mmc 1 ${env_addr} uEnv.ini; then env import -t ${env_addr} ${filesize}; if fatload mmc 1 ${kernel_addr} ${image}; then if fatload mmc 1 ${initrd_addr} ${initrd}; then if fatload mmc 1 ${dtb_mem_addr} ${dtb}; then run boot_start; fi; fi; fi; fi;
 EOF
+    echo "bootargs:  earlyprintk loglevel=9"
     cat > ${ROOT_DIR}/boot/uEnv.ini <<EOF
 image=vmlinuz-${kerver}
 initrd=uInitrd-${kerver}
