@@ -19,8 +19,8 @@ echo "build perf, cd tools/perf && make"
 }
 export LOCALVERSION="-johnyin-s905d"
 export ARCH=arm64
-# export CFLAGS='-O3 -flto -pipe'
-# export CXXFLAGS='-O3 -flto -pipe'
+# export KCFLAGS='-O3 -flto -pipe'
+# export KCPPFLAGS='-O3 -flto -pipe'
 export INSTALL_PATH=${ROOTFS}/boot
 export INSTALL_MOD_PATH=${ROOTFS}/usr/
 export INSTALL_MOD_STRIP=1
