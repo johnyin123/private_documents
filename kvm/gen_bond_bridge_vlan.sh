@@ -23,7 +23,8 @@ BONDING_MASTER=yes
 ONBOOT=yes
 BOOTPROTO=none
 TYPE=Ethernet
-BONDING_OPTS="mode=802.3ad miimon=100 xmit_hash_policy=layer3+4"
+BONDING_OPTS="mode=802.3ad downdelay=0 updelay=0 miimon=100 xmit_hash_policy=layer3+4"
+# BONDING_OPTS="mode=802.3ad miimon=100 xmit_hash_policy=layer3+4"
 # BONDING_OPTS="mode=802.3ad miimon=100 lacp_rate=fast xmit_hash_policy=layer2+3"
 # BONDING_OPTS='mode=6 miimon=100'
 # cat /proc/net/bonding/bond0
