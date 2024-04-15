@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6aa8d23[2024-04-10T11:06:18+08:00]:s905_debootstrap.sh")
+VERSION+=("97bf37f[2024-04-12T11:06:54+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -383,19 +383,19 @@ EOF
 
 log "HDMI Auto plugin"
 cat > ${ROOT_DIR}/etc/udev/rules.d/97-hdmiplugin.rules << EOF
-SUBSYSTEM=="drm", ACTION=="change", ENV{DISPLAY}=":0", ENV{XAUTHORITY}="/home/johnyin/.Xauthority", RUN+="/bin/systemctl restart hdmi.service"
-# SUBSYSTEM=="drm", ACTION=="change", RUN+="/usr/bin/systemd-run --uid=johnyin -E DISPLAY=:0 xrandr --output HDMI-1 --auto"
+# SUBSYSTEM=="drm", ACTION=="change", ENV{DISPLAY}=":0", ENV{XAUTHORITY}="/home/johnyin/.Xauthority", RUN+="/bin/systemctl restart hdmi.service"
+SUBSYSTEM=="drm", ACTION=="change", RUN+="/usr/bin/systemd-run --uid=johnyin -E DISPLAY=:0 xrandr --verbose --output HDMI-1 --auto"
 EOF
-cat > ${ROOT_DIR}/usr/lib/systemd/system/hdmi.service <<'EOF'
-[Unit]
-Description=auto hdmi plugin
-[Service]
-RemainAfterExit=true
-User=johnyin
-Group=johnyin
-ExecStart=/bin/env -i DISPLAY=:0 XAUTHORITY=/home/johnyin/.Xauthority /usr/bin/xrandr --verbose --output HDMI-1 --auto
-ExecStop=/bin/env -i DISPLAY=:0 XAUTHORITY=/home/johnyin/.Xauthority /usr/bin/xrandr --verbose --output HDMI-1 --off
-EOF
+# cat > ${ROOT_DIR}/usr/lib/systemd/system/hdmi.service <<'EOF'
+# [Unit]
+# Description=auto hdmi plugin
+# [Service]
+# RemainAfterExit=true
+# User=johnyin
+# Group=johnyin
+# ExecStart=/bin/env -i DISPLAY=:0 XAUTHORITY=/home/johnyin/.Xauthority /usr/bin/xrandr --verbose --output HDMI-1 --auto
+# ExecStop=/bin/env -i DISPLAY=:0 XAUTHORITY=/home/johnyin/.Xauthority /usr/bin/xrandr --verbose --output HDMI-1 --off
+# EOF
 
 log "enable ttyAML0 login"
 sed -i "/^ttyAML0/d" ${ROOT_DIR}/etc/securetty 2>/dev/null || true
