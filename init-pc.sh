@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0b6105a[2023-11-22T18:42:37+08:00]:init-pc.sh")
+VERSION+=("741027b[2023-11-28T14:25:19+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -189,7 +189,7 @@ apt_install systemd-container \
 apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install wireguard-tools
 
 apt_install traceroute ipcalc subnetcalc qrencode ncal
-# qrencode -8  -o - -t UTF8 "massage"
+# qrencode -8 -o - -t UTF8 "massage"
 
 # bat(batcat): cat(1) clone with syntax highlighting and git integration
 apt_install bat
@@ -198,6 +198,8 @@ apt_install xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver \
     lightdm xtv x2x rfkill
 echo "xtv -d <remote_ip:0> #xtv see remote desktop"
 echo "x2x -to <remote_ip:0.0> -west # mouse move left, then appear remote desktop!!!"
+echo "ssh -p22 root@ip 'ffmpeg -f x11grab -r 25 -i :0.0 -f mpeg -' | mpv -"
+echo 'ffmpeg -f x11grab -i ip:0.0 -f mpeg - | mpv -'
 sed -i "s/enabled=.*/enabled=False/g" /etc/xdg/user-dirs.conf 2>/dev/null || true
 
 XFCE_TERM=
