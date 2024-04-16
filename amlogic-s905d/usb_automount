@@ -13,6 +13,8 @@ cat << 'EOF' > /etc/udev/rules.d/98-usbmount.rules
 # udevadm control --reload-rules
 SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="add", RUN+="/bin/systemctl start usb-mount@%k.service"
 SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/bin/systemctl stop usb-mount@%k.service"
+# SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="add", RUN+="/usr/bin/systemd-run --uid=johnyin /usr/bin/udisksctl mount -b /dev/%k"
+# SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/usr/bin/systemd-run --uid=johnyin /usr/bin/udisksctl unmount -f -b /dev/%k"
 EOF
 
 cat << 'EOF' > /usr/lib/systemd/system/usb-mount@.service
