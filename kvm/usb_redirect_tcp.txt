@@ -12,3 +12,8 @@ usbredirserver -p 55555 -v 3 xxxx:xxxx
 <redirdev bus='usb' type='tcp'>
   <source mode='bind' host='127.0.0.1' service='2001'/>
 </redirdev>
+
+
+usbip/usbipd: need use kernel/tools/usb/usbip/
+apt install usbip
+usbipd --device 1bcf:28cc --debug --tcp-port 50000
