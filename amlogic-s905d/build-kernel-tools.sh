@@ -39,4 +39,6 @@ build_usbip () {
 }
 build_bpftool
 build_usbip
-${MY_CROSS_COMPILE}-strip ${ROOTFS}/usr/sbin/*
+${MY_CROSS_COMPILE}-strip ${ROOTFS}/usr/sbin/bpftool
+${MY_CROSS_COMPILE}-strip ${ROOTFS}/usr/sbin/usbip
+${MY_CROSS_COMPILE}-strip ${ROOTFS}/usr/sbin/usbipd
