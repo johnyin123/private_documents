@@ -1,0 +1,26 @@
+usbip tools use: /linux-<kernel-version>/tools/usb/usbip
+    compile it, see README
+# Server
+    modprobe usbip-host
+    usbipd -D
+    usbip list --local
+    usbip --busid=3-6
+    # usbip unbind --busid=3-6
+# Client
+    modprobe vhci-hcd
+    usbip attach --remote=192.168.168.1 --busid=3-6    # # when you want to shutdown exporting and use the device locally.
+    lsusb
+    usbip port
+    usbip detach --port=0
+
+# Server: device mode
+    # # Use /sys/class/udc/ interface.
+    # # usbip-host is independent of this module.
+    modprobe usbip-vudc
+    usbipd --device -D
+    
+    # # Bind a gadget to usbip-vudc.
+    # # in this example, a mass storage gadget is bound.
+    modprobe g_mass_storage file=/tmp/tmp.img
+    usbip list --device
+    modprobe -r g_mass_storage
