@@ -1,0 +1,44 @@
+# Enter global configuration mode
+configure terminal
+
+# Enable BGP routing
+router bgp <AS_number>
+
+# Define neighbor relationships and activate BGP on interfaces
+neighbor <neighbor_ip> remote-as <neighbor_AS>
+neighbor <neighbor_ip> ebgp-multihop <ttl_value>  # If the neighbor is more than one hop away
+neighbor <neighbor_ip> update-source <source_interface>  # If using a specific source interface
+
+# Enable FRR
+bgp fast-external-fallover
+
+# Enable ECMP
+maximum-paths <number_of_paths>  # Set the maximum number of equal-cost paths
+
+# Optionally, you can set other parameters such as timers and route reflection
+# For example:
+neighbor <neighbor_ip> timers <keepalive_time> <hold_time>
+neighbor <neighbor_ip> route-reflector-client
+
+# Define network advertisements
+network <network_address> mask <subnet_mask>
+
+# Exit BGP configuration mode
+exit
+
+# Exit global configuration mode
+exit
+
+# Save the configuration
+write memory
+In this configuration:
+
+Replace <AS_number> with the Autonomous System (AS) number of your network.
+Replace <neighbor_ip> with the IP address of the BGP neighbor.
+Replace <neighbor_AS> with the AS number of the BGP neighbor.
+Replace <ttl_value> with the Time-to-Live value if the BGP neighbor is more than one hop away.
+Replace <source_interface> with the source interface for BGP sessions if needed.
+Replace <number_of_paths> with the desired number of equal-cost paths to be used.
+Replace <network_address> with the network address you want to advertise.
+Replace <subnet_mask> with the subnet mask of the advertised network.
+
