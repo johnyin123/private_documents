@@ -39,3 +39,4 @@ build_usbip () {
 }
 build_bpftool
 build_usbip
+${MY_CROSS_COMPILE}-strip ${ROOTFS}/usr/sbin/*
