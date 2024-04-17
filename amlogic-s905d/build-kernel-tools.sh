@@ -2,9 +2,10 @@
 set -o nounset -o pipefail
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 
-export ROOTFS=${1:-${DIRNAME}/mytool}
+KERVERSION="$(make kernelversion)"
+export ROOTFS=${1:-${DIRNAME}/mytool-${KERVERSION}-$(date '+%Y%m%d%H%M%S')}
 
-export LIB_ROOTFS=${DIRNAME}/mychroot
+export LIB_ROOTFS=${DIRNAME}/mychroot-aarch64
 
 cat <<EOF
 host: apt -y install libwrap0 libtool automake autoconf pkg-config
