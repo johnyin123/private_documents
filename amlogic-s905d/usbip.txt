@@ -12,6 +12,8 @@ usbip tools use: /linux-<kernel-version>/tools/usb/usbip
     lsusb
     usbip port
     usbip detach --port=0
+    v4l2-ctl --list-devices
+    ffmpeg -f v4l2 -framerate 25 -video_size 640x480 -i /dev/video1 output.mkv
 
 # Server: device mode
     # # Use /sys/class/udc/ interface.
