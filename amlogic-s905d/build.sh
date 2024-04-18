@@ -62,8 +62,8 @@ scripts/config --module CONFIG_VHOST
 scripts/config --module CONFIG_VHOST_NET
 scripts/config --module CONFIG_VHOST_SCSI
 scripts/config --module CONFIG_VHOST_VSOCK
-# enable usbipd device mode module
-scripts/config --module CONFIG_USB_MASS_STORAGE
+# # enable usbipd device mode module, TODO: not work
+# scripts/config --module CONFIG_USB_MASS_STORAGE
 
 # yes "" | make oldconfig
 scripts/diffconfig .config.old .config 2>/dev/null
