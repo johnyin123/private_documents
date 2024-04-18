@@ -33,7 +33,7 @@ build_bpftool () {
 
 build_usbip () {
     echo "apt -y install libudev-dev"
-    $(cd ${DIRNAME}/tools/usb/usbip && ./cleanup.sh && ./autogen.sh && LDFLAGS=-L${LIB_ROOTFS}/usr/lib/aarch64-linux-gnu/ ./configure --host=${MY_CROSS_COMPILE} --enable-shared=no --prefix=/usr)
+    $(cd ${DIRNAME}/tools/usb/usbip && ./cleanup.sh && ./autogen.sh && LDFLAGS=-L${LIB_ROOTFS}/usr/lib/aarch64-linux-gnu/ ./configure --host=${MY_CROSS_COMPILE} --enable-shared=no --prefix=/usr --with-usbids-dir=/usr/share/misc/)
     make V=1 -j$(nproc) -C ${DIRNAME}/tools/usb/usbip
     make DESTDIR=${ROOTFS} V=1 -j$(nproc) -C ${DIRNAME}/tools/usb/usbip install
 }
