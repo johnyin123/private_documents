@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2106e04[2024-04-15T13:26:32+08:00]:s905_debootstrap.sh")
+VERSION+=("a1ab300[2024-04-16T09:00:29+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -226,7 +226,7 @@ esac
 # # for xdotool, wmctrl
 PKG+=",policykit-1,xdotool,wmctrl"
 # # for minidlna
-PKG+=",minidlna"
+PKG+=",minidlna,x11vnc"
 # # for libvirtd
 
 # # finally add custom packages
@@ -377,13 +377,12 @@ EOF
 
 log "auto reformatoverlay plug usb ttl"
 cat > ${ROOT_DIR}/etc/udev/rules.d/99-reformatoverlay.rules << EOF
-SUBSYSTEM=="tty", ACTION=="add", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'touch /overlay/reformatoverlay; echo heartbeat > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
-SUBSYSTEM=="tty", ACTION=="remove", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="//bin/sh -c 'rm /overlay/reformatoverlay; echo none > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
+SUBSYSTEM=="tty", ACTION=="add", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="/bin/sh -c 'touch /overlay/reformatoverlay; echo heartbeat > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
+SUBSYSTEM=="tty", ACTION=="remove", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="7523", RUN+="/bin/sh -c 'rm /overlay/reformatoverlay; echo none > /sys/devices/platform/leds/leds/n1\:white\:status/trigger'"
 EOF
 
 log "HDMI Auto plugin"
 cat > ${ROOT_DIR}/etc/udev/rules.d/97-hdmiplugin.rules << EOF
-# SUBSYSTEM=="drm", ACTION=="change", ENV{DISPLAY}=":0", ENV{XAUTHORITY}="/home/johnyin/.Xauthority", RUN+="/bin/systemctl restart hdmi.service"
 SUBSYSTEM=="drm", ACTION=="change", RUN+="/usr/bin/systemd-run --uid=johnyin -E DISPLAY=:0 xrandr --verbose --output HDMI-1 --auto"
 EOF
 # cat > ${ROOT_DIR}/usr/lib/systemd/system/hdmi.service <<'EOF'
@@ -424,11 +423,6 @@ iface br-ext inet static
     bridge_ports eth0
     bridge_maxwait 0
     address 192.168.168.2/24
-
-auto br-ext:0
-iface br-ext:0 inet static
-    address 10.32.166.32/25
-    gateway 10.32.166.1
 
 # post-up ip rule add from 192.168.168.0/24 table out.168
 # post-up ip rule add to 192.168.168.0/24 table out.168
@@ -918,6 +912,8 @@ cat <<EOF>${ROOT_DIR}/etc/motd
     sed "s/macaddr=.*/macaddr=b8:be:ef:90:5d:02/g" /lib/firmware/brcm/brcmfmac43455-sdio.txt
 8. iw dev wlan0 station dump -v
 9. start nfs-server: systemctl start nfs-server.service nfs-kernel-server.service
+10.start vncserver: x11vnc -display :0
+11.set lxde mouse cursor size: sed -i 's|.*CursorThemeSize.*|iGtk/CursorThemeSize=32|g' /etc/xdg/lxsession/LXDE/desktop.conf
 EOF
 
 cat <<'EOF'> ${ROOT_DIR}/usr/bin/overlayroot-chroot

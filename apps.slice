@@ -1,0 +1,13 @@
+# resource limits for apps with systemd scopes and slices
+# systemctl status apps.slice, systemd-cgls, systemd-cgtop and such), 
+# and can be adjusted on the fly via e.g. 
+# systemctl set-property apps-misc.slice CPUWeight=30.
+# /usr/lib/systemd/user
+# systemd-run -q --user --scope --unit chrome --slice apps -- google-chrome
+#
+[Slice]
+CPUWeight=30
+IOWeight=30
+MemoryHigh=4G
+MemoryMax=5G
+MemorySwapMax=1G
