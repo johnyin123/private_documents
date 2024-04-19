@@ -46,12 +46,31 @@ scripts/config --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
 scripts/config --enable CONFIG_NO_HZ_FULL
 # enable ktls
 scripts/config --module CONFIG_TLS
-# enable nfs rootfs
-scripts/config --enable CONFIG_NFS_FS
-scripts/config --enable CONFIG_ROOT_NFS
+enable_nfs_rootfs() {
+    # enable nfs rootfs
+    scripts/config --enable CONFIG_NFS_FS
+    scripts/config --enable CONFIG_ROOT_NFS
+}
 s905d_opt() {
     scripts/config --module CONFIG_USB_DWC3 --enable CONFIG_USB_DWC3_ULPI --enable CONFIG_USB_DWC3_DUAL_ROLE
     scripts/config --module CONFIG_USB_DWC3_MESON_G12A --module CONFIG_USB_DWC3_OF_SIMPLE
+    # CONFIG_ARCH_MESON=y
+    # CONFIG_MESON_GXL_PHY=y
+    # # hdmi
+    # CONFIG_DRM_MESON=m
+    # CONFIG_DRM_MESON_DW_HDMI=m
+    # # sound
+    # CONFIG_SND_MESON_GX_SOUND_CARD=m
+    # # network
+    # CONFIG_BRCMFMAC=m
+    # CONFIG_BRCMFMAC_SDIO=y
+    # # mmc
+    # CONFIG_MMC_MESON_GX=y
+    # CONFIG_MMC_MESON_MX_SDIO=y
+    # # bluetooth
+    # CONFIG_BT_HCIUART=m
+    # CONFIG_BT_HCIUART_3WIRE=y
+    # CONFIG_BT_HCIUART_BCM=y
 }
 enable_kvm() {
     # enable KVM
@@ -92,6 +111,7 @@ EOF
     scripts/config --module CONFIG_USB_DUMMY_HCD
     scripts/config --module CONFIG_USB_CONFIGFS
 }
+enable_nfs_rootfs
 enable_kvm
 enable_usbip
 enable_usb_gadget
