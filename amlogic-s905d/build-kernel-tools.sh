@@ -23,6 +23,13 @@ EOF
     # apt -y install pahole -t bullseye-backports
     export MY_CROSS_COMPILE=aarch64-linux-gnu
 }
+export ARCH=arm64
+
+# build_perf () {
+#     export CROSS_COMPILE=${MY_CROSS_COMPILE}-
+#     make V=1 -j$(nproc) LDFLAGS=-L"${LIB_ROOTFS}/usr/lib/aarch64-linux-gnu/" -C "${DIRNAME}/tools/perf"
+#     prefix=/usr make DESTDIR=${ROOTFS} V=1 -j$(nproc) -C "${DIRNAME}/tools/bpf/bpftool" install
+# }
 
 build_bpftool () {
     export CROSS_COMPILE=${MY_CROSS_COMPILE}-
