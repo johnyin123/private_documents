@@ -49,23 +49,54 @@ scripts/config --module CONFIG_TLS
 # enable nfs rootfs
 scripts/config --enable CONFIG_NFS_FS
 scripts/config --enable CONFIG_ROOT_NFS
-# enable KVM
-scripts/config --enable CONFIG_KVM_GUEST
-scripts/config --enable CONFIG_KVM
-scripts/config --enable CONFIG_VIRTUALIZATION
-scripts/config --enable CONFIG_PARAVIRT
-scripts/config --module CONFIG_VIRTIO
-scripts/config --module CONFIG_VHOST_NET
-scripts/config --enable CONFIG_VHOST_MENU
-scripts/config --module CONFIG_VHOST_IOTLB
-scripts/config --module CONFIG_VHOST
-scripts/config --module CONFIG_VHOST_NET
-scripts/config --module CONFIG_VHOST_SCSI
-scripts/config --module CONFIG_VHOST_VSOCK
-# # enable usbipd device mode module, TODO: not work
-# scripts/config --module CONFIG_USB_MASS_STORAGE
-
+s905d_opt() {
+    scripts/config --module CONFIG_USB_DWC3 --enable CONFIG_USB_DWC3_ULPI --enable CONFIG_USB_DWC3_DUAL_ROLE
+    scripts/config --module CONFIG_USB_DWC3_MESON_G12A --module CONFIG_USB_DWC3_OF_SIMPLE
+}
+enable_kvm() {
+    # enable KVM
+    scripts/config --enable CONFIG_KVM
+    scripts/config --enable CONFIG_KVM_GUEST
+    scripts/config --enable CONFIG_VIRTUALIZATION
+    scripts/config --enable CONFIG_PARAVIRT
+    scripts/config --enable CONFIG_VHOST_MENU
+    scripts/config --module CONFIG_VIRTIO
+    scripts/config --module CONFIG_VHOST_NET
+    scripts/config --module CONFIG_VHOST_IOTLB
+    scripts/config --module CONFIG_VHOST
+    scripts/config --module CONFIG_VHOST_NET
+    scripts/config --module CONFIG_VHOST_SCSI
+    scripts/config --module CONFIG_VHOST_VSOCK
+}
+enable_usbip() {
+    # enable usbip modules
+    scripts/config --module CONFIG_USBIP_CORE
+    scripts/config --module CONFIG_USBIP_VHCI_HCD
+    scripts/config --module CONFIG_USBIP_HOST
+    scripts/config --module CONFIG_USBIP_VUDC
+}
+enable_usb_gadget() {
+    # # enable g_mass_storage....
+    cat <<EOF
+lsusb && modprobe dummy_hcd && lsusb
+modprobe g_mass_storage file=/root/disk
+# idVendor=0x1d6b idProduct=0x0104 iManufacturer=Myself iProduct=VirtualBlockDevice iSerialNumber=123
+mount .....
+EOF
+    scripts/config --module CONFIG_USB_MASS_STORAGE
+    scripts/config --module CONFIG_USB_G_HID
+    scripts/config --module CONFIG_USB_G_WEBCAM
+    scripts/config --module CONFIG_USB_RAW_GADGET
+    scripts/config --module CONFIG_USB_GADGET
+    scripts/config --module CONFIG_USB_GADGETFS
+    scripts/config --module CONFIG_USB_DUMMY_HCD
+    scripts/config --module CONFIG_USB_CONFIGFS
+}
+enable_kvm
+enable_usbip
+enable_usb_gadget
 # yes "" | make oldconfig
+# yes "y" | make oldconfig
 scripts/diffconfig .config.old .config 2>/dev/null
 
 pahole --version 2>/dev/null || echo "pahole no found DEBUG_INFO_BTF not effict"

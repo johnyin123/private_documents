@@ -26,3 +26,8 @@ usbip tools use: /linux-<kernel-version>/tools/usb/usbip
     modprobe g_mass_storage file=/tmp/tmp.img
     usbip list --device
     modprobe -r g_mass_storage
+
+    # modprobe dummy_hcd
+    # modprobe g_mass_storage file=/root/disk
+    # mount .....
+
