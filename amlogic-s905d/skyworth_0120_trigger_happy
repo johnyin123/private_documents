@@ -32,6 +32,12 @@ KEY_DOWN         2   /usr/bin/remoter.sh
 KEY_LEFT         2   /usr/bin/remoter.sh
 KEY_RIGHT        2   /usr/bin/remoter.sh
 EOF
+cat > /etc/skyworth_120.conf <<'EOF'
+DEPTH=1
+USER=johnyin
+MEDIA_DIR=/media/johnyin/media/movie
+LIST_FILE=/home/johnyin/Desktop/list.m3u
+EOF
 cat > /usr/bin/remoter.sh <<'EOF'
 #!/bin/sh
 # desktop: F5(run smplayer), POWER(poweroff)
@@ -49,11 +55,12 @@ smplayer_start_stop() {
     log "smplayer action ${action}"
     case "${action}" in
         start) [ -e "${LIST_FILE}" ] || {
+                   systemd-run --uid=${USER} /usr/bin/touch ${LIST_FILE}
                    find ${MEDIA_DIR} -maxdepth ${DEPTH:-1} -type f -iname '*.mkv' \
                        -o -iname '*.avi' \
                        -o -iname '*.mp4' \
                        -o -iname '*.wmv' > ${LIST_FILE}
-                   chown ${USER} ${LIST_FILE}
+                   # chown ${USER}: ${LIST_FILE}
                }
                systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -ontop ${LIST_FILE}
                ;;
@@ -149,8 +156,8 @@ do_context_2() {
         KEY_SELECT)     smplayer_action play_or_pause;;
         KEY_F5)         smplayer_action mute;;
         KEY_ESC)        smplayer_action fullscreen;;
-        KEY_VOLUMEUP)   smplayer_action increase_volume;;
-        KEY_VOLUMEDOWN) smplayer_action decrease_volume;;
+        KEY_VOLUMEUP)   smplayer_action next_subtitle;;
+        KEY_VOLUMEDOWN) smplayer_action next_audio;;
         *)              log "unknow context_2 key ${key}";;
     esac
 }
@@ -167,8 +174,8 @@ do_context_3() {
         KEY_SELECT)     xsendkey "${LIST_FILE}" Return;;
         KEY_F5)         smplayer_action show_playlist;;
         KEY_ESC)        xsendkey "${LIST_FILE}" Tab;;
-        KEY_VOLUMEUP)   smplayer_action increase_volume;;
-        KEY_VOLUMEDOWN) smplayer_action decrease_volume;;
+        KEY_VOLUMEUP)   xsendkey "${LIST_FILE}" Page_Up;;
+        KEY_VOLUMEDOWN) xsendkey "${LIST_FILE}" Page_Down;;
         *)              log "unknow context_3 key ${key}";;
     esac
 }
