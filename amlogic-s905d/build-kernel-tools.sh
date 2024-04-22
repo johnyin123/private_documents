@@ -25,11 +25,12 @@ EOF
 }
 export ARCH=arm64
 
-# build_perf () {
-#     export CROSS_COMPILE=${MY_CROSS_COMPILE}-
-#     make V=1 -j$(nproc) LDFLAGS=-L"${LIB_ROOTFS}/usr/lib/aarch64-linux-gnu/" -C "${DIRNAME}/tools/perf"
-#     prefix=/usr make DESTDIR=${ROOTFS} V=1 -j$(nproc) -C "${DIRNAME}/tools/bpf/bpftool" install
-# }
+build_perf () {
+    # apt install libdw-dev libunwind-dev systemtap-sdt-dev libslang2-dev libperl-dev python3-dev libcap-dev libnuma-dev libbabeltrace-dev libpfm4-dev libtraceevent-dev
+    export CROSS_COMPILE=${MY_CROSS_COMPILE}-
+    make V=1 -j$(nproc) LDFLAGS=-L"${LIB_ROOTFS}/usr/lib/aarch64-linux-gnu/" -C "${DIRNAME}/tools/perf"
+    prefix=/usr make DESTDIR=${ROOTFS} V=1 -j$(nproc) -C "${DIRNAME}/tools/perf" install
+}
 
 build_bpftool () {
     export CROSS_COMPILE=${MY_CROSS_COMPILE}-
