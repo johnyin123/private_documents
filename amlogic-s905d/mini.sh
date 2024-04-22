@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e71d887[2022-10-21T08:02:05+08:00]:mini.sh")
+VERSION+=("44f32ca[2023-11-02T07:02:11+08:00]:mini.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -29,5 +29,7 @@ sed -i "s/^macaddr=.*/macaddr=${macaddr}/g" ${ROOTFS}/usr/lib/firmware/brcm/brcm
 grep "^macaddr=" ${ROOTFS}/usr/lib/firmware/brcm/brcmfmac43455-sdio.txt || true
 sed -i "s/^macaddr=.*/macaddr=${macaddr}/g" ${ROOTFS}/usr/lib/firmware/brcm/brcmfmac43455-sdio.phicomm,n1.txt || true
 grep "^macaddr=" ${ROOTFS}/usr/lib/firmware/brcm/brcmfmac43455-sdio.phicomm,n1.txt || true
+# # set fake-clock
+date --utc '+%Y-%m-%d %H:%M:%S' > ${ROOTFS}/etc/fake-hwclock.data
 echo "rsync -avzP --numeric-ids -e 'ssh -p60022' --exclude=/usr/bin/qemu-aarch64-static --exclude=boot --delete ${ROOTFS}/* root@${IP:-10.32.166.32}:/overlay/lower/"
 echo "rsync -avzP --numeric-ids -e 'ssh -p60022' --exclude=/usr/bin/qemu-aarch64-static --delete ${ROOTFS}/boot/* root@${IP:-10.32.166.32}:/boot/"
