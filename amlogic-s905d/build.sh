@@ -117,6 +117,11 @@ enable_usbip
 enable_usb_gadget
 # yes "" | make oldconfig
 # yes "y" | make oldconfig
+
+make listnewconfig
+
+read -n 1 -p "continue" value
+
 scripts/diffconfig .config.old .config 2>/dev/null
 
 pahole --version 2>/dev/null || echo "pahole no found DEBUG_INFO_BTF not effict"

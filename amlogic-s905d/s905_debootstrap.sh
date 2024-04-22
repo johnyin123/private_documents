@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a1ab300[2024-04-16T09:00:29+08:00]:s905_debootstrap.sh")
+VERSION+=("01843b0[2024-04-19T09:05:55+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -176,6 +176,9 @@ aplay -l
 pactl list cards
 # output soundcard
 pactl set-card-profile 0 output:analog-stereo
+# export PULSE_SERVER="unix:/run/user/"$USER_ID"/pulse/native"
+# sudo -u $USER_NAME pactl --server $PULSE_SERVER set-card-profile 0 output:hdmi-stereo+input:analog-stereo
+
 # output hdmi
 pactl set-card-profile 0 output:hdmi-stereo
 # login xfce, run  alsamixer -> F6 -> ....
