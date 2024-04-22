@@ -120,7 +120,7 @@ enable_usb_gadget
 
 make listnewconfig
 
-read -n 1 -p "continue" value
+read -n 1 -p "Press any key continue build..." value
 
 scripts/diffconfig .config.old .config 2>/dev/null
 
