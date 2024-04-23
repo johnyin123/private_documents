@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("a5b3a53[2024-04-07T15:04:02+08:00]:os_debian_init.sh")
+VERSION+=("8f53ac1[2024-04-10T09:11:29+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -269,7 +269,7 @@ SIZE=${size_mb}MiB
 
 # Specifies the priority for the swap devices, see swapon(2)
 # This should probably be higher than hdd/ssd swaps.
-#PRIORITY=100
+PRIORITY=100
 EOF
     cat<<'EOF' >/lib/systemd/system/zramswap.service
 [Unit]
