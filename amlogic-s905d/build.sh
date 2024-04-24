@@ -47,6 +47,11 @@ scripts/config --enable CONFIG_NO_HZ_FULL
 # enable ktls
 scripts/config --module CONFIG_TLS
 enable_arch_inline() {
+    cat <<EOF
+    CONFIG_PREEMPT_NONE：无抢占
+    CONFIG_PREEMPT：允许内核被抢占
+    CONFIG_PREEMPT_VOLUNTARY suits desktop environments.
+EOF
     scripts/config --disable CONFIG_PREEMPT_NONE
     scripts/config --disable CONFIG_PREEMPT
     scripts/config --disable CONFIG_PREEMPT_DYNAMIC
