@@ -46,14 +46,97 @@ scripts/config --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
 scripts/config --enable CONFIG_NO_HZ_FULL
 # enable ktls
 scripts/config --module CONFIG_TLS
+enable_arch_inline() {
+    scripts/config --disable CONFIG_PREEMPT_NONE
+    scripts/config --disable CONFIG_PREEMPT
+    scripts/config --disable CONFIG_PREEMPT_DYNAMIC
+    scripts/config --disable CONFIG_SCHED_CORE
+    scripts/config --enable CONFIG_HAVE_PREEMPT_DYNAMIC
+    scripts/config --enable CONFIG_HAVE_PREEMPT_DYNAMIC_KEY
+    scripts/config --enable CONFIG_PREEMPT_NOTIFIERS
+    scripts/config --enable CONFIG_PREEMPT_VOLUNTARY_BUILD
+    scripts/config --enable CONFIG_PREEMPT_VOLUNTARY
+    # scripts/config --enable CONFIG_PREEMPT_RCU
+    # scripts/config --enable CONFIG_TASKS_RCU
+    scripts/config --enable ARCH_INLINE_SPIN_TRYLOCK
+    scripts/config --enable ARCH_INLINE_SPIN_TRYLOCK_BH
+    scripts/config --enable ARCH_INLINE_SPIN_LOCK
+    scripts/config --enable ARCH_INLINE_SPIN_LOCK_BH
+    scripts/config --enable ARCH_INLINE_SPIN_LOCK_IRQ
+    scripts/config --enable ARCH_INLINE_SPIN_LOCK_IRQSAVE
+    scripts/config --enable ARCH_INLINE_SPIN_UNLOCK
+    scripts/config --enable ARCH_INLINE_SPIN_UNLOCK_BH
+    scripts/config --enable ARCH_INLINE_SPIN_UNLOCK_IRQ
+    scripts/config --enable ARCH_INLINE_SPIN_UNLOCK_IRQRESTORE
+    scripts/config --enable ARCH_INLINE_READ_LOCK
+    scripts/config --enable ARCH_INLINE_READ_LOCK_BH
+    scripts/config --enable ARCH_INLINE_READ_LOCK_IRQ
+    scripts/config --enable ARCH_INLINE_READ_LOCK_IRQSAVE
+    scripts/config --enable ARCH_INLINE_READ_UNLOCK
+    scripts/config --enable ARCH_INLINE_READ_UNLOCK_BH
+    scripts/config --enable ARCH_INLINE_READ_UNLOCK_IRQ
+    scripts/config --enable ARCH_INLINE_READ_UNLOCK_IRQRESTORE
+    scripts/config --enable ARCH_INLINE_WRITE_LOCK
+    scripts/config --enable ARCH_INLINE_WRITE_LOCK_BH
+    scripts/config --enable ARCH_INLINE_WRITE_LOCK_IRQ
+    scripts/config --enable ARCH_INLINE_WRITE_LOCK_IRQSAVE
+    scripts/config --enable ARCH_INLINE_WRITE_UNLOCK
+    scripts/config --enable ARCH_INLINE_WRITE_UNLOCK_BH
+    scripts/config --enable ARCH_INLINE_WRITE_UNLOCK_IRQ
+    scripts/config --enable ARCH_INLINE_WRITE_UNLOCK_IRQRESTORE
+    scripts/config --enable INLINE_SPIN_TRYLOCK
+    scripts/config --enable INLINE_SPIN_TRYLOCK_BH
+    scripts/config --enable INLINE_SPIN_LOCK
+    scripts/config --enable INLINE_SPIN_LOCK_BH
+    scripts/config --enable INLINE_SPIN_LOCK_IRQ
+    scripts/config --enable INLINE_SPIN_LOCK_IRQSAVE
+    scripts/config --enable INLINE_SPIN_UNLOCK_BH
+    scripts/config --enable INLINE_SPIN_UNLOCK_IRQ
+    scripts/config --enable INLINE_SPIN_UNLOCK_IRQRESTORE
+    scripts/config --enable INLINE_READ_LOCK
+    scripts/config --enable INLINE_READ_LOCK_BH
+    scripts/config --enable INLINE_READ_LOCK_IRQ
+    scripts/config --enable INLINE_READ_LOCK_IRQSAVE
+    scripts/config --enable INLINE_READ_UNLOCK
+    scripts/config --enable INLINE_READ_UNLOCK_BH
+    scripts/config --enable INLINE_READ_UNLOCK_IRQ
+    scripts/config --enable INLINE_READ_UNLOCK_IRQRESTORE
+    scripts/config --enable INLINE_WRITE_LOCK
+    scripts/config --enable INLINE_WRITE_LOCK_BH
+    scripts/config --enable INLINE_WRITE_LOCK_IRQ
+    scripts/config --enable INLINE_WRITE_LOCK_IRQSAVE
+    scripts/config --enable INLINE_WRITE_UNLOCK
+    scripts/config --enable INLINE_WRITE_UNLOCK_BH
+    scripts/config --enable INLINE_WRITE_UNLOCK_IRQ
+    scripts/config --enable INLINE_WRITE_UNLOCK_IRQRESTORE
+}
 enable_nfs_rootfs() {
     # enable nfs rootfs
     scripts/config --enable CONFIG_NFS_FS
     scripts/config --enable CONFIG_ROOT_NFS
 }
 s905d_opt() {
+    scripts/config --enable CONFIG_ARCH_MESON
     scripts/config --module CONFIG_USB_DWC3 --enable CONFIG_USB_DWC3_ULPI --enable CONFIG_USB_DWC3_DUAL_ROLE
     scripts/config --module CONFIG_USB_DWC3_MESON_G12A --module CONFIG_USB_DWC3_OF_SIMPLE
+    scripts/config --module CONFIG_FIXED_PHY \
+        --module CONFIG_FWNODE_MDIO \
+        --module CONFIG_HW_RANDOM \
+        --module CONFIG_HW_RANDOM_ARM_SMCCC_TRNG \
+        --module CONFIG_HW_RANDOM_MESON \
+        --module CONFIG_MDIO_BUS \
+        --module CONFIG_MDIO_BUS_MUX \
+        --module CONFIG_MDIO_BUS_MUX_MESON_GXL \
+        --module CONFIG_MDIO_DEVRES \
+        --module CONFIG_MESON_GXL_PHY \
+        --module CONFIG_NET_SELFTESTS \
+        --module CONFIG_OF_MDIO \
+        --module CONFIG_PHYLIB \
+        --module CONFIG_PHY_MESON8B_USB2 \
+        --module CONFIG_PHY_MESON_GXL_USB2 \
+        --module CONFIG_REALTEK_PHY \
+        --module CONFIG_SMSC_PHY
+
     # CONFIG_ARCH_MESON=y
     # CONFIG_MESON_GXL_PHY=y
     # # hdmi
@@ -79,13 +162,29 @@ enable_kvm() {
     scripts/config --enable CONFIG_VIRTUALIZATION
     scripts/config --enable CONFIG_PARAVIRT
     scripts/config --enable CONFIG_VHOST_MENU
-    scripts/config --module CONFIG_VIRTIO
     scripts/config --module CONFIG_VHOST_NET
     scripts/config --module CONFIG_VHOST_IOTLB
     scripts/config --module CONFIG_VHOST
     scripts/config --module CONFIG_VHOST_NET
     scripts/config --module CONFIG_VHOST_SCSI
     scripts/config --module CONFIG_VHOST_VSOCK
+    scripts/config --module CONFIG_VIRTIO
+    scripts/config --enable CONFIG_VIRTIO_MENU
+    scripts/config --enable CONFIG_BLK_MQ_VIRTIO
+    scripts/config --enable CONFIG_VIRTIO_ANCHOR
+    scripts/config --module CONFIG_VIRTIO_VSOCKETS
+    scripts/config --module CONFIG_VIRTIO_VSOCKETS_COMMON
+    scripts/config --module CONFIG_VIRTIO_BLK
+    scripts/config --enable CONFIG_BLK_MQ_VIRTIO
+    scripts/config --module CONFIG_VIRTIO_NET
+    scripts/config --module CONFIG_VIRTIO_BALLOON
+    scripts/config --enable CONFIG_BALLOON_COMPACTION
+    scripts/config --module CONFIG_VIRTIO_INPUT
+    scripts/config --module CONFIG_VIRTIO_MMIO
+    scripts/config --enable CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES
+    scripts/config --module CONFIG_VIRTIO_IOMMU
+    scripts/config --module CONFIG_SCSI_VIRTIO
+    scripts/config --module CONFIG_SND_VIRTIO
 }
 enable_usbip() {
     # enable usbip modules
@@ -111,10 +210,12 @@ EOF
     scripts/config --module CONFIG_USB_DUMMY_HCD
     scripts/config --module CONFIG_USB_CONFIGFS
 }
+s905d_opt
 enable_nfs_rootfs
 enable_kvm
 enable_usbip
 enable_usb_gadget
+enable_arch_inline
 # yes "" | make oldconfig
 # yes "y" | make oldconfig
 
