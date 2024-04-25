@@ -3,6 +3,8 @@ set -o nounset -o pipefail
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 
 KERVERSION="$(make kernelversion)"
+MYVERSION="-johnyin-s905d"
+
 export ROOTFS=${1:-${DIRNAME}/kernel-${KERVERSION}-$(date '+%Y%m%d%H%M%S')}
 
 echo "build bpftool: apt -y install llvm && cd tools/bpf/bpftool && make"
@@ -17,7 +19,6 @@ echo "build perf, cd tools/perf && make"
     # apt -y install pahole -t bullseye-backports
     export CROSS_COMPILE=aarch64-linux-gnu-
 }
-export LOCALVERSION="-johnyin-s905d"
 export ARCH=arm64
 # export KCFLAGS='-O3 -flto -pipe'
 # export KCPPFLAGS='-O3 -flto -pipe'
@@ -26,19 +27,14 @@ export INSTALL_MOD_PATH=${ROOTFS}/usr/
 export INSTALL_MOD_STRIP=1
 
 #scripts/config --disable DEBUG_INFO
-sed -Ei '/CONFIG_SYSTEM_TRUSTED_KEYS/s/=.+/=""/g' .config || true
+scripts/config --set-str CONFIG_LOCALVERSION "${MYVERSION}"
+scripts/config --set-str CONFIG_SYSTEM_TRUSTED_KEYS ""
 echo "use xz compress module"
 scripts/config --disable MODULE_SIG_ALL
 scripts/config --disable MODULE_COMPRESS_NONE
 scripts/config --disable MODULE_DECOMPRESS
 scripts/config --enable MODULE_COMPRESS_XZ
-echo "fix eBPF bpftool gen vmlinux.h, see: lib/Kconfig.debug, pahole tools in package dwarves"
-echo "dwarves: https://github.com/acmel/dwarves"
-scripts/config --enable CONFIG_BPF_SYSCALL
-scripts/config --enable CONFIG_BPF_JIT
-scripts/config --enable CONFIG_DEBUG_INFO_BTF
-scripts/config --enable CONFIG_FTRACE
-# enable CONFIG_DEBUG_INFO_BTF need: apt install dwarves
+# # OPTIMIZE
 scripts/config --enable DEBUG_INFO
 scripts/config --enable EARLY_PRINTK
 scripts/config --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
@@ -46,6 +42,24 @@ scripts/config --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
 scripts/config --enable CONFIG_NO_HZ_FULL
 # enable ktls
 scripts/config --module CONFIG_TLS
+# uselib()系统接口支持,仅使用基于libc5应用使用
+scripts/config --disable CONFIG_USELIB
+
+enable_ebpf() {
+    echo "fix eBPF bpftool gen vmlinux.h, see: lib/Kconfig.debug, pahole tools in package dwarves"
+    echo "dwarves: https://github.com/acmel/dwarves"
+    scripts/config --enable CONFIG_KPROBES
+    scripts/config --enable CONFIG_HAVE_DYNAMIC_FTRACE
+    scripts/config --enable CONFIG_HAVE_DYNAMIC_FTRACE_WITH_REGS
+    scripts/config --enable CONFIG_HAVE_FTRACE_MCOUNT_RECORD
+    scripts/config --enable CONFIG_FTRACE
+    scripts/config --enable CONFIG_DYNAMIC_FTRACE
+    scripts/config --enable CONFIG_BPF
+    scripts/config --enable CONFIG_BPF_SYSCALL
+    scripts/config --enable CONFIG_BPF_JIT
+    scripts/config --enable CONFIG_DEBUG_INFO_BTF
+    # enable CONFIG_DEBUG_INFO_BTF need: apt install dwarves
+}
 enable_arch_inline() {
     cat <<EOF
     CONFIG_PREEMPT_NONE：无抢占
@@ -215,6 +229,7 @@ EOF
     scripts/config --module CONFIG_USB_DUMMY_HCD
     scripts/config --module CONFIG_USB_CONFIGFS
 }
+enable_ebpf
 s905d_opt
 enable_nfs_rootfs
 enable_kvm
@@ -228,6 +243,7 @@ make listnewconfig
 
 read -n 1 -p "Press any key continue build..." value
 
+# ARCH=<arch> scripts/kconfig/merge_config.sh <...>/<platform>_defconfig <...>/android-base.config <...>/android-base-<arch>.config <...>/android-recommended.config
 scripts/diffconfig .config.old .config 2>/dev/null
 
 pahole --version 2>/dev/null || echo "pahole no found DEBUG_INFO_BTF not effict"
@@ -240,22 +256,22 @@ make V=1 -j$(nproc) Image dtbs modules
 # make -j$(nproc) bindeb-pkg #gen debian deb package!!
 
 mkdir -p ${ROOTFS}/boot/dtb ${ROOTFS}/usr
-rsync -a ${DIRNAME}/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dtb ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${LOCALVERSION}.dtb
+rsync -a ${DIRNAME}/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dtb ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${MYVERSION}.dtb
 make install > /dev/null
 make modules_install > /dev/null
 
 LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOTFS} /bin/bash <<EOSHELL
-    depmod ${KERVERSION}${LOCALVERSION}
-    update-initramfs -c -k ${KERVERSION}${LOCALVERSION}
+    depmod ${KERVERSION}${MYVERSION}
+    update-initramfs -c -k ${KERVERSION}${MYVERSION}
     [ -e "/boot/extlinux/extlinux.conf" ] && {
-        sed -i "s/\s*linux\s.*/    linux \/vmlinuz-${KERVERSION}${LOCALVERSION}/g" /boot/extlinux/extlinux.conf
-        sed -i "s/\s*initrd\s.*/    initrd \/initrd.img-${KERVERSION}${LOCALVERSION}/g" /boot/extlinux/extlinux.conf
-        sed -i "s/\s*fdt\s.*/    fdt \/dtb\/phicomm-n1-${KERVERSION}${LOCALVERSION}.dtb/g" /boot/extlinux/extlinux.conf
+        sed -i "s/\s*linux\s.*/    linux \/vmlinuz-${KERVERSION}${MYVERSION}/g" /boot/extlinux/extlinux.conf
+        sed -i "s/\s*initrd\s.*/    initrd \/initrd.img-${KERVERSION}${MYVERSION}/g" /boot/extlinux/extlinux.conf
+        sed -i "s/\s*fdt\s.*/    fdt \/dtb\/phicomm-n1-${KERVERSION}${MYVERSION}.dtb/g" /boot/extlinux/extlinux.conf
     }
     [ -e "/boot/uEnv.ini" ] && {
-        sed -i "s/\s*image\s*=.*/image=vmlinuz-${KERVERSION}${LOCALVERSION}/g" /boot/uEnv.ini
-        sed -i "s/\s*initrd\s*=.*/initrd=uInitrd-${KERVERSION}${LOCALVERSION}/g" /boot/uEnv.ini
-        sed -i "s/\s*dtb\s*=.*/dtb=\/dtb\/phicomm-n1-${KERVERSION}${LOCALVERSION}.dtb/g" /boot/uEnv.ini
+        sed -i "s/\s*image\s*=.*/image=vmlinuz-${KERVERSION}${MYVERSION}/g" /boot/uEnv.ini
+        sed -i "s/\s*initrd\s*=.*/initrd=uInitrd-${KERVERSION}${MYVERSION}/g" /boot/uEnv.ini
+        sed -i "s/\s*dtb\s*=.*/dtb=\/dtb\/phicomm-n1-${KERVERSION}${MYVERSION}.dtb/g" /boot/uEnv.ini
     }
     rm -f /boot/*.old
 EOSHELL
