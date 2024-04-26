@@ -44,7 +44,17 @@ scripts/config --enable CONFIG_NO_HZ_FULL
 scripts/config --module CONFIG_TLS
 # uselib()系统接口支持,仅使用基于libc5应用使用
 scripts/config --disable CONFIG_USELIB
-
+enable_virtual_wifi() {
+    echo "enable Virtual WLAN Interfaces module"
+    cat <<EOF
+# radios=1 defines how many virtual interfaces will be created
+modprobe mac80211_hwsim radios=1
+# create netns, add device to ns us iw
+# iw phy phy0 set netns <netns>
+# hostapd/wpa_supplicant ......
+EOF
+    scripts/config --module CONFIG_WWAN_HWSIM
+}
 enable_ebpf() {
     echo "fix eBPF bpftool gen vmlinux.h, see: lib/Kconfig.debug, pahole tools in package dwarves"
     echo "dwarves: https://github.com/acmel/dwarves"
@@ -229,6 +239,7 @@ EOF
     scripts/config --module CONFIG_USB_DUMMY_HCD
     scripts/config --module CONFIG_USB_CONFIGFS
 }
+enable_virtual_wifi
 enable_ebpf
 s905d_opt
 enable_nfs_rootfs
