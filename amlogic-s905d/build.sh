@@ -45,7 +45,6 @@ scripts/config --module CONFIG_TLS
 # uselib()系统接口支持,仅使用基于libc5应用使用
 scripts/config --disable CONFIG_USELIB
 enable_virtual_wifi() {
-    echo "enable Virtual WLAN Interfaces module"
     cat <<EOF
 # radios=2 defines how many virtual interfaces will be created
 modprobe mac80211_hwsim radios=2
@@ -55,7 +54,10 @@ modprobe mac80211_hwsim radios=2
 # iw phy phy1 set netns <station_ns>
 # wpa_supplicant ......
 EOF
+    echo "enable Virtual WLAN Interfaces module"
     scripts/config --module CONFIG_WWAN_HWSIM
+    echo "enable emulate input devices from userspace"
+    scripts/config --enable CONFIG_INPUT_UINPUT
 }
 enable_ebpf() {
     echo "fix eBPF bpftool gen vmlinux.h, see: lib/Kconfig.debug, pahole tools in package dwarves"
