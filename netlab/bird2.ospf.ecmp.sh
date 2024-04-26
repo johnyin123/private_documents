@@ -19,8 +19,8 @@ protocol direct {
 # Forbid synchronizing BIRD routing tables with the OS kernel.
 protocol kernel {
     ipv4 {                # Connect protocol to IPv4 table by channel
-        import all;       # Import to table, default is import all
-        export all;       # Export to protocol. default is export none
+        import none;      # Import to table, default is import all
+        export all;
     };
     merge paths yes limit ${ECMP_NUM} ;
 }
@@ -65,3 +65,6 @@ protocol ospf v2 uplink0 {
     };
 }
 EOF
+birdc show ospf neighbors
+birdc show ospf state
+birdc show route
