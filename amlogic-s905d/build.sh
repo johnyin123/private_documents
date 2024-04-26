@@ -47,11 +47,13 @@ scripts/config --disable CONFIG_USELIB
 enable_virtual_wifi() {
     echo "enable Virtual WLAN Interfaces module"
     cat <<EOF
-# radios=1 defines how many virtual interfaces will be created
-modprobe mac80211_hwsim radios=1
+# radios=2 defines how many virtual interfaces will be created
+modprobe mac80211_hwsim radios=2
 # create netns, add device to ns us iw
-# iw phy phy0 set netns <netns>
-# hostapd/wpa_supplicant ......
+# iw phy phy0 set netns <hostapd_netns>
+# hostapd ...
+# iw phy phy1 set netns <station_ns>
+# wpa_supplicant ......
 EOF
     scripts/config --module CONFIG_WWAN_HWSIM
 }
