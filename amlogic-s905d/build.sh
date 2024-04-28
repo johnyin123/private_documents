@@ -260,8 +260,6 @@ enable_arch_inline
 
 make listnewconfig
 
-read -n 1 -p "Press any key continue build..." value
-
 # ARCH=<arch> scripts/kconfig/merge_config.sh <...>/<platform>_defconfig <...>/android-base.config <...>/android-base-<arch>.config <...>/android-recommended.config
 scripts/diffconfig .config.old .config 2>/dev/null
 
@@ -269,6 +267,8 @@ pahole --version 2>/dev/null || echo "pahole no found DEBUG_INFO_BTF not effict"
 
 echo -n "PAGE SIZE =================> "
 grep -oE "^CONFIG_ARM64_.*_PAGES" .config
+
+read -n 1 -p "Press any key continue build..." value
 
 make V=1 -j$(nproc) Image dtbs modules
 
