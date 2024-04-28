@@ -169,6 +169,10 @@ s905d_opt() {
         --module CONFIG_PHY_MESON_GXL_USB2 \
         --module CONFIG_REALTEK_PHY \
         --module CONFIG_SMSC_PHY
+    echo "enable meson vdec(staging)"
+    scripts/config --enable CONFIG_STAGING \
+        --enable CONFIG_STAGING_MEDIA \
+        --module CONFIG_VIDEO_MESON_VDEC
 
     # CONFIG_ARCH_MESON=y
     # CONFIG_MESON_GXL_PHY=y
