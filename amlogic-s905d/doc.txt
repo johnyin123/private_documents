@@ -1,3 +1,11 @@
+Amlogic Meson S905x (GXL)
+The Amlogic Meson S905x is a SoC with a quad core Arm Cortex-A53 running at 1.5Ghz. It also contains a Cortex-M3 used as SCP.
+This port is a minimal implementation of BL31 capable of booting mainline U-Boot and Linux:
+SCPI support.
+Basic PSCI support (CPU_ON, CPU_OFF, SYSTEM_RESET, SYSTEM_OFF). Note that CPU0 can’t be turned off, so there is a workaround to hide this from the caller.
+GICv2 driver set up.
+Basic SIP services (read efuse data, enable/disable JTAG).
+
 Vendor ID:               ARM
   Model name:            Cortex-A53
     Model:               4
