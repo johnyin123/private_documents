@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("01843b0[2024-04-19T09:05:55+08:00]:s905_debootstrap.sh")
+VERSION+=("9712e20[2024-04-22T14:32:29+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -267,6 +267,10 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
     # cat << EOF > /etc/modprobe.d/meson_saradc.conf
     # blacklist meson_saradc
     # EOF
+
+    log "Enable rootfs module(if not buildin)"
+    grep -q "ext4" /etc/modules || echo "ext4" >> /etc/initramfs-tools/modules
+    grep -q "ext4" /etc/modules || echo "ext4" >> /etc/modules
 
     log "Enable CPU FREQ"
     grep -q "scpi-cpufreq" /etc/modules  || echo "scpi-cpufreq" >> /etc/modules
