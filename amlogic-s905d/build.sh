@@ -28,12 +28,7 @@ export INSTALL_MOD_STRIP=1
 
 #scripts/config --disable DEBUG_INFO
 scripts/config --set-str CONFIG_LOCALVERSION "${MYVERSION}"
-scripts/config --set-str CONFIG_SYSTEM_TRUSTED_KEYS ""
-echo "use xz compress module"
-scripts/config --disable MODULE_SIG_ALL
-scripts/config --disable MODULE_COMPRESS_NONE
-scripts/config --disable MODULE_DECOMPRESS
-scripts/config --enable MODULE_COMPRESS_XZ
+
 # # OPTIMIZE
 scripts/config --enable DEBUG_INFO
 scripts/config --enable EARLY_PRINTK
@@ -44,6 +39,61 @@ scripts/config --enable CONFIG_NO_HZ_FULL
 scripts/config --module CONFIG_TLS
 # uselib()系统接口支持,仅使用基于libc5应用使用
 scripts/config --disable CONFIG_USELIB
+
+enable_module_xz_sign() {
+    local sign=${1:-}
+    echo "use xz compress module"
+    scripts/config --disable CONFIG_MODULE_COMPRESS_NONE
+    scripts/config --disable CONFIG_MODULE_DECOMPRESS
+    scripts/config --enable CONFIG_MODULE_COMPRESS_XZ
+
+    scripts/config --disable CONFIG_MODULE_SIG_ALL
+    scripts/config --set-str CONFIG_SYSTEM_TRUSTED_KEYS ""
+    [ -z ${sign} ] && {
+        echo "without sign........."
+        return
+    }
+    echo "enable module sign sha256"
+    [ -f "certs/signing_key.pem" ]  || {
+        cat << EOCONF > key.conf
+[ req ]
+default_bits = 4096
+distinguished_name = req_distinguished_name
+prompt = no
+string_mask = utf8only
+x509_extensions = myexts
+
+[ req_distinguished_name ]
+#O = Unspecified company
+CN = johnyin kernel key $(date '+%Y%m%d%H%M%S')
+emailAddress = johnyin.news@163.com
+
+[ myexts ]
+basicConstraints=critical,CA:FALSE
+keyUsage=digitalSignature
+subjectKeyIdentifier=hash
+authorityKeyIdentifier=keyid
+EOCONF
+        openssl req -new -nodes -utf8 -sha256 -days 36500 -batch -x509 -config key.conf -outform PEM -out certs/signing_key.pem -keyout certs/signing_key.pem
+        openssl x509 -text -noout -in certs/signing_key.pem
+}
+    scripts/config --enable CONFIG_MODULE_SIG
+    scripts/config --enable CONFIG_MODULE_SIG_ALL
+    scripts/config --enable CONFIG_MODULE_SIG_FORCE
+    scripts/config --enable CONFIG_MODULE_SIG_SHA256
+    scripts/config --set-str CONFIG_MODULE_SIG_HASH "sha256"
+
+    scripts/config --set-str CONFIG_SYSTEM_TRUSTED_KEYS "certs/signing_key.pem"
+    scripts/config --set-str CONFIG_MODULE_SIG_KEY "certs/signing_key.pem"
+
+    scripts/config --enable CONFIG_MODULE_SIG_KEY_TYPE_RSA
+    scripts/config --disable CONFIG_MODULE_SIG_KEY_TYPE_ECDSA
+
+    scripts/config --disable CONFIG_MODULE_SIG_SHA1
+    scripts/config --disable CONFIG_MODULE_SIG_SHA224
+    scripts/config --disable CONFIG_MODULE_SIG_SHA384
+    scripts/config --disable CONFIG_MODULE_SIG_SHA512
+}
 enable_virtual_wifi() {
     cat <<EOF
 # radios=2 defines how many virtual interfaces will be created
@@ -329,6 +379,7 @@ EOF
     scripts/config --module CONFIG_USB_DUMMY_HCD
     scripts/config --module CONFIG_USB_CONFIGFS
 }
+enable_module_xz_sign yes
 enable_virtual_wifi
 enable_ebpf
 s905d_opt
