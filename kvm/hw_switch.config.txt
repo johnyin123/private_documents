@@ -143,9 +143,11 @@ PCB Version     : Ver.B
     quit
     interface XGE1/0/1
     port link-aggregation group 1
+    link-delay down 4
     quit
     interface XGE2/0/1
     port link-aggregation group 1
+    link-delay down 4
     quit
     interface bridge-aggregation 1
     link-aggregation mode dynamic
