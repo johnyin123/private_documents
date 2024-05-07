@@ -20,8 +20,8 @@ echo "build perf, cd tools/perf && make"
     export CROSS_COMPILE=aarch64-linux-gnu-
 }
 export ARCH=arm64
-# export KCFLAGS='-O3 -flto -pipe'
-# export KCPPFLAGS='-O3 -flto -pipe'
+export KCFLAGS='-mcpu=cortex-a53 -mtune=cortex-a53'
+export KCPPFLAGS='-mcpu=cortex-a53 -mtune=cortex-a53'
 export INSTALL_PATH=${ROOTFS}/boot
 export INSTALL_MOD_PATH=${ROOTFS}/usr/
 export INSTALL_MOD_STRIP=1
