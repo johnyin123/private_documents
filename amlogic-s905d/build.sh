@@ -409,14 +409,15 @@ make V=1 -j$(nproc) Image dtbs modules
 
 mkdir -p ${ROOTFS}/boot/dtb ${ROOTFS}/usr
 rsync -a ${DIRNAME}/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dtb ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${MYVERSION}.dtb
+
+echo "INSTALL UNCOMPRESSED KERNEL"
+make install > /dev/null
+
 [[ ${COMPRESS-true} =~ ^1|yes|true$ ]] && {
-    echo "USE GZIP KERNEL"
+    echo "USE GZIP KERNEL OVERWRITE UNCOMPRESSED KERNEL"
     make V=1 -j$(nproc) Image.gz
     # cat arch/arm64/boot/Image | gzip -n -f -9 > ${ROOTFS}/boot/vmlinuz-${KERVERSION}${MYVERSION}
     cat arch/arm64/boot/Image.gz > ${ROOTFS}/boot/vmlinuz-${KERVERSION}${MYVERSION}
-} || {
-    echo "USE UNCOMPRESSED KERNEL"
-    make install > /dev/null
 }
 make modules_install > /dev/null
 
