@@ -109,6 +109,7 @@ modprobe mac80211_hwsim radios=2
 EOF
     echo "enable Virtual WLAN Interfaces module"
     scripts/config --module CONFIG_WWAN_HWSIM
+    scripts/config --module CONFIG_VIRT_WIFI
     echo "enable emulate input devices from userspace"
     scripts/config --enable CONFIG_INPUT_UINPUT
 }
@@ -226,6 +227,8 @@ s905d_opt() {
     scripts/config --enable CONFIG_STAGING \
         --enable CONFIG_STAGING_MEDIA \
         --module CONFIG_VIDEO_MESON_VDEC
+    echo "opensource GPU driver"
+    scripts/config --module CONFIG_DRM_LIMA
     # CONFIG_ARCH_MESON=y
     # CONFIG_MESON_GXL_PHY=m
 
