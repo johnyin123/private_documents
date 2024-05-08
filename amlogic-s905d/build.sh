@@ -23,8 +23,8 @@ export ARCH=arm64
 # fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
 # aarch64-linux-gnu-gcc -c -Q -mcpu=cortex-a53+fp+aes+crc+sha2 --help=target
 # gcc -c -Q -mcpu=native --help=target
-export KCFLAGS='-mcpu=cortex-a53+crypto+fp+crc'
-export KCPPFLAGS='-mcpu=cortex-a53+crypto+fp+crc'
+export KCFLAGS='-mcpu=cortex-a53+crypto+fp+crc+simd'
+export KCPPFLAGS='-mcpu=cortex-a53+crypto+fp+crc+simd'
 export INSTALL_PATH=${ROOTFS}/boot
 export INSTALL_MOD_PATH=${ROOTFS}/usr/
 export INSTALL_MOD_STRIP=1
