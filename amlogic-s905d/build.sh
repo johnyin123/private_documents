@@ -20,8 +20,11 @@ echo "build perf, cd tools/perf && make"
     export CROSS_COMPILE=aarch64-linux-gnu-
 }
 export ARCH=arm64
-export KCFLAGS='-mcpu=cortex-a53 -mtune=cortex-a53'
-export KCPPFLAGS='-mcpu=cortex-a53 -mtune=cortex-a53'
+# fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
+# aarch64-linux-gnu-gcc -c -Q -mcpu=cortex-a53+fp+aes+crc+sha2 --help=target
+# gcc -c -Q -mcpu=native --help=target
+export KCFLAGS='-mcpu=cortex-a53+crypto+fp+crc'
+export KCPPFLAGS='-mcpu=cortex-a53+crypto+fp+crc'
 export INSTALL_PATH=${ROOTFS}/boot
 export INSTALL_MOD_PATH=${ROOTFS}/usr/
 export INSTALL_MOD_STRIP=1
