@@ -1,3 +1,9 @@
+# usb自动挂载
+# apt install -y udevil
+# # 修改默认挂载路径到/media
+# sed -i 's#\(^allowed_media_dirs = \)\(.*\)#\1\/media, \2#' /etc/udevil/udevil.conf
+# systemctl enable devmon@your-username --now
+
 # apt -y install polkitd-pkla
 cat <<'EOF' > /etc/polkit-1/localauthority/90-mandatory.d/johnyin.pkla 
 [johnyin auto mount]
