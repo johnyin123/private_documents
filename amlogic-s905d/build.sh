@@ -5,7 +5,7 @@ readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 KERVERSION="$(make kernelversion)"
 MYVERSION="-johnyin-s905d"
 
-export ROOTFS=${1:-${DIRNAME}/kernel-${KERVERSION}-$(date '+%Y%m%d%H%M%S')}
+ROOTFS=${1:-${DIRNAME}/kernel-${KERVERSION}-$(date '+%Y%m%d%H%M%S')}
 
 echo "build bpftool: apt -y install llvm && cd tools/bpf/bpftool && make"
 echo "build perf, cd tools/perf && make"
@@ -30,18 +30,13 @@ export INSTALL_MOD_PATH=${ROOTFS}/usr/
 export INSTALL_MOD_STRIP=1
 
 #scripts/config --disable DEBUG_INFO
+# export LOCALVERSION="${MYVERSION}"
 scripts/config --set-str CONFIG_LOCALVERSION "${MYVERSION}"
 
 # # OPTIMIZE
 scripts/config --enable DEBUG_INFO
 scripts/config --enable EARLY_PRINTK
 scripts/config --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
-# Full dynticks system
-scripts/config --enable CONFIG_NO_HZ_FULL
-# enable ktls
-scripts/config --module CONFIG_TLS
-# uselib()系统接口支持,仅使用基于libc5应用使用
-scripts/config --disable CONFIG_USELIB
 
 enable_module_xz_sign() {
     local sign=${1:-}
@@ -148,6 +143,13 @@ enable_arch_inline() {
     CONFIG_PREEMPT：允许内核被抢占
     CONFIG_PREEMPT_VOLUNTARY suits desktop environments.
 EOF
+    # Full dynticks system
+    scripts/config --enable CONFIG_NO_HZ_FULL
+    # enable ktls
+    scripts/config --module CONFIG_TLS
+    # uselib()系统接口支持,仅使用基于libc5应用使用
+    scripts/config --disable CONFIG_USELIB
+
     scripts/config --disable CONFIG_PREEMPT_NONE
     scripts/config --disable CONFIG_PREEMPT
     scripts/config --disable CONFIG_PREEMPT_DYNAMIC
