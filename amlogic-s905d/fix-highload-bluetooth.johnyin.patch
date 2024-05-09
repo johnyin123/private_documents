@@ -26,7 +26,7 @@ index 393d3cb..cb88acb 100644
  };
  
  &cvbs_vdac_port {
-@@ -33,3 +51,59 @@
+@@ -33,3 +51,60 @@
  &usb {
  	dr_mode = "host";
  };
@@ -37,7 +37,8 @@ index 393d3cb..cb88acb 100644
 +};
 +
 +&external_phy {
-+	/delete-property/ reset-gpios;
++	/delete-property/ eee-broken-1000t;
++	/delete-property/ max-speed;
 +	interrupts = <25 IRQ_TYPE_LEVEL_LOW>;
 +};
 +
@@ -58,31 +59,31 @@ index 393d3cb..cb88acb 100644
 +};
 +
 +&l2 {
-+    /* 512KB cache size, needed by linux 6.3 */
-+    cache-size = <524288>;
-+    cache-unified;
++	/* 512KB cache size, needed by linux 6.3 */
++	cache-size = <524288>;
++	cache-unified;
 +};
 +
 +&cpu0 {
-+    /* 32KB L1 cache size */
-+    i-cache-size = <32768>;
-+    d-cache-size = <32768>;
++	/* 32KB L1 cache size */
++	i-cache-size = <32768>;
++	d-cache-size = <32768>;
 +};
 +
 +&cpu1 {
-+    /* 32KB L1 cache size */
-+    i-cache-size = <32768>;
-+    d-cache-size = <32768>;
++	/* 32KB L1 cache size */
++	i-cache-size = <32768>;
++	d-cache-size = <32768>;
 +};
 +
 +&cpu2 {
-+    /* 32KB L1 cache size */
-+    i-cache-size = <32768>;
-+    d-cache-size = <32768>;
++	/* 32KB L1 cache size */
++	i-cache-size = <32768>;
++	d-cache-size = <32768>;
 +};
 +
 +&cpu3 {
-+    /* 32KB L1 cache size */
-+    i-cache-size = <32768>;
-+    d-cache-size = <32768>;
++	/* 32KB L1 cache size */
++	i-cache-size = <32768>;
++	d-cache-size = <32768>;
 +};
