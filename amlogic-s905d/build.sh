@@ -109,6 +109,20 @@ modprobe mac80211_hwsim radios=2
 EOF
     echo "enable Virtual WLAN Interfaces module"
     scripts/config --module CONFIG_WWAN_HWSIM
+    cat <<EOF
+modprobe virt_wifi
+ifconfig eth0 down
+ip link set eth0 name wifi_eth
+ifconfig wifi_eth up
+ip link add link wifi_eth name wlan0 type virt_wifi
+
+ifconfig wlan0 down
+ifconfig wifi_eth down
+ip link delete wlan0
+ip link set wifi_eth name eth0
+ifconfig eth0 up
+rmmod virt_wifi
+EOF
     scripts/config --module CONFIG_VIRT_WIFI
     echo "enable emulate input devices from userspace"
     scripts/config --enable CONFIG_INPUT_UINPUT
@@ -385,7 +399,6 @@ EOF
     scripts/config --module CONFIG_USB_DUMMY_HCD
     scripts/config --module CONFIG_USB_CONFIGFS
 }
-enable_module_xz_sign yes
 enable_virtual_wifi
 enable_ebpf
 s905d_opt
@@ -394,6 +407,7 @@ enable_kvm
 enable_usbip
 enable_usb_gadget
 enable_arch_inline
+enable_module_xz_sign yes
 # yes "" | make oldconfig
 # yes "y" | make oldconfig
 
