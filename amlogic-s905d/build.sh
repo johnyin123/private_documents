@@ -78,8 +78,8 @@ subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid
 EOCONF
         openssl req -new -nodes -utf8 -sha256 -days 36500 -batch -x509 -config key.conf -outform PEM -out certs/signing_key.pem -keyout certs/signing_key.pem
-        openssl x509 -text -noout -in certs/signing_key.pem
 }
+    openssl x509 -text -noout -in certs/signing_key.pem
     scripts/config --enable CONFIG_MODULE_SIG
     scripts/config --enable CONFIG_MODULE_SIG_ALL
     scripts/config --enable CONFIG_MODULE_SIG_FORCE
