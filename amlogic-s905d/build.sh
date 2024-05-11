@@ -240,6 +240,7 @@ s905d_opt() {
     scripts/config --enable CONFIG_MMU
     scripts/config --enable CONFIG_CPU_LITTLE_ENDIAN
     scripts/config --module CONFIG_ARM_SCPI_CPUFREQ
+    scripts/config --enable CONFIG_ARM_PMU --enable CONFIG_ARM_PMUV3
     scripts/config --enable CONFIG_USB
     scripts/config --module CONFIG_USB_DWC3 --enable CONFIG_USB_DWC3_ULPI --enable CONFIG_USB_DWC3_DUAL_ROLE
     scripts/config --module CONFIG_USB_DWC3_MESON_G12A --module CONFIG_USB_DWC3_OF_SIMPLE
