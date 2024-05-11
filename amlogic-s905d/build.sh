@@ -220,6 +220,8 @@ enable_nfs_rootfs() {
 }
 s905d_opt() {
     scripts/config --enable CONFIG_ARCH_MESON
+    scripts/config --enable CONFIG_CPU_LITTLE_ENDIAN
+    scripts/config --module CONFIG_ARM_SCPI_CPUFREQ
     scripts/config --module CONFIG_USB_DWC3 --enable CONFIG_USB_DWC3_ULPI --enable CONFIG_USB_DWC3_DUAL_ROLE
     scripts/config --module CONFIG_USB_DWC3_MESON_G12A --module CONFIG_USB_DWC3_OF_SIMPLE
     scripts/config --module CONFIG_FIXED_PHY \
@@ -245,46 +247,43 @@ s905d_opt() {
         --module CONFIG_VIDEO_MESON_VDEC
     echo "opensource GPU driver"
     scripts/config --module CONFIG_DRM_LIMA
-    # CONFIG_ARCH_MESON=y
-    # CONFIG_MESON_GXL_PHY=m
+    echo "NETWORK"
+    scripts/config --module CONFIG_BRCMFMAC \
+        --enable CONFIG_BRCMFMAC_SDIO
 
-    # # NETWORK
-    # CONFIG_BRCMFMAC=m
-    # CONFIG_BRCMFMAC_SDIO=y
+    echo "HDMI"
+    scripts/config --module CONFIG_DRM_MESON \
+        --module CONFIG_DRM_MESON_DW_HDMI \
+        --module CONFIG_DRM_MESON_DW_MIPI_DSI
 
-    # # HDMI
-    # CONFIG_DRM_MESON=m
-    # CONFIG_DRM_MESON_DW_HDMI=m
-    # CONFIG_DRM_MESON_DW_MIPI_DSI=m
+    echo "mmc"
+    scripts/config --module CONFIG_MMC_MESON_GX \
+        --module CONFIG_MMC_MESON_MX_SDIO
 
-    # # mmc
-    # CONFIG_MMC_MESON_GX=m
-    # CONFIG_MMC_MESON_MX_SDIO=m
+    echo "bluetooth"
+    scripts/config --module CONFIG_BT_HCIUART \
+        --enable CONFIG_BT_HCIUART_3WIRE \
+        --enable CONFIG_BT_HCIUART_BCM
 
-    # # bluetooth
-    # CONFIG_BT_HCIUART=m
-    # CONFIG_BT_HCIUART_3WIRE=y
-    # CONFIG_BT_HCIUART_BCM=y
-
-    # # SOUND
-    # CONFIG_SND_MESON_AIU=m
-    # CONFIG_SND_MESON_AXG_FIFO=m
-    # CONFIG_SND_MESON_AXG_FRDDR=m
-    # CONFIG_SND_MESON_AXG_TODDR=m
-    # CONFIG_SND_MESON_AXG_TDM_FORMATTER=m
-    # CONFIG_SND_MESON_AXG_TDM_INTERFACE=m
-    # CONFIG_SND_MESON_AXG_TDMIN=m
-    # CONFIG_SND_MESON_AXG_TDMOUT=m
-    # CONFIG_SND_MESON_AXG_SOUND_CARD=m
-    # CONFIG_SND_MESON_AXG_SPDIFOUT=m
-    # CONFIG_SND_MESON_AXG_SPDIFIN=m
-    # CONFIG_SND_MESON_AXG_PDM=m
-    # CONFIG_SND_MESON_CARD_UTILS=m
-    # CONFIG_SND_MESON_CODEC_GLUE=m
-    # CONFIG_SND_MESON_GX_SOUND_CARD=m
-    # CONFIG_SND_MESON_G12A_TOACODEC=m
-    # CONFIG_SND_MESON_G12A_TOHDMITX=m
-    # CONFIG_SND_SOC_MESON_T9015=m
+    echo "SOUND"
+    scripts/config --module CONFIG_SND_MESON_AIU \
+        --module CONFIG_SND_MESON_AXG_FIFO \
+        --module CONFIG_SND_MESON_AXG_FRDDR \
+        --module CONFIG_SND_MESON_AXG_TODDR \
+        --module CONFIG_SND_MESON_AXG_TDM_FORMATTER \
+        --module CONFIG_SND_MESON_AXG_TDM_INTERFACE \
+        --module CONFIG_SND_MESON_AXG_TDMIN \
+        --module CONFIG_SND_MESON_AXG_TDMOUT \
+        --module CONFIG_SND_MESON_AXG_SOUND_CARD \
+        --module CONFIG_SND_MESON_AXG_SPDIFOUT \
+        --module CONFIG_SND_MESON_AXG_SPDIFIN \
+        --module CONFIG_SND_MESON_AXG_PDM \
+        --module CONFIG_SND_MESON_CARD_UTILS \
+        --module CONFIG_SND_MESON_CODEC_GLUE \
+        --module CONFIG_SND_MESON_GX_SOUND_CARD \
+        --module CONFIG_SND_MESON_G12A_TOACODEC \
+        --module CONFIG_SND_MESON_G12A_TOHDMITX \
+        --module CONFIG_SND_SOC_MESON_T9015
 
     # CONFIG_MESON_SM=m
     # CONFIG_DWMAC_MESON=m
