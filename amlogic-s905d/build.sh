@@ -37,6 +37,15 @@ scripts/config --set-str CONFIG_LOCALVERSION "${MYVERSION}"
 scripts/config --enable DEBUG_INFO
 scripts/config --enable EARLY_PRINTK
 scripts/config --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
+scripts/config --set-str CONFIG_NLS_DEFAULT "utf-8"
+scripts/config --set-val CONFIG_NR_CPUS 8
+scripts/config --enable CONFIG_NUMA
+scripts/config --enable CONFIG_ZSWAP
+scripts/config --enable CONFIG_AUDIT
+scripts/config --enable CONFIG_NET \
+    --module CONFIG_ATA_OVER_ETH \
+    --module CONFIG_BATMAN_ADV \
+    --module CONFIG_BRIDGE
 
 enable_module_xz_sign() {
     local sign=${1:-}
@@ -103,7 +112,7 @@ modprobe mac80211_hwsim radios=2
 # wpa_supplicant ......
 EOF
     echo "enable Virtual WLAN Interfaces module"
-    scripts/config --module CONFIG_WWAN_HWSIM
+    scripts/config --module CONFIG_MAC80211_HWSIM
     cat <<EOF
 modprobe virt_wifi
 ifconfig eth0 down
@@ -219,9 +228,13 @@ enable_nfs_rootfs() {
     scripts/config --enable CONFIG_ROOT_NFS
 }
 s905d_opt() {
+    echo "no use acpi, uefi"
+    scripts/config --disable CONFIG_ACPI --disable CONFIG_EFI
+
     scripts/config --enable CONFIG_ARCH_MESON
     scripts/config --enable CONFIG_CPU_LITTLE_ENDIAN
     scripts/config --module CONFIG_ARM_SCPI_CPUFREQ
+    scripts/config --enable CONFIG_USB
     scripts/config --module CONFIG_USB_DWC3 --enable CONFIG_USB_DWC3_ULPI --enable CONFIG_USB_DWC3_DUAL_ROLE
     scripts/config --module CONFIG_USB_DWC3_MESON_G12A --module CONFIG_USB_DWC3_OF_SIMPLE
     scripts/config --module CONFIG_FIXED_PHY \
@@ -246,27 +259,30 @@ s905d_opt() {
         --enable CONFIG_STAGING_MEDIA \
         --module CONFIG_VIDEO_MESON_VDEC
     echo "opensource GPU driver"
-    scripts/config --module CONFIG_DRM_LIMA
-    echo "NETWORK"
-    scripts/config --module CONFIG_BRCMFMAC \
-        --enable CONFIG_BRCMFMAC_SDIO
+    scripts/config --enable CONFIG_DRM --module CONFIG_DRM_LIMA
 
     echo "HDMI"
     scripts/config --module CONFIG_DRM_MESON \
         --module CONFIG_DRM_MESON_DW_HDMI \
         --module CONFIG_DRM_MESON_DW_MIPI_DSI
 
+    echo "NETWORK"
+    scripts/config --module CONFIG_BRCMFMAC \
+        --enable CONFIG_BRCMFMAC_SDIO
+
     echo "mmc"
     scripts/config --module CONFIG_MMC_MESON_GX \
         --module CONFIG_MMC_MESON_MX_SDIO
 
     echo "bluetooth"
-    scripts/config --module CONFIG_BT_HCIUART \
+    scripts/config --module CONFIG_BT \
+        --module CONFIG_BT_HCIUART \
         --enable CONFIG_BT_HCIUART_3WIRE \
         --enable CONFIG_BT_HCIUART_BCM
 
     echo "SOUND"
-    scripts/config --module CONFIG_SND_MESON_AIU \
+    scripts/config --module CONFIG_SOUND \
+        --module CONFIG_SND_MESON_AIU \
         --module CONFIG_SND_MESON_AXG_FIFO \
         --module CONFIG_SND_MESON_AXG_FRDDR \
         --module CONFIG_SND_MESON_AXG_TODDR \
@@ -285,65 +301,66 @@ s905d_opt() {
         --module CONFIG_SND_MESON_G12A_TOHDMITX \
         --module CONFIG_SND_SOC_MESON_T9015
 
-    # CONFIG_MESON_SM=m
-    # CONFIG_DWMAC_MESON=m
-    # CONFIG_MDIO_BUS_MUX_MESON_G12A=m
-    # CONFIG_SERIAL_MESON=m
-    # CONFIG_SERIAL_MESON_CONSOLE=y
-    # CONFIG_I2C_MESON=m
-    # CONFIG_SPI_AMLOGIC_SPIFC_A1=m
-    # CONFIG_SPI_MESON_SPICC=m
-    # CONFIG_SPI_MESON_SPIFC=m
-    # CONFIG_PINCTRL_MESON=m
-    # CONFIG_PINCTRL_MESON_GXBB=m
-    # CONFIG_PINCTRL_MESON_GXL=m
-    # CONFIG_PINCTRL_MESON8_PMX=m
-    # CONFIG_PINCTRL_MESON_AXG=m
-    # CONFIG_PINCTRL_MESON_AXG_PMX=m
-    # CONFIG_PINCTRL_MESON_G12A=m
-    # CONFIG_PINCTRL_MESON_A1=m
-    # CONFIG_PINCTRL_MESON_S4=m
-    # CONFIG_PINCTRL_AMLOGIC_C3=m
-    # CONFIG_AMLOGIC_THERMAL=m
-    # CONFIG_MESON_GXBB_WATCHDOG=m
-    # CONFIG_MESON_WATCHDOG=m
-    # CONFIG_IR_MESON=m
-    # CONFIG_IR_MESON_TX=m
-    # CONFIG_CEC_MESON_AO=m
-    # CONFIG_CEC_MESON_G12A_AO=m
-    # CONFIG_VIDEO_MESON_GE2D=m
-    # CONFIG_RTC_DRV_MESON_VRTC=m
-    # CONFIG_COMMON_CLK_MESON_REGMAP=m
-    # CONFIG_COMMON_CLK_MESON_DUALDIV=m
-    # CONFIG_COMMON_CLK_MESON_MPLL=m
-    # CONFIG_COMMON_CLK_MESON_PHASE=m
-    # CONFIG_COMMON_CLK_MESON_PLL=m
-    # CONFIG_COMMON_CLK_MESON_SCLK_DIV=m
-    # CONFIG_COMMON_CLK_MESON_VID_PLL_DIV=m
-    # CONFIG_COMMON_CLK_MESON_CLKC_UTILS=m
-    # CONFIG_COMMON_CLK_MESON_AO_CLKC=m
-    # CONFIG_COMMON_CLK_MESON_EE_CLKC=m
-    # CONFIG_COMMON_CLK_MESON_CPU_DYNDIV=m
-    # CONFIG_MESON_CANVAS=m
-    # CONFIG_MESON_CLK_MEASURE=m
-    # CONFIG_MESON_GX_SOCINFO=y
-    # CONFIG_MESON_GX_PM_DOMAINS=m
-    # CONFIG_MESON_EE_PM_DOMAINS=m
-    # CONFIG_MESON_SECURE_PM_DOMAINS=m
-    # CONFIG_MESON_SARADC=m
-    # CONFIG_PWM_MESON=m
-    # CONFIG_MESON_IRQ_GPIO=m
-    # CONFIG_RESET_MESON=m
-    # CONFIG_RESET_MESON_AUDIO_ARB=m
-    # CONFIG_PHY_MESON_G12A_MIPI_DPHY_ANALOG=m
-    # CONFIG_PHY_MESON_AXG_PCIE=m
-    # CONFIG_PHY_MESON_AXG_MIPI_PCIE_ANALOG=m
-    # CONFIG_PHY_MESON_AXG_MIPI_DPHY=m
-    # CONFIG_MESON_DDR_PMU=m
-    # # CONFIG_NVMEM_MESON_EFUSE is not set
-    # # CONFIG_NVMEM_MESON_MX_EFUSE is not set
-    # CONFIG_CRYPTO_DEV_AMLOGIC_GXL=m
-    # CONFIG_CRYPTO_DEV_AMLOGIC_GXL_DEBUG=y
+    echo "MESON OTHER MODULES"
+    scripts/config --module CONFIG_MESON_SM \
+        --module CONFIG_DWMAC_MESON \
+        --module CONFIG_MDIO_BUS_MUX_MESON_G12A \
+        --module CONFIG_SERIAL_MESON \
+        --enable CONFIG_SERIAL_MESON_CONSOLE \
+        --module CONFIG_I2C_MESON \
+        --module CONFIG_SPI_AMLOGIC_SPIFC_A1 \
+        --module CONFIG_SPI_MESON_SPICC \
+        --module CONFIG_SPI_MESON_SPIFC \
+        --module CONFIG_PINCTRL_MESON \
+        --module CONFIG_PINCTRL_MESON_GXBB \
+        --module CONFIG_PINCTRL_MESON_GXL \
+        --module CONFIG_PINCTRL_MESON8_PMX \
+        --module CONFIG_PINCTRL_MESON_AXG \
+        --module CONFIG_PINCTRL_MESON_AXG_PMX \
+        --module CONFIG_PINCTRL_MESON_G12A \
+        --module CONFIG_PINCTRL_MESON_A1 \
+        --module CONFIG_PINCTRL_MESON_S4 \
+        --module CONFIG_PINCTRL_AMLOGIC_C3 \
+        --module CONFIG_AMLOGIC_THERMAL \
+        --module CONFIG_MESON_GXBB_WATCHDOG \
+        --module CONFIG_MESON_WATCHDOG \
+        --module CONFIG_IR_MESON \
+        --module CONFIG_IR_MESON_TX \
+        --module CONFIG_CEC_MESON_AO \
+        --module CONFIG_CEC_MESON_G12A_AO \
+        --module CONFIG_VIDEO_MESON_GE2D \
+        --module CONFIG_RTC_DRV_MESON_VRTC \
+        --module CONFIG_COMMON_CLK_MESON_REGMAP \
+        --module CONFIG_COMMON_CLK_MESON_DUALDIV \
+        --module CONFIG_COMMON_CLK_MESON_MPLL \
+        --module CONFIG_COMMON_CLK_MESON_PHASE \
+        --module CONFIG_COMMON_CLK_MESON_PLL \
+        --module CONFIG_COMMON_CLK_MESON_SCLK_DIV \
+        --module CONFIG_COMMON_CLK_MESON_VID_PLL_DIV \
+        --module CONFIG_COMMON_CLK_MESON_CLKC_UTILS \
+        --module CONFIG_COMMON_CLK_MESON_AO_CLKC \
+        --module CONFIG_COMMON_CLK_MESON_EE_CLKC \
+        --module CONFIG_COMMON_CLK_MESON_CPU_DYNDIV \
+        --module CONFIG_MESON_CANVAS \
+        --module CONFIG_MESON_CLK_MEASURE \
+        --enable CONFIG_MESON_GX_SOCINFO \
+        --module CONFIG_MESON_GX_PM_DOMAINS \
+        --module CONFIG_MESON_EE_PM_DOMAINS \
+        --module CONFIG_MESON_SECURE_PM_DOMAINS \
+        --module CONFIG_MESON_SARADC \
+        --module CONFIG_PWM_MESON \
+        --module CONFIG_MESON_IRQ_GPIO \
+        --module CONFIG_RESET_MESON \
+        --module CONFIG_RESET_MESON_AUDIO_ARB \
+        --module CONFIG_PHY_MESON_G12A_MIPI_DPHY_ANALOG \
+        --module CONFIG_PHY_MESON_AXG_PCIE \
+        --module CONFIG_PHY_MESON_AXG_MIPI_PCIE_ANALOG \
+        --module CONFIG_PHY_MESON_AXG_MIPI_DPHY \
+        --module CONFIG_MESON_DDR_PMU \
+        --disable CONFIG_NVMEM_MESON_EFUSE \
+        --disable CONFIG_NVMEM_MESON_MX_EFUSE \
+        --module CONFIG_CRYPTO_DEV_AMLOGIC_GXL \
+        --enable CONFIG_CRYPTO_DEV_AMLOGIC_GXL_DEBUG
 }
 enable_kvm() {
     # enable KVM
@@ -413,7 +430,7 @@ enable_module_xz_sign yes
 # yes "y" | make oldconfig
 
 make listnewconfig
-
+# make helpnewconfig
 # ARCH=<arch> scripts/kconfig/merge_config.sh <...>/<platform>_defconfig <...>/android-base.config <...>/android-base-<arch>.config <...>/android-recommended.config
 scripts/diffconfig .config.old .config 2>/dev/null
 
