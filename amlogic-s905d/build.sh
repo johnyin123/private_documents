@@ -37,15 +37,19 @@ scripts/config --set-str CONFIG_LOCALVERSION "${MYVERSION}"
 scripts/config --enable DEBUG_INFO
 scripts/config --enable EARLY_PRINTK
 scripts/config --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
-scripts/config --set-str CONFIG_NLS_DEFAULT "utf-8"
+scripts/config --enable CONFIG_NLS --set-str CONFIG_NLS_DEFAULT "utf-8"
 scripts/config --set-val CONFIG_NR_CPUS 8
 scripts/config --enable CONFIG_NUMA
-scripts/config --enable CONFIG_ZSWAP
+scripts/config --enable CONFIG_ZSWAP --enable CONFIG_SWAP --enable CONFIG_SLUB --enable CONFIG_SMP
 scripts/config --enable CONFIG_AUDIT
 scripts/config --enable CONFIG_NET \
+    --enable CONFIG_ETHERNET \
+    --enable CONFIG_EPOLL \
     --module CONFIG_ATA_OVER_ETH \
     --module CONFIG_BATMAN_ADV \
     --module CONFIG_BRIDGE
+
+scripts/config --enable CONFIG_EXPERT
 
 enable_module_xz_sign() {
     local sign=${1:-}
@@ -232,6 +236,8 @@ s905d_opt() {
     scripts/config --disable CONFIG_ACPI --disable CONFIG_EFI
 
     scripts/config --enable CONFIG_ARCH_MESON
+    scripts/config --enable CONFIG_MAILBOX
+    scripts/config --enable CONFIG_MMU
     scripts/config --enable CONFIG_CPU_LITTLE_ENDIAN
     scripts/config --module CONFIG_ARM_SCPI_CPUFREQ
     scripts/config --enable CONFIG_USB
@@ -258,23 +264,25 @@ s905d_opt() {
     scripts/config --enable CONFIG_STAGING \
         --enable CONFIG_STAGING_MEDIA \
         --module CONFIG_VIDEO_MESON_VDEC
-    echo "opensource GPU driver"
-    scripts/config --enable CONFIG_DRM --module CONFIG_DRM_LIMA
 
-    echo "HDMI"
-    scripts/config --module CONFIG_DRM_MESON \
+    echo "opensource GPU driver, HDMI"
+    scripts/config --enable CONFIG_DRM  --enable CONFIG_HDMI \
+        --module CONFIG_DRM_LIMA \
+        --module CONFIG_DRM_MESON \
         --module CONFIG_DRM_MESON_DW_HDMI \
         --module CONFIG_DRM_MESON_DW_MIPI_DSI
 
     echo "NETWORK"
-    scripts/config --module CONFIG_BRCMFMAC \
+    scripts/config --enable CONFIG_WLAN --enable CONFIG_WIRELESS \
+        --module CONFIG_BRCMFMAC \
         --enable CONFIG_BRCMFMAC_SDIO
 
-    echo "mmc"
-    scripts/config --module CONFIG_MMC_MESON_GX \
+    echo "MMC"
+    scripts/config --enable CONFIG_MMC \
+        --module CONFIG_MMC_MESON_GX \
         --module CONFIG_MMC_MESON_MX_SDIO
 
-    echo "bluetooth"
+    echo "BLUETOOTH"
     scripts/config --module CONFIG_BT \
         --module CONFIG_BT_HCIUART \
         --enable CONFIG_BT_HCIUART_3WIRE \
