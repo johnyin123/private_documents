@@ -42,15 +42,57 @@ scripts/config --set-val CONFIG_NR_CPUS 8
 scripts/config --enable CONFIG_NUMA
 scripts/config --enable CONFIG_ZSWAP --enable CONFIG_SWAP --enable CONFIG_SLUB --enable CONFIG_SMP
 scripts/config --enable CONFIG_AUDIT
-scripts/config --enable CONFIG_NET \
-    --enable CONFIG_ETHERNET \
-    --enable CONFIG_EPOLL \
-    --module CONFIG_ATA_OVER_ETH \
-    --module CONFIG_BATMAN_ADV \
-    --module CONFIG_BRIDGE
 
 scripts/config --enable CONFIG_EXPERT
 
+enable_module_networks() {
+    # enable ktls
+    scripts/config --module CONFIG_TLS
+    scripts/config --enable CONFIG_NET_CORE \
+        --enable CONFIG_NET \
+        --enable CONFIG_ETHERNET \
+        --enable CONFIG_INET \
+        --enable CONFIG_PACKET \
+        --enable CONFIG_UNIX \
+        --enable CONFIG_XDP_SOCKETS \
+        --enable CONFIG_NETFILTER \
+        --enable CONFIG_EPOLL \
+        --module CONFIG_ATA_OVER_ETH \
+        --module CONFIG_BATMAN_ADV \
+        --module CONFIG_BRIDGE \
+        --module CONFIG_IP_SET \
+        --module CONFIG_IP_VS \
+        --module CONFIG_L2TP \
+        --module CONFIG_NET_IPGRE \
+        --module CONFIG_OPENVSWITCH \
+        --module CONFIG_VLAN_8021Q \
+        --module CONFIG_NET_IPIP \
+        --module CONFIG_NET_UDP_TUNNEL \
+        --module CONFIG_NET_FOU \
+        --module CONFIG_PPP \
+        --module CONFIG_PPPOE \
+        --module CONFIG_PPTP \
+        --module CONFIG_TUN \
+        --module CONFIG_TAP \
+        --module CONFIG_VETH \
+        --module CONFIG_MII \
+        --module CONFIG_BONDING \
+        --module CONFIG_DUMMY \
+        --module CONFIG_WIREGUARD \
+        --module CONFIG_NET_TEAM \
+        --module CONFIG_NETCONSOLE \
+        --module CONFIG_MACVLAN \
+        --module CONFIG_MACVTAP \
+        --module CONFIG_IPVLAN \
+        --module CONFIG_IPVTAP \
+        --module CONFIG_VXLAN \
+        --module CONFIG_GENEVE \
+        --module CONFIG_IPV6
+
+    scripts/config --enable  CONFIG_NET_SCHED \
+        --enable CONFIG_TCP_CONG_ADVANCED \
+        --module CONFIG_TCP_CONG_BBR
+}
 enable_module_xz_sign() {
     local sign=${1:-}
     echo "use xz compress module"
@@ -158,8 +200,6 @@ enable_arch_inline() {
 EOF
     # Full dynticks system
     scripts/config --enable CONFIG_NO_HZ_FULL
-    # enable ktls
-    scripts/config --module CONFIG_TLS
     # uselib()系统接口支持,仅使用基于libc5应用使用
     scripts/config --disable CONFIG_USELIB
 
@@ -433,6 +473,7 @@ EOF
     scripts/config --module CONFIG_USB_DUMMY_HCD
     scripts/config --module CONFIG_USB_CONFIGFS
 }
+enable_module_networks
 enable_virtual_wifi
 enable_ebpf
 s905d_opt
