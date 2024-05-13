@@ -227,7 +227,14 @@ EOF
     scripts/config --enable INLINE_WRITE_UNLOCK_IRQRESTORE
 }
 enable_nfs_rootfs() {
-    # enable nfs rootfs
+    local byes=${1:-}
+    [ -z ${byes} ] && {
+        echo "without nfs root"
+        scripts/config --module CONFIG_NFS_FS
+        scripts/config --disable CONFIG_ROOT_NFS
+        return
+    }
+    echo "enable nfs rootfs"
     scripts/config --enable CONFIG_NFS_FS
     scripts/config --enable CONFIG_ROOT_NFS
 }
@@ -430,6 +437,7 @@ enable_virtual_wifi
 enable_ebpf
 s905d_opt
 enable_nfs_rootfs
+# enable_nfs_rootfs yes
 enable_kvm
 enable_usbip
 enable_usb_gadget
