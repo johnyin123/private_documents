@@ -30,6 +30,12 @@ area 0.0.0.0 {
 }
 
 # H3C交换机
+# # view lacp packet diag debug log on console
+debugging link-aggregation lacp packet all interface Ten-GigabitEthernet 2/0/9
+t d
+t m
+
+system-view -> probe -> display system internal  link-aggregation lacp  packet interface  Ten-GigabitEthernet 2/0/9 count 20
 ********************************************************************************
 *                                                                              *
 *                   H3C S6520X-30QC-EI BOOTROM, Version 118                    *
