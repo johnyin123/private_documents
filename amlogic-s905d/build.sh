@@ -15,8 +15,7 @@ log() { printf "[${GREEN}$(date +'%Y-%m-%dT%H:%M:%S.%2N%z')${NC}]${RED}%b${NC}\n
 echo "build bpftool: apt -y install llvm && cd tools/bpf/bpftool && make"
 echo "build perf, cd tools/perf && make"
 
-[ -e "${DIRNAME}/gcc-aarch64" ] && 
-{
+[ -e "${DIRNAME}/gcc-aarch64" ] && {
     export PATH=${DIRNAME}/gcc-aarch64/bin/:$PATH
     export CROSS_COMPILE=aarch64-linux-
 } || {
@@ -44,10 +43,27 @@ scripts/config --enable EARLY_PRINTK
 scripts/config --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
 scripts/config --set-val CONFIG_NR_CPUS 8
 scripts/config --enable CONFIG_NUMA
-scripts/config --enable CONFIG_ZSWAP --enable CONFIG_SWAP --enable CONFIG_SLUB --enable CONFIG_SMP
+scripts/config --enable CONFIG_SLUB --enable CONFIG_SMP
 scripts/config --enable CONFIG_AUDIT
 
 scripts/config --enable CONFIG_EXPERT
+
+enable_zram() {
+    log "ENABLE ZSWAP && ZRAM MODULES"
+    scripts/config --enable CONFIG_SWAP
+    scripts/config --enable CONFIG_ZSWAP
+    scripts/config --module CONFIG_ZRAM \
+        --enable CONFIG_ZRAM_WRITEBACK \
+        --enable CONFIG_ZRAM_MULTI_COMP \
+        --enable CONFIG_ZRAM_DEF_COMP_ZSTD \
+        --set-str CONFIG_ZRAM_DEF_COMP "zstd"
+    scripts/config --disable CONFIG_ZRAM_DEF_COMP_LZORLE
+    scripts/config --disable CONFIG_ZRAM_DEF_COMP_LZ4
+    scripts/config --disable CONFIG_ZRAM_DEF_COMP_LZO
+    scripts/config --disable CONFIG_ZRAM_DEF_COMP_LZ4H
+    scripts/config --disable CONFIG_ZRAM_DEF_COMP_842
+    scripts/config --disable CONFIG_ZRAM_MEMORY_TRACKING
+}
 
 enable_module_networks() {
     log "NETWORK MODULES"
@@ -213,7 +229,7 @@ ifconfig eth0 up
 rmmod virt_wifi
 EOF
     scripts/config --module CONFIG_VIRT_WIFI
-    echo "enable emulate input devices from userspace"
+    log "enable emulate input devices from userspace"
     scripts/config --enable CONFIG_INPUT_UINPUT
 }
 enable_ebpf() {
@@ -321,7 +337,8 @@ enable_nfs_rootfs() {
 }
 s905d_opt() {
     log "AMLOGIC S905D, not acpi, no efi"
-    scripts/config --disable CONFIG_ACPI --disable CONFIG_EFI
+    scripts/config --disable CONFIG_ACPI
+    scripts/config --disable CONFIG_EFI
 
     scripts/config --enable CONFIG_ARCH_MESON
     scripts/config --enable CONFIG_MAILBOX
@@ -454,13 +471,80 @@ s905d_opt() {
         --module CONFIG_PHY_MESON_AXG_MIPI_PCIE_ANALOG \
         --module CONFIG_PHY_MESON_AXG_MIPI_DPHY \
         --module CONFIG_MESON_DDR_PMU \
-        --disable CONFIG_NVMEM_MESON_EFUSE \
-        --disable CONFIG_NVMEM_MESON_MX_EFUSE \
         --module CONFIG_CRYPTO_DEV_AMLOGIC_GXL \
         --enable CONFIG_CRYPTO_DEV_AMLOGIC_GXL_DEBUG
+        scripts/config --disable CONFIG_NVMEM_MESON_EFUSE
+        scripts/config --disable CONFIG_NVMEM_MESON_MX_EFUSE
+}
+enable_container() {
+    log "enable container"
+    scripts/config --enable CONFIG_CGROUPS \
+        --enable CONFIG_NAMESPACES \
+        --enable CONFIG_NET_NS \
+        --enable CONFIG_PID_NS \
+        --enable CONFIG_USER_NS \
+        --enable CONFIG_UTS_NS \
+        --enable CONFIG_IPC_NS \
+        --enable CONFIG_CGROUP_BPF \
+        --enable CONFIG_CGROUP_CPUACCT \
+        --enable CONFIG_CGROUP_DEVICE \
+        --enable CONFIG_CGROUP_FREEZER \
+        --enable CONFIG_CGROUP_HUGETLB \
+        --enable CONFIG_CGROUP_PERF \
+        --enable CONFIG_CGROUP_PIDS \
+        --enable CONFIG_CGROUP_SCHED \
+        --enable CONFIG_CPUSETS \
+        --enable CONFIG_BLK_CGROUP \
+        --enable CONFIG_BLK_DEV_THROTTLING \
+        --enable CONFIG_BRIDGE_VLAN_FILTERING \
+        --enable CONFIG_CFS_BANDWIDTH \
+        --enable CONFIG_CRYPTO \
+        --enable CONFIG_FAIR_GROUP_SCHED \
+        --enable CONFIG_IP_VS_NFCT \
+        --enable CONFIG_IP_VS_PROTO_TCP \
+        --enable CONFIG_IP_VS_PROTO_UDP \
+        --enable CONFIG_KEYS \
+        --enable CONFIG_MEMCG \
+        --enable CONFIG_POSIX_MQUEUE \
+        --enable CONFIG_SECCOMP \
+        --enable CONFIG_SECCOMP_FILTER \
+        --enable CONFIG_XFRM
+    scripts/config --module CONFIG_BRIDGE \
+        --module CONFIG_BRIDGE_NETFILTER \
+        --module CONFIG_CRYPTO_AEAD \
+        --module CONFIG_CRYPTO_GCM \
+        --module CONFIG_CRYPTO_GHASH \
+        --module CONFIG_CRYPTO_SEQIV \
+        --module CONFIG_DUMMY \
+        --module CONFIG_INET_ESP \
+        --module CONFIG_IPVLAN \
+        --module CONFIG_IP_NF_FILTER \
+        --module CONFIG_IP_NF_MANGLE \
+        --module CONFIG_IP_NF_NAT \
+        --module CONFIG_IP_NF_TARGET_MASQUERADE \
+        --module CONFIG_IP_NF_TARGET_REDIRECT \
+        --module CONFIG_IP_VS \
+        --module CONFIG_IP_VS_RR \
+        --module CONFIG_MACVLAN \
+        --module CONFIG_NETFILTER_XT_MARK \
+        --module CONFIG_NETFILTER_XT_MATCH_ADDRTYPE \
+        --module CONFIG_NETFILTER_XT_MATCH_BPF \
+        --module CONFIG_NETFILTER_XT_MATCH_CONNTRACK \
+        --module CONFIG_NETFILTER_XT_MATCH_IPVS \
+        --module CONFIG_NET_CLS_CGROUP \
+        --module CONFIG_NF_CONNTRACK_FTP \
+        --module CONFIG_NF_CONNTRACK_TFTP \
+        --module CONFIG_NF_NAT \
+        --module CONFIG_NF_NAT_FTP \
+        --module CONFIG_NF_NAT_TFTP \
+        --module CONFIG_OVERLAY_FS \
+        --module CONFIG_VETH \
+        --module CONFIG_VXLAN \
+        --module CONFIG_XFRM_ALGO \
+        --module CONFIG_XFRM_USER
 }
 enable_kvm() {
-   log "enable KVM"
+    log "enable KVM"
     scripts/config --enable CONFIG_KVM
     scripts/config --enable CONFIG_KVM_GUEST
     scripts/config --enable CONFIG_VIRTUALIZATION
@@ -472,20 +556,19 @@ enable_kvm() {
     scripts/config --module CONFIG_VHOST_NET
     scripts/config --module CONFIG_VHOST_SCSI
     scripts/config --module CONFIG_VHOST_VSOCK
-    scripts/config --module CONFIG_VIRTIO
-    scripts/config --enable CONFIG_VIRTIO_MENU
-    scripts/config --enable CONFIG_BLK_MQ_VIRTIO
-    scripts/config --enable CONFIG_VIRTIO_ANCHOR
+    scripts/config --module CONFIG_VIRTIO \
+        --enable CONFIG_VIRTIO_MENU \
+        --enable CONFIG_VIRTIO_ANCHOR
     scripts/config --module CONFIG_VIRTIO_VSOCKETS
     scripts/config --module CONFIG_VIRTIO_VSOCKETS_COMMON
-    scripts/config --module CONFIG_VIRTIO_BLK
-    scripts/config --enable CONFIG_BLK_MQ_VIRTIO
+    scripts/config --module CONFIG_VIRTIO_BLK \
+        --enable CONFIG_BLK_MQ_VIRTIO
     scripts/config --module CONFIG_VIRTIO_NET
-    scripts/config --module CONFIG_VIRTIO_BALLOON
-    scripts/config --enable CONFIG_BALLOON_COMPACTION
+    scripts/config --module CONFIG_VIRTIO_BALLOON \
+        --enable CONFIG_BALLOON_COMPACTION
     scripts/config --module CONFIG_VIRTIO_INPUT
-    scripts/config --module CONFIG_VIRTIO_MMIO
-    scripts/config --enable CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES
+    scripts/config --module CONFIG_VIRTIO_MMIO \
+        --enable CONFIG_VIRTIO_MMIO_CMDLINE_DEVICES
     scripts/config --module CONFIG_VIRTIO_IOMMU
     scripts/config --module CONFIG_SCSI_VIRTIO
     scripts/config --module CONFIG_SND_VIRTIO
@@ -514,6 +597,7 @@ EOF
     scripts/config --module CONFIG_USB_DUMMY_HCD
     scripts/config --module CONFIG_USB_CONFIGFS
 }
+enable_zram
 enable_module_networks
 enable_module_filesystem
 enable_virtual_wifi
@@ -522,6 +606,7 @@ s905d_opt
 enable_nfs_rootfs
 # enable_nfs_rootfs yes
 enable_kvm
+enable_container
 enable_usbip
 enable_usb_gadget
 enable_arch_inline
