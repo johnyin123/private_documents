@@ -6,7 +6,12 @@ KERVERSION="$(make kernelversion)"
 MYVERSION="-johnyin-s905d"
 
 ROOTFS=${1:-${DIRNAME}/kernel-${KERVERSION}-$(date '+%Y%m%d%H%M%S')}
-
+##################################################
+RED='\033[31m'
+GREEN='\033[32m'
+NC='\033[0m'
+log() { printf "[${GREEN}$(date +'%Y-%m-%dT%H:%M:%S.%2N%z')${NC}]${RED}%b${NC}\n" "$@"; }
+##################################################
 echo "build bpftool: apt -y install llvm && cd tools/bpf/bpftool && make"
 echo "build perf, cd tools/perf && make"
 
@@ -37,7 +42,6 @@ scripts/config --set-str CONFIG_LOCALVERSION "${MYVERSION}"
 scripts/config --enable DEBUG_INFO
 scripts/config --enable EARLY_PRINTK
 scripts/config --enable CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE
-scripts/config --enable CONFIG_NLS --set-str CONFIG_NLS_DEFAULT "utf-8"
 scripts/config --set-val CONFIG_NR_CPUS 8
 scripts/config --enable CONFIG_NUMA
 scripts/config --enable CONFIG_ZSWAP --enable CONFIG_SWAP --enable CONFIG_SLUB --enable CONFIG_SMP
@@ -46,11 +50,13 @@ scripts/config --enable CONFIG_AUDIT
 scripts/config --enable CONFIG_EXPERT
 
 enable_module_networks() {
+    log "NETWORK MODULES"
     # enable ktls
     scripts/config --module CONFIG_TLS
     scripts/config --enable CONFIG_NET_CORE \
         --enable CONFIG_NET \
         --enable CONFIG_ETHERNET \
+        --enable CONFIG_MPTCP \
         --enable CONFIG_INET \
         --enable CONFIG_PACKET \
         --enable CONFIG_UNIX \
@@ -93,9 +99,42 @@ enable_module_networks() {
         --enable CONFIG_TCP_CONG_ADVANCED \
         --module CONFIG_TCP_CONG_BBR
 }
+enable_module_filesystem() {
+    log "FILESYSTEM MODULES"
+    scripts/config --enable CONFIG_NLS --set-str CONFIG_NLS_DEFAULT "utf-8"
+    scripts/config --enable CONFIG_PROC_FS \
+        --enable CONFIG_KERNFS \
+        --enable CONFIG_SYSFS \
+        --enable CONFIG_TMPFS \
+        --enable CONFIG_TMPFS_QUOTA \
+        --enable CONFIG_FSNOTIFY \
+        --enable CONFIG_DNOTIFY \
+        --enable CONFIG_INOTIFY_USER \
+        --enable CONFIG_FANOTIFY \
+        --enable CONFIG_QUOTA \
+        --module CONFIG_FUSE_FS \
+        --module CONFIG_EXT4_FS \
+        --module CONFIG_JFS_FS \
+        --module CONFIG_XFS_FS \
+        --module CONFIG_F2FS_FS \
+        --module CONFIG_OVERLAY_FS \
+        --module CONFIG_ISO9660_FS \
+        --module CONFIG_UDF_FS \
+        --module CONFIG_FAT_FS \
+        --module CONFIG_MSDOS_FS \
+        --module CONFIG_VFAT_FS \
+        --module CONFIG_EXFAT_FS \
+        --module CONFIG_SQUASHFS \
+        --module CONFIG_SYSV_FS \
+        --module CONFIG_CEPH_FS \
+        --module CONFIG_CIFS \
+        --module CONFIG_SMB_SERVER \
+        --module CONFIG_SMBFS \
+        --module CONFIG_NTFS3_FS
+}
 enable_module_xz_sign() {
     local sign=${1:-}
-    echo "use xz compress module"
+    log "MODULES XZ COMPRESS"
     scripts/config --disable CONFIG_MODULE_COMPRESS_NONE
     scripts/config --disable CONFIG_MODULE_DECOMPRESS
     scripts/config --enable CONFIG_MODULE_COMPRESS_XZ
@@ -103,10 +142,10 @@ enable_module_xz_sign() {
     scripts/config --disable CONFIG_MODULE_SIG_ALL
     scripts/config --set-str CONFIG_SYSTEM_TRUSTED_KEYS ""
     [ -z ${sign} ] && {
-        echo "without sign........."
+        log "MODULES NOT SIGNED"
         return
     }
-    echo "enable module sign sha256"
+    log "MODULES SIGNED SHA256"
     [ -f "certs/signing_key.pem" ]  || {
         cat << EOCONF > key.conf
 [ req ]
@@ -157,7 +196,7 @@ modprobe mac80211_hwsim radios=2
 # iw phy phy1 set netns <station_ns>
 # wpa_supplicant ......
 EOF
-    echo "enable Virtual WLAN Interfaces module"
+    log "enable Virtual WLAN Interfaces module"
     scripts/config --module CONFIG_MAC80211_HWSIM
     cat <<EOF
 modprobe virt_wifi
@@ -180,6 +219,7 @@ EOF
 enable_ebpf() {
     echo "fix eBPF bpftool gen vmlinux.h, see: lib/Kconfig.debug, pahole tools in package dwarves"
     echo "dwarves: https://github.com/acmel/dwarves"
+    log "ebpf"
     scripts/config --enable CONFIG_KPROBES
     scripts/config --enable CONFIG_HAVE_DYNAMIC_FTRACE
     scripts/config --enable CONFIG_HAVE_DYNAMIC_FTRACE_WITH_REGS
@@ -198,6 +238,7 @@ enable_arch_inline() {
     CONFIG_PREEMPT：允许内核被抢占
     CONFIG_PREEMPT_VOLUNTARY suits desktop environments.
 EOF
+    log "AARCH64 ARCH inline"
     # Full dynticks system
     scripts/config --enable CONFIG_NO_HZ_FULL
     # uselib()系统接口支持,仅使用基于libc5应用使用
@@ -269,17 +310,17 @@ EOF
 enable_nfs_rootfs() {
     local byes=${1:-}
     [ -z ${byes} ] && {
-        echo "without nfs root"
+        log "DISABLE NFS ROOTFS"
         scripts/config --module CONFIG_NFS_FS
         scripts/config --disable CONFIG_ROOT_NFS
         return
     }
-    echo "enable nfs rootfs"
+    log "ENABLE NFS ROOTFS"
     scripts/config --enable CONFIG_NFS_FS
     scripts/config --enable CONFIG_ROOT_NFS
 }
 s905d_opt() {
-    echo "no use acpi, uefi"
+    log "AMLOGIC S905D, not acpi, no efi"
     scripts/config --disable CONFIG_ACPI --disable CONFIG_EFI
 
     scripts/config --enable CONFIG_ARCH_MESON
@@ -308,35 +349,35 @@ s905d_opt() {
         --module CONFIG_PHY_MESON_GXL_USB2 \
         --module CONFIG_REALTEK_PHY \
         --module CONFIG_SMSC_PHY
-    echo "enable meson vdec(staging)"
+    log "enable meson vdec(staging)"
     scripts/config --enable CONFIG_STAGING \
         --enable CONFIG_STAGING_MEDIA \
         --module CONFIG_VIDEO_MESON_VDEC
 
-    echo "opensource GPU driver, HDMI"
+    log "opensource LIMA, mali450 GPU driver, HDMI"
     scripts/config --enable CONFIG_DRM  --enable CONFIG_HDMI \
         --module CONFIG_DRM_LIMA \
         --module CONFIG_DRM_MESON \
         --module CONFIG_DRM_MESON_DW_HDMI \
         --module CONFIG_DRM_MESON_DW_MIPI_DSI
 
-    echo "NETWORK"
+    log "BRCMFMAC Wireless"
     scripts/config --enable CONFIG_WLAN --enable CONFIG_WIRELESS \
         --module CONFIG_BRCMFMAC \
         --enable CONFIG_BRCMFMAC_SDIO
 
-    echo "MMC"
+    log "meson gx mmc"
     scripts/config --enable CONFIG_MMC \
         --module CONFIG_MMC_MESON_GX \
         --module CONFIG_MMC_MESON_MX_SDIO
 
-    echo "BLUETOOTH"
+    log "bcm bluetooth"
     scripts/config --module CONFIG_BT \
         --module CONFIG_BT_HCIUART \
         --enable CONFIG_BT_HCIUART_3WIRE \
         --enable CONFIG_BT_HCIUART_BCM
 
-    echo "SOUND"
+    log "meson sound"
     scripts/config --module CONFIG_SOUND \
         --module CONFIG_SND_MESON_AIU \
         --module CONFIG_SND_MESON_AXG_FIFO \
@@ -357,7 +398,7 @@ s905d_opt() {
         --module CONFIG_SND_MESON_G12A_TOHDMITX \
         --module CONFIG_SND_SOC_MESON_T9015
 
-    echo "MESON OTHER MODULES"
+    log "MESON OTHER MODULES"
     scripts/config --module CONFIG_MESON_SM \
         --module CONFIG_DWMAC_MESON \
         --module CONFIG_MDIO_BUS_MUX_MESON_G12A \
@@ -419,7 +460,7 @@ s905d_opt() {
         --enable CONFIG_CRYPTO_DEV_AMLOGIC_GXL_DEBUG
 }
 enable_kvm() {
-    # enable KVM
+   log "enable KVM"
     scripts/config --enable CONFIG_KVM
     scripts/config --enable CONFIG_KVM_GUEST
     scripts/config --enable CONFIG_VIRTUALIZATION
@@ -450,14 +491,14 @@ enable_kvm() {
     scripts/config --module CONFIG_SND_VIRTIO
 }
 enable_usbip() {
-    # enable usbip modules
+    log "enable usbip modules"
     scripts/config --module CONFIG_USBIP_CORE
     scripts/config --module CONFIG_USBIP_VHCI_HCD
     scripts/config --module CONFIG_USBIP_HOST
     scripts/config --module CONFIG_USBIP_VUDC
 }
 enable_usb_gadget() {
-    # # enable g_mass_storage....
+    log "enable g_mass_storage"
     cat <<EOF
 lsusb && modprobe dummy_hcd && lsusb
 modprobe g_mass_storage file=/root/disk
@@ -474,6 +515,7 @@ EOF
     scripts/config --module CONFIG_USB_CONFIGFS
 }
 enable_module_networks
+enable_module_filesystem
 enable_virtual_wifi
 enable_ebpf
 s905d_opt
@@ -494,9 +536,7 @@ scripts/diffconfig .config.old .config 2>/dev/null
 
 pahole --version 2>/dev/null || echo "pahole no found DEBUG_INFO_BTF not effict"
 
-echo -n "PAGE SIZE =================> "
-grep -oE "^CONFIG_ARM64_.*_PAGES" .config
-
+log "PAGE SIZE =================> $(grep -oE "^CONFIG_ARM64_.*_PAGES" .config)"
 read -n 1 -p "Press any key continue build..." value
 
 make V=1 -j$(nproc) Image dtbs modules
@@ -506,11 +546,11 @@ make V=1 -j$(nproc) Image dtbs modules
 mkdir -p ${ROOTFS}/boot/dtb ${ROOTFS}/usr
 rsync -a ${DIRNAME}/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dtb ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${MYVERSION}.dtb
 
-echo "INSTALL UNCOMPRESSED KERNEL"
+log "INSTALL UNCOMPRESSED KERNEL"
 make install > /dev/null
 
 [[ ${COMPRESS-true} =~ ^1|yes|true$ ]] && {
-    echo "USE GZIP KERNEL OVERWRITE UNCOMPRESSED KERNEL"
+    log "USE GZIP KERNEL OVERWRITE UNCOMPRESSED KERNEL"
     make V=1 -j$(nproc) Image.gz
     # cat arch/arm64/boot/Image | gzip -n -f -9 > ${ROOTFS}/boot/vmlinuz-${KERVERSION}${MYVERSION}
     cat arch/arm64/boot/Image.gz > ${ROOTFS}/boot/vmlinuz-${KERVERSION}${MYVERSION}
