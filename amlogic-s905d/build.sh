@@ -611,6 +611,7 @@ EOF
     scripts/config --module CONFIG_USB_DUMMY_HCD
     scripts/config --module CONFIG_USB_CONFIGFS
 }
+enable_module_xz_sign yes
 enable_zram
 enable_module_networks
 enable_module_filesystem
@@ -625,7 +626,6 @@ enable_container
 enable_usbip
 enable_usb_gadget
 enable_arch_inline
-enable_module_xz_sign yes
 # yes "" | make oldconfig
 # yes "y" | make oldconfig
 
