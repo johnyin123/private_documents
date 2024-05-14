@@ -73,6 +73,7 @@ enable_module_networks() {
         --enable CONFIG_NET \
         --enable CONFIG_ETHERNET \
         --enable CONFIG_MPTCP \
+        --enable CONFIG_MPTCP_IPV6 \
         --enable CONFIG_INET \
         --enable CONFIG_PACKET \
         --enable CONFIG_UNIX \
@@ -147,7 +148,19 @@ enable_module_filesystem() {
         --module CONFIG_SMB_SERVER \
         --module CONFIG_SMBFS \
         --module CONFIG_NTFS3_FS
+
 }
+
+enable_network_storage() {
+    log "MODULES NETWORK BLOCK DEV"
+    scripts/config --module CONFIG_ATA_OVER_ETH
+    scripts/config --module CONFIG_BLK_DEV_NBD
+    scripts/config --module CONFIG_BLK_DEV_RBD
+    scripts/config --module CONFIG_BLK_DEV_DRBD
+    scripts/config --module CONFIG_BLK_DEV_LOOP
+    scripts/config --module CONFIG_BLK_DEV_RAM
+}
+
 enable_module_xz_sign() {
     local sign=${1:-}
     log "MODULES XZ COMPRESS"
@@ -600,6 +613,7 @@ EOF
 enable_zram
 enable_module_networks
 enable_module_filesystem
+enable_network_storage
 enable_virtual_wifi
 enable_ebpf
 s905d_opt
