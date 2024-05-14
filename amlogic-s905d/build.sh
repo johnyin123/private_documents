@@ -92,6 +92,7 @@ enable_module_networks() {
         --module CONFIG_NET_IPIP \
         --module CONFIG_NET_UDP_TUNNEL \
         --module CONFIG_NET_FOU \
+        --module CONFIG_6LOWPAN \
         --module CONFIG_PPP \
         --module CONFIG_PPPOE \
         --module CONFIG_PPTP \
