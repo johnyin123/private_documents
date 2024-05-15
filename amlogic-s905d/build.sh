@@ -113,13 +113,13 @@ enable_module_networks() {
         --module CONFIG_GENEVE \
         --module CONFIG_IPV6
 
-    scripts/config --enable  CONFIG_NET_SCHED \
+    scripts/config --enable CONFIG_NET_SCHED \
         --enable CONFIG_TCP_CONG_ADVANCED \
         --module CONFIG_TCP_CONG_BBR
 }
 enable_module_filesystem() {
     log "FILESYSTEM MODULES"
-    scripts/config --enable CONFIG_NLS --set-str CONFIG_NLS_DEFAULT "utf-8"
+    scripts/config --module CONFIG_NLS --set-str CONFIG_NLS_DEFAULT "utf-8"
     scripts/config --enable CONFIG_PROC_FS \
         --enable CONFIG_KERNFS \
         --enable CONFIG_SYSFS \
@@ -176,7 +176,7 @@ enable_module_xz_sign() {
         return
     }
     log "MODULES SIGNED SHA256"
-    [ -f "certs/signing_key.pem" ]  || {
+    [ -f "certs/signing_key.pem" ] || {
         cat << EOCONF > key.conf
 [ req ]
 default_bits = 4096
@@ -196,7 +196,7 @@ keyUsage=digitalSignature
 subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid
 EOCONF
-        openssl req -new -nodes -utf8 -sha256 -days 36500 -batch -x509 -config key.conf -outform PEM -out certs/signing_key.pem -keyout certs/signing_key.pem
+    openssl req -new -nodes -utf8 -sha256 -days 36500 -batch -x509 -config key.conf -outform PEM -out certs/signing_key.pem -keyout certs/signing_key.pem
 }
     openssl x509 -text -noout -in certs/signing_key.pem
     scripts/config --enable CONFIG_MODULE_SIG
@@ -244,7 +244,7 @@ rmmod virt_wifi
 EOF
     scripts/config --module CONFIG_VIRT_WIFI
     log "enable emulate input devices from userspace"
-    scripts/config --enable CONFIG_INPUT_UINPUT
+    scripts/config --module CONFIG_INPUT_UINPUT
 }
 enable_ebpf() {
     echo "fix eBPF bpftool gen vmlinux.h, see: lib/Kconfig.debug, pahole tools in package dwarves"
@@ -360,7 +360,7 @@ s905d_opt() {
     scripts/config --enable CONFIG_CPU_LITTLE_ENDIAN
     scripts/config --module CONFIG_ARM_SCPI_CPUFREQ
     scripts/config --enable CONFIG_ARM_PMU --enable CONFIG_ARM_PMUV3
-    scripts/config --enable CONFIG_USB
+    scripts/config --module CONFIG_USB
     scripts/config --module CONFIG_USB_DWC3 --enable CONFIG_USB_DWC3_ULPI --enable CONFIG_USB_DWC3_DUAL_ROLE
     scripts/config --module CONFIG_USB_DWC3_MESON_G12A --module CONFIG_USB_DWC3_OF_SIMPLE
     scripts/config --module CONFIG_FIXED_PHY \
@@ -386,7 +386,7 @@ s905d_opt() {
         --module CONFIG_VIDEO_MESON_VDEC
 
     log "opensource LIMA, mali450 GPU driver, HDMI"
-    scripts/config --enable CONFIG_DRM  --enable CONFIG_HDMI \
+    scripts/config --module CONFIG_DRM --enable CONFIG_HDMI \
         --module CONFIG_DRM_LIMA \
         --module CONFIG_DRM_MESON \
         --module CONFIG_DRM_MESON_DW_HDMI \
@@ -398,7 +398,7 @@ s905d_opt() {
         --enable CONFIG_BRCMFMAC_SDIO
 
     log "meson gx mmc"
-    scripts/config --enable CONFIG_MMC \
+    scripts/config --module CONFIG_MMC \
         --module CONFIG_MMC_MESON_GX \
         --module CONFIG_MMC_MESON_MX_SDIO
 
@@ -512,7 +512,6 @@ enable_container() {
         --enable CONFIG_BLK_DEV_THROTTLING \
         --enable CONFIG_BRIDGE_VLAN_FILTERING \
         --enable CONFIG_CFS_BANDWIDTH \
-        --enable CONFIG_CRYPTO \
         --enable CONFIG_FAIR_GROUP_SCHED \
         --enable CONFIG_IP_VS_NFCT \
         --enable CONFIG_IP_VS_PROTO_TCP \
@@ -525,6 +524,7 @@ enable_container() {
         --enable CONFIG_XFRM
     scripts/config --module CONFIG_BRIDGE \
         --module CONFIG_BRIDGE_NETFILTER \
+        --module CONFIG_CRYPTO \
         --module CONFIG_CRYPTO_AEAD \
         --module CONFIG_CRYPTO_GCM \
         --module CONFIG_CRYPTO_GHASH \
@@ -560,7 +560,7 @@ enable_container() {
 enable_kvm() {
     log "enable KVM"
     scripts/config --enable CONFIG_KVM
-    scripts/config --enable CONFIG_KVM_GUEST
+    scripts/config --module CONFIG_KVM_GUEST
     scripts/config --enable CONFIG_VIRTUALIZATION
     scripts/config --enable CONFIG_PARAVIRT
     scripts/config --enable CONFIG_VHOST_MENU
