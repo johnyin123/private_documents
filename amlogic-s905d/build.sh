@@ -79,6 +79,7 @@ enable_module_networks() {
         --enable CONFIG_MPTCP \
         --enable CONFIG_MPTCP_IPV6 \
         --enable CONFIG_INET \
+        --enable CONFIG_IP_MULTICAST \
         --enable CONFIG_XDP_SOCKETS \
         --enable CONFIG_NETFILTER \
         --enable CONFIG_EPOLL \
@@ -274,7 +275,8 @@ enable_arch_inline() {
 EOF
     log "AARCH64 ARCH inline"
     # Full dynticks system
-    scripts/config --enable CONFIG_NO_HZ_FULL
+    scripts/config --enable CONFIG_NO_HZ_FULL \
+        --enable CONFIG_HIGH_RES_TIMERS
     # uselib()系统接口支持,仅使用基于libc5应用使用
     scripts/config --disable CONFIG_USELIB
 
@@ -428,6 +430,7 @@ s905d_opt() {
 
     log "meson sound"
     scripts/config --module CONFIG_SOUND \
+        --module CONFIG_SND \
         --module CONFIG_SND_MESON_AIU \
         --module CONFIG_SND_MESON_AXG_FIFO \
         --module CONFIG_SND_MESON_AXG_FRDDR \
@@ -517,6 +520,7 @@ enable_container() {
         --enable CONFIG_USER_NS \
         --enable CONFIG_UTS_NS \
         --enable CONFIG_IPC_NS \
+        --enable CONFIG_TIME_NS \
         --enable CONFIG_CGROUP_BPF \
         --enable CONFIG_CGROUP_CPUACCT \
         --enable CONFIG_CGROUP_DEVICE \
@@ -525,6 +529,7 @@ enable_container() {
         --enable CONFIG_CGROUP_PERF \
         --enable CONFIG_CGROUP_PIDS \
         --enable CONFIG_CGROUP_SCHED \
+        --enable CONFIG_CGROUP_MISC \
         --enable CONFIG_CPUSETS \
         --enable CONFIG_BLK_CGROUP \
         --enable CONFIG_BLK_DEV_THROTTLING \
@@ -639,6 +644,25 @@ EOF
         --module CONFIG_USB_DUMMY_HCD \
         --module CONFIG_USB_CONFIGFS
 }
+cpu_freq() {
+    log "CPU FREQUENCY SCALING"
+    scripts/config --enable CONFIG_CPU_FREQ \
+        --enable CONFIG_CPU_FREQ_DEFAULT_GOV_SCHEDUTIL \
+        --enable CONFIG_CPU_FREQ_GOV_PERFORMANCE \
+        --module CONFIG_CPU_FREQ_GOV_POWERSAVE \
+        --module CONFIG_CPU_FREQ_GOV_USERSPACE \
+        --module CONFIG_CPU_FREQ_GOV_ONDEMAND \
+        --module CONFIG_CPU_FREQ_GOV_CONSERVATIVE \
+        --enable CONFIG_CPU_FREQ_GOV_SCHEDUTIL
+}
+common_config() {
+    scripts/config --enable CONFIG_SYSVIPC \
+        --enable CONFIG_SHMEM \
+        --enable CONFIG_AIO
+        --enable CONFIG_BLOCK
+CONFIG_IO_URING=y
+
+}
 enable_module_xz_sign yes
 enable_zram
 enable_module_networks
@@ -654,6 +678,8 @@ enable_container
 enable_usbip
 enable_usb_gadget
 enable_arch_inline
+common_config
+cpu_freq
 # yes "" | make oldconfig
 # yes "y" | make oldconfig
 ls arch/${ARCH}/configs/ 2>/dev/null
