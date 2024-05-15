@@ -75,11 +75,11 @@ enable_module_networks() {
         --enable CONFIG_MPTCP \
         --enable CONFIG_MPTCP_IPV6 \
         --enable CONFIG_INET \
-        --enable CONFIG_PACKET \
-        --enable CONFIG_UNIX \
         --enable CONFIG_XDP_SOCKETS \
         --enable CONFIG_NETFILTER \
         --enable CONFIG_EPOLL \
+        --enable CONFIG_UNIX \
+        --module CONFIG_PACKET \
         --module CONFIG_ATA_OVER_ETH \
         --module CONFIG_BATMAN_ADV \
         --module CONFIG_BRIDGE \
