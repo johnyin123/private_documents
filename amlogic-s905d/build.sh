@@ -656,12 +656,12 @@ cpu_freq() {
         --enable CONFIG_CPU_FREQ_GOV_SCHEDUTIL
 }
 common_config() {
+    log "COMMON KERNEL CONFIG"
     scripts/config --enable CONFIG_SYSVIPC \
         --enable CONFIG_SHMEM \
-        --enable CONFIG_AIO
-        --enable CONFIG_BLOCK
-CONFIG_IO_URING=y
-
+        --enable CONFIG_AIO \
+        --enable CONFIG_BLOCK \
+        --enable CONFIG_IO_URING
 }
 enable_module_xz_sign yes
 enable_zram
