@@ -24,6 +24,8 @@ echo "build perf, cd tools/perf && make"
     export CROSS_COMPILE=aarch64-linux-gnu-
 }
 export ARCH=arm64
+log "ARCH=${ARCH}"
+log "CROSS_COMPILE=${CROSS_COMPILE}"
 # fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
 # aarch64-linux-gnu-gcc -c -Q -mcpu=cortex-a53+fp+aes+crc+sha2 --help=target
 # gcc -c -Q -mcpu=native --help=target
@@ -360,7 +362,9 @@ s905d_opt() {
     scripts/config --enable CONFIG_CPU_LITTLE_ENDIAN
     scripts/config --module CONFIG_ARM_SCPI_CPUFREQ
     scripts/config --enable CONFIG_ARM_PMU --enable CONFIG_ARM_PMUV3
-    scripts/config --module CONFIG_USB
+    scripts/config --module CONFIG_USB \
+        --module CONFIG_USB_COMMON \
+        --module CONFIG_USB_ULPI_BUS
     scripts/config --module CONFIG_USB_DWC3 --enable CONFIG_USB_DWC3_ULPI --enable CONFIG_USB_DWC3_DUAL_ROLE
     scripts/config --module CONFIG_USB_DWC3_MESON_G12A --module CONFIG_USB_DWC3_OF_SIMPLE
     scripts/config --module CONFIG_FIXED_PHY \
@@ -392,6 +396,17 @@ s905d_opt() {
         --module CONFIG_DRM_MESON_DW_HDMI \
         --module CONFIG_DRM_MESON_DW_MIPI_DSI
 
+    log "FRAMEBUFFER MODULES"
+    scripts/config --module CONFIG_FB \
+        --module CONFIG_FB_CORE \
+        --module CONFIG_FB_CFB_FILLRECT \
+        --module CONFIG_FB_CFB_COPYAREA \
+        --module CONFIG_FB_CFB_IMAGEBLIT \
+        --module CONFIG_FB_SYS_FILLRECT \
+        --module CONFIG_FB_SYS_COPYAREA \
+        --module CONFIG_FB_SYS_IMAGEBLIT \
+        --module CONFIG_FB_SYS_FOPS
+
     log "BRCMFMAC Wireless"
     scripts/config --enable CONFIG_WLAN --enable CONFIG_WIRELESS \
         --module CONFIG_BRCMFMAC \
@@ -399,6 +414,7 @@ s905d_opt() {
 
     log "meson gx mmc"
     scripts/config --module CONFIG_MMC \
+        --module CONFIG_MMC_BLOCK \
         --module CONFIG_MMC_MESON_GX \
         --module CONFIG_MMC_MESON_MX_SDIO
 
@@ -657,7 +673,7 @@ make install > /dev/null
 }
 make modules_install > /dev/null
 
-LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOTFS} /bin/bash <<EOSHELL
+LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOTFS} /bin/bash -x<<EOSHELL
     depmod ${KERVERSION}${MYVERSION}
     update-initramfs -c -k ${KERVERSION}${MYVERSION}
     [ -e "/boot/extlinux/extlinux.conf" ] && {
