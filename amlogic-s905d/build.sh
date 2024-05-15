@@ -618,14 +618,24 @@ modprobe g_mass_storage file=/root/disk
 # idVendor=0x1d6b idProduct=0x0104 iManufacturer=Myself iProduct=VirtualBlockDevice iSerialNumber=123
 mount .....
 EOF
-    scripts/config --module CONFIG_USB_MASS_STORAGE
-    scripts/config --module CONFIG_USB_G_HID
-    scripts/config --module CONFIG_USB_G_WEBCAM
-    scripts/config --module CONFIG_USB_RAW_GADGET
-    scripts/config --module CONFIG_USB_GADGET
-    scripts/config --module CONFIG_USB_GADGETFS
-    scripts/config --module CONFIG_USB_DUMMY_HCD
-    scripts/config --module CONFIG_USB_CONFIGFS
+    scripts/config --module CONFIG_USB_ZERO \
+        --module CONFIG_USB_AUDIO \
+        --module CONFIG_USB_ETH \
+        --module CONFIG_USB_G_NCM \
+        --module CONFIG_USB_MASS_STORAGE \
+        --module CONFIG_USB_G_SERIAL \
+        --module CONFIG_USB_MIDI_GADGET \
+        --module CONFIG_USB_G_PRINTER \
+        --module CONFIG_USB_CDC_COMPOSITE \
+        --module CONFIG_USB_G_ACM_MS \
+        --module CONFIG_USB_G_MULTI \
+        --module CONFIG_USB_G_HID \
+        --module CONFIG_USB_G_WEBCAM \
+        --module CONFIG_USB_RAW_GADGET \
+        --module CONFIG_USB_GADGET \
+        --module CONFIG_USB_GADGETFS \
+        --module CONFIG_USB_DUMMY_HCD \
+        --module CONFIG_USB_CONFIGFS
 }
 enable_module_xz_sign yes
 enable_zram
