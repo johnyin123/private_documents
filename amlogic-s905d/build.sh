@@ -24,6 +24,8 @@ echo "build perf, cd tools/perf && make"
     export CROSS_COMPILE=aarch64-linux-gnu-
 }
 export ARCH=arm64
+export KBUILD_BUILD_USER=johnyin
+# export KBUILD_BUILD_HOST=
 log "ARCH=${ARCH}"
 log "CROSS_COMPILE=${CROSS_COMPILE}"
 # fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
@@ -654,11 +656,11 @@ enable_usb_gadget
 enable_arch_inline
 # yes "" | make oldconfig
 # yes "y" | make oldconfig
-
-make listnewconfig
+ls arch/${ARCH}/configs/ 2>/dev/null
+make listnewconfig 2>/dev/null
 # make helpnewconfig
 # ARCH=<arch> scripts/kconfig/merge_config.sh <...>/<platform>_defconfig <...>/android-base.config <...>/android-base-<arch>.config <...>/android-recommended.config
-scripts/diffconfig .config.old .config 2>/dev/null
+[ -e ".config.old" ] && scripts/diffconfig .config.old .config 2>/dev/null
 
 pahole --version 2>/dev/null || echo "pahole no found DEBUG_INFO_BTF not effict"
 
