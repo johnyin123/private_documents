@@ -69,7 +69,7 @@ enable_zram() {
 
 enable_module_networks() {
     log "NETWORK MODULES"
-    # enable ktls
+    # enable ktls CONFIG_MPTCP_IPV6 depends IPV6=y
     scripts/config --module CONFIG_TLS
     scripts/config --enable CONFIG_NET_CORE \
         --enable CONFIG_NET \
