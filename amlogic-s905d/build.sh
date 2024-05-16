@@ -70,9 +70,34 @@ enable_zram() {
 }
 
 enable_module_networks() {
-    log "NETWORK MODULES"
+    log "NETWORK MODULES 6LOWPAN"
+cat <<EOF
+# #
+# apt -y install wpan-tools
+# modprobe fakelb numlbs=1
+# mount -t debugfs none /sys/kernel/debug
+# #
+# hciconfig hci0 reset
+modprobe bluetooth_6lowpan
+echo 1 > /sys/kernel/debug/bluetooth/6lowpan_enable
+# Advertise over LE
+hciconfig hci0 leadv
+# hcitool lescan
+cat /sys/kernel/debug/bluetooth/l2cap
+echo "connect 43:45:C0:00:1F:AC 1" >/sys/kernel/debug/bluetooth/6lowpan_control
+# connect <addr> <addr_type>
+# disconnect <addr> <addr_type>
+ping6 -I bt0 <ipv6addr>
+EOF
+    scripts/config --module CONFIG_BT_6LOWPAN \
+        --module CONFIG_6LOWPAN \
+        --module CONFIG_IEEE802154_FAKELB \
+        --module CONFIG_IEEE802154_HWSIM
+
+    log "KTLS MODULES"
     # enable ktls CONFIG_MPTCP_IPV6 depends IPV6=y
     scripts/config --module CONFIG_TLS
+    log "NETWORK MODULES"
     scripts/config --enable CONFIG_NET_CORE \
         --enable CONFIG_NET \
         --enable CONFIG_ETHERNET \
@@ -97,7 +122,6 @@ enable_module_networks() {
         --module CONFIG_NET_IPIP \
         --module CONFIG_NET_UDP_TUNNEL \
         --module CONFIG_NET_FOU \
-        --module CONFIG_6LOWPAN \
         --module CONFIG_PPP \
         --module CONFIG_PPPOE \
         --module CONFIG_PPTP \
