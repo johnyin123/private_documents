@@ -88,6 +88,28 @@ echo "connect 43:45:C0:00:1F:AC 1" >/sys/kernel/debug/bluetooth/6lowpan_control
 # connect <addr> <addr_type>
 # disconnect <addr> <addr_type>
 ping6 -I bt0 <ipv6addr>
+
+apt -y install radvd
+cat << CFG >/etc/radvd.conf
+interface bt0
+{
+    AdvSendAdvert on;
+    prefix 2001:db8::/64
+    {
+        AdvOnLink off;
+        AdvAutonomous on;
+        AdvRouterAddr on;
+    };
+};
+CFG
+# Set IPv6 forwarding (must be present).
+sudo echo 1 > /proc/sys/net/ipv6/conf/all/forwarding
+# Run radvd daemon.
+radvd
+# If successfull then all devices connected to the host will receive a routable 2001:db8 prefix.
+# This can be verified by sending echo request to the full address:
+ping6 -I bt0 2001:db8::2aa:bbff:fexx:yyzz
+# where aa:bbff:fexx:yyzz is device Bluetooth address.
 EOF
     scripts/config --module CONFIG_BT_6LOWPAN \
         --module CONFIG_6LOWPAN \
