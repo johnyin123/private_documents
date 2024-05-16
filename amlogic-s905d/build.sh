@@ -159,12 +159,13 @@ enable_module_filesystem() {
 
 enable_network_storage() {
     log "MODULES NETWORK BLOCK DEV"
-    scripts/config --module CONFIG_ATA_OVER_ETH
-    scripts/config --module CONFIG_BLK_DEV_NBD
-    scripts/config --module CONFIG_BLK_DEV_RBD
-    scripts/config --module CONFIG_BLK_DEV_DRBD
-    scripts/config --module CONFIG_BLK_DEV_LOOP
-    scripts/config --module CONFIG_BLK_DEV_RAM
+    scripts/config --module CONFIG_ATA_OVER_ETH \
+        --module CONFIG_BLK_DEV_NBD \
+        --module CONFIG_BLK_DEV_RBD \
+        --module CONFIG_BLK_DEV_DRBD \
+        --module CONFIG_BLK_DEV_LOOP \
+        --module CONFIG_BLK_DEV_RAM \
+        --module CONFIG_BLK_DEV_NULL_BLK
 }
 
 enable_module_xz_sign() {
@@ -450,6 +451,11 @@ s905d_opt() {
         --module CONFIG_SND_MESON_G12A_TOHDMITX \
         --module CONFIG_SND_SOC_MESON_T9015
 
+    log "MESON WATCHDOG MODULES"
+    scripts/config --enable CONFIG_WATCHDOG_SYSFS \
+        --module CONFIG_MESON_GXBB_WATCHDOG \
+        --module CONFIG_MESON_WATCHDOG
+
     log "MESON OTHER MODULES"
     scripts/config --module CONFIG_MESON_SM \
         --module CONFIG_DWMAC_MESON \
@@ -471,8 +477,6 @@ s905d_opt() {
         --module CONFIG_PINCTRL_MESON_S4 \
         --module CONFIG_PINCTRL_AMLOGIC_C3 \
         --module CONFIG_AMLOGIC_THERMAL \
-        --module CONFIG_MESON_GXBB_WATCHDOG \
-        --module CONFIG_MESON_WATCHDOG \
         --module CONFIG_IR_MESON \
         --module CONFIG_IR_MESON_TX \
         --module CONFIG_CEC_MESON_AO \
