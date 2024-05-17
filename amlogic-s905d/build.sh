@@ -666,6 +666,17 @@ enable_usbip() {
     scripts/config --module CONFIG_USBIP_VHCI_HCD
     scripts/config --module CONFIG_USBIP_HOST
     scripts/config --module CONFIG_USBIP_VUDC
+    log "enable usbmon"
+    cat <<EOF
+mount -t debugfs none_debugs /sys/kernel/debug
+modprobe usbmon
+ls /sys/kernel/debug/usb/usbmon
+cat /sys/kernel/debug/usb/devices | grep -oE "(Bus|Vendor|ProdID)=[^ ]*|Product=.*"
+lsusb
+# # Bus _+ u
+cat /sys/kernel/debug/usb/usbmon/3u > /tmp/1.mon.out
+EOF
+    scripts/config --module CONFIG_USB_MON
 }
 enable_usb_gadget() {
     log "enable g_mass_storage"
