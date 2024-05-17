@@ -82,6 +82,7 @@ modprobe bluetooth_6lowpan
 echo 1 > /sys/kernel/debug/bluetooth/6lowpan_enable
 # Advertise over LE
 hciconfig hci0 leadv
+# hciconfig hci0 noleadv  #停止广播
 # hcitool lescan
 cat /sys/kernel/debug/bluetooth/l2cap
 echo "connect 43:45:C0:00:1F:AC 1" >/sys/kernel/debug/bluetooth/6lowpan_control
