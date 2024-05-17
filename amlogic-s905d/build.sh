@@ -87,6 +87,7 @@ cat /sys/kernel/debug/bluetooth/l2cap
 echo "connect 43:45:C0:00:1F:AC 1" >/sys/kernel/debug/bluetooth/6lowpan_control
 # connect <addr> <addr_type>
 # disconnect <addr> <addr_type>
+IPV6ADDR=MAC123+ff:fe+MAC456
 ping6 -I bt0 <ipv6addr>
 ping6 <ipv6addr>%bt0
 ssh root@<ipv6addr>%bt0
