@@ -88,6 +88,8 @@ echo "connect 43:45:C0:00:1F:AC 1" >/sys/kernel/debug/bluetooth/6lowpan_control
 # connect <addr> <addr_type>
 # disconnect <addr> <addr_type>
 ping6 -I bt0 <ipv6addr>
+ping6 <ipv6addr>%bt0
+ssh root@<ipv6addr>%bt0
 
 apt -y install radvd
 cat << CFG >/etc/radvd.conf
