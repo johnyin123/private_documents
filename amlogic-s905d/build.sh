@@ -28,6 +28,7 @@ export KBUILD_BUILD_USER=johnyin
 # export KBUILD_BUILD_HOST=
 log "ARCH=${ARCH}"
 log "CROSS_COMPILE=${CROSS_COMPILE}"
+${CROSS_COMPILE}gcc --version
 # fp asimd evtstrm aes pmull sha1 sha2 crc32 cpuid
 # aarch64-linux-gnu-gcc -c -Q -mcpu=cortex-a53+fp+aes+crc+sha2 --help=target
 # gcc -c -Q -mcpu=native --help=target
