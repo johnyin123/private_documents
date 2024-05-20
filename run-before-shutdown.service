@@ -1,0 +1,14 @@
+cat << 'EOF' > /etc/systemd/system/run-before-shutdown.service
+[Unit]
+Description=Run my custom task at shutdown
+DefaultDependencies=no
+Before=shutdown.target reboot.target halt.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/writeback.sh
+TimeoutStartSec=0
+
+[Install]
+WantedBy=shutdown.target
+EOF

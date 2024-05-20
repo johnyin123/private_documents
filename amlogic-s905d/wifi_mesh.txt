@@ -1,0 +1,9 @@
+iw phy | grep -i "Supported interface modes" -A 10
+
+ip link set up dev wlan0
+iw dev wlan0 del
+iw phy phy0 interface add wlan0 type mesh
+ip link set up mtu 1524 dev wlan0
+iw dev wlan0 mesh join kasi-mesh
+batctl if add wlan0
+ip link set up dev bat0
