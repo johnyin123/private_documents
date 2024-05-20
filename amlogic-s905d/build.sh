@@ -781,12 +781,14 @@ make modules_install > /dev/null
 log "START LIST BUILD_MODULES CONFIG KEYS."
 log "find . -name Kconfig | xargs -I@ grep -H <config key> @ | grep depends"
 find . -name Makefile | xargs -I@ cat @ > tmp.makefile
+count=1
 for it in $(cat modules.builtin); do
     ko=$(basename ${it})
     ko_dot_o=${ko%.*}.o
     grep "obj-.* ${ko_dot_o}" tmp.makefile | grep -o "CONFIG_[^)]*" | sort | uniq | while IFS='\n' read line || [ -n "$line" ]; do
-        log "$ko            ->        $line"
+        log "$count : $ko            ->        $line"
     done
+    let count++
 done
 rm -f tmp.makefile
 log "END LIST BUILD_MODULES CONFIG KEYS."
