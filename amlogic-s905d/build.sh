@@ -273,6 +273,10 @@ EOCONF
     scripts/config --disable CONFIG_MODULE_SIG_SHA224
     scripts/config --disable CONFIG_MODULE_SIG_SHA384
     scripts/config --disable CONFIG_MODULE_SIG_SHA512
+    cat <<EOF
+# manually sign a module
+scripts/sign-file sha512 kernel-signkey.priv kernel-signkey.x509 module.ko
+EOF
 }
 enable_virtual_wifi() {
     cat <<EOF
@@ -344,57 +348,57 @@ EOF
     scripts/config --enable CONFIG_PREEMPT_VOLUNTARY
     # scripts/config --enable CONFIG_PREEMPT_RCU
     # scripts/config --enable CONFIG_TASKS_RCU
-    scripts/config --enable ARCH_INLINE_SPIN_TRYLOCK
-    scripts/config --enable ARCH_INLINE_SPIN_TRYLOCK_BH
-    scripts/config --enable ARCH_INLINE_SPIN_LOCK
-    scripts/config --enable ARCH_INLINE_SPIN_LOCK_BH
-    scripts/config --enable ARCH_INLINE_SPIN_LOCK_IRQ
-    scripts/config --enable ARCH_INLINE_SPIN_LOCK_IRQSAVE
-    scripts/config --enable ARCH_INLINE_SPIN_UNLOCK
-    scripts/config --enable ARCH_INLINE_SPIN_UNLOCK_BH
-    scripts/config --enable ARCH_INLINE_SPIN_UNLOCK_IRQ
-    scripts/config --enable ARCH_INLINE_SPIN_UNLOCK_IRQRESTORE
-    scripts/config --enable ARCH_INLINE_READ_LOCK
-    scripts/config --enable ARCH_INLINE_READ_LOCK_BH
-    scripts/config --enable ARCH_INLINE_READ_LOCK_IRQ
-    scripts/config --enable ARCH_INLINE_READ_LOCK_IRQSAVE
-    scripts/config --enable ARCH_INLINE_READ_UNLOCK
-    scripts/config --enable ARCH_INLINE_READ_UNLOCK_BH
-    scripts/config --enable ARCH_INLINE_READ_UNLOCK_IRQ
-    scripts/config --enable ARCH_INLINE_READ_UNLOCK_IRQRESTORE
-    scripts/config --enable ARCH_INLINE_WRITE_LOCK
-    scripts/config --enable ARCH_INLINE_WRITE_LOCK_BH
-    scripts/config --enable ARCH_INLINE_WRITE_LOCK_IRQ
-    scripts/config --enable ARCH_INLINE_WRITE_LOCK_IRQSAVE
-    scripts/config --enable ARCH_INLINE_WRITE_UNLOCK
-    scripts/config --enable ARCH_INLINE_WRITE_UNLOCK_BH
-    scripts/config --enable ARCH_INLINE_WRITE_UNLOCK_IRQ
-    scripts/config --enable ARCH_INLINE_WRITE_UNLOCK_IRQRESTORE
-    scripts/config --enable INLINE_SPIN_TRYLOCK
-    scripts/config --enable INLINE_SPIN_TRYLOCK_BH
-    scripts/config --enable INLINE_SPIN_LOCK
-    scripts/config --enable INLINE_SPIN_LOCK_BH
-    scripts/config --enable INLINE_SPIN_LOCK_IRQ
-    scripts/config --enable INLINE_SPIN_LOCK_IRQSAVE
-    scripts/config --enable INLINE_SPIN_UNLOCK_BH
-    scripts/config --enable INLINE_SPIN_UNLOCK_IRQ
-    scripts/config --enable INLINE_SPIN_UNLOCK_IRQRESTORE
-    scripts/config --enable INLINE_READ_LOCK
-    scripts/config --enable INLINE_READ_LOCK_BH
-    scripts/config --enable INLINE_READ_LOCK_IRQ
-    scripts/config --enable INLINE_READ_LOCK_IRQSAVE
-    scripts/config --enable INLINE_READ_UNLOCK
-    scripts/config --enable INLINE_READ_UNLOCK_BH
-    scripts/config --enable INLINE_READ_UNLOCK_IRQ
-    scripts/config --enable INLINE_READ_UNLOCK_IRQRESTORE
-    scripts/config --enable INLINE_WRITE_LOCK
-    scripts/config --enable INLINE_WRITE_LOCK_BH
-    scripts/config --enable INLINE_WRITE_LOCK_IRQ
-    scripts/config --enable INLINE_WRITE_LOCK_IRQSAVE
-    scripts/config --enable INLINE_WRITE_UNLOCK
-    scripts/config --enable INLINE_WRITE_UNLOCK_BH
-    scripts/config --enable INLINE_WRITE_UNLOCK_IRQ
-    scripts/config --enable INLINE_WRITE_UNLOCK_IRQRESTORE
+    scripts/config --enable ARCH_INLINE_SPIN_TRYLOCK \
+        --enable ARCH_INLINE_SPIN_TRYLOCK_BH \
+        --enable ARCH_INLINE_SPIN_LOCK \
+        --enable ARCH_INLINE_SPIN_LOCK_BH \
+        --enable ARCH_INLINE_SPIN_LOCK_IRQ \
+        --enable ARCH_INLINE_SPIN_LOCK_IRQSAVE \
+        --enable ARCH_INLINE_SPIN_UNLOCK \
+        --enable ARCH_INLINE_SPIN_UNLOCK_BH \
+        --enable ARCH_INLINE_SPIN_UNLOCK_IRQ \
+        --enable ARCH_INLINE_SPIN_UNLOCK_IRQRESTORE \
+        --enable ARCH_INLINE_READ_LOCK \
+        --enable ARCH_INLINE_READ_LOCK_BH \
+        --enable ARCH_INLINE_READ_LOCK_IRQ \
+        --enable ARCH_INLINE_READ_LOCK_IRQSAVE \
+        --enable ARCH_INLINE_READ_UNLOCK \
+        --enable ARCH_INLINE_READ_UNLOCK_BH \
+        --enable ARCH_INLINE_READ_UNLOCK_IRQ \
+        --enable ARCH_INLINE_READ_UNLOCK_IRQRESTORE \
+        --enable ARCH_INLINE_WRITE_LOCK \
+        --enable ARCH_INLINE_WRITE_LOCK_BH \
+        --enable ARCH_INLINE_WRITE_LOCK_IRQ \
+        --enable ARCH_INLINE_WRITE_LOCK_IRQSAVE \
+        --enable ARCH_INLINE_WRITE_UNLOCK \
+        --enable ARCH_INLINE_WRITE_UNLOCK_BH \
+        --enable ARCH_INLINE_WRITE_UNLOCK_IRQ \
+        --enable ARCH_INLINE_WRITE_UNLOCK_IRQRESTORE \
+        --enable INLINE_SPIN_TRYLOCK \
+        --enable INLINE_SPIN_TRYLOCK_BH \
+        --enable INLINE_SPIN_LOCK \
+        --enable INLINE_SPIN_LOCK_BH \
+        --enable INLINE_SPIN_LOCK_IRQ \
+        --enable INLINE_SPIN_LOCK_IRQSAVE \
+        --enable INLINE_SPIN_UNLOCK_BH \
+        --enable INLINE_SPIN_UNLOCK_IRQ \
+        --enable INLINE_SPIN_UNLOCK_IRQRESTORE \
+        --enable INLINE_READ_LOCK \
+        --enable INLINE_READ_LOCK_BH \
+        --enable INLINE_READ_LOCK_IRQ \
+        --enable INLINE_READ_LOCK_IRQSAVE \
+        --enable INLINE_READ_UNLOCK \
+        --enable INLINE_READ_UNLOCK_BH \
+        --enable INLINE_READ_UNLOCK_IRQ \
+        --enable INLINE_READ_UNLOCK_IRQRESTORE \
+        --enable INLINE_WRITE_LOCK \
+        --enable INLINE_WRITE_LOCK_BH \
+        --enable INLINE_WRITE_LOCK_IRQ \
+        --enable INLINE_WRITE_LOCK_IRQSAVE \
+        --enable INLINE_WRITE_UNLOCK \
+        --enable INLINE_WRITE_UNLOCK_BH \
+        --enable INLINE_WRITE_UNLOCK_IRQ \
+        --enable INLINE_WRITE_UNLOCK_IRQRESTORE
 }
 enable_nfs_rootfs() {
     local byes=${1:-}
