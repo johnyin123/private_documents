@@ -1,6 +1,9 @@
 #!/bin/bash
 set -o nounset -o pipefail
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+VERSION+=("a6568d2[2024-05-22T10:45:38+08:00]:build.sh")
+################################################################################
+builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
 KERVERSION="$(make kernelversion)"
 MYVERSION="-johnyin-s905d"
@@ -247,7 +250,7 @@ x509_extensions = myexts
 
 [ req_distinguished_name ]
 #O = Unspecified company
-CN = johnyin kernel key $(date '+%Y%m%d%H%M%S')
+CN = johnyin kernel key ${builder_version}
 emailAddress = johnyin.news@163.com
 
 [ myexts ]
