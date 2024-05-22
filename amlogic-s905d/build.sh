@@ -137,6 +137,7 @@ EOF
         --enable CONFIG_NETFILTER \
         --enable CONFIG_EPOLL \
         --enable CONFIG_UNIX \
+        --enable CONFIG_NET_SWITCHDEV \
         --module CONFIG_PACKET \
         --module CONFIG_ATA_OVER_ETH \
         --module CONFIG_BATMAN_ADV \
