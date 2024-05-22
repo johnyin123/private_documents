@@ -371,3 +371,75 @@ In this case you can do the following:
 use a non-standard Type-A plug to Type-A plug cable and isolate the VBUS (red wire) to ensure host and device are not both driving VBUS
 configure the OTG controller for device-mode (see above)
 Load a gadget driver (see above)
+
+
+modprobe g_webcam
+modprobe libcomposite
+mount | grep configfs
+# CONFIGFS=$(mount | grep configfs | awk '{print $3}')
+export UDC=`ls /sys/class/udc`
+export UDC_ROLE=/sys/devices/platform/soc/78d9000.usb/ci_hdrc.0/role
+export CONFIGFS="/sys/kernel/config"
+export GADGET="$CONFIGFS/usb_gadget"
+export VID="0x0525"
+export PID="0x0102"
+export SERIAL="0123456789"
+export MANUF=$(hostname)
+export PRODUCT="UVC Gadget"
+mkdir -p $GADGET/g1
+ls /sys/kernel/config/usb_gadget/g1/
+echo $VID > ${GADGET}/g1/idVendor
+echo $PID > ${GADGET}/g1/idProduct
+mkdir -p ${GADGET}/g1/strings/0x409
+ls ${GADGET}/g1/strings/0x409/
+echo $SERIAL >  ${GADGET}/g1/strings/0x409/serialnumber
+echo $MANUF >   ${GADGET}/g1/strings/0x409/manufacturer
+echo $PRODUCT > ${GADGET}/g1/strings/0x409/product
+# # Create configuration
+mkdir ${GADGET}/g1/configs/c.1
+ls ${GADGET}/g1/configs/c.1/
+# # Create English string for configuration
+mkdir ${GADGET}/g1/configs/c.1/strings/0x409
+ls ${GADGET}/g1/configs/c.1/strings/0x409/
+# # Create UVC gadget function
+export CONFIG="configs/c.1"
+export FUNCTION="uvc.0"
+mkdir ${GADGET}/g1/functions/$FUNCTION
+ls ${GADGET}/g1/functions/uvc.0/
+# #  Add resolutions
+mkdir -p ${GADGET}/g1/functions/$FUNCTION/streaming/uncompressed/u/360p
+ls ${GADGET}/g1/functions/uvc.0/streaming/
+ls ${GADGET}/g1/functions/uvc.0/streaming/uncompressed/u/
+ls ${GADGET}/g1/functions/uvc.0/streaming/uncompressed/u/360p/
+# #  Add frame intervals to resolution
+cat <<EOF > ${GADGET}/g1/functions/$FUNCTION/streaming/uncompressed/u/360p/dwFrameInterval
+666666
+999999
+5000000
+EOF
+# # Create header
+mkdir ${GADGET}/g1/functions/$FUNCTION/streaming/header/h
+cd ${GADGET}/g1/functions/$FUNCTION/streaming/header/h
+ln -s ../../uncompressed/u
+cd ../../class/fs
+ln -s ../../header/h
+cd ../../class/hs
+ln -s ../../header/h
+cd ../../class/ss
+ln -s ../../header/h
+cd ../../../control
+mkdir -p header/h
+ln -s header/h class/fs
+ln -s header/h class/ss
+cd ../../../
+# # Configure max packet size
+echo 2048 > functions/$FUNCTION/streaming_maxpacket
+# # Assign configuration to function
+ln -s functions/$FUNCTION configs/c.1
+# # Bind USB Device Controller (UDC)
+echo $UDC > UDC
+# #After this, a new /dev/videX device will be created that can be used by the user space application.
+# #In order to disable the Gadget just do:
+echo "" > UDC
+# # NOTE: Some devices might need to configure the USB role to be peripheral. In such a case, something like this might be needed:
+echo peripheral > $UDC_ROLE
