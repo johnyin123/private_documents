@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("a6568d2[2024-05-22T10:45:38+08:00]:build.sh")
+VERSION+=("1954593[2024-05-22T10:50:33+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -260,6 +260,7 @@ subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid
 EOCONF
     openssl req -new -nodes -utf8 -sha256 -days 36500 -batch -x509 -config key.conf -outform PEM -out certs/signing_key.pem -keyout certs/signing_key.pem
+    rm -f certs/signing_key.x509
 }
     openssl x509 -text -noout -in certs/signing_key.pem
     scripts/config --enable CONFIG_MODULE_SIG
