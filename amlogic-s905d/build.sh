@@ -156,6 +156,7 @@ EOF
         --module CONFIG_TUN \
         --module CONFIG_TAP \
         --module CONFIG_VETH \
+        --module CONFIG_NET_VRF \
         --module CONFIG_MII \
         --module CONFIG_BONDING \
         --module CONFIG_DUMMY \
