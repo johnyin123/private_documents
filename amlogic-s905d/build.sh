@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("26148ce[2024-05-22T19:13:11+08:00]:build.sh")
+VERSION+=("d506fa6[2024-05-23T13:26:15+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -744,6 +744,15 @@ common_config() {
         --enable CONFIG_BLOCK \
         --enable CONFIG_IO_URING
 }
+gen_usb_otg_devicetree() {
+    log "edit arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts:"
+    cat <<EOF
+&usb {
+	dr_mode = "otg";
+};
+EOF
+}
+
 enable_module_xz_sign yes
 enable_zram
 enable_module_networks
@@ -761,6 +770,7 @@ enable_usb_gadget
 enable_arch_inline
 common_config
 cpu_freq
+gen_usb_otg_devicetree
 # yes "" | make oldconfig
 # yes "y" | make oldconfig
 ls arch/${ARCH}/configs/ 2>/dev/null
