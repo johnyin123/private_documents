@@ -1,7 +1,7 @@
 #!/bin/bash
-set -o nounset -o pipefail
+set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("1954593[2024-05-22T10:50:33+08:00]:build.sh")
+VERSION+=("26148ce[2024-05-22T19:13:11+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -181,7 +181,11 @@ EOF
 }
 enable_module_filesystem() {
     log "FILESYSTEM MODULES"
-    scripts/config --module CONFIG_NLS --set-str CONFIG_NLS_DEFAULT "utf-8"
+    scripts/config --module CONFIG_NLS --set-str CONFIG_NLS_DEFAULT "utf-8" \
+        --module CONFIG_NLS_ASCII \
+        --module CONFIG_UNICODE \
+        --module CONFIG_NLS_UTF8
+
     scripts/config --enable CONFIG_PROC_FS \
         --enable CONFIG_KERNFS \
         --enable CONFIG_SYSFS \
@@ -795,9 +799,11 @@ count=1
 for it in $(cat modules.builtin); do
     ko=$(basename ${it})
     ko_dot_o=${ko%.*}.o
+    set +o errexit
     grep "obj-.* ${ko_dot_o}" tmp.makefile | grep -o "CONFIG_[^)]*" | sort | uniq | while IFS='\n' read line || [ -n "$line" ]; do
         log "$count : $ko            ->        $line"
     done
+    set -o errexit
     let count++
 done
 rm -f tmp.makefile
