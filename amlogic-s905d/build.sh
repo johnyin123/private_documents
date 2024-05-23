@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("583c42d[2024-05-23T15:51:30+08:00]:build.sh")
+VERSION+=("4d9ade1[2024-05-23T16:04:24+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -747,7 +747,7 @@ common_config() {
 gen_usb_otg_devicetree() {
     log "edit arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts:"
     log 'Valid arguments are "host", "peripheral" and "otg"'
-    log "cat /sys/firmware/devicetree/base/soc/usb@d0078080/dr_mode'
+    log 'cat /sys/firmware/devicetree/base/soc/usb@d0078080/dr_mode'
     cat <<EOF
 &usb {
 	dr_mode = "otg";
