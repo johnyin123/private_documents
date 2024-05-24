@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("b65223c[2024-05-24T08:04:17+08:00]:build.sh")
+VERSION+=("1d18637[2024-05-24T08:31:39+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -436,6 +436,8 @@ s905d_opt() {
     scripts/config --module CONFIG_USB \
         --module CONFIG_USB_COMMON \
         --module CONFIG_USB_ULPI_BUS
+    log "USB DWC2 is define as OTG"
+    scripts/config --module CONFIG_USB_DWC2 --enable CONFIG_USB_DWC2_DUAL_ROLE
     scripts/config --module CONFIG_USB_DWC3 --enable CONFIG_USB_DWC3_ULPI --enable CONFIG_USB_DWC3_DUAL_ROLE
     scripts/config --module CONFIG_USB_DWC3_MESON_G12A --module CONFIG_USB_DWC3_OF_SIMPLE
     scripts/config --module CONFIG_FIXED_PHY \
