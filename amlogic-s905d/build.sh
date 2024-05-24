@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("fc0177a[2024-05-23T16:16:05+08:00]:build.sh")
+VERSION+=("bf2d8fe[2024-05-23T16:55:22+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -749,9 +749,10 @@ gen_usb_otg_devicetree() {
     log 'Valid arguments are "host", "peripheral" and "otg"'
     log 'cat /sys/firmware/devicetree/base/soc/usb@d0078080/dr_mode'
     log "peripheral mode then 1-otg, 2-host"
+    log "test ok"
     cat <<EOF
 &usb {
-	dr_mode = "otg";
+	dr_mode = "peripheral";
 };
 EOF
 }
