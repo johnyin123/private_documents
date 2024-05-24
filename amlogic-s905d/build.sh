@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("bf2d8fe[2024-05-23T16:55:22+08:00]:build.sh")
+VERSION+=("b65223c[2024-05-24T08:04:17+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -749,7 +749,7 @@ gen_usb_otg_devicetree() {
     log 'Valid arguments are "host", "peripheral" and "otg"'
     log 'cat /sys/firmware/devicetree/base/soc/usb@d0078080/dr_mode'
     log "peripheral mode then 1-otg, 2-host"
-    log "test ok"
+    log "test ok, use gadget.sh"
     cat <<EOF
 &usb {
 	dr_mode = "peripheral";
@@ -786,14 +786,27 @@ make listnewconfig 2>/dev/null
 pahole --version 2>/dev/null || echo "pahole no found DEBUG_INFO_BTF not effict"
 
 log "PAGE SIZE =================> $(grep -oE "^CONFIG_ARM64_.*_PAGES" .config)"
-read -n 1 -p "Press any key continue build..." value
+read -n 1 -p "Press any key continue build device tree..." value
 
-make V=1 -j$(nproc) Image dtbs modules
+make_device_tree() {
+    # # peripheral/host
+    local mode=$1
+    log "Make USB ${mode}device-tree"
+    sed -i "s/dr_mode\s*=.*/dr_mode = \"${mode}\";/g" arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts
+    grep -o "dr_mode\s*=.*" arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts
+    make -j$(nproc) dtbs
+    mkdir -p ${ROOTFS}/boot/dtb ${ROOTFS}/usr
+    rsync -a ${DIRNAME}/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dtb ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${MYVERSION}.dtb.${mode}
+}
 
+make_device_tree peripheral
+make_device_tree host
+log "default: USB host mode"
+cat ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${MYVERSION}.dtb.host > ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${MYVERSION}.dtb
+
+read -n 1 -p "Press any key continue build kernel & modules..." value
+make V=1 -j$(nproc) Image modules
 # make -j$(nproc) bindeb-pkg #gen debian deb package!!
-
-mkdir -p ${ROOTFS}/boot/dtb ${ROOTFS}/usr
-rsync -a ${DIRNAME}/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dtb ${ROOTFS}/boot/dtb/phicomm-n1-${KERVERSION}${MYVERSION}.dtb
 
 log "INSTALL UNCOMPRESSED KERNEL"
 make install > /dev/null
