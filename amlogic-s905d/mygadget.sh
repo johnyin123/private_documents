@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-05-24T16:40:25+08:00]:mygadget.sh")
+VERSION+=("86417ea[2024-05-24T16:40:25+08:00]:mygadget.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly GADGET="/sys/kernel/config/usb_gadget/g1"
@@ -122,9 +122,14 @@ create_serial() {
     try ln -s "${GADGET}/functions/acm.${node}" "${GADGET}/configs/c.${SEQ}/"
     info_msg "start USB serial for console: systemctl start serial-getty@ttyGS0.service\n"
 }
-
+# mkdir -p /dev/usb-ffs/adb
+# mount -o uid=2000,gid=2000 -t functionfs adb /dev/usb-ffs/adb
+# export service_adb_tcp_port=5555
+# start-stop-daemon --start --oknodo --make-pidfile --pidfile /var/run/adbd.pid --startas /usr/bin/adbd --background
 create_ethernet() {
     # Ethernet device
+    #  adbd GADGET="ffs.adb"
+    #  usbnet GADGET="ecm.usb0"
     ###
     local dev_eth_addr=${1}
     local host_eth_addr=${2}
@@ -180,6 +185,7 @@ main() {
             *)              usage "Unexpected option: $1";;
         esac
     done
+    # [ ! -e "/sys/kernel/config/usb_gadget/$UDC" ] && { modprobe libcomposite; mkdir -p "/sys/kernel/config/usb_gadget/$UDC"; }
     modprobe -q libcomposite || exit_msg "kernel not support libcomposite configfs\n"
     case "${create}" in
         storage)
