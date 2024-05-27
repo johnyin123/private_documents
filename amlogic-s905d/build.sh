@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("1d18637[2024-05-24T08:31:39+08:00]:build.sh")
+VERSION+=("1b19f00[2024-05-24T08:42:32+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -604,6 +604,9 @@ enable_container() {
         --enable CONFIG_CGROUP_MISC \
         --enable CONFIG_CPUSETS \
         --enable CONFIG_BLK_CGROUP \
+        --enable CONFIG_BLK_CGROUP_IOCOST \
+        --enable CONFIG_BLK_CGROUP_IOLATENCY \
+        --enable CONFIG_BLK_CGROUP_IOPRIO \
         --enable CONFIG_BLK_DEV_THROTTLING \
         --enable CONFIG_BRIDGE_VLAN_FILTERING \
         --enable CONFIG_CFS_BANDWIDTH \
@@ -727,6 +730,18 @@ EOF
         --module CONFIG_USB_DUMMY_HCD \
         --module CONFIG_USB_CONFIGFS
 }
+
+v4l_config() {
+    log "V4L"
+#        --module CONFIG_V4L2_H264 \
+#        --module CONFIG_V4L2_VP9 \
+#        --module CONFIG_V4L2_JPEG_HELPER \
+    scripts/config --enable CONFIG_VIDEO_V4L2_I2C \
+        --module CONFIG_V4L2_MEM2MEM_DEV \
+        --module CONFIG_V4L2_FWNODE \
+        --module CONFIG_V4L2_ASYNC
+}
+
 cpu_freq() {
     log "CPU FREQUENCY SCALING"
     scripts/config --enable CONFIG_CPU_FREQ \
@@ -776,6 +791,7 @@ enable_usb_gadget
 enable_arch_inline
 common_config
 cpu_freq
+v4l_config
 gen_usb_otg_devicetree
 # yes "" | make oldconfig
 # yes "y" | make oldconfig
