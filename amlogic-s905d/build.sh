@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("1b19f00[2024-05-24T08:42:32+08:00]:build.sh")
+VERSION+=("473697f[2024-05-27T10:47:46+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -232,12 +232,17 @@ enable_network_storage() {
 enable_module_xz_sign() {
     local sign=${1:-}
     log "MODULES XZ COMPRESS"
+    scripts/config --enable CONFIG_MODULES \
+        --enable CONFIG_MODVERSIONS \
+        --enable CONFIG_ASM_MODVERSIONS
+
     scripts/config --disable CONFIG_MODULE_COMPRESS_NONE
     scripts/config --disable CONFIG_MODULE_DECOMPRESS
     scripts/config --enable CONFIG_MODULE_COMPRESS_XZ
 
     scripts/config --disable CONFIG_MODULE_SIG_ALL
     scripts/config --set-str CONFIG_SYSTEM_TRUSTED_KEYS ""
+
     [ -z ${sign} ] && {
         log "MODULES NOT SIGNED"
         return
@@ -836,6 +841,7 @@ make install > /dev/null
     cat arch/arm64/boot/Image.gz > ${ROOTFS}/boot/vmlinuz-${KERVERSION}${MYVERSION}
 }
 make modules_install > /dev/null
+make INSTALL_HDR_PATH=${ROOTFS}/usr/ ARCH=${ARCH} headers_install > /dev/null
 
 log "START LIST BUILD_MODULES CONFIG KEYS."
 log "find . -name Kconfig | xargs -I@ grep -H <config key> @ | grep depends"
