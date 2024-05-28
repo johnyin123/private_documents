@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("86417ea[2024-05-24T16:40:25+08:00]:mygadget.sh")
+VERSION+=("f058e7f[2024-05-27T17:05:43+08:00]:mygadget.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly GADGET="/sys/kernel/config/usb_gadget/g1"
@@ -149,8 +149,132 @@ create_network() {
     echo 5162001 | try tee "${GADGET}/functions/rndis.${node}/os_desc/interface.rndis/sub_compatible_id"
     try ln -s "${GADGET}/functions/rndis.${node}" "${GADGET}/configs/c.${SEQ}/"
 }
-
 create_hid() {
+    cat <<'EOF'
+d={
+'a' : '\x04',
+'b' : '\x05',
+'c' : '\x06',
+'d' : '\x07',
+'e' : '\x08',
+'f' : '\x09',
+'g' : '\x0A',
+'h' : '\x0B',
+'i' : '\x0C',
+'j' : '\x0D',
+'k' : '\x0E',
+'l' : '\x0F',
+'m' : '\x10',
+'n' : '\x11',
+'o' : '\x12',
+'p' : '\x13',
+'q' : '\x14',
+'r' : '\x15',
+'s' : '\x16',
+'t' : '\x17',
+'u' : '\x18',
+'v' : '\x19',
+'w' : '\x1A',
+'x' : '\x1B',
+'y' : '\x1C',
+'z' : '\x1D',
+'A' : '^\x04',
+'B' : '^\x05',
+'C' : '^\x06',
+'D' : '^\x07',
+'E' : '^\x08',
+'F' : '^\x09',
+'G' : '^\x0A',
+'H' : '^\x0B',
+'I' : '^\x0C',
+'J' : '^\x0D',
+'K' : '^\x0E',
+'L' : '^\x0F',
+'M' : '^\x10',
+'N' : '^\x11',
+'O' : '^\x12',
+'P' : '^\x13',
+'Q' : '^\x14',
+'R' : '^\x15',
+'S' : '^\x16',
+'T' : '^\x17',
+'U' : '^\x18',
+'V' : '^\x19',
+'W' : '^\x1A',
+'X' : '^\x1B',
+'Y' : '^\x1C',
+'Z' : '^\x1D',
+' ' : '\x2C',
+'1' : '\x1E',
+'2' : '\x1F',
+'3' : '\x20',
+'4' : '\x21',
+'5' : '\x22',
+'6' : '\x23',
+'7' : '\x24',
+'8' : '\x25',
+'9' : '\x26',
+'0' : '\x27',
+'!' : '^\x1E',
+'"' : '^\x1F',
+'POUND' : '^\x20',
+'$' : '^\x21',
+'%' : '^\x22',
+'^' : '^\x23',
+'&' : '^\x24',
+'*' : '^\x25',
+'(' : '^\x26',
+')' : '^\x27',
+'[' : '\x2F',
+']' : '\x30',
+'\\' : '\x31',
+';' : '\x33',
+"'" : '\x34',
+'`' : '\x35',
+"," : '\x36',
+'#' : '\x31',
+'.' : '\x37',
+'/' : '\x38',
+'{' : '^\x2F',
+'}' : '^\x30',
+'|' : '\x31',
+':' : '^\x33',
+'<' : '^\x36',
+"@" : '^\x34',
+'~' : '^\x31',
+'>' : '^\x37',
+'?' : '^\x38',
+'-' : '\x2D',
+'_' : '^\x2D',
+'=' : '\x2E',
+'+' : '^\x2E',
+'[[ENT]]' : '\x28',
+'[[ESC]]' : '\x29',
+'[[TAB]]' : '\x2B'
+}
+
+import time
+import sys
+import keys_uk as key
+
+message=sys.argv[1]
+
+f = open('/dev/hidg0','w')
+for l in message.split("\r\n"):
+        if l in key.d.keys():
+                f.write(mod+"\x00\x00"+key.d[l]+"\x00\x00\x00\x00")
+                f.write("\x00\x00\x00\x00\x00\x00\x00\x00")
+        else:
+                for c in l:
+                        keycode=key.d[c]
+                        mod="\x00"
+                        if "^" in keycode:
+                                keycode=keycode[-1:]
+                                mod="\x02"
+                        f.write(mod+"\x00\x00"+keycode+"\x00\x00\x00\x00")
+                        f.write("\x00\x00\x00\x00\x00\x00\x00\x00")
+f.close()
+EOF
     local node=${1:-"USB0"}
     info_msg "configure gadget hid ${node}\n"
     try mkdir -p "${GADGET}/functions/hid.${node}"
@@ -159,6 +283,7 @@ create_hid() {
     echo 8 | try tee "${GADGET}/functions/hid.${node}/report_length"
     echo -ne "\\x05\\x01\\x09\\x06\\xa1\\x01\\x05\\x07\\x19\\xe0\\x29\\xe7\\x15\\x00\\x25\\x01\\x75\\x01\\x95\\x08\\x81\\x02\\x95\\x01\\x75\\x08\\x81\\x03\\x95\\x05\\x75\\x01\\x05\\x08\\x19\\x01\\x29\\x05\\x91\\x02\\x95\\x01\\x75\\x03\\x91\\x03\\x95\\x06\\x75\\x08\\x15\\x00\\x25\\x65\\x05\\x07\\x19\\x00\\x29\\x65\\x81\\x00\\xc0" | try tee "${GADGET}/functions/hid.${node}/report_desc"
     try ln -s "${GADGET}/functions/hid.${node}" "${GADGET}/configs/c.${SEQ}/"
+    # echo 250 > configs/c.$C/MaxPower
 }
 
 main() {
