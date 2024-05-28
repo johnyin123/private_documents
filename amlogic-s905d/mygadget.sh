@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f058e7f[2024-05-27T17:05:43+08:00]:mygadget.sh")
+VERSION+=("d0a2867[2024-05-28T08:36:22+08:00]:mygadget.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly GADGET="/sys/kernel/config/usb_gadget/g1"
@@ -136,8 +136,8 @@ create_ethernet() {
     local node=${3:-"USB0"}
     info_msg "configure gadget ethernet ${node}\n"
     try mkdir "${GADGET}/functions/ecm.${node}"
-    echo "${dev_eth_addr}" | try tee "${GADGET}/functions/ecm.usb0/dev_addr"
-    echo "${host_eth_addr}" | try tee "${GADGET}/functions/ecm.usb0/host_addr"
+    echo "${dev_eth_addr}" | try tee "${GADGET}/functions/ecm.${node}/dev_addr"
+    echo "${host_eth_addr}" | try tee "${GADGET}/functions/ecm.${node}/host_addr"
     try ln -s "${GADGET}/functions/ecm.${node}" "${GADGET}/configs/c.${SEQ}/"
 }
 
