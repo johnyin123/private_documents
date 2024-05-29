@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1e47412[2024-04-07T14:25:44+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("5965dad[2024-04-07T15:36:09+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -325,6 +325,8 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+        DOC:
+            https://kubernetes.io/zh-cn/docs/home/
         EXAM:
     on all nodes:
         echo '192.168.168.xxx     registry.local'>> /etc/hosts
