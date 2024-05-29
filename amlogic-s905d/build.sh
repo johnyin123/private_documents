@@ -1,10 +1,11 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("d965100[2024-05-29T07:16:44+08:00]:build.sh")
+VERSION+=("de49164[2024-05-29T11:23:55+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
+# make ARCH= O=. -C <linux-sources> headers_install INSTALL_HDR_PATH=<output-directory>
 KERVERSION="$(make kernelversion)"
 MYVERSION="-johnyin-s905d"
 
