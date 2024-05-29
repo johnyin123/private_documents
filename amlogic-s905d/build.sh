@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("de49164[2024-05-29T11:23:55+08:00]:build.sh")
+VERSION+=("e471a76[2024-05-29T11:29:57+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -842,7 +842,7 @@ make install > /dev/null
     cat arch/arm64/boot/Image.gz > ${ROOTFS}/boot/vmlinuz-${KERVERSION}${MYVERSION}
 }
 make -j$(nproc) modules_install > /dev/null
-log "install ${ARCH} libc headers"
+log "install ${ARCH} linux-libc-dev headers"
 make -j$(nproc) headers > /dev/null
 make -j$(nproc) INSTALL_HDR_PATH=${ROOTFS}/usr/ ARCH=${ARCH} headers_install > /dev/null
 log "move asm headers to /usr/include/<libc-machine>/asm to match the structure, used by Debian-based distros (to support multi-arch)"
