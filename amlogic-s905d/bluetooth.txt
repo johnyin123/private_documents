@@ -6,6 +6,11 @@ ifdown wlan0 .............
 
 pair bt:
 use local term(ssh term sometime no worked)
+bluetoothctl -- power on || error_exit "Problem power on"
+bluetoothctl -- pair $MAC || true
+bluetoothctl -- trust $MAC
+bluetoothctl -- connect $MAC
+bluetoothctl -- exit
     bluetoothctl:
         power on
         agent on
