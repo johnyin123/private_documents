@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("473697f[2024-05-27T10:47:46+08:00]:build.sh")
+VERSION+=("d965100[2024-05-29T07:16:44+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -840,8 +840,16 @@ make install > /dev/null
     # cat arch/arm64/boot/Image | gzip -n -f -9 > ${ROOTFS}/boot/vmlinuz-${KERVERSION}${MYVERSION}
     cat arch/arm64/boot/Image.gz > ${ROOTFS}/boot/vmlinuz-${KERVERSION}${MYVERSION}
 }
-make modules_install > /dev/null
-make INSTALL_HDR_PATH=${ROOTFS}/usr/ ARCH=${ARCH} headers_install > /dev/null
+make -j$(nproc) modules_install > /dev/null
+log "install ${ARCH} libc headers"
+make -j$(nproc) headers > /dev/null
+make -j$(nproc) INSTALL_HDR_PATH=${ROOTFS}/usr/ ARCH=${ARCH} headers_install > /dev/null
+log "move asm headers to /usr/include/<libc-machine>/asm to match the structure, used by Debian-based distros (to support multi-arch)"
+host_arch=$(dpkg-architecture -a${ARCH} -qDEB_HOST_MULTIARCH)
+log "mkdir include/${host_arch}"
+mkdir ${ROOTFS}/usr/include/${host_arch}
+log "mv include/asm -> include/$host_arch/"
+mv ${ROOTFS}/usr/include/asm ${ROOTFS}/usr/include/$host_arch/
 
 log "START LIST BUILD_MODULES CONFIG KEYS."
 log "find . -name Kconfig | xargs -I@ grep -H <config key> @ | grep depends"
