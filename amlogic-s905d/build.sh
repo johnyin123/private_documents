@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("e471a76[2024-05-29T11:29:57+08:00]:build.sh")
+VERSION+=("223316d[2024-05-29T12:57:47+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -848,8 +848,9 @@ make -j$(nproc) INSTALL_HDR_PATH=${ROOTFS}/usr/ ARCH=${ARCH} headers_install > /
 log "move asm headers to /usr/include/<libc-machine>/asm to match the structure, used by Debian-based distros (to support multi-arch)"
 host_arch=$(dpkg-architecture -a${ARCH} -qDEB_HOST_MULTIARCH)
 log "mkdir include/${host_arch}"
-mkdir ${ROOTFS}/usr/include/${host_arch}
+mkdir -p ${ROOTFS}/usr/include/${host_arch}
 log "mv include/asm -> include/$host_arch/"
+rm -rf ${ROOTFS}/usr/include/$host_arch/asm
 mv ${ROOTFS}/usr/include/asm ${ROOTFS}/usr/include/$host_arch/
 
 log "START LIST BUILD_MODULES CONFIG KEYS."
