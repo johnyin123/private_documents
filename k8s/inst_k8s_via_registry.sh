@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5965dad[2024-04-07T15:36:09+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("ade5514[2024-05-29T09:12:27+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -327,6 +327,9 @@ ${SCRIPTNAME}
         -h|--help help
         DOC:
             https://kubernetes.io/zh-cn/docs/home/
+            如果在运行kubeadm init之前存在给定的证书和私钥对,kubeadm 将不会重写它们,kubeadm将使用此CA对其余证书进行签名
+                /etc/kubernetes/pki/ca.crt
+                /etc/kubernetes/pki/ca.key
         EXAM:
     on all nodes:
         echo '192.168.168.xxx     registry.local'>> /etc/hosts
