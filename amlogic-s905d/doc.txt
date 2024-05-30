@@ -168,6 +168,7 @@ apt install rng-tools
 
 # # STAGING -> CONFIG_VIDEO_MESON_VDEC test case
 # mpv --msg-level=all=v --hwdec=v4l2m2m-copy --hwdec-codecs=all --vo=xv test.mp4
+# mpv --msg-level=all=v --hwdec=auto-copy --hwdec-codecs=all --vo=xv test.mkv
 # ffmpeg -c:v h264_v4l2m2m -i 1.mp4 -map 0:v -f null -y /dev/null
 
 other phicomm n1 kernel config:
