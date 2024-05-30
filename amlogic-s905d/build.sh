@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("223316d[2024-05-29T12:57:47+08:00]:build.sh")
+VERSION+=("099494a[2024-05-29T14:59:28+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -56,6 +56,8 @@ scripts/config --enable CONFIG_SLUB --enable CONFIG_SMP
 scripts/config --enable CONFIG_AUDIT
 
 scripts/config --enable CONFIG_EXPERT
+scripts/config --module CONFIG_TTY_PRINTK \
+    --set-val CONFIG_TTY_PRINTK_LEVEL 6
 
 enable_zram() {
     log "ENABLE ZSWAP && ZRAM MODULES"
