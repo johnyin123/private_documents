@@ -4,7 +4,7 @@ usbip tools use: /linux-<kernel-version>/tools/usb/usbip
     modprobe usbip-host
     usbipd -D
     usbip list --local
-    usbip --busid=3-6
+    usbip bind --busid=3-6
     # usbip unbind --busid=3-6
 # Client
     modprobe vhci-hcd

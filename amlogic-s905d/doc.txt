@@ -171,6 +171,19 @@ apt install rng-tools
 # mpv --msg-level=all=v --hwdec=auto-copy --hwdec-codecs=all --vo=xv test.mkv
 # ffmpeg -c:v h264_v4l2m2m -i 1.mp4 -map 0:v -f null -y /dev/null
 
+# # v4l2_request use fedora patched source.
+# # https://kojipkgs.fedoraproject.org//packages/libva-v4l2-request/1.0.0/13.20190517gita3c2476.fc40/src/libva-v4l2-request-1.0.0-13.20190517gita3c2476.fc40.src.rpm
+# # remove all h265 codes, apt -y install libdrm-dev libva-dev libtool automake
+# #
+# export LIBVA_DRIVER_NAME=v4l2_request
+# # If you compile your own libva-v4l2-request and install in /usr/local/
+# export LIBVA_DRIVERS_PATH=/usr/local/lib/dri
+# Check /sys/class/video4linux/*/name and /sys/bus/media/devices/*/model
+export LIBVA_V4L2_REQUEST_VIDEO_PATH=/dev/video0
+export LIBVA_V4L2_REQUEST_MEDIA_PATH=/dev/media0
+# # need webcam, so /dev/media0 exists(use usbip checked)
+# mpv --hwdec=vaapi-copy --vo=drm video.mp4
+
 other phicomm n1 kernel config:
 # https://www.kernel.org/doc/html/latest/gpu/meson.html
 CONFIG_PREEMPT_VOLUNTARY=y
