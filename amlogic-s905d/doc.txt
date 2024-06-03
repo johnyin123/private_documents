@@ -174,7 +174,7 @@ apt install rng-tools
 # # v4l2_request use fedora patched source.
 # # https://kojipkgs.fedoraproject.org//packages/libva-v4l2-request/1.0.0/13.20190517gita3c2476.fc40/src/libva-v4l2-request-1.0.0-13.20190517gita3c2476.fc40.src.rpm
 # # remove all h265 codes, apt -y install libdrm-dev libva-dev libtool automake
-# #
+# # LIBVA_DRIVER_NAME=v4l2_request DISPLAY=:0.0 vainfo
 # export LIBVA_DRIVER_NAME=v4l2_request
 # # If you compile your own libva-v4l2-request and install in /usr/local/
 # export LIBVA_DRIVERS_PATH=/usr/local/lib/dri
