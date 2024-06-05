@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("93ecc53[2024-06-03T14:49:28+08:00]:build.sh")
+VERSION+=("8cd001f[2024-06-03T16:30:23+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -532,9 +532,15 @@ s905d_opt() {
         --module CONFIG_MESON_GXBB_WATCHDOG \
         --module CONFIG_MESON_WATCHDOG
 
+    log "MESON NETWORK MODULES, MESON8B-DWMAC[RTL8211F Gigabit Ethernet]"
+    scripts/config --module CONFIG_DWMAC_MESON
+
+    log "kernel 6.1 SERIAL_MESON need buildin, 6,6 can module"
+    scripts/config --module CONFIG_SERIAL_MESON \
+        --enable CONFIG_SERIAL_MESON_CONSOLE
+
     log "MESON OTHER MODULES"
     scripts/config --module CONFIG_MESON_SM \
-        --module CONFIG_DWMAC_MESON \
         --module CONFIG_MDIO_BUS_MUX_MESON_G12A \
         --module CONFIG_I2C_MESON \
         --module CONFIG_SPI_AMLOGIC_SPIFC_A1 \
@@ -587,12 +593,8 @@ s905d_opt() {
         --module CONFIG_CRYPTO_DEV_AMLOGIC_GXL \
         --enable CONFIG_CRYPTO_DEV_AMLOGIC_GXL_DEBUG
 
-        log "kernel 6.1 SERIAL_MESON need buildin, 6,6 can module"
-        scripts/config --module CONFIG_SERIAL_MESON \
-            --enable CONFIG_SERIAL_MESON_CONSOLE
-
-        scripts/config --disable CONFIG_NVMEM_MESON_EFUSE
-        scripts/config --disable CONFIG_NVMEM_MESON_MX_EFUSE
+    scripts/config --disable CONFIG_NVMEM_MESON_EFUSE
+    scripts/config --disable CONFIG_NVMEM_MESON_MX_EFUSE
 }
 enable_container() {
     log "enable container"

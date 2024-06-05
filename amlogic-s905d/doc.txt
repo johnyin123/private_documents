@@ -15,6 +15,28 @@ Vendor ID:               ARM
     Cluster(s):          1
     Stepping:            r0p4
 
+ 15     p2pdevinterface=$(sudo wpa_cli interface | grep -E "p2p-dev" | tail -1)
+ 16     wlaninterface=$(echo $p2pdevinterface | cut -c1-8 --complement)
+ 25         sudo wpa_cli -i$p2pdevinterface p2p_find type=progressive
+ 26         sudo wpa_cli -i$p2pdevinterface set device_name "$(uname -n)"
+ 27         sudo wpa_cli -i$p2pdevinterface set device_type 7-0050F204-1
+ 28         sudo wpa_cli -i$p2pdevinterface set p2p_go_ht40 1
+ 29         sudo wpa_cli -i$p2pdevinterface wfd_subelem_set 0 000600111c44012c
+ 30         sudo wpa_cli -i$p2pdevinterface wfd_subelem_set 1 0006000000000000
+ 31         sudo wpa_cli -i$p2pdevinterface wfd_subelem_set 6 000700000000000000
+ 32         perentry="$(sudo wpa_cli -i$p2pdevinterface list_networks | grep "\[DISABLED\]\[P2P-PERSISTENT\]" | tail -1)"
+ 33         echo "${perentry}"
+ 34         if [ `echo "${perentry}" | grep -c "P2P-PERSISTENT"`  -gt 0 ]
+ 35         then
+ 36             networkid=${perentry%%D*}
+ 37             perstr="=${networkid}"
+ 38         else
+ 39             perstr=""
+ 40         fi
+ 41         echo "${perstr}"
+ 42         echo "${p2pdevinterface}"
+ 43         wlanfreq=$(sudo wpa_cli -i$wlaninterface status | grep "freq")
+
 barrier: (Share mouse, keyboard and clipboard over the network, support win/linux)
 xvkbd (virtual keyboard)
 # this command sends the key control+c
