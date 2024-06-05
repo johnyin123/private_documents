@@ -5,11 +5,18 @@ make && DESTDIR=~/target/ make install-strip
 ifdown wlan0 .............
 
 pair bt:
-use local term(ssh term sometime no worked)
-bluetoothctl -- power on || error_exit "Problem power on"
-bluetoothctl -- pair $MAC || true
-bluetoothctl -- trust $MAC
-bluetoothctl -- connect $MAC
+bluetoothctl -- power on
+bluetoothctl -- default-agent
+bluetoothctl -- discoverable on
+bluetoothctl -- pairable on
+
+bluetoothctl -- power on
+timeout 10s bluetoothctl -- scan on
+bluetoothctl -- pair 4C:03:4F:57:11:96
+bluetoothctl -- trust 4C:03:4F:57:11:96
+
+bt-device  -s <mac>
+bt-device  -i <mac>
 bluetoothctl -- exit
     bluetoothctl:
         power on
