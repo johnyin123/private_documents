@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("2e68d18[2024-06-06T17:11:54+08:00]:build.sh")
+VERSION+=("febb831[2024-06-07T08:34:29+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -431,7 +431,7 @@ enable_nfs_rootfs() {
     scripts/config --enable CONFIG_ROOT_NFS
 }
 s905d_opt() {
-    log "AMLOGIC S905D MODULES"
+    log "AMLOGIC S905D MODULES, s905d no need EFI/ACPI"
 
     scripts/config --enable CONFIG_ARCH_MESON
     scripts/config --enable CONFIG_MAILBOX
