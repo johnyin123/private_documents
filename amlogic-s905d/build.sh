@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("fafb3a3[2024-06-05T09:26:15+08:00]:build.sh")
+VERSION+=("2e68d18[2024-06-06T17:11:54+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -431,9 +431,7 @@ enable_nfs_rootfs() {
     scripts/config --enable CONFIG_ROOT_NFS
 }
 s905d_opt() {
-    log "AMLOGIC S905D, not acpi, no efi"
-    # scripts/config --enable CONFIG_ACPI --enable CONFIG_EFI
-    scripts/config --disable CONFIG_ACPI --disable CONFIG_EFI
+    log "AMLOGIC S905D MODULES"
 
     scripts/config --enable CONFIG_ARCH_MESON
     scripts/config --enable CONFIG_MAILBOX
@@ -766,6 +764,18 @@ cpu_freq() {
         --module CONFIG_CPU_FREQ_GOV_CONSERVATIVE \
         --enable CONFIG_CPU_FREQ_GOV_SCHEDUTIL
 }
+
+enable_acpi_efi() {
+    local byes=${1:-}
+    [ -z ${byes} ] && {
+        log "DISABLE ACPI&EFI"
+        scripts/config --disable CONFIG_ACPI --disable CONFIG_EFI
+        return
+    }
+    log "ENABLE ACPI&EFI"
+    scripts/config --enable CONFIG_ACPI --enable CONFIG_EFI
+}
+
 common_config() {
     log "COMMON KERNEL CONFIG"
     scripts/config --enable CONFIG_SYSVIPC \
@@ -797,6 +807,8 @@ enable_ebpf
 s905d_opt
 enable_nfs_rootfs
 # enable_nfs_rootfs yes
+enable_acpi_efi
+#enable_acpi_efi yes
 enable_kvm
 enable_container
 enable_usbip
