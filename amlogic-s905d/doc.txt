@@ -71,6 +71,8 @@ apt-get update -oAcquire::AllowInsecureRepositories=true
 apt-get install deb-multimedia-keyring
 #bluetooth
 apt install --no-install-recommends blueman pulseaudio pulseaudio-module-bluetooth pavucontrol mpg123
+# # apt install --no-install-recommends pulseaudio pulseaudio-module-bluetooth
+# # usermod -a -G pulse-access,audio myuser
 
 # auto power on bluetooth, hciconfig hci0 up / bluetoothctl power on
 cat <<EOF > /etc/bluetooth/main.conf
