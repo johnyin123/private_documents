@@ -217,6 +217,9 @@ export LIBVA_V4L2_REQUEST_VIDEO_PATH=/dev/video0
 export LIBVA_V4L2_REQUEST_MEDIA_PATH=/dev/media0
 # # need webcam, so /dev/media0 exists(use usbip checked)
 # mpv --hwdec=vaapi-copy --vo=drm video.mp4
+mpv --gpu-context=help
+mpv --hwdec=help
+mpv --vo=help
 
 other phicomm n1 kernel config:
 # https://www.kernel.org/doc/html/latest/gpu/meson.html
