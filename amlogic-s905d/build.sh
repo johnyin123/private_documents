@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("febb831[2024-06-07T08:34:29+08:00]:build.sh")
+VERSION+=("990cf81[2024-06-07T08:36:32+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -440,6 +440,7 @@ s905d_opt() {
     scripts/config --module CONFIG_ARM_SCPI_CPUFREQ
     scripts/config --enable CONFIG_ARM_PMU --enable CONFIG_ARM_PMUV3
     scripts/config --module CONFIG_USB \
+        --module CONFIG_TYPEC \
         --module CONFIG_USB_COMMON \
         --module CONFIG_USB_ULPI_BUS
     log "USB DWC2 is define as OTG"
@@ -723,6 +724,8 @@ modprobe g_mass_storage file=/root/disk
 mount .....
 EOF
     scripts/config --module CONFIG_USB_ZERO \
+        --enable CONFIG_USB_G_MULTI_CDC \
+        --module CONFIG_USB_G_DBGP \
         --module CONFIG_USB_AUDIO \
         --module CONFIG_USB_ETH \
         --module CONFIG_USB_G_NCM \
@@ -820,14 +823,12 @@ v4l_config
 gen_usb_otg_devicetree
 # yes "" | make oldconfig
 # yes "y" | make oldconfig
-ls arch/${ARCH}/configs/ 2>/dev/null
-make listnewconfig 2>/dev/null
+log "${ARCH} support defined config:" && ls arch/${ARCH}/configs/ 2>/dev/null
+log "${ARCH} list new config" && make listnewconfig 2>/dev/null
 # make helpnewconfig
 # ARCH=<arch> scripts/kconfig/merge_config.sh <...>/<platform>_defconfig <...>/android-base.config <...>/android-base-<arch>.config <...>/android-recommended.config
-[ -e ".config.old" ] && scripts/diffconfig .config.old .config 2>/dev/null
-
-pahole --version 2>/dev/null || echo "pahole no found DEBUG_INFO_BTF not effict"
-
+log "${ARCH} diff config" && [ -e ".config.old" ] && scripts/diffconfig .config.old .config 2>/dev/null
+log "panhole version" && pahole --version 2>/dev/null || log "pahole no found DEBUG_INFO_BTF not effict"
 log "PAGE SIZE =================> $(grep -oE "^CONFIG_ARM64_.*_PAGES" .config)"
 read -n 1 -p "Press any key continue build device tree..." value
 
