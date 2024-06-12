@@ -1,7 +1,21 @@
 diff --git a/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts b/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts
-index 393d3cb..cb88acb 100644
-+++ a/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts
-@@ -24,6 +24,24 @@
+index 393d3cb..2898861 100644
+--- a/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts
++++ b/arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts
+@@ -11,6 +11,12 @@
+ 	compatible = "phicomm,n1", "amlogic,s905d", "amlogic,meson-gxl";
+ 	model = "Phicomm N1";
+ 
++	reserved-memory {
++		linux,cma {
++			size = <0x0 0x38000000>;
++		};
++	};
++
+ 	cvbs-connector {
+ 		status = "disabled";
+ 	};
+@@ -24,6 +30,24 @@
  			default-state = "on";
  		};
  	};
@@ -26,7 +40,7 @@ index 393d3cb..cb88acb 100644
  };
  
  &cvbs_vdac_port {
-@@ -33,3 +51,60 @@
+@@ -33,3 +57,66 @@
  &usb {
  	dr_mode = "host";
  };
@@ -40,6 +54,12 @@ index 393d3cb..cb88acb 100644
 +	/delete-property/ eee-broken-1000t;
 +	/delete-property/ max-speed;
 +	interrupts = <25 IRQ_TYPE_LEVEL_LOW>;
++};
++
++&ethmac {
++	snps,aal;
++	snps,txpbl = <0x8>;
++	snps,rxpbl = <0x8>;
 +};
 +
 +/* This UART is connected to the Bluetooth module */
