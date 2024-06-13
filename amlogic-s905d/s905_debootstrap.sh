@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("575f91e[2024-05-16T14:45:38+08:00]:s905_debootstrap.sh")
+VERSION+=("a07ad41[2024-06-11T17:07:53+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -295,7 +295,7 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
     systemctl mask systemd-machine-id-commit.service
 
     apt update
-    apt -y remove ca-certificates wireless-regdb crda --purge
+    apt -y remove wireless-regdb crda --purge
     apt -y autoremove --purge
 
     log "add lima xorg.conf"
