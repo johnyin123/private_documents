@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("990cf81[2024-06-07T08:36:32+08:00]:build.sh")
+VERSION+=("be18f91[2024-06-12T08:59:16+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -442,7 +442,8 @@ s905d_opt() {
     scripts/config --module CONFIG_USB \
         --module CONFIG_TYPEC \
         --module CONFIG_USB_COMMON \
-        --module CONFIG_USB_ULPI_BUS
+        --module CONFIG_USB_ULPI_BUS \
+        --module CONFIG_USB_ROLE_SWITCH
     log "USB DWC2 is define as OTG"
     scripts/config --module CONFIG_USB_DWC2 --enable CONFIG_USB_DWC2_DUAL_ROLE
     scripts/config --module CONFIG_USB_DWC3 --enable CONFIG_USB_DWC3_ULPI --enable CONFIG_USB_DWC3_DUAL_ROLE
@@ -793,11 +794,11 @@ gen_usb_otg_devicetree() {
     log 'cat /sys/firmware/devicetree/base/soc/usb@d0078080/dr_mode'
     log "peripheral mode then 1-otg, 2-host"
     log "test ok, use gadget.sh"
-    cat <<EOF
-&usb {
-	dr_mode = "peripheral";
-};
-EOF
+    log 'echo device | tee /sys/bus/platform/drivers/dwc3-meson-g12a/d0078080.usb/usb_role/d0078080.usb-role-switch/role'
+    log 'echo c9100000.usb | tee /sys/bus/platform/drivers/dwc2/unbind'
+    log 'echo c9100000.usb | tee /sys/bus/platform/drivers/dwc2/bind'
+    log "BUGGY: not work: echo host > /sys/devices/platform/soc/d0078080.usb/usb_role/d0078080.usb-role-switch/role"
+    log "rmmod dwc3_meson_g12a && modprobe dwc3_meson_g12a, usb reinit, drivers/usb/dwc3/dwc3-meson-g12a.c "
 }
 
 enable_module_xz_sign yes
