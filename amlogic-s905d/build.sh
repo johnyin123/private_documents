@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("be18f91[2024-06-12T08:59:16+08:00]:build.sh")
+VERSION+=("653e681[2024-06-13T09:38:30+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -444,8 +444,9 @@ s905d_opt() {
         --module CONFIG_USB_COMMON \
         --module CONFIG_USB_ULPI_BUS \
         --module CONFIG_USB_ROLE_SWITCH
-    log "USB DWC2 is define as OTG"
+    log "USB DWC2 is define as peripheral"
     scripts/config --module CONFIG_USB_DWC2 --enable CONFIG_USB_DWC2_DUAL_ROLE
+    log "USB DWC3 is define as host"
     scripts/config --module CONFIG_USB_DWC3 --enable CONFIG_USB_DWC3_ULPI --enable CONFIG_USB_DWC3_DUAL_ROLE
     scripts/config --module CONFIG_USB_DWC3_MESON_G12A --module CONFIG_USB_DWC3_OF_SIMPLE
     scripts/config --module CONFIG_FIXED_PHY \
@@ -799,6 +800,14 @@ gen_usb_otg_devicetree() {
     log 'echo c9100000.usb | tee /sys/bus/platform/drivers/dwc2/bind'
     log "BUGGY: not work: echo host > /sys/devices/platform/soc/d0078080.usb/usb_role/d0078080.usb-role-switch/role"
     log "rmmod dwc3_meson_g12a && modprobe dwc3_meson_g12a, usb reinit, drivers/usb/dwc3/dwc3-meson-g12a.c "
+    cat <<EOF
+# http://lists.infradead.org/pipermail/linux-amlogic/2017-July/004321.html
+please note that device mode and OTG support on Amlogic Meson GXL is
+more complicated, as it uses dwc2 and dwc3 controllers in combination:
+- dwc3 is reponsible for host-only mode
+- dwc2 is responsible for device-only mode
+- OTG detection is done by the USB3 PHY
+EOF
 }
 
 enable_module_xz_sign yes
