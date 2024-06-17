@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a07ad41[2024-06-11T17:07:53+08:00]:s905_debootstrap.sh")
+VERSION+=("bd4d3e9[2024-06-14T07:29:48+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -638,6 +638,9 @@ option  subnet  ${MASK}
 opt     router  ${ADDRESS}
 opt     dns     114.114.114.114
 max_leases      45
+
+# The time period at which udhcpd will write out a dhcpd.leases
+auto_time       10
 lease_file      /var/run/udhcpd.leases
 pidfile         /var/run/udhcpd-wlan0.pid
 option  domain  local
