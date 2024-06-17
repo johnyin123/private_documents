@@ -1,0 +1,9 @@
+# May need to set up x11vnc password beforehand!
+# -forever and -loop are important to makes sure it keeps working
+nohup x11vnc -create -forever -loop -usepw &
+# noVNC
+git clone https://github.com/novnc/noVNC.git --depth 2
+cd noVNC
+# Set up SSL
+openssl req -x509 -nodes -newkey rsa:2048 -keyout novnc.pem -out novnc.pem -days 180
+nohup ./utils/novnc_proxy --vnc localhost:5900 --cert novnc.pem --ssl-only --listen 443 &
