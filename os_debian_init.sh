@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("63c21a2[2024-04-25T13:55:58+08:00]:os_debian_init.sh")
+VERSION+=("e514284[2024-05-06T08:36:01+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -791,6 +791,16 @@ debian_minimum_init() {
     rm -rf /usr/share/info \
            /usr/share/lintian \
            /usr/share/linda || true
+    set -e; \
+    for file in `find /var/lib/dpkg/info -name '*.md5sums' -o \
+        -name '*.postrm' -o -name '*.prerm' -o -name '*.preinst' -o \
+        -name '*.list' | sort`; do \
+        if echo $file | grep -qv '\.list'; then \
+            echo "** Removing unnecessary control file $file"; \
+        fi; \
+        rm $file; \
+    done
+    rm -rf /var/lib/dpkg/triggers || true
 } >/dev/null 2>&1
 export -f debian_minimum_init
 
