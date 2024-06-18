@@ -195,9 +195,9 @@ cat < EOF > ~/.config/mpv/mpv.conf
 msg-level=all=v
 vo=gpu
 gpu-context=wayland
-drm-connector=HDMI-A-1
-fs=yes
-#hwdec=auto
+# drm-connector=HDMI-A-1
+# fs=yes
+# hwdec=auto
 hwdec=v4l2m2m-copy
 hwdec-codecs=all
 EOF
