@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1541072[2024-06-17T10:25:33+08:00]:s905_debootstrap.sh")
+VERSION+=("5bdb324[2024-06-18T10:13:30+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -210,18 +210,21 @@ PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifu
 PKG+=",udev,isc-dhcp-client,netbase,console-setup,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,babeld,ifenslave,vlan"
 PKG+=",parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server,netcat-openbsd"
 PKG+=",systemd-container,nftables,systemd-timesyncd,zstd"
-PKG+=",fonts-noto-cjk"
-#PKG+=",fonts-droid-fallback"
 PKG+=",cron,logrotate,bsdmainutils,openssh-client,wget,ntpdate,less,wireless-tools,file,lsof,strace,rsync"
 PKG+=",xz-utils,zip,udisks2"
 PKG+=",alsa-utils,mpg123"
 # # tools
 PKG+=",sudo,aria2,axel,curl,eject,rename,bc,socat,tmux,xmlstarlet,jq,traceroute,ipcalc,ncal,qrencode,tcpdump"
-# # xfce/lxde, DEBIAN_VERSION=bookworm use lxde
-PKG+=",smplayer,smplayer-l10n,lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xserver-xorg-input-all,x11-utils,x11-xserver-utils"
-PKG+=",pulseaudio,pulseaudio-utils,ffmpeg"
 # fw_printenv/fw_setenv
 PKG+=",libubootenv-tool"
+# # for minidlna
+PKG+=",minidlna"
+# xfce/lxde, DEBIAN_VERSION=bookworm use lxde
+PKG+=",smplayer,smplayer-l10n"
+PKG+=",lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xserver-xorg-input-all,x11-utils,x11-xserver-utils"
+PKG+=",fonts-noto-cjk"
+#PKG+=",fonts-droid-fallback"
+PKG+=",pulseaudio,pulseaudio-utils,ffmpeg"
 # ,pipewire,pipewire-audio-client-libraries"
 log "lxde use ibus input for chinese"
 case "${DEBIAN_VERSION:-bullseye}" in
@@ -230,8 +233,7 @@ case "${DEBIAN_VERSION:-bullseye}" in
 esac
 # # for xdotool, wmctrl
 PKG+=",policykit-1,xdotool,wmctrl"
-# # for minidlna
-PKG+=",minidlna,x11vnc,wpan-tools"
+PKG+=",x11vnc,wpan-tools"
 # # for libvirtd
 
 # # finally add custom packages
