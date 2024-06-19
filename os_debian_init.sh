@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("1198f9c[2024-06-19T09:36:01+08:00]:os_debian_init.sh")
+VERSION+=("4375af0[2024-06-19T10:35:04+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -145,6 +145,10 @@ debian_sysctl_init() {
     # net.ipv4.ip_local_port_range = 1024 65531
     # net.ipv4.tcp_fin_timeout = 10
     # # (65531-1024)/10 = 6450 sockets per second.
+    [ -e "/etc/sysctl.conf" ] || {
+        echo "need install procps"
+        DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install procps
+    }
     mv /etc/sysctl.conf /etc/sysctl.conf.bak 2>/dev/null || true
     cat << EOF > /etc/sysctl.conf
 net.ipv4.ping_group_range = 0 2147483647
@@ -198,7 +202,7 @@ debian_sshd_regenkey() {
 export -f debian_sshd_regenkey
 
 debian_sshd_init() {
-    apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install openssh-server
+    DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install openssh-server
     # dpkg-reconfigure -f noninteractive openssh-server
     sed --quiet -i.orig -E \
         -e '/^\s*(UseDNS|MaxAuthTries|GSSAPIAuthentication|Port|Ciphers|MACs|PermitRootLogin|TrustedUserCAKeys).*/!p' \
@@ -435,12 +439,12 @@ EOF
     eval $(grep -E "^VERSION_CODENAME=" /etc/os-release)
     case "$VERSION_CODENAME" in
         buster)
-            apt -y -oAcquire::http::User-Agent=dler --no-install-recommends update && apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install udisks2
+            DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends update && DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install udisks2
             mkdir -p /usr/local/lib/zram.conf.d/
             cfg=/usr/local/lib/zram.conf.d/zram0-env
             ;;
         bullseye)
-            apt -y -oAcquire::http::User-Agent=dler --no-install-recommends update && apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install udisks2-zram
+            DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends update && DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install udisks2-zram
             mkdir -p /usr/lib/zram.conf.d/
             cfg=/usr/lib/zram.conf.d/zram0
             ;;
@@ -455,7 +459,7 @@ EOF
 export -f debian_zswap_init3
 
 debian_vim_init() {
-    apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install vim
+    DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install vim
     cat <<'EOF' > /etc/vim/vimrc.local
 syntax on
 " color evening

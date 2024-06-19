@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5bdb324[2024-06-18T10:13:30+08:00]:s905_debootstrap.sh")
+VERSION+=("af9cd58[2024-06-18T14:39:21+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -257,30 +257,37 @@ DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
     HOSTNAME="s905d2" \
     NAME_SERVER=114.114.114.114 \
     PASSWORD=password \
-    debian_build "${ROOT_DIR}" "${CACHE_DIR}" "${PKG}"
+    debian_build "${ROOT_DIR}" "${CACHE_DIR}"
+    #debian_build "${ROOT_DIR}" "${CACHE_DIR}" "${PKG}"
 
-LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
+LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash -x <<EOSHELL
     /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
     /bin/mknod -m 666 /dev/null c 1 3 2>/dev/null || true
+    DEBIAN_FRONTEND=noninteractive apt update
+    DEBIAN_FRONTEND=noninteractive apt -y --no-install-recommends install ca-certificates
+    DEBIAN_FRONTEND=noninteractive apt -y --no-install-recommends upgrade
+    DEBIAN_FRONTEND=noninteractive apt -y remove wireless-regdb crda --purge
+    DEBIAN_FRONTEND=noninteractive apt -y autoremove --purge || true
+    while read -d ',' pkg; do
+        log "INSTALL \${pkg}"
+        DEBIAN_FRONTEND=noninteractive apt -y --no-install-recommends install \${pkg} || true
+    done <<< "${PKG}"
 
-    debian_zswap_init 512
-    debian_sshd_init
-    debian_vim_init
-    debain_overlay_init
     # # disable saradc module
     # cat << EOF > /etc/modprobe.d/meson_saradc.conf
     # blacklist meson_saradc
     # EOF
 
     log "Enable rootfs module(if not buildin)"
-    grep -q "ext4" /etc/modules || echo "ext4" >> /etc/initramfs-tools/modules
-    grep -q "ext4" /etc/modules || echo "ext4" >> /etc/modules
+    mkdir -p /etc/initramfs-tools
+    grep -q "ext4" /etc/modules 2>/dev/null || echo "ext4" >> /etc/initramfs-tools/modules
+    grep -q "ext4" /etc/modules 2>/dev/null || echo "ext4" >> /etc/modules
 
     log "Enable CPU FREQ"
-    grep -q "scpi-cpufreq" /etc/modules  || echo "scpi-cpufreq" >> /etc/modules
+    grep -q "scpi-cpufreq" /etc/modules 2>/dev/null || echo "scpi-cpufreq" >> /etc/modules
 
     log "Enable Kernel TLS"
-    grep -q "tls" /etc/modules  || echo "tls" >> /etc/modules
+    grep -q "tls" /etc/modules 2>/dev/null || echo "tls" >> /etc/modules
 
     # cat << EOF > /etc/modprobe.d/brcmfmac.conf
     # options brcmfmac p2pon=1
@@ -297,10 +304,6 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
     #sed -i 's/#RuntimeMaxUse=/RuntimeMaxUse=64M/' /etc/systemd/journald.conf
 
     systemctl mask systemd-machine-id-commit.service
-
-    apt update
-    apt -y remove wireless-regdb crda --purge
-    apt -y autoremove --purge
 
     log "add lima xorg.conf"
     mkdir -p /etc/X11/xorg.conf.d/
@@ -343,7 +346,7 @@ EOF
     chown johnyin:johnyin /home/johnyin/.xsessionrc
     ln -s /home/johnyin/.Xauthority /root/.Xauthority
     echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
-    chmod 0440 /etc/sudoers.d/johnyin
+    mkdir -p /etc/sudoers.d/johnyin && chmod 0440 /etc/sudoers.d/johnyin
     sed -i "s/^\(.*requiretty\)$/#\1/" /etc/sudoers
     log "auto login lightdm"
     sed -i "s/#autologin-user=.*/autologin-user=johnyin/g" /etc/lightdm/lightdm.conf
@@ -365,6 +368,15 @@ EOF
     chage -d 0 root || true
     /bin/umount /dev/pts
     exit
+EOSHELL
+LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
+    /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
+    /bin/mknod -m 666 /dev/null c 1 3 2>/dev/null || true
+    debian_sysctl_init
+    debian_zswap_init 512
+    debian_sshd_init
+    debian_vim_init
+    debain_overlay_init
 EOSHELL
 
 log "modify networking waitonline tiemout to 5s"
@@ -440,9 +452,9 @@ iface br-ext inet static
 # post-up ip route add default via 192.168.168.1 dev br-ext table out.168
 # post-up ip route add 192.168.168.0/24 dev br-ext src 192.168.168.2 table out.168
 EOF
-# # for minidlna
-sed -i "/User=minidlna/d" /lib/systemd/system/minidlna.service
-sed -i "/Group=minidlna/d" /lib/systemd/system/minidlna.service
+log "for minidlna"
+sed -i "/User=minidlna/d" ${ROOT_DIR}/lib/systemd/system/minidlna.service || true
+sed -i "/Group=minidlna/d" ${ROOT_DIR}/lib/systemd/system/minidlna.service || true
 cat << EOF > ${ROOT_DIR}/etc/minidlna.conf
 media_dir=/media/
 # Set this to merge all media_dir base contents into the root container
