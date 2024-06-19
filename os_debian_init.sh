@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("2534529[2024-06-18T09:23:53+08:00]:os_debian_init.sh")
+VERSION+=("ca4142b[2024-06-18T13:24:15+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -81,26 +81,26 @@ debian_apt_init() {
     # see bullseye release notes
     case "${ver}" in
         buster)
-            echo "deb http://mirrors.aliyun.com/debian-security ${ver}/updates main contrib non-free"  >> /etc/apt/sources.list
+            echo "deb https://mirrors.aliyun.com/debian-security ${ver}/updates main contrib non-free"  >> /etc/apt/sources.list
             ;;
         bullseye)
-            echo "deb http://mirrors.aliyun.com/debian-security ${ver}-security main contrib"  >> /etc/apt/sources.list
+            echo "deb https://mirrors.aliyun.com/debian-security ${ver}-security main contrib"  >> /etc/apt/sources.list
             ;;
         bookworm)
             nonfree="non-free non-free-firmware"
-            echo "deb http://mirrors.aliyun.com/debian-security ${ver}-security main contrib non-free-firmware"  >> /etc/apt/sources.list
+            echo "deb https://mirrors.aliyun.com/debian-security ${ver}-security main contrib non-free-firmware"  >> /etc/apt/sources.list
             ;;
     esac
     cat > /etc/apt/sources.list << EOF
-deb http://mirrors.aliyun.com/debian ${ver} main contrib ${nonfree}
-deb http://mirrors.aliyun.com/debian ${ver}-proposed-updates main contrib ${nonfree}
-deb http://mirrors.aliyun.com/debian ${ver}-backports main contrib ${nonfree}
+deb https://mirrors.aliyun.com/debian ${ver} main contrib ${nonfree}
+deb https://mirrors.aliyun.com/debian ${ver}-proposed-updates main contrib ${nonfree}
+deb https://mirrors.aliyun.com/debian ${ver}-backports main contrib ${nonfree}
 EOF
     cat > /etc/apt/sources.list.d/multimedia.list <<EOF
 # # apt -y -oAcquire::http::User-Agent=dler --no-install-recommends -oAcquire::AllowInsecureRepositories=true update 2>/dev/null || true
 # # apt -y -oAcquire::http::User-Agent=dler --no-install-recommends --allow-unauthenticated install deb-multimedia-keyring 2>/dev/null|| true
-# deb [trusted=yes] http://mirrors.aliyun.com/debian-multimedia ${ver} main non-free
-# deb [trusted=yes] http://mirrors.aliyun.com/debian-multimedia ${ver}-backports main
+# deb [trusted=yes] https://mirrors.aliyun.com/debian-multimedia ${ver} main non-free
+# deb [trusted=yes] https://mirrors.aliyun.com/debian-multimedia ${ver}-backports main
 EOF
 }
 export -f debian_apt_init
@@ -168,6 +168,7 @@ net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_tw_reuse = 0
 net.ipv4.ip_forward = 1
 EOF
+    mkdir -p /etc/sysctl.d
     cat << EOF > /etc/sysctl.d/90-bbr.conf
 net.core.default_qdisc=fq
 net.ipv4.tcp_congestion_control=bbr
