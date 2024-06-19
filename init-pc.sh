@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("66c9c3d[2024-04-17T13:59:32+08:00]:init-pc.sh")
+VERSION+=("575f91e[2024-05-16T14:45:38+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -22,7 +22,7 @@ apt_install() {
     apt -y -oAcquire::http::User-Agent=dler install $*
 }
 
-debian_apt_init ${VERSION_CODENAME}
+debian_apt_init
 apt update
 apt -y upgrade
 

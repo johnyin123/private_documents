@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c518be6[2023-01-06T14:50:41+08:00]:debian_tuning.sh")
+VERSION+=("eefea65[2023-01-11T16:08:20+08:00]:debian_tuning.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
@@ -56,7 +56,7 @@ main() {
     done
     [ -z ${ssh} ] && usage "ssh must input"
     [ -z ${password} ]  || set_sshpass "${password}"
-    ssh_func "${ssh}" "${port}" debian_apt_init "bullseye"
+    ssh_func "${ssh}" "${port}" debian_apt_init
     ssh_func "${ssh}" "${port}" debian_limits_init
     ssh_func "${ssh}" "${port}" debian_sysctl_init
     ssh_func "${ssh}" "${port}" debian_sshd_regenkey
