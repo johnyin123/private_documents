@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("af9cd58[2024-06-18T14:39:21+08:00]:s905_debootstrap.sh")
+VERSION+=("157f39c[2024-06-19T13:08:38+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -896,21 +896,33 @@ scan_cur_freq=1
 #Whether to scan only the current frequency
 # 0:  Scan all available frequencies. (Default)
 # 1:  Scan current operating frequency if another VIF on the same radio is already associated.
-
+# network={
+#     id_str="work"
+#     priority=100
+#     scan_ssid=1
+#     ssid="xk-admin"
+#     #key_mgmt=wpa-psk
+#     psk="ADMIN@123"
+# }
 network={
     id_str="work"
-    priority=100
+    priority=90
     scan_ssid=1
-    ssid="xk-admin"
-    #key_mgmt=wpa-psk
-    psk="ADMIN@123"
+    ssid="CNAP"
+    key_mgmt=WPA-EAP
+    eap=PEAP
+    phase1="peaplabel=auto tls_disable_tlsv1_0=0 tls_disable_tlsv1_1=0 tls_disable_tlsv1_2=0 tls_ext_cert_check=0"
+    phase2="auth=MSCHAPV2"
+    identity="username"
+    password="passowrd"
+    eapol_flags=0
 }
 EO_DOC
 
 log "enable fw_printenv command, bullseye u-boot-tools remove fw_printenv, so need copy!"
 cat >${ROOT_DIR}/etc/fw_env.config <<EOF
 # Device to access      offset          env size
-/dev/mmcblk2            0x27400000      0x10000
+/dev/mmcblk1            0x27400000      0x10000
 EOF
 
 # only amlogic uboot need this
@@ -1035,6 +1047,21 @@ speaker-test -c2 -t wav
 # DISPLAY=:0 xset dpms 0 0 0
 # DISPLAY=:0 xrandr -q
 # DISPLAY=:0 xrandr --output HDMI-1 --mode 1280x1024
+#
+pactl list cards
+# # output soundcard
+# pactl set-card-profile 0 output:analog-stereo
+export PULSE_SERVER="unix:/run/user/1000/pulse/native"
+sudo -u johnyin pactl --server $PULSE_SERVER set-card-profile 0 output:hdmi-stereo+input:analog-stereo
+
+cat <<EODOC > /etc/pulse/default.pa.d/hdmi_sound.pa
+# pacmd list-sinks|egrep -i 'index:|name:'
+### Enable all of my audio output devices
+# HDMI
+set-card-profile alsa_card.pci-0000_20_00.1 output:hdmi-stereo-extra3
+# Line out
+set-card-profile alsa_card.pci-0000_22_00.3 output:analog-stereo+input:analog-stereo
+EODOC
 EOF
 cat > ${ROOT_DIR}/root/emmc_linux.sh <<'EOF'
 #!/usr/bin/env bash
