@@ -4,3 +4,6 @@
 [submodule "perf/FlameGraph"]
 	path = perf/FlameGraph
 	url = https://github.com/brendangregg/FlameGraph
+[submodule "amlogic-s905d/linux-aml"]
+	path = amlogic-s905d/linux-aml
+	url = https://gitlab.manjaro.org/manjaro-arm/packages/core/linux-aml.git
