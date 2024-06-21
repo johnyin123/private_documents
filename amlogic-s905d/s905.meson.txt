@@ -24,17 +24,16 @@ Tinydrm: tinydrm
 For user-space, you need Mesa 19.2+ (19.1.x is not very stable nor usable for lima/panfrost) and kernel 5.2+. The package to install is Mesa-gallium.
 You can install some test binaries to try it, such as kmscube, glmark2, Mesa-demo or Mesa-demo-x.
 
-libglu1-mesa libglw1-mesa libgles2-mesa libglew2.1 mesa-utils
+apt install --no-install-recommends libglu1-mesa libglw1-mesa libgles2-mesa libglew2.1 mesa-utils mesa-vulkan-drivers
+OpenGL info:
     glxinfo | grep OpenGL
 3D acceleration:
     glxinfo  | grep rendering | grep -i yes
+Vulkaninfo:
+    vulkaninfo  --summary
 Testing performance:
     glxgears -info
 
 Enable OpenCL
-Once kernel driver and user-space libraries are installed, you can enable OpenCL support with:
-
-echo "libmali.so" | sudo tee /etc/OpenCL/vendors/mali.icd
-And check it is found with:
-
-sudo clinfo
+apt install --no-install-recommends mesa-opencl-icd clinfo
+    clinfo
