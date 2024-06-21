@@ -4,3 +4,6 @@
 [submodule "perf/FlameGraph"]
 	path = perf/FlameGraph
 	url = https://github.com/brendangregg/FlameGraph
+[submodule "amlogic-s905d/linux-khadas"]
+	path = amlogic-s905d/linux-khadas
+	url = https://github.com/BlackCatDevel0per/linux-khadas
