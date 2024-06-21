@@ -14,3 +14,9 @@ make -C ${DIRNAME}/libbpf/src \
          OBJDIR=${DIRNAME} DESTDIR= \
          INCLUDEDIR=${DIRNAME}/inc LIBDIR=${DIRNAME}/lib UAPIDIR= \
          install
+
+# # remove submodule
+# git submodule deinit libbpf
+# git rm libbpf
+# git commit 
+# git push
