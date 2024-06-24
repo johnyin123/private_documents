@@ -1,0 +1,7 @@
+ksmbd.adduser --add-user=user1 --password=password -v
+cat <<EOF >> /etc/ksmbd/ksmbd.conf
+[myshare]
+	comment = read only /home access
+	path = /home
+    ; writeable = no
+EOF

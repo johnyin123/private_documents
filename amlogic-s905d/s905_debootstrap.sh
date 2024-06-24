@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("157f39c[2024-06-19T13:08:38+08:00]:s905_debootstrap.sh")
+VERSION+=("f597e21[2024-06-20T15:40:15+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -209,6 +209,7 @@ IFS=$old_ifs
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG+=",udev,isc-dhcp-client,netbase,console-setup,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,babeld,ifenslave,vlan"
 PKG+=",parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server,netcat-openbsd"
+PKG+=",ksmbd-tools"
 PKG+=",systemd-container,nftables,systemd-timesyncd,zstd"
 PKG+=",cron,logrotate,bsdmainutils,openssh-client,wget,ntpdate,less,wireless-tools,file,lsof,strace,rsync"
 PKG+=",xz-utils,zip,udisks2"
