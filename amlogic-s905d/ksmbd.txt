@@ -1,9 +1,9 @@
 # ksmbd crossed mount directory empty :(
 ksmbd.adduser --add-user=user1 --password=password -v
-ksmbd.addshare --add-share=media --option "path = /media"
-    --option "force user = $USER" \
-    --option "force group = $USER" \
-# --option 'read only = no'
+ksmbd.addshare --add-share=media --option "path = /media
+    force user = $USER
+    force group = $USER
+    read only = yes"
 # cat <<EOF >> /etc/ksmbd/ksmbd.conf
 # [myshare]
 # 	comment = read only /home access
