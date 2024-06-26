@@ -1,0 +1,162 @@
+
+diff --git a/drivers/base/Kconfig b/drivers/base/Kconfig
+index 2b8fd6bb7da0..1f60cd4dd057 100644
+--- a/drivers/base/Kconfig
++++ b/drivers/base/Kconfig
+@@ -230,6 +230,13 @@ config GENERIC_ARCH_NUMA
+ 	  Enable support for generic NUMA implementation. Currently, RISC-V
+ 	  and ARM64 use it.
+ 
++config GENERIC_ARCH_NUMA_EMULATION
++	bool
++	depends on GENERIC_ARCH_NUMA
++	help
++	  Enable NUMA emulation. Note that NUMA emulation will only be used if
++	  the machine has no NUMA node.
++
+ config FW_DEVLINK_SYNC_STATE_TIMEOUT
+ 	bool "sync_state() behavior defaults to timeout instead of strict"
+ 	help
+diff --git a/drivers/base/Makefile b/drivers/base/Makefile
+index 3079bfe53d04..34fcf5bd7370 100644
+--- a/drivers/base/Makefile
++++ b/drivers/base/Makefile
+@@ -25,6 +25,7 @@ obj-$(CONFIG_DEV_COREDUMP) += devcoredump.o
+ obj-$(CONFIG_GENERIC_MSI_IRQ) += platform-msi.o
+ obj-$(CONFIG_GENERIC_ARCH_TOPOLOGY) += arch_topology.o
+ obj-$(CONFIG_GENERIC_ARCH_NUMA) += arch_numa.o
++obj-$(CONFIG_GENERIC_ARCH_NUMA_EMULATION) += numa_emulation.o
+ obj-$(CONFIG_ACPI) += physical_location.o
+ 
+ obj-y			+= test/
+diff --git a/drivers/base/arch_numa.c b/drivers/base/arch_numa.c
+index 5b59d133b6af..6ad08f681b3c 100644
+--- a/drivers/base/arch_numa.c
++++ b/drivers/base/arch_numa.c
+@@ -15,6 +15,8 @@
+ 
+ #include <asm/sections.h>
+ 
++#include "numa_emulation.h"
++
+ struct pglist_data *node_data[MAX_NUMNODES] __read_mostly;
+ EXPORT_SYMBOL(node_data);
+ nodemask_t numa_nodes_parsed __initdata;
+@@ -30,6 +32,8 @@ static __init int numa_parse_early_param(char *opt)
+ 		return -EINVAL;
+ 	if (str_has_prefix(opt, "off"))
+ 		numa_off = true;
++	if (str_has_prefix(opt, "fake="))
++		return numa_emu_cmdline(opt + 5);
+ 
+ 	return 0;
+ }
+@@ -471,6 +475,8 @@ void __init arch_numa_init(void)
+ 			return;
+ 		if (acpi_disabled && !numa_init(of_numa_init))
+ 			return;
++		if (!numa_init(numa_emu_init))
++			return;
+ 	}
+ 
+ 	numa_init(dummy_numa_init);
+diff --git a/drivers/base/numa_emulation.c b/drivers/base/numa_emulation.c
+new file mode 100644
+index 000000000000..df652fa8351b
+--- /dev/null
++++ b/drivers/base/numa_emulation.c
+@@ -0,0 +1,67 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Simple NUMA emulation.
++ *
++ * Copyright © 2024 Raspberry Pi Ltd
++ *
++ * Author: Maíra Canal <mcanal@igalia.com>
++ * Author: Tvrtko Ursulin <tursulin@igalia.com>
++ */
++#include <linux/memblock.h>
++
++#include "numa_emulation.h"
++
++static unsigned int emu_nodes;
++
++int __init numa_emu_cmdline(char *str)
++{
++	int ret;
++
++	ret = kstrtouint(str, 10, &emu_nodes);
++	if (ret)
++		return ret;
++
++	if (emu_nodes > MAX_NUMNODES) {
++		pr_notice("numa=fake=%u too large, reducing to %u\n",
++			  emu_nodes, MAX_NUMNODES);
++		emu_nodes = MAX_NUMNODES;
++	}
++
++	return 0;
++}
++
++int __init numa_emu_init(void)
++{
++	phys_addr_t start, end;
++	unsigned long size;
++	unsigned int i;
++	int ret;
++
++	if (!emu_nodes)
++		return -EINVAL;
++
++	start = memblock_start_of_DRAM();
++	end = memblock_end_of_DRAM() - 1;
++
++	size = DIV_ROUND_DOWN_ULL(end - start + 1, emu_nodes);
++	size = PAGE_ALIGN_DOWN(size);
++
++	for (i = 0; i < emu_nodes; i++) {
++		u64 s, e;
++
++		s = start + i * size;
++		e = s + size - 1;
++
++		if (i == (emu_nodes - 1) && e != end)
++			e = end;
++
++		pr_info("Faking a node at [mem %pap-%pap]\n", &s, &e);
++		ret = numa_add_memblk(i, s, e + 1);
++		if (ret) {
++			pr_err("Failed to add fake NUMA node %d!\n", i);
++			break;
++		}
++	}
++
++	return ret;
++}
+diff --git a/drivers/base/numa_emulation.h b/drivers/base/numa_emulation.h
+new file mode 100644
+index 000000000000..62b38215a2f0
+--- /dev/null
++++ b/drivers/base/numa_emulation.h
+@@ -0,0 +1,21 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++/*
++ * NUMA emulation header
++ *
++ * Copyright © 2024 Raspberry Pi Ltd
++ */
++
++#ifdef CONFIG_GENERIC_ARCH_NUMA_EMULATION
++int numa_emu_cmdline(char *str);
++int __init numa_emu_init(void);
++#else
++static inline int numa_emu_cmdline(char *str)
++{
++	return -EINVAL;
++}
++
++static int __init numa_emu_init(void)
++{
++	return -EOPNOTSUPP;
++}
++#endif /* CONFIG_NUMA_EMU */

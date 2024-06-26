@@ -1,0 +1,21 @@
+diff --git a/arch/arm64/Kconfig b/arch/arm64/Kconfig
+index 8e80df015bdd..49c1cdc545d3 100644
+--- a/arch/arm64/Kconfig
++++ b/arch/arm64/Kconfig
+@@ -1507,6 +1507,16 @@ config NODES_SHIFT
+ 	  Specify the maximum number of NUMA Nodes available on the target
+ 	  system.  Increases memory reserved to accommodate various tables.
+ 
++config NUMA_EMULATION
++	bool "NUMA emulation"
++	depends on NUMA
++	select GENERIC_ARCH_NUMA_EMULATION
++	help
++	  Enable NUMA emulation support. A flat machine will be split into
++	  virtual nodes when booted with "numa=fake=N", where N is the number
++	  of nodes, the system RAM will be split into N equal chunks, and
++	  assigned to each node.
++
+ source "kernel/Kconfig.hz"
+ 
+ config ARCH_SPARSEMEM_ENABLE
