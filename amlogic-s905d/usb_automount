@@ -1,6 +1,7 @@
 # usb自动挂载
 LABEL=media
 MNT_POINT=/media
+# LABEL=MEDIA  ${MNT_POINT}  auto  noauto,ro,dev,noexec,user,x-systemd.automount  0  0
 cat <<EOF > /etc/systemd/system/media-autousb.automount
 [Unit]
 Description=Automount USB=${LABEL}
