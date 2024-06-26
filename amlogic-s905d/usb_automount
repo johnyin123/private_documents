@@ -1,4 +1,31 @@
 # usb自动挂载
+LABEL=media
+MNT_POINT=/media
+cat <<EOF > /etc/systemd/system/media-autousb.automount
+[Unit]
+Description=Automount USB=${LABEL}
+
+[Automount]
+What=/dev/disk/by-label/${LABEL}
+Where=${MNT_POINT}
+Type=auto
+
+[Install]
+WantedBy=multi-user.target
+EOF
+cat <<EOF > /etc/systemd/system/media-autousb.mount
+[Unit]
+Description=Automount USB=${LABEL}
+
+[Mount]
+What=/dev/disk/by-label/${LABEL}
+Where=${MNT_POINT}
+Type=auto
+Options=ro,x-systemd.automount
+
+[Install]
+WantedBy=multi-user.target
+EOF
 # apt install -y udevil
 # # 修改默认挂载路径到/media
 # sed -i 's#\(^allowed_media_dirs = \)\(.*\)#\1\/media, \2#' /etc/udevil/udevil.conf
