@@ -17,26 +17,32 @@ WIFI_INTERFACE=${WIFI_INTERFACE:-"wlan0"}
 WIFI_OUT_INF=${WIFI_OUT_INF:-"eth0"}
 gen_conf() {
     cat > /tmp/wifi_dhcp.conf <<EOF
-####dhcp
+#### dhcp
 # Bind to only one interface
+interface=${WIFI_INTERFACE}
+dhcp-range=10.0.3.2,10.0.3.5,255.255.255.0,12h
+# gateway
+dhcp-option=option:router,10.0.3.1
+# # dns server
+# dhcp-option=6,192.168.0.90,192.168.0.98
+# # ntp server
+# dhcp-option=option:ntp-server,192.168.0.4,10.10.0.5
+# dhcp-host=11:22:33:44:55:66,192.168.0.60
 bind-interfaces
-
+except-interface=lo
 strict-order
 expand-hosts
-except-interface=lo
 bind-dynamic
 filterwin2k
-interface=${WIFI_INTERFACE}
-dhcp-range=10.0.3.2,10.0.3.5,12h
 dhcp-authoritative
-####dns
+#### dns
 server=/cn/114.114.114.114
 server=/google.com/223.5.5.5
-#屏蔽网页广告
+# 屏蔽网页广告
 address=/ad.youku.com/127.0.0.1
 # 劫持所有域名
 # address=/#/10.0.3.1
-####log
+#### log
 log-queries
 log-facility=/tmp/dnsmasq.log
 EOF
