@@ -24,7 +24,8 @@ Tinydrm: tinydrm
 For user-space, you need Mesa 19.2+ (19.1.x is not very stable nor usable for lima/panfrost) and kernel 5.2+. The package to install is Mesa-gallium.
 You can install some test binaries to try it, such as kmscube, glmark2, Mesa-demo or Mesa-demo-x.
 
-apt install --no-install-recommends libglu1-mesa libglw1-mesa libgles2-mesa libglew2.1 mesa-utils mesa-vulkan-drivers
+apt install --no-install-recommends libglu1-mesa libglw1-mesa libgles2-mesa libgl4es0 libglew2.1 mesa-utils mesa-vulkan-drivers
+# LD_LIBRARY_PATH=..  glxxxxxxxxx # # libgl4es0
 OpenGL info:
     glxinfo | grep OpenGL
 3D acceleration:
