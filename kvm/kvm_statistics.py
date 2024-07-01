@@ -79,6 +79,8 @@ def statistics(uri):
                             item['addr6'].append('{}/{}'.format(ipaddr['addr'], ipaddr['prefix']))
             except libvirt.libvirtError:
                 pass
+            except TypeError:
+                pass
             try:
                 libvirt_qemu.qemuAgentCommand(domain,'{"execute":"guest-ping"}',5,0)
                 item['agent'] = True                
