@@ -1,0 +1,53 @@
+mkdir -p /home/johnyin/.config/smplayer/script
+
+cat <<'EOF' > /home/johnyin/.config/smplayer/smplayer.ini
+[%General]
+mplayer_bin=/usr/bin/mpv
+driver\vo=gpu
+driver\audio_output=pulse
+
+[advanced]
+mplayer_additional_options="--gpu-context=x11egl --gpu-api=opengl --scripts=/home/johnyin/.config/smplayer/script/clock.lua"
+# mplayer_additional_options="--msg-level=all=v --gpu-context=x11egl --gpu-api=opengl --scripts=/home/johnyin/.config/smplayer/script/clock.lua"
+# autosave_mplayer_log=true
+# log_mplayer=true
+# mplayer_log_saveto=/home/johnyin/mpv.log
+# verbose_log=true
+change_video_equalizer_on_startup=true
+
+[performance]
+hwdec=auto-copy
+threads=1
+EOF
+cat << 'EOF' > /home/johnyin/.config/smplayer/script/clock.lua
+-- Shows the current OS time in the OSD
+local cfg = {
+  format     = "%H:%M",
+}
+local osd_timer = nil
+
+local function readAll(file)
+    local f = assert(io.open(file, "rb"))
+    local content = f:read("*all")
+    f:close()
+    return content
+end
+
+local function osd_clock_timer()
+  local temp = readAll('/sys/class/hwmon/hwmon0/temp1_input')
+  local s = os.date(cfg.format)
+  -- show time for 10 second
+  mp.osd_message(s..'  '..temp/1000, 10)
+  collectgarbage()
+  collectgarbage()
+end
+
+-- make sure timer is defined (n>1 th toggle)
+if osd_timer ~= nil then
+  osd_timer:resume()
+else
+  -- otherwise create a timer to call the clock on every second
+  osd_clock_timer()
+  osd_timer = mp.add_periodic_timer(1, osd_clock_timer)
+end
+EOF
