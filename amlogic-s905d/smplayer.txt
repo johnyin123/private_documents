@@ -16,6 +16,8 @@ mplayer_additional_options="--gpu-context=x11egl --gpu-api=opengl --scripts=/hom
 change_video_equalizer_on_startup=true
 
 [performance]
+frame_drop=true
+hard_frame_drop=true
 hwdec=auto-copy
 threads=1
 EOF
