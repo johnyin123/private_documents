@@ -29,4 +29,5 @@ echo -n "X86虚拟机MEM(MiB)："
 cat ${fname} | jq '.vms[] | select(.host | startswith("kvm-x86"))' | jq '.curmem' | awk '{sum+=$1} END{print sum;}'
 echo -n "X86虚拟机DISK(MiB)："
 cat ${fname} | jq '.vms[] | select(.host | startswith("kvm-x86"))' | jq '.capblk' | awk '{sum+=$1} END{print sum;}'
-
+# jq '.hosts | .[] | {uri, totalvm}'
+cat ${fname} | jq '.hosts | .[] | .uri, .totalvm'
