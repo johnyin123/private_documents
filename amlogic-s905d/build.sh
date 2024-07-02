@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("f32e2fc[2024-06-19T19:54:44+08:00]:build.sh")
+VERSION+=("33f775c[2024-06-26T14:44:48+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -251,7 +251,23 @@ enable_module_xz_sign() {
         return
     }
     log "MODULES SIGNED SHA256"
-    [ -f "certs/signing_key.pem" ] || {
+cat <<EOF
+MODULES_SIG_KEY look like this:
+Code:
+-----BEGIN PRIVATE KEY-----
+...
+-----END PRIVATE KEY-----
+-----BEGIN CERTIFICATE-----
+...
+-----END CERTIFICATE-----
+Code:
+cat key.key crt.crt > combined.pem
+Code:
+openssl req -new -nodes -utf8 -sha256 -days 36500 -batch -x509 \
+   -config x509.genkey -outform PEM -out kernel_key.pem \
+   -keyout kernel_key.pem
+EOF
+    [ -f "johnyin_key.pem" ] || {
         cat << EOCONF > key.conf
 [ req ]
 default_bits = 4096
@@ -271,18 +287,17 @@ keyUsage=digitalSignature
 subjectKeyIdentifier=hash
 authorityKeyIdentifier=keyid
 EOCONF
-    openssl req -new -nodes -utf8 -sha256 -days 36500 -batch -x509 -config key.conf -outform PEM -out certs/signing_key.pem -keyout certs/signing_key.pem
-    rm -f certs/signing_key.x509
+    openssl req -new -nodes -utf8 -sha256 -days 36500 -batch -x509 -config key.conf -outform PEM -out johnyin_key.pem -keyout johnyin_key.pem
 }
-    openssl x509 -text -noout -in certs/signing_key.pem
+    openssl x509 -text -noout -in johnyin_key.pem
     scripts/config --enable CONFIG_MODULE_SIG
     scripts/config --enable CONFIG_MODULE_SIG_ALL
     scripts/config --enable CONFIG_MODULE_SIG_FORCE
     scripts/config --enable CONFIG_MODULE_SIG_SHA256
     scripts/config --set-str CONFIG_MODULE_SIG_HASH "sha256"
 
-    scripts/config --set-str CONFIG_SYSTEM_TRUSTED_KEYS "certs/signing_key.pem"
-    scripts/config --set-str CONFIG_MODULE_SIG_KEY "certs/signing_key.pem"
+    scripts/config --set-str CONFIG_SYSTEM_TRUSTED_KEYS "johnyin_key.pem"
+    scripts/config --set-str CONFIG_MODULE_SIG_KEY "johnyin_key.pem"
 
     scripts/config --enable CONFIG_MODULE_SIG_KEY_TYPE_RSA
     scripts/config --disable CONFIG_MODULE_SIG_KEY_TYPE_ECDSA
