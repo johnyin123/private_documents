@@ -202,7 +202,8 @@ hwdec=v4l2m2m-copy
 hwdec-codecs=all
 EOF
 # mpv --msg-level=all=v --hwdec=v4l2m2m-copy --hwdec-codecs=all --vo=xv test.mp4
-# mpv --msg-level=all=v --hwdec=auto-copy --hwdec-codecs=all --vo=xv test.mkv
+# h.264 ok
+# mpv --msg-level=all=v --hwdec=auto-copy --gpu-context=x11egl --gpu-api=opengl --vo=gpu
 # ffmpeg -c:v h264_v4l2m2m -i 1.mp4 -map 0:v -f null -y /dev/null
 
 # # v4l2_request use fedora patched source.
