@@ -24,7 +24,7 @@ EOF
 cat << 'EOF' > /home/johnyin/.config/smplayer/script/clock.lua
 -- Shows the current OS time in the OSD
 local cfg = {
-  format     = "%H:%M",
+  format     = "%H:%M:%S",
 }
 local osd_timer = nil
 
@@ -38,8 +38,8 @@ end
 local function osd_clock_timer()
   local temp = readAll('/sys/class/hwmon/hwmon0/temp1_input')
   local s = os.date(cfg.format)
-  -- show time for 10 second
-  mp.osd_message(s..'  '..temp/1000, 10)
+  -- show time for 1 second
+  mp.osd_message(s..'  '..temp/1000, 1)
   collectgarbage()
   collectgarbage()
 end
