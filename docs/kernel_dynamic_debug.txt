@@ -35,3 +35,4 @@ echo -n 'func svc_process -p' > /sys/kernel/debug/dynamic_debug/control
 打开NFS调用的所有以READ开始的信息.
 echo -n 'format "nfsd: READ" +p' > /sys/kernel/debug/dynamic_debug/control
 tail -f /var/log/dmesg来监控日志输出。
+echo "8    4    1    7" > /proc/sys/kernel/printk
