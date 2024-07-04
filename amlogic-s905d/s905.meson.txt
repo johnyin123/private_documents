@@ -26,6 +26,9 @@ You can install some test binaries to try it, such as kmscube, glmark2, Mesa-dem
 
 apt install --no-install-recommends libglu1-mesa libglw1-mesa libgles2-mesa libgl4es0 libglew2.1 mesa-utils mesa-vulkan-drivers
 # LD_LIBRARY_PATH=..  glxxxxxxxxx # # libgl4es0
+# # /usr/share/applications/mame.desktop
+# Exec=LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu/gl4es /usr/games/mame
+
 OpenGL info:
     glxinfo | grep OpenGL
 3D acceleration:
