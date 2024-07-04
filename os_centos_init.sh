@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("e28c813[2023-12-26T14:29:30+08:00]:os_centos_init.sh")
+VERSION+=("7d03993[2023-12-27T08:47:47+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -250,7 +250,7 @@ export -f centos_sshd_regenkey
 centos_sshd_init() {
     rpm -q openssh-server || yum -y --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install openssh-server || true
     sed --quiet -i.orig -E \
-        -e '/^\s*(UseDNS|MaxAuthTries|GSSAPIAuthentication|Port|Ciphers|MACs|PermitRootLogin|TrustedUserCAKeys).*/!p' \
+        -e '/^\s*(UseDNS|MaxAuthTries|GSSAPIAuthentication|Port|Ciphers|MACs|PermitRootLogin|TrustedUserCAKeys|MaxStartups|LoginGraceTime).*/!p' \
         -e '$aUseDNS no' \
         -e '$aMaxAuthTries 3' \
         -e '$aGSSAPIAuthentication no' \
@@ -259,6 +259,8 @@ centos_sshd_init() {
         -e '$aMACs hmac-sha1' \
         -e '$aPermitRootLogin without-password' \
         -e '$aTrustedUserCAKeys /etc/ssh/myca.pub' \
+        -e '$aMaxStartups 10' \
+        -e '$aLoginGraceTime 10m' \
         /etc/ssh/sshd_config
     cat <<EOF >/etc/ssh/myca.pub
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
