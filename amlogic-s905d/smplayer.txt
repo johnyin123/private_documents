@@ -8,7 +8,7 @@ driver\audio_output=pulse
 
 [advanced]
 mplayer_additional_options="--opengl-es=yes --gpu-context=x11egl --gpu-api=opengl --video-sync=display-resample --scripts=/home/johnyin/.config/smplayer/script/clock.lua --profile=low-latency"
-# mplayer_additional_options="--msg-level=all=v --opengl-es=yes --gpu-context=x11egl --gpu-api=opengl --video-sync=display-resample --scripts=/home/johnyin/.config/smplayer/script/clock.lua --profile=low-latency"
+# mplayer_additional_options="--msg-level=all=trace --opengl-es=yes --gpu-context=x11egl --gpu-api=opengl --scripts=/home/johnyin/.config/smplayer/script/clock.lua --profile=low-latency"
 # autosave_mplayer_log=true
 # log_mplayer=true
 # mplayer_log_saveto=/home/johnyin/mpv.log
@@ -16,6 +16,8 @@ mplayer_additional_options="--opengl-es=yes --gpu-context=x11egl --gpu-api=openg
 change_video_equalizer_on_startup=true
 
 [performance]
+coreavc=false
+h264_skip_loop_filter=0
 frame_drop=true
 hard_frame_drop=true
 hwdec=auto-copy
