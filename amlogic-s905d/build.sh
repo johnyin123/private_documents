@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("6467ef4[2024-07-02T10:56:09+08:00]:build.sh")
+VERSION+=("e99880c[2024-07-05T08:21:00+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -559,6 +559,7 @@ s905d_opt() {
             log "6.9"
             scripts/config --module CONFIG_SERIAL_MESON \
                 --enable CONFIG_SERIAL_MESON_CONSOLE
+            ;;
         6.6.*)
             log "6.6.+"
             scripts/config --module CONFIG_SERIAL_MESON \
