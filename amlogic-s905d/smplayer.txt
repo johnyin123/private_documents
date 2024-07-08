@@ -3,7 +3,8 @@ mkdir -p /home/johnyin/.config/smplayer/script
 cat <<'EOF' > /home/johnyin/.config/smplayer/smplayer.ini
 [%General]
 mplayer_bin=/usr/bin/mpv
-driver\vo=gpu
+# driver\vo=gpu
+# driver\vo=drm
 driver\audio_output=pulse
 
 [advanced]

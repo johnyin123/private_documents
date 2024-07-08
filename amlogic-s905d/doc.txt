@@ -160,6 +160,16 @@ CPU FREQ:
     echo "scpi-cpufreq" >> /etc/modules
     /sys/devices/system/cpu/cpufreq/policy0/cpuinfo_cur_freq
 EDID:
+    apt -y install read-edid edid-decode
+    cat<<EOF
+Section "Device"
+  Driver         "nvidia"
+  Option         "ConnectedMonitor" "DFP-0"
+  Option         "CustomEDID" "DFP-0:/etc/X11/edid.bin"
+  Option         "IgnoreEDID" "false"
+  Option         "UseEDID" "true"
+ EndSection
+EOF
     echo -n "edid/1280x1024.bin" > /sys/module/drm/parameters/edid_firmware
     # drm.edid_firmware=edid/1280x1024.bin
     # video=HDMI-A-1:1280x1024@60e
