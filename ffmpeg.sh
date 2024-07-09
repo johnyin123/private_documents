@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1e7e4a7[2024-02-22T14:46:37+08:00]:ffmpeg.sh")
+VERSION+=("6111d1e[2024-07-05T09:50:25+08:00]:ffmpeg.sh")
 ################################################################################
 
 name=${1:?input err scale= $0 video.mkv}
@@ -20,8 +20,10 @@ ffmpeg -hide_banner -i ${name} 2>&1 | grep -o -Ei "Video:\s*([^ ]*)"
 # ffmpeg -i input -map 0 -c:v libx264 -crf 18 -vf format=yuv420p -c:a copy output.mkv
 # ffmpeg -i input -vf scale=-1:720 -c:v libx264 -crf 18 -preset veryslow -c:a copy MyMovie_720p.mkv
 
+# -movflags faststart 参数告诉 ffmpeg 重组 MP4 文件 atoms，将 moov 放到文件开头
 # pv -f -F 'Converted: %b Elapsed: %t Current: %r Average: %a %p %e' "${name}" | ffmpeg -i pipe:0 \
 ffmpeg -hide_banner -hwaccel auto -i ${name} -loglevel info \
+    -movflags faststart \
     -map 0:a:? -map 0:s:? -map 0:v:? \
     ${scale:+-vf scale=${scale}}  \
     ${frame:+-filter:v fps=fps=${frame}} \
