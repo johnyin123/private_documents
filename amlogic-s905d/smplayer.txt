@@ -8,8 +8,8 @@ driver\vo=drm
 driver\audio_output=pulse
 
 [advanced]
-mplayer_additional_options="--force-seekable=yes --opengl-es=yes --gpu-context=x11egl --gpu-api=opengl --video-sync=display-resample --scripts=/home/johnyin/.config/smplayer/script/clock.lua --profile=low-latency"
-# mplayer_additional_options="--msg-level=all=trace --force-seekable=yes --opengl-es=yes --gpu-context=x11egl --gpu-api=opengl --scripts=/home/johnyin/.config/smplayer/script/clock.lua --profile=low-latency"
+mplayer_additional_options="--autofit=100%x480 --force-seekable=yes --opengl-es=yes --gpu-context=x11egl --gpu-api=opengl --video-sync=display-resample --scripts=/home/johnyin/.config/smplayer/script/clock.lua --profile=low-latency"
+# mplayer_additional_options="--msg-level=all=trace --autofit=100%x480 --force-seekable=yes --opengl-es=yes --gpu-context=x11egl --gpu-api=opengl --scripts=/home/johnyin/.config/smplayer/script/clock.lua --profile=low-latency"
 # autosave_mplayer_log=true
 # log_mplayer=true
 # mplayer_log_saveto=/home/johnyin/mpv.log
