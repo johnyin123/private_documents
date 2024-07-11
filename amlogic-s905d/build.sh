@@ -1,7 +1,7 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("e99880c[2024-07-05T08:21:00+08:00]:build.sh")
+VERSION+=("6111d1e[2024-07-05T09:50:25+08:00]:build.sh")
 ################################################################################
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
 
@@ -555,7 +555,7 @@ s905d_opt() {
 
     log "kernel 6.1 SERIAL_MESON need buildin, 6,6 can module"
     case "${KERVERSION}" in
-        6.9.*)
+        6.10.* | 6.9.*)
             log "6.9"
             scripts/config --module CONFIG_SERIAL_MESON \
                 --enable CONFIG_SERIAL_MESON_CONSOLE
