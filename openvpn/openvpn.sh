@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3a6bc32[2024-04-10T07:30:23+08:00]:openvpn.sh")
+VERSION+=("bd620dd[2024-04-10T07:45:09+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -49,6 +49,18 @@ init_server() {
     # -----BEGIN CERTIFICATE-----
     # -----END CERTIFICATE-----
     # </cert>
+    cat <<EOF
+client static ip:
+   OpenVPN's internal client IP address selection algorithm works as follows:
+   1. Use --client-connect script generated file for static IP (first choice).
+   2. Use --client-config-dir file for static IP (next choice).
+   3. Use --ifconfig-pool allocation for dynamic IP (last choice).
+
+client-config-dir /etc/openvpn/ccd
+# /etc/openvpn/ccd/client1
+ifconfig-push 10.8.0.2 255.255.255.0
+
+EOF
     grep -v -E "^port |^proto |^dev |^ca |^cert |^key |^dh |^server |^push |^keepalive |^tls-auth |^status |^log |^log-append |^verb |^comp-lzo$|^persist-key$|^persist-tun$" /usr/share/doc/openvpn/*/sample-config-files/server.conf > /etc/openvpn/server/server.conf
     tee -a /etc/openvpn/server/vpnsrv.conf <<EOF
 management localhost 7505
