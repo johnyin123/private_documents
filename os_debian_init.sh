@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("9de15b2[2024-07-04T08:20:21+08:00]:os_debian_init.sh")
+VERSION+=("b4a4a2a[2024-07-09T15:55:25+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -266,6 +266,7 @@ export -f debian_sshd_init
 
 debian_zswap_init() {
     local size_mb=$1
+    ecoh 'can choose systemd-zram-generator'
     echo 'apt -y install zram-tools'
     cat<<EOF > /etc/default/zramswap
 ZRAM_DEV=/dev/zram0
