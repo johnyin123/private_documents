@@ -1,10 +1,10 @@
 mkdir -p /home/johnyin/.config/smplayer/script
-
+echo 'linux 6.6.38, vo=drm :thermal thermal_zone0: failed to read out thermal zone (-110), hang"
 cat <<'EOF' > /home/johnyin/.config/smplayer/smplayer.ini
 [%General]
 mplayer_bin=/usr/bin/mpv
-driver\vo=drm
-# driver\vo=gpu
+# driver\vo=drm
+driver\vo=gpu
 driver\audio_output=pulse
 
 [advanced]
