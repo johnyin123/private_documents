@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f597e21[2024-06-20T15:40:15+08:00]:s905_debootstrap.sh")
+VERSION+=("30cc200[2024-06-25T07:17:17+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -273,11 +273,6 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash -x <<EOSHELL
         log "INSTALL \${pkg}"
         DEBIAN_FRONTEND=noninteractive apt -y --no-install-recommends install \${pkg} || true
     done <<< "${PKG}"
-
-    # # disable saradc module
-    # cat << EOF > /etc/modprobe.d/meson_saradc.conf
-    # blacklist meson_saradc
-    # EOF
 
     log "Enable rootfs module(if not buildin)"
     mkdir -p /etc/initramfs-tools
