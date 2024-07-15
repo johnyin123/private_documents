@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("30cc200[2024-06-25T07:17:17+08:00]:s905_debootstrap.sh")
+VERSION+=("9277d6f[2024-07-12T08:53:48+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1044,7 +1044,10 @@ speaker-test -c2 -t wav
 # DISPLAY=:0 xrandr -q
 # DISPLAY=:0 xrandr --output HDMI-1 --mode 1280x1024
 #
-pactl list cards
+# # out put bluetooth 头戴式耳机单元
+LC_ALL=c pactl list cards   === > ( Name:bluez_card.EC_FA_5C_5F_1A_AC   Profiles: handsfree_head_unit)
+pactl set-card-profile bluez_card.EC_FA_5C_5F_1A_AC handsfree_head_unit
+
 # # output soundcard
 # pactl set-card-profile 0 output:analog-stereo
 export PULSE_SERVER="unix:/run/user/1000/pulse/native"
