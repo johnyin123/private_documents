@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("b4a4a2a[2024-07-09T15:55:25+08:00]:os_debian_init.sh")
+VERSION+=("b7109ac[2024-07-11T09:25:49+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -842,6 +842,7 @@ alias cp='cp -i'
 alias mv='mv -i'
 alias df='df -h'
 alias grep='grep --color=auto'
+alias weather='https_proxy=http://yin.zh:password@proxy_srv:port curl "https://wttr.in/Shenyang&lang=zh-cn"'
 
 export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m\]$"
 
