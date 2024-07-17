@@ -6,6 +6,9 @@ echo "need:dh2048.pem, ta.key, server.pem, server.key, client.pem, client.key"
 echo "nginx need :/etc/nginx/ssl/srv.pem, /etc/nginx/ssl/srv.key, /etc/nginx/ssl/ca.pem"
 echo "copy ngx_connect.conf, openvpn-server.conf to remote"
 echo "copy stunnel.conf, stunnel.pem, stunnel.key, openvpn-client.conf to local"
+cat <<EOF
+    /etc/nginx/ssl/ca.pem ----> ssl_verify_client stunnel.pem
+EOF
 REMOTE=${REMOTE:-192.168.168.111}
 REMOTE_NGX_PORT=${REMOTE_NGX_PORT:-443}
 STUNNEL_PORT=8888
