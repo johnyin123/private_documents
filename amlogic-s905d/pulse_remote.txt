@@ -1,0 +1,12 @@
+RTP: streams use multicast IP adresses like 224.0.0.56 (default) and UDP datagrams for transport. Multicasts are generally not allowed in Internet (blocked by ISPs). RTP is designed for low latency.
+    Server:
+        pactl load-module module-rtp-recv
+    Client:
+        pactl load-module module-rtp-send
+
+TCP: Only uncompressed audio is supported.
+    Server:
+        pactl load-module module-native-protocol-tcp auth-ip-acl=192.168.1.138
+        # pactl load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1;192.168.0.0/24
+    Client:
+        PULSE_SERVER=192.168.1.146 totem
