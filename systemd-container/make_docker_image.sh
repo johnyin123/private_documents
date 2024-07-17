@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0749516[2024-01-08T08:41:03+08:00]:make_docker_image.sh")
+VERSION+=("3de012d[2024-01-18T13:36:32+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -255,7 +255,7 @@ docker create --name chrome --hostname chrome \
     registry.local/chrome:bookworm-amd64
 xhost +127.0.0.1
 pactl load-module module-native-protocol-tcp auth-ip-acl=172.17.0.2
-docer -e PULSE_SERVER=172.17.42.1 ..
+docker -e PULSE_SERVER=172.17.42.1 ..
 # #
 docker create --ipc=host --pid=host
 EOF
@@ -303,7 +303,7 @@ xpra start ssh:user@host --exit-with-children --start-child="command"
 xpra start --ssh="ssh" ssh:user@host --exit-with-children --start-child="command"
 xpra start-desktop :7 --start-child=xfce4-session --exit-with-children
 pactl load-module module-native-protocol-tcp auth-ip-acl=172.17.0.2
-docer -e PULSE_SERVER=172.17.42.1 ..
+docker -e PULSE_SERVER=172.17.42.1 ..
 EOF
 }
 build_aria2() {
