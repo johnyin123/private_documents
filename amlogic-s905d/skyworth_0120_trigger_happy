@@ -1,3 +1,4 @@
+# # playerctl --list-all ...... can replace remoter.sh
 sed -i "s/^#HandlePowerKey=.*/HandlePowerKey=ignore/g" /etc/systemd/logind.conf
 systemctl disable triggerhappy.socket
 systemctl enable triggerhappy.service
