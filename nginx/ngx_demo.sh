@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7a22b34[2024-04-08T16:08:10+08:00]:ngx_demo.sh")
+VERSION+=("bd43d60[2024-04-08T16:14:57+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2598,6 +2598,14 @@ server {
 }
 EOF
 cat <<'EOF' > js_test.js
+// async function main(h:NginxHTTPRequest){
+//     // ...
+// }
+// export default { main }
+// 注意
+// 这个时候不能使用njs-cli运行，会显示SyntaxError: Illegal export statement
+// 解决办法：njs -c "import M from './main.js'; M.main();"
+
 export default {file, get_env, fetch_url, summary, sub};
 var fs = require('fs').promises;
 function file(r) {
