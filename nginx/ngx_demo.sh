@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bd43d60[2024-04-08T16:14:57+08:00]:ngx_demo.sh")
+VERSION+=("afd78bc[2024-07-23T10:49:49+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -384,6 +384,33 @@ server {
         proxy_pass $orig_loc;
     }
 
+}
+EOF
+cat <<'EOF' >proxy.pac
+# set OPENVPN_TUNNEL_HOSTS
+# set OPENVPN_HOST
+# set OPENVPN_PROXY_PORT
+function FindProxyForURL(url, host) {
+    var HOST_PATTERNS_STR = '${OPENVPN_TUNNEL_HOSTS}';
+    if (HOST_PATTERNS_STR) {
+        var HOST_PATTERNS = HOST_PATTERNS_STR.split(',');
+        for (var i = 0; i < HOST_PATTERNS.length; i++) {
+            var pattern = HOST_PATTERNS[i];
+            if (shExpMatch(host, pattern)) {
+                return 'PROXY ${OPENVPN_HOST}:${OPENVPN_PROXY_PORT}';
+            }
+        }
+    }
+}
+EOF
+cat <<'EOF' >proxy_pac.http
+server {
+    listen 80;
+    server_name _;
+    default_type application/javascript;
+    root         /var/www;
+    index        proxy.pac;
+    rewrite      ^.*$ /proxy.pac;
 }
 EOF
 cat <<'EOF' >yum_cache.http
