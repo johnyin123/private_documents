@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bd620dd[2024-04-10T07:45:09+08:00]:openvpn.sh")
+VERSION+=("612454b[2024-07-11T10:27:37+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -60,6 +60,9 @@ client-config-dir /etc/openvpn/ccd
 # /etc/openvpn/ccd/client1
 ifconfig-push 10.8.0.2 255.255.255.0
 
+    reserve this IP address
+        ifconfig-pool-persist ipp.txt
+    echo 'client1,10.8.0.2' >> ipp.txt
 EOF
     grep -v -E "^port |^proto |^dev |^ca |^cert |^key |^dh |^server |^push |^keepalive |^tls-auth |^status |^log |^log-append |^verb |^comp-lzo$|^persist-key$|^persist-tun$" /usr/share/doc/openvpn/*/sample-config-files/server.conf > /etc/openvpn/server/server.conf
     tee -a /etc/openvpn/server/vpnsrv.conf <<EOF
