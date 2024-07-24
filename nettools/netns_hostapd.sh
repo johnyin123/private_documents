@@ -128,7 +128,7 @@ hostap_main() {
     setup_ap "${NS_NAME}" ${phy}
     setup_ap_iptable "${NS_NAME}"
     maybe_netns_shell "hostap" "${NS_NAME}"
-    #ns_run "${NS_NAME}" curl cip.cc
+    #ns_run "${NS_NAME}" curl cip.cc | ipinfo.io | ipinfo.io/ip
     cleanup_ns_wifi "${NS_NAME}" ${phy}
     cleanup_strategy_route "${ROUTE_TBL_ID}"
     cleanup_nameserver "${NS_NAME}"
