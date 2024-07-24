@@ -1,3 +1,6 @@
+socat -d -d UDP-LISTEN:1443,reuseaddr TUN:192.168.255.1/24,up
+socat UDP::Server-IP:1443 TUN:192.168.255.2/24,up
+
 Server:
 # # 启动socat，监听tcp 5001端口，设置tun设备ip地址为10.0.0.1/24
 nohup socat TCP-LISTEN:5001,reuseaddr TUN:10.0.0.1/24,up &> socat.log &
