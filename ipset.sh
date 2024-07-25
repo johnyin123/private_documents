@@ -24,3 +24,8 @@ echo ip rule add fwmark ${FWMARK} table ${RULE_TABLE}
 echo iptables -t nat -A POSTROUTING -m set --match-set ${IPSET_NAME} dst -j SNAT --to-source ${L_ADDR}
 echo ip route add default via ${R_ADDR} table ${RULE_TABLE}
 echo ip route list table ${RULE_TABLE}
+
+# iptables -A PREROUTING -i wlan0 -t mangle -p tcp --dport 80 -j MARK --set-mark 1
+# ip rule add fwmark 1 table 201
+# ip route add 0.0.0.0/1 via 10.8.0.13 dev tun0 table 201
+# iptables -L -v -t mangle
