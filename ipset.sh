@@ -17,8 +17,8 @@ for ip in "${iplist[@]}"; do
     echo ipset add ${IPSET_NAME} ${ip}
 done
 echo ipset save
-# # Blocking a list of IP addresses
-# iptables -I INPUT -m set --match-set myset-ip src -j DROP
+echo "# Blocking ip set # iptables -I INPUT -m set --match-set ${IPSET_NAME} src -j DROP"
+echo "# not in ip set # iptables -t mangle -A OUTPUT -m set ! --match-set ${IPSET_NAME} dst -j MARK --set-mark ${FWMARK}"
 echo iptables -t mangle -A OUTPUT -m set --match-set ${IPSET_NAME} dst -j MARK --set-mark ${FWMARK}
 echo ip rule add fwmark ${FWMARK} table ${RULE_TABLE}
 echo ip route flush table ${RULE_TABLE}
