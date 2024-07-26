@@ -31,3 +31,17 @@ echo ip route list table ${RULE_TABLE}
 # iptables -t mangle -A PREROUTING -i br0 -m set --set ${IPSET_NAME} dst -j MARK --set-mark 4
 # iptables -t nat -A POSTROUTING -o eth4 -j SNAT --to-source ${LOCAL_ADDR}
 echo iptables -t mangle -nvL
+
+cat <<EOF
+# Normal packets to go direct out WAN
+/sbin/ip rule add fwmark 1 table ISP prio 100
+
+# Put packets destined into VPN when VPN is up
+/sbin/ip rule add fwmark 2 table VPN prio 200
+
+# Prevent packets from being routed out when VPN is down.
+# This prevents packets from falling back to the main table
+# that has a priority of 32766
+/sbin/ip rule add prohibit fwmark 2 prio 300
+http://linux-ip.net/html/routing-rpdb.html
+EOF
