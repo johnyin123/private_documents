@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-L_ADDR=172.17.17.2
-R_ADDR=172.17.17.1
+LOCAL_ADDR=172.17.17.2
+REMOTE_ADDR=172.17.17.1
 IPSET_NAME=myset
 RULE_TABLE=100
 FWMARK=1
@@ -21,11 +21,13 @@ echo ipset save
 # iptables -I INPUT -m set --match-set myset-ip src -j DROP
 echo iptables -t mangle -A OUTPUT -m set --match-set ${IPSET_NAME} dst -j MARK --set-mark ${FWMARK}
 echo ip rule add fwmark ${FWMARK} table ${RULE_TABLE}
-echo iptables -t nat -A POSTROUTING -m set --match-set ${IPSET_NAME} dst -j SNAT --to-source ${L_ADDR}
-echo ip route add default via ${R_ADDR} table ${RULE_TABLE}
+echo iptables -t nat -A POSTROUTING -m set --match-set ${IPSET_NAME} dst -j SNAT --to-source ${LOCAL_ADDR}
+echo ip route add default via ${REMOTE_ADDR} table ${RULE_TABLE}
 echo ip route list table ${RULE_TABLE}
 
-# iptables -A PREROUTING -i wlan0 -t mangle -p tcp --dport 80 -j MARK --set-mark 1
+# iptables -t mangle -A PREROUTING -i wlan0 -p tcp --dport 80 -j MARK --set-mark 1
 # ip rule add fwmark 1 table 201
 # ip route add 0.0.0.0/1 via 10.8.0.13 dev tun0 table 201
-# iptables -L -v -t mangle
+# iptables -t mangle -A PREROUTING -p tcp --dport 80 -s 192.168.99.0/24 -j MARK --set-mark 4
+# iptables -t nat -A POSTROUTING -o eth4 -j SNAT --to-source ${LOCAL_ADDR}
+# iptables -t mangle -nvL
