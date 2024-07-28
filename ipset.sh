@@ -33,6 +33,9 @@ echo ip route list table ${RULE_TABLE}
 echo iptables -t mangle -nvL
 
 cat <<EOF
+###############################################################
+# #  DOCS
+###############################################################
 # Normal packets to go direct out WAN
 /sbin/ip rule add fwmark 1 table ISP prio 100
 
