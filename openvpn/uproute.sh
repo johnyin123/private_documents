@@ -59,6 +59,10 @@ cat <<EOF
 # iptables -t mangle -A PREROUTING -i eth0 -m set --set ${IPSET_NAME} dst --jump MARK --set-mark 4
 # iptables -t mangle -A POSTROUTING -p tcp -m multiport --dports 21,40000:41000 --jump MARK --set-mark 4
 # iptables -t nat -A POSTROUTING -o eth4 -j SNAT --to-source ${LOCAL_ADDR}
+# # Blocking ip set
+# iptables -I INPUT -m set --match-set ${IPSET_NAME} src -j DROP
+# # not in ip set
+# iptables -t mangle -A OUTPUT -m set ! --match-set ${IPSET_NAME} dst -j MARK --set-mark ${FWMARK}
 # Normal packets to go direct out WAN
 /sbin/ip rule add fwmark 1 table ISP prio 100
 
