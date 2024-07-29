@@ -25,17 +25,15 @@ echo ip route flush table ${RULE_TABLE}
 echo iptables -t nat -A POSTROUTING -m set --match-set ${IPSET_NAME} dst -j SNAT --to-source ${LOCAL_ADDR}
 echo ip route add default via ${REMOTE_ADDR} table ${RULE_TABLE}
 echo ip route list table ${RULE_TABLE}
-
-# iptables -t mangle -A PREROUTING -i wlan0 -p tcp --dport 80 -j MARK --set-mark 4
-# iptables -t mangle -A PREROUTING -p tcp --dport 80 -s 192.168.99.0/24 -j MARK --set-mark 4
-# iptables -t mangle -A PREROUTING -i br0 -m set --set ${IPSET_NAME} dst -j MARK --set-mark 4
-# iptables -t nat -A POSTROUTING -o eth4 -j SNAT --to-source ${LOCAL_ADDR}
 echo iptables -t mangle -nvL
 
 cat <<EOF
 ###############################################################
 # #  DOCS
 ###############################################################
+# iptables -t mangle -A PREROUTING -i eth0 -p tcp --dport 80 --source 192.168.99.0/24 --jump MARK --set-mark 4
+# iptables -t mangle -A PREROUTING -i eth0 -m set --set ${IPSET_NAME} dst --jump MARK --set-mark 4
+# iptables -t nat -A POSTROUTING -o eth4 -j SNAT --to-source ${LOCAL_ADDR}
 # Normal packets to go direct out WAN
 /sbin/ip rule add fwmark 1 table ISP prio 100
 
