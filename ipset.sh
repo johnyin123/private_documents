@@ -47,3 +47,24 @@ cat <<EOF
 /sbin/ip rule add prohibit fwmark 2 prio 300
 http://linux-ip.net/html/routing-rpdb.html
 EOF
+cat <<EOF
+|-------------+-----------------------------------------------|
+| Chain       | Table Processing Order                        |
+|-------------+-----------------------------------------------|
+| PREROUTING  | raw, conntrack, mangle, nat                   |
+| INPUT       | mangle, filter, security, nat                 |
+| OUTPUT      | raw, conntrack, mangle, nat, filter, security |
+| FORWARD     | mangle, filter, security                      |
+| POSTROUTING | mangle, nat                                   |
+|-------------+-----------------------------------------------|
+
+|----------+-------------------------------------------------|
+| Table    | Associated Chains                               |
+|----------+-------------------------------------------------|
+| raw      | PREROUTING, OUTPUT                              |
+| nat      | PREROUTING, INPUT, OUTPUT, POSTROUTING          |
+| mangle   | PREROUTING, INPUT, OUTPUT, FORWARD, POSTROUTING |
+| filter   | INPUT, OUTPUT, FORWARD                          |
+| security | INPUT, OUTPUT, FORWARD                          |
+|----------+-------------------------------------------------|
+EOF
