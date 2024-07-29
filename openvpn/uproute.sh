@@ -3,6 +3,7 @@
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 ZONE=${ZONE:-/etc/openvpn/cn.zone}
+SKIP_ZONE=${ZONE:-/etc/openvpn/skip.zone}
 echo 'cn zone file: wget -P /etc/openvpn/ http://www.ipdeny.com/ipblocks/data/countries/cn.zone'
 
 IPSET_NAME=aliyun
@@ -31,10 +32,12 @@ iptables -t mangle -A OUTPUT -m set --match-set ${IPSET_NAME} dst -j MARK --set-
 log "add ip rule for fwmark ${FWMARK}"
 ip rule delete fwmark ${FWMARK} table ${RULE_TABLE} &>/dev/null || true
 ip rule add fwmark ${FWMARK} table ${RULE_TABLE}
-log "exclude vpnserver ipaddr"
 # iptables -t nat -D POSTROUTING -d 39.104.207.142 -j RETURN &>/dev/null || true
 # iptables -t nat -A POSTROUTING -d 39.104.207.142 -j RETURN
-ipset add ${IPSET_NAME} 39.104.207.142/32 nomatch
+for ip in $(cat "${SKIP_ZONE}"); do
+    log "exclude vpnserver ipaddr ${ip}"
+    ipset add ${IPSET_NAME} ${ip} nomatch || true
+done
 log "other cn.zone ips snat"
 # iptables -t nat -D POSTROUTING -m set --match-set ${IPSET_NAME} dst -j SNAT --to-source $4 &>/dev/null || true
 # iptables -t nat -A POSTROUTING -m set --match-set ${IPSET_NAME} dst -j SNAT --to-source $4
