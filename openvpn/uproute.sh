@@ -46,6 +46,8 @@ iptables -t nat -D POSTROUTING -m set --match-set ${IPSET_NAME} dst -j MASQUERAD
 iptables -t nat -A POSTROUTING -m set --match-set ${IPSET_NAME} dst -j MASQUERADE -o $1
 log "set route"
 ip route flush table ${RULE_TABLE} &>/dev/null || true
+# # if vpnserver topology subnet: uproute.sh tun0 1500 0 10.8.0.2 255.255.255.0 init
+# # if vpnserver topology net30/p2p
 ip route replace default via $5 dev $1 table ${RULE_TABLE}
 log "show route"
 ip route show table ${RULE_TABLE}

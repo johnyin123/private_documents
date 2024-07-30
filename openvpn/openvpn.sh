@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("251e044[2024-07-24T11:13:44+08:00]:openvpn.sh")
+VERSION+=("484864f[2024-07-30T10:48:01+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -69,8 +69,6 @@ EOF
 management localhost 7505
 # # shaper n, Restrict output to peer to n bytes per second.
 # shaper 2097152 # 2Mb
-# mode p2p # # Major mode, m = 'p2p' (default, point-to-point) or 'server'.
-# max-clients n # # max clients connect
 #监听本机ip地址
 local 0.0.0.0
 port 1194
@@ -80,6 +78,7 @@ proto udp
 dev tun
 # 指定虚拟局域网占用的IP段
 server 10.8.0.0 255.255.255.0
+# topology net30/p2p/subnet
 #服务器自动给客户端分配IP后，客户端下次连接时，仍然采用上次的IP地址
 ifconfig-pool-persist ipp.txt
 #自动推送客户端上的网关
@@ -96,7 +95,7 @@ push "dhcp-option DNS 114.114.114.114"
 client-to-client
 #允许同一个客户端证书多次登录
 #duplicate-cn
-#最大连接用户
+# # max clients connect
 max-clients 100
 #每10秒ping一次，连接超时时间设为120秒
 keepalive 10 120

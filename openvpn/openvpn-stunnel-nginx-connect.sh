@@ -138,19 +138,20 @@ proto tcp
 dev tun
 # 指定虚拟局域网占用的IP段
 server 10.8.0.0 255.255.255.0
-# static client config dir
+# topology net30/p2p/subnet
+# # static client config dir
 client-config-dir /etc/openvpn/ccd
-# 服务器自动给客户端分配IP后，客户端下次连接时，仍然采用上次的IP地址
+# # 服务器自动给客户端分配IP后，客户端下次连接时，仍然采用上次的IP地址
 ifconfig-pool-persist ipp.txt
-# 允许客户端与客户端相连接，默认情况下客户端只能与服务器相连接
+status ovn-srv.status
+# # 允许客户端与客户端相连接，默认情况下客户端只能与服务器相连接
 client-to-client
-# 允许同一个客户端证书多次登录
+# # 允许同一个客户端证书多次登录
 duplicate-cn
-# 最大连接用户
+# # max clients connect
 max-clients 10
-# 每10秒ping一次，连接超时时间设为120秒
+# # 每10秒ping一次，连接超时时间设为120秒
 keepalive 10 120
-status /var/log/openvpn-status.log
 # crl-verify crl.pem
 $(vpn_common "ovn_srv.log" "ovn_verifyclient_ca.pem" "ta.key" "ovnsrv.pem" "ovnsrv.key")
 <dh>
