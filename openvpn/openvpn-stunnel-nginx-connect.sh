@@ -47,8 +47,12 @@ openvpn --genkey --secret /dev/stdout > ta.key
 cat myca/dh2048.pem > dh2048.pem
 
 REMOTE=test.server.org REMOTE_NGX_PORT=4400 STUNNEL_PORT=8999 ./openvpn-stunnel-nginx-connect.sh
+!!! openvpn server: mkdir -p /etc/openvpn/ccd
+scp ngxsrv.pem ngxsrv.key ngx_verifyclient_ca.pem ngx_connect.conf openvpn-server.conf root@vpnserver:~/
+scp stunnel.conf stunnel.pem stunnel.key openvpn-client.conf root@vpnclient:~/
+systemctl enable stunnel@stunnel --now
 EOF
-cat <<EOF > aws.conf
+cat <<EOF > stunnel.conf
 syslog=no
 foreground=yes
 debug=info
@@ -148,8 +152,6 @@ max-clients 10
 keepalive 10 120
 status /var/log/openvpn-status.log
 # crl-verify crl.pem
-comp-lzo adaptive
-push "comp-lzo adaptive"
 $(vpn_common "ovn_srv.log" "ovn_verifyclient_ca.pem" "ta.key" "ovnsrv.pem" "ovnsrv.key")
 <dh>
 $(exec 2> /dev/null; cat dh2048.pem)
