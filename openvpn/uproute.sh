@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
-# # /etc/openvpn/upaws.sh tun0 1500 0 10.8.0.6 10.8.0.5 init
-log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+# # /etc/openvpn/uproute.sh tun0 1500 0 10.8.0.6 10.8.0.5 init
 
 ZONE=${ZONE:-/etc/openvpn/cn.zone}
-SKIP_ZONE=${ZONE:-/etc/openvpn/skip.zone}
-echo 'cn zone file: wget -P /etc/openvpn/ http://www.ipdeny.com/ipblocks/data/countries/cn.zone'
+SKIP_ZONE=${SKIP_ZONE:-/etc/openvpn/skip.zone}
+IPSET_NAME=${IPSET_NAME:-aliyun}
+RULE_TABLE=${RULE_TABLE:-100}
+FWMARK=${FWMARK:-1}
 
-IPSET_NAME=aliyun
-RULE_TABLE=100
-FWMARK=1
 LOGFILE=""
 # LOGFILE="-a log.txt"
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+
+echo 'cn zone file: wget -P /etc/openvpn/ http://www.ipdeny.com/ipblocks/data/countries/cn.zone'
 
 ipset create ${IPSET_NAME} hash:net 2>/dev/null || {
     log "${IPSET_NAME} exists flush clear"
