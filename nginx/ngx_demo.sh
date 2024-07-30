@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("afd78bc[2024-07-23T10:49:49+08:00]:ngx_demo.sh")
+VERSION+=("06ac347[2024-07-24T09:35:54+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -253,6 +253,8 @@ cat <<'EOF' >http2.http
 server {
     listen 443 ssl http2;
     listen 80 http2;
+    # # if nginx > 1.25.1
+    # http2 on;
     server_name _;
     ssl_certificate /etc/nginx/ssl/test.pem;
     ssl_certificate_key /etc/nginx/ssl/test.key;
@@ -516,6 +518,8 @@ cat <<'EOF' >grpc.http
 # grpc need http2
 server {
     listen 443 ssl http2;
+    # # if nginx > 1.25.1
+    # http2 on;
     server_name _;
     ssl_certificate /etc/nginx/ssl/srv.pem;
     ssl_certificate_key /etc/nginx/ssl/srv.key;
