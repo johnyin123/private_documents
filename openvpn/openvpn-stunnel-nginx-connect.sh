@@ -15,12 +15,38 @@ LOGFILE=""
 # LOGFILE="-a log.txt"
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
-log "need:dh2048.pem, ta.key, server.pem, server.key, client.pem, client.key"
-log "nginx need :/etc/nginx/ssl/srv.pem, /etc/nginx/ssl/srv.key, /etc/nginx/ssl/ca.pem"
+log "need:dh2048.pem, ta.key, ovnsrv.pem, ovnsrv.key, ovncli.pem, ovncli.key, ovn_verifyclient_ca.pem"
+log "nginx need :/etc/nginx/ssl/ngxsrv.pem, /etc/nginx/ssl/ngxsrv.key, /etc/nginx/ssl/ngx_verifyclient_ca.pem"
 log "copy ngx_connect.conf, openvpn-server.conf to remote"
 log "copy stunnel.conf, stunnel.pem, stunnel.key, openvpn-client.conf to local"
 cat <<EOF
-    /etc/nginx/ssl/ca.pem ----> ssl_verify_client stunnel.pem
+    /etc/nginx/ssl/ngx_verifyclient_ca.pem ----> ssl_verify_client stunnel.pem
+
+# # all cert can user same ca !!
+./newssl.sh -i myca --caroot myca
+./newssl.sh  --caroot myca -c ngxsrv
+cat myca/ngxsrv.key > ngxsrv.key
+cat myca/ngxsrv.pem > ngxsrv.pem
+./newssl.sh  --caroot myca -c stunnel
+cat myca/stunnel.key > stunnel.key
+cat myca/stunnel.pem > stunnel.pem
+cat myca/ca.pem > ngx_verifyclient_ca.pem
+# cat myca/ca.pem > ovn_verifyclient_ca.pem
+# # # # # # # # # # # # # # # # # # # # # # # #
+# # or openvpn user another ca
+./newssl.sh -i ovnca --caroot ovnca
+./newssl.sh  --caroot ovnca -c ovnsrv
+cat ovnca/ovnsrv.key > ovnsrv.key
+cat ovnca/ovnsrv.pem > ovnsrv.pem
+./newssl.sh  --caroot ovnca -c ovncli
+cat ovnca/ovncli.key > ovncli.key
+cat ovnca/ovncli.pem > ovncli.pem
+cat ovnca/ca.pem > ovn_verifyclient_ca.pem
+
+openvpn --genkey --secret /dev/stdout > ta.key
+cat myca/dh2048.pem > dh2048.pem
+
+REMOTE=test.server.org REMOTE_NGX_PORT=4400 STUNNEL_PORT=8999 ./openvpn-stunnel-nginx-connect.sh
 EOF
 cat <<EOF > aws.conf
 syslog=no
@@ -41,9 +67,9 @@ cat << EOF > ngx_connect.conf
 server {
     listen ${REMOTE_NGX_PORT} ssl http2;
     server_name _;
-    ssl_certificate /etc/nginx/ssl/srv.pem;
-    ssl_certificate_key /etc/nginx/ssl/srv.key;
-    ssl_client_certificate /etc/nginx/ssl/ca.pem;
+    ssl_certificate /etc/nginx/ssl/ngxsrv.pem;
+    ssl_certificate_key /etc/nginx/ssl/ngxsrv.key;
+    ssl_client_certificate /etc/nginx/ssl/ngx_verifyclient_ca.pem;
     ssl_verify_client on;
     access_log off;
     proxy_intercept_errors on;
@@ -108,19 +134,23 @@ proto tcp
 dev tun
 # 指定虚拟局域网占用的IP段
 server 10.8.0.0 255.255.255.0
-#允许客户端与客户端相连接，默认情况下客户端只能与服务器相连接
+# static client config dir
+client-config-dir /etc/openvpn/ccd
+# 服务器自动给客户端分配IP后，客户端下次连接时，仍然采用上次的IP地址
+ifconfig-pool-persist ipp.txt
+# 允许客户端与客户端相连接，默认情况下客户端只能与服务器相连接
 client-to-client
-#允许同一个客户端证书多次登录
+# 允许同一个客户端证书多次登录
 duplicate-cn
-#最大连接用户
+# 最大连接用户
 max-clients 10
-#每10秒ping一次，连接超时时间设为120秒
+# 每10秒ping一次，连接超时时间设为120秒
 keepalive 10 120
-status      /var/log/openvpn-status.log
-# push "route 10.0.0.0 255.255.255.0"
-# push "dhcp-option DNS 114.114.114.114"
+status /var/log/openvpn-status.log
 # crl-verify crl.pem
-$(vpn_common "ovn_srv.log" "ca.pem" "ta.key" "server.pem" "server.key")
+comp-lzo adaptive
+push "comp-lzo adaptive"
+$(vpn_common "ovn_srv.log" "ovn_verifyclient_ca.pem" "ta.key" "ovnsrv.pem" "ovnsrv.key")
 <dh>
 $(exec 2> /dev/null; cat dh2048.pem)
 </dh>
@@ -139,5 +169,5 @@ http-proxy-option VERSION 1.1
 # script-security 2
 # up "/etc/openvpn/uproute.sh"
 # pull-filter ignore "route"
-$(vpn_common "ovn_cli.log" "ca.pem" "ta.key" "client.pem" "client.key")
+$(vpn_common "ovn_cli.log" "ovn_verifyclient_ca.pem" "ta.key" "ovncli.pem" "ovncli.key")
 EOF
