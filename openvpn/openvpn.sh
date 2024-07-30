@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("612454b[2024-07-11T10:27:37+08:00]:openvpn.sh")
+VERSION+=("251e044[2024-07-24T11:13:44+08:00]:openvpn.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -107,6 +107,8 @@ verb 3
 cipher AES-256-GCM
 # auth SHA256
 comp-lzo
+# comp-lzo adaptive
+# push "comp-lzo adaptive"
 persist-key
 persist-tun
 # # Enable multiple clients to connect with the same certificate key
@@ -142,7 +144,9 @@ gen_clent_cert() {
 client
 dev tun
 proto udp
-remote ########SRV ADDRESS######## 1194
+remote ########SRV1######## 1194
+# remote srv2 1195
+# remote-random
 # 使客户端中所有流量经过VPN,所有网络连接都使用vpn
 # redirect-gateway def1
 resolv-retry infinite
