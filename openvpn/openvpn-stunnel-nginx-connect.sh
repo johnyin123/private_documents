@@ -1,17 +1,27 @@
 #!/usr/bin/env bash
+set -o errtrace
+set -o nounset
+set -o errexit
+
 # REMOTE: opevpn-server & nginx-connect
 # client: openvpn-client & stunnel
 # client-->stunnel(https_proxy)===(internet)===>nginx-connect-->openvpn-server
-echo "need:dh2048.pem, ta.key, server.pem, server.key, client.pem, client.key"
-echo "nginx need :/etc/nginx/ssl/srv.pem, /etc/nginx/ssl/srv.key, /etc/nginx/ssl/ca.pem"
-echo "copy ngx_connect.conf, openvpn-server.conf to remote"
-echo "copy stunnel.conf, stunnel.pem, stunnel.key, openvpn-client.conf to local"
+
+REMOTE=${REMOTE:-you_sec_vpn_srv.com}
+REMOTE_NGX_PORT=${REMOTE_NGX_PORT:-443}
+STUNNEL_PORT=${STUNNEL_PORT:-8888}
+
+LOGFILE=""
+# LOGFILE="-a log.txt"
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+
+log "need:dh2048.pem, ta.key, server.pem, server.key, client.pem, client.key"
+log "nginx need :/etc/nginx/ssl/srv.pem, /etc/nginx/ssl/srv.key, /etc/nginx/ssl/ca.pem"
+log "copy ngx_connect.conf, openvpn-server.conf to remote"
+log "copy stunnel.conf, stunnel.pem, stunnel.key, openvpn-client.conf to local"
 cat <<EOF
     /etc/nginx/ssl/ca.pem ----> ssl_verify_client stunnel.pem
 EOF
-REMOTE=${REMOTE:-192.168.168.111}
-REMOTE_NGX_PORT=${REMOTE_NGX_PORT:-443}
-STUNNEL_PORT=8888
 cat <<EOF > aws.conf
 syslog=no
 foreground=yes
@@ -25,7 +35,7 @@ client=yes
 accept=127.0.0.1:${STUNNEL_PORT}
 connect=${REMOTE}:${REMOTE_NGX_PORT}
 EOF
-echo "systemctl enable stunnel@aws --now"
+log "start stunnel command: systemctl enable stunnel@aws --now"
 cat << EOF > ngx_connect.conf
 # load_module modules/ngx_http_proxy_connect_module.so;
 server {
@@ -68,6 +78,7 @@ vpn_common() {
     local ta=${3}
     local cert=${4}
     local key=${5}
+    exec 2> /dev/null
     cat <<EOF
 verb 3
 log /var/log/${log}
@@ -111,7 +122,7 @@ status      /var/log/openvpn-status.log
 # crl-verify crl.pem
 $(vpn_common "ovn_srv.log" "ca.pem" "ta.key" "server.pem" "server.key")
 <dh>
-$(cat dh2048.pem)
+$(exec 2> /dev/null; cat dh2048.pem)
 </dh>
 EOF
 cat << EOF > openvpn-client.conf
