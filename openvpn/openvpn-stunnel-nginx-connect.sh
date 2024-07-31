@@ -163,6 +163,8 @@ EOF
 cat << EOF > openvpn-client.conf
 client
 remote 127.0.0.1 1194
+# # 如果有多台机器做负载均衡可多次出现remote
+# remote-random
 proto tcp
 dev tun
 resolv-retry infinite

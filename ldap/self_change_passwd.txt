@@ -1,0 +1,244 @@
+1.添加用户只能修改自己密码权限
+cat<<EOF | ldapmodify -d 256 -H ldapi:// -Q -Y EXTERNAL
+#dn: cn=setpasswd,dc=sys,dc=com
+#changetype: modify
+add: olcAccess
+olcAccess: {0}to attrs=userPassword
+        by dn="cn=setpasswd,dc=sys,dc=com" write
+        by dn.children="cn=setpasswd,dc=sys,dc=com" write
+        by anonymous auth
+        by self write
+        by * none
+olcAccess: {1}to *
+        by dn="cn=setpasswd,dc=sys,dc=com" write
+        by dn.children="cn=setpasswd,dc=sys,dc=com" write
+        by * read
+EOF
+2.部署前端web页面
+2.1 安装 php7
+2.2 安装nginx
+2.3 安装self-service-password服务
+    https://ltb-project.org/download.html
+grep -vE '^#|^$' /usr/share/self-service-password/conf/config.inc.php
+#LDAP部分
+$ldap_url = "ldap://192.168.48.136:389";
+$ldap_starttls = false;
+$ldap_binddn = "cn=admin,dc=sys,dc=com";
+$ldap_bindpw = "Abc.123456";
+$ldap_base = "dc=sys,dc=com";
+$ldap_login_attribute = "uid";
+$ldap_fullname_attribute = "cn";
+$ldap_filter = "(&(objectClass=person)($ldap_login_attribute={login}))";
+#mail部分
+## Mail
+$mail_attribute = "mail";
+$mail_address_use_ldap = false;
+$mail_from = "dogotsn@duojia369.com";
+$mail_from_name = "企业账号密码重置";
+$mail_signature = "LDAP系统后台";
+$notify_on_change = true;
+$mail_sendmailpath = '/usr/sbin/sendmail';
+$mail_protocol = 'smtp';
+$mail_smtp_debug = 0;
+$mail_debug_format = 'error_log';
+$mail_smtp_host = 'smtp.exmail.qq.com';
+$mail_smtp_auth = true;
+$mail_smtp_user = 'dogotsn@duojia369.com';
+$mail_smtp_pass = '********';
+$mail_smtp_port = 25;
+$mail_smtp_timeout = 30;
+$mail_smtp_keepalive = false;
+$mail_smtp_secure = 'tls';
+$mail_smtp_autotls = false;
+$mail_contenttype = 'text/plain';
+$mail_wordwrap = 0;
+$mail_charset = 'utf-8';
+$mail_priority = 3;
+$mail_newline = PHP_EOL;
+
+$keyphrase = "11111111"; #随意修改，只要不是默认的值secret就行，否则会报错
+
+#密码复杂度策略
+# 最小长度
+$pwd_min_length = 8;
+# 最大长度
+$pwd_max_length = 28;
+# 最小小写字符
+$pwd_min_lower = 1;
+# 最小大写字符
+$pwd_min_upper = 1;
+# 最小数字
+$pwd_min_digit = 1;
+# 最小特殊字符，除数字和大小写字母外的特殊字符
+$pwd_min_special = 0;
+# Definition of special characters
+$pwd_special_chars = "^a-zA-Z0-9";
+
+cat <<'EOF' >ngx.conf
+server {
+    listen       8080;
+    server_name  _;
+
+    root  /usr/share/self-service-password;
+    index index.php;
+
+    location / {
+        root /usr/share/self-service-password;
+        index index.html index.htm index.php;
+    }
+		
+    error_page  404              /404.html;
+    location = /404.html {
+        root   html;
+    }
+
+    error_page   500 502 503 504  /50x.html;
+    location = /50x.html {
+        root   html;
+    }
+
+
+	location ~ \.php$ {
+        fastcgi_pass   127.0.0.1:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+        include        fastcgi_params;
+
+    }
+}
+EOF
+通过docker部署
+cat <<EOF >docker-compose.yml
+version: '2'
+services:
+  ssp-app:
+    image: registry.cn-hangzhou.aliyuncs.com/eryajf/self-service-password
+    container_name: ssp-app
+    volumes:
+      - ./data/:/www/ssp
+      - ./logs/:/www/logs
+    ports:
+      - 8888:80
+    environment:
+      - VIRTUAL_HOST=http://10.3.0.42
+      - VIRTUAL_NETWORK=nginx-proxy
+      - LETSENCRYPT_HOST=10.3.0.42
+      - LETSENCRYPT_EMAIL=Linuxlql@163.com
+      - LDAP_SERVER=ldap://10.3.0.42:389
+      - LDAP_STARTTLS=false
+      - LDAP_BINDDN=cn=admin,dc=eryajf,dc=net
+      - LDAP_BINDPASS=eryajf@456
+      - LDAP_BASE_SEARCH=ou=People,dc=eryajf,dc=net
+      - LDAP_LOGIN_ATTRIBUTE=uid
+      - LDAP_FULLNAME_ATTRIBUTE=cn
+# Active Directory mode
+# true: use unicodePwd as password field
+# false: LDAPv3 standard behavior
+      - ADMODE=false
+# Force account unlock when password is changed
+      - AD_OPT_FORCE_UNLOCK=false
+# Force user change password at next login
+      - AD_OPT_FORCE_PWD_CHANGE=false
+# Allow user with expired password to change password
+      - AD_OPT_CHANGE_EXPIRED_PASSWORD=false
+# Samba mode
+# true: update sambaNTpassword and sambaPwdLastSet attributes too
+# false: just update the password
+      - SAMBA_MODE=false
+# Shadow options - require shadowAccount objectClass
+# Update shadowLastChange
+      - SHADOW_OPT_UPDATE_SHADOWLASTCHANGE=false
+# Hash mechanism for password:
+# SSHA
+# SHA
+# SMD5
+# MD5
+# CRYPT
+# clear (the default)
+# auto (will check the hash of current password)
+# This option is not used with ad_mode = true
+      - PASSWORD_HASH=SHA
+# Local password policy
+# This is applied before directory password policy
+# Minimal length
+      - PASSWORD_MIN_LENGTH=6
+# Maximal length
+      - PASSWORD_MAX_LENGTH=30
+# Minimal lower characters
+      - PASSWORD_MIN_LOWERCASE=2
+# Minimal upper characters
+      - PASSWORD_MIN_UPPERCASE=1
+# Minimal digit characters
+      - PASSWORD_MIN_DIGIT=1
+# Minimal special characters
+      - PASSWORD_MIN_SPECIAL=0
+# Dont reuse the same password as currently
+      - PASSWORD_NO_REUSE=true
+# Show policy constraints message:
+# always
+# never
+# onerror
+      - PASSWORD_SHOW_POLICY=never
+# Position of password policy constraints message:
+# above - the form
+# below - the form
+      - PASSWORD_SHOW_POLICY_POSITION=above
+# Who changes the password?
+# Also applicable for question/answer save
+# user: the user itself
+# manager: the above binddn
+      - WHO_CAN_CHANGE_PASSWORD=user
+## Questions/answers
+# Use questions/answers?
+# true (default)
+# false
+      - QUESTIONS_ENABLED=false
+## Mail
+# LDAP mail attribute
+      - LDAP_MAIL_ATTRIBUTE=mail
+# Who the email should come from
+      - MAIL_FROM=Linuxlql@163.com
+      - MAIL_FROM_NAME=Password Reset
+# Notify users anytime their password is changed
+      - NOTIFY_ON_CHANGE=true
+# PHPMailer configuration (see https://github.com/PHPMailer/PHPMailer)
+      - SMTP_DEBUG=0
+      - SMTP_HOST=smtp.163.com
+      - SMTP_AUTH_ON=true
+      - SMTP_USER=Linuxlql@163.com
+      - SMTP_PASS=xxxxxx # 这里是邮箱的授权码，经常配置邮箱的你，一定明白我的意思
+      - SMTP_PORT=25
+      - SMTP_SECURE_TYPE=tls
+      - SMTP_AUTOTLS=false
+ ## SMS
+# Use sms (NOT WORKING YET)
+      - USE_SMS=false
+# Reset URL (if behind a reverse proxy)
+      - IS_BEHIND_PROXY=true
+# Display help messages
+      - SHOW_HELP=true
+# Language
+      - LANG=en
+# Debug mode
+      - DEBUG_MODE=false
+# Encryption, decryption keyphrase
+      - SECRETEKEY=secretkey
+## CAPTCHA
+# Use Google reCAPTCHA (http://www.google.com/recaptcha)
+      - USE_RECAPTCHA=false
+# Go on the site to get public and private key
+      - RECAPTCHA_PUB_KEY=akjsdnkajnd
+      - RECAPTCHA_PRIV_KEY=aksdjnakjdnsa
+## Default action
+# change
+# sendtoken
+# sendsms
+      - DEFAULT_ACTION=change
+    networks:
+      - proxy-tier
+    restart: always
+networks:
+  proxy-tier:
+    external:
+      name: nginx-proxy
+EOF`
