@@ -70,6 +70,8 @@ cat << EOF > ngx_connect.conf
 # load_module modules/ngx_http_proxy_connect_module.so;
 server {
     listen ${REMOTE_NGX_PORT} ssl http2;
+    # # nginx version > 1.25.1
+    # http2 on;
     server_name _;
     ssl_certificate /etc/nginx/ssl/ngxsrv.pem;
     ssl_certificate_key /etc/nginx/ssl/ngxsrv.key;
@@ -131,12 +133,12 @@ $(cat ${key})
 EOF
 }
 cat << EOF > openvpn-server.conf
-management localhost 7505
+# management localhost 7505
+# management /run/openvpn/server.sock unix
 local 127.0.0.1
 port 1194
 proto tcp
 dev tun
-# 指定虚拟局域网占用的IP段
 server 10.8.0.0 255.255.255.0
 # topology net30/p2p/subnet
 # # static client config dir

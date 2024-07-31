@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # # /etc/openvpn/uproute.sh tun0 1500 0 10.8.0.6 10.8.0.5 init
+env | logger
+logger "$*"
 
 ZONE=${ZONE:-/etc/openvpn/cn.zone}
 SKIP_ZONE=${SKIP_ZONE:-/etc/openvpn/skip.zone}
