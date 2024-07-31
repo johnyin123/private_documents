@@ -143,8 +143,8 @@ server 10.8.0.0 255.255.255.0
 # topology net30/p2p/subnet
 # # static client config dir
 client-config-dir /etc/openvpn/ccd
-# # 服务器自动给客户端分配IP后，客户端下次连接时，仍然采用上次的IP地址
-ifconfig-pool-persist ipp.txt
+# # [seconds] 0 mean ipp.txt is readonly, default 600
+ifconfig-pool-persist ipp.txt 600
 status ovn-srv.status
 # # 允许客户端与客户端相连接，默认情况下客户端只能与服务器相连接
 client-to-client
