@@ -49,6 +49,9 @@ iptables -t nat -A POSTROUTING -m set --match-set ${IPSET_NAME} dst -j MASQUERAD
 log "set route"
 ip route flush table ${RULE_TABLE} &>/dev/null || true
 # # if vpnserver topology subnet: uproute.sh tun0 1500 0 10.8.0.2 255.255.255.0 init
+# # env route_vpn_gateway set by openvpn main process!!
+log "vpn env: ${route_net_gateway}, ${route_vpn_gateway}, ${ifconfig_local}, ${ifconfig_remote}"
+# ip route replace default via ${route_vpn_gateway} dev $1 table ${RULE_TABLE}
 # # if vpnserver topology net30/p2p
 ip route replace default via $5 dev $1 table ${RULE_TABLE}
 log "show route"
