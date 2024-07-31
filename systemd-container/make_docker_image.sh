@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3de012d[2024-01-18T13:36:32+08:00]:make_docker_image.sh")
+VERSION+=("a21a77d[2024-07-17T16:54:18+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -41,8 +41,8 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
-         # # cp firefox.tar.xz mytarget/
-            ./${SCRIPTNAME} -c firefox -f firefox_rootfs.tar.xz -D myfirefox
+         # # mkdir -p myfirefox && cp firefox_rootfs.tar.xz myfirefox/
+            ./${SCRIPTNAME} -c firefox --file firefox_rootfs.tar.xz -D myfirefox
          # # create goldimg
             ARCH=(amd64 arm64)
             for arch in \${ARCH[@]}; do
@@ -282,14 +282,17 @@ CMD=/usr/bin/su
 ARGS="${username} -c '/opt/firefox/firefox'"
 EOF
     cat <<'EOF'
-# apt -y update && apt -y --no-install-recommends install libgtk-3-0 libnss3 libssl3 libdbus-glib-1-2 libx11-xcb1 libxtst6 libasound2 fonts-noto-cjk
+# apt -y update && apt -y --no-install-recommends install libgtk-3-0 libnss3 libssl3 libdbus-glib-1-2 libx11-xcb1 libxtst6 libasound2
+# # fonts-noto-cjk
 docker pull registry.local/firefox:bookworm --platform amd64
-docker create --network internet --ip 192.168.169.2 --dns 8.8.8.8 \
+
+docker create --network br-ext --ip 192.168.169.2 --dns 8.8.8.8 \
     --cpuset-cpus 0 \
     --memory 512mb \
     --hostname myinternet --name firefox \
-    -v /testhome:/home/johnyin \
     -e DISPLAY=unix${DISPLAY} \
+    -v /home/johnyin/disk/docker_home/:/home/johnyin/:rw \
+    -v /usr/share/fonts/opentype/noto/:/usr/share/fonts/opentype/noto/:ro \
     -v /dev/shm:/dev/shm \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --device /dev/snd \
