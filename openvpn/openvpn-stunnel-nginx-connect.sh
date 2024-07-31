@@ -141,8 +141,8 @@ proto tcp
 dev tun
 server 10.8.0.0 255.255.255.0
 # topology net30/p2p/subnet
-# # static client config dir
-client-config-dir /etc/openvpn/ccd
+# # static client config dir, mkdir -p /etc/openvpn/ccd
+client-config-dir ccd
 # # [seconds] 0 mean ipp.txt is readonly, default 600
 ifconfig-pool-persist ipp.txt 600
 status ovn-srv.status
