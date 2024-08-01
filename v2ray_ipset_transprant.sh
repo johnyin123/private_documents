@@ -1,31 +1,61 @@
 #!/usr/bin/env bash
-:<<"EOF"
-Preparation
-Someone who's capable to solve problems in their own situations;
-A VPS that has installed V2Ray, the IP of which we assume to be 110.231.43.65;
-A device with iptables, root permission, and Linux system, the IP of which we assume to be 192.168.1.22, with V2Ray running as a client. This device can be a router, a development board, a personal computer, a virtual machine, or an Android device, referred to a gateway here. We do not recommend using the MT7620 system to deploy as a transparent proxy, due to its limited performance, and the fact that many of their firmware does not have access to FPU. If you are not willing to purchase a new device specifically for transparent proxy, you can, however, create a virtual machine on your PC (e.g. VirtualBox, Hyper-V, and KVM). Note that on the hypervisor, you should set virtual machines' network in bridge mode.
-#Procedures
-The setup steps are as follows, assuming you are logged in with root.
 
-Enable IP forwarding on the gateway device: Add new line net.ipv4.ip_forward=1 to the /etc/sysctl.conf file and execute :
-sysctl -p
-The gateway device sets to a static IP, which is in the same network segment as the LAN port of the router. The default gateway should be the IP address of the router. Enter the router management page and go to the DHCP setting, set the default gateway address at the IP address of the gateway device, as 192.168.1.22 in this example. Or you can set your computer, phone and other devices their default gateway individually (to 192.168.1.22), and reconnect your devices to the router to see if they can connect to the Internet. (It's normal that the device can not yet bypass the GFW at this time). If the devices have no access to the internet at all, you'll have to solve this issue first before going any further. Otherwise, you'll only waste your time following the next steps. The gateway device is set to a static IP so that to its IP does not change after a reboot. The default gateway on the router is set to the gateway IP address so that the router routes all data sent from the LAN devices connected to it to the gateway device, who then forwards the traffic using V2Ray.
+LOGFILE=""
+# LOGFILE="-a log.txt"
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
-Install the latest version of V2Ray on the server (your VPS) and the gateway. (If you don't how then you need to follow the previous tutorials. Note that GFW likes to intercept the GitHub releases traffic, and it can cause failure to install V2Ray using the installation script. It is hence advised to download the V2Ray package manually, and then use the installation script with the "-local" parameter.) Configure your config file accordingly. When you are sure that the V2Ray is working properly, at the gateway, execute curl -x socks5://127.0.0.1:1080 google.com to test whether your setup can bypass GFW. (Here socks5 refers to the inbound protocol and 1080 is the inbound port ) . If the output is something like the following, you are good. Otherwise, there's something wrong with your setup and you need to recheck what you have missed.
+cat <<EOF
+ip rule delete fwmark 1 table 100
+ip route delete local default dev lo table 100
+nft flush ruleset
+ip rule
+ip route show table 100
+iptables-save
+# https://github.com/Loyalsoldier/v2ray-rules-dat/releases
+cp geoip.dat geosite.dat /etc/v2ray/
+systemctl restart v2ray
+journalctl -f
+# # 通过 http 的inbound来测试下隧道
+curl -Is -x 127.0.0.1:10888 https://www.google.com -vvvv
 
-<HTML><HEAD><meta http-equiv="content-type" content="text/html;charset=utf-8">
-<TITLE>301 Moved</TITLE></HEAD><BODY>
-<H1>301 Moved</H1>
-The document has moved
-<A HREF="http://www.google.com/">here</A>.
-</BODY></HTML>
-In the configuration file of the gateway, add the inbound configuration of the dokodemo-door protocol, enable sniffing, and add also SO_MARK to all outbound streamSettings. The configuration should be as follows (the ... represents configuration in a standard client):
- {
-  "routing": {...},
+使用:
+局域网内的主机将默认网关修改为透明网关所在的IP就可以实现本机全局自动翻墙，我上面的配置文件将国内流量国外流量自动分流了。客户端不需要做任何特殊设置即可使用。
+EOF
+
+V2RAY_TPROXY_PORT=50099
+
+cat <<EOF | sed "/^\s*#/d"  > tproxy.json
+{
+  "log": {
+    "access": "",
+    "error": "",
+    "loglevel": "warning"
+  },
   "inbounds": [
+    # #################测试inbound start
+    # curl -Is -x 127.0.0.1:10888 https://www.google.com -vvvv
+    # test v2ray is ok
+    {
+      "port": 10888,
+      "listen": "127.0.0.1",
+      "protocol": "http",
+      "settings": {
+        "userLevel": 0,
+        "auth": "noauth",
+        "udp": true,
+        "ip": "127.0.0.1"
+      },
+      "streamSettings": {
+        "sockopt": {
+          "mark": 255
+        }
+      }
+    },
+    # #################测试inbound end
     {
       "tag":"transparent",
-      "port": 12345,
+      "listen": "127.0.0.1",
+      "port": ${V2RAY_TPROXY_PORT},
       "protocol": "dokodemo-door",
       "settings": {
         "network": "tcp,udp",
@@ -40,92 +70,257 @@ In the configuration file of the gateway, add the inbound configuration of the d
       },
       "streamSettings": {
         "sockopt": {
-          "tproxy": "tproxy" // 透明代理使用 TPROXY 方式
+          "tproxy": "tproxy",
+          # 使用tproxy模式
+          "mark": 255
+          # 打上标志, 防止环路
         }
-      }
-    }
-    ,
-    {
-      "port": 12345, // The open port
-      "protocol": "dokodemo-door",
-      "settings": {
-        "network": "tcp,udp",
-        "followRedirect": true // Need to be set as true to accept traffic from iptables
-      },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": ["http", "tls"]
       }
     }
   ],
   "outbounds": [
     {
-      ...
+      "tag": "proxy",
+      "protocol": "vmess",
+      .................
+      // streamSettings/sockopt打上标志, 防止环路
+      .................
       "streamSettings": {
-        ...
         "sockopt": {
-          "mark": 255  // Here is SO_MARK，used for iptables to recognise. Each outbound needs to configure; you can use other value other than 255 but it needs to be consistant as in iptables rules; if there are multiple outbounds, it is recommended that you set all SO_MARK value the same for all outbounds.
+          "mark": 255
+          # 打上标志, 防止环路, 注意每个出口都必须打上
+        }
+      }
+    },
+    {
+      "tag": "direct",
+      "protocol": "freedom",
+      "streamSettings": {
+        "sockopt": {
+          "mark": 255
+          # 直连的也需要打上标志, 防止环路, 注意每个出口都必须打上
+        }
+      }
+    },
+    {
+      "tag": "block",
+      # 流量黑洞, 网站屏蔽
+      "protocol": "blackhole",
+      "settings": {
+        "response": {
+          "type": "http"
+        }
+      }
+    },
+    {
+      "tag": "dns-out",
+      "protocol": "dns",
+      "streamSettings": {
+        "sockopt": {
+          "mark": 255
+          # dns出口的也需要打上标志
         }
       }
     }
-    ...
-  ]
+  ],
+  # 解决dns污染
+  "dns": {
+    "servers": [
+      {
+        "address": "223.5.5.5",
+        "port": 53,
+        "domains": [
+          "geosite:cn",
+          "ntp.org"
+        ]
+      },
+      {
+        "address": "8.8.8.8",
+        "port": 53,
+        "domains": [
+          "geosite:geolocation-!cn"
+        ]
+      },
+      {
+        "address": "1.1.1.1",
+        "port": 53,
+        "domains": [
+          "geosite:geolocation-!cn"
+        ]
+      }
+    ]
+  },
+  # 主要做了国内外分流, 出口负载
+  "routing": {
+    "domainStrategy": "IPOnDemand",
+    "domainMatcher": "mph",
+    "balancers": [
+      {
+        # 出口标签, 类似分组, 在routing中使用到, 可自定义其他的, 控制哪些源ip从哪组出口出去
+        "tag": "proxy",
+        # 上面 outbounds中的海外出口
+        "selector": [
+          "trojan",
+          "vmess",
+          "vless"
+        ],
+        "strategy": {
+          "type": "random"
+          # 随机负载
+        }
+      }
+    ],
+    "rules": [
+      # dns 劫持
+      {
+        "type": "field",
+        "inboundTag": [
+          "transparent"
+        ],
+        "port": 53,
+        "network": "udp",
+        "outboundTag": "dns-out"
+      },
+      # 时间同步直连
+      {
+        "type": "field",
+        "inboundTag": [
+          "transparent"
+        ],
+        "port": 123,
+        "network": "udp",
+        "outboundTag": "direct"
+      },
+      # 国内DNS地址直连, 可自行添加其他的
+      {
+        "type": "field",
+        "ip": [
+          "223.5.5.5",
+          "114.114.114.114"
+        ],
+        "outboundTag": "direct"
+      },
+      # 海外DNS地址直连, 可自行添加其他的
+      {
+        "type": "field",
+        "ip": [
+          "8.8.8.8",
+          "1.1.1.1"
+        ],
+        "balancerTag": "proxy"
+      },
+      # BT直连
+      {
+        "type": "field",
+        "protocol":["bittorrent"],
+        "outboundTag": "direct"
+      },
+      # 自定义走代理
+      {
+        "type": "field",
+        "ip": [
+          "geoip:hk",
+          "geoip:mo"
+        ],
+        "balancerTag": "proxy"
+      },
+      # 国内直连
+      {
+        "type": "field",
+        "ip": [
+          "geoip:private",
+          "geoip:cn"
+        ],
+        "outboundTag": "direct"
+      },
+      # 海外走代理
+      {
+        "type": "field",
+        "domain": [
+          "geosite:geolocation-!cn",
+          "geosite:google-scholar"
+        ],
+        "balancerTag": "proxy"
+      },
+      # 国内直连
+      {
+        "type": "field",
+        "domain": [
+          "geosite:cn",
+          "geosite:category-scholar-!cn",
+          "geosite:category-scholar-cn"
+        ],
+        "outboundTag": "direct"
+      },
+      # 匹配不到的全走代理
+      {
+        "type": "field",
+        "port": "0-65535",
+        "balancerTag": "proxy",
+        "enabled": true
+      }
+    ]
+  }
 }
-Set iptable rules for TCP for the transparent proxy device: (after # are comments):
-iptables -t nat -N V2RAY # Create a new chain called V2RAY
-iptables -t nat -A V2RAY -d 192.168.0.0/16 -j RETURN # Direct connection 192.168.0.0/16
-iptables -t nat -A V2RAY -p tcp -j RETURN -m mark --mark 0xff # Directly connect SO_MARK to 0xff traffic (0xff is a hexadecimal number, numerically equivalent to 255), the purpose of this rule is to avoid proxy loopback with local (gateway) traffic
-iptables -t nat -A V2RAY -p tcp -j REDIRECT --to-ports 12345 # The rest of the traffic is forwarded to port 12345 (ie V2Ray)
-iptables -t nat -A PREROUTING -p tcp -j V2RAY # Transparent proxy for other LAN devices
-iptables -t nat -A OUTPUT -p tcp -j V2RAY # Transparent proxy for this machine
-Then set the iptables rule of UDP traffic for the transparent proxy device:
-
-ip rule add fwmark 1 table 100
-ip route add local 0.0.0.0/0 dev lo table 100
-iptables -t mangle -N V2RAY_MASK
-iptables -t mangle -A V2RAY_MASK -d 192.168.0.0/16 -j RETURN
-iptables -t mangle -A V2RAY_MASK -p udp -j TPROXY --on-port 12345 --tproxy-mark 1
-iptables -t mangle -A PREROUTING -p udp -j V2RAY_MASK
-Try visiting a blocked website directly using your computer/phone that are connected under the same LAN with your configured transparent proxy device. You should not be blocked by now.
-
-You might need a script or anything (such as iptables-persistent) that can automatically load the above iptable rules after the transparent proxy device reboots. Otherwise, the iptables will be lost after it reboots.
-
-#Notes
-WIth the above setup, when you visit a normally blocked site, the gateway will still use the system DNS for the query, except that the returned result is polluted. But the sniffing provided by V2Ray can learn the domain name (of the polluted website) from the traffic and send it for your VPS to resolve, returning the correct result. This is to say that every time you visit a blocked website by the GFW, despite the fact that you can bypass the censorship with V2Ray, your system DNS provider (who pollutes your DNS) knows that you have tried to visit the blocked website. Hence you need to be aware of the possibility that they could actively collect such data.
-V2Ray sniffing currently only extracts domain names from TLS and HTTP traffic. If there is traffic that is neither type of the two, be cautious of using sniffing to solve DNS pollution.
-There might be some problems with the transparent proxy rule for UDP traffic. It will be thankful if you would like to give us any feedback regarding those rules. If your online activities involve simply web surfing or watching videos, TCP rules only might be sufficient without the need of configuring UDP rules.
-Due to the limit of VMESS protocol, V2Ray transparent proxy would not offer satisfactory online gaming performance.
-Only TCP/UDP traffic can be proxied via V2Ray, so it does not work with ICMP packets. Therefore, the transparent proxy does not support ping/mtr which is based on ICMP. However, tcping or hping3 works as they use TCP instead of ICMP.
-There are some transparent proxy tutorials on the internet that set iptables rules for private addresses like RETURN 127.0.0.0/8, but we suggest they should be placed in the V2Ray routing rules for performance reason.
-
 EOF
-ipset destroy china
-#创建规则
-ipset -N china hash:net
-#清空旧的规则文件
-####ipset脚本开始#####
-#清空已存在的规则
-rm cn.zone
-#下载中国的IP文件
-wget -P . http://www.ipdeny.com/ipblocks/data/countries/cn.zone
-# 把IP文件的每个IP添加到IPSET规则里
-for i in $(cat ./cn.zone ); do ipset -A china $i; done
-#新建一个名为 V2RAY 的链
-iptables -t nat -N V2RAY
-#内部流量不转发给V2RAY直通
-iptables -t nat -A V2RAY -d 0.0.0.0/8 -j RETURN
-iptables -t nat -A V2RAY -d 10.0.0.0/8 -j RETURN
-iptables -t nat -A V2RAY -d 127.0.0.0/8 -j RETURN
-iptables -t nat -A V2RAY -d 169.254.0.0/16 -j RETURN
-iptables -t nat -A V2RAY -d 172.16.0.0/12 -j RETURN
-iptables -t nat -A V2RAY -d 192.168.0.0/16 -j RETURN
-iptables -t nat -A V2RAY -d 224.0.0.0/4 -j RETURN
-iptables -t nat -A V2RAY -d 240.0.0.0/4 -j RETURN
-#直连中国的IP
-iptables -t nat -A V2RAY -m set --match-set china dst -j RETURN
-iptables -t nat -A V2RAY -p tcp -j REDIRECT --to-ports 12345
-# 其余流量转发到 12345 端口（即 V2Ray）
-iptables -t nat -A PREROUTING -p tcp -j V2RAY
-# 对局域网其他设备进行透明代理
-#iptables -t nat -A OUTPUT -p tcp -j V2RAY
-# 对本机进行透明代理
+
+IPSET_NAME=local_ip
+# # RFC5735
+iplist=(
+    0.0.0.0/8
+    10.0.0.0/8
+    127.0.0.0/8
+    169.254.0.0/16
+    172.16.0.0/12
+    192.168.0.0/16
+    224.0.0.0/4
+    240.0.0.0/4
+)
+
+ipset create ${IPSET_NAME} hash:net 2>/dev/null || {
+    log "${IPSET_NAME} exists flush clear"
+    ipset flush ${IPSET_NAME}
+}
+log "add ipset"
+cat <<EOF | tee ${LOGFILE} | ipset -exist restore
+create ${IPSET_NAME} hash:net
+$(for ip in "${iplist[@]}"; do
+    echo add ${IPSET_NAME} ${ip}
+done)
+EOF
+
+log "add tproxy iptable rules, for as gateway"
+iptables -t mangle -N V2RAY
+# 过滤掉局域网内的请求，除非目标端口是53, 劫持 DNS 请求
+iptables -t mangle -A V2RAY -p tcp -m set --match-set ${IPSET_NAME} dst -m tcp ! --dport 53 -j RETURN
+iptables -t mangle -A V2RAY -p udp -m set --match-set ${IPSET_NAME} dst -m udp ! --dport 53 -j RETURN
+
+iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-ip 127.0.0.1 --on-port ${V2RAY_TPROXY_PORT} --tproxy-mark 1
+iptables -t mangle -A V2RAY -p udp -j TPROXY --on-ip 127.0.0.1 --on-port ${V2RAY_TPROXY_PORT} --tproxy-mark 1
+
+iptables -t mangle -A PREROUTING -j V2RAY
+iptables -t mangle -nvL
+
+# # 本地进程发起的连接经过OUTPUT->POSTROUTING；而TPROXY只能在PREROUTING中使用。
+# # 可以通过让将OUTPUT的包重新经过PREROUTING的办法来实现对网关本机的代理。
+#
+# log "add tproxy iptable rules, for local machine"
+# iptables -t mangle -N V2RAY_LOCAL
+# iptables -t mangle -A V2RAY_LOCAL -p tcp -m set --match-set ${IPSET_NAME} dst -m tcp ! --dport 53 -j RETURN
+# iptables -t mangle -A V2RAY_LOCAL -p udp -m set --match-set ${IPSET_NAME} dst -m udp ! --dport 53 -j RETURN
+# # 过滤掉代理程序发出的包
+# iptables -t nat -A V2RAY -d <V2Ray server> -j RETURN ## or can add <V2Ray server> to local ipset
+# iptables -t mangle -A V2RAY_LOCAL -m cgroup --path system.slice/v2ray.service -j RETURN
+# # 打fwmark标记；根据已经配置的路由规则，标记的包会重回lo，从而经过PREROUTING
+# iptables -t mangle -A V2RAY_LOCAL -p tcp -j MARK --set-mark 1
+# iptables -t mangle -A V2RAY_LOCAL -p udp -j MARK --set-mark 1
+# # 将chain附加到mangle table的OUTPUT chain
+# iptables -t mangle -A OUTPUT -j V2RAY_LOCAL
+
+log "add ip rule"
+# ip rule delete fwmark 1 table 100
+ip rule add fwmark 1 table 100
+# # 将所有(0.0.0.0/0)包重定向到lo（从而进入INPUT）
+# ip route delete local default dev lo table 100
+ip route add local 0.0.0.0/0 dev lo table 100
+# # PREROUTING的包就会到达端口V2RAY_TPROXY_PORT
