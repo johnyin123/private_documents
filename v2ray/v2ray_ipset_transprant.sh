@@ -18,6 +18,11 @@ journalctl -f
 # # 通过 http 的inbound来测试下隧道
 curl -Is -x 127.0.0.1:10888 https://www.google.com -vvvv
 
+# Name: v2ray.location.asset or V2RAY_LOCATION_ASSET
+# Default value: Same directory where v2ray is.
+# This variable specifies a directory where geoip.dat and geosite.dat files are.
+V2RAY_LOCATION_ASSET=/etc/v2ray v2ray -c /etc/v2ray/config.json
+
 使用:
 局域网内的主机将默认网关修改为透明网关所在的IP就可以实现本机全局自动翻墙，我上面的配置文件将国内流量国外流量自动分流了。客户端不需要做任何特殊设置即可使用。
 EOF

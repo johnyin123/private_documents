@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a21a77d[2024-07-17T16:54:18+08:00]:make_docker_image.sh")
+VERSION+=("2fd9d83[2024-07-31T12:40:37+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -278,6 +278,8 @@ VOLUME ["/home/${username}/"]
 EOF
     cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
     write_file "${cfg_file}" <<EOF
+# CMD=/usr/sbin/runuser
+# ARGS="-u root -- /usr/bin/busybox sleep infinity"
 CMD=/usr/bin/su
 ARGS="${username} -c '/opt/firefox/firefox'"
 EOF
