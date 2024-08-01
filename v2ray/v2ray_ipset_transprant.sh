@@ -32,7 +32,7 @@ V2RAY_TPROXY_PORT=50099
 cat <<EOF | sed "/^\s*#/d"  > tproxy.json
 {
   "log": {
-    "access": "",
+    "access": "/dev/null",
     "error": "",
     "loglevel": "warning"
   },
