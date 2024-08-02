@@ -10,10 +10,10 @@ tag network packets with a class identifier (classid).
 EOF
 PID="${1:?process pid need input, $0 <pid> <gateway> [fwmark] # default fwmark=5000}"
 GATEWAY="${2:?gateway need input, $0 <pid> <gateway> [fwmark] # default fwmark=5000}"
-FWMARK="${3:-5000}"
-RULE_TABLE="${FWMARK}"
+FWMARK="${3:-5000}"              # # 1 to 2147483647
+RULE_TABLE="$((FWMARK%251+1))"   # # 1 to 252
+CLASSID="${FWMARK}"              # # 0x00000001 to 0xFFFFFFFF
 NETCLS_NAME="JOHNYIN-${FWMARK}"
-CLASSID="${FWMARK}"
 
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
