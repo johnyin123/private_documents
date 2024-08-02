@@ -6,6 +6,7 @@ set -o nounset
 cat <<EOF
     The Network classifier cgroup provides an interface to
 tag network packets with a class identifier (classid).
+/proc/sys/net/ipv4/conf/all/rp_filter=0/2
 
 EOF
 PID="${1:?process pid need input, $0 <pid> <gateway> [fwmark] # default fwmark=5000}"
@@ -33,6 +34,7 @@ grep -q "${PID}" "/sys/fs/cgroup/net_cls/${NETCLS_NAME}/tasks" 2>/dev/null && {
     log "CLEAR CMD: iptables -t mangle -D OUTPUT -m cgroup --cgroup ${CLASSID} -j MARK --set-mark ${FWMARK}"
     log "CLEAR CMD: iptables -t nat -D POSTROUTING -m cgroup --cgroup ${CLASSID} -j MASQUERADE"
     log "CLEAR CMD: umount /sys/fs/cgroup/net_cls && rmdir /sys/fs/cgroup/net_cls"
+    log "REMOVE PID: cat /sys/fs/cgroup/net_cls/${NETCLS_NAME}/tasks | xargs -I@ echo @ > /sys/fs/cgroup/net_cls/tasks"
     mkdir -p /sys/fs/cgroup/net_cls 2>/dev/null
     # # or check /sys/fs/cgroup/net_cls/tasks exist
     mountpoint -q /sys/fs/cgroup/net_cls || mount -t cgroup -onet_cls net_cls /sys/fs/cgroup/net_cls
