@@ -19,7 +19,7 @@ log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 [[ "${FWMARK}" =~ ^[0-9]+$ ]] || { log "FWMARK should integer"; exit 1; }
 
-log "PID=${PID}, GATEWAY=${GATEWAY}, FWMARK=${FWMARK}"
+log "PID=${PID}, GATEWAY=${GATEWAY}, FWMARK=${FWMARK}, RULE_TABLE: ${RULE_TABLE}"
 grep -q "${PID}" "/sys/fs/cgroup/net_cls/${NETCLS_NAME}/tasks" 2>/dev/null && {
     log "PID ${PID} already in netcls ${NETCLS_NAME}, gateway: ${GATEWAY}, fwmark: ${FWMARK}, ip rule: ${RULE_TABLE}"
     grep -q "$(printf %d ${CLASSID})" /sys/fs/cgroup/net_cls/${NETCLS_NAME}/net_cls.classid 2>/dev/null || {
@@ -28,8 +28,14 @@ grep -q "${PID}" "/sys/fs/cgroup/net_cls/${NETCLS_NAME}/tasks" 2>/dev/null && {
     }
 } || {
     log "create new netcls ${NETCLS_NAME}"
+    log "CLEAR CMD: ip route flush table ${RULE_TABLE}"
+    log "CLEAR CMD: ip rule delete fwmark ${FWMARK} table ${RULE_TABLE}"
+    log "CLEAR CMD: iptables -t mangle -D OUTPUT -m cgroup --cgroup ${CLASSID} -j MARK --set-mark ${FWMARK}"
+    log "CLEAR CMD: iptables -t nat -D POSTROUTING -m cgroup --cgroup ${CLASSID} -j MASQUERADE"
     log "CLEAR CMD: umount /sys/fs/cgroup/net_cls && rmdir /sys/fs/cgroup/net_cls"
-    mkdir /sys/fs/cgroup/net_cls 2>/dev/null && mount -t cgroup -onet_cls net_cls /sys/fs/cgroup/net_cls || true
+    mkdir -p /sys/fs/cgroup/net_cls 2>/dev/null
+    # # or check /sys/fs/cgroup/net_cls/tasks exist
+    mountpoint -q /sys/fs/cgroup/net_cls || mount -t cgroup -onet_cls net_cls /sys/fs/cgroup/net_cls
     mkdir -p /sys/fs/cgroup/net_cls/${NETCLS_NAME}
     echo ${CLASSID} > /sys/fs/cgroup/net_cls/${NETCLS_NAME}/net_cls.classid
 }
