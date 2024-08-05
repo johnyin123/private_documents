@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("aa8739f[2024-08-02T14:35:26+08:00]:netcls.sh")
+VERSION+=("0f656be[2024-08-05T08:36:50+08:00]:netcls.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -60,16 +60,16 @@ addin_netcls() {
     local netcls_name=${1}
     local pid=${2}
     local process="$(cat /proc/${pid}/comm 2>/dev/null)"
-    info_msg "add pid: ${pid}(${process}) in ${netcls_name}\n"
-    try "echo ${pid} > /sys/fs/cgroup/net_cls/${netcls_name}/tasks"
+    info_msg "add pid: ${pid}(${process:-N/A}) in ${netcls_name}\n"
+    try "echo ${pid} > /sys/fs/cgroup/net_cls/${netcls_name}/tasks" 2>/dev/null || true
 }
 
 delout_netcls() {
     local netcls_name=${1}
     local pid=${2}
     local process="$(cat /proc/${pid}/comm 2>/dev/null)"
-    info_msg "del pid: ${pid}(${process}) out ${netcls_name}\n"
-    try "echo ${pid} > /sys/fs/cgroup/net_cls/tasks"
+    info_msg "del pid: ${pid}(${process:-N/A}) out ${netcls_name}\n"
+    try "echo ${pid} > /sys/fs/cgroup/net_cls/tasks" 2>/dev/null || true
 }
 
 create_netrule() {
@@ -129,9 +129,9 @@ main() {
     [ "$(array_size pid)" -gt "0" ] && {
         for _pid in ${pid[@]}; do
             [ -z "${remove}" ] && {
-                delout_netcls "${netcls_name}" "${_pid}"
-            } || {
                 addin_netcls "${netcls_name}" "${_pid}"
+            } || {
+                delout_netcls "${netcls_name}" "${_pid}"
             }
         done
         info_msg "ALL DONE!\n"
