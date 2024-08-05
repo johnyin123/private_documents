@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0f656be[2024-08-05T08:36:50+08:00]:netcls.sh")
+VERSION+=("7d6e436[2024-08-05T12:57:59+08:00]:netcls.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -88,6 +88,11 @@ create_netrule() {
     # # iptables -A OUTPUT -m cgroup ! --cgroup ${CLASSID} -j DROP
     try ip rule add fwmark ${fwmark} table ${rule_table}
     try ip route replace default via ${gateway} table ${rule_table}
+    local default_route=$(ip -4 route show default | awk '{ print $3 }')
+    info_msg "private ipaddress use ${default_route}"
+    try ip route add 10.0.0.0/8     via ${default_route} || true
+    try ip route add 172.16.0.0/12  via ${default_route} || true
+    try ip route add 192.168.0.0/16 via ${default_route} || true
 }
 
 main() {
