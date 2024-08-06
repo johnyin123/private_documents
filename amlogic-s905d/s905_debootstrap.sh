@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("df48109[2024-07-16T07:23:33+08:00]:s905_debootstrap.sh")
+VERSION+=("14f7ef0[2024-08-07T06:16:30+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -490,9 +490,10 @@ iface ap0 inet manual
     pre-up (/etc/johnyin/gen_hostapd.sh ap0 br-int "$(cat /etc/hostname)" "Admin@123" 1 1 || true)
     pre-up (/etc/johnyin/gen_udhcpd.sh br-int || true)
     pre-up (/usr/sbin/iw phy `/usr/bin/ls /sys/class/ieee80211/` interface add ap0 type __ap)
-    #pre-up (/usr/sbin/ifup work || true)
-    #post-up (/usr/sbin/iptables-restore < /etc/iptables.rules || true)
-    post-up (/etc/johnyin/ap.ruleset || true)
+    # pre-up (/usr/sbin/ifup work || true)
+    # # start nft rules by nftables.service, rm -f /etc/nftables.conf && ln -s /etc/johnyin/ap.ruleset /etc/nftables.conf
+    # post-up (/usr/sbin/iptables-restore < /etc/iptables.rules || true)
+    # post-up (/etc/johnyin/ap.ruleset || true)
     post-up (/usr/bin/touch /var/run/udhcpd.leases || true)
     post-up (/usr/bin/busybox udhcpd -S /run/udhcpd.conf || true)
     pre-down (/usr/bin/kill -9 $(cat /var/run/udhcpd-wlan0.pid) || true)
@@ -504,8 +505,9 @@ iface ap inet manual
     pre-up (/etc/johnyin/gen_hostapd.sh wlan0 br-int "$(cat /etc/hostname)" "Admin@123" 0 1 || true)
     pre-up (/etc/johnyin/gen_udhcpd.sh br-int || true)
     pre-up (/usr/bin/touch /var/run/udhcpd.leases || true)
-    #post-up (/usr/sbin/iptables-restore < /etc/iptables.rules || true)
-    post-up (/etc/johnyin/ap.ruleset || true)
+    # # start nft rules by nftables.service, rm -f /etc/nftables.conf && ln -s /etc/johnyin/ap.ruleset /etc/nftables.conf
+    # post-up (/usr/sbin/iptables-restore < /etc/iptables.rules || true)
+    # post-up (/etc/johnyin/ap.ruleset || true)
     post-up (/usr/bin/busybox udhcpd -S /run/udhcpd.conf || true)
     pre-down (/usr/bin/kill -9 $(cat /run/hostapd.wlan0.pid) || true)
     pre-down (/usr/bin/kill -9 $(cat /var/run/udhcpd-wlan0.pid) || true)
@@ -515,8 +517,9 @@ iface ap5g inet manual
     pre-up (/etc/johnyin/gen_hostapd.sh wlan0 br-int "$(cat /etc/hostname)" "Admin@123" 1 1 || true)
     pre-up (/etc/johnyin/gen_udhcpd.sh br-int || true)
     pre-up (/usr/bin/touch /var/run/udhcpd.leases || true)
-    #post-up (/usr/sbin/iptables-restore < /etc/iptables.rules || true)
-    post-up (/etc/johnyin/ap.ruleset || true)
+    # # start nft rules by nftables.service, rm -f /etc/nftables.conf && ln -s /etc/johnyin/ap.ruleset /etc/nftables.conf
+    # post-up (/usr/sbin/iptables-restore < /etc/iptables.rules || true)
+    # post-up (/etc/johnyin/ap.ruleset || true)
     post-up (/usr/bin/busybox udhcpd -S /run/udhcpd.conf || true)
     pre-down (/usr/bin/kill -9 $(cat /run/hostapd.wlan0.pid) || true)
     pre-down (/usr/bin/kill -9 $(cat /var/run/udhcpd-wlan0.pid) || true)
