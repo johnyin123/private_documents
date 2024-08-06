@@ -7,13 +7,13 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4faeb60[2024-08-06T10:11:56+08:00]:netcls.sh")
+VERSION+=("initver[2024-08-06T13:25:23+08:00]:netcls1.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
-${SCRIPTNAME}
+${SCRIPTNAME}, cgroup v1 version
         -m|--fwmark   <int>   *  *  fwmark, 1 to 2147483647
         -p|--pid      <int>   *     pid, support multi input
         --remove                 x  remove pid from netcls
