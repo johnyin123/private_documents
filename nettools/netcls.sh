@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2297aea[2024-08-06T09:11:27+08:00]:netcls.sh")
+VERSION+=("4faeb60[2024-08-06T10:11:56+08:00]:netcls.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -48,7 +48,7 @@ create_netcls() {
     local netcls_name=${1}
     local classid=${2}
     directory_exists /sys/fs/cgroup/net_cls/${netcls_name} && { warn_msg "netcls: ${netcls_name} already exists!!!\n"; return 1; }
-    info_msg "create new netcls ${netcls_name}\n"
+    info_msg "create cgroup-v1/net_cls ${netcls_name}\n"
     try mkdir -p /sys/fs/cgroup/net_cls 2>/dev/null
     # # or check /sys/fs/cgroup/net_cls/tasks exist
     mountpoint -q /sys/fs/cgroup/net_cls || try mount -t cgroup -onet_cls net_cls /sys/fs/cgroup/net_cls
@@ -85,13 +85,6 @@ create_netrule() {
     # iptables -t nat -D POSTROUTING -m cgroup --cgroup ${classid} -j MASQUERADE 2>/dev/null || true
     try iptables -t mangle -A OUTPUT -m cgroup --cgroup ${classid} -j MARK --set-mark ${fwmark}
     try iptables -t nat -A POSTROUTING -m cgroup --cgroup ${classid} -j MASQUERADE
-
-    # try mkdir -p /sys/fs/cgroup/${slice}.slice
-    # try "echo ${pid} > /sys/fs/cgroup/${slice}.slice/cgroup.procs" 2>/dev/null || true
-    # try "echo ${pid} > /sys/fs/cgroup/cgroup.procs" 2>/dev/null || true
-    # try iptables -t mangle -A OUTPUT -m cgroup --path ${slice}.slice -j MARK --set-mark 5555
-    # try iptables -t nat -A POSTROUTING -m cgroup --path ${slice}.slice -j MASQUERADE
-
     # # iptables -A OUTPUT -m cgroup ! --cgroup ${CLASSID} -j DROP
     try ip rule add fwmark ${fwmark} table ${rule_table}
     try ip route replace default via ${gateway} table ${rule_table}
