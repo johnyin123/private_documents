@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-LOGFILE=""
-# LOGFILE="-a log.txt"
-log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
-
 cat <<EOF
 ip rule delete fwmark 1 table 100
 ip route delete local default dev lo table 100
@@ -269,6 +265,13 @@ cat <<EOF | sed "/^\s*#/d"  > tproxy.json
 }
 EOF
 
+cat <<EO_SH > tproxy.sh
+#!/usr/bin/env bash
+V2RAY_TPROXY_PORT=${V2RAY_TPROXY_PORT}
+LOGFILE="" #"-a log.txt"
+EO_SH
+cat <<'EO_SH' >> tproxy.sh
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 IPSET_NAME=local_ip
 # # RFC5735
 iplist=(
@@ -306,6 +309,16 @@ iptables -t mangle -A V2RAY -p udp -j TPROXY --on-ip 127.0.0.1 --on-port ${V2RAY
 iptables -t mangle -A PREROUTING -j V2RAY
 iptables -t mangle -nvL
 
+log "add ip rule"
+# ip rule delete fwmark 1 table 100
+ip rule add fwmark 1 table 100
+# # 将所有(0.0.0.0/0)包重定向到lo（从而进入INPUT）
+# ip route delete local default dev lo table 100
+ip route add local 0.0.0.0/0 dev lo table 100
+# # PREROUTING的包就会到达端口V2RAY_TPROXY_PORT
+EO_SH
+
+cat <<'EOF'
 # # 本地进程发起的连接经过OUTPUT->POSTROUTING；而TPROXY只能在PREROUTING中使用。
 # # 可以通过让将OUTPUT的包重新经过PREROUTING的办法来实现对网关本机的代理。
 #
@@ -321,11 +334,4 @@ iptables -t mangle -nvL
 # iptables -t mangle -A V2RAY_LOCAL -p udp -j MARK --set-mark 1
 # # 将chain附加到mangle table的OUTPUT chain
 # iptables -t mangle -A OUTPUT -j V2RAY_LOCAL
-
-log "add ip rule"
-# ip rule delete fwmark 1 table 100
-ip rule add fwmark 1 table 100
-# # 将所有(0.0.0.0/0)包重定向到lo（从而进入INPUT）
-# ip route delete local default dev lo table 100
-ip route add local 0.0.0.0/0 dev lo table 100
-# # PREROUTING的包就会到达端口V2RAY_TPROXY_PORT
+EOF
