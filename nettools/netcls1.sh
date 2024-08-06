@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-08-06T13:25:23+08:00]:netcls1.sh")
+VERSION+=("9fbd351[2024-08-06T13:25:23+08:00]:netcls1.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -138,6 +138,10 @@ main() {
             } || {
                 delout_netcls "${netcls_name}" "${_pid}"
             }
+        done
+        for _pid in $(cat /sys/fs/cgroup/net_cls/${netcls_name}/tasks); do
+            local process="$(cat /proc/${_pid}/comm 2>/dev/null)"
+            info_msg "${netcls_name} contains: ${_pid}(${process})\n"
         done
         info_msg "ALL DONE!\n"
         return 0
