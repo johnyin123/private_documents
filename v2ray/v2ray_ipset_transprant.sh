@@ -272,6 +272,7 @@ LOGFILE="" #"-a log.txt"
 EO_SH
 cat <<'EO_SH' >> tproxy.sh
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+RULE_TABLE=100
 IPSET_NAME=local_ip
 # # RFC5735
 iplist=(
@@ -310,11 +311,11 @@ iptables -t mangle -A PREROUTING -j V2RAY
 iptables -t mangle -nvL
 
 log "add ip rule"
-# ip rule delete fwmark 1 table 100
-ip rule add fwmark 1 table 100
+ip rule delete fwmark 1 table ${RULE_TABLE} || true
+ip rule add fwmark 1 table ${RULE_TABLE}
 # # 将所有(0.0.0.0/0)包重定向到lo（从而进入INPUT）
-# ip route delete local default dev lo table 100
-ip route add local 0.0.0.0/0 dev lo table 100
+# ip route delete local default dev lo table ${RULE_TABLE}
+ip route replace local 0.0.0.0/0 dev lo table ${RULE_TABLE}
 # # PREROUTING的包就会到达端口V2RAY_TPROXY_PORT
 EO_SH
 

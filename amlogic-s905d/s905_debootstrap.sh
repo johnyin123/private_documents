@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9277d6f[2024-07-12T08:53:48+08:00]:s905_debootstrap.sh")
+VERSION+=("df48109[2024-07-16T07:23:33+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -480,13 +480,14 @@ mapping wlan0
     map home
     map adhoc
     map ap
+    map ap5g
     map ap0
     map initmode
 
 iface ap0 inet manual
     hostapd /run/hostapd.ap0.conf
     # INTERFACE BRIDGE SSID PASSPHRASE IS_5G HIDDEN_SSID
-    pre-up (/etc/johnyin/gen_hostapd.sh ap0 br-int "$(cat /etc/hostname)" "password123" 1 1 || true)
+    pre-up (/etc/johnyin/gen_hostapd.sh ap0 br-int "$(cat /etc/hostname)" "Admin@123" 1 1 || true)
     pre-up (/etc/johnyin/gen_udhcpd.sh br-int || true)
     pre-up (/usr/sbin/iw phy `/usr/bin/ls /sys/class/ieee80211/` interface add ap0 type __ap)
     #pre-up (/usr/sbin/ifup work || true)
@@ -500,7 +501,18 @@ iface ap0 inet manual
 
 iface ap inet manual
     hostapd /run/hostapd.wlan0.conf
-    pre-up (/etc/johnyin/gen_hostapd.sh wlan0 br-int "$(cat /etc/hostname)" "password123" 0 1 || true)
+    pre-up (/etc/johnyin/gen_hostapd.sh wlan0 br-int "$(cat /etc/hostname)" "Admin@123" 0 1 || true)
+    pre-up (/etc/johnyin/gen_udhcpd.sh br-int || true)
+    pre-up (/usr/bin/touch /var/run/udhcpd.leases || true)
+    #post-up (/usr/sbin/iptables-restore < /etc/iptables.rules || true)
+    post-up (/etc/johnyin/ap.ruleset || true)
+    post-up (/usr/bin/busybox udhcpd -S /run/udhcpd.conf || true)
+    pre-down (/usr/bin/kill -9 $(cat /run/hostapd.wlan0.pid) || true)
+    pre-down (/usr/bin/kill -9 $(cat /var/run/udhcpd-wlan0.pid) || true)
+
+iface ap5g inet manual
+    hostapd /run/hostapd.wlan0.conf
+    pre-up (/etc/johnyin/gen_hostapd.sh wlan0 br-int "$(cat /etc/hostname)" "Admin@123" 1 1 || true)
     pre-up (/etc/johnyin/gen_udhcpd.sh br-int || true)
     pre-up (/usr/bin/touch /var/run/udhcpd.leases || true)
     #post-up (/usr/sbin/iptables-restore < /etc/iptables.rules || true)
@@ -522,8 +534,8 @@ iface home inet manual
     wpa_conf /etc/johnyin/home.conf
     post-up (/usr/sbin/dhclient -v -pf /run/dhclient.wlan0.pid -lf /run/dhclient.wlan0.lease  wlan0 || true)
     pre-down (/usr/bin/kill -9 $(cat /run/dhclient.wlan0.pid ) || true)
-    post-up (/usr/sbin/ifup ap0 || true)
-    pre-down (/usr/sbin/ifdown ap0 || true)
+    # post-up (/usr/sbin/ifup ap0 || true)
+    # pre-down (/usr/sbin/ifdown ap0 || true)
 
 iface adhoc inet manual
     wpa_driver wext
@@ -606,6 +618,7 @@ table ip nat {
 
 	chain POSTROUTING {
 		type nat hook postrouting priority 100; policy accept;
+		ip saddr 192.168.168.0/24 ip daddr != 192.168.168.0/24 counter packets 0 bytes 0 masquerade 
 		ip saddr 192.168.167.0/24 ip daddr != 192.168.167.0/24 counter packets 0 bytes 0 masquerade
 	}
 
@@ -774,20 +787,17 @@ if [ `id -u` -ne 0 ] || [ "$1" = "" ]; then exit 1; fi
 #no config wifi_mode.conf default use "initmode"
 [ -r "${MODE_CONF}" ] || {
     cat >"${MODE_CONF}" <<-EOF
-# wifi mode select
-# station=work
-# station=home
-
-# 5G on ap0(virtual device)
-# station=ap0
-
-# 2.4G on wlan0
-# station=ap
-
-# adhoc create adhoc mesh network and bridge it.
-# station=adhoc
-
-# initmode no dhcpd no secret ap 192.168.1.1/24
+# |----------+-----------------------------------------------|
+# | station  | desc                                          |
+# |----------+-----------------------------------------------|
+# | work     | station /etc/johnyin/work.conf                |
+# | home     | station /etc/johnyin/home.conf                |
+# | ap0      | 5G on ap0(virtual device)                     |
+# | ap       | 2.4G on wlan0                                 |
+# | ap5g     | 5G on wlan0                                   |
+# | adhoc    | adhoc create adhoc mesh network and bridge it |
+# | initmode | initmode no dhcpd no secret ap 192.168.1.1/24 |
+# |----------+-----------------------------------------------|
 station=initmode
 EOF
 }
@@ -831,10 +841,9 @@ network={
     id_str="home"
     priority=100
     scan_ssid=1
-    ssid="s905d03"
-    # ssid="yangchuang" psk="89484545"
+    ssid="johnap5g"
     #key_mgmt=wpa-psk
-    psk="Admin@123"
+    psk="password"
     #disabled=1
 }
 EO_DOC
@@ -948,6 +957,12 @@ cat <<EOF>${ROOT_DIR}/etc/motd
 9. start nfs-server: systemctl start nfs-server.service nfs-kernel-server.service
 10.start vncserver: x11vnc -display :0
 11.set lxde mouse cursor size: sed -i 's|.*CursorThemeSize.*|iGtk/CursorThemeSize=32|g' /etc/xdg/lxsession/LXDE/desktop.conf
+12./boot/dtb/ dtb for different USB MODE, need reboot
+13 start ksmbd server: systemctl enable ksmbd.service --now
+                       ksmbd.adduser --add-user=user1 --password=<pass> -v
+14 bluetooth head unit:
+    LC_ALL=c pactl list cards === > ( Name:bluez_card.EC_FA_5C_5F_1A_AC , Profiles: handsfree_head_unit)
+    pactl set-card-profile <Name> <Profile>
 EOF
 
 cat <<'EOF'> ${ROOT_DIR}/usr/bin/overlayroot-chroot
