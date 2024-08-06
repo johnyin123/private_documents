@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ed6f978[2024-08-05T14:36:01+08:00]:netcls.sh")
+VERSION+=("2297aea[2024-08-06T09:11:27+08:00]:netcls.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -85,14 +85,21 @@ create_netrule() {
     # iptables -t nat -D POSTROUTING -m cgroup --cgroup ${classid} -j MASQUERADE 2>/dev/null || true
     try iptables -t mangle -A OUTPUT -m cgroup --cgroup ${classid} -j MARK --set-mark ${fwmark}
     try iptables -t nat -A POSTROUTING -m cgroup --cgroup ${classid} -j MASQUERADE
+
+    # try mkdir -p /sys/fs/cgroup/${slice}.slice
+    # try "echo ${pid} > /sys/fs/cgroup/${slice}.slice/cgroup.procs" 2>/dev/null || true
+    # try "echo ${pid} > /sys/fs/cgroup/cgroup.procs" 2>/dev/null || true
+    # try iptables -t mangle -A OUTPUT -m cgroup --path ${slice}.slice -j MARK --set-mark 5555
+    # try iptables -t nat -A POSTROUTING -m cgroup --path ${slice}.slice -j MASQUERADE
+
     # # iptables -A OUTPUT -m cgroup ! --cgroup ${CLASSID} -j DROP
     try ip rule add fwmark ${fwmark} table ${rule_table}
     try ip route replace default via ${gateway} table ${rule_table}
     local default_route=$(ip -4 route show default | awk '{ print $3 }')
-    info_msg "private ipaddress use ${default_route}"
-    try ip route add 10.0.0.0/8     via ${default_route} || true
-    try ip route add 172.16.0.0/12  via ${default_route} || true
-    try ip route add 192.168.0.0/16 via ${default_route} || true
+    info_msg "private ipaddress use ${default_route}\n"
+    try ip route replace 10.0.0.0/8     via ${default_route} || true
+    try ip route replace 172.16.0.0/12  via ${default_route} || true
+    try ip route replace 192.168.0.0/16 via ${default_route} || true
 }
 
 main() {
