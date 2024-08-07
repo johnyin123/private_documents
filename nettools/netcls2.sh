@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("67bf0ee[2024-08-06T13:46:06+08:00]:netcls2.sh")
+VERSION+=("8385f9a[2024-08-07T06:32:22+08:00]:netcls2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -38,6 +38,9 @@ ${SCRIPTNAME}, cgroup v2 version
         ./${SCRIPTNAME} --fwmark 44 -p <p1> --pid <p2> --remove
         # destroy netcls fwmark 44
         ./${SCRIPTNAME} --fwmark 44 --destroy
+        ##################
+        ./${SCRIPTNAME} --fwmark 44 --slice test -g 192.168.41.1
+        systemd-run -q --user --scope --unit chrome --slice test.slice -- google-chrome
 EOF
     exit 1
 }
@@ -88,7 +91,7 @@ main() {
     local pid=() gateway="" fwmark=""
     local slice="" rule="" remove="" destroy=""
     local opt_short="p:g:m:"
-    local opt_long="pid:,gw:,fwmark:,rule:,remove,destroy,"
+    local opt_long="pid:,gw:,fwmark:,slice:,rule:,remove,destroy,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
