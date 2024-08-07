@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("14f7ef0[2024-08-07T06:16:30+08:00]:s905_debootstrap.sh")
+VERSION+=("83a95ff[2024-08-07T06:49:59+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -571,6 +571,7 @@ cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/pppoe
 #     provider myadsl
 #
 
+# # apt -y install ppp
 # sample /etc/ppp/peers/dsl-provider
 # cat >/etc/ppp/peers/myadsl <<EOF
 # # Use Roaring Penguin's PPPoE implementation.
