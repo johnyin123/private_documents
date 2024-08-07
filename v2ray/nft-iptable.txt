@@ -1,37 +1,28 @@
-Type 1: NfTables
-Netfilter
+# Type 1: NfTables
+# # Netfilter
 table inet mangle {
-    set byp4 {
+    set bypassv4 {
         typeof ip daddr
         flags interval
         elements = {
             0.0.0.0/8,
             10.0.0.0/8,
-            100.64.0.0/10,
             127.0.0.0/8,
             169.254.0.0/16,
             172.16.0.0/12,
-            192.0.0.0/24,
-            192.0.2.0/24,
-            192.88.99.0/24,
             192.168.0.0/16,
-            198.18.0.0/15,
-            198.51.100.0/24,
-            203.0.113.0/24,
             224.0.0.0/4,
             240.0.0.0/4
         }
     }
 
-    set byp6 {
+    set bypassv6 {
         typeof ip6 daddr
         flags interval
         elements = {
             ::/128,
             ::1/128,
             ::ffff:0:0:0/96,
-            64:ff9b::/96,
-            100::/64,
             2001::/32,
             2001:20::/28,
             2001:db8::/32,
@@ -45,8 +36,8 @@ table inet mangle {
     chain prerouting {
         type filter hook prerouting priority mangle; policy accept;
         meta mark 0x438 return
-        ip daddr @byp4 return
-        ip6 daddr @byp6 return
+        ip daddr @bypassv4 return
+        ip6 daddr @bypassv6 return
         meta l4proto { tcp, udp } tproxy to :1088 meta mark set 0x440 accept
     }
 
@@ -54,57 +45,47 @@ table inet mangle {
     chain output {
         type route hook output priority mangle; policy accept;
         meta mark 0x438 return
-        ip daddr @byp4 return
-        ip6 daddr @byp6 return
+        ip daddr @bypassv4 return
+        ip6 daddr @bypassv6 return
         meta l4proto { tcp, udp } meta mark set 0x440
     }
 }
-Routing
+# # Routing
 ip rule add fwmark 1088 table 100
 ip route add local default dev lo table 100
 
 ip -6 rule add fwmark 1088 table 100
 ip -6 route add local default dev lo table 100
-Type 2: IPTables
-Bypass ipset
+# Type 2: IPTables
+# # Bypass ipset
 # IPv4
-ipset create byp4 hash:net family inet hashsize 2048 maxelem 65536
-ipset add byp4 0.0.0.0/8
-ipset add byp4 10.0.0.0/8
-ipset add byp4 100.64.0.0/10
-ipset add byp4 127.0.0.0/8
-ipset add byp4 169.254.0.0/16
-ipset add byp4 172.16.0.0/12
-ipset add byp4 192.0.0.0/24
-ipset add byp4 192.0.2.0/24
-ipset add byp4 192.88.99.0/24
-ipset add byp4 192.168.0.0/16
-ipset add byp4 198.18.0.0/15
-ipset add byp4 198.51.100.0/24
-ipset add byp4 203.0.113.0/24
-ipset add byp4 224.0.0.0/4
-ipset add byp4 240.0.0.0/4
+ipset create bypassv4 hash:net family inet hashsize 2048 maxelem 65536
+ipset add bypassv4 0.0.0.0/8
+ipset add bypassv4 10.0.0.0/8
+ipset add bypassv4 127.0.0.0/8
+ipset add bypassv4 169.254.0.0/16
+ipset add bypassv4 172.16.0.0/12
+ipset add bypassv4 192.168.0.0/16
+ipset add bypassv4 224.0.0.0/4
+ipset add bypassv4 240.0.0.0/4
 
 # IPv6
-ipset create byp6 hash:net family inet6 hashsize 1024 maxelem 65536
-ipset add byp6 ::/128
-ipset add byp6 ::1/128
-ipset add byp6 ::ffff:0:0:0/96
-ipset add byp6 64:ff9b::/96
-ipset add byp6 100::/64
-ipset add byp6 2001::/32
-ipset add byp6 2001:20::/28
-ipset add byp6 2001:db8::/32
-ipset add byp6 2002::/16
-ipset add byp6 fc00::/7
-ipset add byp6 fe80::/10
-ipset add byp6 ff00::/8
-Netfilter and Routing
-Gateway and Local modes
-
+ipset create bypassv6 hash:net family inet6 hashsize 1024 maxelem 65536
+ipset add bypassv6 ::/128
+ipset add bypassv6 ::1/128
+ipset add bypassv6 ::ffff:0:0:0/96
+ipset add bypassv6 2001::/32
+ipset add bypassv6 2001:20::/28
+ipset add bypassv6 2001:db8::/32
+ipset add bypassv6 2002::/16
+ipset add bypassv6 fc00::/7
+ipset add bypassv6 fe80::/10
+ipset add bypassv6 ff00::/8
+# # Netfilter and Routing
+# Gateway and Local modes
 # IPv4
 iptables -t mangle -A PREROUTING -m mark --mark 0x438 -j RETURN
-iptables -t mangle -A PREROUTING -m set --match-set byp4 dst -j RETURN
+iptables -t mangle -A PREROUTING -m set --match-set bypassv4 dst -j RETURN
 iptables -t mangle -A PREROUTING -p tcp -j TPROXY --on-port 1088 --tproxy-mark 1088
 iptables -t mangle -A PREROUTING -p udp -j TPROXY --on-port 1088 --tproxy-mark 1088
 
@@ -113,13 +94,13 @@ ip route add local default dev lo table 100
 
 # Only for local mode
 iptables -t mangle -A OUTPUT -m mark --mark 0x438 -j RETURN
-iptables -t mangle -A OUTPUT -m set --match-set byp4 dst -j RETURN
+iptables -t mangle -A OUTPUT -m set --match-set bypassv4 dst -j RETURN
 iptables -t mangle -A OUTPUT -p tcp -j MARK --set-mark 1088
 iptables -t mangle -A OUTPUT -p udp -j MARK --set-mark 1088
 
 # IPv6
 ip6tables -t mangle -A PREROUTING -m mark --mark 0x438 -j RETURN
-ip6tables -t mangle -A PREROUTING -m set --match-set byp6 dst -j RETURN
+ip6tables -t mangle -A PREROUTING -m set --match-set bypassv6 dst -j RETURN
 ip6tables -t mangle -A PREROUTING -p tcp -j TPROXY --on-port 1088 --tproxy-mark 1088
 ip6tables -t mangle -A PREROUTING -p udp -j TPROXY --on-port 1088 --tproxy-mark 1088
 
@@ -128,7 +109,6 @@ ip -6 route add local default dev lo table 100
 
 # Only for local mode
 ip6tables -t mangle -A OUTPUT -m mark --mark 0x438 -j RETURN
-ip6tables -t mangle -A OUTPUT -m set --match-set byp6 dst -j RETURN
+ip6tables -t mangle -A OUTPUT -m set --match-set bypassv6 dst -j RETURN
 ip6tables -t mangle -A OUTPUT -p tcp -j MARK --set-mark 1088
 ip6tables -t mangle -A OUTPUT -p udp -j MARK --set-mark 1088
-Contributors
