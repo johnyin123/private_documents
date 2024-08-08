@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8d096cd[2023-09-13T08:11:40+08:00]:ipip_tun.sh")
+VERSION+=("a606b39[2024-08-08T08:58:34+08:00]:ipip_tun.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 tun_up() {
@@ -30,14 +30,14 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        --ipaddr        *  <cidr>    ipiptun dev ipaddress, exam: 192.168.166.0/32
+        -m|--mtu           <int>     mtu size, default 1476
+        --remote_ipaddr ?  <ipaddr>  remote host address, for route range
+        --route         ?  <cidr>    route range, multi input, exam: 172.0.0.0/8
         -H|--host          <ipaddr>  ssh host, if host set, add ipip tunl0 on <ipaddr> server via ssh.
         -U|--user          <user>    ssh user, default root
         -P|--port          <int>     ssh port, default 60022
         --password         <str>     ssh password(default use sshkey)
-        --ipaddr        *  <cidr>    ipiptun dev ipaddress, exam: 192.168.166.0/32
-        -m|--mtu           <int>     mtu size, default 1476
-        --remote_ipaddr    <ipaddr>  remote host address
-        --route            <cidr>    route range, multi input, exam: 172.0.0.0/8
         -q|--quiet
         -l|--log <int> log level
         -V|--version
