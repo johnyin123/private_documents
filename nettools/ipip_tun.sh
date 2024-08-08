@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4c027b8[2023-09-13T08:08:33+08:00]:ipip_tun.sh")
+VERSION+=("8d096cd[2023-09-13T08:11:40+08:00]:ipip_tun.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 tun_up() {
@@ -29,6 +29,7 @@ tun_down() {
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
+${SCRIPTNAME}
         -H|--host          <ipaddr>  ssh host, if host set, add ipip tunl0 on <ipaddr> server via ssh.
         -U|--user          <user>    ssh user, default root
         -P|--port          <int>     ssh port, default 60022
@@ -37,17 +38,16 @@ usage() {
         -m|--mtu           <int>     mtu size, default 1476
         --remote_ipaddr    <ipaddr>  remote host address
         --route            <cidr>    route range, multi input, exam: 172.0.0.0/8
-[root@k2 ~]# ip fou add port 5555 ipproto 4
-[root@k1 ~]# ip link add ftok2 type ipip remote 192.168.127.152 local 192.168.127.151 ttl 255 dev eth0 encap fou encap-sport auto encap-dport 5555
-通信是双向的，因此还需要按照上述的步骤反过来
-[root@k1 ~]# ip fou add port 5555 ipproto 4
-[root@k2 ~]# ip link add ftok1 type ipip remote 192.168.127.151 local 192.168.127.152 ttl 255 dev eth0 encap fou encap-sport auto encap-dport 5555
-${SCRIPTNAME}
         -q|--quiet
         -l|--log <int> log level
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+[root@k2 ~]# ip fou add port 5555 ipproto 4
+[root@k1 ~]# ip link add ftok2 type ipip remote 192.168.127.152 local 192.168.127.151 ttl 255 dev eth0 encap fou encap-sport auto encap-dport 5555
+通信是双向的，因此还需要按照上述的步骤反过来
+[root@k1 ~]# ip fou add port 5555 ipproto 4
+[root@k2 ~]# ip link add ftok1 type ipip remote 192.168.127.151 local 192.168.127.152 ttl 255 dev eth0 encap fou encap-sport auto encap-dport 5555
 EOF
     exit 1
 }
