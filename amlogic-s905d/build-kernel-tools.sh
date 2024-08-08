@@ -50,3 +50,4 @@ build_usbip
 ${MY_CROSS_COMPILE}-strip ${ROOTFS}/usr/sbin/bpftool
 ${MY_CROSS_COMPILE}-strip ${ROOTFS}/usr/sbin/usbip
 ${MY_CROSS_COMPILE}-strip ${ROOTFS}/usr/sbin/usbipd
+echo 'fpm --package `pwd` --architecture aarch64 -s dir -t deb -C bpf --name bpftool --version 6.10.3 --iteration 1 --description "bpftool" .'
