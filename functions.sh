@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("ac24dbc[2023-10-17T09:53:18+08:00]:functions.sh")
+VERSION+=("f5dc568[2023-10-19T10:09:45+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -875,7 +875,7 @@ dialog() {
     local item=$(eval $(resize) && whiptail --notags \
         --title "${title}" \
         --menu "${menu}" \
-        $LINES $COLUMNS $(( $LINES - 12 )) \
+        ${LINES:-20} ${COLUMNS:-80} $(( ${LINES:-20} - 12 )) \
         "${items[@]}" 3>&1 1>&2 2>&3 || true)
     safe_echo "${item}"
 }

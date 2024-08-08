@@ -15,14 +15,14 @@ apt download libelf-dev zlib1g-dev"
 EOF
 [ -d "${LIB_ROOTFS}" ] || { echo "${LIB_ROOTFS} for aarch64 library NOT EXIST!"; exit 1;}
 
-[ -e "${DIRNAME}/gcc-aarch64" ] && {
-    export PATH=${DIRNAME}/gcc-aarch64/bin/:$PATH
-    export MY_CROSS_COMPILE=aarch64-linux
-} || {
+# [ -e "${DIRNAME}/gcc-aarch64" ] && {
+#     export PATH=${DIRNAME}/gcc-aarch64/bin/:$PATH
+#     export MY_CROSS_COMPILE=aarch64-linux
+# } || {
     # apt -y install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu bison flex libelf-dev libssl-dev
     # apt -y install pahole -t bullseye-backports
     export MY_CROSS_COMPILE=aarch64-linux-gnu
-}
+#}
 export ARCH=arm64
 
 build_perf () {
