@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-08-09T12:52:33+08:00]:wireguard_via_websocket.sh")
+VERSION+=("9e1cbe4[2024-08-09T12:52:33+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://github.com/erebe/wstunnel
@@ -22,7 +22,7 @@ After=network.target
 Type=simple
 # User=nobody
 DynamicUser=yes
-EnvironmentFile=-/etc/default/wstunnel
+EnvironmentFile=-/etc/wstunnel/%i.conf
 ExecStart=/usr/bin/wstunnel $DAEMON_ARGS
 Restart=no
 
@@ -52,9 +52,9 @@ gen_all() {
     info_msg "# # server start # #\n"
     PREFIX="${dir}/server"
     info_msg "# wstunnel service configuration\n"
-    cfg_file="${PREFIX}/usr/lib/systemd/system/wstunnel.service"
+    cfg_file="${PREFIX}/usr/lib/systemd/system/wstunnel@.service"
     mkdir -p $(dirname "${cfg_file}") && gen_wstunnel_svc > "${cfg_file}"
-    cfg_file="${PREFIX}/etc/default/wstunnel"
+    cfg_file="${PREFIX}/etc/wstunnel/wireguard.conf"
     mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 DAEMON_ARGS="server --restrict-to 127.0.0.1:${wgsrv_port} ws://127.0.0.1:${wstunl_port}"
 EOF
@@ -112,9 +112,9 @@ EOF
     info_msg "# # client start # #\n"
     PREFIX="${dir}/client"
     info_msg "# wstunnel service configuration\n"
-    cfg_file="${PREFIX}/usr/lib/systemd/system/wstunnel.service"
+    cfg_file="${PREFIX}/usr/lib/systemd/system/wstunnel@.service"
     mkdir -p $(dirname "${cfg_file}") && gen_wstunnel_svc > "${cfg_file}"
-    cfg_file="${PREFIX}/etc/default/wstunnel"
+    cfg_file="${PREFIX}/etc/wstunnel/wireguard.conf"
     mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 DAEMON_ARGS="client -P ${uri_prefix} -L udp://127.0.0.1:${wgsrv_port}:127.0.0.1:${wgsrv_port} ${cli_cert:+--tls-certificate /etc/wstunnel/ssl/cli.pem }${cli_key:+--tls-private-key /etc/wstunnel/ssl/cli.key} wss://${wgsrv_addr}:${ngx_port}"
 EOF
@@ -147,7 +147,7 @@ chmod 0755 ${dir}/server/usr/bin/wstunnel
 fpm --package `pwd` --architecture amd64 -s dir -t deb -C server --name wg_wstunl_server --version 1.0 --iteration 1 --description 'wg wstunnel' .
 # ln -s ../http-available/wgngx.conf /etc/nginx/http-enabled/
 # systemctl enable nginx --now
-# systemctl enable wstunnel --now
+# systemctl enable wstunnel@wireguard --now
 # wg-quick up server
 
 mkdir -p -m 0755 ${dir}/client/usr/bin
@@ -155,8 +155,8 @@ cat wstunnel > ${dir}/client/usr/bin/wstunnel
 chmod 0755 ${dir}/client/usr/bin/wstunnel
 fpm --package `pwd` --architecture amd64 -s dir -t deb -C client --name wg_wstunl_client --version 1.0 --iteration 1 --description 'wg wstunnel' .
 # echo '<wg server ipaddr> tunl.wgserver.org' >> /etc/hosts
-# #  or edit /etc/default/wstunnel
-# systemctl enable wstunnel --now
+# #  or edit /etc/wstunnel/wireguard.conf
+# systemctl enable wstunnel@wireguard --now
 # wg-quick up client
 ==============================================
 EOF
