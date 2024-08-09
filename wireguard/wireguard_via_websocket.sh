@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("352d15a[2024-08-09T13:17:38+08:00]:wireguard_via_websocket.sh")
+VERSION+=("e278244[2024-08-09T13:58:08+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://github.com/erebe/wstunnel
@@ -150,7 +150,7 @@ fpm --package `pwd` --architecture all -s dir -t deb -C server --name wg_wstunl_
 # wg-quick up server
 
 # # modify ${dir}/client/etc/wireguard/client.conf, Address!
-fpm --package `pwd` --architecture amd64 -s dir -t deb -C client --name wg_wstunl_client --version 1.0 --iteration 1 --description 'wg wstunnel' .
+fpm --package `pwd` --architecture all -s dir -t deb -C client --name wg_wstunl_client --version 1.0 --iteration 1 --description 'wg wstunnel' .
 # echo '<wg server ipaddr> tunl.wgserver.org' >> /etc/hosts
 # #  or edit /etc/wstunnel/wireguard.conf
 # # copy wstunnel /usr/bin/
