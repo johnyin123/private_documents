@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9e1cbe4[2024-08-09T12:52:33+08:00]:wireguard_via_websocket.sh")
+VERSION+=("352d15a[2024-08-09T13:17:38+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://github.com/erebe/wstunnel
@@ -43,7 +43,7 @@ gen_all() {
     local wstunl_port=$(random 60000 64999)
     local wgsrv_addr=${NGX_SRV:-tunl.wgserver.org}
     local wgsrv_port=$(random 65000 65500)
-    local srv_prikey=$(try wg genkey)
+    local srv_prikey=${PRIKEY:-$(try wg genkey)}
     local srv_pubkey=$(try echo -n ${srv_prikey} \| wg pubkey)
     local cli_prikey=$(try wg genkey)
     local cli_pubkey=$(try echo -n ${cli_prikey} \| wg pubkey)
@@ -141,21 +141,19 @@ EOF
 SERVER:   ${wgsrv_addr}
 NGX PORT: ${ngx_port}
 create package:
-mkdir -p -m 0755 ${dir}/server/usr/bin
-cat wstunnel > ${dir}/server/usr/bin/wstunnel
-chmod 0755 ${dir}/server/usr/bin/wstunnel
-fpm --package `pwd` --architecture amd64 -s dir -t deb -C server --name wg_wstunl_server --version 1.0 --iteration 1 --description 'wg wstunnel' .
+# # modify ${dir}/client/etc/wireguard/server.conf, add more peer
+fpm --package `pwd` --architecture all -s dir -t deb -C server --name wg_wstunl_server --version 1.0 --iteration 1 --description 'wg wstunnel' .
 # ln -s ../http-available/wgngx.conf /etc/nginx/http-enabled/
 # systemctl enable nginx --now
+# # copy wstunnel /usr/bin/
 # systemctl enable wstunnel@wireguard --now
 # wg-quick up server
 
-mkdir -p -m 0755 ${dir}/client/usr/bin
-cat wstunnel > ${dir}/client/usr/bin/wstunnel
-chmod 0755 ${dir}/client/usr/bin/wstunnel
+# # modify ${dir}/client/etc/wireguard/client.conf, Address!
 fpm --package `pwd` --architecture amd64 -s dir -t deb -C client --name wg_wstunl_client --version 1.0 --iteration 1 --description 'wg wstunnel' .
 # echo '<wg server ipaddr> tunl.wgserver.org' >> /etc/hosts
 # #  or edit /etc/wstunnel/wireguard.conf
+# # copy wstunnel /usr/bin/
 # systemctl enable wstunnel@wireguard --now
 # wg-quick up client
 ==============================================
@@ -167,6 +165,7 @@ usage() {
 ${SCRIPTNAME}
         env: NGX_SRV, default tunl.wgserver.org,
         env: NGX_PORT, default 443
+        env: PRIKEY, server wireguard private key, default auto generate.
                 nginx & wireguard same server
         --srvcert   *   <file>      TLS nginx cert file 
         --srvkey    *   <file>      TLS nginx key file 
@@ -178,6 +177,7 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+        PRIKEY=xxxxx ./${SCRIPTNAME} can add new client!
 EOF
     exit 1
 }
