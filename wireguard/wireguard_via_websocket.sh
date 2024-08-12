@@ -7,10 +7,9 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3ef6633[2024-08-12T14:37:33+08:00]:wireguard_via_websocket.sh")
+VERSION+=("056a45f[2024-08-12T15:03:37+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
-# https://github.com/erebe/wstunnel
 IP_PREFIX=${IP_PREFIX:-192.168.32}
 gen_wstunnel_svc() {
     # # ERROR # ExecStart=/usr/bin/wstunnel ${DAEMON_ARGS}
@@ -188,6 +187,8 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        https://github.com/erebe/wstunnel, download wstunnel
+        env: IP_PREFIX, default 192.168.32
         env: NGX_SRV, default tunl.wgserver.org,
         env: NGX_PORT, default 443
              nginx & wireguard same server
