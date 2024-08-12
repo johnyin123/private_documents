@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c1838fd[2024-08-09T14:37:52+08:00]:wireguard_via_websocket.sh")
+VERSION+=("c5eace0[2024-08-12T13:31:14+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://github.com/erebe/wstunnel
@@ -41,9 +41,9 @@ gen_all() {
     local cli_key=${6}
     local nclients=${7}
     local ngx_port=${NGX_PORT:-443}
-    local wgsrv_addr=${NGX_SRV:-tunl.wgserver.org}
+    local wgsrv_addr=${NGX_SRV:-1.2.3.4}
     local wgsrv_port=$(random 65000 65500)
-    local srv_prikey=${PRIKEY:-$(try wg genkey)}
+    local srv_prikey=-$(try wg genkey)
     local srv_pubkey=$(try echo -n ${srv_prikey} \| wg pubkey)
     local PREFIX="${dir}"
     # # clients
@@ -188,10 +188,9 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        env: NGX_SRV, default tunl.wgserver.org,
+        env: NGX_SRV, default 1.2.3.4,
         env: NGX_PORT, default 443
-        env: PRIKEY, server wireguard private key, default auto generate.
-                nginx & wireguard same server
+             nginx & wireguard same server
         --srvcert   *   <file>      TLS nginx cert file 
         --srvkey    *   <file>      TLS nginx key file 
         --ca        *   <file>      TLS nginx verify client ca file 
@@ -203,7 +202,6 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
-        PRIKEY=xxxxx ./${SCRIPTNAME} can add new client!
 EOF
     exit 1
 }
