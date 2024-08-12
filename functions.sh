@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("f5dc568[2023-10-19T10:09:45+08:00]:functions.sh")
+VERSION+=("ae6ed2b[2024-08-08T08:39:26+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -226,8 +226,9 @@ eval2bg() {
 
 # rand=$(random)
 # rand=$(random 1 10)
+# random 1 10 5
 random() {
-    shuf -i ${1:-1}-${2:-65535} -n 1
+    shuf -i ${1:-1}-${2:-65535} -n ${3:-1}
 }
 
 uuid() {
