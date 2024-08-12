@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("056a45f[2024-08-12T15:03:37+08:00]:wireguard_via_websocket.sh")
+VERSION+=("4c6fce4[2024-08-12T15:56:37+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
@@ -175,7 +175,7 @@ fpm --package `pwd` --architecture all -s dir -t deb -C server --name wg_wstunl_
 # wg-quick up server
 
 $(for peer in ${clients[@]}; do
-echo "fpm --package `pwd` --architecture all -s dir -t deb -C ${peer} --name wg_wstunl_${peer} --version 1.0 --iteration 1 --description 'wg wstunnel' ."
+echo "fpm --package `pwd` --architecture all -s dir -t deb -C ${peer} --name wg_wstunl_${peer} --version 1.0 --iteration 1 --description 'wg wstunnel $(array_get "${peer}" address | sed "s|/.*||g")' ."
 done)
 # echo '<wg server ipaddr> tunl.wgserver.org' >> /etc/hosts
 # systemctl enable wstunnel@wireguard --now
