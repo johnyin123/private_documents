@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c5eace0[2024-08-12T13:31:14+08:00]:wireguard_via_websocket.sh")
+VERSION+=("3ef6633[2024-08-12T14:37:33+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 # https://github.com/erebe/wstunnel
@@ -41,9 +41,9 @@ gen_all() {
     local cli_key=${6}
     local nclients=${7}
     local ngx_port=${NGX_PORT:-443}
-    local wgsrv_addr=${NGX_SRV:-1.2.3.4}
+    local wgsrv_addr=${NGX_SRV:-tunl.wgserver.org}
     local wgsrv_port=$(random 65000 65500)
-    local srv_prikey=-$(try wg genkey)
+    local srv_prikey=$(try wg genkey)
     local srv_pubkey=$(try echo -n ${srv_prikey} \| wg pubkey)
     local PREFIX="${dir}"
     # # clients
@@ -140,7 +140,7 @@ EOF
         mkdir -p $(dirname "${cfg_file}") && gen_wstunnel_svc > "${cfg_file}"
         cfg_file="${PREFIX}/etc/wstunnel/wireguard.conf"
         mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-DAEMON_ARGS="client -P $(array_get "${peer}" uri_prefix) -L udp://127.0.0.1:${wgsrv_port}:127.0.0.1:${wgsrv_port} ${cli_cert:+--tls-certificate /etc/wstunnel/ssl/cli.pem }${cli_key:+--tls-private-key /etc/wstunnel/ssl/cli.key} wss://${wgsrv_addr}:${ngx_port}"
+DAEMON_ARGS="client -P $(array_get "${peer}" uri_prefix) -L udp://127.0.0.1:${wgsrv_port}:127.0.0.1:${wgsrv_port} ${cli_cert:+--tls-certificate /etc/wstunnel/ssl/cli.pem }${cli_key:+--tls-private-key /etc/wstunnel/ssl/cli.key} --tls-sni-disable wss://${wgsrv_addr}:${ngx_port}"
 EOF
         mkdir -p ${PREFIX}/etc/wstunnel/ssl
         cat ${cli_cert} > ${PREFIX}/etc/wstunnel/ssl/cli.pem
@@ -188,7 +188,7 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
-        env: NGX_SRV, default 1.2.3.4,
+        env: NGX_SRV, default tunl.wgserver.org,
         env: NGX_PORT, default 443
              nginx & wireguard same server
         --srvcert   *   <file>      TLS nginx cert file 
