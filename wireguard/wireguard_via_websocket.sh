@@ -7,29 +7,10 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4c6fce4[2024-08-12T15:56:37+08:00]:wireguard_via_websocket.sh")
+VERSION+=("ff39de8[2024-08-12T16:49:14+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
-gen_wstunnel_svc() {
-    # # ERROR # ExecStart=/usr/bin/wstunnel ${DAEMON_ARGS}
-    cat <<'EOF'
-[Unit]
-Description=websocket tunnel
-After=network.target
-
-[Service]
-Type=simple
-# User=nobody
-DynamicUser=yes
-EnvironmentFile=-/etc/wstunnel/%i.conf
-ExecStart=/usr/bin/wstunnel $DAEMON_ARGS
-Restart=no
-
-[Install]
-WantedBy=multi-user.target
-EOF
-}
 
 gen_all() {
     local dir=${1}
@@ -42,13 +23,13 @@ gen_all() {
     local ngx_port=${NGX_PORT:-443}
     local wgsrv_addr=${NGX_SRV:-tunl.wgserver.org}
     local wgsrv_port=$(random 65000 65500)
-    local srv_prikey=$(try wg genkey)
-    local srv_pubkey=$(try echo -n ${srv_prikey} \| wg pubkey)
+    local srv_prikey=$(wg genkey)
+    local srv_pubkey=$(echo -n ${srv_prikey} | wg pubkey)
     local PREFIX="${dir}"
     # # clients
-    ip_cli=2 
-    clients=()
-    for cli in $(random 60000 64999 ${nclients});  do
+    local ip_cli=2
+    local clients=()
+    for cli in $(random 60000 64999 ${nclients} | sort -n); do
         eval "declare -A peer${cli}=()"
         array_set "peer${cli}" prikey "$(wg genkey)"
         array_set "peer${cli}" uri_prefix "$(uuid)"
@@ -59,26 +40,14 @@ gen_all() {
     done
 #    local cli2_pubkey=$(try echo -n ${cli2_prikey} \| wg pubkey)
 
-
     info_msg "# # server start # #\n"
     PREFIX="${dir}/server"
-    info_msg "# wstunnel service configuration\n"
-    cfg_file="${PREFIX}/usr/lib/systemd/system/wstunnel@.service"
-    mkdir -p $(dirname "${cfg_file}") && gen_wstunnel_svc > "${cfg_file}"
-
-    for peer in ${clients[@]}; do
-        cfg_file="${PREFIX}/etc/wstunnel/${peer}.conf"
-        mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-DAEMON_ARGS="server --restrict-to 127.0.0.1:${wgsrv_port} ws://127.0.0.1:$(array_get "${peer}" wstunl_port)
-EOF
-    done
-
     info_msg "# nginx configuration\n"
     cfg_file="${PREFIX}/etc/nginx/http-available/wgngx.conf"
-    mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+    try mkdir -p $(dirname "${cfg_file}") && try cat <<EOF \> "${cfg_file}"
 server {
     listen ${ngx_port} ssl http2;
-    server_name _;
+    server_name ${wgsrv_addr};
     ssl_certificate /etc/nginx/ssl/ngxsrv.pem;
     ssl_certificate_key /etc/nginx/ssl/ngxsrv.key;
     ssl_client_certificate /etc/nginx/ssl/ngx_verifyclient_ca.pem;
@@ -88,7 +57,7 @@ $(for peer in ${clients[@]}; do
 cat <<EOCFG
     location /$(array_get "${peer}" uri_prefix)/ {
         proxy_pass http://127.0.0.1:$(array_get "${peer}" wstunl_port);
-        proxy_http_version  1.1;
+        proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host \$http_host;
@@ -102,83 +71,82 @@ EOCFG
 done)
 }
 EOF
-    mkdir -p ${PREFIX}/etc/nginx/ssl
-    cat ${srv_cert} > ${PREFIX}/etc/nginx/ssl/ngxsrv.pem
-    cat ${srv_key} > ${PREFIX}/etc/nginx/ssl/ngxsrv.key
-    cat ${cli_ca}   > ${PREFIX}/etc/nginx/ssl/ngx_verifyclient_ca.pem
+    try mkdir -p ${PREFIX}/etc/nginx/ssl
+    try cat ${srv_cert} \> ${PREFIX}/etc/nginx/ssl/ngxsrv.pem
+    try cat ${srv_key} \> ${PREFIX}/etc/nginx/ssl/ngxsrv.key
+    try cat ${cli_ca} \> ${PREFIX}/etc/nginx/ssl/ngx_verifyclient_ca.pem
 
     info_msg "# wireguard configuration\n"
     cfg_file="${PREFIX}/etc/wireguard/server.conf"
-    mkdir -p -m 0700 $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+    try mkdir -p -m 0700 $(dirname "${cfg_file}") && try cat <<EOF \> "${cfg_file}"
 [Interface]
 PrivateKey = ${srv_prikey}
 Address = ${IP_PREFIX}.1/24
 MTU=1420
 Table = off
-# %i is wireguard interface, see wg-quick->execute_hooks 
-# PostUp = iptables -A FORWARD -i %i -j ACCEPT; iptables -t nat -A POSTROUTING -o ens3 -j MASQUERADE
-# PostDown = iptables -D FORWARD -i %i -j ACCEPT; iptables -t nat -D POSTROUTING -o ens3 -j MASQUERADE
 ListenPort = ${wgsrv_port}
+# %i is wireguard interface, see wg-quick->execute_hooks
+$(for peer in ${clients[@]}; do
+echo "PreUp = systemd-run --unit $(array_get "${peer}" uri_prefix) -p DynamicUser=yes wstunnel server --restrict-to 127.0.0.1:${wgsrv_port} ws://127.0.0.1:$(array_get ${peer} wstunl_port)"
+echo "PostDown = systemctl stop $(array_get "${peer}" uri_prefix).service"
+done)
+
 $(for peer in ${clients[@]}; do
 cat <<EOCFG
 [Peer]
+# $(array_get "${peer}" uri_prefix):$(array_get ${peer} wstunl_port)
 PublicKey = $(array_get "${peer}" prikey | wg pubkey)
 AllowedIPs = $(array_get "${peer}" address | sed "s|/.*|/32|g")
 PersistentKeepalive = 25
+
 EOCFG
 done)
 EOF
-    chmod 0600  "${cfg_file}"
-    info_msg "# # server end # #\n" 
+    try chmod 0600 "${cfg_file}"
+    info_msg "# # server end # #\n"
 
     info_msg "# # client start # #\n"
     for peer in ${clients[@]}; do
         PREFIX="${dir}/${peer}"
-        info_msg "# wstunnel service configuration\n"
-        cfg_file="${PREFIX}/usr/lib/systemd/system/wstunnel@.service"
-        mkdir -p $(dirname "${cfg_file}") && gen_wstunnel_svc > "${cfg_file}"
-        cfg_file="${PREFIX}/etc/wstunnel/wireguard.conf"
-        mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
-DAEMON_ARGS="client -P $(array_get "${peer}" uri_prefix) -L udp://127.0.0.1:${wgsrv_port}:127.0.0.1:${wgsrv_port} ${cli_cert:+--tls-certificate /etc/wstunnel/ssl/cli.pem }${cli_key:+--tls-private-key /etc/wstunnel/ssl/cli.key} --tls-sni-disable wss://${wgsrv_addr}:${ngx_port}"
-EOF
-        mkdir -p ${PREFIX}/etc/wstunnel/ssl
-        cat ${cli_cert} > ${PREFIX}/etc/wstunnel/ssl/cli.pem
-        cat ${cli_key} > ${PREFIX}/etc/wstunnel/ssl/cli.key
+        info_msg "# wstunnel ssl key\n"
+        try mkdir -p -m 0755 ${PREFIX}/etc/wstunnel/ssl
+        try cat ${cli_cert} \> ${PREFIX}/etc/wstunnel/ssl/cli.pem
+        try cat ${cli_key} \> ${PREFIX}/etc/wstunnel/ssl/cli.key
+        try chmod 0733 ${PREFIX}/etc/wstunnel/ssl/cli.pem ${PREFIX}/etc/wstunnel/ssl/cli.key
         info_msg "# wireguard configuration\n"
+        local cli_uuid="$(array_get "${peer}" uri_prefix)"
         cfg_file="${PREFIX}/etc/wireguard/client.conf"
-        mkdir -p -m 0700 $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
+        try mkdir -p -m 0700 $(dirname "${cfg_file}") && try cat <<EOF \> "${cfg_file}"
 [Interface]
 PrivateKey = $(array_get "${peer}" prikey)
 Address = $(array_get "${peer}" address)
 Table = off
+PreUp = systemd-run --unit ${cli_uuid} -p DynamicUser=yes wstunnel client -P ${cli_uuid} -L udp://127.0.0.1:${wgsrv_port}:127.0.0.1:${wgsrv_port} ${cli_cert:+--tls-certificate /etc/wstunnel/ssl/cli.pem }${cli_key:+--tls-private-key /etc/wstunnel/ssl/cli.key} --tls-sni-disable wss://${wgsrv_addr}:${ngx_port}
+PostDown = systemctl stop ${cli_uuid}.service
 
 [Peer]
 PublicKey = ${srv_pubkey}
 AllowedIPs = 0.0.0.0/0
 Endpoint = 127.0.0.1:${wgsrv_port}
 EOF
-        chmod 0600  "${cfg_file}"
+        try chmod 0600 "${cfg_file}"
     done
     info_msg "# # client end # #\n"
 
     cat <<EOF | vinfo2_msg
 ==============================================
-SERVER:   ${wgsrv_addr}
-NGX PORT: ${ngx_port}
+SERVER: ${wgsrv_addr}:${ngx_port}
 create package:
-# # modify ${dir}/client/etc/wireguard/server.conf, add more peer
 fpm --package `pwd` --architecture all -s dir -t deb -C server --name wg_wstunl_server --version 1.0 --iteration 1 --description 'wg wstunnel' .
 # ln -s ../http-available/wgngx.conf /etc/nginx/http-enabled/
 # systemctl enable nginx --now
 # # copy wstunnel /usr/bin/
-# systemctl enable wstunnel@wireguard --now
 # wg-quick up server
 
 $(for peer in ${clients[@]}; do
 echo "fpm --package `pwd` --architecture all -s dir -t deb -C ${peer} --name wg_wstunl_${peer} --version 1.0 --iteration 1 --description 'wg wstunnel $(array_get "${peer}" address | sed "s|/.*||g")' ."
 done)
 # echo '<wg server ipaddr> tunl.wgserver.org' >> /etc/hosts
-# systemctl enable wstunnel@wireguard --now
 # wg-quick up client
 ==============================================
 EOF
@@ -192,11 +160,11 @@ ${SCRIPTNAME}
         env: NGX_SRV, default tunl.wgserver.org,
         env: NGX_PORT, default 443
              nginx & wireguard same server
-        --srvcert   *   <file>      TLS nginx cert file 
-        --srvkey    *   <file>      TLS nginx key file 
-        --ca        *   <file>      TLS nginx verify client ca file 
-        --clicert   *   <file>      TLS client cert file 
-        --clikey    *   <file>      TLS client key file 
+        --srvcert   *   <file>      TLS nginx cert file
+        --srvkey    *   <file>      TLS nginx key file
+        --ca        *   <file>      TLS nginx verify client ca file
+        --clicert   *   <file>      TLS client cert file
+        --clikey    *   <file>      TLS client key file
         -n | --num      <int>       wg clients number, default 1
         -q|--quiet
         -l|--log <int> log level
