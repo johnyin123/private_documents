@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-08-09T12:52:33+08:00]:wireguard_gencfg.sh")
+VERSION+=("9e1cbe4[2024-08-09T12:52:33+08:00]:wireguard_gencfg.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 
@@ -125,25 +125,40 @@ EOF
 }
 main "$@"
 
-: <<EOF
-[Unit]
-Description=Tunnel WireGuard UDP over websocket
-After=network.target
-[Service]
-Type=simple
-User=nobody
-ExecStart=/usr/bin/wstunnel -v --server wss://0.0.0.0:443 --restrictTo=127.0.0.1:51820
-Restart=no
-[Install]
-WantedBy=multi-user.target
-##############################################3
-/usr/bin/wstunnel --upgradePathPrefix "wstunnel" --udp  -L "127.0.0.1:lport:127.0.0.1:rport" "wss://host:wssport" & disown
-
+: <<'EOF'
 auto wg0
 iface wg0 inet static
-  address {{ipaddr}}/{{prefix}}
+  address xxxxxxx
   pre-up ip link add wg0 type wireguard
   pre-up wg setconf wg0 /etc/wireguard/wg0.conf
   up ip link set wg0 up
   down ip link delete wg0
+
+#!/usr/bin/env bash
+# # add new peer
+srv_interface=client
+ipaddr=192.168.169.100/24
+prikey=$(wg genkey)
+pubkey=$(echo ${prikey} | wg pubkey)
+srv_pubkey="$(wg show ${srv_interface} | grep 'public key:' | awk -F: '{print $2}')"
+
+# # add new peer
+cat <<EOF
+wg set ${srv_interface} peer ${pubkey} allowed-ips $(echo ${ipaddr} | sed "s|/.*|/32|g")
+# #  server config
+[Peer]
+PublicKey = ${pubkey}
+AllowedIPs = $(echo ${ipaddr} | sed "s|/.*|/32|g")
+
+# # client config
+[Interface]
+PrivateKey = ${prikey}
+Address = ${ipaddr}
+Table = off
+
+[Peer]
+PublicKey = ${srv_pubkey}
+AllowedIPs = 0.0.0.0/0
+Endpoint = srv_ip:port
+EOF
 EOF
