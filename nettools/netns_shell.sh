@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c56683b[2022-08-05T07:10:29+08:00]:netns_shell.sh")
+VERSION+=("f6a904e[2023-12-07T07:42:46+08:00]:netns_shell.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_nameserver() {
@@ -94,7 +94,7 @@ main() {
     [ -z "${host_br}" ] && usage "bridge must input"
     is_ipv4_subnet "${ipaddr}" || usage "ipaddr ip/mask"
     gateway=${gateway:-"${ipaddr%.*}.1"}
-    dns=${dns:-"202.107.117.11"}
+    dns=${dns:-"114.114.114.114"}
     info_msg "IPADDR=${ipaddr}\n"
     netns_exists "${ns_name}" && exit_msg "${ns_name} exist!!\n"
     bridge_exists "${host_br}" || exit_msg "${host_br} no found!!\n"
