@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ff39de8[2024-08-12T16:49:14+08:00]:wireguard_via_websocket.sh")
+VERSION+=("e4a1fd3[2024-08-13T10:47:38+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
@@ -128,6 +128,7 @@ PostDown = systemctl stop ${cli_uuid}.service
 PublicKey = ${srv_pubkey}
 AllowedIPs = 0.0.0.0/0
 Endpoint = 127.0.0.1:${wgsrv_port}
+PersistentKeepalive = 25
 EOF
         try chmod 0600 "${cfg_file}"
     done
