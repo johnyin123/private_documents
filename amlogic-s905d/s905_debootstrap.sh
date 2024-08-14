@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("320b334[2024-08-07T16:38:42+08:00]:s905_debootstrap.sh")
+VERSION+=("df45c62[2024-08-14T10:33:28+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -524,19 +524,15 @@ iface ap5g inet manual
     pre-down (/usr/bin/systemctl stop udhcpd-ap5g.service) || true)
     pre-down (/usr/bin/kill -9 $(cat /run/hostapd.wlan0.pid) || true)
 
-iface work inet manual
+iface work inet dhcp
     wpa_iface wlan0
     wpa_conf /etc/johnyin/work.conf
-    post-up (/usr/sbin/dhclient -v -pf /run/dhclient.wlan0.pid -lf /run/dhclient.wlan0.lease wlan0 || true)
-    pre-down (/usr/bin/kill -9 $(cat /run/dhclient.wlan0.pid ) || true)
     post-up (/usr/sbin/ifup ap0 || true)
     pre-down (/usr/sbin/ifdown ap0 || true)
 
-iface home inet manual
+iface home inet dhcp
     wpa_iface wlan0
     wpa_conf /etc/johnyin/home.conf
-    post-up (/usr/sbin/dhclient -v -pf /run/dhclient.wlan0.pid -lf /run/dhclient.wlan0.lease  wlan0 || true)
-    pre-down (/usr/bin/kill -9 $(cat /run/dhclient.wlan0.pid ) || true)
     # post-up (/usr/sbin/ifup ap0 || true)
     # pre-down (/usr/sbin/ifdown ap0 || true)
 
