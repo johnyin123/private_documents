@@ -7,11 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e4a1fd3[2024-08-13T10:47:38+08:00]:wireguard_via_websocket.sh")
+VERSION+=("cd1166c[2024-08-14T14:23:44+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
-
+KEEPALIVE=${KEEPALIVE:-25}
 gen_all() {
     local dir=${1}
     local srv_cert=${2}
@@ -38,7 +38,6 @@ gen_all() {
         clients+=(peer${cli})
         let "ip_cli++"
     done
-#    local cli2_pubkey=$(try echo -n ${cli2_prikey} \| wg pubkey)
 
     info_msg "# # server start # #\n"
     PREFIX="${dir}/server"
@@ -97,7 +96,7 @@ cat <<EOCFG
 # $(array_get "${peer}" uri_prefix):$(array_get ${peer} wstunl_port)
 PublicKey = $(array_get "${peer}" prikey | wg pubkey)
 AllowedIPs = $(array_get "${peer}" address | sed "s|/.*|/32|g")
-PersistentKeepalive = 25
+PersistentKeepalive = ${KEEPALIVE}
 
 EOCFG
 done)
@@ -120,6 +119,7 @@ EOF
 [Interface]
 PrivateKey = $(array_get "${peer}" prikey)
 Address = $(array_get "${peer}" address)
+MTU=1420
 Table = off
 PreUp = systemd-run --unit ${cli_uuid} -p DynamicUser=yes wstunnel client -P ${cli_uuid} -L udp://127.0.0.1:${wgsrv_port}:127.0.0.1:${wgsrv_port} ${cli_cert:+--tls-certificate /etc/wstunnel/ssl/cli.pem }${cli_key:+--tls-private-key /etc/wstunnel/ssl/cli.key} --tls-sni-disable wss://${wgsrv_addr}:${ngx_port}
 PostDown = systemctl stop ${cli_uuid}.service
@@ -128,7 +128,7 @@ PostDown = systemctl stop ${cli_uuid}.service
 PublicKey = ${srv_pubkey}
 AllowedIPs = 0.0.0.0/0
 Endpoint = 127.0.0.1:${wgsrv_port}
-PersistentKeepalive = 25
+PersistentKeepalive = ${KEEPALIVE}
 EOF
         try chmod 0600 "${cfg_file}"
     done
@@ -157,12 +157,13 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME}
         https://github.com/erebe/wstunnel, download wstunnel
+        env: KEEPALIVE, PersistentKeepalive default 25
         env: IP_PREFIX, default 192.168.32
         env: NGX_SRV, default tunl.wgserver.org,
         env: NGX_PORT, default 443
              nginx & wireguard same server
-        --srvcert   *   <file>      TLS nginx cert file
-        --srvkey    *   <file>      TLS nginx key file
+        --ngxcert   *   <file>      TLS nginx cert file
+        --ngxkey    *   <file>      TLS nginx key file
         --ca        *   <file>      TLS nginx verify client ca file
         --clicert   *   <file>      TLS client cert file
         --clikey    *   <file>      TLS client key file
@@ -172,6 +173,7 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+        multi peers, AllowedIPs must different!!
 EOF
     exit 1
 }
@@ -186,15 +188,15 @@ valid_tls_file() {
 main() {
     local srv_cert="" srv_key="" cli_ca="" cli_cert="" cli_key="" nclients=1
     local opt_short="n:"
-    local opt_long="srvcert:,srvkey:,ca:,clicert:,clikey:,num:,"
+    local opt_long="ngxcert:,ngxkey:,ca:,clicert:,clikey:,num:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
     eval set -- "${__ARGS}"
     while true; do
         case "$1" in
-            --srvcert)      shift; valid_tls_file "${1}" "rror nginx server cert file" && srv_cert=${1}; shift;;
-            --srvkey)       shift; valid_tls_file "${1}" "error nginx server key file" && srv_key=${1}; shift;;
+            --ngxcert)      shift; valid_tls_file "${1}" "error nginx server cert file" && srv_cert=${1}; shift;;
+            --ngxkey)       shift; valid_tls_file "${1}" "error nginx server key file" && srv_key=${1}; shift;;
             --ca)           shift; valid_tls_file "${1}" "error client verify ca file" && cli_ca=${1}; shift;;
             --clicert)      shift; valid_tls_file "${1}" "error client cert file" && cli_cert=${1}; shift;;
             --clikey)       shift; valid_tls_file "${1}" "error client file file" && cli_key=${1}; shift;;
