@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cd1166c[2024-08-14T14:23:44+08:00]:wireguard_via_websocket.sh")
+VERSION+=("67c7853[2024-08-15T08:10:05+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
@@ -102,6 +102,12 @@ EOCFG
 done)
 EOF
     try chmod 0600 "${cfg_file}"
+    cat <<EOF | vinfo2_msg
+# # server as router alllow other traffic to 192.168.2.53/32,10.170.6.0/24
+wg set <interface> peer <pubkey> allowed-ips 192.168.32.2/32,192.168.2.53/32,10.170.6.0/24
+# # other peers add
+ip r a 192.168.2.53 via 192.168.32.1
+EOF
     info_msg "# # server end # #\n"
 
     info_msg "# # client start # #\n"
