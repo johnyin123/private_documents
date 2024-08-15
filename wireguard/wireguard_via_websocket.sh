@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8ecf608[2024-08-15T12:30:50+08:00]:wireguard_via_websocket.sh")
+VERSION+=("8a2e654[2024-08-15T14:11:34+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
@@ -52,16 +52,21 @@ server {
     ssl_client_certificate /etc/nginx/ssl/ngx_verifyclient_ca.pem;
     ssl_verify_client on;
     access_log off;
+    proxy_buffering off;
+    proxy_intercept_errors on;
+    error_page 400 495 496 497 = @400;
+    location @400 { return 500 "bad boy"; }
+    location / { default_type text/html; return 444; }
 $(for peer in ${clients[@]}; do
 cat <<EOCFG
     location /$(array_get "${peer}" uri_prefix)/ {
         proxy_pass http://127.0.0.1:$(array_get "${peer}" wstunl_port);
-        proxy_buffering off;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection "upgrade";
         proxy_set_header Host \$http_host;
         proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_connect_timeout 10m;
         proxy_send_timeout    10m;
         proxy_read_timeout    90m;
