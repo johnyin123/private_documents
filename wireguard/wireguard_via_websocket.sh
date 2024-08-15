@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6b2fa57[2024-08-15T10:56:32+08:00]:wireguard_via_websocket.sh")
+VERSION+=("ab7b380[2024-08-15T11:01:12+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
@@ -183,6 +183,8 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
         multi peers, AllowedIPs must different!!
+        DEBUG:
+        modprobe wireguard && echo module wireguard +p > /sys/kernel/debug/dynamic_debug/control
 EOF
     exit 1
 }
