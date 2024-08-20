@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("06ac347[2024-07-24T09:35:54+08:00]:ngx_demo.sh")
+VERSION+=("e928115[2024-07-30T16:34:39+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1332,6 +1332,22 @@ server {
     location / {
         proxy_pass http://$http_host$request_uri;
     }
+}
+EOF
+cat <<'EOF' > stream_pass.stream
+# # add http server 8000
+# server {
+#     listen 127.0.0.1:8000;
+#     server_name _;
+#     location / {
+#         root /var/www;
+#     }
+# }
+server {
+    listen 12345 ssl;
+    ssl_certificate /etc/nginx/ssl/test.pem;
+    ssl_certificate_key /etc/nginx/ssl/test.key;
+    pass 127.0.0.1:8000;
 }
 EOF
 cat <<'EOF' > k8s_api.stream
