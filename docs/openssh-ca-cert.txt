@@ -11,3 +11,11 @@ Server Machine:
         -e '/^\s*(TrustedUserCAKeys)\s.*/!p' \
         -e '$aTrustedUserCAKeys /etc/ssh/myca.pub' \
         /etc/ssh/sshd_config
+
+# # openssl pubkey to ssh pubkey
+openssl x509 -in ca.pem -noout -pubkey | ssh-keygen -i -m PKCS8 -f /dev/stdin
+# OR
+ssh-keygen -f ca.key -y
+
+# # openssl prikey to ssh prikey
+cat ca.key > ssh.key && chmod 600 ssh.key && ssh-keygen -p -N "" -f ssh.key
