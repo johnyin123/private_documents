@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8e97d62[2024-08-20T08:16:51+08:00]:ngx_demo.sh")
+VERSION+=("082c73d[2024-08-20T08:57:17+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -982,6 +982,11 @@ server {
     location / {
         auth_basic "Restricted Content";
         auth_basic_user_file /etc/nginx/.htpasswd;
+        if ($remote_user !~* ^(tom|jerry)$) {
+            # # Forbidden for all other users
+            return 403;
+        }
+        root /var/www;
     }
 }
 EOF
