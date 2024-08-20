@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e928115[2024-07-30T16:34:39+08:00]:ngx_demo.sh")
+VERSION+=("8e97d62[2024-08-20T08:16:51+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1335,6 +1335,7 @@ server {
 }
 EOF
 cat <<'EOF' > stream_pass.stream
+# # nginx 1.25.5
 # # add http server 8000
 # server {
 #     listen 127.0.0.1:8000;
