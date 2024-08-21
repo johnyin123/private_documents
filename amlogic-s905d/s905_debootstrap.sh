@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5912ee1[2024-08-21T13:35:19+08:00]:s905_debootstrap.sh")
+VERSION+=("1458a98[2024-08-21T13:46:21+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -508,7 +508,7 @@ iface ap inet manual
     pre-up (/usr/bin/touch /var/run/udhcpd.leases || true)
     post-up (/usr/bin/systemd-run --unit udhcpd-ap -p Restart=always /usr/bin/busybox udhcpd -f /run/udhcpd.conf || true)
     pre-down (/usr/bin/systemctl stop udhcpd-ap.service || true)
-    pre-down (/usr/bin/kill -9 $(cat /run/hostapd.wlan0.pid || true)
+    pre-down (/usr/bin/kill -9 $(cat /run/hostapd.wlan0.pid) || true)
 
 iface ap5g inet manual
     hostapd /run/hostapd.wlan0.conf
@@ -520,7 +520,7 @@ iface ap5g inet manual
     pre-up (/usr/bin/touch /var/run/udhcpd.leases || true)
     post-up (/usr/bin/systemd-run --unit udhcpd-ap5g -p Restart=always /usr/bin/busybox udhcpd -f /run/udhcpd.conf || true)
     pre-down (/usr/bin/systemctl stop udhcpd-ap5g.service || true)
-    pre-down (/usr/bin/kill -9 $(cat /run/hostapd.wlan0.pid || true)
+    pre-down (/usr/bin/kill -9 $(cat /run/hostapd.wlan0.pid) || true)
 
 iface work inet dhcp
     wpa_iface wlan0
