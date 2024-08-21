@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("df45c62[2024-08-14T10:33:28+08:00]:s905_debootstrap.sh")
+VERSION+=("8a46b34[2024-08-14T11:21:38+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -489,16 +489,14 @@ iface ap0 inet manual
     # INTERFACE BRIDGE SSID PASSPHRASE IS_5G HIDDEN_SSID
     pre-up (/etc/johnyin/gen_hostapd.sh ap0 br-int "$(cat /etc/hostname)" "Admin@123" 1 1 || true)
     pre-up (/usr/sbin/iw phy `/usr/bin/ls /sys/class/ieee80211/` interface add ap0 type __ap)
-    # pre-up (/usr/sbin/ifup work || true)
     # # start nft rules by nftables.service, rm -f /etc/nftables.conf && ln -s /etc/johnyin/ap.ruleset /etc/nftables.conf
     # post-up (/usr/sbin/iptables-restore < /etc/iptables.rules || true)
     # post-up (/etc/johnyin/ap.ruleset || true)
-    pre-up (/etc/johnyin/gen_udhcpd.sh br-int || true)
-    pre-up (/usr/bin/touch /var/run/udhcpd.leases || true)
-    post-up (/usr/bin/systemd-run --unit udhcpd-ap0 -p Restart=always /usr/bin/busybox udhcpd -f /run/udhcpd.conf || true)
-    pre-down (/usr/bin/systemctl stop udhcpd-ap0.service) || true)
+    pre-up (/etc/johnyin/gen_dnsmasq.sh br-int || true)
+    post-up (/usr/bin/systemd-run --unit dnsmasq-ap0 -p Restart=always /usr/sbin/dnsmasq --no-daemon --conf-file=/run/dnsmasq.conf || true)
+    pre-down (/usr/bin/systemctl stop dnsmasq-ap0.service || true)
     pre-down (/usr/bin/kill -9 $(cat /run/hostapd.ap0.pid) || true)
-    post-down (/usr/sbin/iw dev ap0 del)
+    post-down (/usr/sbin/iw dev ap0 del || true)
 
 iface ap inet manual
     hostapd /run/hostapd.wlan0.conf
@@ -509,8 +507,8 @@ iface ap inet manual
     pre-up (/etc/johnyin/gen_udhcpd.sh br-int || true)
     pre-up (/usr/bin/touch /var/run/udhcpd.leases || true)
     post-up (/usr/bin/systemd-run --unit udhcpd-ap -p Restart=always /usr/bin/busybox udhcpd -f /run/udhcpd.conf || true)
-    pre-down (/usr/bin/systemctl stop udhcpd-ap.service) || true)
-    pre-down (/usr/bin/kill -9 $(cat /run/hostapd.wlan0.pid) || true)
+    pre-down (/usr/bin/systemctl stop udhcpd-ap.service || true)
+    pre-down (/usr/bin/kill -9 $(cat /run/hostapd.wlan0.pid || true)
 
 iface ap5g inet manual
     hostapd /run/hostapd.wlan0.conf
@@ -521,8 +519,8 @@ iface ap5g inet manual
     pre-up (/etc/johnyin/gen_udhcpd.sh br-int || true)
     pre-up (/usr/bin/touch /var/run/udhcpd.leases || true)
     post-up (/usr/bin/systemd-run --unit udhcpd-ap5g -p Restart=always /usr/bin/busybox udhcpd -f /run/udhcpd.conf || true)
-    pre-down (/usr/bin/systemctl stop udhcpd-ap5g.service) || true)
-    pre-down (/usr/bin/kill -9 $(cat /run/hostapd.wlan0.pid) || true)
+    pre-down (/usr/bin/systemctl stop udhcpd-ap5g.service || true)
+    pre-down (/usr/bin/kill -9 $(cat /run/hostapd.wlan0.pid || true)
 
 iface work inet dhcp
     wpa_iface wlan0
@@ -530,9 +528,11 @@ iface work inet dhcp
     post-up (/usr/sbin/ifup ap0 || true)
     pre-down (/usr/sbin/ifdown ap0 || true)
 
-iface home inet dhcp
+iface home inet static
     wpa_iface wlan0
     wpa_conf /etc/johnyin/home.conf
+    address 192.168.31.194/24
+    gateway 192.168.31.1
     # post-up (/usr/sbin/ifup ap0 || true)
     # pre-down (/usr/sbin/ifdown ap0 || true)
 
@@ -618,7 +618,7 @@ table ip nat {
 
 	chain POSTROUTING {
 		type nat hook postrouting priority 100; policy accept;
-		ip saddr 192.168.168.0/24 ip daddr != 192.168.168.0/24 counter packets 0 bytes 0 masquerade 
+		ip saddr 192.168.168.0/24 ip daddr != 192.168.168.0/24 counter packets 0 bytes 0 masquerade
 		ip saddr 192.168.167.0/24 ip daddr != 192.168.167.0/24 counter packets 0 bytes 0 masquerade
 	}
 
@@ -642,6 +642,71 @@ table ip filter {
 }
 EO_DOC
 chmod 755 ${ROOT_DIR}/etc/johnyin/ap.ruleset
+
+mkdir -p ${ROOT_DIR}/etc/dnsmasq
+cat << "EO_DOC" > ${ROOT_DIR}/etc/dnsmasq/adblock.inc
+address=/ad.youku.com/127.0.0.1
+address=/013572.cn/
+EO_DOC
+
+cat << 'EO_DOC' > ${ROOT_DIR}/etc/johnyin/gen_dnsmasq.sh
+#!/bin/sh
+set -e
+export LANG=C
+
+if [ `id -u` -ne 0 ]; then exit 1; fi
+
+INTERFACE=${1:-wlan0}
+eval `/usr/sbin/ifquery ${INTERFACE} 2>/dev/null | /usr/bin/awk '/address:/{ print "ADDRESS="$2} /netmask:/{ print "MASK="$2}'`
+ADDRESS=${ADDRESS:-192.168.0.1}
+MASK=${MASK:-255.255.255.0}
+
+cat > /run/dnsmasq.conf <<EOF
+# # /usr/bin/systemd-run --unit dnsmasq-ap5g -p Restart=always dnsmasq --no-daemon --conf-file=/etc/dnsmasq/dnsmasq.conf
+# # /usr/bin/systemctl stop dnsmasq-ap5g.service
+####dhcp
+# # Bind to only one interface
+interface=${INTERFACE}
+dhcp-range=${ADDRESS%.*}.100,${ADDRESS%.*}.150,${MASK},12h
+# # gateway
+dhcp-option=option:router,${ADDRESS}
+# # dns server
+dhcp-option=6,${ADDRESS}
+# # ntp server
+# dhcp-option=option:ntp-server,192.168.0.4,10.10.0.5
+# dhcp-host=11:22:33:44:55:66,192.168.0.60
+bind-interfaces
+except-interface=lo
+# no-dhcp-interface=
+strict-order
+expand-hosts
+filterwin2k
+dhcp-authoritative
+dhcp-leasefile=/var/lib/misc/dnsmasq.leases
+####dns
+resolv-file=/etc/resolv.conf
+# # read another file, as well as /etc/hosts
+addn-hosts=/etc/hosts
+# # Add other name servers here, with domain specs
+server=/cn/114.114.114.114
+server=/google.com/223.5.5.5
+# # 屏蔽网页广告
+conf-file=/etc/dnsmasq/adblock.inc
+# # Include all files in a directory which end in .conf
+#conf-dir=/etc/dnsmasq.d/,*.conf
+# # 劫持所有域名
+# address=/#/10.0.3.1
+# # pxe tftp
+# enable-tftp
+# tftp-root=/tftpboot
+# pxe-service=0,"Phicomm N1 Boot"
+####log
+log-queries
+log-dhcp
+# log-facility=/var/log/dnsmasq.log
+EOF
+EO_DOC
+chmod 755 ${ROOT_DIR}/etc/johnyin/gen_dnsmasq.sh
 
 cat << 'EO_DOC' > ${ROOT_DIR}/etc/johnyin/gen_udhcpd.sh
 #!/bin/sh
