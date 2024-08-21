@@ -16,7 +16,10 @@ DNS="114.114.114.114"
 WIFI_INTERFACE=${WIFI_INTERFACE:-"wlan0"}
 WIFI_OUT_INF=${WIFI_OUT_INF:-"eth0"}
 gen_conf() {
+    touch /tmp/adblock.inc
     cat > /tmp/wifi_dhcp.conf <<EOF
+# # /usr/bin/systemd-run --unit dnsmasq-ap5g -p Restart=always dnsmasq --no-daemon --conf-file=/etc/dnsmasq/dnsmasq.conf
+# # /usr/bin/systemctl stop dnsmasq-ap5g.service
 #### dhcp
 # Bind to only one interface
 interface=${WIFI_INTERFACE}
@@ -24,26 +27,38 @@ dhcp-range=10.0.3.2,10.0.3.5,255.255.255.0,12h
 # gateway
 dhcp-option=option:router,10.0.3.1
 # # dns server
-# dhcp-option=6,192.168.0.90,192.168.0.98
+dhcp-option=6,10.0.3.1
 # # ntp server
 # dhcp-option=option:ntp-server,192.168.0.4,10.10.0.5
 # dhcp-host=11:22:33:44:55:66,192.168.0.60
 bind-interfaces
 except-interface=lo
+# no-dhcp-interface=
 strict-order
 expand-hosts
-bind-dynamic
 filterwin2k
 dhcp-authoritative
-#### dns
+dhcp-leasefile=/var/lib/misc/dnsmasq.leases
+####dns
+resolv-file=/etc/resolv.conf
+# # read another file, as well as /etc/hosts
+addn-hosts=/etc/hosts
+# # Add other name servers here, with domain specs
 server=/cn/114.114.114.114
 server=/google.com/223.5.5.5
-# 屏蔽网页广告
-address=/ad.youku.com/127.0.0.1
-# 劫持所有域名
+# # 屏蔽网页广告
+conf-file=/tmp/adblock.inc
+# # Include all files in a directory which end in .conf
+#conf-dir=/etc/dnsmasq.d/,*.conf
+# # 劫持所有域名
 # address=/#/10.0.3.1
-#### log
+# # pxe tftp
+# enable-tftp
+# tftp-root=/tftpboot
+# pxe-service=0,"Phicomm N1 Boot"
+####log
 log-queries
+log-dhcp
 log-facility=/tmp/dnsmasq.log
 EOF
     cat >/tmp/hostapd.conf <<EOF
@@ -62,21 +77,21 @@ macaddr_acl=0
 #accept_mac_file=/etc/hostapd.accept
 #deny_mac_file=/etc/hostapd.deny
 auth_algs=1
-# 采用 OSA 认证算法 
-ignore_broadcast_ssid=0 
+# 采用 OSA 认证算法
+ignore_broadcast_ssid=0
 wpa=3
-# 指定 WPA 类型 
-wpa_key_mgmt=WPA-PSK             
-wpa_pairwise=TKIP 
-rsn_pairwise=CCMP 
+# 指定 WPA 类型
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+rsn_pairwise=CCMP
 wpa_passphrase=password123
-# 连接 ap 的密码 
+# 连接 ap 的密码
 driver=nl80211
-# 设定无线驱动 
+# 设定无线驱动
 hw_mode=g
-# 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g 
+# 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g
 channel=9
-# 指定无线频道 
+# 指定无线频道
 EOF
 }
 
