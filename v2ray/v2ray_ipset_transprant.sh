@@ -303,6 +303,7 @@ iptables -t mangle -N V2RAY
 # 过滤掉局域网内的请求，除非目标端口是53, 劫持 DNS 请求
 iptables -t mangle -A V2RAY -p tcp -m set --match-set ${IPSET_NAME} dst -m tcp ! --dport 53 -j RETURN
 iptables -t mangle -A V2RAY -p udp -m set --match-set ${IPSET_NAME} dst -m udp ! --dport 53 -j RETURN
+# iptables -t mangle -A V2RAY -p udp -m owner --uid-owner nginx -j RETURN
 
 iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-ip 127.0.0.1 --on-port ${V2RAY_TPROXY_PORT} --tproxy-mark 1
 iptables -t mangle -A V2RAY -p udp -j TPROXY --on-ip 127.0.0.1 --on-port ${V2RAY_TPROXY_PORT} --tproxy-mark 1
