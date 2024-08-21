@@ -16,7 +16,10 @@ DNS="114.114.114.114"
 WIFI_INTERFACE=${WIFI_INTERFACE:-"wlan0"}
 WIFI_OUT_INF=${WIFI_OUT_INF:-"eth0"}
 gen_conf() {
-    touch /tmp/adblock.inc
+    cat > /tmp/adblock.inc <<EOF
+address=/ad.youku.com/127.0.0.1
+address=/013572.cn/
+EOF
     cat > /tmp/wifi_dhcp.conf <<EOF
 # # /usr/bin/systemd-run --unit dnsmasq-ap5g -p Restart=always dnsmasq --no-daemon --conf-file=/etc/dnsmasq/dnsmasq.conf
 # # /usr/bin/systemctl stop dnsmasq-ap5g.service
