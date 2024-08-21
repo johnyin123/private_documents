@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8a46b34[2024-08-14T11:21:38+08:00]:s905_debootstrap.sh")
+VERSION+=("2a069b3[2024-08-21T12:51:22+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -665,8 +665,13 @@ cat > /run/dnsmasq.conf <<EOF
 # # /usr/bin/systemd-run --unit dnsmasq-ap5g -p Restart=always dnsmasq --no-daemon --conf-file=/etc/dnsmasq/dnsmasq.conf
 # # /usr/bin/systemctl stop dnsmasq-ap5g.service
 ####dhcp
-# # Bind to only one interface
+# # Bind to only one interface, Repeat the line for more than one interface.
 interface=${INTERFACE}
+# except-interface=lo
+# # disable DHCP and TFTP on interface
+# no-dhcp-interface=
+# listen-address=
+
 dhcp-range=${ADDRESS%.*}.100,${ADDRESS%.*}.150,${MASK},12h
 # # gateway
 dhcp-option=option:router,${ADDRESS}
@@ -675,15 +680,13 @@ dhcp-option=6,${ADDRESS}
 # # ntp server
 # dhcp-option=option:ntp-server,192.168.0.4,10.10.0.5
 # dhcp-host=11:22:33:44:55:66,192.168.0.60
-bind-interfaces
-except-interface=lo
-# no-dhcp-interface=
 strict-order
 expand-hosts
 filterwin2k
 dhcp-authoritative
 dhcp-leasefile=/var/lib/misc/dnsmasq.leases
 ####dns
+bind-interfaces
 resolv-file=/etc/resolv.conf
 # # read another file, as well as /etc/hosts
 addn-hosts=/etc/hosts
