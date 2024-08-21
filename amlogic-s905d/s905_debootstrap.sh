@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2a069b3[2024-08-21T12:51:22+08:00]:s905_debootstrap.sh")
+VERSION+=("5912ee1[2024-08-21T13:35:19+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -687,6 +687,7 @@ dhcp-authoritative
 dhcp-leasefile=/var/lib/misc/dnsmasq.leases
 ####dns
 bind-interfaces
+cache-size=10000
 resolv-file=/etc/resolv.conf
 # # read another file, as well as /etc/hosts
 addn-hosts=/etc/hosts
