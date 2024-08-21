@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8a2e654[2024-08-15T14:11:34+08:00]:wireguard_via_websocket.sh")
+VERSION+=("5779e6a[2024-08-15T14:20:58+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
@@ -92,10 +92,10 @@ Table = off
 ListenPort = ${wgsrv_port}
 # %i is wireguard interface, see wg-quick->execute_hooks
 $(for peer in ${clients[@]}; do
-echo "PreUp = systemd-run --unit $(array_get "${peer}" uri_prefix) -p DynamicUser=yes wstunnel server --restrict-to 127.0.0.1:${wgsrv_port} ws://127.0.0.1:$(array_get ${peer} wstunl_port)"
+echo "PreUp = systemd-run --unit $(array_get "${peer}" uri_prefix) -p DynamicUser=yes wstunnel server --no-color 1 --restrict-to 127.0.0.1:${wgsrv_port} ws://127.0.0.1:$(array_get ${peer} wstunl_port)"
 echo "PostDown = systemctl stop $(array_get "${peer}" uri_prefix).service"
 done)
-
+    info_msg "systemctl reset-failed $(array_get "${peer}" uri_prefix).service\n"
 $(for peer in ${clients[@]}; do
 cat <<EOCFG
 [Peer]
@@ -136,7 +136,7 @@ PrivateKey = $(array_get "${peer}" prikey)
 Address = $(array_get "${peer}" address)
 MTU=1420
 Table = off
-PreUp = systemd-run --unit ${cli_uuid} -p DynamicUser=yes wstunnel client -P ${cli_uuid} -L udp://127.0.0.1:${wgsrv_port}:127.0.0.1:${wgsrv_port} ${cli_cert:+--tls-certificate /etc/wstunnel/ssl/cli.pem }${cli_key:+--tls-private-key /etc/wstunnel/ssl/cli.key} --tls-sni-disable wss://${wgsrv_addr}:${ngx_port}
+PreUp = systemd-run --unit ${cli_uuid} -p DynamicUser=yes wstunnel client --no-color 1 -P ${cli_uuid} -L udp://127.0.0.1:${wgsrv_port}:127.0.0.1:${wgsrv_port} ${cli_cert:+--tls-certificate /etc/wstunnel/ssl/cli.pem }${cli_key:+--tls-private-key /etc/wstunnel/ssl/cli.key} --tls-sni-disable wss://${wgsrv_addr}:${ngx_port}
 PostDown = systemctl stop ${cli_uuid}.service
 
 [Peer]
@@ -145,6 +145,7 @@ AllowedIPs = 0.0.0.0/0
 Endpoint = 127.0.0.1:${wgsrv_port}
 PersistentKeepalive = ${KEEPALIVE}
 EOF
+        info_msg "systemctl reset-failed  ${cli_uuid}.service\n"
         try chmod 0600 "${cfg_file}"
     done
     info_msg "# # client end # #\n"
