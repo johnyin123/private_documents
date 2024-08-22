@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("734ebb3[2024-04-12T08:21:51+08:00]:mk_nginx.sh")
+VERSION+=("1b7b59e[2024-04-12T14:30:56+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -78,6 +78,10 @@ usage() {
     echo "no need -lz, static build sqlite3"
     echo "stage: [${!stage[@]}]"
     echo "LD_OPTS='/usr/lib/x86_64-linux-gnu/libsqlite3.a -lm' ${SCRIPTNAME} fpm/install/make/configure/otherlibs/openssl/pcre/zlib"
+    echo 'configure --with-cc-opt="-static -static-libgcc" --with-ld-opt="-static" --with-cpu-opt=generic  --with-openssl=./openssl ......'
+    echo "remove --with-http_xslt_module"
+    echo "remove --with-http_image_filter_module"
+    echo "remove --with-http_geoip_module"
     echo "CC_OPTS='-static -static-libgcc' LD_OPTS='-static' ./configure ..... && make, will static build"
     show_option "${SCRIPTNAME}"
     exit 0
