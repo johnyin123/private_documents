@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1458a98[2024-08-21T13:46:21+08:00]:s905_debootstrap.sh")
+VERSION+=("8b7aad6[2024-08-21T16:58:24+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -279,8 +279,8 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash -x <<EOSHELL
     grep -q "ext4" /etc/modules 2>/dev/null || echo "ext4" >> /etc/initramfs-tools/modules
     grep -q "ext4" /etc/modules 2>/dev/null || echo "ext4" >> /etc/modules
 
-    log "Enable CPU FREQ"
-    grep -q "scpi-cpufreq" /etc/modules 2>/dev/null || echo "scpi-cpufreq" >> /etc/modules
+    # log "Enable CPU FREQ"
+    # grep -q "scpi-cpufreq" /etc/modules 2>/dev/null || echo "scpi-cpufreq" >> /etc/modules
 
     log "Enable Kernel TLS"
     grep -q "tls" /etc/modules 2>/dev/null || echo "tls" >> /etc/modules
