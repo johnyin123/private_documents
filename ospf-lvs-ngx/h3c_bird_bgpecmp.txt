@@ -1,0 +1,63 @@
+# H3C交换机
+# Set eBGP
+bgp 65100
+ router-id 172.16.0.1
+ peer 172.16.6.200 as-number 65001
+ peer 172.16.6.200 description 'bgp elb node1'
+ peer 172.16.6.200 connect-interface Vlan-interface172
+ peer 172.16.6.200 password simple tsdbgppass
+ peer 172.16.6.201 as-number 65001
+ peer 172.16.6.201 description 'bgp elb node2'
+ peer 172.16.6.201 connect-interface Vlan-interface172
+ peer 172.16.6.201 password simple tsdbgppass
+ #
+ address-family ipv4 unicast
+  balance 4
+  peer 172.16.6.200 enable
+  peer 172.16.6.201 enable
+  # network 8.1.1.0 24
+
+display bgp peer ipv4
+display bgp routing-table ipv4
+display ip routing-table protocol bgp
+
+cat <<'EOF' >> bird.conf
+log syslog all;
+debug protocols all;
+debug protocols { events, states };
+
+router id 172.16.6.200;
+protocol device {
+    scan time 10;        # Scan interfaces every 10 seconds
+}
+# Disable automatically generating direct routes to all network interfaces.
+protocol direct {
+    disabled;         # Disable by default
+}
+# Forbid synchronizing BIRD routing tables with the OS kernel.
+protocol kernel {
+    ipv4 {                # Connect protocol to IPv4 table by channel
+        import none;      # Import to table, default is import all
+        export none;      # Export to protocol. default is export none
+    };
+    # Configure ECMP
+    merge paths yes limit 2 ;
+}
+
+protocol static {
+    ipv4;
+    route 172.16.18.1/32 via "lbdev0";
+    route 10.170.24.100/32 via "lbdev0";
+}
+protocol bgp uplink0 {
+    description "BGP uplink 0";
+    local 172.16.6.200 as 65001;
+    neighbor 172.16.0.1 as 65100;
+	password "tsdbgppass";	# Password used for MD5 authentication
+    ipv4 {
+        import filter {reject;};
+        export filter {accept;};
+    };
+}
+EOF
+
