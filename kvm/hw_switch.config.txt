@@ -37,18 +37,20 @@ bgp 65100
  peer 172.16.6.200 description 'bgp elb node1'
  peer 172.16.6.200 connect-interface Vlan-interface172
  peer 172.16.6.200 password simple tsdbgppass
- peer 172.16.6.201 as-number 65002
+ peer 172.16.6.201 as-number 65001
  peer 172.16.6.201 description 'bgp elb node2'
  peer 172.16.6.201 connect-interface Vlan-interface172
  peer 172.16.6.201 password simple tsdbgppass
  #
  address-family ipv4 unicast
+  balance 4
   peer 172.16.6.200 enable
   peer 172.16.6.201 enable
   # network 8.1.1.0 24
 
 display bgp peer ipv4
 display bgp routing-table ipv4
+display ip routing-table protocol bgp
 
 cat <<'EOF' >> bird.conf
 log syslog all;
