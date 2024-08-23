@@ -142,6 +142,7 @@ protocol bgp uplink0 {
     description "BGP uplink 0";
     local ${NODE_IP} as ${NODE_ASN};
     neighbor ${NEIGHBOR_0_IP} as ${NEIGHBOR_0_ASN};
+    # multihop; # ... which is connected indirectly
     password "${NEIGHBOR_PWD}";
     bfd on;
     ipv4 {
