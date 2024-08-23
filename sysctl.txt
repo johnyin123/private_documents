@@ -160,3 +160,36 @@ net.ipv4.conf.all.secure_redirects = 1
 net.ipv4.conf.all.bootp_relay = 0
 # Ensure that subsequent connections use the new values
 net.ipv4.route.flush = 1
+
+net.ipv6.conf.all.disable_ipv6=1 #禁用IPv6，修为0为启用IPv6
+net.ipv6.conf.default.disable_ipv6=1 #禁用IPv6，修为0为启用IPv6
+net.ipv6.conf.lo.disable_ipv6=1 #禁用IPv6，修为0为启用IPv6
+net.ipv4.neigh.default.gc_stale_time=120 #ARP缓存条目超时
+net.ipv4.conf.default.rp_filter=0 #不开启源地址校验
+net.ipv4.conf.default.arp_announce=2 #始终使用与目的IP地址对应的最佳本地IP地址作为ARP请求的源IP地址
+net.ipv4.conf.lo.arp_announce=2 #始终使用与目的IP地址对应的最佳本地IP地址作为ARP请求的源IP地址
+net.ipv4.conf.all.arp_announce=2 #始终使用与目的IP地址对应的最佳本地IP地址作为ARP请求的源IP地址
+net.bridge.bridge-nf-call-ip6tables=1 # 是否在ip6tables链中过滤IPv6包
+net.bridge.bridge-nf-call-iptables=1 # 二层的网桥在转发包时也会被iptables的FORWARD规则所过滤，这样有时会出现L3层的iptables rules去过滤L2的帧的问题
+net.netfilter.nf_conntrack_max=2310720 #连接跟踪表的大小，建议根据内存计算该值CONNTRACK_MAX = RAMSIZE (in bytes) / 16384 / (x / 32)，并满足nf_conntrack_max=4*nf_conntrack_buckets，默认262144
+
+net.ipv6.neigh.default.gc_thresh1=8192
+net.ipv6.neigh.default.gc_thresh2=32768
+net.ipv6.neigh.default.gc_thresh3=65536
+
+#gc_thresh3 是表大小的绝对限制
+#gc_thresh2 设置为等于系统的最大预期邻居条目数的值
+#在这种情况下，gc_thresh3 应该设置为一个比 gc_thresh2 值高的值，例如，比 gc_thresh2 高 25%-50%，将其视为浪涌容量。
+#gc_thresh1 提高到较大的值；此设置的作用是，如果表包含的条目少于 gc_thresh1，内核将永远不会删除（超时）过时的条目。
+
+net.core.somaxconn = 32768 # 第二个积压队列长度
+fs.inotify.max_user_instances=8192 # 表示每一个real user ID可创建的inotify instatnces的数量上限，默认128.
+fs.inotify.max_user_watches=524288 # 同一用户同时可以添加的watch数目，默认8192。
+fs.nr_open=52706963 #设置最大微博号打开数
+kernel.pid_max = 4194303 #最大进程数
+net.bridge.bridge-nf-call-arptables=1 #是否在arptables的FORWARD中过滤网桥的ARP包
+vm.swappiness=0 # 禁止使用 swap 空间，只有当系统 OOM 时才允许使用它
+vm.overcommit_memory=1 # 不检查物理内存是否够用
+vm.panic_on_oom=0 # 开启 OOM
+vm.max_map_count = 262144
+
