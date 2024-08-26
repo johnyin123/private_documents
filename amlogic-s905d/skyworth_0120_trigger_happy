@@ -63,7 +63,8 @@ smplayer_start_stop() {
                    #     -o -iname '*.wmv' > ${LIST_FILE}
                    # # chown ${USER}: ${LIST_FILE}
                }
-               systemd-run --scope --uid=${USER} -E DISPLAY=:0 smplayer -ontop ${LIST_FILE}
+               # # start as systemd service
+               systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -ontop ${LIST_FILE}
                ;;
         stop)  smplayer_action close
                # pkill -u ${USER} smplayer
