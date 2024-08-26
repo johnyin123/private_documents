@@ -18,8 +18,25 @@ echo 1 > /proc/sys/net/ipv4/conf/${NS_NAME}_net/rp_filter
 echo 1 > /proc/sys/net/ipv4/conf/${NS_NAME}_net/route_localnet
 
 nat/route:
-ip rule from ${IPADDR} lookup 211
-ip route replace default via 192.168.168.250 table 211
+ip rule add from ${IPADDR} lookup 111
+ip route replace default via 192.168.168.250 table 111
 
 umount --force /var/run/netns/${NS_NAME} || true && rm -fv /var/run/netns/${NS_NAME} && systemctl stop testname.service || true && systemctl reset-failed testname.service
 
+
+
+ip netns add ns1
+ip link add tap1 type veth peer name veth1 netns ns1
+ip l set address ee:ee:ee:ee:ee:ee dev tap1
+echo 1 > /proc/sys/net/ipv4/conf/tap1/proxy_arp
+ip link set tap1 up
+ip r a 10.42.2.11 dev tap1
+ip netns exec ns1 ip addr add 10.42.2.11/32 dev veth1
+ip netns exec ns1 ip link set veth1 up
+ip netns exec ns1 ip link set lo up
+ip netns exec ns1 ip route add 169.254.1.1 dev veth1
+ip netns exec ns1 ip route add default via 169.254.1.1 dev veth1
+ip netns exec ns1 ip neigh add 169.254.1.1 dev veth1 lladdr ee:ee:ee:ee:ee:ee
+modprobe ipip
+ip a a 10.42.2.0/32 brd 10.42.2.0 dev tunl0
+ip link set tunl0 up
