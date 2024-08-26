@@ -36,7 +36,7 @@ EOF
 cat > /etc/skyworth_120.conf <<'EOF'
 DEPTH=1
 USER=johnyin
-MEDIA_DIR=/media/johnyin/media/movie
+MEDIA_DIR=/media
 LIST_FILE=/home/johnyin/Desktop/list.m3u
 EOF
 cat > /usr/bin/remoter.sh <<'EOF'
@@ -56,14 +56,14 @@ smplayer_start_stop() {
     log "smplayer action ${action}"
     case "${action}" in
         start) [ -e "${LIST_FILE}" ] || {
-                   systemd-run --uid=${USER} /usr/bin/touch ${LIST_FILE}
-                   find ${MEDIA_DIR} -maxdepth ${DEPTH:-1} -type f -iname '*.mkv' \
-                       -o -iname '*.avi' \
-                       -o -iname '*.mp4' \
-                       -o -iname '*.wmv' > ${LIST_FILE}
-                   # chown ${USER}: ${LIST_FILE}
+                   systemd-run --scope --uid=${USER} /usr/bin/touch ${LIST_FILE}
+                   # find ${MEDIA_DIR} -maxdepth ${DEPTH:-1} -type f -iname '*.mkv' \
+                   #     -o -iname '*.avi' \
+                   #     -o -iname '*.mp4' \
+                   #     -o -iname '*.wmv' > ${LIST_FILE}
+                   # # chown ${USER}: ${LIST_FILE}
                }
-               systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -ontop ${LIST_FILE}
+               systemd-run --scope --uid=${USER} -E DISPLAY=:0 smplayer -ontop ${LIST_FILE}
                ;;
         stop)  smplayer_action close
                # pkill -u ${USER} smplayer
@@ -74,11 +74,11 @@ smplayer_start_stop() {
 }
 smplayer_action() {
     log "send-action start($*)"
-    systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -send-action $*
+    systemd-run --scope --uid=${USER} -E DISPLAY=:0 smplayer -send-action $*
 }
 smplayer_addplaylist() {
     log "smplayer add playlist $*"
-    systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -add-to-playlist $*
+    systemd-run --scope --uid=${USER} -E DISPLAY=:0 smplayer -add-to-playlist $*
 }
 xsendkey() {
     # wmctrl -l
