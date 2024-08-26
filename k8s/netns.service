@@ -1,0 +1,25 @@
+NS_NAME=test
+IPADDR=1.2.3.4/32
+
+systemd-run --unit testname --property=PrivateNetwork=yes --property=RemainAfterExit=yes \
+   sh -c "touch /var/run/netns/${NS_NAME}                                 \
+    && mount --bind /proc/self/ns/net /var/run/netns/${NS_NAME}           \
+    && ip link add ${NS_NAME}_eth0 type veth peer name ${NS_NAME}_eth1    \
+    && ip link set ${NS_NAME}_eth0 netns ${NS_NAME} name eth0 up          \
+    && ip link set ${NS_NAME}_eth1 netns 1 name ${NS_NAME}_net up         \
+    && ip address add ${IPADDR} dev eth0                                  \
+    && ip route add 169.254.1.1 dev eth0                                  \
+    && ip route add default via 169.254.1.1 dev eth0"
+
+ip route add ${IPADDR} dev ${NS_NAME}_net
+echo 1 > /proc/sys/net/ipv4/conf/${NS_NAME}_net/proxy_arp
+echo 1 > /proc/sys/net/ipv4/conf/${NS_NAME}_net/forwarding
+echo 1 > /proc/sys/net/ipv4/conf/${NS_NAME}_net/rp_filter
+echo 1 > /proc/sys/net/ipv4/conf/${NS_NAME}_net/route_localnet
+
+nat/route:
+ip rule from ${IPADDR} lookup 211
+ip route replace default via 192.168.168.250 table 211
+
+umount --force /var/run/netns/${NS_NAME} || true && rm -fv /var/run/netns/${NS_NAME} && systemctl stop testname.service || true && systemctl reset-failed testname.service
+
