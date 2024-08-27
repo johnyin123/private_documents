@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8b7aad6[2024-08-21T16:58:24+08:00]:s905_debootstrap.sh")
+VERSION+=("2db8aac[2024-08-23T07:06:05+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -392,6 +392,8 @@ tmpfs /run      tmpfs   rw,nosuid,noexec,relatime,mode=755  0  0
 tmpfs /tmp      tmpfs   rw,nosuid,relatime,mode=777  0  0
 # overlayfs can not nfs exports, so use tmpfs
 tmpfs /media    tmpfs   defaults,size=1M  0  0
+tmpfs /home/johnyin/.cache  tmpfs mode=0700,noatime,nosuid,nodev,gid=johnyin,uid=johnyin   0  0
+tmpfs /root/.cache          tmpfs mode=0700,noatime,nosuid,nodev,gid=root,uid=root  0  0
 EOF
 
 log "auto reformatoverlay plug usb ttl"
