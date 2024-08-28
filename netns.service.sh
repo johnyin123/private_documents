@@ -11,6 +11,7 @@ PrivateNetwork=yes
 RemainAfterExit=yes
 ExecStart=/bin/touch /var/run/netns/%i
 ExecStart=/bin/mount --bind /proc/self/ns/net /var/run/netns/%i
+# ExecStart=/bin/sh -c '/sbin/ip netns attach %i $$$$'
 ExecStop=/sbin/ip netns delete %i
 EOF
 cat <<'EOF' > bridge-netns@.service
