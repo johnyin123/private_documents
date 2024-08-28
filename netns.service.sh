@@ -10,7 +10,7 @@ ExecStart=/bin/touch /var/run/netns/%i
 ExecStart=/bin/mount --bind /proc/self/ns/net /var/run/netns/%i
 ExecStop=/sbin/ip netns delete %i
 EOF
-cat << 'EOF' > bridge-netns@.service
+cat <<'EOF' > bridge-netns@.service
 [Unit]
 Requires=netns@%i.service
 After=netns@%i.service
@@ -60,3 +60,25 @@ ExecStart=/usr/sbin/sshd -D
 [Install]
 WantedBy=multi-user.target
 EOF
+
+
+# nft add rule nat POSTROUTING ip saddr 192.168.167.0/24 ip daddr != 192.168.167.0/24 counter packets 0  masquerade
+cat <<EOF >aws.conf
+BRIDGE=br-int
+ADDRESS=192.168.167.10/24
+GATEWAY=192.168.167.1
+DNS=8.8.8.8
+EOF
+ip rule add from 192.168.167.10/32 table 10 || true
+ip route replace default via 10.8.0.5 table 10 || true
+systemctl enable bridge-netns@aws.service --now
+
+cat <<EOF > ali.conf
+BRIDGE=br-int
+ADDRESS=192.168.167.20/24
+GATEWAY=192.168.167.1
+DNS=114.114.114.114
+EOF
+ip rule add from 192.168.167.20/32 table 20 || true
+ip route replace default via 192.168.168.250 table 20 || true
+systemctl enable bridge-netns@ali.service --now
