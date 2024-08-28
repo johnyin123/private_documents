@@ -1,3 +1,6 @@
+echo "/lib/systemd/system"
+echo "/etc/systemd/system"
+
 cat <<'EOF' > netns@.service
 [Unit]
 Description=Named network namespace %i
