@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f1f0588[2024-08-19T13:02:08+08:00]:ffmpeg.sh")
+VERSION+=("7088172[2024-08-28T13:44:17+08:00]:ffmpeg.sh")
 ################################################################################
 
 name=${1:?input err scale= $0 video.mkv}
@@ -17,15 +17,15 @@ frame=${frame-}
 ffmpeg -hide_banner -i ${name} 2>&1 | grep Stream
 ffmpeg -hide_banner -i ${name} 2>&1 | grep -o -Ei "Video:\s*([^ ]*)"
 # # hevc to x264 for phicomm n1
-# ffmpeg -i input -map 0 -c:v libx264 -crf 18 -vf format=yuv420p -c:a copy output.mkv
-cat <<EOF
-ffmpeg -i ${name} -movflags +faststart \
+ffmpeg -hide_banner -hwaccel auto -i ${name} -loglevel info \
+     -movflags +faststart \
      -map 0:a:? -map 0:s:? -map 0:v:? \
      ${scale:+-vf scale=${scale}}  \
-     -c:v libx264 -crf 18 -preset veryslow \
+     ${frame:+-filter:v fps=fps=${frame}} \
+     -c:v libx264 -crf 23 \
      -c:a copy -c:s copy \
      ${name%.*}.convert.mkv
-EOF
+cat <<EOF
 # -movflags faststart 参数告诉 ffmpeg 重组 MP4 文件 atoms，将 moov 放到文件开头
 # pv -f -F 'Converted: %b Elapsed: %t Current: %r Average: %a %p %e' "${name}" | ffmpeg -i pipe:0 \
 ffmpeg -hide_banner -hwaccel auto -i ${name} -loglevel info \
@@ -35,7 +35,7 @@ ffmpeg -hide_banner -hwaccel auto -i ${name} -loglevel info \
     ${frame:+-filter:v fps=fps=${frame}} \
     -c:a libmp3lame -b:a 128k -c:s copy \
     ${name%.*}.convert.mkv
-
+EOF
 ffmpeg -hide_banner -i ${name} 2>&1 | grep -o -Ei "Video:\s*([^ ]*)"
 
 # cat > file.lst<<EOF
