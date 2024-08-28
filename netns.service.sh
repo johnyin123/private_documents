@@ -17,30 +17,32 @@ After=netns@%i.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-Environment=NAMESERVER=""
+Environment=DNS=""
 EnvironmentFile=/etc/%i.conf
 ExecStart=/sbin/ip link add %i_eth0 type veth peer name %i_eth1
 ExecStart=/sbin/ip link set %i_eth0 netns %i name eth0 up
 ExecStart=/sbin/ip link set %i_eth1 master ${BRIDGE}
 ExecStart=/sbin/ip link set dev %i_eth1 up
-ExecStart=/sbin/ip netns exec %i /sbin/ip address add ${IPADDR} dev eth0
+ExecStart=/sbin/ip netns exec %i /sbin/ip address add ${ADDRESS} dev eth0
 ExecStart=/sbin/ip netns exec %i /sbin/ip route add default via ${GATEWAY} dev eth0
 ExecStart=-/bin/mkdir -p /etc/netns/%i
-ExecStart=-/bin/sh -c "[ -z '${NAMESERVER}' ] || echo 'nameserver ${NAMESERVER}' > /etc/netns/%i/resolv.conf"
+ExecStart=-/bin/sh -c "[ -z '${DNS}' ] || echo 'nameserver ${DNS}' > /etc/netns/%i/resolv.conf"
 ExecStop=-/bin/rm -fr /etc/netns/%i/
 ExecStop=-/sbin/ip link set %i_eth1 promisc off
 ExecStop=-/sbin/ip link set %i_eth1 down
 ExecStop=-/sbin/ip link set dev %i_eth1 nomaster
 ExecStop=-/sbin/ip link delete %i_eth1
+[Install]
+WantedBy=multi-user.target
 EOF
 
 TEST_SVC=webserver
 
 cat <<'EOF' > ${TEST_SVC}.conf
 BRIDGE=br-ext
-IPADDR=192.168.168.133/24
+ADDRESS=192.168.168.133/24
 GATEWAY=192.168.168.250
-# NAMESERVER=114.114.114.114
+# DNS=114.114.114.114
 EOF
 systemctl enable bridge-netns@xxxx --now
 
