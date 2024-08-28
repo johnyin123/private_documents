@@ -67,6 +67,25 @@ ExecStart=/usr/sbin/sshd -D
 WantedBy=multi-user.target
 EOF
 
+cat <<'EOF' > sshd-user.service
+# systemctl --user status sshd-user
+
+[Unit]
+Description=OpenSSH Daemon as user
+After=network.target
+Requires=netns@sshd-user.service bridge-netns@sshd-user.service
+After=netns@sshd-user.service bridge-netns@sshd-user.service
+JoinsNamespaceOf=netns@sshd-user.service
+
+[Service]
+ExecStart=/usr/bin/sshd -D -f %h/.config/sshd/sshd_config -o PidFile=%t/sshd.pid
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=process
+Restart=always
+
+[Install]
+WantedBy=default.target
+EOF
 
 # nft add rule nat POSTROUTING ip saddr 192.168.167.0/24 ip daddr != 192.168.167.0/24 counter packets 0  masquerade
 cat <<EOF >aws.conf
