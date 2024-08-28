@@ -49,6 +49,7 @@ systemctl enable bridge-netns@xxxx --now
 cat <<EOF > ${TEST_SVC}.service
 [Unit]
 Description=${TEST_SVC} in netns
+Wants=network-online.target
 Requires=netns@${TEST_SVC}.service bridge-netns@${TEST_SVC}.service
 After=netns@${TEST_SVC}.service bridge-netns@${TEST_SVC}.service
 JoinsNamespaceOf=netns@${TEST_SVC}.service
@@ -56,6 +57,8 @@ JoinsNamespaceOf=netns@${TEST_SVC}.service
 [Service]
 Type=simple
 PrivateNetwork=true
+# User=
+# Group=
 ExecStart=/usr/sbin/sshd -D
 [Install]
 WantedBy=multi-user.target
