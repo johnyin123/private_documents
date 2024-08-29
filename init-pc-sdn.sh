@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-08-29T13:19:52+08:00]:init-pc-sdn.sh")
+VERSION+=("224e87c[2024-08-29T13:19:51+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 cfg_file=${DIR}/etc/network/interfaces.d/tunl0
