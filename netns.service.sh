@@ -9,9 +9,10 @@ StopWhenUnneeded=true
 Type=oneshot
 PrivateNetwork=yes
 RemainAfterExit=yes
-ExecStart=/bin/touch /var/run/netns/%i
-ExecStart=/bin/mount --bind /proc/self/ns/net /var/run/netns/%i
-# ExecStart=/bin/sh -c '/sbin/ip netns attach %i $$$$'
+# # /bin/touch: 无法 touch '/var/run/netns/aws
+# ExecStart=/bin/touch /var/run/netns/%i
+# ExecStart=/bin/mount --bind /proc/self/ns/net /var/run/netns/%i
+ExecStart=/bin/sh -c '/sbin/ip netns attach %i $$$$'
 ExecStop=/sbin/ip netns delete %i
 EOF
 cat <<'EOF' > bridge-netns@.service
@@ -48,7 +49,6 @@ ADDRESS=192.168.168.133/24
 GATEWAY=192.168.168.250
 # DNS=114.114.114.114
 EOF
-systemctl enable bridge-netns@xxxx --now
 
 cat <<EOF > ${TEST_SVC}.service
 [Unit]
@@ -88,16 +88,21 @@ Restart=always
 WantedBy=default.target
 EOF
 
-# nft add rule nat POSTROUTING ip saddr 192.168.167.0/24 ip daddr != 192.168.167.0/24 counter packets 0  masquerade
 cat <<EOF >aws.conf
 BRIDGE=br-int
 ADDRESS=192.168.167.10/24
 GATEWAY=192.168.167.1
 DNS=8.8.8.8
 EOF
+
+cat <EOF
+nft add table nat
+nft 'add chain nat postrouting { type nat hook postrouting priority srcnat; policy accept; }'
+nft add rule nat postrouting ip saddr 192.168.167.10/32 counter packets 0 masquerade
 ip rule add from 192.168.167.10/32 table 10 || true
 ip route replace default via 10.8.0.5 table 10 || true
 systemctl enable bridge-netns@aws.service --now
+EOF
 
 cat <<EOF > ali.conf
 BRIDGE=br-int
@@ -105,6 +110,12 @@ ADDRESS=192.168.167.20/24
 GATEWAY=192.168.167.1
 DNS=114.114.114.114
 EOF
+
+cat <EOF
+nft add table nat
+nft 'add chain nat postrouting { type nat hook postrouting priority srcnat; policy accept; }'
+nft add rule nat postrouting ip saddr 192.168.167.20/32 counter packets 0 masquerade
 ip rule add from 192.168.167.20/32 table 20 || true
 ip route replace default via 192.168.168.250 table 20 || true
 systemctl enable bridge-netns@ali.service --now
+EOF
