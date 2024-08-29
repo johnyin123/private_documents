@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e7a3b53[2024-08-29T13:20:32+08:00]:init-pc-sdn.sh")
+VERSION+=("6139c9e[2024-08-29T13:36:19+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 cfg_file=${DIR}/etc/network/interfaces.d/tunl0
@@ -121,14 +121,18 @@ NAMESERVER=114.114.114.114
 EOF
 
 cfg_file=${DIR}/etc/systemd/system/netns@.service
-mkdir -p $(dirname "${cfg_file}") && cat <<'EOF' > "${cfg_file}"
+mkdir -p $(dirname "${cfg_file}") && cat <<'EOF' | grep -v "^\s*#" > "${cfg_file}"
 [Unit]
 Description=Named network namespace %i
+After=network.target
 StopWhenUnneeded=true
 [Service]
 Type=oneshot
 PrivateNetwork=yes
 RemainAfterExit=yes
+# # /bin/touch: 无法 touch '/var/run/netns/aws
+# ExecStart=/bin/touch /var/run/netns/%i
+# ExecStart=/bin/mount --bind /proc/self/ns/net /var/run/netns/%i
 ExecStart=/bin/sh -c '/sbin/ip netns attach %i $$$$'
 ExecStop=/sbin/ip netns delete %i
 EOF

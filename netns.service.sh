@@ -1,9 +1,10 @@
 echo "/lib/systemd/system"
 echo "/etc/systemd/system"
 
-cat <<'EOF' > netns@.service
+cat <<'EOF' | grep -v "^\s*#" > netns@.service
 [Unit]
 Description=Named network namespace %i
+After=network.target
 StopWhenUnneeded=true
 [Service]
 Type=oneshot
