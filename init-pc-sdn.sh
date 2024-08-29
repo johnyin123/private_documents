@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("224e87c[2024-08-29T13:19:51+08:00]:init-pc-sdn.sh")
+VERSION+=("e7a3b53[2024-08-29T13:20:32+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 cfg_file=${DIR}/etc/network/interfaces.d/tunl0
@@ -98,6 +98,7 @@ iptables -t nat -A POSTROUTING -m set --match-set myset dst -j SNAT --to-source 
 iptables -t mangle -nvL
 EOIPT
 
+# #  add in rc.local
 ip rule add fwmark 0x440 table 100
 ip route flush table 100
 ip route replace default via 192.168.168.250 table 100
@@ -166,6 +167,13 @@ nft add table nat
 nft 'add chain nat postrouting { type nat hook postrouting priority srcnat; policy accept; }'
 nft add rule nat postrouting ip saddr 192.168.167.10/32 counter packets 0 masquerade
 nft add rule nat postrouting ip saddr 192.168.167.20/32 counter packets 0 masquerade
+
+# # route rule need setup, so br-int post-up do it
+# ip rule add from 192.168.167.10/32 table 10 || true
+# ip route replace default via 10.8.0.5 table 10 || true
+# ip rule add from 192.168.167.20/32 table 20 || true
+# ip route replace default via 192.168.168.250 table 20 || true
+
 systemctl enable bridge-netns@aws.service
 systemctl enable bridge-netns@ali.service
 EOF
