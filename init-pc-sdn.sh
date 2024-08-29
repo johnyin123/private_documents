@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6139c9e[2024-08-29T13:36:19+08:00]:init-pc-sdn.sh")
+VERSION+=("47ed5eb[2024-08-30T06:33:51+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 cfg_file=${DIR}/etc/network/interfaces.d/tunl0
@@ -99,9 +99,23 @@ iptables -t mangle -nvL
 EOIPT
 
 # #  add in rc.local
-ip rule add fwmark 0x440 table 100
-ip route flush table 100
-ip route replace default via 192.168.168.250 table 100
+ip rule add fwmark 0x440 table 100 || true
+ip route flush table 100 || true
+ip route replace default via 192.168.168.250 table 100 || true
+
+#for connect each other! br-int/br-ext
+# ip r | grep kernel | while read line; do  echo ip route add \$line table 10; done
+# ip r | grep kernel | while read line; do  echo ip route add \$line table 20; done
+ip route add 10.170.6.0/24    dev br-ext proto kernel scope link src 10.170.6.105  table 10
+ip route add 192.168.167.0/24 dev br-int proto kernel scope link src 192.168.167.1 table 10
+ip route add 192.168.168.0/24 dev br-ext proto kernel scope link src 192.168.168.1 table 10
+ip route add 192.168.169.0/24 dev br-ext proto kernel scope link src 192.168.169.1 table 10
+ip route add 10.170.6.0/24    dev br-ext proto kernel scope link src 10.170.6.105  table 20
+ip route add 192.168.167.0/24 dev br-int proto kernel scope link src 192.168.167.1 table 20
+ip route add 192.168.168.0/24 dev br-ext proto kernel scope link src 192.168.168.1 table 20
+ip route add 192.168.169.0/24 dev br-ext proto kernel scope link src 192.168.169.1 table 20
+exit 0
+
 EOF
 
 cfg_file=${DIR}/etc/aws.conf 
