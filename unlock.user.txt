@@ -1,0 +1,3 @@
+user=admin
+faillock --user ${user}
+faillock --user ${user} --reset
