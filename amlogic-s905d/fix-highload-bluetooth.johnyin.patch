@@ -15,32 +15,7 @@ index 393d3cb..2898861 100644
  	cvbs-connector {
  		status = "disabled";
  	};
-@@ -24,6 +30,24 @@
- 			default-state = "on";
- 		};
- 	};
-+	dc_in: regulator-vcc_12v {
-+		compatible = "regulator-fixed";
-+		regulator-name = "VCC_12V";
-+		regulator-min-microvolt = <12000000>;
-+		regulator-max-microvolt = <12000000>;
-+		regulator-boot-on;
-+		regulator-always-on;
-+	};
-+
-+	vddgpu: regulator-vddgpu {
-+		compatible = "regulator-fixed";
-+		regulator-name = "mali";
-+		regulator-min-microvolt = <950000>;
-+		regulator-max-microvolt = <950000>;
-+		vin-supply = <&dc_in>;
-+		regulator-boot-on;
-+		regulator-always-on;
-+	};
- };
- 
- &cvbs_vdac_port {
-@@ -33,3 +57,66 @@
+@@ -33,3 +39,36 @@
  &usb {
  	dr_mode = "host";
  };
@@ -76,34 +51,4 @@ index 393d3cb..2898861 100644
 +		clocks = <&wifi32k>;
 +		clock-names = "lpo";
 +	};
-+};
-+
-+&l2 {
-+	/* 512KB cache size, needed by linux 6.3 */
-+	cache-size = <524288>;
-+	cache-unified;
-+};
-+
-+&cpu0 {
-+	/* 32KB L1 cache size */
-+	i-cache-size = <32768>;
-+	d-cache-size = <32768>;
-+};
-+
-+&cpu1 {
-+	/* 32KB L1 cache size */
-+	i-cache-size = <32768>;
-+	d-cache-size = <32768>;
-+};
-+
-+&cpu2 {
-+	/* 32KB L1 cache size */
-+	i-cache-size = <32768>;
-+	d-cache-size = <32768>;
-+};
-+
-+&cpu3 {
-+	/* 32KB L1 cache size */
-+	i-cache-size = <32768>;
-+	d-cache-size = <32768>;
 +};
