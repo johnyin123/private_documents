@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2db8aac[2024-08-23T07:06:05+08:00]:s905_debootstrap.sh")
+VERSION+=("b2b4806[2024-08-27T08:56:28+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -610,36 +610,16 @@ cat << EO_DOC > ${ROOT_DIR}/etc/johnyin/ap.ruleset
 flush ruleset
 
 table ip nat {
-	chain PREROUTING {
-		type nat hook prerouting priority -100; policy accept;
-	}
-
-	chain INPUT {
-		type nat hook input priority 100; policy accept;
-	}
-
-	chain POSTROUTING {
+	chain postrouting {
 		type nat hook postrouting priority 100; policy accept;
-		ip saddr 192.168.168.0/24 ip daddr != 192.168.168.0/24 counter packets 0 bytes 0 masquerade
-		ip saddr 192.168.167.0/24 ip daddr != 192.168.167.0/24 counter packets 0 bytes 0 masquerade
-	}
-
-	chain OUTPUT {
-		type nat hook output priority -100; policy accept;
+		ip saddr 192.168.168.0/24 ip daddr != 192.168.168.0/24 counter masquerade
+		ip saddr 192.168.167.0/24 ip daddr != 192.168.167.0/24 counter masquerade
 	}
 }
 table ip filter {
-	chain INPUT {
-		type filter hook input priority 0; policy accept;
-	}
-
-	chain FORWARD {
+	chain forward {
 		type filter hook forward priority 0; policy accept;
-		meta l4proto tcp tcp flags & (syn|rst) == syn counter packets 0 bytes 0 tcp option maxseg size set rt mtu
-	}
-
-	chain OUTPUT {
-		type filter hook output priority 0; policy accept;
+		meta l4proto tcp tcp flags & (syn|rst) == syn counter tcp option maxseg size set rt mtu
 	}
 }
 EO_DOC

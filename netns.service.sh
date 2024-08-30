@@ -99,7 +99,7 @@ EOF
 cat <EOF
 nft add table nat
 nft 'add chain nat postrouting { type nat hook postrouting priority srcnat; policy accept; }'
-nft add rule nat postrouting ip saddr 192.168.167.10/32 counter packets 0 masquerade
+nft add rule nat postrouting ip saddr 192.168.167.10/32 counter masquerade
 ip rule add from 192.168.167.10/32 table 10 || true
 ip route replace default via 10.8.0.5 table 10 || true
 systemctl enable bridge-netns@aws.service --now
@@ -115,7 +115,7 @@ EOF
 cat <EOF
 nft add table nat
 nft 'add chain nat postrouting { type nat hook postrouting priority srcnat; policy accept; }'
-nft add rule nat postrouting ip saddr 192.168.167.20/32 counter packets 0 masquerade
+nft add rule nat postrouting ip saddr 192.168.167.20/32 counter masquerade
 ip rule add from 192.168.167.20/32 table 20 || true
 ip route replace default via 192.168.168.250 table 20 || true
 systemctl enable bridge-netns@ali.service --now

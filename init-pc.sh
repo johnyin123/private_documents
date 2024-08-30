@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("575f91e[2024-05-16T14:45:38+08:00]:init-pc.sh")
+VERSION+=("4375af0[2024-06-19T10:35:04+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -453,39 +453,20 @@ ENET
 # #This example redirects outgoing 53/tcp traffic to a local proxy listening on port 10053/tcp:
 # nft add rule nat output tcp dport 853 redirect to 10053
 
-cat <<EOF>/etc/nftables.conf
+cat <<'EOF'>/etc/nftables.conf
 #!/usr/sbin/nft -f
 flush ruleset
 
 table ip nat {
-	chain PREROUTING {
-		type nat hook prerouting priority -100; policy accept;
-	}
-
-	chain INPUT {
-		type nat hook input priority 100; policy accept;
-	}
-
-	chain POSTROUTING {
+	chain postrouting {
 		type nat hook postrouting priority 100; policy accept;
-		ip saddr 192.168.168.0/24 ip daddr != 192.168.168.0/24 counter packets 0 bytes 0 masquerade 
-	}
-	chain OUTPUT {
-		type nat hook output priority -100; policy accept;
+		ip saddr 192.168.168.0/24 counter masquerade
 	}
 }
 table ip filter {
-	chain INPUT {
-		type filter hook input priority 0; policy accept;
-	}
-
-	chain FORWARD {
+	chain forward {
 		type filter hook forward priority 0; policy accept;
-		meta l4proto tcp tcp flags & (syn|rst) == syn counter packets 0 bytes 0 tcp option maxseg size set rt mtu
-	}
-
-	chain OUTPUT {
-		type filter hook output priority 0; policy accept;
+		meta l4proto tcp tcp flags & (syn|rst) == syn counter tcp option maxseg size set rt mtu
 	}
 }
 EOF
