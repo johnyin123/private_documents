@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f74f8ca[2024-08-07T13:56:41+08:00]:netcls2.sh")
+VERSION+=("b31195e[2024-08-30T09:25:58+08:00]:netcls2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -71,6 +71,7 @@ setup_fw() {
 # flush table ip ${slice}_svc
 # delete table ip ${slice}_svc
 table ip ${slice}_svc {
+    # # Only for local mode
     chain output {
         type route hook output priority mangle; policy accept;
         socket cgroupv2 level 1 "${slice}.slice" counter  meta l4proto { tcp, udp } meta mark set ${fwmark}
@@ -79,7 +80,9 @@ table ip ${slice}_svc {
 EONFT
             ;;
         *)
+            # # Only for local mode
             try iptables -t mangle -A OUTPUT -m cgroup --path ${slice}.slice -j MARK --set-mark ${fwmark}
+            # # Only for router mode
             # try iptables -t nat -A POSTROUTING -m cgroup --path ${slice}.slice -j MASQUERADE
             ;;
     esac
