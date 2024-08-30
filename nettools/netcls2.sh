@@ -7,13 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8385f9a[2024-08-07T06:32:22+08:00]:netcls2.sh")
+VERSION+=("f74f8ca[2024-08-07T13:56:41+08:00]:netcls2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}, cgroup v2 version
+        env: FW=nft, default nftables, other iptables
         -m|--fwmark   <int>   *  *  fwmark, 1 to 2147483647
         -p|--pid      <int>   *     pid, support multi input
         --remove                 x  remove pid from netcls
@@ -60,7 +61,29 @@ delout_netcls() {
     try "echo ${pid} > /sys/fs/cgroup/${slice}.slice/cgroup.procs" 2>/dev/null || true
     try "echo ${pid} > /sys/fs/cgroup/cgroup.procs" 2>/dev/null || true
 }
-
+setup_fw() {
+    local fwmark=${1}
+    local slice=${2}
+    local type=${FW:-nft}
+    case "${type}" in
+        nft)
+            cat <<EONFT | try nft -f /dev/stdin
+# flush table ip ${slice}_svc
+# delete table ip ${slice}_svc
+table ip ${slice}_svc {
+    chain output {
+        type route hook output priority mangle; policy accept;
+        socket cgroupv2 level 1 "${slice}.slice" counter  meta l4proto { tcp, udp } meta mark set ${fwmark}
+    }
+}
+EONFT
+            ;;
+        *)
+            try iptables -t mangle -A OUTPUT -m cgroup --path ${slice}.slice -j MARK --set-mark ${fwmark}
+            # try iptables -t nat -A POSTROUTING -m cgroup --path ${slice}.slice -j MASQUERADE
+            ;;
+    esac
+}
 create_netrule() {
     local fwmark=${1}
     local rule_table=${2}
@@ -72,8 +95,7 @@ create_netrule() {
     try ip rule delete fwmark ${fwmark} table ${rule_table} 2>/dev/null || true
 
     try mkdir -p /sys/fs/cgroup/${slice}.slice
-    try iptables -t mangle -A OUTPUT -m cgroup --path ${slice}.slice -j MARK --set-mark ${fwmark}
-    try iptables -t nat -A POSTROUTING -m cgroup --path ${slice}.slice -j MASQUERADE
+    setup_fw "${fwmark}" "${slice}" || { error_msg "firewall setup error\n"; return 2; }
 
     try ip rule add fwmark ${fwmark} table ${rule_table}
     try ip route replace default via ${gateway} table ${rule_table}
@@ -139,9 +161,10 @@ main() {
     [ -z "${destroy}" ] || {
         try "ip route flush table ${rule} 2>/dev/nul"l || true
         try "ip rule delete fwmark ${fwmark} table ${rule} 2>/dev/null" || true
-        try "iptables -t mangle -D OUTPUT -m cgroup --path ${slice}.slice -j MARK --set-mark ${fwmark} 2>/dev/null" || true
-        try "iptables -t nat -D POSTROUTING -m cgroup --path ${slice}.slice -j MASQUERADE 2>/dev/null" || true
-
+        try "iptables -t mangle -D OUTPUT -m cgroup --path ${slice}.slice -j MARK --set-mark ${fwmark} 2>/dev/null || true"
+        try "iptables -t nat -D POSTROUTING -m cgroup --path ${slice}.slice -j MASQUERADE 2>/dev/null || true"
+        try "nft flush table ip ${slice}_svc 2>/dev/null || true"
+        try "nft delete table ip ${slice}_svc 2>/dev/null || true"
         for _pid in $(cat /sys/fs/cgroup/${slice}.slice/cgroup.procs); do
             delout_netcls "${slice}" "${_pid}"
         done

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("47ed5eb[2024-08-30T06:33:51+08:00]:init-pc-sdn.sh")
+VERSION+=("ceb4a29[2024-08-30T07:42:00+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 cfg_file=${DIR}/etc/network/interfaces.d/tunl0
@@ -183,8 +183,8 @@ cat <<EOF
 # # systemd service netns route table & nat
 nft add table nat
 nft 'add chain nat postrouting { type nat hook postrouting priority srcnat; policy accept; }'
-nft add rule nat postrouting ip saddr 192.168.167.10/32 counter packets 0 masquerade
-nft add rule nat postrouting ip saddr 192.168.167.20/32 counter packets 0 masquerade
+nft add rule nat postrouting ip saddr 192.168.167.10/32 counter masquerade
+nft add rule nat postrouting ip saddr 192.168.167.20/32 counter masquerade
 
 # # route rule need setup, so br-int post-up do it
 # ip rule add from 192.168.167.10/32 table 10 || true
