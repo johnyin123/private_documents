@@ -1,3 +1,6 @@
 user=admin
 faillock --user ${user}
 faillock --user ${user} --reset
+
+# # pam_tally2(sshd:auth): user xxx (1000) tally 42, deny 6
+pam_tally2 --user=${user} --reset=3
