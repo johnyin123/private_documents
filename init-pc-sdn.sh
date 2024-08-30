@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ceb4a29[2024-08-30T07:42:00+08:00]:init-pc-sdn.sh")
+VERSION+=("b31195e[2024-08-30T09:25:58+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 cfg_file=${DIR}/etc/network/interfaces.d/tunl0
@@ -60,19 +60,18 @@ list_site_addr() {
         [[ ${line} =~ ^\s*#.*$ ]] && continue #skip comment line
         [[ ${line} =~ ^\s*$ ]] && continue #skip blank
         read -r tip tname <<< "${line}"
-        echo $tip/32,
+        echo -n "$tip/32, "
     done
 }
 cat <<EOF
 # # host white list website
 cat <<EONFT | nft -f /dev/stdin
+define CAN_ACCESS_IPS = { $(list_site_addr) }
 table inet mangle {
     set canouts4 {
         typeof ip daddr
         flags interval
-        elements = {
-$(list_site_addr)
-        }
+        elements = { \$CAN_ACCESS_IPS }
     }
     # # for as a router mode
     # chain prerouting {
