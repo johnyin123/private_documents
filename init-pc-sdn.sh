@@ -7,9 +7,13 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b31195e[2024-08-30T09:25:58+08:00]:init-pc-sdn.sh")
+VERSION+=("116ffed[2024-08-30T15:44:24+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
+AWS=10
+ALI=20
+LOCAL=100
+LOCAL_FWMARK=0x440
 cfg_file=${DIR}/etc/network/interfaces.d/tunl0
 mkdir -p $(dirname "${cfg_file}") && cat <<'EOF' > "${cfg_file}"
 auto tunl0
@@ -30,20 +34,22 @@ iface tunl0 inet static
 EOF
 
 cfg_file=${DIR}/etc/network/interfaces.d/br-int
-mkdir -p $(dirname "${cfg_file}") && cat <<'EOF' > "${cfg_file}"
+mkdir -p $(dirname "${cfg_file}") && cat <<EOF > "${cfg_file}"
 auto br-int
 iface br-int inet static
     bridge_ports none
     bridge_maxwait 0
     address 192.168.167.1/24
-    post-up (/usr/sbin/ip rule add from 192.168.167.10/32 table 10 || true)
-    post-up (/usr/sbin/ip route replace default via 10.8.0.5 table 10 || true)
-    post-up (/usr/sbin/ip rule add from 192.168.167.20/32 table 20 || true)
-    post-up (/usr/sbin/ip route replace default via 192.168.168.250 table 20 || true)
-    post-down (/usr/sbin/ip rule del from 192.168.167.10/32 table 10 || true)
-    post-down (/usr/sbin/ip route flush table 10 || true)
-    post-down (/usr/sbin/ip rule del from 192.168.167.20/32 table 20 || true)
-    post-down (/usr/sbin/ip route flush table 20 || true)
+    # # aws route rule
+    post-up (/usr/sbin/ip rule add from 192.168.167.10/32 table ${AWS} || true)
+    post-up (/usr/sbin/ip route replace default via 10.8.0.5 table ${AWS} || true)
+    post-down (/usr/sbin/ip rule del from 192.168.167.10/32 table ${AWS} || true)
+    post-down (/usr/sbin/ip route flush table ${AWS} || true)
+    # # ali route rule
+    post-up (/usr/sbin/ip rule add from 192.168.167.20/32 table ${ALI} || true)
+    post-up (/usr/sbin/ip route replace default via 192.168.168.250 table ${ALI} || true)
+    post-down (/usr/sbin/ip rule del from 192.168.167.20/32 table ${ALI} || true)
+    post-down (/usr/sbin/ip route flush table ${ALI} || true)
 EOF
 
 cat<<EOHOST>>${DIR}/etc/hosts
@@ -98,21 +104,21 @@ iptables -t mangle -nvL
 EOIPT
 
 # #  add in rc.local
-ip rule add fwmark 0x440 table 100 || true
-ip route flush table 100 || true
-ip route replace default via 192.168.168.250 table 100 || true
+ip rule add fwmark ${LOCAL_FWMARK} table ${LOCAL} || true
+ip route flush table ${LOCAL} || true
+ip route replace default via 192.168.168.250 table ${LOCAL} || true
 
 #for connect each other! br-int/br-ext
-# ip r | grep kernel | while read line; do  echo ip route add \$line table 10; done
-# ip r | grep kernel | while read line; do  echo ip route add \$line table 20; done
-ip route add 10.170.6.0/24    dev br-ext proto kernel scope link src 10.170.6.105  table 10
-ip route add 192.168.167.0/24 dev br-int proto kernel scope link src 192.168.167.1 table 10
-ip route add 192.168.168.0/24 dev br-ext proto kernel scope link src 192.168.168.1 table 10
-ip route add 192.168.169.0/24 dev br-ext proto kernel scope link src 192.168.169.1 table 10
-ip route add 10.170.6.0/24    dev br-ext proto kernel scope link src 10.170.6.105  table 20
-ip route add 192.168.167.0/24 dev br-int proto kernel scope link src 192.168.167.1 table 20
-ip route add 192.168.168.0/24 dev br-ext proto kernel scope link src 192.168.168.1 table 20
-ip route add 192.168.169.0/24 dev br-ext proto kernel scope link src 192.168.169.1 table 20
+# ip r | grep kernel | while read line; do  echo ip route add \$line table ${AWS}; done
+# ip r | grep kernel | while read line; do  echo ip route add \$line table ${ALI}; done
+ip route add 10.170.6.0/24    dev br-ext proto kernel scope link src 10.170.6.105  table ${AWS}
+ip route add 192.168.167.0/24 dev br-int proto kernel scope link src 192.168.167.1 table ${AWS}
+ip route add 192.168.168.0/24 dev br-ext proto kernel scope link src 192.168.168.1 table ${AWS}
+ip route add 192.168.169.0/24 dev br-ext proto kernel scope link src 192.168.169.1 table ${AWS}
+ip route add 10.170.6.0/24    dev br-ext proto kernel scope link src 10.170.6.105  table ${ALI}
+ip route add 192.168.167.0/24 dev br-int proto kernel scope link src 192.168.167.1 table ${ALI}
+ip route add 192.168.168.0/24 dev br-ext proto kernel scope link src 192.168.168.1 table ${ALI}
+ip route add 192.168.169.0/24 dev br-ext proto kernel scope link src 192.168.169.1 table ${ALI}
 exit 0
 
 EOF
@@ -186,10 +192,10 @@ nft add rule nat postrouting ip saddr 192.168.167.10/32 counter masquerade
 nft add rule nat postrouting ip saddr 192.168.167.20/32 counter masquerade
 
 # # route rule need setup, so br-int post-up do it
-# ip rule add from 192.168.167.10/32 table 10 || true
-# ip route replace default via 10.8.0.5 table 10 || true
-# ip rule add from 192.168.167.20/32 table 20 || true
-# ip route replace default via 192.168.168.250 table 20 || true
+# ip rule add from 192.168.167.10/32 table ${AWS} || true
+# ip route replace default via 10.8.0.5 table ${AWS} || true
+# ip rule add from 192.168.167.20/32 table ${ALI} || true
+# ip route replace default via 192.168.168.250 table ${ALI} || true
 
 systemctl enable bridge-netns@aws.service
 systemctl enable bridge-netns@ali.service
