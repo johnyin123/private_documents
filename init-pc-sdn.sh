@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("116ffed[2024-08-30T15:44:24+08:00]:init-pc-sdn.sh")
+VERSION+=("6936a75[2024-08-31T08:37:40+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 AWS=10
@@ -72,6 +72,8 @@ list_site_addr() {
 cat <<EOF
 # # host white list website
 cat <<EONFT | nft -f /dev/stdin
+# flush table ip xxx
+# delete table ip xxx
 define CAN_ACCESS_IPS = { $(list_site_addr) }
 table inet mangle {
     set canouts4 {
