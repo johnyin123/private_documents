@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6936a75[2024-08-31T08:37:40+08:00]:init-pc-sdn.sh")
+VERSION+=("6bc41b1[2024-09-02T06:38:58+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 AWS=10
@@ -70,6 +70,8 @@ list_site_addr() {
     done
 }
 cat <<EOF
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # host white list website
 cat <<EONFT | nft -f /dev/stdin
 # flush table ip xxx
@@ -122,7 +124,8 @@ ip route add 192.168.167.0/24 dev br-int proto kernel scope link src 192.168.167
 ip route add 192.168.168.0/24 dev br-ext proto kernel scope link src 192.168.168.1 table ${ALI}
 ip route add 192.168.169.0/24 dev br-ext proto kernel scope link src 192.168.169.1 table ${ALI}
 exit 0
-
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 EOF
 
 cfg_file=${DIR}/etc/aws.conf 
@@ -186,7 +189,35 @@ WantedBy=multi-user.target
 EOF
 
 cat <<EOF
+cat <<'EONFT' | nft -f /dev/stdin
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# flush table inet myblackhole
+# delete table inet myblackhole
+# # block ip for 5m, can remove blacklist set timeout properties
+# nft add element inet myblackhole blacklist '{ 192.168.168.2 }'
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+define BLACK_LIST = { }
+table inet myblackhole {
+    set blacklist {
+        type ipv4_addr
+        flags dynamic,timeout
+        timeout 5m
+        elements = { $BLACK_LIST }
+    }
+    chain input {
+        type filter hook input priority 0; policy accept;
+        # accept traffic originating from us
+        ct state established,related accept
+        # # Drop all incoming connections in blacklist, reject fast application response than drop
+        ip saddr @blacklist counter reject
+    }
+}
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+EONFT
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # systemd service netns route table & nat
 nft add table nat
 nft 'add chain nat postrouting { type nat hook postrouting priority srcnat; policy accept; }'
@@ -201,4 +232,6 @@ nft add rule nat postrouting ip saddr 192.168.167.20/32 counter masquerade
 
 systemctl enable bridge-netns@aws.service
 systemctl enable bridge-netns@ali.service
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 EOF
