@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9e938fb[2024-09-02T09:49:00+08:00]:init-pc-sdn.sh")
+VERSION+=("16af896[2024-09-02T10:19:33+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 AWS=10
@@ -189,6 +189,15 @@ WantedBy=multi-user.target
 EOF
 
 cat <<EOF
+# #!/usr/sbin/nft -f
+# flush ruleset
+# add table nat
+# add chain nat prerouting { type nat hook prerouting priority -100 ; }
+# add chain nat postrouting { type nat hook postrouting priority 100 ; }
+# add rule nat postrouting oifname "ens4" masquerade
+# add rule nat postrouting oifname "ens4" snat to 192.168.122.100
+# add rule nat prerouting iifname ens4 dnat to 192.168.0.0/24
+
 cat <<'EONFT' | nft -f /dev/stdin
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # flush table inet myblackhole
