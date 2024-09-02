@@ -267,13 +267,13 @@ EOF
 
 cat <<EO_SH > tproxy.sh
 #!/usr/bin/env bash
-V2RAY_TPROXY_PORT=${V2RAY_TPROXY_PORT}
+TPROXY_PORT=${V2RAY_TPROXY_PORT}
+RULE_TABLE=100
+FWMARK=0x440
 LOGFILE="" #"-a log.txt"
 EO_SH
 cat <<'EO_SH' >> tproxy.sh
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
-RULE_TABLE=100
-FWMARK=0x440
 IPSET_NAME=local_ip
 # # RFC5735
 iplist=(
@@ -306,8 +306,8 @@ iptables -t mangle -A V2RAY -p tcp -m set --match-set ${IPSET_NAME} dst -m tcp !
 iptables -t mangle -A V2RAY -p udp -m set --match-set ${IPSET_NAME} dst -m udp ! --dport 53 -j RETURN
 # iptables -t mangle -A V2RAY -p udp -m owner --uid-owner nginx -j RETURN
 
-iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-ip 127.0.0.1 --on-port ${V2RAY_TPROXY_PORT} --tproxy-mark 1
-iptables -t mangle -A V2RAY -p udp -j TPROXY --on-ip 127.0.0.1 --on-port ${V2RAY_TPROXY_PORT} --tproxy-mark 1
+iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-ip 127.0.0.1 --on-port ${TPROXY_PORT} --tproxy-mark 1
+iptables -t mangle -A V2RAY -p udp -j TPROXY --on-ip 127.0.0.1 --on-port ${TPROXY_PORT} --tproxy-mark 1
 
 iptables -t mangle -A PREROUTING -j V2RAY
 iptables -t mangle -nvL
@@ -318,13 +318,16 @@ ip rule add fwmark ${FWMARK} table ${RULE_TABLE}
 # # 将所有(0.0.0.0/0)包重定向到lo（从而进入INPUT）
 # ip route delete local default dev lo table ${RULE_TABLE}
 ip route replace local 0.0.0.0/0 dev lo table ${RULE_TABLE}
-# # PREROUTING的包就会到达端口V2RAY_TPROXY_PORT
+# # PREROUTING的包就会到达端口TPROXY_PORT
 EO_SH
 
-cat <<'EOF' > tproxy.nft
+cat <<EOF > tproxy.nft.sh
+#!/usr/bin/env bash
+TPROXY_PORT=${V2RAY_TPROXY_PORT}
 RULE_TABLE=100
-TPROXY_PORT=50099
 FWMARK=0x440
+EOF
+cat <<'EOF' >> tproxy.nft.sh
 cat<<EONFT | nft -f /dev/stdin
 define V2RAY_TPROXY_PORT=${TPROXY_PORT};
 define FWMARK_PROXY = ${FWMARK};
