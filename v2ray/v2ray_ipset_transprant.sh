@@ -273,6 +273,7 @@ EO_SH
 cat <<'EO_SH' >> tproxy.sh
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 RULE_TABLE=100
+FWMARK=0x440
 IPSET_NAME=local_ip
 # # RFC5735
 iplist=(
@@ -312,14 +313,51 @@ iptables -t mangle -A PREROUTING -j V2RAY
 iptables -t mangle -nvL
 
 log "add ip rule"
-ip rule delete fwmark 1 table ${RULE_TABLE} || true
-ip rule add fwmark 1 table ${RULE_TABLE}
+ip rule delete fwmark ${FWMARK} table ${RULE_TABLE} || true
+ip rule add fwmark ${FWMARK} table ${RULE_TABLE}
 # # 将所有(0.0.0.0/0)包重定向到lo（从而进入INPUT）
 # ip route delete local default dev lo table ${RULE_TABLE}
 ip route replace local 0.0.0.0/0 dev lo table ${RULE_TABLE}
 # # PREROUTING的包就会到达端口V2RAY_TPROXY_PORT
 EO_SH
 
+cat <<'EOF' > tproxy.nft
+RULE_TABLE=100
+TPROXY_PORT=50099
+FWMARK=0x440
+cat<<EONFT | nft -f /dev/stdin
+define V2RAY_TPROXY_PORT=${TPROXY_PORT};
+define FWMARK_PROXY = ${FWMARK};
+define BYPASS4 = { 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 }
+table ip v2ray {
+    set bypassv4 {
+        typeof ip daddr
+        flags interval
+        elements = { \$BYPASS4 }
+    }
+    chain prerouting {
+        type filter hook prerouting priority filter; policy accept;
+        ip daddr @bypassv4 return
+        meta mark 0x000000ff return
+        meta l4proto { tcp, udp } meta mark set \$FWMARK_PROXY tproxy to 127.0.0.1:\$V2RAY_TPROXY_PORT accept
+    }
+    chain output {
+        type route hook output priority filter; policy accept;
+        ip daddr @bypassv4 return
+        meta mark 0x000000ff return
+        meta l4proto { tcp, udp } meta mark set \$FWMARK_PROXY accept
+    }
+    chain divert {
+        type filter hook prerouting priority mangle; policy accept;
+        meta l4proto tcp socket transparent 1 meta mark set \$FWMARK_PROXY accept
+    }
+}
+EONFT
+# # Routing
+ip rule delete fwmark ${FWMARK} table ${RULE_TABLE} || true
+ip rule add fwmark ${FWMARK} table ${RULE_TABLE}
+ip route replace local 0.0.0.0/0 dev lo table ${RULE_TABLE}
+EOF
 cat <<'EOF'
 # # 本地进程发起的连接经过OUTPUT->POSTROUTING；而TPROXY只能在PREROUTING中使用。
 # # 可以通过让将OUTPUT的包重新经过PREROUTING的办法来实现对网关本机的代理。
