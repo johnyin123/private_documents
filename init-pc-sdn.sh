@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("16af896[2024-09-02T10:19:33+08:00]:init-pc-sdn.sh")
+VERSION+=("f1ee2a4[2024-09-02T10:26:57+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 AWS=10
@@ -15,6 +15,9 @@ ALI=20
 LOCAL=100
 LOCAL_FWMARK=0x440
 cfg_file=${DIR}/etc/network/interfaces.d/tunl0
+
+echo 'echo "10 aws" > /etc/iproute2/rt_tables.d/aws.conf'
+
 mkdir -p $(dirname "${cfg_file}") && cat <<'EOF' > "${cfg_file}"
 auto tunl0
 iface tunl0 inet static
