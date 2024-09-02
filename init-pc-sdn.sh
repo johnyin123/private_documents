@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6bc41b1[2024-09-02T06:38:58+08:00]:init-pc-sdn.sh")
+VERSION+=("087bc93[2024-09-02T06:57:22+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 AWS=10
@@ -206,7 +206,7 @@ table inet myblackhole {
     }
     chain input {
         type filter hook input priority 0; policy accept;
-        # accept traffic originating from us
+        # # accept traffic originating from us
         ct state established,related accept
         # # Drop all incoming connections in blacklist, reject fast application response than drop
         ip saddr @blacklist counter reject
