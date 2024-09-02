@@ -13,6 +13,8 @@ table inet mangle {
         type filter hook prerouting priority mangle; policy accept;
         ip daddr @bypassv4 return
         meta l4proto { tcp, udp } tproxy to :1088 meta mark set $FWMARK_PROXY accept
+        # tcp dport { 0-65535 } tproxy to :1088 meta mark set $FWMARK_PROXY accept
+        # udp dport { 0-65535 } tproxy to :1088 meta mark set $FWMARK_PROXY accept
     }
     # Only for local mode
     chain output {
