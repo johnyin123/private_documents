@@ -1,52 +1,23 @@
 # Type 1: NfTables
 # # Netfilter
+
+define FWMARK_PROXY = 0x440;
+define BYPASS4 = { 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 }
 table inet mangle {
     set bypassv4 {
         typeof ip daddr
         flags interval
-        elements = {
-            0.0.0.0/8,
-            10.0.0.0/8,
-            127.0.0.0/8,
-            169.254.0.0/16,
-            172.16.0.0/12,
-            192.168.0.0/16,
-            224.0.0.0/4,
-            240.0.0.0/4
-        }
+        elements = { $BYPASS4 }
     }
-
-    set bypassv6 {
-        typeof ip6 daddr
-        flags interval
-        elements = {
-            ::/128,
-            ::1/128,
-            ::ffff:0:0:0/96,
-            2001::/32,
-            2001:20::/28,
-            2001:db8::/32,
-            2002::/16,
-            fc00::/7,
-            fe80::/10,
-            ff00::/8
-        }
-    }
-
     chain prerouting {
         type filter hook prerouting priority mangle; policy accept;
-        meta mark 0x438 return
         ip daddr @bypassv4 return
-        ip6 daddr @bypassv6 return
-        meta l4proto { tcp, udp } tproxy to :1088 meta mark set 0x440 accept
+        meta l4proto { tcp, udp } tproxy to :1088 meta mark set $FWMARK_PROXY accept
     }
-
     # Only for local mode
     chain output {
         type route hook output priority mangle; policy accept;
-        meta mark 0x438 return
         ip daddr @bypassv4 return
-        ip6 daddr @bypassv6 return
         meta l4proto { tcp, udp } meta mark set 0x440
     }
 }
