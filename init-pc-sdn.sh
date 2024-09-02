@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("087bc93[2024-09-02T06:57:22+08:00]:init-pc-sdn.sh")
+VERSION+=("9e938fb[2024-09-02T09:49:00+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 AWS=10
@@ -202,14 +202,18 @@ table inet myblackhole {
         type ipv4_addr
         flags dynamic,timeout
         timeout 5m
-        elements = { $BLACK_LIST }
+        elements = { \$BLACK_LIST }
     }
     chain input {
         type filter hook input priority 0; policy accept;
+        # iifname "eth1" accept comment "Accept anything from eth1 interface"
         # # accept traffic originating from us
         ct state established,related accept
+        # ct state vmap { invalid : drop, established : accept, related : accept }
+        # tcp dport { 80, 8443 } ct state new limit rate 10/second accept comment "Allow HTTP/HTTPS traffic and limit them to 10 new connections per second"
         # # Drop all incoming connections in blacklist, reject fast application response than drop
         ip saddr @blacklist counter reject
+        # log prefix "[nftables log] " flags all
     }
 }
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
