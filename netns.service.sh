@@ -66,9 +66,9 @@ PrivateMounts=yes
 PrivateNetwork=yes
 # User=
 # Group=
-ExecStart=-/bin/mount --bind /etc/netns/${TEST_SVC}/resolv.conf /etc/resolv.conf
+ExecStart=+/bin/mount --bind /etc/netns/${TEST_SVC}/resolv.conf /etc/resolv.conf # run as root
 ExecStart=/usr/sbin/sshd -D
-ExecStop=-/bin/umount /etc/resolv.conf
+ExecStop=+/bin/umount /etc/resolv.conf
 [Install]
 WantedBy=multi-user.target
 EOF
