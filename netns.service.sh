@@ -16,7 +16,10 @@ RemainAfterExit=yes
 # # /bin/touch: 无法 touch '/var/run/netns/aws
 # ExecStart=/bin/touch /var/run/netns/%i
 # ExecStart=/bin/mount --bind /proc/self/ns/net /var/run/netns/%i
+ExecStartPre=-/bin/sh -c '/bin/mkdir -p /etc/netns/%i && cat /etc/resolv.conf > /etc/netns/%i/resolv.conf'
+ExecStartPre=-/bin/mount --bind /etc/netns/%i/resolv.conf /etc/resolv.conf
 ExecStart=/bin/sh -c '/sbin/ip netns attach %i $$$$'
+ExecStop=-/bin/umount /etc/resolv.conf
 ExecStop=/sbin/ip netns delete %i
 EOF
 cat <<'EOF' > bridge-netns@.service
