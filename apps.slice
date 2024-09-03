@@ -4,7 +4,8 @@
 # systemctl set-property apps-misc.slice CPUWeight=30.
 # /usr/lib/systemd/user
 # systemd-run -q --user --scope --unit chrome --slice apps -- google-chrome
-# systemd-run -unit testname -p DynamicUser=yes service_cmd && systemctl stop testname.service
+# systemd-run --unit testname -p DynamicUser=yes service_cmd && systemctl stop testname.service
+# systemctl reset-failed
 #
 [Slice]
 CPUWeight=30

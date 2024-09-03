@@ -319,7 +319,7 @@ iptables -t mangle -A PREROUTING -j V2RAY
 iptables -t mangle -nvL
 
 log "add ip rule"
-ip rule delete fwmark ${FWMARK} table ${RULE_TABLE} || true
+ip rule delete fwmark ${FWMARK} table ${RULE_TABLE} 2>/dev/null || true
 ip rule add fwmark ${FWMARK} table ${RULE_TABLE}
 # # 将所有(0.0.0.0/0)包重定向到lo（从而进入INPUT）
 # ip route delete local default dev lo table ${RULE_TABLE}
@@ -363,7 +363,7 @@ table ip v2ray {
 }
 EONFT
 # # Routing
-ip rule delete fwmark ${FWMARK} table ${RULE_TABLE} || true
+ip rule delete fwmark ${FWMARK} table ${RULE_TABLE} 2>/dev/null || true
 ip rule add fwmark ${FWMARK} table ${RULE_TABLE}
 ip route replace local 0.0.0.0/0 dev lo table ${RULE_TABLE}
 EOF
