@@ -1,6 +1,6 @@
 echo "/lib/systemd/system"
 echo "/etc/systemd/system"
-echo "systemd netns, DNS NOT WORK, use PrivateMounts=yes, then mount --bind /etc/netns/%i/resolv.conf /etc/resolv.conf"
+echo "systemd netns, DNS NOT WORK"
 
 cat <<'EOF' | grep -v "^\s*#" > netns@.service
 [Unit]
@@ -62,13 +62,10 @@ JoinsNamespaceOf=netns@${TEST_SVC}.service
 
 [Service]
 Type=simple
-PrivateMounts=yes
 PrivateNetwork=yes
 # User=
 # Group=
-ExecStart=+/bin/mount --bind /etc/netns/${TEST_SVC}/resolv.conf /etc/resolv.conf # run as root
 ExecStart=/usr/sbin/sshd -D
-ExecStop=+/bin/umount /etc/resolv.conf
 [Install]
 WantedBy=multi-user.target
 EOF
