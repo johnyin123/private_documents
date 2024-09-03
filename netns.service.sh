@@ -1,5 +1,6 @@
 echo "/lib/systemd/system"
 echo "/etc/systemd/system"
+echo "systemd netns, DNS NOT WORK, use PrivateMounts=true, then mount --bind /etc/netns/%i/resolv.conf /etc/resolv.conf"
 
 cat <<'EOF' | grep -v "^\s*#" > netns@.service
 [Unit]
@@ -8,6 +9,8 @@ After=network.target
 StopWhenUnneeded=true
 [Service]
 Type=oneshot
+PrivateMounts=yes
+# PrivateMounts=true
 PrivateNetwork=yes
 RemainAfterExit=yes
 # # /bin/touch: 无法 touch '/var/run/netns/aws
