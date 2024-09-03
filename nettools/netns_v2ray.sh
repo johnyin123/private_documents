@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-08-01T14:13:59+08:00]:netns_v2ray.sh")
+VERSION+=("710b873[2024-08-01T14:13:58+08:00]:netns_v2ray.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -61,8 +61,7 @@ main() {
     [ -z "${ipaddr}"  ] && usage "ipaddr must input"
     [ -z "${ns_name}" ] && usage "nsname must input"
     [ -z "${host_br}" ] && usage "bridge must input"
-    file_exists "${DIRNAME}/v2ray" || exit_msg "${DIRNAME}/v2ray no found\n"
-    file_exists "${DIRNAME}/v2ctl" || exit_msg "${DIRNAME}/v2ctl no found\n"
+    require v2ray
     file_exists "${DIRNAME}/config.json" || exit_msg "${DIRNAME}/config.json no found\n"
     is_ipv4_subnet "${ipaddr}" || usage "ipaddr ip/mask"
     gateway=${gateway:-"${ipaddr%.*}.1"}
@@ -104,7 +103,7 @@ main() {
     maybe_netns_run "ip route add local 0.0.0.0/0 dev lo table 100" "${ns_name}" || true
     export V2RAY_LOCATION_ASSET=${DIRNAME}
     maybe_netns_run "" "${ns_name}" "" <<EOF
-start-stop-daemon --start --quiet --background --exec '${DIRNAME}/v2ray' -- -c '${DIRNAME}/config.json'
+start-stop-daemon --start --quiet --background --exec 'v2ray' -- -c '${DIRNAME}/config.json'
 EOF
     maybe_netns_shell "${host_br}" "${ns_name}" || true
 
