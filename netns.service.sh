@@ -1,25 +1,20 @@
 echo "/lib/systemd/system"
 echo "/etc/systemd/system"
-echo "systemd netns, DNS NOT WORK, use PrivateMounts=true, then mount --bind /etc/netns/%i/resolv.conf /etc/resolv.conf"
+echo "systemd netns, DNS NOT WORK, use PrivateMounts=yes, then mount --bind /etc/netns/%i/resolv.conf /etc/resolv.conf"
 
 cat <<'EOF' | grep -v "^\s*#" > netns@.service
 [Unit]
 Description=Named network namespace %i
 After=network.target
-StopWhenUnneeded=true
+StopWhenUnneeded=yes
 [Service]
 Type=oneshot
-PrivateMounts=yes
-# PrivateMounts=true
 PrivateNetwork=yes
 RemainAfterExit=yes
 # # /bin/touch: 无法 touch '/var/run/netns/aws
 # ExecStart=/bin/touch /var/run/netns/%i
 # ExecStart=/bin/mount --bind /proc/self/ns/net /var/run/netns/%i
-ExecStartPre=-/bin/sh -c '/bin/mkdir -p /etc/netns/%i && cat /etc/resolv.conf > /etc/netns/%i/resolv.conf'
-ExecStartPre=-/bin/mount --bind /etc/netns/%i/resolv.conf /etc/resolv.conf
 ExecStart=/bin/sh -c '/sbin/ip netns attach %i $$$$'
-ExecStop=-/bin/umount /etc/resolv.conf
 ExecStop=/sbin/ip netns delete %i
 EOF
 cat <<'EOF' > bridge-netns@.service
@@ -67,10 +62,13 @@ JoinsNamespaceOf=netns@${TEST_SVC}.service
 
 [Service]
 Type=simple
-PrivateNetwork=true
+PrivateMounts=yes
+PrivateNetwork=yes
 # User=
 # Group=
+ExecStart=-/bin/mount --bind /etc/netns/${TEST_SVC}/resolv.conf /etc/resolv.conf
 ExecStart=/usr/sbin/sshd -D
+ExecStop=-/bin/umount /etc/resolv.conf
 [Install]
 WantedBy=multi-user.target
 EOF
