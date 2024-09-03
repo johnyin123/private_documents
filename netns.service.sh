@@ -1,6 +1,6 @@
 echo "/lib/systemd/system"
 echo "/etc/systemd/system"
-echo "systemd netns, DNS NOT WORK"
+echo "systemd netns, DNS NOT WORK, ip netns is ok"
 
 cat <<'EOF' | grep -v "^\s*#" > netns@.service
 [Unit]
@@ -43,7 +43,7 @@ ExecStop=-/sbin/ip link delete %i_eth1
 WantedBy=multi-user.target
 EOF
 
-TEST_SVC=webserver
+TEST_SVC=myssh
 
 cat <<'EOF' > ${TEST_SVC}.conf
 BRIDGE=br-ext
@@ -54,40 +54,17 @@ EOF
 
 cat <<EOF > ${TEST_SVC}.service
 [Unit]
+# systemctl stop bridge-netns@${TEST_SVC}.service
 Description=${TEST_SVC} in netns
 Wants=network-online.target
 Requires=netns@${TEST_SVC}.service bridge-netns@${TEST_SVC}.service
 After=netns@${TEST_SVC}.service bridge-netns@${TEST_SVC}.service
-JoinsNamespaceOf=netns@${TEST_SVC}.service
 
 [Service]
 Type=simple
-PrivateNetwork=yes
-# User=
-# Group=
-ExecStart=/usr/sbin/sshd -D
+ExecStart=ip netns exec ${TEST_SVC} /usr/sbin/sshd -D
 [Install]
 WantedBy=multi-user.target
-EOF
-
-cat <<'EOF' > sshd-user.service
-# systemctl --user status sshd-user
-
-[Unit]
-Description=OpenSSH Daemon as user
-After=network.target
-Requires=netns@sshd-user.service bridge-netns@sshd-user.service
-After=netns@sshd-user.service bridge-netns@sshd-user.service
-JoinsNamespaceOf=netns@sshd-user.service
-
-[Service]
-ExecStart=/usr/bin/sshd -D -f %h/.config/sshd/sshd_config -o PidFile=%t/sshd.pid
-ExecReload=/bin/kill -HUP $MAINPID
-KillMode=process
-Restart=always
-
-[Install]
-WantedBy=default.target
 EOF
 
 cat <<EOF >aws.conf
