@@ -310,6 +310,12 @@ iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-ip 127.0.0.1 --on-port ${TPROX
 iptables -t mangle -A V2RAY -p udp -j TPROXY --on-ip 127.0.0.1 --on-port ${TPROXY_PORT} --tproxy-mark 1
 
 iptables -t mangle -A PREROUTING -j V2RAY
+
+# # Only for local mode
+# iptables -t mangle -A OUTPUT -m set --match-set ${IPSET_NAME} dst -j RETURN
+# iptables -t mangle -A OUTPUT -p tcp -j MARK --set-mark 1
+# iptables -t mangle -A OUTPUT -p udp -j MARK --set-mark 1
+
 iptables -t mangle -nvL
 
 log "add ip rule"
