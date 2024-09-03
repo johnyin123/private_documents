@@ -1,0 +1,37 @@
+Signing a Linux Kernel for Secure Boot
+Referenced Surface Linux Key Signing
+
+Create Signing Keys
+Convert the key also to PEM format (mokutil needs DER, sbsign needs PEM):
+ openssl x509 -in MOK.der -inform DER -outform PEM -out MOK.pem
+Enroll MOK Key
+Enroll the key to your shim installation:
+
+ sudo mokutil --import MOK.der
+You will be asked for a password, you will just use it to confirm your key selection in the next step, so choose any.
+
+Restart your system. You will encounter a blue screen of a tool called MOKManager.
+
+Select “Enroll MOK” and then “View key”. Make sure it is your key you created in step 2. Afterwards continue the process and you must enter the password which you provided in step 4. Continue with booting your system.
+
+Verify your key is enrolled via:
+
+ sudo mokutil --list-enrolled
+Sign your Kernel
+Sign your installed kernel (it should be at /boot/vmlinuz-[KERNEL-VERSION]-surface-linux-surface):
+
+ sudo sbsign --key MOK.priv --cert MOK.pem /boot/vmlinuz-[KERNEL-VERSION]-generic --output /boot/vmlinuz-[KERNEL-VERSION]-generic.signed
+Copy the initram of the unsigned kernel, so we also have an initram for the signed one.
+
+ sudo cp /boot/initrd.img-[KERNEL-VERSION]-generic{,.signed}
+Update GRUB
+Update your grub-config
+
+ sudo update-grub
+Reboot and Test
+Reboot your system and select the signed kernel. If booting works, you can remove the unsigned kernel:
+
+ sudo mv /boot/vmlinuz-[KERNEL-VERSION]-generic{.signed,}
+ sudo mv /boot/initrd.img-[KERNEL-VERSION]-generic{.signed,}
+ sudo update-grub
+Now your system should run under a signed kernel and upgrading GRUB2 works again. If you want to upgrade the custom kernel, you can sign the new version easily by following above steps again from step seven on. Thus BACKUP the MOK-keys (MOK.der, MOK.pem, MOK.priv).
