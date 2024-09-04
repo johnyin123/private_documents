@@ -29,6 +29,25 @@ hwdec=auto-copy
 threads=2
 EOF
 cat << 'EOF' > /home/johnyin/.config/smplayer/script/clock.lua
+--------------------------------------------------
+local utils = require("mp.utils")
+g_filename=""
+function on_load()
+  g_filename = mp.get_property("filename")
+  --local filename = mp.get_property('playlist/0/filename')
+  --local path = mp.get_property('path')
+  --local title = mp.get_property("media-title")
+end
+mp.register_event('file-loaded', on_load)
+--------------------------------------------------
+function on_end_file()
+  local script = { '/home/johnyin/mpvcall.sh', 'onend', g_filename}
+  local res = utils.subprocess({ args = script, cancellable = false })
+end
+mp.register_event("end-file", on_end_file)
+-- mp.register_event("start-file", on_start_file)
+--------------------------------------------------
+
 -- Shows the current OS time in the OSD
 local cfg = {
   format     = "%H:%M:%S",
