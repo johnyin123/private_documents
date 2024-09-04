@@ -7,13 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("465f551[2024-08-20T15:50:22+08:00]:mini.sh")
+VERSION+=("6bda72c[2024-09-02T09:00:31+08:00]:mini.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
 ROOTFS=${1:?rootfs need input}
 
 chroot ${ROOTFS}/ /bin/bash -xs <<EOF
+    rm -fr /usr/share/man/*
     debian_minimum_init
 EOF
 macaddr=
