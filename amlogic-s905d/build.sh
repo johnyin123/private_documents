@@ -1,14 +1,30 @@
 #!/bin/bash
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-VERSION+=("6111d1e[2024-07-05T09:50:25+08:00]:build.sh")
+readonly SCRIPTNAME=${0##*/}
+VERSION+=("8187a8e[2024-07-11T16:10:13+08:00]:build.sh")
 ################################################################################
+##OPTION_START##
+CONFIG_HZ=${CONFIG_HZ:-100}
+NFSROOTFS=${NFSROOTFS:-""}      # not null is true/yes
+ACPI_EFI=${ACPI_EFI:-""}        # not null is true/yes
+MODULE_SIGN=${MODULE_SIGN=yes}  # not null is true/yes
+MYVERSION=${MYVERSION="-johnyin-s905d"}
+##OPTION_END##
+show_option() {
+    local file="${1}"
+    sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${file} | while IFS= read -r line; do
+        [[ ${line} =~ ^\ *#.*$ ]] && continue #skip comment line
+        [[ ${line} =~ ^\ *$ ]] && continue #skip blank
+        eval "printf '%-16.16s = %s\n' \"${line%%=*}\" \"\${${line%%=*}:-UNSET}\""
+    done
+}
+show_option "${SCRIPTNAME}"
+read -n 1 -p "Press any key continue..." value
+#
 builder_version=$(echo "${VERSION[@]}" | cut -d'[' -f 1)
-
 # make ARCH= O=. -C <linux-sources> headers_install INSTALL_HDR_PATH=<output-directory>
 KERVERSION="$(make kernelversion)"
-MYVERSION="-johnyin-s905d"
-
 ROOTFS=${1:-${DIRNAME}/kernel-${KERVERSION}-$(date '+%Y%m%d%H%M%S')}
 ##################################################
 RED='\033[31m'
@@ -358,6 +374,7 @@ enable_ebpf() {
     # enable CONFIG_DEBUG_INFO_BTF need: apt install dwarves
 }
 enable_arch_inline() {
+    local hz=${1:-100}
     cat <<EOF
     CONFIG_PREEMPT_NONE：无抢占
     CONFIG_PREEMPT：允许内核被抢占
@@ -367,6 +384,23 @@ EOF
     # Full dynticks system
     scripts/config --enable CONFIG_NO_HZ_FULL \
         --enable CONFIG_HIGH_RES_TIMERS
+
+    case "${hz}" in
+        100|250|300|1000)
+            log "CONFIG_HZ=${hz}"
+            scripts/config --disable CONFIG_HZ_1000 \
+                --disable CONFIG_HZ_300 \
+                --disable CONFIG_HZ_250 \
+                --disable CONFIG_HZ_100
+            scripts/config --enable CONFIG_HZ_${hz} \
+                --set-val CONFIG_HZ ${hz}
+            ;;
+        *)
+            log "CONFIG_HZ error: ${hz}???"
+            exit 1
+            ;;
+    esac
+
     # uselib()系统接口支持,仅使用基于libc5应用使用
     scripts/config --disable CONFIG_USELIB
 
@@ -846,7 +880,7 @@ more complicated, as it uses dwc2 and dwc3 controllers in combination:
 EOF
 }
 
-enable_module_xz_sign yes
+enable_module_xz_sign ${MODULE_SIGN}
 enable_zram
 enable_module_networks
 enable_module_filesystem
@@ -854,15 +888,13 @@ enable_network_storage
 enable_virtual_wifi
 enable_ebpf
 s905d_opt
-enable_nfs_rootfs
-# enable_nfs_rootfs yes
-enable_acpi_efi
-#enable_acpi_efi yes
+enable_nfs_rootfs ${NFSROOTFS}
+enable_acpi_efi ${ACPI_EFI}
 enable_kvm
 enable_container
 enable_usbip
 enable_usb_gadget
-enable_arch_inline
+enable_arch_inline ${CONFIG_HZ}
 common_config
 cpu_freq
 v4l_config
