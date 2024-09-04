@@ -1,0 +1,3 @@
+the director and realservers) must be on the same segment (be able to arp each other)
+All machines in the LVS have the VIP: only the VIP on the director replies to arp requests,
+the VIP on the realservers must be on a non-arping device (eg lo:0, dummy).
