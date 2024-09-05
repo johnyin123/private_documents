@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("ae6ed2b[2024-08-08T08:39:26+08:00]:functions.sh")
+VERSION+=("2a333d8[2024-08-12T08:13:52+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -65,6 +65,19 @@ write_file() {
     local append=${2:-}
     info_msg "Writing ${append:+append }${file:-/dev/stdout}\n"
     try cat ${file:+\>${append:+\>} ${file}}
+}
+
+# cat /usr/bin/ls | create_file xx/a/b/c/d/xxx.file 0755 nobody nogroup
+# create_file a/b/c/d/xxx.file 0600 nobody nogroup <<EOF
+# cat <<EOF | create_file a/b/c/d/xxx.file 0600 nobody nogroup
+# message
+# EOF
+create_file() {
+    local target=${1:-/dev/stdin}
+    local mode=${2:-}
+    local owner=${3:-}
+    local group=${4:-}
+    try install -D ${mode:+-m ${mode} }${owner:+-o ${owner} }${group:+-g ${group} }/dev/stdin ${target}
 }
 
 # eval $(parse_yaml "info.yml")
