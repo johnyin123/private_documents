@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b2b4806[2024-08-27T08:56:28+08:00]:s905_debootstrap.sh")
+VERSION+=("4b6d657[2024-08-30T15:53:08+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -298,6 +298,9 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash -x <<EOSHELL
 
     #sed -i 's/#Storage=auto/Storage=volatile/' /etc/systemd/journald.conf
     #sed -i 's/#RuntimeMaxUse=/RuntimeMaxUse=64M/' /etc/systemd/journald.conf
+    #sed -i "s/#Compress=.*/Compress=yes/g" /etc/systemd/journald.conf
+    #sed -i "s/#RateLimitIntervalSec=.*/RateLimitIntervalSec=30s/g" /etc/systemd/journald.conf
+    #sed -i "s/#RateLimitBurst=.*/RateLimitBurst=10000/g" /etc/systemd/journald.conf
 
     systemctl mask systemd-machine-id-commit.service
 
