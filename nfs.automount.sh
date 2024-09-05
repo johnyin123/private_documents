@@ -52,3 +52,19 @@ systemctl enable ${MNT_POINT}.mount
 systemctl start ${MNT_POINT}.mount
 systemctl status ${MNT_POINT}.mount
 EOF
+
+cat <<EOF>etc.mount
+[Unit]
+Description=/etc overlay mount not really working
+Before=local-fs.target
+Wants=local-fs.target
+
+[Mount]
+What=overlay
+Where=/etc
+Type=overlay
+Options=auto,lowerdir=/etc,upperdir=/home/root/etc/upper,workdir=/home/root/etc/work
+
+[Install]
+WantedBy=local-fs-pre.target
+EOF
