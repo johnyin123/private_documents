@@ -1,6 +1,8 @@
 1.Using a pre-master secret key to decrypt SSL and TLS
     export SSLKEYLOGFILE=~/ssl-key.log
     google-chrome https://xxx
+  or:
+    SSLKEYLOGFILE=~/ssl-key.log  curl https://xxx
     Wireshark Edit->Preferences. Expand Protocols, scroll down, click SSL, (Pre)-Master-Secret log filename
 
 2.Using an RSA key to decrypt SSL
