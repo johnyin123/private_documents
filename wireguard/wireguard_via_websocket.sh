@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5779e6a[2024-08-15T14:20:58+08:00]:wireguard_via_websocket.sh")
+VERSION+=("9af636c[2024-08-21T15:13:55+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
@@ -192,6 +192,10 @@ ${SCRIPTNAME}
         multi peers, AllowedIPs must different!!
         DEBUG:
         modprobe wireguard && echo module wireguard +p > /sys/kernel/debug/dynamic_debug/control
+        # # gretap over wireguard use linux bridge L2
+        ip l a gretap0 type gretap local <ip> remote <ip2>
+        ip link set gretap0 master <bridge>
+        ............
 EOF
     exit 1
 }

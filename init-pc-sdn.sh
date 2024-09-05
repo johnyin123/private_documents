@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f1ee2a4[2024-09-02T10:26:57+08:00]:init-pc-sdn.sh")
+VERSION+=("96686d4[2024-09-02T10:47:55+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 AWS=10
@@ -200,6 +200,10 @@ cat <<EOF
 # add rule nat postrouting oifname "ens4" masquerade
 # add rule nat postrouting oifname "ens4" snat to 192.168.122.100
 # add rule nat prerouting iifname ens4 dnat to 192.168.0.0/24
+# chain postrouting {
+#     ip saddr 10.147.0.5    snat to 83.171.257.5
+#     ip saddr 10.147.0.0/24 snat to 83.171.257.2
+# }
 
 cat <<'EONFT' | nft -f /dev/stdin
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
