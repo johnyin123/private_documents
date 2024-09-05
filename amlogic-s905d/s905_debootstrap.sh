@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4b6d657[2024-08-30T15:53:08+08:00]:s905_debootstrap.sh")
+VERSION+=("a14e760[2024-09-05T09:23:26+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1251,6 +1251,8 @@ image=vmlinuz-${kerver}
 initrd=uInitrd-${kerver}
 dtb=/dtb/${dtb}
 bootargs=root=LABEL=${ROOT_LABEL} rootflags=data=writeback fsck.fix=yes fsck.repair=yes net.ifnames=0 console=ttyAML0,115200n8 console=tty1 no_console_suspend consoleblank=0 video=1280x1024@60me
+# # cat /proc/tty/driver/meson_uart
+# earlyprintk=aml-uart,0xc81004c0
 boot_pxe=false
 EOF
     cat  > ${ROOT_DIR}/boot/s905_autoscript.uboot.cmd <<'EOF'
