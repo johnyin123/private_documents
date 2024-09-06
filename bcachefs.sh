@@ -1,6 +1,7 @@
 # # apt -y install bcache-tools
 HDD=/dev/vdb
 SSD=/dev/vdc
+# echo /dev/ram0 > /sys/fs/bcache/register
 # cache_set_uuid=$(cat /proc/sys/kernel/random/uuid)
 
 # # Format the backing device (This will typically be your mechanical drive).
