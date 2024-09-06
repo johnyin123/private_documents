@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("082c73d[2024-08-20T08:57:17+08:00]:ngx_demo.sh")
+VERSION+=("d200489[2024-08-20T16:44:36+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -575,7 +575,7 @@ server {
     #     valid_referers none blocked ~.google. ~.bing. ~.yahoo. ~.facebook. ~.fbcdn. ~.ask. server_names ~($host);
     #     if ($invalid_referer) { return 444; }
     # }
-    location / { return 200; }
+    location / { return 200 "Hello from $hostname. You connected from $remote_addr:$remote_port to $server_addr:$server_port\n"; }
 }
 EOF
 cat <<'EOF' >dummy.http
