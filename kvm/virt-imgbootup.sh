@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a58a413[2023-11-02T13:30:37+08:00]:virt-imgbootup.sh")
+VERSION+=("d6af672[2023-11-21T11:22:27+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 ARCH=${ARCH:-x86_64}
@@ -76,6 +76,10 @@ ${SCRIPTNAME}
            qemu-img create -f qcow2 -b /tpl/debian10.raw -F raw debian.qcow2 20G
            qemu-img convert -c -f qcow2 -O qcow2 input input.compressed
            qemu-img convert -p -n -f raw rbd:libvirt-pool/vda.raw:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring -O raw out.img
+        ram disk:
+           # # 2G /dev/ram0
+           modprobe brd rd_size=$((2*1024*1024)) max_part=1 rd_nr=1
+           rmmod brd
 EOF
     exit 1
 }
