@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c518be6[2023-01-06T14:50:41+08:00]:centos_tuning.sh")
+VERSION+=("eefea65[2023-01-11T16:08:20+08:00]:centos_tuning.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
@@ -67,7 +67,7 @@ main() {
     ssh_func "${ssh}" "${port}" centos_sysctl_init || true
     [ -z "${zramswap}" ] || ssh_func "${ssh}" "${port}" centos_zramswap_init ${zramswap}
     ssh_func "${ssh}" "${port}" "sed -i '/motd.sh/d' /etc/profile ; echo 'sh /etc/motd.sh' >> /etc/profile;touch /etc/logo.txt /etc/motd.sh" || true
-    [ -z '${name}' ] || ssh_func "${ssh}" "${port}" "echo '${name}' > /etc/hostname"
+    [ -z "${name}" ] || ssh_func "${ssh}" "${port}" "echo '${name}' > /etc/hostname"
     return 0
 }
 main "$@"
