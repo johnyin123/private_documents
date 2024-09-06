@@ -1,38 +1,8 @@
-FWMARK=
-TPROXY_PORT=
-
-cat <<EOF
-[Unit]
-Description=nft & ip rule for TCP/UDP TPROXY
-After=network.target
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-# start
-ExecStart=/usr/bin/nft --file /usr/local/lib/nft-transproxy/nft/transproxy.nft
-ExecStartPost=/usr/bin/ip rule add fwmark ${FWMARK} lookup 100
-ExecStartPost=/usr/bin/ip route add local 0.0.0.0/0 dev lo table 100
-ExecStartPost=/usr/bin/ip -6 rule add fwmark ${FWMARK} lookup 100
-ExecStartPost=/usr/bin/ip -6 route add local ::/0 dev lo table 100
-# reload
-ExecReload=/usr/bin/nft --file /usr/local/lib/nft-transproxy/nft/transproxy.nft
-# stop
-ExecStop=/usr/bin/nft flush ruleset
-ExecStopPost=/usr/bin/ip rule del fwmark ${FWMARK} lookup 100
-ExecStopPost=/usr/bin/ip route del local 0.0.0.0/0 dev lo table 100
-ExecStopPost=/usr/bin/ip -6 rule del fwmark ${FWMARK} lookup 100
-ExecStopPost=/usr/bin/ip -6 route del local ::/0 dev lo table 100
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-cat <<EOF
-#!/usr/sbin/nft -f
-
-flush ruleset
-
+#!/usr/bin/env bash
+TPROXY_PORT=50099
+RULE_TABLE=100
+FWMARK=0x440
+cat<<EONFT
 # # tproxy ipv4 tcp&udp
 # # chn ipaddress
 # https://github.com/misakaio/chnroutes2/raw/master/chnroutes.txt
@@ -81,4 +51,30 @@ table ip6 ipv6_tproxy {
     meta l4proto { tcp, udp } mark ${FWMARK} tproxy to :${TPROXY_PORT}
   }
 }
+EONFT
+cat <<EOF
+[Unit]
+Description=nft & ip rule for TCP/UDP TPROXY
+After=network.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# start
+ExecStart=/usr/bin/nft --file /usr/local/lib/nft-transproxy/nft/transproxy.nft
+ExecStartPost=/usr/bin/ip rule add fwmark ${FWMARK} lookup ${RULE_TABLE}
+ExecStartPost=/usr/bin/ip route add local 0.0.0.0/0 dev lo table ${RULE_TABLE}
+ExecStartPost=/usr/bin/ip -6 rule add fwmark ${FWMARK} lookup ${RULE_TABLE}
+ExecStartPost=/usr/bin/ip -6 route add local ::/0 dev lo table ${RULE_TABLE}
+# reload
+ExecReload=/usr/bin/nft --file /usr/local/lib/nft-transproxy/nft/transproxy.nft
+# stop
+ExecStop=/usr/bin/nft flush ruleset
+ExecStopPost=/usr/bin/ip rule del fwmark ${FWMARK} lookup ${RULE_TABLE}
+ExecStopPost=/usr/bin/ip route del local 0.0.0.0/0 dev lo table ${RULE_TABLE}
+ExecStopPost=/usr/bin/ip -6 rule del fwmark ${FWMARK} lookup ${RULE_TABLE}
+ExecStopPost=/usr/bin/ip -6 route del local ::/0 dev lo table ${RULE_TABLE}
+
+[Install]
+WantedBy=multi-user.target
 EOF
