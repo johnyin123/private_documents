@@ -12,6 +12,9 @@ cache_set_uuid=$(bcache-super-show ${SSD} | grep cset | awk '{ print $2 }')
 echo ${cache_set_uuid} > /sys/block/bcache0/bcache/attach
 # # Safely remove the cache device
 echo ${cache_set_uuid} > /sys/block/bcache0/bcache/detach
+# # Force flush of cache to backing device
+echo 0 > /sys/block/bcache0/bcache/writeback_percent
+
 cat /sys/block/bcache0/bcache/state
 cat /sys/block/bcache0/bcache/cache_mode
 
