@@ -14,6 +14,22 @@ nft add rule netdev t c udp dport 53 ether saddr set aa:bb:cc:dd:ff:ee ether dad
 nft add rule netdev t c tcp dport 80 ether saddr set aa:bb:cc:dd:ff:ee ether daddr \
         set jhash ip saddr . tcp sport mod 2 map { 0 : xx:xx:xx:xx:xx:xx, 1: yy:yy:yy:yy:yy:yy } fwd to eth0
 
+
+table netdev filter {
+    chain ingress {
+    type filter hook ingress device <if_lb> priority 0; policy accept;
+    ip daddr <ip_lb> udp dport <port_lb> ether saddr set <mac_lb> \
+    ether daddr set numgen inc mod 3 \
+    map { \
+        0: <mac_bck0>, \
+        1: <mac_bck1>, \
+        2: <mac_bck2> } \
+    fwd to <if_lb>
+    }
+}
+| ------- | req/sec   | cpu  |
+| LVS-DSR | 356212.05 | 4.78 |
+| NFT-DSR | 393672.35 | 0.54 |
 # nat
 nft add table nat
 nft 'add chain nat postrouting { type nat hook postrouting priority 100 ; }'
