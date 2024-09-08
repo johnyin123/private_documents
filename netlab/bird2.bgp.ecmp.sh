@@ -10,6 +10,7 @@ cat <<EOF > /etc/network/interfaces.d/lbdev0
 allow-hotplug lbdev0
 iface lbdev0 inet static
     address 10.1.0.1/24
+# nmcli con add type dummy ifname lbdev0 ipv4.addresses 10.1.0.1/24
 EOF
 ip link add name lbdev0 type dummy 
 ifup lbdev0
