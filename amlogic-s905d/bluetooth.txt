@@ -6,14 +6,13 @@ ifdown wlan0 .............
 
 pair bt:
 bluetoothctl -- power on
+bluetoothctl -- agent on
 bluetoothctl -- default-agent
-bluetoothctl -- discoverable on
 bluetoothctl -- pairable on
-
-bluetoothctl -- power on
 timeout 10s bluetoothctl -- scan on
-bluetoothctl -- pair 4C:03:4F:57:11:96
-bluetoothctl -- trust 4C:03:4F:57:11:96
+echo yes | bluetoothctl -- pair 54:03:84:72:58:B5
+bluetoothctl -- trust 54:03:84:72:58:B5
+bluetoothctl -- connect 54:03:84:72:58:B5
 
 bt-device  -s <mac>
 bt-device  -i <mac>
