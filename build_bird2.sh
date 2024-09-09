@@ -19,7 +19,7 @@ EOF
 mkdir -p ${DESTDIR}/lib/systemd/system && cat <<'EOF' > ${DESTDIR}/lib/systemd/system/bird.service
 [Unit]
 Description=BIRD Internet Routing Daemon
-After=network.target
+After=network.target network-online.target
 
 [Service]
 EnvironmentFile=/etc/bird/envvars
