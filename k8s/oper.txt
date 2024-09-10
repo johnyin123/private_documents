@@ -39,6 +39,7 @@ nsenter -n -t  54438
 // 3、抓DNS包
 tcpdump -i eth0 udp dst port 53|grep youku.com
 tcpdump -i eth1 tcp port 53
+tcpdump -i enp1s9 dst 192.168.6.1 and src 192.168.6.2 and src port 80
 
 test_ok() {
     # 首先验证kube-apiserver, kube-controller-manager, kube-scheduler, pod network 是否正常

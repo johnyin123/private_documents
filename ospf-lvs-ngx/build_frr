@@ -1,3 +1,4 @@
+https://github.com/FRRouting/frr
 openeuler 22.03, frr-frr-7.5.1
 yum -y install gcc make autoconf automake libtool flex bison
 yum -y install json-c-devel elfutils-devel python3-devel readline-devel libyang-devel libcap-devel

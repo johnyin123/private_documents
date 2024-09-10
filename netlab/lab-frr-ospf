@@ -133,7 +133,7 @@ post_create() {
         window=${node}
         maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}"
     done
-
+    echo 'vtysh -c "show ip ospf neighbor all"'
     return 0;
 }
 

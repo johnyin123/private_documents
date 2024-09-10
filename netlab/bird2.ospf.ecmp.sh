@@ -22,7 +22,7 @@ protocol kernel {
         import none;      # Import to table, default is import all
         export all;
     };
-    merge paths yes limit ${ECMP_NUM} ;
+    merge paths yes limit ${ECMP_NUM};
 }
 # Static IPv4 routes.
 protocol static {
@@ -42,22 +42,24 @@ protocol bfd {
 protocol ospf v2 uplink0 {
     # Cost一样的时候要不要启用负载均衡. ECMP默认是开的.
     ecmp yes;
-    merge external;
+    merge external yes;
     ipv4 {
         import all;
         # import where net !~ [10.65.2.0/24, 10.65.1.0/24];
         export all;
     };
-
-    area ${NODE_IP} {
+    area 0.0.0.0 {
         interface "${INTERFACE}" {
             bfd yes;
             # 默认Cost是10, Cost越低选路优先. 注意这个Cost是单向向外的.
             cost 5;
+            # authentication none|simple|cryptographic;
             authentication cryptographic;
             password "${NEIGHBOR_PWD}" {
                 algorithm hmac sha256;
+               # algorithm keyed md5;
             };
+            gt
             # 链接类型定义. 由于是基于WireGuard的, 所以可以改成PTP网络, 会稍微减少消耗加快速度, 但实际用途不大.
             # type ptp;
         };
@@ -65,6 +67,6 @@ protocol ospf v2 uplink0 {
     };
 }
 EOF
-birdc show ospf neighbors
-birdc show ospf state
-birdc show route
+birdcl show ospf neighbors
+birdcl show ospf state
+birdcl show route
