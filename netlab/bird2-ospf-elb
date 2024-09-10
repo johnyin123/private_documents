@@ -65,10 +65,11 @@ setup_realsrv() {
     local ns_name="${1}"
     local vip="${2}"
     maybe_netns_run "bash -s" "${ns_name}" <<EOF
-    ip addr add ${vip} dev lo
-#     ip link add name lbdev0 type dummy
-#     ip a a ${vip} dev lbdev0
-#     ip link set lbdev0 up
+#     ip addr add ${vip} dev lo
+# # OR
+    ip link add name lbdev0 type dummy
+    ip a a ${vip} dev lbdev0
+    ip link set lbdev0 up
     sysctl -w net.ipv4.conf.all.arp_ignore=1
     sysctl -w net.ipv4.conf.all.arp_announce=2
 EOF
