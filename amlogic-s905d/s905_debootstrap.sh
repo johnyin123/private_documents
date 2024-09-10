@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a14e760[2024-09-05T09:23:26+08:00]:s905_debootstrap.sh")
+VERSION+=("a8ff59d[2024-09-06T07:01:51+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -340,9 +340,9 @@ EOF
 
     useradd -m -s /bin/bash johnyin
     log "disable dpms auto off screen"
-    echo "DISPLAY=:0 xset -dpms" > /home/johnyin/.xsessionrc
-    echo "DISPLAY=:0 xset s off" >> /home/johnyin/.xsessionrc
-    chown johnyin:johnyin /home/johnyin/.xsessionrc
+    # echo "DISPLAY=:0 xset -dpms" > /home/johnyin/.xsessionrc
+    # echo "DISPLAY=:0 xset s off" >> /home/johnyin/.xsessionrc
+    # chown johnyin:johnyin /home/johnyin/.xsessionrc
     ln -s /home/johnyin/.Xauthority /root/.Xauthority
     echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
     mkdir -p /etc/sudoers.d/johnyin && chmod 0440 /etc/sudoers.d/johnyin
@@ -407,7 +407,28 @@ EOF
 
 log "HDMI Auto plugin"
 cat > ${ROOT_DIR}/etc/udev/rules.d/97-hdmiplugin.rules << EOF
-SUBSYSTEM=="drm", ACTION=="change", RUN+="/usr/bin/systemd-run --uid=johnyin -E DISPLAY=:0 xrandr --verbose --output HDMI-1 --auto"
+SUBSYSTEM=="drm", ACTION=="change", RUN+="/usr/bin/systemd-run --uid=johnyin -E DISPLAY=:0 /usr/bin/custom_display.sh"
+EOF
+cat > ${ROOT_DIR}/usr/bin/custom_display.sh << 'EOF'
+#!/usr/bin/env sh
+{
+    xset -dpms s off
+    xset q
+    xrandr --verbose --output HDMI-1 --mode 1280x800
+} 2>&1 | logger -i -t custom_display
+EOF
+chmod 755 {ROOT_DIR}/usr/bin/custom_display.sh
+cat > ${ROOT_DIR}/etc/xdg/autostart/johnyin-init.deskto<<EOF
+[Desktop Entry]
+Version=1.0
+Name=my init here
+Comment=replace ~/.xsessionrc
+Exec=/usr/bin/custom_display.sh
+Terminal=false
+Type=Application
+X-GNOME-Autostart-Phase=Initialization
+X-GNOME-HiddenUnderSystemd=true
+X-KDE-autostart-phase=1
 EOF
 # cat > ${ROOT_DIR}/usr/lib/systemd/system/hdmi.service <<'EOF'
 # [Unit]
