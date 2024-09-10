@@ -59,7 +59,6 @@ protocol ospf v2 uplink0 {
                 algorithm hmac sha256;
                # algorithm keyed md5;
             };
-            gt
             # 链接类型定义. 由于是基于WireGuard的, 所以可以改成PTP网络, 会稍微减少消耗加快速度, 但实际用途不大.
             # type ptp;
         };
