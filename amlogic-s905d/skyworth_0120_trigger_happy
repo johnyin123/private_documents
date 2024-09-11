@@ -16,13 +16,13 @@ Section "InputClass"
 EndSection
 EOF
 cat > /etc/triggerhappy/triggers.d/sky.conf <<'EOF'
-KEY_LEFT         1   /usr/bin/remoter.sh
-KEY_RIGHT        1   /usr/bin/remoter.sh
+KEY_POWER        1   /usr/bin/remoter.sh
 KEY_UP           1   /usr/bin/remoter.sh
 KEY_DOWN         1   /usr/bin/remoter.sh
+KEY_LEFT         1   /usr/bin/remoter.sh
+KEY_RIGHT        1   /usr/bin/remoter.sh
 KEY_SELECT       1   /usr/bin/remoter.sh
 KEY_COMPOSE      1   /usr/bin/remoter.sh
-KEY_POWER        1   /usr/bin/remoter.sh
 KEY_F5           1   /usr/bin/remoter.sh
 KEY_ESC          1   /usr/bin/remoter.sh
 KEY_VOLUMEUP     1   /usr/bin/remoter.sh

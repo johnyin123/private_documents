@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("63c5212[2024-01-10T11:13:22+08:00]:try.sh")
+VERSION+=("8dcd159[2024-08-26T14:06:38+08:00]:try.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -259,6 +259,7 @@ main() {
     exec 2> >(tee -ia $log_file >&2)
     exec {FD}>mylog.txt
     echo "hello" >&${FD}
+    # # close FD
     exec {FD}>&-
 
     local opt_short="u:n:"
@@ -378,3 +379,20 @@ curl -s --connect-timeout 5 \
     -o /dev/null \
     https://xxx/
 main "$@"
+
+
+main2() {
+    lock_write<<EOF
+$(date) msg1
+EOF
+    echo "$(date) msg2" | lock_write 1
+    echo "$(date) msg3" >&${LOCK_FD}
+    sleep 1
+    echo "OK"
+}
+log() { logger -t triggerhappy $*; }
+LOCK_FILE=/tmp/skyremote.lock
+LOCK_FD=
+lock_write() { cat; } >&${LOCK_FD}
+noflock () { log "lock ${LOCK_FILE} ${LOCK_FD} not acquired, giving up"; exit 1; }
+( flock -n ${LOCK_FD} || noflock; main2 "$@"; ) {LOCK_FD}>${LOCK_FILE}
