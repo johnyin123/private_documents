@@ -55,20 +55,13 @@ smplayer_start_stop() {
     local action=$1
     log "smplayer action ${action}"
     case "${action}" in
-        start) [ -e "${LIST_FILE}" ] || {
-                   systemd-run --scope --uid=${USER} /usr/bin/touch ${LIST_FILE}
-                   # find ${MEDIA_DIR} -maxdepth ${DEPTH:-1} -type f -iname '*.mkv' \
-                   #     -o -iname '*.avi' \
-                   #     -o -iname '*.mp4' \
-                   #     -o -iname '*.wmv' > ${LIST_FILE}
-                   # # chown ${USER}: ${LIST_FILE}
-               }
-               # # start as systemd service
-               systemd-run --uid=${USER} -E DISPLAY=:0 smplayer -ontop ${LIST_FILE}
+        start) [ -e "${LIST_FILE}" ] || systemd-run --scope --uid=${USER} /usr/bin/touch ${LIST_FILE}
+               # # start as systemd service, systemctl reset-failed smplayer-johnyin.service
+               systemd-run --unit smplayer-johnyin --uid=${USER} -E DISPLAY=:0 smplayer -ontop ${LIST_FILE}
                ;;
-        stop)  smplayer_action close
-               # pkill -u ${USER} smplayer
-               # rm -f ${LIST_FILE}
+        stop)  systemctl stop smplayer-johnyin.service
+               pgrep -u ${USER} smplayer >/dev/null && pkill -u ${USER} smplayer
+               # pgrep -u ${USER} smplayer >/dev/null && smplayer_action close
                ;;
         *)     log "smplayer action unknow [${action}]";;
     esac
@@ -100,7 +93,7 @@ do_context_long_3() {
     # 3: smplayer is running, smplayer playlist dialog is visable
     local key=${1}
     case "${key}" in
-        KEY_POWER)      smplayer_start_stop stop; pkill -u ${USER} smplayer;;
+        KEY_POWER)      smplayer_start_stop stop;;
         *)              log "unknow context_3 key ${key}";;
     esac
 }
@@ -108,7 +101,7 @@ do_context_long_2() {
     # 2: smplayer is running, smplayer playlist dialog is not visable
     local key=${1}
     case "${key}" in
-        KEY_POWER)      smplayer_start_stop stop; pkill -u ${USER} smplayer;;
+        KEY_POWER)      smplayer_start_stop stop;;
         KEY_UP)         smplayer_action increase_volume;;
         KEY_DOWN)       smplayer_action decrease_volume;;
         KEY_LEFT)       smplayer_action rewind2;;
