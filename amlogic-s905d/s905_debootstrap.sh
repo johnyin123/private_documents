@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("925f318[2024-09-10T11:21:25+08:00]:s905_debootstrap.sh")
+VERSION+=("d24d417[2024-09-11T08:30:45+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -217,7 +217,7 @@ PKG+=",sudo,aria2,axel,curl,eject,rename,bc,socat,tmux,xmlstarlet,jq,traceroute,
 # fw_printenv/fw_setenv
 PKG+=",libubootenv-tool"
 # # for minidlna
-PKG+=",minidlna"
+PKG+=",minidlna,wireguard-tools,"
 # xfce/lxde, DEBIAN_VERSION=bookworm use lxde
 PKG+=",smplayer,smplayer-l10n"
 PKG+=",lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xserver-xorg-input-all,x11-utils,x11-xserver-utils"
@@ -259,10 +259,9 @@ DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
     debian_build "${ROOT_DIR}" "${CACHE_DIR}"
     #debian_build "${ROOT_DIR}" "${CACHE_DIR}" "${PKG}"
 
-# LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash -x <<EOSHELL
-systemd-nspawn -E LC_ALL=C -E LANGUAGE=C -E LANG=C -D ${ROOT_DIR} --pipe /bin/bash -x <<EOSHELL
-    # /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
-    # /bin/mknod -m 666 /dev/null c 1 3 2>/dev/null || true
+LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash -x <<EOSHELL
+    /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
+    /bin/mknod -m 666 /dev/null c 1 3 2>/dev/null || true
     DEBIAN_FRONTEND=noninteractive apt update
     DEBIAN_FRONTEND=noninteractive apt -y --no-install-recommends install ca-certificates
     DEBIAN_FRONTEND=noninteractive apt -y --no-install-recommends upgrade
@@ -364,7 +363,7 @@ EOF
     # timedatectl set-local-rtc 0
     log "Force Users To Change Passwords Upon First Login"
     chage -d 0 root || true
-    # /bin/umount /dev/pts
+    /bin/umount /dev/pts
 
     debian_sysctl_init
     debian_zswap_init 512
@@ -413,7 +412,7 @@ cat > ${ROOT_DIR}/usr/bin/custom_display.sh << 'EOF'
 } 2>&1 | logger -i -t custom_display
 EOF
 chmod 755 {ROOT_DIR}/usr/bin/custom_display.sh
-cat > ${ROOT_DIR}/etc/xdg/autostart/johnyin-init.deskto<<EOF
+cat > ${ROOT_DIR}/etc/xdg/autostart/johnyin-init.desktop<<EOF
 [Desktop Entry]
 Version=1.0
 Name=my init here
@@ -473,23 +472,26 @@ log "for minidlna"
 sed -i "/User=minidlna/d" ${ROOT_DIR}/lib/systemd/system/minidlna.service || true
 sed -i "/Group=minidlna/d" ${ROOT_DIR}/lib/systemd/system/minidlna.service || true
 cat << EOF > ${ROOT_DIR}/etc/minidlna.conf
-media_dir=/media/
+media_dir=V,/media
 # Set this to merge all media_dir base contents into the root container
 # (The default is no.)
 #merge_media_dirs=no
 db_dir=/var/cache/minidlna
 log_dir=/var/log/minidlna
 #log_level=general,artwork,database,inotify,scanner,metadata,http,ssdp,tivo=warn
-#network_interface=
+network_interface=wlan0,br-int
 port=8200
 # URL presented to clients (e.g. http://example.com:80).
 #presentation_url=/
 friendly_name=s905d
+root_container=B
 # Automatic discovery of new files in the media_dir directory.
-inotify=yes
+inotify=no
+notify_interval=86400
+strict_dlna=no
 #max_connections=50
 # set this to yes to allow symlinks that point outside user-defined media_dirs.
-#wide_links=no
+wide_links=no
 EOF
 cat << "EOF" > ${ROOT_DIR}/etc/network/interfaces.d/wifi
 # auto wlan0
@@ -624,22 +626,43 @@ cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/pppoe
 EOF
 
 mkdir -p ${ROOT_DIR}/etc/johnyin
-cat << EO_DOC > ${ROOT_DIR}/etc/johnyin/ap.ruleset
+cat << 'EO_DOC' > ${ROOT_DIR}/etc/johnyin/ap.ruleset
 #!/usr/sbin/nft -f
 flush ruleset
 
 table ip nat {
-	chain postrouting {
-		type nat hook postrouting priority 100; policy accept;
-		ip saddr 192.168.168.0/24 ip daddr != 192.168.168.0/24 counter masquerade
-		ip saddr 192.168.167.0/24 ip daddr != 192.168.167.0/24 counter masquerade
-	}
+    chain postrouting {
+        type nat hook postrouting priority 100; policy accept;
+        ip saddr 192.168.168.0/24 ip daddr != 192.168.168.0/24 counter masquerade
+        ip saddr 192.168.167.0/24 ip daddr != 192.168.167.0/24 counter masquerade
+        ip saddr 192.168.31.0/24 ip daddr != 192.168.31.0/24 counter masquerade
+    }
 }
 table ip filter {
-	chain forward {
-		type filter hook forward priority 0; policy accept;
-		meta l4proto tcp tcp flags & (syn|rst) == syn counter tcp option maxseg size set rt mtu
-	}
+    chain forward {
+        type filter hook forward priority 0; policy accept;
+        meta l4proto tcp tcp flags & (syn|rst) == syn counter tcp option maxseg size set rt mtu
+    }
+}
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# nft add element inet myblackhole blacklist '{ 192.168.168.2 }'
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+define BLACK_LIST = { }
+table inet myblackhole {
+    set blacklist {
+        type ipv4_addr
+        # flags interval
+        flags dynamic,timeout
+        timeout 5m
+        elements = { $BLACK_LIST }
+    }
+    chain input {
+        type filter hook input priority 0; policy accept;
+        # # accept traffic originating from us
+        ct state established,related accept
+        # # Drop all incoming connections in blacklist, reject fast application response than drop
+        ip saddr @blacklist counter reject
+    }
 }
 EO_DOC
 chmod 755 ${ROOT_DIR}/etc/johnyin/ap.ruleset
@@ -1017,7 +1040,8 @@ cat <<EOF>${ROOT_DIR}/etc/motd
 2. touch /overlay/reformatoverlay for factory mode after next reboot
 3. fw_printenv / fw_setenv for get or set fw env
     fw_setenv bootdelay 0  #disable reboot delay hit key, bootdelay=1 enable it
-4. dumpleases dump dhcp clients, alias dumpleases="cat /var/run/udhcpd.leases"
+4. dumpleases dump dhcp clients
+    alias dumpleases='[ -f /var/lib/misc/dnsmasq.leases ] && cat /var/lib/misc/dnsmasq.leases || busybox dumpleases -f /var/run/udhcpd.leases'
 5. overlayroot-chroot can chroot overlay lower fs(rw)
 6. set eth0 mac address:
     fw_setenv ethaddr 5a:57:57:90:5d:01
@@ -1030,9 +1054,12 @@ cat <<EOF>${ROOT_DIR}/etc/motd
 12./boot/dtb/ dtb for different USB MODE, need reboot
 13 start ksmbd server: systemctl enable ksmbd.service --now
                        ksmbd.adduser --add-user=user1 --password=<pass> -v
-14 bluetooth head unit:
+14.bluetooth head unit:
     LC_ALL=c pactl list cards === > ( Name:bluez_card.EC_FA_5C_5F_1A_AC , Profiles: handsfree_head_unit)
     pactl set-card-profile <Name> <Profile>
+15.systemctl enable wstunnel@wireguard --now
+    wg-quick up client
+16.rm -rf /var/cache/minidlna/ && systemctl restart minidlna
 EOF
 
 cat <<'EOF'> ${ROOT_DIR}/usr/bin/overlayroot-chroot
@@ -1318,8 +1345,5 @@ sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applicatio
 sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applications/smplayer_enqueue.desktop || true
 log "start chroot shell, disable service & do other work"
 chroot ${ROOT_DIR} /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
-chroot ${ROOT_DIR} /bin/bash -s <<EOF
-    debian_minimum_init
-EOF
 log "ALL OK ###########################"
 exit 0
