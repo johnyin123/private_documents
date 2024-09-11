@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6bda72c[2024-09-02T09:00:31+08:00]:mini.sh")
+VERSION+=("b371303[2024-09-04T10:23:30+08:00]:mini.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -32,6 +32,7 @@ sed -i "s/^macaddr=.*/macaddr=${macaddr}/g" ${ROOTFS}/usr/lib/firmware/brcm/brcm
 grep "^macaddr=" ${ROOTFS}/usr/lib/firmware/brcm/brcmfmac43455-sdio.phicomm,n1.txt || true
 # # set fake-clock
 date --utc '+%Y-%m-%d %H:%M:%S' > ${ROOTFS}/etc/fake-hwclock.data
+rm -f ${ROOTFS}/dev/null
 cat <<EOF
 (cd ${ROOTFS}/root/tunnel/ && for i in *.sh;do find /home/johnyin/disk/mygit/github_private/ -name \$i; done | xargs -I@ cp @ .)
 
