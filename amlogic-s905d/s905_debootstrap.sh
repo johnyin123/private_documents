@@ -7,13 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a8ff59d[2024-09-06T07:01:51+08:00]:s905_debootstrap.sh")
+VERSION+=("925f318[2024-09-10T11:21:25+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
-log() {
-    echo "######$*" >&2
-}
+log() { echo "$(tput setaf 141)######$*$(tput sgr0)" >&2; }
 export -f log
 
 menu_select() {
@@ -209,7 +207,7 @@ IFS=$old_ifs
 PKG="libc-bin,tzdata,locales,dialog,apt-utils,systemd-sysv,dbus-user-session,ifupdown,initramfs-tools,u-boot-tools,fake-hwclock,openssh-server,busybox"
 PKG+=",udev,isc-dhcp-client,netbase,console-setup,net-tools,wpasupplicant,hostapd,iputils-ping,telnet,vim,ethtool,dosfstools,iw,ipset,nmap,ipvsadm,bridge-utils,batctl,babeld,ifenslave,vlan"
 PKG+=",parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server,netcat-openbsd"
-PKG+=",ksmbd-tools"
+PKG+=",ksmbd-tools,procps"
 PKG+=",systemd-container,nftables,systemd-timesyncd,zstd"
 PKG+=",cron,logrotate,bsdmainutils,openssh-client,wget,ntpdate,less,wireless-tools,file,lsof,strace,rsync"
 PKG+=",xz-utils,zip,udisks2"
@@ -261,13 +259,14 @@ DEBIAN_VERSION=${DEBIAN_VERSION:-bullseye} \
     debian_build "${ROOT_DIR}" "${CACHE_DIR}"
     #debian_build "${ROOT_DIR}" "${CACHE_DIR}" "${PKG}"
 
-LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash -x <<EOSHELL
-    /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
-    /bin/mknod -m 666 /dev/null c 1 3 2>/dev/null || true
+# LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash -x <<EOSHELL
+systemd-nspawn -E LC_ALL=C -E LANGUAGE=C -E LANG=C -D ${ROOT_DIR} --pipe /bin/bash -x <<EOSHELL
+    # /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
+    # /bin/mknod -m 666 /dev/null c 1 3 2>/dev/null || true
     DEBIAN_FRONTEND=noninteractive apt update
     DEBIAN_FRONTEND=noninteractive apt -y --no-install-recommends install ca-certificates
     DEBIAN_FRONTEND=noninteractive apt -y --no-install-recommends upgrade
-    DEBIAN_FRONTEND=noninteractive apt -y remove wireless-regdb crda --purge
+    DEBIAN_FRONTEND=noninteractive apt -y remove wireless-regdb crda --purge  2>/dev/null || true
     DEBIAN_FRONTEND=noninteractive apt -y autoremove --purge || true
     while read -d ',' pkg; do
         log "INSTALL \${pkg}"
@@ -365,12 +364,8 @@ EOF
     # timedatectl set-local-rtc 0
     log "Force Users To Change Passwords Upon First Login"
     chage -d 0 root || true
-    /bin/umount /dev/pts
-    exit
-EOSHELL
-LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
-    /bin/mkdir -p /dev/pts && /bin/mount -t devpts -o gid=4,mode=620 none /dev/pts || true
-    /bin/mknod -m 666 /dev/null c 1 3 2>/dev/null || true
+    # /bin/umount /dev/pts
+
     debian_sysctl_init
     debian_zswap_init 512
     debian_sshd_init
