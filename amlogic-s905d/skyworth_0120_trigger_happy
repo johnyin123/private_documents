@@ -19,6 +19,9 @@ cat > /etc/triggerhappy/triggers.d/sky.conf <<'EOF'
 # KEY_SELECT@       1   @media    # switch to media mode
 # KEY_SELECT@media  1   @desk
 # KEY_SELECT@desk   1   @         # switch back to nameless default mode
+# KEY_COMPOSE@      1   echo "模式：None" | aosd_cat --font='DejaVu Serif:style=Book 32' --position=4 --fade-full=800 --fore-color=blue --shadow-opacity=0
+# KEY_COMPOSE@media 1   echo "模式：MEDIA" | aosd_cat --font='DejaVu Serif:style=Book 32' --position=4 --fade-full=800 --fore-color=blue --shadow-opacity=0
+# KEY_COMPOSE@desk  1   echo "模式：DESK" | aosd_cat --font='DejaVu Serif:style=Book 32' --position=4 --fade-full=800 --fore-color=blue --shadow-opacity=0
 # KEY_UP@media      1   /usr/xxxxxxxx
 # KEY_UP@desk       1   /usr/yyyyyyyy
 KEY_POWER        1   /usr/bin/remoter.sh
@@ -45,7 +48,7 @@ MEDIA_DIR=/media
 LIST_FILE=/home/johnyin/Desktop/list.m3u
 EOF
 cat > /usr/bin/remoter.sh <<'EOF'
-#!/bin/sh
+#!/usr/bin/env bash
 # desktop: F5(run smplayer), POWER(poweroff)
 # smplayer:F5(mute), POWER(close smplayer)
 DEPTH=1
@@ -60,7 +63,14 @@ smplayer_start_stop() {
     local action=$1
     log "smplayer action ${action}"
     case "${action}" in
-        start) [ -e "${LIST_FILE}" ] || systemd-run --scope --uid=${USER} /usr/bin/touch ${LIST_FILE}
+        start) [ -e "${LIST_FILE}" ] || {
+                   systemd-run --scope --uid=${USER} /usr/bin/touch ${LIST_FILE}
+                   # find ${MEDIA_DIR} -maxdepth ${DEPTH:-1} -type f -iname '*.mkv' \
+                   #     -o -iname '*.avi' \
+                   #     -o -iname '*.mp4' \
+                   #     -o -iname '*.wmv' > ${LIST_FILE}
+                   # # chown ${USER}: ${LIST_FILE}
+               }
                # # start as systemd service, systemctl reset-failed smplayer-johnyin.service
                systemd-run --unit smplayer-johnyin --uid=${USER} -E DISPLAY=:0 smplayer -ontop ${LIST_FILE}
                ;;
@@ -196,16 +206,17 @@ keypress() {
 # TH_KEYSTATE=
 # TH_EVENT=KEY_SELECT
 # TH_DEVICE=/dev/input/event3
-lockfile=/tmp/skyremote.lock
-noflock () { log "lock not acquired, giving up: $lockfile"; exit 1; }
-(
-    flock -n 9 || noflock
+main() {
     case "${TH_VALUE}" in
         1)  keypress "${TH_EVENT}";;
         2)  long_keypress "${TH_EVENT}";;
         *)  log "unknow ${TH_VALUE}";;
     esac
-) 9>$lockfile
-noflock
+}
+
+LOCK_FILE=/tmp/skyremote.lock
+LOCK_FD=
+noflock () { log "lock ${LOCK_FILE} ${LOCK_FD} not acquired, giving up"; exit 1; }
+( flock -n ${LOCK_FD} || noflock; main "$@"; ) {LOCK_FD}<>${LOCK_FILE}
 EOF
 chmod 755 /usr/bin/remoter.sh
