@@ -16,6 +16,11 @@ Section "InputClass"
 EndSection
 EOF
 cat > /etc/triggerhappy/triggers.d/sky.conf <<'EOF'
+# KEY_SELECT@       1   @media    # switch to media mode
+# KEY_SELECT@media  1   @desk
+# KEY_SELECT@desk   1   @         # switch back to nameless default mode
+# KEY_UP@media      1   /usr/xxxxxxxx
+# KEY_UP@desk       1   /usr/yyyyyyyy
 KEY_POWER        1   /usr/bin/remoter.sh
 KEY_UP           1   /usr/bin/remoter.sh
 KEY_DOWN         1   /usr/bin/remoter.sh
