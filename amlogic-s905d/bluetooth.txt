@@ -4,9 +4,12 @@ apt -y install libudev-dev libglib2.0-dev libdbus-1-dev libical-dev libreadline-
 make && DESTDIR=~/target/ make install-strip
 ifdown wlan0 .............
 
+cat <<'EOF' > bt_pair.sh
+#!/usr/bin/env bash
+log() { echo "$(tput setaf 141)######$*$(tput sgr0)" >&2; }
 accept_pair() {
     local bdaddr=${1}
-    coproc BT_PROC (bluetoothctl) || { echo FAILED; return 1; }
+    coproc BT_PROC (bluetoothctl) || { log "FAILED coproc, exit"; return 1; }
     printf 'power on\n' >&${BT_PROC[1]}
     sleep 2
     printf 'default-agent\n' >&${BT_PROC[1]}
@@ -23,7 +26,7 @@ accept_pair() {
     sleep 2
     while IFS=' ' read -ra output <&${BT_PROC[0]}; do
         if [[ ${output[1]} == ${bdaddr} ]]; then
-            echo "Found the target device ${output[2]}"
+            log "Found the target device ${output[2]}"
             printf "pair ${bdaddr}\n" >&${BT_PROC[1]}
             sleep 10
             printf 'yes\n' >&${BT_PROC[1]}
@@ -31,15 +34,19 @@ accept_pair() {
             printf "trust ${bdaddr}\n" >&${BT_PROC[1]}
             sleep 2
             printf 'exit\n' >&${BT_PROC[1]}
+            log "Paired ${bdaddr} OK"
             return 0
         else
-            echo "${output[@]}"
+            log "${output[@]}"
         fi
     done
-    echo "NO FOUND ${bdaddr}"
+    log "NO FOUND ${bdaddr}"
     return 1
 }
-accept_pair 54:03:84:72:58:B5
+
+BDADDR=${1:?need 1 arg, target bluetooth device BDADDR}
+accept_pair ${BDADDR}
+EOF
 
 pair bt:
 bluetoothctl -- power on
