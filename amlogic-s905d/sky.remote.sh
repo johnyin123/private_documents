@@ -33,12 +33,12 @@ default_main() {
                          [ "${POWER_CNT}" -eq 2 ] && /usr/bin/systemctl poweroff
                          /usr/bin/systemd-run --unit osd --uid=${USER} -E DISPLAY=:0 /etc/remote/osd.sh red "再按关机!!!"
                          ;;
-        KEY_LEFT)        change_mode @media;;
-        KEY_RIGHT)       change_mode @;;
-        KEY_UP)          change_mode @media;;
-        KEY_DOWN)        change_mode @media;;
+        KEY_LEFT)        ;;
+        KEY_RIGHT)       ;;
+        KEY_UP)          ;;
+        KEY_DOWN)        ;;
         KEY_F5)          ;;
-        KEY_ESC)         ;;
+        KEY_ESC)         systemctl -q is-active smplayer-johnyin.service || smplayer_start_stop; change_mode @media;;
         KEY_VOLUMEUP)    ;;
         KEY_VOLUMEDOWN)  ;;
         *)               log "unknow key default ${key}";;
