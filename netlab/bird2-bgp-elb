@@ -1,0 +1,186 @@
+#[name]="type" type:R/S/N (router,switch,node)
+declare -A MAP_NODES=(
+    [R]=R
+    [SW]=S
+    [lvs1]=N
+    [lvs2]=N
+    [srv1]=N
+    [srv2]=N
+    [cli1]=N
+    [cli2]=N
+    )
+#[node:ip/prefix]=node:ip/prefix
+declare -A MAP_LINES=(
+    [R:10.0.1.1/24]=SW:
+    [lvs1:10.0.1.10/24]=SW:
+    [lvs2:10.0.1.11/24]=SW:
+    [srv1:10.0.1.100/24]=SW:
+    [srv2:10.0.1.101/24]=SW:
+    [cli1:10.0.1.200/24]=SW:
+    [cli2:10.0.1.201/24]=SW:
+    )
+#routes delm ,
+declare -A NODES_ROUTES=(
+    [lvs1]="default via 10.0.1.1"
+    [lvs2]="default via 10.0.1.1"
+    [srv1]="default via 10.0.1.1"
+    [srv2]="default via 10.0.1.1"
+    [cli1]="default via 10.0.1.1"
+    [cli2]="default via 10.0.1.1"
+    )
+
+SESS=bgpelb
+LAB_DIR=/tmp
+VIP=10.0.2.100/32
+
+setup_lvs() {
+    local ns_name="${1}"
+    local vip="${2}"
+    local rip_lst="${3}"
+    mkdir -p /etc/netns${ns_name}/etc/modprobe.d/
+    cat <<EO_CFG >/etc/netns${ns_name}/etc/modprobe.d/ipvs.conf
+options ip_vs conn_tab_bits=15
+EO_CFG
+    IFS='/' read -r tip tmask <<< "${vip}"
+    maybe_netns_run "bash -s" "${ns_name}" <<EOF
+        ip link add name lbdev0 type dummy
+        ip a a ${vip} dev lbdev0
+        ip link set lbdev0 up
+
+        ipvsadm -A -t ${tip}:0 -s sh -p 360
+$(while read -rd "," -r x; do
+        echo "ipvsadm -a -t ${tip}:0 -r ${x}:0 -g -w 1"
+done <<< "${rip_lst},"
+)
+        ipvsadm -A -u ${tip}:0 -s sh -p 360
+$(while read -rd "," -r x; do
+        echo "ipvsadm -a -u ${tip}:0 -r ${x}:0 -g -w 1"
+done <<< "${rip_lst},"
+)
+EOF
+}
+
+setup_realsrv() {
+    local ns_name="${1}"
+    local vip="${2}"
+    maybe_netns_run "bash -s" "${ns_name}" <<EOF
+#     ip addr add ${vip} dev lo
+# # OR
+    ip link add name lbdev0 type dummy
+    ip a a ${vip} dev lbdev0
+    ip link set lbdev0 up
+    sysctl -w net.ipv4.conf.all.arp_ignore=1
+    sysctl -w net.ipv4.conf.all.arp_announce=2
+EOF
+}
+
+gen_bgp() {
+    local ns=$1
+    local route_id=$2
+    local interfaces=$3
+    local areas=$4
+    local asn=$5
+    shift 5
+    local password="password"
+
+    cat <<EOF
+log syslog all;
+debug protocols all;
+debug protocols { events, states };
+
+router id ${route_id};
+protocol device {
+    scan time 10;        # Scan interfaces every 10 seconds
+}
+# Disable automatically generating direct routes to all network interfaces.
+protocol direct {
+    disabled;         # Disable by default
+}
+# Forbid synchronizing BIRD routing tables with the OS kernel.
+protocol kernel {
+    ipv4 {                # Connect protocol to IPv4 table by channel
+        import none;      # Import to table, default is import all
+        export all;       # Export to protocol. default is export none
+    };
+    # Configure ECMP
+    merge paths yes limit 8;
+}
+# Static IPv4 routes.
+protocol static {
+    ipv4;
+$(while read -rd "," -r x; do
+    [ -z ${x} ] || echo "    route ${x} via \"lbdev0\";"
+done <<< "${areas},"
+)
+}
+$(while true; do
+    peer_ip=${1:-}
+    peer_asn=${2:-}
+    shift 2 || break
+cat <<OUT_BGP
+protocol bgp uplink${peer_ip//./_} {
+    description "BGP uplink ${peer_ip}";
+    local ${route_id} as ${asn};
+    neighbor ${peer_ip} as ${peer_asn};
+    # multihop; # ... which is connected indirectly
+    password "${password}";
+    ipv4 {
+        # import filter {reject;};
+        # export filter {accept;};
+        import all;
+        export all;
+    };
+}
+OUT_BGP
+done
+)
+EOF
+}
+
+post_create() {
+    require bird tmux ipvsadm
+    local lower="/" overlay= node= window=
+    for node in R lvs1 lvs2; do
+        overlay="${LAB_DIR}/${node}"
+        mkdir -p "${overlay}"
+        setup_overlayfs "${lower}" "${overlay}"
+    done
+
+    gen_bgp "lvs1" "10.0.1.10" "lvs1-SW" "${VIP}" 65001 "10.0.1.1"  "65000" | create_file ${LAB_DIR}/lvs1/etc/bird/bird.conf
+    gen_bgp "lvs2" "10.0.1.11" "lvs2-SW" "${VIP}" 65001 "10.0.1.1"  "65000" | create_file ${LAB_DIR}/lvs2/etc/bird/bird.conf
+    # # router no VIP, so no need has route vip
+    gen_bgp "R"    "10.0.1.1"  "R-SW"    ""       65000 "10.0.1.10" "65001" "10.0.1.11" "65001" | create_file ${LAB_DIR}/R/etc/bird/bird.conf
+
+    for node in R lvs1 lvs2; do
+        overlay="${LAB_DIR}/${node}"
+        window=${node}
+        maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}" "${overlay}" || error_msg "maybe_tmux_netns_chroot error\n"
+        tmux_input "${SESS}" "${window}" "mount -t proc none /proc"
+        tmux_input "${SESS}" "${window}" "[ -e '/dev/null' ] || mknod -m 666 /dev/null c 1 3"
+        # systemd-run --unit bird2-${node} -- ip netns exec ${TEST_SVC} /usr/sbin/sshd -D
+        tmux_input "${SESS}" "${window}" "mkdir -p /run/bird && /sbin/bird -P /run/bird/bird.pid"
+    done
+    setup_lvs "lvs1" "${VIP}" "10.0.1.100,10.0.1.101"
+    setup_lvs "lvs2" "${VIP}" "10.0.1.100,10.0.1.101"
+    setup_realsrv "srv1" "${VIP}"
+    setup_realsrv "srv2" "${VIP}"
+    for node in srv1 srv2 cli1 cli2; do
+        window=${node}
+        maybe_tmux_netns_chroot "${SESS}" "${window}" "${node}"
+    done
+
+    return 0;
+}
+
+pre_cleanup() {
+    local node=
+    tmux kill-session -t "${SESS}"
+
+    for node in R lvs1 lvs2; do
+        overlay="${LAB_DIR}/${node}"
+        kill -9 $(maybe_netns_run "cat /run/bird/bird.pid"  "${node}" "${overlay}/")
+        cleanup_overlayfs "${overlay}"
+        rm -rf "${overlay}"
+    done
+    return 0;
+}

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("84bfa5b[2024-09-11T10:10:40+08:00]:s905_debootstrap.sh")
+VERSION+=("22d2848[2024-09-11T14:11:24+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -232,7 +232,7 @@ case "${DEBIAN_VERSION:-bullseye}" in
 esac
 # # for xdotool, wmctrl
 PKG+=",policykit-1,xdotool,wmctrl"
-PKG+=",x11vnc,wpan-tools"
+PKG+=",x11vnc,wpan-tools,aosd-cat,playerctl"
 # # for libvirtd
 
 # # finally add custom packages
