@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("22d2848[2024-09-11T14:11:24+08:00]:s905_debootstrap.sh")
+VERSION+=("2be9282[2024-09-13T11:20:27+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -401,9 +401,9 @@ EOF
 
 log "HDMI Auto plugin"
 cat > ${ROOT_DIR}/etc/udev/rules.d/97-hdmiplugin.rules << EOF
-SUBSYSTEM=="drm", ACTION=="change", RUN+="/usr/bin/systemd-run --uid=johnyin -E DISPLAY=:0 /usr/bin/custom_display.sh"
+SUBSYSTEM=="drm", ACTION=="change", RUN+="/usr/bin/systemd-run --uid=johnyin -E DISPLAY=:0 /etc/johnyin/display/custom_display.sh"
 EOF
-cat > ${ROOT_DIR}/usr/bin/custom_display.sh << 'EOF'
+cat > ${ROOT_DIR}/etc/johnyin/display/custom_display.sh << 'EOF'
 #!/usr/bin/env sh
 {
     xset -dpms s off
@@ -417,7 +417,7 @@ cat > ${ROOT_DIR}/etc/xdg/autostart/johnyin-init.desktop<<EOF
 Version=1.0
 Name=my init here
 Comment=replace ~/.xsessionrc
-Exec=/usr/bin/custom_display.sh
+Exec=/etc/johnyin/display/custom_display.sh
 Terminal=false
 Type=Application
 X-GNOME-Autostart-Phase=Initialization

@@ -1,7 +1,7 @@
 cat <<EOF
-/etc/remote/osd.sh
-/etc/remote/remoter.sh
-/etc/triggerhappy/triggers.d/sky.conf
+/etc/johnyin/remote/osd.sh
+/etc/johnyin/remote/remoter.sh
+/etc/johnyin/triggerhappy/triggers.d/sky.conf
 EOF
 cat <<'EOF' > osd.sh
 #!/usr/bin/env bash
@@ -24,7 +24,7 @@ change_mode() {
     local mode=${1}
     log "change mode: ${mode}"
     /usr/sbin/th-cmd --socket /var/run/thd.socket --mode ${mode} || true
-    /usr/bin/systemd-run --unit osd --uid=${USER} -E TM=700 -E DISPLAY=:0 /etc/remote/osd.sh red "Mode ${mode}"
+    /usr/bin/systemd-run --unit osd --uid=${USER} -E TM=700 -E DISPLAY=:0 /etc/johnyin/remote/osd.sh red "Mode ${mode}"
 }
 default_main() {
     local key=${1}
@@ -34,7 +34,7 @@ default_main() {
         KEY_POWER)       let POWER_CNT+=1
                          log "poweroff ${POWER_CNT}"
                          [ "${POWER_CNT}" -eq 2 ] && /usr/bin/systemctl poweroff
-                         /usr/bin/systemd-run --unit osd --uid=${USER} -E DISPLAY=:0 /etc/remote/osd.sh red "再按关机!!!"
+                         /usr/bin/systemd-run --unit osd --uid=${USER} -E DISPLAY=:0 /etc/johnyin/remote/osd.sh red "再按关机!!!"
                          ;;
         KEY_LEFT)        ;;
         KEY_RIGHT)       ;;
@@ -113,27 +113,27 @@ EOF
 cat <<EOF > sky.conf
 # # mode select keydefine
 KEY_SELECT@            1   @media
-KEY_COMPOSE@           1   /usr/bin/systemd-run --unit osd --uid=johnyin -E DISPLAY=:0 /etc/remote/osd.sh red "模式:None"
+KEY_COMPOSE@           1   /usr/bin/systemd-run --unit osd --uid=johnyin -E DISPLAY=:0 /etc/johnyin/remote/osd.sh red "模式:None"
 KEY_SELECT@media       1   @
-KEY_COMPOSE@media      1   /usr/bin/systemd-run --unit osd --uid=johnyin -E DISPLAY=:0 /etc/remote/osd.sh green "模式:Media"
+KEY_COMPOSE@media      1   /usr/bin/systemd-run --unit osd --uid=johnyin -E DISPLAY=:0 /etc/johnyin/remote/osd.sh green "模式:Media"
 # # default mode keydefine
-KEY_POWER@             1   /etc/remote/remoter.sh default
-KEY_LEFT@              1   /etc/remote/remoter.sh default
-KEY_RIGHT@             1   /etc/remote/remoter.sh default
-KEY_UP@                1   /etc/remote/remoter.sh default
-KEY_DOWN@              1   /etc/remote/remoter.sh default
-KEY_F5@                1   /etc/remote/remoter.sh default
-KEY_ESC@               1   /etc/remote/remoter.sh default
-KEY_VOLUMEUP@          1   /etc/remote/remoter.sh default
-KEY_VOLUMEDOWN@        1   /etc/remote/remoter.sh default
+KEY_POWER@             1   /etc/johnyin/remote/remoter.sh default
+KEY_LEFT@              1   /etc/johnyin/remote/remoter.sh default
+KEY_RIGHT@             1   /etc/johnyin/remote/remoter.sh default
+KEY_UP@                1   /etc/johnyin/remote/remoter.sh default
+KEY_DOWN@              1   /etc/johnyin/remote/remoter.sh default
+KEY_F5@                1   /etc/johnyin/remote/remoter.sh default
+KEY_ESC@               1   /etc/johnyin/remote/remoter.sh default
+KEY_VOLUMEUP@          1   /etc/johnyin/remote/remoter.sh default
+KEY_VOLUMEDOWN@        1   /etc/johnyin/remote/remoter.sh default
 # # media mode keydefine
-KEY_POWER@media        1   /etc/remote/remoter.sh media
-KEY_LEFT@media         1   /etc/remote/remoter.sh media
-KEY_RIGHT@media        1   /etc/remote/remoter.sh media
-KEY_UP@media           1   /etc/remote/remoter.sh media
-KEY_DOWN@media         1   /etc/remote/remoter.sh media
-KEY_F5@media           1   /etc/remote/remoter.sh media
-KEY_ESC@media          1   /etc/remote/remoter.sh media
-KEY_VOLUMEUP@media     1   /etc/remote/remoter.sh media
-KEY_VOLUMEDOWN@media   1   /etc/remote/remoter.sh media
+KEY_POWER@media        1   /etc/johnyin/remote/remoter.sh media
+KEY_LEFT@media         1   /etc/johnyin/remote/remoter.sh media
+KEY_RIGHT@media        1   /etc/johnyin/remote/remoter.sh media
+KEY_UP@media           1   /etc/johnyin/remote/remoter.sh media
+KEY_DOWN@media         1   /etc/johnyin/remote/remoter.sh media
+KEY_F5@media           1   /etc/johnyin/remote/remoter.sh media
+KEY_ESC@media          1   /etc/johnyin/remote/remoter.sh media
+KEY_VOLUMEUP@media     1   /etc/johnyin/remote/remoter.sh media
+KEY_VOLUMEDOWN@media   1   /etc/johnyin/remote/remoter.sh media
 EOF
