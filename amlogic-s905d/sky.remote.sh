@@ -21,8 +21,10 @@ fi
 log() { logger -t triggerhappy $*; }
 #############default start#########################################
 change_mode() {
-    /usr/sbin/th-cmd --socket /var/run/thd.socket --mode ${1} || true
-    /usr/bin/systemd-run --unit osd --uid=${USER} -E TM=700 -E DISPLAY=:0 /etc/remote/osd.sh red "Mode ${1}"
+    local mode=${1}
+    log "change mode: ${mode}"
+    /usr/sbin/th-cmd --socket /var/run/thd.socket --mode ${mode} || true
+    /usr/bin/systemd-run --unit osd --uid=${USER} -E TM=700 -E DISPLAY=:0 /etc/remote/osd.sh red "Mode ${mode}"
 }
 default_main() {
     local key=${1}
@@ -30,6 +32,7 @@ default_main() {
     source /tmp/default.state 2>/dev/null || true
     case "${key}" in
         KEY_POWER)       let POWER_CNT+=1
+                         log "poweroff ${POWER_CNT}"
                          [ "${POWER_CNT}" -eq 2 ] && /usr/bin/systemctl poweroff
                          /usr/bin/systemd-run --unit osd --uid=${USER} -E DISPLAY=:0 /etc/remote/osd.sh red "再按关机!!!"
                          ;;
