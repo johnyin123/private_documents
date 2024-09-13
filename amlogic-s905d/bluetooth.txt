@@ -1,3 +1,6 @@
+busctl tree 'org.bluez'
+busctl introspect 'org.bluez'  '/org/bluez/hci0/dev_54_03_84_72_58_B5'
+
 BLUEZ 5.44 WORKED!!!!! BLE REMOTE!!!!
 apt -y install libudev-dev libglib2.0-dev libdbus-1-dev libical-dev libreadline-dev
 ./configure --prefix=/usr --sysconfdir=/etc  --localstatedir=/var
