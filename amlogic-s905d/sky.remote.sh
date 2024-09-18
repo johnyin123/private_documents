@@ -4,7 +4,7 @@ ln -s /etc/johnyin/remote/sky.conf /etc/johnyin/triggerhappy/triggers.d/sky.conf
 ln -s /etc/johnyin/remote/osd.service /etc/systemd/system/osd.service
 ln -s /etc/johnyin/remote/osd.socket /etc/systemd/system/osd.socket
 ln -s /etc/johnyin/remote/21-sky.conf /etc/X11/xorg.conf.d/21-sky.conf
-rm -f /lib/udev/rules.d/60-triggerhappy.rules && cat /etc/johnyin/remote/60-triggerhappy.rules > /lib/udev/rules.d/60-triggerhappy.rules
+rm -f /lib/udev/rules.d/60-triggerhappy.rules && ls -s /etc/johnyin/remote/60-triggerhappy.rules /lib/udev/rules.d/60-triggerhappy.rules
 sed -i "s/^#HandlePowerKey=.*/HandlePowerKey=ignore/g" /etc/systemd/logind.conf
 systemctl disable triggerhappy.socket
 systemctl enable triggerhappy.service
@@ -65,15 +65,14 @@ change_mode() {
     /usr/sbin/th-cmd --socket /var/run/thd.socket --mode ${mode} || true
     osd_message red "Mode ${mode:-default}"
 }
-# # source remoter.state in every case, to impl press same key twice or more!!
 default_main() {
     local key=${1}
-    local POWER_CNT=0
+    local D_POWER_CNT=0
     case "${key}" in
         KEY_POWER)       source /tmp/remoter.state 2>/dev/null || true
-                         let POWER_CNT+=1
-                         log "poweroff ${POWER_CNT}"
-                         [ "${POWER_CNT}" -eq 2 ] && /usr/bin/systemctl poweroff
+                         let D_POWER_CNT+=1
+                         log "poweroff ${D_POWER_CNT}"
+                         [ "${D_POWER_CNT}" -eq 2 ] && /usr/bin/systemctl poweroff
                          osd_message red "再按POWER关机!!!"
                          ;;
         KEY_LEFT)        log "undefined default key ${key}";;
@@ -87,7 +86,7 @@ default_main() {
         *)               log "unknow key default ${key}";;
     esac
     cat <<EOSTATE > /tmp/remoter.state
-POWER_CNT=${POWER_CNT}
+D_POWER_CNT=${D_POWER_CNT}
 EOSTATE
 }
 #############default end#########################################
@@ -106,11 +105,10 @@ smplayer_start_stop() {
     }
 }
 smplayer_action() {
-
     systemctl -q is-active smplayer-johnyin.service || {
-        osd_message green "先按POWER运行媒体播放器"
-        # smplayer_start_stop,  systemd service smplayer run  maybe not before you send actoin!!.
-        log "smplayer not run, action $* not send"
+        osd_message green "运行媒体播放器"
+        smplayer_start_stop
+        log "smplayer not run, action $* not send, first run smplayer"
         return 0
     }
     systemd-run --scope --uid=${USER} -E DISPLAY=:0 smplayer -send-action $*
@@ -119,11 +117,17 @@ smplayer_action() {
 }
 media_main() {
     local key=${1}
-    local RIGHT_CNT=0
+    local M_RIGHT_CNT=0
+    local M_POWER_CNT=0
     case "${key}" in
-        KEY_POWER)       smplayer_start_stop;;
+        KEY_POWER)       source /tmp/remoter.state 2>/dev/null || true
+                         let M_POWER_CNT+=1
+                         log "media key power ${M_POWER_CNT}"
+                         [ "${M_POWER_CNT}" -eq 2 ] && smplayer_start_stop
+                         osd_message red "再按POWER关闭媒体播放器!!!"
+                         ;;
         KEY_LEFT)        smplayer_action rewind1;;
-        KEY_RIGHT)       source /tmp/remoter.state 2>/dev/null || true; let RIGHT_CNT+=1; smplayer_action forward${RIGHT_CNT};;
+        KEY_RIGHT)       source /tmp/remoter.state 2>/dev/null || true; let M_RIGHT_CNT+=1; smplayer_action forward${M_RIGHT_CNT};;
         KEY_UP)          smplayer_action increase_volume;;
         KEY_DOWN)        smplayer_action decrease_volume;;
         KEY_F5)          smplayer_action mute;;
@@ -133,7 +137,8 @@ media_main() {
         *)               log "unknow key media ${key}";;
     esac
     cat <<EOSTATE > /tmp/remoter.state
-RIGHT_CNT=$((RIGHT_CNT%3))
+M_RIGHT_CNT=$((M_RIGHT_CNT%2))
+M_POWER_CNT=${M_POWER_CNT}
 EOSTATE
 }
 #############media end#########################################
