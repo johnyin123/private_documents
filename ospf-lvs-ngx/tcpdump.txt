@@ -1,0 +1,4 @@
+tcpdump dst <vip> or dst <src>
+
+socat udp4-listen:9999 -
+socat udp4-sendto:<ip>:9999 -

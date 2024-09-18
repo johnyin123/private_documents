@@ -1,8 +1,26 @@
 cat <<EOF
 /etc/johnyin/remote/remoter.sh
-/etc/johnyin/triggerhappy/triggers.d/sky.conf
-/etc/systemd/system/osd.service
-/etc/systemd/system/osd.socket
+ln -s /etc/johnyin/remote/sky.conf /etc/johnyin/triggerhappy/triggers.d/sky.conf
+ln -s /etc/johnyin/remote/osd.service /etc/systemd/system/osd.service
+ln -s /etc/johnyin/remote/osd.socket /etc/systemd/system/osd.socket
+ln -s /etc/johnyin/remote/21-sky.conf /etc/X11/xorg.conf.d/21-sky.conf
+rm -f /lib/udev/rules.d/60-triggerhappy.rules && cat /etc/johnyin/remote/60-triggerhappy.rules > /lib/udev/rules.d/60-triggerhappy.rules
+sed -i "s/^#HandlePowerKey=.*/HandlePowerKey=ignore/g" /etc/systemd/logind.conf
+systemctl disable triggerhappy.socket
+systemctl enable triggerhappy.service
+sed -i "s|ExecStart=.*|ExecStart=/usr/sbin/thd --triggers /etc/triggerhappy/triggers.d/ --socket /run/thd.socket --user root|g" /lib/systemd/system/triggerhappy.service
+EOF
+cat > 60-triggerhappy.rules << 'EOF'
+ACTION=="add", SUBSYSTEM=="input", \
+	ATTRS{name}=="SKYWORTH_0120 Keyboard", \
+	RUN+="/usr/sbin/th-cmd --socket /var/run/thd.socket --passfd --udev --grab"
+EOF
+cat > 21-sky.conf <<'EOF'
+Section "InputClass"
+    Identifier "SKYWORTH_0120 BLE REMOTE"
+    MatchProduct "SKYWORTH_0120"
+    Option "Ignore" "true"
+EndSection
 EOF
 cat <<EOF > osd.socket
 [Socket]
