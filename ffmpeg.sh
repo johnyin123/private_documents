@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7088172[2024-08-28T13:44:17+08:00]:ffmpeg.sh")
+VERSION+=("8fa6e1a[2024-08-29T07:32:24+08:00]:ffmpeg.sh")
 ################################################################################
 
 name=${1:?input err scale= $0 video.mkv}
@@ -37,6 +37,9 @@ ffmpeg -hide_banner -hwaccel auto -i ${name} -loglevel info \
     ${name%.*}.convert.mkv
 EOF
 ffmpeg -hide_banner -i ${name} 2>&1 | grep -o -Ei "Video:\s*([^ ]*)"
+
+# # convert to mp3
+# ffmpeg -i a.wma -vn -c:a libmp3lame -b:a 64k a.mp3
 
 # cat > file.lst<<EOF
 # file 1.mp4
