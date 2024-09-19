@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("ad90cd5[2024-09-05T07:41:00+08:00]:build.sh")
+VERSION+=("8d96485[2024-09-13T15:14:19+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
 CONFIG_HZ=${CONFIG_HZ:-100}
@@ -591,7 +591,7 @@ s905d_opt() {
 
     log "kernel 6.1 SERIAL_MESON need buildin, 6,6 can module"
     case "${KERVERSION}" in
-        6.10.* | 6.9.*)
+        6.11.* | 6.10.* | 6.9.*)
             log "6.9"
             scripts/config --module CONFIG_SERIAL_MESON \
                 --enable CONFIG_SERIAL_MESON_CONSOLE
