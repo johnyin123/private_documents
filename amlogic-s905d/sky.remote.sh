@@ -92,8 +92,8 @@ EOSTATE
 #############default end#########################################
 #############media start#########################################
 smplayer_start_stop() {
-    systemctl -q is-active smplayer-johnyin.service && {
-        systemctl stop smplayer-johnyin.service
+    pgrep -u ${USER} smplayer >/dev/null && {
+        systemctl stop smplayer-johnyin.service 2>/dev/null
         pgrep -u ${USER} smplayer >/dev/null && pkill -u ${USER} smplayer
         change_mode
         log "smplayer stop"
@@ -105,7 +105,9 @@ smplayer_start_stop() {
     }
 }
 smplayer_action() {
-    systemctl -q is-active smplayer-johnyin.service || {
+    # use pgrep, not systemctl -q is-active
+    # when start smplayer by hand, is not a service
+    pgrep -u ${USER} smplayer >/dev/null || {
         osd_message green "运行媒体播放器"
         smplayer_start_stop
         log "smplayer not run, action $* not send, first run smplayer"
