@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8dcd159[2024-08-26T14:06:38+08:00]:try.sh")
+VERSION+=("f01b798[2024-09-11T14:10:11+08:00]:try.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -382,6 +382,18 @@ main "$@"
 
 
 main2() {
+    target=
+    find / -maxdepth 1  -not -path "/" \
+                        -not -name "dev" \
+                        -not -name "media" \
+                        -not -name "sys" \
+                        -not -name "proc" \
+                        -not -name "run" \
+                        -not -name "mnt" \
+                        -not -name "tmp" \
+                        -not -name "lost+found" \
+            -exec /bin/bash -c "echo -e \"Copying [ {} ]\"; rsync -a --info=progress2 {} ${target};"
+
     lock_write<<EOF
 $(date) msg1
 EOF
