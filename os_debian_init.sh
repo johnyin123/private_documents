@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("a5c2406[2024-07-17T06:11:29+08:00]:os_debian_init.sh")
+VERSION+=("8b37540[2024-07-17T10:34:47+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -490,6 +490,7 @@ set mouse=r
 set viminfo=
 let g:is_bash=1
 packloadall
+
 "新建.py,.sh文件，自动插入文件头"
 autocmd BufNewFile *.py,*.c,*.sh,*.h exec ":call SetTitle()"
 "定义函数SetTitle，自动插入文件头"
@@ -508,15 +509,15 @@ func SetTitle()
         call setline(11, "[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }")
         call setline(12, "################################################################################")
         call setline(13, "usage() {")
-        call setline(14, "    [ \"$#\" != 0 ] && echo \"$*\"")
-        call setline(15, "    cat <<EOF")
-        call setline(16, "${SCRIPTNAME}")
-        call setline(17, "        -q|--quiet")
-        call setline(18, "        -l|--log <int> log level")
-        call setline(19, "        -V|--version")
-        call setline(20, "        -d|--dryrun dryrun")
-        call setline(21, "        -h|--help help")
-        call setline(22, "EOF")
+        call setline(14, "    R='\\e[1;31m' G='\\e[1;32m' Y='\\e[33;1m' W='\\e[0;97m' N='\\e[m' usage_doc=\"$(cat <<EOF")
+        call setline(15, "${*:+${Y}$*${N}\\n}${R}${SCRIPTNAME}${N}")
+        call setline(16, "        -q|--quiet")
+        call setline(17, "        -l|--log ${G}<int>${N} log level")
+        call setline(18, "        -V|--version")
+        call setline(19, "        -d|--dryrun dryrun")
+        call setline(20, "        -h|--help help")
+        call setline(21, "EOF")
+        call setline(22, ")\"; echo -e \"${usage_doc}\"")
         call setline(23, "    exit 1")
         call setline(24, "}")
         call setline(25, "main() {")
