@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("e3efcdb[2024-09-19T16:41:27+08:00]:build.sh")
+VERSION+=("771fc0e[2024-09-20T07:41:39+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
 CONFIG_HZ=${CONFIG_HZ:-100}
@@ -603,7 +603,6 @@ s905d_opt() {
             ;;
         *)
             log "6.9+"
-            log "6.11_no need patch &external_phy, &ethmac, only need bluetooth patch"
             scripts/config --module CONFIG_SERIAL_MESON \
                 --enable CONFIG_SERIAL_MESON_CONSOLE
             ;;
