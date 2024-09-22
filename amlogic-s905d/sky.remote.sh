@@ -32,7 +32,7 @@ cat <<'EOF' > osd.service
 User=johnyin
 Group=johnyin
 Environment=DISPLAY=:0
-ExecStart=/usr/bin/aosd_cat --font='DejaVu Serif:style=Book 88' --position=4 --fade-full=600 --fore-color=red --shadow-color=blue
+ExecStart=/usr/bin/aosd_cat --font='DejaVu Serif:style=Book 88' --position=4 --fade-full=500 --fore-color=red --shadow-color=blue
 Sockets=osd.socket
 StandardInput=socket
 StandardOutput=journal
@@ -57,7 +57,7 @@ osd_message() {
     color=${1}; shift
     [ -p  /tmp/osd.stdin ] && { echo "$*" > /tmp/osd.stdin; return 0; }
     # # if aosc_cat service not exist, use commandlink mode
-    echo "$*" | systemd-run --unit -osd --pipe --uid=${USER} -E DISPLAY=:0 aosd_cat --font='DejaVu Serif:style=Book 88' --position=4 --fade-full=600 --fore-color=${color} --shadow-color=blue
+    echo "$*" | systemd-run --unit -osd --pipe --uid=${USER} -E DISPLAY=:0 aosd_cat --font='DejaVu Serif:style=Book 88' --position=4 --fade-full=500 --fore-color=${color} --shadow-color=blue
 }
 change_mode() {
     local mode=${1:-}
@@ -67,26 +67,37 @@ change_mode() {
 }
 default_main() {
     local key=${1}
-    local D_POWER_CNT=0
+    local D_POWER_CNT=0 D_SELECT_CNT=0
     case "${key}" in
         KEY_POWER)       source /tmp/remoter.state 2>/dev/null || true
                          let D_POWER_CNT+=1
                          log "poweroff ${D_POWER_CNT}"
-                         [ "${D_POWER_CNT}" -eq 2 ] && /usr/bin/systemctl poweroff
+                         [ "${D_POWER_CNT}" -eq 2 ] && { /usr/bin/systemctl poweroff; D_POWER_CNT=0; }
                          osd_message red "再按POWER关机!!!"
+                         ;;
+        KEY_SELECT)      source /tmp/remoter.state 2>/dev/null || true
+                         let D_SELECT_CNT+=1
+                         log "clear minidlna ${D_SELECT_CNT}"
+                         [ "${D_SELECT_CNT}" -eq 2 ] && {
+                             osd_message green "重扫Minidlna"
+                             rm -rf /var/cache/minidlna/ && systemctl restart minidlna
+                             D_SELECT_CNT=0
+                         }
+                         osd_message red "再按SELECT重扫Minidlna"
                          ;;
         KEY_LEFT)        log "undefined default key ${key}";;
         KEY_RIGHT)       log "undefined default key ${key}";;
         KEY_UP)          log "undefined default key ${key}";;
         KEY_DOWN)        log "undefined default key ${key}";;
         KEY_F5)          log "undefined default key ${key}";;
-        KEY_ESC)         systemctl -q is-active smplayer-johnyin.service || smplayer_start_stop; change_mode media;;
+        KEY_ESC)         pgrep -u ${USER} smplayer >/dev/null || smplayer_start_stop; change_mode media;;
         KEY_VOLUMEUP)    log "undefined default key ${key}";;
         KEY_VOLUMEDOWN)  log "undefined default key ${key}";;
         *)               log "unknow key default ${key}";;
     esac
     cat <<EOSTATE > /tmp/remoter.state
 D_POWER_CNT=${D_POWER_CNT}
+D_SELECT_CNT=${D_SELECT_CNT}
 EOSTATE
 }
 #############default end#########################################
@@ -125,16 +136,17 @@ media_main() {
         KEY_POWER)       source /tmp/remoter.state 2>/dev/null || true
                          let M_POWER_CNT+=1
                          log "media key power ${M_POWER_CNT}"
-                         [ "${M_POWER_CNT}" -eq 2 ] && smplayer_start_stop
+                         [ "${M_POWER_CNT}" -eq 2 ] && { smplayer_start_stop; M_POWER_CNT=0; }
                          osd_message red "再按POWER关闭媒体播放器!!!"
                          ;;
+        KEY_SELECT)      smplayer_action play_or_pause;;
         KEY_LEFT)        smplayer_action rewind1;;
         KEY_RIGHT)       source /tmp/remoter.state 2>/dev/null || true; let M_RIGHT_CNT+=1; smplayer_action forward${M_RIGHT_CNT};;
         KEY_UP)          smplayer_action increase_volume;;
         KEY_DOWN)        smplayer_action decrease_volume;;
         KEY_F5)          smplayer_action mute;;
         KEY_ESC)         smplayer_action fullscreen;;
-        KEY_VOLUMEUP)    smplayer_action play_or_pause;;
+        KEY_VOLUMEUP)    log "undefined media key ${key}";;
         KEY_VOLUMEDOWN)  log "undefined media key ${key}";;
         *)               log "unknow key media ${key}";;
     esac
@@ -150,13 +162,10 @@ main() {
     local mode=${1}
     # mode changed, the remoter.state shoule clear, so default/media use same state file!
     case "${mode}" in
-        media)    media_main "${TH_EVENT}";;
-        default)  default_main "${TH_EVENT}";;
-        osd)      local color=${2}; shift 2
-                  rm -f /tmp/remoter.state 2>/dev/null || true
-                  log "osd message[${color}] $*"
-                  osd_message "${color}" "$*";;
-        *)        log "unknow mode ${mode}";;
+        media|default) ${mode}_main "${TH_EVENT}";;
+        @.*)           mode=${mode##*@}
+                       change_mode "${mode}"
+                       rm -f /tmp/remoter.state 2>/dev/null || true
     esac
 }
 
@@ -167,12 +176,11 @@ noflock () { log "lock ${LOCK_FILE} ${LOCK_FD} not acquired, giving up"; exit 1;
 EOF
 cat <<EOF > sky.conf
 # # mode select keydefine
-KEY_SELECT@            1   @media
-KEY_COMPOSE@           1   /etc/johnyin/remote/remoter.sh osd red "模式:None"
-KEY_SELECT@media       1   @
-KEY_COMPOSE@media      1   /etc/johnyin/remote/remoter.sh osd green "模式:Media"
+KEY_COMPOSE@           1   /etc/johnyin/remote/remoter.sh @media
+KEY_COMPOSE@media      1   /etc/johnyin/remote/remoter.sh @
 # # default mode keydefine
 KEY_POWER@             1   /etc/johnyin/remote/remoter.sh default
+KEY_SELECT@            1   /etc/johnyin/remote/remoter.sh default
 KEY_LEFT@              1   /etc/johnyin/remote/remoter.sh default
 KEY_RIGHT@             1   /etc/johnyin/remote/remoter.sh default
 KEY_UP@                1   /etc/johnyin/remote/remoter.sh default
@@ -183,6 +191,7 @@ KEY_VOLUMEUP@          1   /etc/johnyin/remote/remoter.sh default
 KEY_VOLUMEDOWN@        1   /etc/johnyin/remote/remoter.sh default
 # # media mode keydefine
 KEY_POWER@media        1   /etc/johnyin/remote/remoter.sh media
+KEY_SELECT@media       1   /etc/johnyin/remote/remoter.sh media
 KEY_LEFT@media         1   /etc/johnyin/remote/remoter.sh media
 KEY_RIGHT@media        1   /etc/johnyin/remote/remoter.sh media
 KEY_UP@media           1   /etc/johnyin/remote/remoter.sh media
