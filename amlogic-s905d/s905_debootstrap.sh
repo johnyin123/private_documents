@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1154d4c[2024-09-13T15:41:34+08:00]:s905_debootstrap.sh")
+VERSION+=("20231e2[2024-09-19T07:35:32+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -303,9 +303,10 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash -x <<EOSHELL
     systemctl mask systemd-machine-id-commit.service
 
     log "add lima xorg.conf"
-    mkdir -p /etc/X11/xorg.conf.d/
+    mkdir -p /etc/X11/xorg.conf.d/ /etc/johnyin/display
+    ln -s /etc/johnyin/display/20-lima.conf /etc/X11/xorg.conf.d/20-lima.conf
     log "avoid 'page flip error' in Xorg.0.log"
-    cat <<EOF > /etc/X11/xorg.conf.d/20-lima.conf
+    cat <<EOF > /etc/johnyin/display/20-lima.conf
 Section "Device"
     Identifier "Default Device"
     Driver "modesetting"
