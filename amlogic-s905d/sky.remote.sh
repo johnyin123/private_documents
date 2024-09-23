@@ -73,8 +73,7 @@ default_main() {
         KEY_POWER)       source /tmp/remoter.state 2>/dev/null || true
                          let D_POWER_CNT+=1
                          log "poweroff ${D_POWER_CNT}"
-                         [ "${D_POWER_CNT}" -eq 2 ] && { /usr/bin/systemctl poweroff; D_POWER_CNT=0; }
-                         osd_message red "再按POWER关机!!!"
+                         [ "${D_POWER_CNT}" -eq 2 ] && { /usr/bin/systemctl poweroff; D_POWER_CNT=0; } || osd_message red "再按POWER关机!!!"
                          ;;
         KEY_SELECT)      source /tmp/remoter.state 2>/dev/null || true
                          let D_SELECT_CNT+=1
@@ -83,8 +82,7 @@ default_main() {
                              osd_message green "重扫Minidlna"
                              rm -rf /var/cache/minidlna/ && systemctl restart minidlna
                              D_SELECT_CNT=0
-                         }
-                         osd_message red "再按SELECT重扫Minidlna"
+                         } || osd_message red "再按SELECT重扫Minidlna"
                          ;;
         KEY_LEFT)        log "undefined default key ${key}";;
         KEY_RIGHT)       log "undefined default key ${key}";;
@@ -137,8 +135,7 @@ media_main() {
         KEY_POWER)       source /tmp/remoter.state 2>/dev/null || true
                          let M_POWER_CNT+=1
                          log "media key power ${M_POWER_CNT}"
-                         [ "${M_POWER_CNT}" -eq 2 ] && { smplayer_start_stop; M_POWER_CNT=0; }
-                         osd_message red "再按POWER关闭媒体播放器!!!"
+                         [ "${M_POWER_CNT}" -eq 2 ] && { smplayer_start_stop; M_POWER_CNT=0; } || osd_message red "再按POWER关闭媒体播放器!!!"
                          ;;
         KEY_SELECT)      smplayer_action play_or_pause;;
         KEY_LEFT)        smplayer_action rewind${state};;
