@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ade5514[2024-05-29T09:12:27+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("4dadf6c[2024-05-29T09:43:30+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -292,11 +292,10 @@ init_kube_cluster() {
 }
 
 usage() {
-    [ "$#" != 0 ] && echo "$*"
-    cat <<EOF
-${SCRIPTNAME}
-        env:
-            SUDO=   default undefine
+    R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
+${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
+        ${G}env:${N}
+            ${G}SUDO=${N}   default undefine
         -m|--master       * * *  <ip>   master nodes, support multi nodes
         -w|--worker       * X    <ip>   worker nodes, support multi nodes
         --etcd                   <url>  external etcd cluster addesses, support multi nodes
@@ -330,7 +329,7 @@ ${SCRIPTNAME}
             如果在运行kubeadm init之前存在给定的证书和私钥对,kubeadm 将不会重写它们,kubeadm将使用此CA对其余证书进行签名
                 /etc/kubernetes/pki/ca.crt
                 /etc/kubernetes/pki/ca.key
-        EXAM:
+        ${Y}EXAM:
     on all nodes:
         echo '192.168.168.xxx     registry.local'>> /etc/hosts
         wget --no-check-certificate -O /etc/yum.repos.d/cnap.repo http://registry.local/cnap/cnap.repo
@@ -340,8 +339,9 @@ ${SCRIPTNAME} -m 192.168.168.150 --pod_cidr 172.16.0.0/24 --ipvs --insec_registr
 # # add worker in exists cluster
 ${SCRIPTNAME} --only_add_worker -m 192.168.168.150 -w 192.168.168.151 --insec_registry 192.168.168.250
 # # add master in exists cluster
-${SCRIPTNAME} --only_add_master 192.168.168.150 -m 192.168.168.152 --insec_registry 192.168.168.250
+${SCRIPTNAME} --only_add_master 192.168.168.150 -m 192.168.168.152 --insec_registry 192.168.168.250${N}
 EOF
+)"; echo -e "${usage_doc}"
     exit 1
 }
 verify_apiserver() {
