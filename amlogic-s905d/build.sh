@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("771fc0e[2024-09-20T07:41:39+08:00]:build.sh")
+VERSION+=("2226107[2024-09-20T08:48:26+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
 CONFIG_HZ=${CONFIG_HZ:-100}
@@ -489,7 +489,7 @@ s905d_opt() {
     scripts/config --enable CONFIG_MMU
     scripts/config --enable CONFIG_CPU_LITTLE_ENDIAN
     ################# CONFIG_SENSORS_ARM_SCPI, cpu temp !
-    scripts/config --disable CONFIG_SENSORS_ARM_SCPI
+    scripts/config --module CONFIG_SENSORS_ARM_SCPI
     scripts/config --module CONFIG_ARM_SCPI_CPUFREQ
     scripts/config --enable CONFIG_ARM_PMU --enable CONFIG_ARM_PMUV3
     scripts/config --module CONFIG_USB \
