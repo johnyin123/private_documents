@@ -54,7 +54,7 @@ fi
 log() { logger -t triggerhappy $*; }
 #############default start#########################################
 osd_message() {
-    color=${1}; shift
+    local color=${1}; shift
     [ -p  /tmp/osd.stdin ] && { echo "$*" > /tmp/osd.stdin; return 0; }
     # # if aosc_cat service not exist, use commandlink mode
     echo "$*" | systemd-run --unit -osd --pipe --uid=${USER} -E DISPLAY=:0 aosd_cat --font='DejaVu Serif:style=Book 88' --position=4 --fade-full=500 --fore-color=${color} --shadow-color=blue
@@ -67,6 +67,7 @@ change_mode() {
 }
 default_main() {
     local key=${1}
+    local state=${2} # long/short press
     local D_POWER_CNT=0 D_SELECT_CNT=0
     case "${key}" in
         KEY_POWER)       source /tmp/remoter.state 2>/dev/null || true
@@ -130,7 +131,8 @@ smplayer_action() {
 }
 media_main() {
     local key=${1}
-    local M_RIGHT_CNT=0 M_POWER_CNT=0
+    local state=${2} # long/short press
+    local M_POWER_CNT=0
     case "${key}" in
         KEY_POWER)       source /tmp/remoter.state 2>/dev/null || true
                          let M_POWER_CNT+=1
@@ -139,8 +141,8 @@ media_main() {
                          osd_message red "再按POWER关闭媒体播放器!!!"
                          ;;
         KEY_SELECT)      smplayer_action play_or_pause;;
-        KEY_LEFT)        smplayer_action rewind1;;
-        KEY_RIGHT)       source /tmp/remoter.state 2>/dev/null || true; let M_RIGHT_CNT+=1; smplayer_action forward${M_RIGHT_CNT};;
+        KEY_LEFT)        smplayer_action rewind${state};;
+        KEY_RIGHT)       smplayer_action forward${state};;
         KEY_UP)          smplayer_action increase_volume;;
         KEY_DOWN)        smplayer_action decrease_volume;;
         KEY_F5)          smplayer_action mute;;
@@ -150,7 +152,6 @@ media_main() {
         *)               log "unknow key media ${key}";;
     esac
     cat <<EOSTATE > /tmp/remoter.state
-M_RIGHT_CNT=$((M_RIGHT_CNT%2))
 M_POWER_CNT=${M_POWER_CNT}
 EOSTATE
 }
@@ -161,7 +162,7 @@ main() {
     local mode=${1}
     # mode changed, the remoter.state shoule clear, so default/media use same state file!
     case "${mode}" in
-        media|default) ${mode}_main "${TH_EVENT:-}";;
+        media|default) ${mode}_main "${TH_EVENT:-}" "${TH_VALUE:-1}";;
         @*)            mode=${mode##*@}
                        change_mode "${mode}"
                        rm -f /tmp/remoter.state 2>/dev/null || true
@@ -200,4 +201,6 @@ KEY_F5@media           1   /etc/johnyin/remote/remoter.sh media
 KEY_ESC@media          1   /etc/johnyin/remote/remoter.sh media
 KEY_VOLUMEUP@media     1   /etc/johnyin/remote/remoter.sh media
 KEY_VOLUMEDOWN@media   1   /etc/johnyin/remote/remoter.sh media
+KEY_LEFT@media         2   /etc/johnyin/remote/remoter.sh media
+KEY_RIGHT@media        2   /etc/johnyin/remote/remoter.sh media
 EOF
