@@ -130,8 +130,7 @@ smplayer_action() {
 }
 media_main() {
     local key=${1}
-    local M_RIGHT_CNT=0
-    local M_POWER_CNT=0
+    local M_RIGHT_CNT=0 M_POWER_CNT=0
     case "${key}" in
         KEY_POWER)       source /tmp/remoter.state 2>/dev/null || true
                          let M_POWER_CNT+=1
@@ -162,10 +161,11 @@ main() {
     local mode=${1}
     # mode changed, the remoter.state shoule clear, so default/media use same state file!
     case "${mode}" in
-        media|default) ${mode}_main "${TH_EVENT}";;
-        @.*)           mode=${mode##*@}
+        media|default) ${mode}_main "${TH_EVENT:-}";;
+        @*)            mode=${mode##*@}
                        change_mode "${mode}"
                        rm -f /tmp/remoter.state 2>/dev/null || true
+                       ;;
     esac
 }
 
