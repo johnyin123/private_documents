@@ -57,7 +57,7 @@ osd_message() {
     local color=${1}; shift
     [ -p  /tmp/osd.stdin ] && { echo "$*" > /tmp/osd.stdin; return 0; }
     # # if aosc_cat service not exist, use commandlink mode
-    echo "$*" | systemd-run --unit -osd --pipe --uid=${USER} -E DISPLAY=:0 aosd_cat --font='DejaVu Serif:style=Book 88' --position=4 --fade-full=500 --fore-color=${color} --shadow-color=blue
+    echo "$*" | systemd-run --unit johnyin-osd --pipe --uid=${USER} -E DISPLAY=:0 aosd_cat --font='DejaVu Serif:style=Book 88' --position=4 --fade-full=500 --fore-color=${color} --shadow-color=blue
 }
 change_mode() {
     local mode=${1:-}
@@ -80,7 +80,7 @@ default_main() {
                          log "clear minidlna ${D_SELECT_CNT}"
                          [ "${D_SELECT_CNT}" -eq 2 ] && {
                              osd_message green "重扫Minidlna"
-                             rm -rf /var/cache/minidlna/ && systemctl restart minidlna
+                             rm -rf /var/cache/minidlna/ && systemctl restart minidlna || true
                              D_SELECT_CNT=0
                          } || osd_message red "再按SELECT重扫Minidlna"
                          ;;
