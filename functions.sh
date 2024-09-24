@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("2a333d8[2024-08-12T08:13:52+08:00]:functions.sh")
+VERSION+=("15fe138[2024-09-05T15:38:57+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -880,16 +880,16 @@ menu_select() {
 }
 
 # choices=("1xx" "choine 1" "2" "choice 2")
+# choices=($(cd /home/johnyin/disk/mygit/github_private/ && LC_ALL=C LANG=C ls -lhp  | awk -F ' ' '{print $9 " " $5}'))
 # id=$(dialog "title xxa" "menu xxx" choices[@])
 # echo $id
 dialog() {
     local title="${1}"
     local menu="${2}"
     declare -a items=("${!3}")
-    local item=$(eval $(resize) && whiptail --notags \
-        --title "${title}" \
-        --menu "${menu}" \
-        ${LINES:-20} ${COLUMNS:-80} $(( ${LINES:-20} - 12 )) \
+    # # --notags
+    local item=$(whiptail --title "${title}" \
+        --menu "${menu}" 0 0 0 \
         "${items[@]}" 3>&1 1>&2 2>&3 || true)
     safe_echo "${item}"
 }
