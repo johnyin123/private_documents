@@ -111,6 +111,7 @@ smplayer_start_stop() {
         [ -e "${LIST_FILE}" ] || systemd-run --scope --uid=${USER} /usr/bin/touch ${LIST_FILE}
         # # start as systemd service, systemctl reset-failed smplayer-johnyin.service
         systemd-run --unit smplayer-johnyin --uid=${USER} -E DISPLAY=:0 smplayer -ontop ${LIST_FILE}
+        # # -E XDG_CURRENT_DESKTOP=XFCE, fix xfce smplayer font size small
         log "smplayer start"
     }
 }
