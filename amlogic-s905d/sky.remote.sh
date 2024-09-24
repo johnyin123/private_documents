@@ -26,6 +26,7 @@ cat <<EOF > osd.socket
 [Socket]
 ListenFIFO=/tmp/osd.stdin
 Service=osd.service
+RemoveOnStop=true
 EOF
 cat <<'EOF' > osd.service
 [Service]
