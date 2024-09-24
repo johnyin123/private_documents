@@ -65,6 +65,11 @@ change_mode() {
     /usr/sbin/th-cmd --socket /var/run/thd.socket --mode ${mode} || true
     osd_message red "Mode ${mode:-default}"
 }
+minidlna_rescan() {
+    osd_message green "重扫Minidlna"
+    log "rescan minidlna"
+    rm -rf /var/cache/minidlna/ && systemctl restart minidlna || true
+}
 default_main() {
     local key=${1}
     local state=${2} # long/short press
@@ -78,11 +83,7 @@ default_main() {
         KEY_SELECT)      source /tmp/remoter.state 2>/dev/null || true
                          let D_SELECT_CNT+=1
                          log "clear minidlna ${D_SELECT_CNT}"
-                         [ "${D_SELECT_CNT}" -eq 2 ] && {
-                             osd_message green "重扫Minidlna"
-                             rm -rf /var/cache/minidlna/ && systemctl restart minidlna || true
-                             D_SELECT_CNT=0
-                         } || osd_message red "再按SELECT重扫Minidlna"
+                         [ "${D_SELECT_CNT}" -eq 2 ] && { minidlna_rescan; D_SELECT_CNT=0; } || osd_message red "再按SELECT重扫Minidlna"
                          ;;
         KEY_LEFT)        log "undefined default key ${key}";;
         KEY_RIGHT)       log "undefined default key ${key}";;
@@ -131,11 +132,11 @@ smplayer_action() {
 media_main() {
     local key=${1}
     local state=${2} # long/short press
-    local M_POWER_CNT=0
+    local M_POWER_CNT=0 M_VOLUP_CNT=0 M_VOLDOWN_CNT=0
     case "${key}" in
         KEY_POWER)       source /tmp/remoter.state 2>/dev/null || true
                          let M_POWER_CNT+=1
-                         log "media key power ${M_POWER_CNT}"
+                         log "media key ${key} ${M_POWER_CNT}"
                          [ "${M_POWER_CNT}" -eq 2 ] && { smplayer_start_stop; M_POWER_CNT=0; } || osd_message red "再按POWER关闭媒体播放器!!!"
                          ;;
         KEY_SELECT)      smplayer_action play_or_pause;;
@@ -145,12 +146,22 @@ media_main() {
         KEY_DOWN)        smplayer_action decrease_volume;;
         KEY_F5)          smplayer_action mute;;
         KEY_ESC)         smplayer_action fullscreen;;
-        KEY_VOLUMEUP)    log "undefined media key ${key}";;
-        KEY_VOLUMEDOWN)  log "undefined media key ${key}";;
+        KEY_VOLUMEUP)    source /tmp/remoter.state 2>/dev/null || true
+                         let M_VOLUP_CNT+=1
+                         log "media key ${key} ${M_VOLUP_CNT}"
+                         [ "${M_VOLUP_CNT}" -eq 2 ] && { smplayer_action pl_prev; M_VOLUP_CNT=0; } || osd_message red "再按VOLUP上一首"
+                         ;;
+        KEY_VOLUMEDOWN)  source /tmp/remoter.state 2>/dev/null || true
+                         let M_VOLDOWN_CNT+=1
+                         log "media key ${key} ${M_VOLDOWN_CNT}"
+                         [ "${M_VOLDOWN_CNT}" -eq 2 ] && { smplayer_action pl_next; M_VOLDOWN_CNT=0; } || osd_message red "再按VOLDOWN下一首"
+                         ;;
         *)               log "unknow key media ${key}";;
     esac
     cat <<EOSTATE > /tmp/remoter.state
 M_POWER_CNT=${M_POWER_CNT}
+M_VOLUP_CNT=${M_VOLUP_CNT}
+M_VOLDOWN_CNT=${M_VOLDOWN_CNT}
 EOSTATE
 }
 #############media end#########################################
