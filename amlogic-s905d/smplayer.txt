@@ -26,7 +26,7 @@ frame_drop=true
 hard_frame_drop=true
 hwdec=auto-copy
 # hwdec=no
-threads=2
+threads=4
 EOF
 cat << 'EOF' > /home/johnyin/.config/smplayer/script/clock.lua
 --------------------------------------------------
