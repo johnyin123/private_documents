@@ -2,6 +2,10 @@ uuid=$(cat /proc/sys/kernel/random/uuid)
 alterid=0
 path=/wssvc
 #V2Ray自4.18.1后支持TLS1.3
+cat <<EOF > hosts
+# # add to /etc/hosts
+<you ip address> tunl.wgserver.org
+EOF
 cat <<EOF > v2ray.srv.config.json
 {
   "inbounds": [
@@ -97,7 +101,7 @@ cat <<EOF > v2ray.cli.config.json
       "settings": {
         "vnext": [
           {
-            "address": "<you v2srv address>",
+            "address": "tunl.wgserver.org",
             "port": 443,
             "users": [
               {
