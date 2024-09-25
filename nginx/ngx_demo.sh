@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b44cdc6[2024-09-19T08:46:56+08:00]:ngx_demo.sh")
+VERSION+=("0b072cd[2024-09-23T09:54:28+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -417,17 +417,17 @@ server {
 EOF
 cat <<'EOF' >yum_cache.http
 resolver 114.114.114.114 ipv6=off;
-upstream centos_mirror {
-    server mirrors.tuna.tsinghua.edu.cn;
+upstream repo_mirror {
+    server mirrors.aliyun.com:443;
 }
 server {
     listen 127.0.0.1:8001;
     server_name $host;
-    location /centos/ {
+    location /openeuler/ {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header Host 'mirrors.tuna.tsinghua.edu.cn';
-        proxy_pass http://centos_mirror/centos/;
+        proxy_set_header Host 'mirrors.aliyun.com';
+        proxy_pass https://repo_mirror/openeuler/;
     }
 }
 upstream base {
@@ -437,10 +437,10 @@ server {
     listen 80;
     server_name _;
     root /opt/repos/;
-    location /centos/ {
+    location /openeuler/ {
         location ~ (.xml|.gz|.bz2)$ {
             proxy_store on;
-            proxy_temp_path "/opt/repos/";
+            proxy_temp_path /opt/repos/;
             proxy_set_header Accept-Encoding identity;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_next_upstream error http_502;
@@ -453,7 +453,7 @@ server {
         }
         location ~ .rpm$ {
             proxy_store on;
-            proxy_temp_path "/opt/repos/";
+            proxy_temp_path /opt/repos/;
             proxy_set_header Accept-Encoding identity;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_next_upstream error http_502;
