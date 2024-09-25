@@ -23,12 +23,21 @@ Section "InputClass"
 EndSection
 EOF
 cat <<EOF > osd.socket
+[Unit]
+Description=osd input socket
+PartOf=osd.service
+
 [Socket]
 ListenFIFO=/tmp/osd.stdin
 Service=osd.service
 RemoveOnStop=true
 EOF
 cat <<'EOF' > osd.service
+[Unit]
+Description=osd service
+Requires=graphical.target osd.socket
+After=graphical.target osd.socket
+
 [Service]
 User=johnyin
 Group=johnyin
@@ -42,7 +51,7 @@ Restart=always
 RestartSec=4
 
 [Install]
-WantedBy=graphical.target
+WantedBy=multi-user.target
 EOF
 cat <<'EOF' > remoter.sh
 #!/usr/bin/env bash
