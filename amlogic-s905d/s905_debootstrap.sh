@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("20231e2[2024-09-19T07:35:32+08:00]:s905_debootstrap.sh")
+VERSION+=("a8b9289[2024-09-23T08:38:32+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1062,8 +1062,7 @@ cat <<EOF>${ROOT_DIR}/etc/motd
 14.bluetooth head unit:
     LC_ALL=c pactl list cards === > ( Name:bluez_card.EC_FA_5C_5F_1A_AC , Profiles: handsfree_head_unit)
     pactl set-card-profile <Name> <Profile>
-15.systemctl enable wstunnel@wireguard --now
-    wg-quick up client
+15.wg-quick up client/work
 16.rm -rf /var/cache/minidlna/ && systemctl restart minidlna
 EOF
 
