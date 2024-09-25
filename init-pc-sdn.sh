@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("96686d4[2024-09-02T10:47:55+08:00]:init-pc-sdn.sh")
+VERSION+=("e0a823a[2024-09-05T16:43:39+08:00]:init-pc-sdn.sh")
 ################################################################################
 DIR=$(pwd)
 AWS=10
@@ -25,14 +25,14 @@ iface tunl0 inet static
     mtu 1476
     pre-up (/usr/sbin/modprobe ipip || true)
     # # ipip peers
-    post-up (/usr/sbin/ip route add 192.168.166.1/32 via 10.9.22.222 dev tunl0 onlink || true)
-    post-up (/usr/sbin/ip route add 192.168.166.27/32 via 10.170.24.27 dev tunl0 onlink || true)
+    post-up (/usr/sbin/ip route replace 192.168.166.1/32 via 10.9.22.222 dev tunl0 onlink || true)
+    post-up (/usr/sbin/ip route replace 192.168.166.27/32 via 10.170.24.27 dev tunl0 onlink || true)
     # # route to aws/ali
-    post-up (/usr/sbin/ip r a 95.169.24.101 via 10.9.22.222 dev tunl0 onlink || true)
-    post-up (/usr/sbin/ip r a 39.104.207.142 via 10.9.22.222 dev tunl0 onlink || true)
+    post-up (/usr/sbin/ip route replace 95.169.24.101 via 10.9.22.222 dev tunl0 onlink || true)
+    post-up (/usr/sbin/ip route replace 39.104.207.142 via 10.9.22.222 dev tunl0 onlink || true)
     # # inner routes"
-    post-up (/usr/sbin/ip r a 172.16.0.0/21 via 10.170.24.27 dev tunl0 onlink || true)
-    # post-up (/usr/sbin/ip r a 192.168.1.0/24 via 10.170.24.27 dev tunl0 onlink || true)
+    post-up (/usr/sbin/ip route replace 172.16.0.0/21 via 10.170.24.27 dev tunl0 onlink || true)
+    # post-up (/usr/sbin/ip route replace 192.168.1.0/24 via 10.170.24.27 dev tunl0 onlink || true)
     post-down (/usr/sbin/ip link del $IFACE || true)
 EOF
 
