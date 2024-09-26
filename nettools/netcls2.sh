@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d7dd20c[2024-09-26T12:47:21+08:00]:netcls2.sh")
+VERSION+=("60b10b5[2024-09-26T13:27:01+08:00]:netcls2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -81,6 +81,10 @@ table ip ${slice}_svc {
     chain output {
         type route hook output priority mangle; policy accept;
         socket cgroupv2 level 1 "${slice}.slice" counter meta l4proto { tcp, udp } meta mark set ${fwmark}
+    }
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+        meta mark ${fwmark} counter masquerade
     }
 }
 EONFT
