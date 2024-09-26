@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2f441a9[2024-09-26T10:09:55+08:00]:netcls2.sh")
+VERSION+=("d7dd20c[2024-09-26T12:47:21+08:00]:netcls2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -31,6 +31,7 @@ ${SCRIPTNAME}, cgroup v2 version
         # # multi hole address, if not default interface, maybe need snat
         iptables -t nat -A POSTROUTING -o client -j SNAT --to-source 192.168.32.2
         nft add rule nat postrouting oif client snat to 192.168.32.2
+        OR: nft add rule nat postrouting oif client masquerade
         # # use ip route not work!!!
         # # ip route replace default via 192.168.32.1 src 192.168.32.2 table xxx
     exam:
@@ -79,7 +80,7 @@ table ip ${slice}_svc {
     # # Only for local mode
     chain output {
         type route hook output priority mangle; policy accept;
-        socket cgroupv2 level 1 "${slice}.slice" counter  meta l4proto { tcp, udp } meta mark set ${fwmark}
+        socket cgroupv2 level 1 "${slice}.slice" counter meta l4proto { tcp, udp } meta mark set ${fwmark}
     }
 }
 EONFT
@@ -88,7 +89,7 @@ EONFT
             # # Only for local mode
             try iptables -t mangle -A OUTPUT -m cgroup --path ${slice}.slice -j MARK --set-mark ${fwmark}
             # # Only for router mode
-            # try iptables -t nat -A POSTROUTING -m cgroup --path ${slice}.slice -j MASQUERADE
+            try iptables -t nat -A POSTROUTING -m cgroup --path ${slice}.slice -j MASQUERADE
             ;;
     esac
 }
