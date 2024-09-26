@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("de2aa5d[2024-08-30T14:51:12+08:00]:netcls2.sh")
+VERSION+=("329b0e4[2024-09-26T08:55:46+08:00]:netcls2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -175,10 +175,6 @@ main() {
             delout_netcls "${slice}" "${_pid}"
         done
         try rmdir /sys/fs/cgroup/${slice}.slice || true
-        info_msg "remove private ipaddr route\n"
-        try ip route del 10.0.0.0/8     || true
-        try ip route del 172.16.0.0/12  || true
-        try ip route del 192.168.0.0/16 || true
         # # rm all sub dir so can purge /sys/fs/cgroup/net_cls
         # umount /sys/fs/cgroup/net_cls && rmdir /sys/fs/cgroup/net_cls
         info_msg "ALL DONE!\n"
