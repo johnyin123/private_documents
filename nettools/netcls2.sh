@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("329b0e4[2024-09-26T08:55:46+08:00]:netcls2.sh")
+VERSION+=("2f441a9[2024-09-26T10:09:55+08:00]:netcls2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -27,7 +27,12 @@ ${SCRIPTNAME}, cgroup v2 version
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
-/proc/sys/net/ipv4/conf/all/rp_filter=0/2
+        net.ipv4.conf.all.rp_filter=0/2
+        # # multi hole address, if not default interface, maybe need snat
+        iptables -t nat -A POSTROUTING -o client -j SNAT --to-source 192.168.32.2
+        nft add rule nat postrouting oif client snat to 192.168.32.2
+        # # use ip route not work!!!
+        # # ip route replace default via 192.168.32.1 src 192.168.32.2 table xxx
     exam:
         # # list all fwmark
         ip rule | grep fwmark | grep -o "0x[^ ]*" | xargs -I@  printf "FWMARK: %d\n" @
