@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b31195e[2024-08-30T09:25:58+08:00]:netcls2.sh")
+VERSION+=("de2aa5d[2024-08-30T14:51:12+08:00]:netcls2.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -104,9 +104,12 @@ create_netrule() {
     try ip route replace default via ${gateway} table ${rule_table}
     local default_route=$(ip -4 route show default | awk '{ print $3 }')
     info_msg "private ipaddress use ${default_route}\n"
-    try ip route replace 10.0.0.0/8     via ${default_route} || true
-    try ip route replace 172.16.0.0/12  via ${default_route} || true
-    try ip route replace 192.168.0.0/16 via ${default_route} || true
+    ip route | grep kernel | while read line; do
+        try ip route add $line table ${rule_table} || true
+    done
+    # try ip route replace 10.0.0.0/8     via ${default_route} table ${rule_table} || true
+    # try ip route replace 172.16.0.0/12  via ${default_route} table ${rule_table} || true
+    # try ip route replace 192.168.0.0/16 via ${default_route} table ${rule_table} || true
 }
 
 main() {
