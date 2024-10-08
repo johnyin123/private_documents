@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("2226107[2024-09-20T08:48:26+08:00]:build.sh")
+VERSION+=("8f67c00[2024-09-23T09:33:15+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
 CONFIG_HZ=${CONFIG_HZ:-100}
@@ -856,6 +856,8 @@ common_config() {
         --enable CONFIG_AIO \
         --enable CONFIG_BLOCK \
         --enable CONFIG_IO_URING
+    scripts/config --disable CONFIG_COMPAT \
+        --disable CONFIG_ARM64_PSEUDO_NMI
 }
 gen_usb_otg_devicetree() {
     log "edit arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts:"
