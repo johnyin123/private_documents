@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("002de0a[2024-08-22T08:17:00+08:00]:mk_nginx.sh")
+VERSION+=("0fdec05[2024-09-25T13:12:08+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -573,8 +573,7 @@ log_format main '$hostname $scheme $http_host $server_port "$upstream_addr" '
     '[$request_time|"$upstream_response_time"|"$upstream_status"] '
     '$remote_addr - $remote_user [$time_iso8601] "$request" '
     '$status $request_length $bytes_sent "$http_referer" '
-    '"$http_user_agent" "$http_x_forwarded_for" "$upstream_cache_status" $gzip_ratio';
-    #$brotli_ratio
+    '"$http_user_agent" "$http_x_forwarded_for" "$upstream_cache_status" $gzip_ratio $brotli_ratio';
 
 geo $remote_addr $log_ip {
 #    10.3.0.0/16 0;
@@ -596,13 +595,13 @@ access_log /var/log/nginx/access.log main buffer=512k flush=5m if=$log_ip;
 # access_log /var/log/nginx/access_$status.log
 
 # # error log
-error_log /var/log/nginx/error.log info;
+error_log /var/log/nginx/error.log error;
 EOF
 write_file "${OUTDIR}/etc/nginx/stream-conf.d/streamlog.conf" <<'EOF'
 log_format basic '$remote_addr [$time_iso8601] $protocol $status $bytes_sent $bytes_received '
     '$session_time "$upstream_addr" "$upstream_bytes_sent" "$upstream_bytes_received" "$upstream_connect_time"';
 access_log /var/log/nginx/stream_access.log basic buffer=512k flush=5m;
-error_log /var/log/nginx/stream_error.log info;
+error_log /var/log/nginx/stream_error.log error;
 EOF
 write_file "${OUTDIR}/etc/nginx/modules.d/brotli.conf" <<'EOF'
 load_module modules/ngx_http_brotli_filter_module.so;
