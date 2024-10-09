@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 LC_ALL=C
 LANG=C
-VERSION+=("xfs_backup.sh - 7d7f553 - 2021-09-08T08:19:14+08:00")
+VERSION+=("f84de3e[2021-09-08T08:21:25+08:00]:xfs_backup.sh")
 ################################################################################
 #KEEP_FULL=
 ZIP=${ZIP:-}
@@ -93,4 +93,7 @@ lvremove -f "/dev/${VG}/${SNAPVOL}"
 xfsrestore -I
 xfsrestore  -f ${BACKUP_DIR}/${LABEL}_0 restore/
 xfsrestore  -f ${BACKUP_DIR}/${LABEL}_1 restore/
+# # demo, backup system and restore
+tar cvpzf backup.tgz –exclude=/proc –exclude=/lost+found –exclude=/backup.tgz –exclude=/mnt –exclude=/sys /
+tar xvpfz backup.tgz -C /
 EOF
