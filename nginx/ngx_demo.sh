@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0b072cd[2024-09-23T09:54:28+08:00]:ngx_demo.sh")
+VERSION+=("8a1b1f8[2024-09-25T12:46:02+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4523,6 +4523,8 @@ server {
         proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout                 900;
+        proxy_buffering                    off;
+        proxy_request_buffering            off;
     }
 }
 EOF
