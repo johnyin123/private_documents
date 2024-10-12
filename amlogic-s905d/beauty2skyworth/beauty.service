@@ -1,0 +1,9 @@
+[Unit]
+Description=beauty r1 enum SKYWORTH remote control
+After=graphical.target
+    
+[Service]
+ExecStart=/usr/sbin/beauty
+
+[Install]
+WantedBy=graphical.target
