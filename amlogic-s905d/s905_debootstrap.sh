@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a8b9289[2024-09-23T08:38:32+08:00]:s905_debootstrap.sh")
+VERSION+=("bf96dad[2024-09-25T09:05:50+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1064,6 +1064,9 @@ cat <<EOF>${ROOT_DIR}/etc/motd
     pactl set-card-profile <Name> <Profile>
 15.wg-quick up client/work
 16.rm -rf /var/cache/minidlna/ && systemctl restart minidlna
+17./etc/systemd/journald.conf
+    Storage=persistent # /var/log/journal
+    Storage=volatile   # /run/log/journal
 EOF
 
 cat <<'EOF'> ${ROOT_DIR}/usr/bin/overlayroot-chroot
