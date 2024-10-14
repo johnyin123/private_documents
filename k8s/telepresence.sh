@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1f2cbfc[2024-10-14T14:56:18+08:00]:telepresence.sh")
+VERSION+=("2275dae[2024-10-14T15:10:59+08:00]:telepresence.sh")
 ################################################################################
 REGISTRY=${REGISTRY:-}
 TYPE=${TYPE:-ServiceAccount} #ServiceAccount/User
@@ -80,6 +80,7 @@ create_serviceaccount() {
     local user_ns=${2}
     log "Crate ServiceAccount ${user}" 
     # kubectl get secret -n ${user_ns} | grep ${user} && return
+    # kubectl create serviceaccount
     cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ServiceAccount
