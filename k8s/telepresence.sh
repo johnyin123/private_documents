@@ -7,13 +7,16 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4acb588[2024-10-12T10:27:58+08:00]:telepresence.sh")
+VERSION+=("1f2cbfc[2024-10-14T14:56:18+08:00]:telepresence.sh")
 ################################################################################
 REGISTRY=${REGISTRY:-}
 TYPE=${TYPE:-ServiceAccount} #ServiceAccount/User
 USER=${1:?usage, TYPE=[User|ServiceAccount] REGISTRY=registry.local $0 <user> [userns]}
 USER_NS=${2:-${USER}-namespace}
-
+cat<<EOF
+UserAccount是给k8s外部用户使用，如运维或者集群管理人员，使用kubectl命令时用的就是UserAccount账户；UserAccount是全局性。在集群所有namespaces中，名称具有唯一性；
+ServiceAccount是给运行在Pod的程序使用的身份认证，ServiceAccount仅局限它所在的namespace
+EOF
 log() { GREEN='\033[32m'; NC='\033[0m'; printf "[${GREEN}$(date +'%Y-%m-%dT%H:%M:%S.%2N%z')${NC}]%b\n" "---- $@"; }
 log "Confirm env(5 seconds): USER=${USER}, NAMESPACE=${USER_NS}, TYPE=${TYPE}${REGISTRY:+, REGISTRY=${REGISTRY}}" && sleep 5
 log "Install ${USER_NS}/telepresence"
