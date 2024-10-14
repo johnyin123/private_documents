@@ -8,7 +8,7 @@
 
 #include <linux/input.h>
 #include "beauty.h"
-#include "skyenum.h"
+#include "skyemu.h"
 #define debugln(...) if(env.verbose) fprintf(stderr, __VA_ARGS__)
 
 struct env {
@@ -72,27 +72,27 @@ static void setbutton(struct input_event *ev) {
     /*button release*/
     if (beauty_state.x==148 && beauty_state.y==-375) {
         debugln("DOKEY:--> %s\n", "Enter");
-        skyinput(beauty_state.skyfd, SKY_COMPOSE);
+        skyinput(beauty_state.skyfd, KEY_COMPOSE);
     }
     else if (beauty_state.x==148 && beauty_state.y==-30) {
         debugln("DOKEY:--> %s\n", "Photo");
-        skyinput(beauty_state.skyfd, SKY_ESC);
+        skyinput(beauty_state.skyfd, KEY_ESC);
     }
     else if (beauty_state.x==-80 && beauty_state.y==-354) {
         debugln("DOKEY:--> %s\n", "Right");
-        skyinput(beauty_state.skyfd, SKY_RIGHT);
+        skyinput(beauty_state.skyfd, KEY_RIGHT);
     }
     else if (beauty_state.x==80 && beauty_state.y==-354) {
         debugln("DOKEY:--> %s\n", "Left");
-        skyinput(beauty_state.skyfd, SKY_LEFT);
+        skyinput(beauty_state.skyfd, KEY_LEFT);
     }
     else if (beauty_state.x==148 && beauty_state.y==77) {
         debugln("DOKEY:--> %s\n", "Up");
-        skyinput(beauty_state.skyfd, SKY_UP);
+        skyinput(beauty_state.skyfd, KEY_UP);
     }
     else if (beauty_state.x==148 && beauty_state.y==-76) {
         debugln("DOKEY:--> %s\n", "Down");
-        skyinput(beauty_state.skyfd, SKY_DOWN);
+        skyinput(beauty_state.skyfd, KEY_DOWN);
     }
 }
 int main(int argc, char *argv[])

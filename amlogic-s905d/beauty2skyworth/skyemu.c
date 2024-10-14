@@ -9,7 +9,6 @@
 #include <unistd.h>
 #include <linux/uhid.h>
 #include <linux/uinput.h>
-#include "skyenum.h"
 
 /*https://eleccelerator.com/usbdescreqparser/*/
 /*dump from SKYWORTH_0120 Keyboard*/
@@ -171,18 +170,18 @@ int create_uinput()
 }
 int skyinput(int fd, int skykey) {
     switch (skykey) {
-        case SKY_POWER:   return keyinput(fd, &KPOWER,   &EORPT1); 
-        case SKY_COMPOSE: return keyinput(fd, &KCOMPOSE, &EORPT1);
-        case SKY_SELECT:  return keyinput(fd, &KSELECT,  &EORPT2);
-        case SKY_UP:      return keyinput(fd, &KUP,      &EORPT1);
-        case SKY_DOWN:    return keyinput(fd, &KDOWN,    &EORPT1);
-        case SKY_LEFT:    return keyinput(fd, &KLEFT,    &EORPT1);
-        case SKY_RIGHT:   return keyinput(fd, &KRIGHT,   &EORPT1);
-        case SKY_ESC:     return keyinput(fd, &KESC,     &EORPT1);
-        case SKY_F5:      return keyinput(fd, &KF5,      &EORPT1);
-        case SKY_VOLUP:   return keyinput(fd, &KVOLUP,   &EORPT2);
-        case SKY_VOLDOWN: return keyinput(fd, &KVOLDOWN, &EORPT2);
-        default:          return -EFAULT;
+        case KEY_POWER:      return keyinput(fd, &KPOWER,   &EORPT1); 
+        case KEY_COMPOSE:    return keyinput(fd, &KCOMPOSE, &EORPT1);
+        case KEY_SELECT:     return keyinput(fd, &KSELECT,  &EORPT2);
+        case KEY_UP:         return keyinput(fd, &KUP,      &EORPT1);
+        case KEY_DOWN:       return keyinput(fd, &KDOWN,    &EORPT1);
+        case KEY_LEFT:       return keyinput(fd, &KLEFT,    &EORPT1);
+        case KEY_RIGHT:      return keyinput(fd, &KRIGHT,   &EORPT1);
+        case KEY_F5:         return keyinput(fd, &KESC,     &EORPT1);
+        case KEY_ESC:        return keyinput(fd, &KF5,      &EORPT1);
+        case KEY_VOLUMEUP:   return keyinput(fd, &KVOLUP,   &EORPT2);
+        case KEY_VOLUMEDOWN: return keyinput(fd, &KVOLDOWN, &EORPT2);
+        default:             return -EFAULT;
     }
 }
 // int fd = create_uinput(path);
