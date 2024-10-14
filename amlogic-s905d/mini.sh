@@ -7,12 +7,12 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("32b694c[2024-09-11T18:53:29+08:00]:mini.sh")
+VERSION+=("6b4359d[2024-09-25T08:37:29+08:00]:mini.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
 ROOTFS=${1:?rootfs need input}
-
+IP=${IP:-192.168.168.2}
 chroot ${ROOTFS}/ /bin/bash -xs <<EOF
     rm -fr /usr/share/man/* /var/log/*
     debian_minimum_init
@@ -51,11 +51,11 @@ rsync -avzP --numeric-ids \\
     --exclude=/etc/wifi_mode.conf \\
     --exclude=boot \\
     --delete \\
-    ${ROOTFS}/ root@${IP:-10.32.166.32}:/overlay/lower/
+    ${ROOTFS}/ root@${IP}:/overlay/lower/
 
 # # sync boot partition.
 rsync -avzP --numeric-ids \\
     -e 'ssh -p60022' \\
     --delete \\
-    ${ROOTFS}/boot/ root@${IP:-10.32.166.32}:/boot/
+    ${ROOTFS}/boot/ root@${IP}:/boot/
 EOF
