@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("8f67c00[2024-09-23T09:33:15+08:00]:build.sh")
+VERSION+=("4d9df2e[2024-10-08T08:07:35+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
 CONFIG_HZ=${CONFIG_HZ:-100}
@@ -32,10 +32,11 @@ GREEN='\033[32m'
 NC='\033[0m'
 log() { printf "[${GREEN}$(date +'%Y-%m-%dT%H:%M:%S.%2N%z')${NC}]${RED}%b${NC}\n" "$@"; }
 ##################################################
-echo "build bpftool: apt -y install llvm && cd tools/bpf/bpftool && make"
-echo "build perf, cd tools/perf && make"
+log "build bpftool: apt -y install llvm && cd tools/bpf/bpftool && make"
+log "build perf, cd tools/perf && make"
 
 [ -e "${DIRNAME}/gcc-aarch64" ] && {
+    log "https://mirrors.edge.kernel.org/pub/tools/crosstool/"
     export PATH=${DIRNAME}/gcc-aarch64/bin/:$PATH
     export CROSS_COMPILE=aarch64-linux-
 } || {
@@ -988,14 +989,4 @@ rm .config
 make tinyconfig
 make kvm_guest.config
 make kvmconfig
-./scripts/config \
-        -e EARLY_PRINTK \
-        -e 64BIT \
-        -e BPF -d EMBEDDED -d EXPERT \
-        -e INOTIFY_USER
-
-./scripts/config \
-        -e VIRTIO -e VIRTIO_PCI -e VIRTIO_MMIO \
-        -e SMP
-....
 EOF
