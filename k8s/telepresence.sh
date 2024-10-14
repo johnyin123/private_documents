@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-10-12T10:27:58+08:00]:telepresence.sh")
+VERSION+=("4acb588[2024-10-12T10:27:58+08:00]:telepresence.sh")
 ################################################################################
 REGISTRY=${REGISTRY:-}
 TYPE=${TYPE:-ServiceAccount} #ServiceAccount/User
@@ -21,13 +21,23 @@ telepresence helm install --namespace ${USER_NS} ${REGISTRY:+--set image.registr
 
 gen_client_config() {
     local user=${1}
+# USER=user1
+# USER_NS=test
+# K8S_CA_CRT=ca.crt
+# kubectl config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}'| base64 -d > ${K8S_CA_CRT}
+# CLUSTER=$(kubectl config view -o jsonpath='{.clusters[0].name}')
+# CLUSTER_URL=$(kubectl config view -o jsonpath='{.clusters[0].cluster.server}')
+# kubectl config set-cluster ${CLUSTER} --certificate-authority=${K8S_CA_CRT} --embed-certs=true --server=${CLUSTER_URL} --kubeconfig=${USER}.kubeconfig
+# kubectl config set-credentials ${USER} --client-certificate=${USER}.crt --client-key=${USER}.key --embed-certs=true --kubeconfig=${USER}.kubeconfig
+# kubectl config set-context ${USER}-context --namespace=${USER_NS} --cluster=${CLUSTER} --user=${USER} --kubeconfig=${USER}.kubeconfig
+# kubectl config use-context ${USER}-context --kubeconfig=${USER}.kubeconfig
     cat <<EOF
 apiVersion: v1
 kind: Config
 clusters:
 - cluster:
-$(kubectl config view --raw | grep "\s*certificate-authority-data")
-$(kubectl config view --raw | grep "\s*server")
+  certificate-authority-data: $(kubectl config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}')
+  server: $(kubectl config view -o jsonpath='{.clusters[0].cluster.server}')
   name: kubernetes
 contexts:
 - name: ${user}-context
