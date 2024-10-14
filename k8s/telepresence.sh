@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2275dae[2024-10-14T15:10:59+08:00]:telepresence.sh")
+VERSION+=("c1db572[2024-10-14T15:57:09+08:00]:telepresence.sh")
 ################################################################################
 REGISTRY=${REGISTRY:-}
 TYPE=${TYPE:-ServiceAccount} #ServiceAccount/User
@@ -22,18 +22,33 @@ log "Confirm env(5 seconds): USER=${USER}, NAMESPACE=${USER_NS}, TYPE=${TYPE}${R
 log "Install ${USER_NS}/telepresence"
 telepresence helm install --namespace ${USER_NS} ${REGISTRY:+--set image.registry=${REGISTRY}/datawire --set image.name=tel2} --set 'managerRbac.namespaced=true' --set "managerRbac.namespaces={${USER_NS}}"
 
+gen_client_config2() {
+    local type=${1}
+    local user=${2}
+    local user_ns=${3}
+    log "Gen ${type} config for client, ${user}.kubeconfig"
+    kubectl config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}'| base64 -d > ca.crt
+    local CLUSTER=$(kubectl config view -o jsonpath='{.clusters[0].name}')
+    local CLUSTER_URL=$(kubectl config view -o jsonpath='{.clusters[0].cluster.server}')
+    kubectl config set-cluster ${CLUSTER} --certificate-authority=ca.crt --embed-certs=true --server=${CLUSTER_URL} --kubeconfig=${user}.kubeconfig
+    case "${type}" in
+        ########################################
+        User)
+            kubectl config set-credentials ${user} --client-certificate=${user}.crt --client-key=${user}.key --embed-certs=true --kubeconfig=${user}.kubeconfig
+            ;;
+        ServiceAccount)
+            local SA_SECRET=$(kubectl get ServiceAccount -n ${USER_NS} ${USER} -o jsonpath='{.secrets[0].name}')
+            local BEARER_TOKEN=$(kubectl get secrets -n ${USER_NS} ${SA_SECRET} -o jsonpath='{.data.token}' | base64 -d)
+            kubectl config set-credentials ${user} --token=${BEARER_TOKEN} --kubeconfig=${user}.kubeconfig
+            ;;
+        *)  log "Unexpected TYPE: ${TYPE}"; exit 9;;
+    esac
+    kubectl config set-context ${user}-context --namespace=${user_ns} --cluster=${CLUSTER} --user=${user} --kubeconfig=${user}.kubeconfig
+    kubectl config use-context ${user}-context --kubeconfig=${user}.kubeconfig
+}
+
 gen_client_config() {
     local user=${1}
-# USER=user1
-# USER_NS=test
-# K8S_CA_CRT=ca.crt
-# kubectl config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}'| base64 -d > ${K8S_CA_CRT}
-# CLUSTER=$(kubectl config view -o jsonpath='{.clusters[0].name}')
-# CLUSTER_URL=$(kubectl config view -o jsonpath='{.clusters[0].cluster.server}')
-# kubectl config set-cluster ${CLUSTER} --certificate-authority=${K8S_CA_CRT} --embed-certs=true --server=${CLUSTER_URL} --kubeconfig=${USER}.kubeconfig
-# kubectl config set-credentials ${USER} --client-certificate=${USER}.crt --client-key=${USER}.key --embed-certs=true --kubeconfig=${USER}.kubeconfig
-# kubectl config set-context ${USER}-context --namespace=${USER_NS} --cluster=${CLUSTER} --user=${USER} --kubeconfig=${USER}.kubeconfig
-# kubectl config use-context ${USER}-context --kubeconfig=${USER}.kubeconfig
     cat <<EOF
 apiVersion: v1
 kind: Config
@@ -59,20 +74,15 @@ create_user() {
     local K8SCA=/etc/kubernetes/pki/ca.crt
     local K8SKEY=/etc/kubernetes/pki/ca.key
     log "Create User ${user} if not exist"
-    kubectl config get-users | grep -q "${user}" || {
+    kubectl config get-users | grep -q "${user}" && {
+        log "User ${user} exist!!!!!"
+    } || {
         openssl genrsa -out ${user}.key 2048
         openssl req -new -key ${user}.key -subj "/CN=${user}/O=tsd.org" -out ${user}.csr
         openssl x509 -req -in ${user}.csr -CA ${K8SCA} -CAkey ${K8SKEY} -CAcreateserial -out ${user}.crt -days 365
         # 生成账号
         kubectl config set-credentials ${user} --client-certificate=${user}.crt --client-key=${user}.key --embed-certs=true
-        log "Gen User config for client, ${user}@${user_ns}.config.yaml"
-        gen_client_config ${user} > ${user}@${user_ns}.config.yaml
-        cat <<EOF >> ${user}@${user_ns}.config.yaml
-    client-certificate-data: $(cat ${user}.crt | base64 -w0)
-    client-key-data: $(cat ${user}.key | base64 -w0)
-# kubectl config set-context ${user}-context --namespace=${user_ns}
-# kubectl config use-context ${user}-context
-EOF
+        gen_client_config2 "User" "${user}" "${user_ns}"
     }
 }
 create_serviceaccount() {
@@ -88,14 +98,7 @@ metadata:
   name: ${user}
   namespace: ${user_ns}
 EOF
-    log "Gen ServiceAccount config for client, ${user}@${user_ns}.config.yaml"
-    gen_client_config ${user} > ${user}@${user_ns}.config.yaml
-    # sync && sleep 1
-    cat <<EOF >> ${user}@${user_ns}.config.yaml
-    token: $(kubectl get secret -n ${user_ns} $(kubectl get secret -n ${user_ns} | awk "/${user}/{print \$1}") -o jsonpath='{.data.token}' | base64 -d)
-# kubectl config set-context ${user}-context --namespace=${user_ns}
-# kubectl config use-context ${user}-context
-EOF
+    gen_client_config2 "ServiceAccount" "${user}" "${user_ns}"
 }
 
 ############################################################
