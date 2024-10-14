@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c1db572[2024-10-14T15:57:09+08:00]:telepresence.sh")
+VERSION+=("3e1c1c7[2024-10-14T16:52:41+08:00]:telepresence.sh")
 ################################################################################
 REGISTRY=${REGISTRY:-}
 TYPE=${TYPE:-ServiceAccount} #ServiceAccount/User
@@ -45,6 +45,7 @@ gen_client_config2() {
     esac
     kubectl config set-context ${user}-context --namespace=${user_ns} --cluster=${CLUSTER} --user=${user} --kubeconfig=${user}.kubeconfig
     kubectl config use-context ${user}-context --kubeconfig=${user}.kubeconfig
+    rm -f ca.crt
 }
 
 gen_client_config() {
@@ -83,6 +84,7 @@ create_user() {
         # 生成账号
         kubectl config set-credentials ${user} --client-certificate=${user}.crt --client-key=${user}.key --embed-certs=true
         gen_client_config2 "User" "${user}" "${user_ns}"
+        rm -f ${user}.csr ${user}.crt ${user}.key
     }
 }
 create_serviceaccount() {
