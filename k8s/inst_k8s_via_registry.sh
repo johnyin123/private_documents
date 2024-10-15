@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dc808b0[2024-09-23T13:58:32+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("746d273[2024-10-15T15:24:55+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -333,7 +333,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
     on all nodes:
         echo '192.168.168.xxx     registry.local'>> /etc/hosts
         wget --no-check-certificate -O /etc/yum.repos.d/cnap.repo http://registry.local/cnap/cnap.repo
-        yum -y --enablerepo=cnap install tsd_cnap_v1.27.3
+        yum -y --enablerepo=cnap install tsd_cnap_v1.27.3 bash-completion # keepalived
 # # init new cluster
 ${SCRIPTNAME} -m 192.168.168.150 --pod_cidr 172.16.0.0/24 --ipvs --insec_registry 192.168.168.250 --apiserver myserver:6443
 # # make api ha
