@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4dadf6c[2024-05-29T09:43:30+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("dc808b0[2024-09-23T13:58:32+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -336,6 +336,8 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         yum -y --enablerepo=cnap install tsd_cnap_v1.27.3
 # # init new cluster
 ${SCRIPTNAME} -m 192.168.168.150 --pod_cidr 172.16.0.0/24 --ipvs --insec_registry 192.168.168.250 --apiserver myserver:6443
+# # make api ha
+post_k8s_cluster_api_ha.sh
 # # add worker in exists cluster
 ${SCRIPTNAME} --only_add_worker -m 192.168.168.150 -w 192.168.168.151 --insec_registry 192.168.168.250
 # # add master in exists cluster
