@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9818f9d[2024-10-10T16:58:57+08:00]:ngx_demo.sh")
+VERSION+=("8d14456[2024-10-15T07:30:33+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -433,12 +433,21 @@ server {
 upstream base {
     server 127.0.0.1:8001 fail_timeout=5s max_fails=3;
 }
+map $yumcache $yumexpires {
+    2       2000d;
+    1       1d;
+    default off; # or some other default value
+}
+map $uri $yumcache {
+    ~*\.(rpm)$        2;
+    ~*\.(xml|gz|bz2)$ 1;
+}
 server {
     listen 80;
     server_name _;
     root /opt/repos/;
     location /openeuler/ {
-        location ~ (.xml|.gz|.bz2)$ {
+        location ~* .(xml|gz|bz2|rpm)$ {
             proxy_store on;
             proxy_temp_path /opt/repos/;
             proxy_set_header Accept-Encoding identity;
@@ -448,20 +457,7 @@ server {
                 proxy_pass http://base;
             }
             if ( -e $request_filename ) {
-                expires 1d; #保存1天
-            }
-        }
-        location ~ .rpm$ {
-            proxy_store on;
-            proxy_temp_path /opt/repos/;
-            proxy_set_header Accept-Encoding identity;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_next_upstream error http_502;
-            if ( !-e $request_filename ) {
-                proxy_pass http://base;
-            }
-            if ( -e $request_filename ) {
-                expires 2000d;
+                expires $yumexpires;
             }
         }
     }
