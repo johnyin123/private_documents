@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d2fff65[2024-10-14T16:55:05+08:00]:telepresence.sh")
+VERSION+=("1c218f0[2024-10-15T09:07:07+08:00]:telepresence.sh")
 ################################################################################
 REGISTRY=${REGISTRY:-}
 TYPE=${TYPE:-ServiceAccount} #ServiceAccount/User
@@ -50,6 +50,7 @@ spec:
   - system:authenticated
   usages:
   - digital signature
+  - key encipherment
   - client auth
   request: "$(cat ${user}.csr | base64 -w0)"
   ${expire:+expirationSeconds: ${expire}}
@@ -158,7 +159,7 @@ cat <<EOF | kubectl apply -f -
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name:  telepresence-role
+  name: telepresence-role
   namespace: ${USER_NS}
 rules:
 - apiGroups: ['']
