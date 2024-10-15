@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3e1c1c7[2024-10-14T16:52:41+08:00]:telepresence.sh")
+VERSION+=("d2fff65[2024-10-14T16:55:05+08:00]:telepresence.sh")
 ################################################################################
 REGISTRY=${REGISTRY:-}
 TYPE=${TYPE:-ServiceAccount} #ServiceAccount/User
@@ -16,11 +16,49 @@ USER_NS=${2:-${USER}-namespace}
 cat<<EOF
 UserAccount是给k8s外部用户使用，如运维或者集群管理人员，使用kubectl命令时用的就是UserAccount账户；UserAccount是全局性。在集群所有namespaces中，名称具有唯一性；
 ServiceAccount是给运行在Pod的程序使用的身份认证，ServiceAccount仅局限它所在的namespace
+Subjects
+    User account
+    Service account
+    Group
+Role Types
+    Role
+        Role can only be used to grant access to resources within a single namespace.
+    ClusterRole
+        ClusterRole are clusterscoped
+Binding Types
+    RoleBinding
+    ClusterRoleBinding
 EOF
 log() { GREEN='\033[32m'; NC='\033[0m'; printf "[${GREEN}$(date +'%Y-%m-%dT%H:%M:%S.%2N%z')${NC}]%b\n" "---- $@"; }
 log "Confirm env(5 seconds): USER=${USER}, NAMESPACE=${USER_NS}, TYPE=${TYPE}${REGISTRY:+, REGISTRY=${REGISTRY}}" && sleep 5
 log "Install ${USER_NS}/telepresence"
 telepresence helm install --namespace ${USER_NS} ${REGISTRY:+--set image.registry=${REGISTRY}/datawire --set image.name=tel2} --set 'managerRbac.namespaced=true' --set "managerRbac.namespaces={${USER_NS}}"
+
+gen_ssl_cert() {
+    local user=${1}
+    expire=${2:-}
+    # 86400 one day
+    openssl req -new -newkey rsa:4096 -nodes -keyout ${user}.key -out ${user}.csr -subj "/CN=${user}/O=tsd.org"
+    cat <<EOF | kubectl create -f -
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: ${user}
+spec:
+  signerName: kubernetes.io/kube-apiserver-client
+  groups:
+  - system:authenticated
+  usages:
+  - digital signature
+  - client auth
+  request: "$(cat ${user}.csr | base64 -w0)"
+  ${expire:+expirationSeconds: ${expire}}
+EOF
+    kubectl get csr
+    kubectl certificate approve ${user}
+    # kubectl certificate deny ${user}
+    kubectl get csr ${user} -o jsonpath='{.status.certificate}' | base64 -d > ${user}.crt
+}
 
 gen_client_config2() {
     local type=${1}
@@ -78,8 +116,9 @@ create_user() {
     kubectl config get-users | grep -q "${user}" && {
         log "User ${user} exist!!!!!"
     } || {
-        openssl genrsa -out ${user}.key 2048
+        openssl genrsa -out ${user}.key 4096
         openssl req -new -key ${user}.key -subj "/CN=${user}/O=tsd.org" -out ${user}.csr
+        # openssl req -new -newkey rsa:4096 -nodes -keyout ${user}.key -out ${user}.csr -subj "/CN=${user}/O=tsd.org"
         openssl x509 -req -in ${user}.csr -CA ${K8SCA} -CAkey ${K8SKEY} -CAcreateserial -out ${user}.crt -days 365
         # 生成账号
         kubectl config set-credentials ${user} --client-certificate=${user}.crt --client-key=${user}.key --embed-certs=true
