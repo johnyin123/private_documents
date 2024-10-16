@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1c218f0[2024-10-15T09:07:07+08:00]:telepresence.sh")
+VERSION+=("4b69d34[2024-10-15T09:57:42+08:00]:telepresence.sh")
 ################################################################################
 REGISTRY=${REGISTRY:-}
 TYPE=${TYPE:-ServiceAccount} #ServiceAccount/User
@@ -69,6 +69,7 @@ gen_client_config2() {
     kubectl config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}'| base64 -d > ca.crt
     local CLUSTER=$(kubectl config view -o jsonpath='{.clusters[0].name}')
     local CLUSTER_URL=$(kubectl config view -o jsonpath='{.clusters[0].cluster.server}')
+    log "can add --insecure-skip-tls-verify=true"
     kubectl config set-cluster ${CLUSTER} --certificate-authority=ca.crt --embed-certs=true --server=${CLUSTER_URL} --kubeconfig=${user}.kubeconfig
     case "${type}" in
         ########################################
