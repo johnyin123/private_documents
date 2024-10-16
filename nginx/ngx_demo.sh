@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d1af544[2024-10-16T07:59:10+08:00]:ngx_demo.sh")
+VERSION+=("608f3e2[2024-10-16T18:35:03+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -261,8 +261,6 @@ server {
     ssl_trusted_certificate /etc/nginx/ssl/ca.pem;
     location / {
         return 200 "value=$http2";
-        # proxy_http_version 1.1;
-        # proxy_set_header Connection "";
         # proxy_pass http://test.com/;
     }
 }
@@ -424,8 +422,6 @@ server {
     listen 127.0.0.1:8001;
     server_name $host;
     location /openeuler/ {
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header Host 'mirrors.aliyun.com';
         proxy_pass https://repo_mirror/openeuler/;
     }
@@ -451,7 +447,6 @@ server {
             proxy_store on;
             proxy_temp_path /opt/repos/;
             proxy_set_header Accept-Encoding identity;
-            proxy_set_header X-Real-IP $remote_addr;
             proxy_next_upstream error http_502;
             if ( !-e $request_filename ) {
                 proxy_pass http://base;
@@ -1385,7 +1380,6 @@ cat <<'EOF' > stream_https_proxy.stream
 #     listen 80;
 #     server_name _;
 #     location / {
-#         proxy_set_header Host $http_host;
 #         proxy_max_temp_file_size 0k;
 #         if ($allowed) {
 #             proxy_pass $scheme://$host$request_uri;
@@ -1439,7 +1433,6 @@ server {
     # forward proxy for non-CONNECT request
     location / {
         proxy_pass $scheme://$http_host;
-        proxy_set_header Host $http_host;
         proxy_max_temp_file_size 0k;
     }
 }
@@ -1469,12 +1462,6 @@ server {
         # proxy_method      POST;
         # proxy_set_body    "token=$http_apikey&token_hint=access_token";
         proxy_pass $scheme://$host$request_uri;
-        proxy_set_header Host $http_host;
-        # $http_host equals always the HTTP_HOST request header.
-        # $host equals $http_host, lowercase and without the port number (if present),
-        #    except when HTTP_HOST is absent or is an empty value.
-        #    In that case, $host equals the value of the server_name directive
-        #    of the server which processed the request.
         proxy_max_temp_file_size 0k;
     }
 }
@@ -1496,7 +1483,6 @@ server {
         # whether the original request body is passed to the proxied server
         proxy_pass_request_body off;
         proxy_set_header Content-Length "";
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
 EOF
@@ -1523,7 +1509,6 @@ server {
         # whether the original request body is passed to the proxied server
         proxy_pass_request_body off;
         proxy_set_header Content-Length "";
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
 EOF
@@ -1578,7 +1563,6 @@ server {
             set $token "$1";
         }
         proxy_set_header X-SHOPWARE-SSO-Token $token;
-        proxy_set_header Host $host;
         proxy_pass http://$dynamic$uri$is_args$args;
     }
 }
@@ -1602,7 +1586,6 @@ server {
     location / {
         proxy_pass http://backend;
         proxy_bind $split_ip;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
 }
 split_clients "$request_uri$remote_port" $split_ip {
@@ -2452,9 +2435,6 @@ server {
     server_name _;
     client_max_body_size 6000M;
     location / {
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
         proxy_hide_header x-amz-request-id;
         proxy_hide_header x-rgw-object-type;
         # # header_more module remove x-amz-request-id
@@ -2465,8 +2445,6 @@ server {
         xslt_stylesheet /etc/nginx/http-available/aws_s3_list.xslt;
         xslt_types application/xml;
         proxy_pass http://ceph_backend;
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
     }
 }
 server {
@@ -2493,8 +2471,6 @@ server {
         if ($secure_link = "0") { return 410; }
         client_max_body_size 2048m;
         proxy_max_temp_file_size 0;
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
         proxy_pass http://ceph_backend/public-bucket$uri;
     }
 }
@@ -2859,14 +2835,9 @@ server {
     }
     location ~ /download/(.*) {
         internal;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
         proxy_hide_header x-amz-request-id;
         proxy_hide_header x-rgw-object-type;
         proxy_pass http://my_ceph_backend/$1;
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
     }
 }
 EOF
@@ -2939,9 +2910,6 @@ server {
         deny all;
     }
     location @backend {
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header Host $host;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_pass http://127.0.0.1:8080;
     }
 }
@@ -3033,7 +3001,6 @@ server {
     listen 80;
     server_name _;
     proxy_set_header Host www.test.com;
-    #...more proxy_set_header...
     # for skip cdn
     location = /abc.png {
         proxy_pass https://www.test.com;
@@ -3088,11 +3055,6 @@ server {
     root /var/www/cache_static;
     # proxy_temp_path /var/lib/nginx/proxy;
     proxy_set_header Host www.test.com;
-    proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
     # # for no use gzip.
     proxy_set_header Accept-Encoding "";
 
@@ -3140,18 +3102,10 @@ server {
     root /var/www/cache_static;
     # proxy_temp_path /var/lib/nginx/proxy;
     proxy_set_header Host www.test.com;
-    proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
     # # for no use gzip.
     proxy_set_header Accept-Encoding "";
     # location ~* ^.+\.(?:css|cur|js|jpe?g|gif|htc|ico|png|html|xml|otf|ttf|eot|woff|woff2|svg)$ {
     #     root /var/lib/nginx/tmp/proxy/proxy_temp_path;
-    #     proxy_set_header Host $host;
-    #     proxy_set_header X-Real-IP $remote_addr;
-    #     proxy_set_header X-Forwarded-For  $proxy_add_x_forwarded_for;
     #     if (!-e $request_filename) {
     #         proxy_pass http://upstream;
     #     }
@@ -3190,11 +3144,6 @@ server {
     root /var/www/cache_static;
     # proxy_temp_path /var/lib/nginx/proxy;
     proxy_set_header Host www.test.com;
-    proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
     # # for no use gzip.
     proxy_set_header Accept-Encoding "";
 
@@ -3222,8 +3171,6 @@ server {
     location / {
         proxy_set_header Accept-Encoding "";
         proxy_pass https://www.test.com;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         add_header X-Cache-Status $upstream_cache_status;
         proxy_cache testcdn;
         proxy_cache_valid 200 304 30m;
@@ -3249,11 +3196,6 @@ server {
     listen 80;
     server_name www.test.com;
     proxy_set_header Host {{REAL_SERVER}};
-    proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
     # remove cdn key (real_server)
     proxy_set_header X-CDN "";
     # # for no use gzip.
@@ -3276,11 +3218,6 @@ server {
     server_name cdn.test.com;
     # proxy_temp_path /var/lib/nginx/proxy;
     proxy_set_header Host www.test.com;
-    proxy_http_version 1.1;
-    proxy_set_header Connection "";
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-    proxy_set_header X-Real-IP $remote_addr;
 
     proxy_set_header X-CDN af17c4f0a42b43bdbbd4204088f2a407;
     # remove cdn key (client)
@@ -3388,7 +3325,6 @@ server {
         # proxy_cache_methods GET HEAD POST;
         # proxy_cache_key $proxy_host$request_uri$cookie_jessionid;
         proxy_pass http://127.0.0.1:81;
-        proxy_set_header Host $host;
         # Make sure your backend does not return Set-Cookie header.
         # If Nginx sees it, it disables caching.
         # http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_ignore_headers
@@ -4266,9 +4202,6 @@ server {
             add_header 'Content-Length' 0;
             return 204;
         }
-        proxy_set_header host $host;
-        proxy_set_header X-real-ip $remote_addr;
-        proxy_set_header X-forward-for $proxy_add_x_forwarded_for;
         proxy_pass http://127.0.0.1:3000;
   }
 }
@@ -4400,8 +4333,6 @@ server {
     server_name _;
     location /chat/ {
         proxy_pass http://backend;
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
         # proxy_read_timeout 2s;
@@ -4514,10 +4445,6 @@ server {
         # auth_basic_user_file /etc/nginx/conf.d/nginx.htpasswd;
         add_header 'Docker-Distribution-Api-Version' $docker_distribution_api_version always;
         proxy_pass                         http://docker-registry;
-        proxy_set_header Host              $http_host;   # required for docker client's sake
-        proxy_set_header X-Real-IP         $remote_addr; # pass on real client's IP
-        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
         proxy_read_timeout                 900;
         proxy_buffering                    off;
         proxy_request_buffering            off;
@@ -4607,11 +4534,6 @@ server {
         try_files $uri @proxy;
     }
     location @proxy {
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header Host $http_host;
-        proxy_http_version 1.1;
-        proxy_set_header Connection "";
         proxy_pass http://portal_backend;
         # # Insert Google Analytics code to every HTML page
         # set $google_analytics_tracking_id 'UA-12345678-9';
@@ -4773,7 +4695,7 @@ ssl_buffer_size 1400;
 ssl_early_data on;
 # # Enabling Forward Secrecy
 # # openssl dhparam -out /etc/nginx/ssl/dh2048.pem 2048
-ssl_dhparam /etc/nginx/dh2048.pem;
+ssl_dhparam /etc/nginx/ssl/dh2048.pem;
 # # stapling, OCSP在线查询证书吊销情况
 # ssl_stapling on;
 # ssl_stapling_verify on;

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0fdec05[2024-09-25T13:12:08+08:00]:mk_nginx.sh")
+VERSION+=("8d66e20[2024-10-10T07:35:28+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -533,17 +533,6 @@ proxy_read_timeout 60s;
 proxy_send_timeout 60s;
 proxy_intercept_errors on;
 proxy_next_upstream error timeout invalid_header;
-# # if http-enabled config has proxy_set_header, need add below too!!!
-# # These directives are inherited from the previous configuration level
-# # if and only if there are no proxy_set_header directives defined on the current level
-proxy_set_header Host $host;
-proxy_set_header Connection "";
-proxy_http_version 1.1;
-proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-proxy_set_header X-Forwarded-Proto $scheme;
-proxy_set_header X-Real-IP $remote_addr;
-# # for no use gzip.
-proxy_set_header Accept-Encoding "";
 
 proxy_request_buffering on;
 # # limiting bandwidth speed in proxy and cache responses not work, if proxy_buffering is set to off.
@@ -556,6 +545,21 @@ proxy_max_temp_file_size 0;
 proxy_headers_hash_bucket_size 10240;
 proxy_headers_hash_max_size 102400;
 proxy_ignore_client_abort on;
+
+# # proxy headers
+proxy_set_header X-Real-IP         $remote_addr;
+proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+# $http_host equals always the HTTP_HOST request header.
+# $host equals $http_host, lowercase and without the port number (if present),
+#    except when HTTP_HOST is absent or is an empty value.
+#    In that case, $host equals the value of the server_name directive
+#    of the server which processed the request.
+proxy_set_header Host $host;
+proxy_http_version 1.1;
+proxy_set_header Connection "";
+# # for no use gzip.
+# proxy_set_header Accept-Encoding "";
 EOF
 
 write_file "${OUTDIR}/etc/nginx/http-conf.d/httplog.conf" <<'EOF'
