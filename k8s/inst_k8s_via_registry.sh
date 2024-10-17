@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("746d273[2024-10-15T15:24:55+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("3a9c8a5[2024-10-15T16:04:42+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -494,7 +494,12 @@ main() {
     info_msg "diag: kubectl -n kube-system get rs\n"
     info_msg "diag: kubectl -n kube-system scale --replicas=3 rs/coredns-xxxx\n"
     info_msg "diag: kubectl -n calico-system get configmaps\n"
-    info_msg "diag: kubectl -n kube-system edit configmaps kube-proxy -o yaml\n"
+    info_msg "diag: kubectl edit configmaps -n kube-system kubeadm-config\n"
+    info_msg "diag: kubectl edit configmaps -n kube-system kube-proxy\n"
+    info_msg "diag: kubectl edit deployment -n kube-system coredns\n"
+    info_msg "diag: kubectl edit service -n kube-system kube-dns\n"
+    info_msg "diag: kubectl get nodes\n"
+    info_msg "diag: kubectl edit node <node>\n"
     info_msg "diag: kubectl -n kube-system exec -it etcd-node-xxxx -- /bin/sh\n"
     info_msg "diag: calicoctl get workloadendpoints -A\n"
     info_msg "diag: calicoctl node status\n"
