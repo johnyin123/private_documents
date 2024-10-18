@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a467360[2024-10-17T06:52:51+08:00]:ngx_demo.sh")
+VERSION+=("ce6af1e[2024-10-18T08:18:27+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4441,6 +4441,7 @@ server {
             # allow 192.168.168.0/24;
             deny all;
         }
+        client_max_body_size               1024M;
         # Do not allow connections from docker 1.5 and earlier
         # docker pre-1.6.0 did not properly set the user agent on ping, catch "Go *" user agents
         if ($http_user_agent ~ "^(docker\/1\.(3|4|5(?!\.[0-9]-dev))|Go ).*$" ) {
