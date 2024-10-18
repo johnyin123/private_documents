@@ -3,6 +3,9 @@ readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 PASSWORD=${PASSWORD:-}
 mkdir -p "${DIRNAME}/data"
 [ -z "${PASSWORD}" ] || htpasswd -Bbn admin ${PASSWORD} > ${DIRNAME}/registry.password
+
+echo 'https://github.com/distribution/distribution'
+
 cat <<EOF > "${DIRNAME}/config.yml"
 version: 0.1
 log:
