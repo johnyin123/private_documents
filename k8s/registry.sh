@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("7ce2548[2023-08-11T13:08:42+08:00]:registry.sh")
+VERSION+=("ca28dd2[2023-08-14T14:04:01+08:00]:registry.sh")
 ################################################################################
 cat <<EOF
 https://github.com/distribution/distribution/releases/download/v2.8.2/registry_2.8.2_linux_amd64.tar.gz
@@ -23,36 +23,6 @@ echo "add <registry_addr>:5000 in docker daemon.json insecure-registries: [ ip, 
 docker login --username admin --password-stdin localhost:5000
 mkdir -p $(cat /etc/docker/registry/config.yml | sed --quiet -E 's/\s*rootdirectory\s*:\s*(.*)/\1/p')
 chown docker-registry:docker-registry -R $(cat /etc/docker/registry/config.yml | sed --quiet -E 's/\s*rootdirectory\s*:\s*(.*)/\1/p')
-cat <<'EOF_SHELL'
-#!/usr/bin/env bash
-readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-mkdir -p "${DIRNAME}/data"
-cat <<EOF > "${DIRNAME}/config.yml"
-version: 0.1
-log:
-  fields:
-    service: registry
-storage:
-  cache:
-    blobdescriptor: inmemory
-  filesystem:
-    rootdirectory: ${DIRNAME}/data
-  delete:
-    enabled: true
-      #  readonly:
-      #    enabled: false
-http:
-  addr: :5000
-  headers:
-    X-Content-Type-Options: [nosniff]
-health:
-  storagedriver:
-    enabled: true
-    interval: 10s
-    threshold: 3
-EOF
-nohup "${DIRNAME}/registry" serve "${DIRNAME}/config.yml"  &>/dev/null &
-EOF_SHELL
 cat <<EOF
 storage:
   s3:
@@ -80,36 +50,6 @@ storage:
     insecureskipverify: false
     container: docker-registry
     rootdirectory: /registry
-EOF
-cat <<'EOF'
-upstream docker-registry {
-    server 127.0.0.1:5000;
-}
-map $upstream_http_docker_distribution_api_version $docker_distribution_api_version {
-    '' 'registry/2.0';
-}
-server {
-    listen 80;
-    listen 443 ssl;
-    server_name _;
-    ssl_certificate /etc/nginx/ssl/k8s-tsd.pem;
-    ssl_certificate_key /etc/nginx/ssl/k8s-tsd.key;
-    location /v2/ {
-        if ($http_user_agent ~ "^(docker\/1\.(3|4|5(?!\.[0-9]-dev))|Go ).*$" ) {
-            return 404;
-        }
-        add_header 'Docker-Distribution-Api-Version' $docker_distribution_api_version always;
-        proxy_pass                         http://docker-registry;
-        proxy_set_header Host              $http_host;   # required for docker client's sake
-        proxy_set_header X-Real-IP         $remote_addr; # pass on real client's IP
-        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout                 900;
-    }
-    location / {
-        root /var/www;
-    }
-}
 EOF
 cat <<'EOF'
 # storage:
