@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("608f3e2[2024-10-16T18:35:03+08:00]:ngx_demo.sh")
+VERSION+=("a467360[2024-10-17T06:52:51+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4436,6 +4436,11 @@ server {
     chunked_transfer_encoding on;
 
     location /v2/ {
+        # # Disable writes, readonly
+        limit_except GET HEAD {
+            # allow 192.168.168.0/24;
+            deny all;
+        }
         # Do not allow connections from docker 1.5 and earlier
         # docker pre-1.6.0 did not properly set the user agent on ping, catch "Go *" user agents
         if ($http_user_agent ~ "^(docker\/1\.(3|4|5(?!\.[0-9]-dev))|Go ).*$" ) {
