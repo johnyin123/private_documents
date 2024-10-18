@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("4d9df2e[2024-10-08T08:07:35+08:00]:build.sh")
+VERSION+=("ee91de5[2024-10-14T10:30:29+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
 CONFIG_HZ=${CONFIG_HZ:-100}
@@ -405,17 +405,20 @@ EOF
     # uselib()系统接口支持,仅使用基于libc5应用使用
     scripts/config --disable CONFIG_USELIB
 
-    scripts/config --disable CONFIG_PREEMPT_NONE
-    scripts/config --disable CONFIG_PREEMPT
-    scripts/config --disable CONFIG_PREEMPT_DYNAMIC
+    scripts/config --disable CONFIG_PREEMPT_NONE \
+        --disable CONFIG_PREEMPT \
+        --disable CONFIG_PREEMPT_VOLUNTARY
+
+    scripts/config --enable CONFIG_PREEMPT_BUILD \
+        --enable CONFIG_PREEMPT_VOLUNTARY \
+        --enable CONFIG_PREEMPT_DYNAMIC \
+        --enable CONFIG_PREEMPT_COUNT \
+        --enable CONFIG_PREEMPTION \
+        --enable CONFIG_TASKS_RCU \
+        --enable CONFIG_PREEMPT_RCU
+
     scripts/config --disable CONFIG_SCHED_CORE
-    scripts/config --enable CONFIG_HAVE_PREEMPT_DYNAMIC
-    scripts/config --enable CONFIG_HAVE_PREEMPT_DYNAMIC_KEY
-    scripts/config --enable CONFIG_PREEMPT_NOTIFIERS
-    scripts/config --enable CONFIG_PREEMPT_VOLUNTARY_BUILD
-    scripts/config --enable CONFIG_PREEMPT_VOLUNTARY
-    # scripts/config --enable CONFIG_PREEMPT_RCU
-    # scripts/config --enable CONFIG_TASKS_RCU
+
     scripts/config --enable ARCH_INLINE_SPIN_TRYLOCK \
         --enable ARCH_INLINE_SPIN_TRYLOCK_BH \
         --enable ARCH_INLINE_SPIN_LOCK \
@@ -859,6 +862,7 @@ common_config() {
         --enable CONFIG_IO_URING
     scripts/config --disable CONFIG_COMPAT \
         --disable CONFIG_ARM64_PSEUDO_NMI
+    # scripts/config --enable CONFIG_RCU_EXPERT
 }
 gen_usb_otg_devicetree() {
     log "edit arch/arm64/boot/dts/amlogic/meson-gxl-s905d-phicomm-n1.dts:"
@@ -900,7 +904,6 @@ common_config
 cpu_freq
 v4l_config
 gen_usb_otg_devicetree
-# yes "" | make oldconfig
 # yes "y" | make oldconfig
 log "${ARCH} support defined config:" && ls arch/${ARCH}/configs/ 2>/dev/null
 log "${ARCH} list new config" && make listnewconfig 2>/dev/null

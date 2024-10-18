@@ -35,7 +35,7 @@ storage:
       #  readonly:
       #    enabled: false
 http:
-  addr: :5000
+  addr: 127.0.0.1:5000
   headers:
     X-Content-Type-Options: [nosniff]
 $([ -z "${PASSWORD}" ] || cat <<EOAUTH
