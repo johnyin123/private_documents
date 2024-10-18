@@ -5,7 +5,21 @@ mkdir -p "${DIRNAME}/data"
 [ -z "${PASSWORD}" ] || htpasswd -Bbn admin ${PASSWORD} > ${DIRNAME}/registry.password
 
 echo 'https://github.com/distribution/distribution'
-
+cat <<EOF
+storage:
+  s3:
+    region: us-east-1
+    accesskey: distribution
+    secretkey: password
+    bucket: images-local
+    rootdirectory: /registry-v2
+    regionendpoint: http://127.0.0.1:9000
+    encrypt: false
+    secure: false
+    chunksize: 33554432
+    secure: true
+    v4auth: true
+EOF
 cat <<EOF > "${DIRNAME}/config.yml"
 version: 0.1
 log:
