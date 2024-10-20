@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("ee91de5[2024-10-14T10:30:29+08:00]:build.sh")
+VERSION+=("a5f555a[2024-10-18T11:16:26+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
 CONFIG_HZ=${CONFIG_HZ:-100}
@@ -374,13 +374,29 @@ enable_ebpf() {
     scripts/config --enable CONFIG_DEBUG_INFO_BTF
     # enable CONFIG_DEBUG_INFO_BTF need: apt install dwarves
 }
-enable_arch_inline() {
-    local hz=${1:-100}
+enable_preempt_voluntary() {
     cat <<EOF
     CONFIG_PREEMPT_NONE：无抢占
     CONFIG_PREEMPT：允许内核被抢占
     CONFIG_PREEMPT_VOLUNTARY suits desktop environments.
 EOF
+    log "PREEMPT_VOLUNTARY select"
+    scripts/config --disable CONFIG_PREEMPT_NONE \
+        --disable CONFIG_PREEMPT \
+        --disable CONFIG_PREEMPT_VOLUNTARY
+
+    scripts/config --enable CONFIG_PREEMPT_BUILD \
+        --enable CONFIG_PREEMPT_VOLUNTARY \
+        --enable CONFIG_PREEMPT_DYNAMIC \
+        --enable CONFIG_PREEMPT_COUNT \
+        --enable CONFIG_PREEMPTION \
+        --enable CONFIG_TASKS_RCU \
+        --enable CONFIG_PREEMPT_RCU
+
+    scripts/config --disable CONFIG_SCHED_CORE
+}
+enable_arch_inline() {
+    local hz=${1:-100}
     log "AARCH64 ARCH inline"
     # Full dynticks system
     scripts/config --enable CONFIG_NO_HZ_FULL \
@@ -405,19 +421,6 @@ EOF
     # uselib()系统接口支持,仅使用基于libc5应用使用
     scripts/config --disable CONFIG_USELIB
 
-    scripts/config --disable CONFIG_PREEMPT_NONE \
-        --disable CONFIG_PREEMPT \
-        --disable CONFIG_PREEMPT_VOLUNTARY
-
-    scripts/config --enable CONFIG_PREEMPT_BUILD \
-        --enable CONFIG_PREEMPT_VOLUNTARY \
-        --enable CONFIG_PREEMPT_DYNAMIC \
-        --enable CONFIG_PREEMPT_COUNT \
-        --enable CONFIG_PREEMPTION \
-        --enable CONFIG_TASKS_RCU \
-        --enable CONFIG_PREEMPT_RCU
-
-    scripts/config --disable CONFIG_SCHED_CORE
 
     scripts/config --enable ARCH_INLINE_SPIN_TRYLOCK \
         --enable ARCH_INLINE_SPIN_TRYLOCK_BH \
@@ -900,6 +903,7 @@ enable_container
 enable_usbip
 enable_usb_gadget
 enable_arch_inline ${CONFIG_HZ}
+enable_preempt_voluntary
 common_config
 cpu_freq
 v4l_config
