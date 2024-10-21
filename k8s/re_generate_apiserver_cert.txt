@@ -1,0 +1,8 @@
+# 删除 apiserver 的证书
+rm -f /etc/kubernetes/pki/apiserver.*
+# 重新生成证书，并添加IP地址白名单
+kubeadm init phase certs all --apiserver-advertise-address=0.0.0.0 --apiserver-cert-extra-sans=47.93.26.56
+# 强制删除 apiserver 的容器
+docker rm -f `docker ps -q -f 'name=k8s_kube-apiserver*'`
+# 重启 kubelet 服务
+systemctl restart kubelet
