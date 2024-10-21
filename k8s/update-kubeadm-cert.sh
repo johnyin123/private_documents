@@ -385,6 +385,11 @@ main() {
     ;;
   *)
     log::err "unknown, unsupported cert type: ${node_type}, supported type: \"all\", \"master\""
+    cat <<'EOF'
+在每个master节点都执行一次, kubeadm certs check-expiration
+    脚本会自动备份 /etc/kubernetes 目录到 /etc/kubernetes.old-$(date +%Y%m%d) 目录（备份目录命名示例：kubernetes.old-20200325）
+若更新证书失败需要回滚，手动将备份 /etc/kubernetes.old-$(date +%Y%m%d)目录覆盖 /etc/kubernetes 目录
+EOF
     printf "Documentation: https://github.com/yuyicai/update-kube-cert
   example:
     '\033[32m./update-kubeadm-cert.sh all\033[0m' update all etcd certificates, master certificates and kubeconf
