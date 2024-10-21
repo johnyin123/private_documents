@@ -1,3 +1,11 @@
+# This means that there is a 10 msgs/5 seconds limit in kernel logging.
+cat /proc/sys/kernel/printk_ratelimit # 5
+cat /proc/sys/kernel/printk_ratelimit_burst # 10
+
+# This means that kernel accepts 200 messages/30 sec
+kernel.printk_ratelimit = 30
+kernel.printk_ratelimit_burst = 200
+
 # Enable auto-tuning TCP receive buffer:
 net.ipv4.tcp_moderate_rcvbuf = 1
 # Listen backlog, for passing connections to accept:
