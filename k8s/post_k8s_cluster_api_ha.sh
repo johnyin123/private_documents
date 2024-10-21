@@ -62,6 +62,11 @@ CIDRS=172.16.0.0/21 # # k8s node host cidrs
 kubectl -n kube-system get daemonset kube-proxy -o yaml | \
   sed "s|--config=/var/lib/kube-proxy/config.conf|--config=/var/lib/kube-proxy/config.conf\n        - --ipvs-exclude-cidrs=${CIDRS}|g" | \
   kubectl apply -f -
+# # modify etcd/apiserver/scheduler/controller-manager
+/etc/kubernetes/manifests/etcd.yaml
+/etc/kubernetes/manifests/kube-apiserver.yaml
+/etc/kubernetes/manifests/kube-scheduler.yaml
+/etc/kubernetes/manifests/kube-controller-manager.yaml
 EOF
 # init_keepalived 9003 172.16.0.152 false 172.16.0.150 172.16.0.151 172.16.0.152 >152
 MASTER_IPS="172.16.0.150 172.16.0.151 172.16.0.152"
