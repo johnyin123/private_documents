@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 PASSWORD=${PASSWORD:-}
+PROXY=${PROXY:-}
 mkdir -p "${DIRNAME}/data"
 [ -z "${PASSWORD}" ] || htpasswd -Bbn admin ${PASSWORD} > ${DIRNAME}/registry.password
 
@@ -50,5 +51,12 @@ health:
     enabled: true
     interval: 10s
     threshold: 3
+$([ -z "${PROXY}" ] || cat <<EOPROXY
+proxy:
+  remoteurl: https://registry.aliyuncs.com
+  # https://registry.docker.io
+  # username: [username]
+  # password: [password]
+EOPROXY
 EOF
 nohup "${DIRNAME}/registry" serve "${DIRNAME}/config.yml"  &>/dev/null &
