@@ -1,0 +1,5 @@
+radosgw-admin --cluster armsite user list
+radosgw-admin --cluster armsite user info --uid=admin
+# jq 'select(.user_quota.enabled==true)|.user_quota.max_size'
+radosgw-admin --cluster armsite user stats --uid=admin
+# jq .stats.total_bytes
