@@ -1,0 +1,43 @@
+cat <<EOF > int.docker.net.keys
+key "bind.int.docker.net" {
+        algorithm hmac-md5;
+        secret "NuZ7rRbE7Kge80uxbmy3hg==";
+};
+EOF
+
+cat <<EOF > bind.conf
+// DDNS keys
+include "/etc/bind/int.docker.net.keys";
+
+// Dynamic zone
+zone "int.docker.net" {
+    .........
+        .....
+   update-policy {
+      // allow host to update themselves with a key having their own name
+      grant *.int.docker.net name dns.int.docker.net. A TXT;
+      grant *.int.docker.net name mon0.int.docker.net. A TXT;
+      grant *.int.docker.net name mon1.int.docker.net. A TXT;
+      grant *.int.docker.net name mon2.int.docker.net. A TXT;
+      grant *.int.docker.net name mdc0.int.docker.net. A TXT;
+      grant *.int.docker.net name osd0.int.docker.net. A TXT;
+      grant *.int.docker.net name osd1.int.docker.net. A TXT;
+      grant *.int.docker.net name osd2.int.docker.net. A TXT;
+      grant *.int.docker.net name mgmt.int.docker.net. A TXT;
+   };
+};
+EOF
+
+cat << EOF | /usr/bin/nsupdate -k /etc/bind/int.docker.net.keys 
+server dns
+zone int.docker.net 
+update delete `hostname`.int.docker.net. 
+update add `hostname`.int.docker.net. 60 A `/sbin/ifconfig eth0 | grep "inet addr" | awk '{print $2}' - | sed -e 's/addr://g'` 
+update add `hostname`.int.docker.net. 60 TXT "Updated on ".`date` 
+send
+EOF
+
+cat > /etc/resolv.conf << EOF
+search int.docker.net
+nameserver `grep dns /etc/hosts | awk '{print $1}' -` 
+EOF
