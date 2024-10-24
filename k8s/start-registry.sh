@@ -11,6 +11,7 @@ echo 'https://github.com/distribution/distribution'
 cat <<EOF > "${DIRNAME}/config.yml"
 version: 0.1
 log:
+  # level: debug
   fields:
     service: registry
 storage:
@@ -69,5 +70,11 @@ proxy:
   # password: [password]
 EOPROXY
 })
+# auth:
+#   token:
+#     realm: "https://auth-server:5001/auth"
+#     service: "my.docker.registry"
+#     issuer: "Acme auth server"
+#     rootcertbundle: /certs/auth.crt
 EOF
 nohup "${DIRNAME}/registry" serve "${DIRNAME}/config.yml"  &>/dev/null &
