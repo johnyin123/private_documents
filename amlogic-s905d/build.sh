@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("a5f555a[2024-10-18T11:16:26+08:00]:build.sh")
+VERSION+=("290a1e2[2024-10-21T06:31:44+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
 CONFIG_HZ=${CONFIG_HZ:-100}
@@ -378,7 +378,7 @@ enable_preempt_voluntary() {
     cat <<EOF
     CONFIG_PREEMPT_NONE：无抢占
     CONFIG_PREEMPT：允许内核被抢占
-    CONFIG_PREEMPT_VOLUNTARY suits desktop environments.
+    CONFIG_PREEMPT_VOLUNTARY: 自愿抢占，适用于有桌面的环境
 EOF
     log "PREEMPT_VOLUNTARY select"
     scripts/config --disable CONFIG_PREEMPT_NONE \
