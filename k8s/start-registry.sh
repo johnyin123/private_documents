@@ -70,11 +70,30 @@ proxy:
   # password: [password]
 EOPROXY
 })
+# # https://distribution.github.io/distribution/about/configuration/
 # auth:
 #   token:
 #     realm: "https://auth-server:5001/auth"
 #     service: "my.docker.registry"
 #     issuer: "Acme auth server"
 #     rootcertbundle: /certs/auth.crt
+#
+# redis:
+#   tls:
+#     certificate: /path/to/cert.crt
+#     key: /path/to/key.pem
+#     clientcas:
+#       - /path/to/ca.pem
+#   addrs: [localhost:6379]
+#   password: asecret
+#   db: 0
+#   dialtimeout: 10ms
+#   readtimeout: 10ms
+#   writetimeout: 10ms
+#   maxidleconns: 16
+#   poolsize: 64
+#   connmaxidletime: 300s
+#   tls:
+#     enabled: false
 EOF
 nohup "${DIRNAME}/registry" serve "${DIRNAME}/config.yml"  &>/dev/null &
