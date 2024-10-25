@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ce6af1e[2024-10-18T08:18:27+08:00]:ngx_demo.sh")
+VERSION+=("46ceb05[2024-10-18T08:25:33+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4437,9 +4437,13 @@ server {
 
     location /v2/ {
         # # Disable writes, readonly
-        limit_except GET HEAD {
+        limit_except GET HEAD OPTIONS {
             # allow 192.168.168.0/24;
             deny all;
+            # auth_basic "Restricted";
+            # auth_basic_user_file  /etc/nginx/docker.htpasswd
+            # auth_ldap "ldap access";
+            # auth_ldap_servers myldap;
         }
         client_max_body_size               1024M;
         # Do not allow connections from docker 1.5 and earlier
