@@ -1,6 +1,14 @@
 list package
 	pm list packages -f   
 
+backup_data_apk() {
+    for file in $(adb shell pm list packages -f | grep -o "\/data\/app\/.*==\/base.apk"); do
+        filename=$(echo ${file} | grep -o "\/data\/app\/.*==\/base.apk" | awk -F'==' '{ print $2 }' | sed "s/-.*/.apk/g")
+        echo "${file} -----> .${filename}"
+        adb pull ${file} .${filename}
+    done
+}
+
 adb shell pm disable-user --user 0 com.baidu.input_huawei
 adb shell pm disable-user --user 0 com.huawei.appmarket
 adb shell pm disable-user --user 0 com.huawei.himovie
