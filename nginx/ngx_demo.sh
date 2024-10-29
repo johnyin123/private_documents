@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("46ceb05[2024-10-18T08:25:33+08:00]:ngx_demo.sh")
+VERSION+=("e8b1d51[2024-10-25T08:21:37+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4184,6 +4184,18 @@ server {
 }
 EOF
 cat <<'EOF' > cors.http
+# |------+-----------------------------+----------------------------------+------------|
+# | 序号 | Access-Control-Allow-Origin | Access-Control-Allow-Credentials | 结果       |
+# |------+-----------------------------+----------------------------------+------------|
+# | 1    | *                           | true                             | 存在漏洞   |
+# | 2    | 任意的源                    | true                             | 存在漏洞   |
+# | 3    | 指定具体的源                | true                             | 不存在漏洞 |
+# | 4    | null                        | true                             | 存在漏洞   |
+# | 5    | *                           | 不设置                           | 存在漏洞   |
+# | 6    | 任意的源                    | 不设置                           | 存在漏洞   |
+# | 7    | 指定具体的源                | 不设置                           | 不存在漏洞 |
+# | 8    | null                        | 不设置                           | 存在漏洞   |
+# |------+-----------------------------+----------------------------------+------------|
 server {
     listen 80;
     server_name api.localhost;
