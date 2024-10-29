@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8d66e20[2024-10-10T07:35:28+08:00]:mk_nginx.sh")
+VERSION+=("a467360[2024-10-17T06:52:51+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -62,6 +62,7 @@ REDIS=${REDIS:-""}
 VTS=${VTS:-""}
 CONCAT=${CONCAT-"1"}
 SQLITE=${SQLITE-"1"}
+AWS_AUTH=${AWS_AUTH-"1"}
 ##OPTION_END##
 show_option() {
     local file="${1}"
@@ -187,6 +188,9 @@ opt_enable "${CONCAT}" && {
 }
 opt_enable "${SQLITE}" && {
     STATIC_MODULES[${DIRNAME}/ngx_sqlite]="git clone https://github.com/rryqszq4/ngx_sqlite.git"
+}
+opt_enable "${AWS_AUTH}" && {
+    DYNAMIC_MODULES[${DIRNAME}/nginx-aws-auth-module]="git clone --depth 1 https://github.com/kaltura/nginx-aws-auth-module"
 }
 opt_enable "${PROXY_CONNECT}" && {
     log "Use PROXY CONNECT module, need patch!!!"
