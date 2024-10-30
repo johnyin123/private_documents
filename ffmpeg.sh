@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f73db38[2024-09-19T13:59:36+08:00]:ffmpeg.sh")
+VERSION+=("528c6d1[2024-09-20T10:19:31+08:00]:ffmpeg.sh")
 ################################################################################
 
 name=${1:?input err scale= $0 video.mkv}
@@ -40,8 +40,8 @@ ffmpeg -hide_banner -i ${name} 2>&1 | grep -o -Ei "Video:\s*([^ ]*)"
 
 # # convert to mp3
 # ffmpeg -i a.wma -vn -c:a libmp3lame -b:a 64k a.mp3
-# # cut off first 10 sec
-# ffmpeg -i infile.mp3 -ss 10 out.mp3
+# # cut off first 10.5 sec
+# ffmpeg -i infile.mp3 -vn -ss 10.5 -c:a libmp3lame -b:a 64k out.mp3
 # # cut of last 10 sec
 # apt -y install sox libsox-fmt-all
 # sox input.mp3 output.mp3 trim 0 -10
