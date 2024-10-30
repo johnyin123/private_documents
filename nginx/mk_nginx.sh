@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a467360[2024-10-17T06:52:51+08:00]:mk_nginx.sh")
+VERSION+=("1ecf811[2024-10-30T07:35:58+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -650,7 +650,9 @@ EOF
 opt_enable "${AUTH_JWT}" && write_file "${OUTDIR}/etc/nginx/modules.d/jwt.conf" <<'EOF'
 # load_module modules/ngx_http_auth_jwt_module.so;
 EOF
-
+opt_enable "${AWS_AUTH}" && write_file "${OUTDIR}/etc/nginx/modules.d/aws.conf" <<'EOF'
+# load_module modules/ngx_http_aws_auth_module.so;
+EOF
 write_file "${OUTDIR}/etc/nginx/nginx.conf" <<EOF
 user ${NGX_USER} ${NGX_GROUP};
 worker_processes auto;
