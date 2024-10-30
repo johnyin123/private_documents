@@ -4,7 +4,7 @@ readonly SCRIPTNAME=${0##*/}
 set -o errtrace
 set -o nounset
 set -o errexit
-VERSION+=("93b528b[2023-08-25T11:10:32+08:00]:gen_k8s_pkg.sh")
+VERSION+=("fef137b[2023-09-28T16:45:38+08:00]:gen_k8s_pkg.sh")
 ################################################################################
 PKG_DIR=${1?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
 ARCH=${2?"${SCRIPTNAME} <src_dir> <amd64/arm64> <k8sver examp: v1.27.3>"}
@@ -40,16 +40,19 @@ Require:
     ${BIN_RUNC}
     ${BIN_CALICOCTL}
     ${BIN_HELM}
-https://github.com/containerd/containerd/releases/download/v1.7.2/containerd-static-1.7.2-linux-${ARCH}.tar.gz
-https://github.com/opencontainers/runc/releases/download/v1.1.7/runc.${ARCH}
-https://github.com/containernetworking/plugins/releases/download/v1.3.0/cni-plugins-linux-${ARCH}-v1.3.0.tgz
-https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.27.1/crictl-v1.27.1-linux-${ARCH}.tar.gz
-https://dl.k8s.io/release/${VER}/bin/linux/${ARCH}/kubelet
-https://dl.k8s.io/release/${VER}/bin/linux/${ARCH}/kubeadm
-https://dl.k8s.io/release/${VER}/bin/linux/${ARCH}/kubectl
-https://github.com/helm/helm/tags
+# # containerd-static
+https://github.com/containerd/containerd/releases/latest
+# # runc
+https://github.com/opencontainers/runc/releases/latest
+# # cni-plugins
+https://github.com/containernetworking/plugins/releases/latest
+# # crictl
+https://github.com/kubernetes-sigs/cri-tools/releases/latest
+# # see CHANGELOG->Downloads. kubelet,kubeadm,kubectl
+https://github.com/kubernetes/kubernetes/releases/latest
+# # helm
+https://github.com/helm/helm/releases/latest
 # https://github.com/etcd-io/etcd/releases/
-# https://github.com/cloudflare/cfssl/releases/
 EOF
     exit 1
 }
