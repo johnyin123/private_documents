@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e8b1d51[2024-10-25T08:21:37+08:00]:ngx_demo.sh")
+VERSION+=("0e87db0[2024-10-29T16:49:26+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1355,12 +1355,12 @@ server {
 EOF
 cat <<'EOF' > k8s_api.stream
 upstream kubernetes {
-    server 192.168.168.61:6443;
-    server 192.168.168.62:6443;
+    server 192.168.168.61:6443 fail_timeout=1s;
+    server 192.168.168.62:6443 fail_timeout=1s;
 }
 server {
-    listen 6443;
-    listen 443;
+    listen 60443;
+    access_log off;
     proxy_pass kubernetes;
 }
 EOF

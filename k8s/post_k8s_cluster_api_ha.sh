@@ -134,3 +134,4 @@ spec:
       ports:
         - port: 60443
 EOF
+echo 'can use nginx, k8s_api.stream for this'
