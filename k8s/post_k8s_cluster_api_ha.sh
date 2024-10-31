@@ -95,3 +95,25 @@ kubectl config --kubeconfig=/etc/kubernetes/kubelet.conf set-cluster \${NAME} --
 [ -f "/etc/kubernetes/admin.conf" ] && sed -i "s|server:\s*https:.*|server: https://\${SERVER}:60443|" /etc/kubernetes/admin.conf
 EOF
 done
+
+cat <<EOF
+allow 60443 can access outside k8s cluster.
+cat <<EORULE | kubectl apply -f -
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: allow-60443-nodeports
+spec:
+  applyOnForward: true
+  preDNAT: true
+  ingress:
+  - action: Allow
+    destination:
+      ports:
+      - 60443
+    protocol: TCP
+    source:
+      nets:
+      - 0.0.0.0/0
+EORULE
+EOF
