@@ -20,6 +20,9 @@ echo "|X86虚拟机MEM|$(cat ${fname} | jq '.vms[] | select(.host | startswith("
 echo "|X86虚拟机DISK|$(cat ${fname} | jq '.vms[] | select(.host | startswith("kvm-x86"))' | jq '.capblk' | awk '{sum+=$1} END{print sum;}')|"
 # jq '.hosts | .[] | {uri, totalvm}'
 # cat ${fname} | jq -cr '.hosts | .[] | .uri, .totalvm'
+echo ""
+echo ""
+echo ""
 echo "### 物理机统计"
 echo "|IP地址|VM数量|"
 echo "|:-|-:|"
