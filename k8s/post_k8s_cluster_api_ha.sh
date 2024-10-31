@@ -117,4 +117,20 @@ spec:
       nets:
       - 0.0.0.0/0
 EORULE
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: open60443
+spec:
+  podSelector:
+      matchLabels:
+        role: client
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+      - ipBlock:
+          cidr: 0.0.0.0/0
+      ports:
+        - port: 60443
 EOF
