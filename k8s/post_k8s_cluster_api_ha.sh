@@ -58,6 +58,7 @@ done)
 EOF
 }
 cat <<'EOF'
+TODO: NEED TEST! if use service nodeport mode.
 CIDRS=172.16.0.0/21 # # k8s node host cidrs
 kubectl -n kube-system get daemonset kube-proxy -o yaml | \
   sed "s|--config=/var/lib/kube-proxy/config.conf|--config=/var/lib/kube-proxy/config.conf\n        - --ipvs-exclude-cidrs=${CIDRS}|g" | \
