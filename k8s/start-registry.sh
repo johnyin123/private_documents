@@ -62,6 +62,8 @@ health:
 $([ -z "${PROXY}" ] || {
     cat <<EOPROXY
 proxy:
+  # remoteurl: https://registry.k8s.io
+  # remoteurl: https://registry-1.docker.io
   remoteurl: https://registry.aliyuncs.com
 # 120.55.105.209 registry.aliyuncs.com
 # 47.97.242.13 dockerauth.cn-hangzhou.aliyuncs.com
