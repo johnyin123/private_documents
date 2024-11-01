@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0e87db0[2024-10-29T16:49:26+08:00]:ngx_demo.sh")
+VERSION+=("9d64694[2024-10-31T15:10:51+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -684,6 +684,30 @@ server {
         redis2_query select 5;
         redis2_query incr count;
         redis2_pass 127.0.0.1:6379;
+    }
+}
+EOF
+cat <<'EOF' >all_https.http
+# server {
+#     listen 80;
+#     server_name _;
+#     return 301 https://$server_name$request_uri;
+# }
+server {
+    listen 80;
+    listen 443 ssl http2;
+    ssl_certificate /etc/nginx/ssl/test.pem;
+    ssl_certificate_key /etc/nginx/ssl/test.key;
+    server_name _;
+    # # force https
+    proxy_redirect http:// $scheme://;
+    if ($scheme = http ) {
+        return 301 https://$server_name$request_uri;
+    }
+    # # let the browsers know that we only accept HTTPS
+    add_header Strict-Transport-Security max-age=2592000;
+    location / {
+        return 200 "all ssl";
     }
 }
 EOF
@@ -4107,6 +4131,14 @@ proxy_hide_header    Vary;
 # Reset headers
 add_header           Pragma "public";
 EOF
+cat <<'EOF' > requestid.conf
+map $http_x_request_id $requestid {
+    default $http_x_request_id;
+    ""      $request_id;
+}
+proxy_set_header X-Request-ID $requestid;
+add_header X-Request-ID $requestid always;
+EOF
 cat <<'EOF' > cache_expiration.conf
 # copy this file to /etc/nginx/http-conf.d/
 # # kill cache
@@ -4708,7 +4740,7 @@ send_timeout 2s;
 # Turn on session resumption, using a 10 min cache shared across nginx processes,
 # as recommended by http://nginx.org/en/docs/http/configuring_https_servers.html
 ssl_session_cache shared:SSL:128m; # 1M bytes can store 4000 sessions
-ssl_session_timeout 60m;
+ssl_session_timeout 300m;
 ssl_session_tickets off;
 keepalive_timeout 70;
 # Buffer size of 1400 bytes fits in one MTU.
