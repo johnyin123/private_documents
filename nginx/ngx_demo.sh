@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("13cd521[2024-11-01T17:00:32+08:00]:ngx_demo.sh")
+VERSION+=("917497b[2024-11-04T15:32:42+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1344,17 +1344,17 @@ cat <<'EOF' > k8s_dynamic_proxy_svc.http
 # # List all kubernetes DNS records
 # kube_dns=$(kubectl -n kube-system get svc kube-dns -o json | jq -r .spec.clusterIP)
 # for ip in $(kubectl get svc -A|egrep -v 'CLUSTER-IP|None'|awk '{print $4}'|sort -V); do
-#     dig -x ${ip} +short @${kube_dns}
+#     echo -n "$ip -> " && dig -x ${ip} +short @${kube_dns}
 # done
-# # setup YOU-NAMESPACE & test.com domain
+# # setup resolver & test.com
 server {
     listen 80;
-    server_name ~^(?<subdomain>.*?)\.test\.com;
+    server_name ~^(?<subdomain>.*?)\.(?<namespace>.*?)\.test\.com;
     # resolver ${kube_dns} valid=5s;
     location / {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "Upgrade";
-        proxy_pass http://\$subdomain.<YOU-NAMESPACE>.svc.cluster.local;
+        proxy_pass http://$subdomain.$namespace.svc.cluster.local;
     }
 }
 EOF
