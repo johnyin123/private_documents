@@ -21,6 +21,14 @@ spec:
           args:
             - "-text=my echo app"
             - "-listen=:8080"
+          resources:
+            requests:
+              cpu: "20m"
+              memory: "50Mi"
+            limits:
+              cpu: "100m"
+              memory: 1Gi
+          imagePullPolicy: IfNotPresent
 EOF
 
 create_svc() {
