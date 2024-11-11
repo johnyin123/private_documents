@@ -11,7 +11,12 @@ allow-hotplug lbdev0
 iface lbdev0 inet static
     address 10.1.0.1/24
 # nmcli connection add type dummy ifname lbdev0 con-name lbdev0 ip4 10.1.0.1/24
-
+# nmcli con show
+# # Add more ipaddress
+# nmcli con mod "lbdev0" +ipv4.address 10.100.135.2/32
+# nmcli con reload lbdev0
+# nmcli con down lbdev0
+# nmcli con up lbdev0
 EOF
 ip link add name lbdev0 type dummy 
 ifup lbdev0
