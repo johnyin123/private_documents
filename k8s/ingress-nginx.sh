@@ -19,7 +19,7 @@ metadata:
 spec:
   containers:
     - name: apple-app
-      image: hashicorp/http-echo
+      image: registry.local/hashicorp/http-echo
       args:
         - "-text=apple"
 ---
@@ -28,30 +28,36 @@ apiVersion: v1
 metadata:
   name: apple-service
 spec:
+  type: ClusterIP
   selector:
     app: apple
   ports:
-    - port: 5678
+    - name: http
+      protocol: TCP
+      port: 5678
 EOF
 
 echo "ingress: ingress.yaml" && cat <<EOF | kubectl apply -f -
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: example-ingress
-  annotations:
-    ingress.kubernetes.io/rewrite-target: /
+  # namespace: dev
 spec:
+  ingressClassName: nginx
   rules:
-  - http:
+  - host: apple.example
+    http:
       paths:
-        - path: /apple
-          backend:
-            serviceName: apple-service
-            servicePort: 5678
-        # - path: /banana
-        #   backend:
-        #     serviceName: banana-service
-        #     servicePort: 5678
+      - path: /apple
+        pathType: Prefix
+        backend:
+          service:
+            name: apple-service
+            port:
+              number: 5678
 EOF
+kubectl get ingress
+kubectl get ingress example-ingress
+kubectl describe ingress example-ingress
 curl -kL http://localhost/apple
