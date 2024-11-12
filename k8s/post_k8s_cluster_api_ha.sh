@@ -70,3 +70,21 @@ spec:
         - port: 60443
 EOF
 echo 'can use nginx, k8s_api.stream for this'
+
+cat <<EOF
+# static pod with hostnetwork
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  hostNetwork: true
+  containers:
+  - name: nginx
+    image: registry.local/nginx:latest
+  volumes:
+  - hostPath:
+      path: /etc/nginx
+      type: DirectoryOrCreate
+    name: nginx-conf
+EOF
