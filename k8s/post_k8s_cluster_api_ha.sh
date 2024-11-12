@@ -9,18 +9,6 @@ cat <<'EOF'
 EOF
 MASTER_IPS="172.16.0.150 172.16.0.151 172.16.0.152"
 WORKER_IPS="172.16.0.153 172.16.0.154"
-cat <<EOF>api_stream.conf
-upstream kubernetes {
-$(for i in ${MASTER_IPS}; do
-echo "    server $i:6443 fail_timeout=1s;"
-done)
-}
-server {
-    listen 60443;
-    access_log off;
-    proxy_pass kubernetes;
-}
-EOF
 for i in ${MASTER_IPS} ${WORKER_IPS}; do
     cat <<EOF > ${i}.sh
 #!/bin/bash -x
@@ -71,20 +59,36 @@ spec:
 EOF
 echo 'can use nginx, k8s_api.stream for this'
 
-cat <<EOF
-# static pod with hostnetwork
+cat <<EOF > etc.kubernetes.api.conf
+upstream kubernetes {
+$(for i in ${MASTER_IPS}; do
+echo "    server $i:6443 fail_timeout=1s;"
+done)
+}
+server {
+    listen 60443;
+    access_log off;
+    proxy_pass kubernetes;
+}
+EOF
+cat <<EOF > api-lb.yaml
 apiVersion: v1
 kind: Pod
 metadata:
   name: nginx
+  namespace: kube-system
 spec:
   hostNetwork: true
   containers:
   - name: nginx
-    image: registry.local/nginx:latest
+    image: registry.local/nginx:bookworm
+    volumeMounts:
+    - mountPath: /etc/nginx/stream-enabled/api.conf
+      name: nginx-conf
+      readOnly: true
   volumes:
   - hostPath:
-      path: /etc/nginx
-      type: DirectoryOrCreate
+      path: /etc/kubernetes/api.conf
+      type: FileOrCreate
     name: nginx-conf
 EOF
