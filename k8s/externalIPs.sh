@@ -75,4 +75,5 @@ cat <<EOF
 curl <pod ip>:8080
 curl <node ip>:32000
 curl <external ip>:80
+kubectl patch svc <svc-name> -n <namespace> -p '{"spec": {"type": "LoadBalancer", "externalIPs":["<you ip>"]}}'
 EOF
