@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("917497b[2024-11-04T15:32:42+08:00]:ngx_demo.sh")
+VERSION+=("483b40a[2024-11-04T15:44:17+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1044,6 +1044,7 @@ server {
         # will return 301:http://xxx:port/test/. add absolute_redirect off, return 301:/test/
         absolute_redirect off;
         #port_in_redirect off;
+        #server_name_in_redirect off;
         index index.html index.htm;
         root /var/www;
     }
