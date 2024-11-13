@@ -2,9 +2,8 @@ echo "test app pod" && cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: echo-app
-  labels:
-    app: echo-app
+  name: echo-deployment
+  # namespace: web
 spec:
   selector:
     matchLabels:
