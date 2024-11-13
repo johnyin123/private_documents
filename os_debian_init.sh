@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("8b37540[2024-07-17T10:34:47+08:00]:os_debian_init.sh")
+VERSION+=("f1b0869[2024-09-20T09:46:54+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -28,7 +28,7 @@ VERSION+=("8b37540[2024-07-17T10:34:47+08:00]:os_debian_init.sh")
 debian_build() {
     local root_dir=$1
     local cache_dir=${2:-}
-    local include_pkg="whiptail,tzdata,locales,busybox${3:+,${3}}"
+    local include_pkg="tzdata,busybox${3:+,${3}}" #locales,whiptail,
     [ -d "${root_dir}" ] || mkdir -p ${root_dir}
     debootstrap --verbose ${cache_dir:+--cache-dir=${cache_dir}} --no-check-gpg --arch ${INST_ARCH:-amd64} --variant=minbase --include=${include_pkg} --foreign ${DEBIAN_VERSION:-buster} ${root_dir} ${REPO:-http://mirrors.163.com/debian}
 
@@ -49,9 +49,9 @@ RC_EOF
     echo "${NAME_SERVER:+nameserver ${NAME_SERVER}}" > /etc/resolv.conf
     ${PASSWORD:+debian_chpasswd root ${PASSWORD}}
     debian_apt_init
-    debian_locale_init
+    # # debian_locale_init
     debian_limits_init
-    debian_sysctl_init
+    # # debian_sysctl_init
     debian_bash_init root
     debian_minimum_init
     cat << EOF > /etc/hosts
@@ -147,6 +147,7 @@ debian_sysctl_init() {
     # # (65531-1024)/10 = 6450 sockets per second.
     [ -e "/etc/sysctl.conf" ] || {
         echo "need install procps"
+        DEBIAN_FRONTEND=noninteractive apt update || true
         DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install procps
     }
     mv /etc/sysctl.conf /etc/sysctl.conf.bak 2>/dev/null || true
@@ -202,6 +203,7 @@ debian_sshd_regenkey() {
 export -f debian_sshd_regenkey
 
 debian_sshd_init() {
+    DEBIAN_FRONTEND=noninteractive apt update || true
     DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install openssh-server
     # dpkg-reconfigure -f noninteractive openssh-server
     sed --quiet -i.orig -E \
@@ -462,6 +464,7 @@ EOF
 export -f debian_zswap_init3
 
 debian_vim_init() {
+    DEBIAN_FRONTEND=noninteractive apt update || true
     DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install vim
     echo "mkdir -p ~/.vim/pack/plugins/start && cd ~/.vim/pack/plugins/start && git clone https://github.com/dhruvasagar/vim-table-mode.git"
     echo "vim -> :TableModeEnable, insert | table | val |....."
@@ -640,6 +643,8 @@ export -f debian_vim_init
 
 debian_locale_init() {
     #dpkg-reconfigure locales
+    DEBIAN_FRONTEND=noninteractive apt update || true
+    DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install locales
     sed -i "s/^# *zh_CN.UTF-8/zh_CN.UTF-8/g" /etc/locale.gen
     locale-gen
     echo -e 'LANG="zh_CN.UTF-8"\nLANGUAGE="zh_CN:zh"\nLC_ALL="zh_CN.UTF-8"\n' > /etc/default/locale

@@ -6,6 +6,8 @@ cat <<'EOF'
 /etc/kubernetes/manifests/kube-apiserver.yaml
 /etc/kubernetes/manifests/kube-scheduler.yaml
 /etc/kubernetes/manifests/kube-controller-manager.yaml
+# # get all master ip:
+kubectl get nodes --selector=node-role.kubernetes.io/master -o jsonpath='{$.items[*].status.addresses[?(@.type=="InternalIP")].address}'
 EOF
 MASTER_IPS="172.16.0.150 172.16.0.151 172.16.0.152"
 WORKER_IPS="172.16.0.153 172.16.0.154"
