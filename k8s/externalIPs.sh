@@ -27,7 +27,7 @@ spec:
               memory: "50Mi"
             limits:
               cpu: "100m"
-              memory: 1Gi
+              memory: "1Gi"
           imagePullPolicy: IfNotPresent
 EOF
 
