@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0ad0a7e[2024-11-13T13:59:21+08:00]:mk_nginx.sh")
+VERSION+=("2ae45c5[2024-11-13T14:29:23+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -582,7 +582,7 @@ log_format json escape=json '{"node":"$hostname","scheme":"$scheme","http_host":
     '"remote_addr":"$remote_addr","remote_user":"$remote_user","time_iso8601":"$time_iso8601","request":"$request",'
     '"status":$status,"request_length":$request_length,"bytes_sent":$bytes_sent,"http_referer":"$http_referer",'
     '"http_user_agent":"$http_user_agent","http_x_forwarded_for":"$http_x_forwarded_for","requestid":"$requestid","gzip_ratio":"$gzip_ratio",'
-    '"upstream_cache_status":"$upstream_cache_status"}';
+    '"brotli_ratio":"$brotli_ratio","upstream_cache_status":"$upstream_cache_status"}';
 
 log_format main '$hostname $scheme $http_host $server_port "$upstream_addr" '
     '[$request_time|"$upstream_response_time"|"$upstream_status"] "$requestid" '
@@ -605,9 +605,9 @@ map $status $log_err {
 # # access log
 # default buffer size is equal to 64K bytes
 access_log /var/log/nginx/access_err.log json buffer=512k flush=5m if=$log_err;
-access_log /var/log/nginx/access.log main buffer=512k flush=5m if=$log_ip;
-# access_log /var/log/nginx/$http_host-access.log buffer=512k flush=5m;
-# access_log /var/log/nginx/access_$status.log
+access_log /var/log/nginx/access.log json buffer=512k flush=5m if=$log_ip;
+# access_log /var/log/nginx/$http_host-access.log main buffer=512k flush=5m;
+# access_log /var/log/nginx/access_$status.log main buffer=512k flush=5m;
 
 # # error log
 error_log /var/log/nginx/error.log error;
