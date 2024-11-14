@@ -19,9 +19,7 @@ lb_ip_pools = [
 ]
 
 # # sould get masters dynamic
-masters = ['172.16.0.150', '172.16.0.151', '172.16.0.152']
-
-
+masters = []
 lb_services = {}
 kubernetes_services = {}
 
@@ -109,7 +107,12 @@ def main():
     nodes = v1.list_node()
     for node in nodes.items:
         if "node-role.kubernetes.io/master" in node.metadata.labels:
+            # Get the IP address of the master node
             logger.info(node.status.addresses[0])
+            for address in node.status.addresses:
+                if address.type == "InternalIP":
+                     masters.append(address.address)
+    logger.info(masters)
     w = watch.Watch()
     for item in w.stream(v1.list_service_for_all_namespaces):
         if item["type"] == "ADDED":
