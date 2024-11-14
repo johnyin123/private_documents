@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("f1b0869[2024-09-20T09:46:54+08:00]:os_debian_init.sh")
+VERSION+=("cedc04b[2024-11-13T10:20:15+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -552,7 +552,7 @@ func SetTitle()
         call setline(3, "")
         call setline(4, "import logging, os")
         call setline(5, "from typing import Iterable, Optional, Set, Tuple, Union, Dict")
-        call setline(6, "logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s: %(message)s')")
+        call setline(6, "logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')")
         call setline(7, "logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())")
         call setline(8, "logger = logging.getLogger(__name__)")
         call setline(9, "")
