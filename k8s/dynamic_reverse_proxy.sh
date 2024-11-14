@@ -1,4 +1,6 @@
 NAMESPACE=
+# kubectl create configmap confnginx --from-file=./nginx.conf -n namespace
+
 cat <<CONFIGMAP
 apiVersion: v1
 kind: ConfigMap
