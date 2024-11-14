@@ -1,3 +1,11 @@
+cat <<EOF
+sysctl -w net.ipv4.conf.eth1.arp_ignore = 1
+sysctl -w net.ipv4.conf.eth1.arp_announce = 2
+# # worker节点可以不设置VIP，VIP并不需要由用户态程序来接收流量，直接由iptables来进行数据包转换,
+# # 如果需要直接从worker节点上通过VIP访问该服务时就需要在worker节点上配置VIP
+sysctl -w net.ipv4.conf.eth1.rp_filter=1
+sysctl -w net.ipv4.conf.eth1.accept_local=1
+EOF
 echo "test app pod" && cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
