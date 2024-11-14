@@ -18,7 +18,8 @@ lb_ip_pools = [
     '172.16.0.215'
 ]
 
-node_ips = ['172.16.0.150', '172.16.0.151', '172.16.0.152']
+# # sould get masters dynamic
+masters = ['172.16.0.150', '172.16.0.151', '172.16.0.152']
 
 
 lb_services = {}
@@ -87,7 +88,7 @@ def add_ipvs(lb_svcs):
             command = "ipvsadm -A -t %s:%d -s rr" % (item[1], item[2])
             # os.system(command)
             logger.info(command)
-            for node_ip in node_ips:
+            for node_ip in masters:
                 command = "ipvsadm -a -t %s:%d -r %s -g" % (item[1], item[2], node_ip)
                 # os.system(command)
                 logger.info(command)
@@ -95,7 +96,7 @@ def add_ipvs(lb_svcs):
             command = "ipvsadm -A -u %s:%d -s rr" % (item[1], item[2])
             # os.system(command)
             logger.info(command)
-            for node_ip in node_ips:
+            for node_ip in masters:
                 command = "ipvsadm -a -u %s:%d -r %s -g" % (item[1], item[2], node_ip)
                 # os.system(command)
                 logger.info(command)
@@ -105,6 +106,10 @@ def add_ipvs(lb_svcs):
 def main():
     config.load_kube_config()
     v1 = client.CoreV1Api()
+    nodes = v1.list_node()
+    for node in nodes.items:
+        if "node-role.kubernetes.io/master" in node.metadata.labels:
+            logger.info(node.status.addresses[0])
     w = watch.Watch()
     for item in w.stream(v1.list_service_for_all_namespaces):
         if item["type"] == "ADDED":
@@ -112,9 +117,7 @@ def main():
             namespace = svc_manifest.metadata.namespace
             name = svc_manifest.metadata.name
             svc_type = svc_manifest.spec.type
-
             logger.info("Service ADDED: %s %s %s" % (namespace, name, svc_type))
-
             if svc_type == "LoadBalancer":
                 if svc_manifest.status.load_balancer.ingress == None:
                     logger.info("Process load balancer service add event")
