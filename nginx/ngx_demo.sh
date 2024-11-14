@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("483b40a[2024-11-04T15:44:17+08:00]:ngx_demo.sh")
+VERSION+=("2ae45c5[2024-11-13T14:29:23+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -191,7 +191,9 @@ rtmp {
 }
 EOF
 cat <<'EOF'>geoip_contry.http
-geoip_country /usr/share/GeoIP/GeoIP.dat;
+geoip_country /etc/nginx/geoip/GeoIP.dat;
+# geoip_city    /etc/nginx/geoip/GeoLiteCity.dat;
+# geoip_org     /etc/nginx/geoip/GeoIPASNum.dat;
 geo $remote_addr $ip_whitelist {
     default 0;
     192.168.168.1 1;
@@ -588,9 +590,9 @@ server {
     # direct set cache_bypass
     set $cache_bypass 1;
     access_log /var/log/nginx/access_err_domain.log main buffer=512k flush=5m;
-    location =/healthz { access_log off; default_type text/html; return 200 "$time_iso8601 $hostname alive.\n"; }
-    location /info { return 200 "$time_iso8601 Hello from $hostname. You connected from $remote_addr:$remote_port to $server_addr:$server_port\n"; }
-    location / { return 444; }
+    location =/healthz { keepalive_timeout 0; access_log off; default_type text/html; return 200 "$time_iso8601 $hostname alive.\n"; }
+    location /info { keepalive_timeout 0; return 200 "$time_iso8601 Hello from $hostname. You connected from $remote_addr:$remote_port to $server_addr:$server_port\n"; }
+    location / { keepalive_timeout 0; return 444; }
 }
 EOF
 cat <<'EOF' >quic_http3.http
@@ -715,8 +717,6 @@ cat <<'EOF' >traffic_status.http
 # /{status_uri}/control?cmd=*`{command}`*&group=*`{group}`*&zone=*`{name}`*
 # /control?cmd=reset&group=server&zone=*
 
-# geoip_country                   /usr/share/GeoIP/GeoIP.dat;
-# geoip_city                      /usr/share/GeoIP/GeoLiteCity.dat;
 vhost_traffic_status_zone;
 # vhost_traffic_status_filter_by_set_key $geoip_country_code country::*;
 server {

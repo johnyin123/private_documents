@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2ae45c5[2024-11-13T14:29:23+08:00]:mk_nginx.sh")
+VERSION+=("58fc16f[2024-11-13T15:16:16+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -428,6 +428,8 @@ mkdir -p ${OUTDIR}/etc/nginx/http-enabled/
 mkdir -p ${OUTDIR}/etc/nginx/stream-enabled/
 mkdir -p ${OUTDIR}/etc/nginx/http-available/
 mkdir -p ${OUTDIR}/etc/nginx/stream-available/
+mkdir -p ${OUTDIR}/etc/nginx/geoip/
+mkdir -p ${OUTDIR}/etc/nginx/ssl/
 mkdir -p ${OUTDIR}/var/lib/nginx/body
 mkdir -p ${OUTDIR}/var/lib/nginx/proxy
 mkdir -p ${OUTDIR}/var/lib/nginx/fastcfg
