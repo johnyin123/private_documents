@@ -74,6 +74,7 @@ server {
 }
 EOF
 cat <<EOF > api-lb.yaml
+# # bad idea, sometime not work on worker node
 apiVersion: v1
 kind: Pod
 metadata:

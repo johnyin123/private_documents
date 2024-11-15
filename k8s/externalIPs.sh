@@ -79,6 +79,7 @@ create_svc LoadBalancer 80 172.16.0.155
 create_svc ClusterIP 80 172.16.0.156
 
 cat <<EOF
+# kubectl expose deployment example --port=8765 --target-port=9376 --name=example-service --type=LoadBalancer
 # # LoadBalancer not set externalips, should have a cloud-provider, like elb-cloudprovider.py
 curl <pod ip>:8080
 curl <node ip>:32000
