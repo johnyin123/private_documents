@@ -1,0 +1,16 @@
+kubectl create namespace mynamespace
+
+cat <<EOF | kubectl create --namespace=mynamespace -f -
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-resources
+spec:
+  hard:
+    pods: "4"
+    requests.cpu: "1"
+    requests.memory: 1Gi
+    limits.cpu: "2"
+    limits.memory: 2Gi
+EOF
+kubectl get quota --namespace=mynamespace
