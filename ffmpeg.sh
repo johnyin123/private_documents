@@ -7,12 +7,17 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("65e88cc[2024-10-30T19:03:23+08:00]:ffmpeg.sh")
+VERSION+=("14d0566[2024-11-13T17:12:38+08:00]:ffmpeg.sh")
 ################################################################################
 
 name=${1:?input err scale= $0 video.mkv}
 scale=${scale--2:720,format=yuv420p}
 frame=${frame-}
+
+cat <<EOF
+mkvpropedit -t all: "${name}"
+mkvpropedit --delete-attachment mime-type:image/png "${name}"
+EOF
 
 ffmpeg -hide_banner -i "${name}" 2>&1 | grep Stream
 ffmpeg -hide_banner -i "${name}" 2>&1 | grep -o -Ei "Video:\s*([^ ]*)"

@@ -102,9 +102,13 @@ def add_ipvs(lb_svcs):
             logger.error("invalid protocol: %s", item[0])
 
 def main():
+    # # for local environment
     config.load_kube_config()
+    # # run in k8s env
+    # config.load_incluster_config()
     v1 = client.CoreV1Api()
     nodes = v1.list_node()
+    # pod_logs = v1.read_namespaced_pod_log(name=’my-app’, namespace=’default’)
     for node in nodes.items:
         if "node-role.kubernetes.io/master" in node.metadata.labels:
             # Get the IP address of the master node
