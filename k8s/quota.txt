@@ -14,3 +14,33 @@ spec:
     limits.memory: 2Gi
 EOF
 kubectl get quota --namespace=mynamespace
+kubectl describe quota compute-resources --namespace=mynamespace
+
+
+cat <<EOF | kubectl create --namespace=mynamespace -f -
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: mem-limit-range
+spec:
+  limits:
+  - default:
+      cpu: 800m
+      memory: 512Mi
+    defaultRequest:
+      cpu: 200m
+      memory: 256Mi
+    max:
+      cpu: 1
+      memory: 2Gi
+    min:
+      cpu: 200m
+      memory: 256Mi
+    type: Container
+EOF
+cat <<EOF
+1000m = 1 cpu
+如果没有指定pod的request和limit，则创建的pod会使用LimitRange对象定义的默认值（request和limit）
+如果指定pod的limit但未指定request，则创建的pod的request值会取limit的值，而不会取LimitRange对象定义的request默认值。
+如果指定pod的request但未指定limit，则创建的pod的limit值会取LimitRange对象定义的limit默认值。
+EOF
