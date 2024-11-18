@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-11-18T08:45:44+08:00]:calico_rr_ebpf.sh")
+VERSION+=("679d24e[2024-11-18T08:45:44+08:00]:calico_rr_ebpf.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 calico_bpf() {
@@ -102,8 +102,9 @@ ${SCRIPTNAME}
         -m | --master    *  <ip>    master ipaddr
         -r | --reflector *  <node>  reflector node name, multi input.
         --ebpf              <api:port>
-                                    k8s cluster api-server-endpoint, like "k8sapi.local.com:6443"
-                                    default no use ebpf, this script ebpf not work now
+                                    k8s cluster api-server-endpoint, like "<masterip>:6443"
+                                    when ebpf mode,  service type NodePort not work,
+                                                     service type Loadbalancer worked, so externalIP worked
         -U | --user         <user>  master ssh user, default root
         -P | --port         <int>   master ssh port, default 60022
         --asnumber          <int>   bgp as number, default 63401
