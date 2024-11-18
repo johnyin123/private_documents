@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2fd9d83[2024-07-31T12:40:37+08:00]:make_docker_image.sh")
+VERSION+=("cf308c5[2024-08-01T14:13:20+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -120,6 +120,7 @@ command -v "ip" &> /dev/null && ip a || { command -v "busybox" && busybox ip a; 
 EOF
     cfg_file=${target_dir}/${DIRNAME_COPYIN}/run_command
     try mkdir -p ${target_dir}/${DIRNAME_COPYIN} && write_file "${cfg_file}" <<'EOF'
+echo '1024 65531' > /proc/sys/net/ipv4/ip_local_port_range
 # CMD=/usr/sbin/runuser
 # ARGS="-u root -- /usr/bin/busybox sleep infinity"
 EOF
@@ -362,6 +363,7 @@ VOLUME ["/etc/nginx/", "/var/log/nginx/"]
 EOF
     cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
     write_file "${cfg_file}" <<EOF
+echo '1024 65531' > /proc/sys/net/ipv4/ip_local_port_range
 CMD=/usr/sbin/runuser
 ARGS="-u root -- /usr/sbin/nginx -g \"daemon off;\""
 EOF
