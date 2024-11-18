@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1136bbc[2024-11-18T09:16:31+08:00]:calico_rr_ebpf.sh")
+VERSION+=("e43fe4a[2024-11-18T09:19:46+08:00]:calico_rr_ebpf.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 calico_bpf() {
@@ -117,6 +117,14 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+# 查看calico-bpf工具使用说明
+kubectl exec -n calico-system ds/calico-node -- calico-node -bpf
+# 查看eth0网卡计数器
+kubectl exec -n calico-system ds/calico-node -- calico-node -bpf counters dump --iface=eth0
+# 查看conntrack情况
+kubectl exec -n calico-system ds/calico-node -- calico-node -bpf conntrack dump
+# 查看路由表
+kubectl exec -n calico-system ds/calico-node -- calico-node -bpf routes dump
 EOF
     exit 1
 }
