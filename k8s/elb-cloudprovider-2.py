@@ -48,9 +48,9 @@ class Action(object):
             else:
                 logger.error("ADD SVC_LB: invalid protocol, ns:%s,svc:%s,%s", namespace, name, port.protocol)
                 return
-            logger.debug('ipvsadm -A %s %s:%d -s rr' % (protocol, lbaddr, port.port))
+            logger.debug('ipvsadm -A %s %s:%d -s rr -p 360' % (protocol, lbaddr, port.port))
             for node_ip in self.masters:
-                logger.debug('ipvsadm -a %s %s:%d -r %s:%d -g' % (protocol, lbaddr, port.port, node_ip, port.port))
+                logger.debug('ipvsadm -a %s %s:%d -r %s:%d -g -w 1' % (protocol, lbaddr, port.port, node_ip, port.port))
         svc_manifest.status.load_balancer.ingress = [{'ip': lbaddr}]
         v1 = client.CoreV1Api()
         v1.patch_namespaced_service_status(name, namespace, svc_manifest)
