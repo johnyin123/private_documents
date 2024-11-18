@@ -47,6 +47,17 @@ add() {
     ip netns exec $CNI_CONTAINERID ip link set $CNI_IFNAME up
     ip netns exec $CNI_CONTAINERID ip addr add 192.168.168.201/24 dev $CNI_IFNAME
     ip netns exec $CNI_CONTAINERID ip route add default via $gw_ip dev $CNI_IFNAME
+#    output_template=' { "cniVersion": "0.3.1", "interfaces": [ {
+#          "name": "%s",
+#          "mac": "%s",
+#          "sandbox": "%s"
+#      } ], "ips": [ { "version": "4",
+#          "address": "%s",
+#          "gateway": "%s",
+#          "interface": 0
+#      } ] }'
+#    output=$(printf "${output_template}" $CNI_IFNAME $mac $CNI_NETNS $address $podcidr_gw)
+#    echo "$output"
 }
 
 del() {
