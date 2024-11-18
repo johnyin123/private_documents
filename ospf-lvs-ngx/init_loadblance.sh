@@ -9,7 +9,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("964eb01[2023-07-04T09:38:12+08:00]:init_loadblance.sh")
+VERSION+=("12960c7[2023-07-13T07:17:11+08:00]:init_loadblance.sh")
 ################################################################################
 LOGFILE=""
 TIMESPAN=$(date '+%Y%m%d%H%M%S')
@@ -33,7 +33,8 @@ init_keepalived() {
     log "Init keepalived for virtual server(TCP/UDP)"
     log "id=${id}, vip=${vip}, rip=${real_ips}"
     log "INIT /etc/modprobe.d/ipvs.conf"
-    echo "options ip_vs conn_tab_bits=15" | tee ${LOGFILE} | tee /etc/modprobe.d/ipvs.conf
+    # # connection table size default 12 2^12 = 4096
+    echo "options ip_vs conn_tab_bits=20" | tee ${LOGFILE} | tee /etc/modprobe.d/ipvs.conf
     log "INIT /etc/keepalived/keepalived.conf"
     backup /etc/keepalived/keepalived.conf
 cat <<EOF | tee ${LOGFILE} | tee /etc/keepalived/keepalived.conf
