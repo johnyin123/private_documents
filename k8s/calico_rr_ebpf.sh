@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e43fe4a[2024-11-18T09:19:46+08:00]:calico_rr_ebpf.sh")
+VERSION+=("1cd8359[2024-11-18T13:06:07+08:00]:calico_rr_ebpf.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 calico_bpf() {
@@ -107,6 +107,12 @@ ${SCRIPTNAME}
                                                      service type Loadbalancer worked, so externalIP worked
                                      IPIP is not supported (Calico iptables does not support it either)
                                      VXLAN is the recommended overlay for eBPF mode.
+# 关闭kube-proxy
+kubectl patch ds -n kube-system kube-proxy -p '{"spec":{"template":{"spec":{"nodeSelector":{"non-calico": "true"}}}}}'
+# 开启eBPF DSR
+calicoctl patch felixconfiguration default --patch='{"spec": {"bpfKubeProxyIptablesCleanupEnabled": false}}'
+calicoctl patch felixconfiguration default --patch='{"spec": {"bpfEnabled": true}}'
+calicoctl patch felixconfiguration default --patch='{"spec": {"bpfExternalServiceMode": "DSR"}}'
         -U | --user         <user>  master ssh user, default root
         -P | --port         <int>   master ssh port, default 60022
         --asnumber          <int>   bgp as number, default 63401
