@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("290a1e2[2024-10-21T06:31:44+08:00]:build.sh")
+VERSION+=("a26b725[2024-10-25T14:48:23+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
 CONFIG_HZ=${CONFIG_HZ:-100}
@@ -489,7 +489,7 @@ enable_nfs_rootfs() {
 s905d_opt() {
     log "AMLOGIC S905D MODULES, s905d no need EFI/ACPI"
     log "enable arm64 NUMA_EMULATION"
-    scripts/config --enable CONFIG_NUMA_EMULATION --enable CONFIG_GENERIC_ARCH_NUMA_EMULATION
+    scripts/config --enable CONFIG_NUMA_EMU
 
     scripts/config --enable CONFIG_ARCH_MESON
     scripts/config --enable CONFIG_MAILBOX

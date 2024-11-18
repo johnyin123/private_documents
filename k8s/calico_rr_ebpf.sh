@@ -7,12 +7,13 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1cd8359[2024-11-18T13:06:07+08:00]:calico_rr_ebpf.sh")
+VERSION+=("36f258f[2024-11-18T14:46:41+08:00]:calico_rr_ebpf.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 calico_bpf() {
     local api_srv=${1}
-    echo "check requires ...."
+    echo "check requires ...., Calico > v3.13, kernel > 5.8(4.18)"
+    kubectl get endpoints kubernetes -o wide
     command -v calicoctl &> /dev/null || { echo "***************calicoctl nofound"; return 1; }
     export KUBECONFIG=/etc/kubernetes/admin.conf
     echo "install calico use tigera-operator, use this"
