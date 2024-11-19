@@ -75,3 +75,40 @@ test_ok() {
     # curl http://192.168.168.3/
     # 验证通过，集群搭建成功
 }
+
+kubectl apply -f nginxDeployment.yml
+kubectl cluster-info
+kubectl create -f fileName.yml
+kubectl create configmap example --from-file=configs/application.properties
+kubectl create deployment firstpod --image=nginx
+kubectl create secret generic mypassword --from-file=secrets/myverysecurepassword.txt
+kubectl create secret generic mypassword2 --from-literal=password=123456
+kubectl delete --all pods --namespace=monitoring
+kubectl delete rc nginx
+kubectl describe --namespace=kube-system pod kubernetes-dashboard-5bd6f767c7-mfxs
+kubectl describe pods podName
+kubectl edit configmap example
+kubectl edit rc nginx
+kubectl explain pods
+kubectl expose deployment nginx --port=80 --target-port=80
+kubectl get clusterroles
+kubectl get deploy,rs,po,svc,ep
+kubectl get deployment try1 -o yaml --export > simpleapp.yml
+kubectl get endpoints
+kubectl get events
+kubectl get nodes
+kubectl get pods --namespace=kube-system
+kubectl get rc
+kubectl get rolebindings
+kubectl logs name -c containerName
+kubectl logs podName
+kubectl replace -f nginxDeployment.yml
+kubectl rollout history deployment try1
+kubectl rollout history deployment try1 --revision=1 > one.out
+kubectl rollout undo --dry-run=true deployment/try1
+kubectl rollout undo deployment try1 --to-revision=1
+kubectl run nginx --image=nginx:1.12.0 --replicas=2 --port=80
+kubectl set image deployment nginx nginx=nginx:1.13.1
+kubectl top node
+kubectl top pod besteffort
+kubectl version
