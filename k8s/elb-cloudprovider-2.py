@@ -91,7 +91,32 @@ class Action(object):
 def main():
     # # for local environment
     config.load_kube_config()
-    # # run in k8s env
+    # # run in k8s env, within a pod
+'''
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: pods-list
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["list"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: pods-list
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: pods-list
+  apiGroup: rbac.authorization.k8s.io
+'''
     # config.load_incluster_config()
     v1 = client.CoreV1Api()
     # pod_logs = v1.read_namespaced_pod_log(name=’my-app’, namespace=’default’)
