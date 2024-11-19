@@ -100,9 +100,8 @@ metadata:
   name: pods-list
 rules:
 - apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["list"]
-
+  resources: ["pods", "services"]
+  verbs: ["create", "get", "apply", "update", "patch", "list", "delete", "watch"]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -117,7 +116,7 @@ roleRef:
   name: pods-list
   apiGroup: rbac.authorization.k8s.io
 '''
-    # config.load_incluster_config()
+    if os.getenv('KUBERNETES_SERVICE_HOST'): config.load_incluster_config()
     v1 = client.CoreV1Api()
     # pod_logs = v1.read_namespaced_pod_log(name=’my-app’, namespace=’default’)
     nodes = v1.list_node()
