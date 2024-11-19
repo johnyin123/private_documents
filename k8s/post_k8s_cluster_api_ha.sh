@@ -22,6 +22,8 @@ metadata:
   namespace: kube-system
 spec:
   hostNetwork: true
+  securityContext:
+    privileged: true
   containers:
   - name: nginx
     image: registry.local/nginx:bookworm
@@ -29,11 +31,26 @@ spec:
     - mountPath: /etc/nginx/stream-enabled/api.conf
       name: nginx-conf
       readOnly: true
+  - name: keepalived
+    image: registry.local/nginx:bookworm
+    securityContext:
+      privileged: true
+    command:
+    - /bin/bash
+    - -c
+    - /entrypoint.sh
+    volumeMounts:
+    - mountPath: /etc/keepalived
+      name: keepalived-cfg
+      readOnly: true
   volumes:
   - hostPath:
       path: /etc/kubernetes/api.conf
       type: FileOrCreate
     name: nginx-conf
+  - hostPath:
+      path: /etc/keepalived
+    name: keepalived-cfg
 EOF
 init_keepalived() {
     local id=${1}
