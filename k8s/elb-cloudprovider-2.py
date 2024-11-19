@@ -92,7 +92,7 @@ def main():
     # # for local environment
     config.load_kube_config()
     # # run in k8s env, within a pod
-'''
+    '''
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
