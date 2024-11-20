@@ -106,6 +106,9 @@ spec:
             - name: ns-ip-json
               mountPath: /home/johnyin/ns_ip.json
               subPath: ns_ip.json
+          env:
+            - name: KEY
+              value: value
       volumes:
         - name: ns-ip-json
           configMap:
