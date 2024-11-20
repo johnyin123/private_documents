@@ -8,7 +8,7 @@ mkdir -p "${DIRNAME}/data"
 [ -z "${PASSWORD}" ] || htpasswd -Bbn admin ${PASSWORD} > ${DIRNAME}/registry.password
 
 echo 'https://github.com/distribution/distribution'
-cat <<EOF > "${DIRNAME}/config.yml"
+[ -e "${DIRNAME}/config.yml" ] || cat <<EOF > "${DIRNAME}/config.yml"
 version: 0.1
 log:
   # level: debug
