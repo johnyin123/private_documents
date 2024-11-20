@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cf308c5[2024-08-01T14:13:20+08:00]:make_docker_image.sh")
+VERSION+=("d314fd7[2024-11-18T13:57:01+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -26,7 +26,7 @@ ${SCRIPTNAME}
         docker env:
             ENABLE_SSH=true/false, enable/disable sshd startup on 60022, default disable
             # docker create -e ENABLE_SSH=true
-        -c <type>           *          Dockerfile for <base|combine|firefox|chrome|aria|nginx|xfce|grafana|common docker file>
+        -c <type>           *          Dockerfile for <base|combine|firefox|chrome|aria|python|nginx|xfce|grafana| <othes> common docker file>
                                             combine: combine multiarch docker image
                                             firefox: need firefox.tar.xz rootfs with firefox install /opt/firefox
                                             wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
@@ -312,6 +312,29 @@ pactl load-module module-native-protocol-tcp auth-ip-acl=172.17.0.2
 docker -e PULSE_SERVER=172.17.42.1 ..
 EOF
 }
+build_python() {
+    local dir="${1}"
+    local arch="${2:-}"
+    local name=pythoh3
+    local base="${BASE_IMG}"
+    local username=johnyin
+    gen_dockerfile "${name}" "${dir}" "${base}" "${arch}"
+    cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
+    write_file "${cfg_file}" <<EOF
+useradd -m ${username} --home-dir /home/${username}/
+apt -y --no-install-recommends update
+apt -y --no-install-recommends install python3 python3.11-venv python3-kubernetes
+EOF
+    cfg_file=${dir}/Dockerfile
+    write_file "${cfg_file}" append <<EOF
+VOLUME ["/home/${username}/"]
+EOF
+    cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
+    write_file "${cfg_file}" <<EOF
+# CMD=/usr/sbin/runuser
+# ARGS="-u ${username} -- python3 test.py"
+EOF
+}
 build_aria2() {
     local dir="${1}"
     local arch="${2:-}"
@@ -448,6 +471,7 @@ combine_multiarch() {
         info_msg "++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
         info_msg "++++++++++++++++++check: ${arch} | $(try docker run --rm --entrypoint="uname" ${img_tag} -m)++++++++++++++++++\n"
     done
+    info_msg "${img_tag} combine ok\n"
 }
 build_other() {
     local dir="${1}"
@@ -500,6 +524,7 @@ main() {
         firefox)    build_firefox "${dir:-firefox}" "${file}" "${arch}";;
         aria)       build_aria2 "${dir:-aria2}" "${arch}";;
         nginx)      build_nginx "${dir:-nginx-johnyin}" "${arch}";;
+        python)     build_python "${dir:-python3}" "${arch}";;
         *)
                     [ -z "${file}" ] && gen_dockerfile "${func}" "${dir:-${func}-common-demo}" "${BASE_IMG}" "${arch}" \
                         || build_other "${dir:-${func}-scratch-demo}" "${func}" "${file}" "${arch}"
