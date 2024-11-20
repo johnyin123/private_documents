@@ -103,13 +103,15 @@ done
 
 cat <<EOF > etc.kubernetes.api.conf
 upstream kube-api {
+    hash \$remote_addr consistent;
 $(for i in ${MASTER_IPS}; do
-echo "    server $i:6443 fail_timeout=1s;"
+echo "    server $i:6443 max_fails=3 fail_timeout=1s;"
 done)
 }
 server {
     listen 60443;
     access_log off;
+    proxy_connect_timeout 1s;
     proxy_pass kube-api;
 }
 EOF
