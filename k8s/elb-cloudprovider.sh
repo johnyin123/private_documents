@@ -20,7 +20,7 @@ ARGS="-u johnyin -- python3 /home/johnyin/elb_provider.py"
 EOF
     cat <<EOF > ${IMG_DIR}/docker/build.run
 apt update && apt -y install python3-kubernetes
-chown johnyin:johnyin /home/johnyin/ -R
+chown johnyin:johnyin /home/johnyin/* -R
 /usr/sbin/runuser -u johnyin -- /bin/bash -s << EOSHELL
     # python3 -m venv /home/johnyin/myvenv
     # source /home/johnyin/myvenv/bin/activate
