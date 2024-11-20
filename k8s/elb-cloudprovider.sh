@@ -40,7 +40,7 @@ cat <<EOF
 kubectl create namespace ${NAMESPACE}
 kubectl create deployment elbprovider-deployment --image=${TAG_PREFIX}:${APP_VER} --replicas=1 -n ${NAMESPACE}
 # Requests.exceptions.HTTPError                                        :
-#  403 Client Error: Forbidden for url: https://10.96.0.1:443/apis/blackadder.io/v1beta1/chaosagents
+#  403 Client Error: Forbidden for url... so need add rbac to namespace
 EOF
 cat <<EOF
 ---
@@ -65,4 +65,50 @@ roleRef:
   kind: ClusterRole
   name: elboper
   apiGroup: rbac.authorization.k8s.io
+EOF
+
+echo  "TODO:: no check below"
+echo  "use configmap as ns_ip.json"
+cat<<EOF
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elb-nsip-mapping
+  namespace: ${NAMESPACE}
+data:
+  ns_ip.json: |
+     {
+         "default":"172.16.17.155",
+         "testns": "1.2.3.4"
+     }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: elbprovider
+  namespace: ${NAMESPACE}
+  labels:
+    app: elbprovider
+spec:
+  selector:
+    matchLabels:
+      app: elbprovider
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: elbprovider
+    spec:
+      containers:
+        - name: elbprovider
+          image: ${TAG_PREFIX}:${APP_VER}
+          volumeMounts:
+            - name: ns-ip-json
+              mountPath: /home/johnyin/ns_ip.json
+              subPath: ns_ip.json
+      volumes:
+        - name: ns-ip-json
+          configMap:
+            name: elb-nsip-mapping
 EOF
