@@ -100,11 +100,14 @@ class Action(object):
 
 def main():
     try:
-        # # run in k8s env, within a pod
-        config.load_incluster_config()
-    except Exception as e:
-        # # for local environment
+        # # for local environment, outside k8s
         config.load_kube_config()
+    except config.config_exception.ConfigException:
+        try:
+            # # run in k8s env, within a pod
+            config.load_incluster_config()
+        except config.config_exception.ConfigException:
+            raise Exception("Could not configure kubernetes python client")
     v1 = client.CoreV1Api()
     # pod_logs = v1.read_namespaced_pod_log(name=’my-app’, namespace=’default’)
     nodes = v1.list_node()
