@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("db21f9f[2024-10-17T16:49:19+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("407e89e[2024-11-01T08:28:17+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -527,6 +527,7 @@ kubectl taint nodes --all node-role.kubernetes.io/master-
 kubectl label nodes k8s-master node-role.kubernetes.io/worker=
 # 驱逐
 kubectl drain <node> --delete-local-data --ignore-daemonsets --force
+# # kubectl uncordon <node> #make it schedulable again
 # 将node置为SchedulingDisabled不可调度状态
 kubectl cordon <node>
 # # arm64环境，修改kubesphere的default-http-backend运行image是amd64,bug

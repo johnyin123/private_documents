@@ -26,7 +26,7 @@ class Action(object):
         with open(home_dir / "ns_ip.json") as f:
             # Load the JSON data into a Python dictionary
             self.ip_pools = json.load(f)
-        print(self.ip_pools) 
+        logger.info('ippool: %s' % self.ip_pools)
 
         for node in nodes.items:
             if 'node-role.kubernetes.io/master' in node.metadata.labels:

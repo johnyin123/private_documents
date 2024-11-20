@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d314fd7[2024-11-18T13:57:01+08:00]:make_docker_image.sh")
+VERSION+=("842f1fd[2024-11-20T14:12:46+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -323,7 +323,7 @@ build_python() {
     write_file "${cfg_file}" <<EOF
 useradd -m ${username} --home-dir /home/${username}/
 apt -y --no-install-recommends update
-apt -y --no-install-recommends install python3 python3.11-venv python3-kubernetes
+apt -y --no-install-recommends install python3 python3-venv
 EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF

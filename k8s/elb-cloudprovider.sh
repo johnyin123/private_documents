@@ -13,13 +13,13 @@ for APP_ARCH in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${APP_NAME} --arch ${APP_ARCH} -D ${IMG_DIR}
     ################################################
     mkdir -p ${IMG_DIR}/docker/home/johnyin/
-    cp elb-cloudprovider.sh ${IMG_DIR}/docker/home/johnyin/elb_provider.py
+    cp elb-cloudprovider.py ${IMG_DIR}/docker/home/johnyin/elb_provider.py
     cat <<EOF > ${IMG_DIR}/docker/run_command
 CMD=/usr/sbin/runuser
 ARGS="-u johnyin -- python3 /home/johnyin/elb_provider.py"
 EOF
     cat <<EOF > ${IMG_DIR}/docker/build.run
-apt update && apt -y install python3.11-venv python3-kubernetes
+apt update && apt -y install python3-kubernetes
 chown johnyin:johnyin /home/johnyin/ -R
 /usr/sbin/runuser -u johnyin -- /bin/bash -s << EOSHELL
     # python3 -m venv /home/johnyin/myvenv
@@ -50,7 +50,7 @@ metadata:
   name: elboper
 rules:
 - apiGroups: [""]
-  resources: ["pods", "services", "nodes"]
+  resources: ["services", "services/status", "nodes"]
   verbs: ["get", "patch", "list", "watch"]
 ---
 kind: ClusterRoleBinding
@@ -67,7 +67,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 EOF
 
-echo  "TODO:: no check below"
 echo  "use configmap as ns_ip.json"
 cat<<EOF
 ---
