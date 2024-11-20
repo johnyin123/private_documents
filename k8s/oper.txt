@@ -75,6 +75,12 @@ test_ok() {
     # curl http://192.168.168.3/
     # 验证通过，集群搭建成功
 }
+# # restart pod
+1. kubectl rollout restart deployment <deployment_name> -n <namespace>
+2. kubectl scale deployment <deployment name> -n <namespace> --replicas=0
+3. kubectl delete pod <pod_name> -n <namespace>
+4. kubectl get pod <pod_name> -n <namespace> -o yaml | kubectl replace --force -f -
+5. kubectl set env deployment <deployment name> -n <namespace> DEPLOY_DATE="$(date)"
 
 kubectl apply -f nginxDeployment.yml
 kubectl cluster-info
