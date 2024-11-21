@@ -11,20 +11,13 @@ from kubernetes import client, config, watch
 from pathlib import Path
 
 # kubectl patch service test-service --type=merge --subresource status --patch 'status: { loadBalancer: {  ingress: [{ ip: "1.1.1.1" } ]} }'
-'''
-{
-    "default":"172.16.0.155",
-    "testns": "1.2.3.4"
-}
-'''
 class Action(object):
     masters = []
     ip_pools = {}
     def __init__(self, nodes):
-        # Open the JSON file
         home_dir = Path.home()
-        with open(home_dir / "ns_ip.json") as f:
-            # Load the JSON data into a Python dictionary
+        # { "default":"172.16.0.155", "testns": "1.2.3.4" }
+        with open(home_dir / 'ns_ip.json') as f:
             self.ip_pools = json.load(f)
         logger.info('ippool: %s' % self.ip_pools)
 
@@ -37,40 +30,47 @@ class Action(object):
         logger.info('Master nodes: %s' % (self.masters))
         return
 
+    def ipvsrule(self, func, namespace, name, ports, lbaddr, ingress):
+        protocol=''
+        if lbaddr is None:
+            logger.info('%s: ns:%s not lbaddress define, return:%s', func, namespace)
+            return False
+        if func == 'add-service' and ingress is not None:
+            logger.info('%s: ingress not null, return:%s', func, ingress)
+            return False
+        if func == 'delete-service' and ingress is None:
+            logger.info('%s: ingress null, return:%s', func, ingress)
+            return False
+        logger.info('%s: ns:%s,svc:%s,lbaddr:%s', func ,namespace, name, lbaddr)
+        proto_dict={'TCP':'-t', 'UDP':'-u'} # --tcp-service --udp-service
+        for port in ports:
+            protocol = proto_dict.get(port.protocol, None)
+            if protocol is None:
+                logger.error('%s: invalid protocol, ns:%s,svc:%s,%s', func, namespace, name, port.protocol)
+                return False
+            logger.debug('ipvsadm --%s %s %s:%d' % (func, protocol, lbaddr, port.port))
+            if func == 'add-service':
+                for node_ip in self.masters:
+                    logger.debug('ipvsadm -a %s %s:%d -r %s:%d -g -w 1' % (protocol, lbaddr, port.port, node_ip, port.port))
+        return True
+
     def add(self, svc_manifest):
         namespace = svc_manifest.metadata.namespace
         name = svc_manifest.metadata.name
         ports = svc_manifest.spec.ports
         lbaddr = self.ip_pools.get(namespace, None)
-        if lbaddr == None:
-            logger.info('ADD SVC_LB: ns:%s not lbaddress define, return:%s' % (namespace))
-            return
-        if svc_manifest.status.load_balancer.ingress != None:
-            logger.info('ADD SVC_LB: ingress not null, return:%s' % (svc_manifest.status.load_balancer.ingress))
-            return
-        logger.info('ADD SVC_LB: ns:%s,svc:%s,lbaddr:%s' % (namespace, name, lbaddr))
-        protocol=''
-        for port in ports:
-            if port.protocol == 'TCP':
-                protocol='-t' #'--tcp-service'
-            elif port.protocol == 'UDP':
-                protocol='-u' #'--udp-service'
-            else:
-                logger.error("ADD SVC_LB: invalid protocol, ns:%s,svc:%s,%s", namespace, name, port.protocol)
-                return
-            logger.debug('ipvsadm -A %s %s:%d -s rr -p 360' % (protocol, lbaddr, port.port))
-            for node_ip in self.masters:
-                logger.debug('ipvsadm -a %s %s:%d -r %s:%d -g -w 1' % (protocol, lbaddr, port.port, node_ip, port.port))
-        svc_manifest.status.load_balancer.ingress = [{'ip': lbaddr}]
-        v1 = client.CoreV1Api()
-        v1.patch_namespaced_service_status(name, namespace, svc_manifest)
-        logger.info("Update service status")
+        if self.ipvsrule('add-service', namespace, name, ports, lbaddr, svc_manifest.status.load_balancer.ingress):
+            svc_manifest.status.load_balancer.ingress = [{'ip': lbaddr}]
+            v1 = client.CoreV1Api()
+            v1.patch_namespaced_service_status(name, namespace, svc_manifest)
         return
 
     def modify(self, svc_manifest):
         namespace = svc_manifest.metadata.namespace
         name = svc_manifest.metadata.name
-        logger.info('MODIFY SVC_LB: ns:%s,svc:%s' % (namespace, name))
+        ports = svc_manifest.spec.ports
+        lbaddr = self.ip_pools.get(namespace, None)
+        logger.info('modify: ns:%s,svc:%s,lbaddr:%s,ingress:%s', namespace, name, lbaddr, svc_manifest.status.load_balancer.ingress)
         return
 
     def delete(self, svc_manifest):
@@ -78,24 +78,7 @@ class Action(object):
         name = svc_manifest.metadata.name
         ports = svc_manifest.spec.ports
         lbaddr = self.ip_pools.get(namespace, None)
-        if lbaddr == None:
-            logger.info('ADD SVC_LB: ns:%s not lbaddress define, return:%s' % (namespace))
-            return
-        logger.info('DELETE SVC_LB: ns:%s,svc:%s' % (namespace, name))
-        if svc_manifest.status.load_balancer.ingress == None:
-            logger.info('DELETE SVC_LB: ingress is null')
-            return
-        protocol='' 
-        for port in ports:
-            if port.protocol == 'TCP':
-                protocol='-t' #'--tcp-service'
-            elif port.protocol == 'UDP':
-                protocol='-u' #'--udp-service'
-            else:
-                logger.error("ADD SVC_LB: invalid protocol, ns:%s,svc:%s,%s", namespace, name, port.protocol)
-                return
-            # check svc_manifest.status.load_balancer.ingress[0].ip == lbaddr
-            logger.debug('ipvsadm -D %s %s:%d' % (protocol, lbaddr, port.port))
+        self.ipvsrule('delete-service', namespace, name, ports, lbaddr, svc_manifest.status.load_balancer.ingress)
         return
 
 def main():
@@ -107,7 +90,7 @@ def main():
             # # run in k8s env, within a pod
             config.load_incluster_config()
         except config.config_exception.ConfigException:
-            raise Exception("Could not configure kubernetes python client")
+            raise Exception('Could not configure kubernetes python client')
     v1 = client.CoreV1Api()
     # pod_logs = v1.read_namespaced_pod_log(name=’my-app’, namespace=’default’)
     nodes = v1.list_node()
@@ -116,16 +99,12 @@ def main():
     for item in w.stream(v1.list_service_for_all_namespaces):
         svc_manifest = item.get('object', {})
         action=item.get('type', 'N/A')
-
         if svc_manifest.spec.type != 'LoadBalancer':
             continue
-
         if action == 'ADDED':
             action_class.add(svc_manifest)
-
         elif action == 'MODIFIED':
             action_class.modify(svc_manifest)
-
         elif action == 'DELETED':
             action_class.delete(svc_manifest)
 
