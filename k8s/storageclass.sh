@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6cb8ef2[2023-08-01T10:47:01+08:00]:storageclass.sh")
+VERSION+=("7cea0c2[2023-08-02T09:40:59+08:00]:storageclass.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 set_sc_default() {
@@ -224,6 +224,12 @@ spec:
           - ${node}
 EOF
 }
+sc_longhorn() {
+    local name=${1}
+    kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.7.2/deploy/longhorn.yaml
+    kubectl get pods --namespace longhorn-system --watch
+    kubectl -n longhorn-system get pod
+}
 init_pvc() {
     local name=${1}
     local scname=${2}
@@ -289,7 +295,7 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME}
         -m|--master      *  <ip>    master ipaddr
-        -t|--sctype      *  <str>   local/nfs/rbd
+        -t|--sctype      *  <str>   local/nfs/rbd/Longhorn
         -n|--name        *  <str>   storageclass name
         --default                   as default storageclass
         --store-node        <node>  local storageclass store node
@@ -355,6 +361,10 @@ main() {
         rbd)
             exit_msg "rbd storageclass n/a now!\n"
             ssh_func "${user}@${master}" "${port}" sc_rbd "${name}"
+            ;;
+        Longhorn)
+            exit_msg "Longhorn storageclass!\n"
+            ssh_func "${user}@${master}" "${port}" sc_longhorn "${name}"
             ;;
         glusterfs)
             ;;
