@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("407e89e[2024-11-01T08:28:17+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("cdf6933[2024-11-20T16:43:03+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -108,6 +108,7 @@ init_first_k8s_master_use_extern_etcd() {
     local opts="--upload-certs"
     kubeadm config print init-defaults --kubeconfig ClusterConfiguration | sed -n '1,/^---/!p' | sed -n '/local:/,/dataDir:/!p' > /tmp/kubeadm-config.yaml
     ${skip_proxy} && opts="--skip-phases=addon/kube-proxy ${opts}"
+    [ -z "${API_VIP:-}" ] || opts="--apiserver-cert-extra-sans ${API_VIP} ${opts}"
     [ -z "${apiserver}" ] || sed -i "s|controllerManager:.*|controlPlaneEndpoint: ${apiserver}|g" /tmp/kubeadm-config.yaml
     [ -z "${pod_cidr}" ] || sed -i "s|networking:|networking:\n  podSubnet: ${pod_cidr}|g" /tmp/kubeadm-config.yaml
     [ -z "${svc_cidr}" ] || sed -i "s|networking:|networking:\n  serviceSubnet: ${svc_cidr}|g" /tmp/kubeadm-config.yaml
@@ -139,7 +140,8 @@ init_first_k8s_master() {
     local svc_cidr=${4}
     local insec_registry=${5}
     local opts="${apiserver:+--control-plane-endpoint ${apiserver}} --upload-certs ${pod_cidr:+--pod-network-cidr=${pod_cidr}} ${svc_cidr:+--service-cidr ${svc_cidr}} --apiserver-advertise-address=0.0.0.0 ${insec_registry:+--image-repository=${insec_registry}/google_containers}"
-    ${skip_proxy} && opts="--skip-phases=addon/kube-proxy ${opts}" 
+    ${skip_proxy} && opts="--skip-phases=addon/kube-proxy ${opts}"
+    [ -z "${API_VIP:-}" ] || opts="--apiserver-cert-extra-sans ${API_VIP} ${opts}"
     local k8s_version=$(kubelet --version | awk '{ print $2}')
     kubeadm init --kubernetes-version ${k8s_version} ${opts}
     echo "FIX 'kubectl get cs' Unhealthy"
@@ -310,6 +312,8 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         --apiserver       X X    <str>  k8s cluster api-server-endpoint
                                         no set use first master ipaddress, so control plane can only one!!!
                                         SUGGEST: use domain name. apiserver.demo.org:6443
+        --vip                    <str>  apiserver extra ip or dns_name
+                                        in apiserver certificate Subject Alternative Names
         --skip_proxy      X X           skip install kube-proxy, default false
         --ipvs            X X           kube-proxy mode ipvs, default false
         --only_add_master X * X  <ip>   only add master to exist k8s cluster(--master nodes)
@@ -369,10 +373,11 @@ verify_calico() {
 main() {
     local etcd=()
     local master=() worker=() teardown=() svc_cidr="" pod_cidr="" insec_registry="" nameserver="" apiserver="" crossnet_method="" only_add_master=""
+    unset API_VIP
     local skip_proxy=false ipvs=false only_add_worker=false enable_schedule=false
     local user=root port=60022
     local opt_short="m:w:s:p:U:P:"
-    local opt_long="master:,worker:,svc_cidr:,pod_cidr:,insec_registry:,nameserver:,calico:,apiserver:,skip_proxy,ipvs,only_add_worker,only_add_master:,password:,teardown:,user:,port:,enable_schedule,etcd:,"
+    local opt_long="master:,worker:,svc_cidr:,pod_cidr:,insec_registry:,nameserver:,calico:,apiserver:,skip_proxy,ipvs,only_add_worker,only_add_master:,password:,teardown:,user:,port:,enable_schedule,etcd:,vip:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -389,6 +394,7 @@ main() {
             --nameserver)      shift; nameserver=${1}; shift;;
             --calico)          shift; verify_calico "${1}" && crossnet_method=${1}; shift;;
             --apiserver)       shift; verify_apiserver "${1}" && apiserver=${1}; shift;;
+            --vip)             shift; export API_VIP=${1}; shift;;
             --skip_proxy)      shift; skip_proxy=true;;
             --ipvs)            shift; ipvs=true;;
             --only_add_worker) shift; only_add_worker=true;;
