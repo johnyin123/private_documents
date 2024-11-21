@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cdf6933[2024-11-20T16:43:03+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("b0da197[2024-11-21T15:35:49+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -108,7 +108,7 @@ init_first_k8s_master_use_extern_etcd() {
     local opts="--upload-certs"
     kubeadm config print init-defaults --kubeconfig ClusterConfiguration | sed -n '1,/^---/!p' | sed -n '/local:/,/dataDir:/!p' > /tmp/kubeadm-config.yaml
     ${skip_proxy} && opts="--skip-phases=addon/kube-proxy ${opts}"
-    [ -z "${API_VIP:-}" ] || opts="--apiserver-cert-extra-sans ${API_VIP} ${opts}"
+    [ -z "${API_VIP:-}" ] || opts="--apiserver-cert-extra-sans=${API_VIP} ${opts}"
     [ -z "${apiserver}" ] || sed -i "s|controllerManager:.*|controlPlaneEndpoint: ${apiserver}|g" /tmp/kubeadm-config.yaml
     [ -z "${pod_cidr}" ] || sed -i "s|networking:|networking:\n  podSubnet: ${pod_cidr}|g" /tmp/kubeadm-config.yaml
     [ -z "${svc_cidr}" ] || sed -i "s|networking:|networking:\n  serviceSubnet: ${svc_cidr}|g" /tmp/kubeadm-config.yaml
@@ -141,7 +141,7 @@ init_first_k8s_master() {
     local insec_registry=${5}
     local opts="${apiserver:+--control-plane-endpoint ${apiserver}} --upload-certs ${pod_cidr:+--pod-network-cidr=${pod_cidr}} ${svc_cidr:+--service-cidr ${svc_cidr}} --apiserver-advertise-address=0.0.0.0 ${insec_registry:+--image-repository=${insec_registry}/google_containers}"
     ${skip_proxy} && opts="--skip-phases=addon/kube-proxy ${opts}"
-    [ -z "${API_VIP:-}" ] || opts="--apiserver-cert-extra-sans ${API_VIP} ${opts}"
+    [ -z "${API_VIP:-}" ] || opts="--apiserver-cert-extra-sans=${API_VIP} ${opts}"
     local k8s_version=$(kubelet --version | awk '{ print $2}')
     kubeadm init --kubernetes-version ${k8s_version} ${opts}
     echo "FIX 'kubectl get cs' Unhealthy"
@@ -312,7 +312,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         --apiserver       X X    <str>  k8s cluster api-server-endpoint
                                         no set use first master ipaddress, so control plane can only one!!!
                                         SUGGEST: use domain name. apiserver.demo.org:6443
-        --vip                    <str>  apiserver extra ip or dns_name
+        --vip                    <str>  apiserver extra ip or dns_name. demo: 172.16.0.155,myserver
                                         in apiserver certificate Subject Alternative Names
         --skip_proxy      X X           skip install kube-proxy, default false
         --ipvs            X X           kube-proxy mode ipvs, default false
