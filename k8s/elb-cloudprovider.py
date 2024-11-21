@@ -14,6 +14,7 @@ from pathlib import Path
 class Action(object):
     masters = []
     ip_pools = {}
+    proto_dict={'TCP':'-t', 'UDP':'-u'} # --tcp-service --udp-service
     def __init__(self, nodes):
         home_dir = Path.home()
         # { "default":"172.16.0.155", "testns": "1.2.3.4" }
@@ -31,7 +32,7 @@ class Action(object):
         return
 
     def ipvsrule(self, func, namespace, name, ports, lbaddr, ingress):
-        protocol=''
+        logger.info('%s: ns:%s,svc:%s,lbaddr:%s', func ,namespace, name, lbaddr)
         if lbaddr is None:
             logger.info('%s: ns:%s not lbaddress define, return:%s', func, namespace)
             return False
@@ -41,12 +42,10 @@ class Action(object):
         if func == 'delete-service' and ingress is None:
             logger.info('%s: ingress null, return:%s', func, ingress)
             return False
-        logger.info('%s: ns:%s,svc:%s,lbaddr:%s', func ,namespace, name, lbaddr)
-        proto_dict={'TCP':'-t', 'UDP':'-u'} # --tcp-service --udp-service
         for port in ports:
-            protocol = proto_dict.get(port.protocol, None)
+            protocol = self.proto_dict.get(port.protocol.upper(), None)
             if protocol is None:
-                logger.error('%s: invalid protocol, ns:%s,svc:%s,%s', func, namespace, name, port.protocol)
+                logger.error('%s: invalid protocol, ns:%s,svc:%s,%s, return', func, namespace, name, port.protocol)
                 return False
             logger.debug('ipvsadm --%s %s %s:%d' % (func, protocol, lbaddr, port.port))
             if func == 'add-service':
