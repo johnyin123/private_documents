@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7cea0c2[2023-08-02T09:40:59+08:00]:storageclass.sh")
+VERSION+=("6efcbc1[2024-11-21T12:37:57+08:00]:storageclass.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 set_sc_default() {
@@ -227,7 +227,7 @@ EOF
 sc_longhorn() {
     local name=${1}
     kubectl apply -f https://raw.githubusercontent.com/longhorn/longhorn/v1.7.2/deploy/longhorn.yaml
-    kubectl get pods --namespace longhorn-system --watch
+    echo 'kubectl get pods --namespace longhorn-system --watch'
     kubectl -n longhorn-system get pod
 }
 init_pvc() {

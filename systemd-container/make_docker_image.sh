@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("842f1fd[2024-11-20T14:12:46+08:00]:make_docker_image.sh")
+VERSION+=("cdf6933[2024-11-20T16:43:03+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -63,6 +63,28 @@ ${SCRIPTNAME}
                 docker push ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:bookworm-\${arch}
             done
             ./${SCRIPTNAME} -c combine --tag ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:bookworm
+EOF
+    cat <<'EOF'
+         # # multiarch nsenter utils
+            ARCH=(amd64 arm64)
+            type=nsenter
+            for arch in ${ARCH[@]}; do
+                ./make_docker_image.sh -c ${type} -D my${type}-${arch} --arch ${arch}
+                cat <<EODOC > my${type}-${arch}/docker/build.run
+            apt update && apt -y --no-install-recommends install util-linux
+            # useradd -m johnyin --home-dir /home/johnyin/ --shell /bin/bash
+            EODOC
+                cat <<EODOC > my${type}-${arch}/docker/run_command
+            CMD=/usr/sbin/runuser
+            ARGS="-u root -- /usr/bin/busybox sleep infinity"
+            EODOC
+                # confirm base-image is right arch
+                docker pull --quiet registry.local/debian:bookworm --platform ${arch}
+                docker run --rm --entrypoint="uname" registry.local/debian:bookworm -m
+                (cd my${type}-${arch} && docker build --network=br-ext -t registry.local/${type}:bookworm-${arch} .)
+                docker push registry.local/${type}:bookworm-${arch}
+            done
+            ./make_docker_image.sh -c combine --tag registry.local/${type}:bookworm
 EOF
     exit 1
 }

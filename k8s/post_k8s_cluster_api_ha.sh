@@ -22,8 +22,6 @@ metadata:
   namespace: kube-system
 spec:
   hostNetwork: true
-  securityContext:
-    privileged: true
   containers:
   - name: nginx
     image: registry.local/nginx:bookworm
