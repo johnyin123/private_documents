@@ -14,7 +14,7 @@ from pathlib import Path
 class Action(object):
     masters = []
     ip_pools = {}
-    proto_dict={'TCP':'-t', 'UDP':'-u'} # --tcp-service --udp-service
+    proto_dict={'TCP':'-t', 'UDP':'-u', 'SCTP':'--sctp-service'} # --tcp-service --udp-service --sctp-service
     def __init__(self, nodes):
         home_dir = Path.home()
         # { "default":"172.16.0.155", "testns": "1.2.3.4" }
