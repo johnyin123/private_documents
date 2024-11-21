@@ -7,4 +7,4 @@ kubectl delete -n kube-system pod kube-apiserver-.......
 # 重启 kubelet 服务
 systemctl restart kubelet
 openssl s_client -connect 172.16.0.150:6443 </dev/null 2>/dev/null | openssl x509 -noout -text | grep DNS:
-
+openssl s_client -connect 172.16.0.150:6443 </dev/null 2>/dev/null | openssl x509 -noout -dates
