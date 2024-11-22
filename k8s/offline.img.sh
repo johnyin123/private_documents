@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# # in internet env(maybe netns/vm)
+# # PROXY=https://registry.k8s.io PORT=:5001 ./registry.sh
+# # docker pull <ip:5001>/<img> --platform <arch> / k8s.io image pull <ip:5001>/<img> --all-platforms
 mirror=registry.aliyuncs.com/google_containers
 local_registry=192.168.168.250
 for img in $(kubeadm config images list --kubernetes-version=v1.21.7 --image-repository=${mirror})
@@ -8,7 +11,6 @@ do
     target_img=${local_registry}/google_containers/${img##*/}
     ctr -n k8s.io image push ${target_img} --platform amd64 --platform arm64 --plain-http
 done
-
 ARCH=(amd64 arm64)
 for arch in ${ARCH[@]}; do
     docker pull ${mirror}/${img} --platform ${arch}
