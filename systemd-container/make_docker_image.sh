@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cdf6933[2024-11-20T16:43:03+08:00]:make_docker_image.sh")
+VERSION+=("1673dac[2024-11-21T13:28:12+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -491,7 +491,7 @@ combine_multiarch() {
     for arch in ${ARCH[@]}; do
         try docker pull -q ${img_tag} --platform ${arch}
         info_msg "++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
-        info_msg "++++++++++++++++++check: ${arch} | $(try docker run --rm --entrypoint="uname" ${img_tag} -m)++++++++++++++++++\n"
+        info_msg "++++++++++++++++++check: ${arch} | $(try docker run --rm --entrypoint="uname" ${img_tag} -m 2>/dev/null || true)++++++++++++++++++\n"
     done
     info_msg "${img_tag} combine ok\n"
 }
