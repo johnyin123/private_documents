@@ -31,6 +31,7 @@ spec:
       readOnly: true
   - name: keepalived
     image: registry.local/nginx:bookworm
+    # imagePullPolicy: IfNotPresent|Always|Never
     securityContext:
       privileged: true
     command:

@@ -8,6 +8,7 @@ spec:
   containers:
   - name: nginx
     image: registry.local/debian:bookworm
+    # imagePullPolicy: IfNotPresent|Always|Never
     securityContext:
       privileged: true
     command:
