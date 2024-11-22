@@ -1,14 +1,33 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+##OPTION_START##
 PASSWORD=${PASSWORD:-}
 CEPH=${CEPH:-}
 PROXY=${PROXY:-}
+PORT=${PORT:-127.0.0.1:5000}
+##OPTION_END##
+show_option() {
+    local file="${1}"
+    sed -n '/^##OPTION_START/,/^##OPTION_END/p' ${file} | while IFS= read -r line; do
+        [[ ${line} =~ ^\ *#.*$ ]] && continue #skip comment line
+        [[ ${line} =~ ^\ *$ ]] && continue #skip blank
+        eval "printf '%-16.16s = %s\n' \"${line%%=*}\" \"\${${line%%=*}:-UNSET}\""
+    done
+}
+show_option "${0}"
+
 mkdir -p "${DIRNAME}/data"
 
 [ -z "${PASSWORD}" ] || htpasswd -Bbn admin ${PASSWORD} > ${DIRNAME}/registry.password
 
 echo 'https://github.com/distribution/distribution'
-[ -e "${DIRNAME}/config.yml" ] || cat <<EOF > "${DIRNAME}/config.yml"
+[ -e "${DIRNAME}/config.yml" ] && {
+    addr=$(cat "${DIRNAME}/config.yml" | awk  '/addr:/{ print $2 }')
+    echo "Start registry, ${addr}"
+    nohup "${DIRNAME}/registry" serve "${DIRNAME}/config.yml"  &>${DIRNAME}/out.log &
+} || {
+    echo "Generate ${DIRNAME}/config.yml, rerun to start it"
+    cat <<EOF > "${DIRNAME}/config.yml"
 version: 0.1
 log:
   # level: debug
@@ -43,7 +62,7 @@ EOFS
       #  readonly:
       #    enabled: false
 http:
-  addr: 127.0.0.1:5000
+  addr: ${PORT}
   headers:
     X-Content-Type-Options: [nosniff]
 $([ -z "${PASSWORD}" ] || {
@@ -98,4 +117,4 @@ EOPROXY
 #   tls:
 #     enabled: false
 EOF
-nohup "${DIRNAME}/registry" serve "${DIRNAME}/config.yml"  &>/dev/null &
+}
