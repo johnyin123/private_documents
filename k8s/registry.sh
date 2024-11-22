@@ -4,7 +4,13 @@ readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 PASSWORD=${PASSWORD:-}
 CEPH=${CEPH:-}
 PROXY=${PROXY:-}
+# # PROXY=https://gcr.io
+# # PROXY=https://quay.io
+# # PROXY=https://registry.k8s.io
+# # PROXY=https://registry-1.docker.io
+# # PROXY=https://registry.aliyuncs.com
 PORT=${PORT:-127.0.0.1:5000}
+# # PORT=:6000
 ##OPTION_END##
 show_option() {
     local file="${1}"
@@ -81,14 +87,12 @@ health:
 $([ -z "${PROXY}" ] || {
     cat <<EOPROXY
 proxy:
-  # remoteurl: https://registry.k8s.io
-  # remoteurl: https://registry-1.docker.io
-  remoteurl: https://registry.aliyuncs.com
-# 120.55.105.209 registry.aliyuncs.com
-# 47.97.242.13 dockerauth.cn-hangzhou.aliyuncs.com
-# 183.131.227.249 aliregistry.oss-cn-hangzhou.aliyuncs.com
+  remoteurl: ${PROXY}
   # username: [username]
   # password: [password]
+  # 120.55.105.209 registry.aliyuncs.com
+  # 47.97.242.13 dockerauth.cn-hangzhou.aliyuncs.com
+  # 183.131.227.249 aliregistry.oss-cn-hangzhou.aliyuncs.com
 EOPROXY
 })
 # # https://distribution.github.io/distribution/about/configuration/
