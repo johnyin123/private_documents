@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("58fc16f[2024-11-13T15:16:16+08:00]:mk_nginx.sh")
+VERSION+=("64e9879[2024-11-14T09:06:35+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -552,10 +552,12 @@ proxy_headers_hash_bucket_size 10240;
 proxy_headers_hash_max_size 102400;
 proxy_ignore_client_abort on;
 
-# # proxy headers
+# # proxy headers, if use proxy_set_header, below header will overwrite.
 proxy_set_header X-Real-IP         $remote_addr;
 proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header X-Forwarded-Port  $server_port;
+proxy_set_header Origin            $scheme://$host;
 # $http_host equals always the HTTP_HOST request header.
 # $host equals $http_host, lowercase and without the port number (if present),
 #    except when HTTP_HOST is absent or is an empty value.
