@@ -29,4 +29,5 @@ echo "|:-|-:|"
 for srv in $(cat ${fname} | jq -cr '.hosts | .[] | .uri'); do
     echo "|${srv}|$(cat ${fname} | jq ".hosts[] | select(.uri | startswith(\"$srv\"))" | jq '.totalvm')" | sed -e "s|qemu+ssh://root@||g"  -e "s|:60022/system||g"
 done
-} | pandoc --pdf-engine wkhtmltopdf -o ${fname}.pdf
+} | tee ${fname}.md | pandoc --pdf-engine wkhtmltopdf -o ${fname}.pdf
+echo "${fname}.md ${fname}.pdf"
