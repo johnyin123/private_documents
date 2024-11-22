@@ -20,18 +20,16 @@ show_option() {
         eval "printf '%-16.16s = %s\n' \"${line%%=*}\" \"\${${line%%=*}:-UNSET}\""
     done
 }
-show_option "${0}"
-
 mkdir -p "${DIRNAME}/data"
 
 [ -z "${PASSWORD}" ] || htpasswd -Bbn admin ${PASSWORD} > ${DIRNAME}/registry.password
-
 echo 'https://github.com/distribution/distribution'
 [ -e "${DIRNAME}/config.yml" ] && {
     addr=$(cat "${DIRNAME}/config.yml" | awk  '/addr:/{ print $2 }')
     echo "Start registry, ${addr}"
     nohup "${DIRNAME}/registry" serve "${DIRNAME}/config.yml"  &>${DIRNAME}/out.log &
 } || {
+    show_option "${0}"
     echo "Generate ${DIRNAME}/config.yml, rerun to start it"
     cat <<EOF > "${DIRNAME}/config.yml"
 version: 0.1
