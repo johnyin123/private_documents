@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b0da197[2024-11-21T15:35:49+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("c8c4502[2024-11-21T16:26:29+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -302,7 +302,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         -w|--worker       * X    <ip>   worker nodes, support multi nodes
         --etcd                   <url>  external etcd cluster addesses, support multi nodes
                                         exam: https://192.168.168.152:2379
-        -s|--svc_cidr     X X    <cidr> servie cidr, default 10.96.0.0/12
+        -s|--svc_cidr     X X    <cidr> service cidr, default 10.96.0.0/12
         -p|--pod_cidr     X X *  <cidr> calico cni, pod_cidr
         --enable_schedule               enable master node scheduling
         --insec_registry         <str>  insecurity registry(http/no auth)
