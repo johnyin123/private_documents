@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("df47dc5[2024-11-22T08:13:37+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("6a0b628[2024-11-25T13:21:17+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -339,6 +339,9 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         echo '192.168.168.xxx     registry.local'>> /etc/hosts
         wget --no-check-certificate -O /etc/yum.repos.d/cnap.repo http://registry.local/cnap/cnap.repo
         yum -y --enablerepo=cnap install tsd_cnap_v1.27.3 bash-completion
+            yum -y install nfs-utils nfs4-acl-tools # # nfs pv
+            yum -y install iscsi-initiator-utils    # # iscsi pv
+            yum -y install ceph-common              # # cephfs pv
 # # init new cluster
 ${SCRIPTNAME} -m 192.168.168.150 --pod_cidr 172.16.0.0/24 --ipvs --insec_registry 192.168.168.250 --apiserver myserver:6443
 # # make api ha
