@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9a3ff7e[2023-11-10T12:51:29+08:00]:new_ceph.sh")
+VERSION+=("c9f0023[2024-02-02T08:29:26+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 fix_ceph_conf() {
@@ -137,8 +137,8 @@ add_mds() {
     local name=${HOSTNAME:-$(hostname)}
     [ -e "/etc/ceph/${cname}.conf" ] || return 1
     sudo -u ceph mkdir -p /var/lib/ceph/mds/${cname}-${name}
-    sudo -u ceph --cluster ${cname} ceph-authtool --create-keyring /var/lib/ceph/mds/${cname}-${name}/keyring --gen-key -n mds.${name}
-    sudo -u ceph --cluster ${cname} ceph auth add mds.${name} osd "allow rwx" mds "allow *" mon "allow profile mds" -i /var/lib/ceph/mds/${cname}-${name}/keyring
+    sudo -u ceph ceph-authtool --create-keyring /var/lib/ceph/mds/${cname}-${name}/keyring --gen-key -n mds.${name}
+    sudo -u ceph ceph --cluster ${cname} auth add mds.${name} osd "allow rwx" mds "allow *" mon "allow profile mds" -i /var/lib/ceph/mds/${cname}-${name}/keyring
     systemctl enable --now ceph-mds@${name}
     ceph --cluster ${cname} mds stat
 }
