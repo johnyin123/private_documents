@@ -25,6 +25,7 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: cephfs
+  namespace: ${namespace}
   labels:
     pv: cephfs
 spec:
@@ -47,7 +48,8 @@ echo "create pvc" && cat <<EOF
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: claim1
+  name: cephfs_pvc1
+  namespace: ${namespace}
 spec:
   accessModes:
     - ReadWriteMany
@@ -81,5 +83,5 @@ spec:
   volumes:
   - name: cephfs
     persistentVolumeClaim:
-      claimName: claim1
+      claimName: cephfs_pvc1
 EOF
