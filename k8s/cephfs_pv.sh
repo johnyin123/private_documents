@@ -10,7 +10,7 @@ ceph_key=uSlE9PQ==
 # # mount -t ceph 172.16.16.3:6789:/cephfs_path /mnt/ -oname=${ceph_user},secret=${ceph_key}
 # # mkdir -p /mnt/${cephfs_path}
 namespace=default
-echo "create seacret" && cat <<EOF | kubectl apply -f -
+echo "create secret" && cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Secret
 metadata:
@@ -44,9 +44,9 @@ spec:
     readOnly: false
 EOF
 
-echo "create pvc" && cat <<EOF
-kind: PersistentVolumeClaim
+echo "create pvc" && cat <<EOF | kubectl apply -f -
 apiVersion: v1
+kind: PersistentVolumeClaim
 metadata:
   name: cephfs_pvc1
   namespace: ${namespace}
@@ -61,21 +61,21 @@ spec:
       pv: cephfs
 EOF
 
-echo "Use the PVC in a pod" && cat <<EOF
-kind: Pod
+echo "Use CEPHFS PVC in a pod" && cat <<EOF | kubectl apply -f -
 apiVersion: v1
+kind: Pod
 metadata:
   name: cephfs
+  namespace: ${namespace}
 spec:
   containers:
   - name: cephfs-rw
     image: registry.local/debian:bookworm
-    # image: registry.local/library/busybox:latest
     command:
       - "/bin/sh"
     args:
       - "-c"
-      - "touch /mnt/cephfs/SUCCESS && exit 0 || exit 1"
+      - "busybox ip a > /mnt/cephfs/SUCCESS && exit 0 || exit 1"
     volumeMounts:
     - mountPath: "/mnt/cephfs"
       name: cephfs  

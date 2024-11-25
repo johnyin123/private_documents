@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c9f0023[2024-02-02T08:29:26+08:00]:new_ceph.sh")
+VERSION+=("b771252[2024-11-25T08:44:07+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 fix_ceph_conf() {
@@ -545,6 +545,7 @@ ${SCRIPTNAME}
         1. wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add -
         2. echo deb http://download.ceph.com/debian-\${VER}/ \$(sed -n "s/^\s*VERSION_CODENAME\s*=\s*\(.*\)/\1/p" /etc/os-release) main | tee /etc/apt/sources.list.d/ceph.list
         3. apt-get update && apt-get install ceph radosgw rbd-mirror rbd-nbd
+          scsi-target-utils-rbd / tgt-rbd
         SSH_PORT default is 60022
          ${SCRIPTNAME} -c site1 \\
                -m 192.168.168.101 -m 192.168.168.102 -m 192.168.168.103 \\
