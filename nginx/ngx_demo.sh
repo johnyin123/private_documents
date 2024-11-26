@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2ae45c5[2024-11-13T14:29:23+08:00]:ngx_demo.sh")
+VERSION+=("64e9879[2024-11-14T09:06:35+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -879,22 +879,22 @@ map $http_x_forwarded_for $clientRealIp {
 }
 
 # # 1MiB zone takes 16000 IP addresses
-# limit single IP 50 concurrent control,
+# limit single IP 500 concurrent control,
 limit_conn_zone $clientRealIp zone=PerClientIPConnZone:10m ;
-limit_conn PerClientIPConnZone 50;
+limit_conn PerClientIPConnZone 500;
 limit_conn_status 503;
 limit_conn_log_level warn;
 
-# limit single IP/sec 20 Request, with bursts not exceeding 50 requests.
-limit_req_zone $clientRealIp zone=PerClientIPReqZone:10m rate=20r/s;
-limit_req zone=PerClientIPReqZone burst=50 nodelay;
+# limit single IP/sec 200 Request, with bursts not exceeding 500 requests.
+limit_req_zone $clientRealIp zone=PerClientIPReqZone:10m rate=200r/s;
+limit_req zone=PerClientIPReqZone burst=500 nodelay;
 limit_req_status 503;
 limit_req_log_level warn;
 
 limit_conn_zone $server_name zone=PerSrvNameConnZone:10m;
-limit_conn PerSrvNameConnZone 800;
-limit_req_zone $server_name zone=PerSrvNameReqZone:10m rate=1000r/s;
-limit_req zone=PerSrvNameReqZone burst=5000 nodelay;
+limit_conn PerSrvNameConnZone 8000;
+limit_req_zone $server_name zone=PerSrvNameReqZone:10m rate=10000r/s;
+limit_req zone=PerSrvNameReqZone burst=50000 nodelay;
 EOF
 cat <<'EOF' > limit_req.http
 # error_log /var/log/nginx/error.log warn;
