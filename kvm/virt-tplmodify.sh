@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2274c31[2023-07-17T13:24:15+08:00]:virt-tplmodify.sh")
+VERSION+=("8641f9f[2023-10-07T17:19:46+08:00]:virt-tplmodify.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -93,7 +93,7 @@ iface ${iface} inet6 static
 EOF
             }
             ;;
-        centos|rocky|openEuler|kylin)
+        centos|rocky|openEuler|kylin|uos)
             [ -z "${ip6addr}" ] \
                 && echo "IPV6INIT=no" > ${root_dir}/etc/sysconfig/network-scripts/ifcfg-${iface} \
                 || echo "IPV6INIT=yes" > ${root_dir}/etc/sysconfig/network-scripts/ifcfg-${iface}
@@ -109,7 +109,7 @@ ${ip6gateway:+IPV6_DEFAULTGW=${ip6gateway}}
 EOF
             ;;
         *)
-            echo "UNKNOWN OS!!!!!!!!!!"
+            error_msg "UNKNOWN OS!!!!!!!!!!\n"
     esac
     return 0
 }
