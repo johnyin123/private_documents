@@ -7,16 +7,17 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ea742a0[2024-11-26T12:55:17+08:00]:create_pv.sh")
+VERSION+=("ebdbd46[2024-11-27T09:44:01+08:00]:create_pv.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
     R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
 ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
-        -t|--type     *   ${G}<str>${N}     PersistentVolume type
+        -t|--type     *   ${G}<str>${N}     PersistentVolume type(In-tree provisioning)
                           cephfs/rbd/iscsi/nfs/local, ${R}ALL CHECKED OK${N}
         -n|--name         ${G}<str>${N}     PersistentVolume name, default YYYY-MM
         -s|--capacity     ${G}<str>${N}     PersistentVolume size, default 10G
+        --default                           Set as default storageclass
         --annotation                        Output yaml with comment
         ${R}# # iscsi parm${N}
           --iscsi_user    ${G}<str>${N}     iscsi chap user
@@ -30,7 +31,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
           --nfs_path      ${G}<str>${N}     nfs path
         ${R}# # cephfs parm${N}
           --cephfs_path   ${G}<str>${N}     cephfs subpath, default /
-        ${R}# # rbd parm${N}
+        ${R}# # rbd parm, v1.28 [deprecated]${N}
           --rbd_pool      ${G}<str>${N}     rbd pool name
           --rbd_image     ${G}<str>${N}     rbd image name
           ${Y}# cephfs/rbd both use${N} --ceph_user --ceph_key --ceph_mons
@@ -87,6 +88,26 @@ spec:
   - name: test-${type}-${name}-vol
     persistentVolumeClaim:
       claimName: pv-${name}-${type}
+EOF
+}
+
+set_default_storageclass() {
+    local type=${1}
+    local name=${2}
+    vinfo_msg <<EOF
+kubectl api-resources
+kubectl get storageclass
+kubectl patch storageclass <name> -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+EOF
+    cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+provisioner: ${PROVISIONER}
+metadata:
+  name: pv-${name}-${type}
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
 EOF
 }
 
@@ -371,20 +392,20 @@ EOF
 verify_pvtype() {
     local pvtype=${1}
     case "$1" in
-        cephfs) export ACCESS_MODES=ReadWriteMany;return 0;;
-        rbd)    export ACCESS_MODES=ReadWriteOnce;return 0;;
-        iscsi)  export ACCESS_MODES=ReadWriteMany;return 0;;
-        nfs)    export ACCESS_MODES=ReadWriteMany;return 0;;
-        local)  export ACCESS_MODES=ReadWriteOnce;return 0;;
+        cephfs) export ACCESS_MODES=ReadWriteMany; PROVISIONER=kubernetes.io/cephfs;          return 0;;
+        rbd)    export ACCESS_MODES=ReadWriteOnce; PROVISIONER=kubernetes.io/rbd;             return 0;;
+        iscsi)  export ACCESS_MODES=ReadWriteMany; PROVISIONER=kubernetes.io/iscsi ;          return 0;;
+        nfs)    export ACCESS_MODES=ReadWriteMany; PROVISIONER=kubernetes.io/nfs ;            return 0;;
+        local)  export ACCESS_MODES=ReadWriteOnce; PROVISIONER=kubernetes.io/no-provisioner ; return 0;;
         *)      exit_msg "unknow PersistentVolume type\n";;
     esac
 }
 
 main() {
-    local pvtype="" capacity="10G"
+    local pvtype="" capacity="10G" default=""
     local name="$(date +'%Y-%m')"
     local opt_short="t:n:s:"
-    local opt_long="type:,name:,capacity:,annotation,"
+    local opt_long="type:,name:,capacity:,annotation,default,"
     opt_long+="iscsi_user:,iscsi_pass:,iscsi_srv:,iscsi_iqn:,iscsi_lun:,"
     opt_long+="nfs_srv:,nfs_path:,";
     opt_long+="ceph_user:,ceph_key:,cephfs_path:,ceph_mons:,"
@@ -399,6 +420,7 @@ main() {
             -t | --type)     shift; verify_pvtype "${1}" && pvtype=${1}; shift;;
             -n | --name)     shift; name=${1}; shift;;
             -s | --capacity) shift; capacity=${1}; shift;;
+            --default)       shift; default=1;;
             --annotation)    shift; export FILTER_CMD=cat;;
                                   # export FILTER_CMD=tee output.log
             # # iscsi env parm
@@ -434,6 +456,7 @@ main() {
     [ -z "${pvtype}" ] && usage "type must input"
     create_pv_${pvtype} "${name}" "${capacity}"
     create_pvc "${pvtype}" "${name}" "${capacity}"
+    [ -z "${default}" ] || set_default_storageclass "${pvtype}" "${name}"
     create_test_pod "${pvtype}" "${name}"
     return 0
 }
