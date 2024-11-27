@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-11-26T12:55:17+08:00]:create_pv.sh")
+VERSION+=("ea742a0[2024-11-26T12:55:17+08:00]:create_pv.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -18,13 +18,13 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         -n|--name         ${G}<str>${N}     PersistentVolume name, default YYYY-MM
         -s|--capacity     ${G}<str>${N}     PersistentVolume size, default 10G
         --annotation                        Output yaml with comment
-
         ${R}# # iscsi parm${N}
           --iscsi_user    ${G}<str>${N}     iscsi chap user
           --iscsi_pass    ${G}<str>${N}     iscsi chap password
-          --iscsi_srv     ${G}<str>${N}     iscsi server with port
+          --iscsi_srv     ${G}<str>${N}     iscsi server with port list
+                                            "172.16.0.156:3260 172.16.0.157:3260"
           --iscsi_iqn     ${G}<str>${N}     iscsi iqn
-          --iscsi_lun     ${G}<str>${N}     iscsi lun num default 0
+          --iscsi_lun     ${G}<str>${N}     iscsi lun num
         ${R}# # nfs parm${N}
           --nfs_srv       ${G}<str>${N}     nfs server address
           --nfs_path      ${G}<str>${N}     nfs path
@@ -37,6 +37,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
           --ceph_user     ${G}<str>${N}     ceph user
           --ceph_key      ${G}<str>${N}     ceph auth key
           --ceph_mons     ${G}<str>${N}     ceph mons
+                                            "172.16.16.3:6789 172.16.16.4:6789"
         ${R}# # local pv parm${N}
           --local_path    ${G}<str>${N}     host path
         -q|--quiet
@@ -47,7 +48,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
     Exam:
         ${SCRIPTNAME} -t cephfs --ceph_user k9s --ceph_key 'AQAA5ENnWx2+DBAAC7ZpySjtYfXevBTlxw3AUg==' --cephfs_path '/k8s' --ceph_mons "172.16.16.2:6789 172.16.16.3:6789 172.16.16.4:6789"
         ${SCRIPTNAME} -t nfs --nfs_srv 172.16.0.152 --nfs_path /nfs_share
-        ${SCRIPTNAME} -t iscsi --iscsi_srv 172.16.0.152:3260 --iscsi_iqn "iqn.2024-11.local.server-iscsi:server" --iscsi_lun 0 --iscsi_user testuser --iscsi_pass 'password@123'
+        ${SCRIPTNAME} -t iscsi --iscsi_srv "172.16.0.156:3260 172.16.0.157:3260" --iscsi_iqn "iqn.2024-11.local.server-iscsi:server" --iscsi_lun 0 --iscsi_user testuser --iscsi_pass 'password123'
         ${SCRIPTNAME} -t rbd --ceph_user k9s --ceph_key 'AQAA5ENnWx2+DBAAC7ZpySjtYfXevBTlxw3AUg==' --ceph_mons "172.16.16.2:6789 172.16.16.3:6789 172.16.16.4:6789" --rbd_pool 'k8s' --rbd_image rbd.img
         ${SCRIPTNAME} -t local --local_path /mnt/storage
 EOF
@@ -246,11 +247,12 @@ create_pv_iscsi() {
     local capacity=${2}
     local iscsi_user=${ISCSI_USER:-}
     local iscsi_pass=${ISCSI_PASS:-}
-    local iscsi_srv=${ISCSI_SRV:-iscsi_addr_with_port}
+    local iscsi_srv=${ISCSI_SRV:-dummy-server-list}
     local iscsi_iqn=${ISCSI_IQN:-${name}.server-iscsi:server}
-    local iscsi_lun=${ISCSI_LUN:-0}
+    local iscsi_lun=${ISCSI_LUN:-1}
     info_msg "Create iscsi PersistentVolume\n"
     vinfo_msg <<'EOF'
+# # user tgt ceph impl iscsi multipath, seed ceph/ceph-iscsi-multipath.sh
 iscsi server: yum install -y targetcli
 targetcli ls
 NAME=mylun0
@@ -266,7 +268,7 @@ set attribute authentication=1
 get attribute authentication
 cd acls/${PREFIX}.client-iscsi:client1
 set auth userid=testuser
-set auth password=password@123
+set auth password=password123
 get auth
 ls
 cd /
@@ -287,21 +289,8 @@ EO_CHAP
 systemctl restart target.service
 ========================================================================
 client, k8s nodes:
-        yum -y install iscsi-initiator-utils && modprobe iscsi_tcp
-        apt -y install open-iscsi && modprobe iscsi_tcp
-echo "InitiatorName=${PREFIX}.client-iscsi:client1" > /etc/iscsi/initiatorname.iscsi
-systemctl restart iscsid.service
-cat <<EO_CHAP >> /etc/iscsi/iscsid.conf
-# #  ${PREFIX}.client-iscsi:client1 chap
-node.session.auth.authmethod = CHAP
-node.session.auth.username = testuser
-node.session.auth.password = password@123
-EO_CHAP
-# iscsiadm --mode discoverydb --type sendtargets --portal ${SERVER} --discover
-# iscsiadm -m node --login
-# iscsiadm -m session -o show
-# iscsiadm --mode node -P 1
-# lsblk
+        yum -y install multipath-tools open-iscsi && modprobe iscsi_tcp
+        apt -y install multipath-tools open-iscsi && modprobe iscsi_tcp
 EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
 ---
@@ -317,8 +306,20 @@ EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
 $(pv_common iscsi "${name}" "${capacity}")
   iscsi:
-    targetPortal: ${iscsi_srv}
-    # portals: ['10.0.2.16:3260', '10.0.2.17:3260']
+$(SETONE=""; PORTALS=(); for srv in ${iscsi_srv};do
+    [ -z "${SETONE}" ] && {
+        SETONE="1"
+        cat <<EO_PORTAL
+    targetPortal: ${srv}
+EO_PORTAL
+        continue
+    }
+    PORTALS+=("'${srv}'")
+done
+    [ "${#PORTALS[@]}" -gt 0 ] && cat <<EO_PORTAL
+    portals: [ $(join , "${PORTALS[@]}" ) ]
+EO_PORTAL
+)
     iqn: ${iscsi_iqn}
     lun: ${iscsi_lun}
     chapAuthSession: true
