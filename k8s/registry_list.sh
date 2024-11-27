@@ -1,4 +1,4 @@
-repo=http://registry.local
+repo=${1:-http://registry.local}
 for pkg in $(curl --silent --insecure --show-error ${repo}/v2/_catalog | jq -r .repositories[]); do
     for tag in $(curl --silent --insecure --show-error ${repo}/v2/${pkg}/tags/list | jq -r .tags[]); do
         echo "${pkg}:${tag}"
