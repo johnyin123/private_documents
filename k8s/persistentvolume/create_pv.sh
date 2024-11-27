@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b8ef0c7[2024-11-27T10:28:56+08:00]:create_pv.sh")
+VERSION+=("686d1b5[2024-11-27T10:33:21+08:00]:create_pv.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -15,6 +15,7 @@ usage() {
 ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         -t|--type     *   ${G}<str>${N}     PersistentVolume type(In-tree provisioning)
                           cephfs/rbd/iscsi/nfs/local, ${R}ALL CHECKED OK${N}
+                          Out-tree: https://github.com/orgs/kubernetes-csi/repositories
         -n|--name         ${G}<str>${N}     PersistentVolume name, default YYYY-MM
         -s|--capacity     ${G}<str>${N}     PersistentVolume size, default 10G
         --default                           Set as default storageclass
@@ -29,9 +30,9 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         ${R}# # nfs parm${N}
           --nfs_srv       ${G}<str>${N}     nfs server address
           --nfs_path      ${G}<str>${N}     nfs path
-        ${R}# # cephfs parm${N}
+        ${R}# # cephfs parm, v1.28 [deprecated], removed v1.31${N}
           --cephfs_path   ${G}<str>${N}     cephfs subpath, default /
-        ${R}# # rbd parm, v1.28 [deprecated]${N}
+        ${R}# # rbd parm, v1.28 [deprecated], removed v1.31${N}
           --rbd_pool      ${G}<str>${N}     rbd pool name
           --rbd_image     ${G}<str>${N}     rbd image name
           ${Y}# cephfs/rbd both use${N} --ceph_user --ceph_key --ceph_mons
@@ -87,7 +88,7 @@ spec:
   volumes:
   - name: test-${type}-${name}-vol
     persistentVolumeClaim:
-      claimName: pv-${name}-${type}
+      claimName: pvc-${name}-${type}
 EOF
 }
 
@@ -105,7 +106,7 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 provisioner: ${PROVISIONER}
 metadata:
-  name: pv-${name}-${type}
+  name: ${name}-${type}-sc
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
 EOF
@@ -321,8 +322,14 @@ type: kubernetes.io/iscsi-chap
 metadata:
   name: iscsi-${name}-${iscsi_user}-secret
 data:
+  # discovery.sendtargets.auth.username:
+  # discovery.sendtargets.auth.password:
+  # discovery.sendtargets.auth.username_in:
+  # discovery.sendtargets.auth.password_in:
   node.session.auth.username: $(echo -n ${iscsi_user} | base64)
   node.session.auth.password: $(echo -n ${iscsi_pass} | base64)
+  # node.session.auth.username_in:
+  # node.session.auth.password_in:
 EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
 $(pv_common iscsi "${name}" "${capacity}")
@@ -392,11 +399,11 @@ EOF
 verify_pvtype() {
     local pvtype=${1}
     case "$1" in
-        cephfs) export ACCESS_MODES=ReadWriteMany; PROVISIONER=kubernetes.io/cephfs;          return 0;;
-        rbd)    export ACCESS_MODES=ReadWriteOnce; PROVISIONER=kubernetes.io/rbd;             return 0;;
-        iscsi)  export ACCESS_MODES=ReadWriteMany; PROVISIONER=kubernetes.io/iscsi ;          return 0;;
-        nfs)    export ACCESS_MODES=ReadWriteMany; PROVISIONER=kubernetes.io/nfs ;            return 0;;
-        local)  export ACCESS_MODES=ReadWriteOnce; PROVISIONER=kubernetes.io/no-provisioner ; return 0;;
+        cephfs) export ACCESS_MODES=ReadWriteMany; PROVISIONER=kubernetes.io/cephfs;         return 0;;
+        rbd)    export ACCESS_MODES=ReadWriteOnce; PROVISIONER=kubernetes.io/rbd;            return 0;;
+        iscsi)  export ACCESS_MODES=ReadWriteMany; PROVISIONER=kubernetes.io/iscsi;          return 0;;
+        nfs)    export ACCESS_MODES=ReadWriteMany; PROVISIONER=kubernetes.io/nfs;            return 0;;
+        local)  export ACCESS_MODES=ReadWriteOnce; PROVISIONER=kubernetes.io/no-provisioner; return 0;;
         *)      exit_msg "unknow PersistentVolume type\n";;
     esac
 }
