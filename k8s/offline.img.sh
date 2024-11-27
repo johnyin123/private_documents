@@ -11,10 +11,21 @@ do
     target_img=${local_registry}/google_containers/${img##*/}
     ctr -n k8s.io image push ${target_img} --platform amd64 --platform arm64 --plain-http
 done
+# # only pull/push arm64/amd64
+cat <<EOF
+library/busybox:latest
+EOF
 ARCH=(amd64 arm64)
-for arch in ${ARCH[@]}; do
-    docker pull ${mirror}/${img} --platform ${arch}
-    docker tag ${mirror}/${img} ${local_registry}/${img}-${arch}
-    docker push  ${local_registry}/${img}-${arch}
+for img in $(cat image.list); do
+    for arch in ${ARCH[@]}; do
+        docker pull ${mirror}/${img} --platform ${arch}
+        docker tag ${mirror}/${img} ${local_registry}/${img}-${arch}
+        docker image rm ${mirror}/${img}
+        docker push  ${local_registry}/${img}-${arch}
+    done
+    ./make_docker_image.sh -c combine --tag  ${local_registry}/${img}
+    for arch in ${ARCH[@]}; do
+        docker image rm ${local_registry}/${img}-${arch}
+    done
+    docker image rm ${local_registry}/${img}
 done
-./make_docker_image.sh -c combine --tag  ${local_registry}/${img}
