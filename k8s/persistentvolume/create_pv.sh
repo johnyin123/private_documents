@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ebdbd46[2024-11-27T09:44:01+08:00]:create_pv.sh")
+VERSION+=("b8ef0c7[2024-11-27T10:28:56+08:00]:create_pv.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -121,7 +121,7 @@ create_pvc() {
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: pv-${name}-${type}
+  name: pvc-${name}-${type}
 spec:
   accessModes:
     # # PV与PVC的AccessMode必须相同
