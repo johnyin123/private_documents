@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("686d1b5[2024-11-27T10:33:21+08:00]:create_pv.sh")
+VERSION+=("3b174e8[2024-11-27T11:07:23+08:00]:create_pv.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -50,7 +50,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
     Exam:
         ${SCRIPTNAME} -t cephfs --ceph_user k9s --ceph_key 'AQAA5ENnWx2+DBAAC7ZpySjtYfXevBTlxw3AUg==' --cephfs_path '/k8s' --ceph_mons "172.16.16.2:6789 172.16.16.3:6789 172.16.16.4:6789"
         ${SCRIPTNAME} -t nfs --nfs_srv 172.16.0.152 --nfs_path /nfs_share
-        ${SCRIPTNAME} -t iscsi --iscsi_srv "172.16.0.156:3260 172.16.0.157:3260" --iscsi_iqn "iqn.2024-11.local.server-iscsi:server" --iscsi_lun 0 --iscsi_user testuser --iscsi_pass 'password123'
+        ${SCRIPTNAME} -t iscsi --iscsi_srv "172.16.0.156:3260 172.16.0.157:3260" --iscsi_iqn "iqn.2024-11.rbd.local:iscsi-01" --iscsi_lun 1 --iscsi_user testuser --iscsi_pass 'password123'
         ${SCRIPTNAME} -t rbd --ceph_user k9s --ceph_key 'AQAA5ENnWx2+DBAAC7ZpySjtYfXevBTlxw3AUg==' --ceph_mons "172.16.16.2:6789 172.16.16.3:6789 172.16.16.4:6789" --rbd_pool 'k8s' --rbd_image rbd.img
         ${SCRIPTNAME} -t local --local_path /mnt/storage
 EOF
@@ -96,19 +96,23 @@ set_default_storageclass() {
     local type=${1}
     local name=${2}
     vinfo_msg <<EOF
+# Kubernetes doesn't include an internal NFS provisioner.
+# You need to use an external provisioner to create a StorageClass for NFS.
 kubectl api-resources
 kubectl get storageclass
 kubectl patch storageclass <name> -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
 EOF
-    cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
+    [ -z "${PROVISIONER:-}" ] || cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
 ---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 provisioner: ${PROVISIONER}
+provisioner: kubernetes.io/no-provisioner
 metadata:
-  name: ${name}-${type}-sc
+  name: sc-${name}-${type}
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
+# volumeBindingMode: WaitForFirstConsumer
 EOF
 }
 
@@ -117,6 +121,25 @@ create_pvc() {
     local name=${2}
     local capacity=${3:-100Mi}
     info_msg "Create PersistentVolumeClaim\n"
+    vinfo_msg <<EOF
+|---------------+----------------+---------|
+| PV volumeMode | PVC volumeMode | Result  |
+|---------------+----------------+---------|
+| unspecified   | unspecified    | BIND    |
+| unspecified   | Block          | NO BIND |
+| unspecified   | Filesystem     | BIND    |
+| Block         | unspecified    | NO BIND |
+| Block         | Block          | BIND    |
+| Block         | Filesystem     | NO BIND |
+| Filesystem    | Filesystem     | BIND    |
+| Filesystem    | Block          | NO BIND |
+| Filesystem    | unspecified    | BIND    |
+|---------------+----------------+---------|
+# in a PVC:
+If storageClassName="", then it is static provisioning
+If storageClassName is not specified, then the default storage class will be used.
+If storageClassName is set to a specific value, then the matching storageClassName will be considered. If no corresponding storage class exists, the PVC will fail.
+EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
 ---
 apiVersion: v1
@@ -127,12 +150,14 @@ spec:
   accessModes:
     # # PV与PVC的AccessMode必须相同
     - ${ACCESS_MODES:-NA}
+  # # 卷的模式，Filesystem/Block，默认文件系统
+  # volumeMode: Filesystem
   resources:
     requests:
       # # PVC容量必须小于等于PV
       storage: ${capacity}
   # # PV与PVC的storageclass类名必须相同或同时为空
-  storageClassName: ${type}-${name}-sc
+  storageClassName: sc-${name}-${type}
 EOF
 }
 
@@ -161,12 +186,12 @@ spec:
   accessModes:
     - ${ACCESS_MODES:-NA}
   # # 卷的模式，Filesystem/Block，默认文件系统
-  # volumeMode: Filesystem
-  # persistentVolumeReclaimPolicy: Delete
+  volumeMode: Filesystem
+  persistentVolumeReclaimPolicy: Retain
   # # Retain：保留，允许手动回收, 默认策略
   # # Delete：删除
   # # 存储类型的名称，pvc通过该名字访问到pv
-  storageClassName: ${type}-${name}-sc
+  storageClassName: sc-${name}-${type}
 EOF
 }
 
@@ -398,11 +423,15 @@ EOF
 
 verify_pvtype() {
     local pvtype=${1}
+    vinfo_msg <<EOF
+  Kubernetes doesn't include an internal NFS provisioner.
+  You need to use an external provisioner to create a StorageClass for NFS.
+EOF
     case "$1" in
-        cephfs) export ACCESS_MODES=ReadWriteMany; PROVISIONER=kubernetes.io/cephfs;         return 0;;
-        rbd)    export ACCESS_MODES=ReadWriteOnce; PROVISIONER=kubernetes.io/rbd;            return 0;;
-        iscsi)  export ACCESS_MODES=ReadWriteMany; PROVISIONER=kubernetes.io/iscsi;          return 0;;
-        nfs)    export ACCESS_MODES=ReadWriteMany; PROVISIONER=kubernetes.io/nfs;            return 0;;
+        cephfs) export ACCESS_MODES=ReadWriteMany; return 0;;
+        rbd)    export ACCESS_MODES=ReadWriteOnce; return 0;;
+        iscsi)  export ACCESS_MODES=ReadWriteMany; return 0;;
+        nfs)    export ACCESS_MODES=ReadWriteMany; return 0;;
         local)  export ACCESS_MODES=ReadWriteOnce; PROVISIONER=kubernetes.io/no-provisioner; return 0;;
         *)      exit_msg "unknow PersistentVolume type\n";;
     esac
