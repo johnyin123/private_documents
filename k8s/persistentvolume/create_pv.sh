@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3b174e8[2024-11-27T11:07:23+08:00]:create_pv.sh")
+VERSION+=("d0fc26a[2024-11-27T14:48:30+08:00]:create_pv.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -20,6 +20,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         -s|--capacity     ${G}<str>${N}     PersistentVolume size, default 10G
         --default                           Set as default storageclass
         --annotation                        Output yaml with comment
+        --namespace       ${G}<str>${N}     kubernetes namespace for pv,pvc,test-pod
         ${R}# # iscsi parm${N}
           --iscsi_user    ${G}<str>${N}     iscsi chap user
           --iscsi_pass    ${G}<str>${N}     iscsi chap password
@@ -71,7 +72,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: test-${type}-${name}
-  namespace: default
+  namespace: ${NAMESPACE:-default}
 spec:
   containers:
   - name: test-${type}-${name}
@@ -107,12 +108,11 @@ EOF
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 provisioner: ${PROVISIONER}
-provisioner: kubernetes.io/no-provisioner
 metadata:
   name: sc-${name}-${type}
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
-# volumeBindingMode: WaitForFirstConsumer
+#volumeBindingMode: WaitForFirstConsumer
 EOF
 }
 
@@ -146,12 +146,13 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: pvc-${name}-${type}
+  namespace: ${NAMESPACE:-default}
 spec:
   accessModes:
-    # # PV与PVC的AccessMode必须相同
-    - ${ACCESS_MODES:-NA}
+    # # PV include PVC的AccessMode
+    - ReadWriteOnce
   # # 卷的模式，Filesystem/Block，默认文件系统
-  # volumeMode: Filesystem
+  volumeMode: Filesystem
   resources:
     requests:
       # # PVC容量必须小于等于PV
@@ -161,30 +162,42 @@ spec:
 EOF
 }
 
+secret_common() {
+    local type=${1}
+    local name=${2}
+    local user=${3}
+    cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ${type}-${name}-${user}-secret
+  namespace: ${NAMESPACE:-default}
+EOF
+}
+
 pv_common() {
     local type=${1}
     local name=${2}
     local capacity=${3}
-    vinfo_msg <<EOF
-|------------------+-------------------------------+----------------|
-| ReadWriteOnce    | 单节点以读写模式挂载          | 命令行缩写RWO  |
-| ReadOnlyMany     | 多个节点以只读模式挂载        | 命令行缩写ROX  |
-| ReadWriteMany    | 多个节点以读写模式挂载        | 命令行缩写RWX  |
-| ReadWriteOncePod | 只能被一个Pod以读写的模式挂载 | 命令中缩写RWOP |
-|------------------+-------------------------------+----------------|
-EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
 ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: pv-${name}-${type}
+  # # pv is cluster-scoped resources
+  # namespace: ${NAMESPACE:-default}
 spec:
   capacity:
     # # pv的容量
     storage: ${capacity}
   accessModes:
-    - ${ACCESS_MODES:-NA}
+$(for mode in ${ACCESS_MODES:-NA}; do
+cat <<EO_MODE
+    - ${mode}
+EO_MODE
+done)
   # # 卷的模式，Filesystem/Block，默认文件系统
   volumeMode: Filesystem
   persistentVolumeReclaimPolicy: Retain
@@ -215,12 +228,7 @@ mount -t ceph 172.16.16.3:6789:/cephfs_path /mnt/ -oname=${ceph_user},secret=${c
 mkdir -p /mnt/${cephfs_path}
 EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: cephfs-${name}-${ceph_user}-secret
-  # namespace: default
+$(secret_common "cephfs" "${name}" "${ceph_user}")
 data:
   key: $(echo -n ${ceph_key} | base64)
 EOF
@@ -258,13 +266,7 @@ ceph auth get-or-create client.${USER} mon 'profile rbd' osd "profile rbd pool=$
 ceph mon stat
 EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rbd-${name}-${ceph_user}-secret
-  # namespace: default
-data:
+$(secret_common "rbd" "${name}" "${ceph_user}")
   key: $(echo -n ${ceph_key} | base64)
 EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
@@ -340,12 +342,8 @@ client, k8s nodes:
         apt -y install multipath-tools open-iscsi && modprobe iscsi_tcp
 EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
----
-apiVersion: v1
-kind: Secret
+$(secret_common "iscsi" "${name}" "${iscsi_user}")
 type: kubernetes.io/iscsi-chap
-metadata:
-  name: iscsi-${name}-${iscsi_user}-secret
 data:
   # discovery.sendtargets.auth.username:
   # discovery.sendtargets.auth.password:
@@ -424,15 +422,20 @@ EOF
 verify_pvtype() {
     local pvtype=${1}
     vinfo_msg <<EOF
-  Kubernetes doesn't include an internal NFS provisioner.
-  You need to use an external provisioner to create a StorageClass for NFS.
+|------------------+-------------------------------+----------------|
+| ReadWriteOnce    | 单节点以读写模式挂载          | 命令行缩写RWO  |
+| ReadOnlyMany     | 多个节点以只读模式挂载        | 命令行缩写ROX  |
+| ReadWriteMany    | 多个节点以读写模式挂载        | 命令行缩写RWX  |
+| ReadWriteOncePod | 只能被一个Pod以读写的模式挂载 | 命令中缩写RWOP |
+|------------------+-------------------------------+----------------|
 EOF
-    case "$1" in
-        cephfs) export ACCESS_MODES=ReadWriteMany; return 0;;
-        rbd)    export ACCESS_MODES=ReadWriteOnce; return 0;;
-        iscsi)  export ACCESS_MODES=ReadWriteMany; return 0;;
-        nfs)    export ACCESS_MODES=ReadWriteMany; return 0;;
-        local)  export ACCESS_MODES=ReadWriteOnce; PROVISIONER=kubernetes.io/no-provisioner; return 0;;
+    PROVISIONER=kubernetes.io/${pvtype}
+    case "${pvtype}" in
+        cephfs) export ACCESS_MODES="ReadWriteOnce ReadWriteMany ReadOnlyMany"; return 0;;
+        nfs)    export ACCESS_MODES="ReadWriteOnce ReadWriteMany ReadOnlyMany"; return 0;;
+        rbd)    export ACCESS_MODES="ReadWriteOnce"; return 0;;
+        iscsi)  export ACCESS_MODES="ReadWriteOnce"; return 0;;
+        local)  export ACCESS_MODES="ReadWriteOnce ReadOnlyMany"; PROVISIONER=kubernetes.io/no-provisioner; return 0;;
         *)      exit_msg "unknow PersistentVolume type\n";;
     esac
 }
@@ -459,6 +462,7 @@ main() {
             --default)       shift; default=1;;
             --annotation)    shift; export FILTER_CMD=cat;;
                                   # export FILTER_CMD=tee output.log
+            --namespace)     shift; export NAMESPACE="${1}"; shift;;
             # # iscsi env parm
             --iscsi_user)    shift; export ISCSI_USER="${1}"; shift;;
             --iscsi_pass)    shift; export ISCSI_PASS="${1}"; shift;;
@@ -490,9 +494,9 @@ main() {
         esac
     done
     [ -z "${pvtype}" ] && usage "type must input"
+    [ -z "${default}" ] || set_default_storageclass "${pvtype}" "${name}"
     create_pv_${pvtype} "${name}" "${capacity}"
     create_pvc "${pvtype}" "${name}" "${capacity}"
-    [ -z "${default}" ] || set_default_storageclass "${pvtype}" "${name}"
     create_test_pod "${pvtype}" "${name}"
     return 0
 }

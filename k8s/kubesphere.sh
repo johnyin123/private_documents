@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d521935[2023-08-09T17:20:20+08:00]:kubesphere.sh")
+VERSION+=("adf871a[2023-08-14T07:12:07+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 KS_INSTALLER_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/kubesphere-installer.yaml"
@@ -17,6 +17,25 @@ R_KS_INSTALLER_YML="$(mktemp)"
 CLUSTER_CONF_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/cluster-configuration.yaml"
 L_CLUSTER_CONF_YML=cluster-configuration.yaml
 R_CLUSTER_CONF_YML="$(mktemp)"
+
+pre_check() {
+    cat<<EOF
+1.need storageclass(default);
+
+kubectl  delete -n kubesphere-system deployment.apps/ks-installer
+kubectl  delete ns kubesphere-system
+kubectl -n kubesphere-system logs -f ks-installer-xxxxxxxx
+
+kubectl -n kubesphere-system rollout restart deployment.apps/redis
+kubectl -n kubesphere-monitoring-system delete pvc prometheus-k8s-db-prometheus-k8s-1 prometheus-k8s-db-prometheus-k8s-0
+
+# # fix arm64 default-http-backend pod error
+kubectl -n kubesphere-controls-system edit deployment.apps/default-http-backend
+kubectl -n kubesphere-controls-system rollout restart deployment.apps/default-http-backend
+
+kubectl rollout restart statefulset.apps/prometheus-k8s -n kubesphere-monitoring-system
+EOF
+}
 
 init_kubesphere() {
     local ks_cluster_yaml=${1}
@@ -29,7 +48,7 @@ init_kubesphere() {
     sed -i "s|image\s*:\s*.*ks-installer.*|image: ${ks_installer}|g" "${ks_installer_yaml}"
     kubectl apply -f "${ks_installer_yaml}"
     kubectl apply -f "${ks_cluster_yaml}"
-    rm -f "${ks_cluster_yaml}" "${ks_installer_yaml}"
+    # rm -f "${ks_cluster_yaml}" "${ks_installer_yaml}"
 }
 # remote execute function end!
 ################################################################################
@@ -107,6 +126,7 @@ main() {
 insec_registry:  ${insec_registry}
 installer: ${installer}
 EOF
+    ssh_func "${user}@${master}" "${port}" pre_check
     ssh_func "${user}@${master}" "${port}" init_kubesphere "${R_CLUSTER_CONF_YML}" "${R_KS_INSTALLER_YML}" "${insec_registry}" "${installer}"
     cat <<EOF
 安装后如何开启安装应用商店:
