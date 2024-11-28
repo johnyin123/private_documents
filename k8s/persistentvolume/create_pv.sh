@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d0fc26a[2024-11-27T14:48:30+08:00]:create_pv.sh")
+VERSION+=("df44eb1[2024-11-28T12:53:47+08:00]:create_pv.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -390,7 +390,8 @@ create_pv_nfs() {
     vinfo_msg <<EOF
 nfs server: yum -y install nfs-utils && systemctl start nfs-server.service && rpcinfo -p | grep nfs
 mkdir -p ${nfs_path} && chown -R nobody:nobody ${nfs_path}
-echo '${nfs_path} 172.16.0.0/24(rw,sync,no_all_squash,root_squash)' > /etc/exports
+echo '${nfs_path} 172.16.0.0/24(rw,sync,no_all_squash,no_root_squash)' > /etc/exports
+# nfs exports root_squash, cause kubesphere error: Operation not permitted
 exportfs -arv
 exportfs -s
 nfs client(k8s nodes): yum -y install nfs-utils nfs4-acl-tools

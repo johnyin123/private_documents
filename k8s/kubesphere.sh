@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("adf871a[2023-08-14T07:12:07+08:00]:kubesphere.sh")
+VERSION+=("df44eb1[2024-11-28T12:53:47+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 KS_INSTALLER_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/kubesphere-installer.yaml"
@@ -19,21 +19,43 @@ L_CLUSTER_CONF_YML=cluster-configuration.yaml
 R_CLUSTER_CONF_YML="$(mktemp)"
 
 pre_check() {
-    cat<<EOF
-1.need storageclass(default);
+    cat<<'EOF'
+1.need storageclass(default); in-tree sc cannot dynamic create pv. so create enough pv first
+# kubectl patch storageclass sc-ks-nfs -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+cat <<EOSHELL | kubectl apply -f -
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+provisioner: kubernetes.io/nfs
+metadata:
+  name: sc-ks-nfs
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+EOSHELL
+for i in $(seq -w 1 10); do
+cat <<EOSHELL | kubectl apply -f -
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-ks-${i}-nfs
+spec:
+  capacity:
+    storage: 200G
+  accessModes:
+    - ReadWriteMany
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: sc-ks-nfs
+  nfs:
+    path: "/nfs_share/${i}"
+    server: "172.16.0.152"
+    readOnly: false
+EOSHELL
+done
 
-kubectl  delete -n kubesphere-system deployment.apps/ks-installer
-kubectl  delete ns kubesphere-system
-kubectl -n kubesphere-system logs -f ks-installer-xxxxxxxx
-
-kubectl -n kubesphere-system rollout restart deployment.apps/redis
-kubectl -n kubesphere-monitoring-system delete pvc prometheus-k8s-db-prometheus-k8s-1 prometheus-k8s-db-prometheus-k8s-0
-
-# # fix arm64 default-http-backend pod error
-kubectl -n kubesphere-controls-system edit deployment.apps/default-http-backend
-kubectl -n kubesphere-controls-system rollout restart deployment.apps/default-http-backend
-
-kubectl rollout restart statefulset.apps/prometheus-k8s -n kubesphere-monitoring-system
+2. todo
 EOF
 }
 
@@ -135,6 +157,16 @@ kubectl -n kubesphere-system get clusterconfiguration ks-installer -o yaml
     openpitrix:
       enabled: True
 # 通过查询 ks-installer 日志或 Pod 状态验证功能组件是否安装成功。
+kubectl -n kubesphere-system logs -f ks-installer-xxxxxxxx
+
+kubectl -n kubesphere-system rollout restart deployment.apps/redis
+kubectl -n kubesphere-monitoring-system delete pvc prometheus-k8s-db-prometheus-k8s-1 prometheus-k8s-db-prometheus-k8s-0
+
+# # fix arm64 default-http-backend pod error
+kubectl -n kubesphere-controls-system edit deployment.apps/default-http-backend
+kubectl -n kubesphere-controls-system rollout restart deployment.apps/default-http-backend
+
+kubectl rollout restart statefulset.apps/prometheus-k8s -n kubesphere-monitoring-system
 EOF
     info_msg "ALL DONE\n"
     return 0
