@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ad344c9[2024-11-25T14:59:17+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("e073b58[2024-11-28T16:08:01+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -526,6 +526,9 @@ kubectl describe node srv150
 kubectl -n kube-system edit configmaps coredns -o yaml
 # # below add ths end of Corefile, other wise somethine wrong ks-api
 #    hosts {
+#      fallthrough  # Enable fallthrough for all zones in the hosts plugin
+#      # If you want to pass the request to the rest of the plugin chain
+#      # if there is no match in the hosts plugin, you must specify the fallthrough option.
 #      192.168.168.150 k8sapi.local.com
 #    }
 确认master是否有污点,去除后Master可以参与调度
