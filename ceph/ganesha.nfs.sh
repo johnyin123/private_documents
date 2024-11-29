@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9bd9694[2023-07-11T08:22:54+08:00]:ganesha.nfs.sh")
+VERSION+=("5659d27[2024-11-29T14:27:16+08:00]:ganesha.nfs.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -81,6 +81,10 @@ ganesha_cephfs() {
     info_msg "ganesha nfs cephfs backend, /etc/ganesha/ceph.conf\n"
     vinfo_msg <<EOF
 ceph fs ls
+ceph fs authorize <fsname> client.${ceph_user} ${cephfs_path} rw
+ceph auth get-key client.${ceph_user}
+ceph_key=uSlE9PQ==
+mount -t ceph 172.16.16.3:6789:/cephfs_path /mnt/ -oname=${ceph_user},secret=${ceph_key}
 EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
 EXPORT {
@@ -129,7 +133,10 @@ ganesha_rgw() {
     local id=$(random 1 1000)
     info_msg "ganesha nfs rgw backend, /etc/ganesha/rgw.conf\n"
     vinfo_msg <<EOF
-# ceph auth get-or-create client.<user_id> mon 'allow r' osd 'allow rw pool=.nfs namespace=<nfs_cluster_name>, allow rw tag cephfs data=<fs_name>' mds 'allow rw path=<export_path>'
+radosgw-admin user create --uid=admin --display-name=admin --access_key=admin --secret=123456
+radosgw-admin caps add --uid=admin --caps="users=read, write"
+radosgw-admin caps add --uid=admin --caps="usage=read, write"
+
 # 强制执行写顺序，sync挂载选项
 # echo '<host:/ <mount-point> nfs noauto,soft,nfsvers=4.1,sync,proto=tcp 0 0' >> /etc/fstab
 

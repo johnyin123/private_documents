@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("df44eb1[2024-11-28T12:53:47+08:00]:create_pv.sh")
+VERSION+=("e073b58[2024-11-28T16:08:01+08:00]:create_pv.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -221,7 +221,7 @@ client, k8s nodes:
     yum -y install ceph-common
     apt -y install ceph-common
 ceph fs ls
-ceph fs authorize <fsname> client.${ceph_user} /${cephfs_path} rw
+ceph fs authorize <fsname> client.${ceph_user} ${cephfs_path} rw
 ceph auth get-key client.${ceph_user}
 ceph_key=uSlE9PQ==
 mount -t ceph 172.16.16.3:6789:/cephfs_path /mnt/ -oname=${ceph_user},secret=${ceph_key}
