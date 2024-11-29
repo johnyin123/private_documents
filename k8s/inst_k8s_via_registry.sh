@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fab271e[2024-11-28T16:43:02+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("6efe79a[2024-11-29T16:52:55+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -334,6 +334,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
                 /etc/kubernetes/pki/ca.crt
                 /etc/kubernetes/pki/ca.key
             cephfs_pv.sh && nfs_pv.sh && iscsi_pv.sh
+            ${R}use post_k8s_cluster_api_ha.sh after instlled. make apiserver ha via keepalived&ngx${N}
         ${Y}EXAM:
     on master nodes:
         # add fast disk(ssd/nvme)
