@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6efe79a[2024-11-29T16:52:55+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("6b99135[2024-11-29T16:57:02+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -344,6 +344,9 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         echo "UUID=\$(blkid -s UUID -o value \${disk}) /var/lib/etcd xfs noexec,nodev,noatime,nodiratime  0 2" >> /etc/fstab
     on all nodes:
         echo '192.168.168.xxx     registry.local'>> /etc/hosts
+        # # add fast storage for containerd
+        mkdir -p /var/lib/containerd
+        # # install pkg
         wget --no-check-certificate -O /etc/yum.repos.d/cnap.repo http://registry.local/cnap/cnap.repo
         yum -y --enablerepo=cnap install tsd_cnap_v1.27.3 bash-completion
             yum -y install nfs-utils nfs4-acl-tools # # nfs pv

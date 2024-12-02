@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1673dac[2024-11-21T13:28:12+08:00]:make_docker_image.sh")
+VERSION+=("da01ba9[2024-11-22T09:28:15+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -400,7 +400,7 @@ build_nginx() {
     write_file "${cfg_file}" <<EOF
 getent group ${groupname} >/dev/null || groupadd --system ${groupname} || :
 getent passwd ${username} >/dev/null || useradd -g ${groupname} --system -s /sbin/nologin -d /var/empty/nginx ${username} 2> /dev/null || :
-apt -y update && apt -y install --no-install-recommends libbrotli1 libgeoip1 libxml2 libxslt1.1
+apt -y update && apt -y install --no-install-recommends libbrotli1 libgeoip1 libxml2 libxslt1.1 libjansson4 libjwt0
 EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF

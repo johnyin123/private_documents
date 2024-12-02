@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("36f258f[2024-11-18T14:46:41+08:00]:calico_rr_ebpf.sh")
+VERSION+=("initver[2024-12-02T10:39:25+08:00]:post-10-calico_rr_ebpf.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 calico_bpf() {
@@ -97,9 +97,8 @@ EOF
     calicoctl patch bgpconfiguration default -p '{"spec": {"nodeToNodeMeshEnabled": false}}'
 }
 usage() {
-    [ "$#" != 0 ] && echo "$*"
-    cat <<EOF
-${SCRIPTNAME}
+    R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
+${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         -m | --master    *  <ip>    master ipaddr
         -r | --reflector *  <node>  reflector node name, multi input.
         --ebpf              <api:port>
@@ -108,22 +107,25 @@ ${SCRIPTNAME}
                                                      service type Loadbalancer worked, so externalIP worked
                                      IPIP is not supported (Calico iptables does not support it either)
                                      VXLAN is the recommended overlay for eBPF mode.
-# 关闭kube-proxy
-kubectl patch ds -n kube-system kube-proxy -p '{"spec":{"template":{"spec":{"nodeSelector":{"non-calico": "true"}}}}}'
-# 开启eBPF DSR
-calicoctl patch felixconfiguration default --patch='{"spec": {"bpfKubeProxyIptablesCleanupEnabled": false}}'
-calicoctl patch felixconfiguration default --patch='{"spec": {"bpfEnabled": true}}'
-calicoctl patch felixconfiguration default --patch='{"spec": {"bpfExternalServiceMode": "DSR"}}'
         -U | --user         <user>  master ssh user, default root
         -P | --port         <int>   master ssh port, default 60022
         --asnumber          <int>   bgp as number, default 63401
-        --clusterid         <ip>    master mulicast ipaddr default 224.0.0.1
+        --clusterid         <ip>    master mulicast ipaddr default 224.0.0.222
         --sshpass           <str>   master ssh password, default use keyauth
         -q|--quiet
         -l|--log <int> log level
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+        exam:
+    ${SCRIPTNAME} -m 172.16.0.150 -r telepresence1 -r telepresence2 -r telepresence3 --ebpf k8s.tsd.org:60443
+# 关闭kube-proxy
+kubectl patch ds -n kube-system kube-proxy -p '{"spec":{"template":{"spec":{"nodeSelector":{"non-calico": "true"}}}}}'
+# 开启eBPF DSR
+calicoctl patch felixconfiguration default --patch='{"spec": {"bpfKubeProxyIptablesCleanupEnabled": false}}'
+calicoctl patch felixconfiguration default --patch='{"spec": {"bpfEnabled": true}}'
+calicoctl patch felixconfiguration default --patch='{"spec": {"bpfExternalServiceMode": "DSR"}}'
+
 # 查看calico-bpf工具使用说明
 kubectl exec -n calico-system ds/calico-node -- calico-node -bpf
 # 查看eth0网卡计数器
@@ -132,11 +134,29 @@ kubectl exec -n calico-system ds/calico-node -- calico-node -bpf counters dump -
 kubectl exec -n calico-system ds/calico-node -- calico-node -bpf conntrack dump
 # 查看路由表
 kubectl exec -n calico-system ds/calico-node -- calico-node -bpf routes dump
+|--------------------------------+---------------------------+----------|
+| IP multicast address range     | Description               | Routable |
+|--------------------------------+---------------------------+----------|
+| 224.0.0.0 to 224.0.0.255       | Local subnetwork          | No       |
+| 224.0.1.0 to 224.0.1.255       | Internetwork control      | Yes      |
+| 224.0.2.0 to 224.0.255.255     | AD-HOC block              | Yes      |
+| 224.1.0.0 to 224.1.255.255     | Reserved                  |          |
+| 224.2.0.0 to 224.2.255.255     | SDP/SAP block             | Yes      |
+| 224.3.0.0 to 224.4.255.255     | AD-HOC block              | Yes      |
+| 225.0.0.0 to 231.255.255.255   | Reserved                  |          |
+| 232.0.0.0 to 232.255.255.255   | Source-specific multicast | Yes      |
+| 233.0.0.0 to 233.251.255.255   | GLOP addressing           | Yes      |
+| 233.252.0.0 to 233.255.255.255 | AD-HOC block 3            | Yes      |
+| 234.0.0.0 to 234.255.255.255   | Unicast-prefix-based      | Yes      |
+| 235.0.0.0 to 238.255.255.255   | Reserved                  |          |
+| 239.0.0.0 to 239.255.255.255   | Administratively scoped   | Yes      |
+|--------------------------------+---------------------------+----------|
 EOF
+)"; echo -e "${usage_doc}"
     exit 1
 }
 main() {
-    local master="" reflector=() user="root" port=60022 asnumber=63401 clusterid=224.0.0.1 ebpf=""
+    local master="" reflector=() user="root" port=60022 asnumber=63401 clusterid=224.0.0.222 ebpf=""
     local opt_short="m:r:U:P:"
     local opt_long="master:,reflector:,ebpf:,user:,port:,asnumber:,clusterid:,sshpass:,"
     opt_short+="ql:dVh"
@@ -179,7 +199,7 @@ main() {
     info_msg "diag: kubectl exec -n calico-system calico-node-abcdef -- calico-node -bpf conntrack dump\n"
     info_msg "diag: kubectl get felixconfiguration -o yaml\n"
     info_msg "undo: kubectl delete -n tigera-operator servicemap kubernetes-services-endpoint\n"
-    info_msg "ALL DONE\n" 
+    info_msg "ALL DONE\n"
     return 0
 }
 main "$@"
