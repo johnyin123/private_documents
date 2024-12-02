@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e073b58[2024-11-28T16:08:01+08:00]:create_pv.sh")
+VERSION+=("bd35726[2024-11-29T15:27:55+08:00]:create_pv.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -170,6 +170,7 @@ secret_common() {
 ---
 apiVersion: v1
 kind: Secret
+# type: "kubernetes.io/rbd"
 metadata:
   name: ${type}-${name}-${user}-secret
   namespace: ${NAMESPACE:-default}

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("df44eb1[2024-11-28T12:53:47+08:00]:kubesphere.sh")
+VERSION+=("e073b58[2024-11-28T16:08:01+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 KS_INSTALLER_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/kubesphere-installer.yaml"
@@ -45,6 +45,7 @@ spec:
   accessModes:
     - ReadWriteMany
     - ReadWriteOnce
+    - ReadOnlyMany
   volumeMode: Filesystem
   persistentVolumeReclaimPolicy: Retain
   storageClassName: sc-ks-nfs
@@ -90,9 +91,8 @@ prepare_yml() {
     }
 }
 usage() {
-    [ "$#" != 0 ] && echo "$*"
-    cat <<EOF
-${SCRIPTNAME}
+    R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
+${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         env:
             SUDO=   default undefine
         -m|--master      *  <ip>    master ipaddr
@@ -110,6 +110,7 @@ ${SCRIPTNAME}
         prepare sotrageclass(default)
         prepare image: https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/images-list.txt
 EOF
+)"; echo -e "${usage_doc}"
     exit 1
 }
 main() {
