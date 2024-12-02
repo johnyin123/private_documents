@@ -7,13 +7,13 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-12-02T10:39:25+08:00]:post-01-apiserver-ha.sh")
+VERSION+=("d28893d[2024-12-02T10:39:25+08:00]:post-01-apiserver-ha.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
     R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
 ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
-        -m|--master         *  ${G}<ip>${N}      master nodes, support multi nodes
+        -m|--master         *  ${G}<ip>${N}      all master nodes, multi input nodes
         --vip               *  ${G}<ip>${N}      keepalived vrrp vip
         --api_srv              ${G}<str>${N}     api server dnsname, with no PORT
                                                 exam: k8s.tsd.org, if unset then use vip
@@ -24,6 +24,8 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
+        exam:
+        ${SCRIPTNAME} -m 172.16.0.150 -m 172.16.0.151 -m 172.16.0.152 --vip 172.16.0.155 --api_srv k8s.tsd.org
 EOF
 )"; echo -e "${usage_doc}"
     exit 1
@@ -108,6 +110,10 @@ spec:
   containers:
   - name: nginx
     image: ${registry}/nginx:bookworm
+    command:
+    - /usr/sbin/nginx
+    - -g 
+    - "daemon off;"
     volumeMounts:
     - mountPath: /etc/nginx/stream-enabled/api.conf
       name: nginx-conf
@@ -163,24 +169,16 @@ main() {
     [ -z "${vip}" ] && usage "vip master input"
     [ "$(array_size master)" -gt "0" ] || usage "at least one master"
     info_msg "Gen api-ha.yaml\n" && apilb_yaml > api-ha.yaml "${insec_registry}"
-    info_msg "Gen ngx.confl\n" && gen_nginx_cfg ${master[*]} > ngx.conf
+    info_msg "Gen api.confl\n" && gen_nginx_cfg ${master[*]} > api.conf
     for ip in ${master[*]}; do
         info_msg "Gen keepalived-${ip}.conf\n" && gen_keepalived_cfg 9999 ${vip} "eth0" ${ip} ${master[*]} > keepalived-${ip}.conf
     done
     NEWSRV=${API_SRV:-${vip}}
-    info_msg "# # execute on all nodes(masters & workers)\n"
-    cat <<EOF
-sed -i "s/${NEWSRV}:6443/${NEWSRV}:60443/g" /etc/kubernetes/*.conf
-sed -i "s/${NEWSRV}:6443/${NEWSRV}:60443/g" ~/.kube/config
-EOF
-    [ -z "${API_SRV:-}" ] || cat <<EOF
-sed -i -e '/\s*${API_SRV}/d' /etc/hosts; echo '${vip} ${API_SRV}' >> /etc/hosts"
-EOF
     [ -z "${API_SRV:-}" ] || {
     info_msg "# # execute on one master node\n"
     cat <<EOF
-kubectl -n kube-system get configmaps coredns -o yaml > coredns.cm.orig.yaml
-cat << EO_YML | kubectl replace -f -
+ssh root@${master[0]} kubectl -n kube-system get configmaps coredns -o yaml > coredns.cm.orig.yaml
+cat << EO_YML | ssh root@${master[0]} kubectl replace -f -
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -215,6 +213,25 @@ data:
 EO_YML
 EOF
     }
+    info_msg "# # execute on all nodes(masters & workers), after replace coredns configmap\n"
+    cat <<EOF
+sed -i "s/${NEWSRV}:6443/${NEWSRV}:60443/g" /etc/kubernetes/*.conf
+sed -i "s/${NEWSRV}:6443/${NEWSRV}:60443/g" ~/.kube/config
+EOF
+    [ -z "${API_SRV:-}" ] || cat <<EOF
+sed -i -e '/\s*${API_SRV}/d' /etc/hosts; echo '${vip} ${API_SRV}' >> /etc/hosts
+EOF
+    cat <<EOF
+for ip in ${master[*]}; do
+    scp keepalived-\${ip}.conf root@\${ip}:/etc/kubernetes/keepalived.conf
+done
+for ip in ${master[*]}; do
+    scp api.conf root@\${ip}:/etc/kubernetes/api.conf
+done
+for ip in ${master[*]}; do
+    scp api-ha.yaml root@\${ip}:/etc/kubernetes/manifests/api-ha.yaml
+done
+EOF
     return 0
 }
 main "$@"

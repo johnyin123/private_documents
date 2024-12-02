@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-12-02T10:39:25+08:00]:post-10-calico_rr_ebpf.sh")
+VERSION+=("d28893d[2024-12-02T10:39:25+08:00]:post-10-calico_rr_ebpf.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 calico_bpf() {
@@ -35,7 +35,9 @@ EOF
     sleep 30
     kubectl patch ds -n kube-system kube-proxy -p '{"spec":{"template":{"spec":{"nodeSelector":{"non-calico": "true"}}}}}'
     # # If you cannot disable kube-proxy, do below
-    # kubectl patch felixconfiguration.p default --patch='{"spec": {"bpfKubeProxyIptablesCleanupEnabled": false}}'
+    kubectl patch felixconfiguration.p default --patch='{"spec": {"bpfKubeProxyIptablesCleanupEnabled": false}}'
+    echo "sleep 10s, check kube-proxy stoped"
+    sleep 10
     kubectl get ds -n kube-system kube-proxy || true
     kubectl patch installation.operator.tigera.io default --type merge -p '{"spec":{"calicoNetwork":{"linuxDataplane":"BPF", "hostPorts":null}}}'
     calicoctl patch felixconfiguration default --patch='{"spec": {"bpfExternalServiceMode": "DSR"}}'
@@ -188,7 +190,7 @@ main() {
     info_msg "choose some nodes as reflector nodes\n"
     ssh_func "${user}@${master}" "${port}" calico_route_reflector "${asnumber}" "${clusterid}" ${reflector[@]}
     [ -z "${ebpf}" ] || {
-        info_msg "use EBPF & DSR\n"
+        info_msg "use EBPF with DSR\n"
         ssh_func "${user}@${master}" "${port}" calico_bpf "${ebpf}"
     }
     # # modify asnumber

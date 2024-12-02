@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("da01ba9[2024-11-22T09:28:15+08:00]:make_docker_image.sh")
+VERSION+=("d28893d[2024-12-02T10:39:25+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -400,7 +400,7 @@ build_nginx() {
     write_file "${cfg_file}" <<EOF
 getent group ${groupname} >/dev/null || groupadd --system ${groupname} || :
 getent passwd ${username} >/dev/null || useradd -g ${groupname} --system -s /sbin/nologin -d /var/empty/nginx ${username} 2> /dev/null || :
-apt -y update && apt -y install --no-install-recommends libbrotli1 libgeoip1 libxml2 libxslt1.1 libjansson4 libjwt0
+apt -y update && apt -y install --no-install-recommends libbrotli1 libgeoip1 libxml2 libxslt1.1 libjansson4 libjwt0 libsqlite3-0 libldap-2.5-0
 EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
@@ -408,7 +408,6 @@ VOLUME ["/etc/nginx/", "/var/log/nginx/"]
 EOF
     cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
     write_file "${cfg_file}" <<EOF
-echo '1024 65531' > /proc/sys/net/ipv4/ip_local_port_range
 CMD=/usr/sbin/runuser
 ARGS="-u root -- /usr/sbin/nginx -g \"daemon off;\""
 EOF
