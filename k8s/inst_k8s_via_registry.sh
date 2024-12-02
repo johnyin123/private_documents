@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6b99135[2024-11-29T16:57:02+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("d28893d[2024-12-02T10:39:25+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -127,7 +127,7 @@ init_first_k8s_master_use_extern_etcd() {
     echo "FIX 'kubectl get cs' Unhealthy"
     sed -i "/^\s*-\s*--\s*port\s*=\s*0/d" /etc/kubernetes/manifests/kube-controller-manager.yaml
     sed -i "/^\s*-\s*--\s*port\s*=\s*0/d" /etc/kubernetes/manifests/kube-scheduler.yaml
-    mkdir -p ~/.kube && cat /etc/kubernetes/admin.conf > ~/.kube/config
+    mkdir -p ~/.kube && cat /etc/kubernetes/admin.conf > ~/.kube/config && chmod 600 ~/.kube/config
     echo "source <(kubectl completion bash)" > /etc/profile.d/k8s.sh
     chmod 644 /etc/profile.d/k8s.sh
     export KUBECONFIG=/etc/kubernetes/admin.conf
