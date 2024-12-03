@@ -59,6 +59,7 @@ spec:
       protocol: TCP
       targetPort: 8080
       port: ${port}
+      # # LoadBalancer type can has nodePort too.
 $([ "${svc_type}" == "NodePort" ] && cat << EO_NODEPORT
       nodePort: ${port}
 EO_NODEPORT
