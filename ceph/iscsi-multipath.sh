@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-11-29T15:15:05+08:00]:iscsi-multipath.sh")
+VERSION+=("79703e7[2024-11-29T15:15:05+08:00]:iscsi-multipath.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -52,7 +52,10 @@ tgt_rbd() {
     local chap_pass=${CHAP_PASS:-chap_pass}
     info_msg "tgt iscsi mulitpath rbd backend, /etc/tgt/conf.d/rbd.conf\n"
     vinfo_msg <<EOF
+ceph osd pool create ${ceph_pool} 128
+rbd pool init ${ceph_pool}
 ceph auth get-or-create client.${ceph_user} mon 'allow r' osd 'allow class-read object_prefix rbd_children, allow rwx pool=${ceph_pool}' -o ~/${cluster}.client.${ceph_user}.keyring
+rbd create ${ceph_pool}/rbd.raw --size 30G
 # # tgt server host
 # /etc/ceph/${cluster}.client.${ceph_user}.keyring
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

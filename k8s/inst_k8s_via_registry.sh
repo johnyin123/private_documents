@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d28893d[2024-12-02T10:39:25+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("a584ebe[2024-12-03T07:07:11+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -349,9 +349,9 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         # # install pkg
         wget --no-check-certificate -O /etc/yum.repos.d/cnap.repo http://registry.local/cnap/cnap.repo
         yum -y --enablerepo=cnap install tsd_cnap_v1.27.3 bash-completion
-            yum -y install nfs-utils nfs4-acl-tools # # nfs pv
-            yum -y install iscsi-initiator-utils    # # iscsi pv
-            yum -y install ceph-common              # # cephfs pv
+            yum -y install nfs-utils nfs4-acl-tools   # # nfs pv
+            yum -y install multipath-tools open-iscsi # # iscsi multipath pv
+            yum -y install ceph-common                # # cephfs pv
 # # init new cluster
 ${SCRIPTNAME} -m 192.168.168.150 --pod_cidr 172.16.0.0/24 --ipvs --insec_registry 192.168.168.250 --apiserver myserver:6443
 # # make api ha
@@ -360,6 +360,21 @@ post_k8s_cluster_api_ha.sh
 ${SCRIPTNAME} --only_add_worker -m 192.168.168.150 -w 192.168.168.151 --insec_registry 192.168.168.250
 # # add master in exists cluster
 ${SCRIPTNAME} --only_add_master 192.168.168.150 -m 192.168.168.152 --insec_registry 192.168.168.250${N}
+${R}# # full cluster, api-server ha, calico bgp reflector, ebpf with direct service return${N}
+${SCRIPTNAME} \\
+        --insec_registry registry.local \\
+        --apiserver k8s.tsd.org:6443 \\
+        --vip 172.16.0.155 \\
+        --calico IPIPCrossSubnet \\
+        --ipvs \\
+        --pod_cidr 11.96.0.0/12 \\
+        --master 172.16.0.150 --master 172.16.0.151 --master 172.16.0.152 \\
+        --worker 172.16.0.153 --worker 172.16.0.154
+./post-01-apiserver-ha.sh --master 172.16.0.150 --master 172.16.0.151 --master 172.16.0.152 \\
+        --vip 172.16.0.155 --api_srv k8s.tsd.org --insec_registry registry.local
+./post-10-calico_rr_ebpf.sh --master 172.16.0.150 \\
+        --reflector node150 --reflector node151 --reflector node152 \\
+        --ebpf k8s.tsd.org:60443
 EOF
 )"; echo -e "${usage_doc}"
     exit 1

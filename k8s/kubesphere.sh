@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e073b58[2024-11-28T16:08:01+08:00]:kubesphere.sh")
+VERSION+=("17b43bc[2024-12-02T16:14:00+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 KS_INSTALLER_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/kubesphere-installer.yaml"
@@ -19,6 +19,64 @@ L_CLUSTER_CONF_YML=cluster-configuration.yaml
 R_CLUSTER_CONF_YML="$(mktemp)"
 
 pre_check() {
+    cat<<'EOF'
+action=${1:-apply}
+cat <<EO_YML | kubectl ${action} -f -
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+provisioner: kubernetes.io/iscsi
+metadata:
+  name: sc-2024-12-iscsi
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+for namespace in kubesphere-system kubesphere-monitoring-system; do
+EO_YML
+cat <<EO_YML | kubectl ${action} -f -
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${namespace}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: iscsi-2024-12-testuser-secret
+  namespace: ${namespace}
+type: kubernetes.io/iscsi-chap
+data:
+  node.session.auth.username: dGVzdHVzZXI=
+  node.session.auth.password: cGFzc3dvcmQxMjM=
+EO_YML
+for seq in $(seq -w 1 4); do
+cat <<EO_YML | kubectl ${action} -f -
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-2024-12-rbd${seq}-iscsi
+spec:
+  capacity:
+    storage: 30G
+  accessModes:
+    - ReadWriteOnce
+  volumeMode: Filesystem
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: sc-2024-12-iscsi
+  iscsi:
+    targetPortal: 172.16.0.156:3260
+    portals: [ '172.16.0.157:3260' ]
+    iqn: iqn.2024-12.rbd${seq}.local:iscsi-01
+    lun: 1
+    chapAuthSession: true
+    secretRef:
+      name: iscsi-2024-12-testuser-secret
+    readOnly: false
+    fsType: xfs
+EO_YML
+done
+EOF
     cat<<'EOF'
 1.need storageclass(default); in-tree sc cannot dynamic create pv. so create enough pv first
 # kubectl patch storageclass sc-ks-nfs -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
@@ -41,7 +99,7 @@ metadata:
   name: pv-ks-${i}-nfs
 spec:
   capacity:
-    storage: 200G
+    storage: 30G
   accessModes:
     - ReadWriteMany
     - ReadWriteOnce
@@ -51,11 +109,11 @@ spec:
   storageClassName: sc-ks-nfs
   nfs:
     path: "/nfs_share/${i}"
-    server: "172.16.0.152"
+    server: "172.16.0.156"
     readOnly: false
 EOSHELL
 done
-
+    nfs must has directory: /nfs_share/<i>
 2. todo
 EOF
 }
@@ -109,6 +167,8 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         -h|--help help
         prepare sotrageclass(default)
         prepare image: https://github.com/kubesphere/ks-installer/releases/download/v3.2.1/images-list.txt
+        exam:
+            ${SCRIPTNAME} -m 172.16.0.150 --insec_registry registry.local --installer registry.local/kubesphere/ks-installer:v3.3.2
 EOF
 )"; echo -e "${usage_doc}"
     exit 1
@@ -135,7 +195,7 @@ main() {
             -l | --log)     shift; set_loglevel ${1}; shift;;
             -d | --dryrun)  shift; DRYRUN=1;;
             -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
-            -h | --help)    shift; usage;;
+            -h | --help)    shift; pre_check; usage;;
             --)             shift; break;;
             *)              usage "Unexpected option: $1";;
         esac
@@ -149,7 +209,6 @@ main() {
 insec_registry:  ${insec_registry}
 installer: ${installer}
 EOF
-    ssh_func "${user}@${master}" "${port}" pre_check
     ssh_func "${user}@${master}" "${port}" init_kubesphere "${R_CLUSTER_CONF_YML}" "${R_KS_INSTALLER_YML}" "${insec_registry}" "${installer}"
     cat <<EOF
 安装后如何开启安装应用商店:
@@ -158,7 +217,7 @@ kubectl -n kubesphere-system get clusterconfiguration ks-installer -o yaml
     openpitrix:
       enabled: True
 # 通过查询 ks-installer 日志或 Pod 状态验证功能组件是否安装成功。
-kubectl -n kubesphere-system logs -f ks-installer-xxxxxxxx
+kubectl -n kubesphere-system logs -f ks-installer-
 
 kubectl -n kubesphere-system rollout restart deployment.apps/redis
 kubectl -n kubesphere-monitoring-system delete pvc prometheus-k8s-db-prometheus-k8s-1 prometheus-k8s-db-prometheus-k8s-0
