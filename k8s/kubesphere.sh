@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("aea07e4[2024-12-03T09:00:55+08:00]:kubesphere.sh")
+VERSION+=("3850070[2024-12-03T14:46:40+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 KS_INSTALLER_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/kubesphere-installer.yaml"
@@ -217,15 +217,15 @@ main() {
     local modifyed_yaml="${folder}/${L_CLUSTER_CONF_YML}"
     cat "${L_CLUSTER_CONF_YML}" | yaml2json \
         | jq '.spec.common.redis.enabled=true' \
-        | jq '.spec.common.openldap.enabled=true' \
-        | jq '.spec.alerting.enabled=true' \
-        | jq '.spec.auditing.enabled=true' \
-        | jq '.spec.devops.enabled=true' \
-        | jq '.spec.events.enabled=true' \
-        | jq '.spec.logging.enabled=true' \
-        | jq '.spec.openpitrix.store.enabled=true' \
         | jq ".spec.local_registry=\"${insec_registry}\"" \
         | json2yaml > ${modifyed_yaml}
+#        | jq '.spec.common.openldap.enabled=true' \
+#        | jq '.spec.alerting.enabled=true' \
+#        | jq '.spec.auditing.enabled=true' \
+#        | jq '.spec.devops.enabled=true' \
+#        | jq '.spec.events.enabled=true' \
+#        | jq '.spec.logging.enabled=true' \
+#        | jq '.spec.openpitrix.store.enabled=true' \
     info_msg "locale modifyed is ${modifyed_yaml}\n"
     prepare_yml "${user}" "${port}" "${master}" "${modifyed_yaml}" "${R_CLUSTER_CONF_YML}" "${CLUSTER_CONF_YML}"
     modifyed_yaml="${folder}/${L_KS_INSTALLER_YML}"
