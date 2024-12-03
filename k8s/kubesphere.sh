@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("17b43bc[2024-12-02T16:14:00+08:00]:kubesphere.sh")
+VERSION+=("aea07e4[2024-12-03T09:00:55+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 KS_INSTALLER_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/kubesphere-installer.yaml"
@@ -49,7 +49,23 @@ data:
   node.session.auth.username: dGVzdHVzZXI=
   node.session.auth.password: cGFzc3dvcmQxMjM=
 EO_YML
-for seq in $(seq -w 1 4); do
+# # pv list
+#  1 kubesphere-devops-system/devops-jenkins
+#  2 kubesphere-logging-system/data-elasticsearch-logging-data-0
+#  3 kubesphere-logging-system/data-elasticsearch-logging-data-1
+#  4 kubesphere-logging-system/data-elasticsearch-logging-data-2
+#  5 kubesphere-logging-system/data-elasticsearch-logging-discovery-0
+#  6 kubesphere-logging-system/data-elasticsearch-logging-discovery-1
+#  7 kubesphere-logging-system/data-elasticsearch-logging-discovery-2
+#  8 kubesphere-monitoring-system/prometheus-k8s-db-prometheus-k8s-0
+#  9 kubesphere-monitoring-system/prometheus-k8s-db-prometheus-k8s-1
+# 10 kubesphere-system/data-redis-ha-server-0
+# 11 kubesphere-system/data-redis-ha-server-1
+# 12 kubesphere-system/data-redis-ha-server-2
+# 13 kubesphere-system/minio
+# 14 kubesphere-system/openldap-pvc-openldap-0
+# 15 kubesphere-system/openldap-pvc-openldap-1
+for seq in $(seq -w 1 16); do
 cat <<EO_YML | kubectl ${action} -f -
 ---
 apiVersion: v1
@@ -90,7 +106,7 @@ metadata:
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
 EOSHELL
-for i in $(seq -w 1 10); do
+for i in $(seq -w 1 16); do
 cat <<EOSHELL | kubectl apply -f -
 ---
 apiVersion: v1
@@ -121,12 +137,6 @@ EOF
 init_kubesphere() {
     local ks_cluster_yaml=${1}
     local ks_installer_yaml=${2}
-    local registry=${3}
-    local ks_installer=${4}
-    sed -i "s|local_registry\s*:\s*.*|local_registry: ${registry}|g" "${ks_cluster_yaml}"
-    # enable redis
-    sed -i "/redis\s*:$/{n; s/enabled\s*:.*/enabled: true/;}" "${ks_cluster_yaml}"
-    sed -i "s|image\s*:\s*.*ks-installer.*|image: ${ks_installer}|g" "${ks_installer_yaml}"
     kubectl apply -f "${ks_installer_yaml}"
     kubectl apply -f "${ks_cluster_yaml}"
     # rm -f "${ks_cluster_yaml}" "${ks_installer_yaml}"
@@ -203,13 +213,30 @@ main() {
     [ -z "${insec_registry}" ] || [ -z "${installer}" ] || [ -z "${master}" ] && usage "master/insec_registry/ks_installer must input"
     file_exists "${L_KS_INSTALLER_YML}" && file_exists "${L_CLUSTER_CONF_YML}" || \
         confirm "${L_KS_INSTALLER_YML}/${L_CLUSTER_CONF_YML} not exists, continue? (timeout 10,default N)?" 10 || exit_msg "BYE!\n"
-    prepare_yml "${user}" "${port}" "${master}" "${L_CLUSTER_CONF_YML}" "${R_CLUSTER_CONF_YML}" "${CLUSTER_CONF_YML}"
-    prepare_yml "${user}" "${port}" "${master}" "${L_KS_INSTALLER_YML}" "${R_KS_INSTALLER_YML}" "${KS_INSTALLER_YML}"
+    local folder=$(temp_folder)
+    local modifyed_yaml="${folder}/${L_CLUSTER_CONF_YML}"
+    cat "${L_CLUSTER_CONF_YML}" | yaml2json \
+        | jq '.spec.common.redis.enabled=true' \
+        | jq '.spec.common.openldap.enabled=true' \
+        | jq '.spec.alerting.enabled=true' \
+        | jq '.spec.auditing.enabled=true' \
+        | jq '.spec.devops.enabled=true' \
+        | jq '.spec.events.enabled=true' \
+        | jq '.spec.logging.enabled=true' \
+        | jq '.spec.openpitrix.store.enabled=true' \
+        | jq ".spec.local_registry=\"${insec_registry}\"" \
+        | json2yaml > ${modifyed_yaml}
+    info_msg "locale modifyed is ${modifyed_yaml}\n"
+    prepare_yml "${user}" "${port}" "${master}" "${modifyed_yaml}" "${R_CLUSTER_CONF_YML}" "${CLUSTER_CONF_YML}"
+    modifyed_yaml="${folder}/${L_KS_INSTALLER_YML}"
+    cat "${L_KS_INSTALLER_YML}" | sed "s|image\s*:\s*.*ks-installer.*|image: ${installer}|g" > "${modifyed_yaml}"
+    info_msg "locale modifyed is ${modifyed_yaml}\n"
+    prepare_yml "${user}" "${port}" "${master}" "${modifyed_yaml}" "${R_KS_INSTALLER_YML}" "${KS_INSTALLER_YML}"
     vinfo_msg <<EOF
 insec_registry:  ${insec_registry}
 installer: ${installer}
 EOF
-    ssh_func "${user}@${master}" "${port}" init_kubesphere "${R_CLUSTER_CONF_YML}" "${R_KS_INSTALLER_YML}" "${insec_registry}" "${installer}"
+    ssh_func "${user}@${master}" "${port}" init_kubesphere "${R_CLUSTER_CONF_YML}" "${R_KS_INSTALLER_YML}"
     cat <<EOF
 安装后如何开启安装应用商店:
 # kubectl -n kubesphere-system edit cm ks-installer
