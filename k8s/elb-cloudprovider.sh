@@ -6,7 +6,7 @@ export IMAGE=python:bookworm  # BASE IMAGE
 # export NAMESPACE=
 ARCH=(amd64 arm64)
 APP_NAME=elbprovider
-APP_VER=0.1
+APP_VER=1.0
 for APP_ARCH in ${ARCH[@]}; do
     IMG_DIR=${APP_NAME}-${APP_ARCH}
     TAG_PREFIX=${REGISTRY:-registry.local}/${NAMESPACE:+${NAMESPACE}/}${APP_NAME}
@@ -35,7 +35,7 @@ done
 echo "combine ${TAG_PREFIX}:${APP_VER}"
 ./make_docker_image.sh -c combine --tag ${TAG_PREFIX}:${APP_VER}
 
-NAMESPACE=testns
+NAMESPACE=tsdelb
 cat <<EOF
 kubectl create namespace ${NAMESPACE}
 kubectl create deployment elbprovider-deployment --image=${TAG_PREFIX}:${APP_VER} --replicas=1 -n ${NAMESPACE}
@@ -43,6 +43,11 @@ kubectl create deployment elbprovider-deployment --image=${TAG_PREFIX}:${APP_VER
 #  403 Client Error: Forbidden for url... so need add rbac to namespace
 EOF
 cat <<EOF
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${NAMESPACE}
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
@@ -101,7 +106,7 @@ spec:
     spec:
       containers:
         - name: elbprovider
-          image: ${TAG_PREFIX}:${APP_VER}
+          image: ${REGISTRY:-registry.local}/${APP_NAME}:${APP_VER}
           volumeMounts:
             - name: ns-ip-json
               mountPath: /home/johnyin/ns_ip.json
