@@ -4,13 +4,13 @@ readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 export IMAGE=python:bookworm  # BASE IMAGE
 # export REGISTRY=registry.local
 # export NAMESPACE=
-ARCH=(amd64 arm64)
+ARCH=(arm64 amd64)
 APP_NAME=elbprovider
 APP_VER=1.0
-for APP_ARCH in ${ARCH[@]}; do
-    IMG_DIR=${APP_NAME}-${APP_ARCH}
+for app_arch in ${ARCH[@]}; do
+    IMG_DIR=${APP_NAME}-${app_arch}
     TAG_PREFIX=${REGISTRY:-registry.local}/${NAMESPACE:+${NAMESPACE}/}${APP_NAME}
-    ./make_docker_image.sh -c ${APP_NAME} --arch ${APP_ARCH} -D ${IMG_DIR}
+    ./make_docker_image.sh -c ${APP_NAME} --arch ${app_arch} -D ${IMG_DIR}
     ################################################
     mkdir -p ${IMG_DIR}/docker/home/johnyin/
     cp elb-cloudprovider.py ${IMG_DIR}/docker/home/johnyin/elb_provider.py
@@ -29,8 +29,8 @@ chown johnyin:johnyin /home/johnyin/* -R
     python3 -c "import kubernetes" && echo "kubernetes package OK" || echo "kubernetes package ERROR"
 EOSHELL
 EOF
-    (cd ${IMG_DIR} && docker build --no-cache --force-rm --network=br-ext -t ${TAG_PREFIX}:${APP_VER}-${APP_ARCH} .)
-    docker push  ${TAG_PREFIX}:${APP_VER}-${APP_ARCH}
+    (cd ${IMG_DIR} && docker build --pull --no-cache --force-rm --network=br-ext -t ${TAG_PREFIX}:${APP_VER}-${app_arch} .)
+    docker push  ${TAG_PREFIX}:${APP_VER}-${app_arch}
 done
 echo "combine ${TAG_PREFIX}:${APP_VER}"
 ./make_docker_image.sh -c combine --tag ${TAG_PREFIX}:${APP_VER}
@@ -84,7 +84,8 @@ data:
   ns_ip.json: |
      {
          "default":"172.16.17.155",
-         "testns": "1.2.3.4"
+         "kubesphere-system":"172.16.17.100",
+         "testns": "172.16.17.101"
      }
 ---
 apiVersion: apps/v1

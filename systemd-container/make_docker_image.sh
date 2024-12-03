@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d28893d[2024-12-02T10:39:25+08:00]:make_docker_image.sh")
+VERSION+=("6c29b8b[2024-12-02T14:32:50+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -16,9 +16,8 @@ IMAGE=${IMAGE:-debian:bookworm}
 readonly DIRNAME_COPYIN=docker
 BASE_IMG="${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}"
 usage() {
-    [ "$#" != 0 ] && echo "$*"
-    cat <<EOF
-${SCRIPTNAME}
+    R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
+${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         env: REGISTRY: private registry server(ssl), default registry.local
              NAMESPACE: image namespace, default "", no namespace use
              IMAGE: image name with tag, default debian:bookworm
@@ -47,7 +46,7 @@ ${SCRIPTNAME}
             ARCH=(amd64 arm64)
             for arch in \${ARCH[@]}; do
                 ./${SCRIPTNAME} -c base -D base-\${arch} --arch \${arch} --file \${arch}.tar.xz
-                (cd base-\${arch} && docker build -t ${BASE_IMG}-\${arch} .)
+                (cd base-\${arch} && docker build --no-cache --force-rm -t ${BASE_IMG}-\${arch} .)
                 docker push ${BASE_IMG}-\${arch}
             done
             ./${SCRIPTNAME} -c combine --tag ${BASE_IMG}
@@ -56,38 +55,41 @@ ${SCRIPTNAME}
             type=aria
             for arch in \${ARCH[@]}; do
                 ./${SCRIPTNAME} -c \${type} -D my\${type}-\${arch} --arch \${arch}
-                # confirm base-image is right arch
+                # confirm base-image is right arch, docker build --pull can ignore this.
                 docker pull --quiet ${BASE_IMG} --platform \${arch}
                 docker run --rm --entrypoint="uname" ${BASE_IMG} -m
-                (cd my\${type}-\${arch} && docker build --network=br-ext -t ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:bookworm-\${arch} .)
+                (cd my\${type}-\${arch} && docker build --no-cache --force-rm --network=br-ext -t ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:bookworm-\${arch} .)
                 docker push ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:bookworm-\${arch}
             done
             ./${SCRIPTNAME} -c combine --tag ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:bookworm
-EOF
-    cat <<'EOF'
-         # # multiarch nsenter utils
+         # # multiarch aria2
+         ${R}# # multiarch user images${N}
+            # # BASE IMAGE
+            export IMAGE=python:bookworm  # debian:bookworm
+            export REGISTRY=registry.local
             ARCH=(amd64 arm64)
-            type=nsenter
-            for arch in ${ARCH[@]}; do
-                ./make_docker_image.sh -c ${type} -D my${type}-${arch} --arch ${arch}
-                cat <<EODOC > my${type}-${arch}/docker/build.run
-            apt update && apt -y --no-install-recommends install util-linux
-            # useradd -m johnyin --home-dir /home/johnyin/ --shell /bin/bash
+            APP_VER=1.0 # bookworm
+            type=test1
+            for arch in \${ARCH[@]}; do
+                ./make_docker_image.sh -c \${type} -D my-\${type}-\${arch} --arch \${arch}
+                cat <<EODOC > my-\${type}-\${arch}/docker/build.run
+            # apt update && apt -y --no-install-recommends install util-linux
+            getent passwd johnyin >/dev/null || useradd -m johnyin --home-dir /home/johnyin/ --shell /bin/bash
             EODOC
-                cat <<EODOC > my${type}-${arch}/docker/run_command
+                cat <<EODOC > my-\${type}-\${arch}/docker/run_command
             CMD=/usr/sbin/runuser
             ARGS="-u root -- /usr/bin/busybox sleep infinity"
             EODOC
-                # confirm base-image is right arch
-                docker pull --quiet registry.local/debian:bookworm --platform ${arch}
-                docker run --rm --entrypoint="uname" registry.local/debian:bookworm -m
-                (cd my${type}-${arch} && docker build --network=br-ext -t registry.local/${type}:bookworm-${arch} .)
-                docker push registry.local/${type}:bookworm-${arch}
+                (cd my-\${type}-\${arch} && docker build --pull --no-cache --force-rm --network=br-ext --tag \${REGISTRY}/\${type}:\${APP_VER}-\${arch} .)
+                docker push \${REGISTRY}/\${type}:\${APP_VER}-\${arch}
             done
-            ./make_docker_image.sh -c combine --tag registry.local/${type}:bookworm
+            ./make_docker_image.sh -c combine --tag \${REGISTRY}/\${type}:\${APP_VER}
+         ${R}# # multiarch user images${N}
 EOF
+)"; echo -e "${usage_doc}"
     exit 1
 }
+
 gen_dockerfile() {
     local name=${1}
     local target_dir=${2}
@@ -469,6 +471,17 @@ docker create --name grafana --hostname grafana \
     registry.local/grafana:bookworm
 EOF
 }
+
+platform2uname_m() {
+    local input="${1}"
+    local result="N/A"
+    case "${input}" in
+        arm64)  result="aarch64";;
+        amd64)  result="x86_64";;
+    esac
+    echo -n "${result}"
+}
+
 combine_multiarch() {
     local img_tag="${1}"
     local ARCH=(amd64 arm64)
@@ -490,7 +503,13 @@ combine_multiarch() {
     for arch in ${ARCH[@]}; do
         try docker pull -q ${img_tag} --platform ${arch}
         info_msg "++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
-        info_msg "++++++++++++++++++check: ${arch} | $(try docker run --rm --entrypoint="uname" ${img_tag} -m 2>/dev/null || true)++++++++++++++++++\n"
+        result=$(try docker run --rm --entrypoint="uname" ${img_tag} -m 2>/dev/null || true)
+        platform=$(platform2uname_m "${arch}")
+        str_equal "${result}" "${platform}" && {
+            info_msg "check: ${platform} | ${result} OK ++++++++++++++++++\n"
+        } || {
+            error_msg "check error: arch:${arch} | platform:${platform} | image:${result}\n"
+        }
     done
     info_msg "${img_tag} combine ok\n"
 }
