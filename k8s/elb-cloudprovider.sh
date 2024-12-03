@@ -72,7 +72,6 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 EOF
 
-echo  "use configmap as ns_ip.json"
 cat<<EOF
 ---
 apiVersion: v1
@@ -113,8 +112,8 @@ spec:
               mountPath: /home/johnyin/ns_ip.json
               subPath: ns_ip.json
           env:
-            - name: KEY
-              value: value
+            - name: LOG
+              value: DEBUG
       volumes:
         - name: ns-ip-json
           configMap:
