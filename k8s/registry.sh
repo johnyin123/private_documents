@@ -93,6 +93,9 @@ proxy:
   # 183.131.227.249 aliregistry.oss-cn-hangzhou.aliyuncs.com
 EOPROXY
 })
+EOF
+}
+cat <<EOF
 # # https://distribution.github.io/distribution/about/configuration/
 # auth:
 #   token:
@@ -119,4 +122,3 @@ EOPROXY
 #   tls:
 #     enabled: false
 EOF
-}

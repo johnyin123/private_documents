@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3850070[2024-12-03T14:46:40+08:00]:kubesphere.sh")
+VERSION+=("aeaed3a[2024-12-03T14:56:27+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 KS_INSTALLER_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/kubesphere-installer.yaml"
@@ -218,14 +218,14 @@ main() {
     cat "${L_CLUSTER_CONF_YML}" | yaml2json \
         | jq '.spec.common.redis.enabled=true' \
         | jq ".spec.local_registry=\"${insec_registry}\"" \
+        |  jq '.spec.common.openldap.enabled=false' \
+        |         jq '.spec.alerting.enabled=false' \
+        |         jq '.spec.auditing.enabled=false' \
+        |           jq '.spec.devops.enabled=false' \
+        |           jq '.spec.events.enabled=false' \
+        |          jq '.spec.logging.enabled=false' \
+        | jq '.spec.openpitrix.store.enabled=false' \
         | json2yaml > ${modifyed_yaml}
-#        | jq '.spec.common.openldap.enabled=true' \
-#        | jq '.spec.alerting.enabled=true' \
-#        | jq '.spec.auditing.enabled=true' \
-#        | jq '.spec.devops.enabled=true' \
-#        | jq '.spec.events.enabled=true' \
-#        | jq '.spec.logging.enabled=true' \
-#        | jq '.spec.openpitrix.store.enabled=true' \
     info_msg "locale modifyed is ${modifyed_yaml}\n"
     prepare_yml "${user}" "${port}" "${master}" "${modifyed_yaml}" "${R_CLUSTER_CONF_YML}" "${CLUSTER_CONF_YML}"
     modifyed_yaml="${folder}/${L_KS_INSTALLER_YML}"
@@ -244,6 +244,7 @@ kubectl -n kubesphere-system get clusterconfiguration ks-installer -o yaml
     openpitrix:
       enabled: True
 # 通过查询 ks-installer 日志或 Pod 状态验证功能组件是否安装成功。
+kubectl logs -n kubesphere-system \$(kubectl get pod -n kubesphere-system -l 'app in (ks-install, ks-installer)' -o jsonpath='{.items[0].metadata.name}') -f
 kubectl -n kubesphere-system logs -f ks-installer-
 
 kubectl -n kubesphere-system rollout restart deployment.apps/redis

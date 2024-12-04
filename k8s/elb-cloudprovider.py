@@ -92,6 +92,8 @@ def main():
             raise Exception('Could not configure kubernetes python client')
     v1 = client.CoreV1Api()
     # pod_logs = v1.read_namespaced_pod_log(name=’my-app’, namespace=’default’)
+    # pvcs = v1.list_persistent_volume_claim_for_all_namespaces(watch=False)
+    # pvcs = v1.list_namespaced_persistent_volume_claim(namespace=ns, watch=False)
     nodes = v1.list_node()
     action_class=Action(nodes)
     w = watch.Watch()

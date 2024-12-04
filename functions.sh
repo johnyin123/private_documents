@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("1f8c67d[2024-09-24T12:34:00+08:00]:functions.sh")
+VERSION+=("3ee4ef0[2024-10-22T07:51:35+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -198,7 +198,7 @@ upload() {
     local port=${3}
     local user=${4}
     local rfile=${5}
-    warn_msg "upload ${lfile} ====> ${user}@${ipaddr}:${port}${rfile}\n"
+    warn_msg "upload ${lfile} ====> ${user}@${ipaddr}:${port} ${rfile}\n"
     try scp -P${port} ${lfile} ${user}@${ipaddr}:${rfile}
     # cat ${lfile} | ssh -p${port} ${user}@${ipaddr} dd of=${rfile}
 }
