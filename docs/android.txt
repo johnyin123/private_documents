@@ -3,7 +3,7 @@ list package
 
 backup_data_apk() {
     for file in $(adb shell pm list packages -f | grep -o "\/data\/app\/.*==\/base.apk"); do
-        filename=$(echo ${file} | grep -o "\/data\/app\/.*==\/base.apk" | awk -F'/' '{ print $4 }' | sed "s/-.*/.apk/g")
+        filename=$(echo ${file} | grep -o "\/data\/app\/.*==\/base.apk" | awk -F'/' '{ print $5 }' | sed "s/-.*/.apk/g")
         echo "${file} -----> .${filename}"
         adb pull ${file} ${filename}
     done
