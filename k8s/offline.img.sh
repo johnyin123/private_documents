@@ -13,19 +13,25 @@ do
 done
 # # only pull/push arm64/amd64
 cat <<EOF
+mirror=127.0.0.1:5000
+local_registry=127.0.0.1:5001
+# # image.list
 library/busybox:latest
 EOF
 ARCH=(amd64 arm64)
-for img in $(cat image.list); do
+for img in $(cat lst); do
     for arch in ${ARCH[@]}; do
-        docker pull ${mirror}/${img} --platform ${arch}
+        docker pull --quiet ${mirror}/${img} --platform ${arch}
         docker tag ${mirror}/${img} ${local_registry}/${img}-${arch}
-        docker image rm ${mirror}/${img}
-        docker push  ${local_registry}/${img}-${arch}
+        echo "rm ${mirror}/${img}"
+        docker image rm ${mirror}/${img} >/dev/null 2>/dev/null
+        docker push --quiet ${local_registry}/${img}-${arch}
     done
-    ./make_docker_image.sh -c combine --tag  ${local_registry}/${img}
+    ./make_docker_image.sh -c combine --tag ${local_registry}/${img}
     for arch in ${ARCH[@]}; do
-        docker image rm ${local_registry}/${img}-${arch}
+        echo "rm ${local_registry}/${img}-${arch}"
+        docker image rm ${local_registry}/${img}-${arch} >/dev/null 2>/dev/null
     done
-    docker image rm ${local_registry}/${img}
+    echo "rm ${local_registry}/${img}"
+    docker image rm ${local_registry}/${img} >/dev/null 2>/dev/null
 done
