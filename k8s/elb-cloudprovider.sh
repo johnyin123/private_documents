@@ -107,6 +107,7 @@ spec:
       containers:
         - name: elbprovider
           image: ${REGISTRY:-registry.local}/${APP_NAME}:${APP_VER}
+          # imagePullPolicy: IfNotPresent|Always|Never
           volumeMounts:
             - name: ns-ip-json
               mountPath: /home/johnyin/ns_ip.json
