@@ -69,6 +69,8 @@ class Action(object):
         name = svc_manifest.metadata.name
         ports = svc_manifest.spec.ports
         lbaddr = self.ip_pools.get(namespace, None)
+        if svc_manifest.status.load_balancer.ingress is None:
+            self.add(svc_manifest)
         logger.info('modify: ns:%s,svc:%s,lbaddr:%s,ingress:%s', namespace, name, lbaddr, svc_manifest.status.load_balancer.ingress)
         return
 
