@@ -23,7 +23,7 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: echo-deployment
+  name: echo-application
   namespace: ${NAMESPACE}
 spec:
   selector:

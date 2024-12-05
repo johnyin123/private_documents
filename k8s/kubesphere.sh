@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ac4aed8[2024-12-04T11:02:26+08:00]:kubesphere.sh")
+VERSION+=("99b8b30[2024-12-05T12:19:25+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 KS_INSTALLER_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/kubesphere-installer.yaml"
@@ -300,7 +300,7 @@ EOF
     ssh_func "${user}@${master}" "${port}" init_kubesphere "${R_CLUSTER_CONF_YML}" "${R_KS_INSTALLER_YML}"
     cat <<EOF
 安装后如何开启安装应用商店:
-# kubectl -n kubesphere-system edit cm ks-installer
+# kubectl -n kubesphere-system edit clusterconfiguration ks-installer
 kubectl -n kubesphere-system get clusterconfiguration ks-installer -o yaml
     openpitrix:
       enabled: True
