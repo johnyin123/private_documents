@@ -99,6 +99,7 @@ def main():
     nodes = v1.list_node()
     action_class=Action(nodes)
     w = watch.Watch()
+    # for item in w.stream(v1.list_persistent_volume_claim_for_all_namespaces):
     for item in w.stream(v1.list_service_for_all_namespaces):
         svc_manifest = item.get('object', {})
         action=item.get('type', 'N/A')
