@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bd35726[2024-11-29T15:27:55+08:00]:create_pv.sh")
+VERSION+=("17b43bc[2024-12-02T16:14:00+08:00]:create_pv.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -49,10 +49,10 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         -d|--dryrun dryrun
         -h|--help help
     Exam:
-        ${SCRIPTNAME} -t cephfs --ceph_user k9s --ceph_key 'AQAA5ENnWx2+DBAAC7ZpySjtYfXevBTlxw3AUg==' --cephfs_path '/k8s' --ceph_mons "172.16.16.2:6789 172.16.16.3:6789 172.16.16.4:6789"
+        ${SCRIPTNAME} -t cephfs --ceph_user k8s --ceph_key 'AQCiF1FnhmEpLBAA18e4E5w5W2ZJQh4ISpKafg==' --cephfs_path '/k8s' --ceph_mons "172.16.16.2:6789 172.16.16.3:6789 172.16.16.4:6789"
         ${SCRIPTNAME} -t nfs --nfs_srv 172.16.0.152 --nfs_path /nfs_share
         ${SCRIPTNAME} -t iscsi --iscsi_srv "172.16.0.156:3260 172.16.0.157:3260" --iscsi_iqn "iqn.2024-11.rbd.local:iscsi-01" --iscsi_lun 1 --iscsi_user testuser --iscsi_pass 'password123'
-        ${SCRIPTNAME} -t rbd --ceph_user k9s --ceph_key 'AQAA5ENnWx2+DBAAC7ZpySjtYfXevBTlxw3AUg==' --ceph_mons "172.16.16.2:6789 172.16.16.3:6789 172.16.16.4:6789" --rbd_pool 'k8s' --rbd_image rbd.img
+        ${SCRIPTNAME} -t rbd --ceph_user k8s --ceph_key 'AQAA5ENnWx2+DBAAC7ZpySjtYfXevBTlxw3AUg==' --ceph_mons "172.16.16.2:6789 172.16.16.3:6789 172.16.16.4:6789" --rbd_pool 'k8s' --rbd_image rbd.img
         ${SCRIPTNAME} -t local --local_path /mnt/storage
 EOF
 )"; echo -e "${usage_doc}"
@@ -217,7 +217,7 @@ create_pv_cephfs() {
     local cephfs_path=${CEPHFS_PATH:-/cephfs_path}
     local ceph_mons=${CEPH_MONS:-172.16.16.2:6789}
     info_msg "Create cephfs PersistentVolume\n"
-    vinfo_msg <<'EOF'
+    vinfo_msg <<EOF
 client, k8s nodes:
     yum -y install ceph-common
     apt -y install ceph-common
@@ -225,8 +225,10 @@ ceph fs ls
 ceph fs authorize <fsname> client.${ceph_user} ${cephfs_path} rw
 ceph auth get-key client.${ceph_user}
 ceph_key=uSlE9PQ==
-mount -t ceph 172.16.16.3:6789:/cephfs_path /mnt/ -oname=${ceph_user},secret=${ceph_key}
-mkdir -p /mnt/${cephfs_path}
+# # first use admin, cretes subdir ${cephfs_path}
+# mount -t ceph 172.16.16.3:6789:/ /mnt/ -oname=admin,secret=AQAJ55xkhjuzGBAATpvjghofGpVMsSJ17icnJQ==
+# mkdir /mnt${cephfs_path}
+mount -t ceph 172.16.16.3:6789:${cephfs_path} /mnt/ -oname=${ceph_user},secret=${ceph_key}
 EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
 $(secret_common "cephfs" "${name}" "${ceph_user}")

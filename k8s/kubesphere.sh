@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f76144f[2024-12-04T09:05:36+08:00]:kubesphere.sh")
+VERSION+=("ac4aed8[2024-12-04T11:02:26+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 KS_INSTALLER_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/kubesphere-installer.yaml"
@@ -25,13 +25,74 @@ cat <<EO_YML | kubectl ${action} -f -
 ---
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
+provisioner: kubernetes.io/cephfs
+metadata:
+  name: sc-2024-12-cephfs
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+EO_YML
+for namespace in kubesphere-system kubesphere-monitoring-system kubesphere-devops-system; do
+	cat <<EO_YML | kubectl ${action} -f -
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${namespace}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cephfs-2024-12-k8s-secret
+  namespace: ${namespace}
+data:
+  key: QVFDaUYxRm5obUVwTEJBQTE4ZTRFNXc1VzJaSlFoNElTcEthZmc9PQ==
+EO_YML
+done
+for seq in $(seq -w 1 30); do
+cat <<EO_YML | kubectl ${action} -f -
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-2024-12-cephfs-${seq}
+spec:
+  capacity:
+    storage: 30G
+  accessModes:
+    - ReadWriteOnce
+    - ReadWriteMany
+    - ReadOnlyMany
+  volumeMode: Filesystem
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: sc-2024-12-cephfs
+  cephfs:
+    monitors:
+    - 172.16.16.2:6789
+    - 172.16.16.3:6789
+    - 172.16.16.4:6789
+    - 172.16.16.7:6789
+    - 172.16.16.8:6789
+    user: k8s
+    path: /k8s/${seq}
+    secretRef:
+      name: cephfs-2024-12-k8s-secret
+    readOnly: false
+EO_YML
+done
+EOF
+    cat<<'EOF'
+action=${1:-apply}
+cat <<EO_YML | kubectl ${action} -f -
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
 provisioner: kubernetes.io/iscsi
 metadata:
   name: sc-2024-12-iscsi
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
-for namespace in kubesphere-system kubesphere-monitoring-system; do
 EO_YML
+for namespace in kubesphere-system kubesphere-monitoring-system; do
 cat <<EO_YML | kubectl ${action} -f -
 ---
 apiVersion: v1
