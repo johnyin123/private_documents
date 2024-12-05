@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a584ebe[2024-12-03T07:07:11+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("aea07e4[2024-12-03T09:00:55+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -337,6 +337,8 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
             ${R}use post_k8s_cluster_api_ha.sh after instlled. make apiserver ha via keepalived&ngx${N}
         ${Y}EXAM:
     on master nodes:
+        # pvcreate /dev/sdb && vgcreate data /dev/sdb && lvcreate -l 100%FREE data -n lvdata #-L 8G
+        # mkfs.xfs /dev/mapper/data-lvdata
         # add fast disk(ssd/nvme)
         mkdir -p /var/lib/etcd/
         disk=/dev/vdb
