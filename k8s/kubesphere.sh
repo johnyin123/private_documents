@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("99b8b30[2024-12-05T12:19:25+08:00]:kubesphere.sh")
+VERSION+=("7cf93c5[2024-12-06T07:37:27+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 KS_INSTALLER_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/kubesphere-installer.yaml"
@@ -277,15 +277,16 @@ main() {
     local folder=$(temp_folder)
     local modifyed_yaml="${folder}/${L_CLUSTER_CONF_YML}"
     cat "${L_CLUSTER_CONF_YML}" | yaml2json \
-        | jq '.spec.common.redis.enabled=true' \
         | jq ".spec.local_registry=\"${insec_registry}\"" \
-        | jq '.spec.openpitrix.store.enabled=false' \
         |  jq '.spec.common.openldap.enabled=false' \
+        |      jq '.spec.common.redis.enabled=true' \
+        | jq '.spec.openpitrix.store.enabled=false' \
+        |    jq '.spec.metrics_server.enabled=true' \
         |         jq '.spec.alerting.enabled=false' \
         |         jq '.spec.auditing.enabled=false' \
         |          jq '.spec.logging.enabled=false' \
         |           jq '.spec.devops.enabled=false' \
-        |           jq '.spec.events.enabled=false' \
+        |           jq '.spec.events.enabled=true' \
         | json2yaml > ${modifyed_yaml}
     info_msg "locale modifyed is ${modifyed_yaml}\n"
     prepare_yml "${user}" "${port}" "${master}" "${modifyed_yaml}" "${R_CLUSTER_CONF_YML}" "${CLUSTER_CONF_YML}"
@@ -316,6 +317,8 @@ kubectl -n kubesphere-controls-system edit deployment.apps/default-http-backend
 kubectl -n kubesphere-controls-system rollout restart deployment.apps/default-http-backend
 
 kubectl rollout restart statefulset.apps/prometheus-k8s -n kubesphere-monitoring-system
+
+kubectl get pods -A -o json | jq  -r '.items[] | select(.status.phase!="Running") | "kubectl -n " + .metadata.namespace + " describe pod " +.metadata.name + "\n" + "kubectl -n " + .metadata.namespace + " logs " +.metadata.name '  | bash -x
 EOF
     info_msg "ALL DONE\n"
     return 0
