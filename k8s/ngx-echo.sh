@@ -35,6 +35,7 @@ spec:
       labels:
         app: echo-app
     spec:
+      # kubectl logs <app> -c init-mydb
       containers:
         - name: echo-app
           image: registry.local/nginx:bookworm
@@ -47,10 +48,15 @@ spec:
             - name: ENABLE_SSH
               value: "true"
           imagePullPolicy: IfNotPresent
+      initContainers:
+        - name: init-mydb
+          image: registry.local/nginx:bookworm
+          command: ['sh', '-c', "echo 'init container'"]
+        # vol/env ....
       volumes:
         - name: nginx-conf
           configMap:
-           name: echo-conf
+            name: echo-conf
 ---
 kind: Service
 apiVersion: v1
