@@ -84,6 +84,7 @@ data:
      {
          "default":"172.16.17.155",
          "kubesphere-system":"172.16.17.100",
+         "kubesphere-controls-system": "172.16.17.108",
          "testns": "172.16.17.101"
      }
 ---
