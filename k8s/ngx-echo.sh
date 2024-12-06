@@ -39,21 +39,28 @@ spec:
       containers:
         - name: echo-app
           image: registry.local/nginx:bookworm
+          # imagePullPolicy: IfNotPresent|Always|Never
           volumeMounts:
           - name: nginx-conf
             mountPath: /etc/nginx/http-enabled/echo.conf
             subPath: echo.conf
             readOnly: true
+          - name: workdir
+            mountPath: /usr/share/nginx/html
           env:
             - name: ENABLE_SSH
               value: "true"
-          imagePullPolicy: IfNotPresent
       initContainers:
         - name: init-mydb
           image: registry.local/nginx:bookworm
-          command: ['sh', '-c', "echo 'init container'"]
-        # vol/env ....
+          command: ['sh', '-c', "echo 'init container'>/work-dir/index.html"]
+        volumeMounts:
+        - name: workdir
+          mountPath: "/work-dir"
+      dnsPolicy: Default
       volumes:
+        - name: workdir
+          emptyDir: {}
         - name: nginx-conf
           configMap:
             name: echo-conf
