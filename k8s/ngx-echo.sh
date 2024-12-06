@@ -53,11 +53,14 @@ spec:
       initContainers:
         - name: init-mydb
           image: registry.local/nginx:bookworm
-          command: ['sh', '-c', "echo 'init container'>/work-dir/index.html"]
-        volumeMounts:
-        - name: workdir
-          mountPath: "/work-dir"
-      dnsPolicy: Default
+          command: ["sh", "-c"]
+          args:
+            - |
+              echo "Command 1"
+              echo "init container" > /work-dir/index.html
+          volumeMounts:
+          - name: workdir
+            mountPath: "/work-dir"
       volumes:
         - name: workdir
           emptyDir: {}
