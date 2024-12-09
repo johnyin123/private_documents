@@ -7,14 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-12-06T16:18:39+08:00]:all-in-one.sh")
+VERSION+=("d2243d9[2024-12-06T16:18:39+08:00]:all-in-one.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 run_node() {
-    ctr -n k8s.io image  prune --all
-#    echo '10.170.6.105  registry.local'>> /etc/hosts
-#    wget --no-check-certificate -O /etc/yum.repos.d/cnap.repo http://registry.local/cnap/cnap.repo
-#    yum -y --enablerepo=cnap install tsd_cnap_v1.23.17 bash-completion nfs-utils nfs4-acl-tools ceph-common multipath-tools open-iscsi
+    echo '10.170.6.105  registry.local'>> /etc/hosts
+    wget --no-check-certificate -O /etc/yum.repos.d/cnap.repo http://registry.local/cnap/cnap.repo
+    yum -y --enablerepo=cnap install tsd_cnap_v1.23.17 bash-completion nfs-utils nfs4-acl-tools ceph-common multipath-tools open-iscsi
+    # ctr -n k8s.io image  prune --all
 }
 
 worker_fast_store() {
@@ -26,6 +26,7 @@ worker_fast_store() {
     mkfs.xfs -f -L container /dev/mapper/k8sdata-lvcontainer
     mkdir -p /var/lib/containerd/
     echo "UUID=$(blkid -s UUID -o value /dev/mapper/k8sdata-lvcontainer) /var/lib/containerd xfs noexec,nodev,noatime,nodiratime  0 2" >> /etc/fstab
+    mount -a
 }
 
 master_fast_store() {
@@ -42,6 +43,7 @@ master_fast_store() {
     mkdir -p /var/lib/etcd/ /var/lib/containerd/
     echo "UUID=$(blkid -s UUID -o value /dev/mapper/k8sdata-lvetcd) /var/lib/etcd xfs noexec,nodev,noatime,nodiratime  0 2" >> /etc/fstab
     echo "UUID=$(blkid -s UUID -o value /dev/mapper/k8sdata-lvcontainer) /var/lib/containerd xfs noexec,nodev,noatime,nodiratime  0 2" >> /etc/fstab
+    mount -a
 }
 
 master_nodes() {
@@ -82,8 +84,8 @@ EOF
 }
 
 main() {
-    # for ip in $(master_nodes); do master_fast_store "/dev/vdb"; done
-    # for ip in $(worker_nodes); do worker_fast_store "/dev/vdb"; done
+    for ip in $(master_nodes); do ssh_func root@${ip} 60022 master_fast_store "/dev/vdb"; done
+    for ip in $(worker_nodes); do ssh_func root@${ip} 60022 worker_fast_store "/dev/vdb"; done
     for ip in $(master_nodes) $(worker_nodes); do ssh_func root@${ip} 60022 run_node; done
     gen_inst_cmd
 }
