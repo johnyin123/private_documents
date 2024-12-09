@@ -58,6 +58,9 @@ class Action(object):
         name = svc_manifest.metadata.name
         ports = svc_manifest.spec.ports
         lbaddr = self.ip_pools.get(namespace, None)
+        if lbaddr is None:
+            logger.warn("ADD ns:%s GET LBADDR None, skip", namespace)
+            return
         if self.ipvsrule('add-service', namespace, name, ports, lbaddr, svc_manifest.status.load_balancer.ingress):
             svc_manifest.status.load_balancer.ingress = [{'ip': lbaddr}]
             v1 = client.CoreV1Api()
@@ -69,6 +72,9 @@ class Action(object):
         name = svc_manifest.metadata.name
         ports = svc_manifest.spec.ports
         lbaddr = self.ip_pools.get(namespace, None)
+        if lbaddr is None:
+            logger.warn("MOD ns:%s GET LBADDR None, skip", namespace)
+            return
         if svc_manifest.status.load_balancer.ingress is None:
             self.add(svc_manifest)
         logger.info('modify: ns:%s,svc:%s,lbaddr:%s,ingress:%s', namespace, name, lbaddr, svc_manifest.status.load_balancer.ingress)
@@ -79,6 +85,9 @@ class Action(object):
         name = svc_manifest.metadata.name
         ports = svc_manifest.spec.ports
         lbaddr = self.ip_pools.get(namespace, None)
+        if lbaddr is None:
+            logger.warn("DEL ns:%s GET LBADDR None, skip", namespace)
+            return
         self.ipvsrule('delete-service', namespace, name, ports, lbaddr, svc_manifest.status.load_balancer.ingress)
         return
 
