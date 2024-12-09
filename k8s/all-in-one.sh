@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7a40eda[2024-12-09T11:03:50+08:00]:all-in-one.sh")
+VERSION+=("46158ac[2024-12-09T11:06:52+08:00]:all-in-one.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 run_node() {
@@ -79,7 +79,9 @@ done)
     --apiserver k8s.tsd.org:6443 \\
     --vip 172.16.0.155
 
-./post-01-apiserver-ha.sh -m 172.16.0.150 -m 172.16.0.151 -m 172.16.0.152 --vip 172.16.0.155 --api_srv k8s.tsd.org
+./post-01-apiserver-ha.sh -m 172.16.0.150 -m 172.16.0.151 -m 172.16.0.152 \\
+    -w 172.16.0.153 -w 172.16.0.154 \\
+    --vip 172.16.0.155 --api_srv k8s.tsd.org
 ./post-10-calico_rr_ebpf.sh -m 172.16.0.150 -r node1 -r node2 -r node3 --ebpf k8s.tsd.org:60443
 EOF
 }

@@ -7,13 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d28893d[2024-12-02T10:39:25+08:00]:post-01-apiserver-ha.sh")
+VERSION+=("6c29b8b[2024-12-02T14:32:50+08:00]:post-01-apiserver-ha.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
     R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
 ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         -m|--master         *  ${G}<ip>${N}      all master nodes, multi input nodes
+        -w|--worker         *  ${G}<ip>${N}      all worker nodes, multi input nodes
         --vip               *  ${G}<ip>${N}      keepalived vrrp vip
         --api_srv              ${G}<str>${N}     api server dnsname, with no PORT
                                                 exam: k8s.tsd.org, if unset then use vip
@@ -143,9 +144,9 @@ EOF
 }
 
 main() {
-    local masters=() vip="" insec_registry="registry.local"
-    local opt_short="m:"
-    local opt_long="master:,vip:,insec_registry:,api_srv:,"
+    local masters=() worker=() vip="" insec_registry="registry.local"
+    local opt_short="m:w:"
+    local opt_long="master:,worker:,vip:,insec_registry:,api_srv:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -153,6 +154,7 @@ main() {
     while true; do
         case "$1" in
             -m | --master)     shift; master+=(${1}); shift;;
+            -w | --worker)     shift; worker+=(${1}); shift;;
             --vip)             shift; vip=${1}; shift;;
             --api_srv)         shift; export API_SRV="${1}"; shift;;
             --insec_registry)  shift; insec_registry=${1}; shift;;
@@ -213,13 +215,18 @@ data:
 EO_YML
 EOF
     }
-    info_msg "# # execute on all nodes(masters & workers), after replace coredns configmap\n"
+    info_msg "# # execute on all nodes(masters \& workers), after replace coredns configmap\n"
     cat <<EOF
-sed -i "s/${NEWSRV}:6443/${NEWSRV}:60443/g" /etc/kubernetes/*.conf
-sed -i "s/${NEWSRV}:6443/${NEWSRV}:60443/g" ~/.kube/config
-EOF
-    [ -z "${API_SRV:-}" ] || cat <<EOF
-sed -i -e '/\s*${API_SRV}/d' /etc/hosts; echo '${vip} ${API_SRV}' >> /etc/hosts
+for ip in ${master[*]} ${worker[*]}; do
+    ssh root@\${ip} bash -xs <<EO_SHELL
+    sed -i "s/${NEWSRV}:6443/${NEWSRV}:60443/g" /etc/kubernetes/*.conf
+    [ -e "~/.kube/config" ] && sed -i "s/${NEWSRV}:6443/${NEWSRV}:60443/g" ~/.kube/config
+$([ -z "${API_SRV:-}" ] || cat <<EO_DOC
+    sed -i -e '/\s*${API_SRV}/d' /etc/hosts; echo '${vip} ${API_SRV}' >> /etc/hosts
+EO_DOC
+)
+EO_SHELL
+done
 EOF
     cat <<EOF
 for ip in ${master[*]}; do
