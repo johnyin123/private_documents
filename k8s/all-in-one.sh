@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d2243d9[2024-12-06T16:18:39+08:00]:all-in-one.sh")
+VERSION+=("7a40eda[2024-12-09T11:03:50+08:00]:all-in-one.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 run_node() {
@@ -72,6 +72,7 @@ $(for ip in $(worker_nodes); do cat <<EO_CMD
     --worker ${ip} \\
 EO_CMD
 done)
+    --pod_cidr 11.96.0.0/12 \\
     --calico IPIPCrossSubnet \\
     --ipvs \\
     --insec_registry registry.local \\
