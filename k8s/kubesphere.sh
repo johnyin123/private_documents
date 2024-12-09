@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7cf93c5[2024-12-06T07:37:27+08:00]:kubesphere.sh")
+VERSION+=("9468d8b[2024-12-06T12:36:33+08:00]:kubesphere.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 KS_INSTALLER_YML="https://github.com/kubesphere/ks-installer/releases/download/v3.3.2/kubesphere-installer.yaml"
@@ -19,6 +19,7 @@ L_CLUSTER_CONF_YML=cluster-configuration.yaml
 R_CLUSTER_CONF_YML="$(mktemp)"
 
 pre_check() {
+    info_msg "cephfs storage\n"
     cat<<'EOF'
 action=${1:-apply}
 cat <<EO_YML | kubectl ${action} -f -
@@ -31,7 +32,7 @@ metadata:
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
 EO_YML
-for namespace in kubesphere-system kubesphere-monitoring-system kubesphere-devops-system; do
+for namespace in kubesphere-system kubesphere-monitoring-system kubesphere-devops-system kubesphere-logging-system; do
 	cat <<EO_YML | kubectl ${action} -f -
 ---
 apiVersion: v1
@@ -80,6 +81,7 @@ spec:
 EO_YML
 done
 EOF
+    info_msg "iscsi storage\n"
     cat<<'EOF'
 action=${1:-apply}
 cat <<EO_YML | kubectl ${action} -f -
@@ -92,7 +94,7 @@ metadata:
   annotations:
     storageclass.kubernetes.io/is-default-class: "true"
 EO_YML
-for namespace in kubesphere-system kubesphere-monitoring-system; do
+for namespace in kubesphere-system kubesphere-monitoring-system kubesphere-devops-system kubesphere-logging-system; do
 cat <<EO_YML | kubectl ${action} -f -
 ---
 apiVersion: v1
@@ -154,6 +156,7 @@ spec:
 EO_YML
 done
 EOF
+    info_msg "nfs storage\n"
     cat<<'EOF'
 1.need storageclass(default); in-tree sc cannot dynamic create pv. so create enough pv first
 # kubectl patch storageclass sc-ks-nfs -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
@@ -228,6 +231,11 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         --insec_registry *  <str>   insecurity registry(http/no auth)
         --installer      *  <str>   ks-installer image image
                                     exam: registry.local/kubesphere/ks-installer:v3.2.1
+        --alerting                  ks alerting
+        --auditing                  ks auditing
+        --logging                   ks logging
+        --devops                    ks devops
+        --events                    ks events
         -U|--user           <user>  master ssh user, default root
         -P|--port           <int>   master ssh port, default 60022
         --sshpass           <str>   master ssh password, default use keyauth
@@ -246,9 +254,10 @@ EOF
 }
 main() {
     local master="" insec_registry="" installer=""
+    local alerting="false" auditing="false" logging="false" devops="false" events="false"
     local user=root port=60022
     local opt_short="m:U:P:"
-    local opt_long="master:,insec_registry:,installer:,password:,user:,port:,"
+    local opt_long="master:,insec_registry:,installer:,alerting,auditing,logging,devops,events,password:,user:,port:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -258,6 +267,11 @@ main() {
             -m | --master)    shift; master=${1}; shift;;
             --insec_registry) shift; insec_registry=${1}; shift;;
             --installer)      shift; installer=${1}; shift;;
+            --alerting)       shift; alerting="true";;
+            --auditing)       shift; auditing="true";;
+            --logging)        shift; logging="true";;
+            --devops)         shift; devops="true";;
+            --events)         shift; events="true";;
             -U | --user)      shift; user=${1}; shift;;
             -P | --port)      shift; port=${1}; shift;;
             --password)       shift; set_sshpass "${1}"; shift;;
@@ -282,11 +296,11 @@ main() {
         |      jq '.spec.common.redis.enabled=true' \
         | jq '.spec.openpitrix.store.enabled=false' \
         |    jq '.spec.metrics_server.enabled=true' \
-        |         jq '.spec.alerting.enabled=false' \
-        |         jq '.spec.auditing.enabled=false' \
-        |          jq '.spec.logging.enabled=false' \
-        |           jq '.spec.devops.enabled=false' \
-        |           jq '.spec.events.enabled=true' \
+        |   jq ".spec.alerting.enabled=${alerting}" \
+        |   jq ".spec.auditing.enabled=${auditing}" \
+        |     jq ".spec.logging.enabled=${logging}" \
+        |       jq ".spec.devops.enabled=${devops}" \
+        |       jq ".spec.events.enabled=${events}" \
         | json2yaml > ${modifyed_yaml}
     info_msg "locale modifyed is ${modifyed_yaml}\n"
     prepare_yml "${user}" "${port}" "${master}" "${modifyed_yaml}" "${R_CLUSTER_CONF_YML}" "${CLUSTER_CONF_YML}"
@@ -307,6 +321,7 @@ kubectl -n kubesphere-system get clusterconfiguration ks-installer -o yaml
       enabled: True
 # 通过查询 ks-installer 日志或 Pod 状态验证功能组件是否安装成功。
 kubectl logs -n kubesphere-system \$(kubectl get pod -n kubesphere-system -l 'app in (ks-install, ks-installer)' -o jsonpath='{.items[0].metadata.name}') -f
+kubectl -n kubesphere-system rollout restart deployment.apps/ks-installer
 kubectl -n kubesphere-system logs -f ks-installer-
 
 kubectl -n kubesphere-system rollout restart deployment.apps/redis
