@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0d2d965[2024-12-03T13:14:39+08:00]:make_docker_image.sh")
+VERSION+=("a8c2c03[2024-12-04T10:02:32+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 REGISTRY=${REGISTRY:-registry.local}
@@ -34,6 +34,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         --tag      <tag name>          combine: create new tag, for combine registry/tag-{{ARCH}} ==> registry/tag
                                        exam: debian:bookworm
                                        base: create base image tag
+                                       [a-zA-Z0-9_][a-zA-Z0-9._-]{0,127}
         --file     <tar.gz/tar.xz/..>  zip file for ADD
         -q|--quiet
         -l|--log <int> log level
