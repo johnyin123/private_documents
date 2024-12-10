@@ -26,6 +26,9 @@ for img in $(cat lst); do
         echo "rm ${from_registry}/${img}"
         docker image rm ${from_registry}/${img} >/dev/null 2>/dev/null
         docker push --quiet ${to_registry}/${img}-${arch}
+        docker inspect --type=image --format='{{json .Config.Env}}' ${to_registry}/${img}-${arch}
+        docker inspect --type=image --format='{{json .Config.Entrypoint}}' ${to_registry}/${img}-${arch}
+        docker inspect --type=image --format='{{json .Config.Cmd}}' ${to_registry}/${img}-${arch}
     done
     ./make_docker_image.sh -c combine --tag ${to_registry}/${img}
     for arch in ${ARCH[@]}; do
