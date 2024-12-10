@@ -1,31 +1,26 @@
 #!/usr/bin/env bash
-
+set -o nounset -o pipefail -o errexit
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly SCRIPTNAME=${0##*/}
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
+    BASH_XTRACEFD="5"
+    export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    set -o xtrace
+fi
+VERSION+=("initver[2024-12-11T07:55:21+08:00]:v2ray.ipset.transprant.sh")
+################################################################################
+# export FILTER_CMD=cat;;
+# export FILTER_CMD=tee output.log
 cat <<EOF
-ip rule delete fwmark 1 table 100
-ip route delete local default dev lo table 100
-nft flush ruleset
-ip rule
-ip route show table 100
-iptables-save
-# https://github.com/Loyalsoldier/v2ray-rules-dat/releases
-cp geoip.dat geosite.dat /etc/v2ray/
-systemctl restart v2ray
-journalctl -f
-# # 通过 http 的inbound来测试下隧道
-curl -Is -x 127.0.0.1:10888 https://www.google.com -vvvv
-
-# Name: v2ray.location.asset or V2RAY_LOCATION_ASSET
-# Default value: Same directory where v2ray is.
-# This variable specifies a directory where geoip.dat and geosite.dat files are.
-V2RAY_LOCATION_ASSET=/etc/v2ray v2ray -c /etc/v2ray/config.json
-
-使用:
-局域网内的主机将默认网关修改为透明网关所在的IP就可以实现本机全局自动翻墙，我上面的配置文件将国内流量国外流量自动分流了。客户端不需要做任何特殊设置即可使用。
+UUID=${UUID:-UNDEFINE}
+ALTERID=${ALTERID:-UNDEFINE}
+WSPATH=${WSPATH:-UNDEFINE}
 EOF
 
 V2RAY_TPROXY_PORT=50099
 
-cat <<EOF | sed "/^\s*#/d"  > tproxy.json
+cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.cli.tproxy.config.json
 {
   "log": {
     "access": "/dev/null",
@@ -37,8 +32,8 @@ cat <<EOF | sed "/^\s*#/d"  > tproxy.json
     # curl -Is -x 127.0.0.1:10888 https://www.google.com -vvvv
     # test v2ray is ok
     {
-      "port": 10888,
       "listen": "127.0.0.1",
+      "port": 10888,
       "protocol": "http",
       "settings": {
         "userLevel": 0,
@@ -83,13 +78,52 @@ cat <<EOF | sed "/^\s*#/d"  > tproxy.json
     {
       "tag": "proxy",
       "protocol": "vmess",
-      .................
-      // streamSettings/sockopt打上标志, 防止环路
-      .................
+      "settings": {
+        "vnext": [
+          {
+            "address": "tunl.wgserver.org",
+            "port": 443,
+            "users": [
+              {
+                "id": "${UUID}",
+                "alterId": ${ALTERID}
+              }
+            ]
+          }
+        ]
+      },
       "streamSettings": {
+        # streamSettings/sockopt打上标志, 防止环路
         "sockopt": {
           "mark": 255
           # 打上标志, 防止环路, 注意每个出口都必须打上
+        },
+        "network": "ws",
+        "security": "tls",
+        "tlsSettings": {
+          "allowInsecure": true,
+          "disableSystemRoot": true,
+          "certificates": [
+            {
+              //"certificate": [
+              //  "-----BEGIN CERTIFICATE-----",
+              //  "YipvxqZhPN+vV9fH",
+              //  "-----END CERTIFICATE-----"
+              //],
+              //"key": [
+              //  "-----BEGIN RSA PRIVATE KEY-----",
+              //  "ZJfmJdQWx/cV9NYdqZYOj5KJjA==",
+              //  "-----END RSA PRIVATE KEY-----"
+              //],
+              "certificateFile": "cert.pem",
+              "keyFile": "cert.key",
+              "usage": "encipherment"
+              # verify,encipherment,issue
+            }
+          ]
+        },
+        "wsSettings": {
+          "path": "${WSPATH}"
         }
       }
     },
@@ -265,14 +299,14 @@ cat <<EOF | sed "/^\s*#/d"  > tproxy.json
 }
 EOF
 
-cat <<EO_SH > tproxy.sh
-#!/usr/bin/env bash
+echo '#!/usr/bin/env bash' > v2ray.cli.tproxy.ipt.sh
+cat <<EO_SH | ${FILTER_CMD:-sed '/^\s*#/d'} >> v2ray.cli.tproxy.ipt.sh
 TPROXY_PORT=${V2RAY_TPROXY_PORT}
 RULE_TABLE=100
 FWMARK=0x440
 LOGFILE="" #"-a log.txt"
 EO_SH
-cat <<'EO_SH' >> tproxy.sh
+cat <<'EO_SH' | ${FILTER_CMD:-sed '/^\s*#/d'} >> v2ray.cli.tproxy.ipt.sh
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 IPSET_NAME=local_ip
 # # RFC5735
@@ -311,10 +345,24 @@ iptables -t mangle -A V2RAY -p udp -j TPROXY --on-ip 127.0.0.1 --on-port ${TPROX
 
 iptables -t mangle -A PREROUTING -j V2RAY
 
-# # Only for local mode
+# # Only for local mode, not as router
 # iptables -t mangle -A OUTPUT -m set --match-set ${IPSET_NAME} dst -j RETURN
 # iptables -t mangle -A OUTPUT -p tcp -j MARK --set-mark 1
 # iptables -t mangle -A OUTPUT -p udp -j MARK --set-mark 1
+# # 本地进程发起的连接经过OUTPUT->POSTROUTING；而TPROXY只能在PREROUTING中使用。
+# # 可以通过让将OUTPUT的包重新经过PREROUTING的办法来实现对网关本机的代理。
+# log "add tproxy iptable rules, for local machine"
+# iptables -t mangle -N V2RAY_LOCAL
+# iptables -t mangle -A V2RAY_LOCAL -p tcp -m set --match-set ${IPSET_NAME} dst -m tcp ! --dport 53 -j RETURN
+# iptables -t mangle -A V2RAY_LOCAL -p udp -m set --match-set ${IPSET_NAME} dst -m udp ! --dport 53 -j RETURN
+# # 过滤掉代理程序发出的包
+# iptables -t nat -A V2RAY -d <V2Ray server> -j RETURN ## or can add <V2Ray server> to local ipset
+# iptables -t mangle -A V2RAY_LOCAL -m cgroup --path system.slice/v2ray.service -j RETURN
+# # 打fwmark标记；根据已经配置的路由规则，标记的包会重回lo，从而经过PREROUTING
+# iptables -t mangle -A V2RAY_LOCAL -p tcp -j MARK --set-mark 1
+# iptables -t mangle -A V2RAY_LOCAL -p udp -j MARK --set-mark 1
+# # 将chain附加到mangle table的OUTPUT chain
+# iptables -t mangle -A OUTPUT -j V2RAY_LOCAL
 
 iptables -t mangle -nvL
 
@@ -327,16 +375,20 @@ ip route replace local 0.0.0.0/0 dev lo table ${RULE_TABLE}
 # # PREROUTING的包就会到达端口TPROXY_PORT
 EO_SH
 
-cat <<EOF > tproxy.nft.sh
-#!/usr/bin/env bash
+echo '#!/usr/bin/env bash' > v2ray.cli.tproxy.nft.sh
+cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} >> v2ray.cli.tproxy.nft.sh
 TPROXY_PORT=${V2RAY_TPROXY_PORT}
 RULE_TABLE=100
 FWMARK=0x440
 EOF
-cat <<'EOF' >> tproxy.nft.sh
+cat <<'EOF' | ${FILTER_CMD:-sed '/^\s*#/d'} >> v2ray.cli.tproxy.nft.sh
 cat<<EONFT | nft -f /dev/stdin
 define V2RAY_TPROXY_PORT=${TPROXY_PORT};
 define FWMARK_PROXY = ${FWMARK};
+# # chn ipaddress, can add to BYPASS4
+# # include "/etc/direct-ipv4.nft";
+# https://github.com/misakaio/chnroutes2/raw/master/chnroutes.txt
+# https://github.com/felixonmars/chnroutes-alike/blob/master/chnroutes-alike.txt
 define BYPASS4 = { 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4 }
 table ip v2ray {
     set bypassv4 {
@@ -366,21 +418,4 @@ EONFT
 ip rule delete fwmark ${FWMARK} table ${RULE_TABLE} 2>/dev/null || true
 ip rule add fwmark ${FWMARK} table ${RULE_TABLE}
 ip route replace local 0.0.0.0/0 dev lo table ${RULE_TABLE}
-EOF
-cat <<'EOF'
-# # 本地进程发起的连接经过OUTPUT->POSTROUTING；而TPROXY只能在PREROUTING中使用。
-# # 可以通过让将OUTPUT的包重新经过PREROUTING的办法来实现对网关本机的代理。
-#
-# log "add tproxy iptable rules, for local machine"
-# iptables -t mangle -N V2RAY_LOCAL
-# iptables -t mangle -A V2RAY_LOCAL -p tcp -m set --match-set ${IPSET_NAME} dst -m tcp ! --dport 53 -j RETURN
-# iptables -t mangle -A V2RAY_LOCAL -p udp -m set --match-set ${IPSET_NAME} dst -m udp ! --dport 53 -j RETURN
-# # 过滤掉代理程序发出的包
-# iptables -t nat -A V2RAY -d <V2Ray server> -j RETURN ## or can add <V2Ray server> to local ipset
-# iptables -t mangle -A V2RAY_LOCAL -m cgroup --path system.slice/v2ray.service -j RETURN
-# # 打fwmark标记；根据已经配置的路由规则，标记的包会重回lo，从而经过PREROUTING
-# iptables -t mangle -A V2RAY_LOCAL -p tcp -j MARK --set-mark 1
-# iptables -t mangle -A V2RAY_LOCAL -p udp -j MARK --set-mark 1
-# # 将chain附加到mangle table的OUTPUT chain
-# iptables -t mangle -A OUTPUT -j V2RAY_LOCAL
 EOF

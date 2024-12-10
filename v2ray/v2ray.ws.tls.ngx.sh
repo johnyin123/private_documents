@@ -1,12 +1,32 @@
+#!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly SCRIPTNAME=${0##*/}
+if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
+    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
+    BASH_XTRACEFD="5"
+    export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+    set -o xtrace
+fi
+VERSION+=("5641ff3[2024-09-26T07:49:14+08:00]:v2ray.ws.tls.ngx.sh")
+################################################################################
+# export FILTER_CMD=cat;;
+# export FILTER_CMD=tee output.log
 uuid=$(cat /proc/sys/kernel/random/uuid)
 alterid=0
-path=/wssvc
+wspath=/wssvc
+cat <<EOF
+export UUID=${uuid}
+export ALTERID=${alterid}
+export WSPATH=${wspath}
+./v2ray.ipset.transprant.sh
+EOF
 #V2Ray自4.18.1后支持TLS1.3
-cat <<EOF > hosts
+cat <<EOF > v2ray.cli.hosts
 # # add to /etc/hosts
 <you ip address> tunl.wgserver.org
 EOF
-cat <<EOF > v2ray.srv.config.json
+cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.srv.config.json
 {
   "inbounds": [
     {
@@ -24,7 +44,7 @@ cat <<EOF > v2ray.srv.config.json
       "streamSettings": {
         "network": "ws",
         "wsSettings": {
-          "path": "${path}"
+          "path": "${wspath}"
         }
       }
     }
@@ -38,7 +58,7 @@ cat <<EOF > v2ray.srv.config.json
 }
 EOF
 
-cat <<EOF > v2ray.http
+cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.srv.nginx.http
 server {
     listen 443 ssl;
     server_name _;
@@ -51,7 +71,8 @@ server {
     proxy_intercept_errors on;
     error_page 400 495 496 497 = @400;
     location @400 { return 500 "bad boy"; }
-    location ${path} { #与V2Ray配置中的path保持一致
+    #与V2Ray配置中的path保持一致
+    location ${wspath} {
         if (\$http_upgrade != "websocket") {
             # WebSocket协商失败时返回404
             return 404;
@@ -68,22 +89,25 @@ server {
 }
 EOF
 
-cat <<EOF > v2ray.cli.config.json
+cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.cli.config.json
 {
   "log": {
-    "access": "access.log",
-    "error":  "error.log",
-    "loglevel": "info"
+    "access": "/dev/null",
+    "error": "",
+    "loglevel": "warning"
   },
   "inbounds": [
+    # #################测试inbound start
+    # curl -Is -x 127.0.0.1:10888 https://www.google.com -vvvv
+    # test v2ray is ok
     {
       "listen": "127.0.0.1",
-      "port": 8888,
+      "port": 10888,
       "protocol": "http"
     },
     {
-      "port": 1080,
       "listen": "127.0.0.1",
+      "port": 1080,
       "protocol": "socks",
       "sniffing": {
         "enabled": true,
@@ -122,32 +146,30 @@ cat <<EOF > v2ray.cli.config.json
             {
               //"certificate": [
               //  "-----BEGIN CERTIFICATE-----",
-              //  "6X1Rkl53BhhoUhx+FuYAjfL2SE4g4nV5NbKVApjynycQmPtlf5ihz+CwxFivtS8i",
               //  "YipvxqZhPN+vV9fH",
               //  "-----END CERTIFICATE-----"
               //],
               //"key": [
               //  "-----BEGIN RSA PRIVATE KEY-----",
-              //  "MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDC/+Y3OPE0V8YQ",
               //  "ZJfmJdQWx/cV9NYdqZYOj5KJjA==",
               //  "-----END RSA PRIVATE KEY-----"
               //],
-              "certificateFile": "/path/to/certificate.crt",
-              "keyFile": "/path/to/key.key",
+              "certificateFile": "cert.pem",
+              "keyFile": "cert.key",
               "usage": "encipherment"
-              // verify,encipherment,issue
+              # verify,encipherment,issue
             }
           ]
         },
         "wsSettings": {
-          "path": "${path}"
+          "path": "${wspath}"
         }
       }
     }
   ]
 }
 EOF
-cat <<EOF >lib.systemd.system.v2ray.service
+cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} >lib.systemd.system.v2ray.service
 [Unit]
 Description=V2Ray Service
 Documentation=https://www.v2ray.com/ https://www.v2fly.org/
