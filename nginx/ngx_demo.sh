@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("64e9879[2024-11-14T09:06:35+08:00]:ngx_demo.sh")
+VERSION+=("ea742a0[2024-11-26T12:55:17+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4501,10 +4501,11 @@ server {
     location /v2/ {
         # # Disable writes, readonly
         limit_except GET HEAD OPTIONS {
+            # # here can write
             # allow 192.168.168.0/24;
             deny all;
             # auth_basic "Restricted";
-            # auth_basic_user_file  /etc/nginx/docker.htpasswd
+            # auth_basic_user_file  /etc/nginx/write.htpasswd
             # auth_ldap "ldap access";
             # auth_ldap_servers myldap;
         }
@@ -4514,8 +4515,9 @@ server {
         if ($http_user_agent ~ "^(docker\/1\.(3|4|5(?!\.[0-9]-dev))|Go ).*$" ) {
             return 404;
         }
+        # # here can can read
         # auth_basic "Registry realm";
-        # auth_basic_user_file /etc/nginx/conf.d/nginx.htpasswd;
+        # auth_basic_user_file /etc/nginx/read.htpasswd;
         add_header 'Docker-Distribution-Api-Version' $docker_distribution_api_version always;
         proxy_pass                         http://docker-registry;
         proxy_read_timeout                 900;
