@@ -7,7 +7,7 @@ cat<<EONFT
 # # chn ipaddress
 # https://github.com/misakaio/chnroutes2/raw/master/chnroutes.txt
 # https://github.com/felixonmars/chnroutes-alike/blob/master/chnroutes-alike.txt
-# define direct_address = { 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4, chnipsxxxxxxxxxxxxx }
+# define direct_ipv4 = { 0.0.0.0/8, 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, 172.16.0.0/12, 192.168.0.0/16, 224.0.0.0/4, 240.0.0.0/4, chnipsxxxxxxxxxxxxx }
 include "/usr/local/lib/nft-transproxy/nft/direct-ipv4.nft";
 table ip ipv4_tproxy {
   set direct_address {
@@ -31,7 +31,7 @@ table ip ipv4_tproxy {
 # # tproxy ipv6 tcp&udp
 # # chn ipaddress
 # https://raw.githubusercontent.com/PaPerseller/chn-iplist/master/chnroute-ipv6.txt
-# define direct_address6 = { ::/128, ::1/128, fc00::/7, fe80::/10, ff00::/8,  chnipv6xxxxxxxx }
+# define direct_ipv6 = { ::/128, ::1/128, fc00::/7, fe80::/10, ff00::/8,  chnipv6xxxxxxxx }
 include "/usr/local/lib/nft-transproxy/nft/direct-ipv6.nft";
 table ip6 ipv6_tproxy {
   set direct_address6 {
