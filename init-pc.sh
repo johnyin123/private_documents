@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4b6d657[2024-08-30T15:53:08+08:00]:init-pc.sh")
+VERSION+=("84bfa5b[2024-09-11T10:10:40+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -72,12 +72,14 @@ cat << EOF | tee /etc/network/interfaces.d/br-ext
 # auto eth0
 allow-hotplug eth0
 iface eth0 inet manual
+    hwaddress 9e:7f:97:92:78:74
 
 auto br-ext
 iface br-ext inet static
     bridge_ports eth0
     bridge_maxwait 0
     #bridge_ports none
+    hwaddress 00:be:43:53:2c:b9
     address ${IPADDR:-10.32.166.31/25}
     ${GATEWAY:+    gateway ${GATEWAY}}
 
