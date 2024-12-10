@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ea742a0[2024-11-26T12:55:17+08:00]:ngx_demo.sh")
+VERSION+=("a07f7ed[2024-12-10T08:55:49+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4498,6 +4498,11 @@ server {
     # required to avoid HTTP 411: see Issue #1486 (https://github.com/moby/moby/issues/1486)
     chunked_transfer_encoding on;
 
+    location / {
+        # # registry-ui directory
+        # https://github.com/Joxit/docker-registry-ui /  k8s/registry.ui.tgz
+        root /var/www/dist/;
+    }
     location /v2/ {
         # # Disable writes, readonly
         limit_except GET HEAD OPTIONS {
