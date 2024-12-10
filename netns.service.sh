@@ -6,7 +6,7 @@ cat <<'EOF' | grep -v "^\s*#" > netns@.service
 [Unit]
 Description=Named network namespace %i
 After=network.target
-StopWhenUnneeded=yes
+StopWhenUnneeded=true
 [Service]
 Type=oneshot
 PrivateNetwork=yes
