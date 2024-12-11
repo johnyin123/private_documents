@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("aea07e4[2024-12-03T09:00:55+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("903be2a[2024-12-05T15:18:34+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -524,6 +524,7 @@ main() {
     info_msg "diag: journalctl --rotate # rotate log\n"
     info_msg "diag: journalctl --vacuum-time=10s # clear log 10s ago\n"
     info_msg "diag: crictl config runtime-endpoint unix:///var/run/containerd/containerd.sock\n"
+    info_msg "diag: crictl config --set runtime-endpoint=unix:///var/run/containerd/containerd.sock --set image-endpoint=unix:///var/run/containerd/containerd.sock\n"
     info_msg "diag: cat /etc/crictl.yaml\n"
     info_msg "diag: crictl --runtime-endpoint unix:///var/run/containerd/containerd.sock ps -a\n"
     info_msg "diag: crictl --runtime-endpoint unix:///var/run/containerd/containerd.sock logs xxxx\n"
