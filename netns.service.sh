@@ -43,13 +43,13 @@ ExecStop=-/sbin/ip link delete %i_eth1
 WantedBy=multi-user.target
 EOF
 
-TEST_SVC=myssh
+TEST_SVC=netsrv
 
 cat <<'EOF' > ${TEST_SVC}.conf
 BRIDGE=br-ext
-ADDRESS=192.168.168.133/24
-GATEWAY=192.168.168.250
-# DNS=114.114.114.114
+ADDRESS="192.168.168.251/24"
+GATEWAY=192.168.168.1
+# DNS=192.168.107.11
 EOF
 
 cat <<EOF > ${TEST_SVC}.service
@@ -62,9 +62,23 @@ After=netns@${TEST_SVC}.service bridge-netns@${TEST_SVC}.service
 
 [Service]
 Type=simple
-ExecStart=ip netns exec ${TEST_SVC} /usr/sbin/sshd -D
+ExecStart=ip netns exec ${TEST_SVC} /bin/bash /home/johnyin/disk/netsrv/${TEST_SVC}-startup.sh
 [Install]
 WantedBy=multi-user.target
+EOF
+cat <<'EOF' > ${TEST_SVC}-startup.sh
+#!/usr/bin/env bash
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly SCRIPTNAME=${0##*/}
+wg-quick up client
+/usr/sbin/ip route replace default via 192.168.32.1 || true
+/usr/sbin/ip route add 95.169.24.101 via 192.168.168.1 || true
+/usr/sbin/ip route add 39.104.207.142 via 192.168.168.1 || true
+${DIRNAME}/v2ray -config ${DIRNAME}/config.json &
+${DIRNAME}/v2ray.cli.tproxy.nft.sh
+# ${DIRNAME}/v2ray.cli.tproxy.ipt.sh
+sysctl -w net.ipv4.ip_forward=1
+/usr/sbin/sshd -D
 EOF
 
 cat <<EOF >aws.conf
