@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("76f83ff[2024-12-11T08:31:12+08:00]:v2ray.ipset.transprant.sh")
+VERSION+=("e8d6a73[2024-12-11T10:18:32+08:00]:v2ray.ipset.transprant.sh")
 ################################################################################
 # export FILTER_CMD=cat;;
 # export FILTER_CMD=tee output.log
@@ -340,8 +340,8 @@ iptables -t mangle -A V2RAY -p tcp -m set --match-set ${IPSET_NAME} dst -m tcp !
 iptables -t mangle -A V2RAY -p udp -m set --match-set ${IPSET_NAME} dst -m udp ! --dport 53 -j RETURN
 # iptables -t mangle -A V2RAY -p udp -m owner --uid-owner nginx -j RETURN
 
-iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-ip 127.0.0.1 --on-port ${TPROXY_PORT} --tproxy-mark 1
-iptables -t mangle -A V2RAY -p udp -j TPROXY --on-ip 127.0.0.1 --on-port ${TPROXY_PORT} --tproxy-mark 1
+iptables -t mangle -A V2RAY -p tcp -j TPROXY --on-ip 127.0.0.1 --on-port ${TPROXY_PORT} --tproxy-mark ${FWMARK}
+iptables -t mangle -A V2RAY -p udp -j TPROXY --on-ip 127.0.0.1 --on-port ${TPROXY_PORT} --tproxy-mark ${FWMARK}
 
 iptables -t mangle -A PREROUTING -j V2RAY
 
@@ -385,6 +385,7 @@ cat <<'EOF' | ${FILTER_CMD:-sed '/^\s*#/d'} >> v2ray.cli.tproxy.nft.sh
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 log "add tproxy nft ruleset"
 cat<<EONFT | nft -f /dev/stdin
+flush ruleset
 define V2RAY_TPROXY_PORT=${TPROXY_PORT};
 define FWMARK_PROXY = ${FWMARK};
 # # chn ipaddress, can add to BYPASS4
@@ -400,14 +401,16 @@ table ip v2ray {
     }
     chain prerouting {
         type filter hook prerouting priority filter; policy accept;
-        ip daddr @bypassv4 return
-        meta mark 0x000000ff return
+        ip daddr @bypassv4 tcp dport != 53 counter return
+        ip daddr @bypassv4 udp dport != 53 counter return
+        meta mark 0x000000ff counter return
         meta l4proto { tcp, udp } meta mark set \$FWMARK_PROXY tproxy to 127.0.0.1:\$V2RAY_TPROXY_PORT accept
     }
     chain output {
         type route hook output priority filter; policy accept;
-        ip daddr @bypassv4 return
-        meta mark 0x000000ff return
+        ip daddr @bypassv4 tcp dport != 53 counter return
+        ip daddr @bypassv4 udp dport != 53 counter return
+        meta mark 0x000000ff counter return
         meta l4proto { tcp, udp } meta mark set \$FWMARK_PROXY accept
     }
     chain divert {
