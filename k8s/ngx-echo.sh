@@ -56,10 +56,10 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: DATABASE
-               valueFrom:
-                 configMapKeyRef:
-                   name: echo-conf
-                   key: database
+              valueFrom:
+                configMapKeyRef:
+                  name: echo-conf
+                  key: database
       initContainers:
         - name: init-mydb
           image: registry.local/nginx:bookworm
