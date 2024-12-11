@@ -82,6 +82,8 @@ kind: Service
 apiVersion: v1
 metadata:
   name: echo-service
+  # # Service always in default namespace
+  # namespace: ${NAMESPACE}
 spec:
   type: LoadBalancer
   selector:
