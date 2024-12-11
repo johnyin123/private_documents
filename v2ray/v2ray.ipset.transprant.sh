@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b33a893[2024-12-11T07:55:20+08:00]:v2ray.ipset.transprant.sh")
+VERSION+=("76f83ff[2024-12-11T08:31:12+08:00]:v2ray.ipset.transprant.sh")
 ################################################################################
 # export FILTER_CMD=cat;;
 # export FILTER_CMD=tee output.log
@@ -363,7 +363,6 @@ iptables -t mangle -A PREROUTING -j V2RAY
 # iptables -t mangle -A V2RAY_LOCAL -p udp -j MARK --set-mark 1
 # # 将chain附加到mangle table的OUTPUT chain
 # iptables -t mangle -A OUTPUT -j V2RAY_LOCAL
-
 iptables -t mangle -nvL
 
 log "add ip rule"
@@ -380,8 +379,11 @@ cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} >> v2ray.cli.tproxy.nft.sh
 TPROXY_PORT=${V2RAY_TPROXY_PORT}
 RULE_TABLE=100
 FWMARK=0x440
+LOGFILE="" #"-a log.txt"
 EOF
 cat <<'EOF' | ${FILTER_CMD:-sed '/^\s*#/d'} >> v2ray.cli.tproxy.nft.sh
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+log "add tproxy nft ruleset"
 cat<<EONFT | nft -f /dev/stdin
 define V2RAY_TPROXY_PORT=${TPROXY_PORT};
 define FWMARK_PROXY = ${FWMARK};
@@ -414,7 +416,8 @@ table ip v2ray {
     }
 }
 EONFT
-# # Routing
+
+log "add ip rule"
 ip rule delete fwmark ${FWMARK} table ${RULE_TABLE} 2>/dev/null || true
 ip rule add fwmark ${FWMARK} table ${RULE_TABLE}
 ip route replace local 0.0.0.0/0 dev lo table ${RULE_TABLE}
