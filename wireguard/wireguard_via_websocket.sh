@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9af636c[2024-08-21T15:13:55+08:00]:wireguard_via_websocket.sh")
+VERSION+=("e0a823a[2024-09-05T16:43:39+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
@@ -92,7 +92,7 @@ Table = off
 ListenPort = ${wgsrv_port}
 # %i is wireguard interface, see wg-quick->execute_hooks
 $(for peer in ${clients[@]}; do
-echo "PreUp = systemd-run --unit $(array_get "${peer}" uri_prefix) -p DynamicUser=yes wstunnel server --no-color 1 --restrict-to 127.0.0.1:${wgsrv_port} ws://127.0.0.1:$(array_get ${peer} wstunl_port)"
+echo "PreUp = /bin/bash -c 'ns_name=\$(ip netns identify \$\$);systemd-run --unit $(array_get "${peer}" uri_prefix) \${ns_name:+-p NetworkNamespacePath=/run/netns/\${ns_name} }-p DynamicUser=yes wstunnel server --no-color 1 --restrict-to 127.0.0.1:${wgsrv_port} ws://127.0.0.1:$(array_get ${peer} wstunl_port)'"
 echo "PostDown = systemctl stop $(array_get "${peer}" uri_prefix).service"
 done)
     info_msg "systemctl reset-failed $(array_get "${peer}" uri_prefix).service\n"
@@ -136,7 +136,7 @@ PrivateKey = $(array_get "${peer}" prikey)
 Address = $(array_get "${peer}" address)
 MTU=1420
 Table = off
-PreUp = systemd-run --unit ${cli_uuid} -p DynamicUser=yes wstunnel client --no-color 1 -P ${cli_uuid} -L udp://127.0.0.1:${wgsrv_port}:127.0.0.1:${wgsrv_port} ${cli_cert:+--tls-certificate /etc/wstunnel/ssl/cli.pem }${cli_key:+--tls-private-key /etc/wstunnel/ssl/cli.key} --tls-sni-disable wss://${wgsrv_addr}:${ngx_port}
+PreUp = /bin/bash -c 'ns_name=\$(ip netns identify \$\$);systemd-run --unit ${cli_uuid} \${ns_name:+-p NetworkNamespacePath=/run/netns/\${ns_name} }-p DynamicUser=yes wstunnel client --no-color 1 -P ${cli_uuid} -L udp://127.0.0.1:${wgsrv_port}:127.0.0.1:${wgsrv_port} ${cli_cert:+--tls-certificate /etc/wstunnel/ssl/cli.pem }${cli_key:+--tls-private-key /etc/wstunnel/ssl/cli.key} --tls-sni-disable wss://${wgsrv_addr}:${ngx_port}'
 PostDown = systemctl stop ${cli_uuid}.service
 
 [Peer]
