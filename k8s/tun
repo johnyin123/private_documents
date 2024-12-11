@@ -95,3 +95,9 @@ etc..
 You can also delete and apply deployments.
 
 After applying those steps, there is no warning about clusterCIDR value when adding new node. New pods are created in proper IP pool range.
+##################################################
+Error creating: Internal error occurred: failed calling webhook "rev.object.sidecar-injector.istio.io": failed to call webhook: Post "https://istiod-1-11-2.istio-system.svc:443/inject?timeout=10s": service "istiod-1-11-2" not found
+kubectl get ValidatingWebhookConfiguration
+kubectl delete ValidatingWebhookConfiguration istio-validator-1-11-2-istio-system
+kubectl get MutatingWebhookConfiguration
+kubectl delete  MutatingWebhookConfiguration istio-sidecar-injector-1-11-2
