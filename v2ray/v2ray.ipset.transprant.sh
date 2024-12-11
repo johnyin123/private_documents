@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2024-12-11T07:55:21+08:00]:v2ray.ipset.transprant.sh")
+VERSION+=("b33a893[2024-12-11T07:55:20+08:00]:v2ray.ipset.transprant.sh")
 ################################################################################
 # export FILTER_CMD=cat;;
 # export FILTER_CMD=tee output.log
@@ -93,11 +93,6 @@ cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.cli.tproxy.config.json
         ]
       },
       "streamSettings": {
-        # streamSettings/sockopt打上标志, 防止环路
-        "sockopt": {
-          "mark": 255
-          # 打上标志, 防止环路, 注意每个出口都必须打上
-        },
         "network": "ws",
         "security": "tls",
         "tlsSettings": {
@@ -124,6 +119,11 @@ cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.cli.tproxy.config.json
         },
         "wsSettings": {
           "path": "${WSPATH}"
+        },
+        # streamSettings/sockopt打上标志, 防止环路
+        "sockopt": {
+          "mark": 255
+          # 打上标志, 防止环路, 注意每个出口都必须打上
         }
       }
     },
