@@ -9,6 +9,7 @@ metadata:
   name: echo-conf
   namespace: ${NAMESPACE}
 data:
+  database: "mydatabase"
   echo.conf: |
      server {
          listen *:8080 default_server reuseport;
@@ -50,6 +51,15 @@ spec:
           env:
             - name: ENABLE_SSH
               value: "true"
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: DATABASE
+               valueFrom:
+                 configMapKeyRef:
+                   name: echo-conf
+                   key: database
       initContainers:
         - name: init-mydb
           image: registry.local/nginx:bookworm
