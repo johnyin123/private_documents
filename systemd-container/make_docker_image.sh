@@ -7,9 +7,10 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a8c2c03[2024-12-04T10:02:32+08:00]:make_docker_image.sh")
+VERSION+=("09c097c[2024-12-10T11:52:23+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
+BUILD_NET=${BUILD_NET:-} # # docker build command used networks
 REGISTRY=${REGISTRY:-registry.local}
 NAMESPACE=${NAMESPACE:-}
 IMAGE=${IMAGE:-debian:bookworm}
@@ -18,14 +19,14 @@ BASE_IMG="${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}"
 usage() {
     R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
 ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
-        env: REGISTRY: private registry server(ssl), default registry.local
-             NAMESPACE: image namespace, default "", no namespace use
-             IMAGE: image name with tag, default debian:bookworm
+        env: ${Y}REGISTRY${N}: private registry server(ssl), default registry.local
+             ${Y}NAMESPACE${N}: image namespace, default "", no namespace use
+             ${Y}IMAGE${N}: image name with tag, default debian:bookworm
              so, default multi arch baseimage: <REGISTRY>/<NAMESPACE>/<IMG:TAG>
         docker env:
             ENABLE_SSH=true/false, enable/disable sshd startup on 60022, default disable
             # docker create -e ENABLE_SSH=true
-        -c <type>           *          Dockerfile for <base|combine|firefox|chrome|aria|python|nginx|xfce|grafana| <othes> common docker file>
+        -c <type>           *          Dockerfile for <base|combine|firefox|chrome|aria|python|nginx|xfce|grafana| <others> common docker file>
                                             combine: combine multiarch docker image
                                             firefox: need firefox.tar.xz rootfs with firefox install /opt/firefox
                                             wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
@@ -43,49 +44,76 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         -h|--help help
          # # mkdir -p myfirefox && cp firefox_rootfs.tar.xz myfirefox/
             ./${SCRIPTNAME} -c firefox --file firefox_rootfs.tar.xz -D myfirefox
-         # # create goldimg
+         ${R}# # create goldimg${N}
+            export REGISTRY=${REGISTRY}
+            export NAMESPACE=${NAMESPACE}
+            GOLDNAME=debian:bookworm
             ARCH=(amd64 arm64)
+            type=base
             for arch in \${ARCH[@]}; do
-                ./${SCRIPTNAME} -c base -D base-\${arch} --arch \${arch} --file \${arch}.tar.xz
-                (cd base-\${arch} && docker build --no-cache --force-rm -t ${BASE_IMG}-\${arch} .)
-                docker push ${BASE_IMG}-\${arch}
+                ./${SCRIPTNAME} -c \${type} -D \${type}-\${arch} --arch \${arch} --file bookworm.\${arch}.tar.xz
+                # # modify you base-\${arch}/docker
+                ./${SCRIPTNAME} -c build -D \${type}-\${arch} --tag \${REGISTRY}/\${NAMESPACE:+\${NAMESPACE}/}\${GOLDNAME}-\${arch}
+                docker push \${REGISTRY}/\${NAMESPACE:+\${NAMESPACE}/}\${GOLDNAME}-\${arch}
             done
-            ./${SCRIPTNAME} -c combine --tag ${BASE_IMG}
-         # # multiarch aria2
+            ./${SCRIPTNAME} -c combine --tag \${REGISTRY}/\${NAMESPACE:+\${NAMESPACE}/}\${GOLDNAME}
+         ${R}# # multiarch keepalived${N}
+            export BUILD_NET=br-ext
             ARCH=(amd64 arm64)
-            type=aria
+            type=keepalived
+            ver=bookworm
             for arch in \${ARCH[@]}; do
-                ./${SCRIPTNAME} -c \${type} -D my\${type}-\${arch} --arch \${arch}
-                # confirm base-image is right arch, docker build --pull can ignore this.
+                ./${SCRIPTNAME} -c \${type} -D \${type}-\${arch} --arch \${arch}
+                echo > \${type}-\${arch}/docker/run_command
+                echo 'apt -y update && apt -y install --no-install-recommends keepalived' > \${type}-\${arch}/docker/build.run
+                # confirm base-image is right arch
                 docker pull --quiet ${BASE_IMG} --platform \${arch}
                 docker run --rm --entrypoint="uname" ${BASE_IMG} -m
-                (cd my\${type}-\${arch} && docker build --no-cache --force-rm --network=br-ext -t ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:bookworm-\${arch} .)
-                docker push ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:bookworm-\${arch}
+                ./${SCRIPTNAME} -c build -D \${type}-\${arch} --tag ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}-\${arch}
+                docker push ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}-\${arch}
             done
-            ./${SCRIPTNAME} -c combine --tag ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:bookworm
-         # # multiarch aria2
+            ./${SCRIPTNAME} -c combine --tag registry.local/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}
+         ${R}# # multiarch aria2${N}
+            export BUILD_NET=br-ext
+            ARCH=(amd64 arm64)
+            type=aria|python|nginx|xfce|grafana
+            ver=bookworm
+            for arch in \${ARCH[@]}; do
+                ./${SCRIPTNAME} -c \${type} -D \${type}-\${arch} --arch \${arch}
+                ########## custom nginx
+                # cp nginx-johnyin_1.26.2_\${arch}.deb \${type}-\${arch}/docker/
+                # (cd \${type}-\${arch}/docker && dpkg -x nginx-johnyin_1.26.2_\${arch}.deb .)
+                ##########
+                # confirm base-image is right arch
+                docker pull --quiet ${BASE_IMG} --platform \${arch}
+                docker run --rm --entrypoint="uname" ${BASE_IMG} -m
+                ./${SCRIPTNAME} -c build -D \${type}-\${arch} --tag ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}-\${arch}
+                docker push ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}-\${arch}
+            done
+            ./${SCRIPTNAME} -c combine --tag registry.local/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}
          ${R}# # multiarch user images${N}
             # # BASE IMAGE
-            export IMAGE=python:bookworm  # debian:bookworm
-            export REGISTRY=registry.local
+            export BUILD_NET=br-ext
+            export IMAGE=python:bookworm # # debian:bookworm
+            export REGISTRY=${REGISTRY}
+            export NAMESPACE=${NAMESPACE}
             ARCH=(amd64 arm64)
-            APP_VER=1.0 # bookworm
             type=test1
+            ver=1.0 # bookworm
             for arch in \${ARCH[@]}; do
-                ./make_docker_image.sh -c \${type} -D my-\${type}-\${arch} --arch \${arch}
-                cat <<EODOC > my-\${type}-\${arch}/docker/build.run
+                ./${SCRIPTNAME} -c \${type} -D \${type}-\${arch} --arch \${arch}
+                cat <<EODOC > \${type}-\${arch}/docker/build.run
             # apt update && apt -y --no-install-recommends install util-linux
             getent passwd johnyin >/dev/null || useradd -m johnyin --home-dir /home/johnyin/ --shell /bin/bash
             EODOC
-                cat <<EODOC > my-\${type}-\${arch}/docker/run_command
+                cat <<EODOC > \${type}-\${arch}/docker/run_command
             CMD=/usr/sbin/runuser
             ARGS="-u root -- /usr/bin/busybox sleep infinity"
             EODOC
-                (cd my-\${type}-\${arch} && docker build --pull --no-cache --force-rm --network=br-ext --tag \${REGISTRY}/\${type}:\${APP_VER}-\${arch} .)
-                docker push \${REGISTRY}/\${type}:\${APP_VER}-\${arch}
+                ./${SCRIPTNAME} -c build -D \${type}-\${arch} --tag ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}-\${arch}
+                docker push ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}-\${arch}
             done
-            ./make_docker_image.sh -c combine --tag \${REGISTRY}/\${type}:\${APP_VER}
-         ${R}# # multiarch user images${N}
+            ./make_docker_image.sh -c combine --tag ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}
 EOF
 )"; echo -e "${usage_doc}"
     exit 1
@@ -109,7 +137,8 @@ gen_dockerfile() {
 $(echo -e "${action}")
 LABEL maintainer="johnyin" name="${name}${arch:+-${arch}}" build-date="$(date '+%Y%m%d%H%M%S')"
 ENV TZ=Asia/Shanghai
-ADD ${DIRNAME_COPYIN} /
+# # us tgz no need ,ADD --exclude=*.txt --chown=user:group --chmod=644
+ADD ${DIRNAME_COPYIN}.tgz /
 RUN set -eux && { \\
         export DEBIAN_FRONTEND=noninteractive; \\
         ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; \\
@@ -150,8 +179,8 @@ echo '1024 65531' > /proc/sys/net/ipv4/ip_local_port_range
 # ARGS="-u root -- /usr/bin/busybox sleep infinity"
 EOF
     info_msg "gen dockerfile ok\n"
-    info_msg " edit ${target_dir}/${DIRNAME_COPYIN}/run_command for you service\n"
-    info_msg " edit ${target_dir}/${DIRNAME_COPYIN}/build.run for you RUN commands for Dockerfile\n"
+    info1_msg " edit ${target_dir}/${DIRNAME_COPYIN}/run_command for you service\n"
+    info1_msg " edit ${target_dir}/${DIRNAME_COPYIN}/build.run for you RUN commands for Dockerfile\n"
 }
 build_base() {
     local dir="${1}"
@@ -159,7 +188,7 @@ build_base() {
     local base="${3}"
     local arch="${4:-}"
     [ -e "${base}" ] || exit_msg "${base} no found\n"
-    info_msg "copyt ${base} -> ${dir}/${base##*/}\n"
+    info_msg "copy ${base} -> ${dir}/${base##*/}\n"
     try "mkdir -p '${dir}' && cat ${base} > ${dir}/${base##*/}"
     gen_dockerfile "goldimg" "${dir}" "${base}" "${arch}"
 }
@@ -520,10 +549,20 @@ build_other() {
     local base="${3}"
     local arch="${4:-}"
     [ -e "${base}" ] || exit_msg "${base} no found\n"
-    info_msg "copyt ${base} -> ${dir}/${base##*/}\n"
+    info_msg "copy ${base} -> ${dir}/${base##*/}\n"
     try "mkdir -p '${dir}' && cat ${base} > ${dir}/${base##*/}"
     gen_dockerfile "goldimg" "${dir}" "${base}" "${arch}"
 }
+
+docker_build() {
+    local dir="${1}"
+    local tag="${2}"
+    info_msg "archive docker directory\n"
+    tar cv -C ${dir}/docker/ . | gzip > ${dir}/docker.tgz
+    info_msg "docker build ${dir} -> ${tag}\n"
+    (cd ${dir} && docker build --no-cache --force-rm ${BUILD_NET:+--network=${BUILD_NET} }-t ${tag} .)
+}
+
 main() {
     local func="" dir="" tag="" file="" arch=""
     local opt_short="c:D:"
@@ -551,13 +590,18 @@ main() {
     done
     [ -z "${func}" ] && usage "-c <func type>"
     case "${func}" in
-        base)
-                    [ -z "${file}" ] && usage "base mode, file must input"
-                    build_base "${dir:-goldimg}" "${tag}" "${file}" "${arch}"
+        build)
+                    [ -z "${tag}" ] && usage "build mode, tag/dir must input"
+                    [ -z "${dir}" ] && usage "build mode, tag/dir must input"
+                    docker_build "${dir}" "${tag}"
                     ;;
         combine)
                     [ -z "${tag}" ] && usage "combine mode, tag must input"
                     combine_multiarch "${tag}"
+                    ;;
+        base)
+                    [ -z "${file}" ] && usage "base mode, file must input"
+                    build_base "${dir:-goldimg}" "${tag}" "${file}" "${arch}"
                     ;;
         grafana)    build_grafana "${dir:-grafana}" "${arch}";;
         xfce)       build_xfceweb "${dir:-xfce}" "${arch}";;
@@ -593,4 +637,5 @@ docker system prune -af
 EOF
     return 0
 }
+auto_su "$@"
 main "$@"

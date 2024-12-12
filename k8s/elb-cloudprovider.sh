@@ -1,19 +1,21 @@
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 ################################################################################
-export IMAGE=python:bookworm  # BASE IMAGE
+export BUILD_NET=br-ext
+export IMAGE=python:bookworm  # # BASE IMAGE
 # export REGISTRY=registry.local
 # export NAMESPACE=
 ARCH=(arm64 amd64)
-APP_NAME=elbprovider
-APP_VER=1.0
-for app_arch in ${ARCH[@]}; do
-    IMG_DIR=${APP_NAME}-${app_arch}
-    TAG_PREFIX=${REGISTRY:-registry.local}/${NAMESPACE:+${NAMESPACE}/}${APP_NAME}
-    ./make_docker_image.sh -c ${APP_NAME} --arch ${app_arch} -D ${IMG_DIR}
+type=elbprovider
+ver=1.0
+for arch in ${ARCH[@]}; do
+    IMG_DIR=${type}-${arch}
+    TAG_PREFIX=${REGISTRY:-registry.local}/${NAMESPACE:+${NAMESPACE}/}${type}
+    ./make_docker_image.sh -c ${type} --arch ${arch} -D ${IMG_DIR}
     ################################################
     mkdir -p ${IMG_DIR}/docker/home/johnyin/
     cp elb-cloudprovider.py ${IMG_DIR}/docker/home/johnyin/elb_provider.py
+    chown 1000:1000 ${IMG_DIR}/docker/home/johnyin -R
     cat <<EOF > ${IMG_DIR}/docker/run_command
 CMD=/usr/sbin/runuser
 ARGS="-u johnyin -- python3 /home/johnyin/elb_provider.py"
@@ -29,17 +31,20 @@ chown johnyin:johnyin /home/johnyin/* -R
     python3 -c "import kubernetes" && echo "kubernetes package OK" || echo "kubernetes package ERROR"
 EOSHELL
 EOF
-    (cd ${IMG_DIR} && docker build --pull --no-cache --force-rm --network=br-ext -t ${TAG_PREFIX}:${APP_VER}-${app_arch} .)
-    docker push  ${TAG_PREFIX}:${APP_VER}-${app_arch}
+    # confirm base-image is right arch
+    docker pull --quiet ${REGISTRY:-registry.local}/${NAMESPACE:+${NAMESPACE}/}${IMAGE} --platform ${arch}
+    docker run --rm --entrypoint="uname" ${REGISTRY:-registry.local}/${NAMESPACE:+${NAMESPACE}/}${IMAGE} -m
+    ./make_docker_image.sh -c build -D ${IMG_DIR} --tag ${TAG_PREFIX}:${ver}-${arch}
+    docker push ${TAG_PREFIX}:${ver}-${arch}
 done
-echo "combine ${TAG_PREFIX}:${APP_VER}"
-./make_docker_image.sh -c combine --tag ${TAG_PREFIX}:${APP_VER}
+echo "combine ${TAG_PREFIX}:${ver}"
+./make_docker_image.sh -c combine --tag ${TAG_PREFIX}:${ver}
 
 NAMESPACE=tsdelb
 cat <<EOF
 kubectl create namespace ${NAMESPACE}
-kubectl create deployment elbprovider-deployment --image=${TAG_PREFIX}:${APP_VER} --replicas=1 -n ${NAMESPACE}
-# Requests.exceptions.HTTPError                                        :
+kubectl create deployment elbprovider-deployment --image=${TAG_PREFIX}:${ver} --replicas=1 -n ${NAMESPACE}
+# Requests.exceptions.HTTPError:
 #  403 Client Error: Forbidden for url... so need add rbac to namespace
 EOF
 cat <<EOF
@@ -81,10 +86,10 @@ metadata:
   namespace: ${NAMESPACE}
 data:
   ns_ip.json: |
-     {
-         "default":"172.16.17.155",
-         "kubesphere-controls-system": "172.16.17.100"
-     }
+    {
+      "default":"172.16.17.155",
+      "kubesphere-controls-system": "172.16.17.100"
+    }
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -105,7 +110,7 @@ spec:
     spec:
       containers:
         - name: elbprovider
-          image: ${REGISTRY:-registry.local}/${APP_NAME}:${APP_VER}
+          image: ${REGISTRY:-registry.local}/${type}:${ver}
           # imagePullPolicy: IfNotPresent|Always|Never
           volumeMounts:
             - name: ns-ip-json
