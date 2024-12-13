@@ -44,11 +44,6 @@ spec:
           image: registry.local/nginx:bookworm
           # |Always|Never
           imagePullPolicy: IfNotPresent
-          # command:
-          #   - /bin/bash
-          #   - -c
-          # args:
-          #   - find /
           # volumeMounts:
           #   - name: output
           #     mountPath: /output
@@ -72,6 +67,15 @@ spec:
                   name: ${APP_NAME}-conf
                   key: database
       initContainers:
+        - name: sysctl
+          securityContext:
+            privileged: true
+          image: registry.local/nginx:bookworm
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - "sysctl -w net.core.somaxconn=65535; sysctl -w net.ipv4.ip_local_port_range='1024 65531'"
         - name: init-mydb
           image: registry.local/nginx:bookworm
           command: ["sh", "-c"]
