@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 
 NAMESPACE=default
+APP_NAME=echo-app
+REPLICAS=1
 cat <<EOF
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: echo-conf
+  name: ${APP_NAME}-conf
   namespace: ${NAMESPACE}
 data:
   database: "mydatabase"
@@ -24,23 +26,32 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: echo-application
+  name: ${APP_NAME}
   namespace: ${NAMESPACE}
 spec:
   selector:
     matchLabels:
-      app: echo-app
-  replicas: 1
+      app: ${APP_NAME}
+  replicas: ${REPLICAS}
   template:
     metadata:
       labels:
-        app: echo-app
+        app: ${APP_NAME}
     spec:
       # kubectl logs <app> -c init-mydb
       containers:
-        - name: echo-app
+        - name: ${APP_NAME}
           image: registry.local/nginx:bookworm
-          # imagePullPolicy: IfNotPresent|Always|Never
+          # |Always|Never
+          imagePullPolicy: IfNotPresent
+          # command:
+          #   - /bin/bash
+          #   - -c
+          # args:
+          #   - find /
+          # volumeMounts:
+          #   - name: output
+          #     mountPath: /output
           volumeMounts:
           - name: nginx-conf
             mountPath: /etc/nginx/http-enabled/echo.conf
@@ -58,7 +69,7 @@ spec:
             - name: DATABASE
               valueFrom:
                 configMapKeyRef:
-                  name: echo-conf
+                  name: ${APP_NAME}-conf
                   key: database
       initContainers:
         - name: init-mydb
@@ -71,12 +82,16 @@ spec:
           volumeMounts:
           - name: workdir
             mountPath: "/work-dir"
+      # volumes:
+      #   - name: output
+      #     persistentVolumeClaim:
+      #       claimName: output-pvc
       volumes:
         - name: workdir
           emptyDir: {}
         - name: nginx-conf
           configMap:
-            name: echo-conf
+            name: ${APP_NAME}-conf
 ---
 kind: Service
 apiVersion: v1
@@ -87,7 +102,7 @@ metadata:
 spec:
   type: LoadBalancer
   selector:
-    app: echo-app
+    app: ${APP_NAME}
   ports:
     - name: http
       protocol: TCP
