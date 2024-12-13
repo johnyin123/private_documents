@@ -1,8 +1,35 @@
 #!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
 
 NAMESPACE=default
 APP_NAME=echo-app
 REPLICAS=1
+indent() {
+    local input=${1}
+    echo
+    sed "s/^/${input}/g"
+}
+
+security() {
+    cat <<EOF
+securityContext:
+  privileged: true
+EOF
+}
+host_alias() {
+    cat <<EOF
+# # in container host/dns set
+hostAliases:
+- ip: "192.168.168.250"
+  hostnames:
+  - "srv250"
+# dnsConfig:
+#   nameservers:
+#     - 8.8.8.8
+#   searches:
+#     - search.prefix
+EOF
+}
 cat <<EOF
 ---
 apiVersion: v1
@@ -38,17 +65,7 @@ spec:
       labels:
         app: ${APP_NAME}
     spec:
-      # kubectl logs <app> -c init-mydb
-      # # in container host/dns set
-      hostAliases:
-      - ip: "192.168.168.250"
-        hostnames:
-        - "srv250"
-      # dnsConfig:
-      #   nameservers:
-      #     - 8.8.8.8
-      #   searches:
-      #     - search.prefix
+      # kubectl logs <app> -c init-mydb$([ -z "${DNS:-}" ] || host_alias | indent '      ')
       containers:
         - name: ${APP_NAME}
           image: registry.local/nginx:bookworm
@@ -58,28 +75,31 @@ spec:
           #   - name: output
           #     mountPath: /output
           volumeMounts:
+          # # config file
           - name: nginx-conf
             mountPath: /etc/nginx/http-enabled/echo.conf
             subPath: echo.conf
             readOnly: true
+          # # directory
           - name: workdir
             mountPath: /usr/share/nginx/html
           env:
             - name: ENABLE_SSH
               value: "true"
+            # # env from metadata
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            # # env from configmap key
             - name: DATABASE
               valueFrom:
                 configMapKeyRef:
                   name: ${APP_NAME}-conf
                   key: database
       initContainers:
-        - name: sysctl
-          securityContext:
-            privileged: true
+        # # side cars
+        - name: sysctl$(security | indent '          ')
           image: registry.local/nginx:bookworm
           command:
             - /bin/bash
@@ -94,14 +114,15 @@ spec:
               echo "Command 1"
               echo "init container" > /work-dir/index.html
           volumeMounts:
-          - name: workdir
+          - name: datadir
             mountPath: "/work-dir"
+      # # pvc
       # volumes:
       #   - name: output
       #     persistentVolumeClaim:
       #       claimName: output-pvc
       volumes:
-        - name: workdir
+        - name: datadir
           emptyDir: {}
         - name: nginx-conf
           configMap:
