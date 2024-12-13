@@ -39,6 +39,16 @@ spec:
         app: ${APP_NAME}
     spec:
       # kubectl logs <app> -c init-mydb
+      # # in container host/dns set
+      hostAliases:
+      - ip: "192.168.168.250"
+        hostnames:
+        - "srv250"
+      # dnsConfig:
+      #   nameservers:
+      #     - 8.8.8.8
+      #   searches:
+      #     - search.prefix
       containers:
         - name: ${APP_NAME}
           image: registry.local/nginx:bookworm

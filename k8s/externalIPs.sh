@@ -6,46 +6,16 @@ sysctl -w net.ipv4.conf.eth1.arp_announce = 2
 sysctl -w net.ipv4.conf.eth1.rp_filter=1
 sysctl -w net.ipv4.conf.eth1.accept_local=1
 EOF
-echo "test app pod" && cat <<EOF | kubectl apply -f -
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: echo-deployment
-  # namespace: web
-spec:
-  selector:
-    matchLabels:
-      app: echo-app
-  replicas: 1
-  template:
-    metadata:
-      labels:
-        app: echo-app
-    spec:
-      containers:
-        - name: echo-app
-          image: registry.local/hashicorp/http-echo
-          args:
-            - "-text=my echo app"
-            - "-listen=:8080"
-          env:
-            - name: KEY
-              value: value
-          imagePullPolicy: IfNotPresent
-EOF
-
 create_svc() {
     local svc_type=${1}
     local port=${2}
     local external_ip=${3:-}
     case "${svc_type}" in
         ########################################
-        NodePort|ClusterIP|LoadBalancer)
-            echo "Service expose mode ${svc_type}"
-            ;;
+        NodePort|ClusterIP|LoadBalancer) ;;
         *)  echo "Unexpected option: ${svc_type}"; exit 1;;
     esac
-    cat <<EOF | kubectl apply -f -
+    cat <<EOF
 kind: Service
 apiVersion: v1
 metadata:
