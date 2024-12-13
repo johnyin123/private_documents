@@ -45,8 +45,8 @@ data:
          server_name _;
          set \$cache_bypass 1;
          access_log off;
-         location =/healthz { keepalive_timeout 0; access_log off; default_type text/html; return 200 "\$time_iso8601 \$hostname alive.\n"; }
-         location /info { keepalive_timeout 0; return 200 "\$time_iso8601 Hello from \$hostname. You connected from \$remote_addr:\$remote_port to \$server_addr:\$server_port\\n"; }
+         location =/healthz { access_log off; default_type text/html; return 200 "\$time_iso8601 \$hostname alive.\n"; }
+         location /info { return 200 "\$time_iso8601 Hello from \$hostname. You connected from \$remote_addr:\$remote_port to \$server_addr:\$server_port\\n"; }
          location / { keepalive_timeout 0; return 444; }
      }
 ---

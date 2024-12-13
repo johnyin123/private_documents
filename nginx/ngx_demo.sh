@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a07f7ed[2024-12-10T08:55:49+08:00]:ngx_demo.sh")
+VERSION+=("0a10d6e[2024-12-10T09:34:52+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -590,8 +590,8 @@ server {
     # direct set cache_bypass
     set $cache_bypass 1;
     access_log /var/log/nginx/access_err_domain.log main buffer=512k flush=5m;
-    location =/healthz { keepalive_timeout 0; access_log off; default_type text/html; return 200 "$time_iso8601 $hostname alive.\n"; }
-    location /info { keepalive_timeout 0; return 200 "$time_iso8601 Hello from $hostname. You connected from $remote_addr:$remote_port to $server_addr:$server_port\n"; }
+    location =/healthz { access_log off; default_type text/html; return 200 "$time_iso8601 $hostname alive.\n"; }
+    location /info { return 200 "$time_iso8601 Hello from $hostname. You connected from $remote_addr:$remote_port to $server_addr:$server_port\n"; }
     location / { keepalive_timeout 0; return 444; }
 }
 EOF
