@@ -81,7 +81,7 @@ spec:
             subPath: echo.conf
             readOnly: true
           # # directory
-          - name: workdir
+          - name: datadir
             mountPath: /usr/share/nginx/html
           env:
             - name: ENABLE_SSH
