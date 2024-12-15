@@ -47,9 +47,9 @@ TEST_SVC=netsrv
 
 cat <<'EOF' > ${TEST_SVC}.conf
 BRIDGE=br-ext
-ADDRESS="192.168.168.251/24"
+ADDRESS="192.168.168.250/24"
 GATEWAY=192.168.168.1
-# DNS=192.168.107.11
+DNS=114.114.114.114
 EOF
 
 cat <<EOF > ${TEST_SVC}.service
@@ -62,8 +62,7 @@ After=netns@${TEST_SVC}.service bridge-netns@${TEST_SVC}.service
 
 [Service]
 Type=simple
-ExecStart=echo '95.169.24.101 tunl.wgserver.org' >/etc/netns/netsrv/hosts
-ExecStart=echo 'nameserver 114.114.114.114' >/etc/netns/resolv.conf
+ExecStartPre=/bin/sh -c "echo '95.169.24.101 tunl.wgserver.org' > /etc/netns/netsrv/hosts"
 ExecStart=ip netns exec ${TEST_SVC} /bin/bash /home/johnyin/disk/netsrv/${TEST_SVC}-startup.sh
 ExecStop=-ip netns exec ${TEST_SVC} /bin/bash /home/johnyin/disk/netsrv/${TEST_SVC}-teardown.sh
 [Install]
@@ -88,12 +87,10 @@ wg-quick up client
 /usr/sbin/ip route add 10.0.0.0/8 via 192.168.168.1 || true
 /usr/sbin/ip route add 172.16.0.0/12 via 192.168.168.1 || true
 /usr/sbin/ip route add 192.168.0.0/16 via 192.168.168.1 || true
-
-${DIRNAME}/v2ray -config ${DIRNAME}/config.json &
 ${DIRNAME}/v2ray.cli.tproxy.nft.sh
 # ${DIRNAME}/v2ray.cli.tproxy.ipt.sh
 sysctl -w net.ipv4.ip_forward=1
-/usr/sbin/sshd -D
+${DIRNAME}/v2ray -config ${DIRNAME}/config.json
 EOF
 
 cat <<EOF >aws.conf
