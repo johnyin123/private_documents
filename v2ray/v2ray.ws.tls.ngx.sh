@@ -8,23 +8,25 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5641ff3[2024-09-26T07:49:14+08:00]:v2ray.ws.tls.ngx.sh")
+VERSION+=("b33a893[2024-12-11T07:55:20+08:00]:v2ray.ws.tls.ngx.sh")
 ################################################################################
 # export FILTER_CMD=cat;;
 # export FILTER_CMD=tee output.log
 uuid=$(cat /proc/sys/kernel/random/uuid)
 alterid=0
 wspath=/wssvc
+SERVER=${SERVER:-tunl.wgserver.org}
 cat <<EOF
 export UUID=${uuid}
 export ALTERID=${alterid}
 export WSPATH=${wspath}
+export SERVER=${SERVER}
 ./v2ray.ipset.transprant.sh
 EOF
 #V2Ray自4.18.1后支持TLS1.3
 cat <<EOF > v2ray.cli.hosts
 # # add to /etc/hosts
-<you ip address> tunl.wgserver.org
+<you ip address> ${SERVER}
 EOF
 cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.srv.config.json
 {
@@ -125,7 +127,7 @@ cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.cli.config.json
       "settings": {
         "vnext": [
           {
-            "address": "tunl.wgserver.org",
+            "address": "${SERVER}",
             "port": 443,
             "users": [
               {

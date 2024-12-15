@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e8d6a73[2024-12-11T10:18:32+08:00]:v2ray.ipset.transprant.sh")
+VERSION+=("1850f85[2024-12-11T19:06:25+08:00]:v2ray.ipset.transprant.sh")
 ################################################################################
 # export FILTER_CMD=cat;;
 # export FILTER_CMD=tee output.log
@@ -16,6 +16,7 @@ cat <<EOF
 UUID=${UUID:-UNDEFINE}
 ALTERID=${ALTERID:-UNDEFINE}
 WSPATH=${WSPATH:-UNDEFINE}
+SERVER=${SERVER:-tunl.wgserver.org}
 EOF
 
 V2RAY_TPROXY_PORT=50099
@@ -81,7 +82,7 @@ cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.cli.tproxy.config.json
       "settings": {
         "vnext": [
           {
-            "address": "tunl.wgserver.org",
+            "address": "${SERVER}",
             "port": 443,
             "users": [
               {
