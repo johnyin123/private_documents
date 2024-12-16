@@ -34,6 +34,7 @@ ExecStart=/sbin/ip netns exec %i /sbin/ip address add ${ADDRESS} dev eth0
 ExecStart=/sbin/ip netns exec %i /sbin/ip route add default via ${GATEWAY} dev eth0
 ExecStart=-/bin/mkdir -p /etc/netns/%i
 ExecStart=-/bin/sh -c "[ -z '${DNS}' ] || echo 'nameserver ${DNS}' > /etc/netns/%i/resolv.conf"
+ExecStart=-/bin/sh -c "cat /etc/hosts > /etc/netns/%i/hosts"
 ExecStop=-/bin/rm -fr /etc/netns/%i/
 ExecStop=-/sbin/ip link set %i_eth1 promisc off
 ExecStop=-/sbin/ip link set %i_eth1 down
