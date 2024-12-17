@@ -1,6 +1,25 @@
 vm.overcommit_memory=1
 vm.panic_on_oom=0
-
+force_del_ns() {
+    NAMESPACE=
+    cat <<EOF ns.json
+{
+  "kind": "Namespace",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "${NAMESPACE}"
+  },
+  "spec": {
+    "finalizers": []
+  }
+}
+EOF
+    kubectl proxy &
+    curl -k -H "Content-Type: application/json" \
+         -X PUT \
+         --data-binary @ns.json \
+         http://127.0.0.1:8001/api/v1/namespaces/${NAMESPACE}/finalize
+}
 kgetall() {
     kubectl api-resources --verbs=list --namespaced -o name | xargs -n1 kubectl get --show-kind --ignore-not-found "$@"
 }
