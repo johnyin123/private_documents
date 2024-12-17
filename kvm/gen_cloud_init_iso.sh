@@ -73,3 +73,25 @@ EOF
 genisoimage -output "${ISO_FNAME}" -volid cidata -joliet -rock user-data meta-data network-config
 echo 'mkisofs -o "${ISO_FNAME}" -V cidata -J -r user-data meta-data network-config'
 rm -f user-data meta-data network-config
+
+cat <<EOF
+# pip install pycdlib
+try:
+    from cStringIO import StringIO as BytesIO
+except ImportError:
+    from io import BytesIO
+import pycdlib
+
+def main():
+    iso = pycdlib.PyCdlib()
+    iso.new(interchange_level=4)
+    targetfilebody = '''instance-id: ${UUID}
+'''
+    iso.add_fp(BytesIO(bytes(targetfilebody,'ascii')), len(targetfilebody), '/meta-data')
+    iso.write('output.iso')
+    iso.close()
+    return 0
+
+if __name__ == '__main__':
+    exit(main())
+EOF
