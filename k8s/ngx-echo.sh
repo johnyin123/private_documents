@@ -32,6 +32,12 @@ security() {
     cat <<EOF
 securityContext:
   privileged: true
+  # # hardcode user to non-root if not set in Dockerfile
+  # runAsUser: 1000
+  # # hardcode group to non-root if not set in Dockerfile
+  # runAsGroup: 1000
+  # # hardcode to non-root. Redundant to above if Dockerfile is set USER 1000
+  # runAsNonRoot: true
 EOF
 }
 host_alias() {
