@@ -130,6 +130,20 @@ Memory Size     : 2048MB
 Flash Size      : 512MB
 CPLD Version    : 003/003
 PCB Version     : Ver.B
+********************************************************************************
+*                                                                              *
+*                   H3C S6520X-54QC-EI BOOTROM, Version 121                    *
+*                                                                              *
+********************************************************************************
+Copyright (c) 2004-2023 New H3C Technologies Co., Ltd.
+
+Creation Date       : Sep 14 2023, 22:42:16
+CPU Clock Speed     : 1600MHz
+Memory Size         : 2048MB
+Flash Size          : 1024MB
+CPLD Version        : 001/003
+PCB Version         : Ver.A
+Mac Address         : 083be9b652b6
 
     <H3C>system-view
     [H3C]sysname tsd01
@@ -156,6 +170,7 @@ PCB Version     : Ver.B
 
   #配置双线连接堆叠
     SW1配置:
+      system-view
       1.将优先级调整为32;确保该设备被选举为Master;若不需要指定主设备可以略过
         irf member 1 priority 32
       2.关闭要加入的IRF的物理端口
@@ -182,10 +197,13 @@ PCB Version     : Ver.B
         irf-port-configuration active
         save force
     SW2配置:
+      system-view
       1.更改默认的设备号1为2并重启
-        irf member 3 renumber 2
+        irf member 1 renumber 2
+        quit
         reboot
       2.关闭要加入的IRF的物理端口
+        show interface brief / display interface brief
         interface FGE2/0/25
         shutdown
         quit
@@ -227,7 +245,7 @@ PCB Version     : Ver.B
     port link-type trunk
     port trunk permit vlan all
     display link-aggregation member-port
-    ######################################## 
+    ########################################
     MVRP:多VLAN注册,端口注册模式
     Normal模式：MVRP实体允许进行动态VLAN的注册或注销。可传递和动态学习所有VLAN 端口，MVRP默认模式是Normal模式
     Fixed模式：MVRP实体禁止进行动态VLAN的注销，收到的MVRP报文会被丢弃。只传递VLAN1和静态VLAN，不动态学习VLAN
@@ -554,14 +572,14 @@ user administrator admin description Default Administrator
 [ifnet]
 #
 vlan 1
-ip address 10.170.73.2 255.255.255.252 
+ip address 10.170.73.2 255.255.255.252
 #
 vlan 999
-ip address 192.168.167.1 255.255.255.0 
+ip address 192.168.167.1 255.255.255.0
 #
 interface ethernet eth0
 working-type layer3-interface
-ip address 10.142.9.162 255.255.255.252 
+ip address 10.142.9.162 255.255.255.252
 #
 interface ethernet eth1
 flow control on

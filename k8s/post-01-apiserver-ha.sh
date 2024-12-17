@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6c29b8b[2024-12-02T14:32:50+08:00]:post-01-apiserver-ha.sh")
+VERSION+=("fc62c78[2024-12-09T13:03:27+08:00]:post-01-apiserver-ha.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -220,7 +220,7 @@ EOF
 for ip in ${master[*]} ${worker[*]}; do
     ssh root@\${ip} bash -xs <<EO_SHELL
     sed -i "s/${NEWSRV}:6443/${NEWSRV}:60443/g" /etc/kubernetes/*.conf
-    [ -e "~/.kube/config" ] && sed -i "s/${NEWSRV}:6443/${NEWSRV}:60443/g" ~/.kube/config
+    [ -e "/root/.kube/config" ] && sed -i "s/${NEWSRV}:6443/${NEWSRV}:60443/g" /root/.kube/config
 $([ -z "${API_SRV:-}" ] || cat <<EO_DOC
     sed -i -e '/\s*${API_SRV}/d' /etc/hosts; echo '${vip} ${API_SRV}' >> /etc/hosts
 EO_DOC
