@@ -10,6 +10,24 @@ indent() {
     sed "s/^/${input}/g"
 }
 
+liveness() {
+    cat <<EOF
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8080
+  initialDelaySeconds: 15
+  # Check the probe every 10 seconds
+  periodSeconds: 10
+readinessProbe:
+  httpGet:
+    path: /info
+    port: 8080
+  # Wait this many seconds before starting the probe
+  initialDelaySeconds: 5
+  periodSeconds: 5
+EOF
+}
 security() {
     cat <<EOF
 securityContext:
@@ -70,7 +88,7 @@ spec:
         - name: ${APP_NAME}
           image: registry.local/nginx:bookworm
           # |Always|Never
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: IfNotPresent$(liveness | indent '          ')
           # volumeMounts:
           #   - name: output
           #     mountPath: /output
