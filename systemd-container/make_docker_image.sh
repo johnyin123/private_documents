@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("09c097c[2024-12-10T11:52:23+08:00]:make_docker_image.sh")
+VERSION+=("92d924f[2024-12-12T13:04:43+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -148,6 +148,9 @@ RUN set -eux && { \\
         echo "ALL OK"; \\
         rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /build.run; \\
     }
+# RUN useradd johnyin -u 10001 --create-home --user-group
+# USER 10001
+# WORKDIR /home/johnyin
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["/usr/local/bin/startup"]
 EOF

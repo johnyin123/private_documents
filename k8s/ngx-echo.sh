@@ -30,6 +30,8 @@ EOF
 }
 security() {
     cat <<EOF
+# kubectl explain pod.spec.securityContext
+# kubectl explain pod.spec.containers.securityContext
 securityContext:
   privileged: true
   # # hardcode user to non-root if not set in Dockerfile
