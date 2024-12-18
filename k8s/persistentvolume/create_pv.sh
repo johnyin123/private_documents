@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("17b43bc[2024-12-02T16:14:00+08:00]:create_pv.sh")
+VERSION+=("99b8b30[2024-12-05T12:19:25+08:00]:create_pv.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -16,6 +16,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         -t|--type     *   ${G}<str>${N}     PersistentVolume type(In-tree provisioning)
                           cephfs/rbd/iscsi/nfs/local, ${R}ALL CHECKED OK${N}
                           Out-tree: https://github.com/orgs/kubernetes-csi/repositories
+                                    https://storageclass.info/csidrivers/
         -n|--name         ${G}<str>${N}     PersistentVolume name, default YYYY-MM
         -s|--capacity     ${G}<str>${N}     PersistentVolume size, default 10G
         --default                           Set as default storageclass
