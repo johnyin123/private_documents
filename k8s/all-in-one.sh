@@ -7,13 +7,15 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("46158ac[2024-12-09T11:06:52+08:00]:all-in-one.sh")
+VERSION+=("fc62c78[2024-12-09T13:03:27+08:00]:all-in-one.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 run_node() {
     echo '10.170.6.105  registry.local'>> /etc/hosts
     wget --no-check-certificate -O /etc/yum.repos.d/cnap.repo http://registry.local/cnap/cnap.repo
     yum -y --enablerepo=cnap install tsd_cnap_v1.23.17 bash-completion nfs-utils nfs4-acl-tools ceph-common multipath-tools open-iscsi
+    systemctl enable multipathd --now
+    systemctl enable iscsid --now
     # ctr -n k8s.io image  prune --all
 }
 
