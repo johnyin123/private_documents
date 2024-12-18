@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("7d03993[2023-12-27T08:47:47+08:00]:os_centos_init.sh")
+VERSION+=("9de15b2[2024-07-04T08:20:21+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -157,17 +157,20 @@ EOSHELL
     do
         umount -R -v ${root_dir}${mp} || true
     done
+    centos_limits_init "${root_dir}"
+    centos_sysctl_init "${root_dir}"
     rm -rf ${REPO} || true
     return 0
 }
 
 centos_limits_init() {
+    local basedir=${1:-}
     #set the file limit
-    cat > /etc/security/limits.d/tun.conf << EOF
+    cat > ${basedir}/etc/security/limits.d/tun.conf << EOF
 *           soft   nofile       102400
 *           hard   nofile       102400
 EOF
-    cat <<EOF > /etc/profile.d/os-security.sh
+    cat <<EOF > ${basedir}/etc/profile.d/os-security.sh
 export readonly TMOUT=900
 export readonly HISTCONTROL=ignoredups:erasedups
 export readonly HISTSIZE=100000
@@ -175,7 +178,7 @@ export readonly HISTFILESIZE=100000
 shopt -s histappend
 EOF
 
-    cat >/etc/profile.d/johnyin.sh<<"EOF"
+    cat >${basedir}/etc/profile.d/johnyin.sh<<"EOF"
 # Not bash
 [ -n "${BASH_VERSION:-}" ] || return 0
 # Not an interactive shell?
@@ -185,18 +188,19 @@ export PS1="\[\033[1;31m\]\u\[\033[m\]@\[\033[1;32m\]\h:\[\033[33;1m\]\w\[\033[m
 set -o vi
 EOF
     # security set
-    sed -i "s/^PASS_MAX_DAYS.*$/PASS_MAX_DAYS 90/g" /etc/login.defs
-    sed -i "s/^PASS_MIN_DAYS.*$/PASS_MIN_DAYS 2/g" /etc/login.defs
-    sed -i "s/^PASS_MIN_LEN.*$/PASS_MIN_LEN 8/g" /etc/login.defs
-    sed -i "s/^PASS_WARN_AGE.*$/PASS_WARN_AGE 7/g" /etc/login.defs
-    sed -i "1 a auth       required     pam_tally2.so onerr=fail  deny=6  unlock_time=1800" /etc/pam.d/sshd
-    sed -i "/password/ipassword    required      pam_cracklib.so lcredit=-1 ucredit=-1 dcredit=-1 ocredit=-1" /etc/pam.d/system-auth
+    sed -i "s/^PASS_MAX_DAYS.*$/PASS_MAX_DAYS 90/g" ${basedir}/etc/login.defs
+    sed -i "s/^PASS_MIN_DAYS.*$/PASS_MIN_DAYS 2/g"  ${basedir}/etc/login.defs
+    sed -i "s/^PASS_MIN_LEN.*$/PASS_MIN_LEN 8/g"    ${basedir}/etc/login.defs
+    sed -i "s/^PASS_WARN_AGE.*$/PASS_WARN_AGE 7/g"  ${basedir}/etc/login.defs
+    sed -i "1 a auth       required     pam_tally2.so onerr=fail  deny=6  unlock_time=1800" ${basedir}/etc/pam.d/sshd
+    sed -i "/password/ipassword    required      pam_cracklib.so lcredit=-1 ucredit=-1 dcredit=-1 ocredit=-1" ${basedir}/etc/pam.d/system-auth
 }
 export -f centos_limits_init
 
 centos_sysctl_init() {
-    cat /etc/sysctl.conf 2>/dev/null > /etc/sysctl.conf.bak || true
-    cat << EOF > /etc/sysctl.conf
+    local basedir=${1:-}
+    cat ${basedir}/etc/sysctl.conf 2>/dev/null > ${basedir}/etc/sysctl.conf.bak || true
+    cat << EOF > ${basedir}/etc/sysctl.conf
 fs.file-max = 1000000
 net.ipv4.ping_group_range = 0	2147483647
 net.core.rmem_max = 134217728 
@@ -220,16 +224,15 @@ net.ipv4.tcp_timestamps = 0
 net.ipv4.tcp_tw_reuse = 0
 #net.ipv4.ip_forward = 1
 EOF
-    cat << EOF > /etc/sysctl.d/90-bbr.conf
+    cat << EOF > ${basedir}/etc/sysctl.d/90-bbr.conf
 net.core.default_qdisc=fq
 net.ipv4.tcp_congestion_control=bbr
 EOF
-    cat << EOF > /etc/sysctl.d/90-perf.conf
+    cat << EOF > ${basedir}/etc/sysctl.d/90-perf.conf
 kernel.sched_autogroup_enabled = 0
 vm.min_free_kbytes = 131072
 sysctl vm.dirty_ratio = 60
 EOF
-
 }
 export -f centos_sysctl_init
 
@@ -248,7 +251,8 @@ centos_sshd_regenkey() {
 export -f centos_sshd_regenkey
 
 centos_sshd_init() {
-    rpm -q openssh-server || yum -y --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install openssh-server || true
+    local basedir=${1:-}
+    [ -z "${basedir}" ] && { rpm -q openssh-server || yum -y --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install openssh-server || true }
     sed --quiet -i.orig -E \
         -e '/^\s*(UseDNS|MaxAuthTries|GSSAPIAuthentication|Port|Ciphers|MACs|PermitRootLogin|TrustedUserCAKeys|MaxStartups|LoginGraceTime).*/!p' \
         -e '$aUseDNS no' \
@@ -261,22 +265,22 @@ centos_sshd_init() {
         -e '$aTrustedUserCAKeys /etc/ssh/myca.pub' \
         -e '$aMaxStartups 10' \
         -e '$aLoginGraceTime 10m' \
-        /etc/ssh/sshd_config
-    cat <<EOF >/etc/ssh/myca.pub
+        ${basedir}/etc/ssh/sshd_config
+    cat <<EOF >${basedir}/etc/ssh/myca.pub
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
 EOF
-    chmod 0644 /etc/ssh/myca.pub
+    chmod 0644 ${basedir}/etc/ssh/myca.pub
     # root login only prikey "PermitRootLogin without-password"
-    cat <<"EOF" > /etc/ssh/sshrc
+    cat <<"EOF" > ${basedir}/etc/ssh/sshrc
 logger -i -t ssh "$(date '+%Y%m%d%H%M%S') $USER $SSH_CONNECTION"
 EOF
-    [ ! -d /root/.ssh ] && mkdir -m0700 /root/.ssh
-    cat <<EOF >/root/.ssh/authorized_keys
+    [ ! -d ${basedir}/root/.ssh ] && mkdir -m0700 ${basedir}/root/.ssh
+    cat <<EOF >${basedir}/root/.ssh/authorized_keys
 ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDKxdriiCqbzlKWZgW5JGF6yJnSyVtubEAW17mok2zsQ7al2cRYgGjJ5iFSvZHzz3at7QpNpRkafauH/DfrZz3yGKkUIbOb0UavCH5aelNduXaBt7dY2ORHibOsSvTXAifGwtLY67W4VyU/RBnCC7x3HxUB6BQF6qwzCGwry/lrBD6FZzt7tLjfxcbLhsnzqOG2y76n4H54RrooGn1iXHBDBXfvMR7noZKbzXAUQyOx9m07CqhnpgpMlGFL7shUdlFPNLPZf5JLsEs90h3d885OWRx9Kp+O05W2gPg4kUhGeqO6IY09EPOcTupw77PRHoWOg4xNcqEQN2v2C1lr09Y9 root@yinzh
 EOF
-    chmod 0600 /root/.ssh/authorized_keys
+    chmod 0600 ${basedir}/root/.ssh/authorized_keys
     # ssh tap device no create, when ControlMaster !!!!
-    cat <<EOF >/root/.ssh/config
+    cat <<EOF >${basedir}/root/.ssh/config
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
 Host github.com
@@ -287,9 +291,8 @@ Host *
 #    ControlPath  ~/.ssh/sockets/%r@%h-%p
 #    ControlPersist 600
 EOF
-    mkdir -p /root/.ssh/sockets/
-    chmod 0600 /root/.ssh/config
-
+    mkdir -p ${basedir}/root/.ssh/sockets/
+    chmod 0600 ${basedir}/root/.ssh/config
 }
 export -f centos_sshd_init
 
@@ -303,7 +306,8 @@ centos_chpasswd() {
 export -f centos_chpasswd
 
 centos_disable_selinux() {
-    sed -i "s/SELINUX=.*/SELINUX=disabled/g" /etc/selinux/config
+    local basedir=${1:-}
+    sed -i "s/SELINUX=.*/SELINUX=disabled/g" ${basedir}/etc/selinux/config
 }
 export -f centos_disable_selinux
 
@@ -506,8 +510,25 @@ centos_versionlock () {
 export -f centos_versionlock
 
 centos_minimum_init() {
-    yum clean all
-    rm -rf /var/cache/yum
-    rm -rf /var/tmp/yum-*
+    local basedir=${1:-}
+    [ -z "${basedir}" ] && yum clean all
+    rm -rf \
+        ${basedir}/var/cache/yum \
+        ${basedir}/var/tmp/yum-* \
+        ${basedir}/var/lib/yum/* \
+        ${basedir}/root/.rpmdb \
+        ${basedir}/root/.bash_history \
+        ${basedir}/root/.lesshst \
+        ${basedir}/root/.viminfo \
+        ${basedir}/root/.vim/ \
+        || true
+    find ${basedir}/var/log/ -type f | xargs truncate -s0
+    find ${basedir}/usr/share/doc -depth -type f ! -name copyright -print0 | xargs -0 rm || true
+    find ${basedir}/usr/share/doc -empty -print0 | xargs -0 rm -rf || true
+    # remove on used locale
+    find ${basedir}/usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
+    rm -rf ${basedir}/usr/share/info \
+           ${basedir}/usr/share/lintian \
+           ${basedir}/usr/share/linda || true
 }
 export -f centos_minimum_init
