@@ -58,6 +58,7 @@ EOF
 }
 cat <<EOF
 ---
+# kubectl create configmap binconfig --from-file=<binary file>
 apiVersion: v1
 kind: ConfigMap
 metadata:
