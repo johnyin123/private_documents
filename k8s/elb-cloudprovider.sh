@@ -59,18 +59,18 @@ apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: elboper
 rules:
-- apiGroups: [""]
-  resources: ["services", "services/status", "nodes"]
-  verbs: ["get", "patch", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["services", "services/status", "nodes"]
+    verbs: ["get", "patch", "list", "watch"]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: elboper
 subjects:
-- kind: ServiceAccount
-  name: default
-  namespace: ${NAMESPACE}
+  - kind: ServiceAccount
+    name: default
+    namespace: ${NAMESPACE}
 roleRef:
   kind: ClusterRole
   name: elboper

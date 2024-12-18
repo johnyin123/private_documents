@@ -101,14 +101,14 @@ spec:
           #   - name: output
           #     mountPath: /output
           volumeMounts:
-          # # config file
-          - name: nginx-conf
-            mountPath: /etc/nginx/http-enabled/echo.conf
-            subPath: echo.conf
-            readOnly: true
-          # # directory
-          - name: datadir
-            mountPath: /usr/share/nginx/html
+            # # config file
+            - name: nginx-conf
+              mountPath: /etc/nginx/http-enabled/echo.conf
+              subPath: echo.conf
+              readOnly: true
+            # # directory
+            - name: datadir
+              mountPath: /usr/share/nginx/html
           env:
             - name: ENABLE_SSH
               value: "true"
@@ -140,8 +140,8 @@ spec:
               echo "Command 1"
               echo "init container" > /work-dir/index.html
           volumeMounts:
-          - name: datadir
-            mountPath: "/work-dir"
+            - name: datadir
+              mountPath: "/work-dir"
       # # pvc
       # volumes:
       #   - name: output

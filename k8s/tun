@@ -1,5 +1,18 @@
 vm.overcommit_memory=1
 vm.panic_on_oom=0
+
+MY_HOSTNAME=`hostname`
+# # set
+kubectl taint nodes $MY_HOSTNAME node-role.kubernetes.io/control-plane=:NoExecute
+kubectl taint nodes $MY_HOSTNAME node-role.kubernetes.io/control-plane=:NoSchedule
+kubectl taint nodes $MY_HOSTNAME node-role.kubernetes.io/control-plane=:PreferNoSchedule
+# # del
+kubectl taint nodes $MY_HOSTNAME node-role.kubernetes.io/control-plane:NoExecute-
+kubectl taint nodes $MY_HOSTNAME node-role.kubernetes.io/control-plane:NoSchedule-
+kubectl taint nodes $MY_HOSTNAME node-role.kubernetes.io/control-plane:PreferNoSchedule-
+# # set label ingress true
+kubectl label node $MY_HOSTNAME ingress=true
+
 force_del_ns() {
     NAMESPACE=
     cat <<EOF ns.json
