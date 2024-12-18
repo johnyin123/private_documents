@@ -2,6 +2,9 @@ vm.overcommit_memory=1
 vm.panic_on_oom=0
 
 MY_HOSTNAME=`hostname`
+# # PreferNoSchedule污点策略，其作用是尽量不将Pod调度到设置了该污点的节点上
+# # NoSchedule节点亲和性或反亲和性的策略。用于标记节点不会被调度运行任何Pod
+# # NoExecute策略驱逐，它们会根据其重新调度和重建策略被重新调度到其他节点
 # # set
 kubectl taint nodes $MY_HOSTNAME node-role.kubernetes.io/control-plane=:NoExecute
 kubectl taint nodes $MY_HOSTNAME node-role.kubernetes.io/control-plane=:NoSchedule
