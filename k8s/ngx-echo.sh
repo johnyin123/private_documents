@@ -199,7 +199,7 @@ command: ["/bin/sh", "-c"]
 args:
   - |
     sed -i "/worker_processes/d" /etc/nginx/nginx.conf
-    /usr/sbin/nginx -g "daemon off;worker_processes 1;"
+    exec /usr/sbin/nginx -g "daemon off;worker_processes 1;"
 EOCMD
         )
       initContainers:$( \

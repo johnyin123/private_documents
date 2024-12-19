@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("db55dc5[2024-12-17T10:38:11+08:00]:post-01-apiserver-ha.sh")
+VERSION+=("dde0a06[2024-12-19T15:40:43+08:00]:post-01-apiserver-ha.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -115,7 +115,7 @@ spec:
       args:
         - |
           sed -i "/worker_processes/d" /etc/nginx/nginx.conf
-          /usr/sbin/nginx -g "daemon off;worker_processes 1;"
+          exec /usr/sbin/nginx -g "daemon off;worker_processes 1;"
       volumeMounts:
         - mountPath: /etc/nginx/stream-enabled/api.conf
           name: nginx-conf
