@@ -194,7 +194,13 @@ spec:
         app: ${APP_NAME}
     spec:$( (volumes; [ -z "${DNS}" ] || host_alias;) | indent '      ')
       containers:$( \
-        LIVE=1 LIMIT=1 ENV=1 VOL=1 SECURITY= container "${APP_NAME}" "registry.local/nginx:bookworm" "Always" | indent '        ' \
+        LIVE=1 LIMIT=1 ENV=1 VOL=1 SECURITY= container "${APP_NAME}" "registry.local/nginx:bookworm" "Always" <<EOCMD | indent '        '
+command: ["/bin/sh", "-c"]
+args:
+  - |
+    sed -i "/worker_processes/d" /etc/nginx/nginx.conf
+    /usr/sbin/nginx -g "daemon off;worker_processes 1;"
+EOCMD
         )
       initContainers:$( \
           ( \
