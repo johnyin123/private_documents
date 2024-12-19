@@ -1,14 +1,28 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
-
-DNS=${DNS:-}
-NAMESPACE=default
-APP_NAME=echo-app
-REPLICAS=1
-# LOGFILE/FILTER_CMD=cat
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+readonly SCRIPTNAME=${0##*/}
+VERSION+=("2348661[2024-12-19T15:48:09+08:00]:ngx-echo.sh")
+################################################################################
+FILTER_CMD="cat"
+LOGFILE=
+################################################################################
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
-exec > >(${FILTER_CMD:-sed '/^\s*#/d'} | tee ${LOGFILE:+-i ${LOGFILE}})
-log "LOGFILE=logfile FILTER_CMD=cat ${0}"
+usage() {
+    [ "$#" != 0 ] && echo "$*"
+    cat <<EOF
+${SCRIPTNAME}
+        env:
+            DNS=1 gen hostAliases demo
+        -q|--quiet
+        -l|--log <int> log level
+        -V|--version
+        -d|--dryrun dryrun
+        -h|--help help
+EOF
+    exit 1
+}
+
 indent() {
     local input=${1}
     echo
@@ -75,7 +89,9 @@ EOF
 }
 
 volumes() {
+    local app_name=${1}
     cat<<EOF
+# # kubectl explain pod.spec.volumes
 volumes:
   # - name: output
   #   persistentVolumeClaim:
@@ -84,7 +100,8 @@ volumes:
     emptyDir: {}
   - name: nginx-conf
     configMap:
-      name: ${APP_NAME}-conf
+      name: ${app_name}-conf
+      defaultMode: 0644
   - name: shm
     hostPath:
       path: /dev/shm
@@ -111,6 +128,7 @@ EOF
 }
 
 env() {
+    local app_name=${1}
     cat <<EOF
 env:
   - name: ENABLE_SSH
@@ -124,19 +142,19 @@ env:
   - name: DATABASE
     valueFrom:
       configMapKeyRef:
-        name: ${APP_NAME}-conf
+        name: ${app_name}-conf
         key: database
 EOF
 }
 
 container() {
-    local name=${1}
+    local app_name=${1}
     local image=${2}
     local pull_policy=${3:-IfNotPresent}
     local cmds=""
     [ -t 0 ] || cmds=$(cat)
     cat <<EOF
-- name: ${name}
+- name: ${app_name}
   image: ${image}
   # IfNotPresent|Always|Never
   imagePullPolicy: ${pull_policy}$( \
@@ -145,7 +163,7 @@ container() {
             [ -z "${LIVE}" ] || liveness
             [ -z "${LIMIT}" ] || limit
             [ -z "${VOL}" ] || volume_mounts
-            [ -z "${ENV}" ] || env
+            [ -z "${ENV}" ] || env "${app_name}"
             [ -z "${cmds}" ] || cat<<EOCMD
 ${cmds}
 EOCMD
@@ -154,47 +172,66 @@ EOCMD
 EOF
 }
 
-cat <<EOF
+configmap() {
+    local app_name=${1}
+    local namespace=${2}
+    local data=""
+    [ -t 0 ] || data=$(cat)
+    cat <<EOF
 ---
 # # kubectl create configmap binconfig --from-file=<binary file>
 # # kubectl logs <app> -c init-mydb
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ${APP_NAME}-conf
-  namespace: ${NAMESPACE}
-data:
-  database: "mydatabase"
-  echo.conf: |
-     server {
-         listen *:8080 default_server reuseport;
-         server_name _;
-         set \$cache_bypass 1;
-         access_log off;
-         location =/healthz { access_log off; default_type text/html; return 200 "\$time_iso8601 \$hostname alive.\n"; }
-         location /info { return 200 "\$time_iso8601 Hello from \$hostname. You connected from \$remote_addr:\$remote_port to \$server_addr:\$server_port\\n"; }
-         location / { keepalive_timeout 0; return 444; }
-     }
+  name: ${app_name}-conf
+  namespace: ${namespace}
+data:$( \
+        ( \
+        [ -z "${data}" ] || cat<<EOCMD
+${data}
+EOCMD
+        ) | indent '  ' \
+      )
 EOF
-cat <<EOF
+}
+
+echo_app_deployment() {
+    local app_name=${1}
+    local namespace=${2}
+    local replicas=${3:-1}
+    configmap "${app_name}" "${namespace}" <<'EOF'
+database: "mydatabase"
+echo.conf: |
+   server {
+       listen *:8080 default_server reuseport;
+       server_name _;
+       set $cache_bypass 1;
+       access_log off;
+       location =/healthz { access_log off; default_type text/html; return 200 "$time_iso8601 $hostname alive.\n"; }
+       location /info { return 200 "\$time_iso8601 Hello from $hostname. You connected from $remote_addr:$remote_port to $server_addr:$server_port\n"; }
+       location / { keepalive_timeout 0; return 444; }
+   }
+EOF
+    cat <<EOF
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ${APP_NAME}
-  namespace: ${NAMESPACE}
+  name: ${app_name}
+  namespace: ${namespace}
 spec:
   selector:
     matchLabels:
-      app: ${APP_NAME}
-  replicas: ${REPLICAS}
+      app: ${app_name}
+  replicas: ${replicas}
   template:
     metadata:
       labels:
-        app: ${APP_NAME}
-    spec:$( (volumes; [ -z "${DNS}" ] || host_alias;) | indent '      ')
+        app: ${app_name}
+    spec:$( (volumes "${app_name}"; [ -z "${DNS}" ] || host_alias;) | indent '      ')
       containers:$( \
-        LIVE=1 LIMIT=1 ENV=1 VOL=1 SECURITY= container "${APP_NAME}" "registry.local/nginx:bookworm" "Always" <<EOCMD | indent '        '
+        LIVE=1 LIMIT=1 ENV=1 VOL=1 SECURITY= container "${app_name}" "registry.local/nginx:bookworm" "Always" <<EOCMD | indent '        '
 command: ["/bin/sh", "-c"]
 args:
   - |
@@ -223,34 +260,53 @@ EOCMD
           ) | indent '        ' \
         )
 EOF
-cat <<EOF
+    service "${app_name}" "${namespace}" << EOF
+ports:
+  - name: http
+    protocol: TCP
+    targetPort: 8080
+    port: 80
+EOF
+}
+
+service() {
+    local app_name=${1}
+    local namespace=${2:-default}
+    local ports=""
+    [ -t 0 ] || ports=$(cat)
+    cat <<EOF
 ---
 kind: Service
 apiVersion: v1
 metadata:
-  name: ${APP_NAME}-service
+  name: ${app_name}-service
   # # Service always in default namespace
-  # namespace: ${NAMESPACE}
+  namespace: ${namespace}
 spec:
   type: NodePort
   selector:
-    app: ${APP_NAME}
-  ports:
-    - name: http
-      protocol: TCP
-      targetPort: 8080
-      port: 80
+    app: ${app_name}$( \
+        ( \
+        [ -z "${ports}" ] || cat<<EOCMD
+${ports}
+EOCMD
+        ) | indent '  ' \
+    )
 EOF
+}
 ############################################################
-############################################################
-cat <<EOF
+nsenter_pod() {
+    local app_name=${1:-util-linux}
+    local namespace=${2:-default}
+    cat <<EOF
 ---
 ############################################################
-# kubectl exec util-linux -- nsenter --mount=/proc/1/ns/mnt -- bash -c 'ip a;cat /etc/hostname'
+# kubectl exec ${app_name} -- nsenter --mount=/proc/1/ns/mnt -- bash -c 'ip a;cat /etc/hostname'
 apiVersion: v1
 kind: Pod
 metadata:
-  name: util-linux
+  name: ${app_name}
+  namespace: ${namespace}
 spec:
   hostPID: true
   containers:$( \
@@ -259,3 +315,33 @@ command: ["/usr/bin/busybox", "sleep", "infinity"]
 EOCMD
     )
 EOF
+}
+main() {
+    namespace=default
+    app_name=echo-app
+    replicas=1
+
+    local opt_short=""
+    local opt_long=""
+    opt_short+="ql:dVh"
+    opt_long+="quiet,log:,dryrun,version,help"
+    __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
+    eval set -- "${__ARGS}"
+    while true; do
+        case "$1" in
+            ########################################
+            -q | --quiet)   shift; FILTER_CMD=;;
+            -l | --log)     shift; LOGFILE=${1}; shift;;
+            -d | --dryrun)  shift; DRYRUN=1;;
+            -V | --version) shift; for _v in "${VERSION[@]}"; do echo "$_v"; done; exit 0;;
+            -h | --help)    shift; usage;;
+            --)             shift; break;;
+            *)              usage "Unexpected option: $1";;
+        esac
+    done
+    exec > >(${FILTER_CMD:-sed '/^\s*#/d'} | tee ${LOGFILE:+-i ${LOGFILE}})
+    echo_app_deployment "${app_name}" "${namespace}" 1
+    nsenter_pod
+    return 0
+}
+main "$@"
