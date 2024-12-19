@@ -1,0 +1,36 @@
+在crush规则中创建物理池，即meta_root，data_sas_root，data_ssd_root
+meta_root，data_ssd_root由SSD盘对应的OSD组成
+data_sas_root 由SAS盘对应的OSD组成
+创建逻辑pool，分别在上述的3种类型的root中创建meta_pool，data_sas_pool，data_ssd_pool
+CLASS_NAME=ssd
+ceph osd tree
+ceph osd crush set-device-class ${CLASS_NAME} osd.0 osd.1 ...
+# ceph-volume --cluster ${cname} lvm create --data ${disk} --crush-device-class ${CLASS_NAME}
+
+ceph osd crush rule ls
+ceph osd crush rule create-replicated rule-${CLASS_NAME} default host ${CLASS_NAME}
+ceph osd crush rule rm rule-${CLASS_NAME}
+
+ceph osd pool set $POOL_NAME crush_rule rule-${CLASS_NAME}
+
+
+# # setup a crush rule in ceph for ssd and hdd osd
+rule rule_ssd {
+        id 1
+        type replicated
+        min_size 1
+        max_size 10
+        step take default class ssd
+        step chooseleaf firstn 0 type host
+        step emit
+}
+rule rule_hdd {
+        id 2
+        type replicated
+        min_size 1
+        max_size 10
+        step take default class hdd
+        step chooseleaf firstn 0 type host
+        step emit
+}
+
