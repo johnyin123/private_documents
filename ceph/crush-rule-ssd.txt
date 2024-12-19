@@ -12,7 +12,7 @@ ceph osd crush rule create-replicated rule-${CLASS_NAME} default host ${CLASS_NA
 ceph osd crush rule rm rule-${CLASS_NAME}
 
 ceph osd pool set $POOL_NAME crush_rule rule-${CLASS_NAME}
-
+ceph fs new fs_name meta_pool data_ssd
 
 # # setup a crush rule in ceph for ssd and hdd osd
 rule rule_ssd {
