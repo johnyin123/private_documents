@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fc62c78[2024-12-09T13:03:27+08:00]:post-01-apiserver-ha.sh")
+VERSION+=("db55dc5[2024-12-17T10:38:11+08:00]:post-01-apiserver-ha.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -109,37 +109,38 @@ metadata:
 spec:
   hostNetwork: true
   containers:
-  - name: nginx
-    image: ${registry}/nginx:bookworm
-    command:
-    - /usr/sbin/nginx
-    - -g 
-    - "daemon off;"
-    volumeMounts:
-    - mountPath: /etc/nginx/stream-enabled/api.conf
-      name: nginx-conf
-      readOnly: true
-  - name: keepalived
-    image: ${registry}/keepalived:bookworm
-    securityContext:
-      privileged: true
-    command:
-    - /usr/sbin/keepalived
-    - -D
-    - -n
-    volumeMounts:
-    - mountPath: /etc/keepalived/keepalived.conf
-      name: keepalived-cfg
-      readOnly: true
+    - name: nginx
+      image: ${registry}/nginx:bookworm
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          sed -i "/worker_processes/d" /etc/nginx/nginx.conf
+          /usr/sbin/nginx -g "daemon off;worker_processes 1;"
+      volumeMounts:
+        - mountPath: /etc/nginx/stream-enabled/api.conf
+          name: nginx-conf
+          readOnly: true
+    - name: keepalived
+      image: ${registry}/keepalived:bookworm
+      securityContext:
+        privileged: true
+      command:
+        - /usr/sbin/keepalived
+        - -D
+        - -n
+      volumeMounts:
+        - mountPath: /etc/keepalived/keepalived.conf
+          name: keepalived-cfg
+          readOnly: true
   volumes:
-  - hostPath:
-      path: /etc/kubernetes/api.conf
-      type: FileOrCreate
-    name: nginx-conf
-  - hostPath:
-      path: /etc/kubernetes/keepalived.conf
-      type: FileOrCreate
-    name: keepalived-cfg
+    - hostPath:
+        path: /etc/kubernetes/api.conf
+        type: FileOrCreate
+      name: nginx-conf
+    - hostPath:
+        path: /etc/kubernetes/keepalived.conf
+        type: FileOrCreate
+      name: keepalived-cfg
 EOF
 }
 
