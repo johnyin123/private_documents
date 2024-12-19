@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("3ee4ef0[2024-10-22T07:51:35+08:00]:functions.sh")
+VERSION+=("f76144f[2024-12-04T09:05:36+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -48,6 +48,9 @@ func_wrapper() {
     local args=$@
     ${func} ${args} || { [ $? = 127 ] && warn_msg "${func} not implemented\n"; }
 }
+
+# #  match pattern, print start blanks number
+# cat file | awk '/mirrors/{print gsub(" ", "", $0)}'
 
 #  echo '{"key": "val"}' | json2yaml | yaml2json
 yaml2json() {

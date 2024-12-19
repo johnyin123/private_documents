@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cc11de2[2024-12-11T14:19:28+08:00]:inst_k8s_via_registry.sh")
+VERSION+=("310e357[2024-12-18T10:25:51+08:00]:inst_k8s_via_registry.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 CALICO_YML="https://raw.githubusercontent.com/projectcalico/calico/v3.26.1/manifests/tigera-operator.yaml"
@@ -87,9 +87,18 @@ cat <<EOF
 # # for mirror registry
 [plugins."io.containerd.grpc.v1.cri".registry.mirrors]
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]
-    endpoint = ["http://registry.local:5555"]
+    endpoint = ["https://registry.local:5555"]
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."ghcr.io"]
     endpoint = ["http://registry.local:6666"]
+[plugins."io.containerd.grpc.v1.cri".registry.configs]
+  [plugins."io.containerd.grpc.v1.cri".registry.configs."docker.io".tls]
+    insecure_skip_verify = true  #跳过认证
+    ca_file = "/data/ca.crt"
+    cert_file = "/data/reg.crt"
+    key_file = "/data/reg.key"
+  [plugins."io.containerd.grpc.v1.cri".registry.configs."docker.io".auth]
+    username = "admin"
+    password = "pass12345"
 EOF
     systemctl daemon-reload || true
     systemctl restart containerd.service || true

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 
+DNS=${DNS:-}
 NAMESPACE=default
 APP_NAME=echo-app
 REPLICAS=1
@@ -8,6 +9,19 @@ indent() {
     local input=${1}
     echo
     sed "s/^/${input}/g"
+}
+
+limit() {
+    cat <<EOF
+# # 1000m=1 core cpu
+resources:
+  limits:
+    cpu: 200m
+    memory: 200Mi
+  requests:
+    cpu: 100m
+    memory: 100Mi
+EOF
 }
 
 liveness() {
@@ -34,11 +48,10 @@ security() {
 # kubectl explain pod.spec.containers.securityContext
 securityContext:
   privileged: true
-  # # hardcode user to non-root if not set in Dockerfile
+  # # hardcode user/group if not set in Dockerfile
+  # # hardcode non-root. Dockerfile set USER 1000
   # runAsUser: 1000
-  # # hardcode group to non-root if not set in Dockerfile
   # runAsGroup: 1000
-  # # hardcode to non-root. Redundant to above if Dockerfile is set USER 1000
   # runAsNonRoot: true
 EOF
 }
@@ -46,9 +59,9 @@ host_alias() {
     cat <<EOF
 # # in container host/dns set
 hostAliases:
-- ip: "192.168.168.250"
-  hostnames:
-  - "srv250"
+  - ip: "192.168.168.250"
+    hostnames:
+      - "srv250"
 # dnsConfig:
 #   nameservers:
 #     - 8.8.8.8
@@ -56,9 +69,93 @@ hostAliases:
 #     - search.prefix
 EOF
 }
+
+volumes() {
+    cat<<EOF
+volumes:
+  # - name: output
+  #   persistentVolumeClaim:
+  #     claimName: output-pvc
+  - name: datadir
+    emptyDir: {}
+  - name: nginx-conf
+    configMap:
+      name: ${APP_NAME}-conf
+EOF
+}
+
+volume_mounts() {
+cat <<EOF
+volumeMounts:
+  # - name: output
+  #   mountPath: /output
+  # # config file
+  - name: nginx-conf
+    mountPath: /etc/nginx/http-enabled/echo.conf
+    subPath: echo.conf
+    readOnly: true
+  # # directory
+  - name: datadir
+    mountPath: /usr/share/nginx/html
+EOF
+}
+
+env() {
+    cat <<EOF
+env:
+  - name: ENABLE_SSH
+    value: "true"
+  # # env from metadata
+  - name: POD_NAMESPACE
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.namespace
+  # # env from configmap key
+  - name: DATABASE
+    valueFrom:
+      configMapKeyRef:
+        name: ${APP_NAME}-conf
+        key: database
+EOF
+}
+
+container() {
+    local name=${1}
+    local image=${2}
+    local pull_policy=${3:-IfNotPresent}
+    cat <<EOF
+- name: ${name}
+  image: ${image}
+  # IfNotPresent|Always|Never
+  imagePullPolicy: ${pull_policy}$( \
+        ( \
+            [ -z "${SECURITY}" ] || security
+            [ -z "${LIVE}" ] || liveness
+            [ -z "${LIMIT}" ] || limit
+            [ -z "${VOL}" ] || volume_mounts
+            [ -z "${ENV}" ] || env
+            [ -z "${CMD}" ] || {
+                cat <<EO_CMD
+# command: ["/bin/sh", "-c"]
+command:
+  - /bin/sh
+  - -c
+args:
+  - |
+    echo "hello ${name}"
+EO_CMD
+                [ -z "${VOL}" ] || echo '    echo "init container" > /usr/share/nginx/html/index.html'
+                [ -z "${SECURITY}" ] || echo "    sysctl -w net.ipv4.ip_local_port_range='1024 65531'"
+            }
+        ) | indent '  ' \
+    )
+EOF
+}
+
 cat <<EOF
 ---
-# kubectl create configmap binconfig --from-file=<binary file>
+# # kubectl create configmap binconfig --from-file=<binary file>
+# # kubectl logs <app> -c init-mydb
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -76,6 +173,8 @@ data:
          location /info { return 200 "\$time_iso8601 Hello from \$hostname. You connected from \$remote_addr:\$remote_port to \$server_addr:\$server_port\\n"; }
          location / { keepalive_timeout 0; return 444; }
      }
+EOF
+cat <<EOF
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -91,74 +190,24 @@ spec:
     metadata:
       labels:
         app: ${APP_NAME}
-    spec:
-      # kubectl logs <app> -c init-mydb$([ -z "${DNS:-}" ] || host_alias | indent '      ')
-      containers:
-        - name: ${APP_NAME}
-          image: registry.local/nginx:bookworm
-          # |Always|Never
-          imagePullPolicy: IfNotPresent$(liveness | indent '          ')
-          # volumeMounts:
-          #   - name: output
-          #     mountPath: /output
-          volumeMounts:
-            # # config file
-            - name: nginx-conf
-              mountPath: /etc/nginx/http-enabled/echo.conf
-              subPath: echo.conf
-              readOnly: true
-            # # directory
-            - name: datadir
-              mountPath: /usr/share/nginx/html
-          env:
-            - name: ENABLE_SSH
-              value: "true"
-            # # env from metadata
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            # # env from configmap key
-            - name: DATABASE
-              valueFrom:
-                configMapKeyRef:
-                  name: ${APP_NAME}-conf
-                  key: database
-      initContainers:
-        # # side cars
-        - name: sysctl$(security | indent '          ')
-          image: registry.local/nginx:bookworm
-          command:
-            - /bin/bash
-            - -c
-          args:
-            - "sysctl -w net.core.somaxconn=65535; sysctl -w net.ipv4.ip_local_port_range='1024 65531'"
-        - name: init-mydb
-          image: registry.local/nginx:bookworm
-          command: ["sh", "-c"]
-          args:
-            - |
-              echo "Command 1"
-              echo "init container" > /work-dir/index.html
-          volumeMounts:
-            - name: datadir
-              mountPath: "/work-dir"
-      # # pvc
-      # volumes:
-      #   - name: output
-      #     persistentVolumeClaim:
-      #       claimName: output-pvc
-      volumes:
-        - name: datadir
-          emptyDir: {}
-        - name: nginx-conf
-          configMap:
-            name: ${APP_NAME}-conf
+    spec:$( (volumes; [ -z "${DNS}" ] || host_alias;) | indent '      ')
+      containers:$( \
+        LIVE=1 LIMIT=1 ENV=1 VOL=1 SECURITY= CMD= container "${APP_NAME}" "registry.local/nginx:bookworm" "Always" \
+        | indent '        ' \
+        )
+      initContainers:$( \
+          ( \
+          LIVE= LIMIT= ENV= VOL= SECURITY=1 CMD=1 container "sysctl" "registry.local/nginx:bookworm"
+          LIVE= LIMIT= ENV= VOL=1 SECURITY= CMD=1 container "initdb" "registry.local/nginx:bookworm"
+          ) | indent '        ' \
+        )
+EOF
+cat <<EOF
 ---
 kind: Service
 apiVersion: v1
 metadata:
-  name: echo-service
+  name: ${APP_NAME}-service
   # # Service always in default namespace
   # namespace: ${NAMESPACE}
 spec:
