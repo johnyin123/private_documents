@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("92d924f[2024-12-12T13:04:43+08:00]:make_docker_image.sh")
+VERSION+=("0906db0[2024-12-18T07:49:32+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -83,6 +83,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
                 ########## custom nginx
                 # cp nginx-johnyin_1.26.2_\${arch}.deb \${type}-\${arch}/docker/
                 # (cd \${type}-\${arch}/docker && dpkg -x nginx-johnyin_1.26.2_\${arch}.deb .)
+                # rm -fr \${type}-\${arch}/docker/nginx-johnyin_1.26.2_\${arch}.deb
                 ##########
                 # confirm base-image is right arch
                 docker pull --quiet ${BASE_IMG} --platform \${arch}
