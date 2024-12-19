@@ -220,3 +220,23 @@ spec:
       targetPort: 8080
       port: 80
 EOF
+cat <<EOF >~/a
+---
+############################################################
+############################################################
+# kubectl exec util-linux -- nsenter --mount=/proc/1/ns/mnt -- bash -c 'ip a'
+apiVersion: v1
+kind: Pod
+metadata:
+  name: util-linux
+spec:
+  hostPID: true
+  containers:$( \
+    LIVE= LIMIT= ENV= VOL= SECURITY=1 CMD= container "pod_nsenter" "registry.local/debian:bookworm" \
+    | indent '    ' \
+    )
+      command:
+        - /usr/bin/busybox
+        - sleep
+        - infinity
+EOF
