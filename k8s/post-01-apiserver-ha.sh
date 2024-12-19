@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dde0a06[2024-12-19T15:40:43+08:00]:post-01-apiserver-ha.sh")
+VERSION+=("2348661[2024-12-19T15:48:09+08:00]:post-01-apiserver-ha.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -30,6 +30,55 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
 EOF
 )"; echo -e "${usage_doc}"
     exit 1
+}
+
+gen_haproxy_cfg() {
+    local masters="${*}"
+    cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
+global
+    log         127.0.0.1 local2
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     4000
+    user        haproxy
+    group       haproxy
+    daemon
+    stats socket /var/lib/haproxy/stats
+
+defaults
+    mode                    tcp
+    log                     global
+    option                  tcplog
+    option                  dontlognull
+    option                  redispatch
+    retries                 3
+    timeout queue           1m
+    timeout connect         10s
+    timeout client          1m
+    timeout server          1m
+    timeout check           10s
+    maxconn                 3000
+
+listen stats
+    mode   http
+    bind   :10086
+    stats   enable
+    stats   uri     /admin?stats
+    stats   auth    admin:admin
+    stats   admin   if TRUE
+
+frontend  k8s_https
+    bind      *:60443
+    mode      tcp
+    maxconn   2000
+    default_backend     kube_api
+
+backend kube_api
+    balance roundrobin
+$(for i in ${masters}; do
+echo "    server  ${i}  ${i}:6443  check port 6443 inter 10000 fall 2 rise 2 weight 1"
+done)
+EOF
 }
 
 gen_nginx_cfg() {
@@ -172,7 +221,8 @@ main() {
     [ -z "${vip}" ] && usage "vip master input"
     [ "$(array_size master)" -gt "0" ] || usage "at least one master"
     info_msg "Gen api-ha.yaml\n" && apilb_yaml > api-ha.yaml "${insec_registry}"
-    info_msg "Gen api.confl\n" && gen_nginx_cfg ${master[*]} > api.conf
+    info_msg "Gen api.conf\n" && gen_nginx_cfg ${master[*]} > api.conf
+    info_msg "Gen haproxy.conf\n" && gen_haproxy_cfg ${master[*]} > haproxy.cfg
     for ip in ${master[*]}; do
         info_msg "Gen keepalived-${ip}.conf\n" && gen_keepalived_cfg 9999 ${vip} "eth0" ${ip} ${master[*]} > keepalived-${ip}.conf
     done
