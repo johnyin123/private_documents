@@ -240,7 +240,7 @@ EOF
 cat <<EOF
 ---
 ############################################################
-# kubectl exec util-linux -- nsenter --mount=/proc/1/ns/mnt -- bash -c 'ip a'
+# kubectl exec util-linux -- nsenter --mount=/proc/1/ns/mnt -- bash -c 'ip a;cat /etc/hostname'
 apiVersion: v1
 kind: Pod
 metadata:
