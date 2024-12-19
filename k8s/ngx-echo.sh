@@ -20,11 +20,11 @@ limit() {
 # # 1000m=1 core cpu
 resources:
   limits:
-    cpu: 200m
-    memory: 200Mi
+    cpu: 1000m
+    memory: 1000Mi
   requests:
-    cpu: 100m
-    memory: 100Mi
+    cpu: 500m
+    memory: 200Mi
 EOF
 }
 
@@ -105,7 +105,7 @@ volumeMounts:
   # # directory
   - name: datadir
     mountPath: /usr/share/nginx/html
-  - name:shm
+  - name: shm
     mountPath: /dev/shm
 EOF
 }
@@ -194,11 +194,11 @@ spec:
         app: ${APP_NAME}
     spec:$( (volumes; [ -z "${DNS}" ] || host_alias;) | indent '      ')
       containers:$( \
-        LIVE=1 LIMIT=1 ENV=1 VOL=1 SECURITY= CMD= container "${APP_NAME}" "registry.local/nginx:bookworm" "Always" | indent '        ' \
+        LIVE=1 LIMIT=1 ENV=1 VOL=1 SECURITY= container "${APP_NAME}" "registry.local/nginx:bookworm" "Always" | indent '        ' \
         )
       initContainers:$( \
           ( \
-          LIVE= LIMIT= ENV= VOL= SECURITY=1 CMD=1 container "sysctl" "registry.local/nginx:bookworm" <<EOCMD
+          LIVE= LIMIT= ENV= VOL= SECURITY=1 container "sysctl" "registry.local/nginx:bookworm" <<EOCMD
 command:
   - /bin/sh
   - -c
@@ -207,7 +207,7 @@ args:
     echo "hello sysctl"
     sysctl -w net.ipv4.ip_local_port_range='1024 65531'
 EOCMD
-          LIVE= LIMIT= ENV= VOL=1 SECURITY= CMD=1 container "initdb" "registry.local/nginx:bookworm" <<EOCMD
+          LIVE= LIMIT= ENV= VOL=1 SECURITY= container "initdb" "registry.local/nginx:bookworm" <<EOCMD
 command: ["/bin/sh", "-c"]
 args:
   - |
@@ -226,7 +226,7 @@ metadata:
   # # Service always in default namespace
   # namespace: ${NAMESPACE}
 spec:
-  type: LoadBalancer
+  type: NodePort
   selector:
     app: ${APP_NAME}
   ports:
@@ -248,7 +248,7 @@ metadata:
 spec:
   hostPID: true
   containers:$( \
-    LIVE= LIMIT= ENV= VOL= SECURITY=1 CMD= container "pod_nsenter" "registry.local/debian:bookworm" << EOCMD | indent '    '
+    LIVE= LIMIT= ENV= VOL= SECURITY=1 CMD= container "nsenter" "registry.local/debian:bookworm" << EOCMD | indent '    '
 command: ["/usr/bin/busybox", "sleep", "infinity"]
 EOCMD
     )
