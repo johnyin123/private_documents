@@ -5,6 +5,10 @@ DNS=${DNS:-}
 NAMESPACE=default
 APP_NAME=echo-app
 REPLICAS=1
+# LOGFILE/FILTER_CMD=cat
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+exec > >(${FILTER_CMD:-sed '/^\s*#/d'} | tee ${LOGFILE:+-i ${LOGFILE}})
+log "LOGFILE=logfile FILTER_CMD=cat ${0}"
 indent() {
     local input=${1}
     echo
@@ -81,6 +85,10 @@ volumes:
   - name: nginx-conf
     configMap:
       name: ${APP_NAME}-conf
+  - name: shm
+    hostPath:
+      path: /dev/shm
+      type: Directory
 EOF
 }
 
@@ -97,6 +105,8 @@ volumeMounts:
   # # directory
   - name: datadir
     mountPath: /usr/share/nginx/html
+  - name:shm
+    mountPath: /dev/shm
 EOF
 }
 
@@ -123,6 +133,8 @@ container() {
     local name=${1}
     local image=${2}
     local pull_policy=${3:-IfNotPresent}
+    local cmds=""
+    [ -t 0 ] || cmds=$(cat)
     cat <<EOF
 - name: ${name}
   image: ${image}
@@ -134,19 +146,9 @@ container() {
             [ -z "${LIMIT}" ] || limit
             [ -z "${VOL}" ] || volume_mounts
             [ -z "${ENV}" ] || env
-            [ -z "${CMD}" ] || {
-                cat <<EO_CMD
-# command: ["/bin/sh", "-c"]
-command:
-  - /bin/sh
-  - -c
-args:
-  - |
-    echo "hello ${name}"
-EO_CMD
-                [ -z "${VOL}" ] || echo '    echo "init container" > /usr/share/nginx/html/index.html'
-                [ -z "${SECURITY}" ] || echo "    sysctl -w net.ipv4.ip_local_port_range='1024 65531'"
-            }
+            [ -z "${cmds}" ] || cat<<EOCMD
+${cmds}
+EOCMD
         ) | indent '  ' \
     )
 EOF
@@ -192,13 +194,26 @@ spec:
         app: ${APP_NAME}
     spec:$( (volumes; [ -z "${DNS}" ] || host_alias;) | indent '      ')
       containers:$( \
-        LIVE=1 LIMIT=1 ENV=1 VOL=1 SECURITY= CMD= container "${APP_NAME}" "registry.local/nginx:bookworm" "Always" \
-        | indent '        ' \
+        LIVE=1 LIMIT=1 ENV=1 VOL=1 SECURITY= CMD= container "${APP_NAME}" "registry.local/nginx:bookworm" "Always" | indent '        ' \
         )
       initContainers:$( \
           ( \
-          LIVE= LIMIT= ENV= VOL= SECURITY=1 CMD=1 container "sysctl" "registry.local/nginx:bookworm"
-          LIVE= LIMIT= ENV= VOL=1 SECURITY= CMD=1 container "initdb" "registry.local/nginx:bookworm"
+          LIVE= LIMIT= ENV= VOL= SECURITY=1 CMD=1 container "sysctl" "registry.local/nginx:bookworm" <<EOCMD
+command:
+  - /bin/sh
+  - -c
+args:
+  - |
+    echo "hello sysctl"
+    sysctl -w net.ipv4.ip_local_port_range='1024 65531'
+EOCMD
+          LIVE= LIMIT= ENV= VOL=1 SECURITY= CMD=1 container "initdb" "registry.local/nginx:bookworm" <<EOCMD
+command: ["/bin/sh", "-c"]
+args:
+  - |
+    echo "hello initdb"
+    echo "init container" > /usr/share/nginx/html/index.html
+EOCMD
           ) | indent '        ' \
         )
 EOF
@@ -220,9 +235,10 @@ spec:
       targetPort: 8080
       port: 80
 EOF
-cat <<EOF >~/a
----
 ############################################################
+############################################################
+cat <<EOF
+---
 ############################################################
 # kubectl exec util-linux -- nsenter --mount=/proc/1/ns/mnt -- bash -c 'ip a'
 apiVersion: v1
@@ -232,11 +248,8 @@ metadata:
 spec:
   hostPID: true
   containers:$( \
-    LIVE= LIMIT= ENV= VOL= SECURITY=1 CMD= container "pod_nsenter" "registry.local/debian:bookworm" \
-    | indent '    ' \
+    LIVE= LIMIT= ENV= VOL= SECURITY=1 CMD= container "pod_nsenter" "registry.local/debian:bookworm" << EOCMD | indent '    '
+command: ["/usr/bin/busybox", "sleep", "infinity"]
+EOCMD
     )
-      command:
-        - /usr/bin/busybox
-        - sleep
-        - infinity
 EOF
