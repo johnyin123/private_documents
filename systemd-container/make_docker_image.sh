@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0906db0[2024-12-18T07:49:32+08:00]:make_docker_image.sh")
+VERSION+=("ea9e070[2024-12-19T14:44:56+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -446,6 +446,20 @@ EOF
     write_file "${cfg_file}" <<EOF
 CMD=/usr/sbin/runuser
 ARGS="-u root -- /usr/sbin/nginx -g \"daemon off;\""
+EOF
+    cat <<'EOF'
+nginx "$@"
+mon_file=/etc/nginx/nginx.conf
+oldcksum=`cksum ${mon_file}`
+inotifywait -e modify,move,create,delete -mr --timefmt '%d/%m/%y %H:%M' --format '%T' \
+/etc/nginx/ | while read date time; do
+    newcksum=`cksum ${mon_file}`
+    if [ "$newcksum" != "$oldcksum" ]; then
+        echo "At ${time} on ${date}, config ${mon_file} update detected."
+        oldcksum=$newcksum
+        nginx -s reload
+fi
+done
 EOF
     cat <<'EOF'
 docker pull registry.local/nginx:bookworm --platform amd64
