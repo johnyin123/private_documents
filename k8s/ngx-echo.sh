@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("10f3a6b[2024-12-20T10:51:00+08:00]:ngx-echo.sh")
+VERSION+=("af123f1[2024-12-20T15:08:44+08:00]:ngx-echo.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -237,6 +237,8 @@ spec:
     matchLabels:
       app: ${app_name}
   replicas: ${replicas}
+  strategy:
+    type: RollingUpdate
   template:
     metadata:
       labels:
