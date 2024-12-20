@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("1274c0b[2024-12-20T07:28:27+08:00]:ngx-echo.sh")
+VERSION+=("10f3a6b[2024-12-20T10:51:00+08:00]:ngx-echo.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -106,6 +106,18 @@ volumes:
     hostPath:
       path: /dev/shm
       type: Directory
+  # # persistentvolume/create_pv.sh
+  # - name: test-vol
+  #   rbd:
+  #     monitors:
+  #       - 172.16.16.2:6789
+  #     fsType: xfs
+  #     readOnly: false
+  #     pool: k8s
+  #     image: rbd.img
+  #     user: k8s
+  #     secretRef:
+  #       name: rbd-2024-12-k8s-secret
 EOF
 }
 

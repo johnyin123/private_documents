@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("99b8b30[2024-12-05T12:19:25+08:00]:create_pv.sh")
+VERSION+=("351c0ad[2024-12-18T14:22:39+08:00]:create_pv.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -76,21 +76,20 @@ metadata:
   namespace: ${NAMESPACE:-default}
 spec:
   containers:
-  - name: test-${type}-${name}
-    image: registry.local/debian:bookworm
-    command:
-      - "/bin/sh"
-    args:
-      - "-c"
-      - "{ busybox date; busybox ip a; } > /mnt/SUCCESS && busybox sleep infinity || exit 1"
-    volumeMounts:
-    - mountPath: "/mnt"
-      name: test-${type}-${name}-vol
-  restartPolicy: "Never"
-  volumes:
-  - name: test-${type}-${name}-vol
-    persistentVolumeClaim:
-      claimName: pvc-${name}-${type}
+    - name: test-${type}-${name}
+      image: registry.local/debian:bookworm
+      command: [ "/bin/sh" ]
+      args:
+        - "-c"
+        - "{ busybox date; busybox ip a; } > /mnt/SUCCESS && busybox sleep infinity || exit 1"
+      volumeMounts:
+        - mountPath: "/mnt"
+          name: test-${type}-${name}-vol
+    restartPolicy: "Never"
+    volumes:
+      - name: test-${type}-${name}-vol
+        persistentVolumeClaim:
+          claimName: pvc-${name}-${type}
 EOF
 }
 
@@ -171,7 +170,6 @@ secret_common() {
 ---
 apiVersion: v1
 kind: Secret
-# type: "kubernetes.io/rbd"
 metadata:
   name: ${type}-${name}-${user}-secret
   namespace: ${NAMESPACE:-default}
@@ -268,9 +266,14 @@ POOL_NAME=k8s-pool
 ceph osd pool create ${POOL_NAME} 128
 ceph auth get-or-create client.${USER} mon 'profile rbd' osd "profile rbd pool=${POOL_NAME}" mgr "profile rbd pool=${POOL_NAME}"
 ceph mon stat
+ceph osd pool ls
+rbd create ${rbd_pool}/${rbd_image} --size 10G
+rbd list ${rbd_pool}
 EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
 $(secret_common "rbd" "${name}" "${ceph_user}")
+type: kubernetes.io/rbd
+data:
   key: $(echo -n ${ceph_key} | base64)
 EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
@@ -279,13 +282,10 @@ $(pv_common rbd "${name}" "${capacity}")
     monitors:
 $(for it in ${ceph_mons}; do
 cat <<EO_MON
-    - ${it}
+      - ${it}
 EO_MON
 done)
-    # # rbd pool. ceph osd pool ls
     pool: ${rbd_pool}
-    # # rbd image. rbd create ${rbd_pool}/${rbd_image} --size 10G
-    # # rbd list ${rbd_pool}
     image: ${rbd_image}
     user: ${ceph_user}
     secretRef:
