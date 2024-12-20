@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2348661[2024-12-19T15:48:09+08:00]:post-01-apiserver-ha.sh")
+VERSION+=("ff33b28[2024-12-19T16:07:15+08:00]:post-01-apiserver-ha.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -107,13 +107,11 @@ gen_keepalived_cfg() {
     shift 4
     local real_ips="${*}"
     local ip=""
-    passwd=$(gen_passwd)
+    passwd=$(gen_passwd 8)
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
 global_defs {
     router_id ${id}
     vrrp_skip_check_adv_addr
-    vrrp_garp_interval 0
-    vrrp_gna_interval 0
 }
 vrrp_instance kube-api-vip {
     state BACKUP
@@ -123,7 +121,7 @@ vrrp_instance kube-api-vip {
     advert_int 1
     authentication {
         auth_type PASS
-        auth_pass passwd4kube-api-${passwd}
+        auth_pass ${passwd}
     }
     unicast_src_ip ${src}
     unicast_peer {
@@ -173,10 +171,7 @@ spec:
       image: ${registry}/keepalived:bookworm
       securityContext:
         privileged: true
-      command:
-        - /usr/sbin/keepalived
-        - -D
-        - -n
+      command: [ "/usr/sbin/keepalived", "-lnR" ]
       volumeMounts:
         - mountPath: /etc/keepalived/keepalived.conf
           name: keepalived-cfg
