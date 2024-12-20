@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("2348661[2024-12-19T15:48:09+08:00]:ngx-echo.sh")
+VERSION+=("1274c0b[2024-12-20T07:28:27+08:00]:ngx-echo.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -342,6 +342,10 @@ main() {
     exec > >(${FILTER_CMD:-sed '/^\s*#/d'} | tee ${LOGFILE:+-i ${LOGFILE}})
     echo_app_deployment "${app_name}" "${namespace}" 1
     nsenter_pod
+    log "kubectl api-versions"
+    log "kubectl api-resources"
+    log "kubectl explain --api-version=apps/v1 replicaset"
+    log "kubectl explain deployment.metadata"
     return 0
 }
 main "$@"

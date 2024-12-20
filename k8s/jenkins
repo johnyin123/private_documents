@@ -1,0 +1,11 @@
+curl -o jenkins.war http://mirrors.ustc.edu.cn/jenkins/war/latest/jenkins.war
+cat<<'EOF' > start.sh
+#! /bin/bash
+user=jenkins
+base=/data/jenkins
+log=$base/log/jenkins.log
+war=$base/run/jenkins.war
+cmd="java -Xmx4g -Xms4g -jar $war > $log 2>&1"
+export JENKINS_HOME=$base/home
+su - $user -c "$cmd &"
+EOF
