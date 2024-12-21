@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("669419d[2024-02-04T15:00:43+08:00]:docker_init.sh")
+VERSION+=("842f1fd2[2024-11-20T14:12:46+08:00]:docker_init.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -75,8 +75,6 @@ mkdir -p ${DIRNAME}/cache
 debian_build "${DIRNAME}/buildroot"-${INST_ARCH} "${DIRNAME}/cache" "${PKG}"
 
 LC_ALL=C LANGUAGE=C LANG=C chroot "${DIRNAME}/buildroot-${INST_ARCH}/" /bin/bash <<EOSHELL
-    debian_sshd_init || true
-    debian_bash_init root true
     rm -fr /usr/share/doc/* /usr/share/man/*
     debian_minimum_init
 EOSHELL
