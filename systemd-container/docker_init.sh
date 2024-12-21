@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-VERSION+=("842f1fd2[2024-11-20T14:12:46+08:00]:docker_init.sh")
+VERSION+=("534dd8b7[2024-12-21T21:31:52+08:00]:docker_init.sh")
 set -o errexit
 set -o pipefail
 set -o nounset
@@ -67,7 +67,8 @@ HOSTNAME="docker"
 REPO=http://mirrors.aliyun.com/debian
 NAME_SERVER=114.114.114.114
 
-PKG="openssh-server,dumb-init"
+# PKG="openssh-server,dumb-init"
+PKG=""
 
 mkdir -p ${DIRNAME}/buildroot-${INST_ARCH}
 mkdir -p ${DIRNAME}/cache
