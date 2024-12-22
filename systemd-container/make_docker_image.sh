@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1b150f48[2024-12-20T15:19:44+08:00]:make_docker_image.sh")
+VERSION+=("98bb05c8[2024-12-22T11:52:15+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -402,7 +402,7 @@ inotifywait -e modify,move,create,delete -mr --timefmt '%d/%m/%y %H:%M' --format
         echo "At ${time} on ${date}, config ${mon_file} update detected."
         oldcksum=$newcksum
         nginx -s reload
-fi
+    fi
 done
 EOF
     cat <<'EOF'
