@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("98bb05c8[2024-12-22T11:52:15+08:00]:make_docker_image.sh")
+VERSION+=("c34be93[2024-12-22T15:16:22+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -452,7 +452,7 @@ combine_multiarch() {
         str_equal "${result}" "${platform}" && {
             info_msg "check: ${platform} | ${result} OK ++++++++++++++++++\n"
         } || {
-            [ -z "${result}" ] && warn_msg "check platform:${platform} NOT PASSED, ignore\n" || error_msg "check error: arch:${arch} | platform:${platform} | image:${result}\n"
+            [ -z "${result}" ] && warn_msg "check platform:${platform} NOT PASSED, ignore\n" || error_msg "check platform:${platform} ERROR, image:${result}\n"
         }
     done
     info_msg "${img_tag} combine ok\n"
