@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0a10d6e[2024-12-10T09:34:52+08:00]:ngx_demo.sh")
+VERSION+=("f3d1db3d[2024-12-13T15:16:11+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -514,8 +514,8 @@ server {
     # # if nginx > 1.25.1
     # http2 on;
     server_name _;
-    ssl_certificate /etc/nginx/ssl/srv.pem;
-    ssl_certificate_key /etc/nginx/ssl/srv.key;
+    ssl_certificate /etc/nginx/ssl/test.pem;
+    ssl_certificate_key /etc/nginx/ssl/test.key;
     location / {
         grpc_pass 127.0.0.1:9001;
     }
@@ -4475,7 +4475,7 @@ cat <<'EOF' >docker_registry.http
 # docker push myregistrydomain.com/test
 # docker pull myregistrydomain.com/test
 upstream docker-registry {
-    server registry:5000;
+    server 127.0.0.1:5000;
 }
 
 ## Set a variable to help us decide if we need to add the
@@ -4487,10 +4487,11 @@ map $upstream_http_docker_distribution_api_version $docker_distribution_api_vers
     '' 'registry/2.0';
 }
 server {
+    listen 80;
     listen 443 ssl;
     server_name _;
-    ssl_certificate /etc/nginx/conf.d/domain.crt;
-    ssl_certificate_key /etc/nginx/conf.d/domain.key;
+    ssl_certificate /etc/nginx/ssl/test.pem;
+    ssl_certificate_key /etc/nginx/ssl/test.key;
 
     # disable any limits to avoid HTTP 413 for large image uploads
     client_max_body_size 0;
@@ -4507,7 +4508,7 @@ server {
         # # Disable writes, readonly
         limit_except GET HEAD OPTIONS {
             # # here can write
-            # allow 192.168.168.0/24;
+            allow 192.168.168.0/24;
             deny all;
             # auth_basic "Restricted";
             # auth_basic_user_file  /etc/nginx/write.htpasswd
@@ -5016,7 +5017,7 @@ mail {
 
     proxy_pass_error_message on;
 
-    ssl_certificate     /etc/nginx/ssl/test.pem;
+    ssl_certificate /etc/nginx/ssl/test.pem;
     ssl_certificate_key /etc/nginx/ssl/test.key;
     # ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
     ssl_protocols       TLSv1.3; # QUIC requires TLS 1.3

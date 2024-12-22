@@ -7,13 +7,14 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ea9e070[2024-12-19T14:44:56+08:00]:make_docker_image.sh")
+VERSION+=("1b150f48[2024-12-20T15:19:44+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
 REGISTRY=${REGISTRY:-registry.local}
 NAMESPACE=${NAMESPACE:-}
 IMAGE=${IMAGE:-debian:bookworm}
+# # DIRNAME_COPYIN not slash end. DIRNAME_COPYIN.tgz create
 readonly DIRNAME_COPYIN=docker
 BASE_IMG="${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}"
 usage() {
@@ -23,10 +24,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
              ${Y}NAMESPACE${N}: image namespace, default "", no namespace use
              ${Y}IMAGE${N}: image name with tag, default debian:bookworm
              so, default multi arch baseimage: <REGISTRY>/<NAMESPACE>/<IMG:TAG>
-        docker env:
-            ENABLE_SSH=true/false, enable/disable sshd startup on 60022, default disable
-            # docker create -e ENABLE_SSH=true
-        -c <type>           *          Dockerfile for <base|combine|firefox|chrome|aria|python|nginx|xfce|grafana| <others> common docker file>
+        -c <type>           *          Dockerfile for <base|combine|firefox|chrome|aria|python|nginx|xfce| <others> common docker file>
                                             combine: combine multiarch docker image
                                             firefox: need firefox.tar.xz rootfs with firefox install /opt/firefox
                                             wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
@@ -64,7 +62,6 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
             ver=bookworm
             for arch in \${ARCH[@]}; do
                 ./${SCRIPTNAME} -c \${type} -D \${type}-\${arch} --arch \${arch}
-                echo > \${type}-\${arch}/docker/run_command
                 echo 'apt -y update && apt -y install --no-install-recommends keepalived' > \${type}-\${arch}/docker/build.run
                 # confirm base-image is right arch
                 docker pull --quiet ${BASE_IMG} --platform \${arch}
@@ -76,7 +73,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
          ${R}# # multiarch aria2${N}
             export BUILD_NET=br-ext
             ARCH=(amd64 arm64)
-            type=aria|python|nginx|xfce|grafana
+            type=aria|python|nginx|xfce
             ver=bookworm
             for arch in \${ARCH[@]}; do
                 ./${SCRIPTNAME} -c \${type} -D \${type}-\${arch} --arch \${arch}
@@ -105,11 +102,12 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
                 ./${SCRIPTNAME} -c \${type} -D \${type}-\${arch} --arch \${arch}
                 cat <<EODOC > \${type}-\${arch}/docker/build.run
             # apt update && apt -y --no-install-recommends install util-linux
-            getent passwd johnyin >/dev/null || useradd -m johnyin --home-dir /home/johnyin/ --shell /bin/bash
+            getent passwd johnyin >/dev/null || useradd -m -u 10001 johnyin --home-dir /home/johnyin/ --shell /bin/bash
             EODOC
-                cat <<EODOC > \${type}-\${arch}/docker/run_command
-            CMD=/usr/sbin/runuser
-            ARGS="-u root -- /usr/bin/busybox sleep infinity"
+                cat <<EODOC > \${type}-\${arch}/Dockerfile
+            USER 10001
+            WORKDIR /home/johnyin
+            ENTRYPOINT ["/usr/bin/busybox", "sleep", "infinity"]
             EODOC
                 ./${SCRIPTNAME} -c build -D \${type}-\${arch} --tag ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}-\${arch}
                 docker push ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}-\${arch}
@@ -142,48 +140,18 @@ ENV TZ=Asia/Shanghai
 ADD ${DIRNAME_COPYIN}.tgz /
 RUN set -eux && { \\
         export DEBIAN_FRONTEND=noninteractive; \\
-        ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; \\
-        mkdir -p /run/sshd && touch /usr/local/bin/startup && chmod 755 /usr/local/bin/startup; \\
-        rm -f /etc/ssh/ssh_host_* && ssh-keygen -A; \\
-        /bin/sh -o errexit -x /build.run;  \\
+        cmp /usr/share/zoneinfo/\$TZ /etc/localtime || { ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; }; \\
+        [ -e "/build.run" ] && /bin/sh -o errexit -x /build.run; \\
         echo "ALL OK"; \\
         rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /build.run; \\
     }
-# RUN useradd johnyin -u 10001 --create-home --user-group
+# RUN useradd -u 10001 -m johnyin --home-dir /home/johnyin/ --shell /bin/bash
 # USER 10001
 # WORKDIR /home/johnyin
-ENTRYPOINT ["dumb-init", "--"]
-CMD ["/usr/local/bin/startup"]
+# ENTRYPOINT ["/usr/bin/busybox", "sleep", "infinity"]
 EOF
     try mkdir -p ${target_dir}/${DIRNAME_COPYIN} && try touch ${target_dir}/${DIRNAME_COPYIN}/build.run
-    cfg_file=${target_dir}/${DIRNAME_COPYIN}/usr/local/bin/startup
-    try mkdir -p ${target_dir}/${DIRNAME_COPYIN}/usr/local/bin && write_file "${cfg_file}" <<'EOF'
-#!/bin/bash
-set -o errexit
-set -o pipefail
-set -o nounset
-set -o xtrace
-[ -e "/run_command" ] && source /run_command
-[ "${ENABLE_SSH:=false}" = "true" ] && ssh_cmd="/usr/sbin/sshd"
-echo "Running command [ssh: ${ENABLE_SSH}]: '${CMD:-}${ARGS:+ $ARGS}'"
-command -v "ip" &> /dev/null && ip a || { command -v "busybox" && busybox ip a; }
-[ -z "${CMD:-}" ] && {
-    echo "no service start"
-    ${ssh_cmd:+${ssh_cmd} -D}
-} || {
-    ${ssh_cmd:+${ssh_cmd}}
-    echo "service start ${CMD} ${ARGS:-}"
-    eval exec "${CMD}" ${ARGS:-}
-}
-EOF
-    cfg_file=${target_dir}/${DIRNAME_COPYIN}/run_command
-    try mkdir -p ${target_dir}/${DIRNAME_COPYIN} && write_file "${cfg_file}" <<'EOF'
-echo '1024 65531' > /proc/sys/net/ipv4/ip_local_port_range
-# CMD=/usr/sbin/runuser
-# ARGS="-u root -- /usr/bin/busybox sleep infinity"
-EOF
     info_msg "gen dockerfile ok\n"
-    info1_msg " edit ${target_dir}/${DIRNAME_COPYIN}/run_command for you service\n"
     info1_msg " edit ${target_dir}/${DIRNAME_COPYIN}/build.run for you RUN commands for Dockerfile\n"
 }
 build_base() {
@@ -195,6 +163,7 @@ build_base() {
     info_msg "copy ${base} -> ${dir}/${base##*/}\n"
     try "mkdir -p '${dir}' && cat ${base} > ${dir}/${base##*/}"
     gen_dockerfile "goldimg" "${dir}" "${base}" "${arch}"
+    rm -f ${dir}/${DIRNAME_COPYIN}/build.run
 }
 build_xfceweb() {
     local dir="${1}"
@@ -220,7 +189,7 @@ ssh -p 22 -XfC user@host xfce4-session
 # startx xfce4-session -- :100
 EOF
     write_file "${cfg_file}" <<EOF
-getent passwd ${username} >/dev/null || useradd -m ${username} --home-dir /home/${username}/ --shell /bin/bash
+getent passwd ${username} >/dev/null || useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
 # -wget -q -O- 'https://xpra.org/xpra.asc' | apt-key add -
 echo "deb [trusted=yes] https://xpra.org/ bookworm main" > /etc/apt/sources.list.d/xpra.list
 apt -y -oAcquire::AllowInsecureRepositories=true update || true
@@ -257,14 +226,8 @@ EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/home/${username}/"]
-EOF
-    cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
-    write_file "${cfg_file}" <<EOF
-CMD="xpra"
-ARGS="start-desktop --daemon=no --bind-tcp=0.0.0.0:\${PORT:-9999}"
-# CMD=/usr/sbin/runuser
-# ARGS="-u ${username} -- xpra start-desktop --daemon=no"
-# --auth=file --password-file=./password.txt
+USER 10001
+ENTRYPOINT ["xpra", "start-desktop", "--daemon=no", "--bind-tcp=0.0.0.0:\${PORT:-9999}"]
 EOF
     cat <<'EOF'
 docker create --name xfce --hostname xfce \
@@ -289,16 +252,13 @@ build_chrome() {
 touch /etc/default/google-chrome
 echo 'deb [arch=amd64 trusted=yes] http://dl.google.com/linux/chrome/deb/ stable main' > /etc/apt/sources.list.d/google.list
 apt update
-apt -y install --no-install-recommends google-chrome-stable && useradd -m ${username} --home-dir /home/${username}/
+apt -y install --no-install-recommends google-chrome-stable && useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
 EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/home/${username}/"]
-EOF
-    cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
-    write_file "${cfg_file}" <<EOF
-CMD=/usr/sbin/runuser
-ARGS="-u ${username} -- /opt/google/chrome/google-chrome --no-sandbox"
+USER 10001
+ENTRYPOINT ["/opt/google/chrome/google-chrome", "--no-sandbox"]
 EOF
     cat <<'EOF'
 docker create --name chrome --hostname chrome \
@@ -311,7 +271,7 @@ docker create --name chrome --hostname chrome \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --device /dev/snd \
     --device /dev/dri \
-    registry.local/chrome:bookworm-amd64
+    registry.local/chrome:bookworm-amd64 \
 xhost +127.0.0.1
 pactl load-module module-native-protocol-tcp auth-ip-acl=172.17.0.2
 docker -e PULSE_SERVER=172.17.42.1 ..
@@ -329,18 +289,13 @@ build_firefox() {
     gen_dockerfile "${name}" "${dir}" "${file}" "${arch}"
     cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
     write_file "${cfg_file}" <<EOF
-useradd -m ${username} --home-dir /home/${username}/
+useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
 EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/home/${username}/"]
-EOF
-    cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
-    write_file "${cfg_file}" <<EOF
-# CMD=/usr/sbin/runuser
-# ARGS="-u root -- /usr/bin/busybox sleep infinity"
-CMD=/usr/bin/su
-ARGS="${username} -c '/opt/firefox/firefox'"
+USER 10001
+ENTRYPOINT ["/opt/firefox/firefox"]
 EOF
     cat <<'EOF'
 # apt -y update && apt -y --no-install-recommends install libgtk-3-0 libnss3 libssl3 libdbus-glib-1-2 libx11-xcb1 libxtst6 libasound2
@@ -358,7 +313,7 @@ docker create --network br-ext --ip 192.168.169.2 --dns 8.8.8.8 \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --device /dev/snd \
     --device /dev/dri \
-    registry.local/firefox:bookworm
+    registry.local/firefox:bookworm \
 xhost +127.0.0.1
 # #
 docker run --rm -e DISPLAY -v /tmp:/tmp --ipc=host --pid=host --network br-ext myx11 '/firefox/firefox
@@ -379,18 +334,13 @@ build_python() {
     gen_dockerfile "${name}" "${dir}" "${base}" "${arch}"
     cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
     write_file "${cfg_file}" <<EOF
-useradd -m ${username} --home-dir /home/${username}/
+useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
 apt -y --no-install-recommends update
 apt -y --no-install-recommends install python3 python3-venv
 EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/home/${username}/"]
-EOF
-    cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
-    write_file "${cfg_file}" <<EOF
-# CMD=/usr/sbin/runuser
-# ARGS="-u ${username} -- python3 test.py"
 EOF
 }
 build_aria2() {
@@ -402,18 +352,16 @@ build_aria2() {
     gen_dockerfile "${name}" "${dir}" "${base}" "${arch}"
     cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
     write_file "${cfg_file}" <<EOF
-useradd -m ${username} --home-dir /home/${username}/
+useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
 apt -y --no-install-recommends update
 apt -y --no-install-recommends install aria2
 EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/home/${username}/"]
-EOF
-    cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
-    write_file "${cfg_file}" <<EOF
-CMD=/usr/sbin/runuser
-ARGS="-u ${username} -- /usr/bin/aria2c --conf-path=/home/${username}/.aria2/aria2.conf"
+USER 10001
+WORKDIR /home/johnyin
+ENTRYPOINT ["/usr/bin/aria2c", "--conf-path=/home/${username}/.aria2/aria2.conf"]
 EOF
     cat <<'EOF'
 docker pull registry.local/aria:bookworm --platform amd64
@@ -441,11 +389,7 @@ EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/etc/nginx/", "/var/log/nginx/"]
-EOF
-    cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
-    write_file "${cfg_file}" <<EOF
-CMD=/usr/sbin/runuser
-ARGS="-u root -- /usr/sbin/nginx -g \"daemon off;\""
+ENTRYPOINT ["/usr/sbin/nginx", "-g", "\"daemon off;\""]
 EOF
     cat <<'EOF'
 nginx "$@"
@@ -469,54 +413,6 @@ docker create --name nginx --hostname nginx \
     -v /storage/nginx/etc/:/etc/nginx/:ro \
     -v /storage/nginx/log/:/var/log/nginx/:rw \
     registry.local/nginx:bookworm
-EOF
-}
-build_grafana() {
-    local dir="${1}"
-    local arch=${2:-}
-    local name=grafana
-    local base="${BASE_IMG}"
-    local username=grafana
-    local groupname=grafana
-    gen_dockerfile "${name}" "${dir}" "${base}" "${arch}"
-    cfg_file=${dir}/${DIRNAME_COPYIN}/build.run
-    write_file "${cfg_file}" <<EOF
-apt update
-apt -y install --no-install-recommends ca-certificates fontconfig-config fonts-dejavu-core libbrotli1 libexpat1 libfontconfig1 libfreetype6 libpng16-16 musl
-getent group ${groupname} >/dev/null || groupadd --system ${groupname} || :
-getent passwd ${username} >/dev/null || useradd -g ${groupname} --system -s /sbin/nologin -d /usr/share/grafana --no-create-home --shell /bin/false ${username} 2> /dev/null || :
-apt -y update && apt -y install --no-install-recommends libbrotli1 libgeoip1 libxml2 libxslt1.1
-# grafana-cli plugins install yesoreyeram-infinity-datasource
-# UQL datasource:
-#     parse-json
-#       scope "vms"
-#
-# parse-json
-#  scope "vmtotal"
-#  project kv()
-# grafana-cli plugins install alexanderzobnin-zabbix-app
-EOF
-   cfg_file=${dir}/Dockerfile
-    write_file "${cfg_file}" append <<EOF
-VOLUME ["/usr/share/grafana/data"]
-EXPOSE 3000
-WORKDIR /usr/share/grafana/
-EOF
-    cfg_file=${dir}/${DIRNAME_COPYIN}/run_command
-    write_file "${cfg_file}" <<EOF
-[ -d /usr/share/grafana/data/ ] && /usr/bin/chown -R ${username}:${groupname} /usr/share/grafana/data/
-CMD=/usr/sbin/runuser
-ARGS="-u ${username} -- /usr/sbin/grafana-server"
-EOF
-    cat <<'EOF'
-https://grafana.com/grafana/download
-wget https://dl.grafana.com/enterprise/release/grafana-enterprise-10.2.3.linux-amd64.tar.gz
-
-docker create --name grafana --hostname grafana \
-    --network br-ext --ip 192.168.169.100 --dns 8.8.8.8 \
-    -e ENABLE_SSH=true \
-    -v /grafana/:/usr/share/grafana/data/:rw \
-    registry.local/grafana:bookworm
 EOF
 }
 
@@ -576,7 +472,7 @@ docker_build() {
     local dir="${1}"
     local tag="${2}"
     info_msg "archive docker directory\n"
-    tar cv -C ${dir}/docker/ . | gzip > ${dir}/docker.tgz
+    tar cv -C ${dir}/docker/ . | gzip > ${dir}/${DIRNAME_COPYIN}.tgz
     info_msg "docker build ${dir} -> ${tag}\n"
     (cd ${dir} && docker build --no-cache --force-rm ${BUILD_NET:+--network=${BUILD_NET} }-t ${tag} .)
 }
@@ -621,7 +517,6 @@ main() {
                     [ -z "${file}" ] && usage "base mode, file must input"
                     build_base "${dir:-goldimg}" "${tag}" "${file}" "${arch}"
                     ;;
-        grafana)    build_grafana "${dir:-grafana}" "${arch}";;
         xfce)       build_xfceweb "${dir:-xfce}" "${arch}";;
         chrome)     build_chrome "${dir:-chrome}" "${arch}";;
         firefox)    build_firefox "${dir:-firefox}" "${file}" "${arch}";;
