@@ -16,9 +16,10 @@ for arch in ${ARCH[@]}; do
     mkdir -p ${IMG_DIR}/docker/home/johnyin/
     cp elb-cloudprovider.py ${IMG_DIR}/docker/home/johnyin/elb_provider.py
     chown 1000:1000 ${IMG_DIR}/docker/home/johnyin -R
-    cat <<EOF > ${IMG_DIR}/docker/run_command
-CMD=/usr/sbin/runuser
-ARGS="-u johnyin -- python3 /home/johnyin/elb_provider.py"
+    cat <<EOF >> ${IMG_DIR}/Dockerfile
+USER 10001
+WORKDIR /home/johnyin
+ENTRYPOINT ["python3", "/home/johnyin/elb_provider.py" ]
 EOF
     cat <<EOF > ${IMG_DIR}/docker/build.run
 apt update && apt -y install python3-kubernetes
