@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b771252[2024-11-25T08:44:07+08:00]:new_ceph.sh")
+VERSION+=("e730c8f[2024-11-25T13:15:54+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 fix_ceph_conf() {
@@ -654,6 +654,7 @@ main "$@"
     ceph osd pool create cephfs_data
     ceph osd pool create cephfs_metadata
     ceph fs new myfs cephfs_metadata cephfs_data
+    # ceph fs set myfs allow_new_snaps true
     # 多活MDS
     ceph fs set myfs max_mds 2
     ceph fs ls
