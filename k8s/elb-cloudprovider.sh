@@ -17,12 +17,13 @@ for arch in ${ARCH[@]}; do
     cp elb-cloudprovider.py ${IMG_DIR}/docker/home/johnyin/elb_provider.py
     chown 1000:1000 ${IMG_DIR}/docker/home/johnyin -R
     cat <<EOF >> ${IMG_DIR}/Dockerfile
-USER 10001
+USER johnyin
 WORKDIR /home/johnyin
 ENTRYPOINT ["python3", "/home/johnyin/elb_provider.py" ]
 EOF
     cat <<EOF > ${IMG_DIR}/docker/build.run
 apt update && apt -y install python3-kubernetes
+getent passwd johnyin >/dev/null || useradd -m -u 10001 johnyin --home-dir /home/johnyin/ --shell /bin/bash
 chown johnyin:johnyin /home/johnyin/* -R
 /usr/sbin/runuser -u johnyin -- /bin/bash -s << EOSHELL
     # python3 -m venv /home/johnyin/myvenv
