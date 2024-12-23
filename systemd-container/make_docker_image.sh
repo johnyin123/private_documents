@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7445067[2024-12-23T07:49:00+08:00]:make_docker_image.sh")
+VERSION+=("732d5c1[2024-12-23T09:03:45+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -140,7 +140,7 @@ ENV TZ=Asia/Shanghai
 ADD ${DIRNAME_COPYIN}.tgz /
 RUN set -eux && { \\
         export DEBIAN_FRONTEND=noninteractive; \\
-        cmp /usr/share/zoneinfo/\$TZ /etc/localtime || { ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; }; \\
+        [ -z "\$TZ" ] || cmp /usr/share/zoneinfo/\$TZ /etc/localtime || { ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; }; \\
         [ -e "/build.run" ] && /bin/sh -o errexit -x /build.run; \\
         echo "ALL OK"; \\
         rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /build.run; \\
