@@ -16,6 +16,28 @@ kubectl taint nodes $MY_HOSTNAME node-role.kubernetes.io/control-plane:PreferNoS
 # # set label ingress true
 kubectl label node $MY_HOSTNAME ingress=true
 
+
+cat <<'EOF'
+# # metrics-server
+cd ~
+#根据实际情况修改v0.5.0为最新的
+wget -O metrics-server.yaml https://github.com/kubernetes-sigs/metrics-server/releases/download/xxxxx/components.yaml
+# 修改deployment,由于主机名没有作DNS解析,所以croedns无法找到主机.
+spec:
+  # 增加
+  command:
+    - /metrics-server #增加
+    - --kubelet-preferred-address-types=InternalIP #增加
+    - --kubelet-insecure-tls #增加
+
+编辑api-server
+vi /etc/kubernetes/manifests/kube-apiserver.yaml
+修改内容如下
+    - --requestheader-allowed-names=aggregator #修改为aggregator
+    - --enable-aggregator-routing=true # 增加一行
+kubectl apply -f metrics-server.yaml
+EOF
+
 force_del_ns() {
     NAMESPACE=
     cat <<EOF ns.json
