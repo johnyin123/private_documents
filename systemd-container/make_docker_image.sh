@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c34be93[2024-12-22T15:16:22+08:00]:make_docker_image.sh")
+VERSION+=("7445067[2024-12-23T07:49:00+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -105,7 +105,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
             getent passwd johnyin >/dev/null || useradd -m -u 10001 johnyin --home-dir /home/johnyin/ --shell /bin/bash
             EODOC
                 cat <<EODOC > \${type}-\${arch}/Dockerfile
-            USER 10001
+            USER johnyin
             WORKDIR /home/johnyin
             ENTRYPOINT ["/usr/bin/busybox", "sleep", "infinity"]
             EODOC
@@ -146,7 +146,7 @@ RUN set -eux && { \\
         rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /build.run; \\
     }
 # RUN useradd -u 10001 -m johnyin --home-dir /home/johnyin/ --shell /bin/bash
-# USER 10001
+# USER johnyin
 # WORKDIR /home/johnyin
 # ENTRYPOINT ["/usr/bin/busybox", "sleep", "infinity"]
 EOF
@@ -226,7 +226,7 @@ EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/home/${username}/"]
-USER 10001
+USER ${username}
 ENTRYPOINT ["xpra", "start-desktop", "--daemon=no", "--bind-tcp=0.0.0.0:\${PORT:-9999}"]
 EOF
     cat <<'EOF'
@@ -257,7 +257,7 @@ EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/home/${username}/"]
-USER 10001
+USER ${username}
 ENTRYPOINT ["/opt/google/chrome/google-chrome", "--no-sandbox"]
 EOF
     cat <<'EOF'
@@ -294,7 +294,7 @@ EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/home/${username}/"]
-USER 10001
+USER ${username}
 ENTRYPOINT ["/opt/firefox/firefox"]
 EOF
     cat <<'EOF'
@@ -359,8 +359,8 @@ EOF
     cfg_file=${dir}/Dockerfile
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/home/${username}/"]
-USER 10001
-WORKDIR /home/johnyin
+USER ${username}
+WORKDIR /home/${username}
 ENTRYPOINT ["/usr/bin/aria2c", "--conf-path=/home/${username}/.aria2/aria2.conf"]
 EOF
     cat <<'EOF'
