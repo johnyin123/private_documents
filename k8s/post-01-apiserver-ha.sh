@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ff33b28[2024-12-19T16:07:15+08:00]:post-01-apiserver-ha.sh")
+VERSION+=("1c221a0[2024-12-20T13:18:58+08:00]:post-01-apiserver-ha.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -42,8 +42,8 @@ global
     maxconn     4000
     user        haproxy
     group       haproxy
-    daemon
     stats socket /var/lib/haproxy/stats
+    # daemon
 
 defaults
     mode                    tcp
