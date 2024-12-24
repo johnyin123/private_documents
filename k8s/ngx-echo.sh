@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("af123f1[2024-12-20T15:08:44+08:00]:ngx-echo.sh")
+VERSION+=("f35d9a3[2024-12-20T16:35:30+08:00]:ngx-echo.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -60,6 +60,19 @@ readinessProbe:
   periodSeconds: 5
 EOF
 }
+
+lifecycle() {
+    cat <<EOF
+lifecycle:
+  postStart:
+    exec:
+      command: ["/usr/bin/busybox", "echo", "'postStart'"]
+  preStop:
+    exec:
+      command: ["/usr/bin/busybox", "echo", "'preStop'"]
+EOF
+}
+
 security() {
     cat <<EOF
 # kubectl explain pod.spec.securityContext
@@ -172,6 +185,7 @@ container() {
   imagePullPolicy: ${pull_policy}$( \
         ( \
             [ -z "${SECURITY}" ] || security
+            lifecycle
             [ -z "${LIVE}" ] || liveness
             [ -z "${LIMIT}" ] || limit
             [ -z "${VOL}" ] || volume_mounts
@@ -243,7 +257,7 @@ spec:
     metadata:
       labels:
         app: ${app_name}
-    spec:$( (volumes "${app_name}"; [ -z "${DNS}" ] || host_alias;) | indent '      ')
+    spec:$( (volumes "${app_name}"; [ -z "${DNS:-}" ] || host_alias;) | indent '      ')
       containers:$( \
         LIVE=1 LIMIT=1 ENV=1 VOL=1 SECURITY= container "${app_name}" "registry.local/nginx:bookworm" "Always" <<EOCMD | indent '        '
 command: ["/bin/sh", "-c"]
