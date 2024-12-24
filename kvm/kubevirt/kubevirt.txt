@@ -1,0 +1,141 @@
+cat <<EOF
+quay.io/kubevirt/virt-operator:v1.4.0
+quay.io/kubevirt/virt-api:v1.4.0
+quay.io/kubevirt/virt-launcher:v1.4.0
+quay.io/kubevirt/virt-controller:v1.4.0
+quay.io/kubevirt/virt-handler:v1.4.0
+EOF
+export VERSION=v1.4.0
+https://github.com/kubevirt/kubevirt/releases/download/${VERSION}/virtctl-${VERSION}-${ARCH}
+
+kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/$VERSION/kubevirt-operator.yaml
+kubectl apply -f https://github.com/kubevirt/kubevirt/releases/download/$VERSION/kubevirt-cr.yaml
+
+# # check deploy ok
+kubectl get kubevirt.kubevirt.io/kubevirt --namespace kubevirt --output=jsonpath="{.status.phase}"
+
+# # Nested Virtualization or Emulation
+cat /sys/module/kvm_intel/parameters/nested
+
+# # patch KubeVirt to useEmulation:
+kubectl --namespace kubevirt patch kubevirt kubevirt --type=merge --patch '{"spec":{"configuration":{"developerConfiguration":{"useEmulation":true}}}}'
+
+
+mkdir img && cd img
+cat << END > Dockerfile
+FROM scratch
+# kubevirt searches for disk images in default location: /disk
+ADD --chown=107:107 bookworm-arm64.qcow2 /disk/
+END
+docker build -t registry.local/debian:bookworm-arm64 .
+docker push registry.local/debian:bookworm-arm64
+
+cat <<EOF
+  volumes:
+  - hostDisk:
+      capacity: 1Gi
+      path: /data/disk.img
+      type: DiskOrCreate
+    name: host-disk
+EOF
+
+
+
+cat <<'EOF' | kubectl apply -f -
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-vm
+spec:
+  capacity:
+    storage: 25Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: local-path
+  local:
+    path: /var/lib/containerd
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - tel4
+          - tel5
+EOF
+
+cat <<'EOF' | kubectl apply -f -
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: winhd
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: local-path
+---
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: xvm
+spec:
+  runStrategy: Always
+  template:
+    metadata:
+      labels:
+        kubevirt.io/size: small
+        kubevirt.io/domain: xvm
+    spec:
+      domain:
+        devices:
+          disks:
+            - name: containerdisk
+              disk:
+                bus: virtio
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+            - name: harddrive
+              disk:
+                bus: virtio
+          interfaces:
+          - name: default
+            bridge: {}
+        resources:
+          requests:
+            memory: 1024M
+      networks:
+      - name: default
+        pod: {}
+      volumes:
+        - name: containerdisk
+          containerDisk:
+            image: registry.local/debian:bookworm-arm64
+        - name: harddrive
+          persistentVolumeClaim:
+            claimName: winhd
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            # userDataBase64: SGlrcyBHZXJnYW5vdlxu
+            userData: |-
+              #cloud-config
+              chpasswd:
+                expire: false
+              password: fedora
+              user: fedora
+EOF
+kubectl get vms
+# # start vm
+virtctl start xvm / kubectl patch virtualmachine xvm --type merge --patch='{"spec":{"running":true}}'
+
+
+virtctl console xvm
+virtctl stop xvm
+kubectl delete vm xvm
