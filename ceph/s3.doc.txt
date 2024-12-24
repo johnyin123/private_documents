@@ -1,5 +1,23 @@
-radosgw-admin --cluster armsite user list
-radosgw-admin --cluster armsite user info --uid=admin
+http://172.16.16.2
+http://172.16.16.3
+http://172.16.16.4
+http://172.16.16.7
+http://172.16.16.8
+
+cluster=armsite #ceph
+uid=nexus
+
+radosgw-admin --cluster ${cluster} user create --uid=${uid} --display-name=${uid} # --access_key=${uid} #--secret=123456
+radosgw-admin --cluster ${cluster} caps add --uid=${uid} --caps="users=read, write"
+radosgw-admin --cluster ${cluster} caps add --uid=${uid} --caps="usage=read, write"
+radosgw-admin --cluster ${cluster} user info --uid=${uid} | jq -r .keys[].access_key
+radosgw-admin --cluster ${cluster} user info --uid=${uid} | jq -r .keys[].secret_key
+
+# # create bucket
+# ./s3_ceph_test.sh -a <access_key> -s <secret_key> -u url http://10.170.24.2/nexus
+
+radosgw-admin --cluster ${cluster} user list
+radosgw-admin --cluster ${cluster} user info --uid=${uid}
 # jq 'select(.user_quota.enabled==true)|.user_quota.max_size'
-radosgw-admin --cluster armsite user stats --uid=admin
+radosgw-admin --cluster ${cluster} user stats --uid=${uid}
 # jq .stats.total_bytes

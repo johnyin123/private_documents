@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("f35d9a3[2024-12-20T16:35:30+08:00]:ngx-echo.sh")
+VERSION+=("e08fd99[2024-12-24T08:01:10+08:00]:ngx-echo.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -39,6 +39,16 @@ resources:
   requests:
     cpu: 500m
     memory: 200Mi
+EOF
+}
+
+nodeselect() {
+    cat <<EOF
+# kubectl get nodes --show-labels
+# kubectl label node <NAME> mykey=myval
+# # kubectl label nodes --all environment=production
+# nodeSelector:
+#   mykey: myval
 EOF
 }
 
@@ -257,7 +267,7 @@ spec:
     metadata:
       labels:
         app: ${app_name}
-    spec:$( (volumes "${app_name}"; [ -z "${DNS:-}" ] || host_alias;) | indent '      ')
+    spec:$( (volumes "${app_name}"; [ -z "${DNS:-}" ] || host_alias; nodeselect) | indent '      ')
       containers:$( \
         LIVE=1 LIMIT=1 ENV=1 VOL=1 SECURITY= container "${app_name}" "registry.local/nginx:bookworm" "Always" <<EOCMD | indent '        '
 command: ["/bin/sh", "-c"]
@@ -336,7 +346,7 @@ metadata:
   name: ${app_name}
   namespace: ${namespace}
 spec:
-  hostPID: true
+  hostPID: true$(nodeselect | indent '  ')
   containers:$( \
     LIVE= LIMIT= ENV= VOL= SECURITY=1 CMD= container "nsenter" "registry.local/debian:bookworm" << EOCMD | indent '    '
 command: ["/usr/bin/busybox", "sleep", "infinity"]
