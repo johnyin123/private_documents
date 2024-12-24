@@ -59,40 +59,27 @@ EOF
 
 cat <<'EOF' | kubectl apply -f -
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: winhd
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-  storageClassName: local-path
----
-apiVersion: kubevirt.io/v1
+apiVersion: kubevirt.io/v1alpha3
 kind: VirtualMachine
 metadata:
-  name: xvm
+  name: debian
 spec:
-  runStrategy: Always
+  running: false
   template:
     metadata:
       labels:
         kubevirt.io/size: small
-        kubevirt.io/domain: xvm
+        kubevirt.io/domain: debian
     spec:
       domain:
+        cpu:
+          cores: 2
         devices:
           disks:
-            - name: containerdisk
+            - name: containervolume
               disk:
                 bus: virtio
-            - name: cloudinitdisk
-              disk:
-                bus: virtio
-            - name: harddrive
+            - name: cloudinitvolume
               disk:
                 bus: virtio
           interfaces:
@@ -105,21 +92,17 @@ spec:
       - name: default
         pod: {}
       volumes:
-        - name: containerdisk
+        - name: containervolume
           containerDisk:
-            image: registry.local/debian:bookworm-arm64
-        - name: harddrive
-          persistentVolumeClaim:
-            claimName: winhd
-        - name: cloudinitdisk
+            image: tedezed/debian-container-disk:10.0
+        - name: cloudinitvolume
           cloudInitNoCloud:
-            # userDataBase64: SGlrcyBHZXJnYW5vdlxu
             userData: |-
               #cloud-config
-              chpasswd:
-                expire: false
-              password: fedora
-              user: fedora
+              bootcmd:
+                - echo cloud-init=disabled > /etc/cloud/cloud-init.disabled
+                - [ /bin/bash, -c, 'echo -e "demopass\ndemopass" | passwd root' ]
+                - reboot
 EOF
 kubectl get vms
 # # start vm
