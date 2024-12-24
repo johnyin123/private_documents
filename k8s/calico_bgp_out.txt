@@ -1,5 +1,17 @@
 利用BGP打通kubernetes內外網路流量交換，在cluster外也可以存取到cluster內的服務
 
+calicoctl get bgpconfig default
+calicoctl patch bgpconfiguration default -p '{"spec": {"nodeToNodeMeshEnabled": false}}'
+cat << EOF | calicoctl create -f -
+apiVersion: projectcalico.org/v3
+kind: BGPPeer
+metadata:
+  name: bgppeer-outer-router
+spec:
+  peerIP: <you hw route ip>
+  asNumber: <asnum
+EOF
+
 ECMP使得流量分散到多台機器上，而不會都經由同一個節點
 
 ingress-nginx的佈建也可以基於metalLB打通而不需要haproxy
@@ -92,63 +104,3 @@ spec:
   peerIP: 192.168.5.254
   # peer remote-as
   asNumber: 65005
-在Service上面手動新增externalIPs，修改為NodePort就可以使用該IP連線 如果不想經過SNAT的話就要把externalTrafficPolicy設為Local
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: frontend
-  labels:
-    app: guestbook
-    tier: frontend
-spec:
-  type: NodePort
-  externalIPs:
-  - 10.222.111.187
-  externalTrafficPolicy: Local
-  ports:
-  - port: 80
-  selector:
-    app: guestbook
-    tier: frontend
-metalLB
-如果想讓externalIP自動發放，可以安裝metalLB的controller，但不安裝speaker
-
-在apply metalLB的安裝yaml前先移除speaker相關資源設定
-
-並且指定網段，其中的protocol不重要，因為沒有speaker負責
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  namespace: metallb-system
-  name: config
-data:
-  config: |
-    address-pools:
-    - name: default
-      protocol: layer2
-      addresses:
-      - 10.222.111.1-10.222.111.250
-使用metalLB後需要額外在BGPConfiguration增加對應的設定
-
-  serviceLoadBalancerIPs:
-    - cidr: 10.222.111.0/24
-如果只有expose LoadBalancer IP的需要，可以直接安裝metalLB設定成BGP mode 效果是一樣的，config如下
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  namespace: metallb-system
-  name: config
-data:
-  config: |
-    peers:
-    - peer-address: 192.168.5.254
-      peer-asn: 65005
-      my-asn: 65005
-    address-pools:
-    - name: default
-      protocol: bgp
-      addresses:
-      - 10.222.111.1-10.222.111.250

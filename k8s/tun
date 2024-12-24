@@ -40,7 +40,8 @@ EOF
 
 force_del_ns() {
     NAMESPACE=
-    cat <<EOF ns.json
+    echo 'kubectl delete pod -n <ns> <pod> --grace-period=0 --force'
+    cat <<EOF > ns.json
 {
   "kind": "Namespace",
   "apiVersion": "v1",
