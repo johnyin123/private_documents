@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("e08fd99[2024-12-24T08:01:10+08:00]:ngx-echo.sh")
+VERSION+=("57d2be2[2024-12-24T09:25:31+08:00]:ngx-echo.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -68,18 +68,6 @@ readinessProbe:
   # Wait this many seconds before starting the probe
   initialDelaySeconds: 5
   periodSeconds: 5
-EOF
-}
-
-lifecycle() {
-    cat <<EOF
-lifecycle:
-  postStart:
-    exec:
-      command: ["/usr/bin/busybox", "echo", "'postStart'"]
-  preStop:
-    exec:
-      command: ["/usr/bin/busybox", "echo", "'preStop'"]
 EOF
 }
 
@@ -195,7 +183,6 @@ container() {
   imagePullPolicy: ${pull_policy}$( \
         ( \
             [ -z "${SECURITY}" ] || security
-            lifecycle
             [ -z "${LIVE}" ] || liveness
             [ -z "${LIMIT}" ] || limit
             [ -z "${VOL}" ] || volume_mounts
@@ -285,14 +272,14 @@ command:
   - -c
 args:
   - |
-    echo "hello sysctl"
-    sysctl -w net.ipv4.ip_local_port_range='1024 65531'
+    echo "hello sysctl \$(id)"
+    echo "1024 65531">/proc/sys/net/ipv4/ip_local_port_range
 EOCMD
           LIVE= LIMIT= ENV= VOL=1 SECURITY= container "initdb" "registry.local/nginx:bookworm" <<EOCMD
 command: ["/bin/sh", "-c"]
 args:
   - |
-    echo "hello initdb"
+    echo "hello initdb \$(id)"
     echo "init container" > /usr/share/nginx/html/index.html
 EOCMD
           ) | indent '        ' \
