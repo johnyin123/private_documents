@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("79703e7[2024-11-29T15:15:05+08:00]:iscsi-multipath.sh")
+VERSION+=("aea07e4[2024-12-03T09:00:55+08:00]:iscsi-multipath.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -33,6 +33,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
           # 部署多个iscsi节点,可以识别同一个wwid,组成多路径
           # # check on debian(target), openeuler(iscsi-initiator)
           ${SCRIPTNAME} --cluster armsite --ceph_user k9s --ceph_pool libvirt-pool --rbd_img rbd.img --chap_user testuser --chap_pass password123
+    # # ceph config generate-minimal-conf > ceph.conf
     cat <<EO_CFG > ceph.conf
 [global]
 fsid = fa0a4156-7196-416e-8ef2-b7c7328a4458

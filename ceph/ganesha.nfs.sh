@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5659d27[2024-11-29T14:27:16+08:00]:ganesha.nfs.sh")
+VERSION+=("bd35726[2024-11-29T15:27:55+08:00]:ganesha.nfs.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -33,6 +33,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         apt -y install nfs-ganesha-rgw # export s3 rgw
         exam:
           ${SCRIPTNAME} --cluster armsite --cephfs_name tsdfs --cephfs_path /k8s --ceph_user k9s --ceph_key "AQAA5ENnWx2+DBAAC7ZpySjtYfXevBTlxw3AUg==" --bucket docker-registry --access_key I3FQV62N89SJLCVJX8OV --secret_key SeNoU5ou95Uwi4nZk01MACmmbniLoA608TeUauY0
+    # # ceph config generate-minimal-conf > ceph.conf
     cat <<EO_CFG > ceph.conf
 [global]
 fsid = fa0a4156-7196-416e-8ef2-b7c7328a4458
