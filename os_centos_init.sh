@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("9de15b2[2024-07-04T08:20:21+08:00]:os_centos_init.sh")
+VERSION+=("b8292a2[2024-12-18T09:01:47+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -50,6 +50,7 @@ centos_build() {
 # centos7 : baseurl=http://mirrors.aliyun.com/centos/$releasever/os/$basearch/
 # centos8 : baseurl=http://mirrors.aliyun.com/centos-vault/releasever/BaseOS/$basearch/os/
 # rocky   : baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/BaseOS/$basearch/os/
+# openEuler: baseurl=http://devcloud.neusoft.com/openeuler/openEuler-24.03-LTS/everything/$basearch/
 # baseurl=http://192.168.168.1/BaseOS
 # baseurl=http://192.168.168.1/minimal
 [mybase]
@@ -252,7 +253,7 @@ export -f centos_sshd_regenkey
 
 centos_sshd_init() {
     local basedir=${1:-}
-    [ -z "${basedir}" ] && { rpm -q openssh-server || yum -y --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install openssh-server || true }
+    [ -z "${basedir}" ] && { rpm -q openssh-server || yum -y --setopt=tsflags='nodocs' --setopt=override_install_langs=en_US.utf8 install openssh-server || true; }
     sed --quiet -i.orig -E \
         -e '/^\s*(UseDNS|MaxAuthTries|GSSAPIAuthentication|Port|Ciphers|MACs|PermitRootLogin|TrustedUserCAKeys|MaxStartups|LoginGraceTime).*/!p' \
         -e '$aUseDNS no' \
