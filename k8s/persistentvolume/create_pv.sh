@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("351c0ad[2024-12-18T14:22:39+08:00]:create_pv.sh")
+VERSION+=("af123f1[2024-12-20T15:08:44+08:00]:create_pv.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -225,9 +225,9 @@ ceph fs authorize <fsname> client.${ceph_user} ${cephfs_path} rw
 ceph auth get-key client.${ceph_user}
 ceph_key=uSlE9PQ==
 # # first use admin, cretes subdir ${cephfs_path}
-# mount -t ceph 172.16.16.3:6789:/ /mnt/ -oname=admin,secret=AQAJ55xkhjuzGBAATpvjghofGpVMsSJ17icnJQ==
+# mount -t ceph 172.16.16.3:6789:/ /mnt/ -oname=admin,secret=AQAJ55xkhjuzGBAATpvjghofGpVMsSJ17icnJQ==,fs=<fsname>
 # mkdir /mnt${cephfs_path}
-mount -t ceph 172.16.16.3:6789:${cephfs_path} /mnt/ -oname=${ceph_user},secret=${ceph_key}
+mount -t ceph 172.16.16.3:6789:${cephfs_path} /mnt/ -oname=${ceph_user},secret=${ceph_key},fs=<fsname>
 EOF
     cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'}
 $(secret_common "cephfs" "${name}" "${ceph_user}")

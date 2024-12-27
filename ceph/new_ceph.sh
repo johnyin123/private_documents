@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e730c8f[2024-11-25T13:15:54+08:00]:new_ceph.sh")
+VERSION+=("223a67d[2024-12-23T10:20:16+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 fix_ceph_conf() {
@@ -653,12 +653,17 @@ main "$@"
 # cephfs init
     ceph osd pool create cephfs_data
     ceph osd pool create cephfs_metadata
+    # ceph fs volume create myfs
     ceph fs new myfs cephfs_metadata cephfs_data
     # ceph fs set myfs allow_new_snaps true
     # 多活MDS
     ceph fs set myfs max_mds 2
     ceph fs ls
-    mount -t ceph {IP}:/ /mnt -oname=admin,secret=AU50JhycRCQ==
+    mount -t ceph {IP}:/ /mnt -oname=admin,secret=AU50JhycRCQ==,fs=<fsname>
+    # ceph fs subvolumegroup create ${fsname} ${group}
+    # ceph fs subvolume create ${fsname} dirname ${group} --size=1073741824
+    ######## # # # euler cephfs BUG, ceph fs subvolume ls.... exception
+    # cephfs_path=$(ceph fs subvolume getpath ${fsname} testSubVolume ${group})
 # add rgw user
     radosgw-admin user create --uid=cephtest --display-name="ceph test" --email=test@demo.com
     radosgw-admin user list
