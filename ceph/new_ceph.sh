@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ef960a9[2024-12-27T10:56:19+08:00]:new_ceph.sh")
+VERSION+=("9d18d96[2024-12-27T15:12:38+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 fix_ceph_conf() {
@@ -552,8 +552,9 @@ ${SCRIPTNAME}
           scsi-target-utils-rbd / tgt-rbd
         SSH_PORT default is 60022
          ${SCRIPTNAME} -c site1 \\
-               -m 192.168.168.101 -m 192.168.168.102 -m 192.168.168.103 \\
-               -o 192.168.168.101:/dev/vdb -o 192.168.168.102:/dev/vdb -o 192.168.168.103:/dev/vdb \\
+               --mon 192.168.168.101 --mon 192.168.168.102 --mon 192.168.168.103 \\
+               --mds 192.168.168.101 --mds 192.168.168.102 --mds 192.168.168.103 \\
+               --osd 192.168.168.101:/dev/vdb --osd 192.168.168.102:/dev/vdb --osd 192.168.168.103:/dev/vdb \\
                --rgw 192.168.168.101:80 --rgw 192.168.168.102:80 --rgw 192.168.168.103:80
          ${SCRIPTNAME} -c site1 \\
                --master_zone 192.168.168.101 --master_zone 192.168.168.102 --master_zone 192.168.168.103 \\
@@ -657,17 +658,33 @@ main "$@"
 # cephfs init
     ceph osd pool create cephfs_data
     ceph osd pool create cephfs_metadata
-    # ceph fs volume create myfs
-    ceph fs new myfs cephfs_metadata cephfs_data
+    ceph fs new myfs cephfs_metadata cephfs_data ## ceph fs volume create myfs
     # ceph fs set myfs allow_new_snaps true
     # 多活MDS
     ceph fs set myfs max_mds 2
-    ceph fs ls
-    mount -t ceph {IP}:/ /mnt -oname=admin,secret=AU50JhycRCQ==,fs=<fsname>
-    # ceph fs subvolumegroup create ${fsname} ${group}
-    # ceph fs subvolume create ${fsname} dirname ${group} --size=1073741824
-    ######## # # # euler cephfs BUG, ceph fs subvolume ls.... exception
-    # cephfs_path=$(ceph fs subvolume getpath ${fsname} testSubVolume ${group})
+    ceph fs authorize myfs client.myfs / rw
+    secret=$(ceph auth get-key client.myfs)
+    mount -t ceph {IP}:/ /mnt -oname=admin,secret=<secret>,fs=<fsname>
+# cephfs subvolume
+    ceph fs volume create ${fsname}
+    # ceph fs authorize ${fsname} client.${fsname}-admin / rw
+    ceph fs volume info ${fsname}
+    # # ceph osd pool set $POOL_NAME crush_rule rule-${CLASS_NAME}, see: crush-rule-ssd.txt
+    ceph fs set ${fsname} max_mds 2
+    ceph fs subvolumegroup create ${fsname} ${group}
+    ceph fs subvolumegroup ls ${fsname}
+    ceph fs subvolume create ${fsname} vol01 ${group} --size=1073741824
+    ceph fs subvolume ls ${fsname} ${group}
+    dirpath=$(ceph fs subvolume getpath ${fsname} vol01 ${group})
+    # /volumes/${group}/vol01/uuid....
+    ceph fs subvolume authorize ${fsname} vol01 user1 ${group} rw
+    ceph fs subvolume authorized_list ${fsname} vol01 ${group}
+    secret=$(ceph auth get-key client.user1)
+    ceph auth get client.user1
+    mount -t ceph {mon_ip}:${dirpath} /mnt -oname=user1,secret=${secret},fs=${fsname}
+    ceph fs subvolume resize ${fsname} vol01 10737418240 ${group}
+    # # ceph config set mon mon_allow_pool_delete true
+    # ceph fs volume rm ${fsname} --yes-i-really-mean-it
 # add rgw user
     radosgw-admin user create --uid=cephtest --display-name="ceph test" --email=test@demo.com
     radosgw-admin user list
@@ -695,4 +712,8 @@ main "$@"
     radosgw-admin zone modify --rgw-zone=${zone_name} --master --default
     radosgw-admin period update --commit
     systemctl restart ceph-radosgw@rgw.$(hostname)
+# rbd
+    ceph osd pool create ${poolname} 128
+    rbd pool init ${poolname}
+    ceph auth get-or-create client.${poolname}-admin mon 'profile rbd' osd "profile rbd pool=${poolname}"
 EOF

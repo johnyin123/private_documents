@@ -1,3 +1,7 @@
+######## # # # euler 2203 cephfs BUG, ceph fs subvolume ls.... exception
+## /volumes/${group}/dirname/uuid.....
+# ceph fs subvolume getpath ${fsname} dirname ${group} -> Excepiton....
+
 2023-05-12T08:06:07.508+0800 7f919951bf00  1 bluestore(/var/lib/ceph/osd/ceph-0/) _open_super_meta min_alloc_size 0x1000
 2023-05-12T08:06:07.511+0800 7f919951bf00 -1 load failed dlopen(): "/usr/lib64/ceph/compressor/libceph_snappy.so: undefined symbol: _ZTIN6snappy6SourceE" or "/usr/lib64/ceph/libceph_snappy.so: cannot open shared object file: No such file or directory"
 2023-05-12T08:06:07.511+0800 7f919951bf00 -1 create cannot load compressor of type snappy

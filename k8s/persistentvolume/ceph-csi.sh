@@ -1,60 +1,30 @@
 cat <<'EOF'
 FSID=$(ceph fsid)
-ADMIN_KEY=$(ceph auth get-key client.${ADMIN_USER})
+CEPHFS_KEY=$(ceph auth get-key client.${CEPHFS_USER})
 CEPHFS_NAME=$(ceph fs ls -f json | jq -r '.[0].name')
-
 ceph config generate-minimal-conf > ceph.conf
-ceph fs authorize <cephfs_name> client.<user> / rw > ceph.client.<user>.keyring
 fsname=$(ceph fs volume ls | jq -r '.[0].name')
-# ceph fs volume create ${fsname}
-# ceph fs subvolumegroup create ${fsname} ${group}
-# ceph fs subvolume create ${fsname} dirname ${group} --size=1073741824
-# # /volumes/${group}/dirname/uuid....
-# ceph fs subvolume ls ${fsname} ${group}
-# ceph fs authorize ${fsname} client.${ceph_user} ${cephfs_path} rw
-######## # # # euler cephfs BUG, ceph fs subvolume ls.... exception
-## /volumes/${group}/dirname/uuid.....
-# cephfs_path=$(ceph fs subvolume getpath ${fsname} testSubVolume ${group})
-
-# # euler cephfs BUG
-# ceph fs subvolume authorize <vol_name> <sub_name> <auth_id> [--group_name=<group_name>] [--access_level=<access_level>]
-# ceph fs subvolume authorized_list <vol_name> <sub_name> 
-ceph auth get-key client.${ceph_user}
-
-# # create user for RBD
-ceph auth get-or-create client.kubernetes \
-    mon 'profile rbd' \
-    osd 'profile rbd' \
-    mgr 'allow rw'
-# # create user for CephFS
-ceph auth get-or-create client.kubernetes \
-    mon 'allow r' \
-    osd 'allow rw tag cephfs metadata=*' \
-    mgr 'allow rw'
-# # stage secret in storageclass, cephfs
-ceph auth get-or-create client.kubernetes \
-    mon 'allow r' \
-    osd 'allow rw tag cephfs *=*' \
-    mgr 'allow rw' \
-    mds 'allow rw'
 
 kubectl -n cephcsi exec -it csi-cephfsplugin-provisioner-xx -c csi-cephfsplugin -- /bin/bash
 EOF
-
+#######################
 REGISTRY=registry.local
-clusterid=fa0a4156-7196-416e-8ef2-b7c7328a4458
-mons="172.16.16.2:6789,172.16.16.3:6789,172.16.16.4:6789,172.16.16.7:6789,172.16.16.8:6789"
 NAMESPACE=cephcsi
 CSI_VERSION=v3.7.2
 TYPES=(rbd cephfs)
 #######################
-RBD_POOL=libvirt-pool
+FSID=f0510d24-a438-4ad4-8ab3-5c0cc75991eb
+MONS="172.16.0.156:6789,172.16.0.157:6789,172.16.0.158:6789"
+#######################
 CEPHFS_NAME=tsdfs
-ADMIN_USER=admin
-ADMIN_KEY=AQAJ55xkhjuzGBAATpvjghofGpVMsSJ17icnJQ==
-
+CEPHFS_USER=tsdfs-admin
+CEPHFS_KEY=AQBXZ25neGTyOhAAD32SCFsOLweUQXhYqfyv0w==
+#######################
+RBD_POOL=k8s-pool
+RBD_USER=k8s-pool-admin
+RBD_KEY=AQD9aG5n9H9AChAADiTb3i1Vq1Q7kuUz6Il4pA==
+#######################
 kubectl create namespace ${NAMESPACE} || true
-
 for type in ${TYPES[@]}; do
     sed -i "s/image\s*:\s*[^\/]*\//image: ${REGISTRY}\//g" ${type}-${CSI_VERSION}-csi*.yaml
     sed -i "s/namespace\s*:\s*.*/namespace: ${NAMESPACE}/g" ${type}-${CSI_VERSION}-csi*.yaml
@@ -75,8 +45,8 @@ data:
   config.json: |-
     [
       {
-        "clusterID": "${clusterid}",
-        "monitors": [ "$(echo "${mons}" | sed 's/,/","/g')" ],
+        "clusterID": "${FSID}",
+        "monitors": [ "$(echo "${MONS}" | sed 's/,/","/g')" ],
         "cephFS": {
           "subvolumeGroup": "csi"
         }
@@ -118,16 +88,21 @@ kind: Secret
 metadata:
   name: csi-${type}-secret
 stringData:
-  # Required for dynamically provisioned volumes
-  userID: ${ADMIN_USER}
-  userKey: ${ADMIN_KEY}
-  $([ "${type}" == "cephfs" ] && { cat <<EO_ADMIN
-  # Required for statically provisioned volumes
-  adminID: ${ADMIN_USER}
-  adminKey: ${ADMIN_KEY}
+  encryptionPassphrase: test_passphrase
+$([ "${type}" == "rbd" ] && { cat <<EO_ADMIN
+  userID: ${RBD_USER}
+  userKey: ${RBD_KEY}
 EO_ADMIN
 })
-  encryptionPassphrase: test_passphrase
+$([ "${type}" == "cephfs" ] && { cat <<EO_ADMIN
+  # Required for dynamically provisioned volumes
+  userID: ${CEPHFS_USER}
+  userKey: ${CEPHFS_KEY}
+  # Required for statically provisioned volumes
+  adminID: ${CEPHFS_USER}
+  adminKey: ${CEPHFS_KEY}
+EO_ADMIN
+})
 EOF
 done
 for type in ${TYPES[@]}; do
@@ -143,7 +118,7 @@ allowVolumeExpansion: true
 mountOptions:
   - discard
 parameters:
-  clusterID: ${clusterid}
+  clusterID: ${FSID}
   csi.storage.k8s.io/provisioner-secret-name: csi-${type}-secret
   csi.storage.k8s.io/provisioner-secret-namespace: ${NAMESPACE}
   csi.storage.k8s.io/controller-expand-secret-name: csi-${type}-secret
@@ -154,7 +129,7 @@ parameters:
     [ "${type}" == "cephfs" ] && { echo "fsName: ${CEPHFS_NAME}"; })
 EOF
 done
-
+#######################
 cephfs_test() {
     cat <<EOF > testpod.yaml
 ---
@@ -230,7 +205,7 @@ spec:
         # claimName: cephfs-pvc
 EOF
 }
-
+#######################
 download() {
     rbd=(
         https://raw.githubusercontent.com/ceph/ceph-csi/${CSI_VERSION}/deploy/rbd/kubernetes/csidriver.yaml
