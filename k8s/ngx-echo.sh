@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("57d2be2[2024-12-24T09:25:31+08:00]:ngx-echo.sh")
+VERSION+=("50ab6f5[2024-12-24T12:52:57+08:00]:ngx-echo.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -232,7 +232,7 @@ echo.conf: |
        set $cache_bypass 1;
        access_log off;
        location =/healthz { access_log off; default_type text/html; return 200 "$time_iso8601 $hostname alive.\n"; }
-       location /info { return 200 "\$time_iso8601 Hello from $hostname. You connected from $remote_addr:$remote_port to $server_addr:$server_port\n"; }
+       location /info { return 200 "$time_iso8601 Hello from $hostname. You connected from $remote_addr:$remote_port to $server_addr:$server_port\n"; }
        location / { keepalive_timeout 0; return 444; }
    }
 EOF
