@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("223a67d[2024-12-23T10:20:16+08:00]:new_ceph.sh")
+VERSION+=("ef960a9[2024-12-27T10:56:19+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 fix_ceph_conf() {
@@ -537,14 +537,18 @@ ${SCRIPTNAME}
         openeuler 23.03, ceph version 16.2.7
             WARN: HEALTH_WARN 3 OSD(s) have broken BlueStore compression
                 see openeuler22.03.txt
+        openeuler 2403, ceph version 18.2.2
+            HEALTH_WARN Module 'restful' has failed dependency: PyO3 modules do not yet support subinterpreters, see https://github.com/PyO3/pyo3/issues/576
+            ceph mgr module disable dashboard
+            ceph mgr module disable restful
         VER:nautilus/octopus/pacific || 16.2.6/15.2.9/.....
             centos-release-ceph-nautilus/centos-release-ceph-octopus/centos-release-ceph-pacific
         1. yum -y update && yum -y install centos-release-ceph-\${VER}
-        2. yum -y install ceph radosgw rbd-mirror rbd-nbd
+        2. yum -y install ceph ceph-radosgw ceph-mds rbd-mirror rbd-nbd
         OR.
         1. wget -q -O- 'https://download.ceph.com/keys/release.asc' | apt-key add -
         2. echo deb http://download.ceph.com/debian-\${VER}/ \$(sed -n "s/^\s*VERSION_CODENAME\s*=\s*\(.*\)/\1/p" /etc/os-release) main | tee /etc/apt/sources.list.d/ceph.list
-        3. apt-get update && apt-get install ceph radosgw rbd-mirror rbd-nbd
+        3. apt-get update && apt-get install ceph radosgw ceph-mds rbd-mirror rbd-nbd
           scsi-target-utils-rbd / tgt-rbd
         SSH_PORT default is 60022
          ${SCRIPTNAME} -c site1 \\
