@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("b56e6dd[2024-12-28T09:22:21+08:00]:ceph-csi.sh")
+VERSION+=("34b2a2a[2024-12-28T16:04:57+08:00]:ceph-csi.sh")
 ################################################################################
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 usage() {
@@ -152,8 +152,8 @@ kind: StorageClass
 metadata:
   name: ${type}-storage-class
 provisioner: ${type}.csi.ceph.com
-reclaimPolicy: Retain
-# reclaimPolicy: Delete
+# reclaimPolicy: Retain
+reclaimPolicy: Delete
 allowVolumeExpansion: true
 mountOptions:
   - discard
