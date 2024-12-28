@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9d18d96[2024-12-27T15:12:38+08:00]:new_ceph.sh")
+VERSION+=("b08db22[2024-12-27T17:09:34+08:00]:new_ceph.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 fix_ceph_conf() {
@@ -491,9 +491,8 @@ EOF
 }
 
 usage() {
-    [ "$#" != 0 ] && echo "$*"
-    cat <<EOF
-${SCRIPTNAME}
+    R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
+${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
         -c|--cluster   <cluster name> ceph cluster name, default "ceph"
         -m|--mon       <ceph mon ip>  ceph mon node, (first mon is mon/mgr(active), other mon/mgr(standby))
         -o|--osd       <ceph osd ip>:<device>  ceph osd node
@@ -526,7 +525,7 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
     Example:
-        prepare node hosts file:
+        ${R}prepare node hosts file:${N}
             # servern is public network(mon_host,mon_initial_members),osd in cluster network
             # <pub_network> name
             cat <<EOF>/etc/hosts
@@ -534,10 +533,10 @@ ${SCRIPTNAME}
             192.168.168.101 server1
             192.168.168.... servern
             EOF
-        openeuler 23.03, ceph version 16.2.7
+        ${R}openeuler 23.03, ceph version 16.2.7${N}
             WARN: HEALTH_WARN 3 OSD(s) have broken BlueStore compression
                 see openeuler22.03.txt
-        openeuler 2403, ceph version 18.2.2
+        ${R}openeuler 2403, ceph version 18.2.2${N}
             HEALTH_WARN Module 'restful' has failed dependency: PyO3 modules do not yet support subinterpreters, see https://github.com/PyO3/pyo3/issues/576
             ceph mgr module disable dashboard
             ceph mgr module disable restful
@@ -552,12 +551,24 @@ ${SCRIPTNAME}
           scsi-target-utils-rbd / tgt-rbd
         SSH_PORT default is 60022
          ${SCRIPTNAME} -c site1 \\
-               --mon 192.168.168.101 --mon 192.168.168.102 --mon 192.168.168.103 \\
-               --mds 192.168.168.101 --mds 192.168.168.102 --mds 192.168.168.103 \\
-               --osd 192.168.168.101:/dev/vdb --osd 192.168.168.102:/dev/vdb --osd 192.168.168.103:/dev/vdb \\
-               --rgw 192.168.168.101:80 --rgw 192.168.168.102:80 --rgw 192.168.168.103:80
+               --mon 192.168.168.101 \\
+               --mds 192.168.168.101 \\
+               --osd 192.168.168.101:/dev/vdb \\
+               --rgw 192.168.168.101:80 \\
+               \\
+               --mon 192.168.168.102 \\
+               --mds 192.168.168.102 \\
+               --osd 192.168.168.102:/dev/vdb \\
+               --rgw 192.168.168.102:80 \\
+               \\
+               --mon 192.168.168.103 \\
+               --mds 192.168.168.103 \\
+               --osd 192.168.168.103:/dev/vdb \\
+               --rgw 192.168.168.103:80
          ${SCRIPTNAME} -c site1 \\
-               --master_zone 192.168.168.101 --master_zone 192.168.168.102 --master_zone 192.168.168.103 \\
+               --master_zone 192.168.168.101 \\
+               --master_zone 192.168.168.102 \\
+               --master_zone 192.168.168.103 \\
                --rgw_endpts http://192.168.168.101:80,http://192.168.168.102:80,http://192.168.168.103:80 \\
                --rgw_realm movie --rgw_grp cn --rgw_zone idc01
          ${SCRIPTNAME} -c site2 \\
@@ -571,7 +582,11 @@ ${SCRIPTNAME}
         SSL can also be disabled by setting this configuration value:
         # # disable ceph dashboard ssl
         ceph config set mgr mgr/dashboard/ssl false
+${G}-----------------------------------------------------------${N}
+$(sed -ne '/^##\s*Usage Start/,/^##\s*Usage End$/p' < $0)
+${G}-----------------------------------------------------------${N}
 EOF
+)"; echo -e "${usage_doc}"
     exit 1
 }
 main() {
@@ -637,83 +652,94 @@ main() {
 main "$@"
 
 : <<'EOF'
+## Usage Start
 # mon is allowing insecure global_id reclaim
-    ceph config set mon auth_allow_insecure_global_id_reclaim false
+  ceph config set mon auth_allow_insecure_global_id_reclaim false
 # rgw multi site upload http 416
-    ceph config set global mon_max_pg_per_osd 300
+  ceph config set global mon_max_pg_per_osd 300
 # dashboard
-    ceph mgr module enable dashboard
-    ceph mgr module ls | grep -A 5 enabled_modules
-    ceph dashboard create-self-signed-cert
-    ceph mgr services
-    echo "password" > pwdfile
-    ceph dashboard ac-user-create admin  administrator -i pwdfile
-    ceph config set mgr mgr/dashboard/server_addr 192.168.168.201
-    ceph config set mgr mgr/dashboard/ssl false
-    ceph mgr module disable dashboard
-    ceph mgr module enable dashboard
-    ceph mgr services
+  ceph mgr module enable dashboard
+  ceph mgr module ls | grep -A 5 enabled_modules
+  ceph dashboard create-self-signed-cert
+  ceph mgr services
+  echo "password" > pwdfile
+  ceph dashboard ac-user-create admin  administrator -i pwdfile
+  ceph config set mgr mgr/dashboard/server_addr 192.168.168.201
+  ceph config set mgr mgr/dashboard/ssl false
+  ceph mgr module disable dashboard
+  ceph mgr module enable dashboard
+  ceph mgr services
 # ceph 12 not support this module
-    ceph mgr module enable pg_autoscaler
+  ceph mgr module enable pg_autoscaler
 # cephfs init
-    ceph osd pool create cephfs_data
-    ceph osd pool create cephfs_metadata
-    ceph fs new myfs cephfs_metadata cephfs_data ## ceph fs volume create myfs
-    # ceph fs set myfs allow_new_snaps true
-    # 多活MDS
-    ceph fs set myfs max_mds 2
-    ceph fs authorize myfs client.myfs / rw
-    secret=$(ceph auth get-key client.myfs)
-    mount -t ceph {IP}:/ /mnt -oname=admin,secret=<secret>,fs=<fsname>
+  ceph osd pool create cephfs_data
+  ceph osd pool create cephfs_metadata
+  ceph fs new myfs cephfs_metadata cephfs_data ## ceph fs volume create myfs
+  # ceph fs set myfs allow_new_snaps true
+  # 多活MDS
+  ceph fs set myfs max_mds 2
+  ceph fs authorize myfs client.myfs / rw
+  secret=$(ceph auth get-key client.myfs)
+  mount -t ceph mon1:6789,mon2:6789:/ /mnt -oname=admin,secret=<secret>,fs=<fsname>
 # cephfs subvolume
-    ceph fs volume create ${fsname}
-    # ceph fs authorize ${fsname} client.${fsname}-admin / rw
-    ceph fs volume info ${fsname}
-    # # ceph osd pool set $POOL_NAME crush_rule rule-${CLASS_NAME}, see: crush-rule-ssd.txt
-    ceph fs set ${fsname} max_mds 2
-    ceph fs subvolumegroup create ${fsname} ${group}
-    ceph fs subvolumegroup ls ${fsname}
-    ceph fs subvolume create ${fsname} vol01 ${group} --size=1073741824
-    ceph fs subvolume ls ${fsname} ${group}
-    dirpath=$(ceph fs subvolume getpath ${fsname} vol01 ${group})
-    # /volumes/${group}/vol01/uuid....
-    ceph fs subvolume authorize ${fsname} vol01 user1 ${group} rw
-    ceph fs subvolume authorized_list ${fsname} vol01 ${group}
-    secret=$(ceph auth get-key client.user1)
-    ceph auth get client.user1
-    mount -t ceph {mon_ip}:${dirpath} /mnt -oname=user1,secret=${secret},fs=${fsname}
-    ceph fs subvolume resize ${fsname} vol01 10737418240 ${group}
-    # # ceph config set mon mon_allow_pool_delete true
-    # ceph fs volume rm ${fsname} --yes-i-really-mean-it
+  ceph fs volume create ${fsname}
+  # ceph fs authorize ${fsname} client.${fsname}-user / rw /dir rws
+  # # ceph-csi need mgr.
+  ceph auth get-or-create client.${fsname}-admin \
+    mgr "allow rw" \
+    osd "allow rw tag cephfs metadata=${fsname}, allow rw tag cephfs data=${fsname}" \
+    mds "allow r fsname=${fsname} path=/volumes, allow rws fsname=${fsname} path=/volumes/csi" \
+    mon "allow r fsname=${fsname}"
+  ceph fs volume info ${fsname}
+  # # ceph osd pool set $POOL_NAME crush_rule rule-${CLASS_NAME}, see: crush-rule-ssd.txt
+  ceph fs set ${fsname} max_mds 2
+  ceph fs subvolumegroup create ${fsname} ${group}
+  ceph fs subvolumegroup ls ${fsname}
+  ceph fs subvolume create ${fsname} vol01 ${group} --size=1073741824
+  ceph fs subvolume ls ${fsname} ${group}
+  dirpath=$(ceph fs subvolume getpath ${fsname} vol01 ${group})
+  # /volumes/${group}/vol01/uuid....
+  ceph fs subvolume authorize ${fsname} vol01 user1 ${group} rw
+  ceph fs subvolume authorized_list ${fsname} vol01 ${group}
+  secret=$(ceph auth get-key client.user1)
+  ceph auth get client.user1
+  mount -t ceph {mon_ip}:${dirpath} /mnt -oname=user1,secret=${secret},fs=${fsname}
+  ceph fs subvolume resize ${fsname} vol01 10737418240 ${group}
+  # # ceph config set mon mon_allow_pool_delete true
+  # ceph fs volume rm ${fsname} --yes-i-really-mean-it
 # add rgw user
-    radosgw-admin user create --uid=cephtest --display-name="ceph test" --email=test@demo.com
-    radosgw-admin user list
-    radosgw-admin user info --uid=cephtest
-    radosgw-admin user rm --uid=cephtest
-    radosgw-admin bucket list
-    radosgw-admin subuser create --uid=cephtest --subuser=cephtest:swift --access=full
-    radosgw-admin key create --subuser=cephtest:swift --key-type=swift --gen-secret
-    radosgw-admin user create --uid=admin --display-name=admin --access_key=admin --secret=123456
-    radosgw-admin caps add --uid=admin --caps="users=read, write"
-    radosgw-admin caps add --uid=admin --caps="usage=read, write"
-    # radosgw-admin caps add --uid=admin --caps="users=read, write;usage=read, write;buckets=read, write"
+  radosgw-admin user create --uid=cephtest --display-name="ceph test" --email=test@demo.com
+  radosgw-admin user list
+  radosgw-admin user info --uid=cephtest
+  radosgw-admin user rm --uid=cephtest
+  radosgw-admin bucket list
+  radosgw-admin subuser create --uid=cephtest --subuser=cephtest:swift --access=full
+  radosgw-admin key create --subuser=cephtest:swift --key-type=swift --gen-secret
+  radosgw-admin user create --uid=admin --display-name=admin --access_key=admin --secret=123456
+  radosgw-admin caps add --uid=admin --caps="users=read, write"
+  radosgw-admin caps add --uid=admin --caps="usage=read, write"
+  # radosgw-admin caps add --uid=admin --caps="users=read, write;usage=read, write;buckets=read, write"
 # rgw delete realm/zonegroup/zone
-    radosgw-admin realm delete --rgw-realm=${realm_name}
-    radosgw-admin zonegroup delete --rgw-zonegroup=${zonegroup_name}
-    radosgw-admin zone delete --rgw-zone=${zone_name}
+  radosgw-admin realm delete --rgw-realm=${realm_name}
+  radosgw-admin zonegroup delete --rgw-zonegroup=${zonegroup_name}
+  radosgw-admin zone delete --rgw-zone=${zone_name}
 # modify rgw configure
-    radosgw-admin zonegroup get --rgw-zonegroup=cn > zonegroup.json
-    # edit zonegroup.json
-    radosgw-admin zonegroup set --rgw-zonegroup=cn --infile=zonegroup.json
-    radosgw-admin period update --commit
+  radosgw-admin zonegroup get --rgw-zonegroup=cn > zonegroup.json
+  # edit zonegroup.json
+  radosgw-admin zonegroup set --rgw-zonegroup=cn --infile=zonegroup.json
+  radosgw-admin period update --commit
 # check master/secondary zone sync status
-    radosgw-admin sync status
+  radosgw-admin sync status
 # secondary/master zone failover
-    radosgw-admin zone modify --rgw-zone=${zone_name} --master --default
-    radosgw-admin period update --commit
-    systemctl restart ceph-radosgw@rgw.$(hostname)
+  radosgw-admin zone modify --rgw-zone=${zone_name} --master --default
+  radosgw-admin period update --commit
+  systemctl restart ceph-radosgw@rgw.$(hostname)
 # rbd
-    ceph osd pool create ${poolname} 128
-    rbd pool init ${poolname}
-    ceph auth get-or-create client.${poolname}-admin mon 'profile rbd' osd "profile rbd pool=${poolname}"
+  ceph osd pool create ${poolname} 128
+  rbd pool init ${poolname}
+  ceph auth get-or-create client.${poolname}-admin mon 'profile rbd' osd "profile rbd pool=${poolname}" mgr "profile rbd pool=${poolname}"
+  # rbd map ${poolname}/template.raw
+  # rbd showmapped
+  # rbd unmap -o force /dev/rbd0
+## Usage End
 EOF

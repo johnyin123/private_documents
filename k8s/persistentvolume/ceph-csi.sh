@@ -1,15 +1,7 @@
-cat <<'EOF'
-FSID=$(ceph fsid)
-CEPHFS_KEY=$(ceph auth get-key client.${CEPHFS_USER})
-CEPHFS_NAME=$(ceph fs ls -f json | jq -r '.[0].name')
-ceph config generate-minimal-conf > ceph.conf
-fsname=$(ceph fs volume ls | jq -r '.[0].name')
-
-kubectl -n cephcsi exec -it csi-cephfsplugin-provisioner-xx -c csi-cephfsplugin -- /bin/bash
-EOF
 #######################
 REGISTRY=registry.local
 NAMESPACE=cephcsi
+# CSI_VERSION=v3.8.1
 CSI_VERSION=v3.7.2
 TYPES=(rbd cephfs)
 #######################
@@ -18,13 +10,14 @@ MONS="172.16.0.156:6789,172.16.0.157:6789,172.16.0.158:6789"
 #######################
 CEPHFS_NAME=tsdfs
 CEPHFS_USER=tsdfs-admin
-CEPHFS_KEY=AQBXZ25neGTyOhAAD32SCFsOLweUQXhYqfyv0w==
+CEPHFS_KEY='AQCJSW9nyIIZHhAA24K3QsdMcIVaRfLLsvFI3A=='
 #######################
 RBD_POOL=k8s-pool
 RBD_USER=k8s-pool-admin
-RBD_KEY=AQD9aG5n9H9AChAADiTb3i1Vq1Q7kuUz6Il4pA==
+RBD_KEY='AQBdPm9nEDkTCBAAfQhwRD/m9NBMYwfZGiXKRw=='
 #######################
 kubectl create namespace ${NAMESPACE} || true
+
 for type in ${TYPES[@]}; do
     sed -i "s/image\s*:\s*[^\/]*\//image: ${REGISTRY}\//g" ${type}-${CSI_VERSION}-csi*.yaml
     sed -i "s/namespace\s*:\s*.*/namespace: ${NAMESPACE}/g" ${type}-${CSI_VERSION}-csi*.yaml
@@ -53,6 +46,7 @@ data:
       }
     ]
 EOF
+
 cat <<EOF | kubectl -n "${NAMESPACE}" apply -f -
 ---
 apiVersion: v1
@@ -63,6 +57,7 @@ data:
   config.json: |-
     {}
 EOF
+
 cat <<EOF | kubectl -n "${NAMESPACE}" apply -f -
 ---
 apiVersion: v1
@@ -105,6 +100,7 @@ EO_ADMIN
 })
 EOF
 done
+
 for type in ${TYPES[@]}; do
     cat <<EOF | kubectl apply -f -
 ---
@@ -190,52 +186,92 @@ spec:
       imagePullPolicy: IfNotPresent
       command: ["/usr/bin/busybox", "sleep", "infinity"]
       volumeMounts:
-      - name: ceph-csi
-        mountPath: /mnt
+      - name: ceph-csi-rbdfs
+        mountPath: /rbdfs
       volumeDevices:
       - name: ceph-csi-block
         devicePath: /dev/xvda
+      volumeMounts:
+      - name: ceph-csi-cephfs
+        mountPath: /cephfs
   volumes:
     - name: ceph-csi-block
       persistentVolumeClaim:
         claimName: block-rbd-pvc
-    - name: ceph-csi
+    - name: ceph-csi-rbdfs
       persistentVolumeClaim:
         claimName: filesystem-rbd-pvc
-        # claimName: cephfs-pvc
+    - name: ceph-csi-cephfs
+      persistentVolumeClaim:
+        claimName: cephfs-pvc
 EOF
 }
 #######################
 download() {
+    csi_ver=${1}
     rbd=(
-        https://raw.githubusercontent.com/ceph/ceph-csi/${CSI_VERSION}/deploy/rbd/kubernetes/csidriver.yaml
-        https://raw.githubusercontent.com/ceph/ceph-csi/${CSI_VERSION}/deploy/rbd/kubernetes/csi-provisioner-rbac.yaml
-        https://raw.githubusercontent.com/ceph/ceph-csi/${CSI_VERSION}/deploy/rbd/kubernetes/csi-nodeplugin-rbac.yaml
-        https://raw.githubusercontent.com/ceph/ceph-csi/${CSI_VERSION}/deploy/rbd/kubernetes/csi-rbdplugin-provisioner.yaml
-        https://raw.githubusercontent.com/ceph/ceph-csi/${CSI_VERSION}/deploy/rbd/kubernetes/csi-rbdplugin.yaml
+        https://raw.githubusercontent.com/ceph/ceph-csi/${csi_ver}/deploy/rbd/kubernetes/csidriver.yaml
+        https://raw.githubusercontent.com/ceph/ceph-csi/${csi_ver}/deploy/rbd/kubernetes/csi-provisioner-rbac.yaml
+        https://raw.githubusercontent.com/ceph/ceph-csi/${csi_ver}/deploy/rbd/kubernetes/csi-nodeplugin-rbac.yaml
+        https://raw.githubusercontent.com/ceph/ceph-csi/${csi_ver}/deploy/rbd/kubernetes/csi-rbdplugin-provisioner.yaml
+        https://raw.githubusercontent.com/ceph/ceph-csi/${csi_ver}/deploy/rbd/kubernetes/csi-rbdplugin.yaml
     )
     cephfs=(
         # # must check kubernetes & ceph version, Ceph CSI drivers must support!!
         # v3.8.0	Kubernetes	v1.24, v1.25, v1.26, v1.27
         # v3.7.2	Kubernetes	v1.22, v1.23, v1.24
-        https://raw.githubusercontent.com/ceph/ceph-csi/${CSI_VERSION}/deploy/cephfs/kubernetes/csidriver.yaml
-        https://raw.githubusercontent.com/ceph/ceph-csi/${CSI_VERSION}/deploy/cephfs/kubernetes/csi-cephfsplugin-provisioner.yaml
-        https://raw.githubusercontent.com/ceph/ceph-csi/${CSI_VERSION}/deploy/cephfs/kubernetes/csi-cephfsplugin.yaml
-        https://raw.githubusercontent.com/ceph/ceph-csi/${CSI_VERSION}/deploy/cephfs/kubernetes/csi-nodeplugin-rbac.yaml
-        https://raw.githubusercontent.com/ceph/ceph-csi/${CSI_VERSION}/deploy/cephfs/kubernetes/csi-provisioner-rbac.yaml
-        https://raw.githubusercontent.com/ceph/ceph-csi/${CSI_VERSION}/deploy/cephfs/kubernetes/csi-provisioner-psp.yaml
-        https://raw.githubusercontent.com/ceph/ceph-csi/${CSI_VERSION}/deploy/cephfs/kubernetes/csi-nodeplugin-psp.yaml
+        https://raw.githubusercontent.com/ceph/ceph-csi/${csi_ver}/deploy/cephfs/kubernetes/csidriver.yaml
+        https://raw.githubusercontent.com/ceph/ceph-csi/${csi_ver}/deploy/cephfs/kubernetes/csi-cephfsplugin-provisioner.yaml
+        https://raw.githubusercontent.com/ceph/ceph-csi/${csi_ver}/deploy/cephfs/kubernetes/csi-cephfsplugin.yaml
+        https://raw.githubusercontent.com/ceph/ceph-csi/${csi_ver}/deploy/cephfs/kubernetes/csi-nodeplugin-rbac.yaml
+        https://raw.githubusercontent.com/ceph/ceph-csi/${csi_ver}/deploy/cephfs/kubernetes/csi-provisioner-rbac.yaml
     )
-    log "CSI_VERSION=${CSI_VERSION}"
     for url in ${rbd[@]}; do
         fn="$(basename ${url})"
-        log "download rbd ${url}"
-        wget -q --no-check-certificate -O "rbd-${CSI_VERSION}-${fn}" "${url}" || true
+        echo "download rbd ${url}"
+        wget -q --no-check-certificate -O "rbd-${csi_ver}-${fn}" "${url}" || true
     done
     for url in ${cephfs[@]}; do
         fn="$(basename ${url})"
-        log "download cephfs ${url}"
-        wget -q --no-check-certificate -O "cephfs-${CSI_VERSION}-${fn}" "${url}" || true
+        echo "download cephfs ${url}"
+        wget -q --no-check-certificate -O "cephfs-${csi_ver}-${fn}" "${url}" || true
     done
     return 0
 }
+
+:<<'EOF'
+## Usage Start
+FSID=$(ceph fsid)
+CEPHFS_KEY=$(ceph auth get-key client.${CEPHFS_USER})
+CEPHFS_NAME=$(ceph fs ls -f json | jq -r '.[0].name')
+ceph config generate-minimal-conf > ceph.conf
+fsname=$(ceph fs volume ls | jq -r '.[0].name')
+
+# # RBD
+    ceph osd pool create ${poolname} 128
+    rbd pool init ${poolname}
+    ceph auth get-or-create client.${poolname}-admin \
+        mon 'profile rbd' \
+        osd "profile rbd pool=${poolname}" \
+        mgr "profile rbd pool=${poolname}"
+
+# # CEPHFS
+    ceph fs volume create ${fsname}
+    ceph auth get-or-create client.${fsname}-admin \
+      mgr "allow rw" \
+      osd "allow rw tag cephfs metadata=${fsname}, allow rw tag cephfs data=${fsname}" \
+      mds "allow r fsname=${fsname} path=/volumes, allow rws fsname=${fsname} path=/volumes/csi" \
+      mon "allow r fsname=${fsname}"
+    # # rpc error: code = Internal desc = rados: ret=-1, Operation not permitted
+    # ceph fs authorize ${fsname} client.${fsname}-admin / rws
+
+ceph auth get client.user
+ceph auth get-key client.user
+
+ceph fs subvolumegroup ls tsdfs
+ceph fs subvolume ls tsdfs csi
+ceph fs subvolume info tsdfs csi-vol-4b8d2f37-c4aa-11ef-b1f4-ce26a4bf360b csi
+
+kubectl -n cephcsi exec -it csi-cephfsplugin-provisioner-xx -c csi-cephfsplugin -- /bin/bash
+## Usage End
+EOF
