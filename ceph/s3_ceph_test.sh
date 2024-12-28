@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
-    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
-    BASH_XTRACEFD="5"
-    export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
-    set -o xtrace
-fi
-VERSION+=("b617cb8[2024-01-10T15:17:13+08:00]:s3_ceph_test.sh")
-[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
+VERSION+=("77566a6[2024-10-24T09:22:46+08:00]:s3_ceph_test.sh")
 ################################################################################
+FILTER_CMD="cat"
+LOGFILE=
+################################################################################
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
