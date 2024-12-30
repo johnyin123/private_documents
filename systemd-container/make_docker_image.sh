@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("732d5c1[2024-12-23T09:03:45+08:00]:make_docker_image.sh")
+VERSION+=("da77dcf[2024-12-23T09:39:48+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -547,6 +547,9 @@ docker history --no-trunc <Image ID>
 docker image inspect --format "{{.ID}} {{.RepoTags}} {{.Architecture}}" $(docker image ls -q)
 docker inspect --format='{{.Architecture}}' ..
 docker system prune -af
+docker image prune
+docker volume prune
+docker network prune -f
 EOF
     return 0
 }
