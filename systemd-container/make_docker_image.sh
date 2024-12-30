@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("da77dcf[2024-12-23T09:39:48+08:00]:make_docker_image.sh")
+VERSION+=("b3ffb4a[2024-12-30T09:51:57+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -104,7 +104,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
             # apt update && apt -y --no-install-recommends install util-linux
             getent passwd johnyin >/dev/null || useradd -m -u 10001 johnyin --home-dir /home/johnyin/ --shell /bin/bash
             EODOC
-                cat <<EODOC > \${type}-\${arch}/Dockerfile
+                cat <<EODOC >> \${type}-\${arch}/Dockerfile
             USER johnyin
             WORKDIR /home/johnyin
             ENTRYPOINT ["/usr/bin/busybox", "sleep", "infinity"]
