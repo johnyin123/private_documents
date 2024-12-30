@@ -4,6 +4,8 @@ data_sas_root 由SAS盘对应的OSD组成
 创建逻辑pool，分别在上述的3种类型的root中创建meta_pool，data_sas_pool，data_ssd_pool
 CLASS_NAME=ssd
 ceph osd tree
+# ceph osd crush rm-device-class osd.0 osd.1
+# ceph osd crush set-device-class ssd osd.0 osd.1
 ceph osd crush set-device-class ${CLASS_NAME} osd.0 osd.1 ...
 # ceph-volume --cluster ${cname} lvm create --data ${disk} --crush-device-class ${CLASS_NAME}
 
