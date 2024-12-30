@@ -1,3 +1,7 @@
+######## # # # openeuler 2403, ceph version 18.2.2
+  HEALTH_WARN Module 'restful' has failed dependency: PyO3 modules do not yet support subinterpreters, see https://github.com/PyO3/pyo3/issues/576
+  ceph mgr module disable dashboard
+  ceph mgr module disable restful
 ######## # # # euler 2203 cephfs BUG, ceph fs subvolume ls.... exception
 ## /volumes/${group}/dirname/uuid.....
 # ceph fs subvolume getpath ${fsname} dirname ${group} -> Excepiton....

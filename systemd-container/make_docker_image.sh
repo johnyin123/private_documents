@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8d274a9[2024-12-30T11:19:46+08:00]:make_docker_image.sh")
+VERSION+=("93f38e4[2024-12-30T13:01:58+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -109,6 +109,9 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
             WORKDIR /home/johnyin
             ENTRYPOINT ["/usr/bin/busybox", "sleep", "infinity"]
             EODOC
+                # confirm base-image is right arch
+                docker pull --quiet "\${REGISTRY}/\${NAMESPACE:+\${NAMESPACE}/}\${IMAGE}" --platform \${arch}
+                docker run --rm --entrypoint="uname" "\${REGISTRY}/\${NAMESPACE:+\${NAMESPACE}/}\${IMAGE}" -m
                 ./${SCRIPTNAME} -c build -D \${type}-\${arch} --tag ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}-\${arch}
                 docker push ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}-\${arch}
             done
