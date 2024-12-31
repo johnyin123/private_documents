@@ -26,7 +26,7 @@ apt update && apt -y --no-install-recommends install \
     rm -fr /etc/libvirt/qemu/* || true
     sed --quiet -i -E \
         -e '/^\s*(user)\s*=.*/!p' \
-        -e "\$auser = \"root\"" \
+        -e "\\\$auser = \"root\"" \
         /etc/libvirt/qemu.conf || true
 EODOC
     mkdir -p ${type}-${arch}/docker/etc && cat <<EODOC > ${type}-${arch}/docker/etc/supervisord.conf
