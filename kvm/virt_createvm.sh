@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("63cb82a[2023-11-23T09:08:16+08:00]:virt_createvm.sh")
+VERSION+=("7d5db3d[2023-11-29T16:21:25+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -107,6 +107,11 @@ ${SCRIPTNAME}
     <controller type='pci' model='pcie-to-pci-bridge'/>
     </devices>
 
+    domain xml <os firmware='bios>...</os>
+               #auto use uefi
+               <os firmware="efi">
+                 <type arch="aarch64" machine="virt">hvm</type>
+               </os>
         uuid=$(cat /proc/sys/kernel/random/uuid)
         disk=vda-\${uuid}.raw
         echo "upload template disk"

@@ -10,7 +10,6 @@ ver=1.0
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     cat <<EODOC > ${type}-${arch}/docker/build.run
-    chmod 755 /startup.sh
 apt update && apt -y --no-install-recommends install \
     supervisor \
     libvirt-daemon \
@@ -25,10 +24,14 @@ apt update && apt -y --no-install-recommends install \
     qemu-utils \
     iproute2 bridge-utils
     rm -fr /etc/libvirt/qemu/* || true
-    systemctl enable libvirtd.service || true
+    sed --quiet -i -E \
+        -e '/^\s*(user)\s*=.*/!p' \
+        -e "\$auser = \"root\"" \
+        /etc/libvirt/qemu.conf || true
 EODOC
     mkdir -p ${type}-${arch}/docker/etc && cat <<EODOC > ${type}-${arch}/docker/etc/supervisord.conf
 [supervisord]
+logfile=/dev/stdout
 nodaemon=true
 user=root
 [program:libvirtd]
@@ -41,11 +44,6 @@ stderr_logfile_maxbytes=0
 command=/usr/sbin/virtlockd
 [program:virtlogd]
 command=/usr/sbin/virtlogd
-EODOC
-    cat <<EODOC >> ${type}-${arch}/docker/startup.sh
-#!/usr/bin/sh
-chown root:kvm /dev/kvm
-/usr/bin/supervisord -c /etc/supervisord.conf
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
 # need /sys/fs/cgroup
