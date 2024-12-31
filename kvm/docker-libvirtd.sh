@@ -31,7 +31,6 @@ apt update && apt -y --no-install-recommends install \
 EODOC
     mkdir -p ${type}-${arch}/docker/etc && cat <<EODOC > ${type}-${arch}/docker/etc/supervisord.conf
 [supervisord]
-logfile=/dev/stdout
 nodaemon=true
 user=root
 [program:libvirtd]
