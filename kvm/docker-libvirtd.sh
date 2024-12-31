@@ -10,6 +10,7 @@ ver=1.0
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     cat <<EODOC > ${type}-${arch}/docker/build.run
+    chmod 755 /startup.sh
 apt update && apt -y --no-install-recommends install \
     supervisor \
     libvirt-daemon \
@@ -17,7 +18,7 @@ apt update && apt -y --no-install-recommends install \
     libvirt-daemon-driver-storage-rbd \
     libvirt-daemon-system \
     libvirt-clients \
-    ovmf \
+    ovmf qemu-efi-aarch64 \
     qemu-system-arm \
     qemu-system-x86 \
     qemu-block-extra \
@@ -32,10 +33,19 @@ nodaemon=true
 user=root
 [program:libvirtd]
 command=/usr/sbin/libvirtd
+stdout_logfile=/dev/stdout
+stderr_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile_maxbytes=0
 [program:virtlockd]
 command=/usr/sbin/virtlockd
 [program:virtlogd]
 command=/usr/sbin/virtlogd
+EODOC
+    cat <<EODOC >> ${type}-${arch}/docker/startup.sh
+#!/usr/bin/sh
+chown root:kvm /dev/kvm
+/usr/bin/supervisord -c /etc/supervisord.conf
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
 # need /sys/fs/cgroup
@@ -51,14 +61,23 @@ done
 ./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
 
 cat <<EOF
-# cehp rbd/local storage/net bridge all ok
+iptables -P INPUT ACCEPT
+iptables -P FORWARD ACCEPT
+iptables -P OUTPUT ACCEPT
+iptables -t nat -F
+iptables -t mangle -F
+iptables -F
+iptables -X
+
+# cehp rbd/local storage/net bridge all ok, arm64 ok
 # volume /storage: use defined local dir storage
+# -v /storage:/storage \
+# default pool /storage/lib/libvirt/images
 docker create --name libvirtd \
     --network host \
     --restart always \
     --privileged \
     --device /dev/kvm \
-    -v /storage:/storage \
     -v /storage/log:/var/log/libvirt \
     -v /storage/vms:/etc/libvirt/qemu \
     -v /storage/secrets:/etc/libvirt/secrets \
