@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("aab7652[2023-11-16T12:34:22+08:00]:virt-mgr.sh")
+VERSION+=("a1172f1[2023-11-23T09:29:08+08:00]:virt-mgr.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 # KVM_USER=${KVM_USER:-root}
@@ -321,7 +321,7 @@ declare -A DOMAIN_TPL=(
   <vcpu placement='static' current='{{CPUS}}'>8</vcpu>
   <cpu match='exact'><model fallback='allow'>${CPU}</model></cpu>
   <os><type arch='x86_64'>hvm</type>
-    <loader readonly='yes' type='pflash'>/usr/share/OVMF/OVMF_CODE.fd</loader>
+    <loader readonly='yes' secure='no' type='pflash'>/usr/share/OVMF/OVMF_CODE.fd</loader>
   </os>
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>preserve</on_poweroff>
@@ -366,8 +366,7 @@ declare -A DOMAIN_TPL=(
   <vcpu placement='static' current='{{CPUS}}'>8</vcpu>
   <cpu match='exact'><model fallback='allow'>${CPU}</model></cpu>
   <os><type arch='x86_64'>hvm</type>
-    <loader readonly='yes' type='pflash'>/usr/share/OVMF/OVMF_CODE.fd</loader>
-    <nvram>/var/lib/libvirt/qemu/nvram/rhel8-unknown_VARS.fd</nvram>
+    <loader readonly='yes' secure='no' type='pflash'>/usr/share/OVMF/OVMF_CODE.fd</loader>
   </os>
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>preserve</on_poweroff>
@@ -419,7 +418,7 @@ declare -A DOMAIN_TPL=(
   <cpu match='exact'><model fallback='allow'>${CPU}</model></cpu>
   <clock offset='localtime'/>
   <os><type arch='x86_64'>hvm</type>
-    <loader readonly='yes' type='pflash'>/usr/share/OVMF/OVMF_CODE.fd</loader>
+    <loader readonly='yes' secure='no' type='pflash'>/usr/share/OVMF/OVMF_CODE.fd</loader>
   </os>
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>preserve</on_poweroff>

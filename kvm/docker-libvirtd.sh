@@ -84,3 +84,31 @@ docker create --name libvirtd \
 
 virsh -c qemu+unix:///system?socket=/storage/run/libvirt/libvirt-sock
 EOF
+
+type=sshd
+ver=bookworm
+for arch in ${ARCH[@]}; do
+    ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
+    cat <<EODOC > ${type}-${arch}/docker/build.run
+apt update && apt -y --no-install-recommends install openssh-server libvirt-clients netcat-openbsd
+mkdir -p /run/sshd/
+EODOC
+    # confirm base-image is right arch
+    docker pull --quiet registry.local/debian:bookworm --platform ${arch}
+    docker run --rm --entrypoint="uname" registry.local/debian:bookworm -m
+    ./make_docker_image.sh -c build -D ${type}-${arch} --tag registry.local/${type}:${ver}-${arch}
+    docker push registry.local/${type}:${ver}-${arch}
+done
+./make_docker_image.sh -c combine --tag registry.local/${type}:${ver}
+
+cat <<'EOF'
+network=host # or other networks
+docker create --name ctrl \
+    --network ${network} \
+    --volumes-from libvirtd \
+    -v /root/.ssh/:/root/.ssh \
+    registry.local/sshd:bookworm \
+    /usr/sbin/sshd -D -p9999
+# # -p 8888:9999
+virsh -c qemu+ssh://root@10.170.24.5:9999/system
+EOF
