@@ -95,3 +95,14 @@ def main():
 if __name__ == '__main__':
     exit(main())
 EOF
+cat <<EOF
+<disk type='network' device='cdrom'>
+   <driver name='qemu' type='raw'/>
+   <source protocol="https" name="/disk/a.iso" query="foo=bar&amp;baz=flurb">
+     <host name="192.168.168.1" port="443"/>
+     <ssl verify="no"/>
+   </source>
+   <target dev='sda' bus='sata'/>
+   <readonly/>
+</disk>
+EOF
