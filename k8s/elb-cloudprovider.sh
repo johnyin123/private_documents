@@ -15,7 +15,7 @@ for arch in ${ARCH[@]}; do
     ################################################
     mkdir -p ${IMG_DIR}/docker/home/johnyin/
     cp elb-cloudprovider.py ${IMG_DIR}/docker/home/johnyin/elb_provider.py
-    chown 1000:1000 ${IMG_DIR}/docker/home/johnyin -R
+    chown 10001:10001 ${IMG_DIR}/docker/home/johnyin -R
     cat <<EOF >> ${IMG_DIR}/Dockerfile
 USER johnyin
 WORKDIR /home/johnyin

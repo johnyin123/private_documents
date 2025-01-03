@@ -36,7 +36,7 @@ def json_handle_error(e):
     response.content_type = 'application/json'
     return corsify_actual_response(response)
 '''
-import flask_app, flask
+import os, flask_app, flask
 logger=flask_app.logger
 
 class MyApp(object):
