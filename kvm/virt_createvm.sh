@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7d14031[2025-01-02T10:01:36+08:00]:virt_createvm.sh")
+VERSION+=("b2697bd[2025-01-02T10:17:51+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -71,7 +71,9 @@ ${SCRIPTNAME}
         -m|--mem        <int>     default 1024
         --arch          <str>     default x86_64 # aarch64/x86_64/..
         --uefi          <str>     if use uefi bootup, assian uefi file name
+                                    virsh capabilities
                                     virsh domcapabilities | xmlstarlet sel -t -v "/domainCapabilities/os/loader/value"
+                                    virsh pool-capabilities
                                     /usr/share/OVMF/OVMF_CODE.fd
                                     /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
         --maxcpu        <int>     default 8
