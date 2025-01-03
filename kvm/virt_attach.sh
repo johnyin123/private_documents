@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("63cb82a[2023-11-23T09:08:16+08:00]:virt_attach.sh")
+VERSION+=("7b05f3c[2025-01-02T14:41:51+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -56,11 +56,11 @@ gen_tpl() {
 </disk>
 <disk type='network' device='cdrom'>
    <driver name='qemu' type='raw'/>
-   <source protocol="https" name="/disk/a.iso" query="foo=bar&amp;baz=flurb">
+   <source protocol="https" name="/{{ vm_uuid }}.iso" query="foo=bar&amp;baz=flurb">
      <host name="192.168.168.1" port="443"/>
      <ssl verify="no"/>
    </source>
-   <target dev='sda' bus='sata'/>
+   <target dev='sd{{ vm_last_disk }}' bus='sata'/>
    <readonly/>
 </disk>
 # host usb dev
