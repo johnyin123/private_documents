@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d6af672[2023-11-21T11:22:27+08:00]:virt-imgbootup.sh")
+VERSION+=("03f2d6d[2024-09-06T11:12:18+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 ARCH=${ARCH:-x86_64}
@@ -39,6 +39,7 @@ ${SCRIPTNAME}
                         Bus 001 Device 003: ID 5986:0652 Acer, Inc
                         Bus [hostbus] Device [hostaddr]: ID VENDOR_ID:PRODUCT_ID .....
         --cdrom     <iso>     iso file
+                              disk.iso | http://192.168.168.1/disk.iso | ftp...
         --fda       <file>    floppy disk file
         --serial    <tcp port>  serial listen 127.0.0.1:<tcp port>
         --sound     Enable soundhw hda
