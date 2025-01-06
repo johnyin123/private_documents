@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c5008d90[2025-01-03T14:57:33+08:00]:virt_createvm.sh")
+VERSION+=("e135a34[2025-01-04T11:29:36+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -31,11 +31,6 @@ gen_tpl() {
   <cpu mode='host-passthrough' check='none'/>
 {%- endif %}
   <iothreads>1</iothreads>
-{%- if vm_uefi is defined %}
-  # # <os firmware='efi'><type arch='{{ vm_arch }}' machine='{{ __machine__ }}'>hvm</type><loader readonly='yes' secure='no'/></os>
-{%- else %}
-  # # <os><type arch='{{ vm_arch }}' machine='{{ __machine__ }}'>hvm</type></os>
-{%- endif %}
   <os>
     <type arch='{{ vm_arch }}' machine='{{ __machine__ }}'>hvm</type>
 {%- if vm_uefi is defined %}
@@ -48,6 +43,11 @@ gen_tpl() {
     <serial type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target port='0'/></serial>
     <console type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target type='serial' port='0'/></console>
 {%- if vm_arch == 'x86_64' %}
+    <controller type='pci' model='pcie-root'/>
+    <controller type='pci' model='pcie-root-port'/>
+    <controller type='pci' model='pcie-root-port'/>
+    <controller type='pci' model='pcie-root-port'/>
+    <controller type='pci' model='pcie-to-pci-bridge'/>
     <input type='mouse' bus='ps2'/>
     <input type='keyboard' bus='ps2'/>
     <video><model type='vga' heads='1' primary='yes'/></video>
@@ -115,7 +115,7 @@ ${SCRIPTNAME}
     </devices>
 
     domain xml <os firmware='bios>...</os>
-               #auto use uefi
+               #auto use uefi, no work ??
                <os firmware="efi">
                  <type arch="aarch64" machine="virt">hvm</type>
                </os>
