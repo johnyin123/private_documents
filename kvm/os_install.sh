@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a67fe9c[2023-11-02T13:56:55+08:00]:os_install.sh")
+VERSION+=("931c329[2023-11-22T14:28:21+08:00]:os_install.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -21,6 +21,7 @@ ${SCRIPTNAME}
               x86_64: /usr/share/qemu/OVMF.fd
              aarch64: /usr/share/qemu-efi-aarch64/QEMU_EFI.fd
                       /usr/share/AAVMF/AAVMF_CODE.fd
+                      /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
         -n|--name     *  <str>               vm name
         -i|--iso      *  <remote iso file>   iso image, remote isofile
         -p|--pool     *  <pool>              vm disk libvirt store pool
@@ -38,6 +39,7 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
         UEFI=/usr/share/AAVMF/AAVMF_CODE.fd VMEM=1024 ./os_install.sh -K 192.168.168.2 -U root -P 60022 -n deb -i /storage/debian-12.2.0-arm64-netinst.1.iso -p default -s 4G -b br-ext
+        UEFI=/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw ./os_install.sh -K 10.170.24.2 -U root -P60022 -n tpl001 -i http://10.170.6.105/debian-12.2.0-arm64-netinst.iso -p ssdpool -b br-ext
 EOF
     exit 1
 }
