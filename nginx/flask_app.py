@@ -18,6 +18,7 @@ def create_app(config: dict={}, json: bool=False) -> flask.Flask:
     logger.debug("Flask config: %s", cfg)
     app = flask.Flask(__name__, static_url_path=cfg['STATIC_URL_PATH'], static_folder=cfg['STATIC_FOLDER'])
     app.config.from_mapping(cfg)
+    app.secret_key = os.urandom(12)
     if json:
         for ex in werkzeug.exceptions.default_exceptions:
             app.register_error_handler(ex, json_handle_error)
