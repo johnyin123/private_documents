@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("f76144f[2024-12-04T09:05:36+08:00]:functions.sh")
+VERSION+=("ad83088[2024-12-19T10:54:02+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -65,12 +65,21 @@ json2yaml()  {
   python3 -c 'import sys, yaml, json; print(yaml.dump(json.loads(sys.stdin.read())))'
 }
 
+# cat <<EOF > $HOME/.config/libvirt/libvirt.conf
+#uri_aliases = [
+#  "hail=qemu+ssh://root@hail.cloud.example.com/system",
+#  "sleet=qemu+ssh://root@sleet.cloud.example.com/system",
+#]
+#uri_default = "qemu:///system"
+# EOF
+# QEMU_ALIAS=system?xxx virsh_wrap...
+# QEMU_ALIAS=test virsh_wrap...
 virsh_wrap() {
     local host="${1}"
     local port="${2}"
     local user="${3}"
     shift 3;
-    try virsh -q ${host:+-c qemu+ssh://${user:+${user}@}${host}${port:+:${port}}/system} $@
+    try virsh -q ${host:+-c qemu+ssh://${user:+${user}@}${host}${port:+:${port}}/${QEMU_ALIAS:-system}} $@
 }
 
 # write_file myfile <<EOF / write_file myfile 1 <<'EOF'
