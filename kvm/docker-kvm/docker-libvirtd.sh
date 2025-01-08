@@ -148,6 +148,20 @@ server {
         if ($request_method !~ ^(POST)$) { return 405 "Only POST"; }
         proxy_pass http://flask_app/$key;
     }
+    .ocation /domain {
+        set $key $1;
+        satisfy any;
+        allow 172.16.0.0/21;
+        allow 192.168.168.0/24;
+        deny all;
+        auth_basic "Restricted";
+        auth_basic_user_file /etc/nginx/kvm.htpasswd;
+        proxy_buffering                    off;
+        proxy_request_buffering            off;
+        client_max_body_size 10m;
+        if ($request_method !~ ^(POST)$) { return 405 "Only POST"; }
+        proxy_pass http://flask_app/domain;
+    }
     location / {
         # disable checking of client request body size
         client_max_body_size 10m;
