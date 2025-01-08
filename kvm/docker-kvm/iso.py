@@ -75,15 +75,17 @@ class iso_exception(werkzeug.exceptions.BadRequest):
 
 class MyApp(object):
     output_dir=''
+
     @staticmethod
     def create(output_dir):
         logger.info("env: OUTDIR=%s", output_dir)
         myapp=MyApp()
         myapp.output_dir=output_dir
         web=flask_app.create_app({}, json=True)
-        web.add_url_rule('/<string:id>', view_func=myapp.iso, methods=['POST'])
+        web.add_url_rule('/<string:id>', view_func=myapp.create_iso, methods=['POST'])
+        web.add_url_rule('/domain', view_func=myapp.upload_domain_xml, methods=['POST'])
         return web
-    def iso(self, id):
+    def create_iso(self, id):
         # # avoid Content type: text/plain return http415
         req_data = flask.request.get_json(force=True)
         uuid = req_data.get('uuid', id)
@@ -105,10 +107,26 @@ class MyApp(object):
         iso.write('{}/{}.iso'.format(self.output_dir, uuid))
         iso.close()
         return { "disk": '/{}.iso'.format(uuid) }
- 
+
+    def upload_domain_xml(self):
+        # qemu hooks upload xml
+        if 'file' not in flask.request.files:
+            raise iso_exception('No file part')
+        file = flask.request.files['file']
+        import xmltodict
+        dom = xmltodict.parse(file)
+        uuid = dom["domain"]["uuid"]
+        if uuid:
+            logger.info(dom)
+            xml_file=open(os.path.join(self.output_dir, "{}.xml".format(uuid)),"w")
+            xmltodict.unparse(dom, pretty=True, output=xml_file)
+            xml_file.close()
+            return { "xml": '{}.xml'.format(uuid) }
+
 app=MyApp.create(os.environ.get('OUTDIR', ''))
 def main():
     # curl -X POST http://127.0.0.1:18888/vm1 -d '{"ipaddr":"1.2.3.4/32", "uuid":"myuuid"}' 
+    # curl -X POST -F 'file=@/etc/libvirt/qemu/myserver-4b088f8b-004a-4597-b59f-f327a00e8fcb.xml' http://10.170.6.105:18888/domain
     logger.debug("uwsgi --http-socket :5999 --plugin python3 --module application:app")
     host = os.environ.get('HTTP_HOST', '0.0.0.0')
     port = int(os.environ.get('HTTP_PORT', '18888'))
