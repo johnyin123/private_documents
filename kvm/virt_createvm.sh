@@ -7,13 +7,30 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e135a34[2025-01-04T11:29:36+08:00]:virt_createvm.sh")
+VERSION+=("09effb9[2025-01-06T08:58:04+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
 gen_tpl() {
     cat <<'EOF'
 # https://libvirt.org/formatdomain.html
+########################################
+<graphics type='spice' autoport='yes'><listen type='address'/></graphics>
+<video>
+  <model type='qxl' vram='32768' heads='1' primary='yes'/>
+  <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
+</video>
+# SOUND, Linux 'ich6',windows model='ac97'
+<sound model='ac97'>
+ <address type='pci' domain='0x0000' bus='0x00' slot='0x09' function='0x0'/>
+</sound>
+# 共享剪贴板
+<channel type='spicevmc'>
+   <target type='virtio' name='com.redhat.spice.0'/>
+   <alias name='channel0'/>
+   <address type='virtio-serial' controller='0' bus='0' port='1'/>
+</channel>
+########################################
 <domain type='kvm'>
   <name>{{ vm_name }}-{{ vm_uuid }}</name>
   <uuid>{{ vm_uuid }}</uuid>
