@@ -82,8 +82,8 @@ class MyApp(object):
         myapp=MyApp()
         myapp.output_dir=output_dir
         web=flask_app.create_app({}, json=True)
-        web.add_url_rule('/<string:id>', view_func=myapp.create_iso, methods=['POST'])
-        web.add_url_rule('/domain', view_func=myapp.upload_domain_xml, methods=['POST'])
+        web.add_url_rule('/iso/<string:id>', view_func=myapp.create_iso, methods=['POST'])
+        web.add_url_rule('/domain/<string:operation>/<string:action>/<string:name>', view_func=myapp.upload_domain_xml, methods=['POST'])
         return web
     def create_iso(self, id):
         # # avoid Content type: text/plain return http415
@@ -108,16 +108,17 @@ class MyApp(object):
         iso.close()
         return { "disk": '/{}.iso'.format(uuid) }
 
-    def upload_domain_xml(self):
+    def upload_domain_xml(self, operation, action, name):
         # qemu hooks upload xml
+        logger.info("report vm: %s, operation: %s, action: %s", name, operation, action)
         if 'file' not in flask.request.files:
-            raise iso_exception('No file part')
+            return { "report": '%s-%s-%s'.format(name, operation, action) }
         file = flask.request.files['file']
         import xmltodict
         dom = xmltodict.parse(file)
         uuid = dom["domain"]["uuid"]
         if uuid:
-            logger.info(dom)
+            logger.info("save xml %s.xml", uuid)
             xml_file=open(os.path.join(self.output_dir, "{}.xml".format(uuid)),"w")
             xmltodict.unparse(dom, pretty=True, output=xml_file)
             xml_file.close()

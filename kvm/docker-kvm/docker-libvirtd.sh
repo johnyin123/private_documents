@@ -7,8 +7,12 @@ export NAMESPACE=
 ARCH=(amd64 arm64)
 type=kvm
 ver=bookworm
+
+[ -e "qemu.hook" ] || { echo "qemu.hook, nofound"; exit 1;}
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
+    install -v -d -m 0755 "${type}-${arch}/docker/etc/libvirt/hooks"
+    install -v -C -m 0755 "qemu.hook" "${type}-${arch}/docker/etc/libvirt/hooks/qemu"
     cat <<EODOC > ${type}-${arch}/docker/build.run
 apt update && apt -y --no-install-recommends install \
     supervisor \
@@ -65,6 +69,8 @@ iptables -t nat -F
 iptables -t mangle -F
 iptables -F
 iptables -X
+
+echo '192.168.168.1  kvm.registry.local' >> /etc/hosts
 
 # cehp rbd/local storage/net bridge all ok, arm64 ok
 # volume /storage: use defined local dir storage
@@ -137,34 +143,31 @@ server {
     location ~* /create/(.*) {
         set $key $1;
         satisfy any;
-        allow 172.16.0.0/21;
         allow 192.168.168.0/24;
         deny all;
         auth_basic "Restricted";
         auth_basic_user_file /etc/nginx/kvm.htpasswd;
         proxy_buffering                    off;
         proxy_request_buffering            off;
-        client_max_body_size 10m;
+        client_max_body_size 1m;
         if ($request_method !~ ^(POST)$) { return 405 "Only POST"; }
         proxy_pass http://flask_app/$key;
     }
-    .ocation /domain {
-        set $key $1;
+    location /domain {
         satisfy any;
-        allow 172.16.0.0/21;
         allow 192.168.168.0/24;
         deny all;
         auth_basic "Restricted";
         auth_basic_user_file /etc/nginx/kvm.htpasswd;
         proxy_buffering                    off;
         proxy_request_buffering            off;
-        client_max_body_size 10m;
+        client_max_body_size 1m;
         if ($request_method !~ ^(POST)$) { return 405 "Only POST"; }
         proxy_pass http://flask_app/domain;
     }
     location / {
         # disable checking of client request body size
-        client_max_body_size 10m;
+        client_max_body_size 0;
         autoindex off;
         root /iso;
     }

@@ -1,0 +1,30 @@
+#!/bin/bash
+# install -v -d -m 0755 "/etc/libvirt/hooks"
+# install -v -C -m 0755 "qemu.hook" "/etc/libvirt/hooks/qemu"
+log() { logger -t 'qemu-hook' "$*"; }
+#####################################################
+OBJECT="${1}"
+OPERATION="${2}"
+ACTION="${3}"
+XML="/etc/libvirt/qemu/${OBJECT}.xml"
+URL="http://kvm.registry.local/domain/${OPERATION}/${ACTION}/${OBJECT}"
+log "Hook called: ${OPERATION} ${ACTION}"
+[ ! -f "${XML}" ] && { log "${XML} no found, skipping"; exit 0; }
+
+report_state() {
+    log "Hook ${OBJECT} report state ${OPERATION} ${ACTION}"
+    timeout 3 curl -s -k --user 'admin:KVMP@ssW0rd' -X POST "${URL}" || true
+}
+
+if [ "${OPERATION}" = "prepare" ] || [ "${OPERATION}" = "migrate" ]; then
+    if [ "${ACTION}" != "begin" ]; then
+        report_state
+        exit 0
+    fi
+    # only prepare-begin post xmlfile
+    log "Hook ${OBJECT} report state ${OPERATION} ${ACTION}, and upload xml"
+    timeout 3 curl -s -k --user 'admin:KVMP@ssW0rd' -X POST -F "file=@${XML}" "${URL}" || true
+    exit 0
+fi
+report_state
+exit 0
