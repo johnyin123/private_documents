@@ -123,10 +123,9 @@ username=johnyin
 [ -e "flask_app.py" ] && [ -e "iso.py" ] || { echo "flask_app.py iso.py, nofound"; exit 1;}
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
-    mkdir -p ${type}-${arch}/docker/home/${username}/ && {
-        cp flask_app.py iso.py ${type}-${arch}/docker/home/${username}/
-        chown -R 10001:10001 ${type}-${arch}/docker/home/${username}/
-    }
+    install -v -d -m 0755 "${type}-${arch}/docker/home/${username}"
+    install -v -C -m 0644 --group=10001 --owner=10001 "flask_app.py" "${type}-${arch}/docker/home/${username}/flask_app.py"
+    install -v -C -m 0644 --group=10001 --owner=10001 "iso.py" "${type}-${arch}/docker/home/${username}/iso.py"
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && \
     cat <<'EOF' > ${type}-${arch}/docker/etc/nginx/http-enabled/site.conf
 upstream flask_app {
