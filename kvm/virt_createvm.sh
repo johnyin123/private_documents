@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("16e748a[2025-01-08T16:42:45+08:00]:virt_createvm.sh")
+VERSION+=("63be47c[2025-01-09T12:59:49+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -31,6 +31,9 @@ gen_tpl() {
    <address type='virtio-serial' controller='0' bus='0' port='1'/>
 </channel>
 ########################################
+<!-- set this to 'on' to not let the guest OS know it's running in a VM -->
+<features><kvm><hidden state='on'/></kvm></features>
+########################################
 <domain type='kvm'>
   <name>{{ vm_name }}-{{ vm_uuid }}</name>
   <uuid>{{ vm_uuid }}</uuid>
@@ -53,6 +56,7 @@ gen_tpl() {
 {%- if vm_uefi is defined %}
     <loader readonly='yes' secure='no' type='pflash'>{{ vm_uefi }}</loader>
 {%- endif %}
+    <bootmenu enable='yes' timeout='3'/>
   </os>
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>destroy</on_poweroff>
