@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7b05f3c[2025-01-02T14:41:51+08:00]:virt_attach.sh")
+VERSION+=("848c6b3[2025-01-03T14:01:58+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -54,11 +54,12 @@ gen_tpl() {
    <readonly/>
    <target dev='sda' bus='scsi'/>
 </disk>
+# meta-iso.tpl
 <disk type='network' device='cdrom'>
    <driver name='qemu' type='raw'/>
    <source protocol="https" name="/{{ vm_uuid }}.iso" query="foo=bar&amp;baz=flurb">
-     <host name="192.168.168.1" port="443"/>
-     <ssl verify="no"/>
+     <host name="kvm.registry.local" port="80"/>
+     # <ssl verify="no"/>
    </source>
    <target dev='sd{{ vm_last_disk }}' bus='sata'/>
    <readonly/>

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("09effb9[2025-01-06T08:58:04+08:00]:virt_createvm.sh")
+VERSION+=("16e748a[2025-01-08T16:42:45+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -147,13 +147,15 @@ ${SCRIPTNAME}
         ./virt_attach.sh -t br-ext.tpl -u \${uuid} --persistent
         echo "attach disk, persistent"
         ./virt_attach.sh -t default_store.tpl -u \${uuid} -e format=raw -e store_path=/storage/\${disk} --persistent
+        curl -u admin:KVMP@ssW0rd -X POST http://kvm.registry.local/create/\${uuid} -d '{"ipaddr":"1.2.3.4/5", "gateway":"gw"}' #"rootpass": "password", "hostname": "vmsrv"
+        ./virt_attach.sh -t meta_iso.tpl -u \${uuid} --persistent
         # cat domain.xml | virt-xml-validate - domain && echo OK 
-        # Add cloud-init iso image
-        cdrom=meta-\${uuid}.iso
-        ISO_FNAME=\${cdrom} VM_NAME=vmsrv UUID=\${uuid} PASSWORD=password IPADDR=192.168.168.222/24 GATEWAY=192.168.168.1 ./gen_cloud_init_iso.sh
-        ./virt_imgupload.sh -t \${cdrom} -v /storage/\${cdrom}
-        # non persistent cdrom
-        ./virt_attach.sh -t cdrom.j2 -u \${uuid} -e store_path=/storage/\${cdrom}
+        # # Add cloud-init iso image
+        # cdrom=meta-\${uuid}.iso
+        # ISO_FNAME=\${cdrom} VM_NAME=vmsrv UUID=\${uuid} PASSWORD=password IPADDR=192.168.168.222/24 GATEWAY=192.168.168.1 ./gen_cloud_init_iso.sh
+        # ./virt_imgupload.sh -t \${cdrom} -v /storage/\${cdrom}
+        # # non persistent cdrom
+        # ./virt_attach.sh -t cdrom.j2 -u \${uuid} -e store_path=/storage/\${cdrom}
 EOF
     exit 1
 }
