@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("58cb44d[2021-08-18T17:14:28+08:00]:virt-qemu-agent.sh")
+VERSION+=("f373764[2025-01-09T13:23:16+08:00]:virt-qemu-agent.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 VIRSH_OPT="-k 300 -K 5 -q"
@@ -17,6 +17,39 @@ VIRSH_OPT="-k 300 -K 5 -q"
 fake_virsh() {
     local usr_srv_port=$1;shift 1
     try virsh -c qemu+ssh://${usr_srv_port}/system ${VIRSH_OPT} ${*}
+}
+
+inject_pubkey() {
+    local usr_srv_port=$1;shift 1
+    local domain=$1;shift 1
+
+    # mkdir /root/.ssh
+    fake_virsh "${usr_srv_port}" qemu-agent-command ${domain} '{"execute":"guest-exec","arguments":{"path":"mkdir","arg":["-p","/root/.ssh"],"capture-output":true}}'
+    # # 假设上一步返回{"return":{"pid":911}}，接下来查看结果（通常可忽略）
+    # '{"execute":"guest-exec-status","arguments":{"pid":911}}'
+    # chmod 700 /root/.ssh
+    fake_virsh "${usr_srv_port}" qemu-agent-command ${domain} '{"execute":"guest-exec","arguments":{"path":"chmod","arg":["700","/root/.ssh"],"capture-output":true}}'
+    # # 假设上一步返回{"return":{"pid":912}}，接下来查看结果（通常可忽略）
+    # '{"execute":"guest-exec-status","arguments":{"pid":912}}'
+
+    # touch /root/.ssh/authorized_keys
+    fake_virsh "${usr_srv_port}" qemu-agent-command ${domain} '{"execute":"guest-exec","arguments":{"path":"touch","arg":["/root/.ssh/authorized_keys"],"capture-output":true}}'
+    # # 假设上一步返回{"return":{"pid":913}}，接下来查看结果（通常可忽略）
+    # '{"execute":"guest-exec-status","arguments":{"pid":913}}'
+
+    # chmod 600 /root/.ssh/authorized_keys
+    fake_virsh "${usr_srv_port}" qemu-agent-command ${domain} '{"execute":"guest-exec","arguments":{"path":"chmod","arg":["600","/root/.ssh/authorized_keys"],"capture-output":true}}'
+    # # 假设上一步返回{"return":{"pid":914}}，接下来查看结果（通常可忽略）
+    # '{"execute":"guest-exec-status","arguments":{"pid":914}}'
+
+    # 打开文件（以读写方式打开），获得句柄
+    out=$(fake_virsh "${usr_srv_port}" qemu-agent-command ${domain} '{"execute":"guest-file-open", "arguments":{"path":"/root/.ssh/authorized_keys","mode":"w+"}}')
+    local handle=$(printf "%s" $out | jq -c ".return")
+    # 写文件，假设上一步返回{"return":1000}，1000就是句柄
+    # cat ~/.ssh/id_rsa.pub | base64 -w 0
+    fake_virsh "${usr_srv_port}" qemu-agent-command ${domain} "{\"execute\":\"guest-file-write\", \"arguments\":{\"handle\":${handle},\"buf-b64\":\"c3NoLXJzYSBBQUFBQjNOemFDMXljMkVBQUFBREFRQUJBQUFCQVFES3hkcmlpQ3FiemxLV1pnVzVKR0Y2eUpuU3lWdHViRUFXMTdtb2syenNRN2FsMmNSWWdHako1aUZTdlpIenozYXQ3UXBOcFJrYWZhdUgvRGZyWnozeUdLa1VJYk9iMFVhdkNINWFlbE5kdVhhQnQ3ZFkyT1JIaWJPc1N2VFhBaWZHd3RMWTY3VzRWeVUvUkJuQ0M3eDNIeFVCNkJRRjZxd3pDR3dyeS9sckJENkZaenQ3dExqZnhjYkxoc256cU9HMnk3Nm40SDU0UnJvb0duMWlYSEJEQlhmdk1SN25vWktielhBVVF5T3g5bTA3Q3FobnBncE1sR0ZMN3NoVWRsRlBOTFBaZjVKTHNFczkwaDNkODg1T1dSeDlLcCtPMDVXMmdQZzRrVWhHZXFPNklZMDlFUE9jVHVwdzc3UFJIb1dPZzR4TmNxRVFOMnYyQzFscjA5WTkgam9obnlpbgo=\"}}"
+    # 关闭文件
+    fake_virsh "${usr_srv_port}" qemu-agent-command ${domain} "{\"execute\":\"guest-file-close\", \"arguments\":{\"handle\":${handle}}}"
 }
 
 agent_passwd() {
