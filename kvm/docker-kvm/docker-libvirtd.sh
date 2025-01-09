@@ -20,13 +20,12 @@ apt update && apt -y --no-install-recommends install \
     libvirt-daemon-driver-qemu \
     libvirt-daemon-driver-storage-rbd \
     libvirt-daemon-system \
-    libvirt-clients \
     ovmf qemu-efi-aarch64 \
     qemu-system-arm \
     qemu-system-x86 \
     qemu-block-extra \
     qemu-utils \
-    iproute2 bridge-utils
+    iproute2 bridge-utils curl
     rm -fr /etc/libvirt/qemu/* || true
     sed --quiet -i -E \
         -e '/^\s*(user)\s*=.*/!p' \
