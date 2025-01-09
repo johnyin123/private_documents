@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("virt-qemu-agent.sh - 2f47b81 - 2021-04-28T09:07:41+08:00")
+VERSION+=("58cb44d[2021-08-18T17:14:28+08:00]:virt-qemu-agent.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 VIRSH_OPT="-k 300 -K 5 -q"
@@ -85,6 +85,7 @@ main() {
     case "${1:-}" in
         passwd)
             shift
+            echo 'virsh set-user-password --domain <uuid> --user root --password password'
             agent_passwd ${*}
             ;;
         exec)
