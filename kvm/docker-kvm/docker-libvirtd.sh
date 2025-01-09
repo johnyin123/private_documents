@@ -149,7 +149,7 @@ server {
         proxy_request_buffering            off;
         client_max_body_size 1m;
         if ($request_method !~ ^(POST)$) { return 405 "Only POST"; }
-        proxy_pass http://flask_app/$key;
+        proxy_pass http://flask_app/iso/$key;
     }
     location /domain {
         satisfy any;
