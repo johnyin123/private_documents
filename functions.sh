@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("ad83088[2024-12-19T10:54:02+08:00]:functions.sh")
+VERSION+=("bf674ee[2025-01-07T12:08:43+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -79,7 +79,7 @@ virsh_wrap() {
     local port="${2}"
     local user="${3}"
     shift 3;
-    try virsh -q ${host:+-c qemu+ssh://${user:+${user}@}${host}${port:+:${port}}/${QEMU_ALIAS:-system}} $@
+    try virsh -q -c qemu${host:++ssh}://${host:+${user:+${user}@}${host}${port:+:${port}}}/${QEMU_ALIAS:-system} $@
 }
 
 # write_file myfile <<EOF / write_file myfile 1 <<'EOF'
