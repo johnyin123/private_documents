@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ef29773[2025-01-09T16:54:48+08:00]:virt_createvm.sh")
+VERSION+=("38e5a33[2025-01-10T15:54:05+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -15,19 +15,15 @@ gen_tpl() {
     cat <<'EOF'
 # https://libvirt.org/formatdomain.html
 ########################################
-# # spice
 # # virsh -c qemu+ssh://root@ip:port/system domdisplay <uuid> # spice://127.0.0.1:5900
 # # ssh -L 5900:127.0.0.1:5900 -N -f root@ip -p port
+# spice
 <graphics type='spice' autoport='yes'><listen type='address'/></graphics>
 <video><model type='qxl' vram='32768' heads='1' primary='yes'/></video>
 # SOUND, Linux 'ich6',windows model='ac97'
 <sound model='ac97'/>
 # 共享剪贴板
-<channel type='spicevmc'>
-   <target type='virtio' name='com.redhat.spice.0'/>
-   <alias name='channel0'/>
-   <address type='virtio-serial' controller='0' bus='0' port='1'/>
-</channel>
+<channel type='spicevmc'><target type='virtio' name='com.redhat.spice.0'/></channel>
 ########################################
 <!-- set this to 'on' to not let the guest OS know it's running in a VM -->
 <features><kvm><hidden state='on'/></kvm></features>
