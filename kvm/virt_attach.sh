@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("848c6b3[2025-01-03T14:01:58+08:00]:virt_attach.sh")
+VERSION+=("63be47c[2025-01-09T12:59:49+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -71,6 +71,7 @@ gen_tpl() {
   </source>
 </hostdev>
 # # virtiofs share host to guest "mount -t virtiofs mount_tag /mnt/mount/path"
+# # echo 'mount_tag /mnt/mount/path virtiofs defaults 0 0' >>/etc/fstab
 # # virtiofs need sharemem
 # <memoryBacking>
 #   <source type='memfd'/>

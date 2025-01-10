@@ -82,9 +82,14 @@ class MyApp(object):
         myapp=MyApp()
         myapp.output_dir=output_dir
         web=flask_app.create_app({}, json=True)
+        # web.add_url_rule('/<string:name>', view_func=myapp.download, methods=['GET'])
         web.add_url_rule('/iso/<string:id>', view_func=myapp.create_iso, methods=['POST'])
         web.add_url_rule('/domain/<string:operation>/<string:action>/<string:name>', view_func=myapp.upload_domain_xml, methods=['POST'])
         return web
+
+    def download_file(self, name):
+        return send_from_directory(self.output_dir, name)
+
     def create_iso(self, id):
         # # avoid Content type: text/plain return http415
         req_data = flask.request.get_json(force=True)
