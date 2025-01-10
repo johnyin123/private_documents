@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("63be47c[2025-01-09T12:59:49+08:00]:virt_createvm.sh")
+VERSION+=("ef29773[2025-01-09T16:54:48+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -15,15 +15,13 @@ gen_tpl() {
     cat <<'EOF'
 # https://libvirt.org/formatdomain.html
 ########################################
+# # spice
+# # virsh -c qemu+ssh://root@ip:port/system domdisplay <uuid> # spice://127.0.0.1:5900
+# # ssh -L 5900:127.0.0.1:5900 -N -f root@ip -p port
 <graphics type='spice' autoport='yes'><listen type='address'/></graphics>
-<video>
-  <model type='qxl' vram='32768' heads='1' primary='yes'/>
-  <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x0'/>
-</video>
+<video><model type='qxl' vram='32768' heads='1' primary='yes'/></video>
 # SOUND, Linux 'ich6',windows model='ac97'
-<sound model='ac97'>
- <address type='pci' domain='0x0000' bus='0x00' slot='0x09' function='0x0'/>
-</sound>
+<sound model='ac97'/>
 # 共享剪贴板
 <channel type='spicevmc'>
    <target type='virtio' name='com.redhat.spice.0'/>
