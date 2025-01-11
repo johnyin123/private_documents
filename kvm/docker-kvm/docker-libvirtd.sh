@@ -138,19 +138,6 @@ server {
     # ssl_certificate_key /etc/nginx/ssl/ngxsrv.key;
     # ssl_client_certificate /etc/nginx/ssl/ca.pem;
     server_name _;
-    location ~* /create/(.*) {
-        set $key $1;
-        satisfy any;
-        allow 192.168.168.0/24;
-        deny all;
-        auth_basic "Restricted";
-        auth_basic_user_file /etc/nginx/kvm.htpasswd;
-        proxy_buffering                    off;
-        proxy_request_buffering            off;
-        client_max_body_size 1m;
-        if ($request_method !~ ^(POST)$) { return 405 "Only POST"; }
-        proxy_pass http://flask_app/iso/$key;
-    }
     location /domain {
         satisfy any;
         allow 192.168.168.0/24;
