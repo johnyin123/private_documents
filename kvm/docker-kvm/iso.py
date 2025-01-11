@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
+import os, sys
 import flask_app, flask
 logger=flask_app.logger
 
@@ -10,7 +10,7 @@ try:
     from cStringIO import StringIO as BytesIO
 except ImportError:
     from io import BytesIO
-import pycdlib
+import pycdlib, xmltodict
 
 fmt_meta_data = 'instance-id: {}'
 fmt_network_config ='''
@@ -69,6 +69,14 @@ final_message: |
   datasource: $datasource
 '''
 
+def _removeprefix(text, prefix):
+    if sys.version_info.minor >= 9:
+        return text.removeprefix(prefix)
+    if text.startswith(prefix):
+        return text[len(prefix) :]
+    else:
+        return text
+
 import werkzeug
 class iso_exception(werkzeug.exceptions.BadRequest):
     pass
@@ -82,23 +90,17 @@ class MyApp(object):
         myapp=MyApp()
         myapp.output_dir=output_dir
         web=flask_app.create_app({}, json=True)
-        # web.add_url_rule('/<string:name>', view_func=myapp.download, methods=['GET'])
-        web.add_url_rule('/iso/<string:id>', view_func=myapp.create_iso, methods=['POST'])
         web.add_url_rule('/domain/<string:operation>/<string:action>/<string:name>', view_func=myapp.upload_domain_xml, methods=['POST'])
         return web
 
-    def download_file(self, name):
-        return send_from_directory(self.output_dir, name)
-
-    def create_iso(self, id):
-        # # avoid Content type: text/plain return http415
-        req_data = flask.request.get_json(force=True)
-        uuid = req_data.get('uuid', id)
-        rootpass = req_data.get('rootpass', 'password')
-        hostname = req_data.get('hostname', 'vmsrv')
-        interface = req_data.get('interface', 'eth0')
-        ipaddr = req_data.get('ipaddr', None)
-        gateway = req_data.get('gateway', None)
+    def create_iso(self, uuid, mdconfig):
+        logger.info(mdconfig)
+        meta=mdconfig.get('meta', {})
+        rootpass = meta.get('rootpass', 'password')
+        hostname = meta.get('hostname', 'vmsrv')
+        interface = meta.get('interface', 'eth0')
+        ipaddr = meta.get('ipaddr', None)
+        gateway = meta.get('gateway', None)
         if not ipaddr or not gateway or not uuid:
             raise iso_exception('ipaddr/gateway no found')
         iso = pycdlib.PyCdlib()
@@ -111,7 +113,6 @@ class MyApp(object):
         iso.add_fp(BytesIO(bytes(user_data,'ascii')), len(user_data), '/user-data')
         iso.write('{}/{}.iso'.format(self.output_dir, uuid))
         iso.close()
-        return { "disk": '/{}.iso'.format(uuid) }
 
     def upload_domain_xml(self, operation, action, name):
         # qemu hooks upload xml
@@ -120,7 +121,6 @@ class MyApp(object):
         if 'file' not in flask.request.files:
             return { "report": '%s-%s-%s'.format(name, operation, action) }
         file = flask.request.files['file']
-        import xmltodict
         dom = xmltodict.parse(file)
         uuid = dom["domain"]["uuid"]
         if uuid:
@@ -128,7 +128,20 @@ class MyApp(object):
             xml_file=open(os.path.join(self.output_dir, "{}.xml".format(uuid)),"w")
             xmltodict.unparse(dom, pretty=True, output=xml_file)
             xml_file.close()
-            return { "xml": '{}.xml'.format(uuid) }
+            # <metadata>
+            #   <mdconfig:meta xmlns:mdconfig="urn:iso-meta">
+            #     <ipaddr>192.168.168.102/24</ipaddr>
+            #     <gateway>192.168.168.10</gateway>
+            #   </mdconfig:meta>
+            # </metadata>
+            if "metadata" in dom["domain"]:
+                mdconfig = {
+                    _removeprefix(key, "mdconfig:"): dom["domain"]["metadata"][key]
+                    for key in dom["domain"]["metadata"]
+                    if key.startswith("mdconfig:")
+                }
+                self.create_iso(uuid, mdconfig)
+            return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
 
 app=MyApp.create(os.environ.get('OUTDIR', ''))
 def main():

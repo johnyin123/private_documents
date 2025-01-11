@@ -7,13 +7,32 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("38e5a33[2025-01-10T15:54:05+08:00]:virt_createvm.sh")
+VERSION+=("195486b1[2025-01-10T16:02:46+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
 gen_tpl() {
     cat <<'EOF'
 # https://libvirt.org/formatdomain.html
+########################################
+#meta iso info
+<metadata>
+  <mdconfig:meta xmlns:mdconfig="urn:iso-meta">
+    <ipaddr>192.168.168.102/24</ipaddr>
+    <gateway>192.168.168.10</gateway>
+    # <rootpass>password</rootpass>
+    # <hostname>vmsrv</hostname>
+    # <interface>eth-</interface>
+  </mdconfig:meta>
+</metadata>
+# # meta iso
+<driver name='qemu' type='raw'/>
+<source protocol="https" name="/{{ vm_uuid }}.iso">
+  <host name="kvm.registry.local" port="80"/>
+</source>
+<target dev='sda' bus='sata'/>
+<readonly/>
+</disk>
 ########################################
 # # virsh -c qemu+ssh://root@ip:port/system domdisplay <uuid> # spice://127.0.0.1:5900
 # # ssh -L 5900:127.0.0.1:5900 -N -f root@ip -p port
@@ -31,6 +50,7 @@ gen_tpl() {
 <domain type='kvm'>
   <name>{{ vm_name }}-{{ vm_uuid }}</name>
   <uuid>{{ vm_uuid }}</uuid>
+  <metadata/>
   <title>{{ vm_name }}</title>
   <description>{{ vm_desc | default("") }}</description>
   <memory unit='MiB'>{{ vm_ram_mb_max | default(8192)}}</memory>
