@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("63be47c[2025-01-09T12:59:49+08:00]:virt_attach.sh")
+VERSION+=("35095296[2025-01-10T08:20:52+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -142,14 +142,16 @@ set_last_disk() {
     local kvmport="${2}"
     local kvmuser="${3}"
     local uuid=${4}
+    local prefix=${5}
     local last_disk=
     local xml=$(virsh_wrap "${kvmhost}" "${kvmport}" "${kvmuser}" dumpxml ${uuid} 2>/dev/null)
     [ -z "${xml}" ] && return 9
-    for ((i=1;i<10;i++))
-    do
+    for i in ${disks[@]}; do
         #last_disk=$(printf "$xml" | xmllint --xpath "string(/domain/devices/disk[$i]/target/@dev)" -)
-        last_disk=$(printf "$xml" | xmlstarlet sel -t -v "/domain/devices/disk[$i]/target/@dev")
-        [ -z "${last_disk}" ] && { echo "${disks[((i-1))]}" ; return 0; }
+        printf "$xml" | xmlstarlet sel -t -v "/domain/devices/disk[*]/target/@dev" 2>/dev/null | grep -q "${prefix}${i}" || {
+            echo "${i}"
+            return 0
+        }
     done
     return 7
 }
@@ -196,7 +198,17 @@ main() {
     [ -z ${kvmpass} ]  || set_sshpass "${kvmpass}"
     local live=$(domain_live_arg "${kvmhost}" "${kvmport}" "${kvmuser}" "${uuid}")
     info_msg "${uuid}(${live:-shut off}) attach device\n"
-    local last_disk=$(set_last_disk "${kvmhost}" "${kvmport}" "${kvmuser}" "${uuid}") || exit_msg "${uuid} get last disk ERROR\n"
+    local last_disk=""
+    local bus=$(xmlstarlet sel -t -v "/disk/target/@bus" "${tpl}" 2>/dev/null) || true
+    case "${bus}" in
+        sata|scsi)
+            last_disk=$(set_last_disk "${kvmhost}" "${kvmport}" "${kvmuser}" "${uuid}" "sd") || exit_msg "${uuid} get last disk ERROR\n"
+            ;;
+        virtio)
+            last_disk=$(set_last_disk "${kvmhost}" "${kvmport}" "${kvmuser}" "${uuid}" "vd") || exit_msg "${uuid} get last disk ERROR\n"
+            ;;
+        *)  break;;
+    esac
     cat <<EOF | tee ${LOGFILE} | j2 --format=yaml ${tpl} | tee ${LOGFILE} | \
     virsh_wrap "${kvmhost}" "${kvmport}" "${kvmuser}" attach-device --domain ${uuid} --file /dev/stdin ${persistent} ${live} || exit_msg "${uuid} attach ERROR\n"
 
