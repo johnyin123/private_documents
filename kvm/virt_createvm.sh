@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("195486b1[2025-01-10T16:02:46+08:00]:virt_createvm.sh")
+VERSION+=("bdc1625[2025-01-11T17:39:27+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -26,8 +26,9 @@ gen_tpl() {
   </mdconfig:meta>
 </metadata>
 # # meta iso
+<disk>
 <driver name='qemu' type='raw'/>
-<source protocol="https" name="/{{ vm_uuid }}.iso">
+<source protocol="http" name="/{{ vm_uuid }}.iso">
   <host name="kvm.registry.local" port="80"/>
 </source>
 <target dev='sda' bus='sata'/>
@@ -98,6 +99,8 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME}
+        env:
+           QEMU_ALIAS=system?socket=/storage/run/libvirt/libvirt-sock
         -K|--kvmhost    <ipaddr>  kvm host address
         -U|--kvmuser    <str>     kvm host ssh user
         -P|--kvmport    <int>     kvm host ssh port
@@ -111,6 +114,7 @@ ${SCRIPTNAME}
         --arch          <str>     default x86_64 # aarch64/x86_64/..
         --uefi          <str>     if use uefi bootup, assian uefi file name
                                     virsh capabilities
+                                    virsh domcapabilities --machine xxx --arch xxx --virttype xxx
                                     virsh domcapabilities | xmlstarlet sel -t -v "/domainCapabilities/os/loader/value"
                                     virsh pool-capabilities
                                     /usr/share/OVMF/OVMF_CODE.fd
