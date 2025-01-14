@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-import flask_app, sqlalchemy, sqlalchemy.orm, os
+import flask_app, sqlalchemy, sqlalchemy.orm, sqlalchemy.pool, os
 
 DATABASE_URI=os.getenv('DATABASE', 'sqlite:///:memory:')
-engine = sqlalchemy.create_engine(DATABASE_URI, echo=flask_app.is_debug())
+# # https://github.com/sqlalchemy/sqlalchemy/discussions/8858
+args = dict(echo=flask_app.is_debug(), connect_args={'check_same_thread':False}, poolclass=sqlalchemy.pool.StaticPool)
+engine = sqlalchemy.create_engine(DATABASE_URI, **args)
 Session = sqlalchemy.orm.sessionmaker(bind=engine)
 session = Session() 
 Base = sqlalchemy.orm.declarative_base()
@@ -22,15 +24,21 @@ class VMInfo(Base):
         return f'{self.tm} {self.name} {self.data}'
 
 import datetime
-def vminfo_add(name, tx):
-    vminfo = VMInfo(tm=datetime.datetime.now(), name=name, data=tx)
-    session.add(vminfo)
+def vminfo_insert_or_update(name, data):
+    instance = session.query(VMInfo).filter_by(name=name).first()
+    if instance:
+        # Update the record
+        instance.tm=datetime.datetime.now()
+        instance.data = data
+    else:
+        # Insert the record
+        vminfo = VMInfo(tm=datetime.datetime.now(), name=name, data=data)
+        session.add(vminfo)
 
 def main():
     # create tables if not exists
     Base.metadata.create_all(engine)
-    vminfo_add('a', 100)
-    vminfo_add('b', 200)
+    vminfo_insert_or_update('a', 100)
     session.commit()
     session.close()
     return 0

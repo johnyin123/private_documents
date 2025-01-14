@@ -77,6 +77,30 @@ def _removeprefix(text, prefix):
     else:
         return text
 
+from dbi import engine, Session, session, Base
+from sqlalchemy import Column,String,Integer,DateTime
+class VMInfo(Base):
+    __tablename__ = "vminfo"
+    tm = Column(DateTime, nullable=False, index=True)
+    hostip = Column(String(19), nullable=False, index=True)
+    guest_uuid = Column(String(36), nullable=False, index=True, primary_key=True)
+
+    def __repr__(self):
+        return f'{self.tm} {self.name} {self.data}'
+
+import datetime
+def vminfo_insert_or_update(hostip, guest_uuid):
+    instance = session.query(VMInfo).filter_by(guest_uuid=guest_uuid).first()
+    if instance:
+        # Update the record
+        instance.tm=datetime.datetime.now()
+        instance.hostip=hostip
+    else:
+        # Insert the record
+        vminfo = VMInfo(tm=datetime.datetime.now(), hostip=hostip, guest_uuid=guest_uuid)
+        session.add(vminfo)
+    session.commit()
+
 import werkzeug
 class iso_exception(werkzeug.exceptions.BadRequest):
     pass
@@ -127,6 +151,7 @@ class MyApp(object):
         uuid = dom["domain"]["uuid"]
         if uuid:
             logger.info("save xml %s.xml", uuid)
+            vminfo_insert_or_update(userip, uuid)
             xml_file=open(os.path.join(self.output_dir, "{}.xml".format(uuid)),"w")
             xmltodict.unparse(dom, pretty=True, output=xml_file)
             xml_file.close()
@@ -143,8 +168,10 @@ class MyApp(object):
                     if key.startswith("mdconfig:")
                 }
                 self.create_iso(uuid, mdconfig)
-            return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
+                return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
+            return { "xml": '/{}.xml'.format(uuid) }
 
+Base.metadata.create_all(engine)
 app=MyApp.create(os.environ.get('OUTDIR', '.'))
 def main():
     # curl -X POST -F 'file=@/etc/libvirt/qemu/name.xml' http://10.170.6.105:18888/domain
