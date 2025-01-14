@@ -7,11 +7,12 @@ OBJECT="${1}"
 OPERATION="${2}"
 ACTION="${3}"
 XML="/etc/libvirt/qemu/${OBJECT}.xml"
-URL="https://kvm.registry.local/domain/${OPERATION}/${ACTION}/${OBJECT}"
 log "Hook called: ${OPERATION} ${ACTION}"
 [ ! -f "${XML}" ] && { log "${XML} no found, skipping"; exit 0; }
+UUID=$(grep -oPm1 "(?<=<uuid>)[^<]+" "${XML}")
+URL="https://kvm.registry.local/domain/${OPERATION}/${ACTION}/${UUID}"
 report_state() {
-    log "Hook ${OBJECT} report state ${OPERATION} ${ACTION} ${*}"
+    log "Hook ${OBJECT} ${UUID} report state ${OPERATION} ${ACTION} ${*}"
     timeout 3 curl -s --cacert /etc/libvirt/pki/ca.pem --key /etc/libvirt/pki/server.key --cert /etc/libvirt/pki/server.pem -X POST "${URL}" ${*} || true
 }
 
@@ -21,7 +22,7 @@ if [ "${OPERATION}" = "prepare" ] || [ "${OPERATION}" = "migrate" ]; then
         exit 0
     fi
     # only prepare-begin post xmlfile
-    log "Hook ${OBJECT} report state ${OPERATION} ${ACTION}, and upload xml"
+    log "Hook ${OBJECT} ${UUID} report state ${OPERATION} ${ACTION}, and upload xml"
     report_state -F "file=@${XML}"
     exit 0
 fi

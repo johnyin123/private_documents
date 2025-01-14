@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, sys
+import os
 import flask_app, flask
 logger=flask_app.logger
 
@@ -69,14 +69,6 @@ final_message: |
   datasource: $datasource
 '''
 
-def _removeprefix(text, prefix):
-    if sys.version_info.minor >= 9:
-        return text.removeprefix(prefix)
-    if text.startswith(prefix):
-        return text[len(prefix) :]
-    else:
-        return text
-
 from dbi import engine, Session, session, Base
 from sqlalchemy import Column,String,Integer,DateTime
 class VMInfo(Base):
@@ -84,20 +76,23 @@ class VMInfo(Base):
     tm = Column(DateTime, nullable=False, index=True)
     hostip = Column(String(19), nullable=False, index=True)
     guest_uuid = Column(String(36), nullable=False, index=True, primary_key=True)
-
+    operation = Column(String(19), nullable=True)
+    action = Column(String(19), nullable=True)
     def __repr__(self):
-        return f'{self.tm} {self.name} {self.data}'
+        return f'{self.tm} {self.name} {self.data} {self.operation} {self.action}'
 
 import datetime
-def vminfo_insert_or_update(hostip, guest_uuid):
-    instance = session.query(VMInfo).filter_by(guest_uuid=guest_uuid).first()
-    if instance:
+def vminfo_insert_or_update(hostip, guest_uuid, operation, action):
+    rec = session.query(VMInfo).filter_by(guest_uuid=guest_uuid).first()
+    if rec:
         # Update the record
-        instance.tm=datetime.datetime.now()
-        instance.hostip=hostip
+        rec.tm=datetime.datetime.now()
+        rec.hostip=hostip
+        rec.operation=operation
+        rec.action=action
     else:
         # Insert the record
-        vminfo = VMInfo(tm=datetime.datetime.now(), hostip=hostip, guest_uuid=guest_uuid)
+        vminfo = VMInfo(tm=datetime.datetime.now(), hostip=hostip, guest_uuid=guest_uuid, operation=operation, action=action)
         session.add(vminfo)
     session.commit()
 
@@ -114,12 +109,12 @@ class MyApp(object):
         myapp=MyApp()
         myapp.output_dir=output_dir
         web=flask_app.create_app({}, json=True)
-        web.add_url_rule('/domain/<string:operation>/<string:action>/<string:name>', view_func=myapp.upload_domain_xml, methods=['POST'])
+        web.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=myapp.upload_domain_xml, methods=['POST'])
         return web
 
     def create_iso(self, uuid, mdconfig):
         logger.info(mdconfig)
-        meta=mdconfig.get('meta', {})
+        meta=mdconfig.get('mdconfig:meta', {})
         rootpass = meta.get('rootpass', 'password')
         hostname = meta.get('hostname', 'vmsrv')
         interface = meta.get('interface', 'eth0')
@@ -138,38 +133,32 @@ class MyApp(object):
         iso.write('{}/{}.iso'.format(self.output_dir, uuid))
         iso.close()
 
-    def upload_domain_xml(self, operation, action, name):
+    def upload_domain_xml(self, operation, action, uuid):
         # qemu hooks upload xml
         userip=flask.request.environ.get('HTTP_X_FORWARDED_FOR', flask.request.remote_addr)
         tls_dn=flask.request.environ.get('HTTP_X_CERT_DN', 'unknow')
         origin=flask.request.environ.get('HTTP_ORIGIN', '')
-        logger.info("%s %s:%s, report vm: %s, operation: %s, action: %s", origin, userip, tls_dn, name, operation, action)
+        logger.info("%s %s:%s, report vm: %s, operation: %s, action: %s", origin, userip, tls_dn, uuid, operation, action)
+        vminfo_insert_or_update(userip, uuid, operation, action)
         if 'file' not in flask.request.files:
-            return { "report": '%s-%s-%s'.format(name, operation, action) }
+            return { "report": '%s-%s-%s'.format(uuid, operation, action) }
         file = flask.request.files['file']
         dom = xmltodict.parse(file)
-        uuid = dom["domain"]["uuid"]
-        if uuid:
-            logger.info("save xml %s.xml", uuid)
-            vminfo_insert_or_update(userip, uuid)
-            xml_file=open(os.path.join(self.output_dir, "{}.xml".format(uuid)),"w")
-            xmltodict.unparse(dom, pretty=True, output=xml_file)
-            xml_file.close()
-            # <metadata>
-            #   <mdconfig:meta xmlns:mdconfig="urn:iso-meta">
-            #     <ipaddr>192.168.168.102/24</ipaddr>
-            #     <gateway>192.168.168.10</gateway>
-            #   </mdconfig:meta>
-            # </metadata>
-            if "metadata" in dom["domain"]:
-                mdconfig = {
-                    _removeprefix(key, "mdconfig:"): dom["domain"]["metadata"][key]
-                    for key in dom["domain"]["metadata"]
-                    if key.startswith("mdconfig:")
-                }
-                self.create_iso(uuid, mdconfig)
-                return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
-            return { "xml": '/{}.xml'.format(uuid) }
+        logger.info("save xml %s.xml", uuid)
+        xml_file=open(os.path.join(self.output_dir, "{}.xml".format(uuid)),"w")
+        xmltodict.unparse(dom, pretty=True, indent='  ', output=xml_file)
+        xml_file.close()
+        # <metadata>
+        #   <mdconfig:meta xmlns:mdconfig="urn:iso-meta">
+        #     <ipaddr>192.168.168.102/24</ipaddr>
+        #     <gateway>192.168.168.10</gateway>
+        #   </mdconfig:meta>
+        # </metadata>
+        if "metadata" in dom["domain"] and dom["domain"]["metadata"] is not None:
+            mdconfig = dict(filter(lambda item: item[0].startswith("mdconfig:"), dom["domain"]["metadata"].items()))
+            self.create_iso(uuid, mdconfig)
+            return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
+        return { "xml": '/{}.xml'.format(uuid) }
 
 Base.metadata.create_all(engine)
 app=MyApp.create(os.environ.get('OUTDIR', '.'))
