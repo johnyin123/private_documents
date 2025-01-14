@@ -125,7 +125,7 @@ EOF
 export IMAGE=nginx:bookworm
 type=meta-iso
 username=johnyin
-[ -e "flask_app.py" ] && [ -e "iso.py" ] || { echo "flask_app.py iso.py, nofound"; exit 1;}
+[ -e "flask_app.py" ] && [ -e "iso.py" ] && [ -e "dbi.py" ] || { echo "dbi.py flask_app.py iso.py, nofound"; exit 1;}
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     install -v -d -m 0755 "${type}-${arch}/docker/home/${username}"
