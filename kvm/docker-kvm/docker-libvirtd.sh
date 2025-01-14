@@ -13,7 +13,7 @@ for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     install -v -d -m 0755 "${type}-${arch}/docker/etc/libvirt/hooks"
     install -v -C -m 0755 "qemu.hook" "${type}-${arch}/docker/etc/libvirt/hooks/qemu"
-    cat <<EODOC > ${type}-${arch}/docker/build.run
+    cat <<'EODOC' > ${type}-${arch}/docker/build.run
 apt update && apt -y --no-install-recommends install \
     supervisor \
     libvirt-daemon \
@@ -29,27 +29,45 @@ apt update && apt -y --no-install-recommends install \
     rm -fr /etc/libvirt/qemu/* || true
     sed --quiet -i -E \
         -e '/^\s*(user)\s*=.*/!p' \
-        -e "\\\$auser = \"root\"" \
+        -e "\$auser = \"root\"" \
         /etc/libvirt/qemu.conf || true
+   sed --quiet -i.orig -E \
+         -e '/^\s*(ca_file|cert_file|key_file|listen_addr|listen_tls|tcp_port).*/!p' \
+         -e '$aca_file = "/etc/libvirt/pki/ca.pem"' \
+         -e '$acert_file = "/etc/libvirt/pki/server.pem"' \
+         -e '$akey_file = "/etc/libvirt/pki/server.key"' \
+         -e '$alisten_tcp = 1' \
+         -e '$alisten_tls = 1' \
+         -e '$alisten_addr = "0.0.0.0"' \
+         -e '$a#tcp_port = "16509"' \
+         /etc/libvirt/libvirtd.conf
 EODOC
     mkdir -p ${type}-${arch}/docker/etc && cat <<EODOC > ${type}-${arch}/docker/etc/supervisord.conf
 [supervisord]
 nodaemon=true
 user=root
 [program:libvirtd]
-command=/usr/sbin/libvirtd
+command=/usr/sbin/libvirtd --listen
 stdout_logfile=/dev/stdout
 stderr_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 [program:virtlockd]
 command=/usr/sbin/virtlockd
+stdout_logfile=/dev/stdout
+stderr_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile_maxbytes=0
 [program:virtlogd]
 command=/usr/sbin/virtlogd
+stdout_logfile=/dev/stdout
+stderr_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile_maxbytes=0
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
 # need /sys/fs/cgroup
-VOLUME ["/sys/fs/cgroup", "/etc/libvirt/qemu", "/etc/libvirt/secrets", "/var/run/libvirt/", "/var/lib/libvirt", "/var/log/libvirt"]
+VOLUME ["/sys/fs/cgroup", "/etc/libvirt/qemu", "/etc/libvirt/secrets", "/var/run/libvirt", "/var/lib/libvirt", "/var/log/libvirt", "/etc/libvirt/pki"]
 ENTRYPOINT ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
     # confirm base-image is right arch
@@ -61,17 +79,9 @@ done
 ./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
 
 cat <<EOF
-iptables -P INPUT ACCEPT
-iptables -P FORWARD ACCEPT
-iptables -P OUTPUT ACCEPT
-iptables -t nat -F
-iptables -t mangle -F
-iptables -F
-iptables -X
-
 echo '192.168.168.1  kvm.registry.local' >> /etc/hosts
 
-# cehp rbd/local storage/net bridge all ok, arm64 ok
+# ceph rbd/local storage/net bridge all ok, arm64 ok
 # volume /storage: use defined local dir storage
 # -v /storage:/storage \
 # default pool /storage/lib/libvirt/images
@@ -82,39 +92,34 @@ docker create --name libvirtd \
     --device /dev/kvm \
     -v /storage/log:/var/log/libvirt \
     -v /storage/vms:/etc/libvirt/qemu \
+    -v /storage/pki:/etc/libvirt/pki \
     -v /storage/secrets:/etc/libvirt/secrets \
     -v /storage/run/libvirt:/var/run/libvirt \
     -v /storage/lib/libvirt:/var/lib/libvirt \
     registry.local/libvirtd/kvm:${ver}
 
+YEAR=15 ./newssl.sh -i johnyinca
+YEAR=15 ./newssl.sh -c kvm.registry.local # # meta-iso web service use
+YEAR=15 ./newssl.sh -c cli                # # virsh client
+# # kvm servers
+YEAR=15 ./newssl.sh -c kvm1.local --ip 192.168.168.1 --ip 192.168.169.1
+......
+# # init server
+# cp ca/kvm1.local.pem /storage/pki/server.pem
+# cp ca/kvm1.local.key /storage/pki/server.key
+# cp ca/ca.pem /storage/pki/ca.pem
+
+# # init client
+# sudo install -v -d -m 0755 "/etc/pki/CA/"
+# sudo install -v -C -m 0755 "ca/ca.pem" "/etc/pki/CA/cacert.pem"
+# mkdir ~/.pki/libvirt
+# cp ca/cli.key clientkey.pem ~/.pki/libvirt/
+# cp ca/cli.pem clientcert.pem ~/.pki/libvirt/
+
 virsh -c qemu+unix:///system?socket=/storage/run/libvirt/libvirt-sock
-EOF
-
-type=libvirt-client
-for arch in ${ARCH[@]}; do
-    ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
-    cat <<EODOC > ${type}-${arch}/docker/build.run
-apt update && apt -y --no-install-recommends install openssh-server libvirt-clients netcat-openbsd
-mkdir -p /run/sshd/
-EODOC
-    # confirm base-image is right arch
-    docker pull --quiet registry.local/debian:bookworm --platform ${arch}
-    docker run --rm --entrypoint="uname" registry.local/debian:bookworm -m
-    ./make_docker_image.sh -c build -D ${type}-${arch} --tag registry.local/libvirtd/${type}:${ver}-${arch}
-    docker push registry.local/libvirtd/${type}:${ver}-${arch}
-done
-./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
-
-cat <<EOF
-network=host # or other networks
-docker create --name ctrl \
-    --network \${network} \
-    --volumes-from libvirtd \
-    -v /root/.ssh/:/root/.ssh \
-    registry.local/libvirtd/libvirt-client:${ver} \
-    /usr/sbin/sshd -D -p9999
-# # -p 8888:9999
-virsh -c qemu+ssh://root@10.170.24.5:9999/system
+virsh -c qemu+tls://192.168.168.1/system list --all
+virsh -c qemu+tls://kvm1.local/system list --all
+virsh -c qemu+ssh://root@192.168.168.1:60022/system?socket=/storage/run/libvirt/libvirt-sock
 EOF
 
 export IMAGE=nginx:bookworm
@@ -133,23 +138,7 @@ upstream flask_app {
 }
 server {
     listen 80;
-    # listen 443 ssl;
-    # ssl_certificate     /etc/nginx/ssl/ngxsrv.pem;
-    # ssl_certificate_key /etc/nginx/ssl/ngxsrv.key;
-    # ssl_client_certificate /etc/nginx/ssl/ca.pem;
-    server_name _;
-    location /domain {
-        satisfy any;
-        allow 192.168.168.0/24;
-        deny all;
-        auth_basic "Restricted";
-        auth_basic_user_file /etc/nginx/kvm.htpasswd;
-        proxy_buffering                    off;
-        proxy_request_buffering            off;
-        client_max_body_size 1m;
-        if ($request_method !~ ^(POST)$) { return 405 "Only POST"; }
-        proxy_pass http://flask_app/domain;
-    }
+    server_name kvm.registry.local;
     location / {
         # disable checking of client request body size
         client_max_body_size 0;
@@ -157,8 +146,22 @@ server {
         root /iso;
     }
 }
+server {
+    listen 443 ssl;
+    ssl_certificate     /etc/nginx/ssl/kvm.registry.local.pem;
+    ssl_certificate_key /etc/nginx/ssl/kvm.registry.local.key;
+    ssl_client_certificate /etc/nginx/ssl/ca.pem;
+    server_name kvm.registry.local;
+    ssl_verify_client on;
+    location /domain {
+        proxy_buffering                    off;
+        proxy_request_buffering            off;
+        client_max_body_size 1m;
+        if ($request_method !~ ^(POST)$) { return 405 "Only POST"; }
+        proxy_pass http://flask_app/domain;
+    }
+}
 EOF
-    printf "admin:$(openssl passwd -apr1 KVMP@ssW0rd)\n" > ${type}-${arch}/docker/etc/nginx/kvm.htpasswd
     cat <<EODOC > ${type}-${arch}/docker/build.run
 useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
 apt -y --no-install-recommends update
@@ -192,7 +195,7 @@ user=johnyin
 redirect_stderr=true
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
-VOLUME ["/iso"]
+VOLUME ["/iso", "/etc/nginx/ssl"]
 ENTRYPOINT ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
     ################################################
@@ -203,14 +206,12 @@ EODOC
     docker push registry.local/libvirtd/${type}:${ver}-${arch}
 done
 ./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
-
-# {
-#     'ipaddr': '',
-#     'gateway': '',
-#     'uuid': 'uri',
-#     'rootpass': 'password',
-#     'hostname': 'vmsrv',
-#     'interface': 'eth0'
-# }
-# docker run --rm  --network br-ext registry.local/libvirtd/meta-iso:bookworm
-# curl -u admin:KVMP@ssW0rd -X POST http://192.168.169.192/disk/vm1 -d '{"ipaddr":"1.2.3.4/5", "gateway":"gw"}'
+cat <<EOF
+docker run --rm \
+    --network br-ext \
+    -v /storage/iso:/iso \
+    -v /storage/pki:/etc/nginx/ssl \
+    registry.local/libvirtd/meta-iso:bookworm
+curl --cacert ca.pem --key server.key --cert server.pem \
+    -X POST https://kvm.registry.local/domain/prepare/begin/vm1 -F file=@/etc/libvirt/qemu/vm1.xml
+EOF
