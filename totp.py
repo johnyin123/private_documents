@@ -23,5 +23,6 @@ def get_totp_token(secret):
     return x
 
 #base64 encoded key
-secret = 'MNUGC2DBGBZQ===='
+# echo 'password' | base64  and padding size 16
+secret = 'cGFzc3dvcmQK===='
 print(get_totp_token(secret))
