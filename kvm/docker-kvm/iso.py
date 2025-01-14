@@ -145,14 +145,12 @@ class MyApp(object):
                 self.create_iso(uuid, mdconfig)
             return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
 
-app=MyApp.create(os.environ.get('OUTDIR', ''))
+app=MyApp.create(os.environ.get('OUTDIR', '.'))
 def main():
-    # curl -X POST http://127.0.0.1:18888/vm1 -d '{"ipaddr":"1.2.3.4/32", "uuid":"myuuid"}' 
-    # curl -X POST -F 'file=@/etc/libvirt/qemu/myserver-4b088f8b-004a-4597-b59f-f327a00e8fcb.xml' http://10.170.6.105:18888/domain
-    logger.debug("uwsgi --http-socket :5999 --plugin python3 --module application:app")
+    # curl -X POST -F 'file=@/etc/libvirt/qemu/name.xml' http://10.170.6.105:18888/domain
     host = os.environ.get('HTTP_HOST', '0.0.0.0')
     port = int(os.environ.get('HTTP_PORT', '18888'))
-    app.run(host=host, port=port, debug=app.config['DEBUG'])
+    app.run(host=host, port=port, debug=flask_app.is_debug())
 
 if __name__ == '__main__':
     exit(main())

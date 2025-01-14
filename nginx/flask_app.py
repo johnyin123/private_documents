@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import logging, os
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
@@ -6,10 +5,12 @@ logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s:
 logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
+def is_debug():
+    return logger.getEffectiveLevel() == logging.DEBUG
+
 import werkzeug, flask
 FLASK_CONF = {
     'SECRET_KEY'       : os.urandom(24),
-    'DEBUG'            : os.environ.get('DEBUG', False),
     'STATIC_URL_PATH'  : '/public',
     'STATIC_FOLDER'    : 'static',
 }
@@ -53,10 +54,9 @@ class MyApp(object):
 
 app=MyApp.create()
 def main():
-    logger.debug("uwsgi --http-socket :5999 --plugin python3 --module application:app")
     host = os.environ.get('HTTP_HOST', '0.0.0.0')
     port = int(os.environ.get('HTTP_PORT', '18888'))
-    app.run(host=host, port=port, debug=app.config['DEBUG'])
+    app.run(host=host, port=port, debug=flask_app.is_debug())
 
 if __name__ == '__main__':
     exit(main())
