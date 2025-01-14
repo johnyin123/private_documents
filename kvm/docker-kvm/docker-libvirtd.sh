@@ -178,6 +178,7 @@ apt -y --no-install-recommends update
 apt -y --no-install-recommends install python3 python3-venv \
     supervisor \
     python3-flask python3-pycdlib \
+    python3-sqlalchemy \
     gunicorn python3-gunicorn
 EODOC
     mkdir -p ${type}-${arch}/docker/etc && cat <<EODOC > ${type}-${arch}/docker/etc/supervisord.conf
@@ -198,7 +199,7 @@ stdout_logfile_maxbytes=0
 [program:webapp]
 command=gunicorn -b 127.0.0.1:5009 iso:app
 directory=/home/${username}/
-environment=LOG=DEBUG, OUTDIR="/iso"
+environment=LOG=DEBUG, OUTDIR="/iso", DATABASE=sqlite:////iso/vminfo.sqlite
 autostart=true
 autorestart=true
 user=johnyin
