@@ -158,6 +158,16 @@ server {
         proxy_request_buffering            off;
         client_max_body_size 1m;
         if ($request_method !~ ^(POST)$) { return 405 "Only POST"; }
+        proxy_set_header X-CERT-DN $ssl_client_s_dn;
+        # # need add all other headers, origin was overwrited
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Port  $server_port;
+        proxy_set_header Origin            $scheme://$host;
+        proxy_set_header Host $host;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
         proxy_pass http://flask_app/domain;
     }
 }

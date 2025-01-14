@@ -117,7 +117,9 @@ class MyApp(object):
     def upload_domain_xml(self, operation, action, name):
         # qemu hooks upload xml
         userip=flask.request.environ.get('HTTP_X_FORWARDED_FOR', flask.request.remote_addr)
-        logger.info("%s, report vm: %s, operation: %s, action: %s", userip, name, operation, action)
+        tls_dn=flask.request.environ.get('HTTP_X_CERT_DN', 'unknow')
+        origin=flask.request.environ.get('HTTP_ORIGIN', '')
+        logger.info("%s %s:%s, report vm: %s, operation: %s, action: %s", origin, userip, tls_dn, name, operation, action)
         if 'file' not in flask.request.files:
             return { "report": '%s-%s-%s'.format(name, operation, action) }
         file = flask.request.files['file']
