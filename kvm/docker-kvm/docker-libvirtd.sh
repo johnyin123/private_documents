@@ -177,7 +177,7 @@ useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
 apt -y --no-install-recommends update
 apt -y --no-install-recommends install python3 python3-venv \
     supervisor \
-    python3-flask python3-pycdlib \
+    python3-flask python3-pycdlib python3-libvirt \
     python3-sqlalchemy \
     gunicorn python3-gunicorn
 EODOC

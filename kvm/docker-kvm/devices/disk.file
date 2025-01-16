@@ -1,0 +1,6 @@
+<disk type='file' device='disk'>
+   <driver name='qemu' type='{{ format }}' cache='none' io='native'/>
+   <source file='{{ store_path }}'/>
+   <backingstore/>
+   <target dev='vd{{ vm_last_disk }}' bus='virtio'/>
+</disk>

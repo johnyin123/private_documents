@@ -1,0 +1,27 @@
+#cloud-config
+hostname: {{ hostname }}
+manage_etc_hosts: true
+user: root
+password: {{ rootpass }}
+chpasswd: {{ expire | default(False) }}
+# timezone
+timezone: {{ timezone | default('Asia/Shanghai') }}
+users:
+  - default
+  - name: admin
+    groups: sudo
+    passwd: '$(mkpasswd --method=SHA-512 --rounds=4096 password)'
+    lock-passwd: false
+    ssh_pwauth: True
+    chpasswd: {{ expire | default(False) }}
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDIcCEBlGLWfQ6p/6/QAR1LncKGlFoiNvpV3OUzPEoxJfw5ChIc95JSqQQBIM9zcOkkmW80ZuBe4pWvEAChdMWGwQLjlZSIq67lrpZiql27rL1hsU25W7P03LhgjXsUxV5cLFZ/3dcuLmhGPbgcJM/RGEqjNIpLf34PqebJYqPz9smtoJM3a8vDgG3ceWHrhhWNdF73JRzZiDo8L8KrDQTxiRhWzhcoqTWTrkj2T7PZs+6WTI+XEc8IUZg/4NvH06jHg8QLr7WoWUtFvNSRfuXbarAXvPLA6mpPDz7oRKB4+pb5LpWCgKnSJhWl3lYHtZ39bsG8TyEZ20ZAjluhJ143GfDBy8kLANSntfhKmeOyolnz4ePf4EjzE3WwCsWNrtsJrW3zmtMRab7688vrUUl9W2iY9venrW0w6UL7Cvccu4snHLaFiT6JSQSSJS+mYM5o8T0nfIzRi0uxBx4m9/6nVIl/gs1JApzgWyqIi3opcALkHktKxi76D0xBYAgRvJs= root@liveos
+growpart:
+  mode: auto
+  devices: ['/']
+
+final_message: |
+  cloud-init has finished
+  datasource: $datasource
