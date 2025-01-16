@@ -127,7 +127,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         # </metadata>
         if isotemplate.ISOTemplate('default', self.output_dir).create_iso(uuid, mdconfig_meta):
             return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
-        return { "xml": '/{}.xml'.format(uuid) }
+        return { 'result' : 'OK' }
 
 # create tables if not exists
 database.Base.metadata.create_all(database.engine)
