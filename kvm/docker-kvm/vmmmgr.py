@@ -9,11 +9,8 @@ import uuid
 def gen_uuid():
     return "{}".format(uuid.uuid4())
 
-
 from dbi import engine, Session, session, Base
 from sqlalchemy import text,Column,String,Integer,DateTime,Enum
-from enum import Enum as PyEnum
-
 class KvmDevice(Base):
     __tablename__ = "kvmdevice"
     kvmhost = Column(String(19), nullable=False, index=True, primary_key=True)
@@ -95,8 +92,9 @@ class DeviceTemplate(object):
     def attach_device(self, connection, uuid, **kwargs):
         vmmgr = VMManager(connection)
         devxml = self.template.render(**kwargs)
-        vm_last_disk = vmmgr.getlastdisk(uuid, devxml)
-        devxml = self.template.render(vm_last_disk = vm_last_disk, **kwargs)
+        if self.devtype == 'disk'
+            vm_last_disk = vmmgr.getlastdisk(uuid, devxml)
+            devxml = self.template.render(vm_last_disk = vm_last_disk, **kwargs)
         vmmgr.attach_device(uuid, devxml)
 
 class DomainTemplate(object):
