@@ -41,6 +41,18 @@ def json_handle_error(e):
 import os, flask_app, flask
 logger=flask_app.logger
 
+# # exceptions.py
+# class APIException(Exception):
+#     def __init__(self, code, name, description):
+#         self.code = code
+#         self.name = name
+#         self.description = description
+#     # @app.errorhandler(exceptions.APIException)
+#     @staticmethod
+#     def handle(e):
+#         response = {'code': e.code,'name':e.name,'description':e.description}
+#         return response, e.code
+
 class MyApp(object):
     @staticmethod
     def create():
@@ -50,9 +62,11 @@ class MyApp(object):
         return web
 
     def test(self):
+        # raise exceptions.APIException(881, 'err', 'msg')
         return '{ "OK" : "OK" }'
 
 app=MyApp.create()
+# app.errorhandler(exceptions.APIException)(exceptions.APIException.handle)
 def main():
     host = os.environ.get('HTTP_HOST', '0.0.0.0')
     port = int(os.environ.get('HTTP_PORT', '18888'))

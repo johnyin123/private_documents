@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import werkzeug, jinja2, libvirt, xml.dom.minidom
-import flask_app
+import jinja2, libvirt, xml.dom.minidom
+import flask_app, exceptions
 logger=flask_app.logger
 
 class DeviceTemplate(object):
@@ -85,13 +85,13 @@ class VMManager:
                flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE 
             dom.attachDeviceFlags(xml, flags)
         except libvirt.libvirtError as e:
-            raise werkzeug.exceptions.BadRequest(f'vm uuid {uuid} {e}')
+            raise exceptions.APIException(400, 'attach_device error', f'{e}')
 
     def create_vm(self, uuid, xml):
         try:
             logger.info(f'{uuid} lookup')
             dom=self.conn.lookupByUUIDString(uuid)
-            raise werkzeug.exceptions.BadRequest(f'vm {uuid} exists')
+            raise exceptions.APIException(400, 'create_vm error', f'vm {uuid} exists')
         except libvirt.libvirtError:
             logger.info(f'create domain {uuid}')
             self.conn.defineXML(xml)
@@ -106,7 +106,7 @@ class VMManager:
                 pass
             dom.undefine()
         except libvirt.libvirtError as e:
-            raise werkzeug.exceptions.BadRequest(f'vm uuid {uuid} {e}')
+            raise exceptions.APIException(400, 'delete_vm error', f'{e}')
 
     def start_vm(self, uuid):
         try:
@@ -114,7 +114,7 @@ class VMManager:
             dom=self.conn.lookupByUUIDString(uuid)
             dom.create()
         except libvirt.libvirtError as e:
-            raise werkzeug.exceptions.BadRequest(f'vm uuid {uuid} {e}')
+            raise exceptions.APIException(400, 'start_vm error', f'{e}')
 
     def stop_vm(self, uuid):
         try:
@@ -122,7 +122,7 @@ class VMManager:
             dom=self.conn.lookupByUUIDString(uuid)
             dom.shutdown()
         except libvirt.libvirtError as e:
-            raise werkzeug.exceptions.BadRequest(f'vm uuid {uuid} {e}')
+            raise exceptions.APIException(400, 'stop_vm error', f'{e}')
 
     def stop_vm_forced(self, uuid):
         try:
@@ -130,4 +130,4 @@ class VMManager:
             dom=self.conn.lookupByUUIDString(uuid)
             dom.destroy()
         except libvirt.libvirtError as e:
-            raise werkzeug.exceptions.BadRequest(f'vm uuid {uuid} {e}')
+            raise exceptions.APIException(400, 'stop_vm_forced error', f'{e}')

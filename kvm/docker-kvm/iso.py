@@ -4,7 +4,7 @@
 import os
 import flask_app, flask
 logger=flask_app.logger
-import database, isotemplate, vmmanager
+import database, isotemplate, vmmanager, exceptions
 
 import uuid
 def gen_uuid():
@@ -27,7 +27,7 @@ class MyApp(object):
         web.add_url_rule('/delete_vm/<string:hostname>/<string:uuid>', view_func=myapp.delete_vm, methods=['GET'])
         web.add_url_rule('/start_vm/<string:hostname>/<string:uuid>', view_func=myapp.start_vm, methods=['GET'])
         web.add_url_rule('/stop_vm/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm, methods=['GET'])
-        web.add_url_rule('/stop_vm_forced/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm_forced, methods=['GET'])
+        web.add_url_rule('/stop_vm/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm_forced, methods=['DELETE'])
         web.add_url_rule('/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.attach_device, methods=['POST'])
         logger.info('''
 srv=http://127.0.0.1:18888
@@ -43,7 +43,7 @@ curl -X POST -H 'Content-Type:application/json' -d '{}' ${srv}/attach_device/${h
 curl ${srv}/start_vm/${host}/${uuid}
 curl ${srv}/stop_vm/${host}/${uuid}
 curl ${srv}/stop_vm_forced/${host}/${uuid}
-curl ${srv}/delete_vm/${host}/${uuid}
+curl -X DELETE ${srv}/stop_vm/${host}/${uuid}
 curl ${srv}/list/domain
 # # test qemu-hook auto upload
 curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
@@ -77,7 +77,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         logger.info(vm)
         host = database.KvmHost.getHostInfo(hostname)
         if (host.arch.lower() != vm['vm_arch'].lower()):
-            raise werkzeug.exceptions.BadRequest('arch no match host')
+            raise exceptions.APIException(400, 'create_vm error', 'arch no match host')
         # force use host arch string
         vm['vm_arch'] = host.arch
         vmmanager.DomainTemplate(host.vmtpl).create_domain(host.connection, vm['vm_uuid'], **vm)

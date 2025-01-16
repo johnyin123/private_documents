@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import flask_app
+import flask_app, exceptions
 logger=flask_app.logger
 
 from dbi import engine, Session, session, Base
@@ -46,7 +46,7 @@ class KvmDevice(Base):
         if result:
             logger.info(f'match device {result}')
             return result
-        raise werkzeug.exceptions.BadRequest('device template nofound')
+        raise exceptions.APIException(400, 'device error', f'device template {name} nofound')
 
     @staticmethod
     def ListDevice(kvmhost):
@@ -80,7 +80,7 @@ class KvmHost(Base):
         if result:
             logger.info(f'match host {result}')
             return result
-        raise werkzeug.exceptions.BadRequest('host nofound')
+        raise exceptions.APIException(400, 'host error', f'host {name} nofound')
 
     @staticmethod
     def ListHost():
