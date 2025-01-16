@@ -3,11 +3,10 @@ import flask_app, exceptions
 logger=flask_app.logger
 
 from dbi import engine, Session, session, Base
-from sqlalchemy import text,Column,String,Integer,DateTime,Enum
-import datetime
+from sqlalchemy import func,text,Column,String,Integer,DateTime,Enum
 class VMInfo(Base):
     __tablename__ = "vminfo"
-    tm = Column(DateTime, nullable=False, index=True)
+    tm = Column(DateTime, nullable=False, index=True, server_default=func.current_timestamp())
     hostip = Column(String(19), nullable=False, index=True)
     guest_uuid = Column(String(36), nullable=False, index=True, primary_key=True)
     operation = Column(String(19), nullable=True)
@@ -22,13 +21,12 @@ class VMInfo(Base):
         rec = session.query(VMInfo).filter_by(guest_uuid=guest_uuid).first()
         if rec:
             # Update the record
-            rec.tm=datetime.datetime.now()
             rec.hostip=hostip
             rec.operation=operation
             rec.action=action
         else:
             # Insert the record
-            vminfo = VMInfo(tm=datetime.datetime.now(), hostip=hostip, guest_uuid=guest_uuid, operation=operation, action=action)
+            vminfo = VMInfo(hostip=hostip, guest_uuid=guest_uuid, operation=operation, action=action)
             session.add(vminfo)
         session.commit()
 

@@ -21,33 +21,31 @@ class Base:
 # -*- coding: utf-8 -*-
 from dbi import engine, Session, session, Base
 
-from sqlalchemy import text,Column,String,Integer,DateTime
+from sqlalchemy import func,text,Column,String,Integer,DateTime
 class VMInfo(Base):
     __tablename__ = "vminfo"
-    tm = Column(DateTime, nullable=False, index=True, primary_key=True)
+    tm = Column(DateTime, nullable=False, index=True, primary_key=True, server_default=func.current_timestamp())
     name = Column(String(50), nullable=False, index=True, primary_key=True)
-    data = Column(Integer, nullable=False)
-
+    data = Column(Integer, nullable=False) #unique=True
+    # timestamp = Column(DateTime(timezone=True))
     def __repr__(self):
         return f'{self.tm} {self.name} {self.data}'
 
-import datetime
 def vminfo_insert_or_update(name, data):
     instance = session.query(VMInfo).filter_by(name=name).first()
     if instance:
         # Update the record
-        instance.tm=datetime.datetime.now()
         instance.data = data
     else:
         # Insert the record
-        vminfo = VMInfo(tm=datetime.datetime.now(), name=name, data=data)
+        vminfo = VMInfo(name=name, data=data)
         session.add(vminfo)
 
 def rawsql():
     # Using f-strings (Python 3.6+)
-    v={'tm':datetime.datetime.now(), 'name':'myname', 'data':'mydata' }
+    v={'name':'myname', 'data':'mydata' }
     with session.begin_nested():
-        session.execute(text(f:""INSERT INTO vminfo (tm,name,data) VALUES ('{v["tm"]}','{v["name"]}','{v["data"]}')"""))
+        session.execute(text(f"""INSERT INTO vminfo (name,data) VALUES ('{v["name"]}','{v["data"]}')"""))
     # sql="INSERT INTO vminfo (tm,name,data) VALUES ('{tm}','{name}','{data}')"
     # session.execute(text(sql.format(**v)))
     session.commit()
