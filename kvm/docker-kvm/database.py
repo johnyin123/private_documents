@@ -49,7 +49,7 @@ class KvmDevice(Base):
     @staticmethod
     def ListDevice(kvmhost):
         logger.info(f'ListDevice {kvmhost}')
-        return session.query(KvmDevice).filter_by(kvmhost=kvmhost).all()
+        return session.query(KvmDevice.kvmhost, KvmDevice.name, KvmDevice.devtype).filter_by(kvmhost=kvmhost).all()
 
     @staticmethod
     def testdata(kvmhost):
