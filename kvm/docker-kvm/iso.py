@@ -10,7 +10,7 @@ try:
     from cStringIO import StringIO as BytesIO
 except ImportError:
     from io import BytesIO
-import pycdlib, xmltodict
+import pycdlib
 
 fmt_meta_data = 'instance-id: {}'
 fmt_network_config ='''
@@ -100,6 +100,23 @@ import werkzeug
 class iso_exception(werkzeug.exceptions.BadRequest):
     pass
 
+import xml.dom.minidom
+class VMManager:
+    @staticmethod
+    def get_mdconfig(domainxml):
+        data_dict = {}
+        p = xml.dom.minidom.parseString(domainxml)
+        for metadata in p.getElementsByTagName('metadata'):
+            for mdconfig in metadata.getElementsByTagName('mdconfig:meta'):
+                # Iterate through the child nodes of the root element
+                for node in mdconfig.childNodes:
+                    if node.nodeType == xml.dom.minidom.Node.ELEMENT_NODE:
+                        # Remove leading and trailing whitespace from the text content
+                        text = node.firstChild.nodeValue.strip() if node.firstChild else None
+                        # Assign the element's text content to the dictionary key
+                        data_dict[node.tagName] = text
+        return data_dict
+
 class MyApp(object):
     output_dir=''
 
@@ -112,16 +129,15 @@ class MyApp(object):
         web.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=myapp.upload_domain_xml, methods=['POST'])
         return web
 
-    def create_iso(self, uuid, mdconfig):
-        logger.info(mdconfig)
-        meta=mdconfig.get('mdconfig:meta', {})
+    def create_iso(self, uuid, meta) -> bool:
+        logger.info(meta)
         rootpass = meta.get('rootpass', 'password')
         hostname = meta.get('hostname', 'vmsrv')
         interface = meta.get('interface', 'eth0')
         ipaddr = meta.get('ipaddr', None)
         gateway = meta.get('gateway', None)
         if not ipaddr or not gateway or not uuid:
-            raise iso_exception('ipaddr/gateway no found')
+            return False
         iso = pycdlib.PyCdlib()
         iso.new(interchange_level=4)
         meta_data=fmt_meta_data.format(uuid)
@@ -132,6 +148,7 @@ class MyApp(object):
         iso.add_fp(BytesIO(bytes(user_data,'ascii')), len(user_data), '/user-data')
         iso.write('{}/{}.iso'.format(self.output_dir, uuid))
         iso.close()
+        return True
 
     def upload_domain_xml(self, operation, action, uuid):
         # qemu hooks upload xml
@@ -143,20 +160,20 @@ class MyApp(object):
         if 'file' not in flask.request.files:
             return { "report": '%s-%s-%s'.format(uuid, operation, action) }
         file = flask.request.files['file']
-        dom = xmltodict.parse(file)
-        logger.info("save xml %s.xml", uuid)
-        xml_file=open(os.path.join(self.output_dir, "{}.xml".format(uuid)),"w")
-        xmltodict.unparse(dom, pretty=True, indent='  ', output=xml_file)
-        xml_file.close()
+        # file.save(os.path.join(self.output_dir, "{}.xml".format(uuid)))
+        # domxml = file.read().getvalue().decode('utf-8')
+        domxml = file.read().decode('utf-8')
+        with open(os.path.join(self.output_dir, "{}.xml".format(uuid)), 'w') as f:
+            f.write(domxml)
+        mdconfig_meta = VMManager.get_mdconfig(domxml)
+        logger.info(f'{uuid} {mdconfig_meta}')
         # <metadata>
         #   <mdconfig:meta xmlns:mdconfig="urn:iso-meta">
         #     <ipaddr>192.168.168.102/24</ipaddr>
         #     <gateway>192.168.168.10</gateway>
         #   </mdconfig:meta>
         # </metadata>
-        if "metadata" in dom["domain"] and dom["domain"]["metadata"] is not None:
-            mdconfig = dict(filter(lambda item: item[0].startswith("mdconfig:"), dom["domain"]["metadata"].items()))
-            self.create_iso(uuid, mdconfig)
+        if self.create_iso(uuid, mdconfig_meta):
             return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
         return { "xml": '/{}.xml'.format(uuid) }
 

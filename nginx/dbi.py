@@ -7,13 +7,21 @@ args = dict(echo=flask_app.is_debug(), connect_args={'check_same_thread':False},
 engine = sqlalchemy.create_engine(DATABASE_URI, **args)
 Session = sqlalchemy.orm.sessionmaker(bind=engine)
 session = Session() 
-Base = sqlalchemy.orm.declarative_base()
+# Base = sqlalchemy.orm.declarative_base()
+from sqlalchemy.ext.declarative import as_declarative
+@as_declarative()
+class Base:
+    def _asdict(self):
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+    def __repr__(self):
+        d={c.name: getattr(self, c.name) for c in self.__table__.columns}
+        return f'{d}'
 '''
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from dbi import engine, Session, session, Base
 
-from sqlalchemy import Column,String,Integer,DateTime
+from sqlalchemy import text,Column,String,Integer,DateTime
 class VMInfo(Base):
     __tablename__ = "vminfo"
     tm = Column(DateTime, nullable=False, index=True, primary_key=True)
@@ -35,11 +43,27 @@ def vminfo_insert_or_update(name, data):
         vminfo = VMInfo(tm=datetime.datetime.now(), name=name, data=data)
         session.add(vminfo)
 
+def rawsql():
+    # Using f-strings (Python 3.6+)
+    v={'tm':datetime.datetime.now(), 'name':'myname', 'data':'mydata' }
+    with session.begin_nested():
+        session.execute(text(f:""INSERT INTO vminfo (tm,name,data) VALUES ('{v["tm"]}','{v["name"]}','{v["data"]}')"""))
+    # sql="INSERT INTO vminfo (tm,name,data) VALUES ('{tm}','{name}','{data}')"
+    # session.execute(text(sql.format(**v)))
+    session.commit()
+    result=session.execute(text("select * from vminfo"))
+    for row in result:
+        print(row)
+
 def main():
     # create tables if not exists
     Base.metadata.create_all(engine)
     vminfo_insert_or_update('a', 100)
     session.commit()
+    results = session.query(VMInfo).all()
+    dic = [result._asdict() for result in results]
+    results = session.query(VMInfo.name).all()
+    dic = [result._asdict() for result in results]
     session.close()
     return 0
 
