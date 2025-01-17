@@ -67,7 +67,7 @@ stderr_logfile_maxbytes=0
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
 # need /sys/fs/cgroup
-VOLUME ["/sys/fs/cgroup", "/etc/libvirt/qemu", "/etc/libvirt/secrets", "/var/run/libvirt", "/var/lib/libvirt", "/var/log/libvirt", "/etc/libvirt/pki"]
+VOLUME ["/sys/fs/cgroup", "/etc/libvirt/qemu", "/etc/libvirt/secrets", "/var/run/libvirt", "/var/lib/libvirt", "/var/log/libvirt", "/etc/libvirt/pki", "/storage"]
 ENTRYPOINT ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
     # confirm base-image is right arch

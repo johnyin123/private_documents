@@ -44,7 +44,7 @@ class KvmDevice(Base):
         if result:
             logger.info(f'match device {result}')
             return result
-        raise exceptions.APIException(400, 'device error', f'device template {name} nofound')
+        raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'device error', f'device template {name} nofound')
 
     @staticmethod
     def ListDevice(kvmhost):
@@ -78,7 +78,7 @@ class KvmHost(Base):
         if result:
             logger.info(f'match host {result}')
             return result
-        raise exceptions.APIException(400, 'host error', f'host {name} nofound')
+        raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'host error', f'host {name} nofound')
 
     @staticmethod
     def ListHost():

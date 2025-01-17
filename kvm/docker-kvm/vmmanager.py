@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import jinja2, libvirt, xml.dom.minidom
-import flask_app, exceptions
+import flask_app
+from exceptions import APIException, HTTPStatus
 logger=flask_app.logger
 
 class DeviceTemplate(object):
@@ -36,6 +37,11 @@ class VMManager:
         vcpus = self.conn.getMaxVcpus(None)
         mem = self.conn.getFreeMemory()//1024
         logger.info(f'connect {host} {vcpus}C {mem}KB {uri}')
+
+    def libvirtError(self, e: libvirt.libvirtError, msg: str):
+            err_code = e.get_error_code()
+            err_msg = e.get_error_message()
+            raise APIException(HTTPStatus.BAD_REQUEST, f'{msg} errcode={code}', f'{err_msg}')
 
     @staticmethod
     def get_mdconfig(domainxml):
@@ -85,13 +91,13 @@ class VMManager:
                flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE 
             dom.attachDeviceFlags(xml, flags)
         except libvirt.libvirtError as e:
-            raise exceptions.APIException(400, 'attach_device error', f'{e}')
+            self.libvirtError(e, 'attach_device')
 
     def create_vm(self, uuid, xml):
         try:
             logger.info(f'{uuid} lookup')
             dom=self.conn.lookupByUUIDString(uuid)
-            raise exceptions.APIException(400, 'create_vm error', f'vm {uuid} exists')
+            raise APIException(HTTPStatus.CONFLICT, 'create_vm error', f'vm {uuid} exists')
         except libvirt.libvirtError:
             logger.info(f'create domain {uuid}')
             self.conn.defineXML(xml)
@@ -100,13 +106,10 @@ class VMManager:
         try:
             logger.info(f'{uuid} lookup')
             dom=self.conn.lookupByUUIDString(uuid)
-            try:
-                dom.destroy()
-            except libvirt.libvirtError:
-                pass
+            dom.destroy()
             dom.undefine()
         except libvirt.libvirtError as e:
-            raise exceptions.APIException(400, 'delete_vm error', f'{e}')
+            self.libvirtError(e, 'delete_vm')
 
     def start_vm(self, uuid):
         try:
@@ -114,7 +117,7 @@ class VMManager:
             dom=self.conn.lookupByUUIDString(uuid)
             dom.create()
         except libvirt.libvirtError as e:
-            raise exceptions.APIException(400, 'start_vm error', f'{e}')
+            self.libvirtError(e, 'start_vm')
 
     def stop_vm(self, uuid):
         try:
@@ -122,7 +125,7 @@ class VMManager:
             dom=self.conn.lookupByUUIDString(uuid)
             dom.shutdown()
         except libvirt.libvirtError as e:
-            raise exceptions.APIException(400, 'stop_vm error', f'{e}')
+            self.libvirtError(e, 'stop_vm')
 
     def stop_vm_forced(self, uuid):
         try:
@@ -130,4 +133,4 @@ class VMManager:
             dom=self.conn.lookupByUUIDString(uuid)
             dom.destroy()
         except libvirt.libvirtError as e:
-            raise exceptions.APIException(400, 'stop_vm_forced error', f'{e}')
+            self.libvirtError(e, 'stop_vm_forced')

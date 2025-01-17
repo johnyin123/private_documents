@@ -4,7 +4,8 @@
 import os
 import flask_app, flask
 logger=flask_app.logger
-import database, isotemplate, vmmanager, exceptions
+import database, isotemplate, vmmanager
+from exceptions import APIException, HTTPStatus
 
 import uuid
 def gen_uuid():
@@ -42,9 +43,9 @@ curl -X POST -H 'Content-Type:application/json' -d'{"format":"raw", "store_path"
 curl -X POST -H 'Content-Type:application/json' -d '{}' ${srv}/attach_device/${host}/${uuid}/${device}
 curl ${srv}/start_vm/${host}/${uuid}
 curl ${srv}/stop_vm/${host}/${uuid}
-curl ${srv}/stop_vm_forced/${host}/${uuid}
-curl -X DELETE ${srv}/stop_vm/${host}/${uuid}
+curl ${srv}/stop_vm/${host}/${uuid} -X DELETE
 curl ${srv}/list/domain
+curl ${srv}//delete_vm/${host}/${uuid}
 # # test qemu-hook auto upload
 curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         ''')
@@ -77,7 +78,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         logger.info(vm)
         host = database.KvmHost.getHostInfo(hostname)
         if (host.arch.lower() != vm['vm_arch'].lower()):
-            raise exceptions.APIException(400, 'create_vm error', 'arch no match host')
+            raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')
         # force use host arch string
         vm['vm_arch'] = host.arch
         vmmanager.DomainTemplate(host.vmtpl).create_domain(host.connection, vm['vm_uuid'], **vm)
@@ -136,6 +137,7 @@ database.KvmDevice.testdata('srv1')
 database.KvmDevice.testdata('reg2')
 
 app=MyApp.create(os.environ.get('OUTDIR', '.'))
+app.errorhandler(APIException)(APIException.handle)
 def main():
     host = os.environ.get('HTTP_HOST', '0.0.0.0')
     port = int(os.environ.get('HTTP_PORT', '18888'))
