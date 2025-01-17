@@ -34,14 +34,18 @@ class VMManager:
     def __init__(self, uri):
         self.conn = libvirt.open(uri)
         host = self.conn.getHostname()
-        vcpus = self.conn.getMaxVcpus(None)
-        mem = self.conn.getFreeMemory()//1024
-        logger.info(f'connect {host} {vcpus}C {mem}KB {uri}')
+        logger.info(f'connect: {host} {uri}')
+        info = self.conn.getInfo()
+        logger.info(f'arch={info[0]} mem={info[1]} cpu={info[2]} mhz={info[3]}')
+        logger.info(self.conn.getSysinfo())
+        active = self.conn.numOfDomains()
+        inactive = self.conn.numOfDefinedDomains()
+        logger.info(f'Domain: active {active}, inactive {inactive}')
 
     def libvirtError(self, e: libvirt.libvirtError, msg: str):
-            err_code = e.get_error_code()
-            err_msg = e.get_error_message()
-            raise APIException(HTTPStatus.BAD_REQUEST, f'{msg} errcode={code}', f'{err_msg}')
+        err_code = e.get_error_code()
+        err_msg = e.get_error_message()
+        raise APIException(HTTPStatus.BAD_REQUEST, f'{msg} errcode={err_code}', f'{err_msg}')
 
     @staticmethod
     def get_mdconfig(domainxml):
