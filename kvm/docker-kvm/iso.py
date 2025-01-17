@@ -55,11 +55,11 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
 
     def get_domain(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
-        return vmmanager.VMManager(host.connection).get_domain(uuid)
+        return vmmanager.VMManager(host.url).get_domain(uuid)
 
     def list_domains(self, hostname):
         host = database.KVMHost.getHostInfo(hostname)
-        results = vmmanager.VMManager(host.connection).list_domains()
+        results = vmmanager.VMManager(host.url).list_domains()
         return [result._asdict() for result in results]
 
     def list_device(self, hostname):
@@ -75,7 +75,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         logger.info(f'attach_device {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
         dev = database.KVMDevice.getDeviceInfo(name)
-        dom = vmmanager.VMManager(host.connection).get_domain(uuid)
+        dom = vmmanager.VMManager(host.url).get_domain(uuid)
         devtpl = vmmanager.DeviceTemplate(dev.devtpl, dev.devtype)
         vm_last_disk = dom.next_disk[devtpl.bus] if dev.devtype == 'disk' else ''
         devxml = devtpl.gen_xml(vm_last_disk=vm_last_disk, **req_json)
@@ -93,7 +93,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         # force use host arch string
         vm['vm_arch'] = host.arch
         domxml = vmmanager.DomainTemplate(host.vmtpl).gen_xml(**vm)
-        vmmanager.VMManager(host.connection).create_vm(vm['vm_uuid'], domxml)
+        vmmanager.VMManager(host.url).create_vm(vm['vm_uuid'], domxml)
         return { 'result' : 'OK', 'uuid' : vm['vm_uuid'], 'host': hostname }
 
     def __del_vm_file(self, fn):
@@ -104,7 +104,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
 
     def delete_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
-        vmmgr = vmmanager.VMManager(host.connection)
+        vmmgr = vmmanager.VMManager(host.url)
         vmmgr.delete_vm(uuid)
         logger.info(f'remove {uuid} datebase and xml/iso files')
         __del_vm_file(f'{uuid}.xml')
@@ -113,17 +113,17 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
 
     def start_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
-        vmmanager.VMManager(host.connection).start_vm(uuid)
+        vmmanager.VMManager(host.url).start_vm(uuid)
         return { 'result' : 'OK' }
 
     def stop_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
-        vmmanager.VMManager(host.connection).stop_vm(uuid)
+        vmmanager.VMManager(host.url).stop_vm(uuid)
         return { 'result' : 'OK' }
 
     def stop_vm_forced(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
-        vmmanager.VMManager(host.connection).stop_vm_forced(uuid)
+        vmmanager.VMManager(host.url).stop_vm_forced(uuid)
         return { 'result' : 'OK' }
 
     def upload_domain_xml(self, operation, action, uuid):

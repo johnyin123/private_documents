@@ -41,7 +41,7 @@ class KVMHost(Base):
     name = Column(String(19), nullable=False, index=True, primary_key=True)
     dns = Column(String(50), nullable=False, index=True, primary_key=True)
     ipaddr = Column(String(19), nullable=False, index=True, primary_key=True)
-    connection = Column(String(200), nullable=False, index=True, primary_key=True)
+    url = Column(String(200), nullable=False, index=True, primary_key=True)
     # # uname -m
     arch = Column(String(16), nullable=False)
     vmtpl = Column(String(19), nullable=False)
@@ -65,10 +65,10 @@ class KVMHost(Base):
 
     @staticmethod
     def testdata():
-        sql="INSERT INTO kvmhost (name,dns,ipaddr,arch,vmtpl,connection) VALUES ('{name}','{dns}','{ipaddr}','{arch}','{vmtpl}','{connection}')"
+        sql="INSERT INTO kvmhost (name,dns,ipaddr,arch,vmtpl,url) VALUES ('{name}','{dns}','{ipaddr}','{arch}','{vmtpl}','{url}')"
         with session.begin_nested():
-            host={'name':'srv1','ipaddr':'192.168.168.1','dns':'kvm1.local','arch':'aarch64','vmtpl':'newvm.tpl', 'connection':'qemu+tls://kvm1.local/system'}
+            host={'name':'srv1','ipaddr':'192.168.168.1','dns':'kvm1.local','arch':'aarch64','vmtpl':'newvm.tpl', 'url':'qemu+tls://kvm1.local/system'}
             session.execute(text(sql.format(**host)))
-            host={'name':'reg2','ipaddr':'10.170.6.105','dns':'192.168.168.1','arch':'x86_64' ,'vmtpl':'newvm.tpl', 'connection':'qemu+tls://192.168.168.1/system'}
+            host={'name':'reg2','ipaddr':'10.170.6.105','dns':'192.168.168.1','arch':'x86_64' ,'vmtpl':'newvm.tpl', 'url':'qemu+tls://192.168.168.1/system'}
             session.execute(text(sql.format(**host)))
         session.commit()
