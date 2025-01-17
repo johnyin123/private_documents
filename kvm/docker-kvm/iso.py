@@ -22,8 +22,10 @@ class MyApp(object):
         web=flask_app.create_app({}, json=True)
         web.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=myapp.upload_domain_xml, methods=['POST'])
         web.add_url_rule('/list/domain', view_func=myapp.list_vms, methods=['GET'])
+        web.add_url_rule('/list/domain/<string:hostname>', view_func=myapp.list_domains, methods=['GET'])
+        web.add_url_rule('/list/domain/<string:hostname>/<string:uuid>', view_func=myapp.get_domain, methods=['GET'])
         web.add_url_rule('/list/host', view_func=myapp.list_host, methods=['GET'])
-        web.add_url_rule('/list/device/<string:kvmhost>', view_func=myapp.list_device, methods=['GET'])
+        web.add_url_rule('/list/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
         web.add_url_rule('/create_vm/<string:hostname>', view_func=myapp.create_vm, methods=['POST'])
         web.add_url_rule('/delete_vm/<string:hostname>/<string:uuid>', view_func=myapp.delete_vm, methods=['GET'])
         web.add_url_rule('/start_vm/<string:hostname>/<string:uuid>', view_func=myapp.start_vm, methods=['GET'])
@@ -44,19 +46,30 @@ curl -X POST -H 'Content-Type:application/json' -d '{}' ${srv}/attach_device/${h
 curl ${srv}/start_vm/${host}/${uuid}
 curl ${srv}/stop_vm/${host}/${uuid}
 curl ${srv}/stop_vm/${host}/${uuid} -X DELETE
-curl ${srv}/list/domain
-curl ${srv}//delete_vm/${host}/${uuid}
+curl ${srv}/list/domain                    # from db
+curl ${srv}/list/domain/${host}            # from host
+curl ${srv}/list/domain/${host}${uuid}     # from host
+curl ${srv}/delete_vm/${host}/${uuid}
 # # test qemu-hook auto upload
 curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         ''')
         return web
 
+    def get_domain(self, hostname, uuid):
+        host = database.KvmHost.getHostInfo(hostname)
+        return vmmanager.VMManager(host.connection).get_domain(uuid)
+
+    def list_domains(self, hostname):
+        host = database.KvmHost.getHostInfo(hostname)
+        results = vmmanager.VMManager(host.connection).list_domains()
+        return [result._asdict() for result in results]
+
     def list_vms(self):
         results = database.VMInfo.ListVms()
         return [result._asdict() for result in results]
 
-    def list_device(self, kvmhost):
-        results = database.KvmDevice.ListDevice(kvmhost)
+    def list_device(self, hostname):
+        results = database.KvmDevice.ListDevice(hostname)
         return [result._asdict() for result in results]
 
     def list_host(self):
@@ -68,7 +81,11 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         logger.info(f'attach_device {req_json}')
         host = database.KvmHost.getHostInfo(hostname)
         dev = database.KvmDevice.getDeviceInfo(name)
-        vmmanager.DeviceTemplate(dev.devtpl, dev.devtype).attach_device(host.connection, uuid, **req_json)
+        dom = vmmanager.VMManager(host.connection).get_domain(uuid)
+        devtpl = vmmanager.DeviceTemplate(dev.devtpl, dev.devtype)
+        vm_last_disk = dom.next_disk[devtpl.bus] if dev.devtype == 'disk' else ''
+        devxml = devtpl.gen_xml(vm_last_disk=vm_last_disk, **req_json)
+        dom.attach_device(devxml)
         return { 'result' : 'OK' }
 
     def create_vm(self, hostname):
@@ -81,12 +98,14 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
             raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')
         # force use host arch string
         vm['vm_arch'] = host.arch
-        vmmanager.DomainTemplate(host.vmtpl).create_domain(host.connection, vm['vm_uuid'], **vm)
+        domxml = vmmanager.DomainTemplate(host.vmtpl).gen_xml(**vm)
+        vmmanager.VMManager(host.connection).create_vm(vm['vm_uuid'], domxml)
         return { 'result' : 'OK', 'uuid' : vm['vm_uuid'], 'host': hostname }
 
     def delete_vm(self, hostname, uuid):
         host = database.KvmHost.getHostInfo(hostname)
-        vmmanager.VMManager(host.connection).delete_vm(uuid)
+        vmmgr = vmmanager.VMManager(host.connection)
+        vmmgr.delete_vm(uuid)
         return { 'result' : 'OK' }
 
     def start_vm(self, hostname, uuid):
