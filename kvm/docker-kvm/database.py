@@ -3,41 +3,11 @@ import flask_app, exceptions
 logger=flask_app.logger
 
 from dbi import engine, Session, session, Base
-from sqlalchemy import func,text,Column,String,Integer,DateTime,Enum
-class VMInfo(Base):
-    __tablename__ = "vminfo"
-    tm = Column(DateTime, nullable=False, index=True, server_default=func.current_timestamp())
-    hostip = Column(String(19), nullable=False, index=True)
-    guest_uuid = Column(String(36), nullable=False, index=True, primary_key=True)
-    operation = Column(String(19), nullable=True)
-    action = Column(String(19), nullable=True)
+from sqlalchemy import func,text,Column,String,Integer,DateTime,Enum,ForeignKey
 
-    @staticmethod
-    def ListVms():
-        return session.query(VMInfo).all()
-
-    @staticmethod
-    def vminfo_delete(guest_uuid):
-        session.execute(text(f'delete from vminfo where guest_uuid="{guest_uuid}"'))
-        session.commit()
-
-    @staticmethod
-    def vminfo_insert_or_update(hostip, guest_uuid, operation, action):
-        rec = session.query(VMInfo).filter_by(guest_uuid=guest_uuid).first()
-        if rec:
-            # Update the record
-            rec.hostip=hostip
-            rec.operation=operation
-            rec.action=action
-        else:
-            # Insert the record
-            vminfo = VMInfo(hostip=hostip, guest_uuid=guest_uuid, operation=operation, action=action)
-            session.add(vminfo)
-        session.commit()
-
-class KvmDevice(Base):
+class KVMDevice(Base):
     __tablename__ = "kvmdevice"
-    kvmhost = Column(String(19), nullable=False, index=True, primary_key=True)
+    kvmhost = Column(String(19), ForeignKey('kvmhost.name'), nullable=False, index=True, primary_key=True)
     name = Column(String(19), nullable=False, index=True, primary_key=True)
     devtype = Column(Enum('disk', 'net'), nullable=False)
     devtpl = Column(String(19), nullable=False)
@@ -45,7 +15,7 @@ class KvmDevice(Base):
     @staticmethod
     def getDeviceInfo(name):
         logger.info(f'getDeviceInfo {name}')
-        result=session.query(KvmDevice).filter_by(name=name).first()
+        result=session.query(KVMDevice).filter_by(name=name).first()
         if result:
             logger.info(f'match device {result}')
             return result
@@ -54,7 +24,7 @@ class KvmDevice(Base):
     @staticmethod
     def ListDevice(kvmhost):
         logger.info(f'ListDevice {kvmhost}')
-        return session.query(KvmDevice.kvmhost, KvmDevice.name, KvmDevice.devtype).filter_by(kvmhost=kvmhost).all()
+        return session.query(KVMDevice.kvmhost, KVMDevice.name, KVMDevice.devtype).filter_by(kvmhost=kvmhost).all()
 
     @staticmethod
     def testdata(kvmhost):
@@ -66,7 +36,7 @@ class KvmDevice(Base):
             session.execute(text(sql.format(**dev)))
         session.commit()
 
-class KvmHost(Base):
+class KVMHost(Base):
     __tablename__ = "kvmhost"
     name = Column(String(19), nullable=False, index=True, primary_key=True)
     dns = Column(String(50), nullable=False, index=True, primary_key=True)
@@ -75,11 +45,14 @@ class KvmHost(Base):
     # # uname -m
     arch = Column(String(16), nullable=False)
     vmtpl = Column(String(19), nullable=False)
+    active = Column(Integer, nullable=False, server_default='0')
+    inactive = Column(Integer, nullable=False, server_default='0')
+    last_modified = Column(DateTime, onupdate=func.now(), server_default=func.now())
 
     @staticmethod
     def getHostInfo(name):
         logger.info(f'getHostInfo {name}')
-        result=session.query(KvmHost).filter_by(name=name).first()
+        result=session.query(KVMHost).filter_by(name=name).first()
         if result:
             logger.info(f'match host {result}')
             return result
@@ -88,7 +61,7 @@ class KvmHost(Base):
     @staticmethod
     def ListHost():
         logger.info(f'ListHost')
-        return session.query(KvmHost.name, KvmHost.arch, KvmHost.dns, KvmHost.ipaddr, KvmHost.vmtpl).all()
+        return session.query(KVMHost).all()
 
     @staticmethod
     def testdata():

@@ -139,7 +139,8 @@ upstream flask_app {
 server {
     listen 80;
     server_name kvm.registry.local;
-    location / {
+    # # only download iso file
+    location ~* ^/(.*).iso {
         # disable checking of client request body size
         client_max_body_size 0;
         autoindex off;

@@ -21,7 +21,6 @@ class MyApp(object):
         myapp=MyApp(output_dir)
         web=flask_app.create_app({}, json=True)
         web.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=myapp.upload_domain_xml, methods=['POST'])
-        web.add_url_rule('/list/domain', view_func=myapp.list_vms, methods=['GET'])
         web.add_url_rule('/list/domain/<string:hostname>', view_func=myapp.list_domains, methods=['GET'])
         web.add_url_rule('/list/domain/<string:hostname>/<string:uuid>', view_func=myapp.get_domain, methods=['GET'])
         web.add_url_rule('/list/host', view_func=myapp.list_host, methods=['GET'])
@@ -45,8 +44,7 @@ curl -X POST -H 'Content-Type:application/json' -d'{"format":"raw", "store_path"
 curl -X POST -H 'Content-Type:application/json' -d '{}' ${srv}/attach_device/${host}/${uuid}/${device}
 curl ${srv}/start_vm/${host}/${uuid}
 curl ${srv}/stop_vm/${host}/${uuid}
-curl ${srv}/stop_vm/${host}/${uuid} -X DELETE
-curl ${srv}/list/domain                    # from db
+curl ${srv}/stop_vm/${host}/${uuid} -X DELETE # force stop. destroy
 curl ${srv}/list/domain/${host}            # from host
 curl ${srv}/list/domain/${host}${uuid}     # from host
 curl ${srv}/delete_vm/${host}/${uuid}
@@ -56,31 +54,27 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         return web
 
     def get_domain(self, hostname, uuid):
-        host = database.KvmHost.getHostInfo(hostname)
+        host = database.KVMHost.getHostInfo(hostname)
         return vmmanager.VMManager(host.connection).get_domain(uuid)
 
     def list_domains(self, hostname):
-        host = database.KvmHost.getHostInfo(hostname)
+        host = database.KVMHost.getHostInfo(hostname)
         results = vmmanager.VMManager(host.connection).list_domains()
         return [result._asdict() for result in results]
 
-    def list_vms(self):
-        results = database.VMInfo.ListVms()
-        return [result._asdict() for result in results]
-
     def list_device(self, hostname):
-        results = database.KvmDevice.ListDevice(hostname)
+        results = database.KVMDevice.ListDevice(hostname)
         return [result._asdict() for result in results]
 
     def list_host(self):
-        results = database.KvmHost.ListHost()
+        results = database.KVMHost.ListHost()
         return [result._asdict() for result in results]
 
     def attach_device(self, hostname, uuid, name):
         req_json = flask.request.json
         logger.info(f'attach_device {req_json}')
-        host = database.KvmHost.getHostInfo(hostname)
-        dev = database.KvmDevice.getDeviceInfo(name)
+        host = database.KVMHost.getHostInfo(hostname)
+        dev = database.KVMDevice.getDeviceInfo(name)
         dom = vmmanager.VMManager(host.connection).get_domain(uuid)
         devtpl = vmmanager.DeviceTemplate(dev.devtpl, dev.devtype)
         vm_last_disk = dom.next_disk[devtpl.bus] if dev.devtype == 'disk' else ''
@@ -93,7 +87,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         default_conf = {'vm_arch':'x86_64','vm_name':'srv','vm_uuid':gen_uuid()}
         vm = {**default_conf, **req_json}
         logger.info(vm)
-        host = database.KvmHost.getHostInfo(hostname)
+        host = database.KVMHost.getHostInfo(hostname)
         if (host.arch.lower() != vm['vm_arch'].lower()):
             raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')
         # force use host arch string
@@ -102,32 +96,33 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         vmmanager.VMManager(host.connection).create_vm(vm['vm_uuid'], domxml)
         return { 'result' : 'OK', 'uuid' : vm['vm_uuid'], 'host': hostname }
 
+    def __del_vm_file(self, fn):
+        try:
+            os.remove(os.path.join(self.output_dir, f"{fn}"))
+        except Exception:
+            pass 
+
     def delete_vm(self, hostname, uuid):
-        host = database.KvmHost.getHostInfo(hostname)
+        host = database.KVMHost.getHostInfo(hostname)
         vmmgr = vmmanager.VMManager(host.connection)
         vmmgr.delete_vm(uuid)
-        try:
-            database.VMInfo.vminfo_delete(uuid)
-            logger.info(f'remove {uuid} datebase and xml/iso files')
-            os.remove(os.path.join(self.output_dir, "{}.xml".format(uuid)))
-            os.remove(os.path.join(self.output_dir, "{}.iso".format(uuid)))
-        except Exception as e:
-            logger.info(f'{e}')
-            pass 
+        logger.info(f'remove {uuid} datebase and xml/iso files')
+        __del_vm_file(f'{uuid}.xml')
+        __del_vm_file(f'{uuid}.iso')
         return { 'result' : 'OK' }
 
     def start_vm(self, hostname, uuid):
-        host = database.KvmHost.getHostInfo(hostname)
+        host = database.KVMHost.getHostInfo(hostname)
         vmmanager.VMManager(host.connection).start_vm(uuid)
         return { 'result' : 'OK' }
 
     def stop_vm(self, hostname, uuid):
-        host = database.KvmHost.getHostInfo(hostname)
+        host = database.KVMHost.getHostInfo(hostname)
         vmmanager.VMManager(host.connection).stop_vm(uuid)
         return { 'result' : 'OK' }
 
     def stop_vm_forced(self, hostname, uuid):
-        host = database.KvmHost.getHostInfo(hostname)
+        host = database.KVMHost.getHostInfo(hostname)
         vmmanager.VMManager(host.connection).stop_vm_forced(uuid)
         return { 'result' : 'OK' }
 
@@ -137,7 +132,6 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         tls_dn=flask.request.environ.get('HTTP_X_CERT_DN', 'unknow_cert_dn')
         origin=flask.request.environ.get('HTTP_ORIGIN', '')
         logger.info("%s %s:%s, report vm: %s, operation: %s, action: %s", origin, userip, tls_dn, uuid, operation, action)
-        database.VMInfo.vminfo_insert_or_update(userip, uuid, operation, action)
         if 'file' not in flask.request.files:
             return { "report": f'{uuid}-{operation}-{action}' }
         file = flask.request.files['file']
@@ -159,9 +153,9 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
 
 # create tables if not exists
 database.Base.metadata.create_all(database.engine)
-database.KvmHost.testdata()
-database.KvmDevice.testdata('srv1')
-database.KvmDevice.testdata('reg2')
+database.KVMHost.testdata()
+database.KVMDevice.testdata('srv1')
+database.KVMDevice.testdata('reg2')
 
 app=MyApp.create(os.environ.get('OUTDIR', '.'))
 app.errorhandler(APIException)(APIException.handle)
