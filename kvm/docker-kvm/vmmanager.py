@@ -42,13 +42,41 @@ class DomainTemplate(object):
 class LibvirtDomain:
     def __init__(self, dom):
         self.dom = dom
+        self.state, self.maxmem, self.curmem, self.curcpu, self.cputime = dom.info()
 
     def _asdict(self):
-        return {'uuid':self.uuid,'vcpus':self.vcpus, 'memory':self.memory}
+        return {'uuid':self.uuid,'vcpus':self.vcpus,
+                'state':self.state, 'maxmem':self.maxmem,
+                'curmem':self.curmem, 'curcpu':self.curcpu,
+                'cputime':self.cputime
+               }
+
+    # self.record_metadata("key", 'val')
+    # self.get_metadata("key")
+    # self.get_metadata("urn:iso-meta")
+    def record_metadata(self, k, v):
+        # <vmmgr:k xmlns:vmmgr="k" name="v"/>
+        meta = f"<{k} name='{v}' />"
+        self.dom.setMetadata(
+            libvirt.VIR_DOMAIN_METADATA_ELEMENT,
+            meta,
+            "vmmgr",
+            k,
+            libvirt.VIR_DOMAIN_AFFECT_CONFIG,
+        )
+
+    def get_metadata(self, k):
+        try:
+            xml = self.dom.metadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, k)
+        except libvirt.libvirtError as e:
+            if e.get_error_code() == libvirt.VIR_ERR_NO_DOMAIN_METADATA:
+                return None
+            kvm_error(e, 'get_metadata')
+        print('---------------%s', xml)
+        return 'name'
 
     def attach_device(self, xml):
         try:
-            state, maxmem, curmem, curcpu, cputime = self.dom.info()
             flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
             if state == libvirt.VIR_DOMAIN_RUNNING:
                flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
@@ -90,17 +118,11 @@ class LibvirtDomain:
     @property
     def vcpus(self):
         p = xml.dom.minidom.parseString(self.dom.XMLDesc())
-        return int(p.getElementsByTagName('vcpu')[0].getAttribute('current'))
+        return int(p.getElementsByTagName('vcpu')[0].firstChild.data)
 
     @property
     def memory(self):
-        p = xml.dom.minidom.parseString(self.dom.XMLDesc())
-        mem = p.getElementsByTagName('memory')[0].firstChild.data
-        unit = p.getElementsByTagName('memory')[0].getAttribute('unit')
-        if unit == "KiB":
-            return int(int(mem) / 1024)
-        elif unit == "MiB":
-            return int(int(mem))
+        return int(self.maxmem)
 
     @vcpus.setter
     def vcpus(self, value=1):
