@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import jinja2, libvirt, xml.dom.minidom
-import flask_app
+import flask_app, os
 from exceptions import APIException, HTTPStatus
 logger=flask_app.logger
 
@@ -37,10 +37,16 @@ class VMManager:
         logger.info(f'connect: {host} {uri}')
         info = self.conn.getInfo()
         logger.info(f'arch={info[0]} mem={info[1]} cpu={info[2]} mhz={info[3]}')
-        logger.info(self.conn.getSysinfo())
+        sysinfo = self.conn.getSysinfo()
+        logger.info(sysinfo)
         active = self.conn.numOfDomains()
         inactive = self.conn.numOfDefinedDomains()
         logger.info(f'Domain: active {active}, inactive {inactive}')
+        outdir = os.environ.get('OUTDIR', '.')
+        fname=os.path.join(outdir, f'kvmhost.{info[0]}.{host}.xml')
+        if not os.path.exists(fname):
+            with open(fname, 'w') as f:
+                f.write(sysinfo)
 
     def libvirtError(self, e: libvirt.libvirtError, msg: str):
         err_code = e.get_error_code()
