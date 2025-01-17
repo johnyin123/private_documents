@@ -17,6 +17,11 @@ class VMInfo(Base):
         return session.query(VMInfo).all()
 
     @staticmethod
+    def vminfo_delete(guest_uuid):
+        session.execute(text(f'delete from vminfo where guest_uuid="{guest_uuid}"'))
+        session.commit()
+
+    @staticmethod
     def vminfo_insert_or_update(hostip, guest_uuid, operation, action):
         rec = session.query(VMInfo).filter_by(guest_uuid=guest_uuid).first()
         if rec:

@@ -106,6 +106,14 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         host = database.KvmHost.getHostInfo(hostname)
         vmmgr = vmmanager.VMManager(host.connection)
         vmmgr.delete_vm(uuid)
+        try:
+            database.VMInfo.vminfo_delete(uuid)
+            logger.info(f'remove {uuid} datebase and xml/iso files')
+            os.remove(os.path.join(self.output_dir, "{}.xml".format(uuid)))
+            os.remove(os.path.join(self.output_dir, "{}.iso".format(uuid)))
+        except Exception as e:
+            logger.info(f'{e}')
+            pass 
         return { 'result' : 'OK' }
 
     def start_vm(self, hostname, uuid):

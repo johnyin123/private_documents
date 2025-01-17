@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import flask_app
+import flask_app, os
 logger=flask_app.logger
 
 try:
@@ -30,6 +30,6 @@ class ISOTemplate(object):
         iso.add_fp(BytesIO(bytes(user_data,'ascii')), len(user_data), '/user-data')
         network_config = self.network_config.render(**mdconfig_meta)
         iso.add_fp(BytesIO(bytes(network_config,'ascii')), len(network_config), '/network-config')
-        iso.write('{}/{}.iso'.format(self.output_dir, uuid))
+        iso.write(os.path.join(self.output_dir, "{}.iso".format(uuid)))
         iso.close()
         return True
