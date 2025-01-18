@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import flask_app, sqlalchemy, sqlalchemy.orm, sqlalchemy.pool, os
 
-DATABASE_URI=os.getenv('DATABASE', 'sqlite:///:memory:')
+DATABASE_URI=os.environ.get('DATABASE', 'sqlite:///:memory:')
 # # https://github.com/sqlalchemy/sqlalchemy/discussions/8858
 args = dict(echo=flask_app.is_debug(), connect_args={'check_same_thread':False}, poolclass=sqlalchemy.pool.StaticPool)
 engine = sqlalchemy.create_engine(DATABASE_URI, **args)

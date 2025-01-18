@@ -20,34 +20,34 @@ class MyApp(object):
         logger.info("env: OUTDIR=%s", output_dir)
         myapp=MyApp(output_dir)
         web=flask_app.create_app({}, json=True)
-        web.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=myapp.upload_domain_xml, methods=['POST'])
-        web.add_url_rule('/list/domain/<string:hostname>', view_func=myapp.list_domains, methods=['GET'])
-        web.add_url_rule('/list/domain/<string:hostname>/<string:uuid>', view_func=myapp.get_domain, methods=['GET'])
-        web.add_url_rule('/list/host', view_func=myapp.list_host, methods=['GET'])
-        web.add_url_rule('/list/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
-        web.add_url_rule('/create_vm/<string:hostname>', view_func=myapp.create_vm, methods=['POST'])
-        web.add_url_rule('/delete_vm/<string:hostname>/<string:uuid>', view_func=myapp.delete_vm, methods=['GET'])
-        web.add_url_rule('/start_vm/<string:hostname>/<string:uuid>', view_func=myapp.start_vm, methods=['GET'])
-        web.add_url_rule('/stop_vm/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm, methods=['GET'])
-        web.add_url_rule('/stop_vm/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm_forced, methods=['DELETE'])
-        web.add_url_rule('/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.attach_device, methods=['POST'])
+        web.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=myapp.upload_xml, methods=['POST'])
+        web.add_url_rule('/tpl/domain', view_func=myapp.list_host, methods=['GET'])
+        web.add_url_rule('/tpl/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
+        web.add_url_rule('/vm/list/<string:hostname>', view_func=myapp.list_domains, methods=['GET'])
+        web.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=myapp.get_domain, methods=['GET'])
+        web.add_url_rule('/vm/create/<string:hostname>', view_func=myapp.create_vm, methods=['POST'])
+        web.add_url_rule('/vm/delete/<string:hostname>/<string:uuid>', view_func=myapp.delete_vm, methods=['GET'])
+        web.add_url_rule('/vm/start/<string:hostname>/<string:uuid>', view_func=myapp.start_vm, methods=['GET'])
+        web.add_url_rule('/vm/stop/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm, methods=['GET'])
+        web.add_url_rule('/vm/stop/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm_forced, methods=['DELETE'])
+        web.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.attach_device, methods=['POST'])
         logger.info('''
 srv=http://127.0.0.1:18888
-curl ${srv}/list/host
+curl ${srv}/tpl/domain
 # host=reg2
-curl -X POST -H 'Content-Type:application/json' -d '{"vm_gw":"1.1.1.1","vm_ip":"1.1.1.2/32"}' ${srv}/create_vm/${host}
+curl ${srv}/vm/create/${host} -X POST -H 'Content-Type:application/json' -d '{"vm_gw":"1.1.1.1","vm_ip":"1.1.1.2/32"}'
 # uuid=xxxx
-curl ${srv}/list/device/${host}
+curl ${srv}/tpl/device/${host}
 # device=local-disk
-curl -X POST -H 'Content-Type:application/json' -d'{"format":"raw", "store_path":"/var/lib/libvirt/disk.raw"}' ${srv}/attach_device/${host}/${uuid}/${device}
+curl ${srv}/vm/attach_device/${host}/${uuid}/${device} -X POST -H 'Content-Type:application/json' -d'{"format":"raw", "store_path":"/var/lib/libvirt/disk.raw"}'
 # device=net
-curl -X POST -H 'Content-Type:application/json' -d '{}' ${srv}/attach_device/${host}/${uuid}/${device}
-curl ${srv}/start_vm/${host}/${uuid}
-curl ${srv}/stop_vm/${host}/${uuid}
-curl ${srv}/stop_vm/${host}/${uuid} -X DELETE # force stop. destroy
-curl ${srv}/list/domain/${host}            # from host
-curl ${srv}/list/domain/${host}${uuid}     # from host
-curl ${srv}/delete_vm/${host}/${uuid}
+curl ${srv}/vm/attach_device/${host}/${uuid}/${device} -X POST -H 'Content-Type:application/json' -d '{}'
+curl ${srv}/vm/list/${host}            # from host
+curl ${srv}/vm/list/${host}${uuid}     # from host
+curl ${srv}/vm/start/${host}/${uuid}
+curl ${srv}/vm/stop/${host}/${uuid}
+curl ${srv}/vm/stop/${host}/${uuid} -X DELETE # force stop. destroy
+curl ${srv}/vm/delete/${host}/${uuid}
 # # test qemu-hook auto upload
 curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         ''')
@@ -55,7 +55,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
 
     def get_domain(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
-        return vmmanager.VMManager(host.url).get_domain(uuid)
+        return vmmanager.VMManager(host.url).get_domain(uuid)._asdict()
 
     def list_domains(self, hostname):
         host = database.KVMHost.getHostInfo(hostname)
@@ -76,10 +76,10 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         host = database.KVMHost.getHostInfo(hostname)
         dev = database.KVMDevice.getDeviceInfo(name)
         dom = vmmanager.VMManager(host.url).get_domain(uuid)
-        devtpl = vmmanager.DeviceTemplate(dev.devtpl, dev.devtype)
-        vm_last_disk = dom.next_disk[devtpl.bus] if dev.devtype == 'disk' else ''
-        devxml = devtpl.gen_xml(vm_last_disk=vm_last_disk, **req_json)
-        dom.attach_device(devxml)
+        tpl = vmmanager.DeviceTemplate(dev.tpl, dev.devtype)
+        vm_last_disk = dom.next_disk[tpl.bus] if dev.devtype == 'disk' else ''
+        xml = tpl.gen_xml(vm_last_disk=vm_last_disk, **req_json)
+        dom.attach_device(xml)
         return { 'result' : 'OK' }
 
     def create_vm(self, hostname):
@@ -92,8 +92,8 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
             raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')
         # force use host arch string
         vm['vm_arch'] = host.arch
-        domxml = vmmanager.DomainTemplate(host.vmtpl).gen_xml(**vm)
-        vmmanager.VMManager(host.url).create_vm(vm['vm_uuid'], domxml)
+        xml = vmmanager.DomainTemplate(host.tpl).gen_xml(**vm)
+        vmmanager.VMManager(host.url).create_vm(vm['vm_uuid'], xml)
         return { 'result' : 'OK', 'uuid' : vm['vm_uuid'], 'host': hostname }
 
     def __del_vm_file(self, fn):
@@ -107,8 +107,8 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         vmmgr = vmmanager.VMManager(host.url)
         vmmgr.delete_vm(uuid)
         logger.info(f'remove {uuid} datebase and xml/iso files')
-        __del_vm_file(f'{uuid}.xml')
-        __del_vm_file(f'{uuid}.iso')
+        self.__del_vm_file(f'{uuid}.xml')
+        self.__del_vm_file(f'{uuid}.iso')
         return { 'result' : 'OK' }
 
     def start_vm(self, hostname, uuid):
@@ -126,7 +126,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         vmmanager.VMManager(host.url).stop_vm_forced(uuid)
         return { 'result' : 'OK' }
 
-    def upload_domain_xml(self, operation, action, uuid):
+    def upload_xml(self, operation, action, uuid):
         # qemu hooks upload xml
         userip=flask.request.environ.get('HTTP_X_FORWARDED_FOR', flask.request.remote_addr)
         tls_dn=flask.request.environ.get('HTTP_X_CERT_DN', 'unknow_cert_dn')
@@ -150,12 +150,6 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         if isotemplate.ISOTemplate('default', self.output_dir).create_iso(uuid, mdconfig_meta):
             return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
         return { 'result' : 'OK' }
-
-# create tables if not exists
-database.Base.metadata.create_all(database.engine)
-database.KVMHost.testdata()
-database.KVMDevice.testdata('srv1')
-database.KVMDevice.testdata('reg2')
 
 app=MyApp.create(os.environ.get('OUTDIR', '.'))
 app.errorhandler(APIException)(APIException.handle)

@@ -78,7 +78,7 @@ class LibvirtDomain:
     def attach_device(self, xml):
         try:
             flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
-            if state == libvirt.VIR_DOMAIN_RUNNING:
+            if self.state == libvirt.VIR_DOMAIN_RUNNING:
                flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
             self.dom.attachDeviceFlags(xml, flags)
         except libvirt.libvirtError as e:
@@ -168,7 +168,7 @@ class VMManager:
             logger.info(f'{uuid} lookup')
             return LibvirtDomain(self.conn.lookupByUUIDString(uuid))
         except libvirt.libvirtError as e:
-            kvm_error(e, 'start_vm')
+            kvm_error(e, 'get_domain')
 
     def list_domains(self):
         for i in self.conn.listAllDomains():
@@ -202,7 +202,10 @@ class VMManager:
         try:
             logger.info(f'{uuid} lookup')
             dom=self.conn.lookupByUUIDString(uuid)
-            dom.destroy()
+            try:
+                dom.destroy()
+            except Exception:
+                pass
             dom.undefine()
         except libvirt.libvirtError as e:
             kvm_error(e, 'delete_vm')
