@@ -1,12 +1,41 @@
 # -*- coding: utf-8 -*-
-import flask_app, os
-logger=flask_app.logger
+import jinja2, xml.dom.minidom
+
+class DeviceTemplate(object):
+    def __init__(self, filename, devtype):
+        self.devtype = devtype
+        self.raw_str = ''
+        if devtype == 'disk':
+            with open(os.path.join('devices', filename), 'r') as f:
+                self.raw_str = f.read()
+                self.template = jinja2.Environment().from_string(self.raw_str)
+        else:
+            env = jinja2.Environment(loader=jinja2.FileSystemLoader('devices'))
+            self.template = env.get_template(filename)
+
+    @property
+    def bus(self):
+        if self.devtype == 'disk':
+            p = xml.dom.minidom.parseString(self.raw_str)
+            return p.getElementsByTagName('target')[0].getAttribute('bus')
+        return None
+
+    def gen_xml(self, **kwargs):
+        return self.template.render(**kwargs)
+
+class DomainTemplate(object):
+    def __init__(self, filename):
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader('domains'))
+        self.template = env.get_template(filename)
+
+    def gen_xml(self, **kwargs):
+        return self.template.render(**kwargs)
 
 try:
     from cStringIO import StringIO as BytesIO
 except ImportError:
     from io import BytesIO
-import pycdlib, jinja2
+import pycdlib
 
 class ISOTemplate(object):
     def __init__(self, meta_name, isodir):

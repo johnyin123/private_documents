@@ -7,9 +7,11 @@ db.Base.metadata.create_all(db.engine)
 
 print(f'DATABASE=sqlite:///./kvm.db ./initdb')
 kvmhost = 'host01'
-sql="insert into kvmhost (name,tpl,url,arch) values ('{name}','{tpl}','{url}','{arch}')"
-host={'name':kvmhost,'tpl':'newvm.tpl','url':'qemu+tls://192.168.168.1/system','arch':'x86_64'}
-db.Base.exesql(sql, **host)
+
+host01=db.KVMHost(name = kvmhost, tpl = 'newvm.tpl', url = 'qemu+tls://192.168.168.1/system', arch = 'x86_64')
+db.session.add(host01)
+#db.session.add_all([host01])
+db.session.commit()
 sql="insert into kvmdevice (name,tpl,kvmhost,devtype) values ('{name}','{tpl}','{kvmhost}','{devtype}')"
 dev={'name':'local-disk','tpl':'disk.file','kvmhost':kvmhost,'devtype':'disk'}
 db.Base.exesql(sql, **dev)

@@ -4,7 +4,7 @@
 import os
 import flask_app, flask
 logger=flask_app.logger
-import database, isotemplate, vmmanager
+import database, vmmanager, template
 from exceptions import APIException, HTTPStatus
 
 import uuid
@@ -76,9 +76,10 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         host = database.KVMHost.getHostInfo(hostname)
         dev = database.KVMDevice.getDeviceInfo(name)
         dom = vmmanager.VMManager(host.url).get_domain(uuid)
-        tpl = vmmanager.DeviceTemplate(dev.tpl, dev.devtype)
+        tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
         vm_last_disk = dom.next_disk[tpl.bus] if dev.devtype == 'disk' else ''
         xml = tpl.gen_xml(vm_last_disk=vm_last_disk, **req_json)
+        # device.pre_attach(host, dev, xml)
         dom.attach_device(xml)
         return { 'result' : 'OK' }
 
@@ -92,7 +93,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
             raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')
         # force use host arch string
         vm['vm_arch'] = host.arch
-        xml = vmmanager.DomainTemplate(host.tpl).gen_xml(**vm)
+        xml = template.DomainTemplate(host.tpl).gen_xml(**vm)
         vmmanager.VMManager(host.url).create_vm(vm['vm_uuid'], xml)
         return { 'result' : 'OK', 'uuid' : vm['vm_uuid'], 'host': hostname }
 
@@ -147,7 +148,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         #     <gateway>192.168.168.10</gateway>
         #   </mdconfig:meta>
         # </metadata>
-        if isotemplate.ISOTemplate('default', self.output_dir).create_iso(uuid, mdconfig_meta):
+        if template.ISOTemplate('default', self.output_dir).create_iso(uuid, mdconfig_meta):
             return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
         return { 'result' : 'OK' }
 
