@@ -5,27 +5,35 @@ from sqlalchemy import func,text,Column,String,Integer,DateTime,Enum,ForeignKey
 # create tables if not exists
 db.Base.metadata.create_all(db.engine)
 
-def exesql(sql, val):
-    with db.session.begin_nested():
-        db.session.execute(text(sql.format(**val)))
-    db.session.commit()
 print(f'DATABASE=sqlite:///./kvm.db ./initdb')
 kvmhost = 'host01'
 sql="insert into kvmhost (name,tpl,url,arch) values ('{name}','{tpl}','{url}','{arch}')"
 host={'name':kvmhost,'tpl':'newvm.tpl','url':'qemu+tls://192.168.168.1/system','arch':'x86_64'}
-exesql(sql, host)
+db.Base.exesql(sql, **host)
 sql="insert into kvmdevice (name,tpl,kvmhost,devtype) values ('{name}','{tpl}','{kvmhost}','{devtype}')"
 dev={'name':'local-disk','tpl':'disk.file','kvmhost':kvmhost,'devtype':'disk'}
-exesql(sql, dev)
+db.Base.exesql(sql, **dev)
 dev={'name':'net','tpl':'net.br-ext','kvmhost':kvmhost,'devtype': 'net'}
-exesql(sql, dev)
+db.Base.exesql(sql, **dev)
 
 kvmhost = 'asus'
 sql="insert into kvmhost (name,tpl,url,arch) values ('{name}','{tpl}','{url}','{arch}')"
 host={'name':kvmhost,'tpl':'newvm.tpl','url':'qemu+ssh://root@192.168.168.1:60022/system','arch':'x86_64'}
-exesql(sql, host)
+db.Base.exesql(sql, **host)
 sql="insert into kvmdevice (name,tpl,kvmhost,devtype) values ('{name}','{tpl}','{kvmhost}','{devtype}')"
 dev={'name':'local-disk','tpl':'disk.file','kvmhost':kvmhost,'devtype':'disk'}
-exesql(sql, dev)
+db.Base.exesql(sql, **dev)
 dev={'name':'net','tpl':'net.br-ext','kvmhost':kvmhost,'devtype': 'net'}
-exesql(sql, dev)
+db.Base.exesql(sql, **dev)
+
+sql="select * from kvmhost"
+results = db.Base.exesql(sql)
+for r in results:
+    print(f'{r._asdict()}')
+sql="select * from kvmdevice"
+results = db.Base.exesql(sql)
+for r in results:
+    print(f'{r._asdict()}')
+results = db.Base.exesql('SELECT * FROM kvmhost join kvmdevice on kvmdevice.kvmhost = kvmhost.name')
+for r in results:
+    print(f'{r._asdict()}')

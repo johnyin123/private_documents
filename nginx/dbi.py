@@ -18,10 +18,10 @@ class Base:
         return f'{d}'
 
     @staticmethod
-    def exesql(sql, val):
+    def exesql(sql, **kwargs):
         try:
             with session.begin_nested():
-                return session.execute(sqlalchemy.text(sql.format(**val)))
+                return session.execute(sqlalchemy.text(sql.format(**kwargs)))
         finally:
             session.commit()
 '''
