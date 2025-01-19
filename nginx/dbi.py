@@ -16,6 +16,14 @@ class Base:
     def __repr__(self):
         d={c.name: getattr(self, c.name) for c in self.__table__.columns}
         return f'{d}'
+
+    @staticmethod
+    def exesql(sql, val):
+        try:
+            with session.begin_nested():
+                return session.execute(sqlalchemy.text(sql.format(**val)))
+        finally:
+            session.commit()
 '''
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
