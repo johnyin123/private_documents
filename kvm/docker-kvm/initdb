@@ -13,7 +13,7 @@ db.session.add(host01)
 #db.session.add_all([host01])
 db.session.commit()
 sql="insert into kvmdevice (name,tpl,kvmhost,devtype,action) values ('{name}','{tpl}','{kvmhost}','{devtype}','{action}')"
-dev={'name':'local-disk','tpl':'disk.file','kvmhost':kvmhost,'devtype':'disk','action':'upload'}
+dev={'name':'local-disk','tpl':'disk.file','kvmhost':kvmhost,'devtype':'disk','action':'upload-192.168.168.1'}
 db.Base.exesql(sql, **dev)
 dev={'name':'net','tpl':'net.br-ext','kvmhost':kvmhost,'devtype': 'net','action':'logit'}
 db.Base.exesql(sql, **dev)

@@ -80,9 +80,10 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         dom = vmmanager.VMManager(host.url).get_domain(uuid)
         tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
         vm_last_disk = dom.next_disk[tpl.bus] if dev.devtype == 'disk' else ''
-        xml = tpl.gen_xml(vm_last_disk=vm_last_disk, **req_json)
+        req_json['vm_last_disk'] = vm_last_disk
+        xml = tpl.gen_xml(**req_json)
         if len(dev.action) != 0:
-            device.pre_attach(uuid, dev.devtype, dev.action, host, xml, req_json)
+            device.pre_attach(dev.devtype, dev.action, host, xml, req_json)
         dom.attach_device(xml)
         return { 'result' : 'OK' }
 
