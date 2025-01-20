@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import jinja2, xml.dom.minidom
+import os, jinja2, xml.dom.minidom
 
 class DeviceTemplate(object):
     def __init__(self, filename, devtype):

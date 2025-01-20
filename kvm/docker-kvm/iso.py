@@ -4,7 +4,7 @@
 import os
 import flask_app, flask
 logger=flask_app.logger
-import database, vmmanager, template
+import database, vmmanager, template, device
 from exceptions import APIException, HTTPStatus
 
 import uuid
@@ -38,8 +38,8 @@ curl ${srv}/tpl/domain
 curl ${srv}/vm/create/${host} -X POST -H 'Content-Type:application/json' -d '{"vm_gw":"1.1.1.1","vm_ip":"1.1.1.2/32"}'
 # uuid=xxxx
 curl ${srv}/tpl/device/${host}
-# device=local-disk
-curl ${srv}/vm/attach_device/${host}/${uuid}/${device} -X POST -H 'Content-Type:application/json' -d'{"format":"raw", "store_path":"/var/lib/libvirt/disk.raw"}'
+# device=local-disk ,default size=10G, tpl=''
+curl ${srv}/vm/attach_device/${host}/${uuid}/${device} -X POST -H 'Content-Type:application/json' -d'{"size":"1G", "tpl":""}'
 # device=net
 curl ${srv}/vm/attach_device/${host}/${uuid}/${device} -X POST -H 'Content-Type:application/json' -d '{}'
 curl ${srv}/vm/list/${host}            # from host
@@ -72,6 +72,8 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
 
     def attach_device(self, hostname, uuid, name):
         req_json = flask.request.json
+        default_conf = {'vm_uuid': uuid ,'size': '10G', 'tpl':''}
+        req_json = {**default_conf, **req_json}
         logger.info(f'attach_device {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
         dev = database.KVMDevice.getDeviceInfo(name)
@@ -79,23 +81,24 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
         vm_last_disk = dom.next_disk[tpl.bus] if dev.devtype == 'disk' else ''
         xml = tpl.gen_xml(vm_last_disk=vm_last_disk, **req_json)
-        # device.pre_attach(host, dev, xml)
+        if len(dev.action) != 0:
+            device.pre_attach(uuid, dev.action, host, xml, req_json)
         dom.attach_device(xml)
         return { 'result' : 'OK' }
 
     def create_vm(self, hostname):
         req_json = flask.request.json
         default_conf = {'vm_arch':'x86_64','vm_name':'srv','vm_uuid':gen_uuid()}
-        vm = {**default_conf, **req_json}
-        logger.info(vm)
+        req_json = {**default_conf, **req_json}
+        logger.info(f'create_vm {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
         if (host.arch.lower() != vm['vm_arch'].lower()):
             raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')
         # force use host arch string
-        vm['vm_arch'] = host.arch
-        xml = template.DomainTemplate(host.tpl).gen_xml(**vm)
-        vmmanager.VMManager(host.url).create_vm(vm['vm_uuid'], xml)
-        return { 'result' : 'OK', 'uuid' : vm['vm_uuid'], 'host': hostname }
+        req_json['vm_arch'] = host.arch
+        xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
+        vmmanager.VMManager(host.url).create_vm(req_json['vm_uuid'], xml)
+        return { 'result' : 'OK', 'uuid' : req_json['vm_uuid'], 'host': hostname }
 
     def __del_vm_file(self, fn):
         try:

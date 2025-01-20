@@ -3,7 +3,7 @@ import flask_app, exceptions
 logger=flask_app.logger
 
 from dbi import engine, Session, session, Base
-from sqlalchemy import func,text,Column,String,Integer,DateTime,Enum,ForeignKey
+from sqlalchemy import func,text,Column,Text,String,Integer,DateTime,Enum,ForeignKey
 
 class KVMHost(Base):
     __tablename__ = "kvmhost"
@@ -34,6 +34,7 @@ class KVMDevice(Base):
     __tablename__ = "kvmdevice"
     name = Column(String(19),nullable=False,index=True,primary_key=True)
     kvmhost = Column(String(19),ForeignKey('kvmhost.name'),nullable=False,index=True,primary_key=True)
+    action = Column(Text,nullable=False,server_default='',primary_key=True)
     devtype = Column(Enum('disk','net'),nullable=False)
     tpl = Column(String(19),nullable=False)
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
