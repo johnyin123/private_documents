@@ -21,7 +21,7 @@ class MyApp(object):
         myapp=MyApp(output_dir)
         web=flask_app.create_app({}, json=True)
         web.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=myapp.upload_xml, methods=['POST'])
-        web.add_url_rule('/tpl/domain', view_func=myapp.list_host, methods=['GET'])
+        web.add_url_rule('/tpl/host', view_func=myapp.list_host, methods=['GET'])
         web.add_url_rule('/tpl/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
         web.add_url_rule('/vm/list/<string:hostname>', view_func=myapp.list_domains, methods=['GET'])
         web.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=myapp.get_domain, methods=['GET'])
@@ -33,7 +33,7 @@ class MyApp(object):
         web.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.attach_device, methods=['POST'])
         logger.info('''
 srv=http://127.0.0.1:18888
-curl ${srv}/tpl/domain
+curl ${srv}/tpl/host
 # host=reg2
 curl ${srv}/vm/create/${host} -X POST -H 'Content-Type:application/json' -d '{"vm_gw":"1.1.1.1","vm_ip":"1.1.1.2/32"}'
 # uuid=xxxx
@@ -83,7 +83,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         req_json['vm_last_disk'] = vm_last_disk
         xml = tpl.gen_xml(**req_json)
         if len(dev.action) != 0:
-            device.pre_attach(dev.devtype, dev.action, host, xml, req_json)
+            device.do_action(dev.devtype, dev.action, host, xml, req_json)
         dom.attach_device(xml)
         return { 'result' : 'OK' }
 

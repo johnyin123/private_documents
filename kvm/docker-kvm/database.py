@@ -8,8 +8,8 @@ from sqlalchemy import func,text,Column,Text,String,Integer,DateTime,Enum,Foreig
 class KVMHost(Base):
     __tablename__ = "kvmhost"
     name = Column(String(19),nullable=False,index=True,unique=True,primary_key=True)
-    tpl = Column(String(19),nullable=False)
     url = Column(String(200),nullable=False,unique=True)
+    tpl = Column(String(19),nullable=False)
     # # uname -m
     arch = Column(String(16),nullable=False)
     active = Column(Integer,nullable=False,server_default='0')

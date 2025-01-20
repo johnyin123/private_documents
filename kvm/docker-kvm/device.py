@@ -28,27 +28,29 @@ def sftp_get(host,port,username,password,server_path, local_path):
     except Exception as e:
         print(e)
 
-def demo_exe():
-    import subprocess
-    # Command to execute
-    command = ["echo", "Hello, World!"]
-    # Start the subprocess
-    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    # Wait for the process to complete
-    process.wait()
-    # Check the return code
-    if process.returncode == 0:
-        print("Process completed successfully")
-    else:
-        print("Process failed with return code", process.returncode)
-    # Read the output
-    stdout, stderr = process.communicate()
-    print("Output:", stdout)
-    print("Error:", stderr)
+def execute(json_str, action, **kwargs):
+    try:
+        import subprocess, io
+        action = os.path.join("actions", f'{action}')
+        command = [f'{action}', "Hello, World!"]
+        # Start the subprocess
+        process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=kwargs)
+        # Read the output
+        stdout, stderr = process.communicate(json_str)
+        log.info(f"OUT:{stdout}{stderr}")
+        # Wait for the process to complete
+        process.wait()
+        # Check the return code
+        return process.returncode
+    except subprocess.CalledProcessError as e:
+        raise APIException(HTTPStatus.BAD_REQUEST, 'CalledProcessError', f'{e}')
 
-def pre_attach(devtype:str, action:str, host:dict, xml:str, req:str):
+def do_action(devtype:str, action:str, host:dict, xml:str, req:str):
     logger.info(host)
     logger.info(f'{devtype} exec:{action} {req} {xml}')
+    retval = execute(req, action, **host)
+    if retval == 0:
+        return
 '''~/.ssh/config
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
@@ -58,5 +60,4 @@ Host 192.168.168.1
 qemu-img convert -f qcow2 -O raw tpl.qcow2 ssh://user@host:port/path/to/disk.img
 qemu-img convert -f qcow2 -O raw tpl.qcow2 rbd:cephpool/disk.raw:conf=/etc/ceph/ceph.conf
 '''
-    return
-    # raise APIException(HTTPStatus.BAD_REQUEST, 'pre_attach error', f'uuid={uuid}')
+    raise APIException(HTTPStatus.BAD_REQUEST, f'execute {attach} error', f'error={retval}')
