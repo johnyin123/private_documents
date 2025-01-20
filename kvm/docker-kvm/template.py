@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
-import os, jinja2, xml.dom.minidom
+import os, jinja2, flask_app, xml.dom.minidom
+from jinja2 import meta as jinja2_meta
+logger=flask_app.logger
 
 class DeviceTemplate(object):
     def __init__(self, filename, devtype):
         self.devtype = devtype
         self.raw_str = ''
-        if devtype == 'disk':
-            with open(os.path.join('devices', filename), 'r') as f:
-                self.raw_str = f.read()
-                self.template = jinja2.Environment().from_string(self.raw_str)
-        else:
-            env = jinja2.Environment(loader=jinja2.FileSystemLoader('devices'))
-            self.template = env.get_template(filename)
+        with open(os.path.join('devices', filename), 'r') as f:
+            self.raw_str = f.read()
+            self.template = jinja2.Environment().from_string(self.raw_str)
+            # env.globals['foo'] = 'foo'
+            ast = env.parse(self.raw_str)
+            logger.info(jinja2_meta.find_undeclared_variables(ast))
 
     @property
     def bus(self):
