@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import libvirt, xml.dom.minidom
-import flask_app, os
+import flask_app, os, config
 from exceptions import APIException, HTTPStatus
 logger=flask_app.logger
 
@@ -49,7 +49,7 @@ class LibvirtDomain:
         try:
             flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
             if self.state == libvirt.VIR_DOMAIN_RUNNING:
-               flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
+                flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
             self.dom.attachDeviceFlags(xml, flags)
         except libvirt.libvirtError as e:
             kvm_error(e, 'start_vm')
@@ -115,8 +115,7 @@ class VMManager:
         info = self.conn.getInfo()
         logger.info(f'connect: {self.hostname} arch={info[0]} mem={info[1]} cpu={info[2]} mhz={info[3]}')
         sysinfo = self.conn.getSysinfo()
-        outdir = os.environ.get('OUTDIR', '.')
-        fname=os.path.join(outdir, f'kvmhost.{info[0]}.{self.hostname}.xml')
+        fname=os.path.join(config.OUTDIR, f'kvmhost.{info[0]}.{self.hostname}.xml')
         if not os.path.exists(fname):
             with open(fname, 'w') as f:
                 f.write(sysinfo)

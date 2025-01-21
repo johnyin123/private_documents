@@ -4,7 +4,7 @@
 import os
 import flask_app, flask
 logger=flask_app.logger
-import database, vmmanager, template, device
+import database, vmmanager, template, device, config
 from exceptions import APIException, HTTPStatus
 
 import uuid
@@ -12,17 +12,14 @@ def gen_uuid():
     return "{}".format(uuid.uuid4())
 
 class MyApp(object):
-    def __init__(self, outdir):
-        self.output_dir = outdir
-
     @staticmethod
-    def create(output_dir):
-        logger.info("env: OUTDIR=%s", output_dir)
-        myapp=MyApp(output_dir)
+    def create():
+        myapp=MyApp()
         web=flask_app.create_app({}, json=True)
         web.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=myapp.upload_xml, methods=['POST'])
         web.add_url_rule('/tpl/host', view_func=myapp.list_host, methods=['GET'])
         web.add_url_rule('/tpl/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
+        web.add_url_rule('/tpl/gold', view_func=myapp.list_gold, methods=['GET'])
         web.add_url_rule('/vm/list/<string:hostname>', view_func=myapp.list_domains, methods=['GET'])
         web.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=myapp.get_domain, methods=['GET'])
         web.add_url_rule('/vm/create/<string:hostname>', view_func=myapp.create_vm, methods=['POST'])
@@ -38,12 +35,14 @@ curl ${srv}/tpl/host
 curl ${srv}/vm/create/${host} -X POST -H 'Content-Type:application/json' -d '{"vm_gw":"1.1.1.1","vm_ip":"1.1.1.2/32"}'
 # uuid=xxxx
 curl ${srv}/tpl/device/${host}
+curl ${srv}/tpl/gold
+# gold=debian12
 # device=local-disk ,default size=10G, tpl=''
-curl ${srv}/vm/attach_device/${host}/${uuid}/${device} -X POST -H 'Content-Type:application/json' -d'{"size":"1G", "tpl":""}'
-# device=net
+curl ${srv}/vm/attach_device/${host}/${uuid}/${device} -X POST -H 'Content-Type:application/json' -d'{"size":"10G"}' # ,"gold":"${gold}"}'
+# device=net-br-ext
 curl ${srv}/vm/attach_device/${host}/${uuid}/${device} -X POST -H 'Content-Type:application/json' -d '{}'
 curl ${srv}/vm/list/${host}            # from host
-curl ${srv}/vm/list/${host}${uuid}     # from host
+curl ${srv}/vm/list/${host}/${uuid}     # from host
 curl ${srv}/vm/start/${host}/${uuid}
 curl ${srv}/vm/stop/${host}/${uuid}
 curl ${srv}/vm/stop/${host}/${uuid} -X DELETE # force stop. destroy
@@ -62,6 +61,10 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         results = vmmanager.VMManager(host.url).list_domains()
         return [result._asdict() for result in results]
 
+    def list_gold(self):
+        results = database.KVMGold.ListGold()
+        return [result._asdict() for result in results]
+
     def list_device(self, hostname):
         results = database.KVMDevice.ListDevice(hostname)
         return [result._asdict() for result in results]
@@ -72,20 +75,25 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
 
     def attach_device(self, hostname, uuid, name):
         req_json = flask.request.json
-        default_conf = {'size': '10G', 'tpl':''}
+        default_conf = {'size': '10G'}
         req_json = {**default_conf, **req_json}
         logger.info(f'attach_device {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
         dev = database.KVMDevice.getDeviceInfo(name)
         dom = vmmanager.VMManager(host.url).get_domain(uuid)
         tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
-        vm_last_disk = dom.next_disk[tpl.bus] if dev.devtype == 'disk' else ''
-        req_json['vm_last_disk'] = vm_last_disk
         req_json['vm_uuid'] = uuid
-        # # req_json['tpl']  check file exists!
+        if dev.devtype == 'disk':
+            req_json['vm_last_disk'] = dom.next_disk[tpl.bus]
+            gold = req_json.get("gold", "")
+            if len(gold) != 0:
+                gold = database.KVMGold.getGoldInfo(f'{gold}', f'{host.arch}')
+                gold = os.path.join(config.GOLD_DIR, gold.tpl)
+                if os.path.isfile(gold):
+                    req_json['gold'] = gold
         xml = tpl.gen_xml(**req_json)
         if len(dev.action) != 0:
-            device.do_action(dev.devtype, dev.action, host, xml, req_json)
+            device.do_action(dev.devtype, dev.action, 'add', host, xml, req_json)
         dom.attach_device(xml)
         return { 'result' : 'OK' }
 
@@ -105,7 +113,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
 
     def __del_vm_file(self, fn):
         try:
-            os.remove(os.path.join(self.output_dir, f"{fn}"))
+            os.remove(os.path.join(config.OUTDIR, f"{fn}"))
         except Exception:
             pass 
 
@@ -142,9 +150,9 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         if 'file' not in flask.request.files:
             return { "report": f'{uuid}-{operation}-{action}' }
         file = flask.request.files['file']
-        # file.save(os.path.join(self.output_dir, "{}.xml".format(uuid)))
+        # file.save(os.path.join(config.OUTDIR, "{}.xml".format(uuid)))
         domxml = file.read().decode('utf-8')
-        with open(os.path.join(self.output_dir, "{}.xml".format(uuid)), 'w') as f:
+        with open(os.path.join(config.OUTDIR, "{}.xml".format(uuid)), 'w') as f:
             f.write(domxml)
         mdconfig_meta = vmmanager.VMManager.get_mdconfig(domxml)
         logger.info(f'{uuid} {mdconfig_meta}')
@@ -154,11 +162,11 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         #     <gateway>192.168.168.10</gateway>
         #   </mdconfig:meta>
         # </metadata>
-        if template.ISOTemplate('default', self.output_dir).create_iso(uuid, mdconfig_meta):
+        if template.ISOTemplate('default').create_iso(uuid, mdconfig_meta):
             return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
         return { 'result' : 'OK' }
 
-app=MyApp.create(os.environ.get('OUTDIR', '.'))
+app=MyApp.create()
 app.errorhandler(APIException)(APIException.handle)
 def main():
     host = os.environ.get('HTTP_HOST', '0.0.0.0')

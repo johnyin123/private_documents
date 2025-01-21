@@ -3,10 +3,10 @@
 import database as db
 from sqlalchemy import func,text,Column,String,Integer,DateTime,Enum,ForeignKey
 # create tables if not exists
+db.Base.metadata.drop_all(db.engine)
 db.Base.metadata.create_all(db.engine)
 
 print('''
-DATABASE=sqlite:///./kvm.db ./initdb
 # # kvmhost
 | name   | tpl       | url                                        | arch   |
 |--------+-----------+--------------------------------------------+--------|
@@ -21,6 +21,10 @@ DATABASE=sqlite:///./kvm.db ./initdb
 |---------+------------+---------+------------+-------------------|
 | asus    | local-disk | disk    | disk.file  | asus-disk.file    |
 | asus    | net-br-ext | net     | net.br-ext | asus-net.br-ext   |
+# # kvmgold
+| name     | arch    | tpl                  | desc |
+| debian12 | x86_64  | bookworm.amd64.qcow2 |      |
+| debian12 | aarch64 | bookworm.arm64.qcow2 |      |
 ''')
 hosts=[
     db.KVMHost(name='host01',tpl='newvm.tpl',url='qemu+tls://192.168.168.1/system',arch='x86_64'),
@@ -41,6 +45,19 @@ asus_devs=[
 ]
 db.session.add_all(asus_devs)
 db.session.commit()
+
+golds=[
+    db.KVMGold(name='debian12',arch='x86_64', tpl='bookworm.amd64.qcow2',desc=''),
+    db.KVMGold(name='debian12',arch='aarch64',tpl='bookworm.arm64.qcow2'),
+]
+db.session.add_all(golds)
+db.session.commit()
+
+for r in db.KVMGold.ListGold():
+    print(f'{r._asdict()}')
+
+r = db.KVMGold.getGoldInfo('debian12', 'x86_64')
+print(f'{r}')
 
 # sql="insert into tbl (name) values ('{name}')"
 # dev={'name':'net'}
