@@ -82,6 +82,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         vm_last_disk = dom.next_disk[tpl.bus] if dev.devtype == 'disk' else ''
         req_json['vm_last_disk'] = vm_last_disk
         req_json['vm_uuid'] = uuid
+        # # req_json['tpl']  check file exists!
         xml = tpl.gen_xml(**req_json)
         if len(dev.action) != 0:
             device.do_action(dev.devtype, dev.action, host, xml, req_json)
