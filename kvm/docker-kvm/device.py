@@ -51,6 +51,7 @@ def do_action(devtype:str, action:str, host:dict, xml:str, req:str):
     retval = execute(req, action, **host)
     if retval == 0:
         return
+    raise APIException(HTTPStatus.BAD_REQUEST, f'execute {attach} error', f'error={retval}')
 '''~/.ssh/config
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
@@ -60,4 +61,4 @@ Host 192.168.168.1
 qemu-img convert -f qcow2 -O raw tpl.qcow2 ssh://user@host:port/path/to/disk.img
 qemu-img convert -f qcow2 -O raw tpl.qcow2 rbd:cephpool/disk.raw:conf=/etc/ceph/ceph.conf
 '''
-    raise APIException(HTTPStatus.BAD_REQUEST, f'execute {attach} error', f'error={retval}')
+
