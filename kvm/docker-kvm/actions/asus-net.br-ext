@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+req_json=$(cat)
+env
+echo "OVER arg=[$*] input=$req_json OK"
+exit 0

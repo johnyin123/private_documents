@@ -32,12 +32,12 @@ def execute(json_str, action, **kwargs):
     try:
         import subprocess, io
         action = os.path.join("actions", f'{action}')
-        command = [f'{action}', "Hello, World!"]
+        command = [f'{action}']
         # Start the subprocess
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=kwargs)
         # Read the output
         stdout, stderr = process.communicate(json_str)
-        log.info(f"OUT:{stdout}{stderr}")
+        log.info(f"{action} return {process.returncode} OUTPUT: {stdout}{stderr}")
         # Wait for the process to complete
         process.wait()
         # Check the return code
