@@ -1,5 +1,19 @@
 #!/usr/bin/env bash
-req_json=$(cat)
-env
-echo "OVER arg=[$*] input=$req_json OK"
+set -o nounset -o pipefail -o errexit
+log() { logger -t 'qemu-rbd.action' "$*"; }
+REQ_JSON=$(cat)
+URL=${URL:-}
+TYPE=${TYPE:-}
+log "${TYPE} ${URL} ${REQ_JSON}"
+UUID=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_uuid" "")
+SIZE=$(printf "%s" "${REQ_JSON}" | json_config_default ".size" "10G")
+TPL=$(printf "%s"  "${REQ_JSON}" | json_config_default ".tpl" "")
+char=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_last_disk" "")
+DISK="libvirt/vd${char}-${UUID}.raw"
+[ -z "${TPL}" ] && {
+    qemu-img create -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring ${SIZE}
+} || {
+    qemu-img convert -f qcow2 -O raw disk/${TPL} rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring
+    qemu-img resize -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring ${SIZE}
+}
 exit 0

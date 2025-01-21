@@ -1,7 +1,33 @@
 #!/usr/bin/env bash
-req_json=$(cat)
-env
-# | name   | tpl       | url                                        | arch   |
-echo "OVER arg=[$*] input=$req_json OK"
-#qemu-img convert -f qcow2 -O raw tpl.qcow2 ssh://user@host:port/path/to/disk.img
+# # reqire: jq qemu-img cat logger
+set -o nounset -o pipefail -o errexit
+log() { logger -t 'qemu-action' "$*"; }
+json_config_default() {
+    local key=${1}
+    local default=${2}
+    local str=""
+    [ $# = 2 ] && {
+        str="$(cat)"
+    } || {
+        str="$(cat ${3:?json_config input err})"
+    }
+    jq -r '('${key}') // "'${default}'"' <<< ${str}
+}
+
+REQ_JSON=$(cat)
+URL=${URL:-}
+TYPE=${TYPE:-}
+log "${TYPE} ${URL} ${REQ_JSON}"
+UUID=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_uuid" "")
+SIZE=$(printf "%s" "${REQ_JSON}" | json_config_default ".size" "10G")
+TPL=$(printf "%s"  "${REQ_JSON}" | json_config_default ".tpl" "")
+char=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_last_disk" "")
+# # when use docker libvirtd, storage path!!!
+DISK="/storage/lib/libvirt/images/vd${char}-${UUID}.raw"
+[ -z "${TPL}" ] && {
+    qemu-img create -f raw ssh://root@192.168.168.1:60022${DISK} ${SIZE}
+} || {
+    qemu-img convert -f qcow2 -O raw disk/${TPL} ssh://root@192.168.168.1:60022${DISK}
+    qemu-img resize -f raw ssh://root@192.168.168.1:60022${DISK} ${SIZE}
+}
 exit 0

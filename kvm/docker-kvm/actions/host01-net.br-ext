@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-req_json=$(cat)
-env
-echo "OVER arg=[$*] input=$req_json OK"
+set -o nounset -o pipefail -o errexit
+REQ_JSON=$(cat)
+URL=${URL:-}
+TYPE=${TYPE:-}
 exit 0

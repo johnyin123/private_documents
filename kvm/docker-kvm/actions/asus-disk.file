@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-req_json=$(cat)
-env
-# | name   | tpl       | url                                        | arch   |
-echo "OVER arg=[$*] input=$req_json OK"
-#qemu-img convert -f qcow2 -O raw tpl.qcow2 ssh://user@host:port/path/to/disk.img
+set -o nounset -o pipefail -o errexit
+REQ_JSON=$(cat)
+URL=${URL:-}
+TYPE=${TYPE:-}
 exit 0

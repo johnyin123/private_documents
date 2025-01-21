@@ -9,7 +9,9 @@ class DeviceTemplate(object):
         self.raw_str = ''
         with open(os.path.join('devices', filename), 'r') as f:
             self.raw_str = f.read()
-            self.template = jinja2.Environment().from_string(self.raw_str)
+
+            env = jinja2.Environment()
+            self.template = env.from_string(self.raw_str)
             # env.globals['foo'] = 'foo'
             ast = env.parse(self.raw_str)
             logger.info(jinja2_meta.find_undeclared_variables(ast))

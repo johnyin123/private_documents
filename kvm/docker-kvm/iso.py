@@ -72,7 +72,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
 
     def attach_device(self, hostname, uuid, name):
         req_json = flask.request.json
-        default_conf = {'vm_uuid': uuid ,'size': '10G', 'tpl':''}
+        default_conf = {'size': '10G', 'tpl':''}
         req_json = {**default_conf, **req_json}
         logger.info(f'attach_device {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
@@ -81,6 +81,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
         vm_last_disk = dom.next_disk[tpl.bus] if dev.devtype == 'disk' else ''
         req_json['vm_last_disk'] = vm_last_disk
+        req_json['vm_uuid'] = uuid
         xml = tpl.gen_xml(**req_json)
         if len(dev.action) != 0:
             device.do_action(dev.devtype, dev.action, host, xml, req_json)
@@ -93,7 +94,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         req_json = {**default_conf, **req_json}
         logger.info(f'create_vm {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
-        if (host.arch.lower() != vm['vm_arch'].lower()):
+        if (host.arch.lower() != req_json['vm_arch'].lower()):
             raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')
         # force use host arch string
         req_json['vm_arch'] = host.arch

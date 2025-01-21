@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import flask_app
+import flask_app, os, json
 logger=flask_app.logger
 from exceptions import APIException, HTTPStatus
 
@@ -28,7 +28,7 @@ def sftp_get(host,port,username,password,server_path, local_path):
     except Exception as e:
         print(e)
 
-def execute(json_str, action, **kwargs):
+def execute(json_str:str, action:str, **kwargs):
     try:
         import subprocess, io
         action = os.path.join("actions", f'{action}')
@@ -37,21 +37,22 @@ def execute(json_str, action, **kwargs):
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=kwargs)
         # Read the output
         stdout, stderr = process.communicate(json_str)
-        log.info(f"{action} return {process.returncode} OUTPUT: {stdout}{stderr}")
+        logger.info(f"{action} return {process.returncode} OUTPUT: {stdout}{stderr}")
         # Wait for the process to complete
         process.wait()
         # Check the return code
-        return process.returncode
+        if process.returncode == 0:
+            return
+        raise APIException(HTTPStatus.BAD_REQUEST, f'execute {action} error', f'error={stderr}')
     except subprocess.CalledProcessError as e:
         raise APIException(HTTPStatus.BAD_REQUEST, 'CalledProcessError', f'{e}')
 
-def do_action(devtype:str, action:str, host:dict, xml:str, req:str):
+def do_action(devtype:str, action:str, host:dict, xml:str, req:dict):
     logger.info(host)
     logger.info(f'{devtype} exec:{action} {req} {xml}')
-    retval = execute(req, action, **host)
-    if retval == 0:
-        return
-    raise APIException(HTTPStatus.BAD_REQUEST, f'execute {attach} error', f'error={retval}')
+    req = json.dumps(req, indent='  ', ensure_ascii=False)
+    env={'URL':host.url, 'TYPE':devtype}
+    execute(req, action, **env)
 '''~/.ssh/config
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
