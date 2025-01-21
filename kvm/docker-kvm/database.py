@@ -32,8 +32,8 @@ class KVMHost(Base):
 
 class KVMDevice(Base):
     __tablename__ = "kvmdevice"
-    name = Column(String(19),nullable=False,index=True,primary_key=True)
     kvmhost = Column(String(19),ForeignKey('kvmhost.name'),nullable=False,index=True,primary_key=True)
+    name = Column(String(19),nullable=False,index=True,primary_key=True)
     action = Column(Text,nullable=False,server_default='',primary_key=True)
     devtype = Column(Enum('disk','net'),nullable=False)
     tpl = Column(String(19),nullable=False)

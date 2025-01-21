@@ -5,37 +5,56 @@ from sqlalchemy import func,text,Column,String,Integer,DateTime,Enum,ForeignKey
 # create tables if not exists
 db.Base.metadata.create_all(db.engine)
 
-print(f'DATABASE=sqlite:///./kvm.db ./initdb')
-kvmhost = 'host01'
-
-host01=db.KVMHost(name = kvmhost, tpl = 'newvm.tpl', url = 'qemu+tls://192.168.168.1/system', arch = 'x86_64')
-db.session.add(host01)
-#db.session.add_all([host01])
+print('''
+DATABASE=sqlite:///./kvm.db ./initdb
+# # kvmhost
+| name   | tpl       | url                                        | arch   |
+|--------+-----------+--------------------------------------------+--------|
+| host01 | newvm.tpl | qemu+tls://192.168.168.1/system            | x86_64 |
+| asus   | newvm.tpl | qemu+ssh://root@192.168.168.1:60022/system | x86_64 |
+# # kvmdevice
+| kvmhost | name       | devtype | tpl        | action            |
+|---------+------------+---------+------------+-------------------|
+| host01  | local-disk | disk    | disk.file  | host01-disk.file  |
+| host01  | rbd-disk   | disk    | disk.rbd.1 | host01-disk.rbd.1 |
+| host01  | net-br-ext | net     | net.br-ext | host01-net.br-ext |
+|---------+------------+---------+------------+-------------------|
+| asus    | local-disk | disk    | disk.file  | asus-disk.file    |
+| asus    | net-br-ext | net     | net.br-ext | asus-net.br-ext   |
+''')
+hosts=[
+    db.KVMHost(name='host01',tpl='newvm.tpl',url='qemu+tls://192.168.168.1/system',arch='x86_64'),
+    db.KVMHost(name='asus',tpl='newvm.tpl',url='qemu+ssh://root@192.168.168.1:60022/system',arch='x86_64'),
+]
+db.session.add_all(hosts)  # db.session.add(host01)
 db.session.commit()
-sql="insert into kvmdevice (name,tpl,kvmhost,devtype,action) values ('{name}','{tpl}','{kvmhost}','{devtype}','{action}')"
-dev={'name':'local-disk','tpl':'disk.file','kvmhost':kvmhost,'devtype':'disk','action':'upload-192.168.168.1'}
-db.Base.exesql(sql, **dev)
-dev={'name':'net','tpl':'net.br-ext','kvmhost':kvmhost,'devtype': 'net','action':'logit'}
-db.Base.exesql(sql, **dev)
 
-kvmhost = 'asus'
-sql="insert into kvmhost (name,tpl,url,arch) values ('{name}','{tpl}','{url}','{arch}')"
-host={'name':kvmhost,'tpl':'newvm.tpl','url':'qemu+ssh://root@192.168.168.1:60022/system','arch':'x86_64'}
-db.Base.exesql(sql, **host)
-sql="insert into kvmdevice (name,tpl,kvmhost,devtype) values ('{name}','{tpl}','{kvmhost}','{devtype}')"
-dev={'name':'local-disk','tpl':'disk.file','kvmhost':kvmhost,'devtype':'disk'}
-db.Base.exesql(sql, **dev)
-dev={'name':'net','tpl':'net.br-ext','kvmhost':kvmhost,'devtype': 'net'}
-db.Base.exesql(sql, **dev)
+host01_devs=[
+    db.KVMDevice(kvmhost='host01',name='local-disk',devtype='disk',tpl='disk.file',action='host01-disk.file'),
+    db.KVMDevice(kvmhost='host01',name='rbd-disk',devtype='disk',tpl='disk.rbd.1',action='host01-disk.rbd.1'),
+    db.KVMDevice(kvmhost='host01',name='net-br-ext',devtype='net',tpl='net.br-ext',action='host01-net.br-ext'),
+]
+db.session.add_all(host01_devs)
+asus_devs=[
+    db.KVMDevice(kvmhost='asus',name='local-disk',devtype='disk',tpl='disk.file',action='asus-disk.file'),
+    db.KVMDevice(kvmhost='asus',name='net-br-ext',devtype='net',tpl='net.br-ext',action='asus-net.br-ext'),
+]
+db.session.add_all(asus_devs)
+db.session.commit()
+
+# sql="insert into tbl (name) values ('{name}')"
+# dev={'name':'net'}
+# db.Base.exesql(sql, **dev)
 
 sql="select * from kvmhost"
 results = db.Base.exesql(sql)
 for r in results:
     print(f'{r._asdict()}')
+print('===================================')
 sql="select * from kvmdevice"
 results = db.Base.exesql(sql)
 for r in results:
     print(f'{r._asdict()}')
-results = db.Base.exesql('SELECT * FROM kvmhost join kvmdevice on kvmdevice.kvmhost = kvmhost.name')
-for r in results:
-    print(f'{r._asdict()}')
+# results = db.Base.exesql('SELECT * FROM kvmhost join kvmdevice on kvmdevice.kvmhost = kvmhost.name')
+# for r in results:
+#     print(f'{r._asdict()}')
