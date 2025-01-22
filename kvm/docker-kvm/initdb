@@ -47,7 +47,7 @@ db.session.add_all(asus_devs)
 db.session.commit()
 
 golds=[
-    db.KVMGold(name='debian12',arch='x86_64', tpl='bookworm.amd64.qcow2',desc=''),
+    db.KVMGold(name='debian12',arch='x86_64', tpl='bookworm.amd64.qcow2',desc='测试主机'),
     db.KVMGold(name='debian12',arch='aarch64',tpl='bookworm.arm64.qcow2'),
 ]
 db.session.add_all(golds)
