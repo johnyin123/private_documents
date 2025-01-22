@@ -54,11 +54,11 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
 
     def get_domain(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
-        return vmmanager.VMManager(host.url).get_domain(uuid)._asdict()
+        return vmmanager.VMManager(host.name, host.url).get_domain(uuid)._asdict()
 
     def list_domains(self, hostname):
         host = database.KVMHost.getHostInfo(hostname)
-        results = vmmanager.VMManager(host.url).list_domains()
+        results = vmmanager.VMManager(host.name, host.url).list_domains()
         return [result._asdict() for result in results]
 
     def list_gold(self):
@@ -80,7 +80,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         logger.info(f'attach_device {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
         dev = database.KVMDevice.getDeviceInfo(name)
-        dom = vmmanager.VMManager(host.url).get_domain(uuid)
+        dom = vmmanager.VMManager(host.name, host.url).get_domain(uuid)
         tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
         req_json['vm_uuid'] = uuid
         if dev.devtype == 'disk':
@@ -108,7 +108,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         # force use host arch string
         req_json['vm_arch'] = host.arch
         xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
-        vmmanager.VMManager(host.url).create_vm(req_json['vm_uuid'], xml)
+        vmmanager.VMManager(host.name, host.url).create_vm(req_json['vm_uuid'], xml)
         return { 'result' : 'OK', 'uuid' : req_json['vm_uuid'], 'host': hostname }
 
     def __del_vm_file(self, fn):
@@ -119,7 +119,7 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
 
     def delete_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
-        vmmgr = vmmanager.VMManager(host.url)
+        vmmgr = vmmanager.VMManager(host.name, host.url)
         vmmgr.delete_vm(uuid)
         logger.info(f'remove {uuid} datebase and xml/iso files')
         self.__del_vm_file(f'{uuid}.xml')
@@ -128,17 +128,17 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
 
     def start_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
-        vmmanager.VMManager(host.url).start_vm(uuid)
+        vmmanager.VMManager(host.name, host.url).start_vm(uuid)
         return { 'result' : 'OK' }
 
     def stop_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
-        vmmanager.VMManager(host.url).stop_vm(uuid)
+        vmmanager.VMManager(host.name, host.url).stop_vm(uuid)
         return { 'result' : 'OK' }
 
     def stop_vm_forced(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
-        vmmanager.VMManager(host.url).stop_vm_forced(uuid)
+        vmmanager.VMManager(host.name, host.url).stop_vm_forced(uuid)
         return { 'result' : 'OK' }
 
     def upload_xml(self, operation, action, uuid):

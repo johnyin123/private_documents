@@ -110,12 +110,13 @@ class LibvirtDomain:
 
 class VMManager:
     # # all operator by UUID
-    def __init__(self, uri):
+    def __init__(self, name, uri):
+        self.name = name
         self.conn = libvirt.open(uri)
         info = self.conn.getInfo()
         logger.info(f'connect: {self.hostname} arch={info[0]} mem={info[1]} cpu={info[2]} mhz={info[3]}')
         sysinfo = self.conn.getSysinfo()
-        fname=os.path.join(config.OUTDIR, f'kvmhost.{info[0]}.{self.hostname}.xml')
+        fname=os.path.join(config.OUTDIR, f'{name}.{info[0]}.{self.hostname}.xml')
         if not os.path.exists(fname):
             with open(fname, 'w') as f:
                 f.write(sysinfo)

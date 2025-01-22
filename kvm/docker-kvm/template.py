@@ -9,7 +9,6 @@ class DeviceTemplate(object):
         self.raw_str = ''
         with open(os.path.join(config.DEVICE_DIR, filename), 'r') as f:
             self.raw_str = f.read()
-
             env = jinja2.Environment()
             self.template = env.from_string(self.raw_str)
             # env.globals['foo'] = 'foo'
