@@ -9,7 +9,7 @@ UUID=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_uuid" "")
 SIZE=$(printf "%s" "${REQ_JSON}" | json_config_default ".size" "10G")
 GOLD=$(printf "%s" "${REQ_JSON}" | json_config_default ".gold" "")
 char=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_last_disk" "")
-DISK="libvirt/vd${char}-${UUID}.raw"
+DISK="libvirt-pool/vd${char}-${UUID}.raw"
 [ -z "${GOLD}" ] && {
     qemu-img create -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring ${SIZE}
 } || {
