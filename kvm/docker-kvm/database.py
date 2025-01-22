@@ -2,7 +2,7 @@
 import exceptions
 
 from dbi import engine, Session, session, Base
-from sqlalchemy import func,text,Column,Text,String,Integer,DateTime,Enum,ForeignKey
+from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey
 
 class KVMHost(Base):
     __tablename__ = "kvmhost"
@@ -50,8 +50,8 @@ class KVMGold(Base):
     __tablename__ = "kvmgold"
     name = Column(String(19),nullable=False,index=True,primary_key=True)
     arch = Column(String(16),nullable=False,index=True,primary_key=True)
-    tpl = Column(Text,nullable=False,unique=True)
-    desc = Column(Text)
+    tpl = Column(String,nullable=False,unique=True)
+    desc = Column(String)
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
 
     @staticmethod
