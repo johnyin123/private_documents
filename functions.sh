@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("bf674ee[2025-01-07T12:08:43+08:00]:functions.sh")
+VERSION+=("5f51926[2025-01-10T09:00:43+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -1547,29 +1547,23 @@ json_config_default() {
     jq -r '('${key}') // "'${default}'"' <<< ${str}
 }
 
-# Performs POST onto specified URL with content formatted as json
-#$1 uri
-#$2 json file (if input is to be read from stdin use: -)
-#$3 user in case of https
-#$4 password in case of https
 rest_json_post() {
+    local url="${1}"
+    local file=${2}  # -/filename stdin/file
     if [ -z $3 ]; then
         #without -s curl could display some debug info
-        curl -s -H "Accept:application/json" -H "Content-Type:application/json" -X POST -k -d @$2 $1
+        curl -k -s -H "Accept:application/json" -H "Content-Type:application/json" -X POST -d "@${file}" ${url}
     else
-        curl -s -H "Accept:application/json" -H "Content-Type:application/json" -X POST -u "$3":"$4" -k -d @$2 $1
+        curl -k -s -H "Accept:application/json" -H "Content-Type:application/json" -X POST -u "$3":"$4" -d "@${file}" ${url}
     fi
 }
 
-# Performs GET
-#$1 uri
-#$2 user in case of https
-#$3 password in case of https
 rest_json_get() {
+    local url="${1}"
     if [ -z $2 ]; then
-        curl -k -i -H "Accept: application/json" $1
+        curl -k -H "Accept: application/json" ${url}
     else
-        curl -k -i -H "Accept: application/json" -u "$2":"$3" $1
+        curl -k -H "Accept: application/json" -u "$2":"$3" ${url}
     fi
 }
 
