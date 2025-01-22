@@ -30,23 +30,40 @@ class MyApp(object):
         web.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.attach_device, methods=['POST'])
         logger.info('''
 srv=http://127.0.0.1:18888
-curl ${srv}/tpl/host
-# host=reg2
-curl ${srv}/vm/create/${host} -X POST -H 'Content-Type:application/json' -d '{"vm_gw":"1.1.1.1","vm_ip":"1.1.1.2/32"}'
+echo 'list host' && curl ${srv}/tpl/host | jq '.[]|{name: .name, arch: .arch}'
+host=host01
+arch=x86_64
+# # -d '{}' # -d '@file.json'
+echo 'create vm' && cat <<EOF | curl -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/create/${host}
+{
+ "vm_arch":"${arch}",
+ "vm_vcpus" : 2,
+ "vm_ram_mb" : 2048,
+ "vm_desc" : "测试VM",
+ "vm_ip":"1.1.1.2/32",
+ "vm_gw":"1.1.1.1"
+}
+EOF
+
 # uuid=xxxx
-curl ${srv}/tpl/device/${host}
-curl ${srv}/tpl/gold
+echo 'list device on host' && curl ${srv}/tpl/device/${host} | jq '.[]|{name: .name, type: .devtype}'
+echo 'list gold image' && curl ${srv}/tpl/gold | jq '.[]|{arch: .arch, name: .name, desc: .desc}'
+device=local-disk
 # gold=debian12
-# device=local-disk ,default size=10G, tpl=''
-curl ${srv}/vm/attach_device/${host}/${uuid}/${device} -X POST -H 'Content-Type:application/json' -d'{"size":"10G"}' # ,"gold":"${gold}"}'
-# device=net-br-ext
-curl ${srv}/vm/attach_device/${host}/${uuid}/${device} -X POST -H 'Content-Type:application/json' -d '{}'
-curl ${srv}/vm/list/${host}            # from host
-curl ${srv}/vm/list/${host}/${uuid}     # from host
-curl ${srv}/vm/start/${host}/${uuid}
-curl ${srv}/vm/stop/${host}/${uuid}
-curl ${srv}/vm/stop/${host}/${uuid} -X DELETE # force stop. destroy
-curl ${srv}/vm/delete/${host}/${uuid}
+echo 'add disk' && cat <<EOF | curl -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/attach_device/${host}/${uuid}/${device}
+{
+ ${gold:+\\"gold\\": \\"${gold}\\",}
+ "size":"10G"
+}
+EOF
+device=net-br-ext
+echo 'add network device' && curl -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/attach_device/${host}/${uuid}/${device}
+echo 'list host vms' && curl ${srv}/vm/list/${host}                # from host
+echo 'list a vm on host' && curl ${srv}/vm/list/${host}/${uuid}    # from host
+echo 'start vm' && curl ${srv}/vm/start/${host}/${uuid}
+echo 'stop vm' && curl ${srv}/vm/stop/${host}/${uuid}
+echo 'force stop vm' && curl -X DELETE ${srv}/vm/stop/${host}/${uuid} # force stop. destroy
+echo 'undefine domain' && curl ${srv}/vm/delete/${host}/${uuid}
 # # test qemu-hook auto upload
 curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         ''')
