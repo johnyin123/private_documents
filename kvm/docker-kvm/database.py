@@ -30,7 +30,7 @@ class KVMDevice(Base):
     __tablename__ = "kvmdevice"
     kvmhost = Column(String(19),ForeignKey('kvmhost.name'),nullable=False,index=True,primary_key=True)
     name = Column(String(19),nullable=False,index=True,primary_key=True)
-    action = Column(Text,nullable=False,server_default='',primary_key=True)
+    action = Column(String(19),nullable=False,server_default='',primary_key=True)
     devtype = Column(Enum('disk','net'),nullable=False)
     tpl = Column(String(19),nullable=False)
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
@@ -48,8 +48,8 @@ class KVMDevice(Base):
 
 class KVMGold(Base):
     __tablename__ = "kvmgold"
-    name = Column(Text,nullable=False,index=True,primary_key=True)
-    arch = Column(Text,nullable=False,index=True,primary_key=True)
+    name = Column(String(19),nullable=False,index=True,primary_key=True)
+    arch = Column(String(16),nullable=False,index=True,primary_key=True)
     tpl = Column(Text,nullable=False,unique=True)
     desc = Column(Text)
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
