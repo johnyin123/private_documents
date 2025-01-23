@@ -63,19 +63,20 @@ class LibvirtDomain:
             sdlst.append('sd{}'.format(chr(char)))
         try:
             p = xml.dom.minidom.parseString(self.dom.XMLDesc())
-            # for index, device in enumerate(p.getElementsByTagName('disk')): #enumerate(xxx, , start=1)
-            for device in p.getElementsByTagName('disk'):
-                if device.getAttribute('device') != 'disk':
+            # for index, disk in enumerate(p.getElementsByTagName('disk')): #enumerate(xxx, , start=1)
+            for disk in p.getElementsByTagName('disk'):
+                device = disk.getAttribute('device')
+                if device != 'disk' and device != 'cdrom':
                     continue
-                dev = device.getElementsByTagName('target')[0].getAttribute('dev')
-                try:
+                dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
+                if dev in vdlst:
                     vdlst.remove(dev)
+                if dev in sdlst:
                     sdlst.remove(dev)
-                except Exception:
-                    pass
-            return {'virtio':vdlst[0][2], 'scsi':sdlst[0][2]}
+            return {'virtio':vdlst[0][2], 'scsi':sdlst[0][2], 'sata':sdlst[0][2]}
         except Exception:
-            return None
+            logger.exception(f'next_disk')
+            return {'virtio':'a', 'scsi':'a', 'sata':'a'}
 
     @property
     def mdconfig(self):
@@ -135,7 +136,6 @@ class VMManager:
 
     def get_domain(self, uuid):
         try:
-            logger.info(f'{uuid} lookup')
             return LibvirtDomain(self.conn.lookupByUUIDString(uuid))
         except libvirt.libvirtError as e:
             kvm_error(e, 'get_domain')
@@ -161,16 +161,14 @@ class VMManager:
 
     def create_vm(self, uuid, xml):
         try:
-            logger.info(f'{uuid} lookup')
             dom=self.conn.lookupByUUIDString(uuid)
             raise APIException(HTTPStatus.CONFLICT, 'create_vm error', f'vm {uuid} exists')
         except libvirt.libvirtError:
-            logger.info(f'create domain {uuid}')
+            logger.info(f'create_vm {uuid}')
             self.conn.defineXML(xml)
 
     def delete_vm(self, uuid):
         try:
-            logger.info(f'{uuid} lookup')
             dom=self.conn.lookupByUUIDString(uuid)
             try:
                 dom.destroy()
@@ -182,7 +180,6 @@ class VMManager:
 
     def start_vm(self, uuid):
         try:
-            logger.info(f'{uuid} lookup')
             dom=self.conn.lookupByUUIDString(uuid)
             dom.create()
         except libvirt.libvirtError as e:
@@ -190,7 +187,6 @@ class VMManager:
 
     def stop_vm(self, uuid):
         try:
-            logger.info(f'{uuid} lookup')
             dom=self.conn.lookupByUUIDString(uuid)
             dom.shutdown()
         except libvirt.libvirtError as e:
@@ -198,7 +194,6 @@ class VMManager:
 
     def stop_vm_forced(self, uuid):
         try:
-            logger.info(f'{uuid} lookup')
             dom=self.conn.lookupByUUIDString(uuid)
             dom.destroy()
         except libvirt.libvirtError as e:

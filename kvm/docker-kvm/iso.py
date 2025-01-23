@@ -103,13 +103,13 @@ curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
         if dev.devtype == 'disk':
             req_json['vm_last_disk'] = dom.next_disk[tpl.bus]
             gold = req_json.get("gold", "")
-            if len(gold) != 0:
+            if gold is not None and len(gold) != 0:
                 gold = database.KVMGold.getGoldInfo(f'{gold}', f'{host.arch}')
                 gold = os.path.join(config.GOLD_DIR, gold.tpl)
                 if os.path.isfile(gold):
                     req_json['gold'] = gold
         xml = tpl.gen_xml(**req_json)
-        if len(dev.action) != 0:
+        if dev.action is not None and len(dev.action) != 0:
             device.do_action(dev.devtype, dev.action, 'add', host, xml, req_json)
         dom.attach_device(xml)
         return { 'result' : 'OK' }
