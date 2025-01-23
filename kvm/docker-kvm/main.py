@@ -33,15 +33,20 @@ srv=http://127.0.0.1:18888
 echo 'list host' && curl ${srv}/tpl/host | jq '.[]|{name: .name, arch: .arch}'
 host=host01
 arch=x86_64
+uefi=/usr/share/OVMF/OVMF_CODE.fd
+# arch=aarch64
+# uefi=/usr/share/AAVMF/AAVMF_CODE.fd
+# vm_ram_mb_max=8192, vm_vcpus_max=8
 # # -d '{}' # -d '@file.json'
 echo 'create vm' && cat <<EOF | curl -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/create/${host}
 {
  "vm_arch":"${arch}",
+ ${uefi:+\\"vm_uefi\\": \\"${uefi}\\",}
  "vm_vcpus" : 2,
  "vm_ram_mb" : 2048,
  "vm_desc" : "测试VM",
- "vm_ip":"1.1.1.2/32",
- "vm_gw":"1.1.1.1"
+ "vm_ip":"192.168.168.2/32",
+ "vm_gw":"192.168.168.1"
 }
 EOF
 

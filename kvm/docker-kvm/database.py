@@ -7,10 +7,10 @@ from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,
 class KVMHost(Base):
     __tablename__ = "kvmhost"
     name = Column(String(19),nullable=False,index=True,unique=True,primary_key=True)
-    url = Column(String(200),nullable=False,unique=True)
-    tpl = Column(String(19),nullable=False)
+    url = Column(String,nullable=False,unique=True)
+    tpl = Column(String,nullable=False)
     # # uname -m
-    arch = Column(String(16),nullable=False)
+    arch = Column(String(8),nullable=False)
     active = Column(Integer,nullable=False,server_default='0')
     inactive = Column(Integer,nullable=False,server_default='0')
     desc = Column(String)
@@ -33,7 +33,7 @@ class KVMDevice(Base):
     name = Column(String(19),nullable=False,index=True,primary_key=True)
     action = Column(String(19),nullable=False,server_default='',primary_key=True)
     devtype = Column(Enum('disk','net'),nullable=False)
-    tpl = Column(String(19),nullable=False)
+    tpl = Column(String,nullable=False)
     desc = Column(String)
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
 
@@ -51,7 +51,7 @@ class KVMDevice(Base):
 class KVMGold(Base):
     __tablename__ = "kvmgold"
     name = Column(String(19),nullable=False,index=True,primary_key=True)
-    arch = Column(String(16),nullable=False,index=True,primary_key=True)
+    arch = Column(String(8),nullable=False,index=True,primary_key=True)
     tpl = Column(String,nullable=False,unique=True)
     desc = Column(String)
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
