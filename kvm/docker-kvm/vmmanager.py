@@ -102,7 +102,7 @@ class LibvirtDomain:
     @memory.setter
     def memory(self, value):
         if value < 256:
-            logger.warning(f"low memory: {value}MB for VM {self.name}")
+            logger.warning(f"low memory: {value}MB for VM {self.uuid}")
         value *= 1024
         self.dom.setMemoryFlags(
             value, libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_MEM_MAXIMUM

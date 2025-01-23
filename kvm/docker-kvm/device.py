@@ -36,7 +36,7 @@ def execute(json_str:str, action:str, arg:str,**kwargs):
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=kwargs)
         # Read the output
         stdout, stderr = process.communicate(json_str)
-        logger.info(f"{action} return {process.returncode} OUTPUT: {stdout}{stderr}")
+        logger.info(f'subprocess {action} return {process.returncode} OUTPUT: {stdout}{stderr}')
         # Wait for the process to complete
         process.wait()
         # Check the return code
@@ -47,7 +47,6 @@ def execute(json_str:str, action:str, arg:str,**kwargs):
         raise APIException(HTTPStatus.BAD_REQUEST, 'CalledProcessError', f'{e}')
 
 def do_action(devtype:str, action:str, arg:str ,host:dict, xml:str, req:dict):
-    logger.info(host)
     logger.info(f'{devtype} exec:{action} {arg} {req} {xml}')
     req = json.dumps(req, indent='  ', ensure_ascii=False)
     env={'URL':host.url, 'TYPE':devtype}
