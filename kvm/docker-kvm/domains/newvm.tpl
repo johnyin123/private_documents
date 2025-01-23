@@ -26,6 +26,8 @@
 {%- if vm_uefi is defined %}
     <loader readonly='yes' secure='no' type='pflash'>{{ vm_uefi }}</loader>
 {%- endif %}
+    <boot dev='hd'/>
+    <boot dev='cdrom'/>
     <bootmenu enable='yes' timeout='3000'/>
   </os>
   <features><acpi/><apic/><pae/></features>
