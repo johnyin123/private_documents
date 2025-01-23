@@ -5,6 +5,7 @@ from exceptions import APIException, HTTPStatus
 logger=flask_app.logger
 
 def kvm_error(e: libvirt.libvirtError, msg: str):
+    logger.exception(f'{msg}')
     err_code = e.get_error_code()
     err_msg = e.get_error_message()
     raise APIException(HTTPStatus.BAD_REQUEST, f'{msg} errcode={err_code}', f'{err_msg}')
@@ -52,7 +53,7 @@ class LibvirtDomain:
                 flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
             self.dom.attachDeviceFlags(xml, flags)
         except libvirt.libvirtError as e:
-            kvm_error(e, 'start_vm')
+            kvm_error(e, 'attach_device')
 
     @property
     def next_disk(self):

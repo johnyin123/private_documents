@@ -18,15 +18,15 @@ def ssh_exec(host,port,username,password,command):
     finally:
         ssh.close()
  
-def sftp_get(host,port,username,password,server_path, local_path):
+def sftp_get(host, ort, username, password, erver_path, local_path):
     try:
         t = paramiko.Transport((host, port))
         t.connect(username=username, password=password)
         sftp = paramiko.SFTPClient.from_transport(t)
         sftp.get(server_path , local_path)
         t.close()
-    except Exception as e:
-        print(e)
+    except Exception:
+        logger.exception(f'{host}:{port}')
 
 def execute(json_str:str, action:str, arg:str,**kwargs):
     try:
@@ -44,6 +44,7 @@ def execute(json_str:str, action:str, arg:str,**kwargs):
             return
         raise APIException(HTTPStatus.BAD_REQUEST, f'execute {action} error', f'error={stderr}')
     except subprocess.CalledProcessError as e:
+        logger.exception(f'{action} {arg}')
         raise APIException(HTTPStatus.BAD_REQUEST, 'CalledProcessError', f'{e}')
 
 def do_action(devtype:str, action:str, arg:str ,host:dict, xml:str, req:dict):

@@ -26,7 +26,7 @@
 {%- if vm_uefi is defined %}
     <loader readonly='yes' secure='no' type='pflash'>{{ vm_uefi }}</loader>
 {%- endif %}
-    <bootmenu enable='yes' timeout='3'/>
+    <bootmenu enable='yes' timeout='3000'/>
   </os>
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>destroy</on_poweroff>
