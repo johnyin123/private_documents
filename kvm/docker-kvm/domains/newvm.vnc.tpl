@@ -38,10 +38,9 @@
     <controller type='pci' model='pcie-root-port'/>
     <controller type='pci' model='pcie-root-port'/>
     <controller type='pci' model='pcie-to-pci-bridge'/>
-    <graphics type='spice' autoport='yes' listen='127.0.0.1'></graphics>
+    <graphics type='vnc' autoport='yes' listen='127.0.0.1'></graphics>
     <video><model type='virtio' vram='32768' heads='1' primary='yes'/></video>
     <sound model='ac97'/>
-    <channel type='spicevmc'><target type='virtio' name='com.redhat.spice.0'/></channel>
     <disk type='network' device='cdrom'>
       <driver name='qemu' type='raw'/>
       <source protocol="http" name="/{{ vm_uuid }}.iso">
