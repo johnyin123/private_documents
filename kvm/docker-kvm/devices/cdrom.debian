@@ -5,5 +5,4 @@
     </source>
   <target dev='sd{{ vm_last_disk }}' bus='sata'/>
   <readonly/>
-  <boot order="1"/>
 </disk>
