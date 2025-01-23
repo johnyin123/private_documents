@@ -43,7 +43,7 @@ class ISOTemplate(object):
     def __init__(self, meta_name):
         self.name = meta_name
         env = jinja2.Environment(loader=jinja2.FileSystemLoader(f'{config.META_DIR}/{meta_name}'))
-        self.meta_data = env.get_template('meta_data') 
+        self.meta_data = env.get_template('meta_data')
         self.user_data = env.get_template('user_data')
         self.network_config = env.get_template('network_config')
 
