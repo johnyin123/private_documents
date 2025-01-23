@@ -37,6 +37,7 @@ host01_devs=[
     db.KVMDevice(kvmhost='host01',name='local-disk',devtype='disk',tpl='disk.file',action='host01-disk.file'),
     db.KVMDevice(kvmhost='host01',name='rbd-disk',devtype='disk',tpl='disk.rbd.1',action='host01-disk.rbd.1'),
     db.KVMDevice(kvmhost='host01',name='net-br-ext',devtype='net',tpl='net.br-ext',action='host01-net.br-ext'),
+    db.KVMDevice(kvmhost='host01',name='debian_installcd',devtype='disk',tpl='cdrom.debian',action='',desc='debian安装CD'),
 ]
 db.session.add_all(host01_devs)
 asus_devs=[

@@ -13,6 +13,7 @@ class KVMHost(Base):
     arch = Column(String(16),nullable=False)
     active = Column(Integer,nullable=False,server_default='0')
     inactive = Column(Integer,nullable=False,server_default='0')
+    desc = Column(String)
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
 
     @staticmethod
@@ -33,6 +34,7 @@ class KVMDevice(Base):
     action = Column(String(19),nullable=False,server_default='',primary_key=True)
     devtype = Column(Enum('disk','net'),nullable=False)
     tpl = Column(String(19),nullable=False)
+    desc = Column(String)
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
 
     @staticmethod
@@ -44,7 +46,7 @@ class KVMDevice(Base):
 
     @staticmethod
     def ListDevice(kvmhost):
-        return session.query(KVMDevice.kvmhost, KVMDevice.name, KVMDevice.devtype).filter_by(kvmhost=kvmhost).all()
+        return session.query(KVMDevice.kvmhost, KVMDevice.name, KVMDevice.devtype, KVMDevice.desc).filter_by(kvmhost=kvmhost).all()
 
 class KVMGold(Base):
     __tablename__ = "kvmgold"

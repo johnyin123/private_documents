@@ -57,7 +57,8 @@ echo 'add disk' && cat <<EOF | curl -H 'Content-Type:application/json' -X POST -
 }
 EOF
 device=net-br-ext
-echo 'add network device' && curl -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/attach_device/${host}/${uuid}/${device}
+device=debian_installcd
+echo 'add ${device} noargs' && curl -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/attach_device/${host}/${uuid}/${device}
 echo 'list host vms' && curl ${srv}/vm/list/${host}                # from host
 echo 'list a vm on host' && curl ${srv}/vm/list/${host}/${uuid}    # from host
 echo 'start vm' && curl ${srv}/vm/start/${host}/${uuid}
