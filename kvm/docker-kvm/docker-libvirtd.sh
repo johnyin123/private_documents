@@ -125,12 +125,12 @@ EOF
 export IMAGE=nginx:bookworm
 type=meta-iso
 username=johnyin
-[ -e "flask_app.py" ] && [ -e "iso.py" ] && [ -e "dbi.py" ] || { echo "dbi.py flask_app.py iso.py, nofound"; exit 1;}
+[ -e "flask_app.py" ] && [ -e "main.py" ] && [ -e "dbi.py" ] || { echo "dbi.py flask_app.py main.py, nofound"; exit 1;}
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     install -v -d -m 0755 "${type}-${arch}/docker/home/${username}"
     install -v -C -m 0644 --group=10001 --owner=10001 "flask_app.py" "${type}-${arch}/docker/home/${username}/flask_app.py"
-    install -v -C -m 0644 --group=10001 --owner=10001 "iso.py" "${type}-${arch}/docker/home/${username}/iso.py"
+    install -v -C -m 0644 --group=10001 --owner=10001 "main.py" "${type}-${arch}/docker/home/${username}/main.py"
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && \
     cat <<'EOF' > ${type}-${arch}/docker/etc/nginx/http-enabled/site.conf
 upstream flask_app {
@@ -198,7 +198,7 @@ stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
 
 [program:webapp]
-command=gunicorn -b 127.0.0.1:5009 iso:app
+command=gunicorn -b 127.0.0.1:5009 main:app
 directory=/home/${username}/
 environment=LOG=DEBUG, OUTDIR="/iso", DATABASE=sqlite:////iso/vminfo.sqlite
 autostart=true
