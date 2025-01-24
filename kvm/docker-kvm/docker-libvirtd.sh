@@ -28,14 +28,22 @@ apt update && apt -y --no-install-recommends install \
     iproute2 bridge-utils curl
     rm -fr /etc/libvirt/qemu/* || true
     sed --quiet -i -E \
-        -e '/^\s*(user)\s*=.*/!p' \
+        -e '/^\s*(user|spice_tls|spice_tls_x509_cert_dir|vnc_tls|vnc_tls_x509_cert_dir|vnc_tls_x509_verify)\s*=.*/!p' \
         -e "\$auser = \"root\"" \
         /etc/libvirt/qemu.conf || true
+
+        # -e '$aspice_tls = 1' \
+        # -e '$aspice_tls_x509_cert_dir = "/etc/libvirt/pki/"' \
+        # -e '$avnc_tls = 1' \
+        # -e '$avnc_tls_x509_cert_dir = "/etc/libvirt/pki/"' \
+        # -e '$avnc_tls_x509_verify = 1' \
+
+   # # spice & libvirt use same tls key/cert/ca files
    sed --quiet -i.orig -E \
          -e '/^\s*(ca_file|cert_file|key_file|listen_addr|listen_tls|tcp_port).*/!p' \
-         -e '$aca_file = "/etc/libvirt/pki/ca.pem"' \
-         -e '$acert_file = "/etc/libvirt/pki/server.pem"' \
-         -e '$akey_file = "/etc/libvirt/pki/server.key"' \
+         -e '$aca_file = "/etc/libvirt/pki/ca-cert.pem"' \
+         -e '$acert_file = "/etc/libvirt/pki/server-cert.pem"' \
+         -e '$akey_file = "/etc/libvirt/pki/server-key.pem"' \
          -e '$alisten_tcp = 1' \
          -e '$alisten_tls = 1' \
          -e '$alisten_addr = "0.0.0.0"' \
@@ -105,29 +113,34 @@ YEAR=15 ./newssl.sh -c cli                # # virsh client
 YEAR=15 ./newssl.sh -c kvm1.local --ip 192.168.168.1 --ip 192.168.169.1
 ......
 # # init server
-# cp ca/kvm1.local.pem /storage/pki/server.pem
-# cp ca/kvm1.local.key /storage/pki/server.key
-# cp ca/ca.pem /storage/pki/ca.pem
+# cp ca/kvm1.local.pem /storage/pki/server-cert.pem
+# cp ca/kvm1.local.key /storage/pki/server-key.pem
+# cp ca/ca.pem /storage/pki/ca-cert.pem
+# # # server-key.pem, MUST CAN READ BY QEQMU PROCESS(chown)
+# chmod 440 /etc/libvirt/pki/*
+# chown root.qemu /etc/libvirt/pki/*
 
 # # init client
 |----------------------------------------|--------|
 | /etc/pki/CA/cacert.pem                 | client |
 | /etc/pki/libvirt/private/clientkey.pem | client |
 | /etc/pki/libvirt/clientcert.pem        | client |
-| ~/.pki/cacert.pem                      | client |
+| ~/.pki/libvirt/cacert.pem              | client |
 | ~/.pki/libvirt/clientkey.pem           | client |
 | ~/.pki/libvirt/clientcert.pem          | client |
 |----------------------------------------|--------|
 # sudo install -v -d -m 0755 "/etc/pki/CA/"
-# sudo install -v -C -m 0755 "ca/ca.pem" "/etc/pki/CA/cacert.pem"
+# sudo install -v -C -m 0440 "ca/ca.pem" "/etc/pki/CA/cacert.pem"
 # mkdir ~/.pki/libvirt
 # cp ca/cli.key clientkey.pem ~/.pki/libvirt/
 # cp ca/cli.pem clientcert.pem ~/.pki/libvirt/
-
 virsh -c qemu+unix:///system?socket=/storage/run/libvirt/libvirt-sock
 virsh -c qemu+tls://192.168.168.1/system list --all
 virsh -c qemu+tls://kvm1.local/system list --all
 virsh -c qemu+ssh://root@192.168.168.1:60022/system?socket=/storage/run/libvirt/libvirt-sock
+# <graphics type='spice' tlsPort='-1' autoport='yes' listen='0.0.0.0' defaultMode='secure'/>
+# <graphics type='vnc' autoport='yes' listen='0.0.0.0'/>
+remote-viewer --spice-ca-file=~/.pki/libvirt/cacert.pem spice://127.0.0.1?tls-port=5906
 EOF
 
 export IMAGE=nginx:bookworm
