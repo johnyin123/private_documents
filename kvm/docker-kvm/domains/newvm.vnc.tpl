@@ -38,7 +38,7 @@
     <controller type='pci' model='pcie-root-port'/>
     <controller type='pci' model='pcie-root-port'/>
     <controller type='pci' model='pcie-to-pci-bridge'/>
-    <graphics type='vnc' autoport='yes' listen='127.0.0.1'></graphics>
+    <graphics type='vnc' autoport='yes' listen='127.0.0.1'/>
     <video><model type='virtio' vram='32768' heads='1' primary='yes'/></video>
     <sound model='ac97'/>
     <disk type='network' device='cdrom'>
