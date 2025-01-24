@@ -110,6 +110,14 @@ YEAR=15 ./newssl.sh -c kvm1.local --ip 192.168.168.1 --ip 192.168.169.1
 # cp ca/ca.pem /storage/pki/ca.pem
 
 # # init client
+|----------------------------------------|--------|
+| /etc/pki/CA/cacert.pem                 | client |
+| /etc/pki/libvirt/private/clientkey.pem | client |
+| /etc/pki/libvirt/clientcert.pem        | client |
+| ~/.pki/cacert.pem                      | client |
+| ~/.pki/libvirt/clientkey.pem           | client |
+| ~/.pki/libvirt/clientcert.pem          | client |
+|----------------------------------------|--------|
 # sudo install -v -d -m 0755 "/etc/pki/CA/"
 # sudo install -v -C -m 0755 "ca/ca.pem" "/etc/pki/CA/cacert.pem"
 # mkdir ~/.pki/libvirt
