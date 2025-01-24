@@ -1,3 +1,4 @@
+{% macro random_string(len) -%}{% for i in range(0,len) -%}{{ [0,1,2,3,4,5,6,7,8,9,"a","b","c","d","e","f"]|random }}{% endfor %}{%- endmacro -%}
 <domain type='kvm'>
   <name>{{ vm_name }}-{{ vm_uuid }}</name>
   <uuid>{{ vm_uuid }}</uuid>
@@ -38,7 +39,7 @@
     <controller type='pci' model='pcie-root-port'/>
     <controller type='pci' model='pcie-root-port'/>
     <controller type='pci' model='pcie-to-pci-bridge'/>
-    <graphics type='vnc' autoport='yes' listen='127.0.0.1'/>
+    <graphics type='vnc' autoport='yes' listen='0.0.0.0' password='{{ random_string(12) }}'/>
     <video><model type='virtio' vram='32768' heads='1' primary='yes'/></video>
     <sound model='ac97'/>
     <disk type='network' device='cdrom'>
