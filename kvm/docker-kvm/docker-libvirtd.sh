@@ -154,19 +154,20 @@ for arch in ${ARCH[@]}; do
     install -v -C -m 0644 --group=10001 --owner=10001 "main.py" "${type}-${arch}/docker/home/${username}/main.py"
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && \
     cat <<'EOF' > ${type}-${arch}/docker/etc/nginx/http-enabled/site.conf
-upstream flask_app {
-    server 127.0.0.1:5009 fail_timeout=0;
-}
 server {
     listen 80;
     server_name kvm.registry.local;
-    # # only download iso file
+    # # only download iso file, and subdir iso
     location ~* ^/(.*).iso {
         # disable checking of client request body size
         client_max_body_size 0;
         autoindex off;
         root /iso;
     }
+}
+upstream flask_app {
+    server 127.0.0.1:5009 fail_timeout=0;
+    keepalive 64;
 }
 server {
     listen 443 ssl;
@@ -191,6 +192,65 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Connection "";
         proxy_pass http://flask_app/domain;
+    }
+}
+upstream websockify {
+    # websockify --token-plugin TokenFile --token-source ./token 6800
+    server 127.0.0.1:6800;
+    keepalive 64;
+}
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+server {
+    listen 443 ssl;
+    ssl_certificate     /etc/nginx/ssl/vmm.registry.local.pem;
+    ssl_certificate_key /etc/nginx/ssl/vmm.registry.local.key;
+    ssl_client_certificate /etc/nginx/ssl/ca.pem;
+    server_name vmm.registry.local;
+    default_type application/json;
+    error_page 404 = @404;
+    location @404 { return 404 '{"status":404,"message":"Resource not found"}\n'; }
+    error_page 405 = @405;
+    location @405 { return 405 '{"status":405,"message":"Method not allowed"}\n'; }
+    location /tpl/ {
+        location ~* ^/tpl/(host|device|gold) {
+            if ($request_method !~ ^(GET)$ ) { return 405; }
+            proxy_pass http://flask_app;
+        }
+        return 404;
+    }
+    location /vm/ {
+        location /vm/stop/ {
+            if ($request_method !~ ^(GET|DELETE)$ ) { return 405; }
+            proxy_pass http://flask_app;
+        }
+        location ~* ^/vm/(list|start|delete)/ {
+            if ($request_method !~ ^(GET)$ ) { return 405; }
+            proxy_pass http://flask_app;
+        }
+        location ~* ^/vm/(create|attach_device)/ {
+            if ($request_method !~ ^(POST)$ ) { return 405; }
+            proxy_pass http://flask_app;
+        }
+        return 404;
+    }
+    location /novnc {
+        # novnc
+        client_max_body_size 0;
+        autoindex off;
+        root /novnc;
+    }
+    location /websockify/ {
+        proxy_pass http://websockify;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        # proxy_read_timeout 2s;
+        # send_timeout 2s;
+        # By default, the connection will be closed if the proxied server does
+        # not transmit any data within 60 seconds. This timeout can be increased
+        # with the proxy_read_timeout
     }
 }
 EOF
