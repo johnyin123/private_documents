@@ -28,6 +28,7 @@
 {%- endif %}
     <boot dev='hd'/>
     <boot dev='cdrom'/>
+    <boot dev='network'/>
     <bootmenu enable='yes' timeout='3000'/>
   </os>
   <features><acpi/><apic/><pae/></features>

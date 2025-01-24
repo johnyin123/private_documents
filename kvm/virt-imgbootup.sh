@@ -7,8 +7,8 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("03f2d6d[2024-09-06T11:12:18+08:00]:virt-imgbootup.sh")
-[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
+VERSION+=("08ea987b[2025-01-03T16:11:35+08:00]:virt-imgbootup.sh")
+[ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 ARCH=${ARCH:-x86_64}
 usage() {

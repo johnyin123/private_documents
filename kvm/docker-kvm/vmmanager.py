@@ -59,9 +59,11 @@ class LibvirtDomain:
     def next_disk(self):
         vdlst = []
         sdlst = []
+        hdlst = []
         for char in range(ord('a'), ord('z') + 1):
             vdlst.append('vd{}'.format(chr(char)))
             sdlst.append('sd{}'.format(chr(char)))
+            hdlst.append('sd{}'.format(chr(char)))
         try:
             p = xml.dom.minidom.parseString(self.dom.XMLDesc())
             # for index, disk in enumerate(p.getElementsByTagName('disk')): #enumerate(xxx, , start=1)
@@ -74,10 +76,12 @@ class LibvirtDomain:
                     vdlst.remove(dev)
                 if dev in sdlst:
                     sdlst.remove(dev)
-            return {'virtio':vdlst[0][2], 'scsi':sdlst[0][2], 'sata':sdlst[0][2]}
+                if dev in hdlst:
+                    hdlst.remove(dev)
+            return {'virtio':vdlst[0][2], 'scsi':sdlst[0][2], 'sata':sdlst[0][2], 'ide':hdlst[0][2]}
         except Exception:
             logger.exception(f'next_disk')
-            return {'virtio':'a', 'scsi':'a', 'sata':'a'}
+            return {'virtio':'a', 'scsi':'a', 'sata':'a', 'ide':'a'}
 
     @property
     def mdconfig(self):
