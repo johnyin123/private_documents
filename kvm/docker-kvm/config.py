@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
+# from flask import current_app
+# current_app.root_path
 # DATABASE = 'mysql+pymysql://admin:password@192.168.168.212/kvm?charset=utf8mb4'
 class config:
     DATABASE = os.environ.get('DATABASE', 'sqlite:///kvm.db')

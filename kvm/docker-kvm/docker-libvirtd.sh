@@ -163,20 +163,28 @@ for arch in ${ARCH[@]}; do
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && \
     cat <<'EOF' > ${type}-${arch}/docker/etc/nginx/http-enabled/site.conf
 server_names_hash_bucket_size 128;
+upstream flask_app {
+    server 127.0.0.1:5009 fail_timeout=0;
+    keepalive 64;
+}
+upstream websockify {
+    # websockify --token-plugin TokenFile --token-source ./token 6800
+    server 127.0.0.1:6800;
+    keepalive 64;
+}
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
 server {
     listen 80;
     server_name kvm.registry.local;
     # # only download iso file, and subdir iso
-    location ~* ^/(.*).iso {
-        # disable checking of client request body size
+    location ~* \.(iso)$ {
         client_max_body_size 0;
         autoindex off;
         root /iso;
     }
-}
-upstream flask_app {
-    server 127.0.0.1:5009 fail_timeout=0;
-    keepalive 64;
 }
 server {
     listen 443 ssl;
@@ -202,15 +210,6 @@ server {
         proxy_set_header Connection "";
         proxy_pass http://flask_app/domain;
     }
-}
-upstream websockify {
-    # websockify --token-plugin TokenFile --token-source ./token 6800
-    server 127.0.0.1:6800;
-    keepalive 64;
-}
-map $http_upgrade $connection_upgrade {
-    default upgrade;
-    ''      close;
 }
 server {
     listen 443 ssl;
@@ -254,11 +253,6 @@ server {
         proxy_pass http://websockify;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
-        # proxy_read_timeout 2s;
-        # send_timeout 2s;
-        # By default, the connection will be closed if the proxied server does
-        # not transmit any data within 60 seconds. This timeout can be increased
-        # with the proxy_read_timeout
     }
 }
 EOF
@@ -267,7 +261,7 @@ useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
 apt -y --no-install-recommends update
 apt -y --no-install-recommends install python3 python3-venv \
     supervisor \
-    websockify \
+    websockify python3-websockify \
     python3-flask python3-pycdlib python3-libvirt \
     python3-sqlalchemy \
     gunicorn python3-gunicorn
@@ -287,7 +281,7 @@ stderr_logfile_maxbytes=0
 
 [program:webapp]
 command=gunicorn -b 127.0.0.1:5009 --error-logfile='-' --access-logfile='-' main:app
-user=johnyin
+user=${username}
 directory=/home/${username}/
 environment=LOG=DEBUG, OUTDIR="/iso"
 autorestart=true
@@ -298,7 +292,7 @@ stderr_logfile_maxbytes=0
 
 [program:websockify]
 command=websockify --token-plugin TokenFile --token-source /iso/token/ 6800
-user=johnyin
+user=${username}
 directory=/home/${username}/
 autorestart=true
 stdout_logfile=/dev/stdout
@@ -308,7 +302,7 @@ stderr_logfile_maxbytes=0
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
 ADD novnc.tgz /
-VOLUME ["/iso", "/etc/nginx/ssl"]
+VOLUME ["/iso", "/etc/nginx/ssl", "/etc/pki"]
 ENTRYPOINT ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
     ################################################
@@ -321,23 +315,27 @@ done
 ./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
 
 cat <<'EOF'
-mkdir -p /storage/pki
+mkdir -p /storage/pki /storage/ssl /storage/iso
 for i in disk actions devices domains meta token; do
     mkdir -p /storage/iso/$i
 done
 
 # /storage/iso/vminfo.sqlite
-# /storage/pki/ca.pem;
-# /storage/pki/kvm.registry.local.pem;
-# /storage/pki/kvm.registry.local.key;
-# /storage/pki/vmm.registry.local.pem;
-# /storage/pki/vmm.registry.local.key;
+# /storage/ssl/ca.pem;
+# /storage/ssl/kvm.registry.local.pem;
+# /storage/ssl/kvm.registry.local.key;
+# /storage/ssl/vmm.registry.local.pem;
+# /storage/ssl/vmm.registry.local.key;
+# /storage/pki/CA/cacert.pem
+# /storage/pki/libvirt/private/clientkey.pem
+# /storage/pki/libvirt/clientcert.pem
 
 docker run --rm \
     --network br-ext --ip 192.168.168.123 \
     --env DATABASE=sqlite:////iso/vminfo.sqlite \
     -v /storage/iso:/iso \
-    -v /storage/pki:/etc/nginx/ssl \
+    -v /storage/ssl:/etc/nginx/ssl \
+    -v /storage/pki:/etc/pki
     registry.local/libvirtd/meta-iso:bookworm
 
 curl --cacert ca.pem --key server.key --cert server.pem \
