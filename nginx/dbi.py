@@ -6,7 +6,7 @@ try:
 except ImportError:
     echo=False
 try:
-    import config
+    from config import config
     DATABASE_URI=config.DATABASE
 except ImportError:
     DATABASE_URI=os.environ.get('DATABASE', 'sqlite:///demo.db')

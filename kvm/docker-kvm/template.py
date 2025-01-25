@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-import os, jinja2, flask_app, xml.dom.minidom, config
+import os, jinja2, flask_app, xml.dom.minidom
+from config import config
 from jinja2 import meta as jinja2_meta
 logger=flask_app.logger
 
@@ -37,7 +38,7 @@ try:
     from cStringIO import StringIO as BytesIO
 except ImportError:
     from io import BytesIO
-import pycdlib, config
+import pycdlib
 
 class ISOTemplate(object):
     def __init__(self, meta_name):

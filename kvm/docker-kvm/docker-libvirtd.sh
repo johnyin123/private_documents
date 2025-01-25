@@ -145,15 +145,24 @@ EOF
 
 export IMAGE=nginx:bookworm
 type=meta-iso
+ver=bookworm
+
 username=johnyin
-[ -e "flask_app.py" ] && [ -e "main.py" ] && [ -e "dbi.py" ] || { echo "dbi.py flask_app.py main.py, nofound"; exit 1;}
+files=(config.py database.py dbi.py device.py exceptions.py flask_app.py main.py template.py vmmanager.py)
+for fn in ${files[@]}; do
+    [ -e "${fn}" ] || { echo "${fn}, nofound"; exit 1;}
+done
+[ -e "novnc.tgz" ] || { echo "novnc.tgz, nofound"; exit 1;}
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     install -v -d -m 0755 "${type}-${arch}/docker/home/${username}"
-    install -v -C -m 0644 --group=10001 --owner=10001 "flask_app.py" "${type}-${arch}/docker/home/${username}/flask_app.py"
-    install -v -C -m 0644 --group=10001 --owner=10001 "main.py" "${type}-${arch}/docker/home/${username}/main.py"
+    for fn in ${files[@]}; do
+        install -v -C -m 0644 --group=10001 --owner=10001 "${fn}" "${type}-${arch}/docker/home/${username}/${fn}"
+    done
+    install -v -C -m 0644 "novnc.tgz" "${type}-${arch}/"
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && \
     cat <<'EOF' > ${type}-${arch}/docker/etc/nginx/http-enabled/site.conf
+server_names_hash_bucket_size 128;
 server {
     listen 80;
     server_name kvm.registry.local;
@@ -207,7 +216,6 @@ server {
     listen 443 ssl;
     ssl_certificate     /etc/nginx/ssl/vmm.registry.local.pem;
     ssl_certificate_key /etc/nginx/ssl/vmm.registry.local.key;
-    ssl_client_certificate /etc/nginx/ssl/ca.pem;
     server_name vmm.registry.local;
     default_type application/json;
     error_page 404 = @404;
@@ -226,7 +234,7 @@ server {
             if ($request_method !~ ^(GET|DELETE)$ ) { return 405; }
             proxy_pass http://flask_app;
         }
-        location ~* ^/vm/(list|start|delete)/ {
+        location ~* ^/vm/(list|start|delete|display)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app;
         }
@@ -259,6 +267,7 @@ useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
 apt -y --no-install-recommends update
 apt -y --no-install-recommends install python3 python3-venv \
     supervisor \
+    websockify \
     python3-flask python3-pycdlib python3-libvirt \
     python3-sqlalchemy \
     gunicorn python3-gunicorn
@@ -270,24 +279,35 @@ user=root
 
 [program:nginx]
 command=/bin/bash -c "chown -R johnyin:johnyin /iso; sed -i '/worker_processes/d' /etc/nginx/nginx.conf; nginx -c /etc/nginx/nginx.conf -g 'daemon off;'"
-numprocs=1
-autostart=true
 autorestart=true
-startsecs=0
-redirect_stderr=true
 stdout_logfile=/dev/stdout
+stderr_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
+stderr_logfile_maxbytes=0
 
 [program:webapp]
-command=gunicorn -b 127.0.0.1:5009 main:app
-directory=/home/${username}/
-environment=LOG=DEBUG, OUTDIR="/iso", DATABASE=sqlite:////iso/vminfo.sqlite
-autostart=true
-autorestart=true
+command=gunicorn -b 127.0.0.1:5009 --error-logfile='-' --access-logfile='-' main:app
 user=johnyin
-redirect_stderr=true
+directory=/home/${username}/
+environment=LOG=DEBUG, OUTDIR="/iso"
+autorestart=true
+stdout_logfile=/dev/stdout
+stderr_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile_maxbytes=0
+
+[program:websockify]
+command=websockify --token-plugin TokenFile --token-source /iso/token/ 6800
+user=johnyin
+directory=/home/${username}/
+autorestart=true
+stdout_logfile=/dev/stdout
+stderr_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile_maxbytes=0
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
+ADD novnc.tgz /
 VOLUME ["/iso", "/etc/nginx/ssl"]
 ENTRYPOINT ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
@@ -299,12 +319,27 @@ EODOC
     docker push registry.local/libvirtd/${type}:${ver}-${arch}
 done
 ./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
-cat <<EOF
+
+cat <<'EOF'
+mkdir -p /storage/pki
+for i in disk actions devices domains meta token; do
+    mkdir -p /storage/iso/$i
+done
+
+# /storage/iso/vminfo.sqlite
+# /storage/pki/ca.pem;
+# /storage/pki/kvm.registry.local.pem;
+# /storage/pki/kvm.registry.local.key;
+# /storage/pki/vmm.registry.local.pem;
+# /storage/pki/vmm.registry.local.key;
+
 docker run --rm \
-    --network br-ext \
+    --network br-ext --ip 192.168.168.123 \
+    --env DATABASE=sqlite:////iso/vminfo.sqlite \
     -v /storage/iso:/iso \
     -v /storage/pki:/etc/nginx/ssl \
     registry.local/libvirtd/meta-iso:bookworm
+
 curl --cacert ca.pem --key server.key --cert server.pem \
     -X POST https://kvm.registry.local/domain/prepare/begin/vm1 -F file=@/etc/libvirt/qemu/vm1.xml
 EOF

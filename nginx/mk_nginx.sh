@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("64e9879[2024-11-14T09:06:35+08:00]:mk_nginx.sh")
+VERSION+=("3db7018f[2024-11-22T14:05:57+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -438,6 +438,7 @@ mkdir -p ${OUTDIR}/var/lib/nginx/scgi
 
 write_file "${OUTDIR}/etc/nginx/http-conf.d/server.conf" <<'EOF'
 server_names_hash_max_size 1024;
+server_names_hash_bucket_size 128;
 client_max_body_size 100M;
 client_body_buffer_size 128k;
 client_header_buffer_size 32k;

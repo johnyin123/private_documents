@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-import flask_app, os, json, config
+import flask_app, os, json
+from config import config
 logger=flask_app.logger
 from exceptions import APIException, HTTPStatus
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import libvirt, xml.dom.minidom
-import flask_app, os, config
+import flask_app, os
+from config import config
 from exceptions import APIException, HTTPStatus
 logger=flask_app.logger
 
@@ -54,6 +55,20 @@ class LibvirtDomain:
             self.dom.attachDeviceFlags(xml, flags)
         except libvirt.libvirtError as e:
             kvm_error(e, 'attach_device')
+
+    def get_display(self):
+        displays = []
+        if self.state != libvirt.VIR_DOMAIN_RUNNING:
+            logger.info(f'{self.uuid} not running')
+            raise APIException(HTTPStatus.BAD_REQUEST, 'get_display error', f'vm {self.uuid} not running')
+        p = xml.dom.minidom.parseString(self.dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE))
+        for item in p.getElementsByTagName('graphics'):
+            type = item.getAttribute('type')
+            port = item.getAttribute('port')
+            addr = item.getAttribute('listen')
+            passwd = item.getAttribute('passwd')
+            displays.append({'proto':f'{type}', 'server':f'{addr}:{port}', 'passwd':passwd})
+        return displays
 
     @property
     def next_disk(self):
