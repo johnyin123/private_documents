@@ -13,5 +13,5 @@ class config:
     DOMAIN_DIR = os.path.join(OUTDIR, 'domains')
     META_DIR = os.path.join(OUTDIR, 'meta')
     TOKEN_DIR = os.path.join(OUTDIR, 'token')
-    DISP_URL = 'https://vmm.registry.local/novnc/vnc_lite.html'
+    VNC_DISP_URL = 'https://vmm.registry.local/novnc/vnc_lite.html'
 #https://vmm.registry.local/novnc/vnc_lite.html?password={passwd}&path=websockify/?token={uuid}
