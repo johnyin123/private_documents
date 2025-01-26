@@ -13,7 +13,7 @@ UUID=$(grep -oPm1 "(?<=<uuid>)[^<]+" "${XML}")
 URL="https://kvm.registry.local/domain/${OPERATION}/${ACTION}/${UUID}"
 report_state() {
     log "Hook ${OBJECT} ${UUID} report state ${OPERATION} ${ACTION} ${*}"
-    timeout 3 curl -s --cacert /etc/libvirt/pki/ca.pem --key /etc/libvirt/pki/server.key --cert /etc/libvirt/pki/server.pem -X POST "${URL}" ${*} || true
+    timeout 3 curl -s --cacert /etc/libvirt/pki/ca-cert.pem --key /etc/libvirt/pki/server-key.pem --cert /etc/libvirt/pki/server-cert.pem -X POST "${URL}" ${*} || true
 }
 
 if [ "${OPERATION}" = "prepare" ] || [ "${OPERATION}" = "migrate" ]; then

@@ -178,7 +178,7 @@ server {
     listen 443 ssl;
     ssl_certificate     /etc/nginx/ssl/kvm.registry.local.pem;
     ssl_certificate_key /etc/nginx/ssl/kvm.registry.local.key;
-    ssl_client_certificate /etc/nginx/ssl/ca.pem;
+    ssl_client_certificate /etc/nginx/ssl/kvm.ca.pem;
     server_name kvm.registry.local;
     ssl_verify_client on;
     location /domain {
@@ -231,7 +231,7 @@ server {
         }
         return 404;
     }
-    location /websockify/ {
+    location /websockify {
         proxy_pass http://websockify;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
@@ -240,7 +240,7 @@ server {
         # novnc
         client_max_body_size 0;
         autoindex off;
-        root /work/novnc;
+        root /work;
     }
 }
 server {
@@ -318,7 +318,7 @@ for i in iso disk actions devices domains meta token novnc; do
 done
 
 # /storage/work/vminfo.sqlite
-# /storage/ssl/ca.pem;
+# /storage/ssl/kvm.ca.pem;
 # /storage/ssl/kvm.registry.local.pem;
 # /storage/ssl/kvm.registry.local.key;
 # /storage/ssl/vmm.registry.local.pem;
@@ -336,6 +336,9 @@ docker run --rm \
     -v /storage/pki:/etc/pki
     registry.local/libvirtd/meta-iso:bookworm
 
-curl --cacert ca.pem --key server.key --cert server.pem \
-    -X POST https://kvm.registry.local/domain/prepare/begin/vm1 -F file=@/etc/libvirt/qemu/vm1.xml
+curl --cacert /etc/libvirt/pki/ca-cert.pem \
+    --key /etc/libvirt/pki/server-key.pem \
+    --cert /etc/libvirt/pki/server-cert.pem \
+    -X POST https://kvm.registry.local/domain/prepare/begin/vm1 \
+    -F file=@/etc/libvirt/qemu/vm1.xml
 EOF

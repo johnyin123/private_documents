@@ -23,7 +23,7 @@ echo 'vm1: 127.0.0.1:5900' > ./token/uuid.txt
 vnc_lite.html?host=192.168.168.1&port=6800&password=abc&path=websockify/?token=vm1
 https://vmm.registry.local/novnc/vnc_lite.html?password=abc&path=websockify/?token=vm1
 ---------------------------------------------------------
-srv=http://127.0.0.1:18888
+srv=http://127.0.0.1:5009
 # srv=https://vmm.registry.local
 echo 'list host' && curl -k ${srv}/tpl/host | jq '.[]|{name: .name, arch: .arch}'
 host=host01
@@ -68,3 +68,33 @@ echo 'force stop vm' && curl -k -X DELETE ${srv}/vm/stop/${host}/${uuid} # force
 echo 'undefine domain' && curl -k ${srv}/vm/delete/${host}/${uuid}
 # # test qemu-hook auto upload
 curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
+curl --cacert /etc/libvirt/pki/ca-cert.pem \
+    --key /etc/libvirt/pki/server-key.pem \
+    --cert /etc/libvirt/pki/server-cert.pem \
+    -X POST https://kvm.registry.local/domain/prepare/begin/vm1 \
+    -F file=@/etc/libvirt/qemu/vm1.xml
+---------------------------------------------------------
+NGXSSL=/etc/nginx/ssl
+install -v -d -m 0755 "${NGXSSL}"
+install -v -C -m 0644 "ca.pem" "${NGXSSL}/kvm.ca.pem"
+install -v -C -m 0644 "kvm.registry.local.pem" "${NGXSSL}/"
+install -v -C -m 0644 "kvm.registry.local.key" "${NGXSSL}/"
+install -v -C -m 0644 "vmm.registry.local.pem" "${NGXSSL}/"
+install -v -C -m 0644 "vmm.registry.local.key" "${NGXSSL}/"
+
+#libvirt client
+KVMSSL=/etc/pki
+install -v -d -m 0755 "${KVMSSL}"
+install -v -d -m 0755 "${KVMSSL}/CA"
+install -v -d -m 0755 "${KVMSSL}/private"
+install -v -C -m 0644 "ca.pem" "${KVMSSL}/CA/cacert.pem"
+install -v -C -m 0644 "cli.pem" "${KVMSSL}/clientcert.pem"
+install -v -C -m 0644 "cli.key" "${KVMSSL}/private/clientkey.pem"
+
+
+#libvirt server
+KVM_SRV_SSL=/etc/libvirt/pki
+install -v -d -m 0755 "${KVM_SRV_SSL}"
+install -v -C -m 0444 "ca.pem" "${KVM_SRV_SSL}/cacert.pem"
+install -v -C -m 0440 --group=qemu --owner=root "kvm1.local.key" "${KVM_SRV_SSL}/server-key.pem"
+install -v -C -m 0444 --group=qemu --owner=root "kvm1.local.pem" "${KVM_SRV_SSL}/server-cert.pem"
