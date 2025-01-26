@@ -45,10 +45,15 @@ class MyApp(object):
             passwd = it.get('passwd', '')
             proto = it.get('proto', '')
             server = it.get('server', '')
+            port = it.get('port', '')
+            if server == '0.0.0.0':
+                server = host.ipaddr
+            if server == '127.0.0.1' or server == '':
+                raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no display')
             if proto != 'vnc':
                 continue
             with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
-                f.write(f'{uuid}: {server}')
+                f.write(f'{uuid}: {server}:{port}')
             return flask.redirect(f'{config.DISP_URL}?password={passwd}&path=websockify/?token={uuid}')
         raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no graphics define')
 

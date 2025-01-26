@@ -11,6 +11,8 @@ class KVMHost(Base):
     tpl = Column(String,nullable=False)
     # # uname -m
     arch = Column(String(8),nullable=False)
+    # # vnc display ipaddr
+    ipaddr = Column(String,nullable=False)
     active = Column(Integer,nullable=False,server_default='0')
     inactive = Column(Integer,nullable=False,server_default='0')
     desc = Column(String)

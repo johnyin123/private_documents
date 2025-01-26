@@ -66,10 +66,8 @@ class LibvirtDomain:
             type = item.getAttribute('type')
             port = item.getAttribute('port')
             addr = item.getAttribute('listen')
-            # TODO: listen 0.0.0.0
-            raise APIException(HTTPStatus.BAD_REQUEST, 'TODO:', 'LISTEN WILL BE 0.0.0.0')
             passwd = item.getAttribute('passwd')
-            displays.append({'proto':f'{type}', 'server':f'{addr}:{port}', 'passwd':passwd})
+            displays.append({'proto':type,'server':addr,'port':port,'passwd':passwd})
         return displays
 
     @property
