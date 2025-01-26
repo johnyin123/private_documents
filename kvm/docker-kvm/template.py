@@ -61,6 +61,6 @@ class ISOTemplate(object):
         iso.add_fp(BytesIO(bytes(user_data,'ascii')), len(user_data), '/user-data')
         network_config = self.network_config.render(**mdconfig_meta)
         iso.add_fp(BytesIO(bytes(network_config,'ascii')), len(network_config), '/network-config')
-        iso.write(os.path.join(config.OUTDIR, f"{uuid}.iso"))
+        iso.write(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
         iso.close()
         return True

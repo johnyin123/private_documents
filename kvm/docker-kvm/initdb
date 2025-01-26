@@ -8,10 +8,10 @@ db.Base.metadata.create_all(db.engine)
 
 print('''
 # # kvmhost
-| name   | tpl       | url                                        | arch   |
-|--------+-----------+--------------------------------------------+--------|
-| host01 | newvm.tpl | qemu+tls://192.168.168.1/system            | x86_64 |
-| asus   | newvm.tpl | qemu+ssh://root@192.168.168.1:60022/system | x86_64 |
+| name   | tpl           | url                                        | arch   |
+|--------+---------------+--------------------------------------------+--------|
+| host01 | newvm.vnc.tpl | qemu+tls://192.168.168.1/system            | x86_64 |
+| asus   | newvm.vnc.tpl | qemu+ssh://root@192.168.168.1:60022/system | x86_64 |
 # # kvmdevice
 | kvmhost | name       | devtype | tpl          | action            | desc         |
 |---------+------------+---------+--------------+-------------------+--------------|
@@ -29,8 +29,8 @@ print('''
 | debian12 | aarch64 | bookworm.arm64.qcow2 |      |
 ''')
 hosts=[
-    db.KVMHost(name='host01',tpl='newvm.tpl',url='qemu+tls://192.168.168.1/system',arch='x86_64'),
-    db.KVMHost(name='asus',tpl='newvm.tpl',url='qemu+ssh://root@192.168.168.1:60022/system',arch='x86_64'),
+    db.KVMHost(name='host01',tpl='newvm.vnc.tpl',url='qemu+tls://192.168.168.1/system',arch='x86_64'),
+    db.KVMHost(name='asus',tpl='newvm.vnc.tpl',url='qemu+ssh://root@192.168.168.1:60022/system',arch='x86_64'),
 ]
 host01_devs=[
     db.KVMDevice(kvmhost='host01',name='local-disk',devtype='disk',tpl='disk.file',action='host01-disk.file'),

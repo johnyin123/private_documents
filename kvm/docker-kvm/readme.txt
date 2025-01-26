@@ -5,6 +5,15 @@
 #   </mdconfig:meta>
 # </metadata>
 ---------------------------------------------------------
+'~/.ssh/config
+StrictHostKeyChecking=no
+UserKnownHostsFile=/dev/null
+Host 192.168.168.1
+    Ciphers aes256-ctr,aes192-ctr,aes128-ctr
+    MACs hmac-sha1
+qemu-img convert -f qcow2 -O raw tpl.qcow2 ssh://user@host:port/path/to/disk.img
+qemu-img convert -f qcow2 -O raw tpl.qcow2 rbd:cephpool/disk.raw:conf=/etc/ceph/ceph.conf
+---------------------------------------------------------
 apt install websockify # python3-websockify
 websockify --token-plugin TokenFile --token-source ./token/ 6800
 virsh domdisplay xxx
@@ -27,7 +36,7 @@ uefi=/usr/share/OVMF/OVMF_CODE.fd
 echo 'create vm' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/create/${host}
 {
  "vm_arch":"${arch}",
- ${uefi:+\\"vm_uefi\\": \\"${uefi}\\",}
+ ${uefi:+\"vm_uefi\": \"${uefi}\",}
  "vm_vcpus" : 2,
  "vm_ram_mb" : 2048,
  "vm_desc" : "测试VM",
@@ -43,7 +52,7 @@ device=local-disk
 # gold=debian12
 echo 'add disk' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/attach_device/${host}/${uuid}/${device}
 {
- ${gold:+\\"gold\\": \\"${gold}\\",}
+ ${gold:+\"gold\": \"${gold}\",}
  "size":"10G"
 }
 EOF

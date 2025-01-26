@@ -53,13 +53,3 @@ def do_action(devtype:str, action:str, arg:str ,host:dict, xml:str, req:dict):
     req = json.dumps(req, indent='  ', ensure_ascii=False)
     env={'URL':host.url, 'TYPE':devtype}
     execute(req, os.path.join(config.ACTION_DIR, f'{action}'), arg, **env)
-'''~/.ssh/config
-StrictHostKeyChecking=no
-UserKnownHostsFile=/dev/null
-Host 192.168.168.1
-    Ciphers aes256-ctr,aes192-ctr,aes128-ctr
-    MACs hmac-sha1
-qemu-img convert -f qcow2 -O raw tpl.qcow2 ssh://user@host:port/path/to/disk.img
-qemu-img convert -f qcow2 -O raw tpl.qcow2 rbd:cephpool/disk.raw:conf=/etc/ceph/ceph.conf
-'''
-

@@ -38,8 +38,8 @@ class KVMDevice(Base):
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
 
     @staticmethod
-    def getDeviceInfo(name):
-        result=session.query(KVMDevice).filter_by(name=name).first()
+    def getDeviceInfo(kvmhost, name):
+        result=session.query(KVMDevice).filter_by(name=name, kvmhost=kvmhost).first()
         if result:
             return result
         raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'device error', f'device template {name} nofound')

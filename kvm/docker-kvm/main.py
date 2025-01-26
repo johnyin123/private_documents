@@ -75,7 +75,8 @@ class MyApp(object):
         req_json = {**default_conf, **req_json}
         logger.info(f'attach_device {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
-        dev = database.KVMDevice.getDeviceInfo(name)
+        dev = database.KVMDevice.getDeviceInfo(hostname, name)
+        logger.info(f'-----------{dev}')
         dom = vmmanager.VMManager(host.name, host.url).get_domain(uuid)
         tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
         req_json['vm_uuid'] = uuid
@@ -109,7 +110,7 @@ class MyApp(object):
 
     def __del_vm_file(self, fn):
         try:
-            os.remove(os.path.join(config.OUTDIR, f"{fn}"))
+            os.remove(f"{fn}")
         except Exception:
             pass 
 
@@ -118,8 +119,8 @@ class MyApp(object):
         vmmgr = vmmanager.VMManager(host.name, host.url)
         vmmgr.delete_vm(uuid)
         logger.info(f'remove {uuid} datebase and xml/iso files')
-        self.__del_vm_file(f'{uuid}.xml')
-        self.__del_vm_file(f'{uuid}.iso')
+        self.__del_vm_file(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
+        self.__del_vm_file(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
         return { 'result' : 'OK' }
 
     def start_vm(self, hostname, uuid):
@@ -146,9 +147,8 @@ class MyApp(object):
         if 'file' not in flask.request.files:
             return { "report": f'{uuid}-{operation}-{action}' }
         file = flask.request.files['file']
-        # file.save(os.path.join(config.OUTDIR, "{}.xml".format(uuid)))
         domxml = file.read().decode('utf-8')
-        with open(os.path.join(config.OUTDIR, "{}.xml".format(uuid)), 'w') as f:
+        with open(os.path.join(config.ISO_DIR, "{}.xml".format(uuid)), 'w') as f:
             f.write(domxml)
         mdconfig_meta = vmmanager.VMManager.get_mdconfig(domxml)
         logger.info(f'{uuid} {mdconfig_meta}')
@@ -160,7 +160,7 @@ app=MyApp.create()
 app.errorhandler(APIException)(APIException.handle)
 def main():
     host = os.environ.get('HTTP_HOST', '0.0.0.0')
-    port = int(os.environ.get('HTTP_PORT', '18888'))
+    port = int(os.environ.get('HTTP_PORT', '5009'))
     app.run(host=host, port=port, debug=flask_app.is_debug())
 
 if __name__ == '__main__':

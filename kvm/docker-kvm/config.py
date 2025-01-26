@@ -3,9 +3,10 @@ import os
 # from flask import current_app
 # current_app.root_path
 # DATABASE = 'mysql+pymysql://admin:password@192.168.168.212/kvm?charset=utf8mb4'
+OUTDIR = os.environ.get('OUTDIR', os.path.abspath(os.path.dirname(__file__)))
+DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db')
 class config:
-    DATABASE = os.environ.get('DATABASE', 'sqlite:///kvm.db')
-    OUTDIR = os.environ.get('OUTDIR', os.path.abspath(os.path.dirname(__file__)))
+    ISO_DIR = os.path.join(OUTDIR, 'iso')
     GOLD_DIR = os.path.join(OUTDIR, 'disk')
     ACTION_DIR = os.path.join(OUTDIR, 'actions')
     DEVICE_DIR = os.path.join(OUTDIR, 'devices')

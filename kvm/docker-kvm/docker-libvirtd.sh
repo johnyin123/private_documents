@@ -152,14 +152,12 @@ files=(config.py database.py dbi.py device.py exceptions.py flask_app.py main.py
 for fn in ${files[@]}; do
     [ -e "${fn}" ] || { echo "${fn}, nofound"; exit 1;}
 done
-[ -e "novnc.tgz" ] || { echo "novnc.tgz, nofound"; exit 1;}
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     install -v -d -m 0755 "${type}-${arch}/docker/home/${username}"
     for fn in ${files[@]}; do
         install -v -C -m 0644 --group=10001 --owner=10001 "${fn}" "${type}-${arch}/docker/home/${username}/${fn}"
     done
-    install -v -C -m 0644 "novnc.tgz" "${type}-${arch}/"
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && \
     cat <<'EOF' > ${type}-${arch}/docker/etc/nginx/http-enabled/site.conf
 server_names_hash_bucket_size 128;
@@ -175,16 +173,6 @@ upstream websockify {
 map $http_upgrade $connection_upgrade {
     default upgrade;
     ''      close;
-}
-server {
-    listen 80;
-    server_name kvm.registry.local;
-    # # only download iso file, and subdir iso
-    location ~* \.(iso)$ {
-        client_max_body_size 0;
-        autoindex off;
-        root /iso;
-    }
 }
 server {
     listen 443 ssl;
@@ -243,18 +231,29 @@ server {
         }
         return 404;
     }
-    location /novnc {
-        # novnc
-        client_max_body_size 0;
-        autoindex off;
-        root /novnc;
-    }
     location /websockify/ {
         proxy_pass http://websockify;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
     }
+    location /novnc {
+        # novnc
+        client_max_body_size 0;
+        autoindex off;
+        root /work/novnc;
+    }
 }
+server {
+    listen 80;
+    server_name kvm.registry.local;
+    # # only download iso file, and subdir iso
+    location ~* \.(iso)$ {
+        client_max_body_size 0;
+        autoindex off;
+        root /work/iso;
+    }
+}
+
 EOF
     cat <<EODOC > ${type}-${arch}/docker/build.run
 useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
@@ -283,7 +282,6 @@ stderr_logfile_maxbytes=0
 command=gunicorn -b 127.0.0.1:5009 --error-logfile='-' --access-logfile='-' main:app
 user=${username}
 directory=/home/${username}/
-environment=LOG=DEBUG, OUTDIR="/iso"
 autorestart=true
 stdout_logfile=/dev/stdout
 stderr_logfile=/dev/stdout
@@ -291,7 +289,7 @@ stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 
 [program:websockify]
-command=websockify --token-plugin TokenFile --token-source /iso/token/ 6800
+command=websockify --token-plugin TokenFile --token-source /work/token/ 6800
 user=${username}
 directory=/home/${username}/
 autorestart=true
@@ -301,8 +299,7 @@ stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
-ADD novnc.tgz /
-VOLUME ["/iso", "/etc/nginx/ssl", "/etc/pki"]
+VOLUME ["/work", "/etc/nginx/ssl", "/etc/pki"]
 ENTRYPOINT ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
     ################################################
@@ -315,12 +312,12 @@ done
 ./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
 
 cat <<'EOF'
-mkdir -p /storage/pki /storage/ssl /storage/iso
-for i in disk actions devices domains meta token; do
-    mkdir -p /storage/iso/$i
+mkdir -p /storage/pki /storage/ssl /storage/work
+for i in iso disk actions devices domains meta token novnc; do
+    mkdir -p /storage/work/$i
 done
 
-# /storage/iso/vminfo.sqlite
+# /storage/work/vminfo.sqlite
 # /storage/ssl/ca.pem;
 # /storage/ssl/kvm.registry.local.pem;
 # /storage/ssl/kvm.registry.local.key;
@@ -332,8 +329,9 @@ done
 
 docker run --rm \
     --network br-ext --ip 192.168.168.123 \
-    --env DATABASE=sqlite:////iso/vminfo.sqlite \
-    -v /storage/iso:/iso \
+    --env OUTDIR="/work" \
+    --env DATABASE=sqlite:////work/kvm.db \
+    -v /storage/work:/work \
     -v /storage/ssl:/etc/nginx/ssl \
     -v /storage/pki:/etc/pki
     registry.local/libvirtd/meta-iso:bookworm
