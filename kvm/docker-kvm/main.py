@@ -53,7 +53,7 @@ class MyApp(object):
             if proto == 'vnc':
                 with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
                     f.write(f'{uuid}: {server}:{port}')
-                return flask.redirect(f'{config.VNC_DISP_URL}?password={passwd}&path=websockify/?token={uuid}')
+                return { 'result' : 'OK', 'display': f'{config.VNC_DISP_URL}?password={passwd}&path=websockify/?token={uuid}' }
         raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no graphics define')
 
     def list_domains(self, hostname):
@@ -80,7 +80,6 @@ class MyApp(object):
         logger.info(f'attach_device {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
         dev = database.KVMDevice.getDeviceInfo(hostname, name)
-        logger.info(f'-----------{dev}')
         dom = vmmanager.VMManager(host.name, host.url).get_domain(uuid)
         tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
         req_json['vm_uuid'] = uuid
