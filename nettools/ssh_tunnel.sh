@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("58b4740[2023-12-08T15:27:58+08:00]:ssh_tunnel.sh")
+VERSION+=("0274c8c[2025-02-05T13:18:05+08:00]:ssh_tunnel.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
@@ -58,6 +58,7 @@ ${SCRIPTNAME}
         -s|--ssh      *   SSH_CONNECTION user@host | host
         -p|--port         SSH_PORT, default 60022
         -J|--proxyjump    ProxyJump user@proxy:port, use ssh proxy jump
+                          u1@host1:port1,u2@host2:port2
         -q|--quiet
         -l|--log <int> log level
         -V|--version
