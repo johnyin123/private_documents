@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# # reqire: jq qemu-img cat logger
+LC_ALL=C
+LANG=C
 set -o nounset -o pipefail -o errexit
+# # reqire: jq qemu-img cat logger
 log() { logger -t 'qemu-action' "$*"; }
 json_config_default() {
     local key=${1}
