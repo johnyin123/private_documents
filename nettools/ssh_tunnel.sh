@@ -7,11 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("04746f9[2023-01-09T16:14:53+08:00]:ssh_tunnel.sh")
+VERSION+=("58b4740[2023-12-08T15:27:58+08:00]:ssh_tunnel.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
-readonly SSH_OPT="-o ControlMaster=no"
+SSH_OPT="-o ControlMaster=no"
 mk_support() {
     local ssh_connection=${1}
     local ssh_port=${2}
@@ -53,10 +53,11 @@ usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
 ${SCRIPTNAME} 
-        -L|--local    LOCAL_BRIDGE
-        -R|--remote * REMOTE_BRIDGE
-        -s|--ssh    * SSH_CONNECTION user@host | host
-        -p|--port     SSH_PORT, default 60022
+        -L|--local        LOCAL_BRIDGE
+        -R|--remote   *   REMOTE_BRIDGE
+        -s|--ssh      *   SSH_CONNECTION user@host | host
+        -p|--port         SSH_PORT, default 60022
+        -J|--proxyjump    ProxyJump user@proxy:port, use ssh proxy jump
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -76,8 +77,8 @@ main() {
     local remote_br=
     local ssh_conn=
     local ssh_port="60022"
-    local opt_short="L:R:s:p:"
-    local opt_long="local:,remote:,ssh:,port:,"
+    local opt_short="L:R:s:p:J:"
+    local opt_long="local:,remote:,ssh:,port:,proxyjump:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -a -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -88,6 +89,7 @@ main() {
             -R | --remote)  shift; remote_br=${1}; shift;;
             -s | --ssh)     shift; ssh_conn=${1}; shift;;
             -p | --port)    shift; ssh_port=${1}; shift;;
+            -J | --proxyjump) shift; SSH_OPT="-J ${1} ${SSH_OPT}"; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
