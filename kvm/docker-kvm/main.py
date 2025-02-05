@@ -52,6 +52,7 @@ class MyApp(object):
                 raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no display')
             if proto == 'vnc':
                 with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
+                    # f.write(f'unix_socket:{path}')
                     f.write(f'{uuid}: {server}:{port}')
                 return { 'result' : 'OK', 'display': f'{config.VNC_DISP_URL}?password={passwd}&path=websockify/?token={uuid}' }
         raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no graphics define')
