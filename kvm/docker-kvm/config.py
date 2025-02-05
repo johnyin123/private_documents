@@ -14,4 +14,5 @@ class config:
     META_DIR = os.path.join(OUTDIR, 'meta')
     TOKEN_DIR = os.path.join(OUTDIR, 'token')
     VNC_DISP_URL = 'https://vmm.registry.local/novnc/vnc_lite.html'
+    SPICE_DISP_URL = 'https://vmm.registry.local/spice/spice_auto.html'
 #https://vmm.registry.local/novnc/vnc_lite.html?password={passwd}&path=websockify/?token={uuid}
