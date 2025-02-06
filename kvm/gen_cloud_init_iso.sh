@@ -65,6 +65,8 @@ bootcmd:
 # run once for network static IP fix
 runcmd:
     - [ sh, -c, 'ip a' ]
+    - 'echo "Disabled by virt-install" > /etc/cloud/cloud-init.disabled'
+
 # final_message
 final_message: |
   cloud-init has finished
