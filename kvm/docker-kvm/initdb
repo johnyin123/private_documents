@@ -2,6 +2,33 @@
 # -*- coding: utf-8 -*-
 import database as db
 from sqlalchemy import func,text,Column,String,Integer,DateTime,Enum,ForeignKey
+from config import config
+import os
+
+path = config.ISO_DIR
+if not os.path.isdir(path):
+    os.mkdir(path, 0o755)
+path = config.GOLD_DIR
+if not os.path.isdir(path):
+    os.mkdir(path, 0o755)
+path = config.ACTION_DIR
+if not os.path.isdir(path):
+    os.mkdir(path, 0o755)
+path = config.DEVICE_DIR
+if not os.path.isdir(path):
+    os.mkdir(path, 0o755)
+path = config.DOMAIN_DIR
+if not os.path.isdir(path):
+    os.mkdir(path, 0o755)
+path = config.META_DIR
+if not os.path.isdir(path):
+    os.mkdir(path, 0o755)
+path = config.TOKEN_DIR
+if not os.path.isdir(path):
+    os.mkdir(path, 0o755)
+
+print(r'VNC:{}, SPICE:{}'.format(config.VNC_DISP_URL, config.SPICE_DISP_URL))
+
 # create tables if not exists
 db.Base.metadata.drop_all(db.engine)
 db.Base.metadata.create_all(db.engine)
