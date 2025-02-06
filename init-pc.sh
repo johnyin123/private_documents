@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("84bfa5b[2024-09-11T10:10:40+08:00]:init-pc.sh")
+VERSION+=("429f596[2024-12-10T14:09:31+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -183,11 +183,10 @@ apt_install systemd-container \
     manpages-dev manpages-posix manpages-posix-dev manpages man-db build-essential \
     nscd nbd-client iftop netcat-openbsd sshfs squashfs-tools graphviz nftables \
     rsync tmux \
-    libvirt-daemon libvirt-clients libvirt-daemon-driver-storage-rbd libvirt-daemon-system \
     qemu-kvm qemu-system-gui qemu-utils xmlstarlet jq sudo debootstrap kpartx \
     crudini usbredirect usbip wpan-tools
     #binwalk
-# wireguard-tools need install debian kernel 
+# wireguard-tools need install debian kernel
 apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install wireguard-tools
 
 apt_install iotop iputils-tracepath traceroute ipcalc subnetcalc qrencode ncal
@@ -355,7 +354,7 @@ email = johnyin.news@163.com
 # git config --global http.sslVerify "false"
 EOF
     chown -R johnyin.johnyin /home/johnyin/
-    usermod -a -G libvirt johnyin
+    usermod -a -G libvirt johnyin || true
 
     echo "add group[johnyin] to sudoers"
     echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
@@ -374,7 +373,7 @@ chage -d 0 root || true
 chage -d 0 johnyin || true
 
 echo "init libvirt env"
-systemctl start libvirtd
+systemctl start libvirtd || true
 systemctl status libvirtd >/dev/null && {
     pool_name=default
     dir=/storage
@@ -459,10 +458,16 @@ cat <<'EOF'>/etc/nftables.conf
 #!/usr/sbin/nft -f
 flush ruleset
 
+# define CAN_ACCESS_IPS = { 20.205.243.166, 101.71.33.11, 111.124.200.227, 120.55.105.209, 47.97.242.13, 183.131.227.249}
+define CAN_ACCESS_IPS = { }
 table ip nat {
 	chain postrouting {
 		type nat hook postrouting priority 100; policy accept;
-		ip saddr 192.168.168.0/24 counter masquerade
+		ip saddr 192.168.167.10 counter masquerade
+		ip saddr 192.168.167.20 counter masquerade
+		ip saddr 192.168.168.0/24 ip daddr != 192.168.168.0/24 counter masquerade
+		ip saddr 192.168.169.0/24 ip daddr != 192.168.169.0/24 counter masquerade
+		ip saddr 192.168.32.0/24 ip daddr != 192.168.32.0/24 counter masquerade
 	}
 }
 table ip filter {
@@ -470,6 +475,45 @@ table ip filter {
 		type filter hook forward priority 0; policy accept;
 		meta l4proto tcp tcp flags & (syn|rst) == syn counter tcp option maxseg size set rt mtu
 	}
+}
+table inet mangle {
+	set canouts4 {
+		typeof ip daddr
+		flags interval
+		elements = { $CAN_ACCESS_IPS }
+	}
+
+	chain output {
+		type route hook output priority mangle; policy accept;
+		ip daddr @canouts4 meta l4proto { tcp, udp } meta mark set 0x00000440
+	}
+}
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# flush table inet myblackhole
+# delete table inet myblackhole
+# # block ip for 5m, can remove blacklist set timeout properties
+# nft add element inet myblackhole blacklist '{ 192.168.168.2 }'
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+define BLACK_LIST = { }
+table inet myblackhole {
+    set blacklist {
+        type ipv4_addr
+        flags dynamic,timeout
+        timeout 5m
+        elements = { $BLACK_LIST }
+    }
+    chain input {
+        type filter hook input priority 0; policy accept;
+        # iifname "lo" accept comment "Accept anything from lo interface"
+        # accept traffic originating from us
+        ct state established,related accept
+        # tcp dport { 80, 8443 } ct state new limit rate 10/second accept
+        # ct state vmap { invalid : drop, established : accept, related : accept }
+        # # Drop all incoming connections in blacklist, reject fast application response than drop
+        ip saddr @blacklist counter reject
+		#ip protocol . th dport vmap {tcp . 8080 : jump HTTP, tcp . 22 : jump SSH, udp . 53: accept, tcp . !=8080|80|22|53 : jump AOB}
+    }
 }
 EOF
 chmod 755 /etc/nftables.conf
