@@ -236,8 +236,8 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
     }
-    location /novnc {
-        # novnc
+    location  ~* ^/(novnc|spice) {
+        # novnc/spice
         client_max_body_size 0;
         autoindex off;
         root /work;
