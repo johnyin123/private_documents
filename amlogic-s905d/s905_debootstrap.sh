@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9a2532f[2024-10-14T07:27:49+08:00]:s905_debootstrap.sh")
+VERSION+=("ab9c469[2024-10-14T07:30:52+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -855,12 +855,14 @@ hw_mode=a
 channel=44
 # 指定无线频道
 
-wmm_enabled=1         # QoS support
+wmm_enabled=1
+# QoS support
 #obss_interval=300
 ieee80211n=1
 require_ht=1
 ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40][DSSS_CCK-40]
-ieee80211ac=1         # 802.11ac support
+ieee80211ac=1
+# 802.11ac support
 require_vht=1
 #vht_oper_chwidth=0
 #vht_capab=[SHORT-GI-80][SU-BEAMFORMEE]

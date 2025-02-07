@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("330d602[2025-02-07T08:25:20+08:00]:br-hostapd.sh")
+VERSION+=("2b87103[2025-02-07T09:43:23+08:00]:br-hostapd.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 MODE=${MODE:-2G}
@@ -49,16 +49,20 @@ EO_MODE
 } || { cat <<EO_MODE
 hw_mode=a
 # # a simply means 5GHz
-channel=0
-# # the channel to use, 0 means the AP will search for the channel with the least interferences
-# ieee80211d=1         # # limit the frequencies used to those allowed in the country
-# country_code=FR      # # the country code
-ieee80211n=1
-# # 802.11n support
-ieee80211ac=1
-# # 802.11ac support
+channel=44
 wmm_enabled=1
-# # QoS support
+# QoS support
+ieee80211n=1
+require_ht=1
+ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40][DSSS_CCK-40]
+ieee80211ac=1
+# 802.11ac support
+require_vht=1
+vht_capab=[MAX-MPDU-3895][SHORT-GI-80][SU-BEAMFORMEE]
+vht_oper_chwidth=1
+vht_oper_centr_freq_seg0_idx=42
+basic_rates=60 90 120 180 240 360 480 540
+disassoc_low_ack=0
 EO_MODE
 })
 EOF
