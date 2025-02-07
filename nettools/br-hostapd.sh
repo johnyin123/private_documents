@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1ddc610[2022-07-22T07:18:40+08:00]:br-hostapd.sh")
+VERSION+=("330d602[2025-02-07T08:25:20+08:00]:br-hostapd.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 MODE=${MODE:-2G}
@@ -30,9 +30,11 @@ ssid=${wifi_ssid}
 macaddr_acl=0
 # accept_mac_file=/etc/hostapd.accept
 # deny_mac_file=/etc/hostapd.deny
-auth_algs=1          # # 采用 OSA 认证算法
+auth_algs=1
+# # 采用 OSA 认证算法
 ignore_broadcast_ssid=1
-wpa=3                # # 指定 WPA 类型
+wpa=3
+# # 指定 WPA 类型
 wpa_key_mgmt=WPA-PSK
 wpa_pairwise=TKIP
 rsn_pairwise=CCMP
@@ -40,17 +42,23 @@ wpa_passphrase=Admin@123
 
 driver=nl80211
 $([ "${MODE}" = "2G" ] && { cat << EO_MODE
-hw_mode=g            # # 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g
+hw_mode=g
+# # 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g
 channel=9
 EO_MODE
 } || { cat <<EO_MODE
-hw_mode=a            # # a simply means 5GHz
-channel=0            # # the channel to use, 0 means the AP will search for the channel with the least interferences
-ieee80211d=1         # # limit the frequencies used to those allowed in the country
-country_code=FR      # # the country code
-ieee80211n=1         # # 802.11n support
-ieee80211ac=1        # # 802.11ac support
-wmm_enabled=1        # # QoS support
+hw_mode=a
+# # a simply means 5GHz
+channel=0
+# # the channel to use, 0 means the AP will search for the channel with the least interferences
+# ieee80211d=1         # # limit the frequencies used to those allowed in the country
+# country_code=FR      # # the country code
+ieee80211n=1
+# # 802.11n support
+ieee80211ac=1
+# # 802.11ac support
+wmm_enabled=1
+# # QoS support
 EO_MODE
 })
 EOF
@@ -59,7 +67,7 @@ EOF
 usage() {
     R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
 ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
-        env: ${R}MODE=2G/5G${N} default 2G
+        env: ${R}MODE=2G/5G${N} default 2G, 5G not work!!
         -s|--start <wifi>  * start hostapd @ wifi
         -b|--bridge <br>     bridge wifi
         --ssid <ssid>        wifi ap ssid, default: s905d100
