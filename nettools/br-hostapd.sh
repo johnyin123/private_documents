@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2b87103[2025-02-07T09:43:23+08:00]:br-hostapd.sh")
+VERSION+=("e1d424e[2025-02-07T09:59:48+08:00]:br-hostapd.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 MODE=${MODE:-2G}
@@ -51,12 +51,12 @@ hw_mode=a
 # # a simply means 5GHz
 channel=44
 wmm_enabled=1
-# QoS support
+# # QoS support
 ieee80211n=1
 require_ht=1
 ht_capab=[HT40+][SHORT-GI-20][SHORT-GI-40][DSSS_CCK-40]
 ieee80211ac=1
-# 802.11ac support
+# # 802.11ac support
 require_vht=1
 vht_capab=[MAX-MPDU-3895][SHORT-GI-80][SU-BEAMFORMEE]
 vht_oper_chwidth=1
