@@ -7,10 +7,10 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-07-22T07:18:40+08:00]:br-hostapd.sh")
+VERSION+=("1ddc610[2022-07-22T07:18:40+08:00]:br-hostapd.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
-
+MODE=${MODE:-2G}
 gen_hostapd() {
     local wifi_interface="${1}"
     local wifi_ssid=${2}
@@ -25,42 +25,41 @@ logger_stdout=-1
 logger_stdout_level=2
 ctrl_interface=/var/run/hostapd
 ctrl_interface_group=0
-# hw_mode=a             # a simply means 5GHz
-# channel=0             # the channel to use, 0 means the AP will search for the channel with the least interferences 
-# ieee80211d=1          # limit the frequencies used to those allowed in the country
-# country_code=FR       # the country code
-# ieee80211n=1          # 802.11n support
-# ieee80211ac=1         # 802.11ac support
-# wmm_enabled=1         # QoS support
 
 ssid=${wifi_ssid}
 macaddr_acl=0
-#accept_mac_file=/etc/hostapd.accept
-#deny_mac_file=/etc/hostapd.deny
-auth_algs=1
-# 采用 OSA 认证算法 
+# accept_mac_file=/etc/hostapd.accept
+# deny_mac_file=/etc/hostapd.deny
+auth_algs=1          # # 采用 OSA 认证算法
 ignore_broadcast_ssid=1
-wpa=3
-# 指定 WPA 类型 
-wpa_key_mgmt=WPA-PSK             
-wpa_pairwise=TKIP 
-rsn_pairwise=CCMP 
+wpa=3                # # 指定 WPA 类型
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+rsn_pairwise=CCMP
 wpa_passphrase=Admin@123
-# 连接 ap 的密码 
 
 driver=nl80211
-# 设定无线驱动 
-hw_mode=g
-# 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g 
+$([ "${MODE}" = "2G" ] && { cat << EO_MODE
+hw_mode=g            # # 指定802.11协议，包括 a =IEEE 802.11a, b = IEEE 802.11b, g = IEEE802.11g
 channel=9
-# 指定无线频道 
+EO_MODE
+} || { cat <<EO_MODE
+hw_mode=a            # # a simply means 5GHz
+channel=0            # # the channel to use, 0 means the AP will search for the channel with the least interferences
+ieee80211d=1         # # limit the frequencies used to those allowed in the country
+country_code=FR      # # the country code
+ieee80211n=1         # # 802.11n support
+ieee80211ac=1        # # 802.11ac support
+wmm_enabled=1        # # QoS support
+EO_MODE
+})
 EOF
 }
 
 usage() {
-    [ "$#" != 0 ] && echo "$*"
-    cat <<EOF
-${SCRIPTNAME} 
+    R='\e[1;31m' G='\e[1;32m' Y='\e[33;1m' W='\e[0;97m' N='\e[m' usage_doc="$(cat <<EOF
+${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
+        env: ${R}MODE=2G/5G${N} default 2G
         -s|--start <wifi>  * start hostapd @ wifi
         -b|--bridge <br>     bridge wifi
         --ssid <ssid>        wifi ap ssid, default: s905d100
@@ -70,6 +69,7 @@ ${SCRIPTNAME}
         -d|--dryrun dryrun
         -h|--help help
 EOF
+)"; echo -e "${usage_doc}"
     exit 1
 }
 
