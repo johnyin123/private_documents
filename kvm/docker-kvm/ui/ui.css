@@ -1,0 +1,62 @@
+h1 { color: #44A075; }
+.menu{
+  background:#eee;
+}
+.menu ul{
+  display:block;
+  margin:0px;
+  padding:0px;
+  list-style:none;
+}
+.menu ul li{
+  float:left;
+  position:relative;
+}
+.menu ul li a{
+  display:block;
+  line-height:40px;
+  padding:0px 10px;
+  color:#444;
+  text-decoration:none;
+}
+.menu ul li:hover a{
+  background:#ddd;
+}
+.menu ul li ul{
+  position:absolute;
+  left:0px;
+  top:40px;
+  background:#ddd;
+  visibility:hidden;
+  opacity:0;
+  -moz-transition:all 0.1s ease-in;
+  -webkit-transition:all 0.1s ease-in;
+  transition:all 0.1s ease-in;
+}
+.menu ul li:hover ul{
+  visibility:visible;
+  opacity:1;
+}
+.menu ul li ul li{
+  float:none;
+  border-top:solid 1px #bbb;
+}
+.menu ul li ul li:first-child{
+  border-top:none;
+}
+.menu ul li ul li a{
+  white-space:nowrap;
+  line-height:normal;
+  padding:10px;
+}
+.menu ul li ul li a:hover{
+  text-decoration:underline;
+}
+.host table, th, td {
+  border: 1px solid black;
+  border-radius: 10px;
+}
+.vms table, th, td {
+  border: 2px solid black;
+  border-collapse: collapse;
+}
