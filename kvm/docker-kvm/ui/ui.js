@@ -1,3 +1,6 @@
+var g_menu = [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "about.html" } ] } ]
+var g_hosts='';
+dialog = new Dialog();
 function show_vms(host, vms) {
   var table = "<table><tr>";
   for(var key in vms[0]) {
@@ -34,8 +37,6 @@ function show_host(host) {
   table += `<td><a href='#' onclick='create_vm("${host.name}", "${host.arch}")'>Create VM</a></td></tr></table>`;
   return table;
 }
-var g_menu = [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "about.html" } ] } ]
-var g_hosts='';
 function gethost(res) {
   g_hosts = JSON.parse(res);
   var mainMenu = "<ul>";
@@ -98,29 +99,24 @@ function getjson(method, url, callback, res) {
     return;
   }
   if(null !== sendObject) {
+    xhr.setRequestHeader('Content-Type', 'application/json')
     xhr.send(sendObject);
   } else {
     xhr.send();
   }
 }
-function on_menu_host(host, n) {
-  //clear
-  document.getElementById("host").innerHTML = ''
+function vmlist(host) {
   document.getElementById("vms").innerHTML = ''
-  //display
-  document.getElementById("host").innerHTML = show_host(host[n]);
-  var name=host[n].name
-  getjson('GET', `/vm/list/${name}`, function(res) {
+  getjson('GET', `/vm/list/${host}`, function(res) {
       vms = JSON.parse(res);
-      document.getElementById("vms").innerHTML = show_vms(name, vms) 
+      document.getElementById("vms").innerHTML = show_vms(name, vms);
     }, null
   );
 }
-function create_vm(host, arch) {
-  alert(`create_vm ${host} ${arch}`);
-}
-function add_device(host, uuid) {
-  alert(`add_device ${host} ${uuid}`);
+function on_menu_host(host, n) {
+  document.getElementById("host").innerHTML = ''
+  document.getElementById("host").innerHTML = show_host(host[n]);
+  vmlist(host[n].name)
 }
 function start(host, uuid) {
   getjson('GET', `/vm/start/${host}/${uuid}`, function(res) {
@@ -149,12 +145,7 @@ function undefine(host, uuid) {
       result = JSON.parse(res);
       if(result.result === 'OK') {
         dispok('undefine vm OK');
-        // refresh vms display
-        getjson('GET', `/vm/list/${host}`, function(res) {
-            vms = JSON.parse(res);
-            document.getElementById("vms").innerHTML = show_vms(name, vms)
-          }, null
-        );
+        vmlist(host);
       } else {
         disperr(result.code, result.name, result.desc)
       }
@@ -173,3 +164,35 @@ function display(host, uuid) {
     }, null
   );
 }
+function do_create(host, res) {
+  console.log(res)
+  getjson('POST', `/vm/create/${host}`, function(res) {
+      result = JSON.parse(res);
+      if(result.result === 'OK') {
+        dispok('create vm OK');
+        vmlist(host);
+      } else {
+        disperr(result.code, result.name, result.desc)
+      }
+    }, res
+  );
+}
+function create_vm(host, arch) {
+  dialog.open({
+    dialogClass: 'custom',
+    message: 'CreateVM',
+    accept: 'Create',
+    template: `<input type="hidden" name="vm_arch" value="${arch}">` +
+      '<input type="text" name="vm_vcpus" value="2">' +
+      '<input type="text" name="vm_ram_mb" value="2048">' +
+      '<input type="text" name="vm_ip" value="192.168.168.2/32">' +
+      '<input type="text" name="vm_gw" value="192.168.168.1">' +
+      '<input type="text" name="vm_desc" value="">'
+  })
+  dialog.waitForUser().then((res) => { do_create(host, res); })
+}
+function add_device(host, uuid) {
+  alert(`add_device ${host} ${uuid}`);
+}
+
+getjson('GET', '/tpl/host', gethost, null);

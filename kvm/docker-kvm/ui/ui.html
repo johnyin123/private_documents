@@ -3,16 +3,15 @@
   <head>
     <meta charset="utf-8">
     <title>test</title>
+    <link type="text/css" rel="stylesheet" href="ui.css" />
     <link type="text/css" rel="stylesheet" href="dialog.css" />
     <script language="javascript" src="dialog.js"></script>
-    <link type="text/css" rel="stylesheet" href="ui.css" />
-    <script language="javascript" src="ui.js"></script>
 </head>
 <body>
   <h1>Dropdown Menu</h1>
-  <div class="menu"><div id="mainMenu"></div></div>
+  <div class="menu"><div id="mainMenu"></div><div class="clear"></div></div>
   <br><div class="host"><div id="host"></div></div>
   <br><div class="vms"><div id="vms"></div></div>
-  <script>getjson('GET', '/tpl/host', gethost, null);</script>
+  <script language="javascript" src="ui.js"></script>
 </body>
 </html>
