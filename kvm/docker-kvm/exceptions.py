@@ -8,5 +8,5 @@ class APIException(Exception):
     # @app.errorhandler(exceptions.APIException)
     @staticmethod
     def handle(e):
-        response = {'code': e.code,'name':e.name,'desc':e.desc}
-        return response, e.code
+        response = {'result' : 'ERR', 'code': e.code,'name':e.name,'desc':e.desc}
+        return response, 200

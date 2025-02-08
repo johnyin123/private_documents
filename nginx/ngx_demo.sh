@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f3d1db3d[2024-12-13T15:16:11+08:00]:ngx_demo.sh")
+VERSION+=("98bb05c[2024-12-22T11:52:15+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4111,6 +4111,8 @@ cat <<'EOF' > proxy_cache.conf
 # mount -t tmpfs -o size=100M none /mnt
 proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=24h max_size=512m use_temp_path=off;
 
+# # disable upstream cache
+# location: add proxy_no_cache 1;
 map $request_uri $cache_bypass {
     "~(/administrator|/admin|/login)" 1;
     default 0;
