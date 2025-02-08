@@ -20,7 +20,7 @@ class LibvirtDomain:
         return {'uuid':self.uuid,'vcpus':self.vcpus,
                 'state':self.state, 'maxmem':self.maxmem,
                 'curmem':self.curmem, 'curcpu':self.curcpu,
-                'cputime':self.cputime
+                'cputime':self.cputime, 'desc':self.desc
                }
 
     # self.record_metadata("key", 'val')
@@ -101,6 +101,15 @@ class LibvirtDomain:
     @property
     def mdconfig(self):
         return VMManager.get_mdconfig(self.dom.XMLDesc())
+
+    @property
+    def desc(self):
+        try:
+            p = xml.dom.minidom.parseString(self.dom.XMLDesc())
+            return p.getElementsByTagName('description')[0].firstChild.data
+        except:
+            pass
+        return ""
 
     @property
     def uuid(self):

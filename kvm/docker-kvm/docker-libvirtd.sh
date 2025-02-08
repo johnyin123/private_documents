@@ -211,6 +211,8 @@ server {
     error_page 405 = @405;
     location @405 { return 405 '{"status":405,"message":"Method not allowed"}\n'; }
     location /tpl/ {
+        # no cache!!
+        proxy_no_cache 1;
         location ~* ^/tpl/(host|device|gold) {
             if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app;

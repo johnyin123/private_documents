@@ -20,7 +20,7 @@ class MyApp(object):
         web.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=myapp.upload_xml, methods=['POST'])
         web.add_url_rule('/tpl/host', view_func=myapp.list_host, methods=['GET'])
         web.add_url_rule('/tpl/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
-        web.add_url_rule('/tpl/gold', view_func=myapp.list_gold, methods=['GET'])
+        web.add_url_rule('/tpl/gold/<string:hostname>', view_func=myapp.list_gold, methods=['GET'])
         web.add_url_rule('/vm/list/<string:hostname>', view_func=myapp.list_domains, methods=['GET'])
         web.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=myapp.get_domain, methods=['GET'])
         web.add_url_rule('/vm/display/<string:hostname>/<string:uuid>', view_func=myapp.get_display, methods=['GET'])
@@ -62,8 +62,9 @@ class MyApp(object):
         results = vmmanager.VMManager(host.name, host.url).list_domains()
         return [result._asdict() for result in results]
 
-    def list_gold(self):
-        results = database.KVMGold.ListGold()
+    def list_gold(self, hostname):
+        host = database.KVMHost.getHostInfo(hostname)
+        results = database.KVMGold.ListGold(host.arch)
         return [result._asdict() for result in results]
 
     def list_device(self, hostname):

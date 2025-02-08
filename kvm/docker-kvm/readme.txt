@@ -47,7 +47,7 @@ EOF
 
 # uuid=xxxx
 echo 'list device on host' && curl -k ${srv}/tpl/device/${host} | jq '.[]|{name: .name, type: .devtype}'
-echo 'list gold image' && curl -k ${srv}/tpl/gold | jq '.[]|{arch: .arch, name: .name, desc: .desc}'
+echo 'list gold image' && curl -k ${srv}/tpl/gold/${host} | jq '.[]|{arch: .arch, name: .name, desc: .desc}'
 device=local-disk
 # gold=debian12
 echo 'add disk' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/attach_device/${host}/${uuid}/${device}

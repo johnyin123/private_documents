@@ -34,9 +34,9 @@ class KVMDevice(Base):
     kvmhost = Column(String(19),ForeignKey('kvmhost.name'),nullable=False,index=True,primary_key=True)
     name = Column(String(19),nullable=False,index=True,primary_key=True)
     action = Column(String(19),nullable=False,server_default='',primary_key=True)
-    devtype = Column(Enum('disk','net'),nullable=False)
+    devtype = Column(Enum('disk','iso','net'),nullable=False)
     tpl = Column(String,nullable=False)
-    desc = Column(String)
+    desc = Column(String,nullable=False)
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
 
     @staticmethod
@@ -55,7 +55,7 @@ class KVMGold(Base):
     name = Column(String(19),nullable=False,index=True,primary_key=True)
     arch = Column(String(8),nullable=False,index=True,primary_key=True)
     tpl = Column(String,nullable=False,unique=True)
-    desc = Column(String)
+    desc = Column(String,nullable=False)
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
 
     @staticmethod
@@ -66,5 +66,5 @@ class KVMGold(Base):
         raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'golddisk error', f'golddisk {name} nofound')
 
     @staticmethod
-    def ListGold():
-        return session.query(KVMGold).all()
+    def ListGold(arch):
+        return session.query(KVMGold).filter_by(arch=arch).all()
