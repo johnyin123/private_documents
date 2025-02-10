@@ -1,8 +1,8 @@
 var g_menu = [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "about.html" } ] } ]
 var g_hosts='';
 dialog = new Dialog();
-function gen_act(smsg, action, host, uuid, icon) {
-  return `<button class='hovertext' data-hover='${smsg}' onclick='${action}("${host}", "${uuid}")'><i class="fa ${icon}"></i></button>`;
+function gen_act(smsg, action, host, parm2, icon) {
+  return `<button class='hovertext' data-hover='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
     }
 function show_vms(host, vms) {
   var table = "<table><tr>";
@@ -38,6 +38,8 @@ function show_vms(host, vms) {
   return table;
 }
 function show_host(host) {
+  // no show last_modified
+  delete host.last_modified;
   var table = "<table><tr>";
   for(var key in host) {
     table += `<th>${key}</th>`;
@@ -46,7 +48,7 @@ function show_host(host) {
   for(var key in host) {
     table += `<td>${host[key]}</td>`;
   }
-  table += `<td><a href='#' onclick='create_vm("${host.name}", "${host.arch}")'>Create VM</a></td></tr></table>`;
+  table += `<td>${gen_act('Create VM', 'create_vm', host.name, host.arch, 'fa-plus')}</td></tr></table>`;
   return table;
 }
 function gethost(res) {
