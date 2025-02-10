@@ -94,6 +94,7 @@ class MyApp(object):
             if proto == 'vnc':
                 return { 'result' : 'OK', 'display': f'{config.VNC_DISP_URL}?password={passwd}&path=websockify/?token={uuid}' }
             elif proto == 'spice':
+                # # spice websockify UNIX-LISTEN, not worked ????
                 return { 'result' : 'OK', 'display': f'{config.SPICE_DISP_URL}?password={passwd}&path=websockify/?token={uuid}' }
         raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no graphics define')
 
