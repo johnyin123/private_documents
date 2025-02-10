@@ -1,9 +1,9 @@
 var g_menu = [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "about.html" } ] } ]
 var g_hosts='';
 dialog = new Dialog();
-function gen_act(smsg, action, host, uuid) {
-  return `<a href='#' onclick='${action}("${host}", "${uuid}")'>${smsg}</a>`;
-}
+function gen_act(smsg, action, host, uuid, icon) {
+  return `<button class='hovertext' data-hover='${smsg}' onclick='${action}("${host}", "${uuid}")'><i class="fa ${icon}"></i></button>`;
+    }
 function show_vms(host, vms) {
   var table = "<table><tr>";
   for(var key in vms[0]) {
@@ -18,19 +18,19 @@ function show_vms(host, vms) {
       table += `<td>${item[key]}</td>`;
     }
     table += "<td>"
-    table += gen_act('VNC', 'display', host, item.uuid)
+    table += gen_act('VNC', 'display', host, item.uuid, 'fa-television')
     table += '&nbsp;'
-    table += gen_act('Start', 'start', host, item.uuid)
+    table += gen_act('Start', 'start', host, item.uuid, 'fa-play')
     table += '&nbsp;'
-    table += gen_act('Stop', 'stop', host, item.uuid)
+    table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off')
     table += '&nbsp;'
-    table += gen_act('RM', 'undefine', host, item.uuid)
+    table += gen_act('Undefine', 'undefine', host, item.uuid, 'fa-times')
     table += '&nbsp;'
-    table += gen_act('ISO', 'add_iso', host, item.uuid)
+    table += gen_act('Add ISO', 'add_iso', host, item.uuid, 'fa-plus')
     table += '&nbsp;'
-    table += gen_act('NET', 'add_net', host, item.uuid)
+    table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-plus')
     table += '&nbsp;'
-    table += gen_act('DISK', 'add_disk', host, item.uuid)
+    table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-plus')
     //<select name="devtype"><option value="disk">disk</option><option value="net">net</option><option value="iso">iso</option></select>
     table += "</td></tr>";
   });
