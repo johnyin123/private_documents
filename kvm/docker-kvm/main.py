@@ -12,6 +12,34 @@ import uuid
 def gen_uuid():
     return "{}".format(uuid.uuid4())
 
+import functools
+def _make_ssh_command(connhost, connuser, connport, gaddr, gport, gsocket):
+    argv = ["ssh", "ssh"]
+    if connport:
+        argv += ["-p", str(connport)]
+    if connuser:
+        argv += ["-l", connuser]
+    argv += [connhost]
+    # Build 'nc' command run on the remote host
+    if gsocket:
+        nc_params = "-U %s" % gsocket
+    else:
+        nc_params = "%s %s" % (gaddr, gport)
+    nc_cmd = (
+        """nc -q 2>&1 | grep "requires an argument" >/dev/null;"""
+        """if [ $? -eq 0 ] ; then"""
+        """   CMD="nc -q 0 %(nc_params)s";"""
+        """else"""
+        """   CMD="nc %(nc_params)s";"""
+        """fi;"""
+        """eval "$CMD";""" % {"nc_params": nc_params}
+    )
+    argv.append("sh -c")
+    argv.append("'%s'" % nc_cmd)
+    argv_str = functools.reduce(lambda x, y: x + " " + y, argv[1:])
+    logger.info("Pre-generated ssh command for info: %s", argv_str)
+    return argv_str
+
 class MyApp(object):
     @staticmethod
     def create():
@@ -47,14 +75,25 @@ class MyApp(object):
             server = it.get('server', '')
             port = it.get('port', '')
             if server == '0.0.0.0':
-                server = host.ipaddr
-            if server == '127.0.0.1' or server == '':
-                raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no display')
+                server = f'{host.ipaddr}:{port}'
+            elif server == '127.0.0.1' or server == 'localhost':
+                # remote need: nc
+                # local need: socat
+                local = f'/tmp/unix-sock.{uuid}'
+                ssh_cmd = _make_ssh_command(host.ipaddr, '', '', server, port, '')
+                socat_cmd = ('socat', f'UNIX-LISTEN:{local},unlink-early', f'EXEC:"{ssh_cmd}"',)
+                pid = os.fork()
+                if pid == 0:
+                    os.execvp(socat_cmd[0], socat_cmd)
+                logger.info("Opened tunnel PID=%d, %s", pid, socat_cmd)
+                server = f'unix_socket:{local}'
+            with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
+                # f.write(f'{uuid}: unix_socket:{path}')
+                f.write(f'{uuid}: {server}')
             if proto == 'vnc':
-                with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
-                    # f.write(f'unix_socket:{path}')
-                    f.write(f'{uuid}: {server}:{port}')
                 return { 'result' : 'OK', 'display': f'{config.VNC_DISP_URL}?password={passwd}&path=websockify/?token={uuid}' }
+            elif proto == 'spice':
+                return { 'result' : 'OK', 'display': f'{config.SPICE_DISP_URL}?password={passwd}&path=websockify/?token={uuid}' }
         raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no graphics define')
 
     def list_domains(self, hostname):
@@ -160,6 +199,9 @@ class MyApp(object):
         if template.ISOTemplate('default').create_iso(uuid, mdconfig_meta):
             return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
         return { 'result' : 'OK' }
+
+import signal
+signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
 app=MyApp.create()
 app.errorhandler(APIException)(APIException.handle)

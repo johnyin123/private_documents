@@ -167,5 +167,17 @@ def main():
     logging.info("Spawning the socat process")
     os.execvp(real_socat_command[0], real_socat_command)
 
-if __name__ == '__main__':
-    main()
+
+# # no use fork,reuseaddr!
+local = 'UNIX-LISTEN:/tmp/unix-sock'
+remote = 'TCP:localhost:9999'
+ssh_cmd = f'ssh -p60022 root@192.168.168.1 socat STDIO {remote}'
+socat_cmd = ('socat', f'{local},unlink-early', f'EXEC:"{ssh_cmd}"',)
+pid = os.fork()
+if pid == 0:
+    os.execvp(socat_cmd[0], socat_cmd)
+logger.info("Opened tunnel PID=%d, %s", pid, socat_cmd)
+
+# import signal
+# os.kill(pid, signal.SIGKILL)
+os.waitpid(pid, 0)
