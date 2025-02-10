@@ -85,6 +85,7 @@ class MyApp(object):
                 pid = os.fork()
                 if pid == 0:
                     os.execvp(socat_cmd[0], socat_cmd)
+                    os._exit(0)
                 logger.info("Opened tunnel PID=%d, %s", pid, socat_cmd)
                 server = f'unix_socket:{local}'
             with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
@@ -200,6 +201,7 @@ class MyApp(object):
             return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
         return { 'result' : 'OK' }
 
+# # socat defunct process
 import signal
 signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 

@@ -1,9 +1,10 @@
-var g_menu = [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "about.html" } ] } ]
+var g_menu = [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "javascript:about()" } ] } ]
 var g_hosts='';
 dialog = new Dialog();
+function about() { alert("vmmagr"); }
 function gen_act(smsg, action, host, parm2, icon) {
   return `<button class='hovertext' data-hover='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
-    }
+}
 function show_vms(host, vms) {
   var table = "<table><tr>";
   for(var key in vms[0]) {
@@ -166,8 +167,14 @@ function display(host, uuid) {
   getjson('GET', `/vm/display/${host}/${uuid}`, function(res) {
     result = JSON.parse(res);
     if(result.result === 'OK') {
-      dispok('display OK');
-      window.open(result.display, "_blank");
+      dialog.open({
+        dialogClass: 'custom',
+        message: 'Console',
+        template: `<embed width="640" height="480" src=${result.display} type="text/html"/>`
+      })
+      dialog.waitForUser().then((res) => { })
+      //document.getElementById("display").src = result.display;
+      //window.open(result.display, "_blank");
     } else {
       disperr(result.code, result.name, result.desc)
     }
