@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("55c8eb0[2025-01-13T10:37:45+08:00]:virt_createvm.sh")
+VERSION+=("0a1129e[2025-01-23T08:56:25+08:00]:virt_createvm.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -18,8 +18,9 @@ gen_tpl() {
 ########################################
 # # virsh -c qemu+ssh://root@ip:port/system domdisplay <uuid> # spice://127.0.0.1:5900
 # # ssh -L 5900:127.0.0.1:5900 -N -f root@ip -p port
+<graphics type='vnc' autoport='yes'/>
 # spice
-<graphics type='spice' autoport='yes'><listen type='address'/></graphics>
+<graphics type='spice' autoport='yes'/>
 <video><model type='qxl' vram='32768' heads='1' primary='yes'/></video>
 # SOUND, Linux 'ich6',windows model='ac97'
 <sound model='ac97'/>

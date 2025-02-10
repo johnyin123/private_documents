@@ -39,7 +39,7 @@
     <controller type='pci' model='pcie-root-port'/>
     <controller type='pci' model='pcie-root-port'/>
     <controller type='pci' model='pcie-to-pci-bridge'/>
-    <graphics type='vnc' autoport='yes' listen='0.0.0.0' passwd='{{ random_string(8) }}'/>
+    <graphics type='vnc' autoport='yes'/>
     <video><model type='virtio' vram='32768' heads='1' primary='yes'/></video>
     <sound model='ac97'/>
     <disk type='network' device='cdrom'>
