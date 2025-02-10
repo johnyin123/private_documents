@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ab9c469[2024-10-14T07:30:52+08:00]:s905_debootstrap.sh")
+VERSION+=("e1d424e[2025-02-07T09:59:48+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -687,7 +687,7 @@ if [ `id -u` -ne 0 ]; then exit 1; fi
 
 INTERFACE=${1:-wlan0}
 eval `/usr/sbin/ifquery ${INTERFACE} 2>/dev/null | /usr/bin/awk '/address:/{ print "ADDRESS="$2} /netmask:/{ print "MASK="$2}'`
-ADDRESS=${ADDRESS:-192.168.0.1}
+ADDRESS=${ADDRESS:-192.168.31.1}
 MASK=${MASK:-255.255.255.0}
 
 cat > /run/dnsmasq.conf <<EOF
@@ -750,7 +750,7 @@ if [ `id -u` -ne 0 ]; then exit 1; fi
 
 INTERFACE=${1:-wlan0}
 eval `/usr/sbin/ifquery ${INTERFACE} 2>/dev/null | /usr/bin/awk '/address:/{ print "ADDRESS="$2} /netmask:/{ print "MASK="$2}'`
-ADDRESS=${ADDRESS:-192.168.0.1}
+ADDRESS=${ADDRESS:-192.168.31.1}
 MASK=${MASK:-255.255.255.0}
 
 cat > /run/udhcpd.conf <<EOF
