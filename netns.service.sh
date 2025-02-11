@@ -63,7 +63,7 @@ After=netns@${TEST_SVC}.service bridge-netns@${TEST_SVC}.service
 
 [Service]
 Type=simple
-ExecStartPre=/bin/sh -c "echo '95.169.24.101 tunl.wgserver.org' > /etc/netns/netsrv/hosts"
+ExecStartPre=/bin/sh -c "echo '39.104.207.142 tunl.wgserver.org' > /etc/netns/netsrv/hosts"
 ExecStart=ip netns exec ${TEST_SVC} /bin/bash /home/johnyin/disk/netsrv/${TEST_SVC}-startup.sh
 ExecStop=-ip netns exec ${TEST_SVC} /bin/bash /home/johnyin/disk/netsrv/${TEST_SVC}-teardown.sh
 [Install]
