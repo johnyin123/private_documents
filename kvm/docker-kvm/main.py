@@ -20,22 +20,10 @@ def _make_ssh_command(connhost, connuser, connport, gaddr, gport, gsocket):
     if connuser:
         argv += ["-l", connuser]
     argv += [connhost]
-    # Build 'nc' command run on the remote host
     if gsocket:
-        nc_params = "-U %s" % gsocket
+        argv.append(f'socat STDIO UNIX-CONNECT:{gsocket}')
     else:
-        nc_params = "%s %s" % (gaddr, gport)
-    nc_cmd = (
-        """nc -q 2>&1 | grep "requires an argument" >/dev/null;"""
-        """if [ $? -eq 0 ] ; then"""
-        """   CMD="nc -q 0 %(nc_params)s";"""
-        """else"""
-        """   CMD="nc %(nc_params)s";"""
-        """fi;"""
-        """eval "$CMD";""" % {"nc_params": nc_params}
-    )
-    argv.append("sh -c")
-    argv.append("'%s'" % nc_cmd)
+        argv.append(f'socat STDIO TCP:{gaddr}:{gport}')
     argv_str = functools.reduce(lambda x, y: x + " " + y, argv[1:])
     logger.info("Pre-generated ssh command for info: %s", argv_str)
     return argv_str
@@ -68,6 +56,7 @@ class MyApp(object):
         host = database.KVMHost.getHostInfo(hostname)
         dom = vmmanager.VMManager(host.name, host.url).get_domain(uuid)
         disp = dom.get_display()
+        timeout = '90m'
         for it in disp:
             logger.info(f'get_display {uuid}: {it}')
             passwd = it.get('passwd', '')
@@ -79,15 +68,17 @@ class MyApp(object):
             elif server == '127.0.0.1' or server == 'localhost':
                 # remote need: nc
                 # local need: socat
-                local = f'/tmp/unix-sock.{uuid}'
+                local = f'/tmp/.display.{uuid}'
                 ssh_cmd = _make_ssh_command(host.ipaddr, '', '', server, port, '')
-                socat_cmd = ('socat', f'UNIX-LISTEN:{local},unlink-early', f'EXEC:"{ssh_cmd}"',)
+                socat_cmd = ('timeout', f'{timeout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
                 pid = os.fork()
                 if pid == 0:
                     os.execvp(socat_cmd[0], socat_cmd)
                     os._exit(0)
                 logger.info("Opened tunnel PID=%d, %s", pid, socat_cmd)
                 server = f'unix_socket:{local}'
+                # os.kill(pid, signal.SIGKILL)
+                # os.waitpid(pid, 0)
             with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
                 # f.write(f'{uuid}: unix_socket:{path}')
                 f.write(f'{uuid}: {server}')
@@ -157,6 +148,7 @@ class MyApp(object):
     def __del_vm_file(self, fn):
         try:
             os.remove(f"{fn}")
+            # os.unlink(f"{fn}")
         except Exception:
             pass 
 
