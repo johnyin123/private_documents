@@ -63,27 +63,26 @@ After=netns@${TEST_SVC}.service bridge-netns@${TEST_SVC}.service
 
 [Service]
 Type=simple
-ExecStartPre=/bin/sh -c "echo '39.104.207.142 tunl.wgserver.org' > /etc/netns/netsrv/hosts"
-ExecStart=ip netns exec ${TEST_SVC} /bin/bash /home/johnyin/disk/netsrv/${TEST_SVC}-startup.sh
-ExecStop=-ip netns exec ${TEST_SVC} /bin/bash /home/johnyin/disk/netsrv/${TEST_SVC}-teardown.sh
+ExecStart=ip netns exec ${TEST_SVC} /bin/bash /home/johnyin/disk/${TEST_SVC}/startup.sh
+ExecStop=-ip netns exec ${TEST_SVC} /bin/bash /home/johnyin/disk/${TEST_SVC}/teardown.sh
 [Install]
 WantedBy=multi-user.target
 EOF
-cat <<'EOF' > ${TEST_SVC}-teardown.sh
+cat <<EOF > teardown.sh
 #!/usr/bin/env bash
-readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-readonly SCRIPTNAME=${0##*/}
+set -o nounset -o pipefail -o errexit
 wg-quick down client
 # # systemctl cmd can not run in this script
-#systemctl stop bridge-netns@netsrv.service
+#systemctl stop bridge-netns@${TEST_SVC}.service
 EOF
-cat <<'EOF' > ${TEST_SVC}-startup.sh
+echo "nscd daemon tools cause wrong /etc/hosts in netns!!"
+cat <<'EOF' > startup.sh
 #!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
-readonly SCRIPTNAME=${0##*/}
+echo '39.104.207.142 tunl.wgserver.org' > /etc/hosts
 wg-quick up client
 /usr/sbin/ip route replace default via 192.168.32.1 || true
-/usr/sbin/ip route add 95.169.24.101 via 192.168.168.1 || true
 /usr/sbin/ip route add 39.104.207.142 via 192.168.168.1 || true
 /usr/sbin/ip route add 10.0.0.0/8 via 192.168.168.1 || true
 /usr/sbin/ip route add 172.16.0.0/12 via 192.168.168.1 || true
