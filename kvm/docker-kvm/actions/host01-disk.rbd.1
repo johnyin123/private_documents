@@ -2,7 +2,21 @@
 LC_ALL=C
 LANG=C
 set -o nounset -o pipefail -o errexit
+set -o xtrace
+# # reqire: jq qemu-img cat logger
 log() { logger -t 'qemu-rbd.action' "$*"; }
+json_config_default() {
+    local key=${1}
+    local default=${2}
+    local str=""
+    [ $# = 2 ] && {
+        str="$(cat)"
+    } || {
+        str="$(cat ${3:?json_config input err})"
+    }
+    jq -r '('${key}') // "'${default}'"' <<< ${str}
+}
+
 REQ_JSON=$(cat)
 URL=${URL:-}
 TYPE=${TYPE:-}
@@ -16,6 +30,7 @@ DISK="libvirt-pool/vd${char}-${UUID}.raw"
     qemu-img create -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring ${SIZE}
 } || {
     qemu-img convert -f qcow2 -O raw ${GOLD} rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring
-    qemu-img resize -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring ${SIZE}
+    # skip resize error, when SIZE < gold image size, error but now image uploaded! so skip error
+    qemu-img resize -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring ${SIZE} || true
 }
 exit 0

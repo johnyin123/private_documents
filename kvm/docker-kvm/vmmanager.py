@@ -53,6 +53,7 @@ class LibvirtDomain:
             flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
             if self.state == libvirt.VIR_DOMAIN_RUNNING:
                 flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
+            logger.info(xml)
             self.dom.attachDeviceFlags(xml, flags)
         except libvirt.libvirtError as e:
             kvm_error(e, 'attach_device')

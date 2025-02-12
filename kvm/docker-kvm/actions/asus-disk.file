@@ -2,6 +2,7 @@
 LC_ALL=C
 LANG=C
 set -o nounset -o pipefail -o errexit
+set -o xtrace
 
 log() { logger -t 'qemu-action' "$*"; }
 json_config_default() {
@@ -30,6 +31,7 @@ DISK="/lib/libvirt/images/vd${char}-${UUID}.raw"
     qemu-img create -f raw ssh://root@192.168.168.1:60022${DISK} ${SIZE}
 } || {
     qemu-img convert -f qcow2 -O raw ${GOLD} ssh://root@192.168.168.1:60022${DISK}
-    qemu-img resize -f raw ssh://root@192.168.168.1:60022${DISK} ${SIZE}
+    # skip resize error, when SIZE < gold image size, error but now image uploaded! so skip error
+    qemu-img resize -f raw ssh://root@192.168.168.1:60022${DISK} ${SIZE} || true
 }
 exit 0

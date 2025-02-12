@@ -225,9 +225,18 @@ function gen_dev_list(jsonobj, id, devtype) {
   lst += '</select>';
   return lst;
 }
-function do_add(host, res) {
+function do_add(host, uuid, res) {
   if (res == false){ return; }
   console.log(JSON.stringify(res));
+  getjson('POST', `/vm/attach_device/${host}/${uuid}/${res.device}`, function(res) {
+    result = JSON.parse(res);
+    if(result.result === 'OK') {
+      dispok(`add OK ${res}`);
+      vmlist(host);
+    } else {
+      disperr(result.code, result.name, result.desc)
+    }
+  }, res);
 }
 function add_disk(host, uuid) {
   getjson('GET', `/tpl/gold/${host}`, function(res) {
@@ -242,7 +251,7 @@ function add_disk(host, uuid) {
           accept: 'Add',
           template: `${dev_lst}${gold_lst}<input type="text" name="size" value="5G">`
         })
-        dialog.waitForUser().then((res) => { do_add(host, res); })
+        dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
      }, null);
   }, null);
 }
@@ -256,7 +265,7 @@ function add_net(host, uuid) {
        accept: 'Add',
        template: `${dev_lst}`
      })
-     dialog.waitForUser().then((res) => { do_add(host, res); })
+     dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
   }, null);
 }
 function add_iso(host, uuid) {
@@ -269,7 +278,7 @@ function add_iso(host, uuid) {
        accept: 'Add',
        template: `${dev_lst}`
      })
-     dialog.waitForUser().then((res) => { do_add(host, res); })
+     dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
   }, null);
 }
 getjson('GET', '/tpl/host', gethost, null);

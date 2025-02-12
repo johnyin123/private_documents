@@ -56,7 +56,7 @@ class MyApp(object):
         host = database.KVMHost.getHostInfo(hostname)
         dom = vmmanager.VMManager(host.name, host.url).get_domain(uuid)
         disp = dom.get_display()
-        timeout = '90m'
+        timeout = '10m'
         for it in disp:
             logger.info(f'get_display {uuid}: {it}')
             passwd = it.get('passwd', '')
@@ -109,7 +109,7 @@ class MyApp(object):
 
     def attach_device(self, hostname, uuid, name):
         req_json = flask.request.json
-        default_conf = {'size': '10G'}
+        default_conf = {'size': '10G', 'gold':''}
         req_json = {**default_conf, **req_json}
         logger.info(f'attach_device {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
@@ -117,7 +117,7 @@ class MyApp(object):
         dom = vmmanager.VMManager(host.name, host.url).get_domain(uuid)
         tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
         req_json['vm_uuid'] = uuid
-        if dev.devtype == 'disk':
+        if tpl.bus is not None:
             req_json['vm_last_disk'] = dom.next_disk[tpl.bus]
             gold = req_json.get("gold", "")
             if gold is not None and len(gold) != 0:
@@ -125,6 +125,9 @@ class MyApp(object):
                 gold = os.path.join(config.GOLD_DIR, gold.tpl)
                 if os.path.isfile(gold):
                     req_json['gold'] = gold
+                else:
+                    logger.error(f'attach_device {gold} nofoudn')
+                    raise APIException(HTTPStatus.BAD_REQUEST, 'attach', f'gold {gold} nofound')
         xml = tpl.gen_xml(**req_json)
         if dev.action is not None and len(dev.action) != 0:
             device.do_action(dev.devtype, dev.action, 'add', host, xml, req_json)
@@ -195,8 +198,10 @@ class MyApp(object):
         return { 'result' : 'OK' }
 
 # # socat defunct process
-import signal
-signal.signal(signal.SIGCHLD, signal.SIG_IGN)
+# # subprocess.Popen, device action returncode always 0
+# # can not set SIGCHLD SIG_IGN
+# import signal
+# signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
 app=MyApp.create()
 app.errorhandler(APIException)(APIException.handle)
