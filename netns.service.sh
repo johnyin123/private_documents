@@ -132,3 +132,46 @@ systemctl enable bridge-netns@ali.service --now
 # # ali.conf init end
 ##################################################################################################
 EOF
+
+
+TEST_SVC=rank
+cat <<'EOF' > ${TEST_SVC}.conf
+BRIDGE=br-ext
+ADDRESS="192.168.168.251/24"
+GATEWAY=192.168.168.1
+DNS=8.8.8.8
+EOF
+
+cat <<EOF > ${TEST_SVC}.service
+[Unit]
+# systemctl stop bridge-netns@${TEST_SVC}.service
+Description=${TEST_SVC} in netns
+Wants=network-online.target
+Requires=netns@${TEST_SVC}.service bridge-netns@${TEST_SVC}.service
+After=netns@${TEST_SVC}.service bridge-netns@${TEST_SVC}.service
+
+[Service]
+Type=simple
+ExecStart=ip netns exec ${TEST_SVC} /bin/bash /home/johnyin/disk/${TEST_SVC}/startup.sh
+ExecStop=-ip netns exec ${TEST_SVC} /bin/bash /home/johnyin/disk/${TEST_SVC}/teardown.sh
+[Install]
+WantedBy=multi-user.target
+EOF
+cat <<EOF > teardown.sh
+#!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
+wg-quick down rank
+# # systemctl cmd can not run in this script
+#systemctl stop bridge-netns@${TEST_SVC}.service
+EOF
+cat <<'EOF' > startup.sh
+#!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
+cat <<EO_HOST > /etc/hosts
+127.0.0.1      localhost
+192.3.164.171  tunl.wgserver.org
+EO_HOST
+/usr/sbin/ip route add 192.3.164.171 via 192.168.168.1 || true
+wg-quick up rank
+/usr/sbin/ip route replace default via 192.168.32.1 || true
+EOF
