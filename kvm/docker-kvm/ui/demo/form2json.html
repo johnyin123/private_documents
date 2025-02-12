@@ -16,12 +16,19 @@
       return result;
     }, {});
   };
-  const onsubmit = (event) => {
-    event.preventDefault();
-    const demoform = document.querySelector('form#demoform')
-    const result = getFormJSON(demoform);
+  //const onsubmit = (event) => {
+  //  event.preventDefault();
+  //  const demoform = document.querySelector('form#demoform')
+  //  const result = getFormJSON(demoform);
+  //  console.log(result)
+  //}
+  //const demoform = document.querySelector('form#demoform')
+  //demoform.addEventListener("submit", onsubmit)
+
+  const form = document.getElementById('demoform');
+  form.addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevents the default form submission
+    const result = getFormJSON(form);
     console.log(result)
-  }
-  const demoform = document.querySelector('form#demoform')
-  demoform.addEventListener("submit", onsubmit)
+  });
 </script>
