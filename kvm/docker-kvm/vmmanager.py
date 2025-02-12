@@ -17,11 +17,12 @@ class LibvirtDomain:
         self.state, self.maxmem, self.curmem, self.curcpu, self.cputime = dom.info()
 
     def _asdict(self):
-        return {'uuid':self.uuid,'vcpus':self.vcpus,
+        dic = {'uuid':self.uuid,'vcpus':self.vcpus,
                 'state':self.state, 'maxmem':self.maxmem,
                 'curmem':self.curmem, 'curcpu':self.curcpu,
                 'cputime':self.cputime, 'desc':self.desc
                }
+        return {**dic, **self.mdconfig}
 
     # self.record_metadata("key", 'val')
     # self.get_metadata("key")
