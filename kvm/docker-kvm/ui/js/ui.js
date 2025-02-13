@@ -25,6 +25,8 @@ function show_vms(host, vms) {
     table += '&nbsp;'
     table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off')
     table += '&nbsp;'
+    table += gen_act('ForceStop', 'force_stop', host, item.uuid, 'fa-plug')
+    table += '&nbsp;'
     table += gen_act('Undefine', 'undefine', host, item.uuid, 'fa-times')
     table += '&nbsp;'
     table += gen_act('Add ISO', 'add_iso', host, item.uuid, 'fa-plus')
@@ -105,6 +107,7 @@ function getjson(method, url, callback, data) {
   xhr.timeout = 30000; // Set a timeout 30 seconds
   xhr.onreadystatechange = function() {
     if(this.readyState === 4 && this.status === 200) {
+      console.log(xhr.response);
       callback(xhr.response);
       return;
     }
@@ -137,6 +140,7 @@ function start(host, uuid) {
     result = JSON.parse(res);
     if(result.result === 'OK') {
       dispok('start vm OK');
+      vmlist(host);
     } else {
       disperr(result.code, result.name, result.desc)
     }
@@ -146,7 +150,19 @@ function stop(host, uuid) {
   getjson('GET', `/vm/stop/${host}/${uuid}`, function(res) {
     result = JSON.parse(res);
     if(result.result === 'OK') {
-      dispok(' stop vm OK');
+      dispok('stop vm OK');
+      vmlist(host);
+    } else {
+      disperr(result.code, result.name, result.desc)
+    }
+  }, null);
+}
+function force_stop(host, uuid) {
+  getjson('DELETE', `/vm/stop/${host}/${uuid}`, function(res) {
+    result = JSON.parse(res);
+    if(result.result === 'OK') {
+      dispok('force stop vm OK');
+      vmlist(host);
     } else {
       disperr(result.code, result.name, result.desc)
     }
