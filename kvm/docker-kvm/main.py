@@ -193,7 +193,7 @@ class MyApp(object):
             f.write(domxml)
         mdconfig_meta = vmmanager.VMManager.get_mdconfig(domxml)
         logger.info(f'{uuid} {mdconfig_meta}')
-        if template.ISOTemplate('default').create_iso(uuid, mdconfig_meta):
+        if template.ISOTemplate().create_iso(uuid, mdconfig_meta):
             return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
         return { 'result' : 'OK' }
 

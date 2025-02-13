@@ -253,6 +253,7 @@ server {
     server_name kvm.registry.local;
     # # only download iso file, and subdir iso
     location ~* \.(iso)$ {
+        open_file_cache off;
         client_max_body_size 0;
         autoindex off;
         root /work/iso;
