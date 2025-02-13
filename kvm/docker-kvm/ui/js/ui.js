@@ -53,35 +53,6 @@ function show_host(host) {
   table += `<td>${gen_act('Create VM', 'create_vm', host.name, host.arch, 'fa-plus')}</td></tr></table>`;
   return table;
 }
-function gethost(res) {
-  config.g_hosts = JSON.parse(res);
-  var mainMenu = "<ul>";
-  mainMenu += "<li>";
-  mainMenu += "<a href='#'>KVMHosts</a><ul>"
-  for(var n = 0; n < config.g_hosts.length; n++) {
-    mainMenu += "<li>";
-    mainMenu += `<a href='#' onclick='on_menu_host(config.g_hosts, ${n})'>${config.g_hosts[n].name}</a>`;
-    mainMenu += "</li>";
-  }
-  mainMenu += "</ul>";
-  /////////////////////////
-  mainMenu += "</li>";
-  for(var m = 0; m < config.g_menu.length; m++) {
-    mainMenu += "<li>";
-    mainMenu += `<a href='${config.g_menu[m].url}'>${config.g_menu[m].name}</a>`;
-    if(config.g_menu[m].submenu.length > 0) {
-      mainMenu += "<ul>";
-      for(var n = 0; n < config.g_menu[m].submenu.length; n++) {
-        mainMenu += "<li>";
-        mainMenu += `<a href='${config.g_menu[m].submenu[n].url}'>${config.g_menu[m].submenu[n].name}</a>`;
-        mainMenu += "</li>";
-      }
-      mainMenu += "</ul>";
-    }
-    mainMenu += "</li>";
-  }
-  document.getElementById("mainMenu").innerHTML = mainMenu;
-}
 function dispok(msg) {
   alert(msg);
 }
@@ -223,6 +194,7 @@ function create_vm(host, arch) {
 }
 function gen_gold_list(jsonobj, id) {
   var lst = `<label>${id}</label><select name="${id}">`;
+  // add empty value for data disk
   lst += `<option value="" selected>数据盘</option>`;
   jsonobj.forEach(item => {
     lst += `<option value="${item['name']}">${item['desc']}</option>`;
@@ -296,4 +268,32 @@ function add_iso(host, uuid) {
     dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
   }, null);
 }
-getjson('GET', '/tpl/host', gethost, null);
+getjson('GET', '/tpl/host', function (res) {
+  config.g_hosts = JSON.parse(res);
+  var mainMenu = "<ul>";
+  mainMenu += "<li>";
+  mainMenu += "<a href='#'>KVMHosts</a><ul>"
+  for(var n = 0; n < config.g_hosts.length; n++) {
+    mainMenu += "<li>";
+    mainMenu += `<a href='#' onclick='on_menu_host(config.g_hosts, ${n})'>${config.g_hosts[n].name}</a>`;
+    mainMenu += "</li>";
+  }
+  mainMenu += "</ul>";
+  /////////////////////////
+  mainMenu += "</li>";
+  for(var m = 0; m < config.g_menu.length; m++) {
+    mainMenu += "<li>";
+    mainMenu += `<a href='${config.g_menu[m].url}'>${config.g_menu[m].name}</a>`;
+    if(config.g_menu[m].submenu.length > 0) {
+      mainMenu += "<ul>";
+      for(var n = 0; n < config.g_menu[m].submenu.length; n++) {
+        mainMenu += "<li>";
+        mainMenu += `<a href='${config.g_menu[m].submenu[n].url}'>${config.g_menu[m].submenu[n].name}</a>`;
+        mainMenu += "</li>";
+      }
+      mainMenu += "</ul>";
+    }
+    mainMenu += "</li>";
+  }
+  document.getElementById("mainMenu").innerHTML = mainMenu;
+}, null);
