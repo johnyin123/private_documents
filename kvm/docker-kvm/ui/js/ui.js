@@ -1,4 +1,4 @@
-var config = { g_hosts: {}, g_menu = [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "javascript:about()" } ] } ] };
+var config = { g_hosts: {}, g_menu : [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "javascript:about()" } ] } ] };
 dialog = new Dialog();
 function about() { alert("vmmagr"); }
 function gen_act(smsg, action, host, parm2, icon) {
