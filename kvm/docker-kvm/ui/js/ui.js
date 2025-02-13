@@ -107,7 +107,7 @@ function getjson(method, url, callback, data) {
   xhr.timeout = 30000; // Set a timeout 30 seconds
   xhr.onreadystatechange = function() {
     if(this.readyState === 4 && this.status === 200) {
-      console.log(xhr.response);
+      console.log(`${method} ${url} ${xhr.response}`);
       callback(xhr.response);
       return;
     }
@@ -216,7 +216,7 @@ function create_vm(host, arch) {
     template: `<input type="hidden" name="vm_arch" value="${arch}">` +
       '<label>CPU:<input type="number" name="vm_vcpus" value="2" min="1" max="8"/></label>' +
       '<label>MEM(MB):<input type="number" name="vm_ram_mb" value="2048" min="1024" max="8192" step="1024"/></label>' +
-      '<label>IPADDR:<input type="text" name="vm_ip" value="192.168.168.2/32"/></label>' +
+      '<label>IPADDR:<input type="text" name="vm_ip" value="192.168.168.2/24"/></label>' +
       '<label>GATEWAY:<input type="text" name="vm_gw" value="192.168.168.1"/></label>' +
       '<label>DESC:<input type="text" name="vm_desc" value=""/></label>'
   })
