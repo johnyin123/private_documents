@@ -256,57 +256,45 @@ function do_add(host, uuid, res) {
 }
 function add_disk(host, uuid) {
   getjson('GET', `/tpl/gold/${host}`, function(res) {
-     var gold = JSON.parse(res);
-     gold_lst = gen_gold_list(gold, 'gold');
-     getjson('GET', `/tpl/device/${host}`, function(res) {
-        var devs = JSON.parse(res);
-        dev_lst = gen_dev_list(devs, 'device', 'disk');
-        dialog.open({
-          dialogClass: 'custom',
-          message: 'Add Disk',
-          accept: 'Add',
-          template: `${dev_lst}${gold_lst}<input type="text" name="size" value="5G">`
-        })
-        dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
-     }, null);
+    var gold = JSON.parse(res);
+    gold_lst = gen_gold_list(gold, 'gold');
+    getjson('GET', `/tpl/device/${host}`, function(res) {
+      var devs = JSON.parse(res);
+      dev_lst = gen_dev_list(devs, 'device', 'disk');
+      dialog.open({
+        dialogClass: 'custom',
+        message: 'Add Disk',
+        accept: 'Add',
+        template: `${dev_lst}${gold_lst}<input type="text" name="size" value="5G">`
+      })
+      dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
+    }, null);
   }, null);
 }
 function add_net(host, uuid) {
   getjson('GET', `/tpl/device/${host}`, function(res) {
-     var devs = JSON.parse(res);
-     dev_lst = gen_dev_list(devs, 'device', 'net');
-     dialog.open({
-       dialogClass: 'custom',
-       message: 'Add Network',
-       accept: 'Add',
-       template: `${dev_lst}`
-     })
-     dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
+    var devs = JSON.parse(res);
+    dev_lst = gen_dev_list(devs, 'device', 'net');
+    dialog.open({
+      dialogClass: 'custom',
+      message: 'Add Network',
+      accept: 'Add',
+      template: `${dev_lst}`
+    })
+    dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
   }, null);
 }
 function add_iso(host, uuid) {
   getjson('GET', `/tpl/device/${host}`, function(res) {
-     var devs = JSON.parse(res);
-     dev_lst = gen_dev_list(devs, 'device', 'iso');
-     dialog.open({
-       dialogClass: 'custom',
-       message: 'Add ISO',
-       accept: 'Add',
-       template: `${dev_lst}`
-     })
-     dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
+    var devs = JSON.parse(res);
+    dev_lst = gen_dev_list(devs, 'device', 'iso');
+    dialog.open({
+      dialogClass: 'custom',
+      message: 'Add ISO',
+      accept: 'Add',
+      template: `${dev_lst}`
+    })
+    dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
   }, null);
 }
 getjson('GET', '/tpl/host', gethost, null);
-// <select>
-//   <optgroup label="Fruits">
-//     <option value="apple">Apple</option>
-//     <option value="banana">Banana</option>
-//     <option value="orange">Orange</option>
-//   </optgroup>
-//   <optgroup label="Vegetables">
-//     <option value="carrot">Carrot</option>
-//     <option value="celery">Celery</option>
-//     <option value="spinach">Spinach</option>
-//   </optgroup>
-// </select>
