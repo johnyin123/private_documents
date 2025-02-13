@@ -1,5 +1,4 @@
-var g_menu = [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "javascript:about()" } ] } ]
-var g_hosts='';
+var config = { g_hosts: {}, g_menu = [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "javascript:about()" } ] } ] };
 dialog = new Dialog();
 function about() { alert("vmmagr"); }
 function gen_act(smsg, action, host, parm2, icon) {
@@ -55,26 +54,26 @@ function show_host(host) {
   return table;
 }
 function gethost(res) {
-  g_hosts = JSON.parse(res);
+  config.g_hosts = JSON.parse(res);
   var mainMenu = "<ul>";
   mainMenu += "<li>";
   mainMenu += "<a href='#'>KVMHosts</a><ul>"
-  for(var n = 0; n < g_hosts.length; n++) {
+  for(var n = 0; n < config.g_hosts.length; n++) {
     mainMenu += "<li>";
-    mainMenu += `<a href='#' onclick='on_menu_host(g_hosts, ${n})'>${g_hosts[n].name}</a>`;
+    mainMenu += `<a href='#' onclick='on_menu_host(config.g_hosts, ${n})'>${config.g_hosts[n].name}</a>`;
     mainMenu += "</li>";
   }
   mainMenu += "</ul>";
   /////////////////////////
   mainMenu += "</li>";
-  for(var m = 0; m < g_menu.length; m++) {
+  for(var m = 0; m < config.g_menu.length; m++) {
     mainMenu += "<li>";
-    mainMenu += `<a href='${g_menu[m].url}'>${g_menu[m].name}</a>`;
-    if(g_menu[m].submenu.length > 0) {
+    mainMenu += `<a href='${config.g_menu[m].url}'>${config.g_menu[m].name}</a>`;
+    if(config.g_menu[m].submenu.length > 0) {
       mainMenu += "<ul>";
-      for(var n = 0; n < g_menu[m].submenu.length; n++) {
+      for(var n = 0; n < config.g_menu[m].submenu.length; n++) {
         mainMenu += "<li>";
-        mainMenu += `<a href='${g_menu[m].submenu[n].url}'>${g_menu[m].submenu[n].name}</a>`;
+        mainMenu += `<a href='${config.g_menu[m].submenu[n].url}'>${config.g_menu[m].submenu[n].name}</a>`;
         mainMenu += "</li>";
       }
       mainMenu += "</ul>";
