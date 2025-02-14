@@ -35,10 +35,10 @@ db.Base.metadata.create_all(db.engine)
 
 print('''
 # # kvmhost
-| name   | tpl           | url                                        | ipaddr      | arch   |
-|--------+---------------+--------------------------------------------+-------------+--------|
-| host01 | newvm.vnc.tpl | qemu+tls://192.168.168.1/system            |192.168.168.1| x86_64 |
-| asus   | newvm.vnc.tpl | qemu+ssh://root@192.168.168.1:60022/system |192.168.168.1| x86_64 |
+| name   | tpl           | url                                        | ipaddr      |sshport| arch   |
+|--------+---------------+--------------------------------------------+-------------+-------+--------|
+| host01 | newvm.vnc.tpl | qemu+tls://192.168.168.1/system            |192.168.168.1| 60022 | x86_64 |
+| demo   | newvm.vnc.tpl | qemu+ssh://root@192.168.168.1:60022/system |192.168.168.1| 60022 | x86_64 |
 # # kvmdevice
 | kvmhost | name       | devtype | tpl          | action            | desc         |
 |---------+------------+---------+--------------+-------------------+--------------|
@@ -47,17 +47,14 @@ print('''
 | host01  | net-br-ext | net     | net.br-ext   |                   | br-ext网桥   |
 | host01  | debiso_x86 | iso     | cdrom.debian |                   | debian安装CD |
 
-|---------+------------+---------+------------+-------------------|
-| asus    | local-disk | disk    | disk.file  | asus-disk.file    |
-| asus    | net-br-ext | net     | net.br-ext | asus-net.br-ext   |
 # # kvmgold
 | name     | arch    | tpl                  | desc                   |
 | debian12 | x86_64  | bookworm.amd64.qcow2 | debian12 amd64 操作系统|
 | debian12 | aarch64 | bookworm.arm64.qcow2 | debian12 arm64 操作系统|
 ''')
 hosts=[
-    db.KVMHost(name='host01',tpl='newvm.vnc.tpl',url='qemu+tls://192.168.168.1/system',arch='x86_64',ipaddr='192.168.168.1'),
-    db.KVMHost(name='asus',tpl='newvm.vnc.tpl',url='qemu+ssh://root@192.168.168.1:60022/system',arch='x86_64',ipaddr='192.168.168.1'),
+    db.KVMHost(name='host01',tpl='newvm.vnc.tpl',url='qemu+tls://192.168.168.1/system',arch='x86_64',ipaddr='192.168.168.1',sshport=60022),
+    db.KVMHost(name='demo',tpl='newvm.vnc.tpl',url='qemu+ssh://root@192.168.168.1:60022/system',arch='x86_64',ipaddr='192.168.168.1',sshport=60022),
 ]
 host01_devs=[
     db.KVMDevice(kvmhost='host01',name='local-disk',devtype='disk',tpl='disk.file',action='host01-disk.file',desc='文件系统DISK'),
@@ -65,19 +62,14 @@ host01_devs=[
     db.KVMDevice(kvmhost='host01',name='net-br-ext',devtype='net',tpl='net.br-ext',action='',desc='br-ext网桥'),
     db.KVMDevice(kvmhost='host01',name='debiso_x86',devtype='iso',tpl='cdrom.debian',action='',desc='debian安装CD'),
 ]
-asus_devs=[
-    db.KVMDevice(kvmhost='asus',name='local-disk',devtype='disk',tpl='disk.file',action='asus-disk.file',desc='文件系统DISK'),
-    db.KVMDevice(kvmhost='asus',name='net-br-ext',devtype='net',tpl='net.br-ext',action='',desc='br-ext网桥'),
-    db.KVMDevice(kvmhost='asus',name='debiso_x86',devtype='iso',tpl='cdrom.debian',action='',desc='debian安装CD'),
-]
 golds=[
     db.KVMGold(name='debian12',arch='x86_64', tpl='bookworm.amd64.qcow2',desc='debian12 amd64 操作系统'),
     db.KVMGold(name='debian12',arch='aarch64',tpl='bookworm.arm64.qcow2',desc='debian12 arm64 操作系统'),
 ]
+
+db.session.add_all(golds)
 db.session.add_all(hosts)  # db.session.add(host01)
 db.session.add_all(host01_devs)
-db.session.add_all(asus_devs)
-db.session.add_all(golds)
 db.session.commit()
 
 def file_exists(dirname, fn, msg):
@@ -86,10 +78,10 @@ def file_exists(dirname, fn, msg):
     yellow='\033[33m'
     rst='\033[0m'
     if os.path.exists(os.path.join(dirname, fn)):
-        print(f'  {green}SUCCESS{rst} ..{dirname[-15:]:15.15s}  --> {fn:10s} OK')
+        print(f'  {green}SUCCESS{rst} ..{dirname[-15:]:15.15s}  --> {fn:20.20s} {green}OK{rst}')
         return True
     print(f'{yellow}{msg}{rst}')
-    print(f'  {red}FAILED{rst}  ..{dirname[-15:]:15.15s}  --> {fn:10s} NOFOUND')
+    print(f'  {red}FAILED{rst}  ..{dirname[-15:]:15.15s}  --> {fn:20.20s} {red}NOFOUND{rst}')
     return False
 
 for r in db.Base.exesql(f'select * from kvmhost'):

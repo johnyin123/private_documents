@@ -3,8 +3,8 @@ LC_ALL=C
 LANG=C
 set -o nounset -o pipefail -o errexit
 set -o xtrace
-# # reqire: jq qemu-img cat logger
-log() { logger -t 'qemu-rbd.action' "$*"; }
+# # reqire: jq qemu-img cat
+log() { echo "qemu-rbd.action $*"; }
 json_config_default() {
     local key=${1}
     local default=${2}
@@ -20,7 +20,9 @@ json_config_default() {
 REQ_JSON=$(cat)
 URL=${URL:-}
 TYPE=${TYPE:-}
-log "${TYPE} ${URL} ${REQ_JSON}"
+HOSTIP=${HOSTIP:-}
+SSHPORT=${SSHPORT:-}
+log "${TYPE} ${URL} ${HOSTIP} ${REQ_JSON}"
 UUID=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_uuid" "")
 SIZE=$(printf "%s" "${REQ_JSON}" | json_config_default ".size" "10G")
 GOLD=$(printf "%s" "${REQ_JSON}" | json_config_default ".gold" "")

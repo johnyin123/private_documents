@@ -109,8 +109,7 @@ class MyApp(object):
 
     def attach_device(self, hostname, uuid, name):
         req_json = flask.request.json
-        default_conf = {'size': '10G', 'gold':''}
-        req_json = {**default_conf, **req_json}
+        req_json = {**config.ATTACH_DEFAULT, **req_json}
         logger.info(f'attach_device {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
         dev = database.KVMDevice.getDeviceInfo(hostname, name)
@@ -136,14 +135,14 @@ class MyApp(object):
 
     def create_vm(self, hostname):
         req_json = flask.request.json
-        default_conf = {'vm_arch':'x86_64','vm_name':'srv','vm_uuid':gen_uuid()}
-        req_json = {**default_conf, **req_json}
+        req_json = {**config.VM_DEFAULT, **req_json}
         logger.info(f'create_vm {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
         if (host.arch.lower() != req_json['vm_arch'].lower()):
             raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')
         # force use host arch string
         req_json['vm_arch'] = host.arch
+        req_json['vm_uuid'] = gen_uuid()
         xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
         vmmanager.VMManager(host.name, host.url).create_vm(req_json['vm_uuid'], xml)
         return { 'result' : 'OK', 'uuid' : req_json['vm_uuid'], 'host': hostname }

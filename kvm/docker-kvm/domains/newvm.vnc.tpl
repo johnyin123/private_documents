@@ -24,7 +24,7 @@
   <iothreads>1</iothreads>
   <os>
     <type arch='{{ vm_arch }}' machine='{{ __machine__ }}'>hvm</type>
-{%- if vm_uefi is defined %}
+{%- if vm_uefi is defined and vm_uefi != '' %}
     <loader readonly='yes' secure='no' type='pflash'>{{ vm_uefi }}</loader>
 {%- endif %}
     <boot dev='hd'/>

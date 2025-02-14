@@ -51,5 +51,5 @@ def execute(json_str:str, action:str, arg:str,**kwargs):
 def do_action(devtype:str, action:str, arg:str ,host:dict, xml:str, req:dict):
     logger.info(f'{devtype} exec:{action} {arg} {req} {xml}')
     req = json.dumps(req, indent='  ', ensure_ascii=False)
-    env={'URL':host.url, 'TYPE':devtype}
+    env={'URL':host.url, 'TYPE':devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
     execute(req, os.path.join(config.ACTION_DIR, f'{action}'), arg, **env)
