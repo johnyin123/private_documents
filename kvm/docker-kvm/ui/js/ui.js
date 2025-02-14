@@ -265,17 +265,20 @@ function add_net(host, uuid) {
   }, null);
 }
 function add_iso(host, uuid) {
+  const form = document.getElementById('addiso_form');
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
-    dev_lst = gen_dev_list(devs, 'device', 'iso', 'ISO:');
-    dialog.open({
-      dialogClass: 'custom',
-      message: 'Add ISO',
-      accept: 'Add',
-      template: `${dev_lst}`
-    })
-    dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
+    const isolst = document.getElementById('iso_list');
+    isolst.innerHTML = gen_dev_list(devs, 'device', 'iso', 'ISO:');
   }, null);
+  form.addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevents the default form submission
+    const res = getFormJSON(form);
+    console.log(`add iso : ${res}`);
+    do_add(host, uuid, res);
+    showView('hostlist');
+  });
+  showView('addiso');
 }
 getjson('GET', '/tpl/host', function (res) {
   config.g_hosts = JSON.parse(res);
@@ -313,7 +316,7 @@ getjson('GET', '/tpl/host', function (res) {
 //   event.preventDefault(); // Prevents the default form submission
 //   const res = getFormJSON(form);
 //   console.log(res)
-// }
+// });
 function getFormJSON(form) {
   const data = new FormData(form);
   return Array.from(data.keys()).reduce((result, key) => {
