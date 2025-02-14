@@ -19,19 +19,12 @@ function show_vms(host, vms) {
     }
     table += "<td>"
     table += gen_act('VNC', 'display', host, item.uuid, 'fa-television')
-    table += '&nbsp;'
     table += gen_act('Start', 'start', host, item.uuid, 'fa-play')
-    table += '&nbsp;'
     table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off')
-    table += '&nbsp;'
     table += gen_act('ForceStop', 'force_stop', host, item.uuid, 'fa-plug')
-    table += '&nbsp;'
     table += gen_act('Undefine', 'undefine', host, item.uuid, 'fa-times')
-    table += '&nbsp;'
     table += gen_act('Add ISO', 'add_iso', host, item.uuid, 'fa-plus')
-    table += '&nbsp;'
     table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-plus')
-    table += '&nbsp;'
     table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-plus')
     //<select name="devtype"><option value="disk">disk</option><option value="net">net</option><option value="iso">iso</option></select>
     table += "</td></tr>";
@@ -193,23 +186,23 @@ function create_vm(host, arch) {
   dialog.waitForUser().then((res) => { do_create(host, res); })
 }
 function gen_gold_list(jsonobj, id) {
-  var lst = `<label>${id}</label><select name="${id}">`;
+  var lst = `<label>${id}<select name="${id}">`;
   // add empty value for data disk
   lst += `<option value="" selected>数据盘</option>`;
   jsonobj.forEach(item => {
     lst += `<option value="${item['name']}">${item['desc']}</option>`;
   });
-  lst += '</select>';
+  lst += '</select></label>';
   return lst;
 }
 function gen_dev_list(jsonobj, id, devtype) {
-  var lst = `<label>${id}</label><select name="${id}">`;
+  var lst = `<label>${id}<select name="${id}">`;
   jsonobj.forEach(item => {
     if(devtype === item['devtype']) {
       lst += `<option value="${item['name']}">${item['desc']}</option>`;
     }
   });
-  lst += '</select>';
+  lst += '</select></label>';
   return lst;
 }
 function do_add(host, uuid, res) {
@@ -228,15 +221,15 @@ function do_add(host, uuid, res) {
 function add_disk(host, uuid) {
   getjson('GET', `/tpl/gold/${host}`, function(res) {
     var gold = JSON.parse(res);
-    gold_lst = gen_gold_list(gold, 'gold');
+    gold_lst = gen_gold_list(gold, 'Gold:');
     getjson('GET', `/tpl/device/${host}`, function(res) {
       var devs = JSON.parse(res);
-      dev_lst = gen_dev_list(devs, 'device', 'disk');
+      dev_lst = gen_dev_list(devs, 'Device:', 'disk');
       dialog.open({
         dialogClass: 'custom',
         message: 'Add Disk',
         accept: 'Add',
-        template: `${dev_lst}${gold_lst}<input type="text" name="size" value="5G">`
+        template: `${dev_lst}${gold_lst}<label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>`
       })
       dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
     }, null);
@@ -245,7 +238,7 @@ function add_disk(host, uuid) {
 function add_net(host, uuid) {
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
-    dev_lst = gen_dev_list(devs, 'device', 'net');
+    dev_lst = gen_dev_list(devs, 'Device:', 'net');
     dialog.open({
       dialogClass: 'custom',
       message: 'Add Network',
@@ -258,7 +251,7 @@ function add_net(host, uuid) {
 function add_iso(host, uuid) {
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
-    dev_lst = gen_dev_list(devs, 'device', 'iso');
+    dev_lst = gen_dev_list(devs, 'Device:', 'iso');
     dialog.open({
       dialogClass: 'custom',
       message: 'Add ISO',
@@ -297,3 +290,31 @@ getjson('GET', '/tpl/host', function (res) {
   }
   document.getElementById("mainMenu").innerHTML = mainMenu;
 }, null);
+///////////////////////////////////////////////////////////
+// <form id="myform"></form>
+// const form = document.getElementById('myform');
+// form.addEventListener('submit', function(event) {
+//   event.preventDefault(); // Prevents the default form submission
+//   const res = getFormJSON(form);
+//   console.log(res)
+// }
+function getFormJSON(form) {
+  const data = new FormData(form);
+  return Array.from(data.keys()).reduce((result, key) => {
+    result[key] = data.get(key);
+    return result;
+  }, {});
+}
+///////////////////////////////////////////////////////////
+// .tabContent { display:none; }
+// <div id="myview" class="tabContent">...</div>
+// <div id="view1" class="tabContent">...</div>
+// showView('view1')
+function showView(id) {
+  var view = document.getElementById(id);
+  var tabContents = document.getElementsByClassName('tabContent');
+  for (var i = 0; i < tabContents.length; i++) {
+    tabContents[i].style.display = 'none';
+  }
+  if(view != null) { view.style.display = "block"; }
+}

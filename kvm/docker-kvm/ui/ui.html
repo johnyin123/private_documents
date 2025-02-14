@@ -9,11 +9,42 @@
     <script language="javascript" src="js/dialog.js"></script>
 </head>
 <body>
-  <h1>Dropdown Menu</h1>
+  <header>
+    <h1>Dropdown Menu</h1>
+  </header>
   <div class="menu"><div id="mainMenu"></div><div class="clear"></div></div>
-  <br><div class="host"><div id="host"></div></div>
-  <br><div class="vms"><div id="vms"></div></div>
-  <br><div class="display"><embed id="display" width="800" height="600" src="" type="text/html"/></div>
+  <main>
+  <div id="content">
+    <br><div class="host"><div id="host"></div></div>
+    <br><div class="vms"><div id="vms"></div></div>
+    <!-- ############## demo -->
+    <input type="button" value="demo" onclick="showView('hostlist')"/>
+    <input type="button" value="close" onclick="showView('')"/>
+    <div id="hostlist" class="tabContent">
+      <section>
+        <h1>KVM Host List</h1>
+        <ul id="kvmhosts"></ul>
+      </section>
+    </div>
+    <!-- ############## -->
+    <div id="display" class="tabContent">
+      <embed id="display" width="800" height="600" src="" type="text/html"/>
+    </div>
+    <!-- ############## -->
+    <div id="createvm" class="tabContent">
+      <form id="createvm_form">
+        <label>cpu<input type="number" name="vm_vcpus" value="2" min="1" max="16"/></label>
+        <label>mem(MB)<input type="number" name="vm_ram_mb" value="2048" min="1024" max="16384" step="1024"/></label>
+        <label>ip<input type="text" name="vm_ip" value="192.168.168.2/24"/></label>
+        <label>gw<input type="text" name="vm_gw" value="192.168.168.1"/></label>
+        <label>desc<input type="text" name="vm_desc" value=""/></label>
+        <input type="button" value="close" onclick="showView('')"/>
+        <input type="submit" value="Submit"/>
+      </form>
+    </div>
+    <!-- ############## -->
+  </div>
+  </main>
   <script language="javascript" src="js/ui.js"></script>
 </body>
 </html>
