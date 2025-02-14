@@ -9,26 +9,51 @@
     <script language="javascript" src="js/dialog.js"></script>
 </head>
 <body>
-  <header>
-    <h1>Dropdown Menu</h1>
-  </header>
-  <div class="menu"><div id="mainMenu"></div><div class="clear"></div></div>
-  <main>
+<div id="main">
+  <div id="sidebar"></div>
   <div id="content">
-    <br><div class="host"><div id="host"></div></div>
-    <br><div class="vms"><div id="vms"></div></div>
-    <!-- ############## demo -->
-    <input type="button" value="demo" onclick="showView('hostlist')"/>
-    <input type="button" value="close" onclick="showView('')"/>
+    <div id="firstpage" class="tabContent" style="display:block">
+        <h1>hello</h1>
+    </div>
+    <!-- ############## -->
     <div id="hostlist" class="tabContent">
       <section>
-        <h1>KVM Host List</h1>
+        <h1>KVM Host</h1>
+        <div class="host"id="host"></div><br>
+        <h1>VMS</h1>
+        <div class="vms" id="vms"></div>
         <ul id="kvmhosts"></ul>
       </section>
     </div>
     <!-- ############## -->
     <div id="display" class="tabContent">
       <embed id="display" width="800" height="600" src="" type="text/html"/>
+    </div>
+    <!-- ############## -->
+    <div id="addiso" class="tabContent">
+      <form id="addiso_form">
+        <div id="iso_list"></div>
+        <input type="button" value="close" onclick="showView('')"/>
+        <input type="submit" value="Submit"/>
+      </form>
+    </div>
+    <!-- ############## -->
+    <div id="addnet" class="tabContent">
+      <form id="addnet_form">
+        <div id="net_list"></div>
+        <input type="button" value="close" onclick="showView('')"/>
+        <input type="submit" value="Submit"/>
+      </form>
+    </div>
+    <!-- ############## -->
+    <div id="adddisk" class="tabContent">
+      <form id="adddisk_form">
+        <div id="gold_list"></div>
+        <div id="dev_list"></div>
+        <label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>
+        <input type="button" value="close" onclick="showView('')"/>
+        <input type="submit" value="Submit"/>
+      </form>
     </div>
     <!-- ############## -->
     <div id="createvm" class="tabContent">
@@ -44,7 +69,7 @@
     </div>
     <!-- ############## -->
   </div>
-  </main>
-  <script language="javascript" src="js/ui.js"></script>
+</div>
+<script language="javascript" src="js/ui.js"></script>
 </body>
 </html>

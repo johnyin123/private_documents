@@ -5,6 +5,9 @@ function gen_act(smsg, action, host, parm2, icon) {
   return `<button class='hovertext' data-hover='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
 }
 function show_vms(host, vms) {
+  delete vms[0].gateway;
+  delete vms[0].vcpus;
+  delete vms[0].maxmem;
   var table = "<table><tr>";
   for(var key in vms[0]) {
     table += `<th>${key}</th>`;
@@ -14,6 +17,9 @@ function show_vms(host, vms) {
   }
   vms.forEach(item => {
     table += "<tr>";
+    delete item.gateway;
+    delete item.vcpus;
+    delete item.maxmem;
     for(var key in item) {
       table += `<td>${item[key]}</td>`;
     }
@@ -94,9 +100,10 @@ function vmlist(host) {
   }, null);
 }
 function on_menu_host(host, n) {
-  document.getElementById("host").innerHTML = ''
+  document.getElementById("host").innerHTML = '';
   document.getElementById("host").innerHTML = show_host(host[n]);
-  vmlist(host[n].name)
+  vmlist(host[n].name);
+  showView("hostlist");
 }
 function start(host, uuid) {
   getjson('GET', `/vm/start/${host}/${uuid}`, function(res) {
@@ -288,7 +295,7 @@ getjson('GET', '/tpl/host', function (res) {
     }
     mainMenu += "</li>";
   }
-  document.getElementById("mainMenu").innerHTML = mainMenu;
+  document.getElementById("sidebar").innerHTML = mainMenu;
 }, null);
 ///////////////////////////////////////////////////////////
 // <form id="myform"></form>
