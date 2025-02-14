@@ -58,6 +58,12 @@ function dispok(msg) {
 function disperr(code, name, desc) {
   alert(`${code} ${name} ${desc}`);
 }
+function overlayon() {
+  document.getElementById("overlay").style.display = "block";
+}
+function overlayoff() {
+  document.getElementById("overlay").style.display = "none";
+}
 function getjson(method, url, callback, data) {
   var sendObject = null;
   if(null !== data && typeof data !== 'undefined') {
@@ -68,19 +74,21 @@ function getjson(method, url, callback, data) {
   //xhr.addEventListener("load", transferComplete);
   //xhr.addEventListener("error", transferFailed);
   //xhr.addEventListener("abort", transferCanceled);
-  xhr.onerror = function () { console.error(`${url} ${method} net error`); };
-  xhr.ontimeout = function () { console.error(`${url} ${method} timeout`); };
+  xhr.onerror = function () { overlayoff(); console.error(`${url} ${method} net error`); };
+  xhr.ontimeout = function () { overlayoff(); console.error(`${url} ${method} timeout`); };
   xhr.open(method, url, true);
   //xhr.setRequestHeader('Pragma', 'no-cache');
   xhr.setRequestHeader('Content-Type', 'application/json')
   xhr.timeout = 30000; // Set a timeout 30 seconds
   xhr.onreadystatechange = function() {
     if(this.readyState === 4 && this.status === 200) {
+      overlayoff();
       console.log(`${method} ${url} ${xhr.response}`);
       callback(xhr.response);
       return;
     }
     if(xhr.readyState === 4 && xhr.status !== 0) {
+      overlayoff();
       console.error(`${url} ${method} ${xhr.status} ${xhr.statusText}`);
       disperr(xhr.status, method, `${url} ${xhr.statusText}`);
     }
@@ -91,6 +99,7 @@ function getjson(method, url, callback, data) {
   } else {
     xhr.send();
   }
+  overlayon();
 }
 function vmlist(host) {
   document.getElementById("vms").innerHTML = ''
@@ -192,8 +201,8 @@ function create_vm(host, arch) {
   })
   dialog.waitForUser().then((res) => { do_create(host, res); })
 }
-function gen_gold_list(jsonobj, id) {
-  var lst = `<label>${id}<select name="${id}">`;
+function gen_gold_list(jsonobj, id, text) {
+  var lst = `<label>${text}<select name="${id}">`;
   // add empty value for data disk
   lst += `<option value="" selected>数据盘</option>`;
   jsonobj.forEach(item => {
@@ -202,8 +211,8 @@ function gen_gold_list(jsonobj, id) {
   lst += '</select></label>';
   return lst;
 }
-function gen_dev_list(jsonobj, id, devtype) {
-  var lst = `<label>${id}<select name="${id}">`;
+function gen_dev_list(jsonobj, id, devtype, text) {
+  var lst = `<label>${text}<select name="${id}">`;
   jsonobj.forEach(item => {
     if(devtype === item['devtype']) {
       lst += `<option value="${item['name']}">${item['desc']}</option>`;
@@ -228,10 +237,10 @@ function do_add(host, uuid, res) {
 function add_disk(host, uuid) {
   getjson('GET', `/tpl/gold/${host}`, function(res) {
     var gold = JSON.parse(res);
-    gold_lst = gen_gold_list(gold, 'Gold:');
+    gold_lst = gen_gold_list(gold, 'gold', 'Gold:');
     getjson('GET', `/tpl/device/${host}`, function(res) {
       var devs = JSON.parse(res);
-      dev_lst = gen_dev_list(devs, 'Device:', 'disk');
+      dev_lst = gen_dev_list(devs, 'device', 'disk', 'Disk:');
       dialog.open({
         dialogClass: 'custom',
         message: 'Add Disk',
@@ -245,7 +254,7 @@ function add_disk(host, uuid) {
 function add_net(host, uuid) {
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
-    dev_lst = gen_dev_list(devs, 'Device:', 'net');
+    dev_lst = gen_dev_list(devs, 'device', 'net', 'Network:');
     dialog.open({
       dialogClass: 'custom',
       message: 'Add Network',
@@ -258,7 +267,7 @@ function add_net(host, uuid) {
 function add_iso(host, uuid) {
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
-    dev_lst = gen_dev_list(devs, 'Device:', 'iso');
+    dev_lst = gen_dev_list(devs, 'device', 'iso', 'ISO:');
     dialog.open({
       dialogClass: 'custom',
       message: 'Add ISO',
