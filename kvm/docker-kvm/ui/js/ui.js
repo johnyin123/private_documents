@@ -1,6 +1,6 @@
 var config = { g_hosts: {}, g_menu : [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "javascript:about()" } ] } ] };
 dialog = new Dialog();
-function about() { alert("vmmagr"); }
+function about() { showView('about'); }
 function gen_act(smsg, action, host, parm2, icon) {
   return `<button class='hovertext' data-hover='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
 }
