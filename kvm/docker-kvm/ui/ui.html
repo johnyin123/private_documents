@@ -12,7 +12,20 @@
 <div id="main">
   <div id="overlay"><div id="oltext">Wait......</div></div>
   <!-- ############## -->
-  <div id="sidebar"></div>
+  <div id="sidebar">
+    <ul>
+      <li><a href='#'>KVMHosts</a>
+        <ul>
+          <li><a href="javascript:showView('hostlist')">host01</a></li>
+        </ul>
+      </li>
+      <li><a href='#'>About</a>
+        <ul>
+          <li><a href="javascript:showView('about')">about</a></li>
+        </ul>
+      </li>
+    </ul>
+  </div>
   <!-- ############## -->
   <div id="content">
     <div id="about" class="tabContent">
@@ -26,9 +39,19 @@
     <div id="hostlist" class="tabContent">
       <section>
         <h1>KVM Host</h1>
-        <div class="host"id="host"></div><br>
+        <div class="host"id="host">
+          <table>
+            <tr><th>arch</th><th>desc</th><th>ipaddr</th><th>name</th><th>sshport</th><th>tpl</th><th>url</th><th>Actions</th></tr>
+            <tr><td>x86_64</td><td>null</td><td>192.168.1.1</td><td>host01</td><td>22</td><td>newvm.vnc.tpl</td><td>qemu+tls://demo/system</td><td><button class='hovertext' data-hover='Create VM' onclick="showView('createvm')"><i class="fa fa-plus"></i></button></td></tr>
+          </table>
+        </div><br>
         <h1>VMS</h1>
-        <div class="vms" id="vms"></div>
+        <div class="vms" id="vms">
+          <table>
+          <tr><th>cputime</th><th>curcpu</th><th>curmem</th><th>desc</th><th>ipaddr</th><th>state</th><th>uuid</th><th>Actions</th></tr>
+          <tr><td>0</td><td>2</td><td>2097152</td><td>测试VM</td><td>192.168.168.2/24</td><td>5</td><td>c453cab6-3c97-4128-89e2-284e1eb92981</td><td><button class='hovertext' data-hover='VNC'><i class="fa fa-television"></i></button><button class='hovertext' data-hover='Start'><i class="fa fa-play"></i></button><button class='hovertext' data-hover='Stop'><i class="fa fa-power-off"></i></button><button class='hovertext' data-hover='ForceStop'><i class="fa fa-plug"></i></button><button class='hovertext' data-hover='Undefine'><i class="fa fa-times"></i></button><button class='hovertext' data-hover='Add ISO' onclick="showView('addiso')"><i class="fa fa-plus"></i></button><button class='hovertext' data-hover='Add NET' onclick="showView('addnet')"><i class="fa fa-plus"></i></button><button class='hovertext' data-hover='Add DISK' onclick="showView('adddisk')"><i class="fa fa-plus"></i></button></td></tr>
+          </table>
+        </div>
         <ul id="kvmhosts"></ul>
       </section>
     </div>
@@ -39,7 +62,13 @@
     <!-- ############## -->
     <div id="addiso" class="tabContent">
       <form id="addiso_form">
-        <div id="iso_list"></div>
+        <div id="iso_list">
+          <label>ISO:
+            <select name="device">
+              <option value="centos_x86_64">centos8 x86_64</option>
+            </select>
+          </label>
+        </div>
         <input type="button" value="close" onclick="showView('hostlist')"/>
         <input type="submit" value="Submit"/>
       </form>
@@ -47,18 +76,37 @@
     <!-- ############## -->
     <div id="addnet" class="tabContent">
       <form id="addnet_form">
-        <div id="net_list"></div>
-        <input type="button" value="close" onclick="showView('')"/>
+        <div id="net_list">
+          <label>Network:
+            <select name="device">
+              <option value="br-ext">bridge netnwork</option>
+            </select>
+          </label>
+        </div>
+        <input type="button" value="close" onclick="showView('hostlist')"/>
         <input type="submit" value="Submit"/>
       </form>
     </div>
     <!-- ############## -->
     <div id="adddisk" class="tabContent">
       <form id="adddisk_form">
-        <div id="gold_list"></div>
-        <div id="dev_list"></div>
+        <div id="gold_list">
+          <label>Gold:
+            <select name="gold">
+              <option value="" selected>数据盘</option>
+              <option value="syslinux">linunx</option>
+            </select>
+          </label>
+        </div>
+        <div id="dev_list">
+          <label>Disk:
+            <select name="device">
+              <option value="filesys">rbd disk</option>
+            </select>
+          </label>
+        </div>
         <label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>
-        <input type="button" value="close" onclick="showView('')"/>
+        <input type="button" value="close" onclick="showView('hostlist')"/>
         <input type="submit" value="Submit"/>
       </form>
     </div>
@@ -70,7 +118,7 @@
         <label>ip<input type="text" name="vm_ip" value="192.168.168.2/24"/></label>
         <label>gw<input type="text" name="vm_gw" value="192.168.168.1"/></label>
         <label>desc<input type="text" name="vm_desc" value=""/></label>
-        <input type="button" value="close" onclick="showView('')"/>
+        <input type="button" value="close" onclick="showView('hostlist')"/>
         <input type="submit" value="Submit"/>
       </form>
     </div>

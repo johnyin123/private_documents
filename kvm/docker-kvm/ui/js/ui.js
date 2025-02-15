@@ -307,6 +307,7 @@ getjson('GET', '/tpl/host', function (res) {
     }
     mainMenu += "</li>";
   }
+  mainMenu += "</ul>";
   document.getElementById("sidebar").innerHTML = mainMenu;
 }, null);
 ///////////////////////////////////////////////////////////
