@@ -1,5 +1,4 @@
 var config = { g_hosts: {}, g_menu : [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "javascript:about()" } ] } ] };
-dialog = new Dialog();
 function about() { showView('about'); }
 function gen_act(smsg, action, host, parm2, icon) {
   return `<button class='hovertext' data-hover='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
@@ -162,14 +161,8 @@ function display(host, uuid) {
   getjson('GET', `/vm/display/${host}/${uuid}`, function(res) {
     result = JSON.parse(res);
     if(result.result === 'OK') {
-      dialog.open({
-        dialogClass: 'custom',
-        message: 'Console',
-        template: `<embed width="640" height="480" src=${result.display} type="text/html"/>`
-      })
-      dialog.waitForUser().then((res) => { })
       //document.getElementById("display").src = result.display;
-      //window.open(result.display, "_blank");
+      window.open(result.display, "_blank");
     } else {
       disperr(result.code, result.name, result.desc)
     }
@@ -188,18 +181,15 @@ function do_create(host, res) {
   }, res);
 }
 function create_vm(host, arch) {
-  dialog.open({
-    dialogClass: 'custom',
-    message: 'CreateVM',
-    accept: 'Create',
-    template: `<input type="hidden" name="vm_arch" value="${arch}">` +
-      '<label>CPU:<input type="number" name="vm_vcpus" value="2" min="1" max="8"/></label>' +
-      '<label>MEM(MB):<input type="number" name="vm_ram_mb" value="2048" min="1024" max="8192" step="1024"/></label>' +
-      '<label>IPADDR:<input type="text" name="vm_ip" value="192.168.168.2/24"/></label>' +
-      '<label>GATEWAY:<input type="text" name="vm_gw" value="192.168.168.1"/></label>' +
-      '<label>DESC:<input type="text" name="vm_desc" value=""/></label>'
-  })
-  dialog.waitForUser().then((res) => { do_create(host, res); })
+  const form = document.getElementById('createvm_form');
+  form.addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevents the default form submission
+    const res = getFormJSON(form);
+    console.log(`createvm : ${res}`);
+    do_create(host, res);
+    showView('hostlist');
+  });
+  showView('createvm');
 }
 function gen_gold_list(jsonobj, id, text) {
   var lst = `<label>${text}<select name="${id}">`;
@@ -235,40 +225,47 @@ function do_add(host, uuid, res) {
   }, res);
 }
 function add_disk(host, uuid) {
+  const form = document.getElementById('adddisk_form');
+  const goldlst = form.getElementById('gold_list');
+  const devlst = form.getElementById('dev_list');
   getjson('GET', `/tpl/gold/${host}`, function(res) {
     var gold = JSON.parse(res);
-    gold_lst = gen_gold_list(gold, 'gold', 'Gold:');
-    getjson('GET', `/tpl/device/${host}`, function(res) {
-      var devs = JSON.parse(res);
-      dev_lst = gen_dev_list(devs, 'device', 'disk', 'Disk:');
-      dialog.open({
-        dialogClass: 'custom',
-        message: 'Add Disk',
-        accept: 'Add',
-        template: `${dev_lst}${gold_lst}<label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>`
-      })
-      dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
-    }, null);
+    goldlst.innerHTML = gen_gold_list(gold, 'gold', 'Gold:');
   }, null);
-}
-function add_net(host, uuid) {
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
-    dev_lst = gen_dev_list(devs, 'device', 'net', 'Network:');
-    dialog.open({
-      dialogClass: 'custom',
-      message: 'Add Network',
-      accept: 'Add',
-      template: `${dev_lst}`
-    })
-    dialog.waitForUser().then((res) => { do_add(host, uuid, res); })
+    devlst.innerHTML = gen_dev_list(devs, 'device', 'disk', 'Disk:');
   }, null);
+  form.addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevents the default form submission
+    const res = getFormJSON(form);
+    console.log(`add disk : ${res}`);
+    do_add(host, uuid, res);
+    showView('hostlist');
+  });
+  showView('adddisk');
+}
+function add_net(host, uuid) {
+  const form = document.getElementById('addnet_form');
+  const netlst = form.getElementById('net_list');
+  getjson('GET', `/tpl/device/${host}`, function(res) {
+    var devs = JSON.parse(res);
+    netlst.innerHTML = gen_dev_list(devs, 'device', 'net', 'Network:');
+  }, null);
+  form.addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevents the default form submission
+    const res = getFormJSON(form);
+    console.log(`add net : ${res}`);
+    do_add(host, uuid, res);
+    showView('hostlist');
+  });
+  showView('addnet');
 }
 function add_iso(host, uuid) {
   const form = document.getElementById('addiso_form');
+  const isolst = form.getElementById('iso_list');
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
-    const isolst = document.getElementById('iso_list');
     isolst.innerHTML = gen_dev_list(devs, 'device', 'iso', 'ISO:');
   }, null);
   form.addEventListener('submit', function(event) {

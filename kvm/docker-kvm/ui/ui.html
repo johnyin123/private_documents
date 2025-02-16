@@ -4,9 +4,7 @@
     <meta charset="utf-8">
     <title>test</title>
     <link type="text/css" rel="stylesheet" href="css/ui.css" />
-    <link type="text/css" rel="stylesheet" href="css/dialog.css" />
     <link rel="stylesheet" href="css/font-awesome.min.css">
-    <script language="javascript" src="js/dialog.js"></script>
 </head>
 <body>
 <div id="main">
@@ -115,9 +113,15 @@
       <form id="createvm_form">
         <label>cpu<input type="number" name="vm_vcpus" value="2" min="1" max="16"/></label>
         <label>mem(MB)<input type="number" name="vm_ram_mb" value="2048" min="1024" max="16384" step="1024"/></label>
+        <label>desc<input type="text" name="vm_desc" value=""/></label>
         <label>ip<input type="text" name="vm_ip" value="192.168.168.2/24"/></label>
         <label>gw<input type="text" name="vm_gw" value="192.168.168.1"/></label>
-        <label>desc<input type="text" name="vm_desc" value=""/></label>
+        <div id="meta_data">
+          <table id="table_meta_data">
+            <tbody><tr><th>Name</th><th>Value</th><th>Delete</th></tr></tbody>
+          </table>
+        </div>
+        <input type="button" value="AddField" onclick="add_meta()"/>
         <input type="button" value="close" onclick="showView('hostlist')"/>
         <input type="submit" value="Submit"/>
       </form>
@@ -126,5 +130,26 @@
   </div>
 </div>
 <script language="javascript" src="js/ui.js"></script>
+<script>
+function set_name(r) {
+  var i = r.parentNode.parentNode.rowIndex;
+  var input = document.getElementById("table_meta_data").rows[i].cells[1].getElementsByTagName('input')
+  input[0].name=r.value;
+}
+function del_meta(r) {
+  var i = r.parentNode.parentNode.rowIndex;
+  document.getElementById("table_meta_data").deleteRow(i);
+}
+function add_meta() {
+  var tableRef = document.getElementById("table_meta_data");
+  var newRow = tableRef.insertRow(-1);
+  var cell0 = newRow.insertCell(0);
+  var cell1 = newRow.insertCell(1);
+  var cell2 = newRow.insertCell(2);
+  cell0.innerHTML = '<input type="text"/ onChange="set_name(this)">';
+  cell1.innerHTML = '<input type="text" value="11"/>';
+  cell2.innerHTML = '<input type="button" value="Delete" onclick="del_meta(this)"/>';
+}
+</script>
 </body>
 </html>

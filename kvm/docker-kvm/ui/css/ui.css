@@ -50,17 +50,6 @@
   opacity: 1;
   visibility: visible;
 }
-#content .host table, th, td {
-  border: 1px solid black;
-  border-radius: 10px;
-}
-#content .vms table, th, td {
-  border: 2px solid black;
-  border-collapse: collapse;
-}
-#content .vms tr:nth-child(even) {
-  background-color: #f2f2f2;
-}
 #content form {
   max-width: 400px;
   margin: 20px auto;
@@ -122,4 +111,15 @@ select {
   color: white;
   transform: translate(-50%,-50%);
   -ms-transform: translate(-50%,-50%);
+}
+#host table, th, td {
+  border: 1px solid black;
+  border-radius: 10px;
+}
+#vms table, th, td {
+  border: 2px solid black;
+  border-collapse: collapse;
+}
+#vms tr:nth-child(even) {
+  background-color: #f2f2f2;
 }
