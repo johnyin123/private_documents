@@ -69,7 +69,7 @@ function getjson(method, url, callback, data) {
     sendObject = JSON.stringify(data);
     sendObject['epoch']=~~(Date.now()/1000);
   }
-  xhr=new XMLHttpRequest();
+  var xhr = new XMLHttpRequest();
   //xhr.addEventListener("load", transferComplete);
   //xhr.addEventListener("error", transferFailed);
   //xhr.addEventListener("abort", transferCanceled);
@@ -103,7 +103,7 @@ function getjson(method, url, callback, data) {
 function vmlist(host) {
   document.getElementById("vms").innerHTML = ''
   getjson('GET', `/vm/list/${host}`, function(res) {
-    vms = JSON.parse(res);
+    var vms = JSON.parse(res);
     document.getElementById("vms").innerHTML = show_vms(host, vms);
   }, null);
 }
@@ -115,7 +115,7 @@ function on_menu_host(host, n) {
 }
 function start(host, uuid) {
   getjson('GET', `/vm/start/${host}/${uuid}`, function(res) {
-    result = JSON.parse(res);
+    var result = JSON.parse(res);
     if(result.result === 'OK') {
       dispok('start vm OK');
       vmlist(host);
@@ -126,7 +126,7 @@ function start(host, uuid) {
 }
 function stop(host, uuid) {
   getjson('GET', `/vm/stop/${host}/${uuid}`, function(res) {
-    result = JSON.parse(res);
+    var result = JSON.parse(res);
     if(result.result === 'OK') {
       dispok('stop vm OK');
       vmlist(host);
@@ -137,7 +137,7 @@ function stop(host, uuid) {
 }
 function force_stop(host, uuid) {
   getjson('DELETE', `/vm/stop/${host}/${uuid}`, function(res) {
-    result = JSON.parse(res);
+    var result = JSON.parse(res);
     if(result.result === 'OK') {
       dispok('force stop vm OK');
       vmlist(host);
@@ -148,7 +148,7 @@ function force_stop(host, uuid) {
 }
 function undefine(host, uuid) {
   getjson('GET', `/vm/delete/${host}/${uuid}`, function(res) {
-    result = JSON.parse(res);
+    var result = JSON.parse(res);
     if(result.result === 'OK') {
       dispok('undefine vm OK');
       vmlist(host);
@@ -159,7 +159,7 @@ function undefine(host, uuid) {
 }
 function display(host, uuid) {
   getjson('GET', `/vm/display/${host}/${uuid}`, function(res) {
-    result = JSON.parse(res);
+    var result = JSON.parse(res);
     if(result.result === 'OK') {
       //document.getElementById("display").src = result.display;
       window.open(result.display, "_blank");
@@ -171,7 +171,7 @@ function display(host, uuid) {
 function do_create(host, res) {
   if (res == false){ return; }
   getjson('POST', `/vm/create/${host}`, function(res) {
-    result = JSON.parse(res);
+    var result = JSON.parse(res);
     if(result.result === 'OK') {
       dispok('create vm OK');
       vmlist(host);
@@ -215,7 +215,7 @@ function do_add(host, uuid, res) {
   if (res == false){ return; }
   console.log(JSON.stringify(res));
   getjson('POST', `/vm/attach_device/${host}/${uuid}/${res.device}`, function(res) {
-    result = JSON.parse(res);
+    var result = JSON.parse(res);
     if(result.result === 'OK') {
       dispok(`add OK ${res}`);
       vmlist(host);
@@ -226,15 +226,15 @@ function do_add(host, uuid, res) {
 }
 function add_disk(host, uuid) {
   const form = document.getElementById('adddisk_form');
-  const goldlst = form.getElementById('gold_list');
-  const devlst = form.getElementById('dev_list');
-  getjson('GET', `/tpl/gold/${host}`, function(res) {
-    var gold = JSON.parse(res);
-    goldlst.innerHTML = gen_gold_list(gold, 'gold', 'Gold:');
-  }, null);
+  const goldlst = document.getElementById('gold_list');
+  const devlst = document.getElementById('dev_list');
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
     devlst.innerHTML = gen_dev_list(devs, 'device', 'disk', 'Disk:');
+  }, null);
+  getjson('GET', `/tpl/gold/${host}`, function(res) {
+    var gold = JSON.parse(res);
+    goldlst.innerHTML = gen_gold_list(gold, 'gold', 'Gold:');
   }, null);
   form.addEventListener('submit', function(event) {
     event.preventDefault(); // Prevents the default form submission
@@ -247,7 +247,7 @@ function add_disk(host, uuid) {
 }
 function add_net(host, uuid) {
   const form = document.getElementById('addnet_form');
-  const netlst = form.getElementById('net_list');
+  const netlst = document.getElementById('net_list');
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
     netlst.innerHTML = gen_dev_list(devs, 'device', 'net', 'Network:');
@@ -263,7 +263,7 @@ function add_net(host, uuid) {
 }
 function add_iso(host, uuid) {
   const form = document.getElementById('addiso_form');
-  const isolst = form.getElementById('iso_list');
+  const isolst = document.getElementById('iso_list');
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
     isolst.innerHTML = gen_dev_list(devs, 'device', 'iso', 'ISO:');

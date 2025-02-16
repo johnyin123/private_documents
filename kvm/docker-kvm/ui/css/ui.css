@@ -25,7 +25,6 @@
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 #content .tabContent { display:none; }
-
 #content .hovertext {
   position: relative;
   border-bottom: 1px dotted black;
@@ -112,14 +111,20 @@ select {
   transform: translate(-50%,-50%);
   -ms-transform: translate(-50%,-50%);
 }
-#host table, th, td {
-  border: 1px solid black;
-  border-radius: 10px;
-}
-#vms table, th, td {
-  border: 2px solid black;
+table {
   border-collapse: collapse;
+  width: 50%;
+  margin: 20px auto;
 }
-#vms tr:nth-child(even) {
+th, td {
+  padding: 10px;
+  border: 1px solid #ddd;
+  text-align: left;
+}
+th {
+ background-color: #4CAF50;
+ color: white;
+}
+tr:nth-child(even) {
   background-color: #f2f2f2;
 }

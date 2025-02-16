@@ -118,7 +118,7 @@
         <label>gw<input type="text" name="vm_gw" value="192.168.168.1"/></label>
         <div id="meta_data">
           <table id="table_meta_data">
-            <tbody><tr><th>Name</th><th>Value</th><th>Delete</th></tr></tbody>
+            <tbody><tr><th>Name</th><th>Value</th><th>Remove</th></tr></tbody>
           </table>
         </div>
         <input type="button" value="AddField" onclick="add_meta()"/>
@@ -143,12 +143,12 @@ function del_meta(r) {
 function add_meta() {
   var tableRef = document.getElementById("table_meta_data");
   var newRow = tableRef.insertRow(-1);
-  var cell0 = newRow.insertCell(0);
-  var cell1 = newRow.insertCell(1);
-  var cell2 = newRow.insertCell(2);
-  cell0.innerHTML = '<input type="text"/ onChange="set_name(this)">';
-  cell1.innerHTML = '<input type="text" value="11"/>';
-  cell2.innerHTML = '<input type="button" value="Delete" onclick="del_meta(this)"/>';
+  var c_name = newRow.insertCell(0);
+  var c_value = newRow.insertCell(1);
+  var del_btn = newRow.insertCell(2);
+  c_name.innerHTML = '<input type="text"/ onChange="set_name(this)">';
+  c_value.innerHTML = '<input type="text"/>';
+  del_btn.innerHTML = '<input type="button" value="Remove" onclick="del_meta(this)"/>';
 }
 </script>
 </body>
