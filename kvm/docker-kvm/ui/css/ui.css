@@ -24,7 +24,6 @@
   border-radius: 8px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
-#content .tabContent { display:none; }
 #content .hovertext {
   position: relative;
   border-bottom: 1px dotted black;
@@ -49,46 +48,7 @@
   opacity: 1;
   visibility: visible;
 }
-#content form {
-  max-width: 400px;
-  margin: 20px auto;
-  padding: 20px;
-  background-color: #f0f0f0;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-#content form label {
-  display: block;
-  margin-bottom: 8px;
-}
-#content form input, #content form textarea {
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 16px;
-  box-sizing: border-box;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-#content form button {
-  background-color: #4caf50;
-  color: #fff;
-  padding: 10px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-#content form button:hover {
-  background-color: #45a049;
-}
-select {
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 16px;
-  box-sizing: border-box;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
+#content .tabContent { display:none; }
 #overlay {
   position: fixed;
   display: none;
@@ -102,7 +62,7 @@ select {
   z-index: 2;
   cursor: pointer;
 }
-#oltext{
+#overlay_text {
   position: absolute;
   top: 50%;
   left: 50%;
@@ -111,19 +71,53 @@ select {
   transform: translate(-50%,-50%);
   -ms-transform: translate(-50%,-50%);
 }
-table {
-  border-collapse: collapse;
-  width: 50%;
+form {
+  max-width: 400px;
   margin: 20px auto;
+  padding: 20px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+form label {
+  display: block;
+  margin-bottom: 8px;
+}
+form input, form textarea, form select {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 16px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+form button {
+  background-color: #4caf50;
+  color: #fff;
+  padding: 10px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+form button:hover {
+  background-color: #45a049;
+}
+table {
+  table-layout: auto;
+  border-spacing: 0;
+  width: 100%;
+  border: 1px solid #ddd;
+  word-wrap:break-word
 }
 th, td {
-  padding: 10px;
-  border: 1px solid #ddd;
   text-align: left;
+  word-wrap:break-word;
+  margin: auto;
 }
 th {
- background-color: #4CAF50;
- color: white;
+  background-color: #4CAF50;
+  color: white;
 }
 tr:nth-child(even) {
   background-color: #f2f2f2;

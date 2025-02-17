@@ -8,7 +8,7 @@
 </head>
 <body>
 <div id="main">
-  <div id="overlay"><div id="oltext">Wait......</div></div>
+  <div id="overlay"><div id="overlay_text">Wait......</div></div>
   <!-- ############## -->
   <div id="sidebar">
     <ul>
@@ -116,11 +116,7 @@
         <label>desc<input type="text" name="vm_desc" value=""/></label>
         <label>ip<input type="text" name="vm_ip" value="192.168.168.2/24"/></label>
         <label>gw<input type="text" name="vm_gw" value="192.168.168.1"/></label>
-        <div id="meta_data">
-          <table id="table_meta_data">
-            <tbody><tr><th>Name</th><th>Value</th><th>Remove</th></tr></tbody>
-          </table>
-        </div>
+        <div id="meta_data"><table id="table_meta_data"></table></div>
         <input type="button" value="AddField" onclick="add_meta()"/>
         <input type="button" value="close" onclick="showView('hostlist')"/>
         <input type="submit" value="Submit"/>
@@ -146,8 +142,8 @@ function add_meta() {
   var c_name = newRow.insertCell(0);
   var c_value = newRow.insertCell(1);
   var del_btn = newRow.insertCell(2);
-  c_name.innerHTML = '<input type="text"/ onChange="set_name(this)">';
-  c_value.innerHTML = '<input type="text"/>';
+  c_name.innerHTML = '<input type="text"/ placeholder="name" onChange="set_name(this)">';
+  c_value.innerHTML = '<input type="text" placeholder="value"/>';
   del_btn.innerHTML = '<input type="button" value="Remove" onclick="del_meta(this)"/>';
 }
 </script>
