@@ -87,16 +87,12 @@ form input, form textarea, form select {
   width: 100%;
   box-sizing: border-box;
 }
-form button {
-  background-color: #4caf50;
-  color: #fff;
-  padding: 10px;
+button {
   border: none;
-  border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
-form button:hover {
+button:hover {
   background-color: #45a049;
 }
 table {
