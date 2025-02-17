@@ -48,7 +48,7 @@
   opacity: 1;
   visibility: visible;
 }
-#content .tabContent { display:none; }
+.tabContent { display:none; }
 #overlay {
   position: fixed;
   display: none;
