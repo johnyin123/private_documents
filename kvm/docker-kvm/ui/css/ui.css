@@ -86,6 +86,7 @@ form label {
 form input, form textarea, form select {
   width: 100%;
   box-sizing: border-box;
+  resize: none;
 }
 button, input[type="button"], input[type="submit"] {
   border: none;

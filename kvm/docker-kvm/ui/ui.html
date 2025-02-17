@@ -110,12 +110,12 @@
       <form id="createvm_form">
         <label>cpu<input type="number" name="vm_vcpus" value="2" min="1" max="16"/></label>
         <label>mem(MB)<input type="number" name="vm_ram_mb" value="2048" min="1024" max="16384" step="1024"/></label>
-        <label>desc<input type="text" name="vm_desc" value=""/></label>
-        <label>ip<input type="text" name="vm_ip" value="192.168.168.2/24"/></label>
-        <label>gw<input type="text" name="vm_gw" value="192.168.168.1"/></label>
+        <label>desc<textarea rows="6" name="vm_desc" placeholder="vm desc here..."></textarea></label>
+        <label>ip<input type="text" name="vm_ip" placeholder="ipaddr like 192.168.168.2/24" required/></label>
+        <label>gw<input type="text" name="vm_gw" placeholder="gateway like 192.168.168.1"/></label>
         <div id="meta_data"><table id="table_meta_data"></table></div>
-        <input type="button" value="AddField" onclick="add_meta()"/>
-        <table><tr><td width='50%' ><input type="button" value="Close" onclick="showView('hostlist')"/></td><td><input type="submit" value="Submit"/></td></tr></table>
+        <table><tr><td><input type="button" value="AddField" onclick="add_meta()"/></td></tr></table>
+        <table><tr><td width='50%'><input type="button" value="Close" onclick="showView('hostlist')"/></td><td><input type="submit" value="Submit"/></td></tr></table>
       </form>
     </div>
     <!-- ############## -->
@@ -139,7 +139,7 @@ function add_meta() {
   var c_value = newRow.insertCell(1);
   var del_btn = newRow.insertCell(2);
   c_name.innerHTML = '<input type="text"/ placeholder="name" onChange="set_name(this)">';
-  c_value.innerHTML = '<input type="text" placeholder="value"/>';
+  c_value.innerHTML = '<input type="text" placeholder="value" required>';
   del_btn.innerHTML = '<input type="button" value="Remove" onclick="del_meta(this)"/>';
 }
 </script>
