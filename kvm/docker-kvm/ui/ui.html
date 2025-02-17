@@ -59,6 +59,8 @@
     </div>
     <!-- ############## -->
     <div id="addiso" class="tabContent">
+      <div class='form'>
+      <h2>AddISO</h2>
       <form id="addiso_form">
         <div id="iso_list">
           <label>ISO:
@@ -69,9 +71,12 @@
         </div>
         <table><tr><td width='50%' ><input type="button" value="close" onclick="showView('hostlist')"/></td><td><input type="submit" value="Submit"/></td></tr></table>
       </form>
+      </div>
     </div>
     <!-- ############## -->
     <div id="addnet" class="tabContent">
+      <div class='form'>
+      <h2>AddNetwork</h2>
       <form id="addnet_form">
         <div id="net_list">
           <label>Network:
@@ -82,9 +87,12 @@
         </div>
         <table><tr><td width='50%' ><input type="button" value="close" onclick="showView('hostlist')"/></td><td><input type="submit" value="Submit"/></td></tr></table>
       </form>
+      </div>
     </div>
     <!-- ############## -->
     <div id="adddisk" class="tabContent">
+      <div class='form'>
+      <h2>AddDISK</h2>
       <form id="adddisk_form">
         <div id="gold_list">
           <label>Gold:
@@ -105,8 +113,11 @@
         <table><tr><td width='50%' ><input type="button" value="close" onclick="showView('hostlist')"/></td><td><input type="submit" value="Submit"/></td></tr></table>
       </form>
     </div>
+    </div>
     <!-- ############## -->
     <div id="createvm" class="tabContent">
+      <div class='form'>
+      <h2>CreateVM</h2>
       <form id="createvm_form">
         <label>cpu<input type="number" name="vm_vcpus" value="2" min="1" max="16"/></label>
         <label>mem(MB)<input type="number" name="vm_ram_mb" value="2048" min="1024" max="16384" step="1024"/></label>
@@ -117,6 +128,7 @@
         <table><tr><td><input type="button" value="AddField" onclick="add_meta()"/></td></tr></table>
         <table><tr><td width='50%'><input type="button" value="Close" onclick="showView('hostlist')"/></td><td><input type="submit" value="Submit"/></td></tr></table>
       </form>
+      </div>
     </div>
     <!-- ############## -->
   </div>
