@@ -129,21 +129,30 @@ button, input[type="button"], input[type="submit"] {
 button:hover, input[type="button"]:hover, input[type="submit"]:hover {
   background-color: #45a049;
 }
-table {
-  table-layout: auto;
-  border-spacing: 0;
+.wrapper {
   width: 100%;
-  border: 1px solid #ddd;
-  word-wrap:break-word;
+  overflow: auto;
+  position: relative;
 }
-th, td {
-  text-align: left;
-  word-wrap:break-word;
-  margin: auto;
+
+table {
+  width: 100%;
+  table-layout: fixed;
 }
-th {
+thead, tr>th {
+  position: sticky;
   background-color: #4CAF50;
-  color: white;
+}
+thead {
+  top: 0;
+  z-index: 2;
+}
+tr>th {
+  left: 0;
+  z-index: 1;
+}
+thead tr>th:first-child {
+  z-index: 3;
 }
 tr:nth-child(even) {
   background-color: #f2f2f2;

@@ -37,17 +37,17 @@
     <div id="hostlist" class="tabContent">
       <section>
         <h1>KVM Host</h1>
-        <div id="host">
+        <div id="host" class="wrapper">
           <table>
-            <tr><th>arch</th><th>desc</th><th>ipaddr</th><th>name</th><th>sshport</th><th>tpl</th><th>url</th><th>Actions</th></tr>
-            <tr><td>x86_64</td><td>null</td><td>192.168.1.1</td><td>host01</td><td>22</td><td>newvm.vnc.tpl</td><td>qemu+tls://demo/system</td><td><button class='hovertext' data-hover='Create VM' onclick="showView('createvm')"><i class="fa fa-plus"></i></button></td></tr>
+            <tr><th>Actions</th><th>arch</th><th>desc</th><th>ipaddr</th><th>name</th><th>sshport</th><th>tpl</th><th>url</th></tr>
+            <tr><th><button class='hovertext' data-hover='Create VM' onclick="showView('createvm')"><i class="fa fa-plus"></i></button></th><td>x86_64</td><td>null</td><td>192.168.1.1</td><td>host01</td><td>22</td><td>newvm.vnc.tpl</td><td>qemu+tls://demo/system</td></tr>
           </table>
         </div><br>
         <h1>VMS</h1>
-        <div id="vms">
+        <div id="vms" class="wrapper">
           <table>
-          <tr><th>cputime</th><th>curcpu</th><th>curmem</th><th>desc</th><th>ipaddr</th><th>state</th><th>uuid</th><th>Actions</th></tr>
-          <tr><td>0</td><td>2</td><td>2097152</td><td>测试VM</td><td>192.168.168.2/24</td><td>5</td><td>c453cab6-3c97-4128-89e2-284e1eb92981</td><td><button class='hovertext' data-hover='VNC'><i class="fa fa-television"></i></button><button class='hovertext' data-hover='Start'><i class="fa fa-play"></i></button><button class='hovertext' data-hover='Stop'><i class="fa fa-power-off"></i></button><button class='hovertext' data-hover='ForceStop'><i class="fa fa-plug"></i></button><button class='hovertext' data-hover='Undefine'><i class="fa fa-times"></i></button><button class='hovertext' data-hover='Add ISO' onclick="showView('addiso')"><i class="fa fa-plus"></i></button><button class='hovertext' data-hover='Add NET' onclick="showView('addnet')"><i class="fa fa-plus"></i></button><button class='hovertext' data-hover='Add DISK' onclick="showView('adddisk')"><i class="fa fa-plus"></i></button></td></tr>
+          <tr><th>Actions</th><th>cputime</th><th>curcpu</th><th>curmem</th><th>desc</th><th>ipaddr</th><th>state</th><th>uuid</th></tr>
+          <tr><th><button class='hovertext' data-hover='VNC'><i class="fa fa-television"></i></button><button class='hovertext' data-hover='Start'><i class="fa fa-play"></i></button><button class='hovertext' data-hover='Stop'><i class="fa fa-power-off"></i></button><button class='hovertext' data-hover='ForceStop'><i class="fa fa-plug"></i></button><button class='hovertext' data-hover='Undefine'><i class="fa fa-times"></i></button><button class='hovertext' data-hover='Add ISO' onclick="showView('addiso')"><i class="fa fa-plus"></i></button><button class='hovertext' data-hover='Add NET' onclick="showView('addnet')"><i class="fa fa-plus"></i></button><button class='hovertext' data-hover='Add DISK' onclick="showView('adddisk')"><i class="fa fa-plus"></i></button></th><td>0</td><td>2</td><td>2097152</td><td>测试VM</td><td>192.168.168.2/24</td><td>5</td><td>c453cab6-3c97-4128-89e2-284e1eb92981</td></tr>
           </table>
         </div>
       </section>

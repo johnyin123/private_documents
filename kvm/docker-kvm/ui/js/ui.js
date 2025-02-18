@@ -31,7 +31,6 @@ function show_vms(host, vms) {
     table += gen_act('Add ISO', 'add_iso', host, item.uuid, 'fa-plus')
     table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-plus')
     table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-plus')
-    //<select name="devtype"><option value="disk">disk</option><option value="net">net</option><option value="iso">iso</option></select>
     table += "</td></tr>";
   });
   table += "</table>";
