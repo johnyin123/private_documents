@@ -134,7 +134,7 @@ table {
   border-spacing: 0;
   width: 100%;
   border: 1px solid #ddd;
-  word-wrap:break-word
+  word-wrap:break-word;
 }
 th, td {
   text-align: left;
