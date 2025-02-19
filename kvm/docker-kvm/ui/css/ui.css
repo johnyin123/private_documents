@@ -132,10 +132,16 @@ button, input[type="button"], input[type="submit"], input[type="reset"] {
 button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"] {
   background-color: #45a049;
 }
-.wrapper {
-  width: 100%;
-  overflow: auto;
-  position: relative;
+.columns {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+@media only screen and (max-width: 600px) {
+  .columns {
+    width: 100%;
+  }
 }
 table {
   width: 100%;

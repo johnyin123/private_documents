@@ -4,18 +4,19 @@ function gen_act(smsg, action, host, parm2, icon) {
   return `<button class='hovertext' data-hover='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
 }
 function show_vms(host, vms) {
-  var table = "<table><tr>";
-  for(var key in vms[0]) {
-    table += `<th>${key}</th>`;
-  }
-  if(vms.length > 0) {
-    table += "<th>Actions</th></tr>";
-  }
+  var table = '';
   vms.forEach(item => {
-    table += "<tr>";
-    for(var key in item) {
-      table += `<td>${item[key]}</td>`;
+    table += `<div class="form-wrapper">`;
+    if(item.hasOwnProperty('create')) {
+      table += `<div class="form-wrapper-header"><h2>${item.create}</h2></div><br>`;
+    } else {
+      table += `<div class="form-wrapper-header"><h2>${item.uuid}</h2></div><br>`;
     }
+    table += `<table>`;
+    for(var key in item) {
+      table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
+    }
+    table += `<tr><th width="20%">Actions</th>`;
     table += "<td>"
     table += gen_act('VNC', 'display', host, item.uuid, 'fa-television')
     table += gen_act('Start', 'start', host, item.uuid, 'fa-play')
@@ -26,8 +27,9 @@ function show_vms(host, vms) {
     table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-plus')
     table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-plus')
     table += "</td></tr>";
+    table += "</table>";
+    table += "</div>";
   });
-  table += "</table>";
   return table;
 }
 function show_host(host) {
