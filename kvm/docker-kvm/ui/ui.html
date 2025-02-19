@@ -124,11 +124,15 @@
           <button onclick="showView('hostlist')"></button>
         </div>
         <form id="createvm_form">
-          <label>cpu<input type="number" name="vm_vcpus" value="2" min="1" max="16"/></label>
-          <label>mem(MB)<input type="number" name="vm_ram_mb" value="2048" min="1024" max="16384" step="1024"/></label>
+          <div class="form-wrapper-input-flex">
+            <div><label>cpu<input type="number" name="vm_vcpus" value="2" min="1" max="16"/></label></div>
+            <div><label>mem(MB)<input type="number" name="vm_ram_mb" value="2048" min="1024" max="16384" step="1024"/></label></div>
+          </div>
           <label>desc<textarea rows="3" name="vm_desc" placeholder="vm desc here..."></textarea></label>
-          <label>ip*<input type="text" name="vm_ip" placeholder="ipaddr like 192.168.168.2/24" required/></label>
-          <label>gw<input type="text" name="vm_gw" placeholder="gateway like 192.168.168.1"/></label>
+          <div class="form-wrapper-input-flex">
+            <div><label>ip*<input type="text" name="vm_ip" placeholder="ipaddr like 192.168.168.2/24" required/></label></div>
+            <div><label>gw<input type="text" name="vm_gw" placeholder="gateway like 192.168.168.1"/></label></div>
+          </div>
           <div id="meta_data"><table id="table_meta_data"></table></div>
           <input type="button" value="AddField" onclick="add_meta()"/>
           <input type="reset" value="Reset"/>
