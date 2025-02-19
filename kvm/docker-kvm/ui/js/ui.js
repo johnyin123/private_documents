@@ -66,7 +66,6 @@ function getjson(method, url, callback, data) {
   var sendObject = null;
   if(null !== data && typeof data !== 'undefined') {
     sendObject = JSON.stringify(data);
-    sendObject['epoch']=~~(Date.now()/1000);
   }
   var xhr = new XMLHttpRequest();
   //xhr.addEventListener("load", transferComplete);

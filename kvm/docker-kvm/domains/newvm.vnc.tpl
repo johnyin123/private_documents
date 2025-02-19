@@ -6,6 +6,7 @@
     <mdconfig:meta xmlns:mdconfig="urn:iso-meta">
       <ipaddr>{{ vm_ip | default("") }}</ipaddr>
       <gateway>{{ vm_gw | default("") }}</gateway>
+      <create>{{ create_tm | default("") }}</create>
     </mdconfig:meta>
   </metadata>
   <title>{{ vm_name }}</title>

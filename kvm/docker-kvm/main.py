@@ -8,10 +8,6 @@ import database, vmmanager, template, device
 from config import config
 from exceptions import APIException, HTTPStatus
 
-import uuid
-def gen_uuid():
-    return "{}".format(uuid.uuid4())
-
 import functools
 def _make_ssh_command(connhost, connuser, connport, gaddr, gport, gsocket):
     argv = ["ssh", "ssh"]
@@ -142,7 +138,6 @@ class MyApp(object):
             raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')
         # force use host arch string
         req_json['vm_arch'] = host.arch
-        req_json['vm_uuid'] = gen_uuid()
         xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
         vmmanager.VMManager(host.name, host.url).create_vm(req_json['vm_uuid'], xml)
         return { 'result' : 'OK', 'uuid' : req_json['vm_uuid'], 'host': hostname }
