@@ -126,7 +126,7 @@ button, input[type="button"], input[type="submit"], input[type="reset"] {
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
-button:hover, input[type="button"]:hover, input[type="submit"]:hover {
+button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"] {
   background-color: #45a049;
 }
 .wrapper {
@@ -137,21 +137,10 @@ button:hover, input[type="button"]:hover, input[type="submit"]:hover {
 table {
   width: 100%;
   table-layout: fixed;
+  word-wrap:break-word;
 }
 thead, tr>th {
-  position: sticky;
   background-color: #4CAF50;
-}
-thead {
-  top: 0;
-  z-index: 2;
-}
-tr>th {
-  left: 0;
-  z-index: 1;
-}
-thead tr>th:first-child {
-  z-index: 3;
 }
 tr:nth-child(even) {
   background-color: #f2f2f2;
