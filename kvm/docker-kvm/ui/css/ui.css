@@ -48,6 +48,7 @@
   opacity: 1;
   visibility: visible;
 }
+/* waiting full screen div */
 #overlay {
   position: fixed;
   display: none;
@@ -70,6 +71,7 @@
   transform: translate(-50%,-50%);
   -ms-transform: translate(-50%,-50%);
 }
+/* hidden form div */
 .tabContent { display:none; }
 .form-wrapper {
    margin: 0 auto;
@@ -132,11 +134,12 @@ button, input[type="button"], input[type="submit"], input[type="reset"] {
 button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"] {
   background-color: #45a049;
 }
+/* vms display one line */
 .columns {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
 @media only screen and (max-width: 600px) {
   .columns {
