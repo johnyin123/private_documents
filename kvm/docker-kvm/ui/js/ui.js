@@ -35,9 +35,9 @@ function show_host(host) {
   delete host.last_modified;
   var table = "<table>";
   for(var key in host) {
-    table += `<tr><th width="10%">${key}</th><td>${host[key]}</td></tr>`;
+    table += `<tr><th width="20%">${key}</th><td>${host[key]}</td></tr>`;
   }
-  table += `<tr><th width="10%">Actions</th>`;
+  table += `<tr><th width="20%">Actions</th>`;
   table += `<td>${gen_act('Create VM', 'create_vm', host.name, host.arch, 'fa-plus')}</td></tr></table>`;
   return table;
 }
@@ -158,7 +158,6 @@ function display(host, uuid) {
   }, null);
 }
 function do_create(host, res) {
-  if (res == false){ return; }
   getjson('POST', `/vm/create/${host}`, function(res) {
     var result = JSON.parse(res);
     if(result.result === 'OK') {
@@ -174,10 +173,10 @@ function create_vm(host, arch) {
   form.addEventListener('submit', function(event) {
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
-    console.log(`createvm : ${res}`);
     do_create(host, res);
     showView('hostlist');
-  });
+  }, { once: true });
+  form.reset();
   showView('createvm');
 }
 function gen_gold_list(jsonobj, id, text) {
@@ -201,7 +200,6 @@ function gen_dev_list(jsonobj, id, devtype, text) {
   return lst;
 }
 function do_add(host, uuid, res) {
-  if (res == false){ return; }
   console.log(JSON.stringify(res));
   getjson('POST', `/vm/attach_device/${host}/${uuid}/${res.device}`, function(res) {
     var result = JSON.parse(res);
@@ -231,7 +229,7 @@ function add_disk(host, uuid) {
     console.log(`add disk : ${res}`);
     do_add(host, uuid, res);
     showView('hostlist');
-  });
+  }, { once: true });
   showView('adddisk');
 }
 function add_net(host, uuid) {
@@ -247,7 +245,7 @@ function add_net(host, uuid) {
     console.log(`add net : ${res}`);
     do_add(host, uuid, res);
     showView('hostlist');
-  });
+  }, { once: true });
   showView('addnet');
 }
 function add_iso(host, uuid) {
@@ -263,7 +261,7 @@ function add_iso(host, uuid) {
     console.log(`add iso : ${res}`);
     do_add(host, uuid, res);
     showView('hostlist');
-  });
+  }, { once: true });
   showView('addiso');
 }
 getjson('GET', '/tpl/host', function (res) {
@@ -303,7 +301,7 @@ getjson('GET', '/tpl/host', function (res) {
 //   event.preventDefault(); // Prevents the default form submission
 //   const res = getFormJSON(form);
 //   console.log(res)
-// });
+// }, { once: true });
 function getFormJSON(form) {
   const data = new FormData(form);
   return Array.from(data.keys()).reduce((result, key) => {
