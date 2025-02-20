@@ -7,11 +7,7 @@ function show_vms(host, vms) {
   var table = '';
   vms.forEach(item => {
     table += `<div class="form-wrapper">`;
-    if(item.hasOwnProperty('create')) {
-      table += `<div class="form-wrapper-header"><h2>${item.create}</h2></div><br>`;
-    } else {
-      table += `<div class="form-wrapper-header"><h2>${item.uuid}</h2></div><br>`;
-    }
+    table += `<div class="form-wrapper-header"><h2>KVM GUEST</h2></div><br>`;
     table += `<table>`;
     for(var key in item) {
       table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
