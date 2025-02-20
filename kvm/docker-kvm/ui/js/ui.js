@@ -16,16 +16,15 @@ function show_vms(host, vms) {
     for(var key in item) {
       table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
     }
-    table += `<tr><th width="20%">Actions</th>`;
-    table += "<td>"
-    table += gen_act('VNC', 'display', host, item.uuid, 'fa-television')
-    table += gen_act('Start', 'start', host, item.uuid, 'fa-play')
-    table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off')
-    table += gen_act('ForceStop', 'force_stop', host, item.uuid, 'fa-plug')
-    table += gen_act('Undefine', 'undefine', host, item.uuid, 'fa-times')
-    table += gen_act('Add ISO', 'add_iso', host, item.uuid, 'fa-plus')
-    table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-plus')
-    table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-plus')
+    table += `<tr><th width="20%">Actions</th><td>`;
+    table += gen_act('VNC', 'display', host, item.uuid, 'fa-television');
+    table += gen_act('Start', 'start', host, item.uuid, 'fa-play');
+    table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off');
+    table += gen_act('ForceStop', 'force_stop', host, item.uuid, 'fa-plug');
+    table += gen_act('Undefine', 'undefine', host, item.uuid, 'fa-times');
+    table += gen_act('Add ISO', 'add_iso', host, item.uuid, 'fa-plus');
+    table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-plus');
+    table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-plus');
     table += "</td></tr>";
     table += "</table>";
     table += "</div>";
@@ -35,12 +34,12 @@ function show_vms(host, vms) {
 function show_host(host) {
   // no show last_modified
   delete host.last_modified;
-  var table = "<table>";
+  var table = `<table class="scrolldown">`;
+  table += `<tr><th width="20%">Actions</th><td>${gen_act('Create VM', 'create_vm', host.name, host.arch, 'fa-plus')}</td></tr>`;
   for(var key in host) {
     table += `<tr><th width="20%">${key}</th><td>${host[key]}</td></tr>`;
   }
-  table += `<tr><th width="20%">Actions</th>`;
-  table += `<td>${gen_act('Create VM', 'create_vm', host.name, host.arch, 'fa-plus')}</td></tr></table>`;
+  table += '</table>';
   return table;
 }
 function dispok(msg) {

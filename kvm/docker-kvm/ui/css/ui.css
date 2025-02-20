@@ -170,3 +170,12 @@ thead, tr>th {
 tr:nth-child(even) {
   background-color: #f2f2f2;
 }
+/*table scrolldown, if with thead, thead frozen*/
+table.scrolldown tbody, table.scrolldown thead {
+  display: block;
+}
+table.scrolldown tbody {
+  height: 140px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
