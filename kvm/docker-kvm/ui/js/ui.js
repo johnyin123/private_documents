@@ -7,12 +7,7 @@ function show_vms(host, vms) {
   var table = '';
   vms.forEach(item => {
     table += `<div class="form-wrapper">`;
-    table += `<div class="form-wrapper-header"><h2>KVM GUEST</h2></div><br>`;
-    table += `<table>`;
-    for(var key in item) {
-      table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
-    }
-    table += `<tr><th width="20%">Actions</th><td>`;
+    table += `<div class="form-wrapper-header"><h2>KVM GUEST</h2><div>`;
     table += gen_act('VNC', 'display', host, item.uuid, 'fa-television');
     table += gen_act('Start', 'start', host, item.uuid, 'fa-play');
     table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off');
@@ -21,17 +16,23 @@ function show_vms(host, vms) {
     table += gen_act('Add ISO', 'add_iso', host, item.uuid, 'fa-plus');
     table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-plus');
     table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-plus');
-    table += "</td></tr>";
+    table += `</div></div><br>`;
+    table += `<table class="scrolldown">`;
+    for(var key in item) {
+      table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
+    }
     table += "</table>";
     table += "</div>";
   });
   return table;
 }
 function show_host(host) {
-  // no show last_modified
-  delete host.last_modified;
-  var table = `<table class="scrolldown">`;
-  table += `<tr><th width="20%">Actions</th><td>${gen_act('Create VM', 'create_vm', host.name, host.arch, 'fa-plus')}</td></tr>`;
+  // delete host.last_modified;
+  var table = '';
+  table += `<div class="form-wrapper-header"><h2>KVM HOST</h2><div>`;
+  table += gen_act('Create VM', 'create_vm', host.name, host.arch, 'fa-plus');
+  table += `</div></div><br>`;
+  table += `<table class="scrolldown">`;
   for(var key in host) {
     table += `<tr><th width="20%">${key}</th><td>${host[key]}</td></tr>`;
   }
