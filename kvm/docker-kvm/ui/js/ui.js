@@ -1,12 +1,33 @@
 var config = { g_hosts: {}, g_menu : [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "javascript:about()" } ] } ] };
 function about() { showView('about'); }
+function gen_gold_list(jsonobj, id, text) {
+  var lst = `<label>${text}<select name="${id}">`;
+  // add empty value for data disk
+  lst += `<option value="" selected>数据盘</option>`;
+  jsonobj.forEach(item => {
+    lst += `<option value="${item['name']}">${item['desc']}</option>`;
+  });
+  lst += '</select></label>';
+  return lst;
+}
+function gen_dev_list(jsonobj, id, devtype, text) {
+  var lst = `<label>${text}<select name="${id}">`;
+  jsonobj.forEach(item => {
+    if(devtype === item['devtype']) {
+      lst += `<option value="${item['name']}">${item['desc']}</option>`;
+    }
+  });
+  lst += '</select></label>';
+  return lst;
+}
+
 function gen_act(smsg, action, host, parm2, icon) {
   return `<button class='hovertext' data-hover='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
 }
 function show_vms(host, vms) {
   var table = '';
   vms.forEach(item => {
-    table += `<div class="form-wrapper">`;
+    table += `<div class="column form-wrapper">`;
     table += `<div class="form-wrapper-header"><h2>KVM GUEST</h2><div>`;
     table += gen_act('VNC', 'display', host, item.uuid, 'fa-television');
     table += gen_act('Start', 'start', host, item.uuid, 'fa-play');
@@ -38,6 +59,34 @@ function show_host(host) {
   }
   table += '</table>';
   return table;
+}
+///////////////////////////////////////////////////////////
+// <form id="myform"></form>
+// const form = document.getElementById('myform');
+// form.addEventListener('submit', function(event) {
+//   event.preventDefault(); // Prevents the default form submission
+//   const res = getFormJSON(form);
+//   console.log(res)
+// }, { once: true });
+function getFormJSON(form) {
+  const data = new FormData(form);
+  return Array.from(data.keys()).reduce((result, key) => {
+    result[key] = data.get(key);
+    return result;
+  }, {});
+}
+///////////////////////////////////////////////////////////
+// .tabContent { display:none; }
+// <div id="myview" class="tabContent">...</div>
+// <div id="view1" class="tabContent">...</div>
+// showView('view1')
+function showView(id) {
+  var view = document.getElementById(id);
+  var tabContents = document.getElementsByClassName('tabContent');
+  for (var i = 0; i < tabContents.length; i++) {
+    tabContents[i].style.display = 'none';
+  }
+  if(view != null) { view.style.display = "block"; }
 }
 function dispok(msg) {
   alert(msg);
@@ -177,26 +226,6 @@ function create_vm(host, arch) {
   form.reset();
   showView('createvm');
 }
-function gen_gold_list(jsonobj, id, text) {
-  var lst = `<label>${text}<select name="${id}">`;
-  // add empty value for data disk
-  lst += `<option value="" selected>数据盘</option>`;
-  jsonobj.forEach(item => {
-    lst += `<option value="${item['name']}">${item['desc']}</option>`;
-  });
-  lst += '</select></label>';
-  return lst;
-}
-function gen_dev_list(jsonobj, id, devtype, text) {
-  var lst = `<label>${text}<select name="${id}">`;
-  jsonobj.forEach(item => {
-    if(devtype === item['devtype']) {
-      lst += `<option value="${item['name']}">${item['desc']}</option>`;
-    }
-  });
-  lst += '</select></label>';
-  return lst;
-}
 function do_add(host, uuid, res) {
   console.log(JSON.stringify(res));
   getjson('POST', `/vm/attach_device/${host}/${uuid}/${res.device}`, function(res) {
@@ -292,31 +321,3 @@ getjson('GET', '/tpl/host', function (res) {
   mainMenu += "</ul>";
   document.getElementById("sidebar").innerHTML = mainMenu;
 }, null);
-///////////////////////////////////////////////////////////
-// <form id="myform"></form>
-// const form = document.getElementById('myform');
-// form.addEventListener('submit', function(event) {
-//   event.preventDefault(); // Prevents the default form submission
-//   const res = getFormJSON(form);
-//   console.log(res)
-// }, { once: true });
-function getFormJSON(form) {
-  const data = new FormData(form);
-  return Array.from(data.keys()).reduce((result, key) => {
-    result[key] = data.get(key);
-    return result;
-  }, {});
-}
-///////////////////////////////////////////////////////////
-// .tabContent { display:none; }
-// <div id="myview" class="tabContent">...</div>
-// <div id="view1" class="tabContent">...</div>
-// showView('view1')
-function showView(id) {
-  var view = document.getElementById(id);
-  var tabContents = document.getElementsByClassName('tabContent');
-  for (var i = 0; i < tabContents.length; i++) {
-    tabContents[i].style.display = 'none';
-  }
-  if(view != null) { view.style.display = "block"; }
-}

@@ -3,7 +3,7 @@
 }
 /* left sidebar tree begin */
 #sidebar {
-  width: 25%;
+  width: 20%;
   height: 100vh;
   overflow: auto;
   background: #beddf0;
@@ -13,14 +13,14 @@
 }
 /* left sidebar tree end */
 #content {
-  width: 70%;
+  width: 80%;
+  left: 20vw;
   height: 200vh;
   display: flex;
   flex-direction: column;
   background: #fff;
   padding-left: 10px;
   position: absolute;
-  left: 25vw;
   margin: 0 auto;
   padding: 20px;
   border-radius: 8px;
@@ -86,7 +86,7 @@
    border: 1px solid #e0e0e0;
    border-radius: 8px;
    align-items: center;
-   padding: 48px;
+   padding: 12px;
 }
 .form-wrapper:hover {
   box-shadow: 0 8px 12px 0 rgba(0,0,0,0.2)
@@ -148,15 +148,26 @@ button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type
   background-color: #45a049;
 }
 /* vms display one line */
-.columns {
-  display: flex;
+.column {
+  float: left;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
+  padding: 10px 10px;
 }
-@media only screen and (max-width: 600px) {
-  .columns {
+.row {margin: 0 -5px;}
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+/* Responsive columns */
+@media screen and (max-width: 600px) {
+  .column {
     width: 100%;
+    display: block;
+    margin-bottom: 20px;
   }
 }
 table {
