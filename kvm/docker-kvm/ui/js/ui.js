@@ -22,7 +22,7 @@ function gen_dev_list(jsonobj, id, devtype, text) {
 }
 
 function gen_act(smsg, action, host, parm2, icon) {
-  return `<button data-tooltip='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
+  return `<button title='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
 }
 function show_vms(host, vms) {
   var table = '';
