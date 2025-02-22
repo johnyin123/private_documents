@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1850f85[2024-12-11T19:06:25+08:00]:v2ray.ipset.transprant.sh")
+VERSION+=("887ccc83[2024-12-16T07:27:07+08:00]:v2ray.ipset.transprant.sh")
 ################################################################################
 # export FILTER_CMD=cat;;
 # export FILTER_CMD=tee output.log
@@ -78,7 +78,8 @@ cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.cli.tproxy.config.json
   "outbounds": [
     {
       "tag": "proxy",
-      "protocol": "vmess",
+      # VLESS使用了更为安全的AEAD加密方式，而VMess则使用的是更加常见的AES-CFB等对称加密方式。AEAD加密方式在保证数据安全的同时，还能够提供数据完整性的校验，防止数据被篡改。2.传输方式：VLESS采用了更加高效的QUIC协议作为传输方式，而VMess则采用的是TCP或者WebSocket。
+      "protocol": "vless",
       "settings": {
         "vnext": [
           {
@@ -86,6 +87,7 @@ cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.cli.tproxy.config.json
             "port": 443,
             "users": [
               {
+                "encryption":"none",
                 "id": "${UUID}",
                 "alterId": ${ALTERID}
               }
