@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("887ccc83[2024-12-16T07:27:07+08:00]:v2ray.ws.tls.ngx.sh")
+VERSION+=("f0e72981[2025-02-22T14:54:56+08:00]:v2ray.ws.tls.ngx.sh")
 ################################################################################
 # export FILTER_CMD=cat;;
 # export FILTER_CMD=tee output.log
@@ -124,7 +124,7 @@ cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.cli.config.json
   ],
   "outbounds": [
     {
-      "protocol": "vmess",
+      "protocol": "vless",
       "settings": {
         "vnext": [
           {
@@ -132,6 +132,7 @@ cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.cli.config.json
             "port": 443,
             "users": [
               {
+                "encryption":"none",
                 "id": "${uuid}",
                 "alterId": ${alterid}
               }
