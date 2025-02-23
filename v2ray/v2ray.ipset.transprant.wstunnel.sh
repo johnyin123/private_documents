@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("3309bd9c[2025-02-23T13:42:09+08:00]:v2ray.ipset.transprant.wstunnel.sh")
+VERSION+=("e21ada6[2025-02-23T13:55:52+08:00]:v2ray.ipset.transprant.wstunnel.sh")
 ################################################################################
 # FILTER_CMD="cat"
 ################################################################################
@@ -415,5 +415,7 @@ ip rule add fwmark ${FWMARK} table ${RULE_TABLE}
 ip route replace local 0.0.0.0/0 dev lo table ${RULE_TABLE}
 EOF
 log "Gen v2cli.wstunnel.sh" && cat <<EOF > v2cli.wstunnel.sh
+# --http-proxy 'http://u:p@srv:port' .....
+# server nginx: ssl_verify_client optional; for avoid proxy node no private_key
 wstunnel client -P ${NGX_WSPATH} -L tcp://127.0.0.1:${wstunnel_port}:127.0.0.1:${V2RAY_PORT} --tls-certificate /etc/wstunnel/ssl/cli.pem --tls-private-key /etc/wstunnel/ssl/cli.key --tls-sni-disable wss://${NGX_SRVNAME}:443
 EOF
