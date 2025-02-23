@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("initver[2025-02-23T13:42:09+08:00]:v2ray.ipset.transprant.wstunnel.sh")
+VERSION+=("3309bd9c[2025-02-23T13:42:09+08:00]:v2ray.ipset.transprant.wstunnel.sh")
 ################################################################################
 # FILTER_CMD="cat"
 ################################################################################
@@ -287,8 +287,8 @@ log "Gen v2cli.config.json" && cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2cli
   }
 }
 EOF
-
-log "Gen v2cli.tproxy.ipt.sh" && cat <<EO_SH | ${FILTER_CMD:-sed '/^\s*#/d'} > v2cli.tproxy.ipt.sh
+log "Gen v2cli.tproxy.ipt.sh" && echo '#!/usr/bin/env bash' > v2cli.tproxy.ipt.sh
+cat <<EO_SH | ${FILTER_CMD:-sed '/^\s*#/d'} >> v2cli.tproxy.ipt.sh
 #!/usr/bin/env bash
 TPROXY_PORT=${v2ray_tproxy_port}
 RULE_TABLE=100
@@ -363,8 +363,8 @@ ip route replace local 0.0.0.0/0 dev lo table ${RULE_TABLE}
 # # PREROUTING的包就会到达端口TPROXY_PORT
 EO_SH
 
-log "Gen v2cli.tproxy.nft.sh" && cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2cli.tproxy.nft.sh
-#!/usr/bin/env bash
+log "Gen v2cli.tproxy.nft.sh" && echo '#!/usr/bin/env bash' > v2cli.tproxy.nft.sh
+cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} >> v2cli.tproxy.nft.sh
 TPROXY_PORT=${v2ray_tproxy_port}
 RULE_TABLE=100
 FWMARK=0x440
