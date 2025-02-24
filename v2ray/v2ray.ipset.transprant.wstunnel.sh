@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("88719d0[2025-02-24T07:32:13+08:00]:v2ray.ipset.transprant.wstunnel.sh")
+VERSION+=("cb04ba9[2025-02-24T16:34:36+08:00]:v2ray.ipset.transprant.wstunnel.sh")
 ################################################################################
 # FILTER_CMD="cat"
 ################################################################################
@@ -156,6 +156,13 @@ log "Gen v2cli.config.json" && cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2cli
         "domains": [
           "geosite:cn",
           "ntp.org"
+        ]
+      },
+      {
+        "tag": "google",
+        "address": "https://8.8.8.8/dns-query",
+        "domains": [
+          "geosite:geolocation-!cn"
         ]
       },
       {
