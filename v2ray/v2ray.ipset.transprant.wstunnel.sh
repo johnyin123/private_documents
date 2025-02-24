@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("cb04ba9[2025-02-24T16:34:36+08:00]:v2ray.ipset.transprant.wstunnel.sh")
+VERSION+=("ab95a56[2025-02-24T16:58:58+08:00]:v2ray.ipset.transprant.wstunnel.sh")
 ################################################################################
 # FILTER_CMD="cat"
 ################################################################################
@@ -178,22 +178,6 @@ log "Gen v2cli.config.json" && cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2cli
   "routing": {
     "domainStrategy": "IPOnDemand",
     "domainMatcher": "mph",
-    "balancers": [
-      {
-        # 出口标签, 类似分组, 在routing中使用到, 可自定义其他的, 控制哪些源ip从哪组出口出去
-        "tag": "proxy",
-        # 上面 outbounds中的海外出口
-        "selector": [
-          "trojan",
-          "vmess",
-          "vless"
-        ],
-        "strategy": {
-          "type": "random"
-          # 随机负载
-        }
-      }
-    ],
     "rules": [
       # dns 劫持
       {
