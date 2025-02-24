@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("887ccc83[2024-12-16T07:27:07+08:00]:v2ray.ipset.transprant.sh")
+VERSION+=("f0e7298[2025-02-22T14:54:56+08:00]:v2ray.ipset.transprant.sh")
 ################################################################################
 # export FILTER_CMD=cat;;
 # export FILTER_CMD=tee output.log
@@ -163,30 +163,21 @@ cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.cli.tproxy.config.json
   ],
   # 解决dns污染
   "dns": {
-    "servers": [
       {
-        "address": "223.5.5.5",
-        "port": 53,
+        "tag": "ali",
+        "address": "https://223.6.6.6/dns-query",
         "domains": [
           "geosite:cn",
           "ntp.org"
         ]
       },
       {
-        "address": "8.8.8.8",
-        "port": 53,
-        "domains": [
-          "geosite:geolocation-!cn"
-        ]
-      },
-      {
-        "address": "1.1.1.1",
-        "port": 53,
+        "tag": "cloudflare",
+        "address": "https://1.1.1.1/dns-query",
         "domains": [
           "geosite:geolocation-!cn"
         ]
       }
-    ]
   },
   # 主要做了国内外分流, 出口负载
   "routing": {
