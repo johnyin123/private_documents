@@ -9,149 +9,433 @@
   </head>
 <style>
 body {
-    margin:0;
-    padding: 0;
-    font-family: 'Roboto', sans-serif;
+  margin:0;
+  padding: 0;
+  font-family: 'Roboto', sans-serif;
 }
 header {
-    position: fixed;
-    background: #22242A;
-    padding: 20px;
-    width: 100%;
-    height: 30px;
+  position: fixed;
+  background: #22242A;
+  padding: 20px;
+  width: 100%;
+  height: 30px;
 }
 .left_area h3{
-    color: #fff;
-    margin: 0;
-    text-transform: uppercase;
-    font-size: 22px;
-    font-weight: 900px;
+  color: #fff;
+  margin: 0;
+  text-transform: uppercase;
+  font-size: 22px;
+  font-weight: 900px;
 }
 .left_area span {
-    color: #1DC4E7;
-}
-.logout_btn {
-    padding: 5px;
-    background: #19B3D3;
-    text-decoration: none;
-    float: right;
-    margin-top: -30px;
-    margin-right: 40px;
-    border-radius: 2px;
-    font-size: 600;
-    color: #fff;
-    transition: 0.5s;
-    transition-property: background;
-}
-.logout_btn:hover {
-    background: #0D9DBB;
+  color: #1DC4E7;
 }
 .sidebar {
-    left: 0;
-    width: 250px;
-    height: calc(100vh - 30px - 70px);
-    overflow: auto;
-    margin-top: 70px;
-    padding-top: 30px;
-    background: #2F323A;
-    position: fixed;
-    transition: 0.5s;
-    transition-property: left;
+  left: 0;
+  width: 250px;
+  height: calc(100vh - 30px - 70px);
+  overflow: auto;
+  margin-top: 70px;
+  padding-top: 30px;
+  background: #2F323A;
+  position: fixed;
+  transition: 0.5s;
+  transition-property: left;
 }
 .sidebar .profile_image {
-    width: 100px;
-    height: 93px;
-    border-radius: 95px;
-    margin-bottom: 10px;
+  width: 100px;
+  height: 93px;
+  border-radius: 95px;
+  margin-bottom: 10px;
 }
 .sidebar h4{
-    color: #ccc;
-    margin-top: 0;
-    margin-bottom: 20px;
+  color: #ccc;
+  margin-top: 0;
+  margin-bottom: 20px;
 }
 .sidebar a {
-    color: #fff;
-    display: block;
-    width: 100%;
-    line-height: 60px;
-    text-decoration: none;
-    padding-left: 40px;
-    box-sizing: border-box;
+  color: #fff;
+  display: block;
+  width: 100%;
+  line-height: 60px;
+  text-decoration: none;
+  padding-left: 40px;
+  box-sizing: border-box;
 }
 .sidebar a:hover {
-    background: #19B3D3;
+  background: #19B3D3;
 }
 .sidebar i{
-    padding-right: 10px;
+  padding-right: 10px;
 }
 label #sidebar_btn {
-    z-index: 1;
-    color: #fff;
-    position: fixed;
-    cursor: pointer;
-    left: 300px;
-    font-size: 20px;
-    margin: 5px 0;
-    transition: 0.5s;
-    transition-property: color;
+  z-index: 1;
+  color: #fff;
+  position: fixed;
+  cursor: pointer;
+  left: 300px;
+  font-size: 20px;
+  margin: 5px 0;
+  transition: 0.5s;
+  transition-property: color;
 }
-label #sidebar_btn:hover{
-    color: #19B3D3;
+label #sidebar_btn:hover {
+  color: #19B3D3;
+}
+#sidebar_user {
+  float: right;
+  padding: 5px;
+  margin-top: -30px;
+  margin-right: 40px;
+  color: #fff;
+  cursor: pointer;
+}
+#sidebar_user:hover {
+  color: #19B3D3;
 }
 #check:checked ~ .sidebar {
-    left: -190px;
+  left: -190px;
 }
 #check:checked ~ .sidebar a span{
-    display:none;
+  display:none;
 }
 #check:checked ~.sidebar a {
-    font-size: 20px;
-    margin-left: 170px;
-    width: 80px;
+  font-size: 20px;
+  margin-left: 170px;
+  width: 80px;
 }
 .content {
-    margin-left: 250px;
-    margin-top: 70px;
-    position: fixed;
-    height: 100%;
-    width: 100%;
-    transition: 0.5s;
-    padding: 10px 10px;
+  margin-left: 250px;
+  margin-top: 70px;
+  position: fixed;
+  width: calc(100% - 250px - 10px);
+  height: calc(100vh - 30px - 70px);
+  transition: 0.5s;
+  padding: 10px 10px;
+  overflow: auto;
 }
 #check:checked ~ .content {
-    margin-left: 60px;
+  margin-left: 60px;
+  width: calc(100% - 60px - 10px);
 }
 #check {
-    display: none;
+  display: none;
+}
+/* waiting page div begin */
+#overlay {
+  position: fixed;
+  display: none;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 2;
+  cursor: pointer;
+}
+#overlay_text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 50px;
+  color: white;
+  transform: translate(-50%,-50%);
+  -ms-transform: translate(-50%,-50%);
+}
+/* waiting page div end */
+/* hidden form div begin */
+.tabContent { display:none; }
+/* hidden form div end */
+.form-wrapper {
+  margin: 0 auto;
+  max-width: 360px;
+  width: 100%;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  align-items: center;
+  padding: 12px;
+}
+.form-wrapper:hover {
+  box-shadow: 0 8px 12px 0 rgba(0,0,0,0.2)
+}
+.form-wrapper-header {
+  background-color: #4CAF50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 36px;
+  border-radius: 8px 8px 0px 0px;
+}
+.form-wrapper-header h2 {
+  font-weight: 700;
+  font-size: 20px;
+  color: white;
+}
+.form-wrapper-header button.close {
+  padding: 0;
+  width: 17px;
+  height: 17px;
+  border: none;
+  cursor: pointer;
+  background-size: cover;
+  background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB3aWR0aD0iMTciIGhlaWdodD0iMTciIHZpZXdCb3g9IjAgMCAxNyAxNyIgZmlsbD0id2hpdGUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ3NDg3NCAwLjQ3NDg3NEMxLjEwODA0IC0wLjE1ODI5MSAyLjEzNDYgLTAuMTU4MjkxIDIuNzY3NzcgMC40NzQ4NzRMMTYuNTI1MSAxNC4yMzIyQzE3LjE1ODMgMTQuODY1NCAxNy4xNTgzIDE1Ljg5MiAxNi41MjUxIDE2LjUyNTFDMTUuODkyIDE3LjE1ODMgMTQuODY1NCAxNy4xNTgzIDE0LjIzMjIgMTYuNTI1MUwwLjQ3NDg3NCAyLjc2Nzc3Qy0wLjE1ODI5MSAyLjEzNDYgLTAuMTU4MjkxIDEuMTA4MDQgMC40NzQ4NzQgMC40NzQ4NzRaIi8+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ3NDg3NCAxNi41MjUxQy0wLjE1ODI5MSAxNS44OTIgLTAuMTU4MjkxIDE0Ljg2NTQgMC40NzQ4NzQgMTQuMjMyMkwxNC4yMzIyIDAuNDc0ODc0QzE0Ljg2NTQgLTAuMTU4MjkyIDE1Ljg5MiAtMC4xNTgyOTEgMTYuNTI1MSAwLjQ3NDg3NEMxNy4xNTgzIDEuMTA4MDQgMTcuMTU4MyAyLjEzNDYgMTYuNTI1MSAyLjc2Nzc3TDIuNzY3NzcgMTYuNTI1MUMyLjEzNDYgMTcuMTU4MyAxLjEwODA0IDE3LjE1ODMgMC40NzQ4NzQgMTYuNTI1MVoiLz48L3N2Zz4KCg==");
+}
+.form-wrapper-input-flex {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+.form-wrapper-flex > div {
+  width: 50%;
+}
+form {
+  width: 100%;
+  margin: 20px auto;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+form label {
+  display: block;
+  margin-bottom: 8px;
+}
+form input, form textarea, form select {
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+}
+button, input[type="button"], input[type="submit"], input[type="reset"] {
+  border: none;
+  background-color: #4caf50;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"] {
+  background-color: #45a049;
+}
+/* vms display one line */
+.column {
+  float: left;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 10px 10px;
+}
+.row {margin: 0 -5px;}
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+/* Responsive columns */
+@media screen and (max-width: 600px) {
+  .column {
+    width: 100%;
+    display: block;
+    margin-bottom: 20px;
+  }
+}
+table {
+  width: 100%;
+  table-layout: fixed;
+  word-wrap:break-word;
+}
+thead, tr>th {
+  background-color: #4CAF50;
+}
+tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+/*table scrolldown, if with thead, thead frozen*/
+table.scrolldown tbody, table.scrolldown thead {
+  display: block;
+}
+table.scrolldown tbody {
+  height: 140px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 </style>
 <body>
-    <input type="checkbox" id="check">
-    <!--Header section start-->
-    <header>
-        <label for="check">
-            <i class="fa fa-bars" id="sidebar_btn"></i>
-        </label>
-        <div class="left_area">
-            <h3>KVM <span>Manager</span></h3>
-        </div>
-        <div class="right_area">
-            <a href="#" class="logout_btn">Logout</a>
-        </div>
-    </header>
-    <!--Header section ends-->
-    <!--Sidebar starts here-->
-    <div class="sidebar">
-        <center>
-          <img alt="" class="profile_image" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB3aWR0aD0iMTciIGhlaWdodD0iMTciIHZpZXdCb3g9IjAgMCAxNyAxNyIgZmlsbD0id2hpdGUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ3NDg3NCAwLjQ3NDg3NEMxLjEwODA0IC0wLjE1ODI5MSAyLjEzNDYgLTAuMTU4MjkxIDIuNzY3NzcgMC40NzQ4NzRMMTYuNTI1MSAxNC4yMzIyQzE3LjE1ODMgMTQuODY1NCAxNy4xNTgzIDE1Ljg5MiAxNi41MjUxIDE2LjUyNTFDMTUuODkyIDE3LjE1ODMgMTQuODY1NCAxNy4xNTgzIDE0LjIzMjIgMTYuNTI1MUwwLjQ3NDg3NCAyLjc2Nzc3Qy0wLjE1ODI5MSAyLjEzNDYgLTAuMTU4MjkxIDEuMTA4MDQgMC40NzQ4NzQgMC40NzQ4NzRaIi8+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ3NDg3NCAxNi41MjUxQy0wLjE1ODI5MSAxNS44OTIgLTAuMTU4MjkxIDE0Ljg2NTQgMC40NzQ4NzQgMTQuMjMyMkwxNC4yMzIyIDAuNDc0ODc0QzE0Ljg2NTQgLTAuMTU4MjkyIDE1Ljg5MiAtMC4xNTgyOTEgMTYuNTI1MSAwLjQ3NDg3NEMxNy4xNTgzIDEuMTA4MDQgMTcuMTU4MyAyLjEzNDYgMTYuNTI1MSAyLjc2Nzc3TDIuNzY3NzcgMTYuNTI1MUMyLjEzNDYgMTcuMTU4MyAxLjEwODA0IDE3LjE1ODMgMC40NzQ4NzQgMTYuNTI1MVoiLz48L3N2Zz4KCg==">
-          <h4>Your Name</h4>
-        </center>
-        <a href="#"><i class="fa fa-desktop"></i><span>Dashboard</span></a>
+  <div id="overlay"><div id="overlay_text">Wait......</div></div>
+  <input type="checkbox" id="check">
+  <!--Header section start-->
+  <header>
+    <label for="check">
+      <i class="fa fa-bars" id="sidebar_btn" title="toggle sidebar"></i>
+    </label>
+    <div class="left_area">
+      <h3>KVM <span>Manager</span></h3>
     </div>
-    <!--Sidebar ends here-->
-    <div class="content">
-        <span>hello</span>
-        <input type="reset" value="Reset"/>
+    <div class="right_area">
+      <i class="fa fa-user" title="user" id="sidebar_user"></i>
     </div>
+  </header>
+  <!--Header section ends-->
+  <!--Sidebar starts here-->
+  <div class="sidebar">
+    <center>
+      <img alt="" class="profile_image" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB3aWR0aD0iMTciIGhlaWdodD0iMTciIHZpZXdCb3g9IjAgMCAxNyAxNyIgZmlsbD0id2hpdGUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ3NDg3NCAwLjQ3NDg3NEMxLjEwODA0IC0wLjE1ODI5MSAyLjEzNDYgLTAuMTU4MjkxIDIuNzY3NzcgMC40NzQ4NzRMMTYuNTI1MSAxNC4yMzIyQzE3LjE1ODMgMTQuODY1NCAxNy4xNTgzIDE1Ljg5MiAxNi41MjUxIDE2LjUyNTFDMTUuODkyIDE3LjE1ODMgMTQuODY1NCAxNy4xNTgzIDE0LjIzMjIgMTYuNTI1MUwwLjQ3NDg3NCAyLjc2Nzc3Qy0wLjE1ODI5MSAyLjEzNDYgLTAuMTU4MjkxIDEuMTA4MDQgMC40NzQ4NzQgMC40NzQ4NzRaIi8+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ3NDg3NCAxNi41MjUxQy0wLjE1ODI5MSAxNS44OTIgLTAuMTU4MjkxIDE0Ljg2NTQgMC40NzQ4NzQgMTQuMjMyMkwxNC4yMzIyIDAuNDc0ODc0QzE0Ljg2NTQgLTAuMTU4MjkyIDE1Ljg5MiAtMC4xNTgyOTEgMTYuNTI1MSAwLjQ3NDg3NEMxNy4xNTgzIDEuMTA4MDQgMTcuMTU4MyAyLjEzNDYgMTYuNTI1MSAyLjc2Nzc3TDIuNzY3NzcgMTYuNTI1MUMyLjEzNDYgMTcuMTU4MyAxLjEwODA0IDE3LjE1ODMgMC40NzQ4NzQgMTYuNTI1MVoiLz48L3N2Zz4KCg==">
+      <h4>Your Name</h4>
+    </center>
+    <div id="sidebar">
+      <a href="javascript:showView('hostlist')"><i class="fa fa-desktop"></i><span>host01</span></a>
+      <a href="javascript:showView('about')"><i class="fa fa-info-circle"></i><span>About</span></a>
+    </div>
+  </div>
+  <!--Sidebar ends here-->
+  <div class="content">
+    <div id="about" class="tabContent">
+      <!-- UI DEMO START -->
+      <section>
+        <div class="form-wrapper">
+          <div class="form-wrapper-header"><h2>KVM HOST</h2><div><button title='Create VM' onclick='create_vm("host01", "x86_64")'>Create VM</button></div></div><br>
+          <table class="scrolldown"><tr><th width="20%">active</th><td>0</td></tr><tr><th width="20%">arch</th><td>x86_64</td></tr><tr><th width="20%">desc</th><td>null</td></tr><tr><th width="20%">inactive</th><td>0</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.1</td></tr><tr><th width="20%">name</th><td>host01</td></tr><tr><th width="20%">sshport</th><td>60022</td></tr><tr><th width="20%">tpl</th><td>newvm.vnc.tpl</td></tr><tr><th width="20%">url</th><td>qemu+tls://192.168.168.1/system</td></tr></table>
+        </div>
+        <hr>
+        <div class="row">
+          <div class="column form-wrapper">
+            <div class="form-wrapper-header"><h2>KVM GUEST</h2><div><button title='VNC'><i class="fa fa-television"></i></button><button title='Start'><i class="fa fa-play"></i></button><button title='Stop'><i class="fa fa-power-off"></i></button><button title='ForceStop'><i class="fa fa-plug"></i></button><button title='Undefine'><i class="fa fa-times"></i></button><button title='Add ISO' onclick='showView("addiso")'><i class="fa fa-plus"></i></button><button title='Add NET' onclick='showView("addnet")'><i class="fa fa-plus"></i></button><button title='Add DISK' onclick='showView("adddisk")'><i class="fa fa-plus"></i></button></div></div><br>
+            <table class="scrolldown"><tr><th width="20%">cputime</th><td>0</td></tr><tr><th width="20%">create</th><td>20250219125843</td></tr><tr><th width="20%">curcpu</th><td>2</td></tr><tr><th width="20%">curmem</th><td>2097152</td></tr><tr><th width="20%">desc</th><td></td></tr><tr><th width="20%">gateway</th><td>null</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.2/3222</td></tr><tr><th width="20%">maxmem</th><td>16777216</td></tr><tr><th width="20%">state</th><td>5</td></tr><tr><th width="20%">uuid</th><td>7cb79a8a-5d9f-4a53-9705-6b37f6085c11</td></tr><tr><th width="20%">vcpus</th><td>8</td></tr><tr></table>
+          </div>
+          <div class="column form-wrapper">
+            <div class="form-wrapper-header"><h2>KVM GUEST</h2><div><button title='VNC'><i class="fa fa-television"></i></button><button title='Start'><i class="fa fa-play"></i></button><button title='Stop'><i class="fa fa-power-off"></i></button><button title='ForceStop'><i class="fa fa-plug"></i></button><button title='Undefine'><i class="fa fa-times"></i></button><button title='Add ISO' onclick='showView("addiso")'><i class="fa fa-plus"></i></button><button title='Add NET' onclick='showView("addnet")'><i class="fa fa-plus"></i></button><button title='Add DISK' onclick='showView("adddisk")'><i class="fa fa-plus"></i></button></div></div><br>
+            <table class="scrolldown"><tr><th width="20%">cputime</th><td>0</td></tr><tr><th width="20%">create</th><td>20250219125843</td></tr><tr><th width="20%">curcpu</th><td>2</td></tr><tr><th width="20%">curmem</th><td>2097152</td></tr><tr><th width="20%">desc</th><td></td></tr><tr><th width="20%">gateway</th><td>null</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.2/3222</td></tr><tr><th width="20%">maxmem</th><td>16777216</td></tr><tr><th width="20%">state</th><td>5</td></tr><tr><th width="20%">uuid</th><td>7cb79a8a-5d9f-4a53-9705-6b37f6085c11</td></tr><tr><th width="20%">vcpus</th><td>8</td></tr><tr></table>
+          </div>
+        </div>
+      </section>
+      <!-- UI DEMO END -->
+    </div>
+    <!-- ############## -->
+    <div id="hostlist" class="tabContent">
+      <section>
+        <div class="form-wrapper" id="host"></div>
+        <hr>
+        <div id="vms" class="row"></div>
+      </section>
+    </div>
+    <!-- ############## -->
+    <div id="display" class="tabContent">
+      <embed id="display" width="800" height="600" src="" type="text/html"/>
+    </div>
+    <!-- ############## -->
+    <div id="addiso" class="tabContent">
+      <div class="form-wrapper">
+        <div class="form-wrapper-header">
+          <h2>AddISO</h2>
+          <button class="close" onclick="showView('hostlist')"></button>
+        </div>
+        <form id="addiso_form">
+          <div id="iso_list">
+            <label>ISO:
+              <select name="device">
+                <option value="centos_x86_64">centos8 x86_64</option>
+              </select>
+            </label>
+          </div>
+          <input type="submit" value="Submit"/>
+        </form>
+      </div>
+    </div>
+    <!-- ############## -->
+    <div id="addnet" class="tabContent">
+      <div class="form-wrapper">
+        <div class="form-wrapper-header">
+          <h2>AddNetwork</h2>
+          <button class="close" onclick="showView('hostlist')"></button>
+        </div>
+        <form id="addnet_form">
+          <div id="net_list">
+            <label>Network:
+              <select name="device">
+                <option value="br-ext">bridge netnwork</option>
+              </select>
+            </label>
+          </div>
+          <input type="submit" value="Submit"/>
+        </form>
+      </div>
+    </div>
+    <!-- ############## -->
+    <div id="adddisk" class="tabContent">
+      <div class="form-wrapper">
+        <div class="form-wrapper-header">
+          <h2>AddDISK</h2>
+          <button class="close" onclick="showView('hostlist')"></button>
+        </div>
+        <form id="adddisk_form">
+          <div id="gold_list">
+            <label>Gold:
+              <select name="gold">
+                <option value="" selected>数据盘</option>
+                <option value="syslinux">linunx</option>
+              </select>
+            </label>
+          </div>
+          <div id="dev_list">
+            <label>Disk:
+              <select name="device">
+                <option value="filesys">rbd disk</option>
+              </select>
+            </label>
+          </div>
+          <label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>
+          <input type="submit" value="Submit"/>
+        </form>
+      </div>
+    </div>
+    <!-- ############## -->
+    <div id="createvm" class="tabContent">
+      <div class="form-wrapper">
+        <div class="form-wrapper-header">
+          <h2>CreateVM</h2>
+          <button class="close" onclick="showView('hostlist')"></button>
+        </div>
+        <form id="createvm_form">
+          <div class="form-wrapper-input-flex">
+            <div><label>cpu<input type="number" name="vm_vcpus" value="2" min="1" max="16"/></label></div>
+            <div><label>mem(MB)<input type="number" name="vm_ram_mb" value="2048" min="1024" max="16384" step="1024"/></label></div>
+          </div>
+          <label>desc<textarea rows="3" name="vm_desc" placeholder="vm desc here..."></textarea></label>
+          <div class="form-wrapper-input-flex">
+            <div><label>ip*<input type="text" name="vm_ip" placeholder="ipaddr like 192.168.168.2/24" required/></label></div>
+            <div><label>gw<input type="text" name="vm_gw" placeholder="gateway like 192.168.168.1"/></label></div>
+          </div>
+          <div id="meta_data"><table id="table_meta_data"></table></div>
+          <input type="button" value="AddField" onclick="add_meta()"/>
+          <input type="reset" value="Reset"/>
+          <input type="submit" value="Submit"/>
+        </form>
+      </div>
+    </div>
+    <!-- ############## -->
+  </div>
+<script language="javascript" src="js/ui.js"></script>
+<script>
+function set_name(r) {
+  var i = r.parentNode.parentNode.rowIndex;
+  var input = document.getElementById("table_meta_data").rows[i].cells[1].getElementsByTagName('input')
+  input[0].name=r.value;
+}
+function del_meta(r) {
+  var i = r.parentNode.parentNode.rowIndex;
+  document.getElementById("table_meta_data").deleteRow(i);
+}
+function add_meta() {
+  var tableRef = document.getElementById("table_meta_data");
+  var newRow = tableRef.insertRow(-1);
+  var c_name = newRow.insertCell(0);
+  var c_value = newRow.insertCell(1);
+  var del_btn = newRow.insertCell(2);
+  c_name.innerHTML = '<input type="text"/ placeholder="name" onChange="set_name(this)">';
+  c_value.innerHTML = '<input type="text" placeholder="value" required>';
+  del_btn.innerHTML = '<input type="button" value="Remove" onclick="del_meta(this)"/>';
+}
+</script>
 </body>
 </html>

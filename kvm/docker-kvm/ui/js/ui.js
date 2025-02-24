@@ -293,11 +293,10 @@ function add_iso(host, uuid) {
 }
 getjson('GET', '/tpl/host', function (res) {
   config.g_hosts = JSON.parse(res);
-  var mainMenu = "<ul>";
+  var mainMenu = "";
   for(var n = 0; n < config.g_hosts.length; n++) {
-    mainMenu += `<li><a href='#' onclick='on_menu_host(config.g_hosts, ${n})'><i class="fa fa-desktop">${config.g_hosts[n].name}</i></a></li>`;
+    mainMenu += `<a href='#' onclick='on_menu_host(config.g_hosts, ${n})'><i class="fa fa-desktop"></i><span>${config.g_hosts[n].name}</span></a>`;
   }
-  mainMenu += `<li><a href="javascript:showView('about')"><i class="fa fa-info-circle">About</i></a></li>`;
-  mainMenu += "</ul>";
+  mainMenu += `<a href="javascript:showView('about')"><i class="fa fa-info-circle"></i><span>About</span></a>`;
   document.getElementById("sidebar").innerHTML = mainMenu;
 }, null);
