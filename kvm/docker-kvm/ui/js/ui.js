@@ -1,4 +1,4 @@
-var config = { g_hosts: {}, g_menu : [ { "name" : "About", "url" : "#", "submenu" : [ { "name" : "about", "url" : "javascript:about()" } ] } ] };
+var config = { g_hosts: {}, g_menu : [ { "name" : "about", "url" : "javascript:about()" } ] };
 function about() { showView('about'); }
 function gen_gold_list(jsonobj, id, text) {
   var lst = `<label>${text}<select name="${id}">`;
@@ -294,30 +294,10 @@ function add_iso(host, uuid) {
 getjson('GET', '/tpl/host', function (res) {
   config.g_hosts = JSON.parse(res);
   var mainMenu = "<ul>";
-  mainMenu += "<li>";
-  mainMenu += "<a href='#'>KVMHosts</a><ul>"
   for(var n = 0; n < config.g_hosts.length; n++) {
-    mainMenu += "<li>";
-    mainMenu += `<a href='#' onclick='on_menu_host(config.g_hosts, ${n})'>${config.g_hosts[n].name}</a>`;
-    mainMenu += "</li>";
+    mainMenu += `<li><a href='#' onclick='on_menu_host(config.g_hosts, ${n})'><i class="fa fa-desktop">${config.g_hosts[n].name}</i></a></li>`;
   }
-  mainMenu += "</ul>";
-  /////////////////////////
-  mainMenu += "</li>";
-  for(var m = 0; m < config.g_menu.length; m++) {
-    mainMenu += "<li>";
-    mainMenu += `<a href='${config.g_menu[m].url}'>${config.g_menu[m].name}</a>`;
-    if(config.g_menu[m].submenu.length > 0) {
-      mainMenu += "<ul>";
-      for(var n = 0; n < config.g_menu[m].submenu.length; n++) {
-        mainMenu += "<li>";
-        mainMenu += `<a href='${config.g_menu[m].submenu[n].url}'>${config.g_menu[m].submenu[n].name}</a>`;
-        mainMenu += "</li>";
-      }
-      mainMenu += "</ul>";
-    }
-    mainMenu += "</li>";
-  }
+  mainMenu += `<li><a href="javascript:showView('about')"><i class="fa fa-info-circle">About</i></a></li>`;
   mainMenu += "</ul>";
   document.getElementById("sidebar").innerHTML = mainMenu;
 }, null);
