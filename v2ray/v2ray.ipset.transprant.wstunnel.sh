@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("efb29b7[2025-02-25T07:57:32+08:00]:v2ray.ipset.transprant.wstunnel.sh")
+VERSION+=("b86db6d[2025-02-25T08:48:30+08:00]:v2ray.ipset.transprant.wstunnel.sh")
 ################################################################################
 # FILTER_CMD="cat"
 ################################################################################
@@ -184,6 +184,19 @@ log "Gen v2cli.config.json" && cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2cli
     # "IPOnDemand"：当匹配时碰到任何基于IP的规则，将域名立即解析为IP进行匹配；
     "domainStrategy": "IPOnDemand",
     "domainMatcher": "mph",
+    "balancers": [
+      {
+        "tag": "proxy",
+        "selector": [
+          "trojan",
+          "vmess",
+          "vless"
+        ],
+        "strategy": {
+          "type": "random"
+        }
+      }
+    ],
     "rules": [
       # dns劫持，使用V2Ray的DNS
       {
