@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("ab95a56[2025-02-24T16:58:58+08:00]:v2ray.ipset.transprant.wstunnel.sh")
+VERSION+=("efb29b7[2025-02-25T07:57:32+08:00]:v2ray.ipset.transprant.wstunnel.sh")
 ################################################################################
 # FILTER_CMD="cat"
 ################################################################################
@@ -103,6 +103,9 @@ log "Gen v2cli.config.json" && cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2cli
         "network": "ws",
         "security": "none",
         "wsSettings": {
+          "headers": {
+            "Host": "${NGX_SRVNAME}"
+          },
           "path": "${V2RAY_WSPATH}"
         },
         # streamSettings/sockopt打上标志, 防止环路
@@ -174,12 +177,15 @@ log "Gen v2cli.config.json" && cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2cli
       }
     ]
   },
-  # 主要做了国内外分流, 出口负载
+  # 主要做了国内外分流,出口负载
   "routing": {
+    # "AsIs"：只使用域名进行路由选择。默认值。
+    # "IPIfNonMatch"：当域名没有匹配任何规则时
+    # "IPOnDemand"：当匹配时碰到任何基于IP的规则，将域名立即解析为IP进行匹配；
     "domainStrategy": "IPOnDemand",
     "domainMatcher": "mph",
     "rules": [
-      # dns 劫持
+      # dns劫持，使用V2Ray的DNS
       {
         "type": "field",
         "inboundTag": [
@@ -216,6 +222,14 @@ log "Gen v2cli.config.json" && cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2cli
           "1.1.1.1"
         ],
         "balancerTag": "proxy"
+      },
+      # 广告拦截
+      {
+        "type": "field",
+        "domain": [
+          "geosite:category-ads-all"
+        ],
+        "outboundTag": "block"
       },
       # BT直连
       {
