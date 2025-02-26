@@ -4,12 +4,6 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="cache-control" content="max-age=0" />
-<meta http-equiv="cache-control" content="no-store" />
-<meta http-equiv="expires" content="-1" />
-<meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
-<meta http-equiv="pragma" content="no-cache" />
-
     <link rel="stylesheet" href="css/font-awesome.min.css">
     <title>test</title>
 <style>
@@ -101,9 +95,37 @@ div.container > div.content {
 #check:checked ~ div.sidebar {
   background: #19B3D3;
 }
+/* waiting page div begin */
+#overlay {
+  position: fixed;
+  display: none;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 2;
+  cursor: pointer;
+}
+#overlay_text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  font-size: 50px;
+  color: white;
+  transform: translate(-50%,-50%);
+  -ms-transform: translate(-50%,-50%);
+}
+/* waiting page div end */
+/* hidden form div begin */
+.tabContent { display:none; }
+/* hidden form div end */
 </style>
 </head>
 <body>
+<div id="overlay"><div id="overlay_text">Wait......</div></div>
 <div class="container">
   <input type="checkbox" id="check" style="display:none;">
   <div class="header">
@@ -115,18 +137,63 @@ div.container > div.content {
     </div>
     <div class="right_area"><i class="fa fa-user header_btn" title="user"></i></div>
   </div>
-  <div class="sidebar">
-    <center>
-      <img title="user image" class="profile_image" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB3aWR0aD0iMTciIGhlaWdodD0iMTciIHZpZXdCb3g9IjAgMCAxNyAxNyIgZmlsbD0id2hpdGUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ3NDg3NCAwLjQ3NDg3NEMxLjEwODA0IC0wLjE1ODI5MSAyLjEzNDYgLTAuMTU4MjkxIDIuNzY3NzcgMC40NzQ4NzRMMTYuNTI1MSAxNC4yMzIyQzE3LjE1ODMgMTQuODY1NCAxNy4xNTgzIDE1Ljg5MiAxNi41MjUxIDE2LjUyNTFDMTUuODkyIDE3LjE1ODMgMTQuODY1NCAxNy4xNTgzIDE0LjIzMjIgMTYuNTI1MUwwLjQ3NDg3NCAyLjc2Nzc3Qy0wLjE1ODI5MSAyLjEzNDYgLTAuMTU4MjkxIDEuMTA4MDQgMC40NzQ4NzQgMC40NzQ4NzRaIi8+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ3NDg3NCAxNi41MjUxQy0wLjE1ODI5MSAxNS44OTIgLTAuMTU4MjkxIDE0Ljg2NTQgMC40NzQ4NzQgMTQuMjMyMkwxNC4yMzIyIDAuNDc0ODc0QzE0Ljg2NTQgLTAuMTU4MjkyIDE1Ljg5MiAtMC4xNTgyOTEgMTYuNTI1MSAwLjQ3NDg3NEMxNy4xNTgzIDEuMTA4MDQgMTcuMTU4MyAyLjEzNDYgMTYuNTI1MSAyLjc2Nzc3TDIuNzY3NzcgMTYuNTI1MUMyLjEzNDYgMTcuMTU4MyAxLjEwODA0IDE3LjE1ODMgMC40NzQ4NzQgMTYuNTI1MVoiLz48L3N2Zz4KCg==">
-    </center>
-    <div id="sidebar">
-      <a href="javascript:showView('hostlist')"><i class="fa fa-desktop"></i><span>host01</span></a>
-      <a href="javascript:showView('about')"><i class="fa fa-info-circle"></i><span>About</span></a>
-    </div>
+  <div class="sidebar" id="sidebar">
+    <center><img title="user image" class="profile_image" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPHN2ZyB3aWR0aD0iMTciIGhlaWdodD0iMTciIHZpZXdCb3g9IjAgMCAxNyAxNyIgZmlsbD0id2hpdGUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ3NDg3NCAwLjQ3NDg3NEMxLjEwODA0IC0wLjE1ODI5MSAyLjEzNDYgLTAuMTU4MjkxIDIuNzY3NzcgMC40NzQ4NzRMMTYuNTI1MSAxNC4yMzIyQzE3LjE1ODMgMTQuODY1NCAxNy4xNTgzIDE1Ljg5MiAxNi41MjUxIDE2LjUyNTFDMTUuODkyIDE3LjE1ODMgMTQuODY1NCAxNy4xNTgzIDE0LjIzMjIgMTYuNTI1MUwwLjQ3NDg3NCAyLjc2Nzc3Qy0wLjE1ODI5MSAyLjEzNDYgLTAuMTU4MjkxIDEuMTA4MDQgMC40NzQ4NzQgMC40NzQ4NzRaIi8+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wLjQ3NDg3NCAxNi41MjUxQy0wLjE1ODI5MSAxNS44OTIgLTAuMTU4MjkxIDE0Ljg2NTQgMC40NzQ4NzQgMTQuMjMyMkwxNC4yMzIyIDAuNDc0ODc0QzE0Ljg2NTQgLTAuMTU4MjkyIDE1Ljg5MiAtMC4xNTgyOTEgMTYuNTI1MSAwLjQ3NDg3NEMxNy4xNTgzIDEuMTA4MDQgMTcuMTU4MyAyLjEzNDYgMTYuNTI1MSAyLjc2Nzc3TDIuNzY3NzcgMTYuNTI1MUMyLjEzNDYgMTcuMTU4MyAxLjEwODA0IDE3LjE1ODMgMC40NzQ4NzQgMTYuNTI1MVoiLz48L3N2Zz4KCg=="></center>
+    <a href="javascript:showView('about')"><i class="fa fa-info-circle"></i><span>About</span></a>
   </div>
-  <div class="content">
-      message
-  </div>
+  <div class="content" w3-include-html="content.tpl"></div>
 </div>
+<!-- ############## -->
+<script language="javascript" src="js/ui.js"></script>
+<script>
+function set_name(r) {
+  var i = r.parentNode.parentNode.rowIndex;
+  var input = document.getElementById("table_meta_data").rows[i].cells[1].getElementsByTagName('input')
+  input[0].name=r.value;
+}
+function del_meta(r) {
+  var i = r.parentNode.parentNode.rowIndex;
+  document.getElementById("table_meta_data").deleteRow(i);
+}
+function add_meta() {
+  var tableRef = document.getElementById("table_meta_data");
+  var newRow = tableRef.insertRow(-1);
+  var c_name = newRow.insertCell(0);
+  var c_value = newRow.insertCell(1);
+  var del_btn = newRow.insertCell(2);
+  c_name.innerHTML = '<input type="text"/ placeholder="name" onChange="set_name(this)">';
+  c_value.innerHTML = '<input type="text" placeholder="value" required>';
+  del_btn.innerHTML = '<input type="button" value="Remove" onclick="del_meta(this)"/>';
+}
+/*===========================================================*/
+function includeHTML() {
+  var z, i, elmnt, file, xhttp;
+  /* Loop through a collection of all HTML elements: */
+  z = document.getElementsByTagName("*");
+  for (i = 0; i < z.length; i++) {
+    elmnt = z[i];
+    /*search for elements with a certain atrribute:*/
+    file = elmnt.getAttribute("w3-include-html");
+    if (file) {
+      /* Make an HTTP request using the attribute value as the file name: */
+      xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+          if (this.status == 200) {elmnt.innerHTML = this.responseText;}
+          if (this.status == 404) {elmnt.innerHTML = "Page not found.";}
+          /* Remove the attribute, and call this function once more: */
+          elmnt.removeAttribute("w3-include-html");
+          includeHTML();
+        }
+      }
+      xhttp.open("GET", file, true);
+      xhttp.send();
+      /* Exit the function: */
+      return;
+    }
+  }
+}
+includeHTML();
+</script>
 </body>
 </html>
