@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="css/font-awesome.min.css">
+  <link rel="stylesheet" href="style.css" />
+  <title>Side Navigation</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Roboto', sans-serif;
+}
+:root {
+  --white-color: #fff;
+  --blue-color: #4070f4;
+  --grey-color: #707070;
+  --grey-color-light: #aaa;
+}
+body {
+  background-color: #e7f2fd;
+  transition: all 0.5s ease;
+}
+body.dark {
+  background-color: #333;
+}
+body.dark {
+  --white-color: #333;
+  --blue-color: #fff;
+  --grey-color: #f2f2f2;
+  --grey-color-light: #aaa;
+}
+/* navbar */
+nav.navbar {
+  position: fixed;
+  top: 0;
+  width: 100%;
+  left: 0;
+  background-color: var(--white-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 30px;
+  z-index: 1000;
+  box-shadow: 0 0 2px var(--grey-color-light);
+}
+nav.navbar .logo_item {
+  display: flex;
+  align-items: center;
+  column-gap: 10px;
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--blue-color);
+}
+nav.navbar img {
+  width: 35px;
+  height: 35px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+nav.navbar .search_bar {
+  height: 47px;
+  max-width: 430px;
+  width: 100%;
+}
+nav.navbar .search_bar input {
+  height: 100%;
+  width: 100%;
+  border-radius: 25px;
+  font-size: 18px;
+  outline: none;
+  background-color: var(--white-color);
+  color: var(--grey-color);
+  border: 1px solid var(--grey-color-light);
+  padding: 0 20px;
+}
+nav.navbar .navbar_content {
+  display: flex;
+  align-items: center;
+  column-gap: 25px;
+}
+nav.navbar .navbar_content i {
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--grey-color);
+}
+/* sidebar */
+nav.sidebar {
+  background-color: var(--white-color);
+  width: 260px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  padding: 80px 20px;
+  z-index: 100;
+  overflow-y: scroll;
+  box-shadow: 0 0 1px var(--grey-color-light);
+  transition: all 0.5s ease;
+}
+nav.sidebar .sidebar.close {
+  width: 80px;
+}
+nav.sidebar .sidebar::-webkit-scrollbar {
+  display: none;
+}
+nav.sidebar .menu_content {
+  position: relative;
+}
+nav.sidebar .menu_dahsboard::before {
+  content: "Hosts";
+}
+nav.sidebar .menu_setting::before {
+  content: "Setting";
+}
+nav.sidebar .menu_items {
+  padding: 0;
+  list-style: none;
+}
+nav.sidebar .navlink_icon {
+  position: relative;
+  font-size: 22px;
+  min-width: 50px;
+  line-height: 40px;
+  display: inline-block;
+  text-align: center;
+  border-radius: 6px;
+}
+nav.sidebar .navlink_icon::before {
+  content: "";
+  position: absolute;
+  height: 100%;
+  width: calc(100% + 100px);
+  left: -20px;
+}
+nav.sidebar .navlink_icon:hover {
+  background: var(--blue-color);
+}
+nav.sidebar .nav_link {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 4px 15px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--grey-color);
+  white-space: nowrap;
+}
+nav.sidebar.close .navlink {
+  display: none;
+}
+nav.sidebar .nav_link:hover {
+  color: var(--white-color);
+  background: var(--blue-color);
+}
+nav.sidebar .sidebar.close .nav_link:hover {
+  background: var(--white-color);
+}
+nav.sidebar .submenu_item {
+  cursor: pointer;
+}
+nav.sidebar .submenu {
+  display: none;
+}
+nav.sidebar .submenu_item .arrow-left {
+  position: absolute;
+  right: 10px;
+  display: inline-block;
+  margin-right: auto;
+}
+nav.sidebar.close .submenu {
+  display: none;
+}
+nav.sidebar .show_submenu ~ .submenu {
+  display: block;
+}
+nav.sidebar .show_submenu .arrow-left {
+  transform: rotate(90deg);
+}
+nav.sidebar .submenu .sublink {
+  padding: 15px 15px 15px 52px;
+}
+nav.sidebar .bottom_content {
+  position: fixed;
+  bottom: 60px;
+  left: 0;
+  width: 260px;
+  cursor: pointer;
+  transition: all 0.5s ease;
+}
+nav.sidebar .bottom {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  left: 0;
+  justify-content: space-around;
+  padding: 18px 0;
+  text-align: center;
+  width: 100%;
+  color: var(--grey-color);
+  border-top: 1px solid var(--grey-color-light);
+  background-color: var(--white-color);
+}
+nav.sidebar .bottom i {
+  font-size: 20px;
+}
+nav.sidebar .bottom span {
+  font-size: 18px;
+}
+nav.sidebar.close .bottom_content {
+  width: 50px;
+  left: 15px;
+}
+nav.sidebar.close .bottom span {
+  display: none;
+}
+nav.sidebar.hoverable .collapse_sidebar {
+  display: none;
+}
+#sidebarOpen {
+  display: none;
+}
+div.content {
+  background-color: var(--white-color);
+  color: var(--grey-color);
+  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 260px;
+  height: 100%;
+  padding: 80px 20px;
+  z-index: 100;
+  overflow-y: scroll;
+  box-shadow: 0 0 1px var(--grey-color-light);
+  transition: all 0.5s ease;
+}
+div.content.fit {
+  left: 80px;
+}
+@media screen and (max-width: 768px) {
+  #sidebarOpen {
+    font-size: 25px;
+    display: block;
+    margin-right: 10px;
+    cursor: pointer;
+    color: var(--grey-color);
+  }
+  nav.sidebar.close {
+    left: -100%;
+  }
+  div.content.fit {
+    left: 0;
+  }
+  nav.sidebar .search_bar {
+    display: none;
+  }
+  nav.sidebar.close .bottom_content {
+    left: -100%;
+  }
+}
+</style>
+</head>
+<body>
+  <!-- navbar -->
+  <nav class="navbar">
+    <div class="logo_item">
+      <i class="fa fa-bars" id="sidebarOpen"></i>
+      <img title="logo" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMmNtIiBoZWlnaHQ9IjEyY20iPjxnIHN0eWxlPSJmaWxsLW9wYWNpdHk6MC43OyBzdHJva2U6YmxhY2s7IHN0cm9rZS13aWR0aDowLjFjbTsiPjxjaXJjbGUgY3g9IjZjbSIgY3k9IjJjbSIgcj0iMTAwIiBzdHlsZT0iZmlsbDpyZWQ7IiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLDUwKSIgLz48Y2lyY2xlIGN4PSI2Y20iIGN5PSIyY20iIHI9IjEwMCIgc3R5bGU9ImZpbGw6Ymx1ZTsiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDcwLDE1MCkiIC8+PGNpcmNsZSBjeD0iNmNtIiBjeT0iMmNtIiByPSIxMDAiIHN0eWxlPSJmaWxsOmdyZWVuOyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTcwLDE1MCkiLz48L2c+PC9zdmc+Cg==">
+      <span style="color:red;">KVM</span>MANAGER
+    </div>
+    <div class="search_bar"><input type="text" placeholder="Search"/></div>
+    <div class="navbar_content">
+      <i class="fa fa-sun-o" title="toggle theme" id="darkLight"></i>
+      <i class="fa fa-bell" ></i>
+      <i class="fa fa-user" title="user" id="sidebar_user"></i>
+    </div>
+  </nav>
+
+  <!-- sidebar -->
+  <nav class="sidebar">
+    <div class="menu_content">
+      <!-- start -->
+      <ul class="menu_items">
+        <li class="item">
+          <div href="#" class="nav_link submenu_item">
+            <span class="navlink_icon">
+              <i class="fa fa-desktop"></i>
+            </span>
+            <span class="navlink">KVMHost</span>
+            <i class="fa fa-chevron-right arrow-left"></i>
+          </div>
+          <ul class="menu_items submenu">
+            <a href="#" class="nav_link sublink">Nav Sub Link</a>
+          </ul>
+        </li>
+      </ul>
+      <!-- end -->
+      <!-- start -->
+      <ul class="menu_items">
+        <!-- duplicate these li tag if you want to add or remove navlink only -->
+        <li class="item">
+          <a href="#" class="nav_link">
+            <span class="navlink_icon">
+              <i class="fa fa-cog"></i>
+            </span>
+            <span class="navlink">About</span>
+          </a>
+        </li>
+      </ul>
+      <!-- start -->
+      <!-- Sidebar Open / Close -->
+      <div class="bottom_content">
+        <div class="bottom expand_sidebar"><span> Expand</span><i class="fa fa-expand"></i></div>
+        <div class="bottom collapse_sidebar"><span> Collapse</span><i class="fa fa-exchange"></i></div>
+      </div>
+    </div>
+  </nav>
+  <div class="content">
+      message
+  </div>
+<!-- JavaScript -->
+<script>
+const body = document.querySelector("body");
+const darkLight = document.querySelector("#darkLight");
+const sidebar = document.querySelector(".sidebar");
+const submenuItems = document.querySelectorAll(".submenu_item");
+const sidebarOpen = document.querySelector("#sidebarOpen");
+const sidebarClose = document.querySelector(".collapse_sidebar");
+const sidebarExpand = document.querySelector(".expand_sidebar");
+const content = document.querySelector(".content");
+sidebarOpen.addEventListener("click", () => {
+    sidebar.classList.toggle("close");
+    content.classList.toggle("fit");
+});
+
+sidebarClose.addEventListener("click", () => {
+  sidebar.classList.add("close", "hoverable");
+  content.classList.add("fit");
+});
+sidebarExpand.addEventListener("click", () => {
+  sidebar.classList.remove("close", "hoverable");
+  content.classList.remove("fit");
+});
+
+sidebar.addEventListener("mouseenter", () => {
+  if (sidebar.classList.contains("hoverable")) {
+    sidebar.classList.remove("close");
+    content.classList.remove("fit");
+  }
+});
+sidebar.addEventListener("mouseleave", () => {
+  if (sidebar.classList.contains("hoverable")) {
+    sidebar.classList.add("close");
+    content.classList.add("fit");
+  }
+});
+
+darkLight.addEventListener("click", () => {
+  body.classList.toggle("dark");
+  if (body.classList.contains("dark")) {
+    document.setI;
+    darkLight.classList.replace("fa-sun-o", "fa-moon-o");
+  } else {
+    darkLight.classList.replace("fa-moon-o", "fa-sun-o");
+  }
+});
+
+submenuItems.forEach((item, index) => {
+  item.addEventListener("click", () => {
+    item.classList.toggle("show_submenu");
+    submenuItems.forEach((item2, index2) => {
+      if (index !== index2) {
+        item2.classList.remove("show_submenu");
+      }
+    });
+  });
+});
+
+if (window.innerWidth < 768) {
+  sidebar.classList.add("close");
+  content.classList.add("fit");
+} else {
+  sidebar.classList.remove("close");
+  content.classList.remove("fit");
+}
+</script>
+</body>
+</html>
