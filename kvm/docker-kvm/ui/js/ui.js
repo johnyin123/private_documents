@@ -295,8 +295,7 @@ getjson('GET', '/tpl/host', function (res) {
   config.g_hosts = JSON.parse(res);
   var mainMenu = "";
   for(var n = 0; n < config.g_hosts.length; n++) {
-    mainMenu += `<a href='#' onclick='on_menu_host(config.g_hosts, ${n})'><i class="fa fa-desktop"></i><span>${config.g_hosts[n].name}</span></a>`;
+    mainMenu += `<a href='#' class='nav_link sublink' onclick='on_menu_host(config.g_hosts, ${n})'>${config.g_hosts[n].name}</a>`;
   }
-  mainMenu += `<a href="javascript:showView('about')"><i class="fa fa-info-circle"></i><span>About</span></a>`;
   document.getElementById("sidebar").innerHTML = mainMenu;
 }, null);
