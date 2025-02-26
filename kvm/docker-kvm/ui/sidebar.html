@@ -110,12 +110,6 @@ nav.sidebar .sidebar::-webkit-scrollbar {
 nav.sidebar .menu_content {
   position: relative;
 }
-nav.sidebar .menu_dahsboard::before {
-  content: "Hosts";
-}
-nav.sidebar .menu_setting::before {
-  content: "Setting";
-}
 nav.sidebar .menu_items {
   padding: 0;
   list-style: none;
@@ -300,7 +294,6 @@ div.container {
 div.hdr-container {
   grid-area: header;
   gap: 10px;
-  width: 100%;
   padding: 0;
 }
 div.rows-container {
@@ -322,6 +315,17 @@ div.form-wrapper {
 }
 div.form-wrapper:hover {
   box-shadow: 0 8px 12px 0 rgba(0,0,0,0.2)
+}
+td {
+  text-align: left;
+}
+thead, tr>th {
+  text-align: right;
+}
+table, th, td {
+  border: 1px solid var(--grey-color-light);
+  border-collapse: collapse;
+  padding: 5px;
 }
 </style>
 </head>
