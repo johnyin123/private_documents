@@ -27,7 +27,7 @@ function gen_act(smsg, action, host, parm2, icon) {
 function show_vms(host, vms) {
   var table = '';
   vms.forEach(item => {
-    table += `<div class="column form-wrapper">`;
+    table += `<div class="form-wrapper">`;
     table += `<div class="form-wrapper-header"><h2>KVM GUEST</h2><div>`;
     table += gen_act('VNC', 'display', host, item.uuid, 'fa-television');
     table += gen_act('Start', 'start', host, item.uuid, 'fa-play');
