@@ -1,23 +1,21 @@
 var config = { g_hosts: {}, g_menu : [ { "name" : "about", "url" : "javascript:about()" } ] };
 function about() { showView('about'); }
-function gen_gold_list(jsonobj, id, text) {
-  var lst = `<label>${text}<select name="${id}">`;
+function gen_gold_list(jsonobj) {
+  var lst = '';
   // add empty value for data disk
   lst += `<option value="" selected>数据盘</option>`;
   jsonobj.forEach(item => {
     lst += `<option value="${item['name']}">${item['desc']}</option>`;
   });
-  lst += '</select></label>';
   return lst;
 }
-function gen_dev_list(jsonobj, id, devtype, text) {
-  var lst = `<label>${text}<select name="${id}">`;
+function gen_dev_list(jsonobj, devtype) {
+  var lst = '';
   jsonobj.forEach(item => {
     if(devtype === item['devtype']) {
       lst += `<option value="${item['name']}">${item['desc']}</option>`;
     }
   });
-  lst += '</select></label>';
   return lst;
 }
 
@@ -27,8 +25,8 @@ function gen_act(smsg, action, host, parm2, icon) {
 function show_vms(host, vms) {
   var table = '';
   vms.forEach(item => {
-    table += `<div class="form-wrapper">`;
-    table += `<div class="form-wrapper-header"><h2>KVM GUEST</h2><div>`;
+    table += `<div class="vms-wrapper">`;
+    table += `<div class="vms-wrapper-header"><h2>KVM GUEST</h2><div>`;
     table += gen_act('VNC', 'display', host, item.uuid, 'fa-television');
     table += gen_act('Start', 'start', host, item.uuid, 'fa-play');
     table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off');
@@ -38,7 +36,7 @@ function show_vms(host, vms) {
     table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-plus');
     table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-plus');
     table += `</div></div><br>`;
-    table += `<table class="scrolldown">`;
+    table += `<table>`;
     for(var key in item) {
       table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
     }
@@ -50,14 +48,16 @@ function show_vms(host, vms) {
 function show_host(host) {
   // delete host.last_modified;
   var table = '';
-  table += `<div class="form-wrapper-header"><h2>KVM HOST</h2><div>`;
+  table += `<div class="host-wrapper">`;
+  table += `<div class="host-wrapper-header"><h2>KVM HOST</h2><div>`;
   table += gen_act('Create VM', 'create_vm', host.name, host.arch, 'fa-plus');
   table += `</div></div><br>`;
-  table += `<table class="scrolldown">`;
+  table += `<table>`;
   for(var key in host) {
     table += `<tr><th width="20%">${key}</th><td>${host[key]}</td></tr>`;
   }
   table += '</table>';
+  table += '</div>';
   return table;
 }
 ///////////////////////////////////////////////////////////
@@ -244,11 +244,11 @@ function add_disk(host, uuid) {
   const devlst = document.getElementById('dev_list');
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
-    devlst.innerHTML = gen_dev_list(devs, 'device', 'disk', 'Disk:');
+    devlst.innerHTML = gen_dev_list(devs, 'disk');
   }, null);
   getjson('GET', `/tpl/gold/${host}`, function(res) {
     var gold = JSON.parse(res);
-    goldlst.innerHTML = gen_gold_list(gold, 'gold', 'Gold:');
+    goldlst.innerHTML = gen_gold_list(gold);
   }, null);
   form.addEventListener('submit', function(event) {
     event.preventDefault(); // Prevents the default form submission
@@ -264,7 +264,7 @@ function add_net(host, uuid) {
   const netlst = document.getElementById('net_list');
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
-    netlst.innerHTML = gen_dev_list(devs, 'device', 'net', 'Network:');
+    netlst.innerHTML = gen_dev_list(devs, 'net');
   }, null);
   form.addEventListener('submit', function(event) {
     event.preventDefault(); // Prevents the default form submission
@@ -280,7 +280,7 @@ function add_iso(host, uuid) {
   const isolst = document.getElementById('iso_list');
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
-    isolst.innerHTML = gen_dev_list(devs, 'device', 'iso', 'ISO:');
+    isolst.innerHTML = gen_dev_list(devs, 'iso');
   }, null);
   form.addEventListener('submit', function(event) {
     event.preventDefault(); // Prevents the default form submission

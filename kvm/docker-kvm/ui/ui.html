@@ -70,97 +70,85 @@
     <div id="display" class="tabContent">
       <embed id="display" width="800" height="600" src="" type="text/html"/>
     </div>
-    <!-- ############## -->
-    <div id="addiso" class="tabContent">
-      <div class="form-wrapper">
-        <div class="form-wrapper-header">
-          <h2>AddISO</h2>
-          <button class="close" onclick="showView('hostlist')"></button>
-        </div>
-        <form id="addiso_form">
-          <div id="iso_list">
-            <label>ISO:
-              <select name="device">
-                <option value="centos_x86_64">centos8 x86_64</option>
-              </select>
-            </label>
-          </div>
-          <input type="submit" value="Submit"/>
-        </form>
-      </div>
+<!-- ############## -->
+<div id="addiso" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>AddISO</h2>
+      <button title="close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <!-- ############## -->
-    <div id="addnet" class="tabContent">
-      <div class="form-wrapper">
-        <div class="form-wrapper-header">
-          <h2>AddNetwork</h2>
-          <button class="close" onclick="showView('hostlist')"></button>
-        </div>
-        <form id="addnet_form">
-          <div id="net_list">
-            <label>Network:
-              <select name="device">
-                <option value="br-ext">bridge netnwork</option>
-              </select>
-            </label>
-          </div>
-          <input type="submit" value="Submit"/>
-        </form>
-      </div>
+    <form id="addiso_form">
+      <label>ISO:
+        <select name="device" id="iso_list">
+          <option value="centos_x86_64">centos8 x86_64</option>
+        </select>
+      </label>
+      <input type="submit" value="Submit"/>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
+<div id="addnet" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>AddNetwork</h2>
+      <button title="close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <!-- ############## -->
-    <div id="adddisk" class="tabContent">
-      <div class="form-wrapper">
-        <div class="form-wrapper-header">
-          <h2>AddDISK</h2>
-          <button class="close" onclick="showView('hostlist')"></button>
-        </div>
-        <form id="adddisk_form">
-          <div id="gold_list">
-            <label>Gold:
-              <select name="gold">
-                <option value="" selected>数据盘</option>
-                <option value="syslinux">linunx</option>
-              </select>
-            </label>
-          </div>
-          <div id="dev_list">
-            <label>Disk:
-              <select name="device">
-                <option value="filesys">rbd disk</option>
-              </select>
-            </label>
-          </div>
-          <label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>
-          <input type="submit" value="Submit"/>
-        </form>
-      </div>
+    <form id="addnet_form">
+      <label>Network:
+        <select name="device" id="net_list">
+          <option value="br-ext">bridge netnwork</option>
+        </select>
+      </label>
+      <input type="submit" value="Submit"/>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
+<div id="adddisk" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>AddDISK</h2>
+      <button title="close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <!-- ############## -->
-    <div id="createvm" class="tabContent">
-      <div class="form-wrapper">
-        <div class="form-wrapper-header">
-          <h2>CreateVM</h2>
-          <button class="close" onclick="showView('hostlist')"></button>
-        </div>
-        <form id="createvm_form">
-          <div class="form-wrapper-input-flex">
-            <div><label>cpu<input type="number" name="vm_vcpus" value="2" min="1" max="16"/></label></div>
-            <div><label>mem(MB)<input type="number" name="vm_ram_mb" value="2048" min="1024" max="16384" step="1024"/></label></div>
-          </div>
-          <label>desc<textarea rows="3" name="vm_desc" placeholder="vm desc here..."></textarea></label>
-          <div class="form-wrapper-input-flex">
-            <div><label>ip*<input type="text" name="vm_ip" placeholder="ipaddr like 192.168.168.2/24" required/></label></div>
-            <div><label>gw<input type="text" name="vm_gw" placeholder="gateway like 192.168.168.1"/></label></div>
-          </div>
-          <div id="meta_data"><table id="table_meta_data"></table></div>
-          <input type="button" value="AddField" onclick="add_meta()"/>
-          <input type="reset" value="Reset"/>
-          <input type="submit" value="Submit"/>
-        </form>
-      </div>
+    <form id="adddisk_form">
+      <label>Gold:
+        <select name="gold" id="gold_list">
+          <option value="" selected>数据盘</option>
+          <option value="syslinux">linux</option>
+        </select>
+      </label>
+      <label>Disk:
+        <select name="device" id="dev_list">
+          <option value="filesys">rbd disk</option>
+        </select>
+      </label>
+      <label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>
+      <input type="submit" value="Submit"/>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
+<div id="createvm" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>CreateVM</h2>
+      <button title="close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <!-- ############## -->
+    <form id="createvm_form">
+      <label>cpu<input type="number" name="vm_vcpus" value="2" min="1" max="16"/></label>
+      <label>mem(MB)<input type="number" name="vm_ram_mb" value="2048" min="1024" max="16384" step="1024"/></label>
+      <label>desc<textarea rows="3" name="vm_desc" placeholder="vm desc here..."></textarea></label>
+      <label>ip*<input type="text" name="vm_ip" placeholder="ipaddr like 192.168.168.2/24" required/></label>
+      <label>gw<input type="text" name="vm_gw" placeholder="gateway like 192.168.168.1"/></label>
+      <table id="table_meta_data"></table>
+      <input type="button" value="AddField" onclick="add_meta()"/>
+      <input type="reset" value="Reset"/>
+      <input type="submit" value="Submit"/>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
   </div>
 </div>
 <script language="javascript" src="js/ui.js"></script>

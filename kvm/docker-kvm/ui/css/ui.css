@@ -119,7 +119,7 @@ button, input[type="button"], input[type="submit"], input[type="reset"] {
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
-button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"] {
+button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover {
   background-color: #45a049;
 }
 /* vms display one line */
