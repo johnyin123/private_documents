@@ -35,7 +35,7 @@ function show_vms(host, vms) {
     table += gen_act('Add ISO', 'add_iso', host, item.uuid, 'fa-plus');
     table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-plus');
     table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-plus');
-    table += `</div></div><br>`;
+    table += `</div></div>`;
     table += `<table>`;
     for(var key in item) {
       table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
@@ -51,7 +51,7 @@ function show_host(host) {
   table += `<div class="host-wrapper">`;
   table += `<div class="host-wrapper-header"><h2>KVM HOST</h2><div>`;
   table += gen_act('Create VM', 'create_vm', host.name, host.arch, 'fa-plus');
-  table += `</div></div><br>`;
+  table += `</div></div>`;
   table += `<table>`;
   for(var key in host) {
     table += `<tr><th width="20%">${key}</th><td>${host[key]}</td></tr>`;
