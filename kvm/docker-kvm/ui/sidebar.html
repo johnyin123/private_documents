@@ -1,17 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="css/font-awesome.min.css">
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/font-awesome.min.css" />
   <title>Side Navigation</title>
 <style>
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Roboto', sans-serif;
+  font-family: "Roboto", sans-serif;
 }
 :root {
   --white-color: #fff;
@@ -221,8 +221,9 @@ div.content {
   position: fixed;
   top: 80px;
   left: 260px;
-  height: 100%;
-  padding: 0 20px;
+  height: calc(100% - 80px);
+  width: calc(100% - 260px);
+  padding: 20px 20px;
   z-index: 100;
   overflow-y: auto;
   box-shadow: 0 0 1px var(--grey-color-light);
@@ -230,6 +231,7 @@ div.content {
 }
 div.content.fit {
   left: 80px;
+  width: calc(100% - 80px);
 }
 @media screen and (max-width: 768px) {
   #sidebarOpen {
@@ -262,7 +264,7 @@ div.content.fit {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.5);
   z-index: 2;
   cursor: pointer;
 }
@@ -272,12 +274,14 @@ div.content.fit {
   left: 50%;
   font-size: 50px;
   color: white;
-  transform: translate(-50%,-50%);
-  -ms-transform: translate(-50%,-50%);
+  transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
 }
 /* waiting page div end */
 /* hidden form div begin */
-div.tabContent { display:none; }
+div.tabContent {
+  display: none;
+}
 /* hidden form div end */
 div.container {
   display: grid;
@@ -299,18 +303,22 @@ div.vms-container {
   padding: 0 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, 430px);
+  justify-content: space-between;
 }
 /* extra styles */
-div.host-wrapper, div.vms-wrapper {
+div.host-wrapper,
+div.vms-wrapper {
   margin: 0 auto;
   border: 1px solid var(--grey-color-light);
   border-radius: 8px;
   padding: 12px;
 }
-div.host-wrapper:hover, div.vms-wrapper:hover {
+div.host-wrapper:hover,
+div.vms-wrapper:hover {
   box-shadow: 0 8px 12px 0 var(--grey-color-light);
 }
-div.host-wrapper-header, div.vms-wrapper-header {
+div.host-wrapper-header,
+div.vms-wrapper-header {
   background-color: var(--grey-color);
   color: var(--white-color);
   display: flex;
@@ -319,12 +327,15 @@ div.host-wrapper-header, div.vms-wrapper-header {
   padding: 12px 36px;
   border-radius: 8px 8px 0px 0px;
 }
-div.host-wrapper-header h2, div.vms-wrapper-header h2 {
+div.host-wrapper-header h2,
+div.vms-wrapper-header h2 {
   font-weight: 700;
   font-size: 20px;
 }
-div.host-wrapper-header button, div.vms-wrapper-header button {
+div.host-wrapper-header button,
+div.vms-wrapper-header button {
   padding: 0;
+  margin: 0 5px;
   border: none;
   cursor: pointer;
   background-color: var(--grey-color);
@@ -360,6 +371,7 @@ div.form-wrapper:hover {
   color: var(--white-color);
 }
 form {
+  padding: 30px;
   margin: 20px auto;
   background-color: var(--white-color);
   border-radius: 8px;
@@ -369,7 +381,9 @@ form label {
   display: block;
   margin-bottom: 8px;
 }
-form input, form textarea, form select {
+form input,
+form textarea,
+form select {
   width: 100%;
   box-sizing: border-box;
   resize: none;
@@ -380,13 +394,20 @@ button, input[type="button"], input[type="submit"], input[type="reset"] {
   background-color: var(--grey-color-light);
   color: var(--white-color);
 }
+input[type="button"], input[type="submit"], input[type="reset"] {
+  box-sizing: content-box;
+  width: 100%;
+  height: 30px;
+  border-radius: 20px;
+  margin: 10px auto;
+}
 button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover {
   background-color: var(--blue-color);
 }
 table {
   width: 100%;
   table-layout: fixed;
-  word-wrap:break-word;
+  word-wrap: break-word;
 }
 table, th, td {
   border: 1px solid var(--grey-color-light);
@@ -460,17 +481,17 @@ th { text-align: right; }
     <div class="host-container">
       <div class="host-wrapper">
         <div class="host-wrapper-header"><h2>KVM HOST</h2><div><button title='Create VM' onclick='showView("createvm")'><i class="fa fa-plus"></i></button></div></div><br>
-        <table><tr><th width="20%">active</th><td>0</td></tr><tr><th width="20%">arch</th><td>x86_64</td></tr><tr><th width="20%">desc</th><td>null</td></tr><tr><th width="20%">inactive</th><td>0</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.1</td></tr><tr><th width="20%">name</th><td>host01</td></tr><tr><th width="20%">sshport</th><td>60022</td></tr><tr><th width="20%">tpl</th><td>newvm.vnc.tpl</td></tr><tr><th width="20%">url</th><td>qemu+tls://192.168.168.1/system</td></tr></table>
+        <table><tr><th width="20%">active</th><td>0</td></tr><tr><th width="20%">arch</th><td>x86_64</td></tr><tr><th width="20%">desc</th><td>null</td></tr><tr><th width="20%">inactive</th><td>0</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.1/24</td></tr><tr><th width="20%">name</th><td>host01</td></tr><tr><th width="20%">sshport</th><td>60022</td></tr><tr><th width="20%">tpl</th><td>newvm.vnc.tpl</td></tr><tr><th width="20%">url</th><td>qemu+tls://192.168.168.1/system</td></tr></table>
       </div>
     </div>
     <div class="vms-container">
       <div class="vms-wrapper">
         <div class="vms-wrapper-header"><h2>KVM GUEST</h2><div><button title='VNC'><i class="fa fa-television"></i></button><button title='Start'><i class="fa fa-play"></i></button><button title='Stop'><i class="fa fa-power-off"></i></button><button title='ForceStop'><i class="fa fa-plug"></i></button><button title='Undefine'><i class="fa fa-times"></i></button><button title='Add ISO' onclick='showView("addiso")'><i class="fa fa-plus"></i></button><button title='Add NET' onclick='showView("addnet")'><i class="fa fa-plus"></i></button><button title='Add DISK' onclick='showView("adddisk")'><i class="fa fa-plus"></i></button></div></div><br>
-        <table><tr><th width="20%">cputime</th><td>0</td></tr><tr><th width="20%">create</th><td>20250219125843</td></tr><tr><th width="20%">curcpu</th><td>2</td></tr><tr><th width="20%">curmem</th><td>2097152</td></tr><tr><th width="20%">desc</th><td></td></tr><tr><th width="20%">gateway</th><td>null</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.2/3222</td></tr><tr><th width="20%">maxmem</th><td>16777216</td></tr><tr><th width="20%">state</th><td>5</td></tr><tr><th width="20%">uuid</th><td>7cb79a8a-5d9f-4a53-9705-6b37f6085c11</td></tr><tr><th width="20%">vcpus</th><td>8</td></tr><tr></table>
+        <table><tr><th width="20%">cputime</th><td>0</td></tr><tr><th width="20%">create</th><td>20250219125843</td></tr><tr><th width="20%">curcpu</th><td>2</td></tr><tr><th width="20%">curmem</th><td>2097152</td></tr><tr><th width="20%">desc</th><td></td></tr><tr><th width="20%">gateway</th><td>null</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.2/32</td></tr><tr><th width="20%">maxmem</th><td>16777216</td></tr><tr><th width="20%">state</th><td>5</td></tr><tr><th width="20%">uuid</th><td>7cb79a8a-5d9f-4a53-9705-6b37f6085c11</td></tr><tr><th width="20%">vcpus</th><td>8</td></tr></table>
       </div>
       <div class="vms-wrapper">
         <div class="vms-wrapper-header"><h2>KVM GUEST</h2><div><button title='VNC'><i class="fa fa-television"></i></button><button title='Start'><i class="fa fa-play"></i></button><button title='Stop'><i class="fa fa-power-off"></i></button><button title='ForceStop'><i class="fa fa-plug"></i></button><button title='Undefine'><i class="fa fa-times"></i></button><button title='Add ISO' onclick='showView("addiso")'><i class="fa fa-plus"></i></button><button title='Add NET' onclick='showView("addnet")'><i class="fa fa-plus"></i></button><button title='Add DISK' onclick='showView("adddisk")'><i class="fa fa-plus"></i></button></div></div><br>
-        <table><tr><th width="20%">cputime</th><td>0</td></tr><tr><th width="20%">create</th><td>20250219125843</td></tr><tr><th width="20%">curcpu</th><td>2</td></tr><tr><th width="20%">curmem</th><td>2097152</td></tr><tr><th width="20%">desc</th><td></td></tr><tr><th width="20%">gateway</th><td>null</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.2/3222</td></tr><tr><th width="20%">maxmem</th><td>16777216</td></tr><tr><th width="20%">state</th><td>5</td></tr><tr><th width="20%">uuid</th><td>7cb79a8a-5d9f-4a53-9705-6b37f6085c11</td></tr><tr><th width="20%">vcpus</th><td>8</td></tr><tr></table>
+        <table><tr><th width="20%">cputime</th><td>0</td></tr><tr><th width="20%">create</th><td>20250219125843</td></tr><tr><th width="20%">curcpu</th><td>2</td></tr><tr><th width="20%">curmem</th><td>2097152</td></tr><tr><th width="20%">desc</th><td></td></tr><tr><th width="20%">gateway</th><td>null</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.2/22</td></tr><tr><th width="20%">maxmem</th><td>16777216</td></tr><tr><th width="20%">state</th><td>5</td></tr><tr><th width="20%">uuid</th><td>7cb79a8a-5d9f-4a53-9705-6b37f6085c11</td></tr><tr><th width="20%">vcpus</th><td>8</td></tr></table>
       </div>
     </div>
   </div>
