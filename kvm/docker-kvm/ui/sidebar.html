@@ -219,12 +219,12 @@ div.content {
   background-color: var(--white-color);
   color: var(--grey-color);
   position: fixed;
-  top: 0;
+  top: 80px;
   left: 260px;
   height: 100%;
-  padding: 80px 20px;
+  padding: 0 20px;
   z-index: 100;
-  overflow-y: scroll;
+  overflow-y: auto;
   box-shadow: 0 0 1px var(--grey-color-light);
   transition: all 0.5s ease;
 }
@@ -453,8 +453,9 @@ th { text-align: right; }
   </nav>
 <!-- ----------------------------------------------- -->
 <div class="content">
-<div id="about" class="tabContent">
+<div id="about" class="tabContent" style="display:block;">
   <!-- UI DEMO START -->
+  <center><h1>DEMO index page</h1></center>
   <div class="container">
     <div class="host-container">
       <div class="host-wrapper">
