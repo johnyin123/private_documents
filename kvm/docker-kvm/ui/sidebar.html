@@ -403,14 +403,14 @@ th { text-align: right; }
   <nav class="navbar">
     <div class="logo_item">
       <i class="fa fa-bars" id="sidebarOpen"></i>
-      <img title="logo" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMmNtIiBoZWlnaHQ9IjEyY20iPjxnIHN0eWxlPSJmaWxsLW9wYWNpdHk6MC43OyBzdHJva2U6YmxhY2s7IHN0cm9rZS13aWR0aDowLjFjbTsiPjxjaXJjbGUgY3g9IjZjbSIgY3k9IjJjbSIgcj0iMTAwIiBzdHlsZT0iZmlsbDpyZWQ7IiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLDUwKSIgLz48Y2lyY2xlIGN4PSI2Y20iIGN5PSIyY20iIHI9IjEwMCIgc3R5bGU9ImZpbGw6Ymx1ZTsiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDcwLDE1MCkiIC8+PGNpcmNsZSBjeD0iNmNtIiBjeT0iMmNtIiByPSIxMDAiIHN0eWxlPSJmaWxsOmdyZWVuOyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTcwLDE1MCkiLz48L2c+PC9zdmc+Cg==">
+      <img title="Logo" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMmNtIiBoZWlnaHQ9IjEyY20iPjxnIHN0eWxlPSJmaWxsLW9wYWNpdHk6MC43OyBzdHJva2U6YmxhY2s7IHN0cm9rZS13aWR0aDowLjFjbTsiPjxjaXJjbGUgY3g9IjZjbSIgY3k9IjJjbSIgcj0iMTAwIiBzdHlsZT0iZmlsbDpyZWQ7IiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLDUwKSIgLz48Y2lyY2xlIGN4PSI2Y20iIGN5PSIyY20iIHI9IjEwMCIgc3R5bGU9ImZpbGw6Ymx1ZTsiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDcwLDE1MCkiIC8+PGNpcmNsZSBjeD0iNmNtIiBjeT0iMmNtIiByPSIxMDAiIHN0eWxlPSJmaWxsOmdyZWVuOyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTcwLDE1MCkiLz48L2c+PC9zdmc+Cg==">
       <span style="color:red;">KVM</span>MANAGER
     </div>
     <div class="search_bar"><input type="text" placeholder="Search"/></div>
     <div class="navbar_content">
-      <i class="fa fa-sun-o" title="toggle theme" id="darkLight"></i>
+      <i class="fa fa-sun-o" title="Toggle theme" id="darkLight"></i>
       <i class="fa fa-bell" ></i>
-      <i class="fa fa-user" title="user" id="sidebar_user"></i>
+      <i class="fa fa-user" title="User" id="sidebar_user"></i>
     </div>
   </nav>
 
@@ -451,7 +451,8 @@ th { text-align: right; }
       </div>
     </div>
   </nav>
-  <div class="content">
+<!-- ----------------------------------------------- -->
+<div class="content">
 <div id="about" class="tabContent">
   <!-- UI DEMO START -->
   <div class="container">
@@ -490,14 +491,10 @@ th { text-align: right; }
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>AddISO</h2>
-      <button title="close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
+      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form id="addiso_form">
-      <label>ISO:
-        <select name="device" id="iso_list">
-          <option value="centos_x86_64">centos8 x86_64</option>
-        </select>
-      </label>
+      <label>ISO:<select name="device" id="iso_list"></select></label>
       <input type="submit" value="Submit"/>
     </form>
   </div>
@@ -507,14 +504,10 @@ th { text-align: right; }
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>AddNetwork</h2>
-      <button title="close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
+      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form id="addnet_form">
-      <label>Network:
-        <select name="device" id="net_list">
-          <option value="br-ext">bridge netnwork</option>
-        </select>
-      </label>
+      <label>Network:<select name="device" id="net_list"></select></label>
       <input type="submit" value="Submit"/>
     </form>
   </div>
@@ -524,20 +517,11 @@ th { text-align: right; }
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>AddDISK</h2>
-      <button title="close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
+      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form id="adddisk_form">
-      <label>Gold:
-        <select name="gold" id="gold_list">
-          <option value="" selected>数据盘</option>
-          <option value="syslinux">linux</option>
-        </select>
-      </label>
-      <label>Disk:
-        <select name="device" id="dev_list">
-          <option value="filesys">rbd disk</option>
-        </select>
-      </label>
+      <label>Gold:<select name="gold" id="gold_list"></select></label>
+      <label>Disk:<select name="device" id="dev_list"></select></label>
       <label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>
       <input type="submit" value="Submit"/>
     </form>
@@ -548,7 +532,7 @@ th { text-align: right; }
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>CreateVM</h2>
-      <button title="close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
+      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form id="createvm_form">
       <label>cpu<input type="number" name="vm_vcpus" value="2" min="1" max="16"/></label>
@@ -563,8 +547,8 @@ th { text-align: right; }
     </form>
   </div>
 </div>
-  </div>
-<!-- JavaScript -->
+</div>
+<!-- ----------------------------------------------- -->
 <script language="javascript" src="js/ui.js"></script>
 <script>
 function set_name(r) {
