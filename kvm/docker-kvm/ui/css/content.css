@@ -76,6 +76,11 @@ div.form-wrapper {
   background: transparent;
   color: var(--white-color);
 }
+/* form element same line */
+div.group {
+  display: flex;
+  flex-direction: row;
+}
 form {
   padding: 30px;
   margin: 20px auto;

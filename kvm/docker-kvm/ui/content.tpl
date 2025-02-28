@@ -1,5 +1,3 @@
-<div id="snackbar"></div>
-
 <div id="about" class="tabContent" style="display:block;">
   <!-- UI DEMO START -->
   <center><h1>DEMO index page</h1></center>
@@ -84,11 +82,17 @@
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form id="createvm_form">
-      <label>cpu<input type="number" name="vm_vcpus" value="2" min="1" max="16"/></label>
-      <label>mem(MB)<input type="number" name="vm_ram_mb" value="2048" min="1024" max="16384" step="1024"/></label>
+      <label>CPU:<div class="group">
+        <input type="number" name="vm_vcpus" id="vcpu_num" value="2" min="1" max="16" oninput="vcpu_rge.value=this.value" />
+        <input type="range" id="vcpu_rge" value="2" min="1" max="16" oninput="vcpu_num.value=this.value"/>
+      </div></label>
+      <label>MEM(MB):<div class="group">
+        <input type="number" name="vm_ram_mb" id="vmem_num"  value="2048" min="1024" max="16384" step="1024" oninput="vmem_rge.value=this.value"/>
+        <input type="range" id="vmem_rge"  value="2048" min="1024" max="16384" step="1024" oninput="vmem_num.value=this.value"/>
+      </div></label>
       <label>desc<textarea rows="3" name="vm_desc" placeholder="vm desc here..."></textarea></label>
-      <label>ip*<input type="text" name="vm_ip" placeholder="ipaddr like 192.168.168.2/24" required/></label>
-      <label>gw<input type="text" name="vm_gw" placeholder="gateway like 192.168.168.1"/></label>
+      <label>ip*<input type="text" name="vm_ip" placeholder="ipaddr 192.168.168.2/24" required/></label>
+      <label>gw<input type="text" name="vm_gw" placeholder="gateway 192.168.168.1"/></label>
       <table id="table_meta_data"></table>
       <input type="button" value="AddField" onclick="add_meta()"/>
       <input type="reset" value="Reset"/>
