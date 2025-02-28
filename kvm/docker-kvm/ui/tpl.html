@@ -24,6 +24,7 @@
   --black-color: #22242A;
 }
 body {
+  transition: all 0.5s ease;
   background-color: var(--black-color-light);
   color: var(--white-color);
 }
@@ -32,7 +33,15 @@ div.container {
   grid-template-areas:
     "header header"
     "sidebar content";
-  grid-template-columns: 269px auto;
+  grid-template-columns: 260px auto;
+  border: 1px solid var(--grey-color-light);
+}
+div.container.smallsidebar {
+  display: grid;
+  grid-template-areas:
+    "header header"
+    "sidebar content";
+  grid-template-columns: 80px auto;
   border: 1px solid var(--grey-color-light);
 }
 div.container > div.header {
@@ -107,21 +116,14 @@ div.container > div.content {
   overflow-y: auto; 
   border: 1px solid var(--grey-color-light);
 }
-#check:checked ~ div.sidebar {
-  /*for test*/
-  background: #19B3D3;
-}
 </style>
 </head>
 <body>
 <div class="container">
-  <input type="checkbox" id="check" style="display:none;">
   <div class="header">
     <div class="left_area">KVM <span>Managear</span></div>
     <div class="mid_area">
-      <label for="check">
-        <i class="fa fa-bars header_btn" title="toggle sidebar"></i>
-      </label>
+      <i class="fa fa-bars header_btn" title="toggle sidebar" id="sidebar_toggle"></i>
     </div>
     <div class="right_area"><i class="fa fa-user header_btn" title="user"></i></div>
   </div>
@@ -139,5 +141,11 @@ div.container > div.content {
 </div>
 <!-- ############## -->
 <script language="javascript" src="js/ui.js"></script>
+<script>
+const sidebar_toggle = document.querySelector("#sidebar_toggle");
+sidebar_toggle.addEventListener("click", () => {
+  document.querySelector(".container").classList.toggle("smallsidebar");
+});
+</script>
 </body>
 </html>
