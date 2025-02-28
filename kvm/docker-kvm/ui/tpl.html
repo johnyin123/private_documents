@@ -55,6 +55,7 @@ div.header > div.left_area {
   grid-area: left_area;
   font-size: 25px;
   color: red;
+  padding: 20px;
 }
 div.header > div.left_area span {
   color: var(--blue-color);
@@ -79,7 +80,7 @@ div.header i.header_btn:hover {
 div.container > div.sidebar {
   grid-area: sidebar;
   height: calc(100vh - 80px - 2px);
-  overflow: auto;
+  overflow-y: auto;
   padding-top: 30px;
   border: 1px solid var(--grey-color-light);
 }
@@ -116,7 +117,7 @@ div.container > div.content {
 <body>
 <div class="container">
   <div class="header">
-    <div class="left_area">KVM <span>Managear</span></div>
+    <div class="left_area">KVM <span>Manager</span></div>
     <div class="mid_area">
       <i class="fa fa-bars header_btn" title="toggle sidebar" id="sidebar_toggle"></i>
     </div>
