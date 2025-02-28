@@ -24,8 +24,6 @@ div.vms-container {
 div.host-wrapper,
 div.vms-wrapper {
   margin: 0 auto;
-  /*border: 1px solid var(--grey-color-light);
-  border-radius: 8px;*/
   border: none;
   padding: 12px;
 }
@@ -55,14 +53,9 @@ div.vms-wrapper-header button {
 }
 div.form-wrapper {
   margin: 0 auto;
-  /* border: 1px solid var(--grey-color-light);
-  border-radius: 8px;*/
   border: none;
   padding: 12px;
 }
-/*div.form-wrapper:hover {
-  box-shadow: 0 8px 12px 0 var(--grey-color-light);
-}*/
 .form-wrapper-header {
   background-color: var(--grey-color);
   color: var(--white-color);
@@ -86,7 +79,6 @@ div.form-wrapper {
 form {
   padding: 30px;
   margin: 20px auto;
-  background-color: var(--white-color);
   border-radius: 8px;
   box-shadow: 0 0 10px var(--grey-color-light);
 }
@@ -106,14 +98,6 @@ button, input[type="button"], input[type="submit"], input[type="reset"] {
   cursor: pointer;
   background-color: var(--grey-color);
   color: var(--white-color);
-}
-input[type="button"], input[type="submit"], input[type="reset"] {
-  box-sizing: content-box;
-  width: 100%;
-  height: 30px;
-  border-radius: 20px;
-  margin: 10px auto;
-  font-size: 20px;
 }
 button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover {
   background-color: var(--blue-color);
