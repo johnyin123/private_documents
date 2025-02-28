@@ -48,7 +48,7 @@ div.vms-wrapper-header button {
   margin: 0 5px;
   border: none;
   cursor: pointer;
-  background-color: var(--grey-color);
+  background: transparent;
   color: var(--white-color);
 }
 div.form-wrapper {
@@ -73,7 +73,7 @@ div.form-wrapper {
   padding: 0;
   border: none;
   cursor: pointer;
-  background-color: var(--grey-color);
+  background: transparent;
   color: var(--white-color);
 }
 form {
@@ -89,6 +89,8 @@ form label {
 form input,
 form textarea,
 form select {
+  background: transparent;
+  color: var(--blue-color);
   width: 100%;
   box-sizing: border-box;
   resize: none;
