@@ -88,11 +88,17 @@ function showView(id) {
   }
   if(view != null) { view.style.display = "block"; }
 }
+function showMsg(msg) {
+  var x = document.getElementById("snackbar");
+  x.innerHTML = msg
+  x.className = "show";
+  setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+}
 function dispok(msg) {
-  alert(msg);
+  showMsg(msg);
 }
 function disperr(code, name, desc) {
-  alert(`${code} ${name} ${desc}`);
+  showMsg(`${code} ${name} ${desc}`);
 }
 function overlayon() {
   document.getElementById("overlay").style.display = "block";

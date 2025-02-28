@@ -1,3 +1,5 @@
+<div id="snackbar"></div>
+
 <div id="about" class="tabContent" style="display:block;">
   <!-- UI DEMO START -->
   <center><h1>DEMO index page</h1></center>
