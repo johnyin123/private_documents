@@ -291,11 +291,63 @@ function add_iso(host, uuid) {
   }, { once: true });
   showView('addiso');
 }
-getjson('GET', '/tpl/host', function (res) {
-  config.g_hosts = JSON.parse(res);
-  var mainMenu = "";
-  for(var n = 0; n < config.g_hosts.length; n++) {
-    mainMenu += `<a href='#' class='nav_link sublink' onclick='on_menu_host(config.g_hosts, ${n})'>${config.g_hosts[n].name}</a>`;
+/* create vm add new meta key/value */
+function set_name(r) {
+  var i = r.parentNode.parentNode.rowIndex;
+  var input = document.getElementById("table_meta_data").rows[i].cells[1].getElementsByTagName('input')
+  input[0].name=r.value;
+}
+function del_meta(r) {
+  var i = r.parentNode.parentNode.rowIndex;
+  document.getElementById("table_meta_data").deleteRow(i);
+}
+function add_meta() {
+  var tableRef = document.getElementById("table_meta_data");
+  var newRow = tableRef.insertRow(-1);
+  var c_name = newRow.insertCell(0);
+  var c_value = newRow.insertCell(1);
+  var del_btn = newRow.insertCell(2);
+  c_name.innerHTML = '<input type="text"/ placeholder="name" onChange="set_name(this)">';
+  c_value.innerHTML = '<input type="text" placeholder="value" required>';
+  del_btn.innerHTML = '<input type="button" value="Remove" onclick="del_meta(this)"/>';
+}
+/* include html */
+function includeHTML() {
+  var z, i, elmnt, file, xhttp;
+  /* Loop through a collection of all HTML elements: */
+  z = document.getElementsByTagName("*");
+  for (i = 0; i < z.length; i++) {
+    elmnt = z[i];
+    /*search for elements with a certain atrribute:*/
+    file = elmnt.getAttribute("w3-include-html");
+    if (file) {
+      /* Make an HTTP request using the attribute value as the file name: */
+      xhttp = new XMLHttpRequest();
+      xhttp.onreadystatechange = function() {
+        if (this.readyState == 4) {
+          if (this.status == 200) {elmnt.innerHTML = this.responseText;}
+          if (this.status == 404) {elmnt.innerHTML = "Page not found.";}
+          /* Remove the attribute, and call this function once more: */
+          elmnt.removeAttribute("w3-include-html");
+          includeHTML();
+        }
+      }
+      xhttp.open("GET", file, true);
+      xhttp.send();
+      /* Exit the function: */
+      return;
+    }
   }
-  document.getElementById("sidebar").innerHTML = mainMenu;
-}, null);
+}
+/* ------------------------- */
+window.onload = function() {
+  includeHTML();
+  getjson('GET', '/tpl/host', function (res) {
+    config.g_hosts = JSON.parse(res);
+    var mainMenu = "";
+    for(var n = 0; n < config.g_hosts.length; n++) {
+      mainMenu += `<a href='#' class='nav_link sublink' onclick='on_menu_host(config.g_hosts, ${n})'>${config.g_hosts[n].name}</a>`;
+    }
+    document.getElementById("sidebar").innerHTML = mainMenu;
+  }, null);
+}

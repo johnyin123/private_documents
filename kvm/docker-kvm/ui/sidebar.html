@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="css/content.css" />
+  <link rel="stylesheet" href="css/overlay.css" />
   <link rel="stylesheet" href="css/font-awesome.min.css" />
   <title>Side Navigation</title>
 <style>
@@ -21,9 +23,7 @@
 }
 body {
   transition: all 0.5s ease;
-}
-body.dark {
-  background-color: #333;
+  background-color: var(--white-color);
 }
 body.dark {
   --white-color: #333;
@@ -35,14 +35,15 @@ body.dark {
 nav.navbar {
   position: fixed;
   top: 0;
-  width: 100%;
   left: 0;
+  width: 100%;
+  height: 80px;
   background-color: var(--white-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 15px 30px;
-  z-index: 1000;
+  z-index: 100;
   box-shadow: 0 0 2px var(--grey-color-light);
 }
 nav.navbar .logo_item {
@@ -90,10 +91,10 @@ nav.sidebar {
   background-color: var(--white-color);
   width: 260px;
   position: fixed;
-  top: 0;
+  top: 80px;
   left: 0;
   height: 100%;
-  padding: 80px 20px;
+  padding: 0 20px;
   z-index: 100;
   overflow-y: auto;
   box-shadow: 0 0 1px var(--grey-color-light);
@@ -254,167 +255,6 @@ div.content.fit {
     left: -100%;
   }
 }
-/* waiting page div begin */
-#overlay {
-  position: fixed;
-  display: none;
-  width: 100%;
-  height: 100%;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 2;
-  cursor: pointer;
-}
-#overlay_text {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  font-size: 50px;
-  color: white;
-  transform: translate(-50%, -50%);
-  -ms-transform: translate(-50%, -50%);
-}
-/* waiting page div end */
-/* hidden form div begin */
-div.tabContent {
-  display: none;
-}
-/* hidden form div end */
-div.container {
-  display: grid;
-  grid-template-areas:
-    "host"
-    "vms";
-  grid-template-columns: 1fr;
-  gap: 10px;
-  padding: 0 0;
-}
-div.host-container {
-  grid-area: host;
-  gap: 10px;
-  padding: 0 0;
-}
-div.vms-container {
-  grid-area: vms;
-  gap: 10px;
-  padding: 0 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, 430px);
-  justify-content: space-between;
-}
-/* extra styles */
-div.host-wrapper,
-div.vms-wrapper {
-  margin: 0 auto;
-  /*border: 1px solid var(--grey-color-light);
-  border-radius: 8px;*/
-  border: none;
-  padding: 12px;
-}
-div.host-wrapper-header,
-div.vms-wrapper-header {
-  background-color: var(--grey-color);
-  color: var(--white-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 36px;
-  border-radius: 8px 8px 0px 0px;
-}
-div.host-wrapper-header h2,
-div.vms-wrapper-header h2 {
-  font-weight: 700;
-  font-size: 20px;
-}
-div.host-wrapper-header button,
-div.vms-wrapper-header button {
-  padding: 0;
-  margin: 0 5px;
-  border: none;
-  cursor: pointer;
-  background-color: var(--grey-color);
-  color: var(--white-color);
-}
-div.form-wrapper {
-  margin: 0 auto;
-  /* border: 1px solid var(--grey-color-light);
-  border-radius: 8px;*/
-  border: none;
-  padding: 12px;
-}
-/*div.form-wrapper:hover {
-  box-shadow: 0 8px 12px 0 var(--grey-color-light);
-}*/
-.form-wrapper-header {
-  background-color: var(--grey-color);
-  color: var(--white-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 36px;
-  border-radius: 8px 8px 0px 0px;
-}
-.form-wrapper-header h2 {
-  font-weight: 700;
-  font-size: 20px;
-}
-.form-wrapper-header button.close {
-  padding: 0;
-  border: none;
-  cursor: pointer;
-  background-color: var(--grey-color);
-  color: var(--white-color);
-}
-form {
-  padding: 30px;
-  margin: 20px auto;
-  background-color: var(--white-color);
-  border-radius: 8px;
-  box-shadow: 0 0 10px var(--grey-color-light);
-}
-form label {
-  display: block;
-  margin-bottom: 8px;
-}
-form input,
-form textarea,
-form select {
-  width: 100%;
-  box-sizing: border-box;
-  resize: none;
-}
-button, input[type="button"], input[type="submit"], input[type="reset"] {
-  border: none;
-  cursor: pointer;
-  background-color: var(--grey-color);
-  color: var(--white-color);
-}
-input[type="button"], input[type="submit"], input[type="reset"] {
-  box-sizing: content-box;
-  width: 100%;
-  height: 30px;
-  border-radius: 20px;
-  margin: 10px auto;
-  font-size: 20px;
-}
-button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover {
-  background-color: var(--blue-color);
-}
-table {
-  width: 100%;
-  table-layout: fixed;
-  word-wrap: break-word;
-}
-table, th, td {
-  border: 1px solid var(--grey-color-light);
-  border-collapse: collapse;
-  padding: 5px;
-}
-td { text-align: left; }
-th { text-align: right; }
 </style>
 </head>
 <body>
@@ -472,126 +312,11 @@ th { text-align: right; }
   </nav>
 <!-- ----------------------------------------------- -->
 <div class="content">
-<div id="overlay"><div id="overlay_text">Wait......</div></div>
-<div id="about" class="tabContent" style="display:block;">
-  <!-- UI DEMO START -->
-  <center><h1>DEMO index page</h1></center>
-  <div class="container">
-    <div class="host-container">
-      <div class="host-wrapper">
-        <div class="host-wrapper-header"><h2>KVM HOST</h2><div><button title='Create VM' onclick='showView("createvm")'><i class="fa fa-plus"></i></button></div></div>
-        <table><tr><th width="20%">active</th><td>0</td></tr><tr><th width="20%">arch</th><td>x86_64</td></tr><tr><th width="20%">desc</th><td>null</td></tr><tr><th width="20%">inactive</th><td>0</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.1/24</td></tr><tr><th width="20%">name</th><td>host01</td></tr><tr><th width="20%">sshport</th><td>60022</td></tr><tr><th width="20%">tpl</th><td>newvm.vnc.tpl</td></tr><tr><th width="20%">url</th><td>qemu+tls://192.168.168.1/system</td></tr></table>
-      </div>
-    </div>
-    <div class="vms-container">
-      <div class="vms-wrapper">
-        <div class="vms-wrapper-header"><h2>KVM GUEST</h2><div><button title='VNC'><i class="fa fa-television"></i></button><button title='Start'><i class="fa fa-play"></i></button><button title='Stop'><i class="fa fa-power-off"></i></button><button title='ForceStop'><i class="fa fa-plug"></i></button><button title='Undefine'><i class="fa fa-times"></i></button><button title='Add ISO' onclick='showView("addiso")'><i class="fa fa-plus"></i></button><button title='Add NET' onclick='showView("addnet")'><i class="fa fa-plus"></i></button><button title='Add DISK' onclick='showView("adddisk")'><i class="fa fa-plus"></i></button></div></div>
-        <table><tr><th width="20%">cputime</th><td>0</td></tr><tr><th width="20%">create</th><td>20250219125843</td></tr><tr><th width="20%">curcpu</th><td>2</td></tr><tr><th width="20%">curmem</th><td>2097152</td></tr><tr><th width="20%">desc</th><td></td></tr><tr><th width="20%">gateway</th><td>null</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.2/32</td></tr><tr><th width="20%">maxmem</th><td>16777216</td></tr><tr><th width="20%">state</th><td>5</td></tr><tr><th width="20%">uuid</th><td>7cb79a8a-5d9f-4a53-9705-6b37f6085c11</td></tr><tr><th width="20%">vcpus</th><td>8</td></tr></table>
-      </div>
-      <div class="vms-wrapper">
-        <div class="vms-wrapper-header"><h2>KVM GUEST</h2><div><button title='VNC'><i class="fa fa-television"></i></button><button title='Start'><i class="fa fa-play"></i></button><button title='Stop'><i class="fa fa-power-off"></i></button><button title='ForceStop'><i class="fa fa-plug"></i></button><button title='Undefine'><i class="fa fa-times"></i></button><button title='Add ISO' onclick='showView("addiso")'><i class="fa fa-plus"></i></button><button title='Add NET' onclick='showView("addnet")'><i class="fa fa-plus"></i></button><button title='Add DISK' onclick='showView("adddisk")'><i class="fa fa-plus"></i></button></div></div>
-        <table><tr><th width="20%">cputime</th><td>0</td></tr><tr><th width="20%">create</th><td>20250219125843</td></tr><tr><th width="20%">curcpu</th><td>2</td></tr><tr><th width="20%">curmem</th><td>2097152</td></tr><tr><th width="20%">desc</th><td></td></tr><tr><th width="20%">gateway</th><td>null</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.2/22</td></tr><tr><th width="20%">maxmem</th><td>16777216</td></tr><tr><th width="20%">state</th><td>5</td></tr><tr><th width="20%">uuid</th><td>7cb79a8a-5d9f-4a53-9705-6b37f6085c11</td></tr><tr><th width="20%">vcpus</th><td>8</td></tr></table>
-      </div>
-    </div>
-  </div>
-  <!-- UI DEMO END -->
-</div>
-<!-- ############## -->
-<div id="hostlist" class="tabContent">
-  <div class="container">
-    <div class="host-container" id="host"></div>
-    <div class="vms-container" id="vms"></div>
-  </div>
-</div>
-<!-- ############## -->
-<div id="display" class="tabContent">
-  <embed id="display" width="800" height="600" src="" type="text/html"/>
-</div>
-<!-- ############## -->
-<div id="addiso" class="tabContent">
-  <div class="form-wrapper">
-    <div class="form-wrapper-header">
-      <h2>AddISO</h2>
-      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
-    </div>
-    <form id="addiso_form">
-      <label>ISO:<select name="device" id="iso_list"></select></label>
-      <input type="submit" value="Submit"/>
-    </form>
-  </div>
-</div>
-<!-- ############## -->
-<div id="addnet" class="tabContent">
-  <div class="form-wrapper">
-    <div class="form-wrapper-header">
-      <h2>AddNetwork</h2>
-      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
-    </div>
-    <form id="addnet_form">
-      <label>Network:<select name="device" id="net_list"></select></label>
-      <input type="submit" value="Submit"/>
-    </form>
-  </div>
-</div>
-<!-- ############## -->
-<div id="adddisk" class="tabContent">
-  <div class="form-wrapper">
-    <div class="form-wrapper-header">
-      <h2>AddDISK</h2>
-      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
-    </div>
-    <form id="adddisk_form">
-      <label>Gold:<select name="gold" id="gold_list"></select></label>
-      <label>Disk:<select name="device" id="dev_list"></select></label>
-      <label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>
-      <input type="submit" value="Submit"/>
-    </form>
-  </div>
-</div>
-<!-- ############## -->
-<div id="createvm" class="tabContent">
-  <div class="form-wrapper">
-    <div class="form-wrapper-header">
-      <h2>CreateVM</h2>
-      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
-    </div>
-    <form id="createvm_form">
-      <label>cpu<input type="number" name="vm_vcpus" value="2" min="1" max="16"/></label>
-      <label>mem(MB)<input type="number" name="vm_ram_mb" value="2048" min="1024" max="16384" step="1024"/></label>
-      <label>desc<textarea rows="3" name="vm_desc" placeholder="vm desc here..."></textarea></label>
-      <label>ip*<input type="text" name="vm_ip" placeholder="ipaddr like 192.168.168.2/24" required/></label>
-      <label>gw<input type="text" name="vm_gw" placeholder="gateway like 192.168.168.1"/></label>
-      <table id="table_meta_data"></table>
-      <input type="button" value="AddField" onclick="add_meta()"/>
-      <input type="reset" value="Reset"/>
-      <input type="submit" value="Submit"/>
-    </form>
-  </div>
-</div>
+  <div id="overlay"><div id="overlay_text">Wait......</div></div>
+  <div w3-include-html="content.tpl"></div>
 </div>
 <!-- ----------------------------------------------- -->
 <script language="javascript" src="js/ui.js"></script>
-<script>
-function set_name(r) {
-  var i = r.parentNode.parentNode.rowIndex;
-  var input = document.getElementById("table_meta_data").rows[i].cells[1].getElementsByTagName('input')
-  input[0].name=r.value;
-}
-function del_meta(r) {
-  var i = r.parentNode.parentNode.rowIndex;
-  document.getElementById("table_meta_data").deleteRow(i);
-}
-function add_meta() {
-  var tableRef = document.getElementById("table_meta_data");
-  var newRow = tableRef.insertRow(-1);
-  var c_name = newRow.insertCell(0);
-  var c_value = newRow.insertCell(1);
-  var del_btn = newRow.insertCell(2);
-  c_name.innerHTML = '<input type="text"/ placeholder="name" onChange="set_name(this)">';
-  c_value.innerHTML = '<input type="text" placeholder="value" required>';
-  del_btn.innerHTML = '<input type="button" value="Remove" onclick="del_meta(this)"/>';
-}
-</script>
 <script>
 const body = document.querySelector("body");
 const darkLight = document.querySelector("#darkLight");
