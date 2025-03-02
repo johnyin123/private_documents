@@ -2,6 +2,7 @@
   <!-- UI DEMO START -->
   <center><h1>DEMO index page</h1></center>
   <button onclick='overlayon()'>test overlay</button>
+  <!-- background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" fill="none" stroke="black"><path d="M7.5 3L4 6 .5 3"/></svg>'); -->
   <div class="machine-container">
     <div class="host-container">
       <div class="host-wrapper">

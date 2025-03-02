@@ -97,11 +97,12 @@ form select {
   background: transparent;
   color: var(--blue-color);
   width: 100%;
+  border: 1px solid var(--grey-color-light);
   box-sizing: border-box;
   resize: none;
 }
 button, input[type="button"], input[type="submit"], input[type="reset"] {
-  border: none;
+  border: 1px solid var(--grey-color-light);
   cursor: pointer;
   background-color: var(--grey-color);
   color: var(--white-color);
