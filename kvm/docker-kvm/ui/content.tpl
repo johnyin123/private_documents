@@ -6,7 +6,7 @@
   <div class="machine-container">
     <div class="host-container">
       <div class="host-wrapper">
-        <div class="host-wrapper-header"><h2>KVM HOST</h2><div><button title='Create VM' onclick='showView("createvm")'><i class="fa fa-plus"></i></button></div></div>
+        <div class="host-wrapper-header"><h2>KVM HOST</h2><div><button title='Create VM' onclick='showView("createvm")'><i class="fa fa-cog"></i></button></div></div>
         <table><tr><th width="20%">active</th><td>0</td></tr><tr><th width="20%">arch</th><td>x86_64</td></tr><tr><th width="20%">desc</th><td>null</td></tr><tr><th width="20%">inactive</th><td>0</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.1/24</td></tr><tr><th width="20%">name</th><td>host01</td></tr><tr><th width="20%">sshport</th><td>60022</td></tr><tr><th width="20%">tpl</th><td>newvm.vnc.tpl</td></tr><tr><th width="20%">url</th><td>qemu+tls://192.168.168.1/system</td></tr></table>
       </div>
     </div>

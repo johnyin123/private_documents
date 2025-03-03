@@ -45,11 +45,19 @@ div.vms-wrapper-header h2 {
 div.host-wrapper-header button,
 div.vms-wrapper-header button {
   padding: 0;
-  margin: 0 5px;
   border: none;
   cursor: pointer;
   background: transparent;
-  color: var(--white-color);
+  font-size: 22px;
+  min-width: 50px;
+  line-height: 40px;
+  display: inline-block;
+  text-align: center;
+  border-radius: 6px;
+}
+div.host-wrapper-header button:hover,
+div.vms-wrapper-header button:hover {
+  color: var(--blue-color);
 }
 div.form-wrapper {
   margin: 0 auto;
@@ -111,7 +119,7 @@ button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type
   background-color: var(--blue-color);
 }
 input:invalid {
-  background: Brown;
+  background: var(--red-color);
 }
 /*input:valid { border: 2px solid black; }*/
 table {
