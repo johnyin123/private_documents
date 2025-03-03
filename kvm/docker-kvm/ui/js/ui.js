@@ -116,7 +116,9 @@ function getjson(method, url, callback, data) {
   //xhr.addEventListener("error", transferFailed);
   //xhr.addEventListener("abort", transferCanceled);
   xhr.onerror = function () { overlayoff(); console.error(`${url} ${method} net error`); };
+  xhr.onabort = function() { overlayoff(); console.error(`${url} ${method} abort`); };
   xhr.ontimeout = function () { overlayoff(); console.error(`${url} ${method} timeout`); };
+  xhr.onloadend = function() { console.error(`${url} ${method} xhr.onloadend, as finally`); };
   xhr.open(method, url, true);
   //xhr.setRequestHeader('Pragma', 'no-cache');
   xhr.setRequestHeader('Content-Type', 'application/json')
