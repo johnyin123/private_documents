@@ -43,6 +43,7 @@
     </div>
     <form id="addiso_form">
       <label>ISO:<select name="device" id="iso_list"></select></label>
+      <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
   </div>
@@ -56,6 +57,7 @@
     </div>
     <form id="addnet_form">
       <label>Network:<select name="device" id="net_list"></select></label>
+      <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
   </div>
@@ -71,6 +73,7 @@
       <label>Gold:<select name="gold" id="gold_list"></select></label>
       <label>Disk:<select name="device" id="dev_list"></select></label>
       <label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>
+      <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
   </div>
