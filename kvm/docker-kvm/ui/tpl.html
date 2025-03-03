@@ -16,10 +16,11 @@
   font-family: "Roboto", sans-serif;
 }
 :root {
-  --white-color: #fff;
-  --blue-color: #4070f4;
-  --grey-color: #707070;
-  --grey-color-light: #aaa;
+  --white-color: White;
+  --blue-color: RoyalBlue;
+  --red-color: Red;
+  --grey-color: Gray;
+  --grey-color-light: DarkGrey;
   --black-color-light: #2F323A;
   --black-color: #22242A;
 }
@@ -54,7 +55,7 @@ div.container > div.header {
 div.header > div.left_area {
   grid-area: left_area;
   font-size: 25px;
-  color: red;
+  color: var(--red-color);
   padding: 20px;
 }
 div.header > div.left_area span {

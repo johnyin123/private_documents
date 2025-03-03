@@ -95,7 +95,7 @@ form input,
 form textarea,
 form select {
   background: transparent;
-  color: var(--blue-color);
+  color: var(--white-color);
   width: 100%;
   border: 1px solid var(--grey-color-light);
   box-sizing: border-box;
@@ -110,6 +110,10 @@ button, input[type="button"], input[type="submit"], input[type="reset"] {
 button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover {
   background-color: var(--blue-color);
 }
+input:invalid {
+  background: Brown;
+}
+/*input:valid { border: 2px solid black; }*/
 table {
   width: 100%;
   table-layout: fixed;
