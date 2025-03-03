@@ -106,7 +106,8 @@ function overlayon() {
 function overlayoff() {
   document.getElementById("overlay").style.display = "none";
 }
-function getjson(method, url, callback, data) {
+function getjson(method, url, callback, data, tmout=30000) {
+  /* Set default timeout 30 seconds*/
   var sendObject = null;
   if(null !== data && typeof data !== 'undefined') {
     sendObject = JSON.stringify(data);
@@ -122,7 +123,7 @@ function getjson(method, url, callback, data) {
   xhr.open(method, url, true);
   //xhr.setRequestHeader('Pragma', 'no-cache');
   xhr.setRequestHeader('Content-Type', 'application/json')
-  xhr.timeout = 30000; // Set a timeout 30 seconds
+  xhr.timeout = tmout;
   xhr.onreadystatechange = function() {
     if(this.readyState === 4 && this.status === 200) {
       overlayoff();
@@ -244,7 +245,7 @@ function do_add(host, uuid, res) {
     } else {
       disperr(result.code, result.name, result.desc)
     }
-  }, res);
+  }, res, 60000); /*add disk 60s timeout*/
 }
 function add_disk(host, uuid) {
   const form = document.getElementById('adddisk_form');
