@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f6667c0[2024-12-11T09:47:48+08:00]:wireguard_via_websocket.sh")
+VERSION+=("65de854[2025-02-25T16:44:46+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
@@ -197,6 +197,9 @@ ${SCRIPTNAME}
         ip link set gretap0 master <bridge>
         ............
         systemd-run wstunnel client --http-proxy "http://u:pass)3@ip:port" ... via proxy-connect
+    # # wg via socat
+    socat -d -t600 -T600 -d UDP4-LISTEN:LPORT tcp4:SRV:TCPPORT,keepalive
+    socat -d tcp-l:TCPPORT,reuseaddr,keepalive,fork UDP4:127.0.0.1:LPORT
 EOF
     exit 1
 }
