@@ -8,7 +8,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f0e7298[2025-02-22T14:54:56+08:00]:v2ray.ipset.transprant.sh")
+VERSION+=("cb04ba9[2025-02-24T16:34:36+08:00]:v2ray.ipset.transprant.sh")
 ################################################################################
 # export FILTER_CMD=cat;;
 # export FILTER_CMD=tee output.log
@@ -99,6 +99,8 @@ cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2ray.cli.tproxy.config.json
         "network": "ws",
         "security": "tls",
         "tlsSettings": {
+          //"fingerprint": "firefox",
+          //"serverName": "your.domain.name",
           "allowInsecure": true,
           "disableSystemRoot": true,
           "certificates": [
