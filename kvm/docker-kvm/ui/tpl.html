@@ -21,8 +21,15 @@
   --red-color: Red;
   --grey-color: Gray;
   --grey-color-light: DarkGrey;
-  --black-color-light: #2F323A;
-  --black-color: #22242A;
+  --black-color-light: #333;
+}
+body.light {
+  --white-color: Black;
+  --blue-color: RoyalBlue;
+  --red-color: Red;
+  --grey-color: Gray;
+  --grey-color-light: DarkGrey;
+  --black-color-light: #fff;
 }
 body {
   transition: all 0.5s ease;
@@ -42,7 +49,6 @@ div.container.smallsidebar {
 }
 div.container > div.header {
   grid-area: header;
-  background-color: var(--black-color);
   justify-content: center;
   align-items: center;
   width: 100%;
@@ -128,7 +134,9 @@ div.container > div.content {
     <div class="mid_area">
       <i class="fa fa-bars header_btn" title="toggle sidebar" id="sidebar_toggle"></i>
     </div>
-    <div class="right_area"><i class="fa fa-user header_btn" title="user"></i></div>
+    <div class="right_area">
+        <i class="fa fa-moon-o header_btn" title="Toggle theme" id="darkLight"></i>
+        <i class="fa fa-user header_btn" title="user"></i></div>
   </div>
   <div class="sidebar">
     <center><img title="user image" class="profile_image" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMmNtIiBoZWlnaHQ9IjEyY20iPjxnIHN0eWxlPSJmaWxsLW9wYWNpdHk6MC43OyBzdHJva2U6YmxhY2s7IHN0cm9rZS13aWR0aDowLjFjbTsiPjxjaXJjbGUgY3g9IjZjbSIgY3k9IjJjbSIgcj0iMTAwIiBzdHlsZT0iZmlsbDpyZWQ7IiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLDUwKSIgLz48Y2lyY2xlIGN4PSI2Y20iIGN5PSIyY20iIHI9IjEwMCIgc3R5bGU9ImZpbGw6Ymx1ZTsiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDcwLDE1MCkiIC8+PGNpcmNsZSBjeD0iNmNtIiBjeT0iMmNtIiByPSIxMDAiIHN0eWxlPSJmaWxsOmdyZWVuOyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTcwLDE1MCkiLz48L2c+PC9zdmc+Cg"></center>
@@ -149,6 +157,16 @@ div.container > div.content {
 const sidebar_toggle = document.querySelector("#sidebar_toggle");
 sidebar_toggle.addEventListener("click", () => {
   document.querySelector(".container").classList.toggle("smallsidebar");
+});
+const darkLight = document.querySelector("#darkLight");
+const body = document.querySelector("body");
+darkLight.addEventListener("click", () => {
+  body.classList.toggle("light");
+  if (body.classList.contains("light")) {
+    darkLight.classList.replace("fa-moon-o", "fa-sun-o");
+  } else {
+    darkLight.classList.replace("fa-sun-o", "fa-moon-o");
+  }
 });
 </script>
 </body>
