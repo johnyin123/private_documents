@@ -196,6 +196,7 @@ cat <<EO_HOST > /etc/hosts
 EO_HOST
 /etc/${srv_name}/v2ray.cli.tproxy.nft.sh
 sysctl -w net.ipv4.ip_forward=1
+export V2RAY_LOCATION_ASSET=/etc/${srv_name}
 /etc/${srv_name}/v2ray -config /etc/${srv_name}/config.json
 EOF
 echo "(cd ${srv_name} && rsync -avP * /)"
