@@ -55,7 +55,7 @@ div.container > div.header {
   height: 80px;
   display: grid;
   grid-template-areas: "left_area mid_area right_area";
-  grid-template-columns: 2fr 8fr 1fr;
+  grid-template-columns: minmax(200px, 1fr) 8fr minmax(200px, 1fr);
   border: 1px solid var(--grey-color-light);
 }
 div.header > div.left_area {
@@ -63,6 +63,7 @@ div.header > div.left_area {
   font-size: 25px;
   color: var(--red-color);
   padding: 20px;
+  text-align: left;
 }
 div.header > div.left_area span {
   color: var(--blue-color);
@@ -74,7 +75,7 @@ div.header > div.mid_area {
 div.header > div.right_area {
   grid-area: right_area;
   cursor: pointer;
-  text-align: left;
+  text-align: right;
 }
 .header_btn {
   border: none;
