@@ -320,9 +320,6 @@ function add_meta() {
   c_value.innerHTML = '<input type="text" placeholder="value" required>';
   del_btn.innerHTML = '<input type="button" value="Remove" onclick="del_meta(this)"/>';
 }
-function updateValue(val, span) {
-  document.getElementById(span).innerHTML = val;
-}
 /* include html */
 function includeHTML() {
   var z, i, elmnt, file, xhttp;
@@ -363,3 +360,14 @@ window.onload = function() {
     document.getElementById("sidebar").innerHTML = mainMenu;
   }, null);
 }
+/* ------------------------- */
+function updateValue(val, span) {
+  document.getElementById(span).innerHTML = val;
+}
+function getTheme() {
+  return localStorage.getItem('theme') || 'light';
+}
+function saveTheme(theme) {
+  localStorage.setItem('theme', theme);
+}
+/* ------------------------- */

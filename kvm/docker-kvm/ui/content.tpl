@@ -96,8 +96,8 @@
       </div></label>
       <label>desc<textarea rows="3" name="vm_desc" placeholder="vm desc here..."></textarea></label>
       <label>ip*<input type="text" name="vm_ip" placeholder="ipaddr 192.168.168.2/24" required
-    pattern="^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-3]{1,2}$"/></label>
-      <label>gw<input type="text" name="vm_gw" placeholder="gateway 192.168.168.1" pattern="^([0-9]{1,3}\.){3}[0-9]{1,3}$"/></label>
+    pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/[0-3]{1,2}$"/></label>
+      <label>gw<input type="text" name="vm_gw" placeholder="gateway 192.168.168.1" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"/></label>
       <table id="table_meta_data"></table>
       <input type="button" value="AddField" onclick="add_meta()"/>
       <input type="reset" value="Reset"/>
