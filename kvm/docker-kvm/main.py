@@ -199,6 +199,14 @@ class MyApp(object):
 
 app=MyApp.create()
 app.errorhandler(APIException)(APIException.handle)
+# @app.route("/connect")
+# def publish_hello():
+#     def stream():
+#         for idx in itertools.count():
+#             msg = f"data: <p>This is {idx}.</p>\n\n"
+#             yield msg
+#             time.sleep(1)
+#     return Response(stream(), mimetype="text/event-stream")
 def main():
     host = os.environ.get('HTTP_HOST', '0.0.0.0')
     port = int(os.environ.get('HTTP_PORT', '5009'))

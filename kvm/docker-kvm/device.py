@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import flask_app, os, json
+import flask_app, os, json, subprocess
 from config import config
 logger=flask_app.logger
 from exceptions import APIException, HTTPStatus
@@ -18,7 +18,7 @@ def ssh_exec(host,port,username,password,command):
         return list
     finally:
         ssh.close()
- 
+
 def sftp_get(host, ort, username, password, erver_path, local_path):
     try:
         t = paramiko.Transport((host, port))
@@ -31,7 +31,6 @@ def sftp_get(host, ort, username, password, erver_path, local_path):
 
 def execute(json_str:str, action:str, arg:str,**kwargs):
     try:
-        import subprocess, io
         command = [f'{action}', f'{arg}']
         # Start the subprocess
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=kwargs)

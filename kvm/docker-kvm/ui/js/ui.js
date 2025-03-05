@@ -27,14 +27,14 @@ function show_vms(host, vms) {
   vms.forEach(item => {
     table += `<div class="vms-wrapper">`;
     table += `<div class="vms-wrapper-header"><h2>KVM GUEST</h2><div>`;
-    table += gen_act('VNC', 'display', host, item.uuid, 'fa-television');
+    table += gen_act('VNC', 'display', host, item.uuid, 'fa-desktop');
     table += gen_act('Start', 'start', host, item.uuid, 'fa-play');
     table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off');
     table += gen_act('ForceStop', 'force_stop', host, item.uuid, 'fa-plug');
-    table += gen_act('Undefine', 'undefine', host, item.uuid, 'fa-times');
-    table += gen_act('Add ISO', 'add_iso', host, item.uuid, 'fa-plus');
-    table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-plus');
-    table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-plus');
+    table += gen_act('Undefine', 'undefine', host, item.uuid, 'fa-trash');
+    table += gen_act('Add ISO', 'add_iso', host, item.uuid, 'fa-floppy-o');
+    table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-wifi');
+    table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-folder-o');
     table += `</div></div>`;
     table += `<table>`;
     for(var key in item) {
@@ -50,7 +50,7 @@ function show_host(host) {
   var table = '';
   table += `<div class="host-wrapper">`;
   table += `<div class="host-wrapper-header"><h2>KVM HOST</h2><div>`;
-  table += gen_act('Create VM', 'create_vm', host.name, host.arch, 'fa-plus');
+  table += gen_act('Create VM', 'create_vm', host.name, host.arch, 'fa-tasks');
   table += `</div></div>`;
   table += `<table>`;
   for(var key in host) {
