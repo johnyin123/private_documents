@@ -147,7 +147,7 @@ class MyApp(object):
             os.remove(f"{fn}")
             # os.unlink(f"{fn}")
         except Exception:
-            pass 
+            pass
 
     def delete_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
@@ -199,14 +199,19 @@ class MyApp(object):
 
 app=MyApp.create()
 app.errorhandler(APIException)(APIException.handle)
-# @app.route("/connect")
-# def publish_hello():
-#     def stream():
-#         for idx in itertools.count():
-#             msg = f"data: <p>This is {idx}.</p>\n\n"
-#             yield msg
-#             time.sleep(1)
-#     return Response(stream(), mimetype="text/event-stream")
+# # stream output test
+import subprocess
+@app.route('/stream')
+def stream():
+    command = f'ping -c 10 127.0.0.1'
+    env={'URL':'url'}
+    def generate():
+        with subprocess.Popen(command, shell = True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env) as proc:
+            for line in proc.stdout:
+                yield line
+    return flask.Response(generate(), mimetype="text/event-stream")
+    # return generate(), {'Content-Type': 'text/event-stream; charset=utf-8'}
+
 def main():
     host = os.environ.get('HTTP_HOST', '0.0.0.0')
     port = int(os.environ.get('HTTP_PORT', '5009'))
