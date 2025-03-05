@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("65de854[2025-02-25T16:44:46+08:00]:wireguard_via_websocket.sh")
+VERSION+=("f9b38d3[2025-03-04T16:39:41+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
@@ -136,7 +136,7 @@ PrivateKey = $(array_get "${peer}" prikey)
 Address = $(array_get "${peer}" address)
 MTU=1420
 Table = off
-PreUp = /bin/bash -c 'ns_name=\$(ip netns identify \$\$);systemd-run --unit ${cli_uuid} \${ns_name:+-p NetworkNamespacePath=/run/netns/\${ns_name} }-p DynamicUser=yes wstunnel client --no-color 1 -P ${cli_uuid} -L udp://127.0.0.1:${wgsrv_port}:127.0.0.1:${wgsrv_port} ${cli_cert:+--tls-certificate /etc/wstunnel/ssl/cli.pem }${cli_key:+--tls-private-key /etc/wstunnel/ssl/cli.key} --tls-sni-disable wss://${wgsrv_addr}:${ngx_port}'
+PreUp = /bin/bash -c 'ns_name=\$(ip netns identify \$\$);systemd-run --unit ${cli_uuid} \${ns_name:+-p NetworkNamespacePath=/run/netns/\${ns_name} }-p DynamicUser=yes wstunnel client --no-color 1 --connection-retry-max-backoff 1s -P ${cli_uuid} -L udp://127.0.0.1:${wgsrv_port}:127.0.0.1:${wgsrv_port} ${cli_cert:+--tls-certificate /etc/wstunnel/ssl/cli.pem }${cli_key:+--tls-private-key /etc/wstunnel/ssl/cli.key} --tls-sni-disable wss://${wgsrv_addr}:${ngx_port}'
 PostDown = systemctl stop ${cli_uuid}.service
 
 [Peer]
