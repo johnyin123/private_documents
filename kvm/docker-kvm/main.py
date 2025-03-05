@@ -203,12 +203,21 @@ app.errorhandler(APIException)(APIException.handle)
 import subprocess
 @app.route('/stream')
 def stream():
-    command = f'ping -c 10 127.0.0.1'
+    command = f'./host01-disk.file'
     env={'URL':'url'}
+    json_str='{"KEY":"VAL"}'
     def generate():
-        with subprocess.Popen(command, shell = True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env) as proc:
+        with subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env) as proc:
+            proc.stdin.write(json_str)
+            proc.stdin.close()
             for line in proc.stdout:
                 yield line
+            # Wait for the process to complete
+            proc.wait()
+            # Check the return code
+            if proc.returncode == 0:
+                return
+            raise APIException(HTTPStatus.BAD_REQUEST, f'execute {command} error', f'error={proc.returncode}')
     return flask.Response(generate(), mimetype="text/event-stream")
     # return generate(), {'Content-Type': 'text/event-stream; charset=utf-8'}
 
