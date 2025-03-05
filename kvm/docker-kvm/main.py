@@ -217,7 +217,7 @@ def stream():
             # Check the return code
             if proc.returncode == 0:
                 return
-            raise APIException(HTTPStatus.BAD_REQUEST, f'execute {command} error', f'error={proc.returncode}')
+            yield f'execute {command} error={proc.returncode}'
     return flask.Response(generate(), mimetype="text/event-stream")
     # return generate(), {'Content-Type': 'text/event-stream; charset=utf-8'}
 
