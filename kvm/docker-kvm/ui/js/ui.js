@@ -87,7 +87,7 @@ function showView(id) {
   }
   if(view != null) { view.style.display = "block"; }
 }
-function showAlert(type, message) {
+function Alert(type, message) {
   var msg = `<div class="form-wrapper"><div class="form-wrapper-header"><h2>${type}</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div><form><pre>${message}</pre></form></div>`;
@@ -100,10 +100,10 @@ function showAlert(type, message) {
   }
 }
 function dispok(msg) {
-  showAlert("SUCCESS", `${msg}`);
+  Alert("SUCCESS", `${msg}`);
 }
 function disperr(code, name, desc) {
-  showAlert("ERROR", `${code} ${name} ${desc}`);
+  Alert("ERROR", `${code} ${name} ${desc}`);
 }
 function overlayon() {
   const overlay = document.getElementById("overlay");
