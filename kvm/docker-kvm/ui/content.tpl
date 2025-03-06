@@ -1,3 +1,5 @@
+<div id="overlay"><pre id="overlay_output"></pre><div id="overlay_text">Wait......</div></div>
+<div id="alert" class="tabContent"></div>
 <div id="about" class="tabContent">
   <!-- UI DEMO START -->
   <center><h1>DEMO index page</h1></center>

@@ -18,7 +18,6 @@ function gen_dev_list(jsonobj, devtype) {
   });
   return lst;
 }
-
 function gen_act(smsg, action, host, parm2, icon) {
   return `<button title='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
 }
@@ -88,23 +87,35 @@ function showView(id) {
   }
   if(view != null) { view.style.display = "block"; }
 }
-function showMsg(msg) {
-  var x = document.getElementById("snackbar");
-  x.innerHTML = msg
-  x.className = "show";
-  setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
+function showAlert(type, message) {
+  var msg = `<div class="form-wrapper"><div class="form-wrapper-header"><h2>${type}</h2>
+      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
+    </div><form><pre>${message}</pre></form></div>`;
+  const div_alert = document.getElementById("alert");
+  if (div_alert !== null) {
+    div_alert.innerHTML = msg
+    showView('alert');
+  } else {
+    alert(`${type} ${message}`);
+  }
 }
 function dispok(msg) {
-  showMsg(msg);
+  showAlert("SUCCESS", `${msg}`);
 }
 function disperr(code, name, desc) {
-  showMsg(`${code} ${name} ${desc}`);
+  showAlert("ERROR", `${code} ${name} ${desc}`);
 }
 function overlayon() {
-  document.getElementById("overlay").style.display = "block";
+  const overlay = document.getElementById("overlay");
+  if (overlay !== null) {
+    overlay.style.display = "block";
+  }
 }
 function overlayoff() {
-  document.getElementById("overlay").style.display = "none";
+  const overlay = document.getElementById("overlay");
+  if (overlay !== null) {
+    overlay.style.display = "none";
+  }
 }
 function getjson(method, url, callback, data=null, stream=null, tmout=30000) {
   /* Set default timeout 30 seconds*/
@@ -220,13 +231,14 @@ function create_vm(host, arch) {
 }
 function do_add(host, uuid, res) {
   console.log(JSON.stringify(res));
-  const output = document.querySelector("#output");
+  const overlay_output = document.querySelector("#overlay_output");
   getjson('POST', `/vm/attach_device/${host}/${uuid}/${res.device}`, function(res) {
+    dispok('Add Device OK');
     vmlist(host);
-    output.innerHTML = "";
+    overlay_output.innerHTML = "";
   }, res, function(res) {
-    output.innerHTML = res;
-    output.scrollTop=output.scrollHeight;
+    overlay_output.innerHTML = res;
+    overlay_output.scrollTop=overlay_output.scrollHeight;
   }, 60000); /*add disk 60s timeout*/
 }
 function add_disk(host, uuid) {
@@ -343,9 +355,6 @@ window.onload = function() {
   });
 }
 /* ------------------------- */
-function updateValue(val, span) {
-  document.getElementById(span).innerHTML = val;
-}
 function getTheme() {
   return localStorage.getItem('theme') || 'light';
 }
