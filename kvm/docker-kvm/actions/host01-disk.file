@@ -34,7 +34,7 @@ DISK="${DIR}/vd${char}-${UUID}.raw"
 [ -z "${GOLD}" ] && {
     qemu-img create -f raw ssh://root@${HOSTIP}:${SSHPORT}${DISK} ${SIZE}
 } || {
-    qemu-img convert -f qcow2 -O raw ${GOLD} ssh://root@${HOSTIP}:${SSHPORT}${DISK}
+    qemu-img convert -p  -f qcow2 -O raw ${GOLD} ssh://root@${HOSTIP}:${SSHPORT}${DISK}
     # skip resize error, when SIZE < gold image size, error but now image uploaded! so skip error
     qemu-img resize -f raw ssh://root@${HOSTIP}:${SSHPORT}${DISK} ${SIZE} || true
 }
