@@ -4,7 +4,7 @@
 import os
 import flask_app, flask
 logger=flask_app.logger
-import database, vmmanager, template, device
+import database, vmmanager, template, device, json
 from config import config
 from exceptions import APIException, HTTPStatus
 
@@ -124,10 +124,9 @@ class MyApp(object):
                     logger.error(f'attach_device {gold} nofoudn')
                     raise APIException(HTTPStatus.BAD_REQUEST, 'attach', f'gold {gold} nofound')
         xml = tpl.gen_xml(**req_json)
-        if dev.action is not None and len(dev.action) != 0:
-            device.do_action(dev.devtype, dev.action, 'add', host, xml, req_json)
-        dom.attach_device(xml)
-        return { 'result' : 'OK' }
+        req_json = json.dumps(req_json, indent='  ', ensure_ascii=False)
+        env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
+        return flask.Response(device.generate(dom, xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
 
     def create_vm(self, hostname):
         req_json = flask.request.json
@@ -199,27 +198,6 @@ class MyApp(object):
 
 app=MyApp.create()
 app.errorhandler(APIException)(APIException.handle)
-# # stream output test
-import subprocess
-@app.route('/stream')
-def stream():
-    command = f'./host01-disk.file'
-    env={'URL':'url'}
-    json_str='{"KEY":"VAL"}'
-    def generate():
-        with subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env) as proc:
-            proc.stdin.write(json_str)
-            proc.stdin.close()
-            for line in proc.stdout:
-                yield line
-            # Wait for the process to complete
-            proc.wait()
-            # Check the return code
-            if proc.returncode == 0:
-                return
-            yield f'execute {command} error={proc.returncode}'
-    return flask.Response(generate(), mimetype="text/event-stream")
-    # return generate(), {'Content-Type': 'text/event-stream; charset=utf-8'}
 
 def main():
     host = os.environ.get('HTTP_HOST', '0.0.0.0')

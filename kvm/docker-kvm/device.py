@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import flask_app, os, json, subprocess
+import flask_app, os, subprocess, vmmanager
 from config import config
 logger=flask_app.logger
 from exceptions import APIException, HTTPStatus
@@ -29,26 +29,19 @@ def sftp_get(host, ort, username, password, erver_path, local_path):
     except Exception:
         logger.exception(f'{host}:{port}')
 
-def execute(json_str:str, action:str, arg:str,**kwargs):
-    try:
-        command = [f'{action}', f'{arg}']
-        # Start the subprocess
-        process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=kwargs)
-        # Read the output
-        stdout, stderr = process.communicate(json_str)
-        logger.info(f'subprocess {action} return {process.returncode} OUTPUT: {stdout}{stderr}')
-        # Wait for the process to complete
-        process.wait()
-        # Check the return code
-        if process.returncode == 0:
-            return
-        raise APIException(HTTPStatus.BAD_REQUEST, f'execute {action} error', f'error={stderr}')
-    except subprocess.CalledProcessError as e:
-        logger.exception(f'{action} {arg}')
-        raise APIException(HTTPStatus.BAD_REQUEST, 'CalledProcessError', f'{e}')
-
-def do_action(devtype:str, action:str, arg:str ,host:dict, xml:str, req:dict):
-    logger.info(f'{devtype} exec:{action} {arg} {req} {xml}')
-    req = json.dumps(req, indent='  ', ensure_ascii=False)
-    env={'URL':host.url, 'TYPE':devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
-    execute(req, os.path.join(config.ACTION_DIR, f'{action}'), arg, **env)
+def generate(dom: vmmanager.LibvirtDomain, xml:str, action:str, arg:str, json_str:str, **kwargs):
+    cmd = [ os.path.join(config.ACTION_DIR, f'{action}'), f'{arg}']
+    if action is not None and len(action) != 0:
+        logger.info(f'exec:{action} {arg} {json_str} {xml}')
+        with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=kwargs) as proc:
+            proc.stdin.write(json_str)
+            proc.stdin.close()
+            for line in proc.stdout:
+                logger.info(line)
+                yield line
+            proc.wait()
+            if proc.returncode != 0:
+                logger.info(f'execute {cmd} error={proc.returncode}')
+                yield f'execute {cmd} error={proc.returncode}'
+                return
+    dom.attach_device(xml)

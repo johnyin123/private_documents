@@ -1,4 +1,4 @@
-var config = { g_hosts: {}, g_menu : [ { "name" : "about", "url" : "javascript:about()" } ] };
+var config = { g_hosts: {} };
 function about() { showView('about'); }
 function gen_gold_list(jsonobj) {
   var lst = '';
@@ -106,7 +106,7 @@ function overlayon() {
 function overlayoff() {
   document.getElementById("overlay").style.display = "none";
 }
-function getjson(method, url, callback, data, tmout=30000) {
+function getjson(method, url, callback, data=null, stream=null, tmout=30000) {
   /* Set default timeout 30 seconds*/
   var sendObject = null;
   if(null !== data && typeof data !== 'undefined') {
@@ -125,16 +125,24 @@ function getjson(method, url, callback, data, tmout=30000) {
   xhr.setRequestHeader('Content-Type', 'application/json')
   xhr.timeout = tmout;
   xhr.onreadystatechange = function() {
+    if(this.readyState === 3 && this.status === 200) {
+      if (stream && typeof(stream) == "function") {
+        stream(xhr.responseText);
+      }
+      return;
+    }
     if(this.readyState === 4 && this.status === 200) {
       overlayoff();
       console.log(`${method} ${url} ${xhr.response}`);
-      callback(xhr.response);
+      if (callback && typeof(callback) == "function") {
+        callback(xhr.response);
+      }
       return;
     }
     if(xhr.readyState === 4 && xhr.status !== 0) {
       overlayoff();
       console.error(`${url} ${method} ${xhr.status} ${xhr.statusText}`);
-      disperr(xhr.status, method, `${url} ${xhr.statusText}`);
+      disperr(xhr.status, method, `${url} ${xhr.response}`);
     }
     return;
   }
@@ -150,7 +158,7 @@ function vmlist(host) {
   getjson('GET', `/vm/list/${host}`, function(res) {
     var vms = JSON.parse(res);
     document.getElementById("vms").innerHTML = show_vms(host, vms);
-  }, null);
+  });
 }
 function on_menu_host(host, n) {
   document.getElementById("host").innerHTML = '';
@@ -160,47 +168,27 @@ function on_menu_host(host, n) {
 }
 function start(host, uuid) {
   getjson('GET', `/vm/start/${host}/${uuid}`, function(res) {
-    var result = JSON.parse(res);
-    if(result.result === 'OK') {
-      dispok('start vm OK');
-      vmlist(host);
-    } else {
-      disperr(result.code, result.name, result.desc)
-    }
-  }, null);
+    dispok(`start vm ${res}`);
+    vmlist(host);
+  });
 }
 function stop(host, uuid) {
   getjson('GET', `/vm/stop/${host}/${uuid}`, function(res) {
-    var result = JSON.parse(res);
-    if(result.result === 'OK') {
-      dispok('stop vm OK');
-      vmlist(host);
-    } else {
-      disperr(result.code, result.name, result.desc)
-    }
-  }, null);
+    dispok(`stop vm ${res}`);
+    vmlist(host);
+  });
 }
 function force_stop(host, uuid) {
   getjson('DELETE', `/vm/stop/${host}/${uuid}`, function(res) {
-    var result = JSON.parse(res);
-    if(result.result === 'OK') {
-      dispok('force stop vm OK');
-      vmlist(host);
-    } else {
-      disperr(result.code, result.name, result.desc)
-    }
-  }, null);
+    dispok(`force stop vm ${res}`);
+    vmlist(host);
+  });
 }
 function undefine(host, uuid) {
   getjson('GET', `/vm/delete/${host}/${uuid}`, function(res) {
-    var result = JSON.parse(res);
-    if(result.result === 'OK') {
-      dispok('undefine vm OK');
-      vmlist(host);
-    } else {
-      disperr(result.code, result.name, result.desc)
-    }
-  }, null);
+    dispok(`undefine vm ${res}`);
+    vmlist(host);
+  });
 }
 function display(host, uuid) {
   getjson('GET', `/vm/display/${host}/${uuid}`, function(res) {
@@ -211,17 +199,12 @@ function display(host, uuid) {
     } else {
       disperr(result.code, result.name, result.desc)
     }
-  }, null);
+  });
 }
 function do_create(host, res) {
   getjson('POST', `/vm/create/${host}`, function(res) {
-    var result = JSON.parse(res);
-    if(result.result === 'OK') {
-      dispok('create vm OK');
-      vmlist(host);
-    } else {
-      disperr(result.code, result.name, result.desc)
-    }
+    dispok(`create vm ${res}`);
+    vmlist(host);
   }, res);
 }
 function create_vm(host, arch) {
@@ -237,15 +220,14 @@ function create_vm(host, arch) {
 }
 function do_add(host, uuid, res) {
   console.log(JSON.stringify(res));
+  const output = document.querySelector("#output");
   getjson('POST', `/vm/attach_device/${host}/${uuid}/${res.device}`, function(res) {
-    var result = JSON.parse(res);
-    if(result.result === 'OK') {
-      dispok(`add OK ${res}`);
-      vmlist(host);
-    } else {
-      disperr(result.code, result.name, result.desc)
-    }
-  }, res, 60000); /*add disk 60s timeout*/
+    vmlist(host);
+    output.innerHTML = "";
+  }, res, function(res) {
+    output.innerHTML = res;
+    output.scrollTop=output.scrollHeight;
+  }, 60000); /*add disk 60s timeout*/
 }
 function add_disk(host, uuid) {
   const form = document.getElementById('adddisk_form');
@@ -254,7 +236,7 @@ function add_disk(host, uuid) {
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
     devlst.innerHTML = gen_dev_list(devs, 'disk');
-  }, null);
+  });
   getjson('GET', `/tpl/gold/${host}`, function(res) {
     var gold = JSON.parse(res);
     goldlst.innerHTML = gen_gold_list(gold);
@@ -274,7 +256,7 @@ function add_net(host, uuid) {
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
     netlst.innerHTML = gen_dev_list(devs, 'net');
-  }, null);
+  });
   form.addEventListener('submit', function(event) {
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
@@ -290,7 +272,7 @@ function add_iso(host, uuid) {
   getjson('GET', `/tpl/device/${host}`, function(res) {
     var devs = JSON.parse(res);
     isolst.innerHTML = gen_dev_list(devs, 'iso');
-  }, null);
+  });
   form.addEventListener('submit', function(event) {
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
@@ -358,7 +340,7 @@ window.onload = function() {
       mainMenu += `<a href='#' class='nav_link sublink' onclick='on_menu_host(config.g_hosts, ${n})'>${config.g_hosts[n].name}</a>`;
     }
     document.getElementById("sidebar").innerHTML = mainMenu;
-  }, null);
+  });
 }
 /* ------------------------- */
 function updateValue(val, span) {

@@ -232,6 +232,9 @@ server {
         }
         location ~* ^/vm/(create|attach_device)/ {
             if ($request_method !~ ^(POST)$ ) { return 405; }
+            # # for server stream output
+            proxy_buffering                    off;
+            proxy_request_buffering            off;
             proxy_pass http://flask_app;
         }
         return 404;

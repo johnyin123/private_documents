@@ -9,4 +9,4 @@ class APIException(Exception):
     @staticmethod
     def handle(e):
         response = {'result' : 'ERR', 'code': e.code,'name':e.name,'desc':e.desc}
-        return response, 200
+        return response, e.code

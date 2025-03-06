@@ -96,9 +96,12 @@ class LibvirtDomain:
                 if dev in hdlst:
                     hdlst.remove(dev)
             return {'virtio':vdlst[0][2], 'scsi':sdlst[0][2], 'sata':sdlst[0][2], 'ide':hdlst[0][2]}
+        except IndexError as e:
+            logger.exception(f'next_disk')
+            raise APIException(HTTPStatus.BAD_REQUEST, 'next_disk error', f'vm {self.uuid} DISK LABEL FULL(a..z)')
         except Exception:
             logger.exception(f'next_disk')
-            return {'virtio':'a', 'scsi':'a', 'sata':'a', 'ide':'a'}
+            raise APIException(HTTPStatus.BAD_REQUEST, 'next_disk error', f'vm {self.uuid} DISK LABEL UNKNOWN')
 
     @property
     def mdconfig(self):

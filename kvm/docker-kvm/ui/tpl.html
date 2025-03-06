@@ -145,8 +145,15 @@ div.container > div.content {
     <a href="javascript:showView('about')"><i class="fa fa-info-circle"></i><span>About</span></a>
   </div>
 <!-- ----------------------------------------------- -->
+<style>
+#output {
+  overflow-x: auto;
+  width: 64vw;
+  height: 48vh;
+}
+</style>
 <div class="content">
-  <div id="overlay"><div id="overlay_text">Wait......</div></div>
+  <div id="overlay"><pre id="output"></pre><div id="overlay_text">Wait......</div></div>
   <div id="snackbar"></div>
   <div w3-include-html="content.tpl"></div>
 </div>
