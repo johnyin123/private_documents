@@ -15,6 +15,8 @@ class Config:
     DOMAIN_DIR = os.path.join(OUTDIR, 'domains')
     META_DIR = os.path.join(OUTDIR, 'meta')
     TOKEN_DIR = os.path.join(OUTDIR, 'token')
+    # # socat process close 10m
+    SOCAT_TMOUT = '10m'
     VNC_DISP_URL = 'https://vmm.registry.local/novnc/vnc_lite.html'
     SPICE_DISP_URL = 'https://vmm.registry.local/spice/spice_auto.html'
     # # main:attach_device

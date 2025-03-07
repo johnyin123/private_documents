@@ -71,7 +71,7 @@ class MyApp(object):
         host = database.KVMHost.getHostInfo(hostname)
         dom = vmmanager.VMManager(host.name, host.url).get_domain(uuid)
         disp = dom.get_display()
-        timeout = '10m'
+        timeout = config.SOCAT_TMOUT
         for it in disp:
             logger.info(f'get_display {uuid}: {it}')
             passwd = it.get('passwd', '')
@@ -84,6 +84,7 @@ class MyApp(object):
                 # remote need: nc
                 # local need: socat
                 local = f'/tmp/.display.{uuid}'
+                # if not os.path.exists(local):
                 ssh_cmd = _make_ssh_command(host.ipaddr, '', '', server, port, '')
                 socat_cmd = ('timeout', f'{timeout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
                 pid = os.fork()
