@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("98bb05c[2024-12-22T11:52:15+08:00]:ngx_demo.sh")
+VERSION+=("650e6eb[2025-02-08T09:10:38+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -18,6 +18,38 @@ echo 'address=/.mytest.com/127.0.0.1' > dnsmasq.conf
 # address=/#/127.0.0.1
 dnsmasq -d -C dnsmasq.conf
 dig www.mytest.com @127.0.0.1
+EOF
+cat <<'EOF'>ngx-cache.txt
+# 强缓存Strong Cache
+# Cache-Control和Expires
+# 直接告诉浏览器:在缓存过期前无需与服务器通信
+
+# # 1年内有效,优先级高于Expires
+add_header Cache-Control "public, max-age=31536000";
+# # 绝对过期时间,依赖客户端本地时间
+expires 1y;
+#####################################################
+# 协商缓存Weak Cache
+# Last-Modified和ETag
+# 要求浏览器每次向服务器验证缓存是否过期,若未过期则返回304 Not Modified
+
+# # 启用协商缓存,精度为秒,可能因时间同步问题失效
+add_header Last-Modified "";
+etag on;
+|------------+----------------------+--------------------|
+| 特性       | 强缓存               | 协商缓存           |
+| 通信成本   | 无网络请求直接读缓存 | 需发送请求验证缓存 |
+| 响应状态码 | 200 from disk cache  | 304 Not Modified   |
+| 优先级     | 优先于协商缓存       | 强缓存过期后触发   |
+| 适用资源   | 长期不变的静态资源   | 频繁更新的动态资源 |
+|------------+----------------------+--------------------|
+# # 强缓存1小时过期后启用协商缓存
+location / {
+    add_header Cache-Control "public, max-age=3600";
+    etag on;
+}
+# # 禁用强缓存总是协商
+add_header Cache-Control "no-cache, must-revalidate";
 EOF
 cat <<'EOF'>check_conf.sh
 #!/usr/bin/env bash
