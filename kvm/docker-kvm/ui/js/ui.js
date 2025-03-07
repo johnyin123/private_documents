@@ -90,7 +90,7 @@ function showView(id) {
 function Alert(type, message) {
   var msg = `<div class="form-wrapper"><div class="form-wrapper-header"><h2>${type}</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
-    </div><form><pre>${message}</pre></form></div>`;
+    </div><form><pre style="white-space: pre-wrap;">${message}</pre></form></div>`;
   const div_alert = document.getElementById("alert");
   if (div_alert !== null) {
     div_alert.innerHTML = msg

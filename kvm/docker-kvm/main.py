@@ -42,7 +42,26 @@ class MyApp(object):
         web.add_url_rule('/vm/stop/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm, methods=['GET'])
         web.add_url_rule('/vm/stop/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm_forced, methods=['DELETE'])
         web.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.attach_device, methods=['POST'])
+        web.add_url_rule('/ssh', view_func=myapp.ssh, methods=['GET'])
+        web.add_url_rule('/scp', view_func=myapp.scp, methods=['GET'])
         return web
+
+    def ssh(self):
+        host = "192.168.168.1"
+        port = 60022
+        username = "root"
+        password = ""
+        cmd = "cat /etc/*release*;ping -c 4 127.0.0.1;"
+        return flask.Response(device.ssh_exec(host,port,username,password,cmd), mimetype="text/event-stream")
+
+    def scp(self):
+        host = "192.168.168.1"
+        port = 60022
+        username = "root"
+        password = ""
+        remote_path='/home/johnyin/disk/myvm/deepseek.qcow2'
+        local_path='./test.docker'
+        return flask.Response(device.sftp_get(host, port, username, password, remote_path, local_path), mimetype="text/event-stream")
 
     def get_domain(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)

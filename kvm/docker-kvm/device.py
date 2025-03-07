@@ -3,31 +3,44 @@ import flask_app, os, subprocess, vmmanager
 from config import config
 logger=flask_app.logger
 from exceptions import APIException, HTTPStatus
+import paramiko
 
 #cmd = ['/usr/bin/python3', 'script.py', '--verbose', 'input.txt']
-def ssh_exec(host,port,username,password,command):
+def ssh_exec(host,port,username,password,cmd):
     try:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         ssh.load_system_host_keys()
         ssh.connect(hostname=host, port=port, username=username, password=password)
-        stdin, stdout, stderr= ssh.exec_command(command)
-        list = []
-        for item in stdout.readlines():
-            list.append(item.strip())
-        return list
+        logger.info(f'ssh {username}@{host}:{port}')
+        stdin, stdout, stderr = ssh.exec_command(cmd)
+        stdin.close()
+        for line in stdout:
+            yield line
+    except Exception as e:
+        logger.exception(f'{host}:{port}')
+        raise APIException(HTTPStatus.BAD_REQUEST, 'ssh', f'{e}')
     finally:
         ssh.close()
 
-def sftp_get(host, ort, username, password, erver_path, local_path):
+def sftp_get(host, port, username, password, remote_path, local_path):
     try:
-        t = paramiko.Transport((host, port))
-        t.connect(username=username, password=password)
-        sftp = paramiko.SFTPClient.from_transport(t)
-        sftp.get(server_path , local_path)
-        t.close()
-    except Exception:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.load_system_host_keys()
+        ssh.connect(hostname=host, port=port, username=username, password=password)
+        sftp = ssh.open_sftp()
+        logger.info(f'sftp {username}@{host}:{port} R:{remote_path} L:{local_path}')
+        def progress_callback(sent, total):
+            logger.info(f"data: {sent} {total}")
+        sftp.get(remote_path, local_path, callback=progress_callback)
+        # sftp.put(local_path, remote_path)
+    except Exception as e:
         logger.exception(f'{host}:{port}')
+        raise APIException(HTTPStatus.BAD_REQUEST, 'ssh', f'{e}')
+    finally:
+        sftp.close()
+        ssh.close()
 
 def generate(dom: vmmanager.LibvirtDomain, xml:str, action:str, arg:str, json_str:str, **kwargs):
     cmd = [ os.path.join(config.ACTION_DIR, f'{action}'), f'{arg}']
