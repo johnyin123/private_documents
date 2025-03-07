@@ -25,12 +25,15 @@ function show_vms(host, vms) {
   var table = '';
   vms.forEach(item => {
     table += `<div class="vms-wrapper">`;
-    table += `<div class="vms-wrapper-header"><h2>KVM GUEST</h2><div>`;
-    table += gen_act('VNC', 'display', host, item.uuid, 'fa-desktop');
-    table += gen_act('Start', 'start', host, item.uuid, 'fa-play');
-    table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off');
-    table += gen_act('ForceStop', 'force_stop', host, item.uuid, 'fa-plug');
-    table += gen_act('Undefine', 'undefine', host, item.uuid, 'fa-trash');
+    table += `<div class="vms-wrapper-header vmstate${item.state}"><h2>GUEST</h2><div>`;
+    if(item.state === 1) {
+      table += gen_act('VNC', 'display', host, item.uuid, 'fa-desktop');
+      table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off');
+      table += gen_act('ForceStop', 'force_stop', host, item.uuid, 'fa-plug');
+    } else {
+      table += gen_act('Start', 'start', host, item.uuid, 'fa-play');
+      table += gen_act('Undefine', 'undefine', host, item.uuid, 'fa-trash');
+    } 
     table += gen_act('Add ISO', 'add_iso', host, item.uuid, 'fa-floppy-o');
     table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-wifi');
     table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-folder-o');
@@ -87,23 +90,28 @@ function showView(id) {
   }
   if(view != null) { view.style.display = "block"; }
 }
-function Alert(type, message) {
-  var msg = `<div class="form-wrapper"><div class="form-wrapper-header"><h2>${type}</h2>
-      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
-    </div><form><pre style="white-space: pre-wrap;">${message}</pre></form></div>`;
+function Alert(message) {
   const div_alert = document.getElementById("alert");
   if (div_alert !== null) {
-    div_alert.innerHTML = msg
+    div_alert.innerHTML = message;
     showView('alert');
   } else {
-    alert(`${type} ${message}`);
+    alert(message);
   }
 }
 function dispok(msg) {
-  Alert("SUCCESS", `${msg}`);
+  Alert(`
+  <div class="form-wrapper">
+    <div class="form-wrapper-header success"><h2>SUCCESS</h2><button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button></div>
+    <form><pre style="white-space: pre-wrap;">${msg}</pre></form>
+  </div>`);
 }
 function disperr(code, name, desc) {
-  Alert("ERROR", `${code} ${name} ${desc}`);
+  Alert(`
+  <div class="form-wrapper">
+    <div class="form-wrapper-header error"><h2>${name}: ${code}</h2><button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button></div>
+    <form><pre style="white-space: pre-wrap;">${desc}</pre></form>
+  </div>`);
 }
 function overlayon() {
   const overlay = document.getElementById("overlay");
@@ -152,8 +160,13 @@ function getjson(method, url, callback, data=null, stream=null, tmout=30000) {
     }
     if(xhr.readyState === 4 && xhr.status !== 0) {
       overlayoff();
-      console.error(`${url} ${method} ${xhr.status} ${xhr.statusText}`);
-      disperr(xhr.status, method, `${url} ${xhr.response}`);
+      console.error(`${method} ${url} ${xhr.status} ${xhr.response}`);
+      try {
+        result = JSON.parse(xhr.response);
+        disperr(result.code, result.name, result.desc);
+      } catch (e) {
+        disperr(xhr.status, `${method} ${url}`, `${xhr.response}`);
+      }
     }
     return;
   }
