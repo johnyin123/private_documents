@@ -75,6 +75,7 @@ class KVMGuest(Base):
     kvmhost = Column(String(19),nullable=False,index=True,primary_key=True)
     uuid = Column(String,nullable=False,index=True,unique=True,primary_key=True)
     desc = Column(String,nullable=False)
+    arch = Column(String(8),nullable=False)
     curcpu = Column(Integer,nullable=False,server_default='0')
     curmem = Column(Integer,nullable=False,server_default='0')
     ipaddr = Column(String)

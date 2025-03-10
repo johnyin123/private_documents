@@ -21,6 +21,27 @@ function gen_dev_list(jsonobj, devtype) {
 function gen_act(smsg, action, host, parm2, icon) {
   return `<button title='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
 }
+function show_all_db_vms(view) {
+  dbvms = document.getElementById("dbvms");
+  dbvms_total = document.getElementById("dbvms-total");
+  getjson('GET', `/vm/list/`, function(res) {
+    var vms = JSON.parse(res);
+    dbvms_total.innerHTML = vms.length;
+    var table = '';
+    vms.forEach(item => {
+      table += `<div class="vms-wrapper">`;
+      table += `<div class="vms-wrapper-header"><h2>GUEST</h2></div>`;
+      table += `<table>`;
+      for(var key in item) {
+        table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
+      }
+      table += "</table>";
+      table += "</div>";
+    });
+    dbvms.innerHTML = table;
+  });
+  showView(view);
+}
 function show_vms(host, vms) {
   var table = '';
   vms.forEach(item => {

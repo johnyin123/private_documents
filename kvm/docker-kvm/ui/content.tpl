@@ -1,29 +1,12 @@
 <div id="overlay"><pre id="overlay_output"></pre><div id="overlay_text">Wait......</div></div>
 <div id="alert" class="tabContent"></div>
-<div id="about" class="tabContent">
-  <!-- UI DEMO START -->
-  <center><h1>DEMO index page</h1></center>
-  <button onclick='overlayon()'>test overlay</button>
+<div id="allvms" class="tabContent">
+  <center><h1>ALL VMS (<span id="dbvms-total"></span>)</h1></center>
+  <!-- <button onclick='overlayon()'>test overlay</button> -->
   <!-- background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" fill="none" stroke="black"><path d="M7.5 3L4 6 .5 3"/></svg>'); -->
   <div class="machine-container">
-    <div class="host-container">
-      <div class="host-wrapper">
-        <div class="host-wrapper-header"><h2>KVM HOST</h2><div><button title='Create VM' onclick='showView("createvm")'><i class="fa fa-tasks"></i></button></div></div>
-        <table><tr><th width="20%">active</th><td>0</td></tr><tr><th width="20%">arch</th><td>x86_64</td></tr><tr><th width="20%">desc</th><td>null</td></tr><tr><th width="20%">inactive</th><td>0</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.1/24</td></tr><tr><th width="20%">name</th><td>host01</td></tr><tr><th width="20%">sshport</th><td>60022</td></tr><tr><th width="20%">tpl</th><td>newvm.vnc.tpl</td></tr><tr><th width="20%">url</th><td>qemu+tls://192.168.168.1/system</td></tr></table>
-      </div>
-    </div>
-    <div class="vms-container">
-      <div class="vms-wrapper">
-        <div class="vms-wrapper-header vmstate1"><h2>GUEST</h2><div><button title='VNC'><i class="fa fa-desktop"></i></button><button title='Start'><i class="fa fa-play"></i></button><button title='Stop'><i class="fa fa-power-off"></i></button><button title='ForceStop'><i class="fa fa-plug"></i></button><button title='Undefine'><i class="fa fa-trash"></i></button><button title='Add ISO' onclick='showView("addiso")'><i class="fa fa-floppy-o"></i></button><button title='Add NET' onclick='showView("addnet")'><i class="fa fa-wifi"></i></button><button title='Add DISK' onclick='showView("adddisk")'><i class="fa fa-folder-o"></i></button></div></div>
-        <table><tr><th width="20%">cputime</th><td>0</td></tr><tr><th width="20%">create</th><td>20250219125843</td></tr><tr><th width="20%">curcpu</th><td>2</td></tr><tr><th width="20%">curmem</th><td>2097152</td></tr><tr><th width="20%">desc</th><td></td></tr><tr><th width="20%">gateway</th><td>null</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.2/32</td></tr><tr><th width="20%">maxmem</th><td>16777216</td></tr><tr><th width="20%">state</th><td>5</td></tr><tr><th width="20%">uuid</th><td>7cb79a8a-5d9f-4a53-9705-6b37f6085c11</td></tr><tr><th width="20%">vcpus</th><td>8</td></tr></table>
-      </div>
-      <div class="vms-wrapper">
-        <div class="vms-wrapper-header vmstate5"><h2>GUEST</h2><div><button title='VNC'><i class="fa fa-desktop"></i></button><button title='Start'><i class="fa fa-play"></i></button><button title='Stop'><i class="fa fa-power-off"></i></button><button title='ForceStop'><i class="fa fa-plug"></i></button><button title='Undefine'><i class="fa fa-trash"></i></button><button title='Add ISO' onclick='showView("addiso")'><i class="fa fa-floppy-o"></i></button><button title='Add NET' onclick='showView("addnet")'><i class="fa fa-wifi"></i></button><button title='Add DISK' onclick='showView("adddisk")'><i class="fa fa-folder-o"></i></button></div></div>
-        <table><tr><th width="20%">cputime</th><td>0</td></tr><tr><th width="20%">create</th><td>20250219125843</td></tr><tr><th width="20%">curcpu</th><td>2</td></tr><tr><th width="20%">curmem</th><td>2097152</td></tr><tr><th width="20%">desc</th><td></td></tr><tr><th width="20%">gateway</th><td>null</td></tr><tr><th width="20%">ipaddr</th><td>192.168.168.2/22</td></tr><tr><th width="20%">maxmem</th><td>16777216</td></tr><tr><th width="20%">state</th><td>5</td></tr><tr><th width="20%">uuid</th><td>7cb79a8a-5d9f-4a53-9705-6b37f6085c11</td></tr><tr><th width="20%">vcpus</th><td>8</td></tr></table>
-      </div>
-    </div>
+  <div class="vms-container" id="dbvms"></div>
   </div>
-  <!-- UI DEMO END -->
 </div>
 <!-- ############## -->
 <div id="hostlist" class="tabContent">

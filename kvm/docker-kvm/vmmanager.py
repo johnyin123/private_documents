@@ -48,8 +48,8 @@ class LibvirtDomain:
         self.dom = dom
         self.state, self.maxmem, self.curmem, self.curcpu, self.cputime = dom.info()
         mdconfig_meta = self.mdconfig
-        self.ipaddr = mdconfig_meta['ipaddr']
-        self.gateway = mdconfig_meta['gateway']
+        self.ipaddr = mdconfig_meta.get('ipaddr', 'n/a')
+        self.gateway = mdconfig_meta.get('gateway', 'n/a')
 
     def _asdict(self):
         dic = {'uuid':self.uuid,'vcpus':self.vcpus,
