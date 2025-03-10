@@ -2,7 +2,7 @@
 import exceptions
 
 from dbi import engine, Session, session, Base
-from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey
+from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey,JSON
 
 class KVMHost(Base):
     __tablename__ = "kvmhost"
@@ -78,8 +78,14 @@ class KVMGuest(Base):
     arch = Column(String(8),nullable=False)
     curcpu = Column(Integer,nullable=False,server_default='0')
     curmem = Column(Integer,nullable=False,server_default='0')
-    ipaddr = Column(String)
-    gateway = Column(String)
+    mdconfig = Column(JSON,nullable=False)
+
+    def _asdict(self):
+        dic = {'kvmhost':self.kvmhost, 'uuid':self.uuid,
+                'desc':self.desc, 'arch':self.arch,
+                'curcpu':self.curcpu, 'curmem':self.curmem
+               }
+        return {**dic, **self.mdconfig}
 
     @staticmethod
     def DropAll():

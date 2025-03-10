@@ -219,7 +219,7 @@ class MyApp(object):
                 try:
                     domains = vmmanager.VMManager(host.name, host.url).list_domains()
                     for domain in domains:
-                        guest = database.KVMGuest(kvmhost=f'{host.name}',uuid=f'{domain.uuid}',desc=f'{domain.desc}',curcpu=domain.curcpu,curmem=domain.curmem,ipaddr=f'{domain.ipaddr}',gateway=f'{domain.gateway}',arch=f'{host.arch}')
+                        guest = database.KVMGuest(kvmhost=f'{host.name}',uuid=f'{domain.uuid}',desc=f'{domain.desc}',curcpu=domain.curcpu,curmem=domain.curmem,arch=f'{host.arch}',mdconfig=domain.mdconfig)
                         database.session.add(guest)
                         yield f'{host.name} {domain.uuid}\n'
                 except:
