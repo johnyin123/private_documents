@@ -33,6 +33,10 @@ class MyApp(object):
         web.add_url_rule('/tpl/host', view_func=myapp.list_host, methods=['GET'])
         web.add_url_rule('/tpl/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
         web.add_url_rule('/tpl/gold/<string:hostname>', view_func=myapp.list_gold, methods=['GET'])
+        ## start db oper guest ##
+        web.add_url_rule('/vm/update/', view_func=myapp.db_update_domains, methods=['GET'])
+        web.add_url_rule('/vm/list/', view_func=myapp.db_list_domains, methods=['GET'])
+        ## end db oper guest ##
         web.add_url_rule('/vm/list/<string:hostname>', view_func=myapp.list_domains, methods=['GET'])
         web.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=myapp.get_domain, methods=['GET'])
         web.add_url_rule('/vm/display/<string:hostname>/<string:uuid>', view_func=myapp.get_display, methods=['GET'])
@@ -204,11 +208,30 @@ class MyApp(object):
         domxml = file.read().decode('utf-8')
         with open(os.path.join(config.ISO_DIR, "{}.xml".format(uuid)), 'w') as f:
             f.write(domxml)
-        mdconfig_meta = vmmanager.VMManager.get_mdconfig(domxml)
-        logger.info(f'{uuid} {mdconfig_meta}')
-        if template.ISOTemplate().create_iso(uuid, mdconfig_meta):
-            return { "xml": '/{}.xml'.format(uuid), "disk": '/{}.iso'.format(uuid) }
         return { 'result' : 'OK' }
+
+    def db_update_domains(self):
+        ## need check check admin ro crontab execute
+        database.KVMGuest.DropAll()
+        hosts = database.KVMHost.ListHost()
+        def updatedb():
+            for host in hosts:
+                try:
+                    domains = vmmanager.VMManager(host.name, host.url).list_domains()
+                    for domain in domains:
+                        guest = database.KVMGuest(kvmhost=f'{host.name}',uuid=f'{domain.uuid}',desc=f'{domain.desc}',curcpu=domain.curcpu,curmem=domain.curmem,ipaddr=f'{domain.ipaddr}',gateway=f'{domain.gateway}')
+                        database.session.add(guest)
+                        yield f'{host.name} {domain.uuid}\n'
+                except:
+                    yield f'excetpin {host} continue\n'
+                database.session.commit()
+                yield f'{host.name} updated\n'
+            yield f'ALL host updated\n'
+        return flask.Response(updatedb(), mimetype="text/event-stream")
+
+    def db_list_domains(self):
+        guests = database.KVMGuest.ListGuest()
+        return [result._asdict() for result in guests]
 
 # # socat defunct process
 # # subprocess.Popen, device action returncode always 0

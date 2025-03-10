@@ -69,3 +69,22 @@ class KVMGold(Base):
     @staticmethod
     def ListGold(arch):
         return session.query(KVMGold).filter_by(arch=arch).all()
+
+class KVMGuest(Base):
+    __tablename__ = "kvmguest"
+    kvmhost = Column(String(19),nullable=False,index=True,primary_key=True)
+    uuid = Column(String,nullable=False,index=True,unique=True,primary_key=True)
+    desc = Column(String,nullable=False)
+    curcpu = Column(Integer,nullable=False,server_default='0')
+    curmem = Column(Integer,nullable=False,server_default='0')
+    ipaddr = Column(String)
+    gateway = Column(String)
+
+    @staticmethod
+    def DropAll():
+        session.query(KVMGuest).delete()
+        session.commit()
+
+    @staticmethod
+    def ListGuest():
+        return session.query(KVMGuest).all()

@@ -74,6 +74,9 @@ curl --cacert /etc/libvirt/pki/ca-cert.pem \
     --cert /etc/libvirt/pki/server-cert.pem \
     -X POST https://kvm.registry.local/domain/prepare/begin/vm1 \
     -F file=@/etc/libvirt/qemu/vm1.xml
+
+echo 'update all guests dbtable' && curl -k http://127.0.0.1:5009/vm/update/
+echo 'list all guests in database' && curl -k ${srv}/vm/list/
 ---------------------------------------------------------
 NGXSSL=/etc/nginx/ssl
 install -v -d -m 0755 "${NGXSSL}"

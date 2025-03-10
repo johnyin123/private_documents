@@ -11,16 +11,52 @@ def kvm_error(e: libvirt.libvirtError, msg: str):
     err_msg = e.get_error_message()
     raise APIException(HTTPStatus.BAD_REQUEST, f'{msg} errcode={err_code}', f'{err_msg}')
 
+try:
+    from cStringIO import StringIO as BytesIO
+except ImportError:
+    from io import BytesIO
+import pycdlib, jinja2
+
+class ISOMeta(object):
+    def __init__(self):
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader(f'{config.META_DIR}'))
+        self.meta_data = env.get_template('meta_data')
+        self.user_data = env.get_template('user_data')
+        self.network_config = env.get_template('network_config')
+
+    def create(self, uuid, mdconfig) -> bool:
+        default_conf = {'rootpass':'password','hostname':'vmsrv', 'uuid': uuid}
+        mdconfig_meta = {**default_conf, **mdconfig}
+        if 'ipaddr' not in mdconfig_meta or 'gateway' not in mdconfig_meta:
+            logger.error(f'ipaddr/gateway not exist!')
+            return False
+        iso = pycdlib.PyCdlib()
+        iso.new(interchange_level=4, vol_ident='cidata')
+        meta_data = self.meta_data.render(**mdconfig_meta)
+        iso.add_fp(BytesIO(bytes(meta_data,'ascii')), len(meta_data), '/meta-data')
+        user_data = self.user_data.render(**mdconfig_meta)
+        iso.add_fp(BytesIO(bytes(user_data,'ascii')), len(user_data), '/user-data')
+        network_config = self.network_config.render(**mdconfig_meta)
+        iso.add_fp(BytesIO(bytes(network_config,'ascii')), len(network_config), '/network-config')
+        iso.write(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
+        iso.close()
+        logger.info(f'{uuid}.iso')
+        return True
+
 class LibvirtDomain:
     def __init__(self, dom):
         self.dom = dom
         self.state, self.maxmem, self.curmem, self.curcpu, self.cputime = dom.info()
+        mdconfig_meta = self.mdconfig
+        self.ipaddr = mdconfig_meta['ipaddr']
+        self.gateway = mdconfig_meta['gateway']
 
     def _asdict(self):
         dic = {'uuid':self.uuid,'vcpus':self.vcpus,
                 'state':self.state, 'maxmem':self.maxmem,
                 'curmem':self.curmem, 'curcpu':self.curcpu,
-                'cputime':self.cputime, 'desc':self.desc
+                'cputime':self.cputime, 'desc':self.desc,
+                'ipaddr':self.ipaddr, 'gateway':self.gateway
                }
         return {**dic, **self.mdconfig}
 
@@ -105,7 +141,18 @@ class LibvirtDomain:
 
     @property
     def mdconfig(self):
-        return VMManager.get_mdconfig(self.dom.XMLDesc())
+        data_dict = {}
+        p = xml.dom.minidom.parseString(self.dom.XMLDesc())
+        for metadata in p.getElementsByTagName('metadata'):
+            for mdconfig in metadata.getElementsByTagName('mdconfig:meta'):
+                # Iterate through the child nodes of the root element
+                for node in mdconfig.childNodes:
+                    if node.nodeType == xml.dom.minidom.Node.ELEMENT_NODE:
+                        # Remove leading and trailing whitespace from the text content
+                        text = node.firstChild.nodeValue.strip() if node.firstChild else None
+                        # Assign the element's text content to the dictionary key
+                        data_dict[node.tagName] = text
+        return data_dict
 
     @property
     def desc(self):
@@ -176,28 +223,18 @@ class VMManager:
         for i in self.conn.listAllDomains():
             yield LibvirtDomain(i)
 
-    @staticmethod
-    def get_mdconfig(domainxml):
-        data_dict = {}
-        p = xml.dom.minidom.parseString(domainxml)
-        for metadata in p.getElementsByTagName('metadata'):
-            for mdconfig in metadata.getElementsByTagName('mdconfig:meta'):
-                # Iterate through the child nodes of the root element
-                for node in mdconfig.childNodes:
-                    if node.nodeType == xml.dom.minidom.Node.ELEMENT_NODE:
-                        # Remove leading and trailing whitespace from the text content
-                        text = node.firstChild.nodeValue.strip() if node.firstChild else None
-                        # Assign the element's text content to the dictionary key
-                        data_dict[node.tagName] = text
-        return data_dict
-
     def create_vm(self, uuid, xml):
         try:
-            dom=self.conn.lookupByUUIDString(uuid)
+            dom = self.conn.lookupByUUIDString(uuid)
             raise APIException(HTTPStatus.CONFLICT, 'create_vm error', f'vm {uuid} exists')
         except libvirt.libvirtError:
             logger.info(f'create_vm {uuid}')
-            self.conn.defineXML(xml)
+        self.conn.defineXML(xml)
+        dom = self.get_domain(uuid)
+        mdconfig_meta = dom.mdconfig
+        logger.info(f'{uuid} {mdconfig_meta}')
+        if not ISOMeta().create(uuid, mdconfig_meta):
+            raise APIException(HTTPStatus.CONFLICT, 'create_vm isotemplate', f'{uuid} {mdconfig_meta}')
 
     def delete_vm(self, uuid):
         try:
