@@ -32,7 +32,7 @@ function show_all_db_vms(view) {
       const index = config.g_hosts.findIndex(element => element.name === item.kvmhost);
       table += `<div class="vms-wrapper">`;
       table += `<div class="vms-wrapper-header"><h2>GUEST</h2>`;
-      table += `<button title='Display HOST' onclick='on_menu_host(config.g_hosts, ${index})'><i class="fa fa-desktop"></i></button>`
+      table += `<button title='GOTO HOST' onclick='on_menu_host(config.g_hosts, ${index})'><i class="fa fa-cog"></i></button>`
       table += `</div>`
       table += `<table>`;
       for(var key in item) {
