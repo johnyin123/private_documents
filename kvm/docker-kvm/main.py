@@ -154,9 +154,9 @@ class MyApp(object):
 
     def create_vm(self, hostname):
         req_json = flask.request.json
-        req_json = {**config.VM_DEFAULT, **req_json}
-        logger.info(f'create_vm {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
+        req_json = {**config.VM_DEFAULT(host.arch, hostname), **req_json}
+        logger.info(f'create_vm {req_json}')
         if (host.arch.lower() != req_json['vm_arch'].lower()):
             raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')
         # force use host arch string

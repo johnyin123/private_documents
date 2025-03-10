@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os, uuid
 from datetime import datetime
+import flask_app
+logger=flask_app.logger
 
 # from flask import current_app
 # current_app.root_path
@@ -21,10 +23,18 @@ class Config:
     SPICE_DISP_URL = 'https://vmm.registry.local/spice/spice_auto.html'
     # # main:attach_device
     ATTACH_DEFAULT = {'size':'10G','gold':''}
-    @property
-    def VM_DEFAULT(self):
+
+    def VM_DEFAULT(self, arch, hostname):
+        # TODO: VM_DEFAULT, can defined by hostname!
+        # if vm_ram_mb_max/vm_vcpus_max no set then use vm_ram_mb/vm_vcpus, else use a default value. see: domains/newvm.tpl...
         # # VM_DEFULT vars from domains/template. main:create_vm
         #'vm_uefi':'/usr/share/qemu/OVMF.fd' ,default bios mode
-        return {'vm_arch':'x86_64','vm_uuid':f'{uuid.uuid4()}','vm_name':'srv','vm_desc':'','vm_ram_mb':1024,'vm_ram_mb_max':16384,'vm_vcpus':1,'vm_vcpus_max':8,'vm_uefi':'','create_tm':f'{datetime.now().strftime("%Y%m%d%H%M%S")}'}
+        if (arch.lower() == 'x86_64'):
+            return {'vm_arch':'x86_64','vm_uuid':f'{uuid.uuid4()}','vm_name':'srv','vm_desc':'','vm_ram_mb':1024,'vm_ram_mb_max':16384,'vm_vcpus':1,'vm_vcpus_max':8,'vm_uefi':'','create_tm':f'{datetime.now().strftime("%Y%m%d%H%M%S")}'}
+        elif (arch.lower() == 'aarch64'):
+            return {'vm_arch':'aarch64','vm_uuid':f'{uuid.uuid4()}','vm_name':'srv','vm_desc':'','vm_ram_mb':1024,'vm_vcpus':1,'vm_uefi':'/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw','create_tm':f'{datetime.now().strftime("%Y%m%d%H%M%S")}'}
+        else:
+            logger.error(f'{arch} {hostname} no VM_DEFAULT defined')
+            return {}
 
 config = Config()

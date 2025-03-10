@@ -383,7 +383,7 @@ window.onload = function() {
     config.g_hosts = JSON.parse(res);
     var mainMenu = "";
     for(var n = 0; n < config.g_hosts.length; n++) {
-      mainMenu += `<a href='#' class='nav_link sublink' onclick='on_menu_host(config.g_hosts, ${n})'>${config.g_hosts[n].name}</a>`;
+      mainMenu += `<a href='#' class='nav_link sublink' onclick='on_menu_host(config.g_hosts, ${n})'><i class="fa fa-desktop"></i><span>${config.g_hosts[n].name}</span></a>`;
     }
     document.getElementById("sidebar").innerHTML = mainMenu;
   });

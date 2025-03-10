@@ -11,10 +11,10 @@
   </metadata>
   <title>{{ vm_name }}</title>
   <description>{{ vm_desc | default("") }}</description>
-  <memory unit='MiB'>{{ vm_ram_mb_max | default(8192)}}</memory>
+  <memory unit='MiB'>{{ vm_ram_mb_max | default(vm_ram_mb | default(8192))}}</memory>
   <memoryBacking><source type='memfd'/><access mode='shared'/></memoryBacking>
   <currentMemory unit='MiB'>{{ vm_ram_mb | default(1024) }}</currentMemory>
-  <vcpu placement='static' current='{{ vm_vcpus | default(1) }}'>{{ vm_vcpus_max | default(8) }}</vcpu>
+  <vcpu placement='static' current='{{ vm_vcpus | default(1) }}'>{{ vm_vcpus_max | default(vm_vcpus | default(8)) }}</vcpu>
 {%- if vm_arch == 'x86_64' %}
   {%- set __machine__ = "q35" %}
   <cpu match='exact'><model fallback='allow'>kvm64</model></cpu>
