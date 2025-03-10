@@ -24,6 +24,13 @@ def _make_ssh_command(connhost, connuser, connport, gaddr, gport, gsocket):
     logger.info("Pre-generated ssh command for info: %s", argv_str)
     return argv_str
 
+def _del_file_noexcept(fn):
+    try:
+        os.remove(f"{fn}")
+        # os.unlink(f"{fn}")
+    except Exception:
+        pass
+
 class MyApp(object):
     @staticmethod
     def create():
@@ -165,20 +172,13 @@ class MyApp(object):
         vmmanager.VMManager(host.name, host.url).create_vm(req_json['vm_uuid'], xml)
         return { 'result' : 'OK', 'uuid' : req_json['vm_uuid'], 'host': hostname }
 
-    def __del_vm_file(self, fn):
-        try:
-            os.remove(f"{fn}")
-            # os.unlink(f"{fn}")
-        except Exception:
-            pass
-
     def delete_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
         vmmgr = vmmanager.VMManager(host.name, host.url)
         vmmgr.delete_vm(uuid)
         logger.info(f'remove {uuid} datebase and xml/iso files')
-        self.__del_vm_file(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
-        self.__del_vm_file(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
+        _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
+        _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
         return { 'result' : 'OK' }
 
     def start_vm(self, hostname, uuid):
