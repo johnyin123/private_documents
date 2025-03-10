@@ -237,6 +237,16 @@ server {
             proxy_request_buffering            off;
             proxy_pass http://flask_app;
         }
+        location ~* ^/vm/(update)/ {
+            if ($request_method !~ ^(GET)$ ) { return 405; }
+            # update all guests & insert database
+            # limit client !!
+            allow 192.168.168.1/32;
+            deny all;
+            proxy_buffering                    off;
+            proxy_request_buffering            off;
+            proxy_pass http://flask_app;
+        }
         return 404;
     }
     location /websockify {
