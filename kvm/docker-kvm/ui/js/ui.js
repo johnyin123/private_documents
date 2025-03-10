@@ -60,7 +60,7 @@ function show_vms(host, vms) {
     } 
     table += gen_act('Add ISO', 'add_iso', host, item.uuid, 'fa-floppy-o');
     table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-wifi');
-    table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-folder-o');
+    table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-database');
     table += `</div></div>`;
     table += `<table>`;
     for(var key in item) {
