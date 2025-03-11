@@ -176,13 +176,19 @@ class MyApp(object):
         host = database.KVMHost.getHostInfo(hostname)
         vmmgr = vmmanager.VMManager(host.name, host.url)
         dom = vmmgr.get_domain(uuid)
+        vmmgr.refresh_all_pool()
+        disks = dom.disks
+        for v in disks:
+            logger.info(f'remove disk {v}')
+            vol = vmmgr.conn.storageVolLookupByPath(v['vol'])
+            vol.delete()
         diskinfo = f'{dom.disks}'
         # TODO: remove disks
         vmmgr.delete_vm(uuid)
         logger.info(f'remove {uuid} datebase and xml/iso files')
         _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
         _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
-        return { 'result' : 'OK', 'del_by_hand':f'{diskinfo}' }
+        return { 'result' : 'OK', 'vol':f'{diskinfo}' }
 
     def start_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)

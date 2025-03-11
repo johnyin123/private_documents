@@ -212,6 +212,15 @@ class VMManager:
         for i in self.conn.listAllDomains():
             yield LibvirtDomain(i)
 
+    def refresh_all_pool(self):
+        pools = self.conn.listAllStoragePools(0)
+        for pool in pools:
+            try:
+                pool.refresh(0)
+                logger.info(f"Pool '{pool.name()}' refreshed successfully.")
+            except libvirt.libvirtError as e:
+                logger.exception(f"Failed to refresh pool '{pool.name()}': {e}")
+
     def create_vm(self, uuid, xml):
         try:
             dom = self.conn.lookupByUUIDString(uuid)
