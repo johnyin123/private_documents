@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import libvirt, xml.dom.minidom
-import flask_app, os
+import flask_app, isometa, json
 from config import config
 from exceptions import APIException, HTTPStatus
 logger=flask_app.logger
@@ -10,35 +10,6 @@ def kvm_error(e: libvirt.libvirtError, msg: str):
     err_code = e.get_error_code()
     err_msg = e.get_error_message()
     raise APIException(HTTPStatus.BAD_REQUEST, f'{msg} errcode={err_code}', f'{err_msg}')
-
-try:
-    from cStringIO import StringIO as BytesIO
-except ImportError:
-    from io import BytesIO
-import pycdlib, jinja2
-
-class ISOMeta(object):
-    def __init__(self):
-        env = jinja2.Environment(loader=jinja2.FileSystemLoader(f'{config.META_DIR}'))
-        self.meta_data = env.get_template('meta_data')
-        self.user_data = env.get_template('user_data')
-        self.network_config = env.get_template('network_config')
-
-    def create(self, uuid, mdconfig) -> bool:
-        default_conf = {'rootpass':'pass123','hostname':'vmsrv', 'uuid': uuid}
-        mdconfig_meta = {**default_conf, **mdconfig}
-        iso = pycdlib.PyCdlib()
-        iso.new(interchange_level=4, vol_ident='cidata')
-        meta_data = self.meta_data.render(**mdconfig_meta)
-        iso.add_fp(BytesIO(bytes(meta_data,'ascii')), len(meta_data), '/meta-data')
-        user_data = self.user_data.render(**mdconfig_meta)
-        iso.add_fp(BytesIO(bytes(user_data,'ascii')), len(user_data), '/user-data')
-        network_config = self.network_config.render(**mdconfig_meta)
-        iso.add_fp(BytesIO(bytes(network_config,'ascii')), len(network_config), '/network-config')
-        iso.write(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
-        iso.close()
-        logger.info(f'{uuid}.iso')
-        return True
 
 class LibvirtDomain:
     def __init__(self, dom):
@@ -50,7 +21,8 @@ class LibvirtDomain:
         dic = {'uuid':self.uuid,'vcpus':self.vcpus,
                 'state':self.state, 'maxmem':self.maxmem,
                 'curmem':self.curmem, 'curcpu':self.curcpu,
-                'cputime':self.cputime, 'desc':self.desc
+                'cputime':self.cputime, 'desc':self.desc,
+                'disk': json.dumps(self.disks)
                }
         return {**dic, **self.mdconfig}
 
@@ -157,6 +129,30 @@ class LibvirtDomain:
         return ""
 
     @property
+    def disks(self):
+        disk_lst = []
+        p = xml.dom.minidom.parseString(self.dom.XMLDesc())
+        for disk in p.getElementsByTagName('disk'):
+            device = disk.getAttribute('device')
+            if device != 'disk':   # and device != 'cdrom':
+                continue
+            dtype = disk.getAttribute('type')
+            dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
+            for src in disk.getElementsByTagName('source'):
+                file = None
+                if dtype == 'file':
+                    disk_lst.append({'type':'file', 'dev':dev, 'vol':src.getAttribute('file')})
+                elif dtype == 'network':
+                    protocol = src.getAttribute('protocol')
+                    if protocol == 'rbd':
+                        disk_lst.append({'type':'rbd', 'dev':dev, 'vol':src.getAttribute('name')})
+                    else:
+                        raise APIException(HTTPStatus.BAD_REQUEST, f'disk unknown', f'type={dtype} protocol={protocol}')
+                else:
+                    raise APIException(HTTPStatus.BAD_REQUEST, f'disk unknown', f'type={dtype}')
+        return disk_lst
+
+    @property
     def uuid(self):
         return self.dom.UUIDString()
 
@@ -226,7 +222,7 @@ class VMManager:
         dom = self.get_domain(uuid)
         mdconfig_meta = dom.mdconfig
         logger.info(f'{uuid} {mdconfig_meta}')
-        if not ISOMeta().create(uuid, mdconfig_meta):
+        if not isometa.ISOMeta().create(uuid, mdconfig_meta):
             raise APIException(HTTPStatus.CONFLICT, 'create_vm isotemplate', f'{uuid} {mdconfig_meta}')
 
     def delete_vm(self, uuid):
@@ -236,7 +232,11 @@ class VMManager:
                 dom.destroy()
             except Exception:
                 pass
-            dom.undefine()
+            flags = 0
+            flags |= libvirt.VIR_DOMAIN_UNDEFINE_NVRAM
+            flags |= libvirt.VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
+            flags |= libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
+            dom.undefineFlags(flags)
         except libvirt.libvirtError as e:
             kvm_error(e, 'delete_vm')
 
