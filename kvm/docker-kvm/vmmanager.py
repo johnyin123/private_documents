@@ -20,10 +20,20 @@ class LibvirtDomain:
         # blk_cap, blk_all, blk_phy = dom.blockInfo(dev_name)
 
     def _asdict(self):
+        state_desc = {
+            libvirt.VIR_DOMAIN_NOSTATE: 'NA',
+            libvirt.VIR_DOMAIN_RUNNING: 'RUN',
+            libvirt.VIR_DOMAIN_BLOCKED: 'BLOCK',
+            libvirt.VIR_DOMAIN_PAUSED: 'PAUSED',
+            libvirt.VIR_DOMAIN_SHUTDOWN: 'SHUTDOWN',
+            libvirt.VIR_DOMAIN_SHUTOFF: 'SHUTOFF',
+            libvirt.VIR_DOMAIN_CRASHED: 'CRASH',
+            libvirt.VIR_DOMAIN_PMSUSPENDED: 'SUSPEND'
+        }.get(self.state,'?')
         dic = {'uuid':self.uuid,'vcpus':self.vcpus,
-               'state':self.state, 'maxmem':self.maxmem,
+               'state':state_desc, 'maxmem':self.maxmem,
                'curmem':self.curmem, 'curcpu':self.curcpu,
-               'cputime':self.cputime, 'desc':self.desc,
+               'cputime':self.cputime // 1000000000, 'desc':self.desc,
                'disks': json.dumps(self.disks),
                'nets': json.dumps(self.nets)
               }
@@ -95,8 +105,7 @@ class LibvirtDomain:
             p = xml.dom.minidom.parseString(self.XMLDesc)
             return p.getElementsByTagName('description')[0].firstChild.data
         except:
-            pass
-        return ""
+            return ''
 
     @property
     def disks(self):
@@ -161,6 +170,12 @@ class VMManager:
     @property
     def inactive(self):
         return self.conn.numOfDefinedDomains()
+
+    def get_domain_xml(self, uuid):
+        try:
+            return LibvirtDomain(self.conn.lookupByUUIDString(uuid)).XMLDesc()
+        except libvirt.libvirtError as e:
+            kvm_error(e, 'get_domain_xml')
 
     def get_domain(self, uuid):
         try:

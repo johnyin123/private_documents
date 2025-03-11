@@ -77,6 +77,7 @@ curl --cacert /etc/libvirt/pki/ca-cert.pem \
 
 echo 'update all guests dbtable' && curl -k http://127.0.0.1:5009/vm/update/
 echo 'list all guests in database' && curl -k ${srv}/vm/list/
+echo 'get vm xml" && curl -k ${srv}/vm/xml/${host}/${uuid}
 ---------------------------------------------------------
 NGXSSL=/etc/nginx/ssl
 install -v -d -m 0755 "${NGXSSL}"
