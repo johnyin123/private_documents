@@ -1,5 +1,5 @@
 #cloud-config
-hostname: {{ hostname }}
+hostname: {{ hostname | default('vmsrv') }}
 manage_etc_hosts: true
 user: root
 # timezone
@@ -17,8 +17,8 @@ users:
 chpasswd:
   expire: false
   users:
-  - {name: root, password: {{ rootpass }}, type: text}
-  - {name: admin, password: {{ rootpass }}, type: text}
+  - {name: root, password: {{ rootpass | default('password') }}, type: text}
+  - {name: admin, password: {{ rootpass | default('password') }}, type: text}
 growpart:
   mode: auto
   devices: ['/']

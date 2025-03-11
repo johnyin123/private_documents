@@ -5,7 +5,9 @@ network:
       name: {{ interface | default('eth0') }}
       # mac_address: '00:11:22:33:44:55'
       subnets:
-         - type: static
-           address: {{ ipaddr }}
-           gateway: {{ gateway }}
-
+        - type: static
+          address: {{ ipaddr | default('169.254.254.254/32') }}
+          gateway: {{ gateway | default('') }}
+      # routes:
+      #   - destination: 169.254.169.254/32
+      #     dev: {{ interface | default('eth0') }}
