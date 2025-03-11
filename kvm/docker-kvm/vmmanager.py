@@ -54,29 +54,28 @@ class LibvirtDomain:
                }
         return {**dic, **self.mdconfig}
 
-    # self.record_metadata("key", 'val')
-    # self.get_metadata("key")
-    # self.get_metadata("urn:iso-meta")
-    def record_metadata(self, k, v):
-        # <vmmgr:k xmlns:vmmgr="k" name="v"/>
-        meta = f"<{k} name='{v}' />"
-        self.dom.setMetadata(
-            libvirt.VIR_DOMAIN_METADATA_ELEMENT,
-            meta,
-            "vmmgr",
-            k,
-            libvirt.VIR_DOMAIN_AFFECT_CONFIG,
-        )
-
-    def get_metadata(self, k):
-        try:
-            xml = self.dom.metadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, k)
-        except libvirt.libvirtError as e:
-            if e.get_error_code() == libvirt.VIR_ERR_NO_DOMAIN_METADATA:
-                return None
-            kvm_error(e, 'get_metadata')
-        print('---------------%s', xml)
-        return 'name'
+    # # self.record_metadata("key", 'val')
+    # # self.get_metadata("key")
+    # # self.get_metadata("urn:iso-meta")
+    # def record_metadata(self, k, v):
+    #     # <vmmgr:k xmlns:vmmgr="k" name="v"/>
+    #     meta = f"<{k} name='{v}' />"
+    #     self.dom.setMetadata(
+    #         libvirt.VIR_DOMAIN_METADATA_ELEMENT,
+    #         meta,
+    #         "vmmgr",
+    #         k,
+    #         libvirt.VIR_DOMAIN_AFFECT_CONFIG,
+    #     )
+    # def get_metadata(self, k):
+    #     try:
+    #         xml = self.dom.metadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, k)
+    #     except libvirt.libvirtError as e:
+    #         if e.get_error_code() == libvirt.VIR_ERR_NO_DOMAIN_METADATA:
+    #             return None
+    #         kvm_error(e, 'get_metadata')
+    #     print('---------------%s', xml)
+    #     return 'name'
 
     def attach_device(self, xml):
         try:

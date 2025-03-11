@@ -3,6 +3,8 @@ LC_ALL=C
 LANG=C
 set -o nounset -o pipefail -o errexit
 set -o xtrace
+# # rbd pool name
+DIR='libvirt-pool'
 # # reqire: jq qemu-img cat
 log() { echo "qemu-rbd.action $*"; }
 json_config_default() {
@@ -27,11 +29,12 @@ UUID=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_uuid" "")
 SIZE=$(printf "%s" "${REQ_JSON}" | json_config_default ".size" "10G")
 GOLD=$(printf "%s" "${REQ_JSON}" | json_config_default ".gold" "")
 char=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_last_disk" "")
-DISK="libvirt-pool/vd${char}-${UUID}.raw"
+# # rbd pool name
+DISK="${DIR}/vd${char}-${UUID}.raw"
 [ -z "${GOLD}" ] && {
     qemu-img create -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring ${SIZE}
 } || {
-    qemu-img convert -f qcow2 -O raw ${GOLD} rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring
+    qemu-img convert -p -f qcow2 -O raw ${GOLD} rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring
     # skip resize error, when SIZE < gold image size, error but now image uploaded! so skip error
     qemu-img resize -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring ${SIZE} || true
 }
