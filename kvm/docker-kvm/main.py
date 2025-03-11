@@ -4,7 +4,7 @@
 import os
 import flask_app, flask
 logger=flask_app.logger
-import database, vmmanager, template, device, json
+import database, vmmanager, template, device
 from config import config
 from exceptions import APIException, HTTPStatus
 
@@ -140,7 +140,8 @@ class MyApp(object):
         logger.info(f'attach_device {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
         dev = database.KVMDevice.getDeviceInfo(hostname, name)
-        dom = vmmanager.VMManager(host.name, host.url).get_domain(uuid)
+        vmmgr = vmmanager.VMManager(host.name, host.url)
+        dom = vmmgr.get_domain(uuid)
         tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
         req_json['vm_uuid'] = uuid
         if tpl.bus is not None:
@@ -155,9 +156,8 @@ class MyApp(object):
                     logger.error(f'attach_device {gold} nofoudn')
                     raise APIException(HTTPStatus.BAD_REQUEST, 'attach', f'gold {gold} nofound')
         xml = tpl.gen_xml(**req_json)
-        req_json = json.dumps(req_json, indent='  ', ensure_ascii=False)
         env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
-        return flask.Response(device.generate(dom, xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
+        return flask.Response(device.generate(vmmgr, xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
 
     def create_vm(self, hostname):
         req_json = flask.request.json
@@ -228,7 +228,7 @@ class MyApp(object):
                 try:
                     domains = vmmanager.VMManager(host.name, host.url).list_domains()
                     for domain in domains:
-                        guest = database.KVMGuest(kvmhost=f'{host.name}',uuid=f'{domain.uuid}',desc=f'{domain.desc}',curcpu=domain.curcpu,curmem=domain.curmem,arch=f'{host.arch}',mdconfig=domain.mdconfig)
+                        guest = database.KVMGuest(kvmhost=f'{host.name}',uuid=f'{domain.uuid}',desc=f'{domain.desc}',curcpu=domain.curcpu,curmem=domain.curmem,arch=f'{host.arch}',disks=domain.disks,nets=domain.nets,mdconfig=domain.mdconfig)
                         database.session.add(guest)
                         yield f'{host.name} {domain.uuid}\n'
                 except:

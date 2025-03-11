@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import exceptions
+import exceptions, json
 
 from dbi import engine, Session, session, Base
 from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey,JSON
@@ -78,12 +78,16 @@ class KVMGuest(Base):
     arch = Column(String(8),nullable=False)
     curcpu = Column(Integer,nullable=False,server_default='0')
     curmem = Column(Integer,nullable=False,server_default='0')
+    disks = Column(JSON,nullable=False)
+    nets = Column(JSON,nullable=False)
     mdconfig = Column(JSON,nullable=False)
 
     def _asdict(self):
         dic = {'kvmhost':self.kvmhost, 'uuid':self.uuid,
                 'desc':self.desc, 'arch':self.arch,
-                'curcpu':self.curcpu, 'curmem':self.curmem
+                'curcpu':self.curcpu, 'curmem':self.curmem,
+                'disks': json.dumps(self.disks),
+                'nets': json.dumps(self.nets)
                }
         return {**dic, **self.mdconfig}
 

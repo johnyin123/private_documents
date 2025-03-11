@@ -13,58 +13,28 @@ def kvm_error(e: libvirt.libvirtError, msg: str):
 
 class LibvirtDomain:
     def __init__(self, dom):
-        self.dom = dom
+        self.XMLDesc = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
+        self.uuid = dom.UUIDString()
         self.state, self.maxmem, self.curmem, self.curcpu, self.cputime = dom.info()
         mdconfig_meta = self.mdconfig
+        # blk_cap, blk_all, blk_phy = dom.blockInfo(dev_name)
 
     def _asdict(self):
         dic = {'uuid':self.uuid,'vcpus':self.vcpus,
-                'state':self.state, 'maxmem':self.maxmem,
-                'curmem':self.curmem, 'curcpu':self.curcpu,
-                'cputime':self.cputime, 'desc':self.desc,
-                'disk': json.dumps(self.disks)
-               }
+               'state':self.state, 'maxmem':self.maxmem,
+               'curmem':self.curmem, 'curcpu':self.curcpu,
+               'cputime':self.cputime, 'desc':self.desc,
+               'disks': json.dumps(self.disks),
+               'nets': json.dumps(self.nets)
+              }
         return {**dic, **self.mdconfig}
-
-    # # self.record_metadata("key", 'val')
-    # # self.get_metadata("key")
-    # # self.get_metadata("urn:iso-meta")
-    # def record_metadata(self, k, v):
-    #     # <vmmgr:k xmlns:vmmgr="k" name="v"/>
-    #     meta = f"<{k} name='{v}' />"
-    #     self.dom.setMetadata(
-    #         libvirt.VIR_DOMAIN_METADATA_ELEMENT,
-    #         meta,
-    #         "vmmgr",
-    #         k,
-    #         libvirt.VIR_DOMAIN_AFFECT_CONFIG,
-    #     )
-    # def get_metadata(self, k):
-    #     try:
-    #         xml = self.dom.metadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, k)
-    #     except libvirt.libvirtError as e:
-    #         if e.get_error_code() == libvirt.VIR_ERR_NO_DOMAIN_METADATA:
-    #             return None
-    #         kvm_error(e, 'get_metadata')
-    #     print('---------------%s', xml)
-    #     return 'name'
-
-    def attach_device(self, xml):
-        try:
-            flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
-            if self.state == libvirt.VIR_DOMAIN_RUNNING:
-                flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
-            logger.info(xml)
-            self.dom.attachDeviceFlags(xml, flags)
-        except libvirt.libvirtError as e:
-            kvm_error(e, 'attach_device')
 
     def get_display(self):
         displays = []
         if self.state != libvirt.VIR_DOMAIN_RUNNING:
             logger.info(f'{self.uuid} not running')
             raise APIException(HTTPStatus.BAD_REQUEST, 'get_display error', f'vm {self.uuid} not running')
-        p = xml.dom.minidom.parseString(self.dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE))
+        p = xml.dom.minidom.parseString(self.XMLDesc)
         for item in p.getElementsByTagName('graphics'):
             type = item.getAttribute('type')
             port = item.getAttribute('port')
@@ -83,7 +53,7 @@ class LibvirtDomain:
             sdlst.append('sd{}'.format(chr(char)))
             hdlst.append('sd{}'.format(chr(char)))
         try:
-            p = xml.dom.minidom.parseString(self.dom.XMLDesc())
+            p = xml.dom.minidom.parseString(self.XMLDesc)
             # for index, disk in enumerate(p.getElementsByTagName('disk')): #enumerate(xxx, , start=1)
             for disk in p.getElementsByTagName('disk'):
                 device = disk.getAttribute('device')
@@ -107,7 +77,7 @@ class LibvirtDomain:
     @property
     def mdconfig(self):
         data_dict = {}
-        p = xml.dom.minidom.parseString(self.dom.XMLDesc())
+        p = xml.dom.minidom.parseString(self.XMLDesc)
         for metadata in p.getElementsByTagName('metadata'):
             for mdconfig in metadata.getElementsByTagName('mdconfig:meta'):
                 # Iterate through the child nodes of the root element
@@ -122,7 +92,7 @@ class LibvirtDomain:
     @property
     def desc(self):
         try:
-            p = xml.dom.minidom.parseString(self.dom.XMLDesc())
+            p = xml.dom.minidom.parseString(self.XMLDesc)
             return p.getElementsByTagName('description')[0].firstChild.data
         except:
             pass
@@ -131,7 +101,7 @@ class LibvirtDomain:
     @property
     def disks(self):
         disk_lst = []
-        p = xml.dom.minidom.parseString(self.dom.XMLDesc())
+        p = xml.dom.minidom.parseString(self.XMLDesc)
         for disk in p.getElementsByTagName('disk'):
             device = disk.getAttribute('device')
             if device != 'disk':   # and device != 'cdrom':
@@ -153,31 +123,21 @@ class LibvirtDomain:
         return disk_lst
 
     @property
-    def uuid(self):
-        return self.dom.UUIDString()
+    def nets(self):
+        net_lst = []
+        p = xml.dom.minidom.parseString(self.XMLDesc)
+        for net in p.getElementsByTagName('interface'):
+            dtype = net.getAttribute('type')
+            mac = net.getElementsByTagName('mac')[0].getAttribute('address')
+            # source = net.getElementsByTagName('source')[0].getAttribute('network') ?
+            # source = net.getElementsByTagName('source')[0].getAttribute('bridge') ?
+            net_lst.append({'type':dtype, 'mac':mac})
+        return net_lst
 
     @property
     def vcpus(self):
-        p = xml.dom.minidom.parseString(self.dom.XMLDesc())
+        p = xml.dom.minidom.parseString(self.XMLDesc)
         return int(p.getElementsByTagName('vcpu')[0].firstChild.data)
-
-    @property
-    def memory(self):
-        return int(self.maxmem)
-
-    @vcpus.setter
-    def vcpus(self, value=1):
-        self.dom.setVcpusFlags(value, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
-
-    @memory.setter
-    def memory(self, value):
-        if value < 256:
-            logger.warning(f"low memory: {value}MB for VM {self.uuid}")
-        value *= 1024
-        self.dom.setMemoryFlags(
-            value, libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_MEM_MAXIMUM
-        )
-        self.dom.setMemoryFlags(value, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
 
 class VMManager:
     # # all operator by UUID
@@ -236,7 +196,7 @@ class VMManager:
 
     def delete_vm(self, uuid):
         try:
-            dom=self.conn.lookupByUUIDString(uuid)
+            dom = self.conn.lookupByUUIDString(uuid)
             try:
                 dom.destroy()
             except Exception:
@@ -251,21 +211,33 @@ class VMManager:
 
     def start_vm(self, uuid):
         try:
-            dom=self.conn.lookupByUUIDString(uuid)
+            dom = self.conn.lookupByUUIDString(uuid)
             dom.create()
         except libvirt.libvirtError as e:
             kvm_error(e, 'start_vm')
 
     def stop_vm(self, uuid):
         try:
-            dom=self.conn.lookupByUUIDString(uuid)
+            dom = self.conn.lookupByUUIDString(uuid)
             dom.shutdown()
         except libvirt.libvirtError as e:
             kvm_error(e, 'stop_vm')
 
     def stop_vm_forced(self, uuid):
         try:
-            dom=self.conn.lookupByUUIDString(uuid)
+            dom = self.conn.lookupByUUIDString(uuid)
             dom.destroy()
         except libvirt.libvirtError as e:
             kvm_error(e, 'stop_vm_forced')
+
+    def attach_device(self, uuid, xml):
+        try:
+            dom = self.conn.lookupByUUIDString(uuid)
+            state, maxmem, curmem, curcpu, cputime = dom.info()
+            flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
+            if state == libvirt.VIR_DOMAIN_RUNNING:
+                flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
+            logger.info(xml)
+            dom.attachDeviceFlags(xml, flags)
+        except libvirt.libvirtError as e:
+            kvm_error(e, f'{uuid} attach_device')

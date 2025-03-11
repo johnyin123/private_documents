@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import flask_app, os, subprocess, vmmanager
+import flask_app, os, subprocess, vmmanager, json
 from config import config
 logger=flask_app.logger
 from exceptions import APIException, HTTPStatus
@@ -42,12 +42,13 @@ def sftp_get(host, port, username, password, remote_path, local_path):
         sftp.close()
         ssh.close()
 
-def generate(dom: vmmanager.LibvirtDomain, xml:str, action:str, arg:str, json_str:str, **kwargs):
+def generate(vmmgr: vmmanager.VMManager, xml:str, action:str, arg:str, req_json:object, **kwargs):
     cmd = [ os.path.join(config.ACTION_DIR, f'{action}'), f'{arg}']
     if action is not None and len(action) != 0:
-        logger.info(f'exec:{action} {arg} {json_str} {xml}')
+        logger.info(f'exec:{action} {arg} {req_json} {xml}')
         with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=kwargs) as proc:
-            proc.stdin.write(json_str)
+            json.dump(req_json, proc.stdin, indent=4)
+            # proc.stdin.write(req_json)
             proc.stdin.close()
             for line in proc.stdout:
                 logger.info(line)
@@ -57,4 +58,4 @@ def generate(dom: vmmanager.LibvirtDomain, xml:str, action:str, arg:str, json_st
                 logger.info(f'execute {cmd} error={proc.returncode}')
                 yield f'execute {cmd} error={proc.returncode}'
                 return
-    dom.attach_device(xml)
+    vmmgr.attach_device(req_json['vm_uuid'], xml)
