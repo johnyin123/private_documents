@@ -134,6 +134,26 @@ div.container > div.content {
 </style>
 </head>
 <body>
+<style>
+.fa[data-count]{
+  position:relative;
+}
+.fa[data-count]:after{
+  position: absolute;
+  right: -0.75em;
+  top: -.75em;
+  content: attr(data-count);
+  padding: .5em;
+  border-radius: 10em;
+  line-height: .9em;
+  color: white;
+  background: rgba(255,0,0,.75);
+  text-align: center;
+  min-width: 2em;
+  font: bold .4em sans-serif;
+}
+/*<i class="fa fa-bell fa-4x" data-count="2"></i>*/
+</style>
 <div class="container">
   <div class="header">
     <div class="left_area">KVM <span>Manager</span></div>
@@ -142,7 +162,7 @@ div.container > div.content {
     </div>
     <div class="right_area">
         <i class="fa fa-moon-o header_btn" title="Toggle theme" id="darkLight"></i>
-        <i class="fa fa-user header_btn" title="user"></i>
+        <i class="fa fa-user header_btn" title="user" data-count="2"></i>
     </div>
   </div>
   <div class="sidebar">

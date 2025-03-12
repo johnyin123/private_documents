@@ -9,6 +9,12 @@ type=kvm
 ver=bookworm
 
 [ -e "qemu.hook" ] || { echo "qemu.hook, nofound"; exit 1;}
+cat <<EOF
+# # change (kvm) gid to HOST kvm gid
+# # /etc/libvirt/qemu.conf maybe no need user=root
+groupmod -n NEW_GROUP_NAME OLD_GROUP_NAME).
+groupmod -g NEWGID GROUPNAME
+EOF
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     install -v -d -m 0755 "${type}-${arch}/docker/etc/libvirt/hooks"
