@@ -41,6 +41,7 @@ class MyApp(object):
         web.add_url_rule('/tpl/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
         web.add_url_rule('/tpl/gold/<string:hostname>', view_func=myapp.list_gold, methods=['GET'])
         ## start db oper guest ##
+        web.add_url_rule('/vm/xml/<string:hostname>/<string:uuid>', view_func=myapp.get_domain_xml, methods=['GET'])
         web.add_url_rule('/vm/update/', view_func=myapp.db_update_domains, methods=['GET'])
         web.add_url_rule('/vm/list/', view_func=myapp.db_list_domains, methods=['GET'])
         ## end db oper guest ##
@@ -73,6 +74,11 @@ class MyApp(object):
         remote_path='/home/johnyin/disk/myvm/deepseek.qcow2'
         local_path='./test.docker'
         return flask.Response(device.sftp_get(host, port, username, password, remote_path, local_path), mimetype="text/event-stream")
+
+    def get_domain_xml(self, hostname, uuid):
+        host = database.KVMHost.getHostInfo(hostname)
+        xml = vmmanager.VMManager(host.name, host.url).get_domain_xml(uuid)
+        return flask.Response(xml, mimetype="application/xml")
 
     def get_domain(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)

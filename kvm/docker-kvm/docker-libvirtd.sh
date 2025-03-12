@@ -237,7 +237,7 @@ server {
             proxy_request_buffering            off;
             proxy_pass http://flask_app;
         }
-        location ~* ^/vm/(update)/ {
+        location ~* ^/vm/(update|xml)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
             # update all guests & insert database
             # limit client !!
