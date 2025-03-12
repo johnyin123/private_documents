@@ -16,7 +16,6 @@ class LibvirtDomain:
         self.XMLDesc = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
         self.uuid = dom.UUIDString()
         self.state, self.maxmem, self.curmem, self.curcpu, self.cputime = dom.info()
-        mdconfig_meta = self.mdconfig
         # blk_cap, blk_all, blk_phy = dom.blockInfo(dev_name)
 
     def _asdict(self):
