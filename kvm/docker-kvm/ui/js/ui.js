@@ -36,7 +36,19 @@ function show_all_db_vms(view) {
       table += `</div>`
       table += `<table>`;
       for(var key in item) {
-        table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
+        if(key === 'disks') {
+          var disks = JSON.parse(item[key]);
+          disks.forEach(disk => {
+            table += `<tr><th width="20%">${disk.type}</th><td>${disk.vol}</td></tr>`;
+          });
+        } else if (key === 'nets') {
+          var nets = JSON.parse(item[key]);
+          nets.forEach(net => {
+            table += `<tr><th width="20%">${net.type}</th><td>${net.mac}</td></tr>`;
+          });
+        } else {
+          table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
+        }
       }
       table += "</table>";
       table += "</div>";
@@ -64,7 +76,19 @@ function show_vms(host, vms) {
     table += `</div></div>`;
     table += `<table>`;
     for(var key in item) {
-      table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
+      if(key === 'disks') {
+        var disks = JSON.parse(item[key]);
+        disks.forEach(disk => {
+          table += `<tr><th width="20%">${disk.type}</th><td>${disk.vol}</td></tr>`;
+        });
+      } else if (key === 'nets') {
+        var nets = JSON.parse(item[key]);
+        nets.forEach(net => {
+          table += `<tr><th width="20%">${net.type}</th><td>${net.mac}</td></tr>`;
+        });
+      } else {
+        table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
+      }
     }
     table += "</table>";
     table += "</div>";
