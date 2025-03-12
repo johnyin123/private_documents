@@ -30,7 +30,7 @@ class LibvirtDomain:
             libvirt.VIR_DOMAIN_CRASHED: 'CRASH',
             libvirt.VIR_DOMAIN_PMSUSPENDED: 'SUSPEND'
         }.get(self.state,'?')
-        dic = {'uuid':self.uuid,'vcpus':self.vcpus,
+        dic = {'uuid':self.uuid,'maxcpu':self.maxcpu,
                'state':state_desc, 'maxmem':self.maxmem,
                'curmem':self.curmem, 'curcpu':self.curcpu,
                'cputime':self.cputime // 1000000000, 'desc':self.desc,
@@ -144,7 +144,7 @@ class LibvirtDomain:
         return net_lst
 
     @property
-    def vcpus(self):
+    def maxcpu(self):
         p = xml.dom.minidom.parseString(self.XMLDesc)
         return int(p.getElementsByTagName('vcpu')[0].firstChild.data)
 
