@@ -1,0 +1,57 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+import os
+import json
+from bottle import route, run, request
+
+SSH_PUB_KEY = '/home/test/.ssh/id_rsa.pub'
+DNS_PATH = '/var/lib/libvirt/dnsmasq/'
+
+@route('/')
+def root():
+    # print dict(request.headers)
+    return "2009-04-04/"
+
+@route('/2009-04-04/meta-data/')
+def metadata():
+    return 'instance-id\nhostname\npublic-keys/'
+
+@route('/2009-04-04/meta-data/hostname')
+def hostname():
+    """Return the libvirt domain name from dnsmasq files"""
+    client_ip = request.get('REMOTE_ADDR')
+    with open(os.path.join(DNS_PATH, "virbr0.status")) as f:
+        for entry in json.load(f):
+            if entry.get('ip-address') == client_ip:
+                mac_addr = entry.get('mac-address')
+                break
+        else:
+            return
+    with open(os.path.join(DNS_PATH, "virbr0.macs")) as f:
+        for entry in json.load(f):
+            if mac_addr in entry.get('macs'):
+                return entry.get('domain')
+
+
+@route('/2009-04-04/meta-data/instance-id')
+def instance_id():
+    return "i-%s" % request.get('REMOTE_ADDR')
+
+
+@route('/2009-04-04/meta-data/public-keys')
+@route('/2009-04-04/meta-data/public-keys/')
+def pub_keys():
+    return '0=default'
+
+
+@route('/2009-04-04/meta-data/public-keys/0/')
+def pub_key0():
+    return 'openssh-key'
+
+
+@route('/2009-04-04/meta-data/public-keys/0/openssh-key')
+def openssh_key():
+    with open(SSH_PUB_KEY) as f:
+        return f.read()
+
+run(host='169.254.169.254', port=80, debug=True)
