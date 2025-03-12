@@ -27,8 +27,8 @@ div.vms-wrapper {
   border: none;
   padding: 12px;
 }
-div.vms-wrapper div.vmstate1 > h2 {
-  /* vmstate == 1 h2 color*/
+div.vms-wrapper div.vmstateRUN > h2 {
+  /* vmstate == RUN h2 color*/
   color: var(--green-color);
 }
 div.host-wrapper-header,
