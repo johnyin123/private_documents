@@ -18,6 +18,9 @@
 {%- elif enum is defined and enum == 'EC2' %}
       <entry name='serial'>{{ vm_uuid }}</entry>
       <entry name='uuid'>{{ vm_uuid }}</entry>
+{%- elif enum is defined and enum == 'NOCLOUD' %}
+      <entry name='serial'>ds=nocloud;s=http://169.254.169.254/__dmi.system-uuid__/</entry>
+      <entry name='uuid'>{{ vm_uuid }}</entry>
 {%- endif %}
     </system>
   </sysinfo>

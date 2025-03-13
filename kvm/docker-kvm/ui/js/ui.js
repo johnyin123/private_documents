@@ -173,8 +173,8 @@ function overlayoff() {
     overlay.style.display = "none";
   }
 }
-function getjson(method, url, callback, data=null, stream=null, tmout=30000) {
-  /* Set default timeout 30 seconds*/
+function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
+  /* Set default timeout 40 seconds*/
   var sendObject = null;
   if(null !== data && typeof data !== 'undefined') {
     sendObject = JSON.stringify(data);
@@ -240,7 +240,7 @@ function start(host, uuid) {
   getjson('GET', `/vm/start/${host}/${uuid}`, function(res) {
     dispok(`start vm ${res}`);
     vmlist(host);
-  });
+  }, null, null, 60000);
 }
 function stop(host, uuid) {
   getjson('GET', `/vm/stop/${host}/${uuid}`, function(res) {
@@ -252,7 +252,7 @@ function force_stop(host, uuid) {
   getjson('DELETE', `/vm/stop/${host}/${uuid}`, function(res) {
     dispok(`force stop vm ${res}`);
     vmlist(host);
-  });
+  }, null, null, 60000);
 }
 function undefine(host, uuid) {
   getjson('GET', `/vm/delete/${host}/${uuid}`, function(res) {

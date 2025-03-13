@@ -27,7 +27,9 @@ class Config:
 
     def VM_DEFAULT(self, arch, hostname):
         # TODO: VM_DEFAULT, can defined by hostname!
-        # enum=OPENSTACK/EC2/None(undefine), when EC2, uuid must startwith ec2........
+        # enum=OPENSTACK/EC2/NOCLOUD/None(undefine)
+        #    EC2: uuid must startwith ec2........
+        #    NOCLOUD: access http://169.254.169.254/<vm_uuid>
         # if vm_ram_mb_max/vm_vcpus_max no set then use vm_ram_mb/vm_vcpus, else use a default value. see: domains/newvm.tpl...
         # # VM_DEFULT vars from domains/template. main:create_vm
         if (arch.lower() == 'x86_64'):
