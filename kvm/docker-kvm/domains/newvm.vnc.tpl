@@ -19,7 +19,7 @@
       <entry name='serial'>{{ vm_uuid }}</entry>
       <entry name='uuid'>{{ vm_uuid }}</entry>
 {%- elif enum is defined and enum == 'NOCLOUD' %}
-      <entry name='serial'>ds=nocloud;s=http://169.254.169.254/__dmi.system-uuid__/</entry>
+      <entry name='serial'>ds=nocloud;s=http://169.254.169.254/{{ vm_uuid }}/</entry>
       <entry name='uuid'>{{ vm_uuid }}</entry>
 {%- endif %}
     </system>
@@ -47,6 +47,7 @@
     <boot dev='cdrom'/>
     <boot dev='network'/>
     <bootmenu enable='yes' timeout='3000'/>
+    <smbios mode='sysinfo'/>
   </os>
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>destroy</on_poweroff>
