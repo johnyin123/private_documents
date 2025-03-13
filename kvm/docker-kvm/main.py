@@ -4,7 +4,7 @@
 import os
 import flask_app, flask
 logger=flask_app.logger
-import database, vmmanager, template, device
+import database, vmmanager, template, device, meta
 from config import config
 from exceptions import APIException, HTTPStatus
 
@@ -175,7 +175,18 @@ class MyApp(object):
         # force use host arch string
         req_json['vm_arch'] = host.arch
         xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
-        vmmanager.VMManager(host.name, host.url).create_vm(req_json['vm_uuid'], xml)
+        dom = vmmanager.VMManager(host.name, host.url).create_vm(req_json['vm_uuid'], xml)
+        mdconfig = dom.mdconfig
+        logger.info(f'{req_json["vm_uuid"]} {mdconfig}')
+        enum = req_json.get('enum', None)
+        if enum is None:
+            if not meta.ISOMeta().create(req_json["vm_uuid"], mdconfig):
+                raise APIException(HTTPStatus.CONFLICT, 'create_vm iso meta', f'{req_json["vm_uuid"]} {mdconfig}')
+        elif enum == 'NOCLOUD':
+            if not meta.NOCLOUDMeta().create(req_json["vm_uuid"], mdconfig):
+                raise APIException(HTTPStatus.CONFLICT, 'create_vm nocloud meta', f'{req_json["vm_uuid"]} {mdconfig}')
+        else:
+            logger.warn(f'meta: {enum} {req_json["vm_uuid"]} {mdconfig}')
         return { 'result' : 'OK', 'uuid' : req_json['vm_uuid'], 'host': hostname }
 
     def delete_vm(self, hostname, uuid):

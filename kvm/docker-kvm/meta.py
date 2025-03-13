@@ -29,4 +29,25 @@ class ISOMeta(object):
         logger.info(f'{uuid}.iso')
         return True
 
+class NOCLOUDMeta(object):
+    def __init__(self):
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader(f'{config.META_DIR}'))
+        self.meta_data = env.get_template('meta_data')
+        self.user_data = env.get_template('user_data')
+        self.network_config = env.get_template('network_config')
 
+    def create(self, uuid, mdconfig) -> bool:
+        mdconfig_meta = {**config.META_DEFAULT, **mdconfig, **{'uuid':uuid}}
+        nocloud_dir = os.path.join(config.NOCLOUD_DIR, f'{uuid}')
+        os.mkdir()
+        meta_data = self.meta_data.render(**mdconfig_meta)
+        with open(os.path.join(nocloud_dir, "meta-data"), "w") as file:
+            file.write(meta_data)
+        user_data = self.user_data.render(**mdconfig_meta)
+        with open(os.path.join(nocloud_dir, "user-data"), "w") as file:
+            file.write(user_data)
+        network_config = self.network_config.render(**mdconfig_meta)
+        with open(os.path.join(nocloud_dir, "network-config"), "w") as file:
+            file.write(network_config)
+        logger.info(f'{uuid} nocloud meta')
+        return True

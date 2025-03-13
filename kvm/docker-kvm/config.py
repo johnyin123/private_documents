@@ -24,7 +24,8 @@ class Config:
     # # main:attach_device
     ATTACH_DEFAULT = {'size':'10G','gold':''}
     META_DEFAULT = {'rootpass':'pass123','hostname':'vmsrv'}
-
+    # # NOCLOUD meta service data dir
+    NOCLOUD_DIR = os.path.join(OUTDIR, 'nocloud')
     def VM_DEFAULT(self, arch, hostname):
         # TODO: VM_DEFAULT, can defined by hostname!
         # enum=OPENSTACK/EC2/NOCLOUD/None(undefine)
@@ -33,14 +34,14 @@ class Config:
         # if vm_ram_mb_max/vm_vcpus_max no set then use vm_ram_mb/vm_vcpus, else use a default value. see: domains/newvm.tpl...
         # # VM_DEFULT vars from domains/template. main:create_vm
         if (arch.lower() == 'x86_64'):
-            return {'vm_arch':'x86_64','vm_uuid':f'{uuid.uuid4()}','vm_name':'srv','vm_desc':'','vm_ram_mb':1024,'vm_ram_mb_max':16384,'vm_vcpus':1,'vm_vcpus_max':8,'vm_uefi':'','create_tm':f'{datetime.now().strftime("%Y%m%d%H%M%S")}'}
+            return {'enum':'NOCLOUD', 'vm_arch':'x86_64','vm_uuid':f'{uuid.uuid4()}','vm_name':'srv','vm_desc':'','vm_ram_mb':1024,'vm_ram_mb_max':16384,'vm_vcpus':1,'vm_vcpus_max':8,'vm_uefi':'','create_tm':f'{datetime.now().strftime("%Y%m%d%H%M%S")}'}
         elif (arch.lower() == 'aarch64'):
             #  x86_64:/usr/share/qemu/OVMF.fd
             # aarch64:/usr/share/qemu-efi-aarch64/QEMU_EFI.fd
             #         /usr/share/AAVMF/AAVMF_CODE.fd
             #         # openEuler 22.03
             #         /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
-            return {'vm_arch':'aarch64','vm_uuid':f'{uuid.uuid4()}','vm_name':'srv','vm_desc':'','vm_ram_mb':1024,'vm_vcpus':1,'vm_uefi':'/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw','create_tm':f'{datetime.now().strftime("%Y%m%d%H%M%S")}'}
+            return {'enum':'NOCLOUD', 'vm_arch':'aarch64','vm_uuid':f'{uuid.uuid4()}','vm_name':'srv','vm_desc':'','vm_ram_mb':1024,'vm_vcpus':1,'vm_uefi':'/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw','create_tm':f'{datetime.now().strftime("%Y%m%d%H%M%S")}'}
         else:
             logger.error(f'{arch} {hostname} no VM_DEFAULT defined')
             return {}

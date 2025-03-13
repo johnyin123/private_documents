@@ -59,6 +59,7 @@
     <video><model type='virtio' vram='32768' heads='1' primary='yes'/></video>
     <sound model='ac97'/>
     <channel type='spicevmc'><target type='virtio' name='com.redhat.spice.0'/></channel>
+{%- if enum is not defined %}
     <disk type='network' device='cdrom'>
       <driver name='qemu' type='raw'/>
       <source protocol="http" name="/{{ vm_uuid }}.iso">
@@ -67,6 +68,7 @@
       <target dev='sda' bus='sata'/>
       <readonly/>
     </disk>
+{%- endif %}
     <serial type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target port='0'/></serial>
     <console type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target type='serial' port='0'/></console>
 {%- if vm_arch == 'x86_64' %}

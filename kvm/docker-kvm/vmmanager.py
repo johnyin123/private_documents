@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import libvirt, xml.dom.minidom
-import flask_app, isometa, json
+import flask_app, json
 from config import config
 from exceptions import APIException, HTTPStatus
 logger=flask_app.logger
@@ -202,11 +202,7 @@ class VMManager:
         except libvirt.libvirtError:
             logger.info(f'create_vm {uuid}')
         self.conn.defineXML(xml)
-        dom = self.get_domain(uuid)
-        mdconfig_meta = dom.mdconfig
-        logger.info(f'{uuid} {mdconfig_meta}')
-        if not isometa.ISOMeta().create(uuid, mdconfig_meta):
-            raise APIException(HTTPStatus.CONFLICT, 'create_vm isotemplate', f'{uuid} {mdconfig_meta}')
+        return self.get_domain(uuid)
 
     def delete_vm(self, uuid):
         try:
