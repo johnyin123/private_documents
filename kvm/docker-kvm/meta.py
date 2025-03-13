@@ -39,7 +39,7 @@ class NOCLOUDMeta(object):
     def create(self, uuid, mdconfig) -> bool:
         mdconfig_meta = {**config.META_DEFAULT, **mdconfig, **{'uuid':uuid}}
         nocloud_dir = os.path.join(config.NOCLOUD_DIR, f'{uuid}')
-        os.mkdir()
+        os.mkdir(nocloud_dir)
         meta_data = self.meta_data.render(**mdconfig_meta)
         with open(os.path.join(nocloud_dir, "meta-data"), "w") as file:
             file.write(meta_data)

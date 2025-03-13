@@ -55,7 +55,7 @@ def generate(vmmgr: vmmanager.VMManager, xml:str, action:str, arg:str, req_json:
                 yield line
             proc.wait()
             if proc.returncode != 0:
-                logger.info(f'execute {cmd} error={proc.returncode}')
+                logger.error(f'execute {cmd} error={proc.returncode}')
                 yield f'execute {cmd} error={proc.returncode}'
                 return
     vmmgr.attach_device(req_json['vm_uuid'], xml)
