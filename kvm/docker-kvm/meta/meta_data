@@ -1,1 +1,4 @@
 instance-id: {{uuid}}
+dsmode: local
+# values: local, net, pass
+# local (pre-networking) stage, net (post-networking) stage
