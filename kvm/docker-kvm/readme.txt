@@ -103,3 +103,32 @@ install -v -d -m 0755 "${KVM_SRV_SSL}"
 install -v -C -m 0444 "ca.pem" "${KVM_SRV_SSL}/cacert.pem"
 install -v -C -m 0440 --group=qemu --owner=root "kvm1.local.key" "${KVM_SRV_SSL}/server-key.pem"
 install -v -C -m 0444 --group=qemu --owner=root "kvm1.local.pem" "${KVM_SRV_SSL}/server-cert.pem"
+
+# # cloud-init nocloud
+Method 1: Line configuration
+The “line configuration” is a single string of text which is passed to an instance at boot time via either the kernel command line or in the serial number exposed via DMI (sometimes called SMBIOS).
+Example:
+ds=nocloud;s=https://<host>/<path>/
+# A valid seedfrom value consists of a URI which must contain a trailing /.
+Available DMI variables for expansion in seedfrom URL
+        dmi.baseboard-asset-tag
+        dmi.baseboard-manufacturer
+        dmi.baseboard-version
+        dmi.bios-release-date
+        dmi.bios-vendor
+        dmi.bios-version
+        dmi.chassis-asset-tag
+        dmi.chassis-manufacturer
+        dmi.chassis-serial-number
+        dmi.chassis-version
+        dmi.system-manufacturer
+        dmi.system-product-name
+        dmi.system-serial-number
+        dmi.system-uuid
+        dmi.system-version
+
+# -smbios type=1,serial=ds=nocloud;s=http://ip:port/__dmi.system-uuid__/
+https://IP:PORT/uuid/meta-data
+https://IP:PORT/uuid/user-data
+https://IP:PORT/uuid/vendor-data
+https://IP:PORT/uuid/network-config

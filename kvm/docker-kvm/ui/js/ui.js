@@ -183,10 +183,10 @@ function getjson(method, url, callback, data=null, stream=null, tmout=30000) {
   //xhr.addEventListener("load", transferComplete);
   //xhr.addEventListener("error", transferFailed);
   //xhr.addEventListener("abort", transferCanceled);
-  xhr.onerror = function () { overlayoff(); console.error(`${url} ${method} net error`); };
-  xhr.onabort = function() { overlayoff(); console.error(`${url} ${method} abort`); };
-  xhr.ontimeout = function () { overlayoff(); console.error(`${url} ${method} timeout`); };
-  xhr.onloadend = function() { console.error(`${url} ${method} xhr.onloadend, as finally`); };
+  xhr.onerror = function () { console.error(`${url} ${method} onerror`); };
+  xhr.onabort = function() { console.error(`${url} ${method} abort`); };
+  xhr.ontimeout = function () { console.error(`${url} ${method} timeout`); };
+  xhr.onloadend = function() { overlayoff(); /*as finally*/ };
   xhr.open(method, url, true);
   //xhr.setRequestHeader('Pragma', 'no-cache');
   xhr.setRequestHeader('Content-Type', 'application/json')
@@ -199,7 +199,6 @@ function getjson(method, url, callback, data=null, stream=null, tmout=30000) {
       return;
     }
     if(this.readyState === 4 && this.status === 200) {
-      overlayoff();
       console.log(`${method} ${url} ${xhr.response}`);
       if (callback && typeof(callback) == "function") {
         callback(xhr.response);
@@ -207,7 +206,6 @@ function getjson(method, url, callback, data=null, stream=null, tmout=30000) {
       return;
     }
     if(xhr.readyState === 4 && xhr.status !== 0) {
-      overlayoff();
       console.error(`${method} ${url} ${xhr.status} ${xhr.response}`);
       try {
         result = JSON.parse(xhr.response);

@@ -15,8 +15,7 @@ class ISOMeta(object):
         self.network_config = env.get_template('network_config')
 
     def create(self, uuid, mdconfig) -> bool:
-        default_conf = {'rootpass':'pass123','hostname':'vmsrv', 'uuid': uuid}
-        mdconfig_meta = {**default_conf, **mdconfig}
+        mdconfig_meta = {**config.META_DEFAULT, **mdconfig, **{'uuid':uuid}}
         iso = pycdlib.PyCdlib()
         iso.new(interchange_level=4, vol_ident='cidata')
         meta_data = self.meta_data.render(**mdconfig_meta)

@@ -8,6 +8,7 @@ network:
         - type: static
           address: {{ ipaddr | default('169.254.254.254/32') }}
           gateway: {{ gateway | default('') }}
-      # routes:
-      #   - destination: 169.254.169.254/32
-      #     dev: {{ interface | default('eth0') }}
+    # - type: route
+    #   destination: 169.254.169.254/32
+    #   gateway: {{ gateway | default('') }}
+    #   metric: 3

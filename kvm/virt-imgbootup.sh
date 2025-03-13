@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("08ea987b[2025-01-03T16:11:35+08:00]:virt-imgbootup.sh")
+VERSION+=("0d41d47[2025-01-24T08:56:30+08:00]:virt-imgbootup.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 ARCH=${ARCH:-x86_64}
@@ -19,6 +19,8 @@ ${SCRIPTNAME}
         env CPU=kvm64 set cpu type, default host
         env NET=e1000e set netcard type, default virtio-net-pci
         env MACHINE=pc set machine(winxp us pc), default q35(x86_64):virt(aarch64)
+        env FAKE=EC2/OPENSTACK/NOCLOUD set smibios enum ec2/openstack if no set no enum
+                 NOCLOUD:http://169.254.169.254/__dmi.system-uuid__/
         -c|--cpu    <int>     number of cpus (default 1)
         -m|--mem    <int>     mem size MB (default 2048)
         -D|--disk   <file>    disk image (multi disk must same format)
@@ -87,11 +89,21 @@ EOF
 
 main() {
     local ncpu=1 mem=2048 disk=() bridge=() fmt="" cdrom="" floppy="" usb=() simusb=() pci_bus_addr=() daemonize=no serial=""
+    local vmuuid=$(uuid)
+    local ec2_serial="ec2${vmuuid:3}"
+    local EC2="serial=${ec2_serial},uuid=${ec2_serial}"
+    local OPENSTACK="product=OpenStack Compute"
+    local NOCLOUD="serial=ds=nocloud;s=http://169.254.169.254/__dmi.system-uuid__/,uuid=${vmuuid}"
+    FAKE="${FAKE:-}"
+    [ "${FAKE:-x}" == "EC2" ] && FAKE=${EC2}
+    [ "${FAKE:-x}" == "OPENSTACK" ] && FAKE=${OPENSTACK}
+    [ "${FAKE:-x}" == "NOCLOUD" ] && FAKE=${NOCLOUD}
     local options=(
         "-nodefaults"
         "-no-user-config"
         "-boot" "menu=on"
         "-monitor" "vc"
+        "-smbios" "type=1,manufacturer=JohnYin,version=0.9${FAKE:+,${FAKE}}"
     )
     case "${ARCH}" in
         x86_64)   options+=(

@@ -23,9 +23,11 @@ class Config:
     SPICE_DISP_URL = 'https://vmm.registry.local/spice/spice_auto.html'
     # # main:attach_device
     ATTACH_DEFAULT = {'size':'10G','gold':''}
+    META_DEFAULT = {'rootpass':'pass123','hostname':'vmsrv'}
 
     def VM_DEFAULT(self, arch, hostname):
         # TODO: VM_DEFAULT, can defined by hostname!
+        # enum=OPENSTACK/EC2/None(undefine), when EC2, uuid must startwith ec2........
         # if vm_ram_mb_max/vm_vcpus_max no set then use vm_ram_mb/vm_vcpus, else use a default value. see: domains/newvm.tpl...
         # # VM_DEFULT vars from domains/template. main:create_vm
         if (arch.lower() == 'x86_64'):

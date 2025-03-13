@@ -9,6 +9,18 @@
       <create>{{ create_tm | default("") }}</create>
     </mdconfig:meta>
   </metadata>
+  <sysinfo type='smbios'>
+    <system>
+      <entry name='manufacturer'>JohnYin</entry>
+      <entry name='version'>0.9</entry>
+{%- if enum is defined and enum == 'OPENSTACK' %}
+      <entry name='product'>OpenStack Compute</entry>
+{%- elif enum is defined and enum == 'EC2' %}
+      <entry name='serial'>{{ vm_uuid }}</entry>
+      <entry name='uuid'>{{ vm_uuid }}</entry>
+{%- endif %}
+    </system>
+  </sysinfo>
   <title>{{ vm_name }}</title>
   <description>{{ vm_desc | default("") }}</description>
   <memory unit='MiB'>{{ vm_ram_mb_max | default(vm_ram_mb | default(8192))}}</memory>
@@ -30,6 +42,7 @@
 {%- endif %}
     <boot dev='hd'/>
     <boot dev='cdrom'/>
+    <boot dev='network'/>
     <bootmenu enable='yes' timeout='3000'/>
   </os>
   <features><acpi/><apic/><pae/></features>
