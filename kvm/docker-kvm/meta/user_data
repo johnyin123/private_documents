@@ -17,8 +17,9 @@ chpasswd:
   - {name: myadmin, password: {{ rootpass | default('password') }}, type: text}
 write_files:
   - path: /root/.cloud.init
-    owner: root:root
-    permissions: 0600
+    owner: 'root:root'
+    permissions: '0600'
+    # append: true
     content: |
       message here
 growpart:
