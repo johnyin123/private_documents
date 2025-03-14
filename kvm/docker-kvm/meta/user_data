@@ -15,6 +15,12 @@ chpasswd:
   users:
   - {name: root, password: {{ rootpass | default('password') }}, type: text}
   - {name: admin, password: {{ rootpass | default('password') }}, type: text}
+write_files:
+  - path: /root/.cloud.init
+    owner: root:root
+    permissions: 0600
+    content: |
+      message here
 growpart:
   mode: auto
   devices: ['/']
