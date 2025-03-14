@@ -6,6 +6,7 @@ timezone: {{ timezone | default('Asia/Shanghai') }}
 users:
   - default
   - name: myadmin
+    lock_passwd: false
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     ssh_authorized_keys:
@@ -13,8 +14,7 @@ users:
 chpasswd:
   expire: false
   users:
-  - {name: root, password: {{ rootpass | default('password') }}, type: text}
-  - {name: admin, password: {{ rootpass | default('password') }}, type: text}
+  - {name: myadmin, password: {{ rootpass | default('password') }}, type: text}
 write_files:
   - path: /root/.cloud.init
     owner: root:root
