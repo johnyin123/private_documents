@@ -5,9 +5,7 @@ manage_etc_hosts: true
 timezone: {{ timezone | default('Asia/Shanghai') }}
 users:
   - default
-  - name: user1
-    groups: sudo
-    lock_passwd: false
+  - name: myadmin
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     ssh_authorized_keys:
@@ -21,7 +19,7 @@ growpart:
   mode: auto
   devices: ['/']
 bootcmd:
-  - echo "OK"
+  - echo "BOOT OK"
   - touch /etc/cloud/cloud-init.disabled
   - reboot
 final_message: |

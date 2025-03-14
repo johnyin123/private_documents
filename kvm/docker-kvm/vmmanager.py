@@ -93,7 +93,7 @@ class LibvirtDomain:
                 for node in mdconfig.childNodes:
                     if node.nodeType == xml.dom.minidom.Node.ELEMENT_NODE:
                         # Remove leading and trailing whitespace from the text content
-                        text = node.firstChild.nodeValue.strip() if node.firstChild else None
+                        text = node.firstChild.nodeValue.strip() if node.firstChild else ''
                         # Assign the element's text content to the dictionary key
                         data_dict[node.tagName] = text
         return data_dict
@@ -190,6 +190,8 @@ class VMManager:
         pools = self.conn.listAllStoragePools(0)
         for pool in pools:
             try:
+                if not pool.isActive():
+                    pool.create()
                 pool.refresh(0)
                 logger.info(f"Pool '{pool.name()}' refreshed successfully.")
             except libvirt.libvirtError as e:

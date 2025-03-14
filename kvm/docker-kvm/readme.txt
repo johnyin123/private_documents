@@ -1,3 +1,6 @@
+cloud-init clean -l
+cloud-init init
+cloud-init schema --system --annotate
 # <metadata>
 #   <mdconfig:meta xmlns:mdconfig="urn:iso-meta">
 #     <ipaddr>192.168.168.102/24</ipaddr>

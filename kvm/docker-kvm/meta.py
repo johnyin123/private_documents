@@ -15,6 +15,7 @@ class ISOMeta(object):
 
     def create(self, req_json, mdconfig) -> bool:
         mdconfig_meta = {**config.META_DEFAULT, **req_json, **mdconfig}
+        logger.info(mdconfig_meta)
         iso = pycdlib.PyCdlib()
         iso.new(interchange_level=4, vol_ident='cidata')
         meta_data = self.meta_data.render(**mdconfig_meta)
@@ -33,6 +34,7 @@ class NOCLOUDMeta(object):
 
     def create(self, req_json, mdconfig) -> bool:
         mdconfig_meta = {**config.META_DEFAULT, **req_json, **mdconfig}
+        logger.info(mdconfig_meta)
         nocloud_dir = os.path.join(config.NOCLOUD_DIR, f'{req_json["vm_uuid"]}')
         os.mkdir(nocloud_dir)
         meta_data = self.meta_data.render(**mdconfig_meta)

@@ -1,5 +1,8 @@
 instance-id: {{ vm_uuid }}
 network-interfaces: |
+  auto {{ interface | default('eth0') }}
   iface {{ interface | default('eth0') }} inet static
   address {{ ipaddr | default('169.254.254.254/32') }}
-  gateway {{ gateway | default('169.254.254.254') }}
+{%- if gateway is defined and gateway != '' %}
+  gateway {{ gateway }}
+{%- endif %}

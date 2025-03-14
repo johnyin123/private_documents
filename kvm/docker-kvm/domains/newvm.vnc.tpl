@@ -60,7 +60,7 @@
     <graphics type='vnc' autoport='yes'/>
     <video><model type='virtio' vram='32768' heads='1' primary='yes'/></video>
     <sound model='ac97'/>
-{%- if enum is not defined %}
+{%- if enum is not defined or enum == '' %}
     <disk type='network' device='cdrom'>
       <driver name='qemu' type='raw'/>
       <source protocol="http" name="/{{ vm_uuid }}.iso">
