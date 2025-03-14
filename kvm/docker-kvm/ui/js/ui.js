@@ -249,7 +249,7 @@ function stop(host, uuid) {
   });
 }
 function force_stop(host, uuid) {
-  getjson('DELETE', `/vm/stop/${host}/${uuid}`, function(res) {
+  getjson('POST', `/vm/stop/${host}/${uuid}`, function(res) {
     dispok(`force stop vm ${res}`);
     vmlist(host);
   }, null, null, 60000);

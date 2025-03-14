@@ -229,7 +229,7 @@ server {
         # no cache!!
         proxy_no_cache 1;
         location /vm/stop/ {
-            if ($request_method !~ ^(GET|DELETE)$ ) { return 405; }
+            if ($request_method !~ ^(GET|POST)$ ) { return 405; }
             proxy_pass http://flask_app;
         }
         location ~* ^/vm/(list|start|delete|display)/ {
