@@ -1,7 +1,7 @@
 Method 1: Line configuration
 The “line configuration” is a single string of text which is passed to an instance at boot time via either the kernel command line or in the serial number exposed via DMI (sometimes called SMBIOS).
 Example:
-ds=nocloud;s=https://<host>/<path>/
+!!  ds=nocloud-net;s=https://<host>/<path>/
 # A valid seedfrom value consists of a URI which must contain a trailing /.
 # # lowversion(know:22.4.2, nocloud NO DMI variables
 Available DMI variables for expansion in seedfrom URL

@@ -22,7 +22,8 @@ growpart:
   devices: ['/']
 bootcmd:
   - echo "OK"
-  # - touch /etc/cloud/cloud-init.disabled
+  - touch /etc/cloud/cloud-init.disabled
+  - reboot
 final_message: |
   cloud-init has finished
   datasource: $datasource

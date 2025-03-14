@@ -1,5 +1,5 @@
-instance-id: {{uuid}}
+instance-id: {{ vm_uuid }}
 network-interfaces: |
   iface {{ interface | default('eth0') }} inet static
   address {{ ipaddr | default('169.254.254.254/32') }}
-  gateway {{ gateway | default('') }}
+  gateway {{ gateway | default('169.254.254.254') }}
