@@ -197,8 +197,11 @@ class MyApp(object):
         disks = dom.disks
         for v in disks:
             logger.info(f'remove disk {v}')
-            vol = vmmgr.conn.storageVolLookupByPath(v['vol'])
-            vol.delete()
+            try:
+                vol = vmmgr.conn.storageVolLookupByPath(v['vol'])
+                vol.delete()
+            except Exception:
+                pass
         diskinfo = f'{dom.disks}'
         vmmgr.delete_vm(uuid)
         logger.info(f'remove {uuid} datebase and nocloud/xml/iso files')
