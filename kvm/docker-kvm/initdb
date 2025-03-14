@@ -51,9 +51,10 @@ print('''
 | host01  | debiso_x86 | iso     | cdrom.debian |                   | debian安装CD |
 
 # # kvmgold
-| name     | arch    | tpl                  | desc                   |
-| debian12 | x86_64  | bookworm.amd64.qcow2 | debian12 amd64 操作系统|
-| debian12 | aarch64 | bookworm.arm64.qcow2 | debian12 arm64 操作系统|
+| name     | arch    | tpl                        | desc                          |
+| debian12 | x86_64  | bookworm.amd64.qcow2       | debian12 amd64 操作系统       |
+| debian12 | aarch64 | bookworm.arm64.qcow2       | debian12 arm64 操作系统       |
+| euler22  | x86_64  | openeuler2203.x86_64.qcow2 | openeuler 2203 amd64 操作系统 |
 ''')
 hosts=[
     db.KVMHost(name='host01',tpl='newvm.vnc.tpl',url='qemu+tls://192.168.168.1/system',arch='x86_64',ipaddr='192.168.168.1',sshport=60022),
@@ -101,6 +102,7 @@ host01_devs=[
 golds=[
     db.KVMGold(name='debian12',arch='x86_64', tpl='bookworm.amd64.qcow2',desc='debian12 amd64 操作系统'),
     db.KVMGold(name='debian12',arch='aarch64',tpl='bookworm.arm64.qcow2',desc='debian12 arm64 操作系统'),
+    db.KVMGold(name='euler22',arch='x86_64', tpl='openeuler2203.x86_64.qcow2',desc='openeuler 2203 amd64 操作系统'),
 ]
 
 db.session.add_all(golds)
@@ -130,7 +132,6 @@ for gold in db.Base.exesql(f'select * from kvmgold'):
     file_exists(config.GOLD_DIR, gold.tpl, f'{gold.name:10.10s} {gold.arch:8.8s} {gold.desc}')
 
 file_exists(config.META_DIR, 'meta_data', f'meta_data')
-file_exists(config.META_DIR, 'network_config', f'network_config')
 file_exists(config.META_DIR, 'user_data', f'user_data')
 
 # sql="insert into tbl (name) values ('{name}')"

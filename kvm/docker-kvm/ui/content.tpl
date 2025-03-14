@@ -71,6 +71,10 @@
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form id="createvm_form">
+      <label>META:<select name="enum">
+        <option value="" selected>ISO</option>
+        <option value="NOCLOUD">NOCLOUD</option>
+      </select></label>
       <label>CPU:<div class="group">
         <input style="width: 20%;" type="number" name="vm_vcpus" id="vcpu_num" value="2" min="1" max="16" oninput="vcpu_rge.value=this.value" />
         <input type="range" id="vcpu_rge" value="2" min="1" max="16" oninput="vcpu_num.value=this.value"/>

@@ -179,11 +179,11 @@ class MyApp(object):
         mdconfig = dom.mdconfig
         logger.info(f'{req_json["vm_uuid"]} {mdconfig}')
         enum = req_json.get('enum', None)
-        if enum is None:
-            if not meta.ISOMeta().create(req_json["vm_uuid"], mdconfig):
+        if enum is None or enum == "":
+            if not meta.ISOMeta().create(req_json, mdconfig):
                 raise APIException(HTTPStatus.CONFLICT, 'create_vm iso meta', f'{req_json["vm_uuid"]} {mdconfig}')
         elif enum == 'NOCLOUD':
-            if not meta.NOCLOUDMeta().create(req_json["vm_uuid"], mdconfig):
+            if not meta.NOCLOUDMeta().create(req_json, mdconfig):
                 raise APIException(HTTPStatus.CONFLICT, 'create_vm nocloud meta', f'{req_json["vm_uuid"]} {mdconfig}')
         else:
             logger.warn(f'meta: {enum} {req_json["vm_uuid"]} {mdconfig}')
@@ -200,9 +200,9 @@ class MyApp(object):
             vol = vmmgr.conn.storageVolLookupByPath(v['vol'])
             vol.delete()
         diskinfo = f'{dom.disks}'
-        # TODO: remove disks
         vmmgr.delete_vm(uuid)
-        logger.info(f'remove {uuid} datebase and xml/iso files')
+        logger.info(f'remove {uuid} datebase and nocloud/xml/iso files')
+        # TODO: nocloud directory need remove
         _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
         _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
         return { 'result' : 'OK', 'vol':f'{diskinfo}' }

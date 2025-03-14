@@ -12,21 +12,17 @@ class ISOMeta(object):
         env = jinja2.Environment(loader=jinja2.FileSystemLoader(f'{config.META_DIR}'))
         self.meta_data = env.get_template('meta_data')
         self.user_data = env.get_template('user_data')
-        self.network_config = env.get_template('network_config')
 
-    def create(self, uuid, mdconfig) -> bool:
-        mdconfig_meta = {**config.META_DEFAULT, **mdconfig, **{'uuid':uuid}}
+    def create(self, req_json, mdconfig) -> bool:
+        mdconfig_meta = {**config.META_DEFAULT, **req_json, **mdconfig}
         iso = pycdlib.PyCdlib()
         iso.new(interchange_level=4, vol_ident='cidata')
         meta_data = self.meta_data.render(**mdconfig_meta)
         iso.add_fp(BytesIO(bytes(meta_data,'ascii')), len(meta_data), '/meta-data')
         user_data = self.user_data.render(**mdconfig_meta)
         iso.add_fp(BytesIO(bytes(user_data,'ascii')), len(user_data), '/user-data')
-        network_config = self.network_config.render(**mdconfig_meta)
-        iso.add_fp(BytesIO(bytes(network_config,'ascii')), len(network_config), '/network-config')
-        iso.write(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
+        iso.write(os.path.join(config.ISO_DIR, f'{req_json["vm_uuid"]}.iso'))
         iso.close()
-        logger.info(f'{uuid}.iso')
         return True
 
 class NOCLOUDMeta(object):
@@ -34,11 +30,10 @@ class NOCLOUDMeta(object):
         env = jinja2.Environment(loader=jinja2.FileSystemLoader(f'{config.META_DIR}'))
         self.meta_data = env.get_template('meta_data')
         self.user_data = env.get_template('user_data')
-        self.network_config = env.get_template('network_config')
 
-    def create(self, uuid, mdconfig) -> bool:
-        mdconfig_meta = {**config.META_DEFAULT, **mdconfig, **{'uuid':uuid}}
-        nocloud_dir = os.path.join(config.NOCLOUD_DIR, f'{uuid}')
+    def create(self, req_json, mdconfig) -> bool:
+        mdconfig_meta = {**config.META_DEFAULT, **req_json, **mdconfig}
+        nocloud_dir = os.path.join(config.NOCLOUD_DIR, f'{req_json["vm_uuid"]}')
         os.mkdir(nocloud_dir)
         meta_data = self.meta_data.render(**mdconfig_meta)
         with open(os.path.join(nocloud_dir, "meta-data"), "w") as file:
@@ -46,8 +41,4 @@ class NOCLOUDMeta(object):
         user_data = self.user_data.render(**mdconfig_meta)
         with open(os.path.join(nocloud_dir, "user-data"), "w") as file:
             file.write(user_data)
-        network_config = self.network_config.render(**mdconfig_meta)
-        with open(os.path.join(nocloud_dir, "network-config"), "w") as file:
-            file.write(network_config)
-        logger.info(f'{uuid} nocloud meta')
         return True

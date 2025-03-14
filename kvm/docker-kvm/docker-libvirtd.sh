@@ -277,6 +277,15 @@ server {
         root /work/iso;
     }
 }
+server {
+    listen 169.254.169.254:80;
+    server_name _;
+    location / {
+        client_max_body_size 0;
+        autoindex off;
+        root /work/nocloud;
+    }
+}
 EOF
     cat <<EODOC > ${type}-${arch}/docker/build.run
 useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash

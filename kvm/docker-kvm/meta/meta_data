@@ -1,4 +1,5 @@
 instance-id: {{uuid}}
-dsmode: local
-# values: local, net, pass
-# local (pre-networking) stage, net (post-networking) stage
+network-interfaces: |
+  iface {{ interface | default('eth0') }} inet static
+  address {{ ipaddr | default('169.254.254.254/32') }}
+  gateway {{ gateway | default('') }}
