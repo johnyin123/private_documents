@@ -2,6 +2,8 @@ cloud-init clean -l
 cloud-init init
 cloud-init schema --system --annotate
 cloud-init devel schema --system --annotate
+if use NOCLOUD need dhcp, and meta server(ngx) on 169.254.169.254
+if use ISO no deed dhcp
 # <metadata>
 #   <mdconfig:meta xmlns:mdconfig="urn:iso-meta">
 #     <ipaddr>192.168.168.102/24</ipaddr>
