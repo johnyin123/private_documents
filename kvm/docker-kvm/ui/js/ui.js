@@ -243,18 +243,21 @@ function start(host, uuid) {
   }, null, null, 60000);
 }
 function stop(host, uuid) {
+  if (!confirm(`Stop ${uuid}?`)) { return; }
   getjson('GET', `/vm/stop/${host}/${uuid}`, function(res) {
     dispok(`stop vm ${res}`);
     vmlist(host);
   });
 }
 function force_stop(host, uuid) {
+  if (!confirm(`Force Stop ${uuid}?`)) { return; }
   getjson('POST', `/vm/stop/${host}/${uuid}`, function(res) {
     dispok(`force stop vm ${res}`);
     vmlist(host);
   }, null, null, 60000);
 }
 function undefine(host, uuid) {
+  if (!confirm(`Undefine ${uuid}?`)) { return; }
   getjson('GET', `/vm/delete/${host}/${uuid}`, function(res) {
     dispok(`undefine vm ${res}`);
     vmlist(host);
