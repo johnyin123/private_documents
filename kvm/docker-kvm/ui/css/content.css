@@ -120,6 +120,9 @@ form select {
   box-sizing: border-box;
   resize: none;
 }
+form select option {
+  background: var(--black-color-light);
+}
 button, input[type="button"], input[type="submit"], input[type="reset"] {
   border: 1px solid var(--grey-color-light);
   cursor: pointer;
