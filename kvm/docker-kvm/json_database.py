@@ -9,7 +9,7 @@ class FakeDB:
         return self.__dict__
 
 def search(arr, key, val):
-    return [ FakeDB(element) for element in arr if element[key] == val]
+    return [ element for element in arr if element[key] == val]
 
 class KVMHost:
     data = []
@@ -36,7 +36,8 @@ class KVMDevice:
 
     @staticmethod
     def ListDevice(kvmhost):
-        return search(KVMDevice.data, 'kvmhost', kvmhost)
+        result = search(KVMDevice.data, 'kvmhost', kvmhost)
+        return [ FakeDB(element) for element in result ]
 
 class KVMGold:
     data = []
@@ -50,7 +51,8 @@ class KVMGold:
 
     @staticmethod
     def ListGold(arch):
-        return search(KVMGold.data, 'arch', arch)
+        result = search(KVMGold.data, 'arch', arch)
+        return [ FakeDB(element) for element in result ]
 
 class KVMGuest:
     data = []
