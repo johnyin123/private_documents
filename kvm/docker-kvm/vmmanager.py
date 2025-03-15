@@ -29,14 +29,14 @@ class LibvirtDomain:
             libvirt.VIR_DOMAIN_CRASHED: 'CRASH',
             libvirt.VIR_DOMAIN_PMSUSPENDED: 'SUSPEND'
         }.get(self.state,'?')
-        dic = {'uuid':self.uuid,'maxcpu':self.maxcpu,
-               'state':state_desc, 'maxmem':self.maxmem,
-               'curmem':self.curmem, 'curcpu':self.curcpu,
-               'cputime':self.cputime // 1000000000, 'desc':self.desc,
-               'disks': json.dumps(self.disks),
-               'nets': json.dumps(self.nets)
-              }
-        return {**dic, **self.mdconfig}
+        return {'uuid':self.uuid,'maxcpu':self.maxcpu,
+                'state':state_desc, 'maxmem':self.maxmem,
+                'curmem':self.curmem, 'curcpu':self.curcpu,
+                'cputime':self.cputime, 'desc':self.desc,
+                'disks': json.dumps(self.disks),
+                'nets': json.dumps(self.nets),
+                'mdconfig': json.dumps(self.mdconfig)
+               }
 
     def get_display(self):
         displays = []

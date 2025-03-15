@@ -248,12 +248,11 @@ class MyApp(object):
                 try:
                     domains = vmmanager.VMManager(host.name, host.url).list_domains()
                     for domain in domains:
-                        guest = database.KVMGuest(kvmhost=f'{host.name}',uuid=f'{domain.uuid}',desc=f'{domain.desc}',curcpu=domain.curcpu,curmem=domain.curmem,arch=f'{host.arch}',disks=domain.disks,nets=domain.nets,mdconfig=domain.mdconfig)
-                        database.session.add(guest)
+                        val = { **domain._asdict(), 'kvmhost':host.name, 'arch':host.arch }
+                        database.KVMGuest.Insert(**val)
                         yield f'{host.name} {domain.uuid}\n'
                 except:
                     yield f'excetpin {host} continue\n'
-                database.session.commit()
                 yield f'{host.name} updated\n'
             yield f'ALL host updated\n'
         return flask.Response(updatedb(), mimetype="text/event-stream")

@@ -73,23 +73,38 @@ class KVMGold(Base):
 class KVMGuest(Base):
     __tablename__ = "kvmguest"
     kvmhost = Column(String(19),ForeignKey('kvmhost.name'),nullable=False,index=True,primary_key=True)
-    uuid = Column(String,nullable=False,index=True,unique=True,primary_key=True)
-    desc = Column(String,nullable=False)
     arch = Column(String(8),nullable=False)
-    curcpu = Column(Integer,nullable=False,server_default='0')
+    uuid = Column(String,nullable=False,index=True,unique=True,primary_key=True)
+    maxcpu = Column(Integer,nullable=False,server_default='0')
+    maxmem = Column(Integer,nullable=False,server_default='0')
     curmem = Column(Integer,nullable=False,server_default='0')
+    curcpu = Column(Integer,nullable=False,server_default='0')
+    cputime = Column(Integer,nullable=False,server_default='0')
+    state = Column(String)
+    desc = Column(String,nullable=False)
     disks = Column(JSON,nullable=False)
     nets = Column(JSON,nullable=False)
     mdconfig = Column(JSON,nullable=False)
 
     def _asdict(self):
-        dic = {'kvmhost':self.kvmhost, 'uuid':self.uuid,
-                'desc':self.desc, 'arch':self.arch,
-                'curcpu':self.curcpu, 'curmem':self.curmem,
-                'disks': json.dumps(self.disks),
-                'nets': json.dumps(self.nets)
+        return {'kvmhost':self.kvmhost, 'arch':self.arch,
+                'uuid':self.uuid,'maxcpu':self.maxcpu,
+                'state':self.state, 'maxmem':self.maxmem,
+                'curmem':self.curmem, 'curcpu':self.curcpu,
+                'cputime':self.cputime, 'desc':self.desc,
+                'disks': self.disks,
+                'nets': self.nets,
+                'mdconfig': self.mdconfig
                }
-        return {**dic, **self.mdconfig}
+
+    @staticmethod
+    def Insert(**kwargs):
+        try:
+            guest = KVMGuest(**kwargs)
+            session.add(guest)
+            session.commit()
+        except:
+            session.rollback()
 
     @staticmethod
     def DropAll():
