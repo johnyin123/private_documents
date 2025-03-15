@@ -251,8 +251,8 @@ class MyApp(object):
                         val = { **domain._asdict(), 'kvmhost':host.name, 'arch':host.arch }
                         database.KVMGuest.Insert(**val)
                         yield f'{host.name} {domain.uuid}\n'
-                except:
-                    yield f'excetpin {host} continue\n'
+                except Exception as e:
+                    yield f'excetpin {e} continue\n'
                 yield f'{host.name} updated\n'
             yield f'ALL host updated\n'
         return flask.Response(updatedb(), mimetype="text/event-stream")
