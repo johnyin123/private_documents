@@ -1,0 +1,6 @@
+[
+    {"name":"host01","tpl":"newvm.vnc.tpl","url":"qemu+tls://192.168.168.1/system","arch":"x86_64","ipaddr":"192.168.168.1","sshport":60022},
+    {"name":"demo","tpl":"newvm.vnc.tpl","url":"qemu+ssh://root@192.168.168.1:60022/system","arch":"x86_64","ipaddr":"192.168.168.1","sshport":60022},
+    {"name":"kvm-arm-srv1","tpl":"newvm.vnc.tpl","url":"qemu+ssh://root@10.170.24.2:60022/system","arch":"aarch64","ipaddr":"10.170.24.2","sshport":60022},
+    {"name":"kvm-x86-srv25","tpl":"newvm.vnc.tpl","url":"qemu+ssh://root@10.170.24.44:60022/system","arch":"x86_64","ipaddr":"10.170.24.44","sshport":60022}
+]
