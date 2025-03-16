@@ -46,6 +46,11 @@ function show_all_db_vms(view) {
           nets.forEach(net => {
             table += `<tr><th width="20%" title="net">${net.type}</th><td>${net.mac}</td></tr>`;
           });
+        } else if (key === 'mdconfig') {
+          var mdconfig = JSON.parse(item[key]);
+          for(var mdkey in mdconfig) {
+            table += `<tr><th width="20%" title="mdconfig">${mdkey}</th><td>${mdconfig[mdkey]}</td></tr>`;
+          }
         } else {
           table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
         }
@@ -86,6 +91,11 @@ function show_vms(host, vms) {
         nets.forEach(net => {
           table += `<tr><th width="20%" title="net">${net.type}</th><td>${net.mac}</td></tr>`;
         });
+      } else if (key === 'mdconfig') {
+        var mdconfig = JSON.parse(item[key]);
+        for(var mdkey in mdconfig) {
+          table += `<tr><th width="20%" title="mdconfig">${mdkey}</th><td>${mdconfig[mdkey]}</td></tr>`;
+        }
       } else {
         table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
       }

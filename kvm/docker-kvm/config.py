@@ -47,3 +47,4 @@ class Config:
             return {}
 
 config = Config()
+logger.info(f'OUTDIR={OUTDIR}')
