@@ -1,6 +1,17 @@
 # -*- coding: utf-8 -*-
 import exceptions, json
 
+def save_list_json(data, fn):
+    with open(fn, 'w') as file:
+        json.dump(data, file)
+
+def load_list_json(fn):
+     try:
+        with open(fn, 'r') as file:
+            return json.load(file)
+     except FileNotFoundError:
+        return []
+
 class FakeDB:
     def __init__(self, data):
         for key, value in data.items():
@@ -12,7 +23,7 @@ def search(arr, key, val):
     return [ element for element in arr if element[key] == val]
 
 class KVMHost:
-    data = []
+    data = load_list_json('hosts.json')
     @staticmethod
     def getHostInfo(name):
         result = search(KVMHost.data, 'name', name)
@@ -25,7 +36,7 @@ class KVMHost:
         return [ FakeDB(element) for element in KVMHost.data ]
 
 class KVMDevice:
-    data = []
+    data = load_list_json('devices.json')
     @staticmethod
     def getDeviceInfo(kvmhost, name):
         result = search(KVMDevice.data, 'name', name)
@@ -40,7 +51,7 @@ class KVMDevice:
         return [ FakeDB(element) for element in result ]
 
 class KVMGold:
-    data = []
+    data = load_list_json('gold.json')
     @staticmethod
     def getGoldInfo(name, arch):
         result = search(KVMGold.data, 'name', name)
@@ -55,10 +66,11 @@ class KVMGold:
         return [ FakeDB(element) for element in result ]
 
 class KVMGuest:
-    data = []
+    data = load_list_json('guests.json')
     @staticmethod
     def Insert(**kwargs):
         KVMGuest.data.append(kwargs)
+        save_list_json(KVMGuest.data, 'guests.json')
 
     @staticmethod
     def DropAll():
@@ -67,10 +79,3 @@ class KVMGuest:
     @staticmethod
     def ListGuest():
         return [ FakeDB(element) for element in KVMGuest.data ]
-
-with open("hosts.json", "r") as file:
-    KVMHost.data = json.load(file)
-with open("devices.json", "r") as file:
-    KVMDevice.data = json.load(file)
-with open("gold.json", "r") as file:
-    KVMGold.data = json.load(file)
