@@ -73,11 +73,12 @@ class MyApp(object):
 
 app=MyApp.create()
 # app.errorhandler(exceptions.APIException)(exceptions.APIException.handle)
-def main():
-    host = os.environ.get('HTTP_HOST', '0.0.0.0')
-    port = int(os.environ.get('HTTP_PORT', '18888'))
-    app.run(host=host, port=port, debug=flask_app.is_debug())
-
-if __name__ == '__main__':
-    exit(main())
+# # gunicorn -b 127.0.0.1:5009 --error-logfile='-' --access-logfile='-' main:app
+# def main():
+#     host = os.environ.get('HTTP_HOST', '0.0.0.0')
+#     port = int(os.environ.get('HTTP_PORT', '18888'))
+#     app.run(host=host, port=port, debug=flask_app.is_debug())
+#
+# if __name__ == '__main__':
+#     exit(main())
 '''
