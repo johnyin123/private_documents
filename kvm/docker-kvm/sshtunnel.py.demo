@@ -218,6 +218,8 @@ os.waitpid(pid, 0)
             value, libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_MEM_MAXIMUM
         )
         self.dom.setMemoryFlags(value, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
+from contextlib import contextmanager
+@contextmanager
 def connect(uri: str | None = None) -> Generator[virConnect, None, None]:
     """Connect to a hypervisor using the given `uri` through libvirt. If `uri` is `None`, libvirt will use the following
     logic to determine what URI to use:
