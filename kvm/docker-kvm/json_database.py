@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 import exceptions, json
+from flask_app import logger
 
 def save_list_json(data, fn):
     with open(fn, 'w') as file:
+        logger.info(f'Save {fn}')
         json.dump(data, file)
 
 def load_list_json(fn):
      try:
         with open(fn, 'r') as file:
+            logger.info(f'Load {fn}')
             return json.load(file)
      except FileNotFoundError:
         return []
@@ -24,6 +27,7 @@ def search(arr, key, val):
 
 class KVMHost:
     data = load_list_json('hosts.json')
+
     @staticmethod
     def getHostInfo(name):
         result = search(KVMHost.data, 'name', name)
@@ -37,6 +41,7 @@ class KVMHost:
 
 class KVMDevice:
     data = load_list_json('devices.json')
+
     @staticmethod
     def getDeviceInfo(kvmhost, name):
         result = search(KVMDevice.data, 'name', name)
@@ -52,6 +57,7 @@ class KVMDevice:
 
 class KVMGold:
     data = load_list_json('gold.json')
+
     @staticmethod
     def getGoldInfo(name, arch):
         result = search(KVMGold.data, 'name', name)
@@ -67,6 +73,7 @@ class KVMGold:
 
 class KVMGuest:
     data = load_list_json('guests.json')
+
     @staticmethod
     def Insert(**kwargs):
         KVMGuest.data.append(kwargs)
