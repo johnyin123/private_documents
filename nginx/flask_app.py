@@ -64,6 +64,7 @@ class MyApp(object):
     def create():
         myapp=MyApp()
         web=flask_app.create_app({}, json=True)
+        # app.errorhandler(exceptions.APIException)(exceptions.APIException.handle)
         web.add_url_rule('/', view_func=myapp.test, methods=['POST', 'GET'])
         return web
 
@@ -72,8 +73,7 @@ class MyApp(object):
         return '{ "OK" : "OK" }'
 
 app=MyApp.create()
-# app.errorhandler(exceptions.APIException)(exceptions.APIException.handle)
-# # gunicorn -b 127.0.0.1:5009 --error-logfile='-' --access-logfile='-' main:app
+# # gunicorn -b 127.0.0.1:5009 --access-logfile='-' 'main:app'
 # def main():
 #     host = os.environ.get('HTTP_HOST', '0.0.0.0')
 #     port = int(os.environ.get('HTTP_PORT', '18888'))

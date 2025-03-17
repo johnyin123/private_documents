@@ -9,6 +9,31 @@ logger=flask_app.logger
 # DATABASE = 'mysql+pymysql://admin:password@192.168.168.212/kvm?charset=utf8mb4'
 OUTDIR = os.environ.get('OUTDIR', os.path.abspath(os.path.dirname(__file__)))
 DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db')
+
+class Singleton(type):
+    _instances = {}
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+class Config(metaclass=Singleton):
+    def __init__(self, **kwargs):
+        self._config = kwargs
+
+    def __getattr__(self, name):
+        if name in self._config:
+            return self._config[name]
+        raise AttributeError(f"'Config' object has no attribute '{name}'")
+
+    def set(self, name, value):
+         self._config[name] = value
+
+# config = Config(app_name="MyApp", version="1.0.0")
+# print(config.app_name)  # Output: MyApp
+# config.set("version", "2.0.0")
+# print(config.version) # Output: 2.0.0
+
 class Config:
     ISO_DIR = os.path.join(OUTDIR, 'iso')
     GOLD_DIR = os.path.join(OUTDIR, 'disk')

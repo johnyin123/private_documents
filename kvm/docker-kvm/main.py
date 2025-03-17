@@ -36,6 +36,7 @@ class MyApp(object):
     def create():
         myapp=MyApp()
         web=flask_app.create_app({}, json=True)
+        web.errorhandler(APIException)(APIException.handle)
         web.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=myapp.upload_xml, methods=['POST'])
         web.add_url_rule('/tpl/host', view_func=myapp.list_host, methods=['GET'])
         web.add_url_rule('/tpl/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
@@ -268,12 +269,4 @@ class MyApp(object):
 # signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
 app=MyApp.create()
-app.errorhandler(APIException)(APIException.handle)
-
-def main():
-    host = os.environ.get('HTTP_HOST', '0.0.0.0')
-    port = int(os.environ.get('HTTP_PORT', '5009'))
-    app.run(host=host, port=port, debug=flask_app.is_debug())
-
-if __name__ == '__main__':
-    exit(main())
+# gunicorn -b 127.0.0.1:5009 --workers=4 --access-logfile='-' main:app
