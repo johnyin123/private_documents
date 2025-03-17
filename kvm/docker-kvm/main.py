@@ -37,6 +37,7 @@ class MyApp(object):
         myapp=MyApp()
         web=flask_app.create_app({}, json=True)
         web.errorhandler(APIException)(APIException.handle)
+        web.config['JSON_SORT_KEYS'] = False
         web.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=myapp.upload_xml, methods=['POST'])
         web.add_url_rule('/tpl/host', view_func=myapp.list_host, methods=['GET'])
         web.add_url_rule('/tpl/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
@@ -249,7 +250,7 @@ class MyApp(object):
                 try:
                     domains = vmmanager.VMManager(host.name, host.url).list_domains()
                     for domain in domains:
-                        val = { **domain._asdict(), 'kvmhost':host.name, 'arch':host.arch }
+                        val = { 'kvmhost':host.name, 'arch':host.arch, **domain._asdict() }
                         database.KVMGuest.Insert(**val)
                         yield f'{host.name} {domain.uuid}\n'
                 except Exception as e:

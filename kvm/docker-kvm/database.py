@@ -88,13 +88,13 @@ class KVMGuest(Base):
 
     def _asdict(self):
         return {'kvmhost':self.kvmhost, 'arch':self.arch,
-                'uuid':self.uuid,'maxcpu':self.maxcpu,
-                'state':self.state, 'maxmem':self.maxmem,
-                'curmem':self.curmem, 'curcpu':self.curcpu,
-                'cputime':self.cputime, 'desc':self.desc,
-                'disks': self.disks,
-                'nets': self.nets,
-                'mdconfig': self.mdconfig
+                'uuid':self.uuid, 'desc':self.desc,
+                'curcpu':self.curcpu, 'curmem':self.curmem,
+                'mdconfig': json.dumps(self.mdconfig),
+                'maxcpu':self.maxcpu, 'maxmem':self.maxmem,
+                'cputime':self.cputime, 'state':state_desc,
+                'disks': json.dumps(self.disks),
+                'nets': json.dumps(self.nets)
                }
 
     @staticmethod
