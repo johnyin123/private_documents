@@ -19,7 +19,7 @@
       <entry name='serial'>{{ vm_uuid }}</entry>
       <entry name='uuid'>{{ vm_uuid }}</entry>
 {%- elif enum is defined and enum == 'NOCLOUD' %}
-      <entry name='serial'>ds=nocloud-net;s=http://169.254.169.254/{{ vm_uuid }}/</entry>
+      <entry name='serial'>ds=nocloud-net;s={{ nocloud_srv | default("http://169.254.169.254") }}/{{ vm_uuid }}/</entry>
       <entry name='uuid'>{{ vm_uuid }}</entry>
 {%- endif %}
     </system>

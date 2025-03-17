@@ -16,15 +16,19 @@ class ISOMeta(object):
     def create(self, req_json, mdconfig) -> bool:
         mdconfig_meta = {**config.META_DEFAULT, **req_json, **mdconfig}
         logger.info(mdconfig_meta)
-        iso = pycdlib.PyCdlib()
-        iso.new(interchange_level=4, vol_ident='cidata')
-        meta_data = self.meta_data.render(**mdconfig_meta)
-        iso.add_fp(BytesIO(bytes(meta_data,'ascii')), len(meta_data), '/meta-data')
-        user_data = self.user_data.render(**mdconfig_meta)
-        iso.add_fp(BytesIO(bytes(user_data,'ascii')), len(user_data), '/user-data')
-        iso.write(os.path.join(config.ISO_DIR, f'{req_json["vm_uuid"]}.iso'))
-        iso.close()
-        return True
+        try:
+            iso = pycdlib.PyCdlib()
+            iso.new(interchange_level=4, vol_ident='cidata')
+            meta_data = self.meta_data.render(**mdconfig_meta)
+            iso.add_fp(BytesIO(bytes(meta_data,'ascii')), len(meta_data), '/meta-data')
+            user_data = self.user_data.render(**mdconfig_meta)
+            iso.add_fp(BytesIO(bytes(user_data,'ascii')), len(user_data), '/user-data')
+            iso.write(os.path.join(config.ISO_DIR, f'{req_json["vm_uuid"]}.iso'))
+            iso.close()
+            return True
+        except:
+            logger.exception(f'ISOMeta.create')
+            return False
 
 class NOCLOUDMeta(object):
     def __init__(self):
@@ -35,12 +39,16 @@ class NOCLOUDMeta(object):
     def create(self, req_json, mdconfig) -> bool:
         mdconfig_meta = {**config.META_DEFAULT, **req_json, **mdconfig}
         logger.info(mdconfig_meta)
-        nocloud_dir = os.path.join(config.NOCLOUD_DIR, f'{req_json["vm_uuid"]}')
-        os.mkdir(nocloud_dir)
-        meta_data = self.meta_data.render(**mdconfig_meta)
-        with open(os.path.join(nocloud_dir, "meta-data"), "w") as file:
-            file.write(meta_data)
-        user_data = self.user_data.render(**mdconfig_meta)
-        with open(os.path.join(nocloud_dir, "user-data"), "w") as file:
-            file.write(user_data)
-        return True
+        try:
+            nocloud_dir = os.path.join(config.NOCLOUD_DIR, f'{req_json["vm_uuid"]}')
+            os.mkdir(nocloud_dir)
+            meta_data = self.meta_data.render(**mdconfig_meta)
+            with open(os.path.join(nocloud_dir, "meta-data"), "w") as file:
+                file.write(meta_data)
+            user_data = self.user_data.render(**mdconfig_meta)
+            with open(os.path.join(nocloud_dir, "user-data"), "w") as file:
+                file.write(user_data)
+            return True
+        except:
+            logger.exception(f'NOCLOUDMeta.create')
+            return False

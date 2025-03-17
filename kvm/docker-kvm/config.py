@@ -53,17 +53,19 @@ class Config:
         # enum=OPENSTACK/EC2/NOCLOUD/None(undefine)
         #    EC2: uuid must startwith ec2........
         #    NOCLOUD: access http://169.254.169.254/<vm_uuid>
+        # nocloud_srv=http://169.254.169.254 or http://dnsname
         # if vm_ram_mb_max/vm_vcpus_max no set then use vm_ram_mb/vm_vcpus, else use a default value. see: domains/newvm.tpl...
         # # VM_DEFULT vars from domains/template. main:create_vm
+        default = {'vm_arch':f'{arch.lower()}','vm_uuid':f'{uuid.uuid4()}','vm_name':'srv','vm_desc':'','vm_ram_mb':1024,'vm_ram_mb_max':16384,'vm_vcpus':1,'vm_vcpus_max':8,'vm_uefi':'','create_tm':f'{datetime.now().strftime("%Y%m%d%H%M%S")}'}
         if (arch.lower() == 'x86_64'):
-            return {'vm_arch':'x86_64','vm_uuid':f'{uuid.uuid4()}','vm_name':'srv','vm_desc':'','vm_ram_mb':1024,'vm_ram_mb_max':16384,'vm_vcpus':1,'vm_vcpus_max':8,'vm_uefi':'','create_tm':f'{datetime.now().strftime("%Y%m%d%H%M%S")}'}
+            return { **default }
         elif (arch.lower() == 'aarch64'):
             #  x86_64:/usr/share/qemu/OVMF.fd
             # aarch64:/usr/share/qemu-efi-aarch64/QEMU_EFI.fd
             #         /usr/share/AAVMF/AAVMF_CODE.fd
             #         # openEuler 22.03
             #         /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
-            return {'vm_arch':'aarch64','vm_uuid':f'{uuid.uuid4()}','vm_name':'srv','vm_desc':'','vm_ram_mb':1024,'vm_vcpus':1,'vm_uefi':'/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw','create_tm':f'{datetime.now().strftime("%Y%m%d%H%M%S")}'}
+            return { **default, 'vm_uefi':'/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw' }
         else:
             logger.error(f'{arch} {hostname} no VM_DEFAULT defined')
             return {}
