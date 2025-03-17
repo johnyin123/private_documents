@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import libvirt, xml.dom.minidom
 import flask_app, json
-from config import config
 from exceptions import APIException, HTTPStatus
 logger=flask_app.logger
 

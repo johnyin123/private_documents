@@ -19,6 +19,7 @@ DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db')
 # class Config(metaclass=Singleton):
 #     def __init__(self, **kwargs):
 #         self._config = kwargs
+#         logger.info(f'config __init__ {kwargs}')
 #     def __getattr__(self, name):
 #         if name in self._config:
 #             return self._config[name]
