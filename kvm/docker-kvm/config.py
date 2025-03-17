@@ -10,7 +10,13 @@ logger=flask_app.logger
 OUTDIR = os.environ.get('OUTDIR', os.path.abspath(os.path.dirname(__file__)))
 DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db')
 
-# class Config:
+# class Singleton(type):
+#     _instances = {}
+#     def __call__(cls, *args, **kwargs):
+#         if cls not in cls._instances:
+#             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+#         return cls._instances[cls]
+# class Config(metaclass=Singleton):
 #     def __init__(self, **kwargs):
 #         self._config = kwargs
 #     def __getattr__(self, name):
@@ -60,6 +66,5 @@ class Config:
         else:
             logger.error(f'{arch} {hostname} no VM_DEFAULT defined')
             return {}
-
 config = Config()
 logger.info(f'OUTDIR={OUTDIR}')
