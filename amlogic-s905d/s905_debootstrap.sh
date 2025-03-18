@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e1d424e[2025-02-07T09:59:48+08:00]:s905_debootstrap.sh")
+VERSION+=("44343fb3[2025-02-10T16:30:55+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -1009,6 +1009,19 @@ scan_cur_freq=1
 #     #key_mgmt=wpa-psk
 #     psk="ADMIN@123"
 # }
+# network={
+#     scan_ssid=1
+#     ssid="HUAZHU-Hanting"
+#     key_mgmt=NONE
+#     # curl -vvv www.baidu.com
+#     # webbrowser-> http:/xxxxx
+#     # auto wlan0
+#     # allow-hotplug wlan0
+#     # iface wlan0 inet dhcp
+#     #      wpa_iface wlan0
+#     #      wpa_conf /etc/s905.conf
+# }
+
 network={
     id_str="work"
     priority=90
