@@ -182,29 +182,6 @@ logger.info("Opened tunnel PID=%d, %s", pid, socat_cmd)
 # os.kill(pid, signal.SIGKILL)
 os.waitpid(pid, 0)
 
-# # self.record_metadata("key", 'val')
-# # self.get_metadata("key")
-# # self.get_metadata("urn:iso-meta")
-# def record_metadata(self, k, v):
-#     # <vmmgr:k xmlns:vmmgr="k" name="v"/>
-#     meta = f"<{k} name='{v}' />"
-#     self.dom.setMetadata(
-#         libvirt.VIR_DOMAIN_METADATA_ELEMENT,
-#         meta,
-#         "vmmgr",
-#         k,
-#         libvirt.VIR_DOMAIN_AFFECT_CONFIG,
-#     )
-# def get_metadata(self, k):
-#     try:
-#         xml = self.dom.metadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, k)
-#     except libvirt.libvirtError as e:
-#         if e.get_error_code() == libvirt.VIR_ERR_NO_DOMAIN_METADATA:
-#             return None
-#         kvm_error(e, 'get_metadata')
-#     print('---------------%s', xml)
-#     return 'name'
-
     @vcpus.setter
     def vcpus(self, value=1):
         self.dom.setVcpusFlags(value, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
@@ -484,3 +461,65 @@ def _wait_for_guest_exec(
             continue
 
         return result
+
+
+import libvirt, xml.dom.minidom
+from contextlib import contextmanager
+
+@contextmanager
+def connect(uri: str):
+    # virConnect
+    conn = libvirt.open(uri)
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+class Meta(object):
+    def __init__(self, dom):
+        self.dom = dom;
+        logger.debug('DEMO')
+
+    def record_metadata(self, **kwargs):
+        meta=f'<meta>'
+        for k, v in kwargs.items():
+            meta += f'<{k}>{v}</{k}>'
+        meta += f'</meta>'
+        self.dom.setMetadata(
+            libvirt.VIR_DOMAIN_METADATA_ELEMENT,
+            meta,
+            'mdconfig',
+            'urn:iso-meta',
+            libvirt.VIR_DOMAIN_AFFECT_CONFIG,
+        )
+    def get_metadata(self):
+        data_dict = {}
+        try:
+            str_xml = self.dom.metadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, 'urn:iso-meta')
+            logger.info(f'{str_xml}')
+            p = xml.dom.minidom.parseString(str_xml)
+            for mdconfig in p.getElementsByTagName('meta'):
+                # Iterate through the child nodes of the root element
+                for node in mdconfig.childNodes:
+                    if node.nodeType == xml.dom.minidom.Node.ELEMENT_NODE:
+                        # Remove leading and trailing whitespace from the text content
+                        text = node.firstChild.nodeValue.strip() if node.firstChild else ''
+                        # Assign the element's text content to the dictionary key
+                        data_dict[node.tagName] = text
+        except libvirt.libvirtError as e:
+            if e.get_error_code() != libvirt.VIR_ERR_NO_DOMAIN_METADATA:
+                kvm_error(e, 'get_metadata')
+        return data_dict
+
+with connect('qemu+tls://192.168.168.1/system') as conn:
+    dom = conn.lookupByUUIDString('5d1adabc-9ff3-4347-b545-f83ad0581d51')
+    meta = Meta(dom)
+    # set
+    meta.record_metadata(val1='a', valb='b')
+    # get
+    mdconfig = meta.get_metadata()
+    # append
+    meta.record_metadata(**{**mdconfig, 'aaa':'ccc'})
+    mdconfig = meta.get_metadata()
+    logger.info(f'{mdconfig}')
+
