@@ -94,7 +94,10 @@ class LibvirtDomain:
                         # Remove leading and trailing whitespace from the text content
                         text = node.firstChild.nodeValue.strip() if node.firstChild else ''
                         # Assign the element's text content to the dictionary key
-                        data_dict[node.tagName] = text
+                        tagname = node.tagName
+                        if tagname.startswith('mdconfig:'):
+                            tagname = tagname[len('mdconfig:'):]
+                        data_dict[tagname] = text
         return data_dict
 
     @property
