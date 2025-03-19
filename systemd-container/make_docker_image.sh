@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("93f38e4[2024-12-30T13:01:58+08:00]:make_docker_image.sh")
+VERSION+=("ccdddc11[2024-12-30T16:48:06+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -56,7 +56,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
             done
             ./${SCRIPTNAME} -c combine --tag \${REGISTRY}/\${NAMESPACE:+\${NAMESPACE}/}\${GOLDNAME}
          ${R}# # multiarch keepalived${N}
-            export BUILD_NET=br-ext
+            export BUILD_NET=br-int
             ARCH=(amd64 arm64)
             type=keepalived
             ver=bookworm
@@ -71,7 +71,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
             done
             ./${SCRIPTNAME} -c combine --tag registry.local/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}
          ${R}# # multiarch aria2${N}
-            export BUILD_NET=br-ext
+            export BUILD_NET=br-int
             ARCH=(amd64 arm64)
             type=aria|python|nginx|xfce
             ver=bookworm
@@ -91,7 +91,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
             ./${SCRIPTNAME} -c combine --tag registry.local/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}
          ${R}# # multiarch user images${N}
             # # BASE IMAGE
-            export BUILD_NET=br-ext
+            export BUILD_NET=br-int
             export IMAGE=python:bookworm # # debian:bookworm
             export REGISTRY=${REGISTRY}
             export NAMESPACE=${NAMESPACE}
@@ -234,7 +234,7 @@ ENTRYPOINT ["xpra", "start-desktop", "--daemon=no", "--bind-tcp=0.0.0.0:\${PORT:
 EOF
     cat <<'EOF'
 docker create --name xfce --hostname xfce \
-    --network br-ext --ip 192.168.169.100 --dns 8.8.8.8 \
+    --network br-int --ip 192.168.169.100 --dns 8.8.8.8 \
     -e ENABLE_SSH=true -e LANG=zh_CN.UTF-8 -e LANGUAGE=zh_CN:zh -e LC_ALL=zh_CN.UTF-8 \
     -e PORT=8888 -v /home/johnyin/disk/docker_home/test:/home/johnyin/:rw \
     -v /usr/share/fonts/opentype/noto/:/usr/share/fonts/opentype/noto/:ro \
@@ -265,7 +265,7 @@ ENTRYPOINT ["/opt/google/chrome/google-chrome", "--no-sandbox"]
 EOF
     cat <<'EOF'
 docker create --name chrome --hostname chrome \
-    --network br-ext --ip 192.168.169.100 --dns 8.8.8.8 \
+    --network br-int --ip 192.168.169.100 --dns 8.8.8.8 \
     -e ENABLE_SSH=true \
     -e DISPLAY=unix$DISPLAY \
     -v /home/johnyin/disk/docker_home/:/home/johnyin/:rw \
@@ -305,7 +305,7 @@ EOF
 # # fonts-noto-cjk
 docker pull registry.local/firefox:bookworm --platform amd64
 
-docker create --network br-ext --ip 192.168.169.2 --dns 8.8.8.8 \
+docker create --network br-int --ip 192.168.169.2 --dns 8.8.8.8 \
     --cpuset-cpus 0 \
     --memory 512mb \
     --hostname myinternet --name firefox \
@@ -319,7 +319,7 @@ docker create --network br-ext --ip 192.168.169.2 --dns 8.8.8.8 \
     registry.local/firefox:bookworm \
 xhost +127.0.0.1
 # #
-docker run --rm -e DISPLAY -v /tmp:/tmp --ipc=host --pid=host --network br-ext myx11 '/firefox/firefox
+docker run --rm -e DISPLAY -v /tmp:/tmp --ipc=host --pid=host --network br-int myx11 '/firefox/firefox
 # #
 xpra start ssh:user@host --exit-with-children --start-child="command"
 xpra start --ssh="ssh" ssh:user@host --exit-with-children --start-child="command"
@@ -369,7 +369,7 @@ EOF
     cat <<'EOF'
 docker pull registry.local/aria:bookworm --platform amd64
 docker create --name aria --hostname aria \
-    --network br-ext --ip 192.168.169.101 --dns 8.8.8.8 \
+    --network br-int --ip 192.168.169.101 --dns 8.8.8.8 \
     -e ENABLE_SSH=true \
     -v /home/johnyin/disk/docker_home/:/home/johnyin/:rw \
     registry.local/aria:bookworm
@@ -411,7 +411,7 @@ EOF
     cat <<'EOF'
 docker pull registry.local/nginx:bookworm --platform amd64
 docker create --name nginx --hostname nginx \
-    --network br-ext --ip 192.168.169.100 --dns 8.8.8.8 \
+    --network br-int --ip 192.168.169.100 --dns 8.8.8.8 \
     -e ENABLE_SSH=true \
     -v /storage/nginx/etc/:/etc/nginx/:ro \
     -v /storage/nginx/log/:/var/log/nginx/:rw \
@@ -533,7 +533,7 @@ main() {
     esac
     : <<'EOF'
 docker pull registry.local/debian:bookworm --platform <arch>
-docker build --network=br-ext -t nginx-amd64 .
+docker build --network=br-int -t nginx-amd64 .
 
 docker images | awk '{print $3}' | xargs -I@ docker image rm @ -f
 docker ps -a | awk '{print $1}' | xargs -I@ docker rm @
