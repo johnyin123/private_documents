@@ -31,7 +31,7 @@ DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db')
 # config.set("version", "2.0.0")
 # print(config.version) # Output: 2.0.0
 
-class Config:
+class config:
     ISO_DIR = os.path.join(OUTDIR, 'iso')
     GOLD_DIR = os.path.join(OUTDIR, 'disk')
     ACTION_DIR = os.path.join(OUTDIR, 'actions')
@@ -48,7 +48,8 @@ class Config:
     # # main:attach_device
     ATTACH_DEFAULT = {'size':'10','gold':''}
     META_DEFAULT = {'rootpass':'pass123','hostname':'vmsrv'}
-    def VM_DEFAULT(self, arch, hostname):
+    @staticmethod
+    def VM_DEFAULT(arch, hostname):
         # TODO: VM_DEFAULT, can defined by hostname!
         # enum=OPENSTACK/EC2/NOCLOUD/None(undefine)
         #    EC2: uuid must startwith ec2........
@@ -69,5 +70,4 @@ class Config:
         else:
             logger.error(f'{arch} {hostname} no VM_DEFAULT defined')
             return {}
-config = Config()
 logger.info(f'OUTDIR={OUTDIR}')
