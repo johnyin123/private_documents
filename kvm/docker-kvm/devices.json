@@ -1,6 +1,13 @@
 [
-{"kvmhost":"host01","name":"local-disk","devtype":"disk","tpl":"disk.file","action":"host01-disk.file","desc":"文件系统DISK"},
-{"kvmhost":"host01","name":"rbd-disk","devtype":"disk","tpl":"disk.rbd.1","action":"host01-disk.rbd.1","desc":"RBD DISK"},
-{"kvmhost":"host01","name":"net-br-ext","devtype":"net","tpl":"net.br-ext","action":"","desc":"br-ext网桥"},
-{"kvmhost":"host01","name":"debiso_x86","devtype":"iso","tpl":"cdrom.debian","action":"","desc":"debian安装CD"}
+{"kvmhost":"host01","name":"local-disk","devtype":"disk","tpl":"var.lib.libvirt.images.file.tpl","action":"storage.lib.libvirt.images.file","desc":"文件系统DISK"},
+{"kvmhost":"host01","name":"rbd-disk","devtype":"disk","tpl":"armsite.rbd.tpl","action":"armsite.rbd","desc":"ARMSITE RBD DISK"},
+{"kvmhost":"host01","name":"net.br-ext","devtype":"net","tpl":"net.br-ext.tpl","action":"","desc":"br-ext网桥"},
+{"kvmhost":"host01","name":"debiso_x86","devtype":"iso","tpl":"cdrom.debian12.x86.tpl","action":"","desc":"x86 debian安装CD"},
+
+{"kvmhost":"kvm-arm-srv1","name":"rbd-disk","devtype":"disk","tpl":"armsite.rbd.tpl","action":"armsite.rbd","desc":"ARMSITE RBD DISK"},
+{"kvmhost":"kvm-arm-srv1","name":"net.br-ext","devtype":"net","tpl":"net.br-ext.tpl","action":"","desc":"br-ext网桥"},
+{"kvmhost":"kvm-arm-srv1","name":"debiso_arm","devtype":"iso","tpl":"cdrom.debian12.arm.tpl","action":"","desc":"arm debian安装CD"},
+
+{"kvmhost":"kvm-x86-srv1","name":"rbd-disk","devtype":"disk","tpl":"x86site.rbd.tpl","action":"x86site.rbd","desc":"X86SITE RBD DISK"},
+{"kvmhost":"kvm-x86-srv1","name":"net.br-ext","devtype":"net","tpl":"net.br-ext.tpl","action":"","desc":"br-ext网桥"}
 ]

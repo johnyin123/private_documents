@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+LC_ALL=C
+LANG=C
+set -o nounset -o pipefail -o errexit
+set -o xtrace
+# # rbd pool name
+DIR='libvirt-pool'
+# # reqire: jq qemu-img cat
+log() { echo "qemu-rbd.action $*"; }
+json_config_default() {
+    local key=${1}
+    local default=${2}
+    local str=""
+    [ $# = 2 ] && {
+        str="$(cat)"
+    } || {
+        str="$(cat ${3:?json_config input err})"
+    }
+    jq -r '('${key}') // "'${default}'"' <<< ${str}
+}
+
+REQ_JSON=$(cat)
+URL=${URL:-}
+TYPE=${TYPE:-}
+HOSTIP=${HOSTIP:-}
+SSHPORT=${SSHPORT:-}
+log "${TYPE} ${URL} ${HOSTIP} ${REQ_JSON}"
+UUID=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_uuid" "")
+SIZE=$(printf "%s" "${REQ_JSON}" | json_config_default ".size" "10")G
+GOLD=$(printf "%s" "${REQ_JSON}" | json_config_default ".gold" "")
+char=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_last_disk" "")
+# # rbd pool name
+DISK="${DIR}/vd${char}-${UUID}.raw"
+[ -z "${GOLD}" ] && {
+    qemu-img create -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/x86site.conf:keyring=/etc/ceph/x86site.client.admin.keyring ${SIZE}
+} || {
+    qemu-img convert -p -f qcow2 -O raw ${GOLD} rbd:${DISK}:id=admin:conf=/etc/ceph/x86site.conf:keyring=/etc/ceph/x86site.client.admin.keyring
+    # skip resize error, when SIZE < gold image size, error but now image uploaded! so skip error
+    qemu-img resize -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/x86site.conf:keyring=/etc/ceph/x86site.client.admin.keyring ${SIZE} || true
+}
+exit 0

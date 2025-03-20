@@ -43,12 +43,12 @@ print('''
 | host01 | newvm.vnc.tpl | qemu+tls://192.168.168.1/system            |192.168.168.1| 60022 | x86_64 |
 | demo   | newvm.vnc.tpl | qemu+ssh://root@192.168.168.1:60022/system |192.168.168.1| 60022 | x86_64 |
 # # kvmdevice
-| kvmhost | name       | devtype | tpl          | action            | desc         |
-|---------+------------+---------+--------------+-------------------+--------------|
-| host01  | local-disk | disk    | disk.file    | host01-disk.file  | 文件系统DISK |
-| host01  | rbd-disk   | disk    | disk.rbd.1   | host01-disk.rbd.1 | RBD DISK     |
-| host01  | net-br-ext | net     | net.br-ext   |                   | br-ext网桥   |
-| host01  | debiso_x86 | iso     | cdrom.debian |                   | debian安装CD |
+| kvmhost | name       | devtype | tpl                             | action                          | desc             |
+|---------+------------+---------+---------------------------------+---------------------------------+------------------|
+| host01  | local-disk | disk    | var.lib.libvirt.images.file.tpl | storage.lib.libvirt.images.file | 文件系统DISK     |
+| host01  | rbd-disk   | disk    | armsite.rbd.tpl                 | armsite.rbd                     | RBD DISK         |
+| host01  | net.br-ext | net     | net.br-ext.tpl                  |                                 | br-ext网桥       |
+| host01  | debiso_x86 | iso     | cdrom.debian12.x86.tpl          |                                 | x86 debian安装CD |
 
 # # kvmgold
 | name     | arch    | tpl                        | desc                          |
@@ -94,10 +94,10 @@ hosts=[
     db.KVMHost(name='kvm-x86-srv25',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.44:60022/system',arch='x86_64',ipaddr='10.170.24.44',sshport=60022),
 ]
 host01_devs=[
-    db.KVMDevice(kvmhost='host01',name='local-disk',devtype='disk',tpl='disk.file',action='host01-disk.file',desc='文件系统DISK'),
-    db.KVMDevice(kvmhost='host01',name='rbd-disk',devtype='disk',tpl='disk.rbd.1',action='host01-disk.rbd.1',desc='RBD DISK'),
-    db.KVMDevice(kvmhost='host01',name='net-br-ext',devtype='net',tpl='net.br-ext',action='',desc='br-ext网桥'),
-    db.KVMDevice(kvmhost='host01',name='debiso_x86',devtype='iso',tpl='cdrom.debian',action='',desc='debian安装CD'),
+    db.KVMDevice(kvmhost='host01',name='local-disk',devtype='disk',tpl='var.lib.libvirt.images.file.tpl',action='storage.lib.libvirt.images.file',desc='文件系统DISK'),
+    db.KVMDevice(kvmhost='host01',name='rbd-disk',devtype='disk',tpl='armsite.rbd.tpl',action='armsite.rbd',desc='RBD DISK'),
+    db.KVMDevice(kvmhost='host01',name='net.br-ext',devtype='net',tpl='net.br-ext.tpl',action='',desc='br-ext网桥'),
+    db.KVMDevice(kvmhost='host01',name='debiso_x86',devtype='iso',tpl='cdrom.debian12.x86.tpl',action='',desc='debian安装CD'),
 ]
 golds=[
     db.KVMGold(name='debian12',arch='x86_64', tpl='bookworm.amd64.qcow2',desc='debian12 amd64 操作系统'),

@@ -1,8 +1,0 @@
-<disk type='network' device='disk'>
-  <driver name='qemu' type='raw'/>
-  <auth username='admin'><secret type='ceph' uuid='dc554449-1650-4ec5-b2e1-ef121c24b78c'/></auth>
-  <source protocol='rbd' name='ceph_libvirt_pool/vd{{ vm_last_disk }}-{{ vm_uuid }}.raw'>
-    <host name='ipaddr' port='6789'/>
-  </source>
-  <target dev='vd{{ vm_last_disk }}' bus='virtio'/>
-</disk>
