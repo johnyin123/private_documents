@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import exceptions, json
+import exceptions, json, os
 from flask_app import logger
 
 def save_list_json(data, fn):
@@ -72,17 +72,21 @@ class KVMGold:
         return [ FakeDB(element) for element in result ]
 
 class KVMGuest:
-    data = load_list_json('guests.json')
+    data = []
 
     @staticmethod
     def Insert(**kwargs):
+        logger.info(f'INSERT {id(KVMGuest.data)} in PID {os.getpid()}')
         KVMGuest.data.append(kwargs)
         save_list_json(KVMGuest.data, 'guests.json')
 
     @staticmethod
     def DropAll():
+        logger.info(f'DROP {id(KVMGuest.data)} in PID {os.getpid()}')
         KVMGuest.data.clear()
 
     @staticmethod
     def ListGuest():
-        return [ FakeDB(element) for element in KVMGuest.data ]
+        logger.info(f'{id(KVMGuest.data)} in PID {os.getpid()}')
+        json_arr = load_list_json('guests.json')
+        return [ FakeDB(element) for element in json_arr ]

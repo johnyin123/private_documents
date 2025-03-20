@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-import database as db
 from sqlalchemy import func,text,Column,String,Integer,DateTime,Enum,ForeignKey
 from config import config
 import os
@@ -33,6 +32,13 @@ if not os.path.isdir(path):
 print(r'VNC:{}, SPICE:{}'.format(config.VNC_DISP_URL, config.SPICE_DISP_URL))
 
 # create tables if not exists
+try:
+    import database.FakeDB
+except ImportError:
+    print(f'use JSON DB, exit')
+    exit(0)
+import database as db
+
 db.Base.metadata.drop_all(db.engine)
 db.Base.metadata.create_all(db.engine)
 
