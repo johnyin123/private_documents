@@ -311,7 +311,7 @@ stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 
 [program:webapp]
-command=gunicorn -b 127.0.0.1:5009 --error-logfile='-' --access-logfile='-' main:app
+command=gunicorn -b 127.0.0.1:5009 --preload --workers=2 --error-logfile='-' --access-logfile='-' main:app
 user=${username}
 directory=/home/${username}/
 autorestart=true
