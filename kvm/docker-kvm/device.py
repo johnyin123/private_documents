@@ -51,7 +51,8 @@ def generate(vmmgr: vmmanager.VMManager, xml:str, action:str, arg:str, req_json:
             # proc.stdin.write(req_json)
             proc.stdin.close()
             for line in proc.stdout:
-                logger.info(line)
+                # strip() removes leading/trailing whitespace, including the newline character.
+                logger.info(line.strip())
                 yield line
             proc.wait()
             if proc.returncode != 0:
