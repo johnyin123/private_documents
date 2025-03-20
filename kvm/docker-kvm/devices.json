@@ -9,5 +9,6 @@
 {"kvmhost":"kvm-arm-srv1","name":"debiso_arm","devtype":"iso","tpl":"cdrom.debian12.arm.tpl","action":"","desc":"arm debian安装CD"},
 
 {"kvmhost":"kvm-x86-srv1","name":"rbd-disk","devtype":"disk","tpl":"x86site.rbd.tpl","action":"x86site.rbd","desc":"X86SITE RBD DISK"},
-{"kvmhost":"kvm-x86-srv1","name":"net.br-ext","devtype":"net","tpl":"net.br-ext.tpl","action":"","desc":"br-ext网桥"}
+{"kvmhost":"kvm-x86-srv1","name":"net.br-ext","devtype":"net","tpl":"net.br-ext.tpl","action":"","desc":"br-ext网桥"},
+{"kvmhost":"kvm-x86-srv1","name":"debiso_x86","devtype":"iso","tpl":"cdrom.debian12.x86.tpl","action":"","desc":"x86 debian安装CD"}
 ]

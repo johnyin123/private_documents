@@ -59,39 +59,6 @@ print('''
 hosts=[
     db.KVMHost(name='host01',tpl='newvm.vnc.tpl',url='qemu+tls://192.168.168.1/system',arch='x86_64',ipaddr='192.168.168.1',sshport=60022),
     db.KVMHost(name='demo',tpl='newvm.vnc.tpl',url='qemu+ssh://root@192.168.168.1:60022/system',arch='x86_64',ipaddr='192.168.168.1',sshport=60022),
-    db.KVMHost(name='kvm-arm-srv1',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.2:60022/system',arch='aarch64',ipaddr='10.170.24.2',sshport=60022),
-    db.KVMHost(name='kvm-arm-srv2',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.3:60022/system',arch='aarch64',ipaddr='10.170.24.3',sshport=60022),
-    db.KVMHost(name='kvm-arm-srv3',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.4:60022/system',arch='aarch64',ipaddr='10.170.24.4',sshport=60022),
-    db.KVMHost(name='kvm-arm-srv4',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.5:60022/system',arch='aarch64',ipaddr='10.170.24.5',sshport=60022),
-    db.KVMHost(name='kvm-arm-srv5',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.6:60022/system',arch='aarch64',ipaddr='10.170.24.6',sshport=60022),
-    db.KVMHost(name='kvm-arm-srv6',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.7:60022/system',arch='aarch64',ipaddr='10.170.24.7',sshport=60022),
-    db.KVMHost(name='kvm-arm-srv7',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.8:60022/system',arch='aarch64',ipaddr='10.170.24.8',sshport=60022),
-    db.KVMHost(name='kvm-arm-srv8',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.9:60022/system',arch='aarch64',ipaddr='10.170.24.9',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv1',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.20:60022/system',arch='x86_64',ipaddr='10.170.24.20',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv2',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.21:60022/system',arch='x86_64',ipaddr='10.170.24.21',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv3',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.22:60022/system',arch='x86_64',ipaddr='10.170.24.22',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv4',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.23:60022/system',arch='x86_64',ipaddr='10.170.24.23',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv5',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.24:60022/system',arch='x86_64',ipaddr='10.170.24.24',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv6',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.25:60022/system',arch='x86_64',ipaddr='10.170.24.25',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv7',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.26:60022/system',arch='x86_64',ipaddr='10.170.24.26',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv8',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.27:60022/system',arch='x86_64',ipaddr='10.170.24.27',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv9',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.28:60022/system',arch='x86_64',ipaddr='10.170.24.28',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv10',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.29:60022/system',arch='x86_64',ipaddr='10.170.24.29',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv11',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.30:60022/system',arch='x86_64',ipaddr='10.170.24.30',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv12',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.31:60022/system',arch='x86_64',ipaddr='10.170.24.31',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv13',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.32:60022/system',arch='x86_64',ipaddr='10.170.24.32',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv14',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.33:60022/system',arch='x86_64',ipaddr='10.170.24.33',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv15',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.34:60022/system',arch='x86_64',ipaddr='10.170.24.34',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv16',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.35:60022/system',arch='x86_64',ipaddr='10.170.24.35',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv17',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.36:60022/system',arch='x86_64',ipaddr='10.170.24.36',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv18',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.37:60022/system',arch='x86_64',ipaddr='10.170.24.37',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv19',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.38:60022/system',arch='x86_64',ipaddr='10.170.24.38',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv20',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.39:60022/system',arch='x86_64',ipaddr='10.170.24.39',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv21',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.40:60022/system',arch='x86_64',ipaddr='10.170.24.40',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv22',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.41:60022/system',arch='x86_64',ipaddr='10.170.24.41',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv23',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.42:60022/system',arch='x86_64',ipaddr='10.170.24.42',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv24',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.43:60022/system',arch='x86_64',ipaddr='10.170.24.43',sshport=60022),
-    db.KVMHost(name='kvm-x86-srv25',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.44:60022/system',arch='x86_64',ipaddr='10.170.24.44',sshport=60022),
 ]
 host01_devs=[
     db.KVMDevice(kvmhost='host01',name='local-disk',devtype='disk',tpl='var.lib.libvirt.images.file.tpl',action='storage.lib.libvirt.images.file',desc='文件系统DISK'),
@@ -99,15 +66,36 @@ host01_devs=[
     db.KVMDevice(kvmhost='host01',name='net.br-ext',devtype='net',tpl='net.br-ext.tpl',action='',desc='br-ext网桥'),
     db.KVMDevice(kvmhost='host01',name='debiso_x86',devtype='iso',tpl='cdrom.debian12.x86.tpl',action='',desc='debian安装CD'),
 ]
+db.session.add_all(hosts)  # db.session.add(host01)
+db.session.add_all(host01_devs)
+db.session.commit()
+
 golds=[
     db.KVMGold(name='debian12',arch='x86_64', tpl='bookworm.amd64.qcow2',desc='debian12 amd64 操作系统'),
     db.KVMGold(name='debian12',arch='aarch64',tpl='bookworm.arm64.qcow2',desc='debian12 arm64 操作系统'),
     db.KVMGold(name='euler22',arch='x86_64', tpl='openeuler2203.x86_64.qcow2',desc='openeuler 2203 amd64 操作系统'),
 ]
-
 db.session.add_all(golds)
-db.session.add_all(hosts)  # db.session.add(host01)
-db.session.add_all(host01_devs)
+db.session.commit()
+
+kvm_arm_srv1_host = db.KVMHost(name='kvm-arm-srv1',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.2:60022/system',arch='aarch64',ipaddr='10.170.24.2',sshport=60022)
+kvm_arm_srv1_devs=[
+    db.KVMDevice(kvmhost="kvm-arm-srv1",name="rbd-disk",devtype="disk",tpl="armsite.rbd.tpl",action="armsite.rbd",desc="ARMSITE RBD DISK"),
+    db.KVMDevice(kvmhost="kvm-arm-srv1",name="net.br-ext",devtype="net",tpl="net.br-ext.tpl",action="",desc="br-ext网桥"),
+    db.KVMDevice(kvmhost="kvm-arm-srv1",name="debiso_arm",devtype="iso",tpl="cdrom.debian12.arm.tpl",action="",desc="arm debian安装CD"),
+]
+db.session.add(kvm_arm_srv1_host)
+db.session.add_all(kvm_arm_srv1_devs)
+db.session.commit()
+
+kvm_x86_srv1_host = db.KVMHost(name='kvm-x86-srv1',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.20:60022/system',arch='x86_64',ipaddr='10.170.24.20',sshport=60022)
+kvm_x86_srv1_devs=[
+    db.KVMDevice(kvmhost="kvm-x86-srv1",name="rbd-disk",devtype="disk",tpl="x86site.rbd.tpl",action="x86site.rbd",desc="X86SITE RBD DISK"),
+    db.KVMDevice(kvmhost="kvm-x86-srv1",name="net.br-ext",devtype="net",tpl="net.br-ext.tpl",action="",desc="br-ext网桥"),
+    db.KVMDevice(kvmhost="kvm-x86-srv1",name="debiso_x86",devtype="iso",tpl="cdrom.debian12.x86.tpl",action="",desc="x86 debian安装CD")
+]
+db.session.add(kvm_x86_srv1_host)
+db.session.add_all(kvm_x86_srv1_devs)
 db.session.commit()
 
 def file_exists(dirname, fn, msg):
