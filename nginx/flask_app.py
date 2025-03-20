@@ -27,9 +27,6 @@ def create_app(config: dict={}, json: bool=False) -> flask.Flask:
             app.register_error_handler(ex, json_handle_error)
     return app
 
-def merge_dict(x: dict, y:dict)->dict:
-    return x.copy().update(y)
-
 def corsify_actual_response(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response

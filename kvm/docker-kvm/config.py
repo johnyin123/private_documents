@@ -39,6 +39,8 @@ class Config:
     DOMAIN_DIR = os.path.join(OUTDIR, 'domains')
     META_DIR = os.path.join(OUTDIR, 'meta')
     TOKEN_DIR = os.path.join(OUTDIR, 'token')
+    # # NOCLOUD meta service data dir
+    NOCLOUD_DIR = os.path.join(OUTDIR, 'nocloud')
     # # socat process close 10m
     SOCAT_TMOUT = '10m'
     VNC_DISP_URL = 'https://vmm.registry.local/novnc/vnc_lite.html'
@@ -46,8 +48,6 @@ class Config:
     # # main:attach_device
     ATTACH_DEFAULT = {'size':'10','gold':''}
     META_DEFAULT = {'rootpass':'pass123','hostname':'vmsrv'}
-    # # NOCLOUD meta service data dir
-    NOCLOUD_DIR = os.path.join(OUTDIR, 'nocloud')
     def VM_DEFAULT(self, arch, hostname):
         # TODO: VM_DEFAULT, can defined by hostname!
         # enum=OPENSTACK/EC2/NOCLOUD/None(undefine)
