@@ -219,7 +219,7 @@ server {
     location /tpl/ {
         # no cache!!
         proxy_no_cache 1;
-        location ~* ^/tpl/(host|device|gold) {
+        location ~* ^/tpl/(host|device|gold)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app;
         }
@@ -232,7 +232,7 @@ server {
             if ($request_method !~ ^(GET|POST)$ ) { return 405; }
             proxy_pass http://flask_app;
         }
-        location ~* ^/vm/(list|start|delete|display)/ {
+        location ~* ^/vm/(list|start|delete|display|freeip)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app;
         }

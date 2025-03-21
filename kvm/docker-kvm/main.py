@@ -8,6 +8,35 @@ import database, vmmanager, template, device, meta
 from config import config
 from exceptions import APIException, HTTPStatus
 
+import ipaddress, json, random
+def get_free_ip():
+    network = []
+    used_ips = []
+    for item in config.NETWORKS:
+        ipa = ipaddress.ip_network(item['network'])
+        network += [f'{str(ip)}/{ipa.prefixlen}' for ip in ipa]
+        used_ips.append(f'{item["gateway"]}/{ipa.prefixlen}')
+        used_ips.append(f'{ipa.network_address}/{ipa.prefixlen}')
+        used_ips.append(f'{ipa.broadcast_address}/{ipa.prefixlen}')
+    for guest in database.KVMGuest.ListGuest():
+        mdconfig = json.loads(guest.mdconfig)
+        ipaddr = mdconfig.get('ipaddr', None)
+        if ipaddr:
+            used_ips.append(ipaddr)
+    logger.info(f'used ip {used_ips}')
+    random.shuffle(network)
+    for cidr in network:
+        interface = ipaddress.IPv4Interface(cidr)
+        if int(interface.ip.exploded.split(".")[3]) < 5:
+            continue
+        if cidr not in used_ips:
+            for item in config.NETWORKS:
+                net = ipaddress.ip_network(item['network'])
+                if interface.ip not in net:
+                    continue
+                return cidr, item["gateway"]
+    return None,None
+
 import functools
 def _make_ssh_command(connhost, connuser, connport, gaddr, gport, gsocket):
     argv = ["ssh", "ssh"]
@@ -39,13 +68,14 @@ class MyApp(object):
         web.errorhandler(APIException)(APIException.handle)
         web.config['JSON_SORT_KEYS'] = False
         web.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=myapp.upload_xml, methods=['POST'])
-        web.add_url_rule('/tpl/host', view_func=myapp.list_host, methods=['GET'])
+        web.add_url_rule('/tpl/host/', view_func=myapp.list_host, methods=['GET'])
         web.add_url_rule('/tpl/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
         web.add_url_rule('/tpl/gold/<string:hostname>', view_func=myapp.list_gold, methods=['GET'])
         ## start db oper guest ##
         web.add_url_rule('/vm/xml/<string:hostname>/<string:uuid>', view_func=myapp.get_domain_xml, methods=['GET'])
         web.add_url_rule('/vm/update/', view_func=myapp.db_update_domains, methods=['GET'])
         web.add_url_rule('/vm/list/', view_func=myapp.db_list_domains, methods=['GET'])
+        web.add_url_rule('/vm/freeip/',view_func=myapp.get_freeip, methods=['GET'])
         ## end db oper guest ##
         web.add_url_rule('/vm/list/<string:hostname>', view_func=myapp.list_domains, methods=['GET'])
         web.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=myapp.get_domain, methods=['GET'])
@@ -148,6 +178,7 @@ class MyApp(object):
         logger.info(f'attach_device {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
         dev = database.KVMDevice.getDeviceInfo(hostname, name)
+        logger.info(f'----------{dev}{dev._asdict()}')
         vmmgr = vmmanager.VMManager(host.name, host.url)
         dom = vmmgr.get_domain(uuid)
         tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
@@ -163,6 +194,7 @@ class MyApp(object):
                 else:
                     logger.error(f'attach_device {gold} nofoudn')
                     raise APIException(HTTPStatus.BAD_REQUEST, 'attach', f'gold {gold} nofound')
+        database.KVMGuest.Upsert(kvmhost=host.name, arch=host.arch, **dom._asdict())
         xml = tpl.gen_xml(**req_json)
         env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
         return flask.Response(device.generate(vmmgr, xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
@@ -178,6 +210,7 @@ class MyApp(object):
         req_json['vm_arch'] = host.arch
         xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
         dom = vmmanager.VMManager(host.name, host.url).create_vm(req_json['vm_uuid'], xml)
+        database.KVMGuest.Upsert(kvmhost=host.name, arch=host.arch, **dom._asdict())
         mdconfig = dom.mdconfig
         logger.info(f'{req_json["vm_uuid"]} {mdconfig}')
         enum = req_json.get('enum', None)
@@ -210,6 +243,8 @@ class MyApp(object):
         # TODO: nocloud directory need remove
         _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
         _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
+        # remove guest list
+        database.KVMGuest.Remove(uuid)
         return { 'result' : 'OK', 'vol':f'{diskinfo}' }
 
     def start_vm(self, hostname, uuid):
@@ -249,10 +284,9 @@ class MyApp(object):
             for host in hosts:
                 try:
                     domains = vmmanager.VMManager(host.name, host.url).list_domains()
-                    for domain in domains:
-                        val = { 'kvmhost':host.name, 'arch':host.arch, **domain._asdict() }
-                        database.KVMGuest.Insert(**val)
-                        yield f'{host.name} {domain.uuid}\n'
+                    for dom in domains:
+                        database.KVMGuest.Upsert(kvmhost=host.name, arch=host.arch, **dom._asdict())
+                        yield f'{host.name} {dom.uuid}\n'
                 except Exception as e:
                     yield f'excetpin {e} continue\n'
                 yield f'{host.name} updated\n'
@@ -263,11 +297,15 @@ class MyApp(object):
         guests = database.KVMGuest.ListGuest()
         return [result._asdict() for result in guests]
 
+    def get_freeip(self):
+        ip, gw = get_free_ip()
+        return {'cidr':ip, 'gateway': gw}
+
 # # socat defunct process
 # # subprocess.Popen, device action returncode always 0
 # # can not set SIGCHLD SIG_IGN
 # import signal
 # signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
-app=MyApp.create()
+app = MyApp.create()
 # gunicorn -b 127.0.0.1:5009 --workers=4 --access-logfile='-' main:app

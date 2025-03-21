@@ -12,8 +12,8 @@ except ImportError:
     DATABASE_URI=os.environ.get('DATABASE', 'sqlite:///demo.db')
 # # 'sqlite:///:memory:'
 # # https://github.com/sqlalchemy/sqlalchemy/discussions/8858
-#args = dict(echo=echo, connect_args={'check_same_thread':False}, poolclass=sqlalchemy.pool.StaticPool)
-args = dict(echo=echo, poolclass=sqlalchemy.pool.StaticPool)
+args = dict(echo=echo, connect_args={'check_same_thread':False}, poolclass=sqlalchemy.pool.StaticPool)
+# args = dict(echo=echo, poolclass=sqlalchemy.pool.StaticPool)
 engine = sqlalchemy.create_engine(DATABASE_URI, **args)
 Session = sqlalchemy.orm.sessionmaker(bind=engine)
 session = Session() 

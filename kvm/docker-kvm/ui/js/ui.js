@@ -291,6 +291,13 @@ function do_create(host, res) {
   }, res);
 }
 function create_vm(host, arch) {
+  const vm_ip = document.getElementById('vm_ip');
+  const vm_gw = document.getElementById('vm_gw');
+  getjson('GET', `/vm/freeip/`, function(res) {
+    var ips = JSON.parse(res);
+    vm_ip.value = ips.cidr;
+    vm_gw.value = ips.gateway
+  });
   const form = document.getElementById('createvm_form');
   form.addEventListener('submit', function(event) {
     event.preventDefault(); // Prevents the default form submission
@@ -417,7 +424,7 @@ function includeHTML() {
 /* ------------------------- */
 window.onload = function() {
   includeHTML();
-  getjson('GET', '/tpl/host', function (res) {
+  getjson('GET', '/tpl/host/', function (res) {
     config.g_hosts = JSON.parse(res);
     var mainMenu = "";
     for(var n = 0; n < config.g_hosts.length; n++) {

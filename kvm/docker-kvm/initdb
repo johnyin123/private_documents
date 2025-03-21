@@ -32,11 +32,6 @@ if not os.path.isdir(path):
 print(r'VNC:{}, SPICE:{}'.format(config.VNC_DISP_URL, config.SPICE_DISP_URL))
 
 # create tables if not exists
-try:
-    import database.FakeDB
-except ImportError:
-    print(f'use JSON DB, exit')
-    exit(0)
 import database as db
 
 db.Base.metadata.drop_all(db.engine)

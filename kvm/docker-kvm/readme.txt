@@ -31,7 +31,7 @@ https://vmm.registry.local/novnc/vnc_lite.html?password=abc&path=websockify/?tok
 ---------------------------------------------------------
 srv=http://127.0.0.1:5009
 # srv=https://vmm.registry.local
-echo 'list host' && curl -k ${srv}/tpl/host | jq '.[]|{name: .name, arch: .arch}'
+echo 'list host' && curl -k ${srv}/tpl/host/ | jq '.[]|{name: .name, arch: .arch}'
 host=host01
 arch=x86_64
 uefi=/usr/share/OVMF/OVMF_CODE.fd
@@ -84,6 +84,7 @@ curl --cacert /etc/libvirt/pki/ca-cert.pem \
 echo 'update all guests dbtable' && curl -k http://127.0.0.1:5009/vm/update/
 echo 'list all guests in database' && curl -k ${srv}/vm/list/
 echo 'get vm xml" && curl -k ${srv}/vm/xml/${host}/${uuid}
+echo 'get freeip" && curl -k ${srv}/vm/freeip/
 ---------------------------------------------------------
 NGXSSL=/etc/nginx/ssl
 install -v -d -m 0755 "${NGXSSL}"

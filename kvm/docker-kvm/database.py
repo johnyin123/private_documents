@@ -1,8 +1,18 @@
 # -*- coding: utf-8 -*-
-import exceptions, json
-
+import exceptions, os
 from dbi import engine, Session, session, Base
 from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey,JSON
+from flask_app import logger
+
+class FakeDB:
+    def __init__(self, data):
+        for key, value in data.items():
+            setattr(self, key, value)
+    def _asdict(self):
+        return self.__dict__
+
+def search(arr, key, val):
+    return [ element for element in arr if element[key] == val]
 
 class KVMHost(Base):
     __tablename__ = "kvmhost"
@@ -21,14 +31,20 @@ class KVMHost(Base):
 
     @staticmethod
     def getHostInfo(name):
-        result=session.query(KVMHost).filter_by(name=name).first()
-        if result:
-            return result
+        logger.info(f'getHostInfo PID {os.getpid()}')
+        result = search(kvmhost_cache_data, 'name', name)
+        if len(result) == 1:
+            return FakeDB(result[0])
         raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'host error', f'host {name} nofound')
+        # result=session.query(KVMHost).filter_by(name=name).first()
+        # if result:
+        #     return result
+        # raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'host error', f'host {name} nofound')
 
     @staticmethod
     def ListHost():
-        return session.query(KVMHost).all()
+        logger.info(f'ListHost PID {os.getpid()}')
+        return [ FakeDB(element) for element in kvmhost_cache_data ]
 
 class KVMDevice(Base):
     __tablename__ = "kvmdevice"
@@ -42,14 +58,23 @@ class KVMDevice(Base):
 
     @staticmethod
     def getDeviceInfo(kvmhost, name):
-        result=session.query(KVMDevice).filter_by(name=name, kvmhost=kvmhost).first()
-        if result:
-            return result
+        logger.info(f'getDeviceInfo PID {os.getpid()}')
+        result = search(kvmdevice_cache_data, 'name', name)
+        result = search(result, 'kvmhost', kvmhost)
+        if len(result) == 1:
+            return FakeDB(result[0])
         raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'device error', f'device template {name} nofound')
+        # result=session.query(KVMDevice).filter_by(name=name, kvmhost=kvmhost).first()
+        # if result:
+        #     return result
+        # raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'device error', f'device template {name} nofound')
 
     @staticmethod
     def ListDevice(kvmhost):
-        return session.query(KVMDevice.kvmhost, KVMDevice.name, KVMDevice.devtype, KVMDevice.desc).filter_by(kvmhost=kvmhost).all()
+        logger.info(f'ListDevice PID {os.getpid()}')
+        result = search(kvmdevice_cache_data, 'kvmhost', kvmhost)
+        return [ FakeDB(element) for element in result ]
+        # return session.query(KVMDevice.kvmhost, KVMDevice.name, KVMDevice.devtype, KVMDevice.desc).filter_by(kvmhost=kvmhost).all()
 
 class KVMGold(Base):
     __tablename__ = "kvmgold"
@@ -61,14 +86,23 @@ class KVMGold(Base):
 
     @staticmethod
     def getGoldInfo(name, arch):
-        result=session.query(KVMGold).filter_by(name=name, arch=arch).first()
-        if result:
-            return result
+        logger.info(f'getGoldInfo PID {os.getpid()}')
+        result = search(kvmgold_cache_data, 'name', name)
+        result = search(result, 'arch', arch)
+        if len(result) == 1:
+            return FakeDB(result[0])
         raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'golddisk error', f'golddisk {name} nofound')
+        # result=session.query(KVMGold).filter_by(name=name, arch=arch).first()
+        # if result:
+        #     return result
+        # raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'golddisk error', f'golddisk {name} nofound')
 
     @staticmethod
     def ListGold(arch):
-        return session.query(KVMGold).filter_by(arch=arch).all()
+        logger.info(f'ListGold PID {os.getpid()}')
+        result = search(kvmgold_cache_data, 'arch', arch)
+        return [ FakeDB(element) for element in result ]
+        # return session.query(KVMGold).filter_by(arch=arch).all()
 
 class KVMGuest(Base):
     __tablename__ = "kvmguest"
@@ -86,31 +120,84 @@ class KVMGuest(Base):
     nets = Column(JSON,nullable=False)
     mdconfig = Column(JSON,nullable=False)
 
-    def _asdict(self):
-        return {'kvmhost':self.kvmhost, 'arch':self.arch,
-                'uuid':self.uuid, 'desc':self.desc,
-                'curcpu':self.curcpu, 'curmem':self.curmem,
-                'mdconfig': json.dumps(self.mdconfig),
-                'maxcpu':self.maxcpu, 'maxmem':self.maxmem,
-                'cputime':self.cputime, 'state':state_desc,
-                'disks': json.dumps(self.disks),
-                'nets': json.dumps(self.nets)
-               }
+    @staticmethod
+    def Upsert(**kwargs):
+        try:
+            uuid = kwargs.get('uuid')
+            instance = session.query(KVMGuest).filter_by(uuid=uuid).first()
+            if instance:
+                logger.info(f'Update db guest in PID {os.getpid()} {uuid}')
+                for k, v in kwargs.items():
+                    setattr(instance, k, v)
+            else:
+                logger.info(f'Insert db guest in PID {os.getpid()} {uuid}')
+                guest = KVMGuest(**kwargs)
+                session.add(guest)
+            session.commit()
+            guest_cache_flush()
+        except:
+            logger.exception(f'Upsert db guest {kwargs} in PID {os.getpid()} Failed')
+            session.rollback()
 
     @staticmethod
-    def Insert(**kwargs):
+    def Remove(uuid):
         try:
-            guest = KVMGuest(**kwargs)
-            session.add(guest)
+            logger.info(f'Remove db guest in PID {os.getpid()}')
+            session.query(KVMGuest).filter_by(uuid=uuid).delete()
             session.commit()
+            guest_cache_flush()
         except:
+            logger.exception(f'GuestDB Remove {uuid}in PID {os.getpid()} Failed')
             session.rollback()
 
     @staticmethod
     def DropAll():
         session.query(KVMGuest).delete()
         session.commit()
+        guest_cache_flush()
 
     @staticmethod
     def ListGuest():
-        return session.query(KVMGuest).all()
+        logger.info(f'ListGuest PID {os.getpid()}')
+        return [ FakeDB(element) for element in kvmguest_cache_data ]
+        # return session.query(KVMGuest).all()
+
+import multiprocessing
+manager = multiprocessing.Manager()
+####################################
+kvmhost_cache_data = manager.list()
+kvmhost_cache_data_lock = multiprocessing.Lock()
+with kvmhost_cache_data_lock:
+    logger.info(f'update KVMHost.cache in PID {os.getpid()}')
+    results = session.query(KVMHost).all()
+    for result in results:
+        kvmhost_cache_data.append(manager.dict(**result._asdict()))
+####################################
+kvmdevice_cache_data = manager.list()
+kvmdevice_cache_data_lock = multiprocessing.Lock()
+with kvmdevice_cache_data_lock:
+    logger.info(f'update KVMDevice.cache in PID {os.getpid()}')
+    results = session.query(KVMDevice).all()
+    for result in results:
+        kvmdevice_cache_data.append(manager.dict(**result._asdict()))
+####################################
+kvmgold_cache_data = manager.list()
+kvmgold_cache_data_lock = multiprocessing.Lock()
+with kvmgold_cache_data_lock:
+    logger.info(f'update KVMGold.cache in PID {os.getpid()}')
+    results = session.query(KVMGold).all()
+    for result in results:
+        kvmgold_cache_data.append(manager.dict(**result._asdict()))
+####################################
+def guest_cache_flush():
+    with kvmguest_cache_data_lock:
+        while(len(kvmguest_cache_data) > 0):
+            kvmguest_cache_data.pop()
+        logger.info(f'update KVMGuest.cache in PID {os.getpid()}')
+        results = session.query(KVMGuest).all()
+        for result in results:
+            kvmguest_cache_data.append(manager.dict(**result._asdict()))
+
+kvmguest_cache_data = manager.list()
+kvmguest_cache_data_lock = multiprocessing.Lock()
+guest_cache_flush()
