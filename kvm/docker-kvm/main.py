@@ -3,10 +3,10 @@
 
 import os
 import flask_app, flask
-logger=flask_app.logger
 import database, vmmanager, template, device, meta
 from config import config
 from exceptions import APIException, HTTPStatus
+from flask_app import logger
 
 import ipaddress, json, random
 def get_free_ip():

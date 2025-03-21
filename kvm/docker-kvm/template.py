@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-import os, jinja2, flask_app, xml.dom.minidom
+import os, jinja2, xml.dom.minidom
 from config import config
+from flask_app import logger
 from jinja2 import meta as jinja2_meta
-logger=flask_app.logger
 
 class DeviceTemplate(object):
     def __init__(self, filename, devtype):

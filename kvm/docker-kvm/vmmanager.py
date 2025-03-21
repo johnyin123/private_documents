@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-import libvirt, xml.dom.minidom
-import flask_app, json
+import libvirt, xml.dom.minidom, json
 from exceptions import APIException, HTTPStatus
-logger=flask_app.logger
+from flask_app import logger
 
 def kvm_error(e: libvirt.libvirtError, msg: str):
     logger.exception(f'{msg}')

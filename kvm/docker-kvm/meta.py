@@ -4,8 +4,8 @@ try:
 except ImportError:
     from io import BytesIO
 from config import config
-import pycdlib, jinja2, os, flask_app
-logger=flask_app.logger
+from flask_app import logger
+import pycdlib, jinja2, os
 
 class ISOMeta(object):
     def __init__(self):

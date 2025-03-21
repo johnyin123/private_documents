@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import os, uuid
 from datetime import datetime
-import flask_app
-logger=flask_app.logger
+from flask_app import logger
 
 # from flask import current_app
 # current_app.root_path

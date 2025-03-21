@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-import flask_app, os, subprocess, vmmanager, json
+import os, subprocess, vmmanager, json
 from config import config
-logger=flask_app.logger
+from flask_app import logger
 from exceptions import APIException, HTTPStatus
 import paramiko
 
