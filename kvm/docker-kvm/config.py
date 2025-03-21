@@ -10,26 +10,28 @@ logger=flask_app.logger
 OUTDIR = os.environ.get('OUTDIR', os.path.abspath(os.path.dirname(__file__)))
 DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db')
 
-# class Singleton(type):
-#     _instances = {}
-#     def __call__(cls, *args, **kwargs):
-#         if cls not in cls._instances:
-#             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
-#         return cls._instances[cls]
-# class Config(metaclass=Singleton):
+# import multiprocessing
+# class Config:
+#     shared_state_lock = multiprocessing.Lock()
+#     shared_state = multiprocessing.Manager().dict()
+#     # _shared_state.update({'k':'v'})
+#     # _shared_state.clear()
 #     def __init__(self, **kwargs):
-#         self._config = kwargs
-#         logger.info(f'config __init__ {kwargs}')
+#         for k, v in kwargs.items():
+#             self.set(k, v)
+#
 #     def __getattr__(self, name):
-#         if name in self._config:
-#             return self._config[name]
+#         if name in Config.shared_state:
+#             return Config.shared_state[name]
 #         raise AttributeError(f"'Config' object has no attribute '{name}'")
+#
 #     def set(self, name, value):
-#          self._config[name] = value
+#          with Config.shared_state_lock:
+#             Config.shared_state[name] = value
 # config = Config(app_name="MyApp", version="1.0.0")
 # print(config.app_name)  # Output: MyApp
 # config.set("version", "2.0.0")
-# print(config.version) # Output: 2.0.0
+# print(config.version)  # Output: MyApp
 
 class config:
     ISO_DIR = os.path.join(OUTDIR, 'iso')
