@@ -1,4 +1,6 @@
 Flask==3.1.0
+SQLAlchemy==2.0.37
 libvirt-python==11.0.0
 pycdlib==1.14.0
-SQLAlchemy==2.0.37
+paramiko==3.5.1
+ipaddress==1.0.23
