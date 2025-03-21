@@ -308,4 +308,4 @@ class MyApp(object):
 # signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
 app = MyApp.create()
-# gunicorn -b 127.0.0.1:5009 --workers=4 --access-logfile='-' main:app
+# gunicorn -b 127.0.0.1:5009 --preload --workers=4 --threads=2 --access-logfile='-' 'main:app'
