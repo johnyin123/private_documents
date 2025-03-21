@@ -155,9 +155,14 @@ class MyApp(object):
         raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no graphics define')
 
     def list_domains(self, hostname):
+        lst = []
         host = database.KVMHost.getHostInfo(hostname)
         results = vmmanager.VMManager(host.name, host.url).list_domains()
-        return [result._asdict() for result in results]
+        for dom in results:
+            item = dom._asdict()
+            database.KVMGuest.Upsert(kvmhost=host.name, arch=host.arch, **item)
+            lst.append(item)
+        return lst
 
     def list_gold(self, hostname):
         host = database.KVMHost.getHostInfo(hostname)
