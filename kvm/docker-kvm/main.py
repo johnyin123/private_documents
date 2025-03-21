@@ -313,4 +313,8 @@ class MyApp(object):
 # signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
 app = MyApp.create()
+database.host_cache_flush()
+database.device_cache_flush()
+database.gold_cache_flush()
+database.guest_cache_flush()
 # gunicorn -b 127.0.0.1:5009 --preload --workers=4 --threads=2 --access-logfile='-' 'main:app'

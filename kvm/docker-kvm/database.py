@@ -167,28 +167,33 @@ manager = multiprocessing.Manager()
 ####################################
 kvmhost_cache_data = manager.list()
 kvmhost_cache_data_lock = multiprocessing.Lock()
-with kvmhost_cache_data_lock:
-    logger.info(f'update KVMHost.cache in PID {os.getpid()}')
-    results = session.query(KVMHost).all()
-    for result in results:
-        kvmhost_cache_data.append(manager.dict(**result._asdict()))
+def host_cache_flush():
+    with kvmhost_cache_data_lock:
+        logger.info(f'update KVMHost.cache in PID {os.getpid()}')
+        results = session.query(KVMHost).all()
+        for result in results:
+            kvmhost_cache_data.append(manager.dict(**result._asdict()))
 ####################################
 kvmdevice_cache_data = manager.list()
 kvmdevice_cache_data_lock = multiprocessing.Lock()
-with kvmdevice_cache_data_lock:
-    logger.info(f'update KVMDevice.cache in PID {os.getpid()}')
-    results = session.query(KVMDevice).all()
-    for result in results:
-        kvmdevice_cache_data.append(manager.dict(**result._asdict()))
+def device_cache_flush():
+    with kvmdevice_cache_data_lock:
+        logger.info(f'update KVMDevice.cache in PID {os.getpid()}')
+        results = session.query(KVMDevice).all()
+        for result in results:
+            kvmdevice_cache_data.append(manager.dict(**result._asdict()))
 ####################################
 kvmgold_cache_data = manager.list()
 kvmgold_cache_data_lock = multiprocessing.Lock()
-with kvmgold_cache_data_lock:
-    logger.info(f'update KVMGold.cache in PID {os.getpid()}')
-    results = session.query(KVMGold).all()
-    for result in results:
-        kvmgold_cache_data.append(manager.dict(**result._asdict()))
+def gold_cache_flush():
+    with kvmgold_cache_data_lock:
+        logger.info(f'update KVMGold.cache in PID {os.getpid()}')
+        results = session.query(KVMGold).all()
+        for result in results:
+            kvmgold_cache_data.append(manager.dict(**result._asdict()))
 ####################################
+kvmguest_cache_data = manager.list()
+kvmguest_cache_data_lock = multiprocessing.Lock()
 def guest_cache_flush():
     with kvmguest_cache_data_lock:
         while(len(kvmguest_cache_data) > 0):
@@ -197,7 +202,3 @@ def guest_cache_flush():
         results = session.query(KVMGuest).all()
         for result in results:
             kvmguest_cache_data.append(manager.dict(**result._asdict()))
-
-kvmguest_cache_data = manager.list()
-kvmguest_cache_data_lock = multiprocessing.Lock()
-guest_cache_flush()
