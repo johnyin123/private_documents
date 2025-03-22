@@ -31,7 +31,7 @@ def create_app(config: dict={}, json: bool=False) -> flask.Flask:
     if json:
         # for unicode json
         app.json.ensure_ascii = False
-        app.json = UpdatedJSONProvider(web)
+        app.json = UpdatedJSONProvider(app)
         for ex in werkzeug.exceptions.default_exceptions:
             app.register_error_handler(ex, json_handle_error)
     return app
