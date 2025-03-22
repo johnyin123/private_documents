@@ -185,7 +185,6 @@ class MyApp(object):
         logger.info(f'attach_device {req_json}')
         host = database.KVMHost.getHostInfo(hostname)
         dev = database.KVMDevice.getDeviceInfo(hostname, name)
-        logger.info(f'----------{dev}{dev._asdict()}')
         vmmgr = vmmanager.VMManager(host.name, host.url)
         dom = vmmgr.get_domain(uuid)
         tpl = template.DeviceTemplate(dev.tpl, dev.devtype)

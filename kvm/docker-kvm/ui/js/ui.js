@@ -311,10 +311,14 @@ function create_vm(host, arch) {
   showView('createvm');
 }
 function do_add(host, uuid, res) {
+  function getLastLine(str) {
+    const lines = str.split('\n');
+    return lines[lines.length - 1];
+  }
   console.log(JSON.stringify(res));
   const overlay_output = document.querySelector("#overlay_output");
   getjson('POST', `/vm/attach_device/${host}/${uuid}/${res.device}`, function(res) {
-    dispok(res);
+    dispok(getLastLine(res));
     //dispok('Add Device OK');
     vmlist(host);
   }, res, function(res) {
