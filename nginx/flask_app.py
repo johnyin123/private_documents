@@ -14,15 +14,24 @@ FLASK_CONF = {
     'STATIC_URL_PATH'  : '/public',
     'STATIC_FOLDER'    : 'static',
 }
+from datetime import datetime, date, timezone, timedelta
+from flask.json.provider import DefaultJSONProvider
+class UpdatedJSONProvider(DefaultJSONProvider):
+    def default(self, o):
+        if isinstance(o, date) or isinstance(o, datetime):
+            return o.isoformat()
+        return super().default(o)
+
 def create_app(config: dict={}, json: bool=False) -> flask.Flask:
     cfg = {**FLASK_CONF, **config}
     logger.debug("Flask config: %s", cfg)
     app = flask.Flask(__name__, static_url_path=cfg['STATIC_URL_PATH'], static_folder=cfg['STATIC_FOLDER'])
-    # for unicode json
-    app.json.ensure_ascii = False
     app.config.from_mapping(cfg)
     app.secret_key = os.urandom(12)
     if json:
+        # for unicode json
+        app.json.ensure_ascii = False
+        app.json = UpdatedJSONProvider(web)
         for ex in werkzeug.exceptions.default_exceptions:
             app.register_error_handler(ex, json_handle_error)
     return app
