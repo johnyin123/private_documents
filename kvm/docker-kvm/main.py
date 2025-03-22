@@ -235,14 +235,15 @@ class MyApp(object):
         dom = vmmgr.get_domain(uuid)
         vmmgr.refresh_all_pool()
         disks = dom.disks
+        diskinfo = []
         for v in disks:
             logger.info(f'remove disk {v}')
             try:
                 vol = vmmgr.conn.storageVolLookupByPath(v['vol'])
                 vol.delete()
             except Exception:
+                diskinfo.append(f'{v}')
                 pass
-        diskinfo = f'{dom.disks}'
         vmmgr.delete_vm(uuid)
         logger.info(f'remove {uuid} datebase and nocloud/xml/iso files')
         # TODO: nocloud directory need remove
@@ -250,7 +251,7 @@ class MyApp(object):
         _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
         # remove guest list
         database.KVMGuest.Remove(uuid)
-        return return_ok(f'vol {diskinfo}')
+        return return_ok(f'delete vm OK', failed=diskinfo)
 
     def start_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)

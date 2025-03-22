@@ -157,11 +157,11 @@ function Alert(message) {
     alert(message);
   }
 }
-function dispok(msg) {
+function dispok(desc) {
   Alert(`
   <div class="form-wrapper">
     <div class="form-wrapper-header success"><h2>SUCCESS</h2><button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button></div>
-    <form><pre style="white-space: pre-wrap;">${msg}</pre></form>
+    <form><pre style="white-space: pre-wrap;">${desc}</pre></form>
   </div>`);
 }
 function disperr(code, name, desc) {
@@ -252,7 +252,14 @@ function getjson_result(res) {
   try {
     var result = JSON.parse(res);
     if(result.result === 'OK') {
-      dispok(`${result.desc}`);
+      desc = result.desc;
+      delete result.result;
+      delete result.desc;
+      if (Object.keys(result).length === 0) {
+        dispok(`${desc}`);
+      } else {
+        dispok(`${desc} ${JSON.stringify(result)}`);
+      }
     } else {
       disperr(result.code, result.name, result.desc)
     }
