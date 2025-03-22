@@ -220,7 +220,7 @@ function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
     if(xhr.readyState === 4 && xhr.status !== 0) {
       console.error(`${method} ${url} ${xhr.status} ${xhr.response}`);
       try {
-        result = JSON.parse(xhr.response);
+        var result = JSON.parse(xhr.response);
         disperr(result.code, result.name, result.desc);
       } catch (e) {
         disperr(xhr.status, `${method} ${url}`, `${xhr.response}`);
@@ -252,7 +252,7 @@ function getjson_result(res) {
   try {
     var result = JSON.parse(res);
     if(result.result === 'OK') {
-      desc = result.desc;
+      var desc = result.desc;
       delete result.result;
       delete result.desc;
       if (Object.keys(result).length === 0) {
@@ -335,11 +335,11 @@ function do_add(host, uuid, res) {
     return lines[lines.length - 1];
   }
   console.log(JSON.stringify(res));
-  const overlay_output = document.querySelector("#overlay_output");
   getjson('POST', `/vm/attach_device/${host}/${uuid}/${res.device}`, function(res) {
     getjson_result(getLastLine(res))
     vmlist(host);
   }, res, function(res) {
+    const overlay_output = document.querySelector("#overlay_output");
     overlay_output.innerHTML = res;
     overlay_output.scrollTop=overlay_output.scrollHeight;
   }, 60000); /*add disk 60s timeout*/
