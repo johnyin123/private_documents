@@ -18,6 +18,8 @@ def get_free_ip():
         used_ips.append(f'{item["gateway"]}/{ipa.prefixlen}')
         used_ips.append(f'{ipa.network_address}/{ipa.prefixlen}')
         used_ips.append(f'{ipa.broadcast_address}/{ipa.prefixlen}')
+    for item in config.USED_CIDR:
+        used_ips.append(item)
     for guest in database.KVMGuest.ListGuest():
         mdconfig = json.loads(guest.mdconfig)
         ipaddr = mdconfig.get('ipaddr', None)
@@ -27,8 +29,8 @@ def get_free_ip():
     random.shuffle(network)
     for cidr in network:
         interface = ipaddress.IPv4Interface(cidr)
-        if int(interface.ip.exploded.split(".")[3]) < 5:
-            continue
+        # if int(interface.ip.exploded.split(".")[3]) < 5:
+        #     continue
         if cidr not in used_ips:
             for item in config.NETWORKS:
                 net = ipaddress.ip_network(item['network'])

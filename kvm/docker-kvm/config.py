@@ -42,11 +42,11 @@ class config:
     TOKEN_DIR = os.path.join(OUTDIR, 'token')
     # # NOCLOUD meta service data dir
     NOCLOUD_DIR = os.path.join(OUTDIR, 'nocloud')
-    # # network pools
+    # # network pools,default gateway/network_address/broadcast_address in USED_ADDRESS 
     NETWORKS = [
-                {'network':'192.168.167.0/24', 'gateway':'192.168.167.1'},
                 {'network':'192.168.168.0/24', 'gateway':'192.168.168.1'},
                ]
+    USED_CIDR = ['192.168.168.2/24','192.168.168.3/24','192.168.168.4/24','192.168.168.5/24',]
     # # socat process close 10m
     SOCAT_TMOUT = '10m'
     VNC_DISP_URL = 'https://vmm.registry.local/novnc/vnc_lite.html'
