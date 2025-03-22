@@ -181,6 +181,8 @@ function overlayoff() {
   const overlay = document.getElementById("overlay");
   if (overlay !== null) {
     overlay.style.display = "none";
+    const overlay_output = document.querySelector("#overlay_output");
+    overlay_output.innerHTML = "";
   }
 }
 function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
@@ -193,9 +195,9 @@ function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
   //xhr.addEventListener("load", transferComplete);
   //xhr.addEventListener("error", transferFailed);
   //xhr.addEventListener("abort", transferCanceled);
-  xhr.onerror = function () { console.error(`${url} ${method} onerror`); };
-  xhr.onabort = function() { console.error(`${url} ${method} abort`); };
-  xhr.ontimeout = function () { console.error(`${url} ${method} timeout`); };
+  xhr.onerror = function () { console.error(`${url} ${method} onerror`); disperr(0,`${url}`,`${method} onerror`);};
+  xhr.onabort = function() { console.error(`${url} ${method} abort`); disperr(0,`${url}`,`${method} abort`);};
+  xhr.ontimeout = function () { console.error(`${url} ${method} timeout`); disperr(0,`${url}`,`${method} timeout`);};
   xhr.onloadend = function() { overlayoff(); /*as finally*/ };
   xhr.open(method, url, true);
   //xhr.setRequestHeader('Pragma', 'no-cache');
@@ -312,9 +314,9 @@ function do_add(host, uuid, res) {
   console.log(JSON.stringify(res));
   const overlay_output = document.querySelector("#overlay_output");
   getjson('POST', `/vm/attach_device/${host}/${uuid}/${res.device}`, function(res) {
-    dispok('Add Device OK');
+    dispok(res);
+    //dispok('Add Device OK');
     vmlist(host);
-    overlay_output.innerHTML = "";
   }, res, function(res) {
     overlay_output.innerHTML = res;
     overlay_output.scrollTop=overlay_output.scrollHeight;
