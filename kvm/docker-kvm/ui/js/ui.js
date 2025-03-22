@@ -248,30 +248,42 @@ function on_menu_host(host, n) {
   vmlist(host[n].name);
   showView("hostlist");
 }
+function getjson_result(res) {
+  try {
+    var result = JSON.parse(res);
+    if(result.result === 'OK') {
+      dispok(`${result.desc}`);
+    } else {
+      disperr(result.code, result.name, result.desc)
+    }
+  } catch (e) {
+    disperr(999, `local error`, `${e}, ${res}`);
+  }
+}
 function start(host, uuid) {
   getjson('GET', `/vm/start/${host}/${uuid}`, function(res) {
-    dispok(`start vm ${res}`);
+    getjson_result(res)
     vmlist(host);
   }, null, null, 60000);
 }
 function stop(host, uuid) {
   if (!confirm(`Stop ${uuid}?`)) { return; }
   getjson('GET', `/vm/stop/${host}/${uuid}`, function(res) {
-    dispok(`stop vm ${res}`);
+    getjson_result(res)
     vmlist(host);
   });
 }
 function force_stop(host, uuid) {
   if (!confirm(`Force Stop ${uuid}?`)) { return; }
   getjson('POST', `/vm/stop/${host}/${uuid}`, function(res) {
-    dispok(`force stop vm ${res}`);
+    getjson_result(res)
     vmlist(host);
   }, null, null, 60000);
 }
 function undefine(host, uuid) {
   if (!confirm(`Undefine ${uuid}?`)) { return; }
   getjson('GET', `/vm/delete/${host}/${uuid}`, function(res) {
-    dispok(`undefine vm ${res}`);
+    getjson_result(res)
     vmlist(host);
   });
 }
@@ -288,7 +300,7 @@ function display(host, uuid) {
 }
 function do_create(host, res) {
   getjson('POST', `/vm/create/${host}`, function(res) {
-    dispok(`create vm ${res}`);
+    getjson_result(res)
     vmlist(host);
   }, res);
 }
@@ -318,8 +330,7 @@ function do_add(host, uuid, res) {
   console.log(JSON.stringify(res));
   const overlay_output = document.querySelector("#overlay_output");
   getjson('POST', `/vm/attach_device/${host}/${uuid}/${res.device}`, function(res) {
-    dispok(getLastLine(res));
-    //dispok('Add Device OK');
+    getjson_result(getLastLine(res))
     vmlist(host);
   }, res, function(res) {
     overlay_output.innerHTML = res;

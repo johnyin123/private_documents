@@ -5,7 +5,7 @@ import os
 import flask_app, flask
 import database, vmmanager, template, device, meta
 from config import config
-from exceptions import APIException, HTTPStatus
+from exceptions import APIException, HTTPStatus, return_ok, return_err
 from flask_app import logger
 
 import ipaddress, json, random
@@ -150,10 +150,9 @@ class MyApp(object):
                 # f.write(f'{uuid}: unix_socket:{path}')
                 f.write(f'{uuid}: {server}')
             if proto == 'vnc':
-                return { 'result' : 'OK', 'display': f'{config.VNC_DISP_URL}?password={passwd}&path=websockify/?token={uuid}' }
+                return return_ok('vnc', display=f'{config.VNC_DISP_URL}?password={passwd}&path=websockify/?token={uuid}')
             elif proto == 'spice':
-                # # spice websockify UNIX-LISTEN, not worked ????
-                return { 'result' : 'OK', 'display': f'{config.SPICE_DISP_URL}?password={passwd}&path=websockify/?token={uuid}' }
+                return return_ok('spice', display=f'{config.SPICE_DISP_URL}?password={passwd}&path=websockify/?token={uuid}')
         raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no graphics define')
 
     def list_domains(self, hostname):
@@ -228,7 +227,7 @@ class MyApp(object):
                 raise APIException(HTTPStatus.CONFLICT, 'create_vm nocloud meta', f'{req_json["vm_uuid"]} {mdconfig}')
         else:
             logger.warn(f'meta: {enum} {req_json["vm_uuid"]} {mdconfig}')
-        return { 'result' : 'OK', 'uuid' : req_json['vm_uuid'], 'host': hostname }
+        return return_ok(f"create vm {req_json['vm_uuid']} on {hostname} ok")
 
     def delete_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
@@ -251,22 +250,22 @@ class MyApp(object):
         _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
         # remove guest list
         database.KVMGuest.Remove(uuid)
-        return { 'result' : 'OK', 'vol':f'{diskinfo}' }
+        return return_ok(f'vol {diskinfo}')
 
     def start_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
         vmmanager.VMManager(host.name, host.url).start_vm(uuid)
-        return { 'result' : 'OK' }
+        return return_ok(f'{uuid} start ok')
 
     def stop_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
         vmmanager.VMManager(host.name, host.url).stop_vm(uuid)
-        return { 'result' : 'OK' }
+        return return_ok(f'{uuid} stop ok')
 
     def stop_vm_forced(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
         vmmanager.VMManager(host.name, host.url).stop_vm_forced(uuid)
-        return { 'result' : 'OK' }
+        return return_ok(f'{uuid} force stop ok')
 
     def upload_xml(self, operation, action, uuid):
         # qemu hooks upload xml
@@ -280,7 +279,7 @@ class MyApp(object):
         domxml = file.read().decode('utf-8')
         with open(os.path.join(config.ISO_DIR, "{}.xml".format(uuid)), 'w') as f:
             f.write(domxml)
-        return { 'result' : 'OK' }
+        return return_ok(f'{uuid} uploadxml ok')
 
     def db_update_domains(self):
         ## need check check admin ro crontab execute
@@ -305,7 +304,7 @@ class MyApp(object):
 
     def get_freeip(self):
         ip, gw = get_free_ip()
-        return {'cidr':ip, 'gateway': gw}
+        return return_ok(f'get freeip ok', cidr=ip, gateway=gw)
 
 # # socat defunct process
 # # subprocess.Popen, device action returncode always 0

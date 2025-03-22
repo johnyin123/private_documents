@@ -2,7 +2,7 @@
 import os, subprocess, vmmanager, json
 from config import config
 from flask_app import logger
-from exceptions import APIException, HTTPStatus
+from exceptions import APIException, HTTPStatus, return_ok, return_err
 import paramiko
 
 #cmd = ['/usr/bin/python3', 'script.py', '--verbose', 'input.txt']
@@ -57,8 +57,8 @@ def generate(vmmgr: vmmanager.VMManager, xml:str, action:str, arg:str, req_json:
             proc.wait()
             if proc.returncode != 0:
                 logger.error(f'execute {cmd} error={proc.returncode}')
-                yield f'{{"result":"ERR", "code": {proc.returncode}, "name":"attach", "desc":"execute {cmd} error={proc.returncode}"}}'
+                yield return_err(proc.returncode, "attach", f"execute {cmd} error={proc.returncode}")
                 return
     vmmgr.attach_device(req_json['vm_uuid'], xml)
-    yield f'{{"result":"OK"}}'
+    yield return_ok(f'attach {req_json["device"]} device ok')
     return
