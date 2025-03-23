@@ -363,6 +363,7 @@ function add_disk(host, uuid) {
     do_add(host, uuid, res);
     showView('hostlist');
   }, { once: true });
+  form.reset();
   showView('adddisk');
 }
 function add_net(host, uuid) {
@@ -379,6 +380,7 @@ function add_net(host, uuid) {
     do_add(host, uuid, res);
     showView('hostlist');
   }, { once: true });
+  form.reset();
   showView('addnet');
 }
 function add_iso(host, uuid) {
@@ -395,6 +397,7 @@ function add_iso(host, uuid) {
     do_add(host, uuid, res);
     showView('hostlist');
   }, { once: true });
+  form.reset();
   showView('addiso');
 }
 /* create vm add new meta key/value */
