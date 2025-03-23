@@ -176,7 +176,12 @@ class MyApp(object):
 
     def list_host(self):
         results = database.KVMHost.ListHost()
-        return [result._asdict() for result in results]
+        keys = [ 'name', 'arch', 'ipaddr', 'desc', 'last_modified' ]
+        return [
+            {k: v for k, v in dic._asdict().items() if k in keys}
+            for dic in results
+        ]
+        # return [result._asdict() for result in results]
 
     def attach_device(self, hostname, uuid, name):
         req_json = flask.request.json
@@ -242,7 +247,8 @@ class MyApp(object):
                 vol = vmmgr.conn.storageVolLookupByPath(v['vol'])
                 vol.delete()
             except Exception:
-                diskinfo.append(f'{v}')
+                keys = ['type', 'dev', 'vol']
+                diskinfo.append({k: v[k] for k in keys if k in v})
                 pass
         vmmgr.delete_vm(uuid)
         logger.info(f'remove {uuid} datebase and nocloud/xml/iso files')
