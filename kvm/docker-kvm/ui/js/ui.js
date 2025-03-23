@@ -1,4 +1,4 @@
-var config = { g_hosts: {} };
+const config = { g_hosts: {} };
 function about() { showView('about'); }
 function gen_gold_list(jsonobj) {
   var lst = '';
