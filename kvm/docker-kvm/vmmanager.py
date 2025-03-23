@@ -109,6 +109,7 @@ class LibvirtDomain:
 
     @property
     def disks(self):
+        # TODO: detach-device, use disk.xml
         disk_lst = []
         p = xml.dom.minidom.parseString(self.XMLDesc)
         for disk in p.getElementsByTagName('disk'):
@@ -120,11 +121,11 @@ class LibvirtDomain:
             for src in disk.getElementsByTagName('source'):
                 file = None
                 if dtype == 'file':
-                    disk_lst.append({'type':'file', 'dev':dev, 'vol':src.getAttribute('file')})
+                    disk_lst.append({'type':'file', 'dev':dev, 'vol':src.getAttribute('file'), 'xml': disk.toxml()})
                 elif dtype == 'network':
                     protocol = src.getAttribute('protocol')
                     if protocol == 'rbd':
-                        disk_lst.append({'type':'rbd', 'dev':dev, 'vol':src.getAttribute('name')})
+                        disk_lst.append({'type':'rbd', 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
                     else:
                         raise APIException(HTTPStatus.BAD_REQUEST, f'disk unknown', f'type={dtype} protocol={protocol}')
                 else:

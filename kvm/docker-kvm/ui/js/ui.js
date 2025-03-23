@@ -85,6 +85,7 @@ function show_vms(host, vms) {
         var disks = JSON.parse(item[key]);
         disks.forEach(disk => {
           table += `<tr><th width="20%" title="disk">${disk.type}</th><td>${disk.vol}</td></tr>`;
+          //table += `<tr><th width="20%">xml</th><td>${disk.xml.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td></tr>`;
         });
       } else if (key === 'nets') {
         var nets = JSON.parse(item[key]);
