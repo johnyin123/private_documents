@@ -162,6 +162,7 @@ class MyApp(object):
         results = vmmanager.VMManager(host.name, host.url).list_domains()
         for dom in results:
             item = dom._asdict()
+            # only list domains need KVMGuest.Upsert.
             database.KVMGuest.Upsert(kvmhost=host.name, arch=host.arch, **item)
             lst.append(item)
         return lst
@@ -205,7 +206,6 @@ class MyApp(object):
                 else:
                     logger.error(f'attach_device {gold} nofoudn')
                     raise APIException(HTTPStatus.BAD_REQUEST, 'attach', f'gold {gold} nofound')
-        database.KVMGuest.Upsert(kvmhost=host.name, arch=host.arch, **dom._asdict())
         xml = tpl.gen_xml(**req_json)
         env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
         return flask.Response(device.generate(vmmgr, xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
@@ -234,7 +234,6 @@ class MyApp(object):
         req_json['vm_arch'] = host.arch
         xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
         dom = vmmanager.VMManager(host.name, host.url).create_vm(req_json['vm_uuid'], xml)
-        database.KVMGuest.Upsert(kvmhost=host.name, arch=host.arch, **dom._asdict())
         mdconfig = dom.mdconfig
         logger.info(f'{req_json["vm_uuid"]} {mdconfig}')
         enum = req_json.get('enum', None)
@@ -311,7 +310,6 @@ class MyApp(object):
                 try:
                     domains = vmmanager.VMManager(host.name, host.url).list_domains()
                     for dom in domains:
-                        database.KVMGuest.Upsert(kvmhost=host.name, arch=host.arch, **dom._asdict())
                         yield f'{host.name} {dom.uuid}\n'
                 except Exception as e:
                     yield f'excetpin {e} continue\n'

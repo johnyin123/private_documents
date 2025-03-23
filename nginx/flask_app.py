@@ -28,7 +28,6 @@ def create_app(config: dict={}, json: bool=False) -> flask.Flask:
     app = flask.Flask(__name__, static_url_path=cfg['STATIC_URL_PATH'], static_folder=cfg['STATIC_FOLDER'])
     app.config.from_mapping(cfg)
     app.secret_key = os.urandom(12)
-    logger.info(f'current running user: {os.getlogin()}')
     if json:
         # for unicode json
         app.json.ensure_ascii = False
