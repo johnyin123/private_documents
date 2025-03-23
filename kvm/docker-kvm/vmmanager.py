@@ -3,6 +3,12 @@ import libvirt, xml.dom.minidom, json
 from exceptions import APIException, HTTPStatus
 from flask_app import logger
 
+def getlist_without_key(arr, *keys):
+    return [
+        {k: v for k, v in dic.items() if k not in keys}
+        for dic in arr
+    ]
+
 def kvm_error(e: libvirt.libvirtError, msg: str):
     logger.exception(f'{msg}')
     err_code = e.get_error_code()
@@ -32,8 +38,8 @@ class LibvirtDomain:
                 'mdconfig': json.dumps(self.mdconfig),
                 'maxcpu':self.maxcpu, 'maxmem':self.maxmem,
                 'cputime':self.cputime, 'state':state_desc,
-                'disks': json.dumps(self.disks),
-                'nets': json.dumps(self.nets)
+                'disks': json.dumps(getlist_without_key(self.disks, 'xml')),
+                'nets': json.dumps(getlist_without_key(self.nets, 'xml'))
                }
 
     def get_display(self):
@@ -141,7 +147,7 @@ class LibvirtDomain:
             mac = net.getElementsByTagName('mac')[0].getAttribute('address')
             # source = net.getElementsByTagName('source')[0].getAttribute('network') ?
             # source = net.getElementsByTagName('source')[0].getAttribute('bridge') ?
-            net_lst.append({'type':dtype, 'mac':mac})
+            net_lst.append({'type':dtype, 'mac':mac, 'xml':net.toxml()})
         return net_lst
 
     @property
@@ -255,3 +261,20 @@ class VMManager:
             dom.attachDeviceFlags(xml, flags)
         except libvirt.libvirtError as e:
             kvm_error(e, f'{uuid} attach_device')
+
+    def detach_device(self, uuid, dev):
+        # dev = sda/vda....
+        try:
+            dom = self.conn.lookupByUUIDString(uuid)
+            domain = LibvirtDomain(dom)
+            for disk in domain.disks:
+                if disk['dev'] == dev:
+                    xml = disk['xml']
+                    logger.info(xml)
+                    flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
+                    if domain.state == libvirt.VIR_DOMAIN_RUNNING:
+                        flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
+                    dom.detachDeviceFlags(xml, flags)
+                    return disk['vol']
+        except libvirt.libvirtError as e:
+            kvm_error(e, f'{uuid} detach_device {dev}')

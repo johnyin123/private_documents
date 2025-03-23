@@ -88,6 +88,7 @@ class MyApp(object):
         web.add_url_rule('/vm/stop/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm, methods=['GET'])
         web.add_url_rule('/vm/stop/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm_forced, methods=['POST'])
         web.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.attach_device, methods=['POST'])
+        web.add_url_rule('/vm/detach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.detach_device, methods=['POST'])
         web.add_url_rule('/ssh', view_func=myapp.ssh, methods=['GET'])
         web.add_url_rule('/scp', view_func=myapp.scp, methods=['GET'])
         return web
@@ -208,6 +209,19 @@ class MyApp(object):
         xml = tpl.gen_xml(**req_json)
         env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
         return flask.Response(device.generate(vmmgr, xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
+
+    def detach_device(self, hostname, uuid, name):
+        host = database.KVMHost.getHostInfo(hostname)
+        vmmgr = vmmanager.VMManager(host.name, host.url)
+        str_vol = vmmgr.detach_device(uuid, name)
+        vmmgr.refresh_all_pool()
+        logger.info(f'remove disk {str_vol}')
+        try:
+            vol = vmmgr.conn.storageVolLookupByPath(str_vol)
+            vol.delete()
+        except Exception:
+            return return_ok(f"detach_device {name} {uuid} on {hostname} ok, failed: {str_vol}")
+        return return_ok(f"detach_device {name} {uuid} on {hostname} ok")
 
     def create_vm(self, hostname):
         req_json = flask.request.json

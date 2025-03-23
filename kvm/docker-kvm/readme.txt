@@ -63,6 +63,8 @@ echo 'add disk' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POS
  "size":"10G"
 }
 EOF
+dev=vda
+echo 'del disk' && curl -k -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/detach_device/${host}/${uuid}/${dev}
 device=net-br-ext
 device=debian_installcd
 echo "add ${device} noargs" && curl -k -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/attach_device/${host}/${uuid}/${device}

@@ -236,7 +236,7 @@ server {
             if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app;
         }
-        location ~* ^/vm/(create|attach_device)/ {
+        location ~* ^/vm/(create|attach_device|detach_device)/ {
             if ($request_method !~ ^(POST)$ ) { return 405; }
             # # for server stream output
             proxy_buffering                    off;
