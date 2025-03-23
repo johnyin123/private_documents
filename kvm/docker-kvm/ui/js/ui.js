@@ -32,8 +32,8 @@ function show_all_db_vms(view) {
       const index = config.g_hosts.findIndex(element => element.name === item.kvmhost);
       table += `<div class="vms-wrapper">`;
       table += `<div class="vms-wrapper-header"><h2>GUEST</h2>`;
-      table += `<button title='GOTO HOST' onclick='on_menu_host(config.g_hosts, ${index})'><i class="fa fa-cog"></i></button>`
-      table += `</div>`
+      table += `<button title='GOTO HOST' onclick='on_menu_host(config.g_hosts, ${index})'><i class="fa fa-cog"></i></button>`;
+      table += `</div>`;
       table += `<table>`;
       for(var key in item) {
         if(key === 'disks') {
@@ -202,7 +202,7 @@ function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
   xhr.onloadend = function() { overlayoff(); /*as finally*/ };
   xhr.open(method, url, true);
   //xhr.setRequestHeader('Pragma', 'no-cache');
-  xhr.setRequestHeader('Content-Type', 'application/json')
+  xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.timeout = tmout;
   xhr.onreadystatechange = function() {
     if(this.readyState === 3 && this.status === 200) {
@@ -237,7 +237,7 @@ function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
   overlayon();
 }
 function vmlist(host) {
-  document.getElementById("vms").innerHTML = ''
+  document.getElementById("vms").innerHTML = '';
   getjson('GET', `/vm/list/${host}`, function(res) {
     var vms = JSON.parse(res);
     document.getElementById("vms").innerHTML = show_vms(host, vms);
@@ -262,7 +262,7 @@ function getjson_result(res) {
         dispok(`${desc} ${JSON.stringify(result)}`);
       }
     } else {
-      disperr(result.code, result.name, result.desc)
+      disperr(result.code, result.name, result.desc);
     }
   } catch (e) {
     disperr(999, `local error`, `${e}, ${res}`);
@@ -270,28 +270,28 @@ function getjson_result(res) {
 }
 function start(host, uuid) {
   getjson('GET', `/vm/start/${host}/${uuid}`, function(res) {
-    getjson_result(res)
+    getjson_result(res);
     vmlist(host);
   }, null, null, 60000);
 }
 function stop(host, uuid) {
   if (!confirm(`Stop ${uuid}?`)) { return; }
   getjson('GET', `/vm/stop/${host}/${uuid}`, function(res) {
-    getjson_result(res)
+    getjson_result(res);
     vmlist(host);
   });
 }
 function force_stop(host, uuid) {
   if (!confirm(`Force Stop ${uuid}?`)) { return; }
   getjson('POST', `/vm/stop/${host}/${uuid}`, function(res) {
-    getjson_result(res)
+    getjson_result(res);
     vmlist(host);
   }, null, null, 60000);
 }
 function undefine(host, uuid) {
   if (!confirm(`Undefine ${uuid}?`)) { return; }
   getjson('GET', `/vm/delete/${host}/${uuid}`, function(res) {
-    getjson_result(res)
+    getjson_result(res);
     vmlist(host);
   });
 }
@@ -302,13 +302,13 @@ function display(host, uuid) {
       //document.getElementById("display").src = result.display;
       window.open(result.display, "_blank");
     } else {
-      disperr(result.code, result.name, result.desc)
+      disperr(result.code, result.name, result.desc);
     }
   });
 }
 function do_create(host, res) {
   getjson('POST', `/vm/create/${host}`, function(res) {
-    getjson_result(res)
+    getjson_result(res);
     vmlist(host);
   }, res);
 }
@@ -318,7 +318,7 @@ function create_vm(host, arch) {
   getjson('GET', `/vm/freeip/`, function(res) {
     var ips = JSON.parse(res);
     vm_ip.value = ips.cidr;
-    vm_gw.value = ips.gateway
+    vm_gw.value = ips.gateway;
   });
   const form = document.getElementById('createvm_form');
   form.addEventListener('submit', function(event) {
@@ -337,7 +337,7 @@ function do_add(host, uuid, res) {
   }
   console.log(JSON.stringify(res));
   getjson('POST', `/vm/attach_device/${host}/${uuid}/${res.device}`, function(res) {
-    getjson_result(getLastLine(res))
+    getjson_result(getLastLine(res));
     vmlist(host);
   }, res, function(res) {
     const overlay_output = document.querySelector("#overlay_output");
@@ -404,7 +404,7 @@ function add_iso(host, uuid) {
 /* create vm add new meta key/value */
 function set_name(r) {
   var i = r.parentNode.parentNode.rowIndex;
-  var input = document.getElementById("table_meta_data").rows[i].cells[1].getElementsByTagName('input')
+  var input = document.getElementById("table_meta_data").rows[i].cells[1].getElementsByTagName('input');
   input[0].name=r.value;
 }
 function del_meta(r) {
