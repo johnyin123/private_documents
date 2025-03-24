@@ -34,7 +34,7 @@ DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db')
 
 class config:
     ISO_DIR = os.path.join(OUTDIR, 'iso')
-    GOLD_DIR = os.path.join(OUTDIR, 'disk')
+    GOLD_DIR = os.path.join(OUTDIR, 'gold')
     ACTION_DIR = os.path.join(OUTDIR, 'actions')
     DEVICE_DIR = os.path.join(OUTDIR, 'devices')
     DOMAIN_DIR = os.path.join(OUTDIR, 'domains')
