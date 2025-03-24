@@ -426,7 +426,7 @@ function add_meta() {
   var c_name = newRow.insertCell(0);
   var c_value = newRow.insertCell(1);
   var del_btn = newRow.insertCell(2);
-  c_name.innerHTML = '<input type="text"/ placeholder="name" onChange="set_name(this)">';
+  c_name.innerHTML = '<input type="text"/ placeholder="name" onChange="set_name(this)" required>';
   c_value.innerHTML = '<input type="text" placeholder="value" required>';
   del_btn.innerHTML = '<input type="button" value="Remove" onclick="del_meta(this)"/>';
 }
