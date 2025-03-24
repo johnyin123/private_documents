@@ -111,15 +111,15 @@ class KVMGuest(Base):
     arch = Column(String(8),nullable=False)
     uuid = Column(String,nullable=False,index=True,unique=True,primary_key=True)
     desc = Column(String,nullable=False)
+    curcpu = Column(Integer,nullable=False,server_default='0')
+    curmem = Column(Integer,nullable=False,server_default='0')
+    mdconfig = Column(JSON,nullable=False)
     maxcpu = Column(Integer,nullable=False,server_default='0')
     maxmem = Column(Integer,nullable=False,server_default='0')
-    curmem = Column(Integer,nullable=False,server_default='0')
-    curcpu = Column(Integer,nullable=False,server_default='0')
     cputime = Column(Integer,nullable=False,server_default='0')
     state = Column(String)
     disks = Column(JSON,nullable=False)
     nets = Column(JSON,nullable=False)
-    mdconfig = Column(JSON,nullable=False)
 
     @staticmethod
     def Upsert(**kwargs):

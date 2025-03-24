@@ -79,7 +79,7 @@ class MyApp(object):
         return '{ "OK" : "OK" }'
 
 app=MyApp.create()
-# # gunicorn -b 127.0.0.1:5009 --preload --workers=4 --threads=2 --access-logfile='-' 'main:app'
+# # gunicorn -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app'
 # def main():
 #     host = os.environ.get('HTTP_HOST', '0.0.0.0')
 #     port = int(os.environ.get('HTTP_PORT', '18888'))
