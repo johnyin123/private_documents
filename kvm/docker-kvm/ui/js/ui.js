@@ -85,7 +85,7 @@ function show_vms(host, vms) {
         var disks = JSON.parse(item[key]);
         disks.forEach(disk => {
           table += `<tr><th width="20%">
-<button title="Remove Disk" onclick="del_disk('${host}', '${item.uuid}', '${disk.dev}')">${disk.type}<i class="fa fa-trash"></i></button>
+<button style="width:100%;" title="Remove Disk" onclick="del_disk('${host}', '${item.uuid}', '${disk.dev}')">${disk.type}<i class="fa fa-trash"></i></button>
                 </th><td>${disk.vol}</td></tr>`;
           //table += `<tr><th width="20%">xml</th><td>${disk.xml.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td></tr>`;
         });
