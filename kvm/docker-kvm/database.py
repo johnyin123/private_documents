@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-import exceptions, os
+import datetime, os
 from dbi import engine, Session, session, Base
 from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey,JSON
+from exceptions import APIException, HTTPStatus
 from flask_app import logger
 
 class FakeDB:
@@ -27,7 +28,7 @@ class KVMHost(Base):
     active = Column(Integer,nullable=False,server_default='0')
     inactive = Column(Integer,nullable=False,server_default='0')
     desc = Column(String)
-    last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
+    last_modified = Column(DateTime(timezone=True),onupdate=datetime.datetime.now(),default=datetime.datetime.now())
 
     @staticmethod
     def getHostInfo(name):
@@ -35,11 +36,11 @@ class KVMHost(Base):
         result = search(kvmhost_cache_data, 'name', name)
         if len(result) == 1:
             return FakeDB(result[0])
-        raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'host error', f'host {name} nofound')
+        raise APIException(HTTPStatus.BAD_REQUEST, 'host error', f'host {name} nofound')
         # result=session.query(KVMHost).filter_by(name=name).first()
         # if result:
         #     return result
-        # raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'host error', f'host {name} nofound')
+        # raise APIException(HTTPStatus.BAD_REQUEST, 'host error', f'host {name} nofound')
 
     @staticmethod
     def ListHost():
@@ -63,11 +64,11 @@ class KVMDevice(Base):
         result = search(result, 'kvmhost', kvmhost)
         if len(result) == 1:
             return FakeDB(result[0])
-        raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'device error', f'device template {name} nofound')
+        raise APIException(HTTPStatus.BAD_REQUEST, 'device error', f'device template {name} nofound')
         # result=session.query(KVMDevice).filter_by(name=name, kvmhost=kvmhost).first()
         # if result:
         #     return result
-        # raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'device error', f'device template {name} nofound')
+        # raise APIException(HTTPStatus.BAD_REQUEST, 'device error', f'device template {name} nofound')
 
     @staticmethod
     def ListDevice(kvmhost):
@@ -91,11 +92,11 @@ class KVMGold(Base):
         result = search(result, 'arch', arch)
         if len(result) == 1:
             return FakeDB(result[0])
-        raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'golddisk error', f'golddisk {name} nofound')
+        raise APIException(HTTPStatus.BAD_REQUEST, 'golddisk error', f'golddisk {name} nofound')
         # result=session.query(KVMGold).filter_by(name=name, arch=arch).first()
         # if result:
         #     return result
-        # raise exceptions.APIException(exceptions.HTTPStatus.BAD_REQUEST, 'golddisk error', f'golddisk {name} nofound')
+        # raise APIException(HTTPStatus.BAD_REQUEST, 'golddisk error', f'golddisk {name} nofound')
 
     @staticmethod
     def ListGold(arch):

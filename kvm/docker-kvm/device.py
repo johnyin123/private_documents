@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-import os, subprocess, vmmanager, json
+import os, subprocess, vmmanager, json, paramiko
 from config import config
 from flask_app import logger
 from exceptions import APIException, HTTPStatus, return_ok, return_err
-import paramiko
 
 #cmd = ['/usr/bin/python3', 'script.py', '--verbose', 'input.txt']
 def ssh_exec(host,port,username,password,cmd):
@@ -17,9 +16,10 @@ def ssh_exec(host,port,username,password,cmd):
         stdin.close()
         for line in stdout:
             yield line
+        yield return_ok(f'ssh exec ok')
     except Exception as e:
         logger.exception(f'{host}:{port}')
-        raise APIException(HTTPStatus.BAD_REQUEST, 'ssh', f'{e}')
+        yield return_err(998, 'ssh', f'{e}')
     finally:
         ssh.close()
 
@@ -35,9 +35,10 @@ def sftp_get(host, port, username, password, remote_path, local_path):
             logger.info(f"data: {sent} {total}")
         sftp.get(remote_path, local_path, callback=progress_callback)
         # sftp.put(local_path, remote_path)
+        yield return_ok(f'sftp get/put ok')
     except Exception as e:
         logger.exception(f'{host}:{port}')
-        raise APIException(HTTPStatus.BAD_REQUEST, 'ssh', f'{e}')
+        yield return_err(998, 'ssh', f'{e}')
     finally:
         sftp.close()
         ssh.close()
