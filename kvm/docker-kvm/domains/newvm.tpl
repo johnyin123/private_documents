@@ -47,6 +47,7 @@
     <boot dev='network'/>
     <bootmenu enable='yes' timeout='3000'/>
     <smbios mode='sysinfo'/>
+    <bios useserial='yes'/>
   </os>
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>destroy</on_poweroff>
