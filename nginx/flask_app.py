@@ -50,7 +50,8 @@ def json_handle_error(e):
 # -*- coding: utf-8 -*-
 
 import os, flask_app, flask
-logger=flask_app.logger
+from flask_app import logger
+# logger=flask_app.logger
 
 # # exceptions.py
 # from http import HTTPStatus

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os
-import flask_app, flask
+import flask_app, flask, os
 import database, vmmanager, template, device, meta
 from config import config
 from exceptions import APIException, HTTPStatus, return_ok, return_err
@@ -14,7 +13,7 @@ def get_free_ip():
     used_ips = []
     for item in config.NETWORKS:
         ipa = ipaddress.ip_network(item['network'])
-        network += [f'{str(ip)}/{ipa.prefixlen}' for ip in ipa]
+        network += [ f'{str(ip)}/{ipa.prefixlen}' for ip in ipa ]
         used_ips.append(f'{item["gateway"]}/{ipa.prefixlen}')
         used_ips.append(f'{ipa.network_address}/{ipa.prefixlen}')
         used_ips.append(f'{ipa.broadcast_address}/{ipa.prefixlen}')
@@ -38,22 +37,6 @@ def get_free_ip():
                     continue
                 return cidr, item["gateway"]
     return None,None
-
-import functools
-def _make_ssh_command(connhost, connuser, connport, gaddr, gport, gsocket):
-    argv = ["ssh", "ssh"]
-    if connport:
-        argv += ["-p", str(connport)]
-    if connuser:
-        argv += ["-l", connuser]
-    argv += [connhost]
-    if gsocket:
-        argv.append(f'socat STDIO UNIX-CONNECT:{gsocket}')
-    else:
-        argv.append(f'socat STDIO TCP:{gaddr}:{gport}')
-    argv_str = functools.reduce(lambda x, y: x + " " + y, argv[1:])
-    logger.info("Pre-generated ssh command for info: %s", argv_str)
-    return argv_str
 
 def _del_file_noexcept(fn):
     try:
@@ -93,27 +76,52 @@ class MyApp(object):
         web.add_url_rule('/scp', view_func=myapp.scp, methods=['GET'])
         return web
 
-    def ssh(self):
-        host = "192.168.168.1"
-        port = 60022
-        username = "root"
-        password = ""
-        cmd = "cat /etc/*release*;ping -c 4 127.0.0.1;"
-        return flask.Response(device.ssh_exec(host,port,username,password,cmd), mimetype="text/event-stream")
+    def list_host(self):
+        results = database.KVMHost.ListHost()
+        keys = [ 'name', 'arch', 'ipaddr', 'desc', 'last_modified' ]
+        return [
+            {k: v for k, v in dic._asdict().items() if k in keys}
+            for dic in results
+        ]
+        # return [result._asdict() for result in results]
 
-    def scp(self):
-        host = "192.168.168.1"
-        port = 60022
-        username = "root"
-        password = ""
-        remote_path='/home/johnyin/disk/myvm/deepseek.qcow2'
-        local_path='./test.docker'
-        return flask.Response(device.sftp_get(host, port, username, password, remote_path, local_path), mimetype="text/event-stream")
+    def list_device(self, hostname):
+        results = database.KVMDevice.ListDevice(hostname)
+        return [result._asdict() for result in results]
+
+    def list_gold(self, hostname):
+        host = database.KVMHost.getHostInfo(hostname)
+        results = database.KVMGold.ListGold(host.arch)
+        return [result._asdict() for result in results]
 
     def get_domain_xml(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
         xml = vmmanager.VMManager(host.name, host.url).get_domain_xml(uuid)
         return flask.Response(xml, mimetype="application/xml")
+
+    def db_update_domains(self):
+        ## need check check admin ro crontab execute
+        database.KVMGuest.DropAll()
+        hosts = database.KVMHost.ListHost()
+        def updatedb():
+            for host in hosts:
+                try:
+                    domains = vmmanager.VMManager(host.name, host.url).list_domains()
+                    for dom in domains:
+                        yield f'{host.name} {dom.uuid}\n'
+                except Exception as e:
+                    yield f'excetpin {e} continue\n'
+                yield f'{host.name} updated\n'
+            yield f'ALL host updated\n'
+        return flask.Response(updatedb(), mimetype="text/event-stream")
+
+    def db_list_domains(self):
+        guests = database.KVMGuest.ListGuest()
+        return [result._asdict() for result in guests]
+
+    def get_freeip(self):
+        ip, gw = get_free_ip()
+        return return_ok(f'get freeip ok', cidr=ip, gateway=gw)
 
     def get_domain(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
@@ -137,7 +145,7 @@ class MyApp(object):
                 # local need: socat
                 local = f'/tmp/.display.{uuid}'
                 # if not os.path.exists(local):
-                ssh_cmd = _make_ssh_command(host.ipaddr, '', '', server, port, '')
+                ssh_cmd = f'ssh {host.ipaddr} socat STDIO TCP:{server}:{port}'
                 socat_cmd = ('timeout', f'{timeout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
                 pid = os.fork()
                 if pid == 0:
@@ -162,28 +170,10 @@ class MyApp(object):
         results = vmmanager.VMManager(host.name, host.url).list_domains()
         for dom in results:
             item = dom._asdict()
+            lst.append(item)
             # only list domains need KVMGuest.Upsert.
             database.KVMGuest.Upsert(kvmhost=host.name, arch=host.arch, **item)
-            lst.append(item)
         return lst
-
-    def list_gold(self, hostname):
-        host = database.KVMHost.getHostInfo(hostname)
-        results = database.KVMGold.ListGold(host.arch)
-        return [result._asdict() for result in results]
-
-    def list_device(self, hostname):
-        results = database.KVMDevice.ListDevice(hostname)
-        return [result._asdict() for result in results]
-
-    def list_host(self):
-        results = database.KVMHost.ListHost()
-        keys = [ 'name', 'arch', 'ipaddr', 'desc', 'last_modified' ]
-        return [
-            {k: v for k, v in dic._asdict().items() if k in keys}
-            for dic in results
-        ]
-        # return [result._asdict() for result in results]
 
     def attach_device(self, hostname, uuid, name):
         req_json = flask.request.json
@@ -220,7 +210,7 @@ class MyApp(object):
             vol = vmmgr.conn.storageVolLookupByPath(str_vol)
             vol.delete()
         except Exception:
-            return return_ok(f"detach_device {name} {uuid} on {hostname} ok, failed: {str_vol}")
+            return return_ok(f"detach_device {name} {uuid} on {hostname} ok", failed=str_vol)
         return return_ok(f"detach_device {name} {uuid} on {hostname} ok")
 
     def create_vm(self, hostname):
@@ -270,7 +260,7 @@ class MyApp(object):
         _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
         # remove guest list
         database.KVMGuest.Remove(uuid)
-        return return_ok(f'delete vm OK', failed=diskinfo)
+        return return_ok(f'{uuid} delete ok', failed=diskinfo)
 
     def start_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
@@ -294,36 +284,29 @@ class MyApp(object):
         origin=flask.request.environ.get('HTTP_ORIGIN', '')
         logger.info("%s %s:%s, report vm: %s, operation: %s, action: %s", origin, userip, tls_dn, uuid, operation, action)
         if 'file' not in flask.request.files:
-            return { "report": f'{uuid}-{operation}-{action}' }
+            return return_ok(f'{uuid} ok', report=f'{uuid}-{operation}-{action}')
         file = flask.request.files['file']
         domxml = file.read().decode('utf-8')
-        with open(os.path.join(config.ISO_DIR, "{}.xml".format(uuid)), 'w') as f:
+        with open(os.path.join(config.ISO_DIR, f"{uuid}.xml"), 'w') as f:
             f.write(domxml)
         return return_ok(f'{uuid} uploadxml ok')
 
-    def db_update_domains(self):
-        ## need check check admin ro crontab execute
-        database.KVMGuest.DropAll()
-        hosts = database.KVMHost.ListHost()
-        def updatedb():
-            for host in hosts:
-                try:
-                    domains = vmmanager.VMManager(host.name, host.url).list_domains()
-                    for dom in domains:
-                        yield f'{host.name} {dom.uuid}\n'
-                except Exception as e:
-                    yield f'excetpin {e} continue\n'
-                yield f'{host.name} updated\n'
-            yield f'ALL host updated\n'
-        return flask.Response(updatedb(), mimetype="text/event-stream")
+    def ssh(self):
+        host = "192.168.168.1"
+        port = 60022
+        username = "root"
+        password = ""
+        cmd = "cat /etc/*release*;ping -c 4 127.0.0.1;"
+        return flask.Response(device.ssh_exec(host,port,username,password,cmd), mimetype="text/event-stream")
 
-    def db_list_domains(self):
-        guests = database.KVMGuest.ListGuest()
-        return [result._asdict() for result in guests]
-
-    def get_freeip(self):
-        ip, gw = get_free_ip()
-        return return_ok(f'get freeip ok', cidr=ip, gateway=gw)
+    def scp(self):
+        host = "192.168.168.1"
+        port = 60022
+        username = "root"
+        password = ""
+        remote_path='/home/johnyin/disk/myvm/deepseek.qcow2'
+        local_path='./test.docker'
+        return flask.Response(device.sftp_get(host, port, username, password, remote_path, local_path), mimetype="text/event-stream")
 
 # # socat defunct process
 # # subprocess.Popen, device action returncode always 0
