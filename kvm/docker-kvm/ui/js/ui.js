@@ -84,8 +84,8 @@ function show_vms(host, vms) {
       if(key === 'disks') {
         var disks = JSON.parse(item[key]);
         disks.forEach(disk => {
-          table += `<tr><th width="20%">${disk.type}
-<button title="Remove Disk" onclick="del_disk('${host}', '${item.uuid}', '${disk.dev}')"><i class="fa fa-trash"></i></button>
+          table += `<tr><th width="20%">
+<button title="Remove Disk" onclick="del_disk('${host}', '${item.uuid}', '${disk.dev}')">${disk.type}<i class="fa fa-trash"></i></button>
                 </th><td>${disk.vol}</td></tr>`;
           //table += `<tr><th width="20%">xml</th><td>${disk.xml.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td></tr>`;
         });
@@ -308,6 +308,13 @@ function display(host, uuid) {
     }
   });
 }
+function del_disk(host, uuid, dev) {
+  if (!confirm(`delete disk /${host}/${uuid}/${dev} ?`)) { return; }
+  getjson('POST', `/vm/detach_device/${host}/${uuid}/${dev}`, function(res) {
+    getjson_result(res);
+    vmlist(host);
+  });
+}
 function do_create(host, res) {
   getjson('POST', `/vm/create/${host}`, function(res) {
     getjson_result(res);
@@ -368,9 +375,6 @@ function add_disk(host, uuid) {
   }, { once: true });
   form.reset();
   showView('adddisk');
-}
-function del_disk(host, uuid, dev) {
-  if (!confirm(`delete disk /${host}/${uuid}/${dev} ?`)) { return; }
 }
 function add_net(host, uuid) {
   const form = document.getElementById('addnet_form');
