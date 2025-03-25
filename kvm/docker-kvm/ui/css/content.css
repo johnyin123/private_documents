@@ -154,14 +154,14 @@ table, th, td {
 th { text-align: right; text-transform: uppercase; }
 td { text-align: left; }
 th > div { height:100%; }
-th > div:hover {
-  background: var(--blue-color);
-  border-radius: 8px;
-}
 th > div > a {
   display: block;
   width: 100%;
   height:100%;
   text-decoration: none;
   color: var(--white-color);
+}
+th > div > a:hover {
+  background: var(--blue-color);
+  border-radius: 8px;
 }
