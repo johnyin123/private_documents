@@ -19,7 +19,7 @@ function gen_dev_list(jsonobj, devtype) {
   return lst;
 }
 function gen_act(smsg, action, host, parm2, icon) {
-  return `<button title='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
+  return `<button title='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon} fa-lg"></i></button>`;
 }
 function show_all_db_vms(view) {
   dbvms = document.getElementById("dbvms");
@@ -32,27 +32,27 @@ function show_all_db_vms(view) {
       const index = config.g_hosts.findIndex(element => element.name === item.kvmhost);
       table += `<div class="vms-wrapper">`;
       table += `<div class="vms-wrapper-header"><h2>GUEST</h2>`;
-      table += `<button title='GOTO HOST' onclick='on_menu_host(config.g_hosts, ${index})'><i class="fa fa-cog"></i></button>`;
+      table += `<button title='GOTO HOST' onclick='on_menu_host(config.g_hosts, ${index})'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
       table += `</div>`;
       table += `<table>`;
       for(var key in item) {
         if(key === 'disks') {
           var disks = JSON.parse(item[key]);
           disks.forEach(disk => {
-            table += `<tr><th width="20%" title="disk">${disk.type}</th><td>${disk.vol}</td></tr>`;
+            table += `<tr><th width="25%" title="disk">${disk.type}</th><td>${disk.vol}</td></tr>`;
           });
         } else if (key === 'nets') {
           var nets = JSON.parse(item[key]);
           nets.forEach(net => {
-            table += `<tr><th width="20%" title="net">${net.type}</th><td>${net.mac}</td></tr>`;
+            table += `<tr><th width="25%" title="net">${net.type}</th><td>${net.mac}</td></tr>`;
           });
         } else if (key === 'mdconfig') {
           var mdconfig = JSON.parse(item[key]);
           for(var mdkey in mdconfig) {
-            table += `<tr><th width="20%" title="mdconfig">${mdkey}</th><td>${mdconfig[mdkey]}</td></tr>`;
+            table += `<tr><th width="25%" title="mdconfig">${mdkey}</th><td>${mdconfig[mdkey]}</td></tr>`;
           }
         } else {
-          table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
+          table += `<tr><th width="25%">${key}</th><td>${item[key]}</td></tr>`;
         }
       }
       table += "</table>";
@@ -85,25 +85,24 @@ function show_vms(host, vms) {
       if(key === 'disks') {
         var disks = JSON.parse(item[key]);
         disks.forEach(disk => {
-          table += `<tr><th width="20%">
-<button style="width:100%;" title="Remove Disk" onclick="del_device('${host}', '${item.uuid}', '${disk.dev}')">${disk.type}<i class="fa fa-trash"></i></button>
-                </th><td>${disk.vol}</td></tr>`;
-          //table += `<tr><th width="20%">xml</th><td>${disk.xml.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td></tr>`;
+          table += `<tr><th width="25%"><div>
+<a title="Remove Disk" href="javascript:del_device('${host}', '${item.uuid}', '${disk.dev}')">${disk.type}</a>
+                </div></th><td>${disk.vol}</td></tr>`;
         });
       } else if (key === 'nets') {
         var nets = JSON.parse(item[key]);
         nets.forEach(net => {
-          table += `<tr><th width="20%">
-<button style="width:100%;" title="Remove Net" onclick="del_device('${host}', '${item.uuid}', '${net.mac}')">${net.type}<i class="fa fa-trash"></i></button>
-                </th><td>${net.mac}</td></tr>`;
+          table += `<tr><th width="25%"><div>
+<a title="Remove Net" href="javascript:del_device('${host}', '${item.uuid}', '${net.mac}')">${net.type}</a>
+               <div></th><td>${net.mac}</td></tr>`;
         });
       } else if (key === 'mdconfig') {
         var mdconfig = JSON.parse(item[key]);
         for(var mdkey in mdconfig) {
-          table += `<tr><th width="20%" title="mdconfig">${mdkey}</th><td>${mdconfig[mdkey]}</td></tr>`;
+          table += `<tr><th width="25%" title="mdconfig">${mdkey}</th><td>${mdconfig[mdkey]}</td></tr>`;
         }
       } else {
-        table += `<tr><th width="20%">${key}</th><td>${item[key]}</td></tr>`;
+        table += `<tr><th width="25%">${key}</th><td>${item[key]}</td></tr>`;
       }
     }
     table += "</table>";
@@ -120,7 +119,7 @@ function show_host(host) {
   table += `</div></div>`;
   table += `<table>`;
   for(var key in host) {
-    table += `<tr><th width="20%">${key}</th><td>${host[key]}</td></tr>`;
+    table += `<tr><th width="25%">${key}</th><td>${host[key]}</td></tr>`;
   }
   table += '</table>';
   table += '</div>';

@@ -280,7 +280,7 @@ class VMManager:
                         ret = None
             if xml is None:
                 raise APIException(HTTPStatus.BAD_REQUEST, f'detach_device', f'{dev} nofound on vm {uuid}')
-            logger.info(xml)
+            logger.info(f'Remove Device {uuid}: {xml}')
             flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
             if domain.state == libvirt.VIR_DOMAIN_RUNNING:
                 flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE

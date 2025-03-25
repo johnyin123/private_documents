@@ -148,7 +148,20 @@ table {
 table, th, td {
   border: 1px solid var(--grey-color-light);
   border-collapse: collapse;
-  padding: 5px;
+  padding: 3px;
+  height:100%;
 }
+th { text-align: right; text-transform: uppercase; }
 td { text-align: left; }
-th { text-align: right; }
+th > div { height:100%; }
+th > div:hover {
+  background: var(--blue-color);
+  border-radius: 8px;
+}
+th > div > a {
+  display: block;
+  width: 100%;
+  height:100%;
+  text-decoration: none;
+  color: var(--white-color);
+}
