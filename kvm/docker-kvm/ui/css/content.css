@@ -149,7 +149,6 @@ table, th, td {
   border: 1px solid var(--grey-color-light);
   border-collapse: collapse;
   padding: 3px;
-  height:100%;
 }
 th { text-align: right; text-transform: uppercase; }
 td { text-align: left; }
