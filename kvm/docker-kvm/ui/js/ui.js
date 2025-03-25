@@ -67,6 +67,7 @@ function show_vms(host, vms) {
   vms.forEach(item => {
     table += `<div class="vms-wrapper">`;
     table += `<div class="vms-wrapper-header vmstate${item.state}"><h2>GUEST</h2><div>`;
+      table += gen_act('Show XML', 'show_xml', host, item.uuid, 'fa-file-code-o');
     if(item.state === 'RUN') {
       table += gen_act('VNC', 'display', host, item.uuid, 'fa-desktop');
       table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off');
@@ -269,6 +270,12 @@ function getjson_result(res) {
   } catch (e) {
     disperr(999, `local error`, `${e}, ${res}`);
   }
+}
+function show_xml(host, uuid) {
+  getjson('GET', `/vm/xml/${host}/${uuid}`, function(res) {
+    dispok(res.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+    vmlist(host);
+  });
 }
 function start(host, uuid) {
   getjson('GET', `/vm/start/${host}/${uuid}`, function(res) {
