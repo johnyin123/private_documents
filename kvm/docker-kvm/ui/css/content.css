@@ -152,15 +152,14 @@ table, th, td {
 }
 th { text-align: right; text-transform: uppercase; }
 td { text-align: left; }
-th > div { height:100%; }
-th > div > a {
+th > a {
   display: block;
   width: 100%;
   height:100%;
   text-decoration: none;
   color: var(--white-color);
 }
-th > div > a:hover {
+th > a:hover {
   background: var(--blue-color);
   border-radius: 8px;
 }
