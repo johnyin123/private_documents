@@ -204,14 +204,16 @@ class MyApp(object):
         host = database.KVMHost.getHostInfo(hostname)
         vmmgr = vmmanager.VMManager(host.name, host.url)
         str_vol = vmmgr.detach_device(uuid, name)
+        if str_vol is None:
+            return return_ok(f"detach_device {name} vm {uuid} on {hostname} ok")
         vmmgr.refresh_all_pool()
         logger.info(f'remove disk {str_vol}')
         try:
             vol = vmmgr.conn.storageVolLookupByPath(str_vol)
             vol.delete()
         except Exception:
-            return return_ok(f"detach_device {name} {uuid} on {hostname} ok", failed=str_vol)
-        return return_ok(f"detach_device {name} {uuid} on {hostname} ok")
+            return return_ok(f"detach_device {name} vm {uuid} on {hostname} ok", failed=str_vol)
+        return return_ok(f"detach_device {name} vm {uuid} on {hostname} ok")
 
     def create_vm(self, hostname):
         req_json = flask.request.json

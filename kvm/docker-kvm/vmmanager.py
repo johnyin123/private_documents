@@ -264,17 +264,27 @@ class VMManager:
 
     def detach_device(self, uuid, dev):
         # dev = sda/vda....
+        xml = None
+        ret = None
         try:
             dom = self.conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
             for disk in domain.disks:
                 if disk['dev'] == dev:
                     xml = disk['xml']
-                    logger.info(xml)
-                    flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
-                    if domain.state == libvirt.VIR_DOMAIN_RUNNING:
-                        flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
-                    dom.detachDeviceFlags(xml, flags)
-                    return disk['vol']
+                    ret = disk['vol']
+            if xml is None:
+                for net in domain.nets:
+                    if net['mac'] == dev:
+                        xml = net['xml']
+                        ret = None
+            if xml is None:
+                raise APIException(HTTPStatus.BAD_REQUEST, f'detach_device', f'{dev} nofound on vm {uuid}')
+            logger.info(xml)
+            flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
+            if domain.state == libvirt.VIR_DOMAIN_RUNNING:
+                flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
+            dom.detachDeviceFlags(xml, flags)
+            return ret
         except libvirt.libvirtError as e:
             kvm_error(e, f'{uuid} detach_device {dev}')

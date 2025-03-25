@@ -86,14 +86,16 @@ function show_vms(host, vms) {
         var disks = JSON.parse(item[key]);
         disks.forEach(disk => {
           table += `<tr><th width="20%">
-<button style="width:100%;" title="Remove Disk" onclick="del_disk('${host}', '${item.uuid}', '${disk.dev}')">${disk.type}<i class="fa fa-trash"></i></button>
+<button style="width:100%;" title="Remove Disk" onclick="del_device('${host}', '${item.uuid}', '${disk.dev}')">${disk.type}<i class="fa fa-trash"></i></button>
                 </th><td>${disk.vol}</td></tr>`;
           //table += `<tr><th width="20%">xml</th><td>${disk.xml.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td></tr>`;
         });
       } else if (key === 'nets') {
         var nets = JSON.parse(item[key]);
         nets.forEach(net => {
-          table += `<tr><th width="20%" title="net">${net.type}</th><td>${net.mac}</td></tr>`;
+          table += `<tr><th width="20%">
+<button style="width:100%;" title="Remove Net" onclick="del_device('${host}', '${item.uuid}', '${net.mac}')">${net.type}<i class="fa fa-trash"></i></button>
+                </th><td>${net.mac}</td></tr>`;
         });
       } else if (key === 'mdconfig') {
         var mdconfig = JSON.parse(item[key]);
@@ -315,8 +317,8 @@ function display(host, uuid) {
     }
   });
 }
-function del_disk(host, uuid, dev) {
-  if (!confirm(`delete disk /${host}/${uuid}/${dev} ?`)) { return; }
+function del_device(host, uuid, dev) {
+  if (!confirm(`delete device /${host}/${uuid}/${dev} ?`)) { return; }
   getjson('POST', `/vm/detach_device/${host}/${uuid}/${dev}`, function(res) {
     getjson_result(res);
     vmlist(host);
