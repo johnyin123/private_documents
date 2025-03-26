@@ -33,12 +33,19 @@ DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db')
 # print(config.version)  # Output: MyApp
 
 class config:
+    # # iso meta service dir & iso cd device dir
     ISO_DIR = os.path.join(OUTDIR, 'iso')
+    # # gold disk dir
     GOLD_DIR = os.path.join(OUTDIR, 'gold')
+    # # device action script dir
     ACTION_DIR = os.path.join(OUTDIR, 'actions')
+    # # device template dir
     DEVICE_DIR = os.path.join(OUTDIR, 'devices')
+    # # domain template dir
     DOMAIN_DIR = os.path.join(OUTDIR, 'domains')
+    # # cloud-init meta template dir
     META_DIR = os.path.join(OUTDIR, 'meta')
+    # # vnc/spice access token dir
     TOKEN_DIR = os.path.join(OUTDIR, 'token')
     # # NOCLOUD meta service data dir
     NOCLOUD_DIR = os.path.join(OUTDIR, 'nocloud')
