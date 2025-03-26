@@ -42,7 +42,7 @@ from dbi import engine, Session, session, Base
 from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey
 class VMInfo(Base):
     __tablename__ = "vminfo"
-    tm = Column(DateTime, nullable=False, index=True, primary_key=True, server_default=func.current_timestamp())
+    tm = Column(DateTime, nullable=False, index=True, primary_key=True, server_default=func.current_timestamp(),comment='key desc')
     name = Column(String(50), nullable=False, index=True, primary_key=True)
     data = Column(String, nullable=False) #unique=True
     # timestamp = Column(DateTime(timezone=True))

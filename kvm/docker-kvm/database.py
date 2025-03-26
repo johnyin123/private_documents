@@ -17,17 +17,17 @@ def search(arr, key, val):
 
 class KVMHost(Base):
     __tablename__ = "kvmhost"
-    name = Column(String(19),nullable=False,index=True,unique=True,primary_key=True)
-    url = Column(String,nullable=False,unique=True)
-    tpl = Column(String,nullable=False)
+    name = Column(String(19),nullable=False,index=True,unique=True,primary_key=True,comment='KVM主机名称')
+    url = Column(String,nullable=False,unique=True,comment='libvirt URI')
+    tpl = Column(String,nullable=False,comment='domain模板XML文件')
     # # uname -m
-    arch = Column(String(8),nullable=False)
+    arch = Column(String(8),nullable=False,comment='cpu架构')
     # # vnc display & ssh ipaddr
-    ipaddr = Column(String,nullable=False)
-    sshport = Column(Integer,nullable=False,server_default='22')
+    ipaddr = Column(String,nullable=False,comment='ssh/vnc/spice,ip地址')
+    sshport = Column(Integer,nullable=False,server_default='22',comment='ssh端口')
     active = Column(Integer,nullable=False,server_default='0')
     inactive = Column(Integer,nullable=False,server_default='0')
-    desc = Column(String)
+    desc = Column(String,comment='主机描述')
     last_modified = Column(DateTime(timezone=True),onupdate=datetime.datetime.now(),default=datetime.datetime.now())
 
     @staticmethod
@@ -49,12 +49,12 @@ class KVMHost(Base):
 
 class KVMDevice(Base):
     __tablename__ = "kvmdevice"
-    kvmhost = Column(String(19),ForeignKey('kvmhost.name'),nullable=False,index=True,primary_key=True)
-    name = Column(String(19),nullable=False,index=True,primary_key=True)
-    action = Column(String(19),nullable=False,server_default='',primary_key=True)
-    devtype = Column(Enum('disk','iso','net'),nullable=False)
-    tpl = Column(String,nullable=False)
-    desc = Column(String,nullable=False)
+    kvmhost = Column(String(19),ForeignKey('kvmhost.name'),nullable=False,index=True,primary_key=True,comment='KVM主机名称')
+    name = Column(String(19),nullable=False,index=True,primary_key=True,comment='device名称')
+    action = Column(String(19),nullable=False,server_default='',primary_key=True,comment='device attach后执行的脚本')
+    devtype = Column(Enum('disk','iso','net'),nullable=False,comment='device类型')
+    tpl = Column(String,nullable=False,comment='device模板XML文件')
+    desc = Column(String,nullable=False,comment='device描述')
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
 
     @staticmethod
@@ -79,10 +79,10 @@ class KVMDevice(Base):
 
 class KVMGold(Base):
     __tablename__ = "kvmgold"
-    name = Column(String(19),nullable=False,index=True,primary_key=True)
-    arch = Column(String(8),nullable=False,index=True,primary_key=True)
-    tpl = Column(String,nullable=False,unique=True)
-    desc = Column(String,nullable=False)
+    name = Column(String(19),nullable=False,index=True,primary_key=True,comment='Gold盘名称')
+    arch = Column(String(8),nullable=False,index=True,primary_key=True,comment='Gold盘对应的CPU架构')
+    tpl = Column(String,nullable=False,unique=True,comment='Gold盘qcow2格式模板文件')
+    desc = Column(String,nullable=False,comment='Gold盘描述')
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
 
     @staticmethod
