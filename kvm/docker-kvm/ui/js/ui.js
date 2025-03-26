@@ -85,16 +85,12 @@ function show_vms(host, vms) {
       if(key === 'disks') {
         var disks = JSON.parse(item[key]);
         disks.forEach(disk => {
-          table += `<tr><th width="25%">
-<a title="Remove Disk" href="javascript:del_device('${host}', '${item.uuid}', '${disk.dev}')">${disk.type}</a>
-                </th><td>${disk.vol}</td></tr>`;
+          table += `<tr><th width="25%"><a title="Remove Disk ${disk.vol}" href="javascript:del_device('${host}', '${item.uuid}', '${disk.dev}')">${disk.dev}</a></th><td title="${disk.vol}">DISK: ${disk.type}</td></tr>`;
         });
       } else if (key === 'nets') {
         var nets = JSON.parse(item[key]);
         nets.forEach(net => {
-          table += `<tr><th width="25%">
-<a title="Remove Net" href="javascript:del_device('${host}', '${item.uuid}', '${net.mac}')">${net.type}</a>
-               </th><td>${net.mac}</td></tr>`;
+          table += `<tr><th width="25%"><a title="Remove Net" href="javascript:del_device('${host}', '${item.uuid}', '${net.mac}')">${net.type}</a></th><td>${net.mac}</td></tr>`;
         });
       } else if (key === 'mdconfig') {
         var mdconfig = JSON.parse(item[key]);
