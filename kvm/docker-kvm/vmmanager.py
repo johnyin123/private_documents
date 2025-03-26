@@ -160,6 +160,7 @@ class VMManager:
     def __init__(self, name, uri):
         self.name = name
         try:
+            libvirt.virEventRegisterDefaultImpl()
             self.conn = libvirt.open(uri)
             info = self.conn.getInfo()
             logger.info(f'connect: {self.hostname} arch={info[0]} mem={info[1]} cpu={info[2]} mhz={info[3]}')

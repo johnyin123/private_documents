@@ -468,7 +468,7 @@ from contextlib import contextmanager
 
 @contextmanager
 def connect(uri: str):
-    # virConnect
+    libvirt.virEventRegisterDefaultImpl() # console newStream
     conn = libvirt.open(uri)
     try:
         yield conn
@@ -523,3 +523,21 @@ with connect('qemu+tls://192.168.168.1/system') as conn:
     mdconfig = meta.get_metadata()
     logger.info(f'{mdconfig}')
 
+
+def stream_callback(stream: libvirt.virStream, events: int, other: libvirt.virStream) -> None:
+    try:
+        got = other.recv(1024)
+        os.write(0, got)
+    except Exception:
+        logger.exception('')
+        return
+
+#     readbuf = os.read(fd, 1024)
+#     stream.send(readbuf)
+with connect('qemu+tls://192.168.168.1/system') as conn:
+    dom = conn.lookupByUUIDString('6f5d8bf6-d580-4946-9541-13fa98b4acf4')
+    stream = conn.newStream(libvirt.VIR_STREAM_NONBLOCK)
+    dom.openConsole(None, stream, 0)
+    stream.eventAddCallback(libvirt.VIR_STREAM_EVENT_READABLE, stream_callback, stream)
+while True:
+    libvirt.virEventRunDefaultImpl()
