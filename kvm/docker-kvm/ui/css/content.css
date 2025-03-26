@@ -44,7 +44,7 @@ div.vms-wrapper-header {
 div.host-wrapper-header h2,
 div.vms-wrapper-header h2 {
   font-weight: 700;
-  font-size: 20px;
+  font-size: 140%;
 }
 div.host-wrapper-header button,
 div.vms-wrapper-header button {
@@ -52,7 +52,7 @@ div.vms-wrapper-header button {
   border: none;
   cursor: pointer;
   background: transparent;
-  font-size: 22px;
+  font-size: 140%;
   min-width: 30px;
   line-height: 40px;
   display: inline-block;
@@ -86,7 +86,7 @@ div.error > h2 {
 }
 .form-wrapper-header h2 {
   font-weight: 700;
-  font-size: 20px;
+  font-size: 140%;
 }
 .form-wrapper-header button.close {
   padding: 0;

@@ -57,11 +57,11 @@ class MyApp(object):
         web.add_url_rule('/tpl/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
         web.add_url_rule('/tpl/gold/<string:hostname>', view_func=myapp.list_gold, methods=['GET'])
         ## start db oper guest ##
-        web.add_url_rule('/vm/xml/<string:hostname>/<string:uuid>', view_func=myapp.get_domain_xml, methods=['GET'])
         web.add_url_rule('/vm/update/', view_func=myapp.db_update_domains, methods=['GET'])
         web.add_url_rule('/vm/list/', view_func=myapp.db_list_domains, methods=['GET'])
-        web.add_url_rule('/vm/freeip/',view_func=myapp.get_freeip, methods=['GET'])
+        web.add_url_rule('/vm/freeip/',view_func=myapp.db_freeip, methods=['GET'])
         ## end db oper guest ##
+        web.add_url_rule('/vm/xml/<string:hostname>/<string:uuid>', view_func=myapp.get_domain_xml, methods=['GET'])
         web.add_url_rule('/vm/list/<string:hostname>', view_func=myapp.list_domains, methods=['GET'])
         web.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=myapp.get_domain, methods=['GET'])
         web.add_url_rule('/vm/display/<string:hostname>/<string:uuid>', view_func=myapp.get_display, methods=['GET'])
@@ -119,7 +119,7 @@ class MyApp(object):
         guests = database.KVMGuest.ListGuest()
         return [result._asdict() for result in guests]
 
-    def get_freeip(self):
+    def db_freeip(self):
         ip, gw = get_free_ip()
         return return_ok(f'get freeip ok', cidr=ip, gateway=gw)
 
