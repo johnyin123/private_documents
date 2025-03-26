@@ -265,6 +265,7 @@ class VMManager:
 
     def detach_device(self, uuid, dev):
         # dev = sda/vda....
+        # dev = mac address
         xml = None
         ret = None
         try:
