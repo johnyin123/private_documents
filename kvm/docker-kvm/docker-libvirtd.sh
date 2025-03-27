@@ -260,9 +260,14 @@ server {
         return 404;
     }
     location /websockify {
-        proxy_pass http://websockify;
+        set $mykey "P@ssw@rd4Display";
+        secure_link $arg_k,$arg_e;
+        secure_link_md5 "$mykey$secure_link_expires$arg_token$uri";
+        if ($secure_link = "") { return 403; }
+        if ($secure_link = "0") { return 410; }
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
+        proxy_pass http://websockify;
     }
     location  ~* ^/(novnc|spice|ui) {
         # novnc/spice/ui

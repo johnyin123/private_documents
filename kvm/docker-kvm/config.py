@@ -58,6 +58,8 @@ class config:
     SOCAT_TMOUT = '10m'
     VNC_DISP_URL = 'https://vmm.registry.local/novnc/vnc_lite.html'
     SPICE_DISP_URL = 'https://vmm.registry.local/spice/spice_auto.html'
+    SECURE_LINK_MYKEY = 'P@ssw@rd4Display'
+    SECURE_LINK_EXPIRE = 24 * 60  # minutes
     # # main:attach_device
     ATTACH_DEFAULT = {'size':'10','gold':''}
     META_DEFAULT = {'rootpass':'pass123','hostname':'vmsrv'}

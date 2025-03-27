@@ -306,7 +306,8 @@ function display(host, uuid) {
     var result = JSON.parse(res);
     if(result.result === 'OK') {
       //document.getElementById("display").src = result.display;
-      window.open(result.display, "_blank");
+      // window.open(result.display, "_blank");
+      getjson_result(res);
     } else {
       disperr(result.code, result.name, result.desc);
     }

@@ -72,6 +72,7 @@
     </div>
     <form id="createvm_form">
       <label>META:<select name="enum">
+        <!--TODO: radio box-->
         <option value="" selected>ISO</option>
         <option value="NOCLOUD">NOCLOUD</option>
       </select></label>
