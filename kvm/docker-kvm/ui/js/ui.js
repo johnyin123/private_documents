@@ -19,7 +19,7 @@ function gen_dev_list(jsonobj, devtype) {
   return lst;
 }
 function gen_act(smsg, action, host, parm2, icon) {
-  return `<button title='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon} fa-lg"></i></button>`;
+  return `<button title='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
 }
 function show_all_db_vms(view) {
   dbvms = document.getElementById("dbvms");
