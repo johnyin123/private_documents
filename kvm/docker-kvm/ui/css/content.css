@@ -143,7 +143,6 @@ textarea:invalid, input:invalid {
 table {
   width: 100%;
   table-layout: fixed;
-  word-wrap: break-word;
 }
 table, th, td {
   border: 1px solid var(--grey-color-light);
@@ -151,15 +150,20 @@ table, th, td {
   padding: 3px;
 }
 th { text-align: right; text-transform: uppercase; }
-td { text-align: left; }
-th > a {
+td { text-align: left; white-space: nowrap;}
+td.truncate {
+  text-overflow:ellipsis;
+  overflow: hidden;
+  max-width:1px;
+}
+td > a {
   display: block;
   width: 100%;
   height:100%;
   text-decoration: none;
   color: var(--green-color);
 }
-th > a:hover {
+td > a:hover {
   background: var(--blue-color);
   border-radius: 8px;
 }
