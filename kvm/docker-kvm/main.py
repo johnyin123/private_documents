@@ -7,14 +7,15 @@ from config import config
 from exceptions import APIException, HTTPStatus, return_ok, return_err
 from flask_app import logger
 
-import base64, hashlib, time
+import base64, hashlib, time, datetime
 def gen_secure_link_md5(uuid, secret, minutes):
     epoch = round(time.time() + minutes*60)
+    dt = datetime.datetime.fromtimestamp(epoch).isoformat()
     secure_link = f"{secret}{epoch}{uuid}/websockify/".encode('utf-8')
     hash = hashlib.md5(secure_link).digest()
     base64_hash = base64.urlsafe_b64encode(hash)
     str_hash = base64_hash.decode('utf-8').rstrip('=')
-    return f"websockify/%3Ftoken={uuid}%26k={str_hash}%26e={epoch}"
+    return f"websockify/%3Ftoken={uuid}%26k={str_hash}%26e={epoch}", dt
 
 import ipaddress, json, random
 def get_free_ip():
@@ -167,11 +168,11 @@ class MyApp(object):
             with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
                 # f.write(f'{uuid}: unix_socket:{path}')
                 f.write(f'{uuid}: {server}')
-            path = gen_secure_link_md5(uuid, config.SECURE_LINK_MYKEY, config.SECURE_LINK_EXPIRE)
+            path, dt = gen_secure_link_md5(uuid, config.SECURE_LINK_MYKEY, config.SECURE_LINK_EXPIRE)
             if proto == 'vnc':
-                return return_ok('vnc', display=f'{config.VNC_DISP_URL}?password={passwd}&path={path}')
+                return return_ok('vnc', display=f'{config.VNC_DISP_URL}?password={passwd}&path={path}', expire=dt)
             elif proto == 'spice':
-                return return_ok('spice', display=f'{config.SPICE_DISP_URL}?password={passwd}&path={path}')
+                return return_ok('spice', display=f'{config.SPICE_DISP_URL}?password={passwd}&path={path}', expire=dt)
         raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no graphics define')
 
     def list_domains(self, hostname):
