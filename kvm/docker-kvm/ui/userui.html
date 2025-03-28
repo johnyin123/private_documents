@@ -121,7 +121,6 @@ td.truncate {
   <div class="header">
     <div class="left_area">GUEST <span>Manager</span></div>
     <div class="right_area">
-      <input type="text" id="strtoken"/>
       <input type="hidden" id="token"/>
     </div>
   </div>
@@ -268,17 +267,11 @@ function GetURLParameter(sParam) {
   }
   return '';
 }
-const strtoken = document.getElementById('strtoken');
-strtoken.addEventListener("change", function() {
-  token.value = decodeURLSafeBase64(strtoken.value);
-});
-strtoken.value = GetURLParameter('token');
-if('' === strtoken.value || typeof strtoken.value === 'undefined') {
-  strtoken.type="text";
-} else {
-  strtoken.type="hidden";
+var strtoken = GetURLParameter('token');
+if(strtoken == null || '' == strtoken || typeof strtoken == 'undefined') {
+  strtoken = prompt("Please enter token:", "");
 }
-token.value = decodeURLSafeBase64(strtoken.value);
+token.value = decodeURLSafeBase64(strtoken);
 </script>
 </body>
 </html>
