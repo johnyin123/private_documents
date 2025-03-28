@@ -211,8 +211,12 @@ class VMManager:
             dom = self.conn.lookupByUUIDString(uuid)
             raise APIException(HTTPStatus.CONFLICT, 'create_vm error', f'vm {uuid} exists')
         except libvirt.libvirtError:
-            logger.info(f'create_vm {uuid}')
-        self.conn.defineXML(xml)
+            # not exist
+            pass
+        try:
+            self.conn.defineXML(xml)
+        except libvirt.libvirtError as e:
+            kvm_error(e, 'create_vm')
         return self.get_domain(uuid)
 
     def delete_vm(self, uuid):
