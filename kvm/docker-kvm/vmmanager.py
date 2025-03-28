@@ -181,7 +181,7 @@ class VMManager:
 
     def get_domain_xml(self, uuid):
         try:
-            return self.conn.lookupByUUIDString(uuid).XMLDesc()
+            return LibvirtDomain(self.conn.lookupByUUIDString(uuid)).XMLDesc
         except libvirt.libvirtError as e:
             kvm_error(e, 'get_domain_xml')
 
