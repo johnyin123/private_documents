@@ -76,7 +76,7 @@ class config:
         # when enum=NOCLOUD, nocloud_srv: default=http://169.254.169.254
         # if vm_ram_mb_max/vm_vcpus_max no set then use vm_ram_mb/vm_vcpus, else use a default value. see: domains/newvm.tpl...
         # # VM_DEFULT vars from domains/template. main:create_vm
-        default = {'vm_arch':f'{arch.lower()}','vm_uuid':f'{uuid.uuid4()}','vm_name':'srv','vm_desc':'','vm_ram_mb':1024,'vm_ram_mb_max':16384,'vm_vcpus':1,'vm_vcpus_max':8,'vm_uefi':'','create_tm':datetime.now()}
+        default = {'vm_arch':f'{arch.lower()}','vm_uuid':f'{uuid.uuid4()}','vm_name':'srv','vm_desc':'','vm_ram_mb':1024,'vm_ram_mb_max':16384,'vm_vcpus':1,'vm_vcpus_max':8,'vm_uefi':'','create_tm':datetime.now(),'nocloud_srv':'http://kvm.registry.local'}
         if (arch.lower() == 'x86_64'):
             return { **default }
         elif (arch.lower() == 'aarch64'):

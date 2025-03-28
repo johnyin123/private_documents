@@ -358,16 +358,12 @@ server {
     server_name kvm.registry.local;
     # # only download iso file, and subdir iso
     location ~* \.(iso)$ {
-        client_max_body_size 0;
         autoindex off;
         root ${OUT_DIR}/iso;
     }
-}
-server {
-    listen 169.254.169.254:80;
-    server_name _;
-    location / {
-        client_max_body_size 0;
+    # # only download meta-data/user-data and subdir meta-data/user-data
+    location ~* \/(meta-data|user-data)$ {
+        # listen 169.254.169.254:80;
         autoindex off;
         root ${OUT_DIR}/nocloud;
     }
