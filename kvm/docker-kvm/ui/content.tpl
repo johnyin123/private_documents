@@ -20,6 +20,24 @@
   <embed id="display" width="800" height="600" src="" type="text/html"/>
 </div>
 <!-- ############## -->
+<div id="vmui" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>Input ExpireTime</h2>
+      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
+    </div>
+    <form id="vmui_form">
+      <label>Expire:
+      <div class="group">
+        <input type="date" name="date" required/>
+        <input type="time" name="time" value="23:59:59" required/>
+      </div></label>
+      <input type="reset" value="Reset"/>
+      <input type="submit" value="Submit"/>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
 <div id="addiso" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">

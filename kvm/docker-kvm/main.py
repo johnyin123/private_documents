@@ -8,10 +8,22 @@ from exceptions import APIException, HTTPStatus, return_ok, return_err
 from flask_app import logger
 
 import base64, hashlib, time, datetime
-def gen_secure_link_md5(uuid, secret, minutes):
+def user_access_secure_link(kvmhost, uuid, mykey, epoch):
+    # secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
+    dt = datetime.datetime.fromtimestamp(epoch).isoformat()
+    secure_link = f"{mykey}{epoch}{kvmhost}{uuid}".encode('utf-8')
+    hash = hashlib.md5(secure_link).digest()
+    base64_hash = base64.urlsafe_b64encode(hash)
+    str_hash = base64_hash.decode('utf-8').rstrip('=')
+    tail_uri=f'{kvmhost}/{uuid}?k={str_hash}&e={epoch}'
+    token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
+    return f'{token}', dt
+
+def websockify_secure_link(uuid, mykey, minutes):
+    # secure_link_md5 "$mykey$secure_link_expires$arg_token$uri";
     epoch = round(time.time() + minutes*60)
     dt = datetime.datetime.fromtimestamp(epoch).isoformat()
-    secure_link = f"{secret}{epoch}{uuid}/websockify/".encode('utf-8')
+    secure_link = f"{mykey}{epoch}{uuid}/websockify/".encode('utf-8')
     hash = hashlib.md5(secure_link).digest()
     base64_hash = base64.urlsafe_b64encode(hash)
     str_hash = base64_hash.decode('utf-8').rstrip('=')
@@ -82,6 +94,7 @@ class MyApp(object):
         web.add_url_rule('/vm/stop/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm_forced, methods=['POST'])
         web.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.attach_device, methods=['POST'])
         web.add_url_rule('/vm/detach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.detach_device, methods=['POST'])
+        web.add_url_rule('/vm/ui/<string:hostname>/<string:uuid>/<int:epoch>', view_func=myapp.get_vmui, methods=['GET'])
         web.add_url_rule('/ssh', view_func=myapp.ssh, methods=['GET'])
         web.add_url_rule('/scp', view_func=myapp.scp, methods=['GET'])
         return web
@@ -137,6 +150,14 @@ class MyApp(object):
         host = database.KVMHost.getHostInfo(hostname)
         return vmmanager.VMManager(host.name, host.url).get_domain(uuid)._asdict()
 
+    def get_vmui(self, hostname, uuid, epoch):
+        host = database.KVMHost.getHostInfo(hostname)
+        dom = vmmanager.VMManager(host.name, host.url).get_domain(uuid)
+        token, dt = user_access_secure_link(host.name, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
+        return return_ok('vmuserinterface', url=f'{config.USER_ACCESS_URL}',
+        token=f'{token}', expire=dt)
+
+
     def get_display(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
         dom = vmmanager.VMManager(host.name, host.url).get_domain(uuid)
@@ -168,7 +189,7 @@ class MyApp(object):
             with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
                 # f.write(f'{uuid}: unix_socket:{path}')
                 f.write(f'{uuid}: {server}')
-            path, dt = gen_secure_link_md5(uuid, config.SECURE_LINK_MYKEY, config.SECURE_LINK_EXPIRE)
+            path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
             if proto == 'vnc':
                 return return_ok('vnc', display=f'{config.VNC_DISP_URL}?password={passwd}&path={path}', expire=dt)
             elif proto == 'spice':

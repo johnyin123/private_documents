@@ -236,7 +236,7 @@ server {
             if ($request_method !~ ^(GET|POST)$ ) { return 405; }
             proxy_pass http://flask_app;
         }
-        location ~* ^/vm/(list|start|delete|display|freeip)/ {
+        location ~* ^/vm/(list|start|delete|display|ui|freeip)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app;
         }

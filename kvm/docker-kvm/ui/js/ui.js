@@ -68,6 +68,7 @@ function show_vms(host, vms) {
     table += `<div class="vms-wrapper">`;
     table += `<div class="vms-wrapper-header vmstate${item.state}"><h2>GUEST</h2><div>`;
     table += gen_act('Show XML', 'show_xml', host, item.uuid, 'fa-file-code-o');
+    table += gen_act('VM Ui', 'show_vmui', host, item.uuid, 'fa-link');
     if(item.state === 'RUN') {
       table += gen_act('VNC', 'display', host, item.uuid, 'fa-desktop');
       table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off');
@@ -274,6 +275,21 @@ function show_xml(host, uuid) {
     vmlist(host);
   });
 }
+function show_vmui(host, uuid) {
+  const form = document.getElementById('vmui_form');
+  form.addEventListener('submit', function(event) {
+    event.preventDefault(); // Prevents the default form submission
+    const res = getFormJSON(form);
+    const d = Date.parse(`${res.date} ${res.time}`).valueOf();
+    const epoch = Math.floor(d / 1000);
+    getjson('GET', `/vm/ui/${host}/${uuid}/${epoch}`, function(res) {
+      dispok(res.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+      vmlist(host);
+    });
+  }, { once: true });
+  form.reset();
+  showView('vmui');
+}
 function start(host, uuid) {
   getjson('GET', `/vm/start/${host}/${uuid}`, function(res) {
     getjson_result(res);
@@ -374,7 +390,6 @@ function add_disk(host, uuid) {
   form.addEventListener('submit', function(event) {
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
-    console.log(`add disk : ${res}`);
     do_add(host, uuid, res);
     showView('hostlist');
   }, { once: true });
@@ -391,7 +406,6 @@ function add_net(host, uuid) {
   form.addEventListener('submit', function(event) {
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
-    console.log(`add net : ${res}`);
     do_add(host, uuid, res);
     showView('hostlist');
   }, { once: true });
@@ -408,7 +422,6 @@ function add_iso(host, uuid) {
   form.addEventListener('submit', function(event) {
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
-    console.log(`add iso : ${res}`);
     do_add(host, uuid, res);
     showView('hostlist');
   }, { once: true });

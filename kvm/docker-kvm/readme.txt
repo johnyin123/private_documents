@@ -87,6 +87,8 @@ echo 'update all guests dbtable' && curl -k http://127.0.0.1:5009/vm/update/
 echo 'list all guests in database' && curl -k ${srv}/vm/list/
 echo 'get vm xml" && curl -k ${srv}/vm/xml/${host}/${uuid}
 echo 'get freeip" && curl -k ${srv}/vm/freeip/
+epoch=$(date -d "+$((10*24*3600)) second" +%s) #10 days
+echo 'get tenant vm mgr vi' curl -k ${srv}/vm/ui/${host}/${uuid}/${epoch}
 ---------------------------------------------------------
 NGXSSL=/etc/nginx/ssl
 install -v -d -m 0755 "${NGXSSL}"
