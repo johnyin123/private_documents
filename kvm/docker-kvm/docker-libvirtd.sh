@@ -232,11 +232,13 @@ server {
     location @405 { return 405 '{"code":405,"name":"lberr","desc":"Method not allowed"}\n'; }
     error_page 502 = @502;
     location @502 { return 502 '{"code":502,"name":"lberr","desc":"backend server not alive"}\n'; }
+    # include /etc/nginx/http-enabled/jwt_sso_auth.inc;
     location / {
         # default page is guest ui
         return 301 https://$server_name/guest.html;
     }
     location /tpl/ {
+        # auth_request @sso-auth;
         # no cache!! mgr private access
         proxy_no_cache 1;
         location ~* ^/tpl/(host|device|gold)/ {
@@ -246,6 +248,7 @@ server {
         return 404;
     }
     location /vm/ {
+        # auth_request @sso-auth;
         # no cache!! mgr private access
         proxy_no_cache 1;
         location /vm/stop/ {
@@ -276,6 +279,7 @@ server {
         return 404;
     }
     location = /admin.html {
+        # auth_request @sso-auth;
         # vmmgr ui page, mgr private access
         alias ${OUT_DIR}/ui/tpl.html;
     }
