@@ -261,6 +261,9 @@ class VMManager:
             logger.info(xml)
             dom.attachDeviceFlags(xml, flags)
         except libvirt.libvirtError as e:
+            if state != libvirt.VIR_DOMAIN_RUNNING:
+                kvm_error(ex, f'{uuid} attach_device')
+            logger.info(f'{uuid} is RUNNING, attach_device ONLY AFFECT_CONFIG')
             # # No more available PCI slots, can not add LIVE
             flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
             try:
