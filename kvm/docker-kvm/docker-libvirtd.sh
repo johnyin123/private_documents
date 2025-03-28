@@ -205,6 +205,12 @@ server {
         proxy_pass http://flask_app/domain;
     }
 }
+map $uri $kvmhost {
+    "~*/user/vm/(list|start|stop|display)/(?<name>.*)/(.*)" $name;
+}
+map $uri $uuid {
+    "~*/user/vm/(list|start|stop|display)/(.*)/(?<name>.*)" $name;
+}
 server {
     listen 443 ssl;
     ssl_certificate     /etc/nginx/ssl/vmm.registry.local.pem;
@@ -274,6 +280,53 @@ server {
         client_max_body_size 0;
         autoindex off;
         root /work;
+    }
+    # # tanent user UI manager tanent vm by uuid
+    location = /ui/user.html {
+        # user ui page
+        alias /work/ui/userui.html;
+    }
+    # # tanent api
+    location /user/ {
+        # no cache!!
+        proxy_no_cache 1;
+        location /user/vm/list/ {
+            set $mykey "P@ssw@rd4Display";
+            secure_link $arg_k,$arg_e;
+            secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
+            if ($secure_link = "") { return 403; }
+            if ($secure_link = "0") { return 410; }
+            if ($request_method !~ ^(GET)$ ) { return 405; }
+            proxy_pass http://flask_app/vm/list/;
+        }
+        location /user/vm/stop/ {
+            set $mykey "P@ssw@rd4Display";
+            secure_link $arg_k,$arg_e;
+            secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
+            if ($secure_link = "") { return 403; }
+            if ($secure_link = "0") { return 410; }
+            if ($request_method !~ ^(GET|POST)$ ) { return 405; }
+            proxy_pass http://flask_app/vm/stop/;
+        }
+        location /user/vm/start/ {
+            set $mykey "P@ssw@rd4Display";
+            secure_link $arg_k,$arg_e;
+            secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
+            if ($secure_link = "") { return 403; }
+            if ($secure_link = "0") { return 410; }
+            if ($request_method !~ ^(GET)$ ) { return 405; }
+            proxy_pass http://flask_app/vm/start/;
+        }
+        location /user/vm/display/ {
+            set $mykey "P@ssw@rd4Display";
+            secure_link $arg_k,$arg_e;
+            secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
+            if ($secure_link = "") { return 403; }
+            if ($secure_link = "0") { return 410; }
+            if ($request_method !~ ^(GET)$ ) { return 405; }
+            proxy_pass http://flask_app/vm/display/;
+        }
+        return 403;
     }
 }
 server {

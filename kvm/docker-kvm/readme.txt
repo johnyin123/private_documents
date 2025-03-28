@@ -88,7 +88,15 @@ echo 'list all guests in database' && curl -k ${srv}/vm/list/
 echo 'get vm xml" && curl -k ${srv}/vm/xml/${host}/${uuid}
 echo 'get freeip" && curl -k ${srv}/vm/freeip/
 epoch=$(date -d "+$((10*24*3600)) second" +%s) #10 days
-echo 'get tenant vm mgr vi' curl -k ${srv}/vm/ui/${host}/${uuid}/${epoch}
+echo 'get tenant vm mgr page/token/expire' curl -k ${srv}/vm/ui/${host}/${uuid}/${epoch}
+---------------------------------------------------------
+# token='aG9zdDAxLzZmNWQ4YmY2LWQ1ODAtNDk0Ni05NTQxLTEzZmE5OGI0YWNmND9rPWc2S0h1T1A4R0lmVTVfZFlBN0lQX1EmZT0xNzQzNDM2Nzk5'
+str_token='host01/6f5d8bf6-d580-4946-9541-13fa98b4acf4?k=g6KHuOP8GIfU5_dYA7IP_Q&e=1743436799'
+echo 'get vminfo by token' && curl -k "${srv}/user/vm/list/${str_token}"
+echo 'start vm by token' && curl -k "${srv}/user/vm/start/${str_token}"
+echo 'vm vnc by token' && curl -k "${srv}/user/vm/display/${str_token}"
+echo 'stop vm by token' && curl -k "${srv}/user/vm/stop/${str_token}"
+echo 'force stop vm by token' && curl -k -X POST -d '{}' "${srv}/user/vm/stop/${str_token}"
 ---------------------------------------------------------
 NGXSSL=/etc/nginx/ssl
 install -v -d -m 0755 "${NGXSSL}"

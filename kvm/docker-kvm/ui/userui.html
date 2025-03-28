@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>USER VM UI</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Roboto", sans-serif;
+}
+:root {
+  --white-color: White;
+  --blue-color: RoyalBlue;
+  --red-color: Red;
+  --green-color: Lime;
+  --grey-color: Gray;
+  --grey-color-light: DarkGrey;
+  --black-color-light: #333;
+}
+body {
+  transition: all 0.5s ease;
+  background-color: var(--black-color-light);
+  color: var(--white-color);
+}
+div.container {
+  display: grid;
+  grid-template-areas:
+    "header header"
+    "sidebar content";
+  grid-template-columns: 260px auto;
+  border: 1px solid var(--grey-color-light);
+}
+div.container.smallsidebar {
+  grid-template-columns: 80px auto;
+}
+div.container > div.header {
+  grid-area: header;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 80px;
+  display: grid;
+  grid-template-areas: "left_area right_area";
+  grid-template-columns: 1fr 4fr;
+  border: 1px solid var(--grey-color-light);
+}
+div.header > div.left_area {
+  grid-area: left_area;
+  font-size: 25px;
+  color: var(--red-color);
+  padding: 20px;
+  text-align: left;
+}
+div.header > div.left_area span {
+  color: var(--blue-color);
+}
+div.header > div.right_area {
+  grid-area: right_area;
+  padding: 20px;
+}
+div.container > div.sidebar {
+  font-size: 20px;
+  grid-area: sidebar;
+  height: calc(100vh - 80px - 2px);
+  overflow-y: auto;
+  white-space: nowrap;
+  overflow-x: hidden;
+  padding-top: 30px;
+  border: 1px solid var(--grey-color-light);
+}
+div.sidebar .profile_image {
+  width: 100px;
+  height: 93px;
+  border-radius: 95px;
+  margin-bottom: 10px;
+}
+div.sidebar a {
+  display: block;
+  width: 100%;
+  line-height: 60px;
+  text-decoration: none;
+  padding-left: 40px;
+  border-radius: 8px;
+  color: var(--white-color);
+  text-transform: uppercase;
+}
+div.sidebar a:hover {
+  background: var(--blue-color);
+}
+div.container > div.content {
+  grid-area: content;
+  padding: 10px 10px;
+  height: calc(100vh - 80px - 2px);
+  overflow-y: auto;
+  border: 1px solid var(--grey-color-light);
+}
+table {
+  width: 100%;
+  table-layout: fixed;
+}
+table, th, td {
+  border: 1px solid var(--grey-color-light);
+  border-collapse: collapse;
+  padding: 3px;
+}
+th { text-align: right; text-transform: uppercase; }
+td { text-align: left; white-space: nowrap;}
+td.truncate {
+  text-overflow:ellipsis;
+  overflow: hidden;
+  max-width:1px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="left_area">GUEST <span>Manager</span></div>
+    <div class="right_area">
+      <input type="text" id="strtoken"/>
+      <input type="hidden" id="token"/>
+    </div>
+  </div>
+  <div class="sidebar">
+    <center><img title="user image" class="profile_image" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMmNtIiBoZWlnaHQ9IjEyY20iPjxnIHN0eWxlPSJmaWxsLW9wYWNpdHk6MC43OyBzdHJva2U6YmxhY2s7IHN0cm9rZS13aWR0aDowLjFjbTsiPjxjaXJjbGUgY3g9IjZjbSIgY3k9IjJjbSIgcj0iMTAwIiBzdHlsZT0iZmlsbDpyZWQ7IiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLDUwKSIgLz48Y2lyY2xlIGN4PSI2Y20iIGN5PSIyY20iIHI9IjEwMCIgc3R5bGU9ImZpbGw6Ymx1ZTsiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDcwLDE1MCkiIC8+PGNpcmNsZSBjeD0iNmNtIiBjeT0iMmNtIiByPSIxMDAiIHN0eWxlPSJmaWxsOmdyZWVuOyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTcwLDE1MCkiLz48L2c+PC9zdmc+Cg"></center>
+    <a href='javascript:info()'>vminfo</a>
+    <a href='javascript:start()'>start</a>
+    <a href='javascript:stop()'>stop</a>
+    <a href='javascript:stop_force()'>force stop</a>
+    <a href='javascript:display()'>display</a>
+  </div>
+<!-- ----------------------------------------------- -->
+  <div class="content">
+    <div id="vms"></div>
+  </div>
+<!-- ----------------------------------------------- -->
+</div>
+<script>
+const token = document.getElementById('token');
+function getjson(method, url, callback, data=null, tmout=40000) {
+  /* Set default timeout 40 seconds*/
+  var sendObject = null;
+  if(null !== data && typeof data !== 'undefined') {
+    sendObject = JSON.stringify(data);
+  }
+  var xhr = new XMLHttpRequest();
+  xhr.onerror = function () { console.error(`${url} ${method} onerror`); };
+  xhr.onabort = function() { console.error(`${url} ${method} abort`); };
+  xhr.ontimeout = function () { console.error(`${url} ${method} timeout`); };
+  xhr.onloadend = function() { };
+  xhr.open(method, url, true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.timeout = tmout;
+  xhr.onreadystatechange = function() {
+    if(this.readyState === 4 && this.status === 200) {
+      console.log(`${method} ${url} ${xhr.response}`);
+      if (callback && typeof(callback) == "function") {
+        callback(xhr.response);
+      }
+      return;
+    }
+    if(xhr.readyState === 4 && xhr.status !== 0) {
+      console.error(`${method} ${url} ${xhr.status} ${xhr.response}`);
+      alert(`${method} ${url} ${xhr.status} ${xhr.response}`);
+    }
+    return;
+  }
+  if(null !== sendObject) {
+    xhr.send(sendObject);
+  } else {
+    xhr.send();
+  }
+}
+function show_vm(vm) {
+  var table = '';
+  table += `<div>`;
+  table += `<div><center><h2>GUEST INFO</h2></center></div>`;
+  table += `<table>`;
+  for(var key in vm) {
+    if(key === 'disks') {
+      var disks = JSON.parse(vm[key]);
+      disks.forEach(disk => {
+        table += `<tr><th>${disk.dev}</th><td colspan="3" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td></tr>`;
+      });
+    } else if (key === 'nets') {
+      var nets = JSON.parse(vm[key]);
+      nets.forEach(net => {
+        table += `<tr><th>${net.type}</th><td colspan="3" class="truncate" title="${net.mac}">${net.mac}</td></tr>`;
+      });
+    } else if (key === 'mdconfig') {
+      var mdconfig = JSON.parse(vm[key]);
+      for(var mdkey in mdconfig) {
+        table += `<tr><th>${mdkey}</th><td colspan="3">${mdconfig[mdkey]}</td></tr>`;
+      }
+    } else {
+      table += `<tr><th>${key}</th><td colspan="3" class="truncate">${vm[key]}</td></tr>`;
+    }
+  }
+  table += "</table>";
+  table += "</div>";
+  return table;
+}
+function getjson_result(res) {
+  try {
+    var result = JSON.parse(res);
+    if(result.result === 'OK') {
+      alert(res);
+    } else {
+      alert(res);
+    }
+  } catch (e) {
+    alert(`${e}, ${res}`);
+  }
+}
+function info() {
+  getjson('GET', `/user/vm/list/${token.value}`, function(res) {
+    var vm = JSON.parse(res);
+    document.getElementById("vms").innerHTML = show_vm(vm);
+  });
+}
+function start() {
+  getjson('GET', `/user/vm/start/${token.value}`, function(res) {
+    getjson_result(res);
+  });
+}
+function stop() {
+  if (!confirm(`Stop?`)) { return; }
+  getjson('GET', `/user/vm/stop/${token.value}`, function(res) {
+    getjson_result(res);
+  });
+}
+function stop_force() {
+  if (!confirm(`Force Stop?`)) { return; }
+  getjson('POST', `/user/vm/stop/${token.value}`, function(res) {
+    getjson_result(res);
+  }, null, null, 60000);
+}
+function display() {
+  getjson('GET', `/user/vm/display/${token.value}`, function(res) {
+    var result = JSON.parse(res);
+    if(result.result === 'OK') {
+      //document.getElementById("display").src = result.display;
+      window.open(result.display, "_blank");
+    } else {
+      alert(res);
+    }
+  });
+}
+function decodeURLSafeBase64(encodedString) {
+  let base64 = encodedString.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  return atob(base64);
+}
+function GetURLParameter(sParam) {
+  var sPageURL = window.location.search.substring(1);
+  var sURLVariables = sPageURL.split('&');
+  for (var i = 0; i < sURLVariables.length; i++) {
+    var sParameterName = sURLVariables[i].split('=');
+    if (sParameterName[0] == sParam) {
+      return sParameterName[1];
+    }
+  }
+  return '';
+}
+const strtoken = document.getElementById('strtoken');
+strtoken.addEventListener("change", function() {
+  token.value = decodeURLSafeBase64(strtoken.value);
+});
+strtoken.value = GetURLParameter('token');
+if('' === strtoken.value || typeof strtoken.value === 'undefined') {
+  strtoken.type="text";
+} else {
+  strtoken.type="hidden";
+}
+token.value = decodeURLSafeBase64(strtoken.value);
+</script>
+</body>
+</html>
