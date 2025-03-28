@@ -164,8 +164,9 @@ for arch in ${ARCH[@]}; do
     for fn in ${files[@]}; do
         install -v -C -m 0644 --group=10001 --owner=10001 "${fn}" "${type}-${arch}/docker/home/${username}/${fn}"
     done
+    OUT_DIR=/work
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && \
-    cat <<'EOF' > ${type}-${arch}/docker/etc/nginx/http-enabled/site.conf
+    cat <<'EOF' | sed "s|\${OUT_DIR}|${OUT_DIR}|g" > ${type}-${arch}/docker/etc/nginx/http-enabled/site.conf
 server_names_hash_bucket_size 128;
 upstream flask_app {
     server 127.0.0.1:5009 fail_timeout=0;
@@ -181,11 +182,12 @@ map $http_upgrade $connection_upgrade {
     ''      close;
 }
 server {
+    # # OPTIONAL: libvirt upload domain xml hook
     listen 443 ssl;
+    server_name kvm.registry.local;
     ssl_certificate     /etc/nginx/ssl/kvm.registry.local.pem;
     ssl_certificate_key /etc/nginx/ssl/kvm.registry.local.key;
     ssl_client_certificate /etc/nginx/ssl/kvm.ca.pem;
-    server_name kvm.registry.local;
     ssl_verify_client on;
     location /domain {
         proxy_buffering                    off;
@@ -212,10 +214,14 @@ map $uri $uuid {
     "~*/user/vm/(list|start|stop|display)/(.*)/(?<name>.*)" $name;
 }
 server {
+    listen 80;
     listen 443 ssl;
+    server_name vmm.registry.local;
     ssl_certificate     /etc/nginx/ssl/vmm.registry.local.pem;
     ssl_certificate_key /etc/nginx/ssl/vmm.registry.local.key;
-    server_name vmm.registry.local;
+    if ($scheme = http ) {
+        return 301 https://$server_name$request_uri;
+    }
     default_type application/json;
     location ~* .(favicon.ico)$ { access_log off; log_not_found off; add_header Content-Type image/svg+xml; return 200 '<svg width="104" height="104" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="104" height="104" rx="18" fill="url(#a)"/><path fill-rule="evenodd" clip-rule="evenodd" d="M56 26a4.002 4.002 0 0 1-3 3.874v5.376h15a3 3 0 0 1 3 3v23a3 3 0 0 1-3 3h-8.5v4h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-21a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h3v-4H36a3 3 0 0 1-3-3v-23a3 3 0 0 1 3-3h15v-5.376A4.002 4.002 0 0 1 52 22a4 4 0 0 1 4 4zM21.5 50.75a7.5 7.5 0 0 1 7.5-7.5v15a7.5 7.5 0 0 1-7.5-7.5zm53.5-7.5a7.5 7.5 0 0 1 0 15v-15zM46.5 50a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zm14.75 3.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5z" fill="#fff"/><defs><linearGradient id="a" x1="104" y1="0" x2="0" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#34C724"/><stop offset="1" stop-color="#62D256"/></linearGradient></defs></svg>'; }
     error_page 403 = @403;
@@ -226,8 +232,12 @@ server {
     location @405 { return 405 '{"code":405,"name":"lberr","desc":"Method not allowed"}\n'; }
     error_page 502 = @502;
     location @502 { return 502 '{"code":502,"name":"lberr","desc":"backend server not alive"}\n'; }
+    location / {
+        # default page is guest ui
+        return 301 https://$server_name/guest.html;
+    }
     location /tpl/ {
-        # no cache!!
+        # no cache!! mgr private access
         proxy_no_cache 1;
         location ~* ^/tpl/(host|device|gold)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
@@ -236,7 +246,7 @@ server {
         return 404;
     }
     location /vm/ {
-        # no cache!!
+        # no cache!! mgr private access
         proxy_no_cache 1;
         location /vm/stop/ {
             if ($request_method !~ ^(GET|POST)$ ) { return 405; }
@@ -265,7 +275,17 @@ server {
         }
         return 404;
     }
+    location = /admin.html {
+        # vmmgr ui page, mgr private access
+        alias ${OUT_DIR}/ui/tpl.html;
+    }
+    location ~* ^/ui/.+\.(?:tpl|css|js|otf|eot|svg|ttf|woff|woff2)$ {
+        # public access filename ext, other files 404
+        autoindex off;
+        root ${OUT_DIR};
+    }
     location /websockify {
+        # # /websockify used by admin & guest ui
         set $mykey "P@ssw@rd4Display";
         secure_link $arg_k,$arg_e;
         secure_link_md5 "$mykey$secure_link_expires$arg_token$uri";
@@ -275,20 +295,20 @@ server {
         proxy_set_header Connection $connection_upgrade;
         proxy_pass http://websockify;
     }
-    location  ~* ^/(novnc|spice|ui) {
-        # novnc/spice/ui
+    location  ~* ^/(novnc|spice) {
+        # novnc/spice, pubic access by admin & guest ui
         client_max_body_size 0;
         autoindex off;
-        root /work;
+        root ${OUT_DIR};
     }
     # # tanent user UI manager tanent vm by uuid
-    location = /ui/user.html {
-        # user ui page
-        alias /work/ui/userui.html;
+    location = /guest.html {
+        # guest user ui page, guest private access
+        alias ${OUT_DIR}/ui/userui.html;
     }
     # # tanent api
     location /user/ {
-        # no cache!!
+        # no cache!! guest user api, guest private access
         proxy_no_cache 1;
         location /user/vm/list/ {
             set $mykey "P@ssw@rd4Display";
@@ -336,7 +356,7 @@ server {
     location ~* \.(iso)$ {
         client_max_body_size 0;
         autoindex off;
-        root /work/iso;
+        root ${OUT_DIR}/iso;
     }
 }
 server {
@@ -345,7 +365,7 @@ server {
     location / {
         client_max_body_size 0;
         autoindex off;
-        root /work/nocloud;
+        root ${OUT_DIR}/nocloud;
     }
 }
 EOF
