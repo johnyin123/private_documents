@@ -261,7 +261,12 @@ class VMManager:
             logger.info(xml)
             dom.attachDeviceFlags(xml, flags)
         except libvirt.libvirtError as e:
-            kvm_error(e, f'{uuid} attach_device')
+            # # No more available PCI slots, can not add LIVE
+            flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
+            try:
+                dom.attachDeviceFlags(xml, flags)
+            except libvirt.libvirtError as ex:
+                kvm_error(ex, f'{uuid} attach_device config')
 
     def detach_device(self, uuid, dev):
         # dev = sda/vda....

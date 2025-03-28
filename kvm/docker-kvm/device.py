@@ -62,7 +62,10 @@ def generate(vmmgr: vmmanager.VMManager, xml:str, action:str, arg:str, req_json:
                     yield return_err(proc.returncode, "attach", f"execute {cmd} error={proc.returncode}")
                     return
         vmmgr.attach_device(req_json['vm_uuid'], xml)
-        yield return_ok(f'attach {req_json["device"]} device ok')
+        yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot')
+    except APIException as e:
+        # already logger.exception
+        yield return_err(e.code, e.name, e.desc)
     except Exception as e:
         logger.exception(f'attach')
         yield return_err(998, "attach", f"error={e}")
