@@ -17,7 +17,7 @@ def kvm_error(e: libvirt.libvirtError, msg: str):
 
 class LibvirtDomain:
     def __init__(self, dom):
-        self.XMLDesc = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
+        self.XMLDesc = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE|libvirt.VIR_DOMAIN_XML_INACTIVE)
         self.uuid = dom.UUIDString()
         self.state, self.maxmem, self.curmem, self.curcpu, self.cputime = dom.info()
         # blk_cap, blk_all, blk_phy = dom.blockInfo(dev_name)
