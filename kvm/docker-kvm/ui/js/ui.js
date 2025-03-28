@@ -68,7 +68,7 @@ function show_vms(host, vms) {
     table += `<div class="vms-wrapper">`;
     table += `<div class="vms-wrapper-header vmstate${item.state}"><h2>GUEST</h2><div>`;
     table += gen_act('Show XML', 'show_xml', host, item.uuid, 'fa-file-code-o');
-    table += gen_act('VM Ui', 'show_vmui', host, item.uuid, 'fa-link');
+    table += gen_act('Guest UI URL', 'show_vmui', host, item.uuid, 'fa-link');
     if(item.state === 'RUN') {
       table += gen_act('VNC', 'display', host, item.uuid, 'fa-desktop');
       table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off');
@@ -283,7 +283,12 @@ function show_vmui(host, uuid) {
     const d = Date.parse(`${res.date} ${res.time}`).valueOf();
     const epoch = Math.floor(d / 1000);
     getjson('GET', `/vm/ui/${host}/${uuid}/${epoch}`, function(res) {
-      dispok(res.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+      var result = JSON.parse(res);
+      if(result.result === 'OK') {
+        dispok(`<a target="_blank" style="color: var(--white-color);" title="expire ${result.expire}" href="${result.url}?token=${result.token}">${result.url}?token=${result.token}</a>`);
+      } else {
+        disperr(result.code, result.name, result.desc);
+      }
       vmlist(host);
     });
   }, { once: true });
@@ -322,8 +327,9 @@ function display(host, uuid) {
     var result = JSON.parse(res);
     if(result.result === 'OK') {
       //document.getElementById("display").src = result.display;
-      // window.open(result.display, "_blank");
-      getjson_result(res);
+      //window.open(result.display, "_blank");
+      //getjson_result(res);
+      dispok(`<a target="_blank" style="color: var(--white-color);" title="expire ${result.expire}" href="${result.display}">${result.display}</a>`);
     } else {
       disperr(result.code, result.name, result.desc);
     }

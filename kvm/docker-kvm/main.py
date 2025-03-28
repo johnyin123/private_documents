@@ -157,7 +157,6 @@ class MyApp(object):
         return return_ok('vmuserinterface', url=f'{config.USER_ACCESS_URL}',
         token=f'{token}', expire=dt)
 
-
     def get_display(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
         dom = vmmanager.VMManager(host.name, host.url).get_domain(uuid)
