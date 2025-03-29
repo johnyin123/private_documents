@@ -32,7 +32,7 @@ class KVMHost(Base):
 
     @staticmethod
     def getHostInfo(name):
-        logger.info(f'getHostInfo PID {os.getpid()}')
+        logger.debug(f'getHostInfo PID {os.getpid()}')
         result = search(kvmhost_cache_data, 'name', name)
         if len(result) == 1:
             return FakeDB(result[0])
@@ -44,7 +44,7 @@ class KVMHost(Base):
 
     @staticmethod
     def ListHost():
-        logger.info(f'ListHost PID {os.getpid()}')
+        logger.debug(f'ListHost PID {os.getpid()}')
         return [ FakeDB(element) for element in kvmhost_cache_data ]
 
 class KVMDevice(Base):
@@ -59,7 +59,7 @@ class KVMDevice(Base):
 
     @staticmethod
     def getDeviceInfo(kvmhost, name):
-        logger.info(f'getDeviceInfo PID {os.getpid()}')
+        logger.debug(f'getDeviceInfo PID {os.getpid()}')
         result = search(kvmdevice_cache_data, 'name', name)
         result = search(result, 'kvmhost', kvmhost)
         if len(result) == 1:
@@ -72,7 +72,7 @@ class KVMDevice(Base):
 
     @staticmethod
     def ListDevice(kvmhost):
-        logger.info(f'ListDevice PID {os.getpid()}')
+        logger.debug(f'ListDevice PID {os.getpid()}')
         result = search(kvmdevice_cache_data, 'kvmhost', kvmhost)
         return [ FakeDB(element) for element in result ]
         # return session.query(KVMDevice.kvmhost, KVMDevice.name, KVMDevice.devtype, KVMDevice.desc).filter_by(kvmhost=kvmhost).all()
@@ -87,7 +87,7 @@ class KVMGold(Base):
 
     @staticmethod
     def getGoldInfo(name, arch):
-        logger.info(f'getGoldInfo PID {os.getpid()}')
+        logger.debug(f'getGoldInfo PID {os.getpid()}')
         result = search(kvmgold_cache_data, 'name', name)
         result = search(result, 'arch', arch)
         if len(result) == 1:
@@ -100,7 +100,7 @@ class KVMGold(Base):
 
     @staticmethod
     def ListGold(arch):
-        logger.info(f'ListGold PID {os.getpid()}')
+        logger.debug(f'ListGold PID {os.getpid()}')
         result = search(kvmgold_cache_data, 'arch', arch)
         return [ FakeDB(element) for element in result ]
         # return session.query(KVMGold).filter_by(arch=arch).all()
@@ -130,11 +130,11 @@ class KVMGuest(Base):
             if 'state' in kwargs:
                 del kwargs['state']
             if instance:
-                logger.info(f'Update db guest in PID {os.getpid()} {uuid}')
+                logger.debug(f'Update db guest in PID {os.getpid()} {uuid}')
                 for k, v in kwargs.items():
                     setattr(instance, k, v)
             else:
-                logger.info(f'Insert db guest in PID {os.getpid()} {uuid}')
+                logger.debug(f'Insert db guest in PID {os.getpid()} {uuid}')
                 guest = KVMGuest(**kwargs)
                 session.add(guest)
             session.commit()
@@ -146,7 +146,7 @@ class KVMGuest(Base):
     @staticmethod
     def Remove(uuid):
         try:
-            logger.info(f'Remove db guest in PID {os.getpid()}')
+            logger.debug(f'Remove db guest in PID {os.getpid()}')
             session.query(KVMGuest).filter_by(uuid=uuid).delete()
             session.commit()
             guest_cache_flush()
@@ -156,7 +156,7 @@ class KVMGuest(Base):
 
     @staticmethod
     def ListGuest():
-        logger.info(f'ListGuest PID {os.getpid()}')
+        logger.debug(f'ListGuest PID {os.getpid()}')
         return [ FakeDB(element) for element in kvmguest_cache_data ]
         # return session.query(KVMGuest).all()
 
@@ -167,7 +167,7 @@ kvmhost_cache_data = manager.list()
 kvmhost_cache_data_lock = multiprocessing.Lock()
 def host_cache_flush():
     with kvmhost_cache_data_lock:
-        logger.info(f'update KVMHost.cache in PID {os.getpid()}')
+        logger.debug(f'update KVMHost.cache in PID {os.getpid()}')
         results = session.query(KVMHost).all()
         for result in results:
             kvmhost_cache_data.append(manager.dict(**result._asdict()))
@@ -176,7 +176,7 @@ kvmdevice_cache_data = manager.list()
 kvmdevice_cache_data_lock = multiprocessing.Lock()
 def device_cache_flush():
     with kvmdevice_cache_data_lock:
-        logger.info(f'update KVMDevice.cache in PID {os.getpid()}')
+        logger.debug(f'update KVMDevice.cache in PID {os.getpid()}')
         results = session.query(KVMDevice).all()
         for result in results:
             kvmdevice_cache_data.append(manager.dict(**result._asdict()))
@@ -185,7 +185,7 @@ kvmgold_cache_data = manager.list()
 kvmgold_cache_data_lock = multiprocessing.Lock()
 def gold_cache_flush():
     with kvmgold_cache_data_lock:
-        logger.info(f'update KVMGold.cache in PID {os.getpid()}')
+        logger.debug(f'update KVMGold.cache in PID {os.getpid()}')
         results = session.query(KVMGold).all()
         for result in results:
             kvmgold_cache_data.append(manager.dict(**result._asdict()))
@@ -196,7 +196,7 @@ def guest_cache_flush():
     with kvmguest_cache_data_lock:
         while(len(kvmguest_cache_data) > 0):
             kvmguest_cache_data.pop()
-        logger.info(f'update KVMGuest.cache in PID {os.getpid()}')
+        logger.debug(f'update KVMGuest.cache in PID {os.getpid()}')
         results = session.query(KVMGuest).all()
         for result in results:
             kvmguest_cache_data.append(manager.dict(**result._asdict()))

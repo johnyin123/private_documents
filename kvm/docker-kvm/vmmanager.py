@@ -120,18 +120,20 @@ class LibvirtDomain:
         p = xml.dom.minidom.parseString(self.XMLDesc)
         for disk in p.getElementsByTagName('disk'):
             device = disk.getAttribute('device')
-            if device != 'disk':   # and device != 'cdrom':
+            if device != 'disk' and device != 'cdrom':
                 continue
             dtype = disk.getAttribute('type')
             dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
             for src in disk.getElementsByTagName('source'):
                 file = None
                 if dtype == 'file':
-                    disk_lst.append({'type':'file', 'dev':dev, 'vol':src.getAttribute('file'), 'xml': disk.toxml()})
+                    disk_lst.append({'device':device, 'type':'file', 'dev':dev, 'vol':src.getAttribute('file'), 'xml': disk.toxml()})
                 elif dtype == 'network':
                     protocol = src.getAttribute('protocol')
                     if protocol == 'rbd':
-                        disk_lst.append({'type':'rbd', 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
+                        disk_lst.append({'device':device, 'type':'rbd', 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
+                    if protocol == 'http':
+                        disk_lst.append({'device':device, 'type':'http', 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
                     else:
                         raise APIException(HTTPStatus.BAD_REQUEST, f'disk unknown', f'type={dtype} protocol={protocol}')
                 else:
@@ -265,7 +267,7 @@ class VMManager:
         except libvirt.libvirtError as e:
             if state != libvirt.VIR_DOMAIN_RUNNING:
                 kvm_error(ex, f'{uuid} attach_device')
-            logger.info(f'{uuid} is RUNNING, attach_device ONLY AFFECT_CONFIG')
+            logger.warn(f'{uuid} is RUNNING, attach_device ONLY AFFECT_CONFIG')
             # # No more available PCI slots, can not add LIVE
             flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
             try:
@@ -292,7 +294,7 @@ class VMManager:
                         ret = None
             if xml is None:
                 raise APIException(HTTPStatus.BAD_REQUEST, f'detach_device', f'{dev} nofound on vm {uuid}')
-            logger.info(f'Remove Device {uuid}: {xml}')
+            logger.debug(f'Remove Device {uuid}: {xml}')
             flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
             if domain.state == libvirt.VIR_DOMAIN_RUNNING:
                 flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE

@@ -8,7 +8,7 @@ def generate(vmmgr: vmmanager.VMManager, xml:str, action:str, arg:str, req_json:
     try:
         cmd = [ os.path.join(config.ACTION_DIR, f'{action}'), f'{arg}']
         if action is not None and len(action) != 0:
-            logger.info(f'exec:{action} {arg} req={req_json} env={kwargs} {xml}')
+            logger.debug(f'exec:{action} {arg} req={req_json} env={kwargs} {xml}')
             with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=kwargs) as proc:
                 json.dump(req_json, proc.stdin, indent=4)
                 # proc.stdin.write(req_json)

@@ -14,7 +14,7 @@ class DeviceTemplate(object):
             self.template = env.from_string(self.raw_str)
             # env.globals['foo'] = 'foo'
             ast = env.parse(self.raw_str)
-            logger.info(f'{devtype} {filename} vars: %s', jinja2_meta.find_undeclared_variables(ast))
+            logger.debug(f'{devtype} {filename} vars: %s', jinja2_meta.find_undeclared_variables(ast))
 
     @property
     def bus(self):

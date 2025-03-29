@@ -39,7 +39,7 @@ function show_all_db_vms(view) {
         if(key === 'disks') {
           var disks = JSON.parse(item[key]);
           disks.forEach(disk => {
-            table += `<tr><th width="25%" title="disk">${disk.dev}</th><td class="truncate">${disk.type}:${disk.vol}</td></tr>`;
+            table += `<tr><th width="25%" title="disk">${disk.dev}</th><td class="truncate">${disk.device}:${disk.type}:${disk.vol}</td></tr>`;
           });
         } else if (key === 'nets') {
           var nets = JSON.parse(item[key]);
@@ -86,7 +86,7 @@ function show_vms(host, vms) {
       if(key === 'disks') {
         var disks = JSON.parse(item[key]);
         disks.forEach(disk => {
-          table += `<tr><th>${disk.dev}</th><td colspan="2" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td><td><a title="Remove Disk" href="javascript:del_device('${host}', '${item.uuid}', '${disk.dev}')">Remove</a></td></tr>`;
+          table += `<tr><th title="${disk.device}">${disk.dev}</th><td colspan="2" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td><td><a title="Remove Disk" href="javascript:del_device('${host}', '${item.uuid}', '${disk.dev}')">Remove</a></td></tr>`;
         });
       } else if (key === 'nets') {
         var nets = JSON.parse(item[key]);
