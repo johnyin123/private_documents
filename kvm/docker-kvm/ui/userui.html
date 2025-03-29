@@ -125,11 +125,11 @@ td.truncate {
     </div>
   </div>
   <div class="sidebar">
-    <center><img title="user image" class="profile_image" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMmNtIiBoZWlnaHQ9IjEyY20iPjxnIHN0eWxlPSJmaWxsLW9wYWNpdHk6MC43OyBzdHJva2U6YmxhY2s7IHN0cm9rZS13aWR0aDowLjFjbTsiPjxjaXJjbGUgY3g9IjZjbSIgY3k9IjJjbSIgcj0iMTAwIiBzdHlsZT0iZmlsbDpyZWQ7IiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLDUwKSIgLz48Y2lyY2xlIGN4PSI2Y20iIGN5PSIyY20iIHI9IjEwMCIgc3R5bGU9ImZpbGw6Ymx1ZTsiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDcwLDE1MCkiIC8+PGNpcmNsZSBjeD0iNmNtIiBjeT0iMmNtIiByPSIxMDAiIHN0eWxlPSJmaWxsOmdyZWVuOyIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTcwLDE1MCkiLz48L2c+PC9zdmc+Cg"></center>
+    <center><img title="user image" class="profile_image" src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" fill="none" stroke="black"><path d="M7.5 3L4 6 .5 3"/></svg>'></center>
     <a href='javascript:info()'>vm info</a>
-    <a href='javascript:start()'>start</a>
-    <a href='javascript:stop()'>stop</a>
-    <a href='javascript:stop_force()'>force stop</a>
+    <a href='javascript:start()'>start vm</a>
+    <a href='javascript:stop()'>stop vm</a>
+    <a href='javascript:stop_force()'>force stop vm</a>
     <a href='javascript:display()'>display</a>
   </div>
 <!-- ----------------------------------------------- -->
@@ -267,11 +267,13 @@ function GetURLParameter(sParam) {
   }
   return '';
 }
-var strtoken = GetURLParameter('token');
-while(strtoken === null || '' === strtoken || typeof strtoken === 'undefined') {
-  strtoken = prompt("Please enter token:", "");
+window.onload = function() {
+  var strtoken = GetURLParameter('token');
+  while(strtoken === null || '' === strtoken || typeof strtoken === 'undefined') {
+    strtoken = prompt("Please enter token:", "");
+  }
+  token.value = decodeURLSafeBase64(strtoken);
 }
-token.value = decodeURLSafeBase64(strtoken);
 </script>
 </body>
 </html>
