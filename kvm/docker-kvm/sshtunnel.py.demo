@@ -541,3 +541,72 @@ with connect('qemu+tls://192.168.168.1/system') as conn:
     stream.eventAddCallback(libvirt.VIR_STREAM_EVENT_READABLE, stream_callback, stream)
 while True:
     libvirt.virEventRunDefaultImpl()
+
+
+
+class MyApp(object):
+    @staticmethod
+    def create():
+        myapp=MyApp()
+        web=flask_app.create_app({}, json=True)
+        web.errorhandler(APIException)(APIException.handle)
+        web.config['JSON_SORT_KEYS'] = False
+        web.add_url_rule('/ssh', view_func=myapp.ssh, methods=['GET'])
+        web.add_url_rule('/scp', view_func=myapp.scp, methods=['GET'])
+        return web
+
+    def ssh(self):
+        host = "192.168.168.1"
+        port = 60022
+        username = "root"
+        password = ""
+        cmd = "cat /etc/*release*;ping -c 4 127.0.0.1;"
+        return flask.Response(device.ssh_exec(host,port,username,password,cmd), mimetype="text/event-stream")
+
+    def scp(self):
+        host = "192.168.168.1"
+        port = 60022
+        username = "root"
+        password = ""
+        remote_path='/home/johnyin/disk/myvm/deepseek.qcow2'
+        local_path='./test.docker'
+        return flask.Response(device.sftp_get(host, port, username, password, remote_path, local_path), mimetype="text/event-stream")
+
+import  paramiko
+def ssh_exec(host,port,username,password,cmd):
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.load_system_host_keys()
+        ssh.connect(hostname=host, port=port, username=username, password=password)
+        logger.info(f'ssh {username}@{host}:{port}')
+        stdin, stdout, stderr = ssh.exec_command(cmd)
+        stdin.close()
+        for line in stdout:
+            yield line
+        yield return_ok(f'ssh exec ok')
+    except Exception as e:
+        logger.exception(f'{host}:{port}')
+        yield return_err(998, 'ssh', f'{e}')
+    finally:
+        ssh.close()
+
+def sftp_get(host, port, username, password, remote_path, local_path):
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.load_system_host_keys()
+        ssh.connect(hostname=host, port=port, username=username, password=password)
+        sftp = ssh.open_sftp()
+        logger.info(f'sftp {username}@{host}:{port} R:{remote_path} L:{local_path}')
+        def progress_callback(sent, total):
+            logger.info(f"data: {sent} {total}")
+        sftp.get(remote_path, local_path, callback=progress_callback)
+        # sftp.put(local_path, remote_path)
+        yield return_ok(f'sftp get/put ok')
+    except Exception as e:
+        logger.exception(f'{host}:{port}')
+        yield return_err(998, 'ssh', f'{e}')
+    finally:
+        sftp.close()
+        ssh.close()

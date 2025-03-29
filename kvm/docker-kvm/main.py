@@ -95,8 +95,6 @@ class MyApp(object):
         web.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.attach_device, methods=['POST'])
         web.add_url_rule('/vm/detach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.detach_device, methods=['POST'])
         web.add_url_rule('/vm/ui/<string:hostname>/<string:uuid>/<int:epoch>', view_func=myapp.get_vmui, methods=['GET'])
-        web.add_url_rule('/ssh', view_func=myapp.ssh, methods=['GET'])
-        web.add_url_rule('/scp', view_func=myapp.scp, methods=['GET'])
         return web
 
     def list_host(self):
@@ -323,29 +321,6 @@ class MyApp(object):
         with open(os.path.join(config.ISO_DIR, f"{uuid}.xml"), 'w') as f:
             f.write(domxml)
         return return_ok(f'{uuid} uploadxml ok')
-
-    def ssh(self):
-        host = "192.168.168.1"
-        port = 60022
-        username = "root"
-        password = ""
-        cmd = "cat /etc/*release*;ping -c 4 127.0.0.1;"
-        return flask.Response(device.ssh_exec(host,port,username,password,cmd), mimetype="text/event-stream")
-
-    def scp(self):
-        host = "192.168.168.1"
-        port = 60022
-        username = "root"
-        password = ""
-        remote_path='/home/johnyin/disk/myvm/deepseek.qcow2'
-        local_path='./test.docker'
-        return flask.Response(device.sftp_get(host, port, username, password, remote_path, local_path), mimetype="text/event-stream")
-
-# # socat defunct process
-# # subprocess.Popen, device action returncode always 0
-# # can not set SIGCHLD SIG_IGN
-# import signal
-# signal.signal(signal.SIGCHLD, signal.SIG_IGN)
 
 app = MyApp.create()
 database.host_cache_flush()

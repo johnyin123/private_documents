@@ -1,47 +1,8 @@
 # -*- coding: utf-8 -*-
-import os, subprocess, vmmanager, json, paramiko
+import os, subprocess, vmmanager, json
 from config import config
 from flask_app import logger
 from exceptions import APIException, HTTPStatus, return_ok, return_err
-
-#cmd = ['/usr/bin/python3', 'script.py', '--verbose', 'input.txt']
-def ssh_exec(host,port,username,password,cmd):
-    try:
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.load_system_host_keys()
-        ssh.connect(hostname=host, port=port, username=username, password=password)
-        logger.info(f'ssh {username}@{host}:{port}')
-        stdin, stdout, stderr = ssh.exec_command(cmd)
-        stdin.close()
-        for line in stdout:
-            yield line
-        yield return_ok(f'ssh exec ok')
-    except Exception as e:
-        logger.exception(f'{host}:{port}')
-        yield return_err(998, 'ssh', f'{e}')
-    finally:
-        ssh.close()
-
-def sftp_get(host, port, username, password, remote_path, local_path):
-    try:
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.load_system_host_keys()
-        ssh.connect(hostname=host, port=port, username=username, password=password)
-        sftp = ssh.open_sftp()
-        logger.info(f'sftp {username}@{host}:{port} R:{remote_path} L:{local_path}')
-        def progress_callback(sent, total):
-            logger.info(f"data: {sent} {total}")
-        sftp.get(remote_path, local_path, callback=progress_callback)
-        # sftp.put(local_path, remote_path)
-        yield return_ok(f'sftp get/put ok')
-    except Exception as e:
-        logger.exception(f'{host}:{port}')
-        yield return_err(998, 'ssh', f'{e}')
-    finally:
-        sftp.close()
-        ssh.close()
 
 def generate(vmmgr: vmmanager.VMManager, xml:str, action:str, arg:str, req_json:object, **kwargs):
     try:

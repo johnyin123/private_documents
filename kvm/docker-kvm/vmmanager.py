@@ -46,7 +46,6 @@ class LibvirtDomain:
     def get_display(self):
         displays = []
         if self.state != libvirt.VIR_DOMAIN_RUNNING:
-            logger.info(f'{self.uuid} not running')
             raise APIException(HTTPStatus.BAD_REQUEST, 'get_display error', f'vm {self.uuid} not running')
         p = xml.dom.minidom.parseString(self.XMLDesc)
         for item in p.getElementsByTagName('graphics'):
@@ -164,7 +163,6 @@ class VMManager:
             libvirt.virEventRegisterDefaultImpl()
             self.conn = libvirt.open(uri)
             info = self.conn.getInfo()
-            logger.info(f'connect: {self.hostname} arch={info[0]} mem={info[1]} cpu={info[2]} mhz={info[3]}')
         except libvirt.libvirtError as e:
             kvm_error(e, 'libvirt.open')
 
@@ -263,7 +261,6 @@ class VMManager:
             flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
             if state == libvirt.VIR_DOMAIN_RUNNING:
                 flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
-            logger.info(xml)
             dom.attachDeviceFlags(xml, flags)
         except libvirt.libvirtError as e:
             if state != libvirt.VIR_DOMAIN_RUNNING:
