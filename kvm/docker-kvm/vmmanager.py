@@ -17,8 +17,8 @@ def kvm_error(e: libvirt.libvirtError, msg: str):
 
 class LibvirtDomain:
     def __init__(self, dom):
-        # libvirt.VIR_DOMAIN_XML_INACTIVE, display VNC information only in VIR_DOMAIN_XML_SECURE
-        self.XMLDesc = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
+        self.XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
+        self.XMLDesc = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE)
         self.uuid = dom.UUIDString()
         self.state, self.maxmem, self.curmem, self.curcpu, self.cputime = dom.info()
         # blk_cap, blk_all, blk_phy = dom.blockInfo(dev_name)
@@ -47,7 +47,7 @@ class LibvirtDomain:
         displays = []
         if self.state != libvirt.VIR_DOMAIN_RUNNING:
             raise APIException(HTTPStatus.BAD_REQUEST, 'get_display error', f'vm {self.uuid} not running')
-        p = xml.dom.minidom.parseString(self.XMLDesc)
+        p = xml.dom.minidom.parseString(self.XMLDesc_Secure)
         for item in p.getElementsByTagName('graphics'):
             type = item.getAttribute('type')
             port = item.getAttribute('port')
