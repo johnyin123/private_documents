@@ -268,7 +268,7 @@ function GetURLParameter(sParam) {
   return '';
 }
 var strtoken = GetURLParameter('token');
-if(strtoken == null || '' == strtoken || typeof strtoken == 'undefined') {
+while(strtoken === null || '' === strtoken || typeof strtoken === 'undefined') {
   strtoken = prompt("Please enter token:", "");
 }
 token.value = decodeURLSafeBase64(strtoken);
