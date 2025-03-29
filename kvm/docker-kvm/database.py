@@ -155,12 +155,6 @@ class KVMGuest(Base):
             session.rollback()
 
     @staticmethod
-    def DropAll():
-        session.query(KVMGuest).delete()
-        session.commit()
-        guest_cache_flush()
-
-    @staticmethod
     def ListGuest():
         logger.info(f'ListGuest PID {os.getpid()}')
         return [ FakeDB(element) for element in kvmguest_cache_data ]

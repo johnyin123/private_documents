@@ -255,23 +255,13 @@ server {
             if ($request_method !~ ^(GET|POST)$ ) { return 405; }
             proxy_pass http://flask_app;
         }
-        location ~* ^/vm/(list|start|delete|display|ui|freeip)/ {
+        location ~* ^/vm/(list|start|delete|display|xml|ui|freeip)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app;
         }
         location ~* ^/vm/(create|attach_device|detach_device)/ {
             if ($request_method !~ ^(POST)$ ) { return 405; }
             # # for server stream output
-            proxy_buffering                    off;
-            proxy_request_buffering            off;
-            proxy_pass http://flask_app;
-        }
-        location ~* ^/vm/(update|xml)/ {
-            if ($request_method !~ ^(GET)$ ) { return 405; }
-            # update all guests & insert database
-            # limit client !!
-            allow 192.168.168.1/32;
-            deny all;
             proxy_buffering                    off;
             proxy_request_buffering            off;
             proxy_pass http://flask_app;

@@ -83,7 +83,11 @@ curl --cacert /etc/libvirt/pki/ca-cert.pem \
     -X POST https://kvm.registry.local/domain/prepare/begin/vm1 \
     -F file=@/etc/libvirt/qemu/vm1.xml
 
-echo 'update all guests dbtable' && curl -k http://127.0.0.1:5009/vm/update/
+echo 'update all guests dbtable' && {
+    for host in $(curl -k ${srv}/tpl/host/ 2>/dev/null | jq -r '.[]|.name'); do
+        curl -k ${srv}/vm/list/${host} 2>/dev/null | jq -r '.'
+    done
+}
 echo 'list all guests in database' && curl -k ${srv}/vm/list/
 echo 'get vm xml" && curl -k ${srv}/vm/xml/${host}/${uuid}
 echo 'get freeip" && curl -k ${srv}/vm/freeip/

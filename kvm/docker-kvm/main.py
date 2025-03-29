@@ -79,7 +79,6 @@ class MyApp(object):
         web.add_url_rule('/tpl/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
         web.add_url_rule('/tpl/gold/<string:hostname>', view_func=myapp.list_gold, methods=['GET'])
         ## start db oper guest ##
-        web.add_url_rule('/vm/update/', view_func=myapp.db_update_domains, methods=['GET'])
         web.add_url_rule('/vm/list/', view_func=myapp.db_list_domains, methods=['GET'])
         web.add_url_rule('/vm/freeip/',view_func=myapp.db_freeip, methods=['GET'])
         ## end db oper guest ##
@@ -119,22 +118,6 @@ class MyApp(object):
         host = database.KVMHost.getHostInfo(hostname)
         xml = vmmanager.VMManager(host.name, host.url).get_domain_xml(uuid)
         return flask.Response(xml, mimetype="application/xml")
-
-    def db_update_domains(self):
-        ## need check check admin ro crontab execute
-        database.KVMGuest.DropAll()
-        hosts = database.KVMHost.ListHost()
-        def updatedb():
-            for host in hosts:
-                try:
-                    domains = vmmanager.VMManager(host.name, host.url).list_domains()
-                    for dom in domains:
-                        yield f'{host.name} {dom.uuid}\n'
-                except Exception as e:
-                    yield f'excetpin {e} continue\n'
-                yield f'{host.name} updated\n'
-            yield f'ALL host updated\n'
-        return flask.Response(updatedb(), mimetype="text/event-stream")
 
     def db_list_domains(self):
         guests = database.KVMGuest.ListGuest()
