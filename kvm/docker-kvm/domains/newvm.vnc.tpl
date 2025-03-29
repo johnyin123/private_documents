@@ -31,7 +31,7 @@
   <currentMemory unit='MiB'>{{ vm_ram_mb | default(1024) }}</currentMemory>
   <vcpu placement='static' current='{{ vm_vcpus | default(1) }}'>{{ vm_vcpus_max | default(vm_vcpus | default(8)) }}</vcpu>
 {%- if vm_arch == 'x86_64' %}
-  {%- set __machine__ = "q35" %}
+  {%- set __machine__ = "pc" %}
   <cpu match='exact'><model fallback='allow'>kvm64</model></cpu>
 {%- else %}
   {%- set __machine__ = "virt" %}
@@ -53,11 +53,6 @@
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>destroy</on_poweroff>
   <devices>
-    <controller type='pci' model='pcie-root'/>
-    <controller type='pci' model='pcie-root-port'/>
-    <controller type='pci' model='pcie-root-port'/>
-    <controller type='pci' model='pcie-root-port'/>
-    <controller type='pci' model='pcie-to-pci-bridge'/>
     <graphics type='vnc' autoport='yes'/>
     <video><model type='virtio' vram='32768' heads='1' primary='yes'/></video>
     <sound model='ac97'/>
