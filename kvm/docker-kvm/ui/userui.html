@@ -222,6 +222,7 @@ function info() {
   });
 }
 function start() {
+  if (!confirm(`Start?`)) { return; }
   getjson('GET', `/user/vm/start/${token.value}`, function(res) {
     getjson_result(res);
   });
