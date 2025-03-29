@@ -117,7 +117,7 @@ class KVMGuest(Base):
     maxcpu = Column(Integer,nullable=False,server_default='0')
     maxmem = Column(Integer,nullable=False,server_default='0')
     cputime = Column(Integer,nullable=False,server_default='0')
-    state = Column(String)
+    # state = Column(String)
     disks = Column(JSON,nullable=False)
     nets = Column(JSON,nullable=False)
 
@@ -126,6 +126,9 @@ class KVMGuest(Base):
         try:
             uuid = kwargs.get('uuid')
             instance = session.query(KVMGuest).filter_by(uuid=uuid).first()
+            # # remove no use need key
+            if 'state' in kwargs:
+                del kwargs['state']
             if instance:
                 logger.info(f'Update db guest in PID {os.getpid()} {uuid}')
                 for k, v in kwargs.items():
