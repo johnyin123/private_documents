@@ -1,25 +1,21 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, werkzeug, flask_app, flask, ldap3, datetime, jwt
+import os, werkzeug, flask_app, flask, datetime, jwt
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
-
-logger=flask_app.logger
+# from ldap_login import ldap_login as jwt_login
+from json_login import json_login as jwt_login
+from flask_app import logger
 
 def load_file(file_path):
     if os.path.isfile(file_path):
         return open(file_path, "rb").read()
     raise Exception('file {} nofound'.format(file_path))
 
-def init_connection(url, binddn, password):
-    srv = ldap3.Server(url, get_info=ldap3.ALL)
-    conn = ldap3.Connection(srv, user=binddn, password=password)
-    conn.bind()
-    return conn
-
 DEFAULT_CONF = {
     'LDAP_URL'            : 'ldap://172.16.0.5:13899',
     'LDAP_UID_FMT'        : 'cn={uid},ou=people,dc=neusoft,dc=internal',
+    'JSON_FILE'           : 'users.json',
     'PUBLIC_KEY_FILE'     : 'srv.pem',
     'PRIVATE_KEY_FILE'    : 'srv.key',
     'EXPIRE_SEC'          : 60 * 10,
@@ -34,31 +30,17 @@ class jwt_auth:
         self.config = {**DEFAULT_CONF, **config}
         self.pubkey = load_file(self.config['PUBLIC_KEY_FILE'])
         self.prikey = load_file(self.config['PRIVATE_KEY_FILE'])
-        self.ldap_url = config['LDAP_URL']
-        self.uid_fmt = config['LDAP_UID_FMT']
         if 'EXPIRE_SEC' in config:
             self.expire_secs = config['EXPIRE_SEC']
         self.captcha_pubkey = ''
         if self.config['CAPTCHA_PUBKEY_FILE'] != None:
             self.captcha_pubkey = load_file(self.config['CAPTCHA_PUBKEY_FILE'])
 
-    def __ldap_login(self, username: str, password: str) -> bool:
-        try:
-            with init_connection(self.ldap_url, self.uid_fmt.format(uid=username), password) as c:
-                if c.bound:
-                    logger.debug('%s Login OK', c.extend.standard.who_am_i())
-                    return True
-                else:
-                    return False
-        except Exception as e:
-            logger.error('ldap excetion: %s', e)
-        raise jwt_exception('ldap excetion.')
-
     def get_pubkey(self) -> str:
         return self.pubkey
 
     def login(self, username: str, password: str, trans: Dict =None) -> Dict:
-        if self.__ldap_login(username, password):
+        if jwt_login(self.config, username, password):
             payload = {
                 'username': username,
                 'trans': trans if trans is not None else {},
@@ -92,7 +74,7 @@ class jwt_auth:
 
 class MyApp(object):
     def __init__(self):
-        cfg = flask_app.merge_dict(DEFAULT_CONF, {})
+        cfg  = {**DEFAULT_CONF, **{}}
         self.auth = jwt_auth(config=cfg)
 
     def get_pubkey(self):
@@ -152,15 +134,18 @@ class MyApp(object):
         return web
 
 app=MyApp.create()
-# # gunicorn -b 127.0.0.1:6000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app'
+# # pip install flask ldap3 pyjwt[crypto]
+# # gunicorn -b 127.0.0.1:16000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app'
 
-# pip install flask ldap3 pyjwt[crypto]
 '''
 CAPTCHA_SRV=http://localhost:5000
-JWT_SRV=http://localhost:6000
+JWT_SRV=http://localhost:16000
+
+curl -k -X POST ${JWT_SRV}/api/login -d '{"username":"uid", "password":"pass"}'
+
 eval $(curl "${CAPTCHA_SRV}/api/verify" | grep chash | grep -o -Ei 'value="([^"]*")')
 echo "aptcha-hash ========= $value"
-ctoken=$(curl -s -k -X POST "${CAPTCHA_SRV}/api/verify" -d "{\\"payload\\":\\"yin.zh\\", \\"ctext\\": \\"fuck\", \\"chash\": \\"$value\\"}" | jq -r .ctoken)
+ctoken=$(curl -s -k -X POST "${CAPTCHA_SRV}/api/verify" -d '{"payload":"yin.zh", "ctext": "text", "chash": "$value"}" | jq -r .ctoken)
 echo "ctoken ======= $ctoken"
-curl -s -k -X POST "${JWT_SRV}/api/loginx" -d "{\\"password\\":\\"Passw)rd123\\", \\"ctoken\\": \\"$ctoken\\"}"
+curl -s -k -X POST ${JWT_SRV}/api/loginx -d '{"username":"u1","password":"pass1", "ctoken": "$ctoken"}'
 '''
