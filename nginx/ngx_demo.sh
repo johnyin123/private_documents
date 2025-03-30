@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("650e6eb[2025-02-08T09:10:38+08:00]:ngx_demo.sh")
+VERSION+=("0313146b[2025-03-07T16:53:39+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1957,12 +1957,19 @@ cat <<'EOF' > jwt_sso.http
 # curl -s -k -X GET --header "Authorization: Bearer ${token}" http://localhost/ -vvv
 # curl -s -k -X GET --header "Cookie: token=${token}" http://localhost/ -vvv
 # echo '{"status":200,"message":"Success"}' > /etc/nginx/http-enabled/check.json
+# ln -s /somewhere/jwtsso/login.html /etc/nginx/http-enabled/jwt_client.login.html
+upstream real_jwt_api {
+    server 192.168.169.234:16000;
+    keepalive 64;
+}
 server {
-    listen unix:/var/run/authsrv.socket;
+    #listen unix:/var/run/authsrv.socket;
+    listen 127.0.0.1:61600;
     server_name _;
     location =/api/login {
-        # # real jwt server, for login
-        proxy_pass http://192.168.169.234:6000;
+        # # real jwt server, for login, jwt check not passed to real_jwt_api
+        # # jwt check use ngx_auth_jwt module, for performance
+        proxy_pass http://real_jwt_api;
         # # for login with captcha
         # proxy_pass http://jwt_api/api/loginx;
     }
@@ -1981,8 +1988,8 @@ server {
 upstream jwt_api {
     # uri: / => check token, you application impl
     # uri: /api/login => login, jwt server impl
-    server unix:/var/run/authsrv.socket;
-    # server 192.168.169.234:6000;
+    # server unix:/var/run/authsrv.socket;
+    server 127.0.0.1:61600;
     keepalive 64;
 }
 server {

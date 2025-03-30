@@ -119,7 +119,7 @@ class jwt_captcha:
 
 class MyApp(object):
     def __init__(self):
-        cfg = flask_app.merge_dict(DEFAULT_CONF, {})
+        cfg = {**DEFAULT_CONF, **{}}
         self.captcha = jwt_captcha(config=cfg)
 
     def get_pubkey(self):

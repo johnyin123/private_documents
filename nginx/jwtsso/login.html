@@ -99,6 +99,9 @@ function login() {
       }
       return;
     }
+    if(this.readyState === 4 && this.status !== 0) {
+      console.error(`httpcode=${this.status}  ${xhr.response}`);
+    }
     return;
   }
   xhr.send(sendObject);
