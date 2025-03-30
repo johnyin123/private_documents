@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
     <title> Login </title>
+<!-- add for captcha START -->
+<link type="text/css" rel="stylesheet" href="dialog.css" />
+<script language="javascript" src="dialog.js"></script>
+<script language="javascript" src="clickcaptcha.js"></script>
+<!-- add for captcha END -->
 <style>
 body {
   font-family: sans-serif;
@@ -59,9 +64,16 @@ input {
    <br>
    <input type="Password" class="password" name="password" placeholder="Password">
    <br><br>
-   <input type="button" id="log" onclick="login()" value="Log In Here">
+   <!-- add for captcha START id used by login_captcha.js, name used by login server for check-->
+   <input type="hidden" id="captcha_token" name="ctoken" value="">
+   <input type="button" id="log" onclick='captcha_login(login, document.getElementsByName("username")[0].value)' value="Log In Here">
+   <!-- add for captcha END -->
+   <!-- <input type="button" id="log" onclick="login()" value="Log In Here"> -->
   </form>
  </div>
+<!-- add for captcha START -->
+<script language="javascript" src="login_captcha.js"></script>
+<!-- add for captcha END -->
 <script>
 function initXMLHttpRequest(method, url, jwtoken) {
   let xmlHttpRequest = new XMLHttpRequest();
