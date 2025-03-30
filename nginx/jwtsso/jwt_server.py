@@ -110,7 +110,7 @@ class MyApp(object):
         logger.debug('%s ,pass[%s]', username, password)
         req_data.pop('username')
         req_data.pop('password')
-        return flask_app.corsify_actual_response(flask.jsonify(auth.login(username, password, req_data)))
+        return flask_app.corsify_actual_response(flask.jsonify(self.auth.login(username, password, req_data)))
 
     def api_check(self):
         token = None
@@ -152,9 +152,10 @@ class MyApp(object):
         return web
 
 app=MyApp.create()
-def main():
-    print('pip install flask ldap3 pyjwt[crypto]')
-    logger.debug("""
+# # gunicorn -b 127.0.0.1:6000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app'
+
+# pip install flask ldap3 pyjwt[crypto]
+'''
 CAPTCHA_SRV=http://localhost:5000
 JWT_SRV=http://localhost:6000
 eval $(curl "${CAPTCHA_SRV}/api/verify" | grep chash | grep -o -Ei 'value="([^"]*")')
@@ -162,10 +163,4 @@ echo "aptcha-hash ========= $value"
 ctoken=$(curl -s -k -X POST "${CAPTCHA_SRV}/api/verify" -d "{\\"payload\\":\\"yin.zh\\", \\"ctext\\": \\"fuck\", \\"chash\": \\"$value\\"}" | jq -r .ctoken)
 echo "ctoken ======= $ctoken"
 curl -s -k -X POST "${JWT_SRV}/api/loginx" -d "{\\"password\\":\\"Passw)rd123\\", \\"ctoken\\": \\"$ctoken\\"}"
-""")
-    host = os.environ.get('HTTP_HOST', '0.0.0.0')
-    port = int(os.environ.get('HTTP_PORT', '18888'))
-    app.run(host=host, port=port, debug=app.config['DEBUG'])
-
-if __name__ == '__main__':
-    exit(main())
+'''
