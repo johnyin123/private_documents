@@ -17,7 +17,6 @@ def kvm_error(e: libvirt.libvirtError, msg: str):
 
 class LibvirtDomain:
     def __init__(self, dom):
-        self.XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
         self.XMLDesc = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE)
         self.uuid = dom.UUIDString()
         self.state, self.maxmem, self.curmem, self.curcpu, self.cputime = dom.info()
@@ -42,19 +41,6 @@ class LibvirtDomain:
                 'disks': json.dumps(getlist_without_key(self.disks, 'xml')),
                 'nets': json.dumps(getlist_without_key(self.nets, 'xml'))
                }
-
-    def get_display(self):
-        displays = []
-        if self.state != libvirt.VIR_DOMAIN_RUNNING:
-            raise APIException(HTTPStatus.BAD_REQUEST, 'get_display error', f'vm {self.uuid} not running')
-        p = xml.dom.minidom.parseString(self.XMLDesc_Secure)
-        for item in p.getElementsByTagName('graphics'):
-            type = item.getAttribute('type')
-            port = item.getAttribute('port')
-            addr = item.getAttribute('listen')
-            passwd = item.getAttribute('passwd')
-            displays.append({'proto':type,'server':addr,'port':port,'passwd':passwd})
-        return displays
 
     @property
     def next_disk(self):
@@ -206,6 +192,25 @@ class VMManager:
                 logger.info(f"Pool '{pool.name()}' refreshed successfully.")
             except libvirt.libvirtError as e:
                 logger.exception(f"Failed to refresh pool '{pool.name()}': {e}")
+
+    def get_display(self, uuid):
+        displays = []
+        try:
+            dom = self.conn.lookupByUUIDString(uuid)
+            state, maxmem, curmem, curcpu, cputime = dom.info()
+            if state != libvirt.VIR_DOMAIN_RUNNING:
+                raise APIException(HTTPStatus.BAD_REQUEST, 'get_display error', f'vm {uuid} not running')
+            XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
+            p = xml.dom.minidom.parseString(XMLDesc_Secure)
+            for item in p.getElementsByTagName('graphics'):
+                type = item.getAttribute('type')
+                port = item.getAttribute('port')
+                addr = item.getAttribute('listen')
+                passwd = item.getAttribute('passwd')
+                displays.append({'proto':type,'server':addr,'port':port,'passwd':passwd})
+        except libvirt.libvirtError as e:
+            kvm_error(e, 'get_display')
+        return displays
 
     def create_vm(self, uuid, xml):
         try:

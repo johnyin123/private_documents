@@ -140,8 +140,7 @@ class MyApp(object):
 
     def get_display(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
-        dom = vmmanager.VMManager(host.name, host.url).get_domain(uuid)
-        disp = dom.get_display()
+        disp = vmmanager.VMManager(host.name, host.url).get_display(uuid)
         timeout = config.SOCAT_TMOUT
         for it in disp:
             logger.info(f'get_display {uuid}: {it}')
