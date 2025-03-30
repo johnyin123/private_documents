@@ -234,12 +234,12 @@ server {
     location @502 { return 502 '{"code":502,"name":"lberr","desc":"backend server not alive"}\n'; }
     # include /etc/nginx/http-enabled/jwt_sso_auth.inc;
     location / {
-        # default page is guest ui
+        # # default page is guest ui
         return 301 https://$server_name/guest.html;
     }
     location /tpl/ {
         # auth_request @sso-auth;
-        # no cache!! mgr private access
+        # # no cache!! mgr private access
         proxy_no_cache 1;
         location ~* ^/tpl/(host|device|gold)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
@@ -249,7 +249,7 @@ server {
     }
     location /vm/ {
         # auth_request @sso-auth;
-        # no cache!! mgr private access
+        # # no cache!! mgr private access
         proxy_no_cache 1;
         location /vm/stop/ {
             if ($request_method !~ ^(GET|POST)$ ) { return 405; }
@@ -270,7 +270,7 @@ server {
     }
     location = /admin.html {
         # auth_request @sso-auth;
-        # vmmgr ui page, mgr private access
+        # # vmmgr ui page, mgr private access
         alias ${OUT_DIR}/ui/tpl.html;
     }
     location ~* ^/ui/.+\.(?:tpl|css|js|otf|eot|svg|ttf|woff|woff2)$ {
@@ -290,19 +290,19 @@ server {
         proxy_pass http://websockify;
     }
     location  ~* ^/(novnc|spice) {
-        # novnc/spice, pubic access by admin & guest ui
+        # # novnc/spice, pubic access by admin & guest ui
         client_max_body_size 0;
         autoindex off;
         root ${OUT_DIR};
     }
     # # tanent user UI manager tanent vm by uuid
     location = /guest.html {
-        # guest user ui page, guest private access
+        # # guest user ui page, guest private access
         alias ${OUT_DIR}/ui/userui.html;
     }
     # # tanent api
     location /user/ {
-        # no cache!! guest user api, guest private access
+        # # no cache!! guest user api, guest private access
         proxy_no_cache 1;
         location /user/vm/list/ {
             set $mykey "P@ssw@rd4Display";
@@ -343,17 +343,24 @@ server {
         return 403;
     }
 }
+# upstream meta_static {
+#     server 127.0.0.1:5009 fail_timeout=0;
+#     keepalive 64;
+# }
 server {
     listen 80;
     server_name kvm.registry.local;
     # # only download iso file, and subdir iso
     location ~* \.(iso)$ {
+        # rewrite ^ /public/iso$uri break;
+        # proxy_pass http://meta_static;
         autoindex off;
         root ${OUT_DIR}/iso;
     }
     # # only download meta-data/user-data and subdir meta-data/user-data
     location ~* \/(meta-data|user-data)$ {
-        # listen 169.254.169.254:80;
+        # rewrite ^ /public/nocloud$uri break;
+        # proxy_pass http://meta_static;
         autoindex off;
         root ${OUT_DIR}/nocloud;
     }

@@ -85,6 +85,7 @@ class MyApp(object):
 
 app=MyApp.create()
 # # gunicorn -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app'
+# # mkdir static && touch static/msg && curl http://127.0.0.1:5009/public/msg
 # def main():
 #     host = os.environ.get('HTTP_HOST', '0.0.0.0')
 #     port = int(os.environ.get('HTTP_PORT', '18888'))
