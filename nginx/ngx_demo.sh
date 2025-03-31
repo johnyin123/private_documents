@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1b2aba59[2025-03-31T09:45:44+08:00]:ngx_demo.sh")
+VERSION+=("5b48199a[2025-03-31T11:00:11+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1919,9 +1919,9 @@ error_page 401 =401 @error401;
 location @error401 { default_type text/html; return 401 '<html><head><meta http-equiv="refresh" content="0; url=/login.html?return_url=$scheme://$http_host$request_uri"/><body></body></html>'; }
 location = /login.js {
     return 200 'function GetURLParameter(name) {
-  const parms = new URLSearchParams(window.location.search);
-  if(parms.has(name)){return parms.get(name);}
-  return "";
+ const parms = new URLSearchParams(window.location.search);
+ if(parms.has(name)){return parms.get(name);}
+ return "";
 }
 const form=document.getElementById("jwtForm");
 const login = "/api/login";
@@ -1976,8 +1976,17 @@ input {
  vertical-align: middle;
  width: 100%;
 }
-@media only screen and (max-width: 480px) { form { border: 0; } }
-';
+input[type="text"] {
+ background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAAC7klEQVRIS8WWTUgUYRjH/8+4y1pBIJ4iCrUdtwwMsqgOlSejDlns7CJEXpTQ3dkwrx0yqGuG+5GHzIMIobOSHaQuBQWVFUXShu6silRQh76ojNbdeWJN17b9mhmD3uv7//9/zzvP+zGE/zTICDeghk8CXA/AQSAHgxlABIwoCOOyKF3Tm6cL3D97t/R74sMlAO2Fghl80ye6GvXAi4K7o+EqK/G0nrBljSxKRXOLCgKq8grANiNgBrp9otRZyFMQ7I8pZ4lxwQh0WcugVp/o7MvnLQxWlacE1JkBE/DcK0o7TYEDqvINwDozYBDmZbuU15t3xaFouEozuKn+LpDIKnrtjbFchecFB6fDu1njx6ZWu9LovXK1NG4IHJobLNPito+rAZeWauWtm9w5MwpurkBMmQWjwiT8tSxKm01tLr86PEqgo2bABFK8otNlCtyr3qhJIBExDCaKrklYdrVsbfxqCpwyBdVwC4OvGoIvUIVc45wzfXMtG/2qcoiAWzrgPzRNqz/tcBc9DUXv6jR8cqiSBCEAwpHcBfCdEo2b2x3utzoKRF6wXx12EcgFxpP4gtbXuf33sQjGRu0a4iIg2AVGMsmIWoAZT7VzJjXfMzOyg5LJU2ASrGTxt4nHUo9M1sgJXoIOrdwDeEnEF2W763qh1fijShvR4qNSvqSLWGBx54JngXumhvcLAt3LDaB+Jn4E5iiDI3EtwbYSm4OYU38jBwnUnOVjTCQs1oaOqsb3f85lgYOqMsbAYT19MqAZkEUpo6gMcEBVUr82IQOBRqQeWZSuLBvS4NDEYJm21vYQDIeRNN1awpQw/3Ofp/bEp5QnDfZPDXeRQOd0B5kQssbnfQ5XVyZYVW4T0GAiT7eFCPe9dulAGtyjjq0XMP9Fd8IqhAuWkrIzlcc/L37qy5NKraUEL1aRZ8CaqJPFpmfpHgdU5Q2AjQYSzEjfyaK0IaPHgdhIE1jrALDHTKIOzwNBwIBni9SbAdZh/KeSX8JT+h87XgIZAAAAAElFTkSuQmCC") no-repeat #FFFFFF;
+ padding: 8px 0 8px 32px;
+ background-position: left;
+}
+input[type="password"] {
+ background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAACrUlEQVRIS+2Wy0/UUBTGv9MZBnQDBqbEYCIbN2DoJSQ6QacDhpW68rE1mLAzLtC4ReUPMD7YaKK4noUxutG4GGh9RVE6KHGjMRp80EHFhI3MtMd0YskMM9Bb0IUJd9Xkfuf75X49Pb2EkGvWeNWhoLCPQQkCEkxUUMDjjsMvKEZP1G4xKWNJMiJfY49Zx1nBCAG11esoT8BIXNfOBPlKg23TegPGDgBZ16VzNYrzDrHFGbfQwJRfaHFqom1w+BoRNRBhNp4ULavBpcC2Yd0D0MfA5WZdnFrJ8PPdic3R+ogBkGDgUrMuTq+kDQTPmdljLvMNML9UU527giL09m3DWgBQFwEONOrifrWaQLBtWCYATQH6mnTxTAY8+9A6RC7SAJ6qutgbGvwjM9mQj9AcQLdVXTsiA11qRDP7FsyttdEatb67/fvy2lVPnBuzelnBAzBfVVOdJ8KAc2b2DjPvB9FBNal5PVK2Vgcb1hADQwQMx3UxHAocULsBLqb51czuJuZ+YiSW4iXMh4kajFYo2A4XH4iQVmJ0pTGhzfgeFVHnDGuQgQuhIJJiJYptTd3ikycvA3PmfZ0d+fmRgLikVzgZ4ZaaFIcrwN+M6TYH+elwbuHU/qnLTvwlM9kTiVBGxoqZz7subsY2KYXCL3eAiM7K1DkO927t7RxbE5hAF+O6NlgKsg1rFEB/EHxdYL+4FCKb1v8JJsJ0PCl2Lova642efxr1H/PHqi72eM8503rNjPYgqLe/rqh9gKqLYnPahsUy0A3wUkqyn4Rf4A2R4viTHB5/LWrZ91qqq9pcOXOqi9mdWIuhbA3D0Zr1rqmykTlvTm1ZZLfiYiZrKqF7ruqieEWu+B/b41YahKMSJqElpaO26p0rZ2QHXLgnCdQR2r16wSMwjaop7bq//RtjEmsuv0zq/AAAAABJRU5ErkJggg==") no-repeat #FFFFFF;
+ padding: 8px 0 8px 32px;
+ background-position: left;
+}
+@media only screen and (max-width: 480px) { form { border: 0; } }';
 }
 location = /login.html {
     return 200 '<!DOCTYPE html>
@@ -1989,7 +1998,7 @@ location = /login.html {
 <div>
  <form id="jwtForm">
   <input type="text" name="username">
-  <input type="Password" name="password">
+  <input type="password" name="password">
   <input type="submit" value="Log In Here"/>
  </form>
 </div>
