@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5b48199a[2025-03-31T11:00:11+08:00]:ngx_demo.sh")
+VERSION+=("f6a202be[2025-03-31T14:30:58+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2035,7 +2035,7 @@ location = @sso-auth {
     # auth_request_set $variable $upstream_http_
 }
 EOF
-cat <<'EOF' > jwt_sso.http
+cat <<'EOF' > jwt_svc.http
 # openssl rsa -in srv.key -pubout -out /etc/nginx/pubkey.pem
 # token=$(curl -s -k -X POST http://localhost/api/login -d '{"username": "admin", "password": "password"}' | jq -r .token)
 # echo $token | jq -R 'split(".") | .[0] | @base64d | fromjson'
@@ -2078,6 +2078,9 @@ upstream jwt_api {
     server 127.0.0.1:61600;
     keepalive 64;
 }
+EOF
+cat <<'EOF' > jwt_sso_demo.http
+# ln -s /etc/nginx/http-available/jwt_svc.http /etc/nginx/http-enabled/jwt_svc.conf
 server {
     listen 80;
     server_name _;
