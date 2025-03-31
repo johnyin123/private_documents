@@ -1,12 +1,6 @@
 function GetURLParameter(name) {
- var url = window.location.search.substring(1);
- var vars = url.split("&");
- for (var i = 0; i < vars.length; i++) {
-  var parm = vars[i].split("=");
-  if (parm[0] == name) {
-   return parm[1];
-  }
- }
+ const parms = new URLSearchParams(window.location.search);
+ if(parms.has(name)){return parms.get(name);}
  return "";
 }
 const form=document.getElementById("jwtForm");
