@@ -372,7 +372,7 @@ function do_add(host, uuid, res) {
     vmlist(host);
   }, res, function(resp) {
     const overlay_output = document.querySelector("#overlay_output");
-    overlay_output.innerHTML = resp;
+    overlay_output.innerHTML = resp; /*overlay_output.innerHTML += resp;*/
     overlay_output.scrollTop=overlay_output.scrollHeight;
   }, 60000); /*add disk 60s timeout*/
 }
