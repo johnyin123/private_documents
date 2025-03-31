@@ -4,6 +4,11 @@ from sqlalchemy import func,text,Column,String,Integer,DateTime,Enum,ForeignKey
 from config import config
 import os
 
+def load_file(file_path):
+    if os.path.isfile(file_path):
+        return open(file_path, "rb").read()
+    raise Exception('file {} nofound'.format(file_path))
+
 path = config.ISO_DIR
 if not os.path.isdir(path):
     os.mkdir(path, 0o755)
@@ -121,6 +126,10 @@ for dev in db.Base.exesql(f'select * from kvmdevice'):
     file_exists(config.DEVICE_DIR, dev.tpl, f'{dev.devtype:5.5s} {dev.name}')
     if dev.action is not None and len(dev.action) != 0:
         file_exists(config.ACTION_DIR, dev.action, f'{dev.devtype:5.5s} {dev.name}')
+    elif dev.devtype == 'disk' or dev.devtype == 'iso':
+        content = load_file(os.path.join(config.DEVICE_DIR, dev.tpl))
+        print(content.decode('utf-8'))
+
 for gold in db.Base.exesql(f'select * from kvmgold'):
     file_exists(config.GOLD_DIR, gold.tpl, f'{gold.name:10.10s} {gold.arch:8.8s} {gold.desc}')
 
