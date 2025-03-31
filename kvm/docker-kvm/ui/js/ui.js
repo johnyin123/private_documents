@@ -478,7 +478,7 @@ function includeHTML() {
   }
 }
 /* ------------------------- */
-window.onload = function() {
+window.addEventListener('load', function() {
   includeHTML();
   getjson('GET', '/tpl/host/', function (resp) {
     config.g_hosts = JSON.parse(resp);
@@ -499,7 +499,7 @@ window.onload = function() {
       form.classList.add('is-submitting');
     });
   });
-}
+})
 /* ------------------------- */
 function getTheme() {
   return localStorage.getItem('theme') || 'light';
