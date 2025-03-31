@@ -135,8 +135,7 @@ class MyApp(object):
         host = database.KVMHost.getHostInfo(hostname)
         dom = vmmanager.VMManager(host.name, host.url).get_domain(uuid)
         token, dt = user_access_secure_link(host.name, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
-        return return_ok('vmuserinterface', url=f'{config.USER_ACCESS_URL}',
-        token=f'{token}', expire=dt)
+        return return_ok('vmuserinterface', url=f'{config.USER_ACCESS_URL}', token=f'{token}', expire=dt)
 
     def get_display(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
