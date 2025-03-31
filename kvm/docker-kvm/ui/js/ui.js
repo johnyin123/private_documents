@@ -136,6 +136,7 @@ function getFormJSON(form) {
     result[key] = data.get(key);
     return result;
   }, {});
+  // return JSON.stringify(Object.fromEntries(params.entries())); //return string, not object
 }
 ///////////////////////////////////////////////////////////
 // .tabContent { display:none; }

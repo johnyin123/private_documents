@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0313146b[2025-03-07T16:53:39+08:00]:ngx_demo.sh")
+VERSION+=("26c98068[2025-03-30T14:40:33+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -610,15 +610,14 @@ cat <<'EOF' >dummy.http
 # If no default server is defined, Nginx will use the first found server.
 server {
     listen *:80 default_server reuseport;
-    # listen 443 ssl default_server reuseport;     # TCP listener for HTTP/1.1
-    listen 443 ssl http2 default_server reuseport; # TCP listener for HTTP/1.1+HTTP/2
+    listen 443 ssl default_server reuseport;     # TCP listener for HTTP/1.1
+    http2 on;  # HTTP/2
     # listen 443 http3 default_server reuseport;     # UDP listener for QUIC+HTTP/3
     # quic requires ssl_protocols TLSv1.3
     # add_header Alt-Svc 'h3=":443"';   # Advertise that HTTP/3 is available
     # access_log can add $http3 var, for logging quic enabled or not
     ssl_certificate /etc/nginx/ssl/test.pem;
     ssl_certificate_key /etc/nginx/ssl/test.key;
-    server_name _;
     # direct set cache_bypass
     set $cache_bypass 1;
     access_log /var/log/nginx/access_err_domain.log main buffer=512k flush=5m;
@@ -1912,14 +1911,98 @@ server {
 }
 EOF
 cat <<'EOF' > jwt_sso_auth.inc
-# cp login.html /etc/nginx/http-enabled/jwt_client.login.html
 # 2xx response code, the access is allowed.
 # 401 or 403, the access is denied with the corresponding error code
 # Any other response code returned by the subrequest is considered an error.
 # 401 error, the client also receives the “WWW-Authenticate” header from the subrequest response.
 error_page 401 =401 @error401;
 location @error401 { default_type text/html; return 401 '<html><head><meta http-equiv="refresh" content="0; url=/login.html?return_url=$scheme://$http_host$request_uri"/><body></body></html>'; }
-location = /login.html { alias /etc/nginx/http-enabled/jwt_client.login.html; }
+location = /login.js {
+    return 200 'function GetURLParameter(name) {
+ var url = window.location.search.substring(1);
+ var vars = url.split("&");
+ for (var i = 0; i < vars.length; i++) {
+  var parm = vars[i].split("=");
+  if (parm[0] == name) {
+   return parm[1];
+  }
+ }
+ return "";
+}
+const form=document.getElementById("jwtForm");
+const login = "/api/login";
+var caller = GetURLParameter("return_url");
+form.addEventListener("submit", function(ev) {
+ ev.preventDefault();
+ var params = new FormData(document.getElementById("jwtForm"));
+ var jstr = JSON.stringify(Object.fromEntries(params.entries()));
+ fetch(login, { method: "POST", body: jstr }).then(resp => {
+  if (!resp.ok) { throw new Error("status:"+resp.status); }
+  return resp.json();
+ }).then(res => {
+  document.cookie = "token="+res.token+";";
+  if (caller.length === 0) { caller="/"; }
+  location.href=caller;
+  return;
+ }).catch(error => {
+  alert("Error:"+error);
+ });
+}, { once: true });';
+}
+location = /login.css {
+    return 200 'body {
+ font-family: sans-serif;
+ background-color: #3a3a3a;
+ color: #333;
+}
+body > div {
+ background: white;
+ position: absolute;
+ top: 50%;
+ left: 50%;
+ transform: translate(-50%, -50%);
+ padding: 10px;
+}
+#jwtForm {
+ z-index: 1;
+ border-radius: 0.2rem;
+ border: 1px solid #CCC;
+ margin: 0 auto;
+ max-width: 16rem;
+ padding: 2rem 2.5rem 1.5rem 2.5rem;
+}
+input {
+ border-radius: 0.2rem;
+ border: 1px solid #CCC;
+ box-shadow: inset 0 1px 3px #DDD;
+ box-sizing: border-box;
+ display: block;
+ font-size: 1em;
+ padding: 0.4em 0.6em;
+ vertical-align: middle;
+ width: 100%;
+}
+@media only screen and (max-width: 480px) { form { border: 0; } }
+';
+}
+location = /login.html {
+    return 200 '<!DOCTYPE html>
+<html>
+ <head><meta charset="utf-8"><title>Login</title>
+ <link rel="stylesheet" href="/login.css"/>
+</head>
+<body>
+<div>
+ <form id="jwtForm">
+  <input type="text" name="username">
+  <input type="Password" name="password">
+  <input type="submit" value="Log In Here"/>
+ </form>
+</div>
+<script language="javascript" src="/login.js"></script>
+</body>
+</html>';
+}
 location = /logout.html { add_header Set-Cookie 'token='; return 302 /login.html; }
 location ~* .(favicon.ico)$ { access_log off; log_not_found off; add_header Content-Type image/svg+xml; return 200 '<svg width="104" height="104" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="104" height="104" rx="18" fill="url(#a)"/><path fill-rule="evenodd" clip-rule="evenodd" d="M56 26a4.002 4.002 0 0 1-3 3.874v5.376h15a3 3 0 0 1 3 3v23a3 3 0 0 1-3 3h-8.5v4h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-21a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h3v-4H36a3 3 0 0 1-3-3v-23a3 3 0 0 1 3-3h15v-5.376A4.002 4.002 0 0 1 52 22a4 4 0 0 1 4 4zM21.5 50.75a7.5 7.5 0 0 1 7.5-7.5v15a7.5 7.5 0 0 1-7.5-7.5zm53.5-7.5a7.5 7.5 0 0 1 0 15v-15zM46.5 50a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zm14.75 3.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5z" fill="#fff"/><defs><linearGradient id="a" x1="104" y1="0" x2="0" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#34C724"/><stop offset="1" stop-color="#62D256"/></linearGradient></defs></svg>'; }
 
