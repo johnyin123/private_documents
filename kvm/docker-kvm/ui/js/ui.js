@@ -508,3 +508,50 @@ function saveTheme(theme) {
   localStorage.setItem('theme', theme);
 }
 /* ------------------------- */
+function getjson_fetch_impl(method, url, callback, data=null, stream=null, tmout=40000) {
+  /*timeout no effect*/
+  var opts = {method: method, headers: { "Content-Type": "application/json" }};
+  if(null !== data && typeof data !== 'undefined') {
+    opts['body'] = JSON.stringify(data);
+  }
+  overlayon();
+  fetch(url, opts).then(response => {
+    if (!response.ok) {
+      return response.text().then(text => {
+        throw new Error(text);
+      });
+    }
+    const responseClone = response.clone();
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    function read() {
+      reader.read().then(({ done, value }) => {
+        if (done) {
+          return;
+        }
+        const chunk = decoder.decode(value);
+        console.log('Received chunk:', chunk);
+        if(stream && typeof(stream) == "function") {
+          stream(chunk);
+        }
+        read(); // Continue reading the stream
+      });
+    }
+    read(); // Start reading the stream
+    return responseClone.text();
+  }).then(data => {
+    if (callback && typeof(callback) == "function") {
+      callback(data);
+    }
+    console.log(data);
+  }).catch(error => {
+    try {
+      var result = JSON.parse(error.message);
+      disperr(result.code, result.name, result.desc);
+    } catch (e) {
+      disperr(xhr.status, `${method} ${url}`, `${error.message}`);
+    }
+  }).finally(() => {
+    overlayoff();
+  });
+}
