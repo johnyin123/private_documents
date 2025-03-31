@@ -213,38 +213,6 @@ map $uri $kvmhost {
 map $uri $uuid {
     "~*/user/vm/(list|start|stop|display)/(.*)/(?<name>.*)" $name;
 }
-upstream real_jwt_api {
-    server 192.168.169.234:16000;
-    keepalive 64;
-}
-server {
-    listen 127.0.0.1:61600;
-    server_name _;
-    location =/api/login {
-        # # real jwt server, for login, jwt check not passed to real_jwt_api
-        # # jwt check use ngx_auth_jwt module, for performance
-        proxy_pass http://real_jwt_api;
-        # # for login with captcha
-        # proxy_pass http://jwt_api/api/loginx;
-    }
-    location / {
-        auth_jwt_enabled on;
-        auth_jwt_redirect off;
-        auth_jwt_location HEADER=Authorization;
-        # auth_jwt_location COOKIE=token;
-        auth_jwt_algorithm RS256;
-        auth_jwt_use_keyfile on;
-        auth_jwt_keyfile_path "/etc/nginx/pubkey.pem";
-        alias /etc/nginx/http-enabled/;
-        try_files check.json =404;
-    }
-}
-upstream jwt_api {
-    # uri: / => check token, you application impl
-    # uri: /api/login => login, jwt server impl
-    server 127.0.0.1:61600;
-    keepalive 64;
-}
 server {
     listen 80;
     listen 443 ssl;
