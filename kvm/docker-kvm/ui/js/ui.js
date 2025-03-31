@@ -24,8 +24,8 @@ function gen_act(smsg, action, host, parm2, icon) {
 function show_all_db_vms(view) {
   dbvms = document.getElementById("dbvms");
   dbvms_total = document.getElementById("dbvms-total");
-  getjson('GET', `/vm/list/`, function(res) {
-    var vms = JSON.parse(res);
+  getjson('GET', `/vm/list/`, function(resp) {
+    var vms = JSON.parse(resp);
     dbvms_total.innerHTML = vms.length;
     var table = '';
     vms.forEach(item => {
@@ -128,15 +128,11 @@ function show_host(host) {
 // form.addEventListener('submit', function(event) {
 //   event.preventDefault(); // Prevents the default form submission
 //   const res = getFormJSON(form);
-//   console.log(res)
+//   console.log(JSON.stringify(res))
 // }, { once: true });
 function getFormJSON(form) {
   const data = new FormData(form);
-  return Array.from(data.keys()).reduce((result, key) => {
-    result[key] = data.get(key);
-    return result;
-  }, {});
-  // return JSON.stringify(Object.fromEntries(params.entries())); //return string, not object
+  return Object.fromEntries(data.entries());
 }
 ///////////////////////////////////////////////////////////
 // .tabContent { display:none; }
@@ -214,7 +210,6 @@ function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
       return;
     }
     if(this.readyState === 4 && this.status === 200) {
-      console.log(`${method} ${url} ${xhr.response}`);
       if (callback && typeof(callback) == "function") {
         callback(xhr.response);
       }
@@ -283,8 +278,8 @@ function show_vmui(host, uuid) {
     const res = getFormJSON(form);
     const d = Date.parse(`${res.date} ${res.time}`).valueOf();
     const epoch = Math.floor(d / 1000);
-    getjson('GET', `/vm/ui/${host}/${uuid}/${epoch}`, function(res) {
-      var result = JSON.parse(res);
+    getjson('GET', `/vm/ui/${host}/${uuid}/${epoch}`, function(resp) {
+      var result = JSON.parse(resp);
       if(result.result === 'OK') {
         dispok(`<a target="_blank" style="color: var(--white-color);" title="expire ${result.expire}" href="${result.url}?token=${result.token}">${result.url}?token=${result.token}</a>`);
       } else {
@@ -297,39 +292,39 @@ function show_vmui(host, uuid) {
   showView('vmui');
 }
 function start(host, uuid) {
-  getjson('GET', `/vm/start/${host}/${uuid}`, function(res) {
-    getjson_result(res);
+  getjson('GET', `/vm/start/${host}/${uuid}`, function(resp) {
+    getjson_result(resp);
     vmlist(host);
   }, null, null, 60000);
 }
 function stop(host, uuid) {
   if (!confirm(`Stop ${uuid}?`)) { return; }
-  getjson('GET', `/vm/stop/${host}/${uuid}`, function(res) {
-    getjson_result(res);
+  getjson('GET', `/vm/stop/${host}/${uuid}`, function(resp) {
+    getjson_result(resp);
     vmlist(host);
   });
 }
 function force_stop(host, uuid) {
   if (!confirm(`Force Stop ${uuid}?`)) { return; }
-  getjson('POST', `/vm/stop/${host}/${uuid}`, function(res) {
-    getjson_result(res);
+  getjson('POST', `/vm/stop/${host}/${uuid}`, function(resp) {
+    getjson_result(resp);
     vmlist(host);
   }, null, null, 60000);
 }
 function undefine(host, uuid) {
   if (!confirm(`Undefine ${uuid}?`)) { return; }
-  getjson('GET', `/vm/delete/${host}/${uuid}`, function(res) {
-    getjson_result(res);
+  getjson('GET', `/vm/delete/${host}/${uuid}`, function(resp) {
+    getjson_result(resp);
     vmlist(host);
   });
 }
 function display(host, uuid) {
-  getjson('GET', `/vm/display/${host}/${uuid}`, function(res) {
-    var result = JSON.parse(res);
+  getjson('GET', `/vm/display/${host}/${uuid}`, function(resp) {
+    var result = JSON.parse(resp);
     if(result.result === 'OK') {
       //document.getElementById("display").src = result.display;
       //window.open(result.display, "_blank");
-      //getjson_result(res);
+      //getjson_result(resp);
       dispok(`<a target="_blank" style="color: var(--white-color);" title="expire ${result.expire}" href="${result.display}">${result.display}</a>`);
     } else {
       disperr(result.code, result.name, result.desc);
@@ -338,22 +333,22 @@ function display(host, uuid) {
 }
 function del_device(host, uuid, dev) {
   if (!confirm(`delete device /${host}/${uuid}/${dev} ?`)) { return; }
-  getjson('POST', `/vm/detach_device/${host}/${uuid}/${dev}`, function(res) {
-    getjson_result(res);
+  getjson('POST', `/vm/detach_device/${host}/${uuid}/${dev}`, function(resp) {
+    getjson_result(resp);
     vmlist(host);
   });
 }
 function do_create(host, res) {
-  getjson('POST', `/vm/create/${host}`, function(res) {
-    getjson_result(res);
+  getjson('POST', `/vm/create/${host}`, function(resp) {
+    getjson_result(resp);
     vmlist(host);
   }, res);
 }
 function create_vm(host, arch) {
   const vm_ip = document.getElementById('vm_ip');
   const vm_gw = document.getElementById('vm_gw');
-  getjson('GET', `/vm/freeip/`, function(res) {
-    var ips = JSON.parse(res);
+  getjson('GET', `/vm/freeip/`, function(resp) {
+    var ips = JSON.parse(resp);
     vm_ip.value = ips.cidr;
     vm_gw.value = ips.gateway;
   });
@@ -372,13 +367,12 @@ function do_add(host, uuid, res) {
     const lines = str.split('\n');
     return lines[lines.length - 1];
   }
-  console.log(JSON.stringify(res));
   getjson('POST', `/vm/attach_device/${host}/${uuid}/${res.device}`, function(res) {
     getjson_result(getLastLine(res));
     vmlist(host);
-  }, res, function(res) {
+  }, res, function(resp) {
     const overlay_output = document.querySelector("#overlay_output");
-    overlay_output.innerHTML = res;
+    overlay_output.innerHTML = resp;
     overlay_output.scrollTop=overlay_output.scrollHeight;
   }, 60000); /*add disk 60s timeout*/
 }
@@ -386,12 +380,12 @@ function add_disk(host, uuid) {
   const form = document.getElementById('adddisk_form');
   const goldlst = document.getElementById('gold_list');
   const devlst = document.getElementById('dev_list');
-  getjson('GET', `/tpl/device/${host}`, function(res) {
-    var devs = JSON.parse(res);
+  getjson('GET', `/tpl/device/${host}`, function(resp) {
+    var devs = JSON.parse(resp);
     devlst.innerHTML = gen_dev_list(devs, 'disk');
   });
-  getjson('GET', `/tpl/gold/${host}`, function(res) {
-    var gold = JSON.parse(res);
+  getjson('GET', `/tpl/gold/${host}`, function(resp) {
+    var gold = JSON.parse(resp);
     goldlst.innerHTML = gen_gold_list(gold);
   }, null);
   form.addEventListener('submit', function(event) {
@@ -406,8 +400,8 @@ function add_disk(host, uuid) {
 function add_net(host, uuid) {
   const form = document.getElementById('addnet_form');
   const netlst = document.getElementById('net_list');
-  getjson('GET', `/tpl/device/${host}`, function(res) {
-    var devs = JSON.parse(res);
+  getjson('GET', `/tpl/device/${host}`, function(resp) {
+    var devs = JSON.parse(resp);
     netlst.innerHTML = gen_dev_list(devs, 'net');
   });
   form.addEventListener('submit', function(event) {
@@ -422,8 +416,8 @@ function add_net(host, uuid) {
 function add_iso(host, uuid) {
   const form = document.getElementById('addiso_form');
   const isolst = document.getElementById('iso_list');
-  getjson('GET', `/tpl/device/${host}`, function(res) {
-    var devs = JSON.parse(res);
+  getjson('GET', `/tpl/device/${host}`, function(resp) {
+    var devs = JSON.parse(resp);
     isolst.innerHTML = gen_dev_list(devs, 'iso');
   });
   form.addEventListener('submit', function(event) {
@@ -486,8 +480,8 @@ function includeHTML() {
 /* ------------------------- */
 window.onload = function() {
   includeHTML();
-  getjson('GET', '/tpl/host/', function (res) {
-    config.g_hosts = JSON.parse(res);
+  getjson('GET', '/tpl/host/', function (resp) {
+    config.g_hosts = JSON.parse(resp);
     var mainMenu = "";
     for(var n = 0; n < config.g_hosts.length; n++) {
       mainMenu += `<a href='#' class='nav_link sublink' onclick='on_menu_host(config.g_hosts, ${n})'><i class="fa fa-desktop"></i><span>${config.g_hosts[n].name}</span></a>`;
