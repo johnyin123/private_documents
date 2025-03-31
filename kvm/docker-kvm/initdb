@@ -7,6 +7,10 @@ import os
 path = config.ISO_DIR
 if not os.path.isdir(path):
     os.mkdir(path, 0o755)
+# # cdrom os install image dir
+path = config.ISO_DIR + '/iso'
+if not os.path.isdir(path):
+    os.mkdir(path, 0o755)
 path = config.GOLD_DIR
 if not os.path.isdir(path):
     os.mkdir(path, 0o755)
