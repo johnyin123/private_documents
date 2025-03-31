@@ -118,7 +118,7 @@ class LibvirtDomain:
                     protocol = src.getAttribute('protocol')
                     if protocol == 'rbd':
                         disk_lst.append({'device':device, 'type':'rbd', 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
-                    if protocol == 'http':
+                    elif protocol == 'http':
                         disk_lst.append({'device':device, 'type':'http', 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
                     else:
                         raise APIException(HTTPStatus.BAD_REQUEST, f'disk unknown', f'type={dtype} protocol={protocol}')
