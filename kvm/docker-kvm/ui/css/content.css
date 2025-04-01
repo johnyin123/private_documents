@@ -4,20 +4,16 @@ div.machine-container {
     "host"
     "vms";
   grid-template-columns: 1fr;
-  gap: 10px;
-  padding: 0 0;
+  gap: var(--padding-small);
 }
-div.host-container {
-  grid-area: host;
-  gap: 10px;
-  padding: 0 0;
+div.host-container,
+div.vms-container {
+  padding: 0;
+  gap: var(--padding-small);
 }
 div.vms-container {
-  grid-area: vms;
-  gap: 10px;
-  padding: 0 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, 430px);
+  grid-template-columns: repeat(auto-fit, minmax(430px, 1fr));
   justify-content: space-between;
 }
 /* extra styles */
@@ -25,26 +21,28 @@ div.host-wrapper,
 div.vms-wrapper {
   margin: 0 auto;
   border: none;
-  padding: 12px;
+  padding: var(--padding-small);
 }
 div.vms-wrapper div.vmstateRUN > h2 {
   /* vmstate == RUN h2 color*/
   color: var(--green-color);
 }
 div.host-wrapper-header,
-div.vms-wrapper-header {
+div.vms-wrapper-header,
+.form-wrapper-header {
   background-color: var(--grey-color);
   color: var(--white-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  border-radius: 8px 8px 0px 0px;
+  padding: var(--padding-small) var(--padding-medium);
+  border-radius: 8px 8px 0 0;
 }
 div.host-wrapper-header h2,
-div.vms-wrapper-header h2 {
+div.vms-wrapper-header h2,
+.form-wrapper-header h2 {
   font-weight: 700;
-  font-size: 140%;
+  font-size: 1.4rem;
 }
 div.host-wrapper-header button,
 div.vms-wrapper-header button {
@@ -75,19 +73,6 @@ div.success > h2 {
 div.error > h2 {
   /*error alert*/
 }
-.form-wrapper-header {
-  background-color: var(--grey-color);
-  color: var(--white-color);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 36px;
-  border-radius: 8px 8px 0px 0px;
-}
-.form-wrapper-header h2 {
-  font-weight: 700;
-  font-size: 140%;
-}
 .form-wrapper-header button.close {
   padding: 0;
   border: none;
@@ -101,7 +86,7 @@ div.group {
   flex-direction: row;
 }
 form {
-  padding: 30px;
+  padding: var(--padding-large);
   margin: 20px auto;
   border-radius: 8px;
   box-shadow: 0 0 10px var(--grey-color-light);
@@ -143,10 +128,10 @@ textarea:invalid, input:invalid {
 table {
   width: 100%;
   table-layout: fixed;
+  border-collapse: collapse;
 }
 table, th, td {
   border: 1px solid var(--grey-color-light);
-  border-collapse: collapse;
   padding: 3px;
 }
 th { text-align: right; text-transform: uppercase; }

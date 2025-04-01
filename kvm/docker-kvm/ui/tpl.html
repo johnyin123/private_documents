@@ -9,129 +9,186 @@
   <link rel="stylesheet" href="/ui/css/font-awesome.min.css" />
   <title>VMMgr</title>
 <style>
+/* General reset and font */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
   font-family: "Roboto", sans-serif;
 }
+
+/* Root variables for theme customization */
 :root {
-  --white-color: White;
+  --white-color: white;
   --blue-color: RoyalBlue;
-  --red-color: Red;
-  --green-color: Lime;
-  --grey-color: Gray;
-  --grey-color-light: DarkGrey;
+  --red-color: red;
+  --green-color: lime;
+  --grey-color: gray;
+  --grey-color-light: darkgray;
   --black-color-light: #333;
+  --font-size-large: 22px;
+  --font-size-medium: 20px;
+  --padding-small: 10px;
+  --padding-medium: 20px;
+  --padding-large: 40px;
+  --transition-speed: 0.5s;
 }
+
+/* Light mode theme */
 body.light {
-  --white-color: Black;
+  --white-color: black;
   --blue-color: DeepSkyBlue;
-  --red-color: Red;
-  --green-color: DarkGreen;
-  --grey-color: Gray;
-  --grey-color-light: DarkGrey;
-  --black-color-light: FloralWhite;
+  --red-color: red;
+  --green-color: darkgreen;
+  --grey-color: gray;
+  --grey-color-light: darkgray;
+  --black-color-light: floralwhite;
 }
+
+/* General body styling */
 body {
-  transition: all 0.5s ease;
+  transition: all var(--transition-speed) ease;
   background-color: var(--black-color-light);
   color: var(--white-color);
 }
+
+/* Grid container for layout */
 div.container {
   display: grid;
-  grid-template-areas:
-    "header header"
-    "sidebar content";
+  grid-template-areas: "header header" "sidebar content";
   grid-template-columns: 260px auto;
   border: 1px solid var(--grey-color-light);
 }
+
+/* For smaller sidebar */
 div.container.smallsidebar {
   grid-template-columns: 80px auto;
 }
+
+/* Header styling */
 div.container > div.header {
   grid-area: header;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 80px;
   display: grid;
   grid-template-areas: "left_area mid_area right_area";
   grid-template-columns: minmax(200px, 1fr) 8fr minmax(200px, 1fr);
+  justify-content: center;
+  align-items: center;
+  height: 80px;
+  padding: var(--padding-small);
   border: 1px solid var(--grey-color-light);
 }
+
+/* Left area of the header */
 div.header > div.left_area {
   grid-area: left_area;
   font-size: 25px;
   color: var(--red-color);
-  padding: 20px;
   text-align: left;
+  padding: var(--padding-medium);
 }
+
 div.header > div.left_area span {
   color: var(--blue-color);
 }
+
+/* Middle area of the header */
 div.header > div.mid_area {
   grid-area: mid_area;
   text-align: left;
 }
+
+/* Right area of the header (for buttons) */
 div.header > div.right_area {
   grid-area: right_area;
-  cursor: pointer;
   text-align: right;
-  padding: 20px;
+  padding: var(--padding-medium);
 }
+
 .header_btn {
   border: none;
-  cursor: pointer;
   background: transparent;
-  font-size: 22px;
-  min-width: 50px;
-  line-height: 40px;
+  font-size: var(--font-size-large);
+  cursor: pointer;
   display: inline-block;
   text-align: center;
   border-radius: 6px;
+  transition: color var(--transition-speed);
 }
+
 .header_btn:hover {
   color: var(--blue-color);
 }
+
+/* Sidebar styling */
 div.container > div.sidebar {
-  font-size: 20px;
   grid-area: sidebar;
+  font-size: var(--font-size-medium);
   height: calc(100vh - 80px - 2px);
   overflow-y: auto;
-  white-space: nowrap;
-  overflow-x: hidden;
   padding-top: 30px;
   border: 1px solid var(--grey-color-light);
 }
+
+/* Profile image in the sidebar */
 div.sidebar .profile_image {
   width: 100px;
   height: 93px;
-  border-radius: 95px;
-  margin-bottom: 10px;
+  border-radius: 50%;
+  margin-bottom: var(--padding-small);
 }
+
+/* Sidebar links */
 div.sidebar a {
   display: block;
-  width: 100%;
+  padding-left: var(--padding-large);
   line-height: 60px;
   text-decoration: none;
-  padding-left: 40px;
-  border-radius: 8px;
   color: var(--white-color);
   text-transform: uppercase;
+  border-radius: 8px;
+  transition: background var(--transition-speed);
 }
+
 div.sidebar a:hover {
   background: var(--blue-color);
 }
-div.sidebar i{
-  padding-right: 10px;
+
+/* Sidebar icons */
+div.sidebar i {
+  padding-right: var(--padding-small);
 }
+
+/* Content area styling */
 div.container > div.content {
   grid-area: content;
-  padding: 10px 10px;
+  padding: var(--padding-small);
   height: calc(100vh - 80px - 2px);
-  overflow-y: auto; 
+  overflow-y: auto;
   border: 1px solid var(--grey-color-light);
+}
+
+/* Media Queries for responsiveness */
+@media (max-width: 768px) {
+  div.container {
+    grid-template-columns: 1fr; /* Stacked layout for mobile */
+    grid-template-areas:
+      "header"
+      "content";
+  }
+
+  div.container.smallsidebar {
+    grid-template-columns: 1fr;
+  }
+
+  div.container > div.sidebar {
+    display: none; /* Hide sidebar on mobile */
+  }
+
+  /* Adjust header and content padding for mobile */
+  div.container > div.header,
+  div.container > div.content {
+    padding: var(--padding-small);
+  }
 }
 </style>
 </head>
