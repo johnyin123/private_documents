@@ -1,22 +1,14 @@
 const config = { g_hosts: {} };
 function about() { showView('about'); }
-function gen_gold_list(jsonobj) {
-  var lst = '';
-  jsonobj.forEach(item => {
-    lst += `<option value="${item['name']}">${item['desc']}</option>`;
-  });
-  return lst;
+function genOption(jsonobj, selectedValue = '') {
+  return jsonobj.map(item => {
+    return `<option value="${item.name}" ${item.name === selectedValue ? 'selected' : ''}>${item.desc}</option>`;
+  }).join('');
 }
-function gen_dev_list(jsonobj, devtype) {
-  var lst = '';
-  jsonobj.forEach(item => {
-    if(devtype === item['devtype']) {
-      lst += `<option value="${item['name']}">${item['desc']}</option>`;
-    }
-  });
-  return lst;
+function filterByKey(array, key, value) {
+  return array.filter(item => item[key] === value);
 }
-function gen_act(smsg, action, host, parm2, icon) {
+function genActBtn(smsg, action, host, parm2, icon) {
   return `<button title='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
 }
 function show_all_db_vms(view) {
@@ -65,19 +57,19 @@ function show_vms(host, vms) {
   vms.forEach(item => {
     table += `<div class="vms-wrapper">`;
     table += `<div class="vms-wrapper-header vmstate${item.state}"><h2>GUEST</h2><div>`;
-    table += gen_act('Show XML', 'show_xml', host, item.uuid, 'fa-file-code-o');
-    table += gen_act('Guest UI URL', 'show_vmui', host, item.uuid, 'fa-link');
+    table += genActBtn('Show XML', 'show_xml', host, item.uuid, 'fa-file-code-o');
+    table += genActBtn('Guest UI URL', 'show_vmui', host, item.uuid, 'fa-link');
     if(item.state === 'RUN') {
-      table += gen_act('VNC', 'display', host, item.uuid, 'fa-desktop');
-      table += gen_act('Stop', 'stop', host, item.uuid, 'fa-power-off');
-      table += gen_act('ForceStop', 'force_stop', host, item.uuid, 'fa-plug');
+      table += genActBtn('VNC', 'display', host, item.uuid, 'fa-desktop');
+      table += genActBtn('Stop', 'stop', host, item.uuid, 'fa-power-off');
+      table += genActBtn('ForceStop', 'force_stop', host, item.uuid, 'fa-plug');
     } else {
-      table += gen_act('Start', 'start', host, item.uuid, 'fa-play');
-      table += gen_act('Undefine', 'undefine', host, item.uuid, 'fa-trash');
+      table += genActBtn('Start', 'start', host, item.uuid, 'fa-play');
+      table += genActBtn('Undefine', 'undefine', host, item.uuid, 'fa-trash');
     } 
-    table += gen_act('Add ISO', 'add_iso', host, item.uuid, 'fa-floppy-o');
-    table += gen_act('Add NET', 'add_net', host, item.uuid, 'fa-wifi');
-    table += gen_act('Add DISK', 'add_disk', host, item.uuid, 'fa-database');
+    table += genActBtn('Add ISO', 'add_iso', host, item.uuid, 'fa-floppy-o');
+    table += genActBtn('Add NET', 'add_net', host, item.uuid, 'fa-wifi');
+    table += genActBtn('Add DISK', 'add_disk', host, item.uuid, 'fa-database');
     table += `</div></div>`;
     table += `<table>`;
     for(var key in item) {
@@ -110,7 +102,7 @@ function show_host(host) {
   var table = '';
   table += `<div class="host-wrapper">`;
   table += `<div class="host-wrapper-header"><h2>KVM HOST</h2><div>`;
-  table += gen_act('Create VM', 'create_vm', host.name, host.arch, 'fa-tasks');
+  table += genActBtn('Create VM', 'create_vm', host.name, host.arch, 'fa-tasks');
   table += `</div></div>`;
   table += `<table>`;
   for(var key in host) {
@@ -168,18 +160,10 @@ function disperr(code, name, desc) {
     <form><pre style="white-space: pre-wrap;">${desc}</pre></form>
   </div>`);
 }
-function overlayon() {
+function toggleOverlay(visible) {
   const overlay = document.getElementById("overlay");
-  if (overlay !== null) {
-    overlay.style.display = "block";
-  }
-}
-function overlayoff() {
-  const overlay = document.getElementById("overlay");
-  if (overlay !== null) {
-    overlay.style.display = "none";
-    const overlay_output = document.querySelector("#overlay_output");
-    overlay_output.innerHTML = "";
+  if (overlay) {
+    overlay.style.display = visible ? "block" : "none";
   }
 }
 function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
@@ -195,7 +179,7 @@ function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
   xhr.onerror = function () { console.error(`${url} ${method} onerror`); disperr(0,`${url}`,`${method} onerror`);};
   xhr.onabort = function() { console.error(`${url} ${method} abort`); disperr(0,`${url}`,`${method} abort`);};
   xhr.ontimeout = function () { console.error(`${url} ${method} timeout`); disperr(0,`${url}`,`${method} timeout`);};
-  xhr.onloadend = function() { overlayoff(); /*as finally*/ };
+  xhr.onloadend = function() { toggleOverlay(false); /*as finally*/ };
   xhr.open(method, url, true);
   //xhr.setRequestHeader('Pragma', 'no-cache');
   xhr.setRequestHeader('Content-Type', 'application/json');
@@ -229,7 +213,7 @@ function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
   } else {
     xhr.send();
   }
-  overlayon();
+  toggleOverlay(true);
 }
 function vmlist(host) {
   document.getElementById("vms").innerHTML = '';
@@ -380,11 +364,11 @@ function add_disk(host, uuid) {
   const devlst = document.getElementById('dev_list');
   getjson('GET', `/tpl/device/${host}`, function(resp) {
     var devs = JSON.parse(resp);
-    devlst.innerHTML = gen_dev_list(devs, 'disk');
+    devlst.innerHTML = genOption(filterByKey(devs, 'devtype', 'disk'));
   });
   getjson('GET', `/tpl/gold/${host}`, function(resp) {
     var gold = JSON.parse(resp);
-    goldlst.innerHTML = gen_gold_list(gold);
+    goldlst.innerHTML = genOption(gold, '数据盘');
   }, null);
   form.addEventListener('submit', function(event) {
     showView('hostlist');
@@ -400,7 +384,7 @@ function add_net(host, uuid) {
   const netlst = document.getElementById('net_list');
   getjson('GET', `/tpl/device/${host}`, function(resp) {
     var devs = JSON.parse(resp);
-    netlst.innerHTML = gen_dev_list(devs, 'net');
+    netlst.innerHTML = genOption(filterByKey(devs, 'devtype', 'net'));
   });
   form.addEventListener('submit', function(event) {
     showView('hostlist');
@@ -416,7 +400,7 @@ function add_iso(host, uuid) {
   const isolst = document.getElementById('iso_list');
   getjson('GET', `/tpl/device/${host}`, function(resp) {
     var devs = JSON.parse(resp);
-    isolst.innerHTML = gen_dev_list(devs, 'iso');
+    isolst.innerHTML = genOption(filterByKey(devs, 'devtype', 'iso'));
   });
   form.addEventListener('submit', function(event) {
     showView('hostlist');
@@ -494,7 +478,7 @@ function getjson_fetch_impl(method, url, callback, data=null, stream=null, tmout
   if(null !== data && typeof data !== 'undefined') {
     opts['body'] = JSON.stringify(data);
   }
-  overlayon();
+  toggleOverlay(true);
   fetch(url, opts).then(response => {
     if (!response.ok) {
       return response.text().then(text => {
@@ -532,6 +516,6 @@ function getjson_fetch_impl(method, url, callback, data=null, stream=null, tmout
       disperr(999, `${method} ${url}`, `${error.message}`);
     }
   }).finally(() => {
-    overlayoff();
+    toggleOverlay(false);
   });
 }
