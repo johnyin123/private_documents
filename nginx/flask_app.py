@@ -22,6 +22,13 @@ class UpdatedJSONProvider(DefaultJSONProvider):
             return o.isoformat()
         return super().default(o)
 
+from functools import wraps
+def output_escape(func):
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        return flask.escape(func(*args, **kwargs))
+    return wrapped
+
 def create_app(config: dict={}, json: bool=False) -> flask.Flask:
     cfg = {**FLASK_CONF, **config}
     logger.debug("Flask config: %s", cfg)
@@ -54,7 +61,7 @@ def json_handle_error(e):
 # -*- coding: utf-8 -*-
 
 import os, flask_app, flask
-from flask_app import logger
+from flask_app import logger, output_escape
 # logger=flask_app.logger
 
 # # exceptions.py
@@ -77,11 +84,16 @@ class MyApp(object):
         web=flask_app.create_app({}, json=True)
         # app.errorhandler(exceptions.APIException)(exceptions.APIException.handle)
         web.add_url_rule('/', view_func=myapp.test, methods=['POST', 'GET'])
+        web.add_url_rule('/esc', view_func=myapp.esc, methods=['POST', 'GET'])
         return web
 
     def test(self):
         # raise exceptions.APIException(exceptions.HTTPStatus.CREATED, 'err', 'msg')
         return '{ "OK" : "OK" }'
+
+    @output_escape
+    def esc(self):
+        return '<html>MSG</html>'
 
 app=MyApp.create()
 # # gunicorn -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app'
