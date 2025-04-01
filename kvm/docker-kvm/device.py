@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import os, subprocess, vmmanager, json
+from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
 from config import config
 from flask_app import logger
 from exceptions import APIException, HTTPStatus, return_ok, return_err
 
-def generate(vmmgr: vmmanager.VMManager, xml:str, action:str, arg:str, req_json:object, **kwargs):
+def generate(vmmgr: vmmanager.VMManager, xml: str, action: str, arg: str, req_json: dict, **kwargs) -> Generator:
     try:
         cmd = [ os.path.join(config.ACTION_DIR, f'{action}'), f'{arg}']
         if action is not None and len(action) != 0:
@@ -27,7 +28,10 @@ def generate(vmmgr: vmmanager.VMManager, xml:str, action:str, arg:str, req_json:
     except APIException as e:
         # already logger.exception
         yield return_err(e.code, e.name, e.desc)
+    except subprocess.CalledProcessError as e:
+        logger.exception(f'Subprocess error')
+        yield return_err(997, "attach", f"Subprocess error: {e}")
     except Exception as e:
         logger.exception(f'attach')
-        yield return_err(998, "attach", f"error={e}")
+        yield return_err(998, "attach", f"Unexpected error: {e}")
     return
