@@ -12,10 +12,10 @@ function genActBtn(smsg, action, host, parm2, icon) {
   return `<button title='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
 }
 function show_all_db_vms(view) {
-  dbvms = document.getElementById("dbvms");
-  dbvms_total = document.getElementById("dbvms-total");
+  const dbvms = document.getElementById("dbvms");
+  const dbvms_total = document.getElementById("dbvms-total");
   getjson('GET', `/vm/list/`, function(resp) {
-    var vms = JSON.parse(resp);
+    const vms = JSON.parse(resp);
     dbvms_total.innerHTML = vms.length;
     var table = '';
     vms.forEach(item => {
@@ -25,19 +25,19 @@ function show_all_db_vms(view) {
       table += `<button title='GOTO HOST' onclick='on_menu_host(config.g_hosts, ${index})'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
       table += `</div>`;
       table += `<table>`;
-      for(var key in item) {
+      for(const key in item) {
         if(key === 'disks') {
-          var disks = JSON.parse(item[key]);
+          const disks = JSON.parse(item[key]);
           disks.forEach(disk => {
             table += `<tr><th width="25%" title="disk">${disk.dev}</th><td class="truncate">${disk.device}:${disk.type}:${disk.vol}</td></tr>`;
           });
         } else if (key === 'nets') {
-          var nets = JSON.parse(item[key]);
+          const nets = JSON.parse(item[key]);
           nets.forEach(net => {
             table += `<tr><th width="25%" title="net">${net.type}</th><td class="truncate">${net.mac}</td></tr>`;
           });
         } else if (key === 'mdconfig') {
-          var mdconfig = JSON.parse(item[key]);
+          const mdconfig = JSON.parse(item[key]);
           for(var mdkey in mdconfig) {
             table += `<tr><th width="25%">${mdkey}</th><td class="truncate">${mdconfig[mdkey]}</td></tr>`;
           }
@@ -72,19 +72,19 @@ function show_vms(host, vms) {
     table += genActBtn('Add DISK', 'add_disk', host, item.uuid, 'fa-database');
     table += `</div></div>`;
     table += `<table>`;
-    for(var key in item) {
+    for(const key in item) {
       if(key === 'disks') {
-        var disks = JSON.parse(item[key]);
+        const disks = JSON.parse(item[key]);
         disks.forEach(disk => {
           table += `<tr><th title="${disk.device}">${disk.dev}</th><td colspan="2" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td><td><a title="Remove Disk" href="javascript:del_device('${host}', '${item.uuid}', '${disk.dev}')">Remove</a></td></tr>`;
         });
       } else if (key === 'nets') {
-        var nets = JSON.parse(item[key]);
+        const nets = JSON.parse(item[key]);
         nets.forEach(net => {
           table += `<tr><th>${net.type}</th><td colspan="2" class="truncate" title="${net.mac}">${net.mac}</td><td><a title="Remove netcard" href="javascript:del_device('${host}', '${item.uuid}', '${net.mac}')">Remove</a></td></tr>`;
         });
       } else if (key === 'mdconfig') {
-        var mdconfig = JSON.parse(item[key]);
+        const mdconfig = JSON.parse(item[key]);
         for(var mdkey in mdconfig) {
           table += `<tr><th>${mdkey}</th><td colspan="3">${mdconfig[mdkey]}</td></tr>`;
         }
