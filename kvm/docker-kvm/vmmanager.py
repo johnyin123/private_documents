@@ -44,9 +44,7 @@ class LibvirtDomain:
 
     @property
     def next_disk(self):
-        vdlst = []
-        sdlst = []
-        hdlst = []
+        vdlst, sdlst, hdlst = [], [], []
         for char in range(ord('a'), ord('z') + 1):
             vdlst.append('vd{}'.format(chr(char)))
             sdlst.append('sd{}'.format(chr(char)))
@@ -56,15 +54,12 @@ class LibvirtDomain:
             # for index, disk in enumerate(p.getElementsByTagName('disk')): #enumerate(xxx, , start=1)
             for disk in p.getElementsByTagName('disk'):
                 device = disk.getAttribute('device')
-                if device != 'disk' and device != 'cdrom':
+                if device not in ['disk', 'cdrom']:
                     continue
                 dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
-                if dev in vdlst:
-                    vdlst.remove(dev)
-                if dev in sdlst:
-                    sdlst.remove(dev)
-                if dev in hdlst:
-                    hdlst.remove(dev)
+                vdlst = [d for d in vdlst if d != dev]
+                sdlst = [d for d in sdlst if d != dev]
+                hdlst = [d for d in hdlst if d != dev]
             return {'virtio':vdlst[0][2], 'scsi':sdlst[0][2], 'sata':sdlst[0][2], 'ide':hdlst[0][2]}
         except IndexError as e:
             logger.exception(f'next_disk')
@@ -85,9 +80,7 @@ class LibvirtDomain:
                         # Remove leading and trailing whitespace from the text content
                         text = node.firstChild.nodeValue.strip() if node.firstChild else ''
                         # Assign the element's text content to the dictionary key
-                        tagname = node.tagName
-                        if tagname.startswith('mdconfig:'):
-                            tagname = tagname[len('mdconfig:'):]
+                        tagname = node.tagName[len('mdconfig:'):] if node.tagName.startswith('mdconfig:') else node.tagName
                         data_dict[tagname] = text
         return data_dict
 
@@ -106,7 +99,7 @@ class LibvirtDomain:
         p = xml.dom.minidom.parseString(self.XMLDesc)
         for disk in p.getElementsByTagName('disk'):
             device = disk.getAttribute('device')
-            if device != 'disk' and device != 'cdrom':
+            if device not in ['disk', 'cdrom']:
                 continue
             dtype = disk.getAttribute('type')
             dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
