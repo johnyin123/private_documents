@@ -222,22 +222,19 @@ function info() {
   });
 }
 function start() {
-  if (!confirm(`Start?`)) { return; }
-  getjson('GET', `/user/vm/start/${token.value}`, function(res) {
-    getjson_result(res);
-  });
+  if (confirm('Are you sure you want to start the VM?')) {
+    getjson('GET', `/user/vm/start/${token.value}`, getjson_result);
+  }
 }
 function stop() {
-  if (!confirm(`Stop?`)) { return; }
-  getjson('GET', `/user/vm/stop/${token.value}`, function(res) {
-    getjson_result(res);
-  });
+  if (confirm('Are you sure you want to stop the VM?')) {
+    getjson('GET', `/user/vm/stop/${token.value}`, getjson_result);
+  }
 }
 function stop_force() {
-  if (!confirm(`Force Stop?`)) { return; }
-  getjson('POST', `/user/vm/stop/${token.value}`, function(res) {
-    getjson_result(res);
-  }, null, null, 60000);
+  if (confirm('Are you sure you want to force stop the VM?')) {
+    getjson('POST', `/user/vm/stop/${token.value}`, getjson_result, null, null, 60000);
+  }
 }
 function display() {
   getjson('GET', `/user/vm/display/${token.value}`, function(res) {
@@ -259,8 +256,7 @@ function decodeURLSafeBase64(encodedString) {
 }
 function GetURLParameter(name) {
   const parms = new URLSearchParams(window.location.search);
-  if(parms.has(name)){return parms.get(name);}
-  return "";
+  return parms.has(name) ? parms.get(name) : '';
 }
 window.onload = function() {
   var strtoken = GetURLParameter('token');

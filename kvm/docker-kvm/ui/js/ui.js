@@ -172,20 +172,12 @@ function toggleOverlay(visible) {
 }
 function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
   /* Set default timeout 40 seconds*/
-  var sendObject = null;
-  if(null !== data && typeof data !== 'undefined') {
-    sendObject = JSON.stringify(data);
-  }
   var xhr = new XMLHttpRequest();
-  //xhr.addEventListener("load", transferComplete);
-  //xhr.addEventListener("error", transferFailed);
-  //xhr.addEventListener("abort", transferCanceled);
   xhr.onerror = function () { console.error(`${url} ${method} onerror`); disperr(0,`${url}`,`${method} onerror`);};
   xhr.onabort = function() { console.error(`${url} ${method} abort`); disperr(0,`${url}`,`${method} abort`);};
   xhr.ontimeout = function () { console.error(`${url} ${method} timeout`); disperr(0,`${url}`,`${method} timeout`);};
   xhr.onloadend = function() { toggleOverlay(false); /*as finally*/ };
   xhr.open(method, url, true);
-  //xhr.setRequestHeader('Pragma', 'no-cache');
   xhr.setRequestHeader('Content-Type', 'application/json');
   xhr.timeout = tmout;
   xhr.onreadystatechange = function() {
@@ -212,8 +204,8 @@ function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
     }
     return;
   }
-  if(null !== sendObject) {
-    xhr.send(sendObject);
+  if(null !== data && typeof data !== 'undefined') {
+    xhr.send(JSON.stringify(data));
   } else {
     xhr.send();
   }
@@ -254,7 +246,6 @@ function getjson_result(res) {
 function show_xml(host, uuid) {
   getjson('GET', `/vm/xml/${host}/${uuid}`, function(res) {
     dispok(res.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
-    vmlist(host);
   });
 }
 function show_vmui(host, uuid) {
@@ -278,31 +269,24 @@ function show_vmui(host, uuid) {
   showView('vmui');
 }
 function start(host, uuid) {
-  getjson('GET', `/vm/start/${host}/${uuid}`, function(resp) {
-    getjson_result(resp);
-    vmlist(host);
-  }, null, null, 60000);
+  if (confirm(`Start ${uuid}?`)) {
+    getjson('GET', `/vm/start/${host}/${uuid}`, getjson_result, null, null, 60000);
+  }
 }
 function stop(host, uuid) {
-  if (!confirm(`Stop ${uuid}?`)) { return; }
-  getjson('GET', `/vm/stop/${host}/${uuid}`, function(resp) {
-    getjson_result(resp);
-    vmlist(host);
-  });
+  if (confirm(`Stop ${uuid}?`)) {
+    getjson('GET', `/vm/stop/${host}/${uuid}`, getjson_result);
+  }
 }
 function force_stop(host, uuid) {
-  if (!confirm(`Force Stop ${uuid}?`)) { return; }
-  getjson('POST', `/vm/stop/${host}/${uuid}`, function(resp) {
-    getjson_result(resp);
-    vmlist(host);
-  }, null, null, 60000);
+  if (confirm(`Force Stop ${uuid}?`)) {
+    getjson('POST', `/vm/stop/${host}/${uuid}`, getjson_result, null, null, 60000);
+  }
 }
 function undefine(host, uuid) {
-  if (!confirm(`Undefine ${uuid}?`)) { return; }
-  getjson('GET', `/vm/delete/${host}/${uuid}`, function(resp) {
-    getjson_result(resp);
-    vmlist(host);
-  });
+  if (confirm(`Undefine ${uuid}?`)) {
+    getjson('GET', `/vm/delete/${host}/${uuid}`, getjson_result);
+  }
 }
 function display(host, uuid) {
   getjson('GET', `/vm/display/${host}/${uuid}`, function(resp) {
@@ -318,17 +302,9 @@ function display(host, uuid) {
   });
 }
 function del_device(host, uuid, dev) {
-  if (!confirm(`delete device /${host}/${uuid}/${dev} ?`)) { return; }
-  getjson('POST', `/vm/detach_device/${host}/${uuid}/${dev}`, function(resp) {
-    getjson_result(resp);
-    vmlist(host);
-  });
-}
-function do_create(host, res) {
-  getjson('POST', `/vm/create/${host}`, function(resp) {
-    getjson_result(resp);
-    vmlist(host);
-  }, res);
+  if (confirm(`delete device /${host}/${uuid}/${dev} ?`)) {
+    getjson('POST', `/vm/detach_device/${host}/${uuid}/${dev}`, getjson_result);
+  }
 }
 function create_vm(host, arch) {
   const vm_ip = document.getElementById('vm_ip');
@@ -343,7 +319,7 @@ function create_vm(host, arch) {
     showView('hostlist');
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
-    do_create(host, res);
+    getjson('POST', `/vm/create/${host}`, getjson_result , res);
   }, { once: true });
   form.reset();
   showView('createvm');
@@ -355,7 +331,6 @@ function do_add(host, uuid, res) {
   }
   getjson('POST', `/vm/attach_device/${host}/${uuid}/${res.device}`, function(res) {
     getjson_result(getLastLine(res));
-    vmlist(host);
   }, res, function(resp) {
     const overlay_output = document.querySelector("#overlay_output");
     overlay_output.innerHTML = resp; /*overlay_output.innerHTML += resp;*/
@@ -498,7 +473,6 @@ function getjson_fetch_impl(method, url, callback, data=null, stream=null, tmout
           return;
         }
         const chunk = decoder.decode(value);
-        console.log('Received chunk:', chunk);
         if(stream && typeof(stream) == "function") {
           stream(chunk);
         }
