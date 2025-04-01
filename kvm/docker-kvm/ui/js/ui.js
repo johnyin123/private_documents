@@ -164,6 +164,10 @@ function toggleOverlay(visible) {
   const overlay = document.getElementById("overlay");
   if (overlay) {
     overlay.style.display = visible ? "block" : "none";
+    if (visible) {
+      const overlay_output = document.querySelector("#overlay_output");
+      overlay_output.innerHTML = "";
+    }
   }
 }
 function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
@@ -509,6 +513,7 @@ function getjson_fetch_impl(method, url, callback, data=null, stream=null, tmout
     }
     console.log(data);
   }).catch(error => {
+    console.error(`${method} ${url} ${error.message}`);
     try {
       var result = JSON.parse(error.message);
       disperr(result.code, result.name, result.desc);
