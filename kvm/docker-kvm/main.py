@@ -32,31 +32,33 @@ def websockify_secure_link(uuid, mykey, minutes):
 import ipaddress, json, random
 def get_free_ip():
     network = []
-    used_ips = []
+    used_ips = set()
     for item in config.NETWORKS:
         ipa = ipaddress.ip_network(item['network'])
-        network += [ f'{str(ip)}/{ipa.prefixlen}' for ip in ipa ]
-        used_ips.append(f'{item["gateway"]}/{ipa.prefixlen}')
-        used_ips.append(f'{ipa.network_address}/{ipa.prefixlen}')
-        used_ips.append(f'{ipa.broadcast_address}/{ipa.prefixlen}')
-    for item in config.USED_CIDR:
-        used_ips.append(item)
+        network.extend([f'{str(ip)}/{ipa.prefixlen}' for ip in ipa.hosts()])
+        # .hosts() skips network and broadcast addresses
+        used_ips.update({
+            f'{item["gateway"]}/{ipa.prefixlen}',
+            f'{ipa.network_address}/{ipa.prefixlen}',
+            f'{ipa.broadcast_address}/{ipa.prefixlen}'
+        })
+    used_ips.update(config.USED_CIDR)
     for guest in database.KVMGuest.ListGuest():
         mdconfig = json.loads(guest.mdconfig)
         ipaddr = mdconfig.get('ipaddr', None)
         if ipaddr:
-            used_ips.append(ipaddr)
+            used_ips.add(ipaddr)
     logger.info(f'used ip {used_ips}')
     random.shuffle(network)
     for cidr in network:
         interface = ipaddress.IPv4Interface(cidr)
+        if cidr in used_ips:
+            continue
         # if int(interface.ip.exploded.split(".")[3]) < 5:
         #     continue
-        if cidr not in used_ips:
-            for item in config.NETWORKS:
-                net = ipaddress.ip_network(item['network'])
-                if interface.ip not in net:
-                    continue
+        for item in config.NETWORKS:
+            net = ipaddress.ip_network(item['network'])
+            if interface.ip in net:
                 return cidr, item["gateway"]
     return None,None
 
