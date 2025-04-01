@@ -8,8 +8,13 @@ function genOption(jsonobj, selectedValue = '') {
 function filterByKey(array, key, value) {
   return array.filter(item => item[key] === value);
 }
-function genActBtn(smsg, action, host, parm2, icon) {
-  return `<button title='${smsg}' onclick='${action}("${host}", "${parm2}")'><i class="fa ${icon}"></i></button>`;
+function genActBtn(smsg, icon, action, ...args) {
+  // args must string
+  var str_arg = '';
+  if (args.length > 0) {
+    str_arg = '"' + args.join('","') + '"';
+  }
+  return `<button title='${smsg}' onclick='${action}(${str_arg})'><i class="fa ${icon}"></i></button>`;
 }
 function show_all_db_vms(view) {
   const dbvms = document.getElementById("dbvms");
@@ -17,100 +22,101 @@ function show_all_db_vms(view) {
   getjson('GET', `/vm/list/`, function(resp) {
     const vms = JSON.parse(resp);
     dbvms_total.innerHTML = vms.length;
-    var table = '';
+    var tbl = '';
     vms.forEach(item => {
       const index = config.g_hosts.findIndex(element => element.name === item.kvmhost);
-      table += `<div class="vms-wrapper">`;
-      table += `<div class="vms-wrapper-header"><h2>GUEST</h2>`;
-      table += `<button title='GOTO HOST' onclick='on_menu_host(config.g_hosts, ${index})'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
-      table += `</div>`;
-      table += `<table>`;
+      tbl += `<div class="vms-wrapper">`;
+      tbl += `<div class="vms-wrapper-header"><h2>GUEST</h2>`;
+      tbl += `<button title='GOTO HOST' onclick='on_menu_host(config.g_hosts, ${index})'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
+      tbl += `</div>`;
+      tbl += `<table>`;
       for(const key in item) {
         if(key === 'disks') {
           const disks = JSON.parse(item[key]);
           disks.forEach(disk => {
-            table += `<tr><th width="25%" title="disk">${disk.dev}</th><td class="truncate">${disk.device}:${disk.type}:${disk.vol}</td></tr>`;
+            tbl += `<tr><th width="25%" title="disk">${disk.dev}</th><td class="truncate">${disk.device}:${disk.type}:${disk.vol}</td></tr>`;
           });
         } else if (key === 'nets') {
           const nets = JSON.parse(item[key]);
           nets.forEach(net => {
-            table += `<tr><th width="25%" title="net">${net.type}</th><td class="truncate">${net.mac}</td></tr>`;
+            tbl += `<tr><th width="25%" title="net">${net.type}</th><td class="truncate">${net.mac}</td></tr>`;
           });
         } else if (key === 'mdconfig') {
           const mdconfig = JSON.parse(item[key]);
           for(var mdkey in mdconfig) {
-            table += `<tr><th width="25%">${mdkey}</th><td class="truncate">${mdconfig[mdkey]}</td></tr>`;
+            tbl += `<tr><th width="25%">${mdkey}</th><td class="truncate">${mdconfig[mdkey]}</td></tr>`;
           }
         } else {
-          table += `<tr><th width="25%">${key}</th><td class="truncate">${item[key]}</td></tr>`;
+          tbl += `<tr><th width="25%">${key}</th><td class="truncate">${item[key]}</td></tr>`;
         }
       }
-      table += "</table>";
-      table += "</div>";
+      tbl += "</table>";
+      tbl += "</div>";
     });
-    dbvms.innerHTML = table;
+    dbvms.innerHTML = tbl;
   });
   showView(view);
 }
 function show_vms(host, vms) {
-  var table = '';
+  var tbl = '';
   vms.forEach(item => {
-    table += `<div class="vms-wrapper">`;
-    table += `<div class="vms-wrapper-header vmstate${item.state}"><h2>GUEST</h2><div>`;
-    table += genActBtn('Show XML', 'show_xml', host, item.uuid, 'fa-file-code-o');
-    table += genActBtn('Guest UI URL', 'show_vmui', host, item.uuid, 'fa-link');
+    tbl += `<div class="vms-wrapper">`;
+    tbl += `<div class="vms-wrapper-header vmstate${item.state}"><h2>GUEST</h2><div>`;
+    tbl += genActBtn('Show XML', 'fa-file-code-o', 'show_xml', host, item.uuid);
+    tbl += genActBtn('Guest UI URL', 'fa-link', 'show_vmui', host, item.uuid);
     if(item.state === 'RUN') {
-      table += genActBtn('VNC', 'display', host, item.uuid, 'fa-desktop');
-      table += genActBtn('Stop', 'stop', host, item.uuid, 'fa-power-off');
-      table += genActBtn('ForceStop', 'force_stop', host, item.uuid, 'fa-plug');
+      tbl += genActBtn('VNC View', 'fa-desktop', 'display', host, item.uuid);
+      tbl += genActBtn('Stop VM', 'fa-power-off', 'stop', host, item.uuid);
+      tbl += genActBtn('ForceStop VM', 'fa-plug', 'force_stop', host, item.uuid);
     } else {
-      table += genActBtn('Start', 'start', host, item.uuid, 'fa-play');
-      table += genActBtn('Undefine', 'undefine', host, item.uuid, 'fa-trash');
+      tbl += genActBtn('Start VM', 'fa-play', 'start', host, item.uuid);
+      tbl += genActBtn('Undefine', 'fa-trash', 'undefine', host, item.uuid);
     } 
-    table += genActBtn('Add ISO', 'add_iso', host, item.uuid, 'fa-floppy-o');
-    table += genActBtn('Add NET', 'add_net', host, item.uuid, 'fa-wifi');
-    table += genActBtn('Add DISK', 'add_disk', host, item.uuid, 'fa-database');
-    table += `</div></div>`;
-    table += `<table>`;
+    tbl += genActBtn('Add ISO', 'fa-floppy-o', 'add_iso', host, item.uuid);
+    tbl += genActBtn('Add NET', 'fa-wifi', 'add_net', host, item.uuid);
+    tbl += genActBtn('Add DISK', 'fa-database', 'add_disk', host, item.uuid);
+    tbl += `</div></div>`;
+    tbl += `<table>`;
     for(const key in item) {
       if(key === 'disks') {
         const disks = JSON.parse(item[key]);
         disks.forEach(disk => {
-          table += `<tr><th title="${disk.device}">${disk.dev}</th><td colspan="2" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td><td><a title="Remove Disk" href="javascript:del_device('${host}', '${item.uuid}', '${disk.dev}')">Remove</a></td></tr>`;
+          tbl += `<tr><th title="${disk.device}">${disk.dev}</th><td colspan="2" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td><td><a title="Remove Disk" href="javascript:del_device('${host}', '${item.uuid}', '${disk.dev}')">Remove</a></td></tr>`;
         });
       } else if (key === 'nets') {
         const nets = JSON.parse(item[key]);
         nets.forEach(net => {
-          table += `<tr><th>${net.type}</th><td colspan="2" class="truncate" title="${net.mac}">${net.mac}</td><td><a title="Remove netcard" href="javascript:del_device('${host}', '${item.uuid}', '${net.mac}')">Remove</a></td></tr>`;
+          tbl += `<tr><th>${net.type}</th><td colspan="2" class="truncate" title="${net.mac}">${net.mac}</td><td><a title="Remove netcard" href="javascript:del_device('${host}', '${item.uuid}', '${net.mac}')">Remove</a></td></tr>`;
         });
       } else if (key === 'mdconfig') {
         const mdconfig = JSON.parse(item[key]);
         for(var mdkey in mdconfig) {
-          table += `<tr><th>${mdkey}</th><td colspan="3">${mdconfig[mdkey]}</td></tr>`;
+          tbl += `<tr><th>${mdkey}</th><td colspan="3">${mdconfig[mdkey]}</td></tr>`;
         }
       } else {
-        table += `<tr><th>${key}</th><td colspan="3" class="truncate">${item[key]}</td></tr>`;
+        tbl += `<tr><th>${key}</th><td colspan="3" class="truncate">${item[key]}</td></tr>`;
       }
     }
-    table += "</table>";
-    table += "</div>";
+    tbl += "</table>";
+    tbl += "</div>";
   });
-  return table;
+  return tbl;
 }
 function show_host(host) {
   // delete host.last_modified;
-  var table = '';
-  table += `<div class="host-wrapper">`;
-  table += `<div class="host-wrapper-header"><h2>KVM HOST</h2><div>`;
-  table += genActBtn('Create VM', 'create_vm', host.name, host.arch, 'fa-tasks');
-  table += `</div></div>`;
-  table += `<table>`;
+  var tbl = '';
+  tbl += `<div class="host-wrapper">`;
+  tbl += `<div class="host-wrapper-header"><h2>KVM HOST</h2><div>`;
+  tbl += genActBtn('Refresh VM List', 'fa-refresh fa-spin', 'vmlist', host.name);
+  tbl += genActBtn('Create VM', 'fa-tasks', 'create_vm', host.name, host.arch);
+  tbl += `</div></div>`;
+  tbl += `<table>`;
   for(var key in host) {
-    table += `<tr><th width="25%">${key}</th><td>${host[key]}</td></tr>`;
+    tbl += `<tr><th width="25%">${key}</th><td>${host[key]}</td></tr>`;
   }
-  table += '</table>';
-  table += '</div>';
-  return table;
+  tbl += '</table>';
+  tbl += '</div>';
+  return tbl;
 }
 ///////////////////////////////////////////////////////////
 // <form id="myform"></form>
