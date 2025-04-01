@@ -274,6 +274,7 @@ function show_xml(host, uuid) {
 function show_vmui(host, uuid) {
   const form = document.getElementById('vmui_form');
   form.addEventListener('submit', function(event) {
+    showView('hostlist');
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
     const d = Date.parse(`${res.date} ${res.time}`).valueOf();
@@ -285,7 +286,6 @@ function show_vmui(host, uuid) {
       } else {
         disperr(result.code, result.name, result.desc);
       }
-      vmlist(host);
     });
   }, { once: true });
   form.reset();
@@ -354,10 +354,10 @@ function create_vm(host, arch) {
   });
   const form = document.getElementById('createvm_form');
   form.addEventListener('submit', function(event) {
+    showView('hostlist');
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
     do_create(host, res);
-    showView('hostlist');
   }, { once: true });
   form.reset();
   showView('createvm');
@@ -389,10 +389,10 @@ function add_disk(host, uuid) {
     goldlst.innerHTML = gen_gold_list(gold);
   }, null);
   form.addEventListener('submit', function(event) {
+    showView('hostlist');
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
     do_add(host, uuid, res);
-    showView('hostlist');
   }, { once: true });
   form.reset();
   showView('adddisk');
@@ -405,10 +405,10 @@ function add_net(host, uuid) {
     netlst.innerHTML = gen_dev_list(devs, 'net');
   });
   form.addEventListener('submit', function(event) {
+    showView('hostlist');
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
     do_add(host, uuid, res);
-    showView('hostlist');
   }, { once: true });
   form.reset();
   showView('addnet');
@@ -421,10 +421,10 @@ function add_iso(host, uuid) {
     isolst.innerHTML = gen_dev_list(devs, 'iso');
   });
   form.addEventListener('submit', function(event) {
+    showView('hostlist');
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
     do_add(host, uuid, res);
-    showView('hostlist');
   }, { once: true });
   form.reset();
   showView('addiso');
@@ -480,17 +480,6 @@ window.addEventListener('load', function() {
       mainMenu += `<a href='#' class='nav_link sublink' onclick='on_menu_host(config.g_hosts, ${n})'><i class="fa fa-desktop"></i><span>${config.g_hosts[n].name}</span></a>`;
     }
     document.getElementById("sidebar").innerHTML = mainMenu;
-  });
-  //Fix the "Double Submit problem"
-  document.querySelectorAll('form').forEach((form) => {
-    form.addEventListener('submit', (e) => {
-      if (form.classList.contains('is-submitting')) {
-        e.preventDefault();
-        e.stopPropagation();
-        return false;
-      };
-      form.classList.add('is-submitting');
-    });
   });
 })
 /* ------------------------- */
