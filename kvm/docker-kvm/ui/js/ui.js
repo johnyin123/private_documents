@@ -2,8 +2,6 @@ const config = { g_hosts: {} };
 function about() { showView('about'); }
 function gen_gold_list(jsonobj) {
   var lst = '';
-  // add empty value for data disk
-  lst += `<option value="" selected>数据盘</option>`;
   jsonobj.forEach(item => {
     lst += `<option value="${item['name']}">${item['desc']}</option>`;
   });

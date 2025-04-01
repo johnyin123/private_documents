@@ -81,6 +81,8 @@ db.session.add_all(host01_devs)
 db.session.commit()
 
 golds=[
+    db.KVMGold(name='',arch='x86_64',  tpl='',desc='数据盘'),
+    db.KVMGold(name='',arch='aarch64', tpl='',desc='数据盘'),
     db.KVMGold(name='debian12',arch='x86_64', tpl='bookworm.amd64.qcow2',desc='debian12 amd64 操作系统'),
     db.KVMGold(name='debian12',arch='aarch64',tpl='bookworm.arm64.qcow2',desc='debian12 arm64 操作系统'),
     db.KVMGold(name='euler22',arch='x86_64', tpl='openeuler2203.x86_64.qcow2',desc='openeuler 2203 amd64 操作系统'),
