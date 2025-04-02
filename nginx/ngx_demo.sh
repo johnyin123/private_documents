@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f6a202be[2025-03-31T14:30:58+08:00]:ngx_demo.sh")
+VERSION+=("971abaab[2025-03-31T16:23:29+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4877,9 +4877,6 @@ proxy_pass_header Server;
 #     ~*(Teleport|VoidEYE|Collector|WebAuto|WebCopier|WebFetch|WebGo|WebLeacher|WebReaper|WebSauger|eXtractor|Quester|WebStripper|WebZIP|Wget|Widow|Zeus) 1;
 #     ~*(Twengabot|htmlparser|libwww|Python|perl|urllib|scan|email|PycURL|Pyth|PyQ|WebCollector|WebCopy|webcraw) 1;
 # }
-
-# the same as proxy_add_header. These directives are inherited from the previous configuration level if and only if there are no add_header directives defined on the current level
-add_header Set-Cookie "Path=/; HttpOnly; Secure";
 
 # cache informations about FDs
 open_file_cache max=200000 inactive=20s;
