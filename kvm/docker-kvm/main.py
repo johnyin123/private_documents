@@ -7,6 +7,29 @@ from config import config
 from exceptions import APIException, HTTPStatus, return_ok, return_err
 from flask_app import logger
 
+def _del_file_noexcept(fn):
+    try:
+        os.remove(f"{fn}")
+        # os.unlink(f"{fn}")
+    except Exception:
+        pass
+
+def req_json_remove(uuid):
+    try:
+        fn = os.path.join(config.REQ_JSON_DIR, uuid)
+        os.rename(f'{fn}', f'{fn}.remove')
+    except Exception:
+        logger.exception(f'remove req_json logfile {uuid}')
+        pass
+
+def req_json_log(uuid, req_json):
+    try:
+        with open(os.path.join(config.REQ_JSON_DIR, uuid), "w") as file:
+            json.dump(req_json, file, indent=4)
+    except Exception:
+        logger.exception(f'log req_json logfile {uuid}')
+        pass
+
 import base64, hashlib, time, datetime
 def user_access_secure_link(kvmhost, uuid, mykey, epoch):
     # secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
@@ -61,13 +84,6 @@ def get_free_ip():
             if interface.ip in net:
                 return cidr, item["gateway"]
     return None,None
-
-def _del_file_noexcept(fn):
-    try:
-        os.remove(f"{fn}")
-        # os.unlink(f"{fn}")
-    except Exception:
-        pass
 
 class MyApp(object):
     @staticmethod
@@ -231,7 +247,7 @@ class MyApp(object):
         req_json = flask.request.json
         host = database.KVMHost.getHostInfo(hostname)
         req_json = {**config.VM_DEFAULT(host.arch, hostname), **req_json}
-        logger.info(f'create_vm {req_json}')
+        logger.debug(f'create_vm {req_json}')
         if (host.arch.lower() != req_json['vm_arch'].lower()):
             raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')
         # force use host arch string
@@ -239,7 +255,6 @@ class MyApp(object):
         xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
         dom = vmmanager.VMManager(host.name, host.url).create_vm(req_json['vm_uuid'], xml)
         mdconfig = dom.mdconfig
-        logger.info(f'{req_json["vm_uuid"]} {mdconfig}')
         enum = req_json.get('enum', None)
         if enum is None or enum == "":
             if not meta.ISOMeta().create(req_json, mdconfig):
@@ -249,6 +264,7 @@ class MyApp(object):
                 raise APIException(HTTPStatus.CONFLICT, 'create_vm nocloud meta', f'{req_json["vm_uuid"]} {mdconfig}')
         else:
             logger.warn(f'meta: {enum} {req_json["vm_uuid"]} {mdconfig}')
+        req_json_log(req_json['vm_uuid'], req_json)
         return return_ok(f"create vm {req_json['vm_uuid']} on {hostname} ok")
 
     def delete_vm(self, hostname, uuid):
@@ -259,7 +275,7 @@ class MyApp(object):
         disks = dom.disks
         diskinfo = []
         for v in disks:
-            logger.info(f'remove disk {v}')
+            logger.debug(f'remove disk {v}')
             try:
                 vol = vmmgr.conn.storageVolLookupByPath(v['vol'])
                 vol.delete()
@@ -268,12 +284,14 @@ class MyApp(object):
                 diskinfo.append({k: v[k] for k in keys if k in v})
                 pass
         vmmgr.delete_vm(uuid)
-        logger.info(f'remove {uuid} datebase and nocloud/xml/iso files')
         # TODO: nocloud directory need remove
         _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
         _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
+        _del_file_noexcept(os.path.join(config.NOCLOUD_DIR, f"{uuid}/meta-data"))
+        _del_file_noexcept(os.path.join(config.NOCLOUD_DIR, f"{uuid}/user-data"))
         # remove guest list
         database.KVMGuest.Remove(uuid)
+        req_json_remove(uuid)
         return return_ok(f'{uuid} delete ok', failed=diskinfo)
 
     def start_vm(self, hostname, uuid):

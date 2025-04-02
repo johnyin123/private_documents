@@ -49,6 +49,8 @@ class config:
     TOKEN_DIR = os.path.join(OUTDIR, 'token')
     # # NOCLOUD meta service data dir
     NOCLOUD_DIR = os.path.join(OUTDIR, 'nocloud')
+    # # create_vm request json logs
+    REQ_JSON_DIR = os.path.join(OUTDIR, 'request')
     # # network pools,default gateway/network_address/broadcast_address in USED_ADDRESS 
     NETWORKS = [
                 {'network':'192.168.168.0/24', 'gateway':'192.168.168.1'},
@@ -86,7 +88,7 @@ class config:
             'vm_vcpus': 1,
             'vm_vcpus_max': 8,
             'vm_uefi': '',
-            'create_tm': datetime.now(),
+            'create_tm': datetime.now().isoformat(),
             'nocloud_srv': 'http://kvm.registry.local'
         }
         if (arch.lower() == 'x86_64'):

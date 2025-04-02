@@ -37,6 +37,9 @@ if not os.path.isdir(path):
 path = config.NOCLOUD_DIR
 if not os.path.isdir(path):
     os.mkdir(path, 0o755)
+path = config.REQ_JSON_DIR
+if not os.path.isdir(path):
+    os.mkdir(path, 0o755)
 
 print(r'VNC:{}, SPICE:{}'.format(config.VNC_DISP_URL, config.SPICE_DISP_URL))
 
