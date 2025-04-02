@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("971abaab[2025-03-31T16:23:29+08:00]:ngx_demo.sh")
+VERSION+=("4f69ee02[2025-04-02T10:43:52+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1920,8 +1920,7 @@ location @error401 { default_type text/html; return 401 '<html><head><meta http-
 location = /login.js {
     return 200 'function GetURLParameter(name) {
  const parms = new URLSearchParams(window.location.search);
- if(parms.has(name)){return parms.get(name);}
- return "";
+ return parms.has(name) ? parms.get(name) : '';
 }
 const form=document.getElementById("jwtForm");
 const login = "/api/login";
