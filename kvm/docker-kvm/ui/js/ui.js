@@ -254,10 +254,19 @@ function show_xml(host, uuid) {
     dispok(res.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
   });
 }
+function setAction(form) {
+  const email = document.getElementById('email');
+  const url = document.getElementById('url');
+  if(email) {
+    form.action = `mailto:${email.value}?subject=vm information&body=${url.href}`;
+    return true;
+  }
+  return false;
+}
 function show_vmui(host, uuid) {
   const form = document.getElementById('vmui_form');
+  const vmuimail = document.getElementById('vmuimail');
   form.addEventListener('submit', function(event) {
-    showView('hostlist');
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
     const d = Date.parse(`${res.date} ${res.time}`).valueOf();
@@ -265,13 +274,16 @@ function show_vmui(host, uuid) {
     getjson('GET', `/vm/ui/${host}/${uuid}/${epoch}`, function(resp) {
       var result = JSON.parse(resp);
       if(result.result === 'OK') {
-        dispok(`<a target="_blank" style="color: var(--white-color);" title="expire ${result.expire}" href="${result.url}?token=${result.token}">${result.url}?token=${result.token}</a>`);
+        document.getElementById('expire').value = result.expire;
+        document.getElementById('token').value = result.token;
+        document.getElementById('url').setAttribute("href", `${result.url}?token=${result.token}`);
       } else {
         disperr(result.code, result.name, result.desc);
       }
     });
   }, { once: true });
   form.reset();
+  vmuimail.reset();
   showView('vmui');
 }
 function start(host, uuid) {

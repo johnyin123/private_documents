@@ -35,6 +35,17 @@
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
+    <form onsubmit="return setAction(this);" method="post" enctype="text/plain" id="vmuimail">
+      <label>URL:<a style="color: var(--green-color);" target="_blank" id="url"/>ACCESS VM</a></label>
+      <label>Expire:<input readonly type="text" id="expire" name="expire"/></label>
+      <label>Token:<input readonly type="text" id="token" name="token"/></label>
+      <fieldset>
+        <legend>VM ControlUI</legend>
+          <label>Mail:<input type="email" id="email" placeholder="Enter your email" required/></label>
+          <input type="submit" value="SendMail">
+      </fieldset>
+      <input type="button" value="Close" onclick="showView('hostlist')"/>
+    </form>
   </div>
 </div>
 <!-- ############## -->
