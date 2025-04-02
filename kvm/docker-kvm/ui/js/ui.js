@@ -1,5 +1,4 @@
 const config = { g_hosts: {} };
-function about() { showView('about'); }
 function genOption(jsonobj, selectedValue = '') {
   return jsonobj.map(item => {
     return `<option value="${item.name}" ${item.name === selectedValue ? 'selected' : ''}>${item.desc}</option>`;
@@ -7,6 +6,18 @@ function genOption(jsonobj, selectedValue = '') {
 }
 function filterByKey(array, key, value) {
   return array.filter(item => item[key] === value);
+}
+function getFormJSON(form) {
+  const data = new FormData(form);
+  return Object.fromEntries(data.entries());
+}
+function showView(id) {
+  var view = document.getElementById(id);
+  var tabContents = document.getElementsByClassName('tabContent');
+  for (var i = 0; i < tabContents.length; i++) {
+    tabContents[i].style.display = 'none';
+  }
+  if(view != null) { view.style.display = "block"; }
 }
 function genActBtn(smsg, icon, action, ...args) {
   // args must string
@@ -118,53 +129,22 @@ function show_host(host) {
   tbl += '</div>';
   return tbl;
 }
-///////////////////////////////////////////////////////////
-// <form id="myform"></form>
-// const form = document.getElementById('myform');
-// form.addEventListener('submit', function(event) {
-//   event.preventDefault(); // Prevents the default form submission
-//   const res = getFormJSON(form);
-//   console.log(JSON.stringify(res))
-// }, { once: true });
-function getFormJSON(form) {
-  const data = new FormData(form);
-  return Object.fromEntries(data.entries());
-}
-///////////////////////////////////////////////////////////
-// .tabContent { display:none; }
-// <div id="myview" class="tabContent">...</div>
-// <div id="view1" class="tabContent">...</div>
-// showView('view1')
-function showView(id) {
-  var view = document.getElementById(id);
-  var tabContents = document.getElementsByClassName('tabContent');
-  for (var i = 0; i < tabContents.length; i++) {
-    tabContents[i].style.display = 'none';
-  }
-  if(view != null) { view.style.display = "block"; }
-}
-function Alert(message) {
+function Alert(type, title, message) {
   const div_alert = document.getElementById("alert");
-  if (div_alert !== null) {
-    div_alert.innerHTML = message;
+  if (div_alert) {
+    div_alert.innerHTML = `<div class="form-wrapper">
+    <div class="form-wrapper-header ${type}"><h2>${title}</h2><button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button></div>
+    <form><pre style="white-space: pre-wrap;">${message}</pre></form></div>`;
     showView('alert');
   } else {
     alert(message);
   }
 }
 function dispok(desc) {
-  Alert(`
-  <div class="form-wrapper">
-    <div class="form-wrapper-header success"><h2>SUCCESS</h2><button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button></div>
-    <form><pre style="white-space: pre-wrap;">${desc}</pre></form>
-  </div>`);
+  Alert('success', 'SUCCESS', desc);
 }
 function disperr(code, name, desc) {
-  Alert(`
-  <div class="form-wrapper">
-    <div class="form-wrapper-header error"><h2>${name}: ${code}</h2><button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button></div>
-    <form><pre style="white-space: pre-wrap;">${desc}</pre></form>
-  </div>`);
+  Alert('error', `${name}: ${code}`, desc);
 }
 function toggleOverlay(visible) {
   const overlay = document.getElementById("overlay");
@@ -251,7 +231,7 @@ function getjson_result(res) {
 }
 function show_xml(host, uuid) {
   getjson('GET', `/vm/xml/${host}/${uuid}`, function(res) {
-    dispok(res.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+    alert(res); //res.replace(/</g, "&lt;").replace(/>/g, "&gt;")
   });
 }
 function setAction(form) {
@@ -311,9 +291,7 @@ function display(host, uuid) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
       //document.getElementById("display").src = result.display;
-      //window.open(result.display, "_blank");
-      //getjson_result(resp);
-      dispok(`<a target="_blank" style="color: var(--white-color);" title="expire ${result.expire}" href="${result.display}">${result.display}</a>`);
+      window.open(result.display, "_blank");
     } else {
       disperr(result.code, result.name, result.desc);
     }
@@ -461,62 +439,3 @@ window.addEventListener('load', function() {
     document.getElementById("sidebar").innerHTML = mainMenu;
   });
 })
-/* ------------------------- */
-function getTheme() {
-  return localStorage.getItem('theme') || 'light';
-}
-function saveTheme(theme) {
-  localStorage.setItem('theme', theme);
-}
-/* ------------------------- */
-function getjson_fetch_impl(method, url, callback, data = null, stream = null, timeout = 40000) {
-  const opts = {
-      method: method,
-      headers: { 'Content-Type': 'application/json', },
-      body: data ? JSON.stringify(data) : null,
-  };
-  toggleOverlay(true);
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
-  fetch(url, { ...opts, signal: controller.signal }).then(response => {
-    if (!response.ok) {
-      return response.text().then(text => {
-        throw new Error(text);
-      });
-    }
-    const responseClone = response.clone();
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    function read() {
-      reader.read().then(({ done, value }) => {
-        if (done) {
-          return;
-        }
-        const chunk = decoder.decode(value);
-        if(stream && typeof(stream) == "function") {
-          stream(chunk);
-        }
-        read(); // Continue reading the stream
-      });
-    }
-    read(); // Start reading the stream
-    return responseClone.text();
-  }).then(data => {
-    clearTimeout(timeoutId);
-    if (callback && typeof(callback) == "function") {
-      callback(data);
-    }
-    console.log(data);
-  }).catch(error => {
-    clearTimeout(timeoutId);
-    console.error(`${method} ${url} ${error.message}`);
-    try {
-      var result = JSON.parse(error.message);
-      disperr(result.code, result.name, result.desc);
-    } catch (e) {
-      disperr(999, `${method} ${url}`, `${error.message}`);
-    }
-  }).finally(() => {
-    toggleOverlay(false);
-  });
-}
