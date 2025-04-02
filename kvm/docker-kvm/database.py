@@ -27,7 +27,7 @@ class KVMHost(Base):
     sshport = Column(Integer,nullable=False,server_default='22',comment='ssh端口')
     active = Column(Integer,nullable=False,server_default='0')
     inactive = Column(Integer,nullable=False,server_default='0')
-    desc = Column(String,comment='主机描述')
+    desc = Column(String,nullable=False,server_default='',comment='主机描述')
     last_modified = Column(DateTime(timezone=True),onupdate=datetime.datetime.now(),default=datetime.datetime.now())
 
     @staticmethod
