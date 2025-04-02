@@ -140,39 +140,33 @@ td.truncate {
 </div>
 <script>
 const token = document.getElementById('token');
-function getjson(method, url, callback, data=null, tmout=40000) {
-  /* Set default timeout 40 seconds*/
-  var sendObject = null;
-  if(null !== data && typeof data !== 'undefined') {
-    sendObject = JSON.stringify(data);
-  }
-  var xhr = new XMLHttpRequest();
-  xhr.onerror = function () { console.error(`${url} ${method} onerror`); };
-  xhr.onabort = function() { console.error(`${url} ${method} abort`); };
-  xhr.ontimeout = function () { console.error(`${url} ${method} timeout`); };
-  xhr.onloadend = function() { };
-  xhr.open(method, url, true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.timeout = tmout;
-  xhr.onreadystatechange = function() {
-    if(this.readyState === 4 && this.status === 200) {
-      console.log(`${method} ${url} ${xhr.response}`);
-      if (callback && typeof(callback) == "function") {
-        callback(xhr.response);
-      }
-      return;
+function getjson(method, url, callback, data = null, timeout = 40000) {
+  const options = { method,
+    headers: { 'Content-Type': 'application/json', },
+    body: data ? JSON.stringify(data) : null,
+  };
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  fetch(url, { ...options, signal: controller.signal }).then(response => {
+    if (!response.ok) {
+      return response.text().then(text => {
+        throw new Error(text);
+      });
     }
-    if(xhr.readyState === 4 && xhr.status !== 0) {
-      console.error(`${method} ${url} ${xhr.status} ${xhr.response}`);
-      alert(`${method} ${url} ${xhr.status} ${xhr.response}`);
+    return response.json();
+  }).then(responseJson => {
+    clearTimeout(timeoutId); // Clear timeout on successful response
+    callback(responseJson);
+  }).catch(error => {
+    clearTimeout(timeoutId);
+    console.error(`${method} ${url} failed: ${error.message}`);
+    try {
+      var result = JSON.parse(error.message);
+      alert(`${result.name}(${result.code}) ${result.desc}`);
+    } catch (e) {
+      alert(`${method} ${url} ${error.message}`);
     }
-    return;
-  }
-  if(null !== sendObject) {
-    xhr.send(sendObject);
-  } else {
-    xhr.send();
-  }
+  });
 }
 function show_vm(vm) {
   var table = '';
@@ -205,8 +199,7 @@ function show_vm(vm) {
 }
 function getjson_result(res) {
   try {
-    var result = JSON.parse(res);
-    if(result.result === 'OK') {
+    if(res.result === 'OK') {
       alert(res);
     } else {
       alert(res);
@@ -217,8 +210,7 @@ function getjson_result(res) {
 }
 function info() {
   getjson('GET', `/user/vm/list/${token.value}`, function(res) {
-    var vm = JSON.parse(res);
-    document.getElementById("vms").innerHTML = show_vm(vm);
+    document.getElementById("vms").innerHTML = show_vm(res);
   });
 }
 function start() {
@@ -238,10 +230,9 @@ function stop_force() {
 }
 function display() {
   getjson('GET', `/user/vm/display/${token.value}`, function(res) {
-    var result = JSON.parse(res);
-    if(result.result === 'OK') {
-      //document.getElementById("display").src = result.display;
-      window.open(result.display, "_blank");
+    if(res.result === 'OK') {
+      //document.getElementById("display").src = res.display;
+      window.open(res.display, "_blank");
     } else {
       alert(res);
     }

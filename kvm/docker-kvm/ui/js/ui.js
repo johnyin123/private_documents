@@ -469,14 +469,16 @@ function saveTheme(theme) {
   localStorage.setItem('theme', theme);
 }
 /* ------------------------- */
-function getjson_fetch_impl(method, url, callback, data=null, stream=null, tmout=40000) {
-  /*timeout no effect*/
-  var opts = {method: method, headers: { "Content-Type": "application/json" }};
-  if(null !== data && typeof data !== 'undefined') {
-    opts['body'] = JSON.stringify(data);
-  }
+function getjson_fetch_impl(method, url, callback, data = null, stream = null, timeout = 40000) {
+  const opts = {
+      method: method,
+      headers: { 'Content-Type': 'application/json', },
+      body: data ? JSON.stringify(data) : null,
+  };
   toggleOverlay(true);
-  fetch(url, opts).then(response => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  fetch(url, { ...opts, signal: controller.signal }).then(response => {
     if (!response.ok) {
       return response.text().then(text => {
         throw new Error(text);
@@ -500,11 +502,13 @@ function getjson_fetch_impl(method, url, callback, data=null, stream=null, tmout
     read(); // Start reading the stream
     return responseClone.text();
   }).then(data => {
+    clearTimeout(timeoutId);
     if (callback && typeof(callback) == "function") {
       callback(data);
     }
     console.log(data);
   }).catch(error => {
+    clearTimeout(timeoutId);
     console.error(`${method} ${url} ${error.message}`);
     try {
       var result = JSON.parse(error.message);
