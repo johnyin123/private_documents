@@ -100,11 +100,11 @@
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form id="createvm_form">
-      <label>META:<select name="enum">
-        <!--TODO: radio box-->
-        <option value="" selected>ISO</option>
-        <option value="NOCLOUD">NOCLOUD</option>
-      </select></label>
+      <fieldset>
+        <legend>Meta Server Type</legend>
+      <label><input type="radio" name="enum" value="" checked>ISO</label>
+      <label><input type="radio" name="enum" value="NOCLOUD">NOCLOUD</label>
+      </fieldset>
       <label>CPU:<div class="group">
         <input style="width: 20%;" type="number" name="vm_vcpus" id="vcpu_num" value="2" min="1" max="16" oninput="vcpu_rge.value=this.value" />
         <input type="range" id="vcpu_rge" value="2" min="1" max="16" oninput="vcpu_num.value=this.value"/>
@@ -114,10 +114,14 @@
         <input type="range" id="vmem_rge"  value="2048" min="1024" max="16384" step="1024" oninput="vmem_num.value=this.value"/>
       </div></label>
       <label>desc<textarea rows="3" name="vm_desc" placeholder="vm desc here..." required></textarea></label>
-      <label>Ipaddr*<input type="text" name="vm_ip" id="vm_ip" placeholder="e.g. 192.168.168.2/24" required pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/([1-9]{1}|1[0-9]{1}|2[0-9]{1}|3[0-2]{1})$"/></label>
-      <label>Gateway<input type="text" name="vm_gw" id="vm_gw" placeholder="e.g. 192.168.168.1" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"/></label>
-      <table id="table_meta_data"></table>
-      <input type="button" value="AddField" onclick="add_meta()"/>
+      <fieldset>
+        <legend>MetaData</legend>
+        <label>Ipaddr*<input type="text" name="vm_ip" id="vm_ip" placeholder="e.g. 192.168.168.2/24" required pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/([1-9]{1}|1[0-9]{1}|2[0-9]{1}|3[0-2]{1})$"/></label>
+        <label>Gateway<input type="text" name="vm_gw" id="vm_gw" placeholder="e.g. 192.168.168.1" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"/></label>
+        <table id="table_meta_data"></table>
+        <input type="button" value="AddField" onclick="add_meta()"/>
+      </fieldset>
+      <br>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
