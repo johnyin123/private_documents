@@ -74,7 +74,7 @@ function show_vms(host, vms) {
     tbl += `<div class="vms-wrapper">`;
     tbl += `<div class="vms-wrapper-header vmstate${item.state}"><h2>GUEST</h2><div>`;
     tbl += genActBtn('Show XML', 'fa-file-code-o', 'show_xml', host, item.uuid);
-    tbl += genActBtn('Guest UI URL', 'fa-link', 'show_vmui', host, item.uuid);
+    tbl += genActBtn('Guest Admin UI', 'fa-ambulance', 'show_vmui', host, item.uuid);
     if(item.state === 'RUN') {
       tbl += genActBtn('VNC View', 'fa-desktop', 'display', host, item.uuid);
       tbl += genActBtn('Stop VM', 'fa-power-off', 'stop', host, item.uuid);
