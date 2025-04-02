@@ -1,6 +1,6 @@
 function GetURLParameter(name) {
  const parms = new URLSearchParams(window.location.search);
- return parms.has(name) ? parms.get(name) : '';
+ return parms.has(name) ? parms.get(name) : "";
 }
 const form=document.getElementById("jwtForm");
 const login = "/api/login";

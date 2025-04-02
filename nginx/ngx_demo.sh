@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("82a0f1e0[2025-04-02T12:03:14+08:00]:ngx_demo.sh")
+VERSION+=("9e736ffb[2025-04-02T13:53:12+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1920,7 +1920,7 @@ location @error401 { default_type text/html; return 401 '<html><head><meta http-
 location = /login.js {
     return 200 'function GetURLParameter(name) {
  const parms = new URLSearchParams(window.location.search);
- return parms.has(name) ? parms.get(name) : '';
+ return parms.has(name) ? parms.get(name) : "";
 }
 const form=document.getElementById("jwtForm");
 const login = "/api/login";
@@ -2042,7 +2042,6 @@ cat <<'EOF' > jwt_svc.http
 # curl -s -k -X GET --header "Authorization: Bearer ${token}" http://localhost/ -vvv
 # curl -s -k -X GET --header "Cookie: token=${token}" http://localhost/ -vvv
 # echo '{"status":200,"message":"Success"}' > /etc/nginx/http-enabled/check.json
-# ln -s /somewhere/jwtsso/login.html /etc/nginx/http-enabled/jwt_client.login.html
 upstream real_jwt_api {
     server 192.168.169.234:16000;
     keepalive 64;
