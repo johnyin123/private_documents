@@ -259,7 +259,7 @@ function show_vmui(host, uuid) {
         document.getElementById('token').value = result.token;
         var url = document.getElementById('url');
         url.setAttribute("href", `${result.url}?token=${result.token}`);
-        url.innerHTML = `UUID:${uuid}`
+        url.innerHTML = `UUID:${uuid}`;
       } else {
         disperr(result.code, result.name, result.desc);
       }

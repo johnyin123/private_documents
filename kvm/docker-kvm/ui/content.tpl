@@ -32,8 +32,8 @@
       <label>Token:<input readonly type="text" id="token" name="token"/></label>
       <fieldset>
         <legend>VM ControlUI</legend>
-          <label>Mail:<input type="email" id="email" placeholder="Enter your email" required/></label>
-          <input type="submit" value="SendMail">
+        <label>Mail:<input type="email" id="email" placeholder="Enter your email" required/></label>
+        <input type="submit" value="SendMail">
       </fieldset>
     </form>
   </div>
