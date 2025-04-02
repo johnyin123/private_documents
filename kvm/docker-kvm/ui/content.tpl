@@ -20,6 +20,24 @@
   <embed id="display" width="800" height="600" src="" type="text/html"/>
 </div>
 <!-- ############## -->
+<div id="vmuimail" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>VM Adini UI</h2>
+      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
+    </div>
+    <form onsubmit="return setAction(this);" method="post" enctype="text/plain">
+      <a style="color: var(--green-color);" target="_blank" id="url"/>ACCESS VM</a>
+      <label>Expire:<input readonly type="text" id="expire" name="expire"/></label>
+      <label>Token:<input readonly type="text" id="token" name="token"/></label>
+      <fieldset>
+        <legend>VM ControlUI</legend>
+          <label>Mail:<input type="email" id="email" placeholder="Enter your email" required/></label>
+          <input type="submit" value="SendMail">
+      </fieldset>
+    </form>
+  </div>
+</div>
 <div id="vmui" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">
@@ -30,21 +48,10 @@
       <label>Expire:
       <div class="group">
         <input type="date" name="date" required/>
-        <input type="time" name="time" value="23:59:59" required/>
+        <input type="time" name="time" value="23:59" step="1" required/>
       </div></label>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
-    </form>
-    <form onsubmit="return setAction(this);" method="post" enctype="text/plain" id="vmuimail">
-      <label>URL:<a style="color: var(--green-color);" target="_blank" id="url"/>ACCESS VM</a></label>
-      <label>Expire:<input readonly type="text" id="expire" name="expire"/></label>
-      <label>Token:<input readonly type="text" id="token" name="token"/></label>
-      <fieldset>
-        <legend>VM ControlUI</legend>
-          <label>Mail:<input type="email" id="email" placeholder="Enter your email" required/></label>
-          <input type="submit" value="SendMail">
-      </fieldset>
-      <input type="button" value="Close" onclick="showView('hostlist')"/>
     </form>
   </div>
 </div>
