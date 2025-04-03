@@ -6,7 +6,7 @@ import database, vmmanager, template, device, meta
 from config import config
 from exceptions import APIException, HTTPStatus, return_ok, return_err
 from flask_app import logger
-
+import jwt
 def _del_file_noexcept(fn):
     try:
         os.remove(f"{fn}")
@@ -31,13 +31,15 @@ def req_json_log(uuid, req_json):
         pass
 
 import base64, hashlib, time, datetime
+def base64url_encode(input: bytes) -> bytes:
+    return base64.urlsafe_b64encode(input).replace(b"=", b"")
+
 def user_access_secure_link(kvmhost, uuid, mykey, epoch):
     # secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
     dt = datetime.datetime.fromtimestamp(epoch).isoformat()
     secure_link = f"{mykey}{epoch}{kvmhost}{uuid}".encode('utf-8')
     hash = hashlib.md5(secure_link).digest()
-    base64_hash = base64.urlsafe_b64encode(hash)
-    str_hash = base64_hash.decode('utf-8').rstrip('=')
+    str_hash = base64url_encode(hash)
     tail_uri=f'{kvmhost}/{uuid}?k={str_hash}&e={epoch}'
     token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
     return f'{token}', dt
@@ -48,8 +50,7 @@ def websockify_secure_link(uuid, mykey, minutes):
     dt = datetime.datetime.fromtimestamp(epoch).isoformat()
     secure_link = f"{mykey}{epoch}{uuid}/websockify/".encode('utf-8')
     hash = hashlib.md5(secure_link).digest()
-    base64_hash = base64.urlsafe_b64encode(hash)
-    str_hash = base64_hash.decode('utf-8').rstrip('=')
+    str_hash = base64url_encode(hash)
     return f"websockify/%3Ftoken={uuid}%26k={str_hash}%26e={epoch}", dt
 
 import ipaddress, json, random
@@ -244,9 +245,17 @@ class MyApp(object):
         return return_ok(f"detach_device {name} vm {uuid} on {hostname} ok")
 
     def create_vm(self, hostname):
+        username = ''
+        try:
+            token = flask.request.cookies.get('token', None)
+            if token is not None:
+                payload = jwt.decode(token, options={"verify_signature": False})
+                username = payload.get('username', '')
+        except:
+            pass
         req_json = flask.request.json
         host = database.KVMHost.getHostInfo(hostname)
-        req_json = {**config.VM_DEFAULT(host.arch, hostname), **req_json}
+        req_json = {**config.VM_DEFAULT(host.arch, hostname), **req_json, **{'username':username}}
         logger.debug(f'create_vm {req_json}')
         if (host.arch.lower() != req_json['vm_arch'].lower()):
             raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')

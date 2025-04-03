@@ -6,6 +6,7 @@
       <ipaddr>{{ vm_ip | default("") }}</ipaddr>
       <gateway>{{ vm_gw | default("") }}</gateway>
       <create>{{ create_tm | default("") }}</create>
+      <creater>{{ username | default("") }}</creater>
     </mdconfig:meta>
   </metadata>
   <sysinfo type='smbios'>

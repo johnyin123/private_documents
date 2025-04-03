@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("13b6bcf9[2025-04-03T07:03:40+08:00]:ngx_demo.sh")
+VERSION+=("e5334700[2025-04-03T08:50:48+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2086,6 +2086,8 @@ server {
     location / {
         auth_request @sso-auth;
         # jwt_sso_auth.inc(login.js) add cookie token=<xx>, userapp can get it find user information or recheck it youself
+        # token = flask.request.cookies.get('token', None)
+        # payload = jwt.decode(token, options={"verify_signature": False})
         # auth_request_set $cookie $upstream_http_set_cookie;
         # add_header Set-Cookie $cookie;
         autoindex on;
