@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ea551804[2025-04-03T09:41:16+08:00]:ngx_demo.sh")
+VERSION+=("9519794b[2025-04-03T10:19:12+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2014,6 +2014,8 @@ location =/api/login {
 }
 location = @sso-auth {
     internal;
+    # must no cache, check.json must not cached by proxy_cache
+    proxy_cache off;
     proxy_method 'GET';
     # eat location prefix
     proxy_pass http://jwt_api/;

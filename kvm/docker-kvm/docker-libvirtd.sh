@@ -239,8 +239,7 @@ server {
     }
     location /tpl/ {
         # auth_request @sso-auth;
-        # # no cache!! mgr private access
-        proxy_cache off;
+        # host/device/gold can cached by proxy_cache default
         location ~* ^/tpl/(host|device|gold)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app;
