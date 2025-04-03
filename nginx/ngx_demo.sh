@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9e736ffb[2025-04-02T13:53:12+08:00]:ngx_demo.sh")
+VERSION+=("13b6bcf9[2025-04-03T07:03:40+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2085,6 +2085,7 @@ server {
     include /etc/nginx/http-enabled/jwt_sso_auth.inc;
     location / {
         auth_request @sso-auth;
+        # jwt_sso_auth.inc(login.js) add cookie token=<xx>, userapp can get it find user information or recheck it youself
         # auth_request_set $cookie $upstream_http_set_cookie;
         # add_header Set-Cookie $cookie;
         autoindex on;
