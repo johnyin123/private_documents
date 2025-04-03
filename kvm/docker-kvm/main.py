@@ -36,22 +36,18 @@ def base64url_encode(input: bytes) -> bytes:
 
 def user_access_secure_link(kvmhost, uuid, mykey, epoch):
     # secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
-    dt = datetime.datetime.fromtimestamp(epoch).isoformat()
     secure_link = f"{mykey}{epoch}{kvmhost}{uuid}".encode('utf-8')
-    hash = hashlib.md5(secure_link).digest()
-    str_hash = base64url_encode(hash)
+    str_hash = base64url_encode(hashlib.md5(secure_link).digest())
     tail_uri=f'{kvmhost}/{uuid}?k={str_hash}&e={epoch}'
     token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
-    return f'{token}', dt
+    return f'{token}', datetime.datetime.fromtimestamp(epoch).isoformat()
 
 def websockify_secure_link(uuid, mykey, minutes):
     # secure_link_md5 "$mykey$secure_link_expires$arg_token$uri";
     epoch = round(time.time() + minutes*60)
-    dt = datetime.datetime.fromtimestamp(epoch).isoformat()
     secure_link = f"{mykey}{epoch}{uuid}/websockify/".encode('utf-8')
-    hash = hashlib.md5(secure_link).digest()
-    str_hash = base64url_encode(hash)
-    return f"websockify/%3Ftoken={uuid}%26k={str_hash}%26e={epoch}", dt
+    str_hash = base64url_encode(hashlib.md5(secure_link).digest())
+    return f"websockify/%3Ftoken={uuid}%26k={str_hash}%26e={epoch}", datetime.datetime.fromtimestamp(epoch).isoformat()
 
 import ipaddress, json, random
 def get_free_ip():

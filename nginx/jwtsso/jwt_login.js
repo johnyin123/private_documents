@@ -20,4 +20,4 @@ form.addEventListener("submit", function(ev) {
  }).catch(error => {
   alert("Error:"+error);
  });
-}, { once: true });
+});

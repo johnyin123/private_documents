@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ae20d093[2025-04-03T09:28:00+08:00]:ngx_demo.sh")
+VERSION+=("ea551804[2025-04-03T09:41:16+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1940,7 +1940,7 @@ form.addEventListener("submit", function(ev) {
  }).catch(error => {
   alert("Error:"+error);
  });
-}, { once: true });';
+});';
 }
 location = /login.css {
     return 200 'body {
