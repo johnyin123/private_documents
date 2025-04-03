@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e5334700[2025-04-03T08:50:48+08:00]:ngx_demo.sh")
+VERSION+=("ae20d093[2025-04-03T09:28:00+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -618,8 +618,8 @@ server {
     # access_log can add $http3 var, for logging quic enabled or not
     ssl_certificate /etc/nginx/ssl/test.pem;
     ssl_certificate_key /etc/nginx/ssl/test.key;
-    # direct set cache_bypass
-    set $cache_bypass 1;
+    # direct set no proxy_cache
+    proxy_cache off;
     access_log /var/log/nginx/access_err_domain.log main buffer=512k flush=5m;
     location =/healthz { access_log off; default_type text/html; return 200 "$time_iso8601 $hostname alive.\n"; }
     location /info { return 200 "$time_iso8601 Hello from $hostname. You connected from $remote_addr:$remote_port to $server_addr:$server_port\n"; }
@@ -4241,7 +4241,7 @@ cat <<'EOF' > proxy_cache.conf
 proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=24h max_size=512m use_temp_path=off;
 
 # # disable upstream cache
-# location: add proxy_no_cache 1;
+# location: add proxy_cache off;
 map $request_uri $cache_bypass {
     "~(/administrator|/admin|/login)" 1;
     default 0;

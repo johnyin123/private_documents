@@ -240,7 +240,7 @@ server {
     location /tpl/ {
         # auth_request @sso-auth;
         # # no cache!! mgr private access
-        proxy_no_cache 1;
+        proxy_cache off;
         location ~* ^/tpl/(host|device|gold)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app;
@@ -250,7 +250,7 @@ server {
     location /vm/ {
         # auth_request @sso-auth;
         # # no cache!! mgr private access
-        proxy_no_cache 1;
+        proxy_cache off;
         location /vm/stop/ {
             if ($request_method !~ ^(GET|POST)$ ) { return 405; }
             proxy_pass http://flask_app;
@@ -303,7 +303,7 @@ server {
     # # tanent api
     location /user/ {
         # # no cache!! guest user api, guest private access
-        proxy_no_cache 1;
+        proxy_cache off;
         location /user/vm/list/ {
             set $mykey "P@ssw@rd4Display";
             secure_link $arg_k,$arg_e;
