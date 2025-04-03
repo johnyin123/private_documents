@@ -23,7 +23,7 @@
 <div id="vmuimail" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">
-      <h2>VM Adini UI</h2>
+      <h2>VM Admin UI</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form onsubmit="return setAction(this);" method="post" enctype="text/plain">
