@@ -6,7 +6,7 @@ import database, vmmanager, template, device, meta
 from config import config
 from exceptions import APIException, HTTPStatus, return_ok, return_err
 from flask_app import logger
-import jwt
+
 def _del_file_noexcept(fn):
     try:
         os.remove(f"{fn}")
@@ -31,6 +31,23 @@ def req_json_log(uuid, req_json):
         pass
 
 import base64, hashlib, time, datetime
+
+def decode_jwt(token):
+    try:
+        header, payload, signature = token.split('.')
+    except ValueError:
+        raise ValueError("Invalid JWT format: must contain three parts separated by dots")
+
+    def decode_segment(segment):
+        # Add padding if necessary
+        segment += '=' * (4 - len(segment) % 4)
+        return json.loads(base64.urlsafe_b64decode(segment).decode('utf-8'))
+
+    return {
+        'header': decode_segment(header),
+        'payload': decode_segment(payload),
+    }
+
 def base64url_encode(input: bytes) -> bytes:
     return base64.urlsafe_b64encode(input).replace(b"=", b"")
 
@@ -245,7 +262,8 @@ class MyApp(object):
         try:
             token = flask.request.cookies.get('token', None)
             if token is not None:
-                payload = jwt.decode(token, options={"verify_signature": False})
+                # payload = jwt.decode(token, options={"verify_signature": False})
+                payload = decode_jwt(token).get('payload', {})
                 username = payload.get('username', '')
         except:
             pass
