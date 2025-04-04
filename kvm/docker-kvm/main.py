@@ -48,13 +48,10 @@ def decode_jwt(token):
         'payload': decode_segment(payload),
     }
 
-def base64url_encode(input: bytes) -> bytes:
-    return base64.urlsafe_b64encode(input).replace(b"=", b"")
-
 def user_access_secure_link(kvmhost, uuid, mykey, epoch):
     # secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
     secure_link = f"{mykey}{epoch}{kvmhost}{uuid}".encode('utf-8')
-    str_hash = base64url_encode(hashlib.md5(secure_link).digest())
+    str_hash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
     tail_uri=f'{kvmhost}/{uuid}?k={str_hash}&e={epoch}'
     token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
     return f'{token}', datetime.datetime.fromtimestamp(epoch).isoformat()
@@ -63,7 +60,7 @@ def websockify_secure_link(uuid, mykey, minutes):
     # secure_link_md5 "$mykey$secure_link_expires$arg_token$uri";
     epoch = round(time.time() + minutes*60)
     secure_link = f"{mykey}{epoch}{uuid}/websockify/".encode('utf-8')
-    str_hash = base64url_encode(hashlib.md5(secure_link).digest())
+    str_hash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
     return f"websockify/%3Ftoken={uuid}%26k={str_hash}%26e={epoch}", datetime.datetime.fromtimestamp(epoch).isoformat()
 
 import ipaddress, json, random
