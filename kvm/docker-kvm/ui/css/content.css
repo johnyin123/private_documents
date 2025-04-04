@@ -23,10 +23,6 @@ div.vms-wrapper {
   border: none;
   padding: var(--padding-small);
 }
-div.vms-wrapper div.vmstateRUN > h2 {
-  /* vmstate == RUN h2 color*/
-  color: var(--green-color);
-}
 div.host-wrapper-header,
 div.vms-wrapper-header,
 .form-wrapper-header {
@@ -43,6 +39,17 @@ div.vms-wrapper-header h2,
 .form-wrapper-header h2 {
   font-weight: 700;
   font-size: 1.4rem;
+}
+div.vms-wrapper-header h2.running {
+  color: var(--green-color);
+}
+div.form-wrapper-header h2.success {
+  /*success alert*/
+  color: var(--green-color);
+}
+div.form-wrapper-header h2.error {
+  /*error alert*/
+  color: var(--red-color);
 }
 div.host-wrapper-header button,
 div.vms-wrapper-header button {
@@ -65,13 +72,6 @@ div.form-wrapper {
   margin: 0 auto;
   border: none;
   padding: 12px;
-}
-div.success > h2 {
-  /*success alert*/
-  color: var(--green-color);
-}
-div.error > h2 {
-  /*error alert*/
 }
 .form-wrapper-header button.close {
   padding: 0;
