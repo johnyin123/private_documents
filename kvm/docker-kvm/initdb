@@ -158,8 +158,7 @@ for r in results:
 # results = db.Base.exesql('SELECT * FROM kvmhost join kvmdevice on kvmdevice.kvmhost = kvmhost.name')
 # for r in results:
 #     print(f'{r._asdict()}')
-ngx_cfg='''
-upstream flask_app {
+ngx_cfg='''upstream flask_app {
     server 127.0.0.1:5009 fail_timeout=0;
     keepalive 64;
 }
