@@ -21,19 +21,20 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 40
         throw new Error(text);
       });
     }
-    const responseClone = response.clone();
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    function read() {
-      reader.read().then(({ done, value }) => {
-        if (done) { return; }
-        const chunk = decoder.decode(value);
-        if(stream && typeof(stream) == "function") { stream(chunk); }
-        read(); // Continue reading the stream
-      });
+    if(stream && typeof(stream) == "function") {
+      const responseClone = response.clone();
+      const reader = responseClone.body.getReader();
+      const decoder = new TextDecoder();
+      function read() {
+        reader.read().then(({ done, value }) => {
+          if (done) { return; }
+          stream(decoder.decode(value));
+          read(); // Continue reading the stream
+        });
+      }
+      read(); // Start reading the stream
     }
-    read(); // Start reading the stream
-    return responseClone.text();
+    return response.text();
   }).then(data => {
     clearTimeout(timeoutId);
     if (callback && typeof(callback) == "function") { callback(data); }

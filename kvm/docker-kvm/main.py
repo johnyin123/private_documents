@@ -43,10 +43,7 @@ def decode_jwt(token):
         segment += '=' * (4 - len(segment) % 4)
         return json.loads(base64.urlsafe_b64decode(segment).decode('utf-8'))
 
-    return {
-        'header': decode_segment(header),
-        'payload': decode_segment(payload),
-    }
+    return { 'header': decode_segment(header), 'payload': decode_segment(payload), }
 
 def user_access_secure_link(kvmhost, uuid, mykey, epoch):
     # secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
