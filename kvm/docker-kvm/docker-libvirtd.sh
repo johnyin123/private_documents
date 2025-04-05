@@ -165,8 +165,13 @@ for arch in ${ARCH[@]}; do
         install -v -C -m 0644 --group=10001 --owner=10001 "${fn}" "${type}-${arch}/docker/home/${username}/${fn}"
     done
     OUT_DIR=/work
+    WEBSOCKKEY='P@ssw@rd4Display'
+    USERKEY='P@ssw@rd4Display'
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && \
-    cat <<'EOF' | sed "s|\${OUT_DIR}|${OUT_DIR}|g" > ${type}-${arch}/docker/etc/nginx/http-enabled/site.conf
+    cat <<'EOF' | sed "s|\${OUT_DIR}|${OUT_DIR}|g" \
+    | sed "s|\${WEBSOCKKEY}|${WEBSOCKKEY}|g"  \
+    | sed "s|\${USERKEY}|${USERKEY}|g"  \
+    > ${type}-${arch}/docker/etc/nginx/http-enabled/site.conf
 server_names_hash_bucket_size 128;
 upstream flask_app {
     server 127.0.0.1:5009 fail_timeout=0;
@@ -279,7 +284,7 @@ server {
     }
     location /websockify {
         # # /websockify used by admin & guest ui
-        set $websockkey "P@ssw@rd4Display";
+        set $websockkey "${WEBSOCKKEY}";
         secure_link $arg_k,$arg_e;
         secure_link_md5 "$websockkey$secure_link_expires$arg_token$uri";
         if ($secure_link = "") { return 403; }
@@ -304,7 +309,7 @@ server {
         # # no cache!! guest user api, guest private access
         proxy_cache off;
         location /user/vm/list/ {
-            set $userkey "P@ssw@rd4Display";
+            set $userkey "${USERKEY}";
             secure_link $arg_k,$arg_e;
             secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
@@ -313,7 +318,7 @@ server {
             proxy_pass http://flask_app/vm/list/;
         }
         location /user/vm/stop/ {
-            set $userkey "P@ssw@rd4Display";
+            set $userkey "${USERKEY}";
             secure_link $arg_k,$arg_e;
             secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
@@ -322,7 +327,7 @@ server {
             proxy_pass http://flask_app/vm/stop/;
         }
         location /user/vm/start/ {
-            set $userkey "P@ssw@rd4Display";
+            set $userkey "${USERKEY}";
             secure_link $arg_k,$arg_e;
             secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
@@ -331,7 +336,7 @@ server {
             proxy_pass http://flask_app/vm/start/;
         }
         location /user/vm/display/ {
-            set $userkey "P@ssw@rd4Display";
+            set $userkey "${USERKEY}";
             secure_link $arg_k,$arg_e;
             secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
