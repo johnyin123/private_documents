@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 from sqlalchemy import func,text,Column,String,Integer,DateTime,Enum,ForeignKey
-from config import config
+from config import config, OUTDIR
 import os
 
 def load_file(file_path):
@@ -158,3 +158,206 @@ for r in results:
 # results = db.Base.exesql('SELECT * FROM kvmhost join kvmdevice on kvmdevice.kvmhost = kvmhost.name')
 # for r in results:
 #     print(f'{r._asdict()}')
+ngx_cfg='''
+upstream flask_app {
+    server 127.0.0.1:5009 fail_timeout=0;
+    keepalive 64;
+}
+upstream websockify {
+    # websockify --token-plugin TokenFile --token-source ./token 6800
+    server 127.0.0.1:6800;
+    keepalive 64;
+}
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+server {
+    # # OPTIONAL: libvirt upload domain xml hook
+    listen 443 ssl;
+    server_name kvm.registry.local;
+    ssl_certificate     /etc/nginx/ssl/kvm.registry.local.pem;
+    ssl_certificate_key /etc/nginx/ssl/kvm.registry.local.key;
+    ssl_client_certificate /etc/nginx/ssl/kvm.ca.pem;
+    ssl_verify_client on;
+    location /domain {
+        proxy_buffering                    off;
+        proxy_request_buffering            off;
+        client_max_body_size 1m;
+        if ($request_method !~ ^(POST)$) { return 405 "Only POST"; }
+        proxy_set_header X-CERT-DN $ssl_client_s_dn;
+        # # need add all other headers, origin was overwrited
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Port  $server_port;
+        proxy_set_header Origin            $scheme://$host;
+        proxy_set_header Host $host;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_pass http://flask_app/domain;
+    }
+}
+map $uri $kvmhost {
+    "~*/user/vm/(list|start|stop|display)/(?<name>.*)/(.*)" $name;
+}
+map $uri $uuid {
+    "~*/user/vm/(list|start|stop|display)/(.*)/(?<name>.*)" $name;
+}
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name vmm.registry.local;
+    ssl_certificate     /etc/nginx/ssl/vmm.registry.local.pem;
+    ssl_certificate_key /etc/nginx/ssl/vmm.registry.local.key;
+    if ($scheme = http ) {
+        return 301 https://$server_name$request_uri;
+    }
+    default_type application/json;
+    location ~* .(favicon.ico)$ { access_log off; log_not_found off; add_header Content-Type image/svg+xml; return 200 '<svg width="104" height="104" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="104" height="104" rx="18" fill="url(#a)"/><path fill-rule="evenodd" clip-rule="evenodd" d="M56 26a4.002 4.002 0 0 1-3 3.874v5.376h15a3 3 0 0 1 3 3v23a3 3 0 0 1-3 3h-8.5v4h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-21a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h3v-4H36a3 3 0 0 1-3-3v-23a3 3 0 0 1 3-3h15v-5.376A4.002 4.002 0 0 1 52 22a4 4 0 0 1 4 4zM21.5 50.75a7.5 7.5 0 0 1 7.5-7.5v15a7.5 7.5 0 0 1-7.5-7.5zm53.5-7.5a7.5 7.5 0 0 1 0 15v-15zM46.5 50a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zm14.75 3.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5z" fill="#fff"/><defs><linearGradient id="a" x1="104" y1="0" x2="0" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#34C724"/><stop offset="1" stop-color="#62D256"/></linearGradient></defs></svg>'; }
+    error_page 403 = @403;
+    location @403 { return 403 '{"code":403,"name":"lberr","desc":"Resource Forbidden"}\n'; }
+    error_page 404 = @404;
+    location @404 { return 404 '{"code":404,"name":"lberr","desc":"Resource not found"}\n'; }
+    error_page 405 = @405;
+    location @405 { return 405 '{"code":405,"name":"lberr","desc":"Method not allowed"}\n'; }
+    error_page 502 = @502;
+    location @502 { return 502 '{"code":502,"name":"lberr","desc":"backend server not alive"}\n'; }
+    # include /etc/nginx/http-enabled/jwt_sso_auth.inc;
+    location / {
+        # # default page is guest ui
+        return 301 https://$server_name/guest.html;
+    }
+    location /tpl/ {
+        # auth_request @sso-auth;
+        # host/device/gold can cached by proxy_cache default
+        location ~* ^/tpl/(host|device|gold)/ {
+            if ($request_method !~ ^(GET)$ ) { return 405; }
+            proxy_pass http://flask_app;
+        }
+        return 404;
+    }
+    location /vm/ {
+        # auth_request @sso-auth;
+        # # no cache!! mgr private access
+        proxy_cache off;
+        location /vm/stop/ {
+            if ($request_method !~ ^(GET|POST)$ ) { return 405; }
+            proxy_pass http://flask_app;
+        }
+        location ~* ^/vm/(list|start|delete|display|xml|ui|freeip)/ {
+            if ($request_method !~ ^(GET)$ ) { return 405; }
+            proxy_pass http://flask_app;
+        }
+        location ~* ^/vm/(create|attach_device|detach_device)/ {
+            if ($request_method !~ ^(POST)$ ) { return 405; }
+            # # for server stream output
+            proxy_buffering                    off;
+            proxy_request_buffering            off;
+            proxy_pass http://flask_app;
+        }
+        return 404;
+    }
+    location = /admin.html {
+        # auth_request @sso-auth;
+        # # vmmgr ui page, mgr private access
+        alias ${OUT_DIR}/ui/tpl.html;
+    }
+    location ~* ^/ui/.+\.(?:tpl|css|js|otf|eot|svg|ttf|woff|woff2)$ {
+        # public access filename ext, other files 404
+        autoindex off;
+        root ${OUT_DIR};
+    }
+    location /websockify {
+        # # /websockify used by admin & guest ui
+        set $websockkey "${WEBSOCKKEY}";
+        secure_link $arg_k,$arg_e;
+        secure_link_md5 "$websockkey$secure_link_expires$arg_token$uri";
+        if ($secure_link = "") { return 403; }
+        if ($secure_link = "0") { return 410; }
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass http://websockify;
+    }
+    location  ~* ^/(novnc|spice) {
+        # # novnc/spice, pubic access by admin & guest ui
+        client_max_body_size 0;
+        autoindex off;
+        root ${OUT_DIR};
+    }
+    # # tanent user UI manager tanent vm by uuid
+    location = /guest.html {
+        # # guest user ui page, guest private access
+        alias ${OUT_DIR}/ui/userui.html;
+    }
+    # # tanent api
+    location /user/ {
+        # # no cache!! guest user api, guest private access
+        proxy_cache off;
+        location /user/vm/list/ {
+            set $userkey "${USERKEY}";
+            secure_link $arg_k,$arg_e;
+            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
+            if ($secure_link = "") { return 403; }
+            if ($secure_link = "0") { return 410; }
+            if ($request_method !~ ^(GET)$ ) { return 405; }
+            proxy_pass http://flask_app/vm/list/;
+        }
+        location /user/vm/stop/ {
+            set $userkey "${USERKEY}";
+            secure_link $arg_k,$arg_e;
+            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
+            if ($secure_link = "") { return 403; }
+            if ($secure_link = "0") { return 410; }
+            if ($request_method !~ ^(GET|POST)$ ) { return 405; }
+            proxy_pass http://flask_app/vm/stop/;
+        }
+        location /user/vm/start/ {
+            set $userkey "${USERKEY}";
+            secure_link $arg_k,$arg_e;
+            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
+            if ($secure_link = "") { return 403; }
+            if ($secure_link = "0") { return 410; }
+            if ($request_method !~ ^(GET)$ ) { return 405; }
+            proxy_pass http://flask_app/vm/start/;
+        }
+        location /user/vm/display/ {
+            set $userkey "${USERKEY}";
+            secure_link $arg_k,$arg_e;
+            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
+            if ($secure_link = "") { return 403; }
+            if ($secure_link = "0") { return 410; }
+            if ($request_method !~ ^(GET)$ ) { return 405; }
+            proxy_pass http://flask_app/vm/display/;
+        }
+        return 403;
+    }
+}
+# upstream meta_static {
+#     server 127.0.0.1:5009 fail_timeout=0;
+#     keepalive 64;
+# }
+server {
+    listen 80;
+    server_name kvm.registry.local;
+    # # only download iso file, and subdir iso
+    location ~* \.(iso)$ {
+        # rewrite ^ /public/iso$uri break;
+        # proxy_pass http://meta_static;
+        autoindex off;
+        root ${OUT_DIR}/iso;
+    }
+    # # only download meta-data/user-data and subdir meta-data/user-data
+    location ~* \/(meta-data|user-data)$ {
+        # rewrite ^ /public/nocloud$uri break;
+        # proxy_pass http://meta_static;
+        autoindex off;
+        root ${OUT_DIR}/nocloud;
+    }
+}
+'''
+ngx_cfg = ngx_cfg.replace('${WEBSOCKKEY}', config.WEBSOCKIFY_SECURE_LINK_MYKEY)
+ngx_cfg = ngx_cfg.replace('${USERKEY}', config.USER_ACCESS_SECURE_LINK_MYKEY)
+ngx_cfg = ngx_cfg.replace('${OUT_DIR}', OUTDIR)
+with open('kvm.conf', "w") as file:
+    file.write(ngx_cfg)
