@@ -3,8 +3,6 @@ import os, uuid
 from datetime import datetime
 from flask_app import logger
 
-# from flask import current_app
-# current_app.root_path
 # DATABASE = 'mysql+pymysql://admin:password@192.168.168.212/kvm?charset=utf8mb4'
 OUTDIR = os.environ.get('OUTDIR', os.path.abspath(os.path.dirname(__file__)))
 DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db')
@@ -78,8 +76,9 @@ class config:
         # when enum=NOCLOUD, nocloud_srv: default=http://169.254.169.254
         # if vm_ram_mb_max/vm_vcpus_max no set then use vm_ram_mb/vm_vcpus, else use a default value. see: domains/newvm.tpl...
         # # VM_DEFULT vars from domains/template. main:create_vm
+        arch = arch.lower()
         default = {
-            'vm_arch': f'{arch.lower()}',
+            'vm_arch': arch,
             'vm_uuid': f'{uuid.uuid4()}',
             'vm_name': 'srv',
             'vm_desc': '',
@@ -91,9 +90,9 @@ class config:
             'create_tm': datetime.now().isoformat(),
             'nocloud_srv': 'http://kvm.registry.local'
         }
-        if (arch.lower() == 'x86_64'):
+        if (arch == 'x86_64'):
             return { **default }
-        elif (arch.lower() == 'aarch64'):
+        elif (arch == 'aarch64'):
             #  x86_64:/usr/share/qemu/OVMF.fd
             # aarch64:/usr/share/qemu-efi-aarch64/QEMU_EFI.fd
             #         /usr/share/AAVMF/AAVMF_CODE.fd

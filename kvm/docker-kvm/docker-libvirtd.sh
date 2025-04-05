@@ -279,9 +279,9 @@ server {
     }
     location /websockify {
         # # /websockify used by admin & guest ui
-        set $mykey "P@ssw@rd4Display";
+        set $websockkey "P@ssw@rd4Display";
         secure_link $arg_k,$arg_e;
-        secure_link_md5 "$mykey$secure_link_expires$arg_token$uri";
+        secure_link_md5 "$websockkey$secure_link_expires$arg_token$uri";
         if ($secure_link = "") { return 403; }
         if ($secure_link = "0") { return 410; }
         proxy_set_header Upgrade $http_upgrade;
@@ -304,36 +304,36 @@ server {
         # # no cache!! guest user api, guest private access
         proxy_cache off;
         location /user/vm/list/ {
-            set $mykey "P@ssw@rd4Display";
+            set $userkey "P@ssw@rd4Display";
             secure_link $arg_k,$arg_e;
-            secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
+            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
             if ($secure_link = "0") { return 410; }
             if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app/vm/list/;
         }
         location /user/vm/stop/ {
-            set $mykey "P@ssw@rd4Display";
+            set $userkey "P@ssw@rd4Display";
             secure_link $arg_k,$arg_e;
-            secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
+            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
             if ($secure_link = "0") { return 410; }
             if ($request_method !~ ^(GET|POST)$ ) { return 405; }
             proxy_pass http://flask_app/vm/stop/;
         }
         location /user/vm/start/ {
-            set $mykey "P@ssw@rd4Display";
+            set $userkey "P@ssw@rd4Display";
             secure_link $arg_k,$arg_e;
-            secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
+            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
             if ($secure_link = "0") { return 410; }
             if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app/vm/start/;
         }
         location /user/vm/display/ {
-            set $mykey "P@ssw@rd4Display";
+            set $userkey "P@ssw@rd4Display";
             secure_link $arg_k,$arg_e;
-            secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
+            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
             if ($secure_link = "0") { return 410; }
             if ($request_method !~ ^(GET)$ ) { return 405; }
