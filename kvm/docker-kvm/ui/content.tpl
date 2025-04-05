@@ -120,7 +120,7 @@
         <input style="width: 20%;" type="number" name="vm_ram_mb" id="vmem_num"  value="2048" min="1024" max="16384" step="1024" oninput="vmem_rge.value=this.value"/>
         <input type="range" id="vmem_rge"  value="2048" min="1024" max="16384" step="1024" oninput="vmem_num.value=this.value"/>
       </div></label>
-      <label>desc<textarea rows="3" name="vm_desc" placeholder="vm desc here..." required></textarea></label>
+      <label>desc<textarea rows="3" maxlength="100" name="vm_desc" placeholder="vm desc here..." required></textarea></label>
       <fieldset>
         <legend>MetaData</legend>
         <label>Ipaddr*<input type="text" name="vm_ip" id="vm_ip" placeholder="e.g. 192.168.168.2/24" required pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/([1-9]{1}|1[0-9]{1}|2[0-9]{1}|3[0-2]{1})$"/></label>
