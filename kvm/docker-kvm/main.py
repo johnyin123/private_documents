@@ -7,20 +7,15 @@ from config import config
 from exceptions import APIException, HTTPStatus, return_ok, return_err
 from flask_app import logger
 
-def _del_file_noexcept(fn):
+def remove_file(fn):
     try:
-        os.remove(f"{fn}")
-        # os.unlink(f"{fn}")
+        # file/directory rename
+        os.rename(f'{fn}', f'{fn}.remove')
     except Exception:
         pass
 
 def req_json_remove(uuid):
-    try:
-        fn = os.path.join(config.REQ_JSON_DIR, uuid)
-        os.rename(f'{fn}', f'{fn}.remove')
-    except Exception:
-        logger.exception(f'remove req_json logfile {uuid}')
-        pass
+    remove_file(os.path.join(config.REQ_JSON_DIR, uuid))
 
 def req_json_log(uuid, req_json):
     try:
@@ -302,10 +297,9 @@ class MyApp(object):
                 pass
         vmmgr.delete_vm(uuid)
         # TODO: nocloud directory need remove
-        _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
-        _del_file_noexcept(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
-        _del_file_noexcept(os.path.join(config.NOCLOUD_DIR, f"{uuid}/meta-data"))
-        _del_file_noexcept(os.path.join(config.NOCLOUD_DIR, f"{uuid}/user-data"))
+        remove_file(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
+        remove_file(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
+        remove_file(os.path.join(config.NOCLOUD_DIR, uuid))
         # remove guest list
         database.KVMGuest.Remove(uuid)
         req_json_remove(uuid)
