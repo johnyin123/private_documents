@@ -43,7 +43,21 @@ if not os.path.isdir(path):
 path = config.REQ_JSON_DIR
 if not os.path.isdir(path):
     os.mkdir(path, 0o755)
-
+path = os.path.join(OUTDIR, 'novnc')
+if not os.path.isdir(path):
+    os.mkdir(path, 0o755)
+path = os.path.join(OUTDIR, 'spice')
+if not os.path.isdir(path):
+    os.mkdir(path, 0o755)
+path = os.path.join(OUTDIR, 'ui')
+if not os.path.isdir(path):
+    os.mkdir(path, 0o755)
+path = os.path.join(OUTDIR, 'ui/tpl.html')
+if not os.path.exists(path):
+    raise Exception('file {} nofound'.format(path))
+path = os.path.join(OUTDIR, 'ui/userui.html')
+if not os.path.exists(path):
+    raise Exception('file {} nofound'.format(path))
 print(r'VNC:{}, SPICE:{}'.format(config.VNC_DISP_URL, config.SPICE_DISP_URL))
 
 # create tables if not exists
