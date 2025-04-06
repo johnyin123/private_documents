@@ -9,6 +9,18 @@ def load_file(file_path):
         return open(file_path, "rb").read()
     raise Exception('file {} nofound'.format(file_path))
 
+def file_exists(dirname, fn, msg):
+    red='\033[31m'
+    green='\033[32m'
+    yellow='\033[33m'
+    rst='\033[0m'
+    if os.path.exists(os.path.join(dirname, fn)):
+        print(f'  {green}SUCCESS{rst} ..{dirname[-15:]:15.15s}  --> {fn:20.20s} {green}OK{rst}')
+        return True
+    print(f'{yellow}{msg}{rst}')
+    print(f'  {red}FAILED{rst}  ..{dirname[-15:]:15.15s}  --> {fn:20.20s} {red}NOFOUND{rst}')
+    return False
+
 path = OUTDIR
 if not os.path.isdir(path):
     os.mkdir(path, 0o755)
@@ -52,12 +64,8 @@ if not os.path.isdir(path):
 path = os.path.join(OUTDIR, 'ui')
 if not os.path.isdir(path):
     os.mkdir(path, 0o755)
-path = os.path.join(OUTDIR, 'ui/tpl.html')
-if not os.path.exists(path):
-    raise Exception('file {} nofound'.format(path))
-path = os.path.join(OUTDIR, 'ui/userui.html')
-if not os.path.exists(path):
-    raise Exception('file {} nofound'.format(path))
+file_exists(OUTDIR, 'ui/tpl.html', f'nginx admin.html')
+file_exists(OUTDIR, 'ui/userui.html', f'nginx guest.html')
 print(r'VNC:{}, SPICE:{}'.format(config.VNC_DISP_URL, config.SPICE_DISP_URL))
 
 # create tables if not exists
@@ -129,18 +137,6 @@ kvm_x86_srv1_devs=[
 db.session.add(kvm_x86_srv1_host)
 db.session.add_all(kvm_x86_srv1_devs)
 db.session.commit()
-
-def file_exists(dirname, fn, msg):
-    red='\033[31m'
-    green='\033[32m'
-    yellow='\033[33m'
-    rst='\033[0m'
-    if os.path.exists(os.path.join(dirname, fn)):
-        print(f'  {green}SUCCESS{rst} ..{dirname[-15:]:15.15s}  --> {fn:20.20s} {green}OK{rst}')
-        return True
-    print(f'{yellow}{msg}{rst}')
-    print(f'  {red}FAILED{rst}  ..{dirname[-15:]:15.15s}  --> {fn:20.20s} {red}NOFOUND{rst}')
-    return False
 
 for r in db.Base.exesql(f'select * from kvmhost'):
     file_exists(config.DOMAIN_DIR, r.tpl, f'{r.name:10.10s} {r.arch:8.8s}')
