@@ -4,9 +4,10 @@ from datetime import datetime
 from flask_app import logger
 
 # DATABASE = 'mysql+pymysql://admin:password@192.168.168.212/kvm?charset=utf8mb4'
+# # mgr/meta-data http/https server name
+META_SRV = os.environ.get('META_SRV', 'vmm.registry.local')
 OUTDIR = os.environ.get('OUTDIR', os.path.abspath(os.path.dirname(__file__)))
 DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db')
-
 # import multiprocessing
 # class Config:
 #     shared_state_lock = multiprocessing.Lock()
@@ -56,11 +57,11 @@ class config:
     USED_CIDR = ['192.168.168.2/24','192.168.168.3/24','192.168.168.4/24','192.168.168.5/24',]
     # # socat process close 10m
     SOCAT_TMOUT = '10m'
-    VNC_DISP_URL = 'https://vmm.registry.local/novnc/vnc_lite.html'
-    SPICE_DISP_URL = 'https://vmm.registry.local/spice/spice_auto.html'
+    VNC_DISP_URL = f'https://{META_SRV}/novnc/vnc_lite.html'
+    SPICE_DISP_URL = f'https://{META_SRV}/spice/spice_auto.html'
     WEBSOCKIFY_SECURE_LINK_MYKEY = 'P@ssw@rd4Display'  # vnc/spice websockify access mykey
     WEBSOCKIFY_SECURE_LINK_EXPIRE = 24 * 60            # minutes
-    USER_ACCESS_URL = 'https://vmm.registry.local/guest.html'
+    USER_ACCESS_URL = f'https://{META_SRV}/guest.html'
     USER_ACCESS_SECURE_LINK_MYKEY = 'P@ssw@rd4Display' # user.html access mykey, use use this page access vm by uuid belone him
 
     # # main:attach_device
@@ -71,9 +72,8 @@ class config:
         # TODO: VM_DEFAULT, can defined by hostname!
         # enum=OPENSTACK/EC2/NOCLOUD/None(undefine)
         #    EC2: uuid must startwith ec2........
-        #    NOCLOUD: access http://169.254.169.254/<vm_uuid>
+        #    NOCLOUD: access http://{{ META_SRV }}/<vm_uuid>
         #    None(undefine), use ISOMeta
-        # when enum=NOCLOUD, nocloud_srv: default=http://169.254.169.254
         # if vm_ram_mb_max/vm_vcpus_max no set then use vm_ram_mb/vm_vcpus, else use a default value. see: domains/newvm.tpl...
         # # VM_DEFULT vars from domains/template. main:create_vm
         arch = arch.lower()
@@ -88,7 +88,7 @@ class config:
             'vm_vcpus_max': 8,
             'vm_uefi': '',
             'create_tm': datetime.now().isoformat(),
-            'nocloud_srv': 'http://kvm.registry.local'
+            'META_SRV': META_SRV
         }
         if (arch == 'x86_64'):
             return { **default }
@@ -102,4 +102,4 @@ class config:
         else:
             logger.error(f'{arch} {hostname} no VM_DEFAULT defined')
             return {}
-logger.info(f'OUTDIR={OUTDIR}')
+logger.info(f'OUTDIR={OUTDIR}, META_SRV={META_SRV}')

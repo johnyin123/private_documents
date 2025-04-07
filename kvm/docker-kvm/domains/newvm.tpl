@@ -19,7 +19,7 @@
       <entry name='serial'>{{ vm_uuid }}</entry>
       <entry name='uuid'>{{ vm_uuid }}</entry>
 {%- elif enum is defined and enum == 'NOCLOUD' %}
-      <entry name='serial'>ds=nocloud-net;s={{ nocloud_srv | default("http://169.254.169.254") }}/{{ vm_uuid }}/</entry>
+      <entry name='serial'>ds=nocloud-net;s=http://{{ META_SRV }}/{{ vm_uuid }}/</entry>
       <entry name='uuid'>{{ vm_uuid }}</entry>
 {%- endif %}
     </system>
@@ -66,7 +66,7 @@
     <disk type='network' device='cdrom'>
       <driver name='qemu' type='raw'/>
       <source protocol="http" name="/{{ vm_uuid }}.iso">
-        <host name="kvm.registry.local" port="80"/>
+        <host name="{{ META_SRV }}" port="80"/>
       </source>
       <target dev='sda' bus='sata'/>
       <readonly/>

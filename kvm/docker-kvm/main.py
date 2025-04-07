@@ -3,7 +3,7 @@
 
 import flask_app, flask, os
 import database, vmmanager, template, device, meta
-from config import config
+from config import config, META_SRV
 from exceptions import APIException, HTTPStatus, return_ok, return_err
 from flask_app import logger
 
@@ -257,7 +257,8 @@ class MyApp(object):
             pass
         req_json = flask.request.json
         host = database.KVMHost.getHostInfo(hostname)
-        req_json = {**config.VM_DEFAULT(host.arch, hostname), **req_json, **{'username':username}}
+        # # avoid :META_SRV overwrite by user request
+        req_json = {**config.VM_DEFAULT(host.arch, hostname), **req_json, **{'username':username, 'META_SRV':META_SRV}}
         logger.debug(f'create_vm {req_json}')
         if (host.arch.lower() != req_json['vm_arch'].lower()):
             raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')
