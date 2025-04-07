@@ -150,8 +150,7 @@ def connect(uri: str):
 
 class VMManager:
     # # all operator by UUID
-    def __init__(self, name, conn):
-        self.name = name
+    def __init__(self, conn):
         self.conn = conn
 
     def get_domain_xml(self, uuid):

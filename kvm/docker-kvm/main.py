@@ -137,7 +137,7 @@ class MyApp(object):
     def get_domain_xml(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
         with vmmanager.connect(host.url) as conn:
-            xml = vmmanager.VMManager(host.name, conn).get_domain_xml(uuid)
+            xml = vmmanager.VMManager(conn).get_domain_xml(uuid)
             return flask.Response(xml, mimetype="application/xml")
 
     def db_list_domains(self):
@@ -151,12 +151,12 @@ class MyApp(object):
     def get_domain(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
         with vmmanager.connect(host.url) as conn:
-            return vmmanager.VMManager(host.name, conn).get_domain(uuid)._asdict()
+            return vmmanager.VMManager(conn).get_domain(uuid)._asdict()
 
     def get_vmui(self, hostname, uuid, epoch):
         host = database.KVMHost.getHostInfo(hostname)
         with vmmanager.connect(host.url) as conn:
-            dom = vmmanager.VMManager(host.name, conn).get_domain(uuid)
+            dom = vmmanager.VMManager(conn).get_domain(uuid)
         token, dt = user_access_secure_link(host.name, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
         return return_ok('vmuserinterface', url=f'{config.USER_ACCESS_URL}', token=f'{token}', expire=dt)
 
@@ -164,7 +164,7 @@ class MyApp(object):
         host = database.KVMHost.getHostInfo(hostname)
         disp = []
         with vmmanager.connect(host.url) as conn:
-            disp = vmmanager.VMManager(host.name, conn).get_display(uuid)
+            disp = vmmanager.VMManager(conn).get_display(uuid)
         timeout = config.SOCAT_TMOUT
         for it in disp:
             logger.info(f'get_display {uuid}: {it}')
@@ -203,7 +203,7 @@ class MyApp(object):
         lst = []
         host = database.KVMHost.getHostInfo(hostname)
         with vmmanager.connect(host.url) as conn:
-            results = vmmanager.VMManager(host.name, conn).list_domains()
+            results = vmmanager.VMManager(conn).list_domains()
             for dom in results:
                 item = dom._asdict()
                 lst.append(item)
@@ -219,7 +219,7 @@ class MyApp(object):
         dev = database.KVMDevice.getDeviceInfo(hostname, name)
         tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
         with vmmanager.connect(host.url) as conn:
-            vmmgr = vmmanager.VMManager(host.name, conn)
+            vmmgr = vmmanager.VMManager(conn)
             dom = vmmgr.get_domain(uuid)
             req_json['vm_uuid'] = uuid
             if tpl.bus is not None:
@@ -234,13 +234,13 @@ class MyApp(object):
                         logger.error(f'attach_device {gold} nofoudn')
                         raise APIException(HTTPStatus.BAD_REQUEST, 'attach', f'gold {gold} nofound')
         xml = tpl.gen_xml(**req_json)
-        env={'NAME':host.name,'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
+        env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
         return flask.Response(device.generate(xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
 
     def detach_device(self, hostname, uuid, name):
         host = database.KVMHost.getHostInfo(hostname)
         with vmmanager.connect(host.url) as conn:
-            vmmgr = vmmanager.VMManager(host.name, conn)
+            vmmgr = vmmanager.VMManager(conn)
             str_vol = vmmgr.detach_device(uuid, name)
             if str_vol is None:
                 return return_ok(f"detach_device {name} vm {uuid} on {hostname} ok")
@@ -275,7 +275,7 @@ class MyApp(object):
         xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
         mdconfig = {}
         with vmmanager.connect(host.url) as conn:
-            dom = vmmanager.VMManager(host.name, conn).create_vm(req_json['vm_uuid'], xml)
+            dom = vmmanager.VMManager(conn).create_vm(req_json['vm_uuid'], xml)
             mdconfig = dom.mdconfig
         enum = req_json.get('enum', None)
         if enum is None or enum == "":
@@ -292,7 +292,7 @@ class MyApp(object):
     def delete_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
         with vmmanager.connect(host.url) as conn:
-            vmmgr = vmmanager.VMManager(host.name, conn)
+            vmmgr = vmmanager.VMManager(conn)
             dom = vmmgr.get_domain(uuid)
             vmmgr.refresh_all_pool()
             disks = dom.disks
@@ -319,19 +319,19 @@ class MyApp(object):
     def start_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
         with vmmanager.connect(host.url) as conn:
-            vmmanager.VMManager(host.name, conn).start_vm(uuid)
+            vmmanager.VMManager(conn).start_vm(uuid)
         return return_ok(f'{uuid} start ok')
 
     def stop_vm(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
         with vmmanager.connect(host.url) as conn:
-            vmmanager.VMManager(host.name, conn).stop_vm(uuid)
+            vmmanager.VMManager(conn).stop_vm(uuid)
         return return_ok(f'{uuid} stop ok')
 
     def stop_vm_forced(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
         with vmmanager.connect(host.url) as conn:
-            vmmanager.VMManager(host.name, conn).stop_vm_forced(uuid)
+            vmmanager.VMManager(conn).stop_vm_forced(uuid)
         return return_ok(f'{uuid} force stop ok')
 
     def upload_xml(self, operation, action, uuid):
