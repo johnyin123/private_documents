@@ -199,7 +199,7 @@ function getjson_result(res) {
 }
 function show_xml(host, uuid) {
   getjson('GET', `/vm/xml/${host}/${uuid}`, function(res) {
-    alert(res); //res.replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    Alert('success', `XMLDesc`, res.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
   });
 }
 function setAction(form) {
