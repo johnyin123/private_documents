@@ -8,8 +8,8 @@ from exceptions import APIException, HTTPStatus, return_ok, return_err
 from flask_app import logger
 
 def remove_file(fn):
+    """Remove file/dir by renaming it with a '.remove' extension."""
     try:
-        # file/directory rename
         os.rename(f'{fn}', f'{fn}.remove')
     except Exception:
         pass
@@ -23,7 +23,6 @@ def req_json_log(uuid, req_json):
             json.dump(req_json, file, indent=4)
     except Exception:
         logger.exception(f'log req_json logfile {uuid}')
-        pass
 
 import base64, hashlib, time, datetime
 
@@ -95,35 +94,35 @@ class MyApp(object):
         web=flask_app.create_app({}, json=True)
         web.errorhandler(APIException)(APIException.handle)
         web.config['JSON_SORT_KEYS'] = False
-        web.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=myapp.upload_xml, methods=['POST'])
-        web.add_url_rule('/tpl/host/', view_func=myapp.list_host, methods=['GET'])
-        web.add_url_rule('/tpl/device/<string:hostname>', view_func=myapp.list_device, methods=['GET'])
-        web.add_url_rule('/tpl/gold/<string:hostname>', view_func=myapp.list_gold, methods=['GET'])
-        ## start db oper guest ##
-        web.add_url_rule('/vm/list/', view_func=myapp.db_list_domains, methods=['GET'])
-        web.add_url_rule('/vm/freeip/',view_func=myapp.db_freeip, methods=['GET'])
-        ## end db oper guest ##
-        web.add_url_rule('/vm/xml/<string:hostname>/<string:uuid>', view_func=myapp.get_domain_xml, methods=['GET'])
-        web.add_url_rule('/vm/list/<string:hostname>', view_func=myapp.list_domains, methods=['GET'])
-        web.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=myapp.get_domain, methods=['GET'])
-        web.add_url_rule('/vm/display/<string:hostname>/<string:uuid>', view_func=myapp.get_display, methods=['GET'])
-        web.add_url_rule('/vm/create/<string:hostname>', view_func=myapp.create_vm, methods=['POST'])
-        web.add_url_rule('/vm/delete/<string:hostname>/<string:uuid>', view_func=myapp.delete_vm, methods=['GET'])
-        web.add_url_rule('/vm/start/<string:hostname>/<string:uuid>', view_func=myapp.start_vm, methods=['GET'])
-        web.add_url_rule('/vm/stop/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm, methods=['GET'])
-        web.add_url_rule('/vm/stop/<string:hostname>/<string:uuid>', view_func=myapp.stop_vm_forced, methods=['POST'])
-        web.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.attach_device, methods=['POST'])
-        web.add_url_rule('/vm/detach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=myapp.detach_device, methods=['POST'])
-        web.add_url_rule('/vm/ui/<string:hostname>/<string:uuid>/<int:epoch>', view_func=myapp.get_vmui, methods=['GET'])
+        myapp.register_routes(web)
         return web
+
+    def register_routes(self, app):
+        app.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=self.upload_xml, methods=['POST'])
+        app.add_url_rule('/tpl/host/', view_func=self.list_host, methods=['GET'])
+        app.add_url_rule('/tpl/device/<string:hostname>', view_func=self.list_device, methods=['GET'])
+        app.add_url_rule('/tpl/gold/<string:hostname>', view_func=self.list_gold, methods=['GET'])
+        ## start db oper guest ##
+        app.add_url_rule('/vm/list/', view_func=self.db_list_domains, methods=['GET'])
+        app.add_url_rule('/vm/freeip/',view_func=self.db_freeip, methods=['GET'])
+        ## end db oper guest ##
+        app.add_url_rule('/vm/xml/<string:hostname>/<string:uuid>', view_func=self.get_domain_xml, methods=['GET'])
+        app.add_url_rule('/vm/list/<string:hostname>', view_func=self.list_domains, methods=['GET'])
+        app.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=self.get_domain, methods=['GET'])
+        app.add_url_rule('/vm/display/<string:hostname>/<string:uuid>', view_func=self.get_display, methods=['GET'])
+        app.add_url_rule('/vm/create/<string:hostname>', view_func=self.create_vm, methods=['POST'])
+        app.add_url_rule('/vm/delete/<string:hostname>/<string:uuid>', view_func=self.delete_vm, methods=['GET'])
+        app.add_url_rule('/vm/start/<string:hostname>/<string:uuid>', view_func=self.start_vm, methods=['GET'])
+        app.add_url_rule('/vm/stop/<string:hostname>/<string:uuid>', view_func=self.stop_vm, methods=['GET'])
+        app.add_url_rule('/vm/stop/<string:hostname>/<string:uuid>', view_func=self.stop_vm_forced, methods=['POST'])
+        app.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=self.attach_device, methods=['POST'])
+        app.add_url_rule('/vm/detach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=self.detach_device, methods=['POST'])
+        app.add_url_rule('/vm/ui/<string:hostname>/<string:uuid>/<int:epoch>', view_func=self.get_vmui, methods=['GET'])
 
     def list_host(self):
         results = database.KVMHost.ListHost()
         keys = [ 'name', 'arch', 'ipaddr', 'desc', 'last_modified' ]
-        return [
-            {k: v for k, v in dic._asdict().items() if k in keys}
-            for dic in results
-        ]
+        return [ {k: v for k, v in dic._asdict().items() if k in keys} for dic in results ]
         # return [result._asdict() for result in results]
 
     def list_device(self, hostname):
