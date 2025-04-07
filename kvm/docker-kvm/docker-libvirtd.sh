@@ -164,11 +164,13 @@ for arch in ${ARCH[@]}; do
     for fn in ${files[@]}; do
         install -v -C -m 0644 --group=10001 --owner=10001 "${fn}" "${type}-${arch}/docker/home/${username}/${fn}"
     done
-    OUT_DIR=/work
+    META_SRV='vmm.registry.local'
+    OUT_DIR='/work'
     WEBSOCKKEY='P@ssw@rd4Display'
     USERKEY='P@ssw@rd4Display'
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && \
     cat <<'EOF' | sed "s|\${OUT_DIR}|${OUT_DIR}|g" \
+    | sed "s|\${META_SRV}|${META_SRV}|g"  \
     | sed "s|\${WEBSOCKKEY}|${WEBSOCKKEY}|g"  \
     | sed "s|\${USERKEY}|${USERKEY}|g"  \
     > ${type}-${arch}/docker/etc/nginx/http-enabled/site.conf
@@ -219,14 +221,10 @@ map $uri $uuid {
     "~*/user/vm/(list|start|stop|display)/(.*)/(?<name>.*)" $name;
 }
 server {
-    listen 80;
     listen 443 ssl;
-    server_name vmm.registry.local;
+    server_name ${META_SRV};
     ssl_certificate     /etc/nginx/ssl/vmm.registry.local.pem;
     ssl_certificate_key /etc/nginx/ssl/vmm.registry.local.key;
-    if ($scheme = http ) {
-        return 301 https://$server_name$request_uri;
-    }
     default_type application/json;
     location ~* .(favicon.ico)$ { access_log off; log_not_found off; add_header Content-Type image/svg+xml; return 200 '<svg width="104" height="104" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="104" height="104" rx="18" fill="url(#a)"/><path fill-rule="evenodd" clip-rule="evenodd" d="M56 26a4.002 4.002 0 0 1-3 3.874v5.376h15a3 3 0 0 1 3 3v23a3 3 0 0 1-3 3h-8.5v4h3a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2h-21a2 2 0 0 1-2-2v-6a2 2 0 0 1 2-2h3v-4H36a3 3 0 0 1-3-3v-23a3 3 0 0 1 3-3h15v-5.376A4.002 4.002 0 0 1 52 22a4 4 0 0 1 4 4zM21.5 50.75a7.5 7.5 0 0 1 7.5-7.5v15a7.5 7.5 0 0 1-7.5-7.5zm53.5-7.5a7.5 7.5 0 0 1 0 15v-15zM46.5 50a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zm14.75 3.75a3.75 3.75 0 1 0 0-7.5 3.75 3.75 0 0 0 0 7.5z" fill="#fff"/><defs><linearGradient id="a" x1="104" y1="0" x2="0" y2="0" gradientUnits="userSpaceOnUse"><stop stop-color="#34C724"/><stop offset="1" stop-color="#62D256"/></linearGradient></defs></svg>'; }
     error_page 403 = @403;
@@ -353,7 +351,7 @@ server {
 # }
 server {
     listen 80;
-    server_name kvm.registry.local;
+    server_name ${META_SRV};
     # # only download iso file, and subdir iso
     location ~* \.(iso)$ {
         # rewrite ^ /public/iso$uri break;
@@ -367,6 +365,10 @@ server {
         # proxy_pass http://meta_static;
         autoindex off;
         root ${OUT_DIR}/nocloud;
+    }
+    location / {
+        # others all to https
+        return 301 https://$server_name$request_uri;
     }
 }
 EOF
