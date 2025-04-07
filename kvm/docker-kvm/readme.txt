@@ -1,4 +1,7 @@
-https://github.com/capjamesg/lru-cache
+<source protocol="https" name="url_path">
+  <host name="hostname" port="443"/>
+  <ssl verify="no"/>
+</source>
 
 cloud-init clean -l
 cloud-init init
