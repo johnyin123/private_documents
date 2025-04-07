@@ -26,8 +26,8 @@ class ISOMeta(object):
             iso.write(os.path.join(config.ISO_DIR, f'{req_json["vm_uuid"]}.iso'))
             iso.close()
             return True
-        except:
-            logger.exception(f'ISOMeta.create')
+        except Exception as e:
+            logger.exception(f'ISOMeta.create, {str(e)}')
             return False
 
 class NOCLOUDMeta(object):
@@ -41,7 +41,8 @@ class NOCLOUDMeta(object):
         logger.info(mdconfig_meta)
         try:
             nocloud_dir = os.path.join(config.NOCLOUD_DIR, f'{req_json["vm_uuid"]}')
-            os.mkdir(nocloud_dir)
+            # os.mkdir(), it may raise an error if the directory already exists, os.makedirs() with exist_ok=True to avoid that
+            os.makedirs(nocloud_dir, exist_ok=True)
             meta_data = self.meta_data.render(**mdconfig_meta)
             with open(os.path.join(nocloud_dir, "meta-data"), "w") as file:
                 file.write(meta_data)
@@ -49,6 +50,6 @@ class NOCLOUDMeta(object):
             with open(os.path.join(nocloud_dir, "user-data"), "w") as file:
                 file.write(user_data)
             return True
-        except:
-            logger.exception(f'NOCLOUDMeta.create')
+        except Exception as e:
+            logger.exception(f'NOCLOUDMeta.create, {str(e)}')
             return False
