@@ -136,28 +136,23 @@ class LibvirtDomain:
         p = xml.dom.minidom.parseString(self.XMLDesc)
         return int(p.getElementsByTagName('vcpu')[0].firstChild.data)
 
+from contextlib import contextmanager
+@contextmanager
+def connect(uri: str):
+    libvirt.virEventRegisterDefaultImpl() # console newStream
+    conn = libvirt.open(uri)
+    try:
+        yield conn
+    except libvirt.libvirtError as e:
+        kvm_error(e, 'libvirt.open')
+    finally:
+        conn.close()
+
 class VMManager:
     # # all operator by UUID
-    def __init__(self, name, uri):
+    def __init__(self, name, conn):
         self.name = name
-        try:
-            libvirt.virEventRegisterDefaultImpl()
-            self.conn = libvirt.open(uri)
-            info = self.conn.getInfo()
-        except libvirt.libvirtError as e:
-            kvm_error(e, 'libvirt.open')
-
-    @property
-    def hostname(self):
-        return self.conn.getHostname()
-
-    @property
-    def active(self):
-        return self.conn.numOfDomains()
-
-    @property
-    def inactive(self):
-        return self.conn.numOfDefinedDomains()
+        self.conn = conn
 
     def get_domain_xml(self, uuid):
         try:
@@ -263,15 +258,7 @@ class VMManager:
                 flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
             dom.attachDeviceFlags(xml, flags)
         except libvirt.libvirtError as e:
-            if state != libvirt.VIR_DOMAIN_RUNNING:
-                kvm_error(ex, f'{uuid} attach_device')
-            logger.warn(f'{uuid} is RUNNING, attach_device ONLY AFFECT_CONFIG')
-            # # No more available PCI slots, can not add LIVE
-            flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
-            try:
-                dom.attachDeviceFlags(xml, flags)
-            except libvirt.libvirtError as ex:
-                kvm_error(ex, f'{uuid} attach_device config')
+             kvm_error(e, f'{uuid} attach_device')
 
     def detach_device(self, uuid, dev):
         # dev = sda/vda....

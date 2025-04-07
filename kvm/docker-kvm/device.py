@@ -5,7 +5,7 @@ from config import config
 from flask_app import logger
 from exceptions import APIException, HTTPStatus, return_ok, return_err
 
-def generate(vmmgr: vmmanager.VMManager, xml: str, action: str, arg: str, req_json: dict, **kwargs) -> Generator:
+def generate(xml: str, action: str, arg: str, req_json: dict, **kwargs) -> Generator:
     try:
         cmd = [ os.path.join(config.ACTION_DIR, f'{action}'), f'{arg}']
         if action is not None and len(action) != 0:
@@ -23,7 +23,8 @@ def generate(vmmgr: vmmanager.VMManager, xml: str, action: str, arg: str, req_js
                     logger.error(f'execute {cmd} error={proc.returncode}')
                     yield return_err(proc.returncode, "attach", f"execute {cmd} error={proc.returncode}")
                     return
-        vmmgr.attach_device(req_json['vm_uuid'], xml)
+        with vmmanager.connect(kwargs['URL']) as conn:
+            vmmanager.VMManager(kwargs['NAME'], conn).attach_device(req_json['vm_uuid'], xml)
         yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot')
     except APIException as e:
         # already logger.exception
