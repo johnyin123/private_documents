@@ -12,26 +12,20 @@ function getFormJSON(form) {
   return Object.fromEntries(data.entries());
 }
 function showView(id) {
-  var view = document.getElementById(id);
-  var tabContents = document.getElementsByClassName('tabContent');
-  for (var i = 0; i < tabContents.length; i++) {
-    tabContents[i].style.display = 'none';
-  }
-  if(view != null) { view.style.display = "block"; }
+  const view = document.getElementById(id);
+  const tabContents = document.getElementsByClassName('tabContent');
+  Array.from(tabContents).forEach(content => content.style.display = 'none');
+  if (view) view.style.display = 'block';
 }
 function genActBtn(smsg, icon, action, ...args) {
   // args must string
-  var str_arg = '';
-  if (args.length > 0) {
-    str_arg = '"' + args.join('","') + '"';
-  }
+  const str_arg = args.length ? `"${args.join('","')}"` : '';
   return `<button title='${smsg}' onclick='${action}(${str_arg})'><i class="fa ${icon}"></i></button>`;
 }
 function genWrapper(clazz, title, buttons, table) {
-  var tbl = `<div class="${clazz}">`;
-  tbl += `<div class="${clazz}-header">${title}<div>${buttons}</div></div>`;
-  tbl += `${table}</div>`;
-  return tbl;
+  return `<div class="${clazz}">
+  <div class="${clazz}-header">${title}<div>${buttons}</div></div>
+  ${table}</div>`;
 }
 function genVmTblItems(item, host = null) {
   const colspan= host ? 2 : 3;
@@ -168,11 +162,7 @@ function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
     }
     return;
   }
-  if(null !== data && typeof data !== 'undefined') {
-    xhr.send(JSON.stringify(data));
-  } else {
-    xhr.send();
-  }
+  xhr.send(data ? JSON.stringify(data) : null);
   toggleOverlay(true);
 }
 function vmlist(host) {
