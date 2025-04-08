@@ -94,7 +94,6 @@ class LibvirtDomain:
 
     @property
     def disks(self):
-        # TODO: detach-device, use disk.xml
         disk_lst = []
         p = xml.dom.minidom.parseString(self.XMLDesc)
         for disk in p.getElementsByTagName('disk'):

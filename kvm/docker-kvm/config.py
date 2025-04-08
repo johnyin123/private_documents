@@ -96,7 +96,7 @@ class config:
             #  x86_64:/usr/share/qemu/OVMF.fd
             # aarch64:/usr/share/qemu-efi-aarch64/QEMU_EFI.fd
             #         /usr/share/AAVMF/AAVMF_CODE.fd
-            #         # openEuler 22.03
+            #         # openEuler 22.03, use docker-libvirt NOT
             #         /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
             return { **default, 'vm_uefi':'/usr/share/AAVMF/AAVMF_CODE.fd' }
         else:

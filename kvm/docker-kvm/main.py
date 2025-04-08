@@ -307,7 +307,6 @@ class MyApp(object):
                     diskinfo.append({k: v[k] for k in keys if k in v})
                     pass
             vmmgr.delete_vm(uuid)
-        # TODO: nocloud directory need remove
         remove_file(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
         remove_file(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
         remove_file(os.path.join(config.NOCLOUD_DIR, uuid))
