@@ -121,7 +121,7 @@ class MyApp(object):
 
     def list_host(self):
         results = database.KVMHost.ListHost()
-        keys = [ 'name', 'arch', 'ipaddr', 'desc', 'last_modified' ]
+        keys = [ 'name', 'arch', 'ipaddr', 'desc', 'url', 'last_modified' ]
         return [ {k: v for k, v in dic._asdict().items() if k in keys} for dic in results ]
         # return [result._asdict() for result in results]
 

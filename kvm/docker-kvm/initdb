@@ -246,6 +246,7 @@ server {
         return 301 https://$server_name/guest.html;
     }
     location /tpl/ {
+        # # proxy cache default is on, so modify host|device|gold, should clear ngx cache
         # auth_request @sso-auth;
         # host/device/gold can cached by proxy_cache default
         location ~* ^/tpl/(host|device|gold)/ {
