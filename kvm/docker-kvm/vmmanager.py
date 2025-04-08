@@ -139,14 +139,16 @@ class LibvirtDomain:
 from contextlib import contextmanager
 @contextmanager
 def connect(uri: str):
-    libvirt.virEventRegisterDefaultImpl() # console newStream
-    conn = libvirt.open(uri)
+    conn = None
     try:
+        libvirt.virEventRegisterDefaultImpl() # console newStream
+        conn = libvirt.open(uri)
         yield conn
     except libvirt.libvirtError as e:
         kvm_error(e, 'libvirt.open')
     finally:
-        conn.close()
+        if conn is not None:
+            conn.close()
 
 class VMManager:
     # # all operator by UUID

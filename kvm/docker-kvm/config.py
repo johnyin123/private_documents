@@ -98,7 +98,7 @@ class config:
             #         /usr/share/AAVMF/AAVMF_CODE.fd
             #         # openEuler 22.03
             #         /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
-            return { **default, 'vm_uefi':'/usr/share/edk2/aarch64/QEMU_EFI-pflash.raw' }
+            return { **default, 'vm_uefi':'/usr/share/AAVMF/AAVMF_CODE.fd' }
         else:
             logger.error(f'{arch} {hostname} no VM_DEFAULT defined')
             return {}

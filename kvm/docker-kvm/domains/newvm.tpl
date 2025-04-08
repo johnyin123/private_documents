@@ -48,7 +48,9 @@
     <boot dev='network'/>
     <bootmenu enable='yes' timeout='3000'/>
     <smbios mode='sysinfo'/>
+{%- if vm_arch == 'x86_64' %}
     <bios useserial='yes'/>
+{%- endif %}
   </os>
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>destroy</on_poweroff>

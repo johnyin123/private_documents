@@ -118,15 +118,24 @@ golds=[
 db.session.add_all(golds)
 db.session.commit()
 
-kvm_arm_srv1_host = db.KVMHost(name='kvm-arm-srv1',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.2:60022/system',arch='aarch64',ipaddr='10.170.24.2',sshport=60022)
-kvm_arm_srv1_devs=[
-    db.KVMDevice(kvmhost="kvm-arm-srv1",name="rbd-disk",devtype="disk",tpl="armsite.rbd.tpl",action="armsite.rbd",desc="ARMSITE RBD DISK"),
-    db.KVMDevice(kvmhost="kvm-arm-srv1",name="net.br-ext",devtype="net",tpl="net.br-ext.tpl",action="",desc="br-ext网桥"),
-    db.KVMDevice(kvmhost="kvm-arm-srv1",name="debiso_arm",devtype="iso",tpl="cdrom.debian12.arm.tpl",action="",desc="arm debian安装CD"),
+kvm_arm_srv4_host = db.KVMHost(name='kvm-arm-srv4',tpl='newvm.vnc.tpl',url='qemu+tls://10.170.24.5/system',arch='aarch64',ipaddr='10.170.24.5',sshport=60022)
+kvm_arm_srv4_devs=[
+    db.KVMDevice(kvmhost='kvm-arm-srv4',name='local-disk',devtype='disk',tpl='var.lib.libvirt.images.file.tpl',action='storage.lib.libvirt.images.file',desc='文件系统DISK'),
+    db.KVMDevice(kvmhost="kvm-arm-srv4",name="rbd-disk",devtype="disk",tpl="armsite.rbd.tpl",action="armsite.rbd",desc="ARMSITE RBD DISK"),
+    db.KVMDevice(kvmhost="kvm-arm-srv4",name="net.br-ext",devtype="net",tpl="net.br-ext.tpl",action="",desc="br-ext网桥"),
+    db.KVMDevice(kvmhost="kvm-arm-srv4",name="debiso_arm",devtype="iso",tpl="cdrom.debian12.arm.tpl",action="",desc="arm debian安装CD"),
 ]
-db.session.add(kvm_arm_srv1_host)
-db.session.add_all(kvm_arm_srv1_devs)
+db.session.add(kvm_arm_srv4_host)
+db.session.add_all(kvm_arm_srv4_devs)
 db.session.commit()
+print('''
+# # ~/.ssh/config
+Host 10.170.24.5
+    Port 60022
+    User root
+    Ciphers aes256-ctr,aes192-ctr,aes128-ctr
+    MACs hmac-sha1
+''')
 
 kvm_x86_srv1_host = db.KVMHost(name='kvm-x86-srv1',tpl='newvm.vnc.tpl',url='qemu+ssh://root@10.170.24.20:60022/system',arch='x86_64',ipaddr='10.170.24.20',sshport=60022)
 kvm_x86_srv1_devs=[
