@@ -31,7 +31,7 @@ apt update && apt -y --no-install-recommends install \
     qemu-system-x86 \
     qemu-block-extra \
     qemu-utils \
-    iproute2 bridge-utils curl socat
+    iproute2 bridge-utils curl
     rm -fr /etc/libvirt/qemu/* || true
     sed --quiet -i -E \
         -e '/^\s*(user|spice_tls|spice_tls_x509_cert_dir|vnc_tls|vnc_tls_x509_cert_dir|vnc_tls_x509_verify)\s*=.*/!p' \
@@ -107,6 +107,8 @@ echo '192.168.168.1  kvm.registry.local' >> /etc/hosts
 # # volume /storage: use defined local dir storage
 # # default pool /storage/lib/libvirt/images
 # -v /storage:/storage \
+# # host machine need socat, for vnc/spice !!
+yum / apt install socat
 docker create --name libvirtd \
     --network host \
     --restart always \
