@@ -1,3 +1,6 @@
+default_pool_redefine.sh: defile default pool directory /storage
+docker-libvirtd.sh      : gen libvirtd images, doc how to install kvm host
+##########################################################################
 <source protocol="https" name="url_path">
   <host name="hostname" port="443"/>
   <ssl verify="no"/>
