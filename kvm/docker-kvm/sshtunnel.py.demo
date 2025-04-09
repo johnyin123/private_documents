@@ -195,37 +195,11 @@ os.waitpid(pid, 0)
             value, libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_MEM_MAXIMUM
         )
         self.dom.setMemoryFlags(value, libvirt.VIR_DOMAIN_AFFECT_CONFIG)
-from contextlib import contextmanager
-@contextmanager
-def connect(uri: str | None = None) -> Generator[virConnect, None, None]:
-    """Connect to a hypervisor using the given `uri` through libvirt. If `uri` is `None`, libvirt will use the following
-    logic to determine what URI to use:
-    1. The environment variable `LIBVIRT_DEFAULT_URI`
-    2. The `uri_default` parameter defined in the client configuration file
-    3. The first working hypervisor encountered
-    Example:
-        >>> with connect("test:///default") as conn:
-    Args:
-        uri: libvirt connection URI or `None`
-    Yields:
-        libvirt connection
-    Raises:
-        libvirt.libvirtError: The connection could not be established.
-    """
-    conn = libvirt.open(uri)
-    try:
-        yield conn
-    finally:
-        conn.close()
-
 
 def _print_json(result: typing.Any, output: typing.IO[str] = sys.stdout, pretty: bool = False) -> None:
     indent = 2 if pretty else None
     separators = (",", ": ") if pretty else (",", ":")
     json.dump(result, output, indent=indent, separators=separators, sort_keys=True)
-
-
-
 
 import json
 import logging
@@ -464,16 +438,6 @@ def _wait_for_guest_exec(
 
 
 import libvirt, xml.dom.minidom
-from contextlib import contextmanager
-
-@contextmanager
-def connect(uri: str):
-    libvirt.virEventRegisterDefaultImpl() # console newStream
-    conn = libvirt.open(uri)
-    try:
-        yield conn
-    finally:
-        conn.close()
 
 class Meta(object):
     def __init__(self, dom):
