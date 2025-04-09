@@ -369,6 +369,7 @@ server {
     location ~* \/(meta-data|user-data)$ {
         # rewrite ^ /public/nocloud$uri break;
         # proxy_pass http://meta_static;
+        # proxy_next_upstream  http_403 | http_404 | off ...;
         autoindex off;
         root ${OUT_DIR}/nocloud;
     }
