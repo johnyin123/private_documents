@@ -100,42 +100,46 @@ EODOC
 done
 ./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
 
-cat <<EOF
+cat <<'EOF'
 echo '192.168.168.1  kvm.registry.local' >> /etc/hosts
 
 # # ceph rbd/local storage/net bridge all ok, arm64 ok
-# # volume /storage: use defined local dir storage
-# # default pool /storage/lib/libvirt/images
-# -v /storage:/storage \
+# # default pool /lib/libvirt/images
 # # host machine need socat, for vnc/spice !!
-yum / apt install socat
+# # #######################################
+yum / apt install socat docker
+vmmgr=/vmmgr
+for dir in log vms pki secrets run/libvirt lib/libvirt; do
+    mkdir -p "${vmmgr}/${dir}"
+done
 docker create --name libvirtd \
     --network host \
     --restart always \
     --privileged \
     --device /dev/kvm \
-    -v /storage/log:/var/log/libvirt \
-    -v /storage/vms:/etc/libvirt/qemu \
-    -v /storage/pki:/etc/libvirt/pki \
-    -v /storage/secrets:/etc/libvirt/secrets \
-    -v /storage/run/libvirt:/var/run/libvirt \
-    -v /storage/lib/libvirt:/var/lib/libvirt \
-    registry.local/libvirtd/${type}:${ver}
-
+    -v ${vmmgr}/log:/var/log/libvirt \
+    -v ${vmmgr}/vms:/etc/libvirt/qemu \
+    -v ${vmmgr}/pki:/etc/libvirt/pki \
+    -v ${vmmgr}/secrets:/etc/libvirt/secrets \
+    -v ${vmmgr}/run/libvirt:/var/run/libvirt \
+    -v ${vmmgr}/lib/libvirt:/var/lib/libvirt \
+    -v /storage:/storage \
+    registry.local/libvirtd/kvm:bookworm
+# # #######################################
 YEAR=15 ./newssl.sh -i johnyinca
 YEAR=15 ./newssl.sh -c kvm.registry.local # # meta-iso web service use
 YEAR=15 ./newssl.sh -c cli                # # virsh client
 # # kvm servers
 YEAR=15 ./newssl.sh -c kvm1.local --ip 192.168.168.1 --ip 192.168.169.1
-......
+# # #######################################
 # # init server
-# cp ca/kvm1.local.pem /storage/pki/server-cert.pem
-# cp ca/kvm1.local.key /storage/pki/server-key.pem
-# cp ca/ca.pem /storage/pki/ca-cert.pem
+# cp ca/kvm1.local.pem /${vmmgr}/pki/server-cert.pem
+# cp ca/kvm1.local.key /${vmmgr}/pki/server-key.pem
+# cp ca/ca.pem         /${vmmgr}/pki/ca-cert.pem
 # # # server-key.pem, MUST CAN READ BY QEQMU PROCESS(chown)
 # chmod 440 /etc/libvirt/pki/*
 # chown root.qemu /etc/libvirt/pki/*
-
+# # #######################################
 # # init client
 |----------------------------------------|--------|
 | /etc/pki/CA/cacert.pem                 | client |
@@ -150,10 +154,10 @@ YEAR=15 ./newssl.sh -c kvm1.local --ip 192.168.168.1 --ip 192.168.169.1
 # mkdir ~/.pki/libvirt
 # cp ca/cli.key clientkey.pem ~/.pki/libvirt/
 # cp ca/cli.pem clientcert.pem ~/.pki/libvirt/
-virsh -c qemu+unix:///system?socket=/storage/run/libvirt/libvirt-sock
+virsh -c qemu+unix:///system?socket=/vmmgr/run/libvirt/libvirt-sock
 virsh -c qemu+tls://192.168.168.1/system list --all
 virsh -c qemu+tls://kvm1.local/system list --all
-virsh -c qemu+ssh://root@192.168.168.1:60022/system?socket=/storage/run/libvirt/libvirt-sock
+virsh -c qemu+ssh://root@192.168.168.1:60022/system?socket=/vmmgr/run/libvirt/libvirt-sock
 # <graphics type='spice' tlsPort='-1' autoport='yes' listen='0.0.0.0' defaultMode='secure'/>
 # <graphics type='vnc' autoport='yes' listen='0.0.0.0'/>
 remote-viewer --spice-ca-file=~/.pki/libvirt/cacert.pem spice://127.0.0.1?tls-port=5906

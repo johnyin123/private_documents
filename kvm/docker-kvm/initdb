@@ -83,7 +83,7 @@ print('''
 # # kvmdevice
 | kvmhost | name       | devtype | tpl                             | action                          | desc             |
 |---------+------------+---------+---------------------------------+---------------------------------+------------------|
-| host01  | local-disk | disk    | var.lib.libvirt.images.file.tpl | storage.lib.libvirt.images.file | 文件系统DISK     |
+| host01  | local-disk | disk    | storage.file.tpl | storage.file | 文件系统DISK     |
 | host01  | rbd-disk   | disk    | armsite.rbd.tpl                 | armsite.rbd                     | RBD DISK         |
 | host01  | net.br-ext | net     | net.br-ext.tpl                  |                                 | br-ext网桥       |
 | host01  | debiso_x86 | iso     | cdrom.debian12.x86.tpl          |                                 | x86 debian安装CD |
@@ -99,7 +99,7 @@ hosts=[
     db.KVMHost(name='demo',tpl='newvm.vnc.tpl',url='qemu+ssh://root@192.168.168.1:60022/system',arch='x86_64',ipaddr='192.168.168.1',sshport=60022),
 ]
 host01_devs=[
-    db.KVMDevice(kvmhost='host01',name='local-disk',devtype='disk',tpl='var.lib.libvirt.images.file.tpl',action='storage.lib.libvirt.images.file',desc='文件系统DISK'),
+    db.KVMDevice(kvmhost='host01',name='local-disk',devtype='disk',tpl='storage.file.tpl',action='storage.file',desc='文件系统DISK'),
     db.KVMDevice(kvmhost='host01',name='rbd-disk',devtype='disk',tpl='armsite.rbd.tpl',action='armsite.rbd',desc='RBD DISK'),
     db.KVMDevice(kvmhost='host01',name='net.br-ext',devtype='net',tpl='net.br-ext.tpl',action='',desc='br-ext网桥'),
     db.KVMDevice(kvmhost='host01',name='debiso_x86',devtype='iso',tpl='cdrom.debian12.x86.tpl',action='',desc='debian安装CD'),
@@ -120,7 +120,7 @@ db.session.commit()
 
 kvm_arm_srv4_host = db.KVMHost(name='kvm-arm-srv4',tpl='newvm.vnc.tpl',url='qemu+tls://10.170.24.5/system',arch='aarch64',ipaddr='10.170.24.5',sshport=60022)
 kvm_arm_srv4_devs=[
-    db.KVMDevice(kvmhost='kvm-arm-srv4',name='local-disk',devtype='disk',tpl='var.lib.libvirt.images.file.tpl',action='storage.lib.libvirt.images.file',desc='文件系统DISK'),
+    db.KVMDevice(kvmhost='kvm-arm-srv4',name='local-disk',devtype='disk',tpl='storage.file.tpl',action='storage.file',desc='文件系统DISK'),
     db.KVMDevice(kvmhost="kvm-arm-srv4",name="rbd-disk",devtype="disk",tpl="armsite.rbd.tpl",action="armsite.rbd",desc="ARMSITE RBD DISK"),
     db.KVMDevice(kvmhost="kvm-arm-srv4",name="net.br-ext",devtype="net",tpl="net.br-ext.tpl",action="",desc="br-ext网桥"),
     db.KVMDevice(kvmhost="kvm-arm-srv4",name="debiso_arm",devtype="iso",tpl="cdrom.debian12.arm.tpl",action="",desc="arm debian安装CD"),

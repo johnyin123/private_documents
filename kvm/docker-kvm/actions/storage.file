@@ -4,7 +4,7 @@ LANG=C
 set -o nounset -o pipefail -o errexit
 set -o xtrace
 # # kvm host local storage dir
-DIR='/storage/lib/libvirt/images'
+DIR='/storage'
 # # reqire: jq qemu-img cat
 log() { echo "qemu-disk.action $*"; }
 json_config_default() {
