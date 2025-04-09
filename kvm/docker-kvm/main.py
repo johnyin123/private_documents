@@ -3,7 +3,7 @@
 
 import flask_app, flask, os
 import database, vmmanager, template, device, meta
-from config import config, META_SRV
+from config import config, META_SRV, OUTDIR
 from exceptions import APIException, HTTPStatus, return_ok, return_err
 from flask_app import logger
 
@@ -197,7 +197,19 @@ class MyApp(object):
                 return return_ok('vnc', display=f'{config.VNC_DISP_URL}?password={passwd}&path={path}', expire=dt)
             elif proto == 'spice':
                 return return_ok('spice', display=f'{config.SPICE_DISP_URL}?password={passwd}&path={path}', expire=dt)
-        raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no graphics define')
+        # no vnc/spice, try console
+        socat_cmd = ('timeout', f'{timeout}',f'{OUTDIR}/console.py', f'{host.url}', f'{uuid}')
+        pid = os.fork()
+        if pid == 0:
+            os.execvp(socat_cmd[0], socat_cmd)
+            os._exit(0)
+        logger.info("Opened tunnel PID=%d, %s", pid, socat_cmd)
+        server = f'unix_socket:/tmp/{uuid}'
+        with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
+            f.write(f'{uuid}: {server}')
+        path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
+        return return_ok('console', display=f'{config.CONSOLE_URL}?path={path}', expire=dt)
+        # raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no graphics define')
 
     def list_domains(self, hostname):
         lst = []

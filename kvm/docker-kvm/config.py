@@ -59,6 +59,7 @@ class config:
     SOCAT_TMOUT = '10m'
     VNC_DISP_URL = f'https://{META_SRV}/novnc/vnc_lite.html'
     SPICE_DISP_URL = f'https://{META_SRV}/spice/spice_auto.html'
+    CONSOLE_URL = f'https://{META_SRV}/term/xterm.html'
     WEBSOCKIFY_SECURE_LINK_MYKEY = 'P@ssw@rd4Display'  # vnc/spice websockify access mykey
     WEBSOCKIFY_SECURE_LINK_EXPIRE = 24 * 60            # minutes
     USER_ACCESS_URL = f'https://{META_SRV}/guest.html'

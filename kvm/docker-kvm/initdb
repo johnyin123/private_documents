@@ -66,6 +66,14 @@ if not os.path.isdir(path):
     os.mkdir(path, 0o755)
 file_exists(OUTDIR, 'ui/tpl.html', f'nginx admin.html')
 file_exists(OUTDIR, 'ui/userui.html', f'nginx guest.html')
+path = os.path.join(OUTDIR, 'term')
+if not os.path.isdir(path):
+    os.mkdir(path, 0o755)
+file_exists(OUTDIR, 'console.py', f'console.py')
+file_exists(OUTDIR, 'term/xterm.html', f'console xterm.html')
+file_exists(OUTDIR, 'term/xterm.css', f'console xterm.css')
+file_exists(OUTDIR, 'term/xterm.js', f'console xterm.js')
+
 print(r'VNC:{}, SPICE:{}'.format(config.VNC_DISP_URL, config.SPICE_DISP_URL))
 
 # create tables if not exists
