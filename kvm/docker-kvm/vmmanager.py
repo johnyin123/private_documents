@@ -15,6 +15,16 @@ def kvm_error(e: libvirt.libvirtError, msg: str):
     err_msg = e.get_error_message()
     raise APIException(HTTPStatus.BAD_REQUEST, f'{msg} errcode={err_code}', f'{err_msg}')
 
+import subprocess
+def virsh(connection, *args):
+    '''
+    out = virsh('qemu+tls://192.168.168.1/system', 'define', file)
+    logger.info(out.decode("utf-8"))
+    '''
+    cmd = ("virsh", "-c", connection, *args)
+    logging.debug(f'Running virsh command: {cmd}')
+    return subprocess.check_output(cmd)
+
 class LibvirtDomain:
     def __init__(self, dom):
         self.XMLDesc = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE)
