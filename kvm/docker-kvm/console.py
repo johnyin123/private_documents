@@ -198,7 +198,7 @@ def main(url, uuid):
 if __name__ == '__main__':
     argc = len(sys.argv)
     if argc != 3:
-        print(f'usage: ./{sys.argv[0]} <url> <uuid>')
+        print(f'usage: {sys.argv[0]} <url> <uuid>')
         sys.exit(1)
     print(f'nc -U /tmp/{sys.argv[2]}')
     main(sys.argv[1], sys.argv[2])
