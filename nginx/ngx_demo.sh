@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9519794b[2025-04-03T10:19:12+08:00]:ngx_demo.sh")
+VERSION+=("0d90e10b[2025-04-03T13:13:05+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -92,11 +92,11 @@ server {
 EOF
 cat <<"EOF">location.txt
 git clone https://github.com/nginx/nginx-tests.git
-=：精确匹配，优先级最高。如果找到了这个精确匹配，则停止查找。
-^~：URI 以某个常规字符串开头，不是正则匹配
+=：精确匹配,优先级最高.如果找到了这个精确匹配,则停止查找.
+^~：最长前缀匹配,URI以某个常规字符串开头,不是正则匹配
 ~：区分大小写的正则匹配
 ~*：不区分大小写的正则匹配
-/：通用匹配, 优先级最低。任何请求都会匹配到这个规则
+/：通用匹配,优先级最低.任何请求都会匹配到这个规则
 # -----------------------------------------------------------------------------------------------------------------------------------
 # Search-Order  Modifier   Description                                                    Match-Type        Stops-search-on-match
 # -----------------------------------------------------------------------------------------------------------------------------------
@@ -2808,7 +2808,7 @@ cat <<'EOF' > js_test.js
 // }
 // export default { main }
 // 注意
-// 这个时候不能使用njs-cli运行，会显示SyntaxError: Illegal export statement
+// 这个时候不能使用njs-cli运行,会显示SyntaxError: Illegal export statement
 // 解决办法：njs -c "import M from './main.js'; M.main();"
 
 export default {file, get_env, fetch_url, summary, sub};
@@ -3297,7 +3297,7 @@ server {
         proxy_set_header Host www.mytest.com;
         proxy_pass https://www.mytest.com;
         proxy_store on;
-        proxy_set_header Accept-Encoding ''; #不返回压缩内容，避免乱码
+        proxy_set_header Accept-Encoding ''; #不返回压缩内容,避免乱码
         proxy_store_access user:rw group:rw all:r;
         # proxy_temp_path /var/lib/nginx/proxy;
         root /var/www/cache_static;
@@ -4792,7 +4792,7 @@ server {
     server_name _;
     location / {
         sub_filter '</body>' '<a href="http://www.xxxx.com"><img style="position: fixed; top: 0; right: 0; border: 0;" src="https://res.xxxx.com/_static_/demo.png" alt="bj idc"></a></body>';
-        proxy_set_header referer http://www.xxx.net; #如果网站有验证码，可以解决验证码不显示问题
+        proxy_set_header referer http://www.xxx.net; #如果网站有验证码,可以解决验证码不显示问题
         sub_filter_once on;
         sub_filter_last_modified on;
         # sub_filter_types text/html;
