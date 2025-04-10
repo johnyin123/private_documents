@@ -393,3 +393,7 @@ ngx_cfg = ngx_cfg.replace('${USERKEY}', config.USER_ACCESS_SECURE_LINK_MYKEY)
 ngx_cfg = ngx_cfg.replace('${OUT_DIR}', OUTDIR)
 with open('kvm.conf', "w") as file:
     file.write(ngx_cfg)
+print('''
+nohup websockify --token-plugin TokenFile --token-source ${OUTDIR}/token/ 127.0.0.1:6800 &> websockify.log &
+nohup gunicorn -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app' &> srv.log &
+''')

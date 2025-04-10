@@ -157,7 +157,7 @@ function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
         var result = JSON.parse(xhr.response);
         disperr(result.code, result.name, result.desc);
       } catch (e) {
-        disperr(xhr.status, `${method} ${url}`, `${xhr.response}`);
+        disperr(xhr.status, `${method} ${url}`, `${xhr.response}, ${e.toString()}`);
       }
     }
     return;
@@ -194,7 +194,7 @@ function getjson_result(res) {
       disperr(result.code, result.name, result.desc);
     }
   } catch (e) {
-    disperr(999, `local error`, `${e}, ${res}`);
+    disperr(999, `local error`, `${e.toString()}, ${res}`);
   }
 }
 function show_xml(host, uuid) {
