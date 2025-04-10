@@ -202,6 +202,21 @@ def _print_json(result: typing.Any, output: typing.IO[str] = sys.stdout, pretty:
     json.dump(result, output, indent=indent, separators=separators, sort_keys=True)
 
 import json
+import libvirt_qemu
+res = libvirt_qemu.qemuMonitorCommand(domain,
+    json.dumps({'execute': 'query-block'},),
+    libvirt_qemu.VIR_DOMAIN_QEMU_MONITOR_COMMAND_DEFAULT,
+    )
+res = json.loads(res)
+if 'error' in res:
+    raise exc.DownburstError('Cannot query QEmu for block device state', res['error'].get('desc'),)
+cdroms = [dev for dev in res['return'] if 'tray_open' in dev]
+if not cdroms:
+    raise exc.DownburstError('VM must have at least one CD-ROM to check tray status', res['error'].get('desc'),)
+for dev in cdroms:
+    .......
+
+import json
 import logging
 import sys
 import time

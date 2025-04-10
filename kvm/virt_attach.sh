@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("35095296[2025-01-10T08:20:52+08:00]:virt_attach.sh")
+VERSION+=("5323b3ee[2025-01-11T20:25:13+08:00]:virt_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 LOGFILE=""
@@ -129,6 +129,7 @@ ${SCRIPTNAME}
   ${SCRIPTNAME} -t disk.j2 -u uuid -e format=raw -e store_path=/storage/disk.raw
   Insert cdrom:
     attach-disk guest01 /root/disc1.iso hdc --driver file --type cdrom --mode readonly
+    attach-disk guest01 --type cdrom --mode readonly /os.iso sda --source-protocol http --source-host-name vmm.registry.local
   Change media:
     attach-disk guest01 /root/disc2.iso hdc --driver file --type cdrom --mode readonly
   Eject cdrom:
