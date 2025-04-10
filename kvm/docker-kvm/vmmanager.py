@@ -2,7 +2,13 @@
 import libvirt, xml.dom.minidom, json
 from exceptions import APIException, HTTPStatus
 from flask_app import logger
-
+#  def convert_data(data):
+#      return {value["hwaddr"]: {"names": [name], "addrs": [addr["addr"] for addr in value["addrs"]]} for name, value in data.items() if name != "lo"}
+#  leases = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
+#  agent = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT)
+#  arp = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
+#  # Merge the 3 data. The returned dict looks like this
+#  data = merge_dicts(convert_data(leases), convert_data(agent))
 def getlist_without_key(arr, *keys):
     return [
         {k: v for k, v in dic.items() if k not in keys}
