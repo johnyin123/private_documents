@@ -1,22 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Serial Console</title>
-    <link rel="stylesheet" href="xterm.css" />
-    <script src="xterm.js"></script>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Serial Console</title>
+ <link rel="stylesheet" href="xterm.css" />
+ <script src="xterm.js"></script>
 </head>
 <body>
-    <div id="terminal"></div>
-    <script>
+<div id="terminal"></div>
+<script>
 function readQueryVariable(name, defaultValue) {
-    const re = new RegExp('.*[?&]' + name + '=([^&#]*)'),
-          match = ''.concat(document.location.href, window.location.hash).match(re);
-    if (match) {
-        return decodeURIComponent(match[1]);
-    }
-    return defaultValue;
+  const re = new RegExp('.*[?&]' + name + '=([^&#]*)'), match = ''.concat(document.location.href, window.location.hash).match(re);
+  if (match) {
+    return decodeURIComponent(match[1]);
+  }
+  return defaultValue;
 }
 const host = readQueryVariable('host', window.location.hostname);
 let port = readQueryVariable('port', window.location.port);
@@ -33,37 +32,34 @@ if(port) {
     url += ':' + port;
 }
 url += '/' + path;
-console.log(url);
-
-        const terminal = new Terminal();
-        terminal.open(document.getElementById('terminal'));
-
-        // Connect to the WebSocket server
-        const socket = new WebSocket(url);
-        // When a message is received from the WebSocket, write it to the terminal
-        socket.onmessage = (event) => {
-          if (event.data instanceof Blob) {
-            const reader = new FileReader();
-            reader.onload = () => {
-              terminal.write(reader.result);
-            };
-            reader.readAsText(event.data);
-          }
-        };
-        // When data is typed into the terminal, send it via WebSocket
-        terminal.onData((data) => {
-            const blob = new Blob([data], { type: 'text/plain' });
-            socket.send(blob);
-        });
-        socket.onopen = () => {
-            console.log('WebSocket connection established!');
-        };
-        socket.onerror = (error) => {
-            console.error('WebSocket error:', error);
-        };
-        socket.onclose = () => {
-            console.log('WebSocket connection closed.');
-        };
-    </script>
+const terminal = new Terminal();
+terminal.open(document.getElementById('terminal'));
+// Connect to the WebSocket server
+const socket = new WebSocket(url);
+// When a message is received from the WebSocket, write it to the terminal
+socket.onmessage = (event) => {
+  if (event.data instanceof Blob) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      terminal.write(reader.result);
+    };
+    reader.readAsText(event.data);
+  }
+};
+// When data is typed into the terminal, send it via WebSocket
+terminal.onData((data) => {
+  const blob = new Blob([data], { type: 'text/plain' });
+  socket.send(blob);
+});
+socket.onopen = () => {
+  console.log('WebSocket connection established!');
+};
+socket.onerror = (error) => {
+  console.error('WebSocket error:', error);
+};
+socket.onclose = () => {
+  console.log('WebSocket connection closed.');
+};
+</script>
 </body>
 </html>
