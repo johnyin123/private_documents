@@ -8,7 +8,7 @@ ARCH=(amd64 arm64)
 type=kvm
 ver=bookworm
 
-[ -e "qemu.hook" ] || { echo "qemu.hook, nofound"; exit 1;}
+# [ -e "qemu.hook" ] || { echo "qemu.hook, nofound"; exit 1;}
 cat <<EOF
 # # change (kvm) gid to HOST kvm gid
 # # /etc/libvirt/qemu.conf maybe no need user=root
@@ -17,8 +17,8 @@ groupmod -g NEWGID GROUPNAME
 EOF
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
-    install -v -d -m 0755 "${type}-${arch}/docker/etc/libvirt/hooks"
-    install -v -C -m 0755 "qemu.hook" "${type}-${arch}/docker/etc/libvirt/hooks/qemu"
+    # install -v -d -m 0755 "${type}-${arch}/docker/etc/libvirt/hooks"
+    # install -v -C -m 0755 "qemu.hook" "${type}-${arch}/docker/etc/libvirt/hooks/qemu"
     cat <<'EODOC' > ${type}-${arch}/docker/build.run
 apt update && apt -y --no-install-recommends install \
     supervisor \
@@ -101,7 +101,7 @@ done
 ./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
 
 cat <<'EOF'
-echo '192.168.168.1  kvm.registry.local' >> /etc/hosts
+# echo '192.168.168.1  kvm.registry.local' >> /etc/hosts
 
 # # ceph rbd/local storage/net bridge all ok, arm64 ok
 # # default pool /lib/libvirt/images
@@ -127,7 +127,7 @@ docker create --name libvirtd \
     registry.local/libvirtd/kvm:bookworm
 # # #######################################
 YEAR=15 ./newssl.sh -i johnyinca
-YEAR=15 ./newssl.sh -c kvm.registry.local # # meta-iso web service use
+YEAR=15 ./newssl.sh -c vmm.registry.local # # meta-iso web service use
 YEAR=15 ./newssl.sh -c cli                # # virsh client
 # # kvm servers
 YEAR=15 ./newssl.sh -c kvm1.local --ip 192.168.168.1 --ip 192.168.169.1

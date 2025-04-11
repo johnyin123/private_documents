@@ -102,7 +102,6 @@ class MyApp(object):
         return web
 
     def register_routes(self, app):
-        app.add_url_rule('/domain/<string:operation>/<string:action>/<string:uuid>', view_func=self.upload_xml, methods=['POST'])
         app.add_url_rule('/tpl/host/', view_func=self.list_host, methods=['GET'])
         app.add_url_rule('/tpl/device/<string:hostname>', view_func=self.list_device, methods=['GET'])
         app.add_url_rule('/tpl/gold/<string:hostname>', view_func=self.list_gold, methods=['GET'])
@@ -321,26 +320,11 @@ class MyApp(object):
                     pass
             vmmgr.delete_vm(uuid)
         remove_file(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
-        remove_file(os.path.join(config.ISO_DIR, f"{uuid}.xml"))
         remove_file(os.path.join(config.NOCLOUD_DIR, uuid))
         # remove guest list
         database.KVMGuest.Remove(uuid)
         req_json_remove(uuid)
         return return_ok(f'{uuid} delete ok', failed=diskinfo)
-
-    def upload_xml(self, operation, action, uuid):
-        # qemu hooks upload xml
-        userip=flask.request.environ.get('HTTP_X_FORWARDED_FOR', flask.request.remote_addr)
-        tls_dn=flask.request.environ.get('HTTP_X_CERT_DN', 'unknow_cert_dn')
-        origin=flask.request.environ.get('HTTP_ORIGIN', '')
-        logger.info("%s %s:%s, report vm: %s, operation: %s, action: %s", origin, userip, tls_dn, uuid, operation, action)
-        if 'file' not in flask.request.files:
-            return return_ok(f'{uuid} ok', report=f'{uuid}-{operation}-{action}')
-        file = flask.request.files['file']
-        domxml = file.read().decode('utf-8')
-        with open(os.path.join(config.ISO_DIR, f"{uuid}.xml"), 'w') as f:
-            f.write(domxml)
-        return return_ok(f'{uuid} uploadxml ok')
 
     def get_domain_cmd(self, cmd:str, hostname:str, uuid:str):
         dom_cmds = {
