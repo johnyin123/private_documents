@@ -163,7 +163,7 @@ class MyApp(object):
             func = getattr(vmmanager.VMManager, cmd)
             return flask.Response(func(**args), mimetype="text/event-stream")
         else:
-            return_err(HTTPStatus.BAD_REQUEST, f'{cmd}', f"No Found {cmd}")
+            return return_err(HTTPStatus.BAD_REQUEST, f'{cmd}', f"No Found {cmd}")
 
     def get_vmui(self, hostname, uuid, epoch):
         host = database.KVMHost.getHostInfo(hostname)
