@@ -267,11 +267,7 @@ server {
         # auth_request @sso-auth;
         # # no cache!! mgr private access
         proxy_cache off;
-        location /vm/stop/ {
-            if ($request_method !~ ^(GET|POST)$ ) { return 405; }
-            proxy_pass http://flask_app;
-        }
-        location ~* ^/vm/(list|start|delete|display|xml|ui|freeip)/ {
+        location ~* ^/vm/(ipaddr|list|start|stop|delete|display|xml|ui|freeip)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app;
         }
@@ -335,7 +331,7 @@ server {
             secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
             if ($secure_link = "0") { return 410; }
-            if ($request_method !~ ^(GET|POST)$ ) { return 405; }
+            if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app/vm/stop/;
         }
         location /user/vm/start/ {

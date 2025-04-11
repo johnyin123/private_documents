@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import libvirt, xml.dom.minidom, json
+from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
 from exceptions import APIException, HTTPStatus, return_ok, return_err
 from flask_app import logger
 
@@ -232,27 +233,6 @@ class VMManager:
         except libvirt.libvirtError as e:
             kvm_error(e, 'delete_vm')
 
-    def start_vm(self, uuid):
-        try:
-            dom = self.conn.lookupByUUIDString(uuid)
-            dom.create()
-        except libvirt.libvirtError as e:
-            kvm_error(e, 'start_vm')
-
-    def stop_vm(self, uuid):
-        try:
-            dom = self.conn.lookupByUUIDString(uuid)
-            dom.shutdown()
-        except libvirt.libvirtError as e:
-            kvm_error(e, 'stop_vm')
-
-    def stop_vm_forced(self, uuid):
-        try:
-            dom = self.conn.lookupByUUIDString(uuid)
-            dom.destroy()
-        except libvirt.libvirtError as e:
-            kvm_error(e, 'stop_vm_forced')
-
     def detach_device(self, uuid, dev):
         # dev = sda/vda....
         # dev = mac address
@@ -295,7 +275,37 @@ class VMManager:
              kvm_error(e, f'{uuid} attach_device')
 
     @staticmethod
-    def get_ipaddr(url, uuid, **kwargs):
+    def stop(url:str, uuid:str, **kwargs) -> Generator:
+        try:
+            with connect(url) as conn:
+                dom = conn.lookupByUUIDString(uuid)
+                force = kwargs.get('force', False)
+                if force:
+                    dom.destroy()
+                else:
+                    dom.shutdown()
+                yield return_ok(f'{uuid} stop ok')
+        except libvirt.libvirtError as e:
+            yield return_err(e.get_error_code(), f'stop_vm', e.get_error_message())
+        except Exception as e:
+            logger.exception(f'stop_vm')
+            yield return_err(998, 'stop_vm', f'Unexpected error: {e}')
+
+    @staticmethod
+    def start(url:str, uuid:str) -> Generator:
+        try:
+            with connect(url) as conn:
+                dom = conn.lookupByUUIDString(uuid)
+                dom.create()
+                yield return_ok(f'{uuid} start ok')
+        except libvirt.libvirtError as e:
+            yield return_err(e.get_error_code(), f'start_vm', e.get_error_message())
+        except Exception as e:
+            logger.exception(f'start_vm')
+            yield return_err(998, 'start_vm', f'Unexpected error: {e}')
+
+    @staticmethod
+    def ipaddr(url:str, uuid:str) -> Generator:
         def convert_data(data):
             return {value["hwaddr"]: {"names": [name], "addrs": [addr["addr"] for addr in value["addrs"]]} for name, value in data.items() if name != "lo" and value['addrs'] is not None}
         try:

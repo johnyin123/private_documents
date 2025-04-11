@@ -95,6 +95,10 @@ class MyApp(object):
         web.errorhandler(APIException)(APIException.handle)
         web.config['JSON_SORT_KEYS'] = False
         myapp.register_routes(web)
+        database.host_cache_flush()
+        database.device_cache_flush()
+        database.gold_cache_flush()
+        database.guest_cache_flush()
         return web
 
     def register_routes(self, app):
@@ -109,16 +113,13 @@ class MyApp(object):
         app.add_url_rule('/vm/xml/<string:hostname>/<string:uuid>', view_func=self.get_domain_xml, methods=['GET'])
         app.add_url_rule('/vm/list/<string:hostname>', view_func=self.list_domains, methods=['GET'])
         app.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=self.get_domain, methods=['GET'])
-        app.add_url_rule('/vm/list/<string:hostname>/<string:uuid>/<string:cmd>', view_func=self.get_domain_cmd, methods=['GET'])
         app.add_url_rule('/vm/display/<string:hostname>/<string:uuid>', view_func=self.get_display, methods=['GET'])
         app.add_url_rule('/vm/create/<string:hostname>', view_func=self.create_vm, methods=['POST'])
         app.add_url_rule('/vm/delete/<string:hostname>/<string:uuid>', view_func=self.delete_vm, methods=['GET'])
-        app.add_url_rule('/vm/start/<string:hostname>/<string:uuid>', view_func=self.start_vm, methods=['GET'])
-        app.add_url_rule('/vm/stop/<string:hostname>/<string:uuid>', view_func=self.stop_vm, methods=['GET'])
-        app.add_url_rule('/vm/stop/<string:hostname>/<string:uuid>', view_func=self.stop_vm_forced, methods=['POST'])
         app.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=self.attach_device, methods=['POST'])
         app.add_url_rule('/vm/detach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=self.detach_device, methods=['POST'])
         app.add_url_rule('/vm/ui/<string:hostname>/<string:uuid>/<int:epoch>', view_func=self.get_vmui, methods=['GET'])
+        app.add_url_rule('/vm/<string:cmd>/<string:hostname>/<string:uuid>', view_func=self.get_domain_cmd, methods=['GET'])
 
     def list_host(self):
         results = database.KVMHost.ListHost()
@@ -152,22 +153,6 @@ class MyApp(object):
         host = database.KVMHost.getHostInfo(hostname)
         with vmmanager.connect(host.url) as conn:
             return flask.Response(vmmanager.VMManager(conn).get_domain(uuid).XMLDesc, mimetype="application/xml")
-
-    def get_domain_cmd(self, hostname, uuid, cmd):
-        vm_cmds = ["get_ipaddr"]
-        host = database.KVMHost.getHostInfo(hostname)
-        args = {**flask.request.args, "url":host.url, "uuid": uuid}
-        if flask.request.is_json:
-            args = {**args, 'req_json':flask.request.json}
-        if cmd in vm_cmds:
-            try:
-                func = getattr(vmmanager.VMManager, cmd)
-                return flask.Response(func(**args), mimetype="text/event-stream")
-            except Exception as e:
-                logger.exception(f'{func} {args}')
-                return return_err(HTTPStatus.BAD_REQUEST, f'{cmd}', f"{cmd} {e}")
-        else:
-            return return_err(HTTPStatus.BAD_REQUEST, f'{cmd}', f"No Found {cmd}")
 
     def get_vmui(self, hostname, uuid, epoch):
         host = database.KVMHost.getHostInfo(hostname)
@@ -343,24 +328,6 @@ class MyApp(object):
         req_json_remove(uuid)
         return return_ok(f'{uuid} delete ok', failed=diskinfo)
 
-    def start_vm(self, hostname, uuid):
-        host = database.KVMHost.getHostInfo(hostname)
-        with vmmanager.connect(host.url) as conn:
-            vmmanager.VMManager(conn).start_vm(uuid)
-        return return_ok(f'{uuid} start ok')
-
-    def stop_vm(self, hostname, uuid):
-        host = database.KVMHost.getHostInfo(hostname)
-        with vmmanager.connect(host.url) as conn:
-            vmmanager.VMManager(conn).stop_vm(uuid)
-        return return_ok(f'{uuid} stop ok')
-
-    def stop_vm_forced(self, hostname, uuid):
-        host = database.KVMHost.getHostInfo(hostname)
-        with vmmanager.connect(host.url) as conn:
-            vmmanager.VMManager(conn).stop_vm_forced(uuid)
-        return return_ok(f'{uuid} force stop ok')
-
     def upload_xml(self, operation, action, uuid):
         # qemu hooks upload xml
         userip=flask.request.environ.get('HTTP_X_FORWARDED_FOR', flask.request.remote_addr)
@@ -375,9 +342,26 @@ class MyApp(object):
             f.write(domxml)
         return return_ok(f'{uuid} uploadxml ok')
 
+    def get_domain_cmd(self, cmd:str, hostname:str, uuid:str):
+        dom_cmds = {
+                'GET': ['ipaddr', 'start', 'stop'],
+                'POST': []
+                }
+        try:
+            if cmd in dom_cmds[flask.request.method]:
+                req_json = flask.request.get_json(silent=True, force=True)
+                host = database.KVMHost.getHostInfo(hostname)
+                args = {**flask.request.args, 'url': host.url, 'uuid': uuid}
+                if req_json:
+                    args = {**args, 'req_json':req_json}
+                func = getattr(vmmanager.VMManager, cmd)
+                logger.info(f'{cmd} call {func} {args}')
+                return flask.Response(func(**args), mimetype="text/event-stream")
+            else:
+                return return_err(HTTPStatus.BAD_REQUEST, f'{cmd}', f"No Found {cmd}")
+        except Exception as e:
+            logger.exception(f'{cmd} {uuid}')
+            return return_err(HTTPStatus.BAD_REQUEST, f'{cmd}', f"{cmd} {e}")
+
 app = MyApp.create()
-database.host_cache_flush()
-database.device_cache_flush()
-database.gold_cache_flush()
-database.guest_cache_flush()
 # gunicorn -b 127.0.0.1:5009 --preload --workers=4 --threads=2 --access-logfile='-' 'main:app'

@@ -241,15 +241,13 @@ function start(host, uuid) {
     getjson('GET', `/vm/start/${host}/${uuid}`, getjson_result, null, null, 60000);
   }
 }
-function stop(host, uuid) {
-  if (confirm(`Stop ${uuid}?`)) {
-    getjson('GET', `/vm/stop/${host}/${uuid}`, getjson_result);
+function stop(host, uuid, force=false) {
+  if (confirm(`${force ? 'Force ' : ''}Stop ${uuid}?`)) {
+    getjson('GET', `/vm/stop/${host}/${uuid}${force ? '?force=true' : ''}`, getjson_result, null, null, 60000);
   }
 }
 function force_stop(host, uuid) {
-  if (confirm(`Force Stop ${uuid}?`)) {
-    getjson('POST', `/vm/stop/${host}/${uuid}`, getjson_result, null, null, 60000);
-  }
+    stop(host, uuid, true);
 }
 function undefine(host, uuid) {
   if (confirm(`Undefine ${uuid}?`)) {
