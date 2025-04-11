@@ -28,6 +28,14 @@ class SocketServer(multiprocessing.Process):
             raise RuntimeError('There is an existing connection to %s' % uuid)
         self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+        # Remove the socket file if it exists
+        try:
+            os.remove(self._server_addr)
+        except OSError:
+            if os.path.exists(self._server_addr):
+                raise
+
         self._socket.bind(self._server_addr)
         self._socket.listen(SOCKET_QUEUE_BACKLOG)
         logger.info('[%s] socket server to guest %s created', self.name, uuid)
