@@ -155,13 +155,17 @@ class MyApp(object):
 
     def get_domain_cmd(self, hostname, uuid, cmd):
         vm_cmds = ["get_ipaddr"]
-        args = dict(flask.request.args)
         host = database.KVMHost.getHostInfo(hostname)
-        args["url"] = host.url
-        args["uuid"] = uuid
+        args = {**flask.request.args, "url":host.url, "uuid": uuid}
+        if flask.request.is_json:
+            args = {**args, 'req_json':flask.request.json}
         if cmd in vm_cmds:
-            func = getattr(vmmanager.VMManager, cmd)
-            return flask.Response(func(**args), mimetype="text/event-stream")
+            try:
+                func = getattr(vmmanager.VMManager, cmd)
+                return flask.Response(func(**args), mimetype="text/event-stream")
+            except Exception as e:
+                logger.exception(f'{func} {args}')
+                return return_err(HTTPStatus.BAD_REQUEST, f'{cmd}', f"{cmd} {e}")
         else:
             return return_err(HTTPStatus.BAD_REQUEST, f'{cmd}', f"No Found {cmd}")
 
