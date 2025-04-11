@@ -109,6 +109,7 @@ class MyApp(object):
         app.add_url_rule('/vm/xml/<string:hostname>/<string:uuid>', view_func=self.get_domain_xml, methods=['GET'])
         app.add_url_rule('/vm/list/<string:hostname>', view_func=self.list_domains, methods=['GET'])
         app.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=self.get_domain, methods=['GET'])
+        app.add_url_rule('/vm/list/<string:hostname>/<string:uuid>/<string:cmd>', view_func=self.get_domain_cmd, methods=['GET'])
         app.add_url_rule('/vm/display/<string:hostname>/<string:uuid>', view_func=self.get_display, methods=['GET'])
         app.add_url_rule('/vm/create/<string:hostname>', view_func=self.create_vm, methods=['POST'])
         app.add_url_rule('/vm/delete/<string:hostname>/<string:uuid>', view_func=self.delete_vm, methods=['GET'])
@@ -134,12 +135,6 @@ class MyApp(object):
         results = database.KVMGold.ListGold(host.arch)
         return [result._asdict() for result in results]
 
-    def get_domain_xml(self, hostname, uuid):
-        host = database.KVMHost.getHostInfo(hostname)
-        with vmmanager.connect(host.url) as conn:
-            xml = vmmanager.VMManager(conn).get_domain_xml(uuid)
-            return flask.Response(xml, mimetype="application/xml")
-
     def db_list_domains(self):
         guests = database.KVMGuest.ListGuest()
         return [result._asdict() for result in guests]
@@ -152,6 +147,23 @@ class MyApp(object):
         host = database.KVMHost.getHostInfo(hostname)
         with vmmanager.connect(host.url) as conn:
             return vmmanager.VMManager(conn).get_domain(uuid)._asdict()
+
+    def get_domain_xml(self, hostname, uuid):
+        host = database.KVMHost.getHostInfo(hostname)
+        with vmmanager.connect(host.url) as conn:
+            return flask.Response(vmmanager.VMManager(conn).get_domain(uuid).XMLDesc, mimetype="application/xml")
+
+    def get_domain_cmd(self, hostname, uuid, cmd):
+        vm_cmds = ["get_ipaddr"]
+        args = dict(flask.request.args)
+        host = database.KVMHost.getHostInfo(hostname)
+        args["url"] = host.url
+        args["uuid"] = uuid
+        if cmd in vm_cmds:
+            func = getattr(vmmanager.VMManager, cmd)
+            return flask.Response(func(**args), mimetype="text/event-stream")
+        else:
+            return_err(HTTPStatus.BAD_REQUEST, f'{cmd}', f"No Found {cmd}")
 
     def get_vmui(self, hostname, uuid, epoch):
         host = database.KVMHost.getHostInfo(hostname)

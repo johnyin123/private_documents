@@ -1,14 +1,8 @@
 # -*- coding: utf-8 -*-
 import libvirt, xml.dom.minidom, json
-from exceptions import APIException, HTTPStatus
+from exceptions import APIException, HTTPStatus, return_ok, return_err
 from flask_app import logger
-#  def convert_data(data):
-#      return {value["hwaddr"]: {"names": [name], "addrs": [addr["addr"] for addr in value["addrs"]]} for name, value in data.items() if name != "lo"}
-#  leases = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
-#  agent = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT)
-#  arp = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
-#  # Merge the 3 data. The returned dict looks like this
-#  data = merge_dicts(convert_data(leases), convert_data(agent))
+
 def getlist_without_key(arr, *keys):
     return [
         {k: v for k, v in dic.items() if k not in keys}
@@ -170,12 +164,6 @@ class VMManager:
     def __init__(self, conn):
         self.conn = conn
 
-    def get_domain_xml(self, uuid):
-        try:
-            return LibvirtDomain(self.conn.lookupByUUIDString(uuid)).XMLDesc
-        except libvirt.libvirtError as e:
-            kvm_error(e, 'get_domain_xml')
-
     def get_domain(self, uuid):
         try:
             return LibvirtDomain(self.conn.lookupByUUIDString(uuid))
@@ -265,17 +253,6 @@ class VMManager:
         except libvirt.libvirtError as e:
             kvm_error(e, 'stop_vm_forced')
 
-    def attach_device(self, uuid, xml):
-        try:
-            dom = self.conn.lookupByUUIDString(uuid)
-            state, maxmem, curmem, curcpu, cputime = dom.info()
-            flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
-            if state == libvirt.VIR_DOMAIN_RUNNING:
-                flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
-            dom.attachDeviceFlags(xml, flags)
-        except libvirt.libvirtError as e:
-             kvm_error(e, f'{uuid} attach_device')
-
     def detach_device(self, uuid, dev):
         # dev = sda/vda....
         # dev = mac address
@@ -303,3 +280,33 @@ class VMManager:
             return ret
         except libvirt.libvirtError as e:
             kvm_error(e, f'{uuid} detach_device {dev}')
+
+    @staticmethod
+    def attach_device(url, uuid, xml):
+        try:
+            with connect(url) as conn:
+                dom = conn.lookupByUUIDString(uuid)
+                state, maxmem, curmem, curcpu, cputime = dom.info()
+                flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
+                if state == libvirt.VIR_DOMAIN_RUNNING:
+                    flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
+                dom.attachDeviceFlags(xml, flags)
+        except libvirt.libvirtError as e:
+             kvm_error(e, f'{uuid} attach_device')
+
+    @staticmethod
+    def get_ipaddr(url, uuid, **kwargs):
+        def convert_data(data):
+            return {value["hwaddr"]: {"names": [name], "addrs": [addr["addr"] for addr in value["addrs"]]} for name, value in data.items() if name != "lo" and value['addrs'] is not None}
+        try:
+            with connect(url) as conn:
+                dom = conn.lookupByUUIDString(uuid)
+                leases = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
+                arp = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
+                agent = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT)
+                yield return_ok('get_ipaddr', **{**convert_data(leases), **convert_data(arp), **convert_data(agent)})
+        except APIException as e:
+            yield return_err(e.code, e.name, e.desc)
+        except Exception as e:
+            logger.exception(f'get_ip')
+            yield return_err(998, "get_ip", f"Unexpected error: {e}")

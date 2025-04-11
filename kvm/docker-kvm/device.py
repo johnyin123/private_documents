@@ -23,8 +23,7 @@ def generate(xml: str, action: str, arg: str, req_json: dict, **kwargs) -> Gener
                     logger.error(f'execute {cmd} error={proc.returncode}')
                     yield return_err(proc.returncode, "attach", f"execute {cmd} error={proc.returncode}")
                     return
-        with vmmanager.connect(kwargs['URL']) as conn:
-            vmmanager.VMManager(conn).attach_device(req_json['vm_uuid'], xml)
+        vmmanager.VMManager.attach_device(kwargs['URL'], req_json['vm_uuid'], xml)
         yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot')
     except APIException as e:
         # already logger.exception
