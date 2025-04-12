@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-redefine_default() {
-    local url="${1}"
-    local pool_name=default
-    local dir=/storage
+redefine_pool() {
+    local pool_name="${1}"
+    local url="${2}"
+    local dir="${3}"
     local VIRSH="virsh -c ${url}"
-    ${VIRSH} pool-destroy ${pool_name}
-    ${VIRSH} pool-delete ${pool_name}
-    ${VIRSH} pool-undefine ${pool_name}
+    ${VIRSH} pool-destroy ${pool_name} || true
+    ${VIRSH} pool-delete ${pool_name} || true
+    ${VIRSH} pool-undefine ${pool_name} || true
     cat <<EPOOL | tee | ${VIRSH} pool-define /dev/stdin
     <pool type='dir'>
       <name>${pool_name}</name>
@@ -22,6 +22,6 @@ EPOOL
 srv=https://vmm.registry.local
 echo 'init all host env' && {
     for url in $(curl -k ${srv}/tpl/host/ 2>/dev/null | jq -r '.[]|.url'); do
-        redefine_default "${url}"
+        redefine_pool "default" "${url}" "/storage"
     done
 }
