@@ -128,42 +128,50 @@ function toggleOverlay(visible) {
     }
   }
 }
-function getjson(method, url, callback, data=null, stream=null, tmout=40000) {
-  /* Set default timeout 40 seconds*/
-  var xhr = new XMLHttpRequest();
-  xhr.onerror = function () { console.error(`${url} ${method} onerror`); disperr(0,`${url}`,`${method} onerror`);};
-  xhr.onabort = function() { console.error(`${url} ${method} abort`); disperr(0,`${url}`,`${method} abort`);};
-  xhr.ontimeout = function () { console.error(`${url} ${method} timeout`); disperr(0,`${url}`,`${method} timeout`);};
-  xhr.onloadend = function() { toggleOverlay(false); /*as finally*/ };
-  xhr.open(method, url, true);
-  xhr.setRequestHeader('Content-Type', 'application/json');
-  xhr.timeout = tmout;
-  xhr.onreadystatechange = function() {
-    if(this.readyState === 3 && this.status === 200) {
-      if (stream && typeof(stream) == "function") {
-        stream(xhr.responseText);
-      }
-      return;
-    }
-    if(this.readyState === 4 && this.status === 200) {
-      if (callback && typeof(callback) == "function") {
-        callback(xhr.response);
-      }
-      return;
-    }
-    if(xhr.readyState === 4 && xhr.status !== 0) {
-      console.error(`${method} ${url} ${xhr.status} ${xhr.response}`);
-      try {
-        var result = JSON.parse(xhr.response);
-        disperr(result.code, result.name, result.desc);
-      } catch (e) {
-        disperr(xhr.status, `${method} ${url}`, `${xhr.response}, ${e.toString()}`);
-      }
-    }
-    return;
-  }
-  xhr.send(data ? JSON.stringify(data) : null);
+function getjson(method, url, callback, data = null, stream = null, timeout = 120000) {
+  const opts = {
+      method: method,
+      headers: { 'Content-Type': 'application/json', },
+      body: data ? JSON.stringify(data) : null,
+  };
   toggleOverlay(true);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  fetch(url, { ...opts, signal: controller.signal }).then(response => {
+    if (!response.ok) {
+      return response.text().then(text => {
+        throw new Error(text);
+      });
+    }
+    if(stream && typeof(stream) == "function") {
+      const responseClone = response.clone();
+      const reader = responseClone.body.getReader();
+      const decoder = new TextDecoder();
+      function read() {
+        reader.read().then(({ done, value }) => {
+          if (done) { return; }
+          stream(decoder.decode(value));
+          read(); // Continue reading the stream
+        });
+      }
+      read(); // Start reading the stream
+    }
+    return response.text();
+  }).then(data => {
+    clearTimeout(timeoutId);
+    if (callback && typeof(callback) == "function") { callback(data); }
+  }).catch(error => {
+    clearTimeout(timeoutId);
+    console.error(`${method} ${url} ${error.message}`);
+    try {
+      var result = JSON.parse(error.message);
+      disperr(result.code, result.name, result.desc);
+    } catch (e) {
+      disperr(999, `${method} ${url}`, `${error.message}`);
+    }
+  }).finally(() => {
+    toggleOverlay(false);
+  });
 }
 function vmlist(host) {
   document.getElementById("vms").innerHTML = '';
@@ -243,7 +251,7 @@ function start(host, uuid) {
 }
 function stop(host, uuid, force=false) {
   if (confirm(`${force ? 'Force ' : ''}Stop ${uuid}?`)) {
-    getjson('GET', `/vm/stop/${host}/${uuid}${force ? '?force=true' : ''}`, getjson_result, null, null, 60000);
+    getjson('GET', `/vm/stop/${host}/${uuid}${force ? '?force=true' : ''}`, getjson_result);
   }
 }
 function force_stop(host, uuid) {
@@ -297,9 +305,9 @@ function do_add(host, uuid, res) {
     getjson_result(getLastLine(res));
   }, res, function(resp) {
     const overlay_output = document.querySelector("#overlay_output");
-    overlay_output.innerHTML = resp; /*overlay_output.innerHTML += resp;*/
+    overlay_output.innerHTML += resp; /*overlay_output.innerHTML = resp;*/
     overlay_output.scrollTop=overlay_output.scrollHeight;
-  }, 120000); /*add disk 120s timeout*/
+  }, 600000); /*add disk 10m timeout*/
 }
 function add_disk(host, uuid) {
   const form = document.getElementById('adddisk_form');
