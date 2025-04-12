@@ -256,11 +256,10 @@ class MyApp(object):
             str_vol = vmmgr.detach_device(uuid, name)
             if str_vol is None:
                 return return_ok(f"detach_device {name} vm {uuid} on {hostname} ok")
-            vmmgr.refresh_all_pool()
+            vmmanager.VMManager.refresh_all_pool(conn)
             logger.info(f'remove disk {str_vol}')
             try:
-                vol = vmmgr.conn.storageVolLookupByPath(str_vol)
-                vol.delete()
+                vmmanager.VMManager.delete_vol(conn, str_vol)
             except Exception:
                 return return_ok(f"detach_device {name} vm {uuid} on {hostname} ok", failed=str_vol)
             return return_ok(f"detach_device {name} vm {uuid} on {hostname} ok")
@@ -306,14 +305,13 @@ class MyApp(object):
         with vmmanager.connect(host.url) as conn:
             vmmgr = vmmanager.VMManager(conn)
             dom = vmmgr.get_domain(uuid)
-            vmmgr.refresh_all_pool()
+            vmmanager.VMManager.refresh_all_pool(conn)
             disks = dom.disks
             diskinfo = []
             for v in disks:
                 logger.debug(f'remove disk {v}')
                 try:
-                    vol = vmmgr.conn.storageVolLookupByPath(v['vol'])
-                    vol.delete()
+                    vmmanager.VMManager.delete_vol(conn, v['vol'])
                 except Exception:
                     keys = ['type', 'dev', 'vol']
                     diskinfo.append({k: v[k] for k in keys if k in v})

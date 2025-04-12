@@ -175,17 +175,6 @@ class VMManager:
         for i in self.conn.listAllDomains():
             yield LibvirtDomain(i)
 
-    def refresh_all_pool(self):
-        pools = self.conn.listAllStoragePools(0)
-        for pool in pools:
-            try:
-                if not pool.isActive():
-                    pool.create()
-                pool.refresh(0)
-                logger.info(f"Pool '{pool.name()}' refreshed successfully.")
-            except libvirt.libvirtError as e:
-                logger.exception(f"Failed to refresh pool '{pool.name()}': {e}")
-
     def get_display(self, uuid):
         displays = []
         try:
@@ -275,6 +264,23 @@ class VMManager:
              kvm_error(e, f'{uuid} attach_device')
 
     @staticmethod
+    def delete_vol(conn:libvirt.virConnect, vol:str):
+        vol = conn.storageVolLookupByPath(vol)
+        vol.delete()
+
+    @staticmethod
+    def refresh_all_pool(conn:libvirt.virConnect):
+        pools = conn.listAllStoragePools(0)
+        for pool in pools:
+            try:
+                if not pool.isActive():
+                    pool.create()
+                pool.refresh(0)
+                logger.info(f"Pool '{pool.name()}' refreshed successfully.")
+            except libvirt.libvirtError as e:
+                logger.exception(f"Failed to refresh pool '{pool.name()}': {e}")
+
+    @staticmethod
     def stop(url:str, uuid:str, **kwargs) -> Generator:
         try:
             with connect(url) as conn:
@@ -285,11 +291,8 @@ class VMManager:
                 else:
                     dom.shutdown()
                 yield return_ok(f'{uuid} stop ok')
-        except libvirt.libvirtError as e:
-            yield return_err(e.get_error_code(), f'stop_vm', e.get_error_message())
         except Exception as e:
-            logger.exception(f'stop_vm')
-            yield return_err(998, 'stop_vm', f'Unexpected error: {e}')
+            yield deal_except('stop_vm', e)
 
     @staticmethod
     def start(url:str, uuid:str) -> Generator:
@@ -298,11 +301,8 @@ class VMManager:
                 dom = conn.lookupByUUIDString(uuid)
                 dom.create()
                 yield return_ok(f'{uuid} start ok')
-        except libvirt.libvirtError as e:
-            yield return_err(e.get_error_code(), f'start_vm', e.get_error_message())
         except Exception as e:
-            logger.exception(f'start_vm')
-            yield return_err(998, 'start_vm', f'Unexpected error: {e}')
+            yield deal_except('start_vm', e)
 
     @staticmethod
     def ipaddr(url:str, uuid:str) -> Generator:
@@ -315,8 +315,5 @@ class VMManager:
                 arp = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
                 agent = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT)
                 yield return_ok('get_ipaddr', **{**convert_data(leases), **convert_data(arp), **convert_data(agent)})
-        except APIException as e:
-            yield return_err(e.code, e.name, e.desc)
         except Exception as e:
-            logger.exception(f'get_ip')
-            yield return_err(998, "get_ip", f"Unexpected error: {e}")
+            yield deal_except('get_ip', e)
