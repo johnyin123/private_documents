@@ -166,6 +166,9 @@ class VMManager:
             for disk in domain.disks:
                 if disk['dev'] == dev:
                     dom.detachDeviceFlags(disk['xml'], flags)
+                    # cdrom not delete media
+                    if disk['device'] != 'disk':
+                        return return_ok(f"detach_device {dev} vm {uuid} ok")
                     VMManager.refresh_all_pool(conn)
                     logger.info(f'remove disk {disk}')
                     try:
@@ -225,6 +228,9 @@ class VMManager:
             VMManager.refresh_all_pool(conn)
             diskinfo = []
             for v in LibvirtDomain(dom).disks:
+                # cdrom not delete media
+                if disk['device'] != 'disk':
+                    continue
                 logger.debug(f'remove disk {v}')
                 try:
                     VMManager.delete_vol(conn, v['vol'])

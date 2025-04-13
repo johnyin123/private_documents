@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
-from http import HTTPStatus
 from flask_app import logger
 import libvirt, json
-def return_ok(desc, **kwargs):
+def return_ok(desc:str, **kwargs)->str:
     return json.dumps({'result':'OK','desc':desc, **kwargs})
 
-def return_err(code, name, desc):
+def return_err(code:int, name:str, desc:str)->str:
     return json.dumps({'result' : 'ERR', 'code': code,'name':name,'desc':desc})
 
 def deal_except(who:str, e:Exception) -> str:
