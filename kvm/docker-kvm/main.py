@@ -270,7 +270,7 @@ class MyApp(object):
             req_json_log(req_json['vm_uuid'], req_json)
             return return_ok(f"create vm {req_json['vm_uuid']} on {hostname} ok")
         except Exception as e:
-            return deal_except(f'attach_device', e), 400
+            return deal_except(f'create_vm', e), 400
 
     def delete_vm(self, hostname, uuid):
         try:
@@ -282,7 +282,7 @@ class MyApp(object):
             req_json_remove(uuid)
             return vmmanager.VMManager.delete_vm(host.url, uuid)
         except Exception as e:
-            return deal_except(f'attach_device', e), 400
+            return deal_except(f'delete_vm', e), 400
 
     def get_domain_cmd(self, cmd:str, hostname:str, uuid:str):
         dom_cmds = {
@@ -300,9 +300,9 @@ class MyApp(object):
                 logger.info(f'{cmd} call {func} {args}')
                 return flask.Response(func(**args), mimetype="text/event-stream")
             else:
-                return return_err(404, f'{cmd}', f"No Found {cmd}")
+                return return_err(404, f'{cmd}', f"Domain No Found {cmd}")
         except Exception as e:
-            return deal_except(f'{cmd}', e)
+            return deal_except(f'{cmd}', e), 400
 
 app = MyApp.create()
 # gunicorn -b 127.0.0.1:5009 --preload --workers=4 --threads=2 --access-logfile='-' 'main:app'
