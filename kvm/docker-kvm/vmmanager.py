@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import libvirt, xml.dom.minidom, json
-from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
+from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from exceptions import return_ok
 from flask_app import logger
 
@@ -205,7 +205,7 @@ class VMManager:
             return LibvirtDomain(conn.lookupByUUIDString(uuid))
 
     @staticmethod
-    def get_display(url:str, uuid:str)-> Set:
+    def get_display(url:str, uuid:str)-> List:
         XMLDesc_Secure=None
         with connect(url) as conn:
             dom = conn.lookupByUUIDString(uuid)
@@ -266,7 +266,7 @@ class VMManager:
         vol.delete()
 
     @staticmethod
-    def refresh_all_pool(conn:libvirt.virConnect):
+    def refresh_all_pool(conn:libvirt.virConnect)-> None:
         pools = conn.listAllStoragePools(0)
         for pool in pools:
             try:
