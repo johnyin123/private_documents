@@ -114,9 +114,8 @@ class MyApp(object):
         app.add_url_rule('/vm/create/<string:hostname>', view_func=self.create_vm, methods=['POST'])
         app.add_url_rule('/vm/delete/<string:hostname>/<string:uuid>', view_func=self.delete_vm, methods=['GET'])
         app.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=self.attach_device, methods=['POST'])
-        app.add_url_rule('/vm/detach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=self.detach_device, methods=['POST'])
         app.add_url_rule('/vm/ui/<string:hostname>/<string:uuid>/<int:epoch>', view_func=self.get_vmui, methods=['GET'])
-        app.add_url_rule('/vm/<string:cmd>/<string:hostname>/<string:uuid>', view_func=self.get_domain_cmd, methods=['GET'])
+        app.add_url_rule('/vm/<string:cmd>/<string:hostname>/<string:uuid>', view_func=self.get_domain_cmd, methods=['GET', 'POST'])
 
     def list_host(self):
         results = database.KVMHost.ListHost()
@@ -242,13 +241,6 @@ class MyApp(object):
         except Exception as e:
             return deal_except(f'attach_device', e), 400
 
-    def detach_device(self, hostname, uuid, name):
-        try:
-            host = database.KVMHost.getHostInfo(hostname)
-            return vmmanager.VMManager.detach_device(host.url, uuid, name)
-        except Exception as e:
-            return deal_except(f'detach_device', e), 400
-
     def create_vm(self, hostname):
         try:
             token = flask.request.cookies.get('token', '')
@@ -295,7 +287,7 @@ class MyApp(object):
     def get_domain_cmd(self, cmd:str, hostname:str, uuid:str):
         dom_cmds = {
                 'GET': ['ipaddr', 'start', 'stop'],
-                'POST': []
+                'POST': ['detach_device']
                 }
         try:
             if cmd in dom_cmds[flask.request.method]:

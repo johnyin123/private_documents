@@ -275,7 +275,7 @@ function display(host, uuid) {
 }
 function del_device(host, uuid, dev) {
   if (confirm(`delete device /${host}/${uuid}/${dev} ?`)) {
-    getjson('POST', `/vm/detach_device/${host}/${uuid}/${dev}`, getjson_result);
+    getjson('POST', `/vm/detach_device/${host}/${uuid}?dev=${dev}`, getjson_result);
   }
 }
 function create_vm(host, arch) {

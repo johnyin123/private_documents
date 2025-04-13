@@ -12,4 +12,4 @@ def deal_except(who:str, e:Exception) -> str:
     if isinstance(e, libvirt.libvirtError):
         return return_err(e.get_error_code(), f'{who}', e.get_error_message())
     else:
-        return return_err(998, f'{who}', f'Unexpected error: {str(e)}')
+        return return_err(998, f'{who}', f'{str(e)}')
