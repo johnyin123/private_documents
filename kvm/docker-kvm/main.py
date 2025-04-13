@@ -4,7 +4,7 @@
 import flask_app, flask, os
 import database, vmmanager, template, device, meta
 from config import config, META_SRV, OUTDIR
-from exceptions import APIException, HTTPStatus, return_ok, return_err, deal_except
+from exceptions import return_ok, return_err, deal_except
 from flask_app import logger
 
 def remove_file(fn):
@@ -30,8 +30,7 @@ def decode_jwt(token):
     try:
         header, payload, signature = token.split('.')
     except ValueError:
-        raise ValueError("Invalid JWT format: must contain three parts separated by dots")
-
+        return {}
     def decode_segment(segment):
         # Add padding if necessary
         segment += '=' * (4 - len(segment) % 4)
@@ -92,7 +91,6 @@ class MyApp(object):
     def create():
         myapp=MyApp()
         web=flask_app.create_app({}, json=True)
-        web.errorhandler(APIException)(APIException.handle)
         web.config['JSON_SORT_KEYS'] = False
         myapp.register_routes(web)
         database.host_cache_flush()
@@ -131,9 +129,12 @@ class MyApp(object):
         return [result._asdict() for result in results]
 
     def list_gold(self, hostname):
-        host = database.KVMHost.getHostInfo(hostname)
-        results = database.KVMGold.ListGold(host.arch)
-        return [result._asdict() for result in results]
+        try:
+            host = database.KVMHost.getHostInfo(hostname)
+            results = database.KVMGold.ListGold(host.arch)
+            return [result._asdict() for result in results]
+        except Exception as e:
+            return deal_except(f'list_gold', e), 400
 
     def db_list_domains(self):
         guests = database.KVMGuest.ListGuest()
@@ -234,7 +235,7 @@ class MyApp(object):
                         req_json['gold'] = gold
                     else:
                         logger.error(f'attach_device {gold} nofoudn')
-                        raise APIException(HTTPStatus.BAD_REQUEST, 'attach', f'gold {gold} nofound')
+                        raise Exception(f'gold {gold} nofound')
             xml = tpl.gen_xml(**req_json)
             env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
             return flask.Response(device.generate(xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
@@ -242,55 +243,42 @@ class MyApp(object):
             return deal_except(f'attach_device', e), 400
 
     def detach_device(self, hostname, uuid, name):
-        host = database.KVMHost.getHostInfo(hostname)
-        with vmmanager.connect(host.url) as conn:
-            vmmgr = vmmanager.VMManager(conn)
-            str_vol = vmmgr.detach_device(uuid, name)
-            if str_vol is None:
-                return return_ok(f"detach_device {name} vm {uuid} on {hostname} ok")
-            vmmanager.VMManager.refresh_all_pool(conn)
-            logger.info(f'remove disk {str_vol}')
-            try:
-                vmmanager.VMManager.delete_vol(conn, str_vol)
-            except Exception:
-                return return_ok(f"detach_device {name} vm {uuid} on {hostname} ok", failed=str_vol)
-            return return_ok(f"detach_device {name} vm {uuid} on {hostname} ok")
+        try:
+            host = database.KVMHost.getHostInfo(hostname)
+            return vmmanager.VMManager.detach_device(host.url, uuid, name)
+        except Exception as e:
+            return deal_except(f'detach_device', e), 400
 
     def create_vm(self, hostname):
-        username = ''
         try:
-            token = flask.request.cookies.get('token', None)
-            if token is not None:
-                # payload = jwt.decode(token, options={"verify_signature": False})
-                payload = decode_jwt(token).get('payload', {})
-                username = payload.get('username', '')
-        except:
-            pass
-        req_json = flask.request.json
-        host = database.KVMHost.getHostInfo(hostname)
-        # # avoid :META_SRV overwrite by user request
-        req_json = {**config.VM_DEFAULT(host.arch, hostname), **req_json, **{'username':username, 'META_SRV':META_SRV}}
-        logger.debug(f'create_vm {req_json}')
-        if (host.arch.lower() != req_json['vm_arch'].lower()):
-            raise APIException(HTTPStatus.BAD_REQUEST, 'create_vm error', 'arch no match host')
-        # force use host arch string
-        req_json['vm_arch'] = host.arch
-        xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
-        mdconfig = {}
-        with vmmanager.connect(host.url) as conn:
-            dom = vmmanager.VMManager(conn).create_vm(req_json['vm_uuid'], xml)
+            token = flask.request.cookies.get('token', '')
+            # payload = jwt.decode(token, options={"verify_signature": False})
+            payload = decode_jwt(token).get('payload', {})
+            username = payload.get('username', '')
+            req_json = flask.request.json
+            host = database.KVMHost.getHostInfo(hostname)
+            # # avoid :META_SRV overwrite by user request
+            req_json = {**config.VM_DEFAULT(host.arch, hostname), **req_json, **{'username':username, 'META_SRV':META_SRV}}
+            if (host.arch.lower() != req_json['vm_arch'].lower()):
+                raise Exception('arch no match host')
+            # force use host arch string
+            req_json['vm_arch'] = host.arch
+            xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
+            dom = vmmanager.VMManager.create_vm(host.url, req_json['vm_uuid'], xml)
             mdconfig = dom.mdconfig
-        enum = req_json.get('enum', None)
-        if enum is None or enum == "":
-            if not meta.ISOMeta().create(req_json, mdconfig):
-                raise APIException(HTTPStatus.CONFLICT, 'create_vm iso meta', f'{req_json["vm_uuid"]} {mdconfig}')
-        elif enum == 'NOCLOUD':
-            if not meta.NOCLOUDMeta().create(req_json, mdconfig):
-                raise APIException(HTTPStatus.CONFLICT, 'create_vm nocloud meta', f'{req_json["vm_uuid"]} {mdconfig}')
-        else:
-            logger.warn(f'meta: {enum} {req_json["vm_uuid"]} {mdconfig}')
-        req_json_log(req_json['vm_uuid'], req_json)
-        return return_ok(f"create vm {req_json['vm_uuid']} on {hostname} ok")
+            enum = req_json.get('enum', None)
+            if enum is None or enum == "":
+                if not meta.ISOMeta().create(req_json, mdconfig):
+                    raise Exception(f'ISOMeta {req_json["vm_uuid"]} {mdconfig}')
+            elif enum == 'NOCLOUD':
+                if not meta.NOCLOUDMeta().create(req_json, mdconfig):
+                    raise Exception(f'NOCLOUDMeta {req_json["vm_uuid"]} {mdconfig}')
+            else:
+                logger.warn(f'meta: {enum} {req_json["vm_uuid"]} {mdconfig}')
+            req_json_log(req_json['vm_uuid'], req_json)
+            return return_ok(f"create vm {req_json['vm_uuid']} on {hostname} ok")
+        except Exception as e:
+            return deal_except(f'attach_device', e), 400
 
     def delete_vm(self, hostname, uuid):
         try:
@@ -320,7 +308,7 @@ class MyApp(object):
                 logger.info(f'{cmd} call {func} {args}')
                 return flask.Response(func(**args), mimetype="text/event-stream")
             else:
-                return return_err(HTTPStatus.BAD_REQUEST, f'{cmd}', f"No Found {cmd}")
+                return return_err(404, f'{cmd}', f"No Found {cmd}")
         except Exception as e:
             return deal_except(f'{cmd}', e)
 

@@ -3,7 +3,7 @@ import os, subprocess, vmmanager, json
 from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
 from config import config
 from flask_app import logger
-from exceptions import APIException, HTTPStatus, return_ok, return_err
+from exceptions import return_ok, return_err, deal_except
 
 def generate(xml: str, action: str, arg: str, req_json: dict, **kwargs) -> Generator:
     try:
@@ -25,13 +25,6 @@ def generate(xml: str, action: str, arg: str, req_json: dict, **kwargs) -> Gener
                     return
         vmmanager.VMManager.attach_device(kwargs['URL'], req_json['vm_uuid'], xml)
         yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot')
-    except APIException as e:
-        # already logger.exception
-        yield return_err(e.code, e.name, e.desc)
-    except subprocess.CalledProcessError as e:
-        logger.exception(f'Subprocess error')
-        yield return_err(997, "attach", f"Subprocess error: {e}")
     except Exception as e:
-        logger.exception(f'attach')
-        yield return_err(998, "attach", f"Unexpected error: {e}")
+        yield deal_except(f'{cmd}', e)
     return

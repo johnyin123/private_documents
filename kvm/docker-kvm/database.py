@@ -2,7 +2,6 @@
 import datetime, os
 from dbi import engine, Session, session, Base
 from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey,JSON
-from exceptions import APIException, HTTPStatus
 from flask_app import logger
 
 class FakeDB:
@@ -36,11 +35,7 @@ class KVMHost(Base):
         result = search(kvmhost_cache_data, 'name', name)
         if len(result) == 1:
             return FakeDB(result[0])
-        raise APIException(HTTPStatus.BAD_REQUEST, 'host error', f'host {name} nofound')
-        # result=session.query(KVMHost).filter_by(name=name).first()
-        # if result:
-        #     return result
-        # raise APIException(HTTPStatus.BAD_REQUEST, 'host error', f'host {name} nofound')
+        raise Exception(f'host {name} nofound')
 
     @staticmethod
     def ListHost():
@@ -64,11 +59,7 @@ class KVMDevice(Base):
         result = search(result, 'kvmhost', kvmhost)
         if len(result) == 1:
             return FakeDB(result[0])
-        raise APIException(HTTPStatus.BAD_REQUEST, 'device error', f'device template {name} nofound')
-        # result=session.query(KVMDevice).filter_by(name=name, kvmhost=kvmhost).first()
-        # if result:
-        #     return result
-        # raise APIException(HTTPStatus.BAD_REQUEST, 'device error', f'device template {name} nofound')
+        raise Exception(f'device template {name} nofound')
 
     @staticmethod
     def ListDevice(kvmhost):
@@ -92,11 +83,7 @@ class KVMGold(Base):
         result = search(result, 'arch', arch)
         if len(result) == 1:
             return FakeDB(result[0])
-        raise APIException(HTTPStatus.BAD_REQUEST, 'golddisk error', f'golddisk {name} nofound')
-        # result=session.query(KVMGold).filter_by(name=name, arch=arch).first()
-        # if result:
-        #     return result
-        # raise APIException(HTTPStatus.BAD_REQUEST, 'golddisk error', f'golddisk {name} nofound')
+        raise Exception(f'golddisk {name} nofound')
 
     @staticmethod
     def ListGold(arch):

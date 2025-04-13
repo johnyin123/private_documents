@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import libvirt, xml.dom.minidom, json
 from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
-from exceptions import APIException, HTTPStatus, return_ok, return_err
+from exceptions import return_ok
 from flask_app import logger
 
 def getlist_without_key(arr, *keys):
@@ -9,12 +9,6 @@ def getlist_without_key(arr, *keys):
         {k: v for k, v in dic.items() if k not in keys}
         for dic in arr
     ]
-
-def kvm_error(e: libvirt.libvirtError, msg: str):
-    logger.exception(f'{msg}')
-    err_code = e.get_error_code()
-    err_msg = e.get_error_message()
-    raise APIException(HTTPStatus.BAD_REQUEST, f'{msg} errcode={err_code}', f'{err_msg}')
 
 import subprocess
 def virsh(connection, *args):
@@ -74,10 +68,10 @@ class LibvirtDomain:
             return {'virtio':vdlst[0][2], 'scsi':sdlst[0][2], 'sata':sdlst[0][2], 'ide':hdlst[0][2]}
         except IndexError as e:
             logger.exception(f'next_disk')
-            raise APIException(HTTPStatus.BAD_REQUEST, 'next_disk error', f'vm {self.uuid} DISK LABEL FULL(a..z)')
+            raise Exception(f'vm {self.uuid} DISK LABEL FULL(a..z)')
         except Exception:
             logger.exception(f'next_disk')
-            raise APIException(HTTPStatus.BAD_REQUEST, 'next_disk error', f'vm {self.uuid} DISK LABEL UNKNOWN')
+            raise Exception(f'vm {self.uuid} DISK LABEL UNKNOWN')
 
     @property
     def mdconfig(self):
@@ -124,9 +118,9 @@ class LibvirtDomain:
                     elif protocol == 'http':
                         disk_lst.append({'device':device, 'type':'http', 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
                     else:
-                        raise APIException(HTTPStatus.BAD_REQUEST, f'disk unknown', f'type={dtype} protocol={protocol}')
+                        raise Exception(f'disk unknown type={dtype} protocol={protocol}')
                 else:
-                    raise APIException(HTTPStatus.BAD_REQUEST, f'disk unknown', f'type={dtype}')
+                    raise Exception(f'disk unknown type={dtype}')
         return disk_lst
 
     @property
@@ -154,86 +148,63 @@ def connect(uri: str):
         libvirt.virEventRegisterDefaultImpl() # console newStream
         conn = libvirt.open(uri)
         yield conn
-    except libvirt.libvirtError as e:
-        kvm_error(e, 'libvirt.open')
-    finally:
-        if conn is not None:
-            conn.close()
-
-@contextmanager
-def new_connect(uri: str):
-    conn = None
-    try:
-        libvirt.virEventRegisterDefaultImpl() # console newStream
-        conn = libvirt.open(uri)
-        yield conn
     finally:
         if conn is not None:
             conn.close()
 
 class VMManager:
-    # # all operator by UUID
-    def __init__(self, conn):
-        self.conn = conn
-
-    def create_vm(self, uuid, xml):
-        try:
-            dom = self.conn.lookupByUUIDString(uuid)
-            raise APIException(HTTPStatus.CONFLICT, 'create_vm error', f'vm {uuid} exists')
-        except libvirt.libvirtError:
-            # not exist
-            pass
-        try:
-            self.conn.defineXML(xml)
-        except libvirt.libvirtError as e:
-            kvm_error(e, 'create_vm')
-        return LibvirtDomain(self.conn.lookupByUUIDString(uuid))
-
-    def detach_device(self, uuid, dev):
+    @staticmethod
+    def detach_device(url:str, uuid:str, dev:str)-> str:
         # dev = sda/vda....
         # dev = mac address
-        xml = None
-        ret = None
-        try:
-            dom = self.conn.lookupByUUIDString(uuid)
+        with connect(url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
-            for disk in domain.disks:
-                if disk['dev'] == dev:
-                    xml = disk['xml']
-                    ret = disk['vol']
-            if xml is None:
-                for net in domain.nets:
-                    if net['mac'] == dev:
-                        xml = net['xml']
-                        ret = None
-            if xml is None:
-                raise APIException(HTTPStatus.BAD_REQUEST, f'detach_device', f'{dev} nofound on vm {uuid}')
-            logger.debug(f'Remove Device {uuid}: {xml}')
             flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
             if domain.state == libvirt.VIR_DOMAIN_RUNNING:
                 flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
-            dom.detachDeviceFlags(xml, flags)
-            return ret
-        except libvirt.libvirtError as e:
-            kvm_error(e, f'{uuid} detach_device {dev}')
+            for disk in domain.disks:
+                if disk['dev'] == dev:
+                    dom.detachDeviceFlags(disk['xml'], flags)
+                    VMManager.refresh_all_pool(conn)
+                    logger.info(f'remove disk {disk}')
+                    try:
+                        VMManager.delete_vol(conn, disk['vol'])
+                    except Exception:
+                        return return_ok(f"detach_device {dev} vm {uuid} ok", failed=disk['vol'])
+                    return return_ok(f"detach_device {dev} vm {uuid} ok")
+            for net in domain.nets:
+                if net['mac'] == dev:
+                    dom.detachDeviceFlags(net['xml'], flags)
+                    return return_ok(f"detach_device {dev} vm {uuid} ok")
+        raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def attach_device(url, uuid, xml):
-        try:
-            with connect(url) as conn:
+    def attach_device(url:str, uuid:str, xml:str):
+        with connect(url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            state, maxmem, curmem, curcpu, cputime = dom.info()
+            flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
+            if state == libvirt.VIR_DOMAIN_RUNNING:
+                flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
+            dom.attachDeviceFlags(xml, flags)
+
+    @staticmethod
+    def create_vm(url:str, uuid:str, xml:str) -> LibvirtDomain:
+        with connect(url) as conn:
+            try:
                 dom = conn.lookupByUUIDString(uuid)
-                state, maxmem, curmem, curcpu, cputime = dom.info()
-                flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
-                if state == libvirt.VIR_DOMAIN_RUNNING:
-                    flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
-                dom.attachDeviceFlags(xml, flags)
-        except libvirt.libvirtError as e:
-             kvm_error(e, f'{uuid} attach_device')
-    ######################################################
+                raise Exception(f'vm {uuid} exists')
+            except libvirt.libvirtError:
+                # not exist
+                pass
+            conn.defineXML(xml)
+            return LibvirtDomain(conn.lookupByUUIDString(uuid))
+
     @staticmethod
     def get_display(url:str, uuid:str)-> Set:
         XMLDesc_Secure=None
-        with new_connect(url) as conn:
+        with connect(url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             state, maxmem, curmem, curcpu, cputime = dom.info()
             if state != libvirt.VIR_DOMAIN_RUNNING:
@@ -249,7 +220,7 @@ class VMManager:
 
     @staticmethod
     def delete_vm(url:str, uuid:str)-> str:
-        with new_connect(url) as conn:
+        with connect(url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             VMManager.refresh_all_pool(conn)
             diskinfo = []
@@ -274,12 +245,12 @@ class VMManager:
 
     @staticmethod
     def get_domain(url:str, uuid:str) -> LibvirtDomain:
-        with new_connect(url) as conn:
+        with connect(url) as conn:
             return LibvirtDomain(conn.lookupByUUIDString(uuid))
 
     @staticmethod
     def list_domains(url:str)-> Generator:
-        with new_connect(url) as conn:
+        with connect(url) as conn:
             for i in conn.listAllDomains():
                 yield LibvirtDomain(i)
 
@@ -301,7 +272,7 @@ class VMManager:
 
     @staticmethod
     def stop(url:str, uuid:str, **kwargs) -> str:
-        with new_connect(url) as conn:
+        with connect(url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             force = kwargs.get('force', False)
             if force:
@@ -312,7 +283,7 @@ class VMManager:
 
     @staticmethod
     def start(url:str, uuid:str)-> str:
-        with new_connect(url) as conn:
+        with connect(url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             dom.create()
             return return_ok(f'{uuid} start ok')
@@ -324,7 +295,7 @@ class VMManager:
         def convert_data(data):
             return {value["hwaddr"]: {"names": [name], "addrs": [addr["addr"] for addr in value["addrs"]]} for name, value in data.items() if name != "lo" and value['addrs'] is not None}
         try:
-            with new_connect(url) as conn:
+            with connect(url) as conn:
                 dom = conn.lookupByUUIDString(uuid)
                 leases = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
                 arp = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
