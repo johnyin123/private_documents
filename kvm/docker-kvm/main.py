@@ -4,7 +4,7 @@
 import flask_app, flask, os
 import database, vmmanager, template, device, meta
 from config import config, META_SRV, OUTDIR
-from exceptions import APIException, HTTPStatus, return_ok, return_err
+from exceptions import APIException, HTTPStatus, return_ok, return_err, deal_except
 from flask_app import logger
 
 def remove_file(fn):
@@ -144,21 +144,27 @@ class MyApp(object):
         return return_ok(f'get freeip ok', cidr=ip, gateway=gw)
 
     def get_domain(self, hostname, uuid):
-        host = database.KVMHost.getHostInfo(hostname)
-        with vmmanager.connect(host.url) as conn:
-            return vmmanager.VMManager(conn).get_domain(uuid)._asdict()
+        try:
+            host = database.KVMHost.getHostInfo(hostname)
+            return vmmanager.VMManager.get_domain(host.url, uuid)._asdict()
+        except Exception as e:
+            return deal_except(f'get_domain', e), 400
 
     def get_domain_xml(self, hostname, uuid):
-        host = database.KVMHost.getHostInfo(hostname)
-        with vmmanager.connect(host.url) as conn:
-            return flask.Response(vmmanager.VMManager(conn).get_domain(uuid).XMLDesc, mimetype="application/xml")
+        try:
+            host = database.KVMHost.getHostInfo(hostname)
+            return flask.Response(vmmanager.VMManager.get_domain(host.url, uuid).XMLDesc, mimetype="application/xml")
+        except Exception as e:
+            return deal_except(f'get_domain_xml', e), 400
 
     def get_vmui(self, hostname, uuid, epoch):
-        host = database.KVMHost.getHostInfo(hostname)
-        with vmmanager.connect(host.url) as conn:
-            dom = vmmanager.VMManager(conn).get_domain(uuid)
-        token, dt = user_access_secure_link(host.name, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
-        return return_ok('vmuserinterface', url=f'{config.USER_ACCESS_URL}', token=f'{token}', expire=dt)
+        try:
+            host = database.KVMHost.getHostInfo(hostname)
+            dom = vmmanager.VMManager.get_domain(host.url, uuid)
+            token, dt = user_access_secure_link(host.name, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
+            return return_ok('vmuserinterface', url=f'{config.USER_ACCESS_URL}', token=f'{token}', expire=dt)
+        except Exception as e:
+            return deal_except(f'get_vmui', e), 400
 
     def get_display(self, hostname, uuid):
         host = database.KVMHost.getHostInfo(hostname)
@@ -212,27 +218,25 @@ class MyApp(object):
         # raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no graphics define')
 
     def list_domains(self, hostname):
-        lst = []
-        host = database.KVMHost.getHostInfo(hostname)
-        with vmmanager.connect(host.url) as conn:
-            results = vmmanager.VMManager(conn).list_domains()
+        try:
+            host = database.KVMHost.getHostInfo(hostname)
+            results = [result._asdict() for result in vmmanager.VMManager.list_domains(host.url)]
             for dom in results:
-                item = dom._asdict()
-                lst.append(item)
                 # only list domains need KVMGuest.Upsert.
-                database.KVMGuest.Upsert(kvmhost=host.name, arch=host.arch, **item)
-        return lst
+                database.KVMGuest.Upsert(kvmhost=host.name, arch=host.arch, **dom)
+            return results
+        except Exception as e:
+            return deal_except(f'list_domains', e), 400
 
     def attach_device(self, hostname, uuid, name):
-        req_json = flask.request.json
-        req_json = {**config.ATTACH_DEFAULT, **req_json}
-        logger.info(f'attach_device {req_json}')
-        host = database.KVMHost.getHostInfo(hostname)
-        dev = database.KVMDevice.getDeviceInfo(hostname, name)
-        tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
-        with vmmanager.connect(host.url) as conn:
-            vmmgr = vmmanager.VMManager(conn)
-            dom = vmmgr.get_domain(uuid)
+        try:
+            req_json = flask.request.json
+            req_json = {**config.ATTACH_DEFAULT, **req_json}
+            logger.info(f'attach_device {req_json}')
+            host = database.KVMHost.getHostInfo(hostname)
+            dev = database.KVMDevice.getDeviceInfo(hostname, name)
+            tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
+            dom = vmmanager.VMManager.get_domain(host.url, uuid)
             req_json['vm_uuid'] = uuid
             if tpl.bus is not None:
                 req_json['vm_last_disk'] = dom.next_disk[tpl.bus]
@@ -245,9 +249,11 @@ class MyApp(object):
                     else:
                         logger.error(f'attach_device {gold} nofoudn')
                         raise APIException(HTTPStatus.BAD_REQUEST, 'attach', f'gold {gold} nofound')
-        xml = tpl.gen_xml(**req_json)
-        env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
-        return flask.Response(device.generate(xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
+            xml = tpl.gen_xml(**req_json)
+            env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
+            return flask.Response(device.generate(xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
+        except Exception as e:
+            return deal_except(f'attach_device', e), 400
 
     def detach_device(self, hostname, uuid, name):
         host = database.KVMHost.getHostInfo(hostname)
@@ -304,7 +310,7 @@ class MyApp(object):
         host = database.KVMHost.getHostInfo(hostname)
         with vmmanager.connect(host.url) as conn:
             vmmgr = vmmanager.VMManager(conn)
-            dom = vmmgr.get_domain(uuid)
+            dom = vmmanager.VMManager.get_domain(host.url, uuid)
             vmmanager.VMManager.refresh_all_pool(conn)
             disks = dom.disks
             diskinfo = []
@@ -342,8 +348,7 @@ class MyApp(object):
             else:
                 return return_err(HTTPStatus.BAD_REQUEST, f'{cmd}', f"No Found {cmd}")
         except Exception as e:
-            logger.exception(f'{cmd} {uuid}')
-            return return_err(HTTPStatus.BAD_REQUEST, f'{cmd}', f"{cmd} {e}")
+            return deal_except(f'{cmd}', e)
 
 app = MyApp.create()
 # gunicorn -b 127.0.0.1:5009 --preload --workers=4 --threads=2 --access-logfile='-' 'main:app'

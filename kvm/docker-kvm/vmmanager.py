@@ -160,20 +160,21 @@ def connect(uri: str):
         if conn is not None:
             conn.close()
 
+@contextmanager
+def new_connect(uri: str):
+    conn = None
+    try:
+        libvirt.virEventRegisterDefaultImpl() # console newStream
+        conn = libvirt.open(uri)
+        yield conn
+    finally:
+        if conn is not None:
+            conn.close()
+
 class VMManager:
     # # all operator by UUID
     def __init__(self, conn):
         self.conn = conn
-
-    def get_domain(self, uuid):
-        try:
-            return LibvirtDomain(self.conn.lookupByUUIDString(uuid))
-        except libvirt.libvirtError as e:
-            kvm_error(e, 'get_domain')
-
-    def list_domains(self):
-        for i in self.conn.listAllDomains():
-            yield LibvirtDomain(i)
 
     def get_display(self, uuid):
         displays = []
@@ -262,6 +263,17 @@ class VMManager:
                 dom.attachDeviceFlags(xml, flags)
         except libvirt.libvirtError as e:
              kvm_error(e, f'{uuid} attach_device')
+    ######################################################
+    @staticmethod
+    def get_domain(url:str, uuid:str) -> LibvirtDomain:
+        with new_connect(url) as conn:
+            return LibvirtDomain(conn.lookupByUUIDString(uuid))
+
+    @staticmethod
+    def list_domains(url:str)-> Generator:
+        with new_connect(url) as conn:
+            for i in conn.listAllDomains():
+                yield LibvirtDomain(i)
 
     @staticmethod
     def delete_vol(conn:libvirt.virConnect, vol:str):
@@ -276,44 +288,39 @@ class VMManager:
                 if not pool.isActive():
                     pool.create()
                 pool.refresh(0)
-                logger.info(f"Pool '{pool.name()}' refreshed successfully.")
             except libvirt.libvirtError as e:
-                logger.exception(f"Failed to refresh pool '{pool.name()}': {e}")
+                logger.exception(f"Failed refresh pool {pool.name()}")
 
     @staticmethod
-    def stop(url:str, uuid:str, **kwargs) -> Generator:
-        try:
-            with connect(url) as conn:
-                dom = conn.lookupByUUIDString(uuid)
-                force = kwargs.get('force', False)
-                if force:
-                    dom.destroy()
-                else:
-                    dom.shutdown()
-                yield return_ok(f'{uuid} stop ok')
-        except Exception as e:
-            yield deal_except('stop_vm', e)
+    def stop(url:str, uuid:str, **kwargs) -> str:
+        with new_connect(url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            force = kwargs.get('force', False)
+            if force:
+                dom.destroy()
+            else:
+                dom.shutdown()
+            return return_ok(f'{uuid} stop ok')
 
     @staticmethod
-    def start(url:str, uuid:str) -> Generator:
-        try:
-            with connect(url) as conn:
-                dom = conn.lookupByUUIDString(uuid)
-                dom.create()
-                yield return_ok(f'{uuid} start ok')
-        except Exception as e:
-            yield deal_except('start_vm', e)
+    def start(url:str, uuid:str)-> str:
+        with new_connect(url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            dom.create()
+            return return_ok(f'{uuid} start ok')
 
     @staticmethod
     def ipaddr(url:str, uuid:str) -> Generator:
+    # Generator func call by flask.Response(...)
+    # need catch exception and yield it
         def convert_data(data):
             return {value["hwaddr"]: {"names": [name], "addrs": [addr["addr"] for addr in value["addrs"]]} for name, value in data.items() if name != "lo" and value['addrs'] is not None}
         try:
-            with connect(url) as conn:
+            with new_connect(url) as conn:
                 dom = conn.lookupByUUIDString(uuid)
                 leases = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
                 arp = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
                 agent = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT)
                 yield return_ok('get_ipaddr', **{**convert_data(leases), **convert_data(arp), **convert_data(agent)})
         except Exception as e:
-            yield deal_except('get_ip', e)
+            yield deal_except(f'ipaddr', e)
