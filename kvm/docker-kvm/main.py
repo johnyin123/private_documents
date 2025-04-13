@@ -167,55 +167,41 @@ class MyApp(object):
             return deal_except(f'get_vmui', e), 400
 
     def get_display(self, hostname, uuid):
-        host = database.KVMHost.getHostInfo(hostname)
-        disp = []
-        with vmmanager.connect(host.url) as conn:
-            disp = vmmanager.VMManager(conn).get_display(uuid)
-        timeout = config.SOCAT_TMOUT
-        for it in disp:
-            logger.info(f'get_display {uuid}: {it}')
-            passwd = it.get('passwd', '')
-            proto = it.get('proto', '')
-            server = it.get('server', '')
-            port = it.get('port', '')
-            if server == '0.0.0.0':
-                server = f'{host.ipaddr}:{port}'
-            elif server == '127.0.0.1' or server == 'localhost':
-                # remote need: nc
-                # local need: socat
-                local = f'/tmp/.display.{uuid}'
-                # if not os.path.exists(local):
-                ssh_cmd = f'ssh {host.ipaddr} socat STDIO TCP:{server}:{port}'
-                socat_cmd = ('timeout', f'{timeout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
-                pid = os.fork()
-                if pid == 0:
-                    os.execvp(socat_cmd[0], socat_cmd)
-                    os._exit(0)
-                logger.info("Opened tunnel PID=%d, %s", pid, socat_cmd)
-                server = f'unix_socket:{local}'
-                # os.kill(pid, signal.SIGKILL)
-                # os.waitpid(pid, 0)
-            with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
-                # f.write(f'{uuid}: unix_socket:{path}')
-                f.write(f'{uuid}: {server}')
-            path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
-            if proto == 'vnc':
-                return return_ok('vnc', display=f'{config.VNC_DISP_URL}?password={passwd}&path={path}', expire=dt)
-            elif proto == 'spice':
-                return return_ok('spice', display=f'{config.SPICE_DISP_URL}?password={passwd}&path={path}', expire=dt)
-        # no vnc/spice, try console
-        socat_cmd = ('timeout', f'{timeout}',f'{OUTDIR}/console.py', f'{host.url}', f'{uuid}')
-        pid = os.fork()
-        if pid == 0:
-            os.execvp(socat_cmd[0], socat_cmd)
-            os._exit(0)
-        logger.info("Opened tunnel PID=%d, %s", pid, socat_cmd)
-        server = f'unix_socket:/tmp/{uuid}'
-        with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
-            f.write(f'{uuid}: {server}')
-        path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
-        return return_ok('console', display=f'{config.CONSOLE_URL}?path={path}', expire=dt)
-        # raise APIException(HTTPStatus.BAD_REQUEST, 'get_display', 'no graphics define')
+        try:
+            host = database.KVMHost.getHostInfo(hostname)
+            timeout = config.SOCAT_TMOUT
+            for it in vmmanager.VMManager.get_display(host.url, uuid):
+                passwd = it.get('passwd', '')
+                proto = it.get('proto', '')
+                server = it.get('server', '')
+                port = it.get('port', '')
+                if server == '0.0.0.0':
+                    server = f'{host.ipaddr}:{port}'
+                elif server == '127.0.0.1' or server == 'localhost':
+                    local = f'/tmp/.display.{uuid}'
+                    ssh_cmd = f'ssh {host.ipaddr} socat STDIO TCP:{server}:{port}'
+                    socat_cmd = ('timeout', f'{timeout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
+                    if proto == 'console':
+                        socat_cmd = ('timeout', f'{timeout}',f'{OUTDIR}/console.py', f'{host.url}', f'{uuid}')
+                    pid = os.fork()
+                    if pid == 0:
+                        os.execvp(socat_cmd[0], socat_cmd)
+                        os._exit(0)
+                    logger.info("Opened tunnel PID=%d, %s", pid, socat_cmd)
+                    server = f'unix_socket:{local}'
+                    # os.kill(pid, signal.SIGKILL)
+                    # os.waitpid(pid, 0)
+                with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
+                    f.write(f'{uuid}: {server}')
+                path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
+                if proto == 'vnc':
+                    return return_ok('vnc', display=f'{config.VNC_DISP_URL}?password={passwd}&path={path}', expire=dt)
+                elif proto == 'spice':
+                    return return_ok('spice', display=f'{config.SPICE_DISP_URL}?password={passwd}&path={path}', expire=dt)
+                elif proto == 'console':
+                    return return_ok('console', display=f'{config.CONSOLE_URL}?path={path}', expire=dt)
+        except Exception as e:
+            return deal_except(f'get_display', e), 400
 
     def list_domains(self, hostname):
         try:

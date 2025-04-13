@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 SOCKET_QUEUE_BACKLOG = 0
 CTRL_Q = '\x11'
-BASE_DIRECTORY = '/tmp'
 
 class SocketServer(multiprocessing.Process):
     def __init__(self, uuid, url):
@@ -23,9 +22,9 @@ class SocketServer(multiprocessing.Process):
 
         self._uuid = uuid
         self._url = url
-        self._server_addr = os.path.join(BASE_DIRECTORY, uuid)
+        self._server_addr = f'/tmp/.display.{uuid}'
         if os.path.exists(self._server_addr):
-            raise RuntimeError('There is an existing connection to %s' % uuid)
+            os.remove(self._server_addr)
         self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 

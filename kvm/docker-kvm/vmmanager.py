@@ -176,25 +176,6 @@ class VMManager:
     def __init__(self, conn):
         self.conn = conn
 
-    def get_display(self, uuid):
-        displays = []
-        try:
-            dom = self.conn.lookupByUUIDString(uuid)
-            state, maxmem, curmem, curcpu, cputime = dom.info()
-            if state != libvirt.VIR_DOMAIN_RUNNING:
-                raise APIException(HTTPStatus.BAD_REQUEST, 'get_display error', f'vm {uuid} not running')
-            XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
-            p = xml.dom.minidom.parseString(XMLDesc_Secure)
-            for item in p.getElementsByTagName('graphics'):
-                type = item.getAttribute('type')
-                port = item.getAttribute('port')
-                addr = item.getAttribute('listen')
-                passwd = item.getAttribute('passwd')
-                displays.append({'proto':type,'server':addr,'port':port,'passwd':passwd})
-        except libvirt.libvirtError as e:
-            kvm_error(e, 'get_display')
-        return displays
-
     def create_vm(self, uuid, xml):
         try:
             dom = self.conn.lookupByUUIDString(uuid)
@@ -249,6 +230,23 @@ class VMManager:
         except libvirt.libvirtError as e:
              kvm_error(e, f'{uuid} attach_device')
     ######################################################
+    @staticmethod
+    def get_display(url:str, uuid:str)-> Set:
+        XMLDesc_Secure=None
+        with new_connect(url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            state, maxmem, curmem, curcpu, cputime = dom.info()
+            if state != libvirt.VIR_DOMAIN_RUNNING:
+                raise Exception(f'vm {uuid} not running')
+            XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
+        p = xml.dom.minidom.parseString(XMLDesc_Secure)
+        displays = []
+        for item in p.getElementsByTagName('graphics'):
+            displays.append({'proto':item.getAttribute('type'),'server':item.getAttribute('listen'),'port':item.getAttribute('port'),'passwd':item.getAttribute('passwd')})
+        if len(displays) == 0:
+            displays.append({'proto':'console','server':'127.0.0.1'})
+        return displays
+
     @staticmethod
     def delete_vm(url:str, uuid:str)-> str:
         with new_connect(url) as conn:

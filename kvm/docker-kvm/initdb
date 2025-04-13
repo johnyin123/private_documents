@@ -241,6 +241,7 @@ server {
         # auth_request @sso-auth;
         # # no cache!! mgr private access
         proxy_cache off;
+        expires off;
         location ~* ^/vm/(ipaddr|list|start|stop|delete|display|xml|ui|freeip)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
             proxy_pass http://flask_app;
@@ -290,6 +291,7 @@ server {
     location /user/ {
         # # no cache!! guest user api, guest private access
         proxy_cache off;
+        expires off;
         location /user/vm/list/ {
             set $userkey "${USERKEY}";
             secure_link $arg_k,$arg_e;
