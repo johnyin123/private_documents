@@ -206,22 +206,7 @@ class VMManager:
             self.conn.defineXML(xml)
         except libvirt.libvirtError as e:
             kvm_error(e, 'create_vm')
-        return self.get_domain(uuid)
-
-    def delete_vm(self, uuid):
-        try:
-            dom = self.conn.lookupByUUIDString(uuid)
-            try:
-                dom.destroy()
-            except Exception:
-                pass
-            flags = 0
-            flags |= libvirt.VIR_DOMAIN_UNDEFINE_NVRAM
-            flags |= libvirt.VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
-            flags |= libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
-            dom.undefineFlags(flags)
-        except libvirt.libvirtError as e:
-            kvm_error(e, 'delete_vm')
+        return LibvirtDomain(self.conn.lookupByUUIDString(uuid))
 
     def detach_device(self, uuid, dev):
         # dev = sda/vda....
@@ -264,6 +249,31 @@ class VMManager:
         except libvirt.libvirtError as e:
              kvm_error(e, f'{uuid} attach_device')
     ######################################################
+    @staticmethod
+    def delete_vm(url:str, uuid:str)-> str:
+        with new_connect(url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            VMManager.refresh_all_pool(conn)
+            diskinfo = []
+            for v in LibvirtDomain(dom).disks:
+                logger.debug(f'remove disk {v}')
+                try:
+                    VMManager.delete_vol(conn, v['vol'])
+                except Exception:
+                    keys = ['type', 'dev', 'vol']
+                    diskinfo.append({k: v[k] for k in keys if k in v})
+                    pass
+            try:
+                dom.destroy()
+            except Exception:
+                pass
+            flags = 0
+            flags |= libvirt.VIR_DOMAIN_UNDEFINE_NVRAM
+            flags |= libvirt.VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
+            flags |= libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
+            dom.undefineFlags(flags)
+            return return_ok(f'{uuid} delete ok', failed=diskinfo)
+
     @staticmethod
     def get_domain(url:str, uuid:str) -> LibvirtDomain:
         with new_connect(url) as conn:

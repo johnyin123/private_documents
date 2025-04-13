@@ -307,28 +307,16 @@ class MyApp(object):
         return return_ok(f"create vm {req_json['vm_uuid']} on {hostname} ok")
 
     def delete_vm(self, hostname, uuid):
-        host = database.KVMHost.getHostInfo(hostname)
-        with vmmanager.connect(host.url) as conn:
-            vmmgr = vmmanager.VMManager(conn)
-            dom = vmmanager.VMManager.get_domain(host.url, uuid)
-            vmmanager.VMManager.refresh_all_pool(conn)
-            disks = dom.disks
-            diskinfo = []
-            for v in disks:
-                logger.debug(f'remove disk {v}')
-                try:
-                    vmmanager.VMManager.delete_vol(conn, v['vol'])
-                except Exception:
-                    keys = ['type', 'dev', 'vol']
-                    diskinfo.append({k: v[k] for k in keys if k in v})
-                    pass
-            vmmgr.delete_vm(uuid)
-        remove_file(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
-        remove_file(os.path.join(config.NOCLOUD_DIR, uuid))
-        # remove guest list
-        database.KVMGuest.Remove(uuid)
-        req_json_remove(uuid)
-        return return_ok(f'{uuid} delete ok', failed=diskinfo)
+        try:
+            host = database.KVMHost.getHostInfo(hostname)
+            remove_file(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
+            remove_file(os.path.join(config.NOCLOUD_DIR, uuid))
+            # remove guest list
+            database.KVMGuest.Remove(uuid)
+            req_json_remove(uuid)
+            return vmmanager.VMManager.delete_vm(host.url, uuid)
+        except Exception as e:
+            return deal_except(f'attach_device', e), 400
 
     def get_domain_cmd(self, cmd:str, hostname:str, uuid:str):
         dom_cmds = {
