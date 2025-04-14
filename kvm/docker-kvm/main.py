@@ -7,16 +7,6 @@ from config import config, META_SRV, OUTDIR
 from exceptions import return_ok, return_err, deal_except
 from flask_app import logger
 
-def remove_file(fn):
-    """Remove file/dir by renaming it with a '.remove' extension."""
-    try:
-        os.rename(f'{fn}', f'{fn}.remove')
-    except Exception:
-        pass
-
-def req_json_remove(uuid):
-    remove_file(os.path.join(config.REQ_JSON_DIR, uuid))
-
 def req_json_log(uuid, req_json):
     try:
         with open(os.path.join(config.REQ_JSON_DIR, uuid), "w") as file:
@@ -112,20 +102,25 @@ class MyApp(object):
         app.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=self.get_domain, methods=['GET'])
         app.add_url_rule('/vm/display/<string:hostname>/<string:uuid>', view_func=self.get_display, methods=['GET'])
         app.add_url_rule('/vm/create/<string:hostname>', view_func=self.create_vm, methods=['POST'])
-        app.add_url_rule('/vm/delete/<string:hostname>/<string:uuid>', view_func=self.delete_vm, methods=['GET'])
         app.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=self.attach_device, methods=['POST'])
         app.add_url_rule('/vm/ui/<string:hostname>/<string:uuid>/<int:epoch>', view_func=self.get_vmui, methods=['GET'])
         app.add_url_rule('/vm/<string:cmd>/<string:hostname>/<string:uuid>', view_func=self.get_domain_cmd, methods=['GET', 'POST'])
 
     def list_host(self):
-        results = database.KVMHost.ListHost()
-        keys = [ 'name', 'arch', 'ipaddr', 'desc', 'url', 'last_modified' ]
-        return [ {k: v for k, v in dic._asdict().items() if k in keys} for dic in results ]
-        # return [result._asdict() for result in results]
+        try:
+            results = database.KVMHost.ListHost()
+            keys = [ 'name', 'arch', 'ipaddr', 'desc', 'url', 'last_modified' ]
+            return [ {k: v for k, v in dic._asdict().items() if k in keys} for dic in results ]
+            # return [result._asdict() for result in results]
+        except Exception as e:
+            return deal_except(f'list_host', e), 400
 
     def list_device(self, hostname):
-        results = database.KVMDevice.ListDevice(hostname)
-        return [result._asdict() for result in results]
+        try:
+            results = database.KVMDevice.ListDevice(hostname)
+            return [result._asdict() for result in results]
+        except Exception as e:
+            return deal_except(f'list_device', e), 400
 
     def list_gold(self, hostname):
         try:
@@ -136,12 +131,18 @@ class MyApp(object):
             return deal_except(f'list_gold', e), 400
 
     def db_list_domains(self):
-        guests = database.KVMGuest.ListGuest()
-        return [result._asdict() for result in guests]
+        try:
+            guests = database.KVMGuest.ListGuest()
+            return [result._asdict() for result in guests]
+        except Exception as e:
+            return deal_except(f'db_list_domains', e), 400
 
     def db_freeip(self):
-        ip, gw = get_free_ip()
-        return return_ok(f'get freeip ok', cidr=ip, gateway=gw)
+        try:
+            ip, gw = get_free_ip()
+            return return_ok(f'db_freeip ok', cidr=ip, gateway=gw)
+        except Exception as e:
+            return deal_except(f'db_freeip', e), 400
 
     def get_domain(self, hostname, uuid):
         try:
@@ -207,9 +208,8 @@ class MyApp(object):
         try:
             host = database.KVMHost.getHostInfo(hostname)
             results = [result._asdict() for result in vmmanager.VMManager.list_domains(host.url)]
-            for dom in results:
-                # only list domains need KVMGuest.Upsert.
-                database.KVMGuest.Upsert(kvmhost=host.name, arch=host.arch, **dom)
+            # only list domains need KVMGuest.Upsert.
+            database.KVMGuest.Upsert(host.name, host.arch, results)
             return results
         except Exception as e:
             return deal_except(f'list_domains', e), 400
@@ -244,9 +244,7 @@ class MyApp(object):
     def create_vm(self, hostname):
         try:
             token = flask.request.cookies.get('token', '')
-            # payload = jwt.decode(token, options={"verify_signature": False})
-            payload = decode_jwt(token).get('payload', {})
-            username = payload.get('username', '')
+            username = decode_jwt(token).get('payload', {}).get('username', '')
             req_json = flask.request.json
             host = database.KVMHost.getHostInfo(hostname)
             # # avoid :META_SRV overwrite by user request
@@ -260,11 +258,9 @@ class MyApp(object):
             mdconfig = dom.mdconfig
             enum = req_json.get('enum', None)
             if enum is None or enum == "":
-                if not meta.ISOMeta().create(req_json, mdconfig):
-                    raise Exception(f'ISOMeta {req_json["vm_uuid"]} {mdconfig}')
+                meta.ISOMeta().create(req_json, mdconfig)
             elif enum == 'NOCLOUD':
-                if not meta.NOCLOUDMeta().create(req_json, mdconfig):
-                    raise Exception(f'NOCLOUDMeta {req_json["vm_uuid"]} {mdconfig}')
+                meta.NOCLOUDMeta().create(req_json, mdconfig)
             else:
                 logger.warn(f'meta: {enum} {req_json["vm_uuid"]} {mdconfig}')
             req_json_log(req_json['vm_uuid'], req_json)
@@ -272,28 +268,22 @@ class MyApp(object):
         except Exception as e:
             return deal_except(f'create_vm', e), 400
 
-    def delete_vm(self, hostname, uuid):
-        try:
-            host = database.KVMHost.getHostInfo(hostname)
-            remove_file(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
-            remove_file(os.path.join(config.NOCLOUD_DIR, uuid))
-            # remove guest list
-            database.KVMGuest.Remove(uuid)
-            req_json_remove(uuid)
-            return vmmanager.VMManager.delete_vm(host.url, uuid)
-        except Exception as e:
-            return deal_except(f'delete_vm', e), 400
-
     def get_domain_cmd(self, cmd:str, hostname:str, uuid:str):
         dom_cmds = {
-                'GET': ['ipaddr', 'start', 'stop'],
+                'GET': ['ipaddr', 'start', 'stop', 'delete'],
                 'POST': ['detach_device']
                 }
         try:
             if cmd in dom_cmds[flask.request.method]:
                 req_json = flask.request.get_json(silent=True, force=True)
                 host = database.KVMHost.getHostInfo(hostname)
-                args = {**flask.request.args, 'url': host.url, 'uuid': uuid}
+                args = {'url': host.url, 'uuid': uuid}
+                for key, value in flask.request.args.items():
+                    # # remove secure_link args, so func no need **kwargs
+                    if key in ['k', 'e', 'url', 'uuid']:
+                        continue
+                    args[key] = value
+                # args = {**flask.request.args, 'url': host.url, 'uuid': uuid}
                 if req_json:
                     args = {**args, 'req_json':req_json}
                 func = getattr(vmmanager.VMManager, cmd)

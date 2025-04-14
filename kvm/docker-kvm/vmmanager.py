@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-import libvirt, xml.dom.minidom, json
+import libvirt, xml.dom.minidom, json, os
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from exceptions import return_ok
+from config import config
 from flask_app import logger
 
 def getlist_without_key(arr, *keys):
@@ -74,7 +75,7 @@ class LibvirtDomain:
             raise Exception(f'vm {self.uuid} DISK LABEL UNKNOWN')
 
     @property
-    def mdconfig(self):
+    def mdconfig(self)->Dict:
         data_dict = {}
         p = xml.dom.minidom.parseString(self.XMLDesc)
         for metadata in p.getElementsByTagName('metadata'):
@@ -152,6 +153,13 @@ def connect(uri: str):
         if conn is not None:
             conn.close()
 
+def remove_file(fn):
+    """Remove file/dir by renaming it with a '.remove' extension."""
+    try:
+        os.rename(f'{fn}', f'{fn}.remove')
+    except Exception:
+        pass
+
 class VMManager:
     @staticmethod
     def detach_device(url:str, uuid:str, dev:str)-> str:
@@ -222,21 +230,24 @@ class VMManager:
         return displays
 
     @staticmethod
-    def delete_vm(url:str, uuid:str)-> str:
+    def delete(url:str, uuid:str)-> str:
+        remove_file(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
+        remove_file(os.path.join(config.NOCLOUD_DIR, uuid))
+        remove_file(os.path.join(config.REQ_JSON_DIR, uuid))
         with connect(url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             VMManager.refresh_all_pool(conn)
             diskinfo = []
-            for v in LibvirtDomain(dom).disks:
+            for disk in LibvirtDomain(dom).disks:
                 # cdrom not delete media
                 if disk['device'] != 'disk':
                     continue
-                logger.debug(f'remove disk {v}')
+                logger.debug(f'remove disk {disk}')
                 try:
-                    VMManager.delete_vol(conn, v['vol'])
+                    VMManager.delete_vol(conn, disk['vol'])
                 except Exception:
                     keys = ['type', 'dev', 'vol']
-                    diskinfo.append({k: v[k] for k in keys if k in v})
+                    diskinfo.append({k: disk[k] for k in keys if k in disk})
                     pass
             try:
                 dom.destroy()

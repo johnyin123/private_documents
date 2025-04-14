@@ -2,6 +2,7 @@
 import datetime, os
 from dbi import engine, Session, session, Base
 from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey,JSON
+from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from flask_app import logger
 
 class FakeDB:
@@ -109,36 +110,19 @@ class KVMGuest(Base):
     nets = Column(JSON,nullable=False)
 
     @staticmethod
-    def Upsert(**kwargs):
+    def Upsert(kvmhost:str, arch:str, records:List)->None:
+        # can not modify records!!!!!
         try:
-            uuid = kwargs.get('uuid')
-            instance = session.query(KVMGuest).filter_by(uuid=uuid).first()
-            # # remove no use need key
-            if 'state' in kwargs:
-                del kwargs['state']
-            if instance:
-                logger.debug(f'Update db guest in PID {os.getpid()} {uuid}')
-                for k, v in kwargs.items():
-                    setattr(instance, k, v)
-            else:
-                logger.debug(f'Insert db guest in PID {os.getpid()} {uuid}')
-                guest = KVMGuest(**kwargs)
-                session.add(guest)
+            session.query(KVMGuest).filter_by(kvmhost=kvmhost).delete()
+            for rec in records:
+                # # remove no use need key
+                guest = rec.copy()
+                guest.pop('state', "Not found")
+                session.add(KVMGuest(**guest, kvmhost=kvmhost, arch=arch))
             session.commit()
             guest_cache_flush()
         except:
-            logger.exception(f'Upsert db guest {kwargs} in PID {os.getpid()} Failed')
-            session.rollback()
-
-    @staticmethod
-    def Remove(uuid):
-        try:
-            logger.debug(f'Remove db guest in PID {os.getpid()}')
-            session.query(KVMGuest).filter_by(uuid=uuid).delete()
-            session.commit()
-            guest_cache_flush()
-        except:
-            logger.exception(f'GuestDB Remove {uuid}in PID {os.getpid()} Failed')
+            logger.exception(f'Upsert db guest {kvmhost} in PID {os.getpid()} Failed')
             session.rollback()
 
     @staticmethod

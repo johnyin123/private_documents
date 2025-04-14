@@ -218,15 +218,13 @@ function start() {
     getjson('GET', `/user/vm/start/${token.value}`, getjson_result);
   }
 }
-function stop() {
-  if (confirm('Are you sure you want to stop the VM?')) {
-    getjson('GET', `/user/vm/stop/${token.value}`, getjson_result);
+function stop(force=false) {
+  if (confirm(`Are you sure you want to stop the VM${force ? ' Force' : ''}?`)) {
+    getjson('GET', `/user/vm/stop/${token.value}${force ? '&force=true' : ''}`, getjson_result);
   }
 }
 function stop_force() {
-  if (confirm('Are you sure you want to force stop the VM?')) {
-    getjson('POST', `/user/vm/stop/${token.value}`, getjson_result, null, null, 60000);
-  }
+  stop(true);
 }
 function display() {
   getjson('GET', `/user/vm/display/${token.value}`, function(res) {
