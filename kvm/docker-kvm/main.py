@@ -97,7 +97,6 @@ class MyApp(object):
         app.add_url_rule('/vm/list/', view_func=self.db_list_domains, methods=['GET'])
         app.add_url_rule('/vm/freeip/',view_func=self.db_freeip, methods=['GET'])
         ## end db oper guest ##
-        app.add_url_rule('/vm/xml/<string:hostname>/<string:uuid>', view_func=self.get_domain_xml, methods=['GET'])
         app.add_url_rule('/vm/list/<string:hostname>', view_func=self.list_domains, methods=['GET'])
         app.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=self.get_domain, methods=['GET'])
         app.add_url_rule('/vm/display/<string:hostname>/<string:uuid>', view_func=self.get_display, methods=['GET'])
@@ -150,13 +149,6 @@ class MyApp(object):
             return vmmanager.VMManager.get_domain(host.url, uuid)._asdict()
         except Exception as e:
             return deal_except(f'get_domain', e), 400
-
-    def get_domain_xml(self, hostname, uuid):
-        try:
-            host = database.KVMHost.getHostInfo(hostname)
-            return flask.Response(vmmanager.VMManager.get_domain(host.url, uuid).XMLDesc, mimetype="application/xml")
-        except Exception as e:
-            return deal_except(f'get_domain_xml', e), 400
 
     def get_vmui(self, hostname, uuid, epoch):
         try:
@@ -270,7 +262,7 @@ class MyApp(object):
 
     def get_domain_cmd(self, cmd:str, hostname:str, uuid:str):
         dom_cmds = {
-                'GET': ['ipaddr', 'start', 'stop', 'delete'],
+                'GET': ['xml', 'ipaddr', 'start', 'stop', 'delete'],
                 'POST': ['detach_device']
                 }
         try:

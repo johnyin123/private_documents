@@ -11,16 +11,6 @@ def getlist_without_key(arr, *keys):
         for dic in arr
     ]
 
-import subprocess
-def virsh(connection, *args):
-    '''
-    out = virsh('qemu+tls://192.168.168.1/system', 'define', file)
-    logger.info(out.decode("utf-8"))
-    '''
-    cmd = ("virsh", "-c", connection, *args)
-    logging.debug(f'Running virsh command: {cmd}')
-    return subprocess.check_output(cmd)
-
 class LibvirtDomain:
     def __init__(self, dom):
         self.XMLDesc = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE)
@@ -259,6 +249,11 @@ class VMManager:
             flags |= libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
             dom.undefineFlags(flags)
             return return_ok(f'{uuid} delete ok', failed=diskinfo)
+
+    @staticmethod
+    def xml(url:str, uuid:str) -> str:
+        with connect(url) as conn:
+            return conn.lookupByUUIDString(uuid).XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE)
 
     @staticmethod
     def get_domain(url:str, uuid:str) -> LibvirtDomain:

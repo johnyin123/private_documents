@@ -605,4 +605,14 @@ def sftp_get(host, port, username, password, remote_path, local_path):
             f.write(domxml)
         return return_ok(f'{uuid} uploadxml ok')
 
+import subprocess
+def virsh(url, *args):
+    '''
+    out = virsh('qemu+tls://192.168.168.1/system', 'define', file)
+    logger.info(out.decode("utf-8"))
+    '''
+    cmd = ("virsh", "-c", url, *args)
+    logging.debug(f'Running virsh command: {cmd}')
+    return subprocess.check_output(cmd)
+
 
