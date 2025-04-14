@@ -67,12 +67,10 @@ class LibvirtDomain:
         p = xml.dom.minidom.parseString(self.XMLDesc)
         for metadata in p.getElementsByTagName('metadata'):
             for mdconfig in metadata.getElementsByTagName('mdconfig:meta'):
-                # Iterate through the child nodes of the root element
                 for node in mdconfig.childNodes:
                     if node.nodeType == xml.dom.minidom.Node.ELEMENT_NODE:
                         # Remove leading and trailing whitespace from the text content
                         text = node.firstChild.nodeValue.strip() if node.firstChild else ''
-                        # Assign the element's text content to the dictionary key
                         tagname = node.tagName[len('mdconfig:'):] if node.tagName.startswith('mdconfig:') else node.tagName
                         data_dict[tagname] = text
         return data_dict
@@ -235,7 +233,6 @@ class VMManager:
                 except Exception:
                     keys = ['type', 'dev', 'vol']
                     diskinfo.append({k: disk[k] for k in keys if k in disk})
-                    pass
             try:
                 dom.destroy()
             except Exception:
