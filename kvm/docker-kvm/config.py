@@ -8,28 +8,6 @@ from flask_app import logger
 META_SRV = os.environ.get('META_SRV', 'vmm.registry.local')
 OUTDIR = os.environ.get('OUTDIR', os.path.abspath(os.path.dirname(__file__)))
 DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db')
-# import multiprocessing
-# class Config:
-#     shared_state_lock = multiprocessing.Lock()
-#     shared_state = multiprocessing.Manager().dict()
-#     # _shared_state.update({'k':'v'})
-#     # _shared_state.clear()
-#     def __init__(self, **kwargs):
-#         for k, v in kwargs.items():
-#             self.set(k, v)
-#
-#     def __getattr__(self, name):
-#         if name in Config.shared_state:
-#             return Config.shared_state[name]
-#         raise AttributeError(f"'Config' object has no attribute '{name}'")
-#
-#     def set(self, name, value):
-#          with Config.shared_state_lock:
-#             Config.shared_state[name] = value
-# config = Config(app_name="MyApp", version="1.0.0")
-# print(config.app_name)  # Output: MyApp
-# config.set("version", "2.0.0")
-# print(config.version)  # Output: MyApp
 
 class config:
     # # iso meta service dir & iso cd device dir

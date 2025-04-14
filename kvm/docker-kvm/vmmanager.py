@@ -60,9 +60,6 @@ class LibvirtDomain:
         except IndexError as e:
             logger.exception(f'next_disk')
             raise Exception(f'vm {self.uuid} DISK LABEL FULL(a..z)')
-        except Exception:
-            logger.exception(f'next_disk')
-            raise Exception(f'vm {self.uuid} DISK LABEL UNKNOWN')
 
     @property
     def mdconfig(self)->Dict:
@@ -267,7 +264,7 @@ class VMManager:
                 yield LibvirtDomain(i)
 
     @staticmethod
-    def delete_vol(conn:libvirt.virConnect, vol:str):
+    def delete_vol(conn:libvirt.virConnect, vol:str)-> None:
         vol = conn.storageVolLookupByPath(vol)
         vol.delete()
 
