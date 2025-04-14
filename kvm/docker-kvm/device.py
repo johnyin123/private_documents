@@ -27,4 +27,3 @@ def generate(xml: str, action: str, arg: str, req_json: dict, **kwargs) -> Gener
         yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot')
     except Exception as e:
         yield deal_except(f'{cmd}', e)
-    return

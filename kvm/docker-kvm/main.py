@@ -83,10 +83,10 @@ class MyApp(object):
         web=flask_app.create_app({}, json=True)
         web.config['JSON_SORT_KEYS'] = False
         myapp.register_routes(web)
-        database.host_cache_flush()
-        database.device_cache_flush()
-        database.gold_cache_flush()
-        database.guest_cache_flush()
+        database.cache_flush(database.kvmhost_cache_data_lock,   database.kvmhost_cache_data,   database.KVMHost)
+        database.cache_flush(database.kvmdevice_cache_data_lock, database.kvmdevice_cache_data, database.KVMDevice)
+        database.cache_flush(database.kvmgold_cache_data_lock,   database.kvmgold_cache_data,   database.KVMGold)
+        database.cache_flush(database.kvmguest_cache_data_lock,  database.kvmguest_cache_data,  database.KVMGuest)
         return web
 
     def register_routes(self, app):

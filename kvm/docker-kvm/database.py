@@ -120,7 +120,7 @@ class KVMGuest(Base):
                 guest.pop('state', "Not found")
                 session.add(KVMGuest(**guest, kvmhost=kvmhost, arch=arch))
             session.commit()
-            guest_cache_flush()
+            cache_flush(kvmguest_cache_data_lock, kvmguest_cache_data, KVMGuest)
         except:
             logger.exception(f'Upsert db guest {kvmhost} in PID {os.getpid()} Failed')
             session.rollback()
@@ -136,38 +136,21 @@ manager = multiprocessing.Manager()
 ####################################
 kvmhost_cache_data = manager.list()
 kvmhost_cache_data_lock = multiprocessing.Lock()
-def host_cache_flush():
-    with kvmhost_cache_data_lock:
-        logger.debug(f'update KVMHost.cache in PID {os.getpid()}')
-        results = session.query(KVMHost).all()
-        for result in results:
-            kvmhost_cache_data.append(manager.dict(**result._asdict()))
 ####################################
 kvmdevice_cache_data = manager.list()
 kvmdevice_cache_data_lock = multiprocessing.Lock()
-def device_cache_flush():
-    with kvmdevice_cache_data_lock:
-        logger.debug(f'update KVMDevice.cache in PID {os.getpid()}')
-        results = session.query(KVMDevice).all()
-        for result in results:
-            kvmdevice_cache_data.append(manager.dict(**result._asdict()))
 ####################################
 kvmgold_cache_data = manager.list()
 kvmgold_cache_data_lock = multiprocessing.Lock()
-def gold_cache_flush():
-    with kvmgold_cache_data_lock:
-        logger.debug(f'update KVMGold.cache in PID {os.getpid()}')
-        results = session.query(KVMGold).all()
-        for result in results:
-            kvmgold_cache_data.append(manager.dict(**result._asdict()))
 ####################################
 kvmguest_cache_data = manager.list()
 kvmguest_cache_data_lock = multiprocessing.Lock()
-def guest_cache_flush():
-    with kvmguest_cache_data_lock:
-        while(len(kvmguest_cache_data) > 0):
-            kvmguest_cache_data.pop()
-        logger.debug(f'update KVMGuest.cache in PID {os.getpid()}')
-        results = session.query(KVMGuest).all()
+####################################
+def cache_flush(lock, cache, dbtable):
+    with lock:
+        while(len(cache) > 0):
+            cache.pop()
+        logger.debug(f'update {dbtable} cache in PID {os.getpid()}')
+        results = session.query(dbtable).all()
         for result in results:
-            kvmguest_cache_data.append(manager.dict(**result._asdict()))
+            cache.append(manager.dict(**result._asdict()))

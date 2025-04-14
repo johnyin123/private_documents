@@ -181,7 +181,7 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def attach_device(url:str, uuid:str, xml:str):
+    def attach_device(url:str, uuid:str, xml:str)-> None:
         with connect(url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             state, maxmem, curmem, curcpu, cputime = dom.info()
