@@ -90,9 +90,9 @@ class MyApp(object):
         return web
 
     def register_routes(self, app):
-        app.add_url_rule('/tpl/host/', view_func=self.list_host, methods=['GET'])
-        app.add_url_rule('/tpl/device/<string:hostname>', view_func=self.list_device, methods=['GET'])
-        app.add_url_rule('/tpl/gold/<string:hostname>', view_func=self.list_gold, methods=['GET'])
+        app.add_url_rule('/tpl/host/', view_func=self.db_list_host, methods=['GET'])
+        app.add_url_rule('/tpl/device/<string:hostname>', view_func=self.db_list_device, methods=['GET'])
+        app.add_url_rule('/tpl/gold/<string:hostname>', view_func=self.db_list_gold, methods=['GET'])
         ## start db oper guest ##
         app.add_url_rule('/vm/list/', view_func=self.db_list_domains, methods=['GET'])
         app.add_url_rule('/vm/freeip/',view_func=self.db_freeip, methods=['GET'])
@@ -105,29 +105,29 @@ class MyApp(object):
         app.add_url_rule('/vm/ui/<string:hostname>/<string:uuid>/<int:epoch>', view_func=self.get_vmui, methods=['GET'])
         app.add_url_rule('/vm/<string:cmd>/<string:hostname>/<string:uuid>', view_func=self.get_domain_cmd, methods=['GET', 'POST'])
 
-    def list_host(self):
+    def db_list_host(self):
         try:
             results = database.KVMHost.ListHost()
             keys = [ 'name', 'arch', 'ipaddr', 'desc', 'url', 'last_modified' ]
             return [ {k: v for k, v in dic._asdict().items() if k in keys} for dic in results ]
             # return [result._asdict() for result in results]
         except Exception as e:
-            return deal_except(f'list_host', e), 400
+            return deal_except(f'db_list_host', e), 400
 
-    def list_device(self, hostname):
+    def db_list_device(self, hostname):
         try:
             results = database.KVMDevice.ListDevice(hostname)
             return [result._asdict() for result in results]
         except Exception as e:
-            return deal_except(f'list_device', e), 400
+            return deal_except(f'db_list_device', e), 400
 
-    def list_gold(self, hostname):
+    def db_list_gold(self, hostname):
         try:
             host = database.KVMHost.getHostInfo(hostname)
             results = database.KVMGold.ListGold(host.arch)
             return [result._asdict() for result in results]
         except Exception as e:
-            return deal_except(f'list_gold', e), 400
+            return deal_except(f'db_list_gold', e), 400
 
     def db_list_domains(self):
         try:
