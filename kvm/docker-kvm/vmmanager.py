@@ -6,10 +6,7 @@ from config import config
 from flask_app import logger
 
 def getlist_without_key(arr, *keys):
-    return [
-        {k: v for k, v in dic.items() if k not in keys}
-        for dic in arr
-    ]
+    return [{k: v for k, v in dic.items() if k not in keys} for dic in arr]
 
 class LibvirtDomain:
     def __init__(self, dom):
@@ -45,21 +42,17 @@ class LibvirtDomain:
             vdlst.append('vd{}'.format(chr(char)))
             sdlst.append('sd{}'.format(chr(char)))
             hdlst.append('sd{}'.format(chr(char)))
-        try:
-            p = xml.dom.minidom.parseString(self.XMLDesc)
-            # for index, disk in enumerate(p.getElementsByTagName('disk')): #enumerate(xxx, , start=1)
-            for disk in p.getElementsByTagName('disk'):
-                device = disk.getAttribute('device')
-                if device not in ['disk', 'cdrom']:
-                    continue
-                dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
-                vdlst = [d for d in vdlst if d != dev]
-                sdlst = [d for d in sdlst if d != dev]
-                hdlst = [d for d in hdlst if d != dev]
-            return {'virtio':vdlst[0][2], 'scsi':sdlst[0][2], 'sata':sdlst[0][2], 'ide':hdlst[0][2]}
-        except IndexError as e:
-            logger.exception(f'next_disk')
-            raise Exception(f'vm {self.uuid} DISK LABEL FULL(a..z)')
+        p = xml.dom.minidom.parseString(self.XMLDesc)
+        # for index, disk in enumerate(p.getElementsByTagName('disk')): #enumerate(xxx, , start=1)
+        for disk in p.getElementsByTagName('disk'):
+            device = disk.getAttribute('device')
+            if device not in ['disk', 'cdrom']:
+                continue
+            dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
+            vdlst = [d for d in vdlst if d != dev]
+            sdlst = [d for d in sdlst if d != dev]
+            hdlst = [d for d in hdlst if d != dev]
+        return {'virtio':vdlst[0][2], 'scsi':sdlst[0][2], 'sata':sdlst[0][2], 'ide':hdlst[0][2]}
 
     @property
     def mdconfig(self)->Dict:

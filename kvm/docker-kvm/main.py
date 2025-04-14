@@ -6,14 +6,6 @@ import database, vmmanager, template, device, meta
 from config import config, META_SRV, OUTDIR
 from exceptions import return_ok, return_err, deal_except
 from flask_app import logger
-
-def req_json_log(uuid, req_json):
-    try:
-        with open(os.path.join(config.REQ_JSON_DIR, uuid), "w") as file:
-            json.dump(req_json, file, indent=4)
-    except Exception:
-        logger.exception(f'log req_json logfile {uuid}')
-
 import base64, hashlib, time, datetime
 
 def decode_jwt(token):
@@ -255,7 +247,8 @@ class MyApp(object):
                 meta.NOCLOUDMeta().create(req_json, mdconfig)
             else:
                 logger.warn(f'meta: {enum} {req_json["vm_uuid"]} {mdconfig}')
-            req_json_log(req_json['vm_uuid'], req_json)
+            with open(os.path.join(config.REQ_JSON_DIR, uuid), "w") as file:
+                json.dump(req_json, file, indent=4)
             return return_ok(f"create vm {req_json['vm_uuid']} on {hostname} ok")
         except Exception as e:
             return deal_except(f'create_vm', e), 400
