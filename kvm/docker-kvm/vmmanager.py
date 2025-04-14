@@ -191,7 +191,7 @@ class VMManager:
     def create_vm(url:str, uuid:str, xml:str) -> LibvirtDomain:
         with connect(url) as conn:
             try:
-                dom = conn.lookupByUUIDString(uuid)
+                conn.lookupByUUIDString(uuid)
                 raise Exception(f'vm {uuid} exists')
             except libvirt.libvirtError:
                 # not exist
@@ -265,8 +265,7 @@ class VMManager:
 
     @staticmethod
     def delete_vol(conn:libvirt.virConnect, vol:str)-> None:
-        vol = conn.storageVolLookupByPath(vol)
-        vol.delete()
+        conn.storageVolLookupByPath(vol).delete()
 
     @staticmethod
     def refresh_all_pool(conn:libvirt.virConnect)-> None:
@@ -283,8 +282,7 @@ class VMManager:
     def stop(url:str, uuid:str, **kwargs) -> str:
         with connect(url) as conn:
             dom = conn.lookupByUUIDString(uuid)
-            force = kwargs.get('force', False)
-            if force:
+            if kwargs.get('force', False):
                 dom.destroy()
             else:
                 dom.shutdown()
@@ -293,8 +291,7 @@ class VMManager:
     @staticmethod
     def start(url:str, uuid:str)-> str:
         with connect(url) as conn:
-            dom = conn.lookupByUUIDString(uuid)
-            dom.create()
+            conn.lookupByUUIDString(uuid).create()
             return return_ok(f'{uuid} start ok')
 
     @staticmethod
