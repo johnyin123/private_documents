@@ -33,7 +33,7 @@ class KVMHost(Base):
     @staticmethod
     def getHostInfo(name):
         logger.debug(f'getHostInfo PID {os.getpid()}')
-        result = search(kvmhost_cache_data, 'name', name)
+        result = search(kvmhost_cache, 'name', name)
         if len(result) == 1:
             return FakeDB(result[0])
         raise Exception(f'host {name} nofound')
@@ -41,7 +41,7 @@ class KVMHost(Base):
     @staticmethod
     def ListHost():
         logger.debug(f'ListHost PID {os.getpid()}')
-        return [ FakeDB(element) for element in kvmhost_cache_data ]
+        return [ FakeDB(element) for element in kvmhost_cache ]
 
 class KVMDevice(Base):
     __tablename__ = "kvmdevice"
@@ -56,7 +56,7 @@ class KVMDevice(Base):
     @staticmethod
     def getDeviceInfo(kvmhost, name):
         logger.debug(f'getDeviceInfo PID {os.getpid()}')
-        result = search(kvmdevice_cache_data, 'name', name)
+        result = search(kvmdevice_cache, 'name', name)
         result = search(result, 'kvmhost', kvmhost)
         if len(result) == 1:
             return FakeDB(result[0])
@@ -65,7 +65,7 @@ class KVMDevice(Base):
     @staticmethod
     def ListDevice(kvmhost):
         logger.debug(f'ListDevice PID {os.getpid()}')
-        result = search(kvmdevice_cache_data, 'kvmhost', kvmhost)
+        result = search(kvmdevice_cache, 'kvmhost', kvmhost)
         return [ FakeDB(element) for element in result ]
         # return session.query(KVMDevice.kvmhost, KVMDevice.name, KVMDevice.devtype, KVMDevice.desc).filter_by(kvmhost=kvmhost).all()
 
@@ -80,7 +80,7 @@ class KVMGold(Base):
     @staticmethod
     def getGoldInfo(name, arch):
         logger.debug(f'getGoldInfo PID {os.getpid()}')
-        result = search(kvmgold_cache_data, 'name', name)
+        result = search(kvmgold_cache, 'name', name)
         result = search(result, 'arch', arch)
         if len(result) == 1:
             return FakeDB(result[0])
@@ -89,7 +89,7 @@ class KVMGold(Base):
     @staticmethod
     def ListGold(arch):
         logger.debug(f'ListGold PID {os.getpid()}')
-        result = search(kvmgold_cache_data, 'arch', arch)
+        result = search(kvmgold_cache, 'arch', arch)
         return [ FakeDB(element) for element in result ]
         # return session.query(KVMGold).filter_by(arch=arch).all()
 
@@ -120,7 +120,7 @@ class KVMGuest(Base):
                 guest.pop('state', "Not found")
                 session.add(KVMGuest(**guest, kvmhost=kvmhost, arch=arch))
             session.commit()
-            cache_flush(kvmguest_cache_data_lock, kvmguest_cache_data, KVMGuest)
+            cache_flush(kvmguest_cache_lock, kvmguest_cache, KVMGuest)
         except:
             logger.exception(f'Upsert db guest {kvmhost} in PID {os.getpid()} Failed')
             session.rollback()
@@ -128,23 +128,23 @@ class KVMGuest(Base):
     @staticmethod
     def ListGuest():
         logger.debug(f'ListGuest PID {os.getpid()}')
-        return [ FakeDB(element) for element in kvmguest_cache_data ]
+        return [ FakeDB(element) for element in kvmguest_cache ]
         # return session.query(KVMGuest).all()
 
 import multiprocessing
 manager = multiprocessing.Manager()
 ####################################
-kvmhost_cache_data = manager.list()
-kvmhost_cache_data_lock = multiprocessing.Lock()
+kvmhost_cache = manager.list()
+kvmhost_cache_lock = multiprocessing.Lock()
 ####################################
-kvmdevice_cache_data = manager.list()
-kvmdevice_cache_data_lock = multiprocessing.Lock()
+kvmdevice_cache = manager.list()
+kvmdevice_cache_lock = multiprocessing.Lock()
 ####################################
-kvmgold_cache_data = manager.list()
-kvmgold_cache_data_lock = multiprocessing.Lock()
+kvmgold_cache = manager.list()
+kvmgold_cache_lock = multiprocessing.Lock()
 ####################################
-kvmguest_cache_data = manager.list()
-kvmguest_cache_data_lock = multiprocessing.Lock()
+kvmguest_cache = manager.list()
+kvmguest_cache_lock = multiprocessing.Lock()
 ####################################
 def cache_flush(lock, cache, dbtable):
     with lock:
