@@ -234,7 +234,7 @@ class MyApp(object):
                 meta.NOCLOUDMeta().create(req_json, mdconfig)
             else:
                 logger.warn(f'meta: {enum} {req_json["vm_uuid"]} {mdconfig}')
-            save(os.path.join(config.REQ_JSON_DIR, uuid), json.dumps( req_json, indent=4))
+            save(os.path.join(config.REQ_JSON_DIR, req_json['vm_uuid']), json.dumps(req_json, indent=4))
             return return_ok(f"create vm {req_json['vm_uuid']} on {hostname} ok")
         except Exception as e:
             return deal_except(f'create_vm', e), 400
