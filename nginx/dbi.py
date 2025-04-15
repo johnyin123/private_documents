@@ -9,7 +9,7 @@ try:
     import config
     DATABASE_URI=config.DATABASE
 except ImportError:
-    DATABASE_URI=os.environ.get('DATABASE', 'sqlite:///demo.db')
+    DATABASE_URI=os.environ.get('DATABASE', 'sqlite:///demo.db?check_same_thread=False')
 # # 'sqlite:///:memory:'
 # # https://github.com/sqlalchemy/sqlalchemy/discussions/8858
 args = dict(echo=echo, poolclass=sqlalchemy.pool.StaticPool)
