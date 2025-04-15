@@ -7,7 +7,7 @@ from flask_app import logger
 # # mgr/meta-data http/https server name
 META_SRV = os.environ.get('META_SRV', 'vmm.registry.local')
 OUTDIR = os.environ.get('OUTDIR', os.path.abspath(os.path.dirname(__file__)))
-DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db')
+DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db?check_same_thread=False')
 
 class config:
     # # iso meta service dir & iso cd device dir
