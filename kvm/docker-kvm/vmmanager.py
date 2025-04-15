@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 import libvirt, xml.dom.minidom, json, os
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-from exceptions import return_ok
+from utils import return_ok, getlist_without_key, remove_file, connect
 from config import config
 from flask_app import logger
-
-def getlist_without_key(arr, *keys):
-    return [{k: v for k, v in dic.items() if k not in keys} for dic in arr]
 
 class LibvirtDomain:
     def __init__(self, dom):
@@ -118,25 +115,6 @@ class LibvirtDomain:
     def maxcpu(self):
         p = xml.dom.minidom.parseString(self.XMLDesc)
         return int(p.getElementsByTagName('vcpu')[0].firstChild.data)
-
-from contextlib import contextmanager
-@contextmanager
-def connect(uri: str):
-    conn = None
-    try:
-        libvirt.virEventRegisterDefaultImpl() # console newStream
-        conn = libvirt.open(uri)
-        yield conn
-    finally:
-        if conn is not None:
-            conn.close()
-
-def remove_file(fn):
-    """Remove file/dir by renaming it with a '.remove' extension."""
-    try:
-        os.rename(f'{fn}', f'{fn}.remove')
-    except Exception:
-        pass
 
 class VMManager:
     @staticmethod

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import datetime, os
+import datetime, os, utils
 from dbi import engine, Session, session, Base
 from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey,JSON
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
@@ -11,9 +11,6 @@ class FakeDB:
             setattr(self, key, value)
     def _asdict(self):
         return self.__dict__
-
-def search(arr, key, val):
-    return [ element for element in arr if element[key] == val]
 
 class KVMHost(Base):
     __tablename__ = "kvmhost"
@@ -33,7 +30,7 @@ class KVMHost(Base):
     @staticmethod
     def getHostInfo(name):
         logger.debug(f'getHostInfo PID {os.getpid()}')
-        result = search(kvmhost_cache, 'name', name)
+        result = utils.search(kvmhost_cache, 'name', name)
         if len(result) == 1:
             return FakeDB(result[0])
         raise Exception(f'host {name} nofound')
@@ -56,8 +53,8 @@ class KVMDevice(Base):
     @staticmethod
     def getDeviceInfo(kvmhost, name):
         logger.debug(f'getDeviceInfo PID {os.getpid()}')
-        result = search(kvmdevice_cache, 'name', name)
-        result = search(result, 'kvmhost', kvmhost)
+        result = utils.search(kvmdevice_cache, 'name', name)
+        result = utils.search(result, 'kvmhost', kvmhost)
         if len(result) == 1:
             return FakeDB(result[0])
         raise Exception(f'device template {name} nofound')
@@ -65,7 +62,7 @@ class KVMDevice(Base):
     @staticmethod
     def ListDevice(kvmhost):
         logger.debug(f'ListDevice PID {os.getpid()}')
-        result = search(kvmdevice_cache, 'kvmhost', kvmhost)
+        result = utils.search(kvmdevice_cache, 'kvmhost', kvmhost)
         return [ FakeDB(element) for element in result ]
         # return session.query(KVMDevice.kvmhost, KVMDevice.name, KVMDevice.devtype, KVMDevice.desc).filter_by(kvmhost=kvmhost).all()
 
@@ -80,8 +77,8 @@ class KVMGold(Base):
     @staticmethod
     def getGoldInfo(name, arch):
         logger.debug(f'getGoldInfo PID {os.getpid()}')
-        result = search(kvmgold_cache, 'name', name)
-        result = search(result, 'arch', arch)
+        result = utils.search(kvmgold_cache, 'name', name)
+        result = utils.search(result, 'arch', arch)
         if len(result) == 1:
             return FakeDB(result[0])
         raise Exception(f'golddisk {name} nofound')
@@ -89,7 +86,7 @@ class KVMGold(Base):
     @staticmethod
     def ListGold(arch):
         logger.debug(f'ListGold PID {os.getpid()}')
-        result = search(kvmgold_cache, 'arch', arch)
+        result = utils.search(kvmgold_cache, 'arch', arch)
         return [ FakeDB(element) for element in result ]
         # return session.query(KVMGold).filter_by(arch=arch).all()
 

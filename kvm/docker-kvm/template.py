@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, jinja2, xml.dom.minidom
+import os, jinja2, xml.dom.minidom, utils
 from config import config
 from flask_app import logger
 from jinja2 import meta as jinja2_meta
@@ -7,14 +7,12 @@ from jinja2 import meta as jinja2_meta
 class DeviceTemplate(object):
     def __init__(self, filename, devtype):
         self.devtype = devtype
-        self.raw_str = ''
-        with open(os.path.join(config.DEVICE_DIR, filename), 'r') as f:
-            self.raw_str = f.read()
-            env = jinja2.Environment()
-            self.template = env.from_string(self.raw_str)
-            # env.globals['foo'] = 'foo'
-            ast = env.parse(self.raw_str)
-            logger.debug(f'{devtype} {filename} vars: %s', jinja2_meta.find_undeclared_variables(ast))
+        self.raw_str = utils.load(os.path.join(config.DEVICE_DIR, filename))
+        env = jinja2.Environment()
+        self.template = env.from_string(self.raw_str)
+        # env.globals['foo'] = 'foo'
+        ast = env.parse(self.raw_str)
+        logger.debug(f'{devtype} {filename} vars: %s', jinja2_meta.find_undeclared_variables(ast))
 
     @property
     def bus(self):

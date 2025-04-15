@@ -4,21 +4,9 @@
 import flask_app, flask, os
 import database, vmmanager, template, device, meta
 from config import config, META_SRV, OUTDIR
-from exceptions import return_ok, return_err, deal_except
+from utils import return_ok, return_err, deal_except, save, decode_jwt
 from flask_app import logger
 import base64, hashlib, time, datetime
-
-def decode_jwt(token):
-    try:
-        header, payload, signature = token.split('.')
-    except ValueError:
-        return {}
-    def decode_segment(segment):
-        # Add padding if necessary
-        segment += '=' * (4 - len(segment) % 4)
-        return json.loads(base64.urlsafe_b64decode(segment).decode('utf-8'))
-
-    return { 'header': decode_segment(header), 'payload': decode_segment(payload), }
 
 def user_access_secure_link(kvmhost, uuid, mykey, epoch):
     # secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
@@ -176,8 +164,7 @@ class MyApp(object):
                     server = f'unix_socket:{local}'
                     # os.kill(pid, signal.SIGKILL)
                     # os.waitpid(pid, 0)
-                with open(os.path.join(config.TOKEN_DIR, uuid), 'w') as f:
-                    f.write(f'{uuid}: {server}')
+                save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
                 path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
                 if proto == 'vnc':
                     return return_ok('vnc', display=f'{config.VNC_DISP_URL}?password={passwd}&path={path}', expire=dt)
@@ -247,8 +234,7 @@ class MyApp(object):
                 meta.NOCLOUDMeta().create(req_json, mdconfig)
             else:
                 logger.warn(f'meta: {enum} {req_json["vm_uuid"]} {mdconfig}')
-            with open(os.path.join(config.REQ_JSON_DIR, uuid), "w") as file:
-                json.dump(req_json, file, indent=4)
+            save(os.path.join(config.REQ_JSON_DIR, uuid), json.dumps( req_json, indent=4))
             return return_ok(f"create vm {req_json['vm_uuid']} on {hostname} ok")
         except Exception as e:
             return deal_except(f'create_vm', e), 400
@@ -272,7 +258,7 @@ class MyApp(object):
                 if req_json:
                     args = {**args, 'req_json':req_json}
                 func = getattr(vmmanager.VMManager, cmd)
-                logger.info(f'{cmd} call {func} {args}')
+                logger.info(f'{cmd} call {args}')
                 return flask.Response(func(**args), mimetype="text/event-stream")
             else:
                 return return_err(404, f'{cmd}', f"Domain No Found {cmd}")
