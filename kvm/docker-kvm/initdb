@@ -55,25 +55,16 @@ if not os.path.isdir(path):
 path = config.REQ_JSON_DIR
 if not os.path.isdir(path):
     os.mkdir(path, 0o755)
-path = os.path.join(OUTDIR, 'novnc')
-if not os.path.isdir(path):
-    os.mkdir(path, 0o755)
-path = os.path.join(OUTDIR, 'spice')
-if not os.path.isdir(path):
-    os.mkdir(path, 0o755)
-path = os.path.join(OUTDIR, 'ui')
-if not os.path.isdir(path):
-    os.mkdir(path, 0o755)
+file_exists(OUTDIR, 'console.py', f'console.py')
+print(f'nginx webui files & dir ============================')
 file_exists(OUTDIR, 'ui/tpl.html', f'nginx admin.html')
 file_exists(OUTDIR, 'ui/userui.html', f'nginx guest.html')
-path = os.path.join(OUTDIR, 'term')
-if not os.path.isdir(path):
-    os.mkdir(path, 0o755)
-file_exists(OUTDIR, 'console.py', f'console.py')
+file_exists(OUTDIR, 'novnc/vnc_lite.html', f'vnc_lite.html')
+file_exists(OUTDIR, 'spice/spice_auto.html', f'spice_auto.html')
 file_exists(OUTDIR, 'term/xterm.html', f'console xterm.html')
 file_exists(OUTDIR, 'term/xterm.css', f'console xterm.css')
 file_exists(OUTDIR, 'term/xterm.js', f'console xterm.js')
-
+print(f'====================================================')
 print(r'VNC:{}, SPICE:{}'.format(config.VNC_DISP_URL, config.SPICE_DISP_URL))
 
 # create tables if not exists
@@ -255,6 +246,7 @@ server {
         }
         return 404;
     }
+    # # admin ui start # #
     location = /admin.html {
         # auth_request @sso-auth;
         # # vmmgr ui page, mgr private access
@@ -265,6 +257,8 @@ server {
         autoindex off;
         root ${OUT_DIR};
     }
+    # # admin ui end # #
+    # # vnc/spice/console ui start # #
     location /websockify {
         # # /websockify used by admin & guest ui
         set $websockkey "${WEBSOCKKEY}";
@@ -282,6 +276,7 @@ server {
         autoindex off;
         root ${OUT_DIR};
     }
+    # # vnc/spice/console ui end # #
     # # tanent user UI manager tanent vm by uuid
     location = /guest.html {
         # # guest user ui page, guest private access
