@@ -4,7 +4,7 @@
 import flask_app, flask, os
 import database, vmmanager, template, device, meta
 from config import config, META_SRV, OUTDIR
-from utils import return_ok, return_err, deal_except, save, decode_jwt
+from utils import return_ok, return_err, deal_except, save, decode_jwt, reload
 from flask_app import logger
 import base64, hashlib, time, datetime
 
@@ -63,10 +63,10 @@ class MyApp(object):
         web=flask_app.create_app({}, json=True)
         web.config['JSON_SORT_KEYS'] = False
         myapp.register_routes(web)
-        database.cache_flush(database.kvmhost_cache_lock,   database.kvmhost_cache,   database.KVMHost)
-        database.cache_flush(database.kvmdevice_cache_lock, database.kvmdevice_cache, database.KVMDevice)
-        database.cache_flush(database.kvmgold_cache_lock,   database.kvmgold_cache,   database.KVMGold)
-        database.cache_flush(database.kvmguest_cache_lock,  database.kvmguest_cache,  database.KVMGuest)
+        database.KVMHost.reload()
+        database.KVMDevice.reload()
+        database.KVMGold.reload()
+        database.KVMGuest.reload()
         return web
 
     def register_routes(self, app):

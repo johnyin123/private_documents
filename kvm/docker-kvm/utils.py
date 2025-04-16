@@ -5,7 +5,7 @@ from contextlib import contextmanager
 import libvirt, json, base64, os
 
 @contextmanager
-def connect(uri: str):
+def connect(uri: str)-> Generator:
     conn = None
     try:
         libvirt.virEventRegisterDefaultImpl() # console newStream
@@ -14,6 +14,22 @@ def connect(uri: str):
     finally:
         if conn is not None:
             conn.close()
+
+def append(arr:List, val:Dict)-> None:
+    arr.append(val)
+
+def remove(arr:List, val:Dict)-> None:
+    arr.remove(val)
+
+import multiprocessing
+manager = multiprocessing.Manager()
+def reload(lock, cache, jfn)->None:
+    with lock:
+        while(len(cache) > 0):
+            cache.pop()
+        logger.debug(f'update {jfn} cache in PID {os.getpid()}')
+        for result in json.loads(load(jfn)):
+            cache.append(manager.dict(**result))
 
 def search(arr:List, key, val)-> List:
     return [ element for element in arr if element[key] == val]

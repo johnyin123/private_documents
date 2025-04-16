@@ -1,14 +1,23 @@
 # -*- coding: utf-8 -*-
-import datetime, os, utils
+import datetime, os, utils, multiprocessing
 from dbi import engine, Session, session, Base
 from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey,JSON
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from flask_app import logger
 
+def cache_flush(lock, cache, dbtable):
+    with lock:
+        while(len(cache) > 0):
+            cache.pop()
+        logger.debug(f'update {dbtable} cache in PID {os.getpid()}')
+        results = session.query(dbtable).all()
+        for result in results:
+            cache.append(utils.manager.dict(**result._asdict()))
+
 class FakeDB:
-    def __init__(self, data):
-        for key, value in data.items():
-            setattr(self, key, value)
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
     def _asdict(self):
         return self.__dict__
 
@@ -26,19 +35,25 @@ class KVMHost(Base):
     inactive = Column(Integer,nullable=False,server_default='0')
     desc = Column(String,nullable=False,server_default='',comment='主机描述')
     last_modified = Column(DateTime(timezone=True),onupdate=datetime.datetime.now(),default=datetime.datetime.now())
+    ####################################
+    cache = utils.manager.list()
+    lock = multiprocessing.Lock()
+    @staticmethod
+    def reload():
+        cache_flush(KVMHost.lock, KVMHost.cache, KVMHost)
 
     @staticmethod
     def getHostInfo(name):
         logger.debug(f'getHostInfo PID {os.getpid()}')
-        result = utils.search(kvmhost_cache, 'name', name)
+        result = utils.search(KVMHost.cache, 'name', name)
         if len(result) == 1:
-            return FakeDB(result[0])
+            return FakeDB(**result[0])
         raise Exception(f'host {name} nofound')
 
     @staticmethod
     def ListHost():
         logger.debug(f'ListHost PID {os.getpid()}')
-        return [ FakeDB(element) for element in kvmhost_cache ]
+        return [ FakeDB(**element) for element in KVMHost.cache ]
 
 class KVMDevice(Base):
     __tablename__ = "kvmdevice"
@@ -49,21 +64,27 @@ class KVMDevice(Base):
     tpl = Column(String,nullable=False,comment='device模板XML文件')
     desc = Column(String,nullable=False,comment='device描述')
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
+    ####################################
+    cache = utils.manager.list()
+    lock = multiprocessing.Lock()
+    @staticmethod
+    def reload():
+        cache_flush(KVMDevice.lock, KVMDevice.cache, KVMDevice)
 
     @staticmethod
     def getDeviceInfo(kvmhost, name):
         logger.debug(f'getDeviceInfo PID {os.getpid()}')
-        result = utils.search(kvmdevice_cache, 'name', name)
+        result = utils.search(KVMDevice.cache, 'name', name)
         result = utils.search(result, 'kvmhost', kvmhost)
         if len(result) == 1:
-            return FakeDB(result[0])
+            return FakeDB(**result[0])
         raise Exception(f'device template {name} nofound')
 
     @staticmethod
     def ListDevice(kvmhost):
         logger.debug(f'ListDevice PID {os.getpid()}')
-        result = utils.search(kvmdevice_cache, 'kvmhost', kvmhost)
-        return [ FakeDB(element) for element in result ]
+        result = utils.search(KVMDevice.cache, 'kvmhost', kvmhost)
+        return [ FakeDB(**element) for element in result ]
         # return session.query(KVMDevice.kvmhost, KVMDevice.name, KVMDevice.devtype, KVMDevice.desc).filter_by(kvmhost=kvmhost).all()
 
 class KVMGold(Base):
@@ -73,21 +94,27 @@ class KVMGold(Base):
     tpl = Column(String,nullable=False,comment='Gold盘qcow2格式模板文件')
     desc = Column(String,nullable=False,comment='Gold盘描述')
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
+    ####################################
+    cache = utils.manager.list()
+    lock = multiprocessing.Lock()
+    @staticmethod
+    def reload():
+        cache_flush(KVMGold.lock, KVMGold.cache, KVMGold)
 
     @staticmethod
     def getGoldInfo(name, arch):
         logger.debug(f'getGoldInfo PID {os.getpid()}')
-        result = utils.search(kvmgold_cache, 'name', name)
+        result = utils.search(KVMGold.cache, 'name', name)
         result = utils.search(result, 'arch', arch)
         if len(result) == 1:
-            return FakeDB(result[0])
+            return FakeDB(**result[0])
         raise Exception(f'golddisk {name} nofound')
 
     @staticmethod
     def ListGold(arch):
         logger.debug(f'ListGold PID {os.getpid()}')
-        result = utils.search(kvmgold_cache, 'arch', arch)
-        return [ FakeDB(element) for element in result ]
+        result = utils.search(KVMGold.cache, 'arch', arch)
+        return [ FakeDB(**element) for element in result ]
         # return session.query(KVMGold).filter_by(arch=arch).all()
 
 class KVMGuest(Base):
@@ -105,6 +132,12 @@ class KVMGuest(Base):
     # state = Column(String)
     disks = Column(JSON,nullable=False)
     nets = Column(JSON,nullable=False)
+    ####################################
+    cache = utils.manager.list()
+    lock = multiprocessing.Lock()
+    @staticmethod
+    def reload():
+        cache_flush(KVMGuest.lock, KVMGuest.cache, KVMGuest)
 
     @staticmethod
     def Upsert(kvmhost:str, arch:str, records:List)->None:
@@ -117,7 +150,7 @@ class KVMGuest(Base):
                 guest.pop('state', "Not found")
                 session.add(KVMGuest(**guest, kvmhost=kvmhost, arch=arch))
             session.commit()
-            cache_flush(kvmguest_cache_lock, kvmguest_cache, KVMGuest)
+            KVMGuest.reload()
         except:
             logger.exception(f'Upsert db guest {kvmhost} in PID {os.getpid()} Failed')
             session.rollback()
@@ -125,29 +158,5 @@ class KVMGuest(Base):
     @staticmethod
     def ListGuest():
         logger.debug(f'ListGuest PID {os.getpid()}')
-        return [ FakeDB(element) for element in kvmguest_cache ]
+        return [ FakeDB(**element) for element in KVMGuest.cache ]
         # return session.query(KVMGuest).all()
-
-import multiprocessing
-manager = multiprocessing.Manager()
-####################################
-kvmhost_cache = manager.list()
-kvmhost_cache_lock = multiprocessing.Lock()
-####################################
-kvmdevice_cache = manager.list()
-kvmdevice_cache_lock = multiprocessing.Lock()
-####################################
-kvmgold_cache = manager.list()
-kvmgold_cache_lock = multiprocessing.Lock()
-####################################
-kvmguest_cache = manager.list()
-kvmguest_cache_lock = multiprocessing.Lock()
-####################################
-def cache_flush(lock, cache, dbtable):
-    with lock:
-        while(len(cache) > 0):
-            cache.pop()
-        logger.debug(f'update {dbtable} cache in PID {os.getpid()}')
-        results = session.query(dbtable).all()
-        for result in results:
-            cache.append(manager.dict(**result._asdict()))
