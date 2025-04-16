@@ -1,19 +1,8 @@
 # -*- coding: utf-8 -*-
-import datetime, os, utils, multiprocessing
-from dbi import engine, Session, session, Base
-from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey,JSON
+import datetime, os, utils, multiprocessing, json
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from config import OUTDIR
 from flask_app import logger
-
-def cache_flush(lock, cache, dbtable):
-    with lock:
-        while(len(cache) > 0):
-            cache.pop()
-        logger.debug(f'update {dbtable} cache in PID {os.getpid()}')
-        results = session.query(dbtable).all()
-        for result in results:
-            cache.append(utils.manager.dict(**result._asdict()))
 
 class FakeDB:
     def __init__(self, **kwargs):
@@ -23,13 +12,14 @@ class FakeDB:
         return self.__dict__
 
 class KVMHost:
+    filename = os.path.join(OUTDIR, 'hosts.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
     # { "name":"KVM主机名称", "url":"libvirt URI", "tpl":"domain模板XML文件", "arch":"cpu架构uname -m", "ipaddr":"ssh/vnc/spice,ip地址", "sshport":"ssh端口", # "desc":"主机描述"}
 
     @staticmethod
     def reload():
-        utils.reload(KVMHost.lock, KVMHost.cache, os.path.join(OUTDIR, 'hosts.json'))
+        utils.reload(KVMHost.lock, KVMHost.cache, KVMHost.filename)
 
     @staticmethod
     def getHostInfo(name):
@@ -43,13 +33,14 @@ class KVMHost:
         return [ FakeDB(**element) for element in KVMHost.cache ]
 
 class KVMDevice:
+    filename = os.path.join(OUTDIR, 'devices.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
     #{"kvmhost":"KVM主机名称", "name":"device名称", "action":"device attach后执行的脚本", "devtype":"device类型", "tpl":"device模板XML文件", "desc":"device描述"}
 
     @staticmethod
     def reload():
-        utils.reload(KVMDevice.lock, KVMDevice.cache, os.path.join(OUTDIR, 'devices.json'))
+        utils.reload(KVMDevice.lock, KVMDevice.cache, KVMDevice.filename)
 
     @staticmethod
     def getDeviceInfo(kvmhost, name):
@@ -65,13 +56,14 @@ class KVMDevice:
         return [ FakeDB(**element) for element in result ]
 
 class KVMGold:
+    filename = os.path.join(OUTDIR, 'golds.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
     # {"name":"Gold盘名称", "arch":"Gold盘对应的CPU架构", "tpl":"Gold盘qcow2格式模板文件", "desc":"Gold盘描述"}
 
     @staticmethod
     def reload():
-        utils.reload(KVMGold.lock, KVMGold.cache, os.path.join(OUTDIR, 'golds.json'))
+        utils.reload(KVMGold.lock, KVMGold.cache, KVMGold.filename)
 
     @staticmethod
     def getGoldInfo(name, arch):
@@ -86,46 +78,34 @@ class KVMGold:
         result = utils.search(KVMGold.cache, 'arch', arch)
         return [ FakeDB(**element) for element in result ]
 
-class KVMGuest(Base):
-    __tablename__ = "kvmguest"
-    kvmhost = Column(String(19),nullable=False,index=True,primary_key=True)
-    arch = Column(String(8),nullable=False)
-    uuid = Column(String,nullable=False,index=True,unique=True,primary_key=True)
-    desc = Column(String,nullable=False)
-    curcpu = Column(Integer,nullable=False,server_default='0')
-    curmem = Column(Integer,nullable=False,server_default='0')
-    mdconfig = Column(JSON,nullable=False)
-    maxcpu = Column(Integer,nullable=False,server_default='0')
-    maxmem = Column(Integer,nullable=False,server_default='0')
-    cputime = Column(Integer,nullable=False,server_default='0')
-    # state = Column(String)
-    disks = Column(JSON,nullable=False)
-    nets = Column(JSON,nullable=False)
-    ####################################
+class KVMGuest:
+    filename = os.path.join(OUTDIR, 'guests.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
+    # kvmhost, arch, uuid, desc, curcpu, curmem, mdconfig, maxcpu, maxmem, cputime, disks, net
+
     @staticmethod
     def reload():
-        cache_flush(KVMGuest.lock, KVMGuest.cache, KVMGuest)
+        utils.reload(KVMGuest.lock, KVMGuest.cache, KVMGuest.filename)
 
     @staticmethod
     def Upsert(kvmhost:str, arch:str, records:List)->None:
         # can not modify records!!!!!
         try:
-            session.query(KVMGuest).filter_by(kvmhost=kvmhost).delete()
-            for rec in records:
-                # # remove no use need key
-                guest = rec.copy()
-                guest.pop('state', "Not found")
-                session.add(KVMGuest(**guest, kvmhost=kvmhost, arch=arch))
-            session.commit()
-            KVMGuest.reload()
+            with KVMGuest.lock:
+                for rec in utils.search(KVMGuest.cache, 'kvmhost', kvmhost):
+                    utils.remove(KVMGuest.cache, rec)
+                for rec in records:
+                    # # remove no use need key
+                    guest = rec.copy()
+                    guest.pop('state', "Not found")
+                    utils.append(KVMGuest.cache, {**guest, 'kvmhost':kvmhost, 'arch':arch})
+            utils.save(KVMGuest.filename, json.dumps([el.copy() for el in KVMGuest.cache]))
+            # KVMGuest.reload()
         except:
             logger.exception(f'Upsert db guest {kvmhost} in PID {os.getpid()} Failed')
-            session.rollback()
 
     @staticmethod
     def ListGuest():
         logger.debug(f'ListGuest PID {os.getpid()}')
         return [ FakeDB(**element) for element in KVMGuest.cache ]
-        # return session.query(KVMGuest).all()

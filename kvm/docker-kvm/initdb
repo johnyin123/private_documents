@@ -252,25 +252,24 @@ ngx_cfg = ngx_cfg.replace('${USERKEY}', config.USER_ACCESS_SECURE_LINK_MYKEY)
 ngx_cfg = ngx_cfg.replace('${OUT_DIR}', OUTDIR)
 with open('kvm.conf', "w") as file:
     file.write(ngx_cfg)
-
-
-# create tables if not exists
-import database as db
-
-db.Base.metadata.drop_all(db.engine)
-db.Base.metadata.create_all(db.engine)
-
 print('''
 nohup websockify --token-plugin TokenFile --token-source ${OUTDIR}/token/ 127.0.0.1:6800 &> websockify.log &
 nohup gunicorn -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app' &> srv.log &
 ''')
+
+# create tables if not exists
+import database as db
+
 try:
     getattr(db.KVMHost, '__tablename__')
 except AttributeError:
     print(f'use shm json')
-    for fn in [ 'hosts.json', 'devices.json', 'golds.json', ]:
+    for fn in [ 'hosts.json', 'devices.json', 'golds.json', 'guests.json' ]:
         file_exists(OUTDIR, fn, fn)
     exit(0)
+
+db.Base.metadata.drop_all(db.engine)
+db.Base.metadata.create_all(db.engine)
 print('''
 # # kvmhost
 | name   | tpl           | url                                        | ipaddr      |sshport| arch   |
