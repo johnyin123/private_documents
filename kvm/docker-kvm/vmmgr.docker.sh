@@ -6,16 +6,20 @@ export REGISTRY=registry.local
 export NAMESPACE=
 ARCH=(amd64 arm64)
 type=vmmgr
-ver=bookworm-$(date '+%Y%m%d%H%M%S')
+ver=bookworm${PYDB:+-db}-$(date '+%Y%m%d%H%M%S')
 username=johnyin
 OUTDIR=/work
-files=(config.py dbi.py flask_app.py meta.py utils.py database.py device.py main.py template.py vmmanager.py ipaddress.py console.py)
+files=(config.py flask_app.py meta.py utils.py device.py main.py template.py vmmanager.py ipaddress.py console.py ${PYDB:+dbi.py database.py})
 for fn in ${files[@]}; do
     [ -e "${fn}" ] || { echo "${fn}, nofound"; exit 1;}
 done
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     install -v -d -m 0755 "${type}-${arch}/docker/app"
+    [ "${PYDB:-false}" == "false" ] && {
+        [ -e "database.py.shm" ] || { echo "database.py.shm, nofound"; exit 1;}
+        install -v -C -m 0644 --group=10001 --owner=10001 "database.py.shm" "${type}-${arch}/docker/app/database.py"
+    }
     for fn in ${files[@]}; do
         install -v -C -m 0644 --group=10001 --owner=10001 "${fn}" "${type}-${arch}/docker/app/${fn}"
     done
@@ -28,7 +32,7 @@ echo "need jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open)" # libvirt-clie
 apt -y --no-install-recommends install jq openssh-client socat qemu-utils qemu-block-extra supervisor python3 python3-venv
 apt -y --no-install-recommends install websockify python3-websockify \
     python3-flask python3-pycdlib python3-libvirt \
-    python3-sqlalchemy gunicorn python3-gunicorn
+    gunicorn python3-gunicorn ${PYDB:+python3-sqlalchemy}
     rm -fr /etc/pki && ln -s /home/${username}/pki /etc/pki
 EODOC
     mkdir -p ${type}-${arch}/docker/etc && cat <<EODOC > ${type}-${arch}/docker/etc/supervisord.conf
@@ -111,6 +115,7 @@ install -v -d -m 0755 --group=10001 --owner=10001 ${HOST_DIR}/gold
 install -v -d -m 0755 --group=10001 --owner=10001 ${HOST_DIR}/token
 install -v -d -m 0755 --group=10001 --owner=10001 ${HOST_DIR}/nocloud
 install -v -d -m 0755 --group=10001 --owner=10001 ${HOST_DIR}/request
+echo 'DB/SHM version kvm.db/hosts.json,devices.json,golds.json,guests.json'
 install -v -C -m 0644 --group=10001 --owner=10001 kvm.db ${HOST_DIR}/kvm.db
 
 ##inst tpl config files, dir maybe can readonly?
@@ -128,7 +133,7 @@ cat <<EOF
 docker run --rm \\
     --name vmmgr \\
     --network br-int --ip 192.168.169.123 \\
-    --env DATABASE=sqlite:///${OUTDIR}/kvm.db \\
+    ${PYDB:+--env DATABASE=sqlite:///${OUTDIR}/kvm.db} \\
     -v \${HOST_DIR}:${OUTDIR} \\
     -v \${HOME_DIR}:/home/${username} \\
     ${REGISTRY}/libvirtd/${type}:${ver}
