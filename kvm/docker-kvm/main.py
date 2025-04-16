@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import flask_app, flask, os
+import flask_app, flask, os, libvirt
 import database, vmmanager, template, device, meta
 from config import config, META_SRV, OUTDIR
 from utils import return_ok, return_err, deal_except, save, decode_jwt, reload
@@ -183,6 +183,9 @@ class MyApp(object):
             database.KVMGuest.Upsert(host.name, host.arch, results)
             return results
         except Exception as e:
+            if isinstance(e, libvirt.libvirtError):
+                logger.info(f'{hostname} libvirtError, remove guest cache')
+                database.KVMGuest.Upsert(hostname, None, [])
             return deal_except(f'list_domains', e), 400
 
     def attach_device(self, hostname, uuid, name):
