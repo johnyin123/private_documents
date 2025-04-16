@@ -155,7 +155,7 @@ class MyApp(object):
                     ssh_cmd = f'ssh -p {host.sshport} {host.ipaddr} socat STDIO TCP:{server}:{port}'
                     socat_cmd = ('timeout', f'{timeout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
                     if proto == 'console':
-                        socat_cmd = ('timeout', f'{timeout}',f'{OUTDIR}/console.py', f'{host.url}', f'{uuid}')
+                        socat_cmd = ('timeout', f'{timeout}',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
                     pid = os.fork()
                     if pid == 0:
                         os.execvp(socat_cmd[0], socat_cmd)

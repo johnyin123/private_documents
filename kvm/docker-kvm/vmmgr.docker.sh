@@ -71,6 +71,7 @@ EODOC
     ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
     docker push ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
 done
+sleep 4
 ./make_docker_image.sh -c combine --tag ${REGISTRY}/libvirtd/${type}:${ver}
 
 cat <<'EOF'

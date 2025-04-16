@@ -55,7 +55,7 @@ if not os.path.isdir(path):
 path = config.REQ_JSON_DIR
 if not os.path.isdir(path):
     os.mkdir(path, 0o755)
-file_exists(OUTDIR, 'console.py', f'console.py')
+file_exists(os.path.abspath(os.path.dirname(__file__)), 'console.py', f'console.py')
 file_exists(config.META_DIR, 'meta_data', f'meta_data')
 file_exists(config.META_DIR, 'user_data', f'user_data')
 print(f'nginx webui files & dir ============================')
