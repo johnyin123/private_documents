@@ -93,13 +93,12 @@ class KVMGuest:
         # can not modify records!!!!!
         try:
             with KVMGuest.lock:
-                for rec in utils.search(KVMGuest.cache, 'kvmhost', kvmhost):
-                    utils.remove(KVMGuest.cache, rec)
+                utils.remove(KVMGuest.cache, 'kvmhost', kvmhost)
                 for rec in records:
                     # # remove no use need key
                     guest = rec.copy()
                     guest.pop('state', "Not found")
-                    utils.append(KVMGuest.cache, {**guest, 'kvmhost':kvmhost, 'arch':arch})
+                    utils.append(KVMGuest.cache, utils.manager.dict(**guest, kvmhost=kvmhost, arch=arch))
             utils.save(KVMGuest.filename, json.dumps([el.copy() for el in KVMGuest.cache]))
         except:
             logger.exception(f'Upsert db guest {kvmhost} in PID {os.getpid()} Failed')

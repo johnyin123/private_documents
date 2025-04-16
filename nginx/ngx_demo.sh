@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a7951afb[2025-04-09T09:20:28+08:00]:ngx_demo.sh")
+VERSION+=("9b89cc4a[2025-04-15T10:43:41+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4642,7 +4642,9 @@ server {
         # # Disable writes, readonly
         limit_except GET HEAD OPTIONS {
             # # here can write
+            allow 192.168.167.0/24;
             allow 192.168.168.0/24;
+            allow 192.168.169.0/24;
             deny all;
             # auth_basic "Restricted";
             # auth_basic_user_file  /etc/nginx/write.htpasswd

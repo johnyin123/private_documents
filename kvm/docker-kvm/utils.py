@@ -18,8 +18,11 @@ def connect(uri: str)-> Generator:
 def append(arr:List, val:Dict)-> None:
     arr.append(val)
 
-def remove(arr:List, val:Dict)-> None:
-    arr.remove(val)
+def remove(arr:List, key, val)-> None:
+    to_remove = [i for i, d in enumerate(arr) if d.get(key) == val]
+    to_remove.reverse()  # Reverse to avoid index errors
+    for i in to_remove:
+        del arr[i]
 
 import multiprocessing
 manager = multiprocessing.Manager()
@@ -32,7 +35,7 @@ def reload(lock, cache, jfn)->None:
             cache.append(manager.dict(**result))
 
 def search(arr:List, key, val)-> List:
-    return [ element for element in arr if element[key] == val]
+    return [element for element in arr if element[key] == val]
 
 def getlist_without_key(arr:List, *keys)-> List:
     return [{k: v for k, v in dic.items() if k not in keys} for dic in arr]
