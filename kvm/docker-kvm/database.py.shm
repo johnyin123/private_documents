@@ -101,7 +101,6 @@ class KVMGuest:
                     guest.pop('state', "Not found")
                     utils.append(KVMGuest.cache, {**guest, 'kvmhost':kvmhost, 'arch':arch})
             utils.save(KVMGuest.filename, json.dumps([el.copy() for el in KVMGuest.cache]))
-            # KVMGuest.reload()
         except:
             logger.exception(f'Upsert db guest {kvmhost} in PID {os.getpid()} Failed')
 

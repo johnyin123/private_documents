@@ -152,7 +152,7 @@ class MyApp(object):
                     server = f'{host.ipaddr}:{port}'
                 elif server == '127.0.0.1' or server == 'localhost':
                     local = f'/tmp/.display.{uuid}'
-                    ssh_cmd = f'ssh {host.ipaddr} socat STDIO TCP:{server}:{port}'
+                    ssh_cmd = f'ssh -p {host.sshport} {host.ipaddr} socat STDIO TCP:{server}:{port}'
                     socat_cmd = ('timeout', f'{timeout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
                     if proto == 'console':
                         socat_cmd = ('timeout', f'{timeout}',f'{OUTDIR}/console.py', f'{host.url}', f'{uuid}')

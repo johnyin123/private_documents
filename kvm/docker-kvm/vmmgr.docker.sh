@@ -79,7 +79,7 @@ HOME_DIR=/home/johnyin/testvmm/home
 HOST_DIR=/home/johnyin/testvmm/vmmgr
 [ "$(id -u)" -eq 0 ] || { echo "root need!"; exit 1; }
 dirs=(actions devices domains meta)
-files=(cacert.pem clientkey.pem clientcert.pem id_rsa id_rsa.pub kvm.db)
+files=(cacert.pem clientkey.pem clientcert.pem id_rsa id_rsa.pub)
 cat <<EO_DOC>config
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
@@ -116,7 +116,11 @@ install -v -d -m 0755 --group=10001 --owner=10001 ${HOST_DIR}/token
 install -v -d -m 0755 --group=10001 --owner=10001 ${HOST_DIR}/nocloud
 install -v -d -m 0755 --group=10001 --owner=10001 ${HOST_DIR}/request
 echo 'DB/SHM version kvm.db/hosts.json,devices.json,golds.json,guests.json'
-install -v -C -m 0644 --group=10001 --owner=10001 kvm.db ${HOST_DIR}/kvm.db
+install -v -C -m 0644 --group=10001 --owner=10001 kvm.db ${HOST_DIR}/kvm.db || true
+install -v -C -m 0644 --group=10001 --owner=10001 hosts.json ${HOST_DIR}/hosts.json || true
+install -v -C -m 0644 --group=10001 --owner=10001 devices.json ${HOST_DIR}/devices.json || true
+install -v -C -m 0644 --group=10001 --owner=10001 golds.json ${HOST_DIR}/golds.json || true
+install -v -C -m 0644 --group=10001 --owner=10001 guests.json ${HOST_DIR}/guests.json || true
 
 ##inst tpl config files, dir maybe can readonly?
 for dn in ${dirs[@]}; do
