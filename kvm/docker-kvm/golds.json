@@ -1,0 +1,7 @@
+[
+{"name":"","arch":"x86_64","tpl":"","desc":"数据盘"},
+{"name":"","arch":"aarch64","tpl":"","desc":"数据盘"},
+{"name":"debian12","arch":"x86_64","tpl":"bookworm.amd64.qcow2","desc":"debian12-amd64操作系统"},
+{"name":"debian12","arch":"aarch64","tpl":"bookworm.arm64.qcow2","desc":"debian12-arm64操作系统"},
+{"name":"euler22","arch":"x86_64","tpl":"openeuler2203.x86_64.qcow2","desc":"openeuler2203-amd64操作系统"}
+]
