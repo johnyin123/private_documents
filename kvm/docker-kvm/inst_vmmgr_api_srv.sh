@@ -2,10 +2,13 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("f113ab34[2025-04-17T09:54:16+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("7a6ba7ea[2025-04-17T11:06:58+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
+APPFILES=(flask_app.py dbi.py database.py database.py.shm config.py meta.py utils.py device.py main.py template.py vmmanager.py console.py)
+APPDBS=(devices.json golds.json guests.json hosts.json)
+TOOLS=(reload_dbtable)
 ################################################################################
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 usage() {
@@ -13,6 +16,9 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME}
         -c|--docker              for docker env
+        --mode          <db/shm> vmmgr api srv mode
+                                  db : use database(config.py)
+                                  shm: use shm json as persistent store
         -t|--target   * <str>    target directory install apphome
         -u|--user    <username>  non docker env, username for run/inst app 
                                  default root
@@ -28,9 +34,12 @@ check_depends() {
     local docker="${1}"
     local files=(cacert.pem clientkey.pem clientcert.pem id_rsa id_rsa.pub)
     local cmds=(socat ssh jq qemu-img cat)
-    log "file(${files[@]})"
-    for fn in ${files[@]}; do
+    log "file(${files[@]} ${APPFILES[@]} ${APPDBS[@]} ${TOOLS[@]})"
+    for fn in ${files[@]} ${APPFILES[@]} ${APPDBS[@]}; do
         [ -e "${fn}" ] || { log "${fn} file, nofound"; exit 1;}
+    done
+    for fn in ${TOOLS[@]}; do
+        [ -h "${fn}" ] && { log "${fn} can not be link"; exit 1; }
     done
     [ "${docker}" == "1" ] || {
         log "cmd(${cmds[@]})"
@@ -38,6 +47,7 @@ check_depends() {
             command -v "${cmd}" &> /dev/null || { log "${cmd} nofound"; exit 1;}
         done
     }
+    return 0
 }
 inst_app() {
     local home_dir="${1}"
@@ -101,10 +111,47 @@ inst_app_outdir() {
         }
     done
 }
+copy_app() {
+    local home_dir="${1}"
+    local uid="${2}"
+    local gid="${3}"
+    local dbmode="${4}"
+    for fn in ${APPFILES[@]}; do
+        [ "${dbmode}" == "shm" ] && [ "${fn}" == "database.py" ] && continue
+        [ "${dbmode}" == "shm" ] && [ "${fn}" == "dbi.py" ] && continue
+        [ "${dbmode}" == "db" ] && [ "${fn}" == "database.py.shm" ] && continue
+        local mode=0644
+        [ "${fn}" == "console.py" ] && mode=0755
+        [ "${fn}" == "database.py.shm" ] && {
+            install -v -C -m ${mode} --group=${gid} --owner=${uid} ${fn} ${home_dir}/app/database.py
+            continue
+        }
+        install -v -C -m ${mode} --group=${gid} --owner=${uid} ${fn} ${home_dir}/app/${fn}
+    done
+}
+gen_app_database() {
+    local outdir="${1}"
+    local uid="${2}"
+    local gid="${3}"
+    local dbmode="${4}"
+    [ "${dbmode}" == "shm" ] && {
+        for fn in ${APPDBS[@]}; do
+            install -v -C -m 0644 --group=${gid} --owner=${uid} ${fn} ${outdir}/${fn}
+        done
+    }
+    [ "${dbmode}" == "db" ] && {
+        ./reload_dbtable golds.json
+        ./reload_dbtable hosts.json
+        ./reload_dbtable devices.json
+        install -v -C -m 0644 --group=${gid} --owner=${uid} kvm.db ${outdir}/kvm.db
+    }
+    return 0
+}
+
 main() {
-    local docker='' target='' user="root"
+    local docker='' target='' user="root" mode="db"
     local opt_short="ct:u:"
-    local opt_long="docker,target:,user:,"
+    local opt_long="docker,target:,user:,mode:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -112,6 +159,7 @@ main() {
     while true; do
         case "$1" in
             -c | --docker)  shift; docker=1;;
+            --mode)         shift; mode=${1}; shift;;
             -t | --target)  shift; target=${1}; shift;;
             -u | --user)    shift; user=${1}; shift;;
             ########################################
@@ -127,6 +175,7 @@ main() {
     [ "$(id -u)" -eq 0 ] || { log "root need!"; exit 1; }
     exec > >(${FILTER_CMD:-sed '/^\s*#/d'} | tee ${LOGFILE:+-i ${LOGFILE}})
     [ -z "${target}" ] && usage "target dir must input"
+    [ "${mode}" == "db" ] || [ "${mode}" == "shm" ] || usage "mode must db/shm"
     [ -d "${target}" ] && { log "${target} directory exist!!!"; exit 2; }
     id "${user}" >/dev/null || exit 3
     check_depends "${docker}"
@@ -145,11 +194,14 @@ main() {
     }
     inst_app "${target}" "${USR_ID}" "${GRP_ID}" "${APP_OUTDIR}"
     inst_app_outdir "${OUTDIR}" "${USR_ID}" "${GRP_ID}"
+    copy_app "${target}" "${USR_ID}" "${GRP_ID}" "${mode}"
+    gen_app_database "${OUTDIR}" "${USR_ID}" "${GRP_ID}" "${mode}"
     log "!!!!!!!copy app in ${target}/app!!!!!!!"
     log "!!!!!!!modify ${target}/app/startup.sh start app!!!!!!!"
     [ "${docker}" == "1" ] && cat <<EODOC
 # --network host \
-docker run --rm \\
+# docker run --rm \\
+docker create \\
     --name vmmgr-api \\
     --network br-int --ip 192.168.169.123 \\
     -v ${target}:/home/${USR_NAME} \\

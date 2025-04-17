@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import database, utils, json, sys
+
+# db.Base.metadata.drop_all(db.engine)
+def usage():
+    print(f'{sys.argv[0]} golds.json / hosts.json / devices.json')
+    exit(1)
+
+if len(sys.argv) != 2:
+    usage()
+fname = sys.argv[1]
+clazz = {
+    'golds.json'  :database.KVMGold,
+    'hosts.json'  :database.KVMHost,
+    'devices.json':database.KVMDevice,
+    }.get(fname, None)
+if clazz is None:
+    usage()
+
+database.Base.metadata.create_all(database.engine)
+results = json.loads(utils.load(fname))
+database.session.query(clazz).delete()
+for row in results:
+    database.session.add(clazz(**row))
+database.session.commit()

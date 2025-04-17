@@ -81,4 +81,6 @@ class config:
         else:
             logger.error(f'{arch} {hostname} no VM_DEFAULT defined')
             return {}
-logger.info(f'OUTDIR={OUTDIR}, META_SRV={META_SRV}, DATABASE={DATABASE}')
+logger.info(f'META_SRV={META_SRV}')
+logger.info(f'OUTDIR={OUTDIR}')
+logger.info(f'DATABASE={DATABASE}')

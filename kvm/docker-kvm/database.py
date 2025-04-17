@@ -160,3 +160,7 @@ class KVMGuest(Base):
         logger.debug(f'ListGuest PID {os.getpid()}')
         return [ FakeDB(**element) for element in KVMGuest.cache ]
         # return session.query(KVMGuest).all()
+
+logger.info(f'database create all tables')
+# Base.metadata.drop_all(engine)
+Base.metadata.create_all(engine)
