@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("initver[2025-04-17T09:54:16+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("f113ab34[2025-04-17T09:54:16+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -25,11 +25,19 @@ EOF
     exit 1
 }
 check_depends() {
+    local docker="${1}"
     local files=(cacert.pem clientkey.pem clientcert.pem id_rsa id_rsa.pub)
+    local cmds=(socat ssh jq qemu-img cat)
     log "file(${files[@]})"
     for fn in ${files[@]}; do
         [ -e "${fn}" ] || { log "${fn} file, nofound"; exit 1;}
     done
+    [ "${docker}" == "1" ] || {
+        log "cmd(${cmds[@]})"
+        for cmd in ${cmds[@]}; do
+            command -v "${cmd}" &> /dev/null || { log "${cmd} nofound"; exit 1;}
+        done
+    }
 }
 inst_app() {
     local home_dir="${1}"
@@ -40,6 +48,7 @@ inst_app() {
     log "install PKI"
     install -v -d -m 0755 ${home_dir}/pki/CA
     install -v -d -m 0755 ${home_dir}/pki/libvirt/private
+    openssl x509 -text -noout -in clientcert.pem | grep -E 'DNS|Before|After' | sed 's/^\s*//g'
     install -v -C -m 0644 cacert.pem ${home_dir}/pki/CA/cacert.pem
     install -v -C -m 0644 clientkey.pem ${home_dir}/pki/libvirt/private/clientkey.pem
     install -v -C -m 0644 clientcert.pem ${home_dir}/pki/libvirt/clientcert.pem
@@ -120,7 +129,7 @@ main() {
     [ -z "${target}" ] && usage "target dir must input"
     [ -d "${target}" ] && { log "${target} directory exist!!!"; exit 2; }
     id "${user}" >/dev/null || exit 3
-    check_depends
+    check_depends "${docker}"
     local USR_ID=$(id -u ${user})
     local GRP_ID=$(id -g ${user})
     local USR_NAME=$(id -un ${user})
