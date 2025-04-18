@@ -3,7 +3,7 @@
 
 import flask_app, flask, os, libvirt
 import database, vmmanager, template, device, meta
-from config import config, META_SRV, OUTDIR
+from config import config, META_SRV, OUTDIR, DATABASE
 from utils import return_ok, return_err, deal_except, save, decode_jwt, reload
 from flask_app import logger
 import base64, hashlib, time, datetime
@@ -60,6 +60,9 @@ class MyApp(object):
     @staticmethod
     def create():
         myapp=MyApp()
+        logger.info(f'META_SRV={META_SRV}')
+        logger.info(f'OUTDIR={OUTDIR}')
+        logger.info(f'DATABASE={DATABASE}')
         conf={'STATIC_FOLDER': OUTDIR, 'STATIC_URL_PATH':'/public'}
         web=flask_app.create_app(conf, json=True)
         web.config['JSON_SORT_KEYS'] = False

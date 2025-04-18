@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os, uuid
 from datetime import datetime
-from flask_app import logger
 
 # DATABASE = 'mysql+pymysql://admin:password@192.168.168.212/kvm?charset=utf8mb4'
 # # mgr/meta-data http/https server name
@@ -77,8 +76,6 @@ class config:
             #         /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
             return { **default, 'vm_uefi':'/usr/share/AAVMF/AAVMF_CODE.fd' }
         else:
-            logger.error(f'{arch} {hostname} no VM_DEFAULT defined')
-            return {}
-logger.info(f'META_SRV={META_SRV}')
-logger.info(f'OUTDIR={OUTDIR}')
-logger.info(f'DATABASE={DATABASE}')
+            return {'error':f'{arch} {hostname} no VM_DEFAULT defined'}
+
+# OUTDIR=/abc python3 -c 'import config; print(config.config.ISO_DIR)'
