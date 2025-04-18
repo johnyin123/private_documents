@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9b89cc4a[2025-04-15T10:43:41+08:00]:ngx_demo.sh")
+VERSION+=("ac65cefb[2025-04-16T15:35:30+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -449,7 +449,7 @@ server {
 EOF
 cat <<'EOF' >yum_cache.http
 resolver 114.114.114.114 ipv6=off;
-upstream rpm_mirror {
+upstream repo_mirror {
     server mirrors.aliyun.com:443;
 }
 server {
@@ -457,7 +457,11 @@ server {
     server_name $host;
     location /openeuler/ {
         proxy_set_header Host 'mirrors.aliyun.com';
-        proxy_pass https://rpm_mirror/openeuler/;
+        proxy_pass https://repo_mirror/openeuler/;
+    }
+    location /debian/ {
+        proxy_set_header Host 'mirrors.aliyun.com';
+        proxy_pass https://repo_mirror/debian/;
     }
 }
 upstream rpm_base {
@@ -471,6 +475,16 @@ map $yumcache $yumexpires {
 map $uri $yumcache {
     ~*\.(rpm)$        2;
     ~*\.(xml|gz|bz2)$ 1;
+}
+map $aptcache $aptexpires {
+    2       2000d;
+    1       1d;
+    default off; # or some other default value
+}
+map $uri $aptcache {
+    ~*\.(deb)$        2;
+    ~*\.(xml|gz|bz2)$ 1;
+    ~*(Release|InRelease|Packages)$      1;
 }
 server {
     listen 80;
@@ -490,6 +504,19 @@ server {
             }
         }
     }
+    location /debian/ {
+        proxy_store on;
+        proxy_temp_path /opt/repos/;
+        proxy_set_header Accept-Encoding identity;
+        proxy_next_upstream error http_502;
+        if ( !-e $request_filename ) {
+            proxy_pass http://rpm_base;
+        }
+        if ( -e $request_filename ) {
+            expires $aptexpires;
+        }
+    }
+
 }
 EOF
 cat <<'EOF' >static_dynamic.http
