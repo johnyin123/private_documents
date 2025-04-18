@@ -127,6 +127,7 @@ server {
         return 403;
     }
     # # admin ui start # #
+    location = /admin.html { return 301 /vmmgr.html; }
     location = /vmmgr.html {
         # # not use admin... avoid proxy_cache.conf bypass rule
         # auth_request @sso-auth;
