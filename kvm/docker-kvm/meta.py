@@ -35,7 +35,7 @@ class NOCLOUDMeta(object):
     def create(self, req_json:Dict, mdconfig:Dict) -> None:
         mdconfig_meta = {**config.META_DEFAULT, **req_json, **mdconfig}
         logger.info(mdconfig_meta)
-        nocloud_dir = os.path.join(config.NOCLOUD_DIR, f'{req_json["vm_uuid"]}')
+        nocloud_dir = os.path.join(config.ISO_DIR, f'{req_json["vm_uuid"]}')
         # os.mkdir(), it may raise an error if the directory already exists, os.makedirs() with exist_ok=True to avoid that
         os.makedirs(nocloud_dir, exist_ok=True)
         utils.save(os.path.join(nocloud_dir, "meta-data"), self.meta_data.render(**mdconfig_meta))

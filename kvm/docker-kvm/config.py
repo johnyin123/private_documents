@@ -24,8 +24,6 @@ class config:
     META_DIR = os.path.join(OUTDIR, 'meta')
     # # vnc/spice access token dir
     TOKEN_DIR = os.path.join(OUTDIR, 'token')
-    # # NOCLOUD meta service data dir
-    NOCLOUD_DIR = os.path.join(OUTDIR, 'nocloud')
     # # create_vm request json logs
     REQ_JSON_DIR = os.path.join(OUTDIR, 'request')
     # # network pools,default gateway/network_address/broadcast_address in USED_ADDRESS 

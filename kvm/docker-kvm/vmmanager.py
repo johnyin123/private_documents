@@ -188,7 +188,7 @@ class VMManager:
     @staticmethod
     def delete(url:str, uuid:str)-> str:
         remove_file(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
-        remove_file(os.path.join(config.NOCLOUD_DIR, uuid))
+        remove_file(os.path.join(config.ISO_DIR, uuid))
         remove_file(os.path.join(config.REQ_JSON_DIR, uuid))
         with connect(url) as conn:
             dom = conn.lookupByUUIDString(uuid)

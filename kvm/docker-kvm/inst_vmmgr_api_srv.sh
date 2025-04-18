@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("7a6ba7ea[2025-04-17T11:06:58+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("b73f0996[2025-04-17T15:05:07+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -96,7 +96,6 @@ inst_app_outdir() {
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/iso
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/gold
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/token
-    install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/nocloud
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/request
     local dirs=(actions devices domains meta)
     for dn in ${dirs[@]}; do

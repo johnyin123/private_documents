@@ -161,19 +161,11 @@ server {
     listen 80;
     server_name ${META_SRV};
     # # only download iso file, and subdir iso
-    location ~* \.(iso)$ {
+    location ~* (\.iso|\/meta-data|\/user-data)$ {
         # rewrite ^ /public/iso$uri break;
         # proxy_pass http://flask_app;
         autoindex off;
         root ${OUT_DIR}/iso;
-    }
-    # # only download meta-data/user-data and subdir meta-data/user-data
-    location ~* \/(meta-data|user-data)$ {
-        # rewrite ^ /public/nocloud$uri break;
-        # proxy_pass http://flask_app;
-        # proxy_next_upstream  http_403 | http_404 | off ...;
-        autoindex off;
-        root ${OUT_DIR}/nocloud;
     }
     location / {
         # others all to https
