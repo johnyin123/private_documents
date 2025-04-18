@@ -10,7 +10,7 @@ OUTDIR = os.environ.get('OUTDIR', os.path.abspath(os.path.dirname(__file__)))
 DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db?check_same_thread=False')
 
 class config:
-    # # iso meta service dir & iso cd device dir
+    # # iso-meta/nocloud-meta data dir
     ISO_DIR = os.path.join(OUTDIR, 'iso')
     # # gold disk dir
     GOLD_DIR = os.path.join(OUTDIR, 'gold')
