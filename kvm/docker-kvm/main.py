@@ -60,7 +60,8 @@ class MyApp(object):
     @staticmethod
     def create():
         myapp=MyApp()
-        web=flask_app.create_app({}, json=True)
+        conf={'STATIC_FOLDER': OUTDIR, 'STATIC_URL_PATH':'/public'}
+        web=flask_app.create_app(conf, json=True)
         web.config['JSON_SORT_KEYS'] = False
         myapp.register_routes(web)
         database.KVMHost.reload()

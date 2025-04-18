@@ -72,19 +72,6 @@ server {
         }
         return 404;
     }
-    # # admin ui start # #
-    location = /admin.html {
-        # auth_request @sso-auth;
-        # # vmmgr ui page, mgr private access
-        alias ${OUT_DIR}/ui/tpl.html;
-    }
-    location ~* ^/ui/.+\.(?:tpl|css|js|otf|eot|svg|ttf|woff|woff2)$ {
-        # public access filename ext, other files 404
-        autoindex off;
-        root ${OUT_DIR};
-    }
-    # # admin ui end # #
-    # # vnc/spice/console ui start # #
     location /websockify {
         # # /websockify used by admin & guest ui
         set $websockkey "${WEBSOCKKEY}";
@@ -95,18 +82,6 @@ server {
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
         proxy_pass http://websockify;
-    }
-    location  ~* ^/(novnc|spice|term) {
-        # # novnc/spice, pubic access by admin & guest ui
-        client_max_body_size 0;
-        autoindex off;
-        root ${OUT_DIR};
-    }
-    # # vnc/spice/console ui end # #
-    # # tanent user UI manager tanent vm by uuid
-    location = /guest.html {
-        # # guest user ui page, guest private access
-        alias ${OUT_DIR}/ui/userui.html;
     }
     # # tanent api
     location /user/ {
@@ -151,25 +126,51 @@ server {
         }
         return 403;
     }
+    # # admin ui start # #
+    location = /vmmgr.html {
+        # # not use admin... avoid proxy_cache.conf bypass rule
+        # auth_request @sso-auth;
+        # # vmmgr ui page, mgr private access
+        # proxy_pass http://flask_app/public/ui/tpl.html;
+        alias ${OUT_DIR}/ui/tpl.html;
+    }
+    location ~* ^/.+\.(?:tpl|css|js|otf|eot|svg|ttf|woff|woff2)$ {
+        # # public access filename ext, other files 404
+        # rewrite ^ /public/ui$uri break;
+        # proxy_pass http://flask_app;
+        autoindex off;
+        root ${OUT_DIR}/ui;
+    }
+    # # admin ui end # #
+    # # vnc/spice/console ui start # #
+    location /term {
+        # rewrite ^ /public$uri break;proxy_pass http://flask_app;
+        alias ${OUT_DIR}/term/;
+    }
+    location /spice { alias ${OUT_DIR}/spice/; }
+    location /novnc { alias ${OUT_DIR}/novnc/; }
+    # # vnc/spice/console ui end # #
+    # # tanent user UI manager tanent vm by uuid
+    location = /guest.html {
+        # # guest user ui page, guest private access
+        # proxy_pass http://flask_app/public/ui/userui.html;
+        alias ${OUT_DIR}/ui/userui.html;
+    }
 }
-# upstream meta_static {
-#     server 127.0.0.1:5009 fail_timeout=0;
-#     keepalive 64;
-# }
 server {
     listen 80;
     server_name ${META_SRV};
     # # only download iso file, and subdir iso
     location ~* \.(iso)$ {
         # rewrite ^ /public/iso$uri break;
-        # proxy_pass http://meta_static;
+        # proxy_pass http://flask_app;
         autoindex off;
         root ${OUT_DIR}/iso;
     }
     # # only download meta-data/user-data and subdir meta-data/user-data
     location ~* \/(meta-data|user-data)$ {
         # rewrite ^ /public/nocloud$uri break;
-        # proxy_pass http://meta_static;
+        # proxy_pass http://flask_app;
         # proxy_next_upstream  http_403 | http_404 | off ...;
         autoindex off;
         root ${OUT_DIR}/nocloud;
