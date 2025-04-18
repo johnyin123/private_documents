@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("b73f0996[2025-04-17T15:05:07+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("2f0c9378[2025-04-18T14:07:51+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -146,7 +146,26 @@ gen_app_database() {
     }
     return 0
 }
-
+post_check() {
+    local outdir="${1}"
+    for fn in $(cat hosts.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
+        log "check domain template: ${outdir}/domains/${fn}"
+        [ -e "${outdir}/domains/${fn}" ] && { log "OK"; } || { log "NOT FOUND!!!"; }
+    done
+    for fn in $(cat devices.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
+        log "check device template: ${outdir}/devices/${fn}"
+        [ -e "${outdir}/devices/${fn}" ] && { log "OK"; } || { log "NOT FOUND!!!"; }
+    done
+    for fn in $(cat devices.json | jq -r .[].action | sort | uniq | sed "/^$/d"); do
+        log "check device action: ${outdir}/actions/${fn}"
+        [ -x "${outdir}/actions/${fn}" ] && { log "OK"; } || { log "NOT FOUND!!!"; }
+    done
+    for fn in $(cat golds.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
+        log "check gold disk: ${outdir}/gold/${fn}"
+        [ -e "${outdir}/gold/${fn}" ] && { log "OK"; } || { log "NOT FOUND!!!"; }
+    done
+    return 0
+}
 main() {
     local docker='' target='' user="root" mode="db"
     local opt_short="ct:u:"
@@ -195,6 +214,7 @@ main() {
     inst_app_outdir "${OUTDIR}" "${USR_ID}" "${GRP_ID}"
     copy_app "${target}" "${USR_ID}" "${GRP_ID}" "${mode}"
     gen_app_database "${OUTDIR}" "${USR_ID}" "${GRP_ID}" "${mode}"
+    post_check "${OUTDIR}"
     log "!!!!!!!copy app in ${target}/app!!!!!!!"
     log "!!!!!!!modify ${target}/app/startup.sh start app!!!!!!!"
     [ "${docker}" == "1" ] && cat <<EODOC
