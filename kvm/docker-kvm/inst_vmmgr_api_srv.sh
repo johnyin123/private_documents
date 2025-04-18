@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("2f0c9378[2025-04-18T14:07:51+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("f9f58c41[2025-04-18T14:31:39+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -32,7 +32,10 @@ EOF
 }
 check_depends() {
     local docker="${1}"
-    local files=(cacert.pem clientkey.pem clientcert.pem id_rsa id_rsa.pub)
+    local files=()
+    [ "${docker}" == "1" ] && {
+        files+=(cacert.pem clientkey.pem clientcert.pem id_rsa id_rsa.pub)
+    }
     local cmds=(socat ssh jq qemu-img cat)
     log "file(${files[@]} ${APPFILES[@]} ${APPDBS[@]} ${TOOLS[@]})"
     for fn in ${files[@]} ${APPFILES[@]} ${APPDBS[@]}; do
@@ -54,27 +57,30 @@ inst_app() {
     local uid="${2}"
     local gid="${3}"
     local outdir="${4}"
+    local docker="${5}"
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${home_dir}
-    log "install PKI"
-    install -v -d -m 0755 ${home_dir}/pki/CA
-    install -v -d -m 0755 ${home_dir}/pki/libvirt/private
-    openssl x509 -text -noout -in clientcert.pem | grep -E 'DNS|Before|After' | sed 's/^\s*//g'
-    install -v -C -m 0644 cacert.pem ${home_dir}/pki/CA/cacert.pem
-    install -v -C -m 0644 clientkey.pem ${home_dir}/pki/libvirt/private/clientkey.pem
-    install -v -C -m 0644 clientcert.pem ${home_dir}/pki/libvirt/clientcert.pem
-    log "install SSH key" && install -v -d -m 0700 --group=${gid} --owner=${uid} ${home_dir}/.ssh && {
-        install -v -C -m 0600 --group=${gid} --owner=${uid} id_rsa ${home_dir}/.ssh/id_rsa
-        install -v -C -m 0644 --group=${gid} --owner=${uid} id_rsa.pub ${home_dir}/.ssh/id_rsa.pub
-        cat <<EO_DOC | install -v -C -m 0644 --group=${gid} --owner=${uid} /dev/stdin ${home_dir}/.ssh/config
-    StrictHostKeyChecking=no
-    UserKnownHostsFile=/dev/null
-    Host *
-        ControlMaster auto
-        ControlPath /tmp/vmmgr-%r@%h-%p
-        ControlPersist 600
-        Ciphers aes256-ctr,aes192-ctr,aes128-ctr
-        MACs hmac-sha1
+    [ "${docker}" == "1" ] && {
+        log "install PKI"
+        install -v -d -m 0755 ${home_dir}/pki/CA
+        install -v -d -m 0755 ${home_dir}/pki/libvirt/private
+        openssl x509 -text -noout -in clientcert.pem | grep -E 'DNS|Before|After' | sed 's/^\s*//g'
+        install -v -C -m 0644 cacert.pem ${home_dir}/pki/CA/cacert.pem
+        install -v -C -m 0644 clientkey.pem ${home_dir}/pki/libvirt/private/clientkey.pem
+        install -v -C -m 0644 clientcert.pem ${home_dir}/pki/libvirt/clientcert.pem
+        log "install SSH key" && install -v -d -m 0700 --group=${gid} --owner=${uid} ${home_dir}/.ssh && {
+            install -v -C -m 0600 --group=${gid} --owner=${uid} id_rsa ${home_dir}/.ssh/id_rsa
+            install -v -C -m 0644 --group=${gid} --owner=${uid} id_rsa.pub ${home_dir}/.ssh/id_rsa.pub
+            cat <<EO_DOC | install -v -C -m 0644 --group=${gid} --owner=${uid} /dev/stdin ${home_dir}/.ssh/config
+StrictHostKeyChecking=no
+UserKnownHostsFile=/dev/null
+Host *
+    ControlMaster auto
+    ControlPath /tmp/vmmgr-%r@%h-%p
+    ControlPersist 600
+    Ciphers aes256-ctr,aes192-ctr,aes128-ctr
+    MACs hmac-sha1
 EO_DOC
+        }
     }
     log "install ${home_dir}/app/startup.sh"
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${home_dir}/app
@@ -210,7 +216,7 @@ main() {
         log "${target}     ->docker:/home/${USR_NAME}"
         log "${target}/pki ->docker:/etc/pki"
     }
-    inst_app "${target}" "${USR_ID}" "${GRP_ID}" "${APP_OUTDIR}"
+    inst_app "${target}" "${USR_ID}" "${GRP_ID}" "${APP_OUTDIR}" "${mode}"
     inst_app_outdir "${OUTDIR}" "${USR_ID}" "${GRP_ID}"
     copy_app "${target}" "${USR_ID}" "${GRP_ID}" "${mode}"
     gen_app_database "${OUTDIR}" "${USR_ID}" "${GRP_ID}" "${mode}"
