@@ -1,4 +1,5 @@
 default_pool_redefine.sh: defile default pool directory /storage
+inotify.sh              : inotifywait sync iso & nocloud
 docker-libvirtd.sh      : gen libvirtd docker image
 inst_vmmgr_libvirtd.sh  : inst libvirtd docker image on linux hosts
 docker-vmmgr.sh         : gen vmmgr-api docker image
