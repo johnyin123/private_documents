@@ -40,7 +40,5 @@ class NOCLOUDMeta(object):
         utils.save(os.path.join(nocloud_dir, "user-data"), self.user_data.render(**mdconfig_meta))
 
 def gen_metafiles(mdconfig, req_json):
-    enum = req_json.get('enum', None)
-    logger.info(f'{enum}: {mdconfig}')
     ISOMeta().create(req_json, mdconfig)
     NOCLOUDMeta().create(req_json, mdconfig)

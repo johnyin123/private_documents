@@ -46,10 +46,6 @@ class config:
     @staticmethod
     def VM_DEFAULT(arch, hostname):
         # TODO: VM_DEFAULT, can defined by hostname!
-        # enum=OPENSTACK/EC2/NOCLOUD/None(undefine)
-        #    EC2: uuid must startwith ec2........
-        #    NOCLOUD: access https://{{ META_SRV }}/<vm_uuid>
-        #    None(undefine), use ISOMeta
         # if vm_ram_mb_max/vm_vcpus_max no set then use vm_ram_mb/vm_vcpus, else use a default value. see: domains/newvm.tpl...
         # # VM_DEFULT vars from domains/template. main:create_vm
         arch = arch.lower()
