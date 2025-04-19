@@ -91,6 +91,7 @@ echo 'list a vm on host' && curl -k ${srv}/vm/list/${host}/${uuid}    # from hos
 echo 'start vm' && curl -k ${srv}/vm/start/${host}/${uuid}
 echo 'display vnc' && curl -k ${srv}/vm/display/${host}/${uuid}
 echo 'commn stop vm' && curl -k ${srv}/vm/stop/${host}/${uuid}
+echo 'commn reset vm' && curl -k ${srv}/vm/reset/${host}/${uuid}
 echo 'force stop vm' && curl -k ${srv}/vm/stop/${host}/${uuid}?force=true # force stop. destroy
 echo 'vm ipaddr    ' && curl -k ${srv}/vm/ipaddr/${host}/${uuid}
 echo 'undefine domain' && curl -k ${srv}/vm/delete/${host}/${uuid}

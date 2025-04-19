@@ -258,13 +258,19 @@ class VMManager:
                 dom.destroy()
             else:
                 dom.shutdown()
-            return return_ok(f'{uuid} stop ok')
+        return return_ok(f'{uuid} stop ok')
+
+    @staticmethod
+    def reset(url:str, uuid:str) -> str:
+        with connect(url) as conn:
+            dom = conn.lookupByUUIDString(uuid).reset()
+        return return_ok(f'{uuid} reset ok')
 
     @staticmethod
     def start(url:str, uuid:str)-> str:
         with connect(url) as conn:
             conn.lookupByUUIDString(uuid).create()
-            return return_ok(f'{uuid} start ok')
+        return return_ok(f'{uuid} start ok')
 
     @staticmethod
     def ipaddr(url:str, uuid:str) -> Generator:

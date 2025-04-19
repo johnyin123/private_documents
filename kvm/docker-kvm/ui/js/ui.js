@@ -79,6 +79,7 @@ function show_vms(host, vms) {
     btn += genActBtn('Guest Admin UI', 'fa-ambulance', 'show_vmui', host, item.uuid);
     if(item.state === 'RUN') {
       btn += genActBtn('VNC View', 'fa-desktop', 'display', host, item.uuid);
+      btn += genActBtn('Reset VM', 'fa-refresh', 'reset', host, item.uuid);
       btn += genActBtn('Stop VM', 'fa-power-off', 'stop', host, item.uuid);
       btn += genActBtn('ForceStop VM', 'fa-plug', 'force_stop', host, item.uuid);
     } else {
@@ -247,6 +248,11 @@ function show_vmui(host, uuid) {
 function start(host, uuid) {
   if (confirm(`Start ${uuid}?`)) {
     getjson('GET', `/vm/start/${host}/${uuid}`, getjson_result, null, null, 60000);
+  }
+}
+function reset(host, uuid) {
+  if (confirm(`Reset ${uuid}?`)) {
+    getjson('GET', `/vm/reset/${host}/${uuid}`, getjson_result);
   }
 }
 function stop(host, uuid, force=false) {

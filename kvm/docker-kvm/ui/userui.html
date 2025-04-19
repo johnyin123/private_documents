@@ -128,6 +128,7 @@ td.truncate {
     <center><img title="user image" class="profile_image" src='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" fill="none" stroke="black"><path d="M7.5 3L4 6 .5 3"/></svg>'></center>
     <a href='javascript:info()'>vm info</a>
     <a href='javascript:start()'>start vm</a>
+    <a href='javascript:reset()'>reset vm</a>
     <a href='javascript:stop()'>stop vm</a>
     <a href='javascript:stop_force()'>force stop vm</a>
     <a href='javascript:display()'>display</a>
@@ -216,6 +217,11 @@ function info() {
 function start() {
   if (confirm('Are you sure you want to start the VM?')) {
     getjson('GET', `/user/vm/start/${token.value}`, getjson_result);
+  }
+}
+function reset() {
+  if (confirm(`Are you sure you want to reset the VM?`)) {
+    getjson('GET', `/user/vm/reset/${token.value}`, getjson_result);
   }
 }
 function stop(force=false) {

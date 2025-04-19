@@ -241,7 +241,7 @@ class MyApp(object):
 
     def get_domain_cmd(self, cmd:str, hostname:str, uuid:str):
         dom_cmds = {
-                'GET': ['xml', 'ipaddr', 'start', 'stop', 'delete'],
+                'GET': ['xml', 'ipaddr', 'start', 'reset', 'stop', 'delete'],
                 'POST': ['detach_device']
                 }
         try:
