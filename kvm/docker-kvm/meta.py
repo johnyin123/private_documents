@@ -16,7 +16,6 @@ class ISOMeta(object):
 
     def create(self, req_json:Dict, mdconfig:Dict) -> None:
         mdconfig_meta = {**config.META_DEFAULT, **req_json, **mdconfig}
-        logger.info(mdconfig_meta)
         iso = pycdlib.PyCdlib()
         iso.new(interchange_level=4, vol_ident='cidata')
         meta_data = self.meta_data.render(**mdconfig_meta)
@@ -34,9 +33,14 @@ class NOCLOUDMeta(object):
 
     def create(self, req_json:Dict, mdconfig:Dict) -> None:
         mdconfig_meta = {**config.META_DEFAULT, **req_json, **mdconfig}
-        logger.info(mdconfig_meta)
         nocloud_dir = os.path.join(config.ISO_DIR, f'{req_json["vm_uuid"]}')
         # os.mkdir(), it may raise an error if the directory already exists, os.makedirs() with exist_ok=True to avoid that
         os.makedirs(nocloud_dir, exist_ok=True)
         utils.save(os.path.join(nocloud_dir, "meta-data"), self.meta_data.render(**mdconfig_meta))
         utils.save(os.path.join(nocloud_dir, "user-data"), self.user_data.render(**mdconfig_meta))
+
+def gen_metafiles(mdconfig, req_json):
+    enum = req_json.get('enum', None)
+    logger.info(f'{enum}: {mdconfig}')
+    ISOMeta().create(req_json, mdconfig)
+    NOCLOUDMeta().create(req_json, mdconfig)

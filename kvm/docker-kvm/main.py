@@ -233,14 +233,7 @@ class MyApp(object):
             req_json['vm_arch'] = host.arch
             xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
             dom = vmmanager.VMManager.create_vm(host.url, req_json['vm_uuid'], xml)
-            mdconfig = dom.mdconfig
-            enum = req_json.get('enum', None)
-            if enum is None or enum == "":
-                meta.ISOMeta().create(req_json, mdconfig)
-            elif enum == 'NOCLOUD':
-                meta.NOCLOUDMeta().create(req_json, mdconfig)
-            else:
-                logger.warn(f'meta: {enum} {req_json["vm_uuid"]} {mdconfig}')
+            meta.gen_metafiles(dom.mdconfig, req_json)
             save(os.path.join(config.REQ_JSON_DIR, req_json['vm_uuid']), json.dumps(req_json, indent=4))
             return return_ok(f"create vm {req_json['vm_uuid']} on {hostname} ok")
         except Exception as e:
