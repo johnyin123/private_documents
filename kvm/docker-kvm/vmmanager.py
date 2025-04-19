@@ -83,7 +83,11 @@ class LibvirtDomain:
                 continue
             dtype = disk.getAttribute('type')
             dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
-            for src in disk.getElementsByTagName('source'):
+            # # cdrom no disk not source!!
+            sources = disk.getElementsByTagName('source')
+            if len(sources) == 0:
+                disk_lst.append({'device':device, 'type':'file', 'dev':dev, 'vol':'', 'xml': disk.toxml()})
+            for src in sources:
                 file = None
                 if dtype == 'file':
                     disk_lst.append({'device':device, 'type':'file', 'dev':dev, 'vol':src.getAttribute('file'), 'xml': disk.toxml()})
@@ -91,8 +95,8 @@ class LibvirtDomain:
                     protocol = src.getAttribute('protocol')
                     if protocol == 'rbd':
                         disk_lst.append({'device':device, 'type':'rbd', 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
-                    elif protocol == 'http':
-                        disk_lst.append({'device':device, 'type':'http', 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
+                    elif protocol == 'http' or protocol == 'https':
+                        disk_lst.append({'device':device, 'type':protocol, 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
                     else:
                         raise Exception(f'disk unknown type={dtype} protocol={protocol}')
                 else:

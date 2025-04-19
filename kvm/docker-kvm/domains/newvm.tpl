@@ -67,8 +67,9 @@
 {%- if enum is not defined or enum == '' %}
     <disk type='network' device='cdrom'>
       <driver name='qemu' type='raw'/>
-      <source protocol="http" name="/{{ vm_uuid }}.iso">
-        <host name="{{ META_SRV }}" port="80"/>
+      <source protocol="https" name="/{{ vm_uuid }}.iso">
+        <host name="{{ META_SRV }}" port="443"/>
+        <ssl verify="no"/>
       </source>
       <target dev='sda' bus='sata'/>
       <readonly/>

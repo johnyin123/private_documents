@@ -40,6 +40,9 @@ server {
     error_page 504 = @504;
     location @504 { return 504 '{"code":504,"name":"lberr","desc":"Gateway Time-out"}'; }
     # include /etc/nginx/http-enabled/jwt_sso_auth.inc;
+    if ($scheme = http ) {
+        return 301 https://$server_name$request_uri;
+    }
     location / {
         # # default page is guest ui
         return 301 https://$server_name/guest.html;
@@ -126,51 +129,23 @@ server {
         }
         return 403;
     }
-    # # admin ui start # #
-    location = /admin.html { return 301 /vmmgr.html; }
-    location = /vmmgr.html {
-        # # not use admin... avoid proxy_cache.conf bypass rule
-        # auth_request @sso-auth;
-        # # vmmgr ui page, mgr private access
-        # proxy_pass http://flask_app/public/ui/tpl.html;
-        alias ${OUT_DIR}/ui/tpl.html;
-    }
-    location ~* ^/.+\.(?:tpl|css|js|otf|eot|svg|ttf|woff|woff2)$ {
-        # # public access filename ext, other files 404
-        # rewrite ^ /public/ui$uri break;
-        # proxy_pass http://flask_app;
-        autoindex off;
-        root ${OUT_DIR}/ui;
-    }
-    # # admin ui end # #
-    # # vnc/spice/console ui start # #
-    location /term {
-        # rewrite ^ /public$uri break;proxy_pass http://flask_app;
-        alias ${OUT_DIR}/term/;
-    }
+    # # tanent user UI manager # #
+    location = /guest.html { return 301 /ui/userui.html$is_args$args; }
+    # # admin ui # #
+    location = /admin.html { return 301 /ui/tpl.html; }
+    # # static resource # #
+    # # ui/term/spice/novnc use flask_app serve, add rewrite
+    # rewrite ^ /public$uri break;proxy_pass http://flask_app;
+    location /ui { alias ${OUT_DIR}/ui/; }
+    location /term { alias ${OUT_DIR}/term/; }
     location /spice { alias ${OUT_DIR}/spice/; }
     location /novnc { alias ${OUT_DIR}/novnc/; }
-    # # vnc/spice/console ui end # #
-    # # tanent user UI manager tanent vm by uuid
-    location = /guest.html {
-        # # guest user ui page, guest private access
-        # proxy_pass http://flask_app/public/ui/userui.html;
-        alias ${OUT_DIR}/ui/userui.html;
-    }
-}
-server {
-    listen 80;
-    server_name ${META_SRV};
-    # # only download iso file, and subdir iso
+    # # only download iso|meta-data|user-data(include subdir resource)
     location ~* (\.iso|\/meta-data|\/user-data)$ {
         # rewrite ^ /public/iso$uri break;
         # proxy_pass http://flask_app;
         autoindex off;
         root ${OUT_DIR}/iso;
-    }
-    location / {
-        # others all to https
-        return 301 https://$server_name$request_uri;
     }
 }
 '''
@@ -180,4 +155,3 @@ ngx_cfg = ngx_cfg.replace('${USERKEY}', config.USER_ACCESS_SECURE_LINK_MYKEY)
 ngx_cfg = ngx_cfg.replace('${OUT_DIR}', OUTDIR)
 with open('kvm.conf', "w") as file:
     file.write(ngx_cfg)
-
