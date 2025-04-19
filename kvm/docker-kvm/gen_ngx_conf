@@ -40,9 +40,6 @@ server {
     error_page 504 = @504;
     location @504 { return 504 '{"code":504,"name":"lberr","desc":"Gateway Time-out"}'; }
     # include /etc/nginx/http-enabled/jwt_sso_auth.inc;
-    if ($scheme = http ) {
-        return 301 https://$server_name$request_uri;
-    }
     location / {
         # # default page is guest ui
         return 301 https://$server_name/guest.html;
@@ -146,6 +143,13 @@ server {
         # proxy_pass http://flask_app;
         autoindex off;
         root ${OUT_DIR}/iso;
+    }
+}
+server {
+    listen 80;
+    server_name ${META_SRV};
+    if ($scheme = http) {
+        return 301 https://$server_name$request_uri$is_args$args;
     }
 }
 '''

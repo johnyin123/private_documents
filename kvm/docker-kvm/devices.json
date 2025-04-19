@@ -2,11 +2,11 @@
 {"kvmhost":"host01","name":"local-disk","devtype":"disk","tpl":"storage.file.tpl","action":"storage.file","desc":"文件系统DISK"},
 {"kvmhost":"host01","name":"rbd-disk","devtype":"disk","tpl":"armsite.rbd.tpl","action":"armsite.rbd","desc":"RBD DISK"},
 {"kvmhost":"host01","name":"net.br-ext","devtype":"net","tpl":"net.br-ext.tpl","action":"","desc":"br-ext网桥"},
-{"kvmhost":"host01","name":"MetaData","devtype":"iso","tpl":"cdrom-meta.tpl","action":"","desc":"cloud-init"},
+{"kvmhost":"host01","name":"MetaData","devtype":"iso","tpl":"cdrom-meta.tpl","action":"","desc":"CLOUD-INIT"},
 {"kvmhost":"host01","name":"CDROM","devtype":"iso","tpl":"cdrom.tpl","action":"","desc":"CDROM"},
 {"kvmhost":"kvm-x86-srv1","name":"local-disk","devtype":"disk","tpl":"storage.file.tpl","action":"storage.file","desc":"文件系统DISK"},
 {"kvmhost":"kvm-x86-srv1","name":"rbd-disk","devtype":"disk","tpl":"x86site.rbd.tpl","action":"x86site.rbd","desc":"X86SITE RBD DISK"},
 {"kvmhost":"kvm-x86-srv1","name":"net.br-ext","devtype":"net","tpl":"net.br-ext.tpl","action":"","desc":"br-ext网桥"},
-{"kvmhost":"kvm-x86-srv1","name":"MetaData","devtype":"iso","tpl":"cdrom-meta.tpl","action":"","desc":"cloud-init"},
+{"kvmhost":"kvm-x86-srv1","name":"MetaData","devtype":"iso","tpl":"cdrom-meta.tpl","action":"","desc":"CLOUD-INIT"},
 {"kvmhost":"kvm-x86-srv1","name":"CDROM","devtype":"iso","tpl":"cdrom.tpl","action":"","desc":"CDROM"}
 ]
