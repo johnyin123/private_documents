@@ -120,6 +120,11 @@ class LibvirtDomain:
         p = xml.dom.minidom.parseString(self.XMLDesc)
         return int(p.getElementsByTagName('vcpu')[0].firstChild.data)
 
+def dom_flags(state):
+    if state == libvirt.VIR_DOMAIN_RUNNING:
+        return libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_AFFECT_LIVE
+    return libvirt.VIR_DOMAIN_AFFECT_CONFIG
+
 class VMManager:
     @staticmethod
     def detach_device(url:str, uuid:str, dev:str)-> str:
@@ -128,9 +133,7 @@ class VMManager:
         with connect(url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
-            flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
-            if domain.state == libvirt.VIR_DOMAIN_RUNNING:
-                flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
+            flags = dom_flags(domain.state)
             for disk in domain.disks:
                 if disk['dev'] == dev:
                     dom.detachDeviceFlags(disk['xml'], flags)
@@ -155,10 +158,7 @@ class VMManager:
         with connect(url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             state, maxmem, curmem, curcpu, cputime = dom.info()
-            flags = libvirt.VIR_DOMAIN_AFFECT_CONFIG
-            if state == libvirt.VIR_DOMAIN_RUNNING:
-                flags = flags | libvirt.VIR_DOMAIN_AFFECT_LIVE
-            dom.attachDeviceFlags(xml, flags)
+            dom.attachDeviceFlags(xml, dom_flags(state))
 
     @staticmethod
     def create_vm(url:str, uuid:str, xml:str) -> LibvirtDomain:
