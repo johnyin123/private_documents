@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("0d71eca0[2025-04-20T14:47:24+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("72f9e227[2025-04-20T16:01:12+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -149,6 +149,7 @@ gen_app_database() {
         ./reload_dbtable golds.json
         ./reload_dbtable hosts.json
         ./reload_dbtable devices.json
+        ./reload_dbtable iso.json
         install -v -C -m 0644 --group=${gid} --owner=${uid} kvm.db ${outdir}/kvm.db
     }
     return 0
@@ -226,7 +227,6 @@ main() {
     copy_app "${target}" "${USR_ID}" "${GRP_ID}" "${mode}"
     gen_app_database "${OUTDIR}" "${USR_ID}" "${GRP_ID}" "${mode}"
     post_check "${OUTDIR}"
-    log "!!!!!!!copy app in ${target}/app!!!!!!!"
     log "!!!!!!!modify ${target}/app/startup.sh start app!!!!!!!"
     [ "${docker}" == "1" ] && cat <<EODOC
 # --network host \
