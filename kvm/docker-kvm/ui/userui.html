@@ -252,7 +252,7 @@ function info() {
 }
 function mysubmit(form, dev) {
   const data = new FormData(form);
-  jsonstr = Object.fromEntries(data.entries());
+  var jsonstr = Object.fromEntries(data.entries());
   getjson('POST', `/user/vm/cdrom/${token.value}&dev=${dev}`, getjson_result, jsonstr);
   return false;
 }
