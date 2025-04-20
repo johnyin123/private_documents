@@ -250,12 +250,18 @@ function info() {
     document.getElementById("vms").innerHTML = show_vm(res);
   });
 }
+function mysubmit(form, dev) {
+  const data = new FormData(form);
+  jsonstr = Object.fromEntries(data.entries());
+  getjson('POST', `/user/vm/cdrom/${token.value}&dev=${dev}`, getjson_result, jsonstr);
+  return false;
+}
 function change_iso(dev) {
   const isolist = document.getElementById('isoname_list');
   getjson('GET', `/user/vm/getiso/${token.value}`, function(res) {
     var table = `<div>`;
     table += `<div><center><h2>Change CDROM ISO</h2></center></div>`;
-    table += `<form action="/user/vm/cdrom/${token.value}&dev=${dev}" method="post">`;
+    table += `<form onSubmit="return mysubmit(this, '${dev}')">`;
     table += `<label>ISO:<select name="isoname" id="isoname_list">`;
     res.map(item => {
       table += `<option value="${item.name}">${item.desc}</option>`;
