@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("ba25401e[2025-04-19T16:46:49+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("0d71eca0[2025-04-20T14:47:24+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -10,7 +10,7 @@ APPFILES=(flask_app.py dbi.py database.py database.py.shm config.py meta.py util
 APPDBS=(devices.json golds.json guests.json hosts.json iso.json)
 TOOLS=(reload_dbtable)
 ################################################################################
-log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+log() { echo "$(tput setaf ${COLOR:-141})$*$(tput sgr0)" >&2; }
 usage() {
     [ "$#" != 0 ] && echo "$*"
     cat <<EOF
@@ -157,19 +157,23 @@ post_check() {
     local outdir="${1}"
     for fn in $(cat hosts.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
         log "check domain template: ${outdir}/domains/${fn}"
-        [ -e "${outdir}/domains/${fn}" ] && { log "OK"; } || { log "NOT FOUND!!!"; }
+        [ -e "${outdir}/domains/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
     done
     for fn in $(cat devices.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
         log "check device template: ${outdir}/devices/${fn}"
-        [ -e "${outdir}/devices/${fn}" ] && { log "OK"; } || { log "NOT FOUND!!!"; }
+        [ -e "${outdir}/devices/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
     done
     for fn in $(cat devices.json | jq -r .[].action | sort | uniq | sed "/^$/d"); do
         log "check device action: ${outdir}/actions/${fn}"
-        [ -x "${outdir}/actions/${fn}" ] && { log "OK"; } || { log "NOT FOUND!!!"; }
+        [ -x "${outdir}/actions/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
     done
     for fn in $(cat golds.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
         log "check gold disk: ${outdir}/gold/${fn}"
-        [ -e "${outdir}/gold/${fn}" ] && { log "OK"; } || { log "NOT FOUND!!!"; }
+        [ -e "${outdir}/gold/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
+    done
+    for fn in $(cat iso.json | jq -r .[].uri | sort | uniq | sed "/^$/d"); do
+        log "check iso disk: ${outdir}/iso/${fn}"
+        [ -e "${outdir}/iso/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
     done
     return 0
 }
