@@ -1,0 +1,4 @@
+[
+{ "name":"centos7-x86_64","uri":"/iso/CentOS-7-x86_64-Minimal-1908.iso","desc":"CentOS-7-x86_64-Minimal-1908 dvd" },
+{ "name":"debian12-live-amd64","uri":"/iso/debian-bookworm-amd64-live.iso","desc":"debian-bookworm-amd64-live启动CD" }
+]
