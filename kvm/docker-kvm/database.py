@@ -117,6 +117,30 @@ class KVMGold(Base):
         return [ FakeDB(**element) for element in result ]
         # return session.query(KVMGold).filter_by(arch=arch).all()
 
+class KVMIso(Base):
+    __tablename__ = "kvmiso"
+    name = Column(String(19),nullable=False,index=True,primary_key=True,comment='ISO名称')
+    uri = Column(String,nullable=False,index=True,unique=True,comment='ISO文件URI')
+    desc = Column(String,nullable=False,server_default='',comment='ISO描述')
+    last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
+    ####################################
+    cache = utils.manager.list()
+    lock = multiprocessing.Lock()
+    @staticmethod
+    def reload():
+        cache_flush(KVMIso.lock, KVMIso.cache, KVMIso)
+
+    @staticmethod
+    def ListISO():
+        return [ FakeDB(**element) for element in KVMIso.cache ]
+
+    @staticmethod
+    def getIso(name):
+        result = utils.search(KVMIso.cache, 'name', name)
+        if len(result) == 1:
+            return FakeDB(**result[0])
+        raise Exception(f'golddisk {name} nofound ({len(result)})')
+
 class KVMGuest(Base):
     __tablename__ = "kvmguest"
     kvmhost = Column(String(19),nullable=False,index=True,primary_key=True)

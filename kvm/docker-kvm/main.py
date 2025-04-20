@@ -4,7 +4,7 @@
 import flask_app, flask, os, libvirt
 import database, vmmanager, template, device, meta
 from config import config, META_SRV, OUTDIR, DATABASE
-from utils import return_ok, return_err, deal_except, save, decode_jwt, reload
+from utils import return_ok, return_err, deal_except, save, decode_jwt
 from flask_app import logger
 import base64, hashlib, time, datetime
 
@@ -70,11 +70,13 @@ class MyApp(object):
         database.KVMHost.reload()
         database.KVMDevice.reload()
         database.KVMGold.reload()
+        database.KVMIso.reload()
         database.KVMGuest.reload()
         return web
 
     def register_routes(self, app):
         app.add_url_rule('/tpl/host/', view_func=self.db_list_host, methods=['GET'])
+        app.add_url_rule('/tpl/iso/', view_func=self.db_list_iso, methods=['GET'])
         app.add_url_rule('/tpl/device/<string:hostname>', view_func=self.db_list_device, methods=['GET'])
         app.add_url_rule('/tpl/gold/<string:hostname>', view_func=self.db_list_gold, methods=['GET'])
         ## start db oper guest ##
@@ -98,25 +100,28 @@ class MyApp(object):
         except Exception as e:
             return deal_except(f'db_list_host', e), 400
 
+    def db_list_iso(self):
+        try:
+            return [result._asdict() for result in database.KVMIso.ListISO()]
+        except Exception as e:
+            return deal_except(f'db_list_iso', e), 400
+
     def db_list_device(self, hostname):
         try:
-            results = database.KVMDevice.ListDevice(hostname)
-            return [result._asdict() for result in results]
+            return [result._asdict() for result in database.KVMDevice.ListDevice(hostname)]
         except Exception as e:
             return deal_except(f'db_list_device', e), 400
 
     def db_list_gold(self, hostname):
         try:
             host = database.KVMHost.getHostInfo(hostname)
-            results = database.KVMGold.ListGold(host.arch)
-            return [result._asdict() for result in results]
+            return [result._asdict() for result in database.KVMGold.ListGold(host.arch)]
         except Exception as e:
             return deal_except(f'db_list_gold', e), 400
 
     def db_list_domains(self):
         try:
-            guests = database.KVMGuest.ListGuest()
-            return [result._asdict() for result in guests]
+            return [result._asdict() for result in database.KVMGuest.ListGuest()]
         except Exception as e:
             return deal_except(f'db_list_domains', e), 400
 
@@ -242,7 +247,7 @@ class MyApp(object):
     def get_domain_cmd(self, cmd:str, hostname:str, uuid:str):
         dom_cmds = {
                 'GET': ['xml', 'ipaddr', 'start', 'reset', 'stop', 'delete'],
-                'POST': ['detach_device']
+                'POST': ['detach_device', 'cdrom']
                 }
         try:
             if cmd in dom_cmds[flask.request.method]:

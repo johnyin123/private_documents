@@ -35,7 +35,11 @@ function genVmTblItems(item, host = null) {
       const disks = JSON.parse(item[key]);
       disks.forEach(disk => {
         tbl += `<tr><th title="${disk.device}">${disk.dev}</th><td colspan="${colspan}" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td>`;
-        tbl += host ? `<td><a title="Remove Disk" href="javascript:del_device('${host}', '${item.uuid}', '${disk.dev}')">Remove</a></td></tr>` : `</tr>`;
+        var change_media = '';
+        if(disk.device === 'cdrom') {
+          change_media = `<a title="change media" href="javascript:change_iso('${host}', '${item.uuid}', '${disk.dev}')">Change<a>`;
+        }
+        tbl += host ? `<td><a title="Remove Disk" href="javascript:del_device('${host}', '${item.uuid}', '${disk.dev}')">Remove</a>${change_media}</td></tr>` : `</tr>`;
       });
     } else if (key === 'nets') {
       const nets = JSON.parse(item[key]);
@@ -86,7 +90,7 @@ function show_vms(host, vms) {
       btn += genActBtn('Start VM', 'fa-play', 'start', host, item.uuid);
       btn += genActBtn('Undefine', 'fa-trash', 'undefine', host, item.uuid);
     } 
-    btn += genActBtn('Add ISO', 'fa-floppy-o', 'add_iso', host, item.uuid);
+    btn += genActBtn('Add CDROM', 'fa-floppy-o', 'add_cdrom', host, item.uuid);
     btn += genActBtn('Add NET', 'fa-wifi', 'add_net', host, item.uuid);
     btn += genActBtn('Add DISK', 'fa-database', 'add_disk', host, item.uuid);
     const table = genVmTblItems(item, host);
@@ -284,6 +288,22 @@ function del_device(host, uuid, dev) {
     getjson('POST', `/vm/detach_device/${host}/${uuid}?dev=${dev}`, getjson_result);
   }
 }
+function change_iso(host, uuid, dev) {
+  const isolist = document.getElementById('isoname_list');
+  getjson('GET', `/tpl/iso/`, function(resp) {
+    var iso = JSON.parse(resp);
+    isolist.innerHTML = genOption(iso);
+  });
+  const form = document.getElementById('changecdrom_form');
+  form.addEventListener('submit', function(event) {
+    showView('hostlist');
+    event.preventDefault(); // Prevents the default form submission
+    const res = getFormJSON(form);
+    getjson('POST', `/vm/cdrom/${host}/${uuid}?dev=${dev}`, getjson_result, res);
+  }, { once: true });
+  form.reset();
+  showView('changecdrom');
+}
 function create_vm(host, arch) {
   const vm_ip = document.getElementById('vm_ip');
   const vm_gw = document.getElementById('vm_gw');
@@ -297,7 +317,7 @@ function create_vm(host, arch) {
     showView('hostlist');
     event.preventDefault(); // Prevents the default form submission
     const res = getFormJSON(form);
-    getjson('POST', `/vm/create/${host}`, getjson_result , res);
+    getjson('POST', `/vm/create/${host}`, getjson_result, res);
   }, { once: true });
   form.reset();
   showView('createvm');
@@ -352,12 +372,12 @@ function add_net(host, uuid) {
   form.reset();
   showView('addnet');
 }
-function add_iso(host, uuid) {
-  const form = document.getElementById('addiso_form');
-  const isolst = document.getElementById('iso_list');
+function add_cdrom(host, uuid) {
+  const form = document.getElementById('addcdrom_form');
+  const cdromlst = document.getElementById('cdrom_list');
   getjson('GET', `/tpl/device/${host}`, function(resp) {
     var devs = JSON.parse(resp);
-    isolst.innerHTML = genOption(filterByKey(devs, 'devtype', 'iso'));
+    cdromlst.innerHTML = genOption(filterByKey(devs, 'devtype', 'iso'));
   });
   form.addEventListener('submit', function(event) {
     showView('hostlist');
@@ -366,7 +386,7 @@ function add_iso(host, uuid) {
     do_add(host, uuid, res);
   }, { once: true });
   form.reset();
-  showView('addiso');
+  showView('addcdrom');
 }
 /* create vm add new meta key/value */
 function set_name(r) {

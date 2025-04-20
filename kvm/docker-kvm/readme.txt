@@ -50,6 +50,7 @@ https://vmm.registry.local/novnc/vnc_lite.html?password=abc&path=websockify/?tok
 srv=http://127.0.0.1:5009
 # srv=https://vmm.registry.local
 echo 'list host' && curl -k ${srv}/tpl/host/ | jq '.[]|{name: .name, arch: .arch}'
+echo 'list iso' && curl -k ${srv}/tpl/iso/
 host=host01
 arch=x86_64
 uefi=/usr/share/OVMF/OVMF_CODE.fd
@@ -83,6 +84,7 @@ echo 'add disk' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POS
 EOF
 dev=vda
 echo 'del disk' && curl -k -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/detach_device/${host}/${uuid}/${dev}
+echo 'change cd media' && curl -k -H 'Content-Type:application/json' -X POST -d '{"dev":"sda", "isoname":"centos7-x86_64"}' ${srv}/vm/cdrom/${host}/${uuid}/${dev}
 device=net-br-ext
 device=debian_installcd
 echo "add ${device} noargs" && curl -k -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/attach_device/${host}/${uuid}/${device}

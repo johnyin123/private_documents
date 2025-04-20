@@ -39,7 +39,7 @@ class config:
     WEBSOCKIFY_SECURE_LINK_EXPIRE = 24 * 60            # minutes
     USER_ACCESS_URL = f'https://{META_SRV}/guest.html'
     USER_ACCESS_SECURE_LINK_MYKEY = 'P@ssw@rd4Display' # user.html access mykey, use use this page access vm by uuid belone him
-
+    CDROM_TPL = 'cdrom-meta.tpl'           # change media use this as template
     # # main:attach_device
     ATTACH_DEFAULT = {'size':'10','gold':''}
     META_DEFAULT = {'rootpass':'pass123','hostname':'vmsrv'}

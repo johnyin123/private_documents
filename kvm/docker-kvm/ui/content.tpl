@@ -56,14 +56,14 @@
   </div>
 </div>
 <!-- ############## -->
-<div id="addiso" class="tabContent">
+<div id="addcdrom" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">
-      <h2>AddISO</h2>
+      <h2>Add CDROM</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form id="addiso_form">
-      <label>ISO:<select name="device" id="iso_list"></select></label>
+    <form id="addcdrom_form">
+      <label>CDROM:<select name="device" id="cdrom_list"></select></label>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
@@ -73,7 +73,7 @@
 <div id="addnet" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">
-      <h2>AddNetwork</h2>
+      <h2>Add Network</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form id="addnet_form">
@@ -84,10 +84,24 @@
   </div>
 </div>
 <!-- ############## -->
+<div id="changecdrom" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>Change ISO</h2>
+      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
+    </div>
+    <form id="changecdrom_form">
+      <label>ISO:<select name="isoname" id="isoname_list"></select></label>
+      <input type="reset" value="Reset"/>
+      <input type="submit" value="Submit"/>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
 <div id="adddisk" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">
-      <h2>AddDISK</h2>
+      <h2>Add DISK</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form id="adddisk_form">
@@ -103,7 +117,7 @@
 <div id="createvm" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">
-      <h2>CreateVM</h2>
+      <h2>Create VM</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form id="createvm_form">

@@ -78,6 +78,27 @@ class KVMGold:
         result = utils.search(KVMGold.cache, 'arch', arch)
         return [ FakeDB(**element) for element in result ]
 
+class KVMIso:
+    filename = os.path.join(OUTDIR, 'iso.json')
+    cache = utils.manager.list()
+    lock = multiprocessing.Lock()
+    # { "name":"iso名称","uri":"uri","desc":"desc" }
+
+    @staticmethod
+    def reload():
+        utils.reload(KVMIso.lock, KVMIso.cache, KVMIso.filename)
+
+    @staticmethod
+    def ListISO():
+        return [ FakeDB(**element) for element in KVMIso.cache ]
+
+    @staticmethod
+    def getIso(name):
+        result = utils.search(KVMIso.cache, 'name', name)
+        if len(result) == 1:
+            return FakeDB(**result[0])
+        raise Exception(f'iso {name} nofound ({len(result)})')
+
 class KVMGuest:
     filename = os.path.join(OUTDIR, 'guests.json')
     cache = utils.manager.list()

@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-import libvirt, xml.dom.minidom, json, os
+import libvirt, xml.dom.minidom, json, os, template
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from utils import return_ok, getlist_without_key, remove_file, connect
 from config import config
 from flask_app import logger
+from database import KVMIso
 
 class LibvirtDomain:
     def __init__(self, dom):
@@ -125,6 +126,14 @@ def dom_flags(state):
         return libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_AFFECT_LIVE
     return libvirt.VIR_DOMAIN_AFFECT_CONFIG
 
+def change_media(dev:str, isofile:str)->str:
+    disk = xml.dom.minidom.parseString(template.DeviceTemplate(config.CDROM_TPL,'iso').gen_xml())
+    for it in disk.getElementsByTagName('source'):
+        it.setAttribute('name', isofile)
+    for it in disk.getElementsByTagName('target'):
+        it.setAttribute('dev', dev)
+    return disk.toxml()
+
 class VMManager:
     @staticmethod
     def detach_device(url:str, uuid:str, dev:str)-> str:
@@ -234,6 +243,18 @@ class VMManager:
         with connect(url) as conn:
             for i in conn.listAllDomains():
                 yield LibvirtDomain(i)
+
+    @staticmethod
+    def cdrom(url:str, uuid:str, dev:str, req_json) -> LibvirtDomain:
+        logger.info(f'{req_json}')
+        iso = KVMIso.getIso(req_json.get('isoname', None))
+        with connect(url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            domain = LibvirtDomain(dom)
+            if domain.state != libvirt.VIR_DOMAIN_RUNNING:
+                raise Exception(f'{uuid} Not RUNNING')
+            dom.attachDeviceFlags(change_media(dev, iso.uri))
+        return return_ok(f'{uuid} {dev} change media ok')
 
     @staticmethod
     def delete_vol(conn:libvirt.virConnect, vol:str)-> None:
