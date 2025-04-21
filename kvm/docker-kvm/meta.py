@@ -22,7 +22,7 @@ class MetaConfig(object):
         self.user_data = env.get_template('user_data')
 
     def create(self, req_json:Dict, mdconfig:Dict) -> None:
-        mdconfig_meta = {**config.META_DEFAULT, **req_json, **mdconfig}
+        mdconfig_meta = {**req_json, **mdconfig}
         meta_str = self.meta_data.render(**mdconfig_meta)
         user_str = self.user_data.render(**mdconfig_meta)
         output = os.path.join(config.ISO_DIR, f'{req_json["vm_uuid"]}')

@@ -194,7 +194,7 @@ class MyApp(object):
 
     def attach_device(self, hostname, uuid, name):
         try:
-            req_json = {**config.ATTACH_DEFAULT, **flask.request.json, 'vm_uuid':uuid}
+            req_json = {**flask.request.json, 'vm_uuid':uuid}
             logger.info(f'attach_device {req_json}')
             host = database.KVMHost.getHostInfo(hostname)
             dev = database.KVMDevice.getDeviceInfo(hostname, name)
@@ -203,7 +203,7 @@ class MyApp(object):
             if tpl.bus is not None:
                 req_json['vm_last_disk'] = dom.next_disk[tpl.bus]
                 gold = req_json.get("gold", "")
-                if gold is not None and len(gold) != 0:
+                if len(gold) != 0:
                     req_json['gold'] = os.path.join(config.GOLD_DIR, database.KVMGold.getGoldInfo(f'{gold}', f'{host.arch}').tpl)
                     if not os.path.isfile(req_json['gold']):
                         logger.error(f'attach_device {req_json["gold"]} nofound')
