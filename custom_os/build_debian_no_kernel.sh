@@ -7,14 +7,17 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6c29b8bc[2024-12-02T14:32:50+08:00]:build_debian_no_kernel.sh")
+VERSION+=("c3284d97[2025-04-21T08:21:51+08:00]:build_debian_no_kernel.sh")
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
 export -f log
 cat <<'HELP'
 HELP:
-INST_ARCH=arm64 DEBIAN_VERSION=bookworm ./build_debian_no_kernel.sh linux-image-${INST_ARCH} dbus-user-session qemu-guest-agent cloud-init cloud-initramfs-growroot
+export REPO=http://127.0.0.1/debian
+export INST_ARCH=arm64
+export DEBIAN_VERSION=bookworm
+./build_debian_no_kernel.sh linux-image-${INST_ARCH} dbus-user-session qemu-guest-agent cloud-init cloud-initramfs-growroot
 HELP
 old_ifs="$IFS" IFS=','
 custom_pkgs="$*"
@@ -85,7 +88,7 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
     debian_service_init
     log "delete root password"
     passwd -d root || true
-    systemctl enable cloud-init || true
+    systemctl enable cloud-init &>/dev/null || true
     /bin/umount /dev/pts
     exit
 EOSHELL

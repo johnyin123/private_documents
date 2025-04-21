@@ -161,3 +161,11 @@ ngx_cfg = ngx_cfg.replace('${USERKEY}', config.USER_ACCESS_SECURE_LINK_MYKEY)
 ngx_cfg = ngx_cfg.replace('${OUT_DIR}', OUTDIR)
 with open('kvm.conf', "w") as file:
     file.write(ngx_cfg)
+print(f'''
+# kvm.conf
+{OUTDIR}/ui     ==>   static html/js.. directory
+{OUTDIR}/term   ==>   static html/js.. directory
+{OUTDIR}/spice  ==>   static html/js.. directory
+{OUTDIR}/novnc  ==>   static html/js.. directory
+{OUTDIR}/iso    ==>   dynamic iso/data directory
+''') 
