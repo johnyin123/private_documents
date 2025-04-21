@@ -14,8 +14,10 @@
     <system>
       <entry name='manufacturer'>JohnYin</entry>
       <entry name='version'>0.9</entry>
+{%- if enum is defined and enum == 'NOCLOUD' %}
       <entry name='serial'>ds=nocloud-net;s=http://{{ META_SRV }}/{{ vm_uuid }}/</entry>
       <entry name='uuid'>{{ vm_uuid }}</entry>
+{%- endif %}
     </system>
   </sysinfo>
   <title>{{ vm_name }}</title>
@@ -52,6 +54,7 @@
     <graphics type='vnc' autoport='yes'/>
     <video><model type='virtio' vram='32768' heads='1' primary='yes'/></video>
     <sound model='ac97'/>
+{%- if enum is not defined or enum == '' %}
     <disk type='network' device='cdrom'>
       <driver name='qemu' type='raw'/>
       <source protocol="https" name="/{{ vm_uuid }}.iso">
@@ -61,6 +64,7 @@
       <target dev='sda' bus='sata'/>
       <readonly/>
     </disk>
+{%- endif %}
     <serial type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target port='0'/></serial>
     <console type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target type='serial' port='0'/></console>
 {%- if vm_arch == 'x86_64' %}

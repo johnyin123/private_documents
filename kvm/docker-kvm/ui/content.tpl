@@ -121,6 +121,11 @@
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form id="createvm_form">
+      <fieldset>
+      <legend>Meta Server Type</legend>
+      <label><input type="radio" name="enum" value="" checked>ISO</label>
+      <label><input type="radio" name="enum" value="NOCLOUD">NOCLOUD</label>
+      </fieldset>
       <label>CPU:<div class="group">
         <input style="width: 20%;" type="number" name="vm_vcpus" id="vcpu_num" value="2" min="1" max="16" oninput="vcpu_rge.value=this.value" />
         <input type="range" id="vcpu_rge" value="2" min="1" max="16" oninput="vcpu_num.value=this.value"/>
