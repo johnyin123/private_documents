@@ -16,12 +16,6 @@ map $http_upgrade $connection_upgrade {
     default upgrade;
     ''      close;
 }
-map $uri $kvmhost {
-    "~*/user/vm/(list|start|reset|stop|cdrom|getiso|display)/(?<name>.*)/(.*)" $name;
-}
-map $uri $uuid {
-    "~*/user/vm/(list|start|reset|stop|cdrom|getiso|display)/(.*)/(?<name>.*)" $name;
-}
 server {
     listen 443 ssl;
     server_name ${META_SRV};
@@ -88,69 +82,37 @@ server {
         # # no cache!! guest user api, guest private access
         proxy_cache off;
         expires off;
-        location /user/vm/list/ {
+        location ~* ^/user/vm/(list|start|reset|stop|display)/(?<kvmhost>.*)/(?<uuid>.*) {
             set $userkey "${USERKEY}";
             secure_link $arg_k,$arg_e;
             secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
             if ($secure_link = "0") { return 410; }
             if ($request_method !~ ^(GET)$ ) { return 405; }
-            proxy_pass http://flask_app/vm/list/;
+            rewrite ^/user(.*)$ $1 break;
+            proxy_pass http://flask_app;
         }
-        location /user/vm/stop/ {
-            set $userkey "${USERKEY}";
-            secure_link $arg_k,$arg_e;
-            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
-            if ($secure_link = "") { return 403; }
-            if ($secure_link = "0") { return 410; }
-            if ($request_method !~ ^(GET)$ ) { return 405; }
-            proxy_pass http://flask_app/vm/stop/;
-        }
-        location /user/vm/reset/ {
-            set $userkey "${USERKEY}";
-            secure_link $arg_k,$arg_e;
-            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
-            if ($secure_link = "") { return 403; }
-            if ($secure_link = "0") { return 410; }
-            if ($request_method !~ ^(GET)$ ) { return 405; }
-            proxy_pass http://flask_app/vm/reset/;
-        }
-        location /user/vm/start/ {
-            set $userkey "${USERKEY}";
-            secure_link $arg_k,$arg_e;
-            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
-            if ($secure_link = "") { return 403; }
-            if ($secure_link = "0") { return 410; }
-            if ($request_method !~ ^(GET)$ ) { return 405; }
-            proxy_pass http://flask_app/vm/start/;
-        }
-        location /user/vm/getiso/ {
-            set $userkey "P@ssw@rd4Display";
-            secure_link $arg_k,$arg_e;
-            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
-            if ($secure_link = "") { return 403; }
-            if ($secure_link = "0") { return 410; }
-            if ($request_method !~ ^(GET)$ ) { return 405; }
-            set $urieat ''; # just for eating uri
-            proxy_pass http://flask_app/tpl/iso/$urieat;
-        }
-        location /user/vm/cdrom/ {
+        location ~* ^/user/vm/(cdrom)/(?<kvmhost>.*)/(?<uuid>.*) {
             set $userkey "${USERKEY}";
             secure_link $arg_k,$arg_e;
             secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
             if ($secure_link = "0") { return 410; }
             if ($request_method !~ ^(POST)$ ) { return 405; }
-            proxy_pass http://flask_app/vm/cdrom/;
+            rewrite ^/user(.*)$ $1 break;
+            proxy_pass http://flask_app;
         }
-        location /user/vm/display/ {
+        location ~* ^/user/vm/(getiso)/(?<kvmhost>.*)/(?<uuid>.*) {
             set $userkey "${USERKEY}";
             secure_link $arg_k,$arg_e;
             secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
             if ($secure_link = "0") { return 410; }
             if ($request_method !~ ^(GET)$ ) { return 405; }
-            proxy_pass http://flask_app/vm/display/;
+            # set $urieat ''; # just for eating uri
+            # proxy_pass http://flask_app/tpl/iso/$urieat;
+            rewrite ^.*$ /tpl/iso/;
+            proxy_pass http://flask_app;
         }
         return 403;
     }
