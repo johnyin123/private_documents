@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c3284d97[2025-04-21T08:21:51+08:00]:build_debian_no_kernel.sh")
+VERSION+=("37c6312f[2025-04-21T10:28:02+08:00]:build_debian_no_kernel.sh")
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -101,19 +101,6 @@ source /etc/network/interfaces.d/*
 # The loopback network interface
 auto lo
 iface lo inet loopback
-EOF
-
-cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/br-ext
-# auto eth0
-allow-hotplug eth0
-iface eth0 inet manual
-
-auto br-ext
-iface br-ext inet static
-    bridge_ports eth0
-    bridge_maxwait 0
-    address 192.168.168.101/24
-    gateway 192.168.168.1
 EOF
 
 cat <<EOF > ${ROOT_DIR}/etc/nftables.conf
