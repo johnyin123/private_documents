@@ -168,4 +168,4 @@ print(f'''
 {OUTDIR}/spice  ==>   static html/js.. directory
 {OUTDIR}/novnc  ==>   static html/js.. directory
 {OUTDIR}/iso    ==>   dynamic iso/data directory
-''') 
+''')
