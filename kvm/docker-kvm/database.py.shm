@@ -26,7 +26,7 @@ class KVMHost:
         result = utils.search(KVMHost.cache, 'name', name)
         if len(result) == 1:
             return FakeDB(**result[0])
-        raise Exception(f'host {name} nofound')
+        raise Exception(f'host {name} nofound ({len(result)})')
 
     @staticmethod
     def ListHost():
@@ -48,7 +48,7 @@ class KVMDevice:
         result = utils.search(result, 'kvmhost', kvmhost)
         if len(result) == 1:
             return FakeDB(**result[0])
-        raise Exception(f'device template {name} nofound')
+        raise Exception(f'device template {name} nofound ({len(result)})')
 
     @staticmethod
     def ListDevice(kvmhost):
@@ -71,7 +71,7 @@ class KVMGold:
         result = utils.search(result, 'arch', arch)
         if len(result) == 1:
             return FakeDB(**result[0])
-        raise Exception(f'golddisk {name} nofound')
+        raise Exception(f'golddisk {name} nofound ({len(result)})')
 
     @staticmethod
     def ListGold(arch):
@@ -128,3 +128,10 @@ class KVMGuest:
     def ListGuest():
         logger.debug(f'ListGuest PID {os.getpid()}')
         return [ FakeDB(**element) for element in KVMGuest.cache ]
+
+def reload_all():
+    KVMHost.reload()
+    KVMDevice.reload()
+    KVMGold.reload()
+    KVMIso.reload()
+    KVMGuest.reload()

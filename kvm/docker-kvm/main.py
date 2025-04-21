@@ -67,11 +67,7 @@ class MyApp(object):
         web=flask_app.create_app(conf, json=True)
         web.config['JSON_SORT_KEYS'] = False
         myapp.register_routes(web)
-        database.KVMHost.reload()
-        database.KVMDevice.reload()
-        database.KVMGold.reload()
-        database.KVMIso.reload()
-        database.KVMGuest.reload()
+        database.reload_all()
         return web
 
     def register_routes(self, app):
@@ -199,25 +195,20 @@ class MyApp(object):
 
     def attach_device(self, hostname, uuid, name):
         try:
-            req_json = flask.request.json
-            req_json = {**config.ATTACH_DEFAULT, **req_json}
+            req_json = {**config.ATTACH_DEFAULT, **flask.request.json, 'vm_uuid':uuid}
             logger.info(f'attach_device {req_json}')
             host = database.KVMHost.getHostInfo(hostname)
             dev = database.KVMDevice.getDeviceInfo(hostname, name)
             tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
             dom = vmmanager.VMManager.get_domain(host.url, uuid)
-            req_json['vm_uuid'] = uuid
             if tpl.bus is not None:
                 req_json['vm_last_disk'] = dom.next_disk[tpl.bus]
                 gold = req_json.get("gold", "")
                 if gold is not None and len(gold) != 0:
-                    gold = database.KVMGold.getGoldInfo(f'{gold}', f'{host.arch}')
-                    gold = os.path.join(config.GOLD_DIR, gold.tpl)
-                    if os.path.isfile(gold):
-                        req_json['gold'] = gold
-                    else:
-                        logger.error(f'attach_device {gold} nofoudn')
-                        raise Exception(f'gold {gold} nofound')
+                    req_json['gold'] = os.path.join(config.GOLD_DIR, database.KVMGold.getGoldInfo(f'{gold}', f'{host.arch}').tpl)
+                    if not os.path.isfile(req_json['gold']):
+                        logger.error(f'attach_device {req_json["gold"]} nofound')
+                        raise Exception(f'gold {req_json["gold"]} nofound')
             xml = tpl.gen_xml(**req_json)
             env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
             return flask.Response(device.generate(xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
@@ -226,12 +217,10 @@ class MyApp(object):
 
     def create_vm(self, hostname):
         try:
-            token = flask.request.cookies.get('token', '')
-            username = decode_jwt(token).get('payload', {}).get('username', '')
-            req_json = flask.request.json
+            username = decode_jwt(flask.request.cookies.get('token', '')).get('payload', {}).get('username', '')
             host = database.KVMHost.getHostInfo(hostname)
             # # avoid :META_SRV overwrite by user request
-            req_json = {**config.VM_DEFAULT(host.arch, hostname), **req_json, **{'username':username, 'META_SRV':META_SRV}}
+            req_json = {**config.VM_DEFAULT(host.arch, hostname), **flask.request.json, **{'username':username, 'META_SRV':META_SRV}}
             if (host.arch.lower() != req_json['vm_arch'].lower()):
                 raise Exception('arch no match host')
             # force use host arch string
@@ -261,7 +250,7 @@ class MyApp(object):
                     args[key] = value
                 # args = {**flask.request.args, 'url': host.url, 'uuid': uuid}
                 if req_json:
-                    args = {**args, 'req_json':req_json}
+                    args['req_json'] = req_json
                 func = getattr(vmmanager.VMManager, cmd)
                 logger.info(f'{cmd} call {args}')
                 return flask.Response(func(**args), mimetype="text/event-stream")

@@ -185,6 +185,12 @@ class KVMGuest(Base):
         return [ FakeDB(**element) for element in KVMGuest.cache ]
         # return session.query(KVMGuest).all()
 
-logger.info(f'database create all tables')
-# Base.metadata.drop_all(engine)
-Base.metadata.create_all(engine)
+def reload_all():
+    logger.info(f'database create all tables')
+    # Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
+    KVMHost.reload()
+    KVMDevice.reload()
+    KVMGold.reload()
+    KVMIso.reload()
+    KVMGuest.reload()
