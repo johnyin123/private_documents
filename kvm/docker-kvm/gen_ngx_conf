@@ -176,7 +176,13 @@ server {
 server {
     listen 80;
     server_name ${META_SRV};
-    if ($scheme = http) {
+    location ~* (\.iso|\/meta-data|\/user-data)$ {
+        # rewrite ^ /public/iso$uri break;
+        # proxy_pass http://flask_app;
+        autoindex off;
+        root ${OUT_DIR}/iso;
+    }
+    locatin / {
         return 301 https://$server_name$request_uri$is_args$args;
     }
 }

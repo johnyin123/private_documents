@@ -14,7 +14,7 @@
     <system>
       <entry name='manufacturer'>JohnYin</entry>
       <entry name='version'>0.9</entry>
-      <entry name='serial'>ds=nocloud-net;s=https://{{ META_SRV }}/{{ vm_uuid }}/</entry>
+      <entry name='serial'>ds=nocloud-net;s=http://{{ META_SRV }}/{{ vm_uuid }}/</entry>
       <entry name='uuid'>{{ vm_uuid }}</entry>
     </system>
   </sysinfo>
