@@ -79,10 +79,10 @@ server {
     }
     # # tanent api
     location /user/ {
-        # # no cache!! guest user api, guest private access
-        proxy_cache off;
-        expires off;
         location ~* ^/user/vm/(list|start|reset|stop|display)/(?<kvmhost>.*)/(?<uuid>.*) {
+            # # no cache!! guest user api, guest private access
+            proxy_cache off;
+            expires off;
             set $userkey "${USERKEY}";
             secure_link $arg_k,$arg_e;
             secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
@@ -93,6 +93,9 @@ server {
             proxy_pass http://flask_app;
         }
         location ~* ^/user/vm/(cdrom)/(?<kvmhost>.*)/(?<uuid>.*) {
+            # # no cache!! guest user api, guest private access
+            proxy_cache off;
+            expires off;
             set $userkey "${USERKEY}";
             secure_link $arg_k,$arg_e;
             secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
@@ -103,16 +106,19 @@ server {
             proxy_pass http://flask_app;
         }
         location ~* ^/user/vm/(getiso)/(?<kvmhost>.*)/(?<uuid>.*) {
+            # # /tpl/iso need cache
             set $userkey "${USERKEY}";
             secure_link $arg_k,$arg_e;
             secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
             if ($secure_link = "0") { return 410; }
             if ($request_method !~ ^(GET)$ ) { return 405; }
-            # set $urieat ''; # just for eating uri
-            # proxy_pass http://flask_app/tpl/iso/$urieat;
-            rewrite ^.*$ /tpl/iso/ break;
-            proxy_pass http://flask_app;
+            set $urieat '';
+            # # just for eating uri -> /tpl/iso/,no args, can cache
+            proxy_pass http://flask_app/tpl/iso/$urieat;
+            # rewrite ^.*$ /tpl/iso/ break;
+            # # /tpl/iso/?k=XtaHHDjE_nULHFdM2Dsupw&e=1745423940. with args, can not cache
+            # proxy_pass http://flask_app;
         }
         return 403;
     }
