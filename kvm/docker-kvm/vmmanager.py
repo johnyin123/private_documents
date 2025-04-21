@@ -251,10 +251,13 @@ class VMManager:
         with connect(url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
-            if domain.state != libvirt.VIR_DOMAIN_RUNNING:
-                raise Exception(f'{uuid} Not RUNNING')
-            dom.attachDeviceFlags(change_media(dev, iso.uri))
-        return return_ok(f'{uuid} {dev} change media ok')
+            for disk in domain.disks:
+                if disk['dev'] == dev and disk['device'] == 'cdrom':
+                    if domain.state != libvirt.VIR_DOMAIN_RUNNING:
+                        dom.detachDeviceFlags(disk['xml'], dom_flags(domain.state))
+                    dom.attachDeviceFlags(change_media(dev, iso.uri))
+                    return return_ok(f'{uuid} {dev} change media ok')
+        raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
     def delete_vol(conn:libvirt.virConnect, vol:str)-> None:
