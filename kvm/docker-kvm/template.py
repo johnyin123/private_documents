@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, jinja2, xml.dom.minidom, utils
-from config import config
+import os, jinja2, xml.dom.minidom, utils, config
 from flask_app import logger
 from jinja2 import meta as jinja2_meta
 

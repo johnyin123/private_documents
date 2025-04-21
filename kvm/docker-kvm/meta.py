@@ -3,10 +3,9 @@ try:
     from cStringIO import StringIO as BytesIO
 except ImportError:
     from io import BytesIO
-from config import config
 from flask_app import logger
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-import pycdlib, jinja2, os, utils
+import pycdlib, jinja2, os, utils, config
 
 def save_metaiso(fname, meta_str, user_str):
     iso = pycdlib.PyCdlib()

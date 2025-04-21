@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-import os, subprocess, vmmanager, json
+import os, subprocess, vmmanager, json, config
 from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
-from config import config
 from flask_app import logger
 from utils import return_ok, return_err, deal_except
 

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-import libvirt, xml.dom.minidom, json, os, template
+import libvirt, xml.dom.minidom, json, os, template, config
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from utils import return_ok, getlist_without_key, remove_file, connect
-from config import config
 from flask_app import logger
 from database import KVMIso
 

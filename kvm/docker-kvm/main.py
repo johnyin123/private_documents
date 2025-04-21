@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import flask_app, flask, os, libvirt
-import database, vmmanager, template, device, meta
-from config import config, META_SRV, OUTDIR, DATABASE
+import database, vmmanager, template, device, meta, config
 from utils import return_ok, return_err, deal_except, save, decode_jwt
 from flask_app import logger
 import base64, hashlib, time, datetime
@@ -60,10 +59,10 @@ class MyApp(object):
     @staticmethod
     def create():
         myapp=MyApp()
-        logger.info(f'META_SRV={META_SRV}')
-        logger.info(f'OUTDIR={OUTDIR}')
-        logger.info(f'DATABASE={DATABASE}')
-        conf={'STATIC_FOLDER': OUTDIR, 'STATIC_URL_PATH':'/public'}
+        logger.info(f'META_SRV={config.META_SRV}')
+        logger.info(f'OUTDIR={config.OUTDIR}')
+        logger.info(f'DATABASE={config.DATABASE}')
+        conf={'STATIC_FOLDER': config.OUTDIR, 'STATIC_URL_PATH':'/public'}
         web=flask_app.create_app(conf, json=True)
         web.config['JSON_SORT_KEYS'] = False
         myapp.register_routes(web)
@@ -220,7 +219,7 @@ class MyApp(object):
             username = decode_jwt(flask.request.cookies.get('token', '')).get('payload', {}).get('username', '')
             host = database.KVMHost.getHostInfo(hostname)
             # # avoid :META_SRV overwrite by user request
-            req_json = {**config.VM_DEFAULT(host.arch, hostname), **flask.request.json, **{'username':username, 'META_SRV':META_SRV}}
+            req_json = {**config.VM_DEFAULT(host.arch, hostname), **flask.request.json, **{'username':username, 'META_SRV':config.META_SRV}}
             if (host.arch.lower() != req_json['vm_arch'].lower()):
                 raise Exception('arch no match host')
             # force use host arch string

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from config import config, OUTDIR, META_SRV
+import config
 
 ngx_cfg='''upstream flask_app {
     server 127.0.0.1:5009 fail_timeout=0;
@@ -155,17 +155,17 @@ server {
     }
 }
 '''
-ngx_cfg = ngx_cfg.replace('${META_SRV}', META_SRV)
+ngx_cfg = ngx_cfg.replace('${META_SRV}', config.META_SRV)
 ngx_cfg = ngx_cfg.replace('${WEBSOCKKEY}', config.WEBSOCKIFY_SECURE_LINK_MYKEY)
 ngx_cfg = ngx_cfg.replace('${USERKEY}', config.USER_ACCESS_SECURE_LINK_MYKEY)
-ngx_cfg = ngx_cfg.replace('${OUT_DIR}', OUTDIR)
+ngx_cfg = ngx_cfg.replace('${OUT_DIR}', config.OUTDIR)
 with open('kvm.conf', "w") as file:
     file.write(ngx_cfg)
 print(f'''
 # kvm.conf
-{OUTDIR}/ui     ==>   static html/js.. directory
-{OUTDIR}/term   ==>   static html/js.. directory
-{OUTDIR}/spice  ==>   static html/js.. directory
-{OUTDIR}/novnc  ==>   static html/js.. directory
-{OUTDIR}/iso    ==>   dynamic iso/data directory
+{config.OUTDIR}/ui     ==>   static html/js.. directory
+{config.OUTDIR}/term   ==>   static html/js.. directory
+{config.OUTDIR}/spice  ==>   static html/js.. directory
+{config.OUTDIR}/novnc  ==>   static html/js.. directory
+{config.OUTDIR}/iso    ==>   dynamic iso/data directory
 ''')

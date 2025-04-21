@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-import datetime, os, utils, multiprocessing, json
+import datetime, os, utils, multiprocessing, json, config
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-from config import OUTDIR
 from flask_app import logger
 
 class FakeDB:
@@ -12,7 +11,7 @@ class FakeDB:
         return self.__dict__
 
 class KVMHost:
-    filename = os.path.join(OUTDIR, 'hosts.json')
+    filename = os.path.join(config.OUTDIR, 'hosts.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
     # { "name":"KVM主机名称", "url":"libvirt URI", "tpl":"domain模板XML文件", "arch":"cpu架构uname -m", "ipaddr":"ssh/vnc/spice,ip地址", "sshport":"ssh端口", # "desc":"主机描述"}
@@ -33,7 +32,7 @@ class KVMHost:
         return [ FakeDB(**element) for element in KVMHost.cache ]
 
 class KVMDevice:
-    filename = os.path.join(OUTDIR, 'devices.json')
+    filename = os.path.join(config.OUTDIR, 'devices.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
     #{"kvmhost":"KVM主机名称", "name":"device名称", "action":"device attach后执行的脚本", "devtype":"device类型", "tpl":"device模板XML文件", "desc":"device描述"}
@@ -56,7 +55,7 @@ class KVMDevice:
         return [ FakeDB(**element) for element in result ]
 
 class KVMGold:
-    filename = os.path.join(OUTDIR, 'golds.json')
+    filename = os.path.join(config.OUTDIR, 'golds.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
     # {"name":"Gold盘名称", "arch":"Gold盘对应的CPU架构", "tpl":"Gold盘qcow2格式模板文件", "desc":"Gold盘描述"}
@@ -79,7 +78,7 @@ class KVMGold:
         return [ FakeDB(**element) for element in result ]
 
 class KVMIso:
-    filename = os.path.join(OUTDIR, 'iso.json')
+    filename = os.path.join(config.OUTDIR, 'iso.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
     # { "name":"iso名称","uri":"uri","desc":"desc" }
@@ -100,7 +99,7 @@ class KVMIso:
         raise Exception(f'iso {name} nofound ({len(result)})')
 
 class KVMGuest:
-    filename = os.path.join(OUTDIR, 'guests.json')
+    filename = os.path.join(config.OUTDIR, 'guests.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
     # kvmhost, arch, uuid, desc, curcpu, curmem, mdconfig, maxcpu, maxmem, cputime, disks, net
