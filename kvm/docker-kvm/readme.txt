@@ -1,3 +1,7 @@
+# # regen meta_iso
+uuid=${OUTDIR}/iso/uuid
+cd ${uuid} && mkisofs -o ${uuid}.iso -V cidata -J -r user-data meta-data
+
 default_pool_redefine.sh: defile default pool directory /storage
 inotify.sh              : inotifywait sync iso & nocloud
 docker-libvirtd.sh      : gen libvirtd docker image
