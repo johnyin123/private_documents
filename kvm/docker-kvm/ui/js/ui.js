@@ -78,31 +78,31 @@ function show_all_db_vms(view) {
   });
   showView(view);
 }
-function show_vms(host, vms) {
+function show_vms(kvmhost, vms) {
   var tbl = '';
   vms.forEach(item => {
-    var btn = genActBtn('Show XML', 'fa-file-code-o', 'show_xml', host, item.uuid);
-    btn += genActBtn('Guest Admin UI', 'fa-ambulance', 'show_vmui', host, item.uuid);
+    var btn = genActBtn('Show XML', 'fa-file-code-o', 'show_xml', kvmhost, item.uuid);
+    btn += genActBtn('Guest Admin UI', 'fa-ambulance', 'show_vmui', kvmhost, item.uuid);
     if(item.state === 'RUN') {
-      btn += genActBtn('VNC View', 'fa-desktop', 'display', host, item.uuid);
-      btn += genActBtn('Reset VM', 'fa-refresh', 'reset', host, item.uuid);
-      btn += genActBtn('Stop VM', 'fa-power-off', 'stop', host, item.uuid);
-      btn += genActBtn('ForceStop VM', 'fa-plug', 'force_stop', host, item.uuid);
+      btn += genActBtn('VNC View', 'fa-desktop', 'display', kvmhost, item.uuid);
+      btn += genActBtn('Reset VM', 'fa-refresh', 'reset', kvmhost, item.uuid);
+      btn += genActBtn('Stop VM', 'fa-power-off', 'stop', kvmhost, item.uuid);
+      btn += genActBtn('ForceStop VM', 'fa-plug', 'force_stop', kvmhost, item.uuid);
     } else {
-      btn += genActBtn('Start VM', 'fa-play', 'start', host, item.uuid);
-      btn += genActBtn('Undefine', 'fa-trash', 'undefine', host, item.uuid);
+      btn += genActBtn('Start VM', 'fa-play', 'start', kvmhost, item.uuid);
+      btn += genActBtn('Undefine', 'fa-trash', 'undefine', kvmhost, item.uuid);
     } 
-    btn += genActBtn('Add CDROM', 'fa-floppy-o', 'add_cdrom', host, item.uuid);
-    btn += genActBtn('Add NET', 'fa-wifi', 'add_net', host, item.uuid);
-    btn += genActBtn('Add DISK', 'fa-database', 'add_disk', host, item.uuid);
-    const table = genVmTblItems(item, host);
+    btn += genActBtn('Add CDROM', 'fa-floppy-o', 'add_cdrom', kvmhost, item.uuid);
+    btn += genActBtn('Add NET', 'fa-wifi', 'add_net', kvmhost, item.uuid);
+    btn += genActBtn('Add DISK', 'fa-database', 'add_disk', kvmhost, item.uuid);
+    const table = genVmTblItems(item, kvmhost);
     const title = item.state == "RUN" ?  '<h2 class="running">GUEST</h2>' : '<h2>GUEST</h2>';
     tbl += genWrapper("vms-wrapper", title, btn, table);
   });
   return tbl;
 }
-function show_host(host) {
-  // delete host.last_modified;
+function show_host(kvmhost) {
+  var host = getHost(kvmhost)
   var btn = genActBtn('Refresh VM List', 'fa-refresh fa-spin', 'vmlist', host.name);
   btn += genActBtn('Create VM', 'fa-tasks', 'create_vm', host.name, host.arch);
   const table = genVmTblItems(host);
@@ -180,17 +180,15 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 12
     toggleOverlay(false);
   });
 }
-function vmlist(host) {
+function vmlist(kvmhost) {
   document.getElementById("vms").innerHTML = '';
-  getjson('GET', `/vm/list/${host}`, function(res) {
-    var vms = JSON.parse(res);
-    document.getElementById("vms").innerHTML = show_vms(host, vms);
+  getjson('GET', `/vm/list/${kvmhost}`, function(res) {
+    document.getElementById("vms").innerHTML = show_vms(kvmhost, JSON.parse(res));
   });
 }
-function on_menu_host(hostname) {
-  document.getElementById("host").innerHTML = '';
-  document.getElementById("host").innerHTML = show_host(getHost(hostname));
-  vmlist(hostname);
+function on_menu_host(kvmhost) {
+  document.getElementById("host").innerHTML = show_host(kvmhost);
+  vmlist(kvmhost);
   showView("hostlist");
 }
 function getjson_result(res) {
@@ -437,9 +435,9 @@ window.addEventListener('load', function() {
   getjson('GET', '/tpl/host/', function (resp) {
     config.g_hosts = JSON.parse(resp);
     var mainMenu = "";
-    for(var n = 0; n < config.g_hosts.length; n++) {
-      mainMenu += `<a href='#' class='nav_link sublink' onclick='on_menu_host("${config.g_hosts[n].name}")'><i class="fa fa-desktop"></i><span>${config.g_hosts[n].name}</span></a>`;
-    }
+    config.g_hosts.forEach(host => {
+      mainMenu += `<a href='#' class='nav_link sublink' onclick='on_menu_host("${host.name}")'><i class="fa fa-desktop"></i><span>${host.name}</span></a>`;
+    });
     document.getElementById("sidebar").innerHTML = mainMenu;
   });
 })
