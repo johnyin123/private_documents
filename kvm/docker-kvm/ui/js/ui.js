@@ -251,7 +251,7 @@ function show_vmui(host, uuid) {
 }
 function start(host, uuid) {
   if (confirm(`Start ${uuid}?`)) {
-    getjson('GET', `/vm/start/${host}/${uuid}`, getjson_result, null, null, 60000);
+    getjson('GET', `/vm/start/${host}/${uuid}`, getjson_result);
   }
 }
 function reset(host, uuid) {
