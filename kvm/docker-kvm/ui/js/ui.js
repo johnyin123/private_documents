@@ -1,4 +1,7 @@
 const config = { g_hosts: {} };
+function getHost(kvmhost) {
+  return config.g_hosts.find(el => el.name === kvmhost);
+}
 function genOption(jsonobj, selectedValue = '') {
   return jsonobj.map(item => {
     return `<option value="${item.name}" ${item.name === selectedValue ? 'selected' : ''}>${item.desc}</option>`;
@@ -67,8 +70,7 @@ function show_all_db_vms(view) {
     const vms = JSON.parse(resp);
     dbvms_total.innerHTML = vms.length;
     vms.forEach(item => {
-      const index = config.g_hosts.findIndex(element => element.name === item.kvmhost);
-      const btn = `<button title='GOTO HOST' onclick='on_menu_host(config.g_hosts, ${index})'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
+      const btn = `<button title='GOTO HOST' onclick='on_menu_host("${item.kvmhost}")'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
       const table = genVmTblItems(item);
       tbl += genWrapper("vms-wrapper", "<h2>GUEST</h2>", btn, table);
     });
@@ -185,10 +187,10 @@ function vmlist(host) {
     document.getElementById("vms").innerHTML = show_vms(host, vms);
   });
 }
-function on_menu_host(host, n) {
+function on_menu_host(hostname) {
   document.getElementById("host").innerHTML = '';
-  document.getElementById("host").innerHTML = show_host(host[n]);
-  vmlist(host[n].name);
+  document.getElementById("host").innerHTML = show_host(getHost(hostname));
+  vmlist(hostname);
   showView("hostlist");
 }
 function getjson_result(res) {
@@ -436,7 +438,7 @@ window.addEventListener('load', function() {
     config.g_hosts = JSON.parse(resp);
     var mainMenu = "";
     for(var n = 0; n < config.g_hosts.length; n++) {
-      mainMenu += `<a href='#' class='nav_link sublink' onclick='on_menu_host(config.g_hosts, ${n})'><i class="fa fa-desktop"></i><span>${config.g_hosts[n].name}</span></a>`;
+      mainMenu += `<a href='#' class='nav_link sublink' onclick='on_menu_host("${config.g_hosts[n].name}")'><i class="fa fa-desktop"></i><span>${config.g_hosts[n].name}</span></a>`;
     }
     document.getElementById("sidebar").innerHTML = mainMenu;
   });
