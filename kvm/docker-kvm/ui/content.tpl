@@ -123,9 +123,7 @@
     <form id="createvm_form">
       <fieldset>
       <legend>Meta Server Type</legend>
-      <!-- <input type="checkbox" name="enum" value="NOCLOUD"> -->
-      <label><input type="radio" name="enum" value="" checked>ISO</label>
-      <label><input type="radio" name="enum" value="NOCLOUD">NOCLOUD</label>
+      <label><input type="checkbox" name="enum" value="NOCLOUD">NOCLOUD</label>
       </fieldset>
       <label>CPU:<div class="group">
         <input style="width: 20%;" type="number" name="vm_vcpus" id="vcpu_num" value="2" min="1" max="16" oninput="vcpu_rge.value=this.value" />
