@@ -9,7 +9,7 @@ def generate(xml: str, action: str, arg: str, req_json: dict, **kwargs) -> Gener
         cmd = [ os.path.join(config.ACTION_DIR, f'{action}'), f'{arg}']
         if action is not None and len(action) != 0:
             logger.debug(f'exec:{action} {arg} req={req_json} env={kwargs} {xml}')
-            with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=kwargs) as proc:
+            with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=kwargs) as proc:
                 json.dump(req_json, proc.stdin, indent=4)
                 # proc.stdin.write(req_json)
                 proc.stdin.close()
@@ -20,7 +20,11 @@ def generate(xml: str, action: str, arg: str, req_json: dict, **kwargs) -> Gener
                 proc.wait()
                 if proc.returncode != 0:
                     logger.error(f'execute {cmd} error={proc.returncode}')
-                    yield return_err(proc.returncode, "attach", f"execute {cmd} error={proc.returncode}")
+                    msg=''
+                    for line in proc.stderr:
+                        logger.error(line.strip())
+                        msg += line
+                    yield return_err(proc.returncode, "attach", f"execute {cmd} error={proc.returncode} {msg}")
                     return
         vmmanager.VMManager.attach_device(kwargs['URL'], req_json['vm_uuid'], xml)
         yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot')

@@ -31,13 +31,17 @@ GOLD=$(printf "%s" "${REQ_JSON}" | json_config_default ".gold" "")
 char=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_last_disk" "")
 # # when use docker libvirtd, storage path!!!
 DISK="${DIR}/vd${char}-${UUID}.raw"
+echo "qemu-img create -f raw ssh://roo@" >&2
 [ -z "${GOLD}" ] && {
     qemu-img create -f raw ssh://root@${HOSTIP}:${SSHPORT}${DISK} ${SIZE}
+    echo "qemu-img create -f raw ssh://roo@" >&2
 } || {
     qemu-img convert -p -f qcow2 -O raw ${GOLD} ssh://root@${HOSTIP}:${SSHPORT}${DISK}
+    echo "qemu-img create -f raw ssh://roo@" >&2
     # skip resize error, when SIZE < gold image size, error but now image uploaded! so skip error
     qemu-img resize -f raw ssh://root@${HOSTIP}:${SSHPORT}${DISK} ${SIZE} || true
 }
 # # just for strem out test!
 # ping -c 5 127.0.0.1
-exit 0
+echo "qemu-img create -f raw ssh://roo@" >&2
+exit 1
