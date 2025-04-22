@@ -123,6 +123,7 @@
     <form id="createvm_form">
       <fieldset>
       <legend>Meta Server Type</legend>
+      <!-- <input type="checkbox" name="enum" value="NOCLOUD"> -->
       <label><input type="radio" name="enum" value="" checked>ISO</label>
       <label><input type="radio" name="enum" value="NOCLOUD">NOCLOUD</label>
       </fieldset>
