@@ -7,12 +7,16 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ced6a03[2023-09-22T16:02:32+08:00]:build_centos_no_kernel.sh")
+VERSION+=("b8292a2b[2024-12-18T09:01:47+08:00]:build_centos_no_kernel.sh")
 [ -e ${DIRNAME}/os_centos_init.sh ] && . ${DIRNAME}/os_centos_init.sh || { echo '**ERROR: os_centos_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
 export -f log
-
+cat <<'HELP'
+HELP:
+export INST_ARCH=x86_64 / aarch64
+./build_centos_no_kernel.sh kernel.${INST_ARCH} qemu-guest-agent cloud-init cloud-utils-growpart
+HELP
 PKG="efibootmgr"
 
 case "${INST_ARCH:-}" in
@@ -105,6 +109,7 @@ done
 }
 chroot ${ROOT_DIR} || true
 log "clean up system"
+chroot ${ROOT_DIR} systemctl enable qemu-guest-agent cloud-init || true
 chroot ${ROOT_DIR} yum clean all || true
 for mp in /dev /sys /proc
 do
