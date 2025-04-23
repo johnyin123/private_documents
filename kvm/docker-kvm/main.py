@@ -180,7 +180,8 @@ class MyApp(object):
                         logger.error(f'attach_device {req_json["gold"]} nofound')
                         raise Exception(f'gold {req_json["gold"]} nofound')
             xml = tpl.gen_xml(**req_json)
-            env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':host.sshport, 'SSHUSER':host.sshuser}
+            # all env must string
+            env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
             return flask.Response(device.generate(xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
         except Exception as e:
             return deal_except(f'attach_device', e), 400

@@ -24,7 +24,7 @@ URL=${URL:-}
 TYPE=${TYPE:-}
 HOSTIP=${HOSTIP:-}
 SSHPORT=${SSHPORT:-}
-SSHUSER=${SSHPORT:-}
+SSHUSER=${SSHUSER:-}
 log "${TYPE} ${URL} ${HOSTIP} ${REQ_JSON}"
 UUID=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_uuid" "")
 SIZE=$(printf "%s" "${REQ_JSON}" | json_config_default ".size" "10")G
