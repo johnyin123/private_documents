@@ -186,12 +186,9 @@ class MyApp(object):
             host = database.KVMHost.getHostInfo(hostname)
             # # avoid :META_SRV overwrite by user request
             flask.request.json.pop('vm_uuid', "Not found")
+            flask.request.json.pop('vm_arch', "Not found")
             flask.request.json.pop('META_SRV', "Not found")
             req_json = {**config.VM_DEFAULT(host.arch, hostname), **flask.request.json, **{'username':username}}
-            if (host.arch.lower() != req_json['vm_arch'].lower()):
-                raise Exception('arch no match host')
-            # force use host arch string
-            req_json['vm_arch'] = host.arch
             xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
             dom = vmmanager.VMManager.create_vm(host.url, req_json['vm_uuid'], xml)
             database.IPPool.remove(req_json.get('vm_ip', ''))

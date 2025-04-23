@@ -44,12 +44,26 @@
       <h2>Input ExpireTime</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form id="vmui_form">
+    <form onSubmit="return on_vmui(this)">
       <label>Expire:
       <div class="group">
         <input type="date" name="date" required/>
         <input type="time" name="time" value="23:59" step="1" required/>
       </div></label>
+      <input type="reset" value="Reset"/>
+      <input type="submit" value="Submit"/>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
+<div id="changecdrom" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>Change ISO</h2>
+      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
+    </div>
+    <form onSubmit="return on_changeiso(this)">
+      <label>ISO:<select name="isoname" id="isoname_list"></select></label>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
@@ -62,7 +76,7 @@
       <h2>Add CDROM</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form id="addcdrom_form">
+    <form onSubmit="return on_add(this)">
       <label>CDROM:<select name="device" id="cdrom_list"></select></label>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
@@ -76,22 +90,8 @@
       <h2>Add Network</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form id="addnet_form">
+    <form onSubmit="return on_add(this)">
       <label>Network:<select name="device" id="net_list"></select></label>
-      <input type="reset" value="Reset"/>
-      <input type="submit" value="Submit"/>
-    </form>
-  </div>
-</div>
-<!-- ############## -->
-<div id="changecdrom" class="tabContent">
-  <div class="form-wrapper">
-    <div class="form-wrapper-header">
-      <h2>Change ISO</h2>
-      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
-    </div>
-    <form id="changecdrom_form">
-      <label>ISO:<select name="isoname" id="isoname_list"></select></label>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
@@ -104,7 +104,7 @@
       <h2>Add DISK</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form id="adddisk_form">
+    <form onSubmit="return on_add(this)">
       <label>Gold:<select name="gold" id="gold_list"></select></label>
       <label>Disk:<select name="device" id="dev_list"></select></label>
       <label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>
@@ -120,7 +120,7 @@
       <h2>Create VM</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form id="createvm_form">
+    <form onSubmit="return on_createvm(this)">
       <fieldset>
       <legend>Meta Server Type</legend>
       <label><input type="checkbox" name="enum" value="NOCLOUD">NOCLOUD</label>
