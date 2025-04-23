@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import datetime, os, utils, multiprocessing
+import datetime, os, utils, multiprocessing, random
 from dbi import engine, Session, session, Base
 from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey,JSON
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
@@ -185,6 +185,43 @@ class KVMGuest(Base):
         return [ FakeDB(**element) for element in KVMGuest.cache ]
         # return session.query(KVMGuest).all()
 
+class IPPool(Base):
+    __tablename__ = "ippool"
+    cidr = Column(String,nullable=False,unique=True,primary_key=True)
+    gateway = Column(String,nullable=False)
+    ####################################
+    cache = utils.manager.list()
+    lock = multiprocessing.Lock()
+
+    @staticmethod
+    def reload():
+        cache_flush(IPPool.lock, IPPool.cache, IPPool)
+
+    @staticmethod
+    def append(cidr:str, gateway:str)->None:
+        try:
+            session.add(IPPool(cidr=cidr, gateway=gateway))
+            session.commit()
+            IPPool.reload()
+        except:
+            logger.exception(f'append {cidr} {gateway} PID {os.getpid()} Failed')
+            session.rollback()
+
+    @staticmethod
+    def remove(cidr:str)->None:
+        try:
+            session.query(IPPool).filter_by(cidr=cidr).delete()
+            session.commit()
+            IPPool.reload()
+        except:
+            logger.exception(f'remove {cidr} in PID {os.getpid()} Failed')
+            session.rollback()
+
+    @staticmethod
+    def free_ip()->Dict:
+        return random.sample([element for element in IPPool.cache], k=1)[0]
+
+
 def reload_all():
     logger.info(f'database create all tables')
     # Base.metadata.drop_all(engine)
@@ -194,3 +231,4 @@ def reload_all():
     KVMGold.reload()
     KVMIso.reload()
     KVMGuest.reload()
+    IPPool.reload()

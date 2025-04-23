@@ -3,7 +3,7 @@ import libvirt, xml.dom.minidom, json, os, template, config
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from utils import return_ok, getlist_without_key, remove_file, connect
 from flask_app import logger
-from database import KVMIso
+from database import KVMIso, IPPool
 
 class LibvirtDomain:
     def __init__(self, dom):
@@ -205,8 +205,10 @@ class VMManager:
         with connect(url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             VMManager.refresh_all_pool(conn)
+            domain = LibvirtDomain(dom)
+            IPPool.append(domain.mdconfig.get('ipaddr'), domain.mdconfig.get('gateway'))
             diskinfo = []
-            for disk in LibvirtDomain(dom).disks:
+            for disk in domain.disks:
                 # cdrom not delete media
                 if disk['device'] != 'disk':
                     continue

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import flask_app, flask, os, libvirt
+import flask_app, flask, os, libvirt, json
 import database, vmmanager, template, device, meta, config
 from utils import return_ok, return_err, deal_except, save, decode_jwt
 from flask_app import logger
@@ -21,39 +21,6 @@ def websockify_secure_link(uuid, mykey, minutes):
     secure_link = f"{mykey}{epoch}{uuid}/websockify/".encode('utf-8')
     str_hash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
     return f"websockify/%3Ftoken={uuid}%26k={str_hash}%26e={epoch}", datetime.datetime.fromtimestamp(epoch).isoformat()
-
-import ipaddress, json, random
-def get_free_ip():
-    network = []
-    used_ips = set()
-    for item in config.NETWORKS:
-        ipa = ipaddress.ip_network(item['network'])
-        network.extend([f'{str(ip)}/{ipa.prefixlen}' for ip in ipa.hosts()])
-        # .hosts() skips network and broadcast addresses
-        used_ips.update({
-            f'{item["gateway"]}/{ipa.prefixlen}',
-            f'{ipa.network_address}/{ipa.prefixlen}',
-            f'{ipa.broadcast_address}/{ipa.prefixlen}'
-        })
-    used_ips.update(config.USED_CIDR)
-    for guest in database.KVMGuest.ListGuest():
-        mdconfig = json.loads(guest.mdconfig)
-        ipaddr = mdconfig.get('ipaddr', None)
-        if ipaddr:
-            used_ips.add(ipaddr)
-    logger.info(f'used ip {used_ips}')
-    random.shuffle(network)
-    for cidr in network:
-        interface = ipaddress.IPv4Interface(cidr)
-        if cidr in used_ips:
-            continue
-        # if int(interface.ip.exploded.split(".")[3]) < 5:
-        #     continue
-        for item in config.NETWORKS:
-            net = ipaddress.ip_network(item['network'])
-            if interface.ip in net:
-                return cidr, item["gateway"]
-    return None,None
 
 class MyApp(object):
     @staticmethod
@@ -122,8 +89,7 @@ class MyApp(object):
 
     def db_freeip(self):
         try:
-            ip, gw = get_free_ip()
-            return return_ok(f'db_freeip ok', cidr=ip, gateway=gw)
+            return return_ok(f'db_freeip ok', **database.IPPool.free_ip())
         except Exception as e:
             return deal_except(f'db_freeip', e), 400
 
@@ -219,13 +185,16 @@ class MyApp(object):
             username = decode_jwt(flask.request.cookies.get('token', '')).get('payload', {}).get('username', '')
             host = database.KVMHost.getHostInfo(hostname)
             # # avoid :META_SRV overwrite by user request
-            req_json = {**config.VM_DEFAULT(host.arch, hostname), **flask.request.json, **{'username':username, 'META_SRV':config.META_SRV}}
+            flask.request.json.pop('vm_uuid', "Not found")
+            flask.request.json.pop('META_SRV', "Not found")
+            req_json = {**config.VM_DEFAULT(host.arch, hostname), **flask.request.json, **{'username':username}}
             if (host.arch.lower() != req_json['vm_arch'].lower()):
                 raise Exception('arch no match host')
             # force use host arch string
             req_json['vm_arch'] = host.arch
             xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
             dom = vmmanager.VMManager.create_vm(host.url, req_json['vm_uuid'], xml)
+            database.IPPool.remove(req_json.get('vm_ip', ''))
             meta.gen_metafiles(dom.mdconfig, req_json)
             save(os.path.join(config.REQ_JSON_DIR, req_json['vm_uuid']), json.dumps(req_json, indent=4))
             return return_ok(f"create vm {req_json['vm_uuid']} on {hostname} ok")

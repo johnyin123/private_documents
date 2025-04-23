@@ -12,6 +12,7 @@ function filterByKey(array, key, value) {
 }
 function getFormJSON(form) {
   const data = new FormData(form);
+  form.reset();
   return Object.fromEntries(data.entries());
 }
 function showView(id) {
@@ -40,15 +41,15 @@ function genVmTblItems(item, host = null) {
         tbl += `<tr><th title="${disk.device}">${disk.dev}</th><td colspan="${colspan}" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td>`;
         var change_media = '';
         if(disk.device === 'cdrom') {
-          change_media = `<a title="change media" href="javascript:change_iso('${host}', '${item.uuid}', '${disk.dev}')">Change<a>`;
+          change_media = `<a title='change media' href='#' onclick='change_iso("${host}", "${item.uuid}", "${disk.dev}")'>Change<a>`;
         }
-        tbl += host ? `<td><a title="Remove Disk" href="javascript:del_device('${host}', '${item.uuid}', '${disk.dev}')">Remove</a>${change_media}</td></tr>` : `</tr>`;
+        tbl += host ? `<td><a title='Remove Disk' href='#' onclick='del_device("${host}", "${item.uuid}", "${disk.dev}")'>Remove</a>${change_media}</td></tr>` : `</tr>`;
       });
     } else if (key === 'nets') {
       const nets = JSON.parse(item[key]);
       nets.forEach(net => {
         tbl += `<tr><th>${net.type}</th><td colspan="${colspan}" class="truncate" title="${net.mac}">${net.mac}</td>`;
-        tbl += host ? `<td><a title="Remove netcard" href="javascript:del_device('${host}', '${item.uuid}', '${net.mac}')">Remove</a></td></tr>`: `</tr>`;
+        tbl += host ? `<td><a title='Remove netcard' href='#' onclick='del_device("${host}", "${item.uuid}", "${net.mac}")'>Remove</a></td></tr>`: `</tr>`;
       });
     } else if (key === 'mdconfig') {
       const mdconfig = JSON.parse(item[key]);
@@ -225,13 +226,12 @@ function setAction(form) {
   return false;
 }
 function show_vmui(host, uuid) {
-  const form = document.getElementById('vmui_form');
-  form.addEventListener('submit', function(event) {
+  showView('vmui');
+  document.getElementById('vmui_form').addEventListener('submit', function(event) {
     showView('vmuimail');
     event.preventDefault(); // Prevents the default form submission
-    const res = getFormJSON(form);
-    const d = Date.parse(`${res.date} ${res.time}`).valueOf();
-    const epoch = Math.floor(d / 1000);
+    const res = getFormJSON(event.target);
+    const epoch = Math.floor(Date.parse(`${res.date} ${res.time}`).valueOf() / 1000);
     getjson('GET', `/vm/ui/${host}/${uuid}/${epoch}`, function(resp) {
       var result = JSON.parse(resp);
       if(result.result === 'OK') {
@@ -246,8 +246,6 @@ function show_vmui(host, uuid) {
       }
     });
   }, { once: true });
-  form.reset();
-  showView('vmui');
 }
 function start(host, uuid) {
   if (confirm(`Start ${uuid}?`)) {
@@ -289,38 +287,28 @@ function del_device(host, uuid, dev) {
   }
 }
 function change_iso(host, uuid, dev) {
-  const isolist = document.getElementById('isoname_list');
+  showView('changecdrom');
   getjson('GET', `/tpl/iso/`, function(resp) {
-    var iso = JSON.parse(resp);
-    isolist.innerHTML = genOption(iso);
+    document.getElementById('isoname_list').innerHTML = genOption(JSON.parse(resp));
   });
-  const form = document.getElementById('changecdrom_form');
-  form.addEventListener('submit', function(event) {
+  document.getElementById('changecdrom_form').addEventListener('submit', function(event) {
     showView('hostlist');
     event.preventDefault(); // Prevents the default form submission
-    const res = getFormJSON(form);
-    getjson('POST', `/vm/cdrom/${host}/${uuid}?dev=${dev}`, getjson_result, res);
+    getjson('POST', `/vm/cdrom/${host}/${uuid}?dev=${dev}`, getjson_result, getFormJSON(event.target));
   }, { once: true });
-  form.reset();
-  showView('changecdrom');
 }
 function create_vm(host, arch) {
-  const vm_ip = document.getElementById('vm_ip');
-  const vm_gw = document.getElementById('vm_gw');
+  showView('createvm');
   getjson('GET', `/vm/freeip/`, function(resp) {
     var ips = JSON.parse(resp);
-    vm_ip.value = ips.cidr;
-    vm_gw.value = ips.gateway;
+    document.getElementById('vm_ip').value = ips.cidr;
+    document.getElementById('vm_gw').value = ips.gateway;
   });
-  const form = document.getElementById('createvm_form');
-  form.addEventListener('submit', function(event) {
+  document.getElementById('createvm_form').addEventListener('submit', function(event) {
     showView('hostlist');
     event.preventDefault(); // Prevents the default form submission
-    const res = getFormJSON(form);
-    getjson('POST', `/vm/create/${host}`, getjson_result, res);
+    getjson('POST', `/vm/create/${host}`, getjson_result, getFormJSON(event.target));
   }, { once: true });
-  form.reset();
-  showView('createvm');
 }
 function do_add(host, uuid, res) {
   function getLastLine(str) {
@@ -336,57 +324,40 @@ function do_add(host, uuid, res) {
   }, 600000); /*add disk 10m timeout*/
 }
 function add_disk(host, uuid) {
-  const form = document.getElementById('adddisk_form');
-  const goldlst = document.getElementById('gold_list');
-  const devlst = document.getElementById('dev_list');
+  showView('adddisk');
   getjson('GET', `/tpl/device/${host}`, function(resp) {
-    var devs = JSON.parse(resp);
-    devlst.innerHTML = genOption(filterByKey(devs, 'devtype', 'disk'));
+    document.getElementById('dev_list').innerHTML = genOption(filterByKey(JSON.parse(resp), 'devtype', 'disk'));
   });
   getjson('GET', `/tpl/gold/${host}`, function(resp) {
-    var gold = JSON.parse(resp);
-    goldlst.innerHTML = genOption(gold, '数据盘');
-  }, null);
-  form.addEventListener('submit', function(event) {
+    document.getElementById('gold_list').innerHTML = genOption(JSON.parse(resp), '数据盘');
+  });
+  document.getElementById('adddisk_form').addEventListener('submit', function(event) {
     showView('hostlist');
     event.preventDefault(); // Prevents the default form submission
-    const res = getFormJSON(form);
-    do_add(host, uuid, res);
+    do_add(host, uuid, getFormJSON(event.target));
   }, { once: true });
-  form.reset();
-  showView('adddisk');
 }
 function add_net(host, uuid) {
-  const form = document.getElementById('addnet_form');
-  const netlst = document.getElementById('net_list');
+  showView('addnet');
   getjson('GET', `/tpl/device/${host}`, function(resp) {
-    var devs = JSON.parse(resp);
-    netlst.innerHTML = genOption(filterByKey(devs, 'devtype', 'net'));
+    document.getElementById('net_list').innerHTML = genOption(filterByKey(JSON.parse(resp), 'devtype', 'net'));
   });
-  form.addEventListener('submit', function(event) {
+  document.getElementById('addnet_form').addEventListener('submit', function(event) {
     showView('hostlist');
     event.preventDefault(); // Prevents the default form submission
-    const res = getFormJSON(form);
-    do_add(host, uuid, res);
+    do_add(host, uuid, getFormJSON(event.target));
   }, { once: true });
-  form.reset();
-  showView('addnet');
 }
 function add_cdrom(host, uuid) {
-  const form = document.getElementById('addcdrom_form');
-  const cdromlst = document.getElementById('cdrom_list');
+  showView('addcdrom');
   getjson('GET', `/tpl/device/${host}`, function(resp) {
-    var devs = JSON.parse(resp);
-    cdromlst.innerHTML = genOption(filterByKey(devs, 'devtype', 'iso'));
+    document.getElementById('cdrom_list').innerHTML = genOption(filterByKey(JSON.parse(resp), 'devtype', 'iso'));
   });
-  form.addEventListener('submit', function(event) {
+  document.getElementById('addcdrom_form').addEventListener('submit', function(event) {
     showView('hostlist');
     event.preventDefault(); // Prevents the default form submission
-    const res = getFormJSON(form);
-    do_add(host, uuid, res);
+    do_add(host, uuid, getFormJSON(event.target));
   }, { once: true });
-  form.reset();
-  showView('addcdrom');
 }
 /* create vm add new meta key/value */
 function set_name(r) {
@@ -395,12 +366,10 @@ function set_name(r) {
   input[0].name=r.value;
 }
 function del_meta(r) {
-  var i = r.parentNode.parentNode.rowIndex;
-  document.getElementById("table_meta_data").deleteRow(i);
+  document.getElementById("table_meta_data").deleteRow(r.parentNode.parentNode.rowIndex);
 }
 function add_meta() {
-  var tableRef = document.getElementById("table_meta_data");
-  var newRow = tableRef.insertRow(-1);
+  var newRow = document.getElementById("table_meta_data").insertRow(-1);
   var c_name = newRow.insertCell(0);
   var c_value = newRow.insertCell(1);
   var del_btn = newRow.insertCell(2);
@@ -410,8 +379,7 @@ function add_meta() {
 }
 /* include html */
 function includeHTML() {
-  const elements = document.querySelectorAll('[w3-include-html]');
-  elements.forEach(elmnt => {
+  document.querySelectorAll('[w3-include-html]').forEach(elmnt => {
     const file = elmnt.getAttribute('w3-include-html');
     if (file) {
       fetch(file).then(response => {

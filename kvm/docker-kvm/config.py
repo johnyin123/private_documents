@@ -13,21 +13,19 @@ SOCAT_TMOUT = '10m' # # socat process close 10m
 WEBSOCKIFY_SECURE_LINK_MYKEY = 'P@ssw@rd4Display'  # vnc/spice websockify access mykey
 WEBSOCKIFY_SECURE_LINK_EXPIRE = 24 * 60            # minutes
 USER_ACCESS_SECURE_LINK_MYKEY = 'P@ssw@rd4Display' # user.html access mykey, use use this page access vm by uuid belone him
-NETWORKS = [{'network':'192.168.168.0/24', 'gateway':'192.168.168.1'},]
-USED_CIDR = ['192.168.168.2/24','192.168.168.3/24','192.168.168.4/24','192.168.168.5/24',]
 # # const define
-VNC_DISP_URL = f'https://{META_SRV}/novnc/vnc_lite.html'
-SPICE_DISP_URL = f'https://{META_SRV}/spice/spice_auto.html'
-CONSOLE_URL = f'https://{META_SRV}/term/xterm.html'
+VNC_DISP_URLvvv = f'https://{META_SRV}/novnc/vnc_lite.html'
+SPICE_DISP_URL  = f'https://{META_SRV}/spice/spice_auto.html'
+CONSOLE_URL     = f'https://{META_SRV}/term/xterm.html'
 USER_ACCESS_URL = f'https://{META_SRV}/guest.html'
 CDROM_TPL = 'cdrom-meta.tpl'           # change media use this as template
-ISO_DIR = os.path.join(OUTDIR, 'iso')  # # iso-meta/nocloud-meta data dir
-GOLD_DIR = os.path.join(OUTDIR, 'gold') # # gold disk dir
-ACTION_DIR = os.path.join(OUTDIR, 'actions') # # device action script dir
-DEVICE_DIR = os.path.join(OUTDIR, 'devices') # # device template dir
-DOMAIN_DIR = os.path.join(OUTDIR, 'domains') # # domain template dir
-META_DIR = os.path.join(OUTDIR, 'meta') # # cloud-init meta template dir
-TOKEN_DIR = os.path.join(OUTDIR, 'token') # # vnc/spice access token dir
+ISO_DIR      = os.path.join(OUTDIR, 'iso')  # # iso-meta/nocloud-meta data dir
+GOLD_DIR     = os.path.join(OUTDIR, 'gold') # # gold disk dir
+ACTION_DIR   = os.path.join(OUTDIR, 'actions') # # device action script dir
+DEVICE_DIR   = os.path.join(OUTDIR, 'devices') # # device template dir
+DOMAIN_DIR   = os.path.join(OUTDIR, 'domains') # # domain template dir
+META_DIR     = os.path.join(OUTDIR, 'meta') # # cloud-init meta template dir
+TOKEN_DIR    = os.path.join(OUTDIR, 'token') # # vnc/spice access token dir
 REQ_JSON_DIR = os.path.join(OUTDIR, 'request') # # create_vm request json logs
 
 # # vm define default values
