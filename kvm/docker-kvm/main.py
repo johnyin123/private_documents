@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import flask_app, flask, os, libvirt, json
+import flask_app, flask, os, libvirt, json, signal
 import database, vmmanager, template, device, meta, config
-from utils import return_ok, return_err, deal_except, save, decode_jwt
+from utils import return_ok, return_err, deal_except, save, decode_jwt, ProcList
 from flask_app import logger
 import base64, hashlib, time, datetime
 
@@ -122,14 +122,19 @@ class MyApp(object):
                     server = f'{host.ipaddr}:{port}'
                 elif server == '127.0.0.1' or server == 'localhost':
                     local = f'/tmp/.display.{uuid}'
-                    ssh_cmd = f'ssh -p {host.sshport} {host.ipaddr} socat STDIO TCP:{server}:{port}'
+                    ssh_cmd = f'ssh -p {host.sshport} {host.sshuser}@{host.ipaddr} socat STDIO TCP:{server}:{port}'
                     socat_cmd = ('timeout', f'{timeout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
                     if proto == 'console':
                         socat_cmd = ('timeout', f'{timeout}',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
+                    for proc in ProcList.Get(uuid):
+                        logger.info(f'{proc} {socat_cmd} exists, kill!!')
+                        os.kill(proc['pid'], signal.SIGTERM)
+                        ProcList.Del(uuid)
                     pid = os.fork()
                     if pid == 0:
                         os.execvp(socat_cmd[0], socat_cmd)
                         os._exit(0)
+                    ProcList.Add(uuid, pid)
                     logger.info("Opened tunnel PID=%d, %s", pid, socat_cmd)
                     server = f'unix_socket:{local}'
                     # os.kill(pid, signal.SIGKILL)
@@ -175,7 +180,7 @@ class MyApp(object):
                         logger.error(f'attach_device {req_json["gold"]} nofound')
                         raise Exception(f'gold {req_json["gold"]} nofound')
             xml = tpl.gen_xml(**req_json)
-            env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}'}
+            env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':host.sshport, 'SSHUSER':host.sshuser}
             return flask.Response(device.generate(xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
         except Exception as e:
             return deal_except(f'attach_device', e), 400

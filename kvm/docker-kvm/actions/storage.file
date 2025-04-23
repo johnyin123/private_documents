@@ -24,6 +24,7 @@ URL=${URL:-}
 TYPE=${TYPE:-}
 HOSTIP=${HOSTIP:-}
 SSHPORT=${SSHPORT:-}
+SSHUSER=${SSHPORT:-}
 log "${TYPE} ${URL} ${HOSTIP} ${REQ_JSON}"
 UUID=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_uuid" "")
 SIZE=$(printf "%s" "${REQ_JSON}" | json_config_default ".size" "10")G
@@ -32,11 +33,11 @@ char=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_last_disk" "")
 # # when use docker libvirtd, storage path!!!
 DISK="${DIR}/vd${char}-${UUID}.raw"
 [ -z "${GOLD}" ] && {
-    qemu-img create -f raw ssh://root@${HOSTIP}:${SSHPORT}${DISK} ${SIZE}
+    qemu-img create -f raw ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK} ${SIZE}
 } || {
-    qemu-img convert -p -f qcow2 -O raw ${GOLD} ssh://root@${HOSTIP}:${SSHPORT}${DISK}
+    qemu-img convert -p -f qcow2 -O raw ${GOLD} ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK}
     # skip resize error, when SIZE < gold image size, error but now image uploaded! so skip error
-    qemu-img resize -f raw ssh://root@${HOSTIP}:${SSHPORT}${DISK} ${SIZE} || true
+    qemu-img resize -f raw ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK} ${SIZE} || true
 }
 # # just for strem out test!
 # ping -c 5 127.0.0.1

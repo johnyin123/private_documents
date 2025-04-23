@@ -31,6 +31,7 @@ class KVMHost(Base):
     # # vnc display & ssh ipaddr
     ipaddr = Column(String,nullable=False,comment='ssh/vnc/spice,ip地址')
     sshport = Column(Integer,nullable=False,server_default='22',comment='ssh端口')
+    sshuser = Column(String,nullable=False,comment='ssh用户')
     active = Column(Integer,nullable=False,server_default='0')
     inactive = Column(Integer,nullable=False,server_default='0')
     desc = Column(String,nullable=False,server_default='',comment='主机描述')

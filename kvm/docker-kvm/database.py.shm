@@ -14,7 +14,7 @@ class KVMHost:
     filename = os.path.join(config.OUTDIR, 'hosts.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-    # { "name":"KVM主机名称", "url":"libvirt URI", "tpl":"domain模板XML文件", "arch":"cpu架构uname -m", "ipaddr":"ssh/vnc/spice,ip地址", "sshport":"ssh端口", # "desc":"主机描述"}
+    # { "name":"KVM主机名称", "url":"libvirt URI", "tpl":"domain模板XML文件", "arch":"cpu架构uname -m", "ipaddr":"ssh/vnc/spice,ip地址", "sshport":"ssh端口", "sshuser":"ssh user", "desc":"主机描述"}
 
     @staticmethod
     def reload():

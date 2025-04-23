@@ -26,6 +26,24 @@ def remove(arr:List, key, val)-> None:
 
 import multiprocessing
 manager = multiprocessing.Manager()
+
+class ProcList:
+    pids = manager.list()
+    lock = multiprocessing.Lock()
+
+    @staticmethod
+    def Get(uuid:str)->List:
+        return search(ProcList.pids, 'uuid', uuid)
+
+    @staticmethod
+    def Del(uuid:str)->List:
+        for p in search(ProcList.pids, 'uuid', uuid):
+            remove(ProcList.pids, 'uuid', uuid)
+
+    @staticmethod
+    def Add(uuid:str, pid:int)->None:
+        append(ProcList.pids, manager.dict(uuid=uuid, pid=pid))
+
 def reload(lock, cache, jfn)->None:
     with lock:
         while(len(cache) > 0):
