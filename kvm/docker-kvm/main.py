@@ -139,6 +139,8 @@ class MyApp(object):
                     server = f'unix_socket:{local}'
                     # os.kill(pid, signal.SIGKILL)
                     # os.waitpid(pid, 0)
+                    logger.info('just sleep 0.5s, for wait process startup')
+                    time.sleep(0.5)
                 save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
                 path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
                 if proto == 'vnc':

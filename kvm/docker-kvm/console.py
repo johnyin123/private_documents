@@ -9,7 +9,7 @@ import time
 import libvirt
 import multiprocessing
 import logging
-logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
+logging.basicConfig(encoding='utf-8', level=logging.INFO, format='console.py: %(asctime)s %(levelname)s: %(message)s')
 logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,6 @@ CTRL_Q = '\x11'
 class SocketServer(multiprocessing.Process):
     def __init__(self, uuid, url):
         multiprocessing.Process.__init__(self)
-
         self._uuid = uuid
         self._url = url
         self._server_addr = f'/tmp/.display.{uuid}'
@@ -27,14 +26,6 @@ class SocketServer(multiprocessing.Process):
             os.remove(self._server_addr)
         self._socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-        # Remove the socket file if it exists
-        try:
-            os.remove(self._server_addr)
-        except OSError:
-            if os.path.exists(self._server_addr):
-                raise
-
         self._socket.bind(self._server_addr)
         self._socket.listen(SOCKET_QUEUE_BACKLOG)
         logger.info('[%s] socket server to guest %s created', self.name, uuid)
@@ -53,7 +44,6 @@ class SocketServer(multiprocessing.Process):
         console.eventAddCallback(libvirt.VIR_STREAM_EVENT_READABLE, _test_output, None)
         libvirt_loop = threading.Thread(target=_event_loop)
         libvirt_loop.start()
-
         console.send(b'\n')
         libvirt_loop.join(1)
 
@@ -197,8 +187,8 @@ def main(url, uuid):
     try:
         server = SocketServer(uuid, url)
     except Exception as e:
-        logger.error('Cannot create the socket server: %s', str(e))
-        raise
+        logger.exception('console')
+        return -1
     server.start()
     return server
 
@@ -207,5 +197,5 @@ if __name__ == '__main__':
     if argc != 3:
         print(f'usage: {sys.argv[0]} <url> <uuid>')
         sys.exit(1)
-    print(f'nc -U /tmp/{sys.argv[2]}')
+    print(f'DEBUG:nc -U /tmp/.display.{sys.argv[2]}')
     main(sys.argv[1], sys.argv[2])
