@@ -26,7 +26,7 @@ DEVICE_DIR   = os.path.join(OUTDIR, 'devices') # # device template dir
 DOMAIN_DIR   = os.path.join(OUTDIR, 'domains') # # domain template dir
 META_DIR     = os.path.join(OUTDIR, 'meta') # # cloud-init meta template dir
 TOKEN_DIR    = os.path.join(OUTDIR, 'token') # # vnc/spice access token dir
-REQ_JSON_DIR = os.path.join(OUTDIR, 'request') # # create_vm request json logs
+REQ_JSON_DIR = os.path.join(OUTDIR, 'reqlogs') # # create_vm request json logs
 
 # # vm define default values
 def VM_DEFAULT(arch:str='x86_64', hostname:str='dummy')->Dict:

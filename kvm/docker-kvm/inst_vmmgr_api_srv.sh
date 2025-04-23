@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("5f726e86[2025-04-21T06:58:07+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("06b79cfc[2025-04-23T13:47:14+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -84,6 +84,7 @@ EO_DOC
     }
     log "install ${home_dir}/app/startup.sh"
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${home_dir}/app
+    [ "${docker}" == "1" ] || outdir=$(realpath "${outdir}")
     cat <<EODOC | install -v -C -m 0755 --group=${gid} --owner=${uid} /dev/stdin ${home_dir}/app/startup.sh
 #!/usr/bin/env bash
 export OUTDIR=${outdir}
@@ -103,7 +104,7 @@ inst_app_outdir() {
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/iso
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/gold
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/token
-    install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/request
+    install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/reqlogs
     local dirs=(actions devices domains meta)
     for dn in ${dirs[@]}; do
         install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/${dn}
