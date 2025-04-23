@@ -1,15 +1,13 @@
 const config = { g_hosts: {}, g_host:'', g_vm:'', g_dev:'' };
-function set_curr_host(kvmhost) { config.g_host = kvmhost; config.g_vm = ''; config.g_dev = ''; }
 function curr_host() { return config.g_host; }
-function set_curr_vm(uuid) { config.g_vm = uuid; config.g_dev = ''; }
 function curr_vm() { return config.g_vm; }
-function set_curr_dev(dev) { config.g_dev = dev; }
 function curr_dev() { return config.g_dev; }
+function set_curr(kvmhost, uuid='', dev='') { config.g_host = kvmhost; config.g_vm = uuid; config.g_dev = dev; console.info(config.g_host, config.g_vm, config.g_dev);}
 
 function getHost(kvmhost) { return config.g_hosts.find(el => el.name === kvmhost); }
 function genOption(jsonobj, selectedValue = '') {
   return jsonobj.map(item => {
-    return `<option value="${item.name}" ${item.name === selectedValue ? 'selected' : ''}>${item.desc}</option>`;
+    return `<option value="${item.name}" ${item.desc === selectedValue ? 'selected' : ''}>${item.desc}</option>`;
   }).join('');
 }
 function filterByKey(array, key, value) {
@@ -30,8 +28,6 @@ function genActBtn(btn=true, smsg, icon, action, kvmhost, args={}) {
   // args must string
   var str_arg = `"${kvmhost}"`;
   for(const key in args) {
-      if(key === 'uuid') { set_curr_vm(args[key]); }
-      if(key === 'dev') { set_curr_dev(args[key]); }
       str_arg += `,"${args[key]}"`;
   }
   if(btn == true) {
@@ -197,13 +193,13 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 12
   });
 }
 function vmlist(kvmhost) {
+  set_curr(kvmhost);
   document.getElementById("vms").innerHTML = '';
   getjson('GET', `/vm/list/${kvmhost}`, function(res) {
     document.getElementById("vms").innerHTML = show_vms(kvmhost, JSON.parse(res));
   });
 }
 function on_menu_host(kvmhost) {
-  set_curr_host(kvmhost);
   document.getElementById("host").innerHTML = show_host(kvmhost);
   vmlist(kvmhost);
   showView("hostlist");
@@ -228,6 +224,7 @@ function getjson_result(res) {
   }
 }
 function show_xml(host, uuid) {
+  set_curr(host, uuid);
   getjson('GET', `/vm/xml/${host}/${uuid}`, function(res) {
     Alert('success', `XMLDesc`, res.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
   });
@@ -261,32 +258,38 @@ function on_vmui(form) {
   return false;
 }
 function show_vmui(host, uuid) {
+  set_curr(host, uuid);
   showView('vmui');
 }
 function start(host, uuid) {
+  set_curr(host, uuid);
   if (confirm(`Start ${uuid}?`)) {
     getjson('GET', `/vm/start/${host}/${uuid}`, getjson_result);
   }
 }
 function reset(host, uuid) {
+  set_curr(host, uuid);
   if (confirm(`Reset ${uuid}?`)) {
     getjson('GET', `/vm/reset/${host}/${uuid}`, getjson_result);
   }
 }
 function stop(host, uuid, force=false) {
+  set_curr(host, uuid);
   if (confirm(`${force ? 'Force ' : ''}Stop ${uuid}?`)) {
     getjson('GET', `/vm/stop/${host}/${uuid}${force ? '?force=true' : ''}`, getjson_result);
   }
 }
 function force_stop(host, uuid) {
-    stop(host, uuid, true);
+  stop(host, uuid, true);
 }
 function undefine(host, uuid) {
+  set_curr(host, uuid);
   if (confirm(`Undefine ${uuid}?`)) {
     getjson('GET', `/vm/delete/${host}/${uuid}`, getjson_result);
   }
 }
 function display(host, uuid) {
+  set_curr(host, uuid);
   getjson('GET', `/vm/display/${host}/${uuid}`, function(resp) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
@@ -298,6 +301,7 @@ function display(host, uuid) {
   });
 }
 function del_device(host, uuid, dev) {
+  set_curr(host, uuid, dev);
   if (confirm(`delete device /${host}/${uuid}/${dev} ?`)) {
     getjson('POST', `/vm/detach_device/${host}/${uuid}?dev=${dev}`, getjson_result);
   }
@@ -308,6 +312,7 @@ function on_changeiso(form) {
   return false;
 }
 function change_iso(host, uuid, dev) {
+  set_curr(host, uuid, dev);
   showView('changecdrom');
   getjson('GET', `/tpl/iso/`, function(resp) {
     document.getElementById('isoname_list').innerHTML = genOption(JSON.parse(resp));
@@ -318,7 +323,8 @@ function on_createvm(form) {
   getjson('POST', `/vm/create/${curr_host()}`, getjson_result, getFormJSON(form));
   return false;
 }
-function create_vm(host, arch) {
+function create_vm(host) {
+  set_curr(host);
   showView('createvm');
   getjson('GET', `/vm/freeip/`, function(resp) {
     var ips = JSON.parse(resp);
@@ -342,6 +348,7 @@ function on_add(form) {
   return false;
 }
 function add_disk(host, uuid) {
+  set_curr(host, uuid);
   showView('adddisk');
   getjson('GET', `/tpl/device/${host}`, function(resp) {
     document.getElementById('dev_list').innerHTML = genOption(filterByKey(JSON.parse(resp), 'devtype', 'disk'));
@@ -351,12 +358,14 @@ function add_disk(host, uuid) {
   });
 }
 function add_net(host, uuid) {
+  set_curr(host, uuid);
   showView('addnet');
   getjson('GET', `/tpl/device/${host}`, function(resp) {
     document.getElementById('net_list').innerHTML = genOption(filterByKey(JSON.parse(resp), 'devtype', 'net'));
   });
 }
 function add_cdrom(host, uuid) {
+  set_curr(host, uuid);
   showView('addcdrom');
   getjson('GET', `/tpl/device/${host}`, function(resp) {
     document.getElementById('cdrom_list').innerHTML = genOption(filterByKey(JSON.parse(resp), 'devtype', 'iso'));
