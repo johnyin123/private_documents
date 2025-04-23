@@ -185,10 +185,8 @@ class MyApp(object):
             username = decode_jwt(flask.request.cookies.get('token', '')).get('payload', {}).get('username', '')
             host = database.KVMHost.getHostInfo(hostname)
             # # avoid :META_SRV overwrite by user request
-            flask.request.json.pop('vm_uuid', "Not found")
-            flask.request.json.pop('vm_arch', "Not found")
-            flask.request.json.pop('create_tm', "Not found")
-            flask.request.json.pop('META_SRV', "Not found")
+            for key in ['vm_uuid','vm_arch','create_tm','META_SRV']:
+                flask.request.json.pop(key, "Not found")
             req_json = {**config.VM_DEFAULT(host.arch, hostname), **flask.request.json, **{'username':username}}
             xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
             dom = vmmanager.VMManager.create_vm(host.url, req_json['vm_uuid'], xml)
