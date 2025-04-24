@@ -31,6 +31,7 @@ import threading
 def wait_proc(uuid, pid):
     # avoid defunct zombie process
     os.waitpid(pid, 0)
+    ProcList.Del(uuid)
     logger.info(f'{uuid} PID={pid} exit')
 
 class ProcList:
