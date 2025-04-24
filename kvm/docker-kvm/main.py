@@ -137,8 +137,6 @@ class MyApp(object):
                     ProcList.Add(uuid, pid)
                     logger.info("Opened tunnel PID=%d, %s", pid, socat_cmd)
                     server = f'unix_socket:{local}'
-                    # os.kill(pid, signal.SIGKILL)
-                    # os.waitpid(pid, 0)
                     logger.info('just sleep 0.5s, for wait process startup')
                     time.sleep(0.5)
                 save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')

@@ -27,6 +27,12 @@ def remove(arr:List, key, val)-> None:
 import multiprocessing
 manager = multiprocessing.Manager()
 
+import threading
+def wait_proc(uuid, pid):
+    # avoid defunct zombie process
+    os.waitpid(pid, 0)
+    logger.info(f'{uuid} PID={pid} exit')
+
 class ProcList:
     pids = manager.list()
     lock = multiprocessing.Lock()
@@ -43,6 +49,7 @@ class ProcList:
     @staticmethod
     def Add(uuid:str, pid:int)->None:
         append(ProcList.pids, manager.dict(uuid=uuid, pid=pid))
+        threading.Thread(target=wait_proc, args=(uuid, pid,)).start()
 
 def reload(lock, cache, jfn)->None:
     with lock:
