@@ -19,6 +19,7 @@ CTRL_Q = '\x11'
 class SocketServer(multiprocessing.Process):
     def __init__(self, uuid, url):
         multiprocessing.Process.__init__(self)
+        self.stop_event = threading.Event()
         self._uuid = uuid
         self._url = url
         self._server_addr = f'/tmp/.display.{uuid}'
@@ -37,12 +38,12 @@ class SocketServer(multiprocessing.Process):
         is_listening = []
         def _test_output(stream, event, opaque):
             is_listening.append(1)
-        def _event_loop():
-            while not is_listening:
+        def _event_loop(event):
+            while not is_listening and not event.is_set():
                 libvirt.virEventRunDefaultImpl()
 
         console.eventAddCallback(libvirt.VIR_STREAM_EVENT_READABLE, _test_output, None)
-        libvirt_loop = threading.Thread(target=_event_loop)
+        libvirt_loop = threading.Thread(target=_event_loop, args=(self.stop_event,))
         libvirt_loop.start()
         console.send(b'\n')
         libvirt_loop.join(1)
@@ -65,8 +66,8 @@ class SocketServer(multiprocessing.Process):
             return
         opaque.send(data)
 
-    def libvirt_event_loop(self, guest, client):
-        while guest.is_running():
+    def libvirt_event_loop(self, guest, client, event):
+        while guest.is_running() and not event.is_set():
             libvirt.virEventRunDefaultImpl()
         # shutdown the client socket to unblock the recv and stop the
         # server as soon as the guest shuts down
@@ -106,6 +107,7 @@ class SocketServer(multiprocessing.Process):
                 console.eventRemoveCallback()
             except Exception as e:
                 logger.info('[%s] Callback is probably removed: %s', self.name, str(e))
+            self.stop_event.set()
             guest.close()
 
     def _listen(self, guest, console):
@@ -117,7 +119,8 @@ class SocketServer(multiprocessing.Process):
         console.eventAddCallback(libvirt.VIR_STREAM_EVENT_READABLE, self._send_to_client, client)
 
         # start the libvirt event loop in a python thread
-        libvirt_loop = threading.Thread(target=self.libvirt_event_loop, args=(guest, client))
+        libvirt_loop = threading.Thread(target=self.libvirt_event_loop, args=(guest, client, self.stop_event,))
+
         libvirt_loop.start()
         while True:
             data = ''
