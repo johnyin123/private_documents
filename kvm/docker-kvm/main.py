@@ -123,7 +123,7 @@ class MyApp(object):
                 elif server == '127.0.0.1' or server == 'localhost':
                     local = f'/tmp/.display.{uuid}'
                     ssh_cmd = f'ssh -p {host.sshport} {host.sshuser}@{host.ipaddr} socat STDIO TCP:{server}:{port}'
-                    socat_cmd = ('timeout', f'{timeout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
+                    socat_cmd = ('timeout', '--preserve-status', '--verbose',f'{timeout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
                     if proto == 'console':
                         socat_cmd = ('timeout', f'{timeout}',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
                     for proc in ProcList.Get(uuid):
