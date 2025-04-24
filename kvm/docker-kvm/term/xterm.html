@@ -55,10 +55,10 @@ socket.onopen = () => {
   console.log('WebSocket connection established!');
 };
 socket.onerror = (error) => {
-  console.error('WebSocket error:', error);
+  alert(`WebSocket error:${error}`);
 };
 socket.onclose = () => {
-  console.log('WebSocket connection closed.');
+  alert('WebSocket connection closed.');
 };
 </script>
 </body>
