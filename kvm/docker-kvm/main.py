@@ -128,7 +128,10 @@ class MyApp(object):
                         socat_cmd = ('timeout', f'{timeout}',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
                     for proc in ProcList.Get(uuid):
                         logger.info(f'{proc} {socat_cmd} exists, kill!!')
-                        os.kill(proc['pid'], signal.SIGTERM)
+                        try:
+                            os.kill(proc['pid'], signal.SIGTERM)
+                        except:
+                            pass
                         ProcList.Del(uuid)
                     pid = os.fork()
                     if pid == 0:
