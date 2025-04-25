@@ -3,7 +3,7 @@
 
 import flask_app, flask, signal, os, libvirt, json
 import database, vmmanager, template, device, meta, config
-from utils import return_ok, return_err, deal_except, save, decode_jwt, ProcList, remove
+from utils import return_ok, return_err, deal_except, save, decode_jwt, ProcList, remove, websockify_secure_link
 from flask_app import logger
 import base64, hashlib, time, datetime
 
@@ -14,13 +14,6 @@ def user_access_secure_link(kvmhost, uuid, mykey, epoch):
     tail_uri=f'{kvmhost}/{uuid}?k={str_hash}&e={epoch}'
     token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
     return f'{token}', datetime.datetime.fromtimestamp(epoch).isoformat()
-
-def websockify_secure_link(uuid, mykey, minutes):
-    # secure_link_md5 "$mykey$secure_link_expires$arg_token$uri";
-    epoch = round(time.time() + minutes*60)
-    secure_link = f"{mykey}{epoch}{uuid}/websockify/".encode('utf-8')
-    str_hash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
-    return f"websockify/%3Ftoken={uuid}%26k={str_hash}%26e={epoch}", datetime.datetime.fromtimestamp(epoch).isoformat()
 
 class MyApp(object):
     @staticmethod
@@ -189,7 +182,7 @@ class MyApp(object):
 
     def get_domain_cmd(self, cmd:str, hostname:str, uuid:str):
         dom_cmds = {
-                'GET': ['xml', 'ipaddr', 'start', 'reset', 'stop', 'delete'],
+                'GET': ['xml', 'ipaddr', 'start', 'reset', 'stop', 'delete', 'console'],
                 'POST': ['detach_device', 'cdrom']
                 }
         try:

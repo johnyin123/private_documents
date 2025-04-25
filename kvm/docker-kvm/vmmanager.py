@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import libvirt, xml.dom.minidom, json, os, template, config
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-from utils import return_ok, getlist_without_key, remove_file, connect
+from utils import return_ok, getlist_without_key, remove_file, connect, ProcList, save, websockify_secure_link
 from flask_app import logger
 from database import KVMIso, IPPool
 
@@ -274,6 +274,21 @@ class VMManager:
                 pool.refresh(0)
             except libvirt.libvirtError as e:
                 logger.exception(f"Failed refresh pool {pool.name()}")
+
+    @staticmethod
+    def console(url:str, uuid:str) -> str:
+        with connect(url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            state, maxmem, curmem, curcpu, cputime = dom.info()
+            if state != libvirt.VIR_DOMAIN_RUNNING:
+                raise Exception(f'vm {uuid} not running')
+        socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{config.SOCAT_TMOUT}',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{url}', f'{uuid}')
+        ProcList.Run(uuid, socat_cmd)
+        local = f'/tmp/.display.{uuid}'
+        server = f'unix_socket:{local}'
+        save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
+        path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
+        return return_ok('console', display=f'{config.CONSOLE_URL}?password=&path={path}', expire=dt)
 
     @staticmethod
     def stop(url:str, uuid:str, **kwargs) -> str:

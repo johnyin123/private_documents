@@ -96,6 +96,7 @@ echo 'list host vms' && curl -k ${srv}/vm/list/${host}                # from hos
 echo 'list a vm on host' && curl -k ${srv}/vm/list/${host}/${uuid}    # from host
 echo 'start vm' && curl -k ${srv}/vm/start/${host}/${uuid}
 echo 'display vnc' && curl -k ${srv}/vm/display/${host}/${uuid}
+echo 'console' && curl -k ${srv}/vm/console/${host}/${uuid}
 echo 'commn stop vm' && curl -k ${srv}/vm/stop/${host}/${uuid}
 echo 'commn reset vm' && curl -k ${srv}/vm/reset/${host}/${uuid}
 echo 'force stop vm' && curl -k ${srv}/vm/stop/${host}/${uuid}?force=true # force stop. destroy

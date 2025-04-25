@@ -50,7 +50,7 @@ server {
         # # no cache!! mgr private access
         proxy_cache off;
         expires off;
-        location ~* ^/vm/(ipaddr|list|start|reset|stop|delete|display|xml|ui|freeip)/ {
+        location ~* ^/vm/(ipaddr|list|start|reset|stop|delete|console|display|xml|ui|freeip)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
             # # for server stream output
             proxy_buffering                    off;

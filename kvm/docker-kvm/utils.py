@@ -128,3 +128,11 @@ def deal_except(who:str, e:Exception) -> str:
         return return_err(e.get_error_code(), f'{who}', e.get_error_message())
     else:
         return return_err(998, f'{who}', f'{str(e)}')
+
+import base64, hashlib, time, datetime
+def websockify_secure_link(uuid, mykey, minutes):
+    # secure_link_md5 "$mykey$secure_link_expires$arg_token$uri";
+    epoch = round(time.time() + minutes*60)
+    secure_link = f"{mykey}{epoch}{uuid}/websockify/".encode('utf-8')
+    str_hash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
+    return f"websockify/%3Ftoken={uuid}%26k={str_hash}%26e={epoch}", datetime.datetime.fromtimestamp(epoch).isoformat()
