@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import flask_app, flask, signal, os, libvirt, json
-import database, vmmanager, template, device, meta, config
-from utils import return_ok, return_err, deal_except, save, decode_jwt, ProcList, remove, websockify_secure_link
+import database, vmmanager, template, meta, config
+from utils import return_ok, return_err, deal_except, save, decode_jwt, ProcList, remove
+from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
 from flask_app import logger
 import base64, hashlib, time, datetime
 
@@ -14,6 +15,18 @@ def user_access_secure_link(kvmhost, uuid, mykey, epoch):
     tail_uri=f'{kvmhost}/{uuid}?k={str_hash}&e={epoch}'
     token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
     return f'{token}', datetime.datetime.fromtimestamp(epoch).isoformat()
+
+def do_attach(host, xml:str, action:str, arg:str, req_json:dict, **kwargs)-> Generator:
+    try:
+        cmd = [os.path.join(config.ACTION_DIR, f'{action}'), f'{arg}']
+        if action is not None and len(action) != 0:
+            for line in ProcList.wait_proc(req_json['vm_uuid'], cmd, False, req_json, **kwargs):
+                logger.info(line.strip())
+                yield line
+        vmmanager.VMManager.attach_device(host, req_json['vm_uuid'], xml)
+        yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot')
+    except Exception as e:
+        yield deal_except(f'{cmd}', e)
 
 class MyApp(object):
     @staticmethod
@@ -40,7 +53,6 @@ class MyApp(object):
         ## end db oper guest ##
         app.add_url_rule('/vm/list/<string:hostname>', view_func=self.list_domains, methods=['GET'])
         app.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=self.get_domain, methods=['GET'])
-        app.add_url_rule('/vm/display/<string:hostname>/<string:uuid>', view_func=self.get_display, methods=['GET'])
         app.add_url_rule('/vm/create/<string:hostname>', view_func=self.create_vm, methods=['POST'])
         app.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=self.attach_device, methods=['POST'])
         app.add_url_rule('/vm/ui/<string:hostname>/<string:uuid>/<int:epoch>', view_func=self.get_vmui, methods=['GET'])
@@ -102,31 +114,6 @@ class MyApp(object):
         except Exception as e:
             return deal_except(f'get_vmui', e), 400
 
-    def get_display(self, hostname, uuid):
-        try:
-            host = database.KVMHost.getHostInfo(hostname)
-            timeout = config.SOCAT_TMOUT
-            for it in vmmanager.VMManager.get_display(host, uuid):
-                proto = it.get('proto', '')
-                server = it.get('server', '')
-                port = it.get('port', '')
-                if server == '0.0.0.0':
-                    server = f'{host.ipaddr}:{port}'
-                elif server == '127.0.0.1' or server == 'localhost':
-                    local = f'/tmp/.display.{uuid}'
-                    ssh_cmd = f'ssh -p {host.sshport} {host.sshuser}@{host.ipaddr} socat STDIO TCP:{server}:{port}'
-                    socat_cmd = ('timeout', '--preserve-status', '--verbose',f'{timeout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
-                    if proto == 'console':
-                        socat_cmd = ('timeout', f'{timeout}',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
-                    ProcList.Run(uuid, socat_cmd)
-                    server = f'unix_socket:{local}'
-                save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
-                path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
-                url_map = {'vnc': config.VNC_DISP_URL,'spice':config.SPICE_DISP_URL,'console':config.CONSOLE_URL}
-                return return_ok(proto, display=f'{url_map[proto]}?password={it.get("passwd", "")}&path={path}', expire=dt)
-        except Exception as e:
-            return deal_except(f'get_display', e), 400
-
     def list_domains(self, hostname):
         try:
             host = database.KVMHost.getHostInfo(hostname)
@@ -159,7 +146,7 @@ class MyApp(object):
             xml = tpl.gen_xml(**req_json)
             # all env must string
             env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
-            return flask.Response(device.do_attach(host, xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
+            return flask.Response(do_attach(host, xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
         except Exception as e:
             return deal_except(f'attach_device', e), 400
 
@@ -182,7 +169,7 @@ class MyApp(object):
 
     def get_domain_cmd(self, cmd:str, hostname:str, uuid:str):
         dom_cmds = {
-                'GET': ['xml', 'ipaddr', 'start', 'reset', 'stop', 'delete', 'console'],
+                'GET': ['xml', 'ipaddr', 'start', 'reset', 'stop', 'delete', 'console','display'],
                 'POST': ['detach_device', 'cdrom']
                 }
         try:

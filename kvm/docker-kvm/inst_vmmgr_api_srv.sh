@@ -2,11 +2,11 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("06b79cfc[2025-04-23T13:47:14+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("e703356f[2025-04-24T07:41:02+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
-APPFILES=(flask_app.py dbi.py database.py database.py.shm config.py meta.py utils.py device.py main.py template.py vmmanager.py console.py)
+APPFILES=(flask_app.py dbi.py database.py database.py.shm config.py meta.py utils.py main.py template.py vmmanager.py console.py)
 APPDBS=(devices.json golds.json guests.json hosts.json iso.json ippool.json)
 TOOLS=(reload_dbtable)
 ################################################################################

@@ -181,7 +181,7 @@ class VMManager:
             return LibvirtDomain(conn.lookupByUUIDString(uuid))
 
     @staticmethod
-    def get_display(host:FakeDB, uuid:str)-> List:
+    def display(host:FakeDB, uuid:str)-> List:
         XMLDesc_Secure=None
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
@@ -190,12 +190,26 @@ class VMManager:
                 raise Exception(f'vm {uuid} not running')
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
         p = xml.dom.minidom.parseString(XMLDesc_Secure)
-        displays = []
         for item in p.getElementsByTagName('graphics'):
-            displays.append({'proto':item.getAttribute('type'),'server':item.getAttribute('listen'),'port':item.getAttribute('port'),'passwd':item.getAttribute('passwd')})
-        if len(displays) == 0:
-            displays.append({'proto':'console','server':'127.0.0.1'})
-        return displays
+            server = ''
+            proto = item.getAttribute('type')
+            listen = item.getAttribute('listen')
+            port = item.getAttribute('port')
+            if listen == '0.0.0.0':
+                server = f'{host.ipaddr}:{port}'
+            elif listen == '127.0.0.1' or listen == 'localhost':
+                local = f'/tmp/.display.{uuid}'
+                ssh_cmd = f'ssh -p {host.sshport} {host.sshuser}@{host.ipaddr} socat STDIO TCP:{listen}:{port}'
+                socat_cmd = ('timeout', '--preserve-status', '--verbose',f'{config.SOCAT_TMOUT}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
+                ProcList.Run(uuid, socat_cmd)
+                server = f'unix_socket:{local}'
+            else:
+                raise Exception('graphic listen "{listen}" unknown')
+            save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
+            path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
+            url_map = {'vnc': config.VNC_DISP_URL,'spice':config.SPICE_DISP_URL}
+            return return_ok(proto, display=f'{url_map[proto]}?password={item.getAttribute("passwd")}&path={path}', expire=dt)
+        raise Exception('no graphic found')
 
     @staticmethod
     def delete(host:FakeDB, uuid:str)-> str:
