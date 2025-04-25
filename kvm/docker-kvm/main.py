@@ -89,14 +89,14 @@ class MyApp(object):
     def get_domain(self, hostname, uuid):
         try:
             host = database.KVMHost.getHostInfo(hostname)
-            return vmmanager.VMManager.get_domain(host.url, uuid)._asdict()
+            return vmmanager.VMManager.get_domain(host, uuid)._asdict()
         except Exception as e:
             return deal_except(f'get_domain', e), 400
 
     def get_vmui(self, hostname, uuid, epoch):
         try:
             host = database.KVMHost.getHostInfo(hostname)
-            dom = vmmanager.VMManager.get_domain(host.url, uuid)
+            dom = vmmanager.VMManager.get_domain(host, uuid)
             token, dt = user_access_secure_link(host.name, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
             return return_ok('vmuserinterface', url=f'{config.USER_ACCESS_URL}', token=f'{token}', expire=dt)
         except Exception as e:
@@ -106,7 +106,7 @@ class MyApp(object):
         try:
             host = database.KVMHost.getHostInfo(hostname)
             timeout = config.SOCAT_TMOUT
-            for it in vmmanager.VMManager.get_display(host.url, uuid):
+            for it in vmmanager.VMManager.get_display(host, uuid):
                 proto = it.get('proto', '')
                 server = it.get('server', '')
                 port = it.get('port', '')
@@ -130,7 +130,7 @@ class MyApp(object):
     def list_domains(self, hostname):
         try:
             host = database.KVMHost.getHostInfo(hostname)
-            results = [result._asdict() for result in vmmanager.VMManager.list_domains(host.url)]
+            results = [result._asdict() for result in vmmanager.VMManager.list_domains(host)]
             # only list domains need KVMGuest.Upsert.
             database.KVMGuest.Upsert(host.name, host.arch, results)
             return results
@@ -147,7 +147,7 @@ class MyApp(object):
             host = database.KVMHost.getHostInfo(hostname)
             dev = database.KVMDevice.getDeviceInfo(hostname, name)
             tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
-            dom = vmmanager.VMManager.get_domain(host.url, uuid)
+            dom = vmmanager.VMManager.get_domain(host, uuid)
             if tpl.bus is not None:
                 req_json['vm_last_disk'] = dom.next_disk[tpl.bus]
                 gold = req_json.get("gold", "")
@@ -159,7 +159,7 @@ class MyApp(object):
             xml = tpl.gen_xml(**req_json)
             # all env must string
             env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
-            return flask.Response(device.generate(xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
+            return flask.Response(device.do_attach(host, xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
         except Exception as e:
             return deal_except(f'attach_device', e), 400
 
@@ -172,7 +172,7 @@ class MyApp(object):
                 flask.request.json.pop(key, "Not found")
             req_json = {**config.VM_DEFAULT(host.arch, hostname), **flask.request.json, **{'username':username}}
             xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
-            dom = vmmanager.VMManager.create_vm(host.url, req_json['vm_uuid'], xml)
+            dom = vmmanager.VMManager.create_vm(host, req_json['vm_uuid'], xml)
             database.IPPool.remove(req_json.get('vm_ip', ''))
             meta.gen_metafiles(dom.mdconfig, req_json)
             save(os.path.join(config.REQ_JSON_DIR, req_json['vm_uuid']), json.dumps(req_json, indent=4))
@@ -189,10 +189,10 @@ class MyApp(object):
             if cmd in dom_cmds[flask.request.method]:
                 req_json = flask.request.get_json(silent=True, force=True)
                 host = database.KVMHost.getHostInfo(hostname)
-                args = {'url': host.url, 'uuid': uuid}
+                args = {'host': host, 'uuid': uuid}
                 for key, value in flask.request.args.items():
                     # # remove secure_link args, so func no need **kwargs
-                    if key in ['k', 'e', 'url', 'uuid']:
+                    if key in ['k', 'e', 'host', 'uuid']:
                         continue
                     args[key] = value
                 # args = {**flask.request.args, 'url': host.url, 'uuid': uuid}

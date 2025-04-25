@@ -3,7 +3,7 @@ import libvirt, xml.dom.minidom, json, os, template, config
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from utils import return_ok, getlist_without_key, remove_file, connect, ProcList, save, websockify_secure_link
 from flask_app import logger
-from database import KVMIso, IPPool
+from database import FakeDB, KVMIso, IPPool
 
 class LibvirtDomain:
     def __init__(self, dom):
@@ -135,10 +135,10 @@ def change_media(dev:str, isofile:str)->str:
 
 class VMManager:
     @staticmethod
-    def detach_device(url:str, uuid:str, dev:str)-> str:
+    def detach_device(host:FakeDB, uuid:str, dev:str)-> str:
         # dev = sda/vda....
         # dev = mac address
-        with connect(url) as conn:
+        with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
             flags = dom_flags(domain.state)
@@ -162,15 +162,15 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def attach_device(url:str, uuid:str, xml:str)-> None:
-        with connect(url) as conn:
+    def attach_device(host:FakeDB, uuid:str, xml:str)-> None:
+        with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             state, maxmem, curmem, curcpu, cputime = dom.info()
             dom.attachDeviceFlags(xml, dom_flags(state))
 
     @staticmethod
-    def create_vm(url:str, uuid:str, xml:str) -> LibvirtDomain:
-        with connect(url) as conn:
+    def create_vm(host:FakeDB, uuid:str, xml:str) -> LibvirtDomain:
+        with connect(host.url) as conn:
             try:
                 conn.lookupByUUIDString(uuid)
                 raise Exception(f'vm {uuid} exists')
@@ -181,9 +181,9 @@ class VMManager:
             return LibvirtDomain(conn.lookupByUUIDString(uuid))
 
     @staticmethod
-    def get_display(url:str, uuid:str)-> List:
+    def get_display(host:FakeDB, uuid:str)-> List:
         XMLDesc_Secure=None
-        with connect(url) as conn:
+        with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             state, maxmem, curmem, curcpu, cputime = dom.info()
             if state != libvirt.VIR_DOMAIN_RUNNING:
@@ -198,11 +198,11 @@ class VMManager:
         return displays
 
     @staticmethod
-    def delete(url:str, uuid:str)-> str:
+    def delete(host:FakeDB, uuid:str)-> str:
         remove_file(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
         remove_file(os.path.join(config.ISO_DIR, uuid))
         remove_file(os.path.join(config.REQ_JSON_DIR, uuid))
-        with connect(url) as conn:
+        with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             VMManager.refresh_all_pool(conn)
             domain = LibvirtDomain(dom)
@@ -230,26 +230,26 @@ class VMManager:
             return return_ok(f'{uuid} delete ok', failed=diskinfo)
 
     @staticmethod
-    def xml(url:str, uuid:str) -> str:
-        with connect(url) as conn:
+    def xml(host, uuid:str) -> str:
+        with connect(host.url) as conn:
             return conn.lookupByUUIDString(uuid).XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE)
 
     @staticmethod
-    def get_domain(url:str, uuid:str) -> LibvirtDomain:
-        with connect(url) as conn:
+    def get_domain(host:FakeDB, uuid:str) -> LibvirtDomain:
+        with connect(host.url) as conn:
             return LibvirtDomain(conn.lookupByUUIDString(uuid))
 
     @staticmethod
-    def list_domains(url:str)-> Generator:
-        with connect(url) as conn:
+    def list_domains(host:FakeDB)-> Generator:
+        with connect(host.url) as conn:
             for i in conn.listAllDomains():
                 yield LibvirtDomain(i)
 
     @staticmethod
-    def cdrom(url:str, uuid:str, dev:str, req_json) -> LibvirtDomain:
+    def cdrom(host:FakeDB, uuid:str, dev:str, req_json) -> LibvirtDomain:
         logger.info(f'{req_json}')
         iso = KVMIso.getIso(req_json.get('isoname', None))
-        with connect(url) as conn:
+        with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
             for disk in domain.disks:
@@ -276,13 +276,13 @@ class VMManager:
                 logger.exception(f"Failed refresh pool {pool.name()}")
 
     @staticmethod
-    def console(url:str, uuid:str) -> str:
-        with connect(url) as conn:
+    def console(host:FakeDB, uuid:str) -> str:
+        with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             state, maxmem, curmem, curcpu, cputime = dom.info()
             if state != libvirt.VIR_DOMAIN_RUNNING:
                 raise Exception(f'vm {uuid} not running')
-        socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{config.SOCAT_TMOUT}',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{url}', f'{uuid}')
+        socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{config.SOCAT_TMOUT}',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
         ProcList.Run(uuid, socat_cmd)
         local = f'/tmp/.display.{uuid}'
         server = f'unix_socket:{local}'
@@ -291,8 +291,8 @@ class VMManager:
         return return_ok('console', display=f'{config.CONSOLE_URL}?password=&path={path}', expire=dt)
 
     @staticmethod
-    def stop(url:str, uuid:str, **kwargs) -> str:
-        with connect(url) as conn:
+    def stop(host:FakeDB, uuid:str, **kwargs) -> str:
+        with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             if kwargs.get('force', False):
                 dom.destroy()
@@ -301,25 +301,25 @@ class VMManager:
         return return_ok(f'{uuid} stop ok')
 
     @staticmethod
-    def reset(url:str, uuid:str) -> str:
-        with connect(url) as conn:
+    def reset(host:FakeDB, uuid:str) -> str:
+        with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid).reset()
         return return_ok(f'{uuid} reset ok')
 
     @staticmethod
-    def start(url:str, uuid:str)-> str:
-        with connect(url) as conn:
+    def start(host:FakeDB, uuid:str)-> str:
+        with connect(host.url) as conn:
             conn.lookupByUUIDString(uuid).create()
         return return_ok(f'{uuid} start ok')
 
     @staticmethod
-    def ipaddr(url:str, uuid:str) -> Generator:
+    def ipaddr(host:FakeDB, uuid:str) -> Generator:
     # Generator func call by flask.Response(...)
     # need catch exception and yield it
         def convert_data(data):
             return {value["hwaddr"]: {"names": [name], "addrs": [addr["addr"] for addr in value["addrs"]]} for name, value in data.items() if name != "lo" and value['addrs'] is not None}
         try:
-            with connect(url) as conn:
+            with connect(host.url) as conn:
                 dom = conn.lookupByUUIDString(uuid)
                 leases = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
                 arp = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
