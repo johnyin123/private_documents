@@ -95,6 +95,7 @@ function show_vms(kvmhost, vms) {
     var btn = genActBtn(true, 'Show XML', 'fa-file-code-o', 'show_xml', kvmhost, {'uuid':item.uuid});
     btn += genActBtn(true, 'Guest Admin UI', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':item.uuid});
     if(item.state === 'RUN') {
+      btn += genActBtn(true, 'Console', 'fa-terminal', 'ttyconsole', kvmhost, {'uuid':item.uuid});
       btn += genActBtn(true, 'VNC View', 'fa-desktop', 'display', kvmhost, {'uuid':item.uuid});
       btn += genActBtn(true, 'Reset VM', 'fa-refresh', 'reset', kvmhost, {'uuid':item.uuid});
       btn += genActBtn(true, 'Stop VM', 'fa-power-off', 'stop', kvmhost, {'uuid':item.uuid});
@@ -286,6 +287,17 @@ function undefine(host, uuid) {
   if (confirm(`Undefine ${uuid}?`)) {
     getjson('GET', `/vm/delete/${host}/${uuid}`, getjson_result);
   }
+}
+function ttyconsole(host, uuid) {
+  set_curr(host, uuid);
+  getjson('GET', `/vm/console/${host}/${uuid}`, function(resp) {
+    var result = JSON.parse(resp);
+    if(result.result === 'OK') {
+      window.open(result.display, "_blank");
+    } else {
+      disperr(result.code, result.name, result.desc);
+    }
+  });
 }
 function display(host, uuid) {
   set_curr(host, uuid);
