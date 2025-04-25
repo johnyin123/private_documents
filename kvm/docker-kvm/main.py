@@ -114,7 +114,6 @@ class MyApp(object):
             host = database.KVMHost.getHostInfo(hostname)
             timeout = config.SOCAT_TMOUT
             for it in vmmanager.VMManager.get_display(host.url, uuid):
-                passwd = it.get('passwd', '')
                 proto = it.get('proto', '')
                 server = it.get('server', '')
                 port = it.get('port', '')
@@ -131,7 +130,7 @@ class MyApp(object):
                 save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
                 path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
                 url_map = {'vnc': config.VNC_DISP_URL,'spice':config.SPICE_DISP_URL,'console':config.CONSOLE_URL}
-                return return_ok(proto, display=f'{url_map[proto]}?password={passwd}&path={path}', expire=dt)
+                return return_ok(proto, display=f'{url_map[proto]}?password={it.get("passwd", "")}&path={path}', expire=dt)
         except Exception as e:
             return deal_except(f'get_display', e), 400
 
