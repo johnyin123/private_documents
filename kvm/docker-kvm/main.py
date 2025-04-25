@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import flask_app, flask, os, libvirt, json, signal
+import flask_app, flask, os, libvirt, json
 import database, vmmanager, template, device, meta, config
 from utils import return_ok, return_err, deal_except, save, decode_jwt, ProcList
 from flask_app import logger
@@ -126,22 +126,8 @@ class MyApp(object):
                     socat_cmd = ('timeout', '--preserve-status', '--verbose',f'{timeout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
                     if proto == 'console':
                         socat_cmd = ('timeout', f'{timeout}',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
-                    for proc in ProcList.Get(uuid):
-                        logger.info(f'{proc} {socat_cmd} exists, kill!!')
-                        try:
-                            os.kill(proc['pid'], signal.SIGTERM)
-                        except:
-                            pass
-                        ProcList.Del(uuid)
-                    pid = os.fork()
-                    if pid == 0:
-                        os.execvp(socat_cmd[0], socat_cmd)
-                        os._exit(0)
-                    ProcList.Add(uuid, pid)
-                    logger.info("Opened tunnel PID=%d, %s", pid, socat_cmd)
+                    ProcList.Run(uuid, socat_cmd)
                     server = f'unix_socket:{local}'
-                    logger.info('just sleep 0.5s, for wait process startup')
-                    time.sleep(0.5)
                 save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
                 path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
                 if proto == 'vnc':

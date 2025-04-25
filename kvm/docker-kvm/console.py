@@ -9,7 +9,7 @@ import time
 import libvirt
 import multiprocessing
 import logging
-logging.basicConfig(encoding='utf-8', level=logging.INFO, format='console.py: %(asctime)s %(levelname)s: %(message)s')
+logging.basicConfig(encoding='utf-8', level=logging.INFO, format='console.py: %(message)s')
 logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
@@ -60,7 +60,7 @@ class SocketServer(multiprocessing.Process):
             data = stream.recv(1024)
         except Exception as e:
             logger.info('[%s] Error when reading from console: %s', self.name, str(e))
-            return
+            sys.exit(2)
         # return if no data received or client socket(opaque) is not valid
         if not data or not opaque:
             return
@@ -107,6 +107,7 @@ class SocketServer(multiprocessing.Process):
                 console.eventRemoveCallback()
             except Exception as e:
                 logger.info('[%s] Callback is probably removed: %s', self.name, str(e))
+                sys.exit(6)
             self.stop_event.set()
             guest.close()
 
@@ -117,10 +118,8 @@ class SocketServer(multiprocessing.Process):
         logger.info('[%s] Client connected to %s', self.name, self._uuid)
         # register the callback to receive any data from the console
         console.eventAddCallback(libvirt.VIR_STREAM_EVENT_READABLE, self._send_to_client, client)
-
         # start the libvirt event loop in a python thread
         libvirt_loop = threading.Thread(target=self.libvirt_event_loop, args=(guest, client, self.stop_event,))
-
         libvirt_loop.start()
         while True:
             data = ''
@@ -133,6 +132,7 @@ class SocketServer(multiprocessing.Process):
                 break
             # if the console can no longer be accessed, close everything
             # and quits
+            time.sleep(0.1)
             try:
                 console.send(data)
             except Exception:
@@ -193,12 +193,13 @@ def main(url, uuid):
         logger.exception('console')
         return -1
     server.start()
-    return server
+    return 0
 
 if __name__ == '__main__':
     argc = len(sys.argv)
     if argc != 3:
         print(f'usage: {sys.argv[0]} <url> <uuid>')
         sys.exit(1)
-    print(f'DEBUG:nc -U /tmp/.display.{sys.argv[2]}')
+    logger.info(f'DEBUG:nc -U /tmp/.display.{sys.argv[2]}')
     main(sys.argv[1], sys.argv[2])
+    logger.info(f'{sys.argv[1]} {sys.argv[2]} exit')
