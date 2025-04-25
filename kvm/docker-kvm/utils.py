@@ -15,6 +15,57 @@ def connect(uri: str)-> Generator:
         if conn is not None:
             conn.close()
 
+import multiprocessing, threading, subprocess, signal, time
+manager = multiprocessing.Manager()
+
+class ProcList:
+    pids = manager.list()
+    lock = multiprocessing.Lock()
+
+    @staticmethod
+    def wait_proc(uuid:str, cmd:List, redirect:bool = True, req_json: dict = {}, **kwargs)-> Generator:
+        pid = 0
+        try:
+            output = subprocess.STDOUT if redirect else subprocess.PIPE
+            with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
+                pid = proc.pid
+                with ProcList.lock:
+                    for p in search(ProcList.pids, 'uuid', uuid):
+                        logger.info(f'PROC: {p} found, kill!!')
+                        try:
+                            os.kill(p['pid'], signal.SIGTERM)
+                        except:
+                            logger.exception('PROC')
+                        remove(ProcList.pids, 'pid', p['pid'])
+                    logger.info(f'PROC: {uuid} PID={pid} {cmd} start')
+                    append(ProcList.pids, manager.dict(uuid=uuid, pid=pid))
+                json.dump(req_json, proc.stdin, indent=4) # proc.stdin.write(req_json)
+                proc.stdin.close()
+                for line in proc.stdout:
+                    yield line
+                proc.wait()
+                if proc.returncode != 0:
+                    msg = ''.join(proc.stderr if not redirect else [])
+                    logger.error(f'PROC: execute {cmd} error={proc.returncode}')
+                    raise Exception(f"execute {cmd} error={proc.returncode} {msg}")
+        finally:
+            logger.info(f'PROC: {uuid} PID={pid} exit!!!')
+            with ProcList.lock:
+                remove(ProcList.pids, 'pid', pid)
+
+    @staticmethod
+    def Run(uuid:str, cmd:List)->None:
+        def run_thread(uuid:str, cmd:List):
+            try:
+                for line in ProcList.wait_proc(uuid, cmd):
+                    logger.info(line)
+            except:
+                logger.exception('run_thread')
+
+        # Daemon threads automatically terminate when the main program exits.
+        threading.Thread(target=run_thread, args=(uuid, cmd,), daemon=True).start()
+        time.sleep(0.3)  # sleep for wait process startup
+
 def append(arr:List, val:Dict)-> None:
     arr.append(val)
 
@@ -23,44 +74,6 @@ def remove(arr:List, key, val)-> None:
     to_remove.reverse()  # Reverse to avoid index errors
     for i in to_remove:
         del arr[i]
-
-import multiprocessing, threading, subprocess, signal, time
-manager = multiprocessing.Manager()
-class ProcList:
-    pids = manager.list()
-    lock = multiprocessing.Lock()
-
-    @staticmethod
-    def wait_proc(uuid:str, cmd:List, req_json: dict = {}, **kwargs):
-        with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=kwargs) as proc:
-            # stderr=subprocess.STDOUT
-            with ProcList.lock:
-                logger.info(f'PROC: start {proc.pid} {cmd}')
-                append(ProcList.pids, manager.dict(uuid=uuid, pid=proc.pid))
-            json.dump(req_json, proc.stdin, indent=4) # proc.stdin.write(req_json)
-            proc.stdin.close()
-            for line in proc.stdout:
-                logger.info(line.strip())
-            proc.wait()
-            if proc.returncode != 0:
-                logger.error(f'PROC: execute {cmd} error={proc.returncode}')
-                for line in proc.stderr:
-                    logger.error(line.strip())
-            with ProcList.lock:
-                remove(ProcList.pids, 'pid', proc.pid)
-                logger.info(f'PROC: {uuid} PID={proc.pid} exit!!!')
-
-    @staticmethod
-    def Run(uuid:str, cmd:List)->None:
-        for proc in search(ProcList.pids, 'uuid', uuid):
-            try:
-                os.kill(proc['pid'], signal.SIGTERM)
-            except:
-                logger.exception('proc')
-            remove(ProcList.pids, 'pid', proc['pid'])
-        # Daemon threads automatically terminate when the main program exits.
-        threading.Thread(target=ProcList.wait_proc, args=(uuid, cmd,), daemon=True).start()
-        time.sleep(0.3)  # sleep for wait process startup
 
 def reload(lock, cache, jfn)->None:
     with lock:

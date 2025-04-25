@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import flask_app, flask, os, libvirt, json
+import flask_app, flask, signal, os, libvirt, json
 import database, vmmanager, template, device, meta, config
-from utils import return_ok, return_err, deal_except, save, decode_jwt, ProcList
+from utils import return_ok, return_err, deal_except, save, decode_jwt, ProcList, remove
 from flask_app import logger
 import base64, hashlib, time, datetime
 
@@ -130,12 +130,8 @@ class MyApp(object):
                     server = f'unix_socket:{local}'
                 save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
                 path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
-                if proto == 'vnc':
-                    return return_ok('vnc', display=f'{config.VNC_DISP_URL}?password={passwd}&path={path}', expire=dt)
-                elif proto == 'spice':
-                    return return_ok('spice', display=f'{config.SPICE_DISP_URL}?password={passwd}&path={path}', expire=dt)
-                elif proto == 'console':
-                    return return_ok('console', display=f'{config.CONSOLE_URL}?path={path}', expire=dt)
+                url_map = {'vnc': config.VNC_DISP_URL,'spice':config.SPICE_DISP_URL,'console':config.CONSOLE_URL}
+                return return_ok(proto, display=f'{url_map[proto]}?password={passwd}&path={path}', expire=dt)
         except Exception as e:
             return deal_except(f'get_display', e), 400
 
@@ -211,12 +207,24 @@ class MyApp(object):
                 if req_json:
                     args['req_json'] = req_json
                 func = getattr(vmmanager.VMManager, cmd)
-                logger.info(f'{cmd} call {args}')
+                logger.info(f'"{cmd}" call args={args}')
                 return flask.Response(func(**args), mimetype="text/event-stream")
             else:
                 return return_err(404, f'{cmd}', f"Domain No Found {cmd}")
         except Exception as e:
             return deal_except(f'{cmd}', e), 400
 
+import atexit
+def cleanup():
+    with ProcList.lock:
+        for proc in ProcList.pids:
+            logger.info(f'Performing cleanup actions {os.getpid()} {proc}...')
+            remove(ProcList.pids, 'pid', proc['pid'])
+            try:
+                os.kill(proc['pid'], signal.SIGTERM)
+            except:
+                pass
+
+atexit.register(cleanup)
 app = MyApp.create()
 # gunicorn -b 127.0.0.1:5009 --preload --workers=4 --threads=2 --access-logfile='-' 'main:app'

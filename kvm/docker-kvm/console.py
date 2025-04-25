@@ -191,7 +191,7 @@ def main(url, uuid):
         server = SocketServer(uuid, url)
     except Exception as e:
         logger.exception('console')
-        return -1
+        sys.exit(-1)
     server.start()
     return 0
 
@@ -200,6 +200,6 @@ if __name__ == '__main__':
     if argc != 3:
         print(f'usage: {sys.argv[0]} <url> <uuid>')
         sys.exit(1)
-    logger.info(f'DEBUG:nc -U /tmp/.display.{sys.argv[2]}')
+    print(f'DEBUG:nc -U /tmp/.display.{sys.argv[2]}')
     main(sys.argv[1], sys.argv[2])
-    logger.info(f'{sys.argv[1]} {sys.argv[2]} exit')
+    print(f'{sys.argv[1]} {sys.argv[2]} exit')
