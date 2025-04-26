@@ -317,7 +317,7 @@ class VMManager:
     @staticmethod
     def reset(host:FakeDB, uuid:str) -> str:
         with connect(host.url) as conn:
-            dom = conn.lookupByUUIDString(uuid).reset()
+            conn.lookupByUUIDString(uuid).reset()
         return return_ok(f'{uuid} reset ok')
 
     @staticmethod
