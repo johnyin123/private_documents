@@ -16,18 +16,6 @@ def user_access_secure_link(kvmhost, uuid, mykey, epoch):
     token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
     return f'{token}', datetime.datetime.fromtimestamp(epoch).isoformat()
 
-def do_attach(host, xml:str, action:str, arg:str, req_json:dict, **kwargs)-> Generator:
-    try:
-        cmd = [os.path.join(config.ACTION_DIR, f'{action}'), f'{arg}']
-        if action is not None and len(action) != 0:
-            for line in ProcList.wait_proc(req_json['vm_uuid'], cmd, False, req_json, **kwargs):
-                logger.info(line.strip())
-                yield line
-        vmmanager.VMManager.attach_device(host, req_json['vm_uuid'], xml)
-        yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot')
-    except Exception as e:
-        yield deal_except(f'{cmd}', e)
-
 class MyApp(object):
     @staticmethod
     def create():
@@ -54,9 +42,8 @@ class MyApp(object):
         app.add_url_rule('/vm/list/<string:hostname>', view_func=self.list_domains, methods=['GET'])
         app.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=self.get_domain, methods=['GET'])
         app.add_url_rule('/vm/create/<string:hostname>', view_func=self.create_vm, methods=['POST'])
-        app.add_url_rule('/vm/attach_device/<string:hostname>/<string:uuid>/<string:name>', view_func=self.attach_device, methods=['POST'])
         app.add_url_rule('/vm/ui/<string:hostname>/<string:uuid>/<int:epoch>', view_func=self.get_vmui, methods=['GET'])
-        app.add_url_rule('/vm/<string:cmd>/<string:hostname>/<string:uuid>', view_func=self.get_domain_cmd, methods=['GET', 'POST'])
+        app.add_url_rule('/vm/<string:cmd>/<string:hostname>/<string:uuid>', view_func=self.exec_domain_cmd, methods=['GET', 'POST'])
 
     def db_list_host(self):
         try:
@@ -127,29 +114,6 @@ class MyApp(object):
                 database.KVMGuest.Upsert(hostname, None, [])
             return deal_except(f'list_domains', e), 400
 
-    def attach_device(self, hostname, uuid, name):
-        try:
-            req_json = {**flask.request.json, 'vm_uuid':uuid}
-            logger.info(f'attach_device {req_json}')
-            host = database.KVMHost.getHostInfo(hostname)
-            dev = database.KVMDevice.getDeviceInfo(hostname, name)
-            tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
-            dom = vmmanager.VMManager.get_domain(host, uuid)
-            if tpl.bus is not None:
-                req_json['vm_last_disk'] = dom.next_disk[tpl.bus]
-                gold = req_json.get("gold", "")
-                if len(gold) != 0:
-                    req_json['gold'] = os.path.join(config.GOLD_DIR, database.KVMGold.getGoldInfo(f'{gold}', f'{host.arch}').tpl)
-                    if not os.path.isfile(req_json['gold']):
-                        logger.error(f'attach_device {req_json["gold"]} nofound')
-                        raise Exception(f'gold {req_json["gold"]} nofound')
-            xml = tpl.gen_xml(**req_json)
-            # all env must string
-            env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
-            return flask.Response(do_attach(host, xml, dev.action, 'add', req_json, **env), mimetype="text/event-stream")
-        except Exception as e:
-            return deal_except(f'attach_device', e), 400
-
     def create_vm(self, hostname):
         try:
             username = decode_jwt(flask.request.cookies.get('token', '')).get('payload', {}).get('username', '')
@@ -167,16 +131,15 @@ class MyApp(object):
         except Exception as e:
             return deal_except(f'create_vm', e), 400
 
-    def get_domain_cmd(self, cmd:str, hostname:str, uuid:str):
+    def exec_domain_cmd(self, cmd:str, hostname:str, uuid:str):
         dom_cmds = {
                 'GET': ['xml', 'ipaddr', 'start', 'reset', 'stop', 'delete', 'console','display'],
-                'POST': ['detach_device', 'cdrom']
+                'POST': ['attach_device','detach_device', 'cdrom']
                 }
         try:
             if cmd in dom_cmds[flask.request.method]:
                 req_json = flask.request.get_json(silent=True, force=True)
-                host = database.KVMHost.getHostInfo(hostname)
-                args = {'host': host, 'uuid': uuid}
+                args = {'host': database.KVMHost.getHostInfo(hostname), 'uuid': uuid}
                 for key, value in flask.request.args.items():
                     # # remove secure_link args, so func no need **kwargs
                     if key in ['k', 'e', 'host', 'uuid']:

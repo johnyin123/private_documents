@@ -349,7 +349,7 @@ function on_add(form) {
     return lines[lines.length - 1];
   }
   const res = getFormJSON(form);
-  getjson('POST', `/vm/attach_device/${curr_host()}/${curr_vm()}/${res.device}`, function(res) {
+  getjson('POST', `/vm/attach_device/${curr_host()}/${curr_vm()}?dev=${res.device}`, function(res) {
     getjson_result(getLastLine(res));
   }, res, function(resp) {
     const overlay_output = document.querySelector("#overlay_output");

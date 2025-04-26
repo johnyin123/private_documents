@@ -3,7 +3,7 @@ import libvirt, xml.dom.minidom, json, os, template, config
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from utils import return_ok, getlist_without_key, remove_file, connect, ProcList, save, websockify_secure_link
 from flask_app import logger
-from database import FakeDB, KVMIso, IPPool
+from database import FakeDB, KVMIso, IPPool, KVMDevice, KVMGold
 
 class LibvirtDomain:
     def __init__(self, dom):
@@ -162,13 +162,6 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def attach_device(host:FakeDB, uuid:str, xml:str)-> None:
-        with connect(host.url) as conn:
-            dom = conn.lookupByUUIDString(uuid)
-            state, maxmem, curmem, curcpu, cputime = dom.info()
-            dom.attachDeviceFlags(xml, dom_flags(state))
-
-    @staticmethod
     def create_vm(host:FakeDB, uuid:str, xml:str)-> LibvirtDomain:
         with connect(host.url) as conn:
             try:
@@ -258,6 +251,37 @@ class VMManager:
         with connect(host.url) as conn:
             for i in conn.listAllDomains():
                 yield LibvirtDomain(i)
+
+    @staticmethod
+    def attach_device(host:FakeDB, uuid:str, dev:str, req_json)-> Generator:
+        try:
+            req_json['vm_uuid'] = uuid
+            logger.info(f'attach_device {req_json}')
+            dev = KVMDevice.getDeviceInfo(host.name, dev)
+            tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
+            # all env must string
+            env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
+            cmd = [os.path.join(config.ACTION_DIR, f'{dev.action}'), f'add']
+            gold = req_json.get("gold", "")
+            if len(gold) != 0:
+                req_json['gold'] = os.path.join(config.GOLD_DIR, KVMGold.getGoldInfo(f'{gold}', f'{host.arch}').tpl)
+                if not os.path.isfile(req_json['gold']):
+                    logger.error(f'attach_device {req_json["gold"]} nofound')
+                    raise Exception(f'gold {req_json["gold"]} nofound')
+            with connect(host.url) as conn:
+                dom = conn.lookupByUUIDString(uuid)
+                domain = LibvirtDomain(dom)
+                if tpl.bus is not None:
+                    req_json['vm_last_disk'] = domain.next_disk[tpl.bus]
+                xml = tpl.gen_xml(**req_json)
+                if dev.action is not None and len(dev.action) != 0:
+                    for line in ProcList.wait_proc(uuid, cmd, False, req_json, **env):
+                        logger.info(line.strip())
+                        yield line
+                dom.attachDeviceFlags(xml, dom_flags(domain.state))
+            yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot')
+        except Exception as e:
+            yield deal_except(f'attach {req_json["device"]} device', e)
 
     @staticmethod
     def cdrom(host:FakeDB, uuid:str, dev:str, req_json)->str:

@@ -80,7 +80,7 @@ echo 'list gold image' && curl -k ${srv}/tpl/gold/${host} | jq '.[]|{arch: .arch
 device=local-disk
 # gold=debian12
 # gold="" is datadisk
-echo 'add disk' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/attach_device/${host}/${uuid}/${device}
+echo 'add disk' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/attach_device/${host}/${uuid}?dev=${device}
 {
  ${gold:+\"gold\": \"${gold}\",}
  "size":"10G"
@@ -91,7 +91,7 @@ echo 'del disk' && curl -k -H 'Content-Type:application/json' -X POST -d '{}' ${
 echo 'change cd media' && curl -k -H 'Content-Type:application/json' -X POST -d '{"dev":"sda", "isoname":"centos7-x86_64"}' ${srv}/vm/cdrom/${host}/${uuid}/${dev}
 device=net-br-ext
 device=debian_installcd
-echo "add ${device} noargs" && curl -k -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/attach_device/${host}/${uuid}/${device}
+echo "add ${device} noargs" && curl -k -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/attach_device/${host}/${uuid}?dev=${device}
 echo 'list host vms' && curl -k ${srv}/vm/list/${host}                # from host
 echo 'list a vm on host' && curl -k ${srv}/vm/list/${host}/${uuid}    # from host
 echo 'start vm' && curl -k ${srv}/vm/start/${host}/${uuid}
