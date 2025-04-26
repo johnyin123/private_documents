@@ -169,7 +169,7 @@ class VMManager:
             dom.attachDeviceFlags(xml, dom_flags(state))
 
     @staticmethod
-    def create_vm(host:FakeDB, uuid:str, xml:str) -> LibvirtDomain:
+    def create_vm(host:FakeDB, uuid:str, xml:str)-> LibvirtDomain:
         with connect(host.url) as conn:
             try:
                 conn.lookupByUUIDString(uuid)
@@ -181,7 +181,7 @@ class VMManager:
             return LibvirtDomain(conn.lookupByUUIDString(uuid))
 
     @staticmethod
-    def display(host:FakeDB, uuid:str)-> List:
+    def display(host:FakeDB, uuid:str)->str:
         XMLDesc_Secure=None
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
@@ -244,12 +244,12 @@ class VMManager:
             return return_ok(f'{uuid} delete ok', failed=diskinfo)
 
     @staticmethod
-    def xml(host, uuid:str) -> str:
+    def xml(host, uuid:str)-> str:
         with connect(host.url) as conn:
             return conn.lookupByUUIDString(uuid).XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE)
 
     @staticmethod
-    def get_domain(host:FakeDB, uuid:str) -> LibvirtDomain:
+    def get_domain(host:FakeDB, uuid:str)-> LibvirtDomain:
         with connect(host.url) as conn:
             return LibvirtDomain(conn.lookupByUUIDString(uuid))
 
@@ -260,7 +260,7 @@ class VMManager:
                 yield LibvirtDomain(i)
 
     @staticmethod
-    def cdrom(host:FakeDB, uuid:str, dev:str, req_json) -> LibvirtDomain:
+    def cdrom(host:FakeDB, uuid:str, dev:str, req_json)->str:
         logger.info(f'{req_json}')
         iso = KVMIso.getIso(req_json.get('isoname', None))
         with connect(host.url) as conn:
@@ -290,7 +290,7 @@ class VMManager:
                 logger.exception(f"Failed refresh pool {pool.name()}")
 
     @staticmethod
-    def console(host:FakeDB, uuid:str) -> str:
+    def console(host:FakeDB, uuid:str)-> str:
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             state, maxmem, curmem, curcpu, cputime = dom.info()
@@ -305,7 +305,7 @@ class VMManager:
         return return_ok('console', display=f'{config.CONSOLE_URL}?password=&path={path}', expire=dt)
 
     @staticmethod
-    def stop(host:FakeDB, uuid:str, **kwargs) -> str:
+    def stop(host:FakeDB, uuid:str, **kwargs)-> str:
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             if kwargs.get('force', False):
@@ -315,7 +315,7 @@ class VMManager:
         return return_ok(f'{uuid} stop ok')
 
     @staticmethod
-    def reset(host:FakeDB, uuid:str) -> str:
+    def reset(host:FakeDB, uuid:str)-> str:
         with connect(host.url) as conn:
             conn.lookupByUUIDString(uuid).reset()
         return return_ok(f'{uuid} reset ok')
@@ -327,7 +327,7 @@ class VMManager:
         return return_ok(f'{uuid} start ok')
 
     @staticmethod
-    def ipaddr(host:FakeDB, uuid:str) -> Generator:
+    def ipaddr(host:FakeDB, uuid:str)-> Generator:
     # Generator func call by flask.Response(...)
     # need catch exception and yield it
         def convert_data(data):
