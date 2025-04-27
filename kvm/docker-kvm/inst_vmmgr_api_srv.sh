@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("cce64d3b[2025-04-25T16:42:06+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("70a840da[2025-04-27T10:55:00+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -170,10 +170,10 @@ post_check() {
         [ -x "${outdir}/actions/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
     done
     for fn in $(cat golds.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
-        log COLOR=1 "NEED check gold disk: ${fn}"
+        COLOR=3 log "NEED check Gold Disk: ${fn}"
     done
     for fn in $(cat iso.json | jq -r .[].uri | sort | uniq | sed "/^$/d"); do
-        log COLOR=1 "check iso disk: ${fn}"
+        COLOR=3 log "NEED check ISO Image: ${fn}"
     done
     return 0
 }
