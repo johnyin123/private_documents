@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("e703356f[2025-04-24T07:41:02+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("cce64d3b[2025-04-25T16:42:06+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -102,7 +102,6 @@ inst_app_outdir() {
     log "install vmmgr OUTDIR=${outdir}"
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/iso
-    install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/gold
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/token
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/reqlogs
     local dirs=(actions devices domains meta)
@@ -171,12 +170,10 @@ post_check() {
         [ -x "${outdir}/actions/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
     done
     for fn in $(cat golds.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
-        log "check gold disk: ${outdir}/gold/${fn}"
-        [ -e "${outdir}/gold/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
+        log COLOR=1 "NEED check gold disk: ${fn}"
     done
     for fn in $(cat iso.json | jq -r .[].uri | sort | uniq | sed "/^$/d"); do
-        log "check iso disk: ${outdir}/iso/${fn}"
-        [ -e "${outdir}/iso/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
+        log COLOR=1 "check iso disk: ${fn}"
     done
     return 0
 }

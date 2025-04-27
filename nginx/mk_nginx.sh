@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("034e0af[2025-01-25T15:45:36+08:00]:mk_nginx.sh")
+VERSION+=("ec4a8a30[2025-03-11T11:10:18+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -621,8 +621,8 @@ access_log /var/log/nginx/access.log json buffer=512k flush=5m if=$log_ip;
 # access_log /var/log/nginx/$http_host-access.log main buffer=512k flush=5m;
 # access_log /var/log/nginx/access_$status.log main buffer=512k flush=5m;
 
-# # error log
-error_log /var/log/nginx/error.log error;
+# # error log, warn limit_req log level
+error_log /var/log/nginx/error.log warn;
 EOF
 write_file "${OUTDIR}/etc/nginx/stream-conf.d/streamlog.conf" <<'EOF'
 log_format basic '$remote_addr [$time_iso8601] $protocol $status $bytes_sent $bytes_received '

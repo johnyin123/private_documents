@@ -136,3 +136,14 @@ def websockify_secure_link(uuid, mykey, minutes):
     secure_link = f"{mykey}{epoch}{uuid}/websockify/".encode('utf-8')
     str_hash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
     return f"websockify/%3Ftoken={uuid}%26k={str_hash}%26e={epoch}", datetime.datetime.fromtimestamp(epoch).isoformat()
+
+from urllib.parse import urlparse
+def split_url(url):
+    parsed_url = urlparse(url)
+    netloc = parsed_url.netloc
+    if ":" in netloc:
+        netloc = netloc.split(":")[0]
+    port = parsed_url.port
+    if port is None:
+        port = 80 if parsed_url.scheme == 'http' else 443
+    return parsed_url.scheme, netloc, port, parsed_url.path

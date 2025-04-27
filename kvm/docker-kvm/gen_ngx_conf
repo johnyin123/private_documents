@@ -137,9 +137,16 @@ server {
     location ~* (\.iso|\/meta-data|\/user-data)$ {
         # rewrite ^ /public/iso$uri break;
         # proxy_pass http://flask_app;
-        autoindex off;
+        set $limit 0; # no log
         root ${OUT_DIR}/iso;
     }
+    location /gold {
+        # #  disable limit_req
+        # limit_req_dry_run on
+        set $limit 0; # no log
+        alias ${OUT_DIR}/gold/;
+    }
+
 }
 server {
     listen 80;
@@ -147,8 +154,14 @@ server {
     location ~* (\.iso|\/meta-data|\/user-data)$ {
         # rewrite ^ /public/iso$uri break;
         # proxy_pass http://flask_app;
-        autoindex off;
+        set $limit 0; # no log
         root ${OUT_DIR}/iso;
+    }
+    location /gold {
+        # #  disable limit_req
+        # limit_req_dry_run on
+        set $limit 0; # no log
+        alias ${OUT_DIR}/gold/;
     }
     location / {
         return 301 https://$server_name$request_uri$is_args$args;
@@ -163,6 +176,7 @@ with open('kvm.conf', "w") as file:
     file.write(ngx_cfg)
 print(f'''
 # kvm.conf
+iso/gold               ==>   static iso/qcow2 gold/osiso
 {config.OUTDIR}/ui     ==>   static html/js.. directory
 {config.OUTDIR}/term   ==>   static html/js.. directory
 {config.OUTDIR}/spice  ==>   static html/js.. directory
