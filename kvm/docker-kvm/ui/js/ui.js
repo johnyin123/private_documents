@@ -155,7 +155,6 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 12
   };
   toggleOverlay(true);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
   fetch(url, { ...opts, signal: controller.signal }).then(response => {
     if (!response.ok) {
       return response.text().then(text => {
@@ -177,10 +176,8 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 12
     }
     return response.text();
   }).then(data => {
-    clearTimeout(timeoutId);
     if (callback && typeof(callback) == "function") { callback(data); }
   }).catch(error => {
-    clearTimeout(timeoutId);
     console.error(`${method} ${url} ${error.message}`);
     try {
       var result = JSON.parse(error.message);
