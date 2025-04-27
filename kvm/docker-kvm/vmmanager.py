@@ -13,16 +13,9 @@ class LibvirtDomain:
         # blk_cap, blk_all, blk_phy = dom.blockInfo(dev_name)
 
     def _asdict(self):
-        state_desc = {
-            libvirt.VIR_DOMAIN_NOSTATE: 'NA',
-            libvirt.VIR_DOMAIN_RUNNING: 'RUN',
-            libvirt.VIR_DOMAIN_BLOCKED: 'BLOCK',
-            libvirt.VIR_DOMAIN_PAUSED: 'PAUSED',
-            libvirt.VIR_DOMAIN_SHUTDOWN: 'SHUTDOWN',
-            libvirt.VIR_DOMAIN_SHUTOFF: 'SHUTOFF',
-            libvirt.VIR_DOMAIN_CRASHED: 'CRASH',
-            libvirt.VIR_DOMAIN_PMSUSPENDED: 'SUSPEND'
-        }.get(self.state,'?')
+        state_desc = {libvirt.VIR_DOMAIN_NOSTATE:'NA',libvirt.VIR_DOMAIN_RUNNING:'RUN',libvirt.VIR_DOMAIN_BLOCKED:'BLOCK',libvirt.VIR_DOMAIN_PAUSED:'PAUSED',
+                    libvirt.VIR_DOMAIN_SHUTDOWN:'SHUTDOWN',libvirt.VIR_DOMAIN_SHUTOFF:'SHUTOFF',libvirt.VIR_DOMAIN_CRASHED:'CRASH',libvirt.VIR_DOMAIN_PMSUSPENDED:'SUSPEND'
+                }.get(self.state,'?')
         return {'uuid':self.uuid, 'desc':self.desc,
                 'curcpu':self.curcpu, 'curmem':self.curmem,
                 'mdconfig': json.dumps(self.mdconfig),
@@ -136,8 +129,7 @@ def change_media(dev:str, isofile:str)->str:
 class VMManager:
     @staticmethod
     def detach_device(host:FakeDB, uuid:str, dev:str)-> str:
-        # dev = sda/vda....
-        # dev = mac address
+        # dev = sda/vda/mac address
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
@@ -168,7 +160,6 @@ class VMManager:
                 conn.lookupByUUIDString(uuid)
                 raise Exception(f'vm {uuid} exists')
             except libvirt.libvirtError:
-                # not exist
                 pass
             conn.defineXML(xml)
             return LibvirtDomain(conn.lookupByUUIDString(uuid))
@@ -228,10 +219,7 @@ class VMManager:
                 dom.destroy()
             except Exception:
                 pass
-            flags = 0
-            flags |= libvirt.VIR_DOMAIN_UNDEFINE_NVRAM
-            flags |= libvirt.VIR_DOMAIN_UNDEFINE_MANAGED_SAVE
-            flags |= libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
+            flags = libvirt.VIR_DOMAIN_UNDEFINE_NVRAM | libvirt.VIR_DOMAIN_UNDEFINE_MANAGED_SAVE | libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
             dom.undefineFlags(flags)
             return return_ok(f'{uuid} delete ok', failed=diskinfo)
 
@@ -241,7 +229,7 @@ class VMManager:
             return conn.lookupByUUIDString(uuid).XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE)
 
     @staticmethod
-    def list(host:FakeDB, uuid:str)-> Dict:
+    def list(host:FakeDB, uuid:str)-> str:
         with connect(host.url) as conn:
             return json.dumps(LibvirtDomain(conn.lookupByUUIDString(uuid))._asdict())
 

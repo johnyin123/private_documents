@@ -98,8 +98,8 @@ class MyApp(object):
             return f'{token}', datetime.datetime.fromtimestamp(epoch).isoformat()
 
         try:
-            host = database.KVMHost.getHostInfo(hostname)
-            token, dt = user_access_secure_link(host.name, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
+            # maybe need check hostname/uuid exist
+            token, dt = user_access_secure_link(hostname, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
             return return_ok('vmuserinterface', url=f'{config.USER_ACCESS_URL}', token=f'{token}', expire=dt)
         except Exception as e:
             return deal_except(f'get_vmui', e), 400
