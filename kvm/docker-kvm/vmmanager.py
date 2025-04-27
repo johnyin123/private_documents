@@ -178,8 +178,7 @@ class VMManager:
         XMLDesc_Secure=None
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
-            state, maxmem, curmem, curcpu, cputime = dom.info()
-            if state != libvirt.VIR_DOMAIN_RUNNING:
+            if not dom.isActive():
                 raise Exception(f'vm {uuid} not running')
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
         p = xml.dom.minidom.parseString(XMLDesc_Secure)
@@ -304,8 +303,7 @@ class VMManager:
 
     @staticmethod
     def refresh_all_pool(conn:libvirt.virConnect)-> None:
-        pools = conn.listAllStoragePools(0)
-        for pool in pools:
+        for pool in conn.listAllStoragePools(0):
             try:
                 if not pool.isActive():
                     pool.create()
@@ -316,9 +314,7 @@ class VMManager:
     @staticmethod
     def console(host:FakeDB, uuid:str)-> str:
         with connect(host.url) as conn:
-            dom = conn.lookupByUUIDString(uuid)
-            state, maxmem, curmem, curcpu, cputime = dom.info()
-            if state != libvirt.VIR_DOMAIN_RUNNING:
+            if not conn.lookupByUUIDString(uuid).isActive():
                 raise Exception(f'vm {uuid} not running')
         socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{config.SOCAT_TMOUT}',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
         ProcList.Run(uuid, socat_cmd)

@@ -8,13 +8,16 @@ from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
 from flask_app import logger
 import base64, hashlib, time, datetime
 
-def user_access_secure_link(kvmhost, uuid, mykey, epoch):
-    # secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
-    secure_link = f"{mykey}{epoch}{kvmhost}{uuid}".encode('utf-8')
-    str_hash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
-    tail_uri=f'{kvmhost}/{uuid}?k={str_hash}&e={epoch}'
-    token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
-    return f'{token}', datetime.datetime.fromtimestamp(epoch).isoformat()
+import atexit
+def cleanup():
+    with ProcList.lock:
+        for proc in ProcList.pids:
+            logger.info(f'Performing cleanup actions {os.getpid()} {proc}...')
+            remove(ProcList.pids, 'pid', proc['pid'])
+            try:
+                os.kill(proc['pid'], signal.SIGTERM)
+            except:
+                pass
 
 class MyApp(object):
     @staticmethod
@@ -28,6 +31,7 @@ class MyApp(object):
         web.config['JSON_SORT_KEYS'] = False
         myapp.register_routes(web)
         database.reload_all()
+        atexit.register(cleanup)
         return web
 
     def register_routes(self, app):
@@ -93,6 +97,14 @@ class MyApp(object):
             return deal_except(f'get_domain', e), 400
 
     def get_vmui(self, hostname, uuid, epoch):
+        def user_access_secure_link(kvmhost, uuid, mykey, epoch):
+            # secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
+            secure_link = f"{mykey}{epoch}{kvmhost}{uuid}".encode('utf-8')
+            str_hash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
+            tail_uri=f'{kvmhost}/{uuid}?k={str_hash}&e={epoch}'
+            token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
+            return f'{token}', datetime.datetime.fromtimestamp(epoch).isoformat()
+
         try:
             host = database.KVMHost.getHostInfo(hostname)
             dom = vmmanager.VMManager.get_domain(host, uuid)
@@ -156,17 +168,5 @@ class MyApp(object):
         except Exception as e:
             return deal_except(f'{cmd}', e), 400
 
-import atexit
-def cleanup():
-    with ProcList.lock:
-        for proc in ProcList.pids:
-            logger.info(f'Performing cleanup actions {os.getpid()} {proc}...')
-            remove(ProcList.pids, 'pid', proc['pid'])
-            try:
-                os.kill(proc['pid'], signal.SIGTERM)
-            except:
-                pass
-
-atexit.register(cleanup)
 app = MyApp.create()
 # gunicorn -b 127.0.0.1:5009 --preload --workers=4 --threads=2 --access-logfile='-' 'main:app'
