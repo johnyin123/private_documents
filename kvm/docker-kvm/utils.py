@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-from flask_app import logger
 from contextlib import contextmanager
 import libvirt, json, base64, os
+import logging
+logger = logging.getLogger(__name__)
 
 @contextmanager
 def connect(uri: str)-> Generator:

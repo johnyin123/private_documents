@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-import datetime, os, utils, multiprocessing, json, random, config
+import logging, datetime, os, utils, multiprocessing, json, random, config
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-from flask_app import logger
+logger = logging.getLogger(__name__)
 
 class FakeDB:
     def __init__(self, **kwargs):

@@ -3,7 +3,6 @@ try:
     from cStringIO import StringIO as BytesIO
 except ImportError:
     from io import BytesIO
-from flask_app import logger
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 import pycdlib, jinja2, os, utils, config
 

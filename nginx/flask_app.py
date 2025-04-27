@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging, os
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
-logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s: %(message)s') 
+logging.basicConfig(encoding='utf-8', level=logging.INFO, format='[%(funcName)s@%(filename)s(%(lineno)d)]%(name)s %(levelname)s: %(message)s')
 logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,8 @@ def json_handle_error(e):
 
 import os, flask_app, flask
 from flask_app import logger, output_escape
-# logger=flask_app.logger
+import logging
+logger = logging.getLogger(__name__)
 
 # # exceptions.py
 # from http import HTTPStatus

@@ -5,7 +5,8 @@ import flask_app, flask, signal, os, libvirt, json
 import database, vmmanager, template, meta, config
 from utils import return_ok, return_err, deal_except, save, decode_jwt, ProcList, remove
 from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
-from flask_app import logger
+import logging
+logger = logging.getLogger(__name__)
 import base64, hashlib, time, datetime
 
 import atexit

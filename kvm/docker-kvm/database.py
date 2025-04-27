@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-import datetime, os, utils, multiprocessing, random
+import logging, datetime, os, utils, multiprocessing, random
 from dbi import engine, Session, session, Base
 from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,ForeignKey,JSON
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-from flask_app import logger
+logger = logging.getLogger(__name__)
 
 def cache_flush(lock, cache, dbtable):
     with lock:

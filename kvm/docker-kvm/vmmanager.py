@@ -2,8 +2,9 @@
 import libvirt, xml.dom.minidom, json, os, template, config
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from utils import return_ok, getlist_without_key, remove_file, connect, ProcList, save, websockify_secure_link
-from flask_app import logger
 from database import FakeDB, KVMIso, IPPool, KVMDevice, KVMGold
+import logging
+logger = logging.getLogger(__name__)
 
 class LibvirtDomain:
     def __init__(self, dom):
