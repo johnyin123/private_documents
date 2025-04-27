@@ -241,9 +241,9 @@ class VMManager:
             return conn.lookupByUUIDString(uuid).XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE)
 
     @staticmethod
-    def get_domain(host:FakeDB, uuid:str)-> LibvirtDomain:
+    def list(host:FakeDB, uuid:str)-> Dict:
         with connect(host.url) as conn:
-            return LibvirtDomain(conn.lookupByUUIDString(uuid))
+            return json.dumps(LibvirtDomain(conn.lookupByUUIDString(uuid))._asdict())
 
     @staticmethod
     def list_domains(host:FakeDB)-> Generator:

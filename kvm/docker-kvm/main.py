@@ -44,7 +44,6 @@ class MyApp(object):
         app.add_url_rule('/vm/freeip/',view_func=self.db_freeip, methods=['GET'])
         ## end db oper guest ##
         app.add_url_rule('/vm/list/<string:hostname>', view_func=self.list_domains, methods=['GET'])
-        app.add_url_rule('/vm/list/<string:hostname>/<string:uuid>', view_func=self.get_domain, methods=['GET'])
         app.add_url_rule('/vm/create/<string:hostname>', view_func=self.create_vm, methods=['POST'])
         app.add_url_rule('/vm/ui/<string:hostname>/<string:uuid>/<int:epoch>', view_func=self.get_vmui, methods=['GET'])
         app.add_url_rule('/vm/<string:cmd>/<string:hostname>/<string:uuid>', view_func=self.exec_domain_cmd, methods=['GET', 'POST'])
@@ -89,13 +88,6 @@ class MyApp(object):
         except Exception as e:
             return return_ok(f'db_freeip ok', **{"cidr":"N/A","gateway":"N/A"})
 
-    def get_domain(self, hostname, uuid):
-        try:
-            host = database.KVMHost.getHostInfo(hostname)
-            return vmmanager.VMManager.get_domain(host, uuid)._asdict()
-        except Exception as e:
-            return deal_except(f'get_domain', e), 400
-
     def get_vmui(self, hostname, uuid, epoch):
         def user_access_secure_link(kvmhost, uuid, mykey, epoch):
             # secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
@@ -107,7 +99,6 @@ class MyApp(object):
 
         try:
             host = database.KVMHost.getHostInfo(hostname)
-            dom = vmmanager.VMManager.get_domain(host, uuid)
             token, dt = user_access_secure_link(host.name, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
             return return_ok('vmuserinterface', url=f'{config.USER_ACCESS_URL}', token=f'{token}', expire=dt)
         except Exception as e:
@@ -145,7 +136,7 @@ class MyApp(object):
 
     def exec_domain_cmd(self, cmd:str, hostname:str, uuid:str):
         dom_cmds = {
-                'GET': ['xml', 'ipaddr', 'start', 'reset', 'stop', 'delete', 'console','display'],
+                'GET': ['xml', 'ipaddr', 'start', 'reset', 'stop', 'delete', 'console','display','list'],
                 'POST': ['attach_device','detach_device', 'cdrom']
                 }
         try:
