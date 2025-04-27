@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import libvirt, xml.dom.minidom, json, os, template, config
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-from utils import return_ok, deal_except, getlist_without_key, remove_file, connect, ProcList, save, websockify_secure_link, split_url
+from utils import return_ok, getlist_without_key, remove_file, connect, ProcList, save, websockify_secure_link
 from flask_app import logger
 from database import FakeDB, KVMIso, IPPool, KVMDevice, KVMGold
 
@@ -125,15 +125,10 @@ def dom_flags(state):
         return libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_AFFECT_LIVE
     return libvirt.VIR_DOMAIN_AFFECT_CONFIG
 
-def change_media(dev:str, isourl:str)->str:
-    scheme, netloc, port, path =  split_url(isourl)
+def change_media(dev:str, isofile:str)->str:
     disk = xml.dom.minidom.parseString(template.DeviceTemplate(config.CDROM_TPL,'iso').gen_xml())
     for it in disk.getElementsByTagName('source'):
-        it.setAttribute('name', path)
-        it.setAttribute('protocol', scheme)
-        for host in it.getElementsByTagName('host'):
-            host.setAttribute('name', netloc)
-            host.setAttribute('port', f'{port}')
+        it.setAttribute('name', isofile)
     for it in disk.getElementsByTagName('target'):
         it.setAttribute('dev', dev)
     return disk.toxml()
@@ -260,6 +255,7 @@ class VMManager:
     def attach_device(host:FakeDB, uuid:str, dev:str, req_json)-> Generator:
         try:
             req_json['vm_uuid'] = uuid
+            logger.info(f'attach_device {req_json}')
             dev = KVMDevice.getDeviceInfo(host.name, dev)
             tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
             # all env must string
@@ -267,14 +263,13 @@ class VMManager:
             cmd = [os.path.join(config.ACTION_DIR, f'{dev.action}'), f'add']
             gold = req_json.get("gold", "")
             if len(gold) != 0:
-                req_json['gold'] = KVMGold.getGoldInfo(f'{gold}', f'{host.arch}').tpl
+                req_json['gold'] = os.path.join(config.GOLD_DIR, KVMGold.getGoldInfo(f'{gold}', f'{host.arch}').tpl)
             with connect(host.url) as conn:
                 dom = conn.lookupByUUIDString(uuid)
                 domain = LibvirtDomain(dom)
                 if tpl.bus is not None:
                     req_json['vm_last_disk'] = domain.next_disk[tpl.bus]
                 xml = tpl.gen_xml(**req_json)
-                logger.info(f'attach_device {req_json}')
                 if dev.action is not None and len(dev.action) != 0:
                     for line in ProcList.wait_proc(uuid, cmd, False, req_json, **env):
                         logger.info(line.strip())
