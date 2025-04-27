@@ -227,9 +227,5 @@ def reload_all():
     logger.info(f'database create all tables')
     # Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
-    KVMHost.reload()
-    KVMDevice.reload()
-    KVMGold.reload()
-    KVMIso.reload()
-    KVMGuest.reload()
-    IPPool.reload()
+    for clz in [KVMHost,KVMDevice,KVMGold,KVMIso,KVMGuest,IPPool]:
+        clz.reload()

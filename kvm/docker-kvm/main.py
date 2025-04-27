@@ -83,7 +83,7 @@ class MyApp(object):
         try:
             return return_ok(f'db_freeip ok', **database.IPPool.free_ip())
         except Exception as e:
-            return deal_except(f'db_freeip', e), 400
+            return return_ok(f'db_freeip ok', **{"cidr":"N/A","gateway":"N/A"})
 
     def get_domain(self, hostname, uuid):
         try:

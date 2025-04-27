@@ -160,5 +160,5 @@ class IPPool:
         return random.sample([element for element in IPPool.cache], k=1)[0]
 
 def reload_all():
-    for clz in [KVMHost,KVMDevice,KVMGold,KVMIso,KVMGuest]:
+    for clz in [KVMHost,KVMDevice,KVMGold,KVMIso,KVMGuest,IPPool]:
         clz.reload()
