@@ -79,7 +79,7 @@ server {
     }
     # # tanent api
     location /user/ {
-        location ~* ^/user/vm/(list|start|reset|stop|display)/(?<kvmhost>.*)/(?<uuid>.*) {
+        location ~* ^/user/vm/(list|start|reset|stop|console|display)/(?<kvmhost>.*)/(?<uuid>.*) {
             # # no cache!! guest user api, guest private access
             proxy_cache off;
             expires off;

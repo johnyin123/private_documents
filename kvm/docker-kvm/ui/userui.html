@@ -164,6 +164,7 @@ button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type
     <a href='javascript:stop()'>stop vm</a>
     <a href='javascript:stop_force()'>force stop vm</a>
     <a href='javascript:display()'>display</a>
+    <a href='javascript:vmconsole()'>console</a>
   </div>
 <!-- ----------------------------------------------- -->
   <div class="content">
@@ -296,6 +297,15 @@ function display() {
   getjson('GET', `/user/vm/display/${token.value}`, function(res) {
     if(res.result === 'OK') {
       //document.getElementById("display").src = res.display;
+      window.open(res.display, "_blank");
+    } else {
+      alert(res);
+    }
+  });
+}
+function vmconsole() {
+  getjson('GET', `/user/vm/console/${token.value}`, function(res) {
+    if(res.result === 'OK') {
       window.open(res.display, "_blank");
     } else {
       alert(res);
