@@ -20,6 +20,7 @@ CONSOLE_URL     = f'https://{META_SRV}/term/xterm.html'
 USER_ACCESS_URL = f'https://{META_SRV}/guest.html'
 CDROM_TPL = 'cdrom-meta.tpl'           # change media use this as template
 ISO_DIR      = os.path.join(OUTDIR, 'iso')  # # iso-meta/nocloud-meta data dir
+GOLD_DIR     = os.path.join(OUTDIR, 'gold') # # gold disk dir
 ACTION_DIR   = os.path.join(OUTDIR, 'actions') # # device action script dir
 DEVICE_DIR   = os.path.join(OUTDIR, 'devices') # # device template dir
 DOMAIN_DIR   = os.path.join(OUTDIR, 'domains') # # domain template dir

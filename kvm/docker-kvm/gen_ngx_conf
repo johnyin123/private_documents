@@ -133,7 +133,6 @@ server {
     location /term { alias ${OUT_DIR}/term/; }
     location /spice { alias ${OUT_DIR}/spice/; }
     location /novnc { alias ${OUT_DIR}/novnc/; }
-    location /gold { set $limit 0; alias ${OUT_DIR}/gold/; }
     # # only .iso|meta-data|user-data(include subdir resource)
     location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root ${OUT_DIR}/iso; }
 }
@@ -141,7 +140,6 @@ server {
     listen 80;
     server_name ${META_SRV};
     location / { return 301 https://$server_name$request_uri$is_args$args; }
-    location /gold { set $limit 0; alias ${OUT_DIR}/gold/; }
     # # only .iso|meta-data|user-data(include subdir resource)
     # rewrite ^ /public/iso$uri break; proxy_pass http://flask_app;
     location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root ${OUT_DIR}/iso; }
@@ -155,7 +153,6 @@ with open('kvm.conf', "w") as file:
     file.write(ngx_cfg)
 print(f'''
 # kvm.conf
-nginx srv: /gold       ==>   static iso/qcow2 gold/osiso
 {config.OUTDIR}/ui     ==>   static html/js.. directory
 {config.OUTDIR}/term   ==>   static html/js.. directory
 {config.OUTDIR}/spice  ==>   static html/js.. directory

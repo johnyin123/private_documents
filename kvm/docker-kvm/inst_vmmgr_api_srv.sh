@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("70a840da[2025-04-27T10:55:00+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("2f44013e[2025-04-27T12:31:47+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -102,6 +102,7 @@ inst_app_outdir() {
     log "install vmmgr OUTDIR=${outdir}"
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/iso
+    install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/gold
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/token
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/reqlogs
     local dirs=(actions devices domains meta)
@@ -170,10 +171,12 @@ post_check() {
         [ -x "${outdir}/actions/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
     done
     for fn in $(cat golds.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
-        COLOR=3 log "NEED check Gold Disk: ${fn}"
+        log "check gold disk: ${outdir}/gold/${fn}"
+        [ -e "${outdir}/gold/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
     done
     for fn in $(cat iso.json | jq -r .[].uri | sort | uniq | sed "/^$/d"); do
-        COLOR=3 log "NEED check ISO Image: ${fn}"
+        srv=$(OUTDIR=${outdir} python3 -c 'import config; print(config.META_SRV)' || true)
+        COLOR=3 log "NEED check ISO Image: http://${srv}${fn}"
     done
     return 0
 }
