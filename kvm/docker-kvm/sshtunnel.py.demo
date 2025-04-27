@@ -615,4 +615,13 @@ def virsh(url, *args):
     logging.debug(f'Running virsh command: {cmd}')
     return subprocess.check_output(cmd)
 
-
+from urllib.parse import urlparse
+def split_url(url):
+    parsed_url = urlparse(url)
+    netloc = parsed_url.netloc
+    if ":" in netloc:
+        netloc = netloc.split(":")[0]
+    port = parsed_url.port
+    if port is None:
+        port = 80 if parsed_url.scheme == 'http' else 443
+    return parsed_url.scheme, netloc, port, parsed_url.path
