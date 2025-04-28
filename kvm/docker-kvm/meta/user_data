@@ -2,6 +2,7 @@
 hostname: {{ hostname | default('vmsrv') }}
 manage_etc_hosts: true
 # timezone
+# useradd -m --password "$(openssl passwd -6 -salt xyz yourpass)" test1 -s /bin/bash
 timezone: {{ timezone | default('Asia/Shanghai') }}
 users:
   - default

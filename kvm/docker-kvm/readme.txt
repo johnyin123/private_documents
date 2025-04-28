@@ -1,5 +1,5 @@
 # # regen meta_iso
-uuid=${OUTDIR}/iso/uuid
+uuid=${OUTDIR}/cidata/uuid
 cd ${uuid} && mkisofs -o ${uuid}.iso -V cidata -J -r user-data meta-data
 
 default_pool_redefine.sh: defile default pool directory /storage
