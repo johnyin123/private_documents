@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-import libvirt, xml.dom.minidom, json, os, template, config
+import logging, libvirt, xml.dom.minidom, json, os, template, config
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from utils import return_ok, getlist_without_key, remove_file, connect, ProcList, save, websockify_secure_link
 from database import FakeDB, KVMIso, IPPool, KVMDevice, KVMGold
-import logging
 logger = logging.getLogger(__name__)
 
 class LibvirtDomain:
@@ -33,9 +32,8 @@ class LibvirtDomain:
             vdlst.append('vd{}'.format(chr(char)))
             sdlst.append('sd{}'.format(chr(char)))
             hdlst.append('sd{}'.format(chr(char)))
-        p = xml.dom.minidom.parseString(self.XMLDesc)
         # for index, disk in enumerate(p.getElementsByTagName('disk')): #enumerate(xxx, , start=1)
-        for disk in p.getElementsByTagName('disk'):
+        for disk in xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('disk'):
             device = disk.getAttribute('device')
             if device not in ['disk', 'cdrom']:
                 continue
@@ -48,8 +46,7 @@ class LibvirtDomain:
     @property
     def mdconfig(self)->Dict:
         data_dict = {}
-        p = xml.dom.minidom.parseString(self.XMLDesc)
-        for metadata in p.getElementsByTagName('metadata'):
+        for metadata in xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('metadata'):
             for mdconfig in metadata.getElementsByTagName('mdconfig:meta'):
                 for node in mdconfig.childNodes:
                     if node.nodeType == xml.dom.minidom.Node.ELEMENT_NODE:
@@ -62,16 +59,14 @@ class LibvirtDomain:
     @property
     def desc(self):
         try:
-            p = xml.dom.minidom.parseString(self.XMLDesc)
-            return p.getElementsByTagName('description')[0].firstChild.data
+            return xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('description')[0].firstChild.data
         except:
             return ''
 
     @property
     def disks(self):
         disk_lst = []
-        p = xml.dom.minidom.parseString(self.XMLDesc)
-        for disk in p.getElementsByTagName('disk'):
+        for disk in xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('disk'):
             device = disk.getAttribute('device')
             if device not in ['disk', 'cdrom']:
                 continue
@@ -100,8 +95,7 @@ class LibvirtDomain:
     @property
     def nets(self):
         net_lst = []
-        p = xml.dom.minidom.parseString(self.XMLDesc)
-        for net in p.getElementsByTagName('interface'):
+        for net in xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('interface'):
             dtype = net.getAttribute('type')
             mac = net.getElementsByTagName('mac')[0].getAttribute('address')
             # source = net.getElementsByTagName('source')[0].getAttribute('network') ?
@@ -111,8 +105,7 @@ class LibvirtDomain:
 
     @property
     def maxcpu(self):
-        p = xml.dom.minidom.parseString(self.XMLDesc)
-        return int(p.getElementsByTagName('vcpu')[0].firstChild.data)
+        return int(xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('vcpu')[0].firstChild.data)
 
 def dom_flags(state):
     if state == libvirt.VIR_DOMAIN_RUNNING:
@@ -173,8 +166,7 @@ class VMManager:
             if not dom.isActive():
                 raise Exception(f'vm {uuid} not running')
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
-        p = xml.dom.minidom.parseString(XMLDesc_Secure)
-        for item in p.getElementsByTagName('graphics'):
+        for item in xml.dom.minidom.parseString(XMLDesc_Secure).getElementsByTagName('graphics'):
             server = ''
             proto = item.getAttribute('type')
             listen = item.getAttribute('listen')
