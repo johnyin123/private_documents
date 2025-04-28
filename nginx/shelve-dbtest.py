@@ -29,3 +29,50 @@ def search_shelve(db_path, search_string):
                     results.append(key)
                     break # Avoid adding the same key multiple times for one value
     return results
+
+
+
+
+class ShelveDB:
+    def __init__(self, filename: str):
+        self.filename = filename
+
+    def _open_db(self):
+        """Open the shelve database."""
+        return shelve.open(self.filename, writeback=True)
+
+    def insert(self, key: str, value: dict) -> None:
+        """Insert a new entry into the shelve database."""
+        with self._open_db() as db:
+            if key in db:
+                raise KeyError(f"Key '{key}' already exists.")
+            db[key] = value
+
+    def update(self, key: str, value: dict) -> None:
+        """Update an existing entry in the shelve database."""
+        with self._open_db() as db:
+            if key not in db:
+                raise KeyError(f"Key '{key}' not found.")
+            db[key] = value
+
+    def delete(self, key: str) -> None:
+        """Delete an entry from the shelve database."""
+        with self._open_db() as db:
+            if key not in db:
+                raise KeyError(f"Key '{key}' not found.")
+            del db[key]
+
+    def search(self, key: str) -> dict:
+        """Search for an entry in the shelve database."""
+        with self._open_db() as db:
+            return db.get(key, None)
+
+    def list_all(self) -> dict:
+        """List all entries in the shelve database."""
+        with self._open_db() as db:
+            return dict(db)
+
+    def close(self):
+        """Close the shelve database."""
+        # shelve automatically handles file closing, but you can force it if needed
+        pass
