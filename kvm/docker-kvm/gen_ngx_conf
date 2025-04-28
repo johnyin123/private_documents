@@ -145,7 +145,7 @@ server {
     location / { return 301 https://$server_name$request_uri$is_args$args; }
     # # only .iso|meta-data|user-data(include subdir resource)
     # rewrite ^ /public/iso$uri break; proxy_pass http://flask_app;
-    location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root ${OUT_DIR}/iso; }
+    location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root ${OUT_DIR}/cidata; }
     location ^~ /gold { set $limit 0; alias ${OUT_DIR}/gold/; }
 }
 '''
@@ -162,5 +162,5 @@ print(f'''
 {config.OUTDIR}/spice  ==>   static html/js.. directory
 {config.OUTDIR}/novnc  ==>   static html/js.. directory
 {config.OUTDIR}/iso    ==>   dynamic iso/data directory
-      ln -s ...../iso {config.OUTDIR}/iso
+      ln -s ...../cidata {config.OUTDIR}/cidata
 ''')

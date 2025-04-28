@@ -19,7 +19,7 @@ SPICE_DISP_URL  = f'https://{META_SRV}/spice/spice_auto.html'
 CONSOLE_URL     = f'https://{META_SRV}/term/xterm.html'
 USER_ACCESS_URL = f'https://{META_SRV}/guest.html'
 CDROM_TPL = 'cdrom-meta.tpl'           # change media use this as template
-ISO_DIR      = os.path.join(OUTDIR, 'iso')  # # iso-meta/nocloud-meta data dir
+CIDATA_DIR   = os.path.join(OUTDIR, 'cidata')  # # iso-meta/nocloud-meta data dir
 ACTION_DIR   = os.path.join(OUTDIR, 'actions') # # device action script dir
 DEVICE_DIR   = os.path.join(OUTDIR, 'devices') # # device template dir
 DOMAIN_DIR   = os.path.join(OUTDIR, 'domains') # # domain template dir
@@ -58,4 +58,4 @@ def VM_DEFAULT(arch:str='x86_64', hostname:str='dummy')->Dict:
     else:
         return {'error':f'{arch} {hostname} no VM_DEFAULT defined'}
 
-# OUTDIR=/abc python3 -c 'import config; print(config.ISO_DIR)'
+# OUTDIR=/abc python3 -c 'import config; print(config.CIDATA_DIR)'

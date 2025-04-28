@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 TARGET=/out
-MONS=(/vmmapi/work/iso)
+MONS=(/vmmapi/work/cidata)
 for dir in ${MONS[@]}; do
     rsync -avzP ${dir} ${TARGET}
 done
