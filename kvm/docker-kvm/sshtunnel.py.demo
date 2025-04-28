@@ -625,3 +625,33 @@ def split_url(url):
     if port is None:
         port = 80 if parsed_url.scheme == 'http' else 443
     return parsed_url.scheme, netloc, port, parsed_url.path
+
+
+def AgentCommand(self,guest,cmd,timeout=3,flag=0):
+    try:
+        return json.loads(libvirt_qemu.qemuAgentCommand(guest, cmd, timeout, flag))['return']
+    except Exception:
+        return {}
+
+def getBootTime(self,guest):
+    cmd = '{"execute": "guest-exec","arguments":{"path":"/bin/cat","arg":["/proc/uptime"],"capture-output":true}}'
+    data = AgentCommand(guest,cmd)
+    pid = data['pid']
+    time.sleep(2)
+    cmd = '{"execute": "guest-exec-status","arguments":{"pid":%s}}' % pid
+    data = AgentCommand(guest,cmd) # exitcode:0,out-data:Base64Encode,exited:true
+    result = base64.b64decode(data['out-data'])
+    uptime = result.split(' ')
+    return int(time.time()-float(uptime[0]))
+
+
+    def screenshotHandler(self,stream, buf, fd):
+        os.write(fd, buf)
+
+    def screenshot(self,name,filename='screenshot.pbm'):
+        domain = self.getGuest(name)
+        stream = self.conn.newStream(0)
+        mimetype = domain.screenshot(stream, 0, 0)
+        #print "MIME Type:", mimetype ### image/x-portable-pixmap
+        fd = os.open(filename, os.O_WRONLY | os.O_TRUNC | os.O_CREAT, 0644)
+        stream.recvAll(self.screenshotHandler, fd)
