@@ -8,13 +8,3 @@ inotifywait -e create,close_write,moved_to,delete -m --timefmt '%y%m%d%H%M' --fo
     echo "${time} ${event} ${dir} => ${TARGET}"
     rsync -avzP ${dir} ${TARGET}
 done
-:<<EOF
-location ~* \.(iso)$ {
-    autoindex off;
-    root /${TARGET};
-}
-location ~* \/(meta-data|user-data)$ {
-    autoindex off;
-    root /${TARGET};
-}
-EOF
