@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("f7d7fa29[2025-04-27T12:58:11+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("f44a06ca[2025-04-28T09:03:19+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -102,7 +102,6 @@ inst_app_outdir() {
     log "install vmmgr OUTDIR=${outdir}"
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/iso
-    install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/gold
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/token
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/reqlogs
     local dirs=(actions devices domains meta)
