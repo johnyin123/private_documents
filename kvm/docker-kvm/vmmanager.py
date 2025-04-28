@@ -244,7 +244,7 @@ class VMManager:
             cmd = [os.path.join(config.ACTION_DIR, f'{dev.action}'), f'add']
             gold = req_json.get("gold", "")
             if len(gold) != 0:
-                req_json['gold'] = os.path.join(config.GOLD_DIR, KVMGold.getGoldInfo(f'{gold}', f'{host.arch}').tpl)
+                req_json['gold'] = KVMGold.getGoldInfo(f'{gold}', f'{host.arch}').tpl
             with connect(host.url) as conn:
                 dom = conn.lookupByUUIDString(uuid)
                 domain = LibvirtDomain(dom)

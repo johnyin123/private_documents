@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("2f44013e[2025-04-27T12:31:47+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("f7d7fa29[2025-04-27T12:58:11+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -171,8 +171,8 @@ post_check() {
         [ -x "${outdir}/actions/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
     done
     for fn in $(cat golds.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
-        log "check gold disk: ${outdir}/gold/${fn}"
-        [ -e "${outdir}/gold/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
+        log "check gold disk: ${fn}"
+        [ -e "${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
     done
     for fn in $(cat iso.json | jq -r .[].uri | sort | uniq | sed "/^$/d"); do
         srv=$(OUTDIR=${outdir} python3 -c 'import config; print(config.META_SRV)' || true)
