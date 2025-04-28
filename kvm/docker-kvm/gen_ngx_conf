@@ -161,6 +161,10 @@ print(f'''
 {config.OUTDIR}/term   ==>   static html/js.. directory
 {config.OUTDIR}/spice  ==>   static html/js.. directory
 {config.OUTDIR}/novnc  ==>   static html/js.. directory
-{config.OUTDIR}/iso    ==>   dynamic iso/data directory
-      ln -s ...../cidata {config.OUTDIR}/cidata
+{config.OUTDIR}/cidata ==>   dynamic iso/data directory
+   LOCAL : ln -s ...../cidata {config.OUTDIR}/cidata
+   REMOTE: sshfs {config.OUTDIR}/cidata ...../cidata
+   NFS:.....
+   inotify.sh, s3 ....
+golds.json, sshfs/sshfs/ssh/local, (http/https curl when convert hang random)
 ''')
