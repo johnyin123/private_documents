@@ -4,7 +4,9 @@ try:
 except ImportError:
     from io import BytesIO
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-import pycdlib, jinja2, os, utils, config
+from utils import remove_file
+import pycdlib, jinja2, os, utils, config, logging
+logger = logging.getLogger(__name__)
 
 def save_metaiso(fname, meta_str, user_str):
     iso = pycdlib.PyCdlib()
@@ -29,6 +31,10 @@ class MetaConfig(object):
         utils.save(os.path.join(output, "meta-data"), meta_str)
         utils.save(os.path.join(output, "user-data"), user_str)
         save_metaiso(f'{output}.iso', meta_str, user_str)
+
+def del_metafiles(uuid):
+    remove_file(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
+    remove_file(os.path.join(config.ISO_DIR, uuid))
 
 def gen_metafiles(mdconfig, req_json):
     MetaConfig().create(req_json, mdconfig)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import logging, libvirt, xml.dom.minidom, json, os, template, config
+import logging, libvirt, xml.dom.minidom, json, os, template, config, meta
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from utils import return_ok, getlist_without_key, remove_file, connect, ProcList, save, websockify_secure_link
 from database import FakeDB, KVMIso, IPPool, KVMDevice, KVMGold
@@ -189,8 +189,7 @@ class VMManager:
 
     @staticmethod
     def delete(host:FakeDB, uuid:str)-> str:
-        remove_file(os.path.join(config.ISO_DIR, f"{uuid}.iso"))
-        remove_file(os.path.join(config.ISO_DIR, uuid))
+        meta.del_metafiles(uuid)
         remove_file(os.path.join(config.REQ_JSON_DIR, uuid))
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
