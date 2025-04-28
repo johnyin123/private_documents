@@ -5,159 +5,144 @@ logger = logging.getLogger(__name__)
 
 class FakeDB:
     def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+        self.__dict__.update(kwargs)
+
     def _asdict(self):
         return self.__dict__
 
-class KVMHost:
+class JSONCacheBase:
+    filename = None
+    cache = None
+    lock = None
+
+    @classmethod
+    def reload(cls):
+        utils.reload(cls.lock, cls.cache, cls.filename)
+
+    @classmethod
+    def save(cls):
+        utils.save(cls.filename, json.dumps([dict(item) for item in cls.cache]))
+
+    @classmethod
+    def list_all(cls, filter_key=None, filter_value=None) -> List[FakeDB]:
+        with cls.lock:
+            data = cls.cache
+            if filter_key:
+                data = utils.search(data, filter_key, filter_value)
+            return [FakeDB(**dict(entry)) for entry in data]
+
+    @classmethod
+    def get_one(cls, **criteria) -> FakeDB:
+        with cls.lock:
+            data = cls.cache
+            for key, val in criteria.items():
+                data = utils.search(data, key, val)
+            if len(data) == 1:
+                return FakeDB(**dict(data[0]))
+            raise Exception(f"{cls.__name__} entry not found or not unique: {criteria}")
+
+class KVMHost(JSONCacheBase):
     filename = os.path.join(config.OUTDIR, 'hosts.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-    # { "name":"KVM主机名称", "url":"libvirt URI", "tpl":"domain模板XML文件", "arch":"cpu架构uname -m", "ipaddr":"ssh/vnc/spice,ip地址", "sshport":"ssh端口", "sshuser":"ssh user", "desc":"主机描述"}
 
-    @staticmethod
-    def reload():
-        utils.reload(KVMHost.lock, KVMHost.cache, KVMHost.filename)
+    @classmethod
+    def getHostInfo(cls, name):
+        return cls.get_one(name=name)
 
-    @staticmethod
-    def getHostInfo(name):
-        result = utils.search(KVMHost.cache, 'name', name)
-        if len(result) == 1:
-            return FakeDB(**result[0])
-        raise Exception(f'host {name} nofound ({len(result)})')
+    @classmethod
+    def ListHost(cls):
+        return cls.list_all()
 
-    @staticmethod
-    def ListHost():
-        return [ FakeDB(**element) for element in KVMHost.cache ]
-
-class KVMDevice:
+class KVMDevice(JSONCacheBase):
     filename = os.path.join(config.OUTDIR, 'devices.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-    #{"kvmhost":"KVM主机名称", "name":"device名称", "action":"device attach后执行的脚本", "devtype":"device类型", "tpl":"device模板XML文件", "desc":"device描述"}
 
-    @staticmethod
-    def reload():
-        utils.reload(KVMDevice.lock, KVMDevice.cache, KVMDevice.filename)
+    @classmethod
+    def getDeviceInfo(cls, kvmhost, name):
+        return cls.get_one(name=name, kvmhost=kvmhost)
 
-    @staticmethod
-    def getDeviceInfo(kvmhost, name):
-        result = utils.search(KVMDevice.cache, 'name', name)
-        result = utils.search(result, 'kvmhost', kvmhost)
-        if len(result) == 1:
-            return FakeDB(**result[0])
-        raise Exception(f'device template {name} nofound ({len(result)})')
+    @classmethod
+    def ListDevice(cls, kvmhost):
+        return cls.list_all('kvmhost', kvmhost)
 
-    @staticmethod
-    def ListDevice(kvmhost):
-        result = utils.search(KVMDevice.cache, 'kvmhost', kvmhost)
-        return [ FakeDB(**element) for element in result ]
-
-class KVMGold:
+class KVMGold(JSONCacheBase):
     filename = os.path.join(config.OUTDIR, 'golds.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-    # {"name":"Gold盘名称", "arch":"Gold盘对应的CPU架构", "tpl":"Gold盘qcow2格式模板文件", "desc":"Gold盘描述"}
 
-    @staticmethod
-    def reload():
-        utils.reload(KVMGold.lock, KVMGold.cache, KVMGold.filename)
+    @classmethod
+    def getGoldInfo(cls, name, arch):
+        return cls.get_one(name=name, arch=arch)
 
-    @staticmethod
-    def getGoldInfo(name, arch):
-        result = utils.search(KVMGold.cache, 'name', name)
-        result = utils.search(result, 'arch', arch)
-        if len(result) == 1:
-            return FakeDB(**result[0])
-        raise Exception(f'golddisk {name} nofound ({len(result)})')
+    @classmethod
+    def ListGold(cls, arch):
+        return cls.list_all('arch', arch)
 
-    @staticmethod
-    def ListGold(arch):
-        result = utils.search(KVMGold.cache, 'arch', arch)
-        return [ FakeDB(**element) for element in result ]
-
-class KVMIso:
+class KVMIso(JSONCacheBase):
     filename = os.path.join(config.OUTDIR, 'iso.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-    # { "name":"iso名称","uri":"uri","desc":"desc" }
 
-    @staticmethod
-    def reload():
-        utils.reload(KVMIso.lock, KVMIso.cache, KVMIso.filename)
+    @classmethod
+    def getIso(cls, name):
+        return cls.get_one(name=name)
 
-    @staticmethod
-    def ListISO():
-        return [ FakeDB(**element) for element in KVMIso.cache ]
+    @classmethod
+    def ListISO(cls):
+        return cls.list_all()
 
-    @staticmethod
-    def getIso(name):
-        result = utils.search(KVMIso.cache, 'name', name)
-        if len(result) == 1:
-            return FakeDB(**result[0])
-        raise Exception(f'iso {name} nofound ({len(result)})')
-
-class KVMGuest:
+class KVMGuest(JSONCacheBase):
     filename = os.path.join(config.OUTDIR, 'guests.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-    # kvmhost, arch, uuid, desc, curcpu, curmem, mdconfig, maxcpu, maxmem, cputime, disks, net
 
-    @staticmethod
-    def reload():
-        utils.reload(KVMGuest.lock, KVMGuest.cache, KVMGuest.filename)
-
-    @staticmethod
-    def Upsert(kvmhost:str, arch:str, records:List)->None:
-        # can not modify records!!!!!
-        try:
-            with KVMGuest.lock:
-                utils.remove(KVMGuest.cache, 'kvmhost', kvmhost)
+    @classmethod
+    def Upsert(cls, kvmhost: str, arch: str, records: List[Dict]) -> None:
+        with cls.lock:
+            try:
+                utils.remove(cls.cache, 'kvmhost', kvmhost)
                 for rec in records:
-                    # # remove no use need key
                     guest = rec.copy()
-                    guest.pop('state', "Not found")
-                    utils.append(KVMGuest.cache, utils.manager.dict(**guest, kvmhost=kvmhost, arch=arch))
-            utils.save(KVMGuest.filename, json.dumps([el.copy() for el in KVMGuest.cache]))
-        except:
-            logger.exception(f'Upsert db guest {kvmhost} in PID {os.getpid()} Failed')
+                    guest.pop('state', None)
+                    guest.update({'kvmhost': kvmhost, 'arch': arch})
+                    cls.cache.append(utils.manager.dict(guest))
+                cls.save()
+            except Exception as e:
+                logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
 
-    @staticmethod
-    def ListGuest():
+    @classmethod
+    def ListGuest(cls):
         logger.debug(f'ListGuest PID {os.getpid()}')
-        return [ FakeDB(**element) for element in KVMGuest.cache ]
+        return cls.list_all()
 
-class IPPool:
+class IPPool(JSONCacheBase):
     filename = os.path.join(config.OUTDIR, 'ippool.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-    # cidr, gateway
 
-    @staticmethod
-    def reload():
-        utils.reload(IPPool.lock, IPPool.cache, IPPool.filename)
-
-    @staticmethod
-    def append(cidr:str, gateway:str)->None:
-        if cidr is None or gateway is None:
+    @classmethod
+    def append(cls, cidr: str, gateway: str) -> None:
+        if not cidr or not gateway:
             return
-        if len(utils.search(IPPool.cache, 'cidr', cidr)) == 0:
-            utils.append(IPPool.cache, utils.manager.dict(cidr=cidr, gateway=gateway))
-            utils.save(IPPool.filename, json.dumps([el.copy() for el in IPPool.cache]))
+        with cls.lock:
+            if not utils.search(cls.cache, 'cidr', cidr):
+                cls.cache.append(utils.manager.dict(cidr=cidr, gateway=gateway))
+                cls.save()
 
-    @staticmethod
-    def remove(cidr:str)->None:
-        try:
-            with IPPool.lock:
-                utils.remove(IPPool.cache, 'cidr', cidr)
-            utils.save(IPPool.filename, json.dumps([el.copy() for el in IPPool.cache]))
-        except:
-            logger.exception(f'remove {cidr} in PID {os.getpid()} Failed')
+    @classmethod
+    def remove(cls, cidr: str) -> None:
+        with cls.lock:
+            try:
+                utils.remove(cls.cache, 'cidr', cidr)
+                cls.save()
+            except Exception as e:
+                logger.exception(f'Failed to remove {cidr}: {e}')
 
-    @staticmethod
-    def free_ip()->Dict:
-        return random.sample([element for element in IPPool.cache], k=1)[0]
+    @classmethod
+    def free_ip(cls) -> Dict:
+        return random.choice(cls.cache)
 
 def reload_all():
     for clz in [KVMHost,KVMDevice,KVMGold,KVMIso,KVMGuest,IPPool]:

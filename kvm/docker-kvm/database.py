@@ -16,8 +16,8 @@ def cache_flush(lock, cache, dbtable):
 
 class FakeDB:
     def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+        self.__dict__.update(kwargs)
+
     def _asdict(self):
         return self.__dict__
 

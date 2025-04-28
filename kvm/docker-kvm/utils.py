@@ -71,21 +71,17 @@ def append(arr:List, val:Dict)-> None:
     arr.append(val)
 
 def remove(arr:List, key, val)-> None:
-    to_remove = [i for i, d in enumerate(arr) if d.get(key) == val]
-    to_remove.reverse()  # Reverse to avoid index errors
-    for i in to_remove:
-        del arr[i]
+    arr[:] = [item for item in arr if item.get(key) != val]
 
 def reload(lock, cache, jfn)->None:
     with lock:
-        while(len(cache) > 0):
-            cache.pop()
-        logger.debug(f'update {jfn} cache in PID {os.getpid()}')
-        for result in json.loads(load(jfn)):
-            cache.append(manager.dict(**result))
+        logger.debug(f'update {jfn} in {id(cache)} cache in PID {os.getpid()}')
+        data = json.loads(load(jfn))
+        cache[:] = [manager.dict(item) for item in data]
 
 def search(arr:List, key, val)-> List:
-    return [element for element in arr if element[key] == val]
+    logger.debug(f'{id(arr)} cache in PID {os.getpid()}')
+    return [element for element in arr if element.get(key) == val]
 
 def getlist_without_key(arr:List, *keys)-> List:
     return [{k: v for k, v in dic.items() if k not in keys} for dic in arr]
