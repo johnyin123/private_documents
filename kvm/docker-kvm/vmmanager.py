@@ -319,7 +319,7 @@ class VMManager:
     # Generator func call by flask.Response(...)
     # need catch exception and yield it
         def convert_data(data):
-            return {value["hwaddr"]: {"names": [name], "addrs": [addr["addr"] for addr in value["addrs"]]} for name, value in data.items() if name != "lo" and value['addrs'] is not None}
+            return {value["hwaddr"]: {"name": name, "addrs": [{"addr":addr["addr"],"type":{0:'ipv4',1:'ipv6'}.get(addr["type"],'?')}for addr in value["addrs"]]} for name, value in data.items() if name != "lo" and value['addrs'] is not None}
         try:
             with connect(host.url) as conn:
                 dom = conn.lookupByUUIDString(uuid)
