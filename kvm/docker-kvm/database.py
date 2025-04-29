@@ -5,23 +5,32 @@ from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
 
-def cache_flush(lock, cache, dbtable):
-    with lock:
-        while(len(cache) > 0):
-            cache.pop()
-        logger.debug(f'update {dbtable} cache in PID {os.getpid()}')
-        results = session.query(dbtable).all()
-        for result in results:
-            cache.append(utils.manager.dict(**result._asdict()))
+class DBCacheBase:
+    cache = None
+    lock = None
 
-class FakeDB:
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
+    @classmethod
+    def reload(cls):
+        with cls.lock:
+            cls.cache[:] = [utils.manager.dict(**item._asdict()) for item in session.query(cls).all()]
 
-    def _asdict(self):
-        return self.__dict__
+    @classmethod
+    def list_all(cls, filter_key=None, filter_value=None) -> List[utils.FakeDB]:
+        data = cls.cache
+        if filter_key:
+            data = utils.search(data, filter_key, filter_value)
+        return [utils.FakeDB(**dict(entry)) for entry in data]
 
-class KVMHost(Base):
+    @classmethod
+    def get_one(cls, **criteria) -> utils.FakeDB:
+        data = cls.cache
+        for key, val in criteria.items():
+            data = utils.search(data, key, val)
+        if len(data) == 1:
+            return utils.FakeDB(**dict(data[0]))
+        raise Exception(f"{cls.__name__} entry not found or not unique: {criteria}")
+
+class KVMHost(Base, DBCacheBase):
     __tablename__ = "kvmhost"
     name = Column(String(19),nullable=False,index=True,unique=True,primary_key=True,comment='KVM主机名称')
     url = Column(String,nullable=False,unique=True,comment='libvirt URI')
@@ -39,24 +48,16 @@ class KVMHost(Base):
     ####################################
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-    @staticmethod
-    def reload():
-        cache_flush(KVMHost.lock, KVMHost.cache, KVMHost)
 
-    @staticmethod
-    def getHostInfo(name):
-        logger.debug(f'getHostInfo PID {os.getpid()}')
-        result = utils.search(KVMHost.cache, 'name', name)
-        if len(result) == 1:
-            return FakeDB(**result[0])
-        raise Exception(f'host {name} nofound')
+    @classmethod
+    def getHostInfo(cls, name):
+        return cls.get_one(name=name)
 
-    @staticmethod
-    def ListHost():
-        logger.debug(f'ListHost PID {os.getpid()}')
-        return [ FakeDB(**element) for element in KVMHost.cache ]
+    @classmethod
+    def ListHost(cls):
+        return cls.list_all()
 
-class KVMDevice(Base):
+class KVMDevice(Base, DBCacheBase):
     __tablename__ = "kvmdevice"
     kvmhost = Column(String(19),ForeignKey('kvmhost.name'),nullable=False,index=True,primary_key=True,comment='KVM主机名称')
     name = Column(String(19),nullable=False,index=True,primary_key=True,comment='device名称')
@@ -68,27 +69,16 @@ class KVMDevice(Base):
     ####################################
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-    @staticmethod
-    def reload():
-        cache_flush(KVMDevice.lock, KVMDevice.cache, KVMDevice)
 
-    @staticmethod
-    def getDeviceInfo(kvmhost, name):
-        logger.debug(f'getDeviceInfo PID {os.getpid()}')
-        result = utils.search(KVMDevice.cache, 'name', name)
-        result = utils.search(result, 'kvmhost', kvmhost)
-        if len(result) == 1:
-            return FakeDB(**result[0])
-        raise Exception(f'device template {name} nofound')
+    @classmethod
+    def getDeviceInfo(cls, kvmhost, name):
+        return cls.get_one(name=name, kvmhost=kvmhost)
 
-    @staticmethod
-    def ListDevice(kvmhost):
-        logger.debug(f'ListDevice PID {os.getpid()}')
-        result = utils.search(KVMDevice.cache, 'kvmhost', kvmhost)
-        return [ FakeDB(**element) for element in result ]
-        # return session.query(KVMDevice.kvmhost, KVMDevice.name, KVMDevice.devtype, KVMDevice.desc).filter_by(kvmhost=kvmhost).all()
+    @classmethod
+    def ListDevice(cls, kvmhost):
+        return cls.list_all('kvmhost', kvmhost)
 
-class KVMGold(Base):
+class KVMGold(Base, DBCacheBase):
     __tablename__ = "kvmgold"
     name = Column(String(19),nullable=False,index=True,primary_key=True,comment='Gold盘名称')
     arch = Column(String(8),nullable=False,index=True,primary_key=True,comment='Gold盘对应的CPU架构')
@@ -98,27 +88,16 @@ class KVMGold(Base):
     ####################################
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-    @staticmethod
-    def reload():
-        cache_flush(KVMGold.lock, KVMGold.cache, KVMGold)
 
-    @staticmethod
-    def getGoldInfo(name, arch):
-        logger.debug(f'getGoldInfo PID {os.getpid()}')
-        result = utils.search(KVMGold.cache, 'name', name)
-        result = utils.search(result, 'arch', arch)
-        if len(result) == 1:
-            return FakeDB(**result[0])
-        raise Exception(f'golddisk {name} nofound')
+    @classmethod
+    def getGoldInfo(cls, name, arch):
+        return cls.get_one(name=name, arch=arch)
 
-    @staticmethod
-    def ListGold(arch):
-        logger.debug(f'ListGold PID {os.getpid()}')
-        result = utils.search(KVMGold.cache, 'arch', arch)
-        return [ FakeDB(**element) for element in result ]
-        # return session.query(KVMGold).filter_by(arch=arch).all()
+    @classmethod
+    def ListGold(cls, arch):
+        return cls.list_all('arch', arch)
 
-class KVMIso(Base):
+class KVMIso(Base, DBCacheBase):
     __tablename__ = "kvmiso"
     name = Column(String(19),nullable=False,index=True,primary_key=True,comment='ISO名称')
     uri = Column(String,nullable=False,index=True,unique=True,comment='ISO文件URI')
@@ -127,22 +106,16 @@ class KVMIso(Base):
     ####################################
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-    @staticmethod
-    def reload():
-        cache_flush(KVMIso.lock, KVMIso.cache, KVMIso)
 
-    @staticmethod
-    def ListISO():
-        return [ FakeDB(**element) for element in KVMIso.cache ]
+    @classmethod
+    def getIso(cls, name):
+        return cls.get_one(name=name)
 
-    @staticmethod
-    def getIso(name):
-        result = utils.search(KVMIso.cache, 'name', name)
-        if len(result) == 1:
-            return FakeDB(**result[0])
-        raise Exception(f'golddisk {name} nofound ({len(result)})')
+    @classmethod
+    def ListISO(cls):
+        return cls.list_all()
 
-class KVMGuest(Base):
+class KVMGuest(Base, DBCacheBase):
     __tablename__ = "kvmguest"
     kvmhost = Column(String(19),nullable=False,index=True,primary_key=True)
     arch = Column(String(8),nullable=False)
@@ -160,33 +133,28 @@ class KVMGuest(Base):
     ####################################
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-    @staticmethod
-    def reload():
-        cache_flush(KVMGuest.lock, KVMGuest.cache, KVMGuest)
 
-    @staticmethod
-    def Upsert(kvmhost:str, arch:str, records:List)->None:
-        # can not modify records!!!!!
+    @classmethod
+    def Upsert(cls, kvmhost: str, arch: str, records: List[Dict]) -> None:
         try:
             session.query(KVMGuest).filter_by(kvmhost=kvmhost).delete()
             for rec in records:
                 # # remove no use need key
                 guest = rec.copy()
-                guest.pop('state', "Not found")
+                guest.pop('state', None)
                 session.add(KVMGuest(**guest, kvmhost=kvmhost, arch=arch))
             session.commit()
-            KVMGuest.reload()
+            cls.reload()
         except:
-            logger.exception(f'Upsert db guest {kvmhost} in PID {os.getpid()} Failed')
+            logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
             session.rollback()
 
-    @staticmethod
-    def ListGuest():
+    @classmethod
+    def ListGuest(cls):
         logger.debug(f'ListGuest PID {os.getpid()}')
-        return [ FakeDB(**element) for element in KVMGuest.cache ]
-        # return session.query(KVMGuest).all()
+        return cls.list_all()
 
-class IPPool(Base):
+class IPPool(Base, DBCacheBase):
     __tablename__ = "ippool"
     cidr = Column(String,nullable=False,unique=True,primary_key=True)
     gateway = Column(String,nullable=False)
@@ -194,22 +162,18 @@ class IPPool(Base):
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
 
-    @staticmethod
-    def reload():
-        cache_flush(IPPool.lock, IPPool.cache, IPPool)
-
-    @staticmethod
-    def append(cidr:str, gateway:str)->None:
+    @classmethod
+    def append(cls, cidr: str, gateway: str) -> None:
         try:
             session.add(IPPool(cidr=cidr, gateway=gateway))
             session.commit()
-            IPPool.reload()
+            cls.reload()
         except:
             logger.exception(f'append {cidr} {gateway} PID {os.getpid()} Failed')
             session.rollback()
 
-    @staticmethod
-    def remove(cidr:str)->None:
+    @classmethod
+    def remove(cls, cidr: str) -> None:
         try:
             session.query(IPPool).filter_by(cidr=cidr).delete()
             session.commit()
@@ -218,10 +182,9 @@ class IPPool(Base):
             logger.exception(f'remove {cidr} in PID {os.getpid()} Failed')
             session.rollback()
 
-    @staticmethod
-    def free_ip()->Dict:
-        return random.sample([element for element in IPPool.cache], k=1)[0]
-
+    @classmethod
+    def free_ip(cls) -> Dict:
+        return random.choice(cls.cache)
 
 def reload_all():
     logger.info(f'database create all tables')

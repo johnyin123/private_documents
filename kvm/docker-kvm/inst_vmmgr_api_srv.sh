@@ -2,12 +2,12 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("99b08254[2025-04-28T09:57:32+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("41058a65[2025-04-28T14:21:09+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
 APPFILES=(flask_app.py dbi.py database.py database.py.shm config.py meta.py utils.py main.py template.py vmmanager.py console.py)
-APPDBS=(devices.json golds.json guests.json hosts.json iso.json ippool.json)
+APPDBS=(devices.json golds.json hosts.json iso.json guests.json ippool.json)
 TOOLS=(reload_dbtable)
 ################################################################################
 log() { echo "$(tput setaf ${COLOR:-141})$*$(tput sgr0)" >&2; }
@@ -229,6 +229,8 @@ main() {
     gen_app_database "${OUTDIR}" "${USR_ID}" "${GRP_ID}" "${mode}"
     post_check "${OUTDIR}"
     log "!!!!!!!modify ${target}/app/startup.sh start app!!!!!!!"
+    log "devices.json golds.json hosts.json iso.json CAN READ-ONLY"
+    log "guests.json ippool.json MUST READ-WRITE, "
     [ "${docker}" == "1" ] && cat <<EODOC
 # --network host \
 # docker run --rm \\

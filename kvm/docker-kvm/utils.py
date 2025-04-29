@@ -5,6 +5,13 @@ import libvirt, json, base64, os
 import logging
 logger = logging.getLogger(__name__)
 
+class FakeDB:
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+    def _asdict(self):
+        return self.__dict__
+
 @contextmanager
 def connect(uri: str)-> Generator:
     conn = None
@@ -72,12 +79,6 @@ def append(arr:List, val:Dict)-> None:
 
 def remove(arr:List, key, val)-> None:
     arr[:] = [item for item in arr if item.get(key) != val]
-
-def reload(lock, cache, jfn)->None:
-    with lock:
-        logger.debug(f'update {jfn} in {id(cache)} cache in PID {os.getpid()}')
-        data = json.loads(load(jfn))
-        cache[:] = [manager.dict(item) for item in data]
 
 def search(arr:List, key, val)-> List:
     logger.debug(f'{id(arr)} cache in PID {os.getpid()}')
