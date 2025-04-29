@@ -236,14 +236,14 @@ class VMManager:
         try:
             req_json['vm_uuid'] = uuid
             logger.info(f'attach_device {req_json}')
-            dev = KVMDevice.getDeviceInfo(host.name, dev)
+            dev = KVMDevice.get_one(name=dev, kvmhost=host.name)
             tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
             # all env must string
             env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
             cmd = [os.path.join(config.ACTION_DIR, f'{dev.action}'), f'add']
             gold = req_json.get("gold", "")
             if len(gold) != 0:
-                req_json['gold'] = KVMGold.getGoldInfo(f'{gold}', f'{host.arch}').tpl
+                req_json['gold'] = KVMGold.get_one(name=gold, arch=host.arch).tpl
             with connect(host.url) as conn:
                 dom = conn.lookupByUUIDString(uuid)
                 domain = LibvirtDomain(dom)
@@ -262,7 +262,7 @@ class VMManager:
     @staticmethod
     def cdrom(host:FakeDB, uuid:str, dev:str, req_json)->str:
         logger.info(f'{req_json}')
-        iso = KVMIso.getIso(req_json.get('isoname', None))
+        iso = KVMIso.get_one(name=req_json.get('isoname', None))
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)

@@ -15,10 +15,10 @@ class DBCacheBase:
             cls.cache[:] = [utils.manager.dict(**item._asdict()) for item in session.query(cls).all()]
 
     @classmethod
-    def list_all(cls, filter_key=None, filter_value=None) -> List[utils.FakeDB]:
+    def list_all(cls, **criteria) -> List[utils.FakeDB]:
         data = cls.cache
-        if filter_key:
-            data = utils.search(data, filter_key, filter_value)
+        for key, val in criteria.items():
+            data = utils.search(data, key, val)
         return [utils.FakeDB(**dict(entry)) for entry in data]
 
     @classmethod
@@ -49,14 +49,6 @@ class KVMHost(Base, DBCacheBase):
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
 
-    @classmethod
-    def getHostInfo(cls, name):
-        return cls.get_one(name=name)
-
-    @classmethod
-    def ListHost(cls):
-        return cls.list_all()
-
 class KVMDevice(Base, DBCacheBase):
     __tablename__ = "kvmdevice"
     kvmhost = Column(String(19),ForeignKey('kvmhost.name'),nullable=False,index=True,primary_key=True,comment='KVM主机名称')
@@ -70,14 +62,6 @@ class KVMDevice(Base, DBCacheBase):
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
 
-    @classmethod
-    def getDeviceInfo(cls, kvmhost, name):
-        return cls.get_one(name=name, kvmhost=kvmhost)
-
-    @classmethod
-    def ListDevice(cls, kvmhost):
-        return cls.list_all('kvmhost', kvmhost)
-
 class KVMGold(Base, DBCacheBase):
     __tablename__ = "kvmgold"
     name = Column(String(19),nullable=False,index=True,primary_key=True,comment='Gold盘名称')
@@ -89,14 +73,6 @@ class KVMGold(Base, DBCacheBase):
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
 
-    @classmethod
-    def getGoldInfo(cls, name, arch):
-        return cls.get_one(name=name, arch=arch)
-
-    @classmethod
-    def ListGold(cls, arch):
-        return cls.list_all('arch', arch)
-
 class KVMIso(Base, DBCacheBase):
     __tablename__ = "kvmiso"
     name = Column(String(19),nullable=False,index=True,primary_key=True,comment='ISO名称')
@@ -106,14 +82,6 @@ class KVMIso(Base, DBCacheBase):
     ####################################
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-
-    @classmethod
-    def getIso(cls, name):
-        return cls.get_one(name=name)
-
-    @classmethod
-    def ListISO(cls):
-        return cls.list_all()
 
 class KVMGuest(Base, DBCacheBase):
     __tablename__ = "kvmguest"
@@ -148,11 +116,6 @@ class KVMGuest(Base, DBCacheBase):
         except:
             logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
             session.rollback()
-
-    @classmethod
-    def ListGuest(cls):
-        logger.debug(f'ListGuest PID {os.getpid()}')
-        return cls.list_all()
 
 class IPPool(Base, DBCacheBase):
     __tablename__ = "ippool"

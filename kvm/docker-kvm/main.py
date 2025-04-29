@@ -51,7 +51,7 @@ class MyApp(object):
 
     def db_list_host(self):
         try:
-            results = database.KVMHost.ListHost()
+            results = database.KVMHost.list_all()
             keys = [ 'name', 'arch', 'ipaddr', 'desc', 'url', 'last_modified' ]
             return [ {k: v for k, v in dic._asdict().items() if k in keys} for dic in results ]
             # return [result._asdict() for result in results]
@@ -60,26 +60,26 @@ class MyApp(object):
 
     def db_list_iso(self):
         try:
-            return [result._asdict() for result in database.KVMIso.ListISO()]
+            return [result._asdict() for result in database.KVMIso.list_all()]
         except Exception as e:
             return deal_except(f'db_list_iso', e), 400
 
     def db_list_device(self, hostname):
         try:
-            return [result._asdict() for result in database.KVMDevice.ListDevice(hostname)]
+            return [result._asdict() for result in database.KVMDevice.list_all(kvmhost=hostname)]
         except Exception as e:
             return deal_except(f'db_list_device', e), 400
 
     def db_list_gold(self, hostname):
         try:
-            host = database.KVMHost.getHostInfo(hostname)
-            return [result._asdict() for result in database.KVMGold.ListGold(host.arch)]
+            host = database.KVMHost.get_one(name=hostname)
+            return [result._asdict() for result in database.KVMGold.list_all(arch=host.arch)]
         except Exception as e:
             return deal_except(f'db_list_gold', e), 400
 
     def db_list_domains(self):
         try:
-            return [result._asdict() for result in database.KVMGuest.ListGuest()]
+            return [result._asdict() for result in database.KVMGuest.list_all()]
         except Exception as e:
             return deal_except(f'db_list_domains', e), 400
 
@@ -107,7 +107,7 @@ class MyApp(object):
 
     def list_domains(self, hostname):
         try:
-            host = database.KVMHost.getHostInfo(hostname)
+            host = database.KVMHost.get_one(name=hostname)
             results = [result._asdict() for result in vmmanager.VMManager.list_domains(host)]
             # only list domains need KVMGuest.Upsert.
             database.KVMGuest.Upsert(host.name, host.arch, results)
@@ -121,7 +121,7 @@ class MyApp(object):
     def create_vm(self, hostname):
         try:
             username = decode_jwt(flask.request.cookies.get('token', '')).get('payload', {}).get('username', '')
-            host = database.KVMHost.getHostInfo(hostname)
+            host = database.KVMHost.get_one(name=hostname)
             # # avoid :META_SRV overwrite by user request
             for key in ['vm_uuid','vm_arch','create_tm','META_SRV']:
                 flask.request.json.pop(key, "Not found")
@@ -143,7 +143,7 @@ class MyApp(object):
         try:
             if cmd in dom_cmds[flask.request.method]:
                 req_json = flask.request.get_json(silent=True, force=True)
-                args = {'host': database.KVMHost.getHostInfo(hostname), 'uuid': uuid}
+                args = {'host': database.KVMHost.get_one(name=hostname), 'uuid': uuid}
                 for key, value in flask.request.args.items():
                     # # remove secure_link args, so func no need **kwargs
                     if key in ['k', 'e', 'host', 'uuid']:

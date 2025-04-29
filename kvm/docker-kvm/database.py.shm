@@ -19,10 +19,10 @@ class JSONCacheBase:
             utils.save(cls.filename, json.dumps([dict(item) for item in cls.cache]))
 
     @classmethod
-    def list_all(cls, filter_key=None, filter_value=None) -> List[utils.FakeDB]:
+    def list_all(cls, **criteria) -> List[utils.FakeDB]:
         data = cls.cache
-        if filter_key:
-            data = utils.search(data, filter_key, filter_value)
+        for key, val in criteria.items():
+            data = utils.search(data, key, val)
         return [utils.FakeDB(**dict(entry)) for entry in data]
 
     @classmethod
@@ -39,52 +39,20 @@ class KVMHost(JSONCacheBase):
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
 
-    @classmethod
-    def getHostInfo(cls, name):
-        return cls.get_one(name=name)
-
-    @classmethod
-    def ListHost(cls):
-        return cls.list_all()
-
 class KVMDevice(JSONCacheBase):
     filename = os.path.join(config.OUTDIR, 'devices.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-
-    @classmethod
-    def getDeviceInfo(cls, kvmhost, name):
-        return cls.get_one(name=name, kvmhost=kvmhost)
-
-    @classmethod
-    def ListDevice(cls, kvmhost):
-        return cls.list_all('kvmhost', kvmhost)
 
 class KVMGold(JSONCacheBase):
     filename = os.path.join(config.OUTDIR, 'golds.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
 
-    @classmethod
-    def getGoldInfo(cls, name, arch):
-        return cls.get_one(name=name, arch=arch)
-
-    @classmethod
-    def ListGold(cls, arch):
-        return cls.list_all('arch', arch)
-
 class KVMIso(JSONCacheBase):
     filename = os.path.join(config.OUTDIR, 'iso.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
-
-    @classmethod
-    def getIso(cls, name):
-        return cls.get_one(name=name)
-
-    @classmethod
-    def ListISO(cls):
-        return cls.list_all()
 
 class KVMGuest(JSONCacheBase):
     filename = os.path.join(config.OUTDIR, 'guests.json')
@@ -104,11 +72,6 @@ class KVMGuest(JSONCacheBase):
                 cls.save()
             except Exception as e:
                 logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
-
-    @classmethod
-    def ListGuest(cls):
-        logger.debug(f'ListGuest PID {os.getpid()}')
-        return cls.list_all()
 
 class IPPool(JSONCacheBase):
     filename = os.path.join(config.OUTDIR, 'ippool.json')
