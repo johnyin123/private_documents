@@ -29,10 +29,10 @@ class Base:
     @staticmethod
     def exesql(sql, **kwargs):
         try:
-            with session.begin_nested():
-                return session.execute(sqlalchemy.text(sql.format(**kwargs)))
-        finally:
-            session.commit()
+            with session.begin():
+                return session.execute(sqlalchemy.text(sql), kwargs)  # Parameterized query
+        except Exception:
+            session.rollback()
 '''
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
