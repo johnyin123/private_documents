@@ -54,7 +54,6 @@ class ProcList:
                 proc.wait()
                 if proc.returncode != 0:
                     msg = ''.join(proc.stderr if not redirect else [])
-                    logger.error(f'PROC: execute {cmd} error={proc.returncode}')
                     raise Exception(f"execute {cmd} error={proc.returncode} {msg}")
         finally:
             logger.info(f'PROC: {uuid} PID={pid} exit!!!')

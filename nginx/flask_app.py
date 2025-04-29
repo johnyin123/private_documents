@@ -37,11 +37,8 @@ def create_app(config: dict={}, json: bool=False) -> flask.Flask:
     app.secret_key = os.urandom(12)
     if json:
         # for unicode json
-        try:
-            app.json.ensure_ascii = False
-            app.config['JSON_AS_ASCII'] = False
-        except:
-            pass
+        app.json.ensure_ascii = False
+        app.config['JSON_AS_ASCII'] = False
         app.json = UpdatedJSONProvider(app)
         for ex in werkzeug.exceptions.default_exceptions:
             app.register_error_handler(ex, json_handle_error)
