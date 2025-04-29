@@ -17,6 +17,8 @@ map $http_upgrade $connection_upgrade {
 }
 server {
     listen 443 ssl;
+    # # can modify to you websrv names
+    # # .iso|\/meta-data|\/user-data must use ${META_SRV}
     server_name ${META_SRV};
     ssl_certificate     /etc/nginx/ssl/${META_SRV}.pem;
     ssl_certificate_key /etc/nginx/ssl/${META_SRV}.key;
@@ -133,6 +135,7 @@ server {
     location /term { alias ${OUT_DIR}/term/; }
     location /spice { alias ${OUT_DIR}/spice/; }
     location /novnc { alias ${OUT_DIR}/novnc/; }
+    # # # # # # # # # # # # # # # # # # # # # # # # #
     # # only .iso|meta-data|user-data(include subdir resource)
     location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root ${OUT_DIR}/iso; }
     location ^~ /gold { set $limit 0; alias ${OUT_DIR}/gold/; }
