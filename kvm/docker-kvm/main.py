@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import flask_app, flask, signal, os, libvirt, json
+import flask_app, flask, signal, os, libvirt, json, logging
 import database, vmmanager, template, meta, config
-from utils import return_ok, return_err, deal_except, save, decode_jwt, ProcList, remove
+from utils import return_ok, return_err, deal_except, save, decode_jwt, ProcList, remove, getlist_without_key
 from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
-import logging
-logger = logging.getLogger(__name__)
 import base64, hashlib, time, datetime
+logger = logging.getLogger(__name__)
 
 import atexit
 def cleanup():
@@ -51,10 +50,8 @@ class MyApp(object):
 
     def db_list_host(self):
         try:
-            results = database.KVMHost.list_all()
-            keys = [ 'name', 'arch', 'ipaddr', 'desc', 'url', 'last_modified' ]
-            return [ {k: v for k, v in dic._asdict().items() if k in keys} for dic in results ]
-            # return [result._asdict() for result in results]
+            keys = ['name', 'arch', 'ipaddr', 'desc', 'url', 'last_modified']
+            return getlist_without_key([dic._asdict() for dic in database.KVMHost.list_all()], keys)
         except Exception as e:
             return deal_except(f'db_list_host', e), 400
 

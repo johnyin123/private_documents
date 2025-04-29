@@ -27,21 +27,13 @@ class LibvirtDomain:
 
     @property
     def next_disk(self):
-        vdlst, sdlst, hdlst = [], [], []
-        for char in range(ord('a'), ord('z') + 1):
-            vdlst.append('vd{}'.format(chr(char)))
-            sdlst.append('sd{}'.format(chr(char)))
-            hdlst.append('sd{}'.format(chr(char)))
-        # for index, disk in enumerate(p.getElementsByTagName('disk')): #enumerate(xxx, , start=1)
-        for disk in xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('disk'):
-            device = disk.getAttribute('device')
-            if device not in ['disk', 'cdrom']:
+        vlst = {'vd':ord('a'),'sd':ord('a'),'hd':ord('a')}
+        for disk in xml.dom.minidom.parseString(XMLDesc).getElementsByTagName('disk'):
+            if disk.getAttribute('device') not in ['disk', 'cdrom']:
                 continue
             dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
-            vdlst = [d for d in vdlst if d != dev]
-            sdlst = [d for d in sdlst if d != dev]
-            hdlst = [d for d in hdlst if d != dev]
-        return {'virtio':vdlst[0][2], 'scsi':sdlst[0][2], 'sata':sdlst[0][2], 'ide':hdlst[0][2]}
+            vlst[dev[:2]] = ord(dev[-1])+1
+        return {'virtio':chr(vlst['vd']), 'scsi':chr(vlst['sd']), 'sata':chr(vlst['sd']), 'ide':chr(vlst['hd'])}
 
     @property
     def mdconfig(self)->Dict:

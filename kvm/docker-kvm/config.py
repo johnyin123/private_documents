@@ -34,17 +34,10 @@ def VM_DEFAULT(arch:str='x86_64', hostname:str='dummy')->Dict:
     # # VM_DEFULT vars from domains/template. main:create_vm
     arch = arch.lower()
     default = {
-        'vm_arch': arch,
-        'vm_uuid': f'{uuid.uuid4()}',
-        'vm_name': 'srv',
-        'vm_desc': '',
-        'vm_ram_mb': 1024,
-        'vm_ram_mb_max': 16384,
-        'vm_vcpus': 1,
-        'vm_vcpus_max': 8,
-        'vm_uefi': '',
-        'create_tm': datetime.now().isoformat(),
-        'META_SRV': META_SRV
+        'vm_arch': arch, 'vm_uuid': f'{uuid.uuid4()}', 'vm_name': 'srv',
+        'vm_desc': '', 'vm_ram_mb': 1024, 'vm_ram_mb_max': 16384,
+        'vm_vcpus': 1, 'vm_vcpus_max': 8, 'vm_uefi': '',
+        'create_tm': datetime.now().isoformat(), 'META_SRV': META_SRV
     }
     if (arch == 'x86_64'):
         return { **default }
@@ -56,4 +49,4 @@ def VM_DEFAULT(arch:str='x86_64', hostname:str='dummy')->Dict:
         #         /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
         return { **default, 'vm_uefi':'/usr/share/AAVMF/AAVMF_CODE.fd' }
     else:
-        return {'error':f'{arch} {hostname} no VM_DEFAULT defined'}
+        raise Exception(f'{arch} {hostname} no VM_DEFAULT defined')
