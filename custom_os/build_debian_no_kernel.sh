@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("37c6312f[2025-04-21T10:28:02+08:00]:build_debian_no_kernel.sh")
+VERSION+=("7fd34612[2025-04-21T16:15:43+08:00]:build_debian_no_kernel.sh")
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -79,7 +79,7 @@ LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOT_DIR} /bin/bash <<EOSHELL
     debian_zswap_init 512
     debian_sshd_init
     debian_vim_init
-
+    debian_locale_init
     systemctl mask systemd-machine-id-commit.service
 
     # timedatectl set-local-rtc 0
