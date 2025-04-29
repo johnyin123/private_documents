@@ -28,7 +28,7 @@ class LibvirtDomain:
     @property
     def next_disk(self):
         vlst = {'vd':ord('a'),'sd':ord('a'),'hd':ord('a')}
-        for disk in xml.dom.minidom.parseString(XMLDesc).getElementsByTagName('disk'):
+        for disk in xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('disk'):
             if disk.getAttribute('device') not in ['disk', 'cdrom']:
                 continue
             dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
