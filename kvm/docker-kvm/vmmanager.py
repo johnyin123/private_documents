@@ -326,6 +326,6 @@ class VMManager:
                 leases = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
                 arp = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
                 agent = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT)
-                yield return_ok('get_ipaddr', **{**convert_data(leases), **convert_data(arp), **convert_data(agent)})
+                yield return_ok('get_ipaddr ok', **{**convert_data(leases), **convert_data(arp), **convert_data(agent)})
         except Exception as e:
             yield deal_except(f'ipaddr', e)
