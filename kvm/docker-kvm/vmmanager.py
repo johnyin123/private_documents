@@ -69,7 +69,6 @@ class LibvirtDomain:
             if len(sources) == 0:
                 disk_lst.append({'device':device, 'type':'file', 'dev':dev, 'vol':'', 'xml': disk.toxml()})
             for src in sources:
-                file = None
                 if dtype == 'file':
                     disk_lst.append({'device':device, 'type':'file', 'dev':dev, 'vol':src.getAttribute('file'), 'xml': disk.toxml()})
                 elif dtype == 'network':
