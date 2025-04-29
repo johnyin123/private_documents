@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging, libvirt, xml.dom.minidom, json, os, template, config, meta
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-from utils import return_ok, getlist_without_key, remove_file, connect, ProcList, save, websockify_secure_link, FakeDB
+from utils import return_ok, deal_except, getlist_without_key, remove_file, connect, ProcList, save, websockify_secure_link, FakeDB
 from database import KVMIso, IPPool, KVMDevice, KVMGold
 logger = logging.getLogger(__name__)
 
