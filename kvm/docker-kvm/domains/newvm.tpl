@@ -67,7 +67,7 @@
 {%- if enum is not defined or enum == '' %}
     <disk type='network' device='cdrom'>
       <driver name='qemu' type='raw'/>
-      <source protocol="https" name="/{{ vm_uuid }}.iso">
+      <source protocol="https" name="/{{ vm_uuid }}/cidata.iso">
         <host name="{{ META_SRV }}" port="443"/>
         <ssl verify="no"/>
       </source>

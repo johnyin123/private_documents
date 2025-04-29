@@ -137,7 +137,7 @@ server {
     location /novnc { alias ${OUT_DIR}/novnc/; }
     # # # # # # # # # # # # # # # # # # # # # # # # #
     # # only .iso|meta-data|user-data(include subdir resource)
-    location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root ${OUT_DIR}/iso; }
+    location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root ${OUT_DIR}/cidata; }
     location ^~ /gold { set $limit 0; alias ${OUT_DIR}/gold/; }
     # /gold/uuid.iso => /gold/uuid.iso
     # /uuid.iso      => ${OUT_DIR}/iso/uuid.iso

@@ -28,12 +28,11 @@ class MetaConfig(object):
         user_str = self.user_data.render(**mdconfig_meta)
         output = os.path.join(config.CIDATA_DIR, f'{req_json["vm_uuid"]}')
         os.makedirs(output, exist_ok=True)
-        utils.save(os.path.join(output, "meta-data"), meta_str)
-        utils.save(os.path.join(output, "user-data"), user_str)
-        save_metaiso(f'{output}.iso', meta_str, user_str)
+        utils.save(os.path.join(output, 'meta-data'), meta_str)
+        utils.save(os.path.join(output, 'user-data'), user_str)
+        save_metaiso(os.path.join(output, 'cidata.iso'), meta_str, user_str)
 
 def del_metafiles(uuid):
-    remove_file(os.path.join(config.CIDATA_DIR, f"{uuid}.iso"))
     remove_file(os.path.join(config.CIDATA_DIR, uuid))
 
 def gen_metafiles(mdconfig, req_json):
