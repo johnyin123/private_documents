@@ -3,7 +3,7 @@ hostname: {{ hostname | default('vmsrv') }}
 manage_etc_hosts: true
 timezone: {{ timezone | default('Asia/Shanghai') }}
 users:
-  - default
+  # - default
   - name: myadmin
     lock_passwd: false
     shell: /bin/bash
