@@ -35,7 +35,7 @@ DISK="${DIR}/vd${char}-${UUID}.raw"
 [ -z "${GOLD}" ] && {
     qemu-img create -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring ${SIZE}
 } || {
-    qemu-img convert -p -f qcow2 -O raw ${GOLD} rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring
+    timeout 5m qemu-img convert -p -f qcow2 -W -m1 -O raw ${GOLD} rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring
     # skip resize error, when SIZE < gold image size, error but now image uploaded! so skip error
     qemu-img resize -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/armsite.conf:keyring=/etc/ceph/armsite.client.admin.keyring ${SIZE} || true
 }
