@@ -334,6 +334,7 @@ function on_createvm(form) {
 function create_vm(host) {
   set_curr(host);
   showView('createvm');
+  document.getElementById('table_meta_data').innerHTML = '';
   getjson('GET', `/vm/freeip/`, function(resp) {
     var ips = JSON.parse(resp);
     document.getElementById('vm_ip').value = ips.cidr;
