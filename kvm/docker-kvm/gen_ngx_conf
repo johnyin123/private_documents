@@ -169,5 +169,5 @@ print(f'''
    REMOTE: sshfs {config.OUTDIR}/cidata ...../cidata
    NFS:.....
    inotify.sh, s3 ....
-golds.json, sshfs/sshfs/ssh/local, (http/https curl when convert hang random)
+golds.json, sshfs/sshfs/ssh/http/local, (http/https curl convert -m1)
 ''')

@@ -43,6 +43,8 @@ Host 192.168.168.1
     MACs hmac-sha1
 qemu-img convert -f qcow2 -O raw tpl.qcow2 ssh://user@host:port/path/to/disk.img
 qemu-img convert -f qcow2 -O raw tpl.qcow2 rbd:cephpool/disk.raw:conf=/etc/ceph/ceph.conf
+qemu-img convert -p --image-opt file.driver=https,file.sslverify=off,file.url=https://vmm.registry.local/gold/openeuler_22.03sp1.amd64.qcow2 -W -m1 -O raw disk.raw
+
 ---------------------------------------------------------
 apt install websockify # python3-websockify
 websockify --token-plugin TokenFile --token-source ./token/ 6800
