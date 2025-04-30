@@ -50,8 +50,8 @@ class MyApp(object):
 
     def db_list_host(self):
         try:
-            keys = ['name', 'arch', 'ipaddr', 'desc', 'url', 'last_modified']
-            return getlist_without_key([dic._asdict() for dic in database.KVMHost.list_all()], keys)
+            keys = ['sshport', 'sshuser', 'tpl']
+            return getlist_without_key([dic._asdict() for dic in database.KVMHost.list_all()], *keys)
         except Exception as e:
             return deal_except(f'db_list_host', e), 400
 
