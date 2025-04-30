@@ -1,3 +1,4 @@
+ui metadata support sshkey => meta/user_data
 # # regen meta_iso
 uuid=${OUTDIR}/cidata/uuid
 cd ${uuid} && mkisofs -o ${uuid}.iso -V cidata -J -r user-data meta-data
@@ -24,6 +25,7 @@ cloud-init clean -l
 cloud-init init
 cloud-init schema --system --annotate
 cloud-init devel schema --system --annotate
+# useradd -m --password "$(openssl passwd -6 -salt xyz yourpass)" test1 -s /bin/bash
 if use NOCLOUD need dhcp, and meta server(ngx) on 169.254.169.254
 if use ISO no deed dhcp
 # <metadata>
