@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+import logging, xml.dom.minidom, config, utils, json, os, sys
+logging.basicConfig(encoding='utf-8',level=logging.INFO, format='%(levelname)s: %(message)s') 
+logger = logging.getLogger(__name__)
+
+def usage():
+    print(f'{sys.argv[0]} <name> <ipaddr>')
+    exit(1)
+
+if len(sys.argv) != 3:
+    usage()
+name = sys.argv[1]
+ipaddr = sys.argv[2]
+kvmhost = f'{name}'
+host={'name':kvmhost, 'tpl':'newvm.vnc.tpl','url':f'qemu+tls://{ipaddr}/system','arch':'x86_64','ipaddr':ipaddr,'sshport':22,'sshuser':'root' }
+devices = [fn.removesuffix(".tpl") for fn in os.listdir(config.DEVICE_DIR)]
+actions = [fn.removesuffix(".tpl") for fn in os.listdir(config.ACTION_DIR)]
+devs=[]
+for fn in devices:
+    dev = {'kvmhost':kvmhost,'name':fn,'tpl': f'{fn}.tpl','desc':''}
+    dev['action'] = f'{dev["name"]}.action' if f'{dev["name"]}.action' in actions else ''
+    doc = xml.dom.minidom.parseString(utils.load(os.path.join(config.DEVICE_DIR ,f'{fn}.tpl')))
+    if doc.getElementsByTagName('interface').length > 0:
+        dev['devtype'] = 'net'
+    elif doc.getElementsByTagName('disk').length > 0:
+        for disk in doc.getElementsByTagName('disk'):
+            device = disk.getAttribute('device')
+            if device in ['disk', 'cdrom']:
+                dev['devtype'] = device
+            else:
+                logger.error(f'device unknown {dev}')
+    else: 
+        logger.error(f'device unknown {dev}')
+    devs.append(dev)
+json.dump(host, sys.stdout)
+print()
+json.dump(devs, sys.stdout, indent=4)
+print()
