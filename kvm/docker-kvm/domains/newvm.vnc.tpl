@@ -28,7 +28,7 @@
   <vcpu placement='static' current='{{ vm_vcpus | default(1) }}'>{{ vm_vcpus_max | default(vm_vcpus | default(8)) }}</vcpu>
 {%- if vm_arch == 'x86_64' %}
   {%- set __machine__ = "pc" %}
-  <cpu match='exact'><model fallback='allow'>IvyBridge</model></cpu>
+  <cpu match='exact'><model fallback='allow'>{{vm_cpu | default("IvyBridge")</model></cpu>
 {%- else %}
   {%- set __machine__ = "virt" %}
   <cpu mode='host-passthrough' check='none'/>
