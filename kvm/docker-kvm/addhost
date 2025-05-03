@@ -18,7 +18,7 @@ devices = [fn.removesuffix(".tpl") for fn in os.listdir(config.DEVICE_DIR)]
 actions = [fn.removesuffix(".tpl") for fn in os.listdir(config.ACTION_DIR)]
 devs=[]
 for fn in devices:
-    dev = {'kvmhost':kvmhost,'name':fn,'tpl': f'{fn}.tpl','desc':''}
+    dev = {'kvmhost':kvmhost,'name':fn,'tpl': f'{fn}.tpl','desc':fn}
     dev['action'] = f'{dev["name"]}.action' if f'{dev["name"]}.action' in actions else ''
     doc = xml.dom.minidom.parseString(utils.load(os.path.join(config.DEVICE_DIR ,f'{fn}.tpl')))
     if doc.getElementsByTagName('interface').length > 0:
