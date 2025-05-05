@@ -8,17 +8,6 @@ from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
 import base64, hashlib, time, datetime
 logger = logging.getLogger(__name__)
 
-import atexit
-def cleanup():
-    with ProcList.lock:
-        for proc in ProcList.pids:
-            logger.info(f'Performing cleanup actions {os.getpid()} {proc}...')
-            remove(ProcList.pids, 'pid', proc['pid'])
-            try:
-                os.kill(proc['pid'], signal.SIGTERM)
-            except:
-                pass
-
 class MyApp(object):
     @staticmethod
     def create():
@@ -31,7 +20,6 @@ class MyApp(object):
         web.config['JSON_SORT_KEYS'] = False
         myapp.register_routes(web)
         database.reload_all()
-        atexit.register(cleanup)
         return web
 
     def register_routes(self, app):
