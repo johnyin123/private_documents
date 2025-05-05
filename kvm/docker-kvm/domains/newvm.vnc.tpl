@@ -68,8 +68,7 @@
     <serial type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target port='0'/></serial>
     <console type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target type='serial' port='0'/></console>
 {%- if vm_arch == 'x86_64' %}
-    <input type='mouse' bus='ps2'/>
-    <input type='keyboard' bus='ps2'/>
+    <input type="tablet" bus="usb"/>
 {%- endif %}
     <channel type='unix'><target type='virtio' name='org.qemu.guest_agent.0'/></channel>
     <memballoon model='virtio'/>
