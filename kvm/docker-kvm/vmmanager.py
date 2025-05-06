@@ -64,19 +64,20 @@ class LibvirtDomain:
                 continue
             dtype = disk.getAttribute('type')
             dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
+            bus = disk.getElementsByTagName('target')[0].getAttribute('bus')
             # # cdrom no disk not source!!
             sources = disk.getElementsByTagName('source')
             if len(sources) == 0:
-                disk_lst.append({'device':device, 'type':'file', 'dev':dev, 'vol':'', 'xml': disk.toxml()})
+                disk_lst.append({'device':device, 'type':'file', 'bus':bus, 'dev':dev, 'vol':'', 'xml': disk.toxml()})
             for src in sources:
                 if dtype == 'file':
-                    disk_lst.append({'device':device, 'type':'file', 'dev':dev, 'vol':src.getAttribute('file'), 'xml': disk.toxml()})
+                    disk_lst.append({'device':device, 'type':'file', 'bus':bus, 'dev':dev, 'vol':src.getAttribute('file'), 'xml': disk.toxml()})
                 elif dtype == 'network':
                     protocol = src.getAttribute('protocol')
                     if protocol == 'rbd':
-                        disk_lst.append({'device':device, 'type':'rbd', 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
+                        disk_lst.append({'device':device, 'type':'rbd', 'bus':bus, 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
                     elif protocol == 'http' or protocol == 'https':
-                        disk_lst.append({'device':device, 'type':protocol, 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
+                        disk_lst.append({'device':device, 'type':protocol, 'bus':bus, 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
                     else:
                         raise Exception(f'disk unknown type={dtype} protocol={protocol}')
                 else:
@@ -103,12 +104,13 @@ def dom_flags(state):
         return libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_AFFECT_LIVE
     return libvirt.VIR_DOMAIN_AFFECT_CONFIG
 
-def change_media(dev:str, isofile:str)->str:
+def change_media(dev:str, isofile:str, bus:str)->str:
     disk = xml.dom.minidom.parseString(template.DeviceTemplate(config.CDROM_TPL,'iso').gen_xml())
     for it in disk.getElementsByTagName('source'):
         it.setAttribute('name', isofile)
     for it in disk.getElementsByTagName('target'):
         it.setAttribute('dev', dev)
+        it.setAttribute('bus', bus)
     return disk.toxml()
 
 class VMManager:
@@ -261,7 +263,7 @@ class VMManager:
                 if disk['dev'] == dev and disk['device'] == 'cdrom':
                     if domain.state != libvirt.VIR_DOMAIN_RUNNING:
                         dom.detachDeviceFlags(disk['xml'], dom_flags(domain.state))
-                    dom.attachDeviceFlags(change_media(dev, iso.uri))
+                    dom.attachDeviceFlags(change_media(dev, iso.uri, disk['bus']))
                     return return_ok(f'{uuid} {dev} change media ok')
         raise Exception(f'{dev} nofound on vm {uuid}')
 
