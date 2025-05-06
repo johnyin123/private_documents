@@ -228,7 +228,6 @@ class VMManager:
     def attach_device(host:FakeDB, uuid:str, dev:str, req_json)-> Generator:
         try:
             req_json['vm_uuid'] = uuid
-            logger.info(f'attach_device {req_json}')
             dev = KVMDevice.get_one(name=dev, kvmhost=host.name)
             tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
             # all env must string
@@ -254,7 +253,6 @@ class VMManager:
 
     @staticmethod
     def cdrom(host:FakeDB, uuid:str, dev:str, req_json)->str:
-        logger.info(f'{req_json}')
         iso = KVMIso.get_one(name=req_json.get('isoname', None))
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
