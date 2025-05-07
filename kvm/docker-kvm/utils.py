@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from contextlib import contextmanager
-import libvirt, json, base64, os
-import logging
+import libvirt, json, os, logging, base64, hashlib, datetime
+import multiprocessing, threading, subprocess, signal, time
+manager = multiprocessing.Manager()
 logger = logging.getLogger(__name__)
 
 class FakeDB:
@@ -22,9 +23,6 @@ def connect(uri: str)-> Generator:
     finally:
         if conn is not None:
             conn.close()
-
-import multiprocessing, threading, subprocess, signal, time
-manager = multiprocessing.Manager()
 
 class ProcList:
     pids = manager.list()
@@ -87,15 +85,15 @@ def getlist_without_key(arr:List, *keys)-> List:
     return [{k: v for k, v in dic.items() if k not in keys} for dic in arr]
 
 def decode_jwt(token:str)-> Dict:
-    try:
-        header, payload, signature = token.split('.')
-    except ValueError:
-        return {}
     def decode_segment(segment):
         # Add padding if necessary
         segment += '=' * (4 - len(segment) % 4)
         return json.loads(base64.urlsafe_b64decode(segment).decode('utf-8'))
 
+    try:
+        header, payload, signature = token.split('.')
+    except ValueError:
+        return {}
     return { 'header': decode_segment(header), 'payload': decode_segment(payload), }
 
 def save(fname:str, content:str)->None:
@@ -126,7 +124,6 @@ def deal_except(who:str, e:Exception) -> str:
     else:
         return return_err(998, f'{who}', f'{str(e)}')
 
-import base64, hashlib, time, datetime
 def websockify_secure_link(uuid, mykey, minutes):
     # secure_link_md5 "$mykey$secure_link_expires$arg_token$uri";
     epoch = round(time.time() + minutes*60)

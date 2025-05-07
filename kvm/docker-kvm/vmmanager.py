@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-import flask, logging, libvirt, xml.dom.minidom, json, os, template, config, meta
+import flask, logging, libvirt, xml.dom.minidom, json, os, template, config, meta, database
 import base64, hashlib, time, datetime
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from utils import return_ok, deal_except, getlist_without_key, remove_file, connect, ProcList, save, decode_jwt, websockify_secure_link, FakeDB
-from database import KVMIso, IPPool, KVMDevice, KVMGold, KVMGuest
 logger = logging.getLogger(__name__)
 
 class LibvirtDomain:
@@ -178,7 +177,7 @@ class VMManager:
             dom = conn.lookupByUUIDString(uuid)
             VMManager.refresh_all_pool(conn)
             domain = LibvirtDomain(dom)
-            IPPool.append(domain.mdconfig.get('ipaddr'), domain.mdconfig.get('gateway'))
+            database.IPPool.append(domain.mdconfig.get('ipaddr'), domain.mdconfig.get('gateway'))
             diskinfo = []
             for disk in domain.disks:
                 # cdrom not delete media
@@ -209,21 +208,21 @@ class VMManager:
             if uuid:
                 return json.dumps(LibvirtDomain(conn.lookupByUUIDString(uuid))._asdict())
             results = [LibvirtDomain(result)._asdict() for result in conn.listAllDomains()]
-            KVMGuest.Upsert(host.name, host.arch, results)
+            database.KVMGuest.Upsert(host.name, host.arch, results)
             return json.dumps(results)
 
     @staticmethod
     def attach_device(host:FakeDB, uuid:str, dev:str, req_json)-> Generator:
         try:
             req_json['vm_uuid'] = uuid
-            dev = KVMDevice.get_one(name=dev, kvmhost=host.name)
+            dev = database.KVMDevice.get_one(name=dev, kvmhost=host.name)
             tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
             # all env must string
             env={'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
             cmd = [os.path.join(config.ACTION_DIR, f'{dev.action}'), f'add']
             gold = req_json.get("gold", "")
             if len(gold) != 0:
-                req_json['gold'] = KVMGold.get_one(name=gold, arch=host.arch).tpl
+                req_json['gold'] = database.KVMGold.get_one(name=gold, arch=host.arch).tpl
             if tpl.bus is not None:
                 with connect(host.url) as conn:
                     req_json['vm_last_disk'] = LibvirtDomain(conn.lookupByUUIDString(uuid)).next_disk[tpl.bus]
@@ -254,14 +253,14 @@ class VMManager:
                 pass
             conn.defineXML(xml)
             dom = LibvirtDomain(conn.lookupByUUIDString(req_json['vm_uuid']))
-            IPPool.remove(req_json.get('vm_ip', ''))
+            database.IPPool.remove(req_json.get('vm_ip', ''))
             meta.gen_metafiles(dom.mdconfig, req_json)
         save(os.path.join(config.REQ_JSON_DIR, req_json['vm_uuid']), json.dumps(req_json, indent=4))
         return return_ok(f"create vm {req_json['vm_uuid']} on {host.name} ok")
 
     @staticmethod
     def cdrom(host:FakeDB, uuid:str, dev:str, req_json)->str:
-        iso = KVMIso.get_one(name=req_json.get('isoname', None))
+        iso = database.KVMIso.get_one(name=req_json.get('isoname', None))
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
