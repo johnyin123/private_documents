@@ -1,8 +1,6 @@
 [
-{"name":"debian12","arch":"x86_64" ,       "tpl":"https://vmm.registry.local/gold/bookworm.amd64.qcow2","desc":"debian12-amd64操作系统"},
-{"name":"debian12","arch":"aarch64",       "tpl":"ssh://root@192.168.168.1:60022/home/johnyin/vmmgr/gold/bookworm.arm64.qcow2","desc":"debian12-arm64操作系统"},
-{"name":"centos7.9.2009","arch":"x86_64" , "tpl":"http://vmm.registry.local/gold/centos_7.9.2009.amd64.qcow2","desc":"centos7.9-amd64操作系统"},
-{"name":"centos7.9.2009","arch":"aarch64", "tpl":"/home/johnyin/vmmgr/gold/centos_7.9.2009.arm64.qcow2","desc":"centos7.9-arm64操作系统"},
+{"name":"debian12","arch":"x86_64"        ,"tpl":"http://vmm.registry.local/gold/bookworm.amd64.qcow2","desc":"debian12-amd64操作系统"},
+{"name":"debian12","arch":"aarch64"       ,"tpl":"http://vmm.registry.local/gold/bookworm.arm64.qcow2","desc":"debian12-arm64操作系统"},
 {"name":"openeuler_22.03","arch":"x86_64" ,"tpl":"http://vmm.registry.local/gold/openeuler_22.03sp1.amd64.qcow2","desc":"openeuler_22.03-amd64操作系统"},
 {"name":"openeuler_22.03","arch":"aarch64","tpl":"http://vmm.registry.local/gold/openeuler_22.03sp1.arm64.qcow2","desc":"openeuler_22.03-arm64操作系统"},
 {"name":"openeuler_24.03","arch":"x86_64" ,"tpl":"http://vmm.registry.local/gold/openeuler_24.03.amd64.qcow2","desc":"openeuler_24.03-amd64操作系统"},

@@ -1,5 +1,5 @@
 [
 { "name":"GhostXP_virtio",     "uri":"/gold/GhostXP_virtio.iso","desc":"GhostXP_virtio cd" },
-{ "name":"centos7-x86_64",     "uri":"/gold/CentOS-7-x86_64-Minimal-1908.iso","desc":"CentOS-7-x86_64-Minimal-1908 dvd" },
-{ "name":"debian12-live-amd64","uri":"/gold/debian-bookworm-amd64-live.iso","desc":"debian-bookworm-amd64-live启动CD" }
+{ "name":"debian12-live-amd64","uri":"/gold/debian-bookworm-amd64-live.iso","desc":"debian-bookworm-amd64-live启动CD" },
+{ "name":"debian12-live-arm64","uri":"/gold/debian-bookworm-arm64-live.iso","desc":"debian-bookworm-arm64-live启动CD" }
 ]
