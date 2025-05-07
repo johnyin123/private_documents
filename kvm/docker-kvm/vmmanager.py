@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-import logging, libvirt, xml.dom.minidom, json, os, template, config, meta
+import flask, logging, libvirt, xml.dom.minidom, json, os, template, config, meta
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-from utils import return_ok, deal_except, getlist_without_key, remove_file, connect, ProcList, save, websockify_secure_link, FakeDB
-from database import KVMIso, IPPool, KVMDevice, KVMGold
+from utils import return_ok, deal_except, getlist_without_key, remove_file, connect, ProcList, save, decode_jwt, websockify_secure_link, FakeDB
+from database import KVMIso, IPPool, KVMDevice, KVMGold, KVMGuest
 logger = logging.getLogger(__name__)
 
 class LibvirtDomain:
@@ -141,17 +141,6 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def create_vm(host:FakeDB, uuid:str, xml:str)-> LibvirtDomain:
-        with connect(host.url) as conn:
-            try:
-                conn.lookupByUUIDString(uuid)
-                raise Exception(f'vm {uuid} exists')
-            except libvirt.libvirtError:
-                pass
-            conn.defineXML(xml)
-            return LibvirtDomain(conn.lookupByUUIDString(uuid))
-
-    @staticmethod
     def display(host:FakeDB, uuid:str)->str:
         XMLDesc_Secure=None
         with connect(host.url) as conn:
@@ -214,15 +203,13 @@ class VMManager:
             return conn.lookupByUUIDString(uuid).XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE)
 
     @staticmethod
-    def list(host:FakeDB, uuid:str)-> str:
+    def list(host:FakeDB, uuid:str=None)-> str:
         with connect(host.url) as conn:
-            return json.dumps(LibvirtDomain(conn.lookupByUUIDString(uuid))._asdict())
-
-    @staticmethod
-    def list_domains(host:FakeDB)-> Generator:
-        with connect(host.url) as conn:
-            for i in conn.listAllDomains():
-                yield LibvirtDomain(i)
+            if uuid:
+                return json.dumps(LibvirtDomain(conn.lookupByUUIDString(uuid))._asdict())
+            results = [LibvirtDomain(result)._asdict() for result in conn.listAllDomains()]
+            KVMGuest.Upsert(host.name, host.arch, results)
+            return json.dumps(results)
 
     @staticmethod
     def attach_device(host:FakeDB, uuid:str, dev:str, req_json)-> Generator:
@@ -250,6 +237,26 @@ class VMManager:
             yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot')
         except Exception as e:
             yield deal_except(f'attach {req_json["device"]} device', e)
+
+    @staticmethod
+    def create(host:FakeDB, req_json)->str:
+        username = decode_jwt(flask.request.cookies.get('token', '')).get('payload', {}).get('username', '')
+        for key in ['vm_uuid','vm_arch','create_tm','META_SRV']:
+            req_json.pop(key, "Not found")
+        req_json = {**config.VM_DEFAULT(host.arch, host.name), **req_json, **{'username':username}}
+        xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
+        with connect(host.url) as conn:
+            try:
+                conn.lookupByUUIDString(req_json['vm_uuid'])
+                raise Exception(f'vm {uuid} exists')
+            except libvirt.libvirtError:
+                pass
+            conn.defineXML(xml)
+            dom = LibvirtDomain(conn.lookupByUUIDString(req_json['vm_uuid']))
+            IPPool.remove(req_json.get('vm_ip', ''))
+            meta.gen_metafiles(dom.mdconfig, req_json)
+        save(os.path.join(config.REQ_JSON_DIR, req_json['vm_uuid']), json.dumps(req_json, indent=4))
+        return return_ok(f"create vm {req_json['vm_uuid']} on {host.name} ok")
 
     @staticmethod
     def cdrom(host:FakeDB, uuid:str, dev:str, req_json)->str:

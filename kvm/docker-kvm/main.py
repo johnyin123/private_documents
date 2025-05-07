@@ -3,7 +3,7 @@
 
 import flask_app, flask, signal, os, libvirt, json, logging
 import database, vmmanager, template, meta, config
-from utils import return_ok, return_err, deal_except, save, decode_jwt, ProcList, remove, getlist_without_key
+from utils import return_ok, return_err, deal_except, ProcList, remove, getlist_without_key
 from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
 import base64, hashlib, time, datetime
 logger = logging.getLogger(__name__)
@@ -31,9 +31,8 @@ class MyApp(object):
         app.add_url_rule('/vm/list/', view_func=self.db_list_domains, methods=['GET'])
         app.add_url_rule('/vm/freeip/',view_func=self.db_freeip, methods=['GET'])
         ## end db oper guest ##
-        app.add_url_rule('/vm/list/<string:hostname>', view_func=self.list_domains, methods=['GET'])
-        app.add_url_rule('/vm/create/<string:hostname>', view_func=self.create_vm, methods=['POST'])
         app.add_url_rule('/vm/ui/<string:hostname>/<string:uuid>/<int:epoch>', view_func=self.get_vmui, methods=['GET'])
+        app.add_url_rule('/vm/<string:cmd>/<string:hostname>', view_func=self.exec_domain_cmd, methods=['GET', 'POST'])
         app.add_url_rule('/vm/<string:cmd>/<string:hostname>/<string:uuid>', view_func=self.exec_domain_cmd, methods=['GET', 'POST'])
 
     def db_list_host(self):
@@ -90,45 +89,15 @@ class MyApp(object):
         except Exception as e:
             return deal_except(f'get_vmui', e), 400
 
-    def list_domains(self, hostname):
-        try:
-            host = database.KVMHost.get_one(name=hostname)
-            results = [result._asdict() for result in vmmanager.VMManager.list_domains(host)]
-            # only list domains need KVMGuest.Upsert.
-            database.KVMGuest.Upsert(host.name, host.arch, results)
-            return results
-        except Exception as e:
-            if isinstance(e, libvirt.libvirtError):
-                logger.info(f'{hostname} libvirtError, remove guest cache')
-                database.KVMGuest.Upsert(hostname, None, [])
-            return deal_except(f'list_domains', e), 400
-
-    def create_vm(self, hostname):
-        try:
-            username = decode_jwt(flask.request.cookies.get('token', '')).get('payload', {}).get('username', '')
-            host = database.KVMHost.get_one(name=hostname)
-            # # avoid :META_SRV overwrite by user request
-            for key in ['vm_uuid','vm_arch','create_tm','META_SRV']:
-                flask.request.json.pop(key, "Not found")
-            req_json = {**config.VM_DEFAULT(host.arch, hostname), **flask.request.json, **{'username':username}}
-            xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
-            dom = vmmanager.VMManager.create_vm(host, req_json['vm_uuid'], xml)
-            database.IPPool.remove(req_json.get('vm_ip', ''))
-            meta.gen_metafiles(dom.mdconfig, req_json)
-            save(os.path.join(config.REQ_JSON_DIR, req_json['vm_uuid']), json.dumps(req_json, indent=4))
-            return return_ok(f"create vm {req_json['vm_uuid']} on {hostname} ok")
-        except Exception as e:
-            return deal_except(f'create_vm', e), 400
-
-    def exec_domain_cmd(self, cmd:str, hostname:str, uuid:str):
+    def exec_domain_cmd(self, cmd:str, hostname:str, uuid:str = None):
         dom_cmds = {
                 'GET': ['xml', 'ipaddr', 'start', 'reset', 'stop', 'delete', 'console','display','list'],
-                'POST': ['attach_device','detach_device', 'cdrom']
+                'POST': ['attach_device','detach_device', 'cdrom', 'create']
                 }
         try:
             if cmd in dom_cmds[flask.request.method]:
                 req_json = flask.request.get_json(silent=True, force=True)
-                args = {'host': database.KVMHost.get_one(name=hostname), 'uuid': uuid}
+                args = {'host': database.KVMHost.get_one(name=hostname), 'uuid': uuid} if uuid else {'host': database.KVMHost.get_one(name=hostname)}
                 for key, value in flask.request.args.items():
                     # # remove secure_link args, so func no need **kwargs
                     if key in ['k', 'e', 'host', 'uuid']:
