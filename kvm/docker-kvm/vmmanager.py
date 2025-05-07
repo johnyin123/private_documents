@@ -130,7 +130,7 @@ class VMManager:
                     VMManager.refresh_all_pool(conn)
                     logger.info(f'remove disk {disk}')
                     try:
-                        VMManager.delete_vol(conn, disk['vol'])
+                        conn.storageVolLookupByPath(disk['vol']).delete()
                     except Exception:
                         return return_ok(f"detach_device {dev} vm {uuid} ok", failed=disk['vol'])
                     return return_ok(f"detach_device {dev} vm {uuid} ok")
@@ -185,7 +185,7 @@ class VMManager:
                     continue
                 logger.debug(f'remove disk {disk}')
                 try:
-                    VMManager.delete_vol(conn, disk['vol'])
+                    conn.storageVolLookupByPath(disk['vol']).delete()
                 except Exception:
                     keys = ['type', 'dev', 'vol']
                     diskinfo.append({k: disk[k] for k in keys if k in disk})
@@ -271,10 +271,6 @@ class VMManager:
                     dom.attachDeviceFlags(change_media(dev, iso.uri, disk['bus']))
                     return return_ok(f'{uuid} {dev} change media ok')
         raise Exception(f'{dev} nofound on vm {uuid}')
-
-    @staticmethod
-    def delete_vol(conn:libvirt.virConnect, vol:str)-> None:
-        conn.storageVolLookupByPath(vol).delete()
 
     @staticmethod
     def refresh_all_pool(conn:libvirt.virConnect)-> None:
