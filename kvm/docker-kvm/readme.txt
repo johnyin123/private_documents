@@ -92,20 +92,20 @@ echo 'add disk' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POS
 }
 EOF
 dev=vda
-echo 'del disk' && curl -k -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/detach_device/${host}/${uuid}/${dev}
+echo 'del disk'        && curl -k -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/detach_device/${host}/${uuid}/${dev}
 echo 'change cd media' && curl -k -H 'Content-Type:application/json' -X POST -d '{"dev":"sda", "isoname":"centos7-x86_64"}' ${srv}/vm/cdrom/${host}/${uuid}/${dev}
 device=net-br-ext
 device=debian_installcd
 echo "add ${device} noargs" && curl -k -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/attach_device/${host}/${uuid}?dev=${device}
-echo 'list host vms' && curl -k ${srv}/vm/list/${host}                # from host
-echo 'list a vm on host' && curl -k ${srv}/vm/list/${host}/${uuid}    # from host
-echo 'start vm' && curl -k ${srv}/vm/start/${host}/${uuid}
-echo 'display vnc' && curl -k ${srv}/vm/display/${host}/${uuid}
-echo 'console' && curl -k ${srv}/vm/console/${host}/${uuid}
-echo 'commn stop vm' && curl -k ${srv}/vm/stop/${host}/${uuid}
-echo 'commn reset vm' && curl -k ${srv}/vm/reset/${host}/${uuid}
-echo 'force stop vm' && curl -k ${srv}/vm/stop/${host}/${uuid}?force=true # force stop. destroy
-echo 'vm ipaddr    ' && curl -k ${srv}/vm/ipaddr/${host}/${uuid}
+echo 'list host vms'   && curl -k ${srv}/vm/list/${host}                # from host
+echo 'list a vm'       && curl -k ${srv}/vm/list/${host}/${uuid}    # from host
+echo 'start vm'        && curl -k ${srv}/vm/start/${host}/${uuid}
+echo 'display vnc'     && curl -k ${srv}/vm/display/${host}/${uuid}
+echo 'console'         && curl -k ${srv}/vm/console/${host}/${uuid}
+echo 'commn stop vm'   && curl -k ${srv}/vm/stop/${host}/${uuid}
+echo 'commn reset vm'  && curl -k ${srv}/vm/reset/${host}/${uuid}
+echo 'force stop vm'   && curl -k ${srv}/vm/stop/${host}/${uuid}?force=true # force stop. destroy
+echo 'vm ipaddr'       && curl -k ${srv}/vm/ipaddr/${host}/${uuid}
 echo 'undefine domain' && curl -k ${srv}/vm/delete/${host}/${uuid}
 # # test qemu-hook auto upload
 curl -X POST ${srv}/domain/prepare/begin/${uuid} -F "file=@a.xml"
@@ -124,16 +124,18 @@ echo 'list all guests in database' && curl -k ${srv}/vm/list/
 echo 'get vm xml" && curl -k ${srv}/vm/xml/${host}/${uuid}
 echo 'get freeip" && curl -k ${srv}/vm/freeip/
 epoch=$(date -d "+$((10*24*3600)) second" +%s) #10 days
-echo 'get tenant vm mgr page/token/expire' curl -k ${srv}/vm/ui/${host}/${uuid}/${epoch}
+echo 'get tenant vm mgr page/token/expire' curl -k ${srv}/vm/ui/${host}/${uuid}?epoch=${epoch}
 echo 'get vmip' && curl -k ${srv}/vm/list/${host}/${uuid}/get_ipaddr
 ---------------------------------------------------------
 # token='aG9zdDAxLzZmNWQ4YmY2LWQ1ODAtNDk0Ni05NTQxLTEzZmE5OGI0YWNmND9rPWc2S0h1T1A4R0lmVTVfZFlBN0lQX1EmZT0xNzQzNDM2Nzk5'
 str_token='host01/6f5d8bf6-d580-4946-9541-13fa98b4acf4?k=g6KHuOP8GIfU5_dYA7IP_Q&e=1743436799'
 echo 'get vminfo by token' && curl -k "${srv}/user/vm/list/${str_token}"
-echo 'start vm by token' && curl -k "${srv}/user/vm/start/${str_token}"
-echo 'vm vnc by token' && curl -k "${srv}/user/vm/display/${str_token}"
-echo 'stop vm by token' && curl -k "${srv}/user/vm/stop/${str_token}"
-echo 'force stop vm by token' && curl -k -X POST -d '{}' "${srv}/user/vm/stop/${str_token}"
+echo 'start vm by token'   && curl -k "${srv}/user/vm/start/${str_token}"
+echo 'reset vm by token'   && curl -k "${srv}/user/vm/reset/${str_token}"
+echo 'console by token'    && curl -k "${srv}/user/vm/console/${str_token}"
+echo 'vm vnc by token'     && curl -k "${srv}/user/vm/display/${str_token}"
+echo 'stop vm by token'    && curl -k "${srv}/user/vm/stop/${str_token}"
+echo 'force stop by token' && curl -k "${srv}/user/vm/stop/${str_token}?force=true"
 ---------------------------------------------------------
 NGXSSL=/etc/nginx/ssl
 install -v -d -m 0755 "${NGXSSL}"
