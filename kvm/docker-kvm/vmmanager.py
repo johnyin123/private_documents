@@ -223,16 +223,16 @@ class VMManager:
             gold = req_json.get("gold", "")
             if len(gold) != 0:
                 req_json['gold'] = KVMGold.get_one(name=gold, arch=host.arch).tpl
+            if dev.action is not None and len(dev.action) != 0:
+                for line in ProcList.wait_proc(uuid, cmd, False, req_json, **env):
+                    logger.info(line.strip())
+                    yield line
             with connect(host.url) as conn:
                 dom = conn.lookupByUUIDString(uuid)
                 domain = LibvirtDomain(dom)
                 if tpl.bus is not None:
                     req_json['vm_last_disk'] = domain.next_disk[tpl.bus]
                 xml = tpl.gen_xml(**req_json)
-                if dev.action is not None and len(dev.action) != 0:
-                    for line in ProcList.wait_proc(uuid, cmd, False, req_json, **env):
-                        logger.info(line.strip())
-                        yield line
                 dom.attachDeviceFlags(xml, dom_flags(domain.state))
             yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot')
         except Exception as e:
