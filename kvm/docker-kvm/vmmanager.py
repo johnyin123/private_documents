@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import flask, logging, libvirt, xml.dom.minidom, json, os, template, config, meta
+import base64, hashlib, time, datetime
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from utils import return_ok, deal_except, getlist_without_key, remove_file, connect, ProcList, save, decode_jwt, websockify_secure_link, FakeDB
 from database import KVMIso, IPPool, KVMDevice, KVMGold, KVMGuest
@@ -316,6 +317,19 @@ class VMManager:
         with connect(host.url) as conn:
             conn.lookupByUUIDString(uuid).create()
         return return_ok(f'{uuid} start ok')
+
+    @staticmethod
+    def ui(host:FakeDB, uuid:str, epoch:str)-> str:
+        def user_access_secure_link(kvmhost, uuid, mykey, epoch):
+            # secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
+            secure_link = f"{mykey}{epoch}{kvmhost}{uuid}".encode('utf-8')
+            str_hash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
+            tail_uri=f'{kvmhost}/{uuid}?k={str_hash}&e={epoch}'
+            token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
+            return f'{token}', datetime.datetime.fromtimestamp(int(epoch)).isoformat()
+
+        token, dt = user_access_secure_link(host.name, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
+        return return_ok('vmuserinterface', url=f'{config.USER_ACCESS_URL}', token=f'{token}', expire=dt)
 
     @staticmethod
     def ipaddr(host:FakeDB, uuid:str)-> Generator:

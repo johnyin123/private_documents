@@ -239,7 +239,7 @@ function on_vmui(form) {
   showView('vmuimail');
   const res = getFormJSON(form);
   const epoch = Math.floor(Date.parse(`${res.date} ${res.time}`).valueOf() / 1000);
-  getjson('GET', `/vm/ui/${curr_host()}/${curr_vm()}/${epoch}`, function(resp) {
+  getjson('GET', `/vm/ui/${curr_host()}/${curr_vm()}?epoch=${epoch}`, function(resp) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
       document.getElementById('email').value = '';

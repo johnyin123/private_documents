@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import flask_app, flask, signal, os, libvirt, json, logging
-import database, vmmanager, template, meta, config
-from utils import return_ok, return_err, deal_except, ProcList, remove, getlist_without_key
+import flask_app, flask, os, libvirt, json, logging
+import database, vmmanager, config
+from utils import return_ok, return_err, deal_except, getlist_without_key
 from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
-import base64, hashlib, time, datetime
 logger = logging.getLogger(__name__)
 
 class MyApp(object):
@@ -31,7 +30,6 @@ class MyApp(object):
         app.add_url_rule('/vm/list/', view_func=self.db_list_domains, methods=['GET'])
         app.add_url_rule('/vm/freeip/',view_func=self.db_freeip, methods=['GET'])
         ## end db oper guest ##
-        app.add_url_rule('/vm/ui/<string:hostname>/<string:uuid>/<int:epoch>', view_func=self.get_vmui, methods=['GET'])
         app.add_url_rule('/vm/<string:cmd>/<string:hostname>', view_func=self.exec_domain_cmd, methods=['GET', 'POST'])
         app.add_url_rule('/vm/<string:cmd>/<string:hostname>/<string:uuid>', view_func=self.exec_domain_cmd, methods=['GET', 'POST'])
 
@@ -73,25 +71,9 @@ class MyApp(object):
         except Exception as e:
             return return_ok(f'db_freeip ok', **{"cidr":"N/A","gateway":"N/A"})
 
-    def get_vmui(self, hostname, uuid, epoch):
-        def user_access_secure_link(kvmhost, uuid, mykey, epoch):
-            # secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
-            secure_link = f"{mykey}{epoch}{kvmhost}{uuid}".encode('utf-8')
-            str_hash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
-            tail_uri=f'{kvmhost}/{uuid}?k={str_hash}&e={epoch}'
-            token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
-            return f'{token}', datetime.datetime.fromtimestamp(epoch).isoformat()
-
-        try:
-            # maybe need check hostname/uuid exist
-            token, dt = user_access_secure_link(hostname, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
-            return return_ok('vmuserinterface', url=f'{config.USER_ACCESS_URL}', token=f'{token}', expire=dt)
-        except Exception as e:
-            return deal_except(f'get_vmui', e), 400
-
     def exec_domain_cmd(self, cmd:str, hostname:str, uuid:str = None):
         dom_cmds = {
-                'GET': ['xml', 'ipaddr', 'start', 'reset', 'stop', 'delete', 'console','display','list'],
+                'GET': ['ui', 'xml', 'ipaddr', 'start', 'reset', 'stop', 'delete', 'console','display','list'],
                 'POST': ['attach_device','detach_device', 'cdrom', 'create']
                 }
         try:
