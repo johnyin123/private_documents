@@ -1,6 +1,11 @@
-ui metadata support sshkey => meta/user_data
-create vm   support vm_cpu => cpu type, default IvyBridge
-attach dev net.br-ext.tpl vm_netdev ==> netcard(rtl8139), default virtio
+# grep -o '{{[^{}]*}}' meta/* devices/* domains/* | sed 's/\s*|\s*.*}}/ }}/g' | sed 's/.*:{{/{{/g' | sort | uniq | sed 's/\s//g'
+create_vm:
+    sshkey   : meta/user_data
+    vm_uefi  :/usr/share/qemu/OVMF.fd (x86 uefi), defult x86 use bios, ""
+    vm_cpu   : cpu type, default IvyBridge
+addnet:
+    net_model: rtl8139, default virtio
+
 # # regen meta_iso
 uuid=${OUTDIR}/cidata/uuid
 cd ${uuid} && mkisofs -o ${uuid}.iso -V cidata -J -r user-data meta-data
