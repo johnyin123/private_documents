@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
-import os, jinja2, xml.dom.minidom, utils, config
+import os, jinja2, xml.dom.minidom, utils, config, logging
 from jinja2 import meta as jinja2_meta
+logger = logging.getLogger(__name__)
 
 class KVMTemplate:
     template:jinja2.Environment = None
 
     def gen_xml(self, **kwargs):
         kwargs['META_SRV'] = config.META_SRV
+        logger.info(f'{kwargs!r}')
         return self.template.render(**kwargs)
 
 class DeviceTemplate(KVMTemplate):
