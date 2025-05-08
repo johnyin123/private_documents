@@ -4,9 +4,7 @@ try:
 except ImportError:
     from io import BytesIO
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-from utils import remove_file
-from template import KVMTemplate
-import pycdlib, jinja2, os, utils, config, logging
+import pycdlib, os, utils, config, template, logging
 logger = logging.getLogger(__name__)
 
 def save_metaiso(fname, meta_str, user_str):
@@ -17,18 +15,13 @@ def save_metaiso(fname, meta_str, user_str):
     iso.write(fname)
     iso.close()
 
-class MetaData(KVMTemplate):
-    def __init__(self, filename):
-        env = jinja2.Environment(loader=jinja2.FileSystemLoader(config.META_DIR))
-        self.template = env.get_template(filename)
-
 def del_metafiles(uuid):
-    remove_file(os.path.join(config.CIDATA_DIR, uuid))
+    utils.remove_file(os.path.join(config.CIDATA_DIR, uuid))
 
 def gen_metafiles(mdconfig:Dict, req_json:Dict) -> None:
     mdconfig_meta = {**req_json, **mdconfig}
-    meta_str = MetaData('meta_data').gen_xml(**mdconfig_meta)
-    user_str = MetaData('user_data').gen_xml(**mdconfig_meta)
+    meta_str = template.MetaDataTemplate('meta_data').gen_xml(**mdconfig_meta)
+    user_str = template.MetaDataTemplate('user_data').gen_xml(**mdconfig_meta)
     output = os.path.join(config.CIDATA_DIR, f'{req_json["vm_uuid"]}')
     os.makedirs(output, exist_ok=True)
     utils.save(os.path.join(output, 'meta-data'), meta_str)

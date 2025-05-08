@@ -26,3 +26,8 @@ class DomainTemplate(KVMTemplate):
     def __init__(self, filename):
         env = jinja2.Environment(loader=jinja2.FileSystemLoader(config.DOMAIN_DIR))
         self.template = env.get_template(filename)
+
+class MetaDataTemplate(KVMTemplate):
+    def __init__(self, filename):
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader(config.META_DIR))
+        self.template = env.get_template(filename)
