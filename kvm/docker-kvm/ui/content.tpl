@@ -78,6 +78,8 @@
     </div>
     <form onSubmit="return on_add(this)">
       <label>CDROM:<select name="device" id="cdrom_list"></select></label>
+      <table id="cdrom_meta_data"></table>
+      <input type="button" value="AddField" onclick="add_meta('cdrom_meta_data')"/>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
@@ -92,6 +94,8 @@
     </div>
     <form onSubmit="return on_add(this)">
       <label>Network:<select name="device" id="net_list"></select></label>
+      <table id="net_meta_data"></table>
+      <input type="button" value="AddField" onclick="add_meta('net_meta_data')"/>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
@@ -108,6 +112,8 @@
       <label>Gold:<select name="gold" id="gold_list"></select></label>
       <label>Disk:<select name="device" id="dev_list"></select></label>
       <label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>
+      <table id="disk_meta_data"></table>
+      <input type="button" value="AddField" onclick="add_meta('disk_meta_data')"/>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
@@ -138,8 +144,8 @@
         <legend>MetaData</legend>
         <label>Ipaddr*<input type="text" name="vm_ip" id="vm_ip" placeholder="e.g. 192.168.168.2/24" required pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/([1-9]{1}|1[0-9]{1}|2[0-9]{1}|3[0-2]{1})$"/></label>
         <label>Gateway<input type="text" name="vm_gw" id="vm_gw" placeholder="e.g. 192.168.168.1" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"/></label>
-        <table id="table_meta_data"></table>
-        <input type="button" value="AddField" onclick="add_meta()"/>
+        <table id="vm_meta_data"></table>
+        <input type="button" value="AddField" onclick="add_meta('vm_meta_data')"/>
       </fieldset>
       <br>
       <input type="reset" value="Reset"/>

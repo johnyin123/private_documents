@@ -334,7 +334,7 @@ function on_createvm(form) {
 function create_vm(host) {
   set_curr(host);
   showView('createvm');
-  document.getElementById('table_meta_data').innerHTML = '';
+  document.getElementById('vm_meta_data').innerHTML = '';
   getjson('GET', `/vm/freeip/`, function(resp) {
     var ips = JSON.parse(resp);
     document.getElementById('vm_ip').value = ips.cidr;
@@ -359,6 +359,7 @@ function on_add(form) {
 function add_disk(host, uuid) {
   set_curr(host, uuid);
   showView('adddisk');
+  document.getElementById('disk_meta_data').innerHTML = '';
   getjson('GET', `/tpl/device/${host}`, function(resp) {
     document.getElementById('dev_list').innerHTML = genOption(filterByKey(JSON.parse(resp), 'devtype', 'disk'));
   });
@@ -369,6 +370,7 @@ function add_disk(host, uuid) {
 function add_net(host, uuid) {
   set_curr(host, uuid);
   showView('addnet');
+  document.getElementById('net_meta_data').innerHTML = '';
   getjson('GET', `/tpl/device/${host}`, function(resp) {
     document.getElementById('net_list').innerHTML = genOption(filterByKey(JSON.parse(resp), 'devtype', 'net'));
   });
@@ -376,27 +378,28 @@ function add_net(host, uuid) {
 function add_cdrom(host, uuid) {
   set_curr(host, uuid);
   showView('addcdrom');
+  document.getElementById('cdrom_meta_data').innerHTML = '';
   getjson('GET', `/tpl/device/${host}`, function(resp) {
     document.getElementById('cdrom_list').innerHTML = genOption(filterByKey(JSON.parse(resp), 'devtype', 'iso'));
   });
 }
 /* create vm add new meta key/value */
-function set_name(r) {
+function set_name(r, tblname) {
   var i = r.parentNode.parentNode.rowIndex;
-  var input = document.getElementById("table_meta_data").rows[i].cells[1].getElementsByTagName('input');
+  var input = document.getElementById(tblname).rows[i].cells[1].getElementsByTagName('input');
   input[0].name=r.value;
 }
-function del_meta(r) {
-  document.getElementById("table_meta_data").deleteRow(r.parentNode.parentNode.rowIndex);
+function del_meta(r, tblname) {
+  document.getElementById(tblname).deleteRow(r.parentNode.parentNode.rowIndex);
 }
-function add_meta() {
-  var newRow = document.getElementById("table_meta_data").insertRow(-1);
+function add_meta(tblname) {
+  var newRow = document.getElementById(tblname).insertRow(-1);
   var c_name = newRow.insertCell(0);
   var c_value = newRow.insertCell(1);
   var del_btn = newRow.insertCell(2);
-  c_name.innerHTML = '<input type="text" maxlength="10" placeholder="name" onChange="set_name(this)" required>';
+  c_name.innerHTML = `<input type="text" maxlength="10" placeholder="name" onChange="set_name(this, '${tblname}')" required>`;
   c_value.innerHTML = '<input type="text" maxlength="50" placeholder="value" required>';
-  del_btn.innerHTML = '<input type="button" value="Remove" onclick="del_meta(this)"/>';
+  del_btn.innerHTML = `<input type="button" value="Remove" onclick="del_meta(this, '${tblname}')"/>`;
 }
 /* include html */
 function includeHTML() {

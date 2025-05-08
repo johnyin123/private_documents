@@ -1,5 +1,6 @@
 ui metadata support sshkey => meta/user_data
 create vm   support vm_cpu => cpu type, default IvyBridge
+attach dev net.br-ext.tpl vm_netdev ==> netcard(rtl8139), default virtio
 # # regen meta_iso
 uuid=${OUTDIR}/cidata/uuid
 cd ${uuid} && mkisofs -o ${uuid}.iso -V cidata -J -r user-data meta-data
