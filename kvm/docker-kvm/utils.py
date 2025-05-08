@@ -9,9 +9,10 @@ logger = logging.getLogger(__name__)
 class FakeDB:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
-
     def _asdict(self):
         return self.__dict__
+    def __repr__(self):
+         return f"{self.__class__.__name__}({self.__dict__!r})"
 
 @contextmanager
 def connect(uri: str)-> Generator:
