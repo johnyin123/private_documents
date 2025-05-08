@@ -10,14 +10,13 @@ logger = logging.getLogger(__name__)
 class MyApp(object):
     @staticmethod
     def create():
-        myapp=MyApp()
         logger.info(f'META_SRV={config.META_SRV}')
         logger.info(f'OUTDIR={config.OUTDIR}')
         logger.info(f'DATABASE={config.DATABASE}')
         conf={'STATIC_FOLDER': config.OUTDIR, 'STATIC_URL_PATH':'/public'}
         web=flask_app.create_app(conf, json=True)
         web.config['JSON_SORT_KEYS'] = False
-        myapp.register_routes(web)
+        MyApp().register_routes(web)
         database.reload_all()
         return web
 

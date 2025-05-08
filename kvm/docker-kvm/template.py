@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os, jinja2, xml.dom.minidom, utils, config, logging
-from jinja2 import meta as jinja2_meta
 logger = logging.getLogger(__name__)
 
 class KVMTemplate:
