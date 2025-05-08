@@ -2,7 +2,7 @@ const config = { g_hosts: {}, g_host:'', g_vm:'', g_dev:'' };
 function curr_host() { return config.g_host; }
 function curr_vm() { return config.g_vm; }
 function curr_dev() { return config.g_dev; }
-function set_curr(kvmhost, uuid='', dev='') { config.g_host = kvmhost; config.g_vm = uuid; config.g_dev = dev; console.info(config.g_host, config.g_vm, config.g_dev);}
+function set_curr(kvmhost, uuid='', dev='') { config.g_host = kvmhost; config.g_vm = uuid; config.g_dev = dev; console.debug(config.g_host, config.g_vm, config.g_dev);}
 function getHost(kvmhost) { return config.g_hosts.find(el => el.name === kvmhost); }
 function genOption(jsonobj, selectedValue = '') {
   return jsonobj.map(item => {
