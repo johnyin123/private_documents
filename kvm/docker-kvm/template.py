@@ -6,6 +6,7 @@ class KVMTemplate:
     template:jinja2.Environment = None
 
     def gen_xml(self, **kwargs):
+        kwargs['META_SRV'] = config.META_SRV
         return self.template.render(**kwargs)
 
 class DeviceTemplate(KVMTemplate):

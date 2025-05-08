@@ -241,7 +241,7 @@ class VMManager:
     @staticmethod
     def create(host:FakeDB, req_json)->str:
         username = decode_jwt(flask.request.cookies.get('token', '')).get('payload', {}).get('username', '')
-        for key in ['vm_uuid','vm_arch','create_tm','META_SRV']:
+        for key in ['vm_uuid','vm_arch','create_tm']:
             req_json.pop(key, "Not found")
         req_json = {**config.VM_DEFAULT(host.arch, host.name), **req_json, **{'username':username}}
         xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)

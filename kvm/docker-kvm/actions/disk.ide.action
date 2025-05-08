@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+LC_ALL=C
+LANG=C
+set -o nounset -o pipefail -o errexit
+set -o xtrace
+# # kvm host local storage dir
+DIR='/storage'
+# # reqire: jq qemu-img cat
+log() { echo "qemu-disk.action $*"; }
+json_config_default() {
+    local key=${1}
+    local default=${2}
+    local str=""
+    [ $# = 2 ] && {
+        str="$(cat)"
+    } || {
+        str="$(cat ${3:?json_config input err})"
+    }
+    jq -r '('${key}') // "'${default}'"' <<< ${str}
+}
+
+REQ_JSON=$(cat)
+URL=${URL:-}
+TYPE=${TYPE:-}
+HOSTIP=${HOSTIP:-}
+SSHPORT=${SSHPORT:-}
+SSHUSER=${SSHUSER:-}
+log "${TYPE} ${URL} ${HOSTIP} ${REQ_JSON}"
+UUID=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_uuid" "")
+SIZE=$(printf "%s" "${REQ_JSON}" | json_config_default ".size" "10")G
+GOLD=$(printf "%s" "${REQ_JSON}" | json_config_default ".gold" "")
+char=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_last_disk" "")
+# # when use docker libvirtd, storage path!!!
+DISK="${DIR}/hd${char}-${UUID}.raw"
+[ -z "${GOLD}" ] && {
+    qemu-img create -f raw ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK} ${SIZE}
+} || {
+    timeout 5m qemu-img convert -p -f qcow2 -W -m1 -O raw ${GOLD} ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK}
+    # skip resize error, when SIZE < gold image size, error but now image uploaded! so skip error
+    qemu-img resize -f raw ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK} ${SIZE} || true
+}
+# # just for strem out test!
+# ping -c 5 127.0.0.1
+exit 0

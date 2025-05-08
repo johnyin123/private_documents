@@ -54,17 +54,6 @@
     <graphics type='vnc' autoport='yes'/>
     <video><model type='vga' vram='16384' heads='1' primary='yes'/></video>
     <sound model='ac97'/>
-{%- if enum is not defined or enum == '' %}
-    <disk type='network' device='cdrom'>
-      <driver name='qemu' type='raw'/>
-      <source protocol="https" name="/{{ vm_uuid }}/cidata.iso">
-        <host name="{{ META_SRV }}" port="443"/>
-        <ssl verify="no"/>
-      </source>
-      <target dev='sda' bus='sata'/>
-      <readonly/>
-    </disk>
-{%- endif %}
     <serial type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target port='0'/></serial>
     <console type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target type='serial' port='0'/></console>
 {%- if vm_arch == 'x86_64' %}

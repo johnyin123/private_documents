@@ -37,7 +37,7 @@ def VM_DEFAULT(arch:str='x86_64', hostname:str='dummy')->Dict:
         'vm_arch': arch, 'vm_uuid': f'{uuid.uuid4()}', 'vm_name': 'srv',
         'vm_desc': '', 'vm_ram_mb': 1024, 'vm_ram_mb_max': 16384,
         'vm_vcpus': 1, 'vm_vcpus_max': 8, 'vm_uefi': '',
-        'create_tm': datetime.now().isoformat(), 'META_SRV': META_SRV
+        'create_tm': datetime.now().isoformat()
     }
     if (arch == 'x86_64'):
         return { **default }
