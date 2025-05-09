@@ -76,10 +76,10 @@
       <h2>Add CDROM</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form onSubmit="return on_add(this)">
-      <label>CDROM:<select name="device" id="cdrom_list"></select></label>
-      <table id="cdrom_meta_data"></table>
-      <input type="button" value="AddField" onclick="add_meta('cdrom_meta_data')"/>
+    <form id="addcdrom_form" onSubmit="return on_add(this)">
+      <label>CDROM:<select name="device" id="cdrom_list" onchange="select_change(this)"></select></label>
+      <table name="meta_data"></table><div name='help'></div>
+      <input type="button" value="AddField" onclick="add_meta(this)"/>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
@@ -92,10 +92,10 @@
       <h2>Add Network</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form onSubmit="return on_add(this)">
-      <label>Network:<select name="device" id="net_list"></select></label>
-      <table id="net_meta_data"></table>
-      <input type="button" value="AddField" onclick="add_meta('net_meta_data')"/>
+    <form id="addnet_form" onSubmit="return on_add(this)">
+      <label>Network:<select name="device" id="net_list" onchange="select_change(this)"></select></label>
+      <table name="meta_data"></table><div name='help'></div>
+      <input type="button" value="AddField" onclick="add_meta(this)"/>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
@@ -108,12 +108,12 @@
       <h2>Add DISK</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form onSubmit="return on_add(this)">
+    <form id="adddisk_form" onSubmit="return on_add(this)">
       <label>Gold:<select name="gold" id="gold_list"></select></label>
-      <label>Disk:<select name="device" id="dev_list"></select></label>
+      <label>Disk:<select name="device" id="dev_list" onchange="select_change(this)"></select></label>
       <label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>
-      <table id="disk_meta_data"></table>
-      <input type="button" value="AddField" onclick="add_meta('disk_meta_data')"/>
+      <table name="meta_data"></table><div name='help'></div>
+      <input type="button" value="AddField" onclick="add_meta(this)"/>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>
@@ -126,7 +126,7 @@
       <h2>Create VM</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form onSubmit="return on_createvm(this)">
+    <form id="createvm_form" onSubmit="return on_createvm(this)">
       <fieldset>
       <legend>Meta Server Type</legend>
       <label><input type="checkbox" name="vm_meta_enum" value="NOCLOUD">NOCLOUD</label>
@@ -136,17 +136,18 @@
         <input type="range" id="vcpu_rge" value="2" min="1" max="16" oninput="vcpu_num.value=this.value"/>
       </div></label>
       <label>MEM(MB):<div class="group">
-        <input style="width: 20%;" type="number" name="vm_ram_mb" id="vmem_num"  value="2048" min="1024" max="16384" step="1024" oninput="vmem_rge.value=this.value"/>
-        <input type="range" id="vmem_rge"  value="2048" min="1024" max="16384" step="1024" oninput="vmem_num.value=this.value"/>
+        <input style="width: 20%;" type="number" name="vm_ram_mb" id="vmem_num" value="2048" min="1024" max="16384" step="1024" oninput="vmem_rge.value=this.value"/>
+        <input type="range" id="vmem_rge" value="2048" min="1024" max="16384" step="1024" oninput="vmem_num.value=this.value"/>
       </div></label>
       <label>desc<textarea rows="3" maxlength="100" name="vm_desc" placeholder="vm desc here..." required></textarea></label>
       <fieldset>
         <legend>MetaData</legend>
-        <label>Ipaddr*<input type="text" name="vm_ipaddr" id="vm_ip" placeholder="e.g. 192.168.168.2/24" required pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/([1-9]{1}|1[0-9]{1}|2[0-9]{1}|3[0-2]{1})$"/></label>
+        <label>IPaddr*<input type="text" name="vm_ipaddr" id="vm_ip" placeholder="e.g. 192.168.168.2/24" required pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/([1-9]{1}|1[0-9]{1}|2[0-9]{1}|3[0-2]{1})$"/></label>
         <label>Gateway<input type="text" name="vm_gateway" id="vm_gw" placeholder="e.g. 192.168.168.1" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"/></label>
-        <table id="vm_meta_data"></table>
-        <input type="button" value="AddField" onclick="add_meta('vm_meta_data')"/>
+        <table name="meta_data"></table>
       </fieldset>
+      <div name='help'></div>
+      <input type="button" value="AddField" onclick="add_meta(this)"/>
       <br>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>

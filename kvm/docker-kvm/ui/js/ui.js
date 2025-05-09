@@ -1,9 +1,17 @@
-const config = { g_hosts: {}, g_host:'', g_vm:'', g_dev:'' };
+const config = { g_hosts: {}, g_host:'', g_vm:'', g_dev:'', g_devices:{} };
 function curr_host() { return config.g_host; }
 function curr_vm() { return config.g_vm; }
 function curr_dev() { return config.g_dev; }
-function set_curr(kvmhost, uuid='', dev='') { config.g_host = kvmhost; config.g_vm = uuid; config.g_dev = dev; console.debug(config.g_host, config.g_vm, config.g_dev);}
-function getHost(kvmhost) { return config.g_hosts.find(el => el.name === kvmhost); }
+function set_curr(kvmhost, uuid='', dev='') { 
+  if(!(kvmhost in config.g_devices)) {
+    getjson('GET', `/tpl/device/${kvmhost}`, function(resp) {
+      config.g_devices[kvmhost] = JSON.parse(resp);
+    });
+  }
+  config.g_host = kvmhost; config.g_vm = uuid; config.g_dev = dev; console.debug(config.g_host, config.g_vm, config.g_dev);}
+/*deep copy return*/
+function getHost(kvmhost) { return JSON.parse(JSON.stringify(config.g_hosts.find(el => el.name === kvmhost))); }
+function getDevice(kvmhost) { return config.g_devices[kvmhost]; }
 function genOption(jsonobj, selectedValue = '') {
   return jsonobj.map(item => {
     return `<option value="${item.name}" ${item.desc === selectedValue ? 'selected' : ''}>${item.desc}</option>`;
@@ -12,9 +20,9 @@ function genOption(jsonobj, selectedValue = '') {
 function filterByKey(array, key, value) {
   return array.filter(item => item[key] === value);
 }
-function getFormJSON(form) {
+function getFormJSON(form, reset=true) {
   const data = new FormData(form);
-  form.reset();
+  if(reset == true) { form.reset(); }
   return Object.fromEntries(data.entries());
 }
 function showView(id) {
@@ -35,9 +43,7 @@ function genActBtn(btn=true, smsg, icon, action, kvmhost, args={}) {
   return `<a title='${smsg}' href='#' onclick='${action}(${str_arg})')'>${icon}<a>`;
 }
 function genWrapper(clazz, title, buttons, table) {
-  return `<div class="${clazz}">
-  <div class="${clazz}-header">${title}<div>${buttons}</div></div>
-  ${table}</div>`;
+  return `<div class="${clazz}"><div class="${clazz}-header">${title}<div>${buttons}</div></div>${table}</div>`;
 }
 function genVmTblItems(item, host = null) {
   const colspan= host ? 2 : 3;
@@ -114,7 +120,8 @@ function show_vms(kvmhost, vms) {
   return tbl;
 }
 function show_host(kvmhost) {
-  var host = getHost(kvmhost)
+  var host = getHost(kvmhost);
+  delete host.vars;
   var btn = genActBtn(true, 'Refresh VM List', 'fa-refresh fa-spin', 'vmlist', host.name);
   btn += genActBtn(true, 'Create VM', 'fa-tasks', 'create_vm', host.name);
   const table = genVmTblItems(host);
@@ -334,7 +341,11 @@ function on_createvm(form) {
 function create_vm(host) {
   set_curr(host);
   showView('createvm');
-  document.getElementById('vm_meta_data').innerHTML = '';
+  const form = document.getElementById("createvm_form");
+  form.querySelector(`table[name="meta_data"]`).innerHTML = '';
+  const objs = Object.keys(getFormJSON(form, false));
+  const vars = getHost(host).vars.filter(elem => !objs.includes(elem));
+  set_help(form, vars);
   getjson('GET', `/vm/freeip/`, function(resp) {
     var ips = JSON.parse(resp);
     document.getElementById('vm_ip').value = ips.cidr;
@@ -359,10 +370,11 @@ function on_add(form) {
 function add_disk(host, uuid) {
   set_curr(host, uuid);
   showView('adddisk');
-  document.getElementById('disk_meta_data').innerHTML = '';
-  getjson('GET', `/tpl/device/${host}`, function(resp) {
-    document.getElementById('dev_list').innerHTML = genOption(filterByKey(JSON.parse(resp), 'devtype', 'disk'));
-  });
+  const form = document.getElementById("adddisk_form");
+  form.querySelector(`table[name="meta_data"]`).innerHTML = '';
+  const disks = filterByKey(getDevice(host), 'devtype', 'disk');
+  set_help(form, disks[0]['vars']);
+  document.getElementById('dev_list').innerHTML = genOption(disks);
   getjson('GET', `/tpl/gold/${host}`, function(resp) {
     document.getElementById('gold_list').innerHTML = genOption(JSON.parse(resp), '数据盘');
   });
@@ -370,36 +382,55 @@ function add_disk(host, uuid) {
 function add_net(host, uuid) {
   set_curr(host, uuid);
   showView('addnet');
-  document.getElementById('net_meta_data').innerHTML = '';
-  getjson('GET', `/tpl/device/${host}`, function(resp) {
-    document.getElementById('net_list').innerHTML = genOption(filterByKey(JSON.parse(resp), 'devtype', 'net'));
-  });
+  const form = document.getElementById("addnet_form");
+  form.querySelector(`table[name="meta_data"]`).innerHTML = '';
+  const nets = filterByKey(getDevice(host), 'devtype', 'net');
+  set_help(form, nets[0]['vars']);
+  document.getElementById('net_list').innerHTML = genOption(nets);
 }
 function add_cdrom(host, uuid) {
   set_curr(host, uuid);
   showView('addcdrom');
-  document.getElementById('cdrom_meta_data').innerHTML = '';
-  getjson('GET', `/tpl/device/${host}`, function(resp) {
-    document.getElementById('cdrom_list').innerHTML = genOption(filterByKey(JSON.parse(resp), 'devtype', 'iso'));
-  });
+  const form = document.getElementById("addcdrom_form");
+  form.querySelector(`table[name="meta_data"]`).innerHTML = '';
+  const cdroms = filterByKey(getDevice(host), 'devtype', 'iso');
+  set_help(form, cdroms[0]['vars']);
+  document.getElementById('cdrom_list').innerHTML = genOption(cdroms);
 }
 /* create vm add new meta key/value */
-function set_name(r, tblname) {
+function set_name(r) {
+  const form = r.form;
+  const table = form.querySelector(`table[name="meta_data"]`);
   var i = r.parentNode.parentNode.rowIndex;
-  var input = document.getElementById(tblname).rows[i].cells[1].getElementsByTagName('input');
+  var input = table.rows[i].cells[1].getElementsByTagName('input');
   input[0].name=r.value;
 }
-function del_meta(r, tblname) {
-  document.getElementById(tblname).deleteRow(r.parentNode.parentNode.rowIndex);
+function del_meta(r) {
+  const form = r.form;
+  const table = form.querySelector(`table[name="meta_data"]`);
+  table.deleteRow(r.parentNode.parentNode.rowIndex);
 }
-function add_meta(tblname) {
-  var newRow = document.getElementById(tblname).insertRow(-1);
+function add_meta(btn) {
+  const form = btn.form;
+  const table = form.querySelector(`table[name="meta_data"]`);
+  var newRow = table.insertRow(-1);
   var c_name = newRow.insertCell(0);
   var c_value = newRow.insertCell(1);
   var del_btn = newRow.insertCell(2);
-  c_name.innerHTML = `<input type="text" maxlength="10" placeholder="name" onChange="set_name(this, '${tblname}')" required>`;
+  c_name.innerHTML = `<input type="text" maxlength="40" placeholder="name" onChange="set_name(this)" required>`;
   c_value.innerHTML = '<input type="text" maxlength="50" placeholder="value" required>';
-  del_btn.innerHTML = `<input type="button" value="Remove" onclick="del_meta(this, '${tblname}')"/>`;
+  del_btn.innerHTML = `<input type="button" value="Remove" onclick="del_meta(this)"/>`;
+}
+function set_help(form, vars) {
+  const div = form.querySelector(`div[name="help"]`);
+  var help_msg = '<details><summary>Fields Info</summary><ul>';
+  vars.forEach(item => { help_msg += `<li>${item}</li>`; });
+  help_msg += `</ul></details>`;
+  div.innerHTML = help_msg;
+}
+function select_change(selectObject) {
+  const dev = filterByKey(getDevice(curr_host()), 'name', selectObject.value)[0];
+  set_help(selectObject.form, dev['vars']);
 }
 /* include html */
 function includeHTML() {

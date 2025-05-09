@@ -1,9 +1,19 @@
 # -*- coding: utf-8 -*-
 import os, jinja2, xml.dom.minidom, utils, config, logging
+from jinja2 import meta as jameta
 logger = logging.getLogger(__name__)
 
+def get_variables(dirname, fn):
+    def remove_reserved(varset):
+        for key in ['vm_uuid','vm_arch','vm_create','vm_creater','META_SRV','vm_last_disk']:
+            varset.discard(key)
+        return varset
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader(dirname))
+    return remove_reserved(jameta.find_undeclared_variables(env.parse(env.loader.get_source(env, fn)[0])))
+
 class KVMTemplate:
-    template:jinja2.Environment = None
+    def __init__(self, dirname, filename):
+        self.template = jinja2.Environment(loader=jinja2.FileSystemLoader(dirname)).get_template(filename)
 
     def gen_xml(self, **kwargs):
         kwargs['META_SRV'] = config.META_SRV
@@ -12,9 +22,8 @@ class KVMTemplate:
 
 class DeviceTemplate(KVMTemplate):
     def __init__(self, filename, devtype):
+        super().__init__(config.DEVICE_DIR, filename)
         self.devtype = devtype
-        env = jinja2.Environment(loader=jinja2.FileSystemLoader(config.DEVICE_DIR))
-        self.template = env.get_template(filename)
 
     @property
     def bus(self):
@@ -25,10 +34,8 @@ class DeviceTemplate(KVMTemplate):
 
 class DomainTemplate(KVMTemplate):
     def __init__(self, filename):
-        env = jinja2.Environment(loader=jinja2.FileSystemLoader(config.DOMAIN_DIR))
-        self.template = env.get_template(filename)
+        super().__init__(config.DOMAIN_DIR, filename)
 
 class MetaDataTemplate(KVMTemplate):
     def __init__(self, filename):
-        env = jinja2.Environment(loader=jinja2.FileSystemLoader(config.META_DIR))
-        self.template = env.get_template(filename)
+        super().__init__(config.META_DIR, filename)

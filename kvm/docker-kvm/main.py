@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import flask_app, flask, os, libvirt, json, logging
-import database, vmmanager, config
+import database, vmmanager, config, template
 from utils import return_ok, return_err, deal_except, getlist_without_key
 from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
@@ -22,8 +22,8 @@ class MyApp(object):
 
     def register_routes(self, app):
         app.add_url_rule('/tpl/host/', view_func=self.db_list_host, methods=['GET'])
-        app.add_url_rule('/tpl/iso/', view_func=self.db_list_iso, methods=['GET'])
         app.add_url_rule('/tpl/device/<string:hostname>', view_func=self.db_list_device, methods=['GET'])
+        app.add_url_rule('/tpl/iso/', view_func=self.db_list_iso, methods=['GET'])
         app.add_url_rule('/tpl/gold/<string:hostname>', view_func=self.db_list_gold, methods=['GET'])
         ## start db oper guest ##
         app.add_url_rule('/vm/list/', view_func=self.db_list_domains, methods=['GET'])
@@ -35,21 +35,30 @@ class MyApp(object):
     def db_list_host(self):
         try:
             keys = ['sshport', 'sshuser', 'tpl']
-            return getlist_without_key([dic._asdict() for dic in database.KVMHost.list_all()], *keys)
+            hosts = [dic._asdict() for dic in database.KVMHost.list_all()]
+            for host in hosts:
+                varset = template.get_variables(config.DOMAIN_DIR, host['tpl'])
+                varset.update(template.get_variables(config.META_DIR, 'meta_data'))
+                varset.update(template.get_variables(config.META_DIR, 'user_data'))
+                host['vars'] = list(varset)
+            return getlist_without_key(hosts, *keys)
         except Exception as e:
             return deal_except(f'db_list_host', e), 400
+
+    def db_list_device(self, hostname):
+        try:
+            devices = [dic._asdict() for dic in database.KVMDevice.list_all(kvmhost=hostname)]
+            for dev in devices:
+                dev['vars'] = list(template.get_variables(config.DEVICE_DIR, dev['tpl']))
+            return devices
+        except Exception as e:
+            return deal_except(f'db_list_device', e), 400
 
     def db_list_iso(self):
         try:
             return [result._asdict() for result in database.KVMIso.list_all()]
         except Exception as e:
             return deal_except(f'db_list_iso', e), 400
-
-    def db_list_device(self, hostname):
-        try:
-            return [result._asdict() for result in database.KVMDevice.list_all(kvmhost=hostname)]
-        except Exception as e:
-            return deal_except(f'db_list_device', e), 400
 
     def db_list_gold(self, hostname):
         try:
