@@ -14,5 +14,8 @@ varset.update(get_variables(config.DOMAIN_DIR, 'newvm.vnc.tpl'))
 logger.info(f'create vm {varset}')
 
 for fn in os.listdir(config.DEVICE_DIR):
-    varset = get_variables(config.DEVICE_DIR, fn)
-    logger.info(f'{fn.removesuffix(".tpl")} {varset}')
+    dev_varset = get_variables(config.DEVICE_DIR, fn)
+    varset.update(dev_varset)
+    logger.info(f'{fn.removesuffix(".tpl")} {dev_varset}')
+
+logger.info(f'ALL {varset}')
