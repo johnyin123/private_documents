@@ -136,8 +136,8 @@
         <input type="range" id="vcpu_rge" value="2" min="1" max="16" oninput="vcpu_num.value=this.value"/>
       </div></label>
       <label>MEM(MB):<div class="group">
-        <input style="width: 20%;" type="number" name="vm_ram_mb" id="vmem_num" value="2048" min="1024" max="16384" step="1024" oninput="vmem_rge.value=this.value"/>
-        <input type="range" id="vmem_rge" value="2048" min="1024" max="16384" step="1024" oninput="vmem_num.value=this.value"/>
+        <input style="width: 20%;" type="number" name="vm_ram_mb" id="vmem_num" value="2048" min="1024" max="32768" step="1024" oninput="vmem_rge.value=this.value"/>
+        <input type="range" id="vmem_rge" value="2048" min="1024" max="32768" step="1024" oninput="vmem_num.value=this.value"/>
       </div></label>
       <label>desc<textarea rows="3" maxlength="100" name="vm_desc" placeholder="vm desc here..." required></textarea></label>
       <fieldset>
