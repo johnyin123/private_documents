@@ -1,5 +1,5 @@
 #cloud-config
-hostname: {{ vm_hostname | default('vmsrv') }}
+hostname: {{ vm_name | default('vmsrv') }}
 manage_etc_hosts: true
 timezone: {{ vm_timezone | default('Asia/Shanghai') }}
 users:
