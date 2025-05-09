@@ -1,7 +1,7 @@
 #cloud-config
-hostname: {{ hostname | default('vmsrv') }}
+hostname: {{ vm_hostname | default('vmsrv') }}
 manage_etc_hosts: true
-timezone: {{ timezone | default('Asia/Shanghai') }}
+timezone: {{ vm_timezone | default('Asia/Shanghai') }}
 users:
   # - default
   - name: myadmin
@@ -10,14 +10,14 @@ users:
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
     passwd: "$y$j9T$w03ZqJfTwNHoZLiiey26e1$bOaegd/YRirhGlEeQciVnEFPFO1dI2pwqKp4adctLsD" #mkpasswd tsd@2023
     ssh_authorized_keys:
-      - ssh-rsa {{ sshkey | default('AAAAB3NzaC1yc2EAAAADAQABAAABgQDIcCEBlGLWfQ6p/6/QAR1LncKGlFoiNvpV3OUzPEoxJfw5ChIc95JSqQQBIM9zcOkkmW80ZuBe4pWvEAChdMWGwQLjlZSIq67lrpZiql27rL1hsU25W7P03LhgjXsUxV5cLFZ/3dcuLmhGPbgcJM/RGEqjNIpLf34PqebJYqPz9smtoJM3a8vDgG3ceWHrhhWNdF73JRzZiDo8L8KrDQTxiRhWzhcoqTWTrkj2T7PZs+6WTI+XEc8IUZg/4NvH06jHg8QLr7WoWUtFvNSRfuXbarAXvPLA6mpPDz7oRKB4+pb5LpWCgKnSJhWl3lYHtZ39bsG8TyEZ20ZAjluhJ143GfDBy8kLANSntfhKmeOyolnz4ePf4EjzE3WwCsWNrtsJrW3zmtMRab7688vrUUl9W2iY9venrW0w6UL7Cvccu4snHLaFiT6JSQSSJS+mYM5o8T0nfIzRi0uxBx4m9/6nVIl/gs1JApzgWyqIi3opcALkHktKxi76D0xBYAgRvJs=') }} root@liveos
+      - ssh-rsa {{ vm_sshkey | default('AAAAB3NzaC1yc2EAAAADAQABAAABgQDIcCEBlGLWfQ6p/6/QAR1LncKGlFoiNvpV3OUzPEoxJfw5ChIc95JSqQQBIM9zcOkkmW80ZuBe4pWvEAChdMWGwQLjlZSIq67lrpZiql27rL1hsU25W7P03LhgjXsUxV5cLFZ/3dcuLmhGPbgcJM/RGEqjNIpLf34PqebJYqPz9smtoJM3a8vDgG3ceWHrhhWNdF73JRzZiDo8L8KrDQTxiRhWzhcoqTWTrkj2T7PZs+6WTI+XEc8IUZg/4NvH06jHg8QLr7WoWUtFvNSRfuXbarAXvPLA6mpPDz7oRKB4+pb5LpWCgKnSJhWl3lYHtZ39bsG8TyEZ20ZAjluhJ143GfDBy8kLANSntfhKmeOyolnz4ePf4EjzE3WwCsWNrtsJrW3zmtMRab7688vrUUl9W2iY9venrW0w6UL7Cvccu4snHLaFiT6JSQSSJS+mYM5o8T0nfIzRi0uxBx4m9/6nVIl/gs1JApzgWyqIi3opcALkHktKxi76D0xBYAgRvJs=') }} root@liveos
 write_files:
   - path: /root/.cloud.init
     owner: 'root:root'
     permissions: '0600'
     append: true
     content: |
-      init cloud {{ vm_uuid | default('') }} {{ create_tm | default('') }}
+      init cloud {{ vm_uuid | default('') }} {{ vm_create | default('') }}
 growpart:
   mode: auto
   devices: ['/']

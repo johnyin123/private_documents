@@ -1,8 +1,11 @@
 # grep -o '{{[^{}]*}}' meta/* devices/* domains/* | sed 's/\s*|\s*.*}}/ }}/g' | sed 's/.*:{{/{{/g' | sort | uniq | sed 's/\s//g'
 create_vm:
-    sshkey   : meta/user_data
-    vm_uefi  :/usr/share/qemu/OVMF.fd (x86 uefi), defult x86 use bios, ""
-    vm_cpu   : cpu type, default IvyBridge
+    vm_hostname : default vmsrv
+    vm_timezone : default Asia/Shanghai
+    vm_interface: default eth0
+    vm_sshkey   : meta/user_data
+    vm_uefi     :/usr/share/qemu/OVMF.fd (x86 uefi), defult x86 use bios, ""
+    vm_cpu      : cpu type, default IvyBridge
 addnet:
     net_model: rtl8139, default virtio
 
@@ -10,6 +13,7 @@ addnet:
 uuid=${OUTDIR}/cidata/uuid
 cd ${uuid} && mkisofs -o ${uuid}.iso -V cidata -J -r user-data meta-data
 
+list_tpl_varset         : list domain(include meta), device tpl vars
 default_pool_redefine.sh: defile default pool directory /storage
 inotify.sh              : inotifywait sync iso & nocloud
 docker-libvirtd.sh      : gen libvirtd docker image

@@ -7,6 +7,9 @@ set -o xtrace
 DIR='/storage'
 # # reqire: jq qemu-img cat
 log() { echo "qemu-disk.action $*"; }
+str_equal() {
+    [ "${1:-x}" == "${2:-y}" ]
+}
 json_config_default() {
     local key=${1}
     local default=${2}
@@ -30,8 +33,13 @@ UUID=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_uuid" "")
 SIZE=$(printf "%s" "${REQ_JSON}" | json_config_default ".size" "10")G
 GOLD=$(printf "%s" "${REQ_JSON}" | json_config_default ".gold" "")
 char=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_last_disk" "")
+BUS=$(printf "%s" "${REQ_JSON}" | json_config_default ".disk_bus" "")
 # # when use docker libvirtd, storage path!!!
 DISK="${DIR}/vd${char}-${UUID}.raw"
+str_equal "${BUS}" "ide"  && DISK="${DIR}/hd${char}-${UUID}.raw"
+str_equal "${BUS}" "scsi" && DISK="${DIR}/sd${char}-${UUID}.raw"
+str_equal "${BUS}" "sata" && DISK="${DIR}/sd${char}-${UUID}.raw"
+
 [ -z "${GOLD}" ] && {
     qemu-img create -f raw ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK} ${SIZE}
 } || {

@@ -241,9 +241,9 @@ class VMManager:
     @staticmethod
     def create(host:FakeDB, req_json)->str:
         username = decode_jwt(flask.request.cookies.get('token', '')).get('payload', {}).get('username', '')
-        for key in ['vm_uuid','vm_arch','create_tm']:
+        for key in ['vm_uuid','vm_arch','vm_create']:
             req_json.pop(key, "Not found")
-        req_json = {**config.VM_DEFAULT(host.arch, host.name), **req_json, **{'username':username}}
+        req_json = {**config.VM_DEFAULT(host.arch, host.name), **req_json, **{'vm_creater':username}}
         xml = template.DomainTemplate(host.tpl).gen_xml(**req_json)
         with connect(host.url) as conn:
             try:
@@ -253,7 +253,7 @@ class VMManager:
                 pass
             conn.defineXML(xml)
             dom = LibvirtDomain(conn.lookupByUUIDString(req_json['vm_uuid']))
-            database.IPPool.remove(req_json.get('vm_ip', ''))
+            database.IPPool.remove(req_json.get('vm_ipaddr', ''))
             meta.gen_metafiles(dom.mdconfig, req_json)
         save(os.path.join(config.REQ_JSON_DIR, req_json['vm_uuid']), json.dumps(req_json, indent=4))
         return return_ok(f"create vm {req_json['vm_uuid']} on {host.name} ok")

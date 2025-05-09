@@ -1,6 +1,5 @@
 [
 {"kvmhost":"host01","name":"local-disk","devtype":"disk","tpl":"disk.file.tpl"        ,"action":"disk.file.action","desc":"文件系统DISK"},
-{"kvmhost":"host01","name":"local-ide" ,"devtype":"disk","tpl":"disk.ide.tpl"         ,"action":"disk.ide.action","desc":"文件系统DISK(IDE)"},
 {"kvmhost":"host01","name":"rbd-disk"  ,"devtype":"disk","tpl":"disk.rbd_x86site.tpl" ,"action":"disk.rbd_x86site.action" ,"desc":"RBD DISK"},
 {"kvmhost":"host01","name":"net.br-ext","devtype":"net" ,"tpl":"net.br-ext.tpl"       ,"action":""            ,"desc":"br-ext网桥"},
 {"kvmhost":"host01","name":"MetaData"  ,"devtype":"iso" ,"tpl":"cdrom.meta.tpl"       ,"action":""            ,"desc":"CLOUD-INIT CDROM SATA"},

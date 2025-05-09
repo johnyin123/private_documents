@@ -13,13 +13,13 @@ class KVMTemplate:
 class DeviceTemplate(KVMTemplate):
     def __init__(self, filename, devtype):
         self.devtype = devtype
-        self.raw_str = utils.load(os.path.join(config.DEVICE_DIR, filename))
-        self.template = jinja2.Environment().from_string(self.raw_str)
+        env = jinja2.Environment(loader=jinja2.FileSystemLoader(config.DEVICE_DIR))
+        self.template = env.get_template(filename)
 
     @property
     def bus(self):
         if self.devtype in ['disk', 'iso']:
-            p = xml.dom.minidom.parseString(self.raw_str)
+            p = xml.dom.minidom.parseString(self.template.render())
             return p.getElementsByTagName('target')[0].getAttribute('bus')
         return None
 
