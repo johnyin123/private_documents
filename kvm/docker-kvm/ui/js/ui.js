@@ -23,6 +23,12 @@ function filterByKey(array, key, value) {
 function getFormJSON(form, reset=true) {
   const data = new FormData(form);
   if(reset == true) { form.reset(); }
+  const checkboxes = form.querySelectorAll('input[type="checkbox"]');
+  checkboxes.forEach(checkbox => {
+    if (!data.has(checkbox.name)) {
+      data.append(checkbox.name, '');
+    }
+  });
   return Object.fromEntries(data.entries());
 }
 function showView(id) {

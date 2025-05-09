@@ -17,7 +17,7 @@ class KVMTemplate:
 
     def gen_xml(self, **kwargs):
         kwargs['META_SRV'] = config.META_SRV
-        logger.info(f'{kwargs!r}')
+        logger.debug(f'{kwargs!r}')
         return self.template.render(**kwargs)
 
 class DeviceTemplate(KVMTemplate):
