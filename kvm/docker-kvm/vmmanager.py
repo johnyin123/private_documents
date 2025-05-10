@@ -104,6 +104,15 @@ def dom_flags(state):
         return libvirt.VIR_DOMAIN_AFFECT_CONFIG | libvirt.VIR_DOMAIN_AFFECT_LIVE
     return libvirt.VIR_DOMAIN_AFFECT_CONFIG
 
+def refresh_all_pool(conn:libvirt.virConnect)-> None:
+    for pool in conn.listAllStoragePools(0):
+        try:
+            if not pool.isActive():
+                pool.create()
+            pool.refresh(0)
+        except libvirt.libvirtError as e:
+            logger.exception(f"Failed refresh pool {pool.name()}")
+
 def change_media(dev:str, isofile:str, bus:str)->str:
     disk = xml.dom.minidom.parseString(template.DeviceTemplate(config.CDROM_TPL,'iso').gen_xml())
     for it in disk.getElementsByTagName('source'):
@@ -127,7 +136,7 @@ class VMManager:
                     # cdrom not delete media
                     if disk['device'] != 'disk':
                         return return_ok(f"detach_device {dev} vm {uuid} ok")
-                    VMManager.refresh_all_pool(conn)
+                    refresh_all_pool(conn)
                     logger.info(f'remove disk {disk}')
                     try:
                         conn.storageVolLookupByPath(disk['vol']).delete()
@@ -175,7 +184,7 @@ class VMManager:
         remove_file(os.path.join(config.REQ_JSON_DIR, uuid))
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
-            VMManager.refresh_all_pool(conn)
+            refresh_all_pool(conn)
             domain = LibvirtDomain(dom)
             database.IPPool.append(domain.mdconfig.get('ipaddr'), domain.mdconfig.get('gateway'))
             diskinfo = []
@@ -272,16 +281,6 @@ class VMManager:
                     dom.attachDeviceFlags(change_media(dev, iso.uri, disk['bus']))
                     return return_ok(f'{uuid} {dev} change media ok')
         raise Exception(f'{dev} nofound on vm {uuid}')
-
-    @staticmethod
-    def refresh_all_pool(conn:libvirt.virConnect)-> None:
-        for pool in conn.listAllStoragePools(0):
-            try:
-                if not pool.isActive():
-                    pool.create()
-                pool.refresh(0)
-            except libvirt.libvirtError as e:
-                logger.exception(f"Failed refresh pool {pool.name()}")
 
     @staticmethod
     def console(host:FakeDB, uuid:str)-> str:
