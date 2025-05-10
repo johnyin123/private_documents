@@ -160,6 +160,7 @@ with open('kvm.conf', "w") as file:
     file.write(ngx_cfg)
 print(f'''
 # kvm.conf
+{config.OUTDIR}/gold   ==>   http(s) gold disk directory
 {config.OUTDIR}/ui     ==>   static html/js.. directory
 {config.OUTDIR}/term   ==>   static html/js.. directory
 {config.OUTDIR}/spice  ==>   static html/js.. directory

@@ -25,10 +25,9 @@ class DeviceTemplate(KVMTemplate):
         super().__init__(config.DEVICE_DIR, filename)
         self.devtype = devtype
 
-    @property
-    def bus(self):
+    def bus_type(self, **kwargs):
         if self.devtype in ['disk', 'iso']:
-            p = xml.dom.minidom.parseString(self.template.render())
+            p = xml.dom.minidom.parseString(self.template.render(**kwargs))
             return p.getElementsByTagName('target')[0].getAttribute('bus')
         return None
 
