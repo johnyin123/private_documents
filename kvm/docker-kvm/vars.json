@@ -6,7 +6,7 @@
   "vm_interface": "vm net interface(cloud-init)",
   "vm_name": "vm hostname and vm name",
   "vm_ram_mb": "vm memory(MB)",
-  "disk_bus": "vm disk bus(ide/scsi/sata/virtio), default virtio",
+  "disk_bus": "vm disk bus(ide/scsi/sata/virtio), default virtio(cdrom default scsi), cdrom not support virtio",
   "vm_vcpus": "vm numof cpus",
   "vm_uefi": "vm uefi flash file",
   "vm_vcpus_max": "vm max numof cpus",
