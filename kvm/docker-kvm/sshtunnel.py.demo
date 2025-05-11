@@ -655,3 +655,18 @@ def getBootTime(self,guest):
         #print "MIME Type:", mimetype ### image/x-portable-pixmap
         fd = os.open(filename, os.O_WRONLY | os.O_TRUNC | os.O_CREAT, 0644)
         stream.recvAll(self.screenshotHandler, fd)
+
+xml = """<cpu mode="custom" match="exact">
+    <model fallback="forbid">kvm64</model>
+</cpu>"""
+ret = conn.compareCPU(xml)
+if ret == libvirt.VIR_CPU_COMPARE_ERROR:
+    print("CPUs are not the same or ther was error.")
+elif ret == libvirt.VIR_CPU_COMPARE_INCOMPATIBLE:
+    print("CPUs are incompatible.")
+elif ret == libvirt.VIR_CPU_COMPARE_IDENTICAL:
+    print("CPUs are identical.")
+elif ret == libvirt.VIR_CPU_COMPARE_SUPERSET:
+    print("The host CPU is better than the one specified.")
+else:
+    print("An Unknown return code was emitted.")
