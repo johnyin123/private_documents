@@ -218,7 +218,12 @@ class VMManager:
                 return json.dumps(LibvirtDomain(conn.lookupByUUIDString(uuid))._asdict())
             results = [LibvirtDomain(result)._asdict() for result in conn.listAllDomains()]
             database.KVMGuest.Upsert(host.name, host.arch, results)
-            return json.dumps(results)
+            hostinfo = conn.getInfo()
+            return json.dumps({'host':{ 'hostname':conn.getHostname(), 'freemem': f'{conn.getFreeMemory()//1024//1024}MiB',
+                'totalmem':f'{hostinfo[1]}MiB', 'totalcpu':hostinfo[4]*hostinfo[5]*hostinfo[6]*hostinfo[7],
+                'totalvm':len(results),'active':conn.numOfDomains()
+                }, 'guest':results})
+            # totalcpu = hostinfo[2]
 
     @staticmethod
     def attach_device(host:FakeDB, uuid:str, dev:str, req_json)-> Generator:

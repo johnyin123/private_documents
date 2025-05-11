@@ -93,7 +93,7 @@ function show_all_db_vms(view) {
     const vms = JSON.parse(resp);
     dbvms_total.innerHTML = vms.length;
     vms.forEach(item => {
-      const btn = `<button title='GOTO HOST' onclick='on_menu_host("${item.kvmhost}")'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
+      const btn = `<button title='GOTO HOST' onclick='vmlist("${item.kvmhost}")'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
       const table = genVmTblItems(item);
       tbl += genWrapper("vms-wrapper", "<h2>GUEST</h2>", btn, table);
     });
@@ -125,12 +125,12 @@ function show_vms(kvmhost, vms) {
   });
   return tbl;
 }
-function show_host(kvmhost) {
+function show_host(kvmhost, more_info) {
   var host = getHost(kvmhost);
   delete host.vars;
   var btn = genActBtn(true, 'Refresh VM List', 'fa-refresh fa-spin', 'vmlist', host.name);
   btn += genActBtn(true, 'Create VM', 'fa-tasks', 'create_vm', host.name);
-  const table = genVmTblItems(host);
+  const table = genVmTblItems(Object.assign({}, host, more_info));
   return genWrapper('host-wrapper', '<h2>KVM HOST</h2>', btn, table);
 }
 function Alert(type, title, message) {
@@ -205,14 +205,13 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 12
 function vmlist(kvmhost) {
   set_curr(kvmhost);
   document.getElementById("vms").innerHTML = '';
+  document.getElementById("host").innerHTML = '';
   getjson('GET', `/vm/list/${kvmhost}`, function(res) {
-    document.getElementById("vms").innerHTML = show_vms(kvmhost, JSON.parse(res));
+    var result = JSON.parse(res);
+    document.getElementById("vms").innerHTML = show_vms(kvmhost, result.guest);
+    document.getElementById("host").innerHTML = show_host(kvmhost, result.host);
+    showView("hostlist");
   });
-}
-function on_menu_host(kvmhost) {
-  document.getElementById("host").innerHTML = show_host(kvmhost);
-  vmlist(kvmhost);
-  showView("hostlist");
 }
 function getjson_result(res) {
   try {
@@ -465,7 +464,7 @@ window.addEventListener('load', function() {
     config.g_hosts = JSON.parse(resp);
     var mainMenu = "";
     config.g_hosts.forEach(host => {
-      mainMenu += `<a href='#' class='nav_link sublink' onclick='on_menu_host("${host.name}")'><i class="fa fa-desktop"></i><span>${host.name}</span></a>`;
+      mainMenu += `<a href='#' class='nav_link sublink' onclick='vmlist("${host.name}")'><i class="fa fa-desktop"></i><span>${host.name}</span></a>`;
     });
     document.getElementById("sidebar").innerHTML = mainMenu;
   });
