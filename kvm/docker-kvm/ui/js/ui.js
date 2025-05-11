@@ -8,7 +8,8 @@ function set_curr(kvmhost, uuid='', dev='') {
       config.g_devices[kvmhost] = JSON.parse(resp);
     });
   }
-  config.g_host = kvmhost; config.g_vm = uuid; config.g_dev = dev; console.debug(config.g_host, config.g_vm, config.g_dev);}
+  config.g_host = kvmhost; config.g_vm = uuid; config.g_dev = dev; console.debug(config.g_host, config.g_vm, config.g_dev);
+}
 /*deep copy return*/
 function getHost(kvmhost) { return JSON.parse(JSON.stringify(config.g_hosts.find(el => el.name === kvmhost))); }
 function getDevice(kvmhost) { return config.g_devices[kvmhost]; }
@@ -352,7 +353,7 @@ function create_vm(host) {
   const vars = getHost(host).vars.filter(elem => !objs.includes(elem));
   set_help(form, vars);
   getjson('GET', `/vm/freeip/`, function(resp) {
-    var ips = JSON.parse(resp);
+    const ips = JSON.parse(resp);
     document.getElementById('vm_ip').value = ips.cidr;
     document.getElementById('vm_gw').value = ips.gateway;
   });
