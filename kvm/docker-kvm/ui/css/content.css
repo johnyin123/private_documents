@@ -168,6 +168,5 @@ div[name=help] {
   border-radius: 8px;
   box-shadow: 0 0 10px var(--grey-color-light);
 }
-details {
-  padding: 5px var(--padding-large);
-}
+details { padding: 5px var(--padding-large); }
+details table th { text-align: right; text-transform: none; }
