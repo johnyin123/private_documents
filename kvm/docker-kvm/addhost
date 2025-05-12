@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import logging, xml.dom.minidom, config, utils, json, os, sys
+from template import KVMTemplate
 logging.basicConfig(encoding='utf-8',level=logging.INFO, format='%(levelname)s: %(message)s') 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ devs=[]
 for fn in devices:
     dev = {'kvmhost':kvmhost,'name':fn,'tpl': f'{fn}.tpl','desc':fn}
     dev['action'] = f'{dev["name"]}.action' if f'{dev["name"]}.action' in actions else ''
-    doc = xml.dom.minidom.parseString(utils.load(os.path.join(config.DEVICE_DIR ,f'{fn}.tpl')))
+    doc = xml.dom.minidom.parseString(KVMTemplate(config.DEVICE_DIR ,f'{fn}.tpl').gen_xml())
     if doc.getElementsByTagName('interface').length > 0:
         dev['devtype'] = 'net'
     elif doc.getElementsByTagName('disk').length > 0:
