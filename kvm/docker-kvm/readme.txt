@@ -202,3 +202,11 @@ https://IP:PORT/uuid/meta-data
 https://IP:PORT/uuid/user-data
 https://IP:PORT/uuid/vendor-data
 https://IP:PORT/uuid/network-config
+
+# mysql_secure_installation
+# cat <<EOF | mysql -uroot -p<Pass>
+# CREATE DATABASE kvm;
+# GRANT ALL PRIVILEGES ON kvm.* TO 'admin'@'localhost' IDENTIFIED BY IDENTIFIED BY 'password';
+# GRANT ALL PRIVILEGES ON kvm.* TO 'admin'@'%' IDENTIFIED BY 'password';
+# flush privileges;
+# EOF

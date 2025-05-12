@@ -344,14 +344,22 @@ function on_createvm(form) {
   getjson('POST', `/vm/create/${curr_host()}`, getjson_result, getFormJSON(form));
   return false;
 }
+function cpWithoutKeys(orig, keys) {
+  const newvars = {};
+  for (const key in orig) {
+    if (!keys.includes(key)) {
+      newvars[key] = orig[key];
+    }
+  }
+  return newvars;
+}
 function create_vm(host) {
   set_curr(host);
   showView('createvm');
   const form = document.getElementById("createvm_form");
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
   const objs = Object.keys(getFormJSON(form, false));
-  const vars = getHost(host).vars.filter(elem => !objs.includes(elem));
-  set_help(form, vars);
+  set_help(form, cpWithoutKeys(getHost(host).vars, objs));
   getjson('GET', `/vm/freeip/`, function(resp) {
     const ips = JSON.parse(resp);
     document.getElementById('vm_ip').value = ips.cidr;
@@ -379,7 +387,8 @@ function add_disk(host, uuid) {
   const form = document.getElementById("adddisk_form");
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
   const disks = filterByKey(getDevice(host), 'devtype', 'disk');
-  set_help(form, disks[0]['vars']);
+  const objs = Object.keys(getFormJSON(form, false));
+  set_help(form, cpWithoutKeys(disks[0]['vars'], objs));
   document.getElementById('dev_list').innerHTML = genOption(disks);
   getjson('GET', `/tpl/gold/${host}`, function(resp) {
     document.getElementById('gold_list').innerHTML = genOption(JSON.parse(resp), '数据盘');
@@ -391,7 +400,8 @@ function add_net(host, uuid) {
   const form = document.getElementById("addnet_form");
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
   const nets = filterByKey(getDevice(host), 'devtype', 'net');
-  set_help(form, nets[0]['vars']);
+  const objs = Object.keys(getFormJSON(form, false));
+  set_help(form, cpWithoutKeys(nets[0]['vars'], objs));
   document.getElementById('net_list').innerHTML = genOption(nets);
 }
 function add_cdrom(host, uuid) {
@@ -400,7 +410,8 @@ function add_cdrom(host, uuid) {
   const form = document.getElementById("addcdrom_form");
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
   const cdroms = filterByKey(getDevice(host), 'devtype', 'iso');
-  set_help(form, cdroms[0]['vars']);
+  const objs = Object.keys(getFormJSON(form, false));
+  set_help(form, cpWithoutKeys(cdroms[0]['vars'], objs));
   document.getElementById('cdrom_list').innerHTML = genOption(cdroms);
 }
 /* create vm add new meta key/value */
@@ -429,14 +440,17 @@ function add_meta(btn) {
 }
 function set_help(form, vars) {
   const div = form.querySelector(`div[name="help"]`);
-  var help_msg = '<details><summary>Fields Info</summary><ul>';
-  vars.forEach(item => { help_msg += `<li>${item}</li>`; });
-  help_msg += `</ul></details>`;
+  var help_msg = '<details><summary>Fields Info</summary><table>';
+  for(const key in vars) {
+    help_msg += `<tr><th>${key}</th><td colspan=3 class="truncate">${vars[key]}</td></tr>`;
+  }
+  help_msg += `</table></details>`;
   div.innerHTML = help_msg;
 }
 function select_change(selectObject) {
   const dev = filterByKey(getDevice(curr_host()), 'name', selectObject.value)[0];
-  set_help(selectObject.form, dev['vars']);
+  const objs = Object.keys(getFormJSON(selectObject.form, false));
+  set_help(selectObject.form, cpWithoutKeys(dev['vars'], objs));
 }
 /* include html */
 function includeHTML() {

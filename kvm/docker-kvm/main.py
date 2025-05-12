@@ -40,7 +40,7 @@ class MyApp(object):
                 varset = template.get_variables(config.DOMAIN_DIR, host['tpl'])
                 varset.update(template.get_variables(config.META_DIR, 'meta_data'))
                 varset.update(template.get_variables(config.META_DIR, 'user_data'))
-                host['vars'] = list(varset)
+                host['vars'] = {k: config.VARS_DESC.get(k,'') for k in varset}
             return getlist_without_key(hosts, *keys)
         except Exception as e:
             return deal_except(f'db_list_host', e), 400
@@ -49,7 +49,7 @@ class MyApp(object):
         try:
             devices = [dic._asdict() for dic in database.KVMDevice.list_all(kvmhost=hostname)]
             for dev in devices:
-                dev['vars'] = list(template.get_variables(config.DEVICE_DIR, dev['tpl']))
+                dev['vars'] = {k: config.VARS_DESC.get(k,'') for k in template.get_variables(config.DEVICE_DIR, dev['tpl'])}
             return devices
         except Exception as e:
             return deal_except(f'db_list_device', e), 400
