@@ -40,7 +40,7 @@ class MyApp(object):
                 varset = template.get_variables(config.DOMAIN_DIR, host['tpl'])
                 varset.update(template.get_variables(config.META_DIR, 'meta_data'))
                 varset.update(template.get_variables(config.META_DIR, 'user_data'))
-                host['vars'] = {k: config.VARS_DESC.get(k,'') for k in varset}
+                host['vars'] = {k: config.VARS_DESC.get(k,'n/a') for k in varset}
             return getlist_without_key(hosts, *keys)
         except Exception as e:
             return deal_except(f'db_list_host', e), 400
