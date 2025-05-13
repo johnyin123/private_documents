@@ -49,7 +49,7 @@ class MyApp(object):
         try:
             devices = [dic._asdict() for dic in database.KVMDevice.list_all(kvmhost=hostname)]
             for dev in devices:
-                dev['vars'] = {k: config.VARS_DESC.get(k,'') for k in template.get_variables(config.DEVICE_DIR, dev['tpl'])}
+                dev['vars'] = {k: config.VARS_DESC.get(k,'n/a') for k in template.get_variables(config.DEVICE_DIR, dev['tpl'])}
             return devices
         except Exception as e:
             return deal_except(f'db_list_device', e), 400
