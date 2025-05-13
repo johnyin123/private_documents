@@ -270,7 +270,7 @@ class VMManager:
             database.IPPool.remove(req_json.get('vm_ipaddr', ''))
             meta.gen_metafiles(domain.mdconfig, req_json)
         save(os.path.join(config.REQ_JSON_DIR, req_json['vm_uuid']), json.dumps(req_json, indent=4))
-        return return_ok(f"create vm {req_json['vm_uuid']} on {host.name} ok")
+        return return_ok(f"create vm on {host.name} ok", uuid=req_json['vm_uuid'])
 
     @staticmethod
     def cdrom(host:FakeDB, uuid:str, dev:str, req_json)->str:
