@@ -16,9 +16,13 @@ class FakeDB:
 
 @contextmanager
 def connect(uri: str)-> Generator:
+    def libvirt_callback(userdata, err):
+        pass
+
     conn = None
     try:
         libvirt.virEventRegisterDefaultImpl() # console newStream
+        libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
         conn = libvirt.open(uri)
         yield conn
     finally:
