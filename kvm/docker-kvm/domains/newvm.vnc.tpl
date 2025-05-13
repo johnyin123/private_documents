@@ -52,13 +52,15 @@
   <devices>
 {%- if vm_graph in ['vnc', 'spice'] %}
     <graphics type='{{ vm_graph }}' autoport='yes'/>
+{%- if vm_graph == 'spice' %}
+    <channel type='spicevmc'><target type='virtio' name='com.redhat.spice.0'/></channel>
+{%- endif %}
+{%- endif %}
+{%- if vm_arch == 'x86_64' %}
     <video><model type='{{ vm_video | default("vga")}}' vram='16384' heads='1' primary='yes'/></video>
     <sound model='ac97'/>
     <input type="tablet" bus="usb"/>
     <input type='mouse' bus='ps2'/>
-{%- if vm_graph == 'spice' %}
-    <channel type='spicevmc'><target type='virtio' name='com.redhat.spice.0'/></channel>
-{%- endif %}
 {%- endif %}
     <serial type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target port='0'/></serial>
     <console type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target type='serial' port='0'/></console>

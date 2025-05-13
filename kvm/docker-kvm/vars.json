@@ -1,5 +1,5 @@
 {
-  "disk_bus": "vm disk bus(ide/scsi/sata/virtio), default virtio(cdrom default scsi), cdrom not support virtio",
+  "disk_bus": "vm disk bus(ide/scsi/sata/virtio), default virtio(cdrom default sata), cdrom not support virtio",
   "net_model": "net model(virtio/rtl8139/..), default virtio",
   "vm_cpu": "vm cpu type(kvm64/IvyBridge/...), default IvyBridge, aarch default host-passthrough",
   "vm_desc": "vm describe",

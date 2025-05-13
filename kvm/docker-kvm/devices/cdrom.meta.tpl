@@ -5,6 +5,6 @@
       <host name="{{ META_SRV }}" port="443"/>
        <ssl verify="no"/>
     </source>
-  <target dev='{{ getdev() }}' bus='{{ disk_bus | default("scsi") }}'/>
+  <target dev='{{ getdev() }}' bus='{{ disk_bus | default("sata") }}'/>
   <readonly/>
 </disk>
