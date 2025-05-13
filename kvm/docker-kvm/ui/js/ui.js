@@ -121,7 +121,7 @@ function show_vms(kvmhost, vms) {
     btn += genActBtn(true, 'Add NET', 'fa-wifi', 'add_net', kvmhost, {'uuid':item.uuid});
     btn += genActBtn(true, 'Add DISK', 'fa-database', 'add_disk', kvmhost, {'uuid':item.uuid});
     const table = genVmTblItems(item, kvmhost);
-    const title = item.state == "RUN" ?  '<h2 class="running">GUEST</h2>' : '<h2>GUEST</h2>';
+    const title = item.state == "RUN" ? '<h2 class="running">GUEST</h2>' : '<h2>GUEST</h2>';
     tbl += genWrapper("vms-wrapper", title, btn, table);
   });
   return tbl;
