@@ -4,6 +4,8 @@ import base64, hashlib, time, datetime
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from utils import return_ok, deal_except, getlist_without_key, remove_file, connect, ProcList, save, decode_jwt, websockify_secure_link, FakeDB
 logger = logging.getLogger(__name__)
+KiB = 1024 * 1024
+MiB = 1024 * KiB
 
 class LibvirtDomain:
     def __init__(self, dom):
@@ -219,7 +221,7 @@ class VMManager:
             results = [LibvirtDomain(result)._asdict() for result in conn.listAllDomains()]
             database.KVMGuest.Upsert(host.name, host.arch, results)
             (model, memory, cpus, mhz, nodes, sockets, cores, threads) = conn.getInfo()
-            return json.dumps({'host':{ 'hostname':conn.getHostname(), 'freemem': f'{conn.getFreeMemory()//1024//1024}MiB',
+            return json.dumps({'host':{ 'hostname':conn.getHostname(), 'freemem': f'{conn.getFreeMemory()//MiB}MiB',
                 'totalmem':f'{memory}MiB', 'totalcpu':nodes*sockets*cores*threads, 'mhz':mhz,
                 'totalvm':len(results),'active':conn.numOfDomains()
                 }, 'guest':results})

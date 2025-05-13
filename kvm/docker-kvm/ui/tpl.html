@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="css/content.css" />
   <link rel="stylesheet" href="css/overlay.css" />
   <link rel="stylesheet" href="css/font-awesome.min.css" />
-  <title>VMMgr</title>
+  <title>SimpleVM</title>
 <style>
 /* General reset and font */
 * {
@@ -166,7 +166,6 @@ div.container > div.content {
   overflow-y: auto;
   border: 1px solid var(--grey-color-light);
 }
-
 /* Media Queries for responsiveness */
 @media (max-width: 768px) {
   div.container {
@@ -175,15 +174,12 @@ div.container > div.content {
       "header"
       "content";
   }
-
   div.container.smallsidebar {
     grid-template-columns: 1fr;
   }
-
   div.container > div.sidebar {
     display: none; /* Hide sidebar on mobile */
   }
-
   /* Adjust header and content padding for mobile */
   div.container > div.header,
   div.container > div.content {
@@ -215,7 +211,7 @@ div.container > div.content {
 </style>
 <div class="container">
   <div class="header">
-    <div class="left_area">KVM <span>Manager</span></div>
+    <div class="left_area">Simple<span>VM</span></div>
     <div class="mid_area">
       <i class="fa fa-bars header_btn" title="toggle sidebar" id="sidebar_toggle"></i>
     </div>

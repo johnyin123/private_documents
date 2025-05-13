@@ -13,6 +13,8 @@
   "vm_sshkey": "sshkey for user 'myadmin' login(cloud-init)",
   "vm_timezone": "vm timezone(cloud-init), default Asia/Shanghai",
   "vm_uefi": "vm uefi flash file",
+  "vm_video": "vga/qxl/virtio/cirrus, default vga",
+  "vm_graph": "spice/vnc else only console support",
   "vm_vcpus": "vm numof cpus",
   "vm_vcpus_max": "vm max numof cpus"
 }
