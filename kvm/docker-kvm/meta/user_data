@@ -4,7 +4,7 @@ manage_etc_hosts: true
 timezone: {{ vm_timezone | default('Asia/Shanghai') }}
 users:
   # - default
-  - name: myadmin
+  - name: {{ vm_user | default('myadmin') }}
     lock_passwd: false
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']

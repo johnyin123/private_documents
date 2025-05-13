@@ -10,6 +10,7 @@
   "vm_name": "vm hostname and vm name",
   "vm_ram_mb": "vm memory(MB)",
   "vm_ram_mb_max": "vm max memory(MB)",
+  "vm_user": "nonroot user (cloud-init), default myadmin",
   "vm_sshkey": "sshkey for user 'myadmin' login(cloud-init)",
   "vm_timezone": "vm timezone(cloud-init), default Asia/Shanghai",
   "vm_uefi": "vm uefi flash file",
