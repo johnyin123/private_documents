@@ -40,9 +40,7 @@ div.vms-wrapper-header h2,
   font-weight: 700;
   font-size: 1.4rem;
 }
-div.vms-wrapper-header h2.running {
-  color: var(--green-color);
-}
+.highlight { color: var(--green-color); }
 div.form-wrapper-header h2.success {
   /*success alert*/
   color: var(--green-color);

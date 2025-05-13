@@ -2,13 +2,16 @@ const config = { g_hosts: {}, g_host:'', g_vm:'', g_dev:'', g_devices:{} };
 function curr_host() { return config.g_host; }
 function curr_vm() { return config.g_vm; }
 function curr_dev() { return config.g_dev; }
-function set_curr(kvmhost, uuid='', dev='') { 
+function set_curr(kvmhost, uuid=null, dev=null) {
   if(!(kvmhost in config.g_devices)) {
     getjson('GET', `/tpl/device/${kvmhost}`, function(resp) {
       config.g_devices[kvmhost] = JSON.parse(resp);
     });
   }
-  config.g_host = kvmhost; config.g_vm = uuid; config.g_dev = dev; console.debug(config.g_host, config.g_vm, config.g_dev);
+  config.g_host = kvmhost;
+  if(uuid) config.g_vm = uuid;
+  if(dev) config.g_dev = dev;
+  console.debug(config.g_host, config.g_vm, config.g_dev);
 }
 /*deep copy return*/
 function getHost(kvmhost) { return JSON.parse(JSON.stringify(config.g_hosts.find(el => el.name === kvmhost))); }
@@ -52,7 +55,7 @@ function genActBtn(btn=true, smsg, icon, action, kvmhost, args={}) {
 function genWrapper(clazz, title, buttons, table) {
   return `<div class="${clazz}"><div class="${clazz}-header">${title}<div>${buttons}</div></div>${table}</div>`;
 }
-function genVmTblItems(item, host = null) {
+function genVmsTBL(item, host = null) {
   const colspan= host ? 2 : 3;
   var tbl = '<table>';
   for(const key in item) {
@@ -80,7 +83,9 @@ function genVmTblItems(item, host = null) {
         tbl += `<tr><th>${mdkey}</th><td colspan="3" class="truncate">${mdconfig[mdkey]}</td></tr>`;
       }
     } else {
-      tbl += `<tr><th>${key}</th><td colspan="3" class="truncate">${item[key]}</td></tr>`;
+      var style = 'truncate';
+      if (item.uuid === curr_vm() && key === 'uuid' && host) style +=' highlight';
+      tbl += `<tr><th>${key}</th><td colspan="3" class="${style}">${item[key]}</td></tr>`;
     }
   }
   tbl += '</table>';
@@ -95,7 +100,7 @@ function show_all_db_vms(view) {
     dbvms_total.innerHTML = vms.length;
     vms.forEach(item => {
       const btn = `<button title='GOTO HOST' onclick='vmlist("${item.kvmhost}")'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
-      const table = genVmTblItems(item);
+      const table = genVmsTBL(item);
       tbl += genWrapper("vms-wrapper", "<h2>GUEST</h2>", btn, table);
     });
     dbvms.innerHTML = tbl;
@@ -120,8 +125,8 @@ function show_vms(kvmhost, vms) {
     btn += genActBtn(true, 'Add CDROM', 'fa-floppy-o', 'add_cdrom', kvmhost, {'uuid':item.uuid});
     btn += genActBtn(true, 'Add NET', 'fa-wifi', 'add_net', kvmhost, {'uuid':item.uuid});
     btn += genActBtn(true, 'Add DISK', 'fa-database', 'add_disk', kvmhost, {'uuid':item.uuid});
-    const table = genVmTblItems(item, kvmhost);
-    const title = item.state == "RUN" ? '<h2 class="running">GUEST</h2>' : '<h2>GUEST</h2>';
+    const table = genVmsTBL(item, kvmhost);
+    const title = item.state == "RUN" ? '<h2 class="highlight">GUEST</h2>' : '<h2>GUEST</h2>';
     tbl += genWrapper("vms-wrapper", title, btn, table);
   });
   return tbl;
@@ -131,7 +136,7 @@ function show_host(kvmhost, more_info) {
   delete host.vars;
   var btn = genActBtn(true, 'Refresh VM List', 'fa-refresh fa-spin', 'vmlist', host.name);
   btn += genActBtn(true, 'Create VM', 'fa-tasks', 'create_vm', host.name);
-  const table = genVmTblItems(Object.assign({}, host, more_info));
+  const table = genVmsTBL(Object.assign({}, host, more_info));
   return genWrapper('host-wrapper', '<h2>KVM HOST</h2>', btn, table);
 }
 function Alert(type, title, message) {
@@ -221,6 +226,10 @@ function getjson_result(res) {
       var desc = result.desc;
       delete result.result;
       delete result.desc;
+      if (result.uuid?.length > 0) {
+        // Key exists and has a value
+        set_curr(curr_host(), result.uuid);
+      }
       if (Object.keys(result).length === 0) {
         dispok(`${desc}`);
       } else {
