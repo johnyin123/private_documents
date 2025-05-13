@@ -137,18 +137,18 @@ class VMManager:
                     dom.detachDeviceFlags(disk['xml'], flags)
                     # cdrom not delete media
                     if disk['device'] != 'disk':
-                        return return_ok(f"detach_device {dev} vm {uuid} ok")
+                        return return_ok(f"detach_device {dev} ok", uuid=uuid)
                     refresh_all_pool(conn)
                     logger.info(f'remove disk {disk}')
                     try:
                         conn.storageVolLookupByPath(disk['vol']).delete()
                     except Exception:
-                        return return_ok(f"detach_device {dev} vm {uuid} ok", failed=disk['vol'])
-                    return return_ok(f"detach_device {dev} vm {uuid} ok")
+                        return return_ok(f"detach_device {dev} ok", uuid=uuid, failed=disk['vol'])
+                    return return_ok(f"detach_device {dev} ok", uuid=uuid)
             for net in domain.nets:
                 if net['mac'] == dev:
                     dom.detachDeviceFlags(net['xml'], flags)
-                    return return_ok(f"detach_device {dev} vm {uuid} ok")
+                    return return_ok(f"detach_device {dev} ok", uuid=uuid)
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
@@ -177,7 +177,7 @@ class VMManager:
             save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
             path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
             url_map = {'vnc': config.VNC_DISP_URL,'spice':config.SPICE_DISP_URL}
-            return return_ok(proto, display=f'{url_map[proto]}?password={item.getAttribute("passwd")}&path={path}', expire=dt)
+            return return_ok(proto, uuid=uuid, display=f'{url_map[proto]}?password={item.getAttribute("passwd")}&path={path}', expire=dt)
         raise Exception('no graphic found')
 
     @staticmethod
@@ -206,7 +206,7 @@ class VMManager:
                 pass
             flags = libvirt.VIR_DOMAIN_UNDEFINE_NVRAM | libvirt.VIR_DOMAIN_UNDEFINE_MANAGED_SAVE | libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
             dom.undefineFlags(flags)
-            return return_ok(f'{uuid} delete ok', failed=diskinfo)
+            return return_ok(f'delete ok', uuid=uuid, failed=diskinfo)
 
     @staticmethod
     def xml(host, uuid:str)-> str:
@@ -249,7 +249,7 @@ class VMManager:
             with connect(host.url) as conn:
                 dom = conn.lookupByUUIDString(uuid)
                 dom.attachDeviceFlags(tpl.gen_xml(**req_json), dom_flags(LibvirtDomain(dom).state))
-            yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot')
+            yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot', uuid=uuid)
         except Exception as e:
             yield deal_except(f'attach {req_json["device"]} device', e)
 
@@ -283,7 +283,7 @@ class VMManager:
                     if domain.state != libvirt.VIR_DOMAIN_RUNNING:
                         dom.detachDeviceFlags(disk['xml'], dom_flags(domain.state))
                     dom.attachDeviceFlags(change_media(dev, iso.uri, disk['bus']))
-                    return return_ok(f'{uuid} {dev} change media ok')
+                    return return_ok(f'{dev} change media ok', uuid=uuid)
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
@@ -297,7 +297,7 @@ class VMManager:
         server = f'unix_socket:{local}'
         save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
         path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
-        return return_ok('console', display=f'{config.CONSOLE_URL}?password=&path={path}', expire=dt)
+        return return_ok('console', uuid=uuid, display=f'{config.CONSOLE_URL}?password=&path={path}', expire=dt)
 
     @staticmethod
     def stop(host:FakeDB, uuid:str, **kwargs)-> str:
@@ -307,19 +307,19 @@ class VMManager:
                 dom.destroy()
             else:
                 dom.shutdown()
-        return return_ok(f'{uuid} stop ok')
+        return return_ok(f'stop ok', uuid=uuid)
 
     @staticmethod
     def reset(host:FakeDB, uuid:str)-> str:
         with connect(host.url) as conn:
             conn.lookupByUUIDString(uuid).reset()
-        return return_ok(f'{uuid} reset ok')
+        return return_ok(f'reset ok', uuid=uuid)
 
     @staticmethod
     def start(host:FakeDB, uuid:str)-> str:
         with connect(host.url) as conn:
             conn.lookupByUUIDString(uuid).create()
-        return return_ok(f'{uuid} start ok')
+        return return_ok(f'start ok', uuid=uuid)
 
     @staticmethod
     def ui(host:FakeDB, uuid:str, epoch:str)-> str:
@@ -332,7 +332,7 @@ class VMManager:
             return f'{token}', datetime.datetime.fromtimestamp(int(epoch)).isoformat()
 
         token, dt = user_access_secure_link(host.name, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
-        return return_ok('vmuserinterface', url=f'{config.USER_ACCESS_URL}', token=f'{token}', expire=dt)
+        return return_ok('vmuserinterface', uuid=uuid, url=f'{config.USER_ACCESS_URL}', token=f'{token}', expire=dt)
 
     @staticmethod
     def ipaddr(host:FakeDB, uuid:str)-> Generator:
@@ -346,6 +346,6 @@ class VMManager:
                 leases = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
                 arp = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
                 agent = dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_AGENT)
-                yield return_ok('get_ipaddr ok', **{**convert_data(leases), **convert_data(arp), **convert_data(agent)})
+                yield return_ok('get_ipaddr ok', uuid=uuid, **{**convert_data(leases), **convert_data(arp), **convert_data(agent)})
         except Exception as e:
             yield deal_except(f'ipaddr', e)
