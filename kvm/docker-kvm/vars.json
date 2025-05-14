@@ -7,6 +7,7 @@
   "vm_interface": "vm net interface(cloud-init), default eth0",
   "vm_ipaddr": "vm ipaddress(cloud-init)",
   "vm_meta_enum": "Cloud-init方式NOCLOUD/ISO,default/nodefine ISO",
+  "vm_machine":"vm machine type(q35..), x86 default pc, arm default virt",
   "vm_name": "vm hostname and vm name",
   "vm_ram_mb": "vm memory(MB)",
   "vm_ram_mb_max": "vm max memory(MB)",
