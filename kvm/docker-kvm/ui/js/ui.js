@@ -83,13 +83,11 @@ function genVmsTBL(item, host = null) {
     } else if (key === 'mdconfig') {
       const mdconfig = JSON.parse(item[key]);
       for(var mdkey in mdconfig) {
-        if (mdkey === 'vm_ipaddr' && host) {
-          var btn = genActBtn(false, 'VM IPAddress', 'VMIPaddr', 'get_vmip', host, {'uuid':item.uuid});
-          tbl += `<tr><th>${mdkey}</th><td colspan="${colspan}" class="truncate">${mdconfig[mdkey]}</td><td>${btn}</td></tr>`;
-        } else {
-          tbl += `<tr><th>${mdkey}</th><td colspan="3" class="truncate">${mdconfig[mdkey]}</td></tr>`;
-        }
+        tbl += `<tr><th>${mdkey}</th><td colspan="3" class="truncate">${mdconfig[mdkey]}</td></tr>`;
       }
+    } else if (key === 'state' && item['state'] === 'RUN' && host) {
+      var btn = genActBtn(false, 'VM IPAddress', 'VMIPaddr', 'get_vmip', host, {'uuid':item.uuid});
+      tbl += `<tr><th>${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else {
       var style = 'truncate';
       if (item.uuid === curr_vm() && key === 'uuid' && host) style +=' highlight';
