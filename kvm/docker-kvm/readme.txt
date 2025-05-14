@@ -137,7 +137,8 @@ echo 'get vm xml" && curl -k ${srv}/vm/xml/${host}/${uuid}
 echo 'get freeip" && curl -k ${srv}/vm/freeip/
 epoch=$(date -d "+$((10*24*3600)) second" +%s) #10 days
 echo 'get tenant vm mgr page/token/expire' curl -k ${srv}/vm/ui/${host}/${uuid}?epoch=${epoch}
-echo 'get vmip' && curl -k ${srv}/vm/list/${host}/${uuid}/get_ipaddr
+echo 'get vmip' && curl -k ${srv}/vm/get_ipaddr/${host}/${uuid}
+echo 'get blk size' && curl -k ${srv}/vm/blksize/${host}/${uuid}?dev=vda
 ---------------------------------------------------------
 # token='aG9zdDAxLzZmNWQ4YmY2LWQ1ODAtNDk0Ni05NTQxLTEzZmE5OGI0YWNmND9rPWc2S0h1T1A4R0lmVTVfZFlBN0lQX1EmZT0xNzQzNDM2Nzk5'
 str_token='host01/6f5d8bf6-d580-4946-9541-13fa98b4acf4?k=g6KHuOP8GIfU5_dYA7IP_Q&e=1743436799'

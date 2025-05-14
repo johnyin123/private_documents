@@ -4,7 +4,7 @@ import base64, hashlib, time, datetime
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from utils import return_ok, deal_except, getlist_without_key, remove_file, connect, ProcList, save, decode_jwt, websockify_secure_link, FakeDB
 logger = logging.getLogger(__name__)
-KiB = 1024 * 1024
+KiB = 1024
 MiB = 1024 * KiB
 
 class LibvirtDomain:
@@ -333,6 +333,12 @@ class VMManager:
 
         token, dt = user_access_secure_link(host.name, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
         return return_ok('vmuserinterface', uuid=uuid, url=f'{config.USER_ACCESS_URL}', token=f'{token}', expire=dt)
+
+    @staticmethod
+    def blksize(host:FakeDB, uuid:str, dev:str)-> str:
+         with connect(host.url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            return return_ok(f'blksize {dev}', uuid=uuid, size=f'{dom.blockInfo(dev)[0]//MiB}MiB')
 
     @staticmethod
     def ipaddr(host:FakeDB, uuid:str)-> Generator:
