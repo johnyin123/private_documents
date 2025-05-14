@@ -148,15 +148,15 @@ td.truncate {
   max-width:1px;
 }
 td > a {
-  display: block;
-  width: 100%;
+  display: inline;
+  margin: 5px;
   height:100%;
   text-decoration: none;
   color: var(--green-color);
 }
 td > a:hover {
   background: var(--blue-color);
-  border-radius: 8px;
+  border-radius: 2px;
 }
 legend {
 	font-weight: bold;
