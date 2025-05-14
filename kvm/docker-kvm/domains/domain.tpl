@@ -1,6 +1,6 @@
 {%- macro random_string(len) -%}{% for i in range(0,len) -%}{{ [0,1,2,3,4,5,6,7,8,9,"a","b","c","d","e","f","A","B","C","D","E","F"]|random }}{% endfor %}{%- endmacro -%}
 {%- macro getmachine() %}{%- if vm_arch == 'x86_64' %}{{vm_machine | default("pc")}}{%- else %}{{vm_machine | default("virt")}}{%- endif %}{%- endmacro %}
-{%- macro getcpu() %}{%- if vm_arch == 'x86_64' %}{{vm_cpu | default("IvyBridge")}}{%- else %}{{vm_cpu | default("host-passthrough")}}{%- endif %}{%- endmacro %}
+{%- macro getcpu() %}{%- if vm_arch == 'x86_64' %}{{vm_cpu | default("host-model")}}{%- else %}{{vm_cpu | default("host-passthrough")}}{%- endif %}{%- endmacro %}
 <domain type='kvm'>
   <name>{{ vm_name }}-{{ vm_uuid }}</name>
   <uuid>{{ vm_uuid }}</uuid>

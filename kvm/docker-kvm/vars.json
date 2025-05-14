@@ -1,7 +1,7 @@
 {
   "disk_bus": "vm disk bus(ide/scsi/sata/virtio), default virtio(cdrom default sata), cdrom not support virtio",
   "net_model": "net model(virtio/rtl8139/..), default virtio",
-  "vm_cpu": "vm cpu type(host-model/host-passthrough/kvm64...), default IvyBridge, aarch default host-passthrough",
+  "vm_cpu": "vm cpu type(host-model/host-passthrough/kvm64/IvyBridge...), default: host-model(x86), host-passthrough(arm)",
   "vm_desc": "vm describe",
   "vm_gateway": "vm gateway address",
   "vm_interface": "vm net interface(cloud-init), default eth0",
