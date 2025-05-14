@@ -1,5 +1,6 @@
-{% macro random_string(len) -%}{% for i in range(0,len) -%}{{ [0,1,2,3,4,5,6,7,8,9,"a","b","c","d","e","f","A","B","C","D","E","F"]|random }}{% endfor %}{%- endmacro -%}
+{%- macro random_string(len) -%}{% for i in range(0,len) -%}{{ [0,1,2,3,4,5,6,7,8,9,"a","b","c","d","e","f","A","B","C","D","E","F"]|random }}{% endfor %}{%- endmacro -%}
 {%- macro getmachine() %}{%- if vm_arch == 'x86_64' %}{{vm_machine | default("pc")}}{%- else %}{{vm_machine | default("virt")}}{%- endif %}{%- endmacro %}
+{%- macro getcpu() %}{%- if vm_arch == 'x86_64' %}{{vm_cpu | default("IvyBridge")}}{%- else %}{{vm_cpu | default("host-passthrough")}}{%- endif %}{%- endmacro %}
 <domain type='kvm'>
   <name>{{ vm_name }}-{{ vm_uuid }}</name>
   <uuid>{{ vm_uuid }}</uuid>
@@ -27,10 +28,10 @@
   <memoryBacking><source type='memfd'/><access mode='shared'/></memoryBacking>
   <currentMemory unit='MiB'>{{ vm_ram_mb | default(1024) }}</currentMemory>
   <vcpu placement='static' current='{{ vm_vcpus | default(1) }}'>{{ vm_vcpus_max | default(vm_vcpus | default(8)) }}</vcpu>
-{%- if vm_arch == 'x86_64' %}
-  <cpu match='exact'><model fallback='allow'>{{vm_cpu | default("IvyBridge")}}</model></cpu>
+{%- if getcpu() in ['host-model', 'host-passthrough'] %}
+  <cpu mode='{{ getcpu() }}'/>
 {%- else %}
-  <cpu mode='host-passthrough' check='none'/>
+  <cpu match='exact'><model fallback='allow'>{{ getcpu() }}</model></cpu>
 {%- endif %}
   <iothreads>1</iothreads>
   <os>
