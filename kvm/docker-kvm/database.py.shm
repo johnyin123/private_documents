@@ -61,17 +61,17 @@ class KVMGuest(JSONCacheBase):
 
     @classmethod
     def Upsert(cls, kvmhost: str, arch: str, records: List[Dict]) -> None:
-            try:
-                with cls.lock:
-                    utils.remove(cls.cache, 'kvmhost', kvmhost)
-                for rec in records:
-                    guest = rec.copy()
-                    guest.pop('state', None)
-                    guest.update({'kvmhost': kvmhost, 'arch': arch})
-                    cls.cache.append(utils.manager.dict(guest))
-                cls.save()
-            except Exception as e:
-                logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
+        try:
+            with cls.lock:
+                utils.remove(cls.cache, 'kvmhost', kvmhost)
+            for rec in records:
+                guest = rec.copy()
+                guest.pop('state', None)
+                guest.update({'kvmhost': kvmhost, 'arch': arch})
+                cls.cache.append(utils.manager.dict(guest))
+            cls.save()
+        except Exception as e:
+            logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
 
 class IPPool(JSONCacheBase):
     filename = os.path.join(config.OUTDIR, 'ippool.json')
