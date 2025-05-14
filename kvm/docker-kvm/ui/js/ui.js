@@ -83,7 +83,12 @@ function genVmsTBL(item, host = null) {
     } else if (key === 'mdconfig') {
       const mdconfig = JSON.parse(item[key]);
       for(var mdkey in mdconfig) {
-        tbl += `<tr><th>${mdkey}</th><td colspan="3" class="truncate">${mdconfig[mdkey]}</td></tr>`;
+        if (mdkey === 'vm_ipaddr' && host) {
+          var btn = genActBtn(false, 'VM IPAddress', 'VMIPaddr', 'get_vmip', host, {'uuid':item.uuid});
+          tbl += `<tr><th>${mdkey}</th><td colspan="${colspan}" class="truncate">${mdconfig[mdkey]}</td><td>${btn}</td></tr>`;
+        } else {
+          tbl += `<tr><th>${mdkey}</th><td colspan="3" class="truncate">${mdconfig[mdkey]}</td></tr>`;
+        }
       }
     } else {
       var style = 'truncate';
@@ -332,6 +337,10 @@ function display(host, uuid) {
       disperr(result.code, result.name, result.desc);
     }
   });
+}
+function get_vmip(host, uuid) {
+  set_curr(host, uuid);
+  getjson('GET', `/vm/ipaddr/${host}/${uuid}`, getjson_result);
 }
 function del_device(host, uuid, dev) {
   set_curr(host, uuid, dev);
