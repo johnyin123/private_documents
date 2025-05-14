@@ -12,7 +12,6 @@ class LibvirtDomain:
         self.XMLDesc = dom.XMLDesc()
         self.uuid = dom.UUIDString()
         self.state, self.maxmem, self.curmem, self.curcpu, self.cputime = dom.info()
-        # blk_cap, blk_all, blk_phy = dom.blockInfo(dev_name)
 
     def _asdict(self):
         state_desc = {libvirt.VIR_DOMAIN_NOSTATE:'NA',libvirt.VIR_DOMAIN_RUNNING:'RUN',libvirt.VIR_DOMAIN_BLOCKED:'BLOCK',libvirt.VIR_DOMAIN_PAUSED:'PAUSED',
