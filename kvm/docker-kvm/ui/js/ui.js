@@ -63,12 +63,15 @@ function genVmsTBL(item, host = null) {
       const disks = JSON.parse(item[key]);
       disks.forEach(disk => {
         tbl += `<tr><th title="${disk.device}">${disk.dev}</th><td colspan="${colspan}" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td>`;
-        var change_media = '';
+        var addon_btn = '';
         if(disk.device === 'cdrom') {
-          change_media = genActBtn(false, 'Change Media', 'Change', 'change_iso', host, {'uuid':item.uuid, 'dev':disk.dev});
+          addon_btn = genActBtn(false, 'Change Media', 'Change', 'change_iso', host, {'uuid':item.uuid, 'dev':disk.dev});
+        }
+        if(disk.device === 'disk') {
+          addon_btn = genActBtn(false, 'Media Size', 'DiskSize', 'disk_size', host, {'uuid':item.uuid, 'dev':disk.dev});
         }
         var remove_btn = genActBtn(false, 'Remove Disk', 'Remove', 'del_device', host, {'uuid':item.uuid, 'dev':disk.dev});
-        tbl += host ? `<td>${remove_btn}${change_media}</td></tr>` : `</tr>`;
+        tbl += host ? `<td>${remove_btn}${addon_btn}</td></tr>` : `</tr>`;
       });
     } else if (key === 'nets') {
       const nets = JSON.parse(item[key]);
@@ -340,6 +343,10 @@ function on_changeiso(form) {
   showView('hostlist');
   getjson('POST', `/vm/cdrom/${curr_host()}/${curr_vm()}?dev=${curr_dev()}`, getjson_result, getFormJSON(form));
   return false;
+}
+function disk_size(host, uuid, dev) {
+  set_curr(host, uuid, dev);
+  getjson('GET', `/vm/blksize/${curr_host()}/${curr_vm()}?dev=${dev}`, getjson_result);
 }
 function change_iso(host, uuid, dev) {
   set_curr(host, uuid, dev);
