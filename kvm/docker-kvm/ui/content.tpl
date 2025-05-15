@@ -1,6 +1,7 @@
 <div id="overlay"><pre id="overlay_output"></pre><div id="overlay_text">Wait......</div></div>
 <!-- ############## -->
-<div id="alert" class="tabContent"></div>
+<dialog id="alert" style="background-color: var(--black-color-light); color: var(--white-color); position: absolute; top: 50%; left: 50%; margin-left: -20vw; margin-top: -30vh; width: 40vw;height:60vh;"></dialog>
+<!-- <div id="alert" class="tabContent"></div> -->
 <!-- ############## -->
 <div id="allvms" class="tabContent">
   <center><h1>ALL VMS (<span id="dbvms-total"></span>)</h1></center>

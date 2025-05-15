@@ -148,10 +148,12 @@ function show_host(kvmhost, more_info) {
 function Alert(type, title, message) {
   const div_alert = document.getElementById("alert");
   if (div_alert) {
-    const btn = `<button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>`;
+    //const btn = `<button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>`;
+    const btn = `<button title="Close" class="close" onclick="this.closest('dialog').close();"><h2>&times;</h2></button>`;
     const table = `<form><pre style="white-space: pre-wrap;">${message}</pre></form>`;
     div_alert.innerHTML = genWrapper('form-wrapper', `<h2 class="${type}">${title}</h2>`, btn, table);
-    showView('alert');
+    //showView('alert');
+    div_alert.showModal();
   } else {
     alert(message);
   }
