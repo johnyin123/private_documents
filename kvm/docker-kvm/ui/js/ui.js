@@ -451,7 +451,7 @@ function del_meta(r) {
   table.deleteRow(r.parentNode.parentNode.rowIndex);
 }
 function add_meta(btn) {
-  const form = btn.form;
+  const form = btn.form; //btn.closest('form')
   const table = form.querySelector(`table[name="meta_data"]`);
   var newRow = table.insertRow(-1);
   var c_name = newRow.insertCell(0);
