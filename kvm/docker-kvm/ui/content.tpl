@@ -1,9 +1,9 @@
 <div id="overlay"><pre id="overlay_output"></pre><div id="overlay_text">Wait......</div></div>
+<!-- ############## -->
 <div id="alert" class="tabContent"></div>
+<!-- ############## -->
 <div id="allvms" class="tabContent">
   <center><h1>ALL VMS (<span id="dbvms-total"></span>)</h1></center>
-  <!-- <button onclick='overlayon()'>test overlay</button> -->
-  <!-- background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 8" fill="none" stroke="black"><path d="M7.5 3L4 6 .5 3"/></svg>'); -->
   <div class="machine-container">
   <div class="vms-container" id="dbvms"></div>
   </div>
@@ -14,10 +14,6 @@
     <div class="host-container" id="host"></div>
     <div class="vms-container" id="vms"></div>
   </div>
-</div>
-<!-- ############## -->
-<div id="display" class="tabContent">
-  <embed id="display" width="800" height="600" src="" type="text/html"/>
 </div>
 <!-- ############## -->
 <div id="vmuimail" class="tabContent">
@@ -148,5 +144,4 @@
       <input type="submit" value="Submit"/>
     </form>
   </div>
-</div>
 </div>
