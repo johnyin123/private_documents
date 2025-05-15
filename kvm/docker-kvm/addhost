@@ -21,7 +21,7 @@ devs=[]
 for fn in devices:
     desc = ''
     with open(f'{config.DEVICE_DIR}/{fn}.tpl', 'r') as file:
-        desc = file.readline().strip().replace("{#", "").replace("#}", "") 
+        desc = file.readline().strip().replace("{#-", "").replace("{#", "").replace("#}", "")
     dev = {'kvmhost':kvmhost,'name':fn,'tpl': f'{fn}.tpl','desc':desc}
     dev['action'] = f'{dev["name"]}.action' if f'{dev["name"]}.action' in actions else ''
     doc = xml.dom.minidom.parseString(KVMTemplate(config.DEVICE_DIR ,f'{fn}.tpl').gen_xml())

@@ -16,7 +16,7 @@
     <system>
       <entry name='manufacturer'>JohnYin</entry>
       <entry name='version'>0.9</entry>
-{%- if vm_meta_enum is defined and vm_meta_enum == 'NOCLOUD' %}
+{%- if vm_meta_enum == 'NOCLOUD' %}
       <entry name='serial'>ds=nocloud-net;s=http://{{ META_SRV }}/{{ vm_uuid }}/</entry>
       <entry name='uuid'>{{ vm_uuid }}</entry>
 {%- endif %}
@@ -37,7 +37,7 @@
   <os>
     <type arch='{{ vm_arch }}' machine='{{ getmachine() }}'>hvm</type>
 {%- if vm_uefi is defined and vm_uefi != '' %}
-    <loader readonly='yes' secure='no' type='pflash'>{{ vm_uefi }}</loader>
+    <loader readonly='yes' secure='{{ vm_uefi_secure | default("no") }}' type='pflash'>{{ vm_uefi }}</loader>
 {%- endif %}
     <boot dev='hd'/>
     <boot dev='cdrom'/>
