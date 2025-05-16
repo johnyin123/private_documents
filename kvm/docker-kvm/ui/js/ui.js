@@ -148,7 +148,7 @@ function show_host(kvmhost, more_info) {
 function Alert(type, title, message) {
   const div_alert = document.getElementById("alert");
   function closeDialogOnClickOutside(event) {
-    event.target === div_alert && closeDialog()
+    event.target === div_alert && closeDialog();
   }
   function closeDialog() {
     div_alert.close();
