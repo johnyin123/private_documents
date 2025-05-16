@@ -392,6 +392,7 @@ function create_vm(host) {
   });
 }
 function on_add(form) {
+  showView('hostlist');
   function getLastLine(str) {
     const lines = str.split('\n');
     return lines[lines.length - 1];
