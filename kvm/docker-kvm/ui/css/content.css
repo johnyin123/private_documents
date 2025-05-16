@@ -168,3 +168,15 @@ div[name=help] {
 }
 details { padding: 5px var(--padding-large); }
 details table th { text-align: right; text-transform: none; }
+.tabContent { display:none; }
+#alert {
+  background-color: var(--black-color-light);
+  color: var(--white-color);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-left: -32vw;
+  margin-top: -24vh;
+  width: 64vw;
+  height:48vh;
+}
