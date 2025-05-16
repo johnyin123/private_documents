@@ -357,7 +357,7 @@ function del_device(host, uuid, dev) {
   }
 }
 function on_changeiso(form) {
-  getjson('POST', `/vm/cdrom/${curr_host()}/${curr_vm()}?dev=${curr_dev()}`, function(resp){ getjson_result(resp); vmlist(host); }, getFormJSON(form));
+  getjson('POST', `/vm/cdrom/${curr_host()}/${curr_vm()}?dev=${curr_dev()}`, function(resp){ getjson_result(resp); vmlist(curr_host()); }, getFormJSON(form));
   return false;
 }
 function disk_size(host, uuid, dev) {
@@ -372,7 +372,7 @@ function change_iso(host, uuid, dev) {
   });
 }
 function on_createvm(form) {
-  getjson('POST', `/vm/create/${curr_host()}`, function(resp){ getjson_result(resp); vmlist(host); }, getFormJSON(form));
+  getjson('POST', `/vm/create/${curr_host()}`, function(resp){ getjson_result(resp); vmlist(curr_host()); }, getFormJSON(form));
   return false;
 }
 function cpWithoutKeys(orig, keys) {
