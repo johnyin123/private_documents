@@ -18,6 +18,7 @@
   "vm_uefi": "vm uefi flash file, nodef or null bios mode",
   "vm_uefi_secure": "vm uefi secure(yes/no), default no",
   "vm_video": "vga/qxl/virtio/cirrus, default vga",
+  "vm_sound": "es1370/sb16/ac97/ich6', default ac97",
   "vm_graph": "spice/vnc else only console support",
   "vm_vcpus": "vm numof cpus",
   "vm_vcpus_max": "vm max numof cpus"

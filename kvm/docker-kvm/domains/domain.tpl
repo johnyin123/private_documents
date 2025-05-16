@@ -59,8 +59,8 @@
 {%- endif %}
 {%- if vm_arch == 'x86_64' %}
     <video><model type='{{ vm_video | default("vga")}}' vram='16384' heads='1' primary='yes'/></video>
-    <sound model='ac97'/>
-    <input type="tablet" bus="usb"/>
+    <sound model='{{ vm_sound | default("ac97") }}'/>
+    <input type='tablet' bus='usb'/>
     <input type='mouse' bus='ps2'/>
 {%- endif %}
     <serial type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target port='0'/></serial>
