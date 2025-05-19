@@ -1,6 +1,6 @@
 [
 { "name":"virtio driver"      ,"uri":"/gold/virtio-win-0.1.271.iso"        ,"desc":"virtio-win driver cd" },
-{ "name":"hotpe"              ,"uri":"/gold/hotpe.iso"                     ,"desc":"hotpe with winx&win7 cd" },
+{ "name":"hotpe"              ,"uri":"/gold/hotpe.iso"                     ,"desc":"hotpe with winxp/win7 cd" },
 { "name":"debian12-live-amd64","uri":"/gold/debian-bookworm-amd64-live.iso","desc":"debian-bookworm-amd64-live启动CD" },
 { "name":"debian12-live-arm64","uri":"/gold/debian-bookworm-arm64-live.iso","desc":"debian-bookworm-arm64-live启动CD" }
 ]
