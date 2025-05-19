@@ -21,7 +21,6 @@ def connect(uri: str)-> Generator:
 
     conn = None
     try:
-        libvirt.virEventRegisterDefaultImpl() # console newStream
         libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
         conn = libvirt.open(uri)
         yield conn
