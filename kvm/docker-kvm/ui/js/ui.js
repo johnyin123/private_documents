@@ -85,7 +85,7 @@ function genVmsTBL(item, host = null) {
       for(var mdkey in mdconfig) {
         tbl += `<tr><th>${mdkey}</th><td colspan="3" class="truncate">${mdconfig[mdkey]}</td></tr>`;
       }
-    } else if (key === 'desc') {
+    } else if (key === 'desc' && host) {
       var btn = genActBtn(false, 'Modify Description', 'Modify', 'modify_desc', host, {'uuid':item.uuid});
       tbl += `<tr><th>${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else if (key === 'state' && item['state'] === 'RUN' && host) {
