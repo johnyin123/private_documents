@@ -15,6 +15,7 @@
   "vm_password": "vm_user and root password, first login change",
   "vm_sshkey": "sshkey for user 'myadmin' login(cloud-init)",
   "vm_timezone": "vm timezone(cloud-init), default Asia/Shanghai",
+  "vm_locale": "vm locale(cloud-init), defaultzh_CN.UTF-8",
   "vm_uefi": "vm uefi flash file, nodef or null bios mode",
   "vm_uefi_secure": "vm uefi secure(yes/no), default no",
   "vm_video": "vga/qxl/virtio/cirrus, default vga",
