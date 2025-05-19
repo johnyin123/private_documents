@@ -85,12 +85,15 @@ function genVmsTBL(item, host = null) {
       for(var mdkey in mdconfig) {
         tbl += `<tr><th>${mdkey}</th><td colspan="3" class="truncate">${mdconfig[mdkey]}</td></tr>`;
       }
+    } else if (key === 'desc') {
+      var btn = genActBtn(false, 'Modify Description', 'Modify', 'modify_desc', host, {'uuid':item.uuid});
+      tbl += `<tr><th>${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else if (key === 'state' && item['state'] === 'RUN' && host) {
       var btn = genActBtn(false, 'VM IPAddress', 'VMIPaddr', 'get_vmip', host, {'uuid':item.uuid});
       tbl += `<tr><th>${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else {
       var style = 'truncate';
-      if (item.uuid === curr_vm() && ['desc', 'uuid'].includes(key) && host) style +=' highlight';
+      if (item.uuid === curr_vm() && ['uuid'].includes(key) && host) style +=' highlight';
       tbl += `<tr><th>${key}</th><td colspan="3" class="${style}">${item[key]}</td></tr>`;
     }
   }
@@ -444,6 +447,15 @@ function add_cdrom(host, uuid) {
   const objs = Object.keys(getFormJSON(form, false));
   set_help(form, cpWithoutKeys(cdroms[0]['vars'], objs));
   document.getElementById('cdrom_list').innerHTML = genOption(cdroms);
+}
+function on_modifydesc(form) {
+  const res = getFormJSON(form);
+  getjson('GET', `/vm/desc/${curr_host()}/${curr_vm()}?vm_desc=${res.vm_desc}`, function(resp){ getjson_result(resp); vmlist(curr_host()); });
+  return false;
+}
+function modify_desc(host, uuid) {
+  set_curr(host, uuid);
+  showView('modifydesc');
 }
 /* create vm add new meta key/value */
 function set_name(r) {

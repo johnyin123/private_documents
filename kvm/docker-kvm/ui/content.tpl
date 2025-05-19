@@ -117,6 +117,20 @@
   </div>
 </div>
 <!-- ############## -->
+<div id="modifydesc" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>Modify Description</h2>
+      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
+    </div>
+    <form onSubmit="return on_modifydesc(this)">
+      <label>desc<textarea rows="3" maxlength="100" name="vm_desc" placeholder="vm desc here..." required></textarea></label>
+      <input type="reset" value="Reset"/>
+      <input type="submit" value="Submit"/>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
 <div id="createvm" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">

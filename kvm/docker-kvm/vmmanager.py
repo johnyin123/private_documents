@@ -340,6 +340,13 @@ class VMManager:
             return return_ok(f'blksize {dev}', uuid=uuid, size=f'{dom.blockInfo(dev)[0]//MiB}MiB')
 
     @staticmethod
+    def desc(host:FakeDB, uuid:str, vm_desc:str)-> str:
+        with connect(host.url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            dom.setMetadata(libvirt.VIR_DOMAIN_METADATA_DESCRIPTION, vm_desc, None, None, dom_flags(LibvirtDomain(dom).state))
+            return return_ok(f'modify desc', uuid=uuid)
+
+    @staticmethod
     def ipaddr(host:FakeDB, uuid:str)-> Generator:
     # Generator func call by flask.Response(...)
     # need catch exception and yield it
