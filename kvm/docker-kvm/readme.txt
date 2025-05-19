@@ -51,6 +51,10 @@ if use ISO no deed dhcp
 '~/.ssh/config
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
+ControlMaster auto
+ControlPath  ~/.ssh/%r@%h:%p
+ControlPersist 600
+Port 60022
 Host 192.168.168.1
     Ciphers aes256-ctr,aes192-ctr,aes128-ctr
     MACs hmac-sha1

@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("5f51926[2025-01-10T09:00:43+08:00]:functions.sh")
+VERSION+=("8c1fbfe3[2025-01-22T08:58:18+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -177,10 +177,9 @@ rgb_to_hex() {
 # rm -f ${SSH_ASKPASS}
 # unset SSH_ASKPASS
 # cat <<EOF > ~/.ssh/config
-# Host *
-#     ControlMaster auto
-#     ControlPath  ~/.ssh/sockets/%r@%h-%p
-#     ControlPersist 600
+# ControlMaster auto
+# ControlPath  ~/.ssh/%r@%h:%p
+# ControlPersist 600
 # EOF
 set_sshpass() {
     local pass=${1}
