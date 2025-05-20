@@ -19,7 +19,7 @@ class LibvirtDomain:
                 }.get(self.state,'?')
         return {'desc':self.desc, 'uuid':self.uuid,
                 'curcpu':self.curcpu, 'maxcpu':self.maxcpu,
-                'curmem':self.curmem, 'maxmem':self.maxmem,
+                'curmem':f'{self.curmem}KiB', 'maxmem':f'{self.maxmem}KiB',
                 'mdconfig': json.dumps(self.mdconfig),
                 'cputime':self.cputime, 'state':state_desc,
                 'disks': json.dumps(getlist_without_key(self.disks, 'xml')),
@@ -345,6 +345,15 @@ class VMManager:
             dom = conn.lookupByUUIDString(uuid)
             dom.setMetadata(libvirt.VIR_DOMAIN_METADATA_DESCRIPTION, vm_desc, None, None, dom_flags(LibvirtDomain(dom).state))
             return return_ok(f'modify desc', uuid=uuid)
+
+    @staticmethod
+    def set_mem(host:FakeDB, uuid:str, vm_ram_mb:str, vm_ram_mb_max:str=None)-> str:
+        with connect(host.url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            if(vm_ram_mb_max):
+                dom.setMaxMemory(int(vm_ram_mb_max)*KiB)
+            dom.setMemoryFlags(int(vm_ram_mb)*KiB, dom_flags(LibvirtDomain(dom).state))
+            return return_ok(f'setMemory', uuid=uuid)
 
     @staticmethod
     def ipaddr(host:FakeDB, uuid:str)-> Generator:
