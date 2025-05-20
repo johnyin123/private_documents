@@ -149,7 +149,7 @@ function show_host(kvmhost, more_info) {
   var btn = genActBtn(true, 'Refresh VM List', 'fa-refresh fa-spin', 'vmlist', host.name);
   btn += genActBtn(true, 'Create VM', 'fa-tasks', 'create_vm', host.name);
   const table = genVmsTBL(Object.assign({}, host, more_info));
-  return genWrapper('host-wrapper', '<h2>KVM HOST</h2>', btn, table);
+  return genWrapper('host-wrapper', `<h2 class="highlight">${host.name.toUpperCase()}</h2>`, btn, table);
 }
 function Alert(type, title, message) {
   const div_alert = document.getElementById("alert");
@@ -232,6 +232,12 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 12
 }
 function vmlist(kvmhost) {
   set_curr(kvmhost);
+  document.getElementById("sidebar").querySelectorAll("a").forEach(link => {
+    link.classList.remove('current');
+    if(link.querySelector("span").innerHTML === kvmhost) {
+      link.classList.add('current');
+    }
+  });
   document.getElementById("vms").innerHTML = '';
   document.getElementById("host").innerHTML = '';
   getjson('GET', `/vm/list/${kvmhost}`, function(resp) {
@@ -532,9 +538,9 @@ window.addEventListener('load', function() {
   includeHTML();
   getjson('GET', '/tpl/host/', function (resp) {
     config.g_hosts = JSON.parse(resp);
-    var mainMenu = "";
+    var mainMenu = `<a href='#' onclick='show_all_db_vms("allvms")'><i class='fa fa-list-ol'></i><span>ALL VMS</span></a>`;
     config.g_hosts.forEach(host => {
-      mainMenu += `<a href='#' class='nav_link sublink' onclick='vmlist("${host.name}")'><i class="fa fa-desktop"></i><span>${host.name}</span></a>`;
+      mainMenu += `<a href='#' onclick='vmlist("${host.name}")'><i class="fa fa-desktop"></i><span>${host.name}</span></a>`;
     });
     document.getElementById("sidebar").innerHTML = mainMenu;
   });
