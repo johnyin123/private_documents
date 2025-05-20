@@ -232,16 +232,21 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 12
 }
 function vmlist(kvmhost) {
   set_curr(kvmhost);
+  var count = "";
   document.getElementById("sidebar").querySelectorAll("a").forEach(link => {
     link.classList.remove('current');
-    if(link.querySelector("span").innerHTML === kvmhost) {
+    if(link.querySelector('[name="host"]').innerHTML === kvmhost) {
       link.classList.add('current');
+      count = link.querySelector(`[name="count"]`);
     }
   });
   document.getElementById("vms").innerHTML = '';
   document.getElementById("host").innerHTML = '';
   getjson('GET', `/vm/list/${kvmhost}`, function(resp) {
     var result = JSON.parse(resp);
+    if(count instanceof HTMLSpanElement) {
+      count.innerHTML = `(${result.host.active}/${result.host.totalvm})`;
+    }
     document.getElementById("vms").innerHTML = show_vms(kvmhost, result.guest);
     document.getElementById("host").innerHTML = show_host(kvmhost, result.host);
     showView("hostlist");
@@ -538,9 +543,9 @@ window.addEventListener('load', function() {
   includeHTML();
   getjson('GET', '/tpl/host/', function (resp) {
     config.g_hosts = JSON.parse(resp);
-    var mainMenu = `<a href='#' onclick='show_all_db_vms("allvms")'><i class='fa fa-list-ol'></i><span>ALL VMS</span></a>`;
+    var mainMenu = `<a href='#' onclick='show_all_db_vms("allvms")'><i class='fa fa-list-ol'></i><span name='host'>ALL VMS</span><span name='count'></span></a>`;
     config.g_hosts.forEach(host => {
-      mainMenu += `<a href='#' onclick='vmlist("${host.name}")'><i class="fa fa-desktop"></i><span>${host.name}</span></a>`;
+      mainMenu += `<a href='#' onclick='vmlist("${host.name}")'><i class="fa fa-desktop"></i><span name='host'>${host.name}</span><span name='count'></span></a>`;
     });
     document.getElementById("sidebar").innerHTML = mainMenu;
   });
