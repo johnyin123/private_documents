@@ -85,6 +85,9 @@ function genVmsTBL(item, host = null) {
       for(var mdkey in mdconfig) {
         tbl += `<tr><th>${mdkey}</th><td colspan="3" class="truncate">${mdconfig[mdkey]}</td></tr>`;
       }
+    } else if (key === 'curmem' && host) {
+      var btn = genActBtn(false, 'Modify Memory', 'Modify', 'modify_memory', host, {'uuid':item.uuid});
+      tbl += `<tr><th>${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else if (key === 'desc' && host) {
       var btn = genActBtn(false, 'Modify Description', 'Modify', 'modify_desc', host, {'uuid':item.uuid});
       tbl += `<tr><th>${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
@@ -456,6 +459,15 @@ function on_modifydesc(form) {
 function modify_desc(host, uuid) {
   set_curr(host, uuid);
   showView('modifydesc');
+}
+function on_modifymemory(form) {
+  const res = getFormJSON(form);
+  getjson('GET', `/vm/setmem/${curr_host()}/${curr_vm()}?vm_ram_mb=${res.vm_ram_mb}`, function(resp){ getjson_result(resp); vmlist(curr_host()); });
+  return false;
+}
+function modify_memory(host, uuid) {
+  set_curr(host, uuid);
+  showView('modifymemory');
 }
 /* create vm add new meta key/value */
 function set_name(r) {

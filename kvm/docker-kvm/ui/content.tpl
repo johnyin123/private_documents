@@ -117,6 +117,23 @@
   </div>
 </div>
 <!-- ############## -->
+<div id="modifymemory" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>Modify Memory</h2>
+      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
+    </div>
+    <form onSubmit="return on_modifymemory(this)">
+      <label>MEM(MB):<div class="group">
+        <input style="width: 20%;" type="number" name="vm_ram_mb" id="vmem_num" value="2048" min="1024" max="32768" step="1024" oninput="vmem_rge.value=this.value"/>
+        <input type="range" id="vmem_rge" value="2048" min="1024" max="32768" step="1024" oninput="vmem_num.value=this.value"/>
+      </div></label>
+      <input type="reset" value="Reset"/>
+      <input type="submit" value="Submit"/>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
 <div id="modifydesc" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">

@@ -347,11 +347,9 @@ class VMManager:
             return return_ok(f'modify desc', uuid=uuid)
 
     @staticmethod
-    def setmem(host:FakeDB, uuid:str, vm_ram_mb:str, vm_ram_mb_max:str=None)-> str:
+    def setmem(host:FakeDB, uuid:str, vm_ram_mb:str)-> str:
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
-            if(vm_ram_mb_max):
-                dom.setMaxMemory(int(vm_ram_mb_max)*KiB)
             dom.setMemoryFlags(int(vm_ram_mb)*KiB, dom_flags(LibvirtDomain(dom).state))
             return return_ok(f'setMemory', uuid=uuid)
 
