@@ -347,7 +347,7 @@ class VMManager:
             return return_ok(f'modify desc', uuid=uuid)
 
     @staticmethod
-    def set_mem(host:FakeDB, uuid:str, vm_ram_mb:str, vm_ram_mb_max:str=None)-> str:
+    def setmem(host:FakeDB, uuid:str, vm_ram_mb:str, vm_ram_mb_max:str=None)-> str:
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             if(vm_ram_mb_max):
