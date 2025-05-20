@@ -70,6 +70,7 @@ div.form-wrapper {
   margin: 0 auto;
   border: none;
   padding: 12px;
+  background-color: var(--bg-color);
 }
 .form-wrapper-header button.close {
   padding: 0;
