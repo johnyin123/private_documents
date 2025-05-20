@@ -19,13 +19,13 @@
 
 /* Root variables for theme customization */
 :root {
-  --white-color: white;
+  --text-color: white;
+  --bg-color: #212121;
   --blue-color: RoyalBlue;
   --red-color: red;
   --green-color: lime;
   --grey-color: gray;
   --grey-color-light: darkgray;
-  --black-color-light: #212121;
   --font-size-large: 22px;
   --font-size-medium: 20px;
   --padding-small: 10px;
@@ -36,20 +36,20 @@
 
 /* Light mode theme */
 body.light {
-  --white-color: black;
+  --text-color: #212121;
+  --bg-color: #fff;
   --blue-color: DeepSkyBlue;
   --red-color: red;
   --green-color: darkgreen;
   --grey-color: gray;
   --grey-color-light: darkgray;
-  --black-color-light: floralwhite;
 }
 
 /* General body styling */
 body {
   transition: all var(--transition-speed) ease;
-  background-color: var(--black-color-light);
-  color: var(--white-color);
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
 
 /* Grid container for layout */
@@ -143,7 +143,7 @@ div.sidebar a {
   padding-left: var(--padding-large);
   line-height: 60px;
   text-decoration: none;
-  color: var(--white-color);
+  color: var(--text-color);
   text-transform: uppercase;
   border-radius: 8px;
   transition: background var(--transition-speed);

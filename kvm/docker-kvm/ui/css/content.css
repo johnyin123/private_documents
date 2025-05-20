@@ -27,7 +27,7 @@ div.host-wrapper-header,
 div.vms-wrapper-header,
 .form-wrapper-header {
   background-color: var(--grey-color);
-  color: var(--white-color);
+  color: var(--text-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -76,7 +76,7 @@ div.form-wrapper {
   border: none;
   cursor: pointer;
   background: transparent;
-  color: var(--white-color);
+  color: var(--text-color);
 }
 /* form element same line */
 div.group {
@@ -105,7 +105,7 @@ form input[type="button"],
 form textarea,
 form select {
   background: transparent;
-  color: var(--white-color);
+  color: var(--text-color);
   width: 100%;
   border: 1px solid var(--grey-color-light);
   box-sizing: border-box;
@@ -118,7 +118,7 @@ button, input[type="button"], input[type="submit"], input[type="reset"] {
   border: 1px solid var(--grey-color-light);
   cursor: pointer;
   background-color: var(--grey-color);
-  color: var(--white-color);
+  color: var(--text-color);
 }
 button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover {
   background-color: var(--blue-color);
@@ -171,7 +171,7 @@ details table th { text-align: right; text-transform: none; }
 .tabContent { display:none; }
 #alert {
   background-color: var(--black-color-light);
-  color: var(--white-color);
+  color: var(--text-color);
   position: absolute;
   top: 50%;
   left: 50%;

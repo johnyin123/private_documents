@@ -13,18 +13,18 @@
   font-family: "Roboto", sans-serif;
 }
 :root {
-  --white-color: White;
+  --text-color: White;
   --blue-color: RoyalBlue;
   --red-color: Red;
   --green-color: Lime;
   --grey-color: Gray;
   --grey-color-light: DarkGrey;
-  --black-color-light: #333;
+  --bg-color: #333;
 }
 body {
   transition: all 0.5s ease;
-  background-color: var(--black-color-light);
-  color: var(--white-color);
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
 div.container {
   display: grid;
@@ -85,7 +85,7 @@ div.sidebar a {
   text-decoration: none;
   padding-left: 40px;
   border-radius: 8px;
-  color: var(--white-color);
+  color: var(--text-color);
   text-transform: uppercase;
 }
 div.sidebar a:hover {
@@ -128,20 +128,20 @@ form input,
 form textarea,
 form select {
   background: transparent;
-  color: var(--white-color);
+  color: var(--text-color);
   width: 100%;
   border: 1px solid var(--grey-color-light);
   box-sizing: border-box;
   resize: none;
 }
 form select option {
-  background: var(--black-color-light);
+  background: var(--bg-color);
 }
 button, input[type="button"], input[type="submit"], input[type="reset"] {
   border: 1px solid var(--grey-color-light);
   cursor: pointer;
   background-color: var(--grey-color);
-  color: var(--white-color);
+  color: var(--text-color);
 }
 button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover {
   background-color: var(--blue-color);
