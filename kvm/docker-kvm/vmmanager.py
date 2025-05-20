@@ -19,7 +19,7 @@ class LibvirtDomain:
                 }.get(self.state,'?')
         return {'desc':self.desc, 'uuid':self.uuid,
                 'curcpu':self.curcpu, 'maxcpu':self.maxcpu,
-                'curmem':f'{self.curmem}KiB', 'maxmem':f'{self.maxmem}KiB',
+                'curmem':self.curmem, 'maxmem':self.maxmem,
                 'mdconfig': json.dumps(self.mdconfig),
                 'cputime':self.cputime, 'state':state_desc,
                 'disks': json.dumps(getlist_without_key(self.disks, 'xml')),
