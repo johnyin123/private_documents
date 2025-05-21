@@ -110,7 +110,7 @@ class KVMGuest(Base, DBCacheBase):
                 # # remove no use need key
                 guest = rec.copy()
                 guest.pop('state', None)
-                session.add(KVMGuest(**guest, kvmhost=kvmhost, arch=arch))
+                session.add(KVMGuest(kvmhost=kvmhost, arch=arch, **guest))
             session.commit()
             cls.reload()
         except:

@@ -1,14 +1,6 @@
 <div id="overlay"><pre id="overlay_output"></pre><div id="overlay_text">Wait......</div></div>
 <!-- ############## -->
 <dialog id="alert" closedby="any"></dialog>
-<!-- <div id="alert" class="tabContent"></div> -->
-<!-- ############## -->
-<div id="allvms" class="tabContent">
-  <center><h1>ALL VMS (<span id="dbvms-total"></span>)</h1></center>
-  <div class="machine-container">
-  <div class="vms-container" id="dbvms"></div>
-  </div>
-</div>
 <!-- ############## -->
 <div id="hostlist" class="tabContent">
   <div class="machine-container">
