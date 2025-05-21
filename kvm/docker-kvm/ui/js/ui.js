@@ -78,6 +78,9 @@ function genVmsTBL(item, host = null) {
       nets.forEach(net => {
         tbl += `<tr><th class="truncate">${net.type}</th><td colspan="${colspan}" class="truncate" title="${net.mac}">${net.mac}</td>`;
         var remove_btn = genActBtn(false, 'Remove netcard', 'Remove', 'del_device', host, {'uuid':item.uuid, 'dev':net.mac});
+        if (item['state'] === 'RUN') {
+            remove_btn += genActBtn(false, 'Net Stats', 'NetStats', 'netstats', host, {'uuid':item.uuid, 'dev':net.mac});
+        }
         tbl += host ? `<td>${remove_btn}</td></tr>`: `</tr>`;
       });
     } else if (key === 'mdconfig') {
@@ -492,7 +495,10 @@ function modify_vcpus(host, uuid) {
   set_curr(host, uuid);
   showView('modifyvcpus');
 }
-
+function netstats(host, uuid, dev) {
+  set_curr(host, uuid, dev);
+  getjson('GET', `/vm/netstat/${curr_host()}/${curr_vm()}?dev=${dev}`, getjson_result);
+}
 /* create vm add new meta key/value */
 function set_name(r) {
   const form = r.form;
