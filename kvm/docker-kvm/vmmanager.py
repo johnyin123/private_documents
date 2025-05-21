@@ -17,7 +17,7 @@ class LibvirtDomain:
         state_desc = {libvirt.VIR_DOMAIN_NOSTATE:'NA',libvirt.VIR_DOMAIN_RUNNING:'RUN',libvirt.VIR_DOMAIN_BLOCKED:'BLOCK',libvirt.VIR_DOMAIN_PAUSED:'PAUSED',
                     libvirt.VIR_DOMAIN_SHUTDOWN:'SHUTDOWN',libvirt.VIR_DOMAIN_SHUTOFF:'SHUTOFF',libvirt.VIR_DOMAIN_CRASHED:'CRASH',libvirt.VIR_DOMAIN_PMSUSPENDED:'SUSPEND'
                 }.get(self.state,'?')
-        return {'desc':self.desc, 'uuid':self.uuid,
+        return {'uuid':self.uuid, 'desc':self.desc,
                 'curcpu':self.curcpu, 'maxcpu':self.maxcpu,
                 'curmem':self.curmem, 'maxmem':self.maxmem,
                 'mdconfig': json.dumps(self.mdconfig),
