@@ -70,7 +70,7 @@ class MyApp(object):
 
     def db_list_domains(self):
         try:
-            return [result._asdict() for result in database.KVMGuest.list_all()]
+            return sorted([result._asdict() for result in database.KVMGuest.list_all()], key=lambda x : x['kvmhost'])
         except Exception as e:
             return deal_except(f'db_list_domains', e), 400
 
