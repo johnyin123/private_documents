@@ -1,4 +1,5 @@
-const config = { g_hosts: {}, g_host:'', g_vm:'', g_dev:'', g_devices:{} };
+const config = { g_hosts: {}, g_host:'', g_vm:'', g_dev:'', g_devices:{}, g_iso:'' };
+function get_iso() { return config.g_iso; }
 function curr_host() { return config.g_host; }
 function curr_vm() { return config.g_vm; }
 function curr_dev() { return config.g_dev; }
@@ -390,9 +391,7 @@ function disk_size(host, uuid, dev) {
 function change_iso(host, uuid, dev) {
   set_curr(host, uuid, dev);
   showView('changecdrom');
-  getjson('GET', `/tpl/iso/`, function(resp) {
-    document.getElementById('isoname_list').innerHTML = genOption(JSON.parse(resp));
-  });
+  document.getElementById('isoname_list').innerHTML = genOption(get_iso());
 }
 function on_createvm(form) {
   getjson('POST', `/vm/create/${curr_host()}`, function(resp){ getjson_result(resp); vmlist(curr_host()); }, getFormJSON(form));
@@ -567,5 +566,8 @@ window.addEventListener('load', function() {
       mainMenu += `<a href='#' onclick='vmlist("${host.name}")'><i class="fa fa-desktop"></i><span name='host'>${host.name}</span><span name='count'></span></a>`;
     });
     document.getElementById("sidebar").innerHTML = mainMenu;
+  });
+  getjson('GET', `/tpl/iso/`, function(resp) {
+    config.g_iso = JSON.parse(resp);
   });
 })
