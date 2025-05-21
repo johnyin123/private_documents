@@ -119,7 +119,7 @@ function show_all_db_vms(view) {
     const vms = JSON.parse(resp);
     dbvms_total.innerHTML = vms.length;
     vms.forEach(item => {
-      const btn = `<button title='GOTO HOST' onclick='vmlist("${item.kvmhost}")'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
+      const btn = `<button title='GOTO HOST' onclick='set_curr("${item.kvmhost}", "${item.uuid}"); vmlist("${item.kvmhost}")'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
       const table = genVmsTBL(item);
       tbl += genWrapper("vms-wrapper", "<h2>GUEST</h2>", btn, table);
     });
