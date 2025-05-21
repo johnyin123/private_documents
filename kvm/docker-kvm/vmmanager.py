@@ -18,8 +18,8 @@ class LibvirtDomain:
                     libvirt.VIR_DOMAIN_SHUTDOWN:'SHUTDOWN',libvirt.VIR_DOMAIN_SHUTOFF:'SHUTOFF',libvirt.VIR_DOMAIN_CRASHED:'CRASH',libvirt.VIR_DOMAIN_PMSUSPENDED:'SUSPEND'
                 }.get(self.state,'?')
         return {'uuid':self.uuid, 'desc':self.desc,
-                'curcpu':self.curcpu, 'maxcpu':self.maxcpu,
-                'curmem':self.curmem, 'maxmem':self.maxmem,
+                'curcpu':self.curcpu, 'curmem':self.curmem,
+                'maxcpu':self.maxcpu, 'maxmem':self.maxmem,
                 'mdconfig': json.dumps(self.mdconfig),
                 'cputime':self.cputime, 'state':state_desc,
                 'disks': json.dumps(getlist_without_key(self.disks, 'xml')),
