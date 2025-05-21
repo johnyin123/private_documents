@@ -23,7 +23,7 @@ class LibvirtDomain:
                 'mdconfig': json.dumps(self.mdconfig),
                 'cputime':self.cputime, 'state':state_desc,
                 'disks': json.dumps(getlist_without_key(self.disks, 'xml')),
-                'nets': json.dumps(getlist_without_key(self.nets, 'xml'))
+                'nets': json.dumps(getlist_without_key(self.nets, 'dev', 'xml'))
                }
 
     @property
@@ -89,11 +89,14 @@ class LibvirtDomain:
     def nets(self):
         net_lst = []
         for net in xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('interface'):
+            dev = ''
+            if net.getElementsByTagName('target'):
+                dev = net.getElementsByTagName('target')[0].getAttribute('dev');
             dtype = net.getAttribute('type')
             mac = net.getElementsByTagName('mac')[0].getAttribute('address')
             # source = net.getElementsByTagName('source')[0].getAttribute('network') ?
             # source = net.getElementsByTagName('source')[0].getAttribute('bridge') ?
-            net_lst.append({'type':dtype, 'mac':mac, 'xml':net.toxml()})
+            net_lst.append({'type':dtype, 'mac':mac, 'dev':dev, 'xml':net.toxml()})
         return net_lst
 
     @property
@@ -359,6 +362,17 @@ class VMManager:
             dom = conn.lookupByUUIDString(uuid)
             dom.setVcpusFlags(int(vm_vcpus), dom_flags(LibvirtDomain(dom).state))
             return return_ok(f'setVcpus', uuid=uuid)
+
+    @staticmethod
+    def netstat(host:FakeDB, uuid:str, dev:str)-> str:
+        with connect(host.url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            domain = LibvirtDomain(dom)
+            for net in domain.nets:
+                if net['mac'] == dev:
+                    stats = dom.interfaceStats(net['dev'])
+                    return return_ok(f"netstat", uuid=uuid, dev=dev, stats={'rx':stats[0], 'tx':stats[4]})
+        raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
     def ipaddr(host:FakeDB, uuid:str)-> Generator:
