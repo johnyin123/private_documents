@@ -40,7 +40,6 @@ div.vms-wrapper-header h2,
   font-weight: 700;
   font-size: 1.4rem;
 }
-.highlight { color: var(--green-color); }
 div.form-wrapper-header h2.success {
   /*success alert*/
   color: var(--green-color);
@@ -169,6 +168,8 @@ div[name=help] {
 }
 details { padding: 5px var(--padding-large); }
 details table th { text-align: right; text-transform: none; }
+.highlight { color: var(--green-color); }
+.current { background-color:var(--blue-color); }
 .tabContent { display:none; }
 #alert {
   background-color: var(--black-color-light);
