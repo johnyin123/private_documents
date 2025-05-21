@@ -176,8 +176,7 @@ details table th { text-align: right; text-transform: none; }
   position: absolute;
   top: 50%;
   left: 50%;
-  margin-left: -32vw;
-  margin-top: -24vh;
+  transform: translate(-50%, -50%);
   width: 64vw;
-  height:48vh;
+  max-height:48vh;
 }
