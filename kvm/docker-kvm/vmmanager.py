@@ -354,6 +354,13 @@ class VMManager:
             return return_ok(f'setMemory', uuid=uuid)
 
     @staticmethod
+    def setcpu(host:FakeDB, uuid:str, vm_vcpus:str)-> str:
+        with connect(host.url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            dom.setVcpusFlags(int(vm_vcpus), dom_flags(LibvirtDomain(dom).state))
+            return return_ok(f'setVcpus', uuid=uuid)
+
+    @staticmethod
     def ipaddr(host:FakeDB, uuid:str)-> Generator:
     # Generator func call by flask.Response(...)
     # need catch exception and yield it

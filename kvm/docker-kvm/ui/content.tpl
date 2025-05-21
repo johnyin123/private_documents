@@ -117,6 +117,23 @@
   </div>
 </div>
 <!-- ############## -->
+<div id="modifyvcpus" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>Modify Vcpus</h2>
+      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
+    </div>
+    <form onSubmit="return on_modifyvcpus(this)">
+      <label>CPU:<div class="group">
+        <input style="width: 20%;" type="number" name="vm_vcpus" id="vcpu_num" value="2" min="1" max="16" oninput="vcpu_rge.value=this.value" />
+        <input type="range" id="vcpu_rge" value="2" min="1" max="16" oninput="vcpu_num.value=this.value"/>
+      </div></label>
+      <input type="reset" value="Reset"/>
+      <input type="submit" value="Submit"/>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
 <div id="modifymemory" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">

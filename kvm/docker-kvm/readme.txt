@@ -145,6 +145,7 @@ echo 'get vmip' && curl -k ${srv}/vm/ipaddr/${host}/${uuid}
 echo 'get blk size' && curl -k ${srv}/vm/blksize/${host}/${uuid}?dev=vda
 echo 'modify desc' && curl -k ${srv}/vm/desc/${host}/${uuid}?vm_desc=message
 echo 'modify mem' && curl -k '${srv}/vm/setmem/${host}/${uuid}?vm_ram_mb=2000'
+echo 'modify cpu' && curl -k '${srv}/vm/setcpu/${host}/${uuid}?vm_vcpus=2'
 ---------------------------------------------------------
 # token='aG9zdDAxLzZmNWQ4YmY2LWQ1ODAtNDk0Ni05NTQxLTEzZmE5OGI0YWNmND9rPWc2S0h1T1A4R0lmVTVfZFlBN0lQX1EmZT0xNzQzNDM2Nzk5'
 str_token='host01/6f5d8bf6-d580-4946-9541-13fa98b4acf4?k=g6KHuOP8GIfU5_dYA7IP_Q&e=1743436799'

@@ -62,7 +62,7 @@ function genVmsTBL(item, host = null) {
     if(key === 'disks') {
       const disks = JSON.parse(item[key]);
       disks.forEach(disk => {
-        tbl += `<tr><th title="${disk.device}">${disk.dev}</th><td colspan="${colspan}" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td>`;
+        tbl += `<tr><th class="truncate" title="${disk.device}">${disk.dev}</th><td colspan="${colspan}" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td>`;
         var addon_btn = '';
         if(disk.device === 'cdrom') {
           addon_btn = genActBtn(false, 'Change Media', 'Change', 'change_iso', host, {'uuid':item.uuid, 'dev':disk.dev});
@@ -76,28 +76,31 @@ function genVmsTBL(item, host = null) {
     } else if (key === 'nets') {
       const nets = JSON.parse(item[key]);
       nets.forEach(net => {
-        tbl += `<tr><th>${net.type}</th><td colspan="${colspan}" class="truncate" title="${net.mac}">${net.mac}</td>`;
+        tbl += `<tr><th class="truncate">${net.type}</th><td colspan="${colspan}" class="truncate" title="${net.mac}">${net.mac}</td>`;
         var remove_btn = genActBtn(false, 'Remove netcard', 'Remove', 'del_device', host, {'uuid':item.uuid, 'dev':net.mac});
         tbl += host ? `<td>${remove_btn}</td></tr>`: `</tr>`;
       });
     } else if (key === 'mdconfig') {
       const mdconfig = JSON.parse(item[key]);
       for(var mdkey in mdconfig) {
-        tbl += `<tr><th>${mdkey}</th><td colspan="3" class="truncate">${mdconfig[mdkey]}</td></tr>`;
+        tbl += `<tr><th class="truncate">${mdkey}</th><td colspan="3" class="truncate">${mdconfig[mdkey]}</td></tr>`;
       }
+    } else if (key === 'curcpu' && host) {
+      var btn = genActBtn(false, 'Modify Vcpus', 'Modify', 'modify_vcpus', host, {'uuid':item.uuid});
+      tbl += `<tr><th class="truncate">${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else if (key === 'curmem' && host) {
       var btn = genActBtn(false, 'Modify Memory', 'Modify', 'modify_memory', host, {'uuid':item.uuid});
-      tbl += `<tr><th>${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
+      tbl += `<tr><th class="truncate">${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else if (key === 'desc' && host) {
       var btn = genActBtn(false, 'Modify Description', 'Modify', 'modify_desc', host, {'uuid':item.uuid});
-      tbl += `<tr><th>${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
+      tbl += `<tr><th class="truncate">${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else if (key === 'state' && item['state'] === 'RUN' && host) {
       var btn = genActBtn(false, 'VM IPAddress', 'VMIPaddr', 'get_vmip', host, {'uuid':item.uuid});
-      tbl += `<tr><th>${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
+      tbl += `<tr><th class="truncate">${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else {
       var style = 'truncate';
       if (item.uuid === curr_vm() && ['uuid'].includes(key) && host) style +=' current';
-      tbl += `<tr><th>${key}</th><td colspan="3" class="${style}">${item[key]}</td></tr>`;
+      tbl += `<tr><th class="${style}">${key}</th><td colspan="3" class="${style}">${item[key]}</td></tr>`;
     }
   }
   tbl += '</table>';
@@ -480,6 +483,16 @@ function modify_memory(host, uuid) {
   set_curr(host, uuid);
   showView('modifymemory');
 }
+function on_modifyvcpus(form) {
+  const res = getFormJSON(form);
+  getjson('GET', `/vm/setcpu/${curr_host()}/${curr_vm()}?vm_vcpus=${res.vm_vcpus}`, function(resp){ getjson_result(resp); vmlist(curr_host()); });
+  return false;
+}
+function modify_vcpus(host, uuid) {
+  set_curr(host, uuid);
+  showView('modifyvcpus');
+}
+
 /* create vm add new meta key/value */
 function set_name(r) {
   const form = r.form;
