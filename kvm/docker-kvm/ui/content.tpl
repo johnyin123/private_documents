@@ -42,11 +42,7 @@
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form onSubmit="return on_vmui(this)">
-      <label>Expire:
-      <div class="group">
-        <input type="date" name="date" required/>
-        <input type="time" name="time" value="23:59" step="1" required/>
-      </div></label>
+      <label>Expire:<input type="date" name="date" required/></label>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
     </form>

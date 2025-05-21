@@ -169,23 +169,17 @@ function Alert(type, title, message) {
     div_alert.removeEventListener("click", closeDialogOnClickOutside);
   }
   if (div_alert) {
-    //const btn = `<button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>`;
     const btn = `<button title="Close" class="close" onclick="this.closest('dialog').close();"><h2>&times;</h2></button>`;
     const table = `<form><pre style="white-space: pre-wrap;">${message}</pre></form>`;
     div_alert.innerHTML = genWrapper('form-wrapper', `<h2 class="${type}">${title}</h2>`, btn, table);
-    //showView('alert');
     div_alert.showModal();
     div_alert.addEventListener("click", closeDialogOnClickOutside);
   } else {
     alert(message);
   }
 }
-function dispok(desc) {
-  Alert('success', 'SUCCESS', desc);
-}
-function disperr(code, name, desc) {
-  Alert('error', `${name}: ${code}`, desc);
-}
+function dispok(desc) { Alert('success', 'SUCCESS', desc); }
+function disperr(code, name, desc) { Alert('error', `${name}: ${code}`, desc); }
 function toggleOverlay(visible) {
   const overlay = document.getElementById("overlay");
   if (overlay) {
@@ -301,7 +295,7 @@ function setAction(form) {
 function on_vmui(form) {
   showView('vmuimail');
   const res = getFormJSON(form);
-  const epoch = Math.floor(Date.parse(`${res.date} ${res.time}`).valueOf() / 1000);
+  const epoch = Math.floor(Date.parse(`${res.date} 23:59:59`).valueOf() / 1000);
   getjson('GET', `/vm/ui/${curr_host()}/${curr_vm()}?epoch=${epoch}`, function(resp) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
