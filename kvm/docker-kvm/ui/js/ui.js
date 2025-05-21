@@ -563,7 +563,7 @@ window.addEventListener('load', function() {
     config.g_hosts = JSON.parse(resp);
     var mainMenu = `<a href='#' onclick='show_all_db_vms("allvms")'><i class='fa fa-list-ol'></i><span name='host'>ALL VMS</span><span name='count'></span></a>`;
     config.g_hosts.forEach(host => {
-      mainMenu += `<a href='#' onclick='vmlist("${host.name}")'><i class="fa fa-desktop"></i><span name='host'>${host.name}</span><span name='count'></span></a>`;
+      mainMenu += `<a href='#' onclick='vmlist("${host.name}")'><i class="fa fa-desktop"></i><span name='host'>${host.name}</span><span style='float:right;' name='count'></span></a>`;
     });
     document.getElementById("sidebar").innerHTML = mainMenu;
   });
