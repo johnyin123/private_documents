@@ -24,7 +24,8 @@ class MyApp(object):
         app.add_url_rule('/tpl/host/', view_func=self.db_list_host, methods=['GET'])
         app.add_url_rule('/tpl/device/<string:hostname>', view_func=self.db_list_device, methods=['GET'])
         app.add_url_rule('/tpl/iso/', view_func=self.db_list_iso, methods=['GET'])
-        app.add_url_rule('/tpl/gold/<string:hostname>', view_func=self.db_list_gold, methods=['GET'])
+        app.add_url_rule('/tpl/gold/', view_func=self.db_list_gold, methods=['GET'])
+        app.add_url_rule('/tpl/gold/<string:arch>', view_func=self.db_list_gold, methods=['GET'])
         ## start db oper guest ##
         app.add_url_rule('/vm/list/', view_func=self.db_list_domains, methods=['GET'])
         app.add_url_rule('/vm/freeip/',view_func=self.db_freeip, methods=['GET'])
@@ -60,10 +61,10 @@ class MyApp(object):
         except Exception as e:
             return deal_except(f'db_list_iso', e), 400
 
-    def db_list_gold(self, hostname):
+    def db_list_gold(self, arch:str = None):
         try:
-            host = database.KVMHost.get_one(name=hostname)
-            return [result._asdict() for result in database.KVMGold.list_all(arch=host.arch)]
+            args = {'arch': arch} if arch else {}
+            return [result._asdict() for result in database.KVMGold.list_all(**args)]
         except Exception as e:
             return deal_except(f'db_list_gold', e), 400
 

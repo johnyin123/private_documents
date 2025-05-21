@@ -443,7 +443,7 @@ function add_disk(host, uuid) {
   const objs = Object.keys(getFormJSON(form, false));
   set_help(form, cpWithoutKeys(disks[0]['vars'], objs));
   document.getElementById('dev_list').innerHTML = genOption(disks);
-  getjson('GET', `/tpl/gold/${host}`, function(resp) {
+  getjson('GET', `/tpl/gold/${getHost(host).arch}`, function(resp) {
     document.getElementById('gold_list').innerHTML = genOption(JSON.parse(resp), '数据盘');
   });
 }
