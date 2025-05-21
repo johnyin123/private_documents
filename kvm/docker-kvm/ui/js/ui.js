@@ -1,5 +1,6 @@
-const config = { g_hosts: {}, g_host:'', g_vm:'', g_dev:'', g_devices:{}, g_iso:'' };
+const config = { g_hosts: {}, g_host:'', g_vm:'', g_dev:'', g_devices:{}, g_iso:'', g_gold:'' };
 function get_iso() { return config.g_iso; }
+function get_gold() { return config.g_gold; }
 function curr_host() { return config.g_host; }
 function curr_vm() { return config.g_vm; }
 function curr_dev() { return config.g_dev; }
@@ -443,9 +444,8 @@ function add_disk(host, uuid) {
   const objs = Object.keys(getFormJSON(form, false));
   set_help(form, cpWithoutKeys(disks[0]['vars'], objs));
   document.getElementById('dev_list').innerHTML = genOption(disks);
-  getjson('GET', `/tpl/gold/${getHost(host).arch}`, function(resp) {
-    document.getElementById('gold_list').innerHTML = genOption(JSON.parse(resp), '数据盘');
-  });
+  const gold = filterByKey(get_gold(), 'arch', getHost(host).arch);
+  document.getElementById('gold_list').innerHTML = genOption(gold, '数据盘');
 }
 function add_net(host, uuid) {
   set_curr(host, uuid);
@@ -567,7 +567,6 @@ window.addEventListener('load', function() {
     });
     document.getElementById("sidebar").innerHTML = mainMenu;
   });
-  getjson('GET', `/tpl/iso/`, function(resp) {
-    config.g_iso = JSON.parse(resp);
-  });
+  getjson('GET', `/tpl/iso/`, function(resp) { config.g_iso = JSON.parse(resp); });
+  getjson('GET', `/tpl/gold/`, function(resp) { config.g_gold = JSON.parse(resp); });
 })
