@@ -68,7 +68,8 @@ class KVMGuest(JSONCacheBase):
                 guest = rec.copy()
                 guest.pop('state', None)
                 guest.update({'kvmhost': kvmhost, 'arch': arch})
-                cls.cache.append(utils.manager.dict(guest))
+                with cls.lock:
+                    cls.cache.append(utils.manager.dict(guest))
             cls.save()
         except Exception as e:
             logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
