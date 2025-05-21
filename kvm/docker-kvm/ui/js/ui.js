@@ -1,19 +1,19 @@
-const config = { g_hosts: {}, g_host:'', g_vm:'', g_dev:'', g_devices:{}, g_iso:'', g_gold:'' };
+const config = { g_hosts: {}, g_devices:{}, g_iso:{}, g_gold:{}, curr_host:'', curr_vm:'', curr_dev:'' };
 function get_iso() { return config.g_iso; }
 function get_gold() { return config.g_gold; }
-function curr_host() { return config.g_host; }
-function curr_vm() { return config.g_vm; }
-function curr_dev() { return config.g_dev; }
+function curr_host() { return config.curr_host; }
+function curr_vm() { return config.curr_vm; }
+function curr_dev() { return config.curr_dev; }
 function set_curr(kvmhost, uuid=null, dev=null) {
   if(!(kvmhost in config.g_devices)) {
     getjson('GET', `/tpl/device/${kvmhost}`, function(resp) {
       config.g_devices[kvmhost] = JSON.parse(resp);
     });
   }
-  config.g_host = kvmhost;
-  if(uuid) config.g_vm = uuid;
-  if(dev) config.g_dev = dev;
-  console.debug(config.g_host, config.g_vm, config.g_dev);
+  config.curr_host = kvmhost;
+  if(uuid) config.curr_vm = uuid;
+  if(dev) config.curr_dev = dev;
+  console.debug(config.curr_host, config.curr_vm, config.curr_dev);
 }
 /*deep copy return*/
 function getHost(kvmhost) { return JSON.parse(JSON.stringify(config.g_hosts.find(el => el.name === kvmhost))); }
