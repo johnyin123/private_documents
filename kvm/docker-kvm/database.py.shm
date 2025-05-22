@@ -65,10 +65,8 @@ class KVMGuest(JSONCacheBase):
             with cls.lock:
                 utils.remove(cls.cache, 'kvmhost', kvmhost)
             for rec in records:
-                guest = {**{'kvmhost': kvmhost, 'arch': arch}, **rec}
-                guest.pop('state', None)
                 with cls.lock:
-                    cls.cache.append(utils.manager.dict(guest))
+                    cls.cache.append(utils.manager.dict({**{'kvmhost': kvmhost, 'arch': arch}, **rec}))
             cls.save()
         except Exception as e:
             logger.exception(f'Upsert failed for guest {kvmhost}: {e}')

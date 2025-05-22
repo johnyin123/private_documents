@@ -95,7 +95,7 @@ class KVMGuest(Base, DBCacheBase):
     maxcpu = Column(Integer,nullable=False,server_default='0')
     maxmem = Column(Integer,nullable=False,server_default='0')
     cputime = Column(Integer,nullable=False,server_default='0')
-    # state = Column(String)
+    state = Column(String)
     disks = Column(JSON,nullable=False)
     nets = Column(JSON,nullable=False)
     ####################################
@@ -107,10 +107,7 @@ class KVMGuest(Base, DBCacheBase):
         try:
             session.query(KVMGuest).filter_by(kvmhost=kvmhost).delete()
             for rec in records:
-                # # remove no use need key
-                guest = rec.copy()
-                guest.pop('state', None)
-                session.add(KVMGuest(kvmhost=kvmhost, arch=arch, **guest))
+                session.add(KVMGuest(kvmhost=kvmhost, arch=arch, **rec))
             session.commit()
             cls.reload()
         except:
