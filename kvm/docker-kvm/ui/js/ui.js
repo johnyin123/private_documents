@@ -5,11 +5,6 @@ function curr_host() { return config.curr_host; }
 function curr_vm() { return config.curr_vm; }
 function curr_dev() { return config.curr_dev; }
 function set_curr(kvmhost, uuid=null, dev=null) {
-  if(!(kvmhost in config.g_devices)) {
-    getjson('GET', `/tpl/device/${kvmhost}`, function(resp) {
-      config.g_devices[kvmhost] = JSON.parse(resp);
-    });
-  }
   config.curr_host = kvmhost;
   if(uuid) config.curr_vm = uuid;
   if(dev) config.curr_dev = dev;
@@ -17,7 +12,7 @@ function set_curr(kvmhost, uuid=null, dev=null) {
 }
 /*deep copy return*/
 function getHost(kvmhost) { return JSON.parse(JSON.stringify(config.g_hosts.find(el => el.name === kvmhost))); }
-function getDevice(kvmhost) { return config.g_devices[kvmhost]; }
+function getDevice(kvmhost) { return filterByKey(config.g_devices, 'kvmhost', kvmhost); }
 function genOption(jsonobj, selectedValue = '', ext1 = null, ext2 = null) {
   return jsonobj.map(item => {
     let data_ext1 = ext1 ? `data-ext1="${item[ext1]}"` : "";
@@ -594,4 +589,5 @@ window.addEventListener('load', function() {
   });
   getjson('GET', `/tpl/iso/`, function(resp) { config.g_iso = JSON.parse(resp); });
   getjson('GET', `/tpl/gold/`, function(resp) { config.g_gold = JSON.parse(resp); });
+  getjson('GET', `/tpl/device/`, function(resp) { config.g_devices = JSON.parse(resp); });
 })

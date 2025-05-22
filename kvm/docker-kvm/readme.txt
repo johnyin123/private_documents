@@ -96,6 +96,7 @@ echo 'create vm' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X PO
 EOF
 
 # uuid=xxxx
+echo 'list device allhost' && curl -k ${srv}/tpl/device/ | jq '.[]|{name: .name, type: .devtype}'
 echo 'list device on host' && curl -k ${srv}/tpl/device/${host} | jq '.[]|{name: .name, type: .devtype}'
 echo 'list gold image' && curl -k ${srv}/tpl/gold/${arch} | jq '.[]|{arch: .arch, name: .name, desc: .desc}'
 echo 'list gold image' && curl -k ${srv}/tpl/gold/ | jq '.[]|{arch: .arch, name: .name, desc: .desc}'

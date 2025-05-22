@@ -24,6 +24,7 @@ class MyApp(object):
         app.add_url_rule('/tpl/host/', view_func=self.db_list_host, methods=['GET'])
         app.add_url_rule('/tpl/iso/', view_func=self.db_list_iso, methods=['GET'])
         app.add_url_rule('/tpl/gold/', view_func=self.db_list_gold, methods=['GET'])
+        app.add_url_rule('/tpl/device/', view_func=self.db_list_device, methods=['GET'])
         app.add_url_rule('/tpl/gold/<string:arch>', view_func=self.db_list_gold, methods=['GET'])
         app.add_url_rule('/tpl/device/<string:hostname>', view_func=self.db_list_device, methods=['GET'])
         ## start db oper guest ##
@@ -46,9 +47,10 @@ class MyApp(object):
         except Exception as e:
             return deal_except(f'db_list_host', e), 400
 
-    def db_list_device(self, hostname):
+    def db_list_device(self, hostname:str = None):
         try:
-            devices = [dic._asdict() for dic in database.KVMDevice.list_all(kvmhost=hostname)]
+            args = {'kvmhost': hostname} if hostname else {}
+            devices = [dic._asdict() for dic in database.KVMDevice.list_all(**args)]
             for dev in devices:
                 dev['vars'] = {k: config.VARS_DESC.get(k,'n/a') for k in template.get_variables(config.DEVICE_DIR, dev['tpl'])}
             return getlist_without_key(devices, *['tpl', 'action'])
