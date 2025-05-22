@@ -96,7 +96,7 @@
     <form id="adddisk_form" onSubmit="return on_add(this)">
       <label>Gold:<select name="gold" id="gold_list"></select></label>
       <label>Disk:<select name="device" id="dev_list" onchange="select_change(this)"></select></label>
-      <label>Size(GB):<input type="number" name="size" value="10" min="1" max="1024"/></label>
+      <label>Size(GB):<input type="number" name="size" value="10" min="1" max="2048"/></label>
       <table name="meta_data"></table><div name='help'></div>
       <input type="button" value="AddField" onclick="add_meta(this)"/>
       <input type="reset" value="Reset"/>
