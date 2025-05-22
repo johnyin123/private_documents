@@ -65,7 +65,7 @@ class KVMGuest(JSONCacheBase):
             with cls.lock:
                 utils.remove(cls.cache, 'kvmhost', kvmhost)
             for rec in records:
-                guest = {**{'kvmhost': kvmhost, 'arch': arch}, **rec.copy()}
+                guest = {**{'kvmhost': kvmhost, 'arch': arch}, **rec}
                 guest.pop('state', None)
                 with cls.lock:
                     cls.cache.append(utils.manager.dict(guest))
