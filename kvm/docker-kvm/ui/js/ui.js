@@ -169,8 +169,7 @@ function toggleOverlay(visible) {
   if (overlay) {
     overlay.style.display = visible ? "block" : "none";
     if (visible) {
-      const overlay_output = document.querySelector("#overlay_output");
-      overlay_output.innerHTML = "";
+      document.querySelector("#overlay_output").innerHTML = "";
     }
   }
 }
@@ -578,7 +577,7 @@ window.addEventListener('load', function() {
     config.g_hosts = JSON.parse(resp);
     var mainMenu = `<a href='#' onclick='vmlist("ALL VMS")'><i class='fa fa-list-ol'></i><span name='host'>ALL VMS</span><span style='float:right;' name='count'></span></a>`;
     config.g_hosts.forEach(host => {
-      mainMenu += `<a href='#' onclick='vmlist("${host.name}")'><i class="fa fa-desktop"></i><span name='host'>${host.name}</span><span style='float:right;' name='count'></span></a>`;
+      mainMenu += `<a href='#' title="${host.arch}" onclick='vmlist("${host.name}")'><i class="fa fa-desktop"></i><span name='host'>${host.name}</span><span style='float:right;' name='count'></span></a>`;
     });
     document.getElementById("sidebar").innerHTML = mainMenu;
   });
