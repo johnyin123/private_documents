@@ -67,7 +67,7 @@ class KVMGold(Base, DBCacheBase):
     name = Column(String(19),nullable=False,index=True,primary_key=True,comment='Gold盘名称')
     arch = Column(String(8),nullable=False,index=True,primary_key=True,comment='Gold盘对应的CPU架构')
     tpl = Column(String,nullable=False,comment='Gold盘qcow2格式模板文件(local / http)')
-    size = Column(Integer,nullable=False,server_default='0',comment='Gold盘Byte')
+    size = Column(Integer,nullable=False,server_default='1',comment='Gold盘Byte')
     desc = Column(String,nullable=False,comment='Gold盘描述')
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
     ####################################
