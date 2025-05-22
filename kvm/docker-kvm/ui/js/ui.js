@@ -216,7 +216,27 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 12
     toggleOverlay(false);
   });
 }
+function processJsonArray(jsonArray) {
+  const counts = new Map();
+  jsonArray.forEach(obj => {
+    const key = JSON.stringify(obj); // Stringify to compare objects
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  const result = jsonArray.map(obj => {
+    const key = JSON.stringify(obj);
+    return { ...obj, vms: counts.get(key) };
+  });
+  const uniqueResult = Array.from(new Set(result.map(JSON.stringify))).map(JSON.parse);
+  return uniqueResult;
+}
 function vmlist(kvmhost) {
+  document.getElementById("vms").innerHTML = '';
+  document.getElementById("host").innerHTML = '';
+  var url = '/vm/list/';
+  if(kvmhost !== 'ALL VMS') {
+    url += kvmhost;
+    set_curr(kvmhost);
+  }
   var count = '';
   document.getElementById("sidebar").querySelectorAll("a").forEach(link => {
     link.classList.remove('current');
@@ -225,13 +245,6 @@ function vmlist(kvmhost) {
       count = link.querySelector(`[name="count"]`);
     }
   });
-  document.getElementById("vms").innerHTML = '';
-  document.getElementById("host").innerHTML = '';
-  var url = '/vm/list/';
-  if(kvmhost !== 'ALL VMS') {
-    url += kvmhost;
-    set_curr(kvmhost);
-  }
   getjson('GET', url, function(resp) {
     const result = JSON.parse(resp);
     if(count instanceof HTMLSpanElement) {
@@ -245,6 +258,16 @@ function vmlist(kvmhost) {
         tbl += genWrapper("vms-wrapper", "<h2>GUEST</h2>", btn, table);
       });
       document.getElementById("vms").innerHTML = tbl;
+      const newArray = result.map(item => {
+        const { kvmhost, arch } = item;
+        return { kvmhost, arch };
+      });
+      tbl = '<table><tr><th>kvmhost</th><th>arch</th><th>vms</th></tr>';
+      processJsonArray(newArray).forEach(item => {
+        tbl += `<tr><td>${item.kvmhost}</td><td>${item.arch}</td><td>${item.vms}</td></tr>`;
+      });
+      tbl += '</table>';
+      document.getElementById("host").innerHTML = genWrapper('host-wrapper', `<h2 class="highlight">Summary</h2>`, '', tbl);
     } else {
       document.getElementById("vms").innerHTML = show_vms(kvmhost, result.guest);
       document.getElementById("host").innerHTML = show_host(kvmhost, result.host);
