@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("44343fb3[2025-02-10T16:30:55+08:00]:s905_debootstrap.sh")
+VERSION+=("87815fa0[2025-03-19T05:53:53+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -218,6 +218,9 @@ PKG+=",sudo,aria2,axel,curl,eject,rename,bc,socat,tmux,xmlstarlet,jq,traceroute,
 PKG+=",libubootenv-tool"
 # # for minidlna
 PKG+=",minidlna,wireguard-tools,"
+PKG+=",dnsmasq,triggerhappy,aosd-cat"
+# # for xdotool, wmctrl
+# PKG+=",xdotool,wmctrl,playerctl"
 # xfce/lxde, DEBIAN_VERSION=bookworm use lxde
 PKG+=",smplayer,smplayer-l10n"
 PKG+=",lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xserver-xorg-input-all,x11-utils,x11-xserver-utils"
@@ -230,10 +233,7 @@ case "${DEBIAN_VERSION:-bullseye}" in
     bookworm) PKG+=",lxde-core,lxterminal,lxrandr,openbox-lxde-session" ;;
     *)        PKG+=",xfce4,xfce4-terminal,pavucontrol" ;;
 esac
-# # for xdotool, wmctrl
-PKG+=",policykit-1,xdotool,wmctrl"
-PKG+=",x11vnc,wpan-tools,aosd-cat,playerctl"
-# # for libvirtd
+PKG+=",policykit-1,x11vnc,wpan-tools"
 
 # # finally add custom packages
 PKG+="${custom_pkgs:+,${custom_pkgs}}"
