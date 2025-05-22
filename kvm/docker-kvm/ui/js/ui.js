@@ -18,9 +18,11 @@ function set_curr(kvmhost, uuid=null, dev=null) {
 /*deep copy return*/
 function getHost(kvmhost) { return JSON.parse(JSON.stringify(config.g_hosts.find(el => el.name === kvmhost))); }
 function getDevice(kvmhost) { return config.g_devices[kvmhost]; }
-function genOption(jsonobj, selectedValue = '') {
+function genOption(jsonobj, selectedValue = '', ext1 = null, ext2 = null) {
   return jsonobj.map(item => {
-    return `<option value="${item.name}" ${item.desc === selectedValue ? 'selected' : ''}>${item.desc}</option>`;
+    let data_ext1 = ext1 ? `data-ext1="${item[ext1]}"` : "";
+    let data_ext2 = ext2 ? `data-ext2="${item[ext2]}"` : "";
+    return `<option ${data_ext1} ${data_ext2} value="${item.name}" ${item.desc === selectedValue ? 'selected' : ''}>${item.desc}</option>`;
   }).join('');
 }
 function filterByKey(array, key, value) {
@@ -449,6 +451,11 @@ function on_add(form) {
   }, 600000); /*add disk 10m timeout*/
   return false;
 }
+function gold_change(e) {
+  const input = document.getElementById("gold_size");
+  input.value = Math.ceil(e.options[e.selectedIndex].getAttribute("data-ext1")/1024/1024/1024);
+  input.setAttribute('min', input.value);
+}
 function add_disk(host, uuid) {
   set_curr(host, uuid);
   showView('adddisk');
@@ -459,7 +466,11 @@ function add_disk(host, uuid) {
   set_help(form, cpWithoutKeys(disks[0]['vars'], objs));
   document.getElementById('dev_list').innerHTML = genOption(disks);
   const gold = filterByKey(get_gold(), 'arch', getHost(host).arch);
-  document.getElementById('gold_list').innerHTML = genOption(gold, '数据盘');
+  const gold_list = document.getElementById('gold_list');
+  gold_list.innerHTML = genOption(gold, '数据盘', 'size');
+  const input = document.getElementById("gold_size");
+  input.value = Math.ceil(gold_list.options[gold_list.selectedIndex].getAttribute("data-ext1")/1024/1024/1024);
+  input.setAttribute('min', input.value);
 }
 function add_net(host, uuid) {
   set_curr(host, uuid);
