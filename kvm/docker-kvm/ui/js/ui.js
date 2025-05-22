@@ -262,7 +262,7 @@ function vmlist(kvmhost) {
         const { kvmhost, arch } = item;
         return { kvmhost, arch };
       });
-      tbl = '<table><tr><th>kvmhost</th><th>arch</th><th>vms</th></tr>';
+      tbl = '<table><tr><td class="current">kvmhost</td><td class="current">arch</td><td class="current">vms</td></tr>';
       processJsonArray(newArray).forEach(item => {
         tbl += `<tr><td>${item.kvmhost}</td><td>${item.arch}</td><td>${item.vms}</td></tr>`;
       });
