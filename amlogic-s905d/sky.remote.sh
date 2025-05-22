@@ -4,7 +4,7 @@ ln -s /etc/johnyin/remote/sky.conf /etc/johnyin/triggerhappy/triggers.d/sky.conf
 ln -s /etc/johnyin/remote/osd.service /etc/systemd/system/osd.service
 ln -s /etc/johnyin/remote/osd.socket /etc/systemd/system/osd.socket
 ln -s /etc/johnyin/remote/21-sky.conf /etc/X11/xorg.conf.d/21-sky.conf
-rm -f /lib/udev/rules.d/60-triggerhappy.rules && ls -s /etc/johnyin/remote/60-triggerhappy.rules /lib/udev/rules.d/60-triggerhappy.rules
+rm -f /usr/lib/udev/rules.d/60-triggerhappy.rules && ln -s /etc/johnyin/remote/60-triggerhappy.rules /usr/lib/udev/rules.d/60-triggerhappy.rules
 sed -i "s/^#HandlePowerKey=.*/HandlePowerKey=ignore/g" /etc/systemd/logind.conf
 systemctl disable triggerhappy.socket
 systemctl enable triggerhappy.service
@@ -19,6 +19,11 @@ cat > 21-sky.conf <<'EOF'
 Section "InputClass"
     Identifier "SKYWORTH_0120 BLE REMOTE"
     MatchProduct "SKYWORTH_0120"
+    Option "Ignore" "true"
+EndSection
+Section "InputClass"
+    Identifier "Beauty-R1"
+    MatchProduct "Beauty-R1"
     Option "Ignore" "true"
 EndSection
 EOF
@@ -66,7 +71,7 @@ log() { logger -t triggerhappy $*; }
 osd_message() {
     local color=${1}; shift
     [ -p  /tmp/osd.stdin ] && { echo "$*" > /tmp/osd.stdin; return 0; }
-    # # if aosc_cat service not exist, use commandlink mode
+    # # if aosd_cat service not exist, use commandlink mode
     echo "$*" | systemd-run --unit johnyin-osd --pipe --uid=${USER} -E DISPLAY=:0 aosd_cat --font='DejaVu Serif:style=Book 88' --position=4 --fade-full=500 --fore-color=${color} --shadow-color=blue
 }
 change_mode() {

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("454056e6[2025-05-22T15:49:09+08:00]:s905_debootstrap.sh")
+VERSION+=("b2820f24[2025-05-22T16:40:03+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -226,7 +226,7 @@ PKG+=",smplayer,smplayer-l10n"
 PKG+=",lightdm,xserver-xorg-core,xinit,xserver-xorg-video-fbdev,xserver-xorg-input-all,x11-utils,x11-xserver-utils"
 PKG+=",fonts-noto-cjk"
 #PKG+=",fonts-droid-fallback"
-PKG+=",pulseaudio,pulseaudio-utils,ffmpeg"
+PKG+=",pulseaudio,pulseaudio-utils,ffmpeg,bluetooth"
 # ,pipewire,pipewire-audio-client-libraries"
 log "lxde use ibus input for chinese"
 case "${DEBIAN_VERSION:-bullseye}" in
@@ -1360,8 +1360,7 @@ fi
 ls -lhR ${ROOT_DIR}/boot
 log "end install you kernel&patchs"
 
-log "patch bluetoothd for sap error, Starting bluetoothd with the option \"--noplugin=sap\" by default (as
-already suggested) would be one way to do it"
+log "patch bluetoothd for sap error, Starting bluetoothd with the option \"--noplugin=sap\" by default (as already suggested) would be one way to do it"
 sed -i "s|ExecStart=.*|ExecStart=/usr/libexec/bluetooth/bluetoothd --noplugin=sap|g" ${ROOT_DIR}/usr/lib/systemd/system/bluetooth.service || true
 log "add smplayer ontop options"
 sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applications/smplayer.desktop || true
