@@ -36,7 +36,7 @@
   <iothreads>1</iothreads>
   <os>
     <type arch='{{ vm_arch }}' machine='{{ getmachine() }}'>hvm</type>
-{%- if vm_uefi is defined and vm_uefi != '' %}
+{%- if vm_uefi != '' %}
     <loader readonly='yes' secure='{{ vm_uefi_secure | default("no") }}' type='pflash'>{{ vm_uefi }}</loader>
 {%- endif %}
     <boot dev='hd'/>
@@ -67,7 +67,7 @@
     <console type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target type='serial' port='0'/></console>
     <channel type='unix'><target type='virtio' name='org.qemu.guest_agent.0'/></channel>
     <memballoon model='virtio'/>
-{%- if vm_no_rng != 'yes' %}
+{%- if vm_rng != 'no' %}
     <rng model='virtio'><backend model='random'>/dev/urandom</backend></rng>
 {%- endif %}
   </devices>
