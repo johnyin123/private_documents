@@ -63,7 +63,7 @@
     </div>
     <form id="addcdrom_form" onSubmit="return on_add(this)">
       <label>CDROM:<select name="device" id="cdrom_list" onchange="select_change(this)"></select></label>
-      <table name="meta_data"></table><div name='help'></div>
+      <table name="meta_data"></table><datalist name="help" id="addcdrom_mdlist"></datalist><div name='help'></div>
       <input type="button" value="AddField" onclick="add_meta(this)"/>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
@@ -79,7 +79,7 @@
     </div>
     <form id="addnet_form" onSubmit="return on_add(this)">
       <label>Network:<select name="device" id="net_list" onchange="select_change(this)"></select></label>
-      <table name="meta_data"></table><div name='help'></div>
+      <table name="meta_data"></table><datalist name="help" id="addnet_mdlist"></datalist><div name='help'></div>
       <input type="button" value="AddField" onclick="add_meta(this)"/>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
@@ -97,7 +97,7 @@
       <label>Gold:<select name="gold" id="gold_list" onchange="gold_change(this)"></select></label>
       <label>Disk:<select name="device" id="dev_list" onchange="select_change(this)"></select></label>
       <label>Size(GB):<input type="number" name="size" id="gold_size" min="1" max="2048"/></label>
-      <table name="meta_data"></table><div name='help'></div>
+      <table name="meta_data"></table><datalist name="help" id="adddisk_mdlist"></datalist><div name='help'></div>
       <input type="button" value="AddField" onclick="add_meta(this)"/>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
@@ -175,7 +175,7 @@
       <label>desc<textarea rows="3" maxlength="100" name="vm_desc" placeholder="vm desc here..." required></textarea></label>
       <label>IPaddr*<input type="text" name="vm_ipaddr" id="vm_ip" placeholder="e.g. 192.168.168.2/24" required pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/([1-9]{1}|1[0-9]{1}|2[0-9]{1}|3[0-2]{1})$"/></label>
       <label>Gateway<input type="text" name="vm_gateway" id="vm_gw" placeholder="e.g. 192.168.168.1" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"/></label>
-      <table name="meta_data"></table><div name='help'></div>
+      <table name="meta_data"></table><datalist name="help" id="createvm_mdlist"></datalist><div name='help'></div>
       <input type="button" value="AddField" onclick="add_meta(this)"/>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>

@@ -534,19 +534,23 @@ function del_meta(r) {
 function add_meta(btn) {
   const form = btn.form; //btn.closest('form')
   const table = form.querySelector(`table[name="meta_data"]`);
+  const dlist = form.querySelector(`datalist[name="help"]`).id;
   var newRow = table.insertRow(-1);
   var c_name = newRow.insertCell(0);
   var c_value = newRow.insertCell(1);
   var del_btn = newRow.insertCell(2);
-  c_name.innerHTML = `<input type="text" maxlength="40" placeholder="name" onChange="set_name(this)" required>`;
+  c_name.innerHTML = `<input type="text" maxlength="40" placeholder="name" onChange="set_name(this)" list="${dlist}" autocomplete="off" required>`;
   c_value.innerHTML = '<input type="text" maxlength="50" placeholder="value" required>';
   del_btn.innerHTML = `<input type="button" value="Remove" onclick="del_meta(this)"/>`;
 }
 function set_help(form, vars) {
   const div = form.querySelector(`div[name="help"]`);
+  const dlist = form.querySelector(`datalist[name="help"]`)
   var help_msg = '<details><summary>Fields Info</summary><table>';
+  dlist.innerHTML = '';
   for(const key in vars) {
     help_msg += `<tr><th>${key}</th><td colspan=3 class="truncate">${vars[key]}</td></tr>`;
+    dlist.innerHTML += `<option value="${key}">`;
   }
   help_msg += `</table></details>`;
   div.innerHTML = help_msg;
