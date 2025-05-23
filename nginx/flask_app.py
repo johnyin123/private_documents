@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import logging, os
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
-logging.basicConfig(encoding='utf-8', level=logging.INFO, format='[%(funcName)s@%(filename)s(%(lineno)d)]%(name)s %(levelname)s: %(message)s')
-logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
+logging.basicConfig(encoding='utf-8', format='[%(funcName)s@%(filename)s(%(lineno)d)]%(name)s %(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
+logger.setLevel(level=os.getenv('LOG', 'INFO').upper())
 
 def is_debug():
     return logger.getEffectiveLevel() == logging.DEBUG
