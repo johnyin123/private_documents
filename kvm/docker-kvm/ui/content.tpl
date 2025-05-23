@@ -33,7 +33,7 @@
       <h2>Input ExpireTime</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form onSubmit="return on_vmui(this)">
+    <form onSubmit="return on_vmui(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Expire:<input type="date" name="date" required/></label>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
@@ -47,7 +47,7 @@
       <h2>Change ISO</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form onSubmit="return on_changeiso(this)">
+    <form onSubmit="return on_changeiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>ISO:<select name="isoname" id="isoname_list"></select></label>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
@@ -61,7 +61,7 @@
       <h2>Add CDROM</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form id="addcdrom_form" onSubmit="return on_add(this)">
+    <form id="addcdrom_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>CDROM:<select name="device" id="cdrom_list" onchange="select_change(this)"></select></label>
       <table name="meta_data"></table><datalist name="help" id="addcdrom_mdlist"></datalist><div name='help'></div>
       <input type="button" value="AddField" onclick="add_meta(this)"/>
@@ -77,7 +77,7 @@
       <h2>Add Network</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form id="addnet_form" onSubmit="return on_add(this)">
+    <form id="addnet_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Network:<select name="device" id="net_list" onchange="select_change(this)"></select></label>
       <table name="meta_data"></table><datalist name="help" id="addnet_mdlist"></datalist><div name='help'></div>
       <input type="button" value="AddField" onclick="add_meta(this)"/>
@@ -93,7 +93,7 @@
       <h2>Add DISK</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form id="adddisk_form" onSubmit="return on_add(this)">
+    <form id="adddisk_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Gold:<select name="gold" id="gold_list" onchange="gold_change(this)"></select></label>
       <label>Disk:<select name="device" id="dev_list" onchange="select_change(this)"></select></label>
       <label>Size(GB):<input type="number" name="size" id="gold_size" min="1" max="2048"/></label>
@@ -111,7 +111,7 @@
       <h2>Modify Vcpus</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form onSubmit="return on_modifyvcpus(this)">
+    <form onSubmit="return on_modifyvcpus(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>CPU:<div class="group">
         <input style="width: 20%;" type="number" name="vm_vcpus" id="vcpu_num" value="2" min="1" max="16" oninput="vcpu_rge.value=this.value" />
         <input type="range" id="vcpu_rge" value="2" min="1" max="16" oninput="vcpu_num.value=this.value"/>
@@ -128,7 +128,7 @@
       <h2>Modify Memory</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form onSubmit="return on_modifymemory(this)">
+    <form onSubmit="return on_modifymemory(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>MEM(MB):<div class="group">
         <input style="width: 20%;" type="number" name="vm_ram_mb" id="vmem_num" value="2048" min="1024" max="32768" step="1024" oninput="vmem_rge.value=this.value"/>
         <input type="range" id="vmem_rge" value="2048" min="1024" max="32768" step="1024" oninput="vmem_num.value=this.value"/>
@@ -145,7 +145,7 @@
       <h2>Modify Description</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form onSubmit="return on_modifydesc(this)">
+    <form onSubmit="return on_modifydesc(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>desc<textarea rows="3" maxlength="100" name="vm_desc" placeholder="vm desc here..." required></textarea></label>
       <input type="reset" value="Reset"/>
       <input type="submit" value="Submit"/>
@@ -159,7 +159,7 @@
       <h2>Create VM</h2>
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
-    <form id="createvm_form" onSubmit="return on_createvm(this)">
+    <form id="createvm_form" onSubmit="return on_createvm(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <fieldset>
       <legend>Meta Server Type</legend>
       <label><input type="checkbox" name="vm_meta_enum" value="NOCLOUD">NOCLOUD</label>
