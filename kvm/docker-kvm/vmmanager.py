@@ -246,7 +246,7 @@ class VMManager:
                     req_json['vm_last_disk'] = LibvirtDomain(conn.lookupByUUIDString(uuid)).next_disk[bus_type]
             if dev.action is not None and len(dev.action) != 0:
                 for line in ProcList.wait_proc(uuid, cmd, False, req_json, **env):
-                    logger.info(line.strip())
+                    logger.debug(line.strip())
                     yield line
             with connect(host.url) as conn:
                 dom = conn.lookupByUUIDString(uuid)
