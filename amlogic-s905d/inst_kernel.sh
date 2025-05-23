@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2022-11-02T09:07:08+08:00]:inst_kernel.sh")
+VERSION+=("3d6b4604[2022-11-02T09:07:08+08:00]:inst_kernel.sh")
 ################################################################################
 SRC=${1:?inst_kernel.sh <src> <rootfs>, src need input}
 ROOTFS=${2:?inst_kernel.sh <src> <rootfs>, rootfs need input}
@@ -24,7 +24,7 @@ rsync -avP ${SRC}/boot/config-${kerver}  \
            ${SRC}/boot/vmlinuz-${kerver} \
            ${ROOTFS}/boot/
 
-rsync -avP ${SRC}/boot/dtb/phicomm-n1-${kerver}.dtb ${ROOTFS}/boot/dtb/
+rsync -avP ${SRC}/boot/dtb/phicomm-n1-${kerver}.dtb* ${ROOTFS}/boot/dtb/
 
 LC_ALL=C LANGUAGE=C LANG=C chroot ${ROOTFS} /bin/bash <<EOSHELL
     depmod ${kerver}
