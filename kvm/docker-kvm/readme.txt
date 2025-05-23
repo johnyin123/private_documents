@@ -38,6 +38,8 @@ cloud-init clean -l
 cloud-init init
 cloud-init schema --system --annotate
 cloud-init devel schema --system --annotate
+cloud-init status --long
+DEBUG_LEVEL=2 DI_LOG=stderr /usr/libexec/cloud-init/ds-identify --force
 # useradd -m --password "$(openssl passwd -6 -salt xyz yourpass)" test1 -s /bin/bash
 if use NOCLOUD need dhcp, and meta server(ngx) on 169.254.169.254
 if use ISO no deed dhcp

@@ -1,28 +1,18 @@
 #cloud-config
 hostname: {{ vm_name | default('vmsrv') }}
-manage_etc_hosts: true
 locale: {{ vm_locale | default('zh_CN.UTF-8') }}
 timezone: {{ vm_timezone | default('Asia/Shanghai') }}
+ssh_pwauth: true
 users:
   # - default
-  - name: {{ vm_user | default('myadmin') }}
+  - name: {{ vm_user | default('clouduser') }}
     lock_passwd: false
     shell: /bin/bash
     sudo: ALL=(ALL) NOPASSWD:ALL
-    # passwd: "$y$j9T$w03ZqJfTwNHoZLiiey26e1$bOaegd/YRirhGlEeQciVnEFPFO1dI2pwqKp4adctLsD" #mkpasswd tsd@2023
+    # mkpasswd tsd@2023
+    passwd: {{ vm_password | default('$y$j9T$w03ZqJfTwNHoZLiiey26e1$bOaegd/YRirhGlEeQciVnEFPFO1dI2pwqKp4adctLsD') }}
     ssh_authorized_keys:
       - ssh-rsa {{ vm_sshkey | default('AAAAB3NzaC1yc2EAAAADAQABAAABgQDIcCEBlGLWfQ6p/6/QAR1LncKGlFoiNvpV3OUzPEoxJfw5ChIc95JSqQQBIM9zcOkkmW80ZuBe4pWvEAChdMWGwQLjlZSIq67lrpZiql27rL1hsU25W7P03LhgjXsUxV5cLFZ/3dcuLmhGPbgcJM/RGEqjNIpLf34PqebJYqPz9smtoJM3a8vDgG3ceWHrhhWNdF73JRzZiDo8L8KrDQTxiRhWzhcoqTWTrkj2T7PZs+6WTI+XEc8IUZg/4NvH06jHg8QLr7WoWUtFvNSRfuXbarAXvPLA6mpPDz7oRKB4+pb5LpWCgKnSJhWl3lYHtZ39bsG8TyEZ20ZAjluhJ143GfDBy8kLANSntfhKmeOyolnz4ePf4EjzE3WwCsWNrtsJrW3zmtMRab7688vrUUl9W2iY9venrW0w6UL7Cvccu4snHLaFiT6JSQSSJS+mYM5o8T0nfIzRi0uxBx4m9/6nVIl/gs1JApzgWyqIi3opcALkHktKxi76D0xBYAgRvJs=') }} root@liveos
-chpasswd:
-  users:
-    - name: {{ vm_user | default('myadmin') }}
-      password: {{ vm_password | default('tsd@2023') }}
-      type: text  #hash
-    - name: root
-      password: {{ vm_password | default('tsd@2023') }}
-      type: text
-#    - user2
-#      type: RANDOM
-    # expire: false
 write_files:
   - path: /root/.cloud.init
     owner: 'root:root'
@@ -31,7 +21,7 @@ write_files:
     content: |
       init cloud {{ vm_uuid | default('') }} {{ vm_create | default('') }}
 runcmd:
-  - cat /root/.cloud.init > /root/.cloud.init.bak
+  - passwd -d root
 growpart:
   mode: auto
   devices: ['/']
