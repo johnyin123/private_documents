@@ -141,7 +141,7 @@ class VMManager:
                     if disk['device'] != 'disk':
                         return return_ok(f"detach_device {dev} ok", uuid=uuid)
                     refresh_all_pool(conn)
-                    logger.info(f'remove disk {disk}')
+                    logger.debug(f'remove disk {disk}')
                     try:
                         conn.storageVolLookupByPath(disk['vol']).delete()
                     except Exception:
