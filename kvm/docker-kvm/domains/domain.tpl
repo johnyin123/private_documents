@@ -67,6 +67,8 @@
     <console type='pty'><log file='/var/log/console.{{ vm_uuid }}.log' append='off'/><target type='serial' port='0'/></console>
     <channel type='unix'><target type='virtio' name='org.qemu.guest_agent.0'/></channel>
     <memballoon model='virtio'/>
+{%- if vm_no_rng != 'yes' %}
     <rng model='virtio'><backend model='random'>/dev/urandom</backend></rng>
+{%- endif %}
   </devices>
 </domain>
