@@ -122,10 +122,11 @@ def return_err(code:int, name:str, desc:str)->str:
     return json.dumps({'result' : 'ERR', 'code': code,'name':name,'desc':desc})
 
 def deal_except(who:str, e:Exception) -> str:
-    logger.exception(f'{who}')
     if isinstance(e, libvirt.libvirtError):
+        logger.error(f'{who}: {e.get_error_message()}')
         return return_err(e.get_error_code(), f'{who}', e.get_error_message())
     else:
+        logger.exception(f'{who}')
         return return_err(998, f'{who}', f'{str(e)}')
 
 def websockify_secure_link(uuid, mykey, minutes):
