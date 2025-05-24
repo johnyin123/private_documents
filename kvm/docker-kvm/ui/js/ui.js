@@ -108,25 +108,39 @@ function genVmsTBL(item, host = null) {
   tbl += '</table>';
   return tbl;
 }
+function manage_vm(kvmhost, uuid) {
+  set_curr(kvmhost, uuid);
+  flush_sidebar(kvmhost);
+  showView("manage_vm");
+  getjson('GET', `/vm/list/${kvmhost}/${uuid}`, function(resp){
+    const result = JSON.parse(resp);
+    var btn = genActBtn(true, 'Show XML', 'fa-file-code-o', 'show_xml', kvmhost, {'uuid':result.uuid});
+    btn += genActBtn(true, 'Guest Admin UI', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':result.uuid});
+    if(result.state === 'RUN') {
+      btn += genActBtn(true, 'Console', 'fa-terminal', 'ttyconsole', kvmhost, {'uuid':result.uuid});
+      btn += genActBtn(true, 'VNC View', 'fa-desktop', 'display', kvmhost, {'uuid':result.uuid});
+      btn += genActBtn(true, 'Reset VM', 'fa-refresh', 'reset', kvmhost, {'uuid':result.uuid});
+      btn += genActBtn(true, 'Stop VM', 'fa-power-off', 'stop', kvmhost, {'uuid':result.uuid});
+      btn += genActBtn(true, 'ForceStop VM', 'fa-plug', 'force_stop', kvmhost, {'uuid':result.uuid});
+    } else {
+      btn += genActBtn(true, 'Start VM', 'fa-play', 'start', kvmhost, {'uuid':result.uuid});
+      btn += genActBtn(true, 'Undefine', 'fa-trash', 'undefine', kvmhost, {'uuid':result.uuid});
+    }
+    btn += genActBtn(true, 'Add CDROM', 'fa-floppy-o', 'add_cdrom', kvmhost, {'uuid':result.uuid});
+    btn += genActBtn(true, 'Add NET', 'fa-wifi', 'add_net', kvmhost, {'uuid':result.uuid});
+    btn += genActBtn(true, 'Add DISK', 'fa-database', 'add_disk', kvmhost, {'uuid':result.uuid});
+    btn += `<button title="Close" class="close" onclick="vmlist('${kvmhost}');"><h2>&times;</h2></button>`;
+    const table = genVmsTBL(result, kvmhost);
+    const title = result.state == "RUN" ? `<h2 class="highlight">GUEST</h2>` : `<h2>GUEST</h2>`;
+    const tbl = genWrapper("vms-wrapper", title, btn, table);
+    document.getElementById("vm_info").innerHTML = tbl;
+  });
+}
 function show_vms(kvmhost, vms) {
   var tbl = '';
   vms.forEach(item => {
-    var btn = genActBtn(true, 'Show XML', 'fa-file-code-o', 'show_xml', kvmhost, {'uuid':item.uuid});
-    btn += genActBtn(true, 'Guest Admin UI', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':item.uuid});
-    if(item.state === 'RUN') {
-      btn += genActBtn(true, 'Console', 'fa-terminal', 'ttyconsole', kvmhost, {'uuid':item.uuid});
-      btn += genActBtn(true, 'VNC View', 'fa-desktop', 'display', kvmhost, {'uuid':item.uuid});
-      btn += genActBtn(true, 'Reset VM', 'fa-refresh', 'reset', kvmhost, {'uuid':item.uuid});
-      btn += genActBtn(true, 'Stop VM', 'fa-power-off', 'stop', kvmhost, {'uuid':item.uuid});
-      btn += genActBtn(true, 'ForceStop VM', 'fa-plug', 'force_stop', kvmhost, {'uuid':item.uuid});
-    } else {
-      btn += genActBtn(true, 'Start VM', 'fa-play', 'start', kvmhost, {'uuid':item.uuid});
-      btn += genActBtn(true, 'Undefine', 'fa-trash', 'undefine', kvmhost, {'uuid':item.uuid});
-    } 
-    btn += genActBtn(true, 'Add CDROM', 'fa-floppy-o', 'add_cdrom', kvmhost, {'uuid':item.uuid});
-    btn += genActBtn(true, 'Add NET', 'fa-wifi', 'add_net', kvmhost, {'uuid':item.uuid});
-    btn += genActBtn(true, 'Add DISK', 'fa-database', 'add_disk', kvmhost, {'uuid':item.uuid});
-    const table = genVmsTBL(item, kvmhost);
+    var btn = genActBtn(true, 'Manage VM', 'fa-cog fa-spin fa-lg', 'manage_vm', kvmhost, {'uuid':item.uuid});
+    const table = genVmsTBL(item);
     const title = item.state == "RUN" ? '<h2 class="highlight">GUEST</h2>' : '<h2>GUEST</h2>';
     tbl += genWrapper("vms-wrapper", title, btn, table);
   });
@@ -225,6 +239,15 @@ function processJsonArray(jsonArray) {
   const uniqueResult = Array.from(new Set(result.map(JSON.stringify))).map(JSON.parse);
   return uniqueResult;
 }
+function flush_sidebar(kvmhost, count=null) {
+  document.getElementById("sidebar").querySelectorAll("a").forEach(link => {
+    link.classList.remove('current');
+    if(link.querySelector('[name="host"]').innerHTML === kvmhost) {
+      link.classList.add('current');
+      if(count) link.querySelector(`[name="count"]`).innerHTML = count;
+    }
+  });
+}
 function vmlist(kvmhost) {
   document.getElementById("vms").innerHTML = '';
   document.getElementById("host").innerHTML = '';
@@ -233,23 +256,13 @@ function vmlist(kvmhost) {
     url += kvmhost;
     set_curr(kvmhost);
   }
-  var count = '';
-  document.getElementById("sidebar").querySelectorAll("a").forEach(link => {
-    link.classList.remove('current');
-    if(link.querySelector('[name="host"]').innerHTML === kvmhost) {
-      link.classList.add('current');
-      count = link.querySelector(`[name="count"]`);
-    }
-  });
   getjson('GET', url, function(resp) {
     const result = JSON.parse(resp);
-    if(count instanceof HTMLSpanElement) {
-      count.innerHTML = kvmhost == 'ALL VMS' ? `(${result.length})` : `(${result.host.active}/${result.host.totalvm})`;
-    }
+    flush_sidebar(kvmhost, kvmhost == 'ALL VMS' ? `(${result.length})` : `(${result.host.active}/${result.host.totalvm})`);
     if(kvmhost === 'ALL VMS') {
       var tbl = '';
       result.forEach(item => {
-        const btn = `<button title='GOTO HOST' onclick='set_curr("${item.kvmhost}", "${item.uuid}"); vmlist("${item.kvmhost}")'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
+        const btn = `<button title='GOTO VM Manage' onclick='manage_vm("${item.kvmhost}", "${item.uuid}")'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
         const table = genVmsTBL(item);
         tbl += genWrapper("vms-wrapper", "<h2>GUEST</h2>", btn, table);
       });
@@ -335,7 +348,7 @@ function show_vmui(host, uuid) {
 function start(host, uuid) {
   set_curr(host, uuid);
   if (confirm(`Start ${uuid}?`)) {
-    getjson('GET', `/vm/start/${host}/${uuid}`, function(resp){ getjson_result(resp); vmlist(host); });
+    getjson('GET', `/vm/start/${host}/${uuid}`, getjson_result);
   }
 }
 function reset(host, uuid) {
@@ -347,7 +360,7 @@ function reset(host, uuid) {
 function stop(host, uuid, force=false) {
   set_curr(host, uuid);
   if (confirm(`${force ? 'Force ' : ''}Stop ${uuid}?`)) {
-    getjson('GET', `/vm/stop/${host}/${uuid}${force ? '?force=true' : ''}`, function(resp){ getjson_result(resp); vmlist(host); });
+    getjson('GET', `/vm/stop/${host}/${uuid}${force ? '?force=true' : ''}`, getjson_result);
   }
 }
 function force_stop(host, uuid) {
@@ -389,11 +402,11 @@ function get_vmip(host, uuid) {
 function del_device(host, uuid, dev) {
   set_curr(host, uuid, dev);
   if (confirm(`delete device /${host}/${uuid}/${dev} ?`)) {
-    getjson('POST', `/vm/detach_device/${host}/${uuid}?dev=${dev}`, function(resp){ getjson_result(resp); vmlist(host); });
+    getjson('POST', `/vm/detach_device/${host}/${uuid}?dev=${dev}`, getjson_result);
   }
 }
 function on_changeiso(form) {
-  getjson('POST', `/vm/cdrom/${curr_host()}/${curr_vm()}?dev=${curr_dev()}`, function(resp){ getjson_result(resp); vmlist(curr_host()); }, getFormJSON(form));
+  getjson('POST', `/vm/cdrom/${curr_host()}/${curr_vm()}?dev=${curr_dev()}`, getjson_result, getFormJSON(form));
   return false;
 }
 function disk_size(host, uuid, dev) {
@@ -406,7 +419,14 @@ function change_iso(host, uuid, dev) {
   document.getElementById('isoname_list').innerHTML = genOption(get_iso());
 }
 function on_createvm(form) {
-  getjson('POST', `/vm/create/${curr_host()}`, function(resp){ getjson_result(resp); vmlist(curr_host()); }, getFormJSON(form));
+  getjson('POST', `/vm/create/${curr_host()}`, function(resp){
+    const result = JSON.parse(resp);
+    if (result.uuid?.length > 0) {
+        manage_vm(curr_host(), result.uuid);
+    } else {
+        getjson_result(resp);
+    }
+  }, getFormJSON(form));
   return false;
 }
 function cpWithoutKeys(orig, keys) {
@@ -438,7 +458,7 @@ function on_add(form) {
   }
   const res = getFormJSON(form);
   getjson('POST', `/vm/attach_device/${curr_host()}/${curr_vm()}?dev=${res.device}`, function(resp) {
-    getjson_result(getLastLine(resp)); vmlist(curr_host()); 
+    getjson_result(getLastLine(resp));
   }, res, function(resp) {
     const overlay_output = document.querySelector("#overlay_output");
     overlay_output.innerHTML += resp; /*overlay_output.innerHTML = resp;*/
@@ -489,7 +509,7 @@ function add_cdrom(host, uuid) {
 }
 function on_modifydesc(form) {
   const res = getFormJSON(form);
-  getjson('GET', `/vm/desc/${curr_host()}/${curr_vm()}?vm_desc=${res.vm_desc}`, function(resp){ getjson_result(resp); vmlist(curr_host()); });
+  getjson('GET', `/vm/desc/${curr_host()}/${curr_vm()}?vm_desc=${res.vm_desc}`, getjson_result);
   return false;
 }
 function modify_desc(host, uuid) {
@@ -498,7 +518,7 @@ function modify_desc(host, uuid) {
 }
 function on_modifymemory(form) {
   const res = getFormJSON(form);
-  getjson('GET', `/vm/setmem/${curr_host()}/${curr_vm()}?vm_ram_mb=${res.vm_ram_mb}`, function(resp){ getjson_result(resp); vmlist(curr_host()); });
+  getjson('GET', `/vm/setmem/${curr_host()}/${curr_vm()}?vm_ram_mb=${res.vm_ram_mb}`, getjson_result);
   return false;
 }
 function modify_memory(host, uuid) {
@@ -507,7 +527,7 @@ function modify_memory(host, uuid) {
 }
 function on_modifyvcpus(form) {
   const res = getFormJSON(form);
-  getjson('GET', `/vm/setcpu/${curr_host()}/${curr_vm()}?vm_vcpus=${res.vm_vcpus}`, function(resp){ getjson_result(resp); vmlist(curr_host()); });
+  getjson('GET', `/vm/setcpu/${curr_host()}/${curr_vm()}?vm_vcpus=${res.vm_vcpus}`, getjson_result);
   return false;
 }
 function modify_vcpus(host, uuid) {
