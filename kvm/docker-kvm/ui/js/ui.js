@@ -420,11 +420,10 @@ function change_iso(host, uuid, dev) {
 }
 function on_createvm(form) {
   getjson('POST', `/vm/create/${curr_host()}`, function(resp){
+    getjson_result(resp);
     const result = JSON.parse(resp);
     if (result.uuid?.length > 0) {
         manage_vm(curr_host(), result.uuid);
-    } else {
-        getjson_result(resp);
     }
   }, getFormJSON(form));
   return false;
