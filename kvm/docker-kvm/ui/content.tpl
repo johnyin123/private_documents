@@ -5,7 +5,6 @@
 <div id="manage_vm" class="tabContent">
   <div class="machine-container">
     <div class="vms-container" id="vm_info"></div>
-    <div class="vm-action" id="vm_actions">
     </div>
   </div>
 </div>
