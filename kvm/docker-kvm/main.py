@@ -40,8 +40,8 @@ class MyApp(object):
             hosts = [dic._asdict() for dic in database.KVMHost.list_all()]
             for host in hosts:
                 varset = template.get_variables(config.DOMAIN_DIR, host['tpl'])
-                varset.update(template.get_variables(config.META_DIR, 'meta_data'))
-                varset.update(template.get_variables(config.META_DIR, 'user_data'))
+                for file in os.listdir(config.META_DIR):
+                    varset.update(template.get_variables(config.META_DIR, file))
                 host['vars'] = {k: config.VARS_DESC.get(k,'n/a') for k in varset}
             return getlist_without_key(hosts, *keys)
         except Exception as e:
