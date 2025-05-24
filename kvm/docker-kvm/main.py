@@ -40,7 +40,7 @@ class MyApp(object):
             hosts = [dic._asdict() for dic in database.KVMHost.list_all()]
             for host in hosts:
                 varset = template.get_variables(config.DOMAIN_DIR, host['tpl'])
-                for file in os.listdir(config.META_DIR):
+                for file in [fn for fn in os.listdir(config.META_DIR) if fn.endswith('.tpl')]:
                     varset.update(template.get_variables(config.META_DIR, file))
                 host['vars'] = {k: config.VARS_DESC.get(k,'n/a') for k in varset}
             return getlist_without_key(hosts, *keys)
