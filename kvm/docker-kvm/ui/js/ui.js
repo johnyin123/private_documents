@@ -348,7 +348,10 @@ function show_vmui(host, uuid) {
 function start(host, uuid) {
   set_curr(host, uuid);
   if (confirm(`Start ${uuid}?`)) {
-    getjson('GET', `/vm/start/${host}/${uuid}`, getjson_result);
+    getjson('GET', `/vm/start/${host}/${uuid}`, function(resp) {
+      getjson_result(resp);
+      manage_vm(curr_host(), curr_vm());
+    });
   }
 }
 function reset(host, uuid) {
@@ -360,7 +363,10 @@ function reset(host, uuid) {
 function stop(host, uuid, force=false) {
   set_curr(host, uuid);
   if (confirm(`${force ? 'Force ' : ''}Stop ${uuid}?`)) {
-    getjson('GET', `/vm/stop/${host}/${uuid}${force ? '?force=true' : ''}`, getjson_result);
+    getjson('GET', `/vm/stop/${host}/${uuid}${force ? '?force=true' : ''}`, function(resp) {
+      getjson_result(resp);
+      manage_vm(curr_host(), curr_vm());
+    });
   }
 }
 function force_stop(host, uuid) {
@@ -402,11 +408,17 @@ function get_vmip(host, uuid) {
 function del_device(host, uuid, dev) {
   set_curr(host, uuid, dev);
   if (confirm(`delete device /${host}/${uuid}/${dev} ?`)) {
-    getjson('POST', `/vm/detach_device/${host}/${uuid}?dev=${dev}`, getjson_result);
+    getjson('POST', `/vm/detach_device/${host}/${uuid}?dev=${dev}`, function(resp) {
+      getjson_result(resp);
+      manage_vm(curr_host(), curr_vm());
+    });
   }
 }
 function on_changeiso(form) {
-  getjson('POST', `/vm/cdrom/${curr_host()}/${curr_vm()}?dev=${curr_dev()}`, getjson_result, getFormJSON(form));
+  getjson('POST', `/vm/cdrom/${curr_host()}/${curr_vm()}?dev=${curr_dev()}`,function(resp) {
+      getjson_result(resp);
+      manage_vm(curr_host(), curr_vm());
+    }, getFormJSON(form));
   return false;
 }
 function disk_size(host, uuid, dev) {
@@ -458,6 +470,7 @@ function on_add(form) {
   const res = getFormJSON(form);
   getjson('POST', `/vm/attach_device/${curr_host()}/${curr_vm()}?dev=${res.device}`, function(resp) {
     getjson_result(getLastLine(resp));
+    manage_vm(curr_host(), curr_vm());
   }, res, function(resp) {
     const overlay_output = document.querySelector("#overlay_output");
     overlay_output.innerHTML += resp; /*overlay_output.innerHTML = resp;*/
@@ -517,7 +530,10 @@ function modify_desc(host, uuid) {
 }
 function on_modifymemory(form) {
   const res = getFormJSON(form);
-  getjson('GET', `/vm/setmem/${curr_host()}/${curr_vm()}?vm_ram_mb=${res.vm_ram_mb}`, getjson_result);
+  getjson('GET', `/vm/setmem/${curr_host()}/${curr_vm()}?vm_ram_mb=${res.vm_ram_mb}`,function(resp) {
+    getjson_result(resp);
+    manage_vm(curr_host(), curr_vm());
+  });
   return false;
 }
 function modify_memory(host, uuid) {
@@ -526,7 +542,10 @@ function modify_memory(host, uuid) {
 }
 function on_modifyvcpus(form) {
   const res = getFormJSON(form);
-  getjson('GET', `/vm/setcpu/${curr_host()}/${curr_vm()}?vm_vcpus=${res.vm_vcpus}`, getjson_result);
+  getjson('GET', `/vm/setcpu/${curr_host()}/${curr_vm()}?vm_vcpus=${res.vm_vcpus}`,function(resp) {
+    getjson_result(resp);
+    manage_vm(curr_host(), curr_vm());
+  });
   return false;
 }
 function modify_vcpus(host, uuid) {
