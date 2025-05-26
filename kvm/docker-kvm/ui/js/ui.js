@@ -119,7 +119,7 @@ function manage_vm(kvmhost, uuid) {
     if(result.state === 'RUN') {
       btn += genActBtn(true, 'Console', 'fa-terminal', 'ttyconsole', kvmhost, {'uuid':result.uuid});
       btn += genActBtn(true, 'Display View', 'fa-desktop', 'display', kvmhost, {'uuid':result.uuid});
-      btn += genActBtn(true, 'Reset VM', 'fa-refresh', 'reset', kvmhost, {'uuid':result.uuid});
+      btn += genActBtn(true, 'Reset VM', 'fa-repeat', 'reset', kvmhost, {'uuid':result.uuid});
       btn += genActBtn(true, 'Stop VM', 'fa-power-off', 'stop', kvmhost, {'uuid':result.uuid});
       btn += genActBtn(true, 'ForceStop VM', 'fa-plug', 'force_stop', kvmhost, {'uuid':result.uuid});
     } else {
