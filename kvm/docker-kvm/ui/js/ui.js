@@ -101,7 +101,7 @@ function genVmsTBL(item, host = null) {
       tbl += `<tr><th class="truncate">${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else {
       var style = 'truncate';
-      if (item.uuid === curr_vm() && ['uuid'].includes(key) && host) style +=' current';
+      if (item.uuid === curr_vm() && ['uuid'].includes(key)) style +=' current';
       tbl += `<tr><th class="${style}">${key}</th><td colspan="3" class="${style}">${item[key]}</td></tr>`;
     }
   }
