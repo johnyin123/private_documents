@@ -3,7 +3,6 @@ try:
     from cStringIO import StringIO as BytesIO
 except ImportError:
     from io import BytesIO
-from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 import pycdlib, os, utils, config, template, logging
 logger = logging.getLogger(__name__)
 
