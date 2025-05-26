@@ -268,8 +268,7 @@ class VMManager:
             except libvirt.libvirtError:
                 pass
             conn.defineXML(template.DomainTemplate(host.tpl).gen_xml(**req_json))
-            domain = LibvirtDomain(conn.lookupByUUIDString(req_json['vm_uuid']))
-            meta.gen_metafiles(domain.mdconfig, req_json)
+        meta.gen_metafiles(**req_json)
         database.IPPool.remove(req_json.get('vm_ipaddr', ''))
         save(os.path.join(config.REQ_JSON_DIR, req_json['vm_uuid']), json.dumps(req_json, indent=4))
         return return_ok(f"create vm on {host.name} ok", uuid=req_json['vm_uuid'])
