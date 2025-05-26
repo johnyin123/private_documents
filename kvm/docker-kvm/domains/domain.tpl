@@ -2,7 +2,7 @@
 {%- macro getmachine() %}{%- if vm_arch == 'x86_64' %}{{vm_machine | default("pc")}}{%- else %}{{vm_machine | default("virt")}}{%- endif %}{%- endmacro %}
 {%- macro getcpu() %}{%- if vm_arch == 'x86_64' %}{{vm_cpu | default("host-model")}}{%- else %}{{vm_cpu | default("host-passthrough")}}{%- endif %}{%- endmacro %}
 <domain type='kvm'>
-  <name>{{ vm_name }}-{{ vm_uuid }}</name>
+  <name>{{ vm_name | default('vmsrv') }}-{{ vm_uuid }}</name>
   <uuid>{{ vm_uuid }}</uuid>
   <metadata>
     <mdconfig:meta xmlns:mdconfig="urn:iso-meta">
@@ -22,7 +22,7 @@
 {%- endif %}
     </system>
   </sysinfo>
-  <title>{{ vm_name }}</title>
+  <title>{{ vm_name | default('vmsrv') }}</title>
   <description>{{ vm_desc | default("") }}</description>
   <memory unit='MiB'>{{ vm_ram_mb_max | default(vm_ram_mb | default(8192))}}</memory>
   <memoryBacking><source type='memfd'/><access mode='shared'/></memoryBacking>
@@ -36,7 +36,7 @@
   <iothreads>1</iothreads>
   <os>
     <type arch='{{ vm_arch }}' machine='{{ getmachine() }}'>hvm</type>
-{%- if vm_uefi != '' %}
+{%- if vm_uefi is defined and vm_uefi != '' %}
     <loader readonly='yes' secure='{{ vm_uefi_secure | default("no") }}' type='pflash'>{{ vm_uefi }}</loader>
 {%- endif %}
     <boot dev='hd'/>

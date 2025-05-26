@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os, uuid
-from typing import Dict
 from datetime import datetime
 
 # DATABASE = 'mysql+pymysql://admin:password@192.168.168.212/kvm?charset=utf8mb4'
@@ -35,24 +34,14 @@ except Exception as e:
     pass
 
 # # vm define default values
-def VM_DEFAULT(arch:str='x86_64', hostname:str='dummy')->Dict:
-    # TODO: VM_DEFAULT, can defined by hostname!
-    # if vm_ram_mb_max/vm_vcpus_max no set then use vm_ram_mb/vm_vcpus, else use a default value. see: domains/newvm.tpl...
-    # # VM_DEFULT vars from domains/template. main:create_vm
+def VM_DEFAULT(arch:str='x86_64', hostname:str='dummy'):
     arch = arch.lower()
     default = {
-        'vm_arch': arch, 'vm_uuid': f'{uuid.uuid4()}', 'vm_name': 'srv',
-        'vm_desc': '', 'vm_ram_mb': 1024, 'vm_vcpus': 1, 'vm_uefi': '',
-        'vm_create': datetime.now().isoformat()
+        'vm_ram_mb': 1024, 'vm_vcpus': 1,
+        'vm_arch': arch, 'vm_uuid': f'{uuid.uuid4()}', 'vm_create': datetime.now().isoformat()
     }
     if (arch == 'x86_64'):
-        return { **default }
+        return { **default };
     elif (arch == 'aarch64'):
-        #  x86_64:/usr/share/qemu/OVMF.fd
-        # aarch64:/usr/share/qemu-efi-aarch64/QEMU_EFI.fd
-        #         /usr/share/AAVMF/AAVMF_CODE.fd
-        #         # openEuler 22.03, use docker-libvirt NOT
-        #         /usr/share/edk2/aarch64/QEMU_EFI-pflash.raw
         return { **default, 'vm_uefi':'/usr/share/AAVMF/AAVMF_CODE.fd' }
-    else:
-        raise Exception(f'{arch} {hostname} no VM_DEFAULT defined')
+    raise Exception(f'{arch} {hostname} no VM_DEFAULT defined')
