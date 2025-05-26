@@ -129,6 +129,7 @@ function manage_vm(kvmhost, uuid) {
     btn += genActBtn(true, 'Add CDROM', 'fa-floppy-o', 'add_cdrom', kvmhost, {'uuid':result.uuid});
     btn += genActBtn(true, 'Add NET', 'fa-wifi', 'add_net', kvmhost, {'uuid':result.uuid});
     btn += genActBtn(true, 'Add DISK', 'fa-database', 'add_disk', kvmhost, {'uuid':result.uuid});
+    btn += genActBtn(true, 'Refresh VM', 'fa-refresh fa-spin', 'manage_vm', kvmhost, {'uuid':result.uuid});
     btn += `<button title="Close" class="close" onclick="vmlist('${kvmhost}');"><h2>&times;</h2></button>`;
     const table = genVmsTBL(result, kvmhost);
     const title = result.state == "RUN" ? `<h2 class="highlight">GUEST</h2>` : `<h2>GUEST</h2>`;

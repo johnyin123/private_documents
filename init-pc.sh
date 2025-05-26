@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("429f596[2024-12-10T14:09:31+08:00]:init-pc.sh")
+VERSION+=("96943922[2025-02-06T13:59:21+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -182,7 +182,7 @@ apt_install systemd-container \
     minicom socat git git-flow net-tools \
     manpages-dev manpages-posix manpages-posix-dev manpages man-db build-essential \
     nscd nbd-client iftop netcat-openbsd sshfs squashfs-tools graphviz nftables \
-    rsync tmux \
+    rsync tmux virt-viewer \
     qemu-kvm qemu-system-gui qemu-utils xmlstarlet jq sudo debootstrap kpartx \
     crudini usbredirect usbip wpan-tools
     #binwalk
