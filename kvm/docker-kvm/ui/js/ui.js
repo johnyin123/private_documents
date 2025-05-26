@@ -280,7 +280,7 @@ function vmlist(kvmhost) {
       });
       tbl = '<table><tr><td class="current">kvmhost</td><td class="current">arch</td><td class="current">vms</td></tr>';
       processJsonArray(newArray).forEach(item => {
-        tbl += `<tr><td>${item.kvmhost}</td><td>${item.arch}</td><td>${item.vms}</td></tr>`;
+        tbl += `<tr><td><a href='#' onclick='vmlist("${item.kvmhost}")'>${item.kvmhost}</a></td><td>${item.arch}</td><td>${item.vms}</td></tr>`;
       });
       tbl += '</table>';
       document.getElementById("host").innerHTML = genWrapper('host-wrapper', `<h2 class="highlight">Summary</h2>`, '', tbl);
@@ -467,7 +467,7 @@ function cpWithoutKeys(orig, keys) {
   return newvars;
 }
 function create_vm(host) {
-  set_curr(host);
+  set_curr(host, '');
   showView('createvm');
   const form = document.getElementById("createvm_form");
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
