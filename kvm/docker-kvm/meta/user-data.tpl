@@ -26,6 +26,8 @@ runcmd:
 growpart:
   mode: auto
   devices: ['/']
+swap:
+  size: 2G
 bootcmd:
   - echo "BOOT OK"
   - touch /etc/cloud/cloud-init.disabled
