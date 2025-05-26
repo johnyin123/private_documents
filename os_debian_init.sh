@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("6bf39eb9[2025-05-23T07:01:46+08:00]:os_debian_init.sh")
+VERSION+=("e1dd2a97[2025-05-23T09:37:26+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -762,7 +762,7 @@ mkdir -p /overlay/work
 mkdir -p /overlay/lower
 
 log_begin_msg "mount overlay: ${MNT_OPTS:+,${MNT_OPTS}}"
-log_success_msg "mount -t overlay overlay -olowerdir=/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work${MNT_OPTS:+,${MNT_OPTS}}
+log_success_msg "mount -t overlay overlay -olowerdir=/overlay/lower,upperdir=/overlay/upper,workdir=/overlay/work${MNT_OPTS:+,${MNT_OPTS}} ${rootmnt}"
 log_end_msg
 
 # make the readonly root available
