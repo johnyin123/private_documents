@@ -240,12 +240,10 @@ class VMManager:
             gold = req_json.get("gold", "")
             if len(gold) != 0:
                 req_json['gold'] = database.KVMGold.get_one(name=gold, arch=host.arch).tpl
-            with connect(host.url) as conn:
-                domain = LibvirtDomain(conn.lookupByUUIDString(uuid))
-                req_json['vm_flavor'] = domain.mdconfig.get('vm_flavor')
-                bus_type = tpl.bus_type(**req_json)
-                if bus_type is not None:
-                    req_json['vm_last_disk'] = domain.next_disk[bus_type]
+            bus_type = tpl.bus_type(**req_json)
+            if bus_type is not None:
+                with connect(host.url) as conn:
+                    req_json['vm_last_disk'] = LibvirtDomain(conn.lookupByUUIDString(uuid)).next_disk[bus_type]
             if dev.action is not None and len(dev.action) != 0:
                 for line in ProcList.wait_proc(uuid, cmd, False, req_json, **env):
                     logger.debug(line.strip())
@@ -259,10 +257,10 @@ class VMManager:
 
     @staticmethod
     def create(host:FakeDB, req_json)->str:
-        username = decode_jwt(flask.request.cookies.get('token', '')).get('payload', {}).get('username', '')
+        req_json['vm_creater'] = decode_jwt(flask.request.cookies.get('token', '')).get('payload', {}).get('username', '')
         for key in ['vm_uuid','vm_arch','vm_create']:
             req_json.pop(key, "Not found")
-        req_json = {**config.VM_DEFAULT(host.arch, host.name), **req_json, **{'vm_creater':username}}
+        req_json = {**config.VM_DEFAULT(host.arch, host.name), **req_json}
         with connect(host.url) as conn:
             try:
                 conn.lookupByUUIDString(req_json['vm_uuid'])
@@ -271,8 +269,8 @@ class VMManager:
                 pass
             conn.defineXML(template.DomainTemplate(host.tpl).gen_xml(**req_json))
             domain = LibvirtDomain(conn.lookupByUUIDString(req_json['vm_uuid']))
-            database.IPPool.remove(req_json.get('vm_ipaddr', ''))
             meta.gen_metafiles(domain.mdconfig, req_json)
+        database.IPPool.remove(req_json.get('vm_ipaddr', ''))
         save(os.path.join(config.REQ_JSON_DIR, req_json['vm_uuid']), json.dumps(req_json, indent=4))
         return return_ok(f"create vm on {host.name} ok", uuid=req_json['vm_uuid'])
 
