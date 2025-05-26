@@ -118,7 +118,7 @@ function manage_vm(kvmhost, uuid) {
     btn += genActBtn(true, 'Guest Admin UI', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':result.uuid});
     if(result.state === 'RUN') {
       btn += genActBtn(true, 'Console', 'fa-terminal', 'ttyconsole', kvmhost, {'uuid':result.uuid});
-      btn += genActBtn(true, 'VNC View', 'fa-desktop', 'display', kvmhost, {'uuid':result.uuid});
+      btn += genActBtn(true, 'Display View', 'fa-desktop', 'display', kvmhost, {'uuid':result.uuid});
       btn += genActBtn(true, 'Reset VM', 'fa-refresh', 'reset', kvmhost, {'uuid':result.uuid});
       btn += genActBtn(true, 'Stop VM', 'fa-power-off', 'stop', kvmhost, {'uuid':result.uuid});
       btn += genActBtn(true, 'ForceStop VM', 'fa-plug', 'force_stop', kvmhost, {'uuid':result.uuid});
@@ -139,8 +139,15 @@ function manage_vm(kvmhost, uuid) {
 function show_vms(kvmhost, vms) {
   var tbl = '';
   vms.forEach(item => {
-    var btn = genActBtn(true, 'Manage VM', 'fa-cog fa-spin fa-lg', 'manage_vm', kvmhost, {'uuid':item.uuid});
     const table = genVmsTBL(item);
+    var btn = genActBtn(true, 'Show XML', 'fa-file-code-o', 'show_xml', kvmhost, {'uuid':item.uuid});
+    btn += genActBtn(true, 'Guest Admin UI', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':item.uuid, 'backlist':'1'});
+    if (item.state === "RUN") {
+      btn += genActBtn(true, 'VM IPAddress', 'fa-gg', 'get_vmip', kvmhost, {'uuid':item.uuid});
+    } else {
+      btn += genActBtn(true, 'Undefine', 'fa-trash', 'undefine', kvmhost, {'uuid':item.uuid});
+    }
+    btn += genActBtn(true, 'Manage VM', 'fa-cog fa-spin fa-lg', 'manage_vm', kvmhost, {'uuid':item.uuid});
     const title = item.state == "RUN" ? '<h2 class="highlight">GUEST</h2>' : '<h2>GUEST</h2>';
     tbl += genWrapper("vms-wrapper", title, btn, table);
   });
@@ -294,18 +301,22 @@ function getjson_result(res) {
       if (result.uuid?.length > 0) {
         // Key exists and has a value
         set_curr(curr_host(), result.uuid);
+      } else {
+        set_curr(curr_host(), '');
       }
       if (Object.keys(result).length === 0) {
         dispok(`${desc}`);
       } else {
         dispok(`${desc} ${JSON.stringify(result)}`);
       }
+      return true;
     } else {
       disperr(result.code, result.name, result.desc);
     }
   } catch (e) {
     disperr(999, `local error`, `${e.toString()}, ${res}`);
   }
+  return false;
 }
 function show_xml(host, uuid) {
   set_curr(host, uuid);
@@ -341,8 +352,16 @@ function on_vmui(form) {
   });
   return false;
 }
-function show_vmui(host, uuid) {
+function show_vmui(host, uuid, backlist = null) {
   set_curr(host, uuid);
+  const btn = document.getElementById('vmui').querySelector('.close');
+  const btn_mail = document.getElementById('vmuimail').querySelector('.close');
+  if (backlist) {
+    btn.onclick = function(){showView("hostlist");};
+  } else {
+    btn.onclick = function(){showView("manage_vm");};
+  }
+  btn_mail.onclick = btn.onclick;
   showView('vmui');
 }
 function start(host, uuid) {
@@ -432,10 +451,8 @@ function change_iso(host, uuid, dev) {
 }
 function on_createvm(form) {
   getjson('POST', `/vm/create/${curr_host()}`, function(resp){
-    getjson_result(resp);
-    const result = JSON.parse(resp);
-    if (result.uuid?.length > 0) {
-        manage_vm(curr_host(), result.uuid);
+    if (getjson_result(resp)) {
+        manage_vm(curr_host(), curr_vm());
     }
   }, getFormJSON(form));
   return false;
