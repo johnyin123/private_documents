@@ -2,12 +2,12 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("aa9e1043[2025-05-23T09:03:30+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("c4af9f9d[2025-05-23T09:11:46+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
 APPFILES=(flask_app.py dbi.py database.py database.py.shm config.py meta.py utils.py main.py template.py vmmanager.py console.py)
-APPDBS=(devices.json golds.json hosts.json iso.json guests.json ippool.json vars.json)
+APPDBS=(devices.json golds.json hosts.json iso.json guests.json ippool.json vars.json flavors.json)
 TOOLS=(reload_dbtable)
 ################################################################################
 log() { echo "$(tput setaf ${COLOR:-141})$*$(tput sgr0)" >&2; }
@@ -153,6 +153,7 @@ gen_app_database() {
         ./reload_dbtable ippool.json
         install -v -C -m 0644 --group=${gid} --owner=${uid} kvm.db ${outdir}/kvm.db
         install -v -C -m 0644 --group=${gid} --owner=${uid} vars.json ${outdir}/vars.json
+        install -v -C -m 0644 --group=${gid} --owner=${uid} flavors.json ${outdir}/flavors.json
     }
     return 0
 }

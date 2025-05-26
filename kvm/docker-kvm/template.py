@@ -16,9 +16,9 @@ class KVMTemplate:
         self.template = jinja2.Environment(loader=jinja2.FileSystemLoader(dirname)).get_template(filename)
 
     def gen_xml(self, **kwargs):
-        kwargs['META_SRV'] = config.META_SRV
-        logger.debug(f'{kwargs!r}')
-        return self.template.render(**kwargs)
+        req_json = {**kwargs, **config.FLAVORS.get(kwargs.get('vm_flavor'), {}), 'META_SRV':config.META_SRV}
+        logger.debug(f'{req_json!r}')
+        return self.template.render(req_json)
 
 class DeviceTemplate(KVMTemplate):
     def __init__(self, filename, devtype):

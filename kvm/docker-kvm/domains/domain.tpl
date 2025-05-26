@@ -10,6 +10,7 @@
       <vm_gateway>{{ vm_gateway | default("") }}</vm_gateway>
       <vm_create>{{ vm_create | default("") }}</vm_create>
       <vm_creater>{{ vm_creater | default("") }}</vm_creater>
+      <vm_flavor>{{ vm_flavor | default("") }}</vm_flavor>
     </mdconfig:meta>
   </metadata>
   <sysinfo type='smbios'>

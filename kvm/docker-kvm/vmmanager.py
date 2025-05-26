@@ -240,10 +240,12 @@ class VMManager:
             gold = req_json.get("gold", "")
             if len(gold) != 0:
                 req_json['gold'] = database.KVMGold.get_one(name=gold, arch=host.arch).tpl
-            bus_type = tpl.bus_type(**req_json)
-            if bus_type is not None:
-                with connect(host.url) as conn:
-                    req_json['vm_last_disk'] = LibvirtDomain(conn.lookupByUUIDString(uuid)).next_disk[bus_type]
+            with connect(host.url) as conn:
+                domain = LibvirtDomain(conn.lookupByUUIDString(uuid))
+                req_json['vm_flavor'] = domain.mdconfig.get('vm_flavor')
+                bus_type = tpl.bus_type(**req_json)
+                if bus_type is not None:
+                    req_json['vm_last_disk'] = domain.next_disk[bus_type]
             if dev.action is not None and len(dev.action) != 0:
                 for line in ProcList.wait_proc(uuid, cmd, False, req_json, **env):
                     logger.debug(line.strip())
