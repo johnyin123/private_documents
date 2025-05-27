@@ -1,5 +1,5 @@
 cat <<EOF
-/etc/johnyin/remote/remoter.sh
+chmod 755 /etc/johnyin/remote/remoter.sh
 ln -s /etc/johnyin/remote/sky.conf /etc/triggerhappy/triggers.d/sky.conf
 ln -s /etc/johnyin/remote/osd.service /etc/systemd/system/osd.service
 ln -s /etc/johnyin/remote/osd.socket /etc/systemd/system/osd.socket

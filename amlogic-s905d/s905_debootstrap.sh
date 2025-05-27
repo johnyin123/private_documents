@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b5b13a2c[2025-05-27T09:49:59+08:00]:s905_debootstrap.sh")
+VERSION+=("c90c20f1[2025-05-27T10:11:39+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -394,6 +394,7 @@ tmpfs /tmp      tmpfs   rw,nosuid,relatime,mode=777  0  0
 tmpfs /media    tmpfs   defaults,size=1M  0  0
 tmpfs /home/johnyin/.cache  tmpfs mode=0700,noatime,nosuid,nodev,gid=johnyin,uid=johnyin   0  0
 tmpfs /root/.cache          tmpfs mode=0700,noatime,nosuid,nodev,gid=root,uid=root  0  0
+# /src /dst none defaults,bind 0 4
 EOF
 
 log "auto reformatoverlay plug usb ttl"
