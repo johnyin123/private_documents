@@ -26,13 +26,6 @@ META_DIR     = os.path.join(OUTDIR, 'meta')    # RO # cloud-init template dir
 TOKEN_DIR    = os.path.join(OUTDIR, 'token')   # RW # vnc/spice access token dir
 REQ_JSON_DIR = os.path.join(OUTDIR, 'reqlogs') # RW # LOG create_vm req_json
 VARS_DESC    = {}                  # template vars desc json file contents
-try:
-    import json
-    with open(os.path.join(OUTDIR, 'vars.json'), 'r') as file:
-        VARS_DESC = json.loads(file.read())
-except Exception as e:
-    pass
-
 # # vm define default values
 def VM_DEFAULT(arch:str='x86_64', hostname:str='dummy'):
     arch = arch.lower()

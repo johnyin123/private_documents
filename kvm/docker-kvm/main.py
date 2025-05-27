@@ -3,7 +3,7 @@
 
 import flask_app, flask, os, libvirt, json, logging
 import database, vmmanager, config, template
-from utils import return_ok, return_err, deal_except, getlist_without_key
+from utils import return_ok, return_err, deal_except, getlist_without_key, load
 from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
 
@@ -13,6 +13,7 @@ class MyApp(object):
         logger.info(f'META_SRV={config.META_SRV}')
         logger.info(f'OUTDIR={config.OUTDIR}')
         logger.info(f'DATABASE={config.DATABASE}')
+        config.VARS_DESC = json.loads(load(os.path.join(config.OUTDIR, 'vars.json')))
         conf={'STATIC_FOLDER': config.OUTDIR, 'STATIC_URL_PATH':'/public'}
         web=flask_app.create_app(conf, json=True)
         web.config['JSON_SORT_KEYS'] = False
