@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("cd17553b[2025-05-27T09:07:44+08:00]:s905_debootstrap.sh")
+VERSION+=("b5b13a2c[2025-05-27T09:49:59+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -210,8 +210,9 @@ PKG+=",parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server
 PKG+=",ksmbd-tools,procps"
 PKG+=",systemd-container,nftables,systemd-timesyncd,zstd"
 PKG+=",cron,logrotate,bsdmainutils,openssh-client,wget,ntpdate,less,wireless-tools,file,lsof,strace,rsync"
-PKG+=",xz-utils,zip,udisks2,fdisk,usbutils"
+PKG+=",xz-utils,zip,udisks2"
 PKG+=",alsa-utils,mpg123"
+PKG+=",e2fsprogs,jfsutils,xfsprogs,adb,bpftool,device-tree-compiler,edid-decode,fastboot,gdisk,geoip-database,pulseaudio-module-bluetooth,usbip,usbredirect,v2ray,xvkbd,psmisc,openvpn,fdisk,usbutils"
 # # tools
 PKG+=",sudo,aria2,axel,curl,eject,rename,bc,socat,tmux,xmlstarlet,jq,traceroute,ipcalc,ncal,qrencode,tcpdump"
 # fw_printenv/fw_setenv
