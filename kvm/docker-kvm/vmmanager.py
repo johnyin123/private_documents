@@ -218,11 +218,12 @@ class VMManager:
     @staticmethod
     def list(host:FakeDB, uuid:str=None)-> str:
         with connect(host.url) as conn:
-            if uuid:
-                return json.dumps(LibvirtDomain(conn.lookupByUUIDString(uuid))._asdict())
-            results = [LibvirtDomain(result)._asdict() for result in conn.listAllDomains()]
-            database.KVMGuest.Upsert(host.name, host.arch, results)
             (model, memory, cpus, mhz, nodes, sockets, cores, threads) = conn.getInfo()
+            if uuid:
+                results = LibvirtDomain(conn.lookupByUUIDString(uuid))._asdict()
+            else:
+                results = [LibvirtDomain(result)._asdict() for result in conn.listAllDomains()]
+                database.KVMGuest.Upsert(host.name, host.arch, results)
             return json.dumps({'host':{ 'hostname':conn.getHostname(), 'freemem': f'{conn.getFreeMemory()//MiB}MiB',
                 'totalmem':f'{memory}MiB', 'totalcpu':nodes*sockets*cores*threads, 'mhz':mhz,
                 'totalvm':len(results),'active':conn.numOfDomains()

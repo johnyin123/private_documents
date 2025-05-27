@@ -114,25 +114,25 @@ function manage_vm(kvmhost, uuid) {
   showView("manage_vm");
   getjson('GET', `/vm/list/${kvmhost}/${uuid}`, function(resp){
     const result = JSON.parse(resp);
-    var btn = genActBtn(true, 'Show XML', 'fa-file-code-o', 'show_xml', kvmhost, {'uuid':result.uuid});
-    btn += genActBtn(true, 'Guest Admin UI', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':result.uuid});
-    if(result.state === 'RUN') {
-      btn += genActBtn(true, 'Console', 'fa-terminal', 'ttyconsole', kvmhost, {'uuid':result.uuid});
-      btn += genActBtn(true, 'Display View', 'fa-desktop', 'display', kvmhost, {'uuid':result.uuid});
-      btn += genActBtn(true, 'Reset VM', 'fa-repeat', 'reset', kvmhost, {'uuid':result.uuid});
-      btn += genActBtn(true, 'Stop VM', 'fa-power-off', 'stop', kvmhost, {'uuid':result.uuid});
-      btn += genActBtn(true, 'ForceStop VM', 'fa-plug', 'force_stop', kvmhost, {'uuid':result.uuid});
+    var btn = genActBtn(true, 'Show XML', 'fa-file-code-o', 'show_xml', kvmhost, {'uuid':result.guest.uuid});
+    btn += genActBtn(true, 'Guest Admin UI', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':result.guest.uuid});
+    if(result.guest.state === 'RUN') {
+      btn += genActBtn(true, 'Console', 'fa-terminal', 'ttyconsole', kvmhost, {'uuid':result.guest.uuid});
+      btn += genActBtn(true, 'Display View', 'fa-desktop', 'display', kvmhost, {'uuid':result.guest.uuid});
+      btn += genActBtn(true, 'Reset VM', 'fa-repeat', 'reset', kvmhost, {'uuid':result.guest.uuid});
+      btn += genActBtn(true, 'Stop VM', 'fa-power-off', 'stop', kvmhost, {'uuid':result.guest.uuid});
+      btn += genActBtn(true, 'ForceStop VM', 'fa-plug', 'force_stop', kvmhost, {'uuid':result.guest.uuid});
     } else {
-      btn += genActBtn(true, 'Start VM', 'fa-play', 'start', kvmhost, {'uuid':result.uuid});
-      btn += genActBtn(true, 'Undefine', 'fa-trash', 'undefine', kvmhost, {'uuid':result.uuid});
+      btn += genActBtn(true, 'Start VM', 'fa-play', 'start', kvmhost, {'uuid':result.guest.uuid});
+      btn += genActBtn(true, 'Undefine', 'fa-trash', 'undefine', kvmhost, {'uuid':result.guest.uuid});
     }
-    btn += genActBtn(true, 'Add CDROM', 'fa-floppy-o', 'add_cdrom', kvmhost, {'uuid':result.uuid});
-    btn += genActBtn(true, 'Add NET', 'fa-wifi', 'add_net', kvmhost, {'uuid':result.uuid});
-    btn += genActBtn(true, 'Add DISK', 'fa-database', 'add_disk', kvmhost, {'uuid':result.uuid});
-    btn += genActBtn(true, 'Refresh VM', 'fa-refresh fa-spin', 'manage_vm', kvmhost, {'uuid':result.uuid});
+    btn += genActBtn(true, 'Add CDROM', 'fa-floppy-o', 'add_cdrom', kvmhost, {'uuid':result.guest.uuid});
+    btn += genActBtn(true, 'Add NET', 'fa-wifi', 'add_net', kvmhost, {'uuid':result.guest.uuid});
+    btn += genActBtn(true, 'Add DISK', 'fa-database', 'add_disk', kvmhost, {'uuid':result.guest.uuid});
+    btn += genActBtn(true, 'Refresh VM', 'fa-refresh fa-spin', 'manage_vm', kvmhost, {'uuid':result.guest.uuid});
     btn += `<button title="Close" class="close" onclick="vmlist('${kvmhost}');"><h2>&times;</h2></button>`;
-    const table = genVmsTBL(result, kvmhost);
-    const title = result.state == "RUN" ? `<h2 class="highlight">GUEST</h2>` : `<h2>GUEST</h2>`;
+    const table = genVmsTBL(result.guest, kvmhost);
+    const title = result.guest.state == "RUN" ? `<h2 class="highlight">GUEST</h2>` : `<h2>GUEST</h2>`;
     const tbl = genWrapper("vms-wrapper", title, btn, table);
     document.getElementById("vm_info").innerHTML = tbl;
   });
