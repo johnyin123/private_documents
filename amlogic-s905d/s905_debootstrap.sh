@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("92b0cf54[2025-05-23T09:24:46+08:00]:s905_debootstrap.sh")
+VERSION+=("f56064ca[2025-05-26T10:14:35+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -585,7 +585,7 @@ auto br-int
 iface br-int inet static
     bridge_ports none
     bridge_maxwait 0
-    address 192.168.167.1/24
+    address 192.168.31.1/24
 EOF
 
 cat << EOF > ${ROOT_DIR}/etc/network/interfaces.d/pppoe
@@ -1365,8 +1365,9 @@ sed -i "s|ExecStart=.*|ExecStart=/usr/libexec/bluetooth/bluetoothd --noplugin=sa
 log "add smplayer ontop options"
 sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applications/smplayer.desktop || true
 sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applications/smplayer_enqueue.desktop || true
-log "start chroot shell, disable service & do other work"
+log "start chroot shell, inst firmware & disable service & do other work"
 log "apt install --no-install-recommends libglu1-mesa libglw1-mesa libgles2-mesa libgl4es0 libglew2.1 mesa-utils mesa-vulkan-drivers"
+log "apt install --no-install-recommends lsusb fdisk"
 log "run: usb_automount/sky.remote.sh"
 chroot ${ROOT_DIR} /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
 log "ALL OK ###########################"
