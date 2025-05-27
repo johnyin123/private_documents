@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("e0124402[2025-05-27T07:16:37+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("aa1e43f1[2025-05-27T14:04:25+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -92,7 +92,7 @@ pkill --uid johnyin -9 websockify || true
 pkill --uid johnyin -9 gunicorn || true
 # nohup websockify --token-plugin TokenFile --token-source \${OUTDIR}/token/ 127.0.0.1:6800 &>\${OUTDIR}/websockify.log &
 websockify --token-plugin TokenFile --token-source \${OUTDIR}/token/ 127.0.0.1:6800 &
-gunicorn --env LOG=ERROR -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat '%(m)s %(s)s %(U)s[%(q)s] msec=%(M)s len=%(B)s' --access-logfile='-' 'main:app'
+gunicorn --env LOG=ERROR -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat '%(r)s %(s)s msec=%(M)s len=%(B)s' --access-logfile='-' 'main:app'
 EODOC
 }
 inst_app_outdir() {
