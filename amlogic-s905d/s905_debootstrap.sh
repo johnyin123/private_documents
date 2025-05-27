@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f56064ca[2025-05-26T10:14:35+08:00]:s905_debootstrap.sh")
+VERSION+=("cd17553b[2025-05-27T09:07:44+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -210,7 +210,7 @@ PKG+=",parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server
 PKG+=",ksmbd-tools,procps"
 PKG+=",systemd-container,nftables,systemd-timesyncd,zstd"
 PKG+=",cron,logrotate,bsdmainutils,openssh-client,wget,ntpdate,less,wireless-tools,file,lsof,strace,rsync"
-PKG+=",xz-utils,zip,udisks2"
+PKG+=",xz-utils,zip,udisks2,fdisk,usbutils"
 PKG+=",alsa-utils,mpg123"
 # # tools
 PKG+=",sudo,aria2,axel,curl,eject,rename,bc,socat,tmux,xmlstarlet,jq,traceroute,ipcalc,ncal,qrencode,tcpdump"
@@ -366,6 +366,7 @@ EOF
     chage -d 0 root || true
     /bin/umount /dev/pts
 
+    debian_locale_init
     debian_sysctl_init
     debian_zswap_init 512
     debian_sshd_init
