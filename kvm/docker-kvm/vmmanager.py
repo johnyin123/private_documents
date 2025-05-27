@@ -267,8 +267,7 @@ class VMManager:
                 conn.lookupByUUIDString(req_json['vm_uuid'])
                 raise Exception(f'vm {uuid} exists')
             except libvirt.libvirtError:
-                pass
-            conn.defineXML(template.DomainTemplate(host.tpl).gen_xml(**req_json))
+                conn.defineXML(template.DomainTemplate(host.tpl).gen_xml(**req_json))
         meta.gen_metafiles(**req_json)
         database.IPPool.remove(req_json.get('vm_ipaddr', ''))
         save(os.path.join(config.REQ_JSON_DIR, req_json['vm_uuid']), json.dumps(req_json, indent=4))
@@ -302,10 +301,10 @@ class VMManager:
         return return_ok('console', uuid=uuid, display=f'{config.CONSOLE_URL}?password=&path={path}', expire=dt)
 
     @staticmethod
-    def stop(host:FakeDB, uuid:str, **kwargs)-> str:
+    def stop(host:FakeDB, uuid:str, force:str=None)-> str:
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
-            if kwargs.get('force', False):
+            if force:
                 dom.destroy()
             else:
                 dom.shutdown()
