@@ -146,6 +146,7 @@ function show_vms(kvmhost, vms) {
     if (item.state === "RUN") {
       btn += genActBtn(true, 'VM IPAddress', 'fa-gg', 'get_vmip', kvmhost, {'uuid':item.uuid});
     } else {
+      btn += genActBtn(true, 'Start VM', 'fa-play', 'start', kvmhost, {'uuid':item.uuid, 'backlist':'1'});
       btn += genActBtn(true, 'Undefine', 'fa-trash', 'undefine', kvmhost, {'uuid':item.uuid});
     }
     btn += genActBtn(true, 'Manage VM', 'fa-cog fa-spin fa-lg', 'manage_vm', kvmhost, {'uuid':item.uuid});
@@ -365,12 +366,16 @@ function show_vmui(host, uuid, backlist = null) {
   btn_mail.onclick = btn.onclick;
   showView('vmui');
 }
-function start(host, uuid) {
+function start(host, uuid, backlist = null) {
   set_curr(host, uuid);
   if (confirm(`Start ${uuid}?`)) {
     getjson('GET', `/vm/start/${host}/${uuid}`, function(resp) {
       getjson_result(resp);
-      manage_vm(curr_host(), curr_vm());
+      if (backlist) {
+        vmlist(host);
+      } else {
+        manage_vm(host, uuid);
+      }
     });
   }
 }
