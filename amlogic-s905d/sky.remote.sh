@@ -1,6 +1,6 @@
 cat <<EOF
 /etc/johnyin/remote/remoter.sh
-ln -s /etc/johnyin/remote/sky.conf /etc/johnyin/triggerhappy/triggers.d/sky.conf
+ln -s /etc/johnyin/remote/sky.conf /etc/triggerhappy/triggers.d/sky.conf
 ln -s /etc/johnyin/remote/osd.service /etc/systemd/system/osd.service
 ln -s /etc/johnyin/remote/osd.socket /etc/systemd/system/osd.socket
 ln -s /etc/johnyin/remote/21-sky.conf /etc/X11/xorg.conf.d/21-sky.conf
