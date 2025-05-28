@@ -220,14 +220,13 @@ class VMManager:
         with connect(host.url) as conn:
             (model, memory, cpus, mhz, nodes, sockets, cores, threads) = conn.getInfo()
             if uuid:
-                results = LibvirtDomain(conn.lookupByUUIDString(uuid))._asdict()
+                guest = LibvirtDomain(conn.lookupByUUIDString(uuid))._asdict()
+                info ={'hostname':conn.getHostname(), 'freemem': f'{conn.getFreeMemory()//MiB}MiB', 'totalmem':f'{memory}MiB', 'totalcpu':nodes*sockets*cores*threads, 'mhz':mhz}
             else:
-                results = [LibvirtDomain(result)._asdict() for result in conn.listAllDomains()]
-                database.KVMGuest.Upsert(host.name, host.arch, results)
-            return json.dumps({'host':{ 'hostname':conn.getHostname(), 'freemem': f'{conn.getFreeMemory()//MiB}MiB',
-                'totalmem':f'{memory}MiB', 'totalcpu':nodes*sockets*cores*threads, 'mhz':mhz,
-                'totalvm':len(results),'active':conn.numOfDomains()
-                }, 'guest':results})
+                guest = [LibvirtDomain(result)._asdict() for result in conn.listAllDomains()]
+                info ={'hostname':conn.getHostname(), 'freemem': f'{conn.getFreeMemory()//MiB}MiB', 'totalmem':f'{memory}MiB', 'totalcpu':nodes*sockets*cores*threads, 'mhz':mhz, 'totalvm':len(guest),'active':conn.numOfDomains()}
+                database.KVMGuest.Upsert(host.name, host.arch, guest)
+            return json.dumps({'host':info, 'guest':guest})
 
     @staticmethod
     def attach_device(host:FakeDB, uuid:str, dev:str, req_json)-> Generator:
