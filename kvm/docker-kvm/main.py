@@ -81,7 +81,7 @@ class MyApp(object):
         try:
             return return_ok(f'db_freeip ok', **database.IPPool.free_ip())
         except Exception as e:
-            return return_ok(f'db_freeip ok', **{"cidr":"N/A","gateway":"N/A"})
+            return return_ok(f'db_freeip ok', **{"cidr":"","gateway":""})
 
     def exec_domain_cmd(self, cmd:str, hostname:str, uuid:str = None):
         dom_cmds = {
