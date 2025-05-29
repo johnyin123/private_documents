@@ -2,7 +2,7 @@
 LABEL=media
 MNT_POINT=/media
 # LABEL=MEDIA  ${MNT_POINT}  auto  noauto,ro,dev,noexec,user,x-systemd.automount  0  0
-cat <<EOF > /etc/systemd/system/media-autousb.automount
+cat <<EOF > # /etc/systemd/system/media-autousb.automount
 [Unit]
 Description=Automount USB=${LABEL}
 
@@ -14,7 +14,7 @@ Type=auto
 [Install]
 WantedBy=multi-user.target
 EOF
-cat <<EOF > /etc/systemd/system/media-autousb.mount
+cat <<EOF > # /etc/systemd/system/media-autousb.mount
 [Unit]
 Description=Automount USB=${LABEL}
 
@@ -32,15 +32,23 @@ EOF
 # sed -i 's#\(^allowed_media_dirs = \)\(.*\)#\1\/media, \2#' /etc/udevil/udevil.conf
 # systemctl enable devmon@your-username --now
 
-# apt -y install polkitd-pkla
-cat <<'EOF' > /etc/polkit-1/localauthority/90-mandatory.d/johnyin.pkla 
-[johnyin auto mount]
-Identity=unix-user:johnyin
-Action=org.freedesktop.udisks2.*
-ResultAny=yes
-ResultInactive=yes
-ResultActive=yes
+# # trixie
+cat <<'EOF' > /etc/polkit-1/rules.d/johnyin.rules
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.freedesktop.udisks2.filesystem-mount" && subject.user == "johnyin") {
+        return polkit.Result.YES;
+    }
+});
 EOF
+# # apt -y install polkitd-pkla
+# cat <<'EOF' > /etc/polkit-1/localauthority/90-mandatory.d/johnyin.pkla
+# [johnyin auto mount]
+# Identity=unix-user:johnyin
+# Action=org.freedesktop.udisks2.*
+# ResultAny=yes
+# ResultInactive=yes
+# ResultActive=yes
+# EOF
 
 # auto mount usb storage (readonly)
 cat << 'EOF' > /etc/udev/rules.d/98-usbmount.rules
