@@ -6,7 +6,7 @@ ln -s /etc/johnyin/remote/osd.socket /etc/systemd/system/osd.socket
 ln -s /etc/johnyin/remote/21-sky.conf /etc/X11/xorg.conf.d/21-sky.conf
 rm -f /usr/lib/udev/rules.d/60-triggerhappy.rules && ln -s /etc/johnyin/remote/60-triggerhappy.rules /usr/lib/udev/rules.d/60-triggerhappy.rules
 sed -i "s/^#HandlePowerKey=.*/HandlePowerKey=ignore/g" /etc/systemd/logind.conf
-systemctl disable triggerhappy.socket
+systemctl mask triggerhappy.socket
 systemctl enable triggerhappy.service
 sed -i "s|ExecStart=.*|ExecStart=/usr/sbin/thd --triggers /etc/triggerhappy/triggers.d/ --socket /run/thd.socket --user root|g" /lib/systemd/system/triggerhappy.service
 EOF

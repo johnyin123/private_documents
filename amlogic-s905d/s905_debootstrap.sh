@@ -7,11 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("492a9bc5[2025-05-27T16:57:30+08:00]:s905_debootstrap.sh")
+VERSION+=("7cee5fd8[2025-05-29T11:26:29+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
-DEBIAN_VERSION=trixie ./s905_debootstrap.sh wireguard-tools v4l-utils triggerhappy sshfs python3-pip python3-venv nmon iptables dbus-x11 cec-utils build-essential bluez bluez-tools bind9utils ldap-utils gnupg apt-transport-https rng-tools-debian mesa-utils unzip xxd qemu-utils mame bind9-dnsutils polkitd-pkla python3-dev usbutils
+DEBIAN_VERSION=trixie ./s905_debootstrap.sh wireguard-tools v4l-utils triggerhappy sshfs python3-pip python3-venv nmon iptables dbus-x11 cec-utils build-essential bluez bluez-tools ldap-utils gnupg apt-transport-https rng-tools-debian mesa-utils unzip xxd qemu-utils mame bind9-dnsutils polkitd-pkla python3-dev usbutils
 EOF
 log() { echo "$(tput setaf 141)######$*$(tput sgr0)" >&2; }
 export -f log
@@ -237,7 +237,7 @@ case "${DEBIAN_VERSION:-bullseye}" in
     *)        PKG+=",xfce4,xfce4-terminal,pavucontrol" ;;
 esac
 PKG+=",policykit-1,x11vnc,wpan-tools"
-
+PKG+=",polkitd" # for trixie
 # # finally add custom packages
 PKG+="${custom_pkgs:+,${custom_pkgs}}"
 
@@ -1372,7 +1372,6 @@ sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applicatio
 sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applications/smplayer_enqueue.desktop || true
 log "start chroot shell, inst firmware & disable service & do other work"
 log "apt install --no-install-recommends libglu1-mesa libglw1-mesa libgles2-mesa libgl4es0 libglew2.1 mesa-utils mesa-vulkan-drivers"
-log "apt install --no-install-recommends lsusb fdisk"
 log "run: usb_automount/sky.remote.sh"
 chroot ${ROOT_DIR} /usr/bin/env -i PS1='\u@s905d:\w$' /bin/bash --noprofile --norc -o vi || true
 log "ALL OK ###########################"

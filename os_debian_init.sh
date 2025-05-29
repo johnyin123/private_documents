@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("e1dd2a97[2025-05-23T09:37:26+08:00]:os_debian_init.sh")
+VERSION+=("63c94c93[2025-05-26T16:40:24+08:00]:os_debian_init.sh")
 # liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
 # INST_ARCH=amd64
@@ -145,7 +145,7 @@ debian_sysctl_init() {
     # net.ipv4.ip_local_port_range = 1024 65531
     # net.ipv4.tcp_fin_timeout = 10
     # # (65531-1024)/10 = 6450 sockets per second.
-    [ -e "/etc/sysctl.conf" ] || {
+    command -v "sysctl" &> /dev/null || {
         echo "need install procps"
         DEBIAN_FRONTEND=noninteractive apt update || true
         DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install procps
@@ -203,8 +203,10 @@ debian_sshd_regenkey() {
 export -f debian_sshd_regenkey
 
 debian_sshd_init() {
-    DEBIAN_FRONTEND=noninteractive apt update || true
-    DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install openssh-server
+    command -v "sshd" &> /dev/null || {
+        DEBIAN_FRONTEND=noninteractive apt update || true
+        DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install openssh-server
+    }
     # dpkg-reconfigure -f noninteractive openssh-server
     sed --quiet -i.orig -E \
         -e '/^\s*(UseDNS|MaxAuthTries|GSSAPIAuthentication|Port|Ciphers|MACs|PermitRootLogin|TrustedUserCAKeys|MaxStartups|LoginGraceTime).*/!p' \
@@ -246,9 +248,11 @@ Host github.com
     # User root
     # IdentityFile ~/.ssh/id_rsa
 EOF
-    mkdir -p /root/.ssh/sockets/
     chmod 0600 /root/.ssh/config
-    cat <<EOF > /etc/systemd/system/ssh-host-key-gen.service
+
+    eval $(grep -E "^VERSION_CODENAME=" /etc/os-release)
+    [ "${VERSION_CODENAME}" == "trixie" ] || {
+        cat <<EOF > /etc/systemd/system/ssh-host-key-gen.service
 [Unit]
 Before=ssh.service
 
@@ -260,7 +264,8 @@ ExecStartPost=/bin/rm -f /etc/systemd/system/ssh-host-key-gen.service /etc/syste
 [Install]
 WantedBy=multi-user.target
 EOF
-    ln -s  /etc/systemd/system/ssh-host-key-gen.service /etc/systemd/system/multi-user.target.wants/ssh-host-key-gen.service || true
+        ln -s  /etc/systemd/system/ssh-host-key-gen.service /etc/systemd/system/multi-user.target.wants/ssh-host-key-gen.service || true
+    }
 }
 export -f debian_sshd_init
 
@@ -641,8 +646,10 @@ export -f debian_vim_init
 
 debian_locale_init() {
     #dpkg-reconfigure locales
-    DEBIAN_FRONTEND=noninteractive apt update || true
-    DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install locales
+    command -v "locale-gen" &> /dev/null || {
+        DEBIAN_FRONTEND=noninteractive apt update || true
+        DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install locales
+    }
     sed -i "s/^# *zh_CN.UTF-8/zh_CN.UTF-8/g" /etc/locale.gen
     locale-gen
     echo -e 'LANG="zh_CN.UTF-8"\nLANGUAGE="zh_CN:zh"\nLC_ALL="zh_CN.UTF-8"\n' > /etc/default/locale
