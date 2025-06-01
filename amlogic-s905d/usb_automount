@@ -42,6 +42,10 @@ Description=auto mount block %i
 RemainAfterExit=true
 User=johnyin
 Group=johnyin
-ExecStart=/bin/sh -c '/bin/udisksctl mount -b /dev/%i || exit 0'
-ExecStop=/bin/sh -c '/bin/udisksctl unmount -f -b /dev/%i || exit 0'
+ExecStart=/bin/udisksctl mount -b /dev/%i
+ExecStop=/bin/udisksctl unmount -f -b /dev/%i
+Restart=always
+RestartSec=10
+StandardOutput=tty
+StandardError=tty
 EOF
