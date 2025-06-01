@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7cee5fd8[2025-05-29T11:26:29+08:00]:s905_debootstrap.sh")
+VERSION+=("2a9d6e1f[2025-05-29T16:16:37+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
@@ -29,174 +29,6 @@ menu_select() {
     done
     PS3=${org_PS3}
 }
-
-: <<'EOF_DOC'
-git clone https://github.com/RPi-Distro/firmware-nonfree.git
-git clone https://github.com/RPi-Distro/bluez-firmware.git
-
-#fw_setenv bootcmd "run update"; reboot
-#之后PC端的刷机程序就会检测到设备进入刷机模式，按软件的刷机提示刷机即可。
-
-短接->插USB线->上电->取消短接
-./aml-flash --img=T1-6.23-fix.img --parts=all
-        ./update identify 7
-        ./update bulkcmd "     echo 12345"
-        ./update identify 7
-        ./update rreg 4 0xc8100228
-        ./update cwr ./t1/DDR_ENC.USB 0xd9000000
-        ./update write usbbl2runpara_ddrinit.bin 0xd900c000
-        ./update run 0xd9000000
-        sleep 8
-        ./update identify 7
-        ./update write ./t1/DDR_ENC.USB 0xd9000000
-        ./update write usbbl2runpara_runfipimg.bin 0xd900c000
-        ./update write ./t1/UBOOT_ENC.USB 0x200c000
-        ./update run 0xd9000000
-        sleep 8
-        ./update mwrite ./t1/_aml_dtb.PARTITION mem dtb normal
-        ./update bulkcmd "     disk_initial 0"
-        ./update mwrite ./t1/meson1.dtb mem dtb normal
-        ./update partition bootloader ./t1/bootloader.PARTITION
-# ########################################################
-./update identify 7
-./update mwrite ./n1/_aml_dtb.PARTITION mem dtb normal
-./update bulkcmd "     disk_initial 0"
-./update partition bootloader ./n1/bootloader.PARTITION
-./update partition boot ./n1/boot.PARTITION normal
-./update partition logo ./n1/logo.PARTITION normal
-./update partition recovery ./n1/recovery.PARTITION normal
-./update partition system ./n1/system.PARTITION sparse
-./update bulkcmd "     setenv upgrade_step 1"
-./update bulkcmd "     save"
-./update bulkcmd "     setenv firstboot 1"
-./update bulkcmd "     save"
-./update bulkcmd "     rpmb_reset"
-./update bulkcmd "     amlmmc erase data"
-./update bulkcmd "     nand erase.part data"
-./update bulkcmd "     amlmmc erase cache"
-./update bulkcmd "     nand erase.part cache"
-./update bulkcmd "     burn_complete 1"
-设置->媒体盒状态->版本号->连续点击进入开发模式
-adb connect ${IPADDR}:5555
-adb shell reboot update (!!! aml_autoscript in vfat boot partition)
-adb shell
-   su
-     31183118
-ssh -p${PORT} ${IPADDR}
-################################################################################
-cat > interfaces.hostapd << EOF
-auto lo br0
-iface lo inet loopback
-
-auto eth0
-iface eth0 inet manual
-
-auto wlan0
-iface wlan0 inet manual
-
-iface br0 inet dhcp
-bridge_ports eth0 wlan0
-#hwaddress ether # will be added at first boot
-EOF
-cat > interfaces.bonding << EOF
-auto eth0
-iface eth0 inet manual
-    bond-master bond0
-    bond-primary eth0
-    bond-mode active-backup
-
-auto wlan0
-iface wlan0 inet manual
-    wpa-ssid your_SSID
-    wpa-psk xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    # to generate proper encrypted key: wpa_passphrase your_SSID your_password
-    bond-master bond0
-    bond-primary eth0
-    bond-mode active-backup
-
-# Define master
-auto bond0
-iface bond0 inet dhcp
-    bond-slaves none
-    bond-primary eth0
-    bond-mode active-backup
-    bond-miimon 100
-EOF
-
-cat > interfaces.router << EOF
-auto lo
-iface lo inet loopback
-
-auto eth0.101
-iface eth0.101 inet manual
-    pre-up swconfig dev eth0 set reset 1
-    pre-up swconfig dev eth0 set enable_vlan 1
-    pre-up swconfig dev eth0 vlan 101 set ports '3 8t'
-    pre-up swconfig dev eth0 set apply 1
-
-auto eth0.102
-iface eth0.102 inet manual
-    pre-up swconfig dev eth0 vlan 102 set ports '0 1 2 4 8t'
-    pre-up swconfig dev eth0 set apply 1
-
-allow-hotplug wlan0
-iface wlan0 inet manual
-
-# WAN
-auto eth0.101
-iface eth0.101 inet dhcp
-
-# LAN
-auto br0
-iface br0 inet static
-bridge_ports eth0.102 wlan0
-    address 192.168.2.254
-    netmask 255.255.255.0
-EOF
-cat > interfaces.switch << EOF
-auto lo
-iface lo inet loopback
-
-auto eth0.101
-iface eth0.101 inet manual
-    pre-up swconfig dev eth0 set reset 1
-    pre-up swconfig dev eth0 set enable_vlan 1
-    pre-up swconfig dev eth0 vlan 101 set ports '0 1 2 3 4 8t'
-    pre-up swconfig dev eth0 set apply 1
-
-auto wlan0
-iface wlan0 inet manual
-
-auto br0
-iface br0 inet dhcp
-bridge_ports eth0.101 wlan0
-EOF
-
-aplay -l
-pactl list cards
-# output soundcard
-pactl set-card-profile 0 output:analog-stereo
-# export PULSE_SERVER="unix:/run/user/"$USER_ID"/pulse/native"
-# sudo -u $USER_NAME pactl --server $PULSE_SERVER set-card-profile 0 output:hdmi-stereo+input:analog-stereo
-
-# output hdmi
-pactl set-card-profile 0 output:hdmi-stereo
-# login xfce, run  alsamixer -> F6 -> ....
-amixer -c  GXP230Q200 sset 'AIU HDMI CTRL SRC' 'I2S'
-
-# via ssh: sudo -u johnyin XDG_RUNTIME_DIR=/run/user/1000
-pacmd list-sinks | grep -e 'name:' -e 'index:'
-pacmd set-default-sink <sink_name>
-# pacmd list-sources for name or index number of possible sources
-# pacmd set-default-source "SOURCENAME" | index to set the default input
-pacmd set-sink-volume index volume
-pacmd set-source-volume index volume for volume control (65536 = 100 %, 0 = mute; or a bit more intuitive 0x10000 = 100 %, 0x7500 = 75 %, 0x0 = 0 %)
-# Note: Changing the output sink through the command line interface can only take effect if stream target device reading is disabled.
-# This can be done by editing the corresponding line in /etc/pulse/default.pa to:
-# load-module module-stream-restore restore_device=false
-# Restart PulseAudio for changes to take effect:
-pulseaudio -k
-EOF_DOC
 
 BOOT_LABEL="EMMCBOOT"
 ROOT_LABEL="EMMCROOT"
@@ -233,7 +65,7 @@ PKG+=",pulseaudio,pulseaudio-utils,ffmpeg,bluetooth"
 # ,pipewire,pipewire-audio-client-libraries"
 log "lxde use ibus input for chinese"
 case "${DEBIAN_VERSION:-bullseye}" in
-    bookworm) PKG+=",lxde-core,lxterminal,lxrandr,openbox-lxde-session" ;;
+    trixie | bookworm) PKG+=",lxde-core,lxterminal,lxrandr,openbox-lxde-session" ;;
     *)        PKG+=",xfce4,xfce4-terminal,pavucontrol" ;;
 esac
 PKG+=",policykit-1,x11vnc,wpan-tools"

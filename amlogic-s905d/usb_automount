@@ -29,7 +29,7 @@ cat << 'EOF' > 98-usbmount.rules
 # udevadm monitor
 SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="add", RUN+="/bin/systemctl start usb-mount@%k.service"
 SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/bin/systemctl stop usb-mount@%k.service"
-SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="change", RUN+="/usr/bin/systemctl restart minidlna.service"
+# SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="change", RUN+="/usr/bin/systemctl restart minidlna.service"
 # SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="add", RUN+="/usr/bin/systemd-run --uid=johnyin /usr/bin/udisksctl mount -b /dev/%k"
 # SUBSYSTEM=="block", KERNEL=="sd[a-z]*[0-9]", ACTION=="remove", RUN+="/usr/bin/systemd-run --uid=johnyin /usr/bin/udisksctl unmount -f -b /dev/%k"
 EOF
@@ -45,7 +45,7 @@ Group=johnyin
 ExecStart=/bin/udisksctl mount -b /dev/%i
 ExecStop=/bin/udisksctl unmount -f -b /dev/%i
 Restart=always
-RestartSec=10
+RestartSec=1
 StandardOutput=tty
 StandardError=tty
 EOF
