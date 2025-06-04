@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("953d69b2[2025-06-01T20:54:04+08:00]:s905_debootstrap.sh")
+VERSION+=("4b2da9b0[2025-06-03T09:28:42+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
@@ -1199,6 +1199,7 @@ log "end install you kernel&patchs"
 
 log "patch bluetoothd for sap error, Starting bluetoothd with the option \"--noplugin=sap\" by default (as already suggested) would be one way to do it"
 sed -i.bak "s|ExecStart=.*|ExecStart=/usr/libexec/bluetooth/bluetoothd --compat --noplugin=sap|g" ${ROOT_DIR}/usr/lib/systemd/system/bluetooth.service || true
+log "bluetoothctl --agent KeyboardDisplay"
 log "add smplayer ontop options"
 sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applications/smplayer.desktop || true
 sed -i "s|Exec=smplayer|Exec=smplayer -ontop|g" ${ROOT_DIR}/usr/share/applications/smplayer_enqueue.desktop || true
