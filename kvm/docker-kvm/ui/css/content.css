@@ -172,6 +172,7 @@ details table th { text-align: right; text-transform: none; }
 .current { background-color:var(--blue-color); }
 .tabContent { display:none; }
 #alert {
+  border: 2px solid var(--grey-color-light) !important;
   background-color: var(--black-color-light);
   color: var(--text-color);
   position: absolute;
