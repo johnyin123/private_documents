@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ec4a8a30[2025-03-11T11:10:18+08:00]:mk_nginx.sh")
+VERSION+=("70a840da[2025-04-27T10:55:00+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -113,7 +113,7 @@ check_depends_lib() {
     for dir in $@ ; do
         pkg-config --exists ${dir} || {
             log "[FAILED] ${dir} not exists!!"
-            log "apt -y install libxml2-dev libxslt1-dev libgeoip-dev libgd-dev libldap2-dev uuid-dev libsqlite3-dev libbrotli-dev"
+            log "apt -y install libxml2-dev libxslt1-dev libgeoip-dev libgd-dev libldap2-dev uuid-dev libsqlite3-dev libbrotli-dev libjwt-dev libjansson-dev"
             log "yum -y install libxml2-devel libxslt-devel GeoIP-devel gd-devel openldap-devel uuid-devel sqlite-devel brotli-devel"
             log "yum -y install rpm-build"
             exit 1
