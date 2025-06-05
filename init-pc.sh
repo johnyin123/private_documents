@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("96943922[2025-02-06T13:59:21+08:00]:init-pc.sh")
+VERSION+=("c491668e[2025-05-26T14:42:56+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -194,9 +194,14 @@ apt_install iotop iputils-tracepath traceroute ipcalc subnetcalc qrencode ncal
 
 # bat(batcat): cat(1) clone with syntax highlighting and git integration
 apt_install bat
-echo "modify xfce4 default Panel layer"
-apt_install xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver \
-    lightdm xtv x2x rfkill
+[ "${XFCE:-false}" == "true" ] && {
+    echo "modify xfce4 default Panel layer"
+    apt_install lightdm xserver-xorg xfce4 xfce4-terminal xfce4-screenshooter xscreensaver
+} || {
+    apt_install lightdm xserver-xorg lxde-core lxterminal lxrandr openbox-lxde-session xscreensaver
+}
+apt_install xtv x2x rfkill
+
 echo "xtv -d <remote_ip:0> #xtv see remote desktop"
 echo "x2x -to <remote_ip:0.0> -west # mouse move left, then appear remote desktop!!!"
 echo "ssh -p22 root@ip 'ffmpeg -f x11grab -r 25 -i :0.0 -f mpeg -' | mpv -"
@@ -227,7 +232,7 @@ case "$VERSION_CODENAME" in
         ;;
 esac
 sed -i "s/#xserver-allow-tcp=.*/xserver-allow-tcp=true/g" /etc/lightdm/lightdm.conf || true
-cat<<EOF > /etc/xdg/xfce4/panel/default.xml
+[ "${XFCE:-false}" == "true" ] && cat<<EOF > /etc/xdg/xfce4/panel/default.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-panel" version="1.0">
   <property name="configver" type="int" value="2"/>
@@ -319,8 +324,7 @@ cat<<EOF > /etc/xdg/xfce4/panel/default.xml
   </property>
 </channel>
 EOF
-apt_install galculator gpicview qpdfview rdesktop wireshark fbreader \
-    virt-manager gir1.2-spiceclientgtk-3.0
+apt_install galculator gpicview qpdfview rdesktop wireshark fbreader virt-manager
 
 apt_install alsa-utils pulseaudio pulseaudio-utils
 
