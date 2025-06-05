@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c491668e[2025-05-26T14:42:56+08:00]:init-pc.sh")
+VERSION+=("1816ab74[2025-06-05T08:43:34+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -339,8 +339,10 @@ rm -f /etc/apt/sources.list.d/google.list /etc/cron.daily/google-chrome /etc/def
 
 # wget https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb
 # wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-
-id johnyin &>/dev/null && {
+id johnyin &>/dev/null || useradd johnyin --home-dir /home/johnyin/ --shell /bin/bash
+debian_bash_init johnyin
+debian_chpasswd johnyin ${PASSWORD}
+{
     echo "login johnyin and run 'systemctl enable pulseaudio.service --user' to enable pulse audio"
     mkdir -p /home/johnyin/.config/libvirt
     echo 'export LIBVIRT_DEFAULT_URI="qemu:///system"'
@@ -371,7 +373,6 @@ EOF
     debian_bash_init johnyin
 }
 
-id johnyin &>/dev/null && debian_chpasswd johnyin ${PASSWORD}
 echo "Force Users To Change Passwords Upon First Login"
 chage -d 0 root || true
 chage -d 0 johnyin || true

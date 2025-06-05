@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8662acd2[2025-04-29T15:38:29+08:00]:build_debian_no_kernel.sh")
+VERSION+=("29de7b60[2025-05-19T09:02:39+08:00]:build_debian_no_kernel.sh")
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
 ################################################################################
 log() { echo "######$*" >&2; }
@@ -42,7 +42,6 @@ PKG+=",systemd-timesyncd"
 # PKG+=",dialog"
 # PKG+=",dbus-user-session"
 # PKG+=",bridge-utils"
-PKG+=",dnsutils"
 PKG+=",lsof"
 PKG+=",telnet"
 PKG+=",rsync"
