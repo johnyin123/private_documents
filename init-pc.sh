@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d1ebe646[2025-06-05T10:42:47+08:00]:init-pc.sh")
+VERSION+=("6f7ad490[2025-06-05T16:19:05+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -201,9 +201,11 @@ apt_install bat
     apt_install lightdm xserver-xorg lxde-core lxterminal lxrandr openbox-lxde-session xscreensaver
     sed -i "/font place=/,/font/ s/<name>.*<\/name>/<name>DejaVu Sans Mono<\/name>/" /etc/xdg/openbox/LXDE/rc.xml
     sed -i "/font place=/,/font/ s/<size>.*<\/size>/<size>14<\/size>/" /etc/xdg/openbox/LXDE/rc.xml
+    sed -i "/<desktops>/,/<desktops>/ s/<number>.*<\/number>/<number>1<\/number>/" /etc/xdg/openbox/LXDE/rc.xml
     sed -i 's/fontname=.*/fontname=DejaVu Sans Mono 14/g' /usr/share/lxterminal/lxterminal.conf
     echo 'color_preset=xterm' >> /usr/share/lxterminal/lxterminal.conf
     sed -i 's/edge=bottom/edge=top/g' /etc/xdg/lxpanel/LXDE/panels/panel
+    # /etc/xdg/pcmanfm/LXDE/pcmanfm.conf
 }
 apt_install xtv x2x rfkill
 
@@ -588,6 +590,7 @@ cat <<EOF >/etc/systemd/network/${BR_NAME}.netdev
 Name=${BR_NAME}
 Kind=bridge
 EOF
+echo '/home/johnyin/disk/storage /storage none defaults,bind 0 4' >> /etc/fstab
 EODOC
 
 echo "ALL DONE!!!!!!!!!!!!!!!!"
