@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("132208b4[2025-06-06T14:07:32+08:00]:init-pc.sh")
+VERSION+=("2666dbc2[2025-06-06T14:14:29+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -157,8 +157,8 @@ mount -o remount,ro /overlay/lower
 EOF
 
 debian_grub_init
-update-initramfs -c -k $(uname -r)
-grub-mkconfig -o /boot/grub/grub.cfg
+# update-initramfs -c -k $(uname -r)
+# grub-mkconfig -o /boot/grub/grub.cfg
 
 [ -r "${DIRNAME}/motd.sh" ] && {
     cat ${DIRNAME}/motd.sh >/etc/update-motd.d/11-motd
