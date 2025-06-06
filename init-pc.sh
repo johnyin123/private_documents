@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("066ec2bb[2025-06-06T08:37:40+08:00]:init-pc.sh")
+VERSION+=("bd421bea[2025-06-06T09:27:10+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -19,7 +19,9 @@ NAME_SERVER=114.114.114.114
 #512 M
 ZRAM_SIZE=512
 apt_install() {
-    apt -y -oAcquire::http::User-Agent=dler install $*
+    for pkg in $*; do
+        apt -y -oAcquire::http::User-Agent=dler install ${pkg}
+    done
 }
 
 debian_apt_init
@@ -186,8 +188,6 @@ apt_install systemd-container \
     qemu-kvm qemu-system-gui qemu-utils xmlstarlet jq sudo debootstrap kpartx \
     crudini usbredirect usbip wpan-tools
     #binwalk
-# wireguard-tools need install debian kernel
-apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install wireguard-tools
 
 apt_install iotop iputils-tracepath traceroute ipcalc subnetcalc qrencode ncal
 # qrencode -8 -o - -t UTF8 "massage"
@@ -597,6 +597,8 @@ Name=${BR_NAME}
 Kind=bridge
 EOF
 echo '/home/johnyin/disk/storage /storage none defaults,bind 0 4' >> /etc/fstab
+# wireguard-tools need install debian kernel
+apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install wireguard-tools
 EODOC
 
 echo "ALL DONE!!!!!!!!!!!!!!!!"
