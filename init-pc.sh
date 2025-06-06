@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7f57ff6f[2025-06-06T10:50:39+08:00]:init-pc.sh")
+VERSION+=("132208b4[2025-06-06T14:07:32+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -349,14 +349,7 @@ apt_install alsa-utils pulseaudio pulseaudio-utils
 apt_install smplayer smplayer-l10n ffmpeg mkvtoolnix
 
 apt_install systemd-timesyncd recordmydesktop
-touch /etc/default/google-chrome
-wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - && \
-echo "deb [arch=amd64 trusted=yes] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
-apt update && apt -y install google-chrome-stable || true
-rm -f /etc/apt/sources.list.d/google.list /etc/cron.daily/google-chrome /etc/default/google-chrome
 
-# wget https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb
-# wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 id johnyin &>/dev/null || useradd johnyin --create-home --home-dir /home/johnyin/ --shell /bin/bash
 debian_bash_init johnyin
 debian_chpasswd johnyin ${PASSWORD}
@@ -604,6 +597,13 @@ EOF
 echo '/home/johnyin/disk/storage /storage none defaults,bind 0 4' >> /etc/fstab
 # wireguard-tools need install debian kernel
 apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install wireguard-tools
+touch /etc/default/google-chrome
+wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | apt-key add - && \
+echo "deb [arch=amd64 trusted=yes] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
+apt update && apt -y install google-chrome-stable || true
+rm -f /etc/apt/sources.list.d/google.list /etc/cron.daily/google-chrome /etc/default/google-chrome
+# wget https://dl.google.com/linux/direct/chrome-remote-desktop_current_amd64.deb
+# wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 EODOC
 
 echo "ALL DONE!!!!!!!!!!!!!!!!"
