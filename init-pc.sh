@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("bd421bea[2025-06-06T09:27:10+08:00]:init-pc.sh")
+VERSION+=("7f57ff6f[2025-06-06T10:50:39+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -20,7 +20,7 @@ NAME_SERVER=114.114.114.114
 ZRAM_SIZE=512
 apt_install() {
     for pkg in $*; do
-        apt -y -oAcquire::http::User-Agent=dler install ${pkg}
+        apt -y -oAcquire::http::User-Agent=dler install ${pkg} || true
     done
 }
 
@@ -178,18 +178,23 @@ echo "install packages! pbzip2 pigz pixz parallel version bzip2/gz/xz"
 apt_install systemd-container \
     hostapd wpasupplicant wireless-tools \
     android-tools-adb android-tools-fastboot \
-    pbzip2 pigz pixz p7zip-full arj zip rar mscompress unar eject bc less vim rename \
+    pbzip2 pigz pixz xz-utils zstd p7zip-full brotli arj zip rar mscompress \
+    unar eject bc less vim rename lunar wrk \
     ftp telnet nmap tftp ntpdate lsof strace \
-    tcpdump ethtool aria2 axel curl wget mpg123 nmon sysstat arping dnsutils \
-    minicom socat git git-flow net-tools \
-    manpages-dev manpages-posix manpages-posix-dev manpages man-db build-essential \
-    nscd nbd-client iftop netcat-openbsd sshfs squashfs-tools graphviz nftables \
-    rsync tmux virt-viewer \
-    qemu-kvm qemu-system-gui qemu-utils xmlstarlet jq sudo debootstrap kpartx \
+    tcpdump ethtool aria2 axel curl wget mpg123 lame \
+    nmon sysstat arping dnsutils openvpn \
+    minicom socat git git-flow net-tools file genisoimage \
+    manpages-dev manpages-posix manpages-posix-dev manpages man-db \
+    build-essential bison flex patch pahole j2cli \
+    nscd nbd-client mtools iftop netcat-openbsd sshfs vlan \
+    squashfs-tools graphviz nftables stunnel4 \
+    rsync tmux virt-viewer sqlite3 dnsmasq ncal \
+    qemu-kvm qemu-system-gui qemu-utils qemu-block-extra \
+    xmlstarlet jq sudo debootstrap kpartx \
     crudini usbredirect usbip wpan-tools
     #binwalk
 
-apt_install iotop iputils-tracepath traceroute ipcalc subnetcalc qrencode ncal
+apt_install iotop iputils-tracepath traceroute ipcalc ipset iputils-ping subnetcalc qrencode ncal
 # qrencode -8 -o - -t UTF8 "massage"
 
 # bat(batcat): cat(1) clone with syntax highlighting and git integration
@@ -213,7 +218,7 @@ apt_install bat
 
 
 }
-apt_install xtv x2x rfkill
+apt_install xtv x2x rfkill x11vnc gvncviewer aosd-cat
 
 echo "xtv -d <remote_ip:0> #xtv see remote desktop"
 echo "x2x -to <remote_ip:0.0> -west # mouse move left, then appear remote desktop!!!"
@@ -341,7 +346,7 @@ apt_install galculator gpicview qpdfview rdesktop wireshark fbreader virt-manage
 
 apt_install alsa-utils pulseaudio pulseaudio-utils
 
-apt_install smplayer smplayer-l10n
+apt_install smplayer smplayer-l10n ffmpeg mkvtoolnix
 
 apt_install systemd-timesyncd recordmydesktop
 touch /etc/default/google-chrome
