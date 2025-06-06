@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6f7ad490[2025-06-05T16:19:05+08:00]:init-pc.sh")
+VERSION+=("066ec2bb[2025-06-06T08:37:40+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -205,7 +205,13 @@ apt_install bat
     sed -i 's/fontname=.*/fontname=DejaVu Sans Mono 14/g' /usr/share/lxterminal/lxterminal.conf
     echo 'color_preset=xterm' >> /usr/share/lxterminal/lxterminal.conf
     sed -i 's/edge=bottom/edge=top/g' /etc/xdg/lxpanel/LXDE/panels/panel
-    # /etc/xdg/pcmanfm/LXDE/pcmanfm.conf
+    sed -i 's/background\s*=\s*1/background=0/g' /etc/xdg/lxpanel/LXDE/panels/panel
+    sed -i "s/wallpaper\s*=.*/wallpaper=\/usr\/share\/lxde\/wallpapers\/lxde_blue.jpg/g" /etc/xdg/pcmanfm/LXDE/pcmanfm.conf
+    sed -i "s/\[desktop\]/[desktop]\ndesktop_font=DejaVu Sans Mono 14/" /etc/xdg/pcmanfm/LXDE/pcmanfm.conf
+    sed -i 's|.*CursorThemeSize.*|iGtk/CursorThemeSize=32|g' /etc/xdg/lxsession/LXDE/desktop.conf
+    sed -i 's|.*FontName.*|sGtk/FontName=DejaVu Sans Mono 14|g' /etc/xdg/lxsession/LXDE/desktop.conf
+
+
 }
 apt_install xtv x2x rfkill
 
