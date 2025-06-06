@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2666dbc2[2025-06-06T14:14:29+08:00]:init-pc.sh")
+VERSION+=("7a839434[2025-06-06T15:12:55+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -210,9 +210,13 @@ apt_install bat
     sed -i 's/fontname=.*/fontname=DejaVu Sans Mono 14/g' /usr/share/lxterminal/lxterminal.conf
     echo 'color_preset=xterm' >> /usr/share/lxterminal/lxterminal.conf
     sed -i 's/edge=bottom/edge=top/g' /etc/xdg/lxpanel/LXDE/panels/panel
+    sed -i "/type\s*=\s*dclock/,/Config/ s/Config\s{/Config {\nIconOnly=1/g" /etc/xdg/lxpanel/LXDE/panels/panel
+    sed -i "s/pcmanfm.desktop/pcmanfm.desktop\n}\nButton {\nid=lxterminal.desktop/g" /etc/xdg/lxpanel/LXDE/panels/panel
     sed -i 's/background\s*=\s*1/background=0/g' /etc/xdg/lxpanel/LXDE/panels/panel
     sed -i "s/wallpaper\s*=.*/wallpaper=\/usr\/share\/lxde\/wallpapers\/lxde_blue.jpg/g" /etc/xdg/pcmanfm/LXDE/pcmanfm.conf
     sed -i "s/\[desktop\]/[desktop]\ndesktop_font=DejaVu Sans Mono 14/" /etc/xdg/pcmanfm/LXDE/pcmanfm.conf
+    sed -i "s/side_pane_mode\s*=.*/side_pane_mode=dirtree/g" /etc/xdg/pcmanfm/LXDE/pcmanfm.conf
+    sed -i "s/view_mode\s*=.*/view_mode=list/g" /etc/xdg/pcmanfm/LXDE/pcmanfm.conf
     sed -i 's|.*CursorThemeSize.*|iGtk/CursorThemeSize=32|g' /etc/xdg/lxsession/LXDE/desktop.conf
     sed -i 's|.*FontName.*|sGtk/FontName=DejaVu Sans Mono 14|g' /etc/xdg/lxsession/LXDE/desktop.conf
 
