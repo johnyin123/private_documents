@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5d39bd54[2025-06-06T16:33:25+08:00]:init-pc.sh")
+VERSION+=("30d32fcb[2025-06-09T09:21:48+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -207,8 +207,11 @@ apt_install bat
     sed -i "/font place=/,/font/ s/<name>.*<\/name>/<name>DejaVu Sans Mono<\/name>/" /etc/xdg/openbox/LXDE/rc.xml
     sed -i "/font place=/,/font/ s/<size>.*<\/size>/<size>14<\/size>/" /etc/xdg/openbox/LXDE/rc.xml
     sed -i "/<desktops>/,/<desktops>/ s/<number>.*<\/number>/<number>1<\/number>/" /etc/xdg/openbox/LXDE/rc.xml
-    sed -i 's/fontname=.*/fontname=DejaVu Sans Mono 14/g' /usr/share/lxterminal/lxterminal.conf
-    echo 'color_preset=xterm' >> /usr/share/lxterminal/lxterminal.conf
+    sed --quiet -i -E \
+        -e '/(color_preset\s*=|fontname\s*=).*/!p' \
+        -e '$afontname=DejaVu Sans Mono 14' \
+        -e '$acolor_preset=xterm' \
+        /usr/share/lxterminal/lxterminal.conf
     sed -i 's/edge=bottom/edge=top/g' /etc/xdg/lxpanel/LXDE/panels/panel
     sed -i "/type\s*=\s*dclock/,/Config/ s/Config\s{/Config {\nIconOnly=1/g" /etc/xdg/lxpanel/LXDE/panels/panel
     sed -i "s/pcmanfm.desktop/pcmanfm.desktop\n}\nButton {\nid=lxterminal.desktop/g" /etc/xdg/lxpanel/LXDE/panels/panel
