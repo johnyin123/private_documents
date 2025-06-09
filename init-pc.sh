@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7a839434[2025-06-06T15:12:55+08:00]:init-pc.sh")
+VERSION+=("5d39bd54[2025-06-06T16:33:25+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
@@ -219,8 +219,28 @@ apt_install bat
     sed -i "s/view_mode\s*=.*/view_mode=list/g" /etc/xdg/pcmanfm/LXDE/pcmanfm.conf
     sed -i 's|.*CursorThemeSize.*|iGtk/CursorThemeSize=32|g' /etc/xdg/lxsession/LXDE/desktop.conf
     sed -i 's|.*FontName.*|sGtk/FontName=DejaVu Sans Mono 14|g' /etc/xdg/lxsession/LXDE/desktop.conf
-
-
+    cat <<EO_APP > /usr/share/applications/thunder.desktop
+[Desktop Entry]
+Version=1.0
+Name=ThunderBird
+Exec=/opt/thunderbird/thunderbird
+StartupNotify=true
+Terminal=false
+Icon=/opt/thunderbird/chrome/icons/default/default48.png
+Type=Application
+Categories=Network;
+EO_APP
+    cat <<EO_APP > /usr/share/applications/firefox.desktop
+[Desktop Entry]
+Version=1.0
+Name=Firefox
+Exec=/opt/firefox/firefox
+StartupNotify=true
+Terminal=false
+Icon=/opt/firefox/browser/chrome/icons/default/default48.png
+Type=Application
+Categories=Network;
+EO_APP
 }
 apt_install xtv x2x rfkill x11vnc gvncviewer aosd-cat
 
