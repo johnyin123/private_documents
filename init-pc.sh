@@ -7,9 +7,11 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("30d32fcb[2025-06-09T09:21:48+08:00]:init-pc.sh")
+VERSION+=("fae799e2[2025-06-09T13:24:45+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
+XFCE=${XFCE:-true}
+CHROOT=${CHROOT:-false}
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
 source <(grep -E "^\s*(VERSION_CODENAME|ID)=" /etc/os-release)
 PASSWORD=password
@@ -157,9 +159,10 @@ mount -o remount,ro /overlay/lower
 EOF
 
 debian_grub_init
-# update-initramfs -c -k $(uname -r)
-# grub-mkconfig -o /boot/grub/grub.cfg
-
+[ "${CHROOT:-false}" = "true" ] || {
+    update-initramfs -c -k $(uname -r)
+    grub-mkconfig -o /boot/grub/grub.cfg
+}
 [ -r "${DIRNAME}/motd.sh" ] && {
     cat ${DIRNAME}/motd.sh >/etc/update-motd.d/11-motd
     touch /etc/logo.txt
@@ -226,12 +229,14 @@ apt_install bat
 [Desktop Entry]
 Version=1.0
 Name=ThunderBird
-Exec=/opt/thunderbird/thunderbird
+Exec=/opt/thunderbird/thunderbird %u
 StartupNotify=true
 Terminal=false
 Icon=/opt/thunderbird/chrome/icons/default/default48.png
 Type=Application
-Categories=Network;
+Categories=Network;Email;News;GTK;
+MimeType=message/rfc822;text/calendar;text/vcard;text/x-vcard;x-scheme-handler/mail
+to;x-scheme-handler/mid;x-scheme-handler/news;x-scheme-handler/webcal;x-scheme-handler/webcals;
 EO_APP
     cat <<EO_APP > /usr/share/applications/firefox.desktop
 [Desktop Entry]
@@ -245,7 +250,9 @@ Type=Application
 Categories=Network;
 EO_APP
 }
-apt_install xtv x2x rfkill x11vnc gvncviewer aosd-cat
+apt_install xtv x2x rfkill x11vnc gvncviewer aosd-cat usbutils pciutils
+echo "for nginx-johnyin depend"
+apt_install libgeoip1t64 libjwt2
 
 echo "xtv -d <remote_ip:0> #xtv see remote desktop"
 echo "x2x -to <remote_ip:0.0> -west # mouse move left, then appear remote desktop!!!"
@@ -369,6 +376,23 @@ sed -i "s/#xserver-allow-tcp=.*/xserver-allow-tcp=true/g" /etc/lightdm/lightdm.c
   </property>
 </channel>
 EOF
+[ "${XFCE:-false}" == "true" ] && {
+    sed -i 's/FontName".*$/FontName" type="string" value="DejaVu Sans Mono 14"\/>/g' /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
+    sed -i 's/title_font\s*=.*$/title_font=DejaVu Sans Mono 14/g' /usr/share/xfwm4/defaults
+    sed -i 's/workspace_count\s*=.*$/workspace_count=1/g' /usr/share/xfwm4/defaults
+    cat <<EO_DOC > /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-terminal.xml
+<?xml version="1.1" encoding="UTF-8"?>
+
+<channel name="xfce4-terminal" version="1.0">
+  <property name="font-name" type="string" value="DejaVu Sans Mono 14"/>
+  <property name="scrolling-unlimited" type="bool" value="true"/>
+  <property name="misc-hyperlinks-enabled" type="bool" value="false"/>
+  <property name="misc-copy-on-select" type="bool" value="true"/>
+  <property name="misc-show-unsafe-paste-dialog" type="bool" value="false"/>
+</channel>
+EO_DOC
+}
+
 apt_install galculator gpicview qpdfview rdesktop wireshark fbreader virt-manager
 
 apt_install alsa-utils pulseaudio pulseaudio-utils
