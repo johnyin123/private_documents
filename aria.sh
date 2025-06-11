@@ -2,6 +2,12 @@
 # socat TCP-LISTEN:8899,bind=10.0.1.1,reuseaddr,fork TCP:127.0.0.1:60021
 # aria2rpc --server ${srv} --port ${port} --secret password tellActive
 # pip install aria2p
+
+cat <<EOF
+docker save registry.local/aria:bookworm-amd64 | gzip > aria.tgz
+imgid=$(gunzip -c aria.tgz | docker image load -q 2>/dev/null | sed -E "s/Loaded image( ID:|:)\s//g")
+docker tag ${imgid} registry.local/aria:bookworm-amd64
+EOF
 echo "setup cli rpc client"
 zcat /usr/share/doc/aria2/xmlrpc/aria2rpc.gz | sudo tee /usr/bin/aria2rpc
 sudo chmod 755 /usr/bin/aria2rpc
