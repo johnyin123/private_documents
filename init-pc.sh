@@ -7,11 +7,10 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fae799e2[2025-06-09T13:24:45+08:00]:init-pc.sh")
+VERSION+=("3d8ed86a[2025-06-10T14:55:11+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
-CHROOT=${CHROOT:-false}
 # https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
 source <(grep -E "^\s*(VERSION_CODENAME|ID)=" /etc/os-release)
 PASSWORD=password
@@ -159,16 +158,14 @@ mount -o remount,ro /overlay/lower
 EOF
 
 debian_grub_init
-[ "${CHROOT:-false}" = "true" ] || {
-    update-initramfs -c -k $(uname -r)
-    grub-mkconfig -o /boot/grub/grub.cfg
-}
+kerver=$(ls /usr/lib/modules 2>/dev/null | sort --version-sort -f | tail -n1)
+pdate-initramfs -c -k ${kerver}
+grub-mkconfig -o /boot/grub/grub.cfg
 [ -r "${DIRNAME}/motd.sh" ] && {
     cat ${DIRNAME}/motd.sh >/etc/update-motd.d/11-motd
     touch /etc/logo.txt
     chmod 755 /etc/update-motd.d/11-motd
 }
-
 
 echo "use tcp dns query"
 : <<EOF
@@ -385,6 +382,7 @@ EOF
 
 <channel name="xfce4-terminal" version="1.0">
   <property name="font-name" type="string" value="DejaVu Sans Mono 14"/>
+  <property name="misc-right-click-action" type="string" value="TERMINAL_RIGHT_CLICK_ACTION_PASTE_CLIPBOARD"/>
   <property name="scrolling-unlimited" type="bool" value="true"/>
   <property name="misc-hyperlinks-enabled" type="bool" value="false"/>
   <property name="misc-copy-on-select" type="bool" value="true"/>
@@ -431,11 +429,10 @@ EOF
 
     echo "enable root user run X app"
     rm -f /root/.Xauthority && ln -s /home/johnyin/.Xauthority /root/.Xauthority
-    debian_bash_init johnyin
 }
-
+echo "root no password"
+passwd -d root
 echo "Force Users To Change Passwords Upon First Login"
-chage -d 0 root || true
 chage -d 0 johnyin || true
 
 echo "init libvirt env"
