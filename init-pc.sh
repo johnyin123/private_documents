@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("827105bb[2025-06-11T09:00:44+08:00]:init-pc.sh")
+VERSION+=("707ce03f[2025-06-11T10:24:15+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -249,13 +249,17 @@ EO_APP
     cat <<EO_APP > /usr/share/applications/firefox.desktop
 [Desktop Entry]
 Version=1.0
-Name=Firefox
-Exec=/opt/firefox/firefox
+Name=Firefox Web Browser
+Comment=Browse the World Wide Web
+GenericName=Web Browser
+Keywords=Internet;WWW;Browser;Web;Explorer
+Exec=/opt/firefox/firefox %u
 StartupNotify=true
 Terminal=false
 Icon=/opt/firefox/browser/chrome/icons/default/default48.png
 Type=Application
-Categories=Network;
+Categories=GNOME;GTK;Network;WebBrowser;
+MimeType=text/html;text/xml;application/xhtml+xml;application/xml;application/rss+xml;application/rdf+xml;image/gif;image/jpeg;image/png;x-scheme-handler/http;x-scheme-handler/https;x-scheme-handler/ftp;x-scheme-handler/chrome;video/webm;application/x-xpinstall;
 EO_APP
 }
 apt_install xtv x2x rfkill x11vnc gvncviewer aosd-cat usbutils pciutils
