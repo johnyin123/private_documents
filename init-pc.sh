@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("707ce03f[2025-06-11T10:24:15+08:00]:init-pc.sh")
+VERSION+=("c2318e5e[2025-06-11T10:50:05+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -391,7 +391,7 @@ EOF
 [ "${XFCE:-false}" == "true" ] && {
     sed -i 's/FontName".*$/FontName" type="string" value="DejaVu Sans Mono 14"\/>/g' /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xsettings.xml
     sed -i 's/title_font\s*=.*$/title_font=DejaVu Sans Mono 14/g' /usr/share/xfwm4/defaults
-    sed -i 's/workspace_count\s*=.*$/workspace_count=1/g' /usr/share/xfwm4/defaults
+    sed -i 's/workspace_count\s*=.*$/workspace_count=2/g' /usr/share/xfwm4/defaults
     cat <<EO_DOC > /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-terminal.xml
 <?xml version="1.1" encoding="UTF-8"?>
 
