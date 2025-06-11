@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("3d8ed86a[2025-06-10T14:55:11+08:00]:init-pc.sh")
+VERSION+=("827105bb[2025-06-11T09:00:44+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -119,28 +119,39 @@ scan_cur_freq=1
 #Whether to scan only the current frequency
 # 0:  Scan all available frequencies. (Default)
 # 1:  Scan current operating frequency if another VIF on the same radio is already associated.
-
+# network={
+#     id_str="work"
+#     priority=100
+#     scan_ssid=1
+#     ssid="xk-admin"
+#     #key_mgmt=wpa-psk
+#     psk="ADMIN@123"
+# }
+# network={
+#     scan_ssid=1
+#     ssid="HUAZHU-Hanting"
+#     key_mgmt=NONE
+#     # curl -vvv www.baidu.com
+#     # webbrowser-> http:/xxxxx
+#     # auto wlan0
+#     # allow-hotplug wlan0
+#     # iface wlan0 inet dhcp
+#     #      wpa_iface wlan0
+#     #      wpa_conf /etc/s905.conf
+# }
 network={
     id_str="work"
-    priority=100
-    scan_ssid=1
-    ssid="xk-admin"
-    #key_mgmt=wpa-psk
-    psk="ADMIN@123"
-}
-network={
     priority=90
     scan_ssid=1
-    ssid="Neusoft"
+    ssid="CNAP"
     key_mgmt=WPA-EAP
     eap=PEAP
     phase1="peaplabel=auto tls_disable_tlsv1_0=0 tls_disable_tlsv1_1=0 tls_disable_tlsv1_2=0 tls_ext_cert_check=0"
     phase2="auth=MSCHAPV2"
-    identity="uid"
-    password="pass"
+    identity="username"
+    password="passowrd"
     eapol_flags=0
 }
-
 EOF_WIFI
 
 cat << "EOF" > /root/aptrom.sh
