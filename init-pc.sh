@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8ad25ce3[2025-06-12T13:59:07+08:00]:init-pc.sh")
+VERSION+=("630754a1[2025-06-12T15:27:19+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -26,6 +26,9 @@ apt_install() {
 debian_apt_init
 apt update
 apt -y upgrade
+
+echo "add bios/efi dual bootup"
+apt_install grub2-common grub-pc-bin grub-efi-amd64-bin grub-efi-amd64-signed shim-signed
 
 echo "xk-yinzh" > /etc/hostname
 
