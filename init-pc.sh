@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("42e63610[2025-06-11T14:33:52+08:00]:init-pc.sh")
+VERSION+=("8ad25ce3[2025-06-12T13:59:07+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -20,9 +20,7 @@ NAME_SERVER=114.114.114.114
 #512 M
 ZRAM_SIZE=512
 apt_install() {
-    for pkg in $*; do
-        apt -y -oAcquire::http::User-Agent=dler install ${pkg} || true
-    done
+    apt -y -oAcquire::http::User-Agent=dler install $*
 }
 
 debian_apt_init
@@ -436,7 +434,7 @@ email = johnyin.news@163.com
 EOF
     chown -R johnyin.johnyin /home/johnyin/
     usermod -a -G libvirt johnyin || true
-
+    usermod -a -G docker johnyin || true
     echo "add group[johnyin] to sudoers"
     echo "%johnyin ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/johnyin
     chmod 0440 /etc/sudoers.d/johnyin
