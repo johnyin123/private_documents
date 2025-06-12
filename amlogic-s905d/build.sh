@@ -2,9 +2,10 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("a26b725[2024-10-25T14:48:23+08:00]:build.sh")
+VERSION+=("04cdbe3e[2024-11-18T16:47:38+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
+# # apt -f install libelf-dev
 CONFIG_HZ=${CONFIG_HZ:-100}
 NFSROOTFS=${NFSROOTFS:-""}      # not null is true/yes
 ACPI_EFI=${ACPI_EFI:-""}        # not null is true/yes
