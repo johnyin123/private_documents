@@ -180,7 +180,7 @@ if __name__ == '__main__':
 # index-url = http://mirrors.aliyun.com/pypi/simple
 # # index-url = https://pypi.tuna.tsinghua.edu.cn/simple
 # EOF
-# python3 -m venv kq_venv --python python3 / virtualenv kq_venv --python python3.9
+# python3 -m venv --system-site-packages kq_venv # # with system package
 # source kq_venv/bin/activate
 # # cat <<EOF> requirements.txt
 # numpy==1.23.2
