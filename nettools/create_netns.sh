@@ -7,13 +7,12 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("7c88d1f[2024-09-03T10:01:36+08:00]:create_netns.sh")
+VERSION+=("4c7c9005[2024-09-03T12:27:37+08:00]:create_netns.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_nameserver() {
     ns_name=$1
     nameserver=$2
-    try mkdir -p "/etc/netns/$ns_name"
     try echo "nameserver ${nameserver}" \> "/etc/netns/$ns_name/resolv.conf"
 }
 
@@ -32,7 +31,7 @@ ${SCRIPTNAME}
         -V|--version
         -d|--dryrun dryrun
         -h|--help help
-        ${SCRIPTNAME} --nsname=test -i 192.168.168.234/24 -b br-ext 
+        ${SCRIPTNAME} --nsname test -i 192.168.168.234/24 -b br-ext
         # -p ConditionPathExists=/run/netns/test  -p PrivateMounts=true
         systemd-run --unit nssvc1 -p NetworkNamespacePath=/run/netns/test /usr/bin/v2ray -c /etc/v2ray/config.json
         # # nsenter/ip netns different
@@ -86,6 +85,13 @@ main() {
     info_msg "IPADDR=${ipaddr}\n"
     netns_exists "${ns_name}" && exit_msg "${ns_name} exist!!\n"
     bridge_exists "${host_br}" || exit_msg "${host_br} no found!!\n"
+    try mkdir -p "/etc/netns/${ns_name}"
+    try touch /etc/netns/${ns_name}/resolv.conf << EOF
+$(cat /etc/resolv.conf)
+EOF
+    write_file /etc/netns/${ns_name}/hosts << EOF
+$(cat /etc/hosts)
+EOF
     setup_ns "${ns_name}" || { cleanup_ns "${ns_name}"; exit_msg "netns ${ns_name} setup error!\n"; }
     maybe_netns_setup_veth ${ns_name}-eth0 ${ns_name}-eth1 "" || { cleanup_ns "${ns_name}"; exit_msg "setup veth error!\n"; }
     maybe_netns_bridge_addlink "${host_br}" "${ns_name}-eth1" "" || { maybe_netns_bridge_dellink "${ns_name}-eth1" ""; cleanup_ns "${ns_name}"; exit_msg "bridge add link error!\n"; }
