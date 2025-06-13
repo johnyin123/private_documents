@@ -115,7 +115,7 @@ function manage_vm(kvmhost, uuid) {
   getjson('GET', `/vm/list/${kvmhost}/${uuid}`, function(resp){
     const result = JSON.parse(resp);
     var btn = genActBtn(true, 'Show XML', 'fa-file-code-o', 'show_xml', kvmhost, {'uuid':result.guest.uuid});
-    btn += genActBtn(true, 'Guest Admin UI', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':result.guest.uuid});
+    btn += genActBtn(true, 'Control Panel', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':result.guest.uuid});
     if(result.guest.state === 'RUN') {
       btn += genActBtn(true, 'Console', 'fa-terminal', 'ttyconsole', kvmhost, {'uuid':result.guest.uuid});
       btn += genActBtn(true, 'Display View', 'fa-desktop', 'display', kvmhost, {'uuid':result.guest.uuid});
@@ -142,7 +142,7 @@ function show_vms(kvmhost, vms) {
   vms.forEach(item => {
     const table = genVmsTBL(item);
     var btn = genActBtn(true, 'Show XML', 'fa-file-code-o', 'show_xml', kvmhost, {'uuid':item.uuid});
-    btn += genActBtn(true, 'Guest Admin UI', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':item.uuid, 'backlist':'1'});
+    btn += genActBtn(true, 'Control Panel', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':item.uuid, 'backlist':'1'});
     if (item.state === "RUN") {
       btn += genActBtn(true, 'VM IPAddress', 'fa-gg', 'get_vmip', kvmhost, {'uuid':item.uuid});
     } else {

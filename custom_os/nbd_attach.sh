@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("75f9bf7[2023-04-27T08:47:38+08:00]:nbd_attach.sh")
+VERSION+=("560245c9[2023-07-22T08:34:37+08:00]:nbd_attach.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 
@@ -27,6 +27,7 @@ connect_nbd() {
             [ $(cat /sys/block/nbd${i}/size) -gt 0 ] && continue
             qemu-nbd ${fmt:+-f ${fmt} }-c /dev/nbd${i} ${image} && {
                 dev=/dev/nbd${i}
+                sleep 0.3
                 kpartx -avs ${dev} 2>&1
                 # blkid -o udev ${dev}
                 echo "Connected ${image} to ${dev}"
