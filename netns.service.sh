@@ -209,3 +209,14 @@ geosite.dat
 v2ray
 v2ray.cli.tproxy.nft.sh
 EOF
+
+cat <<'EOF'
+for i in ns-ali ns-rank ns-v2ray; do
+    source /etc/$i.conf
+    ./create_netns.sh --ipaddr ${ADDRESS} --nsname ${i} --bridge ${BRIDGE} --gw     ${GATEWAY} --dns ${DNS}
+    # # /etc/netns/${i}/hosts,resolv.conf only effect ip netns ....
+    # ip netns exec ${i} bash /etc/${i}/startup.sh
+    systemd-run --unit ${i} ip netns exec ${i} /bin/bash /etc/${i}/startup.sh
+    # systemd-run --unit ${i} -p NetworkNamespacePath=/run/netns/${i} /bin/bash     /etc/${i}/startup.sh
+done
+EOF
