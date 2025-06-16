@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("8ad25ce3[2025-06-12T13:59:07+08:00]:create_netns.sh")
+VERSION+=("1306150e[2025-06-13T06:54:54+08:00]:create_netns.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_nameserver() {
@@ -100,7 +100,6 @@ EOF
     maybe_netns_run "ip route add default via ${gateway}" "${ns_name}" || true
     setup_nameserver "${ns_name}" "${dns}" || true
     info_msg "${ns_name} create success\n"
-    info_msg "nsenter --net=/var/run/netns/${ns_name}\n"
     return 0
 }
 auto_su "$@"
