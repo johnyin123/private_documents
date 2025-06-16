@@ -1,56 +1,56 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 
-echo "/lib/systemd/system"
-echo "/etc/systemd/system"
-echo "systemd netns, DNS NOT WORK, ip netns is ok"
-svc_file=netns@.service
-[ -e "${svc_file}" ] || cat <<'EOF' | grep -v "^\s*#" > ${svc_file}
-[Unit]
-Description=Named network namespace %i
-After=network.target
-StopWhenUnneeded=true
-[Service]
-Type=oneshot
-PrivateNetwork=yes
-RemainAfterExit=yes
-# # /bin/touch: 无法 touch '/var/run/netns/aws
-# ExecStart=/bin/touch /var/run/netns/%i
-# ExecStart=/bin/mount --bind /proc/self/ns/net /var/run/netns/%i
-ExecStart=/bin/sh -c '/sbin/ip netns attach %i $$$$'
-ExecStop=/sbin/ip netns delete %i
-EOF
-echo "cp ${svc_file} /etc/systemd/system/"
-############################################################
-svc_file=bridge-netns@.service
-[ -e "${svc_file}" ] || cat <<'EOF' > ${svc_file}
-[Unit]
-Requires=netns@%i.service
-After=netns@%i.service
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-Environment=DNS=""
-EnvironmentFile=/etc/%i.conf
-ExecStart=/sbin/ip link add %i_eth0 type veth peer name %i_eth1
-ExecStart=/sbin/ip link set %i_eth0 netns %i name eth0 up
-ExecStart=/sbin/ip link set %i_eth1 master ${BRIDGE}
-ExecStart=/sbin/ip link set dev %i_eth1 up
-ExecStart=/sbin/ip netns exec %i /sbin/ip address add ${ADDRESS} dev eth0
-ExecStart=/sbin/ip netns exec %i /sbin/ip route add default via ${GATEWAY} dev eth0
-ExecStart=-/bin/mkdir -p /etc/netns/%i
-ExecStart=-/bin/sh -c "[ -z '${DNS}' ] || echo 'nameserver ${DNS}' > /etc/netns/%i/resolv.conf"
-ExecStart=-/bin/sh -c "cat /etc/hosts > /etc/netns/%i/hosts"
-ExecStop=-/bin/rm -fr /etc/netns/%i/
-ExecStop=-/sbin/ip link set %i_eth1 promisc off
-ExecStop=-/sbin/ip link set %i_eth1 down
-ExecStop=-/sbin/ip link set dev %i_eth1 nomaster
-ExecStop=-/sbin/ip link delete %i_eth1
-[Install]
-WantedBy=multi-user.target
-EOF
-echo "cp ${svc_file} /etc/systemd/system/"
-############################################################
+# echo "/lib/systemd/system"
+# echo "/etc/systemd/system"
+# echo "systemd netns, DNS NOT WORK, ip netns is ok"
+# svc_file=netns@.service
+# [ -e "${svc_file}" ] || cat <<'EOF' | grep -v "^\s*#" > ${svc_file}
+# [Unit]
+# Description=Named network namespace %i
+# After=network.target
+# StopWhenUnneeded=true
+# [Service]
+# Type=oneshot
+# PrivateNetwork=yes
+# RemainAfterExit=yes
+# # # /bin/touch: 无法 touch '/var/run/netns/aws
+# # ExecStart=/bin/touch /var/run/netns/%i
+# # ExecStart=/bin/mount --bind /proc/self/ns/net /var/run/netns/%i
+# ExecStart=/bin/sh -c '/sbin/ip netns attach %i $$$$'
+# ExecStop=/sbin/ip netns delete %i
+# EOF
+# echo "cp ${svc_file} /etc/systemd/system/"
+# ############################################################
+# svc_file=bridge-netns@.service
+# [ -e "${svc_file}" ] || cat <<'EOF' > ${svc_file}
+# [Unit]
+# Requires=netns@%i.service
+# After=netns@%i.service
+# [Service]
+# Type=oneshot
+# RemainAfterExit=yes
+# Environment=DNS=""
+# EnvironmentFile=/etc/%i.conf
+# ExecStart=/sbin/ip link add %i_eth0 type veth peer name %i_eth1
+# ExecStart=/sbin/ip link set %i_eth0 netns %i name eth0 up
+# ExecStart=/sbin/ip link set %i_eth1 master ${BRIDGE}
+# ExecStart=/sbin/ip link set dev %i_eth1 up
+# ExecStart=/sbin/ip netns exec %i /sbin/ip address add ${ADDRESS} dev eth0
+# ExecStart=/sbin/ip netns exec %i /sbin/ip route add default via ${GATEWAY} dev eth0
+# ExecStart=-/bin/mkdir -p /etc/netns/%i
+# ExecStart=-/bin/sh -c "[ -z '${DNS}' ] || echo 'nameserver ${DNS}' > /etc/netns/%i/resolv.conf"
+# ExecStart=-/bin/sh -c "cat /etc/hosts > /etc/netns/%i/hosts"
+# ExecStop=-/bin/rm -fr /etc/netns/%i/
+# ExecStop=-/sbin/ip link set %i_eth1 promisc off
+# ExecStop=-/sbin/ip link set %i_eth1 down
+# ExecStop=-/sbin/ip link set dev %i_eth1 nomaster
+# ExecStop=-/sbin/ip link delete %i_eth1
+# [Install]
+# WantedBy=multi-user.target
+# EOF
+# echo "cp ${svc_file} /etc/systemd/system/"
+# ############################################################
 
 gen_svc_tpl() {
     local srv_name="${1}"
@@ -67,24 +67,24 @@ ADDRESS="${ipaddr}"
 GATEWAY="${gateway}"
 ${dns:+DNS=\"${dns}\"}
 EOF
-    ############################################################
-    cat <<EOF > ${srv_name}/etc/systemd/system/${srv_name}.service
-[Unit]
-# systemctl stop bridge-netns@${srv_name}.service
-Description=${srv_name} in netns
-Wants=network-online.target
-Requires=netns@${srv_name}.service bridge-netns@${srv_name}.service
-After=netns@${srv_name}.service bridge-netns@${srv_name}.service
-
-[Service]
-Type=simple
-# keep, else shutdown svc
-RemainAfterExit=yes
-ExecStart=ip netns exec ${srv_name} /bin/bash /etc/${srv_name}/startup.sh
-ExecStop=-ip netns exec ${srv_name} /bin/bash /etc/${srv_name}/teardown.sh
-[Install]
-WantedBy=multi-user.target
-EOF
+#     ############################################################
+#     cat <<EOF > ${srv_name}/etc/systemd/system/${srv_name}.service
+# [Unit]
+# # systemctl stop bridge-netns@${srv_name}.service
+# Description=${srv_name} in netns
+# Wants=network-online.target
+# Requires=netns@${srv_name}.service bridge-netns@${srv_name}.service
+# After=netns@${srv_name}.service bridge-netns@${srv_name}.service
+# 
+# [Service]
+# Type=simple
+# # keep, else shutdown svc
+# RemainAfterExit=yes
+# ExecStart=ip netns exec ${srv_name} /bin/bash /etc/${srv_name}/startup.sh
+# ExecStop=-ip netns exec ${srv_name} /bin/bash /etc/${srv_name}/teardown.sh
+# [Install]
+# WantedBy=multi-user.target
+# EOF
     ############################################################
     cat <<EOF > ${srv_name}/etc/${srv_name}/teardown.sh
 #!/usr/bin/env bash
