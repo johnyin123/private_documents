@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("1306150e[2025-06-13T06:54:54+08:00]:create_netns.sh")
+VERSION+=("2d68d437[2025-06-16T10:34:29+08:00]:create_netns.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_nameserver() {
@@ -33,7 +33,7 @@ ${SCRIPTNAME}
         -h|--help help
         ${SCRIPTNAME} --nsname test -i 192.168.168.234/24 -b br-ext
         # -p ConditionPathExists=/run/netns/test  -p PrivateMounts=true
-        systemd-run --unit nssvc1 -p NetworkNamespacePath=/run/netns/test /usr/bin/v2ray -c /etc/v2ray/config.json
+        systemd-run --unit nssvc1 ip netns exec test /usr/bin/v2ray -c /etc/v2ray/config.json
         # # nsenter/ip netns different
         nsenter --net=/var/run/netns/nsname # # !!! /etc/netns/<name>/resolv.conf, not effect
         ip netns exec nsname bash,  # # !!! /etc/netns/<name>/resolv.conf, OK
