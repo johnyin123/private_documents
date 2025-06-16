@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("28a409e0[2025-06-12T15:28:58+08:00]:init-pc.sh")
+VERSION+=("fa4b7f44[2025-06-13T13:10:51+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -197,7 +197,7 @@ apt_install systemd-container \
     nmon sysstat arping dnsutils openvpn \
     minicom socat git git-flow net-tools file genisoimage \
     manpages-dev manpages-posix manpages-posix-dev manpages man-db \
-    build-essential bison flex patch pahole j2cli \
+    build-essential pkg-config bison flex patch pahole j2cli \
     nscd nbd-client mtools iftop netcat-openbsd sshfs vlan \
     squashfs-tools graphviz nftables stunnel4 \
     rsync tmux virt-viewer sqlite3 dnsmasq ncal \
