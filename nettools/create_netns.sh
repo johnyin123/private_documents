@@ -7,13 +7,13 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2d68d437[2025-06-16T10:34:29+08:00]:create_netns.sh")
+VERSION+=("1f25ccf8[2025-06-16T10:43:08+08:00]:create_netns.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 setup_nameserver() {
     ns_name=$1
     nameserver=$2
-    try echo "nameserver ${nameserver}" \> "/etc/netns/$ns_name/resolv.conf"
+    [ -z "${nameserver}" ] || try echo "nameserver ${nameserver}" \> "/etc/netns/$ns_name/resolv.conf"
 }
 
 usage() {

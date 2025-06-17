@@ -220,3 +220,23 @@ for i in ns-ali ns-rank ns-v2ray; do
     # systemd-run --unit ${i} -p NetworkNamespacePath=/run/netns/${i} /bin/bash     /etc/${i}/startup.sh
 done
 EOF
+
+############################################################
+svc_file=bridge-netns@.service
+[ -e "${svc_file}" ] || cat <<'EOF' > ${svc_file}
+[Unit]
+After=network.target
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+Environment=DNS=""
+EnvironmentFile=/etc/%i.conf
+ExecStart=/sbin/create_netns.sh --ipaddr ${ADDRESS} --nsname %i --bridge ${BRIDGE} --gw ${GATEWAY} --dns ${DNS}
+ExecStart=/sbin/ip netns exec %i /bin/bash /etc/%i/startup.sh
+ExecStop=-/sbin/ip netns exec %i /bin/bash /etc/%i/teardown.sh
+ExecStop=-/sbin/create_netns.sh --delete %i
+[Install]
+WantedBy=multi-user.target
+EOF
+echo "cp ${svc_file} /etc/systemd/system/"
+############################################################
