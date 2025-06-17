@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("b68269fd[2024-12-27T13:19:42+08:00]:os_centos_init.sh")
+VERSION+=("bf4e0090[2025-05-20T07:09:43+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -81,7 +81,7 @@ EOF
     rm -f /etc/localtime && ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
     # localectl
     echo "${PASSWORD:-password}" | passwd --stdin root || true
-    systemctl enable getty@tty0 || true
+    systemctl enable getty@tty1 || true
     sed -i "s/SELINUX=.*/SELINUX=disabled/g" /etc/selinux/config || true
 EOSHELL
     for mp in /dev /sys /proc
@@ -151,7 +151,7 @@ EOF
     systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --timezone="Asia/Shanghai" --hostname="localhost" --setup-machine-id || true
     # timedatectl set-timezone Asia/Shanghai
     echo "${PASSWORD:-password}" | passwd --stdin root || true
-    systemctl enable getty@tty0 || true
+    systemctl enable getty@tty1 || true
     sed -i "s/SELINUX=.*/SELINUX=disabled/g" /etc/selinux/config || true
 EOSHELL
     for mp in /dev /sys /proc

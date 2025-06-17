@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("931c329[2023-11-22T14:28:21+08:00]:os_install.sh")
+VERSION+=("2aba02d8[2025-01-06T09:31:05+08:00]:os_install.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -88,7 +88,7 @@ virt_inst() {
     case "$(to_lower ${vm_type})" in
         debian*)
             gen_debian_preseed vda   > /tmp/debian.cfg
-            media+=" --extra-args=\"console=tty0 console=ttyS0,115200n8\" --initrd-inject=/tmp/debian.cfg"
+            media+=" --extra-args=\"console=tty1 console=ttyS0,115200n8\" --initrd-inject=/tmp/debian.cfg"
             ;;
         centos*)
             gen_centos_kickstart vda > /tmp/centos.ks
@@ -143,7 +143,7 @@ rootpw password
 clearpart --all --initlabel
 # Delete MBR / GPT
 zerombr
-bootloader --location=mbr --driveorder=${boot_disk} --append=" console=tty0 console=ttyS0,115200n8 net.ifnames=0 biosdevname=0"
+bootloader --location=mbr --driveorder=${boot_disk} --append=" console=tty1 console=ttyS0,115200n8 net.ifnames=0 biosdevname=0"
 part     /          --fstype=xfs  --size=5000 --ondisk=${boot_disk}
 
 # packages

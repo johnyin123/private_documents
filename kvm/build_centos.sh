@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b9eff15[2023-05-17T20:28:52+08:00]:build_centos.sh")
+VERSION+=("d8346a19[2023-09-22T10:18:42+08:00]:build_centos.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ################################################################################
 cat <<"EOF"
@@ -240,7 +240,7 @@ GRUB_DISTRIBUTOR="$(sed 's, release .*$,,g' /etc/system-release)"
 GRUB_DEFAULT=saved
 GRUB_DISABLE_SUBMENU=true
 GRUB_TERMINAL_OUTPUT="console"
-GRUB_CMDLINE_LINUX="console=ttyS0,115200n8 console=tty0 net.ifnames=0 biosdevname=0 selinux=0"
+GRUB_CMDLINE_LINUX="console=ttyS0,115200n8 console=tty1 net.ifnames=0 biosdevname=0 selinux=0"
 GRUB_DISABLE_RECOVERY="true"
 EOF
 
@@ -267,7 +267,7 @@ systemd-firstboot --root=/ --locale=zh_CN.UTF-8 --locale-messages=zh_CN.UTF-8 --
 #localectl set-x11-keymap cn
 echo "${NEWPASSWORD}" | passwd --stdin root
 touch /etc/sysconfig/network
-systemctl enable getty@tty0
+systemctl enable getty@tty1
 touch /*
 touch /etc/*
 touch /boot/*
@@ -420,7 +420,7 @@ exit 0
 #  --os-variant=rhel6 \
 #  --location=http://mirror.catn.com/pub/centos/6/os/x86_64 \
 #  --initrd-inject=../kickstarts/$KICKSTART \
-#  --extra-args="ks=file:/$KICKSTART text console=tty0 utf8 console=ttyS0,115200n8" \
+#  --extra-args="ks=file:/$KICKSTART text console=tty1 utf8 console=ttyS0,115200n8" \
 #  --network bridge=virbr0 \
 #  --disk path=/var/lib/libvirt/images/$IMGNAME.$EXT,size=10,bus=virtio,format=qcow2 \
 #  --force \
