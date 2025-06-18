@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("c6c6da5[2025-02-25T08:58:54+08:00]:v2ray.ipset.transprant.wstunnel.sh")
+VERSION+=("236f5e2d[2025-03-05T16:28:33+08:00]:v2ray.ipset.transprant.wstunnel.sh")
 ################################################################################
 # FILTER_CMD="cat"
 ################################################################################
@@ -41,7 +41,7 @@ log "Gen v2cli.config.json" && cat <<EOF | ${FILTER_CMD:-sed '/^\s*#/d'} > v2cli
   "log": {
     "access": "/dev/null",
     "error": "",
-    "loglevel": "warning"
+    "loglevel": "none"
   },
   "inbounds": [
     # #################测试inbound start
