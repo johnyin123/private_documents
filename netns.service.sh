@@ -194,10 +194,11 @@ cat <<EO_HOST > /etc/hosts
 127.0.0.1      localhost
 192.3.164.171  tunl.wgserver.org
 EO_HOST
+# # nohup /sbin/wstunnel client --log-lvl OFF --no-color 1 --connection-retry-max-backoff 1s .... &>/dev/null &
 /etc/${srv_name}/v2ray.cli.tproxy.nft.sh
 sysctl -w net.ipv4.ip_forward=1
 export V2RAY_LOCATION_ASSET=/etc/${srv_name}
-/etc/${srv_name}/v2ray -config /etc/${srv_name}/config.json
+nohup /etc/${srv_name}/v2ray -config /etc/${srv_name}/config.json &>/dev/null &
 EOF
 echo "(cd ${srv_name} && rsync -avP * /)"
 cat <<EOF
