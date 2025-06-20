@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("0274c8c[2025-02-05T13:18:05+08:00]:ssh_tunnel.sh")
+VERSION+=("8e3a46f0[2025-02-05T14:43:24+08:00]:ssh_tunnel.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 readonly MAX_TAPDEV_NUM=10
@@ -26,12 +26,12 @@ ssh_tunnel() {
     local tapname=${4}
     local local_br=${5}
     local l_tap= r_tap=
-    for ((l_tap=0;l_tap<MAX_TAPDEV_NUM;l_tap++)); do
-        file_exists /sys/class/net/tap${l_tap}/tun_flags || break
-    done
-    [[ ${l_tap} = ${MAX_TAPDEV_NUM} ]] && return -1
-    r_tap=$(try "ssh ${SSH_OPT} -p${ssh_port} ${ssh_connection} 'for i in 0 1 2 3 4 5 6 7 8 9 $MAX_TAPDEV_NUM; do [ -e /sys/class/net/tap\${i}/tun_flags ] || break; done; echo \$i'")
-    [[ ${r_tap} = ${MAX_TAPDEV_NUM} ]] && return -2
+    for l_tap in $(seq 0 $MAX_TAPDEV_NUM); do
+        [ -e /sys/class/net/tap${l_tap}/tun_flags ] || break;
+    done;
+    [ "${l_tap}" == "${MAX_TAPDEV_NUM}" ] && return -1;
+    r_tap=$(try "ssh ${SSH_OPT} -p${ssh_port} ${ssh_connection} 'for i in $(seq 0 $MAX_TAPDEV_NUM); do [ -e /sys/class/net/tap\${i}/tun_flags ] || break; done; echo \$i'")
+    [ "${r_tap}" == "${MAX_TAPDEV_NUM}" ] && return -2
     local localcmd="ip link set dev tap${l_tap} up${local_br:+;ip link set dev tap${l_tap} master ${local_br}}"
     local remotecmd="ip link set dev tap${r_tap} up;ip link set dev tap${r_tap} master ${remote_br}"
     #exec 5> >(ssh -tt -o StrictHostKeyChecking=no -p${port} ${user}@${host} > /dev/null 2>&1)
