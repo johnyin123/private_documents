@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("fa4b7f44[2025-06-13T13:10:51+08:00]:init-pc.sh")
+VERSION+=("2c793ff6[2025-06-17T07:17:24+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -445,6 +445,8 @@ EOF
 
     echo "enable root user run X app"
     rm -f /root/.Xauthority && ln -s /home/johnyin/.Xauthority /root/.Xauthority
+    # touch /root/.Xauthority
+    # xauth -f root/.Xauthority add $(xauth list | head -n 1)
 }
 echo "root no password"
 passwd -d root
