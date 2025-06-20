@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4b2da9b0[2025-06-03T09:28:42+08:00]:s905_debootstrap.sh")
+VERSION+=("c8aec2d2[2025-06-04T08:49:05+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
@@ -43,7 +43,8 @@ PKG+=",udev,isc-dhcp-client,netbase,console-setup,net-tools,wpasupplicant,hostap
 PKG+=",parprouted,dhcp-helper,nbd-client,iftop,pigz,nfs-common,nfs-kernel-server,netcat-openbsd"
 PKG+=",ksmbd-tools,procps"
 PKG+=",systemd-container,nftables,systemd-timesyncd,zstd"
-PKG+=",cron,logrotate,bsdmainutils,openssh-client,wget,ntpdate,less,wireless-tools,file,lsof,strace,rsync"
+# wireless-tools,
+PKG+=",cron,logrotate,bsdmainutils,openssh-client,wget,ntpdate,less,file,lsof,strace,rsync"
 PKG+=",xz-utils,zip,udisks2"
 PKG+=",alsa-utils,mpg123"
 PKG+=",e2fsprogs,jfsutils,xfsprogs,adb,bpftool,device-tree-compiler,edid-decode,fastboot,gdisk,geoip-database,pulseaudio-module-bluetooth,usbip,usbredirect,v2ray,xvkbd,psmisc,openvpn,fdisk,usbutils"

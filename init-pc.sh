@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2c793ff6[2025-06-17T07:17:24+08:00]:init-pc.sh")
+VERSION+=("840a4648[2025-06-20T09:53:27+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -187,8 +187,9 @@ echo 'options use-vc' >> /etc/resolv.conf
 EOF
 
 echo "install packages! pbzip2 pigz pixz parallel version bzip2/gz/xz"
+# wireless-tools 
 apt_install systemd-container \
-    hostapd wpasupplicant wireless-tools \
+    hostapd wpasupplicant \
     android-tools-adb android-tools-fastboot \
     pbzip2 pigz pixz xz-utils zstd p7zip-full brotli arj zip rar mscompress \
     unar eject bc less vim rename lunar wrk \
