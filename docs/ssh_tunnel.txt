@@ -1,0 +1,15 @@
+SSH Proxy Tunnel Example
+ssh -N -p 22 -L <local>:8888:<remote>:80 root@<remote>
+SSH Reverse Tunnel Example
+ssh -N -p 22 -R <remote>:8888:<local>:80 root@<remote>
+
+-N is a flag to just forward ports and not execute remote commands
+-p 22 SSH port
+
+-L forwards local connections to the remote side
+<local>:8888 local addr:local port
+<remote>:80 remote addr:remoute port
+
+-R forwards remote connections to the local side
+<remote>:8888 remote addr:remote port
+<local>:80 local addr:local port
