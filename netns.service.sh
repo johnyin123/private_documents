@@ -131,6 +131,12 @@ table ip nat {
         ip saddr 192.168.167.0/24 ip daddr != 192.168.167.0/24 counter masquerade
     }
 }
+table ip filter {
+	chain forward {
+		type filter hook forward priority 0; policy accept;
+		meta l4proto tcp tcp flags & (syn|rst) == syn counter tcp option maxseg size set rt mtu
+	}
+}
 EO_NAT
 EOF
 cat <<EOF > ${srv_name}/etc/${srv_name}/teardown.sh
@@ -167,6 +173,12 @@ table ip nat {
         type nat hook postrouting priority 100; policy accept;
         ip saddr 192.168.167.0/24 ip daddr != 192.168.167.0/24 counter masquerade
     }
+}
+table ip filter {
+	chain forward {
+		type filter hook forward priority 0; policy accept;
+		meta l4proto tcp tcp flags & (syn|rst) == syn counter tcp option maxseg size set rt mtu
+	}
 }
 EO_NAT
 EOF
