@@ -9,6 +9,8 @@ backup_data_apk() {
     done
 }
 
+adb shell pm enable --user 0 com.huawei.android.hwouc
+
 adb shell pm disable-user --user 0 com.baidu.input_huawei
 adb shell pm disable-user --user 0 com.huawei.appmarket
 adb shell pm disable-user --user 0 com.huawei.himovie
