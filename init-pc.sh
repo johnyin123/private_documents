@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f2821cc1[2025-06-24T07:49:24+08:00]:init-pc.sh")
+VERSION+=("4bd2ef03[2025-06-24T07:50:55+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -171,7 +171,7 @@ EOF
 
 debian_grub_init
 kerver=$(ls /usr/lib/modules 2>/dev/null | sort --version-sort -f | tail -n1)
-pdate-initramfs -c -k ${kerver}
+update-initramfs -c -k ${kerver}
 grub-mkconfig -o /boot/grub/grub.cfg
 [ -r "${DIRNAME}/motd.sh" ] && {
     cat ${DIRNAME}/motd.sh >/etc/update-motd.d/11-motd
@@ -298,6 +298,7 @@ case "$VERSION_CODENAME" in
         ;;
 esac
 sed -i "s/#xserver-allow-tcp=.*/xserver-allow-tcp=true/g" /etc/lightdm/lightdm.conf || true
+sed -i "s/^#font-name=.*/font-name=DejaVuSans,16/g" /etc/lightdm/lightdm-gtk-greeter.conf || true
 [ "${XFCE:-false}" == "true" ] && cat<<EOF > /etc/xdg/xfce4/panel/default.xml
 <?xml version="1.0" encoding="UTF-8"?>
 <channel name="xfce4-panel" version="1.0">
