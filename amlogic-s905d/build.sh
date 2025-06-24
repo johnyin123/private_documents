@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("04cdbe3e[2024-11-18T16:47:38+08:00]:build.sh")
+VERSION+=("25253687[2025-06-12T16:00:20+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
 # # apt -f install libelf-dev
@@ -33,6 +33,20 @@ GREEN='\033[32m'
 NC='\033[0m'
 log() { printf "[${GREEN}$(date +'%Y-%m-%dT%H:%M:%S.%2N%z')${NC}]${RED}%b${NC}\n" "$@"; }
 ##################################################
+is_set() {
+    local cfg=${1}
+    grep "CONFIG_$1=[y|m]" "$cfg" > /dev/null
+}
+# if is_set_in_kernel "$1"; then
+# fi
+is_set_in_kernel() {
+    local cfg=${1}
+    grep "CONFIG_$1=y" "$cfg" > /dev/null
+}
+is_set_as_module() {
+    local cfg=${1}
+    grep "CONFIG_$1=m" "$cfg" > /dev/null
+}
 log "build bpftool: apt -y install llvm && cd tools/bpf/bpftool && make"
 log "build perf, cd tools/perf && make"
 
