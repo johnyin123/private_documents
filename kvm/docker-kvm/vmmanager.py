@@ -154,7 +154,7 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def display(host:FakeDB, uuid:str)->str:
+    def display(host:FakeDB, uuid:str, tmout:str=config.SOCAT_TMOUT)->str:
         XMLDesc_Secure=None
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
@@ -171,7 +171,7 @@ class VMManager:
             elif listen == '127.0.0.1' or listen == 'localhost':
                 local = f'/tmp/.display.{uuid}'
                 ssh_cmd = f'ssh -p {host.sshport} {host.sshuser}@{host.ipaddr} socat STDIO TCP:{listen}:{port}'
-                socat_cmd = ('timeout', '--preserve-status', '--verbose',f'{config.SOCAT_TMOUT}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
+                socat_cmd = ('timeout', '--preserve-status', '--verbose',f'{tmout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
                 ProcList.Run(uuid, socat_cmd)
                 server = f'unix_socket:{local}'
             else:
@@ -287,11 +287,11 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def console(host:FakeDB, uuid:str)-> str:
+    def console(host:FakeDB, uuid:str, tmout:str=config.SOCAT_TMOUT)-> str:
         with connect(host.url) as conn:
             if not conn.lookupByUUIDString(uuid).isActive():
                 raise Exception(f'vm {uuid} not running')
-        socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{config.SOCAT_TMOUT}',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
+        socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{tmout}',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
         ProcList.Run(uuid, socat_cmd)
         local = f'/tmp/.display.{uuid}'
         server = f'unix_socket:{local}'
