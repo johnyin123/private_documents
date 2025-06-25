@@ -167,9 +167,11 @@
       <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form id="createvm_form" onSubmit="return on_createvm(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <fieldset>
-      <legend>Meta Server Type</legend>
+      <fieldset><legend>Meta Server Type</legend>
       <label><input type="checkbox" name="vm_meta_enum" value="NOCLOUD">NOCLOUD</label>
+      </fieldset>
+      <fieldset><legend>Device</legend>
+      <label><input type="checkbox" name="vm_rng" value="no">Remove RNG Random Device</label>
       </fieldset>
       <label>CPU:<div class="group">
         <input style="width: 20%;" type="number" name="vm_vcpus" id="vcpu_num" value="2" min="1" max="16" oninput="vcpu_rge.value=this.value" />
