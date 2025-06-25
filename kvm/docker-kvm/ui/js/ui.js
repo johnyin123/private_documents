@@ -29,7 +29,7 @@ function getFormJSON(form, reset=true) {
   const checkboxes = form.querySelectorAll('input[type="checkbox"]');
   checkboxes.forEach(checkbox => {
     if (!data.has(checkbox.name)) {
-      data.append(checkbox.name, '');
+      data.append(checkbox.name, 'n/a');
     }
   });
   return Object.fromEntries(data.entries());
