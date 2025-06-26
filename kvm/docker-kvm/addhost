@@ -16,16 +16,16 @@ ipaddr = sys.argv[2]
 arch = sys.argv[3]
 kvmhost = f'{name}'
 host={'name':kvmhost, 'tpl':'domain.tpl','url':f'qemu+tls://{ipaddr}/system','arch':arch,'ipaddr':ipaddr,'sshport':22,'sshuser':'root' }
-devices = [fn.removesuffix(".tpl") for fn in os.listdir(config.DEVICE_DIR)]
-actions = [fn.removesuffix(".tpl") for fn in os.listdir(config.ACTION_DIR)]
+devices = [fn.removesuffix(".tpl") for fn in os.listdir(config.DIR_DEVICE)]
+actions = [fn.removesuffix(".tpl") for fn in os.listdir(config.DIR_ACTION)]
 devs=[]
 for fn in devices:
     desc = ''
-    with open(f'{config.DEVICE_DIR}/{fn}.tpl', 'r') as file:
+    with open(f'{config.DIR_DEVICE}/{fn}.tpl', 'r') as file:
         desc = file.readline().strip().replace("{#-", "").replace("{#", "").replace("#}", "")
     dev = {'kvmhost':kvmhost,'name':fn,'tpl': f'{fn}.tpl','desc':desc}
     dev['action'] = f'{dev["name"]}.action' if f'{dev["name"]}.action' in actions else ''
-    doc = xml.dom.minidom.parseString(KVMTemplate(config.DEVICE_DIR ,f'{fn}.tpl').gen_xml())
+    doc = xml.dom.minidom.parseString(KVMTemplate(config.DIR_DEVICE ,f'{fn}.tpl').gen_xml())
     if doc.getElementsByTagName('interface').length > 0:
         dev['devtype'] = 'net'
     elif doc.getElementsByTagName('disk').length > 0:

@@ -22,7 +22,7 @@ class KVMTemplate:
 
 class DeviceTemplate(KVMTemplate):
     def __init__(self, filename, devtype):
-        super().__init__(config.DEVICE_DIR, filename)
+        super().__init__(config.DIR_DEVICE, filename)
         self.devtype = devtype
 
     def bus_type(self, **kwargs):
@@ -33,8 +33,8 @@ class DeviceTemplate(KVMTemplate):
 
 class DomainTemplate(KVMTemplate):
     def __init__(self, filename):
-        super().__init__(config.DOMAIN_DIR, filename)
+        super().__init__(config.DIR_DOMAIN, filename)
 
 class MetaDataTemplate(KVMTemplate):
     def __init__(self, filename):
-        super().__init__(config.META_DIR, filename)
+        super().__init__(config.DIR_META, filename)

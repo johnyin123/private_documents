@@ -153,8 +153,8 @@ server {
 }
 '''
 ngx_cfg = ngx_cfg.replace('${META_SRV}', config.META_SRV)
-ngx_cfg = ngx_cfg.replace('${WEBSOCKKEY}', config.WEBSOCKIFY_SECURE_LINK_MYKEY)
-ngx_cfg = ngx_cfg.replace('${USERKEY}', config.USER_ACCESS_SECURE_LINK_MYKEY)
+ngx_cfg = ngx_cfg.replace('${WEBSOCKKEY}', config.SECURE_LINK_MYKEY_WEBSOCKIFY)
+ngx_cfg = ngx_cfg.replace('${USERKEY}', config.SECURE_LINK_MYKEY_CTRL_PANEL)
 ngx_cfg = ngx_cfg.replace('${OUT_DIR}', config.OUTDIR)
 with open('kvm.conf', "w") as file:
     file.write(ngx_cfg)

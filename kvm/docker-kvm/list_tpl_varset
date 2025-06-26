@@ -8,13 +8,13 @@ logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
 logger = logging.getLogger(__name__)
 
 from template import get_variables
-varset = get_variables(config.DOMAIN_DIR, 'domain.tpl')
-for file in [fn for fn in os.listdir(config.META_DIR) if fn.endswith('.tpl')]:
-    varset.update(get_variables(config.META_DIR, file))
+varset = get_variables(config.DIR_DOMAIN, 'domain.tpl')
+for file in [fn for fn in os.listdir(config.DIR_META) if fn.endswith('.tpl')]:
+    varset.update(get_variables(config.DIR_META, file))
 logger.info(f'create vm {varset}')
 
-for fn in os.listdir(config.DEVICE_DIR):
-    dev_varset = get_variables(config.DEVICE_DIR, fn)
+for fn in os.listdir(config.DIR_DEVICE):
+    dev_varset = get_variables(config.DIR_DEVICE, fn)
     varset.update(dev_varset)
     logger.info(f'{fn.removesuffix(".tpl")} {dev_varset}')
 

@@ -16,12 +16,12 @@ def save_metaiso(fname, directory):
     iso.close()
 
 def del_metafiles(uuid):
-    utils.remove_file(os.path.join(config.CIDATA_DIR, uuid))
+    utils.remove_file(os.path.join(config.DIR_CIDATA, uuid))
 
 def gen_metafiles(**kwargs) -> None:
-    output = os.path.join(config.CIDATA_DIR, f'{kwargs["vm_uuid"]}')
+    output = os.path.join(config.DIR_CIDATA, f'{kwargs["vm_uuid"]}')
     os.makedirs(output, exist_ok=True)
-    for file in [fn for fn in os.listdir(config.META_DIR) if fn.endswith('.tpl')]:
+    for file in [fn for fn in os.listdir(config.DIR_META) if fn.endswith('.tpl')]:
         meta_str = template.MetaDataTemplate(file).gen_xml(**kwargs)
         utils.save(os.path.join(output, file.removesuffix(".tpl")), meta_str)
     save_metaiso(os.path.join(output, 'cidata.iso'), output)

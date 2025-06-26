@@ -40,9 +40,9 @@ class MyApp(object):
             keys = ['sshport', 'sshuser', 'tpl']
             hosts = [dic._asdict() for dic in database.KVMHost.list_all()]
             for host in hosts:
-                varset = template.get_variables(config.DOMAIN_DIR, host['tpl'])
-                for file in [fn for fn in os.listdir(config.META_DIR) if fn.endswith('.tpl')]:
-                    varset.update(template.get_variables(config.META_DIR, file))
+                varset = template.get_variables(config.DIR_DOMAIN, host['tpl'])
+                for file in [fn for fn in os.listdir(config.DIR_META) if fn.endswith('.tpl')]:
+                    varset.update(template.get_variables(config.DIR_META, file))
                 host['vars'] = {k: config.VARS_DESC.get(k,'n/a') for k in varset}
             return getlist_without_key(hosts, *keys)
         except Exception as e:
@@ -53,7 +53,7 @@ class MyApp(object):
             args = {'kvmhost': hostname} if hostname else {}
             devices = [dic._asdict() for dic in database.KVMDevice.list_all(**args)]
             for dev in devices:
-                dev['vars'] = {k: config.VARS_DESC.get(k,'n/a') for k in template.get_variables(config.DEVICE_DIR, dev['tpl'])}
+                dev['vars'] = {k: config.VARS_DESC.get(k,'n/a') for k in template.get_variables(config.DIR_DEVICE, dev['tpl'])}
             return getlist_without_key(devices, *['tpl', 'action'])
         except Exception as e:
             return deal_except(f'db_list_device', e), 400

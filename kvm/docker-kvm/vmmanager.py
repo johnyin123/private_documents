@@ -154,7 +154,8 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def display(host:FakeDB, uuid:str, tmout:str=config.SOCAT_TMOUT)->str:
+    def display(host:FakeDB, uuid:str, timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
+        tmout = int(timeout_mins)
         XMLDesc_Secure=None
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
@@ -171,21 +172,21 @@ class VMManager:
             elif listen == '127.0.0.1' or listen == 'localhost':
                 local = f'/tmp/.display.{uuid}'
                 ssh_cmd = f'ssh -p {host.sshport} {host.sshuser}@{host.ipaddr} socat STDIO TCP:{listen}:{port}'
-                socat_cmd = ('timeout', '--preserve-status', '--verbose',f'{tmout}','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
+                socat_cmd = ('timeout', '--preserve-status', '--verbose',f'{tmout}m','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
                 ProcList.Run(uuid, socat_cmd)
                 server = f'unix_socket:{local}'
             else:
                 raise Exception('graphic listen "{listen}" unknown')
-            save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
-            path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
-            url_map = {'vnc': config.VNC_DISP_URL,'spice':config.SPICE_DISP_URL}
+            save(os.path.join(config.DIR_TOKEN, uuid), f'{uuid}: {server}')
+            path, dt = websockify_secure_link(uuid, config.SECURE_LINK_MYKEY_WEBSOCKIFY, tmout)
+            url_map = {'vnc': config.URI_VNC,'spice':config.URI_SPICE}
             return return_ok(proto, uuid=uuid, display=f'{url_map[proto]}?password={item.getAttribute("passwd")}&path={path}', expire=dt)
         raise Exception('no graphic found')
 
     @staticmethod
     def delete(host:FakeDB, uuid:str)-> str:
         meta.del_metafiles(uuid)
-        remove_file(os.path.join(config.REQ_JSON_DIR, uuid))
+        remove_file(os.path.join(config.DIR_REQ_JSON, uuid))
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             refresh_all_pool(conn)
@@ -236,7 +237,7 @@ class VMManager:
             tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
             # all env must string
             env = {'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
-            cmd = [os.path.join(config.ACTION_DIR, f'{dev.action}'), f'add']
+            cmd = [os.path.join(config.DIR_ACTION, f'{dev.action}'), f'add']
             gold = req_json.get("gold", "")
             if len(gold) != 0:
                 req_json['gold'] = database.KVMGold.get_one(name=gold, arch=host.arch).tpl
@@ -269,7 +270,7 @@ class VMManager:
                 conn.defineXML(template.DomainTemplate(host.tpl).gen_xml(**req_json))
         meta.gen_metafiles(**req_json)
         database.IPPool.remove(req_json.get('vm_ipaddr', ''))
-        save(os.path.join(config.REQ_JSON_DIR, req_json['vm_uuid']), json.dumps(req_json, indent=4))
+        save(os.path.join(config.DIR_REQ_JSON, req_json['vm_uuid']), json.dumps(req_json, indent=4))
         return return_ok(f"create vm on {host.name} ok", uuid=req_json['vm_uuid'])
 
     @staticmethod
@@ -287,17 +288,18 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def console(host:FakeDB, uuid:str, tmout:str=config.SOCAT_TMOUT)-> str:
+    def console(host:FakeDB, uuid:str, timeout_mins:str=config.TMOUT_MINS_SOCAT)-> str:
+        tmout = int(timeout_mins)
         with connect(host.url) as conn:
             if not conn.lookupByUUIDString(uuid).isActive():
                 raise Exception(f'vm {uuid} not running')
-        socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{tmout}',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
+        socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{tmout}m',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
         ProcList.Run(uuid, socat_cmd)
         local = f'/tmp/.display.{uuid}'
         server = f'unix_socket:{local}'
-        save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
-        path, dt = websockify_secure_link(uuid, config.WEBSOCKIFY_SECURE_LINK_MYKEY, config.WEBSOCKIFY_SECURE_LINK_EXPIRE)
-        return return_ok('console', uuid=uuid, display=f'{config.CONSOLE_URL}?password=&path={path}', expire=dt)
+        save(os.path.join(config.DIR_TOKEN, uuid), f'{uuid}: {server}')
+        path, dt = websockify_secure_link(uuid, config.SECURE_LINK_MYKEY_WEBSOCKIFY, tmout)
+        return return_ok('console', uuid=uuid, display=f'{config.URI_CONSOLE}?password=&path={path}', expire=dt)
 
     @staticmethod
     def stop(host:FakeDB, uuid:str, force:str=None)-> str:
@@ -331,8 +333,8 @@ class VMManager:
             token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
             return f'{token}', datetime.datetime.fromtimestamp(int(epoch)).isoformat()
 
-        token, dt = user_access_secure_link(host.name, uuid, config.USER_ACCESS_SECURE_LINK_MYKEY, epoch)
-        return return_ok('vmuserinterface', uuid=uuid, url=f'{config.USER_ACCESS_URL}', token=f'{token}', expire=dt)
+        token, dt = user_access_secure_link(host.name, uuid, config.SECURE_LINK_MYKEY_CTRL_PANEL, epoch)
+        return return_ok('vmuserinterface', uuid=uuid, url=f'{config.URI_CTRL_PANEL}', token=f'{token}', expire=dt)
 
     @staticmethod
     def blksize(host:FakeDB, uuid:str, dev:str)-> str:
