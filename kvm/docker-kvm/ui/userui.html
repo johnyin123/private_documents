@@ -328,9 +328,9 @@ window.onload = function() {
   const strtoken = GetURLParameter('token');
   if(!strtoken) {
     document.body.innerHTML=`
-<form action="/guest.html" method="get">
-<div><center><h2>Input Token</h2></center>
-<input type="text" name="token"/>
+<div style="width:50%;margin: 5% auto 15% auto;"><form action="/guest.html" method="get">
+<center><h2>Input Token for Login</h2></center>
+<input type="text" name="token" placeholder="Enter your token" required/>
 <input type="submit" value="Submit"/>
 </form></div>`;
     // window.location.href = "login.html";
