@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c4b242d1[2025-06-24T12:53:52+08:00]:init-pc.sh")
+VERSION+=("13b011d1[2025-06-26T10:14:24+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -579,6 +579,8 @@ table inet mangle {
 #
 # # block input 6000
 # nft add rule inet myblackhole input tcp dport 6000 drop
+# # block input ipaddr
+# nft add rule inet myblackhole input ip saddr <IP_ADDRESS> counter drop
 # # list handle
 # nft -a list table inet myblackhole
 # # remove handle(tcp dport 6000 drop)
