@@ -249,6 +249,7 @@ function getjson_result(res) {
 function info() {
   getjson('GET', `/user/vm/list/${token.value}`, function(res) {
     document.getElementById("vms").innerHTML = show_vm(res.guest);
+    // res.host
   });
 }
 function mysubmit(form, dev) {
