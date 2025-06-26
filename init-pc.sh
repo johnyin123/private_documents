@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4bd2ef03[2025-06-24T07:50:55+08:00]:init-pc.sh")
+VERSION+=("c4b242d1[2025-06-24T12:53:52+08:00]:init-pc.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 XFCE=${XFCE:-true}
@@ -536,7 +536,6 @@ ENET
 # nft add rule nat prerouting tcp dport 22 redirect to 2222
 # #This example redirects outgoing 53/tcp traffic to a local proxy listening on port 10053/tcp:
 # nft add rule nat output tcp dport 853 redirect to 10053
-
 cat <<'EOF'>/etc/nftables.conf
 #!/usr/sbin/nft -f
 flush ruleset
@@ -577,6 +576,13 @@ table inet mangle {
 # delete table inet myblackhole
 # # block ip for 5m, can remove blacklist set timeout properties
 # nft add element inet myblackhole blacklist '{ 192.168.168.2 }'
+#
+# # block input 6000
+# nft add rule inet myblackhole input tcp dport 6000 drop
+# # list handle
+# nft -a list table inet myblackhole
+# # remove handle(tcp dport 6000 drop)
+# nft delete rule inet myblackhole input handle 6
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 define BLACK_LIST = { }
 table inet myblackhole {
