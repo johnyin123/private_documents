@@ -3,6 +3,8 @@ LC_ALL=C
 LANG=C
 set -o nounset -o pipefail -o errexit
 set -o xtrace
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+RBD_SECRET="id=admin:conf=${DIRNAME}/x86site.conf:keyring=${DIRNAME}/x86site.client.admin.keyring"
 # # rbd pool name
 DIR='libvirt-pool'
 # # reqire: jq qemu-img cat
@@ -41,10 +43,10 @@ str_equal "${BUS}" "scsi" && DISK="${DIR}/sd${char}-${UUID}.raw"
 str_equal "${BUS}" "sata" && DISK="${DIR}/sd${char}-${UUID}.raw"
 
 [ -z "${GOLD}" ] && {
-    qemu-img create -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/x86site.conf:keyring=/etc/ceph/x86site.client.admin.keyring ${SIZE}
+    qemu-img create -f raw rbd:${DISK}:${RBD_SECRET} ${SIZE}
 } || {
-    timeout 5m qemu-img convert -p -f qcow2 -W -m1 -O raw ${GOLD} rbd:${DISK}:id=admin:conf=/etc/ceph/x86site.conf:keyring=/etc/ceph/x86site.client.admin.keyring
+    timeout 5m qemu-img convert -p -f qcow2 -W -m1 -O raw ${GOLD} rbd:${DISK}:${RBD_SECRET}
     # skip resize error, when SIZE < gold image size, error but now image uploaded! so skip error
-    qemu-img resize -f raw rbd:${DISK}:id=admin:conf=/etc/ceph/x86site.conf:keyring=/etc/ceph/x86site.client.admin.keyring ${SIZE} || true
+    qemu-img resize -f raw rbd:${DISK}:${RBD_SECRET} ${SIZE} || true
 }
 exit 0
