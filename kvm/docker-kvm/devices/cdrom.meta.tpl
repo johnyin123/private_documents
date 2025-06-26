@@ -4,7 +4,7 @@
   <driver name='qemu' type='raw'/>
     <source protocol="https" name="/{{ vm_uuid }}/cidata.iso">
       <host name="{{ META_SRV }}" port="443"/>
-       <ssl verify="no"/>
+      <ssl verify="no"/>
     </source>
   <target dev='{{ getdev() }}' bus='{{ disk_bus | default("sata") }}'/>
   <readonly/>
