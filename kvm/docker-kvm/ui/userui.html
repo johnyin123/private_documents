@@ -325,11 +325,19 @@ function GetURLParameter(name) {
   return parms.has(name) ? parms.get(name) : '';
 }
 window.onload = function() {
-  var strtoken = GetURLParameter('token');
-  while(strtoken === null || '' === strtoken || typeof strtoken === 'undefined') {
-    strtoken = prompt("Please enter token:", "");
+  const strtoken = GetURLParameter('token');
+  if(!strtoken) {
+    document.body.innerHTML=`
+<form action="/guest.html" method="get">
+<div><center><h2>Input Token</h2></center>
+<input type="text" name="token"/>
+<input type="submit" value="Submit"/>
+</form></div>`;
+    // window.location.href = "login.html";
+    //strtoken = prompt("Please enter token:", "");
+  } else {
+    token.value = decodeURLSafeBase64(strtoken);
   }
-  token.value = decodeURLSafeBase64(strtoken);
 }
 </script>
 </body>
