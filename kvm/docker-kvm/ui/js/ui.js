@@ -322,8 +322,13 @@ function getjson_result(res) {
 }
 function show_xml(host, uuid) {
   set_curr(host, uuid);
-  getjson('GET', `/vm/xml/${host}/${uuid}`, function(res) {
-    Alert('success', `XMLDesc`, res.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+  getjson('GET', `/vm/xml/${host}/${uuid}`, function(resp) {
+    var result = JSON.parse(resp);
+    if(result.result === 'OK') {
+      Alert('success', `XMLDesc`, result.xml.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
+    } else {
+      disperr(result.code, result.name, result.desc);
+    }
   });
 }
 function setAction(form) {

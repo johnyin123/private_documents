@@ -214,7 +214,7 @@ class VMManager:
     @staticmethod
     def xml(host, uuid:str)-> str:
         with connect(host.url) as conn:
-            return conn.lookupByUUIDString(uuid).XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE)
+            return return_ok(f'xml ok', xml=conn.lookupByUUIDString(uuid).XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE))
 
     @staticmethod
     def list(host:FakeDB, uuid:str=None)-> str:
@@ -227,7 +227,7 @@ class VMManager:
                 guest = [LibvirtDomain(result)._asdict() for result in conn.listAllDomains()]
                 info ={'hostname':conn.getHostname(), 'freemem': f'{conn.getFreeMemory()//MiB}MiB', 'totalmem':f'{memory}MiB', 'totalcpu':nodes*sockets*cores*threads, 'mhz':mhz, 'totalvm':len(guest),'active':conn.numOfDomains()}
                 database.KVMGuest.Upsert(host.name, host.arch, guest)
-            return json.dumps({'host':info, 'guest':guest})
+            return return_ok(f'list ok', host=info, guest=guest)
 
     @staticmethod
     def attach_device(host:FakeDB, uuid:str, dev:str, req_json)-> Generator:
