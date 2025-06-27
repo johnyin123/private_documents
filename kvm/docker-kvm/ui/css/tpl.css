@@ -5,10 +5,10 @@
   font-family: "Roboto", sans-serif;
 }
 :root {
-  --text-color: white;
-  --bg-color: #212121;
+  --text-color: #edeffd;
+  --bg-color: #181a1e;
   --blue-color: RoyalBlue;
-  --red-color: red;
+  --red-color: #FF0060;
   --green-color: lime;
   --grey-color: gray;
   --grey-color-light: darkgray;
@@ -20,13 +20,8 @@
   --transition-speed: 0.5s;
 }
 body.light {
-  --text-color: #212121;
-  --bg-color: #fff;
-  --blue-color: DeepSkyBlue;
-  --red-color: red;
-  --green-color: darkgreen;
-  --grey-color: gray;
-  --grey-color-light: darkgray;
+  --text-color: #363949;
+  --bg-color: #f6f6f9;
 }
 body {
   transition: all var(--transition-speed) ease;
