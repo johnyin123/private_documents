@@ -27,7 +27,7 @@ DIR_META     = os.path.join(OUTDIR, 'meta')    # RO # cloud-init template dir
 DIR_TOKEN    = os.path.join(OUTDIR, 'token')   # RW # vnc/spice access token dir
 DIR_REQ_JSON = os.path.join(OUTDIR, 'reqlogs') # RW # LOG create_vm req_json
 # # vm define default values
-def VM_DEFAULT(arch:str='x86_64', hostname:str='dummy'):
+def VM_DEFAULT(arch:str, hostname:str):
     arch = arch.lower()
     default = {
         'vm_ram_mb': 1024, 'vm_vcpus': 1,
