@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
+# Time-based One-time Password # RFC6238。
 import logging, os
 import hmac, base64, struct, hashlib, time
 def get_hotp_token(secret, intervals_no):
