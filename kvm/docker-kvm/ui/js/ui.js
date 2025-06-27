@@ -544,7 +544,10 @@ function add_cdrom(host, uuid) {
 }
 function on_modifydesc(form) {
   const res = getFormJSON(form);
-  getjson('GET', `/vm/desc/${curr_host()}/${curr_vm()}?vm_desc=${res.vm_desc}`, getjson_result);
+  getjson('GET', `/vm/desc/${curr_host()}/${curr_vm()}?vm_desc=${res.vm_desc}`, function(resp) {
+    getjson_result(resp);
+    manage_vm(curr_host(), curr_vm());
+  });
   return false;
 }
 function modify_desc(host, uuid) {
