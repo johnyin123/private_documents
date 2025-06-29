@@ -112,7 +112,7 @@ EOF
     cat << EOF > ${root_dir}/etc/sysctl.d/90-perf.conf
 kernel.sched_autogroup_enabled = 0
 vm.min_free_kbytes = 131072
-sysctl vm.dirty_ratio = 60
+vm.dirty_ratio = 60
 EOF
     cat <<"EOF" > ${root_dir}/etc/ssh/sshrc
 logger -i -t ssh "$(date '+%Y%m%d%H%M%S') $USER $SSH_CONNECTION"

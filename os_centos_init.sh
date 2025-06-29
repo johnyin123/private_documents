@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("bf4e0090[2025-05-20T07:09:43+08:00]:os_centos_init.sh")
+VERSION+=("44ee8b31[2025-06-17T13:40:57+08:00]:os_centos_init.sh")
 # /etc/yum.conf
 # [main]
 # proxy=http://srv:port
@@ -232,7 +232,7 @@ EOF
     cat << EOF > ${basedir}/etc/sysctl.d/90-perf.conf
 kernel.sched_autogroup_enabled = 0
 vm.min_free_kbytes = 131072
-sysctl vm.dirty_ratio = 60
+vm.dirty_ratio = 60
 EOF
 }
 export -f centos_sysctl_init
