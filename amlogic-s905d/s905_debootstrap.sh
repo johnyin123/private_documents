@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c8aec2d2[2025-06-04T08:49:05+08:00]:s905_debootstrap.sh")
+VERSION+=("b22e9531[2025-06-20T14:45:34+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
@@ -219,8 +219,8 @@ EOF
 chmod 644 ${ROOT_DIR}/etc/profile.d/overlay.sh
 
 cat > ${ROOT_DIR}/etc/fstab << EOF
-LABEL=${ROOT_LABEL}    /    ${FS_TYPE}    defaults,errors=remount-ro,noatime    0    1
-LABEL=${BOOT_LABEL}    /boot    vfat    ro    0    2
+LABEL=${ROOT_LABEL}    /    ${FS_TYPE}    defaults,errors=remount-ro,noatime    0    0
+LABEL=${BOOT_LABEL}    /boot    vfat    ro    0    0
 # LABEL=EMMCSWAP    none     swap    sw,pri=-1    0    0
 tmpfs /var/log  tmpfs   defaults,noatime,nosuid,nodev,noexec,size=16M  0  0
 tmpfs /run      tmpfs   rw,nosuid,noexec,relatime,mode=755  0  0
@@ -229,7 +229,7 @@ tmpfs /tmp      tmpfs   rw,nosuid,relatime,mode=777  0  0
 tmpfs /media    tmpfs   defaults,size=1M  0  0
 tmpfs /home/johnyin/.cache  tmpfs mode=0700,noatime,nosuid,nodev,gid=johnyin,uid=johnyin   0  0
 tmpfs /root/.cache          tmpfs mode=0700,noatime,nosuid,nodev,gid=root,uid=root  0  0
-# /src /dst none defaults,bind 0 4
+# /src /dst none defaults,bind 0 0
 EOF
 
 log "auto reformatoverlay plug usb ttl"
