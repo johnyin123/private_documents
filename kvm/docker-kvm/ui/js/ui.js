@@ -497,8 +497,10 @@ function on_add(form) {
     const lines = str.split('\n');
     return lines[lines.length - 1];
   }
-  const res = getFormJSON(form);
-  getjson('POST', `/vm/attach_device/${curr_host()}/${curr_vm()}?dev=${res.device}`, function(resp) {
+  var res = getFormJSON(form);
+  const device = res.device;
+  delete res.device;
+  getjson('POST', `/vm/attach_device/${curr_host()}/${curr_vm()}?dev=${device}`, function(resp) {
     getjson_result(getLastLine(resp));
     manage_vm(curr_host(), curr_vm());
   }, res, function(resp) {
