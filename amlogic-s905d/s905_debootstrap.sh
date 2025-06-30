@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b22e9531[2025-06-20T14:45:34+08:00]:s905_debootstrap.sh")
+VERSION+=("e36cbb00[2025-06-30T07:08:04+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
@@ -314,6 +314,9 @@ EOF
 log "for minidlna"
 sed -i "/User=minidlna/d" ${ROOT_DIR}/lib/systemd/system/minidlna.service || true
 sed -i "/Group=minidlna/d" ${ROOT_DIR}/lib/systemd/system/minidlna.service || true
+sed -i "/DAEMON_OPTS=/d" ${ROOT_DIR}/etc/default/minidlna
+echo 'DAEMON_OPTS="-L"' >> ${ROOT_DIR}/etc/default/minidlna
+
 cat << EOF > ${ROOT_DIR}/etc/minidlna.conf
 media_dir=V,/media
 # Set this to merge all media_dir base contents into the root container
