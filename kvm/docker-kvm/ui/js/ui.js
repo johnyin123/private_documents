@@ -221,8 +221,8 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 12
       read(); // Start reading the stream
     }
     return response.text();
-  }).then(data => {
-    if (callback && typeof(callback) == "function") { callback(data); }
+  }).then(s_resp => {
+    if (callback && typeof(callback) == "function") { callback(s_resp); }
   }).catch(error => {
     console.error(`${method} ${url} ${error.message}`);
     try {
