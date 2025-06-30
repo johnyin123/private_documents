@@ -111,7 +111,7 @@ device=local-disk
 echo 'add disk' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/attach_device/${host}/${uuid}?dev=${device}
 {
  ${gold:+\"gold\": \"${gold}\",}
- "size":"10G"
+ "size":2147483648
 }
 EOF
 dev=vda
