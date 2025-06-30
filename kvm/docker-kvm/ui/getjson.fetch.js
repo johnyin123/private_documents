@@ -6,7 +6,7 @@ function saveTheme(theme) {
   localStorage.setItem('theme', theme);
 }
 /* ------------------------- */
-function getjson(method, url, callback, data = null, stream = null, timeout = 40000) {
+function getjson(method, url, callback, data = null, stream = null, timeout = 120000) {
   const opts = {
       method: method,
       headers: { 'Content-Type': 'application/json', },
@@ -14,7 +14,6 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 40
   };
   toggleOverlay(true);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
   fetch(url, { ...opts, signal: controller.signal }).then(response => {
     if (!response.ok) {
       return response.text().then(text => {
@@ -35,11 +34,9 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 40
       read(); // Start reading the stream
     }
     return response.text();
-  }).then(data => {
-    clearTimeout(timeoutId);
-    if (callback && typeof(callback) == "function") { callback(data); }
+  }).then(s_resp => {
+    if (callback && typeof(callback) == "function") { callback(s_resp); }
   }).catch(error => {
-    clearTimeout(timeoutId);
     console.error(`${method} ${url} ${error.message}`);
     try {
       var result = JSON.parse(error.message);
@@ -51,3 +48,60 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 40
     toggleOverlay(false);
   });
 }
+/* ------------------------- */
+async function getjson(method, url, callback = null, data = null, stream_cb = null, timeout = 120000) {
+  const opts = {
+      method: method,
+      headers: { 'Content-Type': 'application/json', },
+      body: data ? JSON.stringify(data) : null,
+  };
+  toggleOverlay(true);
+  try {
+    const response = await fetch(url, opts);
+    if (!response.ok) {
+      throw new Error(`HTTP error! ${response.status}`);
+    }
+    const reader = response.body.getReader();
+    const textDecoder = new TextDecoder();
+    let receivedData = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) { break; } //Stream finished
+      receivedData += textDecoder.decode(value, { stream: true });
+      const lines = receivedData.split('\n');
+      receivedData = lines.pop(); // Keep the last incomplete line
+      for (const line of lines) {
+        if (line) {
+          try {
+            if(stream_cb && typeof(stream_cb) == "function") { stream_cb(line); }
+          } catch (e) {
+            console.error('Error:', e);
+          }
+        }
+      }
+    }
+    if (receivedData) {
+      try {
+        if (callback && typeof(callback) == "function") { callback(receivedData); }
+        return receivedData;
+      } catch (e) {
+        console.error('Error:', e);
+      }
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    return null;
+  } finally {
+    toggleOverlay(false);
+  }
+}
+
+function cb(resp) { console.log("callback", resp); }
+getjson('GET', '/tpl/host/', cb)
+// const response = getjson('GET', '/tpl/host/')
+// // function streamcb(line) { console.log(line); }
+// // const response = getjson('POST', '/vm/attach_device/host01/62a72fe4-3651-4248-b034-2fa00c2f53dd?dev=disk.file', null, {"gold":"debian12","size":2147483648}, streamcb)
+// response.then(resp => {
+//     console.log('OK==========',resp);
+// });
+

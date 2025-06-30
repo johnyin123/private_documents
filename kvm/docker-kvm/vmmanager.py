@@ -233,11 +233,11 @@ class VMManager:
     def attach_device(host:FakeDB, uuid:str, dev:str, req_json)-> Generator:
         try:
             req_json['vm_uuid'] = uuid
-            dev = database.KVMDevice.get_one(name=dev, kvmhost=host.name)
-            tpl = template.DeviceTemplate(dev.tpl, dev.devtype)
+            device = database.KVMDevice.get_one(name=dev, kvmhost=host.name)
+            tpl = template.DeviceTemplate(device.tpl, device.devtype)
             # all env must string
-            env = {'URL':host.url, 'TYPE':dev.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
-            cmd = [os.path.join(config.DIR_ACTION, f'{dev.action}'), f'add']
+            env = {'URL':host.url, 'TYPE':device.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
+            cmd = [os.path.join(config.DIR_ACTION, f'{device.action}'), f'add']
             gold = req_json.get("gold", "")
             if len(gold) != 0:
                 req_json['gold'] = database.KVMGold.get_one(name=gold, arch=host.arch).tpl
@@ -245,16 +245,16 @@ class VMManager:
             if bus_type is not None:
                 with connect(host.url) as conn:
                     req_json['vm_last_disk'] = LibvirtDomain(conn.lookupByUUIDString(uuid)).next_disk[bus_type]
-            if dev.action is not None and len(dev.action) != 0:
+            if device.action is not None and len(device.action) != 0:
                 for line in ProcList.wait_proc(uuid, cmd, False, req_json, **env):
                     logger.debug(line.strip())
                     yield line
             with connect(host.url) as conn:
                 dom = conn.lookupByUUIDString(uuid)
                 dom.attachDeviceFlags(tpl.gen_xml(**req_json), dom_flags(LibvirtDomain(dom).state))
-            yield return_ok(f'attach {req_json["device"]} device ok, if live attach, maybe need reboot', uuid=uuid)
+            yield return_ok(f'attach {dev} device ok, if live attach, maybe need reboot', uuid=uuid)
         except Exception as e:
-            yield deal_except(f'attach {req_json["device"]} device', e)
+            yield deal_except(f'attach {dev} device', e)
 
     @staticmethod
     def create(host:FakeDB, req_json)->str:
