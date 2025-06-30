@@ -200,16 +200,12 @@ function getjson(method, url, callback, data = null, stream = null, timeout = 12
       body: data ? JSON.stringify(data) : null,
   };
   toggleOverlay(true);
-  const controller = new AbortController();
-  fetch(url, { ...opts, signal: controller.signal }).then(response => {
+  fetch(url, opts).then(response => {
     if (!response.ok) {
-      return response.text().then(text => {
-        throw new Error(text);
-      });
+      return response.text().then(text => { throw new Error(text); });
     }
     if(stream && typeof(stream) == "function") {
-      const responseClone = response.clone();
-      const reader = responseClone.body.getReader();
+      const reader = response.clone().body.getReader();
       const decoder = new TextDecoder();
       function read() {
         reader.read().then(({ done, value }) => {
