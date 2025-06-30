@@ -44,7 +44,7 @@ class MyApp(object):
                 for file in [fn for fn in os.listdir(config.DIR_META) if fn.endswith('.tpl')]:
                     varset.update(template.get_variables(config.DIR_META, file))
                 host['vars'] = {k: config.VARS_DESC.get(k,'n/a') for k in varset}
-            return getlist_without_key(hosts, *keys)
+            return return_ok(f'db_list_host ok', host=getlist_without_key(hosts, *keys))
         except Exception as e:
             return deal_except(f'db_list_host', e), 400
 
@@ -54,26 +54,26 @@ class MyApp(object):
             devices = [dic._asdict() for dic in database.KVMDevice.list_all(**args)]
             for dev in devices:
                 dev['vars'] = {k: config.VARS_DESC.get(k,'n/a') for k in template.get_variables(config.DIR_DEVICE, dev['tpl'])}
-            return getlist_without_key(devices, *['tpl', 'action'])
+            return return_ok(f'db_list_device ok', device=getlist_without_key(devices, *['tpl', 'action']))
         except Exception as e:
             return deal_except(f'db_list_device', e), 400
 
     def db_list_iso(self):
         try:
-            return getlist_without_key([result._asdict() for result in database.KVMIso.list_all()], *['uri'])
+            return return_ok(f'db_list_iso ok', iso=getlist_without_key([result._asdict() for result in database.KVMIso.list_all()], *['uri']))
         except Exception as e:
             return deal_except(f'db_list_iso', e), 400
 
     def db_list_gold(self, arch:str = None):
         try:
             args = {'arch': arch} if arch else {}
-            return getlist_without_key([result._asdict() for result in database.KVMGold.list_all(**args)], *['tpl'])
+            return return_ok(f'db_list_gold ok', gold=getlist_without_key([result._asdict() for result in database.KVMGold.list_all(**args)], *['tpl']))
         except Exception as e:
             return deal_except(f'db_list_gold', e), 400
 
     def db_list_domains(self):
         try:
-            return sorted([result._asdict() for result in database.KVMGuest.list_all()], key=lambda x : x['kvmhost'])
+            return return_ok(f'db_list_domains ok', guest=sorted([result._asdict() for result in database.KVMGuest.list_all()], key=lambda x : x['kvmhost']))
         except Exception as e:
             return deal_except(f'db_list_domains', e), 400
 

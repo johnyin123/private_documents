@@ -1,4 +1,4 @@
-const config = { g_hosts: {}, g_devices:{}, g_iso:{}, g_gold:{}, curr_host:'', curr_vm:'', curr_dev:'' };
+const config = { g_host: [], g_device:[], g_iso:[], g_gold:[], curr_host:'', curr_vm:'', curr_dev:'' };
 function get_iso() { return config.g_iso; }
 function get_gold() { return config.g_gold; }
 function curr_host() { return config.curr_host; }
@@ -11,8 +11,8 @@ function set_curr(kvmhost, uuid=null, dev=null) {
   console.debug(config.curr_host, config.curr_vm, config.curr_dev);
 }
 /*deep copy return*/
-function getHost(kvmhost) { return JSON.parse(JSON.stringify(config.g_hosts.find(el => el.name === kvmhost))); }
-function getDevice(kvmhost) { return filterByKey(config.g_devices, 'kvmhost', kvmhost); }
+function getHost(kvmhost) { return JSON.parse(JSON.stringify(config.g_host.find(el => el.name === kvmhost))); }
+function getDevice(kvmhost) { return filterByKey(config.g_device, 'kvmhost', kvmhost); }
 function genOption(jsonobj, selectedValue = '', ext1 = null, ext2 = null) {
   return jsonobj.map(item => {
     let data_ext1 = ext1 ? `data-ext1="${item[ext1]}"` : "";
@@ -267,16 +267,18 @@ function vmlist(kvmhost) {
   }
   getjson('GET', url, function(resp) {
     const result = JSON.parse(resp);
-    flush_sidebar(kvmhost, kvmhost == 'ALL VMS' ? `(${result.length})` : `(${result.host.active}/${result.host.totalvm})`);
+    if(result.result !== 'OK') { Alert('error', 'vmlist', 'Get VM List'); return; };
+    const guest = result.guest;
+    flush_sidebar(kvmhost, kvmhost == 'ALL VMS' ? `(${guest.length})` : `(${result.host.active}/${result.host.totalvm})`);
     if(kvmhost === 'ALL VMS') {
       var tbl = '';
-      result.forEach(item => {
+      guest.forEach(item => {
         const btn = `<button title='GOTO VM Manage' onclick='manage_vm("${item.kvmhost}", "${item.uuid}")'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
         const table = genVmsTBL(item);
         tbl += genWrapper("vms-wrapper", "<h2>GUEST</h2>", btn, table);
       });
       document.getElementById("vms").innerHTML = tbl;
-      const newArray = result.map(item => {
+      const newArray = guest.map(item => {
         const { kvmhost, arch } = item;
         return { kvmhost, arch };
       });
@@ -653,14 +655,16 @@ function includeHTML() {
 window.addEventListener('load', function() {
   includeHTML();
   getjson('GET', '/tpl/host/', function (resp) {
-    config.g_hosts = JSON.parse(resp);
+    const result = JSON.parse(resp);
+    if(result.result !== 'OK') { Alert('error', 'init', 'Get Host List'); return; }
+    config.g_host = result.host;
     var mainMenu = `<a href='#' onclick='vmlist("ALL VMS")'><i class='fa fa-list-ol'></i><span name='host'>ALL VMS</span><span style='float:right;' name='count'></span></a>`;
-    config.g_hosts.forEach(host => {
+    config.g_host.forEach(host => {
       mainMenu += `<a href='#' title="${host.arch}" onclick='vmlist("${host.name}")'><i class="fa fa-desktop"></i><span name='host'>${host.name}</span><span style='float:right;' name='count'></span></a>`;
     });
     document.getElementById("sidebar").innerHTML = mainMenu;
   });
-  getjson('GET', `/tpl/iso/`, function(resp) { config.g_iso = JSON.parse(resp); });
-  getjson('GET', `/tpl/gold/`, function(resp) { config.g_gold = JSON.parse(resp); });
-  getjson('GET', `/tpl/device/`, function(resp) { config.g_devices = JSON.parse(resp); });
+  getjson('GET', `/tpl/iso/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; }; config.g_iso = result.iso; });
+  getjson('GET', `/tpl/gold/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; }; config.g_gold = result.gold; });
+  getjson('GET', `/tpl/device/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Device List'); return; }; config.g_device = result.device; });
 })

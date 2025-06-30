@@ -265,7 +265,7 @@ function change_iso(dev) {
     table += `<div><center><h2>Change CDROM ISO</h2></center></div>`;
     table += `<form onSubmit="return mysubmit(this, '${dev}')">`;
     table += `<label>ISO:<select name="isoname" id="isoname_list">`;
-    res.map(item => {
+    res.iso.map(item => {
       table += `<option value="${item.name}">${item.desc}</option>`;
     })
     table += `</select></label>`;
