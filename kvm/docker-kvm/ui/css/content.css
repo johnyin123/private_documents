@@ -1,8 +1,6 @@
 div.machine-container {
   display: grid;
-  grid-template-areas:
-    "host"
-    "vms";
+  grid-template-areas: "host" "vms";
   grid-template-columns: 1fr;
   gap: var(--padding-small);
 }
@@ -26,7 +24,7 @@ div.vms-wrapper {
 div.host-wrapper-header,
 div.vms-wrapper-header,
 .form-wrapper-header {
-  background-color: var(--grey-color);
+  box-shadow: 0 0 5px var(--grey-color);
   color: var(--text-color);
   display: flex;
   align-items: center;
@@ -82,7 +80,7 @@ form {
   padding: var(--padding-large);
   margin: 20px auto;
   border-radius: 8px;
-  box-shadow: 0 0 10px var(--grey-color-light);
+  box-shadow: 0 0 10px var(--grey-color);
 }
 form label {
   width: 100%;
@@ -103,15 +101,15 @@ form select {
   background: transparent;
   color: var(--text-color);
   width: 100%;
-  border: 1px solid var(--grey-color-light);
+  border: 1px solid var(--grey-color);
   box-sizing: border-box;
   resize: none;
 }
 form select option {
-  background: var(--black-color-light);
+  background: var(--bg-color);
 }
 button, input[type="button"], input[type="submit"], input[type="reset"] {
-  border: 1px solid var(--grey-color-light);
+  border: 1px solid var(--grey-color);
   cursor: pointer;
   background-color: var(--grey-color);
   color: var(--text-color);
@@ -124,7 +122,7 @@ button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type
   opacity: 1; /* Firefox */
 }
 textarea:invalid, input:invalid {
-  outline: 2px solid var(--red-color);
+  outline: 2px solid var(--blue-color);
 }
 /*input:valid { border: 2px solid black; }*/
 table {
@@ -133,7 +131,7 @@ table {
   border-collapse: collapse;
 }
 table, th, td {
-  border: 1px solid var(--grey-color-light);
+  border: 1px solid var(--grey-color);
   padding: 3px;
 }
 th { text-align: right; text-transform: uppercase; }
@@ -163,7 +161,7 @@ legend {
 div[name=help] {
   width: 100%;
   border-radius: 8px;
-  box-shadow: 0 0 2px var(--grey-color-light);
+  box-shadow: 0 0 2px var(--grey-color);
 }
 details { padding: 5px var(--padding-large); }
 details table th { text-align: right; text-transform: none; }
@@ -171,8 +169,8 @@ details table th { text-align: right; text-transform: none; }
 .current { background-color:var(--blue-color); }
 .tabContent { display:none; }
 #alert {
-  border: 2px solid var(--grey-color-light) !important;
-  background-color: var(--black-color-light);
+  border: 2px solid var(--grey-color) !important;
+  background-color: var(--bg-color);
   color: var(--text-color);
   position: absolute;
   top: 50%;

@@ -5,13 +5,12 @@
   font-family: "Roboto", sans-serif;
 }
 :root {
-  --text-color: #edeffd;
   --bg-color: #181a1e;
-  --blue-color: RoyalBlue;
-  --red-color: #FF0060;
+  --blue-color: #7855fa;
   --green-color: lime;
   --grey-color: gray;
-  --grey-color-light: darkgray;
+  --red-color: #ff0060;
+  --text-color: #edeffd;
   --font-size-large: 22px;
   --font-size-medium: 20px;
   --padding-small: 10px;
@@ -20,8 +19,8 @@
   --transition-speed: 0.5s;
 }
 body.light {
-  --text-color: #363949;
   --bg-color: #f6f6f9;
+  --text-color: #363949;
 }
 body {
   transition: all var(--transition-speed) ease;
@@ -32,7 +31,7 @@ div.container {
   display: grid;
   grid-template-areas: "header header" "sidebar content";
   grid-template-columns: 260px auto;
-  border: 1px solid var(--grey-color-light);
+  border: 1px solid var(--grey-color);
 }
 div.container.smallsidebar {
   grid-template-columns: 80px auto;
@@ -46,7 +45,7 @@ div.container > div.header {
   align-items: center;
   height: 80px;
   padding: var(--padding-small);
-  border: 1px solid var(--grey-color-light);
+  border: 1px solid var(--grey-color);
 }
 div.header > div.left_area {
   grid-area: left_area;
@@ -86,7 +85,7 @@ div.container > div.sidebar {
   height: calc(100vh - 80px - 2px);
   overflow-y: auto;
   padding-top: 30px;
-  border: 1px solid var(--grey-color-light);
+  border: 1px solid var(--grey-color);
 }
 div.sidebar .profile_image {
   width: 100px;
@@ -115,7 +114,7 @@ div.container > div.content {
   padding: var(--padding-small);
   height: calc(100vh - 80px - 2px);
   overflow-y: auto;
-  border: 1px solid var(--grey-color-light);
+  border: 1px solid var(--grey-color);
 }
 @media (max-width: 768px) {
   div.container {
