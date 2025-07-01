@@ -78,11 +78,6 @@ div.form-wrapper {
   background: transparent;
   color: var(--text-color);
 }
-/* form element same line */
-div.group {
-  display: flex;
-  flex-direction: row;
-}
 form {
   padding: var(--padding-large);
   margin: 20px auto;
@@ -158,8 +153,11 @@ td > a:hover {
   background: var(--blue-color);
   border-radius: 2px;
 }
+fieldset {
+  width: 100%;
+}
 legend {
-	font-weight: bold;
+  font-weight: bold;
 }
 div[name=help] {
   width: 100%;
@@ -181,4 +179,9 @@ details table th { text-align: right; text-transform: none; }
   transform: translate(-50%, -50%);
   width: 64vw;
   max-height:48vh;
+}
+div.flex-group {
+  display: flex;
+  gap: var(--padding-small);
+  justify-content: space-between;
 }
