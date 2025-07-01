@@ -36,7 +36,7 @@ div.host-wrapper-header h2,
 div.vms-wrapper-header h2,
 .form-wrapper-header h2 {
   font-weight: 700;
-  font-size: 1.4rem;
+  font-size: var(--font-size-large);
 }
 div.form-wrapper-header h2.success {
   /*success alert*/
@@ -52,7 +52,7 @@ div.vms-wrapper-header button {
   border: none;
   cursor: pointer;
   background: transparent;
-  font-size: 140%;
+  font-size: var(--font-size-large);
   min-width: 30px;
   line-height: 40px;
   display: inline-block;
