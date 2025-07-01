@@ -16,14 +16,15 @@ div.vms-container {
 }
 /* extra styles */
 div.host-wrapper,
-div.vms-wrapper {
+div.vms-wrapper,
+div.form-wrapper {
   margin: 0 auto;
   border: none;
   padding: var(--padding-small);
 }
 div.host-wrapper-header,
 div.vms-wrapper-header,
-.form-wrapper-header {
+div.form-wrapper-header {
   box-shadow: 0 0 5px var(--grey-color);
   color: var(--text-color);
   display: flex;
@@ -34,20 +35,21 @@ div.vms-wrapper-header,
 }
 div.host-wrapper-header h2,
 div.vms-wrapper-header h2,
-.form-wrapper-header h2 {
+div.form-wrapper-header h2 {
   font-weight: 700;
   font-size: var(--font-size-large);
 }
-div.form-wrapper-header h2.success {
+h2.success {
   /*success alert*/
   color: var(--green-color);
 }
-div.form-wrapper-header h2.error {
+h2.error {
   /*error alert*/
   color: var(--red-color);
 }
 div.host-wrapper-header button,
-div.vms-wrapper-header button {
+div.vms-wrapper-header button,
+div.form-wrapper-header button {
   padding: 0;
   border: none;
   cursor: pointer;
@@ -60,21 +62,9 @@ div.vms-wrapper-header button {
   border-radius: 6px;
 }
 div.host-wrapper-header button:hover,
-div.vms-wrapper-header button:hover {
+div.vms-wrapper-header button:hover,
+div.form-wrapper-header button:hover {
   color: var(--blue-color);
-}
-div.form-wrapper {
-  margin: 0 auto;
-  border: none;
-  padding: 12px;
-  background-color: var(--bg-color);
-}
-.form-wrapper-header button.close {
-  padding: 0;
-  border: none;
-  cursor: pointer;
-  background: transparent;
-  color: var(--text-color);
 }
 form {
   padding: var(--padding-large);
