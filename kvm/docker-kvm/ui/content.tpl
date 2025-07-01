@@ -109,9 +109,11 @@
       <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form id="adddisk_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Gold:<select name="gold" id="gold_list" onchange="gold_change(this)"></select></label>
-      <label>Disk:<select name="device" id="dev_list" onchange="select_change(this)"></select></label>
-      <label>Size(GB):<input type="number" name="size" id="gold_size" min="1" max="2048"/></label>
+      <div class="flex-group">
+        <label>Disk:<select name="device" id="dev_list" onchange="select_change(this)"></select></label>
+        <label>Gold:<select name="gold" id="gold_list" onchange="gold_change(this)"></select></label>
+        <label>Size(GB):<input type="number" name="size" id="gold_size" min="1" max="2048"/></label>
+      </div>
       <table name="meta_data"></table><datalist name="help" id="adddisk_mdlist"></datalist><div name='help'></div>
       <div class="flex-group">
         <input type="button" value="AddField" onclick="add_meta(this)"/>

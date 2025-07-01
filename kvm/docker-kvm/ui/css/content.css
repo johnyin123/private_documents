@@ -85,6 +85,7 @@ form {
   box-shadow: 0 0 10px var(--grey-color-light);
 }
 form label {
+  width: 100%;
   display: block;
   margin-bottom: 8px;
 }
@@ -162,7 +163,7 @@ legend {
 div[name=help] {
   width: 100%;
   border-radius: 8px;
-  box-shadow: 0 0 10px var(--grey-color-light);
+  box-shadow: 0 0 2px var(--grey-color-light);
 }
 details { padding: 5px var(--padding-large); }
 details table th { text-align: right; text-transform: none; }
