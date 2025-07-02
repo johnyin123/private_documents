@@ -98,7 +98,7 @@ class MyApp(object):
                         continue
                     args[key] = value
                 # args = {**flask.request.args, 'url': host.url, 'uuid': uuid}
-                if req_json:
+                if req_json is not None: # fix POST {}, if GET req_json == None
                     args['req_json'] = req_json
                 func = getattr(vmmanager.VMManager, cmd)
                 logger.info(f'"{cmd}" call args={args}')
