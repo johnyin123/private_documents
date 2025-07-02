@@ -101,7 +101,7 @@ div.sidebar a {
   color: var(--text-color);
   text-transform: uppercase;
   border-radius: 8px;
-  transition: background var(--transition-speed);
+  transition: background-color var(--transition-speed);
 }
 div.sidebar a:hover {
   background: var(--blue-color);

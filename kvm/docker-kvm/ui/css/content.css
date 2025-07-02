@@ -104,6 +104,8 @@ button, input[type="button"], input[type="submit"], input[type="reset"] {
   cursor: pointer;
   background-color: var(--grey-color);
   color: var(--text-color);
+  transition: background-color var(--transition-speed);
+  border-radius: 5px;
 }
 button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover {
   background-color: var(--blue-color);
