@@ -70,7 +70,7 @@ form {
   padding: var(--padding-large);
   margin: 20px auto;
   border-radius: 8px;
-  box-shadow: 0 0 10px var(--grey-color);
+  box-shadow: 0 0 5px var(--grey-color);
 }
 form label {
   width: 100%;
@@ -152,7 +152,7 @@ legend {
 div[name=help] {
   width: 100%;
   border-radius: 8px;
-  box-shadow: 0 0 2px var(--grey-color);
+  box-shadow: 0 0 5px var(--grey-color);
 }
 details { padding: 5px var(--padding-large); }
 details table th { text-align: right; text-transform: none; }
