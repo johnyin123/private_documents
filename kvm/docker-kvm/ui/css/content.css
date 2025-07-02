@@ -112,9 +112,8 @@ button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type
   opacity: 1; /* Firefox */
 }
 textarea:invalid, input:invalid {
-  outline: 2px solid var(--blue-color);
+  outline: 1px solid var(--blue-color);
 }
-/*input:valid { border: 2px solid black; }*/
 table {
   width: 100%;
   table-layout: fixed;
@@ -144,6 +143,7 @@ td > a:hover {
 }
 fieldset {
   width: 100%;
+  border: 1px solid var(--grey-color);
 }
 legend {
   font-weight: bold;
