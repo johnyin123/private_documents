@@ -26,6 +26,8 @@ body {
   transition: all var(--transition-speed) ease;
   background-color: var(--bg-color);
   color: var(--text-color);
+  /*accent-color property sets the colour used by range/checkboxes/radio*/
+  accent-color: var(--blue-color);
 }
 div.container {
   display: grid;
