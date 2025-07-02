@@ -76,6 +76,7 @@ form label {
   width: 100%;
   display: block;
   margin-bottom: 8px;
+  font-weight: bold;
 }
 form input[type="text"],
 form input[type="date"],

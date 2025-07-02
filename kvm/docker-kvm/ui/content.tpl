@@ -193,21 +193,25 @@
         </fieldset>
         <fieldset><legend>Device</legend>
             <label><input type="checkbox" name="vm_rng" value="no">Remove RNG Random Device</label>
+            <!--
+            <label><input type="radio" name="vm_rng" value="yes">Yes</label>
+            <label><input type="radio" name="vm_rng" value="no">No</label>
+            -->
         </fieldset>
       </div>
       <div class="flex-group">
-        <fieldset><legend>CPU</legend>
+        <label>CPU
           <div class="flex-group">
             <input style="width: 30%;" type="number" name="vm_vcpus" id="vcpu_num" value="2" min="1" max="16" oninput="vcpu_rge.value=this.value" />
             <input type="range" id="vcpu_rge" value="2" min="1" max="16" oninput="vcpu_num.value=this.value"/>
           </div>
-        </fieldset>
-        <fieldset><legend>MEM(MB)</legend>
+        </label>
+        <label>MEM(MB)
           <div class="flex-group">
             <input style="width: 30%;" type="number" name="vm_ram_mb" id="vmem_num" value="2048" min="1024" max="32768" step="1024" oninput="vmem_rge.value=this.value"/>
             <input type="range" id="vmem_rge" value="2048" min="1024" max="32768" step="1024" oninput="vmem_num.value=this.value"/>
           </div>
-        </fieldset>
+        </label>
       </div>
       <label>Desc*<textarea rows="3" maxlength="100" name="vm_desc" placeholder="vm desc here..." required></textarea></label>
       <div class="flex-group">
