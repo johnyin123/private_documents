@@ -215,17 +215,17 @@
         </fieldset>
         <fieldset><legend>Device</legend>
           <div class="flex-group">
-            <select name="vm_graph" title="graph type">
+            <label>Graph:<select name="vm_graph" title="graph type">
               <option value="" selected>console</option>
               <option value="vnc">vnc</option>
               <option value="spice">spice</option>
-            </select>
-            <select name="vm_video" title="video card">
+            </select></label>
+            <label>Video Card:<select name="vm_video" title="video card">
               <option value="vga" selected>vga</option>
               <option value="qxl">qxl</option>
               <option value="virtio">virtio</option>
               <option value="cirrus">cirrus</option>
-            </select>
+            </select></label>
           </div>
           <label><input type="checkbox" name="vm_rng" value="no">Remove RNG Random Device</label>
           <!--<label><input type="radio" name="vm_rng" value="yes">Yes</label><label><input type="radio" name="vm_rng" value="no">No</label>-->
