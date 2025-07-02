@@ -69,7 +69,14 @@
       <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form id="addcdrom_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>CDROM:<select name="device" id="cdrom_list" onchange="select_change(this)"></select></label>
+      <div class="flex-group">
+        <label>CDROM:<select name="device" id="cdrom_list" onchange="select_change(this)"></select></label>
+        <label>BUS:<select name="disk_bus" title="Bus type">
+          <option value="sata" selected>sata</option>
+          <option value="ide">ide</option>
+          <option value="scsi">scsi</option>
+        </select></label>
+      </div>
       <table name="meta_data"></table><datalist name="help" id="addcdrom_mdlist"></datalist><div name='help'></div>
       <div class="flex-group">
         <input type="button" value="AddField" onclick="add_meta(this)"/>
@@ -87,7 +94,14 @@
       <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form id="addnet_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Network:<select name="device" id="net_list" onchange="select_change(this)"></select></label>
+      <div class="flex-group">
+        <label>Network:<select name="device" id="net_list" onchange="select_change(this)"></select></label>
+        <label>Model:<select name="net_model" title="netcard model">
+          <option value="virtio" selected>virtio</option>
+          <option value="e1000">e1000</option>
+          <option value="rtl8139">rtl8139</option>
+        </select></label>
+      </div>
       <table name="meta_data"></table><datalist name="help" id="addnet_mdlist"></datalist><div name='help'></div>
       <div class="flex-group">
         <input type="button" value="AddField" onclick="add_meta(this)"/>
@@ -107,8 +121,16 @@
     <form id="adddisk_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <div class="flex-group">
         <label>Disk:<select name="device" id="dev_list" onchange="select_change(this)"></select></label>
-        <label>Gold:<select name="gold" id="gold_list" onchange="gold_change(this)"></select></label>
         <label>Size(GB):<input type="number" name="size" id="gold_size" min="1" max="2048"/></label>
+      </div>
+      <div class="flex-group">
+        <label>Gold:<select name="gold" id="gold_list" onchange="gold_change(this)"></select></label>
+        <label>BUS:<select name="disk_bus" title="Bus type">
+          <option value="virtio" selected>virtio</option>
+          <option value="ide">ide</option>
+          <option value="scsi">scsi</option>
+          <option value="sata">sata</option>
+        </select></label>
       </div>
       <table name="meta_data"></table><datalist name="help" id="adddisk_mdlist"></datalist><div name='help'></div>
       <div class="flex-group">
@@ -192,16 +214,21 @@
             </select>
         </fieldset>
         <fieldset><legend>Device</legend>
-            <select name="vm_graph"	spice/vnc, default console mode no graph>
-              <option value="" selected>Select graphic</option>
+          <div class="flex-group">
+            <select name="vm_graph" title="graph type">
+              <option value="" selected>console</option>
               <option value="vnc">vnc</option>
               <option value="spice">spice</option>
             </select>
-            <label><input type="checkbox" name="vm_rng" value="no">Remove RNG Random Device</label>
-            <!--
-            <label><input type="radio" name="vm_rng" value="yes">Yes</label>
-            <label><input type="radio" name="vm_rng" value="no">No</label>
-            -->
+            <select name="vm_video" title="video card">
+              <option value="vga" selected>vga</option>
+              <option value="qxl">qxl</option>
+              <option value="virtio">virtio</option>
+              <option value="cirrus">cirrus</option>
+            </select>
+          </div>
+          <label><input type="checkbox" name="vm_rng" value="no">Remove RNG Random Device</label>
+          <!--<label><input type="radio" name="vm_rng" value="yes">Yes</label><label><input type="radio" name="vm_rng" value="no">No</label>-->
         </fieldset>
       </div>
       <div class="flex-group">
