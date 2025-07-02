@@ -186,12 +186,17 @@
             <!--
             <label><input type="checkbox" name="vm_meta_enum" value="NOCLOUD">NOCLOUD</label>
             -->
-            <select name="vm_meta_enum" class="custom-select">
-              <option value="">ISO</option>
+            <select name="vm_meta_enum">
+              <option value="" selected>ISO</option>
               <option value="NOCLOUD">NoCloud</option>
             </select>
         </fieldset>
         <fieldset><legend>Device</legend>
+            <select name="vm_graph"	spice/vnc, default console mode no graph>
+              <option value="" selected>Select graphic</option>
+              <option value="vnc">vnc</option>
+              <option value="spice">spice</option>
+            </select>
             <label><input type="checkbox" name="vm_rng" value="no">Remove RNG Random Device</label>
             <!--
             <label><input type="radio" name="vm_rng" value="yes">Yes</label>
