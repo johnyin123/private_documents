@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("d726bb3f[2025-05-27T15:23:59+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("66569ee1[2025-06-06T16:37:36+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -87,12 +87,27 @@ EO_DOC
     [ "${docker}" == "1" ] || outdir=$(realpath "${outdir}")
     cat <<EODOC | install -v -C -m 0755 --group=${gid} --owner=${uid} /dev/stdin ${home_dir}/app/startup.sh
 #!/usr/bin/env bash
-export OUTDIR=${outdir}
-pkill --uid johnyin -9 websockify || true
-pkill --uid johnyin -9 gunicorn || true
-# nohup websockify --token-plugin TokenFile --token-source \${OUTDIR}/token/ 127.0.0.1:6800 &>\${OUTDIR}/websockify.log &
-websockify --token-plugin TokenFile --token-source \${OUTDIR}/token/ 127.0.0.1:6800 &
-gunicorn --env LOG=ERROR -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat '%(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
+readonly DIRNAME="\$(readlink -f "\$(dirname "\$0")")"
+OUTDIR=${outdir}
+# VENV=/../my_venv/bin/ # last word / !!
+systemctl --user stop websockify-graph.service || true
+systemctl --user stop jwt-srv.service || true
+systemctl --user stop simple-kvm-srv.service || true
+
+systemd-run --user --unit websockify-graph \\
+--working-directory=\${DIRNAME} \\
+-E OUTDIR=\${OUTDIR} \\
+\${VENV:-}websockify --token-plugin TokenFile --token-source \${OUTDIR}/token/ 127.0.0.1:6800
+
+systemd-run --user --unit jwt-srv \\
+--working-directory=\${DIRNAME} \\
+-E OUTDIR=\${OUTDIR} \\
+\${VENV:-}gunicorn -b 127.0.0.1:16000 --preload --workers=2 --threads=2 --access-logformat 'JWT %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'jwt_server:app'
+
+systemd-run --user --unit simple-kvm-srv \\
+--working-directory=\${DIRNAME} \\
+-E OUTDIR=\${OUTDIR} \\
+\${VENV:-}/gunicorn --env LOG=INFO -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
 EODOC
 }
 inst_app_outdir() {
