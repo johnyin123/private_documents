@@ -141,15 +141,17 @@ td.truncate {
   max-width:1px;
 }
 td > a {
-  display: inline;
-  margin: 5px;
-  height:100%;
+  display: inline-block;
   text-decoration: none;
-  color: var(--green-color);
+  text-align: center;
+  color: var(--text-color);
+  /* padding: 10px 20px; Add internal spacing around the text */
+  border: 2px solid var(--grey-color);
+  border-radius: 6px;
+  cursor: pointer;
 }
 td > a:hover {
   background: var(--blue-color);
-  border-radius: 2px;
 }
 fieldset {
   width: 100%;
