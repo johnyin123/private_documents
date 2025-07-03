@@ -50,9 +50,12 @@ div.container > div.header {
 div.header > div.left_area {
   grid-area: left_area;
   font-size: 25px;
-  color: var(--red-color);
+  color: red;
   text-align: left;
   padding: var(--padding-medium);
+}
+div.header > div.left_area span {
+  color: blue;
 }
 div.header > div.mid_area {
   grid-area: mid_area;
