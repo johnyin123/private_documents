@@ -227,7 +227,7 @@
               <option value="cirrus">cirrus</option>
             </select></label>
           </div>
-          <label><input type="checkbox" name="vm_rng" value="no" />Remove RNG Random Device</label>
+          <label style="font-weight: normal;"><input type="checkbox" name="vm_rng" value="no" />Remove RNG Random Device</label>
           <!--<label><input type="radio" name="vm_rng" value="yes" checked />Yes</label><label><input type="radio" name="vm_rng" value="no" />No</label>-->
         </fieldset>
       </div>
