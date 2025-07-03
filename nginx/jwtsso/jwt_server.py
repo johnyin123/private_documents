@@ -1,11 +1,35 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, werkzeug, flask_app, flask, datetime, jwt
+import os, werkzeug, flask_app, flask, datetime, jwt, json, logging
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
-# from ldap_login import ldap_login as jwt_login
-from json_login import json_login as jwt_login
-from flask_app import logger
+logger = logging.getLogger(__name__)
+'''
+[
+    {"username":"u1", "password":"p1"},
+    {"username":"u2", "password":"p2"}
+]
+'''
+def json_login(config: dict, username: str, password: str) -> bool:
+    def search(arr, key, val):
+        return [ element for element in arr if element[key] == val]
+    try:
+        with open(config['JSON_FILE'], 'r') as file:
+            data = json.load(file)
+            result = search(search(data, 'username', username), 'password', password)
+            if len(result) > 0:
+                logger.debug('%s Login OK', username)
+                return True
+            else:
+                return False
+    except Exception:
+        logger.exception(f'json_login excetion')
+    raise werkzeug.exceptions.Unauthorized(f'json_login excetion')
+
+try:
+    from ldap_login import ldap_login as jwt_login
+except ImportError:
+    jwt_login=json_login
 
 def load_file(file_path):
     if os.path.isfile(file_path):
@@ -16,10 +40,10 @@ DEFAULT_CONF = {
     'LDAP_URL'            : 'ldap://172.16.0.5:13899',
     'LDAP_UID_FMT'        : 'cn={uid},ou=people,dc=neusoft,dc=internal',
     'JSON_FILE'           : 'users.json',
-    'PUBLIC_KEY_FILE'     : 'srv.pem',
-    'PRIVATE_KEY_FILE'    : 'srv.key',
-    'EXPIRE_SEC'          : 60 * 10,
-    'CAPTCHA_PUBKEY_FILE' : 'srv.pem',
+    'PUBLIC_KEY_FILE'     : 'jwt-srv.pem',
+    'PRIVATE_KEY_FILE'    : 'jwt-srv.key',
+    'EXPIRE_SEC'          : 60 * 60,
+    'CAPTCHA_PUBKEY_FILE' : 'jwt-srv.pem',
 }
 
 class jwt_exception(werkzeug.exceptions.Unauthorized):
@@ -135,8 +159,7 @@ class MyApp(object):
 
 app=MyApp.create()
 # # pip install flask ldap3 pyjwt[crypto]
-# # gunicorn -b 127.0.0.1:16000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app'
-
+# # gunicorn -b 127.0.0.1:16000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'jwt_server:app'
 '''
 CAPTCHA_SRV=http://localhost:5000
 JWT_SRV=http://localhost:16000

@@ -34,12 +34,12 @@ server {
     location @502 { return 502 '{"code":502,"name":"lberr","desc":"backend server not alive"}'; }
     error_page 504 = @504;
     location @504 { return 504 '{"code":504,"name":"lberr","desc":"Gateway Time-out"}'; }
-    # include /etc/nginx/http-enabled/jwt_sso_auth.inc;
+    ${AUTH}include /etc/nginx/http-enabled/jwt_sso_auth.inc;
     # # default page is guest ui
     location / { return 301 https://$server_name/guest.html; }
     location /tpl/ {
         # # proxy cache default is on, so modify host|device|gold, should clear ngx cache
-        # auth_request @sso-auth;
+        ${AUTH}auth_request @sso-auth;
         # host/device/gold can cached by proxy_cache default
         location ~* ^/tpl/(host|device|gold|iso)/ {
             if ($request_method !~ ^(GET)$ ) { return 405; }
@@ -48,7 +48,7 @@ server {
         return 404;
     }
     location /vm/ {
-        # auth_request @sso-auth;
+        ${AUTH}auth_request @sso-auth;
         # # no cache!! mgr private access
         proxy_cache off;
         expires off;
@@ -128,6 +128,10 @@ server {
     location = /guest.html { return 301 /ui/userui.html$is_args$args; }
     # # admin ui # #
     location = /admin.html { return 301 /ui/tpl.html; }
+    location = /ui/tpl.html {
+        ${AUTH}auth_request @sso-auth;
+        alias /home/johnyin/vmmgr/ui/tpl.html;
+    }
     # # static resource # #
     # # ui/term/spice/novnc use flask_app serve, add rewrite
     # rewrite ^ /public$uri break;proxy_pass http://flask_app;
@@ -156,6 +160,8 @@ ngx_cfg = ngx_cfg.replace('${META_SRV}', config.META_SRV)
 ngx_cfg = ngx_cfg.replace('${WEBSOCKKEY}', config.SECURE_LINK_MYKEY_WEBSOCKIFY)
 ngx_cfg = ngx_cfg.replace('${USERKEY}', config.SECURE_LINK_MYKEY_CTRL_PANEL)
 ngx_cfg = ngx_cfg.replace('${OUT_DIR}', config.OUTDIR)
+ngx_cfg = ngx_cfg.replace('${AUTH}', '')
+# ngx_cfg = ngx_cfg.replace('${AUTH}', '# ')
 with open('kvm.conf', "w") as file:
     file.write(ngx_cfg)
 print(f'''
