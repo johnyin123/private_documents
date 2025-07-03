@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("66569ee1[2025-06-06T16:37:36+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("674aac31[2025-07-03T11:56:12+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -107,7 +107,7 @@ systemd-run --user --unit jwt-srv \\
 systemd-run --user --unit simple-kvm-srv \\
 --working-directory=\${DIRNAME} \\
 -E OUTDIR=\${OUTDIR} \\
-\${VENV:-}/gunicorn --env LOG=INFO -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
+\${VENV:-}gunicorn --env LOG=INFO -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
 EODOC
 }
 inst_app_outdir() {
