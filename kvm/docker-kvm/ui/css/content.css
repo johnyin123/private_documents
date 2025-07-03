@@ -127,6 +127,7 @@ table {
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
+  box-shadow: 0 0 5px var(--grey-color);
 }
 table, th, td {
   border: 1px solid var(--grey-color);
