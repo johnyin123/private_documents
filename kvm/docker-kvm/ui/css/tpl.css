@@ -6,7 +6,7 @@
 }
 :root {
   --bg-color: #181a1e;
-  --blue-color: #7855fa;
+  --blue-color: #486581;
   --green-color: lime;
   --grey-color: gray;
   --red-color: #ff0060;
@@ -20,6 +20,7 @@
 }
 body.light {
   --bg-color: #f6f6f9;
+  --blue-color: #7855fa;
   --text-color: #363949;
 }
 body {

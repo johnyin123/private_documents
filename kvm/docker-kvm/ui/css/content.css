@@ -89,7 +89,7 @@ form input[type="submit"],
 form input[type="button"],
 form textarea,
 form select {
-  background: transparent;
+  background: var(--bg-color);
   color: var(--text-color);
   width: 100%;
   border: 1px solid var(--grey-color);
@@ -98,6 +98,11 @@ form select {
 }
 form select option {
   background: var(--bg-color);
+}
+form input:focus,
+form select:focus,
+form textarea:focus {
+  transform: scale(1.02);
 }
 button, input[type="button"], input[type="submit"], input[type="reset"] {
   border: 1px solid var(--grey-color);
@@ -111,11 +116,11 @@ button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type
   background-color: var(--blue-color);
 }
 ::placeholder {
-  color: var(--blue-color);
+  color: inherit;
   opacity: 1; /* Firefox */
 }
 textarea:invalid, input:invalid {
-  outline: 1px solid var(--blue-color);
+  outline: 1px dashed var(--blue-color);
 }
 table {
   width: 100%;
@@ -146,10 +151,13 @@ td > a:hover {
 }
 fieldset {
   width: 100%;
-  border: 1px solid var(--grey-color);
+  border: 4px dotted var(--grey-color);
+  padding: var(--padding-small);
 }
 legend {
   font-weight: bold;
+  border: 2px solid var(--grey-color);
+  padding: var(--padding-small);
 }
 div[name=help] {
   width: 100%;
