@@ -22,9 +22,16 @@
       <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form onsubmit="return setAction(this);" method="post" enctype="text/plain">
-      <a style="color: var(--green-color);" target="_blank" title="Open Control Panel" id="url"/></a>
-      <label>Expire:<input readonly type="text" id="expire" name="expire"/></label>
-      <label>Token:<input readonly type="text" id="token" name="token"/></label>
+      <table>
+      <tr>
+        <th class="truncate">URL</th>
+        <td colspan="3" class="truncate"><a target="_blank" title="Open Control Panel" id="url"/></a></td>
+      </tr>
+      </table>
+      <fieldset><legend>Mail Content</legend>
+        <label>Expire:<input readonly type="text" id="expire" name="expire"/></label>
+        <label>Token:<input readonly type="text" id="token" name="token"/></label>
+      </fieldset>
       <label>Mail*:<input type="email" id="email" placeholder="Enter your email" required/></label>
       <input type="submit" value="SendMail">
     </form>
@@ -37,7 +44,7 @@
       <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form onSubmit="return on_vmui(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Expire*:<input type="date" name="date" required/></label>
+      <label>Expire*:<input type="date" name="date" required/><!--onclick="this.showPicker();"--></label>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
         <input type="submit" value="Submit"/>

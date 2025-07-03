@@ -179,7 +179,7 @@ function Alert(type, title, message) {
     div_alert.showModal();
     div_alert.addEventListener("click", closeDialogOnClickOutside);
   } else {
-    alert(message);
+    alert(`${type}-${title}:${message}`);
   }
 }
 function dispok(desc) { Alert('success', 'SUCCESS', desc); }
@@ -350,7 +350,7 @@ function on_vmui(form) {
       document.getElementById('token').value = result.token;
       var url = document.getElementById('url');
       url.setAttribute("href", `${result.url}?token=${result.token}`);
-      url.innerHTML = `UUID:${curr_vm()}`;
+      url.innerHTML = `${curr_vm()}`;
     } else {
       disperr(result.code, result.name, result.desc);
     }
