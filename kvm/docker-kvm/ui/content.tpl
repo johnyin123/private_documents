@@ -25,7 +25,7 @@
       <a style="color: var(--green-color);" target="_blank" title="Open Control Panel" id="url"/></a>
       <label>Expire:<input readonly type="text" id="expire" name="expire"/></label>
       <label>Token:<input readonly type="text" id="token" name="token"/></label>
-      <label>Mail:<input type="email" id="email" placeholder="Enter your email" required/></label>
+      <label>Mail*:<input type="email" id="email" placeholder="Enter your email" required/></label>
       <input type="submit" value="SendMail">
     </form>
   </div>
@@ -37,7 +37,7 @@
       <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form onSubmit="return on_vmui(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Expire:<input type="date" name="date" required/></label>
+      <label>Expire*:<input type="date" name="date" required/></label>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
         <input type="submit" value="Submit"/>
@@ -121,7 +121,7 @@
     <form id="adddisk_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <div class="flex-group">
         <label>Disk:<select name="device" id="dev_list" onchange="select_change(this)"></select></label>
-        <label>Size(GB):<input type="number" name="size" id="gold_size" min="1" max="2048" required/></label>
+        <label>Size(GB)*:<input type="number" name="size" id="gold_size" min="1" max="2048" required/></label>
       </div>
       <div class="flex-group">
         <label>Gold:<select name="gold" id="gold_list" onchange="gold_change(this)"></select></label>
@@ -187,7 +187,7 @@
       <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form onSubmit="return on_modifydesc(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>desc<textarea rows="3" maxlength="100" name="vm_desc" placeholder="vm desc here..." required></textarea></label>
+      <label>Desc*<textarea rows="3" maxlength="100" name="vm_desc" placeholder="vm desc here..." required></textarea></label>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
         <input type="submit" value="Submit"/>
@@ -247,7 +247,7 @@
       </div>
       <label>Desc*<textarea rows="3" maxlength="100" name="vm_desc" placeholder="vm desc here..." required></textarea></label>
       <div class="flex-group">
-        <label>IP address*<input type="text" name="vm_ipaddr" id="vm_ip" placeholder="e.g. 192.168.168.2/24" required pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/([1-9]{1}|1[0-9]{1}|2[0-9]{1}|3[0-2]{1})$"/></label>
+        <label>IPaddr*<input type="text" name="vm_ipaddr" id="vm_ip" placeholder="e.g. 192.168.168.2/24" required pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)/([1-9]{1}|1[0-9]{1}|2[0-9]{1}|3[0-2]{1})$"/></label>
         <label>Gateway<input type="text" name="vm_gateway" id="vm_gw" placeholder="e.g. 192.168.168.1" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$"/></label>
       </div>
       <table name="meta_data"></table><datalist name="help" id="createvm_mdlist"></datalist><div name='help'></div>

@@ -120,8 +120,11 @@ button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type
   color: inherit;
   opacity: 1; /* Firefox */
 }
-textarea:invalid, input:invalid {
-  outline: 1px dashed var(--blue-color);
+textarea:required:valid, input:required:valid {
+  border-color: var(--green-color);
+}
+textarea:required:invalid, input:required:invalid {
+  border-color: var(--red-color);
 }
 table {
   width: 100%;
