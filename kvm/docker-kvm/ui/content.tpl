@@ -22,7 +22,7 @@
       <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form onsubmit="return setAction(this);" method="post" enctype="text/plain">
-      <a style="color: var(--green-color);" target="_blank" id="url"/></a>
+      <a style="color: var(--green-color);" target="_blank" title="Open Control Panel" id="url"/></a>
       <label>Expire:<input readonly type="text" id="expire" name="expire"/></label>
       <label>Token:<input readonly type="text" id="token" name="token"/></label>
       <label>Mail:<input type="email" id="email" placeholder="Enter your email" required/></label>
