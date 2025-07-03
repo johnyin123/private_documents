@@ -13,9 +13,8 @@
 <body>
 <div class="container">
   <div class="header">
-    <div class="left_area">Simple<span>VM</span></div>
+    <div class="left_area"><span class="rainbow-animation">SimpleVM</span></div>
     <div class="mid_area">
-      <i class="fa fa-bars header_btn" title="toggle sidebar" id="sidebar_toggle"></i>
     </div>
     <div class="right_area">
         <i class="fa fa-moon-o header_btn" title="Toggle theme" id="darkLight"></i>
@@ -34,10 +33,6 @@
 <!-- ############## -->
 <script language="javascript" src="js/ui.js"></script>
 <script>
-const sidebar_toggle = document.querySelector("#sidebar_toggle");
-sidebar_toggle.addEventListener("click", () => {
-  document.querySelector(".container").classList.toggle("smallsidebar");
-});
 const darkLight = document.querySelector("#darkLight");
 const body = document.querySelector("body");
 darkLight.addEventListener("click", () => {

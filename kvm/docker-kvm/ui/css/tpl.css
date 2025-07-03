@@ -7,9 +7,9 @@
 :root {
   --bg-color: #181a1e;
   --blue-color: #486581;
-  --green-color: lime;
+  --green-color: #21af94;
   --grey-color: gray;
-  --red-color: #ff0060;
+  --red-color: #c64a5e;
   --text-color: #edeffd;
   --font-size-large: 22px;
   --font-size-medium: 20px;
@@ -36,9 +36,6 @@ div.container {
   grid-template-columns: 260px auto;
   border: 1px solid var(--grey-color);
 }
-div.container.smallsidebar {
-  grid-template-columns: 80px auto;
-}
 div.container > div.header {
   grid-area: header;
   display: grid;
@@ -57,8 +54,16 @@ div.header > div.left_area {
   text-align: left;
   padding: var(--padding-medium);
 }
-div.header > div.left_area span {
-  color: var(--blue-color);
+@keyframes rainbow-animation {
+  to { background-position: 4500vh; }
+}
+.rainbow-animation {
+  color: transparent;
+  text-align: center;
+  background-image: linear-gradient(to right,red,orange,yellow,green,blue,indigo,violet,red);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: rainbow-animation 550s linear infinite;
 }
 div.header > div.mid_area {
   grid-area: mid_area;
@@ -125,9 +130,6 @@ div.container > div.content {
     grid-template-areas:
       "header"
       "content";
-  }
-  div.container.smallsidebar {
-    grid-template-columns: 1fr;
   }
   div.container > div.sidebar {
     display: none; /* Hide sidebar on mobile */

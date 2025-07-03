@@ -91,6 +91,7 @@ form textarea,
 form select {
   background: var(--bg-color);
   color: var(--text-color);
+  font-size: var(--font-size-medium);
   width: 100%;
   border: 1px solid var(--grey-color);
   box-sizing: border-box;
