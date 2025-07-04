@@ -53,7 +53,7 @@ div.form-wrapper-header button {
   padding: 0;
   border: none;
   cursor: pointer;
-  background: transparent;
+  background: var(--bg-color);
   font-size: var(--font-size-large);
   min-width: 30px;
   line-height: 40px;

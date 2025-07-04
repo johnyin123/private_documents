@@ -68,7 +68,7 @@ div.header > div.right_area {
 }
 .header_btn {
   border: none;
-  background: transparent;
+  background: var(--bg-color);
   font-size: var(--font-size-large);
   cursor: pointer;
   display: inline-block;

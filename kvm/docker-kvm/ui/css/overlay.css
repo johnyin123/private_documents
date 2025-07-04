@@ -28,5 +28,4 @@
   font-size: 50px;
   color: var(--text-color);
   transform: translate(-50%,-50%);
-  -ms-transform: translate(-50%,-50%);
 }
