@@ -32,7 +32,7 @@
         <label>Expire:<input readonly type="text" id="expire" name="expire"/></label>
         <label>Token:<input readonly type="text" id="token" name="token"/></label>
       </fieldset>
-      <label>Mail*:<input type="email" id="email" placeholder="Enter your email" required/></label>
+      <label>Mail*:<input type="email" id="email" autocomplete="off" placeholder="Enter your email" required/></label>
       <input type="submit" value="SendMail">
     </form>
   </div>
