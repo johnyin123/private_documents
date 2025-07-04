@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("70a840da[2025-04-27T10:55:00+08:00]:ngx_demo.sh")
+VERSION+=("307462a3[2025-07-04T12:22:43+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2020,14 +2020,14 @@ input[type="password"] {
 location = /login.html {
     return 200 '<!DOCTYPE html>
 <html>
- <head><meta charset="utf-8"><title>Login</title>
- <link rel="stylesheet" href="/login.css"/>
+<head><meta charset="utf-8"><title>Login</title>
+<link rel="stylesheet" href="/login.css"/>
 </head>
 <body>
 <div>
  <form id="jwtForm">
-  <input type="text" name="username">
-  <input type="password" name="password">
+  <input type="text" name="username" required/>
+  <input type="password" name="password" required/>
   <input type="submit" value="Log In Here"/>
  </form>
 </div>
