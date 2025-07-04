@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("236f5e2d[2025-03-05T16:28:33+08:00]:wireguard_via_websocket.sh")
+VERSION+=("eafe596d[2025-06-18T09:31:02+08:00]:wireguard_via_websocket.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 IP_PREFIX=${IP_PREFIX:-192.168.32}
@@ -92,7 +92,7 @@ Table = off
 ListenPort = ${wgsrv_port}
 # %i is wireguard interface, see wg-quick->execute_hooks
 $(for peer in ${clients[@]}; do
-echo "PreUp = /bin/bash -c 'ns_name=\$(ip netns identify \$\$);systemd-run --unit $(array_get "${peer}" uri_prefix) \${ns_name:+-p NetworkNamespacePath=/run/netns/\${ns_name} }-p DynamicUser=yes wstunnel server --no-color 1 --restrict-to 127.0.0.1:${wgsrv_port} ws://127.0.0.1:$(array_get ${peer} wstunl_port)'"
+echo "PreUp = /bin/bash -c 'ns_name=\$(ip netns identify \$\$);systemd-run --unit $(array_get "${peer}" uri_prefix) -p DynamicUser=yes \${ns_name:+ip netns exec \${ns_name} }wstunnel server --no-color 1 --restrict-to 127.0.0.1:${wgsrv_port} ws://127.0.0.1:$(array_get ${peer} wstunl_port)'"
 echo "PostDown = systemctl stop $(array_get "${peer}" uri_prefix).service"
 done)
     info_msg "systemctl reset-failed $(array_get "${peer}" uri_prefix).service\n"
