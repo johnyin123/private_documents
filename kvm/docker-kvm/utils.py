@@ -101,6 +101,8 @@ def login_name(authorization:str)-> str:
             return {}
         return { 'header': decode_segment(header), 'payload': decode_segment(payload), }
 
+    if authorization.startswith('Bearer '):
+        authorization = authorization.split(' ')[1]
     return decode_jwt(authorization).get('payload', {}).get('username', 'n/a')
 
 def save(fname:str, content:str)->None:
