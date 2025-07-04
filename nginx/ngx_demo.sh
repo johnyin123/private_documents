@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("307462a3[2025-07-04T12:22:43+08:00]:ngx_demo.sh")
+VERSION+=("b879e6bb[2025-07-04T12:56:42+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1987,12 +1987,9 @@ body > div {
  padding: 10px;
 }
 #jwtForm {
- z-index: 1;
- border-radius: 0.2rem;
- border: 1px solid #CCC;
- margin: 0 auto;
- max-width: 16rem;
- padding: 2rem 2.5rem 1.5rem 2.5rem;
+ display: flex;
+ flex-direction: column;
+ gap: 1rem;
 }
 input {
  border-radius: 0.2rem;
