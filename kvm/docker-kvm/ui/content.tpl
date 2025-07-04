@@ -28,11 +28,13 @@
         <td colspan="3" class="truncate"><a target="_blank" title="Open Control Panel" id="url"/></a></td>
       </tr>
       </table>
+      <br/>
       <fieldset><legend>Mail Content</legend>
         <label>Expire:<input readonly type="text" id="expire" name="expire"/></label>
         <label>Token:<input readonly type="text" id="token" name="token"/></label>
+        <label>EMail*:<input type="email" id="email" autocomplete="off" placeholder="Enter your email" required/></label>
       </fieldset>
-      <label>Mail*:<input type="email" id="email" autocomplete="off" placeholder="Enter your email" required/></label>
+      <br/>
       <input type="submit" value="SendMail">
     </form>
   </div>
