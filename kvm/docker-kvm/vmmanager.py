@@ -2,7 +2,7 @@
 import flask, logging, libvirt, xml.dom.minidom, json, os, template, config, meta, database
 import base64, hashlib, time, datetime
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-from utils import return_ok, deal_except, getlist_without_key, remove_file, connect, ProcList, save, decode_jwt, websockify_secure_link, FakeDB
+from utils import return_ok, deal_except, getlist_without_key, remove_file, connect, ProcList, save, login_name, websockify_secure_link, FakeDB
 logger = logging.getLogger(__name__)
 KiB = 1024
 MiB = 1024 * KiB
@@ -258,7 +258,8 @@ class VMManager:
 
     @staticmethod
     def create(host:FakeDB, req_json)->str:
-        req_json['vm_creater'] = decode_jwt(flask.request.cookies.get('token', '')).get('payload', {}).get('username', 'n/a')
+        token = flask.request.headers.get('Authorization', flask.request.cookies.get('token', ''))
+        req_json['vm_creater'] = login_name(token)
         for key in ['vm_uuid','vm_arch','vm_create']:
             req_json.pop(key, "Not found")
         req_json = {**config.VM_DEFAULT(host.arch, host.name), **req_json}

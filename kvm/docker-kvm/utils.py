@@ -88,17 +88,20 @@ def search(arr:List, key, val)-> List:
 def getlist_without_key(arr:List, *keys)-> List:
     return [{k: v for k, v in dic.items() if k not in keys} for dic in arr]
 
-def decode_jwt(token:str)-> Dict:
-    def decode_segment(segment):
-        # Add padding if necessary
-        segment += '=' * (4 - len(segment) % 4)
-        return json.loads(base64.urlsafe_b64decode(segment).decode('utf-8'))
+def login_name(authorization:str)-> str:
+    def decode_jwt(token:str)-> Dict:
+        def decode_segment(segment):
+            # Add padding if necessary
+            segment += '=' * (4 - len(segment) % 4)
+            return json.loads(base64.urlsafe_b64decode(segment).decode('utf-8'))
 
-    try:
-        header, payload, signature = token.split('.')
-    except ValueError:
-        return {}
-    return { 'header': decode_segment(header), 'payload': decode_segment(payload), }
+        try:
+            header, payload, signature = token.split('.')
+        except ValueError:
+            return {}
+        return { 'header': decode_segment(header), 'payload': decode_segment(payload), }
+
+    return decode_jwt(authorization).get('payload', {}).get('username', 'n/a')
 
 def save(fname:str, content:str)->None:
     with open(fname, "w") as file:
