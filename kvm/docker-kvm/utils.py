@@ -132,7 +132,7 @@ def deal_except(who:str, e:Exception) -> str:
         return return_err(e.get_error_code(), f'{who}', e.get_error_message())
     else:
         logger.exception(f'{who}')
-        return return_err(998, f'{who}', f'{str(e)}')
+        return return_err(998, f'{who}', f'{type(e).__name__}:{str(e)}')
 
 def websockify_secure_link(uuid, mykey, minutes):
     # secure_link_md5 "$mykey$secure_link_expires$arg_token$uri";
