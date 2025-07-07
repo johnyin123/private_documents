@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("674aac31[2025-07-03T11:56:12+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("1bfb4cd2[2025-07-04T06:42:06+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -90,9 +90,11 @@ EO_DOC
 readonly DIRNAME="\$(readlink -f "\$(dirname "\$0")")"
 OUTDIR=${outdir}
 # VENV=/../my_venv/bin/ # last word / !!
-systemctl --user stop websockify-graph.service || true
-systemctl --user stop jwt-srv.service || true
-systemctl --user stop simple-kvm-srv.service || true
+
+for svc in websockify-graph.service jwt-srv.service simple-kvm-srv.service; do
+    systemctl --user stop         \${svc} 2>/dev/null || true
+    systemctl --user reset-failed \${svc} 2>/dev/null || true
+done
 
 systemd-run --user --unit websockify-graph \\
 --working-directory=\${DIRNAME} \\
