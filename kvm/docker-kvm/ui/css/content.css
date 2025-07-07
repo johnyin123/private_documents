@@ -25,6 +25,7 @@ div.form-wrapper {
 div.host-wrapper-header,
 div.vms-wrapper-header,
 div.form-wrapper-header {
+  border: 1px solid var(--grey-color);
   box-shadow: 0 0 5px var(--grey-color);
   color: var(--text-color);
   display: flex;
@@ -59,7 +60,7 @@ div.form-wrapper-header button {
   line-height: 40px;
   display: inline-block;
   text-align: center;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 div.host-wrapper-header button:hover,
 div.vms-wrapper-header button:hover,
@@ -111,7 +112,7 @@ button, input[type="button"], input[type="submit"], input[type="reset"] {
   background: var(--bg-color);
   color: var(--text-color);
   transition: background-color var(--transition-speed);
-  border-radius: 5px;
+  border-radius: 8px;
 }
 button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type="reset"]:hover {
   background-color: var(--blue-color);
@@ -150,7 +151,7 @@ td > a {
   color: var(--text-color);
   /* padding: 10px 20px; Add internal spacing around the text */
   border: 2px solid var(--grey-color);
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
 }
 td > a:hover {
