@@ -1,3 +1,14 @@
+function loadjs(src) {
+  // (B1) CREATE NEW <SCRIPT> TAG
+  var js = document.createElement("script");
+  js.src = src;
+  // js.setAttribute("async", "");
+  // (B2) OPTIONAL - ON SUCCESSFUL LOAD & ERROR
+  js.onload = () => alert("JS loaded");
+  js.onerror = e => alert("Error loading JS");
+  // (B3) APPEND <SCRIPT> TAG TO <HEAD>
+  document.head.appendChild(js);
+}
 /* ------------------------- */
 function getTheme() {
   return localStorage.getItem('theme') || 'light';
