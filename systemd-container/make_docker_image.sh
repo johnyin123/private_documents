@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("ccdddc11[2024-12-30T16:48:06+08:00]:make_docker_image.sh")
+VERSION+=("a7587322[2025-03-19T10:37:19+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -261,6 +261,7 @@ EOF
     write_file "${cfg_file}" append <<EOF
 VOLUME ["/home/${username}/"]
 USER ${username}
+# google-chrome -ignore-certificate-errors
 ENTRYPOINT ["/opt/google/chrome/google-chrome", "--no-sandbox"]
 EOF
     cat <<'EOF'
