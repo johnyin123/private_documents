@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b879e6bb[2025-07-04T12:56:42+08:00]:ngx_demo.sh")
+VERSION+=("dba8c89f[2025-07-04T15:27:48+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1946,7 +1946,7 @@ cat <<'EOF' > jwt_sso_auth.inc
 # Any other response code returned by the subrequest is considered an error.
 # 401 error, the client also receives the “WWW-Authenticate” header from the subrequest response.
 error_page 401 =401 @error401;
-location @error401 { default_type text/html; return 401 '<html><head><meta http-equiv="refresh" content="0; url=/login.html?return_url=$scheme://$http_host$request_uri"/><body></body></html>'; }
+location @error401 { return 401 '<html><head><meta http-equiv="refresh" content="0; url=/login.html?return_url=$scheme://$http_host$request_uri"/></head><body></body></html>'; }
 location = /login.js {
     return 200 'function GetURLParameter(name) {
  const parms = new URLSearchParams(window.location.search);

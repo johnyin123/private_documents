@@ -314,7 +314,7 @@ function getjson_result(res) {
       disperr(result.code, result.name, result.desc);
     }
   } catch (e) {
-    disperr(999, `local error`, `${e.toString()}, ${res}`);
+    disperr(666, `local error`, `${e.toString()}, ${res}`);
   }
   return false;
 }
