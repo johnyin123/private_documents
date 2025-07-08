@@ -341,7 +341,7 @@ class VMManager:
     def blksize(host:FakeDB, uuid:str, dev:str)-> str:
          with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
-            return return_ok(f'blksize {dev}', uuid=uuid, size=f'{dom.blockInfo(dev)[0]//MiB}MiB')
+            return return_ok(f'blksize', uuid=uuid, dev=dev, size=f'{dom.blockInfo(dev)[0]//MiB}MiB')
 
     @staticmethod
     def desc(host:FakeDB, uuid:str, vm_desc:str)-> str:
