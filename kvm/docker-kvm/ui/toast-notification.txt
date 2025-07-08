@@ -117,8 +117,8 @@
 
 const showMessage = (message, type = 'error') => {
     showToast({
-        title: type === 'error' ? 'Error' : 
-               type === 'warning' ? 'Warning' : 
+        title: type === 'error' ? 'Error' :
+               type === 'warning' ? 'Warning' :
                type === 'success' ? 'Success' : 'Information',
         message: message,
         type: type
@@ -173,3 +173,34 @@ const removeToast = (toast) => {
         toast.remove();
     });
 };
+
+################################################################################
+<style>
+#mtoast {
+  /* (A) POSITION */
+  position: fixed; z-index: 99;
+  top: 5px; right: 5px;
+
+  /* (B) DIMENSION */
+  width: 200px;
+  padding: 10px;
+
+  /* (C) COLORS */
+  border: 1px solid #c52828;
+  background: #ffebe1;
+  border: 1px solid #000;
+
+  /* (D) HIDDEN BY DEFAULT */
+  display: none;
+}
+</style>
+<script>
+function mtoast (msg) {
+  var toast = document.getElementById("mtoast");
+  toast.innerHTML = msg;
+  toast.classList.add("show");
+}
+</script>
+<div id="mtoast" onclick="this.style.display='none'"></div>
+<!-- TEST BUTTON -->
+<input type="button" value="Toast" onclick="mtoast('Message')">
