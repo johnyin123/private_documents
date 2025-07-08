@@ -278,9 +278,9 @@ function vmlist(kvmhost) {
         const { kvmhost, arch } = item;
         return { kvmhost, arch };
       });
-      tbl = '<table><tr><td class="current">kvmhost</td><td class="current">arch</td><td class="current">vms</td></tr>';
+      tbl = '<table>';
       processJsonArray(newArray).forEach(item => {
-        tbl += `<tr><td><a href='#' onclick='vmlist("${item.kvmhost}")'>${item.kvmhost}</a></td><td>${item.arch}</td><td>${item.vms}</td></tr>`;
+        tbl += `<tr><th title='host arch'>${item.arch}</th><td title='total vms'>${item.vms}</td><td><a href='#' onclick='vmlist("${item.kvmhost}")'>${item.kvmhost}</a></td></tr>`;
       });
       tbl += '</table>';
       document.getElementById("host").innerHTML = genWrapper('host-wrapper', `<h2 class="highlight">Summary</h2>`, '', tbl);
