@@ -70,7 +70,7 @@ function genVmsTBL(item, host = null) {
           addon_btn = genActBtn(false, 'Media Size', 'DiskSize', 'disk_size', host, {'uuid':item.uuid, 'dev':disk.dev});
         }
         var remove_btn = genActBtn(false, 'Remove Disk', 'Remove', 'del_device', host, {'uuid':item.uuid, 'dev':disk.dev});
-        tbl += host ? `<td>${remove_btn}${addon_btn}</td></tr>` : `</tr>`;
+        tbl += host ? `<td><div class="flex-group">${remove_btn}${addon_btn}</div></td></tr>` : `</tr>`;
       });
     } else if (key === 'nets') {
       const nets = JSON.parse(item[key]);
@@ -80,7 +80,7 @@ function genVmsTBL(item, host = null) {
         if (item['state'] === 'RUN') {
             remove_btn += genActBtn(false, 'Net Stats', 'NetStats', 'netstats', host, {'uuid':item.uuid, 'dev':net.mac});
         }
-        tbl += host ? `<td>${remove_btn}</td></tr>`: `</tr>`;
+        tbl += host ? `<td><div class="flex-group">${remove_btn}</div></td></tr>`: `</tr>`;
       });
     } else if (key === 'mdconfig') {
       const mdconfig = JSON.parse(item[key]);
