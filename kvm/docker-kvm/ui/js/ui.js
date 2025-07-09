@@ -124,7 +124,7 @@ function manage_vm(kvmhost, uuid) {
       btn += genActBtn(true, 'ForceStop VM', 'fa-plug', 'force_stop', kvmhost, {'uuid':result.guest.uuid});
     } else {
       btn += genActBtn(true, 'Start VM', 'fa-play', 'start', kvmhost, {'uuid':result.guest.uuid});
-      btn += genActBtn(true, 'Undefine', 'fa-trash', 'undefine', kvmhost, {'uuid':result.guest.uuid});
+      btn += genActBtn(true, 'Undefine', 'fa-bitbucket', 'undefine', kvmhost, {'uuid':result.guest.uuid});
     }
     btn += genActBtn(true, 'Add CDROM', 'fa-floppy-o', 'add_cdrom', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Add NET', 'fa-wifi', 'add_net', kvmhost, {'uuid':result.guest.uuid});
@@ -144,10 +144,10 @@ function show_vms(kvmhost, vms) {
     var btn = genActBtn(true, 'Show XML', 'fa-file-code-o', 'show_xml', kvmhost, {'uuid':item.uuid});
     btn += genActBtn(true, 'Control Panel', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':item.uuid, 'backlist':'1'});
     if (item.state === "RUN") {
-      btn += genActBtn(true, 'VM IPAddress', 'fa-gg', 'get_vmip', kvmhost, {'uuid':item.uuid});
+      btn += genActBtn(true, 'VM IPAddress', 'fa-gg-circle', 'get_vmip', kvmhost, {'uuid':item.uuid});
     } else {
       btn += genActBtn(true, 'Start VM', 'fa-play', 'start', kvmhost, {'uuid':item.uuid, 'backlist':'1'});
-      btn += genActBtn(true, 'Undefine', 'fa-trash', 'undefine', kvmhost, {'uuid':item.uuid});
+      btn += genActBtn(true, 'Undefine', 'fa-bitbucket', 'undefine', kvmhost, {'uuid':item.uuid});
     }
     btn += genActBtn(true, 'Manage VM', 'fa-cog fa-spin fa-lg', 'manage_vm', kvmhost, {'uuid':item.uuid});
     const title = item.state == "RUN" ? '<h2 class="highlight">GUEST</h2>' : '<h2>GUEST</h2>';

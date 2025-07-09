@@ -161,7 +161,8 @@ td a:hover {
 }
 fieldset {
   width: 100%;
-  border: 4px dotted var(--grey-color);
+/*  border: 4px dotted var(--grey-color); */
+  border: 2px solid var(--grey-color);
   padding: var(--padding-small);
 }
 legend {
