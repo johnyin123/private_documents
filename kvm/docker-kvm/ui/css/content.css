@@ -135,7 +135,7 @@ table {
 }
 table, th, td {
   border: 1px solid var(--grey-color);
-  padding: 3px;
+  padding: 1px var(--padding-small) 1px var(--padding-small);
 }
 th { text-align: right; text-transform: uppercase; }
 td { text-align: left; white-space: nowrap;}
@@ -145,7 +145,7 @@ td.truncate {
   max-width:1px;
 }
 tr:hover {
-  background-color: rgba(255, 255, 255, 0.3); /* Adds a 30% translucent white overlay */
+  background-color: rgba(255, 255, 255, 0.2); /* Adds a 20% translucent white overlay */
 }
 td a {
   display: block;
