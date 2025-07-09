@@ -104,7 +104,7 @@ class MyApp(object):
                 logger.info(f'"{cmd}" call args={args}')
                 return flask.Response(func(**args), mimetype="text/event-stream")
             else:
-                return return_err(404, f'{cmd}', f"Domain No Found CMD: {cmd}")
+                return return_err(404, f'{cmd}', f'Domain No Found CMD: {cmd}')
         except Exception as e:
             return deal_except(f'{cmd}', e), 400
 
