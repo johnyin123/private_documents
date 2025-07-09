@@ -144,6 +144,9 @@ td.truncate {
   overflow: hidden;
   max-width:1px;
 }
+tr:hover {
+  background-color: rgba(255, 255, 255, 0.3); /* Adds a 30% translucent white overlay */
+}
 td a {
   display: block;
   width: 100%;
