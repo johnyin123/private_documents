@@ -269,7 +269,7 @@ function vmlist(kvmhost) {
     if(kvmhost === 'ALL VMS') {
       var tbl = '';
       guest.forEach(item => {
-        const btn = `<button title='GOTO VM Manage' onclick='manage_vm("${item.kvmhost}", "${item.uuid}")'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
+        const btn = `<button title='GOTO Manager' onclick='manage_vm("${item.kvmhost}", "${item.uuid}")'><i class="fa fa-cog fa-spin fa-lg"></i></button>`;
         const table = genVmsTBL(item);
         tbl += genWrapper("vms-wrapper", "<h2>GUEST</h2>", btn, table);
       });
@@ -280,7 +280,7 @@ function vmlist(kvmhost) {
       });
       tbl = '<table>';
       processJsonArray(newArray).forEach(item => {
-        tbl += `<tr><th title='host arch'>${item.arch}</th><td title='total vms'>${item.vms}</td><td><a href='#' onclick='vmlist("${item.kvmhost}")'>${item.kvmhost}</a></td></tr>`;
+        tbl += `<tr><th title='host arch'>${item.arch}</th><td title='total vms'>${item.vms}</td><td><a href='#' title='GOTO Manager' onclick='vmlist("${item.kvmhost}")'>${item.kvmhost}</a></td></tr>`;
       });
       tbl += '</table>';
       document.getElementById("host").innerHTML = genWrapper('host-wrapper', `<h2 class="highlight">Summary</h2>`, '', tbl);
