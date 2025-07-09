@@ -1,3 +1,4 @@
+//可跨域方案，利用动态插入script元素来让脚本读取、生效
 function loadjs(src) {
   // (B1) CREATE NEW <SCRIPT> TAG
   var js = document.createElement("script");
