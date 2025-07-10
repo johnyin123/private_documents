@@ -33,6 +33,7 @@ def VM_DEFAULT(arch:str, hostname:str):
         'vm_ram_mb': 1024, 'vm_vcpus': 1,
         'vm_arch': arch, 'vm_uuid': f'{uuid.uuid4()}', 'vm_create': datetime.now().isoformat()
     }
+    # datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     if (arch == 'x86_64'):
         return { **default };
     elif (arch == 'aarch64'):
