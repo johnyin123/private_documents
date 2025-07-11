@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("9c848383[2025-05-27T13:46:08+08:00]:mini.sh")
+VERSION+=("2a9d6e1f[2025-05-29T16:16:37+08:00]:mini.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -23,7 +23,8 @@ case "$(cat ${ROOTFS}/etc/hostname)" in
     s905d3) macaddr=b8:be:ef:90:5d:03;;
     *)      macaddr=b8:be:ef:90:5d:99;;
 esac
-cat << EOF > ${ROOTFS}/etc/hosts
+sed -i "/127.0.0.1\s/d" ${ROOTFS}/etc/hosts
+cat << EOF >> ${ROOTFS}/etc/hosts
 127.0.0.1       localhost $(cat ${ROOTFS}/etc/hostname)
 EOF
 sed -i "s/^macaddr=.*/macaddr=${macaddr}/g" ${ROOTFS}/usr/lib/firmware/brcm/brcmfmac43455-sdio.txt || true
