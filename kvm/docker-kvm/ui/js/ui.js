@@ -1,3 +1,4 @@
+"use strict";
 const config = { g_host: [], g_device:[], g_iso:[], g_gold:[], curr_host:'', curr_vm:'', curr_dev:'' };
 function get_iso() { return config.g_iso; }
 function get_gold() { return config.g_gold; }
