@@ -1,3 +1,22 @@
+//<table>
+//<tr>
+//<td>Value 2A</td>
+//<td>Value 2B</td>
+//<td><button onclick="getValue(this)">Get Row Values</button></td>
+//</tr>
+//</table>
+function getValue(button) {
+  // Get the parent row of the clicked button
+  const row = button.closest('tr');
+  // Get the cells within that row
+  const cells = row.cells;
+  // Access the values of specific cells
+  const valueA = cells[0].innerText; // Value from the first column
+  const valueB = cells[1].innerText; // Value from the second column
+  console.log("Value A:", valueA);
+  console.log("Value B:", valueB);
+}
+
 //可跨域方案，利用动态插入script元素来让脚本读取、生效
 function loadjs(src) {
   // (B1) CREATE NEW <SCRIPT> TAG
