@@ -154,10 +154,10 @@ main() {
     case "${node}" in
         *"gvpe-bj"*)
             add_vxlan ${dev} ${id} ${port} "9e:08:90:00:00:01" "172.16.16.2/24"
-            add_fdb ${dev} "9e:08:90:00:00:02" "59.46.22.56"
+            add_fdb ${dev} "9e:08:90:00:00:02" "1.1.1.56"
             add_arp ${dev} "9e:08:90:00:00:02" "172.16.16.3"
-            #log_warning_msg "append ${dev} default forwarding table entry: 00:00:00:00:00:00 -> 59.46.22.56"
-            #add_fdb ${dev} "00:00:00:00:00:00" "59.46.22.56"
+            #log_warning_msg "append ${dev} default forwarding table entry: 00:00:00:00:00:00 -> 1.1.1.56"
+            #add_fdb ${dev} "00:00:00:00:00:00" "1.1.1.56"
             ;;
 
         "usb950d" | "yinzh")

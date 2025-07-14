@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c57405b[2021-07-15T06:57:21+08:00]:build-openwrt.sh")
+VERSION+=("f7257ac6[2023-05-28T14:39:09+08:00]:build-openwrt.sh")
 ################################################################################
 cat <<'EOF'
 change repositories source from downloads.openwrt.org to mirrors.tuna.tsinghua.edu.cn:
@@ -326,13 +326,13 @@ uci commit
 uci -q batch <<-EOF
 set network.wg0=interface
 set network.wg0.proto='wireguard'
-set network.wg0.private_key='yLubHN8S95ZJxM1cH51p44FWH4bg7uMAoD5aivJgK3E='
+set network.wg0.private_key='xxxx'
 add_list network.wg0.addresses='10.0.2.7/24'
 set network.wg0.mtu='1420'
 
 set network.wgserver=wireguard_wg0
-set network.wgserver.public_key='nuLghaY5Kt7v0+fEvdWR1cc2+eFg5TMBoskJYz8Bl10='
-set network.wgserver.endpoint_host='59.46.220.174'
+set network.wgserver.public_key='xxxx'
+set network.wgserver.endpoint_host='1.1.1.174'
 set network.wgserver.endpoint_port='50000'
 set network.wgserver.route_allowed_ips='1'
 set network.wgserver.persistent_keepalive='10'
@@ -360,14 +360,14 @@ set wireless.toup.network='wwan'
 set wireless.toup.mode='sta'
 set wireless.toup.ssid='s905d03'
 set wireless.toup.encryption='psk'
-set wireless.toup.key='Admin@123'
+set wireless.toup.key='Admin.pass@123'
 
 set wireless.mywifi5g=wifi-iface
 set wireless.mywifi5g.device='radio0'
 set wireless.mywifi5g.network='lan'
 set wireless.mywifi5g.mode='ap'
 set wireless.mywifi5g.encryption='psk2'
-set wireless.mywifi5g.key='Admin@123'
+set wireless.mywifi5g.key='Admin.pass@123'
 set wireless.mywifi5g.ssid='johnap5g'
 
 set wireless.mywifi2g=wifi-iface
@@ -375,7 +375,7 @@ set wireless.mywifi2g.device='radio1'
 set wireless.mywifi2g.network='lan'
 set wireless.mywifi2g.mode='ap'
 set wireless.mywifi2g.encryption='psk2'
-set wireless.mywifi2g.key='Admin@123'
+set wireless.mywifi2g.key='Admin.pass@123'
 set wireless.mywifi2g.ssid='johnap2g'
 
 EOF
