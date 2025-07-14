@@ -40,7 +40,7 @@ div.container > div.header {
   grid-area: header;
   display: grid;
   grid-template-areas: "left_area mid_area right_area";
-  grid-template-columns: minmax(200px, 1fr) 8fr minmax(200px, 1fr);
+  grid-template-columns: minmax(260px, 1fr) 4fr minmax(200px, 1fr);
   justify-content: center;
   align-items: center;
   height: 80px;
