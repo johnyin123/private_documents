@@ -50,12 +50,13 @@ div.container > div.header {
 div.header > div.left_area {
   grid-area: left_area;
   font-size: 25px;
-  color: red;
   text-align: left;
   padding: var(--padding-medium);
-}
-div.header > div.left_area span {
-  color: blue;
+  background: linear-gradient(90deg, #9d46ff, #00e5ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
 }
 div.header > div.mid_area {
   grid-area: mid_area;
