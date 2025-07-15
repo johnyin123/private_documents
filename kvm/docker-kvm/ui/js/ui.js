@@ -118,9 +118,9 @@ function manage_vm(kvmhost, uuid) {
     var btn = genActBtn(true, 'Show XML', 'fa-file-code-o', 'show_xml', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Control Panel', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':result.guest.uuid});
     if(result.guest.state === 'RUN') {
-      btn += genActBtn(true, 'Console', 'fa-terminal', 'ttyconsole', kvmhost, {'uuid':result.guest.uuid});
+      btn += genActBtn(true, 'Console', 'fa-wrench', 'ttyconsole', kvmhost, {'uuid':result.guest.uuid});
       btn += genActBtn(true, 'Display View', 'fa-desktop', 'display', kvmhost, {'uuid':result.guest.uuid});
-      btn += genActBtn(true, 'Reset VM', 'fa-repeat', 'reset', kvmhost, {'uuid':result.guest.uuid});
+      btn += genActBtn(true, 'Reset VM', 'fa-registered', 'reset', kvmhost, {'uuid':result.guest.uuid});
       btn += genActBtn(true, 'Stop VM', 'fa-power-off', 'stop', kvmhost, {'uuid':result.guest.uuid});
       btn += genActBtn(true, 'ForceStop VM', 'fa-plug', 'force_stop', kvmhost, {'uuid':result.guest.uuid});
     } else {
