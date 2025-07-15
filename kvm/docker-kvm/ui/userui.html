@@ -73,7 +73,7 @@ function show_vm(vm) {
       var disks = JSON.parse(vm[key]);
       disks.forEach(disk => {
         if(disk.device === 'cdrom') {
-            table += `<tr><th>${disk.dev}</th><td colspan="2" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td><td><a title="change media" href="javascript:change_iso('${disk.dev}')">Change<a></td></tr>`;
+            table += `<tr><th>${disk.dev}</th><td colspan="2" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td><td><a title="change media" href="javascript:change_iso('${disk.dev}')">Change</a></td></tr>`;
         } else {
             table += `<tr><th>${disk.dev}</th><td colspan="3" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td></tr>`;
         }
