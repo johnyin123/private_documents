@@ -102,7 +102,7 @@ function genVmsTBL(item, host = null) {
       tbl += `<tr><th class="truncate">${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else {
       var style = 'truncate';
-      if (item.uuid === curr_vm() && ['uuid'].includes(key)) style +=' current';
+      if (item.uuid === curr_vm() && ['uuid'].includes(key)) style +=' blue';
       tbl += `<tr><th class="${style}">${key}</th><td colspan="3" class="${style}">${item[key]}</td></tr>`;
     }
   }
@@ -131,9 +131,9 @@ function manage_vm(kvmhost, uuid) {
     btn += genActBtn(true, 'Add NET', 'fa-wifi', 'add_net', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Add DISK', 'fa-database', 'add_disk', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Refresh VM', 'fa-refresh fa-spin', 'manage_vm', kvmhost, {'uuid':result.guest.uuid});
-    btn += `<button title="Close" class="close" onclick="vmlist('${kvmhost}');"><h2>&times;</h2></button>`;
+    btn += `<button title="Close" onclick="vmlist('${kvmhost}');"><h2>&times;</h2></button>`;
     const table = genVmsTBL(result.guest, kvmhost);
-    const title = result.guest.state == "RUN" ? `<h2 class="highlight">GUEST</h2>` : `<h2>GUEST</h2>`;
+    const title = result.guest.state == "RUN" ? `<h2 class="green">GUEST</h2>` : `<h2>GUEST</h2>`;
     const tbl = genWrapper("vms-wrapper", title, btn, table);
     document.getElementById("vm_info").innerHTML = tbl;
   });
@@ -143,7 +143,6 @@ function show_vms(kvmhost, vms) {
   vms.forEach(item => {
     const table = genVmsTBL(item);
     var btn = genActBtn(true, 'Show XML', 'fa-file-code-o', 'show_xml', kvmhost, {'uuid':item.uuid});
-    btn += genActBtn(true, 'Control Panel', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':item.uuid, 'backlist':'1'});
     if (item.state === "RUN") {
       btn += genActBtn(true, 'VM IPAddress', 'fa-gg-circle', 'get_vmip', kvmhost, {'uuid':item.uuid});
     } else {
@@ -151,7 +150,7 @@ function show_vms(kvmhost, vms) {
       btn += genActBtn(true, 'Undefine', 'fa-bitbucket', 'undefine', kvmhost, {'uuid':item.uuid});
     }
     btn += genActBtn(true, 'Manage VM', 'fa-cog fa-spin fa-lg', 'manage_vm', kvmhost, {'uuid':item.uuid});
-    const title = item.state == "RUN" ? '<h2 class="highlight">GUEST</h2>' : '<h2>GUEST</h2>';
+    const title = item.state == "RUN" ? '<h2 class="green">GUEST</h2>' : '<h2>GUEST</h2>';
     tbl += genWrapper("vms-wrapper", title, btn, table);
   });
   return tbl;
@@ -162,7 +161,7 @@ function show_host(kvmhost, more_info) {
   var btn = genActBtn(true, 'Refresh VM List', 'fa-refresh fa-spin', 'vmlist', host.name);
   btn += genActBtn(true, 'Create VM', 'fa-tasks', 'create_vm', host.name);
   const table = genVmsTBL(Object.assign({}, host, more_info));
-  return genWrapper('host-wrapper', `<h2 class="highlight">${host.name.toUpperCase()}</h2>`, btn, table);
+  return genWrapper('host-wrapper', `<h2 class="green">${host.name.toUpperCase()}</h2>`, btn, table);
 }
 function Alert(type, title, message) {
   const div_alert = document.getElementById("alert");
@@ -174,7 +173,7 @@ function Alert(type, title, message) {
     div_alert.removeEventListener("click", closeDialogOnClickOutside);
   }
   if (div_alert) {
-    const btn = `<button title="Close" class="close" onclick="this.closest('dialog').close();"><h2>&times;</h2></button>`;
+    const btn = `<button title="Close" onclick="this.closest('dialog').close();"><h2>&times;</h2></button>`;
     const table = `<form><pre style="white-space: pre-wrap;">${message}</pre></form>`;
     div_alert.innerHTML = genWrapper('form-wrapper', `<h2 class="${type}">${title}</h2>`, btn, table);
     div_alert.showModal();
@@ -247,9 +246,9 @@ function processJsonArray(jsonArray) {
 }
 function flush_sidebar(kvmhost, count=null) {
   document.getElementById("sidebar").querySelectorAll("a").forEach(link => {
-    link.classList.remove('current');
+    link.classList.remove('blue');
     if(link.querySelector('[name="host"]').innerHTML === kvmhost) {
-      link.classList.add('current');
+      link.classList.add('blue');
       if(count) link.querySelector(`[name="count"]`).innerHTML = count;
     }
   });
@@ -284,7 +283,7 @@ function vmlist(kvmhost) {
         tbl += `<tr><th title='host arch'>${item.arch}</th><td title='total vms'>${item.vms}</td><td><a href='#' title='Manage Host' onclick='vmlist("${item.kvmhost}")'>${item.kvmhost}</a></td></tr>`;
       });
       tbl += '</table>';
-      document.getElementById("host").innerHTML = genWrapper('host-wrapper', `<h2 class="highlight">Summary</h2>`, '', tbl);
+      document.getElementById("host").innerHTML = genWrapper('host-wrapper', `<h2 class="green">Summary</h2>`, '', tbl);
     } else {
       document.getElementById("vms").innerHTML = show_vms(kvmhost, result.guest);
       document.getElementById("host").innerHTML = show_host(kvmhost, result.host);
@@ -358,16 +357,8 @@ function on_vmui(form) {
   });
   return false;
 }
-function show_vmui(host, uuid, backlist = null) {
+function show_vmui(host, uuid) {
   set_curr(host, uuid);
-  const btn = document.getElementById('vmui').querySelector('.close');
-  const btn_mail = document.getElementById('vmuimail').querySelector('.close');
-  if (backlist) {
-    btn.onclick = function(){showView("hostlist");};
-  } else {
-    btn.onclick = function(){showView("manage_vm");};
-  }
-  btn_mail.onclick = btn.onclick;
   showView('vmui');
 }
 function start(host, uuid, backlist = null) {

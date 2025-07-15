@@ -19,7 +19,7 @@
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>Control Panel Info</h2>
-      <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
+      <button title="Close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form onsubmit="return setAction(this);" method="post" enctype="text/plain">
       <table>
@@ -43,7 +43,7 @@
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>Input ExpireTime</h2>
-      <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
+      <button title="Close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form onSubmit="return on_vmui(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Expire*:<input type="date" name="date" required/><!--onclick="this.showPicker();"--></label>
@@ -59,7 +59,7 @@
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>Change ISO</h2>
-      <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
+      <button title="Close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form onSubmit="return on_changeiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>ISO:<select name="isoname" id="isoname_list"></select></label>
@@ -75,7 +75,7 @@
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>Add CDROM</h2>
-      <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
+      <button title="Close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form id="addcdrom_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <div class="flex-group">
@@ -100,7 +100,7 @@
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>Add Network</h2>
-      <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
+      <button title="Close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form id="addnet_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <div class="flex-group">
@@ -125,7 +125,7 @@
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>Add DISK</h2>
-      <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
+      <button title="Close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form id="adddisk_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <div class="flex-group">
@@ -155,7 +155,7 @@
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>Modify Vcpus</h2>
-      <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
+      <button title="Close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form onSubmit="return on_modifyvcpus(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>CPU:<div class="flex-group">
@@ -174,7 +174,7 @@
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>Modify Memory</h2>
-      <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
+      <button title="Close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form onSubmit="return on_modifymemory(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>MEM(MB):<div class="flex-group">
@@ -193,7 +193,7 @@
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>Modify Description</h2>
-      <button title="Close" class="close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
+      <button title="Close" onclick="showView('manage_vm')"><h2>&times;</h2></button>
     </div>
     <form onSubmit="return on_modifydesc(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Desc*<textarea rows="3" maxlength="100" name="vm_desc" placeholder="vm desc here..." required></textarea></label>
@@ -209,7 +209,7 @@
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>Create VM</h2>
-      <button title="Close" class="close" onclick="showView('hostlist')"><h2>&times;</h2></button>
+      <button title="Close" onclick="showView('hostlist')"><h2>&times;</h2></button>
     </div>
     <form id="createvm_form" onSubmit="return on_createvm(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <div class="flex-group">

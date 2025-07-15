@@ -1,9 +1,4 @@
-div.machine-container {
-  display: grid;
-  grid-template-areas: "host" "vms";
-  grid-template-columns: 1fr;
-  gap: var(--padding-small);
-}
+div.machine-container,
 div.host-container,
 div.vms-container {
   padding: 0;
@@ -39,14 +34,6 @@ div.vms-wrapper-header h2,
 div.form-wrapper-header h2 {
   font-weight: 700;
   font-size: var(--font-size-large);
-}
-h2.success {
-  /*success alert*/
-  color: var(--green-color);
-}
-h2.error {
-  /*error alert*/
-  color: var(--red-color);
 }
 div.host-wrapper-header button,
 div.vms-wrapper-header button,
@@ -180,8 +167,9 @@ div[name=help] {
 }
 details { padding: 5px var(--padding-large); }
 details table th { text-align: right; text-transform: none; }
-.highlight { color: var(--green-color); }
-.current { background-color:var(--blue-color); }
+.blue { background-color:var(--blue-color); }
+.green, .success { color: var(--green-color); }
+.error { color: var(--red-color); }
 .tabContent { display:none; }
 #alert {
   border: 4px solid var(--grey-color) !important;
