@@ -115,7 +115,7 @@ function manage_vm(kvmhost, uuid) {
   showView("manage_vm");
   getjson('GET', `/vm/list/${kvmhost}/${uuid}`, function(resp){
     const result = JSON.parse(resp);
-    var btn = genActBtn(true, 'Show XML', 'fa-file-code-o', 'show_xml', kvmhost, {'uuid':result.guest.uuid});
+    var btn = genActBtn(true, 'Show XML', 'fa-info-circle fa-lg', 'show_xml', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Control Panel', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':result.guest.uuid});
     if(result.guest.state === 'RUN') {
       btn += genActBtn(true, 'Console', 'fa-wrench', 'ttyconsole', kvmhost, {'uuid':result.guest.uuid});
@@ -127,8 +127,8 @@ function manage_vm(kvmhost, uuid) {
       btn += genActBtn(true, 'Start VM', 'fa-play', 'start', kvmhost, {'uuid':result.guest.uuid});
       btn += genActBtn(true, 'Undefine', 'fa-bitbucket', 'undefine', kvmhost, {'uuid':result.guest.uuid});
     }
-    btn += genActBtn(true, 'Add CDROM', 'fa-floppy-o', 'add_cdrom', kvmhost, {'uuid':result.guest.uuid});
-    btn += genActBtn(true, 'Add NET', 'fa-wifi', 'add_net', kvmhost, {'uuid':result.guest.uuid});
+    btn += genActBtn(true, 'Add CDROM', 'fa-folder-open' , 'add_cdrom', kvmhost, {'uuid':result.guest.uuid});
+    btn += genActBtn(true, 'Add NET', 'fa-sitemap', 'add_net', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Add DISK', 'fa-database', 'add_disk', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Refresh VM', 'fa-refresh fa-spin', 'manage_vm', kvmhost, {'uuid':result.guest.uuid});
     btn += `<button title="Close" onclick="vmlist('${kvmhost}');"><h2>&times;</h2></button>`;
@@ -142,7 +142,7 @@ function show_vms(kvmhost, vms) {
   var tbl = '';
   vms.forEach(item => {
     const table = genVmsTBL(item);
-    var btn = genActBtn(true, 'Show XML', 'fa-file-code-o', 'show_xml', kvmhost, {'uuid':item.uuid});
+    var btn = genActBtn(true, 'Show XML', 'fa-info-circle fa-lg', 'show_xml', kvmhost, {'uuid':item.uuid});
     if (item.state === "RUN") {
       btn += genActBtn(true, 'VM IPAddress', 'fa-gg-circle', 'get_vmip', kvmhost, {'uuid':item.uuid});
     } else {
