@@ -6,7 +6,7 @@ div.vms-container {
 }
 div.vms-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(630px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
   justify-content: space-between;
 }
 /* extra styles */
