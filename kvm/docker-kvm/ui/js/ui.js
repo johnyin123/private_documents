@@ -65,12 +65,12 @@ function genVmsTBL(item, host = null) {
         tbl += `<tr><th class="truncate" title="${disk.device}">${disk.dev}</th><td colspan="${colspan}" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td>`;
         var addon_btn = '';
         if(disk.device === 'cdrom') {
-          addon_btn = genActBtn(false, 'Change Media', 'Change', 'change_iso', host, {'uuid':item.uuid, 'dev':disk.dev});
+          addon_btn = genActBtn(false, 'Change ISO', 'Change', 'change_iso', host, {'uuid':item.uuid, 'dev':disk.dev});
         }
         if(disk.device === 'disk') {
-          addon_btn = genActBtn(false, 'Media Size', 'DiskSize', 'disk_size', host, {'uuid':item.uuid, 'dev':disk.dev});
+          addon_btn = genActBtn(false, 'Disk Size', 'DiskSize', 'disk_size', host, {'uuid':item.uuid, 'dev':disk.dev});
         }
-        var remove_btn = genActBtn(false, 'Remove Disk', 'Remove', 'del_device', host, {'uuid':item.uuid, 'dev':disk.dev});
+        var remove_btn = genActBtn(false, `Remove ${disk.device}`, 'Remove', 'del_device', host, {'uuid':item.uuid, 'dev':disk.dev});
         tbl += host ? `<td><div class="flex-group">${remove_btn}${addon_btn}</div></td></tr>` : `</tr>`;
       });
     } else if (key === 'nets') {
