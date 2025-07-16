@@ -50,7 +50,7 @@ function genActBtn(btn=true, smsg, icon, action, kvmhost, args={}) {
   if(btn == true) {
     return `<button title='${smsg}' onclick='${action}(${str_arg})'><i class="fa ${icon}"></i></button>`;
   }
-  return `<a title='${smsg}' href='#' onclick='${action}(${str_arg})')'>${icon}</a>`;
+  return `<a title='${smsg}' href='#' onclick='${action}(${str_arg},this)')'>${icon}</a>`;
 }
 function genWrapper(clazz, title, buttons, table) {
   return `<div class="${clazz}"><div class="${clazz}-header">${title}<div>${buttons}</div></div>${table}</div>`;
@@ -421,11 +421,11 @@ function display(host, uuid) {
     }
   });
 }
-function get_vmip(host, uuid) {
+function get_vmip(host, uuid, btn = null) {
   set_curr(host, uuid);
   getjson('GET', `/vm/ipaddr/${host}/${uuid}`, getjson_result);
 }
-function del_device(host, uuid, dev) {
+function del_device(host, uuid, dev, btn) {
   set_curr(host, uuid, dev);
   if (confirm(`delete device /${host}/${uuid}/${dev} ?`)) {
     getjson('POST', `/vm/detach_device/${host}/${uuid}?dev=${dev}`, function(resp) {
@@ -441,11 +441,19 @@ function on_changeiso(form) {
     }, getFormJSON(form));
   return false;
 }
-function disk_size(host, uuid, dev) {
+function disk_size(host, uuid, dev, btn) {
   set_curr(host, uuid, dev);
-  getjson('GET', `/vm/blksize/${curr_host()}/${curr_vm()}?dev=${dev}`, getjson_result);
+  getjson('GET', `/vm/blksize/${curr_host()}/${curr_vm()}?dev=${dev}`, function(resp){
+    if (getjson_result(resp)) {
+      const result = JSON.parse(resp);
+      const row = btn.closest('tr');
+      const cells = row.cells;
+      cells[0].innerText = `${dev}(${result.size})`;
+      btn.setAttribute("hidden", "");
+    }
+  });
 }
-function change_iso(host, uuid, dev) {
+function change_iso(host, uuid, dev, btn) {
   set_curr(host, uuid, dev);
   showView('changecdrom');
   document.getElementById('isoname_list').innerHTML = genOption(get_iso());
@@ -547,7 +555,7 @@ function on_modifydesc(form) {
   });
   return false;
 }
-function modify_desc(host, uuid) {
+function modify_desc(host, uuid, btn) {
   set_curr(host, uuid);
   showView('modifydesc');
 }
@@ -559,7 +567,7 @@ function on_modifymemory(form) {
   });
   return false;
 }
-function modify_memory(host, uuid) {
+function modify_memory(host, uuid, btn) {
   set_curr(host, uuid);
   showView('modifymemory');
 }
@@ -571,11 +579,11 @@ function on_modifyvcpus(form) {
   });
   return false;
 }
-function modify_vcpus(host, uuid) {
+function modify_vcpus(host, uuid, btn) {
   set_curr(host, uuid);
   showView('modifyvcpus');
 }
-function netstats(host, uuid, dev) {
+function netstats(host, uuid, dev, btn) {
   set_curr(host, uuid, dev);
   getjson('GET', `/vm/netstat/${curr_host()}/${curr_vm()}?dev=${dev}`, getjson_result);
 }
