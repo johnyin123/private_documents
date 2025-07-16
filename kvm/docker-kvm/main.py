@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 class MyApp(object):
     @staticmethod
     def create():
+        logger.info(f'home_dir = {os.path.expanduser("~")}')
         logger.info(f'META_SRV={config.META_SRV}')
         logger.info(f'OUTDIR={config.OUTDIR}')
         logger.info(f'DATABASE={config.DATABASE}')
