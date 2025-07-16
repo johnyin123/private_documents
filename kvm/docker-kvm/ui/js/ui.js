@@ -115,7 +115,7 @@ function manage_vm(kvmhost, uuid) {
   showView("manage_vm");
   getjson('GET', `/vm/list/${kvmhost}/${uuid}`, function(resp){
     const result = JSON.parse(resp);
-    var btn = genActBtn(true, 'Show XML', 'fa-info-circle fa-lg', 'show_xml', kvmhost, {'uuid':result.guest.uuid});
+    var btn = genActBtn(true, 'Show XML', 'fa-info-circle', 'show_xml', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Control Panel', 'fa-ambulance', 'show_vmui', kvmhost, {'uuid':result.guest.uuid});
     if(result.guest.state === 'RUN') {
       btn += genActBtn(true, 'Console', 'fa-wrench', 'ttyconsole', kvmhost, {'uuid':result.guest.uuid});
@@ -125,7 +125,7 @@ function manage_vm(kvmhost, uuid) {
       btn += genActBtn(true, 'ForceStop VM', 'fa-plug', 'force_stop', kvmhost, {'uuid':result.guest.uuid});
     } else {
       btn += genActBtn(true, 'Start VM', 'fa-play', 'start', kvmhost, {'uuid':result.guest.uuid});
-      btn += genActBtn(true, 'Undefine', 'fa-bitbucket', 'undefine', kvmhost, {'uuid':result.guest.uuid});
+      btn += genActBtn(true, 'Undefine', 'fa-recycle', 'undefine', kvmhost, {'uuid':result.guest.uuid});
     }
     btn += genActBtn(true, 'Add CDROM', 'fa-folder-open' , 'add_cdrom', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Add NET', 'fa-sitemap', 'add_net', kvmhost, {'uuid':result.guest.uuid});
@@ -144,10 +144,10 @@ function show_vms(kvmhost, vms) {
     const table = genVmsTBL(item);
     var btn = genActBtn(true, 'Show XML', 'fa-info-circle fa-lg', 'show_xml', kvmhost, {'uuid':item.uuid});
     if (item.state === "RUN") {
-      btn += genActBtn(true, 'VM IPAddress', 'fa-gg-circle', 'get_vmip', kvmhost, {'uuid':item.uuid});
+      btn += genActBtn(true, 'VM IPAddress', 'fa-at fa-lg', 'get_vmip', kvmhost, {'uuid':item.uuid});
     } else {
-      btn += genActBtn(true, 'Start VM', 'fa-play', 'start', kvmhost, {'uuid':item.uuid, 'backlist':'1'});
-      btn += genActBtn(true, 'Undefine', 'fa-bitbucket', 'undefine', kvmhost, {'uuid':item.uuid});
+      btn += genActBtn(true, 'Start VM', 'fa-play fa-lg', 'start', kvmhost, {'uuid':item.uuid, 'backlist':'1'});
+      btn += genActBtn(true, 'Undefine', 'fa-recycle fa-lg', 'undefine', kvmhost, {'uuid':item.uuid});
     }
     btn += genActBtn(true, 'Manage VM', 'fa-cog fa-spin fa-lg', 'manage_vm', kvmhost, {'uuid':item.uuid});
     const title = item.state == "RUN" ? '<h2 class="green">GUEST</h2>' : '<h2>GUEST</h2>';
@@ -159,7 +159,7 @@ function show_host(kvmhost, more_info) {
   var host = getHost(kvmhost);
   delete host.vars;
   var btn = genActBtn(true, 'Refresh VM List', 'fa-refresh fa-spin', 'vmlist', host.name);
-  btn += genActBtn(true, 'Create VM', 'fa-tasks', 'create_vm', host.name);
+  btn += genActBtn(true, 'Create VM', 'fa-plus-square', 'create_vm', host.name);
   const table = genVmsTBL(Object.assign({}, host, more_info));
   return genWrapper('host-wrapper', `<h2 class="green">${host.name.toUpperCase()}</h2>`, btn, table);
 }
