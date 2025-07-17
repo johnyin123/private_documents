@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
-import sqlalchemy, sqlalchemy.orm, sqlalchemy.pool, os
-try:
-    import flask_app
-    echo=flask_app.is_debug()
-except ImportError:
-    echo=False
+import sqlalchemy, sqlalchemy.orm, sqlalchemy.pool, os, logging
+logger = logging.getLogger(__name__)
+# logger.setLevel('DEBUG')
+echo = (logger.getEffectiveLevel() == logging.DEBUG)
 try:
     import config
     DATABASE_URI=config.DATABASE

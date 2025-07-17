@@ -3,10 +3,7 @@ import logging, os
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
 logging.basicConfig(encoding='utf-8', format='[%(funcName)s@%(filename)s(%(lineno)d)]%(name)s %(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
-logger.setLevel(level=os.getenv('LOG', 'INFO').upper())
-
-def is_debug():
-    return logger.getEffectiveLevel() == logging.DEBUG
+# logger.setLevel(level=os.getenv('LOG', 'INFO').upper())
 
 import werkzeug, flask
 FLASK_CONF = {
@@ -101,7 +98,7 @@ app=MyApp.create()
 # def main():
 #     host = os.environ.get('HTTP_HOST', '0.0.0.0')
 #     port = int(os.environ.get('HTTP_PORT', '18888'))
-#     app.run(host=host, port=port, debug=flask_app.is_debug())
+#     app.run(host=host, port=port)
 #
 # if __name__ == '__main__':
 #     exit(main())
