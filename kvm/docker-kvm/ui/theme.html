@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html data-theme="dark">
+<style>
+[data-theme="light"] {
+   --color-bg: #ffffff;
+   --color-fg: #000000;
+}
+[data-theme="dark"] {
+   --color-bg: #000000;
+   --color-fg: #ffffff;
+}
+body {
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+}
+button {
+  font-size: 2rem;
+  color: var(--color-fg);
+  background-color: var(--color-bg);
+  border: 0.25rem solid var(--color-fg);
+}
+</style>
+<body>
+<button onclick="toggle_theme()">Change to light theme</button>
+<script>
+function toggle_theme() {
+  const html = document.querySelector("html");
+  const theme = html.getAttribute("data-theme") === "dark" ? "light" : "dark";
+  html.setAttribute("data-theme", theme);
+} 
+</script>
+</body>
+</html>
