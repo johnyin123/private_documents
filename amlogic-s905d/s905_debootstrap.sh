@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("e36cbb00[2025-06-30T07:08:04+08:00]:s905_debootstrap.sh")
+VERSION+=("c9c3ae29[2025-07-01T07:05:14+08:00]:s905_debootstrap.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 cat <<EOF
@@ -250,7 +250,7 @@ cat > ${ROOT_DIR}/etc/johnyin/display/custom_display.sh << 'EOF'
     xset -dpms s off
     xset q
     xrandr --verbose --output HDMI-1 --mode 1280x800
-} 2>&1 | logger -i -t custom_display
+} 2>/dev/null | logger -i -t custom_display
 EOF
 chmod 755 ${ROOT_DIR}/etc/johnyin/display/custom_display.sh
 cat > ${ROOT_DIR}/etc/johnyin/display/johnyin-init.desktop<<EOF
