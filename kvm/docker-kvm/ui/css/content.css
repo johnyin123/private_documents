@@ -29,30 +29,24 @@ div.form-wrapper-header {
   padding: var(--padding-small) var(--padding-medium);
   border-radius: 8px 8px 0 0;
 }
-div.host-wrapper-header h2,
-div.vms-wrapper-header h2,
-div.form-wrapper-header h2 {
-  font-weight: 700;
-  font-size: var(--font-size-large);
-}
 div.host-wrapper-header button,
 div.vms-wrapper-header button,
 div.form-wrapper-header button {
   padding: 0;
-  border: none;
+  border: 1px solid var(--grey-color);
   cursor: pointer;
   background: var(--bg-color);
   font-size: var(--font-size-large);
-  min-width: 30px;
+  width: 40px;
   line-height: 40px;
   display: inline-block;
   text-align: center;
-  border-radius: 8px;
+  border-radius: 20px;
 }
 div.host-wrapper-header button:hover,
 div.vms-wrapper-header button:hover,
 div.form-wrapper-header button:hover {
-  color: var(--blue-color);
+  box-shadow: inset 0 0 0 20px var(--blue-color);
 }
 form {
   padding: var(--padding-large);
@@ -167,7 +161,7 @@ div[name=help] {
 }
 details { padding: 5px var(--padding-large); }
 details table th { text-align: right; text-transform: none; }
-.blue { background-color:var(--blue-color); }
+.blue { background-color: var(--blue-color); }
 .green, .success { color: var(--green-color); }
 .error { color: var(--red-color); }
 .tabContent { display:none; }

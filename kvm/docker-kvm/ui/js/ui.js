@@ -131,7 +131,7 @@ function manage_vm(kvmhost, uuid) {
     btn += genActBtn(true, 'Add NET', 'fa-sitemap', 'add_net', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Add DISK', 'fa-database', 'add_disk', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Refresh VM', 'fa-refresh fa-spin', 'manage_vm', kvmhost, {'uuid':result.guest.uuid});
-    btn += `<button title="Close" onclick="vmlist('${kvmhost}');"><h2>&times;</h2></button>`;
+    btn += `<button title="Close" onclick="vmlist('${kvmhost}');">&times;</button>`;
     const table = genVmsTBL(result.guest, kvmhost);
     const title = result.guest.state == "RUN" ? `<h2 class="green">GUEST</h2>` : `<h2>GUEST</h2>`;
     const tbl = genWrapper("vms-wrapper", title, btn, table);
@@ -173,7 +173,7 @@ function Alert(type, title, message) {
     div_alert.removeEventListener("click", closeDialogOnClickOutside);
   }
   if (div_alert) {
-    const btn = `<button title="Close" onclick="this.closest('dialog').close();"><h2>&times;</h2></button>`;
+    const btn = `<button title="Close" onclick="this.closest('dialog').close();">&times;</button>`;
     const table = `<form><pre style="white-space: pre-wrap;">${message}</pre></form>`;
     div_alert.innerHTML = genWrapper('form-wrapper', `<h2 class="${type}">${title}</h2>`, btn, table);
     div_alert.showModal();
