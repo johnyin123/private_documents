@@ -33,15 +33,15 @@ div.host-wrapper-header button,
 div.vms-wrapper-header button,
 div.form-wrapper-header button {
   padding: 0;
-  border: 1px solid var(--grey-color);
   cursor: pointer;
   background: var(--bg-color);
   font-size: var(--font-size-large);
   width: 40px;
-  line-height: 40px;
+  height: 40px;
   display: inline-block;
   text-align: center;
-  border-radius: 20px;
+  border: 1px solid var(--grey-color);
+  border-radius: 50%;
 }
 div.host-wrapper-header button:hover,
 div.vms-wrapper-header button:hover,
