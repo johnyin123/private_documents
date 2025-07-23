@@ -160,7 +160,7 @@ function show_host(kvmhost, more_info) {
   var host = getHost(kvmhost);
   delete host.vars;
   var btn = genActBtn(true, 'Refresh VM List', 'fa-refresh', 'vmlist', host.name);
-  btn += genActBtn(true, 'Create VM', 'fa-plus-square', 'create_vm', host.name);
+  btn += genActBtn(true, 'Create VM', 'fa-plus-circle', 'create_vm', host.name);
   const table = genVmsTBL(Object.assign({}, host, more_info));
   return genWrapper('host-wrapper', `<h2 class="green">${host.name.toUpperCase()}</h2>`, btn, table);
 }
