@@ -48,7 +48,8 @@ function genActBtn(btn=true, smsg, icon, action, kvmhost, args={}) {
       str_arg += `,"${args[key]}"`;
   }
   if(btn == true) {
-    return `<button title='${smsg}' onclick='${action}(${str_arg})'><i class="fa ${icon}"></i></button>`;
+    //return `<button title='${smsg}' onclick='${action}(${str_arg})'><i class="fa ${icon}"></i></button>`;
+    return `<button class="iconbtn" style="--icon:var(--${icon});" title='${smsg}' onclick='${action}(${str_arg})'></button>`;
   }
   return `<a title='${smsg}' href='#' onclick='${action}(${str_arg},this)')'>${icon}</a>`;
 }
@@ -130,7 +131,7 @@ function manage_vm(kvmhost, uuid) {
     btn += genActBtn(true, 'Add CDROM', 'fa-folder-open' , 'add_cdrom', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Add NET', 'fa-sitemap', 'add_net', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Add DISK', 'fa-database', 'add_disk', kvmhost, {'uuid':result.guest.uuid});
-    btn += genActBtn(true, 'Refresh VM', 'fa-refresh fa-spin', 'manage_vm', kvmhost, {'uuid':result.guest.uuid});
+    btn += genActBtn(true, 'Refresh VM', 'fa-refresh', 'manage_vm', kvmhost, {'uuid':result.guest.uuid});
     btn += `<button title="Close" onclick="vmlist('${kvmhost}');">&times;</button>`;
     const table = genVmsTBL(result.guest, kvmhost);
     const title = result.guest.state == "RUN" ? `<h2 class="green">GUEST</h2>` : `<h2>GUEST</h2>`;
@@ -149,7 +150,7 @@ function show_vms(kvmhost, vms) {
       btn += genActBtn(true, 'Start VM', 'fa-play-circle', 'start', kvmhost, {'uuid':item.uuid, 'backlist':'1'});
       btn += genActBtn(true, 'Undefine', 'fa-recycle', 'undefine', kvmhost, {'uuid':item.uuid});
     }
-    btn += genActBtn(true, 'Manage VM', 'fa-cog fa-spin', 'manage_vm', kvmhost, {'uuid':item.uuid});
+    btn += genActBtn(true, 'Manage VM', 'fa-cog', 'manage_vm', kvmhost, {'uuid':item.uuid});
     const title = item.state == "RUN" ? '<h2 class="green">GUEST</h2>' : '<h2>GUEST</h2>';
     tbl += genWrapper("vms-wrapper", title, btn, table);
   });
@@ -158,7 +159,7 @@ function show_vms(kvmhost, vms) {
 function show_host(kvmhost, more_info) {
   var host = getHost(kvmhost);
   delete host.vars;
-  var btn = genActBtn(true, 'Refresh VM List', 'fa-refresh fa-spin', 'vmlist', host.name);
+  var btn = genActBtn(true, 'Refresh VM List', 'fa-refresh', 'vmlist', host.name);
   btn += genActBtn(true, 'Create VM', 'fa-plus-square', 'create_vm', host.name);
   const table = genVmsTBL(Object.assign({}, host, more_info));
   return genWrapper('host-wrapper', `<h2 class="green">${host.name.toUpperCase()}</h2>`, btn, table);
@@ -269,7 +270,7 @@ function vmlist(kvmhost) {
     if(kvmhost === 'ALL VMS') {
       var tbl = '';
       guest.forEach(item => {
-        const btn = `<button title='Manage VM' onclick='manage_vm("${item.kvmhost}", "${item.uuid}")'><i class="fa fa-cog fa-spin"></i></button>`;
+        const btn = `<button class="iconbtn" style="--icon:var(--fa-cog);" title='Manage VM' onclick='manage_vm("${item.kvmhost}", "${item.uuid}")'></button>`;
         const table = genVmsTBL(item);
         tbl += genWrapper("vms-wrapper", "<h2>GUEST</h2>", btn, table);
       });
@@ -656,9 +657,9 @@ window.addEventListener('load', function() {
     const result = JSON.parse(resp);
     if(result.result !== 'OK') { Alert('error', 'init', 'Get Host List'); return; }
     config.g_host = result.host;
-    var mainMenu = `<a href='#' onclick='vmlist("ALL VMS")'><i class='fa fa-list-ol'></i><span name='host'>ALL VMS</span><span style='float:right;' name='count'></span></a>`;
+    var mainMenu = `<a href='#' onclick='vmlist("ALL VMS")' class="iconbtn" style="--icon:var(--fa-list-ol);"><span name='host'>ALL VMS</span><span style='float:right;' name='count'></span></a>`;
     config.g_host.forEach(host => {
-      mainMenu += `<a href='#' title="${host.arch}" onclick='vmlist("${host.name}")'><i class="fa fa-desktop"></i><span name='host'>${host.name}</span><span style='float:right;' name='count'></span></a>`;
+      mainMenu += `<a href='#' title="${host.arch}" onclick='vmlist("${host.name}")' class="iconbtn" style="--icon:var(--fa-desktop);"><span name='host'>${host.name}</span><span style='float:right;' name='count'></span></a>`;
     });
     document.getElementById("sidebar").innerHTML = mainMenu;
   });

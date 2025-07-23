@@ -170,3 +170,30 @@ div.flex-group {
   gap: var(--padding-small);
   justify-content: space-between;
 }
+.iconbtn { position: relative; }
+.iconbtn:before {
+  content: var(--icon);
+  font-family: FontAwesome;
+  font-style: normal;
+  font-weight: normal;
+  text-decoration: inherit;
+}
+:root {
+  --fa-ambulance:"\f0f9";
+  --fa-at:"\f1fa";
+  --fa-cog:"\f013";
+  --fa-database:"\f1c0";
+  --fa-desktop:"\f108";
+  --fa-folder-open:"\f07c";
+  --fa-info-circle:"\f05a";
+  --fa-list-ol:"\f0cb";
+  --fa-play-circle:"\f144";
+  --fa-plug:"\f1e6";
+  --fa-plus-square:"\f0fe";
+  --fa-power-off:"\f011";
+  --fa-recycle:"\f1b8";
+  --fa-refresh:"\f021";
+  --fa-registered:"\f25d";
+  --fa-sitemap:"\f0e8";
+  --fa-wrench:"\f0ad";
+}
