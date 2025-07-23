@@ -180,12 +180,13 @@ div.flex-group {
 }
 :root {
   --fa-ambulance:"\f0f9";
+  --fa-share-alt:"\f1e0";
   --fa-at:"\f1fa";
-  --fa-cog:"\f013";
+  --fa-ellipsis-h:"\f141";
   --fa-database:"\f1c0";
   --fa-desktop:"\f108";
   --fa-folder-open:"\f07c";
-  --fa-info-circle:"\f05a";
+  --fa-commenting:"\f27a";
   --fa-list-ol:"\f0cb";
   --fa-play-circle:"\f144";
   --fa-plug:"\f1e6";
