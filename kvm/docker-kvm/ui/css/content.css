@@ -32,7 +32,7 @@ div.form-wrapper-header {
 div.host-wrapper-header button,
 div.vms-wrapper-header button,
 div.form-wrapper-header button {
-  font-size: var(--font-size-large);
+  font-size: var(--font-size-medium);
   width: 40px;
   height: 40px;
   border-radius: 50%;
