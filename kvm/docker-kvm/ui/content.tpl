@@ -62,7 +62,7 @@
       <button title="Close" onclick="showView('manage_vm')">&times;</button>
     </div>
     <form onSubmit="return on_changeiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>ISO:<select name="isoname" id="isoname_list"></select></label>
+      <label>ISO:<select name="isoname" id="isoname_list" required></select></label>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
         <input type="submit" value="Submit"/>
@@ -79,8 +79,8 @@
     </div>
     <form id="addcdrom_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <div class="flex-group">
-        <label>CDROM:<select name="device" id="cdrom_list" onchange="select_change(this)"></select></label>
-        <label>BUS:<select name="disk_bus" title="Bus type">
+        <label>CDROM:<select name="device" id="cdrom_list" onchange="select_change(this)" required></select></label>
+        <label>BUS:<select name="disk_bus" title="Bus type" required>
           <option value="sata" selected>sata</option>
           <option value="ide">ide</option>
           <option value="scsi">scsi</option>
@@ -104,8 +104,8 @@
     </div>
     <form id="addnet_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <div class="flex-group">
-        <label>Network:<select name="device" id="net_list" onchange="select_change(this)"></select></label>
-        <label>Model:<select name="net_model" title="netcard model">
+        <label>Network:<select name="device" id="net_list" onchange="select_change(this)" required></select></label>
+        <label>Model:<select name="net_model" title="netcard model" required>
           <option value="virtio" selected>virtio</option>
           <option value="e1000">e1000</option>
           <option value="rtl8139">rtl8139</option>
@@ -129,12 +129,12 @@
     </div>
     <form id="adddisk_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <div class="flex-group">
-        <label>Disk:<select name="device" id="dev_list" onchange="select_change(this)"></select></label>
+        <label>Disk:<select name="device" id="dev_list" onchange="select_change(this)" required></select></label>
         <label>Size(GB)*:<input type="number" name="size" id="gold_size" min="1" max="2048" required/></label>
       </div>
       <div class="flex-group">
-        <label>Gold:<select name="gold" id="gold_list" onchange="gold_change(this)"></select></label>
-        <label>BUS:<select name="disk_bus" title="Bus type">
+        <label>Gold:<select name="gold" id="gold_list" onchange="gold_change(this)" required></select></label>
+        <label>BUS:<select name="disk_bus" title="Bus type" required>
           <option value="virtio" selected>virtio</option>
           <option value="ide">ide</option>
           <option value="scsi">scsi</option>
