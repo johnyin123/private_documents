@@ -31,13 +31,14 @@ apt update && apt -y --no-install-recommends install \
     qemu-system-x86 \
     qemu-block-extra \
     qemu-utils \
-    iproute2 bridge-utils curl
+    iproute2 bridge-utils
+    # curl
     rm -fr /etc/libvirt/qemu/* || true
     sed --quiet -i -E \
         -e '/^\s*(user|spice_tls|spice_tls_x509_cert_dir|vnc_tls|vnc_tls_x509_cert_dir|vnc_tls_x509_verify)\s*=.*/!p' \
         /etc/libvirt/qemu.conf || true
-        # -e "\$auser = \"root\"" \
 
+        # -e "\$auser = \"root\"" \
         # -e '$aspice_tls = 1' \
         # -e '$aspice_tls_x509_cert_dir = "/etc/libvirt/pki/"' \
         # -e '$avnc_tls = 1' \
