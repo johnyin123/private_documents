@@ -519,7 +519,10 @@ function add_disk(host, uuid) {
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
   const disks = filterByKey(getDevice(host), 'devtype', 'disk');
   const objs = Object.keys(getFormJSON(form, false));
-  set_help(form, cpWithoutKeys(disks[0]['vars'], objs));
+  if(disks.length > 0) {
+    // no disk device of this host found
+    set_help(form, cpWithoutKeys(disks[0]['vars'], objs));
+  }
   document.getElementById('dev_list').innerHTML = genOption(disks);
   const gold = filterByKey(get_gold(), 'arch', getHost(host).arch);
   const gold_list = document.getElementById('gold_list');
@@ -535,7 +538,7 @@ function add_net(host, uuid) {
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
   const nets = filterByKey(getDevice(host), 'devtype', 'net');
   const objs = Object.keys(getFormJSON(form, false));
-  set_help(form, cpWithoutKeys(nets[0]['vars'], objs));
+  if(nets.length > 0) { set_help(form, cpWithoutKeys(nets[0]['vars'], objs)); }
   document.getElementById('net_list').innerHTML = genOption(nets);
 }
 function add_cdrom(host, uuid) {
@@ -545,7 +548,7 @@ function add_cdrom(host, uuid) {
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
   const cdroms = filterByKey(getDevice(host), 'devtype', 'iso');
   const objs = Object.keys(getFormJSON(form, false));
-  set_help(form, cpWithoutKeys(cdroms[0]['vars'], objs));
+  if(cdroms.length > 0) { set_help(form, cpWithoutKeys(cdroms[0]['vars'], objs)); }
   document.getElementById('cdrom_list').innerHTML = genOption(cdroms);
 }
 function on_modifydesc(form) {
