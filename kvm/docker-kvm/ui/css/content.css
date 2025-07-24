@@ -91,10 +91,10 @@ button:hover, input[type="button"]:hover, input[type="submit"]:hover, input[type
   color: inherit;
   opacity: 1; /* Firefox */
 }
-textarea:required:valid, input:required:valid {
+textarea:required:valid, input:required:valid, select:required:valid {
   border-color: var(--green-color);
 }
-textarea:required:invalid, input:required:invalid {
+textarea:required:invalid, input:required:invalid, select:required:invalid {
   border-color: var(--red-color);
 }
 table {
