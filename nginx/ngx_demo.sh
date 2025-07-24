@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("dba8c89f[2025-07-04T15:27:48+08:00]:ngx_demo.sh")
+VERSION+=("40eb3348[2025-07-08T14:55:03+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -2073,6 +2073,7 @@ cat <<'EOF' > jwt_svc.http
 # echo '{"status":200,"message":"Success"}' > /etc/nginx/http-enabled/check.json
 upstream real_jwt_api {
     server 192.168.169.234:16000;
+    sticky;
     keepalive 64;
 }
 server {
@@ -2103,6 +2104,7 @@ upstream jwt_api {
     # uri: /api/login => login, jwt server impl
     # server unix:/var/run/authsrv.socket;
     server 127.0.0.1:61600;
+    sticky;
     keepalive 64;
 }
 EOF
@@ -2148,6 +2150,7 @@ server {
 ################################################
 upstream auth_srv {
     server unix:/var/run/authsrv.socket;
+    sticky;
     keepalive 64;
 }
 server {
@@ -2629,6 +2632,7 @@ upstream ceph_backend {
     server 192.168.168.131:80;
     server 192.168.168.132:80;
     server 192.168.168.133:80;
+    sticky;
     keepalive 64;
 }
 server {
@@ -2767,6 +2771,7 @@ server {
 }
 upstream ceph_rgw_backend {
     server 192.168.168.132;
+    sticky;
     keepalive 64;
 }
 server {
@@ -3003,6 +3008,7 @@ cat <<'EOF' >download_code.http
 # curl http://127.0.0.1/public-bucket/fu?code=xxxx
 upstream my_ceph_backend {
     server 192.168.168.131:80;
+    sticky;
     keepalive 64;
 }
 js_path "/etc/nginx/js/";
@@ -4546,6 +4552,7 @@ EOF
 cat <<'EOF' > websocket.http
 upstream backend {
     server 192.168.168.132;
+    sticky;
     keepalive 64;
 }
 map $http_upgrade $connection_upgrade {
@@ -4768,6 +4775,7 @@ cat <<'EOF'> sub_filter_2.http
 # copy context_menu.css/context_menu.js to /var/www
 upstream portal_backend {
     server 10.170.33.120:30770;
+    sticky;
     keepalive 16;
 }
 server {
