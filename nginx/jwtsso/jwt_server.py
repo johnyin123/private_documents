@@ -4,6 +4,7 @@
 import os, werkzeug, flask_app, flask, datetime, jwt, json, logging
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
 logger = logging.getLogger(__name__)
+logger.setLevel('INFO')
 '''
 [
     {"username":"u1", "password":"p1"},
@@ -28,7 +29,9 @@ def json_login(config: dict, username: str, password: str) -> bool:
 
 try:
     from ldap_login import ldap_login as jwt_login
-except ImportError:
+    logger.info(f'ldap_login load')
+except ImportError as e:
+    logger.info(f'{e}, json_login load.')
     jwt_login=json_login
 
 def load_file(file_path):
