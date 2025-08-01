@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("2a9d6e1f[2025-05-29T16:16:37+08:00]:mini.sh")
+VERSION+=("767e6eda[2025-07-11T08:25:00+08:00]:mini.sh")
 ################################################################################
 source ${DIRNAME}/os_debian_init.sh
 
@@ -61,3 +61,4 @@ rsync -avzP --numeric-ids \\
     --delete \\
     ${ROOTFS}/boot/ root@${IP}:/boot/
 EOF
+du -sh ${ROOTFS}/boot/

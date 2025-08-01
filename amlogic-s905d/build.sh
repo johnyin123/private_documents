@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("465dd340[2025-06-24T08:21:06+08:00]:build.sh")
+VERSION+=("1dd2b85c[2025-07-31T09:53:43+08:00]:build.sh")
 ################################################################################
 ##OPTION_START##
 # # apt -f install libelf-dev libssl-dev
@@ -273,6 +273,8 @@ enable_module_xz_sign() {
 
     scripts/config --disable CONFIG_MODULE_COMPRESS_NONE
     scripts/config --disable CONFIG_MODULE_DECOMPRESS
+    scripts/config --enable CONFIG_MODULE_COMPRESS
+    scripts/config --enable CONFIG_MODULE_COMPRESS_ALL
     scripts/config --enable CONFIG_MODULE_COMPRESS_XZ
 
     scripts/config --disable CONFIG_MODULE_SIG_ALL
