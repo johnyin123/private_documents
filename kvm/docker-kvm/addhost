@@ -17,6 +17,7 @@ arch = sys.argv[3]
 kvmhost = f'{name}'
 host={'name':kvmhost, 'tpl':'domain.tpl','url':f'qemu+tls://{ipaddr}/system','arch':arch,'ipaddr':ipaddr,'sshport':22,'sshuser':'root' }
 devices = [fn.removesuffix(".tpl") for fn in os.listdir(config.DIR_DEVICE)]
+# glob.glob("*.tpl")
 actions = [fn.removesuffix(".tpl") for fn in os.listdir(config.DIR_ACTION)]
 devs=[]
 for fn in devices:
