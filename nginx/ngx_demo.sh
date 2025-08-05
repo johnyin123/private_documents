@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("6cad3bd4[2025-08-05T14:53:20+08:00]:ngx_demo.sh")
+VERSION+=("5ac07c02[2025-08-05T15:36:51+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1952,6 +1952,8 @@ location = /login.js {
  const parms = new URLSearchParams(window.location.search);
  return parms.has(name) ? parms.get(name) : "";
 }
+// logout
+// document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 const form=document.getElementById("jwtForm");
 const login = "/api/login";
 var caller = GetURLParameter("return_url");
