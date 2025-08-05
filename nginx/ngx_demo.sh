@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("40eb3348[2025-07-08T14:55:03+08:00]:ngx_demo.sh")
+VERSION+=("712e02d8[2025-07-24T11:01:49+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1964,8 +1964,11 @@ form.addEventListener("submit", function(ev) {
   return resp.json();
  }).then(res => {
   document.cookie = "token="+res.token+";";
+  // document.cookie = "token="+res.token+"; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=3600"
   if (caller.length === 0) { caller="/"; }
   location.href=caller;
+  // window.location.assign("URL");
+  // window.location.replace("URL");
   return;
  }).catch(error => {
   alert("Error:"+error);
