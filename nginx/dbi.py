@@ -9,6 +9,7 @@ try:
 except ImportError:
     DATABASE_URI=os.environ.get('DATABASE', 'sqlite:///demo.db?check_same_thread=False')
 # # 'sqlite:///:memory:'
+# # 'mysql+pymysql://admin:password@192.168.168.212/kvm?charset=utf8mb4'
 # # https://github.com/sqlalchemy/sqlalchemy/discussions/8858
 args = dict(echo=echo, poolclass=sqlalchemy.pool.StaticPool)
 engine = sqlalchemy.create_engine(DATABASE_URI, **args)

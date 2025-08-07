@@ -1,24 +1,29 @@
 # -*- coding: utf-8 -*-
 import os, uuid
 from datetime import datetime
+# # env: OUTDIR, DATABASE, META_SRV, GRAPH_SRV, CTRL_PANEL_SRV
+OUTDIR         = os.environ.get('OUTDIR', os.path.abspath(os.path.dirname(__file__)))
+DATABASE       = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db?check_same_thread=False')
+# # clout-init: nocloud http://META_SRV, iso https://META_SRV as meta server.
+META_SRV       = os.environ.get('META_SRV', 'vmm.registry.local')
+# # http srv for vnc/spice/console, default same as {META_SRVq}
+GRAPH_SRV      = os.environ.get('GRAPH_SRV', f'https://{META_SRV}')
+# # http srv for user control panel srv, default same as {META_SRVq}
+CTRL_PANEL_SRV = os.environ.get('CTRL_PANEL_SRV', f'https://{META_SRV}')
 
-# DATABASE = 'mysql+pymysql://admin:password@192.168.168.212/kvm?charset=utf8mb4'
-OUTDIR = os.environ.get('OUTDIR', os.path.abspath(os.path.dirname(__file__)))
-DATABASE = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db?check_same_thread=False')
+##################################################################
 # # template vars desc json file contents
 VARS_DESC = {}
-# # cloud-init meta-data http/https server name
-META_SRV = os.environ.get('META_SRV', 'vmm.registry.local')
 
 TMOUT_MINS_SOCAT = '15' # socat process timeout close minutes, default value
 SECURE_LINK_MYKEY_WEBSOCKIFY = 'P@ssw@rd4Display' # vnc/spice websockify access mykey
 SECURE_LINK_MYKEY_CTRL_PANEL = 'P@ssw@rd4Display' # user control panel access mykey
 # # const define
 CDROM_TPL      = 'cdrom.meta.tpl'        # change media use this as template
-URI_VNC        = '/novnc/vnc_lite.html'
-URI_SPICE      = '/spice/spice_auto.html'
-URI_CONSOLE    = '/term/xterm.html'
-URI_CTRL_PANEL = '/guest.html'
+URI_VNC        = f'{GRAPH_SRV}/novnc/vnc_lite.html'
+URI_SPICE      = f'{GRAPH_SRV}/spice/spice_auto.html'
+URI_CONSOLE    = f'{GRAPH_SRV}/term/xterm.html'
+URI_CTRL_PANEL = f'{CTRL_PANEL_SRV}/guest.html'
 DIR_CIDATA   = os.path.join(OUTDIR, 'cidata')  # RW # iso-meta/nocloud-meta data dir
 DIR_ACTION   = os.path.join(OUTDIR, 'actions') # RO # device action script dir
 DIR_DEVICE   = os.path.join(OUTDIR, 'devices') # RO # device template dir
