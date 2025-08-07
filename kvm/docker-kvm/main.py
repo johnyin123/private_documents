@@ -8,13 +8,14 @@ from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
 
 class MyApp(object):
+    VARS_DESC = json.loads(load(os.path.join(config.OUTDIR, 'vars.json')))
+
     @staticmethod
     def create():
         logger.info(f'home_dir = {os.path.expanduser("~")}')
         logger.info(f'META_SRV={config.META_SRV}')
         logger.info(f'OUTDIR={config.OUTDIR}')
         logger.info(f'DATABASE={config.DATABASE}')
-        config.VARS_DESC = json.loads(load(os.path.join(config.OUTDIR, 'vars.json')))
         conf={'STATIC_FOLDER': config.OUTDIR, 'STATIC_URL_PATH':'/public'}
         web=flask_app.create_app(conf, json=True)
         web.config['JSON_SORT_KEYS'] = False
@@ -44,7 +45,7 @@ class MyApp(object):
                 varset = template.get_variables(config.DIR_DOMAIN, host['tpl'])
                 for file in [fn for fn in os.listdir(config.DIR_META) if fn.endswith('.tpl')]:
                     varset.update(template.get_variables(config.DIR_META, file))
-                host['vars'] = {k: config.VARS_DESC.get(k,'n/a') for k in varset}
+                host['vars'] = {k: self.VARS_DESC.get(k,'n/a') for k in varset}
             return return_ok(f'db_list_host ok', host=getlist_without_key(hosts, *keys))
         except Exception as e:
             return deal_except(f'db_list_host', e), 400
@@ -54,7 +55,7 @@ class MyApp(object):
             args = {'kvmhost': hostname} if hostname else {}
             devices = [dic._asdict() for dic in database.KVMDevice.list_all(**args)]
             for dev in devices:
-                dev['vars'] = {k: config.VARS_DESC.get(k,'n/a') for k in template.get_variables(config.DIR_DEVICE, dev['tpl'])}
+                dev['vars'] = {k: self.VARS_DESC.get(k,'n/a') for k in template.get_variables(config.DIR_DEVICE, dev['tpl'])}
             return return_ok(f'db_list_device ok', device=getlist_without_key(devices, *['tpl', 'action']))
         except Exception as e:
             return deal_except(f'db_list_device', e), 400
