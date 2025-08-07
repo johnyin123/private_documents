@@ -178,7 +178,7 @@ class VMManager:
             else:
                 raise Exception('graphic listen "{listen}" unknown')
             save(os.path.join(config.DIR_TOKEN, uuid), f'{uuid}: {server}')
-            path, dt = websockify_secure_link(uuid, config.SECURE_LINK_MYKEY_WEBSOCKIFY, tmout)
+            path, dt = websockify_secure_link(uuid, config.MYKEY_WEBSOCKIFY, tmout)
             url_map = {'vnc': config.URI_VNC,'spice':config.URI_SPICE}
             return return_ok(proto, uuid=uuid, display=f'{url_map[proto]}?password={item.getAttribute("passwd")}&path={path}', expire=dt)
         raise Exception('no graphic found')
@@ -299,7 +299,7 @@ class VMManager:
         local = f'/tmp/.display.{uuid}'
         server = f'unix_socket:{local}'
         save(os.path.join(config.DIR_TOKEN, uuid), f'{uuid}: {server}')
-        path, dt = websockify_secure_link(uuid, config.SECURE_LINK_MYKEY_WEBSOCKIFY, tmout)
+        path, dt = websockify_secure_link(uuid, config.MYKEY_WEBSOCKIFY, tmout)
         return return_ok('console', uuid=uuid, display=f'{config.URI_CONSOLE}?password=&path={path}', expire=dt)
 
     @staticmethod
@@ -334,7 +334,7 @@ class VMManager:
             token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
             return f'{token}', datetime.datetime.fromtimestamp(int(epoch)).isoformat()
 
-        token, dt = user_access_secure_link(host.name, uuid, config.SECURE_LINK_MYKEY_CTRL_PANEL, epoch)
+        token, dt = user_access_secure_link(host.name, uuid, config.MYKEY_CTRL_PANEL, epoch)
         return return_ok('vmuserinterface', uuid=uuid, url=f'{config.URI_CTRL_PANEL}', token=f'{token}', expire=dt)
 
     @staticmethod

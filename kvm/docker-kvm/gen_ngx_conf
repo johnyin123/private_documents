@@ -157,8 +157,8 @@ server {
 }
 '''
 ngx_cfg = ngx_cfg.replace('${META_SRV}', config.META_SRV)
-ngx_cfg = ngx_cfg.replace('${WEBSOCKKEY}', config.SECURE_LINK_MYKEY_WEBSOCKIFY)
-ngx_cfg = ngx_cfg.replace('${USERKEY}', config.SECURE_LINK_MYKEY_CTRL_PANEL)
+ngx_cfg = ngx_cfg.replace('${WEBSOCKKEY}', config.MYKEY_WEBSOCKIFY)
+ngx_cfg = ngx_cfg.replace('${USERKEY}', config.MYKEY_CTRL_PANEL)
 ngx_cfg = ngx_cfg.replace('${OUT_DIR}', config.OUTDIR)
 ngx_cfg = ngx_cfg.replace('${AUTH}', '')
 # ngx_cfg = ngx_cfg.replace('${AUTH}', '# ')
