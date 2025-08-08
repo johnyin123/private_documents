@@ -4,5 +4,5 @@
    <driver name='qemu' type='raw' cache='none' io='native'/>
    <source file='/storage/{{ getdev() }}-{{ vm_uuid }}.raw'/>
    <backingstore/>
-   <target dev='{{ getdev() }}' bus='{{ disk_bus | default("virtio") }}'/>
+   <target dev='{{ getdev() }}' bus='{{ disk_bus | default("virtio", true) }}'/>
 </disk>

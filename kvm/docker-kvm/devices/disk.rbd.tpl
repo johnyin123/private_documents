@@ -10,5 +10,5 @@
     <host name='172.16.16.23' port='6789'/>
     <host name='172.16.16.24' port='6789'/>
   </source>
-  <target dev='{{ getdev() }}' bus='{{ disk_bus | default("virtio") }}'/>
+  <target dev='{{ getdev() }}' bus='{{ disk_bus | default("virtio", true) }}'/>
 </disk>
