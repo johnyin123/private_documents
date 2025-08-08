@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("1bfb4cd2[2025-07-04T06:42:06+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("82531502[2025-07-07T08:39:28+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -98,14 +98,15 @@ done
 
 systemd-run --user --unit websockify-graph \\
 --working-directory=\${DIRNAME} \\
--E OUTDIR=\${OUTDIR} \\
 \${VENV:-}websockify --token-plugin TokenFile --token-source \${OUTDIR}/token/ 127.0.0.1:6800
 
 systemd-run --user --unit jwt-srv \\
 --working-directory=\${DIRNAME} \\
--E OUTDIR=\${OUTDIR} \\
 \${VENV:-}gunicorn -b 127.0.0.1:16000 --preload --workers=2 --threads=2 --access-logformat 'JWT %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'jwt_server:app'
 
+# -E META_SRV=vmm.registry.local \\
+# -E CTRL_PANEL_SRV=guest.registry.local \\
+# -E GRAPH_SRV=ws.registry.local \\
 systemd-run --user --unit simple-kvm-srv \\
 --working-directory=\${DIRNAME} \\
 -E OUTDIR=\${OUTDIR} \\
