@@ -26,7 +26,6 @@ inst_vmmgr_libvirtd.sh  : inst libvirtd docker image on linux hosts
 docker-vmmgr.sh         : gen vmmgr-api docker image
 inst_vmmgr_api_srv.sh   : inst vmmgr-api server(on docker or on vm)
 gen_ngx_conf            : gen nginx kvm.conf for vmmgr-api
-                          OUTDIR=/home/johnyin/vmmgr CTRL_PANEL_SRV=guest.registry.local GRAPH_SRV=ws.registry.local ./gen_ngx_conf > kvm.conf
 reload_dbtable          : load/reload kvmhost/kvmdevice/kvmgold dbtable via json
 golds.json              : gold disks
 hosts.json              : kvm hosts with domains template
