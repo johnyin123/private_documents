@@ -3,17 +3,19 @@
 
 import config
 
-ngx_cfg='''upstream flask_app {
+ngx_cfg='''map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+upstream flask_app {
+    sticky;
     server 127.0.0.1:5009 fail_timeout=0;
     keepalive 64;
 }
 upstream websockify {
+    sticky;
     server 127.0.0.1:6800;
     keepalive 64;
-}
-map $http_upgrade $connection_upgrade {
-    default upgrade;
-    ''      close;
 }
 server {
     listen 443 ssl;
@@ -68,17 +70,6 @@ server {
         }
         return 404;
     }
-    location /websockify {
-        # # /websockify used by admin & guest ui
-        set $websockkey "${WEBSOCKKEY}";
-        secure_link $arg_k,$arg_e;
-        secure_link_md5 "$websockkey$secure_link_expires$arg_token$uri";
-        if ($secure_link = "") { return 403; }
-        if ($secure_link = "0") { return 410; }
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection $connection_upgrade;
-        proxy_pass http://websockify;
-    }
     # # tanent api
     location /user/ {
         location ~* ^/user/vm/(list|start|reset|stop|console|display)/(?<kvmhost>.*)/(?<uuid>.*) {
@@ -124,14 +115,23 @@ server {
         }
         return 403;
     }
+    # # websockify for vnc/spice/console # #
+    location /websockify {
+        # # /websockify used by admin & guest ui
+        set $websockkey "${WEBSOCKKEY}";
+        secure_link $arg_k,$arg_e;
+        secure_link_md5 "$websockkey$secure_link_expires$arg_token$uri";
+        if ($secure_link = "") { return 403; }
+        if ($secure_link = "0") { return 410; }
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_pass http://websockify;
+    }
     # # tanent user UI manager # #
     location = /guest.html { return 301 /ui/userui.html$is_args$args; }
     # # admin ui # #
     location = /admin.html { return 301 /ui/tpl.html; }
-    location = /ui/tpl.html {
-        ${AUTH}auth_request @sso-auth;
-        alias /home/johnyin/vmmgr/ui/tpl.html;
-    }
+    location = /ui/tpl.html { ${AUTH}auth_request @sso-auth; alias /home/johnyin/vmmgr/ui/tpl.html; }
     # # static resource # #
     # # ui/term/spice/novnc use flask_app serve, add rewrite
     # rewrite ^ /public$uri break;proxy_pass http://flask_app;
