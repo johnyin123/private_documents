@@ -6,6 +6,8 @@ OUTDIR           = os.environ.get('OUTDIR', os.path.abspath(os.path.dirname(__fi
 DATABASE         = os.environ.get('DATABASE', f'sqlite:///{OUTDIR}/kvm.db?check_same_thread=False')
 # # clout-init: nocloud http://META_SRV, iso https://META_SRV as meta server.
 META_SRV         = os.environ.get('META_SRV', 'vmm.registry.local')
+# # http srv for user control panel srv, default https://{META_SRV}
+CTRL_PANEL_SRV   = os.environ.get('CTRL_PANEL_SRV', META_SRV)
 MYKEY_WEBSOCKIFY = os.environ.get('MYKEY_WEBSOCKIFY', 'P@ssw@rd4Display')  # vnc/spice websockify access mykey
 MYKEY_CTRL_PANEL = os.environ.get('MYKEY_CTRL_PANEL', 'P@ssw@rd4Display')  # user control panel access mykey
 ##################################################################
@@ -15,7 +17,7 @@ CDROM_TPL        = f'cdrom.meta.tpl'               # change media use this as te
 URI_VNC          = f'/novnc/vnc_lite.html'
 URI_SPICE        = f'/spice/spice_auto.html'
 URI_CONSOLE      = f'/term/xterm.html'
-URI_CTRL_PANEL   = f'/guest.html'
+URI_CTRL_PANEL   = f'https://{CTRL_PANEL_SRV}/guest.html'
 DIR_CIDATA       = os.path.join(OUTDIR, 'cidata')  # RW # iso-meta/nocloud-meta data dir
 DIR_ACTION       = os.path.join(OUTDIR, 'actions') # RO # device action script dir
 DIR_DEVICE       = os.path.join(OUTDIR, 'devices') # RO # device template dir
