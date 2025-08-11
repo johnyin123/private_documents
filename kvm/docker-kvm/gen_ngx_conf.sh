@@ -62,7 +62,7 @@ EOF
 }
 
 admin_api() {
-    local AUTH=${1:-"#"}
+    local AUTH=${1:-}
     cat <<EOF
     ${AUTH}include /etc/nginx/http-enabled/jwt_sso_auth.inc;
     location /tpl/ {
@@ -154,7 +154,7 @@ EOF
 
 admin_ui() {
     local OUT_DIR=${1}
-    local AUTH=${2:-"#"}
+    local AUTH=${2:-}
     cat <<EOF
     # # admin ui # #
     location = /admin.html { return 301 /ui/tpl.html; }
