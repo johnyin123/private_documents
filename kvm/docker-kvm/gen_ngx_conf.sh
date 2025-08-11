@@ -2,12 +2,12 @@
 upstream() {
     cat <<'EOF'
 upstream flask_app {
-    hash $arg_k; # ip_hash; # sticky;
+    hash $arg_k consistent; # ip_hash; # sticky;
     server 127.0.0.1:5009 fail_timeout=0;
     keepalive 64;
 }
 upstream websockify {
-    hash $arg_k;
+    hash $arg_k consistent;
     server 127.0.0.1:6800;
     keepalive 64;
 }
