@@ -64,8 +64,6 @@ admin_api() {
     local AUTH=${1:-"#"}
     cat <<EOF
     ${AUTH}include /etc/nginx/http-enabled/jwt_sso_auth.inc;
-    # # default page is guest ui
-    location / { return 301 https://\$server_name/guest.html; }
     location /tpl/ {
         # # proxy cache default is on, so modify host|device|gold, should clear ngx cache
         ${AUTH}auth_request @sso-auth;
@@ -178,6 +176,8 @@ tanent_ui() {
     local OUT_DIR=${1}
     local combine=${2:-}
     cat <<'EOF'
+    # # default page is guest ui
+    location / { return 301 https://\$server_name/guest.html; }
     # # tanent user UI manager # #
     location = /guest.html { return 301 /ui/userui.html$is_args$args; }
 EOF
