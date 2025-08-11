@@ -2,6 +2,7 @@
 upstream() {
     cat <<'EOF'
 upstream flask_app {
+    # tanent api lb use hash $arg_k$arg_e, when multi node cluster
     hash $arg_k$arg_e consistent; # ip_hash; # sticky;
     server 127.0.0.1:5009 fail_timeout=0;
     keepalive 64;
