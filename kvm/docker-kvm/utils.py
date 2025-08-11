@@ -134,9 +134,7 @@ def deal_except(who:str, e:Exception) -> str:
         logger.exception(f'{who}')
         return return_err(998, f'{who}', f'{type(e).__name__}:{str(e)}')
 
-def websockify_secure_link(uuid, mykey, minutes):
-    # secure_link_md5 "$mykey$secure_link_expires$arg_token$uri";
+def secure_link(kvmhost, uuid, mykey, minutes):
     epoch = round(time.time() + minutes*60)
-    secure_link = f"{mykey}{epoch}{uuid}/websockify/".encode('utf-8')
-    str_hash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
-    return f"websockify/%3Ftoken={uuid}%26k={str_hash}%26e={epoch}", datetime.datetime.fromtimestamp(epoch).isoformat()
+    secure_link = f"{mykey}{epoch}{kvmhost}{uuid}".encode('utf-8')
+    return epoch, base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')

@@ -404,7 +404,7 @@ function ttyconsole(host, uuid) {
   getjson('GET', `/vm/console/${host}/${uuid}`, function(resp) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
-      window.open(result.display, "_blank");
+      window.open(`${result.display}/${host}/${uuid}?token=${result.token}`, "_blank");
     } else {
       disperr(result.code, result.name, result.desc);
     }
@@ -416,7 +416,7 @@ function display(host, uuid) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
       //document.getElementById("display").src = result.display;
-      window.open(result.display, "_blank");
+      window.open(`${result.display}/${host}/${uuid}?token=${result.token}`, "_blank");
     } else {
       disperr(result.code, result.name, result.desc);
     }

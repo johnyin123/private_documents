@@ -161,16 +161,19 @@ function display() {
   getjson('GET', `/user/vm/display/${token.value}`, function(res) {
     if(res.result === 'OK') {
       //document.getElementById("display").src = res.display;
-      window.open(res.display, "_blank");
+      var parm=encodeURIComponent(`${token.value}&token=${res.token}`);
+      window.open(`${res.display}/${parm}`, "_blank");
     } else {
       alert(res);
     }
   });
 }
 function vmconsole() {
-  getjson('GET', `/user/vm/console/${token.value}`, function(res) {
+  getjson('GET', `/user/vm/console/${token.value}&prefix=/user`, function(res) {
     if(res.result === 'OK') {
-      window.open(res.display, "_blank");
+      var parm=encodeURIComponent(`${token.value}&token=${res.token}`);
+      console.log(parm);
+      window.open(`${res.display}/${parm}`, "_blank");
     } else {
       alert(res);
     }

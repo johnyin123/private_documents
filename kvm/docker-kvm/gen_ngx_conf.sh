@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 upstream() {
     cat <<'EOF'
+# # tanent can multi points
 upstream flask_app {
-    # tanent api lb use hash $arg_k$arg_e, when multi node cluster
     hash $arg_k$arg_e consistent; # ip_hash; # sticky;
     server 127.0.0.1:5009 fail_timeout=0;
     keepalive 64;
@@ -16,24 +16,6 @@ map $http_upgrade $connection_upgrade {
     default upgrade;
     ''      close;
 }
-EOF
-    return 0
-}
-
-websockify() {
-    local WEBSOCKKEY=${1}
-    cat <<EOF
-    location /websockify {
-        # # /websockify used by admin & guest ui
-        set \$websockkey "${WEBSOCKKEY}";
-        secure_link \$arg_k,\$arg_e;
-        secure_link_md5 "\$websockkey\$secure_link_expires\$arg_token\$uri";
-        if (\$secure_link = "") { return 403; }
-        if (\$secure_link = "0") { return 410; }
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection \$connection_upgrade;
-        proxy_pass http://websockify;
-    }
 EOF
     return 0
 }
@@ -94,6 +76,11 @@ admin_api() {
             proxy_request_buffering            off;
             proxy_pass http://flask_app;
         }
+        location ~* ^/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*) {
+            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Connection \$connection_upgrade;
+            proxy_pass http://websockify;
+        }
         return 404;
     }
 EOF
@@ -105,6 +92,19 @@ tanent_api() {
     cat <<EOF
     # # tanent api
     location /user/ {
+        location ~* ^/user/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*) {
+            proxy_cache off;
+            expires off;
+            set \$userkey "${USERKEY}";
+            secure_link \$arg_k,\$arg_e;
+            secure_link_md5 "\$userkey\$secure_link_expires\$kvmhost\$uuid";
+            if (\$secure_link = "") { return 403; }
+            if (\$secure_link = "0") { return 410; }
+            rewrite ^/user(.*)$ \$1 break;
+            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Connection \$connection_upgrade;
+            proxy_pass http://websockify;
+        }
         location ~* ^/user/vm/(list|start|reset|stop|console|display)/(?<kvmhost>.*)/(?<uuid>.*) {
             # # no cache!! guest user api, guest private access
             proxy_cache off;
@@ -178,7 +178,7 @@ tanent_ui() {
     local combine=${2:-}
     cat <<'EOF'
     # # default page is guest ui
-    location / { return 301 https://\$server_name/guest.html; }
+    location / { return 301 https://$server_name/guest.html; }
     # # tanent user UI manager # #
     location = /guest.html { return 301 /ui/userui.html$is_args$args; }
 EOF
@@ -220,7 +220,6 @@ admin_srv_name="$(python3 -c 'import config; print(config.META_SRV)' || true)"
 tanent_srv_name="$(python3 -c 'import config; print(config.CTRL_PANEL_SRV)' || true)"
 
 userkey="$(python3 -c 'import config; print(config.MYKEY_CTRL_PANEL)' || true)"
-websockkey="$(python3 -c 'import config; print(config.MYKEY_WEBSOCKIFY)' || true)"
 outdir="$(python3 -c 'import config; print(config.OUTDIR)' || true)"
 combine=false
 [ "${tanent_srv_name:-x}" == "${admin_srv_name:-y}" ] && combine=true
@@ -231,7 +230,6 @@ upstream
 https_cfg_header "${admin_srv_name}"
 
 admin_api "${auth}"
-websockify "${websockkey}"
 admin_ui "${outdir}" "${auth}"
 
 "${combine}" && {
@@ -242,7 +240,6 @@ admin_ui "${outdir}" "${auth}"
     meta_data_srv "${admin_srv_name}" "${outdir}"
     https_cfg_header "${tanent_srv_name}"
     tanent_api "${userkey}"
-    websockify "${websockkey}"
     tanent_ui "${outdir}" "${combine}"
     echo "}"
 }

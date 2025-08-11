@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import flask, logging, libvirt, xml.dom.minidom, json, os, template, config, meta, database
-import base64, hashlib, time, datetime
+import base64, hashlib, datetime
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-from utils import return_ok, deal_except, getlist_without_key, remove_file, connect, ProcList, save, login_name, websockify_secure_link, FakeDB
+from utils import return_ok, deal_except, getlist_without_key, remove_file, connect, ProcList, save, login_name, secure_link, FakeDB
 logger = logging.getLogger(__name__)
 KiB = 1024
 MiB = 1024 * KiB
@@ -154,7 +154,7 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def display(host:FakeDB, uuid:str, timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
+    def display(host:FakeDB, uuid:str, prefix:str="", timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
         tmout = int(timeout_mins)
         XMLDesc_Secure=None
         with connect(host.url) as conn:
@@ -178,9 +178,8 @@ class VMManager:
             else:
                 raise Exception('graphic listen "{listen}" unknown')
             save(os.path.join(config.DIR_TOKEN, uuid), f'{uuid}: {server}')
-            path, dt = websockify_secure_link(uuid, config.MYKEY_WEBSOCKIFY, tmout)
             url_map = {'vnc': config.URI_VNC,'spice':config.URI_SPICE}
-            return return_ok(proto, uuid=uuid, display=f'{url_map[proto]}?password={item.getAttribute("passwd")}&path={path}', expire=dt)
+            return return_ok(proto, uuid=uuid, display=f'{url_map[proto]}?password={item.getAttribute("passwd")}&path={prefix}/vm/websockify', token=f'{uuid}', expire=tmout)
         raise Exception('no graphic found')
 
     @staticmethod
@@ -289,7 +288,7 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def console(host:FakeDB, uuid:str, timeout_mins:str=config.TMOUT_MINS_SOCAT)-> str:
+    def console(host:FakeDB, uuid:str, prefix:str="", timeout_mins:str=config.TMOUT_MINS_SOCAT)-> str:
         tmout = int(timeout_mins)
         with connect(host.url) as conn:
             if not conn.lookupByUUIDString(uuid).isActive():
@@ -299,8 +298,7 @@ class VMManager:
         local = f'/tmp/.display.{uuid}'
         server = f'unix_socket:{local}'
         save(os.path.join(config.DIR_TOKEN, uuid), f'{uuid}: {server}')
-        path, dt = websockify_secure_link(uuid, config.MYKEY_WEBSOCKIFY, tmout)
-        return return_ok('console', uuid=uuid, display=f'{config.URI_CONSOLE}?password=&path={path}', expire=dt)
+        return return_ok('console', uuid=uuid, display=f'{config.URI_CONSOLE}?password=&path={prefix}/vm/websockify', token=f'{uuid}', expire=tmout)
 
     @staticmethod
     def stop(host:FakeDB, uuid:str, force:str=None)-> str:
@@ -326,16 +324,11 @@ class VMManager:
 
     @staticmethod
     def ui(host:FakeDB, uuid:str, epoch:str)-> str:
-        def user_access_secure_link(kvmhost, uuid, mykey, epoch):
-            # secure_link_md5 "$mykey$secure_link_expires$kvmhost$uuid";
-            secure_link = f"{mykey}{epoch}{kvmhost}{uuid}".encode('utf-8')
-            str_hash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
-            tail_uri=f'{kvmhost}/{uuid}?k={str_hash}&e={epoch}'
-            token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
-            return f'{token}', datetime.datetime.fromtimestamp(int(epoch)).isoformat()
-
-        token, dt = user_access_secure_link(host.name, uuid, config.MYKEY_CTRL_PANEL, epoch)
-        return return_ok('vmuserinterface', uuid=uuid, url=f'{config.URI_CTRL_PANEL}', token=f'{token}', expire=dt)
+        tmout = (int(epoch) - datetime.datetime.now().timestamp()) // 60
+        epoch, shash = secure_link(host.name, uuid, config.MYKEY_CTRL_PANEL, tmout)
+        tail_uri=f'{host.name}/{uuid}?k={shash}&e={epoch}'
+        token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
+        return return_ok('vmuserinterface', uuid=uuid, url=f'{config.URI_CTRL_PANEL}', token=f'{token}', expire=f'{datetime.datetime.fromtimestamp(epoch)}')
 
     @staticmethod
     def blksize(host:FakeDB, uuid:str, dev:str)-> str:
