@@ -234,12 +234,10 @@ websockify "${websockkey}"
 admin_ui "${outdir}" "${auth}"
 
 "${combine}" && {
-    echo "# ++++++++++${combine}"
     tanent_api "${userkey}"
     tanent_ui "${outdir}" "${combine}"
     meta_data_srv "${admin_srv_name}" "${outdir}"
 } || {
-    echo "# ----------${combine}"
     meta_data_srv "${admin_srv_name}" "${outdir}"
     https_cfg_header "${tanent_srv_name}"
     tanent_api "${userkey}"
