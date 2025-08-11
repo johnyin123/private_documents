@@ -158,7 +158,7 @@ function stop_force() {
   stop(true);
 }
 function display() {
-  getjson('GET', `/user/vm/display/${token.value}`, function(res) {
+  getjson('GET', `/user/vm/display/${token.value}&prefix=/user`, function(res) {
     if(res.result === 'OK') {
       //document.getElementById("display").src = res.display;
       var parm=encodeURIComponent(`${token.value}&token=${res.token}`);
