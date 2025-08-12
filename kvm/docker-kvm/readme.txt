@@ -15,7 +15,7 @@ addnet:
     net_model   : rtl8139, default virtio
 
 # # regen meta_iso
-uuid=${OUTDIR}/cidata/uuid
+# uuid=../cidata/uuid
 cd ${uuid} && mkisofs -o ${uuid}.iso -V cidata -J -r user-data meta-data
 
 list_tpl_varset         : list domain(include meta), device tpl vars

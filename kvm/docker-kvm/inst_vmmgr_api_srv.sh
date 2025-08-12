@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("e0b58a24[2025-08-08T10:37:00+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("1bee48ce[2025-08-08T13:33:06+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -88,7 +88,7 @@ EO_DOC
     cat <<EODOC | install -v -C -m 0755 --group=${gid} --owner=${uid} /dev/stdin ${home_dir}/app/startup.sh
 #!/usr/bin/env bash
 readonly DIRNAME="\$(readlink -f "\$(dirname "\$0")")"
-OUTDIR=${outdir}
+outdir=${outdir}
 # VENV=/../my_venv/bin/ # last word / !!
 
 for svc in websockify-graph.service jwt-srv.service simple-kvm-srv.service; do
@@ -98,7 +98,7 @@ done
 
 systemd-run --user --unit websockify-graph \\
 --working-directory=\${DIRNAME} \\
-\${VENV:-}websockify --token-plugin TokenFile --token-source \${OUTDIR}/token/ 127.0.0.1:6800
+\${VENV:-}websockify --token-plugin TokenFile --token-source \${outdir}/token/ 127.0.0.1:6800
 
 systemd-run --user --unit jwt-srv \\
 --working-directory=\${DIRNAME} \\
@@ -107,7 +107,7 @@ systemd-run --user --unit jwt-srv \\
 # -E META_SRV=vmm.registry.local \\
 systemd-run --user --unit simple-kvm-srv \\
 --working-directory=\${DIRNAME} \\
--E OUTDIR=\${OUTDIR} \\
+-E DATA_DIR=\${outdir} \\
 \${VENV:-}gunicorn --env LOG=INFO -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
 EODOC
 }
@@ -115,7 +115,7 @@ inst_app_outdir() {
     local outdir="${1}"
     local uid="${2}"
     local gid="${3}"
-    log "install vmmgr OUTDIR=${outdir}"
+    log "install vmmgr DATA_DIR=${outdir}"
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/cidata
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/token
@@ -191,7 +191,7 @@ post_check() {
         [ -e "${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
     done
     for fn in $(cat iso.json | jq -r .[].uri | sort | uniq | sed "/^$/d"); do
-        srv=$(OUTDIR=${outdir} python3 -c 'import config; print(config.META_SRV)' || true)
+        srv=$(python3 -c 'import config; print(config.META_SRV)' || true)
         COLOR=3 log "NEED check ISO Image: http://${srv}${fn}"
     done
     return 0

@@ -35,27 +35,27 @@ class JSONCacheBase:
         raise Exception(f"{cls.__name__} entry not found or not unique: {criteria}")
 
 class KVMHost(JSONCacheBase):
-    filename = os.path.join(config.OUTDIR, 'hosts.json')
+    filename = os.path.join(config.DATA_DIR, 'hosts.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
 
 class KVMDevice(JSONCacheBase):
-    filename = os.path.join(config.OUTDIR, 'devices.json')
+    filename = os.path.join(config.DATA_DIR, 'devices.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
 
 class KVMGold(JSONCacheBase):
-    filename = os.path.join(config.OUTDIR, 'golds.json')
+    filename = os.path.join(config.DATA_DIR, 'golds.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
 
 class KVMIso(JSONCacheBase):
-    filename = os.path.join(config.OUTDIR, 'iso.json')
+    filename = os.path.join(config.DATA_DIR, 'iso.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
 
 class KVMGuest(JSONCacheBase):
-    filename = os.path.join(config.OUTDIR, 'guests.json')
+    filename = os.path.join(config.DATA_DIR, 'guests.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
 
@@ -72,7 +72,7 @@ class KVMGuest(JSONCacheBase):
             logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
 
 class IPPool(JSONCacheBase):
-    filename = os.path.join(config.OUTDIR, 'ippool.json')
+    filename = os.path.join(config.DATA_DIR, 'ippool.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
 

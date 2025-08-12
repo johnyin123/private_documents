@@ -8,15 +8,15 @@ from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
 
 class MyApp(object):
-    VARS_DESC = json.loads(load(os.path.join(config.OUTDIR, 'vars.json')))
+    VARS_DESC = json.loads(load(os.path.join(config.DATA_DIR, 'vars.json')))
 
     @staticmethod
     def create():
         logger.info(f'home_dir = {os.path.expanduser("~")}')
         logger.info(f'META_SRV={config.META_SRV}')
-        logger.info(f'OUTDIR={config.OUTDIR}')
+        logger.info(f'DATA_DIR={config.DATA_DIR}')
         logger.info(f'DATABASE={config.DATABASE}')
-        conf={'STATIC_FOLDER': config.OUTDIR, 'STATIC_URL_PATH':'/public'}
+        conf={'STATIC_FOLDER': config.DATA_DIR, 'STATIC_URL_PATH':'/public'}
         web=flask_app.create_app(conf, json=True)
         web.config['JSON_SORT_KEYS'] = False
         MyApp().register_routes(web)
