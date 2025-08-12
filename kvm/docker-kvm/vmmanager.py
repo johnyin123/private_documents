@@ -128,7 +128,7 @@ def change_media(dev:str, isofile:str, bus:str)->str:
 
 class VMManager:
     @staticmethod
-    def detach_device(host:FakeDB, uuid:str, dev:str)-> str:
+    def detach_device(host:FakeDB, uuid:str, dev:str)->str:
         # dev = sda/vda/mac address
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
@@ -154,7 +154,8 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def display(host:FakeDB, uuid:str, prefix:str="", timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
+    def display(host:FakeDB, uuid:str, prefix:str=None, timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
+        prefix = '/user' if prefix else ''
         tmout = int(timeout_mins)
         XMLDesc_Secure=None
         with connect(host.url) as conn:
@@ -183,7 +184,7 @@ class VMManager:
         raise Exception('no graphic found')
 
     @staticmethod
-    def delete(host:FakeDB, uuid:str)-> str:
+    def delete(host:FakeDB, uuid:str)->str:
         meta.del_metafiles(uuid)
         remove_file(os.path.join(config.DIR_REQ_JSON, uuid))
         with connect(host.url) as conn:
@@ -211,12 +212,12 @@ class VMManager:
             return return_ok(f'delete ok', uuid=uuid, failed=diskinfo)
 
     @staticmethod
-    def xml(host, uuid:str)-> str:
+    def xml(host, uuid:str)->str:
         with connect(host.url) as conn:
             return return_ok(f'xml ok', xml=conn.lookupByUUIDString(uuid).XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE))
 
     @staticmethod
-    def list(host:FakeDB, uuid:str=None)-> str:
+    def list(host:FakeDB, uuid:str=None)->str:
         with connect(host.url) as conn:
             (model, memory, cpus, mhz, nodes, sockets, cores, threads) = conn.getInfo()
             if uuid:
@@ -229,7 +230,7 @@ class VMManager:
             return return_ok(f'list ok', host=info, guest=guest)
 
     @staticmethod
-    def attach_device(host:FakeDB, uuid:str, dev:str, req_json)-> Generator:
+    def attach_device(host:FakeDB, uuid:str, dev:str, req_json)->Generator:
         try:
             req_json['vm_uuid'] = uuid
             device = database.KVMDevice.get_one(name=dev, kvmhost=host.name)
@@ -288,7 +289,8 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def console(host:FakeDB, uuid:str, prefix:str="", timeout_mins:str=config.TMOUT_MINS_SOCAT)-> str:
+    def console(host:FakeDB, uuid:str, prefix:str=None, timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
+        prefix = '/user' if prefix else ''
         tmout = int(timeout_mins)
         with connect(host.url) as conn:
             if not conn.lookupByUUIDString(uuid).isActive():
@@ -301,7 +303,7 @@ class VMManager:
         return return_ok('console', uuid=uuid, display=f'{config.URI_CONSOLE}?password=&path={prefix}/vm/websockify', token=f'{uuid}', expire=tmout)
 
     @staticmethod
-    def stop(host:FakeDB, uuid:str, force:str=None)-> str:
+    def stop(host:FakeDB, uuid:str, force:str=None)->str:
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             if force:
@@ -311,19 +313,19 @@ class VMManager:
         return return_ok(f'stop ok', uuid=uuid)
 
     @staticmethod
-    def reset(host:FakeDB, uuid:str)-> str:
+    def reset(host:FakeDB, uuid:str)->str:
         with connect(host.url) as conn:
             conn.lookupByUUIDString(uuid).reset()
         return return_ok(f'reset ok', uuid=uuid)
 
     @staticmethod
-    def start(host:FakeDB, uuid:str)-> str:
+    def start(host:FakeDB, uuid:str)->str:
         with connect(host.url) as conn:
             conn.lookupByUUIDString(uuid).create()
         return return_ok(f'start ok', uuid=uuid)
 
     @staticmethod
-    def ui(host:FakeDB, uuid:str, epoch:str)-> str:
+    def ui(host:FakeDB, uuid:str, epoch:str)->str:
         tmout = (int(epoch) - datetime.datetime.now().timestamp()) // 60
         epoch, shash = secure_link(host.name, uuid, config.CTRL_PANEL_KEY, tmout)
         tail_uri=f'{host.name}/{uuid}?k={shash}&e={epoch}'
@@ -331,34 +333,34 @@ class VMManager:
         return return_ok('vmuserinterface', uuid=uuid, url=f'{config.URI_CTRL_PANEL}', token=f'{token}', expire=f'{datetime.datetime.fromtimestamp(epoch)}')
 
     @staticmethod
-    def blksize(host:FakeDB, uuid:str, dev:str)-> str:
+    def blksize(host:FakeDB, uuid:str, dev:str)->str:
          with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             return return_ok(f'blksize', uuid=uuid, dev=dev, size=f'{dom.blockInfo(dev)[0]//MiB}MiB')
 
     @staticmethod
-    def desc(host:FakeDB, uuid:str, vm_desc:str)-> str:
+    def desc(host:FakeDB, uuid:str, vm_desc:str)->str:
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             dom.setMetadata(libvirt.VIR_DOMAIN_METADATA_DESCRIPTION, vm_desc, None, None, dom_flags(LibvirtDomain(dom).state))
             return return_ok(f'modify desc', uuid=uuid)
 
     @staticmethod
-    def setmem(host:FakeDB, uuid:str, vm_ram_mb:str)-> str:
+    def setmem(host:FakeDB, uuid:str, vm_ram_mb:str)->str:
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             dom.setMemoryFlags(int(vm_ram_mb)*KiB, dom_flags(LibvirtDomain(dom).state))
             return return_ok(f'setMemory', uuid=uuid)
 
     @staticmethod
-    def setcpu(host:FakeDB, uuid:str, vm_vcpus:str)-> str:
+    def setcpu(host:FakeDB, uuid:str, vm_vcpus:str)->str:
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             dom.setVcpusFlags(int(vm_vcpus), dom_flags(LibvirtDomain(dom).state))
             return return_ok(f'setVcpus', uuid=uuid)
 
     @staticmethod
-    def netstat(host:FakeDB, uuid:str, dev:str)-> str:
+    def netstat(host:FakeDB, uuid:str, dev:str)->str:
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
@@ -369,7 +371,7 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def ipaddr(host:FakeDB, uuid:str)-> Generator:
+    def ipaddr(host:FakeDB, uuid:str)->Generator:
     # Generator func call by flask.Response(...)
     # need catch exception and yield it
         def convert_data(data):
