@@ -225,7 +225,7 @@ EOF
 admin_srv_name="$(python3 -c 'import config; print(config.META_SRV)' || true)"
 tanent_srv_name="$(python3 -c 'import config; print(config.CTRL_PANEL_SRV)' || true)"
 
-userkey="$(python3 -c 'import config; print(config.MYKEY_CTRL_PANEL)' || true)"
+userkey="$(python3 -c 'import config; print(config.CTRL_PANEL_KEY)' || true)"
 outdir="$(python3 -c 'import config; print(config.OUTDIR)' || true)"
 combine=false
 [ "${tanent_srv_name:-x}" == "${admin_srv_name:-y}" ] && combine=true

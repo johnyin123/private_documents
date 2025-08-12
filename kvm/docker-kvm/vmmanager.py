@@ -325,7 +325,7 @@ class VMManager:
     @staticmethod
     def ui(host:FakeDB, uuid:str, epoch:str)-> str:
         tmout = (int(epoch) - datetime.datetime.now().timestamp()) // 60
-        epoch, shash = secure_link(host.name, uuid, config.MYKEY_CTRL_PANEL, tmout)
+        epoch, shash = secure_link(host.name, uuid, config.CTRL_PANEL_KEY, tmout)
         tail_uri=f'{host.name}/{uuid}?k={shash}&e={epoch}'
         token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
         return return_ok('vmuserinterface', uuid=uuid, url=f'{config.URI_CTRL_PANEL}', token=f'{token}', expire=f'{datetime.datetime.fromtimestamp(epoch)}')
