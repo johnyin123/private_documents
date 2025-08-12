@@ -1,21 +1,12 @@
 #!/usr/bin/env bash
 upstream() {
     cat <<'EOF'
-# # tanent can multi points
-upstream admin_api {
+# # tanent can multi points, upstream loadbalance: hash $arg_k$arg_e consistent; # ip_hash; # sticky;
+upstream api_srv {
     server 127.0.0.1:5009 fail_timeout=0;
     keepalive 64;
 }
-upstream admin_websockify {
-    server 127.0.0.1:6800;
-}
-upstream tanent_api {
-    hash $arg_k$arg_e consistent; # ip_hash; # sticky;
-    server 127.0.0.1:5009 fail_timeout=0;
-    keepalive 64;
-}
-upstream tanent_websockify {
-    hash $arg_k$arg_e consistent;
+upstream websockify_srv {
     server 127.0.0.1:6800;
 }
 map $http_upgrade $connection_upgrade {
@@ -59,7 +50,7 @@ admin_api() {
         # host/device/gold can cached by proxy_cache default
         location ~* ^/tpl/(host|device|gold|iso)/ {
             if (\$request_method !~ ^(GET)$) { return 405; }
-            proxy_pass http://admin_api;
+            proxy_pass http://api_srv;
         }
         return 404;
     }
@@ -73,19 +64,19 @@ admin_api() {
             # # for server stream output
             proxy_buffering                    off;
             proxy_request_buffering            off;
-            proxy_pass http://admin_api;
+            proxy_pass http://api_srv;
         }
         location ~* ^/vm/(create|attach_device|detach_device|cdrom)/ {
             if (\$request_method !~ ^(POST)$) { return 405; }
             # # for server stream output
             proxy_buffering                    off;
             proxy_request_buffering            off;
-            proxy_pass http://admin_api;
+            proxy_pass http://api_srv;
         }
         location ~* ^/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*) {
             proxy_set_header Upgrade \$http_upgrade;
             proxy_set_header Connection \$connection_upgrade;
-            proxy_pass http://admin_websockify;
+            proxy_pass http://websockify_srv;
         }
         return 404;
     }
@@ -109,7 +100,7 @@ tanent_api() {
             rewrite ^/user(.*)$ \$1 break;
             proxy_set_header Upgrade \$http_upgrade;
             proxy_set_header Connection \$connection_upgrade;
-            proxy_pass http://tanent_websockify;
+            proxy_pass http://websockify_srv;
         }
         location ~* ^/user/vm/(list|start|reset|stop|console|display)/(?<kvmhost>.*)/(?<uuid>.*) {
             # # no cache!! guest user api, guest private access
@@ -122,7 +113,7 @@ tanent_api() {
             if (\$secure_link = "0") { return 410; }
             if (\$request_method !~ ^(GET)$ ) { return 405; }
             rewrite ^/user(.*)$ \$1 break;
-            proxy_pass http://tanent_api;
+            proxy_pass http://api_srv;
         }
         location ~* ^/user/vm/(cdrom)/(?<kvmhost>.*)/(?<uuid>.*) {
             # # no cache!! guest user api, guest private access
@@ -135,7 +126,7 @@ tanent_api() {
             if (\$secure_link = "0") { return 410; }
             if (\$request_method !~ ^(POST)$) { return 405; }
             rewrite ^/user(.*)$ \$1 break;
-            proxy_pass http://tanent_api;
+            proxy_pass http://api_srv;
         }
         location ~* ^/user/vm/(getiso)/(?<kvmhost>.*)/(?<uuid>.*) {
             # # /tpl/iso need cache
@@ -147,10 +138,10 @@ tanent_api() {
             if (\$request_method !~ ^(GET)$) { return 405; }
             set \$urieat '';
             # # just for eating uri -> /tpl/iso/,no args, can cache
-            proxy_pass http://tanent_api/tpl/iso/\$urieat;
+            proxy_pass http://api_srv/tpl/iso/\$urieat;
             # rewrite ^.*$ /tpl/iso/ break;
             # # /tpl/iso/?k=XtaHHDjE_nULHFdM2Dsupw&e=1745423940. with args, can not cache
-            # proxy_pass http://tanent_api;
+            # proxy_pass http://api_srv;
         }
         return 403;
     }
@@ -169,8 +160,8 @@ admin_ui() {
         alias ${OUT_DIR}/ui/tpl.html;
     }
     # # static resource # #
-    # # ui/term/spice/novnc use admin_api serve, add rewrite
-    # rewrite ^ /public\$uri break;proxy_pass http://admin_api;
+    # # ui/term/spice/novnc use api_srv serve, add rewrite
+    # rewrite ^ /public\$uri break;proxy_pass http://api_srv;
     location /ui { alias ${OUT_DIR}/ui/; }
     location /term { alias ${OUT_DIR}/term/; }
     location /spice { alias ${OUT_DIR}/spice/; }
@@ -190,8 +181,8 @@ tanent_ui() {
 EOF
     "${combine}" || cat <<EOF
     # # static resource # #
-    # # ui/term/spice/novnc use tanent_api serve, add rewrite
-    # rewrite ^ /public\$uri break;proxy_pass http://tanent_api;
+    # # ui/term/spice/novnc use api_srv serve, add rewrite
+    # rewrite ^ /public\$uri break;proxy_pass http://api_srv;
     location /ui { alias ${OUT_DIR}/ui/; }
     location /term { alias ${OUT_DIR}/term/; }
     location /spice { alias ${OUT_DIR}/spice/; }
