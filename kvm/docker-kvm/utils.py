@@ -138,3 +138,5 @@ def secure_link(kvmhost, uuid, mykey, minutes):
     epoch = round(time.time() + minutes*60)
     secure_link = f"{mykey}{epoch}{kvmhost}{uuid}".encode('utf-8')
     return epoch, base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
+    # epoch=round(datetime.datetime.now().timestamp() + minutes*60)
+    # dt = datetime.datetime.fromtimestamp(epoch)
