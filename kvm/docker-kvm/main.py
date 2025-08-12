@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import flask_app, flask, os, libvirt, json, logging
+import flask_app, flask, os, json, logging
 import database, vmmanager, config, template
 from utils import return_ok, return_err, deal_except, getlist_without_key, load
-from typing import Iterable, Optional, Set, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
 
 class MyApp(object):
