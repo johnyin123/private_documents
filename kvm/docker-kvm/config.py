@@ -6,7 +6,7 @@ DATA_DIR         = os.environ.get('DATA_DIR', os.path.abspath(os.path.dirname(__
 DATABASE         = os.environ.get('DATABASE', f'sqlite:///{DATA_DIR}/kvm.db?check_same_thread=False')
 # # clout-init: nocloud http://META_SRV, iso https://META_SRV as meta server.
 META_SRV         = os.environ.get('META_SRV', 'vmm.registry.local')
-# # https srv for user control panel, default https://{META_SRV}
+# # https srv for user control panel, default https://META_SRV
 CTRL_PANEL_SRV   = os.environ.get('CTRL_PANEL_SRV', META_SRV)
 # # user control panel access mykey
 CTRL_PANEL_KEY   = os.environ.get('CTRL_PANEL_KEY', 'P@ssw@rd4Display')
