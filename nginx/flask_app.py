@@ -50,6 +50,16 @@ def json_handle_error(e):
     response.data = flask.json.dumps({ 'code': e.code, 'name': e.name, 'description': e.description, })
     response.content_type = 'application/json'
     return corsify_actual_response(response)
+
+import importlib
+def setLogLevel(**kwargs):
+    for module_name, level in kwargs.items():
+        try:
+            target = getattr(importlib.import_module(module_name), 'logger')
+        except Exception as e:
+            print(f'{e}')
+        else:
+            target.setLevel(level)
 '''
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -91,12 +101,12 @@ class MyApp(object):
         return '<html>MSG</html>'
 
 app=MyApp.create()
-# amod.logger.setLevel(level='DEBUG')
-# bmod.logger.setLevel(level='INFO')
 # # gunicorn -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app'
 # # mkdir static && touch static/msg && curl http://127.0.0.1:5009/public/msg
 # def main():
 #     host = os.environ.get('HTTP_HOST', '0.0.0.0')
+#     LEVELS = {'main':'INFO',}
+#     flask_app.setLogLevel(**LEVELS)
 #     port = int(os.environ.get('HTTP_PORT', '18888'))
 #     app.run(host=host, port=port)
 #
