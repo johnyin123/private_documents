@@ -11,12 +11,12 @@ class MyApp(object):
 
     @staticmethod
     def create():
+        flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
         logger.info(f'home_dir = {os.path.expanduser("~")}')
         logger.info(f'META_SRV={config.META_SRV}')
         logger.info(f'DATA_DIR={config.DATA_DIR}')
         logger.info(f'DATABASE={config.DATABASE}')
         conf={'STATIC_FOLDER': config.DATA_DIR, 'STATIC_URL_PATH':'/public'}
-        flask_app.setLogLevel(**config.LEVELS)
         web=flask_app.create_app(conf, json=True)
         web.config['JSON_SORT_KEYS'] = False
         MyApp().register_routes(web)

@@ -83,6 +83,7 @@ logger = logging.getLogger(__name__)
 class MyApp(object):
     @staticmethod
     def create():
+        flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
         myapp=MyApp()
         web=flask_app.create_app({}, json=True)
         # app.errorhandler(exceptions.APIException)(exceptions.APIException.handle)
@@ -103,8 +104,8 @@ app=MyApp.create()
 # # mkdir static && touch static/msg && curl http://127.0.0.1:5009/public/msg
 # def main():
 #     host = os.environ.get('HTTP_HOST', '0.0.0.0')
-#     LEVELS = {'main':'INFO',}
-#     flask_app.setLogLevel(**LEVELS)
+#     # LEVELS = '{"main":"INFO",...}'
+#     flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
 #     port = int(os.environ.get('HTTP_PORT', '18888'))
 #     app.run(host=host, port=port)
 #
