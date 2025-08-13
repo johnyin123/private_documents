@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b038946a[2025-08-05T15:43:07+08:00]:ngx_demo.sh")
+VERSION+=("a724a75a[2025-08-06T10:25:59+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -1947,6 +1947,8 @@ cat <<'EOF' > jwt_sso_auth.inc
 # 401 error, the client also receives the “WWW-Authenticate” header from the subrequest response.
 error_page 401 =401 @error401;
 location @error401 { return 401 '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/login.html?return_url=$scheme://$http_host$request_uri"/></head><body></body></html>'; }
+# error_page 401 = @error401;
+# location @error401 { return 302 /login.html?return_url=$scheme://$http_host/ui/tpl.html; }
 location = /login.js {
     return 200 'function GetURLParameter(name) {
  const parms = new URLSearchParams(window.location.search);
