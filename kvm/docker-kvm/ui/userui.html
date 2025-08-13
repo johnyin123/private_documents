@@ -158,7 +158,7 @@ function stop_force() {
   stop(true);
 }
 function display() {
-  getjson('GET', `/user/vm/display/${token.value}&prefix=/user`, function(res) {
+  getjson('GET', `/user/vm/display/${token.value}&prefix=user`, function(res) {
     if(res.result === 'OK') {
       //document.getElementById("display").src = res.display;
       var parm=encodeURIComponent(`${token.value}&token=${res.token}`);
@@ -169,7 +169,7 @@ function display() {
   });
 }
 function vmconsole() {
-  getjson('GET', `/user/vm/console/${token.value}&prefix=/user`, function(res) {
+  getjson('GET', `/user/vm/console/${token.value}&prefix=er`, function(res) {
     if(res.result === 'OK') {
       var parm=encodeURIComponent(`${token.value}&token=${res.token}`);
       console.log(parm);
