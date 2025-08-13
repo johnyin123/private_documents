@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
-import logging, os
-from typing import Iterable, Optional, Set, Tuple, Union, Dict
+import werkzeug, flask, logging, os, sys
 logging.basicConfig(encoding='utf-8', format='[%(funcName)s@%(filename)s(%(lineno)d)]%(name)s %(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 # logger.setLevel(level=os.getenv('LOG', 'INFO').upper())
 
-import werkzeug, flask
 FLASK_CONF = {
     'SECRET_KEY'       : os.urandom(24),
     'STATIC_URL_PATH'  : '/public',
@@ -57,7 +55,7 @@ def setLogLevel(**kwargs):
         try:
             target = getattr(importlib.import_module(module_name), 'logger')
         except Exception as e:
-            print(f'{e}')
+            print(f'{e}', file=sys.stderr)
         else:
             target.setLevel(level)
 '''
