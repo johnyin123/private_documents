@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, uuid, json
+import os, uuid
 from datetime import datetime
 # # env: DATA_DIR, DATABASE, META_SRV, CTRL_PANEL_SRV, CTRL_PANEL_KEY
 DATA_DIR         = os.environ.get('DATA_DIR', os.path.abspath(os.path.dirname(__file__)))
