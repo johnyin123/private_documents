@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, uuid
+import os, uuid, json
 from datetime import datetime
 # # env: DATA_DIR, DATABASE, META_SRV, CTRL_PANEL_SRV, CTRL_PANEL_KEY
 DATA_DIR         = os.environ.get('DATA_DIR', os.path.abspath(os.path.dirname(__file__)))
@@ -10,7 +10,7 @@ META_SRV         = os.environ.get('META_SRV', 'vmm.registry.local')
 CTRL_PANEL_SRV   = os.environ.get('CTRL_PANEL_SRV', META_SRV)
 # # user control panel access mykey
 CTRL_PANEL_KEY   = os.environ.get('CTRL_PANEL_KEY', 'P@ssw@rd4Display')
-LEVELS           = {'flask_app':'INFO','main':'INFO',} # log level {'module':'DEBUG',}
+LEVELS           = json.loads(os.environ.get('LEVELS', '{}')) # {"flask_app":"INFO","main":"INFO"}
 ##################################################################
 # # const define
 TMOUT_MINS_SOCAT = f'15' # socat process timeout close minutes, default value
