@@ -226,8 +226,8 @@ outdir="$(python3 -c 'import config; print(config.DATA_DIR)' || true)"
 ##################################################
 auth="#"
 # auth="" # need auth
-admin_uri_prefix="/admin" # "/admin"
-tanent_uri_prefix="/tanent" # "/tanent"
+admin_uri_prefix="" # "/admin"
+tanent_uri_prefix="" # "/tanent"
 
 upstream
 https_cfg_header "${admin_srv_name}"
