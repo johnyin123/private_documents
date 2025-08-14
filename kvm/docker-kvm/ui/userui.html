@@ -119,12 +119,12 @@ function info() {
 function mysubmit(form, dev) {
   const data = new FormData(form);
   var jsonstr = Object.fromEntries(data.entries());
-  getjson('POST', `${url_pre}/user/vm/cdrom/${token.value}&dev=${dev}`, getjson_result, jsonstr);
+  getjson('POST', `${uri_pre}/user/vm/cdrom/${token.value}&dev=${dev}`, getjson_result, jsonstr);
   return false;
 }
 function change_iso(dev) {
   const isolist = document.getElementById('isoname_list');
-  getjson('GET', `${url_pre}/user/vm/getiso/${token.value}`, function(res) {
+  getjson('GET', `${uri_pre}/user/vm/getiso/${token.value}`, function(res) {
     var table = `<div>`;
     table += `<div><center><h2>Change CDROM ISO</h2></center></div>`;
     table += `<form onSubmit="return mysubmit(this, '${dev}')">`;
@@ -142,35 +142,35 @@ function change_iso(dev) {
 }
 function start() {
   if (confirm('Are you sure you want to start the VM?')) {
-    getjson('GET', `${url_pre}/user/vm/start/${token.value}`, getjson_result);
+    getjson('GET', `${uri_pre}/user/vm/start/${token.value}`, getjson_result);
   }
 }
 function reset() {
   if (confirm(`Are you sure you want to reset the VM?`)) {
-    getjson('GET', `${url_pre}/user/vm/reset/${token.value}`, getjson_result);
+    getjson('GET', `${uri_pre}/user/vm/reset/${token.value}`, getjson_result);
   }
 }
 function stop(force=false) {
   if (confirm(`Are you sure you want to stop the VM${force ? ' Force' : ''}?`)) {
-    getjson('GET', `${url_pre}/user/vm/stop/${token.value}${force ? '&force=true' : ''}`, getjson_result);
+    getjson('GET', `${uri_pre}/user/vm/stop/${token.value}${force ? '&force=true' : ''}`, getjson_result);
   }
 }
 function stop_force() {
   stop(true);
 }
 function display() {
-  getjson('GET', `${url_pre}/user/vm/display/${token.value}&prefix=${url_pre}/user`, function(res) {
+  getjson('GET', `${uri_pre}/user/vm/display/${token.value}&prefix=${uri_pre}/user`, function(res) {
     if(res.result === 'OK') {
       //document.getElementById("display").src = res.display;
       var parm=encodeURIComponent(`${token.value}&token=${res.token}`);
-      window.open(`${url_pre}${res.display}/${parm}`, "_blank");
+      window.open(`${uri_pre}${res.display}/${parm}`, "_blank");
     } else {
       alert(res);
     }
   });
 }
 function vmconsole() {
-  getjson('GET', `${url_pre}/user/vm/console/${token.value}&prefix=${url_pre}/user`, function(res) {
+  getjson('GET', `${uri_pre}/user/vm/console/${token.value}&prefix=${uri_pre}/user`, function(res) {
     if(res.result === 'OK') {
       var parm=encodeURIComponent(`${token.value}&token=${res.token}`);
       console.log(parm);
