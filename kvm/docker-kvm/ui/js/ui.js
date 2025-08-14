@@ -1,4 +1,5 @@
 "use strict";
+const uri_pre = '';
 const config = { g_host: [], g_device:[], g_iso:[], g_gold:[], curr_host:'', curr_vm:'', curr_dev:'' };
 function get_iso() { return config.g_iso; }
 function get_gold() { return config.g_gold; }
@@ -114,7 +115,7 @@ function manage_vm(kvmhost, uuid) {
   set_curr(kvmhost, uuid);
   flush_sidebar(kvmhost);
   showView("manage_vm");
-  getjson('GET', `/vm/list/${kvmhost}/${uuid}`, function(resp){
+  getjson('GET', `${url_pre}/vm/list/${kvmhost}/${uuid}`, function(resp){
     const result = JSON.parse(resp);
     var btn = genActBtn(true, 'Show XML', 'fa-commenting', 'show_xml', kvmhost, {'uuid':result.guest.uuid});
     btn += genActBtn(true, 'Control Panel', 'fa-share-alt', 'show_vmui', kvmhost, {'uuid':result.guest.uuid});
@@ -257,7 +258,7 @@ function flush_sidebar(kvmhost, count=null) {
 function vmlist(kvmhost) {
   document.getElementById("vms").innerHTML = '';
   document.getElementById("host").innerHTML = '';
-  var url = '/vm/list/';
+  var url = `${url_pre}/vm/list/`;
   if(kvmhost !== 'ALL VMS') {
     url += kvmhost;
     set_curr(kvmhost);
@@ -321,7 +322,7 @@ function getjson_result(res) {
 }
 function show_xml(host, uuid) {
   set_curr(host, uuid);
-  getjson('GET', `/vm/xml/${host}/${uuid}`, function(resp) {
+  getjson('GET', `${url_pre}/vm/xml/${host}/${uuid}`, function(resp) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
       Alert('success', `XMLDesc`, result.xml.replace(/</g, "&lt;").replace(/>/g, "&gt;"));
@@ -343,7 +344,7 @@ function on_vmui(form) {
   showView('vmuimail');
   const res = getFormJSON(form);
   const epoch = Math.floor(Date.parse(`${res.date} 23:59:59`).valueOf() / 1000);
-  getjson('GET', `/vm/ui/${curr_host()}/${curr_vm()}?epoch=${epoch}`, function(resp) {
+  getjson('GET', `${url_pre}/vm/ui/${curr_host()}/${curr_vm()}?epoch=${epoch}`, function(resp) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
       document.getElementById('email').value = '';
@@ -365,7 +366,7 @@ function show_vmui(host, uuid) {
 function start(host, uuid, backlist = null) {
   set_curr(host, uuid);
   if (confirm(`Start ${uuid}?`)) {
-    getjson('GET', `/vm/start/${host}/${uuid}`, function(resp) {
+    getjson('GET', `${url_pre}/vm/start/${host}/${uuid}`, function(resp) {
       getjson_result(resp);
       if (backlist) {
         vmlist(host);
@@ -378,13 +379,13 @@ function start(host, uuid, backlist = null) {
 function reset(host, uuid) {
   set_curr(host, uuid);
   if (confirm(`Reset ${uuid}?`)) {
-    getjson('GET', `/vm/reset/${host}/${uuid}`, getjson_result);
+    getjson('GET', `${url_pre}/vm/reset/${host}/${uuid}`, getjson_result);
   }
 }
 function stop(host, uuid, force=false) {
   set_curr(host, uuid);
   if (confirm(`${force ? 'Force ' : ''}Stop ${uuid}?`)) {
-    getjson('GET', `/vm/stop/${host}/${uuid}${force ? '?force=true' : ''}`, function(resp) {
+    getjson('GET', `${url_pre}/vm/stop/${host}/${uuid}${force ? '?force=true' : ''}`, function(resp) {
       getjson_result(resp);
       manage_vm(curr_host(), curr_vm());
     });
@@ -396,12 +397,12 @@ function force_stop(host, uuid) {
 function undefine(host, uuid) {
   set_curr(host, uuid);
   if (confirm(`Undefine ${uuid}?`)) {
-    getjson('GET', `/vm/delete/${host}/${uuid}`, function(resp){ getjson_result(resp); vmlist(host); });
+    getjson('GET', `${url_pre}/vm/delete/${host}/${uuid}`, function(resp){ getjson_result(resp); vmlist(host); });
   }
 }
 function ttyconsole(host, uuid) {
   set_curr(host, uuid);
-  getjson('GET', `/vm/console/${host}/${uuid}`, function(resp) {
+  getjson('GET', `${url_pre}/vm/console/${host}/${uuid}`, function(resp) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
       window.open(`${result.display}/${host}/${uuid}?token=${result.token}`, "_blank");
@@ -412,7 +413,7 @@ function ttyconsole(host, uuid) {
 }
 function display(host, uuid) {
   set_curr(host, uuid);
-  getjson('GET', `/vm/display/${host}/${uuid}`, function(resp) {
+  getjson('GET', `${url_pre}/vm/display/${host}/${uuid}`, function(resp) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
       //document.getElementById("display").src = result.display;
@@ -424,19 +425,19 @@ function display(host, uuid) {
 }
 function get_vmip(host, uuid, btn = null) {
   set_curr(host, uuid);
-  getjson('GET', `/vm/ipaddr/${host}/${uuid}`, getjson_result);
+  getjson('GET', `${url_pre}/vm/ipaddr/${host}/${uuid}`, getjson_result);
 }
 function del_device(host, uuid, dev, btn) {
   set_curr(host, uuid, dev);
   if (confirm(`delete device /${host}/${uuid}/${dev} ?`)) {
-    getjson('POST', `/vm/detach_device/${host}/${uuid}?dev=${dev}`, function(resp) {
+    getjson('POST', `${url_pre}/vm/detach_device/${host}/${uuid}?dev=${dev}`, function(resp) {
       getjson_result(resp);
       manage_vm(curr_host(), curr_vm());
     });
   }
 }
 function on_changeiso(form) {
-  getjson('POST', `/vm/cdrom/${curr_host()}/${curr_vm()}?dev=${curr_dev()}`,function(resp) {
+  getjson('POST', `${url_pre}/vm/cdrom/${curr_host()}/${curr_vm()}?dev=${curr_dev()}`,function(resp) {
       getjson_result(resp);
       manage_vm(curr_host(), curr_vm());
     }, getFormJSON(form));
@@ -444,7 +445,7 @@ function on_changeiso(form) {
 }
 function disk_size(host, uuid, dev, btn) {
   set_curr(host, uuid, dev);
-  getjson('GET', `/vm/blksize/${curr_host()}/${curr_vm()}?dev=${dev}`, function(resp){
+  getjson('GET', `${url_pre}/vm/blksize/${curr_host()}/${curr_vm()}?dev=${dev}`, function(resp){
     if (getjson_result(resp)) {
       const result = JSON.parse(resp);
       const row = btn.closest('tr');
@@ -460,7 +461,7 @@ function change_iso(host, uuid, dev, btn) {
   document.getElementById('isoname_list').innerHTML = genOption(get_iso());
 }
 function on_createvm(form) {
-  getjson('POST', `/vm/create/${curr_host()}`, function(resp){
+  getjson('POST', `${url_pre}/vm/create/${curr_host()}`, function(resp){
     if (getjson_result(resp)) {
         manage_vm(curr_host(), curr_vm());
     }
@@ -483,7 +484,7 @@ function create_vm(host) {
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
   const objs = Object.keys(getFormJSON(form, false));
   set_help(form, cpWithoutKeys(getHost(host).vars, objs));
-  getjson('GET', `/vm/freeip/`, function(resp) {
+  getjson('GET', `${url_pre}/vm/freeip/`, function(resp) {
     const ips = JSON.parse(resp);
     document.getElementById('vm_ip').value = ips.cidr;
     document.getElementById('vm_gw').value = ips.gateway;
@@ -497,7 +498,7 @@ function on_add(form) {
   var res = getFormJSON(form);
   const device = res.device;
   delete res.device;
-  getjson('POST', `/vm/attach_device/${curr_host()}/${curr_vm()}?dev=${device}`, function(resp) {
+  getjson('POST', `${url_pre}/vm/attach_device/${curr_host()}/${curr_vm()}?dev=${device}`, function(resp) {
     getjson_result(getLastLine(resp));
     manage_vm(curr_host(), curr_vm());
   }, res, function(resp) {
@@ -553,7 +554,7 @@ function add_cdrom(host, uuid) {
 }
 function on_modifydesc(form) {
   const res = getFormJSON(form);
-  getjson('GET', `/vm/desc/${curr_host()}/${curr_vm()}?vm_desc=${res.vm_desc}`, function(resp) {
+  getjson('GET', `${url_pre}/vm/desc/${curr_host()}/${curr_vm()}?vm_desc=${res.vm_desc}`, function(resp) {
     getjson_result(resp);
     manage_vm(curr_host(), curr_vm());
   });
@@ -565,7 +566,7 @@ function modify_desc(host, uuid, btn) {
 }
 function on_modifymemory(form) {
   const res = getFormJSON(form);
-  getjson('GET', `/vm/setmem/${curr_host()}/${curr_vm()}?vm_ram_mb=${res.vm_ram_mb}`,function(resp) {
+  getjson('GET', `${url_pre}/vm/setmem/${curr_host()}/${curr_vm()}?vm_ram_mb=${res.vm_ram_mb}`,function(resp) {
     getjson_result(resp);
     manage_vm(curr_host(), curr_vm());
   });
@@ -577,7 +578,7 @@ function modify_memory(host, uuid, btn) {
 }
 function on_modifyvcpus(form) {
   const res = getFormJSON(form);
-  getjson('GET', `/vm/setcpu/${curr_host()}/${curr_vm()}?vm_vcpus=${res.vm_vcpus}`,function(resp) {
+  getjson('GET', `${url_pre}/vm/setcpu/${curr_host()}/${curr_vm()}?vm_vcpus=${res.vm_vcpus}`,function(resp) {
     getjson_result(resp);
     manage_vm(curr_host(), curr_vm());
   });
@@ -589,7 +590,7 @@ function modify_vcpus(host, uuid, btn) {
 }
 function netstats(host, uuid, dev, btn) {
   set_curr(host, uuid, dev);
-  getjson('GET', `/vm/netstat/${curr_host()}/${curr_vm()}?dev=${dev}`, getjson_result);
+  getjson('GET', `${url_pre}/vm/netstat/${curr_host()}/${curr_vm()}?dev=${dev}`, getjson_result);
 }
 /* create vm add new meta key/value */
 function set_name(r) {
@@ -656,7 +657,7 @@ function includeHTML() {
 /* ------------------------- */
 window.addEventListener('load', function() {
   includeHTML();
-  getjson('GET', '/tpl/host/', function (resp) {
+  getjson('GET', '${url_pre}/tpl/host/', function (resp) {
     const result = JSON.parse(resp);
     if(result.result !== 'OK') { Alert('error', 'init', 'Get Host List'); return; }
     config.g_host = result.host;
@@ -666,7 +667,7 @@ window.addEventListener('load', function() {
     });
     document.getElementById("sidebar").innerHTML = mainMenu;
   });
-  getjson('GET', `/tpl/iso/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; }; config.g_iso = result.iso; });
-  getjson('GET', `/tpl/gold/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; }; config.g_gold = result.gold; });
-  getjson('GET', `/tpl/device/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Device List'); return; }; config.g_device = result.device; });
+  getjson('GET', `${url_pre}/tpl/iso/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; }; config.g_iso = result.iso; });
+  getjson('GET', `${url_pre}/tpl/gold/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; }; config.g_gold = result.gold; });
+  getjson('GET', `${url_pre}/tpl/device/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Device List'); return; }; config.g_device = result.device; });
 })

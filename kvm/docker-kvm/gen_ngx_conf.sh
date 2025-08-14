@@ -41,42 +41,44 @@ EOF
 }
 
 admin_api() {
-    local AUTH=${1:-}
+    local PRE=${1:-}
+    local AUTH=${2:-}
     cat <<EOF
     ${AUTH}include /etc/nginx/http-enabled/jwt_sso_auth.inc;
-    location /tpl/ {
+    location ${PRE}/tpl/ {
         # # proxy cache default is on, so modify host|device|gold, should clear ngx cache
         ${AUTH}auth_request @sso-auth;
         # host/device/gold can cached by proxy_cache default
-        location ~* ^/tpl/(host|device|gold|iso)/ {
+        location ~* ^${PRE}/tpl/(?<apicmd>(host|device|gold|iso))/(?<others>.*)$ {
             if (\$request_method !~ ^(GET)$) { return 405; }
-            proxy_pass http://api_srv;
+            # # rewrite .....
+            proxy_pass http://api_srv/tpl/\$apicmd/\$others\$is_args\$args;
         }
         return 404;
     }
-    location /vm/ {
+    location ${PRE}/vm/ {
         ${AUTH}auth_request @sso-auth;
         # # no cache!! mgr private access
         proxy_cache off;
         expires off;
-        location ~* ^/vm/(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|console|display|xml|ui|freeip)/ {
+        location ~* ^${PRE}/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|console|display|xml|ui|freeip))/(?<others>.*)$ {
             if (\$request_method !~ ^(GET)$) { return 405; }
             # # for server stream output
             proxy_buffering                    off;
             proxy_request_buffering            off;
-            proxy_pass http://api_srv;
+            proxy_pass http://api_srv/vm/\$apicmd/\$others\$is_args\$args;
         }
-        location ~* ^/vm/(create|attach_device|detach_device|cdrom)/ {
+        location ~* ^${PRE}/vm/(?<apicmd>(create|attach_device|detach_device|cdrom))/(?<others>.*)$ {
             if (\$request_method !~ ^(POST)$) { return 405; }
             # # for server stream output
             proxy_buffering                    off;
             proxy_request_buffering            off;
-            proxy_pass http://api_srv;
+            proxy_pass http://api_srv/vm/\$apicmd/\$others\$is_args\$args;
         }
-        location ~* ^/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*) {
+        location ~* ^${PRE}/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*)$ {
             proxy_set_header Upgrade \$http_upgrade;
             proxy_set_header Connection \$connection_upgrade;
-            proxy_pass http://websockify_srv;
+            proxy_pass http://websockify_srv/websockify/\$is_args\$args;
         }
         return 404;
     }
@@ -85,11 +87,12 @@ EOF
 }
 
 tanent_api() {
-    local USERKEY=${1}
+    local PRE=${1}
+    local USERKEY=${2}
     cat <<EOF
     # # tanent api
-    location /user/ {
-        location ~* ^/user/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*) {
+    location ${PRE}/user/ {
+        location ~* ^${PRE}/user/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*)$ {
             proxy_cache off;
             expires off;
             set \$userkey "${USERKEY}";
@@ -97,12 +100,12 @@ tanent_api() {
             secure_link_md5 "\$userkey\$secure_link_expires\$kvmhost\$uuid";
             if (\$secure_link = "") { return 403; }
             if (\$secure_link = "0") { return 410; }
-            rewrite ^/user(.*)$ \$1 break;
+            rewrite ^${PRE}/user(.*)$ \$1 break;
             proxy_set_header Upgrade \$http_upgrade;
             proxy_set_header Connection \$connection_upgrade;
             proxy_pass http://websockify_srv;
         }
-        location ~* ^/user/vm/(list|start|reset|stop|console|display)/(?<kvmhost>.*)/(?<uuid>.*) {
+        location ~* ^${PRE}/user/vm/(?<apicmd>(list|start|reset|stop|console|display))/(?<kvmhost>.*)/(?<uuid>.*)$ {
             # # no cache!! guest user api, guest private access
             proxy_cache off;
             expires off;
@@ -112,10 +115,10 @@ tanent_api() {
             if (\$secure_link = "") { return 403; }
             if (\$secure_link = "0") { return 410; }
             if (\$request_method !~ ^(GET)$ ) { return 405; }
-            rewrite ^/user(.*)$ \$1 break;
+            rewrite ^${PRE}/user(.*)$ \$1 break;
             proxy_pass http://api_srv;
         }
-        location ~* ^/user/vm/(cdrom)/(?<kvmhost>.*)/(?<uuid>.*) {
+        location ~* ^${PRE}/user/vm/(?<apicmd>(cdrom))/(?<kvmhost>.*)/(?<uuid>.*)$ {
             # # no cache!! guest user api, guest private access
             proxy_cache off;
             expires off;
@@ -125,10 +128,10 @@ tanent_api() {
             if (\$secure_link = "") { return 403; }
             if (\$secure_link = "0") { return 410; }
             if (\$request_method !~ ^(POST)$) { return 405; }
-            rewrite ^/user(.*)$ \$1 break;
+            rewrite ^${PRE}/user(.*)$ \$1 break;
             proxy_pass http://api_srv;
         }
-        location ~* ^/user/vm/(getiso)/(?<kvmhost>.*)/(?<uuid>.*) {
+        location ~* ^${PRE}/user/vm/(?<apicmd>(getiso))/(?<kvmhost>.*)/(?<uuid>.*)$ {
             # # /tpl/iso need cache
             set \$userkey "${USERKEY}";
             secure_link \$arg_k,\$arg_e;
@@ -150,43 +153,45 @@ EOF
 }
 
 admin_ui() {
-    local OUT_DIR=${1}
-    local AUTH=${2:-}
+    local PRE=${1}
+    local OUT_DIR=${2}
+    local AUTH=${3:-}
     cat <<EOF
     # # admin ui # #
-    location = /admin.html { return 301 /ui/tpl.html; }
-    location = /ui/tpl.html {
+    location = ${PRE}/admin.html { return 301 ${PRE}/ui/tpl.html; }
+    location = ${PRE}/ui/tpl.html {
         ${AUTH}auth_request @sso-auth;
         alias ${OUT_DIR}/ui/tpl.html;
     }
     # # static resource # #
     # # ui/term/spice/novnc use api_srv serve, add rewrite
     # rewrite ^ /public\$uri break;proxy_pass http://api_srv;
-    location /ui { alias ${OUT_DIR}/ui/; }
-    location /term { alias ${OUT_DIR}/term/; }
-    location /spice { alias ${OUT_DIR}/spice/; }
-    location /novnc { alias ${OUT_DIR}/novnc/; }
+    location ${PRE}/ui { alias ${OUT_DIR}/ui/; }
+    location ${PRE}/term { alias ${OUT_DIR}/term/; }
+    location ${PRE}/spice { alias ${OUT_DIR}/spice/; }
+    location ${PRE}/novnc { alias ${OUT_DIR}/novnc/; }
 EOF
     return 0
 }
 
 tanent_ui() {
-    local OUT_DIR=${1}
-    local combine=${2:-}
-    cat <<'EOF'
+    local PRE=${1}
+    local OUT_DIR=${2}
+    local combine=${3:-}
+    cat <<EOF
     # # default page is guest ui
-    location / { return 301 https://$server_name/guest.html; }
+    location / { return 301 https://\$server_name${PRE}/guest.html; }
     # # tanent user UI manager # #
-    location = /guest.html { return 301 /ui/userui.html$is_args$args; }
+    location = ${PRE}/guest.html { return 301 /ui/userui.html\$is_args\$args; }
 EOF
     "${combine}" || cat <<EOF
     # # static resource # #
     # # ui/term/spice/novnc use api_srv serve, add rewrite
     # rewrite ^ /public\$uri break;proxy_pass http://api_srv;
-    location /ui { alias ${OUT_DIR}/ui/; }
-    location /term { alias ${OUT_DIR}/term/; }
-    location /spice { alias ${OUT_DIR}/spice/; }
-    location /novnc { alias ${OUT_DIR}/novnc/; }
+    location ${PRE}/ui { alias ${OUT_DIR}/ui/; }
+    location ${PRE}/term { alias ${OUT_DIR}/term/; }
+    location ${PRE}/spice { alias ${OUT_DIR}/spice/; }
+    location ${PRE}/novnc { alias ${OUT_DIR}/novnc/; }
 EOF
     return 0
 }
@@ -218,25 +223,28 @@ tanent_srv_name="$(python3 -c 'import config; print(config.CTRL_PANEL_SRV)' || t
 
 userkey="$(python3 -c 'import config; print(config.CTRL_PANEL_KEY)' || true)"
 outdir="$(python3 -c 'import config; print(config.DATA_DIR)' || true)"
-combine=false
-[ "${tanent_srv_name:-x}" == "${admin_srv_name:-y}" ] && combine=true
-# auth="#"
-auth="" # need auth
+##################################################
+auth="#"
+# auth="" # need auth
+admin_uri_prefix="/admin" # "/admin"
+tanent_uri_prefix="/tanent" # "/tanent"
 
 upstream
 https_cfg_header "${admin_srv_name}"
+admin_api "${admin_uri_prefix}" "${auth}"
+admin_ui "${admin_uri_prefix}" "${outdir}" "${auth}"
 
-admin_api "${auth}"
-admin_ui "${outdir}" "${auth}"
+combine=false
+[ "${tanent_srv_name}" == "${admin_srv_name}" ] && [ "${tanent_uri_prefix}" == "${admin_uri_prefix}" ] && combine=true
 
 "${combine}" && {
-    tanent_api "${userkey}"
-    tanent_ui "${outdir}" "${combine}"
+    tanent_api "${tanent_uri_prefix}" "${userkey}"
+    tanent_ui "${tanent_uri_prefix}" "${outdir}" "${combine}"
     meta_data_srv "${admin_srv_name}" "${outdir}"
 } || {
     meta_data_srv "${admin_srv_name}" "${outdir}"
     https_cfg_header "${tanent_srv_name}"
-    tanent_api "${userkey}"
-    tanent_ui "${outdir}" "${combine}"
+    tanent_api "${tanent_uri_prefix}" "${userkey}"
+    tanent_ui "${tanent_uri_prefix}" "${outdir}" "${combine}"
     echo "}"
 }
