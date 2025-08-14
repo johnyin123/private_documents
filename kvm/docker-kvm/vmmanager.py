@@ -154,8 +154,7 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def display(host:FakeDB, uuid:str, prefix:str=None, timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
-        prefix = '/user' if prefix else ''
+    def display(host:FakeDB, uuid:str, prefix:str='', timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
         tmout = int(timeout_mins)
         XMLDesc_Secure=None
         with connect(host.url) as conn:
@@ -289,8 +288,7 @@ class VMManager:
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def console(host:FakeDB, uuid:str, prefix:str=None, timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
-        prefix = '/user' if prefix else ''
+    def console(host:FakeDB, uuid:str, prefix:str='', timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
         tmout = int(timeout_mins)
         with connect(host.url) as conn:
             if not conn.lookupByUUIDString(uuid).isActive():
