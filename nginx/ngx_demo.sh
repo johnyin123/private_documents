@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a724a75a[2025-08-06T10:25:59+08:00]:ngx_demo.sh")
+VERSION+=("4be89734[2025-08-13T14:58:04+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -265,6 +265,12 @@ server {
     # # This should remove /foo/bar part from proxied URL.
     # location /foo/bar/ {
     #     proxy_pass http://myapp/;
+    # }
+    # location /foo {
+    #     rewrite_log on;
+    #     error_log /var/log/nginx/rewrite.log notice;
+    #     rewrite /foo/(.*) /$1 break;
+    #     proxy_pass http://myapp;
     # }
     location / {
         alias /var/www/;
