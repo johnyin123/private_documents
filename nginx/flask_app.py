@@ -62,9 +62,7 @@ def setLogLevel(**kwargs):
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import os, flask_app, flask
-from flask_app import logger, output_escape
-import logging
+import os, flask_app, flask, json, logging
 logger = logging.getLogger(__name__)
 
 # # exceptions.py
@@ -95,7 +93,7 @@ class MyApp(object):
         # raise exceptions.APIException(exceptions.HTTPStatus.CREATED, 'err', 'msg')
         return '{ "OK" : "OK" }'
 
-    @output_escape
+    @flask_app.output_escape
     def esc(self):
         return '<html>MSG</html>'
 
