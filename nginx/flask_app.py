@@ -93,9 +93,9 @@ def after_request_log(response):
     logger.warn(f"""
 {flask.request.method} {flask.request.url}
 {flask.request.headers}
-JSON Data: {flask.request.get_json(silent=True)}
-Form Data: {flask.request.form}
-Query Params: {flask.request.args}
+JSON Data: {flask.request.get_json(silent=True, force=True)}
+Form Data: {flask.request.form.to_dict()}
+Query Params: {flask.request.args.to_dict()}
 Status: {response.status_code}
 Headers: {response.headers}
 Response: {response.get_data(as_text=True)}
