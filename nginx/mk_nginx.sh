@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("70a840da[2025-04-27T10:55:00+08:00]:mk_nginx.sh")
+VERSION+=("82b6e9db[2025-06-05T08:56:16+08:00]:mk_nginx.sh")
 set -o errtrace
 set -o nounset
 set -o errexit
@@ -538,10 +538,17 @@ gzip_types
     text/x-cross-domain-policy;
 EOF
 
+write_file "${OUTDIR}/etc/nginx/http-conf.d/proxy_header.conf" <<'EOF'
+# need headers-more-nginx-module
+# hidden Server: nginx ...
+proxy_pass_header Server;
+# # OR
+# more_set_headers 'Server: my-server';
+proxy_pass_header Set-Cookie;
+EOF
+
 write_file "${OUTDIR}/etc/nginx/http-conf.d/proxy.conf" <<'EOF'
 proxy_redirect off;
-proxy_pass_header Server;
-proxy_pass_header Set-Cookie;
 proxy_connect_timeout 3s;
 proxy_read_timeout 60s;
 proxy_send_timeout 60s;

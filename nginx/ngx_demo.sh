@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("4be89734[2025-08-13T14:58:04+08:00]:ngx_demo.sh")
+VERSION+=("1e35cacc[2025-08-14T10:31:10+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4912,12 +4912,6 @@ brotli_types
 EOF
 cat <<'EOF' > more_tuning.conf
 # copy this file to /etc/nginx/http-conf.d/
-# need headers-more-nginx-module
-# hidden Server: nginx ...
-proxy_pass_header Server;
-# # OR
-# more_set_headers 'Server: my-server';
-#
 # map $http_x_forwarded_for $realipaddr {
 #     "" $remote_addr;
 #     ~^(?P<firstAddr>[0-9\.]+),?.*$ $firstAddr;
