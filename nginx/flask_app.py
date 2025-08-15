@@ -17,13 +17,6 @@ class UpdatedJSONProvider(DefaultJSONProvider):
             return o.isoformat()
         return super().default(o)
 
-from functools import wraps
-def output_escape(func):
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        return flask.escape(func(*args, **kwargs))
-    return wrapped
-
 def create_app(config: dict={}, json: bool=False) -> flask.Flask:
     cfg = {**FLASK_CONF, **config}
     logger.debug("Flask config: %s", cfg)
@@ -93,17 +86,12 @@ class MyApp(object):
         # raise exceptions.APIException(exceptions.HTTPStatus.CREATED, 'err', 'msg')
         return '{ "OK" : "OK" }'
 
-    @flask_app.output_escape
-    def esc(self):
-        return '<html>MSG</html>'
-
 app=MyApp.create()
 # # gunicorn -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app'
 # # mkdir static && touch static/msg && curl http://127.0.0.1:5009/public/msg
 # def main():
 #     host = os.environ.get('HTTP_HOST', '0.0.0.0')
 #     # LEVELS = '{"main":"INFO",...}'
-#     flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
 #     port = int(os.environ.get('HTTP_PORT', '18888'))
 #     app.run(host=host, port=port)
 #
