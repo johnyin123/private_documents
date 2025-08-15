@@ -73,7 +73,7 @@ function show_vm(vm) {
   table += `<table>`;
   for(var key in vm) {
     if(key === 'disks') {
-      var disks = JSON.parse(vm[key]);
+      var disks = vm[key];
       disks.forEach(disk => {
         if(disk.device === 'cdrom') {
             table += `<tr><th>${disk.dev}</th><td colspan="2" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td><td><a title="Change ISO" href="javascript:change_iso('${disk.dev}')">Change</a></td></tr>`;
@@ -82,12 +82,12 @@ function show_vm(vm) {
         }
       });
     } else if (key === 'nets') {
-      var nets = JSON.parse(vm[key]);
+      var nets = vm[key];
       nets.forEach(net => {
         table += `<tr><th>${net.type}</th><td colspan="3" class="truncate" title="${net.mac}">${net.mac}</td></tr>`;
       });
     } else if (key === 'mdconfig') {
-      var mdconfig = JSON.parse(vm[key]);
+      var mdconfig = vm[key];
       for(var mdkey in mdconfig) {
         table += `<tr><th>${mdkey}</th><td colspan="3">${mdconfig[mdkey]}</td></tr>`;
       }

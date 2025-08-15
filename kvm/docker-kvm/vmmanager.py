@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import flask, logging, libvirt, xml.dom.minidom, json, os, template, config, meta, database
+import flask, logging, libvirt, xml.dom.minidom, os, template, config, meta, database
 import base64, hashlib, datetime
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from utils import return_ok, deal_except, getlist_without_key, remove_file, connect, ProcList, save, login_name, secure_link, FakeDB
@@ -20,10 +20,10 @@ class LibvirtDomain:
         return {'uuid':self.uuid, 'desc':self.desc,
                 'curcpu':self.curcpu, 'curmem':self.curmem,
                 'maxcpu':self.maxcpu, 'maxmem':self.maxmem,
-                'mdconfig': json.dumps(self.mdconfig),
+                'mdconfig': self.mdconfig,
                 'cputime':self.cputime, 'state':state_desc,
-                'disks': json.dumps(getlist_without_key(self.disks, 'xml')),
-                'nets': json.dumps(getlist_without_key(self.nets, 'dev', 'xml'))
+                'disks': getlist_without_key(self.disks, 'xml'),
+                'nets': getlist_without_key(self.nets, 'dev', 'xml')
                }
 
     @property

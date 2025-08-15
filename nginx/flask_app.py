@@ -90,9 +90,17 @@ app=MyApp.create()
 
 @app.after_request
 def after_request_log(response):
-    logger.info(f'{flask.request.method} {flask.request.url}')
-    logger.info(f'{flask.request.headers}')
-    logger.info(f'{response.get_data().decode("utf-8")}')
+    logger.warn(f"""
+{flask.request.method} {flask.request.url}
+{flask.request.headers}
+JSON Data: {flask.request.get_json(silent=True)}
+Form Data: {flask.request.form}
+Query Params: {flask.request.args}
+Status: {response.status_code}
+Headers: {response.headers}
+Response: {response.get_data(as_text=True)}
+""")
+
     return response
 
 # # gunicorn -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app'
