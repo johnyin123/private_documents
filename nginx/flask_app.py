@@ -88,6 +88,7 @@ class MyApp(object):
 
 app=MyApp.create()
 
+# app.after_request(after_request_log)
 @app.after_request
 def after_request_log(response):
     logger.warn(f"""
