@@ -87,6 +87,13 @@ class MyApp(object):
         return '{ "OK" : "OK" }'
 
 app=MyApp.create()
+
+@app.after_request
+def after_request_log(response):
+    res_str = response.get_data().decode('utf-8')
+    logger.warn(f'{flask.request.method},{flask.request.url},{res_str}')
+    return response
+
 # # gunicorn -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app'
 # # mkdir static && touch static/msg && curl http://127.0.0.1:5009/public/msg
 # def main():
