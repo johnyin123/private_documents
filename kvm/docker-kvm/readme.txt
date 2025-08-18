@@ -108,10 +108,11 @@ echo 'list gold image' && curl -k ${srv}/tpl/gold/ | jq '.[]|{arch: .arch, name:
 device=local-disk
 # gold=debian12
 # gold="" is datadisk
+# size => G
 echo 'add disk' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/attach_device/${host}/${uuid}?dev=${device}
 {
  ${gold:+\"gold\": \"${gold}\",}
- "size":2147483648
+ "size":2
 }
 EOF
 dev=vda
@@ -120,7 +121,7 @@ echo 'change cd media' && curl -k -H 'Content-Type:application/json' -X POST -d 
 device=net-br-ext
 device=debian_installcd
 echo "add ${device} noargs" && curl -k -H 'Content-Type:application/json' -X POST -d '{}' ${srv}/vm/attach_device/${host}/${uuid}?dev=${device}
-echo 'list host vms'   && curl -k ${srv}/vm/list/${host}                # from host
+echo 'list host vms'   && curl -k ${srv}/vm/list/${host}            # from host
 echo 'list a vm'       && curl -k ${srv}/vm/list/${host}/${uuid}    # from host
 echo 'start vm'        && curl -k ${srv}/vm/start/${host}/${uuid}
 echo 'display vnc'     && curl -k ${srv}/vm/display/${host}/${uuid} #?timeout_mins=10 #default config.TMOUT_MINS_SOCAT, prefix default None else add '/user' prefix
