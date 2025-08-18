@@ -1,3 +1,21 @@
+# pip install flask_profiler
+# http://127.0.0.1:5009/flask-profiler
+# # import flask_profiler
+# # app.config["DEBUG"] = True
+# # app.config["flask_profiler"] = {
+# #     "enabled": app.config["DEBUG"],
+# #     "storage": { "engine": "sqlite" },
+# #     "basicAuth":{
+# #         "enabled": True,
+# #         "username": "admin",
+# #         "password": "admin"
+# #     },
+# #     "ignore": [
+# # 	    "^/static/.*"
+# # 	]
+# # }
+# # flask_profiler.init_app(app)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # {{ var | default("myval", true) }} # undefined, false, None, or an empty string return myval
 # python3 -m venv --system-site-packages my_venv
 # pip install websockify gunicorn Flask pycdlib # SQLAlchemy
