@@ -217,7 +217,7 @@ server {
 EOF
     return 0
 }
-
+export PYTHONDONTWRITEBYTECODE=1
 admin_srv_name="$(python3 -c 'import config; print(config.META_SRV)' || true)"
 tanent_srv_name="$(python3 -c 'import config; print(config.CTRL_PANEL_SRV)' || true)"
 
