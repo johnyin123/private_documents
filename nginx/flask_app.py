@@ -71,25 +71,10 @@ logger = logging.getLogger(__name__)
 #         response = {'code': e.code,'name':e.name,'desc':e.desc}
 #         return response, e.code
 
-class MyApp(object):
-    @staticmethod
-    def create():
-        flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
-        myapp=MyApp()
-        web=flask_app.create_app({}, json=True)
-        # app.errorhandler(exceptions.APIException)(exceptions.APIException.handle)
-        web.add_url_rule('/', view_func=myapp.test, methods=['POST', 'GET'])
-        web.add_url_rule('/esc', view_func=myapp.esc, methods=['POST', 'GET'])
-        return web
+def before_request():
+    pass
 
-    def test(self):
-        # raise exceptions.APIException(exceptions.HTTPStatus.CREATED, 'err', 'msg')
-        return '{ "OK" : "OK" }'
-
-app=MyApp.create()
-
-# app.after_request(after_request_log)
-@app.after_request
+# @app.after_request
 def after_request_log(response):
     logger.warn(f"""
 {flask.request.method} {flask.request.url}
@@ -101,8 +86,28 @@ Status: {response.status_code}
 Headers: {response.headers}
 Response: {response.get_data(as_text=True)}
 """)
-
     return response
+
+class MyApp(object):
+    @staticmethod
+    def create():
+        flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
+        myapp=MyApp()
+        web=flask_app.create_app({}, json=True)
+        web.config['JSON_SORT_KEYS'] = False
+        # web.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
+        # web.before_request(before_request)
+        # web.after_request(after_request_log)
+        # app.errorhandler(exceptions.APIException)(exceptions.APIException.handle)
+        web.add_url_rule('/', view_func=myapp.test, methods=['POST', 'GET'])
+        web.add_url_rule('/esc', view_func=myapp.esc, methods=['POST', 'GET'])
+        return web
+
+    def test(self):
+        # raise exceptions.APIException(exceptions.HTTPStatus.CREATED, 'err', 'msg')
+        return '{ "OK" : "OK" }'
+
+app=MyApp.create()
 
 # # gunicorn -b 127.0.0.1:5009 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'main:app'
 # # mkdir static && touch static/msg && curl http://127.0.0.1:5009/public/msg
