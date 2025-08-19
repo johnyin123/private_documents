@@ -1,0 +1,28 @@
+import boto3
+
+class S3StringHandler:
+    def __init__(self, bucket_name, secret_key, access_key, url):
+        self.bucket_name = bucket_name
+        self.s3_client = boto3.client('s3', aws_secret_access_key = secret_key, aws_access_key_id = access_key, url = s3_host)
+        # region_name=region_name)
+
+    def write_string_to_s3(self, key, content):
+        try:
+            self.s3_client.put_object(Bucket=self.bucket_name, Key=key, Body=content.encode('utf-8'))
+        except Exception as e:
+            print(f"Error writing string to S3: {e}")
+
+    def read_string_from_s3(self, key):
+        try:
+            obj = self.s3_client.get_object(Bucket=self.bucket_name, Key=key)
+            content = obj['Body'].read().decode('utf-8')
+            return content
+        except Exception as e:
+            print(f"Error reading string from S3: {e}")
+            return None
+
+    def delete_s3_object(self, key):
+        try:
+            self.s3_client.delete_object(Bucket=self.bucket_name, Key=key)
+        except Exception as e:
+            print(f"Error deleting S3 object: {e}")
