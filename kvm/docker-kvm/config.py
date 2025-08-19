@@ -18,13 +18,12 @@ URI_VNC          = f'/novnc/vnc_lite.html'
 URI_SPICE        = f'/spice/spice_auto.html'
 URI_CONSOLE      = f'/term/xterm.html'
 URI_CTRL_PANEL   = f'https://{CTRL_PANEL_SRV}/guest.html'
-DIR_CIDATA       = os.path.join(DATA_DIR, 'cidata')  # RW # iso-meta/nocloud-meta data dir
-DIR_ACTION       = os.path.join(DATA_DIR, 'actions') # RO # device action script dir
-DIR_DEVICE       = os.path.join(DATA_DIR, 'devices') # RO # device template dir
-DIR_DOMAIN       = os.path.join(DATA_DIR, 'domains') # RO # domain template dir
-DIR_META         = os.path.join(DATA_DIR, 'meta')    # RO # cloud-init template dir
-DIR_TOKEN        = os.path.join(DATA_DIR, 'token')   # RW # vnc/spice access token dir
-DIR_REQ_JSON     = os.path.join(DATA_DIR, 'reqlogs') # RW # LOG create_vm req_json
+DIR_CIDATA       = os.path.join(DATA_DIR, 'cidata')  # RWS  # share iso-meta/nocloud-meta data dir
+DIR_ACTION       = os.path.join(DATA_DIR, 'actions') # ROSX # share device action script dir
+DIR_DEVICE       = os.path.join(DATA_DIR, 'devices') # ROS  # share device template dir
+DIR_DOMAIN       = os.path.join(DATA_DIR, 'domains') # ROS  # share domain template dir
+DIR_META         = os.path.join(DATA_DIR, 'meta')    # ROS  # share cloud-init template dir
+DIR_TOKEN        = os.path.join(DATA_DIR, 'token')   # RWL  # local vnc/spice access token dir
 # # vm define default values
 def VM_DEFAULT(arch:str, hostname:str):
     arch = arch.lower()

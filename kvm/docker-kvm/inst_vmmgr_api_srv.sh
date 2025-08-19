@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("5fb6ecbc[2025-08-13T13:14:20+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("3334a03c[2025-08-13T13:33:32+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -120,7 +120,6 @@ inst_app_outdir() {
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/cidata
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/token
-    install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/reqlogs
     local dirs=(actions devices domains meta)
     for dn in ${dirs[@]}; do
         install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/${dn}

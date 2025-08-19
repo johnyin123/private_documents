@@ -185,7 +185,6 @@ class VMManager:
     @staticmethod
     def delete(host:FakeDB, uuid:str)->str:
         meta.del_metafiles(uuid)
-        remove_file(os.path.join(config.DIR_REQ_JSON, uuid))
         with connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             refresh_all_pool(conn)
@@ -269,7 +268,6 @@ class VMManager:
                 conn.defineXML(template.DomainTemplate(host.tpl).gen_xml(**req_json))
         meta.gen_metafiles(**req_json)
         database.IPPool.remove(req_json.get('vm_ipaddr', ''))
-        save(os.path.join(config.DIR_REQ_JSON, req_json['vm_uuid']), json.dumps(req_json, indent=4))
         return return_ok(f"create vm on {host.name} ok", uuid=req_json['vm_uuid'])
 
     @staticmethod
