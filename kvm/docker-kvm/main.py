@@ -4,6 +4,7 @@
 import flask_app, flask, os, json, logging
 import database, vmmanager, config, template
 from utils import return_ok, return_err, deal_except, getlist_without_key, load
+# database = importlib.import_module(f"database_{os.environ.get('PERSISTENT','SHM').lower()}")
 logger = logging.getLogger(__name__)
 
 class MyApp(object):
