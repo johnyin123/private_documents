@@ -31,7 +31,6 @@ DIR_TOKEN        = os.path.join(DATA_DIR, 'token')   # RWL  # local vnc/spice ac
 # os.path.join(config.DATA_DIR, 'iso.json')          # ROS
 # # # # # # # # # # # # # # # # # # # # # # #
 # os.path.join(config.DATA_DIR, 'ippool.json')       # RWS
-# os.path.join(config.DATA_DIR, 'guests.json')       # RWL
 # # vm define default values
 def VM_DEFAULT(arch:str, hostname:str):
     arch = arch.lower()

@@ -48,7 +48,9 @@ reload_dbtable          : load/reload kvmhost/kvmdevice/kvmgold dbtable via json
 golds.json              : gold disks
 hosts.json              : kvm hosts with domains template
 devices.json            : host device mapping
-guests.json             : guests db, auto flush when list_domains
+iso.json                : ISO disks
+vars.json               : tpl vars desc
+ippool.json             : ipaddr pool
 ##########################################################################
 <source protocol="https" name="url_path">
   <host name="hostname" port="443"/>
