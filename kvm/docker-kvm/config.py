@@ -24,6 +24,14 @@ DIR_DEVICE       = os.path.join(DATA_DIR, 'devices') # ROL  # local device templ
 DIR_DOMAIN       = os.path.join(DATA_DIR, 'domains') # ROL  # local domain template dir
 DIR_META         = os.path.join(DATA_DIR, 'meta')    # ROL  # local cloud-init template dir
 DIR_TOKEN        = os.path.join(DATA_DIR, 'token')   # RWL  # local vnc/spice access token dir
+# os.path.join(config.DATA_DIR, 'vars.json')         # ROS
+# os.path.join(config.DATA_DIR, 'hosts.json')        # ROS
+# os.path.join(config.DATA_DIR, 'devices.json')      # ROS
+# os.path.join(config.DATA_DIR, 'golds.json')        # ROS
+# os.path.join(config.DATA_DIR, 'iso.json')          # ROS
+# # # # # # # # # # # # # # # # # # # # # # #
+# os.path.join(config.DATA_DIR, 'ippool.json')       # RWS
+# os.path.join(config.DATA_DIR, 'guests.json')       # RWL
 # # vm define default values
 def VM_DEFAULT(arch:str, hostname:str):
     arch = arch.lower()
