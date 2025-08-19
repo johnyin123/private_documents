@@ -235,7 +235,7 @@ class VMManager:
             tpl = template.DeviceTemplate(device.tpl, device.devtype)
             # all env must string
             env = {'URL':host.url, 'TYPE':device.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
-            cmd = [os.path.join(config.DIR_ACTION, f'{device.action}'), f'add']
+            cmd = ['bash', os.path.join(config.DIR_ACTION, f'{device.action}'), f'add']
             gold = req_json.get("gold", "")
             if len(gold) != 0:
                 req_json['gold'] = database.KVMGold.get_one(name=gold, arch=host.arch).tpl
