@@ -140,3 +140,16 @@ def secure_link(kvmhost, uuid, mykey, minutes):
     return epoch, base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
     # epoch=round(datetime.datetime.now().timestamp() + minutes*60)
     # dt = datetime.datetime.fromtimestamp(epoch)
+
+import ssl
+from urllib.request import urlopen
+def read_from_url(url:str)->str:
+    try:
+        unverified_context = ssl._create_unverified_context()
+        with urlopen(url, context=unverified_context) as response:
+            return response.read().decode('utf-8')
+    except:
+        logger.exception('read_from_url')
+        return None
+# http_url = "file:///home/johnyin/a.json"
+# http_url = "https://vmm.registry.local/tpl/host/"

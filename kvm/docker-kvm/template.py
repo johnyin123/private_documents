@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, jinja2, xml.dom.minidom, utils, config, logging
+import jinja2, xml.dom.minidom, config, logging
 from jinja2 import meta as jameta
 logger = logging.getLogger(__name__)
 

@@ -2,13 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import flask_app, flask, os, json, logging
-import database, vmmanager, config, template
-from utils import return_ok, return_err, deal_except, getlist_without_key, load
+import database, vmmanager, config, template, utils
 # database = importlib.import_module(f"database_{os.environ.get('PERSISTENT','SHM').lower()}")
 logger = logging.getLogger(__name__)
 
 class MyApp(object):
-    VARS_DESC = json.loads(load(os.path.join(config.DATA_DIR, 'vars.json')))
+    VARS_DESC = json.loads(utils.load(os.path.join(config.DATA_DIR, 'vars.json')))
 
     @staticmethod
     def create():
@@ -47,9 +46,9 @@ class MyApp(object):
                 for file in [fn for fn in os.listdir(config.DIR_META) if fn.endswith('.tpl')]:
                     varset.update(template.get_variables(config.DIR_META, file))
                 host['vars'] = {k: self.VARS_DESC.get(k,'n/a') for k in varset}
-            return return_ok(f'db_list_host ok', host=getlist_without_key(hosts, *keys))
+            return utils.return_ok(f'db_list_host ok', host=utils.getlist_without_key(hosts, *keys))
         except Exception as e:
-            return deal_except(f'db_list_host', e), 400
+            return utils.deal_except(f'db_list_host', e), 400
 
     def db_list_device(self, hostname:str = None):
         try:
@@ -57,34 +56,34 @@ class MyApp(object):
             devices = [dic._asdict() for dic in database.KVMDevice.list_all(**args)]
             for dev in devices:
                 dev['vars'] = {k: self.VARS_DESC.get(k,'n/a') for k in template.get_variables(config.DIR_DEVICE, dev['tpl'])}
-            return return_ok(f'db_list_device ok', device=getlist_without_key(devices, *['tpl', 'action']))
+            return utils.return_ok(f'db_list_device ok', device=utils.getlist_without_key(devices, *['tpl', 'action']))
         except Exception as e:
-            return deal_except(f'db_list_device', e), 400
+            return utils.deal_except(f'db_list_device', e), 400
 
     def db_list_iso(self):
         try:
-            return return_ok(f'db_list_iso ok', iso=getlist_without_key([result._asdict() for result in database.KVMIso.list_all()], *['uri']))
+            return utils.return_ok(f'db_list_iso ok', iso=utils.getlist_without_key([result._asdict() for result in database.KVMIso.list_all()], *['uri']))
         except Exception as e:
-            return deal_except(f'db_list_iso', e), 400
+            return utils.deal_except(f'db_list_iso', e), 400
 
     def db_list_gold(self, arch:str = None):
         try:
             args = {'arch': arch} if arch else {}
-            return return_ok(f'db_list_gold ok', gold=getlist_without_key([result._asdict() for result in database.KVMGold.list_all(**args)], *['tpl']))
+            return utils.return_ok(f'db_list_gold ok', gold=utils.getlist_without_key([result._asdict() for result in database.KVMGold.list_all(**args)], *['tpl']))
         except Exception as e:
-            return deal_except(f'db_list_gold', e), 400
+            return utils.deal_except(f'db_list_gold', e), 400
 
     def db_list_domains(self):
         try:
-            return return_ok(f'db_list_domains ok', guest=sorted([result._asdict() for result in database.KVMGuest.list_all()], key=lambda x : x['kvmhost']))
+            return utils.return_ok(f'db_list_domains ok', guest=sorted([result._asdict() for result in database.KVMGuest.list_all()], key=lambda x : x['kvmhost']))
         except Exception as e:
-            return deal_except(f'db_list_domains', e), 400
+            return utils.deal_except(f'db_list_domains', e), 400
 
     def db_freeip(self):
         try:
-            return return_ok(f'db_freeip ok', **database.IPPool.free_ip())
+            return utils.return_ok(f'db_freeip ok', **database.IPPool.free_ip())
         except Exception as e:
-            return return_ok(f'db_freeip ok', **{"cidr":"","gateway":""})
+            return utils.return_ok(f'db_freeip ok', **{"cidr":"","gateway":""})
 
     def exec_domain_cmd(self, cmd:str, hostname:str, uuid:str = None):
         dom_cmds = {
@@ -107,9 +106,9 @@ class MyApp(object):
                 logger.info(f'"{cmd}" call args={args}')
                 return flask.Response(func(**args), mimetype="text/event-stream")
             else:
-                return return_err(404, f'{cmd}', f'Domain No Found CMD: {cmd}')
+                return utils.return_err(404, f'{cmd}', f'Domain No Found CMD: {cmd}')
         except Exception as e:
-            return deal_except(f'{cmd}', e), 400
+            return utils.deal_except(f'{cmd}', e), 400
 
 app = MyApp.create()
 # gunicorn -b 127.0.0.1:5009 --preload --workers=4 --threads=2 --access-logfile='-' 'main:app'
