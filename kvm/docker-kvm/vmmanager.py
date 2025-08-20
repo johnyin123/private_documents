@@ -265,8 +265,8 @@ class VMManager:
                 return return_err(400, f'create', f'Domain {req_json["vm_uuid"]} already exists')
             except libvirt.libvirtError:
                 conn.defineXML(template.DomainTemplate(host.tpl).gen_xml(**req_json))
-        meta.gen_metafiles(**req_json)
         database.IPPool.remove(req_json.get('vm_ipaddr', ''))
+        meta.gen_metafiles(**req_json)
         return utils.return_ok(f"create vm on {host.name} ok", uuid=req_json['vm_uuid'])
 
     @staticmethod
