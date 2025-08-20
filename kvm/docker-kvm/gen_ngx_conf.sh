@@ -32,6 +32,8 @@ server {
     location @404 { return 404 '{"code":404,"name":"lberr","desc":"Resource not found"}'; }
     error_page 405 = @405;
     location @405 { return 405 '{"code":405,"name":"lberr","desc":"Method not allowed"}'; }
+    error_page 410 = @410;
+    location @410 { return 410 '{"code":410,"name":"lberr","desc":"Access expired"}'; }
     error_page 502 = @502;
     location @502 { return 502 '{"code":502,"name":"lberr","desc":"backend server not alive"}'; }
     error_page 504 = @504;
