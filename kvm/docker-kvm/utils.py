@@ -105,11 +105,11 @@ def login_name(authorization:str)-> str:
         authorization = authorization.split(' ')[1]
     return decode_jwt(authorization).get('payload', {}).get('username', 'n/a')
 
-def save(fname:str, content:str)->None:
+def file_save(fname:str, content:str)->None:
     with open(fname, "w") as file:
         file.write(content)
 
-def load(fname:str)->str:
+def file_load(fname:str)->str:
     with open(fname, 'r') as file:
         return file.read()
 
