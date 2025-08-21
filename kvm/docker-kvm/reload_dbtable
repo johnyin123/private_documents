@@ -22,7 +22,7 @@ if clazz is None:
     usage()
 
 database.Base.metadata.create_all(database.engine)
-results = json.loads(utils.load(fname))
+results = json.loads(utils.file_load(fname))
 database.session.query(clazz).delete()
 for row in results:
     database.session.add(clazz(**row))

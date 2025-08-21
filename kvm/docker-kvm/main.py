@@ -7,7 +7,7 @@ import database, vmmanager, config, template, utils
 logger = logging.getLogger(__name__)
 
 class MyApp(object):
-    VARS_DESC = json.loads(utils.load(os.path.join(config.DATA_DIR, 'vars.json')))
+    VARS_DESC = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'vars.json')))
 
     @staticmethod
     def create():
