@@ -27,28 +27,3 @@ class S3StringHandler:
             self.s3_client.delete_object(Bucket=self.bucket_name, Key=key)
         except Exception as e:
             print(f"Error deleting S3 object: {e}")
-
-###########################################################
-import etcd3
-etcd = etcd3.client()
-file_path = "my_document.txt"
-etcd_key = "/files/my_document"
-
-
-try:
-    with open(file_path, "rb") as f:
-        file_content = f.read()
-    etcd.put(etcd_key, file_content)
-    print(f"File '{file_path}' content stored in etcd at key '{etcd_key}'")
-except Exception as e:
-    print(f"An error occurred: {e}")
-
-try:
-    value, metadata = etcd.get(etcd_key)
-    if value is not None:
-        with open(file_path, "wb") as f:
-            f.write(value)
-    else:
-        print(f"No content found for key '{etcd_key}' in etcd.")
-except Exception as e:
-    print(f"An error occurred: {e}")
