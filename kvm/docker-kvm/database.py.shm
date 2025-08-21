@@ -4,14 +4,13 @@ from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
 
 class JSONCacheBase:
-    filename = None
     cache = None
     lock = None
 
     @classmethod
-    def reload(cls):
+    def reload(cls, json_obj):
         with cls.lock:
-            cls.cache[:] = [utils.manager.dict(item) for item in json.loads(utils.file_load(cls.filename))]
+            cls.cache[:] = [utils.manager.dict(item) for item in json_obj]
 
     @classmethod
     def list_all(cls, **criteria) -> List[utils.FakeDB]:
@@ -98,4 +97,4 @@ class IPPool(JSONCacheBase):
 
 def reload_all():
     for clz in [KVMHost,KVMDevice,KVMGold,KVMIso,IPPool]:
-        clz.reload()
+        clz.reload(json.loads(utils.file_load(clz.filename)))
