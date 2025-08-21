@@ -14,11 +14,6 @@ class JSONCacheBase:
             cls.cache[:] = [utils.manager.dict(item) for item in json.loads(utils.load(cls.filename))]
 
     @classmethod
-    def save(cls):
-        with cls.lock:
-            utils.save(cls.filename, json.dumps([dict(item) for item in cls.cache]))
-
-    @classmethod
     def list_all(cls, **criteria) -> List[utils.FakeDB]:
         data = cls.cache
         for key, val in criteria.items():
@@ -73,6 +68,11 @@ class IPPool(JSONCacheBase):
     filename = os.path.join(config.DATA_DIR, 'ippool.json')
     cache = utils.manager.list()
     lock = multiprocessing.Lock()
+
+    @classmethod
+    def save(cls):
+        with cls.lock:
+            utils.save(cls.filename, json.dumps([dict(item) for item in cls.cache]))
 
     @classmethod
     def append(cls, cidr: str, gateway: str) -> None:
