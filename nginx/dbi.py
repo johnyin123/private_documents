@@ -76,6 +76,7 @@ def main():
     session.commit()
     results = session.query(VMInfo).all()
     dic = [result._asdict() for result in results]
+    # dic = [u.__dict__ for u in results]
     results = session.query(VMInfo.name).all()
     dic = [result._asdict() for result in results]
     session.close()

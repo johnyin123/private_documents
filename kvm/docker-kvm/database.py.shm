@@ -8,9 +8,9 @@ class JSONCacheBase:
     lock = None
 
     @classmethod
-    def reload(cls, json_obj):
+    def reload(cls, objs):
         with cls.lock:
-            cls.cache[:] = [utils.manager.dict(item) for item in json_obj]
+            cls.cache[:] = [utils.manager.dict(item) for item in objs]
 
     @classmethod
     def list_all(cls, **criteria) -> List[utils.FakeDB]:

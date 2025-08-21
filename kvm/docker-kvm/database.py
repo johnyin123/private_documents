@@ -12,7 +12,7 @@ class DBCacheBase:
     @classmethod
     def reload(cls, objs):
         with cls.lock:
-            cls.cache[:] = [utils.manager.dict(**item._asdict()) for item in objs]
+            cls.cache[:] = [utils.manager.dict(item) for item in objs]
 
     @classmethod
     def list_all(cls, **criteria) -> List[utils.FakeDB]:
@@ -152,4 +152,4 @@ def reload_all():
     # Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
     for clz in [KVMHost,KVMDevice,KVMGold,KVMIso,IPPool]:
-        clz.reload(session.query(clz).all())
+        clz.reload([u.__dict__ for u in session.query(clz).all()])
