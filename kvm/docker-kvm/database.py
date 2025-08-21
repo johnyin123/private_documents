@@ -10,9 +10,9 @@ class DBCacheBase:
     lock = None
 
     @classmethod
-    def reload(cls):
+    def reload(cls, objs):
         with cls.lock:
-            cls.cache[:] = [utils.manager.dict(**item._asdict()) for item in session.query(cls).all()]
+            cls.cache[:] = [utils.manager.dict(**item._asdict()) for item in objs]
 
     @classmethod
     def list_all(cls, **criteria) -> List[utils.FakeDB]:
@@ -151,5 +151,5 @@ def reload_all():
     logger.info(f'database create all tables')
     # Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
-    for clz in [KVMHost,KVMDevice,KVMGold,KVMIso,KVMGuest,IPPool]:
-        clz.reload()
+    for clz in [KVMHost,KVMDevice,KVMGold,KVMIso,IPPool]:
+        clz.reload(session.query(clz).all())
