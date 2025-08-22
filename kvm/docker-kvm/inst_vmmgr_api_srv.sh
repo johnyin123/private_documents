@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("d5d6bfe3[2025-08-19T14:24:45+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("2660e744[2025-08-22T10:44:50+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -119,17 +119,14 @@ inst_app_outdir() {
     local uid="${2}"
     local gid="${3}"
     log "install vmmgr DATA_DIR=${outdir}"
-    install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}
-    install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/cidata
-    install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/token
+    install -v -d -m 0700 --group=${gid} --owner=${uid} ${outdir}
     local dirs=(actions devices domains meta)
     for dn in ${dirs[@]}; do
-        install -v -d -m 0755 --group=${gid} --owner=${uid} ${outdir}/${dn}
+        install -v -d -m 0700 --group=${gid} --owner=${uid} ${outdir}/${dn}
         [ -d "${dn}" ] && {
             for fn in ${dn}/*; do
                 log "install ${fn}"
-                local mode=0644
-                [ "${dn}" == "actions" ] && mode=0755
+                local mode=0600
                 install -v -C -m ${mode} --group=${gid} --owner=${uid} ${fn} ${outdir}/${fn}
             done
         }
