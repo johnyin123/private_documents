@@ -8,7 +8,7 @@ logger.setLevel(level=os.getenv('LOG', 'INFO').upper())
 # DATA_DIR=/home/johnyin/disk/mygit/github_private/kvm/docker-kvm/test/work
 # PREFIX=/home/johnyin/disk/mygit/github_private/kvm/docker-kvm/test/work
 # for f in ${DATA_DIR}/*.json; do
-#   etcdctl put ${PREFIX}/${f##*/} '$(cat ${f})'
+#   cat ${f} |  etcdctl put ${PREFIX}/${f##*/}
 # done
 
 class etcd_task:
