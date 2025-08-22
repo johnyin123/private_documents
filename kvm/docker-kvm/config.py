@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 import os, uuid
 from datetime import datetime
-# # env: DATA_DIR, DATABASE, META_SRV, CTRL_PANEL_SRV, CTRL_PANEL_KEY
+# # env: DATA_DIR, TOKEN_DIR, DATABASE, META_SRV, CTRL_PANEL_SRV, CTRL_PANEL_KEY
 DATA_DIR         = os.environ.get('DATA_DIR', os.path.abspath(os.path.dirname(__file__)))
+# share with websockify process.
+TOKEN_DIR        = os.environ.get('TOKEN_DIR', os.path.join(DATA_DIR, 'token'))
 DATABASE         = os.environ.get('DATABASE', f'sqlite:///{DATA_DIR}/kvm.db?check_same_thread=False')
 # # clout-init: nocloud http://META_SRV, iso https://META_SRV as meta server.
 META_SRV         = os.environ.get('META_SRV', 'vmm.registry.local')
@@ -23,7 +25,6 @@ DIR_ACTION       = os.path.join(DATA_DIR, 'actions') # ROL  # local device actio
 DIR_DEVICE       = os.path.join(DATA_DIR, 'devices') # ROL  # local device template dir
 DIR_DOMAIN       = os.path.join(DATA_DIR, 'domains') # ROL  # local domain template dir
 DIR_META         = os.path.join(DATA_DIR, 'meta')    # ROL  # local cloud-init template dir
-DIR_TOKEN        = os.path.join(DATA_DIR, 'token')   # RWL  # local vnc/spice access token dir
 # os.path.join(config.DATA_DIR, 'vars.json')         # ROS
 # os.path.join(config.DATA_DIR, 'hosts.json')        # ROS
 # os.path.join(config.DATA_DIR, 'devices.json')      # ROS

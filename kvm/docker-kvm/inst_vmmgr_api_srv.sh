@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("f7783a7b[2025-08-19T09:59:41+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("d5d6bfe3[2025-08-19T14:24:45+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -89,6 +89,7 @@ EO_DOC
 #!/usr/bin/env bash
 readonly DIRNAME="\$(readlink -f "\$(dirname "\$0")")"
 outdir=${outdir}
+token_dir="/tmp/token"
 # VENV=/../my_venv/bin/ # last word / !!
 
 for svc in websockify-graph.service jwt-srv.service simple-kvm-srv.service; do
@@ -98,7 +99,7 @@ done
 
 systemd-run --user --unit websockify-graph \\
 --working-directory=\${DIRNAME} \\
-\${VENV:-}websockify --token-plugin TokenFile --token-source \${outdir}/token/ 127.0.0.1:6800
+\${VENV:-}websockify --token-plugin TokenFile --token-source \${token_dir} 127.0.0.1:6800
 
 systemd-run --user --unit jwt-srv \\
 --working-directory=\${DIRNAME} \\
@@ -109,6 +110,7 @@ systemd-run --user --unit jwt-srv \\
 systemd-run --user --unit simple-kvm-srv \\
 --working-directory=\${DIRNAME} \\
 -E DATA_DIR=\${outdir} \\
+-E TOKEN_DIR=\${token_dir} \\
 \${VENV:-}gunicorn -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
 EODOC
 }

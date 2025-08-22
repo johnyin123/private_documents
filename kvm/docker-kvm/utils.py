@@ -106,6 +106,7 @@ def login_name(authorization:str)-> str:
     return decode_jwt(authorization).get('payload', {}).get('username', 'n/a')
 
 def file_save(fname:str, content:str)->None:
+    os.makedirs(os.path.dirname(fname), mode=0o700, exist_ok=True)
     with open(fname, "w") as file:
         file.write(content)
 

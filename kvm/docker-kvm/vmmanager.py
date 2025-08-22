@@ -176,7 +176,7 @@ class VMManager:
                 server = f'unix_socket:{local}'
             else:
                 raise Exception('graphic listen "{listen}" unknown')
-            utils.file_save(os.path.join(config.DIR_TOKEN, uuid), f'{uuid}: {server}')
+            utils.file_save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
             url_map = {'vnc': config.URI_VNC,'spice':config.URI_SPICE}
             return utils.return_ok(proto, uuid=uuid, display=f'{url_map[proto]}?password={item.getAttribute("passwd")}&path={prefix}/vm/websockify', token=f'{uuid}', expire=tmout)
         raise Exception('no graphic found')
@@ -293,7 +293,7 @@ class VMManager:
         utils.ProcList.Run(uuid, socat_cmd)
         local = f'/tmp/.display.{uuid}'
         server = f'unix_socket:{local}'
-        utils.file_save(os.path.join(config.DIR_TOKEN, uuid), f'{uuid}: {server}')
+        utils.file_save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}')
         return utils.return_ok('console', uuid=uuid, display=f'{config.URI_CONSOLE}?password=&path={prefix}/vm/websockify', token=f'{uuid}', expire=tmout)
 
     @staticmethod

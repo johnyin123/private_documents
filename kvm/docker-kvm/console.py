@@ -200,6 +200,6 @@ if __name__ == '__main__':
     if argc != 3:
         print(f'usage: {sys.argv[0]} <url> <uuid>')
         sys.exit(1)
-    print(f'DEBUG:nc -U /tmp/.display.{sys.argv[2]}')
-    main(sys.argv[1], sys.argv[2])
-    print(f'{sys.argv[1]} {sys.argv[2]} exit')
+    logger.info(f'DEBUG:nc -U /tmp/.display.{sys.argv[2]}')
+    logger.info(f'console {sys.argv[1]} {sys.argv[2]}')
+    exit(main(sys.argv[1], sys.argv[2]))
