@@ -105,14 +105,15 @@ def login_name(authorization:str)-> str:
         authorization = authorization.split(' ')[1]
     return decode_jwt(authorization).get('payload', {}).get('username', 'n/a')
 
-def file_save(fname:str, content:str)->None:
-    os.makedirs(os.path.dirname(fname), mode=0o700, exist_ok=True)
-    with open(fname, "w") as file:
-        file.write(content)
-
 def file_load(fname:str)->str:
-    with open(fname, 'r') as file:
+    with open(fname, 'rb') as file:
         return file.read()
+
+def file_save(filename:str, content, mode=0o600)->None:
+    os.makedirs(os.path.dirname(filename), mode=0o700, exist_ok=True)
+    with open(filename, "wb") as f:
+        f.write(content)
+    os.chmod(filename, mode)
 
 def remove_file(fn):
     """Remove file/dir by renaming it with a '.remove' extension."""
