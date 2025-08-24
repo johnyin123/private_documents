@@ -71,7 +71,7 @@ class IPPool(JSONCacheBase):
     @classmethod
     def save(cls):
         with cls.lock:
-            utils.file_save(cls.filename, json.dumps([dict(item) for item in cls.cache]))
+            utils.file_save(cls.filename, json.dumps([dict(item) for item in cls.cache]).encode('utf-8'))
 
     @classmethod
     def append(cls, cidr: str, gateway: str) -> None:
