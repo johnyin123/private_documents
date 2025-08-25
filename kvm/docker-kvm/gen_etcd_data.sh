@@ -30,6 +30,6 @@ done
 # srv=$(python3 -c 'import config; print(config.META_SRV)' || true)
 cat <<'EOF'
 ETCD_PREFIX=/simple-kvm/work ./gen_test.sh /home/johnyin/disk/mygit/github_private/kvm/docker-kvm
-# DATA_DIR=.... TOKEN_DIR=/tmp/token gunicorn 'main:app'
+# DATA_DIR=/dev/shm/simple-kvm/work TOKEN_DIR=/dev/shm/simple-kvm/token gunicorn 'main:app'
 EOF
 
