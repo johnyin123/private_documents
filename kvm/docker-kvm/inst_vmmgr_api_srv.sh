@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("c3d97e79[2025-08-25T14:41:31+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("5754b14a[2025-08-25T15:33:08+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -113,6 +113,7 @@ systemd-run --user --unit jwt-srv \\
 # -E TOKEN_DIR=/dev/shm/simplekvm/token \\
 systemd-run --user --unit simple-kvm-srv \\
 --working-directory=\${DIRNAME} \\
+--property=UMask=0022 \\
 -E DATA_DIR=\${outdir} \\
 -E TOKEN_DIR=\${token_dir} \\
 \${VENV:-}gunicorn -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
