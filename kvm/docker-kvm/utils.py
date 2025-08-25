@@ -110,7 +110,7 @@ def file_load(fname:str)->str:
         return file.read()
 
 def file_save(filename:str, content, mode=0o600)->None:
-    os.makedirs(os.path.dirname(filename), mode=0o700, exist_ok=True)
+    os.makedirs(os.path.dirname(filename), exist_ok=True) # mode=0o700
     with open(filename, "wb") as f:
         f.write(content)
     os.chmod(filename, mode)
