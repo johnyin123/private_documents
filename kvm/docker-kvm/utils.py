@@ -170,7 +170,7 @@ def fname2key(fname:str)->str:
 
 def cfg_initupdate():
     def cfg_updater_proc():
-        with etcd3.client(host='localhost', port=2379) as etcd:
+        with etcd3.client(host=os.environ.get("ETCD_SRV", 'localhost'), port=os.environ.get("ETCD_PORT", 2379), ca_cert=os.environ.get("ETCD_CA"), cert_key=os.environ.get("ETCD_KEY"), cert_cert=os.environ.get("ETCD_CERT")) as etcd:
             _iter, _cancel = etcd.watch_prefix(config.ETCD_PREFIX)
             for event in _iter:
                 try:
@@ -184,7 +184,7 @@ def cfg_initupdate():
                     logger.exception('ETCD WATCH PREFIX')
         logger.exception('ETCD WATCH PREFIX QUIT')
 
-    with etcd3.client(host='localhost', port=2379) as etcd:
+    with etcd3.client(host=os.environ.get("ETCD_SRV", 'localhost'), port=os.environ.get("ETCD_PORT", 2379), ca_cert=os.environ.get("ETCD_CA"), cert_key=os.environ.get("ETCD_KEY"), cert_cert=os.environ.get("ETCD_CERT")) as etcd:
         for value, meta in list(etcd.get_prefix(config.ETCD_PREFIX)):
             fname = key2fname(meta.key.decode('utf-8'), 'ETCD INIT')
             file_save(fname, value)
@@ -194,7 +194,7 @@ def cfg_initupdate():
 def etcd_del(fname:str):
     key = fname2key(fname)
     try:
-        with etcd3.client(host='localhost', port=2379) as etcd:
+        with etcd3.client(host=os.environ.get("ETCD_SRV", 'localhost'), port=os.environ.get("ETCD_PORT", 2379), ca_cert=os.environ.get("ETCD_CA"), cert_key=os.environ.get("ETCD_KEY"), cert_cert=os.environ.get("ETCD_CERT")) as etcd:
             with etcd.lock(f'{key}.lock', ttl=10) as lock:
                 if lock.is_acquired():
                     logger.info(f'ETCD DEL {fname} -> {key}')
@@ -207,7 +207,7 @@ def etcd_del(fname:str):
 def etcd_save(fname:str, val:str):
     key = fname2key(fname)
     try:
-        with etcd3.client(host='localhost', port=2379) as etcd:
+        with etcd3.client(host=os.environ.get("ETCD_SRV", 'localhost'), port=os.environ.get("ETCD_PORT", 2379), ca_cert=os.environ.get("ETCD_CA"), cert_key=os.environ.get("ETCD_KEY"), cert_cert=os.environ.get("ETCD_CERT")) as etcd:
             with etcd.lock(f'{key}.lock', ttl=10) as lock:
                 if lock.is_acquired():
                     logger.info(f'ETCD PUT {fname} -> {key}')
