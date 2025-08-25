@@ -7,8 +7,7 @@ import database, vmmanager, config, template, utils
 logger = logging.getLogger(__name__)
 
 class MyApp(object):
-    VARS_DESC = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'vars.json')))
-
+    VARS_DESC = None
     @staticmethod
     def create():
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
@@ -19,8 +18,9 @@ class MyApp(object):
         conf={'STATIC_FOLDER': config.DATA_DIR, 'STATIC_URL_PATH':'/public'}
         web=flask_app.create_app(conf, json=True)
         web.config['JSON_SORT_KEYS'] = False
-        MyApp().register_routes(web)
         database.reload_all()
+        MyApp().register_routes(web)
+        MyApp.VARS_DESC = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'vars.json')))
         return web
 
     def register_routes(self, app):
