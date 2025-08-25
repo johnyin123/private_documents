@@ -7,7 +7,7 @@ import pycdlib, os, utils, config, template, logging
 logger = logging.getLogger(__name__)
 
 def del_metafiles(uuid):
-    utils.remove_file(os.path.join(config.DIR_CIDATA, uuid))
+    utils.file_remove(os.path.join(config.DIR_CIDATA, uuid))
 
 def gen_metafiles(**kwargs)->None:
     iso = pycdlib.PyCdlib()

@@ -115,7 +115,7 @@ def file_save(filename:str, content, mode=0o600)->None:
         f.write(content)
     os.chmod(filename, mode)
 
-def remove_file(fn):
+def file_remove(fn):
     """Remove file/dir by renaming it with a '.remove' extension."""
     try:
         os.rename(f'{fn}', f'{fn}.remove')
