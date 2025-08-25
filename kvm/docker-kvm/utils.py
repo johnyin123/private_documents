@@ -155,3 +155,65 @@ def read_from_url(url:str)->str:
         return None
 # http_url = "file:///home/johnyin/a.json"
 # http_url = "https://vmm.registry.local/tpl/host/"
+import etcd3, config, database
+def reload_data(fname:str):
+    for clz in [database.KVMHost, database.KVMDevice, database.KVMGold, database.KVMIso, database.IPPool,]:
+        if fname == clz.filename:
+            clz.reload(json.loads(file_load(clz.filename)))
+
+def cfg_updater():
+    def key2fname(key:str, stage:str)->str:
+        fn = os.path.join(config.DATA_DIR, key.removeprefix(config.ETCD_PREFIX).strip('/'))
+        logger.info(f'{stage} {key} -> {fn}')
+        return fn
+
+    with etcd3.client(host='localhost', port=2379) as etcd:
+        for value, meta in list(etcd.get_prefix(config.ETCD_PREFIX)):
+            fname = key2fname(meta.key.decode('utf-8'), 'ETCD INIT')
+            file_save(fname, value)
+            reload_data(fname)
+        _iter, _cancel = etcd.watch_prefix(config.ETCD_PREFIX)
+        for event in _iter:
+            try:
+                if isinstance(event, etcd3.events.PutEvent):
+                    fname = key2fname(event.key.decode('utf-8'), 'ETCD UPDATE')
+                    file_save(fname, event.value)
+                    reload_data(fname)
+                elif isinstance(event, etcd3.events.DeleteEvent):
+                    os.remove(key2fname(event.key.decode('utf-8'), 'ETCD DELETE'))
+            except Exception:
+                logger.exception('ETCD WATCH PREFIX')
+    logger.exception('ETCD WATCH PREFIX QUIT')
+
+def fname2key(fname:str)->str:
+    return os.path.join(config.ETCD_PREFIX, fname.removeprefix(config.DATA_DIR).strip('/'))
+
+def etcd_del(fname:str):
+    key = fname2key(fname)
+    try:
+        with etcd3.client(host='localhost', port=2379) as etcd:
+            with etcd.lock(f'{key}.lock', ttl=10) as lock:
+                if lock.is_acquired():
+                    logger.info(f'ETCD DEL {fname} -> {key}')
+                    etcd.delete_prefix(key)        # etcd.delete(key)
+                else:
+                    logger.info(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
+    except Exception as e :
+        logger.exception(f'ETCD DEL {e} {fname} -> {key}')
+
+def etcd_save(fname:str, val:str):
+    key = fname2key(fname)
+    try:
+        with etcd3.client(host='localhost', port=2379) as etcd:
+            with etcd.lock(f'{key}.lock', ttl=10) as lock:
+                if lock.is_acquired():
+                    logger.info(f'ETCD PUT {fname} -> {key}')
+                    etcd.put(key, val)
+                    #etcd.transaction(
+                    #    compare=[etcd.transactions.value(key) != val],
+                    #    success=[etcd.transactions.put(key, val)],
+                    #    failure=[])
+                else:
+                    logger.info(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
+    except Exception:
+        logger.exception(f'ETCD PUT {fname} -> {key}')

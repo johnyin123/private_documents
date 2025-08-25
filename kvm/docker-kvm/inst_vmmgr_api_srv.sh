@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("2660e744[2025-08-22T10:44:50+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("7625f3dc[2025-08-22T11:04:58+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -106,7 +106,9 @@ systemd-run --user --unit jwt-srv \\
 \${VENV:-}gunicorn -b 127.0.0.1:16000 --preload --workers=2 --threads=2 --access-logformat 'JWT %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'jwt_server:app'
 
 # -E META_SRV=vmm.registry.local \\
+# -E CTRL_PANEL_SRV=guest.registry.local \\
 # -E LEVELS='{"flask_app":"DEBUG","main":"INFO"}' \\
+# -E ETCD_PREFIX=/simple-kvm/work \\
 systemd-run --user --unit simple-kvm-srv \\
 --working-directory=\${DIRNAME} \\
 -E DATA_DIR=\${outdir} \\

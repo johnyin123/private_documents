@@ -3,6 +3,8 @@ import os, uuid
 from datetime import datetime
 # # env: DATA_DIR, TOKEN_DIR, DATABASE, META_SRV, CTRL_PANEL_SRV, CTRL_PANEL_KEY
 DATA_DIR         = os.environ.get('DATA_DIR', os.path.abspath(os.path.dirname(__file__)))
+# use etcd as persistent
+ETCD_PREFIX      = os.environ.get('ETCD_PREFIX', None)
 # share with websockify process.
 TOKEN_DIR        = os.environ.get('TOKEN_DIR', os.path.join(DATA_DIR, 'token'))
 DATABASE         = os.environ.get('DATABASE', f'sqlite:///{DATA_DIR}/kvm.db?check_same_thread=False')
