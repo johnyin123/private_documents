@@ -109,11 +109,10 @@ def file_load(fname:str)->str:
     with open(fname, 'rb') as file:
         return file.read()
 
-def file_save(filename:str, content, mode=0o600)->None:
-    os.makedirs(os.path.dirname(filename), exist_ok=True) # mode=0o700
+def file_save(filename:str, content)->None:
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "wb") as f:
         f.write(content)
-    os.chmod(filename, mode)
 
 def file_remove(fn):
     """Remove file/dir by renaming it with a '.remove' extension."""
