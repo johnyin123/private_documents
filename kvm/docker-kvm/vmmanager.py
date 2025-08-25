@@ -188,7 +188,7 @@ class VMManager:
             dom = conn.lookupByUUIDString(uuid)
             refresh_all_pool(conn)
             domain = LibvirtDomain(dom)
-            database.IPPool.append(domain.mdconfig.get('ipaddr'), domain.mdconfig.get('gateway'))
+            database.IPPool.append(domain.mdconfig.get('vm_ipaddr'), domain.mdconfig.get('vm_gateway'))
             diskinfo = []
             for disk in domain.disks:
                 # cdrom not delete media
