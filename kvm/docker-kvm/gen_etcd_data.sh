@@ -6,6 +6,7 @@ log() { echo "$(tput setaf ${COLOR:-141})$*$(tput sgr0)" >&2; }
 INPUT_DIR=${1:-${DIRNAME}}
 
 ETCD_PREFIX=$(python3 -c 'import config; print(config.ETCD_PREFIX)' || true)
+log "ETCD_PREFIX = ${ETCD_PREFIX}"
 APPDBS=(devices.json golds.json hosts.json iso.json vars.json ippool.json)
 TPLDIRS=(actions devices domains meta)
 for f in ${APPDBS[@]}; do

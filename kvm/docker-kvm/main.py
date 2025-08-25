@@ -18,8 +18,8 @@ class MyApp(object):
         conf={'STATIC_FOLDER': config.DATA_DIR, 'STATIC_URL_PATH':'/public'}
         web=flask_app.create_app(conf, json=True)
         web.config['JSON_SORT_KEYS'] = False
-        database.reload_all()
         MyApp().register_routes(web)
+        database.reload_all()
         MyApp.VARS_DESC = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'vars.json')))
         return web
 
