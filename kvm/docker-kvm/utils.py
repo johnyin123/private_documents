@@ -170,6 +170,7 @@ def fname2key(fname:str)->str:
 
 def cfg_initupdate():
     def cfg_updater_proc():
+        logger.warn(f'ETCD WATCH PREFIX {os.getpid()} START')
         with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT) as etcd:
             _iter, _cancel = etcd.watch_prefix(config.ETCD_PREFIX)
             for event in _iter:
@@ -182,7 +183,7 @@ def cfg_initupdate():
                         os.remove(key2fname(event.key.decode('utf-8'), 'ETCD DELETE'))
                 except Exception:
                     logger.exception('ETCD WATCH PREFIX')
-        logger.exception('ETCD WATCH PREFIX QUIT')
+        logger.exception('ETCD WATCH PREFIX {os.getpid()} QUIT')
 
     with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT) as etcd:
         for value, meta in list(etcd.get_prefix(config.ETCD_PREFIX)):
