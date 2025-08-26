@@ -188,7 +188,6 @@ def cfg_initupdate():
         for value, meta in list(etcd.get_prefix(config.ETCD_PREFIX)):
             fname = key2fname(meta.key.decode('utf-8'), 'ETCD INIT')
             file_save(fname, value)
-            reload_data(fname)
     multiprocessing.Process(target=cfg_updater_proc).start()
 
 def etcd_del(fname:str):

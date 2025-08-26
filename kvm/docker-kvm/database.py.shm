@@ -66,6 +66,5 @@ class KVMGuest(JSONCacheBase):
 def reload_all():
     if config.ETCD_PREFIX:
         utils.cfg_initupdate()
-    else:
-        for clz in [KVMHost,KVMDevice,KVMGold,KVMIso]:
-            clz.reload(json.loads(utils.file_load(clz.filename)))
+    for clz in [KVMHost,KVMDevice,KVMGold,KVMIso]:
+        clz.reload(json.loads(utils.file_load(clz.filename)))
