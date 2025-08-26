@@ -63,44 +63,9 @@ class KVMGuest(JSONCacheBase):
         except Exception as e:
             logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
 
-class IPPool(JSONCacheBase):
-    filename = os.path.join(config.DATA_DIR, 'ippool.json')
-    cache = utils.manager.list()
-    lock = multiprocessing.Lock()
-
-    @classmethod
-    def save(cls):
-        with cls.lock:
-            if config.ETCD_PREFIX:
-                utils.etcd_save(cls.filename, json.dumps([dict(item) for item in cls.cache]).encode('utf-8'))
-            else:
-                utils.file_save(cls.filename, json.dumps([dict(item) for item in cls.cache]).encode('utf-8'))
-
-    @classmethod
-    def append(cls, cidr: str, gateway: str) -> None:
-        if not cidr or not gateway:
-            return
-        with cls.lock:
-            if not utils.search(cls.cache, 'cidr', cidr):
-                cls.cache.append(utils.manager.dict(cidr=cidr, gateway=gateway))
-        cls.save()
-
-    @classmethod
-    def remove(cls, cidr: str) -> None:
-        try:
-            with cls.lock:
-                utils.remove(cls.cache, 'cidr', cidr)
-            cls.save()
-        except Exception as e:
-            logger.exception(f'Failed to remove {cidr}: {e}')
-
-    @classmethod
-    def free_ip(cls) -> Dict:
-        return random.choice(cls.cache)
-
 def reload_all():
     if config.ETCD_PREFIX:
         utils.cfg_initupdate()
     else:
-        for clz in [KVMHost,KVMDevice,KVMGold,KVMIso,IPPool]:
+        for clz in [KVMHost,KVMDevice,KVMGold,KVMIso]:
             clz.reload(json.loads(utils.file_load(clz.filename)))

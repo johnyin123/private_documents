@@ -115,41 +115,9 @@ class KVMGuest(Base, DBCacheBase):
             logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
             session.rollback()
 
-class IPPool(Base, DBCacheBase):
-    __tablename__ = "ippool"
-    cidr = Column(String,nullable=False,unique=True,primary_key=True)
-    gateway = Column(String,nullable=False)
-    ####################################
-    cache = utils.manager.list()
-    lock = multiprocessing.Lock()
-
-    @classmethod
-    def append(cls, cidr: str, gateway: str) -> None:
-        try:
-            session.add(IPPool(cidr=cidr, gateway=gateway))
-            session.commit()
-            cls.reload()
-        except:
-            logger.exception(f'append {cidr} {gateway} PID {os.getpid()} Failed')
-            session.rollback()
-
-    @classmethod
-    def remove(cls, cidr: str) -> None:
-        try:
-            session.query(IPPool).filter_by(cidr=cidr).delete()
-            session.commit()
-            IPPool.reload()
-        except:
-            logger.exception(f'remove {cidr} in PID {os.getpid()} Failed')
-            session.rollback()
-
-    @classmethod
-    def free_ip(cls) -> Dict:
-        return random.choice(cls.cache)
-
 def reload_all():
     logger.info(f'database create all tables')
     # Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
-    for clz in [KVMHost,KVMDevice,KVMGold,KVMIso,IPPool]:
+    for clz in [KVMHost,KVMDevice,KVMGold,KVMIso]:
         clz.reload([u.__dict__ for u in session.query(clz).all()])

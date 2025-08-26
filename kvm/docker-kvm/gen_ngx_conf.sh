@@ -63,7 +63,7 @@ admin_api() {
         # # no cache!! mgr private access
         proxy_cache off;
         expires off;
-        location ~* ^${PRE}/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|console|display|xml|ui|freeip))/(?<others>.*)$ {
+        location ~* ^${PRE}/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|console|display|xml|ui))/(?<others>.*)$ {
             if (\$request_method !~ ^(GET)$) { return 405; }
             # # for server stream output
             proxy_buffering                    off;

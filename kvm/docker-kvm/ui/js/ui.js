@@ -484,11 +484,6 @@ function create_vm(host) {
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
   const objs = Object.keys(getFormJSON(form, false));
   set_help(form, cpWithoutKeys(getHost(host).vars, objs));
-  getjson('GET', `${uri_pre}/vm/freeip/`, function(resp) {
-    const ips = JSON.parse(resp);
-    document.getElementById('vm_ip').value = ips.cidr;
-    document.getElementById('vm_gw').value = ips.gateway;
-  });
 }
 function on_add(form) {
   function getLastLine(str) {

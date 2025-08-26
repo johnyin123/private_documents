@@ -50,7 +50,6 @@ hosts.json              : kvm hosts with domains template
 devices.json            : host device mapping
 iso.json                : ISO disks
 vars.json               : tpl vars desc
-ippool.json             : ipaddr pool
 ##########################################################################
 <source protocol="https" name="url_path">
   <host name="hostname" port="443"/>
@@ -166,7 +165,6 @@ echo 'update all guests dbtable' && {
 }
 echo 'list all guests in database' && curl -k ${srv}/vm/list/
 echo 'get vm xml" && curl -k ${srv}/vm/xml/${host}/${uuid}
-echo 'get freeip" && curl -k ${srv}/vm/freeip/
 epoch=$(date -d "+$((10*24*3600)) second" +%s) #10 days
 echo 'get tenant vm mgr page/token/expire' curl -k ${srv}/vm/ui/${host}/${uuid}?epoch=${epoch}
 echo 'get vmip' && curl -k ${srv}/vm/ipaddr/${host}/${uuid}

@@ -32,7 +32,6 @@ class MyApp(object):
         app.add_url_rule('/tpl/device/<string:hostname>', view_func=self.db_list_device, methods=['GET'])
         ## start db oper guest ##
         app.add_url_rule('/vm/list/', view_func=self.db_list_domains, methods=['GET'])
-        app.add_url_rule('/vm/freeip/',view_func=self.db_freeip, methods=['GET'])
         ## end db oper guest ##
         app.add_url_rule('/vm/<string:cmd>/<string:hostname>', view_func=self.exec_domain_cmd, methods=['GET', 'POST'])
         app.add_url_rule('/vm/<string:cmd>/<string:hostname>/<string:uuid>', view_func=self.exec_domain_cmd, methods=['GET', 'POST'])
@@ -78,12 +77,6 @@ class MyApp(object):
             return utils.return_ok(f'db_list_domains ok', guest=sorted([result._asdict() for result in database.KVMGuest.list_all()], key=lambda x : x['kvmhost']))
         except Exception as e:
             return utils.deal_except(f'db_list_domains', e), 400
-
-    def db_freeip(self):
-        try:
-            return utils.return_ok(f'db_freeip ok', **database.IPPool.free_ip())
-        except Exception as e:
-            return utils.return_ok(f'db_freeip ok', **{"cidr":"","gateway":""})
 
     def exec_domain_cmd(self, cmd:str, hostname:str, uuid:str = None):
         dom_cmds = {

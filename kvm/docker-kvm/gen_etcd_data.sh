@@ -3,11 +3,15 @@ set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 log() { echo "$(tput setaf ${COLOR:-141})$*$(tput sgr0)" >&2; }
 
-INPUT_DIR=${1:-${DIRNAME}}
+INPUT_DIR=${1:?$(echo "input source config dirname, ETCD_PREFIX=/simple-kvm/work $0 <dir>"; exit 1;)}
 
 ETCD_PREFIX=$(python3 -c 'import config; print(config.ETCD_PREFIX)' || true)
+if [ "${ETCD_PREFIX}" == "None" ]; then
+    log "ETCD_PREFIX = ${ETCD_PREFIX} quit"
+    exit 1
+fi
 log "ETCD_PREFIX = ${ETCD_PREFIX}"
-APPDBS=(devices.json golds.json hosts.json iso.json vars.json ippool.json)
+APPDBS=(devices.json golds.json hosts.json iso.json vars.json)
 TPLDIRS=(actions devices domains meta)
 for f in ${APPDBS[@]}; do
   key="${ETCD_PREFIX}/${f}"
