@@ -33,6 +33,16 @@ done
 
 # srv=$(python3 -c 'import config; print(config.META_SRV)' || true)
 cat <<'EOF'
+# # dump all
+ETCD_PREFIX=/simple-kvm/work
+OUTPUT='./'
+for key in $(etcdctl get --prefix "${ETCD_PREFIX}" --keys-only); do
+    dir=$(dirname "${OUTPUT}/$key")
+    echo "$key -> $dir"
+    mkdir -p "${dir}"
+    etcdctl get -w json "${key}" | jq -r '.kvs[0].value' | base64 -d > "${OUTPUT}/${key}"
+done
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ETCD_PREFIX=/simple-kvm/work ./gen_test.sh /home/johnyin/disk/mygit/github_private/kvm/docker-kvm
 # DATA_DIR=/dev/shm/simple-kvm/work TOKEN_DIR=/dev/shm/simple-kvm/token gunicorn 'main:app'
 EOF
