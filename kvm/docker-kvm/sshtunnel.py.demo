@@ -679,3 +679,16 @@ prev_time = dom.getCPUStats(True)[0]['cpu_time']
 new_dom = dom.migrate(dest_conn, libvirt.VIR_MIGRATE_LIVE | libvirt.VIR_MIGRATE_PERSIST_DEST, None, None, 0)
 dest_conn.close()
 conn.close()
+
+import ssl
+from urllib.request import urlopen
+def read_from_url(url:str)->str:
+    try:
+        unverified_context = ssl._create_unverified_context()
+        with urlopen(url, context=unverified_context) as response:
+            return response.read().decode('utf-8')
+    except:
+        logger.exception('read_from_url')
+        return None
+# http_url = "file:///home/johnyin/a.json"
+# http_url = "https://vmm.registry.local/tpl/host/"

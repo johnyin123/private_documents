@@ -115,7 +115,6 @@ def file_save(filename:str, content)->None:
         f.write(content)
 
 def file_remove(fn):
-    """Remove file/dir by renaming it with a '.remove' extension."""
     try:
         os.rename(f'{fn}', f'{fn}.remove')
     except Exception:
@@ -142,18 +141,6 @@ def secure_link(kvmhost, uuid, mykey, minutes):
     # epoch=round(datetime.datetime.now().timestamp() + minutes*60)
     # dt = datetime.datetime.fromtimestamp(epoch)
 
-import ssl
-from urllib.request import urlopen
-def read_from_url(url:str)->str:
-    try:
-        unverified_context = ssl._create_unverified_context()
-        with urlopen(url, context=unverified_context) as response:
-            return response.read().decode('utf-8')
-    except:
-        logger.exception('read_from_url')
-        return None
-# http_url = "file:///home/johnyin/a.json"
-# http_url = "https://vmm.registry.local/tpl/host/"
 import etcd3, config
 def key2fname(key:str, stage:str)->str:
     fn = os.path.join(config.DATA_DIR, key.removeprefix(config.ETCD_PREFIX).strip('/'))
@@ -207,10 +194,6 @@ def etcd_save(fname:str, val:str):
                 if lock.is_acquired():
                     logger.info(f'ETCD PUT {fname} -> {key}')
                     etcd.put(key, val)
-                    #etcd.transaction(
-                    #    compare=[etcd.transactions.value(key) != val],
-                    #    success=[etcd.transactions.put(key, val)],
-                    #    failure=[])
                 else:
                     logger.info(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
     except Exception:
