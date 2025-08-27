@@ -18,7 +18,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 # # {{ var | default("myval", true) }} # undefined, false, None, or an empty string return myval
 # python3 -m venv --system-site-packages my_venv
-# pip install websockify gunicorn Flask pycdlib # SQLAlchemy
+# pip install websockify gunicorn Flask pycdlib # SQLAlchemy # etcd3
 # grep -o '{{[^{}]*}}' meta/* devices/* domains/* | sed 's/\s*|\s*.*}}/ }}/g' | sed 's/.*:{{/{{/g' | sort | uniq | sed 's/\s//g'
 create_vm:
     vm_hostname : default vmsrv
