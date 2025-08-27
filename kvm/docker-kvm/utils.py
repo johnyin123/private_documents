@@ -166,10 +166,8 @@ def cfg_initupdate(update_callback):
                             logger.warn(f'ETCD WATCH PREFIX BYPASS callback={update_callback} {event}')
             except etcd3.exceptions.ConnectionFailedError:
                 logger.error('ETCD WATCH PREFIX ConnectionFailed')
-            except Exception:
-                logger.exception('ETCD WATCH PREFIX')
-            logger.warn(f'ETCD WATCH PREFIX {os.getpid()} QUIT, 10s RESTART')
-            time.sleep(10) # Wait before retrying
+            logger.warn(f'ETCD WATCH PREFIX {os.getpid()} QUIT, 60s RESTART')
+            time.sleep(60) # Wait before retrying
 
     with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT) as etcd:
         for value, meta in list(etcd.get_prefix(config.ETCD_PREFIX)):
