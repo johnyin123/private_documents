@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("8dc81a80[2025-08-26T08:36:59+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("e45d2267[2025-08-26T09:32:26+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -109,6 +109,10 @@ systemd-run --user --unit jwt-srv \\
 # -E CTRL_PANEL_SRV=guest.registry.local \\
 # -E LEVELS='{"flask_app":"DEBUG","main":"INFO"}' \\
 # -E ETCD_PREFIX=/simple-kvm/work \\
+# -E ETCD_SRV=etcd-server \\
+# -E ETCD_CA=ca.pem \\
+# -E ETCD_KEY=etcd-cli.key \\
+# -E ETCD_CERT=etcd-cli.pem \\
 # -E DATA_DIR=/dev/shm/simple-kvm/work \\
 # -E TOKEN_DIR=/dev/shm/simple-kvm/token \\
 systemd-run --user --unit simple-kvm-srv \\
