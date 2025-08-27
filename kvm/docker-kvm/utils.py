@@ -154,12 +154,7 @@ def read_from_url(url:str)->str:
         return None
 # http_url = "file:///home/johnyin/a.json"
 # http_url = "https://vmm.registry.local/tpl/host/"
-import etcd3, config, database
-def reload_data(fname:str):
-    for clz in [database.KVMHost, database.KVMDevice, database.KVMGold, database.KVMIso,]:
-        if fname == clz.filename:
-            clz.reload(json.loads(file_load(clz.filename)))
-
+import etcd3, config
 def key2fname(key:str, stage:str)->str:
     fn = os.path.join(config.DATA_DIR, key.removeprefix(config.ETCD_PREFIX).strip('/'))
     logger.info(f'{stage} {key} -> {fn}')
@@ -168,19 +163,19 @@ def key2fname(key:str, stage:str)->str:
 def fname2key(fname:str)->str:
     return os.path.join(config.ETCD_PREFIX, fname.removeprefix(config.DATA_DIR).strip('/'))
 
-def cfg_initupdate():
-    def cfg_updater_proc():
+def cfg_initupdate(update_callback):
+    def cfg_updater_proc(update_callback):
         logger.warn(f'ETCD WATCH PREFIX {os.getpid()} START')
         with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT) as etcd:
             _iter, _cancel = etcd.watch_prefix(config.ETCD_PREFIX)
             for event in _iter:
                 try:
-                    if isinstance(event, etcd3.events.PutEvent):
-                        fname = key2fname(event.key.decode('utf-8'), 'ETCD UPDATE')
-                        file_save(fname, event.value)
-                        reload_data(fname)
-                    elif isinstance(event, etcd3.events.DeleteEvent):
-                        os.remove(key2fname(event.key.decode('utf-8'), 'ETCD DELETE'))
+                    if isinstance(event, etcd3.events.PutEvent) and update_callback:
+                        update_callback(key2fname(event.key.decode('utf-8'), 'ETCD UPDATE'), event.value)
+                    elif isinstance(event, etcd3.events.DeleteEvent) and update_callback:
+                        update_callback(key2fname(event.key.decode('utf-8'), 'ETCD DELETE'), None)
+                    else:
+                        logger.warn(f'ETCD WATCH PREFIX callback= {update_callback} {event}')
                 except Exception:
                     logger.exception('ETCD WATCH PREFIX')
         logger.exception('ETCD WATCH PREFIX {os.getpid()} QUIT')
@@ -189,7 +184,7 @@ def cfg_initupdate():
         for value, meta in list(etcd.get_prefix(config.ETCD_PREFIX)):
             fname = key2fname(meta.key.decode('utf-8'), 'ETCD INIT')
             file_save(fname, value)
-    multiprocessing.Process(target=cfg_updater_proc).start()
+    multiprocessing.Process(target=cfg_updater_proc, args=(update_callback,)).start()
 
 def etcd_del(fname:str):
     key = fname2key(fname)

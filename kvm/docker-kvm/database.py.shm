@@ -63,8 +63,19 @@ class KVMGuest(JSONCacheBase):
         except Exception as e:
             logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
 
+def updater_cb(fname:str, content):
+    if content:
+        logger.info(f'Update {fname} from etcd')
+        utils.file_save(fname, content)
+        for clz in [KVMHost, KVMDevice, KVMGold, KVMIso,]:
+            if fname == clz.filename:
+                clz.reload(json.loads(content.decode('utf-8')))
+    else:
+        logger.info(f'Delete {fname} from etcd')
+        os.remove(fname)
+
 def reload_all():
     if config.ETCD_PREFIX:
-        utils.cfg_initupdate()
+        utils.cfg_initupdate(updater_cb)
     for clz in [KVMHost,KVMDevice,KVMGold,KVMIso]:
         clz.reload(json.loads(utils.file_load(clz.filename)))
