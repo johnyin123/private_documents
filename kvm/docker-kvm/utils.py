@@ -162,7 +162,7 @@ def cfg_initupdate(update_callback):
                     elif isinstance(event, etcd3.events.DeleteEvent) and update_callback:
                         update_callback(key2fname(event.key.decode('utf-8'), 'ETCD DELETE'), None)
                     else:
-                        logger.warn(f'ETCD WATCH PREFIX callback= {update_callback} {event}')
+                        logger.warn(f'ETCD WATCH PREFIX BYPASS callback={update_callback} {event}')
                 except Exception:
                     logger.exception('ETCD WATCH PREFIX')
         logger.exception('ETCD WATCH PREFIX {os.getpid()} QUIT')
