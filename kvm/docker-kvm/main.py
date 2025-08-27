@@ -38,7 +38,7 @@ class MyApp(object):
 
     def db_list_host(self):
         try:
-            keys = ['sshport', 'sshuser', 'tpl']
+            keys = ['sshport', 'sshuser', 'tpl', 'url']
             hosts = [dic._asdict() for dic in database.KVMHost.list_all()]
             for host in hosts:
                 varset = template.get_variables(config.DIR_DOMAIN, host['tpl'])
