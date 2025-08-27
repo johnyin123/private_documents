@@ -164,6 +164,8 @@ app=MyApp.create()
 # # pip install flask ldap3 pyjwt[crypto]
 # # gunicorn -b 127.0.0.1:16000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'jwt_server:app'
 '''
+openssl rsa -in srv.key -pubout -out /etc/nginx/pubkey.pem
+
 CAPTCHA_SRV=http://localhost:5000
 JWT_SRV=http://localhost:16000
 
