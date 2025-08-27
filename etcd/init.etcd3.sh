@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
 # nodes=(node1 node2 node3)
-nodes=("${@:?$(echo "CA=<ca> KEY=<key> CERT=<cert> $0 node1 ..."; exit 1;)}")
+nodes=("${@:?$(echo "<CMD=1> CA=<ca> KEY=<key> CERT=<cert> $0 node1 ..."; exit 1;)}")
 cert_ca="${CA:-}"
 cert_key="${KEY:-}"
 cert_cert="${CERT:-}"
@@ -18,9 +18,13 @@ for n in ${nodes[@]}; do
 done
 initial_cluster="${initial_cluster%?}"
 
+[ -z "${CMD:-}" ] && {
+    exec > >(${CMD:-sed -e 's/[a-z\-]*=/\U&/' -e 's/\s*--/ETCD_/' -e 's/-/_/' -e 's/\\//'})
+}
 for n in ${nodes[@]}; do
-    cat <<EOF
-etcd \\
+   log "# ==[${n}]==================================="
+   [ -z "${CMD:-}" ] || echo 'etcd \'
+   cat <<EOF
     --name=${n} \\
     --data-dir=${data_dir} \\
     --advertise-client-urls=${protocol}://${n}:2379 \\
@@ -43,5 +47,4 @@ EOF
     cat <<EOF
     ${initial_cluster}
 EOF
-log '# ========================================='
 done
