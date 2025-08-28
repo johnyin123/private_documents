@@ -1,3 +1,4 @@
+4000 vm usage etcd 251M
 # pip install flask_profiler
 # http://127.0.0.1:5009/flask-profiler
 # # import flask_profiler

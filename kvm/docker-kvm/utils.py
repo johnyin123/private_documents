@@ -142,7 +142,7 @@ def secure_link(kvmhost, uuid, mykey, minutes):
     # dt = datetime.datetime.fromtimestamp(epoch)
 
 import etcd3, config
-grpc_opts = [ ('grpc.max_receive_message_length', 256*1024*1024), ('grpc.max_send_message_length', 10*1024*1024), ]
+grpc_opts = [ ('grpc.max_receive_message_length', 32*1024*1024), ('grpc.max_send_message_length', 10*1024*1024), ]
 def key2fname(key:str, stage:str)->str:
     fn = os.path.join(config.DATA_DIR, key.removeprefix(config.ETCD_PREFIX).strip('/'))
     logger.info(f'{stage} {key} -> {fn}')
