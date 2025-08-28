@@ -23,6 +23,6 @@ def gen_metafiles(**kwargs)->None:
     # iso.write(os.path.join(output, 'cidata.iso'))
     outiso = BytesIO()
     iso.write_fp(outiso)
-    logger.info(f'Add meta {uuid}')
+    logger.info(f'Add meta {{kwargs["vm_uuid"]}}')
     meta_add(os.path.join(output, 'cidata.iso'), outiso.getvalue())
     iso.close()

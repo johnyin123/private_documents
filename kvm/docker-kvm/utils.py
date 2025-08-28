@@ -142,6 +142,7 @@ def secure_link(kvmhost, uuid, mykey, minutes):
     # dt = datetime.datetime.fromtimestamp(epoch)
 
 import etcd3, config
+grpc_opts = [ ('grpc.max_receive_message_length', 1073741824), ('grpc.max_send_message_length', 104857600), ]
 def key2fname(key:str, stage:str)->str:
     fn = os.path.join(config.DATA_DIR, key.removeprefix(config.ETCD_PREFIX).strip('/'))
     logger.info(f'{stage} {key} -> {fn}')
@@ -155,7 +156,7 @@ def cfg_initupdate(update_callback):
         while True:
             logger.warn(f'ETCD WATCH PREFIX {os.getpid()} START')
             try:
-                with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT) as etcd:
+                with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=grpc_opts) as etcd:
                     _iter, _cancel = etcd.watch_prefix(config.ETCD_PREFIX)
                     for event in _iter:
                         if isinstance(event, etcd3.events.PutEvent) and update_callback:
@@ -169,16 +170,18 @@ def cfg_initupdate(update_callback):
             logger.warn(f'ETCD WATCH PREFIX {os.getpid()} QUIT, 60s RESTART')
             time.sleep(60) # Wait before retrying
 
-    with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT) as etcd:
+    with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=grpc_opts) as etcd:
+        logger.warn('ETCD INIT SYNC START')
         for value, meta in list(etcd.get_prefix(config.ETCD_PREFIX)):
             fname = key2fname(meta.key.decode('utf-8'), 'ETCD INIT')
             file_save(fname, value)
+        logger.warn('ETCD INIT SYNC END')
     multiprocessing.Process(target=cfg_updater_proc, args=(update_callback,)).start()
 
 def etcd_del(fname:str):
     key = fname2key(fname)
     try:
-        with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT) as etcd:
+        with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=grpc_opts) as etcd:
             with etcd.lock(f'/locks/{key}', ttl=10) as lock:
                 if lock.is_acquired():
                     logger.info(f'ETCD DEL {fname} -> {key}')
@@ -193,7 +196,7 @@ def etcd_del(fname:str):
 def etcd_save(fname:str, val:str):
     key = fname2key(fname)
     try:
-        with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT) as etcd:
+        with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=grpc_opts) as etcd:
             with etcd.lock(f'/locks/{key}', ttl=10) as lock:
                 if lock.is_acquired():
                     logger.info(f'ETCD PUT {fname} -> {key}')
