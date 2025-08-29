@@ -14,12 +14,12 @@ def del_metafiles(uuid):
 
 def gen_metafiles(**kwargs)->None:
     iso = pycdlib.PyCdlib()
-    iso.new(interchange_level=4, vol_ident='cidata')
+    iso.new(interchange_level=4, app_ident_str='simple-kvm by johnyin', joliet=3, vol_ident='cidata')
     output = os.path.join(config.DIR_CIDATA, f'{kwargs["vm_uuid"]}')
     for file in [fn for fn in os.listdir(config.DIR_META) if fn.endswith('.tpl')]:
         meta_str = template.MetaDataTemplate(file).render(**kwargs)
         meta_add(os.path.join(output, file.removesuffix(".tpl")), meta_str.encode('utf-8'))
-        iso.add_fp(BytesIO(bytes(meta_str,'ascii')), len(meta_str), f'/{file.removesuffix(".tpl")}')
+        iso.add_fp(BytesIO(bytes(meta_str,'ascii')), len(meta_str), joliet_path=f'/{file.removesuffix(".tpl")}')
     # iso.write(os.path.join(output, 'cidata.iso'))
     outiso = BytesIO()
     iso.write_fp(outiso)
