@@ -15,7 +15,7 @@ class KVMTemplate:
     def __init__(self, dirname, filename):
         self.template = jinja2.Environment(loader=jinja2.FileSystemLoader(dirname)).get_template(filename)
 
-    def gen_xml(self, **kwargs):
+    def render(self, **kwargs):
         kwargs['META_SRV'] = config.META_SRV
         logger.debug(f'{kwargs!r}')
         return self.template.render(**kwargs)
@@ -27,7 +27,7 @@ class DeviceTemplate(KVMTemplate):
 
     def bus_type(self, **kwargs):
         if self.devtype in ['disk', 'iso']:
-            p = xml.dom.minidom.parseString(self.gen_xml(**kwargs))
+            p = xml.dom.minidom.parseString(self.render(**kwargs))
             return p.getElementsByTagName('target')[0].getAttribute('bus')
         return None
 

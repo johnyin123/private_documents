@@ -117,7 +117,7 @@ def refresh_all_pool(conn:libvirt.virConnect)-> None:
             logger.exception(f"Failed refresh pool {pool.name()}")
 
 def change_media(dev:str, isofile:str, bus:str)->str:
-    disk = xml.dom.minidom.parseString(template.DeviceTemplate(config.CDROM_TPL,'iso').gen_xml())
+    disk = xml.dom.minidom.parseString(template.DeviceTemplate(config.CDROM_TPL,'iso').render())
     for it in disk.getElementsByTagName('source'):
         it.setAttribute('name', isofile)
     for it in disk.getElementsByTagName('target'):
@@ -247,7 +247,7 @@ class VMManager:
                     yield line
             with utils.connect(host.url) as conn:
                 dom = conn.lookupByUUIDString(uuid)
-                dom.attachDeviceFlags(tpl.gen_xml(**req_json), dom_flags(LibvirtDomain(dom).state))
+                dom.attachDeviceFlags(tpl.render(**req_json), dom_flags(LibvirtDomain(dom).state))
             yield utils.return_ok(f'attach {dev} device ok, if live attach, maybe need reboot', uuid=uuid)
         except Exception as e:
             yield utils.deal_except(f'attach {dev} device', e)
@@ -263,7 +263,7 @@ class VMManager:
                 conn.lookupByUUIDString(req_json['vm_uuid'])
                 return return_err(400, f'create', f'Domain {req_json["vm_uuid"]} already exists')
             except libvirt.libvirtError:
-                conn.defineXML(template.DomainTemplate(host.tpl).gen_xml(**req_json))
+                conn.defineXML(template.DomainTemplate(host.tpl).render(**req_json))
         meta.gen_metafiles(**req_json)
         return utils.return_ok(f"create vm on {host.name} ok", uuid=req_json['vm_uuid'])
 
