@@ -190,9 +190,9 @@ def cfg_initupdate(update_callback):
                     _iter, _ = etcd.watch_prefix(config.ETCD_PREFIX)
                     for event in _iter:
                         if isinstance(event, etcd3.events.PutEvent) and update_callback:
-                            update_callback(key2fname(event.key.decode('utf-8'), 'ETCD UPDATE'), event.value)
+                            update_callback(key2fname(event.key.decode('utf-8'), 'ETCD WATCH PREFIX UPDATE'), event.value)
                         elif isinstance(event, etcd3.events.DeleteEvent) and update_callback:
-                            update_callback(key2fname(event.key.decode('utf-8'), 'ETCD DELETE'), None)
+                            update_callback(key2fname(event.key.decode('utf-8'), 'ETCD WATCH PREFIX DELETE'), None)
                         else:
                             logger.warn(f'ETCD WATCH PREFIX BYPASS callback={update_callback} {event}')
             except etcd3.exceptions.ConnectionFailedError:
