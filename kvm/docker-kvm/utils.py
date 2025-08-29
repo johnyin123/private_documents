@@ -201,10 +201,10 @@ def cfg_initupdate(update_callback):
             time.sleep(60) # Wait before retrying
 
     with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=grpc_opts) as etcd:
-        logger.warn('ETCD INIT SYNC START')
+        logger.warn(f'ETCD INIT SYNC START {datetime.datetime.now().isoformat()}')
         for _, meta in etcd.get_prefix(config.ETCD_PREFIX, keys_only=True):
             fname = key2fname(meta.key.decode('utf-8'), 'ETCD INIT')
             value, _ = etcd.get(meta.key)
             file_save(fname, value)
-        logger.warn('ETCD INIT SYNC END')
+        logger.warn(f'ETCD INIT SYNC END {datetime.datetime.now().isoformat()}')
     multiprocessing.Process(target=cfg_updater_proc, args=(update_callback,)).start()
