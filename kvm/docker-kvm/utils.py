@@ -29,26 +29,26 @@ def connect(uri: str)-> Generator:
             conn.close()
 
 class ProcList:
-    pids = manager.list()
+    pids = manager.dict()
     lock = multiprocessing.Lock()
 
     @staticmethod
     def wait_proc(uuid:str, cmd:List, redirect:bool = True, req_json: dict = {}, **kwargs)-> Generator:
         pid = 0
         try:
+            with ProcList.lock:
+                p = ProcList.pids.get(uuid, None)
+                if p:
+                    logger.info(f'PROC: {p} found, kill!!')
+                    try:
+                        os.kill(p, signal.SIGTERM)
+                    except:
+                        logger.exception('PROC KILL')
             output = subprocess.STDOUT if redirect else subprocess.PIPE
             with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
                 pid = proc.pid
-                with ProcList.lock:
-                    for p in search(ProcList.pids, 'uuid', uuid):
-                        logger.info(f'PROC: {p} found, kill!!')
-                        try:
-                            os.kill(p['pid'], signal.SIGTERM)
-                        except:
-                            logger.exception('PROC')
-                        remove(ProcList.pids, 'pid', p['pid'])
-                    logger.info(f'PROC: {uuid} PID={pid} {cmd} start')
-                    append(ProcList.pids, manager.dict(uuid=uuid, pid=pid))
+                ProcList.pids[uuid] = pid
+                logger.info(f'PROC: {uuid} PID={pid} {cmd} start')
                 json.dump(req_json, proc.stdin, indent=4) # proc.stdin.write(req_json)
                 proc.stdin.close()
                 for line in proc.stdout:
@@ -60,7 +60,7 @@ class ProcList:
         finally:
             logger.info(f'PROC: {uuid} PID={pid} exit!!!')
             with ProcList.lock:
-                remove(ProcList.pids, 'pid', pid)
+                ProcList.pids.pop(uuid, "Not found")
 
     @staticmethod
     def Run(uuid:str, cmd:List)->None:
