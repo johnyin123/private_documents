@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("e45d2267[2025-08-26T09:32:26+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("52f5471c[2025-08-27T10:54:53+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -93,6 +93,7 @@ token_dir="/tmp/token"
 # VENV=/../my_venv/bin/ # last word / !!
 
 for svc in websockify-graph.service jwt-srv.service simple-kvm-srv.service; do
+    systemctl --user show \${svc} -p MemoryCurrent
     systemctl --user stop         \${svc} 2>/dev/null || true
     systemctl --user reset-failed \${svc} 2>/dev/null || true
 done
