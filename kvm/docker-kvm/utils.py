@@ -48,7 +48,7 @@ class ProcList:
             with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
                 pid = proc.pid
                 ProcList.pids[uuid] = pid
-                logger.info(f'PROC: {uuid} PID={pid} {cmd} start')
+                logger.info(f'PROC: {uuid} PID={pid} [{" ".join(cmd)}] start')
                 json.dump(req_json, proc.stdin, indent=4) # proc.stdin.write(req_json)
                 proc.stdin.close()
                 for line in proc.stdout:
@@ -56,7 +56,7 @@ class ProcList:
                 proc.wait()
                 if proc.returncode != 0:
                     msg = ''.join(proc.stderr if not redirect else [])
-                    raise Exception(f"execute {cmd} error={proc.returncode} {msg}")
+                    raise Exception(f"PROC: PID={pid} [{" ".join(cmd)}] error={proc.returncode} {msg}")
         finally:
             logger.info(f'PROC: {uuid} PID={pid} exit!!!')
             with ProcList.lock:
