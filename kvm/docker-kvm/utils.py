@@ -158,7 +158,7 @@ def etcd_del(fname:str):
             with etcd.lock(f'/locks/{key}', ttl=10) as lock:
                 if lock.is_acquired():
                     cnt = etcd.delete_prefix(key)        # etcd.delete(key)
-                    logger.info(f'ETCD DEL(${cng}) {fname} -> {key}')
+                    logger.info(f'ETCD DEL({cnt.deleted}) {fname} -> {key}')
                 else:
                     logger.info(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
     except etcd3.exceptions.LockTimeoutError:
@@ -172,8 +172,8 @@ def etcd_save(fname:str, val:str):
         with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=grpc_opts) as etcd:
             with etcd.lock(f'/locks/{key}', ttl=10) as lock:
                 if lock.is_acquired():
-                    cnt = etcd.put(key, val)
-                    logger.info(f'ETCD PUT({cnt}) {fname} -> {key}')
+                    logger.info(f'ETCD PUT {fname} -> {key}')
+                    etcd.put(key, val)
                 else:
                     logger.info(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
     except etcd3.exceptions.LockTimeoutError:
