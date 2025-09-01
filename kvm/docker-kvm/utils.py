@@ -145,10 +145,10 @@ def file_remove(fn):
         pass
 
 def return_ok(desc:str, **kwargs)->str:
-    return json.dumps({'result':'OK','desc':desc, **kwargs})
+    return json.dumps({'result':'OK','desc':desc, **kwargs}, default=str)
 
 def return_err(code:int, name:str, desc:str)->str:
-    return json.dumps({'result' : 'ERR', 'code': code,'name':name,'desc':desc})
+    return json.dumps({'result' : 'ERR', 'code': code,'name':name,'desc':desc}, default=str)
 
 def deal_except(who:str, e:Exception) -> str:
     if isinstance(e, libvirt.libvirtError):

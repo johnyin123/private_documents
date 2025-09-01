@@ -37,7 +37,7 @@ class MyApp(object):
 
     def db_list_host(self):
         try:
-            keys = ['sshport', 'sshuser', 'tpl', 'url', 'last_modified']
+            keys = ['sshport', 'sshuser', 'tpl', 'url']
             hosts = [dic._asdict() for dic in database.KVMHost.list_all()]
             for host in hosts:
                 varset = template.get_variables(config.DIR_DOMAIN, host['tpl'])
@@ -54,20 +54,20 @@ class MyApp(object):
             devices = [dic._asdict() for dic in database.KVMDevice.list_all(**args)]
             for dev in devices:
                 dev['vars'] = {k: self.VARS_DESC.get(k,'n/a') for k in template.get_variables(config.DIR_DEVICE, dev['tpl'])}
-            return utils.return_ok(f'db_list_device ok', device=utils.getlist_without_key(devices, *['tpl', 'action', 'last_modified']))
+            return utils.return_ok(f'db_list_device ok', device=utils.getlist_without_key(devices, *['tpl', 'action']))
         except Exception as e:
             return utils.deal_except(f'db_list_device', e), 400
 
     def db_list_iso(self):
         try:
-            return utils.return_ok(f'db_list_iso ok', iso=utils.getlist_without_key([result._asdict() for result in database.KVMIso.list_all()], *['uri', 'last_modified']))
+            return utils.return_ok(f'db_list_iso ok', iso=utils.getlist_without_key([result._asdict() for result in database.KVMIso.list_all()], *['uri']))
         except Exception as e:
             return utils.deal_except(f'db_list_iso', e), 400
 
     def db_list_gold(self, arch:str = None):
         try:
             args = {'arch': arch} if arch else {}
-            return utils.return_ok(f'db_list_gold ok', gold=utils.getlist_without_key([result._asdict() for result in database.KVMGold.list_all(**args)], *['tpl', 'last_modified']))
+            return utils.return_ok(f'db_list_gold ok', gold=utils.getlist_without_key([result._asdict() for result in database.KVMGold.list_all(**args)], *['tpl']))
         except Exception as e:
             return utils.deal_except(f'db_list_gold', e), 400
 
