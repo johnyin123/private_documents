@@ -17,7 +17,7 @@ echo "need jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open)" # libvirt-clie
 apt -y --no-install-recommends install jq openssh-client socat qemu-utils qemu-block-extra supervisor python3 python3-venv
 apt -y --no-install-recommends install websockify python3-websockify \
     python3-flask python3-pycdlib python3-libvirt \
-    gunicorn python3-gunicorn python3-sqlalchemy
+    gunicorn python3-gunicorn python3-etcd3 #python3-sqlalchemy
     rm -fr /etc/pki && ln -s /home/${username}/pki /etc/pki
 EODOC
     mkdir -p ${type}-${arch}/docker/etc && cat <<EODOC > ${type}-${arch}/docker/etc/supervisord.conf
