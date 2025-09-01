@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
-from contextlib import contextmanager
-import libvirt, json, os, logging, base64, hashlib, datetime
+import libvirt, json, os, logging, base64, hashlib, datetime, contextlib
 import multiprocessing, threading, subprocess, signal, time
 logger = logging.getLogger(__name__)
 my_manager = multiprocessing.Manager()
@@ -45,7 +44,7 @@ class ShmListStore:
             data = search(data, key, val)
         return [FakeDB(**dict(entry)) for entry in data]
 
-@contextmanager
+@contextlib.contextmanager
 def connect(uri: str)-> Generator:
     def libvirt_callback(userdata, err):
         pass
