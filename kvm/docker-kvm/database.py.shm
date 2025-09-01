@@ -4,72 +4,46 @@ from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
 
 class JSONCacheBase:
-    cache = None
-    lock = None
+    def __init__(self):
+        self.cache = utils.manager.list()
+        self.lock = multiprocessing.Lock()
 
-    @classmethod
-    def reload(cls, objs):
-        with cls.lock:
-            cls.cache[:] = [utils.manager.dict(item) for item in objs]
+    def reload(self, arr):
+        with self.lock:
+            self.cache[:] = [utils.manager.dict(item) for item in arr]
 
-    @classmethod
-    def list_all(cls, **criteria) -> List[utils.FakeDB]:
-        data = cls.cache
+    def list_all(self, **criteria) -> List[utils.FakeDB]:
+        data = self.cache
         for key, val in criteria.items():
             data = utils.search(data, key, val)
         return [utils.FakeDB(**dict(entry)) for entry in data]
 
-    @classmethod
-    def get_one(cls, **criteria) -> utils.FakeDB:
-        data = cls.cache
+    def get_one(self, **criteria) -> utils.FakeDB:
+        data = self.cache
         for key, val in criteria.items():
             data = utils.search(data, key, val)
         if len(data) == 1:
             return utils.FakeDB(**dict(data[0]))
-        raise Exception(f"{cls.__name__} entry not found or not unique: {criteria}")
+        raise Exception(f"{self.__name__} entry not found or not unique: {criteria}")
 
-class KVMHost(JSONCacheBase):
-    filename = os.path.join(config.DATA_DIR, 'hosts.json')
-    cache = utils.manager.list()
-    lock = multiprocessing.Lock()
+KVMHost   = JSONCacheBase()
+KVMDevice = JSONCacheBase()
+KVMGold   = JSONCacheBase()
+KVMIso    = JSONCacheBase()
 
-class KVMDevice(JSONCacheBase):
-    filename = os.path.join(config.DATA_DIR, 'devices.json')
-    cache = utils.manager.list()
-    lock = multiprocessing.Lock()
-
-class KVMGold(JSONCacheBase):
-    filename = os.path.join(config.DATA_DIR, 'golds.json')
-    cache = utils.manager.list()
-    lock = multiprocessing.Lock()
-
-class KVMIso(JSONCacheBase):
-    filename = os.path.join(config.DATA_DIR, 'iso.json')
-    cache = utils.manager.list()
-    lock = multiprocessing.Lock()
-
-class KVMGuest(JSONCacheBase):
-    cache = utils.manager.list()
-    lock = multiprocessing.Lock()
-
-    @classmethod
-    def Upsert(cls, kvmhost: str, arch: str, records: List[Dict]) -> None:
-        try:
-            with cls.lock:
-                utils.remove(cls.cache, 'kvmhost', kvmhost)
-            for rec in records:
-                with cls.lock:
-                    cls.cache.append(utils.manager.dict({**{'kvmhost': kvmhost, 'arch': arch}, **rec}))
-        except Exception as e:
-            logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
-
+cfg_class={
+    os.path.join(config.DATA_DIR, 'hosts.json')  :KVMHost,
+    os.path.join(config.DATA_DIR, 'devices.json'):KVMDevice,
+    os.path.join(config.DATA_DIR, 'golds.json')  :KVMGold,
+    os.path.join(config.DATA_DIR, 'iso.json')    :KVMIso,
+}
 def reload_all():
     def updater_cb(fname:str, content):
         if content:
             logger.info(f'Update {fname} from etcd')
             utils.file_save(fname, content)
-            for clz in [KVMHost, KVMDevice, KVMGold, KVMIso,]:
-                if fname == clz.filename:
+            for key, clz in cfg_class.items():
+                if fname == key:
                     clz.reload(json.loads(content.decode('utf-8')))
         else:
             logger.info(f'Delete {fname} from etcd')
@@ -77,5 +51,18 @@ def reload_all():
 
     if config.ETCD_PREFIX:
         utils.cfg_initupdate(updater_cb)
-    for clz in [KVMHost,KVMDevice,KVMGold,KVMIso]:
-        clz.reload(json.loads(utils.file_load(clz.filename)))
+    for key, clz in cfg_class.items():
+        clz.reload(json.loads(utils.file_load(key)))
+
+class __KVMGuest(JSONCacheBase):
+    def Upsert(self, kvmhost: str, arch: str, records: List[Dict]) -> None:
+        try:
+            with self.lock:
+                utils.remove(self.cache, 'kvmhost', kvmhost)
+            for rec in records:
+                with self.lock:
+                    self.cache.append(utils.manager.dict({**{'kvmhost': kvmhost, 'arch': arch}, **rec}))
+        except Exception as e:
+            logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
+
+KVMGuest  = __KVMGuest()
