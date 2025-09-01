@@ -31,11 +31,6 @@ DIR_ACTION       = os.path.join(DATA_DIR, 'actions') # ROL  # local device actio
 DIR_DEVICE       = os.path.join(DATA_DIR, 'devices') # ROL  # local device template dir
 DIR_DOMAIN       = os.path.join(DATA_DIR, 'domains') # ROL  # local domain template dir
 DIR_META         = os.path.join(DATA_DIR, 'meta')    # ROL  # local cloud-init template dir
-# os.path.join(config.DATA_DIR, 'vars.json')         # ROS
-# os.path.join(config.DATA_DIR, 'hosts.json')        # ROS
-# os.path.join(config.DATA_DIR, 'devices.json')      # ROS
-# os.path.join(config.DATA_DIR, 'golds.json')        # ROS
-# os.path.join(config.DATA_DIR, 'iso.json')          # ROS
 # # # # # # # # # # # # # # # # # # # # # # #
 # # vm define default values
 def VM_DEFAULT(arch:str, hostname:str):
