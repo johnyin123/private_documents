@@ -40,12 +40,7 @@ DIR_META         = os.path.join(DATA_DIR, 'meta')    # ROL  # local cloud-init t
 # # vm define default values
 def VM_DEFAULT(arch:str, hostname:str):
     arch = arch.lower()
-    default = {
-        'vm_ram_mb': 1024, 'vm_vcpus': 1,
-        'vm_arch': arch, 'vm_uuid': f'{uuid.uuid4()}', 'vm_create': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    }
-    if (arch == 'x86_64'):
-        return { **default };
-    elif (arch == 'aarch64'):
+    default = { 'vm_ram_mb': 1024, 'vm_vcpus': 1, 'vm_arch': arch, 'vm_uuid': f'{uuid.uuid4()}', 'vm_create': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') }
+    if (arch == 'aarch64'):
         return { **default, 'vm_uefi':'/usr/share/AAVMF/AAVMF_CODE.fd' }
-    raise Exception(f'{arch} {hostname} no VM_DEFAULT defined')
+    return { **default };

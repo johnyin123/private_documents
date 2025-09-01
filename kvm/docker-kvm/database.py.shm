@@ -19,9 +19,8 @@ def reload_all():
         if content:
             logger.info(f'Update {fname} from etcd')
             utils.file_save(fname, content)
-            for key, clz in cfg_class.items():
-                if fname == key:
-                    clz.reload(json.loads(content.decode('utf-8')))
+            if cfg_class.get(fname):
+                cfg_class.get(fname).reload(json.loads(content.decode('utf-8')))
         else:
             logger.info(f'Delete {fname} from etcd')
             os.remove(fname)
