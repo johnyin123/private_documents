@@ -164,8 +164,10 @@ def secure_link(kvmhost, uuid, mykey, minutes):
     return epoch, base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
     # epoch=round(datetime.datetime.now().timestamp() + minutes*60)
     # dt = datetime.datetime.fromtimestamp(epoch)
-
-import etcd3, config
+try:
+    import etcd3, config
+except ImportError:
+    pass
 grpc_opts = [ ('grpc.max_receive_message_length', 32*1024*1024), ('grpc.max_send_message_length', 10*1024*1024), ]
 def key2fname(key:str, stage:str)->str:
     fn = os.path.join(config.DATA_DIR, key.removeprefix(config.ETCD_PREFIX).strip('/'))

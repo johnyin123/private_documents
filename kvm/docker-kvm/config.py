@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, uuid
-from datetime import datetime
+import os, uuid, datetime
 # # env: DATA_DIR, TOKEN_DIR, DATABASE, META_SRV, CTRL_PANEL_SRV, CTRL_PANEL_KEY
 DATA_DIR         = os.environ.get('DATA_DIR', os.path.abspath(os.path.dirname(__file__)))
 # use etcd as persistent
@@ -43,9 +42,8 @@ def VM_DEFAULT(arch:str, hostname:str):
     arch = arch.lower()
     default = {
         'vm_ram_mb': 1024, 'vm_vcpus': 1,
-        'vm_arch': arch, 'vm_uuid': f'{uuid.uuid4()}', 'vm_create': datetime.now().isoformat()
+        'vm_arch': arch, 'vm_uuid': f'{uuid.uuid4()}', 'vm_create': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }
-    # datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     if (arch == 'x86_64'):
         return { **default };
     elif (arch == 'aarch64'):
