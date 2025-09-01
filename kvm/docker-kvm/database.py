@@ -90,7 +90,6 @@ class KVMGuest(utils.ShmListStore):
                 session.add(DB_KVMGuest(kvmhost=kvmhost, arch=arch, **rec))
             session.commit()
             self.reload([result._asdict() for result in session.query(DB_KVMGuest).all()])
-
         except:
             logger.exception(f'Upsert failed for guest {kvmhost}')
             session.rollback()

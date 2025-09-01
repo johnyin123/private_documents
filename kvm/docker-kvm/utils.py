@@ -105,12 +105,6 @@ class ProcList:
         threading.Thread(target=run_thread, args=(uuid, cmd,), daemon=True).start()
         time.sleep(0.3)  # sleep for wait process startup
 
-def append(arr:List, val:Dict)-> None:
-    arr.append(val)
-
-def remove(arr:List, key, val)-> None:
-    arr[:] = [item for item in arr if item.get(key) != val]
-
 def search(arr:List, key, val)-> List:
     logger.debug(f'{id(arr)} cache in PID {os.getpid()}')
     return [element for element in arr if element.get(key) == val]
