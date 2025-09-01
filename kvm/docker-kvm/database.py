@@ -5,32 +5,7 @@ from sqlalchemy import func,text,Column,String,Integer,Float,Date,DateTime,Enum,
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
 
-class DBCacheBase:
-    cache = None
-    lock = None
-
-    @classmethod
-    def reload(cls, objs):
-        with cls.lock:
-            cls.cache[:] = [utils.manager.dict(item) for item in objs]
-
-    @classmethod
-    def list_all(cls, **criteria) -> List[utils.FakeDB]:
-        data = cls.cache
-        for key, val in criteria.items():
-            data = utils.search(data, key, val)
-        return [utils.FakeDB(**dict(entry)) for entry in data]
-
-    @classmethod
-    def get_one(cls, **criteria) -> utils.FakeDB:
-        data = cls.cache
-        for key, val in criteria.items():
-            data = utils.search(data, key, val)
-        if len(data) == 1:
-            return utils.FakeDB(**dict(data[0]))
-        raise Exception(f"{cls.__name__} entry not found or not unique: {criteria}")
-
-class KVMHost(Base, DBCacheBase):
+class DB_KVMHost(Base):
     __tablename__ = "kvmhost"
     name = Column(String(19),nullable=False,index=True,unique=True,primary_key=True,comment='KVM主机名称')
     url = Column(String,nullable=False,unique=True,comment='libvirt URI')
@@ -45,11 +20,8 @@ class KVMHost(Base, DBCacheBase):
     inactive = Column(Integer,nullable=False,server_default='0')
     desc = Column(String,nullable=False,server_default='',comment='主机描述')
     last_modified = Column(DateTime(timezone=True),onupdate=datetime.datetime.now(),default=datetime.datetime.now())
-    ####################################
-    cache = utils.manager.list()
-    lock = multiprocessing.Lock()
 
-class KVMDevice(Base, DBCacheBase):
+class DB_KVMDevice(Base):
     __tablename__ = "kvmdevice"
     kvmhost = Column(String(19),ForeignKey('kvmhost.name'),nullable=False,index=True,primary_key=True,comment='KVM主机名称')
     name = Column(String(19),nullable=False,index=True,primary_key=True,comment='device名称')
@@ -58,11 +30,8 @@ class KVMDevice(Base, DBCacheBase):
     tpl = Column(String,nullable=False,comment='device模板XML文件')
     desc = Column(String,nullable=False,comment='device描述')
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
-    ####################################
-    cache = utils.manager.list()
-    lock = multiprocessing.Lock()
 
-class KVMGold(Base, DBCacheBase):
+class DB_KVMGold(Base):
     __tablename__ = "kvmgold"
     name = Column(String(19),nullable=False,index=True,primary_key=True,comment='Gold盘名称')
     arch = Column(String(8),nullable=False,index=True,primary_key=True,comment='Gold盘对应的CPU架构')
@@ -70,21 +39,33 @@ class KVMGold(Base, DBCacheBase):
     size = Column(Integer,nullable=False,server_default='1',comment='Gold盘Byte')
     desc = Column(String,nullable=False,comment='Gold盘描述')
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
-    ####################################
-    cache = utils.manager.list()
-    lock = multiprocessing.Lock()
 
-class KVMIso(Base, DBCacheBase):
+class DB_KVMIso(Base):
     __tablename__ = "kvmiso"
     name = Column(String(19),nullable=False,index=True,primary_key=True,comment='ISO名称')
     uri = Column(String,nullable=False,index=True,unique=True,comment='ISO文件URI')
     desc = Column(String,nullable=False,server_default='',comment='ISO描述')
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
-    ####################################
-    cache = utils.manager.list()
-    lock = multiprocessing.Lock()
 
-class KVMGuest(Base, DBCacheBase):
+KVMHost   = utils.ShmListStore()
+KVMDevice = utils.ShmListStore()
+KVMGold   = utils.ShmListStore()
+KVMIso    = utils.ShmListStore()
+
+def reload_all():
+    cfg_class={
+        DB_KVMHost  :KVMHost,
+        DB_KVMDevice:KVMDevice,
+        DB_KVMGold  :KVMGold,
+        DB_KVMIso   :KVMIso,
+    }
+    logger.info(f'database create all tables')
+    # Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
+    for key, clz in cfg_class.items():
+        clz.reload([result._asdict() for result in session.query(key).all()])
+
+class DB_KVMGuest(Base):
     __tablename__ = "kvmguest"
     kvmhost = Column(String(19),nullable=False,index=True,primary_key=True)
     arch = Column(String(8),nullable=False)
@@ -99,25 +80,19 @@ class KVMGuest(Base, DBCacheBase):
     state = Column(String)
     disks = Column(JSON,nullable=False)
     nets = Column(JSON,nullable=False)
-    ####################################
-    cache = utils.manager.list()
-    lock = multiprocessing.Lock()
 
-    @classmethod
-    def Upsert(cls, kvmhost: str, arch: str, records: List[Dict]) -> None:
+class KVMGuest(utils.ShmListStore):
+    def Upsert(self, kvmhost: str, arch: str, records: List[Dict]) -> None:
         try:
-            session.query(KVMGuest).filter_by(kvmhost=kvmhost).delete()
+            logger.info(f'{records}')
+            session.query(DB_KVMGuest).filter_by(kvmhost=kvmhost).delete()
             for rec in records:
-                session.add(KVMGuest(kvmhost=kvmhost, arch=arch, **rec))
+                session.add(DB_KVMGuest(kvmhost=kvmhost, arch=arch, **rec))
             session.commit()
-            cls.reload()
+            self.reload([result._asdict() for result in session.query(DB_KVMGuest).all()])
+
         except:
-            logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
+            logger.exception(f'Upsert failed for guest {kvmhost}')
             session.rollback()
 
-def reload_all():
-    logger.info(f'database create all tables')
-    # Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
-    for clz in [KVMHost,KVMDevice,KVMGold,KVMIso]:
-        clz.reload([u.__dict__ for u in session.query(clz).all()])
+KVMGuest  = KVMGuest()

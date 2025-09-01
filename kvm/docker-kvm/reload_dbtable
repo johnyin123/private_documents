@@ -12,10 +12,10 @@ if len(sys.argv) != 2:
     usage()
 fname = sys.argv[1]
 clazz = {
-    'golds.json'  :database.KVMGold,
-    'hosts.json'  :database.KVMHost,
-    'devices.json':database.KVMDevice,
-    'iso.json'    :database.KVMIso,
+    'golds.json'  :database.__KVMGold,
+    'hosts.json'  :database.__KVMHost,
+    'devices.json':database.__KVMDevice,
+    'iso.json'    :database.__KVMIso,
     }.get(fname, None)
 if clazz is None:
     usage()

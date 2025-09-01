@@ -3,41 +3,18 @@ import logging, datetime, os, utils, multiprocessing, json, random, config
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
 
-class JSONCacheBase:
-    def __init__(self):
-        self.cache = utils.manager.list()
-        self.lock = multiprocessing.Lock()
+KVMHost   = utils.ShmListStore()
+KVMDevice = utils.ShmListStore()
+KVMGold   = utils.ShmListStore()
+KVMIso    = utils.ShmListStore()
 
-    def reload(self, arr):
-        with self.lock:
-            self.cache[:] = [utils.manager.dict(item) for item in arr]
-
-    def list_all(self, **criteria) -> List[utils.FakeDB]:
-        data = self.cache
-        for key, val in criteria.items():
-            data = utils.search(data, key, val)
-        return [utils.FakeDB(**dict(entry)) for entry in data]
-
-    def get_one(self, **criteria) -> utils.FakeDB:
-        data = self.cache
-        for key, val in criteria.items():
-            data = utils.search(data, key, val)
-        if len(data) == 1:
-            return utils.FakeDB(**dict(data[0]))
-        raise Exception(f"{self.__name__} entry not found or not unique: {criteria}")
-
-KVMHost   = JSONCacheBase()
-KVMDevice = JSONCacheBase()
-KVMGold   = JSONCacheBase()
-KVMIso    = JSONCacheBase()
-
-cfg_class={
-    os.path.join(config.DATA_DIR, 'hosts.json')  :KVMHost,
-    os.path.join(config.DATA_DIR, 'devices.json'):KVMDevice,
-    os.path.join(config.DATA_DIR, 'golds.json')  :KVMGold,
-    os.path.join(config.DATA_DIR, 'iso.json')    :KVMIso,
-}
 def reload_all():
+    cfg_class={
+        os.path.join(config.DATA_DIR, 'hosts.json')  :KVMHost,
+        os.path.join(config.DATA_DIR, 'devices.json'):KVMDevice,
+        os.path.join(config.DATA_DIR, 'golds.json')  :KVMGold,
+        os.path.join(config.DATA_DIR, 'iso.json')    :KVMIso,
+    }
     def updater_cb(fname:str, content):
         if content:
             logger.info(f'Update {fname} from etcd')
@@ -54,15 +31,10 @@ def reload_all():
     for key, clz in cfg_class.items():
         clz.reload(json.loads(utils.file_load(key)))
 
-class __KVMGuest(JSONCacheBase):
+class SHM_KVMGuest(utils.ShmListStore):
     def Upsert(self, kvmhost: str, arch: str, records: List[Dict]) -> None:
-        try:
-            with self.lock:
-                utils.remove(self.cache, 'kvmhost', kvmhost)
-            for rec in records:
-                with self.lock:
-                    self.cache.append(utils.manager.dict({**{'kvmhost': kvmhost, 'arch': arch}, **rec}))
-        except Exception as e:
-            logger.exception(f'Upsert failed for guest {kvmhost}: {e}')
+        self.delete('kvmhost', kvmhost)
+        for rec in records:
+            self.insert({**{'kvmhost': kvmhost, 'arch': arch}, **rec})
 
-KVMGuest  = __KVMGuest()
+KVMGuest  = SHM_KVMGuest()

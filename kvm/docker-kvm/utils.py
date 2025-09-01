@@ -3,8 +3,8 @@ from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 from contextlib import contextmanager
 import libvirt, json, os, logging, base64, hashlib, datetime
 import multiprocessing, threading, subprocess, signal, time
-manager = multiprocessing.Manager()
 logger = logging.getLogger(__name__)
+my_manager = multiprocessing.Manager()
 
 class FakeDB:
     def __init__(self, **kwargs):
@@ -13,6 +13,37 @@ class FakeDB:
         return self.__dict__
     def __repr__(self):
          return f"{self.__dict__!r}"
+
+class ShmListStore:
+    def __init__(self):
+        self.cache = my_manager.list()
+        self.lock = multiprocessing.Lock()
+
+    def insert(self, val: dict) -> None:
+        with self.lock:
+            self.cache.append(my_manager.dict(val))
+
+    def delete(self, key: str, key_val:str) -> None:
+        with self.lock:
+            self.cache[:] = [item for item in self.cache if item.get(key) != key_val]
+
+    def reload(self, arr) -> None:
+        with self.lock:
+            self.cache[:] = [my_manager.dict(item) for item in arr]
+
+    def get_one(self, **criteria) -> FakeDB:
+        data = self.cache
+        for key, val in criteria.items():
+            data = search(data, key, val)
+        if len(data) == 1:
+            return FakeDB(**dict(data[0]))
+        raise Exception(f"{self.__name__} entry not found or not unique: {criteria}")
+
+    def list_all(self, **criteria) -> List[FakeDB]:
+        data = self.cache
+        for key, val in criteria.items():
+            data = search(data, key, val)
+        return [FakeDB(**dict(entry)) for entry in data]
 
 @contextmanager
 def connect(uri: str)-> Generator:
@@ -29,7 +60,7 @@ def connect(uri: str)-> Generator:
             conn.close()
 
 class ProcList:
-    pids = manager.dict()
+    pids = my_manager.dict()
     lock = multiprocessing.Lock()
 
     @staticmethod
