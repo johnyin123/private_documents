@@ -69,9 +69,9 @@ class ProcList:
             for p in ProcList.pids.list_all(uuid=uuid):
                 logger.info(f'PROC: {p} found, kill!!')
                 os.kill(p.pid, signal.SIGTERM)
-            ProcList.pids.delete('uuid', uuid)
         except Exception as e:
             logger.error(f'PROC: KILL {e}')
+        ProcList.pids.delete('uuid', uuid)
         try:
             output = subprocess.STDOUT if redirect else subprocess.PIPE
             with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
