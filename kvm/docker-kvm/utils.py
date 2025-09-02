@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 import libvirt, json, os, logging, base64, hashlib, datetime, contextlib
-import multiprocessing, threading, subprocess, signal, time
+import multiprocessing, threading, subprocess, signal, time, signal
 logger = logging.getLogger(__name__)
 my_manager = multiprocessing.Manager()
 
@@ -31,18 +31,20 @@ class ShmListStore:
             self.cache[:] = [my_manager.dict(item) for item in arr]
 
     def get_one(self, **criteria) -> FakeDB:
-        data = self.cache
-        for key, val in criteria.items():
-            data = search(data, key, val)
-        if len(data) == 1:
-            return FakeDB(**dict(data[0]))
-        raise Exception(f"{self.__name__} entry not found or not unique: {criteria}")
+        with self.lock:
+            data = self.cache
+            for key, val in criteria.items():
+                data = search(data, key, val)
+            if len(data) == 1:
+                return FakeDB(**dict(data[0]))
+            raise Exception(f"{self.__name__} entry not found or not unique: {criteria}")
 
     def list_all(self, **criteria) -> List[FakeDB]:
-        data = self.cache
-        for key, val in criteria.items():
-            data = search(data, key, val)
-        return [FakeDB(**dict(entry)) for entry in data]
+        with self.lock:
+            data = self.cache
+            for key, val in criteria.items():
+                data = search(data, key, val)
+            return [FakeDB(**dict(entry)) for entry in data]
 
 @contextlib.contextmanager
 def connect(uri: str)-> Generator:
@@ -63,11 +65,11 @@ class ProcList:
 
     @staticmethod
     def wait_proc(uuid:str, cmd:List, redirect:bool = True, req_json: dict = {}, **kwargs)-> Generator:
-        pid = 0
         try:
             for p in ProcList.pids.list_all(uuid=uuid):
                 logger.info(f'PROC: {p} found, kill!!')
                 os.kill(p.pid, signal.SIGTERM)
+            ProcList.pids.delete('uuid', uuid)
         except Exception as e:
             logger.error(f'PROC: KILL {e}')
         try:
@@ -75,7 +77,7 @@ class ProcList:
             with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
                 pid = proc.pid
                 ProcList.pids.insert({'uuid':uuid, 'pid':pid, 'cmd':cmd})
-                logger.info(f'PROC: {uuid} PID={pid} [{" ".join(cmd)}] start')
+                logger.info(f'PROC: {uuid} PID={pid} {ProcList.pids.list_all(uuid=uuid)} start')
                 json.dump(req_json, proc.stdin, indent=4) # proc.stdin.write(req_json)
                 proc.stdin.close()
                 for line in proc.stdout:
@@ -83,9 +85,9 @@ class ProcList:
                 proc.wait()
                 if proc.returncode != 0:
                     msg = ''.join(proc.stderr if not redirect else [])
-                    raise Exception(f"PROC: PID={pid} [{" ".join(cmd)}] error={proc.returncode} {msg}")
+                    raise Exception(f"PROC: PID={pid} {cmd} error={signal.Signals(-proc.returncode).name} {msg}")
         finally:
-            logger.info(f'PROC: {uuid} PID={pid} exit!!!')
+            logger.info(f'PROC: {uuid} exit!!!')
             ProcList.pids.delete('uuid', uuid)
 
     @staticmethod
