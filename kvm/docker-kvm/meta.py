@@ -5,8 +5,8 @@ except ImportError:
     from io import BytesIO
 import pycdlib, os, utils, config, template, logging
 logger = logging.getLogger(__name__)
-meta_add = utils.etcd_save if config.ETCD_PREFIX else utils.file_save
-meta_del = utils.etcd_del  if config.ETCD_PREFIX else utils.file_remove
+meta_add = utils.EtcdConfig.etcd_save if config.ETCD_PREFIX else utils.file_save
+meta_del = utils.EtcdConfig.etcd_del  if config.ETCD_PREFIX else utils.file_remove
 
 def del_metafiles(uuid):
     logger.info(f'Delete meta {uuid}')
