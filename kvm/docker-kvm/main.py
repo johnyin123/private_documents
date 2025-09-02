@@ -37,14 +37,13 @@ class MyApp(object):
 
     def db_list_host(self):
         try:
-            keys = ['sshport', 'sshuser', 'tpl', 'url']
             hosts = [dic._asdict() for dic in database.KVMHost.list_all()]
             for host in hosts:
                 varset = template.get_variables(config.DIR_DOMAIN, host['tpl'])
                 for file in [fn for fn in os.listdir(config.DIR_META) if fn.endswith('.tpl')]:
                     varset.update(template.get_variables(config.DIR_META, file))
                 host['vars'] = {k: self.VARS_DESC.get(k,'n/a') for k in varset}
-            return utils.return_ok(f'db_list_host ok', host=utils.getlist_without_key(hosts, *keys))
+            return utils.return_ok(f'db_list_host ok', host=utils.getlist_without_key(hosts, *['sshport', 'sshuser', 'tpl', 'url']))
         except Exception as e:
             return utils.deal_except(f'db_list_host', e), 400
 
