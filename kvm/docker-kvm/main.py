@@ -11,13 +11,13 @@ class MyApp(object):
     @staticmethod
     def create():
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
-        logger.info(f'home_dir = {os.path.expanduser("~")}')
-        logger.info(f'META_SRV={config.META_SRV}')
-        logger.info(f'DATA_DIR={config.DATA_DIR}')
-        logger.info(f'DATABASE={config.DATABASE}')
+        logger.info(f'''
+            home_dir={os.path.expanduser("~")}
+            META_SRV={config.META_SRV}
+            DATA_DIR={config.DATA_DIR}
+            DATABASE={config.DATABASE}''')
         database.reload_all()
-        web=flask_app.create_app({'STATIC_FOLDER': config.DATA_DIR, 'STATIC_URL_PATH':'/public'}, json=True)
-        web.config['JSON_SORT_KEYS'] = False
+        web=flask_app.create_app({'STATIC_FOLDER': config.DATA_DIR, 'STATIC_URL_PATH':'/public', 'JSON_SORT_KEYS': False}, json=True)
         MyApp.VARS_DESC = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'vars.json')))
         MyApp().register_routes(web)
         return web
