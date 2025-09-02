@@ -77,17 +77,18 @@ class ProcList:
             with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
                 pid = proc.pid
                 ProcList.pids.insert({'uuid':uuid, 'pid':pid, 'cmd':cmd})
-                logger.info(f'PROC: {uuid} PID={pid} {ProcList.pids.list_all(uuid=uuid)} start')
+                logger.info(f'PROC: {uuid} PID={pid} {cmd} start!!!')
                 json.dump(req_json, proc.stdin, indent=4) # proc.stdin.write(req_json)
                 proc.stdin.close()
                 for line in proc.stdout:
                     yield line
                 proc.wait()
-                if proc.returncode != 0:
+                if proc.returncode == 0:
+                    logger.info(f'PROC: {uuid} PID={pid} {cmd} exit ok!!!')
+                else:
                     msg = ''.join(proc.stderr if not redirect else [])
-                    raise Exception(f"PROC: PID={pid} {cmd} error={signal.Signals(-proc.returncode).name} {msg}")
+                    raise Exception(f"PROC: {uuid} PID={pid} {cmd} error={signal.Signals(-proc.returncode).name} {msg}")
         finally:
-            logger.info(f'PROC: {uuid} exit!!!')
             ProcList.pids.delete('uuid', uuid)
 
     @staticmethod
