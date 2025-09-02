@@ -5,9 +5,12 @@ logger = logging.getLogger(__name__)
 # logger.setLevel(level=os.getenv('LOG', 'INFO').upper())
 
 FLASK_CONF = {
-    'SECRET_KEY'       : os.urandom(24),
-    'STATIC_URL_PATH'  : None,
-    'STATIC_FOLDER'    : None,
+    'DEBUG'               : False,
+    'TESTING'             : False,
+    'PROPAGATE_EXCEPTIONS': True,
+    'SECRET_KEY'          : os.urandom(24),
+    'STATIC_URL_PATH'     : None,
+    'STATIC_FOLDER'       : None,
 }
 from datetime import datetime, date, timezone, timedelta
 from flask.json.provider import DefaultJSONProvider
