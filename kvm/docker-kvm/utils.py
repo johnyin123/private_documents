@@ -22,9 +22,10 @@ class ShmListStore:
         with self.lock:
             self.cache.append(my_manager.dict(**kwargs))
 
-    def delete(self, key: str, key_val:str) -> None:
+    def delete(self, **kwargs) -> None:
         with self.lock:
-            self.cache[:] = [item for item in self.cache if item.get(key) != key_val]
+            self.cache[:] = [item for item in self.cache if not all(item.get(key) == value for key, value in kwargs.items())]
+
 
     def reload(self, arr) -> None:
         with self.lock:
@@ -71,7 +72,7 @@ class ProcList:
                 os.kill(p.pid, signal.SIGTERM)
         except Exception as e:
             logger.error(f'PROC: KILL {e}')
-        ProcList.pids.delete('uuid', uuid)
+        ProcList.pids.delete(uuid=uuid)
         try:
             output = subprocess.STDOUT if redirect else subprocess.PIPE
             with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
@@ -89,7 +90,7 @@ class ProcList:
                     msg = ''.join(proc.stderr if not redirect else [])
                     raise Exception(f"PROC: {uuid} PID={pid} {cmd} error={signal.Signals(-proc.returncode).name} {msg}")
         finally:
-            ProcList.pids.delete('uuid', uuid)
+            ProcList.pids.delete(uuid=uuid)
 
     @staticmethod
     def Run(uuid:str, cmd:List)->None:
