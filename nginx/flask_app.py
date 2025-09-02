@@ -6,8 +6,8 @@ logger = logging.getLogger(__name__)
 
 FLASK_CONF = {
     'SECRET_KEY'       : os.urandom(24),
-    'STATIC_URL_PATH'  : '/public',
-    'STATIC_FOLDER'    : 'static',
+    'STATIC_URL_PATH'  : None,
+    'STATIC_FOLDER'    : None,
 }
 from datetime import datetime, date, timezone, timedelta
 from flask.json.provider import DefaultJSONProvider
@@ -93,7 +93,7 @@ class MyApp(object):
     def create():
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
         myapp=MyApp()
-        web=flask_app.create_app({}, json=True)
+        web=flask_app.create_app({'STATIC_FOLDER': 'static', 'STATIC_URL_PATH':'/public'}, json=True)
         web.config['JSON_SORT_KEYS'] = False
         # web.config['PERMANENT_SESSION_LIFETIME'] = datetime.timedelta(minutes=30)
         # web.before_request(before_request)
