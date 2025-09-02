@@ -26,7 +26,6 @@ class ShmListStore:
         with self.lock:
             self.cache[:] = [item for item in self.cache if not all(item.get(key) == value for key, value in kwargs.items())]
 
-
     def reload(self, arr) -> None:
         with self.lock:
             self.cache[:] = [my_manager.dict(item) for item in arr]
@@ -164,6 +163,7 @@ def secure_link(kvmhost, uuid, mykey, minutes):
     return epoch, base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
     # epoch=round(datetime.datetime.now().timestamp() + minutes*60)
     # dt = datetime.datetime.fromtimestamp(epoch)
+
 try:
     import etcd3, config
 except ImportError:
