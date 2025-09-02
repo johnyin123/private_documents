@@ -18,9 +18,9 @@ class ShmListStore:
         self.cache = my_manager.list()
         self.lock = multiprocessing.Lock()
 
-    def insert(self, val: dict) -> None:
+    def insert(self, **kwargs) -> None:
         with self.lock:
-            self.cache.append(my_manager.dict(val))
+            self.cache.append(my_manager.dict(**kwargs))
 
     def delete(self, key: str, key_val:str) -> None:
         with self.lock:
@@ -76,7 +76,7 @@ class ProcList:
             output = subprocess.STDOUT if redirect else subprocess.PIPE
             with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
                 pid = proc.pid
-                ProcList.pids.insert({'uuid':uuid, 'pid':pid, 'cmd':cmd})
+                ProcList.pids.insert(uuid=uuid, pid=pid, cmd=cmd)
                 logger.info(f'PROC: {uuid} PID={pid} {cmd} start!!!')
                 json.dump(req_json, proc.stdin, indent=4) # proc.stdin.write(req_json)
                 proc.stdin.close()

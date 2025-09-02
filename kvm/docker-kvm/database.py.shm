@@ -34,6 +34,6 @@ class SHM_KVMGuest(utils.ShmListStore):
     def Upsert(self, kvmhost: str, arch: str, records: List[Dict]) -> None:
         self.delete('kvmhost', kvmhost)
         for rec in records:
-            self.insert({**{'kvmhost': kvmhost, 'arch': arch}, **rec})
+            self.insert(kvmhost=kvmhost, arch=arch, **rec)
 
 KVMGuest  = SHM_KVMGuest()
