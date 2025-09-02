@@ -59,25 +59,22 @@ def connect(uri: str)-> Generator:
             conn.close()
 
 class ProcList:
-    pids = my_manager.dict()
-    lock = multiprocessing.Lock()
+    pids = ShmListStore()
 
     @staticmethod
     def wait_proc(uuid:str, cmd:List, redirect:bool = True, req_json: dict = {}, **kwargs)-> Generator:
         pid = 0
         try:
-            with ProcList.lock:
-                p = ProcList.pids.get(uuid, None)
-                if p:
-                    logger.info(f'PROC: {p} found, kill!!')
-                    try:
-                        os.kill(p, signal.SIGTERM)
-                    except:
-                        logger.exception('PROC KILL')
+            for p in ProcList.pids.list_all(uuid=uuid):
+                logger.info(f'PROC: {p} found, kill!!')
+                os.kill(p.pid, signal.SIGTERM)
+        except Exception as e:
+            logger.error(f'PROC: KILL {e}')
+        try:
             output = subprocess.STDOUT if redirect else subprocess.PIPE
             with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
                 pid = proc.pid
-                ProcList.pids[uuid] = pid
+                ProcList.pids.insert({'uuid':uuid, 'pid':pid, 'cmd':cmd})
                 logger.info(f'PROC: {uuid} PID={pid} [{" ".join(cmd)}] start')
                 json.dump(req_json, proc.stdin, indent=4) # proc.stdin.write(req_json)
                 proc.stdin.close()
@@ -89,8 +86,7 @@ class ProcList:
                     raise Exception(f"PROC: PID={pid} [{" ".join(cmd)}] error={proc.returncode} {msg}")
         finally:
             logger.info(f'PROC: {uuid} PID={pid} exit!!!')
-            with ProcList.lock:
-                ProcList.pids.pop(uuid, "Not found")
+            ProcList.pids.delete('uuid', uuid)
 
     @staticmethod
     def Run(uuid:str, cmd:List)->None:
