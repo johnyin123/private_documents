@@ -79,9 +79,9 @@ class LibvirtDomain:
                     elif protocol == 'http' or protocol == 'https':
                         disk_lst.append({'device':device, 'type':protocol, 'bus':bus, 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
                     else:
-                        raise Exception(f'disk unknown type={dtype} protocol={protocol}')
+                        raise utils.APIException(f'disk unknown type={dtype} protocol={protocol}')
                 else:
-                    raise Exception(f'disk unknown type={dtype}')
+                    raise utils.APIException(f'disk unknown type={dtype}')
         return disk_lst
 
     @property
@@ -150,7 +150,7 @@ class VMManager:
                 if net['mac'] == dev:
                     dom.detachDeviceFlags(net['xml'], flags)
                     return utils.return_ok(f'detach_device {dev} ok', uuid=uuid)
-        raise Exception(f'{dev} nofound on vm {uuid}')
+        raise utils.APIException(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
     def display(host:utils.FakeDB, uuid:str, prefix:str='', timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
@@ -159,7 +159,7 @@ class VMManager:
         with utils.connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             if not dom.isActive():
-                raise Exception(f'vm {uuid} not running')
+                raise utils.APIException(f'vm {uuid} not running')
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
         for item in xml.dom.minidom.parseString(XMLDesc_Secure).getElementsByTagName('graphics'):
             server = ''
@@ -175,11 +175,11 @@ class VMManager:
                 utils.ProcList.Run(uuid, socat_cmd)
                 server = f'unix_socket:{local}'
             else:
-                raise Exception('graphic listen "{listen}" unknown')
+                raise utils.APIException('graphic listen "{listen}" unknown')
             utils.file_save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}'.encode('utf-8'))
             url_map = {'vnc': config.URI_VNC,'spice':config.URI_SPICE}
             return utils.return_ok(proto, uuid=uuid, display=f'{url_map[proto]}?password={item.getAttribute("passwd")}&path={prefix}/vm/websockify', token=f'{uuid}', expire=tmout)
-        raise Exception('no graphic found')
+        raise utils.APIException('no graphic found')
 
     @staticmethod
     def delete(host:utils.FakeDB, uuid:str)->str:
@@ -279,14 +279,14 @@ class VMManager:
                         dom.detachDeviceFlags(disk['xml'], dom_flags(domain.state))
                     dom.attachDeviceFlags(change_media(dev, iso.uri, disk['bus']))
                     return utils.return_ok(f'{dev} change media ok', uuid=uuid)
-        raise Exception(f'{dev} nofound on vm {uuid}')
+        raise utils.APIException(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
     def console(host:utils.FakeDB, uuid:str, prefix:str='', timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
         tmout = int(timeout_mins)
         with utils.connect(host.url) as conn:
             if not conn.lookupByUUIDString(uuid).isActive():
-                raise Exception(f'vm {uuid} not running')
+                raise utils.APIException(f'vm {uuid} not running')
         socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{tmout}m',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
         utils.ProcList.Run(uuid, socat_cmd)
         local = f'/tmp/.display.{uuid}'
@@ -360,7 +360,7 @@ class VMManager:
                 if net['mac'] == dev:
                     stats = dom.interfaceStats(net['dev'])
                     return utils.return_ok(f'netstat', uuid=uuid, dev=dev, stats={'rx':stats[0], 'tx':stats[4]})
-        raise Exception(f'{dev} nofound on vm {uuid}')
+        raise utils.APIException(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
     def ipaddr(host:utils.FakeDB, uuid:str)->Generator:

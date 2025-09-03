@@ -5,6 +5,9 @@ import multiprocessing, threading, subprocess, signal, time, signal
 logger = logging.getLogger(__name__)
 my_manager = multiprocessing.Manager()
 
+class APIException(Exception):
+    pass
+
 class FakeDB:
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
@@ -37,7 +40,7 @@ class ShmListStore:
                 data = search(data, key, val)
             if len(data) == 1:
                 return FakeDB(**dict(data[0]))
-            raise Exception(f"entry not found or not unique: {criteria}")
+            raise APIException(f"entry not found or not unique: {criteria}")
 
     def list_all(self, **criteria) -> List[FakeDB]:
         with self.lock:
@@ -87,7 +90,7 @@ class ProcList:
                     logger.info(f'PROC: {uuid} PID={pid} {cmd} exit ok!!!')
                 else:
                     msg = ''.join(proc.stderr if not redirect else [])
-                    raise Exception(f"PROC: {uuid} PID={pid} {cmd} error={signal.Signals(-proc.returncode).name} {msg}")
+                    raise APIException(f"PROC: {uuid} PID={pid} {cmd} error={signal.Signals(-proc.returncode).name} {msg}")
         finally:
             ProcList.pids.delete(uuid=uuid)
 
@@ -153,6 +156,9 @@ def deal_except(who:str, e:Exception) -> str:
     if isinstance(e, libvirt.libvirtError):
         logger.error(f'{who}: {e.get_error_message()}')
         return return_err(e.get_error_code(), f'{who}', e.get_error_message())
+    elif isinstance(e, APIException):
+        logger.error(f'{who}: {type(e).__name__} {str(e)}')
+        return return_err(997, f'{who}', f'{type(e).__name__}:{str(e)}')
     else:
         logger.exception(f'{who}')
         return return_err(998, f'{who}', f'{type(e).__name__}:{str(e)}')
