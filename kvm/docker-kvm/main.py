@@ -76,9 +76,9 @@ class MyApp(object):
 
     def exec_domain_cmd(self, cmd:str, hostname:str, uuid:str = None):
         dom_cmds = {
-                'GET': ['ui', 'xml', 'ipaddr', 'start', 'reset', 'stop', 'delete', 'console','display','list', 'blksize', 'desc', 'setmem', 'setcpu', 'netstat'],
-                'POST': ['attach_device','detach_device', 'cdrom', 'create']
-                }
+            'GET': ['ui', 'xml', 'ipaddr', 'start', 'reset', 'stop', 'delete', 'console','display','list', 'blksize', 'desc', 'setmem', 'setcpu', 'netstat'],
+            'POST': ['attach_device','detach_device', 'cdrom', 'create'],
+        }
         try:
             if cmd in dom_cmds[flask.request.method]:
                 req_json = flask.request.get_json(silent=True, force=True)
