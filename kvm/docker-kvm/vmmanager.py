@@ -114,7 +114,7 @@ def refresh_all_pool(conn:libvirt.virConnect)-> None:
                 pool.create()
             pool.refresh(0)
         except libvirt.libvirtError as e:
-            logger.exception(f"Failed refresh pool {pool.name()}")
+            logger.exception(f'Failed refresh pool {pool.name()}')
 
 def change_media(dev:str, isofile:str, bus:str)->str:
     disk = xml.dom.minidom.parseString(template.DeviceTemplate(config.CDROM_TPL,'iso').render())
@@ -138,18 +138,18 @@ class VMManager:
                     dom.detachDeviceFlags(disk['xml'], flags)
                     # cdrom not delete media
                     if disk['device'] != 'disk':
-                        return utils.return_ok(f"detach_device {dev} ok", uuid=uuid)
+                        return utils.return_ok(f'detach_device {dev} ok', uuid=uuid)
                     refresh_all_pool(conn)
                     logger.debug(f'remove disk {disk}')
                     try:
                         conn.storageVolLookupByPath(disk['vol']).delete()
                     except Exception:
-                        return utils.return_ok(f"detach_device {dev} ok", uuid=uuid, failed=disk['vol'])
-                    return utils.return_ok(f"detach_device {dev} ok", uuid=uuid)
+                        return utils.return_ok(f'detach_device {dev} ok', uuid=uuid, failed=disk['vol'])
+                    return utils.return_ok(f'detach_device {dev} ok', uuid=uuid)
             for net in domain.nets:
                 if net['mac'] == dev:
                     dom.detachDeviceFlags(net['xml'], flags)
-                    return utils.return_ok(f"detach_device {dev} ok", uuid=uuid)
+                    return utils.return_ok(f'detach_device {dev} ok', uuid=uuid)
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
@@ -234,7 +234,7 @@ class VMManager:
             # all env must string
             env = {'URL':host.url, 'TYPE':device.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
             cmd = ['bash', os.path.join(config.DIR_ACTION, f'{device.action}'), f'add']
-            gold = req_json.get("gold", "")
+            gold = req_json.get('gold', '')
             if len(gold) != 0:
                 req_json['gold'] = database.KVMGold.get_one(name=gold, arch=host.arch).tpl
             bus_type = tpl.bus_type(**req_json)
@@ -256,7 +256,7 @@ class VMManager:
     def create(host:utils.FakeDB, req_json)->str:
         req_json['vm_creater'] = utils.login_name(flask.request.headers.get('Authorization', flask.request.cookies.get('token', '')))
         for key in ['vm_uuid','vm_arch','vm_create']:
-            req_json.pop(key, "Not found")
+            req_json.pop(key, 'Not found')
         req_json = {**config.VM_DEFAULT(host.arch, host.name), **req_json}
         with utils.connect(host.url) as conn:
             try:
@@ -265,7 +265,7 @@ class VMManager:
             except libvirt.libvirtError:
                 conn.defineXML(template.DomainTemplate(host.tpl).render(**req_json))
         meta.gen_metafiles(**req_json)
-        return utils.return_ok(f"create vm on {host.name} ok", uuid=req_json['vm_uuid'])
+        return utils.return_ok(f'create vm on {host.name} ok', uuid=req_json['vm_uuid'])
 
     @staticmethod
     def cdrom(host:utils.FakeDB, uuid:str, dev:str, req_json)->str:
@@ -359,7 +359,7 @@ class VMManager:
             for net in domain.nets:
                 if net['mac'] == dev:
                     stats = dom.interfaceStats(net['dev'])
-                    return utils.return_ok(f"netstat", uuid=uuid, dev=dev, stats={'rx':stats[0], 'tx':stats[4]})
+                    return utils.return_ok(f'netstat', uuid=uuid, dev=dev, stats={'rx':stats[0], 'tx':stats[4]})
         raise Exception(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
@@ -367,7 +367,7 @@ class VMManager:
     # Generator func call by flask.Response(...)
     # need catch exception and yield it
         def convert_data(data):
-            return {value["hwaddr"]: {"name": name, "addrs": [{"addr":addr["addr"],"type":{0:'ipv4',1:'ipv6'}.get(addr["type"],'?')}for addr in value["addrs"]]} for name, value in data.items() if name != "lo" and value['addrs'] is not None}
+            return {value['hwaddr']: {'name': name, 'addrs': [{'addr':addr['addr'],'type':{0:'ipv4',1:'ipv6'}.get(addr['type'],'?')}for addr in value['addrs']]} for name, value in data.items() if name != 'lo' and value['addrs'] is not None}
         try:
             with utils.connect(host.url) as conn:
                 dom = conn.lookupByUUIDString(uuid)

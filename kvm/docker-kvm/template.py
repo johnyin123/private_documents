@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-import jinja2, xml.dom.minidom, config, logging
-from jinja2 import meta as jameta
+import jinja2, jinja2.meta, xml.dom.minidom, config, logging
 logger = logging.getLogger(__name__)
 
 def get_variables(dirname, filename):
@@ -9,7 +8,7 @@ def get_variables(dirname, filename):
             varset.discard(key)
         return varset
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(dirname))
-    return remove_reserved(jameta.find_undeclared_variables(env.parse(env.loader.get_source(env, filename)[0])))
+    return remove_reserved(jinja2.meta.find_undeclared_variables(env.parse(env.loader.get_source(env, filename)[0])))
 
 class KVMTemplate:
     def __init__(self, dirname, filename):
