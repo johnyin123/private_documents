@@ -37,7 +37,7 @@ class ShmListStore:
                 data = search(data, key, val)
             if len(data) == 1:
                 return FakeDB(**dict(data[0]))
-            raise Exception(f"{self.__name__} entry not found or not unique: {criteria}")
+            raise Exception(f"entry not found or not unique: {criteria}")
 
     def list_all(self, **criteria) -> List[FakeDB]:
         with self.lock:
