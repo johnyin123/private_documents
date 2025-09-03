@@ -7,7 +7,6 @@ import database, vmmanager, config, template, utils
 logger = logging.getLogger(__name__)
 
 class MyApp(object):
-    VARS_DESC = None
     @staticmethod
     def create():
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
@@ -18,7 +17,6 @@ class MyApp(object):
             DATABASE={config.DATABASE}''')
         database.reload_all()
         web=flask_app.create_app({'STATIC_FOLDER': config.DATA_DIR, 'STATIC_URL_PATH':'/public', 'JSON_SORT_KEYS': False}, json=True)
-        MyApp.VARS_DESC = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'vars.json')))
         MyApp().register_routes(web)
         return web
 
@@ -42,7 +40,7 @@ class MyApp(object):
                 varset = template.get_variables(config.DIR_DOMAIN, host['tpl'])
                 for file in [fn for fn in os.listdir(config.DIR_META) if fn.endswith('.tpl')]:
                     varset.update(template.get_variables(config.DIR_META, file))
-                host['vars'] = {k: self.VARS_DESC.get(k,'n/a') for k in varset}
+                host['vars'] = {k: database.KVMVar.get_desc(k) for k in varset}
             return utils.return_ok(f'db_list_host ok', host=utils.getlist_without_key(hosts, *['sshport', 'sshuser', 'tpl', 'url']))
         except Exception as e:
             return utils.deal_except(f'db_list_host', e), 400
@@ -52,7 +50,7 @@ class MyApp(object):
             args = {'kvmhost': hostname} if hostname else {}
             devices = [dic._asdict() for dic in database.KVMDevice.list_all(**args)]
             for dev in devices:
-                dev['vars'] = {k: self.VARS_DESC.get(k,'n/a') for k in template.get_variables(config.DIR_DEVICE, dev['tpl'])}
+                dev['vars'] = {k: database.KVMVar.get_desc(k) for k in template.get_variables(config.DIR_DEVICE, dev['tpl'])}
             return utils.return_ok(f'db_list_device ok', device=utils.getlist_without_key(devices, *['tpl', 'action']))
         except Exception as e:
             return utils.deal_except(f'db_list_device', e), 400

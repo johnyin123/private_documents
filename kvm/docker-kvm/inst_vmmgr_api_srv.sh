@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("52f5471c[2025-08-27T10:54:53+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("7a38dca3[2025-08-29T14:32:54+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -171,12 +171,10 @@ gen_app_database() {
         done
     }
     [ "${dbmode}" == "db" ] && {
-        ./reload_dbtable golds.json
-        ./reload_dbtable hosts.json
-        ./reload_dbtable devices.json
-        ./reload_dbtable iso.json
+        for fn in ${APPDBS[@]}; do
+            ./reload_dbtable ${fn}
+        done
         install -v -C -m 0644 --group=${gid} --owner=${uid} kvm.db ${outdir}/kvm.db
-        install -v -C -m 0644 --group=${gid} --owner=${uid} vars.json ${outdir}/vars.json
     }
     return 0
 }

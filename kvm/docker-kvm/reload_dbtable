@@ -5,17 +5,18 @@ import database, utils, json, sys
 
 # db.Base.metadata.drop_all(db.engine)
 def usage():
-    print(f'{sys.argv[0]} golds.json / hosts.json / devices.json / iso.json')
+    print(f'{sys.argv[0]} golds.json / hosts.json / devices.json / iso.json / vars.json')
     exit(1)
 
 if len(sys.argv) != 2:
     usage()
 fname = sys.argv[1]
 clazz = {
-    'golds.json'  :database.__KVMGold,
-    'hosts.json'  :database.__KVMHost,
-    'devices.json':database.__KVMDevice,
-    'iso.json'    :database.__KVMIso,
+    'golds.json'  :database.DB_KVMGold,
+    'hosts.json'  :database.DB_KVMHost,
+    'devices.json':database.DB_KVMDevice,
+    'iso.json'    :database.DB_KVMIso,
+    'vars.json'   :database.DB_KVMVar,
     }.get(fname, None)
 if clazz is None:
     usage()

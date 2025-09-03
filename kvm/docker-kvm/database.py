@@ -47,10 +47,24 @@ class DB_KVMIso(Base):
     desc = Column(String,nullable=False,server_default='',comment='ISO描述')
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
 
+class DB_KVMVar(Base):
+    __tablename__ = "kvmvar"
+    var = Column(String(19),nullable=False,index=True,primary_key=True,comment='VAR名称')
+    desc = Column(String,nullable=False,server_default='',comment='VAR描述')
+    last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())
+
+class SHM_KVMVar(utils.ShmListStore):
+    def get_desc(self, var):
+        try:
+            return self.get_one(var=var).desc
+        except:
+            return 'n/a'
+
 KVMHost   = utils.ShmListStore()
 KVMDevice = utils.ShmListStore()
 KVMGold   = utils.ShmListStore()
 KVMIso    = utils.ShmListStore()
+KVMVar    = SHM_KVMVar()
 
 def reload_all():
     cfg_class={
@@ -58,6 +72,7 @@ def reload_all():
         DB_KVMDevice:KVMDevice,
         DB_KVMGold  :KVMGold,
         DB_KVMIso   :KVMIso,
+        DB_KVMVar   :KVMVar,
     }
     logger.info(f'database create all tables')
     # Base.metadata.drop_all(engine)
