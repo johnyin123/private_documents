@@ -143,7 +143,7 @@ class VMManager:
                     logger.debug(f'remove disk {disk}')
                     try:
                         conn.storageVolLookupByPath(disk['vol']).delete()
-                    except Exception:
+                    except:
                         return utils.return_ok(f'detach_device {dev} ok', uuid=uuid, failed=disk['vol'])
                     return utils.return_ok(f'detach_device {dev} ok', uuid=uuid)
             for net in domain.nets:
@@ -196,12 +196,12 @@ class VMManager:
                 logger.debug(f'remove disk {disk}')
                 try:
                     conn.storageVolLookupByPath(disk['vol']).delete()
-                except Exception:
+                except:
                     keys = ['type', 'dev', 'vol']
                     diskinfo.append({k: disk[k] for k in keys if k in disk})
             try:
                 dom.destroy()
-            except Exception:
+            except:
                 pass
             flags = libvirt.VIR_DOMAIN_UNDEFINE_NVRAM | libvirt.VIR_DOMAIN_UNDEFINE_MANAGED_SAVE | libvirt.VIR_DOMAIN_UNDEFINE_SNAPSHOTS_METADATA
             dom.undefineFlags(flags)

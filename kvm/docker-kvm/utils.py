@@ -202,7 +202,7 @@ class EtcdConfig:
                         logger.info(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
         except etcd3.exceptions.LockTimeoutError:
             logger.error(f"ETCD DEL LockTimeoutError {fname} -> {key}.")
-        except Exception:
+        except:
             logger.exception(f'ETCD DEL {fname} -> {key}')
 
     @classmethod
@@ -218,7 +218,7 @@ class EtcdConfig:
                         logger.info(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
         except etcd3.exceptions.LockTimeoutError:
             logger.error(f"ETCD PUT LockTimeoutError {fname} -> {key}.")
-        except Exception:
+        except:
             logger.exception(f'ETCD PUT {fname} -> {key}')
 
     @classmethod
