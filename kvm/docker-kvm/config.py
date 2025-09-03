@@ -4,11 +4,11 @@ import os, uuid, datetime
 DATA_DIR         = os.environ.get('DATA_DIR', os.path.abspath(os.path.dirname(__file__)))
 # use etcd as persistent
 ETCD_PREFIX      = os.environ.get('ETCD_PREFIX', None)
-ETCD_SRV         = os.environ.get("ETCD_SRV", 'localhost')
-ETCD_PORT        = os.environ.get("ETCD_PORT", 2379)
-ETCD_CA          = os.environ.get("ETCD_CA", None)
-ETCD_KEY         = os.environ.get("ETCD_KEY", None)
-ETCD_CERT        = os.environ.get("ETCD_CERT", None)
+ETCD_SRV         = os.environ.get('ETCD_SRV', 'localhost')
+ETCD_PORT        = os.environ.get('ETCD_PORT', 2379)
+ETCD_CA          = os.environ.get('ETCD_CA', None)
+ETCD_KEY         = os.environ.get('ETCD_KEY', None)
+ETCD_CERT        = os.environ.get('ETCD_CERT', None)
 # share with websockify process.
 TOKEN_DIR        = os.environ.get('TOKEN_DIR', os.path.join(DATA_DIR, 'token'))
 DATABASE         = os.environ.get('DATABASE', f'sqlite:///{DATA_DIR}/kvm.db?check_same_thread=False')
