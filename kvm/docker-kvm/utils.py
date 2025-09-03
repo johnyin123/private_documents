@@ -140,7 +140,7 @@ def file_save(filename:str, content)->None:
 def file_remove(fn):
     try:
         os.rename(f'{fn}', f'{fn}.remove')
-    except Exception:
+    except:
         pass
 
 def return_ok(desc:str, **kwargs)->str:

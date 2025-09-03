@@ -114,7 +114,7 @@ def refresh_all_pool(conn:libvirt.virConnect)-> None:
                 pool.create()
             pool.refresh(0)
         except libvirt.libvirtError as e:
-            logger.exception(f'Failed refresh pool {pool.name()}')
+            logger.error(f'refresh pool {pool.name()}: {e.get_error_message()}')
 
 def change_media(dev:str, isofile:str, bus:str)->str:
     disk = xml.dom.minidom.parseString(template.DeviceTemplate(config.CDROM_TPL,'iso').render())
