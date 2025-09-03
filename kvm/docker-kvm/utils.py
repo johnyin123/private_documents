@@ -174,16 +174,18 @@ class EtcdConfig:
     @classmethod
     def key2fname(cls, key:str, stage:str)->str:
         fn = os.path.join(config.DATA_DIR, key.removeprefix(config.ETCD_PREFIX).strip('/'))
-        logger.info(f'{stage} {key} -> {fn}')
+        logger.debug(f'{stage} {key} -> {fn}')
         return fn
 
     @classmethod
-    def fname2key(cls, fname:str)->str:
-        return os.path.join(config.ETCD_PREFIX, fname.removeprefix(config.DATA_DIR).strip('/'))
+    def fname2key(cls, fname:str, stage:str)->str:
+        key = os.path.join(config.ETCD_PREFIX, fname.removeprefix(config.DATA_DIR).strip('/'))
+        logger.debug(f'{stage} {fname} -> {key}')
+        return key
 
     @classmethod
     def etcd_del(cls, fname:str):
-        key = cls.fname2key(fname)
+        key = cls.fname2key(fname, 'ETCD DEL')
         try:
             with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
                 with etcd.lock(f'/locks/{key}', ttl=10) as lock:
@@ -199,7 +201,7 @@ class EtcdConfig:
 
     @classmethod
     def etcd_save(cls, fname:str, val:str):
-        key = cls.fname2key(fname)
+        key = cls.fname2key(fname, 'ETCD PUT')
         try:
             with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
                 with etcd.lock(f'/locks/{key}', ttl=10) as lock:
@@ -216,7 +218,7 @@ class EtcdConfig:
     @classmethod
     def cfg_updater_proc(cls, update_callback):
         while True:
-            logger.warn(f'ETCD WATCH PREFIX {os.getpid()} START')
+            logger.warn(f'ETCD WATCH PREFIX PID={os.getpid()} START')
             try:
                 with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
                     _iter, _ = etcd.watch_prefix(config.ETCD_PREFIX)
