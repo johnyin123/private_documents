@@ -258,13 +258,13 @@ class VMManager:
         for key in ['vm_uuid','vm_arch','vm_create']:
             req_json.pop(key, 'Not found')
         req_json = {**config.VM_DEFAULT(host.arch, host.name), **req_json}
+        meta.gen_metafiles(**req_json)
         with utils.connect(host.url) as conn:
             try:
                 conn.lookupByUUIDString(req_json['vm_uuid'])
                 return return_err(400, f'create', f'Domain {req_json["vm_uuid"]} already exists')
             except libvirt.libvirtError:
                 conn.defineXML(template.DomainTemplate(host.tpl).render(**req_json))
-        meta.gen_metafiles(**req_json)
         return utils.return_ok(f'create vm on {host.name} ok', uuid=req_json['vm_uuid'])
 
     @staticmethod
