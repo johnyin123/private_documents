@@ -201,7 +201,7 @@ class EtcdConfig:
                     else:
                         logger.info(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
         except etcd3.exceptions.Etcd3Exception as e:
-            logger.error(f"ETCD DEL {fname} -> {key} {e}")
+            logger.error(f"ETCD DEL Etcd3Exception {fname} -> {key} [{config.ETCD_SRV}:{config.ETCD_PORT} {e}]")
         except:
             logger.exception(f'ETCD DEL {fname} -> {key}')
 
@@ -217,7 +217,7 @@ class EtcdConfig:
                     else:
                         logger.info(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
         except etcd3.exceptions.Etcd3Exception as e:
-            logger.error(f"ETCD PUT Etcd3Exception {fname} -> {key} {e}")
+            logger.error(f"ETCD PUT Etcd3Exception {fname} -> {key} [{config.ETCD_SRV}:{config.ETCD_PORT} {e}]")
         except:
             logger.exception(f'ETCD PUT {fname} -> {key}')
 
