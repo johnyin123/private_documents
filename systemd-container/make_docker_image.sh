@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("a7587322[2025-03-19T10:37:19+08:00]:make_docker_image.sh")
+VERSION+=("5177cc96[2025-07-08T10:27:17+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -146,7 +146,6 @@ RUN set -eux && { \\
         [ -z "\$TZ" ] || cmp /usr/share/zoneinfo/\$TZ /etc/localtime || { ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; }; \\
         [ -e "/build.run" ] && /bin/sh -o errexit -x /build.run; \\
         echo "ALL OK"; \\
-        rm -rf /var/cache/apt/* /var/lib/apt/lists/* /root/.bash_history /build.run; \\
     }
 # RUN useradd -u 10001 -m johnyin --home-dir /home/johnyin/ --shell /bin/bash
 # USER johnyin

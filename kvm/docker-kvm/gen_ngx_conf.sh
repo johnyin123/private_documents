@@ -182,7 +182,7 @@ tanent_ui() {
     local combine=${3:-}
     cat <<EOF
     # # default page is guest ui
-    location / { return 301 https://\$server_name${PRE}/guest.html; }
+    location / { return 301 https://\$host${PRE}/guest.html; }
     # # tanent user UI manager # #
     location = ${PRE}/guest.html { return 301 /ui/userui.html\$is_args\$args; }
 EOF
@@ -212,7 +212,7 @@ meta_data_srv() {
 server {
     listen 80;
     server_name ${srv_name};
-    location / { return 301 https://\$server_name\$request_uri\$is_args\$args; }
+    location / { return 301 https://\$host\$request_uri\$is_args\$args; }
     location ~* (\\.iso|\\/meta-data|\\/user-data)$ { set \$limit 0; root ${OUT_DIR}/cidata; }
     location ^~ /gold { set \$limit 0; alias ${OUT_DIR}/gold/; }
 }
