@@ -90,7 +90,7 @@ class ProcList:
                     logger.info(f'PROC: {uuid} PID={pid} {cmd} exit ok!!!')
                 else:
                     msg = ''.join(proc.stderr if not redirect else [])
-                    raise APIException(f'PROC: {uuid} PID={pid} {cmd} error={signal.Signals(-proc.returncode).name} {msg}')
+                    raise APIException(f'PROC: {uuid} PID={pid} {cmd} error={proc.returncode if proc.returncode > 0 else signal.Signals(-proc.returncode).name} {msg}')
         finally:
             ProcList.pids.delete(uuid=uuid)
 
