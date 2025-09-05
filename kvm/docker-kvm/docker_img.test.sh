@@ -263,12 +263,15 @@ cat <<EOF
 # # when: qemu+tls://
 # -v /kvm/pki:/etc/pki/ \\
 
+# /host/ssl/simplekvm.pem
+# /host/ssl/simplekvm.key
 docker run --rm \\
  --name vmmgr-api \\
  --network br-int --ip 192.168.169.123 \\
  --env META_SRV=simplekvm.regisger.local \\
  --env ETCD_SRV=192.168.169.1 \\
  --env ETCD_PORT=2379 \\
- -v /home/johnyin/disk/myvm/cloud-tpl/kvm/pki:/etc/pki/ \\
+ -v /host/pki:/etc/pki/ \\
+ -v /host/ssl:/etc/nginx/ssl \\
  ${tag}
 EOF

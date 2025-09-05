@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("7a38dca3[2025-08-29T14:32:54+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("dcbe6f83[2025-09-03T10:28:39+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -253,15 +253,6 @@ main() {
     post_check "${OUTDIR}"
     log "!!!!!!!modify ${target}/app/startup.sh start app!!!!!!!"
     log "devices.json golds.json hosts.json iso.json CAN READ-ONLY"
-    [ "${docker}" == "1" ] && cat <<EODOC
-# --network host \
-# docker run --rm \\
-docker create \\
-    --name vmmgr-api \\
-    --network br-int --ip 192.168.169.123 \\
-    -v ${target}:/home/${USR_NAME} \\
-    registry.local/libvirtd/vmmgr:bookworm
-EODOC
     return 0
 }
 main "$@"
