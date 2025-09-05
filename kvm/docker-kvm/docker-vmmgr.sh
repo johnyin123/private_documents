@@ -1,50 +1,281 @@
 #!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
 
 export BUILD_NET=br-int
-export IMAGE=debian:bookworm
+export IMAGE=debian:trixie
 export REGISTRY=registry.local
 export NAMESPACE=
 ARCH=(amd64 arm64)
-type=vmmgr
-ver=bookworm
-username=johnyin
+type=simplekvm
+ver=trixie
+username=simplekvm
+# # in docker dir
+token_dir=/dev/shm/simplekvm/token
+out_dir=/dev/shm/simplekvm/work
+etcd_prefix=/simple-kvm/work
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     cat <<EODOC > ${type}-${arch}/docker/build.run
 useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
-apt -y --no-install-recommends update
-echo "need jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open)" # libvirt-clients
-apt -y --no-install-recommends install jq openssh-client socat qemu-utils qemu-block-extra supervisor python3 python3-venv
-apt -y --no-install-recommends install websockify python3-websockify \
-    python3-flask python3-pycdlib python3-libvirt \
-    gunicorn python3-gunicorn python3-etcd3 #python3-sqlalchemy
-    rm -fr /etc/pki && ln -s /home/${username}/pki /etc/pki
+sed "s/^user .*;/user ${username} ${username};/g" /etc/nginx/nginx.conf
+echo "need jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open)"
+APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-recommends"
+\${APT} update
+\${APT} install jq openssh-client socat qemu-utils qemu-block-extra supervisor python3 python3-venv
+\${APT} install libbrotli1 libgeoip1 libxml2 libxslt1.1 libjansson4 libsqlite3-0 libldap2 libjwt2
+# libjwt0 libldap-2.5-0
+\${APT} install python3-libvirt python3-protobuf python3-markupsafe python3-certifi python3-charset-normalizer python3-requests python3-urllib3
+
+python3 -m venv --system-site-packages /home/${username}/venv
+source /home/${username}/venv/bin/activate
+cat <<EO_PIP | grep -v '^\s*#.*$' > /home/${username}/requirements.txt
+gunicorn
+Flask
+pycdlib
+websockify
+etcd3
+# etcd3 use grpcio someversion bug when Docker, so use system python3-protobuf
+EO_PIP
+pip install ${PROXY:+--proxy ${PROXY} }-r /home/${username}/requirements.txt
+find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
+rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/*
 EODOC
+    mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && cat <<'EODOC' > ${type}-${arch}/docker/etc/nginx/http-enabled/simplekvm.conf
+# # tanent can multi points, upstream loadbalance: hash $arg_k$arg_e consistent; # ip_hash; # sticky;
+upstream api_srv {
+    server 127.0.0.1:5009 fail_timeout=0;
+    keepalive 64;
+}
+upstream websockify_srv {
+    server 127.0.0.1:6800;
+}
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+server {
+    listen 443 ssl;
+    server_name _;
+    ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
+    ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
+    default_type application/json;
+    error_page 403 = @403;
+    location @403 { return 403 '{"code":403,"name":"lberr","desc":"Resource Forbidden"}'; }
+    error_page 404 = @404;
+    location @404 { return 404 '{"code":404,"name":"lberr","desc":"Resource not found"}'; }
+    error_page 405 = @405;
+    location @405 { return 405 '{"code":405,"name":"lberr","desc":"Method not allowed"}'; }
+    error_page 410 = @410;
+    location @410 { return 410 '{"code":410,"name":"lberr","desc":"Access expired"}'; }
+    error_page 502 = @502;
+    location @502 { return 502 '{"code":502,"name":"lberr","desc":"backend server not alive"}'; }
+    error_page 504 = @504;
+    location @504 { return 504 '{"code":504,"name":"lberr","desc":"Gateway Time-out"}'; }
+    #include /etc/nginx/http-enabled/jwt_sso_auth.inc;
+    location /tpl/ {
+        # # proxy cache default is on, so modify host|device|gold, should clear ngx cache
+        #auth_request @sso-auth;
+        # host/device/gold can cached by proxy_cache default
+        location ~* ^/tpl/(?<apicmd>(host|device|gold|iso))/(?<others>.*)$ {
+            if ($request_method !~ ^(GET)$) { return 405; }
+            # # rewrite .....
+            proxy_pass http://api_srv/tpl/$apicmd/$others$is_args$args;
+        }
+        return 404;
+    }
+    location /vm/ {
+        #auth_request @sso-auth;
+        # # no cache!! mgr private access
+        proxy_cache off;
+        expires off;
+        proxy_read_timeout 240s;
+        location ~* ^/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|console|display|xml|ui))/(?<others>.*)$ {
+            if ($request_method !~ ^(GET)$) { return 405; }
+            # # for server stream output
+            proxy_buffering                    off;
+            proxy_request_buffering            off;
+            proxy_pass http://api_srv/vm/$apicmd/$others$is_args$args;
+        }
+        location ~* ^/vm/(?<apicmd>(create|attach_device|detach_device|cdrom))/(?<others>.*)$ {
+            if ($request_method !~ ^(POST)$) { return 405; }
+            # # for server stream output
+            proxy_buffering                    off;
+            proxy_request_buffering            off;
+            proxy_pass http://api_srv/vm/$apicmd/$others$is_args$args;
+        }
+        location ~* ^/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*)$ {
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_pass http://websockify_srv/websockify/$is_args$args;
+        }
+        return 404;
+    }
+    # # admin ui # #
+    location = /admin.html { return 301 /ui/tpl.html; }
+    location = /ui/tpl.html {
+        #auth_request @sso-auth;
+        alias /home/simplekvm/ui/tpl.html;
+    }
+    # # static resource # #
+    # # ui/term/spice/novnc use api_srv serve, add rewrite
+    # rewrite ^ /public$uri break;proxy_pass http://api_srv;
+    location /ui { alias /home/simplekvm/ui/; }
+    location /term { alias /home/simplekvm/term/; }
+    location /spice { alias /home/simplekvm/spice/; }
+    location /novnc { alias /home/simplekvm/novnc/; }
+    # # tanent api
+    location /user/ {
+        location ~* ^/user/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*)$ {
+            proxy_cache off;
+            expires off;
+            set $userkey "P@ssw@rd4Display";
+            secure_link $arg_k,$arg_e;
+            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
+            if ($secure_link = "") { return 403; }
+            if ($secure_link = "0") { return 410; }
+            rewrite ^/user(.*)$ $1 break;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_pass http://websockify_srv;
+        }
+        location ~* ^/user/vm/(?<apicmd>(list|start|reset|stop|console|display))/(?<kvmhost>.*)/(?<uuid>.*)$ {
+            # # no cache!! guest user api, guest private access
+            proxy_cache off;
+            expires off;
+            set $userkey "P@ssw@rd4Display";
+            secure_link $arg_k,$arg_e;
+            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
+            if ($secure_link = "") { return 403; }
+            if ($secure_link = "0") { return 410; }
+            if ($request_method !~ ^(GET)$ ) { return 405; }
+            rewrite ^/user(.*)$ $1 break;
+            proxy_pass http://api_srv;
+        }
+        location ~* ^/user/vm/(?<apicmd>(cdrom))/(?<kvmhost>.*)/(?<uuid>.*)$ {
+            # # no cache!! guest user api, guest private access
+            proxy_cache off;
+            expires off;
+            set $userkey "P@ssw@rd4Display";
+            secure_link $arg_k,$arg_e;
+            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
+            if ($secure_link = "") { return 403; }
+            if ($secure_link = "0") { return 410; }
+            if ($request_method !~ ^(POST)$) { return 405; }
+            rewrite ^/user(.*)$ $1 break;
+            proxy_pass http://api_srv;
+        }
+        location ~* ^/user/vm/(?<apicmd>(getiso))/(?<kvmhost>.*)/(?<uuid>.*)$ {
+            # # /tpl/iso need cache
+            set $userkey "P@ssw@rd4Display";
+            secure_link $arg_k,$arg_e;
+            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
+            if ($secure_link = "") { return 403; }
+            if ($secure_link = "0") { return 410; }
+            if ($request_method !~ ^(GET)$) { return 405; }
+            set $urieat '';
+            # # just for eating uri -> /tpl/iso/,no args, can cache
+            proxy_pass http://api_srv/tpl/iso/$urieat;
+            # rewrite ^.*$ /tpl/iso/ break;
+            # # /tpl/iso/?k=XtaHHDjE_nULHFdM2Dsupw&e=1745423940. with args, can not cache
+            # proxy_pass http://api_srv;
+        }
+        return 403;
+    }
+    # # default page is guest ui
+    location / { return 301 https://$host/guest.html; }
+    # # tanent user UI manager # #
+    location = /guest.html { return 301 /ui/userui.html$is_args$args; }
+    # # # # # # # # # # # # # # # # # # # # # # # # #
+    # # only .iso|meta-data|user-data(include subdir resource)
+    location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root /dev/shm/simplekvm/work/cidata; }
+    # /uuid.iso      => /dev/shm/simplekvm/work/iso/uuid.iso
+}
+server {
+    listen 80;
+    server_name _;
+    location / { return 301 https://$host$request_uri$is_args$args; }
+    location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root /dev/shm/simplekvm/work/cidata; }
+}
+EODOC
+
     mkdir -p ${type}-${arch}/docker/etc && cat <<EODOC > ${type}-${arch}/docker/etc/supervisord.conf
 [supervisord]
 nodaemon=true
 user=root
+logfile=/var/log/supervisor/supervisord.log
+pidfile=/var/run/supervisord.pid
 
-[program:webapp]
-command=/home/${username}/app/startup.sh
-user=${username}
-directory=/home/${username}/app/
+[program:nginx]
+command=/usr/sbin/nginx -g "daemon off;"
+autostart=true
 autorestart=true
+startretries=5
+user=root
+stdout_logfile=/dev/stdout
+stderr_logfile=/dev/stderr
+stdout_logfile_maxbytes=0
+stderr_logfile_maxbytes=0
+
+[program:websockify]
+command=${VENV:-}websockify --token-plugin TokenFile --token-source ${token_dir} 127.0.0.1:6800
+autostart=true
+autorestart=true
+startretries=5
+user=${username}
+stdout_logfile=/dev/stdout
+stderr_logfile=/dev/stderr
+stdout_logfile_maxbytes=0
+stderr_logfile_maxbytes=0
+
+[program:gunicorn]
+umask=0022
+environment=ETCD_PREFIX="${etcd_prefix}",DATA_DIR="${out_dir}",TOKEN_DIR="${token_dir}",PYTHONDONTWRITEBYTECODE=1
+directory=/home/${username}/app/
+command=${VENV:-}gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:app'
+autostart=true
+autorestart=true
+startretries=5
+user=${username}
 stdout_logfile=/dev/stdout
 stderr_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
-VOLUME ["/home/${username}"]
+EXPOSE 80 443
 ENTRYPOINT ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
     ################################################
+    cat <<EOF
     # confirm base-image is right arch
+    export BUILD_NET=br-int
     docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
     docker run --rm --entrypoint="uname" "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" -m
     ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
     docker push ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
+EOF
 done
+cat <<EOF
 sleep 4
 ./make_docker_image.sh -c combine --tag ${REGISTRY}/libvirtd/${type}:${ver}
+EOF
+cat <<EOF
+###################################################
+# test run
+###################################################
+# # when: qemu+ssh://
+#     chown -R 10001:10001 /kvm/ssh
+#     chmod 700            /kvm/ssh
+#     -v /kvm/ssh:/home/${username}/.ssh/
+# # when: qemu+tls://
+#     -v /kvm/pki:/etc/pki/
+
+docker run --rm \\
+ --name vmmgr-api \\
+ --network br-int --ip 192.168.169.123 \\
+ --env META_SRV=simplekvm.regisger.local \\
+ --env ETCD_SRV=192.168.169.1 \\
+ --env ETCD_PORT=2379 \\
+ -v /home/johnyin/disk/myvm/cloud-tpl/kvm/pki:/etc/pki/ \\
+ ${REGISTRY}/libvirtd/${type}:${ver}
+EOF

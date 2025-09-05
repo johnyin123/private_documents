@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5177cc96[2025-07-08T10:27:17+08:00]:make_docker_image.sh")
+VERSION+=("c92118db[2025-09-04T12:24:43+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -43,6 +43,12 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
          # # mkdir -p myfirefox && cp firefox_rootfs.tar.xz myfirefox/
             ./${SCRIPTNAME} -c firefox --file firefox_rootfs.tar.xz -D myfirefox
          ${R}# # create goldimg${N}
+            # . os_debian_init.sh
+            # export INST_ARCH=arm64
+            # export DEBIAN_VERSION=trixie
+            # export REPO=https://mirrors.aliyun.com/debian
+            # export HOSTNAME=gold
+            # debian_build rootfs-\${INST_ARCH} /cache
             export REGISTRY=${REGISTRY}
             export NAMESPACE=${NAMESPACE}
             GOLDNAME=debian:bookworm
