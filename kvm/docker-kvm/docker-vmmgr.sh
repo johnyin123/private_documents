@@ -27,7 +27,7 @@ APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-re
 \${APT} install python3-libvirt python3-protobuf python3-markupsafe python3-certifi python3-charset-normalizer python3-requests python3-urllib3
 
 python3 -m venv --system-site-packages /home/${username}/venv
-source /home/${username}/venv/bin/activate
+. /home/${username}/venv/bin/activate
 cat <<EO_PIP | grep -v '^\s*#.*$' > /home/${username}/requirements.txt
 gunicorn
 Flask
