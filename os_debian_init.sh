@@ -16,9 +16,9 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("f7788cc3[2025-06-17T13:50:46+08:00]:os_debian_init.sh")
-# liveos:debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
-# docker:debian_build /tmp/rootfs /tmp/cache "systemd-container"
+VERSION+=("28efe708[2025-08-01T15:34:17+08:00]:os_debian_init.sh")
+# liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
+# docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
 # DEBIAN_VERSION=buster
 # REPO=http://mirrors.163.com/debian
@@ -149,8 +149,8 @@ debian_sysctl_init() {
     # # (65531-1024)/10 = 6450 sockets per second.
     command -v "sysctl" &> /dev/null || {
         echo "need install procps"
-        DEBIAN_FRONTEND=noninteractive apt update || true
-        DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install procps
+        DEBIAN_FRONTEND=noninteractive apt ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }update || true
+        DEBIAN_FRONTEND=noninteractive apt -y ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }-oAcquire::http::User-Agent=dler --no-install-recommends install procps
     }
     cat /etc/sysctl.conf > /etc/sysctl.conf.bak 2>/dev/null || true
     cat << EOF > /etc/sysctl.conf
@@ -207,8 +207,8 @@ export -f debian_sshd_regenkey
 
 debian_sshd_init() {
     command -v "sshd" &> /dev/null || {
-        DEBIAN_FRONTEND=noninteractive apt update || true
-        DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install openssh-server
+        DEBIAN_FRONTEND=noninteractive apt ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }update || true
+        DEBIAN_FRONTEND=noninteractive apt -y ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }-oAcquire::http::User-Agent=dler --no-install-recommends install openssh-server
     }
     # dpkg-reconfigure -f noninteractive openssh-server
     sed --quiet -i.orig -E \
@@ -450,12 +450,12 @@ EOF
     eval $(grep -E "^VERSION_CODENAME=" /etc/os-release)
     case "$VERSION_CODENAME" in
         buster)
-            DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends update && DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install udisks2
+            DEBIAN_FRONTEND=noninteractive apt -y ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }-oAcquire::http::User-Agent=dler --no-install-recommends update && DEBIAN_FRONTEND=noninteractive apt -y ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }-oAcquire::http::User-Agent=dler --no-install-recommends install udisks2
             mkdir -p /usr/local/lib/zram.conf.d/
             cfg=/usr/local/lib/zram.conf.d/zram0-env
             ;;
         bullseye)
-            DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends update && DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install udisks2-zram
+            DEBIAN_FRONTEND=noninteractive apt -y ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }-oAcquire::http::User-Agent=dler --no-install-recommends update && DEBIAN_FRONTEND=noninteractive apt -y ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }-oAcquire::http::User-Agent=dler --no-install-recommends install udisks2-zram
             mkdir -p /usr/lib/zram.conf.d/
             cfg=/usr/lib/zram.conf.d/zram0
             ;;
@@ -470,8 +470,8 @@ EOF
 export -f debian_zswap_init3
 
 debian_vim_init() {
-    DEBIAN_FRONTEND=noninteractive apt update || true
-    DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install vim
+    DEBIAN_FRONTEND=noninteractive apt ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }update || true
+    DEBIAN_FRONTEND=noninteractive apt -y ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }-oAcquire::http::User-Agent=dler --no-install-recommends install vim
     echo "mkdir -p ~/.vim/pack/plugins/start && cd ~/.vim/pack/plugins/start && git clone https://github.com/dhruvasagar/vim-table-mode.git"
     echo "vim -> :TableModeEnable, insert | table | val |....."
     cat <<'EOF' > /etc/vim/vimrc.local
@@ -650,8 +650,8 @@ export -f debian_vim_init
 debian_locale_init() {
     #dpkg-reconfigure locales
     command -v "locale-gen" &> /dev/null || {
-        DEBIAN_FRONTEND=noninteractive apt update || true
-        DEBIAN_FRONTEND=noninteractive apt -y -oAcquire::http::User-Agent=dler --no-install-recommends install locales
+        DEBIAN_FRONTEND=noninteractive apt ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }update || true
+        DEBIAN_FRONTEND=noninteractive apt -y ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }-oAcquire::http::User-Agent=dler --no-install-recommends install locales
     }
     sed -i "s/^# *zh_CN.UTF-8/zh_CN.UTF-8/g" /etc/locale.gen
     locale-gen
