@@ -231,7 +231,7 @@ class EtcdConfig:
                             update_callback(cls.key2fname(event.key.decode('utf-8'), 'ETCD WATCH PREFIX DELETE'), None)
                         else:
                             logger.warn(f'ETCD WATCH PREFIX BYPASS callback={update_callback} {event}')
-            except exception as e:
+            except Exception as e:
                 logger.error(f'ETCD WATCH PREFIX [{config.ETCD_SRV}:{config.ETCD_PORT} {e}]')
             logger.warn(f'ETCD WATCH PREFIX {os.getpid()} QUIT, 60s RESTART')
             time.sleep(60) # Wait before retrying
