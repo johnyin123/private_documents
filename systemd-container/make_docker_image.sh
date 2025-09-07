@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c92118db[2025-09-04T12:24:43+08:00]:make_docker_image.sh")
+VERSION+=("77413f71[2025-09-05T13:35:57+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -134,8 +134,8 @@ gen_dockerfile() {
     local arch=${4:-}
     # FROM --platform=$BUILDPLATFORM
     # Automatic platform ARGs in the global scope
-    local action="FROM ${arch:+--platform=${arch} }${base_img}"
-    [ -e "${target_dir}/${base_img}" ] && action="FROM ${arch:+--platform=${arch} }scratch\nADD ${base_img##*/} /\n"
+    local action="FROM ${arch:+--platform=${arch} }scratch AS builder\nADD ${DIRNAME_COPYIN}.tgz /\n\nFROM ${arch:+--platform=${arch} }${base_img}"
+    [ -e "${target_dir}/${base_img}" ] && action="FROM ${arch:+--platform=${arch} }scratch AS builder\nADD ${DIRNAME_COPYIN}.tgz /\n\nFROM ${arch:+--platform=${arch} }scratch\nADD ${base_img##*/} /\n"
     [ -z "${base_img}" ] && action="FROM ${arch:+--platform=${arch} }scratch\nADD rootfs.tar.xz /\n"
     # # Override user name at build. If build-arg is not passed, will create user named `default_user`
     # ARG DOCKER_USER=default_user
@@ -145,8 +145,8 @@ gen_dockerfile() {
 $(echo -e "${action}")
 LABEL maintainer="johnyin" name="${name}${arch:+-${arch}}" build-date="$(date '+%Y%m%d%H%M%S')"
 ENV TZ=Asia/Shanghai
-# # us tgz no need ,ADD --exclude=*.txt --chown=user:group --chmod=644
-ADD ${DIRNAME_COPYIN}.tgz /
+# # copy from builder can execute files ..
+COPY --from=builder / /
 RUN set -eux && { \\
         export DEBIAN_FRONTEND=noninteractive; \\
         [ -z "\$TZ" ] || cmp /usr/share/zoneinfo/\$TZ /etc/localtime || { ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; }; \\
