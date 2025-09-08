@@ -213,7 +213,7 @@ meta_data_srv() {
 server {
     listen 80;
     server_name ${srv_name};
-    location / { return 301 https://\$host\$request_uri\$is_args\$args; }
+    location / { return 301 https://\$host\$request_uri; }
     location ~* (\\.iso|\\/meta-data|\\/user-data)$ { set \$limit 0; root ${OUT_DIR}/cidata; }
     location ^~ /gold { set \$limit 0; alias ${OUT_DIR}/gold/; }
 }

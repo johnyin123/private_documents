@@ -203,7 +203,7 @@ server {
 server {
     listen 80;
     server_name _;
-    location / { return 301 https://$host$request_uri$is_args$args; }
+    location / { return 301 https://$host$request_uri; }
     location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root /dev/shm/simplekvm/work/cidata; }
 }
 EODOC
