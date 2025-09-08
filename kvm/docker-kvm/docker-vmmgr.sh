@@ -1,23 +1,31 @@
 #!/usr/bin/env bash
 set -o nounset -o pipefail -o errexit
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
-export BUILD_NET=br-int
-export IMAGE=debian:trixie
-export REGISTRY=registry.local
-export NAMESPACE=
-ARCH=(amd64 arm64)
 type=simplekvm
 ver=trixie
 username=simplekvm
-# # in docker dir
+VENV=/home/${username}/venv/bin/   # last word / !!
+export PROXY=http://yin.zh:Passw%29rd123@192.168.2.78:8080
+ARCH=(amd64 arm64)
+export BUILD_NET=br-int
+export REGISTRY=registry.local
+export IMAGE=debian:trixie       # # BASE IMAGE
+export NAMESPACE=
 token_dir=/dev/shm/simplekvm/token
 out_dir=/dev/shm/simplekvm/work
 etcd_prefix=/simple-kvm/work
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     cat <<EODOC > ${type}-${arch}/docker/build.run
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export DEBIAN_FRONTEND=noninteractive
 useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
-sed "s/^user .*;/user ${username} ${username};/g" /etc/nginx/nginx.conf
+dpkg -i nginx-*.deb
+sed -i "s/^user .*;/user ${username} ${username};/g"  /etc/nginx/nginx.conf
+sed -i "s/worker_processes .*;/worker_processes 1;/g" /etc/nginx/nginx.conf
+sed -i "/worker_priority/d"                           /etc/nginx/nginx.conf
 echo "need jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open)"
 APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-recommends"
 \${APT} update
@@ -37,6 +45,8 @@ etcd3
 # etcd3 use grpcio someversion bug when Docker, so use system python3-protobuf
 EO_PIP
 pip install ${PROXY:+--proxy ${PROXY} }-r /home/${username}/requirements.txt
+rm -f /home/${username}/requirements.txt
+chown -R 10001:10001 /home/${username}/venv
 find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
 rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/*
 EODOC
@@ -197,7 +207,6 @@ server {
     location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root /dev/shm/simplekvm/work/cidata; }
 }
 EODOC
-
     mkdir -p ${type}-${arch}/docker/etc && cat <<EODOC > ${type}-${arch}/docker/etc/supervisord.conf
 [supervisord]
 nodaemon=true
@@ -246,19 +255,32 @@ EXPOSE 80 443
 ENTRYPOINT ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
     ################################################
-    cat <<EOF
-    # confirm base-image is right arch
-    export BUILD_NET=br-int
     docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
-    docker run --rm --entrypoint="uname" "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" -m
-    ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
-    docker push ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
-EOF
+    docker run --name ${type}-${arch}.baseimg --entrypoint="uname" "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" -m || true
+    rm -f ${type}-${arch}.baseimg.tpl || true
+    docker export ${type}-${arch}.baseimg | mksquashfs - ${type}-${arch}.baseimg.tpl -tar # -quiet
+    docker rm -v ${type}-${arch}.baseimg
+    log "Pre chroot, copy files in ${type}-${arch}/docker/"
+    cp nginx-johnyin_1.28.0-${arch}.deb ${type}-${arch}/docker
+    log "Pre chroot exit"
+    ./tpl_overlay.sh -t ${type}-${arch}.baseimg.tpl -r ${type}-${arch}.rootfs --upper ${type}-${arch}/docker
+    log "chroot ${type}-${arch}.rootfs, exit continue build"
+    chroot ${type}-${arch}.rootfs /usr/bin/env -i SHELL=/bin/bash PS1="\u@DOCKER:\w$" TERM=${TERM:-} COLORTERM=${COLORTERM:-} /bin/bash --noprofile --norc -o vi || true
+    log "exit ${type}-${arch}.rootfs"
+    ./tpl_overlay.sh -r ${type}-${arch}.rootfs -u
+    log "Post chroot, delete nouse file in ${type}-${arch}/docker/"
+    for fn in tmp run root build.run nginx-*.deb; do
+        rm -fr ${type}-${arch}/docker/${fn}
+    done
+    rm -vfr ${type}-${arch}.baseimg.tpl ${type}-${arch}.rootfs
 done
-cat <<EOF
-sleep 4
-./make_docker_image.sh -c combine --tag ${REGISTRY}/libvirtd/${type}:${ver}
-EOF
+log '=================================================='
+for arch in ${ARCH[@]}; do
+    log docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
+    log ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
+    log docker push ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
+done
+log ./make_docker_image.sh -c combine --tag ${REGISTRY}/libvirtd/${type}:${ver}
 cat <<EOF
 ###################################################
 # test run
@@ -269,13 +291,34 @@ cat <<EOF
 #     -v /kvm/ssh:/home/${username}/.ssh/
 # # when: qemu+tls://
 #     -v /kvm/pki:/etc/pki/
-
+docker pull ${REGISTRY}/libvirtd/${type}:${ver} --platform amd64
+# # need http  get hosts define in golds.json when add disk with template
+# # need https get host META_SRV for metadata and iso cdrom file
 docker run --rm \\
  --name vmmgr-api \\
  --network br-int --ip 192.168.169.123 \\
- --env META_SRV=simplekvm.regisger.local \\
+ --env LEVELS='{"main":"INFO"}' \\
+ --env META_SRV=vmm.registry.local \\
  --env ETCD_SRV=192.168.169.1 \\
  --env ETCD_PORT=2379 \\
- -v /home/johnyin/disk/myvm/cloud-tpl/kvm/pki:/etc/pki/ \\
+ --add-host vmm.registry.local:192.168.168.1 \\
+ -v /host/pki:/etc/pki/ \\
+ -v /host/ssl:/etc/nginx/ssl \\
+ -v /host/ssh:/home/simplekvm/.ssh \\
  ${REGISTRY}/libvirtd/${type}:${ver}
+EOF
+
+cat <<EOF
+# # /home/simplekvm/.ssh/config
+StrictHostKeyChecking=no
+UserKnownHostsFile=/dev/null
+ControlMaster auto
+ControlPath  ~/.ssh/%r@%h:%p
+ControlPersist 600
+
+Host 192.168.168.1
+    Port 60022
+    User root
+    Ciphers aes256-ctr,aes192-ctr,aes128-ctr
+    MACs hmac-sha1
 EOF

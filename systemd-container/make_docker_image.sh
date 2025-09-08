@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("77413f71[2025-09-05T13:35:57+08:00]:make_docker_image.sh")
+VERSION+=("c2d9405f[2025-09-08T06:36:38+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -44,6 +44,7 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
             ./${SCRIPTNAME} -c firefox --file firefox_rootfs.tar.xz -D myfirefox
          ${R}# # create goldimg${N}
             # . os_debian_init.sh
+            # export PROXY=
             # export INST_ARCH=arm64
             # export DEBIAN_VERSION=trixie
             # export REPO=https://mirrors.aliyun.com/debian
@@ -95,33 +96,56 @@ ${*:+${Y}$*${N}\n}${R}${SCRIPTNAME}${N}
                 docker push ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}-\${arch}
             done
             ./${SCRIPTNAME} -c combine --tag registry.local/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}
-         ${R}# # multiarch user images${N}
-            # # BASE IMAGE
-            export BUILD_NET=br-int
-            export IMAGE=python:bookworm # # debian:bookworm
-            export REGISTRY=${REGISTRY}
-            export NAMESPACE=${NAMESPACE}
-            ARCH=(amd64 arm64)
-            type=test1
-            ver=1.0 # bookworm
-            for arch in \${ARCH[@]}; do
-                ./${SCRIPTNAME} -c \${type} -D \${type}-\${arch} --arch \${arch}
-                cat <<EODOC > \${type}-\${arch}/docker/build.run
-            # apt update && apt -y --no-install-recommends install util-linux
-            getent passwd johnyin >/dev/null || useradd -m -u 10001 johnyin --home-dir /home/johnyin/ --shell /bin/bash
-            EODOC
-                cat <<EODOC >> \${type}-\${arch}/Dockerfile
-            USER johnyin
-            WORKDIR /home/johnyin
-            ENTRYPOINT ["/usr/bin/busybox", "sleep", "infinity"]
-            EODOC
-                # confirm base-image is right arch
-                docker pull --quiet "\${REGISTRY}/\${NAMESPACE:+\${NAMESPACE}/}\${IMAGE}" --platform \${arch}
-                docker run --rm --entrypoint="uname" "\${REGISTRY}/\${NAMESPACE:+\${NAMESPACE}/}\${IMAGE}" -m
-                ./${SCRIPTNAME} -c build -D \${type}-\${arch} --tag ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}-\${arch}
-                docker push ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}-\${arch}
-            done
-            ./make_docker_image.sh -c combine --tag ${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}\${type}:\${ver}
+EOF
+cat <<EOF
+${R}# # multiarch images${N}
+EOF
+cat <<'EOF'
+#!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+
+type=simple
+ver=trixie
+export PROXY=
+ARCH=(amd64 arm64)
+export BUILD_NET=br-int
+export REGISTRY=registry.local
+export IMAGE=debian:trixie       # # BASE IMAGE
+export NAMESPACE=
+for arch in ${ARCH[@]}; do
+    ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
+    cat <<EODOC >> ${type}-${arch}/Dockerfile
+EXPOSE 80 443
+ENTRYPOINT ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
+EODOC
+    docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
+    docker run --name ${type}-${arch}.baseimg --entrypoint="uname" "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" -m || true
+    rm -f ${type}-${arch}.baseimg.tpl || true
+    docker export ${type}-${arch}.baseimg | mksquashfs - ${type}-${arch}.baseimg.tpl -tar # -quiet
+    docker rm -v ${type}-${arch}.baseimg
+    log "Pre chroot, copy files in ${type}-${arch}/docker/"
+    # #
+    log "Pre chroot exit"
+    ./tpl_overlay.sh -t ${type}-${arch}.baseimg.tpl -r ${type}-${arch}.rootfs --upper ${type}-${arch}/docker
+    log "chroot ${type}-${arch}.rootfs, exit continue build"
+    chroot ${type}-${arch}.rootfs /usr/bin/env -i SHELL=/bin/bash PS1="\u@DOCKER:\w$" TERM=${TERM:-} COLORTERM=${COLORTERM:-} /bin/bash --noprofile --norc -o vi || true
+    for i in /var/lib/apt/* /var/cache/*; do rm -rf ${type}-${arch}.rootfs/${i}; done
+    find ${type}-${arch}.rootfs/usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
+    log "exit ${type}-${arch}.rootfs"
+    ./tpl_overlay.sh -r ${type}-${arch}.rootfs -u
+    log "Post chroot, delete nouse file in ${type}-${arch}/docker/"
+    for fn in tmp run root; do rm -fr ${type}-${arch}/docker/${fn}; done
+    rm -vfr ${type}-${arch}.baseimg.tpl ${type}-${arch}.rootfs
+done
+log '=================================================='
+for arch in ${ARCH[@]}; do
+    log docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
+    log ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
+    log docker push ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
+done
+log ./make_docker_image.sh -c combine --tag ${REGISTRY}/libvirtd/${type}:${ver}
 EOF
 )"; echo -e "${usage_doc}"
     exit 1
@@ -148,7 +172,6 @@ ENV TZ=Asia/Shanghai
 # # copy from builder can execute files ..
 COPY --from=builder / /
 RUN set -eux && { \\
-        export DEBIAN_FRONTEND=noninteractive; \\
         [ -z "\$TZ" ] || cmp /usr/share/zoneinfo/\$TZ /etc/localtime || { ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; }; \\
         [ -e "/build.run" ] && /bin/sh -o errexit -x /build.run; \\
         echo "ALL OK"; \\
@@ -158,7 +181,12 @@ RUN set -eux && { \\
 # WORKDIR /home/johnyin
 # ENTRYPOINT ["/usr/bin/busybox", "sleep", "infinity"]
 EOF
-    try mkdir -p ${target_dir}/${DIRNAME_COPYIN} && try touch ${target_dir}/${DIRNAME_COPYIN}/build.run
+    try mkdir -p ${target_dir}/${DIRNAME_COPYIN} && try write_file ${target_dir}/${DIRNAME_COPYIN}/build.run <<'EOF'
+set -o nounset -o pipefail -o errexit
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export DEBIAN_FRONTEND=noninteractive
+exit 0
+EOF
     info_msg "gen dockerfile ok\n"
     info1_msg " edit ${target_dir}/${DIRNAME_COPYIN}/build.run for you RUN commands for Dockerfile\n"
 }
