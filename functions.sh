@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("8c1fbfe3[2025-01-22T08:58:18+08:00]:functions.sh")
+VERSION+=("bf4e0090[2025-05-20T07:09:43+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -644,11 +644,11 @@ cleanup_link() {
 setup_overlayfs() {
     local lower="$1"
     local rootmnt="$2"
+    local upper="${3:-${rootmnt}/tmpfs/upper}"
     # local overlay_size_mb="${3:-1}"
-    try mkdir -p ${rootmnt}/tmpfs
     # try mount -t tmpfs tmpfs -o size=${overlay_size_mb}M ${rootmnt}/tmpfs
-    try mkdir -p ${rootmnt}/tmpfs/upper ${rootmnt}/tmpfs/work
-    try mount -v -t overlay overlay -o lowerdir=${lower},upperdir=${rootmnt}/tmpfs/upper,workdir=${rootmnt}/tmpfs/work ${rootmnt}/
+    try mkdir -p "${rootmnt}/tmpfs/work" "${upper}"
+    try mount -v -t overlay overlay -o lowerdir=${lower},upperdir=${upper},workdir=${rootmnt}/tmpfs/work ${rootmnt}/
 }
 
 cleanup_overlayfs() {

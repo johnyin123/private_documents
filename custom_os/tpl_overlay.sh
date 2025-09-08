@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("initver[2023-02-20T13:10:18+08:00]:tpl_overlay.sh")
+VERSION+=("3751536b[2023-02-20T13:10:18+08:00]:tpl_overlay.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 usage() {
@@ -17,6 +17,7 @@ ${SCRIPTNAME}
         -t|--tpl     *   <str>   root squashfs(tpl)
         -r|--rootfs  **  <str>   new rootfs directory
         -u            *          umount overlay rootfs
+        --upper          <str>   upper dir
         -q|--quiet
         -l|--log <int> log level
         -V|--version
@@ -27,9 +28,9 @@ EOF
 }
 
 main() {
-    local tpl="" rootfs="" umount=""
+    local tpl="" rootfs="" umount="" upper=""
     local opt_short="t:r:u"
-    local opt_long="tpl:,rootfs:,"
+    local opt_long="tpl:,rootfs:,upper:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -39,6 +40,7 @@ main() {
             -t | --tpl)     shift; tpl=${1}; shift;;
             -r | --rootfs)  shift; rootfs=${1}; shift;;
             -u)             shift; umount=1;;
+            --upper)        shift; upper=${1}; shift;;
             ########################################
             -q | --quiet)   shift; QUIET=1;;
             -l | --log)     shift; set_loglevel ${1}; shift;;
@@ -57,7 +59,7 @@ main() {
     [ -z "${rootfs}" ] || [ -z "${tpl}" ] || {
         try mkdir -p ${rootfs}/lower
         try mount -o loop -t squashfs ${tpl} ${rootfs}/lower
-        setup_overlayfs "${rootfs}/lower" "${rootfs}"
+        setup_overlayfs "${rootfs}/lower" "${rootfs}" "${upper}"
         info_msg "mount ${tpl} on ${rootfs}\n"
     }
     return 0
