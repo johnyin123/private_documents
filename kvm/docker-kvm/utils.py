@@ -226,8 +226,10 @@ class EtcdConfig:
                     _iter, _ = etcd.watch_prefix(config.ETCD_PREFIX)
                     for event in _iter:
                         if isinstance(event, etcd3.events.PutEvent) and update_callback:
+                            logger.info(f'ETCD WATCH PREFIX UPDATE {event.key.decode("utf-8")}')
                             update_callback(cls.key2fname(event.key.decode('utf-8'), 'ETCD WATCH PREFIX UPDATE'), event.value)
                         elif isinstance(event, etcd3.events.DeleteEvent) and update_callback:
+                            logger.info(f'ETCD WATCH PREFIX DELETE {event.key.decode("utf-8")}')
                             update_callback(cls.key2fname(event.key.decode('utf-8'), 'ETCD WATCH PREFIX DELETE'), None)
                         else:
                             logger.warn(f'ETCD WATCH PREFIX BYPASS callback={update_callback} {event}')

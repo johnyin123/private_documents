@@ -50,6 +50,7 @@ hosts.json              : kvm hosts with domains template
 devices.json            : host device mapping
 golds.json              : gold disks, Add disk with template (API SRV) use host in golds.json
 iso.json                : ISO disks, metadata and iso cdrom (KVM SRV) in http(s) META_SRV
+                          gold iso should in same uri (same server name)
 vars.json               : tpl vars desc
 ##########################################################################
 <source protocol="https" name="url_path">
