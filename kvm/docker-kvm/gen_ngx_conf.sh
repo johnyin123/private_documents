@@ -209,6 +209,8 @@ meta_data_srv() {
     # # golds.json,iso.json, kvm support 301
     # location ^~ /gold { return 301 http://<addr>:8888/...; }
     location ^~ /gold { set \$limit 0; alias ${OUT_DIR}/gold/; }
+    # /gold/uuid.iso => /gold/uuid.iso
+    # /uuid.iso      => ${OUT_DIR}/iso/uuid.iso
 }
 server {
     listen 80;
