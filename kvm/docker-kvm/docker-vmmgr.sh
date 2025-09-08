@@ -292,8 +292,8 @@ cat <<EOF
 # # when: qemu+tls://
 #     -v /kvm/pki:/etc/pki/
 docker pull ${REGISTRY}/libvirtd/${type}:${ver} --platform amd64
-# # need http  get hosts define in golds.json when add disk with template
-# # need https get host META_SRV for metadata and iso cdrom file
+# # need http  get hosts define in golds.json when add disk with template (api srv)
+# # need https get host META_SRV for metadata and iso cdrom file (kvm srv)
 docker run --rm \\
  --name vmmgr-api \\
  --network br-int --ip 192.168.169.123 \\
