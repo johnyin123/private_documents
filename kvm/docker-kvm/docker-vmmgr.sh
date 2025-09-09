@@ -285,8 +285,12 @@ cat <<EOF
 #     chown -R 10001:10001 /kvm/ssh
 #     chmod 700            /kvm/ssh
 #     -v /kvm/ssh:/home/${username}/.ssh/
+#        id_rsa id_rsa.pub config
 # # when: qemu+tls://
 #     -v /kvm/pki:/etc/pki/
+#        CA/cacert.pem libvirt/clientcert.pem libvirt/private/clientkey.pem
+# #   -v /host/ssl:/etc/nginx/ssl
+#        simplekvm.key simplekvm.pem
 docker pull ${REGISTRY}/libvirtd/${type}:${ver} --platform amd64
 # # need http  get hosts define in golds.json when add disk with template (api srv)
 # # need https get host META_SRV for metadata and iso cdrom file (kvm srv)
