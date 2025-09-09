@@ -291,13 +291,15 @@ docker pull ${REGISTRY}/libvirtd/${type}:${ver} --platform amd64
 # # need http  get hosts define in golds.json when add disk with template (api srv)
 # # need https get host META_SRV for metadata and iso cdrom file (kvm srv)
 
-# for read golds(golds.json): --add-host vmm.registry.local:192.168.168.1 \\
+GOLD_SRV=vmm.registry.local
+gold_srv_ipaddr=192.168.167.1
+
 docker run --rm \\
  --name vmmgr-api \\
  --network br-int --ip 192.168.169.123 \\
  --env LEVELS='{"main":"INFO"}' \\
  --env META_SRV=vmm.registry.local \\
- --env GOLD_SRV=.. \\
+ --env GOLD_SRV=\${GOLD_SRV} --add-host \${GOLD_SRV}:\${gold_srv_ipaddr} \\
  --env ETCD_SRV=192.168.169.1 \\
  --env ETCD_PORT=2379 \\
  -v /host/pki:/etc/pki/ \\

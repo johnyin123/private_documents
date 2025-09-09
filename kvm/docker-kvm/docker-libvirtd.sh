@@ -109,22 +109,26 @@ cat <<'EOF'
 # # host machine need socat, for vnc/spice !!
 # # #######################################
 yum / apt install socat docker
-vmmgr=/vmmgr
+libvirtd_env=/libvirtd_env
 for dir in log vms pki secrets run/libvirt lib/libvirt; do
-    mkdir -p "${vmmgr}/${dir}"
+    mkdir -p "${libvirtd_env}/${dir}"
 done
-docker create --name libvirtd \
-    --network host \
-    --restart always \
-    --privileged \
-    --device /dev/kvm \
-    -v ${vmmgr}/log:/var/log/libvirt \
-    -v ${vmmgr}/vms:/etc/libvirt/qemu \
-    -v ${vmmgr}/pki:/etc/libvirt/pki \
-    -v ${vmmgr}/secrets:/etc/libvirt/secrets \
-    -v ${vmmgr}/run/libvirt:/var/run/libvirt \
-    -v ${vmmgr}/lib/libvirt:/var/lib/libvirt \
-    -v /storage:/storage \
+mkdir -p /storage
+META_SRV=vmm.registry.local
+meta_srv_addr=192.168.167.1
+docker create --name libvirtd \\
+    --network host \\
+    --restart always \\
+    --privileged \\
+    --device /dev/kvm \\
+    --add-host ${META_SRV}:${meta_srv_addr} \\
+    -v ${libvirtd_env}/log:/var/log/libvirt \\
+    -v ${libvirtd_env}/vms:/etc/libvirt/qemu \\
+    -v ${libvirtd_env}/pki:/etc/libvirt/pki \\
+    -v ${libvirtd_env}/secrets:/etc/libvirt/secrets \\
+    -v ${libvirtd_env}/run/libvirt:/var/run/libvirt \\
+    -v ${libvirtd_env}/lib/libvirt:/var/lib/libvirt \\
+    -v /storage:/storage \\
     registry.local/libvirtd/kvm:bookworm
 # # #######################################
 YEAR=15 ./newssl.sh -i johnyinca

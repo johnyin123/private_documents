@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("initver[2025-04-17T11:06:58+08:00]:inst_vmmgr_libvirtd.sh")
+VERSION+=("7a6ba7ea[2025-04-17T11:06:58+08:00]:inst_vmmgr_libvirtd.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -85,23 +85,6 @@ main() {
     local USR_HOME=$(getent passwd ${user} | cut -d: -f6)
     check_depends
     make_libvirtd_tree "${target}" "${USR_ID}" "${GRP_ID}" "${USR_HOME}"
-    cat <<EODOC
-# make local pool dir /storage
-# # mkdir /storage
-docker create --name libvirtd \\
-    --network host \\
-    --restart always \\
-    --privileged \\
-    --device /dev/kvm \\
-    -v ${target}/log:/var/log/libvirt \\
-    -v ${target}/vms:/etc/libvirt/qemu \\
-    -v ${target}/pki:/etc/libvirt/pki \\
-    -v ${target}/secrets:/etc/libvirt/secrets \\
-    -v ${target}/run/libvirt:/var/run/libvirt \\
-    -v ${target}/lib/libvirt:/var/lib/libvirt \\
-    -v /storage:/storage \\
-    registry.local/libvirtd/kvm:bookworm
-EODOC
     return 0
 }
 main "$@"

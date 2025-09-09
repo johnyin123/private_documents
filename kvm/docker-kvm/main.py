@@ -10,11 +10,20 @@ class MyApp(object):
     @staticmethod
     def create():
         flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
-        logger.info(f'''
-            home_dir={os.path.expanduser("~")}
-            META_SRV={config.META_SRV}
-            DATA_DIR={config.DATA_DIR}
-            DATABASE={config.DATABASE}''')
+        logger.warn(f'''
+            DATA_DIR         = {config.DATA_DIR}
+            ETCD_PREFIX      = {config.ETCD_PREFIX}
+            ETCD_SRV         = {config.ETCD_SRV}
+            ETCD_PORT        = {config.ETCD_PORT}
+            ETCD_CA          = {config.ETCD_CA}
+            ETCD_KEY         = {config.ETCD_KEY}
+            ETCD_CERT        = {config.ETCD_CERT}
+            TOKEN_DIR        = {config.TOKEN_DIR}
+            META_SRV         = {config.META_SRV}
+            GOLD_SRV         = {config.GOLD_SRV}
+            CTRL_PANEL_SRV   = {config.CTRL_PANEL_SRV}
+            CTRL_PANEL_KEY   = {config.CTRL_PANEL_KEY}
+            DATABASE         = {config.DATABASE}''')
         database.reload_all()
         web=flask_app.create_app({'STATIC_FOLDER': config.DATA_DIR, 'STATIC_URL_PATH':'/public', 'JSON_SORT_KEYS': False}, json=True)
         MyApp().register_routes(web)
