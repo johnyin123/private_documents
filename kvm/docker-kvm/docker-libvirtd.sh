@@ -121,6 +121,7 @@ docker create --name libvirtd \\
     --restart always \\
     --privileged \\
     --device /dev/kvm \\
+    --add-host \$(hostname):127.0.0.1 \\
     --add-host ${META_SRV}:${meta_srv_addr} \\
     -v ${libvirtd_env}/log:/var/log/libvirt \\
     -v ${libvirtd_env}/vms:/etc/libvirt/qemu \\
