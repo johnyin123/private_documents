@@ -21,7 +21,7 @@ set -o nounset   ## set -u : exit the script if you try to use an uninitialised 
 fi
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("bf4e0090[2025-05-20T07:09:43+08:00]:functions.sh")
+VERSION+=("aa87273f[2025-09-08T09:12:51+08:00]:functions.sh")
 
 # need bash version >= 4.2 for associative arrays and other features.
 if (( BASH_VERSINFO[0]*100 + BASH_VERSINFO[1] < 402 )); then
@@ -648,7 +648,7 @@ setup_overlayfs() {
     # local overlay_size_mb="${3:-1}"
     # try mount -t tmpfs tmpfs -o size=${overlay_size_mb}M ${rootmnt}/tmpfs
     try mkdir -p "${rootmnt}/tmpfs/work" "${upper}"
-    try mount -v -t overlay overlay -o lowerdir=${lower},upperdir=${upper},workdir=${rootmnt}/tmpfs/work ${rootmnt}/
+    try mount -v -t overlay overlay -o noatime,lowerdir=${lower},upperdir=${upper},workdir=${rootmnt}/tmpfs/work ${rootmnt}/
 }
 
 cleanup_overlayfs() {

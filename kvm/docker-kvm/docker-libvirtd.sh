@@ -116,12 +116,14 @@ done
 mkdir -p /storage
 META_SRV=vmm.registry.local
 meta_srv_addr=192.168.167.1
+hostname=${NAME:-$(hostname)}
 docker create --name libvirtd \\
+    --hostname ${hostname} \\
+    --add-host ${hostname}:127.0.0.1 \\
     --network host \\
     --restart always \\
     --privileged \\
     --device /dev/kvm \\
-    --add-host \$(hostname):127.0.0.1 \\
     --add-host ${META_SRV}:${meta_srv_addr} \\
     -v ${libvirtd_env}/log:/var/log/libvirt \\
     -v ${libvirtd_env}/vms:/etc/libvirt/qemu \\
