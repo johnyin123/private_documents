@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("28efe708[2025-08-01T15:34:17+08:00]:os_debian_init.sh")
+VERSION+=("a14e15c9[2025-09-05T12:58:41+08:00]:os_debian_init.sh")
 # liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
@@ -472,7 +472,7 @@ export -f debian_zswap_init3
 debian_vim_init() {
     DEBIAN_FRONTEND=noninteractive apt ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }update || true
     DEBIAN_FRONTEND=noninteractive apt -y ${PROXY:+--option Acquire::http::Proxy="${PROXY}" }-oAcquire::http::User-Agent=dler --no-install-recommends install vim
-    echo "mkdir -p ~/.vim/pack/plugins/start && cd ~/.vim/pack/plugins/start && git clone https://github.com/dhruvasagar/vim-table-mode.git"
+    echo "mkdir -p ~/.vim/pack/plugins/start && cd ~/.vim/pack/plugins/start && git clone --depth 1 https://github.com/dhruvasagar/vim-table-mode.git"
     echo "vim -> :TableModeEnable, insert | table | val |....."
     cat <<'EOF' > /etc/vim/vimrc.local
 syntax on

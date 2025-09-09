@@ -12,7 +12,7 @@ ETCD_CERT        = os.environ.get('ETCD_CERT', None)
 # share with websockify process.
 TOKEN_DIR        = os.environ.get('TOKEN_DIR', os.path.join(DATA_DIR, 'token'))
 DATABASE         = os.environ.get('DATABASE', f'sqlite:///{DATA_DIR}/kvm.db?check_same_thread=False')
-# # clout-init: nocloud http://META_SRV, iso https://META_SRV as meta server.
+# # clout-init: nocloud http://META_SRV, iso https://META_SRV, Only *KVMHOST* read it.
 META_SRV         = os.environ.get('META_SRV', 'vmm.registry.local')
 # # https srv for user control panel, default https://META_SRV
 CTRL_PANEL_SRV   = os.environ.get('CTRL_PANEL_SRV', META_SRV)

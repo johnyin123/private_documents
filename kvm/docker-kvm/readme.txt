@@ -1,3 +1,10 @@
+USR -> config.CTRL_PANEL_SRV -> API
+ADM -> <IP/NAME> -> API ==> Via libvirt/ssh ==> KVMHOST
+                     |  ==> Create meta(nocloud)
+                     |  <== Read golds(golds.json)(support http redirect)
+KVMHOST ==> config.META_SRV ==> Read meta
+KVMHOST ==> config.META_SRV ==> Read iso(iso.json)(support http redirect)
+
 4000 vm usage etcd 251M
 # pip install flask_profiler
 # http://127.0.0.1:5009/flask-profiler
