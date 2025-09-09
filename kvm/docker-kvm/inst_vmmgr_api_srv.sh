@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("dcbe6f83[2025-09-03T10:28:39+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("74b3e875[2025-09-05T14:18:58+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -88,27 +88,32 @@ EO_DOC
     cat <<EODOC | install -v -C -m 0755 --group=${gid} --owner=${uid} /dev/stdin ${home_dir}/app/startup.sh
 #!/usr/bin/env bash
 readonly DIRNAME="\$(readlink -f "\$(dirname "\$0")")"
+# outdir=/dev/shm/simplekvm/work
 outdir=${outdir}
-token_dir="/tmp/token"
+token_dir=/dev/shm/simplekvm/token
 # VENV=/../my_venv/bin/ # last word / !!
 
-for svc in websockify-graph.service jwt-srv.service simple-kvm-srv.service; do
+for svc in websockify-graph.service jwt-srv.service simple-kvm-srv.service etcd.service; do
     systemctl --user show \${svc} -p MemoryCurrent
     systemctl --user stop         \${svc} 2>/dev/null || true
     systemctl --user reset-failed \${svc} 2>/dev/null || true
 done
 
+systemd-run --user --unit etcd.service \
+    --working-directory=\${DIRNAME} \
+    \${DIRNAME}/etcd
+
 systemd-run --user --unit websockify-graph \\
---working-directory=\${DIRNAME} \\
-\${VENV:-}websockify --token-plugin TokenFile --token-source \${token_dir} 127.0.0.1:6800
+    --working-directory=\${DIRNAME} \\
+    \${VENV:-}websockify --token-plugin TokenFile --token-source \${token_dir} 127.0.0.1:6800
 
 systemd-run --user --unit jwt-srv \\
---working-directory=\${DIRNAME} \\
-\${VENV:-}gunicorn -b 127.0.0.1:16000 --preload --workers=2 --threads=2 --access-logformat 'JWT %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'jwt_server:app'
+    --working-directory=\${DIRNAME} \\
+    \${VENV:-}gunicorn -b 127.0.0.1:16000 --preload --workers=2 --threads=2 --access-logformat 'JWT %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'jwt_server:app'
 
 # -E META_SRV=vmm.registry.local \\
 # -E CTRL_PANEL_SRV=guest.registry.local \\
-# -E LEVELS='{"flask_app":"DEBUG","main":"INFO"}' \\
+# -E LEVELS='{"utils":"DEBUG","database":"INFO"}' \\
 # -E ETCD_PREFIX=/simple-kvm/work \\
 # -E ETCD_SRV=etcd-server \\
 # -E ETCD_CA=ca.pem \\
@@ -119,6 +124,9 @@ systemd-run --user --unit jwt-srv \\
 systemd-run --user --unit simple-kvm-srv \\
 --working-directory=\${DIRNAME} \\
 --property=UMask=0022 \\
+-E ETCD_PREFIX=/simple-kvm/work \\
+-E ETCD_SRV=127.0.0.1 \\
+-E ETCD_PORT=2379 \\
 -E DATA_DIR=\${outdir} \\
 -E TOKEN_DIR=\${token_dir} \\
 \${VENV:-}gunicorn -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
