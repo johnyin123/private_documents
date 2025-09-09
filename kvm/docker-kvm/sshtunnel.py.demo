@@ -680,6 +680,19 @@ new_dom = dom.migrate(dest_conn, libvirt.VIR_MIGRATE_LIVE | libvirt.VIR_MIGRATE_
 dest_conn.close()
 conn.close()
 
+def change_media(dev:str, isofile:str, bus:str, protocol:str, srv_addr:str, srv_port:int)->str:
+    disk = xml.dom.minidom.parseString('''<disk type='network' device='cdrom'><driver name='qemu' type='raw'/><source><host/><ssl verify="no"/></source><target/><readonly/></disk>''')
+    for it in disk.getElementsByTagName('source'):
+        it.setAttribute('protocol', protocol)
+        it.setAttribute('name', isofile)
+    for it in disk.getElementsByTagName('host'):
+        it.setAttribute('name', srv_addr)
+        it.setAttribute('port', f'{srv_port}')
+    for it in disk.getElementsByTagName('target'):
+        it.setAttribute('dev', dev)
+        it.setAttribute('bus', bus)
+    return disk.toxml()
+
 import ssl
 from urllib.request import urlopen
 def read_from_url(url:str)->str:

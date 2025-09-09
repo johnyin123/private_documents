@@ -261,7 +261,7 @@ EODOC
     log "Pre chroot exit"
     ./tpl_overlay.sh -t ${type}-${arch}.baseimg.tpl -r ${type}-${arch}.rootfs --upper ${type}-${arch}/docker
     log "chroot ${type}-${arch}.rootfs, exit continue build"
-    chroot ${type}-${arch}.rootfs /usr/bin/env -i SHELL=/bin/bash PS1="\u@DOCKER:\w$" TERM=${TERM:-} COLORTERM=${COLORTERM:-} /bin/bash --noprofile --norc -o vi || true
+    chroot ${type}-${arch}.rootfs /usr/bin/env -i SHELL=/bin/bash PS1="\u@DOCKER-${arch}:\w$" TERM=${TERM:-} COLORTERM=${COLORTERM:-} /bin/bash --noprofile --norc -o vi || true
     log "exit ${type}-${arch}.rootfs"
     ./tpl_overlay.sh -r ${type}-${arch}.rootfs -u
     log "Post chroot, delete nouse file in ${type}-${arch}/docker/"

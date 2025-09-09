@@ -116,15 +116,8 @@ def refresh_all_pool(conn:libvirt.virConnect)-> None:
         except libvirt.libvirtError as e:
             logger.error(f'refresh pool {pool.name()}: {e.get_error_message()}')
 
-def change_media(dev:str, isofile:str, bus:str)->str:
-    disk = xml.dom.minidom.parseString(template.DeviceTemplate(config.CDROM_TPL,'iso').render())
-    for it in disk.getElementsByTagName('source'):
-        it.setAttribute('name', isofile)
-    for it in disk.getElementsByTagName('target'):
-        it.setAttribute('dev', dev)
-        it.setAttribute('bus', bus)
-    logger.debug(disk.toxml())
-    return disk.toxml()
+def change_media(dev:str, isofile:str, bus:str, protocol:str, srv_addr:str, srv_port:int)->str:
+    return f'<disk type="network" device="cdrom"><driver name="qemu" type="raw"/><source protocol="{protocol}" name="{isofile}"><host name="{srv_addr}" port="{srv_port}"/><ssl verify="no"/></source><target dev="{dev}" bus="{bus}"/><readonly/></disk>'
 
 class VMManager:
     @staticmethod
@@ -278,7 +271,7 @@ class VMManager:
                 if disk['dev'] == dev and disk['device'] == 'cdrom':
                     if domain.state != libvirt.VIR_DOMAIN_RUNNING:
                         dom.detachDeviceFlags(disk['xml'], dom_flags(domain.state))
-                    dom.attachDeviceFlags(change_media(dev, iso.uri, disk['bus']))
+                    dom.attachDeviceFlags(change_media(dev, iso.uri, disk['bus'], 'http', config.META_SRV, 80))
                     return utils.return_ok(f'{dev} change media ok', uuid=uuid)
         raise utils.APIException(f'{dev} nofound on vm {uuid}')
 

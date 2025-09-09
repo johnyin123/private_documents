@@ -26,7 +26,6 @@ CTRL_PANEL_KEY   = os.environ.get('CTRL_PANEL_KEY', 'P@ssw@rd4Display')
 ##################################################################
 # # const define
 TMOUT_MINS_SOCAT = f'15' # socat process timeout close minutes, default value
-CDROM_TPL        = f'cdrom.meta.tpl'               # change media use this as template
 URI_VNC          = f'/novnc/vnc_lite.html'
 URI_SPICE        = f'/spice/spice_auto.html'
 URI_CONSOLE      = f'/term/xterm.html'
