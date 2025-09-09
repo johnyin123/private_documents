@@ -1,61 +1,52 @@
 #!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
-export BUILD_NET=br-int
-export IMAGE=debian:bookworm
-export REGISTRY=registry.local
-export NAMESPACE=
-ARCH=(amd64 arm64)
 type=kvm
-ver=bookworm
+ver=trixie
+ARCH=(amd64 arm64)
+export BUILD_NET=br-int
+export REGISTRY=registry.local
+export IMAGE=debian:trixie       # # BASE IMAGE
+export NAMESPACE=
+declare -A PKGS=(
+    [amd64]="qemu-system-x86 ovmf"
+    [arm64]="qemu-system-arm qemu-efi-aarch64"
+)
 
-# [ -e "qemu.hook" ] || { echo "qemu.hook, nofound"; exit 1;}
-cat <<EOF
-# # change (kvm) gid to HOST kvm gid
-# # /etc/libvirt/qemu.conf maybe no need user=root
-groupmod -n NEW_GROUP_NAME OLD_GROUP_NAME).
-groupmod -g NEWGID GROUPNAME
-EOF
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
-    # install -v -d -m 0755 "${type}-${arch}/docker/etc/libvirt/hooks"
-    # install -v -C -m 0755 "qemu.hook" "${type}-${arch}/docker/etc/libvirt/hooks/qemu"
-    cat <<'EODOC' > ${type}-${arch}/docker/build.run
-apt update && apt -y --no-install-recommends install \
-    supervisor \
-    libvirt-daemon \
-    libvirt-daemon-driver-qemu \
-    libvirt-daemon-driver-storage-rbd \
-    libvirt-daemon-system \
-    ovmf qemu-efi-aarch64 \
-    qemu-system-arm \
-    qemu-system-x86 \
-    qemu-block-extra \
-    qemu-utils \
+    cat <<EODOC > ${type}-${arch}/docker/build.run
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+export DEBIAN_FRONTEND=noninteractive
+APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-recommends"
+\${APT} update && \${APT} install supervisor libvirt-daemon \\
+    libvirt-daemon-lock libvirt-daemon-log \\
+    libvirt-daemon-driver-qemu libvirt-daemon-driver-storage-rbd \\
+    libvirt-daemon-system ${PKGS[${arch}]} \\
+    qemu-block-extra qemu-utils \\
     iproute2 bridge-utils
     # curl
     rm -fr /etc/libvirt/qemu/* || true
-    sed --quiet -i -E \
-        -e '/^\s*(user|spice_tls|spice_tls_x509_cert_dir|vnc_tls|vnc_tls_x509_cert_dir|vnc_tls_x509_verify)\s*=.*/!p' \
+    sed --quiet -i -E \\
+        -e '/^\s*(user|spice_tls|spice_tls_x509_cert_dir|vnc_tls|vnc_tls_x509_cert_dir|vnc_tls_x509_verify)\s*=.*/!p' \\
         /etc/libvirt/qemu.conf || true
 
-        # -e "\$auser = \"root\"" \
-        # -e '$aspice_tls = 1' \
-        # -e '$aspice_tls_x509_cert_dir = "/etc/libvirt/pki/"' \
-        # -e '$avnc_tls = 1' \
-        # -e '$avnc_tls_x509_cert_dir = "/etc/libvirt/pki/"' \
-        # -e '$avnc_tls_x509_verify = 1' \
-
    # # spice & libvirt use same tls key/cert/ca files
-   sed --quiet -i.orig -E \
-         -e '/^\s*(ca_file|cert_file|key_file|listen_addr|listen_tls|tcp_port).*/!p' \
-         -e '$aca_file = "/etc/libvirt/pki/ca-cert.pem"' \
-         -e '$acert_file = "/etc/libvirt/pki/server-cert.pem"' \
-         -e '$akey_file = "/etc/libvirt/pki/server-key.pem"' \
-         -e '$alisten_tcp = 1' \
-         -e '$alisten_tls = 1' \
-         -e '$alisten_addr = "0.0.0.0"' \
-         -e '$a#tcp_port = "16509"' \
+   sed --quiet -i.orig -E \\
+         -e '/^\s*(ca_file|cert_file|key_file|listen_addr|listen_tls|tcp_port).*/!p' \\
+         -e '\$aca_file = "/etc/libvirt/pki/ca-cert.pem"' \\
+         -e '\$acert_file = "/etc/libvirt/pki/server-cert.pem"' \\
+         -e '\$akey_file = "/etc/libvirt/pki/server-key.pem"' \\
+         -e '\$alisten_tcp = 1' \\
+         -e '\$alisten_tls = 1' \\
+         -e '\$alisten_addr = "0.0.0.0"' \\
+         -e '\$a#tcp_port = "16509"' \\
          /etc/libvirt/libvirtd.conf
+
+find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
+rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/*
 EODOC
     mkdir -p ${type}-${arch}/docker/usr/sbin/ && cat <<'EODOC' >${type}-${arch}/docker/usr/sbin/libvirtd.wrap
 #!/usr/bin/bash
@@ -69,22 +60,39 @@ EODOC
 [supervisord]
 nodaemon=true
 user=root
+logfile=/var/log/supervisor/supervisord.log
+pidfile=/var/run/supervisord.pid
+
 [program:libvirtd]
 command=/usr/sbin/libvirtd.wrap
+autostart=true
+autorestart=true
+startretries=5
+user=root
 stdout_logfile=/dev/stdout
-stderr_logfile=/dev/stdout
+stderr_logfile=/dev/stderr
 stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
+
 [program:virtlockd]
 command=/usr/sbin/virtlockd
+autostart=true
+autorestart=true
+startretries=5
+user=root
 stdout_logfile=/dev/stdout
-stderr_logfile=/dev/stdout
+stderr_logfile=/dev/stderr
 stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
+
 [program:virtlogd]
 command=/usr/sbin/virtlogd
+autostart=true
+autorestart=true
+startretries=5
+user=root
 stdout_logfile=/dev/stdout
-stderr_logfile=/dev/stdout
+stderr_logfile=/dev/stderr
 stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 EODOC
@@ -95,15 +103,34 @@ ENTRYPOINT ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
     # confirm base-image is right arch
     docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
-    docker run --rm --entrypoint="uname" "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" -m
-    ./make_docker_image.sh -c build -D ${type}-${arch} --tag registry.local/libvirtd/${type}:${ver}-${arch}
-    docker push registry.local/libvirtd/${type}:${ver}-${arch}
+    docker run --name ${type}-${arch}.baseimg --entrypoint="uname" "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" -m || true
+    rm -f ${type}-${arch}.baseimg.tpl || true
+    docker export ${type}-${arch}.baseimg | mksquashfs - ${type}-${arch}.baseimg.tpl -tar # -quiet
+    docker rm -v ${type}-${arch}.baseimg
+    log "Pre chroot, copy files in ${type}-${arch}/docker/"
+    log "Pre chroot exit"
+    ./tpl_overlay.sh -t ${type}-${arch}.baseimg.tpl -r ${type}-${arch}.rootfs --upper ${type}-${arch}/docker
+    log "chroot ${type}-${arch}.rootfs, exit continue build"
+    chroot ${type}-${arch}.rootfs /usr/bin/env -i SHELL=/bin/bash PS1="\u@DOCKER-${arch}:\w$" TERM=${TERM:-} COLORTERM=${COLORTERM:-} /bin/bash --noprofile --norc -o vi || true
+    log "exit ${type}-${arch}.rootfs"
+    ./tpl_overlay.sh -r ${type}-${arch}.rootfs -u
+    log "Post chroot, delete nouse file in ${type}-${arch}/docker/"
+    for fn in tmp run root build.run; do
+        rm -fr ${type}-${arch}/docker/${fn}
+    done
+    rm -vfr ${type}-${arch}.baseimg.tpl ${type}-${arch}.rootfs
 done
-./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
-
+log '=================================================='
+for arch in ${ARCH[@]}; do
+    log docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
+    log ./make_docker_image.sh -c build -D ${type}-${arch} --tag registry.local/libvirtd/${type}:${ver}-${arch}
+    log docker push registry.local/libvirtd/${type}:${ver}-${arch}
+done
+log ./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
 cat <<'EOF'
-# echo '192.168.168.1  kvm.registry.local' >> /etc/hosts
-
+###################################################
+# test run
+###################################################
 # # ceph rbd/local storage/net bridge all ok, arm64 ok
 # # default pool /lib/libvirt/images
 # # host machine need socat, for vnc/spice !!
@@ -132,7 +159,7 @@ docker create --name libvirtd \\
     -v ${libvirtd_env}/run/libvirt:/var/run/libvirt \\
     -v ${libvirtd_env}/lib/libvirt:/var/lib/libvirt \\
     -v /storage:/storage \\
-    registry.local/libvirtd/kvm:bookworm
+    registry.local/libvirtd/kvm:trixie
 # # #######################################
 YEAR=15 ./newssl.sh -i johnyinca
 YEAR=15 ./newssl.sh -c vmm.registry.local # # meta-iso web service use
@@ -141,9 +168,9 @@ YEAR=15 ./newssl.sh -c cli                # # virsh client
 YEAR=15 ./newssl.sh -c kvm1.local --ip 192.168.168.1 --ip 192.168.169.1
 # # #######################################
 # # init server
-# cp ca/kvm1.local.pem /${vmmgr}/pki/server-cert.pem
-# cp ca/kvm1.local.key /${vmmgr}/pki/server-key.pem
-# cp ca/ca.pem         /${vmmgr}/pki/ca-cert.pem
+# cp ca/kvm1.local.pem /${libvirtd_env}/pki/server-cert.pem
+# cp ca/kvm1.local.key /${libvirtd_env}/pki/server-key.pem
+# cp ca/ca.pem         /${libvirtd_env}/pki/ca-cert.pem
 # # # server-key.pem, MUST CAN READ BY QEQMU PROCESS(chown)
 # chmod 440 /etc/libvirt/pki/*
 # chown root.qemu /etc/libvirt/pki/*
@@ -169,4 +196,11 @@ virsh -c qemu+ssh://root@192.168.168.1:60022/system?socket=/vmmgr/run/libvirt/li
 # <graphics type='spice' tlsPort='-1' autoport='yes' listen='0.0.0.0' defaultMode='secure'/>
 # <graphics type='vnc' autoport='yes' listen='0.0.0.0'/>
 remote-viewer --spice-ca-file=~/.pki/libvirt/cacert.pem spice://127.0.0.1?tls-port=5906
+EOF
+
+: <<EOF
+# # change (kvm) gid to HOST kvm gid
+# # /etc/libvirt/qemu.conf maybe no need user=root
+groupmod -n NEW_GROUP_NAME OLD_GROUP_NAME).
+groupmod -g NEWGID GROUPNAME
 EOF
