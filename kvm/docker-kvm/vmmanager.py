@@ -123,6 +123,7 @@ def change_media(dev:str, isofile:str, bus:str)->str:
     for it in disk.getElementsByTagName('target'):
         it.setAttribute('dev', dev)
         it.setAttribute('bus', bus)
+    logger.debug(disk.toxml())
     return disk.toxml()
 
 class VMManager:
@@ -234,9 +235,9 @@ class VMManager:
             # all env must string
             env = {'URL':host.url, 'TYPE':device.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
             cmd = ['bash', os.path.join(config.DIR_ACTION, f'{device.action}'), f'add']
-            gold = req_json.get('gold', '')
-            if len(gold) != 0:
-                req_json['gold'] = database.KVMGold.get_one(name=gold, arch=host.arch).tpl
+            gold_name = req_json.get('gold', '')
+            if len(gold_name) != 0:
+                req_json['gold'] = f'http://{config.GOLD_SRV}{database.KVMGold.get_one(name=gold_name, arch=host.arch).uri}'
             bus_type = tpl.bus_type(**req_json)
             if bus_type is not None:
                 with utils.connect(host.url) as conn:

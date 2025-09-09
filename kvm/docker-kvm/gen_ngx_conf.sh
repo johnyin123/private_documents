@@ -203,6 +203,11 @@ meta_data_srv() {
     local srv_name="${1}"
     local OUT_DIR=${2}
     cat <<EOF
+}
+server {
+    listen 80;
+    server_name ${srv_name};
+    location / { return 301 https://\$host\$request_uri; }
     # # # # # # # # # # # # # # # # # # # # # # # # #
     # # only .iso|meta-data|user-data(include subdir resource)
     location ~* (\\.iso|\\/meta-data|\\/user-data)$ { set \$limit 0; root ${OUT_DIR}/cidata; }
@@ -211,13 +216,6 @@ meta_data_srv() {
     location ^~ /gold { set \$limit 0; alias ${OUT_DIR}/gold/; }
     # /gold/uuid.iso => /gold/uuid.iso
     # /uuid.iso      => ${OUT_DIR}/iso/uuid.iso
-}
-server {
-    listen 80;
-    server_name ${srv_name};
-    location / { return 301 https://\$host\$request_uri; }
-    location ~* (\\.iso|\\/meta-data|\\/user-data)$ { set \$limit 0; root ${OUT_DIR}/cidata; }
-    location ^~ /gold { set \$limit 0; alias ${OUT_DIR}/gold/; }
 }
 EOF
     return 0

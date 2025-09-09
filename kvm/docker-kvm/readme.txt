@@ -1,9 +1,12 @@
+# # META_SRV Only for *KVMHOST* use.
+# # GOLD_SRV Only for *APP ACTIONS* use. golds.json: http://GOLD_SRV/uri
+
 USR -> config.CTRL_PANEL_SRV -> API
-ADM -> <IP/NAME> -> API ==> Via libvirt/ssh ==> KVMHOST
-                     |  ==> Create meta(nocloud)
-                     |  <== Read golds(golds.json)(support http redirect)
-KVMHOST ==> config.META_SRV ==> Read meta
-KVMHOST ==> config.META_SRV ==> Read iso(iso.json)(support http redirect)
+ADM -> <IP> -> API -> Via libvirt/ssh -> KVMHOST
+                |  -> Create meta(nocloud)
+                |  -> config.GOLD_SRV -> Read golds(golds.json)(support http redirect)
+KVMHOST => config.META_SRV => Read meta/cidata.iso
+KVMHOST => config.META_SRV => Read iso(iso.json)(support http redirect)
 
 4000 vm usage etcd 251M
 # pip install flask_profiler

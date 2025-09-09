@@ -1,10 +1,10 @@
 [
-{"name":"debian12"       ,"arch":"x86_64" ,"tpl":"http://vmm.registry.local/gold/bookworm.amd64.qcow2"          ,"size":2147483648,"desc":"debian12-amd64操作系统"},
-{"name":"debian12"       ,"arch":"aarch64","tpl":"http://vmm.registry.local/gold/bookworm.arm64.qcow2"          ,"size":2147483648,"desc":"debian12-arm64操作系统"},
-{"name":"openeuler_22.03","arch":"x86_64" ,"tpl":"http://vmm.registry.local/gold/openeuler_22.03sp1.amd64.qcow2","size":2147483648,"desc":"openeuler_22.03-amd64操作系统"},
-{"name":"openeuler_22.03","arch":"aarch64","tpl":"http://vmm.registry.local/gold/openeuler_22.03sp1.arm64.qcow2","size":2147483648,"desc":"openeuler_22.03-arm64操作系统"},
-{"name":"openeuler_24.03","arch":"x86_64" ,"tpl":"http://vmm.registry.local/gold/openeuler_24.03.amd64.qcow2"   ,"size":2147483648,"desc":"openeuler_24.03-amd64操作系统"},
-{"name":"openeuler_24.03","arch":"aarch64","tpl":"http://vmm.registry.local/gold/openeuler_24.03.arm64.qcow2"   ,"size":2147483648,"desc":"openeuler_24.03-arm64操作系统"},
-{"name":"","arch":"x86_64" ,"tpl":"","size":1,"desc":"数据盘"},
-{"name":"","arch":"aarch64","tpl":"","size":1,"desc":"数据盘"}
+{"name":"debian12"       ,"arch":"x86_64" ,"uri":"/gold/bookworm.amd64.qcow2"          ,"size":2147483648,"desc":"debian12-amd64操作系统"},
+{"name":"debian12"       ,"arch":"aarch64","uri":"/gold/bookworm.arm64.qcow2"          ,"size":2147483648,"desc":"debian12-arm64操作系统"},
+{"name":"openeuler_22.03","arch":"x86_64" ,"uri":"/gold/openeuler_22.03sp1.amd64.qcow2","size":2147483648,"desc":"openeuler_22.03-amd64操作系统"},
+{"name":"openeuler_22.03","arch":"aarch64","uri":"/gold/openeuler_22.03sp1.arm64.qcow2","size":2147483648,"desc":"openeuler_22.03-arm64操作系统"},
+{"name":"openeuler_24.03","arch":"x86_64" ,"uri":"/gold/openeuler_24.03.amd64.qcow2"   ,"size":2147483648,"desc":"openeuler_24.03-amd64操作系统"},
+{"name":"openeuler_24.03","arch":"aarch64","uri":"/gold/openeuler_24.03.arm64.qcow2"   ,"size":2147483648,"desc":"openeuler_24.03-arm64操作系统"},
+{"name":"","arch":"x86_64" ,"uri":"","size":1,"desc":"数据盘"},
+{"name":"","arch":"aarch64","uri":"","size":1,"desc":"数据盘"}
 ]

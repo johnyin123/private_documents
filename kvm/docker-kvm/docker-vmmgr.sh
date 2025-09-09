@@ -195,10 +195,6 @@ server {
     location / { return 301 https://$host/guest.html; }
     # # tanent user UI manager # #
     location = /guest.html { return 301 /ui/userui.html$is_args$args; }
-    # # # # # # # # # # # # # # # # # # # # # # # # #
-    # # only .iso|meta-data|user-data(include subdir resource)
-    location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root /dev/shm/simplekvm/work/cidata; }
-    # /uuid.iso      => /dev/shm/simplekvm/work/iso/uuid.iso
 }
 server {
     listen 80;
@@ -294,14 +290,16 @@ cat <<EOF
 docker pull ${REGISTRY}/libvirtd/${type}:${ver} --platform amd64
 # # need http  get hosts define in golds.json when add disk with template (api srv)
 # # need https get host META_SRV for metadata and iso cdrom file (kvm srv)
+
+# for read golds(golds.json): --add-host vmm.registry.local:192.168.168.1 \\
 docker run --rm \\
  --name vmmgr-api \\
  --network br-int --ip 192.168.169.123 \\
  --env LEVELS='{"main":"INFO"}' \\
  --env META_SRV=vmm.registry.local \\
+ --env GOLD_SRV=.. \\
  --env ETCD_SRV=192.168.169.1 \\
  --env ETCD_PORT=2379 \\
- --add-host vmm.registry.local:192.168.168.1 \\
  -v /host/pki:/etc/pki/ \\
  -v /host/ssl:/etc/nginx/ssl \\
  -v /host/ssh:/home/simplekvm/.ssh \\
