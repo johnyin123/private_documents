@@ -116,7 +116,9 @@ def refresh_all_pool(conn:libvirt.virConnect)-> None:
         except libvirt.libvirtError as e:
             logger.error(f'refresh pool {pool.name()}: {e.get_error_message()}')
 
-def change_media(dev:str, isofile:str, bus:str, protocol:str, srv_addr:str, srv_port:int)->str:
+def change_media(uuid:str, dev:str, isofile:str, bus:str, protocol:str, srv_addr:str, srv_port:int)->str:
+    if not isofile: # None or empty
+        isofile=f'/{uuid}/cidata.iso'
     return f'<disk type="network" device="cdrom"><driver name="qemu" type="raw"/><source protocol="{protocol}" name="{isofile}"><host name="{srv_addr}" port="{srv_port}"/><ssl verify="no"/></source><target dev="{dev}" bus="{bus}"/><readonly/></disk>'
 
 class VMManager:
@@ -263,7 +265,7 @@ class VMManager:
 
     @staticmethod
     def cdrom(host:utils.FakeDB, uuid:str, dev:str, req_json)->str:
-        iso = database.KVMIso.get_one(name=req_json.get('isoname', None))
+        iso = database.KVMIso.get_one(name=req_json.get('isoname', ''))
         with utils.connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
@@ -271,7 +273,7 @@ class VMManager:
                 if disk['dev'] == dev and disk['device'] == 'cdrom':
                     if domain.state != libvirt.VIR_DOMAIN_RUNNING:
                         dom.detachDeviceFlags(disk['xml'], dom_flags(domain.state))
-                    dom.attachDeviceFlags(change_media(dev, iso.uri, disk['bus'], 'http', config.META_SRV, 80))
+                    dom.attachDeviceFlags(change_media(uuid, dev, iso.uri, disk['bus'], 'http', config.META_SRV, 80))
                     return utils.return_ok(f'{dev} change media ok', uuid=uuid)
         raise utils.APIException(f'{dev} nofound on vm {uuid}')
 

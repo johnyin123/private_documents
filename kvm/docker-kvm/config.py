@@ -13,7 +13,7 @@ ETCD_CERT        = os.environ.get('ETCD_CERT', None)
 TOKEN_DIR        = os.environ.get('TOKEN_DIR', os.path.join(DATA_DIR, 'token'))
 DATABASE         = os.environ.get('DATABASE', f'sqlite:///{DATA_DIR}/kvm.db?check_same_thread=False')
 # # clout-init: net http://META_SRV/(uuid)/(meta-data|user-data) (domain.tpl)
-# # clout-init: iso http://META_SRV/(uuid)/cidata.iso            (devices/cdrom.meta.tpl)
+# # clout-init: iso http://META_SRV/(uuid)/cidata.iso
 # # iso.json  :     http://META_SRV/uri                          (same as clout-init iso)
 # # META_SRV Only for *KVMHOST* use.
 META_SRV         = os.environ.get('META_SRV', 'vmm.registry.local')

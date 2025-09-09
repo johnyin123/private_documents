@@ -1,3 +1,4 @@
+{#domain template#}
 {%- macro random_string(len) -%}{% for i in range(0,len) -%}{{ [0,1,2,3,4,5,6,7,8,9,"a","b","c","d","e","f","A","B","C","D","E","F"]|random }}{% endfor %}{%- endmacro -%}
 {%- macro getmachine() %}{%- if vm_arch == 'x86_64' %}{{vm_machine | default("pc", true)}}{%- else %}{{vm_machine | default("virt", true)}}{%- endif %}{%- endmacro %}
 {%- macro getcpu() %}{%- if vm_arch == 'x86_64' %}{{vm_cpu | default("host-model", true)}}{%- else %}{{vm_cpu | default("host-passthrough", true)}}{%- endif %}{%- endmacro %}
@@ -51,6 +52,16 @@
   <features><acpi/><apic/><pae/></features>
   <on_poweroff>destroy</on_poweroff>
   <devices>
+{%- if vm_meta_enum != 'NOCLOUD' %}
+    <disk type='network' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source protocol="http" name="/{{ vm_uuid }}/cidata.iso">
+        <host name="{{ META_SRV }}" port="80"/><ssl verify="no"/>
+      </source>
+      <target dev='sda' bus='sata'/>
+      <readonly/>
+    </disk>
+{%- endif %}
 {%- if vm_graph in ['vnc', 'spice'] %}
     <graphics type='{{ vm_graph }}' autoport='yes'/>
 {%- if vm_graph == 'spice' %}
