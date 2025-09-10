@@ -2,14 +2,26 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+file_exists() { [ -e "$1" ]; }
+ARCH=(amd64 arm64)
 
 type=simplekvm
 ver=trixie
 username=simplekvm
 VENV=/home/${username}/venv/bin/   # last word / !!
-export PROXY=
-ARCH=(amd64 arm64)
-export BUILD_NET=br-int
+
+SOURCE_DIR=${1:?$(echo "input SOURCE DIR"; exit 1;)}
+for fn in make_docker_image.sh tpl_overlay.sh; do
+    file_exists "${fn}" || { log "${fn} no found"; exit 1; }
+done
+for fn in ui term novnc.tgz spice.tgz; do
+    file_exists "${SOURCE_DIR}/${fn}" || { log "${SOURCE_DIR}/${fn} no found"; exit 1; }
+done
+for arch in ${ARCH[@]}; do
+    file_exists nginx-johnyin_${arch}.deb || { log "nginx-johnyin_${arch}.deb no found"; exit 1; }
+done
+
+export BUILD_NET=${BUILD_NET:-host}
 export REGISTRY=registry.local
 export IMAGE=debian:trixie       # # BASE IMAGE
 export NAMESPACE=
@@ -19,10 +31,11 @@ etcd_prefix=/simple-kvm/work
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     cat <<EODOC > ${type}-${arch}/docker/build.run
+set -o nounset -o pipefail -o errexit
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export DEBIAN_FRONTEND=noninteractive
 useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
-dpkg -i nginx-*.deb
+dpkg -i nginx-johnyin_${arch}.deb || true
 sed -i "s/^user .*;/user ${username} ${username};/g"  /etc/nginx/nginx.conf
 sed -i "s/worker_processes .*;/worker_processes 1;/g" /etc/nginx/nginx.conf
 sed -i "/worker_priority/d"                           /etc/nginx/nginx.conf
@@ -48,7 +61,7 @@ pip install ${PROXY:+--proxy ${PROXY} }-r /home/${username}/requirements.txt
 rm -f /home/${username}/requirements.txt
 chown -R 10001:10001 /home/${username}/venv
 find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
-rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/*
+rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/* /usr/share/doc/*
 EODOC
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && cat <<'EODOC' > ${type}-${arch}/docker/etc/nginx/http-enabled/simplekvm.conf
 # # tanent can multi points, upstream loadbalance: hash $arg_k$arg_e consistent; # ip_hash; # sticky;
@@ -124,15 +137,15 @@ server {
     location = /admin.html { return 301 /ui/tpl.html; }
     location = /ui/tpl.html {
         #auth_request @sso-auth;
-        alias /home/simplekvm/ui/tpl.html;
+        alias /app/ui/tpl.html;
     }
     # # static resource # #
     # # ui/term/spice/novnc use api_srv serve, add rewrite
     # rewrite ^ /public$uri break;proxy_pass http://api_srv;
-    location /ui { alias /home/simplekvm/ui/; }
-    location /term { alias /home/simplekvm/term/; }
-    location /spice { alias /home/simplekvm/spice/; }
-    location /novnc { alias /home/simplekvm/novnc/; }
+    location /ui { alias    /app/ui/; }
+    location /term { alias  /app/term/; }
+    location /spice { alias /app/spice/; }
+    location /novnc { alias /app/novnc/; }
     # # tanent api
     location /user/ {
         location ~* ^/user/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*)$ {
@@ -235,7 +248,7 @@ stderr_logfile_maxbytes=0
 [program:gunicorn]
 umask=0022
 environment=ETCD_PREFIX="${etcd_prefix}",DATA_DIR="${out_dir}",TOKEN_DIR="${token_dir}",PYTHONDONTWRITEBYTECODE=1
-directory=/home/${username}/app/
+directory=/app/
 command=${VENV:-}gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:app'
 autostart=true
 autorestart=true
@@ -257,15 +270,25 @@ EODOC
     docker export ${type}-${arch}.baseimg | mksquashfs - ${type}-${arch}.baseimg.tpl -tar # -quiet
     docker rm -v ${type}-${arch}.baseimg
     log "Pre chroot, copy files in ${type}-${arch}/docker/"
-    cp nginx-johnyin_1.28.0-${arch}.deb ${type}-${arch}/docker
+    dpkg -x nginx-johnyin_${arch}.deb ${type}-${arch}/docker
+    mkdir -p ${type}-${arch}/docker/app && {
+        tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/novnc.tgz
+        tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/spice.tgz --transform 's/^spice.*master/spice/'
+        tar -C ${SOURCE_DIR} -c ui term | tar -C ${type}-${arch}/docker/app -x
+        for fn in ${SOURCE_DIR}/*.py; do
+            $(which cp) -f ${fn} ${type}-${arch}/docker/app/
+        done
+        $(which cp) -f ${SOURCE_DIR}/database.py.shm ${type}-${arch}/docker/app/database.py
+        chown -R 10001:10001 ${type}-${arch}/docker/app
+    }
     log "Pre chroot exit"
     ./tpl_overlay.sh -t ${type}-${arch}.baseimg.tpl -r ${type}-${arch}.rootfs --upper ${type}-${arch}/docker
-    log "chroot ${type}-${arch}.rootfs, exit continue build"
+    log "chroot ${type}-${arch}.rootfs,(copy app) exit continue build"
     chroot ${type}-${arch}.rootfs /usr/bin/env -i SHELL=/bin/bash PS1="\u@DOCKER-${arch}:\w$" TERM=${TERM:-} COLORTERM=${COLORTERM:-} /bin/bash --noprofile --norc -o vi || true
     log "exit ${type}-${arch}.rootfs"
     ./tpl_overlay.sh -r ${type}-${arch}.rootfs -u
     log "Post chroot, delete nouse file in ${type}-${arch}/docker/"
-    for fn in tmp run root build.run nginx-*.deb; do
+    for fn in tmp run root build.run nginx-johnyin_${arch}.deb; do
         rm -fr ${type}-${arch}/docker/${fn}
     done
     rm -vfr ${type}-${arch}.baseimg.tpl ${type}-${arch}.rootfs

@@ -2,11 +2,17 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+file_exists() { [ -e "$1" ]; }
+ARCH=(amd64 arm64)
 
 type=kvm
 ver=trixie
-ARCH=(amd64 arm64)
-export BUILD_NET=br-int
+
+for fn in make_docker_image.sh tpl_overlay.sh; do
+    file_exists "${fn}" || { log "${fn} no found"; exit 1; }
+done
+
+export BUILD_NET=${BUILD_NET:-br-int}
 export REGISTRY=registry.local
 export IMAGE=debian:trixie       # # BASE IMAGE
 export NAMESPACE=
@@ -18,6 +24,7 @@ declare -A PKGS=(
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     cat <<EODOC > ${type}-${arch}/docker/build.run
+set -o nounset -o pipefail -o errexit
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export DEBIAN_FRONTEND=noninteractive
 APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-recommends"
@@ -46,7 +53,7 @@ APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-re
          /etc/libvirt/libvirtd.conf
 
 find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
-rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/*
+rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/* /usr/share/doc/*
 EODOC
     mkdir -p ${type}-${arch}/docker/usr/sbin/ && cat <<'EODOC' >${type}-${arch}/docker/usr/sbin/libvirtd.wrap
 #!/usr/bin/bash
