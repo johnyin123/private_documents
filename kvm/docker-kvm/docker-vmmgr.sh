@@ -248,6 +248,13 @@ user=root
 logfile=/var/log/supervisor/supervisord.log
 pidfile=/var/run/supervisord.pid
 
+[program:my-oneshot]
+command=/bin/bash -c "choown -R 10001:10001 /home/${username}/.ssh;chmod 700 /home/${username}/.ssh;chmod 600 /home/${username}/.ssh/id_rsa;chmod 644 /home/${username}/.ssh/id_rsa.pub"
+user=root
+autostart=false
+autorestart=false
+startsecs=0
+
 [program:nginx]
 command=/usr/sbin/nginx -g "daemon off;"
 autostart=true
@@ -368,10 +375,7 @@ UserKnownHostsFile=/dev/null
 ControlMaster auto
 ControlPath  ~/.ssh/%r@%h:%p
 ControlPersist 600
-
-Host 192.168.168.1
-    Port 60022
-    User root
-    Ciphers aes256-ctr,aes192-ctr,aes128-ctr
-    MACs hmac-sha1
+Port 60022
+Ciphers aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha1
 EOF
