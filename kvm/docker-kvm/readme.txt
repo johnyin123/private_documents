@@ -28,6 +28,9 @@ server {
     ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
     ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
     location / {
+        proxy_cache off;
+        expires off;
+        proxy_read_timeout 240s;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection $connection_upgrade;
         proxy_set_header Host $host;
