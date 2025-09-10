@@ -330,7 +330,7 @@ cat <<EOF
 ###################################################
 # test run
 ###################################################
-# # when: qemu+ssh://
+# # when: qemu+ssh://, actions add template disk
 #     chown -R 10001:10001 /kvm/ssh
 #     chmod 700            /kvm/ssh
 #     -v /kvm/ssh:/home/${username}/.ssh/

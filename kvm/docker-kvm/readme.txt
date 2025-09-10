@@ -1,3 +1,6 @@
+# iptables -A INPUT -p tcp -s 192.168.0.0/16 --dport <port> -j ACCEPT
+# iptables -A INPUT -p tcp --dport <port> -j DROP
+
 # # META_SRV Only for *KVMHOST* use.
 # # GOLD_SRV Only for *APP ACTIONS* use. golds.json: http://GOLD_SRV/uri
 
