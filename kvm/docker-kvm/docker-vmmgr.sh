@@ -63,6 +63,31 @@ chown -R 10001:10001 /home/${username}/venv
 find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
 rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/* /usr/share/doc/*
 EODOC
+    mkdir -p ${type}-${arch}/docker/etc/nginx/http-conf.d/ && cat <<'EODOC' > ${type}-${arch}/docker/etc/nginx/http-conf.d/cache.conf
+proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=1h max_size=16m use_temp_path=off;
+map $request_uri $cache_bypass {
+    "~(/administrator|/admin|/login)" 1;
+    default 0;
+}
+proxy_no_cache          $cache_bypass;
+proxy_cache_bypass      $cache_bypass;
+proxy_cache SHM_CACHE;
+proxy_cache_key         "$scheme$request_method$host$request_uri";
+proxy_cache_lock        on;
+proxy_cache_min_uses    1;
+proxy_cache_revalidate  on;
+proxy_cache_valid       200 301 302 1d;
+proxy_cache_valid       404 5m;
+proxy_cache_background_update on;
+proxy_cache_convert_head off;
+proxy_ignore_headers "Cache-Control" "Expires" "Vary" "Set-Cookie" "X-Accel-Expires" "X-Accel-Limit-Rate" "X-Accel-Buffering";
+proxy_hide_header    Cache-Control;
+proxy_hide_header    Expires;
+proxy_hide_header    Pragma;
+proxy_hide_header    Set-Cookie;
+proxy_hide_header    Vary;
+add_header           Pragma "public";
+EODOC
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && cat <<'EODOC' > ${type}-${arch}/docker/etc/nginx/http-enabled/simplekvm.conf
 # # tanent can multi points, upstream loadbalance: hash $arg_k$arg_e consistent; # ip_hash; # sticky;
 upstream api_srv {
