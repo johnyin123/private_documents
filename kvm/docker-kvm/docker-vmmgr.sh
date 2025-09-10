@@ -356,6 +356,7 @@ gold_srv_ipaddr=192.168.167.1
 
 docker run --rm \\
  --name vmmgr-api \\
+ --restart always \\
  --network br-int --ip 192.168.169.123 \\
  --env LEVELS='{"main":"INFO"}' \\
  --env META_SRV=vmm.registry.local \\
@@ -375,7 +376,6 @@ UserKnownHostsFile=/dev/null
 ControlMaster auto
 ControlPath  ~/.ssh/%r@%h:%p
 ControlPersist 600
-Port 60022
 Ciphers aes256-ctr,aes192-ctr,aes128-ctr
 MACs hmac-sha1
 EOF
