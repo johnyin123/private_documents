@@ -1,3 +1,41 @@
+cat <<EOF
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+upstream cidata_srv {
+    random;
+    server 192.168.169.123:80; #docker1
+    server 192.168.169.124:80; #docker2
+    keepalive 16;
+}
+server {
+    listen 80;
+    server_name vmm.registry.local;
+    location / { proxy_pass http://cidata_srv; }
+    location ^~ /gold { set $limit 0; alias /home/johnyin/vmmgr/gold/; }
+}
+upstream api_srv {
+    ip_hash;
+    server 192.168.169.123:443;
+    server 192.168.169.124:443;
+    keepalive 16;
+}
+server {
+    listen 443 ssl;
+    server_name vmm.registry.local;
+    server_name guest.registry.local;
+    ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
+    ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
+    location / {
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header Connection "";
+        proxy_pass https://api_srv;
+    }
+}
+EOF
 # iptables -A INPUT -p tcp -s 192.168.0.0/16 --dport <port> -j ACCEPT
 # iptables -A INPUT -p tcp --dport <port> -j DROP
 
