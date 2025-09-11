@@ -149,33 +149,49 @@ class VMManager:
         raise utils.APIException(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def display(host:utils.FakeDB, uuid:str, prefix:str='', timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
-        tmout = int(timeout_mins)
-        XMLDesc_Secure=None
+    def display(host:utils.FakeDB, uuid:str, disp:str='', prefix:str='', timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
+        XMLDesc_Secure = None
+        url_map = {'vnc': config.URI_VNC,'spice':config.URI_SPICE, 'console': config.URI_CONSOLE}
         with utils.connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             if not dom.isActive():
                 raise utils.APIException(f'vm {uuid} not running')
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
+        if disp == 'console':
+            return utils.return_ok(disp, uuid=uuid, display=f'{url_map[disp]}?password=&path={prefix}/vm/websockify', token=uuid, disp=disp, expire=int(timeout_mins))
         for item in xml.dom.minidom.parseString(XMLDesc_Secure).getElementsByTagName('graphics'):
-            server = ''
-            proto = item.getAttribute('type')
-            listen = item.getAttribute('listen')
-            port = item.getAttribute('port')
-            if listen == '0.0.0.0':
-                server = f'{host.ipaddr}:{port}'
-            elif listen == '127.0.0.1' or listen == 'localhost':
-                local = f'/tmp/.display.{uuid}'
-                ssh_cmd = f'ssh -p {host.sshport} {host.sshuser}@{host.ipaddr} socat STDIO TCP:{listen}:{port}'
-                socat_cmd = ('timeout', '--preserve-status', '--verbose',f'{tmout}m','socat', f'UNIX-LISTEN:{local},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
-                utils.ProcList.Run(uuid, socat_cmd)
-                server = f'unix_socket:{local}'
-            else:
-                raise utils.APIException('graphic listen "{listen}" unknown')
-            utils.file_save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}'.encode('utf-8'))
-            url_map = {'vnc': config.URI_VNC,'spice':config.URI_SPICE}
-            return utils.return_ok(proto, uuid=uuid, display=f'{url_map[proto]}?password={item.getAttribute("passwd")}&path={prefix}/vm/websockify', token=f'{uuid}', expire=tmout)
+            disp = item.getAttribute('type')
+            return utils.return_ok(disp, uuid=uuid, display=f'{url_map[disp]}?password={item.getAttribute("passwd")}&path={prefix}/vm/websockify', token=uuid, disp=disp, expire=int(timeout_mins))
         raise utils.APIException('no graphic found')
+
+    @staticmethod
+    def websockify(host:utils.FakeDB, uuid:str, disp:str='', expire:str=config.TMOUT_MINS_SOCAT, token:str='')->str:
+        XMLDesc_Secure = None
+        socat_cmd = None
+        server = f'unix_socket:/tmp/.display.{uuid}'
+        with utils.connect(host.url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            if not dom.isActive():
+                raise utils.APIException(f'vm {uuid} not running')
+            XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
+        if disp == 'console':
+            socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{int(expire)}m',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
+        else:
+            for item in xml.dom.minidom.parseString(XMLDesc_Secure).getElementsByTagName('graphics'):
+                listen = item.getAttribute('listen')
+                port = item.getAttribute('port')
+                if listen == '127.0.0.1' or listen == 'localhost':
+                    ssh_cmd = f'ssh -p {host.sshport} {host.sshuser}@{host.ipaddr} socat STDIO TCP:{listen}:{port}'
+                    socat_cmd = ('timeout', '--preserve-status', '--verbose',f'{int(expire)}m','socat', f'UNIX-LISTEN:/tmp/.display.{uuid},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
+                elif listen == '0.0.0.0':
+                    server = f'{host.ipaddr}:{port}'
+                else:
+                    raise utils.APIException('graphic listen "{listen}" unknown')
+        logger.debug(f'{uuid}, token={token}, disp={disp}, expire={expire}, server={server}, cmd={socat_cmd}')
+        if socat_cmd:
+            utils.ProcList.Run(uuid, socat_cmd)
+        utils.file_save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}'.encode('utf-8'))
+        return utils.return_ok('websockify', uuid=uuid)
 
     @staticmethod
     def delete(host:utils.FakeDB, uuid:str)->str:
@@ -276,19 +292,6 @@ class VMManager:
                     dom.attachDeviceFlags(change_media(uuid, dev, iso.uri, disk['bus'], 'http', config.META_SRV, 80))
                     return utils.return_ok(f'{dev} change media ok', uuid=uuid)
         raise utils.APIException(f'{dev} nofound on vm {uuid}')
-
-    @staticmethod
-    def console(host:utils.FakeDB, uuid:str, prefix:str='', timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
-        tmout = int(timeout_mins)
-        with utils.connect(host.url) as conn:
-            if not conn.lookupByUUIDString(uuid).isActive():
-                raise utils.APIException(f'vm {uuid} not running')
-        socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{tmout}m',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
-        utils.ProcList.Run(uuid, socat_cmd)
-        local = f'/tmp/.display.{uuid}'
-        server = f'unix_socket:{local}'
-        utils.file_save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}'.encode('utf-8'))
-        return utils.return_ok('console', uuid=uuid, display=f'{config.URI_CONSOLE}?password=&path={prefix}/vm/websockify', token=f'{uuid}', expire=tmout)
 
     @staticmethod
     def stop(host:utils.FakeDB, uuid:str, force:str=None)->str:

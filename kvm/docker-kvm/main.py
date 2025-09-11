@@ -85,7 +85,7 @@ class MyApp(object):
 
     def exec_domain_cmd(self, cmd:str, hostname:str, uuid:str = None):
         dom_cmds = {
-            'GET': ['ui', 'xml', 'ipaddr', 'start', 'reset', 'stop', 'delete', 'console','display','list', 'blksize', 'desc', 'setmem', 'setcpu', 'netstat'],
+            'GET': ['ui', 'xml', 'ipaddr', 'start', 'reset', 'stop', 'delete', 'display','list', 'blksize', 'desc', 'setmem', 'setcpu', 'netstat', 'websockify'],
             'POST': ['attach_device','detach_device', 'cdrom', 'create'],
         }
         try:

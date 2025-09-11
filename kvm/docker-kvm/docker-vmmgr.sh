@@ -131,13 +131,21 @@ server {
         }
         return 404;
     }
+    location = @prestart {
+        internal;
+        proxy_cache off;
+        proxy_method 'GET';
+        proxy_pass http://api_srv$auth_request_uri;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+    }
     location /vm/ {
         #auth_request @sso-auth;
         # # no cache!! mgr private access
         proxy_cache off;
         expires off;
         proxy_read_timeout 240s;
-        location ~* ^/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|console|display|xml|ui))/(?<others>.*)$ {
+        location ~* ^/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|display|xml|ui))/(?<others>.*)$ {
             if ($request_method !~ ^(GET)$) { return 405; }
             # # for server stream output
             proxy_buffering                    off;
@@ -152,6 +160,8 @@ server {
             proxy_pass http://api_srv/vm/$apicmd/$others$is_args$args;
         }
         location ~* ^/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*)$ {
+            set $auth_request_uri "/vm/websockify/$kvmhost/$uuid$is_args$args";
+            auth_request @prestart;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
             proxy_pass http://websockify_srv/websockify/$is_args$args;
@@ -172,11 +182,21 @@ server {
     location /spice { alias /app/spice/; }
     location /novnc { alias /app/novnc/; }
     # # tanent api
+    location = @prestart_user {
+        internal;
+        proxy_cache off;
+        proxy_method 'GET';
+        proxy_pass http://api_srv$user_auth_request_uri;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+    }
     location /user/ {
         location ~* ^/user/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*)$ {
             proxy_cache off;
             expires off;
             set $userkey "P@ssw@rd4Display";
+            set $user_auth_request_uri "/vm/websockify/$kvmhost/$uuid$is_args$args";
+            auth_request @prestart_user;
             secure_link $arg_k,$arg_e;
             secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
@@ -186,7 +206,7 @@ server {
             proxy_set_header Connection $connection_upgrade;
             proxy_pass http://websockify_srv;
         }
-        location ~* ^/user/vm/(?<apicmd>(list|start|reset|stop|console|display))/(?<kvmhost>.*)/(?<uuid>.*)$ {
+        location ~* ^/user/vm/(?<apicmd>(list|start|reset|stop|display))/(?<kvmhost>.*)/(?<uuid>.*)$ {
             # # no cache!! guest user api, guest private access
             proxy_cache off;
             expires off;
@@ -248,13 +268,6 @@ user=root
 logfile=/var/log/supervisor/supervisord.log
 pidfile=/var/run/supervisord.pid
 
-[program:my-oneshot]
-command=/bin/bash -c "choown -R 10001:10001 /home/${username}/.ssh;chmod 700 /home/${username}/.ssh;chmod 600 /home/${username}/.ssh/id_rsa;chmod 644 /home/${username}/.ssh/id_rsa.pub"
-user=root
-autostart=false
-autorestart=false
-startsecs=0
-
 [program:nginx]
 command=/usr/sbin/nginx -g "daemon off;"
 autostart=true
@@ -303,6 +316,9 @@ EODOC
     docker rm -v ${type}-${arch}.baseimg
     log "Pre chroot, copy files in ${type}-${arch}/docker/"
     dpkg -x nginx-johnyin_${arch}.deb ${type}-${arch}/docker
+    sed -i "s/^user .*;/user ${username} ${username};/g"  ${type}-${arch}/docker/etc/nginx/nginx.conf
+    sed -i "s/worker_processes .*;/worker_processes 1;/g" ${type}-${arch}/docker/etc/nginx/nginx.conf
+    sed -i "/worker_priority/d"                           ${type}-${arch}/docker/etc/nginx/nginx.conf
     mkdir -p ${type}-${arch}/docker/app && {
         tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/novnc.tgz
         tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/spice.tgz --transform 's/^spice.*master/spice/'

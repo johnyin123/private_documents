@@ -5,26 +5,44 @@ map $http_upgrade $connection_upgrade {
 }
 upstream cidata_srv {
     random;
-    server 192.168.169.123:80; #docker1
-    server 192.168.169.124:80; #docker2
+    server 192.168.169.123:80;
+    server 192.168.169.124:80;
     keepalive 16;
 }
 server {
     listen 80;
-    server_name vmm.registry.local;
+    server_name simplekvm.registry.local;
     location / { proxy_pass http://cidata_srv; }
     location ^~ /gold { set $limit 0; alias /home/johnyin/vmmgr/gold/; }
 }
-upstream api_srv {
-    ip_hash;
+upstream api_upstream {
+    random; # ip_hash;
     server 192.168.169.123:443;
     server 192.168.169.124:443;
     keepalive 16;
 }
 server {
     listen 443 ssl;
-    server_name vmm.registry.local;
-    server_name guest.registry.local;
+    server_name user.registry.local;
+    ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
+    ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
+    location / { return 301 https://$host/ui/userui.html; }
+    location = /guest.html { return 301 /ui/userui.html$is_args$args; }
+    location ~ ^/(ui|term|spice|novnc)/ { proxy_pass https://api_upstream; }
+    location /user {
+        proxy_cache off;
+        expires off;
+        proxy_read_timeout 240s;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header Connection "";
+        proxy_pass https://api_upstream;
+    }
+}
+server {
+    listen 443 ssl;
+    server_name simplekvm.registry.local;
     ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
     ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
     location / {
@@ -35,7 +53,7 @@ server {
         proxy_set_header Connection $connection_upgrade;
         proxy_set_header Host $host;
         proxy_set_header Connection "";
-        proxy_pass https://api_srv;
+        proxy_pass https://api_upstream;
     }
 }
 EOF
@@ -199,8 +217,7 @@ echo "add ${device} noargs" && curl -k -H 'Content-Type:application/json' -X POS
 echo 'list host vms'   && curl -k ${srv}/vm/list/${host}            # from host
 echo 'list a vm'       && curl -k ${srv}/vm/list/${host}/${uuid}    # from host
 echo 'start vm'        && curl -k ${srv}/vm/start/${host}/${uuid}
-echo 'display vnc'     && curl -k ${srv}/vm/display/${host}/${uuid} #?timeout_mins=10 #default config.TMOUT_MINS_SOCAT, prefix default None else add '/user' prefix
-echo 'console'         && curl -k ${srv}/vm/console/${host}/${uuid} #?timeout_mins=10 #default config.TMOUT_MINS_SOCAT, prefix default None else add '/user' prefix
+echo 'display'         && curl -k ${srv}/vm/display/${host}/${uuid} #disp=console #?timeout_mins=10 #default config.TMOUT_MINS_SOCAT, prefix default None else add '/user' prefix
 echo 'commn stop vm'   && curl -k ${srv}/vm/stop/${host}/${uuid}
 echo 'commn reset vm'  && curl -k ${srv}/vm/reset/${host}/${uuid}
 echo 'force stop vm'   && curl -k ${srv}/vm/stop/${host}/${uuid}?force=true # force stop. destroy
@@ -235,8 +252,7 @@ str_token='host01/6f5d8bf6-d580-4946-9541-13fa98b4acf4?k=g6KHuOP8GIfU5_dYA7IP_Q&
 echo 'get vminfo by token' && curl -k "${srv}/user/vm/list/${str_token}"
 echo 'start vm by token'   && curl -k "${srv}/user/vm/start/${str_token}"
 echo 'reset vm by token'   && curl -k "${srv}/user/vm/reset/${str_token}"
-echo 'console by token'    && curl -k "${srv}/user/vm/console/${str_token}"
-echo 'vm vnc by token'     && curl -k "${srv}/user/vm/display/${str_token}"
+echo 'vm vnc by token'     && curl -k "${srv}/user/vm/display/${str_token}" #disp=console
 echo 'stop vm by token'    && curl -k "${srv}/user/vm/stop/${str_token}"
 echo 'force stop by token' && curl -k "${srv}/user/vm/stop/${str_token}?force=true"
 ---------------------------------------------------------

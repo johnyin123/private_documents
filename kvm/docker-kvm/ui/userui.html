@@ -162,7 +162,7 @@ function display() {
   getjson('GET', `${uri_pre}/user/vm/display/${token.value}&prefix=${uri_pre}/user`, function(res) {
     if(res.result === 'OK') {
       //document.getElementById("display").src = res.display;
-      var parm=encodeURIComponent(`${token.value}&token=${res.token}`);
+      var parm=encodeURIComponent(`${token.value}&token=${res.token}&disp=${res.disp}&expire=${res.expire}`);
       window.open(`${uri_pre}${res.display}/${parm}`, "_blank");
     } else {
       alert(res);
@@ -170,9 +170,9 @@ function display() {
   });
 }
 function vmconsole() {
-  getjson('GET', `${uri_pre}/user/vm/console/${token.value}&prefix=${uri_pre}/user`, function(res) {
+  getjson('GET', `${uri_pre}/user/vm/display/${token.value}&disp=console&prefix=${uri_pre}/user`, function(res) {
     if(res.result === 'OK') {
-      var parm=encodeURIComponent(`${token.value}&token=${res.token}`);
+      var parm=encodeURIComponent(`${token.value}&token=${res.token}&disp=${res.disp}&expire=${res.expire}`);
       console.log(parm);
       window.open(`${res.display}/${parm}`, "_blank");
     } else {

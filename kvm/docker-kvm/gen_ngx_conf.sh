@@ -58,13 +58,21 @@ admin_api() {
         }
         return 404;
     }
+    location = @prestart {
+        internal;
+        proxy_cache off;
+        proxy_method 'GET';
+        proxy_pass http://api_srv\$auth_request_uri;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+    }
     location ${PRE}/vm/ {
         ${AUTH}auth_request @sso-auth;
         # # no cache!! mgr private access
         proxy_cache off;
         expires off;
         proxy_read_timeout 240s;
-        location ~* ^${PRE}/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|console|display|xml|ui))/(?<others>.*)$ {
+        location ~* ^${PRE}/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|display|xml|ui))/(?<others>.*)$ {
             if (\$request_method !~ ^(GET)$) { return 405; }
             # # for server stream output
             proxy_buffering                    off;
@@ -79,6 +87,8 @@ admin_api() {
             proxy_pass http://api_srv/vm/\$apicmd/\$others\$is_args\$args;
         }
         location ~* ^${PRE}/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*)$ {
+            set \$auth_request_uri "/vm/websockify/\$kvmhost/\$uuid\$is_args\$args";
+            auth_request @prestart;
             proxy_set_header Upgrade \$http_upgrade;
             proxy_set_header Connection \$connection_upgrade;
             proxy_pass http://websockify_srv/websockify/\$is_args\$args;
@@ -94,10 +104,21 @@ tanent_api() {
     local USERKEY=${2}
     cat <<EOF
     # # tanent api
+    location = @prestart_user {
+        internal;
+        proxy_cache off;
+        proxy_method 'GET';
+        proxy_pass http://api_srv\$user_auth_request_uri;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+    }
     location ${PRE}/user/ {
         location ~* ^${PRE}/user/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*)$ {
             proxy_cache off;
             expires off;
+            # # first secure_link check, then auth_request
+            set \$user_auth_request_uri "/vm/websockify/\$kvmhost/\$uuid\$is_args\$args";
+            auth_request @prestart_user;
             set \$userkey "${USERKEY}";
             secure_link \$arg_k,\$arg_e;
             secure_link_md5 "\$userkey\$secure_link_expires\$kvmhost\$uuid";
@@ -108,7 +129,7 @@ tanent_api() {
             proxy_set_header Connection \$connection_upgrade;
             proxy_pass http://websockify_srv;
         }
-        location ~* ^${PRE}/user/vm/(?<apicmd>(list|start|reset|stop|console|display))/(?<kvmhost>.*)/(?<uuid>.*)$ {
+        location ~* ^${PRE}/user/vm/(?<apicmd>(list|start|reset|stop|display))/(?<kvmhost>.*)/(?<uuid>.*)$ {
             # # no cache!! guest user api, guest private access
             proxy_cache off;
             expires off;

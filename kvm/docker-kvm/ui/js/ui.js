@@ -402,10 +402,11 @@ function undefine(host, uuid) {
 }
 function ttyconsole(host, uuid) {
   set_curr(host, uuid);
-  getjson('GET', `${uri_pre}/vm/console/${host}/${uuid}`, function(resp) {
+  getjson('GET', `${uri_pre}/vm/display/${host}/${uuid}?disp=console`, function(resp) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
-      window.open(`${result.display}/${host}/${uuid}?token=${result.token}`, "_blank");
+      var parm=encodeURIComponent(`?token=${result.token}&disp=${result.disp}&expire=${result.expire}`);
+      window.open(`${result.display}/${host}/${uuid}${parm}`, "_blank");
     } else {
       disperr(result.code, result.name, result.desc);
     }
@@ -417,7 +418,8 @@ function display(host, uuid) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
       //document.getElementById("display").src = result.display;
-      window.open(`${result.display}/${host}/${uuid}?token=${result.token}`, "_blank");
+      var parm=encodeURIComponent(`?token=${result.token}&disp=${result.disp}&expire=${result.expire}`);
+      window.open(`${result.display}/${host}/${uuid}${parm}`, "_blank");
     } else {
       disperr(result.code, result.name, result.desc);
     }
