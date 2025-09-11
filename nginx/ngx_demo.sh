@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("d8c3c2ba[2025-08-15T16:42:35+08:00]:ngx_demo.sh")
+VERSION+=("f1a4843b[2025-09-08T16:38:25+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -257,7 +257,7 @@ server {
 }
 EOF
 cat <<'EOF'>change_request_uri.http
-# nc -lp9999
+# nc -lp9999; socat STDIO TCP-LISTEN:9999,reuseaddr,fork
 server {
     listen 80;
     server_name _;
