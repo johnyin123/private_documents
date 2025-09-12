@@ -7,6 +7,17 @@ for fn in config database flask_app main meta template utils vmmanager; do
     gcc -fPIC -shared `python3-config --cflags --ldflags` ${fn}.c -o ${fn}.so
     strip ${fn}.so
 done
+# # or
+cat <<EO_SETUP
+from setuptools import setup
+from Cython.Build import cythonize
+setup(
+    #ext_modules=cythonize('env/*.py')
+    ext_modules=cythonize([ 'config.py', 'flask_app.py', 'meta.py', 'template.py', 'vmmanager.py', 'database.py', 'main.py', 'utils.py', ])
+)
+EO_SETUP
+mkdir -p env && cp *.py env/ ....
+python setup.py build_ext --inplace
 EOF
 cat <<EOF
 map $http_upgrade $connection_upgrade {
