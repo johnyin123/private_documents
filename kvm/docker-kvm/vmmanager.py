@@ -158,9 +158,7 @@ class VMManager:
             if not dom.isActive():
                 raise utils.APIException(f'vm {uuid} not running')
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
-        epoch, shash = utils.secure_link(host.name, uuid, config.CTRL_PANEL_KEY, expire)
-        tail_uri=f'{host.name}/{uuid}?k={shash}&e={epoch}'
-        access_tok = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
+        access_tok = utils.secure_link(host.name, uuid, config.CTRL_PANEL_KEY, expire)
         if disp == 'console':
             return utils.return_ok(disp, uuid=uuid, display=f'{url_map[disp]}?password=&path={prefix}/vm/websockify', token=uuid, disp=disp, expire=expire, access=access_tok)
         for item in xml.dom.minidom.parseString(XMLDesc_Secure).getElementsByTagName('graphics'):
@@ -179,7 +177,7 @@ class VMManager:
                 raise utils.APIException(f'vm {uuid} not running')
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
         if disp == 'console':
-            socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{int(expire)}m',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', f'{host.url}', f'{uuid}')
+            socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{int(expire)}m',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', host.url, uuid)
         else:
             for item in xml.dom.minidom.parseString(XMLDesc_Secure).getElementsByTagName('graphics'):
                 listen = item.getAttribute('listen')
@@ -248,8 +246,8 @@ class VMManager:
             device = database.KVMDevice.get_one(name=dev, kvmhost=host.name)
             tpl = template.DeviceTemplate(device.tpl, device.devtype)
             # all env must string
-            env = {'URL':host.url, 'TYPE':device.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':f'{host.sshport}', 'SSHUSER':host.sshuser}
-            cmd = ['bash', os.path.join(config.DIR_ACTION, f'{device.action}'), f'add']
+            env = {'URL':host.url, 'TYPE':device.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':str(host.sshport), 'SSHUSER':host.sshuser}
+            cmd = ['bash', os.path.join(config.DIR_ACTION, device.action), 'add']
             gold_name = req_json.get('gold', '')
             if len(gold_name) != 0:
                 req_json['gold'] = f'http://{config.GOLD_SRV}{database.KVMGold.get_one(name=gold_name, arch=host.arch).uri}'
@@ -322,10 +320,8 @@ class VMManager:
     @staticmethod
     def ui(host:utils.FakeDB, uuid:str, epoch:str)->str:
         tmout = (int(epoch) - datetime.datetime.now().timestamp()) // 60
-        epoch, shash = utils.secure_link(host.name, uuid, config.CTRL_PANEL_KEY, tmout)
-        tail_uri=f'{host.name}/{uuid}?k={shash}&e={epoch}'
-        token = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
-        return utils.return_ok('vmuserinterface', uuid=uuid, url=f'{config.URI_CTRL_PANEL}', token=f'{token}', expire=f'{datetime.datetime.fromtimestamp(epoch)}')
+        access_tok = utils.secure_link(host.name, uuid, config.CTRL_PANEL_KEY, tmout)
+        return utils.return_ok('vmuserinterface', uuid=uuid, url=config.URI_CTRL_PANEL, token=access_tok, expire=f'{datetime.datetime.fromtimestamp(int(epoch))}')
 
     @staticmethod
     def blksize(host:utils.FakeDB, uuid:str, dev:str)->str:

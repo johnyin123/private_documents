@@ -140,9 +140,9 @@ def file_save(filename:str, content)->None:
     with open(filename, "wb") as f:
         f.write(content)
 
-def file_remove(fn):
+def file_remove(fn:str):
     try:
-        os.rename(f'{fn}', f'{fn}.remove')
+        os.rename(fn, f'{fn}.remove')
     except:
         pass
 
@@ -155,20 +155,19 @@ def return_err(code:int, name:str, desc:str)->str:
 def deal_except(who:str, e:Exception) -> str:
     if isinstance(e, libvirt.libvirtError):
         logger.error(f'{who}: {e.get_error_message()}')
-        return return_err(e.get_error_code(), f'{who}', e.get_error_message())
+        return return_err(e.get_error_code(), who, e.get_error_message())
     elif isinstance(e, APIException):
         logger.error(f'{who}: {type(e).__name__} {str(e)}')
-        return return_err(997, f'{who}', f'{type(e).__name__}:{str(e)}')
+        return return_err(997, who, f'{type(e).__name__}:{str(e)}')
     else:
-        logger.exception(f'{who}')
-        return return_err(998, f'{who}', f'{type(e).__name__}:{str(e)}')
+        logger.exception(who)
+        return return_err(998, who, f'{type(e).__name__}:{str(e)}')
 
 def secure_link(kvmhost, uuid, mykey, minutes):
     epoch = round(time.time() + minutes*60)
     secure_link = f'{mykey}{epoch}{kvmhost}{uuid}'.encode('utf-8')
-    return epoch, base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
-    # epoch=round(datetime.datetime.now().timestamp() + minutes*60)
-    # dt = datetime.datetime.fromtimestamp(epoch)
+    shash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
+    return base64.urlsafe_b64encode(f'{kvmhost}/{uuid}?k={shash}&e={epoch}'.encode('utf-8')).decode('utf-8').rstrip('=')
 
 try:
     import etcd3, config

@@ -104,9 +104,9 @@ class MyApp(object):
                 logger.info(f'"{cmd}" call args={args}')
                 return flask.Response(func(**args), mimetype="text/event-stream")
             else:
-                return utils.return_err(404, f'{cmd}', f'Domain No Found CMD: {cmd}')
+                return utils.return_err(404, cmd, f'Domain No Found CMD: {cmd}')
         except Exception as e:
-            return utils.deal_except(f'{cmd}', e), 400
+            return utils.deal_except(cmd, e), 400
 
 app = MyApp.create()
 # gunicorn -b 127.0.0.1:5009 --preload --workers=4 --threads=2 --access-logfile='-' 'main:app'
