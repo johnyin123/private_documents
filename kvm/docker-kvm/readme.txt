@@ -15,10 +15,10 @@ server {
     location / { proxy_pass http://cidata_srv; }
     location ^~ /gold { set $limit 0; alias /home/johnyin/vmmgr/gold/; }
 }
-upstream api_upstream {
-    random; # ip_hash;
-    server 192.168.169.123:443;
-    server 192.168.169.124:443;
+upstream user_api_upstream {
+    random;
+    server 192.168.169.123:1443;
+    server 192.168.169.124:1443;
     keepalive 16;
 }
 server {
@@ -26,10 +26,7 @@ server {
     server_name user.registry.local;
     ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
     ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
-    location / { return 301 https://$host/ui/userui.html; }
-    location = /guest.html { return 301 /ui/userui.html$is_args$args; }
-    location ~ ^/(ui|term|spice|novnc)/ { proxy_pass https://api_upstream; }
-    location /user {
+    location / {
         proxy_cache off;
         expires off;
         proxy_read_timeout 240s;
@@ -37,8 +34,14 @@ server {
         proxy_set_header Connection $connection_upgrade;
         proxy_set_header Host $host;
         proxy_set_header Connection "";
-        proxy_pass https://api_upstream;
+        proxy_pass https://user_api_upstream;
     }
+}
+upstream api_upstream {
+    random;
+    server 192.168.169.123:443;
+    server 192.168.169.124:443;
+    keepalive 16;
 }
 server {
     listen 443 ssl;
