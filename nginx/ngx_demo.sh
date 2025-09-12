@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f1a4843b[2025-09-08T16:38:25+08:00]:ngx_demo.sh")
+VERSION+=("f87e50bb[2025-09-11T08:32:41+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4965,6 +4965,9 @@ log_subrequest on;
 
 # the same as proxy_add_header. These directives are inherited from the previous configuration level if and only if there are no add_header directives defined on the current level
 add_header Set-Cookie "Path=/; HttpOnly; Secure";
+
+# return 301:/test/
+absolute_redirect off;
 EOF
 cat <<'EOF'>slow_req_log.js
 export default { slow_req_detect };
