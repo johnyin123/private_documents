@@ -88,8 +88,7 @@ proxy_hide_header    Set-Cookie;
 proxy_hide_header    Vary;
 add_header           Pragma "public";
 EODOC
-    mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && cat <<'EODOC' > ${type}-${arch}/docker/etc/nginx/http-enabled/simplekvm.conf
-# # tanent can multi points, upstream loadbalance: hash $arg_k$arg_e consistent; # ip_hash; # sticky;
+    mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && cat <<'EODOC'| grep -v '^\s*#.*$' > ${type}-${arch}/docker/etc/nginx/http-enabled/simplekvm.conf
 upstream api_srv {
     server 127.0.0.1:5009 fail_timeout=0;
     keepalive 64;
@@ -162,6 +161,11 @@ server {
         location ~* ^/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*)$ {
             set $auth_request_uri "/vm/websockify/$kvmhost/$uuid$is_args$args";
             auth_request @prestart;
+            set $userkey "P@ssw@rd4Display";
+            secure_link $arg_k,$arg_e;
+            secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
+            if ($secure_link = "") { return 403; }
+            if ($secure_link = "0") { return 410; }
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection $connection_upgrade;
             proxy_pass http://websockify_srv/websockify/$is_args$args;
@@ -169,7 +173,7 @@ server {
         return 404;
     }
     # # admin ui # #
-    location = /admin.html { return 301 /ui/tpl.html; }
+    location = / { absolute_redirect off; return 301 /ui/tpl.html; }
     location = /ui/tpl.html {
         #auth_request @sso-auth;
         alias /app/ui/tpl.html;
@@ -181,6 +185,31 @@ server {
     location /term { alias  /app/term/; }
     location /spice { alias /app/spice/; }
     location /novnc { alias /app/novnc/; }
+}
+server {
+    listen 80;
+    server_name _;
+    location / { return 301 https://$host$request_uri; }
+    location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root /dev/shm/simplekvm/work/cidata; }
+}
+server {
+    listen 1443 ssl;
+    server_name _;
+    ssl_certificate     /etc/nginx/ssl/simplekvm.pem;
+    ssl_certificate_key /etc/nginx/ssl/simplekvm.key;
+    default_type application/json;
+    error_page 403 = @403;
+    location @403 { return 403 '{"code":403,"name":"lberr","desc":"Resource Forbidden"}'; }
+    error_page 404 = @404;
+    location @404 { return 404 '{"code":404,"name":"lberr","desc":"Resource not found"}'; }
+    error_page 405 = @405;
+    location @405 { return 405 '{"code":405,"name":"lberr","desc":"Method not allowed"}'; }
+    error_page 410 = @410;
+    location @410 { return 410 '{"code":410,"name":"lberr","desc":"Access expired"}'; }
+    error_page 502 = @502;
+    location @502 { return 502 '{"code":502,"name":"lberr","desc":"backend server not alive"}'; }
+    error_page 504 = @504;
+    location @504 { return 504 '{"code":504,"name":"lberr","desc":"Gateway Time-out"}'; }
     # # tanent api
     location = @prestart_user {
         internal;
@@ -194,9 +223,10 @@ server {
         location ~* ^/user/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*)$ {
             proxy_cache off;
             expires off;
-            set $userkey "P@ssw@rd4Display";
+            # # first secure_link check, then auth_request
             set $user_auth_request_uri "/vm/websockify/$kvmhost/$uuid$is_args$args";
             auth_request @prestart_user;
+            set $userkey "P@ssw@rd4Display";
             secure_link $arg_k,$arg_e;
             secure_link_md5 "$userkey$secure_link_expires$kvmhost$uuid";
             if ($secure_link = "") { return 403; }
@@ -250,15 +280,16 @@ server {
         return 403;
     }
     # # default page is guest ui
-    location / { return 301 https://$host/guest.html; }
+    location / { return 301 https://$host/ui/userui.html; }
     # # tanent user UI manager # #
-    location = /guest.html { return 301 /ui/userui.html$is_args$args; }
-}
-server {
-    listen 80;
-    server_name _;
-    location / { return 301 https://$host$request_uri; }
-    location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root /dev/shm/simplekvm/work/cidata; }
+    location = /guest.html { absolute_redirect off; return 301 /ui/userui.html$is_args$args; }
+    # # static resource # #
+    # # ui/term/spice/novnc use api_srv serve, add rewrite
+    # rewrite ^ /public$uri break;proxy_pass http://api_srv;
+    location /ui { alias    /app/ui/; }
+    location /term { alias  /app/term/; }
+    location /spice { alias /app/spice/; }
+    location /novnc { alias /app/novnc/; }
 }
 EODOC
     mkdir -p ${type}-${arch}/docker/etc && cat <<EODOC > ${type}-${arch}/docker/etc/supervisord.conf
@@ -305,7 +336,7 @@ stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
-EXPOSE 80 443
+EXPOSE 80 443 1443
 ENTRYPOINT ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
     ################################################
@@ -349,6 +380,17 @@ for arch in ${ARCH[@]}; do
     log docker push ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
 done
 log ./make_docker_image.sh -c combine --tag ${REGISTRY}/libvirtd/${type}:${ver}
+
+trap "exit -1" SIGINT SIGTERM
+read -n 1 -t 10 -p "Continue build(Y/n)? 10s timeout, default n" value || true
+if [ "${value}" = "y" ]; then
+    for arch in ${ARCH[@]}; do
+        docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
+        ./make_docker_image.sh -c build -D ${type}-${arch} --tag ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
+        docker push ${REGISTRY}/libvirtd/${type}:${ver}-${arch}
+    done
+    ./make_docker_image.sh -c combine --tag ${REGISTRY}/libvirtd/${type}:${ver}
+fi
 cat <<EOF
 ###################################################
 # test run

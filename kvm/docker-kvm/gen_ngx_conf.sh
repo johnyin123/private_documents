@@ -190,7 +190,7 @@ admin_ui() {
     local AUTH=${3:-}
     cat <<EOF
     # # admin ui # #
-    location = ${PRE}/admin.html { return 301 ${PRE}/ui/tpl.html; }
+    location = ${PRE}/admin.html { absolute_redirect off; return 301 ${PRE}/ui/tpl.html; }
     location = ${PRE}/ui/tpl.html {
         ${AUTH}auth_request @sso-auth;
         alias ${OUT_DIR}/ui/tpl.html;
@@ -212,9 +212,9 @@ tanent_ui() {
     local combine=${3:-}
     cat <<EOF
     # # default page is guest ui
-    location / { return 301 https://\$host${PRE}/guest.html; }
+    location / { absolute_redirect off; return 301 ${PRE}/guest.html; }
     # # tanent user UI manager # #
-    location = ${PRE}/guest.html { return 301 /ui/userui.html\$is_args\$args; }
+    location = ${PRE}/guest.html { absolute_redirect off; return 301 ${PRE}/ui/userui.html\$is_args\$args; }
 EOF
     "${combine}" || cat <<EOF
     # # static resource # #
