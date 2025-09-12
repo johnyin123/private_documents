@@ -276,7 +276,7 @@ class VMManager:
         with utils.connect(host.url) as conn:
             try:
                 conn.lookupByUUIDString(req_json['vm_uuid'])
-                return return_err(400, f'create', f'Domain {req_json["vm_uuid"]} already exists')
+                return utils.return_err(400, f'create', f'Domain {req_json["vm_uuid"]} already exists')
             except libvirt.libvirtError:
                 conn.defineXML(template.DomainTemplate(host.tpl).render(**req_json))
         return utils.return_ok(f'create vm on {host.name} ok', uuid=req_json['vm_uuid'])
