@@ -154,8 +154,8 @@ def return_err(code:int, name:str, desc:str)->str:
 
 def deal_except(who:str, e:Exception) -> str:
     if isinstance(e, libvirt.libvirtError):
-        logger.error(f'{who}: {e.get_error_message()}')
-        return return_err(e.get_error_code(), who, e.get_error_message())
+        logger.error(f'{who}: {type(e).__name__} {str(e)}')
+        return return_err(996, who, f'{type(e).__name__}:{str(e)}')
     elif isinstance(e, APIException):
         logger.error(f'{who}: {type(e).__name__} {str(e)}')
         return return_err(997, who, f'{type(e).__name__}:{str(e)}')
