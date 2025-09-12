@@ -42,7 +42,7 @@ class ShmListStore:
                 return FakeDB(**dict(data[0]))
             raise APIException(f'entry not found or not unique: {criteria}')
 
-    def list_all(self, **criteria) -> List[FakeDB]:
+    def list_all(self, **criteria):
         with self.lock:
             data = self.cache
             for key, val in criteria.items():
@@ -107,7 +107,7 @@ class ProcList:
         threading.Thread(target=run_thread, args=(uuid, cmd,), daemon=True).start()
         time.sleep(0.3)  # sleep for wait process startup
 
-def search(arr:List, key, val)-> List:
+def search(arr, key, val):
     logger.debug(f'{id(arr)} cache in PID {os.getpid()}')
     return [element for element in arr if element.get(key) == val]
 
@@ -131,7 +131,7 @@ def login_name(authorization:str)-> str:
         authorization = authorization.split(' ')[1]
     return decode_jwt(authorization).get('payload', {}).get('username', 'n/a')
 
-def file_load(fname:str)->str:
+def file_load(fname:str):
     with open(fname, 'rb') as file:
         return file.read()
 
@@ -203,7 +203,7 @@ class EtcdConfig:
             raise APIException(f'ETCD DEL {fname} -> {key} [{config.ETCD_SRV}:{config.ETCD_PORT} {e}]')
 
     @classmethod
-    def etcd_save(cls, fname:str, val:str):
+    def etcd_save(cls, fname:str, val):
         key = cls.fname2key(fname, 'ETCD PUT')
         try:
             with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:

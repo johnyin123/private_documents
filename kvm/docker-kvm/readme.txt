@@ -1,4 +1,13 @@
 cat <<EOF
+# # cython
+# pip install ${PROXY:+--proxy ${PROXY} } cython
+# apt -y install python3-dev
+for fn in main config flask_app meta template vmmanager; do
+    cython ${fn}.py -o ${fn}.c
+    gcc -fPIC -shared `python3-config --cflags --ldflags` ${fn}.c -o ${fn}.so
+done
+EOF
+cat <<EOF
 map $http_upgrade $connection_upgrade {
     default upgrade;
     ''      close;

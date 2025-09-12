@@ -177,14 +177,14 @@ class VMManager:
                 raise utils.APIException(f'vm {uuid} not running')
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
         if disp == 'console':
-            socat_cmd = ('timeout', '--preserve-status', '--verbose', f'{int(expire)}m',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', host.url, uuid)
+            socat_cmd = ['timeout', '--preserve-status', '--verbose', f'{int(expire)}m',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', host.url, uuid,]
         else:
             for item in xml.dom.minidom.parseString(XMLDesc_Secure).getElementsByTagName('graphics'):
                 listen = item.getAttribute('listen')
                 port = item.getAttribute('port')
                 if listen == '127.0.0.1' or listen == 'localhost':
                     ssh_cmd = f'ssh -p {host.sshport} {host.sshuser}@{host.ipaddr} socat STDIO TCP:{listen}:{port}'
-                    socat_cmd = ('timeout', '--preserve-status', '--verbose',f'{int(expire)}m','socat', f'UNIX-LISTEN:/tmp/.display.{uuid},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',)
+                    socat_cmd = ['timeout', '--preserve-status', '--verbose',f'{int(expire)}m','socat', f'UNIX-LISTEN:/tmp/.display.{uuid},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',]
                 elif listen == '0.0.0.0':
                     server = f'{host.ipaddr}:{port}'
                 else:
