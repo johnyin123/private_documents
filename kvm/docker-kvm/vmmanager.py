@@ -150,6 +150,7 @@ class VMManager:
 
     @staticmethod
     def display(host:utils.FakeDB, uuid:str, disp:str='', prefix:str='', timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
+        expire=int(timeout_mins)
         XMLDesc_Secure = None
         url_map = {'vnc': config.URI_VNC,'spice':config.URI_SPICE, 'console': config.URI_CONSOLE}
         with utils.connect(host.url) as conn:
@@ -157,11 +158,14 @@ class VMManager:
             if not dom.isActive():
                 raise utils.APIException(f'vm {uuid} not running')
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
+        epoch, shash = utils.secure_link(host.name, uuid, config.CTRL_PANEL_KEY, expire)
+        tail_uri=f'{host.name}/{uuid}?k={shash}&e={epoch}'
+        access_tok = base64.urlsafe_b64encode(tail_uri.encode('utf-8')).decode('utf-8').rstrip('=')
         if disp == 'console':
-            return utils.return_ok(disp, uuid=uuid, display=f'{url_map[disp]}?password=&path={prefix}/vm/websockify', token=uuid, disp=disp, expire=int(timeout_mins))
+            return utils.return_ok(disp, uuid=uuid, display=f'{url_map[disp]}?password=&path={prefix}/vm/websockify', token=uuid, disp=disp, expire=expire, access=access_tok)
         for item in xml.dom.minidom.parseString(XMLDesc_Secure).getElementsByTagName('graphics'):
             disp = item.getAttribute('type')
-            return utils.return_ok(disp, uuid=uuid, display=f'{url_map[disp]}?password={item.getAttribute("passwd")}&path={prefix}/vm/websockify', token=uuid, disp=disp, expire=int(timeout_mins))
+            return utils.return_ok(disp, uuid=uuid, display=f'{url_map[disp]}?password={item.getAttribute("passwd")}&path={prefix}/vm/websockify', token=uuid, disp=disp, expire=expire, access=access_tok)
         raise utils.APIException('no graphic found')
 
     @staticmethod

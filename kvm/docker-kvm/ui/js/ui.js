@@ -36,6 +36,13 @@ function getFormJSON(form, reset=true) {
   });
   return Object.fromEntries(data.entries());
 }
+function decodeURLSafeBase64(encodedString) {
+  let base64 = encodedString.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  return atob(base64);
+}
 function showView(id) {
   const view = document.getElementById(id);
   const tabContents = document.getElementsByClassName('tabContent');
@@ -400,31 +407,20 @@ function undefine(host, uuid) {
     getjson('GET', `${uri_pre}/vm/delete/${host}/${uuid}`, function(resp){ getjson_result(resp); vmlist(host); });
   }
 }
-function ttyconsole(host, uuid) {
+function display(host, uuid, disp='') {
   set_curr(host, uuid);
-  getjson('GET', `${uri_pre}/vm/display/${host}/${uuid}?disp=console`, function(resp) {
-    var result = JSON.parse(resp);
-    if(result.result === 'OK') {
-      var parm=encodeURIComponent(`?token=${result.token}&disp=${result.disp}&expire=${result.expire}`);
-      window.open(`${result.display}/${host}/${uuid}${parm}`, "_blank");
-    } else {
-      disperr(result.code, result.name, result.desc);
-    }
-  });
-}
-function display(host, uuid) {
-  set_curr(host, uuid);
-  getjson('GET', `${uri_pre}/vm/display/${host}/${uuid}`, function(resp) {
+  getjson('GET', `${uri_pre}/vm/display/${host}/${uuid}?disp=${disp}`, function(resp) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
       //document.getElementById("display").src = result.display;
-      var parm=encodeURIComponent(`?token=${result.token}&disp=${result.disp}&expire=${result.expire}`);
-      window.open(`${result.display}/${host}/${uuid}${parm}`, "_blank");
+      var parm=encodeURIComponent(`${decodeURLSafeBase64(result.access)}&token=${result.token}&disp=${result.disp}&expire=${result.expire}`);
+      window.open(`${uri_pre}${result.display}/${parm}`, "_blank");
     } else {
       disperr(result.code, result.name, result.desc);
     }
   });
 }
+function ttyconsole(host, uuid) { display(host, uuid, 'console'); }
 function get_vmip(host, uuid, btn = null) {
   set_curr(host, uuid);
   getjson('GET', `${uri_pre}/vm/ipaddr/${host}/${uuid}`, getjson_result);

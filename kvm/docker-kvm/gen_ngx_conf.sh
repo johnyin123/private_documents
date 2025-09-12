@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
+set -o nounset -o pipefail -o errexit
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
+
 upstream() {
     cat <<'EOF'
-# # tanent can multi points, upstream loadbalance: hash $arg_k$arg_e consistent; # ip_hash; # sticky;
 upstream api_srv {
     server 127.0.0.1:5009 fail_timeout=0;
     keepalive 64;
@@ -43,8 +45,9 @@ EOF
 }
 
 admin_api() {
-    local PRE=${1:-}
-    local AUTH=${2:-}
+    local USERKEY=${1}
+    local PRE=${2:-}
+    local AUTH=${3:-}
     cat <<EOF
     ${AUTH}include /etc/nginx/http-enabled/jwt_sso_auth.inc;
     location ${PRE}/tpl/ {
@@ -89,6 +92,11 @@ admin_api() {
         location ~* ^${PRE}/vm/websockify/(?<kvmhost>.*)/(?<uuid>.*)$ {
             set \$auth_request_uri "/vm/websockify/\$kvmhost/\$uuid\$is_args\$args";
             auth_request @prestart;
+            set \$userkey "${USERKEY}";
+            secure_link \$arg_k,\$arg_e;
+            secure_link_md5 "\$userkey\$secure_link_expires\$kvmhost\$uuid";
+            if (\$secure_link = "") { return 403; }
+            if (\$secure_link = "0") { return 410; }
             proxy_set_header Upgrade \$http_upgrade;
             proxy_set_header Connection \$connection_upgrade;
             proxy_pass http://websockify_srv/websockify/\$is_args\$args;
@@ -255,7 +263,7 @@ tanent_uri_prefix="" # "/tanent"
 
 upstream
 https_cfg_header "${admin_srv_name}"
-admin_api "${admin_uri_prefix}" "${auth}"
+admin_api "${userkey}" "${admin_uri_prefix}" "${auth}"
 admin_ui "${admin_uri_prefix}" "${outdir}" "${auth}"
 
 combine=false
@@ -272,3 +280,8 @@ combine=false
     tanent_ui "${tanent_uri_prefix}" "${outdir}" "${combine}"
     echo "}"
 }
+log "ENV: DATA_DIR"
+log "ENV: META_SRV"
+log "ENV: CTRL_PANEL_SRV"
+log "ENV: CTRL_PANEL_KEY"
+log "DATA_DIR=/dev/shm/simplekvm META_SRV=simplekvm.registry.local CTRL_PANEL_SRV=user.registry.local CTRL_PANEL_KEY='newpassword' ./gen_ngx_conf.sh"
