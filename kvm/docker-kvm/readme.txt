@@ -2,9 +2,10 @@ cat <<EOF
 # # cython
 # pip install ${PROXY:+--proxy ${PROXY} } cython
 # apt -y install python3-dev
-for fn in main config flask_app meta template vmmanager; do
+for fn in config console database flask_app main meta template utils vmmanager; do
     cython ${fn}.py -o ${fn}.c
     gcc -fPIC -shared `python3-config --cflags --ldflags` ${fn}.c -o ${fn}.so
+    strip ${fn}.so
 done
 EOF
 cat <<EOF
