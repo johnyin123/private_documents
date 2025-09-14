@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("b59e2d4e[2025-09-09T08:31:15+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("34c6597e[2025-09-09T11:23:17+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -161,7 +161,11 @@ copy_app() {
         [ "${dbmode}" == "shm" ] && [ "${fn}" == "dbi.py" ] && continue
         [ "${dbmode}" == "db" ] && [ "${fn}" == "database.py.shm" ] && continue
         local mode=0644
-        [ "${fn}" == "console.py" ] && mode=0755
+        [ "${fn}" == "console.py" ] && {
+            mode=0755
+            install -v -C -m ${mode} --group=${gid} --owner=${uid} ${fn} ${home_dir}/app/console
+            continue
+        }
         [ "${fn}" == "database.py.shm" ] && {
             install -v -C -m ${mode} --group=${gid} --owner=${uid} ${fn} ${home_dir}/app/database.py
             continue

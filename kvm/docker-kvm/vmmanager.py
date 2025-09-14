@@ -177,7 +177,7 @@ class VMManager:
                 raise utils.APIException(f'vm {uuid} not running')
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
         if disp == 'console':
-            socat_cmd = ['timeout', '--preserve-status', '--verbose', f'{int(expire)}m',f'{os.path.abspath(os.path.dirname(__file__))}/console.py', host.url, uuid,]
+            socat_cmd = ['timeout', '--preserve-status', '--verbose', f'{int(expire)}m',f'{os.path.abspath(os.path.dirname(__file__))}/console', host.url, uuid,]
         else:
             for item in xml.dom.minidom.parseString(XMLDesc_Secure).getElementsByTagName('graphics'):
                 listen = item.getAttribute('listen')

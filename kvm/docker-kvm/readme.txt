@@ -6,7 +6,11 @@ for fn in config database flask_app main meta template utils vmmanager; do
     cython ${fn}.py -o ${fn}.c
     gcc -fPIC -shared `python3-config --cflags --ldflags` ${fn}.c -o ${fn}.so
     strip ${fn}.so
+    chmod 644 ${fn}.so
 done
+cython --embed console.py -o console.c
+gcc $(python3-config --includes) console.c $(python3-config --embed --libs) -o console
+chmod 755 console
 # # or
 cat <<EO_SETUP
 from setuptools import setup
