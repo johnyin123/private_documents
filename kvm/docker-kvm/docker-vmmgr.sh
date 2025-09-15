@@ -8,7 +8,7 @@ ARCH=(amd64 arm64)
 type=simplekvm
 ver=trixie
 username=simplekvm
-VENV=/home/${username}/venv/bin/   # last word / !!
+VENV=/home/${username}/venv
 
 SOURCE_DIR=${1:?$(echo "input SOURCE DIR"; exit 1;)}
 for fn in make_docker_image.sh tpl_overlay.sh; do
@@ -296,6 +296,7 @@ EODOC
 [supervisord]
 nodaemon=true
 user=root
+environment=PATH="${VENV:+${VENV}/bin:}%(ENV_PATH)s"
 logfile=/var/log/supervisor/supervisord.log
 pidfile=/var/run/supervisord.pid
 
@@ -311,7 +312,7 @@ stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 
 [program:websockify]
-command=${VENV:-}websockify --token-plugin TokenFile --token-source ${token_dir} 127.0.0.1:6800
+command=websockify --token-plugin TokenFile --token-source ${token_dir} 127.0.0.1:6800
 autostart=true
 autorestart=true
 startretries=5
@@ -325,7 +326,7 @@ stderr_logfile_maxbytes=0
 umask=0022
 environment=ETCD_PREFIX="${etcd_prefix}",DATA_DIR="${out_dir}",TOKEN_DIR="${token_dir}",PYTHONDONTWRITEBYTECODE=1
 directory=/app/
-command=${VENV:-}gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:app'
+command=gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:app'
 autostart=true
 autorestart=true
 startretries=5
