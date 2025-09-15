@@ -356,10 +356,10 @@ EODOC
         tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/spice.tgz --transform 's/^spice.*master/spice/'
         # tar -C ${type}-${arch}/docker/app --one-top-level=spice --strip-components 1 -xf ${SOURCE_DIR}/spice.tgz
         tar -C ${SOURCE_DIR} -c ui term | tar -C ${type}-${arch}/docker/app -x
-        for fn in ${SOURCE_DIR}/*.py; do
-            $(which cp) -f ${fn} ${type}-${arch}/docker/app/
-        done
-        $(which cp) -f ${SOURCE_DIR}/database.py.shm ${type}-${arch}/docker/app/database.py
+        # for fn in ${SOURCE_DIR}/*.py; do
+        #     $(which cp) -f ${fn} ${type}-${arch}/docker/app/
+        # done
+        # $(which cp) -f ${SOURCE_DIR}/database.py.shm ${type}-${arch}/docker/app/database.py
         chown -R 10001:10001 ${type}-${arch}/docker/app
     }
     log "Pre chroot exit"
