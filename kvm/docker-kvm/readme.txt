@@ -2,6 +2,7 @@ cat <<EOF
 # # cython
 # pip install ${PROXY:+--proxy ${PROXY} } cython
 # apt -y install python3-dev / libpython3-dev
+# # dbi.py/database.py/database.py.sh all ok
 for fn in config database flask_app main meta template utils vmmanager; do
     cython ${fn}.py -o ${fn}.c
     gcc -fPIC -shared `python3-config --cflags --ldflags` ${fn}.c -o ${fn}.so
