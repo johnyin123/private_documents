@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("7fe30ef[2023-08-16T08:24:39+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("06064922[2023-09-25T14:47:20+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -94,16 +94,20 @@ main() {
         mkdir -p ${root_dir}/boot/efi
         mount ${uefi} ${root_dir}/boot/efi
     }
-    unsquashfs -f -d ${root_dir} ${root_tpl}
+    # unsquashfs -f -d ${root_dir} ${root_tpl}
+    local src_dir=$(mktemp -d /tmp/src.XXXXXX)
+    mount ${root_tpl} ${src_dir} || true
+    tar -C ${src_dir} -cv . | tar -C ${root_dir} -x
+    umount -R -v ${src_dir} || true
     for i in /dev /dev/pts /proc /sys /sys/firmware/efi/efivars /run; do
         mount -o bind $i "${root_dir}${i}" 2>/dev/null && echo "mount root $i ...." || true
     done
     source ${root_dir}/etc/os-release
     # if no initrd can use kernel-install (in systemd package)
     # kernel-install add  3.10.0-693.21.1.el7.x86_64 /boot/vmlinuz-3.10.0-693.21.1.el7.x86_64
-    LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/sh -x -o errexit -s <<EOSHELL
+    LC_ALL=C LANGUAGE=C LANG=C chroot ${root_dir} /bin/bash -x -o errexit -s <<EOSHELL
 case "${ID}" in
-    debian|alpine)
+    debian)
         grub-install ${target:+--target=${target}} --boot-directory=/boot --modules="xfs part_msdos" ${disk} || true
         grub-mkconfig -o /boot/grub/grub.cfg || true
         ;;
@@ -129,7 +133,6 @@ EOSHELL
         [ -z "${uefi}" ] || {
             echo "UUID=$(blkid -s UUID -o value ${uefi}) /boot/efi vfat umask=0077 0 1"
         }
-        echo "# /storage/swapfile2 swap swap defaults 0 3"
         grep -Ev "\s/\s|\/boot\/efi" ${root_dir}/etc/fstab.orig || true
     }  | tee ${root_dir}/etc/fstab
     umount -R -v ${root_dir} || true
