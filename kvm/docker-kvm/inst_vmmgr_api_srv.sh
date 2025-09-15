@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("2cff1cfe[2025-09-15T07:08:16+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("afea4525[2025-09-15T09:30:47+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -91,7 +91,7 @@ readonly DIRNAME="\$(readlink -f "\$(dirname "\$0")")"
 # outdir=/dev/shm/simplekvm/work
 outdir=${outdir}
 token_dir=/dev/shm/simplekvm/token
-export PATH=${VENV:+${VENV}/bin:}${PATH}
+# VENV=
 
 for svc in websockify-graph.service jwt-srv.service simple-kvm-srv.service etcd.service; do
     systemctl --user show \${svc} -p MemoryCurrent
@@ -102,13 +102,16 @@ done
 systemd-run --user --unit etcd.service \
     --working-directory=\${DIRNAME} \
     \${DIRNAME}/etcd
+    # --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379 --log-level 'warn'
 
 systemd-run --user --unit websockify-graph \\
     --working-directory=\${DIRNAME} \\
+    -E PATH="\${VENV:+\${VENV}/bin:}\${PATH}" \
     websockify --token-plugin TokenFile --token-source \${token_dir} 127.0.0.1:6800
 
 systemd-run --user --unit jwt-srv \\
     --working-directory=\${DIRNAME} \\
+    -E PATH="\${VENV:+\${VENV}/bin:}\${PATH}" \
     gunicorn -b 127.0.0.1:16000 --preload --workers=2 --threads=2 --access-logformat 'JWT %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'jwt_server:app'
 
 # -E META_SRV=vmm.registry.local \\ KVMHOST use.
@@ -123,14 +126,15 @@ systemd-run --user --unit jwt-srv \\
 # -E DATA_DIR=/dev/shm/simple-kvm/work \\
 # -E TOKEN_DIR=/dev/shm/simple-kvm/token \\
 systemd-run --user --unit simple-kvm-srv \\
---working-directory=\${DIRNAME} \\
---property=UMask=0022 \\
--E ETCD_PREFIX=/simple-kvm/work \\
--E ETCD_SRV=127.0.0.1 \\
--E ETCD_PORT=2379 \\
--E DATA_DIR=\${outdir} \\
--E TOKEN_DIR=\${token_dir} \\
-gunicorn -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
+    --working-directory=\${DIRNAME} \\
+    --property=UMask=0022 \\
+    -E PATH="\${VENV:+\${VENV}/bin:}\${PATH}" \
+    -E ETCD_PREFIX=/simple-kvm/work \\
+    -E ETCD_SRV=127.0.0.1 \\
+    -E ETCD_PORT=2379 \\
+    -E DATA_DIR=\${outdir} \\
+    -E TOKEN_DIR=\${token_dir} \\
+    gunicorn -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
 EODOC
 }
 inst_app_outdir() {
