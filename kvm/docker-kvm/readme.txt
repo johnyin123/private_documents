@@ -285,31 +285,36 @@ echo 'vm vnc by token'     && curl -k "${srv}/user/vm/display/${str_token}" #dis
 echo 'stop vm by token'    && curl -k "${srv}/user/vm/stop/${str_token}"
 echo 'force stop by token' && curl -k "${srv}/user/vm/stop/${str_token}?force=true"
 ---------------------------------------------------------
-NGXSSL=/etc/nginx/ssl
-install -v -d -m 0755 "${NGXSSL}"
-install -v -C -m 0644 "ca.pem" "${NGXSSL}/kvm.ca.pem"
-install -v -C -m 0644 "kvm.registry.local.pem" "${NGXSSL}/"
-install -v -C -m 0644 "kvm.registry.local.key" "${NGXSSL}/"
-install -v -C -m 0644 "vmm.registry.local.pem" "${NGXSSL}/"
-install -v -C -m 0644 "vmm.registry.local.key" "${NGXSSL}/"
+---------------------------------------------------------
+1. create CA
+    ${ca_root}/ca.key
+    ${ca_root}/ca.pem
+2. create ngx cert/key & simplekvm client cert/key
+    ${ngx_ssl}/simplekvm.pem
+    ${ngx_ssl}/simplekvm.key
+    ${cli_pki}/pki/CA/cacert.pem
+    ${cli_pki}/pki/libvirt/private/clientkey.pem
+    ${cli_pki}/pki/libvirt/clientcert.pem
+    ${cli_ssh}/id_rsa      #600 10001:10001
+    ${cli_ssh}/id_rsa.pub  #644 10001:10001
+    ${cli_ssh}/config      #644 10001:10001
 
-#libvirt client
-KVMSSL=/etc/pki
-install -v -d -m 0755 "${KVMSSL}"
-install -v -d -m 0755 "${KVMSSL}/CA"
-install -v -d -m 0755 "${KVMSSL}/private"
-install -v -C -m 0644 "ca.pem" "${KVMSSL}/CA/cacert.pem"
-install -v -C -m 0644 "cli.pem" "${KVMSSL}/clientcert.pem"
-install -v -C -m 0644 "cli.key" "${KVMSSL}/private/clientkey.pem"
+    docker create --name simplekvm \
+      --network br-int \
+      -v ${cli_pki}:/etc/pki/ \
+      -v ${ngx_ssl}:/etc/nginx/ssl \
+      -v ${cli_ssh}:/home/simplekvm/.ssh \
+      registry.local/libvirtd/simplekvm:trixie
 
-
-#libvirt server
-KVM_SRV_SSL=/etc/libvirt/pki
-install -v -d -m 0755 "${KVM_SRV_SSL}"
-install -v -C -m 0444 "ca.pem" "${KVM_SRV_SSL}/cacert.pem"
-install -v -C -m 0440 --group=qemu --owner=root "kvm1.local.key" "${KVM_SRV_SSL}/server-key.pem"
-install -v -C -m 0444 --group=qemu --owner=root "kvm1.local.pem" "${KVM_SRV_SSL}/server-cert.pem"
-
+3. libvirt srv cert/key
+    target=/kvm_srv
+    for dir in log vms pki secrets run/libvirt lib/libvirt; do install -v -d -m 0755 "${target}/${dir}"; done
+    # file=kvm1.local
+    install -v -C -m 0440 ca.pem       ${target}/pki/ca-cert.pem
+    install -v -C -m 0440 ${file}.key  ${target}/pki/server-key.pem
+    install -v -C -m 0440 ${file}.pem  ${target}/pki/server-cert.pem
+---------------------------------------------------------
+---------------------------------------------------------
 # # cloud-init nocloud
 Method 1: Line configuration
 The “line configuration” is a single string of text which is passed to an instance at boot time via either the kernel command line or in the serial number exposed via DMI (sometimes called SMBIOS).
