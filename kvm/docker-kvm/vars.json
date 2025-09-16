@@ -1,6 +1,7 @@
 [
-  { "var":"disk_bus", "desc":"ide/scsi/sata/virtio, default virtio(cdrom default sata), cdrom not support virtio"},
-  { "var":"net_model", "desc":"virtio/rtl8139/e1000/..., default virtio"},
+  { "var":"vm_disk_bus", "desc":"ide/scsi/sata/virtio, default virtio(cdrom default sata), cdrom not support virtio"},
+  { "var":"vm_disk_type", "desc":"file vmdisk type(qcow2/raw), default raw"},
+  { "var":"vm_net_model", "desc":"virtio/rtl8139/e1000/..., default virtio"},
   { "var":"vm_cpu", "desc":"host-model/host-passthrough/kvm64/IvyBridge..., default:host-model(x86), host-passthrough(arm)"},
   { "var":"vm_desc", "desc":"vm describe"},
   { "var":"vm_interface", "desc":"vm net interface(cloud-init), default eth0"},

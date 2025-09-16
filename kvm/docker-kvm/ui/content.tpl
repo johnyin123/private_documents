@@ -80,7 +80,7 @@
     <form id="addcdrom_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <div class="flex-group">
         <label>CDROM:<select name="device" id="cdrom_list" onchange="select_change(this)" required></select></label>
-        <label>BUS:<select name="disk_bus" title="Bus type" required>
+        <label>BUS:<select name="vm_disk_bus" title="Bus type" required>
           <option value="sata" selected>sata</option>
           <option value="ide">ide</option>
           <option value="scsi">scsi</option>
@@ -105,7 +105,7 @@
     <form id="addnet_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <div class="flex-group">
         <label>Network:<select name="device" id="net_list" onchange="select_change(this)" required></select></label>
-        <label>Model:<select name="net_model" title="netcard model" required>
+        <label>Model:<select name="vm_net_model" title="netcard model" required>
           <option value="virtio" selected>virtio</option>
           <option value="e1000">e1000</option>
           <option value="rtl8139">rtl8139</option>
@@ -134,7 +134,7 @@
       </div>
       <div class="flex-group">
         <label>Gold:<select name="gold" id="gold_list" onchange="gold_change(this)" required></select></label>
-        <label>BUS:<select name="disk_bus" title="Bus type" required>
+        <label>BUS:<select name="vm_disk_bus" title="Bus type" required>
           <option value="virtio" selected>virtio</option>
           <option value="ide">ide</option>
           <option value="scsi">scsi</option>

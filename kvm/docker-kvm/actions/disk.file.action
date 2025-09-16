@@ -34,18 +34,19 @@ UUID=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_uuid" "")
 SIZE=$(printf "%s" "${REQ_JSON}" | json_config_default ".size" "10")G
 GOLD=$(printf "%s" "${REQ_JSON}" | json_config_default ".gold" "")
 char=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_last_disk" "")
-BUS=$(printf "%s" "${REQ_JSON}" | json_config_default ".disk_bus" "")
+BUS=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_disk_bus" "")
+DISK_TYPE=$(printf "%s" "${REQ_JSON}" | json_config_default ".vm_disk_type" "raw")
 # # when use docker libvirtd, storage path!!!
-DISK="${DIR}/vd${char}-${UUID}.raw"
-str_equal "${BUS}" "ide"  && DISK="${DIR}/hd${char}-${UUID}.raw"
-str_equal "${BUS}" "scsi" && DISK="${DIR}/sd${char}-${UUID}.raw"
-str_equal "${BUS}" "sata" && DISK="${DIR}/sd${char}-${UUID}.raw"
+DISK="${DIR}/vd${char}-${UUID}.${DISK_TYPE}"
+str_equal "${BUS}" "ide"  && DISK="${DIR}/hd${char}-${UUID}.${DISK_TYPE}"
+str_equal "${BUS}" "scsi" && DISK="${DIR}/sd${char}-${UUID}.${DISK_TYPE}"
+str_equal "${BUS}" "sata" && DISK="${DIR}/sd${char}-${UUID}.${DISK_TYPE}"
 [ -z "${GOLD}" ] && {
-    qemu-img create -f raw ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK} ${SIZE}
+    qemu-img create -f ${DISK_TYPE} ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK} ${SIZE}
 } || {
-    timeout 5m qemu-img convert -p -f qcow2 -W -m1 -O raw ${GOLD} ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK}
+    timeout 5m qemu-img convert -p -f qcow2 -W -m1 -O ${DISK_TYPE} ${GOLD} ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK}
     # skip resize error, when SIZE < gold image size, error but now image uploaded! so skip error
-    qemu-img resize -f raw ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK} ${SIZE} || true
+    qemu-img resize -f ${DISK_TYPE} ssh://${SSHUSER}@${HOSTIP}:${SSHPORT}${DISK} ${SIZE} || true
 }
 # # just for strem out test!
 # ping -c 5 127.0.0.1

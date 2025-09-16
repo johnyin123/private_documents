@@ -122,19 +122,6 @@ KVMHOST => config.META_SRV => Read iso(iso.json)(support http redirect)
 # # {{ var | default("myval", true) }} # undefined, false, None, or an empty string return myval
 # python3 -m venv --system-site-packages my_venv
 # pip install websockify gunicorn Flask pycdlib # SQLAlchemy # etcd3
-# grep -o '{{[^{}]*}}' meta/* devices/* domains/* | sed 's/\s*|\s*.*}}/ }}/g' | sed 's/.*:{{/{{/g' | sort | uniq | sed 's/\s//g'
-create_vm:
-    vm_hostname : default vmsrv
-    vm_timezone : default Asia/Shanghai
-    vm_interface: default eth0
-    vm_sshkey   : meta/user_data
-    vm_uefi     : /usr/share/qemu/OVMF.fd (x86 uefi), defult x86 use bios, ""
-    vm_cpu      : cpu type, default IvyBridge
-adddisk:
-    disk_bus    : ide/sata/scsi/virtio, default virtio
-addnet:
-    net_model   : rtl8139, default virtio
-
 # # regen meta_iso
 # uuid=../cidata/uuid
 cd ${uuid} && mkisofs -o ${uuid}.iso -V cidata -J -r user-data meta-data
