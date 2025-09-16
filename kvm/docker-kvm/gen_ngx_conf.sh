@@ -75,7 +75,7 @@ admin_api() {
         proxy_cache off;
         expires off;
         proxy_read_timeout 240s;
-        location ~* ^${PRE}/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|display|xml|ui))/(?<others>.*)$ {
+        location ~* ^${PRE}/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|display|xml|ui|snapshot|revert_snapshot|delete_snapshot))/(?<others>.*)$ {
             if (\$request_method !~ ^(GET)$) { return 405; }
             # # for server stream output
             proxy_buffering                    off;

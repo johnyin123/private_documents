@@ -362,6 +362,34 @@ class VMManager:
         raise utils.APIException(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
+    def revert_snapshot(host:utils.FakeDB, uuid:str, name:str)->str:
+        with utils.connect(host.url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            dom.revertToSnapshot(dom.snapshotLookupByName(name))
+        return utils.return_ok(f'revert', uuid=uuid)
+
+    @staticmethod
+    def delete_snapshot(host:utils.FakeDB, uuid:str, name:str)->str:
+        with utils.connect(host.url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            dom.snapshotLookupByName(name).delete()
+        return utils.return_ok(f'delete_snapshot', uuid=uuid)
+
+    @staticmethod
+    def snapshot(host:utils.FakeDB, uuid:str, name:str=None)->str:
+        xml_tpl = """<domainsnapshot><name>{snapshot_name}</name></domainsnapshot>"""
+        with utils.connect(host.url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            if name:
+                dom.snapshotCreateXML(xml_tpl.format(snapshot_name=name), libvirt.VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC)
+            curr=""
+            try:
+                curr=dom.snapshotCurrent().getName()
+            except libvirt.libvirtError as e:
+                pass
+            return utils.return_ok(f'snapshot', uuid=uuid, num=dom.snapshotNum(), names=dom.snapshotListNames(), current=curr)
+
+    @staticmethod
     def ipaddr(host:utils.FakeDB, uuid:str)->Generator:
     # Generator func call by flask.Response(...)
     # need catch exception and yield it
