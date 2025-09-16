@@ -91,7 +91,7 @@ class MyApp(object):
         try:
             if cmd in dom_cmds[flask.request.method]:
                 req_json = flask.request.get_json(silent=True, force=True)
-                args = {'host': database.KVMHost.get_one(name=hostname), 'uuid': uuid} if uuid else {'host': database.KVMHost.get_one(name=hostname)}
+                args = {'method':flask.request.method, 'host': database.KVMHost.get_one(name=hostname), 'uuid': uuid} if uuid else {'method':flask.request.method, 'host': database.KVMHost.get_one(name=hostname)}
                 for key, value in flask.request.args.items():
                     # # remove secure_link args, so func no need **kwargs
                     if key in ['k', 'e', 'host', 'uuid']:
