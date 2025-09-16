@@ -137,7 +137,7 @@ tanent_api() {
             proxy_set_header Connection \$connection_upgrade;
             proxy_pass http://websockify_srv;
         }
-        location ~* ^${PRE}/user/vm/(?<apicmd>(list|start|reset|stop|display))/(?<kvmhost>.*)/(?<uuid>.*)$ {
+        location ~* ^${PRE}/user/vm/(?<apicmd>(list|start|reset|stop|display|snapshot|revert_snapshot|delete_snapshot))/(?<kvmhost>.*)/(?<uuid>.*)$ {
             # # no cache!! guest user api, guest private access
             proxy_cache off;
             expires off;
