@@ -705,3 +705,25 @@ def read_from_url(url:str)->str:
         return None
 # http_url = "file:///home/johnyin/a.json"
 # http_url = "https://vmm.registry.local/tpl/host/"
+
+SNAPSHOT_XML_TEMPLATE = """<domainsnapshot><name>{snapshot_name}</name></domainsnapshot>"""
+uuid='dc115783-b0bb-4a74-86df-063f25f51a1b'
+with utils.connect('qemu+tls://192.168.168.1/system') as conn:
+    dom = conn.lookupByUUIDString(uuid)
+    dom.snapshotCreateXML(SNAPSHOT_XML_TEMPLATE.format(snapshot_name='test3'), libvirt.VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC)
+
+with utils.connect('qemu+tls://192.168.168.1/system') as conn:
+    dom = conn.lookupByUUIDString(uuid)
+    num = dom.snapshotNum()
+    names = dom.snapshotListNames()
+    logger.info(f'{num}, {names}')
+    try:
+        snap = dom.snapshotLookupByName('test3')
+        dom.revertToSnapshot(snap)
+        curr = dom.snapshotCurrent()
+        logger.info(curr.getName())
+        curr = dom.snapshotCurrent()
+        logger.info(curr.getName())
+        curr.delete()
+    except libvirt.libvirtError as e:
+        logger.error(e)
