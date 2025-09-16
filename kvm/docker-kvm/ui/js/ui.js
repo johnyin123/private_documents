@@ -97,6 +97,9 @@ function genVmsTBL(item, host = null) {
       for(var mdkey in mdconfig) {
         tbl += `<tr><th class="truncate">${mdkey}</th><td colspan="3" class="truncate">${mdconfig[mdkey]}</td></tr>`;
       }
+    } else if (key === 'uuid' && host) {
+      var btn = genActBtn(false, 'Snapshot', 'Snapshots', 'list_snap', host, {'uuid':item.uuid});
+      tbl += `<tr><th class="truncate">${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else if (key === 'curcpu' && host) {
       var btn = genActBtn(false, 'Modify Vcpus', 'Modify', 'modify_vcpus', host, {'uuid':item.uuid});
       tbl += `<tr><th class="truncate">${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
@@ -576,6 +579,17 @@ function on_modifyvcpus(form) {
     manage_vm(curr_host(), curr_vm());
   });
   return false;
+}
+function list_snap(host, uuid, btn) {
+  set_curr(host, uuid);
+  getjson('GET', `${uri_pre}/vm/snapshot/${host}/${uuid}`, function(resp) {
+    var result = JSON.parse(resp);
+    if(result.result === 'OK') {
+      Alert('success', `snapshot:(${result.num})`, `names:[${result.names}], current=${result.current}`);
+    } else {
+      disperr(result.code, result.name, result.desc);
+    }
+  });
 }
 function modify_vcpus(host, uuid, btn) {
   set_curr(host, uuid);
