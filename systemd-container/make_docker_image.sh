@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("5f924418[2025-09-08T14:47:35+08:00]:make_docker_image.sh")
+VERSION+=("de1677f7[2025-09-16T09:32:18+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -168,18 +168,17 @@ gen_dockerfile() {
     try mkdir -p "${target_dir}" && write_file "${cfg_file}" <<EOF
 $(echo -e "${action}")
 LABEL maintainer="johnyin" name="${name}${arch:+-${arch}}" build-date="$(date '+%Y%m%d%H%M%S')"
-ENV TZ=Asia/Shanghai
-# # copy from builder can execute files ..
 COPY --from=builder / /
-RUN set -eux && { \\
-        # [ -z "\$TZ" ] || cmp /usr/share/zoneinfo/\$TZ /etc/localtime || { ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; }; \\
-        # [ -e "/build.run" ] && /bin/sh -o errexit -x /build.run; \\
-        echo "ALL OK"; \\
-    }
+# RUN set -eux && { \\
+#         [ -e "/build.run" ] && /bin/sh -o errexit -x /build.run; \\
+#         echo "ALL OK"; \\
+#     }
 # RUN useradd -u 10001 -m johnyin --home-dir /home/johnyin/ --shell /bin/bash
 # USER johnyin
 # WORKDIR /home/johnyin
-# ENTRYPOINT ["/usr/bin/busybox", "sleep", "infinity"]
+# ENTRYPOINT ["/entrypoint.sh"]
+# CMD ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
+# echo -e '#!/bin/bash\necho "Running entrypoint setup..."\nexec "\$@"' > /entrypoint.sh
 EOF
     try mkdir -p ${target_dir}/${DIRNAME_COPYIN} && try write_file ${target_dir}/${DIRNAME_COPYIN}/build.run <<'EOF'
 set -o nounset -o pipefail -o errexit
