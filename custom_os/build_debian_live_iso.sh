@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("b5b13a2c[2025-05-27T09:49:59+08:00]:build_debian_live_iso.sh")
+VERSION+=("44ee8b31[2025-06-17T13:40:57+08:00]:build_debian_live_iso.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 [ -e ${DIRNAME}/os_debian_init.sh ] && . ${DIRNAME}/os_debian_init.sh || { echo '**ERROR: os_debian_init.sh nofound!'; exit 1; }
@@ -255,7 +255,7 @@ main() {
     # apt -y install mtools
     prepare_config ${DIRNAME}/config
     source ${DIRNAME}/config
-    local root_dir=${DIRNAME}/rootfs
+    local root_dir=${DIRNAME}/rootfs-${INST_ARCH:-amd64}
     local cache_dir=${DIRNAME}/cache
     local iso_dir=${DIRNAME}/iso_fs
     isoimage=${isoimage:-${DIRNAME}/debian-${DEBIAN_VERSION:-buster}-${INST_ARCH:-amd64}-live.iso}
