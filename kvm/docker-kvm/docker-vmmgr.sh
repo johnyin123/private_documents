@@ -47,6 +47,7 @@ APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-re
 # libjwt0 libldap-2.5-0
 \${APT} install python3-libvirt python3-protobuf python3-markupsafe python3-certifi python3-charset-normalizer python3-requests python3-urllib3
 \${APT} install libpython3.13 # for console
+# apt -y install libvirt-dev && pip install grpcio==1.74.0 libvirt-python==11.3.0 gunicorn Flask pycdlib websockify etcd3 # # protobuf==4.21.12
 python3 -m venv --system-site-packages /home/${username}/venv
 . /home/${username}/venv/bin/activate
 cat <<EO_PIP | grep -v '^\s*#.*$' > /home/${username}/requirements.txt

@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("c2d9405f[2025-09-08T06:36:38+08:00]:make_docker_image.sh")
+VERSION+=("5f924418[2025-09-08T14:47:35+08:00]:make_docker_image.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || { echo '**ERROR: functions.sh nofound!'; exit 1; }
 ################################################################################
 BUILD_NET=${BUILD_NET:-} # # docker build command used networks
@@ -172,8 +172,8 @@ ENV TZ=Asia/Shanghai
 # # copy from builder can execute files ..
 COPY --from=builder / /
 RUN set -eux && { \\
-        [ -z "\$TZ" ] || cmp /usr/share/zoneinfo/\$TZ /etc/localtime || { ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; }; \\
-        [ -e "/build.run" ] && /bin/sh -o errexit -x /build.run; \\
+        # [ -z "\$TZ" ] || cmp /usr/share/zoneinfo/\$TZ /etc/localtime || { ln -snf /usr/share/zoneinfo/\$TZ /etc/localtime && echo \$TZ > /etc/timezone; }; \\
+        # [ -e "/build.run" ] && /bin/sh -o errexit -x /build.run; \\
         echo "ALL OK"; \\
     }
 # RUN useradd -u 10001 -m johnyin --home-dir /home/johnyin/ --shell /bin/bash
