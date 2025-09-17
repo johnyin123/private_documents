@@ -153,15 +153,13 @@ def return_err(code:int, name:str, desc:str)->str:
     return json.dumps({'result' : 'ERR', 'code': code,'name':name,'desc':desc}, default=str)
 
 def deal_except(who:str, e:Exception) -> str:
-    if isinstance(e, libvirt.libvirtError):
-        logger.error(f'{who}: {type(e).__name__} {str(e)}')
-        return return_err(996, who, f'{type(e).__name__}:{str(e)}')
-    elif isinstance(e, APIException):
-        logger.error(f'{who}: {type(e).__name__} {str(e)}')
-        return return_err(997, who, f'{type(e).__name__}:{str(e)}')
-    else:
-        logger.exception(who)
-        return return_err(998, who, f'{type(e).__name__}:{str(e)}')
+    except_map = { libvirt.libvirtError: 996, APIException: 997 }
+    code = except_map.get(type(e), 998)
+    if code == 998:
+        logger.exception(f'{code} {who}')
+    else
+        logger.error(f'{code} {who}: {type(e).__name__} {str(e)}')
+    return return_err(code, who, str(e))
 
 def secure_link(kvmhost, uuid, mykey, minutes):
     epoch = round(time.time() + minutes*60)
