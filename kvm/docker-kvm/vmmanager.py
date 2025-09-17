@@ -66,10 +66,9 @@ class LibvirtDomain:
             dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
             bus = disk.getElementsByTagName('target')[0].getAttribute('bus')
             # # cdrom no disk not source!!
-            sources = disk.getElementsByTagName('source')
-            if len(sources) == 0:
-                disk_lst.append({'device':device, 'type':'file', 'bus':bus, 'dev':dev, 'vol':'', 'xml': disk.toxml()})
-            for src in sources:
+            for src in disk.childNodes:
+                if src.nodeType != xml.dom.Node.ELEMENT_NODE or src.tagName != 'source':
+                    continue
                 if dtype == 'file':
                     disk_lst.append({'device':device, 'type':'file', 'bus':bus, 'dev':dev, 'vol':src.getAttribute('file'), 'xml': disk.toxml()})
                 elif dtype == 'network':
