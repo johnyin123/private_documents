@@ -613,13 +613,11 @@ function snap_list(host, uuid, btn) {
       var tbl = '<table>';
       var btn = genActBtn(false, 'Create Snapshot', 'Create', 'snap_create', host, {'uuid':uuid});
       tbl += `<tr><th class="truncate">Total</th><td class="truncate">${result.num}</td><td><div class="flex-group">${btn}</div></td></tr>`;
-      tbl += `<tr><th class="truncate">Current</th><td colspan="2" class="truncate">${result.current}</td></tr>`;
       result.names.forEach(name => {
           btn = genActBtn(false, 'Revert Snapshot', 'Revert', 'snap_revert', host, {'uuid':uuid, 'name':name}) + genActBtn(false, 'Delete Snapshot', 'Delete', 'snap_delete', host, {'uuid':uuid, 'name':name});
-          tbl += `<tr><th class="truncate">${name}</th><td colspan="1"></td><td><div class="flex-group">${btn}</div></td></tr>`;
+          tbl += `<tr><th>${name == result.current ? 'Current' : ''}</th><td class="truncate">${name}</td><td><div class="flex-group">${btn}</div></td></tr>`;
       });
       tbl += '</table>';
-      //btn = genActBtn(false, 'Change ISO', 'Change', 'change_iso', host, {'uuid':item.uuid, 'dev':disk.dev});
       document.getElementById("snap_info").innerHTML = genWrapper("vms-wrapper", "<h2>SNAPSHOT</h2>", "", tbl);
     } else {
       disperr(result.code, result.name, result.desc);
