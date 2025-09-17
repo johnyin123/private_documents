@@ -1,3 +1,4 @@
+vm backup: ../vm_backup.sh
 cat <<EOF
 # # cython
 # pip install ${PROXY:+--proxy ${PROXY} } cython
