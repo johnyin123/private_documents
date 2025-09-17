@@ -157,7 +157,7 @@ def deal_except(who:str, e:Exception) -> str:
     code = except_map.get(type(e), 998)
     if code == 998:
         logger.exception(f'{code} {who}')
-    else
+    else:
         logger.error(f'{code} {who}: {type(e).__name__} {str(e)}')
     return return_err(code, who, str(e))
 
