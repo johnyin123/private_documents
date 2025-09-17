@@ -16,7 +16,7 @@ set -o errtrace  # trace ERR through 'time command' and other functions
 set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
 set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
 
-VERSION+=("a14e15c9[2025-09-05T12:58:41+08:00]:os_debian_init.sh")
+VERSION+=("08d31c5a[2025-09-09T09:17:17+08:00]:os_debian_init.sh")
 # liveos: debian_build /tmp/rootfs "" "linux-image-${INST_ARCH:-amd64},live-boot,systemd-sysv"
 # docker: debian_build /tmp/rootfs /tmp/cache "systemd-container,..."
 # INST_ARCH=amd64
@@ -43,7 +43,7 @@ debian_build() {
     echo ${HOSTNAME:-} > /etc/hostname
     cat <<RC_EOF > /etc/rc.local
 #!/bin/sh -e
-exit 0
+echo 'rc.local ok' && exit 0
 RC_EOF
     chmod 755 /etc/rc.local
     echo "${NAME_SERVER:+nameserver ${NAME_SERVER}}" > /etc/resolv.conf
