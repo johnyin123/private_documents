@@ -380,8 +380,8 @@ class VMManager:
         xml_tpl = """<domainsnapshot><name>{snapshot_name}</name></domainsnapshot>"""
         with utils.connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
-            if name:
-                dom.snapshotCreateXML(xml_tpl.format(snapshot_name=name), libvirt.VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC)
+            if method == "POST":
+                dom.snapshotCreateXML(xml_tpl.format(snapshot_name=name if name else datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')), libvirt.VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC)
             curr=""
             try:
                 curr=dom.snapshotCurrent().getName()

@@ -276,7 +276,7 @@ echo 'force stop by token' && curl -k "${srv}/user/vm/stop/${str_token}?force=tr
 srv=https://vmm.registry.local
 host=host01
 uuid=dc115783-b0bb-4a74-86df-063f25f51a1b
-echo 'create snapshot'     && curl -k "${srv}/vm/snapshot/${host}/${uuid}?name=snap01"
+echo 'create snapshot'     && curl -k -X POST -d '{}' "${srv}/vm/snapshot/${host}/${uuid}?name=snap01" # -d '{name:"xxx"}'
 echo 'list snapshot'       && curl -k "${srv}/vm/snapshot/${host}/${uuid}"
 echo 'delete snapshot'     && curl -k "${srv}/vm/delete_snapshot/${host}/${uuid}?name=snap01"
 echo 'revert snapshot'     && curl -k "${srv}/vm/revert_snapshot/${host}/${uuid}?name=<name>"

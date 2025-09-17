@@ -98,7 +98,7 @@ function genVmsTBL(item, host = null) {
         tbl += `<tr><th class="truncate">${mdkey}</th><td colspan="3" class="truncate">${mdconfig[mdkey]}</td></tr>`;
       }
     } else if (key === 'uuid' && host) {
-      var btn = genActBtn(false, 'Snapshot', 'Snapshots', 'list_snap', host, {'uuid':item.uuid});
+      var btn = genActBtn(false, 'List Snapshot', 'Snapshots', 'snap_list', host, {'uuid':item.uuid});
       tbl += `<tr><th class="truncate">${key}</th><td colspan="${colspan}" class="truncate">${item[key]}</td><td>${btn}</td></tr>`;
     } else if (key === 'curcpu' && host) {
       var btn = genActBtn(false, 'Modify Vcpus', 'Modify', 'modify_vcpus', host, {'uuid':item.uuid});
@@ -124,6 +124,7 @@ function genVmsTBL(item, host = null) {
 function manage_vm(kvmhost, uuid) {
   set_curr(kvmhost, uuid);
   flush_sidebar(kvmhost);
+  document.getElementById("snap_info").innerHTML = '';
   showView("manage_vm");
   getjson('GET', `${uri_pre}/vm/list/${kvmhost}/${uuid}`, function(resp){
     const result = JSON.parse(resp);
@@ -580,12 +581,46 @@ function on_modifyvcpus(form) {
   });
   return false;
 }
-function list_snap(host, uuid, btn) {
+function snap_create(host, uuid, btn) {
+  if (confirm(`Create snapshot /${host}/${uuid} ?`)) {
+    getjson('POST', `${uri_pre}/vm/snapshot/${host}/${uuid}`, function(resp) {
+      getjson_result(resp);
+      snap_list(host, uuid, btn);
+    });
+  }
+}
+function snap_delete(host, uuid, name, btn) {
+  if (confirm(`Delete snapshot /${host}/${uuid}/${name} ?`)) {
+    getjson('GET', `${uri_pre}/vm/delete_snapshot/${host}/${uuid}?name=${name}`, function(resp) {
+      getjson_result(resp);
+      snap_list(host, uuid, btn);
+    });
+  }
+}
+function snap_revert(host, uuid, name, btn) {
+  if (confirm(`Revert snapshot /${host}/${uuid}/${name} ?`)) {
+    getjson('GET', `${uri_pre}/vm/revert_snapshot/${host}/${uuid}?name=${name}`, function(resp) {
+      getjson_result(resp);
+      snap_list(host, uuid, btn);
+    });
+  }
+}
+function snap_list(host, uuid, btn) {
   set_curr(host, uuid);
   getjson('GET', `${uri_pre}/vm/snapshot/${host}/${uuid}`, function(resp) {
     var result = JSON.parse(resp);
     if(result.result === 'OK') {
-      Alert('success', `snapshot:(${result.num})`, `names:[${result.names}], current=${result.current}`);
+      var tbl = '<table>';
+      var btn = genActBtn(false, 'Create Snapshot', 'Create', 'snap_create', host, {'uuid':uuid});
+      tbl += `<tr><th class="truncate">Total</th><td class="truncate">${result.num}</td><td><div class="flex-group">${btn}</div></td></tr>`;
+      tbl += `<tr><th class="truncate">Current</th><td colspan="2" class="truncate">${result.current}</td></tr>`;
+      result.names.forEach(name => {
+          btn = genActBtn(false, 'Revert Snapshot', 'Revert', 'snap_revert', host, {'uuid':uuid, 'name':name}) + genActBtn(false, 'Delete Snapshot', 'Delete', 'snap_delete', host, {'uuid':uuid, 'name':name});
+          tbl += `<tr><th class="truncate">${name}</th><td colspan="1"></td><td><div class="flex-group">${btn}</div></td></tr>`;
+      });
+      tbl += '</table>';
+      //btn = genActBtn(false, 'Change ISO', 'Change', 'change_iso', host, {'uuid':item.uuid, 'dev':disk.dev});
+      document.getElementById("snap_info").innerHTML = genWrapper("vms-wrapper", "<h2>SNAPSHOT</h2>", "", tbl);
     } else {
       disperr(result.code, result.name, result.desc);
     }

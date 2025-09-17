@@ -75,7 +75,14 @@ admin_api() {
         proxy_cache off;
         expires off;
         proxy_read_timeout 240s;
-        location ~* ^${PRE}/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|display|xml|ui|snapshot|revert_snapshot|delete_snapshot))/(?<others>.*)$ {
+        location ~* ^${PRE}/vm/(?<apicmd>(snapshot))/(?<others>.*)$ {
+            if (\$request_method !~ ^(GET|POST)$) { return 405; }
+            # # for server stream output
+            proxy_buffering                    off;
+            proxy_request_buffering            off;
+            proxy_pass http://api_srv/vm/\$apicmd/\$others\$is_args\$args;
+        }
+        location ~* ^${PRE}/vm/(?<apicmd>(ipaddr|blksize|netstat|desc|setmem|setcpu|list|start|reset|stop|delete|display|xml|ui|revert_snapshot|delete_snapshot))/(?<others>.*)$ {
             if (\$request_method !~ ^(GET)$) { return 405; }
             # # for server stream output
             proxy_buffering                    off;
@@ -137,7 +144,20 @@ tanent_api() {
             proxy_set_header Connection \$connection_upgrade;
             proxy_pass http://websockify_srv;
         }
-        location ~* ^${PRE}/user/vm/(?<apicmd>(list|start|reset|stop|display|snapshot|revert_snapshot|delete_snapshot))/(?<kvmhost>.*)/(?<uuid>.*)$ {
+        location ~* ^${PRE}/user/vm/(?<apicmd>(snapshot))/(?<kvmhost>.*)/(?<uuid>.*)$ {
+            # # no cache!! guest user api, guest private access
+            proxy_cache off;
+            expires off;
+            set \$userkey "${USERKEY}";
+            secure_link \$arg_k,\$arg_e;
+            secure_link_md5 "\$userkey\$secure_link_expires\$kvmhost\$uuid";
+            if (\$secure_link = "") { return 403; }
+            if (\$secure_link = "0") { return 410; }
+            if (\$request_method !~ ^(GET|POST)$ ) { return 405; }
+            rewrite ^${PRE}/user(.*)$ \$1 break;
+            proxy_pass http://api_srv;
+        }
+        location ~* ^${PRE}/user/vm/(?<apicmd>(list|start|reset|stop|display|revert_snapshot|delete_snapshot))/(?<kvmhost>.*)/(?<uuid>.*)$ {
             # # no cache!! guest user api, guest private access
             proxy_cache off;
             expires off;

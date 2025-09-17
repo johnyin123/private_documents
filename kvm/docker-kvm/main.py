@@ -86,7 +86,7 @@ class MyApp(object):
     def exec_domain_cmd(self, cmd:str, hostname:str, uuid:str = None):
         dom_cmds = {
             'GET': ['ui','xml','ipaddr','start','reset','stop','delete','display','list','blksize','desc','setmem','setcpu','netstat','websockify','snapshot','revert_snapshot','delete_snapshot'],
-            'POST': ['attach_device','detach_device', 'cdrom', 'create'],
+            'POST': ['attach_device','detach_device','cdrom','create','snapshot'],
         }
         try:
             if cmd in dom_cmds[flask.request.method]:
