@@ -4,7 +4,7 @@ set -o nounset
 set -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("06064922[2023-09-25T14:47:20+08:00]:tpl_rootfs_inst.sh")
+VERSION+=("68a93f64[2025-09-15T13:55:19+08:00]:tpl_rootfs_inst.sh")
 ################################################################################
 usage() {
     [ "$#" != 0 ] && echo "$*"
@@ -98,6 +98,7 @@ main() {
     local src_dir=$(mktemp -d /tmp/src.XXXXXX)
     mount ${root_tpl} ${src_dir} || true
     tar -C ${src_dir} -cv . | tar -C ${root_dir} -x
+    # tar cv --exclude={"/dev/*","/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"}  / | gzip > /mnt/system.backup/10.4.38.2-20201123.tar.gz
     umount -R -v ${src_dir} || true
     for i in /dev /dev/pts /proc /sys /sys/firmware/efi/efivars /run; do
         mount -o bind $i "${root_dir}${i}" 2>/dev/null && echo "mount root $i ...." || true
