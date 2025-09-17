@@ -30,6 +30,7 @@
 <!-- ----------------------------------------------- -->
   <div class="content">
     <div id="vms"></div>
+    <div id="snap_info"></div>
   </div>
 <!-- ----------------------------------------------- -->
 </div>
@@ -66,13 +67,64 @@ function getjson(method, url, callback, data = null, timeout = 40000) {
     }
   });
 }
+function snap_create() {
+  if (confirm('Are you sure you want to create snapshot?')) {
+    getjson('POST', `${uri_pre}/user/vm/snapshot/${token.value}`, function(res) {
+      if(res.result === 'OK') {
+        snap_list();
+      } else {
+        alert(JSON.stringify(res));
+      }
+    });
+  }
+}
+function snap_revert(name) {
+  if (confirm('Are you sure you want to revert snapshot?')) {
+    getjson('GET', `${uri_pre}/user/vm/revert_snapshot/${token.value}&name=${name}`, function(res) {
+      if(res.result === 'OK') {
+        snap_list();
+      } else {
+        alert(JSON.stringify(res));
+      }
+    });
+  }
+}
+function snap_delete(name) {
+  if (confirm('Are you sure you want to delete snapshot?')) {
+    getjson('GET', `${uri_pre}/user/vm/delete_snapshot/${token.value}&name=${name}`, function(res) {
+      if(res.result === 'OK') {
+        snap_list();
+      } else {
+        alert(JSON.stringify(res));
+      }
+    });
+  }
+}
+function snap_list() {
+  getjson('GET', `${uri_pre}/user/vm/snapshot/${token.value}`, function(res) {
+    if(res.result === 'OK') {
+      var table = `<div><div><center><h2>Snapshot</h2></center></div><table>`;
+      table += `<tr><th class="truncate">Total</th><td class="truncate">${res.num}</td><td><div class="flex-group"><a title="Create Snapshot" href="javascript:snap_create()">Create</a></div></td></tr>`;
+      res.names.forEach(name => {
+          var btn = `<a title="Revert snapshot" href="javascript:snap_revert('${name}')">Revert</a><a title="Delete snapshot" href="javascript:snap_delete('${name}')">Delete</a>`;
+          table += `<tr><th>${name == res.current ? 'Current' : ''}</th><td class="truncate">${name}</td><td><div class="flex-group">${btn}</div></td></tr>`;
+      });
+      table += "</table></div>";
+      document.getElementById("snap_info").innerHTML = table;
+    } else {
+      alert(res);
+    }
+  });
+}
 function show_vm(vm) {
   var table = '';
   table += `<div>`;
   table += `<div><center><h2>GUEST INFO</h2></center></div>`;
   table += `<table>`;
   for(var key in vm) {
-    if(key === 'disks') {
+    if (key === 'uuid') {
+      table += `<tr><th>${key}</th><td colspan="2" class="truncate">${vm[key]}</td><td><a title="List snapshot" href="javascript:snap_list()">Snapshots</a></td></tr>`;
+    } else if(key === 'disks') {
       var disks = vm[key];
       disks.forEach(disk => {
         if(disk.device === 'cdrom') {
@@ -111,9 +163,9 @@ function getjson_result(res) {
   }
 }
 function info() {
-    getjson('GET', `${uri_pre}/user/vm/list/${token.value}`, function(res) {
+  getjson('GET', `${uri_pre}/user/vm/list/${token.value}`, function(res) {
     document.getElementById("vms").innerHTML = show_vm(res.guest);
-    // res.host
+    document.getElementById("snap_info").innerHTML = '';
   });
 }
 function mysubmit(form, dev) {
