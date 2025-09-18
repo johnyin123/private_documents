@@ -159,14 +159,15 @@ docker create --name libvirtd \\
     --privileged \\
     --device /dev/kvm \\
     --add-host ${META_SRV}:${meta_srv_addr} \\
-    -v ${libvirtd_env}/log:/var/log/libvirt \\
-    -v ${libvirtd_env}/vms:/etc/libvirt/qemu \\
     -v ${libvirtd_env}/pki:/etc/libvirt/pki \\
-    -v ${libvirtd_env}/secrets:/etc/libvirt/secrets \\
-    -v ${libvirtd_env}/run/libvirt:/var/run/libvirt \\
-    -v ${libvirtd_env}/lib/libvirt:/var/lib/libvirt \\
     -v /storage:/storage \\
     registry.local/libvirtd/kvm:trixie
+
+    # -v ${libvirtd_env}/log:/var/log/libvirt \\
+    # -v ${libvirtd_env}/vms:/etc/libvirt/qemu \\
+    # -v ${libvirtd_env}/secrets:/etc/libvirt/secrets \\
+    # -v ${libvirtd_env}/run/libvirt:/var/run/libvirt \\
+    # -v ${libvirtd_env}/lib/libvirt:/var/lib/libvirt \\
 # # #######################################
 YEAR=15 ./newssl.sh -i johnyinca
 YEAR=15 ./newssl.sh -c vmm.registry.local # # meta-iso web service use
