@@ -65,22 +65,25 @@ class LibvirtDomain:
             dtype = disk.getAttribute('type')
             dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
             bus = disk.getElementsByTagName('target')[0].getAttribute('bus')
-            # # cdrom no disk not source!!
-            for src in disk.childNodes:
-                if src.nodeType != xml.dom.Node.ELEMENT_NODE or src.tagName != 'source':
-                    continue
-                if dtype == 'file':
-                    disk_lst.append({'device':device, 'type':'file', 'bus':bus, 'dev':dev, 'vol':src.getAttribute('file'), 'xml': disk.toxml()})
-                elif dtype == 'network':
-                    protocol = src.getAttribute('protocol')
-                    if protocol == 'rbd':
-                        disk_lst.append({'device':device, 'type':'rbd', 'bus':bus, 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
-                    elif protocol == 'http' or protocol == 'https':
-                        disk_lst.append({'device':device, 'type':protocol, 'bus':bus, 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
+            # # cdrom.null.tpl not source!!
+            if len(disk.getElementsByTagName('source')) == 0:
+                disk_lst.append({'device':device, 'type':'file', 'bus':bus, 'dev':dev, 'vol':'', 'xml': disk.toxml()})
+            else:
+                for src in disk.childNodes:
+                    if src.nodeType != xml.dom.Node.ELEMENT_NODE or src.tagName != 'source':
+                        continue
+                    if dtype == 'file':
+                        disk_lst.append({'device':device, 'type':'file', 'bus':bus, 'dev':dev, 'vol':src.getAttribute('file'), 'xml': disk.toxml()})
+                    elif dtype == 'network':
+                        protocol = src.getAttribute('protocol')
+                        if protocol == 'rbd':
+                            disk_lst.append({'device':device, 'type':'rbd', 'bus':bus, 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
+                        elif protocol == 'http' or protocol == 'https':
+                            disk_lst.append({'device':device, 'type':protocol, 'bus':bus, 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
+                        else:
+                            raise utils.APIException(f'disk unknown type={dtype} protocol={protocol}')
                     else:
-                        raise utils.APIException(f'disk unknown type={dtype} protocol={protocol}')
-                else:
-                    raise utils.APIException(f'disk unknown type={dtype}')
+                        raise utils.APIException(f'disk unknown type={dtype}')
         return disk_lst
 
     @property

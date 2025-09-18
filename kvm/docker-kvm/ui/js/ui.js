@@ -59,7 +59,7 @@ function genActBtn(btn=true, smsg, icon, action, kvmhost, args={}) {
     //return `<button title='${smsg}' onclick='${action}(${str_arg})'><i class="fa ${icon}"></i></button>`;
     return `<button class="iconbtn" style="--icon:var(--${icon});" title='${smsg}' onclick='${action}(${str_arg})'></button>`;
   }
-  return `<a title='${smsg}' href='#' onclick='${action}(${str_arg},this)')'>${icon}</a>`;
+  return `<a title='${smsg}' href='#' onclick='${action}(${str_arg},this)'>${icon}</a>`;
 }
 function genWrapper(clazz, title, buttons, table) {
   return `<div class="${clazz}"><div class="${clazz}-header">${title}<div>${buttons}</div></div>${table}</div>`;

@@ -49,14 +49,14 @@ class ShmListStore:
                 data = search(data, key, val)
             return [FakeDB(**dict(entry)) for entry in data]
 
+def libvirt_callback(ctx, err):
+    pass
+libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
+
 @contextlib.contextmanager
 def connect(uri: str)-> Generator:
-    def libvirt_callback(userdata, err):
-        pass
-
     conn = None
     try:
-        libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
         conn = libvirt.open(uri)
         yield conn
     finally:
