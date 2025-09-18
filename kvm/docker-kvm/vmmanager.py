@@ -66,24 +66,22 @@ class LibvirtDomain:
             dev = disk.getElementsByTagName('target')[0].getAttribute('dev')
             bus = disk.getElementsByTagName('target')[0].getAttribute('bus')
             # # cdrom.null.tpl not source!!
-            if len(disk.getElementsByTagName('source')) == 0:
-                disk_lst.append({'device':device, 'type':'file', 'bus':bus, 'dev':dev, 'vol':'', 'xml': disk.toxml()})
-            else:
-                for src in disk.childNodes:
-                    if src.nodeType != xml.dom.Node.ELEMENT_NODE or src.tagName != 'source':
-                        continue
-                    if dtype == 'file':
-                        disk_lst.append({'device':device, 'type':'file', 'bus':bus, 'dev':dev, 'vol':src.getAttribute('file'), 'xml': disk.toxml()})
-                    elif dtype == 'network':
-                        protocol = src.getAttribute('protocol')
-                        if protocol == 'rbd':
-                            disk_lst.append({'device':device, 'type':'rbd', 'bus':bus, 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
-                        elif protocol == 'http' or protocol == 'https':
-                            disk_lst.append({'device':device, 'type':protocol, 'bus':bus, 'dev':dev, 'vol':src.getAttribute('name'), 'xml': disk.toxml()})
-                        else:
-                            raise utils.APIException(f'disk unknown type={dtype} protocol={protocol}')
+            entry = {'device':device, 'type':dtype, 'bus':bus, 'dev':dev, 'vol':'', 'xml': disk.toxml()}
+            sources = [n for n in disk.childNodes if n.nodeType == xml.dom.Node.ELEMENT_NODE and n.tagName == 'source']
+            for src in sources:
+                if dtype == 'file':
+                    entry.update({'type':dtype, 'vol':src.getAttribute('file')})
+                elif dtype == 'network':
+                    protocol = src.getAttribute('protocol')
+                    if protocol == 'rbd':
+                        entry.update({'type':protocol, 'vol':src.getAttribute('name')})
+                    elif protocol == 'http' or protocol == 'https':
+                        entry.update({'type':protocol, 'vol':src.getAttribute('name')})
                     else:
-                        raise utils.APIException(f'disk unknown type={dtype}')
+                        raise utils.APIException(f'disk unknown type={dtype} protocol={protocol}')
+                else:
+                    raise utils.APIException(f'disk unknown type={dtype}')
+            disk_lst.append(entry.copy())
         return disk_lst
 
     @property
