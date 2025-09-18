@@ -398,10 +398,19 @@ cat <<EOF
 # test run
 ###################################################
 # # when: qemu+ssh://, actions add template disk
-#     chown -R 10001:10001 /kvm/ssh
-#     chmod 700            /kvm/ssh
-#     -v /kvm/ssh:/home/${username}/.ssh/
-#        id_rsa id_rsa.pub config
+    TARGET_DIR=/kvm/ssh
+    mkdir --mode=700 -p \${TARGET_DIR} && cat <<EO_CFG > \${TARGET_DIR}/config
+StrictHostKeyChecking=no
+UserKnownHostsFile=/dev/null
+ControlMaster auto
+ControlPath  ~/.ssh/%r@%h:%p
+ControlPersist 600
+Ciphers aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha1
+EO_CFG
+    ssh-keygen -b 4096 -t rsa -C simplekvm -N '' -f \${TARGET_DIR}/id_rsa
+    chown -R 10001:10001 /kvm/ssh
+    # -v \${TARGET_DIR}:/home/${username}/.ssh/
 # # when: qemu+tls://
 #     -v /kvm/pki:/etc/pki/
 #        CA/cacert.pem libvirt/clientcert.pem libvirt/private/clientkey.pem
@@ -427,15 +436,4 @@ docker run --rm \\
  -v /host/ssl:/etc/nginx/ssl \\
  -v /host/ssh:/home/simplekvm/.ssh \\
  ${REGISTRY}/libvirtd/${type}:${ver}
-EOF
-
-cat <<EOF
-# # /home/simplekvm/.ssh/config
-StrictHostKeyChecking=no
-UserKnownHostsFile=/dev/null
-ControlMaster auto
-ControlPath  ~/.ssh/%r@%h:%p
-ControlPersist 600
-Ciphers aes256-ctr,aes192-ctr,aes128-ctr
-MACs hmac-sha1
 EOF
