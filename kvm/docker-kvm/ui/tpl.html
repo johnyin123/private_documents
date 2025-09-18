@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -38,6 +38,8 @@ darkLight.addEventListener("click", () => {
   body.classList.toggle("light");
   if (body.classList.contains("light")) {
     darkLight.classList.replace("fa-moon-o", "fa-sun-o");
+    //const fullHtml = new XMLSerializer().serializeToString(document.doctype) + document.documentElement.outerHTML;
+    //console.log(fullHtml);
   } else {
     darkLight.classList.replace("fa-sun-o", "fa-moon-o");
   }
