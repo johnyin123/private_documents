@@ -431,8 +431,8 @@ Ciphers aes256-ctr,aes192-ctr,aes128-ctr
 MACs hmac-sha1
 EO_CFG
     ssh-keygen -b 4096 -t rsa -C simplekvm -N '' -f \${TARGET_DIR}/id_rsa
-    chown -R 10001:10001 /kvm/ssh
-    # -v \${TARGET_DIR}:/home/${username}/.ssh/
+    chown -R 10001:10001 \${TARGET_DIR}
+    # id_rsa id_rsa.pub config
 # # when: qemu+tls://
 #     -v /kvm/pki:/etc/pki/
 #        CA/cacert.pem libvirt/clientcert.pem libvirt/private/clientkey.pem
