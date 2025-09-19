@@ -71,7 +71,7 @@ function genVmsTBL(item, host = null) {
     if(key === 'disks') {
       const disks = item[key];
       disks.forEach(disk => {
-        tbl += `<tr><th class="truncate" title="${disk.device}">${disk.dev}</th><td colspan="${colspan}" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td>`;
+        tbl += `<tr><th class="truncate" title="${disk.device}">${disk.bus}:${disk.dev}</th><td colspan="${colspan}" class="truncate" title="${disk.vol}">${disk.type}:${disk.vol}</td>`;
         var addon_btn = '';
         if(disk.device === 'cdrom') {
           addon_btn = genActBtn(false, 'Change ISO', 'Change', 'change_iso', host, {'uuid':item.uuid, 'dev':disk.dev});
