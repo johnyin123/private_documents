@@ -55,11 +55,8 @@ libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
 
 @contextlib.contextmanager
 def connect(uri: str)-> Generator:
-    conn = libvirt.open(uri)
-    try:
+    with contextlib.closing(libvirt.open(uri)) as conn:
         yield conn
-    finally:
-        conn.close()
 
 class ProcList:
     pids = ShmListStore()
