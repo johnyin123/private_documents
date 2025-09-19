@@ -165,12 +165,13 @@ docker create --name libvirtd \\
     -v ${libvirtd_env}/pki:/etc/libvirt/pki \\
     -v ${libvirtd_env}/vms:/etc/libvirt/qemu \\
     -v ${libvirtd_env}/secrets:/etc/libvirt/secrets \\
+    -v ${libvirtd_env}/run/libvirt:/var/run/libvirt \\
     -v /storage:/storage \\
     registry.local/libvirtd/kvm:trixie
-
+    # # store pool can not autostart, "pool has no config file",
+    # # /var/run/libvirt can find the storage pool
     # # runtime
     # -v ${libvirtd_env}/log:/var/log/libvirt \\
-    # -v ${libvirtd_env}/run/libvirt:/var/run/libvirt \\
     # -v ${libvirtd_env}/lib/libvirt:/var/lib/libvirt \\
 # # #######################################
 YEAR=15 ./newssl.sh -i johnyinca
