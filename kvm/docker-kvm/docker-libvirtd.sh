@@ -55,14 +55,16 @@ APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-re
 find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
 rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/* /usr/share/doc/*
 EODOC
-    mkdir -p ${type}-${arch}/docker/usr/sbin/ && cat <<'EODOC' >${type}-${arch}/docker/usr/sbin/libvirtd.wrap
-#!/usr/bin/bash
+    mkdir -p ${type}-${arch}/docker/ && cat <<'EODOC' >${type}-${arch}/docker/entrypoint.sh
+#!/bin/bash
 gid=$(stat --printf=%g /dev/kvm)
 groupmod --non-unique -g ${gid} kvm
 echo "execute libvirtd ${gid}"
-exec /usr/sbin/libvirtd --listen
+echo "Running entrypoint setup..."
+env || true
+exec "$@"
 EODOC
-    chmod 755 ${type}-${arch}/docker/usr/sbin/libvirtd.wrap
+    chmod 755 ${type}-${arch}/docker/entrypoint.sh
     mkdir -p ${type}-${arch}/docker/etc && cat <<EODOC > ${type}-${arch}/docker/etc/supervisord.conf
 [supervisord]
 nodaemon=true
@@ -71,7 +73,7 @@ logfile=/var/log/supervisor/supervisord.log
 pidfile=/var/run/supervisord.pid
 
 [program:libvirtd]
-command=/usr/sbin/libvirtd.wrap
+command=/usr/sbin/libvirtd --listen
 autostart=true
 autorestart=true
 startretries=5
@@ -106,7 +108,8 @@ EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
 # need /sys/fs/cgroup
 VOLUME ["/sys/fs/cgroup", "/etc/libvirt/qemu", "/etc/libvirt/secrets", "/var/run/libvirt", "/var/lib/libvirt", "/var/log/libvirt", "/etc/libvirt/pki", "/storage"]
-ENTRYPOINT ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
     # confirm base-image is right arch
     docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}

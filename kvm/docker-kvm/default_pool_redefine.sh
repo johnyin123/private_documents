@@ -25,3 +25,8 @@ echo 'init all host env' && {
         redefine_pool "default" "${url}" "/storage"
     done
 }
+cat <<EOF
+virsh pool-create-as default dir --target /storage
+virsh pool-start default
+virsh pool-autostart default
+EOF
