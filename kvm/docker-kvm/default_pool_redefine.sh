@@ -26,7 +26,7 @@ echo 'init all host env' && {
     done
 }
 cat <<EOF
-virsh pool-create-as default dir --target /storage
+virsh pool-create-as default dir --target /storage --print-xml | virsh pool-define /dev/stdin
 virsh pool-start default
 virsh pool-autostart default
 EOF

@@ -108,7 +108,7 @@ stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
-VOLUME ["/etc/libvirt/qemu", "/etc/libvirt/secrets", "/var/run/libvirt", "/var/lib/libvirt", "/var/log/libvirt", "/etc/libvirt/pki", "/storage"]
+VOLUME ["/etc/libvirt/pki", "/storage", "/etc/libvirt/qemu", "/etc/libvirt/storage", "/etc/libvirt/secrets", "/var/run/libvirt", "/var/lib/libvirt", "/var/log/libvirt"]
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
@@ -159,32 +159,33 @@ cat <<'EOF'
 # # #######################################
 yum / apt install socat docker
 libvirtd_env=/libvirtd_env
-for dir in log vms pki secrets run/libvirt lib/libvirt; do
+for dir in pki qemu secrets storage run/libvirt lib/libvirt log; do
     mkdir -p "${libvirtd_env}/${dir}"
 done
 mkdir -p /storage
 META_SRV=vmm.registry.local
 meta_srv_addr=192.168.167.1
 hostname=${NAME:-$(hostname)}
-docker create --name libvirtd \\
-    --hostname ${hostname} \\
-    --add-host ${hostname}:127.0.0.1 \\
-    --network host \\
-    --restart always \\
+docker create --name libvirtd --restart always --network host \\
     --privileged \\
     --device /dev/kvm \\
+    --hostname ${hostname} \\
+    --add-host ${hostname}:127.0.0.1 \\
     --add-host ${META_SRV}:${meta_srv_addr} \\
     -v ${libvirtd_env}/pki:/etc/libvirt/pki \\
-    -v ${libvirtd_env}/vms:/etc/libvirt/qemu \\
+    -v ${libvirtd_env}/qemu:/etc/libvirt/qemu \\
     -v ${libvirtd_env}/secrets:/etc/libvirt/secrets \\
-    -v ${libvirtd_env}/run/libvirt:/var/run/libvirt \\
+    -v ${libvirtd_env}/storage:/etc/libvirt/storage \\
     -v /storage:/storage \\
     registry.local/libvirtd/kvm:trixie
-    # # store pool can not autostart, "pool has no config file",
-    # # /var/run/libvirt can find the storage pool
+
     # # runtime
+    # -v ${libvirtd_env}/run/libvirt:/var/run/libvirt \\
     # -v ${libvirtd_env}/log:/var/log/libvirt \\
     # -v ${libvirtd_env}/lib/libvirt:/var/lib/libvirt \\
+# # virsh pool-create-as default dir --target /storage --print-xml | virsh pool-define /dev/stdin
+# # virsh pool-start default
+# # virsh pool-autostart default
 # # #######################################
 YEAR=15 ./newssl.sh -i johnyinca
 YEAR=15 ./newssl.sh -c vmm.registry.local # # meta-iso web service use
