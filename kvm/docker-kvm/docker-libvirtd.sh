@@ -38,6 +38,7 @@ APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-re
     rm -fr /etc/libvirt/qemu/* || true
     sed --quiet -i -E \\
         -e '/^\s*(user|spice_tls|spice_tls_x509_cert_dir|vnc_tls|vnc_tls_x509_cert_dir|vnc_tls_x509_verify)\s*=.*/!p' \\
+        -e '\$acgroup_controllers = []' \\
         /etc/libvirt/qemu.conf || true
 
    # # spice & libvirt use same tls key/cert/ca files
@@ -106,8 +107,7 @@ stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 EODOC
     cat <<EODOC >> ${type}-${arch}/Dockerfile
-# need /sys/fs/cgroup
-VOLUME ["/sys/fs/cgroup", "/etc/libvirt/qemu", "/etc/libvirt/secrets", "/var/run/libvirt", "/var/lib/libvirt", "/var/log/libvirt", "/etc/libvirt/pki", "/storage"]
+VOLUME ["/etc/libvirt/qemu", "/etc/libvirt/secrets", "/var/run/libvirt", "/var/lib/libvirt", "/var/log/libvirt", "/etc/libvirt/pki", "/storage"]
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "--nodaemon", "-c", "/etc/supervisord.conf"]
 EODOC
