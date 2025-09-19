@@ -138,6 +138,17 @@ for arch in ${ARCH[@]}; do
     log docker push registry.local/libvirtd/${type}:${ver}-${arch}
 done
 log ./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
+
+trap "exit -1" SIGINT SIGTERM
+read -n 1 -t 10 -p "Continue build(Y/n)? 10s timeout, default n" value || true
+if [ "${value}" = "y" ]; then
+    for arch in ${ARCH[@]}; do
+        docker pull --quiet "${REGISTRY}/${NAMESPACE:+${NAMESPACE}/}${IMAGE}" --platform ${arch}
+        ./make_docker_image.sh -c build -D ${type}-${arch} --tag registry.local/libvirtd/${type}:${ver}-${arch}
+        docker push registry.local/libvirtd/${type}:${ver}-${arch}
+    done
+    ./make_docker_image.sh -c combine --tag registry.local/libvirtd/${type}:${ver}
+fi
 cat <<'EOF'
 ###################################################
 # test run
