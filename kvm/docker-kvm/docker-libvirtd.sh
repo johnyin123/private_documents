@@ -37,8 +37,9 @@ APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-re
     # curl
     rm -fr /etc/libvirt/qemu/* || true
     sed --quiet -i -E \\
-        -e '/^\s*(user|spice_tls|spice_tls_x509_cert_dir|vnc_tls|vnc_tls_x509_cert_dir|vnc_tls_x509_verify)\s*=.*/!p' \\
+        -e '/^\s*(user|spice_tls|spice_tls_x509_cert_dir|vnc_tls|vnc_tls_x509_cert_dir|vnc_tls_x509_verify|cgroup_controllers|namespaces)\s*=.*/!p' \\
         -e '\$acgroup_controllers = []' \\
+        -e '\$anamespaces = []' \\
         /etc/libvirt/qemu.conf || true
 
    # # spice & libvirt use same tls key/cert/ca files
