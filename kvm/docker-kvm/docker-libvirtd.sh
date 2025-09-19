@@ -166,9 +166,11 @@ docker create --name libvirtd \\
     -v /storage:/storage \\
     registry.local/libvirtd/kvm:trixie
 
-    # -v ${libvirtd_env}/log:/var/log/libvirt \\
+    # # config
     # -v ${libvirtd_env}/vms:/etc/libvirt/qemu \\
     # -v ${libvirtd_env}/secrets:/etc/libvirt/secrets \\
+    # # runtime
+    # -v ${libvirtd_env}/log:/var/log/libvirt \\
     # -v ${libvirtd_env}/run/libvirt:/var/run/libvirt \\
     # -v ${libvirtd_env}/lib/libvirt:/var/lib/libvirt \\
 # # #######################################
