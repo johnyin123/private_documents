@@ -2,7 +2,6 @@
 LC_ALL=C
 LANG=C
 set -o nounset -o pipefail -o errexit
-set -o xtrace
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 # # kvm host local storage dir
 DIR='/storage'

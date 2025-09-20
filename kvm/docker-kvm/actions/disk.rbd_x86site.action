@@ -2,7 +2,6 @@
 LC_ALL=C
 LANG=C
 set -o nounset -o pipefail -o errexit
-set -o xtrace
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 RBD_SECRET="id=admin:conf=${DIRNAME}/x86site.conf:keyring=${DIRNAME}/x86site.client.admin.keyring"
 # # rbd pool name

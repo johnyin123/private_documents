@@ -247,7 +247,10 @@ class VMManager:
             tpl = template.DeviceTemplate(device.tpl, device.devtype)
             # all env must string
             env = {'URL':host.url, 'TYPE':device.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':str(host.sshport), 'SSHUSER':host.sshuser}
-            cmd = ['bash', os.path.join(config.DIR_ACTION, device.action), 'add']
+            if logger.isEnabledFor(logging.DEBUG):
+                cmd = ['bash', '-x', os.path.join(config.DIR_ACTION, device.action)]
+            else:
+                cmd = ['bash', os.path.join(config.DIR_ACTION, device.action)]
             gold_name = req_json.get('gold', '')
             if len(gold_name) != 0:
                 req_json['gold'] = f'http://{config.GOLD_SRV}{database.KVMGold.get_one(name=gold_name, arch=host.arch).uri}'
