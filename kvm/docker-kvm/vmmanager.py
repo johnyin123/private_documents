@@ -129,23 +129,21 @@ class VMManager:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
             flags = dom_flags(domain.state)
-            for disk in domain.disks:
-                if disk['dev'] == dev:
-                    dom.detachDeviceFlags(disk['xml'], flags)
-                    # cdrom not delete media
-                    if disk['device'] != 'disk':
-                        return utils.return_ok(f'detach_device {dev} ok', uuid=uuid)
-                    refresh_all_pool(conn)
-                    logger.debug(f'remove disk {disk}')
-                    try:
-                        conn.storageVolLookupByPath(disk['vol']).delete()
-                    except:
-                        return utils.return_ok(f'detach_device {dev} ok', uuid=uuid, failed=disk['vol'])
+            for disk in (d for d in domain.disks if d.get('dev') == dev):
+                dom.detachDeviceFlags(disk.get('xml'), flags)
+                # cdrom not delete media
+                if disk.get('device') != 'disk':
                     return utils.return_ok(f'detach_device {dev} ok', uuid=uuid)
-            for net in domain.nets:
-                if net['mac'] == dev:
-                    dom.detachDeviceFlags(net['xml'], flags)
-                    return utils.return_ok(f'detach_device {dev} ok', uuid=uuid)
+                refresh_all_pool(conn)
+                logger.debug(f'remove disk {disk}')
+                try:
+                    conn.storageVolLookupByPath(disk['vol']).delete()
+                except:
+                    return utils.return_ok(f'detach_device {dev} ok', uuid=uuid, failed=disk['vol'])
+                return utils.return_ok(f'detach_device {dev} ok', uuid=uuid)
+            for net in (n for n in domain.nets if n.get('mac') == dev):
+                dom.detachDeviceFlags(net['xml'], flags)
+                return utils.return_ok(f'detach_device {dev} ok', uuid=uuid)
         raise utils.APIException(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
@@ -203,10 +201,8 @@ class VMManager:
             refresh_all_pool(conn)
             domain = LibvirtDomain(dom)
             diskinfo = []
-            for disk in domain.disks:
-                # cdrom not delete media
-                if disk['device'] != 'disk':
-                    continue
+            # cdrom not delete media
+            for disk in (d for d in domain.disks if d.get('device') == 'disk'):
                 logger.debug(f'remove disk {disk}')
                 try:
                     conn.storageVolLookupByPath(disk['vol']).delete()
@@ -290,12 +286,11 @@ class VMManager:
         with utils.connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
-            for disk in domain.disks:
-                if disk['dev'] == dev and disk['device'] == 'cdrom':
-                    if domain.state != libvirt.VIR_DOMAIN_RUNNING:
-                        dom.detachDeviceFlags(disk['xml'], dom_flags(domain.state))
-                    dom.attachDeviceFlags(change_media(uuid, dev, iso.uri, disk['bus'], 'http', config.META_SRV, 80))
-                    return utils.return_ok(f'{dev} change media ok', uuid=uuid)
+            for disk in (d for d in domain.disks if d.get('device') == 'cdrom' and d.get('dev') == dev):
+                if domain.state != libvirt.VIR_DOMAIN_RUNNING:
+                    dom.detachDeviceFlags(disk['xml'], dom_flags(domain.state))
+                dom.attachDeviceFlags(change_media(uuid, dev, iso.uri, disk['bus'], 'http', config.META_SRV, 80))
+                return utils.return_ok(f'{dev} change media ok', uuid=uuid)
         raise utils.APIException(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
@@ -357,11 +352,9 @@ class VMManager:
     def netstat(method:str, host:utils.FakeDB, uuid:str, dev:str)->str:
         with utils.connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
-            domain = LibvirtDomain(dom)
-            for net in domain.nets:
-                if net['mac'] == dev:
-                    stats = dom.interfaceStats(net['dev'])
-                    return utils.return_ok(f'netstat', uuid=uuid, dev=dev, stats={'rx':stats[0], 'tx':stats[4]})
+            for net in (n for n in LibvirtDomain(dom).nets if n.get('mac') == dev):
+                stats = dom.interfaceStats(net['dev'])
+                return utils.return_ok(f'netstat', uuid=uuid, dev=dev, stats={'rx':stats[0], 'tx':stats[4]})
         raise utils.APIException(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
