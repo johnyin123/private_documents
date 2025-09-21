@@ -256,13 +256,15 @@ meta_data_srv() {
 server {
     listen 80;
     server_name ${srv_name};
+    access_log off;
+    log_not_found on;
     location / { return 301 https://\$host\$request_uri; }
     # # # # # # # # # # # # # # # # # # # # # # # # #
     # # only .iso|meta-data|user-data(include subdir resource)
-    location ~* (\\.iso|\\/meta-data|\\/user-data)$ { set \$limit 0; root ${OUT_DIR}/cidata; }
+    location ~* (\\.iso|\\/meta-data|\\/user-data)$ { access_log off; log_not_found on; set \$limit 0; root ${OUT_DIR}/cidata; }
     # # golds.json,iso.json, kvm support 301
     # location ^~ /gold { return 301 http://<addr>:8888/...; }
-    location ^~ /gold { set \$limit 0; alias ${OUT_DIR}/gold/; }
+    location ^~ /gold { access_log off; log_not_found on; set \$limit 0; alias ${OUT_DIR}/gold/; }
     # /gold/uuid.iso => /gold/uuid.iso
     # /uuid.iso      => ${OUT_DIR}/iso/uuid.iso
 }
