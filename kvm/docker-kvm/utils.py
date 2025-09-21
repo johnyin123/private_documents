@@ -65,10 +65,10 @@ class ProcList:
     def wait_proc(uuid:str, cmd:List, redirect:bool = True, req_json: dict = {}, **kwargs)-> Generator:
         try:
             for p in ProcList.pids.list_all(uuid=uuid):
-                logger.info(f'PROC: {p} found, kill!!')
+                logger.info(f'PROC: {uuid} {p} found, kill!!')
                 os.kill(p.pid, signal.SIGTERM)
         except Exception as e:
-            logger.error(f'PROC: KILL {type(e).__name__} {str(e)}')
+            logger.error(f'PROC: {uuid} KILL {type(e).__name__} {str(e)}')
         ProcList.pids.delete(uuid=uuid)
         try:
             output = subprocess.STDOUT if redirect else subprocess.PIPE
@@ -96,7 +96,7 @@ class ProcList:
                 for line in ProcList.wait_proc(uuid, cmd):
                     logger.info(line)
             except Exception as e:
-                logger.error(f'{cmd}: {type(e).__name__} {str(e)}')
+                logger.error(f'{uuid} {cmd}: {type(e).__name__} {str(e)}')
 
         # Daemon threads automatically terminate when the main program exits.
         threading.Thread(target=run_thread, args=(uuid, cmd,), daemon=True).start()
