@@ -85,7 +85,7 @@ function genVmsTBL(item, host = null) {
     } else if (key === 'nets') {
       const nets = item[key];
       nets.forEach(net => {
-        tbl += `<tr><th class="truncate">${net.type}</th><td colspan="${colspan}" class="truncate" title="${net.mac}">${net.mac}</td>`;
+        tbl += `<tr><th class="truncate">${net.model}:${net.type}</th><td colspan="${colspan}" class="truncate" title="${net.mac}">${net.mac}</td>`;
         var remove_btn = genActBtn(false, 'Remove netcard', 'Remove', 'del_device', host, {'uuid':item.uuid, 'dev':net.mac});
         if (item['state'] === 'RUN') {
             remove_btn += genActBtn(false, 'Net Stats', 'NetStats', 'netstats', host, {'uuid':item.uuid, 'dev':net.mac});

@@ -88,14 +88,14 @@ class LibvirtDomain:
     def nets(self):
         net_lst = []
         for net in xml.dom.minidom.parseString(self.XMLDesc).getElementsByTagName('interface'):
-            dev = ''
+            entry = { 'type':net.getAttribute('type'), 'dev':'', 'model':'', 'mac':net.getElementsByTagName('mac')[0].getAttribute('address'), 'xml':net.toxml()}
             if net.getElementsByTagName('target'):
-                dev = net.getElementsByTagName('target')[0].getAttribute('dev');
-            dtype = net.getAttribute('type')
-            mac = net.getElementsByTagName('mac')[0].getAttribute('address')
+                entry.update({'dev': net.getElementsByTagName('target')[0].getAttribute('dev')})
+            if net.getElementsByTagName('model'):
+                entry.update({'model': net.getElementsByTagName('model')[0].getAttribute('type')})
             # source = net.getElementsByTagName('source')[0].getAttribute('network') ?
             # source = net.getElementsByTagName('source')[0].getAttribute('bridge') ?
-            net_lst.append({'type':dtype, 'mac':mac, 'dev':dev, 'xml':net.toxml()})
+            net_lst.append(entry.copy())
         return net_lst
 
     @property
