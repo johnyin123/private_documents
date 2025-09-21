@@ -68,7 +68,7 @@ class ProcList:
                 logger.info(f'PROC: {p} found, kill!!')
                 os.kill(p.pid, signal.SIGTERM)
         except Exception as e:
-            logger.error(f'PROC: KILL {e}')
+            logger.error(f'PROC: KILL {type(e).__name__} {str(e)}')
         ProcList.pids.delete(uuid=uuid)
         try:
             output = subprocess.STDOUT if redirect else subprocess.PIPE
@@ -226,7 +226,7 @@ class EtcdConfig:
                         else:
                             logger.warn(f'ETCD WATCH PREFIX BYPASS callback={update_callback} {event}')
             except Exception as e:
-                logger.error(f'ETCD WATCH PREFIX [{config.ETCD_SRV}:{config.ETCD_PORT} {e}]')
+                logger.error(f'ETCD WATCH PREFIX [{config.ETCD_SRV}:{config.ETCD_PORT} {type(e).__name__} {str(e)}]')
             logger.warn(f'ETCD WATCH PREFIX {os.getpid()} QUIT, 60s RESTART')
             time.sleep(60) # Wait before retrying
 
