@@ -96,7 +96,7 @@ class ProcList:
                 for line in ProcList.wait_proc(uuid, cmd):
                     logger.info(line)
             except Exception as e:
-                logger.error(f'run_thread {e}')
+                logger.error(f'{cmd}: {type(e).__name__} {str(e)}')
 
         # Daemon threads automatically terminate when the main program exits.
         threading.Thread(target=run_thread, args=(uuid, cmd,), daemon=True).start()
