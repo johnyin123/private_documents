@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("016fd37a[2024-09-20T09:07:52+08:00]:try.sh")
+VERSION+=("8bd4c8a0[2025-07-11T13:49:04+08:00]:try.sh")
 [ -e ${DIRNAME}/functions.sh ] && . ${DIRNAME}/functions.sh || true
 ##################################################
 cleanup() {
@@ -410,3 +410,4 @@ noflock () { log "lock ${LOCK_FILE} ${LOCK_FD} not acquired, giving up"; exit 1;
 ( flock -n ${LOCK_FD} || noflock; main2 "$@"; ) {LOCK_FD}>${LOCK_FILE}
 
 source /dev/stdin <<<$(curl -fsSL https://site/api.func)
+# google-chrome --disable-infobars --ignore-certificate-errors
