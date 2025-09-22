@@ -53,7 +53,7 @@ APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-re
          -e '\$alisten_addr = "0.0.0.0"' \\
          -e '\$a#tcp_port = "16509"' \\
          /etc/libvirt/libvirtd.conf
-
+mkdir -p /run/lock
 find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
 rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/* /usr/share/doc/*
 EODOC

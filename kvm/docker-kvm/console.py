@@ -8,10 +8,6 @@ import threading
 import time
 import libvirt
 import multiprocessing
-import logging
-logging.basicConfig(encoding='utf-8', level=logging.INFO, format='console.py: %(message)s')
-logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
-logger = logging.getLogger(__name__)
 
 SOCKET_QUEUE_BACKLOG = 0
 CTRL_Q = '\x11'
@@ -29,7 +25,7 @@ class SocketServer(multiprocessing.Process):
         self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self._socket.bind(self._server_addr)
         self._socket.listen(SOCKET_QUEUE_BACKLOG)
-        logger.info('[%s] socket server to guest %s created', self.name, uuid)
+        print(f'{self.name} socket server to guest {uuid} created')
 
     def run(self):
         self.listen()
@@ -59,7 +55,7 @@ class SocketServer(multiprocessing.Process):
         try:
             data = stream.recv(1024)
         except Exception as e:
-            logger.info('[%s] Error when reading from console: %s', self.name, str(e))
+            print(f'{self.name} Error when reading from console: {str(e)}')
             sys.exit(2)
         # return if no data received or client socket(opaque) is not valid
         if not data or not opaque:
@@ -78,7 +74,7 @@ class SocketServer(multiprocessing.Process):
         try:
             guest = LibvirtGuest(self._uuid, self._url, self.name)
         except Exception as e:
-            logger.error(f'{self.name} Cannot open the guest {self._uuid} due to {str(e)}')
+            print(f'{self.name} Cannot open the guest {self._uuid} due to {str(e)}')
             self._socket.close()
             sys.exit(1)
 
@@ -90,7 +86,7 @@ class SocketServer(multiprocessing.Process):
         try:
             console = guest.get_console()
             if console is None:
-                logger.error('[%s] Cannot get the console to %s', self.name, self._uuid)
+                print(f'{self.name} Cannot get the console to {self._uuid}')
                 return
             if not self._is_vm_listening_serial(console):
                 sys.exit(1)
@@ -99,14 +95,14 @@ class SocketServer(multiprocessing.Process):
         except (KeyboardInterrupt, SystemExit):
             pass
         finally:
-            logger.info('[%s] Shutting down the socket server to %s console', self.name, self._uuid,)
+            print(f'{self.name} Shutting down the socket server to {self._uuid} console')
             self._socket.close()
             if os.path.exists(self._server_addr):
                 os.unlink(self._server_addr)
             try:
                 console.eventRemoveCallback()
             except Exception as e:
-                logger.info('[%s] Callback is probably removed: %s', self.name, str(e))
+                print(f'{self.name} Callback is probably removed: {str(e)}')
                 sys.exit(6)
             self.stop_event.set()
             guest.close()
@@ -115,7 +111,7 @@ class SocketServer(multiprocessing.Process):
         client, client_addr = self._socket.accept()
         session_timeout = 20
         client.settimeout(int(session_timeout) * 60)
-        logger.info('[%s] Client connected to %s', self.name, self._uuid)
+        print(f'{self.name} Client connected to {self._uuid}')
         # register the callback to receive any data from the console
         console.eventAddCallback(libvirt.VIR_STREAM_EVENT_READABLE, self._send_to_client, client)
         # start the libvirt event loop in a python thread
@@ -126,7 +122,7 @@ class SocketServer(multiprocessing.Process):
             try:
                 data = client.recv(1024)
             except Exception as e:
-                logger.info('[%s] Client disconnected from %s: %s', self.name, self._uuid, str(e),)
+                print(f'{self.name} Client disconnected from {self._uuid}:{str(e)}')
                 break
             if not data or data == CTRL_Q:
                 break
@@ -136,7 +132,7 @@ class SocketServer(multiprocessing.Process):
             try:
                 console.send(data)
             except Exception:
-                logger.info('[%s] Console of %s is not accessible', self.name, self._uuid)
+                print(f'{self.name} Console of {self._uuid} is not accessible')
                 break
         # clear used resources when the connection is closed and, if possible,
         # tell the client the connection was lost.
@@ -145,6 +141,9 @@ class SocketServer(multiprocessing.Process):
         except Exception:
             pass
 
+def libvirt_callback(ctx, err):
+    print(err)
+libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
 
 class LibvirtGuest(object):
     def __init__(self, uuid, uri, process_name):
@@ -153,7 +152,7 @@ class LibvirtGuest(object):
             conn = libvirt.open(uri)
             self._guest = conn.lookupByUUIDString(uuid)
         except Exception as e:
-            logger.error('[%s] Cannot open guest %s: %s', self._proc_name, uuid, str(e))
+            print(f'{self._proc_name} Cannot open guest {uuid}: {str(e)}')
             raise
         self.conn = conn
         self._name = uuid
@@ -169,7 +168,7 @@ class LibvirtGuest(object):
         # guest must be in a running state to get its console
         counter = 10
         while not self.is_running():
-            logger.info('[%s] Guest %s is not running, waiting for it', self._proc_name, self._name,)
+            print(f'{self._proc_name} Guest {self._name} is not running, waiting for it')
             counter -= 1
             if counter <= 0:
                 return None
@@ -177,7 +176,7 @@ class LibvirtGuest(object):
 
         # attach a stream in the guest console so we can read from/write to it
         if self._stream is None:
-            logger.info('[%s] Opening the console for guest %s', self._proc_name, self._name)
+            print(f'{self._proc_name} Opening the console for guest {self._name}')
             self._stream = self.conn.newStream(libvirt.VIR_STREAM_NONBLOCK)
             self._guest.openConsole(None, self._stream, libvirt.VIR_DOMAIN_CONSOLE_FORCE | libvirt.VIR_DOMAIN_CONSOLE_SAFE,)
         return self._stream
@@ -190,7 +189,7 @@ def main(url, uuid):
     try:
         server = SocketServer(uuid, url)
     except Exception as e:
-        logger.exception('console')
+        print(f'Exeption {uuid} {str(e)}')
         sys.exit(-1)
     server.start()
     return 0
@@ -200,6 +199,6 @@ if __name__ == '__main__':
     if argc != 3:
         print(f'usage: {sys.argv[0]} <url> <uuid>')
         sys.exit(1)
-    logger.info(f'DEBUG:nc -U /tmp/.display.{sys.argv[2]}')
-    logger.info(f'console {sys.argv[1]} {sys.argv[2]}')
+    print(f'DEBUG:nc -U /tmp/.display.{sys.argv[2]}')
+    print(f'console {sys.argv[1]} {sys.argv[2]}')
     exit(main(sys.argv[1], sys.argv[2]))
