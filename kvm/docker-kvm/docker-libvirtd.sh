@@ -126,7 +126,7 @@ EODOC
     log "exit ${type}-${arch}.rootfs"
     ./tpl_overlay.sh -r ${type}-${arch}.rootfs -u
     log "Post chroot, delete nouse file in ${type}-${arch}/docker/"
-    for fn in tmp run root build.run; do
+    for fn in tmp root build.run; do
         rm -fr ${type}-${arch}/docker/${fn}
     done
     rm -vfr ${type}-${arch}.baseimg.tpl ${type}-${arch}.rootfs
