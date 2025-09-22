@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("0cd01cc1[2025-09-16T07:54:25+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("4982db4e[2025-09-22T12:46:17+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -140,7 +140,6 @@ done
 systemd-run --user --unit simple-kvm-srv \
     --working-directory=${DIRNAME} \
     --property=UMask=0022 \
-    --property=PrivateTmp=yes \
     --property=BindReadOnlyPaths=${DIRNAME}/ssh_config.d:/etc/ssh/ssh_config.d \
     --property=BindPaths=${DIRNAME}/config:$HOME/.ssh/config \
     --property=BindReadOnlyPaths=${DIRNAME}/id_rsa:$HOME/.ssh/id_rsa \
