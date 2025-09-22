@@ -3,6 +3,7 @@ set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 log() { echo "$(tput setaf ${COLOR:-141})$*$(tput sgr0)" >&2; }
 
+export PYTHONDONTWRITEBYTECODE=1
 INPUT_DIR=${1:?$(echo "ETCDCTL_CACERT= ETCDCTL_CERT= ETCDCTL_KEY= ETCD_PREFIX=/simple-kvm/work $0 <dir>"; exit 1;)}
 
 ETCD_PREFIX=$(python3 -c 'import config; print(config.ETCD_PREFIX)' || true)

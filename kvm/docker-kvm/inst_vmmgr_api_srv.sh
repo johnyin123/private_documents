@@ -2,13 +2,14 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("ac10bada[2025-09-22T15:33:33+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("9573a8cb[2025-09-22T15:41:22+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
 APPFILES=(flask_app.py dbi.py database.py database.py.shm config.py meta.py utils.py main.py template.py vmmanager.py console.py)
 APPDBS=(devices.json golds.json hosts.json iso.json vars.json)
 TOOLS=(reload_dbtable)
+export PYTHONDONTWRITEBYTECODE=1
 ################################################################################
 log() { echo "$(tput setaf ${COLOR:-141})$*$(tput sgr0)" >&2; }
 usage() {
