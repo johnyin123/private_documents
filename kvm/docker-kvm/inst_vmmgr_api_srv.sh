@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("2cf8b2cf[2025-09-22T14:46:48+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("ac10bada[2025-09-22T15:33:33+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -126,7 +126,8 @@ systemd-run --user --unit jwt-srv \
 #
 # rm -f /etc/ssh/ssh_config.d/20-systemd-ssh-proxy.conf /or, for BindPaths --user owner 65534:65534
 file_exists() { [ -f "$1" ]; }
-file_exists "${DIRNAME}/config" || cat <<EO_CONF > "${DIRNAME}/config"
+mkdir -p ${DIRNAME}/deps/ssh_config.d
+file_exists "${DIRNAME}/deps/config" || cat <<EO_CONF > "${DIRNAME}/deps/config"
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
 ControlMaster auto
@@ -135,10 +136,10 @@ ControlPersist 600
 Ciphers aes256-ctr,aes192-ctr,aes128-ctr
 MACs hmac-sha1
 EO_CONF
-mkdir -p ${DIRNAME}/ssh_config.d
 for f in cacert.pem clientcert.pem clientkey.pem config id_rsa id_rsa.pub; do
-    file_exists "${DIRNAME}/${f}" || { echo "${f} === NO FOUND"; exit 1; }
+    file_exists "${DIRNAME}/deps/${f}" || { echo "deps/${f} === NO FOUND"; exit 1; }
 done
+
 systemd-run --user --unit simple-kvm-srv \
     --working-directory=${DIRNAME} \
     --property=UMask=0022 \
