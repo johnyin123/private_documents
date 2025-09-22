@@ -13,17 +13,19 @@ class LibvirtDomain:
         self.state, self.maxmem, self.curmem, self.curcpu, self.cputime = dom.info()
 
     def _asdict(self):
-        state_desc = {libvirt.VIR_DOMAIN_NOSTATE:'NA',libvirt.VIR_DOMAIN_RUNNING:'RUN',libvirt.VIR_DOMAIN_BLOCKED:'BLOCK',libvirt.VIR_DOMAIN_PAUSED:'PAUSED',
-                    libvirt.VIR_DOMAIN_SHUTDOWN:'SHUTDOWN',libvirt.VIR_DOMAIN_SHUTOFF:'SHUTOFF',libvirt.VIR_DOMAIN_CRASHED:'CRASH',libvirt.VIR_DOMAIN_PMSUSPENDED:'SUSPEND'
-                }.get(self.state,'?')
-        return {'uuid':self.uuid, 'desc':self.desc,
-                'curcpu':self.curcpu, 'curmem':self.curmem,
-                'maxcpu':self.maxcpu, 'maxmem':self.maxmem,
-                'mdconfig': self.mdconfig,
-                'cputime':self.cputime, 'state':state_desc,
-                'disks': utils.getlist_without_key(self.disks, 'xml'),
-                'nets': utils.getlist_without_key(self.nets, 'dev', 'xml')
-               }
+        state = {
+            libvirt.VIR_DOMAIN_NOSTATE:'NA',libvirt.VIR_DOMAIN_RUNNING:'RUN',libvirt.VIR_DOMAIN_BLOCKED:'BLOCK',libvirt.VIR_DOMAIN_PAUSED:'PAUSED',
+            libvirt.VIR_DOMAIN_SHUTDOWN:'SHUTDOWN',libvirt.VIR_DOMAIN_SHUTOFF:'SHUTOFF',libvirt.VIR_DOMAIN_CRASHED:'CRASH',libvirt.VIR_DOMAIN_PMSUSPENDED:'SUSPEND',
+        }.get(self.state,'?')
+        return {
+            'uuid':self.uuid, 'desc':self.desc,
+            'curcpu':self.curcpu, 'curmem':self.curmem,
+            'maxcpu':self.maxcpu, 'maxmem':self.maxmem,
+            'mdconfig': self.mdconfig,
+            'cputime':self.cputime, 'state':state,
+            'disks': utils.getlist_without_key(self.disks, 'xml'),
+            'nets': utils.getlist_without_key(self.nets, 'dev', 'xml'),
+        }
 
     @property
     def next_disk(self):
@@ -186,7 +188,7 @@ class VMManager:
                 elif listen == '0.0.0.0':
                     server = f'{host.ipaddr}:{port}'
                 else:
-                    raise utils.APIException('graphic listen "{listen}" unknown')
+                    raise utils.APIException(f'vm {uuid} graphic listen "{listen}" unknown')
         logger.debug(f'{uuid}, token={token}, disp={disp}, expire={expire}, server={server}, cmd={socat_cmd}')
         if socat_cmd:
             utils.ProcList.Run(uuid, socat_cmd)
@@ -244,9 +246,9 @@ class VMManager:
             # all env must string
             env = {'URL':host.url, 'TYPE':device.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':str(host.sshport), 'SSHUSER':host.sshuser}
             if logger.isEnabledFor(logging.DEBUG):
-                cmd = ['bash', '-x', os.path.join(config.DIR_ACTION, device.action)]
+                cmd = ['bash', '-eux', os.path.join(config.DIR_ACTION, device.action)]
             else:
-                cmd = ['bash', os.path.join(config.DIR_ACTION, device.action)]
+                cmd = ['bash', '-eu', os.path.join(config.DIR_ACTION, device.action)]
             gold_name = req_json.get('gold', '')
             if len(gold_name) != 0:
                 req_json['gold'] = f'http://{config.GOLD_SRV}{database.KVMGold.get_one(name=gold_name, arch=host.arch).uri}'
@@ -291,7 +293,7 @@ class VMManager:
                     dom.detachDeviceFlags(disk['xml'], dom_flags(domain.state))
                 dom.attachDeviceFlags(change_media(uuid, dev, iso.uri, disk['bus'], 'http', config.META_SRV, 80))
                 return utils.return_ok(f'{dev} change media ok', uuid=uuid)
-        raise utils.APIException(f'{dev} nofound on vm {uuid}')
+        raise utils.APIException(f'vm {uuid} {dev} nofound')
 
     @staticmethod
     def stop(method:str, host:utils.FakeDB, uuid:str, force:str=None)->str:
@@ -319,7 +321,7 @@ class VMManager:
     def ui(method:str, host:utils.FakeDB, uuid:str, epoch:str)->str:
         tmout = (int(epoch) - datetime.datetime.now().timestamp()) // 60
         access_tok = utils.secure_link(host.name, uuid, config.CTRL_PANEL_KEY, tmout)
-        return utils.return_ok('vmuserinterface', uuid=uuid, url=config.URI_CTRL_PANEL, token=access_tok, expire=f'{datetime.datetime.fromtimestamp(int(epoch))}')
+        return utils.return_ok('console ui', uuid=uuid, url=config.URI_CTRL_PANEL, token=access_tok, expire=f'{datetime.datetime.fromtimestamp(int(epoch))}')
 
     @staticmethod
     def blksize(method:str, host:utils.FakeDB, uuid:str, dev:str)->str:
@@ -355,7 +357,7 @@ class VMManager:
             for net in (n for n in LibvirtDomain(dom).nets if n.get('mac') == dev):
                 stats = dom.interfaceStats(net['dev'])
                 return utils.return_ok(f'netstat', uuid=uuid, dev=dev, stats={'rx':stats[0], 'tx':stats[4]})
-        raise utils.APIException(f'{dev} nofound on vm {uuid}')
+        raise utils.APIException(f'vm {uuid} {dev} nofound')
 
     @staticmethod
     def revert_snapshot(method:str, host:utils.FakeDB, uuid:str, name:str)->str:
@@ -367,8 +369,7 @@ class VMManager:
     @staticmethod
     def delete_snapshot(method:str, host:utils.FakeDB, uuid:str, name:str)->str:
         with utils.connect(host.url) as conn:
-            dom = conn.lookupByUUIDString(uuid)
-            dom.snapshotLookupByName(name).delete()
+            conn.lookupByUUIDString(uuid).snapshotLookupByName(name).delete()
         return utils.return_ok(f'delete_snapshot', uuid=uuid)
 
     @staticmethod
