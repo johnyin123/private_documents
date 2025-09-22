@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("4982db4e[2025-09-22T12:46:17+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("2cf8b2cf[2025-09-22T14:46:48+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -99,7 +99,9 @@ for svc in websockify-graph.service jwt-srv.service simple-kvm-srv.service etcd.
     systemctl --user reset-failed ${svc} 2>/dev/null || true
 done
 
-systemd-run --user --unit etcd.service     --working-directory=${DIRNAME}     ${DIRNAME}/etcd
+systemd-run --user --unit etcd.service \
+    --working-directory=${DIRNAME} \
+    ${DIRNAME}/etcd
     # --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379 --log-level 'warn'
 
 systemd-run --user --unit websockify-graph \
