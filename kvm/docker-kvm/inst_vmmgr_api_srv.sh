@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("79cb291f[2025-09-15T12:58:07+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("0cd01cc1[2025-09-16T07:54:25+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -85,53 +85,74 @@ EO_DOC
     log "install ${home_dir}/app/startup.sh"
     install -v -d -m 0755 --group=${gid} --owner=${uid} ${home_dir}/app
     [ "${docker}" == "1" ] || outdir=$(realpath "${outdir}")
-    cat <<EODOC | install -v -C -m 0755 --group=${gid} --owner=${uid} /dev/stdin ${home_dir}/app/startup.sh
+    cat <<'EODOC' | install -v -C -m 0755 --group=${gid} --owner=${uid} /dev/stdin ${home_dir}/app/startup.sh
 #!/usr/bin/env bash
-readonly DIRNAME="\$(readlink -f "\$(dirname "\$0")")"
-# outdir=/dev/shm/simplekvm/work
-outdir=${outdir}
+readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
+outdir=/dev/shm/simplekvm/work
 token_dir=/dev/shm/simplekvm/token
 # VENV=
-export PATH="\${VENV:+\${VENV}/bin:}\${PATH}"
+export PATH="${VENV:+${VENV}/bin:}${PATH}"
 
 for svc in websockify-graph.service jwt-srv.service simple-kvm-srv.service etcd.service; do
-    systemctl --user show \${svc} -p MemoryCurrent
-    systemctl --user stop         \${svc} 2>/dev/null || true
-    systemctl --user reset-failed \${svc} 2>/dev/null || true
+    systemctl --user show ${svc} -p MemoryCurrent
+    systemctl --user stop         ${svc} 2>/dev/null || true
+    systemctl --user reset-failed ${svc} 2>/dev/null || true
 done
 
-systemd-run --user --unit etcd.service \
-    --working-directory=\${DIRNAME} \
-    \${DIRNAME}/etcd
+systemd-run --user --unit etcd.service     --working-directory=${DIRNAME}     ${DIRNAME}/etcd
     # --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379 --log-level 'warn'
 
-systemd-run --user --unit websockify-graph \\
-    --working-directory=\${DIRNAME} \\
-    websockify --token-plugin TokenFile --token-source \${token_dir} 127.0.0.1:6800
+systemd-run --user --unit websockify-graph \
+    --working-directory=${DIRNAME} \
+    websockify --token-plugin TokenFile --token-source ${token_dir} 127.0.0.1:6800
 
-systemd-run --user --unit jwt-srv \\
-    --working-directory=\${DIRNAME} \\
+systemd-run --user --unit jwt-srv \
+    --working-directory=${DIRNAME} \
     gunicorn -b 127.0.0.1:16000 --preload --workers=2 --threads=2 --access-logformat 'JWT %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'jwt_server:app'
 
-# -E META_SRV=vmm.registry.local \\ KVMHOST use.
-# -E GOLD_SRV=vmm.registry.local \\ ACTIONS use(this srv).
-# -E CTRL_PANEL_SRV=guest.registry.local \\
-# -E LEVELS='{"utils":"DEBUG","database":"INFO"}' \\
-# -E ETCD_PREFIX=/simple-kvm/work \\
-# -E ETCD_SRV=etcd-server \\
-# -E ETCD_CA=ca.pem \\
-# -E ETCD_KEY=etcd-cli.key \\
-# -E ETCD_CERT=etcd-cli.pem \\
-# -E DATA_DIR=/dev/shm/simple-kvm/work \\
-# -E TOKEN_DIR=/dev/shm/simple-kvm/token \\
-systemd-run --user --unit simple-kvm-srv \\
-    --working-directory=\${DIRNAME} \\
-    --property=UMask=0022 \\
-    -E ETCD_PREFIX=/simple-kvm/work \\
-    -E ETCD_SRV=127.0.0.1 \\
-    -E ETCD_PORT=2379 \\
-    -E DATA_DIR=\${outdir} \\
-    -E TOKEN_DIR=\${token_dir} \\
+# -E META_SRV=vmm.registry.local \ KVMHOST use.
+# -E GOLD_SRV=vmm.registry.local \ ACTIONS use(this srv).
+# -E CTRL_PANEL_SRV=guest.registry.local \
+# -E LEVELS='{"utils":"DEBUG","database":"INFO"}' \
+# -E ETCD_PREFIX=/simple-kvm/work \
+# -E ETCD_SRV=etcd-server \
+# -E ETCD_CA=ca.pem \
+# -E ETCD_KEY=etcd-cli.key \
+# -E ETCD_CERT=etcd-cli.pem \
+# -E DATA_DIR=/dev/shm/simple-kvm/work \
+# -E TOKEN_DIR=/dev/shm/simple-kvm/token \
+#
+# rm -f /etc/ssh/ssh_config.d/20-systemd-ssh-proxy.conf /or, for BindPaths --user owner 65534:65534
+file_exists() { [ -f "$1" ]; }
+file_exists "${DIRNAME}/config" || cat <<EO_CONF > "${DIRNAME}/config"
+StrictHostKeyChecking=no
+UserKnownHostsFile=/dev/null
+ControlMaster auto
+ControlPath  ~/.ssh/%r@%h:%p
+ControlPersist 600
+Ciphers aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha1
+EO_CONF
+mkdir -p ${DIRNAME}/ssh_config.d
+for f in cacert.pem clientcert.pem clientkey.pem config id_rsa id_rsa.pub; do
+    file_exists "${DIRNAME}/${f}" || { echo "${f} === NO FOUND"; exit 1; }
+done
+systemd-run --user --unit simple-kvm-srv \
+    --working-directory=${DIRNAME} \
+    --property=UMask=0022 \
+    --property=PrivateTmp=yes \
+    --property=BindReadOnlyPaths=${DIRNAME}/ssh_config.d:/etc/ssh/ssh_config.d \
+    --property=BindPaths=${DIRNAME}/config:$HOME/.ssh/config \
+    --property=BindReadOnlyPaths=${DIRNAME}/id_rsa:$HOME/.ssh/id_rsa \
+    --property=BindReadOnlyPaths=${DIRNAME}/id_rsa.pub:$HOME/.ssh/id_rsa.pub \
+    --property=BindReadOnlyPaths=${DIRNAME}/cacert.pem:$HOME/.pki/libvirt/cacert.pem \
+    --property=BindReadOnlyPaths=${DIRNAME}/clientkey.pem:$HOME/.pki/libvirt/clientkey.pem \
+    --property=BindReadOnlyPaths=${DIRNAME}/clientcert.pem:$HOME/.pki/libvirt/clientcert.pem \
+    -E ETCD_PREFIX=/simple-kvm/work \
+    -E ETCD_SRV=127.0.0.1 \
+    -E ETCD_PORT=2379 \
+    -E DATA_DIR=${outdir} \
+    -E TOKEN_DIR=${token_dir} \
     gunicorn -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
 EODOC
 }
