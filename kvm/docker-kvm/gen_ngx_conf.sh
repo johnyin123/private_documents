@@ -218,8 +218,8 @@ admin_ui() {
     # # static resource # #
     # # ui/term/spice/novnc use api_srv serve, add rewrite
     # rewrite ^ /public\$uri break;proxy_pass http://api_srv;
-    location ${PRE}/ui { alias ${OUT_DIR}/ui/; }
-    location ${PRE}/term { alias ${OUT_DIR}/term/; }
+    location ${PRE}/ui    { alias ${OUT_DIR}/ui/; }
+    location ${PRE}/term  { alias ${OUT_DIR}/term/; }
     location ${PRE}/spice { alias ${OUT_DIR}/spice/; }
     location ${PRE}/novnc { alias ${OUT_DIR}/novnc/; }
 EOF
@@ -240,8 +240,8 @@ EOF
     # # static resource # #
     # # ui/term/spice/novnc use api_srv serve, add rewrite
     # rewrite ^ /public\$uri break;proxy_pass http://api_srv;
-    location ${PRE}/ui { alias ${OUT_DIR}/ui/; }
-    location ${PRE}/term { alias ${OUT_DIR}/term/; }
+    location ${PRE}/ui    { alias ${OUT_DIR}/ui/; }
+    location ${PRE}/term  { alias ${OUT_DIR}/term/; }
     location ${PRE}/spice { alias ${OUT_DIR}/spice/; }
     location ${PRE}/novnc { alias ${OUT_DIR}/novnc/; }
 EOF
