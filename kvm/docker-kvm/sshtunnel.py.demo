@@ -872,3 +872,22 @@ class Snapshot:
         if self.progress:
             print()
         return False
+
+import os, functools
+class Config:
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+    def __repr__(self):
+         return f'{self.__dict__!r}'
+
+@functools.lru_cache(maxsize=1)
+def get_config() -> Config:
+    """Return a cached Config instance (singleton)."""
+    return Config(
+        ETCD_PREFIX = os.environ.get('ETCD_PREFIX', None),
+        ETCD_SRV    = os.environ.get('ETCD_SRV', 'localhost'),
+        ETCD_PORT   = os.environ.get('ETCD_PORT', 2379),
+        ETCD_CA     = os.environ.get('ETCD_CA', None),
+        ETCD_KEY    = os.environ.get('ETCD_KEY', None),
+        ETCD_CERT   = os.environ.get('ETCD_CERT', None),
+    )
