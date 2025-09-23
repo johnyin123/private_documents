@@ -462,18 +462,18 @@ docker create \
  --env META_SRV=${META_SRV} \
  --env GOLD_SRV=${GOLD_SRV} --add-host ${GOLD_SRV}:${gold_srv_ipaddr} \
  --env ETCD_PREFIX=/simple-kvm/work --env ETCD_SRV=192.168.169.1 --env ETCD_PORT=2379 \
- -v ${TARGET_DIR}/deps/config:/home/simplekvm/.ssh/config \
- -v ${TARGET_DIR}/deps/id_rsa:/home/simplekvm/.ssh/id_rsa \
- -v ${TARGET_DIR}/deps/id_rsa.pub:/home/simplekvm/.ssh/id_rsa.pub \
- -v ${TARGET_DIR}/deps/clientkey.pem:/etc/nginx/ssl/simplekvm.key \
- -v ${TARGET_DIR}/deps/clientcert.pem:/etc/nginx/ssl/simplekvm.pem \
- -v ${TARGET_DIR}/deps/cacert.pem:/etc/pki/CA/cacert.pem \
- -v ${TARGET_DIR}/deps/clientkey.pem:/etc/pki/libvirt/private/clientkey.pem \
- -v ${TARGET_DIR}/deps/clientcert.pem:/etc/pki/libvirt/clientcert.pem \
+ -v ${TARGET_DIR}/config:/home/simplekvm/.ssh/config \
+ -v ${TARGET_DIR}/id_rsa:/home/simplekvm/.ssh/id_rsa \
+ -v ${TARGET_DIR}/id_rsa.pub:/home/simplekvm/.ssh/id_rsa.pub \
+ -v ${TARGET_DIR}/client.key:/etc/nginx/ssl/simplekvm.key \
+ -v ${TARGET_DIR}/client.pem:/etc/nginx/ssl/simplekvm.pem \
+ -v ${TARGET_DIR}/ca.pem:/etc/pki/CA/cacert.pem \
+ -v ${TARGET_DIR}/client.key:/etc/pki/libvirt/private/clientkey.pem \
+ -v ${TARGET_DIR}/client.pem:/etc/pki/libvirt/clientcert.pem \
 
-# -v ${TARGET_DIR}/deps/cacert.pem:/home/simplekvm/.pki/libvirt/cacert.pem \
-# -v ${TARGET_DIR}/deps/clientkey.pem:/home/simplekvm/.pki/libvirt/clientkey.pem \
-# -v ${TARGET_DIR}/deps/clientcert.pem:/home/simplekvm/.pki/libvirt/clientcert.pem \
+# -v ${TARGET_DIR}/ca.pem:/home/simplekvm/.pki/libvirt/cacert.pem \
+# -v ${TARGET_DIR}/client.key:/home/simplekvm/.pki/libvirt/clientkey.pem \
+# -v ${TARGET_DIR}/client.pem:/home/simplekvm/.pki/libvirt/clientcert.pem \
 EOF
 cat <<EOF
  ${REGISTRY}/libvirtd/${type}:${ver}
