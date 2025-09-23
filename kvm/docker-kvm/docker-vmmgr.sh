@@ -387,7 +387,7 @@ EODOC
         tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/novnc.tgz
         tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/spice.tgz --transform 's/^spice.*master/spice/'
         # tar -C ${type}-${arch}/docker/app --one-top-level=spice --strip-components 1 -xf ${SOURCE_DIR}/spice.tgz
-        tar -C ${SOURCE_DIR} -c ui term | tar -C ${type}-${arch}/docker/app -x
+        tar --exclude=test -C ${SOURCE_DIR} -c ui term | tar -C ${type}-${arch}/docker/app -x
         # for fn in ${SOURCE_DIR}/*.py; do
         #     $(which cp) -f ${fn} ${type}-${arch}/docker/app/
         # done
