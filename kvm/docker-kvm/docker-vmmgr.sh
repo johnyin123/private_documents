@@ -27,7 +27,6 @@ export IMAGE=debian:trixie       # # BASE IMAGE
 export NAMESPACE=
 token_dir=/dev/shm/simplekvm/token
 out_dir=/dev/shm/simplekvm/work
-etcd_prefix=/simple-kvm/work
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     cat <<EODOC > ${type}-${arch}/docker/build.run
@@ -62,7 +61,6 @@ EO_PIP
 pip install ${PROXY:+--proxy ${PROXY} }-r /home/${username}/requirements.txt
 rm -f /home/${username}/requirements.txt
 chown -R 10001:10001 /home/${username}/venv
-echo -e '#!/bin/bash\necho "Running entrypoint setup..."\nexec "\$@"' > /entrypoint.sh && chmod 755 /entrypoint.sh
 find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
 rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/* /usr/share/doc/*
 EODOC
@@ -347,7 +345,7 @@ stderr_logfile_maxbytes=0
 
 [program:gunicorn]
 umask=0022
-environment=ETCD_PREFIX="${etcd_prefix}",DATA_DIR="${out_dir}",TOKEN_DIR="${token_dir}",PYTHONDONTWRITEBYTECODE=1
+environment=HOME="/home/${username}",DATA_DIR="${out_dir}",TOKEN_DIR="${token_dir}",PYTHONDONTWRITEBYTECODE=1
 directory=/app/
 command=gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:app'
 autostart=true
@@ -359,6 +357,16 @@ stderr_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 EODOC
+    mkdir -p ${type}-${arch}/docker/ && cat <<EODOC >${type}-${arch}/docker/entrypoint.sh
+#!/bin/bash
+chown ${username}:${username} /home/${username}/.ssh -R || true
+chmod 600 /home/${username}/.ssh/id_rsa || true
+chmod 644 /home/${username}/.ssh/id_rsa.pub || true
+chmod 644 /home/${username}/.ssh/config || true
+env || true
+exec "\$@"
+EODOC
+    chmod 755 ${type}-${arch}/docker/entrypoint.sh
     cat <<EODOC >> ${type}-${arch}/Dockerfile
 EXPOSE 80 443 1443
 ENTRYPOINT ["/entrypoint.sh"]
@@ -416,13 +424,13 @@ if [ "${value}" = "y" ]; then
     done
     ./make_docker_image.sh -c combine --tag ${REGISTRY}/libvirtd/${type}:${ver}
 fi
-cat <<EOF
+cat <<'EOF'
 ###################################################
 # test run
 ###################################################
 # # when: qemu+ssh://, actions add template disk
     TARGET_DIR=/kvm/ssh
-    mkdir --mode=700 -p \${TARGET_DIR} && cat <<EO_CFG > \${TARGET_DIR}/config
+    mkdir --mode=700 -p ${TARGET_DIR} && cat <<EO_CFG > ${TARGET_DIR}/config
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
 ControlMaster auto
@@ -431,32 +439,42 @@ ControlPersist 600
 Ciphers aes256-ctr,aes192-ctr,aes128-ctr
 MACs hmac-sha1
 EO_CFG
-    ssh-keygen -b 4096 -t rsa -C simplekvm -N '' -f \${TARGET_DIR}/id_rsa
-    chown -R 10001:10001 \${TARGET_DIR}
+    ssh-keygen -b 4096 -t rsa -C simplekvm -N '' -f ${TARGET_DIR}/id_rsa
+    chown -R 10001:10001 ${TARGET_DIR}
     # id_rsa id_rsa.pub config
 # # when: qemu+tls://
 #     -v /kvm/pki:/etc/pki/
 #        CA/cacert.pem libvirt/clientcert.pem libvirt/private/clientkey.pem
 # #   -v /host/ssl:/etc/nginx/ssl
 #        simplekvm.key simplekvm.pem
-docker pull ${REGISTRY}/libvirtd/${type}:${ver} --platform amd64
 # # need http  get hosts define in golds.json when add disk with template (api srv)
 # # need https get host META_SRV for metadata and iso cdrom file (kvm srv)
 
+META_SRV=vmm.registry.local
 GOLD_SRV=vmm.registry.local
 gold_srv_ipaddr=192.168.167.1
 
-docker run --rm \\
- --name vmmgr-api \\
- --restart always \\
- --network br-int --ip 192.168.169.123 \\
- --env LEVELS='{"main":"INFO"}' \\
- --env META_SRV=vmm.registry.local \\
- --env GOLD_SRV=\${GOLD_SRV} --add-host \${GOLD_SRV}:\${gold_srv_ipaddr} \\
- --env ETCD_SRV=192.168.169.1 \\
- --env ETCD_PORT=2379 \\
- -v /host/pki:/etc/pki/ \\
- -v /host/ssl:/etc/nginx/ssl \\
- -v /host/ssh:/home/simplekvm/.ssh \\
+docker create \
+ --name simplekvm \
+ --restart always \
+ --network br-int --ip 192.168.169.123 \
+ --env LEVELS='{"main":"INFO"}' \
+ --env META_SRV=${META_SRV} \
+ --env GOLD_SRV=${GOLD_SRV} --add-host ${GOLD_SRV}:${gold_srv_ipaddr} \
+ --env ETCD_PREFIX=/simple-kvm/work --env ETCD_SRV=192.168.169.1 --env ETCD_PORT=2379 \
+ -v ${TARGET_DIR}/deps/config:/home/simplekvm/.ssh/config \
+ -v ${TARGET_DIR}/deps/id_rsa:/home/simplekvm/.ssh/id_rsa \
+ -v ${TARGET_DIR}/deps/id_rsa.pub:/home/simplekvm/.ssh/id_rsa.pub \
+ -v ${TARGET_DIR}/deps/clientkey.pem:/etc/nginx/ssl/simplekvm.key \
+ -v ${TARGET_DIR}/deps/clientcert.pem:/etc/nginx/ssl/simplekvm.pem \
+ -v ${TARGET_DIR}/deps/cacert.pem:/etc/pki/CA/cacert.pem \
+ -v ${TARGET_DIR}/deps/clientkey.pem:/etc/pki/libvirt/private/clientkey.pem \
+ -v ${TARGET_DIR}/deps/clientcert.pem:/etc/pki/libvirt/clientcert.pem \
+
+# -v ${TARGET_DIR}/deps/cacert.pem:/home/simplekvm/.pki/libvirt/cacert.pem \
+# -v ${TARGET_DIR}/deps/clientkey.pem:/home/simplekvm/.pki/libvirt/clientkey.pem \
+# -v ${TARGET_DIR}/deps/clientcert.pem:/home/simplekvm/.pki/libvirt/clientcert.pem \
+EOF
+cat <<EOF
  ${REGISTRY}/libvirtd/${type}:${ver}
 EOF
