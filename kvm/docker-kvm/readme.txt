@@ -91,8 +91,8 @@ EOF
 # iptables -A INPUT -p tcp -s 192.168.0.0/16 --dport <port> -j ACCEPT
 # iptables -A INPUT -p tcp --dport <port> -j DROP
 
-# # META_SRV Only for *KVMHOST* use.
-# # GOLD_SRV Only for *APP ACTIONS* use. golds.json: http://GOLD_SRV/uri
+# # META_SRV Only for *KVMHOST* use. meta-data/user-data/cidata.iso and iso.json
+# # GOLD_SRV Only for *APP ACTIONS* use. http://GOLD_SRV/uri, golds.json
 
 USR -> config.CTRL_PANEL_SRV -> API
 ADM -> <IP> -> API -> Via libvirt/ssh -> KVMHOST

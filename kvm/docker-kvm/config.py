@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os, uuid, datetime
-# # env: DATA_DIR, TOKEN_DIR, DATABASE, META_SRV, CTRL_PANEL_SRV, CTRL_PANEL_KEY
+# # env: DATA_DIR, TOKEN_DIR, DATABASE, META_SRV, GOLD_SRV, CTRL_PANEL_SRV, CTRL_PANEL_KEY
 DATA_DIR         = os.environ.get('DATA_DIR', os.path.abspath(os.path.dirname(__file__)))
 # use etcd as persistent
 ETCD_PREFIX      = os.environ.get('ETCD_PREFIX', None)
@@ -15,9 +15,9 @@ DATABASE         = os.environ.get('DATABASE', f'sqlite:///{DATA_DIR}/kvm.db?chec
 # # clout-init: net http://META_SRV/(uuid)/(meta-data|user-data) (domain.tpl)
 # # clout-init: iso http://META_SRV/(uuid)/cidata.iso
 # # iso.json  :     http://META_SRV/uri                          (same as clout-init iso)
-# # META_SRV Only for *KVMHOST* use.
+# # META_SRV Only for *KVMHOST* use. meta-data/user-data/cidata.iso and iso.json
 META_SRV         = os.environ.get('META_SRV', 'vmm.registry.local')
-# # GOLD_SRV Only for *APP ACTIONS* use. golds.json: http://GOLD_SRV/uri
+# # GOLD_SRV Only for *APP ACTIONS* use. http://GOLD_SRV/uri, golds.json
 GOLD_SRV         = os.environ.get('GOLD_SRV', META_SRV)
 # # https srv for user control panel, default https://META_SRV
 CTRL_PANEL_SRV   = os.environ.get('CTRL_PANEL_SRV', META_SRV)
