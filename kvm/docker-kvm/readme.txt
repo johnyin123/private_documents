@@ -91,8 +91,12 @@ EOF
 # iptables -A INPUT -p tcp -s 192.168.0.0/16 --dport <port> -j ACCEPT
 # iptables -A INPUT -p tcp --dport <port> -j DROP
 
-# # META_SRV Only for *KVMHOST* use. meta-data/user-data/cidata.iso and iso.json
-# # GOLD_SRV Only for *APP ACTIONS* use. http://GOLD_SRV/uri, golds.json
+# # clout-init: net http://META_SRV/(uuid)/(meta-data|user-data) (domain.tpl)
+# # clout-init: iso http://META_SRV/(uuid)/cidata.iso
+# # iso.json  :     http://META_SRV/uri                          (same as clout-init iso)
+# # META_SRV: Only for *KVMHOST* use. meta-data/user-data/cidata.iso and iso.json
+# # GOLD_SRV: Only for *APP ACTIONS* use. http://GOLD_SRV/uri, golds.json
+# # CTRL_PANEL_SRV: https srv for user control panel, default https://META_SRV
 
 USR -> config.CTRL_PANEL_SRV -> API
 ADM -> <IP> -> API -> Via libvirt/ssh -> KVMHOST

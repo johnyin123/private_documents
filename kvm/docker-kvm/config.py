@@ -15,11 +15,11 @@ DATABASE         = os.environ.get('DATABASE', f'sqlite:///{DATA_DIR}/kvm.db?chec
 # # clout-init: net http://META_SRV/(uuid)/(meta-data|user-data) (domain.tpl)
 # # clout-init: iso http://META_SRV/(uuid)/cidata.iso
 # # iso.json  :     http://META_SRV/uri                          (same as clout-init iso)
-# # META_SRV Only for *KVMHOST* use. meta-data/user-data/cidata.iso and iso.json
+# # META_SRV: Only for *KVMHOST* use. meta-data/user-data/cidata.iso and iso.json
 META_SRV         = os.environ.get('META_SRV', 'vmm.registry.local')
-# # GOLD_SRV Only for *APP ACTIONS* use. http://GOLD_SRV/uri, golds.json
+# # GOLD_SRV: Only for *APP ACTIONS* use. http://GOLD_SRV/uri, golds.json
 GOLD_SRV         = os.environ.get('GOLD_SRV', META_SRV)
-# # https srv for user control panel, default https://META_SRV
+# # CTRL_PANEL_SRV: https srv for user control panel, default https://META_SRV
 CTRL_PANEL_SRV   = os.environ.get('CTRL_PANEL_SRV', META_SRV)
 # # user control panel access mykey
 CTRL_PANEL_KEY   = os.environ.get('CTRL_PANEL_KEY', 'P@ssw@rd4Display')
