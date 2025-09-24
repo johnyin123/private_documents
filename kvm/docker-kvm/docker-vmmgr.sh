@@ -478,3 +478,22 @@ EOF
 cat <<EOF
  ${REGISTRY}/libvirtd/${type}:${ver}
 EOF
+
+cat <<'EOF'
+# # entrypoint.sh, read ENV version
+gen_file() {
+    local var="${1}"
+    local dst="${2}"
+    local uid="${3:-root}"
+    local gid="${4:-root}"
+    local mode="${5:-0600}"
+    [ -z "${var}" ] || echo "${var}" | base64 -d | install --backup=simple -v -C -m ${mode} --group=${gid} --owner=${uid} /dev/stdin "${dst}"
+    return 0
+}
+# install -v -d -m 0700 --group= --owner= dir
+gen_file "${CERT_KEY:-}" "/etc/nginx/ssl/simplekvm.key"            root root 0600
+gen_file "${CERT_PEM:-}" "/etc/nginx/ssl/simplekvm.pem"            root root 0644
+gen_file "${CERT_KEY:-}" "/etc/pki/libvirt/private/clientkey.pem"  root root 0600
+gen_file "${CERT_PEM:-}" "/etc/pki/libvirt/clientcert.pem"         root root 0644
+gen_file "${CERT_CA:-}"  "/etc/pki/CA/cacert.pem"                  root root 0644
+EOF
