@@ -185,13 +185,11 @@ class LibvirtGuest(object):
         self.conn.close()
 
 def main(url, uuid):
-    server = None
     try:
-        server = SocketServer(uuid, url)
+        SocketServer(uuid, url).start()
     except Exception as e:
         print(f'Exeption {uuid} {str(e)}')
         sys.exit(-1)
-    server.start()
     return 0
 
 if __name__ == '__main__':
