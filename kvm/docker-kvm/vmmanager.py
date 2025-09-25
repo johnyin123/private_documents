@@ -169,7 +169,7 @@ class VMManager:
     @staticmethod
     def websockify(method:str, host:utils.FakeDB, uuid:str, disp:str='', expire:str=config.TMOUT_MINS_SOCAT, token:str='')->str:
         XMLDesc_Secure = None
-        socat_cmd = None
+        socat_cmd = ['timeout', '--preserve-status', '--verbose', f'{int(expire)}m' ]
         server = f'unix_socket:/tmp/.display.{uuid}'
         with utils.connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
@@ -177,21 +177,20 @@ class VMManager:
                 raise utils.APIException(f'vm {uuid} not running')
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
         if disp == 'console':
-            socat_cmd = ['timeout', '--preserve-status', '--verbose', f'{int(expire)}m',f'{os.path.abspath(os.path.dirname(__file__))}/console', host.url, uuid,]
+            socat_cmd += [f'{os.path.abspath(os.path.dirname(__file__))}/console', host.url, uuid,]
         else:
             for item in xml.dom.minidom.parseString(XMLDesc_Secure).getElementsByTagName('graphics'):
                 listen = item.getAttribute('listen')
                 port = item.getAttribute('port')
                 if listen == '127.0.0.1' or listen == 'localhost':
                     ssh_cmd = f'ssh -p {host.sshport} {host.sshuser}@{host.ipaddr} socat STDIO TCP:{listen}:{port}'
-                    socat_cmd = ['timeout', '--preserve-status', '--verbose',f'{int(expire)}m','socat', f'UNIX-LISTEN:/tmp/.display.{uuid},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',]
+                    socat_cmd += ['socat', f'UNIX-LISTEN:/tmp/.display.{uuid},unlink-early,reuseaddr,fork', f'EXEC:"{ssh_cmd}"',]
                 elif listen == '0.0.0.0':
                     server = f'{host.ipaddr}:{port}'
                 else:
                     raise utils.APIException(f'vm {uuid} graphic listen "{listen}" unknown')
         logger.debug(f'{uuid}, token={token}, disp={disp}, expire={expire}, server={server}, cmd={socat_cmd}')
-        if socat_cmd:
-            utils.ProcList.Run(uuid, socat_cmd)
+        utils.ProcList.Run(uuid, socat_cmd)
         utils.file_save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}'.encode('utf-8'))
         return utils.return_ok('websockify', uuid=uuid)
 

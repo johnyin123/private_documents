@@ -156,7 +156,7 @@ def deal_except(who:str, e:Exception) -> str:
         logger.error(f'{code} {who}: {type(e).__name__} {str(e)}')
     return return_err(code, who, str(e))
 
-def secure_link(kvmhost:str, uuid:str, mykey:str, minutes:str)->str:
+def secure_link(kvmhost:str, uuid:str, mykey:str, minutes:int)->str:
     epoch = round(time.time() + minutes*60)
     secure_link = f'{mykey}{epoch}{kvmhost}{uuid}'.encode('utf-8')
     shash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
