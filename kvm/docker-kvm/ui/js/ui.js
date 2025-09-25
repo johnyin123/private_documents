@@ -95,7 +95,7 @@ function genVmsTBL(item, host = null) {
     } else if (key === 'mdconfig') {
       const mdconfig = item[key];
       for(var mdkey in mdconfig) {
-        tbl += `<tr><th class="truncate">${mdkey}</th><td colspan="${colspan}" class="truncate">${mdconfig[mdkey]}</td>`;
+        tbl += `<tr><th class="truncate" title="mdconfig">${mdkey}#</th><td colspan="${colspan}" class="truncate">${mdconfig[mdkey]}</td>`;
         var btn = genActBtn(false, 'Modify mdconfig', 'Modify', 'modify_mdconfig', host, {'uuid':item.uuid,'key':mdkey});
         tbl += host ? `<td><div class="flex-group">${btn}</div></td></tr>`: `</tr>`;
       }
