@@ -358,7 +358,7 @@ class VMManager:
             mdconfig.update(req_json)
             meta_str = "".join(f'<{str(k)}>{str(v)}</{str(k)}>' for k, v in mdconfig.items())
             dom.setMetadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, f'<meta>{meta_str}</meta>', 'mdconfig', 'urn:iso-meta', dom_flags(domain.state),)
-        return utils.return_ok(f'set metadata', uuid=uuid)
+        return utils.return_ok(f'set metadata', uuid=uuid, warn='no metadata iso regenerate')
 
     @staticmethod
     def netstat(method:str, host:utils.FakeDB, uuid:str, dev:str)->str:
