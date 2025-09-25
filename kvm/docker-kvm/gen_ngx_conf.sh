@@ -251,6 +251,7 @@ EOF
 meta_data_srv() {
     local srv_name="${1}"
     local OUT_DIR=${2}
+    local SEC_KEY=${3}
     cat <<EOF
 }
 server {
@@ -267,6 +268,20 @@ server {
     location ^~ /gold { access_log off; log_not_found on; set \$limit 0; alias ${OUT_DIR}/gold/; }
     # /gold/uuid.iso => /gold/uuid.iso
     # /uuid.iso      => ${OUT_DIR}/iso/uuid.iso
+    location /store {
+        set \$mykey "${SEC_KEY}";
+        if (\$request_method !~ ^(PUT|DELETE)$ ) { return 444 "444 METHOD(PUT/DELETE)"; }
+        alias ${OUT_DIR}/gold/;
+        secure_link \$arg_k,\$arg_e;
+        secure_link_md5 "\$mykey\$secure_link_expires\$uri\$request_method";
+        if (\$secure_link = "") { return 403; }
+        if (\$secure_link = "0") { return 410; }
+        client_max_body_size 10000m;
+        # client_body_temp_path /tmp/client_temp;
+        dav_methods PUT DELETE;
+        create_full_put_path on;
+        dav_access group:rw all:r;
+    }
 }
 EOF
     return 0
@@ -294,9 +309,9 @@ combine=false
 "${combine}" && {
     tanent_api "${tanent_uri_prefix}" "${userkey}"
     tanent_ui "${tanent_uri_prefix}" "${outdir}" "${combine}"
-    meta_data_srv "${admin_srv_name}" "${outdir}"
+    meta_data_srv "${admin_srv_name}" "${outdir}" "G0ld&IS0sec#"
 } || {
-    meta_data_srv "${admin_srv_name}" "${outdir}"
+    meta_data_srv "${admin_srv_name}" "${outdir}" "G0ld&IS0sec#"
     https_cfg_header "${tanent_srv_name}"
     tanent_api "${tanent_uri_prefix}" "${userkey}"
     tanent_ui "${tanent_uri_prefix}" "${outdir}" "${combine}"
@@ -307,3 +322,24 @@ log "ENV: META_SRV"
 log "ENV: CTRL_PANEL_SRV"
 log "ENV: CTRL_PANEL_KEY"
 log "DATA_DIR=/dev/shm/simplekvm META_SRV=simplekvm.registry.local CTRL_PANEL_SRV=user.registry.local CTRL_PANEL_KEY='newpassword' ./gen_ngx_conf.sh"
+
+cat>&2 <<'EO_DEMO'
+mykey=${SEC_KEY}
+sec=3600
+secure_link_expires=$(date -d "+${sec} second" +%s)
+
+uri=/store/bookworm.amd64.qcow2
+
+request_method=PUT # DELETE
+secure_link_md5="$mykey$secure_link_expires$uri$request_method"
+putkey=$(echo -n "${secure_link_md5}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =)
+
+request_method=DELETE
+secure_link_md5="$mykey$secure_link_expires$uri$request_method"
+delkey=$(echo -n "${secure_link_md5}" | openssl md5 -binary | openssl base64 | tr +/ -_ | tr -d =)
+cat <<EOF
+curl --upload-file bigfile.iso "http://127.0.0.1:8999${uri}?k=${putkey}&e=${secure_link_expires}"
+curl -X PUT -d @bigfile.iso "http://127.0.0.1:8999${uri}?k=${putkey}&e=${secure_link_expires}"
+curl -X DELETE "http://127.0.0.1:8999${uri}?k=${delkey}&e=${secure_link_expires}"
+EOF
+EO_DEMO
