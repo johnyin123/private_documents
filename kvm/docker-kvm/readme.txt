@@ -133,9 +133,7 @@ cd ${uuid} && mkisofs -o ${uuid}.iso -V cidata -J -r user-data meta-data
 
 list_tpl_varset         : list domain(include meta), device tpl vars
 default_pool_redefine.sh: defile default pool directory /storage
-inotify.sh              : inotifywait sync iso & nocloud
 docker-libvirtd.sh      : gen libvirtd docker image
-inst_vmmgr_libvirtd.sh  : inst libvirtd docker image on linux hosts
 docker-vmmgr.sh         : gen vmmgr-api docker image
 inst_vmmgr_api_srv.sh   : inst vmmgr-api server(on docker or on vm)
 gen_ngx_conf            : gen nginx kvm.conf for vmmgr-api
@@ -161,29 +159,11 @@ DEBUG_LEVEL=2 DI_LOG=stderr /usr/libexec/cloud-init/ds-identify --force
 # useradd -m --password "$(openssl passwd -6 -salt xyz yourpass)" test1 -s /bin/bash
 if use NOCLOUD need dhcp, and meta server(ngx) on 169.254.169.254
 if use ISO no deed dhcp
-# <metadata>
-#   <mdconfig:meta xmlns:mdconfig="urn:iso-meta">
-#     <ipaddr>192.168.168.102/24</ipaddr>
-#     <gateway>192.168.168.10</gateway>
-#   </mdconfig:meta>
-# </metadata>
 ---------------------------------------------------------
-'~/.ssh/config
-StrictHostKeyChecking=no
-UserKnownHostsFile=/dev/null
-ControlMaster auto
-ControlPath  ~/.ssh/%r@%h:%p
-ControlPersist 600
-Port 60022
-Host 192.168.168.1
-    Ciphers aes256-ctr,aes192-ctr,aes128-ctr
-    MACs hmac-sha1
 qemu-img convert -f qcow2 -O raw tpl.qcow2 ssh://user@host:port/path/to/disk.img
 qemu-img convert -f qcow2 -O raw tpl.qcow2 rbd:cephpool/disk.raw:conf=/etc/ceph/ceph.conf
 qemu-img convert -p --image-opt file.driver=https,file.sslverify=off,file.url=https://vmm.registry.local/gold/openeuler_22.03sp1.amd64.qcow2 -W -m1 -O raw disk.raw
-
 ---------------------------------------------------------
-apt install websockify # python3-websockify
 websockify --token-plugin TokenFile --token-source ./token/ 6800
 virsh domdisplay xxx
 # vnc://127.0.0.1:0 5900 + port
@@ -192,8 +172,7 @@ echo 'vm1: 127.0.0.1:5900' > ./token/uuid.txt
 vnc_lite.html?host=192.168.168.1&port=6800&password=abc&path=websockify/?token=vm1
 https://vmm.registry.local/novnc/vnc_lite.html?password=abc&path=websockify/?token=vm1
 ---------------------------------------------------------
-srv=http://127.0.0.1:5009
-# srv=https://vmm.registry.local
+srv=http://127.0.0.1:5009 #https://vmm.registry.local
 echo 'list host' && curl -k ${srv}/tpl/host/ | jq '.[]|{name: .name, arch: .arch}'
 echo 'list iso' && curl -k ${srv}/tpl/iso/
 host=host01
@@ -291,7 +270,6 @@ echo 'list snapshot'       && curl -k "${srv}/vm/snapshot/${host}/${uuid}"
 echo 'delete snapshot'     && curl -k "${srv}/vm/delete_snapshot/${host}/${uuid}?name=snap01"
 echo 'revert snapshot'     && curl -k "${srv}/vm/revert_snapshot/${host}/${uuid}?name=<name>"
 ---------------------------------------------------------
----------------------------------------------------------
 1. create CA
     ${ca_root}/ca.key
     ${ca_root}/ca.pem
@@ -304,56 +282,17 @@ echo 'revert snapshot'     && curl -k "${srv}/vm/revert_snapshot/${host}/${uuid}
     ${cli_ssh}/id_rsa      #600 10001:10001
     ${cli_ssh}/id_rsa.pub  #644 10001:10001
     ${cli_ssh}/config      #644 10001:10001
-
-    docker create --name simplekvm \
-      --network br-int \
-      -v ${cli_pki}:/etc/pki/ \
-      -v ${ngx_ssl}:/etc/nginx/ssl \
-      -v ${cli_ssh}:/home/simplekvm/.ssh \
-      registry.local/libvirtd/simplekvm:trixie
+    # docker create in docker-vmmgr.sh
 
 3. libvirt srv cert/key
-    target=/kvm_srv
-    for dir in log vms pki secrets run/libvirt lib/libvirt; do install -v -d -m 0755 "${target}/${dir}"; done
     # file=kvm1.local
     install -v -C -m 0440 ca.pem       ${target}/pki/ca-cert.pem
     install -v -C -m 0440 ${file}.key  ${target}/pki/server-key.pem
     install -v -C -m 0440 ${file}.pem  ${target}/pki/server-cert.pem
+    # docker create in docker-libvirtd.sh
 ---------------------------------------------------------
----------------------------------------------------------
-# # cloud-init nocloud
-Method 1: Line configuration
-The “line configuration” is a single string of text which is passed to an instance at boot time via either the kernel command line or in the serial number exposed via DMI (sometimes called SMBIOS).
-Example:
-ds=nocloud;s=https://<host>/<path>/
-# A valid seedfrom value consists of a URI which must contain a trailing /.
-Available DMI variables for expansion in seedfrom URL
-        dmi.baseboard-asset-tag
-        dmi.baseboard-manufacturer
-        dmi.baseboard-version
-        dmi.bios-release-date
-        dmi.bios-vendor
-        dmi.bios-version
-        dmi.chassis-asset-tag
-        dmi.chassis-manufacturer
-        dmi.chassis-serial-number
-        dmi.chassis-version
-        dmi.system-manufacturer
-        dmi.system-product-name
-        dmi.system-serial-number
-        dmi.system-uuid
-        dmi.system-version
-
 # -smbios type=1,serial=ds=nocloud;s=http://ip:port/__dmi.system-uuid__/
 https://IP:PORT/uuid/meta-data
 https://IP:PORT/uuid/user-data
 https://IP:PORT/uuid/vendor-data
 https://IP:PORT/uuid/network-config
-
-# mysql_secure_installation
-# cat <<EOF | mysql -uroot -p<Pass>
-# CREATE DATABASE kvm;
-# GRANT ALL PRIVILEGES ON kvm.* TO 'admin'@'localhost' IDENTIFIED BY IDENTIFIED BY 'password';
-# GRANT ALL PRIVILEGES ON kvm.* TO 'admin'@'%' IDENTIFIED BY 'password';
-# flush privileges;
-# EOF
