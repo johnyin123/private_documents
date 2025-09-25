@@ -352,19 +352,13 @@ class VMManager:
 
     @staticmethod
     def metadata(method:str, host:utils.FakeDB, uuid:str, req_json)->str:
-        doc = xml.dom.minidom.Document()
-        meta_root = doc.createElement("meta")
-        doc.appendChild(meta_root)
         with utils.connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
             mdconfig = domain.mdconfig
             mdconfig.update(req_json)
-            for k, v in mdconfig.items():
-                element = doc.createElement(str(k))
-                element.appendChild(doc.createTextNode(str(v)))
-                meta_root.appendChild(element)
-            dom.setMetadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, doc.toxml(), 'mdconfig', 'urn:iso-meta', dom_flags(domain.state),)
+            meta_str = "".join(f'<{str(k)}>{str(v)}</{str(k)}>' for k, v in mdconfig.items())
+            dom.setMetadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, f'<meta>{meta_str}</meta>', 'mdconfig', 'urn:iso-meta', dom_flags(domain.state),)
         return utils.return_ok(f'set metadata', uuid=uuid)
 
     @staticmethod
