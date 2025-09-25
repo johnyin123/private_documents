@@ -10,7 +10,7 @@ class SHM_KVMGuest(utils.ShmListStore):
             self.insert(kvmhost=kvmhost, arch=arch, **rec)
 
 class SHM_KVMVar(utils.ShmListStore):
-    def get_desc(self, var):
+    def get_desc(self, var) -> str:
         try:
             return self.get_one(var=var).desc
         except:
@@ -23,7 +23,7 @@ KVMIso    = utils.ShmListStore()
 KVMVar    = SHM_KVMVar()
 KVMGuest  = SHM_KVMGuest()
 
-def reload_all():
+def reload_all() -> None:
     cfg_class={
         os.path.join(config.DATA_DIR, 'hosts.json')  :KVMHost,
         os.path.join(config.DATA_DIR, 'devices.json'):KVMDevice,
@@ -31,7 +31,7 @@ def reload_all():
         os.path.join(config.DATA_DIR, 'iso.json')    :KVMIso,
         os.path.join(config.DATA_DIR, 'vars.json')   :KVMVar,
     }
-    def updater_cb(fname:str, content):
+    def updater_cb(fname:str, content) -> None:
         if content:
             logger.info(f'Update {fname} from etcd')
             utils.file_save(fname, content)

@@ -182,7 +182,7 @@ class EtcdConfig:
         return key
 
     @classmethod
-    def etcd_del(cls, fname:str):
+    def etcd_del(cls, fname:str) -> None:
         key = cls.fname2key(fname, 'ETCD DEL')
         try:
             with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
@@ -196,7 +196,7 @@ class EtcdConfig:
             raise APIException(f'ETCD DEL {fname} -> {key} [{config.ETCD_SRV}:{config.ETCD_PORT} {e}]')
 
     @classmethod
-    def etcd_save(cls, fname:str, val):
+    def etcd_save(cls, fname:str, val) -> None:
         key = cls.fname2key(fname, 'ETCD PUT')
         try:
             with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
@@ -210,7 +210,7 @@ class EtcdConfig:
             raise APIException(f'ETCD PUT {fname} -> {key} [{config.ETCD_SRV}:{config.ETCD_PORT} {e}]')
 
     @classmethod
-    def cfg_updater_proc(cls, update_callback):
+    def cfg_updater_proc(cls, update_callback) -> None:
         while True:
             logger.warn(f'ETCD WATCH PREFIX PID={os.getpid()} START')
             try:
@@ -231,7 +231,7 @@ class EtcdConfig:
             time.sleep(60) # Wait before retrying
 
     @classmethod
-    def cfg_initupdate(cls, update_callback):
+    def cfg_initupdate(cls, update_callback) -> None:
         with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
             logger.warn(f'ETCD INIT SYNC START {datetime.datetime.now().isoformat()}')
             for _, meta in etcd.get_prefix(config.ETCD_PREFIX, keys_only=True):

@@ -318,7 +318,7 @@ class VMManager:
 
     @staticmethod
     def ui(method:str, host:utils.FakeDB, uuid:str, epoch:str)->str:
-        tmout = (int(epoch) - datetime.datetime.now().timestamp()) // 60
+        tmout = int((int(epoch) - datetime.datetime.now().timestamp()) // 60)
         access_tok = utils.secure_link(host.name, uuid, config.CTRL_PANEL_KEY, tmout)
         return utils.return_ok('console ui', uuid=uuid, url=config.URI_CTRL_PANEL, token=access_tok, expire=f'{datetime.datetime.fromtimestamp(int(epoch))}')
 
