@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 meta_add = utils.EtcdConfig.etcd_save if config.ETCD_PREFIX else utils.file_save
 meta_del = utils.EtcdConfig.etcd_del  if config.ETCD_PREFIX else utils.file_remove
 
-def del_metafiles(uuid):
+def del_metafiles(uuid)->None:
     logger.info(f'Delete meta {uuid}')
     meta_del(os.path.join(config.DIR_CIDATA, uuid))
 
