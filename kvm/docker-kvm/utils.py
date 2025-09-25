@@ -126,19 +126,19 @@ def login_name(authorization:str)-> str:
         authorization = authorization.split(' ')[1]
     return decode_jwt(authorization).get('payload', {}).get('username', 'n/a')
 
-def file_load(fname:str):
+def file_load(fname:str)-> bytes:
     with open(fname, 'rb') as file:
         return file.read()
 
-def file_save(filename:str, content)->None:
+def file_save(filename:str, content:bytes)->None:
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     with open(filename, "wb") as f:
         f.write(content)
 
-def file_remove(fn:str):
+def file_remove(fn:str)-> None:
     try:
         os.rename(fn, f'{fn}.remove')
-    except:
+    except OSError:
         pass
 
 def return_ok(desc:str, **kwargs)->str:
@@ -156,7 +156,7 @@ def deal_except(who:str, e:Exception) -> str:
         logger.error(f'{code} {who}: {type(e).__name__} {str(e)}')
     return return_err(code, who, str(e))
 
-def secure_link(kvmhost, uuid, mykey, minutes):
+def secure_link(kvmhost:str, uuid:str, mykey:str, minutes:str)->str:
     epoch = round(time.time() + minutes*60)
     secure_link = f'{mykey}{epoch}{kvmhost}{uuid}'.encode('utf-8')
     shash = base64.urlsafe_b64encode(hashlib.md5(secure_link).digest()).decode('utf-8').rstrip('=')
