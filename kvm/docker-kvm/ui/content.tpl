@@ -16,6 +16,24 @@
   </div>
 </div>
 <!-- ############## -->
+<div id="modifymdconfig" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>Modify Metadata</h2>
+      <button title="Close" onclick="showView('manage_vm')">&times;</button>
+    </div>
+    <form onSubmit="return on_modifymdconfig(this)" onkeydown="if(event.keyCode === 13){return false;}">
+      <fieldset><legend>Meta</legend>
+        <div class="flex-group" id="div-metadata"></div>
+      </fieldset>
+      <div class="flex-group">
+        <input type="reset" value="Reset"/>
+        <input type="submit" value="Submit"/>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
 <div id="vmuimail" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">

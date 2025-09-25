@@ -89,7 +89,7 @@ admin_api() {
             proxy_request_buffering            off;
             proxy_pass http://api_srv/vm/\$apicmd/\$others\$is_args\$args;
         }
-        location ~* ^${PRE}/vm/(?<apicmd>(create|attach_device|detach_device|cdrom))/(?<others>.*)$ {
+        location ~* ^${PRE}/vm/(?<apicmd>(create|attach_device|detach_device|cdrom|metadata))/(?<others>.*)$ {
             if (\$request_method !~ ^(POST)$) { return 405; }
             # # for server stream output
             proxy_buffering                    off;

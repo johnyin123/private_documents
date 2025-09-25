@@ -351,6 +351,23 @@ class VMManager:
             return utils.return_ok(f'setVcpus', uuid=uuid)
 
     @staticmethod
+    def metadata(method:str, host:utils.FakeDB, uuid:str, req_json)->str:
+        doc = xml.dom.minidom.Document()
+        meta_root = doc.createElement("meta")
+        doc.appendChild(meta_root)
+        with utils.connect(host.url) as conn:
+            dom = conn.lookupByUUIDString(uuid)
+            domain = LibvirtDomain(dom)
+            mdconfig = domain.mdconfig
+            mdconfig.update(req_json)
+            for k, v in mdconfig.items():
+                element = doc.createElement(str(k))
+                element.appendChild(doc.createTextNode(str(v)))
+                meta_root.appendChild(element)
+            dom.setMetadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, doc.toxml(), 'mdconfig', 'urn:iso-meta', dom_flags(domain.state),)
+        return utils.return_ok(f'set metadata', uuid=uuid)
+
+    @staticmethod
     def netstat(method:str, host:utils.FakeDB, uuid:str, dev:str)->str:
         with utils.connect(host.url) as conn:
             dom = conn.lookupByUUIDString(uuid)

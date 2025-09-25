@@ -86,16 +86,18 @@ function genVmsTBL(item, host = null) {
       const nets = item[key];
       nets.forEach(net => {
         tbl += `<tr><th class="truncate">${net.model}:${net.type}</th><td colspan="${colspan}" class="truncate" title="${net.mac}">${net.mac}</td>`;
-        var remove_btn = genActBtn(false, 'Remove netcard', 'Remove', 'del_device', host, {'uuid':item.uuid, 'dev':net.mac});
+        var btn = genActBtn(false, 'Remove netcard', 'Remove', 'del_device', host, {'uuid':item.uuid, 'dev':net.mac});
         if (item['state'] === 'RUN') {
-            remove_btn += genActBtn(false, 'Net Stats', 'NetStats', 'netstats', host, {'uuid':item.uuid, 'dev':net.mac});
+            btn += genActBtn(false, 'Net Stats', 'NetStats', 'netstats', host, {'uuid':item.uuid, 'dev':net.mac});
         }
-        tbl += host ? `<td><div class="flex-group">${remove_btn}</div></td></tr>`: `</tr>`;
+        tbl += host ? `<td><div class="flex-group">${btn}</div></td></tr>`: `</tr>`;
       });
     } else if (key === 'mdconfig') {
       const mdconfig = item[key];
       for(var mdkey in mdconfig) {
-        tbl += `<tr><th class="truncate">${mdkey}</th><td colspan="3" class="truncate">${mdconfig[mdkey]}</td></tr>`;
+        tbl += `<tr><th class="truncate">${mdkey}</th><td colspan="${colspan}" class="truncate">${mdconfig[mdkey]}</td>`;
+        var btn = genActBtn(false, 'Modify mdconfig', 'Modify', 'modify_mdconfig', host, {'uuid':item.uuid,'key':mdkey});
+        tbl += host ? `<td><div class="flex-group">${btn}</div></td></tr>`: `</tr>`;
       }
     } else if (key === 'uuid' && host) {
       var btn = genActBtn(false, 'List Snapshot', 'Snapshots', 'snap_list', host, {'uuid':item.uuid});
@@ -581,6 +583,15 @@ function on_modifyvcpus(form) {
   });
   return false;
 }
+function on_modifymdconfig(form) {
+  const res = getFormJSON(form);
+  getjson('POST', `${uri_pre}/vm/metadata/${curr_host()}/${curr_vm()}`,function(resp) {
+    getjson_result(resp);
+    manage_vm(curr_host(), curr_vm());
+  }, res);
+  return false;
+}
+
 function snap_create(host, uuid, btn) {
   if (confirm(`Create snapshot /${host}/${uuid} ?`)) {
     getjson('POST', `${uri_pre}/vm/snapshot/${host}/${uuid}`, function(resp) {
@@ -627,6 +638,12 @@ function snap_list(host, uuid, btn) {
 function modify_vcpus(host, uuid, btn) {
   set_curr(host, uuid);
   showView('modifyvcpus');
+}
+function modify_mdconfig(host, uuid, key, btn) {
+  set_curr(host, uuid);
+  const div = document.getElementById('div-metadata');
+  div.innerHTML = `<label>${key}:<input type="text" name="${key}"/></label>`;
+  showView('modifymdconfig');
 }
 function netstats(host, uuid, dev, btn) {
   set_curr(host, uuid, dev);

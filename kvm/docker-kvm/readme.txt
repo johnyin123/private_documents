@@ -214,7 +214,12 @@ echo 'create vm' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X PO
  "vm_gw":"192.168.168.1"
 }
 EOF
-
+echo 'update metadata' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/vm/metadata/${host}/${uuid}
+{
+ "key1":1,
+ "key2":"val"
+}
+EOF
 # uuid=xxxx
 echo 'list device allhost' && curl -k ${srv}/tpl/device/ | jq '.[]|{name: .name, type: .devtype}'
 echo 'list device on host' && curl -k ${srv}/tpl/device/${host} | jq '.[]|{name: .name, type: .devtype}'
