@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 import libvirt, json, os, logging, base64, hashlib, datetime, contextlib
-import multiprocessing, threading, subprocess, signal, time, signal
+import multiprocessing, threading, subprocess, signal, time
 logger = logging.getLogger(__name__)
 my_manager = multiprocessing.Manager()
 
