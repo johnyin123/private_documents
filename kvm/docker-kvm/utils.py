@@ -19,35 +19,29 @@ class FakeDB:
 class ShmListStore:
     def __init__(self):
         self.cache = my_manager.list()
-        self.lock = multiprocessing.Lock()
 
     def insert(self, **kwargs) -> None:
-        with self.lock:
-            self.cache.append(my_manager.dict(**kwargs))
+        self.cache.append(my_manager.dict(**kwargs))
 
     def delete(self, **kwargs) -> None:
-        with self.lock:
-            self.cache[:] = [item for item in self.cache if not all(item.get(key) == value for key, value in kwargs.items())]
+        self.cache[:] = [item for item in self.cache if not all(item.get(key) == value for key, value in kwargs.items())]
 
     def reload(self, arr) -> None:
-        with self.lock:
-            self.cache[:] = [my_manager.dict(item) for item in arr]
+        self.cache[:] = [my_manager.dict(item) for item in arr]
 
     def get_one(self, **criteria) -> FakeDB:
-        with self.lock:
-            data = self.cache
-            for key, val in criteria.items():
-                data = search(data, key, val)
-            if len(data) == 1:
-                return FakeDB(**dict(data[0]))
-            raise APIException(f'entry not found or not unique: {criteria}')
+        data = self.cache
+        for key, val in criteria.items():
+            data = search(data, key, val)
+        if len(data) == 1:
+            return FakeDB(**dict(data[0]))
+        raise APIException(f'entry not found or not unique: {criteria}')
 
     def list_all(self, **criteria):
-        with self.lock:
-            data = self.cache
-            for key, val in criteria.items():
-                data = search(data, key, val)
-            return [FakeDB(**dict(entry)) for entry in data]
+        data = self.cache
+        for key, val in criteria.items():
+            data = search(data, key, val)
+        return [FakeDB(**dict(entry)) for entry in data]
 
 def libvirt_callback(ctx, err):
     pass
