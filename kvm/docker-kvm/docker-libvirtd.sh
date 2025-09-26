@@ -173,13 +173,13 @@ docker create --name libvirtd --restart always --network host \\
     --hostname ${hostname} \\
     --add-host ${hostname}:127.0.0.1 \\
     --add-host ${META_SRV}:${meta_srv_addr} \\
-    -v ${libvirtd_env}/ca.pem:/etc/libvirt/pki/ca-cert.pem \\
-    -v ${libvirtd_env}/kvmsrvs.key:/etc/libvirt/pki/server-key.pem \\
-    -v ${libvirtd_env}/kvmsrvs.pem:/etc/libvirt/pki/server-cert.pem \\
-    -v ${libvirtd_env}/domains-xml:/etc/libvirt/qemu \\
-    -v ${libvirtd_env}/secrets-xml:/etc/libvirt/secrets \\
-    -v ${libvirtd_env}/storage-xml:/etc/libvirt/storage \\
-    -v /storage:/storage \\
+    -v ${libvirtd_env}/ca.pem:/etc/libvirt/pki/ca-cert.pem:ro \\
+    -v ${libvirtd_env}/kvmsrvs.key:/etc/libvirt/pki/server-key.pem:ro \\
+    -v ${libvirtd_env}/kvmsrvs.pem:/etc/libvirt/pki/server-cert.pem:ro \\
+    -v ${libvirtd_env}/domains-xml:/etc/libvirt/qemu:rw \\
+    -v ${libvirtd_env}/secrets-xml:/etc/libvirt/secrets:rw \\
+    -v ${libvirtd_env}/storage-xml:/etc/libvirt/storage:rw \\
+    -v /storage:/storage:rw \\
     registry.local/libvirtd/kvm:trixie
 
     # # runtime
