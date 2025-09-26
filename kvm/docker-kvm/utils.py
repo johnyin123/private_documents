@@ -59,29 +59,28 @@ class ProcList:
     def wait_proc(uuid:str, cmd:List, redirect:bool = True, req_json: dict = {}, **kwargs)-> Generator:
         try:
             for p in ProcList.pids.list_all(uuid=uuid):
-                logger.info(f'PROC: {uuid} {p} found, kill!!')
+                logger.info(f'PROC: {uuid} {p} found, kill all!!')
                 os.kill(p.pid, signal.SIGTERM)
+                ProcList.pids.delete(uuid=uuid, pid=p.pid)
         except Exception as e:
             logger.error(f'PROC: {uuid} KILL {type(e).__name__} {str(e)}')
-        ProcList.pids.delete(uuid=uuid)
-        try:
-            output = subprocess.STDOUT if redirect else subprocess.PIPE
-            with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
-                pid = proc.pid
-                ProcList.pids.insert(uuid=uuid, pid=pid, cmd=cmd)
-                logger.info(f'PROC: {uuid} PID={pid} {cmd} start!!!')
+        output = subprocess.STDOUT if redirect else subprocess.PIPE
+        with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
+            try:
+                ProcList.pids.insert(uuid=uuid, pid=proc.pid, cmd=cmd)
+                logger.info(f'PROC: {uuid} PID={proc.pid} {cmd} start!!!')
                 json.dump(req_json, proc.stdin, indent=4) # proc.stdin.write(req_json)
                 proc.stdin.close()
                 for line in proc.stdout:
                     yield line
                 proc.wait()
                 if proc.returncode == 0:
-                    logger.info(f'PROC: {uuid} PID={pid} {cmd} exit ok!!!')
+                    logger.info(f'PROC: {uuid} PID={proc.pid} {cmd} exit ok!!!')
                 else:
                     msg = ''.join(proc.stderr if not redirect else [])
-                    raise APIException(f'PROC: {uuid} PID={pid} {cmd} error={proc.returncode if proc.returncode > 0 else signal.Signals(-proc.returncode).name} {msg}')
-        finally:
-            ProcList.pids.delete(uuid=uuid)
+                    raise APIException(f'PROC: {uuid} PID={proc.pid} {cmd} exit error={proc.returncode if proc.returncode > 0 else signal.Signals(-proc.returncode).name} {msg}')
+            finally:
+                ProcList.pids.delete(uuid=uuid, pid=proc.pid)
 
     @staticmethod
     def Run(uuid:str, cmd:List)->None:
