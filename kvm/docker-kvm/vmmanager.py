@@ -358,6 +358,7 @@ class VMManager:
             mdconfig.update(req_json)
             meta_str = "".join(f'<{str(k)}>{str(v)}</{str(k)}>' for k, v in mdconfig.items())
             dom.setMetadata(libvirt.VIR_DOMAIN_METADATA_ELEMENT, f'<meta>{meta_str}</meta>', 'mdconfig', 'urn:iso-meta', dom_flags(domain.state),)
+            # mdconfig.update({'vm_uuid':uuid})
             # meta.gen_metafiles(**mdconfig)
         return utils.return_ok(f'set metadata', uuid=uuid, warn='no metadata iso regenerate')
 
