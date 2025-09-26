@@ -190,7 +190,7 @@ class VMManager:
                 else:
                     raise utils.APIException(f'vm {uuid} graphic listen "{listen}" unknown')
         logger.debug(f'{uuid}, token={token}, disp={disp}, expire={expire}, server={server}, cmd={socat_cmd}')
-        utils.ProcList.Run(uuid, socat_cmd)
+        utils.ProcList.Run(uuid, socat_cmd, int(expire)*60)
         utils.file_save(os.path.join(config.TOKEN_DIR, uuid), f'{uuid}: {server}'.encode('utf-8'))
         return utils.return_ok('websockify', uuid=uuid)
 
@@ -256,7 +256,7 @@ class VMManager:
                 with utils.connect(host.url) as conn:
                     req_json['vm_last_disk'] = LibvirtDomain(conn.lookupByUUIDString(uuid)).next_disk[bus_type]
             if device.action is not None and len(device.action) != 0:
-                for line in utils.ProcList.wait_proc(uuid, cmd, False, req_json, **env):
+                for line in utils.ProcList.wait_proc(uuid, cmd, 0, False, req_json, **env):
                     logger.debug(line.strip())
                     yield line
             with utils.connect(host.url) as conn:

@@ -56,7 +56,7 @@ class ProcList:
     pids = ShmListStore()
 
     @staticmethod
-    def wait_proc(uuid:str, cmd:List, redirect:bool = True, req_json: dict = {}, **kwargs)-> Generator:
+    def wait_proc(uuid:str, cmd:List, tmout:int=0, redirect:bool=True, req_json:dict={}, **kwargs)-> Generator:
         try:
             for p in ProcList.pids.list_all(uuid=uuid):
                 logger.info(f'PROC: {uuid} {p} found, kill all!!')
@@ -68,7 +68,7 @@ class ProcList:
         with subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=output, text=True, env=kwargs) as proc:
             try:
                 ProcList.pids.insert(uuid=uuid, pid=proc.pid, cmd=cmd)
-                logger.info(f'PROC: {uuid} PID={proc.pid} {cmd} start!!!')
+                logger.info(f'PROC: {uuid} timeout={tmout} PID={proc.pid} {cmd} start!!!')
                 json.dump(req_json, proc.stdin, indent=4) # proc.stdin.write(req_json)
                 proc.stdin.close()
                 for line in proc.stdout:
@@ -84,16 +84,16 @@ class ProcList:
                 ProcList.pids.delete(uuid=uuid, pid=proc.pid)
 
     @staticmethod
-    def Run(uuid:str, cmd:List)->None:
-        def run_thread(uuid:str, cmd:List):
+    def Run(uuid:str, cmd:List, tmout:int)->None:
+        def run_thread(uuid:str, cmd:List, tmout:int):
             try:
-                for line in ProcList.wait_proc(uuid, cmd):
+                for line in ProcList.wait_proc(uuid, cmd, tmout):
                     logger.info(line)
             except Exception as e:
                 logger.error(f'{uuid} {cmd}: {type(e).__name__} {str(e)}')
 
         # Daemon threads automatically terminate when the main program exits.
-        threading.Thread(target=run_thread, args=(uuid, cmd,), daemon=True).start()
+        threading.Thread(target=run_thread, args=(uuid, cmd, tmout,), daemon=True).start()
         time.sleep(0.3)  # sleep for wait process startup
 
 def search(arr, key, val):
