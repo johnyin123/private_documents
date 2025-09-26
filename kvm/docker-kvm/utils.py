@@ -80,6 +80,7 @@ class ProcList:
                     msg = ''.join(proc.stderr if not redirect else [])
                     raise APIException(f'PROC: {uuid} PID={proc.pid} {cmd} exit error={proc.returncode if proc.returncode > 0 else signal.Signals(-proc.returncode).name} {msg}')
             finally:
+                proc.terminate() # Ensure termination if still running
                 ProcList.pids.delete(uuid=uuid, pid=proc.pid)
 
     @staticmethod
