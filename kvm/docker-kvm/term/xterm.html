@@ -6,9 +6,10 @@
  <title>Serial Console</title>
  <link rel="stylesheet" href="xterm.css" />
  <script src="xterm.js"></script>
+ <script src="xterm-addon-fit.js"></script>
 </head>
 <body>
-<div id="terminal"></div>
+<div id="terminal" style="width:95vw;height:90vh;margin: 0 auto;"></div>
 <script>
 function readQueryVariable(name, defaultValue) {
   const re = new RegExp('.*[?&]' + name + '=([^&#]*)'), match = ''.concat(document.location.href, window.location.hash).match(re);
@@ -32,8 +33,16 @@ if(port) {
     url += ':' + port;
 }
 url += '/' + path;
+
+const terminalContainer = document.getElementById('terminal');
 const terminal = new Terminal();
-terminal.open(document.getElementById('terminal'));
+const fitAddon = new FitAddon.FitAddon();
+terminal.loadAddon(fitAddon);
+terminal.open(terminalContainer);
+fitAddon.fit();
+window.addEventListener('resize', () => {
+    fitAddon.fit();
+});
 // Connect to the WebSocket server
 const socket = new WebSocket(url);
 // When a message is received from the WebSocket, write it to the terminal
