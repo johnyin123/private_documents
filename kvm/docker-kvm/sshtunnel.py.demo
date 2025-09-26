@@ -839,3 +839,49 @@ def get_config() -> Config:
         ETCD_KEY    = os.environ.get('ETCD_KEY', None),
         ETCD_CERT   = os.environ.get('ETCD_CERT', None),
     )
+
+
+import subprocess, threading
+cmd = ['ping', '192.168.1.11']
+proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+my_timer = threading.Timer(5, proc.kill)
+
+try:
+    my_timer.start()
+    proc.stdin.close()
+    for line in proc.stdout:
+        logger.info(line)
+    proc.wait()
+finally:
+    my_timer.cancel()
+
+
+import asyncio
+async def stream_subprocess(cmd: list[str], timeout: int = 10, msg:str='')->Generator:
+    proc = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.STDOUT,
+    )
+    try:
+        if timeout > 0:
+            async with asyncio.timeout(timeout):
+                async for line in proc.stdout:
+                    yield line.decode().rstrip()
+        else:
+            async for line in proc.stdout:
+                yield line.decode().rstrip()
+    except asyncio.TimeoutError:
+        print(f'{msg} [Process killed: timeout exceeded]')
+    finally:
+        if proc.returncode is None:  # still running
+            proc.kill()
+            await proc.wait()
+
+# Example usage
+async def main(msg):
+    async for line in stream_subprocess(["ping", "-c", "5", "192.168.1.11"], timeout=3, msg=msg):
+        print(">>", line)
+
+asyncio.run(main('msg---'))
+
