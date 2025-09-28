@@ -44,4 +44,5 @@ def reload_all() -> None:
     if config.ETCD_PREFIX:
         utils.EtcdConfig.cfg_initupdate(updater_cb)
     for key, clz in cfg_class.items():
-        clz.reload(json.loads(utils.file_load(key)))
+        if os.path.exists(key):
+            clz.reload(json.loads(utils.file_load(key)))
