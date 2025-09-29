@@ -182,6 +182,7 @@ div.flex-group {
   text-decoration: inherit;
 }
 :root {
+  --fa-cog:"\f013";
   --fa-ambulance:"\f0f9";
   --fa-share-alt:"\f1e0";
   --fa-at:"\f1fa";

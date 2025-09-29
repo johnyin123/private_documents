@@ -2,6 +2,27 @@
 <!-- ############## -->
 <dialog id="alert" closedby="any"></dialog>
 <!-- ############## -->
+<div id="configuration" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>Backup/Restore</h2>
+      <button title="Close" onclick="showView('hostlist');flush_sidebar('ALL VMS');">&times;</button>
+    </div>
+    <form action="/backup/" method="get" target="_blank">
+      <div class="flex-group">
+        <input type="submit" value="Download">
+      </div>
+    </form>
+    <form action="/restore/" method="post" target="_blank" enctype="multipart/form-data" onkeydown="if(event.keyCode === 13){return false;}">
+      <input type="file" name="file">
+      <div class="flex-group">
+        <input type="reset" value="Reset"/>
+        <input type="submit" value="Restore">
+      </div>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
 <div id="manage_vm" class="tabContent">
   <div class="machine-container">
     <div class="vms-container" id="vm_info"></div>

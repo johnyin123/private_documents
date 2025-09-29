@@ -718,7 +718,8 @@ window.addEventListener('load', function() {
     const result = JSON.parse(resp);
     if(result.result !== 'OK') { Alert('error', 'init', 'Get Host List'); return; }
     config.g_host = result.host;
-    var mainMenu = `<a href='#' onclick='vmlist("ALL VMS")' class="iconbtn" style="--icon:var(--fa-list-ol);"><span name='host'>ALL VMS</span><span style='float:right;' name='count'></span></a>`;
+    var mainMenu =`<a href='#' onclick='showView("configuration");flush_sidebar("CONFIG");' class="iconbtn" style="--icon:var(--fa-cog);"><span name='host'>CONFIG</span></a>`;
+    mainMenu += `<a href='#' onclick='vmlist("ALL VMS")' class="iconbtn" style="--icon:var(--fa-list-ol);"><span name='host'>ALL VMS</span><span style='float:right;' name='count'></span></a>`;
     config.g_host.forEach(host => {
       mainMenu += `<a href='#' title="${host.arch}" onclick='vmlist("${host.name}")' class="iconbtn" style="--icon:var(--fa-desktop);"><span name='host'>${host.name}</span><span style='float:right;' name='count'></span></a>`;
     });
