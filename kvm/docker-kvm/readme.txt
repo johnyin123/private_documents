@@ -269,6 +269,9 @@ echo 'create snapshot'     && curl -k -X POST -d '{}' "${srv}/vm/snapshot/${host
 echo 'list snapshot'       && curl -k "${srv}/vm/snapshot/${host}/${uuid}"
 echo 'delete snapshot'     && curl -k "${srv}/vm/delete_snapshot/${host}/${uuid}?name=snap01"
 echo 'revert snapshot'     && curl -k "${srv}/vm/revert_snapshot/${host}/${uuid}?name=<name>"
+echo 'backup' && curl -k ${srv}/backup/ -o backup.tgz
+# restore on overwrite files exists in backup.tgz, others keep
+echo 'restore' && curl -k -X POST -F 'file=@backup.tgz' ${srv}/restore/
 ---------------------------------------------------------
 1. create CA
     ${ca_root}/ca.key

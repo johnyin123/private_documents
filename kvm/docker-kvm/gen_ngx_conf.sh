@@ -50,6 +50,14 @@ admin_api() {
     local AUTH=${3:-}
     cat <<EOF
     ${AUTH}include /etc/nginx/http-enabled/jwt_sso_auth.inc;
+    location ~* ^/(backup|restore)/$ {
+        # # no cache!! mgr private access
+        proxy_cache off;
+        expires off;
+        proxy_read_timeout 240s;
+        client_max_body_size 100m;
+        proxy_pass http://api_srv;
+    }
     location ${PRE}/tpl/ {
         # # proxy cache default is on, so modify host|device|gold, should clear ngx cache
         ${AUTH}auth_request @sso-auth;

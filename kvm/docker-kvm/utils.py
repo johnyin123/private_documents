@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 import libvirt, json, os, logging, base64, hashlib, datetime, contextlib
-import multiprocessing, threading, subprocess, signal, time
+import multiprocessing, threading, subprocess, signal, time, tarfile
+try:
+    from cStringIO import StringIO as BytesIO
+except ImportError:
+    from io import BytesIO
 logger = logging.getLogger(__name__)
 my_manager = multiprocessing.Manager()
 
@@ -199,9 +203,34 @@ class EtcdConfig:
                         logger.info(f'ETCD PUT {fname} -> {key}')
                         etcd.put(key, val)
                     else:
-                        logger.info(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
+                        raise APIException(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
         except Exception as e:
             raise APIException(f'ETCD PUT {fname} -> {key} [{config.ETCD_SRV}:{config.ETCD_PORT} {e}]')
+
+    @classmethod
+    def backup_tgz(cls)->BytesIO:
+        file_obj = BytesIO()
+        with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
+            with tarfile.open(mode="w:gz", fileobj=file_obj) as tar:
+                for _, meta in etcd.get_prefix(config.ETCD_PREFIX, keys_only=True):
+                    content, _ = etcd.get(meta.key)
+                    tarinfo = tarfile.TarInfo(meta.key.decode('utf-8').removeprefix(config.ETCD_PREFIX).strip('/'))
+                    tarinfo.size = len(content)
+                    tar.addfile(tarinfo, BytesIO(content))
+        file_obj.seek(0)
+        return file_obj
+
+    @classmethod
+    def restore_tgz(cls, file_obj:BytesIO)->None:
+        try:
+            with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
+                for member in tar.getmembers():
+                    if member.isreg():
+                        with tar.extractfile(member) as f:
+                            logger.debug(f'ETCD restore {member.name}')
+                            cls.etcd_save(member.name, f.read())
+        except tarfile.ReadError as e:
+            raise APIException(f'Invalid tarfile format {str(e)}')
 
     @classmethod
     def cfg_updater_proc(cls, update_callback) -> None:

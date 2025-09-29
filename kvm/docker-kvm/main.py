@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import flask_app, flask, os, json, logging
+import flask_app, flask, os, json, logging, datetime
 import database, vmmanager, config, template, utils
-# database = importlib.import_module(f"database_{os.environ.get('PERSISTENT','SHM').lower()}")
+try:
+    from cStringIO import StringIO as BytesIO
+except ImportError:
+    from io import BytesIO
 logger = logging.getLogger(__name__)
 
 class MyApp(object):
@@ -36,11 +39,31 @@ class MyApp(object):
         app.add_url_rule('/tpl/device/', view_func=self.db_list_device, methods=['GET'])
         app.add_url_rule('/tpl/gold/<string:arch>', view_func=self.db_list_gold, methods=['GET'])
         app.add_url_rule('/tpl/device/<string:hostname>', view_func=self.db_list_device, methods=['GET'])
-        ## start db oper guest ##
-        app.add_url_rule('/vm/list/', view_func=self.db_list_domains, methods=['GET'])
-        ## end db oper guest ##
         app.add_url_rule('/vm/<string:cmd>/<string:hostname>', view_func=self.exec_domain_cmd, methods=['GET', 'POST'])
         app.add_url_rule('/vm/<string:cmd>/<string:hostname>/<string:uuid>', view_func=self.exec_domain_cmd, methods=['GET', 'POST'])
+        ## db oper guest ##
+        app.add_url_rule('/vm/list/', view_func=self.db_list_domains, methods=['GET'])
+        ## etcd config backup/restore ##
+        app.add_url_rule('/backup/', view_func=self.cfg_download, methods=['GET'])
+        app.add_url_rule('/restore/', view_func=self.cfg_upload, methods=['POST'])
+
+    def cfg_download(self):
+        def generate_tar():
+            file_obj = utils.EtcdConfig.backup_tgz()
+            while True:
+                chunk = file_obj.read(4096)
+                if not chunk:
+                    break
+                yield chunk
+        return flask.Response(generate_tar(), mimetype='application/gzip', headers={'Content-Disposition': f'attachment; filename={datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.tgz'})
+
+    def cfg_upload(self):
+        # restore on overwrite files exists in backup.tgz, others keep
+        try:
+            utils.EtcdConfig.restore_tgz(BytesIO(flask.request.files['file'].read()))
+            return utils.return_ok(f'restore config ok')
+        except Exception as e:
+            return utils.deal_except(f'restore config', e), 400
 
     def db_list_host(self):
         try:
