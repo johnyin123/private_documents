@@ -52,6 +52,7 @@ admin_api() {
     ${AUTH}include /etc/nginx/http-enabled/jwt_sso_auth.inc;
     location ~* ^/(backup|restore)/$ {
         # # no cache!! mgr private access
+        ${AUTH}auth_request @sso-auth;
         proxy_cache off;
         expires off;
         proxy_read_timeout 240s;
