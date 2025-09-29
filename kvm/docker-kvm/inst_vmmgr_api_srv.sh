@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("9573a8cb[2025-09-22T15:41:22+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("424da653[2025-09-22T16:40:43+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -165,7 +165,7 @@ inst_app_outdir() {
     local gid="${3}"
     log "install vmmgr DATA_DIR=${outdir}"
     install -v -d -m 0700 --group=${gid} --owner=${uid} ${outdir}
-    local dirs=(actions devices domains meta)
+    local dirs=(devices domains meta)
     for dn in ${dirs[@]}; do
         install -v -d -m 0700 --group=${gid} --owner=${uid} ${outdir}/${dn}
         [ -d "${dn}" ] && {
@@ -226,10 +226,6 @@ post_check() {
     for fn in $(cat devices.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
         log "check device template: ${outdir}/devices/${fn}"
         [ -e "${outdir}/devices/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
-    done
-    for fn in $(cat devices.json | jq -r .[].action | sort | uniq | sed "/^$/d"); do
-        log "check device action: ${outdir}/actions/${fn}"
-        [ -x "${outdir}/actions/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
     done
     for fn in $(cat golds.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
         log "check gold disk: ${fn}"

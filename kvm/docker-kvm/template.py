@@ -8,11 +8,11 @@ def get_variables(dirname:str, filename:str)->Set[str]:
         return varset.difference(['vm_uuid','vm_arch','vm_create','vm_creater','META_SRV','vm_last_disk'])
 
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(dirname))
-    return remove_reserved(jinja2.meta.find_undeclared_variables(env.parse(env.loader.get_source(env, filename)[0])))
+    return remove_reserved(jinja2.meta.find_undeclared_variables(env.parse(env.loader.get_source(env, f'{filename}.tpl')[0])))
 
 class KVMTemplate:
     def __init__(self, dirname:str, filename:str):
-        self.template = jinja2.Environment(loader=jinja2.FileSystemLoader(dirname)).get_template(filename)
+        self.template = jinja2.Environment(loader=jinja2.FileSystemLoader(dirname)).get_template(f'{filename}.tpl')
 
     def render(self, **kwargs):
         kwargs['META_SRV'] = config.META_SRV

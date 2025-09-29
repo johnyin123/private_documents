@@ -50,7 +50,7 @@ admin_api() {
     local AUTH=${3:-}
     cat <<EOF
     ${AUTH}include /etc/nginx/http-enabled/jwt_sso_auth.inc;
-    location ~* ^/(backup|restore)/$ {
+    location ~* ^/conf/(domains|devices|backup|restore)/$ {
         # # no cache!! mgr private access
         ${AUTH}auth_request @sso-auth;
         proxy_cache off;

@@ -241,13 +241,10 @@ class VMManager:
         try:
             req_json['vm_uuid'] = uuid
             device = database.KVMDevice.get_one(name=dev, kvmhost=host.name)
+            action = f'{device.tpl}.action' if os.path.exists(os.path.join(config.DIR_DEVICE, f'{device.tpl}.action')) else None
             tpl = template.DeviceTemplate(device.tpl, device.devtype)
             # all env must string
             env = {'URL':host.url, 'TYPE':device.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':str(host.sshport), 'SSHUSER':host.sshuser}
-            if logger.isEnabledFor(logging.DEBUG):
-                cmd = ['bash', '-eux', os.path.join(config.DIR_ACTION, device.action)]
-            else:
-                cmd = ['bash', '-eu', os.path.join(config.DIR_ACTION, device.action)]
             gold_name = req_json.get('gold', '')
             if len(gold_name) != 0:
                 req_json['gold'] = f'http://{config.GOLD_SRV}{database.KVMGold.get_one(name=gold_name, arch=host.arch).uri}'
@@ -255,7 +252,10 @@ class VMManager:
             if bus_type is not None:
                 with utils.connect(host.url) as conn:
                     req_json['vm_last_disk'] = LibvirtDomain(conn.lookupByUUIDString(uuid)).next_disk[bus_type]
-            if device.action is not None and len(device.action) != 0:
+            if action:
+                cmd = ['bash', '-eu', os.path.join(config.DIR_DEVICE, action)]
+                if logger.isEnabledFor(logging.DEBUG):
+                    cmd = ['bash', '-eux', os.path.join(config.DIR_DEVICE, action)]
                 for line in utils.ProcList.wait_proc(uuid, cmd, 0, False, req_json, **env):
                     logger.debug(line.strip())
                     yield line

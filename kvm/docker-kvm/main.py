@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-import flask_app, flask, os, json, logging, datetime
+import flask_app, flask, os, json, logging, datetime, glob
 import database, vmmanager, config, template, utils
 try:
     from cStringIO import StringIO as BytesIO
@@ -44,8 +44,18 @@ class MyApp(object):
         ## db oper guest ##
         app.add_url_rule('/vm/list/', view_func=self.db_list_domains, methods=['GET'])
         ## etcd config backup/restore ##
-        app.add_url_rule('/backup/', view_func=self.cfg_download, methods=['GET'])
-        app.add_url_rule('/restore/', view_func=self.cfg_upload, methods=['POST'])
+        app.add_url_rule('/conf/backup/', view_func=self.cfg_download, methods=['GET'])
+        app.add_url_rule('/conf/restore/', view_func=self.cfg_upload, methods=['POST'])
+        app.add_url_rule('/conf/domains/', view_func=self.cfg_domains, methods=['GET'])
+        app.add_url_rule('/conf/devices/', view_func=self.cfg_devices, methods=['GET'])
+
+    def cfg_domains(self):
+        domains = [fn.removesuffix(".tpl").removeprefix(f'{config.DIR_DOMAIN}/') for fn in glob.glob(f'{config.DIR_DOMAIN}/*.tpl')]
+        return utils.return_ok(f'domains ok', domains=domains)
+
+    def cfg_devices(self):
+        devices = [fn.removesuffix(".tpl").removeprefix(f'{config.DIR_DEVICE}/') for fn in glob.glob(f'{config.DIR_DEVICE}/*.tpl')]
+        return utils.return_ok(f'devices ok', devices=devices)
 
     def cfg_download(self):
         def generate_tar():
@@ -70,7 +80,7 @@ class MyApp(object):
             hosts = [dic._asdict() for dic in database.KVMHost.list_all()]
             for host in hosts:
                 varset = template.get_variables(config.DIR_DOMAIN, host['tpl'])
-                for file in [fn for fn in os.listdir(config.DIR_META) if fn.endswith('.tpl')]:
+                for file in [fn.removesuffix(".tpl").removeprefix(f'{config.DIR_META}/') for fn in glob.glob(f'{config.DIR_META}/*.tpl')]:
                     varset.update(template.get_variables(config.DIR_META, file))
                 host['vars'] = {k: database.KVMVar.get_desc(k) for k in varset}
             return utils.return_ok(f'db_list_host ok', host=utils.getlist_without_key(hosts, *['sshport', 'sshuser', 'tpl', 'url']))
@@ -83,7 +93,7 @@ class MyApp(object):
             devices = [dic._asdict() for dic in database.KVMDevice.list_all(**args)]
             for dev in devices:
                 dev['vars'] = {k: database.KVMVar.get_desc(k) for k in template.get_variables(config.DIR_DEVICE, dev['tpl'])}
-            return utils.return_ok(f'db_list_device ok', device=utils.getlist_without_key(devices, *['tpl', 'action']))
+            return utils.return_ok(f'db_list_device ok', device=utils.getlist_without_key(devices, *['tpl']))
         except Exception as e:
             return utils.deal_except(f'db_list_device', e), 400
 

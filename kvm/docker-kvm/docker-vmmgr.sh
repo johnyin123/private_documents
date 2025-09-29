@@ -121,6 +121,15 @@ server {
     error_page 504 = @504;
     location @504 { return 504 '{"code":504,"name":"lberr","desc":"Gateway Time-out"}'; }
     #include /etc/nginx/http-enabled/jwt_sso_auth.inc;
+    location ~* ^/conf/(domains|devices|backup|restore)/$ {
+        # # no cache!! mgr private access
+        # auth_request @sso-auth;
+        proxy_cache off;
+        expires off;
+        proxy_read_timeout 240s;
+        client_max_body_size 100m;
+        proxy_pass http://api_srv;
+    }
     location /tpl/ {
         # # proxy cache default is on, so modify host|device|gold, should clear ngx cache
         #auth_request @sso-auth;

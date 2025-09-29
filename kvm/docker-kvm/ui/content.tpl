@@ -8,16 +8,48 @@
       <h2>Backup/Restore</h2>
       <button title="Close" onclick="showView('hostlist');flush_sidebar('ALL VMS');">&times;</button>
     </div>
-    <form action="/backup/" method="get" target="_blank">
+    <form action="/conf/backup/" method="get" target="_blank">
       <div class="flex-group">
         <input type="submit" value="Download">
       </div>
     </form>
-    <form action="/restore/" method="post" target="_blank" enctype="multipart/form-data" onkeydown="if(event.keyCode === 13){return false;}">
+    <form action="/conf/restore/" method="post" target="_blank" enctype="multipart/form-data" onkeydown="if(event.keyCode === 13){return false;}">
       <input type="file" name="file">
       <div class="flex-group">
         <input type="reset" value="Reset"/>
         <input type="submit" value="Restore">
+      </div>
+    </form>
+    <form id="addhost_form" onSubmit="return on_createvm(this)" onkeydown="if(event.keyCode === 13){return false;}">
+      <label>Name*<input type="text" name="name" required/></label>
+      <label>Arch*<select name="arch">
+        <option value="x86_64" selected>x86_64</option>
+        <option value="aarch64">ARM64</option>
+      </select></label>
+      <label>ssh ip/port/user*
+      <div class="flex-group">
+        <input type="text" name="ipaddr" placeholder="e.g. 192.168.168.2" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" required/>
+        <input style="width: 10%;" type="number" name="sshport" value="22" required/>
+        <input style="width: 30%;" type="text" name="sshuser" placeholder="e.g. admin" required/>
+      </div>
+      </label>
+      <label>qemu url:<input type="text" name="url" placeholder="e.g. qemu+tls://192.168.168.2/system" required/></label>
+      <label>Domain TPL*<select name="tpl" id="domains_tpl"></select></label>
+        <fieldset><legend>Device</legend>
+          <div class="flex-group">
+            <label style="font-weight: normal;"><input type="checkbox" name="d11" value="no" />Device11</label>
+            <label style="font-weight: normal;"><input type="checkbox" name="d12" value="no" />Device12</label>
+            <label style="font-weight: normal;"><input type="checkbox" name="d13" value="no" />Device13</label>
+          </div>
+          <div class="flex-group">
+            <label style="font-weight: normal;"><input type="checkbox" name="d11" value="no" />Device21</label>
+            <label style="font-weight: normal;"><input type="checkbox" name="d12" value="no" />Device22</label>
+            <label style="font-weight: normal;"><input type="checkbox" name="d13" value="no" />Device23</label>
+          </div>
+        </fieldset>
+      <div class="flex-group">
+        <input type="reset" value="Reset"/>
+        <input type="submit" value="Submit"/>
       </div>
     </form>
   </div>

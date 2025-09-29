@@ -31,7 +31,6 @@ URI_SPICE        = f'/spice/spice_auto.html'
 URI_CONSOLE      = f'/term/xterm.html'
 URI_CTRL_PANEL   = f'https://{CTRL_PANEL_SRV}/guest.html'
 DIR_CIDATA       = os.path.join(DATA_DIR, 'cidata')  # RWS  # share iso-meta/nocloud-meta data dir
-DIR_ACTION       = os.path.join(DATA_DIR, 'actions') # ROL  # local device action script dir
 DIR_DEVICE       = os.path.join(DATA_DIR, 'devices') # ROL  # local device template dir
 DIR_DOMAIN       = os.path.join(DATA_DIR, 'domains') # ROL  # local domain template dir
 DIR_META         = os.path.join(DATA_DIR, 'meta')    # ROL  # local cloud-init template dir
