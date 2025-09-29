@@ -271,6 +271,7 @@ echo 'delete snapshot'     && curl -k "${srv}/vm/delete_snapshot/${host}/${uuid}
 echo 'revert snapshot'     && curl -k "${srv}/vm/revert_snapshot/${host}/${uuid}?name=<name>"
 echo 'backup' && curl -k ${srv}/backup/ -o backup.tgz
 # restore on overwrite files exists in backup.tgz, others keep
+# # tar c actions/ devices/ domains/ meta/ vars.json hosts.json devices.json golds.json iso.json | gzip > backup.tgz
 echo 'restore' && curl -k -X POST -F 'file=@backup.tgz' ${srv}/restore/
 ---------------------------------------------------------
 1. create CA
