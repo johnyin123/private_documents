@@ -241,7 +241,6 @@ class VMManager:
         try:
             req_json['vm_uuid'] = uuid
             device = database.KVMDevice.get_one(name=dev, kvmhost=host.name)
-            action = f'{device.tpl}.action' if os.path.exists(os.path.join(config.DIR_DEVICE, f'{device.tpl}.action')) else None
             tpl = template.DeviceTemplate(device.tpl, device.devtype)
             # all env must string
             env = {'URL':host.url, 'TYPE':device.devtype, 'HOSTIP':host.ipaddr, 'SSHPORT':str(host.sshport), 'SSHUSER':host.sshuser}
@@ -252,6 +251,7 @@ class VMManager:
             if bus_type is not None:
                 with utils.connect(host.url) as conn:
                     req_json['vm_last_disk'] = LibvirtDomain(conn.lookupByUUIDString(uuid)).next_disk[bus_type]
+            action = f'{device.tpl}.action' if os.path.exists(os.path.join(config.DIR_DEVICE, f'{device.tpl}.action')) else None
             if action:
                 cmd = ['bash', '-eu', os.path.join(config.DIR_DEVICE, action)]
                 if logger.isEnabledFor(logging.DEBUG):
