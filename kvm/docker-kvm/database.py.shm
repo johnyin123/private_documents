@@ -23,11 +23,11 @@ KVMGuest  = SHM_KVMGuest()
 
 def reload_all() -> None:
     cfg_class={
-        os.path.join(config.DATA_DIR, 'hosts.json')  :KVMHost,
-        os.path.join(config.DATA_DIR, 'devices.json'):KVMDevice,
-        os.path.join(config.DATA_DIR, 'golds.json')  :KVMGold,
-        os.path.join(config.DATA_DIR, 'iso.json')    :KVMIso,
-        os.path.join(config.DATA_DIR, 'vars.json')   :KVMVar,
+        config.FILE_HOSTS  :KVMHost,
+        config.FILE_DEVICES:KVMDevice,
+        config.FILE_GOLDS  :KVMGold,
+        config.FILE_ISO    :KVMIso,
+        config.FILE_VARS   :KVMVar,
     }
     def updater_cb(fname:str, content) -> None:
         if content:

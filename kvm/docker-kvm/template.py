@@ -28,7 +28,11 @@ class DeviceTemplate(KVMTemplate):
     # filename fmt: {devtype}.{desc}.tpl
     def __init__(self, tpl_name:str):
         super().__init__(config.DIR_DEVICE, tpl_name)
-        self.devtype = tpl_name.split('.')[0]
+        self.devtype = self.get_devtype(tpl_name)
+
+    @classmethod
+    def get_devtype(cls, tpl_name:str)->str:
+        return tpl_name.split('.')[0]
 
     def bus_type(self, **kwargs) -> Optional[str]:
         if self.devtype in ['disk', 'cdrom']:

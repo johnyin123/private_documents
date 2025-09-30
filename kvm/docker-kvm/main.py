@@ -60,10 +60,10 @@ class MyApp(object):
             entry = {key: req_json[key] for key in keys_to_extract}
             if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                 return utils.return_err(800, 'add_iso', f'null str!')
-            if os.path.exists(os.path.join(config.DATA_DIR, 'iso.json')):
-                iso = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'iso.json')))
+            if os.path.exists(config.FILE_ISO):
+                iso = json.loads(utils.file_load(config.FILE_ISO))
             iso.append(entry)
-            utils.EtcdConfig.etcd_save(os.path.join(config.DATA_DIR, 'iso.json'), json.dumps(iso, default=str).encode('utf-8'))
+            utils.EtcdConfig.etcd_save(config.FILE_ISO, json.dumps(iso, default=str).encode('utf-8'))
             return utils.return_ok(f'conf iso ok')
         except Exception as e:
             return utils.deal_except(f'conf iso', e), 400
@@ -79,10 +79,10 @@ class MyApp(object):
             entry = {key: req_json[key] for key in keys_to_extract}
             if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                 return utils.return_err(800, 'add_gold', f'null str!')
-            if os.path.exists(os.path.join(config.DATA_DIR, 'golds.json')):
-                golds = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'golds.json')))
+            if os.path.exists(config.FILE_GOLDS):
+                golds = json.loads(utils.file_load(config.FILE_GOLDS))
             golds.append(entry)
-            utils.EtcdConfig.etcd_save(os.path.join(config.DATA_DIR, 'golds.json'), json.dumps(golds, default=str).encode('utf-8'))
+            utils.EtcdConfig.etcd_save(config.FILE_GOLDS, json.dumps(golds, default=str).encode('utf-8'))
             return utils.return_ok(f'conf gold ok')
         except Exception as e:
             return utils.deal_except(f'conf gold', e), 400
@@ -93,8 +93,8 @@ class MyApp(object):
             keys_to_extract = [ 'name', 'tpl', 'url', 'arch', 'ipaddr', 'sshport', 'sshuser' ]
             host = {key: req_json[key] for key in keys_to_extract} # if key in req_json}
             hosts = list()
-            if os.path.exists(os.path.join(config.DATA_DIR, 'hosts.json')):
-                hosts = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'hosts.json')))
+            if os.path.exists(config.FILE_HOSTS):
+                hosts = json.loads(utils.file_load(config.FILE_HOSTS))
             if len(utils.search(hosts, name=host['name'])) > 0:
                 return utils.return_err(800, 'add_host', f'host {host["name"]} exists!')
             hosts.append(host)
@@ -102,12 +102,12 @@ class MyApp(object):
             entry = {key: req_json[key] for key in keys_to_extract and req_json[key] == 'on'}
             if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                 return utils.return_err(800, 'add_gold', f'null str!')
-            devs = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'devices.json')))
+            devs = json.loads(utils.file_load(config.FILE_DEVICES))
             for k,v in entry.items():
                 tpl = template.DeviceTemplate(k)
                 devs.append({"kvmhost":host['name'],"name":k,"tpl":k,"desc":tpl.desc})
-            utils.EtcdConfig.etcd_save(os.path.join(config.DATA_DIR, 'hosts.json'), json.dumps(hosts, default=str).encode('utf-8'))
-            utils.EtcdConfig.etcd_save(os.path.join(config.DATA_DIR, 'devices.json'), json.dumps(devs, default=str).encode('utf-8'))
+            utils.EtcdConfig.etcd_save(config.FILE_HOSTS, json.dumps(hosts, default=str).encode('utf-8'))
+            utils.EtcdConfig.etcd_save(config.FILE_DEVICES, json.dumps(devs, default=str).encode('utf-8'))
             return utils.return_ok(f'conf host ok', name=host['name'], dev=entry)
         except Exception as e:
             return utils.deal_except(f'conf host', e), 400
@@ -160,6 +160,7 @@ class MyApp(object):
             devices = [dic._asdict() for dic in database.KVMDevice.list_all(**args)]
             for dev in devices:
                 dev['vars'] = database.KVMVar.get_desc(template.get_variables(config.DIR_DEVICE, dev['tpl']))
+                dev['devtype'] = template.DeviceTemplate.get_devtype(dev['tpl'])
             return utils.return_ok(f'db_list_device ok', device=utils.getlist_without_key(devices, *['tpl']))
         except Exception as e:
             return utils.deal_except(f'db_list_device', e), 400

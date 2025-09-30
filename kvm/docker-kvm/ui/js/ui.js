@@ -546,7 +546,7 @@ function add_cdrom(host, uuid) {
   showView('addcdrom');
   const form = document.getElementById("addcdrom_form");
   form.querySelector(`table[name="meta_data"]`).innerHTML = '';
-  const cdroms = filterByKey(getDevice(host), 'devtype', 'iso');
+  const cdroms = filterByKey(getDevice(host), 'devtype', 'cdrom');
   const objs = Object.keys(getFormJSON(form, false));
   if(cdroms.length > 0) { set_help(form, cpWithoutKeys(cdroms[0]['vars'], objs)); }
   document.getElementById('cdrom_list').innerHTML = genOption(cdroms);

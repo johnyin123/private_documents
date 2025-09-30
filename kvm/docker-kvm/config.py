@@ -34,6 +34,11 @@ DIR_CIDATA       = os.path.join(DATA_DIR, 'cidata')  # RWS  # share iso-meta/noc
 DIR_DEVICE       = os.path.join(DATA_DIR, 'devices') # ROL  # local device template dir
 DIR_DOMAIN       = os.path.join(DATA_DIR, 'domains') # ROL  # local domain template dir
 DIR_META         = os.path.join(DATA_DIR, 'meta')    # ROL  # local cloud-init template dir
+FILE_HOSTS       = os.path.join(DATA_DIR, 'hosts.json')
+FILE_DEVICES     = os.path.join(DATA_DIR, 'devices.json')
+FILE_GOLDS       = os.path.join(DATA_DIR, 'golds.json')
+FILE_ISO         = os.path.join(DATA_DIR, 'iso.json')
+FILE_VARS        = os.path.join(DATA_DIR, 'vars.json')
 # # # # # # # # # # # # # # # # # # # # # # #
 # # vm define default values
 def VM_DEFAULT(arch:str, hostname:str):
