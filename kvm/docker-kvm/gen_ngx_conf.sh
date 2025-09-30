@@ -60,12 +60,14 @@ admin_api() {
         proxy_pass http://api_srv;
     }
     location ~* ^/conf/(domains|devices)/$ {
+        proxy_cache_valid 200   5m;
         proxy_pass http://api_srv;
     }
     location ${PRE}/tpl/ {
         # # proxy cache default is on, so modify host|device|gold, should clear ngx cache
         ${AUTH}auth_request @sso-auth;
         # host/device/gold can cached by proxy_cache default
+        proxy_cache_valid 200   5m;
         location ~* ^${PRE}/tpl/(?<apicmd>(host|device|gold|iso))/(?<others>.*)$ {
             if (\$request_method !~ ^(GET)$) { return 405; }
             # # rewrite .....
