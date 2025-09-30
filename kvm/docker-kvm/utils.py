@@ -161,9 +161,10 @@ def deal_except(who:str, e:Exception) -> str:
     code = except_map.get(type(e), 998)
     if code == 998:
         logger.exception(f'{code} {who}')
+        return return_err(code, who, f'{type(e).__name__} {str(e)}')
     else:
         logger.error(f'{code} {who}: {type(e).__name__} {str(e)}')
-    return return_err(code, who, str(e))
+        return return_err(code, who, str(e))
 
 def secure_link(kvmhost:str, uuid:str, mykey:str, minutes:int)->str:
     epoch = round(time.time() + minutes*60)

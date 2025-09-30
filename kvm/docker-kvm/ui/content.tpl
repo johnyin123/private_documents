@@ -2,7 +2,7 @@
 <!-- ############## -->
 <dialog id="alert" closedby="any"></dialog>
 <!-- ############## -->
-<div id="conf_addhost" class="tabContent">
+<div id="conf_host" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>Add KVM HOST</h2>
@@ -32,7 +32,7 @@
   </div>
 </div>
 <!-- ############## -->
-<div id="conf_addiso" class="tabContent">
+<div id="conf_iso" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>Add TPL ISO</h2>
@@ -49,7 +49,7 @@
   </div>
 </div>
 <!-- ############## -->
-<div id="conf_addgold" class="tabContent">
+<div id="conf_gold" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">
       <h2>Add TPL GOLD</h2>
@@ -95,9 +95,9 @@
     </div>
     <form>
       <div class="flex-group">
-        <input type="button" value="Add HOST" onclick="showView('conf_addhost')"/>
-        <input type="button" value="Add GOLD" onclick="showView('conf_addgold')"/>
-        <input type="button" value="Add ISO" onclick="showView('conf_addiso')"/>
+        <input type="button" value="CONF HOST" onclick="showView('conf_host')"/>
+        <input type="button" value="CONF GOLD" onclick="showView('conf_gold')"/>
+        <input type="button" value="CONF ISO" onclick="showView('conf_iso')"/>
         <input type="button" value="Backup" onclick="conf_backup(this)"/>
         <input type="button" value="Restore" onclick="showView('conf_restore')">
       </div>
