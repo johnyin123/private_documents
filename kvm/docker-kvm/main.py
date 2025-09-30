@@ -99,7 +99,7 @@ class MyApp(object):
                 varset = template.get_variables(config.DIR_DOMAIN, host['tpl'])
                 for name in template.cfg_templates(config.DIR_META):
                     varset.update(template.get_variables(config.DIR_META, name))
-                host['vars'] = {k: database.KVMVar.get_desc(k) for k in varset}
+                host['vars'] = database.KVMVar.get_desc(varset)
             return utils.return_ok(f'db_list_host ok', host=utils.getlist_without_key(hosts, *['sshport', 'sshuser', 'tpl', 'url']))
         except Exception as e:
             return utils.deal_except(f'db_list_host', e), 400
@@ -109,7 +109,7 @@ class MyApp(object):
             args = {'kvmhost': hostname} if hostname else {}
             devices = [dic._asdict() for dic in database.KVMDevice.list_all(**args)]
             for dev in devices:
-                dev['vars'] = {k: database.KVMVar.get_desc(k) for k in template.get_variables(config.DIR_DEVICE, dev['tpl'])}
+                dev['vars'] = database.KVMVar.get_desc(template.get_variables(config.DIR_DEVICE, dev['tpl']))
             return utils.return_ok(f'db_list_device ok', device=utils.getlist_without_key(devices, *['tpl']))
         except Exception as e:
             return utils.deal_except(f'db_list_device', e), 400

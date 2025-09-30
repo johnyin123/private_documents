@@ -10,11 +10,9 @@ class SHM_KVMGuest(utils.ShmListStore):
             self.insert(kvmhost=kvmhost, arch=arch, **rec)
 
 class SHM_KVMVar(utils.ShmListStore):
-    def get_desc(self, var) -> str:
-        try:
-            return self.get_one(var=var).desc
-        except:
-            return 'n/a'
+    def get_desc(self, varset:Set) -> Dict:
+        var = self.cache[0] if len(self.cache) > 0 else {}
+        return {key: var.get(key, 'n/a') for key in varset}
 
 KVMHost   = utils.ShmListStore()
 KVMDevice = utils.ShmListStore()
