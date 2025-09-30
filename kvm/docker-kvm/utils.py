@@ -9,6 +9,17 @@ except ImportError:
 logger = logging.getLogger(__name__)
 my_manager = multiprocessing.Manager()
 
+import time, functools
+def time_use(func):
+    @functools.wraps(func)  # Preserves func's metadata (name, docstring, etc.)
+    def wrapper(*args, **kwargs):
+        start_time = time.perf_counter()  # Use perf_counter for precise timing
+        result = func(*args, **kwargs)
+        runtime = time.perf_counter() - start_time
+        logger.warn(f"Execution of '{func.__name__}' took {runtime:.4f} seconds.")
+        return result
+    return wrapper
+
 class APIException(Exception):
     pass
 
