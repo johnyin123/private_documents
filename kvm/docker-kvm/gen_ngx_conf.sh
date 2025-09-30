@@ -50,13 +50,16 @@ admin_api() {
     local AUTH=${3:-}
     cat <<EOF
     ${AUTH}include /etc/nginx/http-enabled/jwt_sso_auth.inc;
-    location ~* ^/conf/(domains|devices|backup|restore)/$ {
+    location ~* ^/conf/(backup|restore|addhost)/$ {
         # # no cache!! mgr private access
         ${AUTH}auth_request @sso-auth;
         proxy_cache off;
         expires off;
         proxy_read_timeout 240s;
         client_max_body_size 100m;
+        proxy_pass http://api_srv;
+    }
+    location ~* ^/conf/(domains|devices)/$ {
         proxy_pass http://api_srv;
     }
     location ${PRE}/tpl/ {

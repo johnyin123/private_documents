@@ -26,7 +26,7 @@ class DB_KVMDevice(Base):
     kvmhost = Column(String(19),ForeignKey('kvmhost.name'),nullable=False,index=True,primary_key=True,comment='KVM主机名称')
     name = Column(String(19),nullable=False,index=True,primary_key=True,comment='device名称')
     action = Column(String(19),nullable=False,server_default='',primary_key=True,comment='device attach后执行的脚本')
-    devtype = Column(Enum('disk','iso','net'),nullable=False,comment='device类型')
+    devtype = Column(Enum('disk','cdrom','net'),nullable=False,comment='device类型')
     tpl = Column(String,nullable=False,comment='device模板XML文件')
     desc = Column(String,nullable=False,comment='device描述')
     last_modified = Column(DateTime,onupdate=func.now(),server_default=func.now())

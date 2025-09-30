@@ -591,7 +591,32 @@ function on_modifymdconfig(form) {
   }, res);
   return false;
 }
-
+function on_addhost(form) {
+  if (confirm(`Are you sure add a kvmhost?`)) {
+    const res = getFormJSON(form, false);
+    getjson('POST', `${uri_pre}/conf/addhost/`,function(resp) {
+      if (getjson_result(resp)) { form.reset(); }
+    }, res);
+  }
+  return false;
+}
+function menu_config(spanval) {
+  set_curr(null);
+  getjson('GET', `${uri_pre}/conf/domains/`, function(resp) {
+    const result = JSON.parse(resp);
+    const sel = document.getElementById('conf_domains_tpl');
+    sel.innerHTML = '';
+    result.domains.forEach(tpl => { sel.innerHTML += `<option value="${tpl}">${tpl}</option>`; });
+    getjson('GET', `${uri_pre}/conf/devices/`, function(resp) {
+      const result = JSON.parse(resp);
+      const div = document.getElementById('conf_devices_tpl');
+      div.innerHTML = '';
+      result.devices.forEach(tpl => { div.innerHTML += `<label style="font-weight: normal;"><input type="checkbox" name="${tpl}" value="on"/>${tpl}</label>`; });
+      showView("configuration");
+      flush_sidebar(spanval);
+    });
+  });
+}
 function snap_create(host, uuid, btn) {
   if (confirm(`Create snapshot /${host}/${uuid} ?`)) {
     getjson('POST', `${uri_pre}/vm/snapshot/${host}/${uuid}`, function(resp) {
@@ -718,7 +743,7 @@ window.addEventListener('load', function() {
     const result = JSON.parse(resp);
     if(result.result !== 'OK') { Alert('error', 'init', 'Get Host List'); return; }
     config.g_host = result.host;
-    var mainMenu =`<a href='#' onclick='showView("configuration");flush_sidebar("CONFIG");' class="iconbtn" style="--icon:var(--fa-cog);"><span name='host'>CONFIG</span></a>`;
+    var mainMenu =`<a href='#' onclick='menu_config("CONFIG")' class="iconbtn" style="--icon:var(--fa-cog);"><span name='host'>CONFIG</span></a>`;
     mainMenu += `<a href='#' onclick='vmlist("ALL VMS")' class="iconbtn" style="--icon:var(--fa-list-ol);"><span name='host'>ALL VMS</span><span style='float:right;' name='count'></span></a>`;
     config.g_host.forEach(host => {
       mainMenu += `<a href='#' title="${host.arch}" onclick='vmlist("${host.name}")' class="iconbtn" style="--icon:var(--fa-desktop);"><span name='host'>${host.name}</span><span style='float:right;' name='count'></span></a>`;

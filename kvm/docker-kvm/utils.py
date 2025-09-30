@@ -39,7 +39,7 @@ class ShmListStore:
             data = search(data, key, val)
         if len(data) == 1:
             return FakeDB(**dict(data[0]))
-        raise APIException(f'entry not found or not unique: {criteria}')
+        raise APIException(f'entry not found or not unique: {criteria} len={len(data)}')
 
     def list_all(self, **criteria):
         data = self.cache

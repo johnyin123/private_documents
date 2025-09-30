@@ -12,7 +12,7 @@ if [ "${ETCD_PREFIX}" == "None" ]; then
     exit 1
 fi
 log "ETCD_PREFIX = ${ETCD_PREFIX}"
-APPDBS=(devices.json golds.json hosts.json iso.json vars.json)
+APPDBS=(vars.json hosts.json devices.json golds.json iso.json)
 TPLDIRS=(devices domains meta)
 for f in ${APPDBS[@]}; do
   key="${ETCD_PREFIX}/${f}"
