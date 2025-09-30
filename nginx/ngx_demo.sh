@@ -7,7 +7,7 @@ if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
     export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
     set -o xtrace
 fi
-VERSION+=("f87e50bb[2025-09-11T08:32:41+08:00]:ngx_demo.sh")
+VERSION+=("f4ffd4ec[2025-09-12T12:28:24+08:00]:ngx_demo.sh")
 
 set -o errtrace
 set -o nounset
@@ -4291,6 +4291,7 @@ proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=24h 
 
 # # disable upstream cache
 # location: add proxy_cache off;
+# # change inactive timeout: proxy_cache_valid 200  5m;
 map $request_uri $cache_bypass {
     "~(/administrator|/admin|/login)" 1;
     default 0;
