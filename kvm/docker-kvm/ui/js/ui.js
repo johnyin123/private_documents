@@ -591,10 +591,28 @@ function on_modifymdconfig(form) {
   }, res);
   return false;
 }
+function on_conf_addiso(form) {
+  if (confirm(`Are you sure add iso?`)) {
+    const res = getFormJSON(form, false);
+    getjson('POST', `${uri_pre}/conf/iso/`,function(resp) {
+      if (getjson_result(resp)) { form.reset(); }
+    }, res);
+  }
+  return false;
+}
+function on_conf_addgold(form) {
+  if (confirm(`Are you sure add gold?`)) {
+    const res = getFormJSON(form, false);
+    getjson('POST', `${uri_pre}/conf/gold/`,function(resp) {
+      if (getjson_result(resp)) { form.reset(); }
+    }, res);
+  }
+  return false;
+}
 function on_addhost(form) {
   if (confirm(`Are you sure add a kvmhost?`)) {
     const res = getFormJSON(form, false);
-    getjson('POST', `${uri_pre}/conf/addhost/`,function(resp) {
+    getjson('POST', `${uri_pre}/conf/host/`,function(resp) {
       if (getjson_result(resp)) { form.reset(); }
     }, res);
   }

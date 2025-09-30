@@ -48,13 +48,46 @@ class MyApp(object):
         app.add_url_rule('/conf/restore/', view_func=self.cfg_upload, methods=['POST'])
         app.add_url_rule('/conf/domains/', view_func=self.cfg_domains, methods=['GET'])
         app.add_url_rule('/conf/devices/', view_func=self.cfg_devices, methods=['GET'])
-        app.add_url_rule('/conf/addhost/', view_func=self.cfg_addhost, methods=['POST'])
+        app.add_url_rule('/conf/host/', view_func=self.cfg_addhost, methods=['POST'])
+        app.add_url_rule('/conf/iso/', view_func=self.cfg_addiso, methods=['POST'])
+        app.add_url_rule('/conf/gold/', view_func=self.cfg_addgold, methods=['POST'])
+
+    def cfg_addiso(self):
+        req_json = flask.request.get_json(silent=True, force=True)
+        iso = [ {'name':'','uri':'','desc':'MetaData ISO' } ]
+        keys_to_extract = ['name','uri','desc']
+        entry = {key: req_json[key] for key in keys_to_extract}
+        if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
+            return utils.return_err(800, 'add_iso', f'null str!')
+        if os.path.exists(os.path.join(config.DATA_DIR, 'iso.json')):
+            iso = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'iso.json')))
+        iso.append(entry)
+        utils.EtcdConfig.etcd_save(os.path.join(config.DATA_DIR, 'iso.json'), json.dumps(iso, default=str).encode('utf-8'))
+        return utils.return_ok(f'add iso ok')
+
+    def cfg_addgold(self):
+        req_json = flask.request.get_json(silent=True, force=True)
+        golds = [
+                    {'name':'','arch':'x86_64' ,'uri':'','size':1,'desc':'数据盘'},
+                    {'name':'','arch':'aarch64','uri':'','size':1,'desc':'数据盘'},
+                ]
+        keys_to_extract = ['name','arch', 'uri', 'size', 'desc']
+        entry = {key: req_json[key] for key in keys_to_extract}
+        if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
+            return utils.return_err(800, 'add_gold', f'null str!')
+        if os.path.exists(os.path.join(config.DATA_DIR, 'golds.json')):
+            golds = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'golds.json')))
+        golds.append(entry)
+        utils.EtcdConfig.etcd_save(os.path.join(config.DATA_DIR, 'golds.json'), json.dumps(golds, default=str).encode('utf-8'))
+        return utils.return_ok(f'add gold ok')
 
     def cfg_addhost(self):
         req_json = flask.request.get_json(silent=True, force=True)
         keys_to_extract = [ 'name', 'tpl', 'url', 'arch', 'ipaddr', 'sshport', 'sshuser' ]
-        host = {key: req_json[key] for key in keys_to_extract if key in req_json}
-        hosts = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'hosts.json')))
+        host = {key: req_json[key] for key in keys_to_extract} # if key in req_json}
+        hosts = list()
+        if os.path.exists(os.path.join(config.DATA_DIR, 'hosts.json')):
+            hosts = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'hosts.json')))
         if len(utils.search(hosts, 'name', host['name'])) > 0:
             return utils.return_err(800, 'add_host', f'host {host["name"]} exists!')
         hosts.append(host)

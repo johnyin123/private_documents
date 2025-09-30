@@ -38,7 +38,7 @@
       <h2>Add TPL ISO</h2>
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
-    <form>
+    <form onSubmit="return on_conf_addiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Name*</label><input type="text" name="name" placeholder="uniq name" required/>
       <label>URI*</label><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[^/ ]*)+/?$" required/>
       <label>Desc*</label><input type="text" name="desc" placeholder="desc" required/>
@@ -55,7 +55,7 @@
       <h2>Add TPL GOLD</h2>
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
-    <form>
+    <form onSubmit="return on_conf_addgold(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Name*</label><input type="text" name="name" placeholder="uniq name" required/>
       <label>Arch*</label><select name="arch">
         <option value="x86_64" selected>x86_64</option>

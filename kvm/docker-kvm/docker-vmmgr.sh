@@ -121,7 +121,7 @@ server {
     error_page 504 = @504;
     location @504 { return 504 '{"code":504,"name":"lberr","desc":"Gateway Time-out"}'; }
     #include /etc/nginx/http-enabled/jwt_sso_auth.inc;
-    location ~* ^/conf/(backup|restore|addhost)/$ {
+    location ~* ^/conf/(backup|restore|host|iso|gold)/$ {
         # # no cache!! mgr private access
         proxy_cache off;
         expires off;
