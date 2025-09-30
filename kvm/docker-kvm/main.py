@@ -56,7 +56,7 @@ class MyApp(object):
         host = {key: req_json[key] for key in keys_to_extract if key in req_json}
         hosts = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'hosts.json')))
         if len(utils.search(hosts, 'name', host['name'])) > 0:
-            return utils.return_err(800, 'add_host', f'host {host['name']} exists!')
+            return utils.return_err(800, 'add_host', f'host {host["name"]} exists!')
         hosts.append(host)
         keys_to_extract = template.cfg_templates(config.DIR_DEVICE)
         dev = {key: req_json[key] for key in keys_to_extract if key in req_json and req_json[key] == 'on'}

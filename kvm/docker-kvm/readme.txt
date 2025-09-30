@@ -275,6 +275,21 @@ echo 'backup' && curl -k ${srv}/conf/backup/ -o backup.tgz
 echo 'restore' && curl -k -X POST -F 'file=@backup.tgz' ${srv}/conf/restore/
 echo 'list domain tpl' && curl -k  ${srv}/conf/domains/
 echo 'list device tpl' && curl -k  ${srv}/conf/devices/
+echo 'add host' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POST -d '@-' ${srv}/conf/addhost/
+{
+  "name":"hostxx",
+  "tpl":"domain",
+  "url":"qemu+tls://192.168.168.1/system",
+  "arch":"x86_64",
+  "ipaddr":"192.168.168.1",
+  "sshport":60022,
+  "sshuser":"root",
+  "cdrom.null":"on",
+  "disk.file":"on",
+  "disk.rbd":"n/a",
+  "net.br-ext":"on"
+}
+EOF
 ---------------------------------------------------------
 1. create CA
     ${ca_root}/ca.key
