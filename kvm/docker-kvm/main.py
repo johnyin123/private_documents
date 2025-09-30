@@ -91,20 +91,19 @@ class MyApp(object):
         try:
             req_json = flask.request.get_json(silent=True, force=True)
             keys_to_extract = [ 'name', 'tpl', 'url', 'arch', 'ipaddr', 'sshport', 'sshuser' ]
-            host = {key: req_json[key] for key in keys_to_extract} # if key in req_json}
+            entry = {key: req_json[key] for key in keys_to_extract} # if key in req_json}
             hosts = list()
             if os.path.exists(config.FILE_HOSTS):
                 hosts = json.loads(utils.file_load(config.FILE_HOSTS))
-            if len(utils.search(hosts, name=host['name'])) > 0:
-                return utils.return_err(800, 'add_host', f'host {host["name"]} exists!')
-            hosts.append(host)
+            template.DomainTemplate(entry['name']) # check exists
+            hosts.append(entry)
             keys_to_extract = template.cfg_templates(config.DIR_DEVICE)
             entry = {key: req_json[key] for key in keys_to_extract and req_json[key] == 'on'}
             if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                 return utils.return_err(800, 'add_gold', f'null str!')
             devs = json.loads(utils.file_load(config.FILE_DEVICES))
             for k,v in entry.items():
-                tpl = template.DeviceTemplate(k)
+                tpl = template.DeviceTemplate(k) # check exists
                 devs.append({"kvmhost":host['name'],"name":k,"tpl":k,"desc":tpl.desc})
             utils.EtcdConfig.etcd_save(config.FILE_HOSTS, json.dumps(hosts, default=str).encode('utf-8'))
             utils.EtcdConfig.etcd_save(config.FILE_DEVICES, json.dumps(devs, default=str).encode('utf-8'))
