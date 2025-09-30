@@ -2,46 +2,104 @@
 <!-- ############## -->
 <dialog id="alert" closedby="any"></dialog>
 <!-- ############## -->
+<div id="conf_addhost" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>Add KVM HOST</h2>
+      <button title="Close" onclick="showView('configuration')">&times;</button>
+    </div>
+    <form id="addhost_form" onSubmit="return on_addhost(this)" onkeydown="if(event.keyCode === 13){return false;}">
+      <label>Name*</label><input type="text" name="name" required/>
+      <label>Arch*</label><select name="arch">
+        <option value="x86_64" selected>x86_64</option>
+        <option value="aarch64">ARM64</option>
+      </select>
+      <label>Domain TPL*</label><select name="tpl" id="conf_domains_tpl"></select>
+      <label>SSH USER/IP/PORT*<label>
+      <div class="flex-group">
+        <input style="width: 30%;" type="text" name="sshuser" placeholder="ssh user" required/>@
+        <input type="text" name="ipaddr" placeholder="ssh ip address" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" required/>:
+        <input style="width: 20%;" type="number" name="sshport" title="ssh port" value="22" required/>
+      </div>
+      <label>QEMU URL(qemu+tls://{ip}/system):</label><input type="text" name="url" placeholder="e.g. qemu+tls://192.168.168.2/system" required/>
+      <fieldset><legend>Device</legend>
+        <div class="flex-group" id="conf_devices_tpl"></div>
+      </fieldset>
+      <div class="flex-group">
+        <input type="reset" value="Reset"/><input type="submit" value="AddHost"/>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
+<div id="conf_addiso" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>Add TPL ISO</h2>
+      <button title="Close" onclick="showView('configuration')">&times;</button>
+    </div>
+    <form>
+      <label>Name*</label><input type="text" name="name" placeholder="uniq name" required/>
+      <label>URI*</label><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[^/ ]*)+/?$" required/>
+      <label>Desc*</label><input type="text" name="desc" placeholder="desc" required/>
+      <div class="flex-group">
+        <input type="reset" value="Reset"/><input type="submit" value="Submit"/>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
+<div id="conf_addgold" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>Add TPL GOLD</h2>
+      <button title="Close" onclick="showView('configuration')">&times;</button>
+    </div>
+    <form>
+      <label>Name*</label><input type="text" name="name" placeholder="uniq name" required/>
+      <label>Arch*</label><select name="arch">
+        <option value="x86_64" selected>x86_64</option>
+        <option value="aarch64">ARM64</option>
+      </select>
+      <label>URI*</label><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[^/ ]*)+/?$" required/>
+      <label>Min Size(bytes)*</label><input type="number" name="size" value="2147483648" required/>
+      <label>Desc*</label><input type="text" name="desc" placeholder="desc" required/>
+      <div class="flex-group">
+        <input type="reset" value="Reset"/><input type="submit" value="Submit"/>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
+<div id="conf_restore" class="tabContent">
+  <div class="form-wrapper">
+    <div class="form-wrapper-header">
+      <h2>Restore Config</h2>
+      <button title="Close" onclick="showView('configuration')">&times;</button>
+    </div>
+    <form action="/conf/restore/" method="post" target="_blank" enctype="multipart/form-data" onkeydown="if(event.keyCode === 13){return false;}" onsubmit="return confirm('Are you sure restore config ?');"
+    >
+      <input type="file" name="file" required>
+      <div class="flex-group">
+        <input type="reset" value="Reset"/><input type="submit" value="Submit"/>
+      </div>
+    </form>
+  </div>
+</div>
+<!-- ############## -->
 <div id="configuration" class="tabContent">
   <div class="form-wrapper">
     <div class="form-wrapper-header">
-      <h2>Backup/Restore</h2>
+      <h2>Configurations</h2>
       <button title="Close" onclick="showView('hostlist');flush_sidebar('ALL VMS');">&times;</button>
     </div>
-    <form action="/conf/backup/" method="get" target="_blank" onsubmit="return confirm('Are you sure download config backup file');">
+    <form>
       <div class="flex-group">
-        <input type="submit" value="Download">
-      </div>
-    </form>
-    <form action="/conf/restore/" method="post" target="_blank" enctype="multipart/form-data" onkeydown="if(event.keyCode === 13){return false;}">
-      <input type="file" name="file">
-      <div class="flex-group">
-        <input type="reset" value="Reset"/>
-        <input type="submit" value="Restore">
-      </div>
-    </form>
-    <form id="addhost_form" onSubmit="return on_addhost(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Name*<input type="text" name="name" required/></label>
-      <label>Arch*<select name="arch">
-        <option value="x86_64" selected>x86_64</option>
-        <option value="aarch64">ARM64</option>
-      </select></label>
-      <label>ssh ip/port/user*
-      <div class="flex-group">
-        <input type="text" name="ipaddr" placeholder="ssh ip address" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" required/>
-        <input style="width: 10%;" type="number" name="sshport" title="ssh port" value="22" required/>
-        <input style="width: 30%;" type="text" name="sshuser" placeholder="ssh user" required/>
-      </div>
-      </label>
-      <label>qemu url:<input type="text" name="url" placeholder="e.g. qemu+tls://192.168.168.2/system" required/></label>
-      <label>Domain TPL*<select name="tpl" id="conf_domains_tpl"></select></label>
-        <fieldset><legend>Device</legend>
-          <div class="flex-group" id="conf_devices_tpl">
-          </div>
-        </fieldset>
-      <div class="flex-group">
-        <input type="reset" value="Reset"/>
-        <input type="submit" value="AddHost"/>
+        <input type="button" value="Add HOST" onclick="showView('conf_addhost')"/>
+        <input type="button" value="Add GOLD" onclick="showView('conf_addgold')"/>
+        <input type="button" value="Add ISO" onclick="showView('conf_addiso')"/>
+        <input type="button" value="Backup" onclick="conf_backup(this)"/>
+        <input type="button" value="Restore" onclick="showView('conf_restore')">
       </div>
     </form>
   </div>

@@ -600,6 +600,11 @@ function on_addhost(form) {
   }
   return false;
 }
+function conf_backup(btn) {
+  if (confirm(`Are you sure download config backup file ?`)) {
+    window.open(`/conf/backup/`, "_blank");
+  }
+}
 function menu_config(spanval) {
   set_curr(null);
   getjson('GET', `${uri_pre}/conf/domains/`, function(resp) {

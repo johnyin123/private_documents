@@ -78,7 +78,7 @@ class MyApp(object):
         def generate_tar():
             file_obj = utils.EtcdConfig.backup_tgz()
             while True:
-                chunk = file_obj.read(4096)
+                chunk = file_obj.read(1024*16)
                 if not chunk:
                     break
                 yield chunk

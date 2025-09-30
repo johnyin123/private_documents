@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
+from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator, Any
 import libvirt, json, os, logging, base64, hashlib, datetime, contextlib
 import multiprocessing, threading, subprocess, signal, time, tarfile
 try:
@@ -101,8 +101,8 @@ class ProcList:
         time.sleep(0.3)  # sleep for wait process startup
 
 def search(arr, key, val):
-    logger.debug(f'{id(arr)} cache in PID {os.getpid()}')
     return [element for element in arr if element.get(key) == val]
+    # return [element for element in arr if key in element and element[key] == val]
 
 def getlist_without_key(arr:List, *keys)-> List:
     return [{k: v for k, v in dic.items() if k not in keys} for dic in arr]

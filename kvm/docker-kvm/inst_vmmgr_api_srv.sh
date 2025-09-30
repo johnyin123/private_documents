@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("424da653[2025-09-22T16:40:43+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("fb38c520[2025-09-29T12:51:39+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -90,7 +90,8 @@ EO_DOC
 #!/usr/bin/env bash
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 outdir=/dev/shm/simplekvm/work
-token_dir=/dev/shm/simplekvm/token
+tokdir=/dev/shm/simplekvm/token
+rm -rf ${tokdir} ${outdir}
 # VENV=
 export PATH="${VENV:+${VENV}/bin:}${PATH}"
 
@@ -107,7 +108,7 @@ systemd-run --user --unit etcd.service \
 
 systemd-run --user --unit websockify-graph \
     --working-directory=${DIRNAME} \
-    websockify --token-plugin TokenFile --token-source ${token_dir} 127.0.0.1:6800
+    websockify --token-plugin TokenFile --token-source ${tokdir} 127.0.0.1:6800
 
 systemd-run --user --unit jwt-srv \
     --working-directory=${DIRNAME} \
@@ -155,7 +156,7 @@ systemd-run --user --unit simple-kvm-srv \
     -E ETCD_SRV=127.0.0.1 \
     -E ETCD_PORT=2379 \
     -E DATA_DIR=${outdir} \
-    -E TOKEN_DIR=${token_dir} \
+    -E TOKEN_DIR=${tokdir} \
     gunicorn -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
 EODOC
 }
