@@ -95,7 +95,7 @@ class MyApp(object):
             hosts = list()
             if os.path.exists(os.path.join(config.DATA_DIR, 'hosts.json')):
                 hosts = json.loads(utils.file_load(os.path.join(config.DATA_DIR, 'hosts.json')))
-            if len(utils.search(hosts, 'name', host['name'])) > 0:
+            if len(utils.search(hosts, name=host['name'])) > 0:
                 return utils.return_err(800, 'add_host', f'host {host["name"]} exists!')
             hosts.append(host)
             keys_to_extract = template.cfg_templates(config.DIR_DEVICE)

@@ -45,17 +45,13 @@ class ShmListStore:
         self.cache[:] = [my_manager.dict(item) for item in arr]
 
     def get_one(self, **criteria) -> FakeDB:
-        data = self.cache
-        for key, val in criteria.items():
-            data = search(data, key, val)
+        data = search(self.cache, **criteria)
         if len(data) == 1:
             return FakeDB(**dict(data[0]))
         raise APIException(f'entry not found or not unique: {criteria} len={len(data)}')
 
     def list_all(self, **criteria):
-        data = self.cache
-        for key, val in criteria.items():
-            data = search(data, key, val)
+        data = search(self.cache, **criteria)
         return [FakeDB(**dict(entry)) for entry in data]
 
 def libvirt_callback(ctx, err):
@@ -111,9 +107,8 @@ class ProcList:
         threading.Thread(target=run_thread, args=(uuid, cmd, tmout,), daemon=True).start()
         time.sleep(0.3)  # sleep for wait process startup
 
-def search(arr, key, val):
-    return [element for element in arr if element.get(key) == val]
-    # return [element for element in arr if key in element and element[key] == val]
+def search(arr, **kwargs):
+    return [item for item in arr if all(item.get(key) == value for key, value in kwargs.items())]
 
 def getlist_without_key(arr:List, *keys)-> List:
     return [{k: v for k, v in dic.items() if k not in keys} for dic in arr]
