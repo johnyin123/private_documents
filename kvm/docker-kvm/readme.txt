@@ -290,6 +290,9 @@ echo 'add host' && cat <<EOF | curl -k -H 'Content-Type:application/json' -X POS
   "net.br-ext":"on"
 }
 EOF
+POST,DELETE /conf/host/
+POST,DELETE /conf/iso/
+POST,DELETE /conf/gold/
 ---------------------------------------------------------
 1. create CA
     ${ca_root}/ca.key

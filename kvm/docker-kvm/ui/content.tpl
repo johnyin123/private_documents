@@ -19,7 +19,7 @@
       <div class="flex-group">
         <input style="width: 30%;" type="text" name="sshuser" placeholder="ssh user" required/>@
         <input type="text" name="ipaddr" placeholder="ssh ip address" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" required/>:
-        <input style="width: 20%;" type="number" name="sshport" title="ssh port" value="22" required/>
+        <input style="width: 30%;" type="number" name="sshport" title="ssh port" value="22" required/>
       </div>
       <label>QEMU URL(qemu+tls://{ip}/system):</label><input type="text" name="url" placeholder="e.g. qemu+tls://192.168.168.2/system" required/>
       <fieldset><legend>Device</legend>
@@ -43,7 +43,7 @@
     </div>
     <form onSubmit="return on_addiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Name*</label><input type="text" name="name" placeholder="uniq name" required/>
-      <label>URI*</label><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[^/ ]*)+/?$" required/>
+      <label>URI*</label><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[a-zA-Z0-9._\-]+/?)*$" required/>
       <label>Desc*</label><input type="text" name="desc" placeholder="desc" required/>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
@@ -67,7 +67,7 @@
         <option value="x86_64" selected>x86_64</option>
         <option value="aarch64">ARM64</option>
       </select>
-      <label>URI*</label><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[^/ ]*)+/?$" required/>
+      <label>URI*</label><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[a-zA-Z0-9._\-]+/?)*$" required/>
       <label>Min Size(GiB)*</label><input type="number" name="size" value="1" min="1" max="2048" required/>
       <label>Desc*</label><input type="text" name="desc" placeholder="desc" required/>
       <div class="flex-group">

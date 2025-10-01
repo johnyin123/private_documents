@@ -14,10 +14,10 @@ class SHM_KVMVar(utils.ShmListStore):
         var = self.cache[0] if len(self.cache) > 0 else {}
         return {key: var.get(key, 'n/a') for key in varset}
 
-KVMHost   = utils.ShmListStore()
-KVMDevice = utils.ShmListStore()
-KVMGold   = utils.ShmListStore()
-KVMIso    = utils.ShmListStore()
+KVMHost   = utils.ShmListStore() #primary_key:name
+KVMDevice = utils.ShmListStore() #primary_key:name, kvmhost
+KVMGold   = utils.ShmListStore() #primary_key:name, arch
+KVMIso    = utils.ShmListStore() #primary_key:name
 KVMVar    = SHM_KVMVar()
 KVMGuest  = SHM_KVMGuest()
 

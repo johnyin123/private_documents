@@ -623,20 +623,59 @@ function conf_backup(btn) {
     window.open(`/conf/backup/`, "_blank");
   }
 }
+function edit_cfg_host(host, form, btn) {
+  var kvmhost = getHost(host);
+  delete kvmhost.vars;
+  const devices = getDevice(host);
+  const myform = document.getElementById(form);
+  const formElements = myform.elements;
+  for (let i = 0; i < formElements.length; i++) {
+    const elem = formElements[i];
+    if (elem.tagName === 'INPUT') {
+      if (elem.type === 'checkbox') {
+        elem.checked = false;
+      }
+    }
+  }
+  for(const key of devices) {
+    const elem =  myform.elements[key.name];
+    if (elem === undefined) {
+      console.error('input:', key, elem);
+      continue;
+    }
+    if (elem.type === 'checkbox') {
+      elem.checked = true;
+    }
+   }
+  for(const key in kvmhost) {
+    const elem =  myform.elements[key];
+    if (elem === undefined) {
+      console.error('input:', key, elem);
+      continue;
+    }
+    elem.value  = kvmhost[key];
+  }
+}
+function delete_cfg_host(host, btn) {
+  if (confirm(`Are you sure delete ${host}?`)) {
+    getjson('DELETE', `${uri_pre}/conf/host/?name=${host}`, getjson_result);
+  }
+}
 function on_cfg_list_host(btn) {
   const div = document.getElementById('conf_host_list');
   getjson('GET', `${uri_pre}/tpl/host/?${performance.now()}`, function (resp) {
     const res = JSON.parse(resp);
     if(res.result !== 'OK') { Alert('error', 'conf', 'Get Host List'); return; };
-    config.g_host = res.host; 
+    config.g_host = res.host;
+    gen_sidebar();
+    flush_sidebar("CONFIG");
     getjson('GET', `${uri_pre}/tpl/device/?${performance.now()}`, function(resp) {
       const res = JSON.parse(resp);
       if(res.result !== 'OK') { Alert('error', 'init', 'Get Device List'); return; };
       config.g_device = res.device;
-      flush_sidebar("CONFIG");
       var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">IPADDR</th><th class="truncate">DEVS</th><th>ACT</th></tr>`;
       config.g_host.forEach(host => {
-        var btn = genActBtn(false, 'Edit', 'Edit', 'edit_cfg_host', host, {'name':host.name}) + genActBtn(false, 'Delete', 'Delete', 'delete_cfg_host', host, {'name':host.name});
+        var btn = genActBtn(false, 'Edit', 'Edit', 'edit_cfg_host', host.name, {'form':'addhost_form'}) + genActBtn(false, 'Delete', 'Delete', 'delete_cfg_host', host.name);
         var devs = getDevice(host.name).map(dev => dev.name);
         tbl += `<tr><td>${host.name}</td><td class="truncate">${host.arch}</td class="truncate"><td class="truncate">${host.ipaddr}</td><td class="truncate">${devs}</td><td><div class="flex-group">${btn}</div></td></tr>`;
       });
@@ -645,20 +684,30 @@ function on_cfg_list_host(btn) {
     });
   });
 }
+function delete_cfg_gold(name, arch, btn) {
+  if (confirm(`Are you sure delete ${name} ${arch}?`)) {
+    getjson('DELETE', `${uri_pre}/conf/gold/?name=${name}&arch=${arch}`, getjson_result);
+  }
+}
 function on_cfg_list_gold(btn) {
   const div = document.getElementById('conf_gold_list');
   getjson('GET', `${uri_pre}/tpl/gold/?${performance.now()}`, function(resp) {
     const result = JSON.parse(resp);
     if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; };
     config.g_gold = result.gold;
-    flush_sidebar("CONFIG");
     var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">Size</th><th class="truncate">Desc</th><th>ACT</th></tr>`;
     result.gold.sort((a, b) => a.name.localeCompare(b.name)).forEach(gold => {
-      tbl += `<tr><td>${gold.name}</td><td class="truncate">${gold.arch}</td class="truncate"><td class="truncate">${gold.size}</td><td class="truncate">${gold.desc}</td><td><div class="flex-group">actions</div></td></tr>`;
+      var btn = genActBtn(false, 'Delete', 'Delete', 'delete_cfg_gold', gold.name, {'arch':gold.arch});
+      tbl += `<tr><td>${gold.name}</td><td class="truncate">${gold.arch}</td class="truncate"><td class="truncate">${gold.size}</td><td class="truncate">${gold.desc}</td><td><div class="flex-group">${btn}</div></td></tr>`;
     });
     tbl += '</table>';
     div.innerHTML = tbl;
   });
+}
+function delete_cfg_iso(name, btn) {
+  if (confirm(`Are you sure delete ${name}?`)) {
+    getjson('DELETE', `${uri_pre}/conf/iso/?name=${name}`, getjson_result);
+  }
 }
 function on_cfg_list_iso(btn) {
   const div = document.getElementById('conf_iso_list');
@@ -666,10 +715,10 @@ function on_cfg_list_iso(btn) {
     const result = JSON.parse(resp);
     if(result.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; };
     config.g_iso = result.iso; });
-    flush_sidebar("CONFIG");
     var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Desc</th><th>ACT</th></tr>`;
     config.g_iso.forEach(iso => {
-      tbl += `<tr><td>${iso.name}</td><td class="truncate">${iso.desc}</td><td><div class="flex-group">actions</div></td></tr>`;
+      var btn = genActBtn(false, 'Delete', 'Delete', 'delete_cfg_iso', iso.name);
+      tbl += `<tr><td>${iso.name}</td><td class="truncate">${iso.desc}</td><td><div class="flex-group">${btn}</div></td></tr>`;
     });
     tbl += '</table>';
     div.innerHTML = tbl;
@@ -810,6 +859,14 @@ function includeHTML() {
     }
   });
 }
+function gen_sidebar() {
+    var mainMenu =`<a href='#' onclick='menu_config("CONFIG")' class="iconbtn" style="--icon:var(--fa-cog);"><span name='host'>CONFIG</span></a>`;
+    mainMenu += `<a href='#' onclick='vmlist("ALL VMS")' class="iconbtn" style="--icon:var(--fa-list-ol);"><span name='host'>ALL VMS</span><span style='float:right;' name='count'></span></a>`;
+    config.g_host.forEach(host => {
+      mainMenu += `<a href='#' title="${host.arch}" onclick='vmlist("${host.name}")' class="iconbtn" style="--icon:var(--fa-desktop);"><span name='host'>${host.name}</span><span style='float:right;' name='count'></span></a>`;
+    });
+    document.getElementById("sidebar").innerHTML = mainMenu;
+}
 /* ------------------------- */
 window.addEventListener('load', function() {
   includeHTML();
@@ -817,12 +874,7 @@ window.addEventListener('load', function() {
     const result = JSON.parse(resp);
     if(result.result !== 'OK') { Alert('error', 'init', 'Get Host List'); return; }
     config.g_host = result.host;
-    var mainMenu =`<a href='#' onclick='menu_config("CONFIG")' class="iconbtn" style="--icon:var(--fa-cog);"><span name='host'>CONFIG</span></a>`;
-    mainMenu += `<a href='#' onclick='vmlist("ALL VMS")' class="iconbtn" style="--icon:var(--fa-list-ol);"><span name='host'>ALL VMS</span><span style='float:right;' name='count'></span></a>`;
-    config.g_host.forEach(host => {
-      mainMenu += `<a href='#' title="${host.arch}" onclick='vmlist("${host.name}")' class="iconbtn" style="--icon:var(--fa-desktop);"><span name='host'>${host.name}</span><span style='float:right;' name='count'></span></a>`;
-    });
-    document.getElementById("sidebar").innerHTML = mainMenu;
+    gen_sidebar();
   });
   getjson('GET', `${uri_pre}/tpl/iso/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; }; config.g_iso = result.iso; });
   getjson('GET', `${uri_pre}/tpl/gold/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; }; config.g_gold = result.gold; });
