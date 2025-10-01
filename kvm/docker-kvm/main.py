@@ -98,7 +98,7 @@ class MyApp(object):
             template.DomainTemplate(entry['name']) # check exists
             hosts.append(entry)
             keys_to_extract = template.cfg_templates(config.DIR_DEVICE)
-            entry = {key: req_json[key] for key in keys_to_extract and req_json[key] == 'on'}
+            entry = {key: req_json[key] for key in keys_to_extract and key in req_json and req_json[key] == 'on'}
             if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                 return utils.return_err(800, 'add_gold', f'null str!')
             devs = json.loads(utils.file_load(config.FILE_DEVICES))
