@@ -58,7 +58,7 @@ class MyApp(object):
             keys_to_extract = ['name','uri','desc']
             entry = {key: req_json[key] for key in keys_to_extract}
             if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
-                return utils.return_err(800, 'add_iso', f'null str!')
+                return utils.return_err(800, 'add_iso', f'blank str!')
             logger.debug(f'add iso {entry}')
             database.KVMIso.delete(name=entry['name'])
             database.KVMIso.insert(**entry)
@@ -74,7 +74,7 @@ class MyApp(object):
             keys_to_extract = ['name','arch','uri','size','desc']
             entry = {key: req_json[key] for key in keys_to_extract}
             if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
-                return utils.return_err(800, 'add_gold', f'null str!')
+                return utils.return_err(800, 'add_gold', f'blank str!')
             entry['size'] = int(entry['size'])*vmmanager.GiB
             logger.debug(f'add gold {entry}')
             database.KVMGold.delete(name=entry['name'], arch=entry['arch'])
@@ -90,14 +90,15 @@ class MyApp(object):
             req_json = flask.request.get_json(silent=True, force=True)
             keys_to_extract = ['name','tpl','url','arch','ipaddr','sshport','sshuser']
             entry = {key: req_json[key] for key in keys_to_extract} # if key in req_json}
+            if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
+                return utils.return_err(800, 'add_host', f'blank str!')
+            entry['sshport'] = int(entry['sshport'])
             template.DomainTemplate(entry['tpl']) # check template exists
             logger.debug(f'add host {entry}')
             database.KVMHost.delete(name=entry['name'])
             database.KVMHost.insert(**entry)
             keys_to_extract = template.cfg_templates(config.DIR_DEVICE)
-            entry = {key: req_json[key] for key in keys_to_extract if key in req_json and req_json[key] == 'on'}
-            if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
-                return utils.return_err(800, 'add_gold', f'null str!')
+            entry = {key: req_json[key] for key in keys_to_extract if key in req_json and req_json[key] == 'on'} # no need check blank
             database.KVMDevice.delete(kvmhost=req_json['name'])
             logger.debug(f'add host device {entry.keys()}')
             for k in entry.keys():
