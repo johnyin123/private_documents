@@ -663,13 +663,13 @@ function delete_cfg_host(host, btn) {
 }
 function on_cfg_list_host(btn) {
   const div = document.getElementById('conf_host_list');
-  getjson('GET', `${uri_pre}/tpl/host/?${performance.now()}`, function (resp) {
+  getjson('GET', `${uri_pre}/tpl/host/?${Date.now()}`, function (resp) {
     const res = JSON.parse(resp);
     if(res.result !== 'OK') { Alert('error', 'conf', 'Get Host List'); return; };
     config.g_host = res.host;
     gen_sidebar();
     flush_sidebar("CONFIG");
-    getjson('GET', `${uri_pre}/tpl/device/?${performance.now()}`, function(resp) {
+    getjson('GET', `${uri_pre}/tpl/device/?${Date.now()}`, function(resp) {
       const res = JSON.parse(resp);
       if(res.result !== 'OK') { Alert('error', 'init', 'Get Device List'); return; };
       config.g_device = res.device;
@@ -691,12 +691,12 @@ function delete_cfg_gold(name, arch, btn) {
 }
 function on_cfg_list_gold(btn) {
   const div = document.getElementById('conf_gold_list');
-  getjson('GET', `${uri_pre}/tpl/gold/?${performance.now()}`, function(resp) {
-    const result = JSON.parse(resp);
-    if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; };
-    config.g_gold = result.gold;
+  getjson('GET', `${uri_pre}/tpl/gold/?${Date.now()}`, function(resp) {
+    const res = JSON.parse(resp);
+    if(res.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; };
+    config.g_gold = res.gold;
     var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">Size</th><th class="truncate">Desc</th><th>ACT</th></tr>`;
-    result.gold.sort((a, b) => a.name.localeCompare(b.name)).forEach(gold => {
+    res.gold.sort((a, b) => a.name.localeCompare(b.name)).forEach(gold => {
       var btn = genActBtn(false, 'Delete', 'Delete', 'delete_cfg_gold', gold.name, {'arch':gold.arch});
       tbl += `<tr><td>${gold.name}</td><td class="truncate">${gold.arch}</td class="truncate"><td class="truncate">${gold.size}</td><td class="truncate">${gold.desc}</td><td><div class="flex-group">${btn}</div></td></tr>`;
     });
@@ -711,17 +711,18 @@ function delete_cfg_iso(name, btn) {
 }
 function on_cfg_list_iso(btn) {
   const div = document.getElementById('conf_iso_list');
-  getjson('GET', `${uri_pre}/tpl/iso/?${performance.now()}`, function(resp) {
-    const result = JSON.parse(resp);
-    if(result.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; };
-    config.g_iso = result.iso; });
+  getjson('GET', `${uri_pre}/tpl/iso/?${Date.now()}`, function(resp) {
+    const res = JSON.parse(resp);
+    if(res.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; };
+    config.g_iso = res.iso;
     var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Desc</th><th>ACT</th></tr>`;
-    config.g_iso.forEach(iso => {
+    res.iso.forEach(iso => {
       var btn = genActBtn(false, 'Delete', 'Delete', 'delete_cfg_iso', iso.name);
       tbl += `<tr><td>${iso.name}</td><td class="truncate">${iso.desc}</td><td><div class="flex-group">${btn}</div></td></tr>`;
     });
     tbl += '</table>';
     div.innerHTML = tbl;
+  });
 }
 function menu_config(spanval) {
   set_curr(null);
