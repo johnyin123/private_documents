@@ -55,59 +55,59 @@ class MyApp(object):
     def cfg_addiso(self):
         try:
             req_json = flask.request.get_json(silent=True, force=True)
-            iso = [ {'name':'','uri':'','desc':'MetaData ISO' } ]
             keys_to_extract = ['name','uri','desc']
             entry = {key: req_json[key] for key in keys_to_extract}
             if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                 return utils.return_err(800, 'add_iso', f'null str!')
-            if os.path.exists(config.FILE_ISO):
-                iso = json.loads(utils.file_load(config.FILE_ISO))
-            iso.append(entry)
+            logger.debug(f'add iso {entry}')
+            database.KVMIso.delete(name=entry['name'])
+            database.KVMIso.insert(**entry)
+            iso = [dic._asdict() for dic in database.KVMIso.list_all()]
             utils.EtcdConfig.etcd_save(config.FILE_ISO, json.dumps(iso, default=str).encode('utf-8'))
-            return utils.return_ok(f'conf iso ok')
+            return utils.return_ok(f'conf iso ok', name=req_json['name'])
         except Exception as e:
             return utils.deal_except(f'conf iso', e), 400
 
     def cfg_addgold(self):
         try:
             req_json = flask.request.get_json(silent=True, force=True)
-            golds = [
-                        {'name':'','arch':'x86_64' ,'uri':'','size':1,'desc':'数据盘'},
-                        {'name':'','arch':'aarch64','uri':'','size':1,'desc':'数据盘'},
-                    ]
-            keys_to_extract = ['name','arch', 'uri', 'size', 'desc']
+            keys_to_extract = ['name','arch','uri','size','desc']
             entry = {key: req_json[key] for key in keys_to_extract}
             if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                 return utils.return_err(800, 'add_gold', f'null str!')
-            if os.path.exists(config.FILE_GOLDS):
-                golds = json.loads(utils.file_load(config.FILE_GOLDS))
-            golds.append(entry)
+            entry['size'] = int(entry['size'])*vmmanager.GiB
+            logger.debug(f'add gold {entry}')
+            database.KVMGold.delete(name=entry['name'], arch=entry['arch'])
+            database.KVMGold.insert(**entry)
+            golds = [dic._asdict() for dic in database.KVMGold.list_all()]
             utils.EtcdConfig.etcd_save(config.FILE_GOLDS, json.dumps(golds, default=str).encode('utf-8'))
-            return utils.return_ok(f'conf gold ok')
+            return utils.return_ok(f'conf gold ok', name=req_json['name'], arch=req_json['arch'])
         except Exception as e:
             return utils.deal_except(f'conf gold', e), 400
 
     def cfg_addhost(self):
         try:
             req_json = flask.request.get_json(silent=True, force=True)
-            keys_to_extract = [ 'name', 'tpl', 'url', 'arch', 'ipaddr', 'sshport', 'sshuser' ]
+            keys_to_extract = ['name','tpl','url','arch','ipaddr','sshport','sshuser']
             entry = {key: req_json[key] for key in keys_to_extract} # if key in req_json}
-            hosts = list()
-            if os.path.exists(config.FILE_HOSTS):
-                hosts = json.loads(utils.file_load(config.FILE_HOSTS))
-            template.DomainTemplate(entry['name']) # check exists
-            hosts.append(entry)
+            template.DomainTemplate(entry['tpl']) # check template exists
+            logger.debug(f'add host {entry}')
+            database.KVMHost.delete(name=entry['name'])
+            database.KVMHost.insert(**entry)
             keys_to_extract = template.cfg_templates(config.DIR_DEVICE)
-            entry = {key: req_json[key] for key in keys_to_extract and key in req_json and req_json[key] == 'on'}
+            entry = {key: req_json[key] for key in keys_to_extract if key in req_json and req_json[key] == 'on'}
             if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                 return utils.return_err(800, 'add_gold', f'null str!')
-            devs = json.loads(utils.file_load(config.FILE_DEVICES))
-            for k,v in entry.items():
-                tpl = template.DeviceTemplate(k) # check exists
-                devs.append({"kvmhost":host['name'],"name":k,"tpl":k,"desc":tpl.desc})
+            database.KVMDevice.delete(kvmhost=req_json['name'])
+            logger.debug(f'add host device {entry.keys()}')
+            for k in entry.keys():
+                tpl = template.DeviceTemplate(k) # check template exists
+                database.KVMDevice.insert(kvmhost=req_json['name'], name=k, tpl=k, desc=tpl.desc)
+            hosts = [dic._asdict() for dic in database.KVMHost.list_all()]
+            devs = [dic._asdict() for dic in database.KVMDevice.list_all()]
             utils.EtcdConfig.etcd_save(config.FILE_HOSTS, json.dumps(hosts, default=str).encode('utf-8'))
             utils.EtcdConfig.etcd_save(config.FILE_DEVICES, json.dumps(devs, default=str).encode('utf-8'))
-            return utils.return_ok(f'conf host ok', name=host['name'], dev=entry)
+            return utils.return_ok(f'conf host ok', name=req_json['name'])
         except Exception as e:
             return utils.deal_except(f'conf host', e), 400
 
@@ -149,7 +149,7 @@ class MyApp(object):
                 for name in template.cfg_templates(config.DIR_META):
                     varset.update(template.get_variables(config.DIR_META, name))
                 host['vars'] = database.KVMVar.get_desc(varset)
-            return utils.return_ok(f'db_list_host ok', host=utils.getlist_without_key(hosts, *['sshport', 'sshuser', 'tpl', 'url']))
+            return utils.return_ok(f'db_list_host ok', host=utils.getlist_without_key(hosts, *['tpl']))
         except Exception as e:
             return utils.deal_except(f'db_list_host', e), 400
 
@@ -173,7 +173,7 @@ class MyApp(object):
     def db_list_gold(self, arch:str = None):
         try:
             args = {'arch': arch} if arch else {}
-            return utils.return_ok(f'db_list_gold ok', gold=utils.getlist_without_key([result._asdict() for result in database.KVMGold.list_all(**args)], *['tpl']))
+            return utils.return_ok(f'db_list_gold ok', gold=utils.getlist_without_key([result._asdict() for result in database.KVMGold.list_all(**args)], *['uri']))
         except Exception as e:
             return utils.deal_except(f'db_list_gold', e), 400
 

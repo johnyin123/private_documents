@@ -5,7 +5,7 @@ from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
 KiB = 1024
 MiB = 1024 * KiB
-
+GiB = 1024 * MiB
 class LibvirtDomain:
     def __init__(self, dom):
         self.XMLDesc = dom.XMLDesc()

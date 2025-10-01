@@ -15,7 +15,7 @@
         <option value="aarch64">ARM64</option>
       </select>
       <label>Domain TPL*</label><select name="tpl" id="conf_domains_tpl"></select>
-      <label>SSH USER/IP/PORT*<label>
+      <label>SSH USER/IP/PORT*</label>
       <div class="flex-group">
         <input style="width: 30%;" type="text" name="sshuser" placeholder="ssh user" required/>@
         <input type="text" name="ipaddr" placeholder="ssh ip address" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" required/>:
@@ -26,9 +26,12 @@
         <div class="flex-group" id="conf_devices_tpl"></div>
       </fieldset>
       <div class="flex-group">
-        <input type="reset" value="Reset"/><input type="submit" value="AddHost"/>
+        <input type="reset" value="Reset"/>
+        <input type="button" value="List" onclick="on_cfg_list_host(this)"/>
+        <input type="submit" value="Submit"/>
       </div>
     </form>
+    <div class="vms-container" id="conf_host_list"></div>
   </div>
 </div>
 <!-- ############## -->
@@ -38,14 +41,17 @@
       <h2>Add TPL ISO</h2>
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
-    <form onSubmit="return on_conf_addiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
+    <form onSubmit="return on_addiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Name*</label><input type="text" name="name" placeholder="uniq name" required/>
       <label>URI*</label><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[^/ ]*)+/?$" required/>
       <label>Desc*</label><input type="text" name="desc" placeholder="desc" required/>
       <div class="flex-group">
-        <input type="reset" value="Reset"/><input type="submit" value="Submit"/>
+        <input type="reset" value="Reset"/>
+        <input type="button" value="List" onclick="on_cfg_list_iso(this)"/>
+        <input type="submit" value="Submit"/>
       </div>
     </form>
+    <div class="vms-container" id="conf_iso_list"></div>
   </div>
 </div>
 <!-- ############## -->
@@ -55,19 +61,22 @@
       <h2>Add TPL GOLD</h2>
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
-    <form onSubmit="return on_conf_addgold(this)" onkeydown="if(event.keyCode === 13){return false;}">
+    <form onSubmit="return on_addgold(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Name*</label><input type="text" name="name" placeholder="uniq name" required/>
       <label>Arch*</label><select name="arch">
         <option value="x86_64" selected>x86_64</option>
         <option value="aarch64">ARM64</option>
       </select>
       <label>URI*</label><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[^/ ]*)+/?$" required/>
-      <label>Min Size(bytes)*</label><input type="number" name="size" value="2147483648" required/>
+      <label>Min Size(GiB)*</label><input type="number" name="size" value="1" min="1" max="2048" required/>
       <label>Desc*</label><input type="text" name="desc" placeholder="desc" required/>
       <div class="flex-group">
-        <input type="reset" value="Reset"/><input type="submit" value="Submit"/>
+        <input type="reset" value="Reset"/>
+        <input type="button" value="List" onclick="on_cfg_list_gold(this)"/>
+        <input type="submit" value="Submit"/>
       </div>
     </form>
+    <div class="vms-container" id="conf_gold_list"></div>
   </div>
 </div>
 <!-- ############## -->
@@ -252,7 +261,7 @@
     <form id="adddisk_form" onSubmit="return on_add(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <div class="flex-group">
         <label>Disk:<select name="device" id="dev_list" onchange="select_change(this)" required></select></label>
-        <label>Size(GB)*:<input type="number" name="size" id="gold_size" min="1" max="2048" required/></label>
+        <label>Size(GiB)*:<input type="number" name="size" id="gold_size" min="1" max="2048" required/></label>
       </div>
       <div class="flex-group">
         <label>Gold:<select name="gold" id="gold_list" onchange="gold_change(this)" required></select></label>

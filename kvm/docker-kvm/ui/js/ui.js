@@ -10,7 +10,7 @@ function set_curr(kvmhost, uuid=null, dev=null) {
   config.curr_host = kvmhost;
   if(uuid) config.curr_vm = uuid;
   if(dev) config.curr_dev = dev;
-  console.debug(config.curr_host, config.curr_vm, config.curr_dev);
+  // console.debug(config.curr_host, config.curr_vm, config.curr_dev);
 }
 /*deep copy return*/
 function getHost(kvmhost) { return JSON.parse(JSON.stringify(config.g_host.find(el => el.name === kvmhost))); }
@@ -591,7 +591,7 @@ function on_modifymdconfig(form) {
   }, res);
   return false;
 }
-function on_conf_addiso(form) {
+function on_addiso(form) {
   if (confirm(`Are you sure add iso?`)) {
     const res = getFormJSON(form, false);
     getjson('POST', `${uri_pre}/conf/iso/`,function(resp) {
@@ -600,7 +600,7 @@ function on_conf_addiso(form) {
   }
   return false;
 }
-function on_conf_addgold(form) {
+function on_addgold(form) {
   if (confirm(`Are you sure add gold?`)) {
     const res = getFormJSON(form, false);
     getjson('POST', `${uri_pre}/conf/gold/`,function(resp) {
@@ -610,7 +610,7 @@ function on_conf_addgold(form) {
   return false;
 }
 function on_addhost(form) {
-  if (confirm(`Are you sure add a kvmhost?`)) {
+  if (confirm(`Are you sure add kvmhost?`)) {
     const res = getFormJSON(form, false);
     getjson('POST', `${uri_pre}/conf/host/`,function(resp) {
       if (getjson_result(resp)) { form.reset(); }
@@ -622,6 +622,57 @@ function conf_backup(btn) {
   if (confirm(`Are you sure download config backup file ?`)) {
     window.open(`/conf/backup/`, "_blank");
   }
+}
+function on_cfg_list_host(btn) {
+  const div = document.getElementById('conf_host_list');
+  getjson('GET', `${uri_pre}/tpl/host/?${performance.now()}`, function (resp) {
+    const res = JSON.parse(resp);
+    if(res.result !== 'OK') { Alert('error', 'conf', 'Get Host List'); return; };
+    config.g_host = res.host; 
+    getjson('GET', `${uri_pre}/tpl/device/?${performance.now()}`, function(resp) {
+      const res = JSON.parse(resp);
+      if(res.result !== 'OK') { Alert('error', 'init', 'Get Device List'); return; };
+      config.g_device = res.device;
+      flush_sidebar("CONFIG");
+      var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">IPADDR</th><th class="truncate">DEVS</th><th>ACT</th></tr>`;
+      config.g_host.forEach(host => {
+        var btn = genActBtn(false, 'Edit', 'Edit', 'edit_cfg_host', host, {'name':host.name}) + genActBtn(false, 'Delete', 'Delete', 'delete_cfg_host', host, {'name':host.name});
+        var devs = getDevice(host.name).map(dev => dev.name);
+        tbl += `<tr><td>${host.name}</td><td class="truncate">${host.arch}</td class="truncate"><td class="truncate">${host.ipaddr}</td><td class="truncate">${devs}</td><td><div class="flex-group">${btn}</div></td></tr>`;
+      });
+      tbl += '</table>';
+      div.innerHTML = tbl;
+    });
+  });
+}
+function on_cfg_list_gold(btn) {
+  const div = document.getElementById('conf_gold_list');
+  getjson('GET', `${uri_pre}/tpl/gold/?${performance.now()}`, function(resp) {
+    const result = JSON.parse(resp);
+    if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; };
+    config.g_gold = result.gold;
+    flush_sidebar("CONFIG");
+    var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">Size</th><th class="truncate">Desc</th><th>ACT</th></tr>`;
+    result.gold.sort((a, b) => a.name.localeCompare(b.name)).forEach(gold => {
+      tbl += `<tr><td>${gold.name}</td><td class="truncate">${gold.arch}</td class="truncate"><td class="truncate">${gold.size}</td><td class="truncate">${gold.desc}</td><td><div class="flex-group">actions</div></td></tr>`;
+    });
+    tbl += '</table>';
+    div.innerHTML = tbl;
+  });
+}
+function on_cfg_list_iso(btn) {
+  const div = document.getElementById('conf_iso_list');
+  getjson('GET', `${uri_pre}/tpl/iso/?${performance.now()}`, function(resp) {
+    const result = JSON.parse(resp);
+    if(result.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; };
+    config.g_iso = result.iso; });
+    flush_sidebar("CONFIG");
+    var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Desc</th><th>ACT</th></tr>`;
+    config.g_iso.forEach(iso => {
+      tbl += `<tr><td>${iso.name}</td><td class="truncate">${iso.desc}</td><td><div class="flex-group">actions</div></td></tr>`;
+    });
+    tbl += '</table>';
+    div.innerHTML = tbl;
 }
 function menu_config(spanval) {
   set_curr(null);
