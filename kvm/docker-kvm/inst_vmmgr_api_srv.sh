@@ -2,11 +2,11 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("fb38c520[2025-09-29T12:51:39+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("54d7a659[2025-09-30T15:11:56+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
-APPFILES=(flask_app.py dbi.py database.py database.py.shm config.py meta.py utils.py main.py template.py vmmanager.py console.py)
+APPFILES=(flask_app.py database.py config.py meta.py utils.py main.py template.py vmmanager.py console.py)
 APPDBS=(devices.json golds.json hosts.json iso.json vars.json)
 TOOLS=(reload_dbtable)
 export PYTHONDONTWRITEBYTECODE=1
@@ -17,9 +17,6 @@ usage() {
     cat <<EOF
 ${SCRIPTNAME}
         -c|--docker              for docker env
-        --mode          <db/shm> vmmgr api srv mode
-                                  db : use database(config.py)
-                                  shm: use shm json as persistent store
         -t|--target   * <str>    target directory install apphome
         -u|--user    <username>  non docker env, username for run/inst app 
                                  default root
@@ -182,19 +179,11 @@ copy_app() {
     local home_dir="${1}"
     local uid="${2}"
     local gid="${3}"
-    local dbmode="${4}"
     for fn in ${APPFILES[@]}; do
-        [ "${dbmode}" == "shm" ] && [ "${fn}" == "database.py" ] && continue
-        [ "${dbmode}" == "shm" ] && [ "${fn}" == "dbi.py" ] && continue
-        [ "${dbmode}" == "db" ] && [ "${fn}" == "database.py.shm" ] && continue
         local mode=0644
         [ "${fn}" == "console.py" ] && {
             mode=0755
             install -v -C -m ${mode} --group=${gid} --owner=${uid} ${fn} ${home_dir}/app/console
-            continue
-        }
-        [ "${fn}" == "database.py.shm" ] && {
-            install -v -C -m ${mode} --group=${gid} --owner=${uid} ${fn} ${home_dir}/app/database.py
             continue
         }
         install -v -C -m ${mode} --group=${gid} --owner=${uid} ${fn} ${home_dir}/app/${fn}
@@ -204,18 +193,9 @@ gen_app_database() {
     local outdir="${1}"
     local uid="${2}"
     local gid="${3}"
-    local dbmode="${4}"
-    [ "${dbmode}" == "shm" ] && {
-        for fn in ${APPDBS[@]}; do
-            install -v -C -m 0644 --group=${gid} --owner=${uid} ${fn} ${outdir}/${fn}
-        done
-    }
-    [ "${dbmode}" == "db" ] && {
-        for fn in ${APPDBS[@]}; do
-            ./reload_dbtable ${fn}
-        done
-        install -v -C -m 0644 --group=${gid} --owner=${uid} kvm.db ${outdir}/kvm.db
-    }
+    for fn in ${APPDBS[@]}; do
+        install -v -C -m 0644 --group=${gid} --owner=${uid} ${fn} ${outdir}/${fn}
+    done
     return 0
 }
 post_check() {
@@ -239,9 +219,9 @@ post_check() {
     return 0
 }
 main() {
-    local docker='' target='' user="root" mode="db"
+    local docker='' target='' user="root"
     local opt_short="ct:u:"
-    local opt_long="docker,target:,user:,mode:,"
+    local opt_long="docker,target:,user:,"
     opt_short+="ql:dVh"
     opt_long+="quiet,log:,dryrun,version,help"
     __ARGS=$(getopt -n "${SCRIPTNAME}" -o ${opt_short} -l ${opt_long} -- "$@") || usage
@@ -249,7 +229,6 @@ main() {
     while true; do
         case "$1" in
             -c | --docker)  shift; docker=1;;
-            --mode)         shift; mode=${1}; shift;;
             -t | --target)  shift; target=${1}; shift;;
             -u | --user)    shift; user=${1}; shift;;
             ########################################
@@ -265,7 +244,6 @@ main() {
     [ "$(id -u)" -eq 0 ] || { log "root need!"; exit 1; }
     exec > >(${FILTER_CMD:-sed '/^\s*#/d'} | tee ${LOGFILE:+-i ${LOGFILE}})
     [ -z "${target}" ] && usage "target dir must input"
-    [ "${mode}" == "db" ] || [ "${mode}" == "shm" ] || usage "mode must db/shm"
     [ -d "${target}" ] && { log "${target} directory exist!!!"; exit 2; }
     id "${user}" >/dev/null || exit 3
     check_depends "${docker}"
@@ -282,10 +260,10 @@ main() {
         log "${target}     ->docker:/home/${USR_NAME}"
         log "${target}/pki ->docker:/etc/pki"
     }
-    inst_app "${target}" "${USR_ID}" "${GRP_ID}" "${APP_OUTDIR}" "${mode}"
+    inst_app "${target}" "${USR_ID}" "${GRP_ID}" "${APP_OUTDIR}" "${docker}"
     inst_app_outdir "${OUTDIR}" "${USR_ID}" "${GRP_ID}"
-    copy_app "${target}" "${USR_ID}" "${GRP_ID}" "${mode}"
-    gen_app_database "${OUTDIR}" "${USR_ID}" "${GRP_ID}" "${mode}"
+    copy_app "${target}" "${USR_ID}" "${GRP_ID}"
+    gen_app_database "${OUTDIR}" "${USR_ID}" "${GRP_ID}"
     post_check "${OUTDIR}"
     log "!!!!!!!modify ${target}/app/startup.sh start app!!!!!!!"
     log "devices.json golds.json hosts.json iso.json CAN READ-ONLY"
