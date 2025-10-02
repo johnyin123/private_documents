@@ -28,8 +28,7 @@ class MyApp(object):
             META_SRV         = {config.META_SRV}
             GOLD_SRV         = {config.GOLD_SRV}
             CTRL_PANEL_SRV   = {config.CTRL_PANEL_SRV}
-            CTRL_PANEL_KEY   = {config.CTRL_PANEL_KEY}
-            DATABASE         = {config.DATABASE}''')
+            CTRL_PANEL_KEY   = {config.CTRL_PANEL_KEY}''')
         database.reload_all()
         web=flask_app.create_app({'STATIC_FOLDER': config.DATA_DIR, 'STATIC_URL_PATH':'/public', 'JSON_SORT_KEYS': False}, json=True)
         MyApp().register_routes(web)
