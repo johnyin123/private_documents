@@ -13,6 +13,8 @@ function set_curr(kvmhost, uuid=null, dev=null) {
   // console.debug(config.curr_host, config.curr_vm, config.curr_dev);
 }
 /*deep copy return*/
+function getGold(name, arch) { return JSON.parse(JSON.stringify(config.g_gold.find(el => el.name === name && el.arch  === arch))); }
+function getIso(name) { return JSON.parse(JSON.stringify(config.g_iso.find(el => el.name === name))); }
 function getHost(kvmhost) { return JSON.parse(JSON.stringify(config.g_host.find(el => el.name === kvmhost))); }
 function getDevice(kvmhost) { return filterByKey(config.g_device, 'kvmhost', kvmhost); }
 function genOption(jsonobj, selectedValue = '', ext1 = null, ext2 = null) {
@@ -623,11 +625,7 @@ function conf_backup(btn) {
     window.open(`/conf/backup/`, "_blank");
   }
 }
-function edit_cfg_host(host, form, btn) {
-  var kvmhost = getHost(host);
-  delete kvmhost.vars;
-  const devices = getDevice(host);
-  const myform = document.getElementById(form);
+function set_form_inputs(myform, inputs, chkboxes) {
   const formElements = myform.elements;
   for (let i = 0; i < formElements.length; i++) {
     const elem = formElements[i];
@@ -637,7 +635,7 @@ function edit_cfg_host(host, form, btn) {
       }
     }
   }
-  for(const key of devices) {
+  for(const key of chkboxes) {
     const elem =  myform.elements[key.name];
     if (elem === undefined) {
       console.error('input:', key, elem);
@@ -647,14 +645,22 @@ function edit_cfg_host(host, form, btn) {
       elem.checked = true;
     }
    }
-  for(const key in kvmhost) {
+  for(const key in inputs) {
     const elem =  myform.elements[key];
     if (elem === undefined) {
       console.error('input:', key, elem);
       continue;
     }
-    elem.value  = kvmhost[key];
+    elem.value  = inputs[key];
   }
+
+}
+function edit_cfg_host(host, form, btn) {
+  var kvmhost = getHost(host);
+  delete kvmhost.vars;
+  const devices = getDevice(host);
+  const myform = document.getElementById(form);
+  set_form_inputs(myform, kvmhost, devices);
 }
 function delete_cfg_host(host, btn) {
   if (confirm(`Are you sure delete ${host}?`)) {
@@ -684,6 +690,12 @@ function on_cfg_list_host(btn) {
     });
   });
 }
+function edit_cfg_gold(name, arch, form, btn) {
+  var gold = getGold(name, arch);
+  gold.size = Math.trunc(gold.size / (1024 ** 3));
+  const myform = document.getElementById(form);
+  set_form_inputs(myform, gold, []);
+}
 function delete_cfg_gold(name, arch, btn) {
   if (confirm(`Are you sure delete ${name} ${arch}?`)) {
     getjson('DELETE', `${uri_pre}/conf/gold/?name=${name}&arch=${arch}`, getjson_result);
@@ -697,12 +709,17 @@ function on_cfg_list_gold(btn) {
     config.g_gold = res.gold;
     var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">Size</th><th class="truncate">Desc</th><th>ACT</th></tr>`;
     res.gold.sort((a, b) => a.name.localeCompare(b.name)).forEach(gold => {
-      var btn = genActBtn(false, 'Delete', 'Delete', 'delete_cfg_gold', gold.name, {'arch':gold.arch});
+      var btn = genActBtn(false, 'Edit', 'Edit', 'edit_cfg_gold', gold.name, {'arch':gold.arch, 'form':'addgold_form'}) + genActBtn(false, 'Delete', 'Delete', 'delete_cfg_gold', gold.name, {'arch':gold.arch});
       tbl += `<tr><td>${gold.name}</td><td class="truncate">${gold.arch}</td class="truncate"><td class="truncate">${gold.size}</td><td class="truncate">${gold.desc}</td><td><div class="flex-group">${btn}</div></td></tr>`;
     });
     tbl += '</table>';
     div.innerHTML = tbl;
   });
+}
+function edit_cfg_iso(name, form, btn) {
+  var iso = getIso(name);
+  const myform = document.getElementById(form);
+  set_form_inputs(myform, iso, []);
 }
 function delete_cfg_iso(name, btn) {
   if (confirm(`Are you sure delete ${name}?`)) {
@@ -717,7 +734,7 @@ function on_cfg_list_iso(btn) {
     config.g_iso = res.iso;
     var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Desc</th><th>ACT</th></tr>`;
     res.iso.forEach(iso => {
-      var btn = genActBtn(false, 'Delete', 'Delete', 'delete_cfg_iso', iso.name);
+      var btn = genActBtn(false, 'Edit', 'Edit', 'edit_cfg_iso', iso.name, {'form':'addiso_form'}) + genActBtn(false, 'Delete', 'Delete', 'delete_cfg_iso', iso.name);
       tbl += `<tr><td>${iso.name}</td><td class="truncate">${iso.desc}</td><td><div class="flex-group">${btn}</div></td></tr>`;
     });
     tbl += '</table>';
