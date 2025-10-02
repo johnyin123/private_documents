@@ -1,4 +1,4 @@
 [
-{ "name":"host01","tpl":"domain","url":"qemu+tls://192.168.168.1/system","arch":"x86_64","ipaddr":"192.168.168.1","sshport":60022,"sshuser":"root" },
-{ "name":"kvm-x86-srv1","tpl":"domain","url":"qemu+ssh://root@192.168.169.1:60022/system","arch":"x86_64","ipaddr":"192.168.169.1","sshport":60022,"sshuser":"root" }
+{ "name":"demo_x86","tpl":"domain","url":"qemu+ssh://root@192.168.169.1:60022/system","arch":"x86_64","ipaddr":"192.168.169.1","sshport":60022,"sshuser":"root" },
+{ "name":"demo_arm","tpl":"domain","url":"qemu+tls://192.168.168.1/system","arch":"aarch64","ipaddr":"192.168.168.1","sshport":22,"sshuser":"root" }
 ]

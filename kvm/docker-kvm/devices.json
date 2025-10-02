@@ -1,10 +1,8 @@
 [
-{"kvmhost":"host01","name":"disk.file" ,"tpl":"disk.file" ,"desc":"本地文件DISK"},
-{"kvmhost":"host01","name":"disk.rbd"  ,"tpl":"disk.rbd"  ,"desc":"RBD DISK"},
-{"kvmhost":"host01","name":"net.br-ext","tpl":"net.br-ext","desc":"br-ext网桥"},
-{"kvmhost":"host01","name":"cdrom.null","tpl":"cdrom.null","desc":"无盘CDROM"},
-{"kvmhost":"kvm-x86-srv1","name":"disk.file" ,"tpl":"disk.file" ,"desc":"本地文件DISK"},
-{"kvmhost":"kvm-x86-srv1","name":"disk.rbd"  ,"tpl":"disk.rbd"  ,"desc":"RBD DISK"},
-{"kvmhost":"kvm-x86-srv1","name":"net.br-ext","tpl":"net.br-ext","desc":"br-ext网桥"},
-{"kvmhost":"kvm-x86-srv1","name":"cdrom.null","tpl":"cdrom.null","desc":"无盘CDROM"}
+{"kvmhost":"demo_x86","name":"disk.file" ,"tpl":"disk.file" ,"desc":"本地文件DISK"},
+{"kvmhost":"demo_x86","name":"net.br-ext","tpl":"net.br-ext","desc":"br-ext网桥"},
+{"kvmhost":"demo_x86","name":"cdrom.null","tpl":"cdrom.null","desc":"无盘CDROM"},
+{"kvmhost":"demo_arm","name":"disk.file" ,"tpl":"disk.file" ,"desc":"本地文件DISK"},
+{"kvmhost":"demo_arm","name":"net.br-ext","tpl":"net.br-ext","desc":"br-ext网桥"},
+{"kvmhost":"demo_arm","name":"cdrom.null","tpl":"cdrom.null","desc":"无盘CDROM"}
 ]
