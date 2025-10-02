@@ -405,7 +405,6 @@ EODOC
         # for fn in ${SOURCE_DIR}/*.py; do
         #     $(which cp) -f ${fn} ${type}-${arch}/docker/app/
         # done
-        # $(which cp) -f ${SOURCE_DIR}/database.py.shm ${type}-${arch}/docker/app/database.py
         chown -R 10001:10001 ${type}-${arch}/docker/app
     }
     log "Pre chroot exit"
