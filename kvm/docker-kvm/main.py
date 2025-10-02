@@ -73,7 +73,7 @@ class MyApp(object):
                 database.KVMIso.delete(name=entry['name'])
                 database.KVMIso.insert(**entry)
                 name = req_json['name']
-            iso = [dic._asdict() for dic in database.KVMIso.list_all()]
+            iso = database.KVMIso.list_all()
             conf_save(config.FILE_ISO, json.dumps(iso, default=str).encode('utf-8'))
             return utils.return_ok(f'conf iso ok', name=name)
         except Exception as e:
@@ -102,7 +102,7 @@ class MyApp(object):
                 database.KVMGold.insert(**entry)
                 name = req_json['name']
                 arch = req_json['arch']
-            golds = [dic._asdict() for dic in database.KVMGold.list_all()]
+            golds = database.KVMGold.list_all()
             conf_save(config.FILE_GOLDS, json.dumps(golds, default=str).encode('utf-8'))
             return utils.return_ok(f'conf gold ok', name=name, arch=arch)
         except Exception as e:
@@ -137,8 +137,8 @@ class MyApp(object):
                     tpl = template.DeviceTemplate(k) # check template exists
                     database.KVMDevice.insert(kvmhost=req_json['name'], name=k, tpl=k, desc=tpl.desc)
                 name = req_json['name']
-            hosts = [dic._asdict() for dic in database.KVMHost.list_all()]
-            devs = [dic._asdict() for dic in database.KVMDevice.list_all()]
+            hosts = database.KVMHost.list_all()
+            devs = database.KVMDevice.list_all()
             conf_save(config.FILE_HOSTS, json.dumps(hosts, default=str).encode('utf-8'))
             conf_save(config.FILE_DEVICES, json.dumps(devs, default=str).encode('utf-8'))
             return utils.return_ok(f'conf host ok', name=name)
@@ -176,13 +176,19 @@ class MyApp(object):
             return utils.deal_except(f'restore config', e), 400
 
     def db_list_host(self):
+        # perf tuning, for host more than 1000
         try:
-            hosts = [dic._asdict() for dic in database.KVMHost.list_all()]
+            hosts = database.KVMHost.list_all()
+            meta_varset = set()
+            for name in template.cfg_templates(config.DIR_META):
+                meta_varset.update(template.get_variables(config.DIR_META, name))
+            domtpl_varset = dict()
+            for name in template.cfg_templates(config.DIR_DOMAIN):
+                varset = template.get_variables(config.DIR_DOMAIN, name)
+                varset.update(meta_varset)
+                domtpl_varset[name] = database.KVMVar.get_desc(varset)
             for host in hosts:
-                varset = template.get_variables(config.DIR_DOMAIN, host['tpl'])
-                for name in template.cfg_templates(config.DIR_META):
-                    varset.update(template.get_variables(config.DIR_META, name))
-                host['vars'] = database.KVMVar.get_desc(varset)
+                host['vars'] = domtpl_varset[host['tpl']]
             return utils.return_ok(f'db_list_host ok', host=hosts)
         except Exception as e:
             return utils.deal_except(f'db_list_host', e), 400
@@ -190,7 +196,7 @@ class MyApp(object):
     def db_list_device(self, hostname:str = None):
         try:
             args = {'kvmhost': hostname} if hostname else {}
-            devices = [dic._asdict() for dic in database.KVMDevice.list_all(**args)]
+            devices = database.KVMDevice.list_all(**args)
             for dev in devices:
                 dev['vars'] = database.KVMVar.get_desc(template.get_variables(config.DIR_DEVICE, dev['tpl']))
                 dev['devtype'] = template.DeviceTemplate.get_devtype(dev['tpl'])
@@ -200,20 +206,20 @@ class MyApp(object):
 
     def db_list_iso(self):
         try:
-            return utils.return_ok(f'db_list_iso ok', iso=[result._asdict() for result in database.KVMIso.list_all()], server=f'http://{config.META_SRV}')
+            return utils.return_ok(f'db_list_iso ok', iso=database.KVMIso.list_all(), server=f'http://{config.META_SRV}')
         except Exception as e:
             return utils.deal_except(f'db_list_iso', e), 400
 
     def db_list_gold(self, arch:str = None):
         try:
             args = {'arch': arch} if arch else {}
-            return utils.return_ok(f'db_list_gold ok', gold=[result._asdict() for result in database.KVMGold.list_all(**args)], server=f'http://{config.GOLD_SRV}')
+            return utils.return_ok(f'db_list_gold ok', gold=database.KVMGold.list_all(**args), server=f'http://{config.GOLD_SRV}')
         except Exception as e:
             return utils.deal_except(f'db_list_gold', e), 400
 
     def db_list_domains(self):
         try:
-            return utils.return_ok(f'db_list_domains ok', guest=sorted([result._asdict() for result in database.KVMGuest.list_all()], key=lambda x : x['kvmhost']))
+            return utils.return_ok(f'db_list_domains ok', guest=sorted(database.KVMGuest.list_all(), key=lambda x : x['kvmhost']))
         except Exception as e:
             return utils.deal_except(f'db_list_domains', e), 400
 

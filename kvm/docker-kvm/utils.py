@@ -23,17 +23,20 @@ def time_use(func):
 class APIException(Exception):
     pass
 
-class FakeDB:
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-    def _asdict(self):
-        return self.__dict__
-    def __repr__(self):
-         return f'{self.__dict__!r}'
+class AttrDict(dict):
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(f"'{type(self).__name__}' object has no attribute '{key}'")
 
 class ShmListStore:
     def __init__(self):
         self.cache = my_manager.list()
+
+    @classmethod
+    def search(cls, arr, **kwargs) -> List:
+        return [AttrDict(item) for item in arr if all(item.get(key) == value for key, value in kwargs.items())]
 
     def insert(self, **kwargs) -> None:
         self.cache.append(my_manager.dict(**kwargs))
@@ -44,15 +47,14 @@ class ShmListStore:
     def reload(self, arr) -> None:
         self.cache[:] = [my_manager.dict(item) for item in arr]
 
-    def get_one(self, **criteria) -> FakeDB:
-        data = search(self.cache, **criteria)
+    def get_one(self, **criteria) -> AttrDict:
+        data = self.search(self.cache, **criteria)
         if len(data) == 1:
-            return FakeDB(**dict(data[0]))
+            return data[0]
         raise APIException(f'entry not found or not unique: {criteria} len={len(data)}')
 
-    def list_all(self, **criteria):
-        data = search(self.cache, **criteria)
-        return [FakeDB(**dict(entry)) for entry in data]
+    def list_all(self, **criteria) ->List:
+        return self.search(self.cache, **criteria)
 
 def libvirt_callback(ctx, err):
     pass
@@ -106,9 +108,6 @@ class ProcList:
         # Daemon threads automatically terminate when the main program exits.
         threading.Thread(target=run_thread, args=(uuid, cmd, tmout,), daemon=True).start()
         time.sleep(0.3)  # sleep for wait process startup
-
-def search(arr, **kwargs):
-    return [item for item in arr if all(item.get(key) == value for key, value in kwargs.items())]
 
 def getlist_without_key(arr:List, *keys)-> List:
     return [{k: v for k, v in dic.items() if k not in keys} for dic in arr]
