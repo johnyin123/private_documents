@@ -118,6 +118,7 @@ class MyApp(object):
                 database.KVMHost.get_one(name=name)
                 database.KVMHost.delete(name=name)
                 database.KVMDevice.delete(kvmhost=name)
+                database.KVMGuest.delete(kvmhost=name)
             if flask.request.method == "POST":
                 req_json = flask.request.get_json(silent=True, force=True)
                 keys_to_extract = ['name','tpl','url','arch','ipaddr','sshport','sshuser']
