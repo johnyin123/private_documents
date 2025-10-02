@@ -2,13 +2,12 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("54d7a659[2025-09-30T15:11:56+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("85621002[2025-10-02T12:26:42+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
 APPFILES=(flask_app.py database.py config.py meta.py utils.py main.py template.py vmmanager.py console.py)
 APPDBS=(devices.json golds.json hosts.json iso.json vars.json)
-TOOLS=(reload_dbtable)
 export PYTHONDONTWRITEBYTECODE=1
 ################################################################################
 log() { echo "$(tput setaf ${COLOR:-141})$*$(tput sgr0)" >&2; }
@@ -35,12 +34,9 @@ check_depends() {
         files+=(cacert.pem clientkey.pem clientcert.pem id_rsa id_rsa.pub)
     }
     local cmds=(socat ssh jq qemu-img cat)
-    log "file(${files[@]} ${APPFILES[@]} ${APPDBS[@]} ${TOOLS[@]})"
+    log "file(${files[@]} ${APPFILES[@]} ${APPDBS[@]})"
     for fn in ${files[@]} ${APPFILES[@]} ${APPDBS[@]}; do
         [ -e "${fn}" ] || { log "${fn} file, nofound"; exit 1;}
-    done
-    for fn in ${TOOLS[@]}; do
-        [ -h "${fn}" ] && { log "${fn} can not be link"; exit 1; }
     done
     [ "${docker}" == "1" ] || {
         log "cmd(${cmds[@]})"

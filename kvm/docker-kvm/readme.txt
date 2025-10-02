@@ -137,7 +137,6 @@ docker-libvirtd.sh      : gen libvirtd docker image
 docker-vmmgr.sh         : gen vmmgr-api docker image
 inst_vmmgr_api_srv.sh   : inst vmmgr-api server(on docker or on vm)
 gen_ngx_conf            : gen nginx kvm.conf for vmmgr-api
-reload_dbtable          : load/reload kvmhost/kvmdevice/kvmgold dbtable via json
 hosts.json              : kvm hosts with domains template
 devices.json            : host device mapping
 golds.json              : gold disks, Add disk with template (API SRV) use host in golds.json
