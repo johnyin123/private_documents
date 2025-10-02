@@ -9,6 +9,8 @@ except ImportError:
     from io import BytesIO
 logger = logging.getLogger(__name__)
 conf_save = utils.EtcdConfig.etcd_save if config.ETCD_PREFIX else utils.file_save
+conf_backup_tgz  = utils.EtcdConfig.backup_tgz
+conf_restore_tgz = utils.EtcdConfig.restore_tgz
 
 class MyApp(object):
     @staticmethod
@@ -158,7 +160,7 @@ class MyApp(object):
 
     def cfg_download(self):
         def generate_tar():
-            file_obj = utils.EtcdConfig.backup_tgz()
+            file_obj = conf_backup_tgz()
             while True:
                 chunk = file_obj.read(1024*16)
                 if not chunk:
@@ -169,7 +171,7 @@ class MyApp(object):
     def cfg_upload(self):
         # restore on overwrite files exists in backup.tgz, others keep
         try:
-            utils.EtcdConfig.restore_tgz(BytesIO(flask.request.files['file'].read()))
+            conf_restore_tgz(BytesIO(flask.request.files['file'].read()))
             return utils.return_ok(f'restore config ok')
         except Exception as e:
             return utils.deal_except(f'restore config', e), 400
