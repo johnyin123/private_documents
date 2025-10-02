@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator, Any
 import libvirt, json, os, logging, base64, hashlib, datetime, contextlib
-import multiprocessing, threading, subprocess, signal, time, tarfile
+import multiprocessing, threading, subprocess, signal, time, tarfile, glob
 try:
     from cStringIO import StringIO as BytesIO
 except ImportError:
@@ -270,3 +270,26 @@ class EtcdConfig:
                 file_save(fname, value)
             logger.warn(f'ETCD INIT SYNC END {datetime.datetime.now().isoformat()}')
         multiprocessing.Process(target=cls.cfg_updater_proc, args=(update_callback,)).start()
+
+def file_backup_tgz()->BytesIO:
+    file_obj = BytesIO()
+    with tarfile.open(mode="w:gz", fileobj=file_obj) as tar:
+        for fn in glob.glob(f'{config.DATA_DIR}/**', recursive=True):
+            if os.path.isfile(fn):
+                content = file_load(fn)
+                tarinfo = tarfile.TarInfo(fn.removeprefix(f'{config.DATA_DIR}').strip('/'))
+                tarinfo.size = len(content)
+                tar.addfile(tarinfo, BytesIO(content))
+    file_obj.seek(0)
+    return file_obj
+
+def file_restore_tgz(file_obj:BytesIO)->None:
+    try:
+        with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
+            for member in tar.getmembers():
+                if member.isreg():
+                    with tar.extractfile(member) as f:
+                        logger.debug(f'File restore {member.name}')
+                        file_save(member.name, f.read())
+    except tarfile.ReadError as e:
+        raise APIException(f'Invalid tarfile format {str(e)}')
