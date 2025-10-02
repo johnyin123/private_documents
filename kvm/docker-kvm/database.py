@@ -6,8 +6,7 @@ logger = logging.getLogger(__name__)
 class SHM_KVMGuest(utils.ShmListStore):
     def Upsert(self, kvmhost: str, arch: str, records: List[Dict]) -> None:
         self.delete(kvmhost=kvmhost)
-        for rec in records:
-            self.insert(kvmhost=kvmhost, arch=arch, **rec)
+        self.insert(kvmhost=kvmhost, arch=arch, guests=records)
 
 class SHM_KVMVar(utils.ShmListStore):
     def get_desc(self, varset:Set) -> Dict:

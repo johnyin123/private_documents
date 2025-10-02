@@ -161,7 +161,7 @@ class MyApp(object):
         def generate_tar():
             file_obj = conf_backup_tgz()
             while True:
-                chunk = file_obj.read(1024*16)
+                chunk = file_obj.read(1024*64)
                 if not chunk:
                     break
                 yield chunk
@@ -219,7 +219,7 @@ class MyApp(object):
 
     def db_list_domains(self):
         try:
-            return utils.return_ok(f'db_list_domains ok', guest=sorted(database.KVMGuest.list_all(), key=lambda x : x['kvmhost']))
+            return utils.return_ok(f'db_list_domains ok', guest=database.KVMGuest.list_all())
         except Exception as e:
             return utils.deal_except(f'db_list_domains', e), 400
 

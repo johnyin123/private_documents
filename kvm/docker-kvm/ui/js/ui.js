@@ -97,7 +97,7 @@ function genVmsTBL(item, host = null) {
     } else if (key === 'mdconfig') {
       const mdconfig = item[key];
       for(var mdkey in mdconfig) {
-        tbl += `<tr><th class="truncate" title="mdconfig">${mdkey}#</th><td colspan="${colspan}" class="truncate">${mdconfig[mdkey]}</td>`;
+        tbl += `<tr><th class="truncate" title="mdconfig ${mdkey}">${mdkey}#</th><td colspan="${colspan}" class="truncate">${mdconfig[mdkey]}</td>`;
         var btn = genActBtn(false, 'Modify mdconfig', 'Modify', 'modify_mdconfig', host, {'uuid':item.uuid,'key':mdkey});
         tbl += host ? `<td><div class="flex-group">${btn}</div></td></tr>`: `</tr>`;
       }
@@ -282,14 +282,20 @@ function vmlist(kvmhost) {
     const result = JSON.parse(resp);
     if(result.result !== 'OK') { Alert('error', 'vmlist', 'Get VM List'); return; };
     const guest = result.guest;
-    flush_sidebar(kvmhost, kvmhost == 'ALL VMS' ? `(${guest.length})` : `(${result.host.active}/${result.host.totalvm})`);
     if(kvmhost === 'ALL VMS') {
       var tbl = '';
+      var count = 0;
       guest.forEach(item => {
-        const btn = `<button class="iconbtn" style="--icon:var(--fa-ellipsis-h);" title='Manage VM' onclick='manage_vm("${item.kvmhost}", "${item.uuid}")'></button>`;
-        const table = genVmsTBL(item);
-        tbl += genWrapper("vms-wrapper", "<h2>GUEST</h2>", btn, table);
+        item.guests.forEach(rec => {
+          count ++;
+          const btn = `<button class="iconbtn" style="--icon:var(--fa-ellipsis-h);" title='Manage VM' onclick='manage_vm("${item.kvmhost}", "${rec.uuid}")'></button>`;
+          rec.kvmhost = item.kvmhost;
+          rec.arch = item.arch;
+          const table = genVmsTBL(rec);
+          tbl += genWrapper("vms-wrapper", "<h2>GUEST</h2>", btn, table);
+        });
       });
+      flush_sidebar(kvmhost, `(${count})`);
       document.getElementById("vms").innerHTML = tbl;
       const newArray = guest.map(item => {
         const { kvmhost, arch } = item;
@@ -302,6 +308,7 @@ function vmlist(kvmhost) {
       tbl += '</table>';
       document.getElementById("host").innerHTML = genWrapper('host-wrapper', `<h2 class="green">Summary</h2>`, '', tbl);
     } else {
+      flush_sidebar(kvmhost, `(${result.host.active}/${result.host.totalvm})`);
       document.getElementById("vms").innerHTML = show_vms(kvmhost, result.guest);
       document.getElementById("host").innerHTML = show_host(kvmhost, result.host);
     }

@@ -112,7 +112,7 @@ table, th, td {
 }
 th { text-align: right; text-transform: uppercase; }
 td { text-align: left; white-space: nowrap;}
-td.truncate {
+th.truncate, td.truncate {
   text-overflow:ellipsis;
   overflow: hidden;
   max-width:1px;
