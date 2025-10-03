@@ -86,8 +86,7 @@
       <h2>Restore Config</h2>
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
-    <form action="/conf/restore/" method="post" target="_blank" enctype="multipart/form-data" onkeydown="if(event.keyCode === 13){return false;}" onsubmit="return confirm('Are you sure restore config ?');"
-    >
+    <form onSubmit="return on_conf_restore(this)" enctype="multipart/form-data" onkeydown="if(event.keyCode === 13){return false;}">
       <input type="file" name="file" required>
       <div class="flex-group">
         <input type="reset" value="Reset"/><input type="submit" value="Submit"/>

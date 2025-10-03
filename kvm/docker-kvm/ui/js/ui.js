@@ -627,6 +627,24 @@ function on_addhost(form) {
   }
   return false;
 }
+function on_conf_restore(form) {
+  if (confirm('Are you sure restore config ?')) {
+    const formData = new FormData(form);
+    fetch(`${uri_pre}/conf/restore/`, { method: 'POST', body: formData })
+    .then(response => response.json())
+    .then(res => {
+      if (res.result === 'OK') {
+       load_conf(`?${Date.now()}`);
+       form.reset();
+       alert(`${res.desc}`);
+      } else {
+       alert(`${res.code}, ${res.name}, ${res.desc}`);
+      }
+    })
+    .catch(error => { alert('Error during upload:', error); });
+  }
+  return false;
+}
 function conf_backup(btn) {
   if (confirm(`Are you sure download config backup file ?`)) {
     window.open(`/conf/backup/`, "_blank");
