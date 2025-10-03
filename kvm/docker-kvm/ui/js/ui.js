@@ -645,7 +645,7 @@ function on_conf_restore(form) {
   }
   return false;
 }
-function conf_backup(btn) {
+function conf_backup() {
   if (confirm(`Are you sure download config backup file ?`)) {
     window.open(`/conf/backup/`, "_blank");
   }
@@ -705,6 +705,21 @@ function on_cfg_list_host(btn) {
   tbl += '</table>';
   div.innerHTML = tbl;
 }
+function show_conf_host_view() {
+  getjson('GET', `${uri_pre}/conf/domains/?${Date.now()}`, function(resp) {
+    const result = JSON.parse(resp);
+    const sel = document.getElementById('conf_domains_tpl');
+    sel.innerHTML = '';
+    result.domains.forEach(tpl => { sel.innerHTML += `<option value="${tpl}">${tpl}</option>`; });
+    getjson('GET', `${uri_pre}/conf/devices/?${Date.now()}`, function(resp) {
+      const result = JSON.parse(resp);
+      const div = document.getElementById('conf_devices_tpl');
+      div.innerHTML = '';
+      result.devices.forEach(tpl => { div.innerHTML += `<label style="font-weight: normal;"><input type="checkbox" name="${tpl}" value="on"/>${tpl}</label>`; });
+     });
+  });
+  showView('conf_host');
+}
 function edit_cfg_gold(name, arch, form, btn) {
   var gold = getGold(name, arch);
   gold.size = Math.trunc(gold.size / (1024 ** 3));
@@ -758,20 +773,8 @@ function on_cfg_list_iso(btn) {
 }
 function menu_config(spanval) {
   set_curr(null);
-  getjson('GET', `${uri_pre}/conf/domains/?${Date.now()}`, function(resp) {
-    const result = JSON.parse(resp);
-    const sel = document.getElementById('conf_domains_tpl');
-    sel.innerHTML = '';
-    result.domains.forEach(tpl => { sel.innerHTML += `<option value="${tpl}">${tpl}</option>`; });
-    getjson('GET', `${uri_pre}/conf/devices/?${Date.now()}`, function(resp) {
-      const result = JSON.parse(resp);
-      const div = document.getElementById('conf_devices_tpl');
-      div.innerHTML = '';
-      result.devices.forEach(tpl => { div.innerHTML += `<label style="font-weight: normal;"><input type="checkbox" name="${tpl}" value="on"/>${tpl}</label>`; });
-      showView("configuration");
-      flush_sidebar(spanval);
-    });
-  });
+  showView("configuration");
+  flush_sidebar(spanval);
 }
 function snap_create(host, uuid, btn) {
   if (confirm(`Create snapshot /${host}/${uuid} ?`)) {
