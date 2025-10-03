@@ -228,10 +228,11 @@ class EtcdConfig:
 
     @classmethod
     def restore_tgz(cls, file_obj:BytesIO)->None:
+        prefix = tuple(['cidata','devices/','domains/','meta/','devices.json','golds.json','hosts.json','iso.json','vars.json'])
         try:
             with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
                 for member in tar.getmembers():
-                    if member.isreg():
+                    if member.isreg() and member.name.startswith(prefix):
                         with tar.extractfile(member) as f:
                             logger.debug(f'ETCD restore {member.name}')
                             cls.etcd_save(member.name, f.read())
@@ -283,10 +284,11 @@ def file_backup_tgz()->BytesIO:
     return file_obj
 
 def file_restore_tgz(file_obj:BytesIO)->None:
+    prefix = tuple(['cidata','devices/','domains/','meta/','devices.json','golds.json','hosts.json','iso.json','vars.json'])
     try:
         with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
             for member in tar.getmembers():
-                if member.isreg():
+                if member.isreg() and member.name.startswith(prefix):
                     with tar.extractfile(member) as f:
                         logger.debug(f'File restore {member.name}')
                         file_save(os.path.join(config.DATA_DIR, member.name), f.read())
