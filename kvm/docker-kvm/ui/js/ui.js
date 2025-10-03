@@ -675,27 +675,17 @@ function delete_cfg_host(host, btn) {
   }
 }
 function on_cfg_list_host(btn) {
+  load_conf(`?${Date.now()}`);
   const div = document.getElementById('conf_host_list');
-  getjson('GET', `${uri_pre}/tpl/host/?${Date.now()}`, function (resp) {
-    const res = JSON.parse(resp);
-    if(res.result !== 'OK') { Alert('error', 'conf', 'Get Host List'); return; };
-    config.g_host = res.host;
-    gen_sidebar();
-    flush_sidebar("CONFIG");
-    getjson('GET', `${uri_pre}/tpl/device/?${Date.now()}`, function(resp) {
-      const res = JSON.parse(resp);
-      if(res.result !== 'OK') { Alert('error', 'init', 'Get Device List'); return; };
-      config.g_device = res.device;
-      var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">IPADDR</th><th class="truncate">DEVS</th><th>ACT</th></tr>`;
-      config.g_host.forEach(host => {
-        var btn = genActBtn(false, 'Edit', 'Edit', 'edit_cfg_host', host.name, {'form':'addhost_form'}) + genActBtn(false, 'Delete', 'Delete', 'delete_cfg_host', host.name);
-        var devs = getDevice(host.name).map(dev => dev.name);
-        tbl += `<tr><td>${host.name}</td><td class="truncate">${host.arch}</td class="truncate"><td class="truncate">${host.ipaddr}</td><td class="truncate">${devs}</td><td><div class="flex-group">${btn}</div></td></tr>`;
-      });
-      tbl += '</table>';
-      div.innerHTML = tbl;
-    });
+  flush_sidebar("CONFIG");
+  var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">IPADDR</th><th class="truncate">DEVS</th><th>ACT</th></tr>`;
+  config.g_host.forEach(host => {
+    var btn = genActBtn(false, 'Edit', 'Edit', 'edit_cfg_host', host.name, {'form':'addhost_form'}) + genActBtn(false, 'Delete', 'Delete', 'delete_cfg_host', host.name);
+    var devs = getDevice(host.name).map(dev => dev.name);
+    tbl += `<tr><td>${host.name}</td><td class="truncate">${host.arch}</td class="truncate"><td class="truncate">${host.ipaddr}</td><td class="truncate">${devs}</td><td><div class="flex-group">${btn}</div></td></tr>`;
   });
+  tbl += '</table>';
+  div.innerHTML = tbl;
 }
 function edit_cfg_gold(name, arch, form, btn) {
   var gold = getGold(name, arch);
@@ -750,12 +740,12 @@ function on_cfg_list_iso(btn) {
 }
 function menu_config(spanval) {
   set_curr(null);
-  getjson('GET', `${uri_pre}/conf/domains/`, function(resp) {
+  getjson('GET', `${uri_pre}/conf/domains/?${Date.now()}`, function(resp) {
     const result = JSON.parse(resp);
     const sel = document.getElementById('conf_domains_tpl');
     sel.innerHTML = '';
     result.domains.forEach(tpl => { sel.innerHTML += `<option value="${tpl}">${tpl}</option>`; });
-    getjson('GET', `${uri_pre}/conf/devices/`, function(resp) {
+    getjson('GET', `${uri_pre}/conf/devices/?${Date.now()}`, function(resp) {
       const result = JSON.parse(resp);
       const div = document.getElementById('conf_devices_tpl');
       div.innerHTML = '';
@@ -892,16 +882,19 @@ function gen_sidebar() {
     });
     document.getElementById("sidebar").innerHTML = mainMenu;
 }
-/* ------------------------- */
-window.addEventListener('load', function() {
-  includeHTML();
-  getjson('GET', `${uri_pre}/tpl/host/`, function (resp) {
+function load_conf(bypass='') {
+  getjson('GET', `${uri_pre}/tpl/host/${bypass}`, function (resp) {
     const result = JSON.parse(resp);
     if(result.result !== 'OK') { Alert('error', 'init', 'Get Host List'); return; }
     config.g_host = result.host;
     gen_sidebar();
+    getjson('GET', `${uri_pre}/tpl/device/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Device List'); return; }; config.g_device = result.device; });
   });
-  getjson('GET', `${uri_pre}/tpl/iso/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; }; config.g_iso = result.iso; });
-  getjson('GET', `${uri_pre}/tpl/gold/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; }; config.g_gold = result.gold; });
-  getjson('GET', `${uri_pre}/tpl/device/`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Device List'); return; }; config.g_device = result.device; });
+  getjson('GET', `${uri_pre}/tpl/iso/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get ISO List'); return; }; config.g_iso = result.iso; });
+  getjson('GET', `${uri_pre}/tpl/gold/${bypass}`, function(resp) { const result = JSON.parse(resp);if(result.result !== 'OK') { Alert('error', 'init', 'Get Gold List'); return; }; config.g_gold = result.gold; });
+}
+/* ------------------------- */
+window.addEventListener('load', function() {
+  includeHTML();
+  load_conf();
 })
