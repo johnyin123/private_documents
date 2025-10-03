@@ -35,12 +35,12 @@ class MyApp(object):
         return web
 
     def register_routes(self, app):
-        app.add_url_rule('/tpl/host/', view_func=self.db_list_host, methods=['GET'])
-        app.add_url_rule('/tpl/iso/', view_func=self.db_list_iso, methods=['GET'])
-        app.add_url_rule('/tpl/gold/', view_func=self.db_list_gold, methods=['GET'])
-        app.add_url_rule('/tpl/device/', view_func=self.db_list_device, methods=['GET'])
-        app.add_url_rule('/tpl/gold/<string:arch>', view_func=self.db_list_gold, methods=['GET'])
-        app.add_url_rule('/tpl/device/<string:hostname>', view_func=self.db_list_device, methods=['GET'])
+        app.add_url_rule('/tpl/host/', view_func=self.tpl_host, methods=['GET'])
+        app.add_url_rule('/tpl/iso/', view_func=self.tpl_iso, methods=['GET'])
+        app.add_url_rule('/tpl/gold/', view_func=self.tpl_gold, methods=['GET'])
+        app.add_url_rule('/tpl/device/', view_func=self.tpl_device, methods=['GET'])
+        app.add_url_rule('/tpl/gold/<string:arch>', view_func=self.tpl_gold, methods=['GET'])
+        app.add_url_rule('/tpl/device/<string:hostname>', view_func=self.tpl_device, methods=['GET'])
         app.add_url_rule('/vm/<string:cmd>/<string:hostname>', view_func=self.exec_domain_cmd, methods=['GET', 'POST'])
         app.add_url_rule('/vm/<string:cmd>/<string:hostname>/<string:uuid>', view_func=self.exec_domain_cmd, methods=['GET', 'POST'])
         ## db oper guest ##
@@ -48,8 +48,8 @@ class MyApp(object):
         ## etcd config backup/restore ##
         app.add_url_rule('/conf/domains/', view_func=self.cfg_domains, methods=['GET'])
         app.add_url_rule('/conf/devices/', view_func=self.cfg_devices, methods=['GET'])
-        app.add_url_rule('/conf/backup/', view_func=self.cfg_download, methods=['GET'])
-        app.add_url_rule('/conf/restore/', view_func=self.cfg_upload, methods=['POST'])
+        app.add_url_rule('/conf/backup/', view_func=self.conf_backup, methods=['GET'])
+        app.add_url_rule('/conf/restore/', view_func=self.conf_restore, methods=['POST'])
         app.add_url_rule('/conf/host/', view_func=self.cfg_host, methods=['POST', 'DELETE'])
         app.add_url_rule('/conf/iso/', view_func=self.cfg_iso, methods=['POST', 'DELETE'])
         app.add_url_rule('/conf/gold/', view_func=self.cfg_gold, methods=['POST', 'DELETE'])
@@ -158,7 +158,7 @@ class MyApp(object):
         except Exception as e:
             return utils.deal_except(f'conf host', e), 400
 
-    def cfg_download(self):
+    def conf_backup(self):
         def generate_tar():
             file_obj = conf_backup_tgz()
             while True:
@@ -168,15 +168,17 @@ class MyApp(object):
                 yield chunk
         return flask.Response(generate_tar(), mimetype='application/gzip', headers={'Content-Disposition': f'attachment; filename={datetime.datetime.now().strftime("%Y%m%d%H%M%S")}.tgz'})
 
-    def cfg_upload(self):
+    def conf_restore(self):
         # restore on overwrite files exists in backup.tgz, others keep
         try:
             conf_restore_tgz(BytesIO(flask.request.files['file'].read()))
+            if not config.ETCD_PREFIX: # no etc need manual reload
+                database.reload_all()
             return utils.return_ok(f'restore config ok')
         except Exception as e:
             return utils.deal_except(f'restore config', e), 400
 
-    def db_list_host(self):
+    def tpl_host(self):
         # perf tuning, for host more than 1000
         try:
             hosts = database.KVMHost.list_all()
@@ -190,33 +192,33 @@ class MyApp(object):
                 domtpl_varset[name] = database.KVMVar.get_desc(varset)
             for host in hosts:
                 host['vars'] = domtpl_varset[host['tpl']]
-            return utils.return_ok(f'db_list_host ok', host=hosts)
+            return utils.return_ok(f'tpl_host ok', host=hosts)
         except Exception as e:
-            return utils.deal_except(f'db_list_host', e), 400
+            return utils.deal_except(f'tpl_host', e), 400
 
-    def db_list_device(self, hostname:str = None):
+    def tpl_device(self, hostname:str = None):
         try:
             args = {'kvmhost': hostname} if hostname else {}
             devices = database.KVMDevice.list_all(**args)
             for dev in devices:
                 dev['vars'] = database.KVMVar.get_desc(template.get_variables(config.DIR_DEVICE, dev['tpl']))
                 dev['devtype'] = template.DeviceTemplate.get_devtype(dev['tpl'])
-            return utils.return_ok(f'db_list_device ok', device=devices)
+            return utils.return_ok(f'tpl_device ok', device=devices)
         except Exception as e:
-            return utils.deal_except(f'db_list_device', e), 400
+            return utils.deal_except(f'tpl_device', e), 400
 
-    def db_list_iso(self):
+    def tpl_iso(self):
         try:
-            return utils.return_ok(f'db_list_iso ok', iso=database.KVMIso.list_all(), server=f'http://{config.META_SRV}')
+            return utils.return_ok(f'tpl_iso ok', iso=database.KVMIso.list_all(), server=f'http://{config.META_SRV}')
         except Exception as e:
-            return utils.deal_except(f'db_list_iso', e), 400
+            return utils.deal_except(f'tpl_iso', e), 400
 
-    def db_list_gold(self, arch:str = None):
+    def tpl_gold(self, arch:str = None):
         try:
             args = {'arch': arch} if arch else {}
-            return utils.return_ok(f'db_list_gold ok', gold=database.KVMGold.list_all(**args), server=f'http://{config.GOLD_SRV}')
+            return utils.return_ok(f'tpl_gold ok', gold=database.KVMGold.list_all(**args), server=f'http://{config.GOLD_SRV}')
         except Exception as e:
-            return utils.deal_except(f'db_list_gold', e), 400
+            return utils.deal_except(f'tpl_gold', e), 400
 
     def db_list_domains(self):
         try:

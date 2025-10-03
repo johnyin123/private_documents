@@ -289,6 +289,6 @@ def file_restore_tgz(file_obj:BytesIO)->None:
                 if member.isreg():
                     with tar.extractfile(member) as f:
                         logger.debug(f'File restore {member.name}')
-                        file_save(member.name, f.read())
+                        file_save(os.path.join(config.DATA_DIR, member.name), f.read())
     except tarfile.ReadError as e:
         raise APIException(f'Invalid tarfile format {str(e)}')
