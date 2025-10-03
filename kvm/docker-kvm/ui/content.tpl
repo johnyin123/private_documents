@@ -8,7 +8,7 @@
       <h2>Add KVM HOST</h2>
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
-    <form id="addhost_form" onSubmit="return on_addhost(this)" onkeydown="if(event.keyCode === 13){return false;}">
+    <form id="addhost_form" onSubmit="return on_conf_addhost(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Name*</label><input type="text" name="name" required/>
       <label>Arch*</label><select name="arch">
         <option value="x86_64" selected>x86_64</option>
@@ -27,7 +27,7 @@
       </fieldset>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
-        <input type="button" value="List" onclick="on_cfg_list_host(this)"/>
+        <input type="button" value="List" onclick="on_conf_listhost(this)"/>
         <input type="submit" value="Submit"/>
       </div>
     </form>
@@ -41,13 +41,13 @@
       <h2>Add TPL ISO</h2>
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
-    <form id="addiso_form" onSubmit="return on_addiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
+    <form id="addiso_form" onSubmit="return on_conf_addiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Name*</label><input type="text" name="name" placeholder="uniq name" required/>
       <label>URI*</label><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[a-zA-Z0-9._\-]+/?)*$" required/>
       <label>Desc*</label><input type="text" name="desc" placeholder="desc" required/>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
-        <input type="button" value="List" onclick="on_cfg_list_iso(this)"/>
+        <input type="button" value="List" onclick="on_conf_listiso(this)"/>
         <input type="submit" value="Submit"/>
       </div>
     </form>
@@ -61,7 +61,7 @@
       <h2>Add TPL GOLD</h2>
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
-    <form id="addgold_form"  onSubmit="return on_addgold(this)" onkeydown="if(event.keyCode === 13){return false;}">
+    <form id="addgold_form"  onSubmit="return on_conf_addgold(this)" onkeydown="if(event.keyCode === 13){return false;}">
       <label>Name*</label><input type="text" name="name" placeholder="uniq name" required/>
       <label>Arch*</label><select name="arch">
         <option value="x86_64" selected>x86_64</option>
@@ -72,7 +72,7 @@
       <label>Desc*</label><input type="text" name="desc" placeholder="desc" required/>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
-        <input type="button" value="List" onclick="on_cfg_list_gold(this)"/>
+        <input type="button" value="List" onclick="on_conf_listgold(this)"/>
         <input type="submit" value="Submit"/>
       </div>
     </form>
@@ -106,7 +106,7 @@
         <input type="button" value="CONF HOST" onclick="show_conf_host_view()"/>
         <input type="button" value="CONF GOLD" onclick="showView('conf_gold')"/>
         <input type="button" value="CONF ISO" onclick="showView('conf_iso')"/>
-        <input type="button" value="Backup" onclick="conf_backup()"/>
+        <input type="button" value="Backup" onclick="on_conf_backup()"/>
         <input type="button" value="Restore" onclick="showView('conf_restore')">
       </div>
     </form>

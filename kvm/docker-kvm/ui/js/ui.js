@@ -600,7 +600,7 @@ function on_modifymdconfig(form) {
   }, res);
   return false;
 }
-function on_addiso(form) {
+function on_conf_addiso(form) {
   if (confirm(`Are you sure add iso?`)) {
     const res = getFormJSON(form, false);
     getjson('POST', `${uri_pre}/conf/iso/`,function(resp) {
@@ -609,7 +609,7 @@ function on_addiso(form) {
   }
   return false;
 }
-function on_addgold(form) {
+function on_conf_addgold(form) {
   if (confirm(`Are you sure add gold?`)) {
     const res = getFormJSON(form, false);
     getjson('POST', `${uri_pre}/conf/gold/`,function(resp) {
@@ -618,7 +618,7 @@ function on_addgold(form) {
   }
   return false;
 }
-function on_addhost(form) {
+function on_conf_addhost(form) {
   if (confirm(`Are you sure add kvmhost?`)) {
     const res = getFormJSON(form, false);
     getjson('POST', `${uri_pre}/conf/host/`,function(resp) {
@@ -645,9 +645,9 @@ function on_conf_restore(form) {
   }
   return false;
 }
-function conf_backup() {
+function on_conf_backup() {
   if (confirm(`Are you sure download config backup file ?`)) {
-    window.open(`/conf/backup/`, "_blank");
+    window.open(`${uri_pre}/conf/backup/`, "_blank");
   }
 }
 function set_form_inputs(myform, inputs, chkboxes) {
@@ -678,27 +678,26 @@ function set_form_inputs(myform, inputs, chkboxes) {
     }
     elem.value  = inputs[key];
   }
-
 }
-function edit_cfg_host(host, form, btn) {
+function on_conf_edithostg(host, form, btn) {
   var kvmhost = getHost(host);
   delete kvmhost.vars;
   const devices = getDevice(host);
   const myform = document.getElementById(form);
   set_form_inputs(myform, kvmhost, devices);
 }
-function delete_cfg_host(host, btn) {
+function on_conf_delhost(host, btn) {
   if (confirm(`Are you sure delete ${host}?`)) {
     getjson('DELETE', `${uri_pre}/conf/host/?name=${host}`, getjson_result);
   }
 }
-function on_cfg_list_host(btn) {
+function on_conf_listhost(btn) {
   load_conf(`?${Date.now()}`);
   const div = document.getElementById('conf_host_list');
   flush_sidebar("CONFIG");
   var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">IPADDR</th><th class="truncate">DEVS</th><th>ACT</th></tr>`;
   config.g_host.forEach(host => {
-    var btn = genActBtn(false, 'Edit', 'Edit', 'edit_cfg_host', host.name, {'form':'addhost_form'}) + genActBtn(false, 'Delete', 'Delete', 'delete_cfg_host', host.name);
+    var btn = genActBtn(false, 'Edit', 'Edit', 'on_conf_edithostg', host.name, {'form':'addhost_form'}) + genActBtn(false, 'Delete', 'Delete', 'on_conf_delhost', host.name);
     var devs = getDevice(host.name).map(dev => dev.name);
     tbl += `<tr><td>${host.name}</td><td class="truncate">${host.arch}</td class="truncate"><td class="truncate">${host.ipaddr}</td><td class="truncate">${devs}</td><td><div class="flex-group">${btn}</div></td></tr>`;
   });
@@ -720,18 +719,18 @@ function show_conf_host_view() {
   });
   showView('conf_host');
 }
-function edit_cfg_gold(name, arch, form, btn) {
+function on_conf_editgold(name, arch, form, btn) {
   var gold = getGold(name, arch);
   gold.size = Math.trunc(gold.size / (1024 ** 3));
   const myform = document.getElementById(form);
   set_form_inputs(myform, gold, []);
 }
-function delete_cfg_gold(name, arch, btn) {
+function on_conf_delgold(name, arch, btn) {
   if (confirm(`Are you sure delete ${name} ${arch}?`)) {
     getjson('DELETE', `${uri_pre}/conf/gold/?name=${name}&arch=${arch}`, getjson_result);
   }
 }
-function on_cfg_list_gold(btn) {
+function on_conf_listgold(btn) {
   const div = document.getElementById('conf_gold_list');
   getjson('GET', `${uri_pre}/tpl/gold/?${Date.now()}`, function(resp) {
     const res = JSON.parse(resp);
@@ -739,24 +738,24 @@ function on_cfg_list_gold(btn) {
     config.g_gold = res.gold;
     var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">Size</th><th class="truncate">Desc</th><th>ACT</th></tr>`;
     res.gold.sort((a, b) => a.name.localeCompare(b.name)).forEach(gold => {
-      var btn = genActBtn(false, 'Edit', 'Edit', 'edit_cfg_gold', gold.name, {'arch':gold.arch, 'form':'addgold_form'}) + genActBtn(false, 'Delete', 'Delete', 'delete_cfg_gold', gold.name, {'arch':gold.arch});
+      var btn = genActBtn(false, 'Edit', 'Edit', 'on_conf_editgold', gold.name, {'arch':gold.arch, 'form':'addgold_form'}) + genActBtn(false, 'Delete', 'Delete', 'on_conf_delgold', gold.name, {'arch':gold.arch});
       tbl += `<tr><td>${gold.name}</td><td class="truncate">${gold.arch}</td class="truncate"><td class="truncate">${gold.size}</td><td class="truncate">${gold.desc}</td><td><div class="flex-group">${btn}</div></td></tr>`;
     });
     tbl += '</table>';
     div.innerHTML = tbl;
   });
 }
-function edit_cfg_iso(name, form, btn) {
+function on_conf_editiso(name, form, btn) {
   var iso = getIso(name);
   const myform = document.getElementById(form);
   set_form_inputs(myform, iso, []);
 }
-function delete_cfg_iso(name, btn) {
+function on_conf_deliso(name, btn) {
   if (confirm(`Are you sure delete ${name}?`)) {
     getjson('DELETE', `${uri_pre}/conf/iso/?name=${name}`, getjson_result);
   }
 }
-function on_cfg_list_iso(btn) {
+function on_conf_listiso(btn) {
   const div = document.getElementById('conf_iso_list');
   getjson('GET', `${uri_pre}/tpl/iso/?${Date.now()}`, function(resp) {
     const res = JSON.parse(resp);
@@ -764,7 +763,7 @@ function on_cfg_list_iso(btn) {
     config.g_iso = res.iso;
     var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Desc</th><th>ACT</th></tr>`;
     res.iso.forEach(iso => {
-      var btn = genActBtn(false, 'Edit', 'Edit', 'edit_cfg_iso', iso.name, {'form':'addiso_form'}) + genActBtn(false, 'Delete', 'Delete', 'delete_cfg_iso', iso.name);
+      var btn = genActBtn(false, 'Edit', 'Edit', 'on_conf_editiso', iso.name, {'form':'addiso_form'}) + genActBtn(false, 'Delete', 'Delete', 'on_conf_deliso', iso.name);
       tbl += `<tr><td>${iso.name}</td><td class="truncate">${iso.desc}</td><td><div class="flex-group">${btn}</div></td></tr>`;
     });
     tbl += '</table>';
