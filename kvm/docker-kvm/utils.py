@@ -171,7 +171,7 @@ try:
 except ImportError:
     pass
 class EtcdConfig:
-    prefix = tuple(['cidata','devices/','domains/','meta/','devices.json','golds.json','hosts.json','iso.json','vars.json'])
+    prefix = tuple(['cidata/','devices/','domains/','meta/','devices.json','golds.json','hosts.json','iso.json','vars.json'])
     grpc_opts = [ ('grpc.max_receive_message_length', 32*1024*1024), ('grpc.max_send_message_length', 10*1024*1024), ]
 
     @classmethod
