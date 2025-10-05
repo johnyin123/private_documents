@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator, Any
-import libvirt, json, os, logging, base64, hashlib, datetime, contextlib
+import libvirt, json, os, logging, base64, hashlib, datetime
 import multiprocessing, threading, subprocess, signal, time, tarfile, glob
 try:
     from cStringIO import StringIO as BytesIO
@@ -55,15 +55,6 @@ class ShmListStore:
 
     def list_all(self, **criteria) ->List:
         return self.search(self.cache, **criteria)
-
-def libvirt_callback(ctx, err):
-    pass
-libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
-
-@contextlib.contextmanager
-def connect(uri: str)-> Generator:
-    with contextlib.closing(libvirt.open(uri)) as conn:
-        yield conn
 
 class ProcList:
     pids = ShmListStore()

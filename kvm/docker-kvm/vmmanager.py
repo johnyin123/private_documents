@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-import flask, logging, libvirt, xml.dom.minidom, os, template, config, meta, database
-import base64, hashlib, datetime, utils
+import flask, logging, libvirt, xml.dom.minidom, os, base64, hashlib, datetime, contextlib
+import template, config, meta, database, utils
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator
 logger = logging.getLogger(__name__)
 KiB = 1024
@@ -123,11 +123,20 @@ def change_media(uuid:str, dev:str, isofile:str, bus:str, protocol:str, srv_addr
         isofile=f'/{uuid}/cidata.iso'
     return f'<disk type="network" device="cdrom"><driver name="qemu" type="raw"/><source protocol="{protocol}" name="{isofile}"><host name="{srv_addr}" port="{srv_port}"/><ssl verify="no"/></source><target dev="{dev}" bus="{bus}"/><readonly/></disk>'
 
+def libvirt_callback(ctx, err):
+    pass
+libvirt.registerErrorHandler(f=libvirt_callback, ctx=None)
+
+@contextlib.contextmanager
+def libvirt_connect(uri: str)-> Generator:
+    with contextlib.closing(libvirt.open(uri)) as conn:
+        yield conn
+
 class VMManager:
     @staticmethod
     def detach_device(method:str, host:utils.AttrDict, uuid:str, dev:str)->str:
         # dev = sda/vda/mac address
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
             flags = dom_flags(domain.state)
@@ -153,7 +162,7 @@ class VMManager:
         expire=int(timeout_mins)
         XMLDesc_Secure = None
         url_map = {'vnc': config.URI_VNC,'spice':config.URI_SPICE, 'console': config.URI_CONSOLE}
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             if not dom.isActive():
                 raise utils.APIException(f'vm {uuid} not running')
@@ -171,7 +180,7 @@ class VMManager:
         XMLDesc_Secure = None
         socat_cmd = ['timeout', '--preserve-status', '--verbose', f'{int(expire)}m' ]
         server = f'unix_socket:/tmp/.display.{uuid}'
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             if not dom.isActive():
                 raise utils.APIException(f'vm {uuid} not running')
@@ -197,7 +206,7 @@ class VMManager:
     @staticmethod
     def delete(method:str, host:utils.AttrDict, uuid:str)->str:
         meta.del_metafiles(uuid)
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             refresh_all_pool(conn)
             domain = LibvirtDomain(dom)
@@ -220,12 +229,12 @@ class VMManager:
 
     @staticmethod
     def xml(method:str, host:utils.AttrDict, uuid:str)->str:
-        with utils.connect(host.url) as conn:
+        with libvirt_connect(host.url) as conn:
             return utils.return_ok(f'xml ok', xml=conn.lookupByUUIDString(uuid).XMLDesc(libvirt.VIR_DOMAIN_XML_INACTIVE))
 
     @staticmethod
     def list(method:str, host:utils.AttrDict, uuid:str=None)->str:
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             (model, memory, cpus, mhz, nodes, sockets, cores, threads) = conn.getInfo()
             if uuid:
                 guest = LibvirtDomain(conn.lookupByUUIDString(uuid))._asdict()
@@ -249,7 +258,7 @@ class VMManager:
                 req_json['gold'] = f'http://{config.GOLD_SRV}{database.KVMGold.get_one(name=gold_name, arch=host.get("arch")).get("uri")}'
             bus_type = tpl.bus_type(**req_json)
             if bus_type is not None:
-                with utils.connect(host.get('url')) as conn:
+                with libvirt_connect(host.get('url')) as conn:
                     req_json['vm_last_disk'] = LibvirtDomain(conn.lookupByUUIDString(uuid)).next_disk[bus_type]
             if tpl.action:
                 cmd = ['bash', '-eu', os.path.join(config.DIR_DEVICE, tpl.action)]
@@ -258,7 +267,7 @@ class VMManager:
                 for line in utils.ProcList.wait_proc(uuid, cmd, 0, False, req_json, **env):
                     logger.debug(line.strip())
                     yield line
-            with utils.connect(host.get('url')) as conn:
+            with libvirt_connect(host.get('url')) as conn:
                 dom = conn.lookupByUUIDString(uuid)
                 dom.attachDeviceFlags(tpl.render(**req_json), dom_flags(LibvirtDomain(dom).state))
             yield utils.return_ok(f'attach {dev} device ok, if live attach, maybe need reboot', uuid=uuid)
@@ -272,7 +281,7 @@ class VMManager:
             req_json.pop(key, 'Not found')
         req_json = {**config.VM_DEFAULT(host.get('arch'), host.get('name')), **req_json}
         meta.gen_metafiles(**req_json)
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             try:
                 conn.lookupByUUIDString(req_json['vm_uuid'])
                 return utils.return_err(400, f'create', f'Domain {req_json["vm_uuid"]} already exists')
@@ -283,7 +292,7 @@ class VMManager:
     @staticmethod
     def cdrom(method:str, host:utils.AttrDict, uuid:str, dev:str, req_json)->str:
         iso = database.KVMIso.get_one(name=req_json.get('isoname', ''))
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
             for disk in (d for d in domain.disks if d.get('device') == 'cdrom' and d.get('dev') == dev):
@@ -295,7 +304,7 @@ class VMManager:
 
     @staticmethod
     def stop(method:str, host:utils.AttrDict, uuid:str, force:str=None)->str:
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             if force:
                 dom.destroy()
@@ -305,13 +314,13 @@ class VMManager:
 
     @staticmethod
     def reset(method:str, host:utils.AttrDict, uuid:str)->str:
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             conn.lookupByUUIDString(uuid).reset()
         return utils.return_ok(f'reset ok', uuid=uuid)
 
     @staticmethod
     def start(method:str, host:utils.AttrDict, uuid:str)->str:
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             conn.lookupByUUIDString(uuid).create()
         return utils.return_ok(f'start ok', uuid=uuid)
 
@@ -323,34 +332,34 @@ class VMManager:
 
     @staticmethod
     def blksize(method:str, host:utils.AttrDict, uuid:str, dev:str)->str:
-         with utils.connect(host.get('url')) as conn:
+         with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             return utils.return_ok(f'blksize', uuid=uuid, dev=dev, size=f'{dom.blockInfo(dev)[0]//MiB}MiB')
 
     @staticmethod
     def desc(method:str, host:utils.AttrDict, uuid:str, vm_desc:str)->str:
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             dom.setMetadata(libvirt.VIR_DOMAIN_METADATA_DESCRIPTION, vm_desc, None, None, dom_flags(LibvirtDomain(dom).state))
             return utils.return_ok(f'modify desc', uuid=uuid)
 
     @staticmethod
     def setmem(method:str, host:utils.AttrDict, uuid:str, vm_ram_mb:str)->str:
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             dom.setMemoryFlags(int(vm_ram_mb)*KiB, dom_flags(LibvirtDomain(dom).state))
             return utils.return_ok(f'setMemory', uuid=uuid)
 
     @staticmethod
     def setcpu(method:str, host:utils.AttrDict, uuid:str, vm_vcpus:str)->str:
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             dom.setVcpusFlags(int(vm_vcpus), dom_flags(LibvirtDomain(dom).state))
             return utils.return_ok(f'setVcpus', uuid=uuid)
 
     @staticmethod
     def metadata(method:str, host:utils.AttrDict, uuid:str, req_json)->str:
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             domain = LibvirtDomain(dom)
             mdconfig = domain.mdconfig
@@ -363,7 +372,7 @@ class VMManager:
 
     @staticmethod
     def netstat(method:str, host:utils.AttrDict, uuid:str, dev:str)->str:
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             for net in (n for n in LibvirtDomain(dom).nets if n.get('mac') == dev):
                 stats = dom.interfaceStats(net['dev'])
@@ -372,21 +381,21 @@ class VMManager:
 
     @staticmethod
     def revert_snapshot(method:str, host:utils.AttrDict, uuid:str, name:str)->str:
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             dom.revertToSnapshot(dom.snapshotLookupByName(name))
         return utils.return_ok(f'revert', uuid=uuid)
 
     @staticmethod
     def delete_snapshot(method:str, host:utils.AttrDict, uuid:str, name:str)->str:
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             conn.lookupByUUIDString(uuid).snapshotLookupByName(name).delete()
         return utils.return_ok(f'delete_snapshot', uuid=uuid)
 
     @staticmethod
     def snapshot(method:str, host:utils.AttrDict, uuid:str, name:str=None)->str:
         xml_tpl = """<domainsnapshot><name>{snapshot_name}</name></domainsnapshot>"""
-        with utils.connect(host.get('url')) as conn:
+        with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             if method == "POST":
                 dom.snapshotCreateXML(xml_tpl.format(snapshot_name=name if name else datetime.datetime.now().strftime('%Y%m%d%H%M%S')), libvirt.VIR_DOMAIN_SNAPSHOT_CREATE_ATOMIC)
@@ -404,7 +413,7 @@ class VMManager:
         def convert_data(data):
             return {value['hwaddr']: {'name': name, 'addrs': [{'addr':addr['addr'],'type':{0:'ipv4',1:'ipv6'}.get(addr['type'],'?')}for addr in value['addrs']]} for name, value in data.items() if name != 'lo' and value['addrs'] is not None}
         try:
-            with utils.connect(host.get('url')) as conn:
+            with libvirt_connect(host.get('url')) as conn:
                 dom = conn.lookupByUUIDString(uuid)
                 leases = {} # dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_LEASE)
                 arp = {} # dom.interfaceAddresses(source=libvirt.VIR_DOMAIN_INTERFACE_ADDRESSES_SRC_ARP)
