@@ -60,6 +60,7 @@ admin_api() {
         proxy_pass http://api_srv;
     }
     location ~* ^/conf/(domains|devices)/$ {
+        ${AUTH}auth_request @sso-auth;
         proxy_cache_valid 200   5m;
         proxy_pass http://api_srv;
     }
