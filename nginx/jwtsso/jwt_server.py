@@ -23,17 +23,17 @@ except ImportError as e:
 DEFAULT_CONF = {
     'LDAP_SRV_URL'    : os.environ.get('LDAP_SRV_URL', 'ldap://127.0.0.1:389'),
     'LDAP_UID_FMT'    : os.environ.get('LDAP_UID_FMT', 'cn={uid},ou=people,dc=neusoft,dc=internal'),
-    'PUB_KEY_FILE'    : os.environ.get('PUB_KEY_FILE', os.path.abspath(os.path.dirname(__file__)) + '/jwt-srv.pem'),
-    'PRI_KEY_FILE'    : os.environ.get('PRI_KEY_FILE', os.path.abspath(os.path.dirname(__file__)) + '/jwt-srv.key'),
-    'CAPTCHA_PUBKEY_FILE' : os.environ.get('CAPTCHA_PUBKEY_FILE', None),
+    'JWT_CERT_PEM'    : os.environ.get('JWT_CERT_PEM', os.path.abspath(os.path.dirname(__file__)) + '/jwt-srv.pem'),
+    'JWT_CERT_KEY'    : os.environ.get('JWT_CERT_KEY', os.path.abspath(os.path.dirname(__file__)) + '/jwt-srv.key'),
+    'CAPTCHA_CERT_PEM' : os.environ.get('CAPTCHA_CERT_PEM', None),
 }
 class jwt_auth:
     def __init__(self, config: dict={}):
         self.config = {**DEFAULT_CONF, **config}
-        self.jwt_pubkey = self.file_load(self.config.get('PUB_KEY_FILE'))
-        self.jwt_prikey = self.file_load(self.config.get('PRI_KEY_FILE'))
+        self.jwt_cert_pem = self.file_load(self.config.get('JWT_CERT_PEM'))
+        self.jwt_cert_key = self.file_load(self.config.get('JWT_CERT_KEY'))
         self.expire_secs = self.config.get('EXPIRE_SEC', 60 * 60)
-        self.captcha_pubkey = self.file_load(self.config['CAPTCHA_PUBKEY_FILE']) if self.config.get('CAPTCHA_PUBKEY_FILE') else None
+        self.captcha_pubkey = self.file_load(self.config['CAPTCHA_CERT_PEM']) if self.config.get('CAPTCHA_CERT_PEM') else None
         logger.debug(f'{self.config}')
 
     @classmethod
@@ -48,7 +48,7 @@ class jwt_auth:
                     'username': username, 'iat': datetime.datetime.utcnow(), 'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=self.expire_secs),
                     'trans': trans if trans is not None else {},
                 }
-                return { 'token' : jwt.encode(payload, self.jwt_prikey, algorithm='RS256')}
+                return { 'token' : jwt.encode(payload, self.jwt_cert_key, algorithm='RS256')}
             raise jwt_exception('Bad username or password.')
         except Exception as e:
             logger.error(f'Exception: {type(e).__name__} {str(e)}')
@@ -58,7 +58,7 @@ class jwt_auth:
         try:
             if not token:
                 raise jwt_exception('Token missing.')
-            data = jwt.decode(token, self.jwt_pubkey, algorithms='RS256')
+            data = jwt.decode(token, self.jwt_cert_pem, algorithms='RS256')
             logger.debug(f'auth_check: {data}')
             return data
         except jwt.ExpiredSignatureError:
