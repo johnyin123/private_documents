@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator, Any
 import os, werkzeug, flask_app, flask, datetime, jwt, logging, json
 logger = logging.getLogger(__name__)
@@ -8,21 +6,19 @@ logger = logging.getLogger(__name__)
 class jwt_exception(werkzeug.exceptions.Unauthorized):
     pass
 
-def json_login(config: dict, username: str, password: str) -> bool:
-    USER_LIST = [ {"username":"admin", "password":"pass"}, ]
-    def search(arr, **kwargs) -> List:
-        return [dict(item) for item in arr if all(item.get(key) == value for key, value in kwargs.items())]
-
-    result = search(search(USER_LIST, username=username), password=password)
-    logger.debug(f'{username} Login {"OK" if len(result) > 0 else "ERROR"}')
-    return True if len(result) > 0 else False
-
 try:
     from ldap_login import ldap_login as jwt_login
     logger.warn(f'ldap_login load')
 except ImportError as e:
     logger.warn(f'{e}, json_login load. JUST FOR TEST!')
-    jwt_login=json_login
+    def jwt_login(config: dict, username: str, password: str) -> bool:
+        USER_LIST = [ {"username":"admin", "password":"pass"}, ]
+        def search(arr, **kwargs) -> List:
+            return [dict(item) for item in arr if all(item.get(key) == value for key, value in kwargs.items())]
+    
+        result = search(search(USER_LIST, username=username), password=password)
+        logger.debug(f'{username} Login {"OK" if len(result) > 0 else "ERROR"}')
+        return True if len(result) > 0 else False
 
 DEFAULT_CONF = {
     'LDAP_SRV_URL'    : os.environ.get('LDAP_SRV_URL', 'ldap://127.0.0.1:389'),
