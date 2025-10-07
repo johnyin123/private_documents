@@ -26,8 +26,8 @@ if not os.environ.get('LDAP_SRV_URL'):
         USER_LIST = [ {"username":"admin", "password":"pass"}, ]
         def search(arr, **kwargs) -> List:
             return [dict(item) for item in arr if all(item.get(key) == value for key, value in kwargs.items())]
-    
-        result = search(search(USER_LIST, username=username), password=password)
+
+        result = search(USER_LIST, username=username, password=password)
         logger.debug(f'{username} Login {"OK" if len(result) > 0 else "ERROR"}')
         return True if len(result) > 0 else False
 
