@@ -2,12 +2,12 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("85621002[2025-10-02T12:26:42+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("b144c3ee[2025-10-02T12:30:58+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
 APPFILES=(flask_app.py database.py config.py meta.py utils.py main.py template.py vmmanager.py console.py)
-APPDBS=(devices.json golds.json hosts.json iso.json vars.json)
+APPDBS=(devices.json golds.json hosts.json iso.json vars.json devices/ domains/ meta/)
 export PYTHONDONTWRITEBYTECODE=1
 ################################################################################
 log() { echo "$(tput setaf ${COLOR:-141})$*$(tput sgr0)" >&2; }
@@ -153,24 +153,6 @@ systemd-run --user --unit simple-kvm-srv \
     gunicorn -b 127.0.0.1:5009 --preload --workers=2 --threads=2 --access-logformat 'API %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'main:app'
 EODOC
 }
-inst_app_outdir() {
-    local outdir="${1}"
-    local uid="${2}"
-    local gid="${3}"
-    log "install vmmgr DATA_DIR=${outdir}"
-    install -v -d -m 0700 --group=${gid} --owner=${uid} ${outdir}
-    local dirs=(devices domains meta)
-    for dn in ${dirs[@]}; do
-        install -v -d -m 0700 --group=${gid} --owner=${uid} ${outdir}/${dn}
-        [ -d "${dn}" ] && {
-            for fn in ${dn}/*; do
-                log "install ${fn}"
-                local mode=0600
-                install -v -C -m ${mode} --group=${gid} --owner=${uid} ${fn} ${outdir}/${fn}
-            done
-        }
-    done
-}
 copy_app() {
     local home_dir="${1}"
     local uid="${2}"
@@ -185,33 +167,9 @@ copy_app() {
         install -v -C -m ${mode} --group=${gid} --owner=${uid} ${fn} ${home_dir}/app/${fn}
     done
 }
-gen_app_database() {
-    local outdir="${1}"
-    local uid="${2}"
-    local gid="${3}"
-    for fn in ${APPDBS[@]}; do
-        install -v -C -m 0644 --group=${gid} --owner=${uid} ${fn} ${outdir}/${fn}
-    done
-    return 0
-}
-post_check() {
-    local outdir="${1}"
-    for fn in $(cat hosts.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
-        log "check domain template: ${outdir}/domains/${fn}"
-        [ -e "${outdir}/domains/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
-    done
-    for fn in $(cat devices.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
-        log "check device template: ${outdir}/devices/${fn}"
-        [ -e "${outdir}/devices/${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
-    done
-    for fn in $(cat golds.json | jq -r .[].tpl | sort | uniq | sed "/^$/d"); do
-        log "check gold disk: ${fn}"
-        [ -e "${fn}" ] && { COLOR=2 log "OK"; } || { COLOR=1 log "NOT FOUND!!!"; }
-    done
-    for fn in $(cat iso.json | jq -r .[].uri | sort | uniq | sed "/^$/d"); do
-        srv=$(python3 -c 'import config; print(config.META_SRV)' || true)
-        COLOR=3 log "NEED check ISO Image: http://${srv}${fn}"
-    done
+gen_restore_tgz() {
+    tar c ${APPDBS[@]} | gzip > restore.tgz
+    log "gen restore.tgz........."
     return 0
 }
 main() {
@@ -257,10 +215,8 @@ main() {
         log "${target}/pki ->docker:/etc/pki"
     }
     inst_app "${target}" "${USR_ID}" "${GRP_ID}" "${APP_OUTDIR}" "${docker}"
-    inst_app_outdir "${OUTDIR}" "${USR_ID}" "${GRP_ID}"
     copy_app "${target}" "${USR_ID}" "${GRP_ID}"
-    gen_app_database "${OUTDIR}" "${USR_ID}" "${GRP_ID}"
-    post_check "${OUTDIR}"
+    gen_restore_tgz
     log "!!!!!!!modify ${target}/app/startup.sh start app!!!!!!!"
     log "devices.json golds.json hosts.json iso.json CAN READ-ONLY"
     return 0

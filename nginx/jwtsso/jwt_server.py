@@ -142,7 +142,7 @@ class MyApp(object):
 
 app=MyApp.create()
 # pip install ldap3 pyjwt[crypto]
-# LDAP_SRV_URL=ldap://127.0.0.1:389 gunicorn -b 127.0.0.1:16000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'jwt_server:app'
+# JWT_CERT_PEM=xxx JWT_CERT_KEY=xx LDAP_SRV_URL=ldap://127.0.0.1:389 gunicorn -b 127.0.0.1:16000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'jwt_server:app'
 '''
 openssl rsa -in srv.key -pubout -out /etc/nginx/pubkey.pem
 
