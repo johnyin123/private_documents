@@ -162,7 +162,7 @@ try:
 except ImportError:
     pass
 class EtcdConfig:
-    prefix = tuple(['cidata/','devices/','domains/','meta/','devices.json','golds.json','hosts.json','iso.json','vars.json'])
+    member_prefix = tuple(['cidata/','devices/','domains/','meta/','devices.json','golds.json','hosts.json','iso.json','vars.json'])
     grpc_opts = [ ('grpc.max_receive_message_length', 32*1024*1024), ('grpc.max_send_message_length', 10*1024*1024), ]
 
     @classmethod
@@ -213,7 +213,7 @@ class EtcdConfig:
                 for _, meta in etcd.get_prefix(config.ETCD_PREFIX, keys_only=True):
                     content, _ = etcd.get(meta.key)
                     member = tarfile.TarInfo(meta.key.decode('utf-8').removeprefix(config.ETCD_PREFIX).strip('/'))
-                    if member.name.startswith(cls.prefix):
+                    if member.name.startswith(cls.member_prefix):
                         member.size = len(content)
                         tar.addfile(member, BytesIO(content))
         file_obj.seek(0)
@@ -224,7 +224,7 @@ class EtcdConfig:
         try:
             with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
                 for member in tar.getmembers():
-                    if member.isreg() and member.name.startswith(cls.prefix):
+                    if member.isreg() and member.name.startswith(cls.member_prefix):
                         with tar.extractfile(member) as f:
                             logger.debug(f'ETCD restore {member.name}')
                             cls.etcd_save(member.name, f.read())
@@ -270,7 +270,7 @@ def file_backup_tgz()->BytesIO:
             if os.path.isfile(fn):
                 content = file_load(fn)
                 member = tarfile.TarInfo(fn.removeprefix(f'{config.DATA_DIR}').strip('/'))
-                if member.name.startswith(EtcdConfig.prefix):
+                if member.name.startswith(EtcdConfig.member_prefix):
                     member.size = len(content)
                     tar.addfile(member, BytesIO(content))
     file_obj.seek(0)
@@ -280,7 +280,7 @@ def file_restore_tgz(file_obj:BytesIO)->None:
     try:
         with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
             for member in tar.getmembers():
-                if member.isreg() and member.name.startswith(EtcdConfig.prefix):
+                if member.isreg() and member.name.startswith(EtcdConfig.member_prefix):
                     with tar.extractfile(member) as f:
                         logger.debug(f'File restore {member.name}')
                         file_save(os.path.join(config.DATA_DIR, member.name), f.read())
