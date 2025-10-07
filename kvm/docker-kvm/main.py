@@ -7,8 +7,8 @@ except ImportError:
     from io import BytesIO
 logger = logging.getLogger(__name__)
 conf_save = utils.EtcdConfig.etcd_save if config.ETCD_PREFIX else utils.file_save
-conf_backup_tgz  = utils.EtcdConfig.backup_tgz if config.ETCD_PREFIX else utils.file_backup_tgz
 conf_restore_tgz = utils.EtcdConfig.restore_tgz if config.ETCD_PREFIX else utils.file_restore_tgz
+conf_backup_tgz  = utils.file_backup_tgz
 
 class MyApp(object):
     @staticmethod

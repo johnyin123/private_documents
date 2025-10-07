@@ -167,13 +167,13 @@ class EtcdConfig:
 
     @classmethod
     def key2fname(cls, key:str, stage:str)->str:
-        fn = os.path.join(config.DATA_DIR, key.removeprefix(config.ETCD_PREFIX).strip('/'))
+        fn = os.path.join(config.DATA_DIR, os.path.relpath(key, config.ETCD_PREFIX))
         logger.debug(f'{stage} {key} -> {fn}')
         return fn
 
     @classmethod
     def fname2key(cls, fname:str, stage:str)->str:
-        key = os.path.join(config.ETCD_PREFIX, fname.removeprefix(config.DATA_DIR).strip('/'))
+        key = os.path.join(config.ETCD_PREFIX, os.path.relpath(fname, config.DATA_DIR))
         logger.debug(f'{stage} {fname} -> {key}')
         return key
 
@@ -204,20 +204,6 @@ class EtcdConfig:
                         raise APIException(f'Failed to acquire etcd lock, another node is writing. Retrying in a moment.')
         except Exception as e:
             raise APIException(f'ETCD PUT {fname} -> {key} [{config.ETCD_SRV}:{config.ETCD_PORT} {e}]')
-
-    @classmethod
-    def backup_tgz(cls)->BytesIO:
-        file_obj = BytesIO()
-        with etcd3.client(host=config.ETCD_SRV, port=config.ETCD_PORT, ca_cert=config.ETCD_CA, cert_key=config.ETCD_KEY, cert_cert=config.ETCD_CERT, grpc_options=cls.grpc_opts) as etcd:
-            with tarfile.open(mode="w:gz", fileobj=file_obj) as tar:
-                for _, meta in etcd.get_prefix(config.ETCD_PREFIX, keys_only=True):
-                    content, _ = etcd.get(meta.key)
-                    member = tarfile.TarInfo(meta.key.decode('utf-8').removeprefix(config.ETCD_PREFIX).strip('/'))
-                    if member.name.startswith(cls.member_prefix):
-                        member.size = len(content)
-                        tar.addfile(member, BytesIO(content))
-        file_obj.seek(0)
-        return file_obj
 
     @classmethod
     def restore_tgz(cls, file_obj:BytesIO)->None:
@@ -269,7 +255,7 @@ def file_backup_tgz()->BytesIO:
         for fn in glob.glob(f'{config.DATA_DIR}/**', recursive=True):
             if os.path.isfile(fn):
                 content = file_load(fn)
-                member = tarfile.TarInfo(fn.removeprefix(f'{config.DATA_DIR}').strip('/'))
+                member = tarfile.TarInfo(os.path.relpath(fn, config.DATA_DIR))
                 if member.name.startswith(EtcdConfig.member_prefix):
                     member.size = len(content)
                     tar.addfile(member, BytesIO(content))

@@ -11,7 +11,7 @@ def get_variables(dirname:str, tpl_name:str)->Set[str]:
     return remove_reserved(jinja2.meta.find_undeclared_variables(env.parse(env.loader.get_source(env, f'{tpl_name}.tpl')[0])))
 
 def cfg_templates(dirname:str)->List:
-    return [fn.removesuffix(".tpl").removeprefix(f'{dirname}/') for fn in glob.glob(f'{dirname}/*.tpl')]
+    return [os.path.relpath(fn, dirname).removesuffix(".tpl") for fn in glob.glob(f'{dirname}/*.tpl')]
 
 class KVMTemplate:
     def __init__(self, dirname:str, tpl_name:str):
