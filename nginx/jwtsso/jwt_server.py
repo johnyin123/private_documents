@@ -1,16 +1,27 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator, Any
-import os, werkzeug, flask_app, flask, datetime, jwt, logging, json
+import os, werkzeug, flask_app, flask, datetime, jwt, logging, json, contextlib, ldap3
 logger = logging.getLogger(__name__)
 
 class jwt_exception(werkzeug.exceptions.Unauthorized):
     pass
 
-try:
-    from ldap_login import ldap_login as jwt_login
-    logger.warn(f'ldap_login load')
-except ImportError as e:
-    logger.warn(f'{e}, json_login load. JUST FOR TEST!')
+@contextlib.contextmanager
+def ldap_connect(url:str, binddn:str, password:str)-> Generator:
+    logger.debug(f'connect: {url}, {binddn}')
+    ldap_conn = ldap3.Connection(ldap3.Server(url, get_info=ldap3.ALL), user=binddn, password=password)
+    ldap_conn.bind()
+    with contextlib.closing(ldap_conn) as conn:
+        yield conn
+
+def ldap_login(config: dict, username: str, password: str) -> bool:
+    with ldap_connect(config['LDAP_SRV_URL'], config['LDAP_UID_FMT'].format(uid=username), password) as c:
+       logger.debug('%s Login OK', c.extend.standard.who_am_i())
+       return True if c.bound else False
+
+jwt_login = ldap_login
+if not os.environ.get('LDAP_SRV_URL'):
+    logger.warn(f'LDAP_SRV_URL unset, json_login load. JUST FOR TEST!')
     def jwt_login(config: dict, username: str, password: str) -> bool:
         USER_LIST = [ {"username":"admin", "password":"pass"}, ]
         def search(arr, **kwargs) -> List:
@@ -21,7 +32,7 @@ except ImportError as e:
         return True if len(result) > 0 else False
 
 DEFAULT_CONF = {
-    'LDAP_SRV_URL'    : os.environ.get('LDAP_SRV_URL', 'ldap://127.0.0.1:389'),
+    'LDAP_SRV_URL'    : os.environ.get('LDAP_SRV_URL'),
     'LDAP_UID_FMT'    : os.environ.get('LDAP_UID_FMT', 'cn={uid},ou=people,dc=neusoft,dc=internal'),
     'JWT_CERT_PEM'    : os.environ.get('JWT_CERT_PEM', os.path.abspath(os.path.dirname(__file__)) + '/jwt-srv.pem'),
     'JWT_CERT_KEY'    : os.environ.get('JWT_CERT_KEY', os.path.abspath(os.path.dirname(__file__)) + '/jwt-srv.key'),
@@ -131,7 +142,7 @@ class MyApp(object):
 
 app=MyApp.create()
 # pip install ldap3 pyjwt[crypto]
-# gunicorn -b 127.0.0.1:16000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'jwt_server:app'
+# LDAP_SRV_URL=ldap://127.0.0.1:389 gunicorn -b 127.0.0.1:16000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'jwt_server:app'
 '''
 openssl rsa -in srv.key -pubout -out /etc/nginx/pubkey.pem
 
