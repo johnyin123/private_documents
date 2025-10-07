@@ -3,8 +3,7 @@
 
 import os, werkzeug, flask_app, flask, datetime, jwt, captcha, random
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
-
-logger=flask_app.logger
+logger = logging.getLogger(__name__)
 
 def load_file(file_path):
     if os.path.isfile(file_path):
@@ -12,8 +11,8 @@ def load_file(file_path):
     raise Exception('file {} nofound'.format(file_path))
 
 DEFAULT_CONF = {
-    'PUBLIC_KEY_FILE'  : 'srv.pem',
-    'PRIVATE_KEY_FILE' : 'srv.key',
+    'CAPTCHA_CERT_PEM' : 'srv.pem',
+    'CAPTCHA_CERT_KEY' : 'srv.key',
     'EXPIRE_SEC'       : 30,
     'IMG_HEIGHT'       : 40,
     'IMG_WIDTH'        : 100,
@@ -31,20 +30,12 @@ class jwt_captcha:
     choice=[captcha.ClickCaptcha.getname(), captcha.TextCaptcha.getname()]
     def __init__(self, config: dict):
         self.config = {**DEFAULT_CONF, **config}
-        # self.pubkey = load_file(self.config['PUBLIC_KEY_FILE'])
-        # self.prikey = load_file(self.config['PRIVATE_KEY_FILE'])
-        self.prikey = serialization.load_pem_private_key(load_file(self.config['PRIVATE_KEY_FILE']), password=None,)
+        # self.pubkey = load_file(self.config['CAPTCHA_CERT_PEM'])
+        # self.prikey = load_file(self.config['CAPTCHA_CERT_KEY'])
+        self.prikey = serialization.load_pem_private_key(load_file(self.config['CAPTCHA_CERT_KEY']), password=None,)
         self.pubkey = self.prikey.public_key()
-        if 'EXPIRE_SEC' in config:
-            self.expire_secs = config['EXPIRE_SEC']
-        if 'IMG_HEIGHT' in config:
-            self.img_height = config['IMG_HEIGHT']
-        if 'IMG_WIDTH' in config:
-            self.img_width = config['IMG_WIDTH']
-        if 'FONT_FILE' in config:
-            self.font_file = config['FONT_FILE']
-        self.capt_click = captcha.ClickCaptcha(self.font_file)
-        self.capt_text = captcha.TextCaptcha(self.font_file)
+        self.capt_click = captcha.ClickCaptcha(self.config['FONT_FILE'])
+        self.capt_text = captcha.TextCaptcha(self.config['FONT_FILE'])
 
     def get_pubkey(self) -> str:
         pubkey_pem = self.pubkey.public_bytes(encoding=serialization.Encoding.PEM, format=serialization.PublicFormat.SubjectPublicKeyInfo)
@@ -65,7 +56,7 @@ class jwt_captcha:
         payload = {
             'hashed_text': self.__rsa_encrypt(text),
             'iat': datetime.datetime.utcnow(),
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=self.expire_secs),
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=self.config['EXPIRE_SEC']),
         }
         return jwt.encode(payload, self.prikey, algorithm='RS256')
 
@@ -119,8 +110,7 @@ class jwt_captcha:
 
 class MyApp(object):
     def __init__(self):
-        cfg = {**DEFAULT_CONF, **{}}
-        self.captcha = jwt_captcha(config=cfg)
+        self.captcha = jwt_captcha({})
 
     def get_pubkey(self):
         return self.captcha.get_pubkey()
@@ -131,27 +121,27 @@ class MyApp(object):
             response = flask.jsonify(captcha_dict)
             return flask_app.corsify_actual_response(response)
 
-        # # avoid Content type: text/plain return http415
-        req_data = flask.request.get_json(force=True)
-        c_type = req_data.get('ctype', None)
-        c_hash = req_data.get('chash', None)
-        c_text = req_data.get('ctext', None)
-        c_payload = req_data.get('payload', '')
+        req_json = flask.request.get_json(silent=True, force=True)
+        c_type = req_json.get('ctype', None)
+        c_hash = req_json.get('chash', None)
+        c_text = req_json.get('ctext', None)
+        c_payload = req_json.get('payload', '')
         tmout_sec=10
         if not c_hash or not c_text or not c_type:
             raise captcha_exception('captcha no found')
         if self.captcha.verify(c_type, c_text, c_hash):
             # return new token 10 sec, for LOGIN service check captcha success!
-            req_data.pop('chash')
-            req_data.pop('ctext')
-            req_data.pop('payload')
-            response = flask.jsonify({'ctoken': self.captcha.make_success_token(c_payload, req_data, tmout_sec)})
+            req_json.pop('chash')
+            req_json.pop('ctext')
+            req_json.pop('payload')
+            response = flask.jsonify({'ctoken': self.captcha.make_success_token(c_payload, req_json, tmout_sec)})
             return flask_app.corsify_actual_response(response)
         else:
             raise captcha_exception('captcha error')
 
     @staticmethod
     def create():
+        flask_app.setLogLevel(**json.loads(os.environ.get('LEVELS', '{}')))
         myapp=MyApp()
         web=flask_app.create_app({}, json=True)
         web.add_url_rule('/api/verify', view_func=myapp.api_verify, methods=['POST', 'GET'])
@@ -159,12 +149,7 @@ class MyApp(object):
         return web
 
 app=MyApp.create()
-def main():
-    logger.debug('''curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "[{\\"x\\": 329, \\"y\\": 129}]", "chash": "", "ctype": "", "payload": "u string"}' ''')
-    logger.debug('''curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "", "chash": "", "ctype": "TEXT", "payload": "u string"}' ''')
-    host = os.environ.get('HTTP_HOST', '0.0.0.0')
-    port = int(os.environ.get('HTTP_PORT', '18888'))
-    app.run(host=host, port=port, debug=app.config['DEBUG'])
+# gunicorn -b 127.0.0.1:15000 --preload --workers=$(nproc) --threads=2 --access-logfile='-' 'captcha_server:app'
 
-if __name__ == '__main__':
-    exit(main())
+# curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "[{\\"x\\": 329, \\"y\\": 129}]", "chash": "", "ctype": "", "payload": "u string"}'
+# curl -s -k -X POST "http://localhost/api/verify" -d '{"ctext": "", "chash": "", "ctype": "TEXT", "payload": "u string"}'
