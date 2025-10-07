@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 import flask_app, flask, os, json, logging, datetime
 import database, vmmanager, config, template, utils
 try:

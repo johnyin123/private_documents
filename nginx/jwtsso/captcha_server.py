@@ -1,22 +1,19 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-import os, werkzeug, flask_app, flask, datetime, jwt, captcha, random
+import os, werkzeug, flask_app, flask, json, datetime, jwt, captcha, random, logging
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
 logger = logging.getLogger(__name__)
 
-def load_file(file_path):
-    if os.path.isfile(file_path):
-        return open(file_path, "rb").read()
-    raise Exception('file {} nofound'.format(file_path))
+def file_load(fname:str)-> bytes:
+    with open(fname, 'rb') as file:
+        return file.read()
 
 DEFAULT_CONF = {
-    'CAPTCHA_CERT_PEM' : 'srv.pem',
-    'CAPTCHA_CERT_KEY' : 'srv.key',
+    'CAPTCHA_CERT_PEM' : os.environ.get('CAPTCHA_CERT_PEM', os.path.abspath(os.path.dirname(__file__)) + '/captcha.pem'),
+    'CAPTCHA_CERT_KEY' : os.environ.get('CAPTCHA_CERT_KEY', os.path.abspath(os.path.dirname(__file__)) + '/captcha.key'),
+    'FONT_FILE'        : os.environ.get('FONT_FILE', os.path.abspath(os.path.dirname(__file__)) + '/demo.ttf'),
     'EXPIRE_SEC'       : 30,
     'IMG_HEIGHT'       : 40,
     'IMG_WIDTH'        : 100,
-    'FONT_FILE'        : 'demo.ttf',
 }
 
 from cryptography.hazmat.primitives import serialization
@@ -30,9 +27,8 @@ class jwt_captcha:
     choice=[captcha.ClickCaptcha.getname(), captcha.TextCaptcha.getname()]
     def __init__(self, config: dict):
         self.config = {**DEFAULT_CONF, **config}
-        # self.pubkey = load_file(self.config['CAPTCHA_CERT_PEM'])
-        # self.prikey = load_file(self.config['CAPTCHA_CERT_KEY'])
-        self.prikey = serialization.load_pem_private_key(load_file(self.config['CAPTCHA_CERT_KEY']), password=None,)
+        # self.pubkey = file_load(self.config['CAPTCHA_CERT_PEM'])
+        self.prikey = serialization.load_pem_private_key(file_load(self.config['CAPTCHA_CERT_KEY']), password=None,)
         self.pubkey = self.prikey.public_key()
         self.capt_click = captcha.ClickCaptcha(self.config['FONT_FILE'])
         self.capt_text = captcha.TextCaptcha(self.config['FONT_FILE'])

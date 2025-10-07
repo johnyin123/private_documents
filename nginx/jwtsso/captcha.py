@@ -1,20 +1,15 @@
-#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
-import logging, os
+import base64, json, string, random, sys, math, logging, os
 from typing import Iterable, Optional, Set, Tuple, Union, Dict
-logging.basicConfig(encoding='utf-8', level=logging.INFO, format='%(levelname)s: %(message)s')
-logging.getLogger().setLevel(level=os.getenv('LOG', 'INFO').upper())
+# Importing the PIL(pillow) library, pip install pillow
+from PIL import Image, ImageDraw, ImageFont, ImageOps
+try:
+    from cStringIO import StringIO as BytesIO
+except ImportError:
+    from io import BytesIO
 logger = logging.getLogger(__name__)
 
-# Importing the PIL(pillow) library
-from PIL import Image, ImageDraw, ImageFont, ImageOps
-from io import BytesIO
-import base64, json, string, random, sys, math
-
 import datetime
-# get_int_from_datetime(datetime.datetime.now(datetime.timezone.utc))
-# get_time_from_int(1710383853)
 def get_time_from_int(value: int) -> datetime.datetime:
     if not isinstance(value, int):
         raise TypeError('an int is required')

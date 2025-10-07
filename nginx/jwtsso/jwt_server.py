@@ -6,6 +6,10 @@ logger = logging.getLogger(__name__)
 class jwt_exception(werkzeug.exceptions.Unauthorized):
     pass
 
+def file_load(fname:str)-> bytes:
+    with open(fname, 'rb') as file:
+        return file.read()
+
 @contextlib.contextmanager
 def ldap_connect(url:str, binddn:str, password:str)-> Generator:
     logger.debug(f'connect: {url}, {binddn}')
@@ -22,8 +26,9 @@ def ldap_login(config: dict, username: str, password: str) -> bool:
 jwt_login = ldap_login
 if not os.environ.get('LDAP_SRV_URL'):
     logger.warn(f'LDAP_SRV_URL unset, json_login load. JUST FOR TEST!')
+    # [ {"username":"admin", "password":"pass"} ]
+    USER_LIST = json.loads(file_load(os.path.abspath(os.path.dirname(__file__)) + '/user.json'))
     def jwt_login(config: dict, username: str, password: str) -> bool:
-        USER_LIST = [ {"username":"admin", "password":"pass"}, ]
         def search(arr, **kwargs) -> List:
             return [dict(item) for item in arr if all(item.get(key) == value for key, value in kwargs.items())]
 
@@ -41,16 +46,11 @@ DEFAULT_CONF = {
 class jwt_auth:
     def __init__(self, config: dict={}):
         self.config = {**DEFAULT_CONF, **config}
-        self.jwt_cert_pem = self.file_load(self.config.get('JWT_CERT_PEM'))
-        self.jwt_cert_key = self.file_load(self.config.get('JWT_CERT_KEY'))
+        self.jwt_cert_pem = file_load(self.config.get('JWT_CERT_PEM'))
+        self.jwt_cert_key = file_load(self.config.get('JWT_CERT_KEY'))
         self.expire_secs = self.config.get('EXPIRE_SEC', 60 * 60)
-        self.captcha_pubkey = self.file_load(self.config['CAPTCHA_CERT_PEM']) if self.config.get('CAPTCHA_CERT_PEM') else None
+        self.captcha_pubkey = file_load(self.config['CAPTCHA_CERT_PEM']) if self.config.get('CAPTCHA_CERT_PEM') else None
         logger.debug(f'{self.config}')
-
-    @classmethod
-    def file_load(cls, fname:str)-> bytes:
-        with open(fname, 'rb') as file:
-            return file.read()
 
     def login(self, username: str, password: str, trans: Dict=None)->Dict:
         try:
