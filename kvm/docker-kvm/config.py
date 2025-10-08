@@ -3,7 +3,7 @@ import os, uuid, datetime
 # # env: DATA_DIR, TOKEN_DIR, META_SRV, GOLD_SRV, CTRL_PANEL_SRV, CTRL_PANEL_KEY
 DATA_DIR         = os.environ.get('DATA_DIR', os.path.abspath(os.path.dirname(__file__)))
 # # share with websockify process.(local not need persistent)
-TOKEN_DIR        = os.environ.get('TOKEN_DIR', '/dev/shm/simplekvm/token'))
+TOKEN_DIR        = os.environ.get('TOKEN_DIR', '/dev/shm/simplekvm/token')
 # # use etcd as persistent
 ETCD_PREFIX      = os.environ.get('ETCD_PREFIX', None)
 ETCD_SRV         = os.environ.get('ETCD_SRV', 'localhost')
