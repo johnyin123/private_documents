@@ -263,7 +263,7 @@
         <label>Size(GiB)*:<input type="number" name="size" id="gold_size" min="1" max="2048" required/></label>
       </div>
       <div class="flex-group">
-        <label>Gold:<select name="gold" id="gold_list" onchange="gold_change(this)" required></select></label>
+        <label>Gold:<select name="gold" id="gold_list" onchange="gold_change(this)"></select></label>
         <label>BUS:<select name="vm_disk_bus" title="Bus type" required>
           <option value="virtio" selected>virtio</option>
           <option value="ide">ide</option>
