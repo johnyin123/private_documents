@@ -50,8 +50,9 @@ admin_api() {
     local AUTH=${3:-}
     cat <<EOF
     ${AUTH}include /etc/nginx/http-enabled/jwt_sso_auth.inc;
-    location ~* ^/conf/(backup|restore|host|iso|gold)/$ {
+    location ~* ^${PRE}/conf/(backup|restore|host|iso|gold)/$ {
         # # no cache!! mgr private access
+        limit_except GET POST DELETE { deny all; }
         ${AUTH}auth_request @sso-auth;
         proxy_cache off;
         expires off;
@@ -59,7 +60,7 @@ admin_api() {
         client_max_body_size 100m;
         proxy_pass http://api_srv;
     }
-    location ~* ^/conf/(domains|devices)/$ {
+    location ~* ^${PRE}/conf/(domains|devices)/$ {
         ${AUTH}auth_request @sso-auth;
         proxy_cache_valid 200   5m;
         proxy_pass http://api_srv;
@@ -304,9 +305,9 @@ EOF
 export PYTHONDONTWRITEBYTECODE=1
 admin_srv_name="$(python3 -c 'import config; print(config.META_SRV)' || true)"
 tanent_srv_name="$(python3 -c 'import config; print(config.CTRL_PANEL_SRV)' || true)"
-
 userkey="$(python3 -c 'import config; print(config.CTRL_PANEL_KEY)' || true)"
 outdir="$(python3 -c 'import config; print(config.DATA_DIR)' || true)"
+uidir="${1:? META_SRV=vmm.registry.local CTRL_PANEL_SRV=guest.vmm.registry.local DATA_DIR=/dev/shm/simplekvm ${0} <ui directory(ui/term/novnc/spice)>}"
 ##################################################
 auth="#"
 # auth="" # need auth
@@ -316,20 +317,20 @@ tanent_uri_prefix="" # "/tanent"
 upstream
 https_cfg_header "${admin_srv_name}"
 admin_api "${userkey}" "${admin_uri_prefix}" "${auth}"
-admin_ui "${admin_uri_prefix}" "${outdir}" "${auth}"
+admin_ui "${admin_uri_prefix}" "${uidir}" "${auth}"
 
 combine=false
 [ "${tanent_srv_name}" == "${admin_srv_name}" ] && [ "${tanent_uri_prefix}" == "${admin_uri_prefix}" ] && combine=true
 
 "${combine}" && {
     tanent_api "${tanent_uri_prefix}" "${userkey}"
-    tanent_ui "${tanent_uri_prefix}" "${outdir}" "${combine}"
+    tanent_ui "${tanent_uri_prefix}" "${uidir}" "${combine}"
     meta_data_srv "${admin_srv_name}" "${outdir}" "G0ld&IS0sec#"
 } || {
     meta_data_srv "${admin_srv_name}" "${outdir}" "G0ld&IS0sec#"
     https_cfg_header "${tanent_srv_name}"
     tanent_api "${tanent_uri_prefix}" "${userkey}"
-    tanent_ui "${tanent_uri_prefix}" "${outdir}" "${combine}"
+    tanent_ui "${tanent_uri_prefix}" "${uidir}" "${combine}"
     echo "}"
 }
 log "ENV: DATA_DIR"
