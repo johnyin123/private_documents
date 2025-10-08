@@ -161,7 +161,7 @@ class VMManager:
     def display(method:str, host:utils.AttrDict, uuid:str, disp:str='', prefix:str='', timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
         expire=int(timeout_mins)
         XMLDesc_Secure = None
-        url_map = {'vnc': config.URI_VNC,'spice':config.URI_SPICE, 'console': config.URI_CONSOLE}
+        uri_map = {'vnc': config.URI_VNC,'spice':config.URI_SPICE, 'console': config.URI_CONSOLE}
         with libvirt_connect(host.get('url')) as conn:
             dom = conn.lookupByUUIDString(uuid)
             if not dom.isActive():
@@ -169,10 +169,10 @@ class VMManager:
             XMLDesc_Secure = dom.XMLDesc(libvirt.VIR_DOMAIN_XML_SECURE)
         access_tok = utils.secure_link(host.get('name'), uuid, config.CTRL_PANEL_KEY, expire)
         if disp == 'console':
-            return utils.return_ok(disp, uuid=uuid, display=f'{url_map[disp]}?password=&path={prefix}/vm/websockify', token=uuid, disp=disp, expire=expire, access=access_tok)
+            return utils.return_ok(disp, uuid=uuid, display=f'{uri_map[disp]}?password=&path={prefix}/vm/websockify', token=uuid, disp=disp, expire=expire, access=access_tok)
         for item in xml.dom.minidom.parseString(XMLDesc_Secure).getElementsByTagName('graphics'):
             disp = item.getAttribute('type')
-            return utils.return_ok(disp, uuid=uuid, display=f'{url_map[disp]}?password={item.getAttribute("passwd")}&path={prefix}/vm/websockify', token=uuid, disp=disp, expire=expire, access=access_tok)
+            return utils.return_ok(disp, uuid=uuid, display=f'{uri_map[disp]}?password={item.getAttribute("passwd")}&path={prefix}/vm/websockify', token=uuid, disp=disp, expire=expire, access=access_tok)
         raise utils.APIException('no graphic found')
 
     @staticmethod
@@ -261,9 +261,9 @@ class VMManager:
                 with libvirt_connect(host.get('url')) as conn:
                     req_json['vm_last_disk'] = LibvirtDomain(conn.lookupByUUIDString(uuid)).next_disk[bus_type]
             if tpl.action:
-                cmd = ['bash', '-eu', os.path.join(config.DIR_DEVICE, tpl.action)]
+                cmd = ['bash', '-eu', tpl.action]
                 if logger.isEnabledFor(logging.DEBUG):
-                    cmd = ['bash', '-eux', os.path.join(config.DIR_DEVICE, tpl.action)]
+                    cmd = ['bash', '-eux', tpl.action]
                 for line in utils.ProcList.wait_proc(uuid, cmd, 0, False, req_json, **env):
                     logger.debug(line.strip())
                     yield line
@@ -328,7 +328,7 @@ class VMManager:
     def ui(method:str, host:utils.AttrDict, uuid:str, epoch:str)->str:
         tmout = int((int(epoch) - datetime.datetime.now().timestamp()) // 60)
         access_tok = utils.secure_link(host.get('name'), uuid, config.CTRL_PANEL_KEY, tmout)
-        return utils.return_ok('console ui', uuid=uuid, url=config.URI_CTRL_PANEL, token=access_tok, expire=f'{datetime.datetime.fromtimestamp(int(epoch))}')
+        return utils.return_ok('console ui', uuid=uuid, url=config.URL_CTRL_PANEL, token=access_tok, expire=f'{datetime.datetime.fromtimestamp(int(epoch))}')
 
     @staticmethod
     def blksize(method:str, host:utils.AttrDict, uuid:str, dev:str)->str:

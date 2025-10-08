@@ -16,13 +16,21 @@ def cfg_templates(dirname:str)->List:
 class KVMTemplate:
     def __init__(self, dirname:str, tpl_name:str):
         self.template = jinja2.Environment(loader=jinja2.FileSystemLoader(dirname)).get_template(f'{tpl_name}.tpl')
-        self.action = f'{tpl_name}.action' if os.path.exists(os.path.join(dirname, f'{tpl_name}.action')) else None
+        self.action = os.path.join(dirname, f'{tpl_name}.action') if os.path.exists(os.path.join(dirname, f'{tpl_name}.action')) else None
         self.desc = utils.file_load(os.path.join(dirname, f'{tpl_name}.tpl')).decode('utf-8').splitlines()[0].removeprefix('{#').strip('#}')
 
     def render(self, **kwargs):
         kwargs['META_SRV'] = config.META_SRV
         logger.debug(f'{kwargs!r}')
         return self.template.render(**kwargs)
+
+class DomainTemplate(KVMTemplate):
+    def __init__(self, tpl_name:str):
+        super().__init__(config.DIR_DOMAIN, tpl_name)
+
+class MetaDataTemplate(KVMTemplate):
+    def __init__(self, tpl_name:str):
+        super().__init__(config.DIR_META, tpl_name)
 
 class DeviceTemplate(KVMTemplate):
     # filename fmt: {devtype}.{desc}.tpl
@@ -39,11 +47,3 @@ class DeviceTemplate(KVMTemplate):
             p = xml.dom.minidom.parseString(self.render(**kwargs))
             return p.getElementsByTagName('target')[0].getAttribute('bus')
         return None
-
-class DomainTemplate(KVMTemplate):
-    def __init__(self, tpl_name:str):
-        super().__init__(config.DIR_DOMAIN, tpl_name)
-
-class MetaDataTemplate(KVMTemplate):
-    def __init__(self, tpl_name:str):
-        super().__init__(config.DIR_META, tpl_name)

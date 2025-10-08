@@ -206,18 +206,6 @@ class EtcdConfig:
             raise APIException(f'ETCD PUT {fname} -> {key} [{config.ETCD_SRV}:{config.ETCD_PORT} {e}]')
 
     @classmethod
-    def restore_tgz(cls, file_obj:BytesIO)->None:
-        try:
-            with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
-                for member in tar.getmembers():
-                    if member.isreg() and member.name.startswith(cls.member_prefix):
-                        with tar.extractfile(member) as f:
-                            logger.debug(f'ETCD restore {member.name}')
-                            cls.etcd_save(member.name, f.read())
-        except tarfile.ReadError as e:
-            raise APIException(f'Invalid tarfile format {str(e)}')
-
-    @classmethod
     def cfg_updater_proc(cls, update_callback) -> None:
         while True:
             logger.warn(f'ETCD WATCH PREFIX PID={os.getpid()} START')
@@ -249,7 +237,7 @@ class EtcdConfig:
             logger.warn(f'ETCD INIT SYNC END {datetime.datetime.now().isoformat()}')
         multiprocessing.Process(target=cls.cfg_updater_proc, args=(update_callback,)).start()
 
-def file_backup_tgz()->BytesIO:
+def conf_backup_tgz()->BytesIO:
     file_obj = BytesIO()
     with tarfile.open(mode="w:gz", fileobj=file_obj) as tar:
         for fn in glob.glob(f'{config.DATA_DIR}/**', recursive=True):
@@ -262,13 +250,16 @@ def file_backup_tgz()->BytesIO:
     file_obj.seek(0)
     return file_obj
 
-def file_restore_tgz(file_obj:BytesIO)->None:
+def conf_restore_tgz(file_obj:BytesIO)->None:
     try:
         with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
             for member in tar.getmembers():
                 if member.isreg() and member.name.startswith(EtcdConfig.member_prefix):
                     with tar.extractfile(member) as f:
                         logger.debug(f'File restore {member.name}')
-                        file_save(os.path.join(config.DATA_DIR, member.name), f.read())
+                        if config.ETCD_PREFIX:
+                            EtcdConfig.etcd_save(os.path.join(config.DATA_DIR, member.name), f.read())
+                        else:
+                            file_save(os.path.join(config.DATA_DIR, member.name), f.read())
     except tarfile.ReadError as e:
         raise APIException(f'Invalid tarfile format {str(e)}')
