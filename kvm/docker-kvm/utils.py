@@ -11,9 +11,9 @@ my_manager = multiprocessing.Manager()
 
 import time, functools
 def time_use(func):
-    @functools.wraps(func)  # Preserves func's metadata (name, docstring, etc.)
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        start_time = time.perf_counter()  # Use perf_counter for precise timing
+        start_time = time.perf_counter()
         result = func(*args, **kwargs)
         runtime = time.perf_counter() - start_time
         logger.warn(f"Execution of '{func.__name__}' took {runtime:.4f} seconds.")
