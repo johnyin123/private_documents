@@ -267,7 +267,8 @@ EOF
 meta_data_srv() {
     local srv_name="${1}"
     local OUT_DIR=${2}
-    local SEC_KEY=${3}
+    local GOLD_DIR=${3}
+    local SEC_KEY=${4}
     cat <<EOF
 }
 server {
@@ -281,13 +282,11 @@ server {
     location ~* (\\.iso|\\/meta-data|\\/user-data)$ { access_log off; log_not_found on; set \$limit 0; root ${OUT_DIR}/cidata; }
     # # golds.json,iso.json, kvm support 301
     # location ^~ /gold { return 301 http://<addr>:8888/...; }
-    location ^~ /gold { access_log off; log_not_found on; set \$limit 0; alias ${OUT_DIR}/gold/; }
-    # /gold/uuid.iso => /gold/uuid.iso
-    # /uuid.iso      => ${OUT_DIR}/iso/uuid.iso
+    location ^~ /gold { access_log off; log_not_found on; set \$limit 0; alias ${GOLD_DIR}/gold/; }
     location /store {
         set \$mykey "${SEC_KEY}";
         if (\$request_method !~ ^(PUT|DELETE)$ ) { return 444 "444 METHOD(PUT/DELETE)"; }
-        alias ${OUT_DIR}/gold/;
+        alias ${GOLD_DIR}/gold/;
         secure_link \$arg_k,\$arg_e;
         secure_link_md5 "\$mykey\$secure_link_expires\$uri\$request_method";
         if (\$secure_link = "") { return 403; }
@@ -307,7 +306,7 @@ admin_srv_name="$(python3 -c 'import config; print(config.META_SRV)' || true)"
 tanent_srv_name="$(python3 -c 'import config; print(config.CTRL_PANEL_SRV)' || true)"
 userkey="$(python3 -c 'import config; print(config.CTRL_PANEL_KEY)' || true)"
 outdir="$(python3 -c 'import config; print(config.DATA_DIR)' || true)"
-uidir="${1:? META_SRV=vmm.registry.local CTRL_PANEL_SRV=guest.vmm.registry.local DATA_DIR=/dev/shm/simplekvm ${0} <ui directory(ui/term/novnc/spice)>}"
+uidir="${1:? META_SRV=vmm.registry.local CTRL_PANEL_SRV=guest.vmm.registry.local DATA_DIR=/dev/shm/simplekvm ${0} <ui directory(ui/term/novnc/spice, golds)>}"
 ##################################################
 auth="#"
 # auth="" # need auth
@@ -325,9 +324,9 @@ combine=false
 "${combine}" && {
     tanent_api "${tanent_uri_prefix}" "${userkey}"
     tanent_ui "${tanent_uri_prefix}" "${uidir}" "${combine}"
-    meta_data_srv "${admin_srv_name}" "${outdir}" "G0ld&IS0sec#"
+    meta_data_srv "${admin_srv_name}" "${outdir}" "${uidir}" "G0ld&IS0sec#"
 } || {
-    meta_data_srv "${admin_srv_name}" "${outdir}" "G0ld&IS0sec#"
+    meta_data_srv "${admin_srv_name}" "${outdir}" "${uidir}" "G0ld&IS0sec#"
     https_cfg_header "${tanent_srv_name}"
     tanent_api "${tanent_uri_prefix}" "${userkey}"
     tanent_ui "${tanent_uri_prefix}" "${uidir}" "${combine}"
