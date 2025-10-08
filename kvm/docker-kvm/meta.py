@@ -15,7 +15,7 @@ def del_metafiles(uuid)->None:
 def gen_metafiles(**kwargs)->None:
     iso = pycdlib.PyCdlib()
     iso.new(interchange_level=4, vol_ident='cidata')
-    output = os.path.join(config.DIR_CIDATA, f'{kwargs["vm_uuid"]}')
+    output = os.path.join(config.DIR_CIDATA, kwargs["vm_uuid"])
     for file in template.cfg_templates(config.DIR_META):
         meta_str = template.MetaDataTemplate(file).render(**kwargs)
         meta_add(os.path.join(output, file), meta_str.encode('utf-8'))
@@ -23,6 +23,6 @@ def gen_metafiles(**kwargs)->None:
     # iso.write(os.path.join(output, 'cidata.iso'))
     outiso = BytesIO()
     iso.write_fp(outiso)
-    logger.info(f'Add meta {{kwargs["vm_uuid"]}}')
+    logger.info(f'Add meta {kwargs["vm_uuid"]}')
     meta_add(os.path.join(output, 'cidata.iso'), outiso.getvalue())
     iso.close()
