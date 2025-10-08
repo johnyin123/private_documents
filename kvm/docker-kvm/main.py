@@ -6,7 +6,6 @@ try:
 except ImportError:
     from io import BytesIO
 logger = logging.getLogger(__name__)
-conf_save = utils.EtcdConfig.etcd_save if config.ETCD_PREFIX else utils.file_save
 
 class MyApp(object):
     @staticmethod
@@ -70,7 +69,7 @@ class MyApp(object):
                 database.KVMIso.insert(**entry)
                 name = req_json['name']
             iso = database.KVMIso.list_all()
-            conf_save(config.FILE_ISO, json.dumps(iso, default=str).encode('utf-8'))
+            utils.conf_save(config.FILE_ISO, json.dumps(iso, default=str).encode('utf-8'))
             return utils.return_ok(f'conf iso ok', name=name)
         except Exception as e:
             return utils.deal_except(f'conf iso', e), 400
@@ -99,7 +98,7 @@ class MyApp(object):
                 name = req_json['name']
                 arch = req_json['arch']
             golds = database.KVMGold.list_all()
-            conf_save(config.FILE_GOLDS, json.dumps(golds, default=str).encode('utf-8'))
+            utils.conf_save(config.FILE_GOLDS, json.dumps(golds, default=str).encode('utf-8'))
             return utils.return_ok(f'conf gold ok', name=name, arch=arch)
         except Exception as e:
             return utils.deal_except(f'conf gold', e), 400
@@ -136,8 +135,8 @@ class MyApp(object):
                 name = req_json['name']
             hosts = database.KVMHost.list_all()
             devs = database.KVMDevice.list_all()
-            conf_save(config.FILE_HOSTS, json.dumps(hosts, default=str).encode('utf-8'))
-            conf_save(config.FILE_DEVICES, json.dumps(devs, default=str).encode('utf-8'))
+            utils.conf_save(config.FILE_HOSTS, json.dumps(hosts, default=str).encode('utf-8'))
+            utils.conf_save(config.FILE_DEVICES, json.dumps(devs, default=str).encode('utf-8'))
             return utils.return_ok(f'conf host ok', name=name)
         except Exception as e:
             return utils.deal_except(f'conf host', e), 400

@@ -162,7 +162,6 @@ try:
 except ImportError:
     pass
 class EtcdConfig:
-    member_prefix = tuple(['cidata/','devices/','domains/','meta/','devices.json','golds.json','hosts.json','iso.json','vars.json'])
     grpc_opts = [ ('grpc.max_receive_message_length', 32*1024*1024), ('grpc.max_send_message_length', 10*1024*1024), ]
 
     @classmethod
@@ -237,6 +236,7 @@ class EtcdConfig:
             logger.warn(f'ETCD INIT SYNC END {datetime.datetime.now().isoformat()}')
         multiprocessing.Process(target=cls.cfg_updater_proc, args=(update_callback,)).start()
 
+conf_save = EtcdConfig.etcd_save if config.ETCD_PREFIX else file_save
 def conf_backup_tgz()->BytesIO:
     file_obj = BytesIO()
     with tarfile.open(mode="w:gz", fileobj=file_obj) as tar:
@@ -244,8 +244,9 @@ def conf_backup_tgz()->BytesIO:
             if os.path.isfile(fn):
                 content = file_load(fn)
                 member = tarfile.TarInfo(os.path.relpath(fn, config.DATA_DIR))
-                if member.name.startswith(EtcdConfig.member_prefix):
+                if member.name.startswith(config.TGZ_MEMBER_PREFIX):
                     member.size = len(content)
+                    logger.debug(f'File backup {member.name}')
                     tar.addfile(member, BytesIO(content))
     file_obj.seek(0)
     return file_obj
@@ -254,12 +255,9 @@ def conf_restore_tgz(file_obj:BytesIO)->None:
     try:
         with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
             for member in tar.getmembers():
-                if member.isreg() and member.name.startswith(EtcdConfig.member_prefix):
+                if member.isreg() and member.name.startswith(config.TGZ_MEMBER_PREFIX):
                     with tar.extractfile(member) as f:
                         logger.debug(f'File restore {member.name}')
-                        if config.ETCD_PREFIX:
-                            EtcdConfig.etcd_save(os.path.join(config.DATA_DIR, member.name), f.read())
-                        else:
-                            file_save(os.path.join(config.DATA_DIR, member.name), f.read())
+                        conf_save(os.path.join(config.DATA_DIR, member.name), f.read())
     except tarfile.ReadError as e:
         raise APIException(f'Invalid tarfile format {str(e)}')

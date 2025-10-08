@@ -38,6 +38,7 @@ FILE_DEVICES     = os.path.join(DATA_DIR, 'devices.json')
 FILE_GOLDS       = os.path.join(DATA_DIR, 'golds.json')
 FILE_ISO         = os.path.join(DATA_DIR, 'iso.json')
 FILE_VARS        = os.path.join(DATA_DIR, 'vars.json')
+TGZ_MEMBER_PREFIX= tuple(['cidata/','devices/','domains/','meta/','devices.json','golds.json','hosts.json','iso.json','vars.json'])
 # # # # # # # # # # # # # # # # # # # # # # #
 # # vm define default values
 def VM_DEFAULT(arch:str, hostname:str):
