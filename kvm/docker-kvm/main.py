@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-import flask_app, flask, os, json, logging, datetime
+import flask_app, flask, io, os, json, logging, datetime
 import database, vmmanager, config, template, utils
-try:
-    from cStringIO import StringIO as BytesIO
-except ImportError:
-    from io import BytesIO
 logger = logging.getLogger(__name__)
 
 class MyApp(object):
@@ -166,7 +162,7 @@ class MyApp(object):
     def conf_restore(self):
         # restore on overwrite files exists in backup.tgz, others keep
         try:
-            utils.conf_restore_tgz(BytesIO(flask.request.files['file'].read()))
+            utils.conf_restore_tgz(io.BytesIO(flask.request.files['file'].read()))
             if not config.ETCD_PREFIX: # no etc need manual reload
                 database.reload_all()
             return utils.return_ok(f'restore config ok')

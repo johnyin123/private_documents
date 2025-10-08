@@ -1,11 +1,7 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable, Optional, Set, List, Tuple, Union, Dict, Generator, Any
-import libvirt, json, os, logging, base64, hashlib, datetime
+import libvirt, json, io, os, logging, base64, hashlib, datetime
 import multiprocessing, threading, subprocess, signal, time, tarfile, glob
-try:
-    from cStringIO import StringIO as BytesIO
-except ImportError:
-    from io import BytesIO
 logger = logging.getLogger(__name__)
 my_manager = multiprocessing.Manager()
 
@@ -237,8 +233,8 @@ class EtcdConfig:
         multiprocessing.Process(target=cls.cfg_updater_proc, args=(update_callback,)).start()
 
 conf_save = EtcdConfig.etcd_save if config.ETCD_PREFIX else file_save
-def conf_backup_tgz()->BytesIO:
-    file_obj = BytesIO()
+def conf_backup_tgz()->io.BytesIO:
+    file_obj = io.BytesIO()
     with tarfile.open(mode="w:gz", fileobj=file_obj) as tar:
         for fn in glob.glob(f'{config.DATA_DIR}/**', recursive=True):
             if os.path.isfile(fn):
@@ -247,11 +243,11 @@ def conf_backup_tgz()->BytesIO:
                 if member.name.startswith(config.TGZ_MEMBER_PREFIX):
                     member.size = len(content)
                     logger.debug(f'File backup {member.name}')
-                    tar.addfile(member, BytesIO(content))
+                    tar.addfile(member, io.BytesIO(content))
     file_obj.seek(0)
     return file_obj
 
-def conf_restore_tgz(file_obj:BytesIO)->None:
+def conf_restore_tgz(file_obj:io.BytesIO)->None:
     try:
         with tarfile.open(fileobj=file_obj, mode='r:gz') as tar:
             for member in tar.getmembers():
