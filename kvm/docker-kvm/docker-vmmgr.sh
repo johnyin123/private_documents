@@ -26,7 +26,6 @@ export REGISTRY=registry.local
 export IMAGE=debian:trixie       # # BASE IMAGE
 export NAMESPACE=
 token_dir=/dev/shm/simplekvm/token
-out_dir=/dev/shm/simplekvm/work
 for arch in ${ARCH[@]}; do
     ./make_docker_image.sh -c ${type} -D ${type}-${arch} --arch ${arch}
     cat <<EODOC > ${type}-${arch}/docker/build.run
@@ -359,7 +358,7 @@ stderr_logfile_maxbytes=0
 
 [program:gunicorn]
 umask=0022
-environment=HOME="/home/${username}",DATA_DIR="${out_dir}",TOKEN_DIR="${token_dir}",PYTHONDONTWRITEBYTECODE=1
+environment=HOME="/home/${username}",TOKEN_DIR="${token_dir}",PYTHONDONTWRITEBYTECODE=1
 directory=/app/
 command=gunicorn -b 127.0.0.1:5009 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'API %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'main:app'
 autostart=true
