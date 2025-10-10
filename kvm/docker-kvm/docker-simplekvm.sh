@@ -56,6 +56,8 @@ Flask
 pycdlib
 websockify
 etcd3
+ldap3
+pyjwt[crypto]
 # etcd3 use grpcio someversion bug when Docker, so use system python3-protobuf
 EO_PIP
 pip install ${PROXY:+--proxy ${PROXY} }-r /home/${username}/requirements.txt
@@ -64,6 +66,8 @@ chown -R 10001:10001 /home/${username}/venv
 find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
 rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/* /usr/share/doc/*
 EODOC
+    echo 'load_module modules/ngx_http_auth_jwt_module.so;' > ${type}-${arch}/docker/etc/nginx/modules.d/jwt.conf
+    echo '{"status":200,"message":"Success"}' > ${type}-${arch}/etc/nginx/http-enabled/check.json
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-conf.d/ && cat <<'EODOC' > ${type}-${arch}/docker/etc/nginx/http-conf.d/cache.conf
 proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=5m max_size=16m use_temp_path=off;
 map $request_uri $cache_bypass {
@@ -92,7 +96,7 @@ EODOC
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled && cat <<'EODOC'| grep -v '^\s*#.*$' > ${type}-${arch}/docker/etc/nginx/http-enabled/simplekvm.conf
 upstream api_srv {
     server 127.0.0.1:5009 fail_timeout=0;
-    keepalive 64;
+    keepalive 16;
 }
 upstream websockify_srv {
     server 127.0.0.1:6800;
@@ -100,6 +104,29 @@ upstream websockify_srv {
 map $http_upgrade $connection_upgrade {
     default upgrade;
     ''      close;
+}
+upstream real_api_auth {
+    server 127.0.0.1:16000;
+    keepalive 16;
+}
+server {
+    listen 127.0.0.1:61600;
+    server_name _;
+    location =/api/login { proxy_pass http://real_api_auth; }
+    location / {
+        auth_jwt_enabled on;
+        auth_jwt_redirect off;
+        auth_jwt_location HEADER=Authorization;
+        auth_jwt_algorithm RS256;
+        auth_jwt_use_keyfile on;
+        auth_jwt_keyfile_path "/dev/shm/pubkey.pem";
+        alias /etc/nginx/http-enabled/;
+        try_files check.json =404;
+    }
+}
+upstream api_auth {
+    server 127.0.0.1:61600;
+    keepalive 16;
 }
 server {
     listen 443 ssl;
@@ -119,9 +146,29 @@ server {
     location @502 { return 502 '{"code":502,"name":"lberr","desc":"backend server not alive"}'; }
     error_page 504 = @504;
     location @504 { return 504 '{"code":504,"name":"lberr","desc":"Gateway Time-out"}'; }
-    #include /etc/nginx/http-enabled/jwt_sso_auth.inc;
+    error_page 401 =401 @error401;
+    location @error401 { return 401 '<!DOCTYPE html><html><head><meta http-equiv="refresh" content="0; url=/login.html?return_url=$scheme://$http_host/ui/tpl.html"/></head><body></body></html>'; }
+    location = /login.html { alias /app/ui/login.html; }
+    location = /logout { add_header Set-Cookie 'token='; return 200 '{"status":200,"message":"logout ok"}'; }
+    location =/api/login { proxy_pass http://api_auth; }
+    location = @api_auth {
+        internal;
+        proxy_cache off;
+        proxy_method 'GET';
+        # eat location prefix
+        proxy_pass http://api_auth/;
+        set $token '';
+        if ($cookie_token != '') { set $token 'Bearer $cookie_token'; }
+        if ($http_authorization != '') { set $token '$http_authorization'; }
+        proxy_set_header Authorization '$token';
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length '0';
+        proxy_set_header X-Origin-URI $request_uri;
+    }
     location ~* ^/conf/(backup|restore|host|iso|gold)/$ {
         # # no cache!! mgr private access
+        limit_except GET POST DELETE { deny all; }
+        auth_request @api_auth;
         proxy_cache off;
         expires off;
         proxy_read_timeout 240s;
@@ -129,12 +176,13 @@ server {
         proxy_pass http://api_srv;
     }
     location ~* ^/conf/(domains|devices)/$ {
+        auth_request @api_auth;
         proxy_cache_valid 200   5m;
         proxy_pass http://api_srv;
     }
     location /tpl/ {
         # # proxy cache default is on, so modify host|device|gold, should clear ngx cache
-        #auth_request @sso-auth;
+        auth_request @api_auth;
         # host/device/gold can cached by proxy_cache default
         proxy_cache_valid 200   5m;
         location ~* ^/tpl/(?<apicmd>(host|device|gold|iso))/(?<others>.*)$ {
@@ -153,7 +201,7 @@ server {
         proxy_set_header Content-Length "";
     }
     location /vm/ {
-        #auth_request @sso-auth;
+        auth_request @api_auth;
         # # no cache!! mgr private access
         proxy_cache off;
         expires off;
@@ -196,14 +244,14 @@ server {
     # # admin ui # #
     location = / { absolute_redirect off; return 301 /ui/tpl.html; }
     location = /ui/tpl.html {
-        #auth_request @sso-auth;
+        auth_request @api_auth;
         alias /app/ui/tpl.html;
     }
     # # static resource # #
     # # ui/term/spice/novnc use api_srv serve, add rewrite
     # rewrite ^ /public$uri break;proxy_pass http://api_srv;
-    location /ui { alias    /app/ui/; }
-    location /term { alias  /app/term/; }
+    location /ui    { alias /app/ui/; }
+    location /term  { alias /app/term/; }
     location /spice { alias /app/spice/; }
     location /novnc { alias /app/novnc/; }
 }
@@ -211,7 +259,7 @@ server {
     listen 80;
     server_name _;
     location / { return 301 https://$host$request_uri; }
-    location ~* (\.iso|\/meta-data|\/user-data)$ { set $limit 0; root /dev/shm/simplekvm/work/cidata; }
+    location ~* (\.iso|\/meta-data|\/user-data)$ { access_log off; log_not_found on; set $limit 0; root /dev/shm/simplekvm/work/cidata; }
 }
 server {
     listen 1443 ssl;
@@ -320,8 +368,8 @@ server {
     # # static resource # #
     # # ui/term/spice/novnc use api_srv serve, add rewrite
     # rewrite ^ /public$uri break;proxy_pass http://api_srv;
-    location /ui { alias    /app/ui/; }
-    location /term { alias  /app/term/; }
+    location /ui    { alias /app/ui/; }
+    location /term  { alias /app/term/; }
     location /spice { alias /app/spice/; }
     location /novnc { alias /app/novnc/; }
 }
@@ -356,7 +404,21 @@ stderr_logfile=/dev/stderr
 stdout_logfile_maxbytes=0
 stderr_logfile_maxbytes=0
 
-[program:gunicorn]
+[program:api_auth]
+umask=0022
+environment=JWT_CERT_PEM=/etc/nginx/ssl/simplekvm.pem,JWT_CERT_KEY=/etc/nginx/ssl/simplekvm.key
+directory=/app/
+command=gunicorn -b 127.0.0.1:16000 --max-requests 50000 --preload --workers=1 --threads=2 --access-logformat 'JWT %%(r)s %%(s)s %%(M)sms len=%%(B)s' --access-logfile='-' 'api_auth:app'
+autostart=true
+autorestart=true
+startretries=5
+user=${username}
+stdout_logfile=/dev/stdout
+stderr_logfile=/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile_maxbytes=0
+
+[program:simplekvm]
 umask=0022
 environment=HOME="/home/${username}",TOKEN_DIR="${token_dir}",PYTHONDONTWRITEBYTECODE=1
 directory=/app/
@@ -376,7 +438,9 @@ chown ${username}:${username} /home/${username}/.ssh -R || true
 chmod 600 /home/${username}/.ssh/id_rsa || true
 chmod 644 /home/${username}/.ssh/id_rsa.pub || true
 chmod 644 /home/${username}/.ssh/config || true
+openssl rsa -in /etc/nginx/ssl/simplekvm.key -pubout -out /dev/shm/pubkey.pem
 env || true
+# LDAP_SRV_URL
 exec "\$@"
 EODOC
     chmod 755 ${type}-${arch}/docker/entrypoint.sh
@@ -462,6 +526,7 @@ EO_CFG
 # # need http  get hosts define in golds.json when add disk with template (api srv)
 # # need https get host META_SRV for metadata and iso cdrom file (kvm srv)
 
+LDAP_SRV_URL=ldap://ldap:10389
 META_SRV=vmm.registry.local
 GOLD_SRV=vmm.registry.local
 gold_srv_ipaddr=192.168.167.1
@@ -471,6 +536,7 @@ docker create \
  --restart always \
  --network br-int --ip 192.168.169.123 \
  --env LEVELS='{"main":"INFO"}' \
+ --env LDAP_SRV_URL=${LDAP_SRV_URL} \
  --env META_SRV=${META_SRV} \
  --env GOLD_SRV=${GOLD_SRV} --add-host ${GOLD_SRV}:${gold_srv_ipaddr} \
  --env ETCD_PREFIX=/simple-kvm/work --env ETCD_SRV=192.168.169.1 --env ETCD_PORT=2379 \
