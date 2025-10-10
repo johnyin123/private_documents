@@ -119,8 +119,7 @@ dn: cn=${group},ou=group,${LDAP_SUFFIX}
 objectClass: posixGroup
 cn: ${group}
 gidNumber: ${gid}
-EO_LDIF
-cat <<EO_LDIF | tee user | su openldap -s /bin/bash -c "slapadd -n1 -F ${LDAP_CFG_DIR}"
+
 # ----------------------------------
 dn: uid=${user},ou=people,${LDAP_SUFFIX}
 objectClass: top
@@ -152,6 +151,8 @@ slapd -h 'ldapi:/// ldap:///' -u openldap -g openldap
 ldapsearch -LLL -Y EXTERNAL -H ldapi:/// -b ${LDAP_SUFFIX} '(&(objectClass=posixaccount)(uid=${user}))'
 # #search user, use admin:
 ldapsearch -LLL -x -W -D "cn=admin,${LDAP_SUFFIX}" -b ${LDAP_SUFFIX} '(&(objectClass=posixaccount)(uid=${user}))'
+# #search user, use self:
+ldapsearch -LLL -x -W -D "uid=${user},ou=People,${LDAP_SUFFIX}" -b ${LDAP_SUFFIX} '(&(objectClass=posixaccount)(uid=${user}))'
 # # delete user&group, use admin
 ldapdelete -x -W -D "cn=admin,${LDAP_SUFFIX}" "uid=${user},ou=People,${LDAP_SUFFIX}"
 ldapdelete -x -W -D "cn=admin,${LDAP_SUFFIX}" "cn=${group},ou=Group,${LDAP_SUFFIX}"
