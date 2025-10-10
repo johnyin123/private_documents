@@ -1,26 +1,18 @@
 #!/usr/bin/env bash
-set -o nounset   ## set -u : exit the script if you try to use an uninitialised variable
-set -o errexit   ## set -e : exit the script if any statement returns a non-true return value
+set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-if [[ ${DEBUG-} =~ ^1|yes|true$ ]]; then
-    exec 5> "${DIRNAME}/$(date '+%Y%m%d%H%M%S').${SCRIPTNAME}.debug.log"
-    BASH_XTRACEFD="5"
-    export PS4='[\D{%FT%TZ}] ${BASH_SOURCE}:${LINENO}: ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
-    set -o xtrace
-fi
-VERSION+=("759b5d4[2022-09-29T08:44:33+08:00]:init_ldap.sh")
+VERSION+=("07ea7f0e[2022-09-29T09:15:04+08:00]:init_ldap.sh")
+################################################################################
+LOGFILE=
 ################################################################################
 DEFAULT_ADD_USER_PASSWORD=${DEFAULT_ADD_USER_PASSWORD:-"password"}
 TLS_CIPHER=${TLS_CIPHER:-SECURE256:-VERS-TLS-ALL:+VERS-TLS1.3:+VERS-TLS1.2:+VERS-DTLS1.2:+SIGN-RSA-SHA256:%SAFE_RENEGOTIATION:%STATELESS_COMPRESSION:%LATEST_RECORD_VERSION}
-LOGFILE=""
 MAIL_GROUP="mail"
 MAIL_GID=9999
 READONLY_SYSUSER_UNIT="rsysuer"
 
-log() {
-    echo "######$*" | tee ${LOGFILE} >&2
-}
+log() { echo "$(tput setaf 141)$*$(tput sgr0)" >&2; }
 
 ldap_search() {
     log "ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// ${*}"
@@ -66,6 +58,7 @@ init_ldap() {
     local passwd=${1}
     local domain=${2}
     local org="${3}"
+    systemctl stop slapd --now
     log "openldap dpkg-reconfigure"
 cat <<EOF |tee ${LOGFILE}| debconf-set-selections
 slapd slapd/password1 password ${passwd}
@@ -82,6 +75,7 @@ slapd slapd/dump_database select when needed
 EOF
     DEBIAN_FRONTEND=noninteractive dpkg-reconfigure slapd
     slaptest -u
+    systemctl start slapd --now
 }
 
 ldap_user_group() {
@@ -158,7 +152,7 @@ shadowMax: 60
 shadowMin: 1
 shadowWarning: 7
 shadowInactive: 7
-shadowLastChange: $(echo $(date "+%s")/60/60/24 | bc)
+shadowLastChange: $(echo $(($(date "+%s")/60/60/24)))
 EOF
     ldap_search -b "${olcSuffix}" "(&(objectClass=posixaccount)(uid=${user}))" | grep -q "dn\s*:"
 }
@@ -422,6 +416,7 @@ ${SCRIPTNAME}
             slapcat -n 1 -l data.ldif
         # test ssl
         openssl s_client -host <host> -port 389 -starttls ldap
+        ldapsearch -Q -LLL -Y EXTERNAL -H ldapi:/// -b dc=sample,dc=org '(&(objectClass=posixaccount)(uid=user1))'
         ldapsearch -x -b dc=example,dc=org -ZZ
           # ldapsearch chinese word encode base64
         # delete user&group
