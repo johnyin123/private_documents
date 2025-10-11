@@ -145,3 +145,17 @@ echo "init  passwd" && ldappasswd -x -w "${LDAP_PASSWORD}" -D "cn=admin,dc=neuso
 echo "check passwd" && ldapwhoami -x -w \${password} -D "uid=\${uid},ou=people,dc=neusoft,dc=internal" -H ldap://\${ldap_srv}:10389
 # echo "change passwd" && ldappasswd -x -w \${password} -D "uid=simplekvm,ou=people,dc=neusoft,dc=internal" -H ldap://\${ldap_srv}:10389 -s "newpass2" "uid=simplekvm,ou=people,dc=neusoft,dc=internal"
 EO_DOC
+cat <<'EOF'
+# ===========================================
+dn: uid=${uid},ou=people,dc=neusoft,dc=internal
+objectClass: person
+objectClass: shadowAccount
+cn: ${uid}
+sn: simplekvm用户${uid}
+shadowMax: 60
+shadowMin: 1
+shadowWarning: 7
+shadowInactive: 7
+shadowLastChange: $(echo $(($(date "+%s")/60/60/24)))
+EOF
+
