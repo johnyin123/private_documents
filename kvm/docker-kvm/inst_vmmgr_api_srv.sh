@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("b144c3ee[2025-10-02T12:30:58+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("cdf7668b[2025-10-07T14:57:35+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -96,8 +96,11 @@ done
 
 systemd-run --user --unit etcd.service \
     --working-directory=${DIRNAME} \
+    -E ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379    \
+    -E ETCD_ADVERTISE_CLIENT_URLS=http://0.0.0.0:2379 \
+    -E ETCD_LOG_LEVEL='warn'                          \
     ${DIRNAME}/etcd
-    # --listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379 --log-level 'warn'
+    #--listen-client-urls http://0.0.0.0:2379 --advertise-client-urls http://0.0.0.0:2379 --log-level 'warn'
 
 systemd-run --user --unit websockify-graph \
     --working-directory=${DIRNAME} \
