@@ -20,7 +20,7 @@ cat <<EOF | cfssl gencert -initca /dev/stdin | cfssljson -bare ca
     "names": [ { "C": "CN", "ST": "LN", "L": "SY" } ]
 }
 EOF
-cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=simplekvm /dev/stdin | cfssljson -bare server 
+cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=simplekvm /dev/stdin | cfssljson -bare kvmsrvs
 {
     "CN": "libvirtd",
     "hosts": [ "192.168.1.226", "kvm01.local" ],
@@ -28,7 +28,7 @@ cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -
     "names": [ { "C": "CN", "ST": "LN", "L": "SY" } ]
 }
 EOF
-openssl x509 -text -noout -in server.pem | grep -iE 'Not After|DNS:| IP Address:'
+openssl x509 -text -noout -in kvmsrvs.pem | grep -iE 'Not After|DNS:| IP Address:'
 
 cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=simplekvm /dev/stdin | cfssljson -bare simplekvm
 {
