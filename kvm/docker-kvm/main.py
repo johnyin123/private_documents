@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
-import flask_app, flask, io, os, json, logging, datetime
+import flask_app, flask, io, os, json, logging, datetime, requests
 import database, vmmanager, config, template, utils
 logger = logging.getLogger(__name__)
+
+def http_file_exists(url):
+    response = requests.head(url, allow_redirects=True, timeout=5)
+    return response.status_code == requests.codes.ok
 
 class MyApp(object):
     @staticmethod
@@ -61,6 +65,8 @@ class MyApp(object):
                 if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                     return utils.return_err(800, 'add_iso', f'blank str!')
                 logger.debug(f'add iso {entry}')
+                if not http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}'):
+                    return utils.return_err(404, 'add iso', f'http://{config.GOLD_SRV}{entry["uri"]} No Found')
                 database.KVMIso.delete(name=entry['name'])
                 database.KVMIso.insert(**entry)
                 name = req_json['name']
@@ -71,9 +77,9 @@ class MyApp(object):
             return utils.deal_except(f'conf iso', e), 400
 
     def cfg_gold(self):
-        name = None
-        arch = None
         try:
+            name = None
+            arch = None
             if flask.request.method == "DELETE":
                 name = flask.request.args.get('name')
                 arch = flask.request.args.get('arch')
@@ -88,6 +94,8 @@ class MyApp(object):
                 if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                     return utils.return_err(800, 'add_gold', f'blank str!')
                 entry['size'] = int(entry['size'])*vmmanager.GiB
+                if not http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}'):
+                    return utils.return_err(404, 'add gold', f'http://{config.GOLD_SRV}{entry["uri"]} No Found')
                 logger.debug(f'add gold {entry}')
                 database.KVMGold.delete(name=entry['name'], arch=entry['arch'])
                 database.KVMGold.insert(**entry)
