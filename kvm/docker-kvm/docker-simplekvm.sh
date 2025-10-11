@@ -33,10 +33,6 @@ set -o nounset -o pipefail -o errexit
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 export DEBIAN_FRONTEND=noninteractive
 useradd -u 10001 -m ${username} --home-dir /home/${username}/ --shell /bin/bash
-dpkg -i nginx-johnyin_${arch}.deb || true
-sed -i "s/^user .*;/user ${username} ${username};/g"  /etc/nginx/nginx.conf
-sed -i "s/worker_processes .*;/worker_processes 1;/g" /etc/nginx/nginx.conf
-sed -i "/worker_priority/d"                           /etc/nginx/nginx.conf
 echo "need jq,socat,qemu-img(qemu-block-extra),ssh(libvirt open)"
 APT="apt -y ${PROXY:+--option Acquire::http::Proxy=\"${PROXY}\" }--no-install-recommends"
 \${APT} update
@@ -66,10 +62,9 @@ chown -R 10001:10001 /home/${username}/venv
 find /usr/share/locale -maxdepth 1 -mindepth 1 -type d ! -iname 'zh_CN*' ! -iname 'en*' | xargs -I@ rm -rf @ || true
 rm -rf /var/lib/apt/* /var/cache/* /root/.cache /root/.bash_history /usr/share/man/* /usr/share/doc/*
 EODOC
-    echo 'load_module modules/ngx_http_auth_jwt_module.so;' > ${type}-${arch}/docker/etc/nginx/modules.d/jwt.conf
-    echo '{"status":200,"message":"Success"}' > ${type}-${arch}/etc/nginx/http-enabled/check.json
+    mkdir -p ${type}-${arch}/docker/etc/nginx/http-enabled/ && echo '{"status":200,"message":"Success"}' > ${type}-${arch}/docker/etc/nginx/http-enabled/check.json
     mkdir -p ${type}-${arch}/docker/etc/nginx/http-conf.d/ && cat <<'EODOC' > ${type}-${arch}/docker/etc/nginx/http-conf.d/cache.conf
-proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=5m max_size=16m use_temp_path=off;
+proxy_cache_path /dev/shm/cache levels=1:2 keys_zone=SHM_CACHE:10m inactive=60m max_size=16m use_temp_path=off;
 map $request_uri $cache_bypass {
     "~(/administrator|/admin|/login)" 1;
     default 0;
@@ -439,8 +434,8 @@ chmod 600 /home/${username}/.ssh/id_rsa || true
 chmod 644 /home/${username}/.ssh/id_rsa.pub || true
 chmod 644 /home/${username}/.ssh/config || true
 openssl rsa -in /etc/nginx/ssl/simplekvm.key -pubout -out /dev/shm/pubkey.pem
+LDAP_SRV_URL=${LDAP_SRV_URL:-ldap://ldap:10389}
 env || true
-# LDAP_SRV_URL
 exec "\$@"
 EODOC
     chmod 755 ${type}-${arch}/docker/entrypoint.sh
@@ -457,6 +452,7 @@ EODOC
     docker rm -v ${type}-${arch}.baseimg
     log "Pre chroot, copy files in ${type}-${arch}/docker/"
     dpkg -x nginx-johnyin_${arch}.deb ${type}-${arch}/docker
+    sed -i "s/^\s*#\s*//g" ${type}-${arch}/docker/etc/nginx/modules.d/jwt.conf
     sed -i "s/^user .*;/user ${username} ${username};/g"  ${type}-${arch}/docker/etc/nginx/nginx.conf
     sed -i "s/worker_processes .*;/worker_processes 1;/g" ${type}-${arch}/docker/etc/nginx/nginx.conf
     sed -i "/worker_priority/d"                           ${type}-${arch}/docker/etc/nginx/nginx.conf

@@ -306,7 +306,7 @@ admin_srv_name="$(python3 -c 'import config; print(config.META_SRV)' || true)"
 tanent_srv_name="$(python3 -c 'import config; print(config.CTRL_PANEL_SRV)' || true)"
 userkey="$(python3 -c 'import config; print(config.CTRL_PANEL_KEY)' || true)"
 outdir="$(python3 -c 'import config; print(config.DATA_DIR)' || true)"
-uidir="${1:? AUTH=yes META_SRV=vmm.registry.local CTRL_PANEL_SRV=guest.vmm.registry.local DATA_DIR=/dev/shm/simplekvm/work ${0} <ui directory(ui/term/novnc/spice, golds)>}"
+uidir="${1:? AUTH=yes META_SRV=vmm.registry.local CTRL_PANEL_SRV=guest.vmm.registry.local DATA_DIR=/dev/shm/simplekvm/work ${0} <directory (ui/term/novnc/spice/gold)>}"
 ##################################################
 auth="#"
 [ "${AUTH:-no}" == "yes" ] && auth=''
