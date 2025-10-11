@@ -122,3 +122,4 @@ cat <<EOF
 #   tls:
 #     enabled: false
 EOF
+echo './registry garbage-collect config.yml -m'
