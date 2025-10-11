@@ -1,4 +1,7 @@
 vm backup: ../vm_backup.sh
+docker libvirtd: docker-libvirtd.sh
+docker simplekvm: docker-simplekvm.sh
+docker openldap: docker-slapd.sh
 cat <<EOF
 # # cython
 # pip install ${PROXY:+--proxy ${PROXY} } cython

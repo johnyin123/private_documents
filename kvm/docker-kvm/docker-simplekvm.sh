@@ -457,7 +457,7 @@ EODOC
     sed -i "s/worker_processes .*;/worker_processes 1;/g" ${type}-${arch}/docker/etc/nginx/nginx.conf
     sed -i "/worker_priority/d"                           ${type}-${arch}/docker/etc/nginx/nginx.conf
     mkdir -p ${type}-${arch}/docker/app && {
-        tar -C ${type}-${arch}/docker/app --exclude=include --exclude=utils -xf ${SOURCE_DIR}/novnc.tgz
+        tar -C ${type}-${arch}/docker/app --exclude=include -xf ${SOURCE_DIR}/novnc.tgz
         tar -C ${type}-${arch}/docker/app -xf ${SOURCE_DIR}/spice.tgz --transform 's/^spice.*master/spice/'
         # tar -C ${type}-${arch}/docker/app --one-top-level=spice --strip-components 1 -xf ${SOURCE_DIR}/spice.tgz
         tar --exclude=test -C ${SOURCE_DIR} -c ui term | tar -C ${type}-${arch}/docker/app -x
