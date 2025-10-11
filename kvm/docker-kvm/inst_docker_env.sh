@@ -141,7 +141,7 @@ EOF
 EO_DOC
 cat <<EO_DOC
 password=adminpass
-echo "init  passwd" && ldappasswd -x -w \${password} -D "cn=admin,dc=neusoft,dc=internal" -H ldap://\${ldap_srv}:10389 -s "${LDAP_PASSWORD}" "uid=\${uid},ou=people,dc=neusoft,dc=internal"
+echo "init  passwd" && ldappasswd -x -w "${LDAP_PASSWORD}" -D "cn=admin,dc=neusoft,dc=internal" -H ldap://\${ldap_srv}:10389 -s \${password} "uid=\${uid},ou=people,dc=neusoft,dc=internal"
 echo "check passwd" && ldapwhoami -x -w \${password} -D "uid=\${uid},ou=people,dc=neusoft,dc=internal" -H ldap://\${ldap_srv}:10389
 # echo "change passwd" && ldappasswd -x -w \${password} -D "uid=simplekvm,ou=people,dc=neusoft,dc=internal" -H ldap://\${ldap_srv}:10389 -s "newpass2" "uid=simplekvm,ou=people,dc=neusoft,dc=internal"
 EO_DOC

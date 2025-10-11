@@ -175,6 +175,10 @@ vnc_lite.html?host=192.168.168.1&port=6800&password=abc&path=websockify/?token=v
 https://vmm.registry.local/novnc/vnc_lite.html?password=abc&path=websockify/?token=vm1
 ---------------------------------------------------------
 srv=http://127.0.0.1:5009 #https://vmm.registry.local
+
+curl -s -k -X POST ${srv}/api/login -d '{"username":"simplekvm", "password":"newpass2"}' | jq -r .token
+token=
+CURL="curl -k --header \"Authorization: Bearer ${token}\""
 echo 'list host' && curl -k ${srv}/tpl/host/ | jq '.[]|{name: .name, arch: .arch}'
 echo 'list iso' && curl -k ${srv}/tpl/iso/
 host=host01
