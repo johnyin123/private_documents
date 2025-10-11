@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("cdf7668b[2025-10-07T14:57:35+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("cf7908e8[2025-10-11T08:53:21+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -108,7 +108,12 @@ systemd-run --user --unit websockify-graph \
 
 systemd-run --user --unit jwt-srv \
     --working-directory=${DIRNAME} \
-    gunicorn -b 127.0.0.1:16000 --preload --workers=2 --threads=2 --access-logformat 'JWT %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'jwt_server:app'
+    --property=UMask=0022 \
+    -E LEVELS='{"api_auth":"DEBUG"}' \
+    -E JWT_CERT_PEM=/etc/nginx/ssl/simplekvm.pem \
+    -E JWT_CERT_KEY=/etc/nginx/ssl/simplekvm.key \
+    -E LDAP_SRV_URL=ldap://192.168.169.192:10389 \
+    gunicorn -b 127.0.0.1:16000 --preload --workers=2 --threads=2 --access-logformat 'JWT %(r)s %(s)s %(M)sms len=%(B)s' --access-logfile='-' 'api_auth:app'
 
 # -E META_SRV=vmm.registry.local \ KVMHOST use.
 # -E GOLD_SRV=vmm.registry.local \ ACTIONS use(this srv).
