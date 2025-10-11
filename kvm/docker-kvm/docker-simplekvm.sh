@@ -434,7 +434,7 @@ chmod 600 /home/${username}/.ssh/id_rsa || true
 chmod 644 /home/${username}/.ssh/id_rsa.pub || true
 chmod 644 /home/${username}/.ssh/config || true
 openssl rsa -in /etc/nginx/ssl/simplekvm.key -pubout -out /dev/shm/pubkey.pem
-LDAP_SRV_URL=${LDAP_SRV_URL:-ldap://ldap:10389}
+export LDAP_SRV_URL=\${LDAP_SRV_URL:-ldap://ldap:10389}
 env || true
 exec "\$@"
 EODOC
