@@ -3,7 +3,7 @@ import flask_app, flask, io, os, json, logging, datetime, requests
 import database, vmmanager, config, template, utils
 logger = logging.getLogger(__name__)
 
-def http_file_exists(url):
+def http_file_exists(url:str)->bool:
     response = requests.head(url, allow_redirects=True, timeout=5)
     return response.status_code == requests.codes.ok
 
