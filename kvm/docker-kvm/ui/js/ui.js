@@ -826,7 +826,7 @@ function modify_vcpus(host, uuid, btn) {
 function modify_mdconfig(host, uuid, key, btn) {
   set_curr(host, uuid);
   const div = document.getElementById('div-metadata');
-  div.innerHTML = `<label>${key}:<input type="text" name="${key}" pattern="\\w+"/></label>`;
+  div.innerHTML = `<label>${key}:<input type="text" name="${key}" pattern="[a-zA-Z0-9._-]+"/></label>`;
   showView('modifymdconfig');
 }
 function netstats(host, uuid, dev, btn) {
@@ -854,8 +854,8 @@ function add_meta(btn) {
   var c_name = newRow.insertCell(0);
   var c_value = newRow.insertCell(1);
   var del_btn = newRow.insertCell(2);
-  c_name.innerHTML = `<input type="text" maxlength="40" placeholder="name" onChange="set_name(this)" list="${dlist}" autocomplete="off" pattern="\\w+" required>`;
-  c_value.innerHTML = '<input type="text" maxlength="200" placeholder="value" pattern="\\w+" required>';
+  c_name.innerHTML = `<input type="text" maxlength="40" placeholder="name" onChange="set_name(this)" list="${dlist}" autocomplete="off" pattern="[a-zA-Z0-9._-]+" required>`;
+  c_value.innerHTML = '<input type="text" maxlength="200" placeholder="value" pattern="[a-zA-Z0-9._-]+" required>';
   del_btn.innerHTML = `<input type="button" value="Remove" onclick="del_meta(this)"/>`;
 }
 function set_help(form, vars) {

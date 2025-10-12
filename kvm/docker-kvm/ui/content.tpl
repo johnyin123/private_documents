@@ -9,7 +9,7 @@
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
     <form id="addhost_form" onSubmit="return on_conf_addhost(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Name*</label><input type="text" name="name" pattern="\w+" required/>
+      <label>Name*</label><input type="text" name="name" pattern="[a-zA-Z0-9._-]+" required/>
       <label>Arch*</label><select name="arch">
         <option value="x86_64" selected>x86_64</option>
         <option value="aarch64">ARM64</option>
@@ -17,7 +17,7 @@
       <label>Domain TPL*</label><select name="tpl" id="conf_domains_tpl"></select>
       <label>SSH USER/IP/PORT*</label>
       <div class="flex-group">
-        <input style="width: 30%;" type="text" name="sshuser" placeholder="ssh user" pattern="\w+" required/>@
+        <input style="width: 30%;" type="text" name="sshuser" placeholder="ssh user" pattern="[a-zA-Z0-9._-]+" required/>@
         <input type="text" name="ipaddr" placeholder="ssh ip address" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" required/>:
         <input style="width: 30%;" type="number" name="sshport" title="ssh port" value="22" required/>
       </div>
@@ -42,7 +42,7 @@
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
     <form id="addiso_form" onSubmit="return on_conf_addiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Name*</label><input type="text" name="name" placeholder="uniq name" pattern="\w+" required/>
+      <label>Name*</label><input type="text" name="name" placeholder="uniq name" pattern="[a-zA-Z0-9._-]+" required/>
       <label>URI*</label><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[a-zA-Z0-9._\-]+/?)*$" required/>
       <label>Desc*</label><input type="text" name="desc" placeholder="desc" required/>
       <div class="flex-group">
@@ -62,7 +62,7 @@
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
     <form id="addgold_form"  onSubmit="return on_conf_addgold(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Name*</label><input type="text" name="name" placeholder="uniq name" pattern="\w+" required/>
+      <label>Name*</label><input type="text" name="name" placeholder="uniq name" pattern="[a-zA-Z0-9._-]+" required/>
       <label>Arch*</label><select name="arch">
         <option value="x86_64" selected>x86_64</option>
         <option value="aarch64">ARM64</option>
