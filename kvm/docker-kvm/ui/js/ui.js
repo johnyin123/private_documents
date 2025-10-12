@@ -826,7 +826,7 @@ function modify_vcpus(host, uuid, btn) {
 function modify_mdconfig(host, uuid, key, btn) {
   set_curr(host, uuid);
   const div = document.getElementById('div-metadata');
-  div.innerHTML = `<label>${key}:<input type="text" name="${key}" pattern="[a-zA-Z0-9._-]+"/></label>`;
+  div.innerHTML = `<label>${key}:<input type="text" name="${key}" required/></label>`;
   showView('modifymdconfig');
 }
 function netstats(host, uuid, dev, btn) {
