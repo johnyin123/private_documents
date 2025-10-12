@@ -51,11 +51,12 @@ function showView(id) {
   Array.from(tabContents).forEach(content => content.style.display = 'none');
   if (view) view.style.display = 'block';
 }
-function genActBtn(btn=true, smsg, icon, action, kvmhost, args={}) {
+function addslashes(str) { return (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0'); }
+function genActBtn(btn=true, smsg, icon, action, arg1, args={}) {
   // args must string
-  var str_arg = `"${kvmhost}"`;
+  var str_arg = `"${addslashes(arg1)}"`;
   for(const key in args) {
-      str_arg += `,"${args[key]}"`;
+      str_arg += `,"${addslashes(args[key])}"`;
   }
   if(btn == true) {
     //return `<button title='${smsg}' onclick='${action}(${str_arg})'><i class="fa ${icon}"></i></button>`;
