@@ -3,9 +3,10 @@ import flask_app, flask, io, os, json, logging, datetime, requests
 import database, vmmanager, config, template, utils
 logger = logging.getLogger(__name__)
 
-def http_file_exists(url:str)->bool:
+def http_file_exists(url:str)->tuple[bool, int]:
     response = requests.head(url, allow_redirects=True, timeout=5)
-    return response.status_code == requests.codes.ok
+    content_length = response.headers.get('Content-Length', '0')
+    return response.status_code == requests.codes.ok, int(content_length)
 
 class MyApp(object):
     @staticmethod
@@ -65,7 +66,8 @@ class MyApp(object):
                 if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                     return utils.return_err(800, 'add_iso', f'blank str!')
                 logger.debug(f'add iso {entry}')
-                if not http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}'):
+                exists, file_size = http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}')
+                if not exists:
                     return utils.return_err(404, 'add iso', f'http://{config.GOLD_SRV}{entry["uri"]} No Found')
                 database.KVMIso.delete(name=entry['name'])
                 database.KVMIso.insert(**entry)
@@ -94,8 +96,11 @@ class MyApp(object):
                 if not all(isinstance(value, str) and len(value) > 0 for value in entry.values()):
                     return utils.return_err(800, 'add_gold', f'blank str!')
                 entry['size'] = int(entry['size'])*vmmanager.GiB
-                if not http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}'):
+                exists, file_size = http_file_exists(f'http://{config.GOLD_SRV}{entry["uri"]}')
+                if not exists:
                     return utils.return_err(404, 'add gold', f'http://{config.GOLD_SRV}{entry["uri"]} No Found')
+                if entry['size'] < file_size:
+                    return utils.return_err(403, 'add gold', f'http://{config.GOLD_SRV}{entry["uri"]} filesize={file_size}')
                 logger.debug(f'add gold {entry}')
                 database.KVMGold.delete(name=entry['name'], arch=entry['arch'])
                 database.KVMGold.insert(**entry)
