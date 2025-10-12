@@ -3,14 +3,14 @@
 {%- macro getmachine() %}{%- if vm_arch == 'x86_64' %}{{vm_machine | default("pc", true)}}{%- else %}{{vm_machine | default("virt", true)}}{%- endif %}{%- endmacro %}
 {%- macro getcpu() %}{%- if vm_arch == 'x86_64' %}{{vm_cpu | default("host-model", true)}}{%- else %}{{vm_cpu | default("host-passthrough", true)}}{%- endif %}{%- endmacro %}
 <domain type='kvm'>
-  <name>{{ vm_name | default('vmsrv', true) }}-{{ vm_uuid }}</name>
+  <name>{{ vm_name | default('vmsrv', true) | e }}-{{ vm_uuid }}</name>
   <uuid>{{ vm_uuid }}</uuid>
   <metadata>
     <mdconfig:meta xmlns:mdconfig="urn:iso-meta">
-      <vm_ipaddr>{{ vm_ipaddr | default("", true) }}</vm_ipaddr>
-      <vm_gateway>{{ vm_gateway | default("", true) }}</vm_gateway>
-      <vm_create>{{ vm_create | default("", true) }}</vm_create>
-      <vm_creater>{{ vm_creater | default("", true) }}</vm_creater>
+      <vm_ipaddr>{{ vm_ipaddr | default("", true) | e }}</vm_ipaddr>
+      <vm_gateway>{{ vm_gateway | default("", true) | e }}</vm_gateway>
+      <vm_create>{{ vm_create | default("", true) | e }}</vm_create>
+      <vm_creater>{{ vm_creater | default("", true) | e }}</vm_creater>
     </mdconfig:meta>
   </metadata>
   <sysinfo type='smbios'>
@@ -23,8 +23,8 @@
 {%- endif %}
     </system>
   </sysinfo>
-  <title>{{ vm_name | default('vmsrv', true) }}</title>
-  <description>{{ vm_desc | default("", true) }}</description>
+  <title>{{ vm_name | default('vmsrv', true) | e }}</title>
+  <description>{{ vm_desc | default("", true) | e }}</description>
   <memory unit='MiB'>{{ vm_ram_mb_max | default(vm_ram_mb | default(8192))}}</memory>
   <memoryBacking><source type='memfd'/><access mode='shared'/></memoryBacking>
   <currentMemory unit='MiB'>{{ vm_ram_mb | default(1024) }}</currentMemory>

@@ -16,6 +16,7 @@ def cfg_templates(dirname:str)->List:
 class KVMTemplate:
     def __init__(self, dirname:str, tpl_name:str):
         self.template = jinja2.Environment(loader=jinja2.FileSystemLoader(dirname)).get_template(f'{tpl_name}.tpl')
+        autoescape=jinja2.select_autoescape(['html', 'htm', 'xml'])
         self.action = os.path.join(dirname, f'{tpl_name}.action') if os.path.exists(os.path.join(dirname, f'{tpl_name}.action')) else None
         self.desc = utils.file_load(os.path.join(dirname, f'{tpl_name}.tpl')).decode('utf-8').splitlines()[0].removeprefix('{#').strip('#}')
 
