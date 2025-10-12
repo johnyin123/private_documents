@@ -24,7 +24,7 @@ CTRL_PANEL_SRV   = os.environ.get('CTRL_PANEL_SRV', META_SRV)
 CTRL_PANEL_KEY   = os.environ.get('CTRL_PANEL_KEY', 'P@ssw@rd4Display')
 ##################################################################
 # # const define
-TMOUT_MINS_SOCAT = f'15' # socat process timeout close minutes, default value
+TMOUT_MINS       = f'15' # secure_link/socat process timeout close minutes, default value
 URI_VNC          = f'/novnc/vnc_lite.html'
 URI_SPICE        = f'/spice/spice_auto.html'
 URI_CONSOLE      = f'/term/xterm.html'

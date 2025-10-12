@@ -158,7 +158,7 @@ class VMManager:
         raise utils.APIException(f'{dev} nofound on vm {uuid}')
 
     @staticmethod
-    def display(method:str, host:utils.AttrDict, uuid:str, disp:str='', prefix:str='', timeout_mins:str=config.TMOUT_MINS_SOCAT)->str:
+    def display(method:str, host:utils.AttrDict, uuid:str, disp:str='', prefix:str='', timeout_mins:str=config.TMOUT_MINS)->str:
         expire=int(timeout_mins)
         XMLDesc_Secure = None
         uri_map = {'vnc': config.URI_VNC,'spice':config.URI_SPICE, 'console': config.URI_CONSOLE}
@@ -176,7 +176,7 @@ class VMManager:
         raise utils.APIException('no graphic found')
 
     @staticmethod
-    def websockify(method:str, host:utils.AttrDict, uuid:str, disp:str='', expire:str=config.TMOUT_MINS_SOCAT, token:str='')->str:
+    def websockify(method:str, host:utils.AttrDict, uuid:str, disp:str='', expire:str=config.TMOUT_MINS, token:str='')->str:
         XMLDesc_Secure = None
         socat_cmd = ['timeout', '--preserve-status', '--verbose', f'{int(expire)}m' ]
         server = f'unix_socket:/tmp/.display.{uuid}'

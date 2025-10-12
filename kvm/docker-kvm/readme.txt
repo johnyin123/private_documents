@@ -231,7 +231,7 @@ echo "add ${device} noargs" && curl -k -H 'Content-Type:application/json' -X POS
 echo 'list host vms'   && curl -k ${srv}/vm/list/${host}            # from host
 echo 'list a vm'       && curl -k ${srv}/vm/list/${host}/${uuid}    # from host
 echo 'start vm'        && curl -k ${srv}/vm/start/${host}/${uuid}
-echo 'display'         && curl -k ${srv}/vm/display/${host}/${uuid} #disp=console #?timeout_mins=10 #default config.TMOUT_MINS_SOCAT, prefix default None else add '/user' prefix
+echo 'display'         && curl -k ${srv}/vm/display/${host}/${uuid} #disp=console #?timeout_mins=10 #default config.TMOUT_MINS, prefix default None else add '/user' prefix
 echo 'commn stop vm'   && curl -k ${srv}/vm/stop/${host}/${uuid}
 echo 'commn reset vm'  && curl -k ${srv}/vm/reset/${host}/${uuid}
 echo 'force stop vm'   && curl -k ${srv}/vm/stop/${host}/${uuid}?force=true # force stop. destroy
