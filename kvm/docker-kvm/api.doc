@@ -21,8 +21,10 @@ GET     /vm/list/<str:host>/<str:uuid>
 GET     /vm/ui/<str:host>/<str:uuid>?epoch=<str>
 GET     /vm/xml/<str:host>/<str:uuid>
 GET     /vm/ipaddr/<str:host>/<str:uuid>
+GET     /vm/blksize/<str:host>/<str:uuid>?dev=
+GET     /vm/netstat/<str:host>/<str:uuid>?dev=
 
-GET     /vm/display/<str:host>/<str:uuid>?disp=
+GET     /vm/display/<str:host>/<str:uuid>?disp=''&prefix=''&timeout_mins=15
 GET     /vm/start/<str:host>/<str:uuid>
 GET     /vm/reset/<str:host>/<str:uuid>
 GET     /vm/stop/<str:host>/<str:uuid>
