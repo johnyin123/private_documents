@@ -601,33 +601,6 @@ function on_modifymdconfig(form) {
   }, res);
   return false;
 }
-function on_conf_addiso(form) {
-  if (confirm(`Are you sure add iso?`)) {
-    const res = getFormJSON(form, false);
-    getjson('POST', `${uri_pre}/conf/iso/`,function(resp) {
-      if (getjson_result(resp)) { form.reset(); }
-    }, res);
-  }
-  return false;
-}
-function on_conf_addgold(form) {
-  if (confirm(`Are you sure add gold?`)) {
-    const res = getFormJSON(form, false);
-    getjson('POST', `${uri_pre}/conf/gold/`,function(resp) {
-      if (getjson_result(resp)) { form.reset(); }
-    }, res);
-  }
-  return false;
-}
-function on_conf_addhost(form) {
-  if (confirm(`Are you sure add kvmhost?`)) {
-    const res = getFormJSON(form, false);
-    getjson('POST', `${uri_pre}/conf/host/`,function(resp) {
-      if (getjson_result(resp)) { form.reset(); }
-    }, res);
-  }
-  return false;
-}
 function on_conf_restore(form) {
   if (confirm('Are you sure restore config ?')) {
     const formData = new FormData(form);
@@ -680,7 +653,16 @@ function set_form_inputs(myform, inputs, chkboxes) {
     elem.value  = inputs[key];
   }
 }
-function on_conf_edithostg(host, form, btn) {
+function on_conf_addhost(form) {
+  if (confirm(`Are you sure add kvmhost?`)) {
+    const res = getFormJSON(form, false);
+    getjson('POST', `${uri_pre}/conf/host/`,function(resp) {
+      if (getjson_result(resp)) { load_conf(`?${Date.now()}`); form.reset(); }
+    }, res);
+  }
+  return false;
+}
+function on_conf_edithost(host, form, btn) {
   var kvmhost = getHost(host);
   delete kvmhost.vars;
   const devices = getDevice(host);
@@ -689,16 +671,18 @@ function on_conf_edithostg(host, form, btn) {
 }
 function on_conf_delhost(host, btn) {
   if (confirm(`Are you sure delete ${host}?`)) {
-    getjson('DELETE', `${uri_pre}/conf/host/?name=${host}`, getjson_result);
+    getjson('DELETE', `${uri_pre}/conf/host/?name=${host}`, function(resp) {
+      if (getjson_result(resp)) { load_conf(`?${Date.now()}`); }
+    });
   }
 }
 function on_conf_listhost(btn) {
-  load_conf(`?${Date.now()}`);
   const div = document.getElementById('conf_host_list');
+  div.innerHTML = '';
   flush_sidebar("CONFIG");
   var tbl = `<table><tr><th class="truncate">Name</th><th class="truncate">Arch</th><th class="truncate">IPADDR</th><th class="truncate">DEVS</th><th>ACT</th></tr>`;
   config.g_host.forEach(host => {
-    var btn = genActBtn(false, 'Edit', 'Edit', 'on_conf_edithostg', host.name, {'form':'addhost_form'}) + genActBtn(false, 'Delete', 'Delete', 'on_conf_delhost', host.name);
+    var btn = genActBtn(false, 'Edit', 'Edit', 'on_conf_edithost', host.name, {'form':'addhost_form'}) + genActBtn(false, 'Delete', 'Delete', 'on_conf_delhost', host.name);
     var devs = getDevice(host.name).map(dev => dev.name);
     tbl += `<tr><td>${host.name}</td><td class="truncate">${host.arch}</td class="truncate"><td class="truncate">${host.ipaddr}</td><td class="truncate">${devs}</td><td><div class="flex-group">${btn}</div></td></tr>`;
   });
@@ -720,6 +704,15 @@ function show_conf_host_view() {
   });
   showView('conf_host');
 }
+function on_conf_addgold(form) {
+  if (confirm(`Are you sure add gold?`)) {
+    const res = getFormJSON(form, false);
+    getjson('POST', `${uri_pre}/conf/gold/`,function(resp) {
+      if (getjson_result(resp)) { load_conf(`?${Date.now()}`); form.reset(); }
+    }, res);
+  }
+  return false;
+}
 function on_conf_editgold(name, arch, form, btn) {
   var gold = getGold(name, arch);
   gold.size = Math.trunc(gold.size / (1024 ** 3));
@@ -728,7 +721,9 @@ function on_conf_editgold(name, arch, form, btn) {
 }
 function on_conf_delgold(name, arch, btn) {
   if (confirm(`Are you sure delete ${name} ${arch}?`)) {
-    getjson('DELETE', `${uri_pre}/conf/gold/?name=${name}&arch=${arch}`, getjson_result);
+    getjson('DELETE', `${uri_pre}/conf/gold/?name=${name}&arch=${arch}`,function(resp) {
+      if (getjson_result(resp)) { load_conf(`?${Date.now()}`); }
+    });
   }
 }
 function on_conf_listgold(btn) {
@@ -746,6 +741,15 @@ function on_conf_listgold(btn) {
     div.innerHTML = tbl;
   });
 }
+function on_conf_addiso(form) {
+  if (confirm(`Are you sure add iso?`)) {
+    const res = getFormJSON(form, false);
+    getjson('POST', `${uri_pre}/conf/iso/`,function(resp) {
+      if (getjson_result(resp)) { load_conf(`?${Date.now()}`); form.reset(); }
+    }, res);
+  }
+  return false;
+}
 function on_conf_editiso(name, form, btn) {
   var iso = getIso(name);
   const myform = document.getElementById(form);
@@ -753,7 +757,9 @@ function on_conf_editiso(name, form, btn) {
 }
 function on_conf_deliso(name, btn) {
   if (confirm(`Are you sure delete ${name}?`)) {
-    getjson('DELETE', `${uri_pre}/conf/iso/?name=${name}`, getjson_result);
+    getjson('DELETE', `${uri_pre}/conf/iso/?name=${name}`, function(resp) {
+      if (getjson_result(resp)) { load_conf(`?${Date.now()}`); }
+    });
   }
 }
 function on_conf_listiso(btn) {
