@@ -23,7 +23,7 @@ EOF
 cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=simplekvm /dev/stdin | cfssljson -bare kvmsrvs
 {
     "CN": "libvirtd",
-    "hosts": [ "192.168.1.226", "kvm01.local" ],
+    "hosts": [ "192.168.167.1", "192.168.168.1", "192.168.169.1", "kvm01.local" ],
     "key": { "algo": "rsa", "size": 2048 },
     "names": [ { "C": "CN", "ST": "LN", "L": "SY" } ]
 }
@@ -33,7 +33,7 @@ openssl x509 -text -noout -in kvmsrvs.pem | grep -iE 'Not After|DNS:| IP Address
 cat <<EOF | cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=simplekvm /dev/stdin | cfssljson -bare simplekvm
 {
     "CN": "simplekvm",
-    "hosts": [ "vmm.registry.local" ],
+    "hosts": [ "simplekvm.registry.local" ],
     "key": { "algo": "rsa", "size": 2048 },
     "names": [ { "C": "CN", "ST": "LN", "L": "SY" } ]
 }

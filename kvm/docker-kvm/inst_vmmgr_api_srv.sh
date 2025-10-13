@@ -2,7 +2,7 @@
 set -o nounset -o pipefail -o errexit
 readonly DIRNAME="$(readlink -f "$(dirname "$0")")"
 readonly SCRIPTNAME=${0##*/}
-VERSION+=("e1302c73[2025-10-11T08:55:04+08:00]:inst_vmmgr_api_srv.sh")
+VERSION+=("95f90a1b[2025-10-13T10:45:50+08:00]:inst_vmmgr_api_srv.sh")
 ################################################################################
 FILTER_CMD="cat"
 LOGFILE=
@@ -67,12 +67,13 @@ inst_app() {
             cat <<EO_DOC | install -v -C -m 0644 --group=${gid} --owner=${uid} /dev/stdin ${home_dir}/.ssh/config
 StrictHostKeyChecking=no
 UserKnownHostsFile=/dev/null
-Host *
-    ControlMaster auto
-    ControlPath /tmp/vmmgr-%r@%h-%p
-    ControlPersist 600
-    Ciphers aes256-ctr,aes192-ctr,aes128-ctr
-    MACs hmac-sha1
+StrictHostKeyChecking=no
+UserKnownHostsFile=/dev/null
+ControlMaster auto
+ControlPath  ~/.ssh/%r@%h:%p
+ControlPersist 600
+Ciphers aes256-ctr,aes192-ctr,aes128-ctr
+MACs hmac-sha1
 EO_DOC
         }
     }

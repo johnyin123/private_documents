@@ -431,7 +431,7 @@ stderr_logfile_maxbytes=0
 EODOC
     mkdir -p ${type}-${arch}/docker/ && cat <<EODOC >${type}-${arch}/docker/entrypoint.sh
 #!/bin/bash
-chown ${username}:${username} /home/${username}/.ssh -R || true
+chown ${username}:${username} /home/${username}/.ssh /etc/nginx/ssl/simplekvm.key /etc/nginx/ssl/simplekvm.pem -R || true
 chmod 600 /home/${username}/.ssh/id_rsa || true
 chmod 644 /home/${username}/.ssh/id_rsa.pub || true
 chmod 644 /home/${username}/.ssh/config || true

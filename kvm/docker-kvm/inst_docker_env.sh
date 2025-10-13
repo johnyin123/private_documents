@@ -81,9 +81,9 @@ cat <<EOF
 ${target}/config
 ${target}/id_rsa
 ${target}/id_rsa.pub
-${target}/cacert.pem
-${target}/clientkey.pem
-${target}/clientcert.pem
+${target}/ca.pem
+${target}/client.key
+${target}/client.pem
 # ===================================================
 docker create --name simplekvm --restart always \\
  --network br-int --ip 192.168.169.123 \\
@@ -95,22 +95,25 @@ docker create --name simplekvm --restart always \\
  -v ${target}/config:/home/simplekvm/.ssh/config \\
  -v ${target}/id_rsa:/home/simplekvm/.ssh/id_rsa \\
  -v ${target}/id_rsa.pub:/home/simplekvm/.ssh/id_rsa.pub \\
- -v ${target}/cacert.pem:/etc/pki/CA/cacert.pem \\
- -v ${target}/clientkey.pem:/etc/pki/libvirt/private/clientkey.pem \\
- -v ${target}/clientcert.pem:/etc/pki/libvirt/clientcert.pem \\
- -v ${target}/clientkey.pem:/etc/nginx/ssl/simplekvm.key \\
- -v ${target}/clientcert.pem:/etc/nginx/ssl/simplekvm.pem \\
+ -v ${target}/ca.pem:/etc/pki/CA/cacert.pem \\
+ -v ${target}/client.key:/etc/pki/libvirt/private/clientkey.pem \\
+ -v ${target}/client.pem:/etc/pki/libvirt/clientcert.pem \\
+ -v ${target}/client.key:/etc/nginx/ssl/simplekvm.key \\
+ -v ${target}/client.pem:/etc/nginx/ssl/simplekvm.pem \\
  registry.local/simplekvm/simplekvm:trixie
 EOF
 
-cat <<'EO_DOC'
+cat <<EO_DOC
 # ===================================================
 ######## init ldap user
 # ===================================================
+admpass="${LDAP_PASSWORD}"
+EO_DOC
+cat <<'EO_DOC'
 ldap_srv=192.168.169.192
 gid=simplekvm
 uid=admin
-cat <<EOF | ldapadd -x -w adminpass -D "cn=admin,dc=neusoft,dc=internal" -H ldap://${ldap_srv}:10389
+cat <<EOF | ldapadd -x -w ${admpass} -D "cn=admin,dc=neusoft,dc=internal" -H ldap://${ldap_srv}:10389
 dn: cn=${gid},ou=group,dc=neusoft,dc=internal
 objectClass: posixGroup
 cn: ${gid}
@@ -138,12 +141,10 @@ shadowWarning: 7
 shadowInactive: 7
 shadowLastChange: $(echo $(($(date "+%s")/60/60/24)))
 EOF
-EO_DOC
-cat <<EO_DOC
 password=adminpass
-echo "init  passwd" && ldappasswd -x -w "${LDAP_PASSWORD}" -D "cn=admin,dc=neusoft,dc=internal" -H ldap://\${ldap_srv}:10389 -s \${password} "uid=\${uid},ou=people,dc=neusoft,dc=internal"
-echo "check passwd" && ldapwhoami -x -w \${password} -D "uid=\${uid},ou=people,dc=neusoft,dc=internal" -H ldap://\${ldap_srv}:10389
-# echo "change passwd" && ldappasswd -x -w \${password} -D "uid=simplekvm,ou=people,dc=neusoft,dc=internal" -H ldap://\${ldap_srv}:10389 -s "newpass2" "uid=simplekvm,ou=people,dc=neusoft,dc=internal"
+echo "init  passwd" && ldappasswd -x -w ${admpass} -D "cn=admin,dc=neusoft,dc=internal" -H ldap://${ldap_srv}:10389 -s ${password} "uid=${uid},ou=people,dc=neusoft,dc=internal"
+echo "check passwd" && ldapwhoami -x -w ${password} -D "uid=${uid},ou=people,dc=neusoft,dc=internal" -H ldap://${ldap_srv}:10389
+# echo "change passwd" && ldappasswd -x -w ${password} -D "uid=simplekvm,ou=people,dc=neusoft,dc=internal" -H ldap://\${ldap_srv}:10389 -s "newpass2" "uid=simplekvm,ou=people,dc=neusoft,dc=internal"
 EO_DOC
 cat <<'EOF'
 # ===========================================
