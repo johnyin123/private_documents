@@ -1,0 +1,45 @@
+#GET     /vm/websockify/<str:host>/<str:uuid>?disp=&expire=<mins>&token=
+GET     /tpl/host/
+GET     /tpl/iso/
+GET     /tpl/gold/
+GET     /tpl/device/
+GET     /tpl/gold/<str:arch>
+GET     /tpl/device/<str:host>
+GET     /conf/domains/
+GET     /conf/devices/
+GET     /conf/backup/
+POST    /conf/restore/
+POST    /conf/host/
+DELETE  /conf/host/
+POST    /conf/iso/
+DELETE  /conf/iso/
+POST    /conf/gold/
+DELETE  /conf/gold/
+GET     /vm/list/
+
+GET     /vm/list/<str:host>/<str:uuid>
+GET     /vm/ui/<str:host>/<str:uuid>?epoch=<str>
+GET     /vm/xml/<str:host>/<str:uuid>
+GET     /vm/ipaddr/<str:host>/<str:uuid>
+
+GET     /vm/display/<str:host>/<str:uuid>?disp=
+GET     /vm/start/<str:host>/<str:uuid>
+GET     /vm/reset/<str:host>/<str:uuid>
+GET     /vm/stop/<str:host>/<str:uuid>
+GET     /vm/stop/<str:host>/<str:uuid>?force=true
+
+GET     /vm/desc/<str:host>/<str:uuid>?vm_desc=<str>
+GET     /vm/setmem/<str:host>/<str:uuid>?vm_ram_mb=
+GET     /vm/setcpu/<str:host>/<str:uuid>?vm_vcpus=
+GET     /vm/delete/<str:host>/<str:uuid>
+GET     /vm/snapshot/<str:host>/<str:uuid>
+POST    /vm/snapshot/<str:host>/<str:uuid>
+POST    /vm/snapshot/<str:host>/<str:uuid>?name=
+GET     /vm/revert_snapshot/<str:host>/<str:uuid>?name=
+GET     /vm/delete_snapshot/<str:host>/<str:uuid>?name=
+
+POST    /vm/metadata/<str:host>/<str:uuid>     <<< "json"
+POST    /vm/cdrom/<str:host>/<str:uuid>?dev=   <<< "json"
+POST    /vm/detach_device/<str:host>/<str:uuid>?dev=
+POST    /vm/create/<str:host>                  <<< "json"
+POST    /vm/attach_device/<str:host>/<str:uuid>?dev=    <<< "json"
