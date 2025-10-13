@@ -9,19 +9,19 @@
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
     <form id="addhost_form" onSubmit="return on_conf_addhost(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Name*</label><input type="text" name="name" pattern="[a-zA-Z0-9._-]+" required/>
-      <label>Arch*</label><select name="arch">
+      <label>Name*<input type="text" name="name" pattern="[a-zA-Z0-9._-]+" required/></label>
+      <label>Arch*<select name="arch" required>
         <option value="x86_64" selected>x86_64</option>
         <option value="aarch64">ARM64</option>
-      </select>
-      <label>Domain TPL*</label><select name="tpl" id="conf_domains_tpl"></select>
-      <label>SSH USER/IP/PORT*</label>
+      </select></label>
+      <label>Domain TPL*<select name="tpl" id="conf_domains_tpl" required></select></label>
+      <label>SSH USER/IP/PORT*
       <div class="flex-group">
         <input style="width: 30%;" type="text" name="sshuser" placeholder="ssh user" pattern="[a-zA-Z0-9._-]+" required/>@
         <input type="text" name="ipaddr" placeholder="ssh ip address" pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?).){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$" required/>:
         <input style="width: 30%;" type="number" name="sshport" title="ssh port" value="22" required/>
-      </div>
-      <label>QEMU URL(qemu+tls://{ip}/system):</label><input type="text" name="url" placeholder="e.g. qemu+tls://192.168.168.2/system" required/>
+      </div></label>
+      <label>QEMU URL(qemu+tls://{ip}/system):<input type="text" name="url" placeholder="e.g. qemu+tls://192.168.168.2/system" required/></label>
       <fieldset><legend>Device</legend>
         <div class="flex-group" id="conf_devices_tpl"></div>
       </fieldset>
@@ -42,9 +42,9 @@
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
     <form id="addiso_form" onSubmit="return on_conf_addiso(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Name*</label><input type="text" name="name" placeholder="uniq name" pattern="[a-zA-Z0-9._-]+" required/>
-      <label>URI*</label><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[a-zA-Z0-9._\-]+/?)*$" required/>
-      <label>Desc*</label><input type="text" name="desc" placeholder="desc" required/>
+      <label>Name*<input type="text" name="name" placeholder="uniq name" pattern="[a-zA-Z0-9._-]+" required/></label>
+      <label>URI*<input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[a-zA-Z0-9._\-]+/?)*$" required/></label>
+      <label>Desc*<textarea rows="3" maxlength="100" name="desc" placeholder="desc here..." required></textarea></label>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
         <input type="button" value="List" onclick="on_conf_listiso(this)"/>
@@ -62,14 +62,14 @@
       <button title="Close" onclick="showView('configuration')">&times;</button>
     </div>
     <form id="addgold_form"  onSubmit="return on_conf_addgold(this)" onkeydown="if(event.keyCode === 13){return false;}">
-      <label>Name*</label><input type="text" name="name" placeholder="uniq name" pattern="[a-zA-Z0-9._-]+" required/>
-      <label>Arch*</label><select name="arch">
+      <label>Name*<input type="text" name="name" placeholder="uniq name" pattern="[a-zA-Z0-9._-]+" required/></label>
+      <label>Arch*<select name="arch" required>
         <option value="x86_64" selected>x86_64</option>
         <option value="aarch64">ARM64</option>
-      </select>
-      <label>URI*</label><input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[a-zA-Z0-9._\-]+/?)*$" required/>
-      <label>Min Size(GiB)*</label><input type="number" name="size" value="1" min="1" max="2048" required/>
-      <label>Desc*</label><input type="text" name="desc" placeholder="desc" required/>
+      </select></label>
+      <label>URI*<input type="text" name="uri" placeholder="uri(unix path)" pattern="^(/[a-zA-Z0-9._\-]+/?)*$" required/></label>
+      <label>Min Size(GiB)*<input type="number" name="size" value="1" min="1" max="2048" required/></label>
+      <label>Desc*<textarea rows="3" maxlength="100" name="desc" placeholder="desc here..." required></textarea></label>
       <div class="flex-group">
         <input type="reset" value="Reset"/>
         <input type="button" value="List" onclick="on_conf_listgold(this)"/>
@@ -374,7 +374,7 @@
               <option value="vnc">VNC</option>
               <option value="spice">SPICE</option>
             </select></label>
-            <label>Video Card:<select name="vm_video" title="video card">
+            <label>Video Card:<select name="vm_video" title="video card" required>
               <option value="vga" selected>vga</option>
               <option value="qxl">qxl</option>
               <option value="virtio">virtio</option>
